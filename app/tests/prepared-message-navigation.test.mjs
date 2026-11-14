@@ -70,6 +70,7 @@ async function mounted(options,check){
    assert.ok(options.waiting,'waiting navigation only in its explicit source-bound case');
    assert.deepEqual(args,options.waiting);active=args.modeHomeClass;return {...args,threadLoaded:args.threadId!==null};
   }
+  if(command==='host_start'){assert.ok(options.hostStart,'a start of Codex only in its explicit case');return options.hostStart(args);}
   if(command==='thread_start'){if(options.startError)throw options.startError;account.threads.push(thread('new-choice'));return {startGeneration:g,result:{thread:{id:'new-choice'}}};}
   if(command==='workflow_trial_send'||command==='workflow_bring_back_send'){
    assert.ok(options.send,'send only in an explicit send-outcome case');return options.send(command,args);
@@ -558,7 +559,41 @@ test('workspace links reveal and focus existing destinations without changing ch
  });
 });
 
-for (const [state,closed,expected] of [['absent',false,'Codex is not connected'],['starting',false,'Codex is starting'],['ready',false,'Codex is connected'],['ready',true,'Codex is not connected'],['refused',false,'Codex could not stay connected']]) {
+// A refused start says why, from the cause the host chose where it refused it, and what the person
+// can do; the link to Connection and access shows only where that page has something to do.
+for (const [cause,build,words,link] of [
+ ['changed','release','The App found that its copy of Codex, or its own files, do not match what this App was built with, or could not read them, so it did not start Codex. Quit and open the App again; if this happens again, reinstall the App from its original download.',false],
+ ['unconfirmed','release','The App could not confirm that its copy of Codex is the one it was built with, so it did not start Codex. Quit and open the App again; if this happens again, reinstall the App from its original download.',false],
+ ['unconfirmed','development','This build of the App could not confirm a copy of Codex, so it did not start Codex. Use Start Codex under Connection and access to try again; if it happens again, this build may not include a usable copy of Codex.',true],
+ ['busy','release','The App was busy with another step when Codex was due to start, so it did not start it. Use Start Codex under Connection and access to try again.',true],
+ [null,'release','The App did not record why. Connection and access shows Codex\'s controls.',true],
+]) {
+ test(`a refused start (${cause}, ${build}) says it was not started, why, and what to do`,async()=>{
+  await mounted({initialize:false,beforeMount:account=>{account.state='refused';account.generationClosed=false;account.startRefusalCause=cause;account.build=build;}},async ui=>{
+   const status=region(ui.c,'Workspace connection status');
+   assert.ok(status.textContent.startsWith('Codex was not started'),status.textContent);
+   assert.ok(status.textContent.includes(words),status.textContent);
+   assert.doesNotMatch(status.textContent,/could not stay connected|Connection & access/);
+   assert.equal(elements(status,'a').length,link?1:0,'a link only where Connection and access has something to do');
+  });
+ });
+}
+// The retry the development "unconfirmed" words promise is usable: the link opens Connection and
+// access, where Start Codex is shown, can be pressed, and starts Codex.
+test('after a development "unconfirmed" refusal, Start Codex under Connection and access is reachable and starts Codex',async()=>{
+ let started=null;
+ await mounted({initialize:false,hostStart:args=>{started=args;return {state:'starting'};},beforeMount:account=>{account.state='refused';account.generationClosed=false;account.startRefusalCause='unconfirmed';account.build='development';}},async ui=>{
+  const status=region(ui.c,'Workspace connection status');
+  assert.ok(status.textContent.includes('Use Start Codex under Connection and access to try again'));
+  const link=elements(status,'a')[0];assert.equal(link?.textContent,'Open connection controls');
+  await followWorkspaceLink(ui.c,link.textContent);
+  const start=button(ui.c,'Start Codex');assert.ok(start,'Start Codex is shown under Connection and access');
+  assert.equal(!!props(start).disabled,false,'and can be pressed in the refused state');
+  await React.act(async()=>{await props(start).onClick();});
+  assert.deepEqual(started,{modeHomeClass:'account'},'pressing it asks the host to start Codex');
+ });
+});
+for (const [state,closed,expected] of [['absent',false,'Codex is not connected'],['starting',false,'Codex is starting'],['ready',false,'Codex is connected'],['ready',true,'Codex is not connected'],['refused',false,'Codex was not started'],['exited-unexpectedly',false,'Codex could not stay connected']]) {
  test(`connection overview reports ${state}/${closed} without choosing or starting`,async()=>{
   await mounted({initialize:false,beforeMount:account=>{account.state=state;account.generationClosed=closed;}},async ui=>{
    const status=region(ui.c,'Workspace connection status');assert.ok(status);

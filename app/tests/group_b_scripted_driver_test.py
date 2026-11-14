@@ -477,7 +477,7 @@ for index, answer in enumerate(answers):
     settings = app_data / f'shared-settings/settings-{{uuid.uuid4()}}'
     account = app_data / f'account-homes/account-{{uuid.uuid4()}}'
     lines = [f'Create NEW App-owned settings folder: {{settings}}',
-             'with an empty config.toml, an empty AGENTS.md and an empty skills folder.',
+             'with an empty config.toml, an empty AGENTS.md and a skills folder. Codex adds its own system skills there, and its own working files to the account directory, when it starts.',
              f'Create NEW App-owned account directory: {{account}}',
              'Link its config.toml, AGENTS.md and skills to those new settings.',
              'Read, import or change no other Codex settings, home or credential.',

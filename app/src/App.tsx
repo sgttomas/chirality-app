@@ -19,7 +19,7 @@ import { NativeActivityView, activityModel, sameActivityGeneration, type NativeA
 import { ContinuationContext, historyPageBinding, StoredItemPage, StoredTurnPage } from "./NativeHistory";
 import { ObserverAttachment } from "./ObserverAttachment";
 import { PlanModeControl } from "./PlanMode";
-import { NativeRequestCard, WaitingRequestsIndicator, answerable, hostRequests, requestItem, requestThread, requestScopeKey, requestReplyGuarded, type RequestActivityLink, type RequestAnswer, type ReadRequestCustody, type RequestReplyObservation, type WaitingRequestGroup } from "./RequestCards";
+import { NativeRequestCard, WaitingRequestsIndicator, answerable, hostRequests, requestItem, requestPlace, requestThread, requestScopeKey, requestReplyGuarded, type RequestActivityLink, type RequestAnswer, type ReadRequestCustody, type RequestReplyObservation, type WaitingRequestGroup } from "./RequestCards";
 import { RunOffer, type RunAct } from "./RunOffers";
 import { RecoveryCustodyPanel } from "./RecoveryCustodyPanel";
 import { CompareResult, initialDraftsState, LastCleanTrialLine, WorkflowDraftsView, type DraftsState } from "./WorkflowDrafts";
@@ -27,7 +27,7 @@ import { LibraryEntries } from "./LibraryEntries";
 import { WorkflowRegistrationReview } from "./WorkflowRegistrationReview";
 import { BringBackComposer, CleanTrialPanel, DelegatedTrialComposer, composersFor, conversationKey, findConversation, hostMessage, prefillKept } from "./TrialComposer";
 import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./preparedMessages";
-import { ConversationContext, ProjectLibraryContext, conversationFromKey, workflowSourceLimit } from "./WorkflowContext";
+import { ConversationContext, ProjectLibraryContext, appProjectFolder, conversationFromKey, workflowSourceLimit } from "./WorkflowContext";
 import { DailyWorkspace, WorkspaceDisclosure, WorkspaceConnectionStatus, revealWorkspaceTarget, registerWorkspaceViews, WORKSPACE_VIEWS } from "./DailyWorkspace";
 import { flushSync } from "react-dom";
 import { DesktopSetupPanel } from "./DesktopSetupPanel";
@@ -414,7 +414,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
     {selected && <div id="conversation-requests" aria-label="Requests from Codex in this conversation">
       <h3>Requests from Codex in this conversation ({requests.filter(answerable).length} waiting)</h3>
       {ordered.length === 0 && <p>No requests from Codex in this conversation.</p>}
-      {ordered.map((request: Json) => <NativeRequestCard activityLink={activityLink} key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answer} readRequest={readRequest} observation={replyObservations?.[requestScopeKey(request)]} />)}
+      {ordered.map((request: Json) => <NativeRequestCard activityLink={activityLink} key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answer} readRequest={readRequest} place={requestPlace(request, host, appProjectFolder(host))} observation={replyObservations?.[requestScopeKey(request)]} />)}
     </div>}
     <p id="ordinary-send-readiness" role="status" aria-live="polite">{sendReadiness}</p>
     {!sourceReady && <p><a href="#workspace-connection">Open connection controls</a></p>}
@@ -1206,6 +1206,7 @@ export function HomeAccessPanel({ host, resources, navigating = false, act, read
     {routing?.activeModeHomeClass !== "account" && entries.map(entry => <article key={entry.modeHomeClass}><p>{entry.state}{entry.configurationLimit ? ` — ${entry.configurationLimit}` : ""}</p><details><summary>Connection source</summary><pre>{JSON.stringify(entry.generation, null, 2)}</pre></details><button disabled={busy || navigating || routing?.activeModeHomeClass === entry.modeHomeClass} onClick={() => action("select_home", {modeHomeClass: entry.modeHomeClass})}>Use {entry.modeHomeClass} home</button></article>)}
     <AccountStatus host={host} navigating={navigating} busy={busy} read={readAccount}/>
     {routing?.activeModeHomeClass === "account" && <p aria-label="Provider in this home">In this home the App starts Codex on its built-in OpenAI provider, whatever default provider your own Codex settings name. Your Codex files are not changed. A local model server is set up below, under “Use oMLX / a local model”.</p>}
+    {routing?.activeModeHomeClass === "account" && <p aria-label="Where a sign-in will be kept">Before you sign in, you can see where Codex will keep your sign-in: press “Read effective storage and plugin settings” below.</p>}
     <button className="setup-primary" disabled={busy || routing?.activeModeHomeClass !== "account" || !generation} onClick={() => action("oauth_start", {generation,mode:"browser"})}>Sign in with your ChatGPT account (through Codex)…</button>
     <details><summary>Other sign-in options</summary>
     <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation} onClick={() => action("oauth_start", {generation,mode:"device-code"})}>Sign in through native device code…</button>
@@ -1242,6 +1243,18 @@ const accessSettingSources: Record<string, string> = {
   sessionFlags: "Session overrides", legacyManagedConfigTomlFromFile: "Legacy managed configuration",
   legacyManagedConfigTomlFromMdm: "Legacy managed preferences",
 };
+/** Where Codex keeps a sign-in, in the person's words, from the credential store Codex reported; the
+ * value Codex gave stays in brackets. Nothing is inferred when Codex reported none. */
+export function signInKept(field: Json): string {
+  const value = field?.state === "reported" ? field?.value : undefined;
+  switch (value) {
+    case "file": return "in a file, auth.json, in this home's sign-in folder (file)";
+    case "keyring": return "in your Mac's keychain (keyring)";
+    case "auto": return "in your Mac's keychain where available, otherwise in a file, auth.json, in this home's sign-in folder (auto)";
+    case "ephemeral": return "not kept after Codex stops (ephemeral)";
+    default: return "Codex did not report it";
+  }
+}
 export function EffectiveAccessSettingsPanel({ host, navigating, refresh }: { host: Json; navigating: boolean; refresh: (isCurrent: () => boolean) => Promise<Json> }) {
   const scopeOf = (snapshot: Json) => JSON.stringify([snapshot?.homeRouting?.activeModeHomeClass, snapshot?.generation, snapshot?.currentAppProjectContext ?? null, snapshot?.state, snapshot?.generationClosed]);
   const context = useRef({ key: "", epoch: 0, host });
@@ -1304,6 +1317,7 @@ export function EffectiveAccessSettingsPanel({ host, navigating, refresh }: { ho
     <button disabled={!ready || reading} onClick={read}>Read effective storage and plugin settings</button>
     {reading && <p role="status">Reading the selected Codex source…</p>}
     {current ? <div role="status">
+      <p aria-label="Where your sign-in is kept"><strong>Where your sign-in is kept:</strong> {signInKept(observation.packet.credentialStore)}, as Codex reported it for this launch.</p>
       {row("Credential storage", observation.packet.credentialStore, true)}
       {row("Plugins", observation.packet.plugins, false)}
       {host.homeRouting.activeModeHomeClass === "account" && (observation.packet.personDefaultProvider?.state === "reported" && observation.packet.personDefaultProvider.value !== "openai"
@@ -2487,7 +2501,7 @@ export function App() {
         <nav className="workspace-nav" aria-label="Workspace navigation">
           {WORKSPACE_VIEWS.map(item => <a key={item.id} href={`#${item.target}`} aria-current={taskView === item.id ? "page" : undefined}>{item.label}</a>)}
         </nav>
-        <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome}/>
+        <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome} refusalCause={host?.startRefusalCause} build={host?.build}/>
         </div>}
         <NativeWaitingBridge ready={!!host} report={setMessage} checkpoint={() => ({ signature: JSON.stringify([threadChoiceRevision.current, chooserHome.current.epoch, editRevision.current]),
           pristine: threadChoiceRevision.current === 0 && editRevision.current === 0 })} capture={() => {
@@ -2527,7 +2541,7 @@ export function App() {
         <div className="workspace-notices"><div id="other-requests">
             {outsideRequests.length > 0 && <h3>Requests outside the selected conversation</h3>}
             {outsideRequests.length > 0 && <p>Requests of the selected conversation are shown beside it. Select another conversation to answer its requests there.</p>}
-            {outsideRequests.map((request: Json) => <NativeRequestCard activityLink={activityLink} key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answerRequest} readRequest={readRequestCustody} observation={replyObservations[requestScopeKey(request)]}/>)}
+            {outsideRequests.map((request: Json) => <NativeRequestCard activityLink={activityLink} key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answerRequest} readRequest={readRequestCustody} place={requestPlace(request, host, appProjectFolder(host))} observation={replyObservations[requestScopeKey(request)]}/>)}
           </div>
 
   <ActionFeedback message={message}/>
