@@ -19,6 +19,8 @@ The facts each test guards are listed in README.md beside this file.
 """
 import json
 import os
+import subprocess
+import signal
 import re
 import stat
 import sys
@@ -864,6 +866,68 @@ class RunningProcess(unittest.TestCase):
             output = self.send(run, client, thread, session, 'after_clean', 'after cleaning', **FULL)
             self.assertIn('Unknown process id', output)
             self.assertEqual(self.written(target), 'after the interrupt\n')
+
+
+class QuitEnds(unittest.TestCase):
+    """What ends background commands when Codex ends. Two commands are left running at full access: one with a
+    terminal (`sleep 7771 & cat > <outside>/w-held`) and one without (`sleep 7772 & sleep 7773`). Each `sleep` is
+    found by its command line, the `cat` by the file it holds. Any survivor is ended by the test itself."""
+
+    def start_two(self, run):
+        target = run.root / 'outside' / 'w-held'
+        commands = {'t': ('sleep 7771 & cat > %s' % target, True), 'p': ('sleep 7772 & sleep 7773', False)}
+        run.stub.allowed_commands = set(run.stub.allowed_commands) | {c for c, _ in commands.values()}
+        for key, (command, tty) in commands.items():
+            def script(body, outputs, stub, key=key, command=command, tty=tty):
+                if 'call_' + key in outputs:
+                    return [L.message('Done.', 'msg_' + key)]
+                args = dict({'cmd': command, 'yield_time_ms': 250}, **({'tty': True} if tty else {}))
+                return [{'type': 'function_call', 'call_id': 'call_' + key, 'id': 'fc_call_' + key,
+                         'name': 'exec_command', 'arguments': json.dumps(args)}]
+            run.stub.scripts[key] = script
+        client = run.start()
+        thread = client.start_thread()['thread']['id']
+        for key in commands:
+            client.turn(thread, 'LEVEL[%s] go' % key, **FULL)
+        return client, target
+
+    def alive(self, target):
+        found = {n: [p for p, _ in L.processes_naming('sleep ' + n)] for n in ('7771', '7772', '7773')}
+        held = subprocess.run(['/usr/sbin/lsof', '-t', str(target)], capture_output=True, text=True, timeout=20)
+        found['cat'] = [int(p) for p in held.stdout.split()]
+        return found
+
+    def end_survivors(self, found):
+        for pids in found.values():
+            for pid in pids:
+                try:
+                    os.kill(pid, signal.SIGKILL)
+                except ProcessLookupError:
+                    pass
+
+    def test_closing_codexs_input_ends_background_commands_and_what_they_started(self):
+        with L.Run(SCRATCH, BINARY) as run:
+            client, target = self.start_two(run)
+            before = self.alive(target)
+            self.assertTrue(all(before.values()), before)
+            client.proc.stdin.close()  # as the App's stop does first
+            client.proc.wait(3)  # the App waits up to 3 s before it forces the server's group
+            time.sleep(1)
+            after = self.alive(target)
+            self.end_survivors(after)
+            self.assertEqual(after, {'7771': [], '7772': [], '7773': [], 'cat': []})
+
+    def test_when_codex_is_ended_at_once_a_background_command_without_a_terminal_outlives_it(self):
+        with L.Run(SCRATCH, BINARY) as run:
+            client, target = self.start_two(run)
+            before = self.alive(target)
+            self.assertTrue(all(before.values()), before)
+            client.kill()  # the server's whole process group, at once, as a crash or a forced end
+            time.sleep(2)
+            after = self.alive(target)
+            self.end_survivors(after)
+            self.assertEqual((after['7771'], after['cat']), ([], []))  # the terminal's commands ended
+            self.assertEqual((after['7772'], after['7773']), (before['7772'], before['7773']))  # these outlived it
 
 
 class Background(Probing):
