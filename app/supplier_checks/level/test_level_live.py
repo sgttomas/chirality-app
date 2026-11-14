@@ -202,7 +202,7 @@ class Presets(Probing):
             self.assertTrue(landed.evidence['item'])
             self.assertEqual(client.items(thread, refused.turn, 'commandExecution'), [])
 
-    def test_supervised_asks_before_every_command_tried_and_a_declined_one_does_not_run(self):
+    def test_supervised_asks_before_every_command_tried_and_a_declined_one_shows_no_effect(self):
         with L.Run(SCRATCH, BINARY, slash_tmp=True, git_marker=True) as run:
             client = run.start()
             thread = client.start_thread()['thread']['id']
@@ -243,6 +243,25 @@ class Presets(Probing):
             self.succeeded(rows['net'], network=True)
             self.rejected(probe(run, client, thread, 'out', escalate=True, **FULL))
             self.channel_live(run, client)
+
+    def test_no_edits_level_writes_in_private_var_tmp(self):
+        """The App's three edits levels, each with both temporary folders excluded as the App sends them: a write
+        in the run's own folder under /private/var/tmp runs and is refused by the sandbox. A write that succeeded
+        there would be a writable folder the App did not name."""
+        with L.Run(SCRATCH, BINARY, var_tmp=True) as run:
+            client = run.start()
+            both = dict(WW, excludeSlashTmp=True, excludeTmpdirEnvVar=True)
+            for name, settings in (('edits', dict(EDITS_NET_OFF, sandboxPolicy=dict(both, networkAccess=False))),
+                                   ('edits-network', dict(EDITS_NET_ON, sandboxPolicy=dict(both, networkAccess=True))),
+                                   ('edits-no-asking', EDITS_NEVER)):
+                thread = client.start_thread()['thread']['id']
+                outcome = probe(run, client, thread, 'vartmp', **settings)
+                if outcome.kind == SUCCEEDED:
+                    self.fail('%s wrote in /private/var/tmp: a writable folder the App did not name' % name)
+                self.refused(outcome)
+                self.succeeded(probe(run, client, thread, 'in', **settings))  # the same thread writes its project
+            control = client.start_thread()['thread']['id']
+            self.succeeded(probe(run, client, control, 'vartmp', **FULL))
 
     def test_the_two_temporary_folder_exclusions(self):
         with L.Run(SCRATCH, BINARY, slash_tmp=True) as run:
@@ -606,6 +625,34 @@ class Narrowing(Probing):
             while not late.exists() and time.monotonic() < deadline:
                 time.sleep(0.25)
             self.assertTrue(late.exists())
+
+
+class Background(Probing):
+    def test_a_background_commands_item_stays_in_progress_after_its_turn_and_completes_when_it_ends(self):
+        """A command left running when its turn completes: its item was started with a process id, and is still
+        in progress (no completed item) once the turn has completed; when the process ends, the item completes."""
+        with L.Run(SCRATCH, BINARY) as run:
+            client = run.start()
+            thread = client.start_thread()['thread']['id']
+            late = run.paths()['late']
+            run.stub.scripts['late'] = L.command_script('call_late', run.commands()['late'], background=True)
+            turn, done = client.turn(thread, 'LEVEL[late] go', **FULL)
+            self.assertEqual(done['turn']['status'], 'completed')
+            self.assertFalse(late.exists())  # still sleeping
+            started = [n['params']['item'] for n in client.notes_for('item/started', thread)
+                       if n['params']['item'].get('id') == 'call_late']
+            self.assertEqual(len(started), 1)
+            self.assertEqual(started[0].get('status'), 'inProgress')
+            self.assertTrue(started[0].get('processId'))
+
+            def completed():
+                return [n['params']['item'] for n in client.notes_for('item/completed', thread)
+                        if n['params']['item'].get('id') == 'call_late']
+            self.assertEqual(completed(), [])  # the turn completed; the command's item did not
+            final = client.wait(completed, 20)
+            self.assertTrue(late.exists())
+            self.assertTrue(final, 'the item did not complete within 20 s of its turn')
+            self.assertEqual((final[0].get('status'), final[0].get('exitCode')), ('completed', 0))
 
 
 def spawn_script(child_marker):

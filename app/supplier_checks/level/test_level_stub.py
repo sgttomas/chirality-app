@@ -136,6 +136,23 @@ class Runs(unittest.TestCase):
             finally:
                 os.rmdir(run.slash_tmp)
 
+    def test_the_var_tmp_folder_is_made_only_when_absent_and_removed_after(self):
+        with mock.patch.object(L, 'VAR_TMP', Path(self.scratch)):
+            run = L.Run(self.scratch, '/nonexistent/codex', var_tmp=True)
+            with run:
+                self.assertTrue(run.var_tmp.is_dir())
+                self.assertEqual(run.paths()['vartmp'].parent, run.var_tmp)
+                self.assertEqual(shlex.split(run.commands()['vartmp'])[-1], str(run.paths()['vartmp']))
+            self.assertFalse(run.var_tmp.exists())
+            again = L.Run(self.scratch, '/nonexistent/codex', var_tmp=True)
+            os.mkdir(again.var_tmp)
+            try:
+                with self.assertRaises(L.Refused):
+                    again.__enter__()
+                self.assertTrue(again.var_tmp.is_dir())  # one it found is never removed
+            finally:
+                os.rmdir(again.var_tmp)
+
     def test_every_fixed_command_writes_only_under_the_run(self):
         with mock.patch.object(L, 'SLASH_TMP', Path(self.scratch)):
             with L.Run(self.scratch, '/nonexistent/codex', slash_tmp=True) as run:

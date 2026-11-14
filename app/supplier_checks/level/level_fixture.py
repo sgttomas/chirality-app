@@ -19,7 +19,8 @@ behaving so.
 
 Every command the stub scripts is one of `commands()` below: fixed, harmless, and writing only
 under the run's root, or under the run's own /private/tmp/chirality-level-<run>/ folder, which
-the run refuses to start if it exists, creates itself, and removes afterwards.
+the run refuses to start if it exists, creates itself, and removes afterwards; and likewise, where a
+test asks for it, under its own /private/var/tmp/chirality-level-<run>/ folder.
 """
 import hashlib
 import json
@@ -58,6 +59,7 @@ DECLINE = {'item/commandExecution/requestApproval': {'decision': 'decline'},
            'execCommandApproval': {'decision': 'denied'},
            'applyPatchApproval': {'decision': 'denied'}}
 SLASH_TMP = Path('/private/tmp')
+VAR_TMP = Path('/private/var/tmp')
 # The network probe: connects to the stub's own loopback port and asks for the probe path. Unlike curl, it prints
 # the system's own reason when the connection is refused, so a sandbox refusal is in evidence, not inferred.
 NET_PROBE = ('$SIG{ALRM} = sub { print "timed out\\n"; exit 4 }; alarm 3; '
@@ -533,7 +535,7 @@ class Run:
     """A fresh root and one stub. Use as a context manager; the root is removed on exit."""
 
     def __init__(self, scratch, binary, slash_tmp=False, git_marker=False, project_name='project',
-                 working_files=False):
+                 working_files=False, var_tmp=False):
         self.binary = binary
         if '/' in project_name or project_name in ('', '.', '..'):
             raise Refused('a project folder name, not a path')
@@ -543,6 +545,8 @@ class Run:
         self.slash_tmp = SLASH_TMP / ('chirality-level-' + self.name) if slash_tmp else None
         self.git_marker = git_marker
         self.made_slash_tmp = False
+        self.var_tmp = VAR_TMP / ('chirality-level-' + self.name) if var_tmp else None
+        self.made_var_tmp = False
         # With `working_files`, the App's layout (invented names): the Codex home inside an invented data folder,
         # and TMPDIR a folder made inside "codex-tmp" in the "<data folder> Working Files" folder beside it.
         self.working_files = working_files
@@ -569,8 +573,9 @@ class Run:
             if folder.parent == folder:
                 break
             folder = folder.parent
-        if self.slash_tmp is not None and os.path.lexists(self.slash_tmp):
-            raise Refused('%s already exists' % self.slash_tmp)
+        for shared in (self.slash_tmp, self.var_tmp):
+            if shared is not None and os.path.lexists(shared):
+                raise Refused('%s already exists' % shared)
         os.mkdir(self.root, 0o700)
         try:
             for child in ('userhome', self.project_name, 'outside'):
@@ -584,6 +589,9 @@ class Run:
             if self.slash_tmp is not None:
                 os.mkdir(self.slash_tmp, 0o700)  # fails if it appeared since the check
                 self.made_slash_tmp = True
+            if self.var_tmp is not None:
+                os.mkdir(self.var_tmp, 0o700)  # fails if it appeared since the check
+                self.made_var_tmp = True
             self.stub = ScriptedStub()
             self.stub.allowed_commands = set(self.commands().values())  # enforced before any call reaches Codex
         except BaseException:
@@ -601,6 +609,8 @@ class Run:
             steps.append(self.stub.close)
         if self.made_slash_tmp:  # only the folder this run made, never one it found
             steps.append(lambda: shutil.rmtree(self.slash_tmp))
+        if self.made_var_tmp:  # likewise
+            steps.append(lambda: shutil.rmtree(self.var_tmp))
         steps.append(lambda: os.path.lexists(self.root) and shutil.rmtree(self.root))
         errors = []
         for step in steps:
@@ -655,6 +665,8 @@ class Run:
                'git': self.project / '.git' / 'w-git', 'extra': self.root / 'outside' / 'w-extra'}
         if self.slash_tmp is not None:
             out['slashtmp'] = self.slash_tmp / 'w-slashtmp'
+        if self.var_tmp is not None:
+            out['vartmp'] = self.var_tmp / 'w-vartmp'
         return out
 
     def commands(self):
