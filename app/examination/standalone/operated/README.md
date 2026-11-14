@@ -253,9 +253,11 @@ has open, for any process, and nothing at all is kept about a process that is
 neither ours nor the supplier's window service. Every process read is made
 through `proc_read.py`, `route.py`, `stray.py` or `watch.py`, each of which
 states in its header the exact forms it uses, and through the few single
-commands written out below (`pgrep -P`, `pgrep -g`, `ps -p`, `ps -o stat=`,
-each on a known number). No command line is printed, matched on or kept, by
-any tool or by hand; `comm` is never asked for (on this host it is argv[0]),
+commands written out below (`pgrep -P`, `pgrep -g`, `ps -o pid= -p`, `ps -o stat=`,
+each on a known number). Every `ps` names its output with `-o`, and only
+these fields: `pid`, `ppid`, `lstart`, `stat`, `ucomm`; a `ps` without `-o`
+prints the command line by default and is never run. No command line is
+printed, matched on or kept, by any tool or by hand; `comm` is never asked for (on this host it is argv[0]),
 nor `pgrep` with its full-argument or exact-name flag, nor `lsof` on anything but one process's
 program text (`lsof -a -p <pid> -d txt -Fn`, the first `n` line). The one
 exception is the shared host's exclusive check, whose output goes nowhere.
@@ -405,7 +407,7 @@ the return as an outcome. Then:
 - every deviation from this method, however small, and every place it did
   not say what to do;
 - what it started (from the started files), what it ended, and how it
-  confirmed each gone (`ps -p`, `pgrep -g`);
+  confirmed each gone (`ps -o pid= -p`, `pgrep -g`);
 - what `route.py recover` printed, whole: each process it ended, did not end
   and left, with its number, start, accounting name and program path and the
   reason, never a command line;
@@ -537,7 +539,7 @@ Its last line is the verdict, or "no walk", and the evidence folder.
    seconds; wait at most sixty, since the launcher lists the real Library
    about five and again about ten seconds after the App exits, before it
    writes the outcome, so fifteen is the normal case), then confirm that neither process remains
-   (`ps -p` on each number prints no process). If no outcome comes within
+   (`ps -o pid= -p <number>` on each number prints nothing). If no outcome comes within
    sixty seconds, or a process remains, the recovery is incomplete: the
    operator records it, tells the lane in its return, and goes on with the
    other checks of step 10. This method authorises no stronger signal. The launch record then says the launcher
@@ -555,7 +557,7 @@ Its last line is the verdict, or "no walk", and the evidence folder.
     launcher as in step 8, which ends the App, and the watch, which ends by
     itself when the App does and is otherwise ended by its process number
     (`kill <the watch's process number>`). It then confirms, for the launcher,
-    the watch and the App, that `ps -p <number>` shows no process, and that
+    the watch and the App, that `ps -o pid= -p <number>` prints nothing, and that
     the App's process group is gone (`pgrep -g <the App's process number>`
     prints nothing).
     Then the route's processes, by `route.py` alone ("Reading processes"):
@@ -681,9 +683,13 @@ Its last line is the verdict, or "no walk", and the evidence folder.
        search detected; 2 is not "found none", and the run is reported as one whose
        check could not be completed. A process for which the system gives no
        path at all is discarded; why, and when that holds, is in `stray.py`.
-    3. Each remaining candidate process is ended (`kill <number>`), confirmed
-       gone, and recorded with its number and start time. Another process of
-       ours is reported to App Agent 0, not ended. Where it came from
+    3. Each remaining candidate process is reported to App Agent 0 with its
+       number, parent and start time, and is not ended: the search selects by
+       the executable file alone, which does not show that we started it, and
+       a number can pass to another process between a search and a signal.
+       Only step 11.1 ends anything, and only what it confirms at that moment
+       is a process we started. Another process of ours is reported to App
+       Agent 0 too, not ended. Where it came from
        is not known from the search: the launcher's App not yet ended and a
        start the launcher did not make look the same to it, and it does not
        tell the home or environment either was started with. Only step 10's

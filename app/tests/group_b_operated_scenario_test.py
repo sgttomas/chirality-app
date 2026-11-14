@@ -2464,6 +2464,26 @@ class TheSessionDomainNames(unittest.TestCase):
                 for value in self.VALUES:
                     self.assertNotIn(value, said)
 
+    def test_any_failure_to_read_the_bundles_plist_is_reported_in_fixed_words(self):
+        cases = {'a root that is not a dictionary': b'<?xml version="1.0"?><plist version="1.0"><array><string>invented-token-abc123</string></array></plist>',
+                 'an undefined entity': b'<?xml version="1.0"?><plist version="1.0"><dict><key>&invented;</key></dict></plist>',
+                 'not a plist': b'invented-token-abc123 /invented/secret/value',
+                 'LSEnvironment not a dictionary': b'<?xml version="1.0"?><plist version="1.0"><dict><key>LSEnvironment</key><string>/invented/secret/value</string></dict></plist>'}
+        for name, body in cases.items():
+            with self.subTest(name), tempfile.TemporaryDirectory() as folder:
+                app = Path(folder) / 'x.app'
+                (app / 'Contents').mkdir(parents=True)
+                (app / 'Contents/Info.plist').write_bytes(body)
+                out, err = io.StringIO(), io.StringIO()
+                with mock.patch.object(self.env, 'on_macos', return_value=False), contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                    code = self.env.main(['session_env.py', str(app)])
+                self.assertEqual(code, 2)
+                self.assertEqual(err.getvalue(), '')
+                for state in json.loads(out.getvalue()).values():
+                    self.assertTrue(state.startswith('could not be established'), state)
+                for value in self.VALUES + ('invented;', 'ExpatError', 'AttributeError'):
+                    self.assertNotIn(value, out.getvalue())
+
     def test_it_reads_the_domain_never_a_process(self):
         source = (OPERATED / 'session_env.py').read_text()
         self.assertIn("['/bin/launchctl', 'print', f'gui/{os.getuid()}']", source)
@@ -2477,6 +2497,32 @@ class TheMethodReadsNoCommandLine(unittest.TestCase):
     The 13 November record in the README is history and keeps its words; this looks at everything before it."""
 
     FORBIDDEN = (r'command=', r'(?<!u)comm=', r'args=', r'lsof -t', r'pgrep -f', r'pgrep -x', r"'-f'", r'KERN_PROCARGS', r'\beww\b')
+
+    PS_FIELDS = {'pid', 'ppid', 'lstart', 'stat', 'ucomm'}
+
+    def ps_names_its_output(self, words):
+        """A ps names its output with -o (or -axo), and every field named is one of PS_FIELDS: a ps without -o prints
+        the command line by default."""
+        lists = [words[i + 1] for i, word in enumerate(words[:-1]) if word in ('-o', '-axo')]
+        return bool(lists) and all(field.rstrip('=') in self.PS_FIELDS for each in lists for field in each.split(','))
+
+    def test_every_ps_names_only_its_allowed_fields(self):
+        for words in (['-p', '<number>'], ['-o', 'pid=,command=', '-p', '1'], ['-axo', 'pid=,comm='], ['-p', '1', '-o']):
+            with self.subTest(refused=words):
+                self.assertFalse(self.ps_names_its_output(words))
+        readme = (OPERATED / 'README.md').read_text()
+        sources = {'README.md (the method)': readme[:readme.index('## What was observed on 13 November 2026')],
+                   **{path.name: path.read_text() for path in sorted(OPERATED.glob('*.py')) + sorted(OPERATED.glob('*.mjs'))}}
+        found = 0
+        for name, text in sources.items():
+            calls = [re.findall(r"'([^']*)'", m.group(1)) for m in re.finditer(r"\[\s*(?:'/bin/ps'|PS)\s*,([^\]]*)\]", text)]
+            # In prose and docstrings, a ps followed by a flag or a placeholder, read to the end of its span.
+            prose = [m.group(1).split() for m in re.finditer(r"\bps\b([^`);\n]*)", text)]
+            for words in calls + [w for w in prose if w and w[0][:1] in ('-', '<')]:
+                found += 1
+                with self.subTest(source=name, ps=' '.join(words)):
+                    self.assertTrue(self.ps_names_its_output(words))
+        self.assertGreater(found, 10)
 
     def test_no_tool_or_instruction_asks_for_one(self):
         readme = (OPERATED / 'README.md').read_text()
