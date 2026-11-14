@@ -137,3 +137,35 @@ pub fn lock_by<T>(mutex: &std::sync::Mutex<T>, deadline: std::time::Instant) -> 
         std::thread::sleep((deadline - now).min(std::time::Duration::from_millis(5)));
     }
 }
+
+/// What releasing a value on its own thread came to.
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) enum Released { Done, NotTaken, NotStarted, NotHanded, NotInTime }
+/// Drops a value on a thread of its own and waits for that until `deadline`,
+/// never longer. The thread is started (by `start`) before the value is taken
+/// (by `take`) and handed to it, so the value is never dropped on this caller:
+/// where the thread cannot start, or cannot receive it, the value is leaked,
+/// as a crash leaves it. A release not finished by the deadline goes on, and
+/// is not waited for.
+pub(crate) fn release_off_thread<T: Send + 'static>(
+    start: impl FnOnce(Box<dyn FnOnce() + Send>) -> std::io::Result<()>,
+    take: impl FnOnce() -> Option<T>,
+    deadline: std::time::Instant,
+) -> Released {
+    let (handed, values) = std::sync::mpsc::channel::<T>();
+    let (done, finished) = std::sync::mpsc::channel();
+    let started = start(Box::new(move || { if let Ok(value) = values.recv() { drop(value); let _ = done.send(()); } }));
+    let Some(value) = take() else { return Released::NotTaken };
+    if started.is_err() {
+        std::mem::forget(value);
+        return Released::NotStarted;
+    }
+    if let Err(std::sync::mpsc::SendError(value)) = handed.send(value) {
+        std::mem::forget(value);
+        return Released::NotHanded;
+    }
+    match finished.recv_timeout(deadline.saturating_duration_since(std::time::Instant::now())) {
+        Ok(()) => Released::Done,
+        Err(_) => Released::NotInTime,
+    }
+}

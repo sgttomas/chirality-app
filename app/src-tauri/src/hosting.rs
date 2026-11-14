@@ -253,6 +253,8 @@ pub(crate) const RECORDED_PRESENCE_ONLY: &str = "CODEX_INTERNAL_APP_SERVER_REMOT
 
 /// The home reference a generation of this configuration carries
 /// (`generation.home`), known from the configuration alone.
+/// A stop for the quit whose home's request gate was not free by its bound.
+pub(crate) const QUIT_GATE_NOT_FREE: &str = "another App activity held this home's request gate past the quit's bound";
 pub(crate) fn home_reference(cfg: &HostConfig) -> String {
     format!("app-home:{}", sha256_hex(cfg.codex_home.as_os_str().as_encoded_bytes()))
 }
@@ -2001,6 +2003,15 @@ impl Host {
         let stop_error = if !matches!(state.as_str(), "absent" | "stopped" | "refused") {
             self.stop_for_quit(actor, reason, std::time::Instant::now() + crate::app_quit::QUIT_FENCE_WAIT_LIMIT).err()
         } else { None };
+        // The gate not had, nothing of this home is ended: its stop made no
+        // record, and an ending now would leave a process ended with no
+        // deliberate stop recorded and the Host still reading it as running.
+        if stop_error.as_deref() == Some(QUIT_GATE_NOT_FREE) {
+            let observation = json!({"generation":generation,"ownedProcesses":[],"limits":[QUIT_GATE_NOT_FREE],
+                "standing":"nothing of this home was stopped or ended"});
+            self.inner.0.lock().unwrap().journal.push(json!({"class":"quit-process-settlement","observation":observation}));
+            return Err(format!("Quit withheld; owned process settlement is unavailable: {observation}"));
+        }
         let mut processes: Vec<_> = self.probe_processes.lock().unwrap().iter()
             .map(|(attempt, p)| (json!({"kind":"label-probe","startAttempt":attempt}), Arc::clone(p))).collect();
         let generation = self.inner.0.lock().unwrap().generation.clone();
@@ -5592,7 +5603,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
     fn stop_inner(&self,expected_generation:Option<&Value>, actor: &str, reason: &str, for_quit: Option<std::time::Instant>) -> Result<Value, String> {
         let source_gate = match for_quit {
             None => self.attachment_gate.lock().unwrap(),
-            Some(deadline) => crate::util::lock_by(&self.attachment_gate, deadline).ok_or("another App activity held this home's request gate past the quit's bound")?,
+            Some(deadline) => crate::util::lock_by(&self.attachment_gate, deadline).ok_or(QUIT_GATE_NOT_FREE)?,
         };
         let process;let target_generation;
         {

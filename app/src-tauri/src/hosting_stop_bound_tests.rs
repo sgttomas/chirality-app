@@ -1666,3 +1666,68 @@ fn a_quit_refusal_releases_its_holds_before_its_notice() {
     });
     assert!(free_while_shown.get(), "the notice is shown with nothing the quit held still held");
 }
+
+/// P21 and R3-4: settlement takes each home's request gate within the quit's
+/// bound. A holder that is not a start (any App request to that Codex) and
+/// that never lets go refuses the settlement at the bound, before anything of
+/// that home is ended: its process group is still there (asked of the
+/// operating system), the Host still reads it as running, and no stop was
+/// recorded for it.
+#[test]
+fn settlement_does_not_wait_past_its_bound_on_a_held_request_gate() {
+    let f = Fixture::new();
+    let group = f.group();
+    let host = Arc::clone(f.host());
+    host.begin_quit_by(Instant::now() + Duration::from_secs(1)).unwrap();
+    let (held_tx, held_rx) = channel();
+    let (release_tx, release_rx) = channel::<()>();
+    let holder = Arc::clone(&host);
+    let holding = std::thread::spawn(move || {
+        let _gate = holder.attachment_gate.lock().unwrap();
+        held_tx.send(()).unwrap();
+        let _ = release_rx.recv();
+    });
+    held_rx.recv().unwrap();
+    let begin = Instant::now();
+    let settled = host.settle_for_quit("the person", "quit");
+    let took = begin.elapsed();
+    let alive = unsafe { libc::kill(-group, 0) } == 0;
+    let state = host.snapshot()["state"].clone();
+    let _ = release_tx.send(());
+    holding.join().unwrap();
+    assert!(took >= crate::app_quit::QUIT_FENCE_WAIT_LIMIT && took < crate::app_quit::QUIT_FENCE_WAIT_LIMIT + SLACK, "{took:?}");
+    let error = settled.unwrap_err();
+    assert!(error.contains(crate::hosting::QUIT_GATE_NOT_FREE), "{error}");
+    assert!(alive, "the home's process group was not ended");
+    assert_eq!(state, "ready", "the Host still reads the home as running, and that is true");
+    assert!(!host.journal().iter().any(|e| e["class"] == "codex-stop" || e["observation"]["ownedProcesses"].as_array().is_some_and(|p| !p.is_empty())), "no stop and no process settlement");
+    host.cancel_quit();
+}
+
+/// R3-1: a value released off its thread is never dropped on the caller,
+/// whether its thread cannot start or cannot receive it; released normally,
+/// it is dropped on its own thread.
+#[test]
+fn a_release_off_thread_never_drops_on_the_caller() {
+    use crate::util::{release_off_thread, Released};
+    struct Watched(Arc<Mutex<Option<std::thread::ThreadId>>>);
+    impl Drop for Watched { fn drop(&mut self) { *self.0.lock().unwrap() = Some(std::thread::current().id()); } }
+    let caller = std::thread::current().id();
+    let by = Instant::now() + Duration::from_secs(5);
+    // The thread cannot start: the release is dropped unrun, and the value leaked.
+    let dropped = Arc::new(Mutex::new(None));
+    let value = Watched(Arc::clone(&dropped));
+    assert_eq!(release_off_thread(|release| { drop(release); Err(std::io::Error::other("no thread")) }, || Some(value), by), Released::NotStarted);
+    assert_eq!(*dropped.lock().unwrap(), None, "not dropped on the caller; left as a crash leaves it");
+    // The thread started but ends without receiving: the handover fails, and the value is leaked.
+    let dropped = Arc::new(Mutex::new(None));
+    let value = Watched(Arc::clone(&dropped));
+    assert_eq!(release_off_thread(|release| { std::thread::spawn(move || drop(release)).join().unwrap(); Ok(()) }, || Some(value), by), Released::NotHanded);
+    assert_eq!(*dropped.lock().unwrap(), None, "not dropped on the caller; left as a crash leaves it");
+    // Released normally: dropped on its own thread.
+    let dropped = Arc::new(Mutex::new(None));
+    let value = Watched(Arc::clone(&dropped));
+    assert_eq!(release_off_thread(|release| std::thread::Builder::new().spawn(release).map(|_| ()), || Some(value), by), Released::Done);
+    let on = dropped.lock().unwrap().expect("dropped");
+    assert_ne!(on, caller, "dropped on its own thread");
+}

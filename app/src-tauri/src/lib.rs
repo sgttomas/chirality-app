@@ -3493,8 +3493,14 @@ pub fn run() {
                 }) {
                     eprintln!("chirality: exit: {limit}");
                 }
-                if !records_index::close_all_by(std::time::Instant::now() + app_quit::QUIT_ASSESSMENT_WAIT_LIMIT) {
-                    eprintln!("chirality: exit: the records index caches were held by a records reader for {} seconds and are left as a crash leaves them", app_quit::QUIT_ASSESSMENT_WAIT_LIMIT.as_secs());
+                // Each outcome its own words: a records reader holding the index is only one of them.
+                let limit = app_quit::QUIT_ASSESSMENT_WAIT_LIMIT.as_secs();
+                match records_index::close_all_by(std::time::Instant::now() + app_quit::QUIT_ASSESSMENT_WAIT_LIMIT) {
+                    util::Released::Done => {}
+                    util::Released::NotTaken => eprintln!("chirality: exit: the records index was held by a records reader for {limit} seconds; its caches are left as a crash leaves them"),
+                    util::Released::NotStarted => eprintln!("chirality: exit: the thread to release the records index caches could not be started; they are left as a crash leaves them"),
+                    util::Released::NotHanded => eprintln!("chirality: exit: the records index caches could not be handed to their release; they are left as a crash leaves them"),
+                    util::Released::NotInTime => eprintln!("chirality: exit: releasing the records index caches did not finish within {limit} seconds; what it had not released is left as a crash leaves it"),
                 }
             }
             _ => {}

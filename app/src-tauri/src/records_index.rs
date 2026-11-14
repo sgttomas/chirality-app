@@ -148,11 +148,12 @@ pub(crate) fn close_all() {
 /// later than `deadline` (releasing one removes its file, which can wait on
 /// the filesystem). Not done in time, what is left is what a crash leaves;
 /// false.
-pub(crate) fn close_all_by(deadline: std::time::Instant) -> bool {
-    let Some(caches) = crate::util::lock_by(&INDEXES, deadline).map(|mut all| std::mem::take(&mut *all)) else { return false };
-    let (done, finished) = std::sync::mpsc::channel();
-    let released = std::thread::Builder::new().name("records-index-close".into()).spawn(move || { drop(caches); let _ = done.send(()); });
-    released.is_ok() && finished.recv_timeout(deadline.saturating_duration_since(std::time::Instant::now())).is_ok()
+pub(crate) fn close_all_by(deadline: std::time::Instant) -> crate::util::Released {
+    crate::util::release_off_thread(
+        |release| std::thread::Builder::new().name("records-index-close".into()).spawn(release).map(|_| ()),
+        || crate::util::lock_by(&INDEXES, deadline).map(|mut all| std::mem::take(&mut *all)),
+        deadline,
+    )
 }
 /// How many log names the host status carries for each chain state.
 pub(crate) const STATUS_NAMES: usize = 5;
