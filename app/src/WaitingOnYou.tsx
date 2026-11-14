@@ -696,15 +696,15 @@ function Limits({ limits }: { limits: string[] }) {
 /** The time of a source's read, and what its state means for what the list shows of it. */
 function ReadTime({ reading }: { reading: SourceReading }) {
   const when = reading.at === null ? null : clockWords(reading.at);
-  if (reading.state === "limited") return <>Read {when ? `at ${when}` : "earlier"} with limits: this reading may omit waiting items; what it shows is counted as observed now.<Limits limits={reading.limits} /></>;
+  if (reading.state === "limited") return <>Read {when ? `with limits (requested at ${when})` : "earlier with limits"}: this reading may omit waiting items; what it shows is counted as observed now.<Limits limits={reading.limits} /></>;
   if (reading.state === "not-read") return <>{when ? `Checked at ${when}.` : "No read of it has been made yet."}</>;
   const last = reading.lastRead;
-  const lastWhen = last?.at === null || last?.at === undefined ? "earlier" : `at ${clockWords(last.at)}`;
-  const response = LAST_RESPONSE[reading.call];
+  // The retained response is named by when it was requested (its read's start), never as a time it arrived.
+  const response = last?.at === null || last?.at === undefined ? `${LAST_RESPONSE[reading.call]}, earlier,` : `${LAST_RESPONSE[reading.call]} (requested at ${clockWords(last.at)})`;
   return <>The read {when ? `started at ${when} ` : ""}failed. {!last ? "No earlier response to this read has succeeded, so there is no earlier reading of it to show."
-    : last.state === "not-read" ? `${response}, ${lastWhen}, had not read it. At that read: ${last.note ?? "no reason was given."}`
-    : last.entries.length > 0 ? `${response}, ${lastWhen}, is shown below as it was then, not counted; its current state is unknown.`
-    : `${response}, ${lastWhen}, showed nothing waiting from it; its current state is unknown.`}
+    : last.state === "not-read" ? `${response} had not read it. At that read: ${last.note ?? "no reason was given."}`
+    : last.entries.length > 0 ? `${response} is shown below as it was then, not counted; its current state is unknown.`
+    : `${response} showed nothing waiting from it; its current state is unknown.`}
     {last && last.limits.length > 0 && <> That reading had limits and may have omitted waiting items.<Limits limits={last.limits} /></>}
     {last && last.state === "limited" && last.limits.length === 0 && <> That reading was not whole and may have omitted waiting items.</>}</>;
 }
@@ -734,7 +734,7 @@ function ReopenedRuns({ runs }: { runs: SourceReading[] }) {
  * each source and the sources it had not read whole named. It says nothing of whether an earlier response held more. */
 function LastStatusBlock({ last, go }: { last: LastStatus; go: (entry: WaitingEntry) => void }) {
   return <div className="waiting-on-you-last-status" role="group" aria-label="The last successful status response" data-waiting-call="status">
-    <p>The last successful status response{last.at === null ? "" : `, at ${clockWords(last.at)}`}; its current state is unknown, and nothing here is counted above.</p>
+    <p>The last successful status response{last.at === null ? "" : ` (requested at ${clockWords(last.at)})`}; its current state is unknown, and nothing here is counted above.</p>
     {last.withEntries.map(reading => <LastReadBlock key={reading.key} reading={reading} go={go} />)}
     {last.notWhole.length > 0 && <Several count={last.notWhole.length} summary={`${last.notWhole.length} sources that response had not read whole`} className="waiting-on-you-last-status-not-whole">
       {last.notWhole.map(reading => <p key={reading.key}>{reading.lastRead!.state === "not-read" ? "Not read in that response" : "Read with limits in that response, showing nothing waiting"}: {reading.name}.<Beside reading={reading} /> {reading.lastRead!.note}<Limits limits={reading.lastRead!.limits} /></p>)}

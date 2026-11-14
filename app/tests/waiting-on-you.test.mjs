@@ -400,7 +400,7 @@ test('a failed manual refresh of the fleet records shows its last successful rea
     const text = place(c).textContent;
     const lastRead = c.querySelectorAll(n => n.getAttribute('aria-label') === 'As last read, not counted')[0];
     assert.ok(lastRead && /^Returns, as last read at \d\d:\d\d:\d\d; its current state is unknown, and nothing here is counted above\.[\s\S]*as last read: a return is waiting for review[\s\S]*As last read at \d\d:\d\d:\d\d; current state unknown\. Returns have no review control in the App yet: it shows the return's record\./.test(lastRead.textContent), 'the last successful fleet reading, as it was');
-    assert.match(text, /Returns could not be read at the last attempt\. The read started at \d\d:\d\d:\d\d failed\. The last successful response to the returns read, at \d\d:\d\d:\d\d, is shown below as it was then, not counted; its current state is unknown\./);
+    assert.match(text, /Returns could not be read at the last attempt\. The read started at \d\d:\d\d:\d\d failed\. The last successful response to the returns read \(requested at \d\d:\d\d:\d\d\) is shown below as it was then, not counted; its current state is unknown\./);
     assert.match(nodes(place(c), 'summary')[0].textContent, /^Waiting on you: 8 observed now \(5 requests from Codex\); status incomplete$/, 'the last-read return is not counted');
   }, {fleetPacket});
 });
@@ -623,7 +623,7 @@ test('the third reader\'s first finding: after a failed status read, the nested 
     assert.ok(block, 'the active home\'s requests, as last read');
     assert.match(block.textContent, /^Requests from Codex in the account home, as last read at \d\d:\d\d:\d\d; its current state is unknown, and nothing here is counted above\./);
     assert.match(block.textContent, /as last read: a question is waiting[\s\S]*Its request card takes an answer only while the request is still outstanding\./);
-    assert.match(coverageRow(c, 'requests:account').textContent, /^Requests from Codex in the account home could not be read at the last attempt: the App's last read of its own status failed\. The read started at \d\d:\d\d:\d\d failed\. The last successful status response, at \d\d:\d\d:\d\d, is shown below/);
+    assert.match(coverageRow(c, 'requests:account').textContent, /^Requests from Codex in the account home could not be read at the last attempt: the App's last read of its own status failed\. The read started at \d\d:\d\d:\d\d failed\. The last successful status response \(requested at \d\d:\d\d:\d\d\) is shown below/);
     const runBlock = [...lastReadBlocks(c)].find(b => b.getAttribute('data-waiting-source-key') === 'run:run-1');
     assert.match(runBlock.textContent, /as last read: a checkpoint was reached[\s\S]*It may already be settled: the checkpoint act there does not yet refuse an arrival that is no longer waiting\./);
     const homeBlock = [...lastReadBlocks(c)].find(b => b.getAttribute('data-waiting-source-key') === 'home:api-key');
@@ -675,7 +675,7 @@ test('the third reader\'s second finding: a return first seen in a limited readi
     await run(ms => ms > 1000);   // the first, limited, fleet reading
     assert.equal(line(), 'Waiting on you: 9 observed now (5 requests from Codex); status incomplete', 'the return observed in a limited reading is counted as observed now; the count is not definite');
     assert.match(place(c).textContent, /a return is waiting for review/);
-    assert.match(returnsRow(c).textContent, /^Returns were read with limits, so more may be waiting for review\. Read at \d\d:\d\d:\d\d with limits: this reading may omit waiting items; what it shows is counted as observed now\. What its reader said it could not read: /);
+    assert.match(returnsRow(c).textContent, /^Returns were read with limits, so more may be waiting for review\. Read with limits \(requested at \d\d:\d\d:\d\d\): this reading may omit waiting items; what it shows is counted as observed now\. What its reader said it could not read: /);
     assert.match(returnsRow(c).textContent, /protected source unavailable: invented/, 'the reader\'s limit is shown in the row');
     await run(ms => ms > 1000);   // the next limited reading holds no rows
     assert.equal(line(), 'Waiting on you: 8 observed now (5 requests from Codex); status incomplete');
@@ -709,7 +709,7 @@ test('the third reader\'s third finding: after a change of active home, the old 
     // The next status read fails: the retained reading is the api-key home's own, which showed nothing; account's question is never shown relabelled.
     setSnapshot(new Error('invented status failure')); await run(ms => ms <= 1000);
     assert.ok(!question());
-    assert.match(coverageRow(c, 'requests:api-key').textContent, /The last successful status response, at \d\d:\d\d:\d\d, showed nothing waiting from it; its current state is unknown\./);
+    assert.match(coverageRow(c, 'requests:api-key').textContent, /The last successful status response \(requested at \d\d:\d\d:\d\d\) showed nothing waiting from it; its current state is unknown\./);
     assert.equal([...lastReadBlocks(c)].filter(b => /^requests/.test(b.getAttribute('data-waiting-source-key'))).length, 0);
     assert.match(c.querySelectorAll(n => n.getAttribute('aria-label') === 'Requests from Codex as last read')[0].textContent, /as last read at \d\d:\d\d:\d\d: no requests were observed then in configured homes; the current state is unknown\.[\s\S]*account: stopped at that read; no groups shown for it\./);
   });
@@ -762,7 +762,7 @@ test('a failed read whose last successful reading had limits: one block, uncount
     const [block] = lastReadBlocks(c);
     assert.ok(block && block.getAttribute('data-waiting-source-key') === 'returns');
     assert.match(block.textContent, /^Returns, as last read at \d\d:\d\d:\d\d; its current state is unknown, and nothing here is counted above\. That reading had limits and may have omitted waiting items\./);
-    assert.match(returnsRow(c).textContent, /Returns could not be read at the last attempt\. The read started at \d\d:\d\d:\d\d failed\. The last successful response to the returns read, at \d\d:\d\d:\d\d, is shown below as it was then, not counted; its current state is unknown\. That reading had limits and may have omitted waiting items\. What its reader said it could not read: /);
+    assert.match(returnsRow(c).textContent, /Returns could not be read at the last attempt\. The read started at \d\d:\d\d:\d\d failed\. The last successful response to the returns read \(requested at \d\d:\d\d:\d\d\) is shown below as it was then, not counted; its current state is unknown\. That reading had limits and may have omitted waiting items\. What its reader said it could not read: /);
     // What a reader or a record supplied stays inside a box, never in a control.
     for (const el of [block, returnsRow(c)]) for (const control of el.querySelectorAll(n => ['a', 'button', 'li', 'summary'].includes(n.localName)))
       assert.doesNotMatch(control.textContent, /worker agent|U-pumps|protected source/, control.textContent);
@@ -784,10 +784,10 @@ test('the fourth reader\'s first finding: what is retained is the last successfu
     assert.match(line(), /; status incomplete$/);
     const row = coverageRow(c, 'run:run-1');
     assert.doesNotMatch(row.textContent, /There is no earlier successful reading of it to show/);
-    assert.match(row.textContent, /The read started at \d\d:\d\d:\d\d failed\. The last successful status response, at \d\d:\d\d:\d\d, had not read it\. At that read: The run run-1 could not be read \(an operation on it was in progress\)/);
+    assert.match(row.textContent, /The read started at \d\d:\d\d:\d\d failed\. The last successful status response \(requested at \d\d:\d\d:\d\d\) had not read it\. At that read: The run run-1 could not be read \(an operation on it was in progress\)/);
     const block = statusBlock(c);
     assert.ok(block && place(c).contains(block), 'the last successful status read is shown as one block');
-    assert.match(block.textContent, /^The last successful status response, at \d\d:\d\d:\d\d; its current state is unknown, and nothing here is counted above\./);
+    assert.match(block.textContent, /^The last successful status response \(requested at \d\d:\d\d:\d\d\); its current state is unknown, and nothing here is counted above\./);
     assert.match(block.textContent, /Not read in that response: The run run-1\. The run run-1 could not be read \(an operation on it was in progress\)/, 'the run is named as not read in it');
     assert.doesNotMatch(place(c).textContent, /a checkpoint was reached/, 'the arrival of the earlier whole reading is not brought back');
     assert.ok([...lastReadBlocks(c)].some(b => b.getAttribute('data-waiting-source-key') === 'requests:account' && block.contains(b)), 'its requests, as last read, inside it');
