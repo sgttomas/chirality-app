@@ -3110,6 +3110,17 @@ pub fn assess_native_home_work(
     }
     let mut requests = requests;
     requests.sort_by_key(Value::to_string);
+    // A turn start written, or being written, that the Host has not yet
+    // associated with a turn is live work: Codex may be starting a turn the
+    // App cannot yet interrupt. It is listed beside the turns observed, and
+    // may be one of them: only the reply to its request associates it with a
+    // turn, and the Host then drops it from its list. The row carries no
+    // write state: it is not a change the person decides on, so a write
+    // that completes during a confirmation does not make the act ask again.
+    let starts: Vec<Value> = snapshot["unansweredTurnStarts"].as_array().into_iter().flatten()
+        .filter(|start| start["generation"] == *generation)
+        .map(|start| json!({"generation":generation,"threadId":start["threadId"],"requestIdentity":start["requestIdentity"],"limit":"turn start not yet associated with a turn; it may be one of the turns listed; no interrupt can be sent for it"}))
+        .collect();
     let coverage = json!({"turns":{"scope":"current selected-home source","available":snapshot["conversationTurns"].is_array(),"complete":false,"unresolved":unresolved_turns},"requests":{"scope":"current received register","available":snapshot["serverRequests"].is_array(),"complete":false},"children":{"receivingViewAvailable":valid_view,"complete":false,"limit":"child visibility/completeness not established; additional work may exist"},"receivingLimits":received["nativeViewLimits"]});
     let namespace_revision = &snapshot["accountNamespaceRevision"];
     if namespace_revision["generation"] != *generation {
@@ -3148,8 +3159,8 @@ pub fn assess_native_home_work(
         Some(_)=>json!({"state":"redacted/unavailable account; unknown","nativeType":null}),
     }).unwrap_or_else(||json!({"state":"current native report unavailable; previous read is only last observed","nativeType":null}));
     let account = json!({"state":received["accountObservation"]["state"],"nativeType":received["accountObservation"]["nativeAccount"]["type"],"readAvailability":read_availability,"currentReport":current_account,"namespaceRevision":namespace_revision,"operations":operations,"identityVerified":false,"unchangedIdentityProven":false,"limit":"redacted/unavailable equality does not prove unchanged identity; another identical read/clock tick alone is not a namespace change"});
-    let material = json!({"modeHomeClass":home.class.as_str(),"generation":generation,"account":account,"observedLiveTurns":live,"observedOutstandingRequests":requests,"observedActiveChildren":children,"knownChildActivityUnknown":unknown,"coverage":coverage});
-    let view = json!({"modeHomeClass":home.class.as_str(),"generation":generation,"observedAt":crate::util::now_rfc3339(),"sourceCursor":received["observerCursor"],"account":account,"observedLiveTurns":live,"observedOutstandingRequests":requests,"observedActiveChildren":children,"knownChildActivityUnknown":unknown,"coverage":coverage,"warning":"None observed is not none. Child visibility/completeness is not established; additional work may exist. Logout acknowledgment does not end turns/children, delete history or prove credential-store removal."});
+    let material = json!({"modeHomeClass":home.class.as_str(),"generation":generation,"account":account,"observedLiveTurns":live,"observedUnansweredTurnStarts":starts,"observedOutstandingRequests":requests,"observedActiveChildren":children,"knownChildActivityUnknown":unknown,"coverage":coverage});
+    let view = json!({"modeHomeClass":home.class.as_str(),"generation":generation,"observedAt":crate::util::now_rfc3339(),"sourceCursor":received["observerCursor"],"account":account,"observedLiveTurns":live,"observedUnansweredTurnStarts":starts,"observedOutstandingRequests":requests,"observedActiveChildren":children,"knownChildActivityUnknown":unknown,"coverage":coverage,"warning":"None observed is not none. Child visibility/completeness is not established; additional work may exist. Logout acknowledgment does not end turns/children, delete history or prove credential-store removal."});
     Ok(HomeLogoutAssessment {
         generation: generation.clone(),
         material,
@@ -7241,13 +7252,12 @@ impl WorkflowRun {
             basis: basis.clone(),
             occasion,
             evaluated_at: crate::util::now_rfc3339(),
-            inventory: report::Inventory {
-                origin: report::InventoryOrigin::CallerSupplied {
-                    source: "App Root: no environment collector; nothing observed".into(),
-                },
-                host_id: None,
-                observations: report::Observations::default(),
-            },
+            inventory: proposal_advisory::conversation_inventory(
+                &self.home,
+                &self.home.host.snapshot()["threads"],
+                &scope.generation,
+                &scope.conversation,
+            ),
             model_destination: None,
         });
         self.compatibility.push(CompatibilitySlot {
@@ -10114,6 +10124,27 @@ for line in sys.stdin:
         peer.home.host.delegation_signals_read(&old,"thread",json!({"kind":"person-directed"}));
         let kept=peer.home.host.delegation_readings();
         assert_eq!(kept.len(),1,"{kept:?}");assert_eq!(kept[0]["key"]["generation"],current);
+    }
+    // The requirement check is given the host's own reading for the
+    // conversation's model, provider and folder, and nothing it did not observe.
+    #[test]
+    fn the_requirement_check_inventory_carries_the_conversations_own_delegation_reading(){
+        use crate::execution_compatibility::report::CatalogCoverage;
+        let peer=Peer::new();
+        let threads=||peer.home.host.snapshot()["threads"].clone();
+        let before=proposal_advisory::conversation_inventory(&peer.home,&threads(),&peer.generation,"thread");
+        assert!(before.observations.harness_signals.is_none(),"nothing read yet");
+        assert!(matches!(before.observations.catalog,CatalogCoverage::Unobserved));
+        assert_eq!(before.observations.channel_enabled,None,"no host channel is observed");
+        assert!(before.host_id.is_none());
+        assert_eq!(crate::host_tick::delegation_tick_home(&peer.home),1);
+        let after=proposal_advisory::conversation_inventory(&peer.home,&threads(),&peer.generation,"thread");
+        let signals=after.observations.harness_signals.expect("the host's reading for this conversation");
+        assert_eq!(crate::delegation_availability::evaluate(Some(&signals))["reading"],"present");
+        assert!(matches!(after.observations.catalog,CatalogCoverage::Unobserved));
+        assert_eq!(after.observations.channel_enabled,None);
+        // Another conversation does not take this one's reading.
+        assert!(proposal_advisory::conversation_inventory(&peer.home,&threads(),&peer.generation,"another").observations.harness_signals.is_none());
     }
     // ---- #1247 review leftovers H-2, H-5 and the send refusals' prefillKept ----
     fn pending_refs(root:&Mutex<WorkflowRootSession>)->Vec<String>{

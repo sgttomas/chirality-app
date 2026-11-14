@@ -209,9 +209,10 @@ supplier direction as though it were unanswered.
   record what it declares. Allow lists locked by an organization and
   enforced sandboxing of outside processes belong to a later governance
   phase. This property governs a host's embedded agent. In the account home, the
-  App's Codex keeps the person's Codex configuration, approval and sandbox
-  choices, except that analytics is off and the default provider is the
-  built-in OpenAI provider. The dedicated local home uses the App-owned
+  App's Codex keeps the person's Codex configuration, except that analytics
+  is off, the default provider is the built-in OpenAI provider, and approval,
+  sandbox and review routing follow the permission level the person sets in
+  the App (PRD V4-AUT-06). The dedicated local home uses the App-owned
   configuration specified by DEL-01-05, with analytics and plugin traffic
   off. Every session setting the App applies is listed for the person with
   its reason.
