@@ -12,7 +12,11 @@ evidence; it establishes nothing about any model.
   client closes it (an interrupt), the bound passes, or the stub is stopped.
   It never sends a tool call, so nothing is asked and no approval arises.
 - `GET .../responses` with an Upgrade header (Codex's WebSocket attempt):
-  answered with the status given by --websocket-status, 404 by default.
+  answered with the status given by --websocket-status, 426 by default. Codex
+  0.167.0 falls back to HTTP for the session at once on a 426 (its core
+  client.rs matches StatusCode::UPGRADE_REQUIRED), so a turn goes straight to
+  the POST with no "Reconnecting" notices. Observed once against the pinned
+  binary: one upgrade at startup, then only POSTs.
 - Anything else: 404, logged as unexpected.
 
 Readiness: once listening it writes --ready atomically, holding pid, port and
@@ -238,8 +242,9 @@ def main(argv=None):
     p.add_argument('--record', required=True, help='the examination root\'s record/ folder, for the request log')
     p.add_argument('--ready', required=True, help='the ready file, written atomically once listening')
     p.add_argument('--hold-bound', type=float, default=60.0, help='seconds a held turn is held at most (default 60)')
-    p.add_argument('--websocket-status', type=int, default=404,
-                   help='the HTTP status answering a WebSocket upgrade on /responses (default 404)')
+    p.add_argument('--websocket-status', type=int, default=426,
+                   help='the HTTP status answering a WebSocket upgrade on /responses (default 426, '
+                        'on which the pinned Codex falls back to HTTP at once)')
     args = p.parse_args(argv)
     if not Path(args.record).is_dir():
         print('refused: --record is not a folder', file=sys.stderr)

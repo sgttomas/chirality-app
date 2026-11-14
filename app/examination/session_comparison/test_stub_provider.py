@@ -125,14 +125,16 @@ class StubProvider(unittest.TestCase):
         self.assertEqual([l['disposition'] for l in self.log()], ['held-ended-by-stop'])
         conn.close()
 
-    def test_a_websocket_upgrade_is_refused_with_the_chosen_status(self):
-        self.start('--websocket-status', '426')
-        conn = http.client.HTTPConnection('127.0.0.1', self.info['port'], timeout=10)
-        conn.request('GET', '/v1/responses', headers={'Upgrade': 'websocket', 'Connection': 'Upgrade'})
-        self.assertEqual(conn.getresponse().status, 426)
-        conn.close()
-        self.stop()
-        self.assertEqual([l['disposition'] for l in self.log()], ['websocket-refused'])
+    def test_a_websocket_upgrade_is_refused_with_426_by_default_or_the_chosen_status(self):
+        for args, status in (((), 426), (('--websocket-status', '404'), 404)):
+            with self.subTest(status=status):
+                self.start(*args)
+                conn = http.client.HTTPConnection('127.0.0.1', self.info['port'], timeout=10)
+                conn.request('GET', '/v1/responses', headers={'Upgrade': 'websocket', 'Connection': 'Upgrade'})
+                self.assertEqual(conn.getresponse().status, status)
+                conn.close()
+                self.stop()
+                self.assertEqual([l['disposition'] for l in self.log()], ['websocket-refused'])
 
     def test_anything_else_is_404_and_logged_as_unexpected(self):
         self.start()
