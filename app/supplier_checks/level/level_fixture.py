@@ -393,6 +393,7 @@ class Run:
         p = self.paths()
         cmds = {key: 'printf ok > %s' % path for key, path in p.items() if key != 'late'}
         cmds['late'] = 'sleep 4; printf ok > %s' % p['late']
+        cmds['read'] = '/bin/ls %s' % self.project  # reads only
         cmds['net'] = '/usr/bin/curl -s -m 3 -o /dev/null http://127.0.0.1:%d/level-net-probe' % self.stub.port
         return cmds
 

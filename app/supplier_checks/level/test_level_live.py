@@ -131,6 +131,15 @@ class Presets(unittest.TestCase):
             self.assertEqual(row['requests'], [(COMMAND_APPROVAL, thread)], key)
             self.assertFalse(row['effect'], key)
 
+    def test_supervised_asks_before_a_plain_read_too(self):
+        with L.Run(SCRATCH, BINARY) as run:
+            client = run.start()
+            thread = client.start_thread()['thread']['id']
+            run.stub.scripts['ls'] = L.command_script('call_ls', run.commands()['read'])
+            client.turn(thread, 'LEVEL[ls] go', **SUPERVISED)
+            self.assertEqual([(r['method'], r['thread']) for r in client.server_requests], [(COMMAND_APPROVAL, thread)])
+            self.assertNotIn('exited with code', run.stub.outputs.get('call_ls') or '')
+
     def test_edits_with_network_off(self):
         _, thread, rows = self.matrix(EDITS_NET_OFF)
         self.assertWrites(rows, {'in': True, 'out': False, 'tmpdir': True, 'slashtmp': True, 'git': False,
@@ -246,6 +255,26 @@ class Carriers(unittest.TestCase):
             self.assertEqual(resumed['sandbox'], policy(False, True, False))
             self.assertEqual({k: probe(run, again, thread, k)['effect'] for k in ('tmpdir', 'slashtmp', 'net')},
                              {'tmpdir': True, 'slashtmp': False, 'net': False})
+
+    def test_writable_roots_from_the_home_config_are_removed_only_by_a_start_override(self):
+        """A writable root in the Codex home's config.toml (the person's own settings) widens workspace write.
+        `config.sandbox_workspace_write.writable_roots = []` on thread start removes it; a turn's sandboxPolicy
+        with `writableRoots: []` does not."""
+        with L.Run(SCRATCH, BINARY) as run:
+            outside = run.root / 'outside'
+            (run.root / 'home' / 'config.toml').write_text(
+                '[sandbox_workspace_write]\nwritable_roots = ["%s"]\n' % outside)
+            client = run.start()
+            kept = client.start_thread(approvalPolicy='on-request', sandbox='workspace-write')
+            self.assertEqual(kept['sandbox']['writableRoots'], [str(outside)])
+            self.assertTrue(probe(run, client, kept['thread']['id'], 'out')['effect'])
+            turn_only = probe(run, client, kept['thread']['id'], 'out', approvalPolicy='on-request',
+                              sandboxPolicy=dict(WW, writableRoots=[]))
+            self.assertTrue(turn_only['effect'])  # the configured root still applies
+            removed = client.start_thread(approvalPolicy='on-request', sandbox='workspace-write',
+                                          config={'sandbox_workspace_write': {'writable_roots': []}})
+            self.assertEqual(removed['sandbox']['writableRoots'], [])
+            self.assertFalse(probe(run, client, removed['thread']['id'], 'out')['effect'])
 
     def test_fork(self):
         with L.Run(SCRATCH, BINARY) as run:
