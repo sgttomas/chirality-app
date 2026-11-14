@@ -385,8 +385,9 @@ fn the_no_project_folder_and_every_codex_working_folder_are_reserved() {
 }
 
 /// DEL-01-01 (reader's control F1): no spelling the file system would resolve into the folder set
-/// aside passes placement, whether or not that folder exists yet: placement makes it exist first,
-/// so another spelling resolves through the real directory, and decides by identity.
+/// aside passes placement, whether or not that folder exists yet: before the start establishes it,
+/// nothing under the App data folder is placed; after, another spelling resolves through the real
+/// directory and placement decides by identity. Placement itself makes nothing.
 #[test]
 fn a_case_alias_of_the_no_project_folder_is_never_a_records_store() {
     let data = folder("placement-data-");
