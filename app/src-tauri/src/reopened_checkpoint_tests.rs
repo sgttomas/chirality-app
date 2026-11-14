@@ -154,3 +154,63 @@ fn a_reading_that_cannot_read_stores_nothing_and_says_it_was_not_read_and_why() 
     assert!(root.reopened.as_ref().unwrap()["runs"].as_array().unwrap().iter().any(|r| r["run"] == a.as_str()));
     assert_eq!(root.reopened.as_ref(), Some(&read));
 }
+
+/// The run's own logs, by path.
+fn run_logs(peer: &Peer, run: &str) -> Vec<std::path::PathBuf> {
+    let mut pending = vec![crate::storage::project_file(&peer.fixture.root, "runs").unwrap()];
+    let mut logs = Vec::new();
+    while let Some(dir) = pending.pop() {
+        for entry in std::fs::read_dir(&dir).unwrap().flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                pending.push(path);
+            } else if path.extension().is_some_and(|e| e == "jsonl") && std::fs::read_to_string(&path).unwrap().contains(run) {
+                logs.push(path);
+            }
+        }
+    }
+    logs
+}
+
+#[test]
+fn a_project_record_that_cannot_be_read_withholds_every_declared_actor() {
+    // found (reading of 344): an unreadable second start restored the actor that two readable
+    // starts withhold. Any unreadable record could be another start of this run.
+    let (peer, a) = reopened_after_an_arrival();
+    assert!(reopened_entry(&peer, &a).get("compatibility").is_some(), "permitted: every record reads");
+    let unreadable = crate::storage::project_file(&peer.fixture.root, "workflow").unwrap().join("55555555-5555-4555-8555-555555555555.json");
+    std::fs::write(&unreadable, b"{ not a record").unwrap();
+    let entry = reopened_entry(&peer, &a);
+    assert!(entry.get("compatibility").is_none(), "{entry}");
+    assert!(not_established(&entry).is_some_and(|why| why.contains("could not be read")), "{}", entry["limits"]);
+}
+
+#[test]
+fn the_declared_actor_is_withheld_when_the_runs_opening_names_another_revision() {
+    // found (reading of 344): the actor came from the start while the workflow shown came from
+    // run_opened; they must agree.
+    let (peer, a) = reopened_after_an_arrival();
+    assert!(reopened_entry(&peer, &a).get("compatibility").is_some(), "permitted: they agree");
+    let mut rewritten = 0;
+    for log in run_logs(&peer, &a) {
+        let text = std::fs::read_to_string(&log).unwrap();
+        let mut out: Vec<String> = Vec::new();
+        for line in text.lines().filter(|l| !l.is_empty()) {
+            let mut entry: Value = serde_json::from_str(line).unwrap();
+            if entry["kind"] == "run_opened" && entry["runId"] == a.as_str() {
+                entry["body"]["workflow"]["revision"] = json!("0".repeat(64));
+                rewritten += 1;
+            }
+            if let Some(previous) = out.last() {
+                entry["prevLine"] = crate::record_lines::link(Some(&crate::record_lines::line_identity(previous.as_bytes())));
+            }
+            out.push(entry.to_string());
+        }
+        std::fs::write(&log, out.join("\n") + "\n").unwrap();
+    }
+    assert_eq!(rewritten, 1);
+    let entry = reopened_entry(&peer, &a);
+    assert_eq!(entry["workflow"]["revision"], "0".repeat(64), "the opening is read as rewritten");
+    assert!(entry.get("compatibility").is_none(), "{entry}");
+    assert!(not_established(&entry).is_some_and(|why| why.contains("another workflow revision")), "{}", entry["limits"]);
+}

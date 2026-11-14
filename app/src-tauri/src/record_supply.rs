@@ -645,6 +645,14 @@ impl RunsReading {
         "standing":"reopened from project records only; completion is never inferred from a native turn, and no live process run is claimed"})
     }
 }
+/// Whether the workflow a `run_opened` record names is the one its run-start record names: the
+/// same kind, origin, source root, name and revision.
+fn same_workflow(opened: &Value, started: Option<&Value>) -> bool {
+    let Some(started) = started else { return false };
+    [("kind", "kind"), ("origin", "origin"), ("sourceRoot", "source_root"), ("name", "name"), ("revision", "revision")]
+        .iter()
+        .all(|(o, s)| opened[*o].is_string() && opened[*o] == started[*s])
+}
 /// One RS entry as read from a run's log, in the hot run's record form. It
 /// was read, so it was written; it was written late only where the run's own
 /// CE-19 limit names it.
@@ -732,6 +740,9 @@ pub fn read_project_runs(project: &ProjectRecords, restart_events: &[Value]) -> 
     let mut starts: std::collections::BTreeMap<String, Value> = Default::default();
     let mut declared: std::collections::BTreeMap<String, Result<Value, String>> = Default::default();
     let mut packages = Default::default();
+    // A record that cannot be read could be another start of any run, so no run's start is then
+    // established as its only one.
+    let mut wr_unread = false;
     match project.list_references() {
         Ok(references) => {
             for reference in references {
@@ -753,11 +764,17 @@ pub fn read_project_runs(project: &ProjectRecords, restart_events: &[Value]) -> 
                         starts.insert(run, record.body().clone());
                     }
                     Ok(_) => {}
-                    Err(e) => limits.push(format!("WR {reference}: {e:?}")),
+                    Err(e) => {
+                        wr_unread = true;
+                        limits.push(format!("WR {reference}: {e:?}"))
+                    }
                 }
             }
         }
-        Err(e) => limits.push(format!("WR records unreadable: {e}")),
+        Err(e) => {
+            wr_unread = true;
+            limits.push(format!("WR records unreadable: {e}"))
+        }
     }
     // Records of a run whose start and opening are both unreadable belong to
     // no listed run; they are named, never dropped silently.
@@ -821,7 +838,18 @@ pub fn read_project_runs(project: &ProjectRecords, restart_events: &[Value]) -> 
                 records: recorded.remove(&run).unwrap_or_default(),
                 declared: declared
                     .remove(&run)
-                    .unwrap_or_else(|| Err("no run-start record of this run is readable".into())),
+                    .unwrap_or_else(|| Err("no run-start record of this run is readable".into()))
+                    .and_then(|declaration| {
+                        if wr_unread {
+                            return Err("a record of the project could not be read, so this run's start is not established as its only one".into());
+                        }
+                        match o.as_slice() {
+                            [] => Ok(declaration),
+                            [opening] if same_workflow(&opening["body"]["workflow"], start.map(|s| &s["workflow"])) => Ok(declaration),
+                            [_] => Err("the run's opening record names another workflow revision than its start".into()),
+                            _ => Err("the run's openings conflict".into()),
+                        }
+                    }),
                 run,
                 conversation,
                 workflow,
