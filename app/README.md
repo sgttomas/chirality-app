@@ -944,11 +944,14 @@ implemented behavior and qualification limits.
     project's files is consulted to tie anything, so a brief file changed,
     replaced or superseded afterwards moves no worker. An item so held, with
     no return recorded, reads `dispatched` and lists every worker dispatched
-    for it with, for each generation in which it was observed, the status
-    last recorded in that generation and when (or, where none has been
-    recorded since the dispatch, when the dispatch was recorded), and that
-    nothing has been recorded of it in that generation since; generations
-    are not ordered against each other, and none supersedes another. It
+    for it with, for each generation in which it was observed: where no end
+    of that observation is recorded, the status last recorded in that
+    generation and when (or, where none has been recorded since the
+    dispatch, when the dispatch was recorded), and that nothing has been
+    recorded of it in that generation since; where an end is recorded, its
+    cause, when it was recorded, and the status it carries, if any;
+    generations are not ordered against each other, and none supersedes
+    another. It
     reads `unknown` once every generation's observation of every such worker
     has an end recorded, or where its named brief cannot be found. A
     dispatch under an earlier brief of the item still
