@@ -15,25 +15,30 @@ It reads and writes nothing in the repository, and its output is never committed
 - step results, from --results, for the one candidate named by --candidate: a folder of JSON records {step,
   candidate, configuration, date, outcome, operated_by}, the outcome one of DEL-09-02 REQ-007's five (passed,
   failed, blocked, not run, inconclusive); any other outcome stops the print, and so does a results folder that is
-  not there. Records for another candidate or naming none, and records that cannot be read, are named beneath the
-  table and never counted. Of a step's records, the latest date decides; records of the latest date that disagree
-  print as inconclusive and are named. A step with no record prints "not run (no record)". A record may cite
-  session-comparison rows: "cites": [{file, sha256, rows}], the file relative to --results. A cited row supports a
-  pass only when it says passed, its file has the digest cited, the file's header names the candidate named and any
-  launch record beside it agrees, and it is not a W1 row of a file that withholds the workflow comparison. A pass
-  whose citations do not support it, in any of a step's records of the latest date, prints as "recorded passed; not
-  counted", is named beneath the table, and is never counted as passed. An empty candidate, or a results folder that
-  cannot be read, stops the print;
+  not there or cannot be read, and an empty candidate. Records for another candidate or naming none, and records
+  that cannot be read, are named beneath the table and never counted.
+
+  THE CLAIM (App Agent 0, 14 November 2026). A step prints as passed only when a result record for that step, on the
+  candidate named, says passed, and no other record for that step on that candidate of the same latest date says
+  otherwise. Every other state prints as what it is: a step with no record prints "not run (no record)", and records
+  of the latest date that disagree print as inconclusive, with the disagreement printed directly under the counts.
+  A record may cite session-comparison rows ("cites": [{file, sha256, rows}], the file relative to --results). Cited
+  rows are listed beneath the table as cited, with whether each file exists, whether it is unchanged (its digest is
+  the one cited) and what each cited row's outcome is. They never raise, lower or protect a step's outcome or any
+  count. The driver's runs and the comparison's rows are never counted as steps;
 - the scripted driver's runs, from --driver FOLDER=RUN@HEAD: a folder holding the reports a hosted run uploaded
   (report.json, scenario-report.json, and setup-report.json when the run made one). The driver is development
   evidence on a test build and satisfies no step;
 - session-comparison rows, from --comparisons FOLDER: a record folder holding session-comparison-*.jsonl files
   (one row per comparison on one subject, each with one of REQ-007's outcomes) and the launch record beside them.
-  Rows are not step results. They are counted from the rows themselves, by candidate (the header's candidate_key,
-  else the launch record's identifier; a file whose two disagree is named and not counted), comparison and outcome; a summary line is compared with the rows, never
-  counted. Of the answers files made from one screen list (the header's "answers_of"), only the latest counts: by
+  Rows are not step results. They are counted from the rows themselves, by candidate, comparison and outcome. The
+  candidate is the header's candidate_key alone: a file whose header names none (a fallback file written after a
+  refusal or failure, say) is counted under "not known", and never resolved through another field such as the
+  launch record's identifier; a file whose header names a candidate the launch record beside it contradicts is named
+  and not counted. A summary line is compared with the rows, never counted. Of the answers files made from one screen list (the header's "answers_of"), only the latest counts: by
   the header's "written_at" when every one has it, else by the time in the name, and two of the same time count
-  for neither. When a file's header says the workflow comparison is not available ("workflow_comparison"), that
+  for neither. A fallback file carrying "answers_of" takes part like any other, so a refused answers run replaces
+  the answers its list had before. When a file's header says the workflow comparison is not available ("workflow_comparison"), that
   sentence is written first beneath the section: W1 is counted only as blocked (a W1 row of that file saying
   anything else is named and not counted), and C2, C3 and C4 passing do not meet the first target. --comparison-standing
   prints a sentence at the head of the section, for the comparison tool's own standing.
@@ -83,40 +88,31 @@ def results(folder, candidate):
     return latest, contradictory, other, unreadable
 
 
-def launch_candidates(folder):
-    """The candidate keys the launch records in a folder name, by their bundle identifiers."""
-    keys = set()
-    for path in Path(folder).glob('launch-record*.json'):
-        identifier = json.loads(path.read_text()).get('bundle', {}).get('identifier') or ''
-        keys.add(re.sub(r'^dev\.chirality\.app-v4\.candidate\.', '', identifier))
-    return keys
-
-
-def citation_marks(record, folder, candidate):
-    """Why a record's citations do not support it, if they do not. A cited row supports a pass only when it says
-    passed, its file is the file cited (by digest), the file's header names the candidate named and any launch
-    record beside it agrees, and it is not a W1 row of a file whose header says the workflow comparison is withheld:
-    the rows the comparison section would not count never support a step."""
-    marks = []
+def cited(record, folder):
+    """What a record cites, as listed beneath the table: for each citation, whether its file exists, whether it is
+    unchanged (the digest cited), and each cited row's outcome. Listing only: nothing here bears on any outcome."""
+    shown = []
     for cite in record.get('cites') or []:
+        if not isinstance(cite, dict) or not isinstance(cite.get('file'), str) or not isinstance(cite.get('rows'), list):
+            shown.append(f'a citation not of the form {{file, sha256, rows}}: {json.dumps(cite)}')
+            continue
         path = Path(folder) / cite['file']
-        if not path.is_file() or 'sha256:' + hashlib.sha256(path.read_bytes()).hexdigest() != cite['sha256']:
-            marks.append(f"citation unsupported ({cite['file']} missing or changed)")
-            continue
-        lines = path.read_text().splitlines()
-        cited = [json.loads(lines[n - 1]) for n in cite['rows'] if 0 < n <= len(lines)]
-        if len(cited) != len(cite['rows']):
-            marks.append(f"citation unsupported ({cite['file']} has no such row)")
-            continue
-        header = next((json.loads(line) for line in lines if line.strip() and json.loads(line).get('header')), {})
-        beside = launch_candidates(path.parent)
-        if header.get('candidate_key') != candidate or (beside and beside != {candidate}):
-            marks.append(f"citation unsupported ({cite['file']} does not name candidate {candidate} alone)")
-        elif header.get('workflow_comparison') and any(row.get('comparison') == 'W1' for row in cited):
-            marks.append(f"citation unsupported ({cite['file']} withholds the workflow comparison it cites)")
-        elif record['outcome'] == 'passed' and any(row.get('outcome') != 'passed' for row in cited):
-            marks.append('disagrees with the rows it cites')
-    return marks
+        exists = path.is_file()
+        unchanged = exists and 'sha256:' + hashlib.sha256(path.read_bytes()).hexdigest() == cite.get('sha256')
+        lines = path.read_text(errors='replace').splitlines() if exists else []
+        rows = []
+        for n in cite['rows']:
+            if not isinstance(n, int) or not 0 < n <= len(lines):
+                rows.append(f'row {n}: no such row')
+                continue
+            try:
+                rows.append(f"row {n}: {json.loads(lines[n - 1]).get('outcome', 'no outcome')}")
+            except (ValueError, AttributeError):
+                rows.append(f'row {n}: not readable')
+        shown.append(f"{cite['file']}: {'exists' if exists else 'does not exist'}; "
+                     f"{'unchanged' if unchanged else 'not the file cited (digest differs)' if exists else 'unchanged: not known'}"
+                     + (f"; {', '.join(rows)}" if rows else ''))
+    return shown
 
 
 def table(repo, folder, release, candidate):
@@ -131,7 +127,7 @@ def table(repo, folder, release, candidate):
              '| Scenario | Step | Counts | Outcome (REQ-007) | Date | Operated by |',
              '| --- | --- | --- | --- | --- | --- |']
     totals = dict.fromkeys(OUTCOMES, 0)
-    removed, disputed, recorded_disputed = 0, [], 0
+    removed, disputed, citations = 0, [], []
     for scenario, steps in step_map['scenarios'].items():
         decision = out.get(scenario)
         if decision and decision.get('release') == release:
@@ -155,6 +151,7 @@ def table(repo, folder, release, candidate):
                 last = contradictory[step['step']]
                 shown = ', '.join(f"{r['file']} {r['outcome']}" for r in last)
                 disputed.append(f"{step['step']}: records of the same date disagree ({shown}); counted inconclusive")
+                citations += [f"{step['step']} ({r['file']}) cites {c}" for r in last for c in cited(r, folder)]
                 if step.get('counts'):
                     totals['inconclusive'] += 1
                 lines.append(f"| {scenario} | {step['step']} | {counts} | inconclusive (records disagree) | {last[0]['date']} | — |")
@@ -167,26 +164,19 @@ def table(repo, folder, release, candidate):
                 lines.append(f"| {scenario} | {step['step']} | {counts} | not run (no record) | — | — |")
                 continue
             outcome = record['outcome']
-            marks = [mark for each in tied for mark in citation_marks(each, folder, candidate)]
-            shown = outcome
-            if marks:
-                disputed.append(f"{step['step']}: {'; '.join(marks)}")
-                if outcome == 'passed':
-                    # A pass its own evidence does not support is shown as recorded and never counted as passed.
-                    shown = 'recorded passed; not counted (its citations do not support it)'
+            citations += [f"{step['step']} ({r['file']}) cites {c}" for r in tied for c in cited(r, folder)]
             if step.get('counts'):
-                if shown == outcome:
-                    totals[outcome] += 1
-                else:
-                    recorded_disputed += 1
-            lines.append(f"| {scenario} | {step['step']} | {counts} | {shown} | {record['date']} | {record.get('operated_by', '—')} |")
+                totals[outcome] += 1
+            lines.append(f"| {scenario} | {step['step']} | {counts} | {outcome} | {record['date']} | {record.get('operated_by', '—')} |")
     lines += ['', 'Counted steps in the release: ' + ', '.join(f'{totals[o]} {o}' for o in OUTCOMES)
-              + (f', {recorded_disputed} recorded passed but not supported by their citations' if recorded_disputed else '')
               + f'. Steps out of {release} by a recorded decision: {removed}.']
+    if disputed:
+        lines.append('Records that disagree: ' + ' | '.join(disputed))
     if stray:
         lines.append('Records naming no planned step (not counted): ' + ', '.join(stray))
-    if disputed:
-        lines.append('Steps whose evidence is contradictory or does not support them: ' + ' | '.join(disputed))
+    if citations:
+        lines += ['', 'Cited rows, listed as cited (they never raise, lower or protect a step\'s outcome or any count):',
+                  *(f'- {c}' for c in citations)]
     if other:
         lines.append(f'Records for another candidate, or naming none (not counted for {candidate}): ' + ', '.join(other))
     if unreadable:
@@ -243,7 +233,11 @@ def comparisons(folders, standing=None):
                              f"{', '.join(sorted(keys))}; its rows are not counted")
                 continue
             if candidate is None:
-                candidate = keys.pop() if len(keys) == 1 else f'not known ({path.name})'
+                # Never resolved through another field: the launch record beside it may be another launch's.
+                candidate = f'not known ({path.name})'
+            if header.get('fallback'):
+                notes.append(f'{path.name}: written after a refusal or failure (fallback)'
+                             + ('; it names no candidate, so its rows are counted under "not known"' if header.get('candidate_key') is None else ''))
             seen = {}
             for row in rows:
                 if row.get('header') or 'summary' in row:
