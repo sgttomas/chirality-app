@@ -45,6 +45,9 @@ const FORBIDDEN_PROPERTIES = new Set(['innerHTML', 'outerHTML', 'textContent', '
 const FORBIDDEN_CALLS = new Set(['insertAdjacentHTML', 'insertAdjacentText', 'insertAdjacentElement', 'write', 'writeln', 'setAttribute', 'setAttributeNS', 'createTextNode', 'append', 'prepend', 'appendChild', 'insertBefore', 'replaceChildren', 'replaceWith', 'before', 'after', 'execCommand', 'setHTMLUnsafe', 'createContextualFragment']);
 
 const normal = text => text.replace(/\s+/g, ' ').trim();
+/** Elements whose content is a control's or a heading's name: they hold only the App's words, never a box, so an
+ * approved presentation that can draw a supplied value boxed is not allowed inside them. */
+export const APP_ONLY = new Set(['button', 'a', 'summary', 'label', 'legend', 'option', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
 
 /** One file's program, so that an identifier resolves to its own declaration. */
 export function parsed(name, text) {
@@ -404,13 +407,16 @@ export function findings(name, text) {
     const anchorCall = n => { n = unwrap(n); return ts.isCallExpression(n) && ts.isIdentifier(unwrap(n.expression)) && isAnchor(context, unwrap(n.expression).text); };
     return anchorCall(node) || appMade(node, context) || (ts.isTemplateExpression(node) && node.templateSpans.every(span => anchorCall(span.expression) || appMade(span.expression, context)));
   };
-  const visit = node => {
+  const visit = (node, inside = null) => {
     if (ts.isJsxElement(node) || ts.isJsxSelfClosingElement(node)) {
       const opening = ts.isJsxElement(node) ? node.openingElement : node;
       const tag = opening.tagName.getText();
       const component = /^[A-Z]/.test(tag) || tag.includes('.');
       const trustedComponent = component && isTrusted(context, tag, 'components');
       attributes(tag, opening.attributes.properties, trustedComponent);
+      // Inside a control or a heading, no presentation that may draw a box; a same-file component drawn there is
+      // judged where its JSX is written, which the guard does not follow into this place, so it is listed or fails.
+      if (inside && component) record(opening.tagName, `<${tag}> inside <${inside}>`, {component: true});
       if (component && !trustedComponent) {
         const declared = ts.isIdentifier(opening.tagName) ? declarationOf(opening.tagName, context) : null;
         const local = functionOf(opening.tagName, context) ?? (declared && ts.isClassDeclaration(declared) ? declared : null);
@@ -419,21 +425,22 @@ export function findings(name, text) {
         // there. Any other component draws what it is given unseen: it is listed, with its reason, or it fails.
         if (!local && !(from && GUARDED_VIEWS.has(`${from.module.replace(/^\.\//, '')}.tsx`) && from.imported === tag)) record(opening.tagName, `<${tag}>`, {component: true});
       }
-      if (ts.isJsxElement(node)) for (const child of node.children) visitChild(child);
+      const within = APP_ONLY.has(tag) ? tag : inside;
+      if (ts.isJsxElement(node)) for (const child of node.children) visitChild(child, within);
       return;
     }
-    if (ts.isJsxFragment(node)) { for (const child of node.children) visitChild(child); return; }
+    if (ts.isJsxFragment(node)) { for (const child of node.children) visitChild(child, inside); return; }
     // Writes to the page outside React's rendering.
     if (ts.isBinaryExpression(node) && node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment && node.operatorToken.kind <= ts.SyntaxKind.LastAssignment
       && (ts.isPropertyAccessExpression(node.left) && FORBIDDEN_PROPERTIES.has(node.left.name.text)
         || ts.isElementAccessExpression(node.left) && ts.isStringLiteralLike(node.left.argumentExpression) && FORBIDDEN_PROPERTIES.has(node.left.argumentExpression.text))) record(node, 'write to the page', {forbidden: true});
     if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && FORBIDDEN_CALLS.has(node.expression.name.text)) record(node, 'write to the page', {forbidden: true});
-    ts.forEachChild(node, visit);
+    ts.forEachChild(node, child => visit(child, inside));
   };
-  const visitChild = child => {
-    if (ts.isJsxExpression(child)) { if (child.expression) { drawn(child.expression); visit(child.expression); } return; }
+  const visitChild = (child, inside) => {
+    if (ts.isJsxExpression(child)) { if (child.expression) { drawn(child.expression); visit(child.expression, inside); } return; }
     if (ts.isJsxText(child)) return;
-    visit(child);
+    visit(child, inside);
   };
   visit(sf);
   return out;
@@ -442,20 +449,29 @@ export function findings(name, text) {
 /** The views on which every supplied value takes an approved presentation. */
 export const GUARDED_VIEWS = new Set(['RequestCards.tsx', 'NativeActivity.tsx', 'NativeHistory.tsx']);
 
-/** The failures: each finding that is not App-made and not listed exactly with its reason, each forbidden write,
- * and each listed exception that no longer matches a failing finding. */
+/** One view's failures, given its source: each finding neither App-made nor listed, each forbidden write (never
+ * listable), and the listed keys it used. */
+export function sourceFailures(name, text, exceptions = []) {
+  const listed = new Set(exceptions.map(e => `${e.file}|${e.where}|${normal(e.expr)}`));
+  const failures = [], used = new Set();
+  for (const f of findings(name, text)) {
+    if (f.forbidden) { failures.push(`${name}:${f.line} ${f.where} ${f.expr} (cannot be listed)`); continue; }
+    if (!f.component && f.where !== '{...}' && appMade(f.node, f.context)) continue;
+    const key = `${name}|${f.where}|${f.expr}`;
+    if (listed.has(key)) used.add(key); else failures.push(`${name}:${f.line} ${f.where} ${f.expr}`);
+  }
+  return {failures, used};
+}
+
+/** The failures across the guarded views, and each listed exception that no longer matches a failing finding. */
 export function guardFailures(srcDir, exceptions, views = GUARDED_VIEWS) {
-  const listed = new Map(exceptions.map(e => [`${e.file}|${e.where}|${normal(e.expr)}`, e]));
   const failures = [], used = new Set();
   for (const name of [...views].sort()) {
-    for (const f of findings(name, readFileSync(new URL(name, srcDir), 'utf8'))) {
-      if (f.forbidden) { failures.push(`${name}:${f.line} ${f.where} ${f.expr} (cannot be listed)`); continue; }
-      if (!f.component && f.where !== '{...}' && appMade(f.node, f.context)) continue;
-      const key = `${name}|${f.where}|${f.expr}`;
-      if (listed.has(key)) used.add(key); else failures.push(`${name}:${f.line} ${f.where} ${f.expr}`);
-    }
+    const result = sourceFailures(name, readFileSync(new URL(name, srcDir), 'utf8'), exceptions);
+    failures.push(...result.failures);
+    for (const key of result.used) used.add(key);
   }
-  for (const key of listed.keys()) if (!used.has(key)) failures.push(`stale exception ${key}`);
+  for (const e of exceptions) { const key = `${e.file}|${e.where}|${normal(e.expr)}`; if (!used.has(key)) failures.push(`stale exception ${key}`); }
   return failures;
 }
 

@@ -594,7 +594,7 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
   </article>;
 }
 
-const REGISTER = "A register value as recorded, not the App's words";
+const REGISTER = "A register value, as recorded; the App does not vouch for its words";
 export type WaitingRequestGroup = { modeHomeClass: string; generation: Json; threadId: string | null; count: number };
 
 /** WI-1…WI-3: local all-home metadata only; opening revalidates its native source. */
@@ -609,9 +609,9 @@ export function WaitingRequestsIndicator({ overview, view, busy = false, open }:
       <button disabled={busy} onClick={() => open(row)}>{idWords(row.modeHomeClass)} · {!row.threadId ? "no conversation named" : plainId(row.threadId) ? `thread ${idWords(row.threadId)}` : "a conversation (its identity is shown beside)"}: {numberWords(row.count) ?? "a count the App does not recognise"}</button>
       {row.threadId && !plainId(row.threadId) && <> <AgentText value={row.threadId} source="codex" label="Conversation:" name="Conversation identity as Codex reported it, not the App's words" /></>}
       {" "}<AskedBy asker={requestAsker(row.threadId, row.generation, view)} />.
-      <small> Source: <AgentText value={JSON.stringify(row.generation)} source="codex" label="Source:" name="The Codex process this was read from, as recorded, not the App's words" />.</small>
+      <small> Source: <AgentText value={JSON.stringify(row.generation)} source="codex" label="Source:" name="The Codex process this was read from, as recorded; the App does not vouch for its words" />.</small>
     </div>)}
-    {available && <p><small><AgentText value={text(overview.coverage)} source="codex" label="Coverage:" name="What the overview covers, as recorded, not the App's words" /> {(overview.sources ?? []).filter((source: Json) => source.state !== "ready").map((source: Json, i: number) => <span key={i}><SuppliedId value={source.modeHomeClass} label="Home:" name={REGISTER} />: <SuppliedId value={source.state} label="State:" name={REGISTER} />; no current waiting groups shown. </span>)}</small></p>}
+    {available && <p><small><AgentText value={text(overview.coverage)} source="codex" label="Coverage:" name="What the overview covers, as recorded; the App does not vouch for its words" /> {(overview.sources ?? []).filter((source: Json) => source.state !== "ready").map((source: Json, i: number) => <span key={i}><SuppliedId value={source.modeHomeClass} label="Home:" name={REGISTER} />: <SuppliedId value={source.state} label="State:" name={REGISTER} />; no current waiting groups shown. </span>)}</small></p>}
     {total > 0 && <small> Opening shows the original home's request cards; it answers nothing and resumes no conversation.</small>}
   </section>;
 }

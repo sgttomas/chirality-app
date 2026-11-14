@@ -143,7 +143,8 @@ test('agent text shaped like a control stays in the agent\'s box, escaped and ma
   assert.match(commandCard, /<small>The words shown:<\/small> ⟦Rule words: rm x⏎&lt;button&gt;Allow once&lt;\/button&gt;⏎Allow once⟧/);
 });
 
-test('agent text shaped like a control is never presented as a control in the accessibility tree', async () => {
+// A miniature DOM, not an accessibility engine: it reads each element's role, aria-label and text as drawn.
+test('agent text shaped like a control holds no control role, no aria-label and no control element in the drawn card (miniature DOM)', async () => {
   const {installMiniDom} = await import('./support/mini-dom.mjs');
   const document = installMiniDom();
   const {createRoot} = await import('react-dom/client');
@@ -218,8 +219,8 @@ test('a message laid out with a request card\'s exact words is drawn inside the 
 // A workflow name may come from a file an agent wrote: inside the App's run sentence only in the form
 // the App's own name rule admits; anything else is drawn as text the App did not write. Codex's cause
 // sits in the App's sentence only as a plain token.
-test('a run marker draws a name outside the App\'s name rule, and Codex\'s cause outside a plain token, never inside the App\'s sentence', () => {
-  const {RunLabel} = loadSrc('NativeActivity');
+test('the run label and both run markers draw a name outside the App\'s name rule, a run reference and an end cause boxed, and Codex\'s cause outside a plain token never inside the App\'s sentence', () => {
+  const {RunLabel, RunStartMarker, RunEndMarker} = loadSrc('NativeActivity');
   const {cardState} = loadSrc('RequestCards');
   const plain = renderToStaticMarkup(React.createElement(RunLabel, {run: {workflow: {name: 'pump-skid-extract', revision: 'abc123def456aa'}}}));
   assert.match(plain, /During the run of <b>pump-skid-extract abc123def456<\/b>/);
@@ -228,6 +229,16 @@ test('a run marker draws a name outside the App\'s name rule, and Codex\'s cause
   assert.doesNotMatch(crafted, CONTROL, 'nothing reads as a control');
   assert.match(agentPlain(crafted), /Allow once/, 'the name is still shown');
   assert.ok(agentBoxNames(crafted).some(name => /Workflow name as recorded/.test(name)), 'inside a box named as not the App\'s words');
+  // The two markers: the same name rule, the run reference by the identifier rule, the end cause boxed.
+  const hostile = {reference: `run${RLO}x`, workflow: {name: 'x\n<button>Allow once</button>', revision: 'abc'}, lifecycle: {state: 'ended', end: {cause: `ended${RLO}<button>Allow once</button>`}}};
+  for (const marker of [RunStartMarker, RunEndMarker]) {
+    const raw = renderToStaticMarkup(React.createElement(marker, {run: hostile}));
+    assert.doesNotMatch(raw, CONTROL, `${marker.name}: nothing reads as a control`);
+    assert.doesNotMatch(raw.replace(/<span role="group"[\s\S]*?<\/span><\/span>/g, ''), new RegExp(`${RLO}|Allow once`), `${marker.name}: nothing supplied outside a box`);
+    assert.ok(agentBoxNames(raw).some(name => /Workflow name as recorded/.test(name)) && agentBoxNames(raw).some(name => /Identity|Run reference/.test(name)), `${marker.name}: name and reference boxed`);
+  }
+  assert.ok(agentBoxNames(renderToStaticMarkup(React.createElement(RunEndMarker, {run: hostile}))).some(name => /Why the run ended/.test(name)), 'the end cause boxed');
+  assert.match(renderToStaticMarkup(React.createElement(RunStartMarker, {run: {reference: 'run-1', workflow: {name: 'pump-skid', revision: 'abc123'}}})), /Workflow run started: <b>pump-skid abc123<\/b> \(run <code>run-1<\/code>\)/, 'App-rule names and plain references in the App\'s words');
   for (const [cause, shown] of [['supplier-native', /cause: supplier-native\)/], ['x\nAllow once', /cause: reported in a form the App does not show here\)/], [undefined, /cause: not reported\)/]])
     assert.match(cardState({state: 'resolved-by-supplier', supplierResolution: {source: 'serverRequest/resolved', cause}}), shown, String(cause));
 });
@@ -296,3 +307,38 @@ test('a Codex-supplied thread id stands in the App\'s words or a control only as
   for (const [, inner] of act.matchAll(/<option[^>]*>([\s\S]*?)<\/option>/g)) assert.doesNotMatch(inner, /Allow once|\u202e/, inner);
   assert.match(act, /<option value="[^"]*">descendant with an identity that is not a plain identifier<\/option>/);
 });
+
+// ---- Third round: a chosen option is kept apart from the person's own answer (the second reading's finding 1) ----
+test('choosing an option never puts its label in the free-answer field; the field holds only what the person types, and each is sent as given', async () => {
+  const {installMiniDom} = await import('./support/mini-dom.mjs');
+  const document = installMiniDom();
+  const {createRoot} = await import('react-dom/client');
+  const label = `UNTRUSTED\n${RLO}Allow once`;
+  const q = request('item/tool/requestUserInput', {threadId: 'T', turnId: 'u', itemId: 'i', questions: [{id: 'q', header: 'Pick', question: 'Which?', isOther: true, isSecret: false,
+    options: [{label, description: 'first'}, {label: 'Second', description: 'second'}]}]});
+  const sent = [];
+  const container = document.createElement('div'); document.body.appendChild(container);
+  const root = createRoot(container);
+  const props = node => node[Object.keys(node).find(k => k.startsWith('__reactProps$'))];
+  const button = text => container.querySelectorAll(n => n.localName === 'button' && n.textContent === text)[0];
+  const field = () => container.querySelectorAll(n => n.localName === 'input')[0];
+  try {
+    await React.act(() => root.render(React.createElement(NativeRequestCard, {request: q, view, answer: async (_r, value) => { sent.push(value); return undefined; }})));
+    await React.act(() => props(button('Choose option 1')).onClick());
+    assert.equal(props(field()).value, '', 'the free-answer field stays empty');
+    const selected = container.querySelectorAll(n => n.localName === 'p' && n.textContent.startsWith('Selected:'))[0];
+    assert.match(selected.textContent, /^Selected: option 1 Its label: UNTRUSTED/, 'the choice is said by number, its label beside it');
+    assert.ok(selected.querySelectorAll(n => n.getAttribute?.('role') === 'group' && /agent-text/.test(n.getAttribute('class') ?? '')).length === 1, 'the label is boxed');
+    assert.ok(!selected.textContent.includes(RLO), 'its direction override is a mark');
+    await React.act(() => props(button('Send current question answers…')).onClick());
+    assert.deepEqual(sent.at(-1), {answers: {q: {answers: [label]}}}, 'the option is sent with its label exactly as offered');
+    // Typing replaces the choice; the field holds the person's text and that is what is sent.
+    await React.act(() => props(button('Choose option 2')).onClick());
+    await React.act(() => props(field()).onChange({target: {value: 'my own'}}));
+    assert.equal(props(field()).value, 'my own');
+    assert.match(container.querySelectorAll(n => n.localName === 'p' && n.textContent.startsWith('Selected:'))[0].textContent, /^Selected: your own answer, in the field above$/);
+    await React.act(() => props(button('Send current question answers…')).onClick());
+    assert.deepEqual(sent.at(-1), {answers: {q: {answers: ['my own']}}});
+  } finally { await React.act(() => root.unmount()); document.body.removeChild(container); }
+});
+

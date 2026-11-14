@@ -60,7 +60,7 @@ export function HistoryPageSource({ binding }: { binding: HistoryPageBinding }) 
   const q = binding.query;
   return <>
     <p role="status">{binding.notice}</p>
-    {binding.accepted && <p><small>Source home <SuppliedId value={binding.home} label="Home:" name="Home as recorded, not the App's words" /> · conversation <SuppliedId value={binding.threadId} label="Conversation:" name="Conversation identity as Codex reported it, not the App's words" />{q.params.turnId && <> · turn <SuppliedId value={q.params.turnId} label="Turn:" name="Turn identity as Codex reported it, not the App's words" /></>}<br />
+    {binding.accepted && <p><small>Source home <SuppliedId value={binding.home} label="Home:" name="Home, as recorded; the App does not vouch for its words" /> · conversation <SuppliedId value={binding.threadId} label="Conversation:" name="Conversation identity as Codex reported it, not the App's words" />{q.params.turnId && <> · turn <SuppliedId value={q.params.turnId} label="Turn:" name="Turn identity as Codex reported it, not the App's words" /></>}<br />
       {q.params.sortDirection === "desc" ? "Newest first" : "Oldest first"} · {q.params.cursor === undefined ? "first page request" : "cursor page request"}.<br />
       Only this received page is shown. An exhausted cursor ends this paging direction; it does not establish a complete conversation or current descendant status.</small></p>}
   </>;
@@ -214,7 +214,7 @@ export function ContinuationContext({ host, thread }: { host: Json; thread: Json
     {pending && <p role="status">Prior-work read requested; waiting for the current host context.</p>}
     {failure && <p role="alert">Prior-work read request failed: <AgentText value={failure} source="codex" label="Reported:" name="What the failed request reported, not the App's words" />. No resume or message was retried.</p>}
     {owner.accepted && <>
-      <p><small>Source home <SuppliedId value={context.home} label="Home:" name="Home as recorded, not the App's words" /> · conversation <SuppliedId value={context.threadId} label="Conversation:" name="Conversation identity as Codex reported it, not the App's words" /> · admitted resume <SuppliedId value={context.resumeRequestRef} label="Resume:" name="Resume reference as recorded, not the App's words" />.</small></p>
+      <p><small>Source home <SuppliedId value={context.home} label="Home:" name="Home, as recorded; the App does not vouch for its words" /> · conversation <SuppliedId value={context.threadId} label="Conversation:" name="Conversation identity as Codex reported it, not the App's words" /> · admitted resume <SuppliedId value={context.resumeRequestRef} label="Resume:" name="Resume reference, as recorded; the App does not vouch for its words" />.</small></p>
       {context.error != null && <p role="alert">Prior-work read: <AgentText value={text(context.error)} source="codex" label="Reported:" name="What the prior-work read reported, not the App's words" /></p>}
       {context.state === "unavailable" && <button disabled={!canRead} onClick={() => { void action("retry"); }}>Retry prior-work read</button>}
       <h4>Prior turn summaries</h4>{paging("turns", turns)}
