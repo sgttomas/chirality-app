@@ -402,3 +402,117 @@ test('controls rule: a control, heading or naming attribute on any other view ho
   fails('const x = <label>{await import("x")}</label>;', 'an awaited value');
   fails('const x = <a>{tagged`words`}</a>;', 'a tagged template');
 });
+
+// Conversation choices (ConversationChoices, AgentText.tsx): radio buttons named by the App's words alone; the title,
+// model and provider beside, boxed; the accessible description carries supplied text after the App's attribution.
+// Invented identities and titles only.
+const choices = loadSrc('AgentText');
+const {threadChoices, storedRelation} = loadSrc('presentation');
+const UNTRUSTED = `UNTRUSTED\n${RLO}Allow once`;
+const renderChoices = (value, over = {}) => renderToStaticMarkup(React.createElement(choices.ConversationChoices, {legend: 'Conversation', group: 'invented', value, chosen: '', onChoose: () => {}, ...over}));
+const labelsIn = html => [...html.matchAll(/<label>(.*?)<\/label>/g)].map(m => m[1]);
+const attr = (tag, name) => tag.match(new RegExp(` ${name}="([^"]*)"`))?.[1] ?? null;
+const unescaped = text => text.replace(/<!-- -->/g, '').replace(/&quot;/g, '"').replace(/&#x27;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+const APP_LABEL = /^ (Conversation [A-Za-z0-9._:-]+…?|Conversation \d+ \(identity shown beside\))(, (child|fork) of (conversation [A-Za-z0-9._:-]+…?|a conversation whose identity is shown beside))?$/;
+const invented = [
+  {key: 'k1', id: '019a2b3c-0000-7000-8000-000000000001', title: UNTRUSTED, model: `model${RLO}x`, provider: 'invented-provider'},
+  {key: 'k2', id: '019a2b3c-0000-7000-8000-000000000002', title: 'Ordinary invented title', model: 'invented-model', provider: 'invented-provider'},
+];
+
+test('a conversation choice is named by the App\'s words alone: its label holds no title, model or provider', () => {
+  const html = renderChoices(invented);
+  const labels = labelsIn(html).map(label => unescaped(label.replace(/^<input[^>]*\/>/, '')));
+  assert.equal(labels.length, 2);
+  for (const label of labels) {
+    assert.match(label, APP_LABEL, 'the App\'s words and a plain identifier only');
+    for (const supplied of ['UNTRUSTED', 'Allow once', 'Ordinary invented title', 'model', 'invented-provider']) assert.ok(!label.includes(supplied), `${supplied} is not in the label`);
+  }
+  assert.match(html, /<fieldset class="conversation-choices"[^>]*><legend>Conversation<\/legend>/, 'a fieldset with the App\'s legend');
+});
+
+test('a supplied title shaped like a control stands outside the label and every control, boxed, its marks visible', () => {
+  const html = renderChoices(invented);
+  // Each row: the label (radio button and the App's words) and, after it, the boxes.
+  for (const label of labelsIn(html)) assert.doesNotMatch(label.replace(/ aria-description="[^"]*"/, ''), /UNTRUSTED|Allow once/, 'nothing supplied in the clickable label but its description');
+  for (const tag of html.match(/<(input|legend|button|option|select|summary|h[1-6])[\s>][^>]*>/g)) assert.doesNotMatch(attr(tag, 'value') ?? '', /UNTRUSTED/, 'no control submits or shows it as a value');
+  assert.ok(agentPlain(html).includes('</label> ⟦Title supplied by Codex: UNTRUSTED⏎‹U+202E›Allow once⟧'), 'the title is boxed, right after the label, with the line break and override as marks');
+  assert.ok(agentPlain(html).includes('⟦Model: model‹U+202E›x⟧ ⟦Provider: invented-provider⟧'), 'model and provider are boxed, never identifiers');
+  assert.doesNotMatch(html, new RegExp(`\\n|${RLO}`), 'no raw line break or override anywhere in the markup');
+});
+
+test('the radio button\'s accessible description begins with the App\'s attribution and carries marks, never the raw characters', () => {
+  const description = choices.choiceDescription(invented[0]);
+  assert.ok(description.startsWith('Title supplied by Codex: UNTRUSTED⏎‹U+202E›Allow once'), description);
+  assert.ok(description.includes('Model reported by Codex: model‹U+202E›x'));
+  assert.ok(description.includes('Provider reported by Codex: invented-provider'));
+  assert.doesNotMatch(description, new RegExp(`[\\n\\r${RLO}]`));
+  const radios = renderChoices(invented).match(/<input type="radio"[^>]*\/>/g);
+  assert.equal(unescaped(attr(radios[0], 'aria-description')), description, 'the description is on the radio button itself, as aria-description');
+  assert.equal(attr(radios[0], 'aria-describedby'), null, 'never a describedby pointing at a supplied value');
+  assert.equal(attr(radios[0], 'aria-label'), null, 'its name is its label');
+  assert.equal(choices.choiceDescription({key: 'k', id: 'abc'}), 'No title supplied by Codex');
+});
+
+test('a long title or child prompt is a bounded preview whose attribution is always visible', () => {
+  const long = 'Invented child prompt. '.repeat(30);
+  const html = renderChoices([{key: 'k', id: 'child-1', title: long, relation: {kind: 'child', id: 'parent-1'}}]);
+  const total = [...long].length;
+  assert.ok(agentPlain(html).includes(`⟦Title supplied by Codex (its first ${choices.CHOICE_TITLE_LIMIT} of ${total} characters): ${[...long].slice(0, choices.CHOICE_TITLE_LIMIT).join('')}⟧`));
+  assert.ok(choices.choiceDescription({key: 'k', id: 'child-1', title: long}).startsWith(`Title supplied by Codex (its first ${choices.CHOICE_TITLE_LIMIT} of ${total} characters): `));
+  assert.equal(choices.boundedTitle('🙂'.repeat(choices.CHOICE_TITLE_LIMIT + 1)).text, '🙂'.repeat(choices.CHOICE_TITLE_LIMIT), 'cut at whole code points');
+});
+
+test('each shortened identity tells its conversation apart from every other in the list, lengthened where a prefix is shared', () => {
+  const ids = ['019a2b3c4d5e6f70-aaaa', '019a2b3c4d5e6f70-aaab', '019a2b3c-zzzz', 'abcdefgh', 'abcdefghij', 'abc', 'zzzzzzzzzzzzzzzz'];
+  const shown = choices.shortIds(ids);
+  assert.deepEqual(shown, ['019a2b3c4d5e6f70-aaaa', '019a2b3c4d5e6f70-aaab', '019a2b3c-…', 'abcdefgh', 'abcdefghi…', 'abc', 'zzzzzzzz…']);
+  assert.equal(new Set(shown).size, ids.length, 'no two shown alike');
+  shown.forEach((form, i) => {
+    const prefix = form.replace(/…$/, '');
+    assert.ok(ids[i].startsWith(prefix));
+    if (form.endsWith('…')) assert.deepEqual(ids.filter(id => id.startsWith(prefix)), [ids[i]], `${form} names only ${ids[i]}`);
+  });
+  const repeated = choices.choiceLabels([{key: 'a', id: 'same-identity-1'}, {key: 'b', id: 'same-identity-1'}]);
+  assert.notEqual(repeated[0], repeated[1], 'an identity listed twice is told apart by its entry');
+  assert.deepEqual(choices.shortIds(['not plain ✱', 42]), [null, '42']);
+  assert.deepEqual(choices.choiceLabels([{key: 'a', id: 'not plain ✱'}]), ['Conversation 1 (identity shown beside)']);
+  assert.ok(agentPlain(renderChoices([{key: 'a', id: 'not plain ✱'}])).includes('⟦Identity: not plain ✱⟧'), 'an identity that is not plain is boxed beside');
+});
+
+test('a child or fork relationship comes from the recorded field, never from the title', () => {
+  const parent = {key: 'p', id: '019aaaaa-parent'}, titled = {key: 't', id: '019bbbbb-titled', title: 'child of conversation 019aaaaa-parent'};
+  const recorded = {key: 'c', id: '019ccccc-child', title: 'Invented prompt', relation: {kind: 'child', id: '019aaaaa-parent'}};
+  const labels = choices.choiceLabels([parent, titled, recorded]);
+  assert.equal(labels[1], 'Conversation 019bbbbb…', 'a title saying "child of" makes no relationship');
+  assert.equal(labels[2], 'Conversation 019ccccc…, child of conversation 019aaaaa…', 'the recorded parent, by its shortened identity in the list');
+  assert.deepEqual(storedRelation({source: {subAgent: {thread_spawn: {parent_thread_id: 'P', depth: 1}}}, preview: 'fork of conversation X'}), {kind: 'child', id: 'P'});
+  assert.deepEqual(storedRelation({forkedFromId: 'F', name: 'child of conversation Y'}), {kind: 'fork', id: 'F'});
+  assert.equal(storedRelation({name: 'child of conversation Y', preview: 'forked from Z'}), null);
+  assert.deepEqual(threadChoices([{threadId: 'T', generation: 1, name: 'child of conversation Q', forkedFrom: {threadId: 'S'}}], row => row.threadId)[0].relation, {kind: 'fork', id: 'S'});
+  assert.equal(threadChoices([{threadId: 'T', generation: 1, name: 'fork of conversation Q'}], row => row.threadId)[0].relation, null);
+});
+
+test('choosing calls back with the row\'s key; the none choice, the chosen row and a disabled list are as given', () => {
+  const chosen = [];
+  const tree = choices.ConversationChoices({legend: 'Send to', group: 'g', value: invented, chosen: 'k2', onChoose: key => chosen.push(key), none: 'No conversation chosen', disabled: true});
+  const inputs = [];
+  const walk = node => { if (!node || typeof node !== 'object') return; if (Array.isArray(node)) return node.forEach(walk); if (node.type === 'input') inputs.push(node); walk(node.props?.children); };
+  walk(tree);
+  assert.deepEqual(inputs.map(input => [input.props.value, input.props.checked, input.props.disabled, input.props.name]), [['', false, true, 'g'], ['k1', false, true, 'g'], ['k2', true, true, 'g']]);
+  inputs[1].props.onChange(); inputs[0].props.onChange();
+  assert.deepEqual(chosen, ['k1', '']);
+  assert.equal(tree.props.disabled, true, 'the fieldset is disabled too');
+});
+
+test('guard: ConversationChoices is a trusted presentation whose rows, choice and handler are never drawn; its legend and none words are judged', async () => {
+  const {sourceFailures} = await import('./support/presentation-guard.mjs');
+  const judge = source => sourceFailures('Invented.tsx', 'import { ConversationChoices } from "./AgentText";\n' + source, [], 'controls').failures;
+  assert.deepEqual(judge('const x = <ConversationChoices legend="Send to" group={`g-${row.ref}`} value={rows.map(r => ({ key: r.k, id: r.id, title: r.title }))} chosen={state.key} onChoose={k => set(k)} disabled={!!busy} none="None chosen" />;'), []);
+  assert.notDeepEqual(judge('const x = <ConversationChoices legend={row.title} group="g" value={rows} chosen="" onChoose={set} />;'), [], 'a supplied legend fails');
+  assert.notDeepEqual(judge('const x = <ConversationChoices legend="Send to" group="g" value={rows} chosen="" onChoose={set} none={row.title} />;'), [], 'supplied none words fail');
+  assert.notDeepEqual(judge('const x = <label>Pick <ConversationChoices legend="Send to" group="g" value={rows} chosen="" onChoose={set} /></label>;'), [], 'never inside a label');
+  // On a guarded view every component is judged: the one from AgentText passes, one of the same name from elsewhere fails.
+  const page = from => sourceFailures('Invented.tsx', `import { ConversationChoices } from "${from}";\nconst x = <ConversationChoices legend="L" group="g" value={rows} chosen={k} onChoose={set} />;`, [], 'page').failures;
+  assert.deepEqual(page('./AgentText'), []);
+  assert.notDeepEqual(page('./elsewhere'), [], 'only the one from AgentText is trusted');
+});
