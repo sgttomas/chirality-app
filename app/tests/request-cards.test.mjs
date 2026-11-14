@@ -7,6 +7,7 @@ import ts from 'typescript';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {localRequire} from './support/load-src.mjs';
+import {agentPlain,agentBoxNames} from './support/agent-text.mjs';
 
 // Each module is transpiled alone; a local import is served from the modules already loaded.
 const load=(name,local={})=>{
@@ -26,9 +27,11 @@ const request=(method,parameters,extra={})=>({recordKind:'server-request-entry',
 const at={threadId:'T',turnId:'u',itemId:'i'};
 const command=(params={},extra={})=>request('item/commandExecution/requestApproval',{...at,command:'ls -la',cwd:'/work',reason:'List the folder',proposedExecpolicyAmendment:['ls'],...params},extra);
 const entry=extra=>command({},extra);
-const render=(r,view=null)=>renderToStaticMarkup(React.createElement(NativeRequestCard,{request:r,view,answer:async()=>{}}));
+// The markup with each box of text the App did not write read as ⟦label value⟧ (support/agent-text.mjs).
+const renderRaw=(r,view=null)=>renderToStaticMarkup(React.createElement(NativeRequestCard,{request:r,view,answer:async()=>{}}));
+const render=(r,view=null)=>agentPlain(renderRaw(r,view));
 // The App's own words: everything except code spans, quoted supplier text and preformatted native JSON.
-const appWords=html=>html.replace(/<pre[\s\S]*?<\/pre>/g,'').replace(/<code>[\s\S]*?<\/code>/g,'').replace(/<q>[\s\S]*?<\/q>/g,'').replace(/<[^>]+>/g,' ');
+const appWords=html=>agentPlain(html).replace(/⟦[\s\S]*?⟧/g,' ').replace(/<pre[\s\S]*?<\/pre>/g,'').replace(/<code>[\s\S]*?<\/code>/g,'').replace(/<q>[\s\S]*?<\/q>/g,'').replace(/<[^>]+>/g,' ');
 const A14={
   'item/commandExecution/requestApproval':command({reason:'Needs approval to accept'}),
   'item/fileChange/requestApproval':request('item/fileChange/requestApproval',{...at,reason:'Approve these edits',grantRoot:'/work'}),
@@ -41,7 +44,7 @@ test('tool-permission cards are titled and read without the raw JSON',()=>{
   const html=render(command());
   assert.match(html,/<h3>Tool permission: run a command<\/h3>/);
   const outside=html.replace(/<details>[\s\S]*?<\/details>/g,'');
-  assert.ok(outside.includes('<code>ls -la</code>')&&outside.includes('<code>/work</code>')&&outside.includes('<q>List the folder</q>'),'command, folder and reason are shown readably');
+  assert.ok(outside.includes('Command: ⟦The agent wrote: ls -la⟧')&&outside.includes('Working folder: ⟦The agent wrote: /work⟧')&&outside.includes('Reason given: ⟦The agent wrote: List the folder⟧'),'command, folder and reason are shown readably, as the agent\'s');
   assert.ok(outside.includes('<b>Waiting for your answer</b>'));
   assert.ok(!/item\/commandExecution\/requestApproval/.test(outside),'the method name is not the title');
   for(const [method,r] of Object.entries(A14)) assert.ok(requestTitle(r).startsWith('Tool permission: '),method);
@@ -126,7 +129,7 @@ test('questions and input requests say they are conversation input and offer the
   assert.match(html,/Not blocking the turn/);assert.match(html,/Decline to answer/);
   const e=request('mcpServer/elicitation/request',{threadId:'T',turnId:'u',serverName:'srv',mode:'url',message:'Open this',url:'https://example.invalid/x',elicitationId:'e'});
   const eh=render(e);
-  assert.match(eh,/Input request from MCP server srv or the agent \(not established\)/);
+  assert.match(eh,/<h3>Input request from an MCP server or the agent \(not established\)<\/h3><p>MCP server, as named in the request: ⟦Server name: srv⟧<\/p>/,'the server name is below the heading, in its own box');
   assert.match(eh,/the App never opens it/);assert.ok(!/<a href="https:/.test(eh),'the address is never a link');
 });
 
@@ -146,8 +149,8 @@ test('item anchors link the card and the activity row both ways (§4.7, TR-6)',(
 test('the waiting indicator shows the native all-home groups and source limits (WI-1…WI-3)',()=>{
   const overview={groups:[{modeHomeClass:'account',generation:g,threadId:'T',count:3},{modeHomeClass:'api-key',generation:{...g,home:'key'},threadId:'T',count:1}],sources:[{modeHomeClass:'account',state:'ready'},{modeHomeClass:'api-key',state:'ready'}],coverage:'Sequential local snapshots; no supplier read.'};
   const html=renderToStaticMarkup(React.createElement(WaitingRequestsIndicator,{overview,open:()=>{}}));
-  assert.match(html,/4 requests from Codex waiting for your answer/);assert.match(html,/conversation T: 3/);assert.match(html,/it answers nothing/);
-  assert.match(html,/api-key.*conversation T: 1/);assert.match(html,/Sequential local snapshots/);
+  assert.match(html,/4 requests from Codex waiting for your answer/);assert.match(html,/account · thread T: 3<\/button>/);assert.match(html,/it answers nothing/);
+  assert.match(html,/api-key · thread T: 1<\/button>/);assert.match(html,/Sequential local snapshots/);
   assert.match(renderToStaticMarkup(React.createElement(WaitingRequestsIndicator,{overview:{groups:[],sources:[{modeHomeClass:'account',state:'stopped'}]},open:()=>{}})),/account: stopped; no current waiting groups shown/);
   assert.match(renderToStaticMarkup(React.createElement(WaitingRequestsIndicator,{overview:null,open:()=>{}})),/overview unavailable/);
 });
@@ -244,8 +247,8 @@ async function withReplyObserver(check, {outcome='written',failRefresh=true,perm
   try {
     await render();
     await check({container,calls,props,button,send,get custody(){return custody;},original,
-      async choose(){if(!permission)await React.act(()=>props(button('One · Use one')).onClick());},
-      async answer(){if(!permission)await React.act(()=>props(button('One · Use one')).onClick());await React.act(async()=>props(send()).onClick());},
+      async choose(){if(!permission)await React.act(()=>props(button('Choose option 1')).onClick());},
+      async answer(){if(!permission)await React.act(()=>props(button('Choose option 1')).onClick());await React.act(async()=>props(send()).onClick());},
       async read(){await React.act(async()=>props(button('Read current request state')).onClick());},
       async selectConversation(threadId){const select=container.querySelectorAll(node=>node.localName==='select'&&node.parentNode.textContent.startsWith('Current-generation conversation '))[0];await React.act(()=>props(select).onChange({target:{value:threadId?JSON.stringify([g,threadId]):''}}));},
       allowRefresh(){refreshUnavailable=false;},replyAs(next){currentOutcome=next;},

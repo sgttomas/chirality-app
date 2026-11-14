@@ -1,0 +1,101 @@
+import type { CSSProperties } from "react";
+type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
+
+// Text the App did not write, shown so it cannot pass for the App's own words,
+// a control or a request card (DEL-01-04 request cards; DEL-01-03 activity).
+// Everything an agent, its tools or Codex supplies goes through AgentText: it
+// sits in a bordered box with a visible label and an accessibility name that
+// says whose text it is. Inside the box nothing the text contains is acted on:
+// a line break in an inline value is shown as ⏎, a tab as →, and control,
+// bidirectional and invisible format characters as ‹U+XXXX›. Multi-line text
+// is drawn line by line inside the box, each line numbered, so no line stands
+// alone outside it. The box is never a heading, button, link or list item and
+// carries no role that reads as a control (it is a named group).
+
+export type AgentTextSource = "agent" | "tool" | "person" | "codex";
+
+/** The visible label and the accessibility name for each source of text. */
+export const AGENT_TEXT_WORDS: Record<AgentTextSource, { label: string; name: string }> = {
+  agent: { label: "The agent wrote:", name: "Text the agent wrote, not the App's words" },
+  tool: { label: "Tool output:", name: "Output of a tool the agent called, not the App's words" },
+  person: { label: "Recorded as your message:", name: "Text Codex recorded as your message, not the App's words" },
+  codex: { label: "Codex sent:", name: "Text Codex sent, not the App's words" },
+};
+
+// C0 controls other than tab and line feed (a carriage return is shown too),
+// DEL and C1, the Arabic letter mark, zero-width and direction marks
+// (U+200B–U+200F), line and paragraph separators (laid out as breaks),
+// embeddings and overrides (U+202A–U+202E), invisible operators
+// (U+2060–U+2064), isolates (U+2066–U+2069) and the byte-order mark.
+const ESCAPED = /[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u061c\u200b-\u200f\u2028\u2029\u202a-\u202e\u2060-\u2064\u2066-\u2069\ufeff]/;
+const SPECIAL = /(\r?\n|\t|[\u0000-\u0008\u000b-\u001f\u007f-\u009f\u061c\u200b-\u200f\u2028\u2029\u202a-\u202e\u2060-\u2064\u2066-\u2069\ufeff])/;
+
+export const LINE_BREAK_MARK = "⏎";
+export const TAB_MARK = "→";
+const codePoint = (c: string) => `‹U+${c.codePointAt(0)!.toString(16).toUpperCase().padStart(4, "0")}›`;
+
+/** One piece of shown text: as written, or a visible mark standing for a character that is never acted on. */
+export type AgentTextPart = { text: string; mark: boolean };
+
+/** The parts of one line (or of an inline value: its line breaks become ⏎). */
+export function agentTextParts(value: string): AgentTextPart[] {
+  const parts: AgentTextPart[] = [];
+  for (const piece of value.split(SPECIAL)) {
+    if (piece === "") continue;
+    if (piece === "\n" || piece === "\r\n") parts.push({ text: LINE_BREAK_MARK, mark: true });
+    else if (piece === "\t") parts.push({ text: TAB_MARK, mark: true });
+    else if (piece.length === 1 && ESCAPED.test(piece)) parts.push({ text: codePoint(piece), mark: true });
+    else parts.push({ text: piece, mark: false });
+  }
+  return parts;
+}
+
+/** The text as it is shown inline: every mark in place of what it stands for. */
+export const agentTextShown = (value: string): string => agentTextParts(value).map(part => part.text).join("");
+
+/** Structured text (indented JSON) with its own line structure kept and every other mark in place. */
+export const agentTextLinesShown = (value: string): string => value.split(/\r?\n/).map(agentTextShown).join("\n");
+
+/** A supplied value as text: strings as written, anything else as JSON (indented for multi-line display). */
+export function agentTextValue(value: Json, multiline = false): string {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "string") return value;
+  try { return JSON.stringify(value, null, multiline ? 2 : undefined) ?? String(value); } catch { return String(value); }
+}
+
+const box: CSSProperties = { border: "1px dashed var(--ink-faint, #786f5f)", borderRadius: 3, background: "var(--surface, #fcfaf4)", color: "var(--ink, #29231a)" };
+const inlineBox: CSSProperties = { ...box, display: "inline", padding: "0 4px", boxDecorationBreak: "clone", WebkitBoxDecorationBreak: "clone" };
+const blockBox: CSSProperties = { ...box, display: "block", padding: "2px 6px", margin: "4px 0" };
+const labelStyle: CSSProperties = { fontStyle: "italic", fontSize: "0.85em", color: "var(--ink-soft, #5f584a)", fontFamily: "var(--font-body, sans-serif)" };
+const valueStyle: CSSProperties = { fontFamily: "var(--font-code, monospace)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" };
+const markStyle: CSSProperties = { color: "var(--accent, #99552f)", background: "var(--accent-soft, #f1e5d6)", borderRadius: 2, padding: "0 1px" };
+const lineNumberStyle: CSSProperties = { display: "inline-block", minWidth: "2.5em", marginRight: 6, paddingRight: 4, textAlign: "right", color: "var(--ink-faint, #786f5f)", borderRight: "1px solid var(--rule-strong, #d0c8b5)", userSelect: "none" };
+
+function Parts({ value }: { value: string }) {
+  return <>{agentTextParts(value).map((part, i) => part.mark ? <span key={i} className="agent-text-mark" style={markStyle}>{part.text}</span> : part.text)}</>;
+}
+
+/**
+ * A value the App did not write. `block` shows it line by line (a message,
+ * plan, diff, output or JSON); otherwise it is one inline value whose line
+ * breaks are shown as ⏎. `label` replaces the visible label where a shorter
+ * one sits better beside a field; `name` replaces the accessibility name.
+ */
+export function AgentText({ value, source = "agent", label, name, block = false, style }: { value: Json; source?: AgentTextSource; label?: string; name?: string; block?: boolean; style?: CSSProperties }) {
+  const words = AGENT_TEXT_WORDS[source];
+  const shownLabel = label ?? words.label;
+  const text = agentTextValue(value, block);
+  if (!block) return <span role="group" aria-label={name ?? words.name} className="agent-text" style={{ ...inlineBox, ...style }}>
+    <span className="agent-text-label" style={labelStyle}>{shownLabel}</span>{" "}
+    <span className="agent-text-value" style={valueStyle}><Parts value={text} /></span>
+  </span>;
+  const lines = text.split(/\r?\n/);
+  return <div role="group" aria-label={`${name ?? words.name}, ${lines.length} ${lines.length === 1 ? "line" : "lines"}`} className="agent-text agent-text-block" style={{ ...blockBox, ...style }}>
+    <div className="agent-text-label" style={labelStyle}>{shownLabel}</div>
+    <div className="agent-text-value" style={valueStyle}>
+      {lines.map((line, i) => <div key={i} className="agent-text-line">
+        <span className="agent-text-line-number" style={lineNumberStyle}>{i + 1}</span><Parts value={line} />{i < lines.length - 1 && <span className="agent-text-mark" style={markStyle}>{LINE_BREAK_MARK}</span>}
+      </div>)}
+    </div>
+  </div>;
+}

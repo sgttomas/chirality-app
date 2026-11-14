@@ -2513,7 +2513,7 @@ export function App() {
               await openRequests(group);
           };
       }}/>
-        {firstRead === "read" && <div hidden={setupRequired}><WaitingRequestsIndicator overview={host?.waitingRequests} busy={homePending} open={group => { void openRequests(group); }}/></div>}
+        {firstRead === "read" && <div hidden={setupRequired}><WaitingRequestsIndicator overview={host?.waitingRequests} view={host?.nativeView} busy={homePending} open={group => { void openRequests(group); }}/></div>}
         <NativeConfirmationContent />
         {firstRead === "read" && <div hidden={setupRequired}>
         {offer && (<section style={{ border: "1px solid #888", padding: 8 }}>
