@@ -135,6 +135,40 @@ class SQReceivingTests(unittest.TestCase):
         # Run B's outcome no longer rests on every counted step.
         self.assertIn({'scope': 'SQ', 'code': 'SQ-R4'}, result['errors'])
 
+    def test_the_release_in_the_dossier_is_the_evidence_and_is_bound_with_it(self):
+        # The valid 4.0.0 case: the local steps planned, nothing counted outstanding.
+        self.plan_run_b_steps('M12-2', 'M12-3', 'M12-5')
+        self.assertEqual(self.dossier['release'], '4.0.0')
+        result = self.check()
+        self.assertEqual(result['errors'], [])
+        self.assertNotIn('non-recorded steps: examination obligations outstanding', result['missing_selected_inputs'])
+        # Its evidence removed or made unfamiliar in a dossier selected anew: the decision no longer applies, so
+        # the planned local steps are outstanding and run B's one mode is refused.
+        for name, change in (('no release', lambda d: d.pop('release')), ('another release', lambda d: d.update(release='4.1.0'))):
+            with self.subTest(name):
+                kept = dict(self.dossier)
+                change(self.dossier)
+                result = self.check()
+                self.assertIn('non-recorded steps: examination obligations outstanding', result['missing_selected_inputs'])
+                self.assertIn({'scope': 'SQ', 'code': 'SQ-R3'}, result['errors'])
+                self.dossier.clear(); self.dossier.update(kept)
+        # A release that is not a non-empty string is refused by the schema, not read as absent.
+        for value in ('', 4, None):
+            with self.subTest(value=value):
+                self.dossier['release'] = value
+                result = self.check()
+                self.assertFalse(result['selection_consistent'] and not result['errors'], result)
+                self.assertIn('SCHEMA', json.dumps(result['errors']))
+        self.dossier['release'] = '4.0.0'
+        self.check()
+        # Changed after selection, the dossier is refused as any change to its bytes is.
+        path = self.root / 'dossier.json'
+        path.write_bytes(path.read_bytes().replace(b'"release": "4.0.0"', b'"release": "4.1.0"'))
+        selection = self.root / 'selection.json'
+        result = self.consumer.check(selection, sha(selection.read_bytes()))
+        self.assertFalse(result['selection_consistent'], result)
+        self.assertIn('exact-byte mismatch: dossier', json.dumps(result))
+
     def test_connected_development_full_source_validation_no_package_change(self):
         result=self.check();self.assertTrue(result['selection_consistent']);self.assertEqual(result['coverage'],'complete')
         self.assertTrue(self.selected['steps']);self.assertEqual(self.selected['packages'],[]);self.assertEqual(self.selected['changes'],[])

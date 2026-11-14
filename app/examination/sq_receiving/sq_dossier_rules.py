@@ -1,8 +1,8 @@
 """SQ-v0.2 dossier rules a schema cannot express (SQ-R1 to SQ-R13 and SQ-R18; SQ-R14 to SQ-R17 retired into SQ-R18).
 
 Call after schema validation, with the step map the dossier is read against.
-These inspect declared facts, not their truth. Steps the step map takes out of its release
-("out_of_release") stay listed and are never counted (SQ-R3, SQ-R4, SQ-R8).
+These inspect declared facts, not their truth. Steps the step map takes out of the release the dossier
+names ("out_of_release", for that release only) stay listed and are never counted (SQ-R3, SQ-R4, SQ-R8).
 """
 SCENARIOS = ["V4-EXM-10", "V4-EXM-11", "V4-EXM-12"]
 JOURNEYS = ["J1", "J2"]
@@ -14,14 +14,20 @@ NOT_CLAIMED = {"joined_host_witness", "replacement", "public_release", "retireme
 LOCAL_STEPS = {"M12-2", "M12-3", "M12-5"}
 
 
-def out_of_release(step_map):
-    """The steps the step map takes out of its release, by scenario, from its "out_of_release" entry.
+def out_of_release(step_map, release):
+    """The steps the step map takes out of the release named, by scenario, from its "out_of_release" entry.
 
-    The step map is the one for the release the dossier's candidate is examined for. A taken step stays
-    listed in its scenario and is never counted: it is not aggregated and need not be recorded.
+    The positive evidence is a decision recorded in the step map for exactly that release (its "release"
+    equal to the one named, as the dossier names it). With no release named, or no decision for it, no step
+    is taken: every step counts. A taken step stays listed in its scenario and is never counted: it is not
+    aggregated and need not be recorded.
     """
     taken = {}
+    if not isinstance(release, str) or not release:
+        return taken
     for scenario, decision in step_map.get("out_of_release", {}).items():
+        if not isinstance(decision, dict) or decision.get("release") != release:
+            continue
         named = decision.get("steps")
         taken[scenario] = set(named) if named else {s["step"] for s in step_map["scenarios"].get(scenario, [])}
     return taken
@@ -52,7 +58,7 @@ def map_steps(step_map):
 def violations(d, step_map):
     v = []
     ms = map_steps(step_map)
-    taken = out_of_release(step_map)
+    taken = out_of_release(step_map, d.get("release"))
 
     def counted(scenario, step):
         return step.get("counts", True) and step["step"] not in taken.get(scenario["scenario"], ())

@@ -32,11 +32,9 @@ class SQDossierRules(unittest.TestCase):
         Draft202012Validator.check_schema(schema)
         cls.validator = Draft202012Validator(schema)
         cls.step_map = read(SQ / 'sq.step-map.json')
-        # The illustrative dossiers declare both access modes and record every step of run B. They are read
-        # against the step map as it stands for the later update that brings the local model server back:
-        # the map without its out_of_release entry. The 4.0.0 reading, with the map as committed, has its
-        # own tests below.
-        cls.later_map = {key: value for key, value in cls.step_map.items() if key != 'out_of_release'}
+        # The illustrative dossiers declare both access modes, record every step of run B and name no release,
+        # so no out_of_release decision applies to them: they read as the later update that brings the local
+        # model server back. The 4.0.0 reading, with "release": "4.0.0", has its own tests below.
         cls.steps = [step for name, steps in cls.step_map['scenarios'].items() for step in steps
                      if name not in cls.rules.JOURNEYS]
         cls.journey_steps = [step for name in cls.rules.JOURNEYS for step in cls.step_map['scenarios'][name]]
@@ -45,13 +43,14 @@ class SQDossierRules(unittest.TestCase):
         cls.rule_violations = read(EXAMPLES / 'sq.dossier.rule-violations.examples.json')
 
     def violations(self, dossier, step_map=None):
-        return self.rules.violations(dossier, step_map or self.later_map)
+        return self.rules.violations(dossier, step_map or self.step_map)
 
     def one_mode(self, record_id):
         """A copy of an illustrative dossier declaring run B's one mode for 4.0.0, the ChatGPT account."""
         dossier = copy.deepcopy(next(d for d in self.valid if d['record_id'] == record_id))
         run_b = next(s for s in dossier['scenarios'] if s['scenario'] == 'V4-EXM-12')
         run_b['access_modes'] = [m for m in run_b['access_modes'] if m['kind'] == 'chatgpt_account']
+        dossier['release'] = '4.0.0'
         return dossier, run_b
 
     def test_step_map_covers_the_core_loop_and_declares_its_stimuli(self):
@@ -324,18 +323,20 @@ class SQDossierRules(unittest.TestCase):
         self.assertEqual(self.violations(extra['record']), ['SQ-R3'])
 
     def test_the_committed_step_map_takes_the_local_steps_out_of_4_0_0(self):
-        self.assertEqual(self.rules.out_of_release(self.step_map), {'V4-EXM-12': self.rules.LOCAL_STEPS})
+        self.assertEqual(self.rules.out_of_release(self.step_map, '4.0.0'), {'V4-EXM-12': self.rules.LOCAL_STEPS})
         self.assertEqual(self.step_map['out_of_release']['V4-EXM-12']['release'], '4.0.0')
-        self.assertEqual(self.rules.out_of_release(self.later_map), {})
+        # The decision is for its release only, and a release must be named for it to apply.
+        for release in (None, '', '4.1.0', 4):
+            self.assertEqual(self.rules.out_of_release(self.step_map, release), {}, release)
 
     def test_run_b_for_4_0_0_declares_the_account_alone(self):
         dossier, run_b = self.one_mode('SQ-EX-03')
         self.assertEqual([e.message for e in self.validator.iter_errors(dossier)], [])
         self.assertEqual(self.violations(dossier, self.step_map), [])
-        # The two modes are refused for 4.0.0, and the account alone is refused for the later update.
-        two = next(d for d in self.valid if d['record_id'] == 'SQ-EX-03')
+        # The two modes are refused for 4.0.0, and the account alone is refused with no release named.
+        two = dict(copy.deepcopy(next(d for d in self.valid if d['record_id'] == 'SQ-EX-03')), release='4.0.0')
         self.assertEqual(self.violations(two, self.step_map), ['SQ-R3'])
-        self.assertEqual(self.violations(dossier), ['SQ-R3'])
+        self.assertEqual(self.violations({k: v for k, v in dossier.items() if k != 'release'}), ['SQ-R3'])
         for name, modes in [
                 ('the account in another home', [{'kind': 'chatgpt_account', 'home': 'H-omlx', 'conversation_ref': 'C'}]),
                 ('the local mode alone', [{'kind': 'local_provider', 'home': 'H-omlx', 'conversation_ref': 'C'}]),
@@ -370,17 +371,43 @@ class SQDossierRules(unittest.TestCase):
         run_b['steps'] = [s for s in run_b['steps'] if s['step'] != 'M12-3']
         self.assertEqual(self.violations(dossier, self.step_map), ['SQ-R7'])
 
+    def test_without_the_decision_for_the_dossiers_release_every_step_counts_again(self):
+        # The valid 4.0.0 case: the account alone, the local steps left planned.
+        dossier, run_b = self.one_mode('SQ-EX-03')
+        for step in run_b['steps']:
+            if step['step'] in self.rules.LOCAL_STEPS:
+                step['state'] = 'planned'; step.pop('result_record'); step.pop('outcome')
+        self.assertEqual(self.violations(dossier), [])
+        # Its evidence removed or made unfamiliar through the record and the map: the one mode is refused and
+        # the planned local steps hold the outcome and the handover again.
+        no_decision = {k: v for k, v in self.step_map.items() if k != 'out_of_release'}
+        other = copy.deepcopy(self.step_map)
+        other['out_of_release']['V4-EXM-12']['release'] = '4.1.0'
+        for name, record, mapped in (('no release in the dossier', {k: v for k, v in dossier.items() if k != 'release'}, self.step_map),
+                                     ('another release in the dossier', dict(dossier, release='4.1.0'), self.step_map),
+                                     ('no decision in the map', dossier, no_decision),
+                                     ('the decision for another release', dossier, other)):
+            with self.subTest(name):
+                self.assertEqual(self.violations(record, mapped), ['SQ-R3', 'SQ-R4', 'SQ-R8'])
+
+    def test_a_release_that_is_not_a_non_empty_string_is_refused_by_the_schema(self):
+        dossier, _ = self.one_mode('SQ-EX-03')
+        self.assertEqual([e.message for e in self.validator.iter_errors(dossier)], [])
+        for value in ('', 4, None, ['4.0.0'], {'release': '4.0.0'}):
+            with self.subTest(value=value):
+                self.assertTrue(list(self.validator.iter_errors(dict(dossier, release=value))))
+
     def test_a_map_taking_only_some_local_steps_out_admits_no_declaration(self):
         partial = copy.deepcopy(self.step_map)
         partial['out_of_release']['V4-EXM-12']['steps'] = ['M12-2']
         one, _ = self.one_mode('SQ-EX-03')
-        two = next(d for d in self.valid if d['record_id'] == 'SQ-EX-03')
+        two = dict(copy.deepcopy(next(d for d in self.valid if d['record_id'] == 'SQ-EX-03')), release='4.0.0')
         self.assertIn('SQ-R3', self.violations(one, partial))
         self.assertIn('SQ-R3', self.violations(two, partial))
         # A decision naming no steps takes the whole scenario out, so no step of it is counted.
         whole = copy.deepcopy(self.step_map)
         whole['out_of_release']['V4-EXM-12'].pop('steps')
-        self.assertEqual(self.rules.out_of_release(whole)['V4-EXM-12'],
+        self.assertEqual(self.rules.out_of_release(whole, '4.0.0')['V4-EXM-12'],
                          {s['step'] for s in self.step_map['scenarios']['V4-EXM-12']})
 
     def test_an_observed_difference_is_a_failed_step_not_a_changed_declaration(self):

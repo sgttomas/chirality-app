@@ -103,10 +103,19 @@ class StandalonePreparationTest(unittest.TestCase):
     def test_the_two_modes_return_with_the_local_steps(self):
         step_map = json.loads((APP / 'examination/sq_receiving/sq.step-map.json').read_text())
         later = {key: value for key, value in step_map.items() if key != 'out_of_release'}
-        modes = prep.access_mode_requirements(later)
-        self.assertEqual(modes['kinds'], ['chatgpt_account', 'local_provider'])
-        self.assertEqual(modes['homes'], {'chatgpt_account': 'H-acct', 'local_provider': 'H-omlx'})
-        self.assertEqual(modes['distinct_conversations'], 2)
+        self.assertEqual(self.plan['release'], '4.0.0')
+        # The decision is the evidence, for its release only: without it, or for another release, or with no
+        # release named, the two modes return.
+        another = json.loads(json.dumps(step_map))
+        another['out_of_release']['V4-EXM-12']['release'] = '4.1.0'
+        for name, (mapped, release) in {'no decision': (later, '4.0.0'), 'another release': (another, '4.0.0'),
+                                        'no release named': (step_map, None)}.items():
+            with self.subTest(name):
+                modes = prep.access_mode_requirements(mapped, release)
+                self.assertEqual(modes['kinds'], ['chatgpt_account', 'local_provider'])
+                self.assertEqual(modes['homes'], {'chatgpt_account': 'H-acct', 'local_provider': 'H-omlx'})
+                self.assertEqual(modes['distinct_conversations'], 2)
+        self.assertEqual(prep.access_mode_requirements(step_map, '4.0.0')['kinds'], ['chatgpt_account'])
 
     def test_step_operations_and_insertion_points(self):
         self.assertIn('delegates one bounded sub-task', self.plan['scenarios'][0]['steps'][1]['source_action_observation'][0])

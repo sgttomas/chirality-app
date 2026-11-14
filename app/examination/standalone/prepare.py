@@ -90,16 +90,21 @@ def verified_sources(root=ROOT, captured=None):
 
 
 LOCAL_STEPS = {'M12-2', 'M12-3', 'M12-5'}
+# The release this preparation is for, named in it; the dossier carries the same field.
+RELEASE = '4.0.0'
 
 
-def access_mode_requirements(step_map):
+def access_mode_requirements(step_map, release):
     """Run B's declared access modes, as the dossier rules' SQ-R3 reads them from the step map.
 
-    With the local model server's steps out of the release (the step map's out_of_release entry, as for
-    4.0.0), the one mode is the ChatGPT account, whose conversation is observed in run A on the same
-    candidate; otherwise the two modes, configured together, with a conversation each.
+    With the local model server's steps out of the release named (the step map's out_of_release decision
+    for exactly that release, as for 4.0.0), the one mode is the ChatGPT account, whose conversation is
+    observed in run A on the same candidate; with no such decision, the two modes, configured together, with
+    a conversation each.
     """
     decision = step_map.get('out_of_release', {}).get('V4-EXM-12')
+    if not isinstance(decision, dict) or not release or decision.get('release') != release:
+        decision = None
     taken = set(decision.get('steps') or (s['step'] for s in step_map['scenarios']['V4-EXM-12'])) if decision else set()
     if LOCAL_STEPS <= taken:
         return {'kinds': ['chatgpt_account'], 'homes': {'chatgpt_account': 'H-acct'},
@@ -140,7 +145,8 @@ def prepare(root=ROOT):
                            'build_identity': None, 'codex_pin': None, 'configuration': None},
         'scenarios': scenarios,
         'stimuli': step_map['stimuli'],
-        'access_mode_requirements': access_mode_requirements(step_map),
+        'release': RELEASE,
+        'access_mode_requirements': access_mode_requirements(step_map, RELEASE),
         'journey_record_requirements': JOURNEY_RECORD_REQUIREMENTS,
         'missing_inputs': parse_json(captured['missing-inputs.json']),
         'invented_material': parse_json(captured['invented-inputs.json']),

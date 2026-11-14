@@ -13,6 +13,7 @@
     "build_identity": "INVENTED-SQ-DEVELOPMENT-BUILD",
     "codex_pin": "0.160.0"
   },
+  "release": "4.0.0",
   "integration_owner": "INVENTED integration owner",
   "examiner": {
     "identity": "INVENTED examiner",
