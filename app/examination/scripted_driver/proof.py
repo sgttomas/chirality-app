@@ -162,6 +162,18 @@ def launch(bundle, run_dir, timeout, scenario_input=None, hold_awake=None):
             'app_stderr_tail': (run_dir / 'app.err').read_bytes()[-4000:].decode('utf-8', 'replace')}
 
 
+def heading_wait(stages):
+    """How the wait for the expected heading went: the tries made, whether the heading came, every distinct heading
+    read in order (None for none), and the last. A wrong page and a slow one read differently here."""
+    evaluated = next((s for s in stages if s.get('stage') == 'script evaluated'), None)
+    if evaluated is None:
+        return None
+    detail = evaluated.get('detail') or {}
+    return {'expected': detail.get('expected_heading'), 'seen': detail.get('expected_seen'),
+            'tries_made': detail.get('attempt'), 'tries_allowed': detail.get('tries'),
+            'headings_seen': detail.get('headings_seen'), 'last_heading': (detail.get('returned') or {}).get('heading')}
+
+
 def census_said(ran):
     if ran['census_failures']:
         return f"a census could not be taken ({len(ran['census_failures'])} failed listing commands)"
@@ -194,6 +206,7 @@ def run(bundle, out, timeout):
         'stages': stages, 'reached': reached,
         'stopped_after': reached[-1] if reached else 'nothing: no stage was written',
         'result': 'shown' if shown else 'not shown',
+        'heading_wait': heading_wait(stages),
         'expected': {'heading': EXPECTED_HEADING, 'windows': 1, 'windows_ever_created': 1, 'webviews_ever_created': 1,
                      'open_dialogs': 0, 'exit_code': 0, 'process_started_stages': 1, 'other_processes': 0},
         'app_pid': ran['app_pid'], 'held_awake_by': ran['held_awake_by'], 'census_samples': ran['census_samples'],
@@ -203,7 +216,7 @@ def run(bundle, out, timeout):
         'limits': LIMITS,
     }
     (out / 'report.json').write_text(json.dumps(report, indent=1) + '\n')
-    print(json.dumps({k: report[k] for k in ('result', 'stopped_after', 'exit_code', 'timed_out', 'seconds')}, indent=1))
+    print(json.dumps({k: report[k] for k in ('result', 'stopped_after', 'heading_wait', 'exit_code', 'timed_out', 'seconds')}, indent=1))
     if evaluated:
         print(json.dumps(returned, indent=1))
     return 0 if shown else 1
@@ -248,6 +261,7 @@ def scenario(bundle, out, timeout, scenario_path, hold_awake=None):
         'verdict': overall, 'walk_verdict': verdict, 'stopped': result.get('stopped'),
         'outcomes': result.get('outcomes'), 'steps': result.get('steps'),
         'census_at_start': result.get('census_at_start'), 'census_at_end': result.get('census_at_end'),
+        'heading_wait': heading_wait(stages),
         'most_windows': most_windows, 'created': created, 'app_pid': ran['app_pid'], 'held_awake_by': ran['held_awake_by'],
         'census_samples': ran['census_samples'], 'census': census_said(ran), 'census_failures': ran['census_failures'],
         'other_processes_seen': ran['other_processes_seen'],

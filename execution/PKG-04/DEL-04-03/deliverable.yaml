@@ -145,6 +145,7 @@ checks:
 - app/tests/validate-records.test.mjs
 - app/src-tauri/src/model_turn_recorder_tests.rs
 - app/src-tauri/src/records_store_tests.rs
+- app/src-tauri/src/records_store_sync_tests.rs
 - app/src-tauri/src/placement_homes_tests.rs
 - app/src-tauri/src/records_inspect_tests.rs
 - tools/ci/check_records_presence.py

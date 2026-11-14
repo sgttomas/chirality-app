@@ -120,13 +120,17 @@ class TheProofSaysShownOnlyWhenItWas(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.root, True)
 
     def bundle(self, stages=('process started', 'page load started', 'page load finished'), heading='Welcome to Chirality',
-               windows=1, dialogs=0, evaluated=True, tail='exec sleep 0.3', ever=1, finished=True, one=True):
+               windows=1, dialogs=0, evaluated=True, tail='exec sleep 0.3', ever=1, finished=True, one=True,
+               attempt=1, headings_seen=None):
         app = self.root / 'Test.app'
         executable = app / 'Contents/MacOS/chirality-app-v4'
         executable.parent.mkdir(parents=True, exist_ok=True)
         line = ''
         if evaluated:
-            detail = json.dumps({'attempt': 1, 'windows': windows,
+            detail = json.dumps({'attempt': attempt, 'tries': 60, 'expected_heading': 'Welcome to Chirality',
+                                 'expected_seen': heading == 'Welcome to Chirality',
+                                 'headings_seen': headings_seen if headings_seen is not None else [heading],
+                                 'windows': windows,
                                  'created': {'windows_ever_created': ever, 'webviews_ever_created': 1},
                                  'returned': {'heading': heading, 'open_dialogs': dialogs, 'title': 'Chirality'}})
             line = "printf '%s\\n' '" + json.dumps({'marker': 'chirality-scripted-driver-test-build-v1',
@@ -187,6 +191,26 @@ class TheProofSaysShownOnlyWhenItWas(unittest.TestCase):
         self.assertEqual(report['census_failures'][0]['exit_code'], 3)
         code, report = self.verdict(self.bundle(), timeout=0)  # ended at once: no census is made
         self.assertEqual((code, report['result'], report['census_samples']), (1, 'not shown', 0))
+
+    def test_a_slow_page_is_waited_for_and_a_wrong_one_is_told_apart_from_it(self):
+        # The page may show another heading, or none, before the first-use page (the App's first host read not yet
+        # arrived): the build waits for the expected heading and says what it read on the way.
+        code, report = self.verdict(self.bundle(attempt=3, headings_seen=[None, 'Chirality', 'Welcome to Chirality']))
+        self.assertEqual((code, report['result']), (0, 'shown'))
+        self.assertEqual(report['heading_wait'], {'expected': 'Welcome to Chirality', 'seen': True, 'tries_made': 3,
+                                                  'tries_allowed': 60, 'headings_seen': [None, 'Chirality', 'Welcome to Chirality'],
+                                                  'last_heading': 'Welcome to Chirality'})
+        # The expected heading never came: the build ends itself with status 5 after its last try, and the report
+        # says the last heading read and how many tries were made. Every other guard is unchanged.
+        code, report = self.verdict(self.bundle(heading='Chirality', attempt=60, headings_seen=[None, 'Chirality'],
+                                                finished=False, tail='exit 5'))
+        self.assertEqual((code, report['result']), (1, 'not shown'))
+        self.assertEqual((report['heading_wait']['seen'], report['heading_wait']['tries_made'], report['heading_wait']['last_heading']),
+                         (False, 60, 'Chirality'))
+
+    def test_the_build_and_the_report_expect_the_same_heading(self):
+        module = (APP / 'src-tauri/src/scripted_driver.rs').read_text()
+        self.assertIn(f'const EXPECTED_HEADING: &str = "{self.proof.EXPECTED_HEADING}";', module)
 
     def test_a_run_that_does_not_end_is_ended_and_not_shown(self):
         code, report = self.verdict(self.bundle(tail='sleep 30'), timeout=2)

@@ -187,6 +187,9 @@ pub(crate) fn chain_heads(root: &Path) -> Value {
     // A discovery that failed (no store, a replaced store, an unknown
     // records home) is said, never shown as a project with no logs.
     let mut heads=with_index(root, |ix| serde_json::json!({"method":crate::record_lines::LINE_METHOD,"logs":ix.chains(),"discoveryLimit":ix.discovery_error,
+        // Per-log read/validation limits belong to this reading too. Flat head
+        // rows cannot themselves distinguish an unreadable log from an empty one.
+        "limits":ix.logs.values().flat_map(|log| log.limits().cloned()).collect::<Vec<_>>(),
         "broken":ix.limits().into_iter().filter(|l| l.contains("chain broken")).collect::<Vec<_>>(),"notes":ix.notes(),
         "signedCheckpoints":"not written: signed checkpoints wait for App signing (OI-011)"}));
     match role{Ok(Some(head))=>heads["logs"].as_array_mut().unwrap().push(head),Ok(None)=>{},Err(limit)=>heads["notes"].as_array_mut().unwrap().push(serde_json::json!(format!("role supply chain not established: {limit}")))}

@@ -251,6 +251,20 @@ pub(crate) const REMOVED_ENVIRONMENT: &[(&str, RemovalClass)] = {
 /// App's environment when the child is started is recorded, never its value.
 pub(crate) const RECORDED_PRESENCE_ONLY: &str = "CODEX_INTERNAL_APP_SERVER_REMOTE_CONTROL_DISABLED";
 
+/// What [`Host::received_view`] takes a received line as.
+struct Received {
+    correlated_method: Option<String>,
+    private_auth_id: Option<(Value, bool)>,
+    known_private_config_channel: bool,
+    private_config: bool,
+    frame: Value,
+    projected: bool,
+    private_config_frame: Option<Value>,
+}
+/// The kind of a received frame, as the receipt records it.
+fn frame_class(frame: &Value) -> &'static str {
+    if frame.is_object()&&frame.get("observation").is_none(){let has_id=frame.get("id").is_some();let has_method=frame.get("method").is_some();if has_method&&has_id{"server-request"}else if has_method{"notification"}else if has_id&&(frame.get("result").is_some()||frame.get("error").is_some()){"response"}else{"malformed"}}else{"malformed"}
+}
 pub(crate) fn removed_environment_names() -> impl Iterator<Item = &'static str> {
     REMOVED_ENVIRONMENT.iter().map(|(name, _)| *name)
 }
@@ -1055,6 +1069,13 @@ pub struct Host {
     before_thread_insert: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     #[cfg(test)]
     before_records_receipt_bind: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+    /// Runs inside a records identity reading, after the read and before the
+    /// Host state is taken again to compare it (the window the reading leaves).
+    #[cfg(test)]
+    within_records_identity_read: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+    /// How many records identity readings this Host has taken.
+    #[cfg(test)]
+    records_identity_reads: std::sync::atomic::AtomicUsize,
     #[cfg(test)]
     before_turn_result: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     /// Runs with each delegation read's request after its write and before
@@ -1216,6 +1237,10 @@ impl Host {
             before_thread_insert: Mutex::new(None),
             #[cfg(test)]
             before_records_receipt_bind: Mutex::new(None),
+            #[cfg(test)]
+            within_records_identity_read: Mutex::new(None),
+            #[cfg(test)]
+            records_identity_reads: std::sync::atomic::AtomicUsize::new(0),
             #[cfg(test)]
             before_turn_result: Mutex::new(None),
             #[cfg(test)]
@@ -1448,7 +1473,9 @@ impl Host {
         // while this Host and the App custody it shares live.
         let opened=(||{let liveness=crate::session_liveness::directory(&path);if let Some(binding)=&namespaces{binding.guard_domains(&[liveness])?;}
             let mut ledger=match namespaces{Some(binding)=>RecoveryLedger::open_with_namespaces(path.clone(),binding)?,None=>RecoveryLedger::open(path.clone())?};
-            let hold=Arc::new(crate::session_liveness::Hold::acquire(&path,&session)?);ledger.start_session_held(&session,"chirality-app-v4-unqualified",&hold)?;Ok::<_,String>((ledger,hold))})();let (ledger,hold)=match opened{Ok(opened)=>opened,Err(error)=>{self.inner.0.lock().unwrap().recovery_initialization_error=Some(error.clone());return Err(error);}};let snapshot=ledger.observation();let mut i=self.inner.0.lock().unwrap();if i.state!="absent"||i.app_session!=session{return Err("recovery configuration source changed during IO; not attached".into());}i.recovery=Some(Arc::new(Mutex::new(ledger)));i.recovery_snapshot=Some(snapshot);i.recovery_initialization_error=None;drop(i);*self.session_liveness.lock().unwrap()=Some(hold);Ok(())
+            let hold=Arc::new(crate::session_liveness::Hold::acquire(&path,&session)?);ledger.start_session_held(&session,"chirality-app-v4-unqualified",&hold)?;Ok::<_,String>((ledger,hold))})();let (ledger,hold)=match opened{Ok(opened)=>opened,Err(error)=>{self.inner.0.lock().unwrap().recovery_initialization_error=Some(error.clone());return Err(error);}};let snapshot=ledger.observation();let mut i=self.inner.0.lock().unwrap();if i.state!="absent"||i.app_session!=session{return Err("recovery configuration source changed during IO; not attached".into());}let retired=i.recovery.replace(Arc::new(Mutex::new(ledger)));i.recovery_snapshot=Some(snapshot);i.recovery_initialization_error=None;drop(i);
+        // A ledger this replaces closes its database (file work) only after the state is released.
+        drop(retired);*self.session_liveness.lock().unwrap()=Some(hold);Ok(())
     }
     /// Test model of this App session's process having ended, for a test that
     /// still reads through this Host afterwards: only its liveness lock is
@@ -3364,6 +3391,29 @@ impl Host {
     /// Admits the forked conversation operationally from the correlated
     /// `thread/fork` result only. The fork must be a new thread reporting the
     /// source as `forkedFromId`; otherwise nothing is admitted.
+    /// A fork's admission checks under the state, in the order they refuse,
+    /// with their errors; then, where the source's selected receipt names the
+    /// current records project context (inheritable_receipt), that receipt and
+    /// the capability to read the project through. Reads the state only, so it
+    /// is called twice: before the project is read and after.
+    fn fork_admission(&self,i:&Inner,request:&SourceRequest,response:&Value)->Result<Option<(Arc<crate::records_access::RecordsCapability>,records_continuity::Receipt)>,String>{
+        let generation=request.generation();let t=&response["result"]["thread"];let source=&request.frame["params"]["threadId"];
+        if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation) {return Err("thread/fork result belongs to a closed or replaced generation; native response retained".into());}
+        if i.threads.iter().any(|e|e["generation"]==*generation&&e["threadId"]==t["id"]) {return Err("forked thread already operationally admitted in generation".into());}
+        Self::check_local_reported(i,&response["result"])?;
+        let reading=i.local_fork_configs.get(request.request_ref()).cloned();
+        self.check_local_reading_current(i,reading.as_ref())?;
+        Ok(Self::inheritable_receipt(i,generation,source).and_then(|receipt|Some((i.records_capability.clone()?,receipt.clone()))))
+    }
+    /// The receipt a fork of `source` inherits, before its project is read:
+    /// the source's first receipt in the generation, where it names the
+    /// current records project context. One expression, used by the look that
+    /// decides the reading (fork_admission) and by the inheritance after it.
+    fn inheritable_receipt<'a>(i:&'a Inner,generation:&Value,source:&Value)->Option<&'a records_continuity::Receipt>{
+        i.records_receipts.iter().find(|(g,thread,_)|g==generation&&Some(thread.as_str())==source.as_str())
+            .filter(|(_,_,receipt)|i.records_project_context.as_ref().and_then(|context|context.reference())==Some(receipt.project.as_str()))
+            .map(|(_,_,receipt)|receipt)
+    }
     pub fn thread_fork_finish(&self, request: &SourceRequest) -> Result<Value,String> {
         self.check_source(request)?;let evidence=request.evidence();
         if request.frame["method"]!="thread/fork"||evidence["writeResult"]!="written"||evidence["outcome"]!="response-observed-result"||evidence["sentFrame"].is_null() {return Err(format!("thread/fork has no successful write and correlated result (outcome {}); nothing admitted, no automatic retry",evidence["outcome"]));}
@@ -3373,12 +3423,24 @@ impl Host {
         let source=&request.frame["params"]["threadId"];let t=&response["result"]["thread"];
         if t["id"]==*source||t["forkedFromId"]!=*source {return Err("thread/fork did not report a new thread forked from the source; nothing admitted".into());}
         let generation=request.generation();
+        // The admission's checks under the state (fork_admission), first to
+        // decide whether the project is read, with no state held, then again
+        // under the state after the reading: the same code, so a refusal the
+        // checks give never follows a reading.
+        let look={let i=self.inner.0.lock().unwrap();self.fork_admission(&i,request,&response)?};
+        let records_reading=look.as_ref().map(|(capability,_)|self.records_reading(Arc::clone(capability)));
         let mut i=self.inner.0.lock().unwrap();
-        if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation) {return Err("thread/fork result belongs to a closed or replaced generation; native response retained".into());}
-        if i.threads.iter().any(|e|e["generation"]==*generation&&e["threadId"]==t["id"]) {return Err("forked thread already operationally admitted in generation".into());}
-        Self::check_local_reported(&i,&response["result"])?;
-        let reading=i.local_fork_configs.get(request.request_ref()).cloned();
-        self.check_local_reading_current(&i,reading.as_ref())?;
+        // The reading is bound to what the first call captured: the same
+        // selected receipt, still the source's first and still of the current
+        // context, read through the same capability. Where the second call
+        // selects nothing to inherit, the fork is admitted without inheriting,
+        // as the old code was silent there. Where it selects a receipt, or a
+        // capability, the reading was not taken for, this new refusal (reached
+        // only in the unlocked interval; the old code had none) admits nothing.
+        let again=self.fork_admission(&i,request,&response)?;
+        let unread=match (&again,&look) {(Some((a,ra)),Some((b,rb)))=>!(Arc::ptr_eq(a,b)&&ra==rb),(Some(_),None)=>true,(None,_)=>false};
+        if unread {return Err("thread/fork records project reading no longer matches the admission it was taken for; native response retained".into());}
+        let records_reading=if again.is_some() {records_reading} else {None};
         let standing=i.supplier_standing.clone();let result=&response["result"];
         let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":t.get("id"),"name":t.get("name").and_then(Value::as_str),"preview":t.get("preview").and_then(Value::as_str),"status":t.get("status"),"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"supplierStanding":standing,"forkedFrom":{"threadId":source,"forkRequestRef":request.request_ref,"reportedForkedFromId":t.get("forkedFromId")},"requestedDestination":{"source":"inherited from the forked conversation; none chosen at fork"},"reportedDestination":{"scope":"thread","model":result.get("model"),"modelProvider":result.get("modelProvider")},"networkDisclosure":network_disclosure()}),&response);
         // Stock Codex retains the dynamic tool in a fork. Admit its calls only
@@ -3390,10 +3452,9 @@ impl Host {
                 i.records_offer_projects.push((generation.clone(),t["id"].clone(),project));
             }
         }
-        let inherited = i.records_receipts.iter().find(|(g,thread,_)|g == generation && Some(thread.as_str()) == source.as_str())
-            .filter(|(_,_,receipt)|i.records_project_context.as_ref().and_then(|context|context.reference()) == Some(receipt.project.as_str())
-                &&i.records_capability.as_ref().and_then(|capability|capability.project_identity().ok()).as_ref() == Some(&receipt.directory))
-            .and_then(|(_,_,receipt)|records_continuity::Source::new(generation,&request.request_ref,request.request_id(),"thread/fork",t["id"].as_str().unwrap_or_default()).ok().map(|source|receipt.fork(t["id"].as_str().unwrap_or_default(),source)));
+        let inherited = Self::inheritable_receipt(&i,generation,source)
+            .filter(|receipt|records_reading.as_ref().and_then(|reading|reading.current(&i).ok()) == Some(&receipt.directory))
+            .and_then(|receipt|records_continuity::Source::new(generation,&request.request_ref,request.request_id(),"thread/fork",t["id"].as_str().unwrap_or_default()).ok().map(|source|receipt.fork(t["id"].as_str().unwrap_or_default(),source)));
         let context = i.records_project_context.clone();
         let home = inherited.as_ref().map(|receipt|receipt.home_class.clone());
         if let Some(receipt) = inherited { i.records_receipts.push((generation.clone(),receipt.thread.clone(),receipt)); }
@@ -3724,16 +3785,21 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
     /// capability (RS §13.9) when it is configured and `cwd` is its project.
     fn offered_start_params(&self, cwd: &str, model: &str, model_provider: &str, developer_instructions: Option<&str>) -> Result<(Value,Option<records_continuity::Project>), String> {
         let mut params = Self::thread_start_params(cwd, model, model_provider, developer_instructions)?;
+        // The cwd's canonical path and the project's identity are read with no
+        // Host state held (they touch the filesystem), through one capability,
+        // for this one offer; under the state that capability must still be the
+        // one configured, or nothing is offered.
+        let capability = self.inner.0.lock().unwrap().records_capability.clone();
+        let reading = capability.filter(|capability|capability.offered_for(cwd)).map(|capability|self.records_reading(capability));
         let mut inner = self.inner.0.lock().unwrap();
-        let capability = inner.records_capability.clone();
         let mut project = None;
-        if let Some(capability) = capability.filter(|capability|capability.offered_for(cwd)) {
-            match capability.project_identity() {
+        if let Some(reading) = &reading {
+            match reading.current(&inner) {
                 Ok(directory) => {
                     params["dynamicTools"] = json!([crate::records_access::definition()]);
-                    project = Some(records_continuity::Project { reference: inner.records_project_context.as_ref().and_then(|context|context.reference()).map(str::to_owned), directory });
+                    project = Some(records_continuity::Project { reference: inner.records_project_context.as_ref().and_then(|context|context.reference()).map(str::to_owned), directory: directory.clone() });
                 }
-                Err(limit) => inner.records_capability_limit = Some(limit),
+                Err(limit) => if inner.records_capability.is_some() { inner.records_capability_limit = Some(limit) },
             }
         }
         Ok((params,project))
@@ -4951,6 +5017,53 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         });
     }
 
+    /// What a received line is taken as, before anything is recorded of it:
+    /// its correlation and the projection that withholds private material.
+    /// It reads the state only (the receipt's OAuth admission, which runs
+    /// beside it, changes none of what it reads), so the records call's look
+    /// before the project is read and the receipt itself use this one code.
+    fn received_view(i:&Inner,generation:&Value,parsed:Option<&Value>,text:&str)->Received{
+        let correlated_method=parsed.and_then(|f|f.get("id")).and_then(|id|i.source_requests.get(&id.to_string())).filter(|e|e.request.generation==*generation).and_then(|e|e.request.frame["method"].as_str()).map(str::to_owned);
+        let safe_reply_id=parsed.filter(|f|f.get("method").is_none()).and_then(|f|f.get("id")).and_then(|id|i.source_requests.get(&id.to_string())).filter(|e|e.request.generation==*generation).map(|e|e.request.request_id().clone());
+        let possible_original_account=parsed.filter(|f|f.get("method").is_none()).and_then(|f|f.get("id")).and_then(Value::as_str).is_some_and(|id|i.source_requests.values().any(|e|e.request.generation==*generation&&auth_rpc::account_method(e.request.frame["method"].as_str().unwrap_or(""))&&e.request.request_id().to_string()==id));
+        // Unsupported auth request framing can echo private control material in its ID.
+        // Keep that original only for the immediate mandatory wire error, never the register.
+        let private_auth_id=parsed.filter(|f|f.get("method").and_then(Value::as_str).is_some_and(auth_rpc::account_method)&&auth_rpc::protocol_envelope(f)).and_then(|f|f.get("id").map(|id|(id.clone(),f["method"]=="account/chatgptAuthTokens/refresh")));
+        let known_account_channel=i.account_channels.contains(generation);
+        let known_private_config_channel=i.private_config_channels.contains(generation);
+        let known_private_create_channel=i.source_requests.values().any(|e|e.private_config&&e.request.generation==*generation&&(e.request.frame["params"]["privateProviderCreateWithheld"]==true||e.observation_base["initiator"]["name"]=="provider-create-offer"));
+        let known_private_endpoint_channel=i.source_requests.values().any(|e|e.private_config&&e.request.generation==*generation&&e.request.frame["method"]=="config/batchWrite");
+        // Client and server ID spaces are independent. A valid server request
+        // sharing a client ID retains its actual method/params and reply duty.
+        let private_config=matches!(correlated_method.as_deref(),Some("config/read"|"config/batchWrite"))&&parsed.is_some_and(|f|
+            (f.get("method").is_none()||f.get("method").is_some_and(|m|!m.is_string())||f.get("result").is_some()||f.get("error").is_some())
+            &&f.get("id").is_some_and(|id|i.source_requests.get(&id.to_string()).is_some_and(|e|e.private_config)));
+        let unattributed_private_config=known_private_config_channel&&parsed.is_some_and(|f|{
+            !private_config&&(f.get("method").is_none()&&safe_reply_id.is_none()||f.get("method").is_some_and(|m|!m.is_string())||f.get("result").is_some_and(|r|r.get("config").is_some())&&correlated_method.as_deref()!=Some("config/read")||known_private_endpoint_channel&&f.get("result").is_some_and(|r|r.get("filePath").is_some()||r.get("overriddenMetadata").is_some())&&correlated_method.as_deref()!=Some("config/batchWrite"))
+        });
+        let private_create_diagnostic=known_private_create_channel.then(||parsed.and_then(provider_create::diagnostic)).flatten();
+        let (frame,projected)=if let Some(frame)=private_create_diagnostic {(frame,true)}else{match parsed{Some(frame)if frame.is_object()&&!unattributed_private_config&&(!known_account_channel||auth_rpc::protocol_envelope(&frame))=>{
+            auth_rpc::project_received_frame(&frame,correlated_method.as_deref(),safe_reply_id.as_ref(),possible_original_account,known_account_channel)
+        },_ if known_private_config_channel=>(json!({"observation":"unassociated response or malformed diagnostic on private configuration source withheld; no RPC or response association invented"}),true),_ if known_account_channel=>(json!({"observation":"nonprotocol or unparseable diagnostic from known original account source withheld; unattributed, no RPC/method invented"}),true),_ =>(json!(text),false)}};
+        let private_config_frame=private_config.then(||frame.clone());
+        let frame=if private_config{if correlated_method.as_deref()==Some("config/batchWrite"){
+            if frame.get("id").and_then(|id|i.source_requests.get(&id.to_string())).is_some_and(|e|e.request.frame["params"]["privateProviderCreateWithheld"]==true){provider_create::withheld(&frame)}else{provider_endpoint::withheld(&frame)}
+        }else{access_provider::withheld(&frame)}}else{frame};
+        Received{correlated_method,private_auth_id,known_private_config_channel,private_config,frame,projected,private_config_frame}
+    }
+    /// The checks a received line meets before a records call's project is
+    /// read, in the receipt's order, each a reason the call is not one: the
+    /// generation replaced or closed; not a server request, or private
+    /// account framing; not a tool call, or one the connector offer takes;
+    /// another tool or a namespace; and then the offer's own look, which gives
+    /// the capability to read through. It reads the state only.
+    fn records_call_look(i:&Inner,generation:&Value,frame:&Value,private_auth:bool)->Option<Arc<crate::records_access::RecordsCapability>>{
+        if i.generation!=*generation||i.server_requests.is_closed(generation){return None;}
+        if frame_class(frame)!="server-request"||private_auth{return None;}
+        if frame["method"]!="item/tool/call"||i.cce_offer.as_ref().and_then(|o|o.classify(generation,frame)).is_some(){return None;}
+        if frame["params"]["tool"]!=crate::records_access::TOOL||!frame["params"]["namespace"].is_null(){return None;}
+        Self::offer_look(i,generation,&frame["params"]["threadId"])
+    }
     fn on_line(&self, raw: &[u8], generation: &Value) {
         let text = String::from_utf8_lossy(raw);
         let text = text.trim_end_matches(['\n', '\r']);
@@ -4964,18 +5077,23 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         // The one reply prepared here by the App's own rule (current time): the local home's files
         // are checked before Inner is taken, and a refusal leaves the request waiting.
         let local_reply_refused=parsed.as_ref().filter(|f|f["method"]=="currentTime/read"&&f.get("id").is_some()).and_then(|_|self.check_local_reply().err());
+        // A records tool call's project reading, taken before the state is held
+        // (it touches the filesystem). Whether it is taken is decided by the
+        // receipt's own checks (received_view, then records_call_look), which
+        // run again under the state where the call is admitted. Only a line
+        // whose method is item/tool/call is looked at: received_view never
+        // gives a frame that method unless the line has it.
+        let records_reading=parsed.as_ref().filter(|f|f["method"]=="item/tool/call")
+            .and_then(|_|{let i=self.inner.0.lock().unwrap();let received=Self::received_view(&i,generation,parsed.as_ref(),text);
+                Self::records_call_look(&i,generation,&received.frame,received.private_auth_id.is_some())})
+            .map(|capability|self.records_reading(capability));
         let mut i = self.inner.0.lock().unwrap();
-        let correlated_method=parsed.as_ref().and_then(|f|f.get("id")).and_then(|id|i.source_requests.get(&id.to_string())).filter(|e|e.request.generation==*generation).and_then(|e|e.request.frame["method"].as_str()).map(str::to_owned);
+        let Received{correlated_method,private_auth_id,known_private_config_channel,private_config,frame,projected,private_config_frame}=Self::received_view(&i,generation,parsed.as_ref(),text);
         // The reply can beat public client-record publication. Its registered
         // source metadata already fixes the privacy class before dispatch.
         let catalog_reply=parsed.as_ref().and_then(|f|f.get("id")).and_then(|id|i.source_requests.get(&id.to_string())).filter(|e|e.request.generation==*generation)
             .is_some_and(|e|e.observation_base["initiator"]["name"]==MODEL_CATALOG_INITIATOR);
         let withhold=|frame:&Value| if catalog_reply { catalog_withheld(frame) } else { delegation_withheld(frame) };
-        let safe_reply_id=parsed.as_ref().filter(|f|f.get("method").is_none()).and_then(|f|f.get("id")).and_then(|id|i.source_requests.get(&id.to_string())).filter(|e|e.request.generation==*generation).map(|e|e.request.request_id().clone());
-        let possible_original_account=parsed.as_ref().filter(|f|f.get("method").is_none()).and_then(|f|f.get("id")).and_then(Value::as_str).is_some_and(|id|i.source_requests.values().any(|e|e.request.generation==*generation&&auth_rpc::account_method(e.request.frame["method"].as_str().unwrap_or(""))&&e.request.request_id().to_string()==id));
-        // Unsupported auth request framing can echo private control material in its ID.
-        // Keep that original only for the immediate mandatory wire error, never the register.
-        let private_auth_id=parsed.as_ref().filter(|f|f.get("method").and_then(Value::as_str).is_some_and(auth_rpc::account_method)&&auth_rpc::protocol_envelope(f)).and_then(|f|f.get("id").map(|id|(id.clone(),f["method"]=="account/chatgptAuthTokens/refresh")));
         let auth_shape=correlated_method.as_deref().filter(|m|auth_rpc::account_method(m)).map(|method|{
             let raw=parsed.as_ref().unwrap();if raw.get("method").is_some()||raw.get("result").is_some()&&raw.get("error").is_some(){return false;}
             if let Some(error)=raw.get("error"){return error.is_object()&&error["code"].as_i64().is_some()&&error["message"].is_string();}
@@ -4984,19 +5102,6 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         });
         let next_receipt=i.receipt_position+1;
         if let Some(raw)=parsed.as_ref(){Self::oauth_admit(&mut i,generation,next_receipt,raw,auth_shape);}
-        let known_account_channel=i.account_channels.contains(generation);
-        let known_private_config_channel=i.private_config_channels.contains(generation);
-        let known_private_create_channel=i.source_requests.values().any(|e|e.private_config&&e.request.generation==*generation&&(e.request.frame["params"]["privateProviderCreateWithheld"]==true||e.observation_base["initiator"]["name"]=="provider-create-offer"));
-        let known_private_endpoint_channel=i.source_requests.values().any(|e|e.private_config&&e.request.generation==*generation&&e.request.frame["method"]=="config/batchWrite");
-        // Client and server ID spaces are independent. A valid server request
-        // sharing a client ID retains its actual method/params and reply duty.
-        let private_config=matches!(correlated_method.as_deref(),Some("config/read"|"config/batchWrite"))&&parsed.as_ref().is_some_and(|f|
-            (f.get("method").is_none()||f.get("method").is_some_and(|m|!m.is_string())||f.get("result").is_some()||f.get("error").is_some())
-            &&f.get("id").is_some_and(|id|i.source_requests.get(&id.to_string()).is_some_and(|e|e.private_config)));
-        let unattributed_private_config=known_private_config_channel&&parsed.as_ref().is_some_and(|f|{
-            !private_config&&(f.get("method").is_none()&&safe_reply_id.is_none()||f.get("method").is_some_and(|m|!m.is_string())||f.get("result").is_some_and(|r|r.get("config").is_some())&&correlated_method.as_deref()!=Some("config/read")||known_private_endpoint_channel&&f.get("result").is_some_and(|r|r.get("filePath").is_some()||r.get("overriddenMetadata").is_some())&&correlated_method.as_deref()!=Some("config/batchWrite"))
-        });
-        let private_create_diagnostic=known_private_create_channel.then(||parsed.as_ref().and_then(provider_create::diagnostic)).flatten();
         // Settlement's verdict on a reply exactly as Codex sent it, taken once here at receipt and
         // before any projection below, so no projection can make an invalid native reply acceptable.
         // Only the verdict is kept with the reply; the native diagnostic is not retained.
@@ -5007,13 +5112,6 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 .or_else(||i.pending.get(&key).and_then(|(idx,_)|i.client_requests.get(*idx)).map(|record|record["requestIdentity"].clone()))?;
             Some(reading_gate::settlement(f,Some(&own)))
         });
-        let (frame,projected)=if let Some(frame)=private_create_diagnostic {(frame,true)}else{match parsed{Some(frame)if frame.is_object()&&!unattributed_private_config&&(!known_account_channel||auth_rpc::protocol_envelope(&frame))=>{
-            auth_rpc::project_received_frame(&frame,correlated_method.as_deref(),safe_reply_id.as_ref(),possible_original_account,known_account_channel)
-        },_ if known_private_config_channel=>(json!({"observation":"unassociated response or malformed diagnostic on private configuration source withheld; no RPC or response association invented"}),true),_ if known_account_channel=>(json!({"observation":"nonprotocol or unparseable diagnostic from known original account source withheld; unattributed, no RPC/method invented"}),true),_ =>(json!(text),false)}};
-        let private_config_frame=private_config.then(||frame.clone());
-        let frame=if private_config{if correlated_method.as_deref()==Some("config/batchWrite"){
-            if frame.get("id").and_then(|id|i.source_requests.get(&id.to_string())).is_some_and(|e|e.request.frame["params"]["privateProviderCreateWithheld"]==true){provider_create::withheld(&frame)}else{provider_endpoint::withheld(&frame)}
-        }else{access_provider::withheld(&frame)}}else{frame};
         let projection_label=if private_config{Some("private provider configuration outcome projection; not original bytes")}else if known_private_config_channel&&projected{Some("private source diagnostic projection; not original bytes")}else if projected{Some("sensitive account projection; not original bytes")}else{None};
         // NPTD §7.1 delegation reads: their result bodies (whole model
         // catalogues, whole configurations) are never journalled.
@@ -5026,7 +5124,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         i.observation_facts.receive(&gen, pos, &frame);
         let epoch=i.aa_epoch;let pipe_epoch=i.attachment_pipe_epoch;
         if let Some(c)=i.aa_capture.as_mut(){c.observe(&gen,epoch,pipe_epoch,pos,&frame);}
-        let class=if frame.is_object()&&frame.get("observation").is_none(){let has_id=frame.get("id").is_some();let has_method=frame.get("method").is_some();if has_method&&has_id{"server-request"}else if has_method{"notification"}else if has_id&&(frame.get("result").is_some()||frame.get("error").is_some()){"response"}else{"malformed"}}else{"malformed"};
+        let class=frame_class(&frame);
         if !Self::observer_rebuild_own_response(&i, &gen, &frame, class) {
             i.observer_rebuild.record_source_activity(&gen, pos);
         }
@@ -5037,8 +5135,8 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         if class == "server-request" && private_auth_reply.is_none() {
             let capabilities = i.declared_capabilities.clone().unwrap_or(Value::Null);
             let offered=if frame["method"]=="item/tool/call"{i.cce_offer.as_ref().and_then(|o|o.classify(&gen,&frame))}else{None};
-            let records=offered.is_none()&&frame["method"]=="item/tool/call"&&frame["params"]["tool"]==crate::records_access::TOOL&&frame["params"]["namespace"].is_null()
-                &&Self::records_offer_is_current(&i,&gen,&frame["params"]["threadId"]);
+            let records=Self::records_call_look(&i,&gen,&frame,private_auth_reply.is_some()).is_some()
+                &&Self::records_offer_is_current(&i,&gen,&frame["params"]["threadId"],records_reading.as_ref());
             if records {
                 match i.server_requests.receive_named_tool(&gen,pos,&frame,"app-rule:records-read") {
                     Ok(()) => records_call=Some(Self::records_call(&i,&gen,&frame)),
