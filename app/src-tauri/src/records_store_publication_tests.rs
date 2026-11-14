@@ -367,17 +367,18 @@ fn store_publication_child() {
     configure(Ok(selected));
     if mode == "publisher" {
         let pause_root = root.clone();
-        storage::after_create_link_for_test(Some(Box::new(move |path| {
-            assert_eq!(path, pause_root.join("store/store.json"));
-            let bytes = std::fs::read(path).unwrap();
+        // Pause before exclusive publication, while the final identity is
+        // absent and a cooperating initializer must take the bootstrap lock.
+        storage::publication_hook_for_test(pause_root.join("store/store.json"), storage::PublicationPoint::Staged, move |temporary| {
+            let bytes = std::fs::read(temporary).unwrap();
             let identity: Value = serde_json::from_slice(&bytes).unwrap();
             marker(
                 &pause_root,
                 "published.json",
-                &json!({"pid":std::process::id(),"nlink":std::fs::metadata(path).unwrap().nlink(),"storeId":identity["storeId"],"sha256":crate::util::sha256_hex(&bytes)}),
+                &json!({"pid":std::process::id(),"nlink":std::fs::metadata(temporary).unwrap().nlink(),"storeId":identity["storeId"],"sha256":crate::util::sha256_hex(&bytes)}),
             );
             wait_for(&pause_root.join("release"));
-        })));
+        });
     } else {
         let blocked_root = root.clone();
         bootstrap_blocked_for_test(Some(Box::new(move || {
@@ -413,9 +414,12 @@ fn store_publication_cooperating_initializers_wait_for_completed_identity() {
     let release = Release(root.0.join("release"));
     wait_for(&root.0.join("published.json"));
     let identity = root.0.join("store/store.json");
-    let original = std::fs::read(&identity).unwrap();
+    assert!(!identity.exists(), "the staged identity is not published yet");
+    let original = std::fs::read_dir(root.0.join("store")).unwrap()
+        .map(|entry| entry.unwrap().path())
+        .find(|path| path.extension().is_some_and(|ext| ext == "tmp"))
+        .map(|path| std::fs::read(path).unwrap()).unwrap();
     let original_id: Value = serde_json::from_slice(&original).unwrap();
-    assert_eq!(std::fs::metadata(&identity).unwrap().nlink(), 2);
     let mut reader = Process::spawn(&root.0, "reader");
     wait_for(&root.0.join("reader-entered.json"));
     let deadline = Instant::now() + WAIT;

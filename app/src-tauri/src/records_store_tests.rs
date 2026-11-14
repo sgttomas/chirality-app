@@ -11,6 +11,7 @@ use std::collections::BTreeMap;
 mod publication { include!("records_store_publication_tests.rs"); }
 mod safe_append { include!("records_store_lines_tests.rs"); }
 mod legacy_witness { include!("records_store_witness_tests.rs"); }
+mod sync { include!("records_store_sync_tests.rs"); }
 
 fn folder(prefix: &str) -> PathBuf {
     let p = std::env::temp_dir().join(crate::util::opaque_id(prefix).unwrap());
@@ -61,6 +62,466 @@ fn legacy_project() -> PathBuf {
 }
 
 // ---- Placement ----
+
+// Only the existing native dialog's synthetic explicit-action result may
+// pass this gate. This is control examination, never evidence of a person's act.
+fn synthetic_location_confirmation(text: String, dont: &str, perform: &str) -> Result<bool, String> {
+    use crate::act_control::native_statement as ns;
+    assert!(ns::bounded("records store location", text).is_ok());
+    let result = ns::dialog_model::outcomes(&ns::act_buttons(dont, perform)).into_iter()
+        .find(|(how, _)| *how == "middle").unwrap().1;
+    Ok(ns::chose(&result, perform))
+}
+
+#[test]
+fn records_store_placement_picked_folder_is_read_only_and_refuses_an_unsuitable_child() {
+    // Empty (the Finder's own file aside): the folder itself.
+    let empty = folder("pick-empty-");
+    std::fs::write(empty.join(".DS_Store"), b"finder").unwrap();
+    assert_eq!(location_for_choice(&empty).unwrap(), empty);
+    // Already a records store (a store folder the person moved): the folder itself.
+    let moved = folder("pick-store-");
+    std::fs::write(moved.join("store.json"), serde_json::to_vec(&json!({"format":STORE_FORMAT,"formatVersion":VERSION,"storeId":"records-store:invented"})).unwrap()).unwrap();
+    std::fs::create_dir(moved.join("projects")).unwrap();
+    assert_eq!(location_for_choice(&moved).unwrap(), moved);
+    // Holding other things: a folder inside it, so nothing is mixed in.
+    let documents = folder("pick-documents-");
+    std::fs::write(documents.join("letter.txt"), b"the person's own file").unwrap();
+    assert_eq!(location_for_choice(&documents).unwrap(), documents.join(CHOSEN_FOLDER));
+    // ...which is used again once it is a store, and refused when it holds something else or is a file.
+    std::fs::create_dir(documents.join(CHOSEN_FOLDER)).unwrap();
+    assert_eq!(location_for_choice(&documents).unwrap(), documents.join(CHOSEN_FOLDER));
+    std::fs::write(documents.join(CHOSEN_FOLDER).join("notes.txt"), b"not a store").unwrap();
+    assert!(location_for_choice(&documents).unwrap_err().contains("already holds files that are not a records store"));
+    std::fs::remove_dir_all(documents.join(CHOSEN_FOLDER)).unwrap();
+    std::fs::write(documents.join(CHOSEN_FOLDER), b"a file").unwrap();
+    assert!(location_for_choice(&documents).unwrap_err().contains("is not a folder"));
+    // A folder whose store.json is something else is not taken for a store.
+    let other = folder("pick-other-");
+    std::fs::write(other.join("store.json"), b"{\"format\":\"another product\"}").unwrap();
+    assert_eq!(location_for_choice(&other).unwrap(), other.join(CHOSEN_FOLDER));
+    // Neither a picked link nor a linked identity is taken for a store.
+    let linked = folder("pick-linked-");
+    std::os::unix::fs::symlink(moved.join("store.json"), linked.join("store.json")).unwrap();
+    assert!(location_for_choice(&linked).is_err());
+    std::fs::remove_file(linked.join("store.json")).unwrap();
+    std::os::unix::fs::symlink(&moved, linked.join("store-folder")).unwrap();
+    assert!(location_for_choice(&linked.join("store-folder")).unwrap_err().contains("not a folder"));
+    assert!(location_for_choice(Path::new("relative/folder")).is_err());
+    assert!(location_for_choice(&empty.join("absent")).unwrap_err().contains("unavailable"));
+    assert_eq!(std::fs::read(documents.join("letter.txt")).unwrap(), b"the person's own file", "choosing writes nothing in the picked folder");
+    for p in [empty, moved, documents, other, linked] { let _ = std::fs::remove_dir_all(p); }
+}
+
+#[test]
+fn records_store_placement_saved_current_unreadable_override_and_development_views() {
+    let data = folder("choice-data-");
+    let project = folder("choice-project-");
+    let volume = PathBuf::from("/Volumes/Backup-for-test/Chirality records");
+    // The store in use, as a built App with default placement started it
+    // (given directly: this test's App data folder is a temporary one).
+    use_store_for_test(Some(Ok(Store { root: data.join("records"), placement: Placement::AppData, limits: vec![] })));
+    let view = choice_view(Ok(&data), false);
+    assert_eq!(view["offered"], true);
+    assert_eq!((view["chosen"].clone(), view["pending"].clone()), (Value::Null, json!(false)));
+    assert_eq!(view["nextStart"], data.join("records").display().to_string());
+    // Chosen: recorded for the next start; the store in use does not change.
+    confirm_placement(&data, Some(&volume), Some(&project), &[], synthetic_location_confirmation).unwrap();
+    let view = choice_view(Ok(&data), false);
+    assert_eq!(view["chosen"], volume.display().to_string());
+    assert_eq!(view["nextStart"], volume.display().to_string());
+    assert_eq!(view["pending"], true, "the store in use was fixed at start");
+    assert_eq!(current().unwrap().root, data.join("records"));
+    // Simulate the next start's selection without creating the invented
+    // volume: this is a placement view, not store-startup examination.
+    use_store_not_started_for_test(Some(for_app(None, Ok(&data), false, Some(&project), &[])));
+    assert_eq!(current().unwrap().placement, Placement::PersonChosen);
+    assert_eq!(choice_view(Ok(&data), false)["pending"], false);
+    // Back to the default: the choice is removed, for the next start.
+    let cleared = confirm_placement(&data, None, Some(&project), &[], synthetic_location_confirmation).unwrap();
+    assert_eq!(cleared["state"], "default placement chosen");
+    assert_eq!(cleared["location"], data.join("records").display().to_string());
+    assert!(chosen_location(&data).unwrap().is_none());
+    let view = choice_view(Ok(&data), false);
+    assert_eq!((view["chosen"].clone(), view["pending"].clone()), (Value::Null, json!(true)));
+    assert_eq!(confirm_placement(&data, None, Some(&project), &[], synthetic_location_confirmation).unwrap()["state"], "default placement already in use");
+    // An unreadable choice is shown, never guessed past.
+    std::fs::write(data.join(CHOICE_FILE), b"{").unwrap();
+    let unreadable = choice_view(Ok(&data), false);
+    assert!(unreadable["choiceUnreadable"].as_str().unwrap().contains("unreadable"));
+    assert!(unreadable["nextStart"].is_null(), "an unreadable preference never promises the default next start");
+    assert!(for_app(None, Ok(&data), false, Some(&project), &[]).unwrap_err().contains("records store choice unreadable"), "no fallback to the default over an unreadable choice");
+    assert_eq!(confirm_placement(&data, None, Some(&project), &[], synthetic_location_confirmation).unwrap()["state"], "default placement chosen", "the person can clear it");
+    // The override of this run wins and is named; nothing is pending against it.
+    confirm_placement(&data, Some(&volume), Some(&project), &[], synthetic_location_confirmation).unwrap();
+    let override_root = folder("choice-override-");
+    use_store_for_test(Some(for_app(Some(override_root.clone()), Ok(&data), false, Some(&project), &[])));
+    let view = choice_view(Ok(&data), false);
+    assert_eq!(view["pending"], false);
+    assert!(view["overridden"].as_str().unwrap().contains(OVERRIDE_ENV));
+    // A run started for development offers no choice and says why; an unavailable App data folder likewise.
+    let dev = choice_view(Ok(&data), true);
+    assert_eq!(dev["offered"], false);
+    assert!(dev["reason"].as_str().unwrap().contains("started for development") && dev.get("chosen").is_none());
+    assert_eq!(choice_view(Err("no data".into()), false)["offered"], false);
+    use_store_for_test(None);
+    for p in [data, project, override_root] { let _ = std::fs::remove_dir_all(p); }
+}
+
+#[test]
+fn records_store_placement_only_the_explicit_native_action_changes_the_next_start() {
+    use crate::act_control::native_statement as ns;
+    let data = folder("placement-confirm-data-");
+    let old = PathBuf::from("/Volumes/Invented-old-records");
+    let new = PathBuf::from("/Volumes/Invented-new-records");
+    // Test fixture choices name no real folder; the confirmation receives
+    // the synthetic picker result, never any web-supplied location.
+    for action in ["choose", "default"] {
+        let perform = if action == "choose" { "Use this folder" } else { "Use the App's data folder" };
+        for (how, result) in ns::dialog_model::outcomes(&ns::act_buttons("Keep the present location", perform)) {
+            confirm_placement(&data, Some(&old), None, &[], synthetic_location_confirmation).unwrap();
+            let before = std::fs::read(data.join(CHOICE_FILE)).unwrap();
+            let chosen = (action == "choose").then_some(new.as_path());
+            let outcome = confirm_placement(&data, chosen, None, &[], |text, dont, label| {
+                assert!(text.contains("from the next time the App starts"));
+                assert!(text.contains("not moved or copied"));
+                assert!(text.contains(&chosen.unwrap_or(&data.join("records")).display().to_string()));
+                assert_eq!(dont, "Keep the present location");
+                assert_eq!(label, perform);
+                Ok(ns::chose(&result, label))
+            }).unwrap();
+            match (how == "middle", action) {
+                (true, "choose") => {
+                    assert_eq!(outcome["state"], "chosen");
+                    assert_eq!(chosen_location(&data).unwrap(), Some(new.clone()));
+                }
+                (true, _) => {
+                    assert_eq!(outcome["state"], "default placement chosen");
+                    assert!(!data.join(CHOICE_FILE).exists());
+                    assert_eq!(chosen_location(&data).unwrap(), None);
+                }
+                (false, _) => {
+                    assert_eq!(outcome["state"], "choice cancelled");
+                    assert_eq!(std::fs::read(data.join(CHOICE_FILE)).unwrap(), before);
+                }
+            }
+        }
+    }
+    confirm_placement(&data, Some(&old), None, &[], synthetic_location_confirmation).unwrap();
+    let before = std::fs::read(data.join(CHOICE_FILE)).unwrap();
+    assert!(confirm_placement(&data, Some(&new), None, &[], |_, _, _| Err("invented native statement unavailable".into())).unwrap_err().contains("statement unavailable"));
+    assert_eq!(std::fs::read(data.join(CHOICE_FILE)).unwrap(), before);
+    assert!(confirm_placement(&data, Some(&std::env::temp_dir().join("refused-store")), None, &[], |_, _, _| panic!("an unsuitable location is refused before confirmation")).is_err());
+    assert_eq!(std::fs::read(data.join(CHOICE_FILE)).unwrap(), before);
+    assert_eq!(std::fs::read_dir(&data).unwrap().count(), 1, "only the next-start preference was written");
+    std::fs::remove_dir_all(data).unwrap();
+}
+
+
+fn import_gate_project() -> (OwnStore, PathBuf, PathBuf) {
+    let own = OwnStore::new();
+    let root = folder("import-gate-project-");
+    let dir = write_dir(&root).unwrap();
+    let log = root.join(".chirality/records").join(storage::log_rel(None, "writer:legacy"));
+    records::append(&log, "evidence_limit", &APP_WRITER, body("in place")).unwrap();
+    assert!(write_dir(&root).unwrap_err().contains("import needed"));
+    (own, root, dir)
+}
+
+#[test]
+fn records_store_import_gate_non_directory_is_unknown_never_authority() {
+    let mut results = Vec::new();
+    for name in ["runs", "acts", "workflow", "legacy", "connectors", "captures"] {
+        let (_own, root, dir) = import_gate_project();
+        std::fs::write(dir.join(name), b"not a folder").unwrap();
+        results.push((name, write_dir(&root)));
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    assert!(results.iter().all(|(_, r)| r.as_ref().is_err_and(|e| e.contains("unknown"))), "{results:?}");
+}
+
+#[test]
+fn records_store_import_gate_unfamiliar_member_is_unknown_never_authority() {
+    let mut results = Vec::new();
+    for name in ["runs", "acts", "workflow", "legacy", "connectors", "captures", "captures/pending"] {
+        let (_own, root, dir) = import_gate_project();
+        std::fs::create_dir_all(dir.join(name)).unwrap();
+        std::fs::write(dir.join(name).join("unfamiliar"), b"unrecognised bytes").unwrap();
+        let result = records::append_project(&root, None, "writer:gate", "evidence_limit", &APP_WRITER, body("must wait for import"));
+        results.push((name, result));
+        assert!(!dir.join(storage::log_rel(None, "writer:gate")).exists(), "{name}: a refused append must create no record: {results:?}");
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    assert!(results.iter().all(|(_, r)| r.as_ref().is_err_and(|e| e.contains("unknown"))), "{results:?}");
+}
+
+#[test]
+fn records_store_import_gate_empty_census_does_not_refuse_unrecognised_member() {
+    let _own = OwnStore::new();
+    let root = folder("import-gate-empty-census-");
+    let dir = write_dir(&root).unwrap();
+    std::fs::create_dir(dir.join("workflow")).unwrap();
+    std::fs::write(dir.join("workflow/unfamiliar"), b"not a recognised record").unwrap();
+    assert!(legacy_census(&root).unwrap().is_empty());
+    let result = records::append_project(&root, None, "writer:gate", "evidence_limit", &APP_WRITER, body("nothing to import"));
+    assert!(result.is_ok(), "nothing to import, so no authority is needed to waive a census: {result:?}");
+    let written = result.unwrap();
+    let (entries, limits) = records::read_log(&dir.join(storage::log_rel(None, "writer:gate")));
+    assert_eq!(entries, vec![written]);
+    assert!(limits.is_empty(), "{limits:?}");
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn records_store_import_gate_unlistable_folder_is_unknown_never_authority() {
+    use std::os::unix::fs::PermissionsExt;
+    let mut results = Vec::new();
+    for name in ["runs", "acts", "workflow", "legacy", "connectors", "captures"] {
+        let (_own, root, dir) = import_gate_project();
+        let path = dir.join(name);
+        std::fs::create_dir(&path).unwrap();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o000)).unwrap();
+        let denied = std::fs::read_dir(&path).err().map(|e| e.kind());
+        let result = write_dir(&root);
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+        assert_eq!(denied, Some(std::io::ErrorKind::PermissionDenied));
+        results.push((name, result));
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    assert!(results.iter().all(|(_, r)| r.as_ref().is_err_and(|e| e.contains("unknown"))), "{results:?}");
+}
+
+#[test]
+fn records_store_import_gate_unexaminable_member_is_unknown_never_authority() {
+    use std::os::unix::fs::PermissionsExt;
+    let (_own, root, dir) = import_gate_project();
+    let path = dir.join("acts");
+    std::fs::create_dir(&path).unwrap();
+    std::fs::write(path.join(format!("{}.jsonl", storage::key("writer"))), b"unreadable").unwrap();
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o400)).unwrap();
+    let inventory = crate::records_inspect::listing(&path).unwrap().unwrap();
+    let result = write_dir(&root);
+    std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
+    assert!(inventory.iter().all(|e| e.metadata.is_err()));
+    assert!(result.as_ref().is_err_and(|e| e.contains("unknown")), "{result:?}");
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn records_store_import_gate_capture_name_without_capture_form_is_unknown() {
+    let mut results = Vec::new();
+    for name in ["captures", "captures/pending"] {
+        let (_own, root, dir) = import_gate_project();
+        std::fs::create_dir_all(dir.join(name)).unwrap();
+        std::fs::write(dir.join(name).join(format!("{}.json", storage::key("cap:fixture"))), b"{}").unwrap();
+        results.push((name, write_dir(&root)));
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    assert!(results.iter().all(|(_, r)| r.as_ref().is_err_and(|e| e.contains("unknown"))), "{results:?}");
+}
+
+fn import_gate_capture() -> Value {
+    let mut capture: Value = serde_json::from_slice(include_bytes!("../../tests/fixtures/FX-DP1/aac/cap-decide-PKG-1.json")).unwrap();
+    capture.as_object_mut().unwrap().remove("recordId");
+    crate::schema_validation::validate_capture(&capture).unwrap();
+    capture
+}
+
+fn import_gate_submission(capture: &Value) -> Value {
+    json!({"capture":capture,"recordId":"rec:app:gate-submission","log":crate::recorder::LOG,
+        "observedAt":capture["capturedAt"],"delayed":false})
+}
+
+fn place_gate_capture(dir: &Path, capture: &Value, pending: Option<&Value>) -> PathBuf {
+    let folder = dir.join(if pending.is_some() { "captures/pending" } else { "captures" });
+    std::fs::create_dir_all(&folder).unwrap();
+    let path = folder.join(format!("{}.json", storage::key(capture["captureId"].as_str().unwrap())));
+    std::fs::write(&path, serde_json::to_vec(pending.unwrap_or(capture)).unwrap()).unwrap();
+    path
+}
+
+fn append_gate_probe(root: &Path) -> Result<Value, String> {
+    records::append_project(root, Some("run:gate-probe"), "writer:gate-probe", "evidence_limit", &APP_WRITER, body("gate regression"))
+}
+
+fn assert_gate_probe_refused(root: &Path, dir: &Path, original: &[u8], result: &Result<Value, String>) {
+    assert!(result.as_ref().is_err_and(|e| e.contains("unknown")), "uncertain capture must not waive an import: {result:?}");
+    assert!(!dir.join(storage::log_rel(Some("run:gate-probe"), "writer:gate-probe")).exists());
+    assert!(!dir.join("imports.jsonl").exists());
+    assert_eq!(std::fs::read(root.join(".chirality/records").join(storage::log_rel(None, "writer:legacy"))).unwrap(), original);
+    assert_eq!(legacy_census(root).unwrap().len(), 1);
+}
+
+fn misplaced_library_capture_cannot_waive_import(pending: bool) {
+    let (_own, root, dir) = import_gate_project();
+    let original = std::fs::read(root.join(".chirality/records").join(storage::log_rel(None, "writer:legacy"))).unwrap();
+    let mut capture = import_gate_capture();
+    capture["actKind"] = json!("A15");
+    capture.as_object_mut().unwrap().remove("alternativeChosen");
+    capture["descriptorId"] = json!("descriptor:gate-regression");
+    capture["descriptorKind"] = json!("a15_descriptor");
+    capture["entries"] = json!([{"revision":"revision:gate-regression",
+        "reviewedDraft":{"draft":"draft:project:gate@fixture","content":capture["boundContent"][0]},"priorRevision":null}]);
+    crate::schema_validation::validate_capture(&capture).unwrap();
+    let mut submission = import_gate_submission(&capture);
+    submission["log"] = json!(".chirality/records/acts.jsonl");
+    let misplaced = place_gate_capture(&dir, &capture, pending.then_some(&submission));
+    let routed = if pending { storage::pending_file_for(&root, &capture) } else { storage::capture_file_for(&root, &capture) }.unwrap();
+    assert_ne!(misplaced, routed, "A15 evidence belongs to the library, not this project store");
+    let result = append_gate_probe(&root);
+    assert_gate_probe_refused(&root, &dir, &original, &result);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn records_store_import_gate_library_capture_never_establishes_project_authority() {
+    misplaced_library_capture_cannot_waive_import(false);
+}
+
+#[test]
+fn records_store_import_gate_library_pending_never_establishes_project_authority() {
+    misplaced_library_capture_cannot_waive_import(true);
+}
+
+#[test]
+fn records_store_import_gate_empty_pending_fields_are_uncertain() {
+    let (_own, root, dir) = import_gate_project();
+    let original = std::fs::read(root.join(".chirality/records").join(storage::log_rel(None, "writer:legacy"))).unwrap();
+    let capture = import_gate_capture();
+    let submission = json!({"capture":capture,"recordId":"","log":"","observedAt":""});
+    place_gate_capture(&dir, &capture, Some(&submission));
+    let result = append_gate_probe(&root);
+    assert_gate_probe_refused(&root, &dir, &original, &result);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn records_store_import_gate_pending_recognition_agrees_with_recovery() {
+    let mut results = Vec::new();
+    for case in ["valid", "legacy-log-spelling", "empty-fields", "mismatched-record", "mismatched-log",
+        "missing-time", "empty-time", "different-time", "missing-delayed", "invalid-capture"] {
+        let (_own, root, dir) = import_gate_project();
+        let capture = import_gate_capture();
+        let mut submission = import_gate_submission(&capture);
+        match case {
+            "legacy-log-spelling" => submission["log"] = json!(format!(".chirality/records/{}", crate::recorder::LOG)),
+            "empty-fields" => { submission["recordId"] = json!(""); submission["log"] = json!(""); submission["observedAt"] = json!(""); },
+            "mismatched-record" => submission["capture"]["recordId"] = json!("rec:app:another-record"),
+            "mismatched-log" => submission["log"] = json!(storage::log_rel(None, "writer:another")),
+            "missing-time" => { submission.as_object_mut().unwrap().remove("observedAt"); },
+            "empty-time" => submission["observedAt"] = json!(""),
+            "different-time" => submission["observedAt"] = json!("a different observation"),
+            "missing-delayed" => { submission.as_object_mut().unwrap().remove("delayed"); },
+            "invalid-capture" => { submission["capture"].as_object_mut().unwrap().remove("actor"); },
+            _ => {},
+        }
+        place_gate_capture(&dir, &capture, Some(&submission));
+        // Recovery first obtains a write home. Use a second project with no
+        // originals so that admission cannot mask its own wrapper recogniser.
+        // Only the pending wrapper is present: no standalone capture or RS
+        // entry can independently establish authority in either project.
+        let cold_root = folder("gate-recovery-agreement-");
+        let cold_dir = write_dir(&cold_root).unwrap();
+        place_gate_capture(&cold_dir, &capture, Some(&submission));
+        let recovered = crate::act_control::ActControl::new(&cold_root).recover_pending().unwrap();
+        let recovery_recognised = recovered.len() == 1 && recovered[0]["captureDurability"] == "not established";
+        let write = append_gate_probe(&root);
+        let expected = matches!(case, "valid" | "legacy-log-spelling");
+        let gate_recognised = write.is_ok();
+        println!("{case}: gate={write:?}; recovery={recovered:?}");
+        results.push((case, expected, gate_recognised, recovery_recognised));
+        if gate_recognised {
+            assert_eq!(records::read_log(&dir.join(storage::log_rel(Some("run:gate-probe"), "writer:gate-probe"))).0, vec![write.unwrap()]);
+        } else {
+            assert!(write.unwrap_err().contains("unknown"), "{case}");
+        }
+        assert!(!dir.join("imports.jsonl").exists());
+        assert_eq!(legacy_census(&root).unwrap().len(), 1);
+        std::fs::remove_dir_all(cold_root).unwrap();
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    assert!(results.iter().all(|(_, expected, gate, recovery)| gate == expected && recovery == expected),
+        "pending classification (case, expected, gate, recovery): {results:?}");
+}
+
+#[test]
+fn records_store_import_gate_recognised_rs_records_waive_census() {
+    for name in [storage::log_rel(Some("run:held"), "writer:held"), storage::log_rel(None, "writer:held"), REGISTERED_COPY.into()] {
+        let (_own, root, dir) = import_gate_project();
+        let destination = dir.join(name);
+        std::fs::create_dir_all(destination.parent().unwrap()).unwrap();
+        std::fs::copy(root.join(".chirality/records").join(storage::log_rel(None, "writer:legacy")), destination).unwrap();
+        assert!(write_dir(&root).is_ok());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[test]
+fn records_store_import_gate_recognised_capture_and_pending_waive_census() {
+    let capture: Value = serde_json::from_slice(include_bytes!("../../tests/fixtures/FX-DP1/aac/cap-decide-PKG-1.json")).unwrap();
+    crate::schema_validation::validate_capture(&capture).unwrap();
+    for pending in [false, true] {
+        let (_own, root, dir) = import_gate_project();
+        let folder = dir.join(if pending { "captures/pending" } else { "captures" });
+        std::fs::create_dir_all(&folder).unwrap();
+        // The fixture is a completed capture. The writer's pending wrapper
+        // contains its original facts, before that later record backlink.
+        let value = if pending { import_gate_submission(&import_gate_capture()) } else { capture.clone() };
+        std::fs::write(folder.join(format!("{}.json", storage::key(capture["captureId"].as_str().unwrap()))), serde_json::to_vec(&value).unwrap()).unwrap();
+        assert!(write_dir(&root).is_ok());
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[test]
+fn records_store_import_gate_completed_import_waives_census_but_incomplete_still_refuses() {
+    let (_own, root, dir) = import_gate_project();
+    import(&root).unwrap();
+    std::fs::write(root.join(".chirality/records/late.jsonl"), b"a late legacy file").unwrap();
+    assert!(write_dir(&root).is_ok());
+    append_line(&dir.join("imports.jsonl"), &json!({"format":IMPORT_FORMAT,"formatVersion":VERSION,"event":"started","importId":"import:late","at":"now","storeHeld":true,"census":[]})).unwrap();
+    assert!(store_holds(&dir).unwrap());
+    assert!(write_dir(&root).unwrap_err().contains("import incomplete"));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn records_store_import_gate_controls_and_exact_staging_names_never_waive_census() {
+    let nonce = "12345678-1234-4234-8234-123456789abc";
+    let hash = storage::key("cap:fixture");
+    for relative in [".writer.lock".into(), "captures/.capture.lock".into(), "captures/pending".into(),
+        format!("captures/.{hash}.json.{nonce}.tmp"),
+        format!("captures/pending/.{hash}.json.{nonce}.tmp"),
+        format!("workflow/.pending-{nonce}"),
+        format!("workflow/.{nonce}.json.{nonce}.tmp"),
+        format!("connectors/route-accounts/.route-{nonce}.tmp")] {
+        let (_own, root, dir) = import_gate_project();
+        let path = dir.join(&relative);
+        if relative == "captures/pending" { std::fs::create_dir_all(&path).unwrap(); }
+        else {
+            std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+            std::fs::write(&path, b"").unwrap();
+        }
+        let result = write_dir(&root);
+        assert!(result.as_ref().is_err_and(|e| e.contains("import needed")), "{relative}: {result:?}");
+        // The same preparation in a new project must admit normal recording.
+        std::fs::remove_dir_all(root.join(".chirality/records")).unwrap();
+        assert!(write_dir(&root).is_ok(), "{relative}: normal first write refused");
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[test]
+fn records_store_import_gate_recognised_capture_during_create_link_waives_census() {
+    let (_own, root, dir) = import_gate_project();
+    let capture: Value = serde_json::from_slice(include_bytes!("../../tests/fixtures/FX-DP1/aac/cap-decide-PKG-1.json")).unwrap();
+    let check_root = root.clone();
+    storage::after_create_link_for_test(Some(Box::new(move |_| {
+        assert!(write_dir(&check_root).is_ok(), "a published capture's temporary hard-link alias must not refuse ordinary recording");
+    })));
+    storage::create_json(&dir.join("captures").join(format!("{}.json", storage::key(capture["captureId"].as_str().unwrap()))), &capture).unwrap();
+    std::fs::remove_dir_all(root).unwrap();
+}
 
 #[test]
 fn placement_uses_the_override_or_app_data_and_never_falls_back() {
@@ -679,7 +1140,7 @@ fn selected_source_lines_about_where_a_projects_records_are_read_are_held_by_con
         ("records_access.rs", "519c5024fe3afbe5", "the records capability's own read log, a writer: its path in the project's store folder, refused with the read when the attachment gives none"),
         ("role_observations.rs", "c024537e4e6f86bd", "the census of files kept in the project folder, read only to REFUSE role observation history while an import is needed; and a writer taking the project's identity from the attachment (none for a refused one)"),
         ("role_record_source.rs", "b7a86f4abea1daee", "the role source takes the project's identity from the attachment, to refuse a reference that belongs to another project; no place is taken"),
-        ("workflow_record_store.rs", "b1cc7691732bfd74", "the workflow record store's read admission takes the attachment and returns its refusal for a refused one before anything is read"),
+        ("workflow_record_store.rs", "06f4e510163168a1", "the workflow record store's read admission takes the attachment and returns its refusal for a refused one before anything is read; and the census of files kept in the project folder, read only to decide whether a kept reader binds in place (records in place hold records), never to take a place: the place is the binding's, from readable_home"),
         ("native_conversation_links.rs", "58c2472c29734ec3", "the native relationship writer captures the attachment it will write under and refuses a refusal"),
         ("lib.rs", "49b753d2e7327969", "the App at startup gives the opened project its identity (a minting attachment), a writer"),
     ];
@@ -2693,4 +3154,28 @@ fn records_store_an_unexaminable_pending_capture_is_never_replaced() {
     assert_eq!(std::fs::read_link(&path).unwrap(), library.join("nothing-here"), "the link is left as it was");
     assert!(std::fs::symlink_metadata(library.join("nothing-here")).is_err(), "nothing written through it");
     let _ = std::fs::remove_dir_all(&library);
+}
+
+/// The write gate's authority is read only from the account snapshot its own
+/// admission parsed and re-proved. A completion that appears after that read,
+/// and whose syncs fail, never enters through a second read of the account.
+#[test]
+fn records_store_import_gate_authority_reads_only_its_admission_snapshot() {
+    let (_own, root, dir) = import_gate_project();
+    let snapshot = imports(&dir).unwrap();
+    assert!(!snapshot.any && !snapshot.completed);
+    let path = dir.join("imports.jsonl");
+    let mut bytes = serde_json::to_vec(&json!({"format":IMPORT_FORMAT,"formatVersion":VERSION,
+        "event":"completed","importId":"import:later-completion","files":[],"conflicts":[]})).unwrap();
+    bytes.push(b'\n');
+    std::fs::write(&path, &bytes).unwrap();
+    storage::fail_publication_sync_after_for_test(Some((path.clone(), 0, storage::PublicationSyncStage::File)));
+    let authority = store_write_authority_from_imports(&dir, &snapshot);
+    let current_admission = write_permitted(&dir, &root);
+    storage::fail_publication_sync_after_for_test(None);
+    let unchanged = std::fs::read(path).unwrap();
+    std::fs::remove_dir_all(root).unwrap();
+    assert!(current_admission.as_ref().is_err_and(|e| e.contains("account durability not established")), "{current_admission:?}");
+    assert_eq!(unchanged, bytes);
+    assert!(matches!(authority, Ok(false)), "a later completion entered through authority without acceptance: {authority:?}");
 }

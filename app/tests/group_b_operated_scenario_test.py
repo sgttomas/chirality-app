@@ -397,6 +397,25 @@ class TheWalkItself(unittest.TestCase):
         self.assertEqual(result['out'], ['inconclusive', {'where': 'the first view before any click',
                                                           'message': '(the failure could not be read)', 'causes': []}])
 
+    def test_a_failed_click_stops_the_walk_with_its_result_and_its_message_and_causes_whole(self):
+        # A click that throws: the walk does not reject; it keeps the failure as a view's is kept, calls nothing
+        # further, and is inconclusive, since a call that throws has not been shown to have had no effect.
+        result = harness('''
+          const inner = new Error('the element is gone');
+          const outer = new Error('Sky Computer Use click failed', { cause: inner });
+          let clicks = 0;
+          const failing = { get_app_state: async () => ({ app: viewOf.app, text: nextView() }),
+                            click: async () => { clicks += 1; throw outer; } };
+          const r = await walk.run({ ...base, sky: failing });
+          const after = r.calls.findIndex(c => c.call === 'click');
+          return [r.verdict, r.click_error, r.stopped, walk.summary(r), clicks, r.calls.length - after - 1, r.steps.at(-1).error];''')
+        verdict, failed, stopped, summary, clicks, calls_after, step_error = result['out']
+        self.assertEqual(verdict, 'inconclusive')
+        self.assertEqual(failed, {'where': 'S2', 'message': 'Sky Computer Use click failed', 'causes': ['the element is gone']})
+        self.assertEqual(stopped, 'stopped at S2: the click failed (Sky Computer Use click failed)')
+        self.assertIn('    caused by: the element is gone', summary)
+        self.assertEqual((clicks, calls_after, step_error), (1, 0, 'Sky Computer Use click failed'))
+
     def test_a_view_returned_as_differences_is_applied_to_the_view_before_it(self):
         result = harness('''
           const before = walk.parseView('Window: "Chirality"\\n0 standard window Chirality\\n\\t1 button (disabled) Review setup\\n\\t2 summary Details, Value: off\\n\\t\\t3 text Details\\n\\t4 close button');

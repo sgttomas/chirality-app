@@ -339,6 +339,130 @@ pub fn choose_location(app_data: &Path, location: &Path, project: Option<&Path>,
         "limit":"records already in the current store are not moved or copied; to keep one history, move the store folder to the new location before the App next starts"}))
 }
 
+/// The folder made inside a chosen folder that already holds other things.
+pub const CHOSEN_FOLDER: &str = "Chirality App records";
+
+/// Where the store is kept for a folder the person picked: the folder itself
+/// when it is empty or already a records store; otherwise a folder named
+/// [`CHOSEN_FOLDER`] inside it, so the store's files are never mixed into a
+/// folder that holds other things. A file where that folder would be, or a
+/// folder there that holds something other than a records store, is refused.
+pub fn location_for_choice(picked: &Path) -> Result<PathBuf, String> {
+    // What a folder holds for this purpose: nothing, a records store, or other things.
+    fn holds(folder: &Path) -> Result<&'static str, String> {
+        let meta = std::fs::symlink_metadata(folder).map_err(|e| format!("{} is unavailable: {e}", folder.display()))?;
+        if !meta.is_dir() {
+            return Err(format!("{} is not a folder", folder.display()));
+        }
+        let identity = folder.join("store.json");
+        match crate::records_inspect::presence(&identity) {
+            Ok(Some(_)) => {
+                // The same plain-file reader as the live store: a link or
+                // non-file is refused, never followed or blocked on here.
+                let bytes = crate::records_retention::read_plain(&identity)?;
+                return match serde_json::from_slice::<Value>(&bytes) {
+                    Ok(v) if v["format"] == STORE_FORMAT && v["storeId"].as_str().is_some_and(|id| !id.is_empty()) => Ok("store"),
+                    _ => Ok("other"),
+                };
+            }
+            Ok(None) => {}
+            Err(e) => return Err(format!("{} could not be examined: {e}", identity.display())),
+        }
+        let entries = std::fs::read_dir(folder).map_err(|e| format!("{} could not be listed: {e}", folder.display()))?;
+        // The Finder's own file does not make a folder hold something. A
+        // failed entry read is unknown, never a guess that it is empty.
+        for entry in entries {
+            let entry = entry.map_err(|e| format!("{} could not be listed whole: {e}", folder.display()))?;
+            if entry.file_name() != ".DS_Store" { return Ok("other"); }
+        }
+        Ok("empty")
+    }
+    if !picked.is_absolute() {
+        return Err("choose an absolute folder for the records store".into());
+    }
+    if holds(picked)? != "other" {
+        return Ok(picked.to_path_buf());
+    }
+    let inside = picked.join(CHOSEN_FOLDER);
+    match std::fs::symlink_metadata(&inside) {
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(inside),
+        Err(e) => Err(format!("{} is unavailable: {e}; no location chosen", inside.display())),
+        Ok(_) if holds(&inside)? != "other" => Ok(inside),
+        Ok(_) => Err(format!("{} already holds files that are not a records store; choose another folder (nothing chosen)", inside.display())),
+    }
+}
+
+/// The person returns the store to its default place, `<App data>/records/`,
+/// from the next start. Records in the chosen location are not moved.
+pub fn clear_choice(app_data: &Path) -> Result<Value, String> {
+    let path = app_data.join(CHOICE_FILE);
+    let had = match std::fs::remove_file(&path) {
+        Ok(()) => { crate::storage::sync_dir(app_data)?; true }
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => false,
+        Err(e) => return Err(format!("the chosen location could not be cleared: {e}")),
+    };
+    Ok(json!({"state":if had {"default placement chosen"} else {"default placement already in use"},"location":app_data.join("records").display().to_string(),
+        "takesEffect":"when the App next starts",
+        "limit":"records in the location chosen before are not moved or copied; to keep one history, move that store folder to the default location before the App next starts"}))
+}
+
+/// What the person can do about where the store is kept, for the host status:
+/// the location chosen (if any), the default, where the next start will keep
+/// the store, and whether that differs from the store in use now. A run
+/// started for development never reads a choice, and says so.
+pub fn choice_view(app_data: Result<&Path, String>, development: bool) -> Value {
+    if development {
+        return json!({"offered":false,"reason":format!("This run was started for development: it keeps its records only in the folder {OVERRIDE_ENV} names, and never reads a chosen location or the App data folder. A built App reads both.")});
+    }
+    let data = match app_data {
+        Ok(data) => data,
+        Err(e) => return json!({"offered":false,"reason":format!("The App data folder is unavailable ({e}), so a location cannot be chosen or read.")}),
+    };
+    let default = data.join("records");
+    let (chosen, unreadable) = match chosen_location(data) {
+        Ok(chosen) => (chosen, None),
+        Err(e) => (None, Some(e)),
+    };
+    let next = unreadable.is_none().then(|| chosen.clone().unwrap_or_else(|| default.clone()));
+    let current = current().ok();
+    let overridden = current.as_ref().is_some_and(|s| s.placement == Placement::Override);
+    let in_use = current.as_ref().map(|s| s.root.clone());
+    json!({"offered":true,"chosen":chosen.as_ref().map(|p| p.display().to_string()),"default":default.display().to_string(),
+        "nextStart":next.as_ref().map(|p| p.display().to_string()),"choiceUnreadable":unreadable,
+        // The store in use was fixed when the App started.
+        "current":in_use.as_ref().map(|p| p.display().to_string()),
+        "pending":!overridden && next.as_ref().is_some_and(|next| in_use.as_ref().is_some_and(|root| root != next)),
+        "overridden":overridden.then(|| format!("{OVERRIDE_ENV} is set for this run and is used instead; the chosen location is used by a start without it"))})
+}
+
+/// The native host supplies the picked destination (or the default action)
+/// and owns the confirmation. No web command accepts a destination path.
+/// Tests use only the existing native dialog's synthetic result model here.
+pub(crate) fn confirm_placement(
+    app_data: &Path,
+    location: Option<&Path>,
+    project: Option<&Path>,
+    codex_homes: &[PathBuf],
+    confirm: impl FnOnce(String, &str, &str) -> Result<bool, String>,
+) -> Result<Value, String> {
+    let default = app_data.join("records");
+    let destination = location.unwrap_or(&default);
+    let problems = placement_problems_in(destination, project, codex_homes, false, Some(app_data));
+    if location.is_some() && !problems.is_empty() {
+        return Err(format!("records store location refused: {}", problems.join("; ")));
+    }
+    let in_use = current().map(|s| s.root.display().to_string()).unwrap_or_else(|_| "no records store in use".into());
+    let perform = if location.is_some() { "Use this folder" } else { "Use the App's data folder" };
+    let text = format!("Keep the App's records here from the next time the App starts?\n\n{}\n\nRecords kept now: {in_use}\n\nRecords already kept are not moved or copied. To keep one history, quit the App and move the present records folder to the location above before starting it again. Until the App starts again it uses its current placement.", destination.display());
+    if !confirm(text, "Keep the present location", perform)? {
+        return Ok(json!({"state":"choice cancelled"}));
+    }
+    match location {
+        Some(location) => choose_location(app_data, location, project, codex_homes),
+        None => clear_choice(app_data),
+    }
+}
+
 /// Why `root` is not a fit place for the store: inside the project, a Codex
 /// home or a temporary folder (each writable by an agent under Codex's
 /// workspace-write sandbox, or the person's own Codex data).
@@ -745,7 +869,11 @@ fn write_appending(path: &Path, bytes: &[u8]) -> Result<(), String> {
         None => {}
     }
     f.write_all(bytes).map_err(|e| format!("{}: write: {e}", path.display()))?;
+    #[cfg(test)]
+    crate::storage::publication_sync_for_test(path, crate::storage::PublicationSyncStage::File)?;
     f.sync_all().map_err(|e| format!("{}: sync uncertain: {e}", path.display()))?;
+    #[cfg(test)]
+    crate::storage::publication_sync_for_test(path, crate::storage::PublicationSyncStage::Directory)?;
     crate::storage::sync_dir(path.parent().unwrap())
 }
 /// Closes and names the fragments of one store line file, writing nothing
@@ -1183,6 +1311,173 @@ pub fn attach(root: &Path, mint: bool) -> Result<Attachment, String> {
     Ok(out)
 }
 
+/// The decision a kept reader was opened with, made again before each read:
+/// the project's records home (`readable_home`), or the place of its
+/// connector accounts (`route_accounts_place`, with the store's own record of
+/// a disposal).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum ReaderDecision {
+    Records,
+    Accounts,
+}
+/// A kept reader's binding: the records store, the project folder and the
+/// project's records folder in the store that the reader was opened for. It
+/// protects kept readers; a writer's binding is not this.
+///
+/// A folder's physical identity here is the device and inode of the folder
+/// itself, read without following a link. Each bound folder is held open for
+/// the binding's life, so its inode cannot be given to another folder while
+/// the binding lives.
+///
+/// `prove` runs before each read, and the read then goes by path: a change
+/// between the proof and the read is not seen by this binding.
+#[derive(Debug)]
+pub(crate) struct ReaderBinding {
+    decision: ReaderDecision,
+    root: PathBuf,
+    project: (u64, u64),
+    _project_open: std::fs::File,
+    /// The store's canonical root and identity, when the records are read
+    /// from the store.
+    store: Option<(PathBuf, String)>,
+    records: Option<BoundFolder>,
+    /// When the decision read the records in place: the folder it read them
+    /// from, and that folder relative to the project folder.
+    in_place: Option<InPlace>,
+}
+#[derive(Debug, Clone)]
+pub(crate) struct InPlace {
+    pub(crate) records: PathBuf,
+    pub(crate) relative: PathBuf,
+}
+#[derive(Debug)]
+struct BoundFolder {
+    path: PathBuf,
+    node: (u64, u64),
+    _open: std::fs::File,
+}
+/// `path` opened and held, with its device and inode: the folder examined
+/// without following a link, and the folder opened, must be one folder.
+fn hold_folder(path: &Path, what: &str) -> Result<((u64, u64), std::fs::File), String> {
+    use std::os::unix::fs::MetadataExt;
+    let not_known = |e: std::io::Error| format!("not known: {what} {} could not be examined ({e}); nothing read", path.display());
+    let at = node(path).map_err(not_known)?;
+    let file = std::fs::File::open(path).map_err(not_known)?;
+    let meta = file.metadata().map_err(not_known)?;
+    if !meta.file_type().is_dir() || (meta.dev(), meta.ino()) != at {
+        return Err(format!("{what} {} is not a folder a reader can bind (a link, or changed while it was opened); nothing read", path.display()));
+    }
+    Ok((at, file))
+}
+/// The decision made again: the project's folder in the store, or `None` for
+/// records read in place.
+fn decided_place(root: &Path, decision: ReaderDecision) -> Result<Option<PathBuf>, String> {
+    decided_home(root, decision).map(|(store, _)| store)
+}
+/// The decision, with the folder records are read from in place when it
+/// says in place (workflow records: `ReadHome::records`), so that a reader
+/// takes its in-place folder from the decision and spells no location.
+fn decided_home(root: &Path, decision: ReaderDecision) -> Result<(Option<PathBuf>, Option<InPlace>), String> {
+    match decision {
+        ReaderDecision::Records => {
+            let home = readable_home(root)?;
+            Ok(match home.in_store() {
+                Some(dir) => (Some(dir.to_path_buf()), None),
+                None => {
+                    let records = home.records();
+                    let relative = records.strip_prefix(&home.attachment.root).map_err(|_| format!("the project's records in place ({}) are not within the project folder; nothing read", records.display()))?.to_path_buf();
+                    (None, Some(InPlace { records, relative }))
+                }
+            })
+        }
+        ReaderDecision::Accounts => decided_accounts(root).map(|store| (store, None)),
+    }
+}
+/// The connector accounts' place, with the store's own record of a disposal.
+fn decided_accounts(root: &Path) -> Result<Option<PathBuf>, String> {
+    let place = route_accounts_place(root, false)?;
+    if let Some(dir) = &place.store_dir {
+        if crate::records_retention::terminal(dir)? {
+            return Err("project records disposed or disposal incomplete; nothing read".into());
+        }
+    }
+    Ok(place.store_dir)
+}
+/// The binding of a reader opened now for the canonical project folder
+/// `root`, by the decision it reads by.
+pub(crate) fn bind_reader(root: &Path, decision: ReaderDecision) -> Result<ReaderBinding, String> {
+    let (project, project_open) = hold_folder(root, "the project folder")?;
+    let (place, in_place) = decided_home(root, decision)?;
+    let (store, records) = match place {
+        Some(dir) => {
+            let store = opened()?;
+            let (node, open) = hold_folder(&dir, "the project's records folder in the store")?;
+            (Some(store), Some(BoundFolder { path: dir, node, _open: open }))
+        }
+        None => (None, None),
+    };
+    Ok(ReaderBinding { decision, root: root.to_path_buf(), project, _project_open: project_open, store, records, in_place })
+}
+impl ReaderBinding {
+    /// Before each read: the store is still the one bound; the project
+    /// folder is still the one bound; the decision made again gives the same
+    /// place; and the records folder is still the one bound. What cannot be
+    /// examined refuses as not known, never as unchanged. A changed one
+    /// refuses with its reason; the binding is kept, never moved, so the
+    /// reader reads again once what changed is as it was.
+    pub(crate) fn prove(&self) -> Result<(), String> {
+        if let Some((root, id)) = &self.store {
+            let (now, now_id) = opened()?;
+            if &now != root || &now_id != id {
+                return Err(format!("the records store open now ({}) is not the one this reader was opened for; nothing read", now.display()));
+            }
+        }
+        // The project folder examined first, so that what cannot be examined
+        // is not known; compared only after the decision, so that the
+        // decision's own refusal (not attached, disposed) keeps its reason.
+        let project_now = node(&self.root)
+            .map_err(|e| format!("not known: the project folder {} could not be examined ({e}); nothing read", self.root.display()))?;
+        let now = decided_place(&self.root, self.decision)?;
+        if project_now != self.project {
+            return Err(format!("the project folder at {} is not the folder this reader was opened for; nothing read", self.root.display()));
+        }
+        match (&self.records, now) {
+            (Some(bound), Some(dir)) if dir == bound.path => {}
+            (Some(_), _) => return Err("the project's records are no longer read from the folder this reader was opened for; reopen; nothing read".into()),
+            (None, Some(_)) => return Err("the project's records have moved into the records store since this reader was opened in place; reopen; nothing read".into()),
+            (None, None) => {}
+        }
+        if let Some(bound) = &self.records {
+            match node(&bound.path) {
+                Ok(at) if at == bound.node => {}
+                Ok(_) => return Err(format!("the project's records folder {} is not the folder this reader was opened for; nothing read", bound.path.display())),
+                Err(e) => return Err(format!("not known: the project's records folder {} could not be examined ({e}); nothing read", bound.path.display())),
+            }
+        }
+        Ok(())
+    }
+    /// The project's records folder in the store this reader was opened for,
+    /// with its device and inode.
+    pub(crate) fn records_folder(&self) -> Option<(&Path, (u64, u64))> {
+        self.records.as_ref().map(|r| (r.path.as_path(), r.node))
+    }
+    /// A duplicate of the held records folder's descriptor, read-only: a
+    /// reader reads through the folder its proof held, never through a
+    /// second lookup of the path after the proof.
+    pub(crate) fn records_folder_handle(&self) -> Option<Result<std::fs::File, String>> {
+        self.records.as_ref().map(|r| r._open.try_clone().map_err(|e| format!("not known: the project's records folder {} could not be read through ({e}); nothing read", r.path.display())))
+    }
+    /// Where the decision read the records in place when this reader was
+    /// bound (workflow records), if it did.
+    pub(crate) fn in_place(&self) -> Option<&InPlace> {
+        self.in_place.as_ref()
+    }
+    /// The device and inode of the project folder this reader was opened for.
+    pub(crate) fn project_folder(&self) -> (u64, u64) {
+        self.project
+    }
+}
+
 /// For a handle bound earlier to the store folder `bound`: `root` must be
 /// attached now, cleanly, to that same folder. Whatever stands between the
 /// folder and its records refuses with the attachment's own text; a check
@@ -1224,6 +1519,8 @@ fn register(store: &Path, project: &str, root: &str, how: &str) -> Result<(), St
 /// last. Only a completed import's files count as imported.
 #[derive(Default)]
 struct Imports {
+    /// Every attempt named by a readable account line, started or completed.
+    ids: std::collections::BTreeSet<String>,
     /// Lines in the file at all.
     any: bool,
     /// How many lines the account holds.
@@ -1369,7 +1666,10 @@ fn imports(dir: &Path) -> Result<Imports, String> {
             }.into()));
         }
     }
-    let mut out = Imports { any: !lines.is_empty(), lines: lines.len(), ..Imports::default() };
+    let mut out = Imports {
+        ids: lines.iter().filter_map(|(line, _)| line["importId"].as_str().map(str::to_owned)).collect(),
+        any: !lines.is_empty(), lines: lines.len(), ..Imports::default()
+    };
     let done: std::collections::HashSet<&str> = lines.iter().filter(|(_, event)| *event == "completed").filter_map(|(l, _)| l["importId"].as_str()).collect();
     for (line, event) in &lines {
         match *event {
@@ -1392,6 +1692,17 @@ fn imports(dir: &Path) -> Result<Imports, String> {
     Ok(out)
 }
 
+/// Re-prove the retained import account before it admits an operation. Read
+/// routing and status only report the readable state; they do not call this.
+/// Also used before continuing a started account, without changing its bytes.
+fn accept_import_completion(dir: &Path, attempts: &str) -> Result<(), String> {
+    let store = dir.parent().and_then(Path::parent).ok_or("project store absent")?;
+    crate::storage::sync_publication(&store.join(witness::WITNESS_FILE))
+        .map_err(|e| format!("import {attempts}: witness durability not established: {e}; retry the import to prove it"))?;
+    crate::storage::sync_publication(&dir.join("imports.jsonl"))
+        .map_err(|e| format!("import {attempts}: account durability not established: {e}; retry the import to prove it"))
+}
+
 /// Whether the store holds the project's records, so they are read from the
 /// store: an import has completed, or (with no import ever started) the App
 /// has written records there. Folders an interrupted import created do not
@@ -1407,6 +1718,12 @@ fn store_holds(dir: &Path) -> Result<bool, String> {
     // The account is read, and found whole, before anything is concluded:
     // a completed package import does not excuse an account that cannot be read.
     let state = imports(dir).map_err(|e| unknown(format!("the project's import record is unreadable: {e}")))?;
+    store_holds_from_imports(dir, &state)
+}
+/// Admission uses the same account snapshot for completion acceptance and
+/// store routing, so a completion cannot enter through a second account read.
+fn store_holds_from_imports(dir: &Path, state: &Imports) -> Result<bool, String> {
+    let unknown = |e: String| format!("whether the records store holds this project's records is unknown, so nothing is read in its place: {e}");
     if package::completed(dir).map_err(unknown)? { return Ok(true); }
     Ok(match state {
         i if i.completed => true,
@@ -1414,9 +1731,20 @@ fn store_holds(dir: &Path) -> Result<bool, String> {
         i if i.any => false,
         _ => {
             for name in ["runs", "acts", "workflow", "legacy", "connectors"] {
-                match std::fs::symlink_metadata(dir.join(name)) {
-                    Ok(_) => return Ok(true),
-                    Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
+                let folder = dir.join(name);
+                match crate::records_inspect::presence(&folder) {
+                    Ok(Some(meta)) if meta.is_dir() => {
+                        let entries = crate::records_inspect::listing(&folder)
+                            .map_err(|e| unknown(format!("{}: inventory incomplete: {e}", folder.display())))?;
+                        if let Some(entries) = entries {
+                            for entry in &entries {
+                                entry.metadata.as_ref().map_err(|e| unknown(format!("{}: inventory incomplete: {e}", entry.path.display())))?;
+                            }
+                            if !entries.is_empty() { return Ok(true); }
+                        }
+                    }
+                    Ok(Some(_)) => return Ok(true), // Caution for readers, never write authority.
+                    Ok(None) => {}
                     Err(e) => return Err(unknown(format!("{}: {e}", dir.join(name).display()))),
                 }
             }
@@ -1446,6 +1774,139 @@ fn captures_hold_records(dir: &Path) -> Result<bool, String> {
     }
     Ok(false)
 }
+
+/// Cautious read routing is not authority to waive the import census. Only
+/// an import account, a completed package import or a recognised published
+/// record establishes that authority. Preparation has none; an unrecognised
+/// or unexaminable payload is unknown, unless another member establishes it.
+fn store_write_authority_from_imports(dir: &Path, state: &Imports) -> Result<bool, String> {
+    let unknown = |e: String| format!("whether the records store governs this project's records is unknown; nothing written: {e}");
+    if package::completed(dir).map_err(unknown)? || state.completed
+        || state.incomplete.as_ref().is_some_and(|s| s["storeHeld"] == true) {
+        return Ok(true);
+    }
+    if state.any { return Ok(false); }
+    write_evidence([
+        ("runs", WriteFolder::Runs), ("acts", WriteFolder::Logs),
+        ("workflow", WriteFolder::Workflow), ("legacy", WriteFolder::Legacy),
+        ("connectors", WriteFolder::Connectors), ("captures", WriteFolder::Captures),
+    ].into_iter().map(|(name, kind)| written_records(&dir.join(name), kind))).map_err(unknown)
+}
+
+#[derive(Clone, Copy)]
+enum WriteFolder { Runs, Logs, Workflow, Legacy, Connectors, Accounts, Captures, Pending }
+fn record_key(name: &str) -> bool {
+    name.len() == 64 && name.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
+}
+fn record_uuid(name: &str) -> bool {
+    uuid::Uuid::parse_str(name).is_ok_and(|id| id.to_string() == name
+        && id.get_version_num() == 4 && id.get_variant() == uuid::Variant::RFC4122)
+}
+impl WriteFolder {
+    fn child(self, name: &str) -> Option<Self> {
+        match self {
+            Self::Runs if record_key(name) => Some(Self::Logs),
+            Self::Connectors if name == "route-accounts" => Some(Self::Accounts),
+            Self::Captures if name == "pending" => Some(Self::Pending),
+            _ => None,
+        }
+    }
+    fn record_name(self, name: &str) -> bool {
+        match self {
+            Self::Logs => name.strip_suffix(".jsonl").is_some_and(record_key),
+            Self::Legacy => name == "coordination.rs.jsonl",
+            Self::Workflow | Self::Accounts => name.strip_suffix(".json").is_some_and(record_uuid),
+            Self::Captures | Self::Pending => name.strip_suffix(".json").is_some_and(record_key),
+            _ => false,
+        }
+    }
+    fn preparation(self, name: &str) -> bool {
+        // These are the exact name grammars emitted by storage's JSON/copy
+        // publisher, WR's publisher and the connector publisher. They confer
+        // no authority and are neither removed nor omitted from inventories.
+        if matches!(self, Self::Captures) && name == ".capture.lock" { return true; }
+        if matches!(self, Self::Workflow) && name.strip_prefix(".pending-").is_some_and(record_uuid) { return true; }
+        if matches!(self, Self::Accounts) && name.strip_prefix(".route-").and_then(|n| n.strip_suffix(".tmp")).is_some_and(record_uuid) { return true; }
+        let Some((final_name, nonce)) = name.strip_prefix('.').and_then(|n| n.strip_suffix(".tmp")).and_then(|n| n.rsplit_once('.')) else { return false };
+        record_uuid(nonce) && (self.record_name(final_name)
+            || matches!(self, Self::Captures) && final_name == ".capture.lock")
+    }
+}
+/// A positive member suffices; an error never becomes an empty inventory.
+fn write_evidence(results: impl IntoIterator<Item = Result<bool, String>>) -> Result<bool, String> {
+    let mut unknown = None;
+    for result in results {
+        match result {
+            Ok(true) => return Ok(true),
+            Ok(false) => {},
+            Err(error) => { unknown.get_or_insert(error); },
+        }
+    }
+    match unknown { Some(error) => Err(error), None => Ok(false) }
+}
+fn written_records(folder: &Path, kind: WriteFolder) -> Result<bool, String> {
+    let entries = crate::records_inspect::listing(folder).map_err(|e| format!("{}: {e}", folder.display()))?.unwrap_or_default();
+    write_evidence(entries.into_iter().map(|entry| {
+        let name = entry.path.file_name().and_then(|n| n.to_str()).ok_or_else(|| format!("{}: unrecognised name", entry.path.display()))?;
+        let preparation = kind.preparation(name);
+        let meta = match entry.metadata {
+            Ok(meta) => meta,
+            // A concurrent publisher may already have unlinked its temporary.
+            Err(e) if preparation && e.kind() == std::io::ErrorKind::NotFound => return Ok(false),
+            Err(e) => return Err(format!("{}: {e}", entry.path.display())),
+        };
+        if let Some(child) = kind.child(name) { return written_records(&entry.path, child); }
+        if !meta.is_file() { return Err(format!("{}: not a plain record or preparation file", entry.path.display())); }
+        if preparation { return Ok(false); }
+        if !kind.record_name(name) { return Err(format!("{}: unrecognised record member", entry.path.display())); }
+        // Publication can briefly leave a final file and its temporary as
+        // two hard links. Inspect the regular file without following links or
+        // requiring the publisher to have unlinked its temporary already.
+        use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
+        let mut file = std::fs::OpenOptions::new().read(true)
+            .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK).open(&entry.path).map_err(|e| format!("{}: {e}", entry.path.display()))?;
+        let opened = file.metadata().map_err(|e| e.to_string())?;
+        if (opened.dev(), opened.ino()) != (meta.dev(), meta.ino()) { return Err(format!("{}: member changed while opening", entry.path.display())); }
+        let mut bytes = Vec::new();
+        file.read_to_end(&mut bytes).map_err(|e| format!("{}: {e}", entry.path.display()))?;
+        recognised_record(kind, name, &bytes).map_err(|e| format!("{}: {e}", entry.path.display()))
+    }))
+}
+fn recognised_record(kind: WriteFolder, name: &str, bytes: &[u8]) -> Result<bool, String> {
+    if matches!(kind, WriteFolder::Logs | WriteFolder::Legacy) {
+        if bytes.split_inclusive(|b| *b == b'\n').any(|line| line.strip_suffix(b"\n").is_some_and(crate::record_lines::is_valid_line)) { return Ok(true); }
+        // A first append creates an empty log before writing its first line.
+        // An unclosed first line is not yet a record and waives no census.
+        if !bytes.contains(&b'\n') { return Ok(false); }
+        return Err("no recognised RS record in the log".into());
+    }
+    let value: Value = serde_json::from_slice(bytes).map_err(|e| format!("unrecognised record: {e}"))?;
+    match kind {
+        WriteFolder::Workflow => {
+            crate::workflow_workspace::publication::validate(&value)?;
+            if value["record_id"].as_str() != Some(&format!("wr-record:v1:{}", name.strip_suffix(".json").unwrap())) { return Err("WR record identity differs from its name".into()); }
+        }
+        WriteFolder::Captures | WriteFolder::Pending => {
+            let capture = if matches!(kind, WriteFolder::Pending) { &value["capture"] } else { &value };
+            crate::schema_validation::validate_capture(capture)?;
+            if crate::storage::capture_belongs_to_library(capture) {
+                return Err("library capture is not project-store evidence".into());
+            }
+            if name != format!("{}.json", crate::storage::key(capture["captureId"].as_str().ok_or("capture identity absent")?)) { return Err("capture identity differs from its name".into()); }
+            if matches!(kind, WriteFolder::Pending) {
+                crate::records::recognise_capture_submission(&value, &crate::act_control::ActControl::capture_submission_log(capture))?;
+            }
+        }
+        WriteFolder::Accounts => {
+            if value["formatVersion"] == "0.5" {
+                crate::connector_answer_only::shape(&value)?;
+                if !crate::connector_answer_only::selected(&value) { return Err("unsupported connector account subset".into()); }
+            } else { crate::connector_route_store::validate_account(&value).map_err(|e| e.to_string())?; }
+        }
+        _ => return Err("unrecognised record location".into()),
+    }
+    Ok(true)
+}
 /// Whole retained payload export is distinct from ordinary RS source routing.
 /// A fleet-only or role-observation-only store can be exported without importing nonexistent RS history;
 /// it never hides real in-place history or bypasses an unfinished/unknown import.
@@ -1467,7 +1928,10 @@ pub(crate) fn export_permitted(dir: &Path, root: &Path) -> Result<(), String> {
     if state.incomplete.is_some() {
         return Err("project import incomplete; finish the explicit import before export".into());
     }
-    if store_holds(dir).map_err(|e|format!("{e}; nothing exported"))? { return Ok(()); }
+    if state.completed {
+        accept_import_completion(dir, &state.ids.iter().cloned().collect::<Vec<_>>().join(", ")).map_err(|e| format!("{e}; nothing exported"))?;
+    }
+    if store_holds_from_imports(dir, &state).map_err(|e|format!("{e}; nothing exported"))? { return Ok(()); }
     if !state.any && ["fleet","role-supply"].iter().any(|name|std::fs::symlink_metadata(dir.join(name)).is_ok()) && legacy_census(root)?.is_empty() {
         return Ok(());
     }
@@ -1658,12 +2122,23 @@ fn write_permitted(dir: &Path, root: &Path) -> Result<(), String> {
     let current=attach(root,false)?;
     if current.dir.as_deref()!=Some(dir) || current.refusal.is_some(){return Err("project root association changed; stale queued writer refused".into());}
     let state = imports(dir).map_err(|e| format!("the project's import record is unreadable, so whether its history is in the store is unknown; nothing written: {e}"))?;
-    if let Some(started) = state.incomplete {
+    if let Some(started) = &state.incomplete {
         return Err(format!("import incomplete: the import started at {} did not complete; run the import again before recording (nothing written; no history is split across two homes)", started["at"].as_str().unwrap_or("an unknown time")));
     }
-    if !store_holds(dir).map_err(|e| format!("{e}; nothing written"))? {
+    // A completion admits a write only once its durability is proved again
+    // (pull request 300), and authority is read from the same account
+    // snapshot, so a completion cannot enter through a second read.
+    if state.completed {
+        accept_import_completion(dir, &state.ids.iter().cloned().collect::<Vec<_>>().join(", ")).map_err(|e| format!("{e}; nothing written"))?;
+    }
+    let authority = store_write_authority_from_imports(dir, &state);
+    if !matches!(authority, Ok(true)) {
+        // The authority question arises only when there is something to
+        // import. With no in-place history nothing is waived: the writers
+        // keep handling their own malformed or unfinished payloads as before.
         let legacy = legacy_census(root)?;
         if !legacy.is_empty() {
+            authority?;
             return Err(format!("import needed: {} record file(s) in this project ({}) are not in the records store; import them before recording. Until then nothing is recorded for the project, runs, acts, captures and connector accounts alike, so no history is split across two homes", legacy.len(), describe(&legacy)));
         }
     }
@@ -2047,6 +2522,20 @@ pub fn import(root: &Path) -> Result<Value, String> {
     let _writers = crate::storage::lock(&dir.join(".writer.lock"))?;
     let census = legacy_census(&attachment.root)?;
     let state = imports(&dir)?;
+    let project = attachment.project.clone().ok_or("nothing imported: no project identity")?;
+    // The witness can have been appended whole before a failed sync prevented
+    // even the started account line. Recover that attempt before minting an ID.
+    let orphan = witness::unaccounted_import(&store, &project, &state.ids)?;
+    if state.any || orphan.is_some() {
+        let attempts = orphan.as_ref().map(|w| w.import_id.clone())
+            .unwrap_or_else(|| state.ids.iter().cloned().collect::<Vec<_>>().join(", "));
+        if state.any {
+            accept_import_completion(&dir, &attempts).map_err(|e| format!("{e}; nothing imported"))?;
+        } else {
+            crate::storage::sync_publication(&store.join(witness::WITNESS_FILE))
+                .map_err(|e| format!("import {attempts}: witness durability not established: {e}; nothing imported"))?;
+        }
+    }
     // Read every original once, stably, before the started line names it.
     let mut read = Vec::new();
     let mut conflicts = Vec::new();
@@ -2087,28 +2576,53 @@ pub fn import(root: &Path) -> Result<Value, String> {
         let original = c["original"].as_str().unwrap_or_default();
         !state.covered.contains_key(original) && state.refused.get(original).map(String::as_str) != c["reason"].as_str()
     });
-    if pending.is_empty() && !fresh_conflict && state.incomplete.is_none() {
+    if pending.is_empty() && !fresh_conflict && state.incomplete.is_none() && orphan.is_none() {
         // Nothing new: an import repeated after it completed records nothing.
         let drifted: Vec<Value> = read.iter().filter_map(|(file, sha, ..)| {
             let (copy, imported, _) = state.covered.get(&file.rel)?;
             (imported != sha).then(|| json!({"original":file.rel,"copy":copy,"reason":format!("the original differs from its imported copy (sha256 {imported} at import); the records store copy governs and is not replaced")}))
         }).collect();
         conflicts.extend(drifted);
+        for (file, sha, ..) in &read {
+            if let Some((copy, imported, _)) = state.covered.get(&file.rel) {
+                if imported == sha {
+                    crate::storage::sync_publication(&dir.join(copy))
+                        .map_err(|e| format!("imported copy durability not established: {copy}: {e}"))?;
+                }
+            }
+        }
         return Ok(outcome(&attachment, None, census.len(), 0, read.len(), conflicts, census_changed));
     }
-    let id = crate::util::opaque_id("import:")?;
+    let named: Vec<Value> = read.iter().map(|(file, sha, bytes, _)| json!({"original":file.rel,"copy":file.copy,"sha256":sha,"bytes":bytes.len()})).collect();
+    // An unchanged interrupted census is the same import, including when its
+    // copies are readable but their publication could not be synced. Changed
+    // input still uses the existing explicit resumption account below.
+    let same_import = state.incomplete.as_ref().filter(|started| started["census"] == json!(named));
+    let id = match (&orphan, same_import) {
+        (Some(witnessed), _) => witnessed.import_id.clone(),
+        (None, Some(started)) => started["importId"].as_str().ok_or("incomplete import has no identity")?.to_owned(),
+        (None, None) => crate::util::opaque_id("import:")?,
+    };
     // Whether the store already held the project's records: a late import,
     // during which (and if it is interrupted) readers keep reading the store.
     let store_held = store_holds(&dir).map_err(|e| format!("{e}; nothing imported"))?;
-    let named: Vec<Value> = read.iter().map(|(file, sha, bytes, _)| json!({"original":file.rel,"copy":file.copy,"sha256":sha,"bytes":bytes.len()})).collect();
     // The store's witness of this import, outside the project's subtree,
     // before the account's "started" line and before any copy.
-    let project = attachment.project.clone().ok_or("nothing imported: no project identity")?;
     let witnessed: Vec<witness::WitnessedFile> = pending.iter().map(|(file, sha, bytes, _)| witness::WitnessedFile { copy: file.copy.clone(), length: bytes.len() as u64, sha256: sha.clone() }).collect();
-    witness::record(&store, &project, &id, &witnessed)?;
-    append_line(&dir.join("imports.jsonl"), &json!({"format":IMPORT_FORMAT,"formatVersion":VERSION,"event":"started","importId":id,"at":now_rfc3339(),
-        "root":attachment.root.display().to_string(),"method":"sha-256 of the exact bytes","census":named,"storeHeld":store_held,
-        "resumes":state.incomplete.as_ref().map(|s| s["importId"].clone())}))?;
+    if let Some(retained) = &orphan {
+        if retained.files != witnessed {
+            return Err(format!("import {id}: continuation is not known: the pending files differ from the retained witness; no new identity or copy written"));
+        }
+    }
+    if same_import.is_none() || orphan.is_some() {
+        if orphan.is_none() {
+            witness::record(&store, &project, &id, &witnessed)
+                .map_err(|e| format!("import {id}: witness publication not confirmed: {e}; the import did not complete"))?;
+        }
+        append_line(&dir.join("imports.jsonl"), &json!({"format":IMPORT_FORMAT,"formatVersion":VERSION,"event":"started","importId":id,"at":now_rfc3339(),
+            "root":attachment.root.display().to_string(),"method":"sha-256 of the exact bytes","census":named,"storeHeld":store_held,
+            "resumes":state.incomplete.as_ref().map(|s| s["importId"].clone())}))?;
+    }
     let mut files = Vec::new();
     let (mut copied, mut present) = (0, 0);
     for (file, sha, bytes, meta) in &read {
@@ -2116,6 +2630,8 @@ pub fn import(root: &Path) -> Result<Value, String> {
         // an original that no longer matches is reported, never imported again.
         if let Some((copy, imported, _)) = state.covered.get(&file.rel) {
             if imported == sha {
+                crate::storage::sync_publication(&dir.join(copy))
+                    .map_err(|e| format!("import {id}: copy {copy} durability not established: {e}; the import did not complete"))?;
                 present += 1;
             } else {
                 conflicts.push(json!({"original":file.rel,"copy":copy,"reason":format!("the original differs from its imported copy (sha256 {imported} at import); the records store copy governs and is not replaced")}));
@@ -2125,10 +2641,7 @@ pub fn import(root: &Path) -> Result<Value, String> {
         let target = dir.join(&file.copy);
         crate::storage::check_path(&target)?;
         let outcome = match std::fs::read(&target) {
-            Ok(existing) if existing == *bytes => {
-                present += 1;
-                "present"
-            }
+            Ok(existing) if existing == *bytes => "present",
             Ok(existing) => {
                 conflicts.push(json!({"original":file.rel,"copy":file.copy,"reason":format!("the store already holds a different file there (sha256 {}); not overwritten", sha256_hex(&existing))}));
                 continue;
@@ -2150,7 +2663,8 @@ pub fn import(root: &Path) -> Result<Value, String> {
                 if IMPORT_STOP_AFTER.with(|c| c.get()) == Some(copied) {
                     return Err("import interrupted (injected); it did not complete".into());
                 }
-                crate::storage::create_bytes(&target, bytes)?;
+                crate::storage::create_bytes(&target, bytes)
+                    .map_err(|e| format!("import {id}: copy {} publication not confirmed: {e}; the import did not complete", file.copy))?;
                 #[allow(unused_mut)]
                 let mut back = std::fs::read(&target).map_err(|e| format!("imported copy unreadable: {e}; the import did not complete"))?;
                 #[cfg(test)]
@@ -2160,11 +2674,15 @@ pub fn import(root: &Path) -> Result<Value, String> {
                 if sha256_hex(&back) != *sha {
                     return Err(format!("imported copy of {} does not verify; the import stopped and did not complete", file.rel));
                 }
-                copied += 1;
                 "copied"
             }
             Err(e) => return Err(format!("records store unreadable: {}: {e}; the import did not complete", target.display())),
         };
+        // Equality identifies the copy; only fresh file and ancestor syncs
+        // establish its durability (also after temporary alias cleanup).
+        crate::storage::sync_publication(&target)
+            .map_err(|e| format!("import {id}: copy {} durability not established: {e}; the import did not complete", file.copy))?;
+        if outcome == "present" { present += 1; } else { copied += 1; }
         files.push(json!({"original":file.rel,"copy":file.copy,"outcome":outcome,"sha256":sha,"bytes":bytes.len(),"stamp":stamp_value(meta)}));
     }
     append_line(&dir.join("imports.jsonl"), &json!({"format":IMPORT_FORMAT,"formatVersion":VERSION,"event":"completed","importId":id,"at":now_rfc3339(),

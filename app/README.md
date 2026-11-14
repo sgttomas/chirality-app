@@ -957,7 +957,7 @@ implemented behavior and qualification limits.
 | `src-tauri/src/record_lines.rs`, `record_lines_tests.rs` | RS §13.8 lines: one entry or one group per line (read whole or not at all), each line's chain link to the one before, unchained (legacy) and broken-chain limits, and each log's chain head |
 | `src-tauri/src/records_access.rs`, `records_access_tests.rs`, `records_continuity.rs`, `records_continuity_tests.rs`, `resources/runtime_core/records-read-log.entry.schema.json` | The agents' read-only records capability (RS §13.9): the offered tool, its storage-independent source (the logs R-1 discovers: the project's records store subtree, or §13.7 logs before an import), bounded quoted pages and the read log written before each answer; tests include a fake-peer journey in which the agent calls it |
 | `src-tauri/src/records_store.rs`, `records_store_lines.rs`, `records_store_witness.rs`, `records_store_tests.rs`, `records_store_lines_tests.rs`, `records_store_witness_tests.rs`, `records_store_publication_tests.rs` | The App's records store (RS §13.8): coordinated first identity publication across App processes, placement and the explicit override, project identity and its limits, the explicit import of §13.7 records with the store's witness of it, the appender and shared reading of the store's own line files, and the host status `recordsStore` |
-| `src/RecordsStorePanel.tsx` | The records store panel: the store's placement, the project's identity with the acts that resolve a link fault, export, package import and recovery, retention, legal hold and disposal |
+| `src/RecordsStorePanel.tsx` | The records store panel: current and saved placement, native location choice, project identity and its resolving acts, export and verification, package recovery, retention facts and acts, log-integrity reports and plain-language outcomes |
 | `src-tauri/src/records_export.rs`, `records_export_tests.rs`, `tools/verify_records_bag.py` | RS §13.8 BagIt export: native folder selection, byte-preserving payload and prior administration snapshot, SHA-256 manifests and copied-log chain heads; package verification in the App and a standalone Python verifier |
 | `src-tauri/src/records_retention.rs`, `records_retention_tests.rs`, `resources/runtime_core/records-administration.entry.schema.json` | Native close/reopen, legal hold/release and recorded disposal after verified export; surviving administrative evidence, stable write admission and activity leases, truthful partial-failure recovery |
 | `src-tauri/src/storage.rs` | Store, project/run/writer and library paths, R-1 discovery (store subtree, or §13.7 paths in place before an import), atomic capture persistence and locking |
@@ -1679,8 +1679,19 @@ being removed or replaced from outside while such a process runs.
 The App keeps a project's records in its own records store (RS §13.8;
 `src-tauri/src/records_store.rs`), outside the project and every Codex home:
 `<App data>/records/` by default, or a folder the person chose (from the next
-start). Tests and development name it with `CHIRALITY_RECORDS_STORE`; a
-development build without it records nothing, and there is no fallback. Each
+start). **Choose where records are kept…** opens the host's native folder
+picker and a separate native confirmation; the web view sends only the
+`choose` action, never a path. An empty folder or an existing records store
+is used directly. A folder holding other things gets a `Chirality App records`
+child; an unsuitable existing child is refused. **Keep records in the App's
+data folder** confirms the return to default. Both affect only the next
+start's preference and move no records. A failed save can follow publication;
+the panel shows the host's error and rereads status instead of claiming that
+nothing changed. A failed status refresh is shown alongside the action result.
+Tests and development name the store with `CHIRALITY_RECORDS_STORE`; a run
+started for development refuses location choice and reads neither the saved
+choice nor the default. Without its override it records nothing. A built App
+reads the preference, including a bundled debug build; there is no fallback. Each
 project has one subtree, `projects/<safe-project-key>/`, holding
 `runs/<safe-run-key>/<safe-writer-key>.jsonl`, `acts/<safe-writer-key>.jsonl`,
 `captures/` and `workflow/` (WR WP-1 records), and the App's own logs for the
@@ -2085,8 +2096,14 @@ chained. Showing those needs comparison with a trusted head kept from before
 the alteration, which the App does not keep while log checkpoints are
 unsigned; the head an export package records shows such a change only against
 that package. The host status
-(`recordChain`) shows bounded counts of chained, legacy and broken logs;
-each log's chain head comes on demand (`records_chain_heads`).
+(`recordChain`) shows bounded counts of chained, legacy and broken logs,
+labelled **As last read** in the records panel. **Check the logs now** reads
+again through `records_chain_heads`, showing breaks by log and line and
+preserving discovery failures and reader notes as limits. A failed or limited
+read never becomes a zero-log all-clear. The panel offers no chain repair.
+Package verification keeps byte consistency separate from log integrity and
+from the chain-head profile's statement about the exported log bytes; a
+controls-only repair retains each import's “not stated” integrity.
 Signed checkpoints wait for App signing (OI-011).
 
 The derived records index keeps identities, positions and membership counts in
