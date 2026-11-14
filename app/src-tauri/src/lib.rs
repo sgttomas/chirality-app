@@ -3001,6 +3001,8 @@ fn explicit_environment_launch(
             let home = input("CHIRALITY_CODEX_HOME").map(PathBuf::from).ok_or("No explicit App-owned account home")?;
             let cwd = workspace.clone().unwrap_or_else(|| desktop_startup::no_project_folder(&data));
             let mut cfg = hosting::successor::production_config(resources, home, probe()?, cwd);
+            // As on the other routes: only a project is a records project.
+            cfg.records_project = workspace.is_some();
             cfg.app_data = Some(data);
             Ok(cfg)
         })()
