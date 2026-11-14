@@ -688,8 +688,9 @@ mod platform {
             let Some(dir) = &self.store_dir else {
                 return Err(refused(format!("the accounts are read in place from the project ({}); nothing is written there", self.location)));
             };
-            let _admission = crate::records_retention::write_path(dir).map_err(refused)?;
             let binding = self.writer.as_ref().ok_or_else(|| refused("the writer's original binding is unavailable; reopen".into()))?;
+            binding.check_attachment().map_err(refused)?;
+            let _admission = crate::records_retention::write_path(dir).map_err(refused)?;
             binding.prove_for_write().map_err(refused)?;
             // Shared: account writers do not wait on each other (distinct
             // storage keys), only on an import, which holds the lock

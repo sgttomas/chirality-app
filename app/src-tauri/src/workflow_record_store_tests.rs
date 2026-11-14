@@ -76,6 +76,26 @@ fn records_store_writer_binding_wr_unexaminable_project_is_not_known() {
 }
 
 #[test]
+fn records_store_writer_binding_wr_refused_admission_keeps_pending_bytes_without_rebinding() {
+    let f = Fixture::new();
+    let p = f.store();
+    let outside = f.0.with_extension("outside");
+    std::fs::create_dir(&outside).unwrap();
+    std::os::unix::fs::symlink(&outside, f.0.join(".chirality")).unwrap();
+    let waiting = pending(&p);
+    let original_bytes = waiting.bytes.clone();
+    assert!(p.publish(&waiting).is_err());
+    std::fs::remove_file(f.0.join(".chirality")).unwrap();
+    std::fs::remove_dir(outside).unwrap();
+    let dir = crate::records_store::write_dir(&f.0).unwrap();
+    let result = p.publish(&waiting);
+    assert!(result.is_err(), "a refused pending admission acquired a later binding: {result:?}");
+    assert_eq!(waiting.bytes, original_bytes);
+    assert!(!dir.join("workflow").join(format!("{}.json", key(waiting.reference()).unwrap())).exists());
+    assert!(p.publish(&pending(&p)).is_ok(), "a new admission is explicit");
+}
+
+#[test]
 fn records_store_writer_binding_wr_replacement_project_with_copied_link_is_refused() {
     let f = Fixture::new();
     let dir = crate::records_store::write_dir(&f.0).unwrap();

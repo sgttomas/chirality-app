@@ -561,8 +561,9 @@ impl ProjectRecords {
         Ok(r)
     }
     pub fn publish(&self, pending: &PendingRecord) -> Result<ResolvedRecord, String> {
-        let _admission=crate::records_retention::write_path(pending.binding.records_dir())?;
-        pending.binding.prove_for_write()?;
+        let binding = pending.binding.as_ref().map_err(Clone::clone)?;
+        let _admission=crate::records_retention::write_path(binding.records_dir())?;
+        binding.prove_for_write()?;
         // A handle that read in place must refuse an import before publishing,
         // rather than first discovering it in a closing read after publication.
         let _read = self.read_admission()?;
@@ -577,7 +578,7 @@ impl ProjectRecords {
         let dir = self.records(true)?;
         #[cfg(test)]
         if let Some(hook) = WRITER_BEFORE_PUBLICATION.with(|h| h.borrow_mut().take()) { hook(); }
-        pending.binding.prove_for_write()?;
+        binding.prove_for_write()?;
         let published = || ResolvedRecord { root: self.root.clone(), project: self.identity,
             envelope: pending.envelope.clone(), bytes: pending.bytes.clone() };
         let final_name = format!("{k}.json");
@@ -984,7 +985,9 @@ fn map_observation(
 #[derive(Debug)]
 pub struct PendingRecord {
     project: (u64, u64),
-    binding: std::sync::Arc<crate::records_store::WriterBinding>,
+    // A refused admission stays with these pending bytes too. It cannot
+    // discard the pending record or silently obtain another binding on retry.
+    binding: Result<std::sync::Arc<crate::records_store::WriterBinding>, String>,
     envelope: Value,
     bytes: Vec<u8>,
 }
@@ -1002,7 +1005,7 @@ impl PendingRecord {
         let bytes = serde_json::to_vec(&envelope).map_err(|e| e.to_string())?;
         Ok(Self {
             project: project.identity,
-            binding: project.writer_binding()?,
+            binding: project.writer_binding(),
             envelope,
             bytes,
         })

@@ -411,7 +411,7 @@ fn unwritable_directory_is_definite_and_never_relocated() {
 }
 #[test]
 fn real_rename_race_retains_capability_reports_uncertainty_and_reconciles() {
-    for depth in 0..3 {
+    for depth in 1..3 {
         let scratch = Scratch::new();
         let p = scratch.project();
         let store = ProjectRouteStore::open_for_write(&p).unwrap();
@@ -451,6 +451,40 @@ fn real_rename_race_retains_capability_reports_uncertainty_and_reconciles() {
         );
         assert_eq!(cold.discover().accounts.len(), 2); // the first, and no automatic retry.
     }
+}
+#[test]
+fn records_store_writer_binding_connector_records_folder_replacement_keeps_pending_for_retry() {
+    let scratch = Scratch::new();
+    let p = scratch.project();
+    let store = ProjectRouteStore::open_for_write(&p).unwrap();
+    store.write(&account("ra:before")).unwrap();
+    let accounts = store.accounts_directory();
+    let original = accounts.parent().unwrap().parent().unwrap().to_path_buf();
+    let moved = scratch.0.join("moved");
+    let pending = account("ra:race");
+    let pending_bytes = serde_json::to_vec(&pending).unwrap();
+    let err = store
+        .write_inner(&pending, KEY, |stage| {
+            if stage == Stage::TempSynced {
+                fs::rename(&original, &moved).unwrap();
+                fs::create_dir(&original).unwrap();
+            }
+            Ok(())
+        })
+        .unwrap_err();
+    assert!(!err.uncertain_commit);
+    assert_eq!(err.kind, ErrorKind::RecordingRefused);
+    assert_eq!(fs::read_dir(&original).unwrap().count(), 0);
+    let relative = accounts.strip_prefix(&original).unwrap().join(format!("{KEY}.json"));
+    assert!(!original.join(&relative).exists());
+    assert!(!moved.join(&relative).exists());
+    assert_eq!(serde_json::to_vec(&pending).unwrap(), pending_bytes);
+    fs::remove_dir(&original).unwrap();
+    fs::rename(&moved, &original).unwrap();
+    assert_eq!(store.discover().accounts.len(), 1);
+    let retried = store.write_inner(&pending, KEY, |_| Ok(())).unwrap();
+    assert_eq!(store.resolve(&retried).unwrap().account["account_id"], "ra:race");
+    assert_eq!(store.discover().accounts.len(), 2);
 }
 #[test]
 fn prewrite_substitution_aborts_and_transient_move_is_not_continuous_containment() {

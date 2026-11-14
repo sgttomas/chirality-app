@@ -1555,12 +1555,10 @@ impl WriterBinding {
     pub(crate) fn project_folder(&self) -> (u64, u64) {
         self.source.project_folder()
     }
-    /// Run inside write_path's shared admission. App identity acts take it
-    /// exclusively. A hosted agent, the person or another program can still
-    /// change files: this proof is an observation, not a filesystem transaction.
-    /// The caller keeps its admission through publication and writes only to
-    /// the bound folder; it must not resolve a new destination after this proof.
-    pub(crate) fn prove_for_write(&self) -> Result<(), String> {
+    /// Read-only preflight of this binding, retaining the attachment's own
+    /// refusal. This alone admits no write; prove_for_write still runs under
+    /// the shared admission after a queued writer obtains it.
+    pub(crate) fn check_attachment(&self) -> Result<(u64, u64), String> {
         let project = self
             .source
             .prove_store_and_project()
@@ -1577,6 +1575,15 @@ impl WriterBinding {
         {
             return Err("the project's records identity changed since this writer was opened; reopen; nothing written".into());
         }
+        Ok(project)
+    }
+    /// Run inside write_path's shared admission. App identity acts take it
+    /// exclusively. A hosted agent, the person or another program can still
+    /// change files: this proof is an observation, not a filesystem transaction.
+    /// The caller keeps its admission through publication and writes only to
+    /// the bound folder; it must not resolve a new destination after this proof.
+    pub(crate) fn prove_for_write(&self) -> Result<(), String> {
+        let project = self.check_attachment()?;
         let now = write_dir(&self.source.root)?;
         self.source
             .prove_folders(project, Some(now.clone()))
