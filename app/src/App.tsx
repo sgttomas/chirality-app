@@ -1,4 +1,4 @@
-import { AgentText, RecordedData, idWords, safeName } from "./AgentText";
+import { AgentText, RecordedData, idWords, numberWords, safeName, wordOf } from "./AgentText";
 import { ActionFeedback } from "./ActionFeedback";
 import { LOCAL_ENTRY, LOCAL_FORK_AVAILABLE, LOCAL_FORK_UNAVAILABLE, LOCAL_MODE, LocalProviderAccess, generationKey, localRoute, localViewFrom, readAttemptedLocalEntries, recordAttemptedLocalEntry, forgetAttemptedLocalEntry, type LocalView } from "./LocalProviderAccess";
 import { NativeWaitingBridge } from "./NativeWaitingBridge";
@@ -413,7 +413,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
       stopLabelFor={(thread, turn) => stopLabel(host?.codexStops, thread, turn, host?.stopRequests, appHome(host?.homeRouting?.activeModeHomeClass))}
       renderOffer={offer => <RunOffer offer={offer} generation={host?.generation} ready={host?.state === "ready"} busy={offerBusy} act={offerAct} />} />
     {selected && <div id="conversation-requests" aria-label="Requests from Codex in this conversation">
-      <h3>Requests from Codex in this conversation ({requests.filter(answerable).length} waiting)</h3>
+      <h3>Requests from Codex in this conversation ({numberWords(requests.filter(answerable).length)} waiting)</h3>
       {ordered.length === 0 && <p>No requests from Codex in this conversation.</p>}
       {ordered.map((request: Json) => <NativeRequestCard activityLink={activityLink} key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answer} readRequest={readRequest} place={requestPlace(request, host, appProjectFolder(host))} observation={replyObservations?.[requestScopeKey(request)]} />)}
     </div>}
@@ -710,7 +710,8 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureCo
     {history?.listError && <p role="alert">The conversation list could not be refreshed. Received rows are retained observations, not a successful refresh. See History dispatch and pending/error evidence below for the source error.</p>}
     </div>
     {selected && <>
-      <h3>Inspect selected conversation: {conversationTitle(selectedDescription, "Untitled conversation")}</h3>
+      <h3>Inspect selected conversation</h3>
+      {conversationTitle(selectedDescription, "") ? <p>Title: <AgentText value={conversationTitle(selectedDescription, "")} source="codex" name="The conversation's title or first message as Codex reported it, not the App's words" /></p> : <p>Untitled conversation</p>}
       <details><summary>Conversation source and role details</summary>
       <p>Conversation ID: <code>{selected.threadId}</code>.</p>
       <p>History state: {selected.state}. App role in force: {JSON.stringify(selected.appRole)}. Native agentRole: {JSON.stringify(selected.metadata?.thread?.agentRole === undefined ? { state: "not reported" } : selected.metadata.thread.agentRole)}.</p></details>
@@ -740,20 +741,25 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureCo
   </section>;
 }
 
+/** The three documents of a supplied external observation, and the host's assessment of each (external_observation.rs). */
+const EVIDENCE_TITLES = { catalog: "Supplied catalog", read: "Supplied read", counterpart: "Optional supplied counterpart" } as const;
+const EVIDENCE_ASSESSMENT = { unavailable: "unavailable", not_assessed: "not_assessed", malformed: "malformed", invalid: "invalid", received: "received", prerequisite_unavailable: "prerequisite_unavailable" } as const;
 function ExternalObservationPanel({ data, select }: { data: Json; select: () => Promise<void> }) {
   const observation = data?.observation;
-  const evidence = (key: string, title: string) => {
+  const evidence = (key: keyof typeof EVIDENCE_TITLES) => {
+    const title = wordOf(EVIDENCE_TITLES, key);
     const document = observation?.[key];
     if (!document) return <p key={key}>{title}: not supplied; no comparison established.</p>;
     return <article key={key} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
-      <h3>{title} · {document.assessment}</h3>
+      <h3>{`${wordOf(EVIDENCE_TITLES, key)} · ${wordOf(EVIDENCE_ASSESSMENT, document.assessment) ?? "assessment shown below"}`}</h3>
+      {wordOf(EVIDENCE_ASSESSMENT, document.assessment) === null && <p>Recorded assessment: <AgentText value={document.assessment} source="record" name="An assessment the App does not recognise, as the host recorded it; the App does not vouch for its words" /></p>}
       <p>Selected file: {document.displayPath}</p>
       {document.pathDisplayLimit && <p>Path display limit: {document.pathDisplayLimit}</p>}
       <details><summary>Exact selected native path identity</summary><RecordedData value={document.selectedPath} /></details>
       {document.reason && <p>Receiving limit: {document.reason}</p>}
       <h4>Complete supplied JSON: tables, basis, diagnostics and standing retained</h4>
       {document.originalDocument !== null ? <RecordedData value={document.originalDocument} /> : <p>No parsed JSON available; see the receiving assessment.</p>}
-      <details><summary>Original bytes retained in App memory ({document.originalBytes?.length ?? "unavailable"})</summary><AgentText block value={JSON.stringify(document.originalBytes)} source="record" /></details>
+      <details><summary>Original bytes retained in App memory ({numberWords(document.originalBytes?.length) ?? "unavailable"})</summary><AgentText block value={JSON.stringify(document.originalBytes)} source="record" /></details>
     </article>;
   };
   return <section>
@@ -769,9 +775,9 @@ function ExternalObservationPanel({ data, select }: { data: Json; select: () => 
       {observation.comparison === "host_table_not_supplied" && <p>No counterpart supplied; comparison not established.</p>}
       <p>Dispatch: {observation.dispatch}</p>
       <p>Evidence limits: {JSON.stringify(observation.evidenceLimits)}</p>
-      {evidence("catalog", "Supplied catalog")}
-      {evidence("read", "Supplied read")}
-      {evidence("counterpart", "Optional supplied counterpart")}
+      {evidence("catalog")}
+      {evidence("read")}
+      {evidence("counterpart")}
       <details><summary>Complete reported receiving snapshot</summary><RecordedData value={observation} /></details>
     </>}
   </section>;
@@ -781,6 +787,15 @@ function ExternalObservationPanel({ data, select }: { data: Json; select: () => 
 // (a logout assessment, an A16 alternative, a request answer, an attachment
 // comparison or an A15 review), the host publishes that content here so the
 // person can read it whole. Read-only; it is withdrawn when the alert closes.
+/** The kinds of content an open native confirmation names (act_control.rs whole_or_in_app and its callers, act_control_a15.rs). */
+const CONFIRMATION_KIND = {
+  "logout assessment": "logout assessment", "live work at Stop Codex": "live work at Stop Codex", "live work at quit": "live work at quit",
+  "attachment source comparison": "attachment source comparison", "request answer": "request answer", "A16 chosen alternative": "A16 chosen alternative",
+  "A15 complete review": "A15 complete review", "provider Add effects": "provider Add effects", "provider endpoint effects": "provider endpoint effects",
+  "prepared capture-seal installation": "prepared capture-seal installation", "records administration": "records administration",
+  "original package import": "original package import", "records package": "records package", "local model settings effects": "local model settings effects",
+  "desktop setup effects": "desktop setup effects",
+} as const;
 function NativeConfirmationContent() {
   const [shown, setShown] = useState<Json[]>([]);
   const [checks, setChecks] = useState<Record<string, string>>({});
@@ -804,7 +819,7 @@ function NativeConfirmationContent() {
   return <section role="region" aria-label="Content named by an open native confirmation" style={{ border: "2px solid #a60", padding: 8 }}>
     <h2>Content named by an open native confirmation</h2>
     {shown.map((row: Json) => <article key={row.digest}>
-      <h3>{row.kind}</h3>
+      <h3>{wordOf(CONFIRMATION_KIND, row.kind) ?? "Content named by the confirmation"}</h3>{wordOf(CONFIRMATION_KIND, row.kind) === null && <p>Recorded kind: <AgentText value={row.kind} source="record" name="A kind of content the App does not recognise, as the host recorded it; the App does not vouch for its words" /></p>}
       <p>sha-256 digest, as named in the native confirmation: <code style={{ userSelect: "all", overflowWrap: "anywhere" }}>{row.digest}</code>. {checks[row.digest] ?? ""} {DIGEST_LIMIT}</p>
       {row.kind === "A15 complete review" && Array.isArray(row.content?.entries) && row.content.entries.every((entry: Json) => entry !== null && typeof entry === "object" && !Array.isArray(entry))
         ? <WorkflowRegistrationReview presentation={row.content} />
@@ -1104,7 +1119,7 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
     <small> Drafts are reviewed from the draft list above.</small>
     </details>
     <div id="workflow-reviews">{orderedReviews.map(review=><article key={review.reference}>
-      <h3>{review.reference===data?.activeReview?"Current review":"Retained review"} · {review.reference}</h3>
+      <h3>{review.reference===data?.activeReview?"Current review":"Retained review"} · {idWords(review.reference)}</h3>
       {digests[review.reference]&&<p>{digestComparison(digests[review.reference])}{review.status?.presentation?<> Read the complete review below before choosing {review.status.presentation.entries?.[0]?.disposition==="re-confirmation"?"Re-confirm":"Register"}: the native confirmation shows the act statement and this digest, not the review itself.</>:" (as last shown with the review; while the native confirmation is open, the review it names is shown under \"Content named by an open native confirmation\")"}</p>}
       {review.status?.presentation?.entries?.[0]?.disposition==="re-confirmation"&&<p role="note">{review.status.presentation.entries[0].message}. {review.status.presentation.entries[0].reconfirmation?.statement}</p>}
       {review.status?.presentation&&<p><button disabled={busy||review.reference!==data?.activeReview} onClick={()=>action("workflow_register_native",{reviewRef:review.reference})}>{review.status?.presentation?.entries?.[0]?.disposition==="re-confirmation"?"Re-confirm this revision for use in this App session through native A15 confirmation…":"Register this review through native A15 confirmation…"}</button></p>}
@@ -1125,14 +1140,14 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
     <label>Person text <textarea value={text} onChange={e=>setText(e.target.value)} disabled={busy} rows={3}/></label>
     {selected&&selected.runnable!==true&&<p role="note">Not runnable: {selected.runLimit}</p>}
     <button disabled={busy||!context||host?.state!=="ready"||!thread||selected?.runnable!==true} onClick={()=>action("workflow_prepare_run",{generation:host.generation,threadId:thread,personText:text})}>Prepare exact selected workflow text</button>
-    {(data?.endedAfterRelaunch??[]).map((end:Json)=><article key={end.run}><h3>{end.run} (ended after the relaunch)</h3>
+    {(data?.endedAfterRelaunch??[]).map((end:Json)=><article key={end.run}><h3>{idWords(end.run)} (ended after the relaunch)</h3>
       <p>End notice: {end.endNotice?.state??"none"}. {end.limit}</p>
       <HistoryReferenceNotice pointers={end.learningPointers}/>
       {(end.endNotice?.state?.startsWith("pending")||hasUnsavedHistoryReference(end))&&<p role="status">{end.endNotice?.state?.startsWith("pending")&&<>The next message in conversation {end.conversation} carries this end notice first, once. </>}
         <button disabled={busy} onClick={()=>action("workflow_reopened_notice",{runId:end.run,action:"retry"})}>{end.endNotice?.state?.startsWith("pending")?"Retry the end-notice record":"Retry saving records (never sends)"}</button>
         {end.endNotice?.state?.startsWith("pending")&&end.noticeRecordFailure&&<button disabled={busy} onClick={()=>action("workflow_reopened_notice",{runId:end.run,action:"skip"})}>Send without the end notice (recorded as not supplied)</button>}</p>}
     </article>)}
-    {(data?.runs??[]).map((run:Json)=>{const next=chatWorkflow(data,data?.context?.sourceRef,run.conversation);return <article key={run.reference} id={runEvidenceAnchor(run.reference)}><h3>{run.reference}</h3>
+    {(data?.runs??[]).map((run:Json)=>{const next=chatWorkflow(data,data?.context?.sourceRef,run.conversation);return <article key={run.reference} id={runEvidenceAnchor(run.reference)}><h3>{idWords(run.reference)}</h3>
       <p>Run: {run.lifecycle?.state}{run.lifecycle?.follows?` · follows ${run.lifecycle.follows}`:""}{run.lifecycle?.end?` · ${run.lifecycle.end.cause}`:""}. Records: {run.publication?.state}. Send: {run.status?.state}{run.status?.limit?` (${run.status.limit})`:""}. Supplied: {suppliedSummary(run)}. Adoption: unknown.</p>
       {run.endNotice&&<p>End notice: {run.endNotice.state}</p>}
       {!isRecordedRun(run)&&run.endNotice?.state?.startsWith("pending")&&<p role="status">The next message in this conversation, with or without attachments or a mode, carries this end notice first, once.{run.status?.limit?` Last attempt: ${run.status.limit}`:""}
@@ -1356,7 +1371,8 @@ export function AttachmentSelectionPanel({ data, act }: { data: Json; act: (comm
     {data?.operation?.state === "draft-prefilled-not-sent" && <div role="status"><p>Draft {data.operation.draft?.name} added ({data.operation.added} files). {data.operation.standing}</p>
       {(data.operation.notAttached ?? []).length > 0 && <ul role="alert" aria-label="Draft files not attached">{data.operation.notAttached.map((f: Json) => <li key={f.path}>Not attached: {f.path} ({f.bytes} bytes) — {f.reason}</li>)}</ul>}</div>}
     {rows.map((row, index) => <article key={row.selection.selectionRef} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
-      <h3>{index + 1}. {row.selection.displayName} · {row.selection.standing}</h3>
+      <h3>Selected attachment {index + 1}</h3>
+      <p>Name: <AgentText value={row.selection.displayName} source="record" name="The selected file's name, as recorded; the App does not vouch for its words" /> · standing: <AgentText value={row.selection.standing} source="record" name="The selection's standing, as the host recorded it; the App does not vouch for its words" /></p>
       {row.selection.draft && <p>draft {row.selection.draft.name} at content {String(row.selection.draft.content?.value ?? "").slice(0, 12)} — not a registered workflow; this conversation is not a workflow run.</p>}
       <p>{row.selection.displayPath} · carrier: {row.selection.carrier}.</p>
       <RecordedData value={readablePaths({ selectionRef: row.selection.selectionRef, nativePath: row.selection.nativePath, identityAtSelection: row.selection.identityAtSelection, draft: row.selection.draft })} />
@@ -1368,7 +1384,7 @@ export function AttachmentSelectionPanel({ data, act }: { data: Json; act: (comm
     </article>)}
     <details><summary>Explicit App project observation and source limits</summary><RecordedData value={data?.launchAppProjectObservation} /></details>
     <p>{data?.workflowRun}</p><p>{data?.submissionStanding}</p><p>{data?.custody}</p>
-    {(data?.submissions ?? []).map((submission: Json) => <article key={submission.submissionRef}><h3>Submission {submission.submissionRef} · {submission.state}</h3><p>Frozen App context and native source outcome are distinct; native turn identity is used only when Core supplies a matching reference.</p><RecordedData value={submission} /></article>)}
+    {(data?.submissions ?? []).map((submission: Json) => <article key={submission.submissionRef}><h3>Submission {idWords(submission.submissionRef)}</h3><p>State: <AgentText value={submission.state} source="record" name="The submission's state, as the host recorded it; the App does not vouch for its words" /></p><p>Frozen App context and native source outcome are distinct; native turn identity is used only when Core supplies a matching reference.</p><RecordedData value={submission} /></article>)}
     <p>Plain-text controls remain available independently. Workflow-run prefix/draft association and provider uptake require their owning evidence.</p>
   </section>;
 }
@@ -1394,7 +1410,8 @@ export function TraceReceivingPanel({ data, currentContext, select }: { data: Js
     {busy && <p>Waiting for native selection and one source read.</p>}{error && <p role="alert">{error}</p>}
     <details><summary>Current App-observed context, separate from imported records</summary><p>This context never fills an imported subject, configuration, date or host origin. App executable identity is not established by this selector.</p><RecordedData value={currentContext} /></details>
     {(data?.receiving?.imports ?? []).map((imported: Json, index: number) => <article key={index} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
-      <h3>Import {index + 1} · {imported.recordKind} · {imported.assessment}</h3>
+      <h3>Import {index + 1}</h3>
+      <p>Record kind: <AgentText value={imported.recordKind} source="record" name="The imported record's kind, as recorded; the App does not vouch for its words" /> · assessment: <AgentText value={imported.assessment} source="record" name="The host's assessment of the import, as recorded; the App does not vouch for its words" /></p>
       <p>Declared evidence category: {imported.declaredEvidenceCategory}. {imported.source?.sourceStanding}</p>
       {imported.reason && <p>Receiving limit: {imported.reason}</p>}
       <p>Selected source: {imported.source?.displayPath} · read: {imported.source?.readState} · {imported.source?.identityScope}</p>
@@ -1441,14 +1458,15 @@ export function DecisionPackagesPanel({ view, name, setName, recordName, refresh
     {(writer?.captureRecovery ?? []).filter((r: Json) => r.state !== "AC-7 recorded" || r.backlinkPending || r.delayEvidencePending).map((r: Json, i: number) => <p key={i}>Capture: {r.state} · {r.statusDetail ?? r.writeFailure ?? r.backlinkFailure ?? r.delayEvidenceFailure ?? r.captureDurability}</p>)}
     {(writer?.limits ?? []).map((limit: string, index: number) => <p key={index}>Writer limit: {limit}</p>)}
     {(view?.rows ?? []).map((row: Json) => <article key={row.package} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
-      <h3>{row.package} — {row.actRequested} — {row.state}</h3>
+      <h3>Decision package {idWords(row.package)}</h3>
+      <p>Act requested: <AgentText value={row.actRequested} source="file" name="The act the decision package requests, as the package states it, not the App's words" /> · state: <AgentText value={row.state} source="record" name="The package's state, as the host recorded it; the App does not vouch for its words" /></p>
       <p>Request resolution: {row.requestResolution ?? "not reported"}. Recorded request sources: {JSON.stringify(row.requestSources ?? [])}.</p>
       {row.state === "unresolvable request identity" && <p>The recorded request identity conflicts. No current request or act is selected by this view; existing package and record admission checks remain in force.</p>}
       <p>Subject: {(row.subject ?? []).join("; ")} · Purpose: {row.purpose} · Scope: {row.scope ?? "—"} · File: {row.packageFile}</p>
       <ul>{(row.alternatives ?? []).map((a: Json) => <li key={a.id}><b>{a.id}</b> {a.statement} — {(a.consequences ?? []).join("; ")}</li>)}</ul>
       {row.state === "ambiguous current standing" && <p>Current recorded standing is ambiguous. No current act is selected from these claims; this row does not establish a pending human act. The act control retains its current package and offer checks.</p>}
       {row.decision && claim(row.decision)}
-      {(row.contenders ?? []).length > 0 && <div><h4>Recorded contenders</h4>{row.contenders.map((contender: Json) => <article key={contender.act}><h5>{contender.act}</h5>{claim(contender)}</article>)}</div>}
+      {(row.contenders ?? []).length > 0 && <div><h4>Recorded contenders</h4>{row.contenders.map((contender: Json) => <article key={contender.act}><h5>Recorded contender</h5><p>Act: <AgentText value={contender.act} source="record" name="A contending act, as recorded; the App does not vouch for its words" /></p>{claim(contender)}</article>)}</div>}
       {row.currentCandidates && <p>Current recorded candidates: {row.currentCandidates.join(", ") || "none established"}.</p>}
       {(row.limits ?? []).length > 0 && <p>Limits: {row.limits.join(" | ")}</p>}
       <button onClick={() => openControl(row.package)}>Open act control (decide)</button>
@@ -2526,7 +2544,8 @@ export function App() {
         <NativeConfirmationContent />
         {firstRead === "read" && <div hidden={setupRequired}>
         {offer && (<section style={{ border: "1px solid #888", padding: 8 }}>
-            <h2>Act control: {offer.wording} ({offer.actKind})</h2>
+            <h2>Act control</h2>
+            <p>Act: <AgentText value={offer.wording} source="file" label="The package states the act:" name="The act's wording as the decision package states it, not the App's words" /> · kind: <AgentText value={offer.actKind} source="file" name="The act's kind as the decision package states it, not the App's words" /></p>
             <p>
               {offer.subject.ref} · {offer.subject.contentIdentity.value}
               <br />
@@ -2698,7 +2717,7 @@ export function App() {
           <p>Codex can contact the selected model provider at thread start, before a model turn. This view describes supplier behavior; socket measurements remain separate evidence.</p>
           <ul>{(host?.networkDisclosure?.entries ?? []).map((entry: Json, index: number) => <li key={index}>{entry.purpose} · {entry.phase} · {entry.destination} · {entry.detail ?? entry.condition}</li>)}</ul>
           <details>
-            <summary>Lifecycle events ({host?.lifecycle?.length ?? 0}) and frames ({host?.journal?.length ?? 0})</summary>
+            <summary>Lifecycle events ({numberWords(host?.lifecycle?.length) ?? 0}) and frames ({numberWords(host?.journal?.length) ?? 0})</summary>
             <RecordedData value={{ lifecycle: host?.lifecycle, clientRequests: host?.clientRequests }} />
           </details></section>
             <section>

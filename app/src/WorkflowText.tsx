@@ -1,4 +1,4 @@
-import { AgentText, safeName, idWords } from "./AgentText";
+import { AgentText, safeName, idWords, numberWords } from "./AgentText";
 import { useCallback, useRef, useState } from "react";
 import { invoke } from "./hostReads";
 
@@ -118,8 +118,8 @@ export function WorkflowTextControl({ slot, identity, target, context, source, t
   </div>;
   return <div aria-label={`Text of ${safeName(name)}`}>
     <p aria-label={`What this text is`}>The <code>WORKFLOW.md</code> of <strong>{name}</strong>{source ? ` — ${source}` : ""}, revision <code title={idWords(revision)}>{revision.slice(0, 12)}…</code>, as the App read it when you asked ({size(current.bytes)}). Its files matched this revision when they were read. Shown as read, with tabs and any control or invisible characters shown as marks.</p>
-    <AgentText block value={current.text} source="file" label="WORKFLOW.md, as read:" name={`${name} WORKFLOW.md, text from a file the App read, not the App's words`} tabIndex={0} style={{ maxHeight: "28em", overflow: "auto" }} />
-    {current.files.length > 0 && <details><summary>This revision's other {current.files.length === 1 ? "file" : `${current.files.length} files`}</summary>
+    <AgentText block value={current.text} source="file" label="WORKFLOW.md, as read:" name={`${safeName(name)} WORKFLOW.md, text from a file the App read, not the App's words`} tabIndex={0} style={{ maxHeight: "28em", overflow: "auto" }} />
+    {current.files.length > 0 && <details><summary>This revision's other {current.files.length === 1 ? "file" : `${numberWords(current.files.length)} files`}</summary>
       <ul>{current.files.map(file => <li key={file.path}><code>{file.path}</code> ({size(file.bytes)})</li>)}</ul>
     </details>}
     <button onClick={() => texts.hide(slot)}>Hide {safeName(name)}'s text</button>

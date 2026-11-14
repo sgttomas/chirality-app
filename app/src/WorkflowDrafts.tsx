@@ -1,4 +1,4 @@
-import { AgentText, idWords, safeName } from "./AgentText";
+import { AgentText, idWords, numberWords, safeName } from "./AgentText";
 import { useRef, useState } from "react";
 import { isRecordedRun, runLearningLimit } from "./RunPanel";
 import { ConversationSelect, conversationKey, conversationName, findConversation } from "./TrialComposer";
@@ -174,7 +174,9 @@ export function DraftRow({ draft, authoring, conversations = [], pending = [], b
   const delegation = authoring?.delegation;
   const delegationMissing = delegation?.reading === "missing";
   return <article aria-label={`Draft ${safeName(draft.name)}`} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
-    <h4>{text(draft.name)} · {draftStateWords(draft.state, draft.content)}</h4>
+    <h4>{safeName(draft.name)}</h4>
+    {safeName(draft.name) !== draft.name && <p>Draft name: <AgentText value={draft.name} source="file" name="The draft's name as its folder gives it, not the App's words" /></p>}
+    <p>State: {draftStateWords(draft.state, draft.content)}</p>
     <p>Content {draft.content?.value ? `${short(draft.content.value)} (${text(draft.content.method)})` : `not established: ${text(draft.content?.not_established)}`}{draft.fileCount !== undefined && draft.fileCount !== null ? ` · ${text(draft.fileCount)} files` : ""}. Attribution: {attributionWords(draft.attribution)}.</p>
     {(draft.findings ?? []).length > 0 && <ul aria-label="Hygiene findings">{draft.findings.map((f: Json) => <li key={text(f)}>{text(f)}</li>)}</ul>}
     <p>{draft.base ? `App-recorded base: ${text(draft.base.name)} revision ${short(draft.base.revision)} (${text(draft.base.origin)} library).` : text(draft.baseLimit)}</p>
@@ -325,7 +327,7 @@ export function WorkflowDraftsList({ data, workspace, pointerLimits, conversatio
       {state.compareError && <p role="alert">{state.compareError}</p>}
       {!comparisonOutside && <CompareResult result={state.compared} />}
     </div>}
-    {transitions.length > 0 && <details><summary>Observed draft changes in this App session ({transitions.length})</summary><ul>{transitions.map((t, i) =>
+    {transitions.length > 0 && <details><summary>Observed draft changes in this App session ({numberWords(transitions.length)})</summary><ul>{transitions.map((t, i) =>
       <li key={i}>{text(t.time)} · {text(t.draft?.name)}: {text(t.event)} ({text(t.from)} → {text(t.to)}); attribution {attributionWords(t.attribution)}</li>)}</ul></details>}
   </section>;
 }
@@ -335,7 +337,7 @@ export function WorkflowDraftsView(props: { data: Json; workspace: boolean; poin
   const state = props.state ?? localState;
   const authoringSource = useRef<string | null>(null);
   const currentSource = props.contextHost?.workflowRoot?.context?.sourceRef ?? null;
-  return <WorkflowDraftsList {...props} state={state} authoringContextLimit={state.authoring && authoringSource.current !== currentSource ? "the authoring choice belongs to another workflow source" : null}
+  return <WorkflowDraftsList data={props.data} workspace={props.workspace} pointerLimits={props.pointerLimits} conversations={props.conversations} runs={props.runs} pending={props.pending} busy={props.busy} act={props.act} contextHost={props.contextHost} comparisonOutside={props.comparisonOutside} state={state} authoringContextLimit={state.authoring && authoringSource.current !== currentSource ? "the authoring choice belongs to another workflow source" : null}
     update={patch => { if (patch.authoring !== undefined) authoringSource.current = currentSource; if (props.update) props.update(patch); else setState(s => ({ ...s, ...patch })); }} />;
 }
 

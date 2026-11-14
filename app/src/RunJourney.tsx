@@ -1,4 +1,4 @@
-import { AgentText, idWords, safeName } from "./AgentText";
+import { AgentText, idWords, safeName, wordOf } from "./AgentText";
 import { conversationLabel, nativePathText } from "./presentation";
 import { hostRequests, requestThread } from "./RequestCards";
 import { errorWords } from "./NativeActivity";
@@ -260,17 +260,21 @@ function RunResult({ run, host, loaded, showConversation }: { run: Json; host: J
 
 /** Said in a guide while no status read started after the last command that may change the host has been applied. */
 export const VIEW_NOT_REFRESHED = "What this view showed may be from before the App's last operation finished. The App is not showing its steps until it has read its state again after that; it reads again by itself.";
+/** Each guide's words: its title (and accessible name), its result's label and its section's id. */
+const GUIDE_TITLE = { run: "Run a workflow", make: "Make a workflow from your work" } as const;
+const GUIDE_RESULT_LABEL = { run: "Run a workflow — last result", make: "Make a workflow — last result" } as const;
+const GUIDE_ID = { run: "run-workflow", make: "make-workflow" } as const;
 /**
  * A guide while what it holds may be from before the last press: its heading,
  * that statement and the press's own result, and none of its steps. Nothing
  * cached is shown as current and no control is offered.
  */
-export function GuideWithheld({ id, label, title, outcome, resultLabel, only, readFailure, children }: { id: string; label: string; title: string; outcome?: GuideOutcome | null; resultLabel: string; only: string[]; readFailure?: string | null; children?: ReactNode }) {
-  return <section id={id} className="workflow-stage run-journey" aria-label={label}>
-    <h2>{title}</h2>
+export function GuideWithheld({ guide, outcome, only, readFailure, children }: { guide: keyof typeof GUIDE_TITLE; outcome?: GuideOutcome | null; only: string[]; readFailure?: string | null; children?: ReactNode }) {
+  return <section id={GUIDE_ID[guide]} className="workflow-stage run-journey" aria-label={wordOf(GUIDE_TITLE, guide) ?? ""}>
+    <h2>{wordOf(GUIDE_TITLE, guide)}</h2>
     <p className="run-journey-next" role="status" aria-live="polite"><strong>Next:</strong> {VIEW_NOT_REFRESHED}</p>
     {readFailure && <p role="alert">The last read failed: {readFailure}</p>}
-    <GuideResult label={resultLabel} outcome={outcome} only={only} stepsShown={false}/>
+    <GuideResult label={wordOf(GUIDE_RESULT_LABEL, guide) ?? ""} outcome={outcome} only={only} stepsShown={false}/>
     {children}
   </section>;
 }
@@ -384,7 +388,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
     : orderUnknown && inProgress ? "A run in this conversation is still open, and the App can't tell which run is latest; follow or end it from Results or the workflow studio before preparing another."
     : !latest || starts(latest.lifecycle?.state, "ended") || starts(latest.lifecycle?.state, "start not confirmed") ? "Describe what the workflow should work on, then prepare the run."
     : prepared ? prepared.status?.sent === false && prepared.status?.limit ? "The run didn't start. Progress says why and what to do." : "Check your inputs, then start the run." : orderUnknown ? "This conversation has several runs whose order the App can't tell; see each under Results." : reading?.title ?? "";
-  if (viewStale && !busy) return <GuideWithheld id="run-workflow" label="Run a workflow" title="Run a workflow" outcome={outcome} resultLabel="Run a workflow — last result" only={RUN_COMMANDS} readFailure={readFailure}>
+  if (viewStale && !busy) return <GuideWithheld guide="run" outcome={outcome} only={RUN_COMMANDS} readFailure={readFailure}>
     {thread && <p>{showConversation ? <button onClick={() => showConversation(thread)}>Show the conversation</button> : <a href="#conversation">Go to the conversation</a>}</p>}
   </GuideWithheld>;
   return <section id="run-workflow" className="workflow-stage run-journey" aria-label="Run a workflow" aria-busy={busy}>

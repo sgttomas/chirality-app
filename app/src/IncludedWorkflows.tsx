@@ -1,4 +1,4 @@
-import { safeName, idWords } from "./AgentText";
+import { safeName, idWords, numberWords } from "./AgentText";
 import { useState, type ReactNode } from "react";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -113,7 +113,7 @@ function About({ entry, source, textControl, open }: { entry: Json; source: Json
     {entry?.compatibility === "legacy" && <p>The Library marks it as legacy.</p>}
     {paths.length > 0 && <>
       <p>{libraryPathsSentence(paths, from)}</p>
-      {paths.length > 1 && <details><summary>All {paths.length} paths</summary><ul>{paths.map(path => <li key={path}><code>{path}</code></li>)}</ul></details>}
+      {paths.length > 1 && <details><summary>All {numberWords(paths.length)} paths</summary><ul>{paths.map(path => <li key={path}><code>{path}</code></li>)}</ul></details>}
     </>}
   </details>;
 }
@@ -160,7 +160,7 @@ export function IncludedWorkflows({ catalog, chosen, disabled, needsConversation
     {searching && <p role="status">{found.length === 0 ? "No included workflow matches. Try fewer or other words." : `${found.length} of ${entries.length} match.`}</p>}
     {entries.length <= 6 ? <ul>{[...found].sort(byPlace).map(row)}</ul>
       : sections.map(section => <details key={section.key} open={searching || section.key === START || section.entries.some(isChosen) || section.entries.some(holds) ? true : undefined}>
-        <summary>{section.label} ({section.entries.length})</summary>
+        <summary>{section.label} ({numberWords(section.entries.length)})</summary>
         <ul>{section.entries.map(row)}</ul>
       </details>)}
   </div>;

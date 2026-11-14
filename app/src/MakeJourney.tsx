@@ -285,7 +285,7 @@ export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPr
     draftStatus.current?.scrollIntoView?.({ block: "start" });
     draftStatus.current?.focus?.({ preventScroll: true });
   }, [revealRequest]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (viewStale && !busy) return <GuideWithheld id="make-workflow" label="Make a workflow from your work" title="Make a workflow from your work" outcome={outcome} resultLabel="Make a workflow — last result" only={MAKE_COMMANDS} readFailure={readFailure}/>;
+  if (viewStale && !busy) return <GuideWithheld guide="make" outcome={outcome} only={MAKE_COMMANDS} readFailure={readFailure}/>;
   return <section id="make-workflow" className="workflow-stage run-journey" aria-label="Make a workflow from your work" aria-busy={busy}>
     <h2>Make a workflow from your work</h2>
     <p className="run-journey-next" role="status" aria-live="polite"><strong>Next:</strong> {nextLine ?? "Put the request in the conversation, read it, and send it when you're happy with it."}</p>

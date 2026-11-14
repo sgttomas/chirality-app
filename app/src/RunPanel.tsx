@@ -1,4 +1,4 @@
-import { RecordedData, idWords } from "./AgentText";
+import { RecordedData, idWords, safeName, wordOf } from "./AgentText";
 import { workflowAssurance } from "./workflowSelection";
 import { useState } from "react";
 import { beginBringBack, bringBackHeld, endBringBack } from "./bringBackDoubts";
@@ -13,6 +13,8 @@ type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 // infers checking, acceptance or reliance, or reacts to an arrival.
 
 const list = (value: Json): Json[] => (Array.isArray(value) ? value : []);
+/** The App's title for each category of a workflow's declared part. */
+const CATEGORY_TITLES = { expected_inputs: "Inputs", required_tools: "Tools", checkpoints: "Checkpoints (plan guidance)", returned_outputs: "Outputs", returned_evidence: "Evidence returned" } as const;
 const text = (value: Json): string => value === null || value === undefined ? "" : typeof value === "string" ? value : JSON.stringify(value);
 const names = (value: Json): string => list(value).map(text).join(", ");
 // Declared text is shown as written; only a closing full stop is added where it has none.
@@ -363,11 +365,11 @@ export function DeclaredPart({ declaration, run, openFileAct, busy = false }: { 
   if (!declaration) return <p>Declared part: not supplied by the host.</p>;
   if (declaration.unavailable) return <p role="note">Declared part could not be read: {text(declaration.unavailable)}</p>;
   const elements = (category: string): Json[] => list(declaration.elements?.[category]);
-  const category = (key: string, title: string, render: (element: Json, index: number) => Json) => {
+  const category = (key: keyof typeof CATEGORY_TITLES, render: (element: Json, index: number) => Json) => {
     const reading = text(declaration.categories?.[key]);
     const rows = elements(key);
     return <div key={key}>
-      <h4>{title}</h4>
+      <h4>{wordOf(CATEGORY_TITLES, key)}</h4>
       {rows.length === 0 ? <p>{reading === "declared_empty" ? "Declared empty." : reading === "undeclared" || !reading ? "Not declared." : `Not established (${READING[reading] ?? reading}).`}</p> : <ul>{rows.map(render)}</ul>}
     </div>;
   };
@@ -376,13 +378,13 @@ export function DeclaredPart({ declaration, run, openFileAct, busy = false }: { 
     {declaration.reading === "undeclared" && <p>This workflow declares no requirements part; its text is the whole method.</p>}
     {declaration.reading === "not_established" && <p role="note">The declared part is not established: {list(declaration.findings).map(text).join("; ")}. It is shown as far as it was read.</p>}
     {declaration.reading === "recognized" && list(declaration.findings).length > 0 && <p><small>Findings: {list(declaration.findings).map(text).join("; ")}</small></p>}
-    {category("expected_inputs", "Inputs", (e, i) => <li key={i}><b>{text(e.value?.name)}</b> ({e.value?.necessity === "optional" ? "optional" : "required"}; {INPUT_KIND[text(e.value?.kind)] ?? text(e.value?.kind)}{e.value?.read_through ? ` through ${text(e.value.read_through)}` : ""}): {text(e.value?.meaning)}{e.value?.basis_requirement ? ` Basis: ${text(e.value.basis_requirement)}` : ""}{e.value?.absence_effect ? ` If absent: ${text(e.value.absence_effect)}` : ""}{readingNote(e)}</li>)}
-    {category("required_tools", "Tools", (e, i) => <li key={i}><b>{text(e.value?.name)}</b> ({e.value?.necessity === "optional" ? "optional" : "required"} {TOOL_CLASS[text(e.value?.class)] ?? text(e.value?.class)}{e.value?.operation ? ` ${text(e.value.operation)}` : ""}{e.value?.capability ? ` ${text(e.value.capability)}` : ""}{list(e.value?.versions).length ? `, versions ${names(e.value.versions)}` : ""}): {text(e.value?.purpose)}{e.value?.fallback ? ` Fallback: ${text(e.value.fallback)}` : ""}{readingNote(e)}</li>)}
-    {category("checkpoints", "Checkpoints (plan guidance)", (e, i) => <CheckpointGuidance key={i} element={e} run={run} openFileAct={openFileAct} busy={busy} />)}
-    {category("returned_outputs", "Outputs", (e, i) => <li key={i}><b>{text(e.value?.name)}</b> ({OUTPUT_FORM[text(e.value?.form)] ?? text(e.value?.form)}{e.value?.path ? ` at ${text(e.value.path)}` : ""}{e.value?.designating_line ? `, first line “${text(e.value.designating_line)}”` : ""}; to {text(e.value?.destination)}): {text(e.value?.meaning)}{readingNote(e)}
+    {category("expected_inputs", (e, i) => <li key={i}><b>{text(e.value?.name)}</b> ({e.value?.necessity === "optional" ? "optional" : "required"}; {INPUT_KIND[text(e.value?.kind)] ?? text(e.value?.kind)}{e.value?.read_through ? ` through ${text(e.value.read_through)}` : ""}): {text(e.value?.meaning)}{e.value?.basis_requirement ? ` Basis: ${text(e.value.basis_requirement)}` : ""}{e.value?.absence_effect ? ` If absent: ${text(e.value.absence_effect)}` : ""}{readingNote(e)}</li>)}
+    {category("required_tools", (e, i) => <li key={i}><b>{text(e.value?.name)}</b> ({e.value?.necessity === "optional" ? "optional" : "required"} {TOOL_CLASS[text(e.value?.class)] ?? text(e.value?.class)}{e.value?.operation ? ` ${text(e.value.operation)}` : ""}{e.value?.capability ? ` ${text(e.value.capability)}` : ""}{list(e.value?.versions).length ? `, versions ${names(e.value.versions)}` : ""}): {text(e.value?.purpose)}{e.value?.fallback ? ` Fallback: ${text(e.value.fallback)}` : ""}{readingNote(e)}</li>)}
+    {category("checkpoints", (e, i) => <CheckpointGuidance key={i} element={e} run={run} openFileAct={openFileAct} busy={busy} />)}
+    {category("returned_outputs", (e, i) => <li key={i}><b>{text(e.value?.name)}</b> ({OUTPUT_FORM[text(e.value?.form)] ?? text(e.value?.form)}{e.value?.path ? ` at ${text(e.value.path)}` : ""}{e.value?.designating_line ? `, first line “${text(e.value.designating_line)}”` : ""}; to {text(e.value?.destination)}): {text(e.value?.meaning)}{readingNote(e)}
       <br /><small>Declared promise, not a standing: {names(e.value?.promised_standing) || "none"}.{e.value?.gating_checkpoint ? ` Declared with checkpoint ${text(e.value.gating_checkpoint)}.` : ""}</small>
       {run && <StandingFacets facets={outputStanding(e.value, run)} />}</li>)}
-    {category("returned_evidence", "Evidence returned", (e, i) => <li key={i}><b>{text(e.value?.name)}</b> ({EVIDENCE_KIND[text(e.value?.kind)] ?? text(e.value?.kind)}, for {names(e.value?.supports)}): {text(e.value?.meaning)}{readingNote(e)}</li>)}
+    {category("returned_evidence", (e, i) => <li key={i}><b>{text(e.value?.name)}</b> ({EVIDENCE_KIND[text(e.value?.kind)] ?? text(e.value?.kind)}, for {names(e.value?.supports)}): {text(e.value?.meaning)}{readingNote(e)}</li>)}
     <p>Written for roles: {raw.compatible_roles === undefined ? "not stated (any role)" : names(raw.compatible_roles) || "none established"}. Tool ceiling: {raw.tool_restriction === undefined ? "none declared" : names(raw.tool_restriction?.capabilities) || "no capabilities"}.</p>
     <details><summary>Declared part as the host read it (JSON)</summary><RecordedData value={declaration} /></details>
   </div>;
@@ -518,7 +520,7 @@ export function RunPanel({ run, conversations, bringBackDefault = null, busy = f
     <p><small>Run record entries: {recordKinds(run).length ? recordKinds(run).join(", ") : "none written yet"}. What the record does not hold is shown as not recorded.</small></p>
     <RecordWriteNotice run={run} />
     <HistoryReferenceNotice pointers={run?.learningPointers} run={run} />
-    <h4>Declared part of {text(workflow.name) || "this workflow"}</h4>
+    <h4>Declared part of {text(workflow.name) ? safeName(workflow.name) : "this workflow"}</h4>
     {declaration ? <DeclaredPart declaration={declaration} run={run} openFileAct={openFileAct} busy={busy} /> : <p>The declared part was not evaluated for this run, so it is not shown here.</p>}
     <h4>Compatibility (advisory)</h4>
     {compatibility.length ? <ul>{compatibility.map((c: Json, i: number) => <CompatibilityAdvisory key={i} entry={c} />)}</ul> : <p>No compatibility evaluation for this run.</p>}

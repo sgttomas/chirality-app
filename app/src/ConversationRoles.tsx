@@ -538,7 +538,7 @@ export function ContinueAsPanel({ handoff, entries, homeClass, generation, busy,
   const started = handoff?.started;
   const target = handoff?.targetRole ? text(handoff.targetRole) : "no role";
   return <section aria-label="Continue as" style={{ border: "1px solid #888", padding: 8, margin: "8px 0" }}>
-    <h3>Continue as {target} from conversation {text(handoff?.sourceThread)}</h3>
+    <h3>Continue as {handoff?.targetRole ? idWords(handoff.targetRole) : "no role"} from conversation {idWords(handoff?.sourceThread)}</h3>
     <p>Source conversation: {text(handoff?.sourceThread)} ({text(handoff?.sourceRoleLabel)}); it keeps its role. {text(handoff?.draft?.reading)}</p>
     <label>Handoff message {blocked ? "(original draft retained)" : "(editable; not sent)"} <textarea value={draft} disabled={busy || blocked || text(handoff?.draft?.state) === "waiting"} onChange={e => setDraft(e.target.value)} rows={6} style={{ display: "block", width: "100%" }} /></label>
     {!started && <div>

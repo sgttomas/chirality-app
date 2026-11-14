@@ -52,7 +52,7 @@ export function RecoveryCustodyDetails({ data, retry }: { data: Json; retry?: (t
     <h3>Persisted conversation pointer history</h3>
     <p>{data.historicalScope}</p>
     {(custody.historicalConversations ?? []).map((row: Json, i: number) => <article key={i}>
-      <h4>Home {row.index.home} · thread {row.index.threadId}</h4>
+      <h4>Home {idWords(row.index.home)} · thread {idWords(row.index.threadId)}</h4>
       <p>{row.standing}</p>
       <p>Execution source generation: {text(row.executionGeneration)}. Last observed state: {text(row.index.lastObservedExecution?.state)}; live-turn pointer: {text(row.index.lastObservedExecution?.liveTurn)}.</p>
       <p>Execution index project: {text(row.index.project)}; observation session: {text(row.index.session)}. Latest metadata append session: {text(row.metadataIndex?.session)}; metadata project: {text(row.metadataIndex?.project)}.</p>

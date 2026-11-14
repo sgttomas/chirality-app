@@ -1,4 +1,4 @@
-import { AgentText, idWords } from "./AgentText";
+import { AgentText, idWords, numberWords, safeName } from "./AgentText";
 import { useState } from "react";
 import { ConnectionAndModel, RoleChoice, type SendState, type StartChoice } from "./ConversationRoles";
 import { useBoundModelChoice, type BoundModelChoice, type ModelRoute } from "./ModelChoice";
@@ -122,7 +122,7 @@ export function DelegatedTrialComposerView({ pending, conversations, message, se
   const chosen = list(conversations).find((c: Json) => conversationKey(c) === target) ?? null;
   const sent = outcome.state === "sending" || outcome.state === "sent";
   return <section aria-label="Trial composer" style={{ border: "1px solid #888", padding: 8, margin: "8px 0" }}>
-    <h3>Trial {text(pending?.sequence)} of draft {text(pending?.draftName)} — pre-filled, not sent</h3>
+    <h3>Trial {numberWords(pending?.sequence) ?? ""} of draft {safeName(pending?.draftName)} — pre-filled, not sent</h3>
     <label>Your message (editable; not sent) <textarea value={message} disabled={busy || sent} onChange={e => setMessage(e.target.value)} rows={6} style={{ display: "block", width: "100%" }} /></label>
     <TrialCard pending={pending} busy={busy || sent} act={act} />
     <PendingNotes pending={pending} />
@@ -168,7 +168,7 @@ export function CleanTrialPanelView({ pending, roleSet, limits, entries, modeHom
     pressSend(act, "workflow_trial_start_clean", { reference: pending?.reference, model: route.model, modelProvider: route.modelProvider, entryId: route.entryId, modeHomeClass: binding.modeHomeClass ?? modeHomeClass, generation: binding.generation, role: choice.role === "" ? null : choice.role, preselected: !choice.roleTouched && !!choice.role && choice.role === roleSet?.defaultRole, personText: message }, setOutcome, result => cleanSentWords(result?.thread?.threadId ?? result?.conversation?.threadId ?? "not named by the host"));
   };
   return <section id={cleanTrialAnchor(pending?.reference)} aria-label="New trial conversation" style={{ border: "1px solid #888", padding: 8, margin: "8px 0" }}>
-    <h3>New trial conversation: trial {text(pending?.sequence)} of draft {text(pending?.draftName)}</h3>
+    <h3>New trial conversation: trial {numberWords(pending?.sequence) ?? ""} of draft {safeName(pending?.draftName)}</h3>
     <p><small>Optional: a clean trial is shown, not required. It is a new conversation with the role and model you choose and nothing but the trial text and your inputs.</small></p>
     <TrialCard pending={pending} busy={busy || sent} act={act} />
     <label>Inputs for this trial (editable; not sent) <textarea value={message} disabled={busy || sent} onChange={e => setMessage(e.target.value)} rows={4} style={{ display: "block", width: "100%" }} /></label>
@@ -209,9 +209,10 @@ export function CleanTrialPanel({ pending, roleSet, limits, entries, modeHomeCla
 /** The bring-back composer's title: a trial by its sequence and draft, as
  * elsewhere (never its internal reference); a run by its reference. */
 export function bringBackTitle(pending: Json): string {
-  if (!pending?.trial) return `Bring run ${text(pending?.run)} back`;
-  const n = pending.sequence === null || pending.sequence === undefined ? "" : ` ${text(pending.sequence)}`;
-  const draft = text(pending.draftName) ? ` of draft ${text(pending.draftName)}` : "";
+  // The App's words only: a run or a sequence as a plain identity or number, a draft in the App's name form.
+  if (!pending?.trial) return `Bring run ${idWords(pending?.run)} back`;
+  const n = pending.sequence === null || pending.sequence === undefined ? "" : ` ${numberWords(pending.sequence) ?? idWords(pending.sequence)}`;
+  const draft = text(pending.draftName) ? ` of draft ${safeName(pending.draftName)}` : "";
   return `Bring trial${n}${draft} back`;
 }
 

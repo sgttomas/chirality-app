@@ -57,7 +57,7 @@ function FleetWorkspace({ workspace }: { workspace: NonNullable<FleetPacket["wor
     <p>{workspace.standing}</p>
     {workspace.undertakings.length === 0 && <p>No undertaking graph or selector was read. No conclusion about absent work follows.</p>}
     {workspace.undertakings.map(view => <section key={view.undertaking} aria-label={`Undertaking ${idWords(view.undertaking)}`}>
-      <h4>{view.undertaking}</h4>
+      <h4>Undertaking {idWords(view.undertaking)}</h4>{plainId(view.undertaking) === null && <p>Recorded undertaking: <AgentText value={view.undertaking} source="record" name="The undertaking's name, as recorded; the App does not vouch for its words" /></p>}
       {view.graph ? <p>{view.currentGraphEstablished ? "Current graph" : "Last readable graph; currentness unknown"}: {view.graph}, revision {view.revision}.</p>
         : <p>No current graph established. Returns and waiting work cannot be reconstructed for this undertaking.</p>}
       {view.notes.length > 0 && <ul>{view.notes.map((note: string, i: number) => <li key={i}>{note}</li>)}</ul>}
@@ -86,5 +86,5 @@ function FleetWorkspace({ workspace }: { workspace: NonNullable<FleetPacket["wor
     </section>)}
     <details><summary>Reconstruction limits</summary><ul>{workspace.limits.map((limit, i) => <li key={i}>{limit}</li>)}</ul></details>
   </div>;
-}import { RecordedData, idWords } from "./AgentText";
+}import { AgentText, RecordedData, idWords, plainId } from "./AgentText";
 
