@@ -1277,6 +1277,110 @@ either driver marker.
   writes will say that setup was confirmed. It is development evidence and
   meets no criterion.
 
+## The rehearsal: a kept folder with the network open
+
+The rehearsal is the walk of the central journey on an identified candidate,
+in a kept folder whose launches reach the network, so that the owner can sign
+in and one model turn can be made. App Agent 0 approved its design, with the
+INTERLOCUTOR's additions, which App Agent 0 adopted. This section is its
+method text. **Nothing here is run until App Agent 0 names a date and the
+owner's sign-in is arranged.** Its scenario files, and the typing of its one
+fixed prompt, come to App Agent 0 with that date. The rehearsal is development
+evidence and satisfies nothing in criteria 1 and 2.
+
+**The folder.**
+- `launch.py keep-make --network open --candidate <candidate>` makes it. It is
+  a kept folder like any other, named `rehearsal-<stamp>-<hex>`, under the
+  homes root and never under a temporary folder, holding `home/`, `project/`
+  and `record/`.
+- `project/` starts with one file, `DEVELOPMENT-EVIDENCE.txt`, which says that
+  acts recorded there were operated by an agent, not a person.
+- Every `keep-launch` in it is made without the eight proxy overrides and
+  without `CHIRALITY_DEV_OPENAI_BASE_URL`; nothing else of `launch` changes.
+  The kept record and every launch record say `"network": "open"`.
+- The choice is made once, when the folder is made. `keep-launch` reads it
+  from the folder's name, which the kept record binds by path, device and
+  inode. A record whose `"network"` disagrees with the name is refused. So an
+  ordinary `kept-` folder is never launched open. Making one open would take
+  renaming the folder and editing its record by hand, which is outside the
+  launcher and is not done.
+
+**The layout.**
+- The App's data folder is `home/Library/Application Support/<identifier>`.
+  The account home Codex is given, its credential file and the App's records
+  are inside it.
+- The project is `project/`, a sibling of `home/`, never the parent of the App
+  data folder.
+- The temporary folder each launch is given (TMPDIR) is its own folder,
+  `home/.chirality-launch-tmp-<hex>`, made new for that launch. The App data
+  folder is not under it. Neither are the credential file (in its account
+  home under the App data folder) and the records store (`<App data>/records`
+  by default, `records_store.rs`). None of the three is under `project/`.
+
+So the App data folder, the credential file and the records lie outside the
+project's writable tree and outside the writable temporary folders. The
+operator shows this from what the App itself says (next).
+
+**Before the owner is asked to sign in**, the operator observes in the App
+and records, word for word, never assuming:
+- the working folder the App gives Codex;
+- the sandbox and approval settings in effect;
+- the writable roots;
+- the credential store setting, and where it writes.
+
+It records them again after each relaunch.
+- Setup chooses "Start with new settings". "Use my existing Codex settings"
+  and "Keep an existing sign-in" are never chosen.
+- **If file storage for the sign-in cannot be established, there is no
+  sign-in: stop.** That means the credential store setting shown is not
+  `file`, or it is not shown. A keychain entry would outlive the folder's
+  removal and land in the owner's own keychain.
+
+**The sign-in is the owner's.** No agent signs in, sees a credential or types
+into a sign-in surface.
+- The operator stops at the sign-in step and the lane tells App Agent 0, who
+  asks the owner.
+- The operator's view, and any recording, is suspended while the owner signs
+  in. It resumes at the App's account state.
+- If the App needs a relaunch to see the sign-in, that is one further
+  `keep-launch` on the same folder.
+
+**The examination name.** Under DEL-09-02, the App's examination name is set
+and verified before every capture, and again after each restart. The evidence
+marks the operator as an agent.
+
+**Confirmations.** The rule of "The App's own setup confirmation, and the
+typed path" applies to every sheet:
+- before any press, the walk checks the owning application, the expected step,
+  the complete statement, the subject and its paths, not the title and buttons
+  alone;
+- any sheet the scenario does not name is a stop.
+
+**The end.**
+- Before the folder is removed, two observations are made:
+  - the launch record shows the App's process group with no member left after
+    the settle time;
+  - `stray.py` finds no process running the candidate's executable.
+
+  A process the App started that left its process group, and is not the
+  candidate's executable, is seen by neither. That it has ended is not
+  established.
+- `keep-remove` removes it whole the same working day, after the run's review,
+  and also whenever a rehearsal is abandoned. It is not refused for age.
+- After the removal, the lane tells App Agent 0, who tells the owner. Removing
+  the folder removes the credential file stored in it. Whether the account
+  session that the sign-in created at the service is also ended is not
+  established by this. Signing it out there is the owner's choice.
+
+**What the arrangement does not do.**
+- It keeps the owner's own Codex home, settings and keychain out of the run
+  only so far as the App's setup choices and the credential store setting
+  shown say they are.
+- It does not stop the hosted Codex service, which the sign-in reaches, from
+  reading what it reads elsewhere under the owner's account.
+- It does not observe what Codex reads or writes outside the watched places
+  (the launcher's limits apply unchanged).
+
 ## What the calls take
 
 Read in the supplier's own documentation of its window service, and given here
