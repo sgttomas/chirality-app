@@ -21,6 +21,7 @@ mod installation;
 pub mod catalog;
 mod checkpoint_recorder;
 mod model_turn_recorder;
+pub mod codex_level;
 pub mod codex_stop;
 mod app_quit;
 pub mod conversation_roles;

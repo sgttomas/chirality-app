@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:chirality:app-v4:del-01-02:app-ledger-entry:0.5",
+  "$id": "urn:chirality:app-v4:del-01-02:app-ledger-entry:0.6",
   "title": "DEL-01-02 App ledger entry — what the App keeps across relaunch (PROPOSED)",
   "description": "EXECUTION_AND_RECOVERY.md §7. Append-only, one entry per line (as RS S-A); location and technology unselected (TBD-002). Pointers and App-observed facts only: no message, item, plan, command text, tool output or request payload is kept; those are read back from Codex (ARCHITECTURE §3; R17-4).",
   "oneOf": [
@@ -30,6 +30,15 @@
     },
     {
       "$ref": "#/$defs/codex_stop"
+    },
+    {
+      "$ref": "#/$defs/level_chosen"
+    },
+    {
+      "$ref": "#/$defs/level_sent"
+    },
+    {
+      "$ref": "#/$defs/level_reported"
     }
   ],
   "$defs": {
@@ -545,6 +554,84 @@
             "$ref": "#/$defs/entryRef"
           }
         }
+      }
+    },
+    "level_chosen": {
+      "description": "0.6: the permission level the person chose (PRD V4-AUT-06): the person's own setting, confirmed by the App's native statement. No decision actor and no act kind: it is not a human-act record.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "session", "entryId", "at", "scope", "level", "previous", "confirmation"],
+      "properties": {
+        "kind": {"const": "level_chosen"},
+        "session": {"$ref": "#/$defs/nonempty"},
+        "entryId": {"$ref": "#/$defs/nonempty"},
+        "at": {"$ref": "#/$defs/nonempty"},
+        "scope": {"oneOf": [
+          {"type": "object", "additionalProperties": false, "required": ["kind"],
+           "properties": {"kind": {"const": "default-for-new-conversations"}}},
+          {"type": "object", "additionalProperties": false, "required": ["kind", "home", "threadId"],
+           "properties": {"kind": {"const": "conversation"}, "home": {"$ref": "#/$defs/nonempty"},
+                          "threadId": {"$ref": "#/$defs/nonempty"}}}
+        ]},
+        "level": {"$ref": "#/$defs/levelValues"},
+        "previous": {"oneOf": [{"$ref": "#/$defs/nonempty"}, {"type": "null"}]},
+        "confirmation": {"type": "object", "additionalProperties": false, "required": ["kind", "statementDigest"],
+                         "properties": {"kind": {"const": "native"},
+                                        "statementDigest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}}
+      }
+    },
+    "level_sent": {
+      "description": "0.6: the App began to send a chosen level to its Codex, once per conversation per chosen level, at the first request carrying it. Says nothing of Codex.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "session", "entryId", "at", "chosen", "home", "threadId", "method", "requestRef", "writeResult", "takesEffect"],
+      "properties": {
+        "kind": {"const": "level_sent"},
+        "session": {"$ref": "#/$defs/nonempty"},
+        "entryId": {"$ref": "#/$defs/nonempty"},
+        "at": {"$ref": "#/$defs/nonempty"},
+        "chosen": {"$ref": "#/$defs/nonempty"},
+        "home": {"$ref": "#/$defs/nonempty"},
+        "threadId": {"oneOf": [{"$ref": "#/$defs/nonempty"}, {"type": "null"}]},
+        "method": {"enum": ["thread/start", "thread/resume", "thread/fork", "turn/start"]},
+        "requestRef": {"$ref": "#/$defs/nonempty"},
+        "writeResult": {"enum": ["written", "write-failed", "not-established"]},
+        "takesEffect": {"enum": ["now", "from-next-turn"]}
+      }
+    },
+    "level_reported": {
+      "description": "0.6: what Codex's own reply to a start, resume or fork reported as the approval and sandbox in force, and whether it agrees with the level sent. Written only from a reply.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "session", "entryId", "at", "chosen", "sent", "home", "threadId", "from", "approvalPolicy", "approvalsReviewer", "sandbox", "agreement"],
+      "properties": {
+        "kind": {"const": "level_reported"},
+        "session": {"$ref": "#/$defs/nonempty"},
+        "entryId": {"$ref": "#/$defs/nonempty"},
+        "at": {"$ref": "#/$defs/nonempty"},
+        "chosen": {"$ref": "#/$defs/nonempty"},
+        "sent": {"$ref": "#/$defs/nonempty"},
+        "home": {"$ref": "#/$defs/nonempty"},
+        "threadId": {"$ref": "#/$defs/nonempty"},
+        "from": {"enum": ["thread/start", "thread/resume", "thread/fork"]},
+        "approvalPolicy": {},
+        "approvalsReviewer": {},
+        "sandbox": {},
+        "agreement": {"enum": ["agrees", "differs"]}
+      }
+    },
+    "levelValues": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "tableDigest", "approvalPolicy", "approvalsReviewer", "sandbox", "sandboxPolicy", "workspaceWrite"],
+      "properties": {
+        "id": {"$ref": "#/$defs/nonempty"},
+        "tableDigest": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
+        "approvalPolicy": {"enum": ["untrusted", "on-request", "never"]},
+        "approvalsReviewer": {"const": "user"},
+        "sandbox": {"enum": ["read-only", "workspace-write", "danger-full-access"]},
+        "sandboxPolicy": {"type": "object"},
+        "workspaceWrite": {"oneOf": [{"type": "object"}, {"type": "null"}]}
       }
     },
     "nonempty": {
