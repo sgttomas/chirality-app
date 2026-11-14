@@ -713,7 +713,6 @@ class ADriverRun(unittest.TestCase):
             os.symlink(outside, self.driver)
             with self.assertRaises(compare.Refused):
                 compare.examination_root(self.r.root)
-||||||| 0fe088680
 class FourthReading(unittest.TestCase):
     """The scoped reading after round 3: each of its three findings as a case."""
 
