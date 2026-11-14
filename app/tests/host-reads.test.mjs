@@ -9,7 +9,7 @@ import {loadSrc} from './support/load-src.mjs';
 if (!globalThis.document) installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
-const {useOrderedHost, shownBeforePress, invoke, SELF_ISSUED_QUIET, POLL_MS} = loadSrc('hostReads');
+const {useOrderedHost, shownBeforePress, invoke, invokeTimedRead, SELF_ISSUED_QUIET, PRESSED_AND_TIMED_READS, POLL_MS} = loadSrc('hostReads');
 const {readFileSync, readdirSync, mkdtempSync, mkdirSync, writeFileSync, rmSync} = await import('node:fs');
 const {join} = await import('node:path');
 const {tmpdir} = await import('node:os');
@@ -108,6 +108,39 @@ test('after a command settles, the view is from before it until a read started a
   } finally { await ui.close(); host.restore(); }
 });
 
+test('a read a person can press and the App also issues on a timer: the press marks, the timer does not, and nothing else goes the timer\'s way', async () => {
+  // App Agent 0's decision: a closed list, grown only by a command whose host function writes nothing, shown by a test.
+  assert.deepEqual(Object.keys(PRESSED_AND_TIMED_READS), ['read_fleet_records']);
+  assert.equal(Object.hasOwn(SELF_ISSUED_QUIET, 'read_fleet_records'), false, 'a press of it still marks');
+  // Each entry names the host tests that show its read writes nothing, and each named test exists.
+  const hostTests = readdirSync(new URL('../src-tauri/src/', import.meta.url)).filter(name => name.endsWith('.rs'))
+    .map(name => readFileSync(new URL(`../src-tauri/src/${name}`, import.meta.url), 'utf8')).join('\n');
+  for (const [command, why] of Object.entries(PRESSED_AND_TIMED_READS)) {
+    assert.match(why, /^writes nothing; shown by /, command);
+    const named = [...why.matchAll(/[a-z_]+::tests::([a-z0-9_]+)/g)].map(m => m[1]);
+    assert.ok(named.length > 0, `${command} names its tests`);
+    for (const name of named) assert.match(hostTests, new RegExp(`fn ${name}\\(`), `${command}: ${name} exists`);
+  }
+  const host = heldHost(); const ui = await mount();
+  const stale = () => shownBeforePress(ui.api.hostReads);
+  try {
+    for (const settle of ['resolve', 'reject']) {
+      const timed = invokeTimedRead('read_fleet_records');
+      await React.act(async () => { host.of('read_fleet_records').at(-1)[settle](settle === 'reject' ? new Error('x') : {}); await timed.catch(() => undefined); });
+      assert.equal(stale(), false, `the timer's read, ${settle}d, marks nothing`);
+    }
+    // A command off the list is refused and never sent, so the timer's route cannot carry an act.
+    const sentBefore = host.pending.length;
+    for (const command of ['workflow_end_run', 'decision_view', 'host_status', 'invented_host_command'])
+      await assert.rejects(invokeTimedRead(command), /not on the timed-read list; it was not sent/);
+    assert.equal(host.pending.length, sentBefore, 'nothing was sent');
+    // The same read pressed by the person marks.
+    const pressed = invoke('read_fleet_records');
+    await React.act(async () => { host.of('read_fleet_records').at(-1).resolve({}); await pressed; });
+    assert.equal(stale(), true, 'the press marks');
+  } finally { await ui.close(); host.restore(); }
+});
+
 test('the commands that mark nothing are a closed table of self-issued commands, and every command goes through the one function', () => {
   // Closed. A command is added only when the web view issues it by itself (a timer, or an effect that re-runs with
   // nothing pressed) and its host function has been read: the value is that function's own effect. A command a
@@ -135,7 +168,8 @@ test('the commands that mark nothing are a closed table of self-issued commands,
   }
   assert.deepEqual(takesPlatform, ['hostReads.ts']);
   const shell = readFileSync(new URL('App.tsx', src), 'utf8');
-  assert.match(shell, /import \{ invoke, useOrderedHost, shownBeforePress, POLL_MS \} from "\.\/hostReads";/, 'the shell issues every command through the marking function');
+  assert.match(shell, /import \{ invoke, invokeTimedRead, useOrderedHost, shownBeforePress, POLL_MS \} from "\.\/hostReads";/, 'the shell issues every command through the marking function, or a listed read through the timed route');
+  assert.deepEqual([...shell.matchAll(/invokeTimedRead<[^>]*>\(([^)]*)\)/g)].map(m => m[1]), ['command'], 'the shell uses the timed route in one place');
   assert.match(shell, /readHost\(invoke<Json>\("host_status"\)\)\.then\(applyHost\)[^\n]*, POLL_MS\);/, 'the poll runs at the stated interval');
   assert.doesNotMatch(shell, /setHost\(/);
 });
@@ -160,6 +194,7 @@ test('mounted App: a command issued outside the workflow panel withholds the Run
     issued.add(command);
     if (command === 'host_status') { if (failStatus) throw new Error('invented status failure'); const snapshot = structuredClone(view(runs)); if (hold) await hold; return snapshot; }
     if (command === 'decision_view') return {rows:[]};
+    if (command === 'read_fleet_records') throw new Error('invented: no selected project workspace; no fleet source read');
     if (command === 'native_confirmation_content') return [];
     if (command === 'workflow_end_run') { runs = [run('ended by the person')]; return {state:'ended'}; }
     if (command === 'workflow_open_project_library') return {state:'opened'};
@@ -177,7 +212,7 @@ test('mounted App: a command issued outside the workflow panel withholds the Run
     // With nothing pressed (mount, a choice in the guide that issues no command, every timer fired once), the App
     // issues only the status read and listed self-issued commands, and the guide is shown, not withheld.
     await React.act(async () => { for (const fire of timers) fire(); await new Promise(resolve => setTimeout(resolve, 0)); });
-    assert.deepEqual([...issued].filter(command => command !== 'host_status' && !Object.hasOwn(SELF_ISSUED_QUIET, command)), [], 'a self-issued command that is not classified');
+    assert.deepEqual([...issued].filter(command => command !== 'host_status' && !Object.hasOwn(SELF_ISSUED_QUIET, command) && !Object.hasOwn(PRESSED_AND_TIMED_READS, command)), [], 'a self-issued command that is not classified');
     assert.doesNotMatch(guide().textContent, /may be from before the App's last operation finished/);
     // The invariant's one exception, and its end, for a press made in the panel (Agent 0's decision on round 3).
     const settle = () => React.act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });

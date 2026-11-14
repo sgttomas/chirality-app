@@ -47,6 +47,30 @@ export const SELF_ISSUED_QUIET: Readonly<Record<string, string>> = {
   workflow_review_digest: "none",
 };
 
+/**
+ * Reads a person can press that the App also issues on a timer ("Waiting on
+ * you" keeps its sources current with them). A press goes through `invoke` and
+ * marks like any pressed command, since it is the person's act; the timer goes
+ * through `invokeTimedRead`, which marks nothing, so a read the App issues by
+ * itself is never taken for something the person did, and the guides are not
+ * withheld with nobody having acted.
+ *
+ * The list is closed, and grows only one way: a command is added only when its
+ * host function writes nothing, and its value names the host tests that show
+ * that its read leaves every file it could touch unchanged. A command that
+ * writes anything, or whose writing nothing no test shows, is not added,
+ * however convenient a timer would be (App Agent 0's decision).
+ */
+export const PRESSED_AND_TIMED_READS: Readonly<Record<string, string>> = {
+  read_fleet_records: "writes nothing; shown by fleet_records::tests::fleet_reader_never_initializes_an_absent_empty_or_unlinked_store and fleet_records::tests::fleet_reader_preserves_an_already_opened_store_identity_without_repairing_it",
+};
+
+/** The timer's route for a command on PRESSED_AND_TIMED_READS: it marks nothing. Any other command is refused, unsent. */
+export function invokeTimedRead<T = Json>(command: string, args?: InvokeArgs): Promise<T> {
+  if (!Object.hasOwn(PRESSED_AND_TIMED_READS, command)) return Promise.reject(new Error(`${command} is not on the timed-read list; it was not sent`));
+  return platformInvoke<T>(command, args);
+}
+
 const settleListeners = new Set<() => void>();
 
 /**
@@ -65,8 +89,8 @@ export function invoke<T = Json>(command: string, args?: InvokeArgs, options?: I
   return pending;
 }
 
-/** One read of the host's status: its place in the order reads were started, and the reply. */
-export type HostRead = { index: number; snapshot: Json };
+/** One read of the host's status: its place in the order reads were started, when it was started, and the reply. */
+export type HostRead = { index: number; snapshot: Json; startedAt?: number };
 
 /** What a view needs to say whether the status it shows was read after the last command settled. */
 export type HostReads = {
@@ -78,9 +102,13 @@ export type HostReads = {
   settledAt: number | null;
   /** The message of a status read that failed, while no read started after it has been applied. */
   failure: string | null;
+  /** When the read whose reply is shown was started (ms since the epoch); null before any. */
+  appliedAt: number | null;
+  /** When the failed read named by `failure` was started; null while there is no failure. */
+  failedAt: number | null;
 };
 
-type Shown = { host: Json; applied: number; settledAt: number | null; failed: { index: number; message: string } | null };
+type Shown = { host: Json; applied: number; appliedAt: number | null; settledAt: number | null; failed: { index: number; message: string; at: number } | null };
 
 /**
  * The host's status as the web view holds it, with its reads in order.
@@ -97,7 +125,7 @@ type Shown = { host: Json; applied: number; settledAt: number | null; failed: { 
  * `invoke`), as the number of reads started by then.
  */
 export function useOrderedHost(): { host: Json; hostReads: HostReads; readHost: (reply: Promise<Json>) => Promise<HostRead>; applyHost: (read: HostRead) => boolean } {
-  const [shown, setShown] = useState<Shown>({ host: null, applied: 0, settledAt: null, failed: null });
+  const [shown, setShown] = useState<Shown>({ host: null, applied: 0, appliedAt: null, settledAt: null, failed: null });
   const order = useRef({ started: 0, applied: 0 });
   useEffect(() => {
     const tell = () => { const settledAt = order.current.started; setShown(old => ({ ...old, settledAt })); };
@@ -107,23 +135,24 @@ export function useOrderedHost(): { host: Json; hostReads: HostReads; readHost: 
   const readHost = useCallback(async (reply: Promise<Json>): Promise<HostRead> => {
     // Numbered before the first await, so in the order the reads were started.
     const index = ++order.current.started;
-    try { return { index, snapshot: await reply }; }
+    const startedAt = Date.now();
+    try { return { index, snapshot: await reply, startedAt }; }
     catch {
       // The raw diagnostic is dropped here, at the source: the guides are offered the fixed refresh
       // line, and every caller receives StatusReadFailed (whose text is that line), never the raw error.
-      setShown(old => (old.failed && old.failed.index > index ? old : { ...old, failed: { index, message: REFRESH_FAILED } }));
+      setShown(old => (old.failed && old.failed.index > index ? old : { ...old, failed: { index, message: REFRESH_FAILED, at: startedAt } }));
       throw new StatusReadFailed();
     }
   }, []);
   const applyHost = useCallback((read: HostRead): boolean => {
     if (read.index <= order.current.applied) return false;
     order.current.applied = read.index;
-    setShown(old => ({ ...old, host: read.snapshot, applied: read.index }));
+    setShown(old => ({ ...old, host: read.snapshot, applied: read.index, appliedAt: read.startedAt ?? Date.now() }));
     return true;
   }, []);
   const started = useCallback(() => order.current.started, []);
-  const failure = shown.failed && shown.failed.index > shown.applied ? shown.failed.message : null;
-  return { host: shown.host, hostReads: { started, applied: shown.applied, settledAt: shown.settledAt, failure }, readHost, applyHost };
+  const failed = shown.failed && shown.failed.index > shown.applied ? shown.failed : null;
+  return { host: shown.host, hostReads: { started, applied: shown.applied, settledAt: shown.settledAt, failure: failed?.message ?? null, appliedAt: shown.appliedAt, failedAt: failed?.at ?? null }, readHost, applyHost };
 }
 
 /**
