@@ -1523,6 +1523,13 @@ impl ActControl {
         out
     }
 
+    /// Whether this act owner holds a confirmed answer whose record is not yet written: a capture
+    /// not yet recorded, or a file capture whose publication or record is pending. The next
+    /// recording writes it ahead of any new one. (A recorded act whose delay metadata is still
+    /// pending is not held: its record is written.) An arrival offer is made only while none is.
+    pub(crate) fn answer_held(&self) -> bool {
+        self.native_captures.values().any(|n| !n.written) || self.file_offers.values().any(|slot| slot.pending_native())
+    }
     pub(crate) fn writer_ready(&self) -> bool {
         self.native_captures
             .values()

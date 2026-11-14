@@ -275,10 +275,15 @@ impl ActControl {
         actor: &Value,
         context: &Value,
     ) -> Result<(String, Value, FileActKind), String> {
+        let held = self.answer_held();
         let slot = self
             .file_offers
             .get_mut(&reference.id)
             .ok_or("File act offer absent")?;
+        // An arrival offer is not put while an earlier capture's record is not yet written.
+        if held && slot.arrival.is_some() {
+            return Err(crate::checkpoint_recorder::not_answering::EARLIER_CAPTURE_HELD.into());
+        }
         if slot.state != FileActState::Composed || slot.root != self.workspace {
             return Err("File act is not a current unpresented offer".into());
         }
@@ -354,6 +359,7 @@ impl ActControl {
         reference: &FileActOfferRef,
         event: native::ConfirmedFileEvent,
     ) -> Result<Value, String> {
+        let held = self.answer_held();
         let slot = self
             .file_offers
             .get_mut(&reference.id)
@@ -374,6 +380,13 @@ impl ActControl {
         if event.choice() == "decline" && slot.arrival.as_ref().is_some_and(|a| !a.decline_answers()) {
             slot.state = FileActState::Dismissed;
             return Err(crate::checkpoint_recorder::not_answering::DECLINE_DOES_NOT_ANSWER.into());
+        }
+        // The binding check: this recording's flush writes every held capture ahead of this
+        // one, so an arrival answer is captured only while none is held, and nothing is captured
+        // otherwise.
+        if held && slot.arrival.is_some() {
+            slot.state = FileActState::Dismissed;
+            return Err(crate::checkpoint_recorder::not_answering::EARLIER_CAPTURE_HELD.into());
         }
         match read_subject(&slot.root, &slot.path) {
             Ok(bytes) if bytes == slot.bytes => {}

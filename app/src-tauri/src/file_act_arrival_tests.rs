@@ -1094,3 +1094,61 @@ fn a_decline_that_would_not_answer_is_said_and_refused_and_the_act_and_the_stand
     crate::records_store::use_store_for_test(None);
     let _ = std::fs::remove_dir_all(own);
 }
+
+/// Confirms `reference` with its validations passing, then makes its record's append fail: an
+/// invented folder occupies the writer log it would be appended to. The capture is then held.
+fn confirm_holding(state: &crate::AppState, reference: &str, log: &std::path::Path) -> Value {
+    assert!(!log.exists(), "the invented first-answer log is not yet present");
+    std::fs::create_dir_all(log.parent().unwrap()).unwrap();
+    let mut checks = 0;
+    let held = crate::file_act_confirm_original(state, reference, |control, offer, check| {
+        control.synthetic_file_native(offer, || {
+            checks += 1;
+            let result = check()?;
+            if checks == 2 { std::fs::create_dir(log).unwrap(); }
+            Ok(result)
+        }, |_, kind| MessageDialogResult::Custom(kind.wording().into()))
+    }).unwrap();
+    std::fs::remove_dir(log).unwrap();
+    held
+}
+fn captures(peer: &Peer) -> std::collections::BTreeMap<std::path::PathBuf, Option<Vec<u8>>> {
+    crate::storage::capture_dir(&peer.fixture.root).ok().filter(|d| d.is_dir()).map(|d| inventory(&d)).unwrap_or_default()
+}
+
+// Third reading of 347, (a) and (e): an answer confirmed whose record is not yet written is no
+// record the projection or the recorder can see, and the next recording writes it ahead of any
+// new one. While the act owner holds one, contextual or standing, no contextual offer is opened,
+// and an offer opened earlier is refused before its question, with nothing captured. Once its
+// record is written, the arrival reads pending, then performed, and only one act answers it.
+// The contextual case is also the new act's own failed append: no second offer follows it.
+#[test]
+fn an_answer_held_without_its_record_withholds_the_arrival_offer_until_its_record_is_written() {
+    use crate::checkpoint_recorder::not_answering::{ANSWER_PENDING, EARLIER_CAPTURE_HELD, PERFORMED};
+    for first_is_standing in [false, true] {
+        let (peer, state, run, arrival) = fixture("A7");
+        let earlier = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+        let (first, log) = if first_is_standing {
+            (standing(&state, &peer, crate::act_control::FileActKind::Rely), crate::storage::project_file(&peer.fixture.root, crate::recorder::LOG).unwrap())
+        } else {
+            (crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap()["reference"].as_str().unwrap().to_owned(),
+             crate::storage::project_log(&peer.fixture.root, Some(&run), crate::records::APP_INTERFACE.identity).unwrap())
+        };
+        let held = confirm_holding(&state, &first, &log);
+        assert_eq!(held["state"], "AC-8 record pending", "{held}");
+        assert!(acts(&peer).is_empty(), "the held answer has no record yet");
+        assert_eq!(crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap_err(), EARLIER_CAPTURE_HELD, "standing first: {first_is_standing}");
+        let before = (acts(&peer).len(), captures(&peer));
+        let mut asked = None;
+        let refused = confirm_watching(&state, earlier["reference"].as_str().unwrap(), "act", &mut asked);
+        assert!(asked.is_none() && refused["error"] == EARLIER_CAPTURE_HELD, "{refused}");
+        assert_eq!((acts(&peer).len(), captures(&peer)), before, "nothing captured or recorded");
+        // The person continues the held record, from the panel.
+        assert_eq!(crate::file_act_continue_result(&state, &first).unwrap()["state"], "AC-7 recorded");
+        assert_eq!(crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap_err(), ANSWER_PENDING);
+        observe(&state, &peer, &run);
+        let counted: Vec<_> = rs_for(&peer, &run).into_iter().filter(|e| e["kind"] == "act_counted").collect();
+        assert_eq!(counted.len(), 1);
+        assert_eq!(crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap_err(), PERFORMED);
+    }
+}

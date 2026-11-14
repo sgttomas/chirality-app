@@ -73,6 +73,11 @@ impl FileActRoot {
         source: crate::runtime_session::ArrivalSource,
         context: Value,
     ) -> Result<Value, String> {
+        // A capture held without its record is an answer no record shows yet, and the next
+        // recording writes it first: no arrival offer while one is held.
+        if control.answer_held() {
+            return Err(crate::checkpoint_recorder::not_answering::EARLIER_CAPTURE_HELD.into());
+        }
         source.validate()?;
         let offer = control.compose_file_act(
             source.path(),
