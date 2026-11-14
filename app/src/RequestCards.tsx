@@ -1,6 +1,8 @@
 import { useRef, useState } from "react";
 import { itemAnchorId, requestAnchorId, sameActivityGeneration } from "./NativeActivity";
 import { EXACT_TEXT } from "./exactText";
+import { AgentText, agentTextShown, plainId, idWords, wordOf, numberWords, SuppliedId, Word } from "./AgentText";
+import { CHANGE_KIND, ITEM_KIND } from "./nativeWords";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 export type RequestActivityLink = (request: Json) => { open: () => void } | null;
 
@@ -9,7 +11,10 @@ export type RequestActivityLink = (request: Json) => { open: () => void } | null
 // values and the register's checks are the host's and stay as they are. The
 // App's own words on a tool-permission card never say "accept", "approve",
 // "approval" or "approved" (LB-2); supplier names and values that contain them
-// appear only in code spans or quoted supplier text. Answering a tool permission
+// appear only in code spans or in the agent's text. Everything the agent
+// supplies (a command, path, reason, question, option label, server name, rule
+// words, diff, address or JSON) is shown through AgentText, never as the App's
+// words or as a control's own text (unit 1). Answering a tool permission
 // is the person's routine Codex permission choice: it is not a recorded act and
 // it is not approval of the work (NR-9; owner decision D3).
 
@@ -20,7 +25,11 @@ const LEGACY_EXEC = "execCommandApproval";
 const LEGACY_PATCH = "applyPatchApproval";
 const QUESTION = "item/tool/requestUserInput";
 const ELICITATION = "mcpServer/elicitation/request";
+// Whether an MCP server or the agent wrote an input request's text is not established.
+const ELICITATION_TEXT = "Text sent with this request by an MCP server or the agent, not the App's words";
 const TOOL_PERMISSION = [COMMAND, FILE_CHANGE, PERMISSIONS, LEGACY_EXEC, LEGACY_PATCH];
+/** The methods whose card title names what they ask; any other is named beside the title, boxed. */
+const KNOWN_METHODS = [...TOOL_PERMISSION, QUESTION, ELICITATION];
 
 export const pre = { whiteSpace: "pre-wrap" as const, overflowWrap: "anywhere" as const, margin: "4px 0" };
 const text = (value: Json): string => value === null || value === undefined ? "" : typeof value === "string" ? value : JSON.stringify(value);
@@ -30,6 +39,46 @@ export function requestThread(request: Json): string | null {
   const p = request?.nativeParameters ?? {};
   const thread = p.threadId ?? p.conversationId;
   return typeof thread === "string" && thread ? thread : null;
+}
+
+/** Who asked a request, from the host's descendants in the same Codex
+ * process, read from the thread the request names: a request on a descendant's
+ * thread is named as that descendant's, and any other as the agent's of the
+ * conversation it belongs to, which need not be the selected one, since the
+ * view covers the whole process. That a delegated child's requests always
+ * arrive on its own thread is not established here.
+ * The role and nickname are Codex's `agentRole` and `agentNickname` on the
+ * child's `thread/read` result, which the host keeps as the descendant's
+ * `nativeThread`. Limit: the host's thread rows carry neither field, and the
+ * view has them only once the child's thread has been read, so a child the App
+ * has not read reads "not reported" until it is read. Nothing is inferred: a
+ * missing role is never filled in from the nickname, the prompt or the tool. */
+export type RequestAsker =
+  | { kind: "conversation" }
+  | { kind: "delegated"; role: string | null; nickname: string | null }
+  | { kind: "not-established" }
+  | { kind: "no-conversation" };
+export function requestAsker(threadId: string | null, generation: Json, view: Json): RequestAsker {
+  if (!threadId) return { kind: "no-conversation" };
+  if (!sameActivityGeneration(generation, view?.generation) || view?.home !== generation?.home) return { kind: "not-established" };
+  const child = (Array.isArray(view?.descendants) ? view.descendants : []).find((node: Json) => node?.threadId === threadId);
+  if (!child) return { kind: "conversation" };
+  const reported = (value: Json) => typeof value === "string" && value !== "" ? value : null;
+  return { kind: "delegated", role: reported(child.nativeThread?.agentRole), nickname: reported(child.nativeThread?.agentNickname) };
+}
+
+/** The App's words naming who asked; a nickname and role are the agent's text. */
+export function AskedBy({ asker }: { asker: RequestAsker }) {
+  if (asker.kind === "conversation") return <>Asked by the conversation’s own agent</>;
+  if (asker.kind === "not-established") return <>Who asked is not established: this view holds no delegation record from the Codex process that asked</>;
+  if (asker.kind === "no-conversation") return <>Who asked is not established: no conversation is named</>;
+  const { role, nickname } = asker;
+  const roleText = (value: string) => <AgentText value={value} label="Role:" name="Agent role as Codex reports it, not the App's words" />;
+  const nameText = (value: string) => <AgentText value={value} label="Name:" name="Agent nickname as Codex reports it, not the App's words" />;
+  if (role !== null && nickname !== null) return <>Asked by the delegated agent {nameText(nickname)}, role {roleText(role)}, as Codex reports them</>;
+  if (nickname !== null) return <>Asked by the delegated agent {nameText(nickname)}, as Codex reports it; role not reported</>;
+  if (role !== null) return <>Asked by a delegated agent, role {roleText(role)}, as Codex reports it; name not reported</>;
+  return <>Asked by a delegated agent; role and name not reported</>;
 }
 
 /** WI-1: the requests that wait for the person's answer (what the card offers controls for). */
@@ -57,8 +106,8 @@ function replyObservationWords(observation: RequestReplyObservation): string {
     case "pending": return "Answer command in progress; waiting for native confirmation or a reply write result.";
     case "written": return "The reply was written locally. Codex receipt or action is not confirmed by that write.";
     case "dismissed": return "Native confirmation dismissed; no reply write was attempted.";
-    case "rejected": return `Native answer command reported: ${observation.command.reason}. A complete local reply write is not established by this error alone.`;
-    case "unconfirmed": return `Reply write outcome not established (${observation.command.writeResult}); whether Codex received or acted on a reply is unknown.`;
+    case "rejected": return "The native answer command reported an error (shown below). A complete local reply write is not established by this error alone.";
+    case "unconfirmed": return "Reply write outcome not established (its result is shown below); whether Codex received or acted on a reply is unknown.";
   }
 }
 export const requestReplyGuarded = (reply: RequestReplyObservation | null | undefined, scope: string): boolean => !!reply && reply.scope === scope &&
@@ -74,14 +123,16 @@ export function requestTitle(request: Json): string {
     case LEGACY_EXEC: return "Tool permission: run a command (legacy request)";
     case LEGACY_PATCH: return "Tool permission: change files (legacy request)";
     case QUESTION: return "Question from the agent";
-    case ELICITATION: return `Input request from MCP server ${text(request?.nativeParameters?.serverName) || "(name not reported)"} or the agent (not established)`;
+    case ELICITATION: return "Input request from an MCP server or the agent (not established)";
     // RS §13.9: the App answers its own records capability's calls by rule.
     case "item/tool/call": if (request?.originClass === "named-service" && request?.nativeParameters?.tool === "chirality_records_read_v1") return "The agent read this project's records (the App's records capability answered; each read is in the read log)";
-      return `Request from Codex the App does not answer itself (${text(request?.method)})`;
-    default: return `Request from Codex the App does not answer itself (${text(request?.method) || "no method"})`;
+      return "Request from Codex the App does not answer itself";
+    default: return "Request from Codex the App does not answer itself";
   }
 }
 
+/** The native decision tokens the App knows, shown beside their buttons as Codex names them. */
+const DECISION_TOKENS = { accept: "accept", approved: "approved", acceptForSession: "acceptForSession", approved_for_session: "approved_for_session", decline: "decline", cancel: "cancel", denied: "denied", abort: "abort" } as const;
 /** LB-1 App words for each native decision form (the value itself is shown beside them). */
 export function decisionWords(decision: Json): string {
   const key = typeof decision === "string" ? decision : decision && typeof decision === "object" ? Object.keys(decision)[0] : "";
@@ -166,7 +217,10 @@ function DecisionNote({ request, decision, place }: { request: Json; decision: J
   if (key === "acceptForSession" && request?.method === COMMAND) return <small> This answer also covers this same command, in this folder, until Codex stops. Nothing is saved.</small>;
   if (key === "acceptWithExecpolicyAmendment" && request?.method === COMMAND) {
     const words = ruleWords(request, decision);
-    return <small> This adds a lasting rule to the rules file in this App’s sign-in folder: from then on, in every conversation of this home, any command beginning with <code>{words ?? "(rule words not reported)"}</code> {builtInProfile(place) ? "runs outside Codex’s sandbox, with no request to you" : "runs with more access than Codex’s sandbox gives, with no request to you"}. It stays until it is removed from that file.</small>;
+    const access = builtInProfile(place) ? "runs outside Codex’s sandbox, with no request to you" : "runs with more access than Codex’s sandbox gives, with no request to you";
+    // The rule words are the agent's; they stand beside the App's sentence, never inside it.
+    return <><small> This adds a lasting rule to the rules file in this App’s sign-in folder: from then on, in every conversation of this home, {words === null ? <>any command beginning with words Codex has not reported {access}</> : <>any command beginning with the words shown {access}</>}. It stays until it is removed from that file.</small>
+      {words !== null && <> <small>The words shown:</small> <AgentText value={words} label="Rule words:" /></>}</>;
   }
   return null;
 }
@@ -188,12 +242,12 @@ function AnswerConsequences({ request, forms, place, changesArrived }: { request
 function ChangeLocation({ path, place, cwd }: { path: Json; place?: RequestPlace; cwd: string | null }) {
   const given = text(path);
   const resolved = resolvePath(given, cwd);
-  if (!resolved) return <><code>{given}</code> (relative to a working folder the App has not received; where it goes cannot be shown)</>;
+  if (!resolved) return <><AgentText value={given} label="Path:" /> (relative to a working folder the App has not received; where it goes cannot be shown)</>;
   const base = place?.project.kind === "folder" ? place.project.folder : place?.project.kind === "none" ? place.conversationFolder : null;
   const rest = base ? insideFolder(resolved.path, base) : null;
   return <>
-    <code>{resolved.path}</code>{resolved.relative && <> (relative to <code>{text(cwd)}</code>)</>}
-    {base === null || base === undefined ? null : rest !== null ? <> — in {folderWords(place)}, at <code>{rest === "" ? "." : rest}</code></> : <> — OUTSIDE {folderWords(place)}</>}
+    <AgentText value={resolved.path} label="Path:" />{resolved.relative && <> (relative to <AgentText value={text(cwd)} label="Folder:" />)</>}
+    {base === null || base === undefined ? null : rest !== null ? <> — in {folderWords(place)}, at <AgentText value={rest === "" ? "." : rest} label="Path:" /></> : <> — OUTSIDE {folderWords(place)}</>}
   </>;
 }
 
@@ -250,43 +304,48 @@ export function hostRequests(host: Json): Json[] {
 export function cardState(request: Json): string {
   const origin = request?.settlement?.origin;
   const confirmed = request?.acknowledgmentObservation?.status === "observed";
-  const method = text(request?.method);
   switch (request?.state) {
     // A request the App answers by rule (no person answer): its reply is either about to be written or was withheld.
     case "received": return request?.originClass === "none" ? "Received; the App's reply has not been sent to Codex" : "Received; not yet shown for an answer";
     case "errored":
       if (request?.closedGeneration) return request?.replyWriteResult === "written" ? "The error reply was written locally; whether Codex received or acted on it is unknown" : "The error reply could not be completely written; whether Codex received or acted on it is unknown";
-      return origin?.class === "app-rule" ? `Codex asked for something the App does not provide (${method}): answered with an error by rule ${text(origin.ruleName)}` : `Unrecognized request from Codex (${method}): answered with an error`;
+      return origin?.class === "app-rule" ? "Codex asked for something the App does not provide: answered with an error by an App rule (named below)" : "Unrecognized request from Codex: answered with an error";
     // A named service the App answers (current time, a records or offered call) waits for the App, not the person.
     case "outstanding": return answerable(request) ? "Waiting for your answer" : "Waiting for a reply from the App; none has been sent to Codex";
     case "settling": return "Sending your answer: not yet written to Codex";
     case "reply-outcome-unknown": return "Reply outcome unknown: the Codex process ended before a write result was observed. Whether Codex received or acted on the reply is unknown";
     case "answered": return confirmed ? "Your answer was written; Codex reported the request resolved" : request?.closedGeneration ? "Your answer was written locally; whether Codex received or acted on it is unknown" : "Your answer was written to Codex; Codex has not confirmed it";
     case "declined":
-      if (origin?.class === "app-rule") return `Declined by App rule ${text(origin.ruleName)}, not by you`;
+      if (origin?.class === "app-rule") return "Declined by an App rule (named below), not by you";
       return confirmed ? "You declined; written; Codex reported the request resolved" : request?.closedGeneration ? "You declined; the reply was written locally; whether Codex received or acted on it is unknown" : "You declined; written to Codex; Codex has not confirmed it";
     case "settle-write-failed": return "Your answer could not be written; whether Codex received it is unknown";
-    case "resolved-by-supplier": return `Resolved by Codex before you answered (cause: ${text(request?.supplierResolution?.cause) || "not reported"})`;
+    // Codex's cause is shown inside the App's sentence only in a plain token's form; anything else is
+    // said as reported in a form the App does not show inside its own sentence.
+    case "resolved-by-supplier": { const cause = request?.supplierResolution?.cause; return `Resolved by Codex before you answered (cause: ${cause === undefined || cause === null || cause === "" ? "not reported" : plainId(cause) ?? "reported in a form the App does not show here"})`; }
     case "ended-unanswered": return request?.endContext === "app-quit" ? "Ended unanswered: the Codex process ended when you quit" : "Ended unanswered: the Codex process ended";
-    default: return `Register state ${text(request?.state) || "not reported"}`;
+    default: return request?.state === undefined || request?.state === null || request?.state === "" ? "Register state not reported" : "Register state the App does not recognise (shown under Register)";
   }
 }
 
 /** RT-05: a refused answer leaves the card waiting; the reason in words. */
+const REFUSAL = {
+  "no-such-request": "this request is no longer known",
+  "generation-closed": "Codex restarted since this was asked",
+  "already-resolved": "Codex already resolved it",
+  "already-settled": "already answered",
+  "invalid-answer": "that answer is not one this request offers",
+} as const;
+/** RT-05: a refused answer leaves the card waiting; the reason in the App's words (the refusal as reported is shown beside). */
 export function refusalWords(error: string): string {
-  const reasons: [string, string][] = [
-    ["no-such-request", "this request is no longer known"],
-    ["generation-closed", "Codex restarted since this was asked"],
-    ["already-resolved", "Codex already resolved it"],
-    ["already-settled", "already answered"],
-    ["invalid-answer", "that answer is not one this request offers"],
-  ];
-  const known = reasons.find(([code]) => error.includes(code));
-  return known ? `Last answer not taken: ${known[1]} (${error})` : `Last answer not taken: ${error}`;
+  const code = Object.keys(REFUSAL).find(code => error.includes(code));
+  const reason = code === undefined ? null : wordOf(REFUSAL, code);
+  return reason === null ? "Last answer not taken." : `Last answer not taken: ${reason}.`;
 }
 
-const Quoted = ({ label, value }: { label: string; value: Json }) => value === undefined || value === null || value === "" ? null : <div>{label}: <q>{text(value)}</q></div>;
-const Code = ({ label, value }: { label: string; value: Json }) => value === undefined || value === null || value === "" ? null : <div>{label}: <code>{text(value)}</code></div>;
+// A field the agent supplied: the App's label, then the agent's text in its own box.
+const Field = ({ label, value }: { label: string; value: Json }) => value === undefined || value === null || value === "" ? null : <div>{label}: <AgentText value={text(value)} /></div>;
+// A field whose value is Codex's own vocabulary (a kind or mode), not the agent's words.
+const Code = ({ label, value }: { label: string; value: Json }) => value === undefined || value === null || value === "" ? null : <div>{label}: <SuppliedId value={value} label="Codex sent:" name="A value Codex sent, not the App's words" /></div>;
 
 /** What the request is about, read from its native parameters (§4.1 "What the person sees"). */
 const fileChanges = (item: Json): Json[] => Array.isArray(item?.native?.changes) ? item.native.changes : [];
@@ -297,27 +356,27 @@ function Subject({ request, item, place }: { request: Json; item: Json; place?: 
   switch (request?.method) {
     case COMMAND:
       return <div>
-        <Code label="Command" value={p.command} />
-        <Code label="Working folder" value={p.cwd} />
+        <Field label="Command" value={p.command} />
+        <Field label="Working folder" value={p.cwd} />
         {p.kind && p.kind !== "command" && <Code label="Kind" value={p.kind} />}
-        <Quoted label="Reason given" value={p.reason} />
-        <Code label="Proposed exec-policy rule" value={p.proposedExecpolicyAmendment} />
-        {(Array.isArray(p.proposedNetworkPolicyAmendments) ? p.proposedNetworkPolicyAmendments : []).map((rule: Json, i: number) => <Code key={i} label="Proposed network rule" value={rule} />)}
-        <Code label="Additional permissions requested" value={p.additionalPermissions} />
+        <Field label="Reason given" value={p.reason} />
+        <Field label="Proposed exec-policy rule" value={p.proposedExecpolicyAmendment} />
+        {(Array.isArray(p.proposedNetworkPolicyAmendments) ? p.proposedNetworkPolicyAmendments : []).map((rule: Json, i: number) => <Field key={i} label="Proposed network rule" value={rule} />)}
+        <Field label="Additional permissions requested" value={p.additionalPermissions} />
       </div>;
     case FILE_CHANGE: {
       const changes = fileChanges(item);
       const cwd = typeof p.cwd === "string" && p.cwd ? p.cwd : place?.conversationFolder ?? null;
       return <div>
-        <Quoted label="Reason given" value={p.reason} />
-        {p.grantRoot && <div>Also asks to write under <code>{text(p.grantRoot)}</code> for the rest of the session (Codex marks this UNSTABLE).</div>}
+        <Field label="Reason given" value={p.reason} />
+        {p.grantRoot && <div>Also asks to write under the folder shown for the rest of the session (Codex marks this UNSTABLE): <AgentText value={text(p.grantRoot)} label="Folder:" /></div>}
         {changes.length === 0 ? <p>The App has not received the list of files, so it cannot show where these changes go. You can refuse, or wait for the list to appear, before allowing a change you cannot see.</p>
           : <section aria-label="Files this change writes">
-            <p>Changes to {changes.length} {changes.length === 1 ? "file" : "files"}:</p>
+            <p>Changes to {numberWords(changes.length)} {changes.length === 1 ? "file" : "files"}:</p>
             {changes.map((change: Json, i: number) => <div key={i}>
-              <div>{text(change?.kind?.type) || "change"} <ChangeLocation path={change?.path} place={place} cwd={cwd} />
+              <div>{change?.kind?.type ? <Word value={change.kind.type} words={CHANGE_KIND} /> : "change"} <ChangeLocation path={change?.path} place={place} cwd={cwd} />
                 {typeof change?.kind?.move_path === "string" && change.kind.move_path && <>; moved to <ChangeLocation path={change.kind.move_path} place={place} cwd={cwd} /></>}</div>
-              <pre style={diffBox}>{text(change?.diff)}</pre>
+              <AgentText block value={text(change?.diff)} label="The agent's change (diff):" style={diffBox} />
             </div>)}
             <p><small>Locations are read from the paths Codex gave; the App has not followed links.</small></p>
             {(place?.project.kind ?? "unknown") === "unknown" && <p><small>The App has not established where your project folder is, so it cannot mark which of these are inside it.</small></p>}
@@ -325,21 +384,21 @@ function Subject({ request, item, place }: { request: Json; item: Json; place?: 
       </div>;
     }
     case PERMISSIONS:
-      return <div><Code label="Working folder" value={p.cwd} /><Quoted label="Reason given" value={p.reason} />
-        <div>Requested permissions:</div><pre style={pre}>{JSON.stringify(p.permissions ?? null, null, 2)}</pre></div>;
+      return <div><Field label="Working folder" value={p.cwd} /><Field label="Reason given" value={p.reason} />
+        <div>Requested permissions:</div><AgentText block value={JSON.stringify(p.permissions ?? null, null, 2)} label="The agent asked for (native JSON):" /></div>;
     case LEGACY_EXEC:
-      return <div><Code label="Command" value={Array.isArray(p.command) ? p.command.join(" ") : p.command} /><Code label="Working folder" value={p.cwd} /><Quoted label="Reason given" value={p.reason} /></div>;
+      return <div><Field label="Command" value={Array.isArray(p.command) ? p.command.join(" ") : p.command} /><Field label="Working folder" value={p.cwd} /><Field label="Reason given" value={p.reason} /></div>;
     case LEGACY_PATCH:
-      return <div><Quoted label="Reason given" value={p.reason} />{p.grantRoot && <div>Also asks to write under <code>{text(p.grantRoot)}</code> for the session.</div>}
-        {Object.keys(p.fileChanges && typeof p.fileChanges === "object" ? p.fileChanges : {}).map(path => <div key={path}>File: <code>{path}</code></div>)}</div>;
+      return <div><Field label="Reason given" value={p.reason} />{p.grantRoot && <div>Also asks to write under the folder shown for the session: <AgentText value={text(p.grantRoot)} label="Folder:" /></div>}
+        {Object.keys(p.fileChanges && typeof p.fileChanges === "object" ? p.fileChanges : {}).map(path => <div key={path}>File: <AgentText value={path} label="Path:" /></div>)}</div>;
     case QUESTION:
       return p.isBlocking === false ? <div>Not blocking the turn: the agent continues while this waits.</div> : null;
     case ELICITATION:
       return <div>
-        <Quoted label="Message" value={p.message ?? p.description} />
-        {p.mode === "url" && <div>Address (the App never opens it): <code>{text(p.url)}</code></div>}
-        {p.mode === "openai/userVerification" && <div>Challenge (only you can complete it, outside this App): <code>{text(p.challenge)}</code></div>}
-        {p.requestedSchema !== undefined && <details><summary>Requested fields (as Codex sent them)</summary><pre style={pre}>{JSON.stringify(p.requestedSchema, null, 2)}</pre></details>}
+        {text(p.message ?? p.description) !== "" && <div>Message: <AgentText value={text(p.message ?? p.description)} label="Sent with the request:" name={ELICITATION_TEXT} /></div>}
+        {p.mode === "url" && <div>Address (the App never opens it): <AgentText value={text(p.url)} label="Address:" name={ELICITATION_TEXT} /></div>}
+        {p.mode === "openai/userVerification" && <div>Challenge (only you can complete it, outside this App): <AgentText value={text(p.challenge)} label="Challenge:" name={ELICITATION_TEXT} /></div>}
+        {p.requestedSchema !== undefined && <details><summary>Requested fields (as Codex sent them)</summary><AgentText block value={JSON.stringify(p.requestedSchema, null, 2)} label="Fields requested (native JSON):" name={ELICITATION_TEXT} /></details>}
       </div>;
     default:
       return null;
@@ -350,8 +409,8 @@ function Subject({ request, item, place }: { request: Json; item: Json; place?: 
 function About({ request, item, navigation }: { request: Json; item: Json; navigation: { open: () => void } | null }) {
   const p = request?.nativeParameters ?? {};
   if (!p.itemId) return null;
-  if (item && navigation) return <div>About: <a href={`#${itemAnchorId(item.threadId, item.turnId, item.native?.id)}`} onClick={event => { event.preventDefault(); navigation.open(); }}>{text(item.native?.type) || "item"} in this conversation’s activity</a></div>;
-  return <div>About: Codex item <code>{text(p.itemId)}</code> in turn <code>{text(p.turnId)}</code> (not in this view’s activity)</div>;
+  if (item && navigation) return <div>About: <a href={`#${itemAnchorId(item.threadId, item.turnId, item.native?.id)}`} onClick={event => { event.preventDefault(); navigation.open(); }}>the item in this conversation’s activity</a> ({item.native?.type ? <Word value={item.native.type} words={ITEM_KIND} /> : "kind not reported"})</div>;
+  return <div>About: Codex item <SuppliedId value={p.itemId} label="Item:" name="Item identity as Codex reported it, not the App's words" /> in turn <SuppliedId value={p.turnId} label="Turn:" name="Turn identity as Codex reported it, not the App's words" /> (not in this view’s activity)</div>;
 }
 
 /** The activity row of the item a request is about, if this view holds it. */
@@ -361,9 +420,36 @@ export function requestItem(request: Json, view: Json): Json {
   return (Array.isArray(view?.items) ? view.items : []).find((row: Json) => row?.threadId === p.threadId && row?.turnId === p.turnId && row?.native?.id === p.itemId) ?? null;
 }
 
+/** The answers to send: each chosen option's label as offered, and each free answer as typed. */
+export function questionAnswers(questions: Json, chosen: Record<string, number>, drafts: Record<string, string>): Record<string, { answers: string[] }> {
+  const out: Record<string, { answers: string[] }> = {};
+  for (const q of Array.isArray(questions) ? questions : []) {
+    const id = q?.id;
+    if (typeof id !== "string") continue;
+    const at = chosen[id];
+    const option = at !== undefined && Array.isArray(q.options) ? q.options[at] : undefined;
+    if (option && typeof option.label === "string") out[id] = { answers: [option.label] };
+    else if (Object.prototype.hasOwnProperty.call(drafts, id)) out[id] = { answers: [drafts[id]] };
+  }
+  return out;
+}
+/** The option a person chose, by the App's number, with the agent's label beside it. */
+function SelectedOption({ options, index }: { options: Json; index: number }) {
+  const option = Array.isArray(options) ? options[index] : undefined;
+  return <>{`option ${numberWords(index + 1) ?? ""} `}<AgentText value={text(option?.label)} label="Its label:" /></>;
+}
+
 // Request-local drafts are disposable. Secret content is never echoed or saved.
+type ErrorKind = "refused" | "permission-json" | "form-json";
+function ErrorLine({ kind, reported }: { kind: ErrorKind; reported: string | null }) {
+  return <p role="alert">{kind === "permission-json" ? "Invalid permission JSON" : kind === "form-json" ? "Invalid native form JSON" : refusalWords(reported ?? "")}
+    {kind === "refused" && reported ? <> <AgentText value={reported} source="codex" label="Reported:" name="What the refused answer command reported, not the App's words" /></> : null}</p>;
+}
 export function NativeRequestCard({ request, view, answer, readRequest, observation, activityLink, place }: { request: Json; view?: Json; answer: RequestAnswer; readRequest?: ReadRequestCustody; observation?: RequestReplyObservation; activityLink?: RequestActivityLink; place?: RequestPlace }) {
+  // What the person types into a free answer, and which offered option they chose, kept apart: an option's label is
+  // the agent's text and never enters a field the person types in.
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [chosen, setChosen] = useState<Record<string, number>>({});
   const [scope, setScope] = useState("turn");
   const [content, setContent] = useState("");
   const [rejection, setRejection] = useState("");
@@ -373,9 +459,10 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
   const busyRef = useRef<{ scope: string } | null>(null);
   const [busyScope, setBusyScope] = useState<string | null>(null);
   const busy = busyScope === scopeKey;
-  const [scopedError, setScopedError] = useState<{ scope: string; message: string } | null>(null);
-  const setError = (message: string) => setScopedError({ scope: scopeKey, message });
-  const error = scopedError?.scope === scopeKey ? scopedError.message : "";
+  // A refused answer or a malformed entry: its kind, in the App's words, and what was reported, shown beside.
+  const [scopedError, setScopedError] = useState<{ scope: string; kind: ErrorKind; reported: string | null } | null>(null);
+  const setError = (kind: ErrorKind | null, reported: string | null = null) => setScopedError(kind === null ? null : { scope: scopeKey, kind, reported });
+  const error = scopedError?.scope === scopeKey ? scopedError : null;
   const [lastReply, setLastReply] = useState<RequestReplyObservation | null>(null);
   const replyRef = useRef<RequestReplyObservation | null>(null);
   if (observation?.scope === scopeKey) replyRef.current = observation;
@@ -392,16 +479,16 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
     if (currentScope.current !== scopeKey || busyRef.current?.scope === scopeKey || !answerable(request) || requestReplyGuarded(replyRef.current, scopeKey)) return;
     const token = { scope: scopeKey };
     busyRef.current = token;
-    setBusyScope(scopeKey); setError("");
+    setBusyScope(scopeKey); setError(null);
     // Remove drafts from the rendered control before crossing the IPC boundary.
-    setDrafts({}); setContent(""); setRejection("");
+    setDrafts({}); setChosen({}); setContent(""); setRejection("");
     try {
       let completion: ReturnType<RequestAnswer>;
       try { completion = answer(request, value); }
       finally { value = undefined; }
       const observation = await completion;
       if (currentScope.current === scopeKey && observation?.scope === scopeKey) observeReply(observation);
-    } catch (e) { if (currentScope.current === scopeKey) setError(refusalWords(String(e))); }
+    } catch (e) { if (currentScope.current === scopeKey) setError("refused", String(e)); }
     finally { if (busyRef.current === token) { busyRef.current = null; setBusyScope(null); } }
   };
   const reread = async () => {
@@ -415,7 +502,17 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
       if (currentScope.current === scopeKey && replyRef.current?.scope === scopeKey) observeReply({ ...replyRef.current, custody: { scope: scopeKey, available: false, reason: String(e) } });
     } finally { if (busyRef.current === token) { busyRef.current = null; setBusyScope(null); } }
   };
-  const decisionButton = (decision: Json, value: Json, blocked = false) => <button key={JSON.stringify(decision)} disabled={busy || blocked} onClick={() => send(value)}>{decisionWords(decision)} <code>{JSON.stringify(decision)}</code></button>;
+  // A rule-carrying native value holds the agent's proposed words: the button
+  // shows the App's words and the form's name, and the whole value it sends
+  // stands beside it as the agent's text. Every other value stays in the button.
+  // The button carries only the App's words. Beside it: a familiar native decision's own token, or, for any other
+  // value (a rule with the agent's proposed words, or a form the App does not know), the whole value it sends, boxed.
+  const decisionButton = (decision: Json, value: Json, blocked = false) => {
+    const familiar = typeof decision === "string" && wordOf(DECISION_TOKENS, decision) !== null;
+    const button = <button disabled={busy || blocked} onClick={() => send(value)}>{decisionWords(decision)}</button>;
+    return <span key={JSON.stringify(decision)}>{button} {familiar ? <code><Word value={decision} words={DECISION_TOKENS} /></code>
+      : <><small>Sends:</small> <AgentText value={JSON.stringify(decision)} source="codex" label="Native value:" name="The whole native value this answer sends, which may hold the agent's words, not the App's words" /></>}</span>;
+  };
   const modern = method === COMMAND || method === FILE_CHANGE;
   const legacy = method === LEGACY_EXEC || method === LEGACY_PATCH;
   // DM-3: the legacy decline sends the person's reason exactly as written, "" when none.
@@ -430,10 +527,16 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
   const a14 = TOOL_PERMISSION.includes(method);
   return <article id={requestAnchorId(request.generation, request.requestIdentity)} style={{ borderTop: "1px solid #ccc", padding: 8 }}>
     <h3>{requestTitle(request)}</h3>
+    {!KNOWN_METHODS.includes(method) && <p>Codex named the request: {method === undefined || method === null || method === "" ? "no method" : <AgentText value={text(method)} source="codex" label="Method:" name="The request's method as Codex sent it, not the App's words" />}</p>}
+    {method === ELICITATION && <p>{text(p.serverName) === "" ? "MCP server name not reported." : <>MCP server, as named in the request: <AgentText value={text(p.serverName)} label="Server name:" name={ELICITATION_TEXT} /></>}</p>}
+    <p className="request-asker"><AskedBy asker={requestAsker(requestThread(request), request.generation, view)} />.</p>
     <p><b>{unreconciled ? reply?.command.kind === "pending" ? "Answer command in progress" : "Current request state unavailable or not reconciled" : cardState(request)}</b>{unreconciled && <>. Last observed: {cardState(request)}</>}</p>
+    {request?.settlement?.origin?.class === "app-rule" && <p><small>App rule: <SuppliedId value={request.settlement.origin.ruleName} label="Rule:" name="The App rule's name as recorded" /></small></p>}
     {reply && <section aria-label="Native reply observation">
       <p>{replyObservationWords(reply)}</p>
-      {!reply.custody.available && reply.command.kind !== "pending" && <p role="alert">Request state unavailable: {reply.custody.reason || "the original request custody could not be read"}</p>}
+      {reply.command.kind === "rejected" && <p><AgentText value={text(reply.command.reason)} source="codex" label="Reported:" name="What the native answer command reported, not the App's words" /></p>}
+      {reply.command.kind === "unconfirmed" && <p>Write result: <SuppliedId value={reply.command.writeResult} label="Write result:" name="The reply write result as recorded" /></p>}
+      {!reply.custody.available && reply.command.kind !== "pending" && <p role="alert">Request state unavailable: {reply.custody.reason ? <AgentText value={text(reply.custody.reason)} source="codex" label="Reported:" name="Why the request state could not be read, as reported; it may not be the App's words" /> : "the original request custody could not be read"}</p>}
       {unreconciled && reply.command.kind !== "pending" && readRequest && <button disabled={busy} onClick={() => { void reread(); }}>Read current request state</button>}
     </section>}
     <About request={request} item={item} navigation={activityLink?.(request) ?? null} />
@@ -453,54 +556,62 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
         <button disabled={busy} onClick={() => send({ permissions: p.permissions, scope })}>Grant the requested permissions</button>
         <button disabled={busy} onClick={() => send({ permissions: {}, scope })}>Grant nothing</button>
         <label>Grant part of them (native JSON) <input {...EXACT_TEXT} value={content} onChange={e => setContent(e.target.value)} /></label>
-        <button disabled={busy || !content} onClick={() => { try { void send({ permissions: JSON.parse(content), scope }); } catch { setError("Invalid permission JSON"); } }}>Send partial grant…</button>
+        <button disabled={busy || !content} onClick={() => { try { void send({ permissions: JSON.parse(content), scope }); } catch { setError("permission-json"); } }}>Send partial grant…</button>
       </>}
       {method === QUESTION && <>
-        {(p.questions ?? []).map((q: Json) => <div key={q.id}><p><b>{text(q.header)}</b>: {text(q.question)}</p>
-          {(q.options ?? []).map((o: Json) => <button disabled={busy} key={o.label} onClick={() => setDrafts(d => ({ ...d, [q.id]: o.label }))}>{text(o.label)} · {text(o.description)}</button>)}
-          {q.isOther && <label>Answer <input autoComplete="off" type={q.isSecret ? "password" : "text"} value={drafts[q.id] ?? ""} onChange={e => setDrafts(d => ({ ...d, [q.id]: e.target.value }))} /></label>}
-          <button disabled={busy} onClick={() => setDrafts(d => { const next = { ...d }; delete next[q.id]; return next; })}>Leave unanswered</button>
-          {!q.isOther && <p>Selected: {q.isSecret ? (drafts[q.id] ? "[masked]" : "—") : drafts[q.id] ?? "—"}</p>}
+        {(p.questions ?? []).map((q: Json) => <div key={q.id}>
+          {text(q.header) !== "" && <p>Heading: <AgentText value={text(q.header)} /></p>}
+          <p>Question: {text(q.question) === "" ? "no wording reported" : <AgentText value={text(q.question)} />}</p>
+          {/* The option's label is the agent's: the button carries the App's words and the label stands beside it. */}
+          {(q.options ?? []).map((o: Json, i: number) => <div key={i}><button disabled={busy} onClick={() => { setChosen(c => ({ ...c, [q.id]: i })); setDrafts(d => { const next = { ...d }; delete next[q.id]; return next; }); }}>Choose option {i + 1}</button>
+            {" "}<AgentText value={text(o.label)} label={`Option ${i + 1}:`} />{text(o.description) !== "" && <> <AgentText value={text(o.description)} label="Its description:" /></>}</div>)}
+          {q.isOther && <label>Your own answer <input autoComplete="off" type={q.isSecret ? "password" : "text"} value={drafts[q.id] ?? ""} onChange={e => { const typed = e.target.value; setChosen(c => { const next = { ...c }; delete next[q.id]; return next; }); setDrafts(d => ({ ...d, [q.id]: typed })); }} /></label>}
+          <button disabled={busy} onClick={() => { setChosen(c => { const next = { ...c }; delete next[q.id]; return next; }); setDrafts(d => { const next = { ...d }; delete next[q.id]; return next; }); }}>Leave unanswered</button>
+          <p>Selected: {chosen[q.id] !== undefined ? q.isSecret ? "[masked]" : <SelectedOption options={q.options} index={chosen[q.id]} /> : drafts[q.id] !== undefined ? q.isSecret ? "[masked]" : "your own answer, in the field above" : "—"}</p>
         </div>)}
-        <button disabled={busy} onClick={() => send({ answers: Object.fromEntries(Object.entries(drafts).map(([id, value]) => [id, { answers: [value] }])) })}>Send current question answers…</button>
+        <button disabled={busy} onClick={() => send({ answers: questionAnswers(p.questions, chosen, drafts) })}>Send current question answers…</button>
         <p>Unanswered questions are omitted; entered empty answers are preserved.</p>
         <button disabled={busy} onClick={() => send({ answers: {} })}>Decline to answer</button>
       </>}
       {method === ELICITATION && <>
-        <p>Codex input mode: <code>{text(p.mode)}</code>.</p>
+        <p>Codex input mode: <SuppliedId value={p.mode} label="Mode:" name="The input mode Codex sent, not the App's words" />.</p>
         {formMode && <label>Form content (JSON, masked) <input type="password" autoComplete="off" value={content} onChange={e => setContent(e.target.value)} /></label>}
-        {elicitationAcceptSupported && <button disabled={busy || (formMode && !content)} onClick={() => { try { void send({ action: "accept", content: formMode ? JSON.parse(content) : null, _meta: null }); } catch { setError("Invalid native form JSON"); } }}>Send this input <code>accept</code>…</button>}
+        {elicitationAcceptSupported && <button disabled={busy || (formMode && !content)} onClick={() => { try { void send({ action: "accept", content: formMode ? JSON.parse(content) : null, _meta: null }); } catch { setError("form-json"); } }}>Send this input <code>accept</code>…</button>}
         {!elicitationAcceptSupported && <p>Sending input is not supported for this mode in this App path. Device verification requires actual device proof; this App supplies none.</p>}
         <button disabled={busy} onClick={() => send({ action: "decline", content: null, _meta: null })}>Decline <code>decline</code></button>
         <button disabled={busy} onClick={() => send({ action: "cancel", content: null, _meta: null })}>Cancel <code>cancel</code></button>
       </>}
       <p>Sending opens a native confirmation. Closing this card leaves the request waiting; the App never answers it by itself.</p>
     </div>}
-    {error && <p role="alert">{error}</p>}
-    <p><small>Register: state <code>{text(request.state)}</code> · reply <code>{text(request.replyWriteResult)}</code> · Codex confirmation <code>{text(request.acknowledgmentObservation?.status ?? "not-observed")}</code>{request.settlement && <> · settled by <code>{text(request.settlement.origin)}</code> as <code>{text(request.settlement.kind)}</code></>}</small></p>
+    {error && <ErrorLine kind={error.kind} reported={error.reported} />}
+    <p><small>Register: state <SuppliedId value={request.state} label="State:" name={REGISTER} /> · reply <SuppliedId value={request.replyWriteResult} label="Reply:" name={REGISTER} /> · Codex confirmation <SuppliedId value={request.acknowledgmentObservation?.status ?? "not-observed"} label="Confirmation:" name={REGISTER} />{request.settlement && <> · settled by <AgentText value={text(request.settlement.origin)} source="codex" label="Origin:" name={REGISTER} /> as <SuppliedId value={request.settlement.kind} label="Kind:" name={REGISTER} /></>}</small></p>
     {request.closedGeneration && request.settlement && <section aria-label="Retained reply">
       <p>Prepared reply:</p>
-      {request.settlement.nativeContent !== undefined && <pre style={pre}>{JSON.stringify(request.settlement.nativeContent, null, 2)}</pre>}
+      {request.settlement.nativeContent !== undefined && <AgentText block value={JSON.stringify(request.settlement.nativeContent, null, 2) ?? ""} source="codex" label="As the host recorded it:" name="The prepared reply as the host recorded it, which may hold the agent's text, not the App's words" />}
       {request.settlement.redaction && <p>Secret answer values are removed; the original question references are retained.</p>}
     </section>}
-    <details><summary>Native request parameters and owning generation (as received)</summary><pre style={pre}>{JSON.stringify({ method, requestIdentity: request.requestIdentity, generation: request.generation, parameters: p }, null, 2)}</pre></details>
+    <details><summary>Native request parameters and owning generation (as received)</summary><AgentText block value={JSON.stringify({ method, requestIdentity: request.requestIdentity, generation: request.generation, parameters: p }, null, 2)} source="codex" label="As Codex sent it:" name="Native request as Codex sent it, which holds the agent's text, not the App's words" /></details>
   </article>;
 }
 
+const REGISTER = "A register value, as recorded; the App does not vouch for its words";
 export type WaitingRequestGroup = { modeHomeClass: string; generation: Json; threadId: string | null; count: number };
 
 /** WI-1…WI-3: local all-home metadata only; opening revalidates its native source. */
-export function WaitingRequestsIndicator({ overview, busy = false, open }: { overview: Json; busy?: boolean; open: (group: WaitingRequestGroup) => void }) {
+export function WaitingRequestsIndicator({ overview, view, busy = false, open }: { overview: Json; view?: Json; busy?: boolean; open: (group: WaitingRequestGroup) => void }) {
   const available = Array.isArray(overview?.groups);
   const waiting: WaitingRequestGroup[] = available ? overview.groups : [];
   const total = waiting.reduce((sum, row) => sum + row.count, 0);
   return <section aria-label="Requests waiting for your answer" style={{ border: "1px solid #888", padding: "4px 8px", margin: "8px 0" }}>
-    <b>{!available ? "Waiting-request overview unavailable." : total === 0 ? "No current waiting requests observed in configured homes." : `${total} request${total === 1 ? "" : "s"} from Codex waiting for your answer`}</b>
+    <b>{!available ? "Waiting-request overview unavailable." : total === 0 ? "No current waiting requests observed in configured homes." : `${numberWords(total) ?? "Some"} request${total === 1 ? "" : "s"} from Codex waiting for your answer`}</b>
     {waiting.map(row => <div key={JSON.stringify([row.modeHomeClass, row.generation, row.threadId])}>
-      <button disabled={busy} onClick={() => open(row)}>{row.modeHomeClass} · {row.threadId ? `conversation ${row.threadId}` : "no conversation named"}: {row.count}</button>
-      <small> Source: {JSON.stringify(row.generation)}.</small>
+      {/* A control carries only the App's words: a thread id stands in it only when it is a plain identifier. */}
+      <button disabled={busy} onClick={() => open(row)}>{idWords(row.modeHomeClass)} · {!row.threadId ? "no conversation named" : plainId(row.threadId) ? `thread ${idWords(row.threadId)}` : "a conversation (its identity is shown beside)"}: {numberWords(row.count) ?? "a count the App does not recognise"}</button>
+      {row.threadId && !plainId(row.threadId) && <> <AgentText value={row.threadId} source="codex" label="Conversation:" name="Conversation identity as Codex reported it, not the App's words" /></>}
+      {" "}<AskedBy asker={requestAsker(row.threadId, row.generation, view)} />.
+      <small> Source: <AgentText value={JSON.stringify(row.generation)} source="codex" label="Source:" name="The Codex process this was read from, as recorded; the App does not vouch for its words" />.</small>
     </div>)}
-    {available && <p><small>{overview.coverage} {(overview.sources ?? []).filter((source: Json) => source.state !== "ready").map((source: Json) => `${source.modeHomeClass}: ${source.state}; no current waiting groups shown. `).join("")}</small></p>}
+    {available && <p><small><AgentText value={text(overview.coverage)} source="codex" label="Coverage:" name="What the overview covers, as recorded; the App does not vouch for its words" /> {(overview.sources ?? []).filter((source: Json) => source.state !== "ready").map((source: Json, i: number) => <span key={i}><SuppliedId value={source.modeHomeClass} label="Home:" name={REGISTER} />: <SuppliedId value={source.state} label="State:" name={REGISTER} />; no current waiting groups shown. </span>)}</small></p>}
     {total > 0 && <small> Opening shows the original home's request cards; it answers nothing and resumes no conversation.</small>}
   </section>;
 }
