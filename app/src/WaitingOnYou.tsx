@@ -23,13 +23,15 @@ type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 //
 // The list is a projection of its sources' latest readings and keeps no
 // memory of entries: each reading replaces the one before. The one thing
-// retained is per kind of read call, not per source: the last successful
-// response of the status read, of the returns read and of the decisions read
-// (the snapshot, packet or view the App already holds, bound to its home,
-// generation, time and limits). When a call's latest read failed, its last
-// successful response is shown as it was, as last read at its time, not
-// counted, its current state unknown, with the sources it had not read whole
-// named as not read in it. Nothing says whether an earlier response held more.
+// retained is per kind of read, not per source: the last successful response
+// to the status read, to the returns read and to the decisions read (the
+// snapshot, packet or view the App already holds, bound to its home,
+// generation, time and limits). When that kind of read fails, what its last
+// successful response showed waiting is shown apart, as last read at its time,
+// not counted, its current state unknown; for the status response, with the
+// sources it had not read whole, each as not read or read with limits, in one
+// block. A response that showed nothing waiting is said so in the coverage
+// lines. Nothing says whether an earlier response held more.
 //
 // The list settles nothing; "Go to it" opens the source's existing control or
 // record (what each control checks is said in the list's footer). Related
@@ -784,7 +786,7 @@ export function WaitingOnYou({ readings, view, busy = false, openGroup, go, onOp
         {lastStatus && <LastStatusBlock last={lastStatus} go={go} />}
         {lastReads.filter(reading => reading.call !== "status").map(reading => <LastReadBlock key={reading.key} reading={reading} go={go} />)}
         <RequestsOverview reading={readings.find(r => r.key === "requests" || r.key.startsWith("requests:"))} view={view} busy={busy} open={openGroup} />
-        <p><small>Each source shows what its latest reading observed, and the next reading replaces it: nothing is kept from one reading to the next, so an item a limited reading showed can drop from view when the next reading does not hold it, and after a change of home the requests of the home left are shown only as that home's overview reads them. When a read fails, the last successful response to that kind of read (the status read, the returns read or the decisions read) is shown apart, as it was, as last read at its time, with the sources it had not read named, not counted, its current state unknown. These are the places each kind of item is shown in the App: a request from Codex on its request card, beside its conversation or under the requests outside the selected conversation (in another home, once that home is opened); a checkpoint arrival of a run in this session in that run's panel in the workflow studio; a return in the fleet records panel; a decision package in the decision packages view. They are fed by the same readings, so an item a limited reading omits is omitted there as well until a reading supplies it again. A run reopened after the App restarted does not show its checkpoints anywhere in the App yet. Returns and decisions are read again every 15 seconds, and returns each time you open this list. Nothing here answers, dismisses or settles anything; Go to it opens the existing control or record. A question or tool permission already answered is refused there. A decision package and a checkpoint act are checked there against the current content of what they concern, but an earlier decision or act does not stop another being recorded, and neither yet refuses an item that is no longer waiting. Returns have no review control in the App yet: Go to it shows the return's record. A return whose examiner is an agent is not a demand on you, but the records do not yet say whether the examiner is a person or an agent, so every return waiting for review is listed.</small></p>
+        <p><small>Each source shows what its latest reading observed, and the next reading replaces it: nothing is kept from one reading to the next, so an item a limited reading showed can drop from view when the next reading does not hold it, and after a change of home the requests of the home left are shown only as that home's overview reads them. When a read fails, the list uses the last successful response to that kind of read (the status read, the returns read or the decisions read): what it showed waiting is shown apart, as last read at its time, not counted, its current state unknown, with the sources it had not read whole said as not read or read with limits; a response that showed nothing waiting is said so in the coverage lines. These are the places each kind of item is shown in the App: a request from Codex on its request card, beside its conversation or under the requests outside the selected conversation (in another home, once that home is opened); a checkpoint arrival of a run in this session in that run's panel in the workflow studio; a return in the fleet records panel; a decision package in the decision packages view. They are fed by the same readings, so an item a limited reading omits is omitted there as well until a reading supplies it again. A run reopened after the App restarted does not show its checkpoints anywhere in the App yet. Returns and decisions are read again every 15 seconds, and returns each time you open this list. Nothing here answers, dismisses or settles anything; Go to it opens the existing control or record. A question or tool permission already answered is refused there. A decision package and a checkpoint act are checked there against the current content of what they concern, but an earlier decision or act does not stop another being recorded, and neither yet refuses an item that is no longer waiting. Returns have no review control in the App yet: Go to it shows the return's record. A return whose examiner is an agent is not a demand on you, but the records do not yet say whether the examiner is a person or an agent, so every return waiting for review is listed.</small></p>
       </div>
     </details>
   </section>;
