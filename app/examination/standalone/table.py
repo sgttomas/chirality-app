@@ -5,7 +5,10 @@ driver's runs and the session comparison's rows (DEL-09-02 examination tooling).
     python3 -B table.py --repo <a checkout> --candidate <key> [--results <folder>] [--driver FOLDER=RUN@HEAD ...]
                         [--comparisons <record folder> ...] [--release 4.0.0]
 
-It reads and writes nothing in the repository, and its output is never committed. What it reads:
+It reads and writes nothing in the repository, and its output is never committed. A limit: a malformed comparison
+header or driver report can still stop the whole print. When the print stops, nothing is printed on stdout, and
+stderr says "THE TABLE WAS NOT PRINTED: " and why, with exit status 3, so a stopped print is never taken for an empty
+table. What it reads:
 - the planned steps, from app/examination/sq_receiving/sq.step-map.json in the checkout given;
 - steps taken out of a release by a recorded decision, from that file's "out_of_release" entry for their scenario:
   the steps it lists in "steps", or every step of the scenario when it lists none. They are printed as out of that
@@ -17,8 +20,11 @@ It reads and writes nothing in the repository, and its output is never committed
   failed, blocked, not run, inconclusive); any other outcome stops the print, and so does a results folder that is
   not there or cannot be read, and an empty candidate. Records for another candidate or naming none, and records
   that cannot be read, are named beneath the table and never counted. A record that is not a JSON object, names no
-  step, or has a date that is neither a calendar date (YYYY-MM-DD) nor a time with its zone (ISO 8601, Z or an
-  offset) cannot be read. Dates are compared as dates or as exact instants (whole seconds in UTC and the fraction to
+  step, or has a date that is neither a calendar date (YYYY-MM-DD) nor a time in the one written form accepted
+  (YYYY-MM-DDTHH:MM:SS, an optional fraction of a second after a point, and Z or an offset) cannot be read, and is
+  listed as set aside. Every other written form of a time is refused, however a lenient reader would take it: one
+  without seconds, a fraction of a minute or an hour, a week or ordinal date, a comma as the decimal mark. A time read
+  wrongly could make an older pass beat a later failure. Dates are compared as dates or as exact instants (whole seconds in UTC and the fraction to
   whatever precision it is written), so one time written with two zones is the same date; a step whose records mix
   calendar dates and times cannot be ordered and prints as inconclusive. Nothing read from an input can make a line
   of its own in the print: each control character, line separator or paragraph separator prints as its escape, and a
@@ -34,7 +40,8 @@ It reads and writes nothing in the repository, and its output is never committed
   count, and nothing in a citation can stop the print: one that is not a list, names a path that cannot be read or
   that resolves outside the results folder (by .., a link or an absolute path; listed, not read), or names a file
   that cannot be read is listed as such. A path that resolves inside the folder is read, however it is written.
-  Every cited row is listed. The driver's runs and the comparison's rows are never counted as steps;
+  Every cited row is listed, for the records that decide a shown step; the citations of older or excluded records
+  are not listed. The driver's runs and the comparison's rows are never counted as steps;
 - the scripted driver's runs, from --driver FOLDER=RUN@HEAD: a folder holding the reports a hosted run uploaded
   (report.json, scenario-report.json, and setup-report.json when the run made one). The driver is development
   evidence on a test build and satisfies no step;
@@ -74,7 +81,9 @@ STEP_MAP = 'app/examination/sq_receiving/sq.step-map.json'
 def shown(text):
     """Text from an input as it prints: each control character, line separator or paragraph separator written as its
     escape, so that nothing read from an input can make a line of its own."""
-    return re.sub('[\x00-\x1f\x7f-\x9f\u2028\u2029]', lambda m: m.group(0).encode('unicode_escape').decode(), str(text))
+    escaped = re.sub('[\x00-\x1f\x7f-\x9f\u2028\u2029]', lambda m: m.group(0).encode('unicode_escape').decode(), str(text))
+    # A character that cannot be printed at all (a lone surrogate, say) is written as its escape too.
+    return escaped.encode('utf-8', 'backslashreplace').decode('utf-8')
 
 
 def cell(text):
@@ -94,11 +103,13 @@ def when(text):
             return ('date', datetime.date.fromisoformat(text))
         except ValueError:
             return None
-    match = re.fullmatch(r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})(:\d{2})?(\.\d+)?(Z|[+-]\d{2}:\d{2})', text)
+    # One written form for a time, and no other: date, T, hours, minutes and seconds, an optional fraction of a second
+    # with a point, and the zone. A time read wrongly could make an older pass beat a later failure.
+    match = re.fullmatch(r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})(:\d{2})(\.\d+)?(Z|[+-]\d{2}:\d{2})', text)
     if not match:
         return None
     try:
-        whole = datetime.datetime.fromisoformat(match.group(1) + (match.group(2) or ':00')
+        whole = datetime.datetime.fromisoformat(match.group(1) + match.group(2)
                                                 + ('+00:00' if match.group(4) == 'Z' else match.group(4)))
         since = whole - datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
     except (ValueError, OverflowError):
@@ -426,6 +437,18 @@ def driver(entries):
 
 
 def main(argv=None):
+    """Print the table; if it cannot be printed, say so on stderr and exit 3, printing nothing on stdout, so that a
+    stopped print is never taken for an empty table."""
+    try:
+        return _main(argv)
+    except SystemExit:
+        raise
+    except Exception as error:  # a malformed comparison header or driver report, among others
+        print(f'THE TABLE WAS NOT PRINTED: {shown(type(error).__name__)}: {shown(error)}', file=sys.stderr)
+        return 3
+
+
+def _main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('--repo', required=True, help='a checkout of main')
     parser.add_argument('--results', help='a folder of step result records')

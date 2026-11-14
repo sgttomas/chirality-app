@@ -10,6 +10,8 @@ import io
 import json
 import os
 from pathlib import Path
+import subprocess
+import sys
 import tempfile
 import unittest
 
@@ -419,6 +421,44 @@ class TheThirdReading(Fixture):
                 text = self.printed('--repo', str(self.repo()), '--candidate', 'c', '--comparisons', str(folder))
                 self.assertNotIn('| c | C2 |', text)
                 self.assertIn("none of this folder's rows is counted", text)
+
+
+class TheLastReading(Fixture):
+    """The third and last reading found two more; each is repaired with the reader's input as a test."""
+
+    def test_one_written_form_of_a_time_is_accepted_and_the_rest_are_set_aside_and_listed(self):
+        records = [{'step': 'A-1', 'candidate': 'c', 'date': '2026-11-14T10:00:00.9Z', 'outcome': 'passed'},
+                   {'step': 'A-1', 'candidate': 'c', 'date': '2026-11-14T10:00.5Z', 'outcome': 'failed'}]
+        refused = ['2026-11-14T10:00Z', '2026-11-14T10.5Z', '2026-W46-6T10:00:00Z', '2026-318T10:00:00Z',
+                   '2026-11-14T10:00:00,5Z', '2026-11-14 10:00:00Z', '20261114T100000Z']
+        records += [{'step': 'B-1', 'candidate': 'c', 'date': form, 'outcome': 'passed'} for form in refused]
+        text = self.printed('--repo', str(self.repo()), '--results', str(self.results(*records)), '--candidate', 'c')
+        a1 = next(line for line in text.splitlines() if '| A-1 |' in line)
+        self.assertIn('| passed | 2026-11-14T10:00:00.9Z |', a1)  # the one readable record; the other is set aside
+        self.assertIn("r1.json (its date '2026-11-14T10:00.5Z' is not a calendar date or a time with its zone)", text)
+        self.assertIn('not run (no record)', next(line for line in text.splitlines() if '| B-1 |' in line))
+        for n, form in enumerate(refused, start=2):
+            self.assertIn(f"r{n}.json (its date {form!r}", text)
+
+    def test_a_character_that_cannot_be_printed_is_written_as_its_escape(self):
+        results = self.results()
+        (results / 'rows.jsonl').write_text('{"outcome":"\\ud800"}\n')
+        self.results({'step': 'A-1', 'candidate': 'c', 'date': '2026-11-14', 'outcome': 'passed',
+                      'cites': [{'file': 'rows.jsonl', 'sha256': 'x', 'rows': [1]}]})
+        done = subprocess.run([sys.executable, '-B', str(APP / 'examination/standalone/table.py'), '--repo', str(self.repo()),
+                               '--results', str(results), '--candidate', 'c'], capture_output=True, text=True)
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertIn('1 passed', done.stdout)
+        self.assertIn('row 1: \\ud800', done.stdout)
+
+    def test_a_stopped_print_says_so_and_prints_nothing(self):
+        run = self.root / 'run'
+        run.mkdir()
+        (run / 'report.json').write_text('[]')
+        done = subprocess.run([sys.executable, '-B', str(APP / 'examination/standalone/table.py'), '--repo', str(self.repo()),
+                               '--candidate', 'c', '--driver', f'{run}=1@abc'], capture_output=True, text=True)
+        self.assertEqual((done.returncode, done.stdout), (3, ''))
+        self.assertTrue(done.stderr.startswith('THE TABLE WAS NOT PRINTED: '), done.stderr)
 
 
 class Comparisons(Fixture):

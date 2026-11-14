@@ -109,3 +109,22 @@ Run the maintained offline checks with:
 ```sh
 python3 -B -m unittest discover -s tests -p 'group_b_pre_run_inputs_test.py' -v
 ```
+
+## The examination table
+
+`table.py` prints every planned step of a release for one named candidate, its latest outcome as the result records
+for that candidate state it, and, kept apart, the scripted driver's runs and the session comparison's rows. Its
+docstring gives what it reads and how. Its claim (App Agent 0, 14 November 2026): a step prints as passed only when a
+result record for that step, on the candidate named, says passed, and no other record for that step on that
+candidate of the same latest date says otherwise; every other state prints as what it is; cited rows are listed
+beneath the table and never raise, lower or protect an outcome or a count; the driver's runs and the comparison's rows
+are never counted as steps.
+
+The table accepts one written form for a time, `YYYY-MM-DDTHH:MM:SS` with an optional fraction of a second and its
+zone, and a calendar date `YYYY-MM-DD`, and refuses the rest, because a time read wrongly can make an older pass beat
+a later failure. A record in another form is set aside and listed.
+
+Limits:
+- Citations are listed only for the records that decide a shown step.
+- A malformed comparison header or driver report can still stop the whole print. Then nothing is printed on stdout,
+  and stderr says "THE TABLE WAS NOT PRINTED: " and why, with exit status 3.
