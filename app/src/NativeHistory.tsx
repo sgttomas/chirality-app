@@ -1,5 +1,6 @@
 import { NativeItemCard } from "./NativeActivity";
-import { AgentText } from "./AgentText";
+import { AgentText, SuppliedId, Word, Num, isoSeconds } from "./AgentText";
+import { ITEM_KIND, ITEMS_VIEW, TURN_STATUS } from "./nativeWords";
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "./hostReads";
 
@@ -59,7 +60,7 @@ export function HistoryPageSource({ binding }: { binding: HistoryPageBinding }) 
   const q = binding.query;
   return <>
     <p role="status">{binding.notice}</p>
-    {binding.accepted && <p><small>Source home {text(binding.home)} · conversation {text(binding.threadId)}{q.params.turnId && <> · turn {text(q.params.turnId)}</>}<br />
+    {binding.accepted && <p><small>Source home <SuppliedId value={binding.home} label="Home:" name="Home as recorded, not the App's words" /> · conversation <SuppliedId value={binding.threadId} label="Conversation:" name="Conversation identity as Codex reported it, not the App's words" />{q.params.turnId && <> · turn <SuppliedId value={q.params.turnId} label="Turn:" name="Turn identity as Codex reported it, not the App's words" /></>}<br />
       {q.params.sortDirection === "desc" ? "Newest first" : "Oldest first"} · {q.params.cursor === undefined ? "first page request" : "cursor page request"}.<br />
       Only this received page is shown. An exhausted cursor ends this paging direction; it does not establish a complete conversation or current descendant status.</small></p>}
   </>;
@@ -80,11 +81,11 @@ function preview(item: Json): string {
   if (item?.type === "userMessage") return snippet(list(item.content).filter(part => part?.type === "text" && typeof part.text === "string").map(part => part.text).join("\n"));
   return item?.type === "agentMessage" || item?.type === "plan" ? snippet(item.text) : "";
 }
-function nativeTime(value: Json): string {
-  if (value === null) return "null (as supplied)";
-  if (typeof value !== "number" || !Number.isFinite(value)) return text(value);
-  const date = new Date(value * 1000);
-  return Number.isFinite(date.getTime()) ? date.toISOString() : text(value);
+/** A native time in seconds: in ISO 8601 when it is a valid time, else boxed as Codex sent it. */
+function NativeTime({ value }: { value: Json }) {
+  if (value === null) return <>null (as supplied)</>;
+  const time = isoSeconds(value);
+  return time !== null ? <>{time}</> : <AgentText value={value} source="codex" label="Codex sent:" name="A value Codex sent where a time was expected, not the App's words" />;
 }
 
 export function StoredTurnPage({ binding, canRead, readItems }: { binding: HistoryPageBinding; canRead: boolean; readItems: (turnId: string) => void }) {
@@ -96,16 +97,15 @@ export function StoredTurnPage({ binding, canRead, readItems }: { binding: Histo
       const items = list(turn?.items);
       const user = items.find(item => item?.type === "userMessage");
       const response = [...items].reverse().find(item => item?.type === "agentMessage" || item?.type === "plan");
-      const view = turn?.itemsView === undefined ? "full (native default)" : text(turn.itemsView);
       return <article key={index} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
-        <p><b>Turn {text(turn?.id)}</b> · native status {text(turn?.status)}{turn?.status === "inProgress" && " (in progress at the read; current outcome unknown)"}{turn?.status === "interrupted" && " (cause not established by this page)"}</p>
-        <div><small>Items view: {view} · {Array.isArray(turn?.items) ? `${items.length} embedded items` : "items malformed or not reported"}. {turn?.itemsView === "notLoaded" ? "Items have not been loaded in this summary." : turn?.itemsView === "summary" ? "Summary items can omit substantive activity; read the item page." : "Embedded items are not rendered as the selected item page."}</small></div>
-        {turn?.startedAt !== undefined && <div><small>Native start: {nativeTime(turn.startedAt)}</small></div>}
-        {turn?.completedAt !== undefined && <div><small>Native end: {nativeTime(turn.completedAt)}</small></div>}
-        {turn?.durationMs !== undefined && <div><small>Native duration ms: {text(turn.durationMs)}</small></div>}
+        <p><b>Turn <SuppliedId value={turn?.id} label="Turn:" name="Turn identity as Codex reported it, not the App's words" /></b> · native status <Word value={turn?.status} words={TURN_STATUS} name="A turn status Codex sent that the App does not recognise, not the App's words" />{turn?.status === "inProgress" && " (in progress at the read; current outcome unknown)"}{turn?.status === "interrupted" && " (cause not established by this page)"}</p>
+        <div><small>Items view: {turn?.itemsView === undefined ? "full (native default)" : <Word value={turn.itemsView} words={ITEMS_VIEW} />} · {Array.isArray(turn?.items) ? `${items.length} embedded items` : "items malformed or not reported"}. {turn?.itemsView === "notLoaded" ? "Items have not been loaded in this summary." : turn?.itemsView === "summary" ? "Summary items can omit substantive activity; read the item page." : "Embedded items are not rendered as the selected item page."}</small></div>
+        {turn?.startedAt !== undefined && <div><small>Native start: <NativeTime value={turn.startedAt} /></small></div>}
+        {turn?.completedAt !== undefined && <div><small>Native end: <NativeTime value={turn.completedAt} /></small></div>}
+        {turn?.durationMs !== undefined && <div><small>Native duration ms: <Num value={turn.durationMs} /></small></div>}
         {preview(user) && <div>Input preview:<AgentText block value={preview(user)} source="person" /></div>}
         {preview(response) && <div>{response.type === "plan" ? "Plan" : "Agent"} preview:<AgentText block value={preview(response)} source="agent" /></div>}
-        {items.length > 0 && <div><small>Embedded native kinds: {items.map(item => text(item?.type)).join(", ")}.</small></div>}
+        {items.length > 0 && <div><small>Embedded native kinds: {items.map((item, i) => <span key={i}>{i > 0 ? ", " : ""}<Word value={item?.type} words={ITEM_KIND} name="An item kind Codex sent that the App does not recognise, not the App's words" /></span>)}.</small></div>}
         {turn?.error != null && <p>Codex reported a turn error: <AgentText value={text(turn.error?.message ?? turn.error)} source="codex" label="Error:" name="Turn error as Codex reported it, not the App's words" /></p>}
         <p><small>Checklist updates: not recoverable from native history.</small></p>
         {valid ? <button disabled={!canRead} onClick={() => readItems(turn.id)}>Read items for this turn</button> : <p>Malformed native turn identity; an item read cannot be targeted.</p>}
@@ -121,7 +121,7 @@ export function StoredItemPage({ binding }: { binding: HistoryPageBinding }) {
     <HistoryPageSource binding={binding} />
     {binding.accepted && <>
       <p><small>Read-only native history. Tool success does not establish checking, acceptance, approval or reliance. Parent completion does not establish descendant return, review or integration. Checklist updates are not kept in Codex history; not recoverable after restart or relaunch. Recovered plans have no live revision number.</small></p>
-      {binding.page.data.length === 0 && <p>Native returned an empty item page for turn {binding.query.params.turnId}. Other pages or unrecorded activity are not established by this result.</p>}
+      {binding.page.data.length === 0 && <p>Native returned an empty item page for turn <SuppliedId value={binding.query.params.turnId} label="Turn:" name="Turn identity as Codex reported it, not the App's words" />. Other pages or unrecorded activity are not established by this result.</p>}
       {binding.page.data.map((entry: Json, index: number) => {
         const native = entry?.item;
         const valid = object(entry) && entry.turnId === binding.query.params.turnId && object(native) && nonempty(native.id) && nonempty(native.type);
@@ -202,19 +202,19 @@ export function ContinuationContext({ host, thread }: { host: Json; thread: Json
       if (serial.current === token && latest.current.scope === scope && latest.current.context?.revision === revision) setAttempt({ scope, revision, state: "failed", error: String(error) });
     }
   };
-  const paging = (kind: "turns" | "items", binding: HistoryPageBinding) => binding.accepted && <p>
-    {nonempty(binding.page.nextCursor) && <button disabled={!canRead} onClick={() => { void action(kind, binding.page.nextCursor, binding.query.params.sortDirection, kind === "items" ? binding.query.params.turnId : null); }}>Read more {kind}</button>}{" "}
-    {nonempty(binding.page.backwardsCursor) && <button disabled={!canRead} onClick={() => { void action(kind, binding.page.backwardsCursor, binding.query.params.sortDirection === "desc" ? "asc" : "desc", kind === "items" ? binding.query.params.turnId : null); }}>Read previous {kind} page</button>}
+  const paging = (kind: "turns" | "items", binding: HistoryPageBinding) => { const kindWords = kind === "turns" ? "turns" : "items"; return binding.accepted && <p>
+    {nonempty(binding.page.nextCursor) && <button disabled={!canRead} onClick={() => { void action(kind, binding.page.nextCursor, binding.query.params.sortDirection, kind === "items" ? binding.query.params.turnId : null); }}>Read more {kindWords}</button>}{" "}
+    {nonempty(binding.page.backwardsCursor) && <button disabled={!canRead} onClick={() => { void action(kind, binding.page.backwardsCursor, binding.query.params.sortDirection === "desc" ? "asc" : "desc", kind === "items" ? binding.query.params.turnId : null); }}>Read previous {kindWords} page</button>}
     <small> {binding.page.nextCursor === null ? "This paging direction is exhausted; this is not a complete conversation." : binding.page.nextCursor === undefined ? "Next cursor not reported." : "More may be read explicitly."}</small>
-  </p>;
+  </p>; };
   return <section aria-label="Prior work in continued conversation">
     <h3>Prior work</h3>
     <p role="status">{owner.notice}</p>
     <p><small>Transient, read-only context; at most 20 turn summaries and 50 items in each page. This is not a complete transcript or a rebuild of live state. Native statuses describe the read. Original role, CCE authority, pending requests and checklist revisions are not restored by these pages.</small></p>
     {pending && <p role="status">Prior-work read requested; waiting for the current host context.</p>}
-    {failure && <p role="alert">Prior-work read request failed: {text(failure)}. No resume or message was retried.</p>}
+    {failure && <p role="alert">Prior-work read request failed: <AgentText value={failure} source="codex" label="Reported:" name="What the failed request reported, not the App's words" />. No resume or message was retried.</p>}
     {owner.accepted && <>
-      <p><small>Source home {text(context.home)} · conversation {text(context.threadId)} · admitted resume {text(context.resumeRequestRef)}.</small></p>
+      <p><small>Source home <SuppliedId value={context.home} label="Home:" name="Home as recorded, not the App's words" /> · conversation <SuppliedId value={context.threadId} label="Conversation:" name="Conversation identity as Codex reported it, not the App's words" /> · admitted resume <SuppliedId value={context.resumeRequestRef} label="Resume:" name="Resume reference as recorded, not the App's words" />.</small></p>
       {context.error != null && <p role="alert">Prior-work read: <AgentText value={text(context.error)} source="codex" label="Reported:" name="What the prior-work read reported, not the App's words" /></p>}
       {context.state === "unavailable" && <button disabled={!canRead} onClick={() => { void action("retry"); }}>Retry prior-work read</button>}
       <h4>Prior turn summaries</h4>{paging("turns", turns)}

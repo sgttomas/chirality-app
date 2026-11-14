@@ -47,6 +47,13 @@ export const idWords = (value: unknown): string => value === null || value === u
  * this). A generated type is no guarantee at run time, so the value is checked here. */
 export const wordOf = (words: Readonly<Record<string, string>>, value: unknown): string | null =>
   typeof value === "string" && Object.prototype.hasOwnProperty.call(words, value) ? words[value] : null;
+/** A supplied time in seconds since the epoch, in the App's words (ISO 8601, UTC); null for anything that is not a
+ * finite number giving a valid date. */
+export const isoSeconds = (value: unknown): string | null => {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  const date = new Date(value * 1000);
+  return Number.isFinite(date.getTime()) ? date.toISOString() : null;
+};
 /** A supplied number in the App's words: a finite number as written, else null. */
 export const numberWords = (value: unknown): string | null => typeof value === "number" && Number.isFinite(value) ? String(value) : null;
 

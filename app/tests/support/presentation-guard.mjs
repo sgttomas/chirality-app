@@ -25,7 +25,7 @@ import {readFileSync} from 'node:fs';
 export const TRUSTED = {
   './AgentText': {
     // Functions whose result is the App's words, a checked identifier or a checked number.
-    functions: ['plainId', 'idWords', 'wordOf', 'numberWords'],
+    functions: ['plainId', 'idWords', 'wordOf', 'numberWords', 'isoSeconds'],
     // Components that draw a supplied value: boxed, or as the App's words only for a value they check at run time.
     components: ['AgentText', 'SuppliedId', 'Word', 'Num', 'Flag'],
   },
@@ -89,10 +89,15 @@ function declarationOf(node, context) {
 const unwrap = node => { while (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isNonNullExpression(node) || ts.isSatisfiesExpression?.(node)) node = node.expression; return node; };
 const isConst = declaration => ts.isVariableDeclaration(declaration) && ts.isVariableDeclarationList(declaration.parent) && !!(declaration.parent.flags & ts.NodeFlags.Const);
 
-/** A table of the App's words: a const object literal in this file whose every value is a string literal. */
+/** The module of the App's word tables for Codex's fixed vocabularies; wordTableFailures checks it. */
+export const WORD_TABLE_MODULE = './nativeWords';
+/** A table of the App's words: one imported under its own name from the word-table module, or a const object
+ * literal in this file whose every value is a string literal. */
 function isWordTable(node, context) {
   node = unwrap(node);
-  if (!ts.isIdentifier(node)) return false;
+  if (ts.isPropertyAccessExpression(node) || !ts.isIdentifier(node)) return false;
+  const from = context.imports.get(node.text);
+  if (from) return from.module === WORD_TABLE_MODULE && from.imported === node.text;
   const declaration = declarationOf(node, context);
   if (!declaration || !isConst(declaration) || !declaration.initializer) return false;
   const value = unwrap(declaration.initializer);
@@ -141,6 +146,13 @@ export function appMade(node, context) {
   // the length of something read through list(), is a count; a supplied object's "length" field is not.
   if (ts.isPropertyAccessExpression(node) && node.name.text === 'length') return isArrayExpression(node.expression, context);
   if (ts.isIdentifier(node)) return trustedIdentifier(node, context);
+  // A named entry of a const object literal in this file, whose entry is itself App-made.
+  if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(unwrap(node.expression))) {
+    const declaration = declarationOf(unwrap(node.expression), context);
+    const value = declaration && isConst(declaration) && declaration.initializer ? unwrap(declaration.initializer) : null;
+    const entry = value && ts.isObjectLiteralExpression(value) ? value.properties.find(p => ts.isPropertyAssignment(p) && p.name.getText().replace(/^["']|["']$/g, '') === node.name.text) : null;
+    if (entry) return guarded(context, entry, () => appMade(entry.initializer, context));
+  }
   if (ts.isCallExpression(node)) {
     const callee = unwrap(node.expression);
     if (ts.isIdentifier(callee) && isTrusted(context, callee.text, 'functions')) {
@@ -193,6 +205,16 @@ function trustedIdentifier(node, context) {
   if (isConst(declaration) && ts.isIdentifier(declaration.name) && declaration.initializer) return guarded(context, declaration, () => appMade(declaration.initializer, context));
   if (ts.isBindingElement(declaration)) return propPassedAppMade(declaration, context);
   return false;
+}
+/** A destructured prop named children, or declared as ReactNode in the component's props type. */
+function nodeProp(binding) {
+  const name = (binding.propertyName ?? binding.name).getText();
+  if (name === 'children') return true;
+  const parameter = binding.parent?.parent;
+  const type = parameter && ts.isParameter(parameter) ? parameter.type : null;
+  if (!type || !ts.isTypeLiteralNode(type)) return false;
+  const member = type.members.find(m => ts.isPropertySignature(m) && m.name.getText() === name);
+  return !!member?.type && member.type.getText() === 'ReactNode';
 }
 /** A destructured prop of a same-file, unexported component: App-made only if every use passes it App-made, or
  * leaves it to an App-made default. */
@@ -250,29 +272,41 @@ export function findings(name, text) {
   const record = (node, where, extra = {}) => out.push({line: at(node), where, expr: normal(node.getText()), node, context, ...extra});
 
   // What a child expression can draw: its JSX parts are elements, visited where written; the rest is judged.
-  const drawn = expr => {
+  const drawn = (expr, sink = record) => {
     expr = unwrap(expr);
+    const again = e => drawn(e, sink);
     if (ts.isJsxElement(expr) || ts.isJsxSelfClosingElement(expr) || ts.isJsxFragment(expr)) return;
-    if (ts.isConditionalExpression(expr)) { drawn(expr.whenTrue); drawn(expr.whenFalse); return; }
+    if (ts.isConditionalExpression(expr)) { again(expr.whenTrue); again(expr.whenFalse); return; }
     // `a && b` draws b, or a falsy a, which draws nothing or only "0" or "NaN": a is not judged (see appMade).
-    if (ts.isBinaryExpression(expr) && expr.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken) return drawn(expr.right);
-    if (ts.isBinaryExpression(expr) && [ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken].includes(expr.operatorToken.kind) && hasJsx(expr)) { drawn(expr.left); drawn(expr.right); return; }
+    if (ts.isBinaryExpression(expr) && expr.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken) return again(expr.right);
+    if (ts.isBinaryExpression(expr) && [ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken].includes(expr.operatorToken.kind) && hasJsx(expr)) { again(expr.left); again(expr.right); return; }
     // A list drawn by a callback: what each callback returns is drawn.
     if (ts.isCallExpression(expr) && ts.isPropertyAccessExpression(expr.expression) && ['map', 'flatMap'].includes(expr.expression.name.text) && expr.arguments.length) {
       const fn = unwrap(expr.arguments[0]);
-      if (ts.isArrowFunction(fn) || ts.isFunctionExpression(fn)) { for (const r of returnsOf(fn)) if (r) drawn(r); return; }
+      if (ts.isArrowFunction(fn) || ts.isFunctionExpression(fn)) { for (const r of returnsOf(fn)) if (r) again(r); return; }
     }
     // A same-file function drawn by call: each value it returns is drawn (its JSX is visited where written).
     if (ts.isCallExpression(expr) && ts.isIdentifier(unwrap(expr.expression))) {
+      // Judged at the call: it fails here when anything it returns would fail.
       const fn = functionOf(unwrap(expr.expression), context);
-      if (fn && guarded(context, fn, () => (returnsOf(fn).forEach(r => { if (r) drawn(r); }), true))) return;
+      if (fn) {
+        let failed = false;
+        const ok = guarded(context, fn, () => { returnsOf(fn).forEach(r => { if (r) drawn(r, () => { failed = true; }); }); return true; });
+        if (ok && !failed) return;
+        return sink(expr, 'drawn');
+      }
     }
-    if (ts.isIdentifier(expr) && expr.text === 'children') {
+    if (ts.isIdentifier(expr)) {
       const declaration = declarationOf(expr, context);
-      // A component's children are drawn where its caller writes them, and judged there.
-      if (declaration && ts.isBindingElement(declaration) && (declaration.propertyName ?? declaration.name).getText() === 'children') return;
+      // A component's children, or a prop declared as ReactNode, is drawn where its caller writes it, and judged
+      // there when the caller is a guarded view (a caller elsewhere is outside this boundary).
+      if (declaration && ts.isBindingElement(declaration) && nodeProp(declaration)) return;
+      // A const is drawn as its own value.
+      if (declaration && isConst(declaration) && declaration.initializer && hasJsx(declaration.initializer)) {
+        if (guarded(context, declaration, () => (again(declaration.initializer), true))) return;
+      }
     }
-    if (!appMade(expr, context)) record(expr, 'drawn');
+    if (!appMade(expr, context)) sink(expr, 'drawn');
   };
   const attributes = (tag, props, trustedComponent) => {
     for (const a of props) {
@@ -403,5 +437,24 @@ export function guardFailures(srcDir, exceptions, views = GUARDED_VIEWS) {
     }
   }
   for (const key of listed.keys()) if (!used.has(key)) failures.push(`stale exception ${key}`);
+  return failures;
+}
+
+/** The word-table module holds only tables of literal words: each export a const object literal whose every value
+ * is a string literal. */
+export function wordTableFailures(srcDir) {
+  const name = `${WORD_TABLE_MODULE.replace(/^\.\//, '')}.ts`;
+  const sf = ts.createSourceFile(name, readFileSync(new URL(name, srcDir), 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
+  const failures = [];
+  for (const statement of sf.statements) {
+    const exported = statement.modifiers?.some(m => m.kind === ts.SyntaxKind.ExportKeyword);
+    if (!exported) { failures.push(`${name}: a statement that is not an exported table: ${normal(statement.getText()).slice(0, 80)}`); continue; }
+    if (!ts.isVariableStatement(statement) || !(statement.declarationList.flags & ts.NodeFlags.Const)) { failures.push(`${name}: an export that is not a const table`); continue; }
+    for (const d of statement.declarationList.declarations) {
+      const value = d.initializer && unwrap(d.initializer);
+      if (!value || !ts.isObjectLiteralExpression(value) || !value.properties.every(p => ts.isPropertyAssignment(p) && !ts.isComputedPropertyName(p.name) && ts.isStringLiteral(unwrap(p.initializer))))
+        failures.push(`${name}: ${d.name.getText()} is not a table of literal words`);
+    }
+  }
   return failures;
 }
