@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Look for remaining candidate processes after a run. It ends nothing and opens nothing. macOS only.
 
-    python3 -B stray.py <the bundle, the path of the .app folder>
+    python3 -B stray.py <the bundle, the path of the .app folder> [--also-under <folder>]
 
 A view of an application that is not running starts it through the system's launch service, outside the launcher.
 If the build ends by itself during a walk, the next view can do that. The lane runs this from its own shell after
@@ -11,12 +11,22 @@ is what the launch service starts), with its parent and start time. That is deci
 path is spelled: the system is asked for each process's executable path, and that file's device and inode are
 compared with the bundle executable's, so a link, another letter case or a relative path does not hide it.
 
+What it reads of processes, and what it keeps (App Agent 0's bound on reading processes, 14 November 2026). A stray
+is exactly a process that has lost its parent, so descent cannot find one. It lists only the numbers of this user's
+processes (ps -U <user> -o pid=) and asks the system for each one's executable path by number (libproc's
+proc_pidpath, which gives the path and nothing the process was started with: no argument, no environment, nothing it
+has open). It KEEPS AND PRINTS ONLY the processes whose executable is the bundle's own (remaining_candidate_processes),
+or whose path lies under the candidate's folder or a folder given with --also-under (other_processes_of_ours). Every
+other process is discarded unprinted and uncounted. For a kept process only, it then reads its parent and start time.
+That is the least that can show that no process of ours was left. A process for which the system gives no path is
+discarded too: while the operating condition below holds, it is not running the bundle's executable.
+
 It reads the bundle's Info.plist for the executable's name and nothing else. Exit status 0 when it found none; 1
 when it found one or more; 2 when it could not look, including when a process of this user that was still there
 could not be asked for its executable, or gave a path that was gone when it was examined.
 
-One kind of process is listed by number and not counted: one for which the system gives no path at all (ENOENT),
-which it does for a file that no longer has a name. That is sound only while the bundle's executable has exactly
+One kind of process is discarded without being examined further: one for which the system gives no path at all
+(ENOENT), which it does for a file that no longer has a name. That is sound only while the bundle's executable has exactly
 one name and stays the same file for the whole search. That is an operating condition the lane keeps (README.md,
 "The condition of the exception": the identified bundle is not rebuilt, replaced, renamed or given another link from
 identification through recovery), not something this search proves. The search only detects a change it can see:
@@ -64,12 +74,22 @@ def executable_of(pid):
 
 
 def listing():
-    """One line for each process of this user: number, parent, start time (five words)."""
-    done = subprocess.run(['/bin/ps', '-U', str(os.getuid()), '-o', 'pid=,ppid=,lstart='],
+    """The numbers of this user's processes, numbers only."""
+    done = subprocess.run(['/bin/ps', '-U', str(os.getuid()), '-o', 'pid='],
                           capture_output=True, text=True, env={'PATH': '/bin:/usr/bin'})
     if done.returncode != 0:
         raise OSError('the process listing failed')
     return done.stdout.splitlines()
+
+
+def started(pid):
+    """The parent and start time of one kept process, or None when it has gone."""
+    done = subprocess.run(['/bin/ps', '-o', 'ppid=,lstart=', '-p', str(pid)],
+                          capture_output=True, text=True, env={'PATH': '/bin:/usr/bin'})
+    parts = done.stdout.split()
+    if done.returncode != 0 or len(parts) != 6 or not parts[0].isdigit():
+        return None
+    return int(parts[0]), ' '.join(parts[1:6])
 
 
 def fingerprint(info):
@@ -77,31 +97,39 @@ def fingerprint(info):
     return (info.st_dev, info.st_ino, info.st_nlink, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
 
 
-def processes(executable, lines=None, path_of=None):
-    """Every process of this user whose executable is the same file as the given one; and, by number, those for
-    which the system gives no path (see the module's docstring for why those are not that file, and when)."""
-    path_of, target, found, no_path = path_of or executable_of, os.stat(executable), [], []
+def under(path, folder):
+    return folder is not None and os.path.realpath(path).startswith(os.path.realpath(folder).rstrip('/') + '/')
+
+
+def processes(executable, lines=None, path_of=None, folders=(), started_of=None):
+    """The processes of this user whose executable is the same file as the given one, and those whose executable lies
+    under one of the given folders. Every other process is discarded unprinted and uncounted."""
+    path_of, started_of = path_of or executable_of, started_of or started
+    target, found, ours = os.stat(executable), [], []
     if target.st_nlink != 1:
         raise OSError(f"the bundle's executable has {target.st_nlink} names, not one")
     for line in listing() if lines is None else lines:
         parts = line.split()
-        if len(parts) != 7 or not parts[0].isdigit():
+        if len(parts) != 1 or not parts[0].isdigit():
             continue
-        path = path_of(int(parts[0]))
-        if path is None:
-            continue  # gone since the listing
-        if path is NO_PATH:
-            no_path.append(int(parts[0]))
-            continue
+        pid = int(parts[0])
+        path = path_of(pid)
+        if path is None or path is NO_PATH:
+            continue  # gone since the listing, or running a file with no name: not the bundle's (module docstring)
         try:
             info = os.stat(path)
         except FileNotFoundError:  # a path that is gone by now says nothing of which file the process runs
-            raise OSError(f'process {parts[0]} gave an executable path that was gone when it was examined')
-        if (info.st_dev, info.st_ino) == (target.st_dev, target.st_ino):
-            found.append({'pid': int(parts[0]), 'parent': int(parts[1]), 'started': ' '.join(parts[2:7]), 'executable': path})
+            raise OSError('a process gave an executable path that was gone when it was examined')
+        bundle_file = (info.st_dev, info.st_ino) == (target.st_dev, target.st_ino)
+        if not bundle_file and not any(under(path, folder) for folder in folders if folder):
+            continue  # not ours: discarded, unprinted and uncounted
+        when = started_of(pid)
+        if when is None:
+            continue  # gone since its path was asked
+        (found if bundle_file else ours).append({'pid': pid, 'parent': when[0], 'started': when[1], 'executable': path})
     if fingerprint(os.stat(executable)) != fingerprint(target):
         raise OSError("the bundle's executable changed during the search")
-    return found, no_path
+    return found, ours
 
 
 def on_macos():
@@ -109,10 +137,16 @@ def on_macos():
 
 
 def main(argv):
+    also = None
+    if len(argv) == 4 and argv[2] == '--also-under' and argv[3].startswith('/'):
+        also, argv = argv[3], argv[:2]
     if len(argv) != 2 or not argv[1].startswith('/') or not argv[1].endswith('.app'):
-        print('usage: stray.py <bundle .app path>', file=sys.stderr)
+        print('usage: stray.py <bundle .app path> [--also-under <folder>]', file=sys.stderr)
         return 2
     bundle = argv[1]
+    # The candidate's folder: <candidate>/target/debug/bundle/macos/<name>.app, else the bundle itself.
+    marker = '/target/debug/bundle/macos/'
+    candidate = bundle[:bundle.index(marker)] if marker in bundle else bundle
     if not on_macos():
         print(json.dumps({'error': 'this search is made on macOS only; nothing was looked for'}), file=sys.stderr)
         return 2
@@ -121,12 +155,12 @@ def main(argv):
             executable = plistlib.load(stream)['CFBundleExecutable']
         if not isinstance(executable, str) or not executable or '/' in executable:
             raise KeyError('CFBundleExecutable is not a plain name')
-        running, no_path = processes(os.path.join(bundle, 'Contents', 'MacOS', executable))
+        running, ours = processes(os.path.join(bundle, 'Contents', 'MacOS', executable), folders=[candidate, also])
     except (OSError, KeyError, plistlib.InvalidFileException) as error:
         print(json.dumps({'error': f'{type(error).__name__}: {error}'}), file=sys.stderr)
         return 2
-    print(json.dumps({'remaining_candidate_processes': running, 'processes_whose_executable_was_removed': no_path}, indent=1))
-    return 1 if running else 0
+    print(json.dumps({'remaining_candidate_processes': running, 'other_processes_of_ours': ours}, indent=1))
+    return 1 if running or ours else 0
 
 
 if __name__ == '__main__':

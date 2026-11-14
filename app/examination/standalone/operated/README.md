@@ -245,6 +245,42 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
 An assignment gives these, the role to load, the bounds in words and how to
 return; this method gives everything else.
 
+## Reading processes
+
+App Agent 0's bound, 14 November 2026: no tool of this method reads or keeps
+what a process was started with (its arguments, its environment) or what it
+has open, for any process, and nothing at all is kept about a process that is
+neither ours nor the supplier's window service. Every process read is made
+through `proc_read.py`, `route.py`, `stray.py` or `watch.py`, each of which
+states in its header the exact forms it uses, and through the few single
+commands written out below (`pgrep -P`, `pgrep -g`, `ps -p`, `ps -o stat=`,
+each on a known number). No command line is printed, matched on or kept, by
+any tool or by hand; `comm` is never asked for (on this host it is argv[0]),
+nor `pgrep` with its full-argument or exact-name flag, nor `lsof` on anything but one process's
+program text (`lsof -a -p <pid> -d txt -Fn`, the first `n` line). The one
+exception is the shared host's exclusive check, whose output goes nowhere.
+
+What is ours, for these bounded details (number, parent, start time,
+accounting name, program text path) and nothing beside it:
+
+- the processes we started, recorded in the `*.started.json` files, and
+  recognised later by number, start time (within two seconds) and program,
+  never by command;
+- the App and its descendants, by parent links from the App's number;
+- the operator's own runtime, from the number and parent it writes itself
+  (`runtime.json`, below); its parent, the host, for recording only; and the
+  processes descended from that runtime by parent links read at that moment;
+- the window service, read by its accounting name as a candidate and the
+  service only when its program is
+  `$HOME/.codex/computer-use/Codex Computer Use.app/Contents/MacOS/SkyComputerUseService`
+  (compared as text; nothing under it is opened).
+
+`stray.py` alone asks every process of the user for its program's path,
+because a stray is exactly a process that has lost its parent; it keeps and
+prints only those under the candidate's folder or the lane's, and discards
+every other unprinted and uncounted. `session_env.py` reads the login
+session's launch domain, never a process, and keeps names only.
+
 ## At the go (the lane)
 
 At App Agent 0's go, before the operator is delegated, the lane's agent makes
@@ -273,43 +309,20 @@ evidence folder under a name beginning `lane-`. Each opens nothing under
    the screen was locked. No agent dismisses the lock screen or runs anything
    to hold it off; unlocking it is the owner's act. It is one look, and the
    screen can lock after it.
-2. **The provider check.** The provider is the Codex the operators'
-   sessions run under: the process whose command is a `codex` executable
-   with the one argument `app-server`, and whose parent is the process of the
-   application that runs the delegates (on this host,
-   `/Applications/T3 Code (Beta).app/Contents/MacOS/T3 Code (Beta)`). It is
-   found in the process table at the go, never by a number remembered from
-   before. Exactly one such process must exist, and its start must be later
-   than the modification time of its executable on disk. If none is found
-   (on another host, or after an update that moves or renames the
-   delegates' application or the provider), or more than one, that is not
-   exactly one: no walk, and it comes to App Agent 0, who corrects this
-   description; it is never worked around by picking a process:
-
-   ```sh
-   ps -axo pid=,ppid=,command=                 # find it: parent the delegates' application, command `<path>/codex app-server`
-   ps -o lstart= -p <its number>               # its start (local time)
-   stat -L -f %m <its executable>              # the executable's modification time (seconds)
-   ```
-
-   with the start converted to seconds as step 10 shows. The number,
-   parent, start and modification time (both also in UTC), the executable and
-   the verdict go into `lane-provider-check.txt`, and the number into
-   `lane-provider.pid`. If there is not exactly one, or its start is not
-   later, no walk is made and nothing else is done: the lane tells App
-   Agent 0, and restarting the provider is the owner's act. This tests for
-   the one condition found to have made the first views fail (a provider
-   running an executable replaced on disk; see "What the route starts").
-   When it passes, that condition is absent, and nothing more: it does not
-   show that the service will accept the call.
-3. **`stray.py`** on the candidate's bundle (step 11 shows the command): it
-   exits 0 with no remaining candidate process, or no walk is made.
-4. **The lane's look**: the first `ps` command of step 10, kept whole in
-   `lane-look.txt`. A running window service, or a running process whose
-   command contains `app-server --listen`, whatever its parent, means no
-   walk, and the lane tells App Agent 0. An exited entry (state `Z`,
-   `<defunct>`) is recorded with its number, parent and state and is not a
-   bar: it has exited and can do nothing.
+2. **The provider check: withdrawn** (App Agent 0, 14 November 2026). It found
+   the Codex the operators' sessions run under by its command line, which no
+   tool of this method reads now ("Reading processes", below). It guarded
+   only against a delegate's view failing on a provider whose executable had
+   been replaced on disk, which the operator would see fail; it was never a
+   safety condition.
+3. **`stray.py`** on the candidate's bundle, with the lane's own folder
+   (step 11 shows the command): it exits 0 with no process of ours left, or
+   no walk is made.
+4. **No window service is running**: `proc_read.py window-service` prints
+   `[]` ("Reading processes"). One running, or a read that fails, means no
+   walk, and the lane tells App Agent 0. An app-server cannot be looked for
+   here: it is identified only below the operator's runtime, which the lane
+   does not have.
 5. **The sample of the service's socket folder** ("Running a scenario"),
    started so that it outlives the shell call that starts it: through
    `detached.py` with the name `lane-socket`, running the loop with
@@ -326,34 +339,35 @@ this method says how.
 1. Confirm the interpreter, the checkout, the candidate and its key, and that
    the evidence folder holds only the lane's files ("What the operator is
    given").
-2. Identify its node runtime and its host with the marker, and record them in
-   `runtime.txt` in the evidence folder (step 10, "The operator's node
-   runtime and its host").
+2. Record its node runtime and identify it and its host: the runtime record,
+   then `route.py record <evidence folder> identities` (step 10, "The
+   operator's node runtime and its host").
 3. The environment check, then the launcher (step 1).
 4. Confirm the App's process (step 2) and take the identifier (step 3).
 5. Start the watch ("Running a scenario", "In a window").
-6. Recheck its two identities and make its look, the last things before the
-   import, both kept whole in `look.txt` (step 10, "The look").
+6. The look, the last thing before the import: `route.py record <evidence
+   folder> look` (step 10, "The look").
 7. The import, a `js` call of its own; then wait at least ten seconds; then
-   the record after the import, `after-import.txt` ("In a window").
+   the record after the import, `route.py record <evidence folder>
+   after-import` ("In a window").
 8. The walk's call, once ("In a window"). Steps 5 and 6 below say what its
    views and clicks are; the operator makes no view or click of its own
    outside it.
-9. Record (step 7); end the launch (step 8); then steps 9 and 10, judging
-   each of the route's processes by the rule for its kind.
-10. Close the marker, and return ("The operator's return").
+9. Record (step 7); end the launch (step 8); then steps 9 and 10:
+   `route.py record <evidence folder> end`, then `route.py recover <evidence
+   folder>`.
+10. Return ("The operator's return").
 
 Wherever this method says no walk is made, or the walk stops, the operator
-keeps what it has, ends what it started (steps 8 and 10), closes the marker
-if it was opened, and returns. Step 11 and the sample of the socket folder
+keeps what it has, ends what it started (steps 8 and 10), and returns. Step 11 and the sample of the socket folder
 are the lane's; the operator neither makes nor waits for them.
 
 **Recovery.** The lane is the recovery owner. If the operator stops, fails,
 is cut off or writes no result, the lane acts from the evidence folder's
-`*.started.json` files, `runtime.txt`, `look.txt`, `after-import.txt` and its
+`*.started.json` files, `runtime.json`, the `route-*.json` records and its
 own step 11, without waiting. So the operator writes every started file
-where this method says, keeps `runtime.txt` and `look.txt` in the evidence
-folder as it makes them, and moves or removes nothing there.
+and record where this method says, as it makes them, and moves or removes
+nothing there.
 
 **When this method does not say.** If it is not enough to go on, or the
 service returns something it does not describe, or the walk stops: keep that
@@ -380,12 +394,10 @@ per step or per outcome. The attempt log, `attempt-log.json`, is evidence
 and is NOT a result: the operator names it, and copies nothing from it into
 the return as an outcome. Then:
 
-- its two recorded identities (the runtime and the host: number, start in
-  UTC, executable), their relationship, and the host's parent; its Codex
-  version as "not known", with the host's parent's executable and that
-  file's modification time beside it;
-- the recheck and the look, whole; the import's time; `after-import.txt`,
-  whole; the walk call's time;
+- what `route.py record` said at each of its four records (identities, look,
+  after-import, end), and the paths of the `route-*.json` files; its Codex
+  version as "not known";
+- the import's time and the walk call's time;
 - the evidence folder's path, the launch folder's path (or that none was
   made), and the launch record's outcome line;
 - for any step that was not admitted, its entry in the attempt log, whole, as
@@ -394,12 +406,9 @@ the return as an outcome. Then:
   not say what to do;
 - what it started (from the started files), what it ended, and how it
   confirmed each gone (`ps -p`, `pgrep -g`);
-- each of the route's processes: number, start in UTC, command and actual
-  parent; the rule it was judged by and which test of it, if any, it failed
-  (for the helper, which recorded identity its parent is); and whether it was
-  ended (with the recheck before the signal and `ps -o stat=` after) or left
-  as unresolved;
-- the marker: not opened; closed (and kept); or closure unconfirmed, and why;
+- what `route.py recover` printed, whole: each process it ended, did not end
+  and left, with its number, start, accounting name and program path and the
+  reason, never a command line;
 - its model and reasoning effort, and that this method and its assignment
   were its only instructions.
 
@@ -407,8 +416,8 @@ Its last line is the verdict, or "no walk", and the evidence folder.
 
 ## The steps
 
-1. **Launch.** Before this step, the operator identifies its node runtime
-   and its host by the marker (step 10, "The operator's node runtime and its
+1. **Launch.** Before this step, the operator records its node runtime and
+   identifies it and its host (step 10, "The operator's node runtime and its
    host"); if they are not identified, no walk is made and nothing has been
    launched. Then confirm that a start of the build by the system's launch
    service would be given none of the App's eleven configuration variables (why:
@@ -453,8 +462,8 @@ Its last line is the verdict, or "no walk", and the evidence folder.
 2. **Confirm.** The App is the launcher's one child process:
 
    ```sh
-   pgrep -P <the launcher's process number>     # the App's process number
-   ps -o comm= -p <the App's process number>    # its executable: inside the candidate's bundle
+   pgrep -P <the launcher's process number>     # the App's process number (by parent: numbers only)
+   lsof -a -p <the App's process number> -d txt -Fn   # its executable, the first n line: inside the candidate's bundle
    pgrep -P <the App's process number>          # its child processes: prints nothing
    ```
 
@@ -549,154 +558,89 @@ Its last line is the verdict, or "no walk", and the evidence folder.
     the watch and the App, that `ps -p <number>` shows no process, and that
     the App's process group is gone (`pgrep -g <the App's process number>`
     prints nothing).
-    Then the route's processes. Each is identified before it is signalled, its
-    identity is checked again immediately before the signal, and each is
-    recorded with its number, start time (in UTC), parent and command. Of
-    them, attributable walk processes are ended; unresolved ones are reported, and a walk with an unresolved process has not been recovered.
+    Then the route's processes, by `route.py` alone ("Reading processes"):
 
     ```sh
-    ps -axo pid=,ppid=,lstart=,command=      # every process: number, parent, start time (local), command
-    ps -o lstart=,ppid=,command= -p <number> # one process, again, just before it is signalled
-    date -u -r "$(date -j -f '%a %b %e %T %Y' '<lstart as ps printed it>' +%s)" +%FT%TZ   # that start time in UTC
-    lsof -t "<evidence folder>/runtime.marker"   # the process holding the operator's marker open
-    kill <number>                            # an ordinary termination
-    ps -o stat= -p <number>                  # nothing, or a state beginning with Z: it has ended
+    <python> -B app/examination/standalone/operated/route.py record <evidence folder> end
+    <python> -B app/examination/standalone/operated/route.py recover <evidence folder>
     ```
 
     - **The operator's node runtime and its host**, identified before step
       1, after the operator's prerequisites and its confirmation of the
       evidence folder ("What the operator is given"), so that a runtime that
-      is not the one expected costs no launch. The operator makes one call in
-      its `js` tool that opens a marker file in the evidence folder and keeps
-      it open,
-      `globalThis.runtimeMarker = await (await import('node:fs')).promises.open('<evidence folder>/runtime.marker', 'w');`,
-      and then asks which process holds it (`lsof -t`, above). That one
-      process is its runtime, and the runtime's parent is its host. Each is
-      recorded as an identity, by its process number, start time (and that
-      start in UTC, by the `date` line above) and executable (`ps -o
-      lstart=,ppid=,command=` on each), and so is the relationship between
-      them: the runtime's parent is the host. The host's parent is recorded
-      the same way, with its executable's modification time in UTC (`TZ=UTC
-      stat -f '%Sm' -t '%FT%TZ' <that executable>`) beside its start, and the
-      operator's Codex version is recorded as "not known": it runs no Codex
-      binary to find out, and neither the path nor the time establishes
-      which version a running process is. All of this goes into `runtime.txt`
-      in the evidence folder, the first thing the operator records about
-      itself. Wherever
-      this method speaks of the runtime or the host, it means these two
-      recorded identities, never any process that merely has the same name.
-      What is expected is what was observed on 13 November 2026 at 16:48 UTC,
-      and again in every attempt since: the runtime was
+      is not the one expected costs no launch. The runtime writes its own
+      number and parent, from node's own `process.pid` and `process.ppid`,
+      in one call of the operator's `js` tool, which imports only the
+      standard library and invokes no computer-use method:
+      `(await import('node:fs')).writeFileSync('<evidence folder>/runtime.json', JSON.stringify({pid: process.pid, ppid: process.ppid, at: new Date().toISOString()}));`.
+      No process is searched for it, and nothing any process has open is
+      asked of. Then `route.py record <evidence folder> identities` records
+      the runtime, its parent the host (for recording only) and what
+      descends from the runtime, in `route-identities.json`, and exits 0 only
+      when the runtime's parent is the host it wrote and the two are what was
+      observed on 13 November 2026 and in every attempt since: the runtime
       ChatGPT.app's node
-      (`/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node`)
-      running a `kernel.js` with a session identifier, and its host was
-      ChatGPT.app's `node_repl`
-      (`/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node_repl`),
-      a child of the provider's Codex: the host's parent is the process the
-      lane's provider check named at the go (its number is in
-      `lane-provider.pid`; "At the go"); if that file is missing, or names
-      another process, it is not. If `lsof` names none or more than one,
-      or the runtime or its host is anything other than that, the runtime is
-      not identified and no walk is made: nothing has been launched, and the
-      operator closes the marker and returns. That call imports only the
-      standard library and invokes no computer-use method; whether it starts
-      anything has not been tried. The marker stays open, held by the
-      runtime, through the launch and the watch until the walk ends. At a walk
-      the operator uses its `js` tool for four things and nothing else: this
-      marker call; the import of the service, a call of its own; the walk's
-      call; and the marker's close. A walk refused before the import uses two
-      (the marker call and its close), and one refused after the import and
-      before the walk's call uses three (the marker call, the import and the
-      close). App Agent 0 held that tool, and narrows
-      its hold for the marker call alone, not for any other agent or use.
-      The marker file is in the operator's evidence folder, never under
-      either Codex home. When the walk ends, and whenever a walk is refused
-      after the marker was opened while its runtime is still available (the
-      runtime or its host is not the one expected, the identities differ at
-      the look or at the recheck before the walk's call, the import throws,
-      the look finds a process, or the two looks disagree), the
-      operator closes it (`await runtimeMarker.close()`) and it is kept, not
-      removed. The identification worked on its first trial (A2's fourth
-      attempt, below); if it fails, that is "no walk", recorded as a finding
-      about this method.
-    - **The look, before the import and before the first call.** Then, after
-      the launcher and the watch, as the last things before the `js` call
-      that imports the service ("Running a scenario"), the operator checks
-      its two identities again and looks. The check: `lsof -t` on the marker
-      names the same one process as before, and the second `ps` command above,
-      on the runtime and on the host, shows for each the same number, start
-      time and executable as recorded, with the runtime's parent still the
-      host. A runtime replaced between the marker call and the import would
-      otherwise leave the identification stale. The look: the first `ps`
-      command above, for a window service (by its command, below) and for
-      any process whose command is the app-server's, whatever its parent.
-      Both are kept whole in `look.txt` in the evidence folder, whose first
-      line is the time of the look in UTC (`date -u +%FT%TZ`). An exited
-      entry (state `Z`, `<defunct>`) is not a running process and is not a
-      bar; it is recorded as it is found.
-      Any difference in the check, or any such process running, means no walk
-      is made: what was found is recorded (a process with its number, start
-      time and parent), the operator ends what it started (steps 8 and 10),
-      closes the marker and returns, and it comes to App Agent 0. A helper
-      left by an earlier attempt blocks the walk in the same way; who owns it
-      is decided from that attempt's evidence, never by assigning it to the
-      new walk. The lane also looks, from its own shell, at App Agent 0's go,
-      with the same command, and keeps what it finds in the evidence folder as
-      its own record. The operator's look decides; if the two disagree, no
-      walk is made, and it comes to App Agent 0.
-    - **The walk's app-server** is a process whose command is exactly
-      `/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex app-server --listen stdio://`
-      (the whole command, compared as text, not a part of it); whose parent
-      is one of the two recorded identities, the operator's runtime or its
-      host (the parent's number and start time those recorded); and whose
-      start, in UTC, is no earlier than the look and no later than the walk's
-      end. A process meeting all three is ended. The look's time is the first
-      line of `look.txt`; the walk's end is the attempt log's `finished`, or,
-      where there is no attempt log, the time the operator records when the
-      walk stopped, on every path that stops it. Where either is missing, no
-      endpoint is inferred: the route's processes are unresolved. In A2's fifth attempt the
-      helper's parent was the host (observed, once); the earlier record saw
-      `node_repl` as its parent too, before anyone looked for the kernel below
-      it. The rule accepts either, since once is not always. Whether the
-      walk's first call succeeds or fails, each route process is recorded
-      with its number, start time, command and parent, so a walk records the
-      helper's actual parent. One with that command whose parent is neither
-      recorded identity, or that fails the interval, is unresolved: it is
-      recorded, left and reported, and the walk has not been recovered. The
-      rule is not extended during a walk.
-    - **The walk's window service** is a process whose command is exactly
-      `$HOME/.codex/computer-use/Codex Computer Use.app/Contents/MacOS/SkyComputerUseService` (with `$HOME` as the account's home, compared as text),
-      whose parent is launchd (process 1), and whose start, in UTC, is no
-      earlier than the look and no later than the walk's end; and the look
-      found none, and the route was used by this operator alone. Then it is
-      ended. Where its attribution is conflicting or uncertain (more than one
-      such process, a look not made or not recorded, the two looks in
-      disagreement), it is left, recorded, and reported, and the recovery is
-      incomplete.
-    - **Before every signal**, the second `ps` command shows the same start
-      time, parent and command as when the process was identified; if not, it
-      is not signalled, and it is reported.
+      (`/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node`) and
+      its host ChatGPT.app's `node_repl`
+      (`/Applications/ChatGPT.app/Contents/Resources/cua_node/bin/node_repl`).
+      Otherwise the runtime is not identified and no walk is made: nothing has
+      been launched, and the operator returns. Wherever this method speaks of
+      the runtime or the host, it means these two recorded processes, the same
+      by start time, never any process that merely has the same name. The
+      operator's Codex version is recorded as "not known": it runs no Codex
+      binary to find out. At a walk the operator uses its `js` tool for three
+      things and nothing else: this call, the import of the service (a call of
+      its own) and the walk's call. A walk refused before the import uses one;
+      one refused after the import and before the walk's call uses two. App
+      Agent 0 held that tool, and narrows its hold for this call alone, not for
+      any other agent or use.
+    - **The look, before the import and before the first call.** After the
+      launcher and the watch, as the last thing before the `js` call that
+      imports the service ("Running a scenario"):
+      `route.py record <evidence folder> look`. It exits 0 only when the
+      runtime and the host are the same processes, by start time, as
+      identified, and neither an app-server (below) nor a window service is
+      running; it keeps what it found in `route-look.json`, whose `at` is the
+      time of the look in UTC. Anything else means no walk is made: the
+      operator ends what it started (steps 8 and 10) and returns, and it comes
+      to App Agent 0. A helper left by an earlier attempt blocks the walk in
+      the same way; who owns it is decided from that attempt's evidence, never
+      by assigning it to the new walk.
+    - **The walk's app-server** is identified only when all three hold: it
+      descends from the operator's runtime by parent links read at that
+      moment, its accounting name is `codex`, and its program is under
+      `/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/`.
+      Its arguments are not read. Recovery ends it only when, at the moment of
+      signalling, it is still such a descendant (the runtime itself the same
+      process by start time as identified), it is the same process by start
+      time as one recorded during the session (`route-after-import.json` or
+      `route-end.json`), and it started no earlier than the look.
+    - **The window service** may be serving the owner's own application and
+      need not descend from the runtime. Recovery ends it only when all of
+      these hold: the look recorded that none was running; this one started
+      after the look; and its program is the supplier's path ("Reading
+      processes"); checked again immediately before the signal. One already
+      running before the session is never ended (the go and the look refuse
+      to start then), and one that recovery cannot show the session caused
+      to start is reported and left: the recovery is then incomplete, and it
+      is said so.
+    - **What is never signalled.** The host, which is the owner's
+      application; the runtime itself; launchd; a process identified by its
+      name or its path alone; anything outside the runtime's descent but a
+      window service the session caused to start; and any process that
+      predates the walk. Not a process group. Each signal is an ordinary
+      termination, and nothing stronger is sent. An ended process may stay
+      listed with a state beginning with `Z` until its parent collects it;
+      that is ended. `route.py recover` checks again after five seconds, up to
+      three times; one still listed is recorded as not confirmed ended, the
+      recovery is incomplete and is reported in the return.
     - **What the look cannot rule out.** Something else could start a window
-      service between the look and the walk's first call. It would lie inside
-      the interval, be taken for the walk's and be ended. The look cannot rule
-      that out; one operator at a time across this project and the others on
-      this machine is what makes it unlikely. This is a limit of attribution:
-      it gives no permission to disregard contrary evidence or known desktop
-      activity. If anything says a service is not the walk's, it is
-      unresolved, whatever its start time.
-    - An ended process may stay listed with a state beginning with `Z` until
-      its parent collects it; that is ended. A state containing `E` (often
-      `?E` straight after the signal) is a process still exiting, not yet
-      ended: check again after five seconds, up to three times. If it is then
-      still listed and not `Z`, it is recorded as not confirmed ended, the
-      recovery is incomplete and is reported in the return, and no stronger
-      signal is sent. No process that predates the
-      walk is ever signalled. The operator signals nothing else: not the node
-      runtime or its host; not the provider's Codex or any of its other
-      children (its `codex-code-mode-host`, and other sessions' `node_repl`
-      and kernel processes, whatever their names); nothing the lane's look or
-      the operator's look found; not a process group. None of these
-      commands opens anything under `~/.codex`.
+      service between the look and the walk's first call. It would start
+      after the look, be taken for the session's and be ended. One operator at
+      a time across this project and the others on this machine is what makes
+      it unlikely. This is a limit of attribution: it gives no permission to
+      disregard contrary evidence or known desktop activity.
+    None of these commands opens anything under `~/.codex`.
     The lane's agent, not the operator, then confirms the same from its own
     shell after every run: the launcher's and the watch's process numbers are
     in the evidence folder's `*.started.json` files, and the App's is `pid` in
@@ -713,37 +657,43 @@ Its last line is the verdict, or "no walk", and the evidence folder.
     which on some of those paths were never made. In order:
 
     1. For each `*.started.json` in the evidence folder other than the lane's
-       own (`lane-*.started.json`, which end by themselves): if `ps -o command= -p
-       <its pid>` still shows the recorded command, end it as step 10 does
-       (the launcher by a termination, the watch by its number) and confirm
-       it is gone.
+       own (`lane-*.started.json`, which end by themselves): if its number is
+       still the process we started (it started within two seconds of the
+       record's `started_at`, and its executable, by `lsof -a -p <its pid> -d
+       txt -Fn`, is the program the record's command names), end it as step 10
+       does (the launcher by a termination, the watch by its number) and
+       confirm it is gone. No command line is read.
     2. The search:
 
        ```sh
-       <python> -B app/examination/standalone/operated/stray.py "<the bundle>"
+       <python> -B app/examination/standalone/operated/stray.py "<the bundle>" --also-under "<the lane's folder>"
        ```
 
        It ends nothing and opens nothing, and runs on macOS only (elsewhere it
        looks for nothing and exits 2). It prints the remaining candidate
-       processes: every process of this user running the bundle's executable,
-       decided by the file's identity however its path is spelled. It exits 0
+       processes (every process of this user running the bundle's executable,
+       decided by the file's identity however its path is spelled) and the
+       other processes of ours (whose program lies under the candidate's
+       folder or the lane's), and nothing about any other process. It exits 0
        when it found none, 1 when it found one or more, and 2 when it could
        not look, which includes a process it could not tie to a file, a
        bundle executable with more than one name, and a change to it the
        search detected; 2 is not "found none", and the run is reported as one whose
-       check could not be completed. Processes for which the system gives no
-       path at all are listed by number and not counted; why, and when that
-       holds, is in `stray.py`.
+       check could not be completed. A process for which the system gives no
+       path at all is discarded; why, and when that holds, is in `stray.py`.
     3. Each remaining candidate process is ended (`kill <number>`), confirmed
-       gone, and recorded with its number and start time. Where it came from
+       gone, and recorded with its number and start time. Another process of
+       ours is reported to App Agent 0, not ended. Where it came from
        is not known from the search: the launcher's App not yet ended and a
        start the launcher did not make look the same to it, and it does not
        tell the home or environment either was started with. Only step 10's
        records, where they exist, can say more.
-    4. The route's processes, identified as step 10 says, from the operator's
-       records of its runtime, its host and its look (where there are none, nothing is
-       attributable): attributable walk processes are ended; unresolved ones are reported, and a walk with an unresolved process has not been recovered. Each is recorded with its number, start
-       time, parent and command, and whether the operator or the lane ended it.
+    4. The route's processes: `route.py recover <evidence folder>`, from the
+       operator's records (where there are none, nothing is attributable and
+       nothing is signalled). What it ended, did not end and left is recorded
+       with each process's number, start, accounting name and program path, and
+       whether the operator or the lane ended it; a walk with a process left has
+       not been recovered.
     5. The launch record's Library comparison (`real_library` in
        `record/launch-record.json` in the launch folder) is read. The
        launcher lists the real Library's places named for the build before
@@ -1070,35 +1020,26 @@ nodeRepl.write(new Date().toISOString());
 ```
 
 If it throws, the error is kept whole, no walk is made, and the operator ends
-what it started (steps 8 and 10), closes the marker and returns. Then the
-operator waits until at least ten seconds have passed since the time the
-import printed. Then, from the operator's shell, as the last thing before the
-walk's call, the record after the import, into the evidence folder:
+what it started (steps 8 and 10) and returns. Then the operator waits until at
+least ten seconds have passed since the time the import printed. Then, from
+the operator's shell, as the last thing before the walk's call, the record
+after the import:
 
 ```sh
-{ date -u +%FT%TZ
-  lsof -t "<evidence folder>/runtime.marker"
-  ps -o pid=,ppid=,lstart=,command= -p <the runtime's number>,<the host's number>
-  ps -axo pid=,ppid=,lstart=,command= | grep -F 'CodexCLI.app/Contents/MacOS/codex app-server' | grep -v grep || echo 'no app-server'
-  ps -axo pid=,ppid=,lstart=,command= | grep -F 'SkyComputerUseService' | grep -v grep || echo 'no window service'
-} > "<evidence folder>/after-import.txt"
+<python> -B app/examination/standalone/operated/route.py record <evidence folder> after-import
 ```
 
-It holds two things, read differently:
+It does two things, read differently:
 
-- **The recheck of the operator's identities, which can stop the walk.** As at
-  the look: `lsof` names the same one process, and the runtime and the host
-  show the same numbers, start times and executables as recorded, with the
-  runtime's parent still the host. A change, or an identity that cannot be
-  examined (`lsof` naming none or more than one, a process not listed), is no
-  walk: the operator ends what it started (steps 8 and 10), closes the marker
-  and returns, and it comes to App Agent 0.
-- **Whether a helper app-server or a window service exists after the import,
-  which is a record and not a refusal.** A helper or a service started by the
-  import is what it records; neither stops the walk here.
-
-Its first line is a time at least ten seconds after the time the import
-printed, and the operator records both. If the recheck holds, the walk's call
+- **The recheck of the operator's identities, which can stop the walk.** The
+  runtime and the host are the same processes, by start time, as identified.
+  A change, or one that cannot be read, exits 3: no walk, the operator ends
+  what it started (steps 8 and 10) and returns, and it comes to App Agent 0.
+- **Whether an app-server or a window service exists after the import, which
+  is a record and not a refusal.** What it finds is kept in
+  `route-after-import.json`, whose `at` is at least ten seconds after the time
+  the import printed; the operator records both times. An app-server recorded
+  here is one recovery may later end, under step 10's rules. If the recheck holds, the walk's call
 follows at once, in the operator's `js` tool, with the values filled in:
 
 ```js

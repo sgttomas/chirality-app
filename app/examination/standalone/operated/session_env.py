@@ -15,6 +15,12 @@ each name it says one of three things: "absent", "present" (empty included), or 
 the reason. Exit status 0 only when every name is absent from both; 1 when any is present; 2 when any could not be
 established. Anything but 0 refuses the walk.
 
+What it keeps (App Agent 0's conditions, 14 November 2026). It reads the launch DOMAIN, never a process: no
+process's arguments or environment are read. It keeps and prints names and their states only. No value is ever
+written to a file, a log, a record or an error message, including when the output cannot be parsed: a failure is
+reported in this tool's own fixed words ("could not be established" with a fixed reason), never with the line or any
+part of the output.
+
 Limits. That an application the launch service starts takes its environment from that domain is the system's
 documented behaviour, not something this observed; the block's format is what `launchctl` printed on this host,
 and output it cannot read is "could not be established", never "absent". It is one look, at one moment.
@@ -48,6 +54,18 @@ def session_names(text):
             return None, 'a line of the environment block could not be read'
         names.add(name)
     return None, 'the environment block does not end'
+
+
+def read_domain(run=None):
+    """The domain's names, or a fixed reason. Output that cannot be decoded or parsed is never shown."""
+    try:
+        done = (run or subprocess.run)(['/bin/launchctl', 'print', f'gui/{os.getuid()}'], capture_output=True, env={'PATH': '/bin:/usr/bin'})
+        if done.returncode != 0:
+            return None, f'launchctl print exited {done.returncode}'
+        text = done.stdout.decode('utf-8')
+    except Exception:  # noqa: BLE001  any failure, in fixed words: nothing of the output is kept
+        return None, 'the launch domain could not be read'
+    return session_names(text)
 
 
 def bundle_names(bundle):
@@ -88,12 +106,7 @@ def main(argv):
     if not on_macos():
         session_reason = 'this is asked on macOS only'
     else:
-        done = subprocess.run(['/bin/launchctl', 'print', f'gui/{os.getuid()}'], capture_output=True, text=True,
-                              env={'PATH': '/bin:/usr/bin'})
-        if done.returncode != 0:
-            session_reason = f'launchctl print exited {done.returncode}'
-        else:
-            session, session_reason = session_names(done.stdout)
+        session, session_reason = read_domain()
     try:
         bundle = bundle_names(argv[1])
     except (OSError, ValueError, plistlib.InvalidFileException) as error:

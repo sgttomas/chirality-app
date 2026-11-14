@@ -549,7 +549,9 @@ class TheWalkItself(unittest.TestCase):
             time.sleep(0.1)
         self.assertEqual((seen['pid'], seen['running']), (parent.pid, True))
         self.assertTrue(abs(seen['at_ms'] - time.time() * 1000) < 5000)
-        self.assertEqual([child['command'].rsplit('/', 1)[-1] for child in seen['children']], ['sleep'])
+        self.assertEqual([child['name'] for child in seen['children']], ['sleep'])
+        # Only the number and the accounting name of a child are kept; nothing it was started with.
+        self.assertEqual(set(seen['children'][0]), {'pid', 'name'})
         subprocess.run(['/bin/kill', str(seen['children'][0]['pid'])])
         parent.wait(timeout=10)
         self.assertEqual(watch.wait(timeout=10), 0)
@@ -562,16 +564,30 @@ class TheWalkItself(unittest.TestCase):
         watch = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(watch)
         app = '/invented/bundle.app/Contents/MacOS/chirality-app-v4'
-        live = watch.state(41, None, [(41, 7, 'S', app), (42, 41, 'S', '/invented/codex'), (43, 1, 'S', '/invented/other')])
-        self.assertEqual((live['running'], live['executable'], live['children']),
-                         (True, app, [{'pid': 42, 'command': '/invented/codex'}]))
-        for name, rows in (('exited and not collected', [(41, 7, 'Z', '<defunct>')]),
-                           ('exited, its child still listed', [(41, 7, 'Z+', '<defunct>'), (42, 41, 'S', '/invented/codex')]),
-                           ('another program at the number', [(41, 7, 'S', '/invented/something-else')]),
-                           ('not in the listing', [(40, 7, 'S', app)])):
+
+        def given(table, details, paths):
+            return dict(table=table, detail_of=lambda pid: details.get(pid), executable=lambda pid: paths.get(pid))
+        live = watch.state(41, None, **given({41: 7, 42: 41, 43: 1}, {41: ('S', 'chirality-app-v'), 42: ('S', 'codex'), 43: ('S', 'other')},
+                                             {41: app, 42: '/invented/codex', 43: '/invented/other'}))
+        self.assertEqual((live['running'], live['executable'], live['children']), (True, app, [{'pid': 42, 'name': 'codex'}]))
+        for name, (table, details, paths) in {
+                'exited and not collected': ({41: 7}, {41: ('Z', '')}, {41: app}),
+                'exited, its child still listed': ({41: 7, 42: 41}, {41: ('Z+', ''), 42: ('S', 'codex')}, {41: app}),
+                'another program at the number': ({41: 7}, {41: ('S', 'other')}, {41: '/invented/something-else'}),
+                'not in the listing': ({40: 7}, {40: ('S', 'chirality-app-v')}, {40: app})}.items():
             with self.subTest(name):
-                seen = watch.state(41, app, rows)
+                seen = watch.state(41, app, **given(table, details, paths))
                 self.assertEqual((seen['running'], seen['executable'], seen['children']), (False, None, []))
+
+    def test_it_reads_no_command_line_of_any_process(self):
+        # The process reads it makes, by their exact arguments: numbers and parents for every process; state and
+        # accounting name for a selected one. comm (argv[0]), command, args and an environment are never asked for.
+        source = (OPERATED / 'watch.py').read_text()
+        self.assertIn("['/bin/ps', '-axo', 'pid=,ppid=']", source)
+        self.assertIn("['/bin/ps', '-o', 'stat=,ucomm=', '-p', str(pid)]", source)
+        self.assertIsNone(re.search(r'(?<!u)comm=', source))
+        for word in ('command=', 'args=', "'-E'", "'eww'", 'os.environ', 'KERN_PROCARGS'):
+            self.assertNotIn(word, source)
 
     def test_it_refuses_anything_but_one_process_number_and_a_file(self):
         for arguments in ([], ['12'], ['abc', 'file'], ['1', 'file'], ['12', 'file', 'more']):
@@ -693,19 +709,25 @@ class StrayStart(unittest.TestCase):
         case_ignored = os.path.exists(executable.upper()) and os.path.samefile(executable, executable.upper())
         if case_ignored:
             paths[508] = executable.upper()                                              # another letter case
-        lines = [f'  {pid}     1 {when}' for pid in paths] + ['not a process line']
-        found, no_path = self.stray.processes(executable, lines, path_of=paths.get)
-        self.assertEqual(no_path, [509])
+        lines = [f'  {pid}' for pid in paths] + ['not a process line']
+        started_of = lambda pid: (1, when)  # noqa: E731
+        found, ours = self.stray.processes(executable, lines, path_of=paths.get, started_of=started_of)
         expected = [501, 504] + ([508] if case_ignored else [])
         self.assertEqual([entry['pid'] for entry in found], expected)
+        self.assertEqual(ours, [])  # no folder given: nothing but the bundle's executable is kept
         self.assertEqual((found[0]['parent'], found[0]['started'], found[0]['executable']), (1, when, executable))
         # The executable named through the link finds the same processes.
-        again, _ = self.stray.processes(paths[504], lines, path_of=paths.get)
+        again, _ = self.stray.processes(paths[504], lines, path_of=paths.get, started_of=started_of)
         self.assertEqual([entry['pid'] for entry in again], expected)
+        # With the candidate's folder given, another file under it (the bundle's Codex) is kept as ours; the same name
+        # elsewhere, a process gone, and one with no path are not, and leave no trace.
+        found, ours = self.stray.processes(executable, lines, path_of=paths.get, started_of=started_of, folders=[str(self.bundle.parent)])
+        self.assertEqual([entry['pid'] for entry in found], expected)
+        self.assertEqual([entry['pid'] for entry in ours], [503])
 
     def test_what_it_cannot_tie_to_a_file_is_a_search_not_made_never_none_found(self):
         executable = self.bundle / 'Contents/MacOS/chirality-app-v4'
-        line = ['  701     1 Thu Nov 12 22:07:34 2026']
+        line = ['  701']
         # A path given for the process that is gone when examined (a link removed in between): not "removed".
         with self.assertRaisesRegex(OSError, 'gone when it was examined'):
             self.stray.processes(str(executable), line, path_of=lambda pid: str(self.tmp / 'gone-since'))
@@ -742,12 +764,13 @@ class StrayStart(unittest.TestCase):
             self.assertEqual(self.stray.main(argv), 0)
         out = io.StringIO()
         with mock.patch.object(self.stray, 'on_macos', return_value=True), contextlib.redirect_stdout(out), \
-                mock.patch.object(self.stray, 'listing', return_value=['  601     1 Thu Nov 12 22:07:34 2026']), \
-                mock.patch.object(self.stray, 'executable_of', return_value=executable):
+                mock.patch.object(self.stray, 'listing', return_value=['  601']), \
+                mock.patch.object(self.stray, 'executable_of', return_value=executable), \
+                mock.patch.object(self.stray, 'started', return_value=(1, 'Thu Nov 12 22:07:34 2026')):
             self.assertEqual(self.stray.main(argv), 1)
         self.assertEqual([p['pid'] for p in json.loads(out.getvalue())['remaining_candidate_processes']], [601])
         with mock.patch.object(self.stray, 'on_macos', return_value=True), contextlib.redirect_stderr(io.StringIO()), \
-                mock.patch.object(self.stray, 'listing', return_value=['  602     1 Thu Nov 12 22:07:34 2026']), \
+                mock.patch.object(self.stray, 'listing', return_value=['  602']), \
                 mock.patch.object(self.stray, 'executable_of', side_effect=OSError(13, 'invented')):
             self.assertEqual(self.stray.main(argv), 2)  # a process that could not be asked is not "found none"
         with contextlib.redirect_stderr(io.StringIO()), mock.patch.object(self.stray, 'on_macos', return_value=True):
@@ -2214,3 +2237,253 @@ console.log(JSON.stringify(await walk.run(given)));
         self.assertIn('the sheet is not a sheet of a scenario validateScenario made', parts['states_as_sheet'])
         self.assertTrue(parts['own_expectation_accepted'])
         self.assertTrue(parts['own_sheet_accepted'])
+
+
+class TheRouteRecovery(unittest.TestCase):
+    """route.py: recovery signals only a process shown, at that moment, to be the operator's own descendant recorded in
+    the session, or a window service the session caused to start (App Agent 0's ruling, 14 November 2026). Every read
+    and the signal are invented here; nothing is signalled for real."""
+
+    RUNTIME, HOST = 500, 400
+    LOOK = '2026-11-14T12:00:00Z'
+
+    def setUp(self):
+        spec = importlib.util.spec_from_file_location('route_under_test', OPERATED / 'route.py')
+        self.route = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.route)
+        self.folder = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.folder, True)
+        self.look_epoch = self.route.utc_epoch(self.LOOK)
+
+    def entry(self, pid, ppid, started, ucomm, executable):
+        return {'pid': pid, 'ppid': ppid, 'started_utc': '', 'started_epoch': started, 'ucomm': ucomm, 'executable': executable}
+
+    def app_server(self, pid, ppid, started):
+        return self.entry(pid, ppid, started, 'codex', self.route.APP_SERVER_UNDER + 'Contents/MacOS/codex')
+
+    def service(self, pid, started, path=None):
+        return self.entry(pid, 1, started, 'SkyComputerUseSe', path or self.route.proc_read.SERVICE_PATH)
+
+    def write(self, name, value):
+        (self.folder / name).write_text(json.dumps(value))
+
+    def setup(self, now, recorded=(), look_services=(), with_look=True):
+        """now: the processes as read at recovery, by number. recorded: app-servers recorded in the session."""
+        runtime = self.entry(self.RUNTIME, self.HOST, self.look_epoch - 100, 'node', self.route.RUNTIME_EXE)
+        host = self.entry(self.HOST, 300, self.look_epoch - 200, 'node_repl', self.route.HOST_EXE)
+        self.write('runtime.json', {'pid': self.RUNTIME, 'ppid': self.HOST})
+        self.write('route-identities.json', {'runtime': runtime, 'host': host})
+        if with_look:
+            self.write('route-look.json', {'at': self.LOOK, 'window_services': list(look_services)})
+        self.write('route-end.json', {'app_servers': list(recorded)})
+        processes = {self.RUNTIME: runtime, self.HOST: host, 300: self.entry(300, 1, 0, 'codex', '/invented/provider'), **now}
+        sent = []
+
+        class Reads:
+            @staticmethod
+            def parents():
+                return {pid: entry['ppid'] for pid, entry in processes.items()}
+
+            @staticmethod
+            def details(pid):
+                return processes.get(pid)
+
+            @staticmethod
+            def window_service():
+                return [entry for entry in processes.values() if entry['ucomm'] == 'SkyComputerUseSe'
+                        and entry['executable'] == self.route.proc_read.SERVICE_PATH]
+
+        def send(pid, sig):
+            sent.append(pid)
+            processes.pop(pid, None)
+        report = self.route.recover(str(self.folder), reads=Reads, send=send, sleep=lambda s: None)
+        return sent, report
+
+    def recorded(self, label, processes):
+        class Reads:
+            @staticmethod
+            def parents():
+                return {pid: entry['ppid'] for pid, entry in processes.items()}
+
+            @staticmethod
+            def details(pid):
+                return processes.get(pid)
+
+            @staticmethod
+            def window_service():
+                return [entry for entry in processes.values() if entry['ucomm'] == 'SkyComputerUseSe']
+        return self.route.record(str(self.folder), label, reads=Reads)
+
+    def test_record_identifies_the_runtime_and_refuses_a_change_or_a_route_process_at_the_look(self):
+        runtime = self.entry(self.RUNTIME, self.HOST, 100, 'node', self.route.RUNTIME_EXE)
+        host = self.entry(self.HOST, 300, 50, 'node_repl', self.route.HOST_EXE)
+        self.write('runtime.json', {'pid': self.RUNTIME, 'ppid': self.HOST})
+        base = {self.RUNTIME: runtime, self.HOST: host}
+        self.assertEqual(self.recorded('identities', base)[0], 0)
+        self.assertEqual(self.recorded('look', base)[0], 0)
+        with self.subTest('a runtime that is not ChatGPT\'s node'):
+            other = {**base, self.RUNTIME: {**runtime, 'executable': '/invented/node'}}
+            self.assertEqual(self.recorded('identities', other)[0], 3)
+        self.assertEqual(self.recorded('identities', base)[0], 0)
+        for name, change in (('the runtime replaced', {self.RUNTIME: {**runtime, 'started_epoch': 101}}),
+                             ('an app-server below the runtime', {601: self.app_server(601, self.RUNTIME, 200)}),
+                             ('a window service running', {700: self.service(700, 200)})):
+            with self.subTest(name):
+                self.assertEqual(self.recorded('look', {**base, **change})[0], 3)
+        with self.subTest('no runtime record'):
+            (self.folder / 'runtime.json').unlink()
+            self.assertEqual(self.recorded('identities', base)[0], 3)
+
+    def test_the_walks_app_server_recorded_in_the_session_is_ended(self):
+        server = self.app_server(601, self.RUNTIME, self.look_epoch + 5)
+        sent, report = self.setup({601: server}, recorded=[server])
+        self.assertEqual(sent, [601])
+        self.assertTrue(report['ended'][0]['confirmed_gone'])
+
+    def test_a_process_with_the_right_name_and_path_that_is_not_a_descendant_is_not_signalled(self):
+        stranger = self.app_server(602, 300, self.look_epoch + 5)  # the provider's child, not the runtime's
+        sent, report = self.setup({602: stranger}, recorded=[stranger])
+        self.assertEqual(sent, [])
+
+    def test_a_descendant_whose_start_time_differs_from_the_record_is_not_signalled(self):
+        now = self.app_server(603, self.RUNTIME, self.look_epoch + 9)
+        recorded = self.app_server(603, self.RUNTIME, self.look_epoch + 5)  # the same number, another start: another process
+        sent, report = self.setup({603: now}, recorded=[recorded])
+        self.assertEqual(sent, [])
+        self.assertIn('not recorded during the session', report['not_ended'][0]['why'])
+
+    def test_a_descendant_not_recorded_in_the_session_or_older_than_the_look_is_not_signalled(self):
+        unrecorded = self.app_server(604, self.RUNTIME, self.look_epoch + 5)
+        older = self.app_server(605, self.RUNTIME, self.look_epoch - 5)
+        sent, _ = self.setup({604: unrecorded, 605: older}, recorded=[older])
+        self.assertEqual(sent, [])
+
+    def test_a_descendant_that_is_not_the_app_server_by_all_three_is_not_signalled(self):
+        named = self.entry(606, self.RUNTIME, self.look_epoch + 5, 'codex', '/invented/elsewhere/codex')
+        pathed = self.entry(607, self.RUNTIME, self.look_epoch + 5, 'other', self.route.APP_SERVER_UNDER + 'Contents/MacOS/codex')
+        sent, _ = self.setup({606: named, 607: pathed}, recorded=[named, pathed])
+        self.assertEqual(sent, [])
+
+    def test_the_host_and_the_runtime_are_never_signalled(self):
+        # Even recorded as if they were app-servers in the session, and even if the host appeared below the runtime.
+        host_as_server = self.app_server(self.HOST, self.RUNTIME, self.look_epoch + 5)
+        sent, report = self.setup({self.HOST: host_as_server}, recorded=[host_as_server])
+        self.assertNotIn(self.HOST, sent)
+        self.assertNotIn(self.RUNTIME, sent)
+
+    def test_nothing_below_a_runtime_that_is_not_the_one_identified_is_signalled(self):
+        server = self.app_server(608, self.RUNTIME, self.look_epoch + 5)
+        runtime_replaced = self.entry(self.RUNTIME, self.HOST, self.look_epoch + 1, 'node', self.route.RUNTIME_EXE)
+        sent, report = self.setup({self.RUNTIME: runtime_replaced, 608: server}, recorded=[server])
+        self.assertEqual(sent, [])
+        self.assertTrue(any('not the same process as identified' in str(item) for item in report['left']))
+
+    def test_a_window_service_the_session_caused_to_start_is_ended(self):
+        sent, _ = self.setup({700: self.service(700, self.look_epoch + 3)})
+        self.assertEqual(sent, [700])
+
+    def test_a_window_service_present_before_the_session_is_never_ended(self):
+        before = self.service(701, self.look_epoch - 30)
+        for name, look_services, with_look in (('the look found one', [before], True), ('no look recorded', [], False)):
+            with self.subTest(name):
+                sent, report = self.setup({701: before}, look_services=look_services, with_look=with_look)
+                self.assertEqual(sent, [])
+                self.assertTrue(report['left'])
+        # Started before the look, though the look recorded none (the look missed it): left, not ended.
+        sent, report = self.setup({702: self.service(702, self.look_epoch - 1)})
+        self.assertEqual(sent, [])
+
+    def test_when_the_look_found_a_window_service_none_is_ended_even_one_started_after_the_look(self):
+        # The look recorded one running, so recovery cannot show that the session caused any service to start: a
+        # service started after the look (the earlier one gone, another in its place) is left, not ended.
+        earlier = self.service(704, self.look_epoch - 30)
+        sent, report = self.setup({705: self.service(705, self.look_epoch + 3)}, look_services=[earlier])
+        self.assertEqual(sent, [])
+        self.assertTrue(report['left'])
+
+    def test_both_descent_checks_hold_on_their_own(self):
+        # The descent is checked when the candidates are listed (descendants) and again immediately before the signal
+        # (descends); either alone refuses a non-descendant. Each is weakened in turn here.
+        stranger = self.app_server(609, 300, self.look_epoch + 5)
+        real_descends, real_descendants = self.route.descends, self.route.descendants
+        weakenings = {
+            'the listing': {'descendants': lambda root, table: sorted(table)},
+            'the check before the signal': {'descends': lambda pid, root, table: True,
+                                            'descendants': lambda root, table: sorted(p for p in table if real_descends(p, root, table))}}
+        for name, replaced in weakenings.items():
+            with self.subTest(name):
+                for attribute, value in replaced.items():
+                    setattr(self.route, attribute, value)
+                try:
+                    sent, _ = self.setup({609: stranger}, recorded=[stranger])
+                finally:
+                    self.route.descends, self.route.descendants = real_descends, real_descendants
+                self.assertEqual(sent, [])
+
+    def test_a_window_service_candidate_by_name_alone_is_not_signalled(self):
+        sent, _ = self.setup({703: self.service(703, self.look_epoch + 3, path='/invented/SkyComputerUseService')})
+        self.assertEqual(sent, [])
+
+
+class TheSessionDomainNames(unittest.TestCase):
+    """session_env.py keeps and prints names and states only; no value reaches its output or its reasons, including
+    when the domain's output cannot be parsed or decoded (App Agent 0's conditions). Invented values only."""
+
+    VALUES = ('/invented/secret/value', 'invented-token-abc123', 'INVENTED_OTHER_NAME')
+
+    def setUp(self):
+        spec = importlib.util.spec_from_file_location('session_env_under_test', OPERATED / 'session_env.py')
+        self.env = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.env)
+
+    def output(self, stdout, returncode=0):
+        done = SimpleNamespace(returncode=returncode, stdout=stdout, stderr=b'')
+        out = io.StringIO()
+        with mock.patch.object(self.env, 'on_macos', return_value=True), \
+                mock.patch.object(self.env.subprocess, 'run', return_value=done), contextlib.redirect_stdout(out):
+            self.env.main(['session_env.py', '/invented/x.app'])
+        return out.getvalue()
+
+    def test_names_and_states_only_never_a_value(self):
+        block = (b'gui/501 = {\n\tenvironment = {\n\t\tCHIRALITY_CODEX_HOME => /invented/secret/value\n'
+                 b'\t\tINVENTED_OTHER_NAME => invented-token-abc123\n\t}\n}\n')
+        said = self.output(block)
+        self.assertIn('"CHIRALITY_CODEX_HOME": "present"', said)
+        for value in self.VALUES:
+            self.assertNotIn(value, said)
+
+    def test_a_failure_to_parse_or_decode_is_reported_in_fixed_words_never_with_the_line(self):
+        cases = {'a line that is not NAME => value': b'\tenvironment = {\n\t\tinvented-token-abc123 /invented/secret/value\n\t}\n',
+                 'a block that does not end': b'\tenvironment = {\n\t\tCHIRALITY_X => invented-token-abc123\n',
+                 'two blocks': b'\tenvironment = {\n\t}\n\tenvironment = {\n\t\tA => invented-token-abc123\n\t}\n',
+                 'output that is not text': b'\tenvironment = {\n\t\tA => \xff\xfe invented-token-abc123\n\t}\n'}
+        for name, stdout in cases.items():
+            with self.subTest(name):
+                said = self.output(stdout)
+                self.assertIn('could not be established', said)
+                for value in self.VALUES:
+                    self.assertNotIn(value, said)
+
+    def test_it_reads_the_domain_never_a_process(self):
+        source = (OPERATED / 'session_env.py').read_text()
+        self.assertIn("['/bin/launchctl', 'print', f'gui/{os.getuid()}']", source)
+        for word in ('/bin/ps', 'eww', 'KERN_PROCARGS', 'os.environ', 'procargs'):
+            self.assertNotIn(word, source)
+
+
+class TheMethodReadsNoCommandLine(unittest.TestCase):
+    """No tool of the operated method, and no command its README gives, asks for a process's command line, argv[0]
+    (comm), arguments or environment, or searches what processes have open (App Agent 0's bound, 14 November 2026).
+    The 13 November record in the README is history and keeps its words; this looks at everything before it."""
+
+    FORBIDDEN = (r'command=', r'(?<!u)comm=', r'args=', r'lsof -t', r'pgrep -f', r'pgrep -x', r"'-f'", r'KERN_PROCARGS', r'\beww\b')
+
+    def test_no_tool_or_instruction_asks_for_one(self):
+        readme = (OPERATED / 'README.md').read_text()
+        method = readme[:readme.index('## What was observed on 13 November 2026')]
+        sources = {'README.md (the method)': method,
+                   **{path.name: path.read_text() for path in sorted(OPERATED.glob('*.py')) + sorted(OPERATED.glob('*.mjs'))}}
+        for name, text in sources.items():
+            for pattern in self.FORBIDDEN:
+                with self.subTest(source=name, pattern=pattern):
+                    self.assertIsNone(re.search(pattern, text))

@@ -7,8 +7,10 @@ group_b_operated_scenario_test.py. Selected by this file's name.
 import importlib.util
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
+import tempfile
 import unittest
 
 OPERATED = Path(__file__).resolve().parents[1] / 'examination/standalone/operated'
@@ -43,33 +45,57 @@ class StraySearchOnMacOS(unittest.TestCase):
         child = self.started()
         asked = stray.executable_of(child.pid)
         self.assertTrue(os.path.samefile(asked, self.STAND_IN), (asked, self.STAND_IN))
-        # This process too, against a second answer from the system and not the interpreter's own: ps reports the
-        # path a process was executed by. ps must answer; a failure or an empty answer fails the test. The paths are
-        # compared only when ps gives an absolute one: a relative one cannot be resolved from here, and then this
-        # process's executable is checked only to be a file, its identity left unexamined (the started child above
-        # is the comparison that never depends on this).
+        # This process too, against a second answer from the system and not the interpreter's own: lsof's first
+        # program text entry of this one process (lsof -a -p <pid> -d txt -Fn; never comm, which is argv[0], and
+        # never an unrestricted lsof). It must answer with a path, and the two must be the same file.
         own = stray.executable_of(os.getpid())
         self.assertTrue(os.path.isfile(own), own)
-        asked_ps = subprocess.run(['/bin/ps', '-p', str(os.getpid()), '-o', 'comm='], capture_output=True, text=True,
-                                  env={'PATH': '/bin:/usr/bin'})
-        said = asked_ps.stdout.strip()
-        self.assertEqual(asked_ps.returncode, 0, asked_ps.stderr)
-        self.assertTrue(said, 'ps gave no path for this process')
-        if os.path.isabs(said):
-            self.assertTrue(os.path.samefile(own, said), (own, said))
+        asked = subprocess.run(['/usr/sbin/lsof', '-a', '-p', str(os.getpid()), '-d', 'txt', '-Fn'], capture_output=True, text=True,
+                               env={'PATH': '/bin:/usr/bin:/usr/sbin'})
+        names = [line[1:] for line in asked.stdout.splitlines() if line.startswith('n')]
+        self.assertEqual(asked.returncode, 0, asked.stderr)
+        self.assertTrue(names, 'lsof gave no program text entry for this process')
+        self.assertTrue(os.path.samefile(own, names[0]), (own, names[0]))
         gone = subprocess.Popen(['/usr/bin/true'])
         gone.wait()
         self.assertIsNone(stray.executable_of(gone.pid))
 
-    def test_this_users_processes_are_listed_and_one_this_test_started_is_found_by_its_executable(self):
+    def test_this_users_processes_are_listed_by_number_and_one_this_test_started_is_found_by_its_executable(self):
         stray = load('stray')
         child = self.started()
         lines = [line.split() for line in stray.listing()]
+        self.assertTrue(all(len(parts) == 1 and parts[0].isdigit() for parts in lines if parts), 'the listing holds numbers only')
         self.assertIn(str(child.pid), [parts[0] for parts in lines if parts])
         self.assertIn(str(os.getpid()), [parts[0] for parts in lines if parts])
-        found, _ = stray.processes(self.STAND_IN)
+        found, ours = stray.processes(self.STAND_IN)
         self.assertIn(child.pid, [entry['pid'] for entry in found])
         self.assertNotIn(os.getpid(), [entry['pid'] for entry in found])
+        self.assertEqual(ours, [])
+        self.assertEqual(set(found[0]), {'pid', 'parent', 'started', 'executable'})
+
+    def test_only_processes_of_ours_are_kept_and_every_other_is_discarded_uncounted(self):
+        # Invented numbers and paths: one runs the bundle's executable, one an executable under the candidate's
+        # folder, one under the lane's folder, and two are another program and one with no path. Only the first three
+        # are kept, each with what is read of it; the others leave no trace in what is returned.
+        stray = load('stray')
+        child = self.started()
+        top = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, top, True)
+        for name in ('candidate/target/release/helper', 'lane/tool'):
+            os.makedirs(os.path.dirname(os.path.join(top, name)), exist_ok=True)
+            Path(top, name).write_text('invented')
+        paths = {child.pid: self.STAND_IN, 900001: f'{top}/candidate/target/release/helper', 900002: f'{top}/lane/tool',
+                 900003: '/usr/bin/true', 900004: stray.NO_PATH}
+        asked_start = []
+
+        def started_of(pid):
+            asked_start.append(pid)
+            return (1, 'Sat Nov 14 12:00:00 2026')
+        found, ours = stray.processes(self.STAND_IN, lines=[str(pid) for pid in paths], path_of=paths.get,
+                                      folders=[f'{top}/candidate', f'{top}/lane'], started_of=started_of)
+        self.assertEqual([entry['pid'] for entry in found], [child.pid])
+        self.assertEqual(sorted(entry['pid'] for entry in ours), [900001, 900002])
+        self.assertEqual(sorted(asked_start), sorted([child.pid, 900001, 900002]))  # nothing more is read of the others
 
 
 @unittest.skipUnless(sys.platform == 'darwin', MACOS_ONLY)
