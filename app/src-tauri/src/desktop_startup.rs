@@ -1529,7 +1529,7 @@ impl DesktopSetup {
             Some(shared.clone()),
         )?;
         let token = crate::util::opaque_id("desktop-project-preview-")?;
-        let result = json!({"token":token,"kind":"retain-account-project","affirmative":"Save project for next launch","accountHome":account.display().to_string(),"project":project.as_ref().map(|p|p.display().to_string()),"effects":[format!("Retain the currently admitted account directory {}",account.display()),format!("Project on next launch: {}",project.as_ref().map(|p|p.display().to_string()).unwrap_or_else(||"explicitly absent".into())),"Save only a pending project request; create no home, links or credentials"],"resources":resource_view(&plan)?,"standing":"Original admitted account/shared/supplier references are retained; active workspace and all current owners/choices remain unchanged"});
+        let result = json!({"defaults":Self::first_use_defaults("retain-account-project"),"token":token,"kind":"retain-account-project","affirmative":"Save project for next launch","accountHome":account.display().to_string(),"project":project.as_ref().map(|p|p.display().to_string()),"effects":[format!("Retain the currently admitted account directory {}",account.display()),format!("Project on next launch: {}",project.as_ref().map(|p|p.display().to_string()).unwrap_or_else(||"explicitly absent".into())),"Save only a pending project request; create no home, links or credentials"],"resources":resource_view(&plan)?,"standing":"Original admitted account/shared/supplier references are retained; active workspace and all current owners/choices remain unchanged"});
         self.preview = Some(Preview {
             token,
             kind: PreviewKind::RetainProject { admission, request },
@@ -1553,6 +1553,28 @@ impl DesktopSetup {
             PreviewKind::RetainProject { .. } => "Save project for next launch",
         })
     }
+    /// What the review page says, before confirming, about what Codex can read and where a sign-in is
+    /// kept. The App sets none of these: on the new-settings route Codex's own defaults apply (the
+    /// pinned Codex's read-only profile, on-request approval and file credential storage, as read
+    /// from its source and observed in one start), so they are said as defaults; on the other routes
+    /// the settings in use decide and are not restated. What Codex reports for a launch or a
+    /// conversation is shown after setup (Connection and access), never a default in its place.
+    fn first_use_defaults(kind: &str) -> Value {
+        match kind {
+            "new-settings" => json!({"heading":"What applies by default","sentences":[
+                "With new settings, Codex's own defaults apply; the App sets none of these.",
+                "By default, Codex can read any file your Mac account can read, inside and outside your project, so choose a project folder with that in mind.",
+                "By default your ChatGPT sign-in is kept as a file, auth.json, in the sign-in folder listed under Exact locations, readable only by your account. Connection and access shows where Codex keeps it before you sign in.",
+                "After you reopen the App, Connection and access shows what Codex reports for this launch.",
+            ]}),
+            "new-home" => json!({"heading":"What applies","sentences":[
+                "Your own Codex settings decide what Codex may read and change, and where your sign-in is kept. The App does not change them and does not restate them here; after you reopen the App, Connection and access shows what Codex reports for this launch.",
+            ]}),
+            _ => json!({"heading":"What applies","sentences":[
+                "This keeps your current sign-in folder and the settings it uses: what Codex may read and change, and where your sign-in is kept, stay as they are. After you reopen the App, Connection and access shows what Codex reports for this launch.",
+            ]}),
+        }
+    }
     pub fn preview_statement(&self, token: &str) -> Result<String, String> {
         let preview = self
             .preview
@@ -1564,7 +1586,7 @@ impl DesktopSetup {
             return Ok(format!("Retain the currently admitted App-owned account directory: {}\nProject on next launch: {}\nKeep its exact shared references and supplier selection.\nCreate no home, link or credential; no re-preparation or relink.\nSave a pending project request only. Current workspace, account/home, records, attachments, recovery, model choices and prepared messages stay unchanged. No automatic quit/restart/login/conversation.", preview.account.display(), preview.project.as_ref().map(|p|p.display().to_string()).unwrap_or_else(||"explicitly absent".into())));
         }
         if let PreviewKind::NewSettings { settings } = &preview.kind {
-            return Ok(format!("Create NEW App-owned settings folder: {}\nwith an empty config.toml, an empty AGENTS.md and an empty skills folder.\nCreate NEW App-owned account directory: {}\nLink its config.toml, AGENTS.md and skills to those new settings.\nRead, import or change no other Codex settings, home or credential.\nProject for next launch: {}\nSave a private pending request in {}.\nCodex: the copy included with this App ({SUPPLIER}).\nThe current workspace, homes, account/model choices, records and prepared messages stay unchanged. No automatic quit/restart/login/conversation.",settings.display(),preview.account.display(),preview.project.as_ref().map(|p|p.display().to_string()).unwrap_or_else(||"none".into()),self.data.as_ref().map_err(Clone::clone)?.join(PROFILE).display()));
+            return Ok(format!("Create NEW App-owned settings folder: {}\nwith an empty config.toml, an empty AGENTS.md and a skills folder. Codex adds its own system skills there, and its own working files to the account directory, when it starts.\nCreate NEW App-owned account directory: {}\nLink its config.toml, AGENTS.md and skills to those new settings.\nRead, import or change no other Codex settings, home or credential.\nProject for next launch: {}\nSave a private pending request in {}.\nCodex: the copy included with this App ({SUPPLIER}).\nThe current workspace, homes, account/model choices, records and prepared messages stay unchanged. No automatic quit/restart/login/conversation.",settings.display(),preview.account.display(),preview.project.as_ref().map(|p|p.display().to_string()).unwrap_or_else(||"none".into()),self.data.as_ref().map_err(Clone::clone)?.join(PROFILE).display()));
         }
         Ok(format!("Create NEW App-owned account directory: {}\nCreate links (no content copy or credential import):\nconfig.toml → {}\nAGENTS.md → {}\nskills → {}\nProject for next launch: {}\nSave a private pending request in {}.\nSupplier: {} ({SUPPLIER}); unqualified owner-use development.\nThe current workspace, homes, account/model choices, records and prepared messages stay unchanged. No automatic quit/restart/login/conversation.",preview.account.display(),preview.shared.config_toml.display(),preview.shared.global_agents_md.display(),preview.shared.skills.display(),preview.project.as_ref().map(|p|p.display().to_string()).unwrap_or_else(||"explicitly absent".into()),self.data.as_ref().map_err(Clone::clone)?.join(PROFILE).display(),self.resources.as_ref().map_err(Clone::clone)?.join("codex/bin/codex").display()))
     }
@@ -1592,7 +1614,7 @@ impl DesktopSetup {
         // separately and are also named in the native confirmation statement.
         effects["effects"] = json!([
             "Create a new settings folder for this App, inside its data folder",
-            "In it, create an empty config.toml, an empty AGENTS.md and an empty skills folder",
+            "In it, create an empty config.toml, an empty AGENTS.md and a skills folder; Codex adds its own system skills there, and its own working files to the sign-in folder, when it starts",
             "Create a new sign-in folder for this App, linked to those settings",
             format!("Project when you next open the App: {}", preview.project.as_ref().map(|p| p.display().to_string()).unwrap_or_else(|| "none".into())),
             "Save these choices privately for the next launch",
@@ -1603,6 +1625,7 @@ impl DesktopSetup {
             {"name":"Saved choices","path":data.join(PROFILE).display().to_string()},
         ]);
         effects["standing"] = json!("Nothing is created until you confirm. No other Codex settings, home or credential is read, imported or changed.");
+        effects["defaults"] = Self::first_use_defaults("new-settings");
         Ok(effects)
     }
     pub fn preview(
@@ -1632,7 +1655,7 @@ impl DesktopSetup {
             Some(shared.clone()),
         )?;
         let token = crate::util::opaque_id("desktop-preview-")?;
-        let effects = json!({"token":token,"kind":"new-home","affirmative":"Prepare home and save for next launch","accountHome":account.display().to_string(),"effects":[format!("Create new account directory {}",account.display()),format!("Create config.toml link → {}",shared.config_toml.display()),format!("Create AGENTS.md link → {}",shared.global_agents_md.display()),format!("Create skills link → {}",shared.skills.display()),format!("Save private pending request {}",data.join(PROFILE).display())],"project":project.as_ref().map(|p|p.display().to_string()),"resources":resource_view(&plan)?,"standing":"No credential import or existing-home adoption. Only the explicit prepare/save action creates these paths. Missing targets remain visible source limits."});
+        let effects = json!({"defaults":Self::first_use_defaults("new-home"),"token":token,"kind":"new-home","affirmative":"Prepare home and save for next launch","accountHome":account.display().to_string(),"effects":[format!("Create new account directory {}",account.display()),format!("Create config.toml link → {}",shared.config_toml.display()),format!("Create AGENTS.md link → {}",shared.global_agents_md.display()),format!("Create skills link → {}",shared.skills.display()),format!("Save private pending request {}",data.join(PROFILE).display())],"project":project.as_ref().map(|p|p.display().to_string()),"resources":resource_view(&plan)?,"standing":"No credential import or existing-home adoption. Only the explicit prepare/save action creates these paths. Missing targets remain visible source limits."});
         let source_refs = [
             &shared.config_toml,
             &shared.global_agents_md,
@@ -6306,7 +6329,7 @@ mod tests {
         let ledger_path = f.data.join("runtime/recovery.ledger.jsonl");
         let host = Arc::new(Host::new());
         host.configure_recovery(ledger_path.clone()).unwrap();
-        let ledger = || crate::recovery::stored_entries(&ledger_path);
+        let ledger = || host.stored_entries_held(&ledger_path);
         let (entries, files) = (ledger(), tree(&f.data));
         assert_eq!(entries.len(), 1, "the first App's session start");
         for route in ["saved", "environment"] {
@@ -6565,8 +6588,9 @@ mod tests {
             // The stand-in asks for an approval after the handshake: wait until this App's ledger lists it.
             let ledger = runtime_session::reviewed_ledger_path(&data);
             let end = std::time::Instant::now() + std::time::Duration::from_secs(10);
-            while !crate::recovery::stored_entries(&ledger).iter().any(|e| e["transition"] == "RQ-01") {
-                assert!(std::time::Instant::now() < end, "the request was listed: {:?}", crate::recovery::stored_entries(&ledger));
+            // The other App process writes this ledger: a read that meets its journal is read again.
+            while !crate::recovery::try_stored_entries(&ledger).is_ok_and(|entries| entries.iter().any(|e| e["transition"] == "RQ-01")) {
+                assert!(std::time::Instant::now() < end, "the request was listed: {:?}", crate::recovery::try_stored_entries(&ledger));
                 std::thread::sleep(std::time::Duration::from_millis(20));
             }
         }
@@ -6695,7 +6719,7 @@ mod tests {
             let (state, app_home, desktop, _) = complete_startup(input, platform, f.resources.clone(), &f.root);
             runtime_session::start_with_recovery(&app_home.host, &app_home.recovery_startup, Ok(&f.data), None, || Ok(())).unwrap();
             assert_eq!(app_home.recovery_startup.lock().unwrap().snapshot()["state"], "configured", "{route}: {}", app_home.recovery_startup.lock().unwrap().snapshot());
-            let entries = crate::recovery::stored_entries(&runtime_session::reviewed_ledger_path(&f.data));
+            let entries = app_home.host.stored_entries_held(&runtime_session::reviewed_ledger_path(&f.data));
             let start = entries.iter().rev().find(|e| e["kind"] == "session_started").unwrap();
             assert_eq!(start["previousSession"], crashed.as_str(), "{route}");
             assert_eq!(start["previousSessionEnd"], "ended-without-record", "{route}");
@@ -7068,6 +7092,18 @@ mod tests {
     /// First use with new App-owned settings: nothing exists after review; the
     /// confirmed prepare creates only the new settings leaf, the new home and
     /// the pending request, which the next launch admits.
+    // The routes that use existing settings say the settings in use decide, and restate nothing.
+    #[test]
+    fn first_use_routes_with_existing_settings_say_their_settings_decide_and_restate_nothing() {
+        let shared = DesktopSetup::first_use_defaults("new-home");
+        assert_eq!(shared["sentences"][0], "Your own Codex settings decide what Codex may read and change, and where your sign-in is kept. The App does not change them and does not restate them here; after you reopen the App, Connection and access shows what Codex reports for this launch.");
+        let kept = DesktopSetup::first_use_defaults("retain-account-project");
+        assert!(kept["sentences"][0].as_str().unwrap().starts_with("This keeps your current sign-in folder and the settings it uses"));
+        for view in [shared, kept] {
+            let text = view.to_string();
+            assert!(!text.contains("read-only") && !text.contains("auth.json") && !text.contains("by default"), "no default is restated as the settings in use");
+        }
+    }
     #[test]
     fn new_settings_are_created_only_at_confirmed_prepare_inside_the_app_data() {
         use std::os::unix::fs::PermissionsExt;
@@ -7092,6 +7128,18 @@ mod tests {
         assert_eq!(settings.parent().unwrap(), f.data.join(SETTINGS));
         assert!(!settings.exists() && !account.exists(), "review creates nothing");
         assert!(setup.preview_statement(preview["token"].as_str().unwrap()).unwrap().contains("Read, import or change no other Codex settings, home or credential"));
+        // Before confirming, the review page says what Codex may do by default and where a sign-in is
+        // kept, as Codex's defaults; the sheet says what Codex adds when it starts and no more.
+        assert_eq!(preview["defaults"]["heading"], "What applies by default");
+        let defaults: Vec<&str> = preview["defaults"]["sentences"].as_array().unwrap().iter().map(|s| s.as_str().unwrap()).collect();
+        assert_eq!(defaults.first(), Some(&"With new settings, Codex's own defaults apply; the App sets none of these."));
+        assert!(defaults.contains(&"By default, Codex can read any file your Mac account can read, inside and outside your project, so choose a project folder with that in mind."));
+        assert!(defaults.iter().any(|s| s.starts_with("By default your ChatGPT sign-in is kept as a file, auth.json, in the sign-in folder")));
+        // Nothing says or implies the agent asks before it changes something (the owner, 14 November).
+        assert!(defaults.iter().all(|s| !s.contains("allow") && !s.contains("ask") && !s.contains("permission")), "no sentence rests on asking before change");
+        assert!(statement.contains("with an empty config.toml, an empty AGENTS.md and a skills folder. Codex adds its own system skills there, and its own working files to the account directory, when it starts.\n"));
+        assert!(!statement.contains("an empty skills folder") && !statement.contains("Codex's defaults then apply"), "the sheet carries only the corrected line");
+        assert!(preview["effects"][1].as_str().unwrap().contains("a skills folder; Codex adds its own system skills there"));
         assert_eq!(setup.preview_action(preview["token"].as_str().unwrap()).unwrap(), "Create settings and save for next launch");
         let saved = setup.prepare_and_save(preview["token"].as_str().unwrap()).unwrap();
         assert_eq!(saved["pending"]["state"], "saved-for-next-launch", "{saved}");

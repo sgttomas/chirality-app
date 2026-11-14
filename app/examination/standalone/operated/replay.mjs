@@ -21,7 +21,7 @@ if (wrongPath) {
     texts[view] = texts[view].replace(from, to);
   }
 }
-texts.unshift(texts[0], texts[0]);  // the two whole views the walk asks for before any click
+texts.unshift(texts[0], texts[0]);  // the two whole views the walk asks for first
 let next = 0;
 const made = [];
 const standIn = {  // every other method of the service is absent here, so a call to one would throw
@@ -31,9 +31,10 @@ const standIn = {  // every other method of the service is absent here, so a cal
     return { app: recorded.bundle, screenshot: null, text: texts[next++] };
   },
   async click(input) { made.push(['click', input]); },
+  async set_value(input) { made.push(['set_value', input]); },
 };
 const running = () => ({ pid: process.pid, running: true, at_ms: Date.now(), executable: recorded.bundle + '/Contents/MacOS/chirality-app-v4', children: [] });  // stands in for watch.py's file
-const report = await run({ sky: standIn, scenario, app: recorded.app, home: recorded.home, bundle: recorded.bundle, pid: process.pid, readWatch: running, sleep: async () => {} });
+const report = await run({ sky: standIn, scenario, app: recorded.app, home: recorded.home, bundle: recorded.bundle, pid: process.pid, readWatch: running, sleep: async () => {}, project: recorded.project });
 report.replayed = { views: viewsPath, wrong_state: wrongPath ?? null, calls_received: made.length };
 console.log(JSON.stringify(report, null, 2));
 console.error(summary(report));

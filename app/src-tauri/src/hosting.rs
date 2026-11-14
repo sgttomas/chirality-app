@@ -115,6 +115,19 @@ use std::time::Duration;
 /// wait belongs to other holders of the gate (a start's spawn and handshake, Stop Codex), not to this.
 /// A refused turn releases the gate, the source lock and the writer at once.
 pub(crate) const ATTACHMENT_RECHECK_LIMIT: Duration = Duration::from_secs(2);
+/// Test support: what a cold reopen of `path` reads, read while this Host's own ledger is held.
+/// The App opens one connection on its ledger and makes every write under one lock, and the
+/// ledger's guard (`recovery_store::preflight`) rests on that. A test's second connection is
+/// opened under the same lock, so its guard never meets this Host's rollback journal while
+/// SQLite removes it at commit.
+#[cfg(test)]
+impl Host {
+    pub(crate) fn stored_entries_held(&self, path: &std::path::Path) -> Vec<Value> {
+        let held = self.inner.0.lock().unwrap().recovery.clone();
+        let _writer = held.as_ref().map(|ledger| ledger.lock().unwrap());
+        crate::recovery::stored_entries(path)
+    }
+}
 #[cfg(test)]
 static ATTACHMENT_RECHECK_DELAY: std::sync::Mutex<Option<Duration>> = std::sync::Mutex::new(None);
 #[cfg(test)]
@@ -410,6 +423,27 @@ impl HostConfig {
     }
 }
 
+/// Why the last start of Codex was refused, in the classes the workspace words for a person
+/// (`startRefusalCause` in the host status). Chosen where each refusal is raised. The persisted
+/// lifecycle record keeps its shape; this is status only.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum StartRefusalCause {
+    /// The App's copy of Codex, or its own files, are not what the App was built with (a mismatch).
+    Changed,
+    /// They could not be confirmed (unverifiable).
+    Unconfirmed,
+    /// A step of the start was overtaken while it ran; starting again may succeed.
+    Busy,
+    /// The home was not available: missing, held or replaced (`lastStartRefusal` says which).
+    Home,
+}
+impl StartRefusalCause {
+    pub(crate) fn as_str(self) -> &'static str {
+        match self { Self::Changed => "changed", Self::Unconfirmed => "unconfirmed", Self::Busy => "busy", Self::Home => "home" }
+    }
+    /// For a verification result the start refused: a mismatch is Changed, anything else Unconfirmed.
+    fn of_verification(result: &Value) -> Self { if result["result"] == "mismatch" { Self::Changed } else { Self::Unconfirmed } }
+}
 #[derive(Default)]
 struct Inner {
     /// The last start of Codex refused before its app-server was spawned: its
@@ -417,6 +451,8 @@ struct Inner {
     /// it was refused before it was admitted as an attempt). Host status
     /// `lastStartRefusal`; see [`Host::start`].
     last_start_refusal: Option<Value>,
+    /// The class of the last refused start; see [`StartRefusalCause`].
+    start_refusal_cause: Option<StartRefusalCause>,
     cce_offer: Option<call_custody::Offer>,
     /// RS §13.9: the records capability offered in the App's current project,
     /// and the (generation, thread) pairs whose `thread/start` carried it.
@@ -1442,6 +1478,12 @@ impl Host {
     }
     fn snapshot_inner(i: &mut Inner) -> Value {
         Self::observe_reply_writes(i);
+        let mut status = Self::snapshot_fields(i);
+        status["startRefusalCause"] = json!(i.start_refusal_cause.map(StartRefusalCause::as_str));
+        status["build"] = json!(if cfg!(debug_assertions) { "development" } else { "release" });
+        status
+    }
+    fn snapshot_fields(i: &mut Inner) -> Value {
         // A turn start whose write has begun and that Codex has not answered:
         // live work with no turn identity yet, so no interrupt can name it.
         let unanswered_turn_starts = Self::unanswered_turn_starts(i);
@@ -1923,10 +1965,13 @@ impl Host {
             .checked_add(1).ok_or("home spawn counter exhausted")?;
         Ok(json!({"appSession":i.app_session,"home":home,"spawnCounter":counter}))
     }
-    fn refuse_successor(&self, attempt: u64, reason: String) -> Result<Value, String> {
+    /// `cause` is chosen by the caller where the refusal is raised; `None` takes it from the result
+    /// this refusal records (a mismatch is Changed, anything else Unconfirmed).
+    fn refuse_successor(&self, attempt: u64, cause: Option<StartRefusalCause>, reason: String) -> Result<Value, String> {
         let mut i = self.inner.0.lock().unwrap();
         if Self::check_start_admission(&i,attempt).is_err() { return Err(format!("stale start attempt; {reason}")); }
         let result = json!({"result":if reason.starts_with("mismatch:") { "mismatch" } else { "unverifiable" },"reason":reason});
+        i.start_refusal_cause = Some(cause.unwrap_or_else(|| StartRefusalCause::of_verification(&result)));
         i.verification = Some(result.clone());
         i.supplier_standing = None;
         self.lt(&mut i,"LT-05","verification-failed","refused",json!({"verificationResult":result}));
@@ -2109,10 +2154,10 @@ impl Host {
     /// refused for a reason that is not kept leaves no refusal showing, and
     /// never an older one. Not a lifecycle transition.
     pub(crate) fn begin_start_request(&self) {
-        self.inner.0.lock().unwrap().last_start_refusal = None;
+        let mut i = self.inner.0.lock().unwrap(); i.last_start_refusal = None; i.start_refusal_cause = None;
     }
     pub(crate) fn note_start_refusal(&self, actor: &str, home: &std::path::Path, reason: &str) {
-        self.inner.0.lock().unwrap().last_start_refusal = Some(Self::start_refusal(actor, home, None, reason));
+        let mut i = self.inner.0.lock().unwrap(); i.last_start_refusal = Some(Self::start_refusal(actor, home, None, reason)); i.start_refusal_cause = Some(StartRefusalCause::Home);
     }
     /// What a start is told when the home's process lock was not taken. Held: another start of
     /// this Host under way holds it; or this Host started a process group on the home that it has
@@ -2314,7 +2359,7 @@ impl Host {
                 _ => "LT-03",
             };
             // A later attempt is admitted: an earlier refusal no longer describes the start.
-            i.last_start_refusal = None;
+            i.last_start_refusal = None; i.start_refusal_cause = None;
             self.lt(&mut i, id, "start-requested", "verifying", json!({"actor": actor}));
             // The lock becomes this attempt's in the Host's slot in the same step that admits
             // the attempt, under the source gate Stop takes: a Stop that cancels the attempt
@@ -2343,7 +2388,7 @@ impl Host {
             let i = self.inner.0.lock().unwrap();
             self.successor_prospective(&i, cfg).map(Some)
         } else { Ok(None) };
-        let prospective = match prospective { Ok(g) => g, Err(e) => return self.refuse_successor(attempt, e) };
+        let prospective = match prospective { Ok(g) => g, Err(e) => return self.refuse_successor(attempt, None, e) };
         // The only reference source is the configured Store's compiled selection,
         // so the comparison and the published observation share one closure.
         let reference_store = self.distribution_store.lock().unwrap().clone();
@@ -2353,23 +2398,23 @@ impl Host {
                 (None, Some(limit)) => successor::Reference::Unavailable(limit),
                 (None, None) => successor::Reference::None,
             },
-            Some(Err(error)) if cfg.distribution.is_some() => return self.refuse_successor(attempt, error.clone()),
-            None if cfg.distribution.is_some() && cfg.require_distribution_artifacts => return self.refuse_successor(attempt, "native distribution store not configured".into()),
+            Some(Err(error)) if cfg.distribution.is_some() => return self.refuse_successor(attempt, None, error.clone()),
+            None if cfg.distribution.is_some() && cfg.require_distribution_artifacts => return self.refuse_successor(attempt, Some(StartRefusalCause::Unconfirmed), "native distribution store not configured".into()),
             _ => successor::Reference::None,
         };
         let prepared = if let Some(distribution) = &cfg.distribution {
             match successor::prepare_with_probe(distribution, cfg, prospective.as_ref().unwrap(), reference, |command, wait| self.run_label_probe(attempt, &home, command, wait)) {
-                Ok(p) => Some(p), Err(e) => return self.refuse_successor(attempt, e),
+                Ok(p) => Some(p), Err(e) => return self.refuse_successor(attempt, None, e),
             }
         } else { None };
         let successor_reference = if let Some(p) = &prepared {
             let store = self.distribution_store.lock().unwrap().clone();
             match store {
                 Some(Ok(store)) => match (|| { p.revalidate()?; let (observation,facts)=p.observation(cfg,prospective.as_ref().unwrap()); store.publish_observed_with_installed(prospective.as_ref().unwrap(),observation,facts,p.installed.as_ref()) })() {
-                    Ok(reference) => Some(reference), Err(e) => return self.refuse_successor(attempt, e),
+                    Ok(reference) => Some(reference), Err(e) => return self.refuse_successor(attempt, None, e),
                 },
-                Some(Err(e)) => return self.refuse_successor(attempt, e),
-                None if cfg.require_distribution_artifacts => return self.refuse_successor(attempt, "native distribution store not configured".into()),
+                Some(Err(e)) => return self.refuse_successor(attempt, None, e),
+                None if cfg.require_distribution_artifacts => return self.refuse_successor(attempt, Some(StartRefusalCause::Unconfirmed), "native distribution store not configured".into()),
                 None => None, // Source-only fixtures retain the explicit in-memory route.
             }
         } else { None };
@@ -2378,7 +2423,7 @@ impl Host {
             None => self.verify(attempt, &home, cfg),
         };
         if let Some(p) = &prepared {
-            if let Err(e) = p.revalidate() { return self.refuse_successor(attempt, e); }
+            if let Err(e) = p.revalidate() { return self.refuse_successor(attempt, None, e); }
         }
         #[cfg(test)]
         {let hook=self.before_successor_gate.lock().unwrap().take();if let Some(hook)=hook{hook();}}
@@ -2388,7 +2433,7 @@ impl Host {
         let app_spawn_guard = if prepared.is_some() {
             match app_writer.try_lock() {
                 Ok(guard) => guard,
-                Err(_) => return self.refuse_successor(attempt, "App writer busy after revalidation; no spawn".into()),
+                Err(_) => return self.refuse_successor(attempt, Some(StartRefusalCause::Busy), "App writer busy after revalidation; no spawn".into()),
             }
         } else { app_writer.lock().unwrap() };
         // Same ordering as publication: App writer -> source gate -> Inner.
@@ -2397,7 +2442,7 @@ impl Host {
         let successor_gate = if prepared.is_some() {
             match self.attachment_gate.try_lock() {
                 Ok(guard) => Some(guard),
-                Err(_) => return self.refuse_successor(attempt, "source gate busy after revalidation; no spawn".into()),
+                Err(_) => return self.refuse_successor(attempt, Some(StartRefusalCause::Busy), "source gate busy after revalidation; no spawn".into()),
             }
         } else { Some(self.attachment_gate.lock().unwrap()) };
         {
@@ -2410,7 +2455,7 @@ impl Host {
             let current = self.successor_prospective(&i, cfg);
             if i.start_attempt != attempt || i.state != "verifying" || current.as_ref().ok() != Some(expected) {
                 drop(i); drop(successor_gate); drop(app_spawn_guard);
-                return self.refuse_successor(attempt, "prospective generation or start attempt changed; no spawn".into());
+                return self.refuse_successor(attempt, Some(StartRefusalCause::Busy), "prospective generation or start attempt changed; no spawn".into());
             }
         }
         #[cfg(test)]
@@ -2433,6 +2478,7 @@ impl Host {
                 i.verification = Some(refused.clone());
                 i.supplier_standing = None;
                 i.last_start_refusal = Some(Self::start_refusal(actor, &cfg.codex_home, Some(attempt), &reason));
+                i.start_refusal_cause = Some(StartRefusalCause::Home);
                 self.lt(&mut i, "LT-05", "verification-failed", "refused", json!({"verificationResult": refused}));
                 return Err(reason);
             }
@@ -2440,6 +2486,7 @@ impl Host {
             i.successor_reference = successor_reference;
             i.verification = Some(result.clone());
             if !(verified || dev_ok) {
+                i.start_refusal_cause = Some(StartRefusalCause::of_verification(&result));
                 self.lt(&mut i, "LT-05", "verification-failed", "refused", json!({"verificationResult": result}));
                 return Err(format!("refused: {}", result));
             }
@@ -3546,7 +3593,7 @@ impl Host {
         if i.threads.iter().any(|t|t["generation"]==*generation&&t["threadId"]==native["id"]) {return Err("thread already operationally admitted in generation".into());}
         Self::check_local_reported(&i,&response["result"])?;
         self.check_local_reading_current(&i,dispatch.local_config.as_ref())?;
-        let result=&response["result"];let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":native["id"],"name":native.get("name").and_then(Value::as_str),"preview":native.get("preview").and_then(Value::as_str),"status":native["status"],"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"supplierStanding":i.supplier_standing,"resumeRequestRef":dispatch.source.request_ref,"nativeResumeObserved":true,"appRole":{"standing":"unknown"},"networkDisclosure":network_disclosure()}),response);i.threads.push(row.clone());
+        let result=&response["result"];let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":native["id"],"name":native.get("name").and_then(Value::as_str),"preview":native.get("preview").and_then(Value::as_str),"status":native["status"],"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"approvalPolicy":result.get("approvalPolicy"),"sandbox":result.get("sandbox"),"activePermissionProfile":result.get("activePermissionProfile"),"supplierStanding":i.supplier_standing,"resumeRequestRef":dispatch.source.request_ref,"nativeResumeObserved":true,"appRole":{"standing":"unknown"},"networkDisclosure":network_disclosure()}),response);i.threads.push(row.clone());
         // Admission is already established. Context preparation/read failure must
         // never revoke it, change role/CCE state or make Continue wait on history.
         let thread=native["id"].as_str().unwrap();
@@ -3661,7 +3708,7 @@ impl Host {
         if unread {return Err("thread/fork records project reading no longer matches the admission it was taken for; native response retained".into());}
         let records_reading=if again.is_some() {records_reading} else {None};
         let standing=i.supplier_standing.clone();let result=&response["result"];
-        let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":t.get("id"),"name":t.get("name").and_then(Value::as_str),"preview":t.get("preview").and_then(Value::as_str),"status":t.get("status"),"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"supplierStanding":standing,"forkedFrom":{"threadId":source,"forkRequestRef":request.request_ref,"reportedForkedFromId":t.get("forkedFromId")},"requestedDestination":{"source":"inherited from the forked conversation; none chosen at fork"},"reportedDestination":{"scope":"thread","model":result.get("model"),"modelProvider":result.get("modelProvider")},"networkDisclosure":network_disclosure()}),&response);
+        let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":t.get("id"),"name":t.get("name").and_then(Value::as_str),"preview":t.get("preview").and_then(Value::as_str),"status":t.get("status"),"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"approvalPolicy":result.get("approvalPolicy"),"sandbox":result.get("sandbox"),"activePermissionProfile":result.get("activePermissionProfile"),"supplierStanding":standing,"forkedFrom":{"threadId":source,"forkRequestRef":request.request_ref,"reportedForkedFromId":t.get("forkedFromId")},"requestedDestination":{"source":"inherited from the forked conversation; none chosen at fork"},"reportedDestination":{"scope":"thread","model":result.get("model"),"modelProvider":result.get("modelProvider")},"networkDisclosure":network_disclosure()}),&response);
         // Stock Codex retains the dynamic tool in a fork. Admit its calls only
         // after the correlated fork of a source offered it in this generation.
         // The capability still checks the fork's observed cwd on every read.
@@ -4148,7 +4195,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 if let Some(receipt) = receipt { i.records_receipts.push((generation.clone(), receipt.thread.clone(), receipt)); }
             }
         }
-        let standing=i.supplier_standing.clone();let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":t.get("id"),"name":t.get("name").and_then(Value::as_str),"preview":t.get("preview").and_then(Value::as_str),"status":t.get("status"),"model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider"),"reasoningEffort":response["result"].get("reasoningEffort"),"cwd":response["result"].get("cwd"),"supplierStanding":standing,"requestedDestination":{"source":"person-selected","model":params["model"],"modelProvider":params["modelProvider"]},"reportedDestination":{"scope":"thread","model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider")},"networkDisclosure":network_disclosure()}),response);i.threads.push(row);Ok(())
+        let standing=i.supplier_standing.clone();let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":t.get("id"),"name":t.get("name").and_then(Value::as_str),"preview":t.get("preview").and_then(Value::as_str),"status":t.get("status"),"model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider"),"reasoningEffort":response["result"].get("reasoningEffort"),"cwd":response["result"].get("cwd"),"approvalPolicy":response["result"].get("approvalPolicy"),"sandbox":response["result"].get("sandbox"),"activePermissionProfile":response["result"].get("activePermissionProfile"),"supplierStanding":standing,"requestedDestination":{"source":"person-selected","model":params["model"],"modelProvider":params["modelProvider"]},"reportedDestination":{"scope":"thread","model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider")},"networkDisclosure":network_disclosure()}),response);i.threads.push(row);Ok(())
     }
 
     /// Plain text only, with complete native text input; all thread settings
@@ -6089,7 +6136,8 @@ mod additive_guidance_transport_tests {
         *host.stdin.lock().unwrap()=child.stdin.take();let stdout=child.stdout.take().unwrap();let me=Arc::clone(&host);let g=generation.clone();let (tx,rx)=channel();
         let worker=std::thread::spawn(move|| {
             let mut line=String::new();BufReader::new(stdout).read_line(&mut line).unwrap();let frame:Value=serde_json::from_str(&line).unwrap();
-            let response=json!({"id":frame["id"],"result":{"thread":{"id":"mock-thread","status":"idle"},"model":"reported-model","modelProvider":"reported-provider","cwd":"/reported/work"}});
+            let response=json!({"id":frame["id"],"result":{"thread":{"id":"mock-thread","status":"idle"},"model":"reported-model","modelProvider":"reported-provider","cwd":"/reported/work",
+                "approvalPolicy":"on-request","approvalsReviewer":"user","sandbox":{"type":"readOnly","networkAccess":false},"activePermissionProfile":{"id":":read-only"}}});
             tx.send((frame,response.clone())).unwrap();me.on_line(&serde_json::to_vec(&response).unwrap(),&g);
         });
         let result=match guidance {Some(text)=>host.thread_start_with_guidance("/invented/work","chosen-model","chosen-provider",text),None=>host.thread_start_selected("/invented/work","chosen-model","chosen-provider")};
@@ -6100,6 +6148,9 @@ mod additive_guidance_transport_tests {
     fn both_public_wrappers_use_the_same_stdio_correlation_and_thread_snapshot_path() {
         for guidance in [None,Some("Exact role bytes\n\né / 家\n")] {
             let run=mock_thread_start(guidance,None);let response=run.result.unwrap();
+            // What Codex reported it may do in the conversation is kept on its row, as reported.
+            let row=&run.snapshot["threads"][0];
+            assert_eq!((row["approvalPolicy"].as_str(),row["sandbox"]["type"].as_str(),row["activePermissionProfile"]["id"].as_str()),(Some("on-request"),Some("readOnly"),Some(":read-only")));
             assert_eq!(run.outbound["method"],"thread/start");assert_eq!(run.outbound["params"],Host::thread_start_params("/invented/work","chosen-model","chosen-provider",guidance).unwrap());assert_eq!(response,run.native_response);
             let thread=&run.snapshot["threads"][0];assert_eq!(thread["generation"],run.generation);assert_eq!(thread["supplierStanding"],"unverified-development");assert_eq!(thread["requestedDestination"]["model"],"chosen-model");assert_eq!(thread["reportedDestination"]["model"],"reported-model");assert_eq!(run.snapshot["clientRequests"][0]["outcome"],"response-observed-result");assert_eq!(run.snapshot["journal"][0]["frame"],run.native_response);
         }
@@ -8054,12 +8105,12 @@ mod conversation_transport_tests {
     fn namespace_guard_drift_keeps_actual_reply_stop_and_recoverable_pointer_facts(){
         use std::os::unix::fs::symlink;
         let(root,host,scope,key)=namespace_guard_fixture();let ga=app_custody_mock_home(&host,&root.join("account"));let cap=host.app_runtime_custody().unwrap();cap.bind_native_namespaces(scope).unwrap();
-        let leaf=root.join("app/runtime/recovery.ledger.jsonl");let before=crate::recovery::stored_entries(&leaf);
+        let leaf=root.join("app/runtime/recovery.ledger.jsonl");let before=host.stored_entries_held(&leaf);
         std::fs::remove_file(key.native_path().join("skills")).unwrap();symlink(root.join("app/runtime"),key.native_path().join("skills")).unwrap();
         host.on_line(&serde_json::to_vec(&json!({"id":"guard-request","method":"item/fileChange/requestApproval","params":{"threadId":"thread","itemId":"item"}})).unwrap(),&ga);
-        assert_eq!(crate::recovery::stored_entries(&leaf),before);assert_eq!(host.snapshot()["recoveryPendingObservations"].as_array().unwrap().len(),1);assert!(!host.snapshot()["recoveryPersistenceError"].is_null());
+        assert_eq!(host.stored_entries_held(&leaf),before);assert_eq!(host.snapshot()["recoveryPendingObservations"].as_array().unwrap().len(),1);assert!(!host.snapshot()["recoveryPersistenceError"].is_null());
         let reply=host.answer_server_request(&ga,&json!("guard-request"),&json!({"decision":"decline"}),"person-via-interaction",Some("person:synthetic (identity not verified)")).unwrap();assert_eq!(reply["replyWriteResult"],"written");
-        assert_eq!(host.stop_scoped(&ga,"person:synthetic","codex-stop").unwrap()["state"],"stopped");let captured=host.snapshot()["recoveryPendingObservations"].as_array().unwrap().clone();assert_eq!(captured.last().unwrap()["transition"],"RQ-05");assert_eq!(crate::recovery::stored_entries(&leaf),before);
+        assert_eq!(host.stop_scoped(&ga,"person:synthetic","codex-stop").unwrap()["state"],"stopped");let captured=host.snapshot()["recoveryPendingObservations"].as_array().unwrap().clone();assert_eq!(captured.last().unwrap()["transition"],"RQ-05");assert_eq!(host.stored_entries_held(&leaf),before);
         std::fs::remove_file(key.native_path().join("skills")).unwrap();symlink(root.join("shared/skills"),key.native_path().join("skills")).unwrap();cap.flush_captured_recovery();assert!(host.snapshot()["recoveryPendingObservations"].as_array().unwrap().is_empty());let rows=cap.recorded_recovery_entries().as_array().unwrap().clone();for fact in &captured{assert_eq!(rows.iter().filter(|row|*row==fact).count(),1);}std::fs::remove_dir_all(root).unwrap();
     }
     #[test]
@@ -8771,10 +8822,12 @@ mod local_process_lock_tests {
         assert_eq!(status["lastStartRefusal"]["reason"], PROCESS_HELD, "kept for the window");
         assert_eq!(status["lastStartRefusal"]["home"], home_identity(&f.cfg.codex_home));
         assert!(status["lastStartRefusal"]["attempt"].is_null(), "refused before the call was an attempt");
+        assert_eq!(status["startRefusalCause"], "home");
         drop(earlier);
         // Free: the same configuration starts, and its child now holds the lock itself.
         assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
         assert!(host.snapshot()["lastStartRefusal"].is_null(), "an admitted attempt clears it");
+        assert!(host.snapshot()["startRefusalCause"].is_null(), "and its cause");
         assert_eq!(take_process_lock(&f.lock_path()).unwrap_err(), EARLIER_PROCESS, "held by the child");
         stop_and_wait(&host);
         drop(take_process_lock(&f.lock_path()).expect("free once the child has exited"));

@@ -5,7 +5,7 @@
 // It makes views (get_app_state) and clicks by element index, and, only where a scenario names them, two more: one
 // set-value into a field the scenario names in `typed_fields` (the path typed because the alternative is the system's
 // folder panel, which no agent operates), and one press on the App's own confirmation sheet the scenario names in
-// `sheets`, after checking that sheet whole. It clicks only controls a scenario step names, found by their kind and
+// `sheets`, only when its view equals the recorded view of it. It clicks only controls a scenario step names, found by kind and
 // words in the latest view. It never lists applications, types keys, presses a key, scrolls, drags or pastes, and any
 // sheet but the one named stops it as before.
 //
@@ -17,14 +17,56 @@ const ELEMENT = /^([~+]?)(\t*)(\d+) (.*)$/;
 const DIFFERENCE = 'The following is a diff from the previous accessibility tree';
 const NO_CHANGE = 'There has been no change in the accessibility tree';
 
-/** The elements of a whole view: [{index, depth, content}] in the order returned. */
-export function parseView(text) {
-  const elements = [];
-  for (const line of String(text).split('\n')) {
-    const match = ELEMENT.exec(line);
-    if (match && !match[1]) elements.push({ index: Number(match[3]), depth: match[2].length, content: match[4] });
+// A whole view is recognised line for line, or it is not acted on. Words hold no control character and no line or
+// paragraph separator; an index is at most 15 digits with no leading zero, so it reads as one exact number and two
+// different texts never name the same number.
+const WORDS = '[^\\p{Cc}\\u2028\\u2029]';
+const INDEX = '(0|[1-9][0-9]{0,14})';
+const ELEMENT_LINE = new RegExp(`^(\\t*)${INDEX} (${WORDS}+)$`, 'u');
+const WINDOW_LINE = new RegExp(`^Window: "${WORDS}*", App: ${WORDS}+\\.$`, 'u');
+const FOCUSED_LINE = new RegExp(`^The focused UI element is ${INDEX} (${WORDS}+)$`, 'u');
+const FURTHER_LINE = new RegExp(`^${WORDS}+$`, 'u');  // a text element's further lines: no tab can begin one
+export const UNADDRESSED = 'the view gives the same element index to more than one element, so it cannot be addressed';
+
+/**
+ * A whole view as the walk recognises it: {elements: [{index, depth, content}], refusal}. The view is the supplier's
+ * window line; then element lines, each perhaps followed by further lines of its own words; then, at most, one blank
+ * line and, after it, at most the focused-element line, naming an element of the view. Each element index names one
+ * element. Anything else is a refusal, and nothing is done from the view.
+ */
+export function recognise(text) {
+  const lines = String(text).split('\n'), elements = [], seen = new Set();
+  const refuse = why => ({ elements, refusal: why });
+  if (!WINDOW_LINE.test(lines[0])) return refuse("its first line is not the supplier's window line");
+  let previous = 'window';
+  for (let n = 1; n < lines.length; n++) {
+    const line = lines[n], element = ELEMENT_LINE.exec(line);
+    if (line === '') {
+      const rest = lines.slice(n + 1);
+      if (rest.length === 0) break;
+      const focused = rest.length === 1 ? FOCUSED_LINE.exec(rest[0]) : null;
+      if (!focused) return refuse(`line ${n + 2} is not one the walk recognises after the view's blank line`);
+      if (!seen.has(focused[1])) return refuse('the focused-element line names no element of the view');
+      break;
+    }
+    if (element) {
+      if (seen.has(element[2])) return refuse(UNADDRESSED);
+      seen.add(element[2]);
+      elements.push({ index: Number(element[2]), depth: element[1].length, content: element[3] });
+      previous = 'element';
+    } else if (previous !== 'window' && FURTHER_LINE.test(line)) {
+      previous = 'further';
+    } else {
+      return refuse(`line ${n + 1} is not one the walk recognises`);
+    }
   }
-  return elements;
+  return { elements, refusal: null };
+}
+
+/** The elements of a whole view: [{index, depth, content}] in the order returned (none if it is not recognised). */
+export function parseView(text) {
+  const { elements, refusal } = recognise(text);
+  return refusal ? [] : elements;
 }
 
 /** A view that came back as differences, applied to the elements of the view before it. */
@@ -138,85 +180,105 @@ export function notThePage(elements, scenario) {
   }
   const modal = modalAt(elements, start + 1);
   if (modal.length) return `the window holds something that is not the page (${elements[modal[0]].content})`;
+  const underMenu = inMenuBar(elements).find(at => MODAL.test(elements[at].content));
+  if (underMenu !== undefined) return `the menu bar holds something that is not the page (${elements[underMenu].content})`;
   return null;
 }
 
+/** The positions of every element inside the menu bar, at any depth. */
+function inMenuBar(elements) {
+  const found = [];
+  elements.forEach((element, at) => {
+    if (element.depth !== 0 || element.content !== 'menu bar') return;
+    for (let inside = at + 1; inside < elements.length && elements[inside].depth > 0; inside++) found.push(inside);
+  });
+  return found;
+}
+
 /**
- * The App's own confirmation sheet against what the scenario names for it, before anything is pressed. In the view
- * of the development build (the view already says it is of the bundle):
- * - at the top, the one window and the menu bar;
- * - directly inside the window, what the scenario lists and exactly one thing more, the sheet; and below the
- *   window, at any depth, no other window, sheet, dialog, alert or popover;
- * - directly inside the sheet, and nothing deeper: exactly the named buttons, the named title once, and the
- *   statement's text, with an image (the App's icon) allowed and recorded; any other kind of element is a problem;
- * - the statement's text equal to the complete statement. Line breaks, however the view gives them (a new element,
- *   a new line, or written as \n), are made one space, and each line is trimmed at its ends; nothing else is
- *   changed, so every word and every path is compared exactly.
- * Returns {problems, record, press} where press is the index of the named button to press.
+ * The App's own confirmation sheet against the scenario's recorded view of it, before anything is pressed. The view
+ * must equal the template line for line: each element line in its depth and its words, every other line exactly. The
+ * template is filled only with the captured paths (through the statement), the sheet's title, and the App's name, which
+ * is the candidate bundle's own folder name; the identifier is inside the paths. Element indices are not compared, since
+ * a view numbers its elements as it goes; the view is uniquely addressed (view() refuses one that is not), and the
+ * press goes to the index the view gives the element in the template's place for the named button. The focused-element
+ * line must name, by that mapping, the element the template's names. Anything else is a difference, and nothing is
+ * pressed. A view of the same sheet in another shape (another macOS or supplier version) stops the walk until the
+ * template is recorded again from a real observation and read again.
  */
-export function sheetCheck(text, elements, scenario, sheet, values) {
-  const problems = [], record = {};
-  const title = `standard window ${scenario.window}`;
-  const isWindow = ({ content }) => content === title || content.startsWith(title + ', ');
-  const top = elements.filter(({ depth }) => depth === 0);
-  if (top.some(element => !isWindow(element) && element.content !== 'menu bar') || top.filter(isWindow).length !== 1) {
-    problems.push('the view is not of the one window and the menu bar');
-  }
-  const start = elements.findIndex(isWindow);
-  const extra = [], modal = modalAt(elements, start + 1, true);
-  for (let at = start + 1; at < elements.length && elements[at].depth > 0; at++) {
-    if (elements[at].depth === 1 && !scenario.window_holds.includes(elements[at].content)) extra.push(at);
-  }
-  if (extra.length !== 1 || modal.length !== 1 || modal[0] !== extra[0]) {
-    problems.push(`the window holds ${extra.length} things beside the page and ${modal.length} windows, sheets or dialogs, not one sheet`);
-    return { problems, record, press: null };
-  }
-  const at = extra[0], sheetElement = elements[at];
-  record.sheet = sheetElement.content;
-  if (sheetElement.content !== sheet.element && !sheetElement.content.startsWith(sheet.element + ', ')) {
-    problems.push(`the thing beside the page is "${sheetElement.content}", not a ${sheet.element}`);
-  }
-  // Every line of the view inside the sheet: from its own line to the next element no deeper than it.
-  const lines = String(text).split('\n');
-  const first = lines.findIndex(line => { const m = ELEMENT.exec(line); return m && !m[1] && Number(m[3]) === sheetElement.index; });
-  if (first < 0) problems.push('the sheet was not found in the view as returned');
-  const buttons = [], titles = [], body = [];
-  record.images = [];
-  record.other = [];
-  for (let n = first + 1; first >= 0 && n < lines.length; n++) {
-    const m = ELEMENT.exec(lines[n]);
-    if (m && !m[1]) {
-      const depth = m[2].length, content = m[4];
-      if (depth <= sheetElement.depth) break;
-      if (depth > sheetElement.depth + 1) { record.other.push(content); continue; }
-      if (/^button /.test(content)) buttons.push({ index: Number(m[3]), content });
-      else if (content === `text ${sheet.title}`) titles.push(content);
-      else if (/^image( |,|$)/.test(content)) record.images.push(content);
-      else if (/^text /.test(content)) body.push(content.slice(5));
-      else record.other.push(content);
-    } else if (body.length) {
-      body[body.length - 1] += '\n' + lines[n];  // a text running over more than one line
-    } else {
-      record.other.push(lines[n]);
+export const APP_NAME = /^Chirality App v4 \(development [A-Za-z0-9.-]+\)$/;
+const NUMBER = '{~number}';  // in a template's element words: a decimal number (a scroll bar's position) and nothing else
+
+/**
+ * A view against a recorded view, line for line: {differs, at}. Each element line must equal the template's in its
+ * depth and its words, where the template's only allowance is {~number} for a decimal number; every other line must
+ * equal it exactly; the focused-element line must name, by the indices in the same places, the element the
+ * template's names. at maps each template index to the view's index for the element in the same place.
+ */
+export function compareView(wanted, text) {
+  const seen = String(text).split('\n');
+  const at = new Map();
+  const differs = [];
+  const sameWords = (template, words) => (template.includes(NUMBER)
+    ? new RegExp('^' + template.split(NUMBER).map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('[0-9]+(?:\\.[0-9]+)?') + '$', 'u').test(words)
+    : template === words);
+  if (seen.length !== wanted.length) differs.push(`the view has ${seen.length} lines and the recorded view ${wanted.length}`);
+  for (let n = 0; !differs.length && n < wanted.length; n++) {
+    const w = n > 0 && ELEMENT_LINE.exec(wanted[n]), s = n > 0 && ELEMENT_LINE.exec(seen[n]);
+    const wf = FOCUSED_LINE.exec(wanted[n]), sf = FOCUSED_LINE.exec(seen[n]);
+    if (w) {
+      if (!s || s[1] !== w[1] || !sameWords(w[3], s[3])) differs.push(`line ${n + 1} is not the recorded view's`);
+      else at.set(Number(w[2]), Number(s[2]));
+    } else if (wf) {
+      if (!sf || sf[2] !== wf[2] || !at.has(Number(wf[1])) || Number(sf[1]) !== at.get(Number(wf[1]))) differs.push(`line ${n + 1}, the focused element, is not the recorded view's`);
+    } else if (seen[n] !== wanted[n]) {
+      differs.push(`line ${n + 1} is not the recorded view's`);
     }
   }
-  if (record.other.length) problems.push(`the sheet holds what the scenario does not name: ${JSON.stringify(record.other)}`);
-  record.buttons = buttons.map(({ content }) => content.replace(/^button (\(disabled\) )?/, ''));
-  if (JSON.stringify([...record.buttons].sort()) !== JSON.stringify([...sheet.buttons].sort())) {
-    problems.push(`the sheet's buttons are ${JSON.stringify(record.buttons)}, not ${JSON.stringify(sheet.buttons)}`);
+  return { differs, at };
+}
+
+/** Whether a view is the listed state the scenario names, filled with the run's values: the reasons it is not. */
+export function stateCheck(text, lines, values, appName) {
+  if (!APP_NAME.test(appName)) return [`the candidate bundle's name is not of the development build's form: ${JSON.stringify(appName)}`];
+  if (!Array.isArray(lines) || !lines.length) return ['the scenario gives no recorded view of this state'];
+  const wanted = fill(lines.join('\n'), { ...values, app_name: appName }).split('\n');
+  if (wanted.some(line => /\{\w+\}/.test(line))) return ['the recorded view names a value this walk does not have'];
+  const template = recognise(wanted.join('\n'));
+  if (template.refusal) return [`the recorded view, filled, is not a view the walk recognises (${template.refusal})`];
+  return compareView(wanted, text).differs;
+}
+
+export function sheetCheck(text, sheet, values, appName) {
+  const problems = [], record = { compared_with: 'the recorded view of the sheet' };
+  // The name guards against a mistaken build: it must be of the development build's form before the template is made.
+  if (!APP_NAME.test(appName)) {
+    problems.push(`the candidate bundle's name is not of the development build's form: ${JSON.stringify(appName)}`);
+    return { problems, record, press: null };
   }
-  if (titles.length !== 1) problems.push(`the sheet's title "${sheet.title}" is there ${titles.length} times`);
-  const plain = words => String(words).replace(/\\n/g, '\n').split('\n').map(line => line.trim()).filter(Boolean).join(' ');
+  const statement = (sheet.statement ?? []).map(line => fill(line, values)).join('\n');
+  record.statement_wanted = statement;
   // The App shows the statement whole only within 30 lines and 1,500 characters; beyond that it shows a digest.
-  const whole = sheet.statement.map(line => fill(line, values)).join('\n');
-  if (whole.split('\n').length > 30 || [...whole].length > 1500) problems.push('for these paths the statement is longer than the App shows whole');
-  const seen = plain(body.join('\n')), wanted = plain(whole);
-  record.statement_seen = seen;
-  record.statement_wanted = wanted;
-  if (seen !== wanted) problems.push('the statement in the sheet is not the complete statement, exactly');
-  const press = buttons.filter(({ content }) => content === `button ${sheet.press}`);
-  if (press.length !== 1) problems.push(`the button to press, "${sheet.press}", is there ${press.length} times`);
-  return { problems, record, press: press.length === 1 ? press[0].index : null };
+  if (statement.split('\n').length > 30 || [...statement].length > 1500) problems.push('for these paths the statement is longer than the App shows whole');
+  if (!Array.isArray(sheet.view) || !sheet.view.length) {
+    problems.push('the scenario gives no recorded view of the sheet');
+    return { problems, record, press: null };
+  }
+  const wanted = fill(sheet.view.join('\n'), { ...values, title: sheet.title, statement, app_name: appName }).split('\n');
+  // The filled template must itself be a recognised view whose indices each name one element.
+  const template = recognise(wanted.join('\n'));
+  if (template.refusal) {
+    problems.push(`the recorded view, filled, is not a view the walk recognises (${template.refusal})`);
+    return { problems, record, press: null };
+  }
+  const { differs, at } = compareView(wanted, text);
+  problems.push(...differs);
+  record.first_difference = differs[0] ?? null;
+  const named = wanted.slice(1).map(line => ELEMENT_LINE.exec(line)).filter(m => m && m[3].startsWith(`button ${sheet.press}, ID: `));
+  if (named.length !== 1) problems.push(`the recorded view holds the button to press, "${sheet.press}", ${named.length} times`);
+  const press = named.length === 1 && !differs.length ? at.get(Number(named[0][2])) : null;
+  if (!problems.length && !Number.isInteger(press)) problems.push('the button to press has no index in the view');
+  return { problems, record, press: problems.length ? null : press };
 }
 
 /** One expectation against one view's elements: {expectation, pass, found}. */
@@ -410,6 +472,20 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
     return finish('inconclusive', 'refused before any call: the project to type is not the launch folder\'s own project folder, beside its home');
   }
   const steps = Array.isArray(scenario?.steps) ? scenario.steps : [];
+  // The walk acts only in a listed state: every step that acts names the recorded view it acts from, and that view is
+  // in the scenario's states (App Agent 0, 14 November 2026).
+  const acting = steps.filter(step => ['type', 'click', 'confirm_sheet'].includes(step?.act));
+  const unlisted = acting.find(step => !Array.isArray(scenario?.states?.[step.from_state]) || !scenario.states[step.from_state].length);
+  if (unlisted) {
+    return finish('inconclusive', `refused before any call: step ${unlisted.id} acts, and names no listed state it acts from; the walk acts only in a listed state`);
+  }
+  // What the views will show that the lane supplies must be plain text: no line break, tab, control character, or
+  // line or paragraph separator, so that it can never make a line of its own in a view.
+  const supplied = { home, bundle, identifier: app, ...(project ? { project } : {}) };
+  const unplain = Object.entries(supplied).find(([, value]) => /[\p{Cc}\u2028\u2029]/u.test(String(value)));
+  if (unplain) {
+    return finish('inconclusive', `refused before any call: the ${unplain[0]} holds a line break, a tab, a control character or a line or paragraph separator`);
+  }
   if (typeof scenario?.window !== 'string' || !Array.isArray(scenario.window_holds) || !steps.length
       || steps.some(step => !Array.isArray(step.expect) || !step.expect.length)
       || Object.values(scenario.outcomes ?? {}).some(ids => !ids.length || ids.some(id => !steps.some(step => step.id === id)))) {
@@ -422,7 +498,13 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
   // would start it outside the launcher.
   const atStart = gate('before any call');
   if (atStart) return atStart;
-  let elements = [];
+  let elements = [], latest = null;
+  const appName = bundle.slice(bundle.lastIndexOf('/') + 1, -'.app'.length);
+  // Before any act: the latest view must be the listed state the step acts from, line for line.
+  const notListed = (step, act) => {
+    const differs = latest === null ? ['the latest view was not recognised'] : stateCheck(latest, scenario.states[step.from_state], values, appName);
+    return differs.length ? finish('inconclusive', `stopped at ${step.id}: the view is not the listed state ${step.from_state} (${differs[0]}); nothing was ${act}`) : null;
+  };
   // A view is whole, or the walk stops there. One that comes back as differences is kept, with the view rebuilt from
   // it, for reading only: no check is credited from a rebuilt view and no click is made from one. Whether a view is
   // whole is read from what it returned, never assumed from what was asked.
@@ -441,11 +523,16 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       } catch { /* shown as not rebuilt */ }
       return { whole: false, text, rebuilt };
     }
-    elements = parseView(text);
-    return { whole: true, text };
+    // The first property of a view the walk acts on, beside being whole: it is recognised line for line, and each
+    // element index names one element. A view that is not is kept, and nothing is done from it.
+    const recognised = recognise(text);
+    elements = recognised.refusal ? [] : recognised.elements;
+    latest = recognised.refusal ? null : text;
+    return { whole: true, refusal: recognised.refusal, text };
   };
   // What was asked, said truly for each view: the first is a plain view of an identifier not viewed before in this
   // walk; every later view asked for the whole window.
+  const unaddressed = (id, refusal) => `stopped at ${id}: ${refusal}; nothing is clicked, typed or pressed from it`;
   const asDifferences = (id, plain = false) => `stopped at ${id}: the view came back as differences although ${plain
     ? 'it was the first view of this build in the walk, asked with the application alone'
     : 'the whole window was asked for'}; nothing is checked or clicked from a rebuilt view`;
@@ -465,6 +552,7 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
     }
     report.whole_views_before_any_click.push({ at: now(), whole: seen.whole, returned: seen.text, ...(seen.whole ? {} : { rebuilt_for_reading: seen.rebuilt }) });
     if (!seen.whole) return finish('inconclusive', asDifferences(`the ${ordinal} view before any click`, ordinal === 'first'));
+    if (seen.refusal) return finish('inconclusive', unaddressed(`the ${ordinal} view before any click`, seen.refusal));
     const stray = notThePage(elements, scenario);
     if (stray) return finish('inconclusive', `stopped at the ${ordinal} view before any click: ${stray}; no agent answers a prompt or a dialog`);
     const afterView = gate(`after the ${ordinal} view before any click`);
@@ -480,10 +568,24 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       const found = select(elements, step.control);
       entry.control = step.control;
       if (found.some(({ content }) => endsWithEllipsis(content))) return finish('inconclusive', `stopped at ${step.id}: the control found has words that end with an ellipsis, and such a control is never clicked`);
+      const unlistedClick = notListed(step, 'clicked');
+      if (unlistedClick) return unlistedClick;
+      // A button the scenario presses only if the App offers it: absent or unavailable, it is recorded as not
+      // offered and not pressed, and the step's view and checks are made as for any other step.
+      if (step.if_offered === true && step.control.kind !== 'button') return finish('inconclusive', `stopped at ${step.id}: only a button is pressed if offered`);
+      // Absent means the words are on nothing at all in the view: words on a control of another kind, or in any other
+      // element, stop the walk rather than count as not offered.
+      const elsewhere = found.length === 0 && elements.some(({ content }) => content.includes(step.control.label));
+      if (step.if_offered === true && elsewhere) return finish('inconclusive', `stopped at ${step.id}: the words of the button to press if offered are on something that is not that button`);
+      const notOffered = step.if_offered === true
+        && (found.length === 0 || (found.length === 1 && found[0].content.startsWith('button (disabled) ')));
+      if (notOffered) entry.offered = found.length ? 'unavailable; not pressed' : 'absent; not pressed';
+      else {
       if (found.length !== 1) return finish(report.steps.some(s => s.checks.some(c => !c.pass)) ? 'fail' : 'inconclusive',
         `stopped at ${step.id}: the control to click was found ${found.length} times in the latest view`);
       if (found[0].content.startsWith('button (disabled) ')) return finish('fail', `stopped at ${step.id}: the control to click is unavailable`);
       entry.element_index = found[0].index;
+      if (step.if_offered === true) entry.offered = 'available; pressed';
       calls.push({ at: now(), call: 'click', app, element_index: found[0].index });
       try {
         await sky.click({ app, element_index: found[0].index });
@@ -495,6 +597,7 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
         return finish('inconclusive', `stopped at ${step.id}: the click failed (${entry.error})`);
       }
       if (step.wait_ms) await sleep(step.wait_ms);
+      }
       const beforeView = gate(`at ${step.id}, before its view`);  // read again immediately before the view
       if (beforeView) return beforeView;
     } else if (step.act === 'type') {
@@ -502,6 +605,8 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       if (step.control?.kind !== 'text field' || !(scenario.typed_fields ?? []).includes(step.control.label)) {
         return finish('inconclusive', `stopped at ${step.id}: the scenario names no such field to type into`);
       }
+      const unlistedType = notListed(step, 'typed');
+      if (unlistedType) return unlistedType;
       const found = select(elements, step.control);
       entry.control = step.control;
       if (found.length !== 1) return finish('inconclusive', `stopped at ${step.id}: the field was found ${found.length} times in the latest view`);
@@ -534,6 +639,8 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       if (report.steps.some(earlier => earlier.checks.some(check => !check.pass))) {
         return finish('fail', `stopped at ${step.id}: an earlier check failed, so the sheet is not opened`);
       }
+      const unlistedOpener = notListed(step, 'clicked or pressed');
+      if (unlistedOpener) return unlistedOpener;
       const opener = select(elements, step.control);
       entry.control = step.control;
       if (opener.length !== 1) return finish('inconclusive', `stopped at ${step.id}: the control that opens the sheet was found ${opener.length} times`);
@@ -559,7 +666,8 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       }
       entry.sheet_view = shown.text;
       if (!shown.whole) return finish('inconclusive', asDifferences(step.id));
-      const checked = sheetCheck(shown.text, elements, scenario, sheet, values);
+      if (shown.refusal) return finish('inconclusive', `${unaddressed(step.id, shown.refusal)}; nothing was pressed`);
+      const checked = sheetCheck(shown.text, sheet, values, bundle.slice(bundle.lastIndexOf('/') + 1, -'.app'.length));
       entry.sheet = { ...checked.record, problems: checked.problems };
       if (checked.problems.length) return finish('inconclusive', `stopped at ${step.id}: the sheet is not the one named (${checked.problems.join('; ')}); nothing was pressed`);
       const beforePress = gate(`at ${step.id}, before the press`);
@@ -597,6 +705,7 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       entry.rebuilt_for_reading = seen.rebuilt;
       return finish('inconclusive', asDifferences(step.id));
     }
+    if (seen.refusal) return finish('inconclusive', unaddressed(step.id, seen.refusal));
     const stray = notThePage(elements, scenario);
     if (stray && step.act === 'confirm_sheet') return finish('inconclusive', `stopped at ${step.id}: after the one press, ${stray}; it is not pressed again`);
     if (stray) return finish('inconclusive', `stopped at ${step.id}: ${stray}; no agent answers a prompt or a dialog`);
@@ -607,6 +716,10 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       const next = named.length === 1 ? elements[elements.indexOf(named[0]) + 1] : null;
       values[name] = next && next.content.startsWith('text /') ? next.content.slice(5) : undefined;
       if (values[name] === undefined) return finish('inconclusive', `stopped at ${step.id}: the location "${location}" could not be read`);
+      // The App makes these paths itself: each must be of the form the scenario gives, under the App data folder.
+      const form = scenario.capture_forms?.[name];
+      const pattern = typeof form === 'string' ? new RegExp('^' + fill(form, values).split('{~uuid}').map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}') + '$', 'u') : null;
+      if (!pattern || !pattern.test(values[name])) return finish('inconclusive', `stopped at ${step.id}: the location "${location}" is not of the form the App makes`);
     }
     const after = gate(`after ${step.id}`);
     entry.child_processes = lastChildren ?? 'not known: the watch file does not show the build running';

@@ -70,7 +70,7 @@ impl Fixture {
         }
     }
     fn ledger(&self) -> Vec<Value> {
-        crate::recovery::stored_entries(&self.root.join("recovery.ledger.jsonl"))
+        self.host.stored_entries_held(&self.root.join("recovery.ledger.jsonl"))
     }
 }
 

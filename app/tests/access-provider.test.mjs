@@ -51,6 +51,19 @@ test('effective access settings actual private Host projection reaches explicit 
   assert.doesNotMatch(c.textContent,/Credential storage: file/);assert.match(c.textContent,/private diagnostic withheld/);assert.doesNotMatch(c.textContent,new RegExp(canary));
  });
 });
+// The reading, at the person's press, says where Codex keeps a sign-in in the person's words, with
+// Codex's value beside them; nothing is read without the press, and nothing is inferred.
+test('the explicit reading says where the sign-in is kept, in the person\'s words',async()=>{
+ await mountedSettings(async()=>structuredClone(settingsPacket),async(c,calls)=>{
+  assert.equal(calls.length,0,'no automatic settings or authentication reads');
+  await press(c,'Read effective storage and plugin settings');
+  assert.match(c.textContent,/Where your sign-in is kept: in a file, auth\.json, in this home's sign-in folder \(file\), as Codex reported it for this launch\./);
+ });
+ for(const [value,words] of [['keyring',"in your Mac's keychain (keyring)"],['auto',"in your Mac's keychain where available, otherwise in a file, auth.json, in this home's sign-in folder (auto)"],['ephemeral','not kept after Codex stops (ephemeral)'],[canary,'Codex did not report it']]){
+  const packet=structuredClone(settingsPacket);packet.credentialStore={state:'reported',value,source:{state:'unknown'}};
+  await mountedSettings(async()=>packet,async(c)=>{await press(c,'Read effective storage and plugin settings');assert.ok(c.textContent.includes(`Where your sign-in is kept: ${words}, as Codex reported it for this launch.`),value);assert.doesNotMatch(c.textContent,new RegExp(canary));});
+ }
+});
 test('effective access settings unknown values and sources never become defaults or raw metadata',async()=>{
  const packet=structuredClone(settingsPacket);
  packet.credentialStore={state:'reported',value:canary,source:{state:'reported',kind:canary,layerIndex:canary}};
