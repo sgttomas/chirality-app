@@ -432,7 +432,10 @@ Shared access does not transfer decision rights (OD-05).
   stay different. A point states when it arises, whether it asks the agent to
   pause, who must respond, what resolves it, which content and revision it
   concerns, and who integrates the result. Whether a point asks the agent to
-  pause is the person's to define, and the agent can set it too. A declared
+  pause is the person's to define, and the agent can set it too. Where both
+  have set it, the person's explicit setting wins; the agent's applies where
+  the person has set nothing, and an agent changes a person's setting only
+  within a delegation the person gave in advance (V4-AUT-08). A declared
   checkpoint (V4-WF-01, V4-WF-05) is a point declared in a workflow that
   requires a reserved human act, irrespective of its kind or whether it asks
   the agent to pause. A
