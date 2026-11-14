@@ -164,6 +164,34 @@ for line in sys.stdin:
         host.begin_quit();
         assert!(host.settle_for_quit("fixture", "quit").is_ok());
         assert_eq!(host.snapshot()["state"], "refused");
+        assert_eq!(host.snapshot()["startRefusalCause"], "unconfirmed");
+    }
+
+    // The status says why a start was refused, as chosen where it was refused: a mismatch is
+    // "changed", an unverifiable result "unconfirmed", a start overtaken while it ran "busy";
+    // the build kind is said beside it. The persisted lifecycle record keeps its shape.
+    #[test]
+    fn start_refusal_cause_is_the_one_chosen_where_the_start_was_refused() {
+        use super::super::StartRefusalCause::Busy;
+        for (cause, reason, expected) in [
+            (None, "mismatch: observed version label", "changed"),
+            (None, "native distribution store unreadable", "unconfirmed"),
+            (Some(Busy), "App writer busy after revalidation; no spawn", "busy"),
+        ] {
+            let host = Arc::new(Host::new());
+            {
+                let mut inner = host.inner.0.lock().unwrap();
+                inner.state = "verifying".into();
+                inner.start_attempt = 1;
+                inner.start_admission = Some(super::super::StartAdmission::NotSpawned(1));
+            }
+            assert!(host.refuse_successor(1, cause, reason.into()).is_err());
+            let status = host.snapshot();
+            assert_eq!((status["state"].as_str(), status["startRefusalCause"].as_str()), (Some("refused"), Some(expected)), "{reason}");
+            assert_eq!(status["build"], "development", "test builds are development builds");
+            let record = host.lifecycle_events().into_iter().last().unwrap();
+            assert!(record.get("startRefusalCause").is_none() && record["payload"].get("startRefusalCause").is_none(), "the lifecycle record keeps its shape");
+        }
     }
 
     #[test]

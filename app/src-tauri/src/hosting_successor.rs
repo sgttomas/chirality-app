@@ -700,6 +700,7 @@ for line in sys.stdin:
         assert!(!error.contains("complete tree equals"));
         assert!(host.snapshot()["generation"].is_null());
         assert_eq!(host.snapshot()["state"], "refused");
+        assert_eq!(host.snapshot()["startRefusalCause"], "unconfirmed", "an unverifiable resolution");
         assert!(host.child.lock().unwrap().is_none());
     }
     #[test]

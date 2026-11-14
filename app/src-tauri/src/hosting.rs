@@ -8432,10 +8432,12 @@ mod local_process_lock_tests {
         assert_eq!(status["lastStartRefusal"]["reason"], PROCESS_HELD, "kept for the window");
         assert_eq!(status["lastStartRefusal"]["home"], home_identity(&f.cfg.codex_home));
         assert!(status["lastStartRefusal"]["attempt"].is_null(), "refused before the call was an attempt");
+        assert_eq!(status["startRefusalCause"], "home");
         drop(earlier);
         // Free: the same configuration starts, and its child now holds the lock itself.
         assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
         assert!(host.snapshot()["lastStartRefusal"].is_null(), "an admitted attempt clears it");
+        assert!(host.snapshot()["startRefusalCause"].is_null(), "and its cause");
         assert_eq!(take_process_lock(&f.lock_path()).unwrap_err(), EARLIER_PROCESS, "held by the child");
         stop_and_wait(&host);
         drop(take_process_lock(&f.lock_path()).expect("free once the child has exited"));
