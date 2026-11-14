@@ -534,7 +534,7 @@ class AnUnreadableRecordNeverRevivesAPass(Fixture):
                                                   '1 inconclusive.'), counts)
                 self.assertIn('Records that could not be read at all or name no step: 1. Any of them may bear on any step, '
                               'so no step is counted as passed while they remain; 1 step(s) whose records say passed are '
-                              'counted inconclusive. Repair or remove the damaged records.', counts)
+                              'counted inconclusive. Resolve each one, keeping it, before any pass is taken as established.', counts)
 
     def test_a_record_that_cannot_be_read_at_all_or_names_no_step_holds_every_pass_and_nothing_else(self):
         folder = self.results(self.PASS, {'step': 'B-1', 'candidate': 'c', 'date': '2026-11-14', 'outcome': 'failed'},

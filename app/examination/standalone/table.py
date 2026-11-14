@@ -38,8 +38,13 @@ table. What it reads:
     recorded and that a record that could not be read may bear on it, instead of "not run (no record)", and is still
     counted as not run. The counts line itself says how many such records there are and how many passes
     they hold. Nothing else, a file's name included, is relied on to confine that doubt to one step.
-  The way out of a table held this way is to repair or remove the damaged record. Removing a readable failure record
-  is something the table cannot see. Dates are compared as dates or as exact instants (whole seconds in UTC and the fraction to
+  A table held this way is released only by resolving each such record, never by deleting it to clear the result:
+  read what it was and write a corrected record beside it, keeping the original, or establish that it does not
+  belong to this set of results and move it out of the folder with the reason noted (the README says more).
+  Removing a readable failure record is something the table cannot see. The table trusts the identities a record
+  states: one readably naming another candidate, or a step the plan does not know, is listed and lowers nothing, and
+  whether its writer named them correctly, or every record made is in the folder, is not established. Only .json
+  files in the results folder are read. Dates are compared as dates or as exact instants (whole seconds in UTC and the fraction to
   whatever precision it is written), so one time written with two zones is the same date; a step whose records mix
   calendar dates and times cannot be ordered and prints as inconclusive. Nothing read from an input can make a line
   of its own in the print: each control character, line separator or paragraph separator prints as its escape, and a
@@ -314,7 +319,7 @@ def table(repo, folder, release, candidate):
               + f'. Steps out of {release} by a recorded decision: {removed}.'
               + (f' Records that could not be read at all or name no step: {len(unreadable)}. Any of them may bear on '
                  f'any step, so no step is counted as passed while they remain; {held} step(s) whose records say passed '
-                 'are counted inconclusive. Repair or remove the damaged records.' if unreadable else '')]
+                 'are counted inconclusive. Resolve each one, keeping it, before any pass is taken as established.' if unreadable else '')]
     if unknown_outcome:
         lines.append('Records that could not be read for a step: ' + ' | '.join(unknown_outcome))
     if disputed:

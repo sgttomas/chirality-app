@@ -141,11 +141,19 @@ carries reaches as far as what it could be (App Agent 0, on the INTERLOCUTOR's f
   how many such records there are and how many passes they hold.
 
 Nothing else is relied on to confine that doubt: not a file's name, and not any part of content that failed to read.
-Records are attributed by their step and candidate exactly as written, so one written with another step or candidate
-belongs to that one.
 
-**The way out of a table held this way** is to repair or remove the damaged record. Removing a readable failure
-record is something the table cannot see.
+**What releases a table held this way** is resolving each such record, never deleting it to clear an inconclusive
+result. The person who keeps the results does one of two things for each record:
+- reads what the record was and writes a corrected record beside it, keeping the original as it is; or
+- establishes that the record does not belong to this set of results and moves it out of the folder, noting why.
+
+Removing a readable failure record is something the table cannot see.
+
+**What the table trusts.** The table trusts the identities a record states. A record that readably names another
+candidate, or a step the plan does not know, is listed beneath the table and lowers nothing. The table does not
+establish that whoever wrote the record named them correctly, nor that every record made is in the folder. Only
+`.json` files directly in the results folder are read. A record that names no candidate or no step is different: its
+relevance is unknown, which is why it is treated as in the rule above.
 
 Limits:
 - Citations are listed only for the records that decide a shown step.
