@@ -30,10 +30,14 @@ KEY, CONSOLE = 'CGSSessionScreenIsLocked', 'kCGSSessionOnConsoleKey'
 def locked_from(description):
     """True (locked), False (not locked) or None (not established), from the session's description by the rule
     above. A key present more than once is not established."""
-    # Each key's name is counted wherever it appears, and a key that is there must read "<name> = <digits>;". A
-    # second copy, or a value of any other form, is not established.
-    lock = re.findall(KEY + r'\s*=\s*(\d+)\s*;', description)
-    console = re.findall(CONSOLE + r'\s*=\s*(\d+)\s*;', description)
+    # Only the dictionary's own keys count: at its top level, outside any quoted value, and as a whole name. Each key's
+    # name is also counted wherever it appears in the text, and every appearance must be such a key reading
+    # "<name> = <digits>;". A second copy, a value of any other form, or the name anywhere else is not established.
+    top = top_level(description)
+    if top is None:
+        return None
+    lock = re.findall(r'(?<![\w"])' + KEY + r'\s*=\s*(\d+)\s*;', top)
+    console = re.findall(r'(?<![\w"])' + CONSOLE + r'\s*=\s*(\d+)\s*;', top)
     if description.count(KEY) != len(lock) or description.count(CONSOLE) != len(console):
         return None
     if len(lock) > 1 or len(console) > 1:
@@ -43,6 +47,41 @@ def locked_from(description):
     if console == ['1']:
         return False
     return None
+
+
+def top_level(description):
+    """The description with everything but its outermost dictionary's own text blanked: quoted values and nested
+    dictionaries or arrays become spaces. None if it is not one dictionary with balanced braces and quotes."""
+    text = description.strip()
+    if not (text.startswith('{') and text.endswith('}')):
+        return None
+    out, depth, quoted, escaped = [], 0, False, False
+    for char in text:
+        if quoted:
+            out.append(' ')
+            if escaped:
+                escaped = False
+            elif char == '\\':
+                escaped = True
+            elif char == '"':
+                quoted = False
+            continue
+        if char == '"':
+            quoted = True
+            out.append(' ')
+            continue
+        if char in '{(':
+            depth += 1
+            out.append(char if depth == 1 else ' ')
+            continue
+        if char in '})':
+            out.append(char if depth == 1 else ' ')
+            depth -= 1
+            if depth < 0:
+                return None
+            continue
+        out.append(char if depth == 1 else ' ')
+    return ''.join(out) if depth == 0 and not quoted else None
 
 
 def session_description():

@@ -250,8 +250,10 @@ evidence folder under a name beginning `lane-`. Each opens nothing under
    the screen is locked, and absent while it is not. So: on the console
    (`kCGSSessionOnConsoleKey` 1) with the lock key absent or 0 is not locked;
    the lock key present and not 0 is locked; no session, not on the console,
-   either key given twice, or either key with a value that is not plain
-   digits, is not established:
+   either key given twice, either key with a value that is not plain digits,
+   or either key's name anywhere but as a key of the description's own top
+   level (inside another name, a quoted value or a nested dictionary), is not
+   established:
 
    ```sh
    <python> -B app/examination/standalone/operated/screen_lock.py > <evidence folder>/lane-screen-lock.txt

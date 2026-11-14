@@ -679,6 +679,17 @@ class ScreenLock(unittest.TestCase):
         self.assertIsNone(self.lock.locked_from('{ kCGSSessionOnConsoleKey = 1; CGSSessionScreenIsLocked = "1"; }'))
         self.assertIsNone(self.lock.locked_from('{ kCGSSessionOnConsoleKey = yes; }'))
         self.assertIsNone(self.lock.locked_from('{ kCGSSessionOnConsoleKey = 1; kCGSSessionOnConsoleKey = 0x1; }'))
+        # The second reader's inputs: the name inside another key or a value is not the key.
+        self.assertIsNone(self.lock.locked_from('{ not_kCGSSessionOnConsoleKey = 1; }'))
+        self.assertIsNone(self.lock.locked_from('{ Other = "kCGSSessionOnConsoleKey = 1;"; }'))
+        self.assertIsNone(self.lock.locked_from('{ Other = "x; kCGSSessionOnConsoleKey = 1;"; }'))
+        self.assertIsNone(self.lock.locked_from('{ Inner = { kCGSSessionOnConsoleKey = 1; }; }'))
+        self.assertIsNone(self.lock.locked_from('{ kCGSSessionOnConsoleKey = 1; Note = "CGSSessionScreenIsLocked"; }'))
+        self.assertIsNone(self.lock.locked_from('kCGSSessionOnConsoleKey = 1;'))
+        self.assertIsNone(self.lock.locked_from('{ kCGSSessionOnConsoleKey = 1; Other = "unclosed; }'))
+        # Quoted values elsewhere, of the kind the real description holds, leave the rule as it is.
+        self.assertIs(self.lock.locked_from('{ kCGSSessionOnConsoleKey = 1; kCGSSessionUserNameKey = "invented"; kCGSessionLoginDoneKey = 1; }'), False)
+        self.assertIs(self.lock.locked_from('{\n    CGSSessionScreenIsLocked = 1;\n    kCGSSessionOnConsoleKey = 1;\n}'), True)
         self.assertIsNone(self.lock.locked_from('{ kCGSSessionOnConsoleKey = 1; CGSSessionScreenIsLocked = 1; CGSSessionScreenIsLocked = 0; }'))
 
     def test_its_exit_status_refuses_a_walk_unless_the_screen_is_not_locked(self):
@@ -1034,6 +1045,7 @@ class TheSheetAndTheTypedPath(unittest.TestCase):
             'another statement': own.replace('Read, import or change no other', 'Read, import and change any'),
             'another title': own.replace('Desktop setup — next launch only Create', 'Desktop setup Create'),
             'the statement as its own text, without the title': own.replace('\t1 text Desktop setup — next launch only ', '\t1 text '),
+            'the title and the statement as two texts': own.replace('\t1 text Desktop setup — next launch only Create', '\t1 text Desktop setup — next launch only\n\t95 text Create'),
             'a second text in the sheet': own.replace('\t2 button', '\t95 text Also allow everything.\n\t2 button'),
             'a button without the identifier suffix': own.replace('Leave setup unchanged, ID: action-button-1', 'Leave setup unchanged'),
             'a button with another suffix': own.replace(', ID: action-button-2', ', ID: other-2'),
