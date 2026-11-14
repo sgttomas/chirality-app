@@ -219,6 +219,34 @@ class Carriers(unittest.TestCase):
                                                   'sandbox': {'type': 'readOnly', 'networkAccess': False}})
             self.assertFalse(probe(run, third, a, 'out')['effect'])
 
+    def test_config_carries_the_workspace_write_options_on_start_fork_and_resume(self):
+        """thread start, resume and fork take only a sandbox mode name; `config` carries the rest."""
+        def options(net, slash, tmpdir):
+            return {'sandbox_workspace_write': {'network_access': net, 'exclude_slash_tmp': slash,
+                                                'exclude_tmpdir_env_var': tmpdir}}
+
+        def policy(net, slash, tmpdir):
+            return {'type': 'workspaceWrite', 'writableRoots': [], 'networkAccess': net,
+                    'excludeTmpdirEnvVar': tmpdir, 'excludeSlashTmp': slash}
+        with L.Run(SCRATCH, BINARY, slash_tmp=True) as run:
+            client = run.start()
+            started = client.start_thread(approvalPolicy='on-request', sandbox='workspace-write',
+                                          config=options(True, True, True))
+            thread = started['thread']['id']
+            self.assertEqual(started['sandbox'], policy(True, True, True))
+            effects = {k: probe(run, client, thread, k)['effect'] for k in ('in', 'tmpdir', 'slashtmp', 'net')}
+            self.assertEqual(effects, {'in': True, 'tmpdir': False, 'slashtmp': False, 'net': True})
+            fork = client.result('thread/fork', {'threadId': thread, 'sandbox': 'workspace-write',
+                                                 'config': options(False, False, False)})
+            self.assertEqual(fork['sandbox'], policy(False, False, False))
+            client.stop()
+            again = run.start()
+            resumed = again.result('thread/resume', {'threadId': thread, 'sandbox': 'workspace-write',
+                                                     'config': options(False, True, False)})
+            self.assertEqual(resumed['sandbox'], policy(False, True, False))
+            self.assertEqual({k: probe(run, again, thread, k)['effect'] for k in ('tmpdir', 'slashtmp', 'net')},
+                             {'tmpdir': True, 'slashtmp': False, 'net': False})
+
     def test_fork(self):
         with L.Run(SCRATCH, BINARY) as run:
             client = run.start()
