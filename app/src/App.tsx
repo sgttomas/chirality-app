@@ -1186,7 +1186,7 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
       {outcome.message&&<ActionFeedback message={`${outcome.relation.command}: ${outcome.message}`} label="Workflow command result"/>}
       <details><summary>Original workflow request</summary><RecordedData value={outcome.relation} /></details>
     </div>}
-    {outcome?.limits.map((message,index)=><p role="status" aria-label="Workflow observation limit" key={index} style={{whiteSpace:"pre-wrap"}}>{message}</p>)}
+    {outcome?.limits.map((message,index)=><p role="status" aria-label="Workflow observation limit" key={index}><AgentText value={message} source="record" label="Observation limit:" name="An observation limit, which may carry text the App received, not only the App's words" /></p>)}
   </section>;
 }
 

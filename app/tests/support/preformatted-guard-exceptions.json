@@ -1,0 +1,6 @@
+[
+ {
+  "rule": "An exception identifies evidence that an expression satisfies an existing presentation rule despite the guard's limitation. It cannot introduce another permitted source or presentation form.",
+  "scope": "An exception for a preformatted style is allowed only where the text drawn there is the App's own literal; a site that draws a supplied value is not an exception, it is a site to fix."
+ }
+]

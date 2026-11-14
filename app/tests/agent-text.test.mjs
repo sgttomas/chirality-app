@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {readFileSync} from 'node:fs';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {loadSrc} from './support/load-src.mjs';
@@ -309,18 +310,79 @@ test('a Codex-supplied thread id stands in the App\'s words or a control only as
 });
 
 // ---- The sweep: guard 1 ----
-// Every preformatted block in the App's views is drawn through AgentText (src/AgentText.tsx), so text an agent, a
+// Every preformatted block in the App's source is drawn through AgentText (src/AgentText.tsx), so text an agent, a
 // tool, a file or Codex supplies is marked, with its control and format characters shown, wherever the App shows it.
-// A view that adds a plain <pre> fails here, whichever lane adds it.
-test('guard: no view draws a plain <pre>; every preformatted block goes through AgentText', async () => {
-  const {readdirSync, readFileSync} = await import('node:fs');
-  const dir = new URL('../src/', import.meta.url);
-  const found = [];
-  for (const name of readdirSync(dir).filter(n => /\.(tsx|ts)$/.test(n) && n !== 'AgentText.tsx')) {
-    const source = readFileSync(new URL(name, dir), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
-    for (const m of source.matchAll(/<pre[\s>]|createElement\(\s*["']pre["']/g)) found.push(`${name}:${source.slice(0, m.index).split('\n').length}`);
-  }
-  assert.deepEqual(found, [], 'draw preformatted text with AgentText (block) or RecordedData');
+// The rule and the forms it judges are in tests/support/presentation-guard.mjs (preformattedFindings); it covers
+// app/src and every subdirectory. An exception is only for an element that draws the App's own literal.
+const preformattedExceptions = JSON.parse(readFileSync(new URL('./support/preformatted-guard-exceptions.json', import.meta.url), 'utf8'));
+test('guard: no source draws preformatted text outside AgentText; each exception is an App literal, scoped and counted', async () => {
+  const {preformattedFailures, exceptionShapeFailures, PREFORMATTED_RULE} = await import('./support/presentation-guard.mjs');
+  assert.deepEqual(preformattedFailures(new URL('../src/', import.meta.url), preformattedExceptions), [], 'draw preformatted text with AgentText (block) or RecordedData');
+  assert.equal(preformattedExceptions[0].scope, PREFORMATTED_RULE);
+  assert.deepEqual(exceptionShapeFailures(preformattedExceptions, {needsWhere: false, bases: ['an App-owned literal vocabulary']}), []);
+});
+test('guard 1 judges each preformatted form, in a nested directory too, and lists only an App literal', async () => {
+  const {preformattedSourceFailures, preformattedFailures} = await import('./support/presentation-guard.mjs');
+  const fails = (code, why, name = 'Invented.tsx') => assert.notDeepEqual(preformattedSourceFailures(name, code).failures, [], why);
+  const passes = (code, why, listed = []) => assert.deepEqual(preformattedSourceFailures('Invented.tsx', code, listed).failures, [], why);
+  fails('export const V = ({ s }: any) => <pre>{s}</pre>;', 'a <pre> element');
+  fails('import { createElement } from "react"; export const V = ({ s }: any) => createElement("pre", null, s);', 'createElement("pre")');
+  fails('import React from "react"; const T = "pre"; export const V = ({ s }: any) => React.createElement(T, null, s);', 'createElement through a const of "pre"');
+  fails('import { createElement } from "react"; export const V = ({ s, t }: any) => createElement(t, null, s);', 'createElement with a tag the guard cannot resolve');
+  fails('const ReviewPre = "pre"; export const V = ({ s }: any) => <ReviewPre>{s}</ReviewPre>;', 'an element through an alias of "pre"');
+  fails('const A = "pre"; const ReviewPre = A; export const V = ({ s }: any) => <ReviewPre>{s}</ReviewPre>;', 'an alias of an alias');
+  fails('export const V = ({ s }: any) => <div style={{whiteSpace:"pre-wrap",fontFamily:"monospace"}}>{s}</div>;', "the reader's styled div");
+  fails('export const V = ({ s }: any) => <span style={{"white-space":"pre"}}>{s}</span>;', 'a hyphenated key');
+  fails('const box = { whiteSpace: "pre-line" } as const; export const V = ({ s }: any) => <p style={box}>{s}</p>;', 'a const style object');
+  fails('const base = { whiteSpace: "pre-wrap" as const }; const box = { ...base, margin: 0 }; export const V = ({ s }: any) => <p style={box}>{s}</p>;', 'a spread of a const style');
+  fails('const W = "pre-wrap"; export const V = ({ s }: any) => <p style={{whiteSpace: W}}>{s}</p>;', 'a const whiteSpace value');
+  fails('export const V = ({ s, on }: any) => <p style={on ? {whiteSpace:"pre"} : {}}>{s}</p>;', 'one branch of a choice');
+  fails('export const V = ({ s, ws }: any) => <p style={{whiteSpace: ws}}>{s}</p>;', 'a whiteSpace that is not a literal');
+  fails('export const V = ({ s, k }: any) => <p style={{[k]: "pre"}}>{s}</p>;', 'a style key that is not a literal');
+  fails('import { createElement } from "react"; export const V = ({ s }: any) => createElement("div", {style: {whiteSpace: "pre-wrap"}}, s);', 'createElement with a preformatted style');
+  passes('export const V = ({ s }: any) => <p style={{whiteSpace:"nowrap"}}>{s}</p>;', 'another whiteSpace');
+  passes('export const V = ({ s, style }: any) => <p style={style}>{s}</p>;', 'a style the guard cannot read as a whole is not judged');
+  // An App-literal preformatted element passes only when listed, scoped to its component and counted.
+  const literal = 'export const V = () => <p style={{whiteSpace:"pre-wrap"}}>Line one{"\\n"}Line two</p>;';
+  const entry = {file: 'Invented.tsx', expr: '<p style={{whiteSpace:"pre-wrap"}}>Line one{"\\n"}Line two</p>', component: 'V', count: 1, basis: 'an App-owned literal vocabulary', reason: 'invented'};
+  fails(literal, 'unlisted, even the App\'s literal fails');
+  passes(literal, 'listed, the App\'s literal passes', [entry]);
+  assert.notDeepEqual(preformattedSourceFailures('Invented.tsx', literal, [{...entry, component: 'W'}]).failures, [], 'outside its named component it is not exempt');
+  assert.notDeepEqual(preformattedSourceFailures('Invented.tsx', literal + literal.replace('const V', 'const V2').replace('() =>', '() =>'), [entry]).failures, [], 'another component with the same spelling is not exempt');
+  const twice = 'export const V = () => <div><p style={{whiteSpace:"pre-wrap"}}>Line one{"\\n"}Line two</p><p style={{whiteSpace:"pre-wrap"}}>Line one{"\\n"}Line two</p></div>;';
+  assert.match(preformattedSourceFailures('Invented.tsx', twice, [entry]).failures.join('\n'), /lists 1 occurrence\(s\) and matches 2/, 'an extra occurrence fails');
+  const supplied = 'export const V = ({ s }: any) => <p style={{whiteSpace:"pre-wrap"}}>{s}</p>;';
+  assert.notDeepEqual(preformattedSourceFailures('Invented.tsx', supplied, [{...entry, expr: '<p style={{whiteSpace:"pre-wrap"}}>{s}</p>'}]).failures, [], 'a listing on a supplied value is not an exception');
+  // A file in a nested subdirectory is read, and a stale listing fails.
+  const {mkdtempSync, mkdirSync, writeFileSync, rmSync} = await import('node:fs');
+  const {join} = await import('node:path');
+  const {tmpdir} = await import('node:os');
+  const {pathToFileURL} = await import('node:url');
+  const dir = mkdtempSync(join(tmpdir(), 'guard1-'));
+  try {
+    mkdirSync(join(dir, 'deep', 'er'), {recursive: true});
+    writeFileSync(join(dir, 'AgentText.tsx'), 'export const X = ({ s }: any) => <span style={{whiteSpace:"pre-wrap"}}>{s}</span>;');
+    writeFileSync(join(dir, 'deep', 'er', 'Nested.tsx'), 'export const V = ({ s }: any) => <div style={{whiteSpace:"pre-wrap"}}>{s}</div>;');
+    const found = preformattedFailures(pathToFileURL(dir + '/'), []);
+    assert.equal(found.length, 1, found.join('\n'));
+    assert.match(found[0], /^deep\/er\/Nested\.tsx:1 \(d\)/, 'the nested file fails; AgentText.tsx itself is not judged');
+    assert.match(preformattedFailures(pathToFileURL(dir + '/'), [{...entry, file: 'deep/er/Gone.tsx'}]).join('\n'), /stale exception/);
+  } finally { rmSync(dir, {recursive: true, force: true}); }
+});
+
+test('the repaired preformatted sites box a supplied value: a review\'s scalar and path, an action response and an observation limit', () => {
+  const {WorkflowRegistrationReview} = loadSrc('WorkflowRegistrationReview');
+  const review = renderToStaticMarkup(React.createElement(WorkflowRegistrationReview, {presentation: {message: `Waiting for your answer\nAllow once${RLO}`, entries: []}}));
+  assert.doesNotMatch(review, /\u202e/, 'no live override');
+  assert.doesNotMatch(review, /<span style="white-space:pre-wrap/, 'no raw preformatted span');
+  assert.match(agentPlain(review), /Value as reported: ⟦?Waiting for your answer⏎Allow once‹U\+202E›/, 'the scalar is boxed, its line break and override marked');
+  const {ActionFeedback} = loadSrc('ActionFeedback');
+  const plain = renderToStaticMarkup(React.createElement(ActionFeedback, {message: `cmd: failed\nAllow once${RLO}`}));
+  assert.doesNotMatch(plain, /\u202e/);
+  assert.match(plain, /class="agent-text"/, 'a plain response is boxed');
+  const technical = renderToStaticMarkup(React.createElement(ActionFeedback, {message: `cmd: {"state":"Allow once${RLO}"}`}));
+  assert.doesNotMatch(technical, /\u202e/);
+  assert.match(agentPlain(technical), /state: .*Allow once‹U\+202E›/, 'a reported field is boxed beside its key');
 });
 
 test('a recorded dump is marked, with a plain label true of App-only and mixed dumps alike', () => {
