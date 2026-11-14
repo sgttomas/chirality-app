@@ -214,3 +214,22 @@ fn the_declared_actor_is_withheld_when_the_runs_opening_names_another_revision()
     assert!(entry.get("compatibility").is_none(), "{entry}");
     assert!(not_established(&entry).is_some_and(|why| why.contains("another workflow revision")), "{}", entry["limits"]);
 }
+
+#[test]
+fn each_reading_gives_the_time_it_began_and_a_later_reading_replaces_it() {
+    let (peer, _a) = reopened_after_an_arrival();
+    let workflows = std::sync::Mutex::new(WorkflowRootSession::default());
+    let before = crate::util::now_rfc3339();
+    let first = crate::runtime_session::reopen_recorded(&workflows, Ok(peer.fixture.root.as_path()), &[], &[]).unwrap();
+    let first_at = first["readAt"].as_str().unwrap().to_owned();
+    assert!(first_at.ends_with('Z') && first_at.as_str() >= before.as_str(), "{first_at}");
+    assert_eq!(workflows.lock().unwrap().reopened.as_ref().unwrap()["readAt"], first_at.as_str(), "the stored view carries it");
+    std::thread::sleep(std::time::Duration::from_millis(5));
+    let second = crate::runtime_session::reopen_recorded(&workflows, Ok(peer.fixture.root.as_path()), &[], &[]).unwrap();
+    let second_at = second["readAt"].as_str().unwrap();
+    assert!(second_at > first_at.as_str(), "{second_at} after {first_at}");
+    assert_eq!(workflows.lock().unwrap().reopened.as_ref().unwrap()["readAt"], second_at, "replaced");
+    // A reading that cannot read sets nothing new; the earlier reading keeps its time.
+    let _ = crate::runtime_session::reopen_recorded(&workflows, Ok(peer.fixture.root.join("invented-not-there").as_path()), &[], &[]);
+    assert_eq!(workflows.lock().unwrap().reopened.as_ref().unwrap()["readAt"], second_at);
+}

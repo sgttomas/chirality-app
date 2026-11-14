@@ -1775,13 +1775,16 @@ pub(crate) fn reopen_recorded(workflows: &std::sync::Mutex<WorkflowRootSession>,
 }
 pub(crate) fn read_reopened_history(workflows: &std::sync::Mutex<WorkflowRootSession>, project: &std::path::Path, events: &[Value], homes: &[std::sync::Arc<HomeSession>]) -> Result<Value, String> {
     // See records_store::HistoryRead for the shared-reader check and slice 2.
+    // When this reading of the records began, given on the view it stores and returns.
+    let read_at = crate::util::now_rfc3339();
     let reading = crate::records_store::HistoryRead::begin(project);
     let (view, generation) = {
         let mut root = workflows.lock().unwrap();
         root.reopened_generation += 1;
         (root.reopen_for_learning(project, events, homes)?, root.reopened_generation)
     };
-    let view = reading.attach(project, view);
+    let mut view = reading.attach(project, view);
+    view["readAt"] = json!(read_at);
     let mut root = workflows.lock().unwrap();
     if root.reopened_generation == generation { root.reopened = Some(view.clone()); }
     Ok(view)
