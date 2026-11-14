@@ -1194,6 +1194,36 @@ pub(crate) enum ReaderDecision {
     Records,
     Accounts,
 }
+
+/// Preserve a census refusal through the same home decision and proof. Other
+/// proof failures retain their existing association/binding classification.
+#[derive(Debug)]
+pub(crate) enum ReaderError {
+    Binding(String),
+    Census(payload::CensusError),
+}
+impl ReaderError {
+    pub(crate) fn unsafe_member(&self) -> Option<&Path> {
+        match self { Self::Census(error) => error.unsafe_path(), Self::Binding(_) => None }
+    }
+}
+impl From<String> for ReaderError {
+    fn from(message: String) -> Self { Self::Binding(message) }
+}
+impl From<&str> for ReaderError {
+    fn from(message: &str) -> Self { Self::Binding(message.into()) }
+}
+impl From<ReaderError> for String {
+    fn from(error: ReaderError) -> Self { error.to_string() }
+}
+impl std::fmt::Display for ReaderError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Binding(message) => f.write_str(message),
+            Self::Census(error) => write!(f, "whether the records store holds this project's records is unknown, so nothing is read in its place: {error}"),
+        }
+    }
+}
 /// A kept reader's binding: the records store, the project folder and the
 /// project's records folder in the store that the reader was opened for. It
 /// protects kept readers; a writer's binding is not this.
@@ -1245,16 +1275,16 @@ fn hold_folder(path: &Path, what: &str) -> Result<((u64, u64), std::fs::File), S
 }
 /// The decision made again: the project's folder in the store, or `None` for
 /// records read in place.
-fn decided_place(root: &Path, decision: ReaderDecision) -> Result<Option<PathBuf>, String> {
+fn decided_place(root: &Path, decision: ReaderDecision) -> Result<Option<PathBuf>, ReaderError> {
     decided_home(root, decision).map(|(store, _)| store)
 }
 /// The decision, with the folder records are read from in place when it
 /// says in place (workflow records: `ReadHome::records`), so that a reader
 /// takes its in-place folder from the decision and spells no location.
-fn decided_home(root: &Path, decision: ReaderDecision) -> Result<(Option<PathBuf>, Option<InPlace>), String> {
+fn decided_home(root: &Path, decision: ReaderDecision) -> Result<(Option<PathBuf>, Option<InPlace>), ReaderError> {
     match decision {
         ReaderDecision::Records => {
-            let home = readable_home(root)?;
+            let home = readable_home_checked(root)?;
             Ok(match home.in_store() {
                 Some(dir) => (Some(dir.to_path_buf()), None),
                 None => {
@@ -1268,8 +1298,8 @@ fn decided_home(root: &Path, decision: ReaderDecision) -> Result<(Option<PathBuf
     }
 }
 /// The connector accounts' place, with the store's own record of a disposal.
-fn decided_accounts(root: &Path) -> Result<Option<PathBuf>, String> {
-    let place = route_accounts_place(root, false)?;
+fn decided_accounts(root: &Path) -> Result<Option<PathBuf>, ReaderError> {
+    let place = route_accounts_place_checked(root, false)?;
     if let Some(dir) = &place.store_dir {
         if crate::records_retention::terminal(dir)? {
             return Err("project records disposed or disposal incomplete; nothing read".into());
@@ -1299,11 +1329,11 @@ impl ReaderBinding {
     /// examined refuses as not known, never as unchanged. A changed one
     /// refuses with its reason; the binding is kept, never moved, so the
     /// reader reads again once what changed is as it was.
-    pub(crate) fn prove(&self) -> Result<(), String> {
+    pub(crate) fn prove(&self) -> Result<(), ReaderError> {
         if let Some((root, id)) = &self.store {
             let (now, now_id) = opened()?;
             if &now != root || &now_id != id {
-                return Err(format!("the records store open now ({}) is not the one this reader was opened for; nothing read", now.display()));
+                return Err(format!("the records store open now ({}) is not the one this reader was opened for; nothing read", now.display()).into());
             }
         }
         // The project folder examined first, so that what cannot be examined
@@ -1313,7 +1343,7 @@ impl ReaderBinding {
             .map_err(|e| format!("not known: the project folder {} could not be examined ({e}); nothing read", self.root.display()))?;
         let now = decided_place(&self.root, self.decision)?;
         if project_now != self.project {
-            return Err(format!("the project folder at {} is not the folder this reader was opened for; nothing read", self.root.display()));
+            return Err(format!("the project folder at {} is not the folder this reader was opened for; nothing read", self.root.display()).into());
         }
         match (&self.records, now) {
             (Some(bound), Some(dir)) if dir == bound.path => {}
@@ -1324,8 +1354,8 @@ impl ReaderBinding {
         if let Some(bound) = &self.records {
             match node(&bound.path) {
                 Ok(at) if at == bound.node => {}
-                Ok(_) => return Err(format!("the project's records folder {} is not the folder this reader was opened for; nothing read", bound.path.display())),
-                Err(e) => return Err(format!("not known: the project's records folder {} could not be examined ({e}); nothing read", bound.path.display())),
+                Ok(_) => return Err(format!("the project's records folder {} is not the folder this reader was opened for; nothing read", bound.path.display()).into()),
+                Err(e) => return Err(format!("not known: the project's records folder {} could not be examined ({e}); nothing read", bound.path.display()).into()),
             }
         }
         Ok(())
@@ -1571,7 +1601,7 @@ fn imports(dir: &Path) -> Result<Imports, String> {
 /// `Err` when that cannot be known (an unreadable import record, package
 /// import state or store folder): never "the store holds nothing", which
 /// would read the kept originals or an empty history in its place.
-fn store_holds(dir: &Path) -> Result<bool, String> {
+fn store_holds(dir: &Path) -> Result<bool, ReaderError> {
     let unknown = |e: String| format!("whether the records store holds this project's records is unknown, so nothing is read in its place: {e}");
     // The account is read, and found whole, before anything is concluded:
     // a completed package import does not excuse an account that cannot be read.
@@ -1581,7 +1611,7 @@ fn store_holds(dir: &Path) -> Result<bool, String> {
         i if i.completed => true,
         i if i.incomplete.as_ref().is_some_and(|s| s["storeHeld"] == true) => true,
         i if i.any => false,
-        _ => payload::holds_records(dir).map_err(unknown)?,
+        _ => payload::holds_records(dir).map_err(ReaderError::Census)?,
     })
 }
 
@@ -1759,6 +1789,9 @@ pub(crate) struct Home {
 /// falls back to retained originals, even with a missing project link. Explicit
 /// library readers use their library's own log/capture paths independently.
 fn unrefusing_home(root: &Path) -> Result<Home, String> {
+    unrefusing_home_checked(root).map_err(String::from)
+}
+fn unrefusing_home_checked(root: &Path) -> Result<Home, ReaderError> {
     match attach(root, false) {
         Ok(attachment) => {
             if attachment.dir.is_none() {
@@ -1773,7 +1806,7 @@ fn unrefusing_home(root: &Path) -> Result<Home, String> {
             Ok(Home { attachment, store_mode })
         }
 
-        Err(e) => Err(e),
+        Err(e) => Err(e.into()),
     }
 }
 
@@ -1825,8 +1858,11 @@ fn decide(attachment: Attachment, store_mode: bool) -> Result<ReadHome, String> 
 /// The project's records home for an ordinary reader: the one decision, after
 /// the unrefusing home's own refusals (an unavailable store, a disposal).
 pub(crate) fn readable_home(root: &Path) -> Result<ReadHome, String> {
-    let home = unrefusing_home(root)?;
-    decide(home.attachment, home.store_mode)
+    readable_home_checked(root).map_err(String::from)
+}
+fn readable_home_checked(root: &Path) -> Result<ReadHome, ReaderError> {
+    let home = unrefusing_home_checked(root)?;
+    decide(home.attachment, home.store_mode).map_err(ReaderError::from)
 }
 impl ReadHome {
     /// The project's store folder, when its records are read from the store.
@@ -2184,6 +2220,9 @@ pub(crate) struct AccountsPlace {
 /// identity yet is read in place and written nowhere. A folder whose
 /// attachment is refused has no accounts place at all: an error.
 pub(crate) fn route_accounts_place(root: &Path, mint: bool) -> Result<AccountsPlace, String> {
+    route_accounts_place_checked(root, mint).map_err(String::from)
+}
+fn route_accounts_place_checked(root: &Path, mint: bool) -> Result<AccountsPlace, ReaderError> {
     // The one named case outside the decision, unchanged: with no records
     // store available and no link in the folder, connector accounts are read
     // in place and nothing is written (ordinary records in that state are
@@ -2193,7 +2232,7 @@ pub(crate) fn route_accounts_place(root: &Path, mint: bool) -> Result<AccountsPl
         Err(e) if !mint && read_link(root) == Link::Absent && root.is_dir() => {
             return Ok(accounts_in_project(root, format!("the project, read in place; nothing written: records store unavailable: {e}")));
         }
-        Err(e) => return Err(e),
+        Err(e) => return Err(e.into()),
     };
     let attachment = attach(root, mint)?;
     // Whether the store holds the project's records can be unknown (an import
@@ -2209,10 +2248,10 @@ pub(crate) fn route_accounts_place(root: &Path, mint: bool) -> Result<AccountsPl
             "the project, read in place: import needed before accounts are written in the records store"
         } else {
             "the project, read in place: no project identity in the records store yet (a writer opening the accounts mints it)"
-        });
+        }).map_err(ReaderError::from);
     };
     if !read.store_mode && in_project {
-        return read.accounts_in_place("the project, read in place: import needed before accounts are written in the records store");
+        return read.accounts_in_place("the project, read in place: import needed before accounts are written in the records store").map_err(ReaderError::from);
     }
     let key = dir.file_name().ok_or("project store folder has no name")?.to_string_lossy().into_owned();
     let mut parts = vec!["projects".to_owned(), key.clone()];

@@ -97,13 +97,18 @@ fn records_store_routing_recognised_final_wins_over_earlier_unrecognised_member_
         Some("run:recognised"),
         "writer:recognised",
     ));
+    // Place already-retained, valid bytes without asking the native write
+    // gate to waive this fixture's deliberately unimported in-place history.
+    let source = root.join("recognised-record-fixture.jsonl");
     let record = records::append(
-        &log,
+        &source,
         "evidence_limit",
         &APP_WRITER,
         body("recognised store record"),
     )
     .unwrap();
+    std::fs::create_dir_all(log.parent().unwrap()).unwrap();
+    std::fs::copy(&source, &log).unwrap();
     let unknown = dir.join("acts/.unrecognised-member.jsonl");
     std::fs::create_dir_all(unknown.parent().unwrap()).unwrap();
     std::fs::write(&unknown, b"unrecognised retained bytes\n").unwrap();

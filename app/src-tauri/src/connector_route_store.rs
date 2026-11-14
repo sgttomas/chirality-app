@@ -707,7 +707,10 @@ mod platform {
             // accounts have moved into the store.
             self.reader
                 .prove()
-                .map_err(|e| StoreError::new(ErrorKind::LocationMismatch, e))
+                .map_err(|e| {
+                    let kind = if e.unsafe_member().is_some() { ErrorKind::UnsafeEntry } else { ErrorKind::LocationMismatch };
+                    StoreError::new(kind, e.to_string())
+                })
         }
         fn check_root(&self) -> Result<()> {
             self.check_association()?;
@@ -1040,7 +1043,22 @@ mod platform {
             let bytes = serde_json::to_vec(account)
                 .map_err(|e| StoreError::new(ErrorKind::InvalidAccount, e.to_string()))?;
             let _writer = self.writable()?;
-            self.check_root()?;
+            self.check_root().map_err(|mut error| {
+                if error.kind == ErrorKind::UnsafeEntry {
+                    // The proof still refuses first. Classify an occupied
+                    // requested publication name as the existing collision,
+                    // using only the held anchor and no-follow directory walk.
+                    if let Ok(chain) = self.chain(&self.parts(), false) {
+                        if let Ok(name) = CString::new(name.as_bytes()) {
+                            let mut metadata = std::mem::MaybeUninit::<libc::stat>::uninit();
+                            if unsafe { libc::fstatat(chain.last().as_raw_fd(), name.as_ptr(), metadata.as_mut_ptr(), libc::AT_SYMLINK_NOFOLLOW) } == 0 {
+                                error.kind = ErrorKind::Collision;
+                            }
+                        }
+                    }
+                }
+                error
+            })?;
             let parts = self.parts();
             let chain = self.chain(&parts, true)?;
             let temporary = format!(

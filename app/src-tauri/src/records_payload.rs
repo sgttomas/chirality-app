@@ -8,6 +8,42 @@ use std::collections::BTreeMap;
 use std::os::unix::fs::MetadataExt;
 use std::path::{Path, PathBuf};
 
+/// Runtime refusal cause, never a stored record or connector format.
+#[derive(Debug)]
+pub(crate) enum CensusError {
+    UnsafeMember { path: PathBuf, detail: String },
+    Uncertain { path: PathBuf, detail: String },
+}
+impl CensusError {
+    fn unsafe_member(path: &Path, detail: impl Into<String>) -> Self {
+        Self::UnsafeMember {
+            path: path.into(),
+            detail: detail.into(),
+        }
+    }
+    fn uncertain(path: &Path, detail: impl Into<String>) -> Self {
+        Self::Uncertain {
+            path: path.into(),
+            detail: detail.into(),
+        }
+    }
+    pub(crate) fn unsafe_path(&self) -> Option<&Path> {
+        match self {
+            Self::UnsafeMember { path, .. } => Some(path),
+            Self::Uncertain { .. } => None,
+        }
+    }
+}
+impl std::fmt::Display for CensusError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::UnsafeMember { path, detail } | Self::Uncertain { path, detail } => {
+                write!(f, "{}: {detail}", path.display())
+            }
+        }
+    }
+}
+
 #[derive(Default)]
 pub(crate) struct Census {
     pub(crate) members: BTreeMap<String, Stamp>,
@@ -17,7 +53,7 @@ pub(crate) struct Census {
 #[derive(Default)]
 struct Scan {
     census: Census,
-    unknown: Option<String>,
+    unknown: Option<CensusError>,
 }
 
 #[derive(Clone, Copy)]
@@ -80,6 +116,33 @@ fn final_record(kind: WriteFolder, name: &str) -> bool {
             }
 }
 
+fn final_account(path: &Path, name: &str) -> bool {
+    path.parent()
+        .and_then(Path::file_name)
+        .is_some_and(|n| n == "route-accounts")
+        && WriteFolder::Accounts.record_name(name)
+}
+fn expects_directory(folder: Folder, name: &str) -> bool {
+    match folder {
+        Folder::Root => child(folder, name).is_some(),
+        Folder::Records(kind) => kind.child(name).is_some(),
+        Folder::ConnectorEvidence => name == "route-accounts",
+        Folder::Auxiliary(_) => false,
+    }
+}
+fn expects_file(folder: Folder, path: &Path, name: &str, rel: &str) -> bool {
+    control(rel)
+        || match folder {
+            Folder::Records(kind) => final_record(kind, name),
+            Folder::ConnectorEvidence => final_account(path, name),
+            Folder::Root => matches!(name, "project.json" | "imports.jsonl"),
+            Folder::Auxiliary("package-imports") => {
+                name.strip_suffix(".json").is_some_and(record_key)
+            }
+            Folder::Auxiliary(expected) => name == expected,
+        }
+}
+
 /// Classify a bound plain member. Both package custody and this census call
 /// this; a temporary name by itself never establishes discardable bytes.
 fn member(
@@ -89,14 +152,24 @@ fn member(
     name: &str,
     rel: &str,
     meta: &std::fs::Metadata,
-) -> Result<(bool, bool), String> {
-    let fail = |why: &str| format!("{}: {why}", path.display());
+) -> Result<(bool, bool), CensusError> {
+    let fail = |why: &str| CensusError::uncertain(path, why);
     if !meta.is_file() {
-        return Err(fail("not a plain member (symlink or unsupported file)"));
+        return Err(CensusError::unsafe_member(
+            path,
+            "not a plain member (symlink or unsupported file)",
+        ));
     }
     if meta.nlink() != 1 {
-        return Err(fail(
+        return Err(CensusError::unsafe_member(
+            path,
             "hard linked member; publication or identity not known",
+        ));
+    }
+    if expects_directory(folder, name) {
+        return Err(CensusError::unsafe_member(
+            path,
+            "not a directory at a payload folder",
         ));
     }
     let final_control = control(rel);
@@ -105,7 +178,8 @@ fn member(
         control(&parent.join(final_name).to_string_lossy())
     });
     if final_control || temporary_control {
-        let bytes = crate::records_retention::read_plain(path)?;
+        let bytes = crate::records_retention::read_plain(path)
+            .map_err(|e| CensusError::uncertain(path, e))?;
         if !bytes.is_empty() {
             return Err(fail("owning control has unexpected bytes; not known"));
         }
@@ -127,12 +201,7 @@ fn member(
         ));
     }
     if matches!(folder, Folder::ConnectorEvidence) {
-        let final_account = path
-            .parent()
-            .and_then(Path::file_name)
-            .is_some_and(|n| n == "route-accounts")
-            && WriteFolder::Accounts.record_name(name);
-        return Ok((true, final_account));
+        return Ok((true, final_account(path, name)));
     }
     let record = match folder {
         Folder::Records(kind) => final_record(kind, name),
@@ -158,34 +227,49 @@ fn scan(root: &Path) -> Scan {
         folder: Folder,
         out: &mut Scan,
         depth: usize,
-    ) -> Result<(), String> {
+    ) -> Result<(), CensusError> {
         if depth > 256 {
-            return Err(format!("{}: census depth exceeded", dir.display()));
+            return Err(CensusError::uncertain(dir, "census depth exceeded"));
         }
-        crate::storage::check_path(dir)?;
+        if let Some(meta) = crate::records_inspect::presence(dir)
+            .map_err(|e| CensusError::uncertain(dir, e.to_string()))?
+        {
+            if !meta.is_dir() {
+                return Err(CensusError::unsafe_member(
+                    dir,
+                    "not a plain payload directory",
+                ));
+            }
+        }
+        crate::storage::check_path(dir).map_err(|e| CensusError::uncertain(dir, e))?;
         let entries = crate::records_inspect::listing(dir)
-            .map_err(|e| format!("{}: inventory incomplete: {e}", dir.display()))?
+            .map_err(|e| CensusError::uncertain(dir, format!("inventory incomplete: {e}")))?
             .unwrap_or_default();
         for entry in entries {
             // An uncertain earlier member must not hide a final later in this
             // folder, or prevent the parent from visiting its other folders.
             let result = (|| {
                 let path: PathBuf = entry.path;
-                let meta = entry
-                    .metadata
-                    .map_err(|e| format!("{}: inventory incomplete: {e}", path.display()))?;
+                let meta = entry.metadata.map_err(|e| {
+                    CensusError::uncertain(&path, format!("inventory incomplete: {e}"))
+                })?;
                 let name = path
                     .file_name()
                     .and_then(|n| n.to_str())
-                    .ok_or_else(|| format!("{}: unrecognised name", path.display()))?;
-                let rel = path
-                    .strip_prefix(root)
-                    .unwrap()
-                    .to_str()
-                    .ok_or("payload path is not UTF-8")?;
+                    .ok_or_else(|| CensusError::uncertain(&path, "unrecognised name"))?;
+                let rel =
+                    path.strip_prefix(root).unwrap().to_str().ok_or_else(|| {
+                        CensusError::uncertain(&path, "payload path is not UTF-8")
+                    })?;
                 if meta.is_dir() {
+                    if expects_file(folder, &path, name, rel) {
+                        return Err(CensusError::unsafe_member(
+                            &path,
+                            "directory where a final member belongs",
+                        ));
+                    }
                     let next = child(folder, name).ok_or_else(|| {
-                        format!("{}: unrecognised payload folder; not known", path.display())
+                        CensusError::uncertain(&path, "unrecognised payload folder; not known")
                     })?;
                     walk(root, &path, next, out, depth + 1)?;
                 } else {
@@ -195,7 +279,7 @@ fn scan(root: &Path) -> Scan {
                     }
                     out.census.holds_records |= record;
                 }
-                Ok::<(), String>(())
+                Ok::<(), CensusError>(())
             })();
             if let Err(error) = result {
                 out.unknown.get_or_insert(error);
@@ -213,7 +297,7 @@ fn scan(root: &Path) -> Scan {
 /// Routing needs one final to establish that records are held. Uncertainty
 /// decides the answer only when no final establishes it; readers keep their
 /// own per-member limits after this home decision.
-pub(crate) fn holds_records(root: &Path) -> Result<bool, String> {
+pub(crate) fn holds_records(root: &Path) -> Result<bool, CensusError> {
     let observed = scan(root);
     if observed.census.holds_records {
         return Ok(true);
@@ -229,7 +313,7 @@ pub(crate) fn holds_records(root: &Path) -> Result<bool, String> {
 pub(crate) fn census(root: &Path) -> Result<Census, String> {
     let observed = scan(root);
     match observed.unknown {
-        Some(error) => Err(error),
+        Some(error) => Err(error.to_string()),
         None => Ok(observed.census),
     }
 }
