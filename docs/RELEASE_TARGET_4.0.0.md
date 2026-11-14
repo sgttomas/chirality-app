@@ -305,11 +305,13 @@ the owner decide on what was actually observed.
    unavailable outcome is shown as unknown. Where work waits, the App says
    that the agent was asked to pause, that a question is waiting or that a
    turn completed, and never that work is held or blocked. When a run reaches
-   a checkpoint the workflow declares, its arrival is recorded and shown as a
-   card in the list of what waits on the person, and the checkpoint's
-   disposition is waiting until evidence of the required human act exists; the
-   App does not itself pause, interrupt or hold the run, and says that a pause
-   there is the agent's cooperation. Continued work, a tool's success, an
+   a checkpoint the workflow declares, its arrival is recorded, and the
+   checkpoint's disposition is waiting until evidence of the required human
+   act exists. While it is waiting, the arrival is shown as a card in the
+   list of what waits on the person; an arrival already answered by an
+   earlier act is not shown as waiting. The App does not itself pause,
+   interrupt or hold the run, and says that a pause there is the agent's
+   cooperation. Continued work, a tool's success, an
    interruption or a replay of history does not perform it. After quit and reopen it is the same run,
    and a later run inherits no arrival, disposition or act from it. A failure
    is repaired or given its disposition by Agent 0, which the owner sees in

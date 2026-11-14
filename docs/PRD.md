@@ -292,8 +292,10 @@ with a small declared part the product can observe (D-03).
   definitions that enforcement needs are kept so that every such workflow can
   be served. Reserved human acts (§4.5) are unaffected. In the current phase a
   pause at a declared checkpoint is the agent's cooperation, and the App says
-  so. The App shows an arrival as a point waiting on the person (V4-PM-07);
-  it does not pause, interrupt or refuse because of an arrival.
+  so. While an arrival's recorded disposition is waiting, the App shows it as
+  a point waiting on the person (V4-PM-07); an arrival already answered keeps
+  its disposition in the run's history. The App does not pause, interrupt or
+  refuse because of an arrival.
 - **V4-WF-06** Workflows made in the Chirality App can be carried into a host
   and adapted there; a host's own workflows can be opened and refined in the
   Chirality App.
@@ -410,7 +412,9 @@ Shared access does not transfer decision rights (OD-05).
   changes it, by a confirmation the App takes from the person alone, and the
   change is recorded with its scope, its values and when it took effect;
   sending a level already chosen again is not a change. No agent, tool or
-  App rule changes a level, and an agent never raises its own. A narrower
+  App rule changes the level the person chose, and an agent never raises its
+  own; a delegated agent taking its parent's level, and a narrower limit set
+  on work that is assigned, are not changes to it. A narrower
   level does not restrain a command already running, and the App does not
   imply that it does. At every level the harness's own requests are shown
   truthfully (V4-AUT-04). A
