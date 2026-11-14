@@ -832,6 +832,7 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["codexStops"] = json!({"outcomes":state.codex_stops.lock().unwrap().clone(),"stopWaitLimitSeconds":codex_stop::STOP_WAIT_LIMIT.as_secs(),"records":codex_stop::RECORDS_LIMIT});
     s["connectorRouteAvailability"] = connector_route_view::availability(state.workspace.as_deref(), &state.project_context, state.project_context_limit.as_deref());
     s["recordsStore"] = records_store::status(state.workspace.as_deref());
+    s["recordsStore"]["placementChoice"] = records_store::choice_view(state.app_user_data_root.lock().unwrap().as_deref().map_err(Clone::clone), tauri::is_dev());
     s["nativeConversationLinks"] = state.native_links.lock().map(|links| links.snapshot()).unwrap_or_else(|_|json!({"state":"unavailable","limit":"native relationship recording session unavailable; native operation outcomes remain as observed"}));
     s["recordChain"] = records_index::chain_status(state.workspace.as_deref());
     s["currentAppProjectContext"] = state.project_context.view();
@@ -1010,17 +1011,35 @@ fn records_store_identity(state: State<'_, AppState>, action: String) -> Result<
         _ => Err("unknown records store identity action; nothing changed".into()),
     }
 }
-/// RS §13.8 "Placement": the person chooses where the records store is kept
-/// (another volume, for example), from the next start.
+/// RS §13.8 "Placement": the person picks and confirms the next-start
+/// location in native dialogs. The web view supplies only choose/default.
 #[tauri::command(async)]
-fn records_store_choose(state: State<'_, AppState>, location: String) -> Result<Value, String> {
+fn records_store_choose(app: tauri::AppHandle, state: State<'_, AppState>, action: String) -> Result<Value, String> {
+    use act_control::native_statement as ns;
+    if tauri::is_dev() {
+        return Err(format!("this run was started for development and keeps its records only where {} names; a chosen location is read by a built App", records_store::OVERRIDE_ENV));
+    }
+    if action != "choose" && action != "default" {
+        return Err("unknown records store location action".into());
+    }
     let data = state.app_user_data_root.lock().unwrap().clone()?;
     let homes = state.homes.lock().unwrap();
     let configs: Vec<hosting::HostConfig> = [home_resources::HomeClass::Account, home_resources::HomeClass::ApiKey, home_resources::HomeClass::LocalProvider].into_iter()
         .filter_map(|class| homes.entry(class).ok()).filter_map(|home| home.host_config.as_ref().ok().cloned()).collect();
     drop(homes);
     desktop_startup::ensure_no_project_folder(&data)?;
-    records_store::choose_location_beside(&data, std::path::Path::new(&location), state.workspace.as_deref(), &codex_homes(configs.iter(), Some(&data)), &working_folders(configs.iter()))
+    let location = if action == "choose" {
+        let Some(picked) = workflow_native_folder(&app, "Choose a folder for the App's records")? else {
+            return Ok(json!({"state":"choice cancelled"}));
+        };
+        Some(records_store::location_for_choice(&picked)?)
+    } else { None };
+    records_store::confirm_placement_beside(&data, location.as_deref(), state.workspace.as_deref(), &codex_homes(configs.iter(), Some(&data)), &working_folders(configs.iter()), |text, dont, perform| {
+        let mut refused = None;
+        let statement = ns::bounded("records store location", text).map(|text| ns::NativeStatement { text, in_app: None });
+        let yes = confirm_choice(&app, "Records store location", statement, dont, perform, &mut refused);
+        refused.map_or(Ok(yes), Err)
+    })
 }
 /// DEL-01-01: the working folders the App gives its Codex, which the records
 /// store may never overlap, whatever folder that is.

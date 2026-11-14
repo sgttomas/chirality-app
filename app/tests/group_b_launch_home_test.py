@@ -404,7 +404,9 @@ class CleanRun(Fixture):  # STATEMENTS 2 and 3
             if launch._forwarding.is_set():
                 sent.append('running')
                 os.kill(os.getpid(), signal.SIGTERM)
-        script = 'touch "$HOME/started-twice"\n' + script
+        # The trap is set before the file that says the App runs, so the signal sent on seeing the file can only meet
+        # the trap: the App then exits 0, the one ending asserted below.
+        script = "trap 'exit 0' TERM\ntouch \"$HOME/started-twice\"\nwhile :; do sleep 0.1; done\n"
         thread = threading.Thread(target=later)
         thread.start()
         with mock.patch.object(launch.time, 'sleep', sleep):
@@ -434,7 +436,8 @@ class CleanRun(Fixture):  # STATEMENTS 2 and 3
             if launch._forwarding.is_set():
                 sent.append('running')
                 os.kill(os.getpid(), signal.SIGTERM)
-        script = 'touch "$HOME/started-here"\ntrap \'exit 0\' TERM\nwhile :; do sleep 0.1; done\n'
+        # The trap first, as above: the signal sent on seeing the file can only meet it.
+        script = 'trap \'exit 0\' TERM\ntouch "$HOME/started-here"\nwhile :; do sleep 0.1; done\n'
         thread = threading.Thread(target=later)
         thread.start()
         with mock.patch.object(launch, 'listing', listing):
