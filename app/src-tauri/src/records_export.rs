@@ -68,6 +68,8 @@ fn files(root: &Path, omit_controls: bool) -> Result<BTreeMap<String, crate::rec
     Ok(out)
 }
 fn write(path: &Path, bytes: &[u8]) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records_export::write");
     let mut f = OpenOptions::new().write(true).create_new(true).mode(0o600).open(path).map_err(io)?;
     f.write_all(bytes).map_err(io)?;
     f.sync_all().map_err(io)
@@ -116,6 +118,8 @@ fn heads(folder: &Path, paths: impl Iterator<Item = String>) -> Value { heads_pr
 /// Puts `from` in place at `to` by an exclusive rename: never replaces a file
 /// already at `to` (also used for a new records store line file).
 pub(crate) fn publish(from: &Path, to: &Path) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records_export::publish");
     use std::os::unix::ffi::OsStrExt;
     let from = std::ffi::CString::new(from.as_os_str().as_bytes()).map_err(|e| e.to_string())?;
     let to = std::ffi::CString::new(to.as_os_str().as_bytes()).map_err(|e| e.to_string())?;
@@ -133,6 +137,8 @@ pub(crate) fn publish(from: &Path, to: &Path) -> Result<(), String> {
 /// Exports the already attached project's store to a new folder. No identity
 /// is minted by this read; import-needed and identity refusals stay explicit.
 pub fn export(project: &Path, destination: &Path) -> Result<Value, String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records_export::export");
     let home = crate::records_store::readable_home(project)?;
     let source = home.attachment.dir.clone().ok_or("project has no attached records in the store; nothing exported")?;
     crate::records_store::export_permitted(&source,&home.attachment.root)?;
@@ -471,6 +477,8 @@ pub(crate) fn staged_payload(folder: &Path, bag: &Path) -> Result<Value, String>
     )
 }
 fn remove_empty_tree(folder: &Path) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records_export::remove_empty_tree");
     if !present(folder)? {
         return Ok(());
     }
@@ -527,6 +535,8 @@ pub(crate) fn dispose_members(
     stage: &Path,
     identity: &str,
 ) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records_export::dispose_members");
     let tags = read_tag(&bag.join("tagmanifest-sha256.txt"))?;
     if crate::util::sha256_hex(&tags) != identity {
         return Err("original export changed; nothing more disposed".into());

@@ -6,6 +6,8 @@ export type FleetPacket = {
   coordination: { projectRecords: Json[]; governingStoreRecords: Json[]; appObservations: Json[]; nativeRelationships?: Json[]; recordingEvents?: Json[]; protected: { state: string } };
   limits: { source: { home?: string; path?: string; line?: number }; reason: string }[];
   nativeRecording: string;
+  /** Added by the App's read (not by the files): what this session's reconciliation of earlier sessions' delegation observations has done, as the record tick last left it; its limit, if any, is also among `limits`. */
+  delegationReconciliation?: { state: string; limit?: string; reason?: string; endsRecorded?: number; sessionsNotEstablished?: string[] };
   workspace?: { standing: string; graphIdentityMethod: string; undertakings: Json[]; limits: string[] };
 };
 

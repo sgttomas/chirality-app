@@ -79,7 +79,6 @@ hosting::supplier_0167_tests::retained_canonical_0167_mutations_refuse_before_pr
 hosting::supplier_0167_tests::retained_canonical_0167_passes_actual_static_preflight: ignored (#[ignore]): opt-in; run by no hosted job unless someone names it with --ignored (no workflow step runs tests with --ignored or --include-ignored); its marker says "requires explicit retained canonical vendor; static read only, never supplier execution"
 installed_custody::tests: selected on pull requests only with --features distribution-successor, by filter installed_custody::tests in sources-packaging / Installed integrity and S4 evidence (synthetic source fixtures); the full route runs it without the feature
 main_window::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
-native_conversation_links::delegation::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 native_items::request_overlay_repair_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 native_items::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 native_request_answer::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)

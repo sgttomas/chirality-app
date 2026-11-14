@@ -572,6 +572,8 @@ pub(super) fn validate_prior(intent: &Intent) -> Result<(), String> {
     Ok(())
 }
 pub(super) fn move_directory(from: &Path, to: &Path) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records_package_identity::move_directory");
     let parent = to.parent().ok_or("association publication has no parent")?;
     bag::create_or_match(&parent.join(".directory.lock"), b"")?;
     let from_parent = from.parent().unwrap();

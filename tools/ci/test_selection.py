@@ -942,6 +942,7 @@ KNOWN_REFERRERS = {
     "app/examination/native_forms/sources.terms-v1.json": "read by native_form.py",
     "app/examination/scripted_driver/proof.py": "reads the first-use scenario for the scripted driver's hosted job",
     ".github/workflows/app-scripted-driver.yml": "its path trigger names the first-use scenario its driver reads",
+    "app/examination/sq_receiving/sq.step-map.json": "out_of_release names the release target as where it is stated; nothing reads that path from it",
     # Readers of in-root paths that stay product inputs.
     "tools/validation/test_library_v3_operational_adoption.py": "names the Library's own docs/ files",
     "app/src-tauri/src/lib.rs": "compiles group_b_fixture_consumer.rs (product input)",
