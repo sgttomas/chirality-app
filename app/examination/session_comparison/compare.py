@@ -643,6 +643,8 @@ def main(argv=None):
         if unnamed:
             print(f'note: saved views in record/ not named in this run: {", ".join(unnamed)}', file=sys.stderr)
         if args.command == 'compare':
+            if not args.view and unnamed:
+                raise Refused('a saved view exists in record/, so the operator\'s list is not written; name it with --view')
             rows, pending = run_compare(root, args.thread, args.view)
             if pending is not None:
                 model, session_sha = pending

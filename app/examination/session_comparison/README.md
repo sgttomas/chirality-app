@@ -27,7 +27,7 @@ This is the first part. It makes exactly three comparisons of one thread: its tu
   - The first line must be `session_meta` naming the thread and the pinned Codex version, `cli_version` `0.167.0`. A file written by another version is blocked, not read on a guess.
   - Every turn event must carry a turn identity.
 
-  Otherwise every comparison is blocked. A turn whose events are not one start followed by at most one end is not one reading, and is never compared as agreeing. That covers a turn started twice, restarted after its end, ended without a start, or ended with an error that is neither absent, nor null, nor an object with a message.
+  Otherwise every comparison is blocked. A turn whose events are not one start followed by at most one end is not one reading, and its outcome is never compared as agreeing: C3 is inconclusive. C2 still says only that both sides have a turn of that identity. That covers a turn started twice, restarted after its end, ended without a start, or ended with an error that is neither absent, nor null, nor an object with a message.
 - **Where it may be read.** It is read only inside an examination root: a folder the examination launcher made, with `home/`, `project/` and `record/` all present, and a launch record in `record/`. A folder missing any of the three is refused.
   - The tool refuses any other folder, and the owner's Codex home.
   - It refuses any path that resolves outside the root, `record/` itself included. A launch record that resolves outside the root refuses the whole root.
@@ -47,19 +47,19 @@ A candidate cannot save its views, so its result comes in two steps.
    - that no other turn of the thread is shown.
 2. The operator checks each item against the screen, and sets `answer` (passed, failed or inconclusive) and `note`.
 3. `answers` writes the candidate's whole result: C2 and C3 from the answers, with C4, and W1 blocked where the session has a workflow run.
-   - Nothing in the list file is trusted. `answers` derives the list again from the session file's bytes as they are at that moment, and takes an answer only from a single line identical to an item it derives.
+   - Nothing in the list file is trusted except its thread, which only selects the session file to derive from. `answers` derives the list again from the session file's bytes as they are at that moment, and takes an answer only from a single line identical to an item it derives.
    - So an edited item, an invented item, or an item about a record that has since changed answers nothing, and that item is `not run`.
    - `passed` needs a note of what was seen; without one, and when there is no answer, the item is `not run`.
    - Rows carry the note's digest, never its text.
    - The answers file's header names its list (`answers_of`), and the examination table counts only the latest answers file of each list.
 
-Where a saved view exists, the comparison is exact. It is never replaced by the operator's list.
+Where a saved view exists, the comparison is exact. It is never replaced by the operator's list: `compare` without `--view` is refused, with blocked rows, while any `record/host-status-*.json` exists.
 
 ## The comparisons and their outcomes
 
 | | Codex's side | App's side | Outcome |
 |---|---|---|---|
-| C2 turns | each `task_started` turn | the view's turns | passed if both have it, by identity. Failed if only one does, in either direction. Not run if neither has a turn. |
+| C2 turns | each turn with a start or end event | the view's turns | passed if both have it, by identity. Failed if only one does, in either direction. Not run if neither has a turn. |
 | C3 outcome | completed (`task_complete` with no error), failed (with an error object), interrupted (`turn_aborted`), or not reported | the view's status (`inProgress`, `completed`, `failed` or `interrupted`) | passed if equal. Where Codex reported no end: failed if the App shows an end, passed if it shows `inProgress`. Any other difference fails. Inconclusive for a status outside those four, for a turn the view shows with no native status, or for a Codex reading that is not one reading. Blocked where only one side has the turn. |
 | C4 interrupts | the turn's end, with an abort's reason | the latest stop record's `turnOutcome` | Interrupted passes only against an abort for reason `interrupted`; any other reason fails. A completed or failed outcome passes if equal. Pending or unknown passes where Codex recorded no end, and is inconclusive where it recorded one the App did not learn. Failed if the App records an end Codex did not record, or a stop of a turn Codex has no record of. Inconclusive for an outcome outside the schema's five. Not run if no stop was requested. |
 | W1 workflow | not compared in this version | not compared in this version | Blocked, with the reason "the workflow comparison is not available in this version", where the session has a workflow run to compare; otherwise no row. Never passed. |

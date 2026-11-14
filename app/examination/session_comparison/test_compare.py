@@ -493,10 +493,20 @@ class ThirdReading(unittest.TestCase):
 
     def test_a_saved_view_not_named_is_said(self):
         self.r.turn('turn-1', 'completed')
-        self.r.view({'turn-1': 'completed'})
-        self.r.compare(candidate=True)
-        (screen,) = (self.r.root / 'record').glob('screen-list-*.jsonl')
-        self.assertEqual(json.loads(screen.read_text().splitlines()[0])['saved_views_not_named'], ['host-status-end.json'])
+        named = self.r.view({'turn-1': 'completed'})
+        other = self.r.root / 'record' / 'host-status-earlier.json'
+        other.write_text(Path(named).read_text())
+        lines = self.r.compare(named)
+        self.assertEqual(lines[0]['saved_views_not_named'], ['host-status-earlier.json'])
+
+    def test_a_saved_view_is_never_replaced_by_the_operators_list(self):
+        self.r.turn('turn-1', 'completed')
+        self.r.view({'turn-1': 'interrupted'})
+        self.r.write()
+        self.assertEqual(compare.main(['compare', '--root', str(self.r.root), '--thread', THREAD]), 1)
+        self.assertEqual(list((self.r.root / 'record').glob('screen-list-*.jsonl')), [])
+        (out,) = (self.r.root / 'record').glob('session-comparison-2*.jsonl')
+        self.assertEqual({r['outcome'] for r in rows([json.loads(l) for l in out.read_text().splitlines()])}, {'blocked'})
 
 
 class TheRealFormat(unittest.TestCase):
