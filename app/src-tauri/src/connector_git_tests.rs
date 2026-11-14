@@ -621,3 +621,29 @@ fn the_connectors_working_folder_is_kept_with_its_contents_however_the_engine_en
     let helper = helper.into_inner().unwrap().unwrap();
     assert!(helper.join("config").exists() && helper.join("HEAD").exists());
 }
+
+/// DEL-01-01: the engine's initial files are created exclusively, with no link followed, and
+/// written through that handle: nothing already at the name is followed or truncated. At the
+/// helper: a link cannot be put in a folder the engine just made without a race through
+/// `Engine::create`.
+#[test]
+fn the_engines_initial_files_never_follow_or_truncate_what_is_already_there() {
+    let root = std::env::temp_dir().canonicalize().unwrap().join(crate::util::opaque_id("connector-write-new-").unwrap());
+    fs::create_dir(&root).unwrap();
+    let other = root.join("someone-elses");
+    fs::write(&other, b"invented bytes to keep").unwrap();
+    for name in ["HEAD", "config"] {
+        let at = root.join(name);
+        std::os::unix::fs::symlink(&other, &at).unwrap();
+        assert!(crate::connector_git_process::write_new(&at, b"ref: refs/heads/unused\n").is_err(), "{name}: a link refuses");
+        fs::remove_file(&at).unwrap();
+        fs::write(&at, b"already here").unwrap();
+        assert!(crate::connector_git_process::write_new(&at, b"replacement").is_err(), "{name}: a file refuses");
+        assert_eq!(fs::read(&at).unwrap(), b"already here");
+        fs::remove_file(&at).unwrap();
+        crate::connector_git_process::write_new(&at, b"made new").unwrap();
+        assert_eq!(fs::read(&at).unwrap(), b"made new");
+    }
+    assert_eq!(fs::read(&other).unwrap(), b"invented bytes to keep");
+    fs::remove_dir_all(&root).unwrap();
+}

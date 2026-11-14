@@ -259,12 +259,20 @@ An entry is added in the same pull request that makes the limitation standing.
     holds what git writes while reading: its settings, and folders for
     objects and references. Git reads the project's own repository in place,
     with every network protocol refused, and the App puts no sign-in there.
-  - **The version check's folders**, one for each version check. The App never
-    puts a sign-in there: it runs Codex in one only to read its version label.
+  - **The version check's folders**, one each time Chirality prepares to start
+    Codex; later version checks of that start reuse it. The App never puts a
+    sign-in there: it runs Codex in one only to read its version label.
 
-  Every one of these folders is readable only by the person's own macOS
-  account, and a start is refused if the Working Files folder or one of its
-  folders can be used by other accounts or belongs to another account.
+  Each folder is checked when it is made, and the Working Files folder and the
+  folder holding it when they are established; nothing is checked afterwards.
+  The check is that each is the person's own, private by mode, and carries no
+  access-list entry that allows access (a list of deny entries only passes),
+  and that the folder holding the Working Files folder is writable by the
+  person's account alone. A start is refused where one of these does not hold.
+  A folder changed after it was made is not checked again. The App does not
+  defend these folders against a process that can write in that place while
+  it makes them: any process with the person's own rights outside a sandbox
+  can, and Codex can where its writable roots include that place.
   Signing out in Chirality acts on Codex's own home, as before. It does not
   reach these folders, as it never reached the shared temporary folder.
 - **Why:** removing a folder safely needs the App to show that nothing which

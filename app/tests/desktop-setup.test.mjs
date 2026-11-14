@@ -367,7 +367,7 @@ test('first use: no project, existing settings route, cancel and change keep cho
     assert.equal(packet.initial.workingFiles,packet.initial.appData+' Working Files');
     assert.equal(typeof packet.initial.workingFilesKept,'number');
     assert.ok(said.includes("Working files (the version check's folders, the connector's folder and Codex's temporary folders): "+packet.initial.workingFiles
-      +". "+packet.initial.workingFilesKept+" folders are there now, with what is in them: Chirality removes none of them. While Chirality is not running, they can be removed."));
+      +". "+packet.initial.workingFilesKept+" folders are there now, with what is in them: Chirality removes none of them. They can be removed once Chirality, and any Codex it started, has stopped."));
     assert.ok(said.includes('App data: '+packet.initial.appData),'the App data line is unchanged');
     const existing=nodes(c,'input').find(n=>props(n).type==='radio'&&n.parentNode.textContent.startsWith(' Use my existing Codex settings'));
     await React.act(()=>props(existing).onChange());

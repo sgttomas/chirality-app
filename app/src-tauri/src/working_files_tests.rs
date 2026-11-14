@@ -110,7 +110,8 @@ fn a_working_files_folder_or_subtree_that_is_no_longer_the_one_established_refus
     let f = Fixture::new();
     let w = f.working();
     std::fs::set_permissions(w.subtree(Kind::Connector), std::fs::Permissions::from_mode(0o755)).unwrap();
-    assert!(w.allocate(Kind::Connector).unwrap_err().contains("no longer the folder Chirality made"));
+    let refused = w.allocate(Kind::Connector).unwrap_err();
+    assert!(refused.contains("is not private now") && refused.contains("Other accounts can use it"), "{refused}");
 }
 
 #[test]
@@ -215,4 +216,87 @@ fn no_record_or_subtree_is_inside_a_folder_the_app_hands_out() {
             }
         }
     }
+}
+
+/// An access-list entry on an invented folder, through the system's own tool.
+fn add_entry(path: &Path, entry: &str) {
+    let done = std::process::Command::new("/bin/chmod").arg("+a").arg(entry).arg(path).status().unwrap();
+    assert!(done.success(), "chmod +a {entry}");
+}
+
+#[test]
+fn an_access_list_that_allows_refuses_the_start_and_a_deny_only_list_does_not() {
+    // Through establish: an allowing entry on the Working Files folder refuses, words and all.
+    let f = Fixture::new();
+    let root = folder_for(&f.data).unwrap();
+    std::fs::DirBuilder::new().mode(0o700).create(&root).unwrap();
+    add_entry(&root, "everyone allow list,search");
+    let refused = establish(&f.data).unwrap_err();
+    assert!(refused.contains("access list that gives access beyond your account") && refused.contains(&root.display().to_string()) && refused.contains("start Chirality again"), "{refused}");
+    // A deny-only list passes: a deny gives no one access.
+    let f = Fixture::new();
+    let root = folder_for(&f.data).unwrap();
+    std::fs::DirBuilder::new().mode(0o700).create(&root).unwrap();
+    add_entry(&root, "everyone deny delete");
+    let w = establish(&f.data).unwrap();
+    assert!(w.allocate(Kind::CodexTmp).is_ok());
+    // Through allocate: an allowing entry added to a subtree after it was established refuses.
+    add_entry(&w.subtree(Kind::CodexTmp), "everyone allow list,search,add_file");
+    let refused = w.allocate(Kind::CodexTmp).unwrap_err();
+    assert!(refused.contains("access list that gives access beyond your account"), "{refused}");
+    // An allowing entry meant only to be inherited is refused where it is, before any folder is
+    // made under it.
+    let f = Fixture::new();
+    let w = f.working();
+    add_entry(&w.subtree(Kind::Connector), "everyone allow list,search,file_inherit,directory_inherit,only_inherit");
+    let refused = w.allocate(Kind::Connector).unwrap_err();
+    assert!(refused.contains("access list that gives access beyond your account"), "{refused}");
+    assert_eq!(kept_count(&f.data), Some(0), "nothing made under it");
+}
+
+#[test]
+fn the_folder_holding_the_working_files_entry_must_not_be_writable_by_another_account() {
+    for (what, plant) in [("its mode", "mode"), ("access list", "acl")] {
+        let f = Fixture::new();
+        if plant == "mode" {
+            std::fs::set_permissions(&f.root, std::fs::Permissions::from_mode(0o777)).unwrap();
+        } else {
+            add_entry(&f.root, "everyone allow add_subdirectory,delete_child");
+        }
+        let refused = establish(&f.data).unwrap_err();
+        assert!(refused.contains(&f.root.display().to_string()) && refused.contains(what) && refused.contains("changes no folder's access"), "{plant}: {refused}");
+        assert!(!folder_for(&f.data).unwrap().exists(), "{plant}: nothing made");
+    }
+    // A deny-only list on it passes.
+    let f = Fixture::new();
+    add_entry(&f.root, "everyone deny delete");
+    assert!(establish(&f.data).is_ok());
+}
+
+#[test]
+fn a_path_that_no_longer_leads_to_the_folder_made_is_not_handed_out() {
+    // At the helper: the full path is compared once, before it is handed out; a parent replaced
+    // during allocation (the reading's case) cannot be made without a race through allocate.
+    let f = Fixture::new();
+    let w = f.working();
+    let subtree = w.open_subtree(Kind::CodexTmp).unwrap();
+    let path = w.subtree(Kind::CodexTmp).join("tmp-invented");
+    std::fs::DirBuilder::new().mode(0o700).create(&path).unwrap();
+    let folder = open_dir_at(&subtree, OsStr::new("tmp-invented")).unwrap();
+    assert!(WorkingFiles::path_leads_to(&path, &folder).is_ok(), "permitted");
+    let elsewhere = f.root.join("invented-elsewhere");
+    std::fs::create_dir_all(elsewhere.join("tmp-invented")).unwrap();
+    std::fs::rename(w.subtree(Kind::CodexTmp), f.root.join("parked-subtree")).unwrap();
+    std::os::unix::fs::symlink(&elsewhere, w.subtree(Kind::CodexTmp)).unwrap();
+    assert_eq!(WorkingFiles::path_leads_to(&path, &folder).unwrap_err(), "its path now leads somewhere else");
+}
+
+#[test]
+fn only_folders_are_counted() {
+    let f = Fixture::new();
+    let w = f.working();
+    let _ = w.allocate(Kind::ProbeHome).unwrap();
+    std::fs::write(w.subtree(Kind::ProbeHome).join("invented-file"), b"x").unwrap();
+    std::os::unix::fs::symlink(&f.data, w.subtree(Kind::ProbeHome).join("invented-link")).unwrap();
+    assert_eq!(kept_count(&f.data), Some(1));
 }

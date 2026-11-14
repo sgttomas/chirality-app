@@ -89,14 +89,14 @@ impl Engine {
             std::fs::create_dir(engine.helper.join(name))
                 .map_err(|e| Failure::abort("supervision", e.to_string()))?;
         }
-        std::fs::write(engine.helper.join("HEAD"), b"ref: refs/heads/unused\n")
+        write_new(&engine.helper.join("HEAD"), b"ref: refs/heads/unused\n")
             .map_err(|e| Failure::abort("supervision", e.to_string()))?;
         let config = if format == "sha256" {
             "[core]\nrepositoryformatversion = 1\nbare = true\n[extensions]\nobjectformat = sha256\n"
         } else {
             "[core]\nrepositoryformatversion = 0\nbare = true\n"
         };
-        std::fs::write(engine.helper.join("config"), config)
+        write_new(&engine.helper.join("config"), config.as_bytes())
             .map_err(|e| Failure::abort("supervision", e.to_string()))?;
         engine.identity = executable_identity(&engine.executable)?;
         engine.version =
@@ -330,6 +330,20 @@ fn executable_identity(path: &Path) -> Result<serde_json::Value> {
     Ok(
         serde_json::json!({"device":m.dev().to_string(),"inode":m.ino().to_string(),"length":m.len().to_string(),"mtime":m.mtime().to_string(),"mtimeNs":m.mtime_nsec().to_string()}),
     )
+}
+/// DEL-01-01: an initial file of the engine's folder, created exclusively with no link followed
+/// and written through the handle that creation returns. The pathname is never opened again to
+/// write, and nothing already at the name is opened, followed or truncated.
+pub(crate) fn write_new(path: &Path, bytes: &[u8]) -> std::io::Result<()> {
+    use std::io::Write;
+    use std::os::unix::fs::OpenOptionsExt;
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC)
+        .open(path)?;
+    file.write_all(bytes)?;
+    file.sync_all()
 }
 impl Drop for Engine {
     fn drop(&mut self) {
