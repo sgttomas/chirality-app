@@ -1143,6 +1143,9 @@ impl SelectedInstallation {
     }
     pub(crate) fn new() -> Self {
         let (f, a) = enrollment_fixture();
+        Self::from_parts(f, a)
+    }
+    fn from_parts(f: Fixture, a: KeychainAuthority) -> Self {
         let fixture = std::rc::Rc::new(f);
         let authority = std::rc::Rc::new(a);
         let backend = std::rc::Rc::new(Mock::default());
@@ -1371,9 +1374,25 @@ fn capture_seal_total_loss_exposes_the_stated_continuity_exclusion_and_unknown_i
     assert_eq!(crate::capture_seal::seal(&p,&mut f.ordinary_capture()).unwrap().verified_with,crate::capture_seal::SealProvider::Keychain);
     f.clear_protected_state();
     assert!(crate::capture_seal::seal(&p,&mut f.ordinary_capture()).is_err(),"surviving process memory vetoes");
-    f.new_process_observation();
-    assert_eq!(crate::capture_seal::seal(&p,&mut f.ordinary_capture()).unwrap().verified_with,crate::capture_seal::SealProvider::FileKey,
-        "invented fresh-process inputs after complete loss or coherent pre-protection rollback are indistinguishable; this is excluded, not prevented");
+    let status=std::process::Command::new(std::env::current_exe().unwrap())
+        .args(["--exact","capture_seal_keychain::tests::capture_seal_total_loss_fresh_process_probe","--ignored","--nocapture","--test-threads=1"])
+        .env("CHIRALITY_SEAL_RESET_FIXTURE_ROOT",f.root()).status().unwrap();
+    assert!(status.success(),"complete loss or coherent pre-protection rollback is excluded, not prevented");
+}
+
+#[test]
+#[ignore = "invoked only by the complete-loss parent with its invented installation"]
+fn capture_seal_total_loss_fresh_process_probe() {
+    let root=PathBuf::from(std::env::var_os("CHIRALITY_SEAL_RESET_FIXTURE_ROOT").expect("parent fixture required"));
+    assert!(root.starts_with(fs::canonicalize(std::env::temp_dir()).unwrap()));
+    let (mut f,mut authority)=enrollment_fixture();
+    fs::remove_dir_all(&f.root).unwrap();
+    f.root=root;f.dir=f.root.join("capture-seal-keychain");f.legacy=f.root.join(crate::capture_seal::KEY_FOLDER);
+    crate::capture_seal::set_folder_for_test(Some(Some(f.legacy.clone())));
+    authority._installed=crate::installed_custody::synthetic_for_tests(&f.root.join("Synthetic.app/Contents/Resources")).unwrap();
+    let installation=SelectedInstallation::from_parts(f,authority);let project=installation.project();
+    assert_eq!(crate::capture_seal::seal(&project,&mut installation.ordinary_capture()).unwrap().verified_with,crate::capture_seal::SealProvider::FileKey,
+        "a real fresh process observes the same empty protected namespace and absent vetoes as first use");
 }
 
 #[test]

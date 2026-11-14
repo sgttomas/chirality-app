@@ -2367,3 +2367,27 @@ fn legacy_unlabelled_capture_count_records_the_provider_that_actually_verified()
     assert_eq!(serde_json::from_slice::<Value>(&std::fs::read(path).unwrap()).unwrap(),original);
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn spoiled_provider_label_cannot_write_a_count_or_success_provider() {
+    let installation=crate::capture_seal_keychain::tests::SelectedInstallation::new();
+    let root=project("v1");let file=root.join("out/summary.md");
+    act(&root,"A7",&file,"v1",AFTER);
+    let (_,outputs,read)=observe_with(&root);
+    assert!(outputs.iter().any(|(k,b)| *k=="act_counted" && b["act"]["sealProvider"]=="file-key"));
+    let original=stored_capture(&root,&read.acts[0]);
+    let mut spoiled=original.clone();spoiled["sealProvider"]=json!("keychain");store_as_is(&root,&spoiled);
+    let actual_file_material=crate::capture_seal::file_material_for_test(&root);
+    installation.on_unselected_build(|| {
+        crate::capture_seal_keychain::set_material_provider_for_test(Some(Box::new(move |_,_|Ok(actual_file_material.clone()))));
+        let observed=crate::file_act_view::observe_capture(&root,&read.acts[0]["record"]["body"]);
+        assert_eq!(observed.result.unwrap_err().cause,crate::act_evidence_cause::ActEvidenceCause::ProviderMismatch);
+        let (_,outputs,read)=observe_with(&root);
+        assert!(read.acts.is_empty());assert!(!kinds(&outputs).contains(&"act_counted"));
+        assert!(outputs.iter().all(|(_,b)|b["act"].get("sealProvider").is_none() && b.get("sealProvider").is_none()));
+        crate::capture_seal_keychain::set_material_provider_for_test(None);
+    });
+    store_as_is(&root,&original);
+    assert!(kinds(&observe_with(&root).1).contains(&"act_counted"));
+    std::fs::remove_dir_all(root).unwrap();
+}

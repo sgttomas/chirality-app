@@ -327,6 +327,10 @@ pub(crate) fn legacy_file_fixture(root: &Path, capture: &mut Value) {
     let mac = hmac(&ring.keys[&ring.current], &message(capture).unwrap());
     capture["seal"] = json!({"method":SEAL_METHOD,"value":format!("{}:{}",ring.current,hex(&mac))});
 }
+#[cfg(test)]
+pub(crate) fn file_material_for_test(root: &Path) -> crate::capture_seal_keychain::Material {
+    file_material(load(&folder_for(root).unwrap()).unwrap().unwrap())
+}
 /// Build the complete pair on a private copy. Failure never leaves a
 /// provisional provider claim on the capture that the writer will publish.
 fn attach(capture: &mut Value, material: crate::capture_seal_keychain::Material) -> Result<SealVerification, EvidenceFailure> {
