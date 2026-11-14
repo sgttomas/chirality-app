@@ -670,5 +670,50 @@ class TheWorkflowComparisonIsNotAvailable(unittest.TestCase):
             compare.row('W1', {'thread': THREAD}, {}, {}, 'passed', 'x')
 
 
+
+class ADriverRun(unittest.TestCase):
+    """A root the scripted driver made: a driver-run record in place of a
+    launch record. A test build, never a candidate."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.r = Root(self.tmp.name)
+        (self.r.root / 'record' / 'launch-record.json').unlink()
+        self.driver = self.r.root / 'record' / 'driver-run.json'
+        self.driver.write_text(json.dumps({'driver_run': True, 'test_build': True, 'revision': REVISION[:40], 'run': '123456789-1'}))
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def test_its_header_names_the_driver_run_and_no_candidate(self):
+        self.r.turn('turn-1', 'completed')
+        lines = self.r.compare(self.r.view({'turn-1': 'completed'}))
+        self.assertIsNone(lines[0]['candidate_key'])
+        self.assertEqual(lines[0]['driver_run'], {'revision': REVISION[:40], 'run': '123456789-1'})
+        self.assertEqual({r['outcome'] for r in rows(lines, 'C2')}, {'passed'})
+
+    def test_a_driver_run_record_beside_a_launch_record_refuses_the_root(self):
+        (self.r.root / 'record' / 'launch-record.json').write_text(json.dumps({'candidate_key': 'invented-key'}))
+        with self.assertRaises(compare.Refused):
+            compare.examination_root(self.r.root)
+
+    def test_a_driver_run_record_not_as_the_driver_writes_it_refuses_the_root(self):
+        good = json.loads(self.driver.read_text())
+        for change in ({'test_build': False}, {'driver_run': 'yes'}, {'revision': 'abc'}, {'revision': REVISION[:40] + '\n'},
+                       {'run': 'free text here'}, {'candidate_key': None, 'run': None}):
+            self.driver.write_text(json.dumps({**good, **change}))
+            with self.assertRaises(compare.Refused, msg=change):
+                compare.examination_root(self.r.root)
+
+    def test_a_driver_run_record_outside_the_root_refuses_the_root(self):
+        with tempfile.TemporaryDirectory() as elsewhere:
+            outside = Path(elsewhere) / 'driver-run.json'
+            outside.write_text(self.driver.read_text())
+            self.driver.unlink()
+            os.symlink(outside, self.driver)
+            with self.assertRaises(compare.Refused):
+                compare.examination_root(self.r.root)
+
+
 if __name__ == '__main__':
     unittest.main()
