@@ -263,13 +263,16 @@ An entry is added in the same pull request that makes the limitation standing.
     Codex; later version checks of that start reuse it. The App never puts a
     sign-in there: it runs Codex in one only to read its version label.
 
-  Each folder is checked when it is made, and the Working Files folder and the
-  folder holding it when they are established; nothing is checked afterwards.
-  The check is that each is the person's own, private by mode, and carries no
-  access-list entry that allows access (a list of deny entries only passes),
-  and that the folder holding the Working Files folder is writable by the
-  person's account alone. A start is refused where one of these does not hold.
-  A folder changed after it was made is not checked again. The App does not
+  A folder made is checked while it is made, and not again. The Working Files
+  folder and the subtree in use are checked again each time a folder is made.
+  The folder that holds the Working Files folder is checked once, when the
+  Working Files folder is established. The check is that each is the person's
+  own, private by mode, and carries no access-list entry that allows access (a
+  list of deny entries only passes), and that the folder holding the Working
+  Files folder belongs to the person's account or to the system, and gives no
+  other account the right to write in it, by mode or by an allowing
+  access-list entry. A start is refused
+  where one of these does not hold. The App does not
   defend these folders against a process that can write in that place while
   it makes them: any process with the person's own rights outside a sandbox
   can, and Codex can where its writable roots include that place.
@@ -288,6 +291,6 @@ An entry is added in the same pull request that makes the limitation standing.
     the folder.
   - Removing the folder while Chirality is running harms no conversation's
     record. But a command of a running conversation that needs its temporary
-    folder fails, a connector read in progress fails, and no new start of
+    folder fails, a connector read in progress can fail, and no new start of
     Codex or version check is made until Chirality is started again.
 - **Basis:** DEL-01-01 (CLM-006).
