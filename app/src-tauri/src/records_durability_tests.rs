@@ -576,3 +576,29 @@ fn a_valid_tail_out_of_sequence_is_a_sequence_limit() {
     assert!(limits.iter().any(|l| l.contains("sequence incomplete/disagrees")), "{limits:?}");
     std::fs::remove_dir_all(root).unwrap();
 }
+
+fn alias_records(kind: &str, repair: bool) {
+    crate::storage::append_alias_fixture(kind, if repair { b"{torn" } else { b"" }, |path| {
+        if repair { open_owning_log(path.parent().unwrap(), path) }
+        else { append(path, "evidence_limit", &APP_WRITER, rs_body(0)).map(|_| ()) }
+    });
+}
+#[test]
+fn alias_refusal_records_hardlink() { alias_records("hardlink", false); }
+#[test]
+fn alias_refusal_records_symlink() { alias_records("symlink", false); }
+#[test]
+fn alias_refusal_records_dangling() { alias_records("dangling", false); }
+#[test]
+fn alias_refusal_records_fifo() { alias_records("fifo", false); }
+#[test]
+fn alias_refusal_w0_hardlink() { alias_records("hardlink", true); }
+#[test]
+fn alias_refusal_w0_symlink() { alias_records("symlink", true); }
+#[test]
+fn alias_refusal_w0_fifo() { alias_records("fifo", true); }
+
+#[test]
+fn alias_refusal_append_torn_log_is_not_repaired() {
+    crate::storage::append_alias_fixture("hardlink", b"{torn", |path| append(path, "evidence_limit", &APP_WRITER, rs_body(0)).map(|_| ()));
+}

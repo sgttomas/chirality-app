@@ -504,9 +504,12 @@ impl ReadLog {
             .as_ref()
             .map_err(Clone::clone)?;
         validator.validate(entry).map_err(|e| format!("read log entry refused: {} at {}", e.masked(), e.instance_path()))?;
-        crate::storage::check_path(path)?;
+        // Keep the existing ancestor refusal ahead of creation: opening the
+        // final name first must not create an empty file through a parent link.
+        crate::storage::check_path(path.parent().ok_or("read log has no folder")?)?;
         let created = !path.exists();
-        let mut file = std::fs::OpenOptions::new().create(true).read(true).append(true).open(path).map_err(|e| format!("read log unavailable: {e}"))?;
+        let mut file = crate::storage::open_append(path, "read log", true, true).map_err(|e| e.with_context("read log unavailable: "))?;
+        crate::storage::check_path(path)?;
         let length = file.metadata().map_err(|e| e.to_string())?.len();
         if length > 0 {
             let mut last = [0u8];

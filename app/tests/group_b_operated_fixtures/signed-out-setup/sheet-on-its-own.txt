@@ -1,0 +1,24 @@
+Window: "Unknown", App: Chirality App v4 (development invented).
+0 sheet Description: alert, Secondary Actions: Raise
+	1 text Desktop setup — next launch only Create NEW App-owned settings folder: /invented/homes/launch-invented/home/Library/Application Support/dev.chirality.app-v4.candidate.invented/shared-settings/settings-00000000-0000-0000-0000-000000000000
+with an empty config.toml, an empty AGENTS.md and an empty skills folder.
+Create NEW App-owned account directory: /invented/homes/launch-invented/home/Library/Application Support/dev.chirality.app-v4.candidate.invented/account-homes/account-00000000-0000-0000-0000-000000000000
+Link its config.toml, AGENTS.md and skills to those new settings.
+Read, import or change no other Codex settings, home or credential.
+Project for next launch: /invented/homes/launch-invented/project
+Save a private pending request in /invented/homes/launch-invented/home/Library/Application Support/dev.chirality.app-v4.candidate.invented/desktop-startup/request.json.
+Codex: the copy included with this App (bundled-owner-use-development).
+The current workspace, homes, account/model choices, records and prepared messages stay unchanged. No automatic quit/restart/login/conversation.
+	2 button Leave setup unchanged, ID: action-button-1
+	3 button Cancel, ID: action-button-3
+	4 button Create settings and save for next launch, ID: action-button-2
+5 menu bar
+	6 Chirality App v4 (development invented)
+	7 File
+	8 Edit
+	9 View
+	10 Window
+	11 Help
+	12 Waiting requests (0)
+
+The focused UI element is 0 sheet Description: alert, Secondary Actions: Raise
