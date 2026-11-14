@@ -19,7 +19,7 @@ import { NativeActivityView, activityModel, sameActivityGeneration, type NativeA
 import { ContinuationContext, historyPageBinding, StoredItemPage, StoredTurnPage } from "./NativeHistory";
 import { ObserverAttachment } from "./ObserverAttachment";
 import { PlanModeControl } from "./PlanMode";
-import { NativeRequestCard, WaitingRequestsIndicator, answerable, hostRequests, requestItem, requestThread, requestScopeKey, requestReplyGuarded, type RequestActivityLink, type RequestAnswer, type ReadRequestCustody, type RequestReplyObservation, type WaitingRequestGroup } from "./RequestCards";
+import { NativeRequestCard, WaitingRequestsIndicator, answerable, hostRequests, requestItem, requestPlace, requestThread, requestScopeKey, requestReplyGuarded, type RequestActivityLink, type RequestAnswer, type ReadRequestCustody, type RequestReplyObservation, type WaitingRequestGroup } from "./RequestCards";
 import { RunOffer, type RunAct } from "./RunOffers";
 import { RecoveryCustodyPanel } from "./RecoveryCustodyPanel";
 import { LastCleanTrialLine, WorkflowDraftsView } from "./WorkflowDrafts";
@@ -27,7 +27,7 @@ import { LibraryEntries } from "./LibraryEntries";
 import { WorkflowRegistrationReview } from "./WorkflowRegistrationReview";
 import { BringBackComposer, CleanTrialPanel, DelegatedTrialComposer, composersFor, conversationKey, findConversation, hostMessage, prefillKept } from "./TrialComposer";
 import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./preparedMessages";
-import { ConversationContext, ProjectLibraryContext, conversationFromKey, workflowSourceLimit } from "./WorkflowContext";
+import { ConversationContext, ProjectLibraryContext, appProjectFolder, conversationFromKey, workflowSourceLimit } from "./WorkflowContext";
 import { DailyWorkspace, WorkspaceDisclosure, WorkspaceConnectionStatus, revealWorkspaceTarget, registerWorkspaceViews, WORKSPACE_VIEWS } from "./DailyWorkspace";
 import { flushSync } from "react-dom";
 import { DesktopSetupPanel } from "./DesktopSetupPanel";
@@ -414,7 +414,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
     {selected && <div id="conversation-requests" aria-label="Requests from Codex in this conversation">
       <h3>Requests from Codex in this conversation ({requests.filter(answerable).length} waiting)</h3>
       {ordered.length === 0 && <p>No requests from Codex in this conversation.</p>}
-      {ordered.map((request: Json) => <NativeRequestCard activityLink={activityLink} key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answer} readRequest={readRequest} observation={replyObservations?.[requestScopeKey(request)]} />)}
+      {ordered.map((request: Json) => <NativeRequestCard activityLink={activityLink} key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answer} readRequest={readRequest} place={requestPlace(request, host, appProjectFolder(host))} observation={replyObservations?.[requestScopeKey(request)]} />)}
     </div>}
     <p id="ordinary-send-readiness" role="status" aria-live="polite">{sendReadiness}</p>
     {!sourceReady && <p><a href="#workspace-connection">Open connection controls</a></p>}
@@ -2519,7 +2519,7 @@ export function App() {
         <div className="workspace-notices"><div id="other-requests">
             {outsideRequests.length > 0 && <h3>Requests outside the selected conversation</h3>}
             {outsideRequests.length > 0 && <p>Requests of the selected conversation are shown beside it. Select another conversation to answer its requests there.</p>}
-            {outsideRequests.map((request: Json) => <NativeRequestCard activityLink={activityLink} key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answerRequest} readRequest={readRequestCustody} observation={replyObservations[requestScopeKey(request)]}/>)}
+            {outsideRequests.map((request: Json) => <NativeRequestCard activityLink={activityLink} key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answerRequest} readRequest={readRequestCustody} place={requestPlace(request, host, appProjectFolder(host))} observation={replyObservations[requestScopeKey(request)]}/>)}
           </div>
 
   <ActionFeedback message={message}/>

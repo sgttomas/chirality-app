@@ -88,7 +88,7 @@ export function decisionWords(decision: Json): string {
   switch (key) {
     case "accept": case "approved": return "Allow once";
     case "acceptForSession": case "approved_for_session": return "Allow for this session";
-    case "acceptWithExecpolicyAmendment": case "approved_execpolicy_amendment": return "Allow, and add the proposed rule to your Codex exec policy";
+    case "acceptWithExecpolicyAmendment": case "approved_execpolicy_amendment": return "Allow, and add a lasting rule (see below)";
     case "applyNetworkPolicyAmendment": case "network_policy_amendment": return "Apply the proposed network rule for this host";
     case "decline": return "Don't allow; the agent continues the turn";
     case "cancel": return "Don't allow, and interrupt the turn";
@@ -96,6 +96,103 @@ export function decisionWords(decision: Json): string {
     case "abort": return "Don't allow; the agent waits for your next message";
     default: return "Codex option";
   }
+}
+
+/** Where a tool-permission request's work lands, as the host reports it: the
+ * conversation's project folder (`currentAppProjectContext`, its folder only
+ * where the App can display it), or that the conversation has no project, and
+ * the working folder Codex reported for the conversation (thread rows' `cwd`).
+ * `permissionProfile` is the profile id Codex reported for the conversation;
+ * the host does not pass it to the view today, so it is null. */
+export type RequestPlace = {
+  project: { kind: "folder"; folder: string } | { kind: "none" } | { kind: "unknown" };
+  conversationFolder: string | null;
+  permissionProfile?: string | null;
+};
+const keyOf = (decision: Json): string => typeof decision === "string" ? decision : decision && typeof decision === "object" ? Object.keys(decision)[0] ?? "" : "";
+
+/** The place of a request from the host snapshot; `projectFolder` is the
+ * displayable project folder (WorkflowContext's appProjectFolder). */
+export function requestPlace(request: Json, host: Json, projectFolder: string | null): RequestPlace {
+  const context = host?.currentAppProjectContext;
+  const project: RequestPlace["project"] = projectFolder !== null ? { kind: "folder", folder: projectFolder }
+    : context && typeof context === "object" && (context.reference === null || context.reference === undefined) && !host?.currentAppProjectContextLimit ? { kind: "none" }
+    : { kind: "unknown" };
+  const thread = requestThread(request);
+  const row = (Array.isArray(host?.threads) ? host.threads : []).filter((t: Json) => t?.threadId === thread && JSON.stringify(t?.generation) === JSON.stringify(request?.generation)).pop();
+  return { project, conversationFolder: typeof row?.cwd === "string" && row.cwd ? row.cwd : null, permissionProfile: null };
+}
+
+const windowsAbsolute = (path: string) => /^[A-Za-z]:[\\/]/.test(path);
+/** Lexical resolution: `.` and `..` are folded by name; nothing on disk is consulted. */
+export function resolvePath(path: string, base: string | null): { path: string; relative: boolean } | null {
+  const absolute = path.startsWith("/") || windowsAbsolute(path);
+  if (!absolute && (!base || !(base.startsWith("/") || windowsAbsolute(base)))) return null;
+  const full = absolute ? path : `${base}/${path}`;
+  const windows = windowsAbsolute(full);
+  const parts = full.split(windows ? /[\\/]/ : "/");
+  const root = windows ? parts.shift()! : "";
+  const kept: string[] = [];
+  for (const part of windows ? parts : parts.slice(1)) {
+    if (part === "" || part === ".") continue;
+    if (part === "..") kept.pop(); else kept.push(part);
+  }
+  return { path: windows ? `${root}\\${kept.join("\\")}` : `/${kept.join("/")}`, relative: !absolute };
+}
+/** The part of `path` after `folder`, or null when `path` is not inside it. */
+export function insideFolder(path: string, folder: string): string | null {
+  const base = resolvePath(folder, null)?.path;
+  if (!base) return null;
+  const sep = windowsAbsolute(base) ? "\\" : "/";
+  if (path === base) return "";
+  const prefix = base.endsWith(sep) ? base : base + sep;
+  return path.startsWith(prefix) ? path.slice(prefix.length) : null;
+}
+
+const builtInProfile = (place: RequestPlace | undefined) => typeof place?.permissionProfile === "string" && place.permissionProfile.startsWith(":");
+const folderWords = (place: RequestPlace | undefined) => place?.project.kind === "none" ? "this conversation’s working folder" : "your project folder";
+const ruleWords = (request: Json, decision: Json): string | null => {
+  const inner = decision && typeof decision === "object" ? decision.acceptWithExecpolicyAmendment?.execpolicy_amendment : undefined;
+  const words = Array.isArray(inner) ? inner : request?.nativeParameters?.proposedExecpolicyAmendment;
+  return Array.isArray(words) && words.length ? words.join(" ") : null;
+};
+
+/** The App's words beside one answer: what that answer lets Codex do. */
+function DecisionNote({ request, decision, place }: { request: Json; decision: Json; place?: RequestPlace }) {
+  const key = keyOf(decision);
+  if (key === "acceptForSession" && request?.method === FILE_CHANGE) return <small> Later changes to only these same files are not asked again until Codex stops. Nothing is saved.</small>;
+  if (key === "acceptForSession" && request?.method === COMMAND) return <small> This same command, in this folder, is not asked again until Codex stops. Nothing is saved.</small>;
+  if (key === "acceptWithExecpolicyAmendment" && request?.method === COMMAND) {
+    const words = ruleWords(request, decision);
+    return <small> This adds a lasting rule to the rules file in this App’s sign-in folder: from then on, in every conversation of this home, any command beginning with <code>{words ?? "(rule words not reported)"}</code> {builtInProfile(place) ? "runs outside Codex’s sandbox without asking" : "runs with more access than Codex’s sandbox gives, without asking"}. It stays until it is removed from that file.</small>;
+  }
+  return null;
+}
+
+/** The lines above a tool-permission card's answers. */
+function AnswerConsequences({ request, forms, place, changesArrived }: { request: Json; forms: { decision: Json }[]; place?: RequestPlace; changesArrived: boolean }) {
+  const keys = forms.map(f => keyOf(f.decision));
+  const noDecline = keys.includes("cancel") && !keys.some(k => k === "decline" || k === "denied" || k === "abort");
+  return <>
+    {request?.method === COMMAND && <p>{builtInProfile(place)
+      ? "If you allow this command, it runs once outside Codex’s sandbox, with your account’s access to all your files and to the network, in the working folder shown."
+      : "If you allow this command, it runs once with more access than Codex’s sandbox gives, which may be all of your account’s access to your files and the network, in the working folder shown."}</p>}
+    {request?.method === FILE_CHANGE && changesArrived && <p>If you allow this, Codex writes these files where they are shown, including any outside {folderWords(place)}.</p>}
+    {(request?.method === COMMAND || request?.method === FILE_CHANGE) && noDecline && <p>Codex offers no way to refuse and let the agent continue: refusing interrupts the turn, and you can then tell the agent what to do instead.</p>}
+  </>;
+}
+
+/** One location on a file-change line: the full path, how it was resolved and where it is. */
+function ChangeLocation({ path, place, cwd }: { path: Json; place?: RequestPlace; cwd: string | null }) {
+  const given = text(path);
+  const resolved = resolvePath(given, cwd);
+  if (!resolved) return <><code>{given}</code> (relative to a working folder the App has not received; where it goes cannot be shown)</>;
+  const base = place?.project.kind === "folder" ? place.project.folder : place?.project.kind === "none" ? place.conversationFolder : null;
+  const rest = base ? insideFolder(resolved.path, base) : null;
+  return <>
+    <code>{resolved.path}</code>{resolved.relative && <> (relative to <code>{text(cwd)}</code>)</>}
+    {base === null || base === undefined ? null : rest !== null ? <> — in {folderWords(place)}, at <code>{rest === "" ? "." : rest}</code></> : <> — OUTSIDE {folderWords(place)}</>}
+  </>;
 }
 
 /** FO-1…FO-3: the decision forms a tool-permission card offers and the native answer each
@@ -190,7 +287,10 @@ const Quoted = ({ label, value }: { label: string; value: Json }) => value === u
 const Code = ({ label, value }: { label: string; value: Json }) => value === undefined || value === null || value === "" ? null : <div>{label}: <code>{text(value)}</code></div>;
 
 /** What the request is about, read from its native parameters (§4.1 "What the person sees"). */
-function Subject({ request, item }: { request: Json; item: Json }) {
+const fileChanges = (item: Json): Json[] => Array.isArray(item?.native?.changes) ? item.native.changes : [];
+const diffBox = { ...pre, maxHeight: "24em", overflow: "auto" as const, border: "1px solid #ccc", padding: 4 };
+
+function Subject({ request, item, place }: { request: Json; item: Json; place?: RequestPlace }) {
   const p = request?.nativeParameters ?? {};
   switch (request?.method) {
     case COMMAND:
@@ -204,12 +304,22 @@ function Subject({ request, item }: { request: Json; item: Json }) {
         <Code label="Additional permissions requested" value={p.additionalPermissions} />
       </div>;
     case FILE_CHANGE: {
-      const changes: Json[] = Array.isArray(item?.native?.changes) ? item.native.changes : [];
+      const changes = fileChanges(item);
+      const cwd = typeof p.cwd === "string" && p.cwd ? p.cwd : place?.conversationFolder ?? null;
       return <div>
         <Quoted label="Reason given" value={p.reason} />
         {p.grantRoot && <div>Also asks to write under <code>{text(p.grantRoot)}</code> for the rest of the session (Codex marks this UNSTABLE).</div>}
-        {changes.length === 0 ? <div>The changes are not shown here: Codex reports them on the file-change item, which this view has not received.</div>
-          : changes.map((change: Json, i: number) => <details key={i}><summary>{text(change?.kind?.type) || "change"} <code>{text(change?.path)}</code></summary><pre style={pre}>{text(change?.diff)}</pre></details>)}
+        {changes.length === 0 ? <p>The App has not received the list of files, so it cannot show where these changes go. You can refuse, or wait for the list to appear, before allowing a change you cannot see.</p>
+          : <section aria-label="Files this change writes">
+            <p>Changes to {changes.length} {changes.length === 1 ? "file" : "files"}:</p>
+            {changes.map((change: Json, i: number) => <div key={i}>
+              <div>{text(change?.kind?.type) || "change"} <ChangeLocation path={change?.path} place={place} cwd={cwd} />
+                {typeof change?.kind?.move_path === "string" && change.kind.move_path && <>; moved to <ChangeLocation path={change.kind.move_path} place={place} cwd={cwd} /></>}</div>
+              <pre style={diffBox}>{text(change?.diff)}</pre>
+            </div>)}
+            <p><small>Locations are read from the paths Codex gave; the App has not followed links.</small></p>
+            {(place?.project.kind ?? "unknown") === "unknown" && <p><small>The App has not established where your project folder is, so it cannot mark which of these are inside it.</small></p>}
+          </section>}
       </div>;
     }
     case PERMISSIONS:
@@ -250,7 +360,7 @@ export function requestItem(request: Json, view: Json): Json {
 }
 
 // Request-local drafts are disposable. Secret content is never echoed or saved.
-export function NativeRequestCard({ request, view, answer, readRequest, observation, activityLink }: { request: Json; view?: Json; answer: RequestAnswer; readRequest?: ReadRequestCustody; observation?: RequestReplyObservation; activityLink?: RequestActivityLink }) {
+export function NativeRequestCard({ request, view, answer, readRequest, observation, activityLink, place }: { request: Json; view?: Json; answer: RequestAnswer; readRequest?: ReadRequestCustody; observation?: RequestReplyObservation; activityLink?: RequestActivityLink; place?: RequestPlace }) {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [scope, setScope] = useState("turn");
   const [content, setContent] = useState("");
@@ -325,11 +435,12 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
       {unreconciled && reply.command.kind !== "pending" && readRequest && <button disabled={busy} onClick={() => { void reread(); }}>Read current request state</button>}
     </section>}
     <About request={request} item={item} navigation={activityLink?.(request) ?? null} />
-    <Subject request={request} item={item} />
+    <Subject request={request} item={item} place={place} />
     {a14 && <p>Tool permission only. Your answer decides whether Codex may use this tool; it does not mark anything checked, take the work as done, give engineering sign-off or rely on the result, and it is not recorded as a human act. <a href="#file-acts">Open the App act control</a> (a separate standing facility; nothing is filled in from this request).</p>}
     {(method === QUESTION || method === ELICITATION) && <p>Your answer goes to the agent as conversation input; it is not a recorded act. <a href="#file-acts">Open the App act control</a> (a separate standing facility; nothing is filled in from this request).</p>}
     {answerable(request) && !replyGuard && <div>
-      {forms.map(formButton)}
+      {modern && <AnswerConsequences request={request} forms={forms} place={place} changesArrived={fileChanges(item).length > 0} />}
+      {forms.map(form => modern ? <div key={JSON.stringify(form.decision)}>{formButton(form)}<DecisionNote request={request} decision={form.decision} place={place} /></div> : formButton(form))}
       {modern && forms.length === 0 && <p>This request offers no answer forms.</p>}
       {legacy && <div>
         <label>Reason for Codex with “{decisionWords("denied")}” (optional; sent exactly as written, up to {REJECTION_LIMIT} characters) <textarea {...EXACT_TEXT} disabled={busy} value={rejection} onChange={e => setRejection(e.target.value)} /></label>
