@@ -175,6 +175,7 @@ impl Stand {
 import os,sys,json
 def dump(kind):
  with open(os.path.join(os.environ['CHIRALITY_CHILD_ENV_DUMP'],kind+'.json'),'w') as f: json.dump(dict(os.environ),f)
+ with open(os.path.join(os.environ['CHIRALITY_CHILD_ENV_DUMP'],kind+'.argv.json'),'w') as f: json.dump(sys.argv[1:],f)
 if '--version' in sys.argv:
  dump('probe'); print('codex-cli 0.167.0'); sys.exit(0)
 dump('server')
@@ -197,6 +198,13 @@ for line in sys.stdin:
         let env = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
         std::fs::remove_file(path).unwrap();
         env
+    }
+    /// The child's command-line arguments after its program.
+    fn argv(&self, kind: &str) -> Vec<String> {
+        let path = PathBuf::from(std::env::var_os(DUMP).unwrap()).join(format!("{kind}.argv.json"));
+        let argv = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        std::fs::remove_file(path).unwrap();
+        argv
     }
 }
 impl Drop for Stand {
@@ -224,6 +232,27 @@ fn child_environment_inner_observed_on_every_start_path() {
         let path = if successor { "successor" } else { "ordinary" };
         let expected: Vec<(&str, &str)> = DECIDED.iter().copied().chain(WRAPPER.iter().filter(|_| successor).map(|name| (*name, "launcher-wrapper"))).collect();
         let dumps: BTreeMap<_, _> = ["probe", "server"].into_iter().map(|kind| (kind, stand.dump(kind))).collect();
+        // The exact set of names each child receives: the parent's, minus every removed name (and the wrapper
+        // settings on the successor route), plus what the App sets by design, each named: CODEX_HOME on both
+        // routes, and PATH on the successor route (the launch plan's). A name the App adds beyond these fails.
+        // macOS itself drops every DYLD_ name when it starts a protected program (this stand runs through
+        // /usr/bin/env), so those are left out of the comparison: the App neither sets nor removes them.
+        let parent: std::collections::BTreeSet<String> = std::env::vars_os().map(|(name, _)| name.to_string_lossy().into_owned())
+            .filter(|name| !name.starts_with("DYLD_")).collect();
+        let mut by_design = vec!["CODEX_HOME"];
+        if successor { by_design.push("PATH"); }
+        let want: std::collections::BTreeSet<String> = parent.iter().filter(|n| !expected.iter().any(|(r, _)| r == n)).cloned()
+            .chain(by_design.iter().map(|n| n.to_string())).collect();
+        for (kind, env) in &dumps {
+            let got: std::collections::BTreeSet<String> = env.keys().filter(|name| !name.starts_with("DYLD_")).cloned().collect();
+            assert_eq!(got, want, "{path} {kind}: the child's names are exactly the parent's less the removals plus {by_design:?}");
+        }
+        // No remote control: the app-server is started with no --remote-control flag.
+        for kind in ["probe", "server"] {
+            let argv = stand.argv(kind);
+            assert!(!argv.iter().any(|a| a.contains("remote-control") || a.contains("remote_control")), "{path} {kind}: {argv:?}");
+            if kind == "server" { assert_eq!(argv.last().map(String::as_str), Some("app-server"), "{path}: {argv:?}"); }
+        }
         for (kind, env) in &dumps {
             for (name, _) in &expected {
                 assert!(!env.contains_key(*name), "{path} {kind}: {name} reached the child");

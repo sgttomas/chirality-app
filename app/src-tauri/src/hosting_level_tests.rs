@@ -1,6 +1,6 @@
 //! V4-AUT-06: the Host's start checks, send-time rules, level ledger entries, launch read and status.
 use super::*;
-use crate::codex_level as cl;
+use crate::codex_level::{self as cl, Method};
 use std::io::BufRead;
 
 fn root(name: &str) -> PathBuf {
@@ -503,6 +503,471 @@ fn a_relative_project_is_checked_where_codex_resolves_it() {
     assert!(send(&host, "thread/start", json!({"cwd": "."})).err().unwrap().contains("edits-level-reaches-app-folders"));
     assert!(send(&host, "thread/start", json!({"cwd": "work"})).is_ok());
     wire.next();
+    wire.close(&host);
+    std::fs::remove_dir_all(&base).unwrap();
+}
+
+// ---- B1: the App's default level ----
+
+/// A ready Host as production makes it (no level in force), with the App's own folders established, and no ledger.
+fn ready_unledgered(cwd: &str) -> Arc<Host> {
+    let host = Arc::new(Host::new_without_level());
+    host.inner.0.lock().unwrap().app_session = "app-session:invented".into();
+    let generation = g(&host);
+    let mut i = host.inner.0.lock().unwrap();
+    i.state = "ready".into();
+    i.home = "level-home".into();
+    i.spawn_counter = 1;
+    i.generation = generation.clone();
+    i.journal.begin_generation(generation.clone());
+    i.threads.push(json!({"generation": generation, "threadId": "thread", "cwd": cwd}));
+    i.level.places = Some(level_state::Places { home_identity: Some("app-home:invented".into()), ..level_state::Places::for_test() });
+    drop(i);
+    host
+}
+fn thread_row(host: &Host, thread: &str) -> Value {
+    host.snapshot()["threads"].as_array().unwrap().iter().find(|t| t["threadId"] == thread).unwrap().clone()
+}
+
+#[test]
+fn a_complete_read_with_no_choice_puts_the_apps_default_in_force_and_writes_nothing() {
+    let base = root("default");
+    let host = ready_with_ledger(&base, "/invented");
+    {
+        let mut i = host.inner.0.lock().unwrap();
+        i.default_level = None;
+    }
+    host.set_app_default_for_test(Some("full"));
+    let view = host.read_levels_at_launch(Some("app-home:invented"));
+    assert_eq!(view, json!({"state": "read", "accepted": [], "refused": [], "appDefault": "full"}));
+    assert_eq!(host.default_level().unwrap().id, "full");
+    let status = host.snapshot();
+    assert_eq!(status["levelDefault"]["origin"], "app-default");
+    assert_eq!(status["levelDefault"]["originSentence"], cl::APP_DEFAULT_SENTENCE);
+    assert_eq!(status["levelDefault"]["explanation"], cl::APP_DEFAULT_EXPLAINED);
+    assert_eq!(status["levelDefault"]["ledgerEntry"], Value::Null);
+    assert_eq!(status["levelAppDefault"], "full");
+    assert!(status["levelSessionOnlyOffered"].is_null(), "an empty ledger is the default's case, not the session-only one");
+    // Conversations without their own choice take it, and the status says where it comes from.
+    assert_eq!(thread_row(&host, "thread")["level"]["chosen"]["origin"], "app-default");
+    // Sending it writes nothing: the default is never a choice in the ledger.
+    let wire = Wire::attach(&host);
+    send(&host, "turn/start", turn_params("thread")).unwrap();
+    assert_eq!(wire.next()["params"]["sandboxPolicy"]["type"], "dangerFullAccess");
+    for kind in ["level_chosen", "level_sent", "level_reported"] {
+        assert!(entries(&host, kind).is_empty(), "{kind}");
+    }
+    // The person choosing the same level is a recorded choice, and the origin changes.
+    let chosen = host.choose_level(&LevelScope::Default, cl::level("full").unwrap(), &[]).unwrap();
+    assert_eq!(entries(&host, "level_chosen").len(), 1);
+    let status = host.snapshot();
+    assert_eq!(status["levelDefault"]["origin"], "chosen");
+    assert_eq!(status["levelDefault"]["ledgerEntry"], chosen["ledgerEntry"]);
+    assert!(status["levelDefault"].get("originSentence").is_none());
+    wire.close(&host);
+    std::fs::remove_dir_all(&base).unwrap();
+}
+
+#[test]
+fn a_recorded_choice_wins_over_the_default_and_an_invalid_one_leaves_the_default() {
+    let base = root("default-recorded");
+    let path = base.join("recovery.ledger.jsonl");
+    let row = |id: &str, values: Value| json!({"kind":"level_chosen","session":"app-session:earlier","entryId":id,"at":"2026-11-14T12:00:00Z",
+        "scope":{"kind":"default-for-new-conversations"},"level":values,"previous":null});
+    {
+        let mut ledger = RecoveryLedger::open(path.clone()).unwrap();
+        ledger.append(row("level-chosen:a", cl::recorded_values(cl::level("supervised").unwrap()))).unwrap();
+    }
+    let host = Host::new_without_level();
+    host.configure_recovery(path.clone()).unwrap();
+    let view = host.read_levels_at_launch(Some("app-home:mine"));
+    assert!(view.get("appDefault").is_none());
+    assert_eq!(host.default_level().unwrap().id, "supervised");
+    assert_eq!(host.snapshot()["levelDefault"]["origin"], "chosen");
+    host.app_runtime_custody().unwrap().record_app_session_end(&[]).unwrap();
+    drop(host);
+    // The latest entry does not match the table: no valid choice, so the App's default, never the earlier entry.
+    let mut tampered = cl::recorded_values(cl::level("supervised").unwrap());
+    tampered["approvalPolicy"] = json!("never");
+    { RecoveryLedger::open(path.clone()).unwrap().append(row("level-chosen:b", tampered)).unwrap(); }
+    let host = Host::new_without_level();
+    host.configure_recovery(path).unwrap();
+    let view = host.read_levels_at_launch(Some("app-home:mine"));
+    assert_eq!(view["refused"][0]["entryId"], "level-chosen:b");
+    assert_eq!(view["appDefault"], "full");
+    assert_eq!(host.default_level().unwrap().id, "full");
+    assert_eq!(host.snapshot()["levelDefault"]["origin"], "app-default");
+    std::fs::remove_dir_all(&base).unwrap();
+}
+
+/// With no default (`None`), the launch read gives exactly what it gave before the default existed (f32b96b67):
+/// the same bytes, for an empty ledger, a ledger with choices and an unread ledger.
+#[test]
+fn with_no_default_the_launch_read_is_byte_for_byte_as_before() {
+    let base = root("default-none");
+    let path = base.join("recovery.ledger.jsonl");
+    let empty = Host::new_without_level();
+    empty.set_app_default_for_test(None);
+    empty.configure_recovery(path.clone()).unwrap();
+    assert_eq!(serde_json::to_string(&empty.read_levels_at_launch(Some("app-home:mine"))).unwrap(), r#"{"accepted":[],"refused":[],"state":"read"}"#);
+    assert!(empty.default_level().is_none());
+    assert!(empty.snapshot()["levelDefault"].is_null());
+    empty.app_runtime_custody().unwrap().record_app_session_end(&[]).unwrap();
+    drop(empty);
+    let mut tampered = cl::recorded_values(cl::level("edits").unwrap());
+    tampered["sandbox"] = json!("read-only");
+    {
+        let mut ledger = RecoveryLedger::open(path.clone()).unwrap();
+        let row = |id: &str, scope: Value, values: Value| json!({"kind":"level_chosen","session":"app-session:earlier","entryId":id,"at":"2026-11-14T12:00:00Z","scope":scope,"level":values,"previous":null});
+        ledger.append(row("level-chosen:x", json!({"kind":"conversation","home":"app-home:mine","threadId":"t1"}), cl::recorded_values(cl::level("full").unwrap()))).unwrap();
+        ledger.append(row("level-chosen:y", json!({"kind":"default-for-new-conversations"}), tampered)).unwrap();
+    }
+    let host = Host::new_without_level();
+    host.set_app_default_for_test(None);
+    host.configure_recovery(path).unwrap();
+    assert_eq!(serde_json::to_string(&host.read_levels_at_launch(Some("app-home:mine"))).unwrap(),
+        r#"{"accepted":[{"entryId":"level-chosen:x","levelId":"full"}],"refused":[{"entryId":"level-chosen:y","reason":"The recorded level does not match the App's level table exactly; choose a level again."}],"state":"read"}"#);
+    assert!(host.default_level().is_none());
+    assert_eq!(host.thread_level("t1").unwrap().id, "full");
+    let unread = Host::new_without_level();
+    unread.set_app_default_for_test(None);
+    assert_eq!(serde_json::to_string(&unread.read_levels_at_launch(None)).unwrap(),
+        r#"{"reason":"The App ledger is unavailable, so no level is in force; choose a level before any conversation.","state":"not-read"}"#);
+    assert!(unread.default_level().is_none());
+    std::fs::remove_dir_all(&base).unwrap();
+}
+
+#[test]
+fn an_unreadable_ledger_never_takes_the_default() {
+    let host = ready_unledgered("/invented");
+    host.set_app_default_for_test(Some("full"));
+    host.inner.0.lock().unwrap().recovery_initialization_error = Some("invented raw ledger failure".into());
+    let view = host.read_levels_at_launch(Some("app-home:invented"));
+    assert_eq!(view["state"], "not-read");
+    assert!(view.get("appDefault").is_none());
+    assert!(host.default_level().is_none());
+}
+
+// ---- B1: a level for this session only ----
+
+/// The failed read only makes the choice available: no level is in force until the person chooses.
+#[test]
+fn a_failed_read_alone_puts_no_level_in_force_and_only_offers_the_choice() {
+    let host = ready_unledgered("/invented");
+    host.inner.0.lock().unwrap().recovery_initialization_error = Some("invented raw ledger failure".into());
+    host.read_levels_at_launch(Some("app-home:invented"));
+    assert!(host.default_level().is_none());
+    let status = host.snapshot();
+    assert_eq!(status["levelSessionOnlyOffered"]["reason"], cl::RECORDS_NOT_READ);
+    assert_eq!(status["levelSessionOnlyOffered"]["detail"], json!({"text": "invented raw ledger failure", "standing": cl::NOT_THE_APPS_TEXT}));
+    assert!(status["levelDefault"].is_null());
+    let wire = Wire::attach(&host);
+    assert!(send(&host, "turn/start", turn_params("thread")).err().unwrap().contains("no level chosen"));
+    assert!(wire.nothing());
+    // The person's explicit choice puts it in force, held in memory only.
+    let out = host.choose_level(&LevelScope::Default, cl::level("supervised").unwrap(), &[]).unwrap();
+    assert_eq!((out["origin"].as_str(), out["ledgerEntry"].clone()), (Some("session-only"), Value::Null));
+    let status = host.snapshot();
+    assert_eq!(status["levelDefault"]["origin"], "session-only");
+    assert_eq!(status["levelDefault"]["originSentence"], cl::SESSION_ONLY_SENTENCE);
+    assert_eq!(status["levelDefault"]["sessionOnly"]["reason"], cl::RECORDS_NOT_READ);
+    send(&host, "turn/start", turn_params("thread")).unwrap();
+    assert_eq!(wire.next()["params"]["approvalPolicy"], "untrusted");
+    wire.close(&host);
+}
+
+#[test]
+fn a_session_only_choice_takes_effect_from_the_next_turn_while_a_turn_runs() {
+    let host = ready_unledgered("/invented");
+    host.read_levels_at_launch(Some("app-home:invented"));
+    assert_eq!(host.snapshot()["levelSessionOnlyOffered"]["reason"], cl::RECORDS_UNAVAILABLE);
+    host.choose_level(&LevelScope::Default, cl::level("supervised").unwrap(), &[]).unwrap();
+    let wire = Wire::attach(&host);
+    send(&host, "turn/start", turn_params("thread")).unwrap();
+    let written = wire.next();
+    reply(&host, json!({"id": written["id"], "result": {"turn": {"id": "turn-running", "status": "inProgress", "items": []}}}));
+    assert_eq!(thread_row(&host, "thread")["level"]["takesEffect"], "now");
+    host.choose_level(&LevelScope::Conversation("thread".into()), cl::level("full").unwrap(), &[]).unwrap();
+    let level = thread_row(&host, "thread")["level"].clone();
+    assert_eq!(level["chosen"]["origin"], "session-only");
+    assert_eq!(level["takesEffect"], "from-next-turn", "{level}");
+    wire.close(&host);
+}
+
+#[test]
+fn a_session_only_choice_is_never_offered_on_an_empty_ledger_and_a_complete_read_drops_it() {
+    // An empty ledger whose write then fails: an error, never a session-only choice.
+    let base = root("session-empty");
+    let host = ready_with_ledger(&base, "/invented");
+    host.inner.0.lock().unwrap().default_level = None;
+    host.read_levels_at_launch(Some("app-home:invented"));
+    let database = crate::recovery::database_path(&base.join("recovery.ledger.jsonl"));
+    std::fs::rename(&database, base.join("displaced")).unwrap();
+    std::fs::create_dir(&database).unwrap();
+    assert!(host.choose_level(&LevelScope::Default, cl::level("supervised").unwrap(), &[]).unwrap_err().contains("nothing was changed"));
+    assert_eq!(host.default_level().unwrap().id, "full", "the App's default, unchanged");
+    std::fs::remove_dir_all(&database).unwrap();
+    std::fs::rename(base.join("displaced"), &database).unwrap();
+    // A session-only choice, then the ledger is read whole: the read governs, and the choice is dropped.
+    let unread = ready_unledgered("/invented");
+    unread.read_levels_at_launch(Some("app-home:invented"));
+    unread.choose_level(&LevelScope::Default, cl::level("supervised").unwrap(), &[]).unwrap();
+    unread.choose_level(&LevelScope::Conversation("thread".into()), cl::level("edits").unwrap(), &[]).unwrap();
+    let other = root("session-later");
+    let ledger = RecoveryLedger::open(other.join("recovery.ledger.jsonl")).unwrap();
+    unread.inner.0.lock().unwrap().recovery = Some(Arc::new(Mutex::new(ledger)));
+    unread.set_app_default_for_test(None);
+    unread.read_levels_at_launch(Some("app-home:invented"));
+    assert!(unread.default_level().is_none(), "dropped");
+    assert!(unread.thread_level("thread").is_none(), "dropped");
+    assert!(unread.snapshot()["levelSessionOnlyOffered"].is_null());
+    // A later successful save is a real recorded choice.
+    let out = unread.choose_level(&LevelScope::Default, cl::level("edits").unwrap(), &[]).unwrap();
+    assert_eq!(out["origin"], "chosen");
+    assert_eq!(unread.snapshot()["levelDefault"]["origin"], "chosen");
+    std::fs::remove_dir_all(&base).unwrap();
+    std::fs::remove_dir_all(&other).unwrap();
+}
+
+// ---- B1: the project trust entry ----
+
+/// A stand-in for Codex that answers each `config/read` with `answer` and passes every frame on, in order.
+struct Responder {
+    child: std::process::Child,
+    frames: Receiver<Value>,
+}
+impl Responder {
+    fn attach(host: &Arc<Host>, answer: impl Fn(&Value) -> Value + Send + 'static) -> Self {
+        let mut child = Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();
+        *host.stdin.lock().unwrap() = child.stdin.take();
+        let stdout = child.stdout.take().unwrap();
+        let (tx, rx) = channel();
+        let me = Arc::clone(host);
+        std::thread::spawn(move || {
+            let mut reader = BufReader::new(stdout);
+            loop {
+                let mut line = String::new();
+                match reader.read_line(&mut line) {
+                    Ok(0) | Err(_) => break,
+                    Ok(_) => {
+                        let frame: Value = serde_json::from_str(&line).unwrap();
+                        if frame["method"] == "config/read" {
+                            let mut reply = answer(&frame);
+                            reply["id"] = frame["id"].clone();
+                            me.on_line(&serde_json::to_vec(&reply).unwrap(), &g(&me));
+                        }
+                        let _ = tx.send(frame);
+                    }
+                }
+            }
+        });
+        Responder { child, frames: rx }
+    }
+    /// The next frame that is not a `config/read`, and the `config/read` frames before it.
+    fn next_sent(&self) -> (Vec<Value>, Value) {
+        let mut reads = Vec::new();
+        loop {
+            let frame = self.frames.recv_timeout(Duration::from_secs(5)).expect("a frame was written");
+            if frame["method"] == "config/read" { reads.push(frame); } else { return (reads, frame); }
+        }
+    }
+    fn close(mut self, host: &Host) {
+        *host.stdin.lock().unwrap() = None;
+        assert!(self.child.wait().unwrap().success());
+    }
+}
+/// A whole `config/read` result whose user layer holds `projects`.
+fn layers_with(projects: Value) -> Value {
+    json!({"result": {"config": {}, "origins": {}, "layers": [
+        {"name": {"type": "user", "file": "/invented/home/config.toml", "profile": null}, "version": "1", "config": {"projects": projects}},
+        {"name": {"type": "sessionFlags"}, "version": "1", "config": {}}]}})
+}
+/// A project folder holding `.git` (with HEAD), a subfolder to work in, and a second spelling of the project
+/// through a link.
+fn git_project(name: &str) -> (PathBuf, PathBuf, PathBuf, PathBuf) {
+    let base = root(name);
+    let project = base.join("project");
+    std::fs::create_dir_all(project.join(".git")).unwrap();
+    std::fs::write(project.join(".git").join("HEAD"), b"ref: refs/heads/main\n").unwrap();
+    std::fs::create_dir_all(project.join("sub")).unwrap();
+    let alias = base.join("alias");
+    std::os::unix::fs::symlink(&project, &alias).unwrap();
+    (base, project, alias, PathBuf::new())
+}
+fn trusting_host(base: &Path, cwd: &Path, level: &str) -> Arc<Host> {
+    // Each Host its own ledger: a Host left without an ended session holds its ledger's history.
+    let ledger = base.join(opaque_id("ledger-").unwrap());
+    std::fs::create_dir_all(&ledger).unwrap();
+    let host = ready_with_ledger(&ledger, cwd.to_str().unwrap());
+    host.set_default_level(level).unwrap();
+    host.inner.0.lock().unwrap().level.trust_reads = true;
+    host
+}
+fn key(path: &Path) -> String { path.to_string_lossy().into_owned() }
+
+#[test]
+fn each_start_resume_and_fork_carries_exactly_one_trust_entry_for_the_project_root_read_just_before() {
+    let (base, project, _, _) = git_project("trust-unmarked");
+    let cwd = project.join("sub");
+    // Full access, where Codex would otherwise write `trusted` into the person's settings: the explicit entry is
+    // sent every time, so Codex's "no trust entry" condition never holds (thread_processor.rs:1478-1482).
+    let host = trusting_host(&base, &cwd, "full");
+    let wire = Responder::attach(&host, |_| layers_with(json!({"/somewhere/else": {"trust_level": "trusted"}})));
+    for (method, params) in [("thread/start", json!({"cwd": cwd})), ("thread/resume", json!({"threadId": "thread", "excludeTurns": true})),
+                             ("thread/fork", json!({"threadId": "thread", "deferGoalContinuation": true}))] {
+        send(&host, method, params).unwrap();
+        let (reads, frame) = wire.next_sent();
+        assert_eq!(reads.len(), 1, "{method}: one settings reading, just before");
+        assert_eq!(reads[0]["params"], json!({"cwd": key(&cwd), "includeLayers": true}), "{method}");
+        assert_eq!(frame["method"], method);
+        assert_eq!(frame["params"]["config"]["projects"], json!({key(&project): {"trust_level": "untrusted"}}), "{method}: the root, nearest .git");
+    }
+    let row = thread_row(&host, "thread");
+    assert_eq!(row["level"]["projectTrust"]["case"], "not-used");
+    assert_eq!(row["level"]["projectTrust"]["lines"], json!([cl::TRUST_NOT_USED]));
+    wire.close(&host);
+    std::fs::remove_dir_all(&base).unwrap();
+}
+
+#[test]
+fn a_trusted_mark_is_honoured_under_either_spelling_and_sent_under_the_one_codex_looks_up_first() {
+    let (base, project, alias, _) = git_project("trust-marked");
+    // Working through the link: Codex looks up the canonical spelling first, then the one as given.
+    let cwd = alias.join("sub");
+    for marked in [key(&project), key(&alias)] {
+        let host = trusting_host(&base, &cwd, "edits");
+        let projects = json!({marked.clone(): {"trust_level": "trusted"}});
+        let wire = Responder::attach(&host, move |_| layers_with(projects.clone()));
+        send(&host, "thread/resume", json!({"threadId": "thread", "excludeTurns": true})).unwrap();
+        let (_, frame) = wire.next_sent();
+        assert_eq!(frame["params"]["config"]["projects"], json!({key(&project): {"trust_level": "trusted"}}), "marked under {marked}");
+        let trust = thread_row(&host, "thread")["level"]["projectTrust"].clone();
+        assert_eq!(trust["case"], "trusted");
+        assert_eq!(trust["matchedKey"], json!(marked));
+        let line = trust["lines"][0].as_str().unwrap();
+        assert!(line.starts_with(cl::TRUST_TRUSTED_PREFIX) && line.ends_with(cl::TRUST_TRUSTED_SUFFIX) && line.contains(trust["readAt"].as_str().unwrap()), "{line}");
+        wire.close(&host);
+    }
+    std::fs::remove_dir_all(&base).unwrap();
+}
+
+#[test]
+fn an_untrusted_mark_is_preserved_and_a_failed_or_limited_reading_sends_untrusted() {
+    let (base, project, _, _) = git_project("trust-other");
+    let cwd = project.clone();
+    let cases: [(&str, Value, &str); 4] = [
+        ("marked untrusted", layers_with(json!({key(&project): {"trust_level": "untrusted"}})), "marked-untrusted"),
+        ("an error reply", json!({"error": {"code": -32603, "message": "invented, may quote configuration"}}), "not-read"),
+        ("no layers", json!({"result": {"config": {}, "origins": {}, "layers": null}}), "not-read"),
+        ("a reply of another shape", json!({"result": {"invented": true}}), "not-read"),
+    ];
+    for (what, answer, case) in cases {
+        let host = trusting_host(&base, &cwd, "edits");
+        let wire = Responder::attach(&host, move |_| answer.clone());
+        send(&host, "thread/resume", json!({"threadId": "thread", "excludeTurns": true})).unwrap();
+        let (_, frame) = wire.next_sent();
+        assert_eq!(frame["params"]["config"]["projects"], json!({key(&project): {"trust_level": "untrusted"}}), "{what}");
+        let trust = thread_row(&host, "thread")["level"]["projectTrust"].clone();
+        assert_eq!(trust["case"], case, "{what}");
+        match case {
+            "marked-untrusted" => assert_eq!(trust["lines"], json!([cl::TRUST_MARKED_UNTRUSTED, cl::TRUST_NOT_USED])),
+            _ => {
+                assert_eq!(trust["lines"], json!([cl::TRUST_NOT_READ, cl::TRUST_NOT_USED]), "{what}");
+                assert!(!trust.to_string().contains("may quote configuration"), "{what}: a native message is not passed on");
+            }
+        }
+        wire.close(&host);
+    }
+    std::fs::remove_dir_all(&base).unwrap();
+}
+
+#[test]
+fn a_reading_that_is_no_longer_current_is_never_trusted() {
+    let host = ready_with_ledger(&root("trust-stale"), "/invented");
+    let mut reading = cl::TrustReading::not_read(PathBuf::from("/invented"), cl::TRUST_READ_FAILED, None);
+    reading.case = cl::TrustCase::Trusted { key: "/invented".into() };
+    let i = host.inner.0.lock().unwrap();
+    reading.generation = Some(json!({"generation": i.generation, "configWrites": i.level.config_writes}));
+    assert_eq!(Host::trust_current(&i, reading.clone()).trust_level(), "trusted");
+    let mut written = reading.clone();
+    written.generation = Some(json!({"generation": i.generation, "configWrites": i.level.config_writes + 1}));
+    assert_eq!(Host::trust_current(&i, written).trust_level(), "untrusted", "a configuration write since");
+    let mut other = reading;
+    other.generation = Some(json!({"generation": {"invented": 1}, "configWrites": i.level.config_writes}));
+    assert_eq!(Host::trust_current(&i, other).trust_level(), "untrusted", "another generation");
+}
+
+/// The trust reading leaves the newest configuration proof as it was: a provider reading admitted before it is
+/// still current after it.
+#[test]
+fn the_trust_reading_does_not_supersede_an_earlier_configuration_proof() {
+    let base = root("trust-proof");
+    let host = trusting_host(&base, Path::new("/invented"), "full");
+    let wire = Responder::attach(&host, |_| layers_with(json!({})));
+    let proof = host.request_reading("config/read", json!({"cwd": "/invented", "includeLayers": false}), json!({"kind":"person-directed"}), &g(&host), true,
+        std::time::Instant::now() + Duration::from_secs(5)).unwrap();
+    host.wait_source_response(&proof, Duration::from_secs(5)).unwrap();
+    assert_eq!(host.reading_current_for_test().as_deref(), Some(proof.request_ref()));
+    send(&host, "thread/resume", json!({"threadId": "thread", "excludeTurns": true})).unwrap();
+    let (reads, _) = wire.next_sent();
+    assert_eq!(reads.len(), 2, "the proof's reading, then the trust reading");
+    assert_eq!(host.reading_current_for_test().as_deref(), Some(proof.request_ref()), "still the newest proof");
+    wire.close(&host);
+    std::fs::remove_dir_all(&base).unwrap();
+}
+
+// ---- B1: frame post-conditions ----
+
+/// Start, resume and fork carry exactly these configuration keys: the level's workspace options (edits levels
+/// only), and `projects` with one entry; never `bypass_hook_trust` or `hooks.state`; and no frame is a remote
+/// control request.
+#[test]
+fn start_resume_and_fork_carry_exactly_the_expected_configuration_keys() {
+    for id in ["supervised", "edits", "edits-network", "edits-no-asking", "full"] {
+        let base = root("post");
+        let host = trusting_host(&base, Path::new("/invented"), id);
+        let wire = Responder::attach(&host, |_| layers_with(json!({})));
+        for (method, params) in [("thread/start", json!({"cwd": "/invented"})), ("thread/resume", json!({"threadId": "thread", "excludeTurns": true})),
+                                 ("thread/fork", json!({"threadId": "thread", "deferGoalContinuation": true}))] {
+            send(&host, method, params).unwrap();
+            let (reads, frame) = wire.next_sent();
+            let config = frame["params"]["config"].as_object().unwrap();
+            let mut keys: Vec<&str> = config.keys().map(String::as_str).collect();
+            keys.sort();
+            let want: Vec<&str> = if cl::level(id).unwrap().workspace_write.is_some() { vec!["projects", "sandbox_workspace_write"] } else { vec!["projects"] };
+            assert_eq!(keys, want, "{id} {method}");
+            assert_eq!(config["projects"].as_object().unwrap().len(), 1, "{id} {method}");
+            for never in cl::NEVER_SENT_CONFIG { assert!(!config.contains_key(never), "{id} {method}: {never}"); }
+            assert!(config.get("hooks").is_none(), "{id} {method}");
+            for f in reads.iter().chain([&frame]) { assert!(!f["method"].as_str().unwrap().starts_with("remoteControl/"), "{f}"); }
+        }
+        assert!(host.client_requests().iter().all(|r| !r["method"].as_str().unwrap_or_default().starts_with("remoteControl/")));
+        wire.close(&host);
+        std::fs::remove_dir_all(&base).unwrap();
+    }
+    // The post-condition itself refuses a second entry, a forbidden key, and an entry on a turn.
+    let ok = json!({"config": {"projects": {"/p": {"trust_level": "untrusted"}}}});
+    assert!(cl::config_post_condition(&ok, Method::ThreadStart).is_ok());
+    for (bad, method) in [
+        (json!({"config": {"projects": {"/p": {"trust_level": "untrusted"}, "/q": {"trust_level": "untrusted"}}}}), Method::ThreadStart),
+        (json!({"config": {"projects": {}}}), Method::ThreadResume),
+        (json!({}), Method::ThreadFork),
+        (json!({"config": {"projects": {"/p": {"trust_level": "trusted", "extra": 1}}}}), Method::ThreadStart),
+        (json!({"config": {"projects": {"/p": {"trust_level": "untrusted"}}, "bypass_hook_trust": true}}), Method::ThreadStart),
+        (json!({"config": {"projects": {"/p": {"trust_level": "untrusted"}}, "hooks.state": {}}}), Method::ThreadStart),
+        (json!({"config": {"projects": {"/p": {"trust_level": "untrusted"}}, "hooks": {"state": {}}}}), Method::ThreadStart),
+        (json!({"config": {"projects": {"/p": {"trust_level": "untrusted"}}}}), Method::TurnStart),
+    ] {
+        assert!(cl::config_post_condition(&bad, method).is_err(), "{bad}");
+    }
+    // A frame changed after the merge to carry a second entry is refused before anything is written.
+    let base = root("post-tamper");
+    let host = trusting_host(&base, Path::new("/invented"), "full");
+    let wire = Responder::attach(&host, |_| layers_with(json!({})));
+    *host.after_level_merge.lock().unwrap() = Some(Box::new(|p: &mut Value| { p["config"]["projects"]["/second"] = json!({"trust_level": "untrusted"}); }));
+    assert!(send(&host, "thread/start", json!({"cwd": "/invented"})).is_err());
+    *host.after_level_merge.lock().unwrap() = Some(Box::new(|p: &mut Value| { p["config"]["bypass_hook_trust"] = json!(true); }));
+    assert!(send(&host, "thread/start", json!({"cwd": "/invented"})).is_err());
     wire.close(&host);
     std::fs::remove_dir_all(&base).unwrap();
 }
