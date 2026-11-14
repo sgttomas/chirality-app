@@ -94,3 +94,34 @@ fn a_declaration_whose_bytes_differ_or_are_gone_is_not_used_and_nothing_is_infer
         assert_eq!(entry["lifecycle"]["records"].as_array().unwrap().len(), rs_for(&peer, &a).len());
     }
 }
+
+#[test]
+fn a_run_whose_log_cannot_be_read_whole_carries_that_limit_so_its_dispositions_read_not_known() {
+    // Permitted: the whole log read, no limit on the run.
+    let (peer, a) = reopened_after_an_arrival();
+    let whole = reopened_entry(&peer, &a);
+    assert!(whole["limits"].as_array().unwrap().iter().all(|l| !l.as_str().unwrap().contains("torn")), "{}", whole["limits"]);
+    assert_eq!(whole["state"], "open; interrupted (no run_ended recorded)");
+    // The same run with its log's last line cut short, read through the real reader: the run
+    // carries the read limit and its state is unknown, so nothing it shows reads as established.
+    let mut logs = vec![crate::storage::project_file(&peer.fixture.root, "runs").unwrap()];
+    let mut cut = 0;
+    while let Some(dir) = logs.pop() {
+        for entry in std::fs::read_dir(&dir).unwrap().flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                logs.push(path);
+            } else if path.extension().is_some_and(|e| e == "jsonl") && std::fs::read_to_string(&path).unwrap().contains(a.as_str()) {
+                use std::io::Write;
+                std::fs::OpenOptions::new().append(true).open(&path).unwrap().write_all(b"{\"kind\":\"disposition_change\"").unwrap();
+                cut += 1;
+            }
+        }
+    }
+    assert!(cut > 0, "the run's own log was found");
+    let torn = reopened_entry(&peer, &a);
+    assert!(!torn["limits"].as_array().unwrap().is_empty(), "the read limit is on the run: {torn}");
+    assert_eq!(torn["state"], "unknown", "{torn}");
+    let shown = torn["lifecycle"]["records"].as_array().unwrap();
+    assert_eq!(shown.len(), whole["lifecycle"]["records"].as_array().unwrap().len(), "the cut line is never shown as a record");
+}
