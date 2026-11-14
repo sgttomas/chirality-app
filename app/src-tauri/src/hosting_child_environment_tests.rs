@@ -10,12 +10,14 @@ use std::os::unix::fs::PermissionsExt;
 /// from the host's table: each name with the class code the record gives it.
 /// Every expectation below comes from these lists; the host's table is compared
 /// with them once, in `the_hosts_table_is_the_decided_list`.
-pub(super) const DECIDED: [(&str, &str); 25] = [
+pub(super) const DECIDED: [(&str, &str); 30] = [
     ("OPENAI_API_KEY", "credential-custody/credential-variable"),
     ("CODEX_API_KEY", "credential-custody/credential-variable"),
     ("CODEX_ACCESS_TOKEN", "credential-custody/credential-variable"),
     ("OPENAI_ORG_ID", "credential-custody/credential-variable"),
     ("OPENAI_PROJECT_ID", "credential-custody/credential-variable"),
+    ("OPENAI_ORGANIZATION", "credential-custody/credential-variable"),
+    ("OPENAI_PROJECT", "credential-custody/credential-variable"),
     ("AZURE_OPENAI_API_KEY", "credential-custody/credential-variable"),
     ("ANTHROPIC_API_KEY", "credential-custody/credential-variable"),
     ("ANTHROPIC_AUTH_TOKEN", "credential-custody/credential-variable"),
@@ -24,6 +26,7 @@ pub(super) const DECIDED: [(&str, &str); 25] = [
     ("CODEX_GITHUB_PERSONAL_ACCESS_TOKEN", "credential-custody/credential-bearing"),
     ("CODEX_GUARDIAN_DECISIONS_API_KEY", "credential-custody/credential-bearing"),
     ("CODEX_EXEC_SERVER_NOISE_AUTH_TOKEN", "credential-custody/credential-bearing"),
+    ("OPENAI_IDENTITY_TOKEN_FILE", "credential-custody/credential-bearing"),
     ("CODEX_APP_SERVER_LOGIN_ISSUER", "credential-custody/sign-in-or-token-refresh"),
     ("CODEX_APP_SERVER_LOGIN_CLIENT_ID", "credential-custody/sign-in-or-token-refresh"),
     ("CODEX_AUTHAPI_BASE_URL", "credential-custody/sign-in-or-token-refresh"),
@@ -32,20 +35,24 @@ pub(super) const DECIDED: [(&str, &str); 25] = [
     ("CODEX_AGENT_IDENTITY_AUTHAPI_BASE_URL", "credential-custody/sign-in-or-token-refresh"),
     ("CODEX_AGENT_IDENTITY_JWKS_BASE_URL", "credential-custody/sign-in-or-token-refresh"),
     ("CODEX_APP_SERVER_CHATGPT_BASE_URL", "credential-custody/sign-in-or-token-refresh"),
+    ("OPENAI_FEDERATION_RULE_ID", "credential-custody/sign-in-or-token-refresh"),
+    ("OPENAI_WORKLOAD_IDENTITY_CONTEXT", "credential-custody/sign-in-or-token-refresh"),
     ("CODEX_SQLITE_HOME", "home-separation"),
     ("CODEX_ROLLOUT_TRACE_ROOT", "home-separation"),
     ("CODEX_PLUGIN_METRICS_OUTPUT", "home-separation"),
     ("CODEX_TUI_SESSION_LOG_PATH", "home-separation"),
 ];
-/// The names whose values a configuration record treats as secret: the eight
+/// The names whose values a configuration record treats as secret: the ten
 /// credential variables (the class is well-known provider credential names,
-/// finite and by name) and the five credential-bearing names.
-const DECIDED_SECRET: [&str; 13] = [
+/// finite and by name) and the six credential-bearing names.
+const DECIDED_SECRET: [&str; 16] = [
     "OPENAI_API_KEY",
     "CODEX_API_KEY",
     "CODEX_ACCESS_TOKEN",
     "OPENAI_ORG_ID",
     "OPENAI_PROJECT_ID",
+    "OPENAI_ORGANIZATION",
+    "OPENAI_PROJECT",
     "AZURE_OPENAI_API_KEY",
     "ANTHROPIC_API_KEY",
     "ANTHROPIC_AUTH_TOKEN",
@@ -54,6 +61,7 @@ const DECIDED_SECRET: [&str; 13] = [
     "CODEX_GITHUB_PERSONAL_ACCESS_TOKEN",
     "CODEX_GUARDIAN_DECISIONS_API_KEY",
     "CODEX_EXEC_SERVER_NOISE_AUTH_TOKEN",
+    "OPENAI_IDENTITY_TOKEN_FILE",
 ];
 /// Neither set nor removed; only its presence is recorded.
 const PRESENCE_ONLY: &str = "CODEX_INTERNAL_APP_SERVER_REMOTE_CONTROL_DISABLED";
