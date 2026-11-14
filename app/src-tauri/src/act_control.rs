@@ -542,7 +542,7 @@ pub(crate) mod native_statement {
     /// answered: what is under way, that the App cannot ask Codex to stop it
     /// yet, and what the act will do to it.
     pub(crate) fn unanswered_starts_sentence(doing: &str) -> String {
-        format!("A turn start has been sent, or is being sent, to Codex. The App has not yet associated this start with a turn it can interrupt, so it cannot ask Codex to stop it; it may be one of the turns listed. {doing} stops Codex wherever that turn has got to: it may not have begun, or may have done part of its work, and its outcome may remain unknown. It is not reported as interrupted.")
+        format!("A turn start has been sent, or is being sent, to Codex. The App has not yet associated this start with a turn it can interrupt; it may be one of the turns listed. If it is, that turn is interrupted with the others. If not, {doing} stops Codex wherever it has got to: it may not have begun, or may have done part of its work, and its outcome may remain unknown.")
     }
     /// Labels of the App quit question (K-4; DEL-01-04 §5.2), in the same
     /// default-safe layout as Stop Codex: Return keeps the App running.

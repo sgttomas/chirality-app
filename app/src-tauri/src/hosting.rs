@@ -2960,7 +2960,7 @@ impl Host {
         match write_result {
             Ok(())=> {i.source_requests.get_mut(&key).unwrap().written=true;record["writeResult"]=json!("written");record["outcome"]=json!(if closed{"unknown-no-response"}else{"pending"});
                 match Self::completed_client_response(&mut record,response.as_ref(),response_position,native_settlement){Ok(())=>i.client_requests[idx]=catalog_record(record),Err(error)=>i.source_requests.get_mut(&key).unwrap().source_limit=Some(error)}
-                if !closed&&method=="turn/start"&&response.is_some(){if let Some((source_gen,thread,sent_after_receipt))=i.turn_request_threads.remove(&key){if source_gen==i.generation{if let Some(turn)=response.as_ref().and_then(|r|r.get("result")).and_then(|r|r.get("turn")){let position=response_position.unwrap_or(i.receipt_position);Self::remember_turn(&mut i,&source_gen,&thread,turn,"turn/start response",position);Self::note_turn_request(&mut i,&key,&source_gen,&thread,&turn["id"]);if let Some(e)=i.conversation_turns.iter_mut().find(|e|e["generation"]==source_gen&&e["threadId"]==thread&&e["turnId"]==turn["id"]&&e["source"]=="turn/start response"&&e["receiptPosition"]==position){e["startResponseIssuedAfterReceipt"]=json!(sent_after_receipt);}}}}}
+                if !closed&&method=="turn/start"&&response.as_ref().is_some_and(Self::start_reply_resolves){if let Some((source_gen,thread,sent_after_receipt))=i.turn_request_threads.remove(&key){if source_gen==i.generation{if let Some(turn)=response.as_ref().and_then(|r|r.get("result")).and_then(|r|r.get("turn")){let position=response_position.unwrap_or(i.receipt_position);Self::remember_turn(&mut i,&source_gen,&thread,turn,"turn/start response",position);Self::note_turn_request(&mut i,&key,&source_gen,&thread,&turn["id"]);if let Some(e)=i.conversation_turns.iter_mut().find(|e|e["generation"]==source_gen&&e["threadId"]==thread&&e["turnId"]==turn["id"]&&e["source"]=="turn/start response"&&e["receiptPosition"]==position){e["startResponseIssuedAfterReceipt"]=json!(sent_after_receipt);}}}}}
             }
             Err(error)=> {i.pending.remove(&key);i.turn_request_threads.remove(&key);let e=i.source_requests.get_mut(&key).unwrap();
                 if e.attempt_position.is_none(){e.source_limit=Some(format!("No actual write attempt: reserved source invalidated/refused before pipe commit: {error}; native reply facts retained if present"));}
@@ -4836,6 +4836,14 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         Ok(response)
     }
 
+    /// Whether Codex's reply to a `turn/start` resolves that start: a result
+    /// naming a valid turn ties it to that turn, and an error object refuses
+    /// it. Anything else (a result with no usable turn, or a reply with
+    /// neither) leaves it unresolved, and so counted as live work.
+    fn start_reply_resolves(reply: &Value) -> bool {
+        reply.get("error").is_some_and(Value::is_object)
+            || reply.get("result").and_then(|r| r.get("turn")).is_some_and(Self::native_turn_shape)
+    }
     fn native_turn_shape(turn: &Value) -> bool {
         turn["id"].as_str().map(|s| !s.is_empty()).unwrap_or(false)
             && turn["items"].is_array()
@@ -5250,7 +5258,9 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                     let mut record=i.client_requests[idx].clone();
                     match Self::completed_client_response(&mut record,Some(&frame),Some(pos),native_settlement){Ok(())=>i.client_requests[idx]=catalog_record(record),Err(error)=>if let Some(e)=i.source_requests.get_mut(&key){e.source_limit=Some(error)}}
                 }
-                if !deferred&&i.client_requests[idx]["method"] == "turn/start" {
+                // A start leaves the table of unresolved starts only when its
+                // reply ties it to a valid turn or refuses it.
+                if !deferred&&i.client_requests[idx]["method"] == "turn/start" && Self::start_reply_resolves(&frame) {
                     if let Some((source_gen, thread, sent_after_receipt)) = i.turn_request_threads.remove(&key) {
                         if source_gen == gen {
                             if let Some(turn) = frame.get("result").and_then(|r| r.get("turn")) {

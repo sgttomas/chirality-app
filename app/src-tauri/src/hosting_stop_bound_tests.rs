@@ -46,6 +46,7 @@ def handle(f):
   t={'id':'thread' if starts[0]==1 else 'thread-%d'%starts[0],'cliVersion':'0.167.0','createdAt':1,'updatedAt':2,'cwd':os.getcwd(),'ephemeral':False,'modelProvider':'fixture-provider','preview':'stop fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[]}
   result={'thread':t,'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}
  elif m=='turn/steer': result={'turnId':f['params']['expectedTurnId']}
+ elif m=='account/logout': result={}
  elif m=='turn/interrupt':
   emit({'id':f['id'],'result':{}})
   emit({'method':'turn/completed','params':{'threadId':f['params']['threadId'],'turn':{'id':f['params']['turnId'],'status':'interrupted','items':[],'error':None,'itemsView':'summary'}}})
@@ -803,7 +804,7 @@ mod a_turn_start_not_yet_answered {
 
     /// The sentence the person reads at a quit, written here independently of
     /// the code that forms it.
-    const QUITTING: &str = "A turn start has been sent, or is being sent, to Codex. The App has not yet associated this start with a turn it can interrupt, so it cannot ask Codex to stop it; it may be one of the turns listed. Quitting stops Codex wherever that turn has got to: it may not have begun, or may have done part of its work, and its outcome may remain unknown. It is not reported as interrupted.";
+    const QUITTING: &str = "A turn start has been sent, or is being sent, to Codex. The App has not yet associated this start with a turn it can interrupt; it may be one of the turns listed. If it is, that turn is interrupted with the others. If not, Quitting stops Codex wherever it has got to: it may not have begun, or may have done part of its work, and its outcome may remain unknown.";
 
     /// A turn/start of `text` sent on its own thread through the Host's own
     /// request path (the stand-in never answers it); waits until the Host
@@ -888,10 +889,13 @@ mod a_turn_start_not_yet_answered {
             (live(v).len() + unresolved, starts(v).len())
         }).collect()
     }
-    fn counted(view: &Value, write: &str) {
+    /// One start counted on the thread, and no turn; the row carries no write
+    /// state (round 2: not a change the person decides on).
+    fn counted(view: &Value) {
         let starts = starts(view);
         assert_eq!(starts.len(), 1, "{view}");
-        assert_eq!((starts[0]["threadId"].as_str(), starts[0]["write"].as_str()), (Some("thread"), Some(write)), "{view}");
+        assert_eq!(starts[0]["threadId"].as_str(), Some("thread"), "{view}");
+        assert!(starts[0].get("write").is_none(), "{view}");
         assert!(live(view).is_empty(), "no turn identity, so not a live turn that can be interrupted: {view}");
     }
     fn named(text: &str, sentence: Option<String>) {
@@ -906,9 +910,9 @@ mod a_turn_start_not_yet_answered {
         let mut f = Fixture::new();
         send_turn_start(&mut f, "hello".into(), "written");
         let (quit, stop, logout) = (quit_asks(&f).unwrap(), stop_asks(&f), logout_asks(&f));
-        for view in [&quit, &stop, &logout] { counted(view, "written"); }
+        for view in [&quit, &stop, &logout] { counted(view); }
         named(&quit_statement(&quit).unwrap().text, Some(QUITTING.into()));
-        named(&codex_stop_statement(&stop).unwrap().text, Some(QUITTING.replace("Quitting stops", "Stopping Codex stops")));
+        named(&codex_stop_statement(&stop).unwrap().text, Some(QUITTING.replace("If not, Quitting stops", "If not, Stopping Codex stops")));
         named(&logout_statement(&logout).unwrap().text, None);
     }
 
@@ -918,7 +922,7 @@ mod a_turn_start_not_yet_answered {
         f.stop_reading();
         send_turn_start(&mut f, "x".repeat(4 << 20), "in-progress");
         let (quit, stop, logout) = (quit_asks(&f).unwrap(), stop_asks(&f), logout_asks(&f));
-        for view in [&quit, &stop, &logout] { counted(view, "in-progress"); }
+        for view in [&quit, &stop, &logout] { counted(view); }
         named(&quit_statement(&quit).unwrap().text, Some(QUITTING.into()));
     }
 
@@ -952,7 +956,7 @@ mod a_turn_start_not_yet_answered {
         drop(quit);
         assert!(matches!(decision, Decision::Cancelled(_)), "{decision:?}");
         assert_eq!(asked.len(), 2, "asked again once the start became a turn: {asked:?}");
-        counted(&asked[0], "written");
+        counted(&asked[0]);
         assert_eq!(asked[1]["changedWhileAsking"], true);
         assert!(starts(&asked[1]).is_empty(), "not counted a second time: {}", asked[1]);
         let turns = live(&asked[1]);
@@ -1029,6 +1033,71 @@ mod a_turn_start_not_yet_answered {
         assert_eq!(asked, 1, "asked once");
         assert!(stopped.is_ok(), "the confirmed stop goes on: {stopped:?}");
         assert_eq!(f.host().snapshot()["state"], "stopped");
+    }
+
+    /// Round 2, finding 1: a start leaves the list only when its reply ties
+    /// it to a valid turn or refuses it with an error. A result with no usable
+    /// turn, or a reply with neither, leaves it counted.
+    #[test]
+    fn only_a_valid_turn_or_an_error_resolves_a_start() {
+        for (reply, resolved) in [
+            (json!({"result":{"turn":{"id":"turn-x"}}}), false),
+            (json!({"result":{}}), false),
+            (json!({}), false),
+            (json!({"error":"not an error object"}), false),
+            (json!({"error":{"code":-32600,"message":"invented refusal"}}), true),
+        ] {
+            let mut f = Fixture::new();
+            let request = send_turn_start(&mut f, "hello".into(), "written");
+            let mut frame = reply.clone();
+            frame["id"] = request.clone();
+            emit(&f, &frame);
+            // A frame with neither a result nor an error object may not be
+            // taken as a reply at all; then the start is waiting as before.
+            let taken = || !f.host().inner.0.lock().unwrap().pending.contains_key(&request.to_string());
+            if resolved { until("the reply was not received", taken); } else {
+                let deadline = Instant::now() + Duration::from_millis(500);
+                while !taken() && Instant::now() < deadline { std::thread::sleep(Duration::from_millis(5)); }
+            }
+            if resolved {
+                assert!(quit_asks(&f).is_none(), "Codex refused the start: nothing is live ({reply})");
+            } else {
+                assert_eq!(counts(&f), [(0, 1); 3], "still counted after {reply}");
+            }
+        }
+    }
+
+    /// Round 2, finding 2: the sentence is true whether the start is one of
+    /// the listed turns, is not, or there is no turn at all.
+    #[test]
+    fn the_sentence_holds_in_each_state() {
+        let sentence = |f: &Fixture| quit_statement(&quit_asks(f).unwrap()).unwrap().text;
+        // No turn at all.
+        let mut f = Fixture::new();
+        send_turn_start(&mut f, "hello".into(), "written");
+        assert!(sentence(&f).contains(QUITTING));
+        // The start is one of the listed turns: Codex named it before replying.
+        let mut f = Fixture::new();
+        send_turn_start(&mut f, "hello".into(), "written");
+        f.live_turn("thread", "turn-1");
+        assert!(sentence(&f).contains(QUITTING));
+        // It is not: the listed turn is an older one.
+        let mut f = Fixture::new();
+        f.live_turn("thread", "older-turn");
+        send_turn_start(&mut f, "hello".into(), "written");
+        assert!(sentence(&f).contains(QUITTING));
+    }
+
+    /// Round 2: logout goes on when the person confirms past an unresolved start.
+    #[test]
+    fn a_confirmed_logout_goes_ahead_past_an_unresolved_start() {
+        let mut f = Fixture::new();
+        send_turn_start(&mut f, "hello".into(), "written");
+        let mut asked = 0;
+        let result = crate::runtime_session::logout_native_home(&f.home, None, &f.generation, |view| { counted(view); asked += 1; true }).unwrap();
+        assert_eq!(asked, 1);
+        assert_ne!(result["state"], "native confirmation cancelled; no logout request", "{result}");
+        assert!(!result.to_string().contains("changed during native confirmation"), "{result}");
     }
 
     /// Round 1, finding 4: once the generation is closed, none of its starts is listed.
