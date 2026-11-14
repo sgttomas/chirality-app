@@ -419,7 +419,7 @@ fn lock_intent(intent: &Intent) -> Result<Guards, String> {
 /// stable admission. This is write-only: detached identities retain read/admin
 /// access and may be explicitly adopted at a different root later.
 pub(crate) fn check_write_binding(dir: &Path) -> Result<(), String> {
-    if owns(dir) {
+    if owns(dir) || registration_owns(dir) {
         return Ok(());
     }
     let store = dir
@@ -430,7 +430,7 @@ pub(crate) fn check_write_binding(dir: &Path) -> Result<(), String> {
     // its complete lines is written through (records_store::REGISTRY_TORN).
     require_roots_whole(store)?;
     let Some(root) = root_for_dir(dir) else {
-        return Ok(());
+        return Err("not known which project this folder belongs to in this process; nothing written".into());
     };
     let here = listed(
         &roots(store)?,

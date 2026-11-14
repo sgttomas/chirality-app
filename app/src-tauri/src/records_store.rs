@@ -1497,6 +1497,40 @@ pub(crate) fn require_attached(root: &Path, bound: &Path) -> Result<(), String> 
     }
 }
 
+// Only the synchronous registering call on this thread can use this mark.
+// The held descriptor prevents inode reuse; a substituted folder is refused.
+thread_local! { static REGISTRATION: std::cell::RefCell<Option<BoundFolder>> = const { std::cell::RefCell::new(None) }; }
+struct Registration(std::marker::PhantomData<std::rc::Rc<()>>);
+impl Registration {
+    fn enter(dir: &Path) -> Result<Self, String> {
+        if REGISTRATION.with(|r| r.borrow().is_some()) {
+            return Err("nested project registration refused".into());
+        }
+        // Registration creates its one payload folder before it can bind it.
+        // The caller holds the store lock and has checked retention. No
+        // association is remembered until its identity and roots line exist.
+        let parent = dir.parent().ok_or("registration folder has no parent")?;
+        crate::storage::ensure_directory(parent)?;
+        crate::storage::check_path(dir)?;
+        match std::fs::create_dir(dir) {
+            Ok(()) => crate::storage::sync_dir(parent)?,
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {}
+            Err(e) => return Err(format!("registration folder unavailable: {e}")),
+        }
+        let (node, open) = hold_folder(dir, "the registering project's records folder")?;
+        REGISTRATION.with(|r| *r.borrow_mut() = Some(BoundFolder { path: dir.to_path_buf(), node, _open: open }));
+        Ok(Self(std::marker::PhantomData))
+    }
+}
+impl Drop for Registration {
+    fn drop(&mut self) { REGISTRATION.with(|r| *r.borrow_mut() = None); }
+}
+fn registration_owns(dir: &Path) -> bool {
+    REGISTRATION.with(|r| r.borrow().as_ref().is_some_and(|bound| {
+        bound.path == dir && node(dir).is_ok_and(|now| now == bound.node)
+    }))
+}
+
 /// The store's identity record for `project` (once) and a roots line.
 fn register(store: &Path, project: &str, root: &str, how: &str) -> Result<(), String> {
     // Whatever the caller checked: no line is ever appended after an
@@ -1509,10 +1543,15 @@ fn register(store: &Path, project: &str, root: &str, how: &str) -> Result<(), St
         // The witness of legacy imports begins before any project is created
         // after it, so such a project is known to have been created after it.
         witness::begin(store)?;
+        let _registration = Registration::enter(&dir)?;
+        #[cfg(test)]
+        if let Some(hook) = REGISTER_BEFORE_PUBLICATION.with(|h| h.borrow_mut().take()) { hook(&dir); }
         crate::storage::create_json(&record, &json!({"format":PROJECT_FORMAT,"formatVersion":VERSION,"projectId":project,"createdAt":now_rfc3339(),"how":how}))?;
     }
     append_line(&store.join("roots.jsonl"), &json!({"format":ROOT_FORMAT,"formatVersion":VERSION,"projectId":project,"root":root,"at":now_rfc3339(),"how":how}))
 }
+#[cfg(test)]
+thread_local! { static REGISTER_BEFORE_PUBLICATION: std::cell::RefCell<Option<Box<dyn FnOnce(&Path)>>> = const { std::cell::RefCell::new(None) }; }
 
 /// The project's imports as recorded: each import writes a "started" line
 /// with its whole census before it copies anything, and a "completed" line
