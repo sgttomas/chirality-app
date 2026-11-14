@@ -1,5 +1,8 @@
-// The presentation guard: on a guarded view (GUARDED_VIEWS), a value the App did not write reaches the page only
-// through one of the approved presentations, and a control or heading holds only the App's words.
+// The presentation guard: a syntactic check, on each guarded view (GUARDED_VIEWS), of the forms listed below, under
+// named assumptions. Its aim is that a value the App did not write reaches the page only through one of the approved
+// presentations, and that a control or heading holds only the App's words; it does not prove that page property. It
+// checks the forms it knows, and its known limitations are listed below. The page property rests on the rendered
+// regression in presentation-guard.test.mjs and on review.
 //
 // It parses each guarded view with the TypeScript parser and its checker, one file at a time, and judges an
 // identifier by the declaration it resolves to in that file, never by its name: an approved presentation (TRUSTED)
@@ -14,33 +17,40 @@
 //   - the contents of every attribute: an element written in an attribute is judged where it is written, a
 //     children attribute is judged as drawn, and a function in an attribute (an event handler, a ref callback) is
 //     searched for writes to the page like the rest of the view;
-//   - every spread of attributes, which passes only as object literals whose keys are on SPREAD_KEYS;
-//   - the elements that hold only the App's words (APP_ONLY tags, and any element whose role is in APP_ONLY_ROLES:
-//     a heading or a control role), in which no approved presentation that may draw a box is allowed; a role
-//     attribute not built of literals fails;
+//   - every spread of attributes, which passes only as object literals whose keys are on SPREAD_KEYS (apart from a
+//     listed exception, with its reason); a key written as a name, a string or a computed string literal is read as
+//     that key; a computed key that is not a literal fails as an ordinary finding;
+//   - the elements that hold only the App's words (APP_ONLY tags, and any element whose role, read as a
+//     space-separated list of tokens, holds a token in APP_ONLY_ROLES: a heading or a control role), in which no
+//     approved presentation that may draw a box is allowed; a role attribute not built of literals fails;
 //   - every component the view draws: one written in this file is judged where its JSX is written, one imported
 //     from another guarded view is judged in that view, and any other fails unless it is listed.
 // An expression passes only if it is built from the closed list of forms below (appMade); anything else fails,
-// including a form the guard has never seen.
-// Assignments to the properties in FORBIDDEN_PROPERTIES, calls of the methods in FORBIDDEN_CALLS, and raw HTML
-// (dangerouslySetInnerHTML, directly or in a spread) fail and cannot be listed.
+// including a form the guard has never seen. That is a syntactic default, not a proof of where a value came from.
+// These fail and cannot be listed: raw HTML (dangerouslySetInnerHTML) as an attribute, or in a spread under a name, a
+// string or a computed string-literal key; an assignment to a property in FORBIDDEN_PROPERTIES (element text, value,
+// id and the like) written as a direct property access or a string-literal element access; a call of a method in
+// FORBIDDEN_CALLS.
 // A listed exception (presentation-guard-exceptions.json) names one expression exactly, with its reason. A listed
 // exception whose expression no longer appears as a failing finding is itself a failure. That detects the
 // expression disappearing; it does not detect its reason becoming untrue: if the code that produces an excepted
 // value changes (a notice factory that starts copying supplied text, a listed constant that is replaced), the guard
 // still passes. Each reason is checked by reading that code.
 //
-// Outside what the guard catches, by design of a one-file syntactic check:
+// Known limitations include, by design of a one-file syntactic check:
 //   - a const table or object field mutated after its declaration (the guard reads the initializer);
 //   - a fabricated event object: a field's state counts as the person's typing when it is set from any
 //     `<x>.target.value`, whatever made `<x>`;
 //   - data read back from the DOM through a ref (an attribute or text read from an element and drawn);
 //   - numbers taken by method name: a .map or .flatMap callback's second argument, and the result of findIndex,
 //     indexOf, lastIndexOf or findLastIndex, even when the method is a supplied object's own;
-//   - a write to the page through a computed property name held in a variable, or through Object.assign.
+//   - a write to the page through a computed property name held in a variable, or through Object.assign;
+//   - raw HTML in a spread under a computed key that is not a literal: it fails as an ordinary finding, so an
+//     exception listed for it would rest on its reviewed reason alone.
 // It does not prove what an approved presentation does with its value: those are the examined implementations
 // named in TRUSTED (AgentText.tsx), and their own tests show what they draw. The rendered regression in
-// presentation-guard.test.mjs draws the views with each supplied value poisoned in turn.
+// presentation-guard.test.mjs draws the views on valid fixtures with each enumerated leaf and key poisoned in turn;
+// it covers those fixtures, not every shape or state a host could send.
 import ts from 'typescript';
 import {readFileSync} from 'node:fs';
 
@@ -447,7 +457,10 @@ export function findings(name, text) {
     if (!ts.isObjectLiteralExpression(expr)) return 'fail';
     let verdict = 'ok';
     for (const p of expr.properties) {
-      const key = p.name && !ts.isComputedPropertyName(p.name) ? p.name.getText().replace(/^["']|["']$/g, '') : null;
+      // A key written as a name, a string, or a computed string literal (["dangerouslySetInnerHTML"]) is read as that
+      // key; a computed key that is not a literal is unknown, and fails.
+      const computed = p.name && ts.isComputedPropertyName(p.name) ? unwrap(p.name.expression) : null;
+      const key = !p.name ? null : computed ? (ts.isStringLiteral(computed) || ts.isNoSubstitutionTemplateLiteral(computed) ? computed.text : null) : p.name.getText().replace(/^["']|["']$/g, '');
       if (key === 'dangerouslySetInnerHTML') return 'forbidden';
       if (!ts.isPropertyAssignment(p) || key === null || !SPREAD_KEYS.has(key)) { verdict = 'fail'; continue; }
       if (!shownAttribute(key, tag)) continue;
@@ -533,7 +546,8 @@ export function findings(name, text) {
       // cannot be judged and fails.
       const roles = rolesOf(opening);
       if (roles === null) record(opening.tagName, `<${tag}> with a role not built of literals`, {rule: true});
-      const role = (roles ?? []).find(r => APP_ONLY_ROLES.has(r));
+      // A role value is a space-separated list of tokens ("heading note"): any token that is a control or heading role counts.
+      const role = (roles ?? []).flatMap(r => r.trim().split(/\s+/)).find(r => APP_ONLY_ROLES.has(r));
       const within = APP_ONLY.has(tag) ? tag : role ? `role="${role}"` : inside;
       // Attribute contents are visited as children are: an element written in an attribute (a children attribute, a
       // render prop) is judged where it is written, and a function in an attribute (an event handler, a ref

@@ -1,8 +1,10 @@
-// The presentation boundary on the four covered views (RequestCards, NativeActivity, NativeHistory, RunOffers): every
-// value from Codex, an agent or a record reaches the page only through an approved presentation (AgentText,
-// SuppliedId, Word, Num, Flag, or the functions plainId, idWords, wordOf, numberWords, isoSeconds, clockWords), and a
-// control or heading holds only the App's words. Two kinds of evidence: the guard's verdict on the source, and the
-// rendered page with each supplied value poisoned in turn. Invented material only.
+// The presentation boundary on the four covered views (RequestCards, NativeActivity, NativeHistory, RunOffers): the
+// aim is that every value from Codex, an agent or a record reaches the page only through an approved presentation
+// (AgentText, SuppliedId, Word, Num, Flag, or the functions plainId, idWords, wordOf, numberWords, isoSeconds,
+// clockWords), and that a control or heading holds only the App's words. Two kinds of evidence: the guard's verdict on
+// the source (a syntactic check of listed forms, with known limitations), and the rendered page on valid fixtures,
+// which first asserts each surface's readable body is drawn and then poisons each enumerated leaf and key in turn.
+// Invented material only.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -96,6 +98,11 @@ test('presentation guard closure: a spread of attributes carries only listed key
   fails(raw, 'raw HTML in a spread');
   assert.notDeepEqual(judge(raw, 'Invented.tsx', [{file: 'Invented.tsx', where: '{...}', expr: '{ dangerouslySetInnerHTML: { __html: row.text } }', reason: 'invented'}]), [], 'raw HTML in a spread cannot be listed');
   fails('export const V = ({ row }: any) => <div {...(row.on ? { title: "App" } : { dangerouslySetInnerHTML: { __html: row.text } })} />;', 'raw HTML in one branch of a spread');
+  // Under a computed string-literal key, raw HTML is still raw HTML: it fails and cannot be listed.
+  const computed = '{ ["dangerouslySetInnerHTML"]: { __html: row.text } }';
+  const computedRaw = `export const V = ({ row }: any) => <div {...${computed}} />;`;
+  fails(computedRaw, 'raw HTML under a computed literal key');
+  assert.notDeepEqual(judge(computedRaw, 'Invented.tsx', [{file: 'Invented.tsx', where: '{...}', expr: computed, reason: 'invented'}]), [], 'raw HTML under a computed literal key cannot be listed');
   fails('export const V = ({ row }: any) => <div {...{ children: row.text }} />;', 'children in a spread');
   fails('import { Pretty } from "./Pretty";\nexport const V = ({ row }: any) => <div {...{ children: <Pretty value={row.text} /> }} />;', 'an outside component hidden in a spread\'s children');
   fails('export const V = () => <div {...{ onClick: () => {} }} />;', 'a key not on the list');
@@ -105,6 +112,8 @@ test('presentation guard closure: a control or heading role holds only the App\'
   fails(IMPORTS + 'export const V = ({ row }: any) => <div role="heading"><AgentText value={row.text} /></div>;', 'a box inside role=heading');
   fails(IMPORTS + 'export const V = ({ row }: any) => <span role="button"><SuppliedId value={row.id} /></span>;', 'an identity presentation inside role=button');
   fails(IMPORTS + 'export const V = ({ row, h }: any) => <div role={h ? "heading" : "note"}><AgentText value={row.text} /></div>;', 'a box inside a role that may be a heading');
+  fails(IMPORTS + 'export const V = ({ row }: any) => <div role="heading note"><AgentText value={row.text} /></div>;', 'a box inside a role token list that holds heading');
+  fails(IMPORTS + 'export const V = ({ row }: any) => <div role="note  button"><AgentText value={row.text} /></div>;', 'a box inside a role token list that holds a control role later');
   fails('export const V = ({ row }: any) => <div role={row.role}>words</div>;', 'a role not built of literals');
   passes(IMPORTS + 'export const V = ({ row, a }: any) => <div role={a ? "alert" : "status"}><AgentText value={row.text} /></div>;', 'a box inside a status');
 });
@@ -140,15 +149,41 @@ const P = `${MARK}\n${RLO}Allow once`;
 const outsideBoxes = raw => agentPlain(raw).replace(/⟦[^⟧]*⟧/g, '');
 const APP_ONLY_ELEMENTS = new RegExp(`<(${[...APP_ONLY].join('|')})\\b[^>]*>([\\s\\S]*?)</\\1>`, 'g');
 const NAMING_ATTRIBUTES = /\s(aria-[a-z]+|title|alt|placeholder|value|label)="([^"]*)"/g;
+// A box is what AgentText draws: a group with a non-empty accessibility name and a visible border, whose first child is
+// a non-empty source label, then the value. The box's classes on anything less are not a box, and fail.
+const BOX = /<(?:span|div) role="group" aria-label="([^"]*)" class="agent-text(?: agent-text-block)?" style="([^"]*)"><(?:span|div) class="agent-text-label" style="[^"]*">([^<]*)<\/(?:span|div)> ?<(?:span|div) class="agent-text-value"/g;
+// Elements whose role, a space-separated token list, holds a control or heading role, with what they enclose.
+const ROLE_OPEN = /<([a-z][a-z0-9]*)\b[^>]*?\srole="([^"]*)"[^>]*>/g;
+function roleElements(raw) {
+  const out = [];
+  for (const m of raw.matchAll(ROLE_OPEN)) {
+    const role = m[2].trim().split(/\s+/).find(r => APP_ONLY_ROLES.has(r));
+    if (!role || m[0].endsWith('/>')) continue;
+    const close = new RegExp(`<${m[1]}\\b[^>]*?(/?)>|</${m[1]}>`, 'g');
+    close.lastIndex = m.index + m[0].length;
+    let depth = 1, end = raw.length, x;
+    while (depth > 0 && (x = close.exec(raw))) { if (x[0].startsWith('</')) depth--; else if (!x[1]) depth++; if (depth === 0) end = x.index; }
+    out.push({role, inner: raw.slice(m.index + m[0].length, end)});
+  }
+  return out;
+}
 function assertBoundary(markup, what) {
   // An option's value is the selector's opaque target, never drawn; its displayed text is checked.
   const raw = markup.replace(/(<option\b[^>]*?\svalue=")[^"]*(")/g, '$1$2');
+  const boxes = [...raw.matchAll(BOX)];
+  assert.equal((raw.match(/class="agent-text(?: agent-text-block)?"/g) ?? []).length, boxes.length, `${what}: the box's class on something that is not a box`);
+  assert.equal((raw.match(/class="agent-text-value"/g) ?? []).length, boxes.length, `${what}: a value with the box's class outside a box`);
+  for (const [, name, style, label] of boxes) assert.ok(name.trim() !== '' && label.trim() !== '' && /(^|;)border:/.test(style), `${what}: a box without its source label, its accessibility name or its border`);
   const outside = outsideBoxes(raw);
   assert.ok(!outside.includes(MARK), `${what}: supplied text outside a box: …${outside.slice(Math.max(0, outside.indexOf(MARK) - 160), outside.indexOf(MARK) + 80)}…`);
   assert.ok(!raw.includes(RLO), `${what}: a direction override drawn as it is`);
   for (const [, tag, inner] of raw.matchAll(APP_ONLY_ELEMENTS)) {
     assert.ok(!inner.includes(MARK), `${what}: supplied text inside a ${tag}: ${inner.slice(0, 200)}`);
     assert.ok(!/agent-text/.test(inner), `${what}: a box inside a ${tag}: ${inner.slice(0, 200)}`);
+  }
+  for (const {role, inner} of roleElements(raw)) {
+    assert.ok(!inner.includes(MARK), `${what}: supplied text inside role="${role}": ${inner.slice(0, 200)}`);
+    assert.ok(!/agent-text/.test(inner), `${what}: a box inside role="${role}": ${inner.slice(0, 200)}`);
   }
   for (const [, name, value] of raw.matchAll(NAMING_ATTRIBUTES)) {
     assert.ok(!value.includes(MARK), `${what}: supplied text in ${name}="${value.slice(0, 120)}"`);
@@ -160,6 +195,12 @@ const document = installMiniDom();
 const {createRoot} = await import('react-dom/client');
 const props = node => node[Object.keys(node).find(k => k.startsWith('__reactProps$'))];
 const classes = node => (node.getAttribute?.('class') ?? '').split(/\s+/);
+// The value of a box as AgentText draws it: its group has a non-empty name and a border, and a non-empty source label.
+const wellFormedBox = node => {
+  const group = node.parentNode;
+  return !!group && group.getAttribute?.('role') === 'group' && classes(group).includes('agent-text') && (group.getAttribute('aria-label') ?? '').trim() !== ''
+    && String(group.style?.border ?? '').trim() !== '' && group.childNodes.some(c => classes(c).includes('agent-text-label') && (c.textContent ?? '').trim() !== '');
+};
 const SHOWN_ATTRIBUTES = name => name.startsWith('aria-') || ['title', 'alt', 'placeholder', 'label'].includes(name);
 function assertMounted(container, what) {
   const byId = new Map();
@@ -186,9 +227,11 @@ function assertMounted(container, what) {
       }
     }
     for (const field of ['value', 'defaultValue']) if (['input', 'textarea'].includes(tag) && typeof node[field] === 'string') assert.ok(!node[field].includes(MARK), `${what}: supplied text in a field's ${field}`);
-    const control = ctx.control || (APP_ONLY.has(tag) ? `<${tag}>` : role && APP_ONLY_ROLES.has(role) ? `role="${role}"` : null);
+    const appRole = (role ?? '').trim().split(/\s+/).find(r => APP_ONLY_ROLES.has(r));
+    const control = ctx.control || (APP_ONLY.has(tag) ? `<${tag}>` : appRole ? `role="${role}"` : null);
     if (control) assert.ok(!classes(node).includes('agent-text'), `${what}: a box inside ${control}`);
-    const box = ctx.box || classes(node).includes('agent-text-value');
+    if (classes(node).includes('agent-text-value')) assert.ok(wellFormedBox(node), `${what}: a value with the box's class outside a box with its name, border and source label`);
+    const box = ctx.box || (classes(node).includes('agent-text-value') && wellFormedBox(node));
     for (const child of node.childNodes) walk(child, {box, control, tag});
   };
   walk(container, {box: false, control: null, tag: 'div'});
@@ -227,6 +270,7 @@ const {NativeRequestCard, WaitingRequestsIndicator, requestScopeKey} = loadSrc('
 const {NativeActivityView, RunStartMarker, RunEndMarker, RunLabel, StopLabel} = loadSrc('NativeActivity');
 const {StoredTurnPage, StoredItemPage, historyPageBinding, ContinuationContext} = loadSrc('NativeHistory');
 const {RunOffer} = loadSrc('RunOffers');
+const {AgentText} = loadSrc('AgentText');
 const g = {appSession: 's', home: 'h', spawnCounter: 1};
 const descendant = {threadId: 'C', parentThreadId: 'T', parentSource: 'collabAgentToolCall.senderThreadId', statusSource: 'collabAgentToolCall.agentsStates', lastObservedStatus: {status: 'running', message: 'child-status-message'},
   guidance: 'child-guidance', observationEnded: false, nativeThread: {id: 'C', agentRole: 'child-role', agentNickname: 'child-nickname'}};
@@ -324,7 +368,8 @@ const SURFACES = [
   requestSurface('question card', QUESTION, requestView([]), ['question-header', 'question-words', 'option-label', 'option-description', 'child-role', 'child-nickname']),
   requestSurface('input request card', request('mcpServer/elicitation/request', {threadId: 'T', turnId: 'u', serverName: 'server-name', mode: 'url', message: 'elicitation-message', url: 'https://elicitation.invalid', requestedSchema: {field: 'schema-field'}}), null,
     ['server-name', 'elicitation-message', 'https://elicitation.invalid', 'schema-field']),
-  requestSurface('unknown request card', request('future/method', {threadId: 'T', detail: 'future-detail'}), null, ['future/method', 'future-detail']),
+  // An unknown request's parameters are shown only as received, in its source dump: its readable body is the App's words and the method.
+  requestSurface('unknown request card', request('future/method', {threadId: 'T', detail: 'future-detail'}), null, ['future/method', 'Codex named the request']),
   requestSurface('errored by rule', {...COMMAND, state: 'errored', settlement: {origin: {class: 'app-rule', ruleName: 'rule-name'}, kind: 'error'}}, null, ['rule-name']),
   requestSurface('resolved by Codex', {...COMMAND, state: 'resolved-by-supplier', supplierResolution: {cause: 'supplier-cause'}}, null, ['supplier-cause']),
   requestSurface('retained reply', {...COMMAND, state: 'declined', closedGeneration: true, replyWriteResult: 'written', settlement: {origin: {class: 'person'}, kind: 'decline', nativeContent: {answer: 'retained-answer'}, redaction: true}}, null, ['retained-answer']),
@@ -358,12 +403,22 @@ const SURFACES = [
     React.createElement(StopLabel, {stop: d.stop}), React.createElement(StopLabel, {stop: d.stopNoRequest})),
   expect: ['pump-skid', 'run:workflow:a', 'end-cause-words', 'Unsafe Name', 'stop-reading', 'stop-persistence', 'stop-label-words', 'turn-status-words']},
   {name: 'history turns', data: {host: historyHost()}, draw: d => React.createElement(StoredTurnPage, {binding: historyPageBinding(d.host, 'turns'), canRead: true, readItems: () => {}}),
-    expect: ['prior-turn', '1970-01-01T00:01:40.000Z', 'not-a-time', 'history-user-words', 'history-future-kind', 'history-turn-error', 'Latest accepted page for this selection']},
+    expect: ['Recorded as your message:', 'prior-turn', '1970-01-01T00:01:40.000Z', 'not-a-time', 'history-user-words', 'history-future-kind', 'history-turn-error', 'Latest accepted page for this selection']},
   {name: 'history items', data: {host: historyHost()}, draw: d => React.createElement(StoredItemPage, {binding: historyPageBinding(d.host, 'items')}),
-    expect: ['history-user-words', 'history-plan-words', 'history-command', 'history-output', 'history-server', 'history-tool', 'history-agent-words', 'history-future-kind', 'h-command']},
+    expect: ['Recorded as your message:', 'The agent wrote:', 'history-user-words', 'history-plan-words', 'history-command', 'history-output', 'history-server', 'history-tool', 'history-agent-words', 'history-future-kind', 'h-command']},
   {name: 'continuation context', data: continuation(), draw: d => React.createElement(ContinuationContext, {host: d.host, thread: d.thread}),
-    expect: ['Prior work: bounded partial snapshot', 'req:resume', 'history-user-words', 'history-plan-words', 'history-command', 'history-agent-words', 'Read more turns']},
+    expect: ['Recorded as your message:', 'The agent wrote:', 'Prior work: bounded partial snapshot', 'req:resume', 'history-user-words', 'history-plan-words', 'history-command', 'history-agent-words', 'Read more turns']},
 ];
+
+// The source dumps: boxes that hold the received JSON as it was sent. Every value of a fixture is in one, so a positive
+// assertion that counted them would hold even when the readable body was withheld. Positives read the page without them.
+const DUMP_LABELS = new Set(['As Codex sent it:', 'Codex sent (native JSON):', "The App's record of this read, with Codex's identities (JSON):", 'The read, with the pages Codex sent (JSON):']);
+// The dumps are block boxes, read as ⟦label⏎lines⟧: the label is everything before the first line break.
+const readableMarkup = raw => agentPlain(raw).replace(/⟦([^\n⟧]*)\n[^⟧]*⟧/g, (box, label) => DUMP_LABELS.has(label) ? '' : box);
+const readableText = node => node.nodeType === 3 ? node.nodeValue ?? ''
+  : node.nodeType !== 1 ? ''
+  : classes(node).includes('agent-text') && node.childNodes.some(c => classes(c).includes('agent-text-label') && DUMP_LABELS.has((c.textContent ?? '').trim())) ? ''
+  : node.childNodes.map(readableText).join('');
 
 // One surface drawn statically and mounted; the question and command cards are also answered, so the chosen option
 // and a refused answer are drawn.
@@ -376,24 +431,26 @@ async function drawn(surface, data, what) {
     await React.act(() => root.render(surface.draw(data)));
     assertMounted(container, `${what} (mounted)`);
     let text = container.textContent;
+    let readable = readableMarkup(raw) + '\n' + readableText(container);
     if (surface.interact) {
       const button = words => container.querySelectorAll(n => n.localName === 'button' && n.textContent === words)[0];
       for (const words of ['Choose option 1', 'Allow once']) if (button(words)) {
         await React.act(async () => { await props(button(words)).onClick(); });
         assertMounted(container, `${what} (mounted, after ${words})`);
         text += container.textContent;
+        readable += '\n' + readableText(container);
       }
     }
-    return {raw, text};
+    return {raw, text, readable};
   } finally { await React.act(() => root.unmount()); document.body.removeChild(container); }
 }
 
 test('rendered: each surface, drawn on valid fixtures, shows what it is meant to show, and stays within the boundary', async t => {
   let positive = 0;
   for (const surface of SURFACES) {
-    const {raw, text} = await drawn(surface, surface.data, surface.name);
-    const shown = agentPlain(raw) + '\n' + text;
-    for (const value of surface.expect) { assert.ok(shown.includes(value), `${surface.name}: ${value} is drawn`); positive++; }
+    const {readable} = await drawn(surface, surface.data, surface.name);
+    // Each expected value must be drawn outside the source dumps, in the surface's readable body.
+    for (const value of surface.expect) { assert.ok(readable.includes(value), `${surface.name}: ${value} is drawn in the readable body`); positive++; }
   }
   // The interactions draw what they are for.
   const answered = await drawn(SURFACES.find(s => s.name === 'question card'), SURFACES.find(s => s.name === 'question card').data, 'question card');
@@ -418,6 +475,50 @@ test('rendered: each leaf of every surface poisoned in turn (strings, numbers, b
   }
   t.diagnostic(`${renders} renders (${renders / 2} static, ${renders / 2} mounted): ${boxed} poisoned variants drew the value boxed, ${withheld} withheld it`);
   assert.ok(boxed > 500 && renders > 1500);
+});
+
+test('rendered: the detectors take a box only as AgentText draws it, and a role token list as its roles', async () => {
+  const shownValue = 'UNTRUSTED⏎‹U+202E›Allow once';
+  // The fourth reading's counterexample: the box's classes with no source label, no accessibility name and no border.
+  const stripped = `<span role="group" aria-label="" class="agent-text" style=""><span class="agent-text-label" style=""></span> <span class="agent-text-value" style="">${shownValue}</span></span>`;
+  assert.throws(() => assertBoundary(stripped, 'stripped'), /without its source label/, 'an unmarked box fails the static check');
+  const strippedNodes = () => {
+    const root = document.createElement('div'), group = document.createElement('span');
+    group.setAttribute('role', 'group'); group.setAttribute('aria-label', ''); group.setAttribute('class', 'agent-text');
+    const label = document.createElement('span'); label.setAttribute('class', 'agent-text-label');
+    const value = document.createElement('span'); value.setAttribute('class', 'agent-text-value'); value.textContent = shownValue;
+    group.appendChild(label); group.appendChild(value); root.appendChild(group);
+    return {root, group, label};
+  };
+  assert.throws(() => assertMounted(strippedNodes().root, 'stripped'), /outside a box/, 'an unmarked box fails the mounted check');
+  const named = strippedNodes(); named.group.setAttribute('aria-label', 'Text Codex sent'); named.label.textContent = 'Codex sent:';
+  assert.throws(() => assertMounted(named.root, 'no border'), /outside a box/, 'a box without its border fails the mounted check');
+  // A heading given as a role token list.
+  const real = renderToStaticMarkup(React.createElement(AgentText, {value: P, source: 'codex'}));
+  assertBoundary(real, 'a real box');
+  assert.throws(() => assertBoundary(`<div role="heading note">${real}</div>`, 'role list'), /inside role="heading"/, 'a box inside role="heading note" fails the static check');
+  const container = document.createElement('div'); document.body.appendChild(container);
+  const root = createRoot(container);
+  try {
+    await React.act(() => root.render(React.createElement('div', null, React.createElement(AgentText, {value: P, source: 'codex'}))));
+    assertMounted(container, 'a real box, mounted');
+    await React.act(() => root.render(React.createElement('div', {role: 'heading note'}, React.createElement(AgentText, {value: P, source: 'codex'}))));
+    assert.throws(() => assertMounted(container, 'role list'), /inside role="heading note"/, 'a box inside role="heading note" fails the mounted check');
+  } finally { await React.act(() => root.unmount()); document.body.removeChild(container); }
+});
+
+test('rendered: the positives read the readable body: history entries without their {turnId,item} wrapper fail them, though every value is still in the source dumps', async () => {
+  const surface = SURFACES.find(s => s.name === 'history items');
+  const bare = JSON.parse(JSON.stringify(surface.data));
+  const page = bare.host.nativeHistory.selected.itemsPage;
+  page.data = page.data.map(entry => entry.item);
+  const {raw, readable} = await drawn(surface, bare, 'history items without wrappers');
+  const missing = surface.expect.filter(value => !readable.includes(value));
+  assert.ok(missing.includes('The agent wrote:') && missing.includes('history-agent-words'), `the withheld bodies fail the positives (missing: ${missing.join(', ')})`);
+  assert.ok(agentPlain(raw).includes('history-agent-words'), 'the value is still in a source dump, which the positives do not count');
+  // An unknown request's parameters are shown only in its source dump: there, not in its readable body.
+  const unknown = await drawn(SURFACES.find(s => s.name === 'unknown request card'), SURFACES.find(s => s.name === 'unknown request card').data, 'unknown request card');
+  assert.ok(!unknown.readable.includes('future-detail') && agentPlain(unknown.raw).includes('future-detail'), 'an unknown request\'s parameters are in its source dump only');
 });
 
 test('rendered: a removed boundary is caught: a supplied value drawn raw fails the rendered checks', async () => {
