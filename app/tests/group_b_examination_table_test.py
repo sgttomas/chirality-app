@@ -170,6 +170,30 @@ class Comparisons(Fixture):
         self.assertIn('| k1 | C2 | 0 | 1 | 0 | 0 | 0 |', self.section(folder))  # the later by written_at
 
 
+class WorkflowWithheld(Fixture):
+    def test_three_comparisons_passing_beside_a_blocked_w1_never_read_as_the_first_target_met(self):
+        sentence = 'the workflow comparison is not available in this version'
+        head = {'header': True, 'candidate_key': 'k1', 'workflow_comparison': sentence,
+                'compares': {'C2': 'turns', 'C3': 'outcomes', 'C4': 'interrupts'}}
+        folder = self.rows('session-comparison-20261114T080000Z-00000001.jsonl', [
+            head, {'comparison': 'C2', 'outcome': 'passed'}, {'comparison': 'C3', 'outcome': 'passed'},
+            {'comparison': 'C4', 'outcome': 'passed'}, {'comparison': 'W1', 'outcome': 'blocked', 'reason': sentence},
+            {'summary': {'C2': {'passed': 1}, 'C3': {'passed': 1}, 'C4': {'passed': 1}, 'W1': {'blocked': 1}},
+             'unrecognised': 0, 'workflow_comparison': sentence}])
+        text = self.printed('--repo', str(self.repo()), '--comparisons', str(folder))
+        section = text[text.index('SESSION COMPARISON'):]
+        self.assertIn('| k1 | W1 | 0 | 0 | 1 | 0 | 0 |', section)
+        self.assertIn(f'W1, the workflow comparison: "{sentence}". Its rows are blocked. C2, C3 and C4 passing do not meet '
+                      'the first target', section)
+        self.assertNotIn('differs', section)
+
+    def test_no_sentence_when_no_header_says_the_workflow_comparison_is_withheld(self):
+        folder = self.rows('session-comparison-20261114T080000Z-00000001.jsonl', [
+            {'header': True, 'candidate_key': 'k1'}, {'comparison': 'C2', 'outcome': 'passed'}])
+        text = self.printed('--repo', str(self.repo()), '--comparisons', str(folder))
+        self.assertNotIn('W1, the workflow comparison', text)
+
+
 class Driver(Fixture):
     def test_each_run_and_its_setup_report_are_listed_apart(self):
         run = self.root / 'run'

@@ -27,7 +27,9 @@ It reads and writes nothing in the repository, and its output is never committed
   else the launch record's identifier), comparison and outcome; a summary line is compared with the rows, never
   counted. Of the answers files made from one screen list (the header's "answers_of"), only the latest counts: by
   the header's "written_at" when every one has it, else by the time in the name, and two of the same time count
-  for neither.
+  for neither. When a file's header says the workflow comparison is not available ("workflow_comparison"), that
+  sentence is written first beneath the section: W1's rows are blocked, and C2, C3 and C4 passing do not meet the
+  first target.
 """
 import argparse
 import hashlib
@@ -119,7 +121,7 @@ def table(repo, folder, release):
 def comparisons(folders):
     lines = ['', 'SESSION COMPARISON (rows of the execution lane\'s comparison; not step results)', '',
              '| Candidate | Comparison | ' + ' | '.join(OUTCOMES) + ' |', '| --- | --- |' + ' --- |' * len(OUTCOMES)]
-    counts, notes = {}, []
+    counts, notes, withheld = {}, [], set()
     for folder in folders:
         folder = Path(folder)
         records = sorted(folder.glob('launch-record*.json'))
@@ -154,6 +156,8 @@ def comparisons(folders):
                 notes.append(f"{path.name}: replaced by {latest_answers[header['answers_of']].name}, made from the same screen list")
                 continue
             summary = next((row for row in rows if 'summary' in row), None)
+            if header.get('workflow_comparison'):
+                withheld.add(header['workflow_comparison'])
             candidate = header.get('candidate_key')
             if candidate is None:
                 keys = {re.sub(r'^dev\.chirality\.app-v4\.candidate\.', '', i or '') for i in identifiers if i}
@@ -176,6 +180,10 @@ def comparisons(folders):
                              '(counted under their own outcome; none passes)')
     for (candidate, comparison), by in sorted(counts.items()):
         lines.append(f'| {candidate} | {comparison} | ' + ' | '.join(str(by[o]) for o in OUTCOMES) + ' |')
+    for sentence in sorted(withheld):
+        # The tool's own words; a row of W1 is blocked, and passes of the other comparisons do not make up for it.
+        notes.insert(0, f'W1, the workflow comparison: "{sentence}". Its rows are blocked. C2, C3 and C4 passing '
+                        'do not meet the first target; the workflow part stays unvalidated until W1 can be compared.')
     return lines + [''] + notes if notes else lines
 
 
