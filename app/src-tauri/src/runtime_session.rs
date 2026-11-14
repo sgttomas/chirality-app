@@ -3797,11 +3797,15 @@ for line in sys.stdin:
             }
         }
         fn behavior(&self, value: Value) {
+            // Startup requests can read this control concurrently. Publish a
+            // complete invented behavior, as emit does for queued events.
+            let temporary = self.root.join("behavior.pending");
             std::fs::write(
-                self.root.join("behavior.json"),
+                &temporary,
                 serde_json::to_vec(&value).unwrap(),
             )
             .unwrap();
+            std::fs::rename(temporary, self.root.join("behavior.json")).unwrap();
         }
         fn wire(&self) -> Vec<Value> {
             std::fs::read_to_string(self.root.join("wire.jsonl"))
