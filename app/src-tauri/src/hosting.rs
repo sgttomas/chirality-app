@@ -2972,6 +2972,9 @@ impl Host {
                 if e.attempt_position.is_none(){e.source_limit=Some(format!("No actual write attempt: reserved source invalidated/refused before pipe commit: {error}; native reply facts retained if present"));}
                 else{e.write_error=Some(error);if response.is_some(){e.source_limit=Some("Matching native reply and write failure both observed; v0.10 cannot faithfully project that combination; raw source retained".into());}
                     else{record["writeResult"]=json!("write-failed");record["outcome"]=json!("unknown-no-response");i.client_requests[idx]=record;}}
+                // A reply that came while the write was being recorded is taken
+                // in here as on success: the failure itself retires nothing.
+                if !closed&&method=="turn/start"{if let Some(reply)=response.as_ref(){let generation=i.generation.clone();let position=response_position.unwrap_or(i.receipt_position);Self::resolve_start(&mut i,&key,reply,position,&generation);}}
             }
         }
         let write=if closed{oauth_control::WriteFinish::SourceUnavailable}else if i.source_requests[&key].written{oauth_control::WriteFinish::Written}else{oauth_control::WriteFinish::Failed};

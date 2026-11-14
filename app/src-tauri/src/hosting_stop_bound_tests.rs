@@ -804,7 +804,7 @@ mod a_turn_start_not_yet_answered {
 
     /// The sentence the person reads at a quit, written here independently of
     /// the code that forms it.
-    const QUITTING: &str = "A turn start has been sent, or is being sent, to Codex. The App has not yet associated this start with a turn it can interrupt; it may be one of the turns listed. If it is, that turn is interrupted with the others. If not, Quitting stops Codex wherever it has got to: it may not have begun, or may have done part of its work, and its outcome may remain unknown.";
+    const QUITTING: &str = "The App began to send a turn start to Codex. The App has not yet associated this start with a turn it can interrupt; it may be one of the turns listed. If it is, that turn is interrupted with the others. If not, Quitting stops Codex wherever it has got to: it may not have begun, or may have done part of its work, and its outcome may remain unknown.";
 
     /// A turn/start of `text` sent on its own thread through the Host's own
     /// request path (the stand-in never answers it); waits until the Host
@@ -1102,6 +1102,40 @@ mod a_turn_start_not_yet_answered {
         f.live_turn("thread", "older-turn");
         send_turn_start(&mut f, "hello".into(), "written");
         assert!(sentence(&f).contains(QUITTING));
+        // Round 3: a write that began and failed, with no reply.
+        let mut f = Fixture::new();
+        *f.host().turn_start_simulated_write.lock().unwrap() = Some("invented write failure");
+        send_turn_start(&mut f, "hello".into(), "failed; outcome not known");
+        assert!(sentence(&f).contains(QUITTING));
+    }
+
+    /// Round 3, finding 1: a reply that came while the write was being made is
+    /// taken in through the one function even when the write then fails. A
+    /// valid turn is then that live turn; an error refusal retires the start.
+    #[test]
+    fn a_reply_during_a_write_that_fails_is_still_taken_in() {
+        for (reply, live) in [(json!({"result":{"turn":turn("turn-1", "inProgress")}}), 1usize), (json!({"error":{"code":-32600,"message":"invented refusal"}}), 0)] {
+            let f = Fixture::new();
+            *f.host().turn_start_simulated_write.lock().unwrap() = Some("invented write failure");
+            let root = f.root.clone();
+            *f.host().before_request_write.lock().unwrap() = Some(Box::new(move |h: &Host| {
+                let key = h.inner.0.lock().unwrap().source_requests.iter().find(|(_, e)| e.write_attempt_in_progress && e.request.frame["method"] == "turn/start").map(|(k, _)| k.clone()).unwrap();
+                let mut frame = reply.clone();
+                frame["id"] = serde_json::from_str(&key).unwrap();
+                let tmp = root.join("new-event.json");
+                std::fs::write(&tmp, serde_json::to_vec(&frame).unwrap()).unwrap();
+                std::fs::rename(tmp, root.join("queued-event.json")).unwrap();
+                until("the reply was not stored during the write", || h.inner.0.lock().unwrap().source_requests[&key].response.is_some());
+            }));
+            let _ = f.host().turn_start_text(&f.generation, "thread", "hello");
+            assert!(f.host().inner.0.lock().unwrap().source_requests.values().any(|e| e.request.frame["method"] == "turn/start" && e.write_error.is_some()), "the write failed");
+            assert_eq!(f.host().snapshot()["unansweredTurnStarts"], json!([]), "the stored reply resolved the start");
+            if live == 1 {
+                assert_eq!(counts(&f), [(1, 0); 3], "the turn the reply names is the live turn");
+            } else {
+                assert!(quit_asks(&f).is_none(), "Codex refused the start: nothing is live");
+            }
+        }
     }
 
     /// Round 2: logout goes on when the person confirms past an unresolved start.
