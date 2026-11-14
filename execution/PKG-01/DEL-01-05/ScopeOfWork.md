@@ -62,7 +62,7 @@ The items affected, by identifier. An item not listed stands as written. Rows of
 - **VER-008** — Not in force.
 - **VER-009** — Not in force.
 - **VER-011** — "in each home" means the account home only. The rest stands.
-- **VER-012** — Executable check of the review page's and Connection and access's text against what Codex reported in a recorded configuration read at the pin, and an examiner's reading of the same pages on the candidate.
+- **VER-012** — Executable check of the review page's and Connection and access's text against what Codex reported in a recorded configuration read at the pin and against the pinned Codex's default profile as its source and a direct start show it, and an examiner's reading of the same pages on the candidate.
 - **AX-003** — Has no occasion in 4.0.0 and stands for the later update.
 
 ## Deliverable Definition — Ontology

@@ -142,8 +142,9 @@ export function decisionWords(decision: Json): string {
  * conversation's project folder (`currentAppProjectContext`, its folder only
  * where the App can display it), or that the conversation has no project, and
  * the working folder Codex reported for the conversation (thread rows' `cwd`).
- * `permissionProfile` is the profile id Codex reported for the conversation;
- * the host does not pass it to the view today, so it is null. */
+ * `permissionProfile` is the profile id Codex reported in the conversation's
+ * start reply, carried on the host's thread row (`activePermissionProfile.id`);
+ * null when Codex did not report one. */
 export type RequestPlace = {
   project: { kind: "folder"; folder: string } | { kind: "none" } | { kind: "unknown" };
   conversationFolder: string | null;

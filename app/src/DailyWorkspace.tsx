@@ -72,9 +72,12 @@ const NO_START_UNDER_WAY = new Set(["absent", "stopped", "refused", "exited-unex
  */
 export function refusedStartWords(cause?: string | null, build?: string | null): { words: string; link: boolean } {
   switch (cause) {
-    case "changed": return { link: false, words: "The App found that its copy of Codex, or its own files, are not what this App was built with, so it did not start Codex. Reinstall the App from its original download." };
+    // A mismatch, or a read of the files that failed: the scan records both as a mismatch, so the
+    // words say both, and put a relaunch first.
+    case "changed": return { link: false, words: "The App found that its copy of Codex, or its own files, do not match what this App was built with, or could not read them, so it did not start Codex. Quit and open the App again; if this happens again, reinstall the App from its original download." };
     case "unconfirmed": return build === "development"
-      ? { link: false, words: "This build of the App cannot confirm a copy of Codex, so Codex cannot be started from it. There is nothing to do about this in the App." }
+      // A version probe that failed once gives this too, so a later attempt can succeed.
+      ? { link: true, words: "This build of the App could not confirm a copy of Codex, so it did not start Codex. Use Start Codex under Connection and access to try again; if it happens again, this build may not include a usable copy of Codex." }
       : { link: false, words: "The App could not confirm that its copy of Codex is the one it was built with, so it did not start Codex. Quit and open the App again; if this happens again, reinstall the App from its original download." };
     case "busy": return { link: true, words: "The App was busy with another step when Codex was due to start, so it did not start it. Use Start Codex under Connection and access to try again." };
     default: return { link: true, words: "The App did not record why. Connection and access shows Codex's controls." };
