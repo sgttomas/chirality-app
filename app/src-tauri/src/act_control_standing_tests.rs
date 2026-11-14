@@ -732,3 +732,219 @@ fn a16_statement_examples_keep_standing_between_scope_and_the_chosen_alternative
         .unwrap();
     }
 }
+
+impl Fixture {
+    fn fallback() -> Self {
+        let mut fixture = Self::new();
+        let mut package: Value = serde_json::from_slice(&std::fs::read(fixture.path()).unwrap()).unwrap();
+        package["purpose"] = json!(format!("{}\nDecide (A16)\u{202e}", "p".repeat(700)));
+        std::fs::write(fixture.path(), serde_json::to_vec(&package).unwrap()).unwrap();
+        fixture.request = crate::recorder::identify_packages(&fixture.root).unwrap().remove(0);
+        fixture
+    }
+}
+
+#[test]
+fn f2_complete_standing_loses_its_claim_when_history_or_own_row_evidence_is_spoiled() {
+    struct StoreReset(PathBuf);
+    impl Drop for StoreReset {
+        fn drop(&mut self) {
+            crate::records_store::use_store_for_test(None);
+            std::fs::remove_dir_all(&self.0).unwrap();
+        }
+    }
+    let store_root = std::env::temp_dir().join(crate::util::opaque_id("a16-pair-store-").unwrap());
+    std::fs::create_dir_all(&store_root).unwrap();
+    let _reset = StoreReset(store_root.clone());
+    crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store {
+        root: store_root, placement: crate::records_store::Placement::Override, limits: vec![],
+    })));
+    let actor = person(Some("Invented"), Some("invented"));
+    {
+        let f = Fixture::new();
+        let (mut c, id) = f.compose();
+        assert_eq!(c.offers[&id].offer["packageStanding"], json!({"form":"none-recorded"}), "history pair: permitted");
+        assert_eq!(c.offers[&id].offer["otherRequestsForPath"], json!({"state":"read-whole","rows":[]}));
+        assert!(c.confirmation_statement(&id, "ALT-1", &actor).unwrap().text.contains("No decision on this request is recorded."));
+        // A real legacy project log is outside the selected store's read set.
+        records::append(&f.root.join(".chirality/records/acts/unimported.jsonl"), "evidence_limit", &records::APP_WRITER,
+            json!({"label":"unresolvable reference","subjectRef":"invented","detail":"invented unimported history"})).unwrap();
+        let view = crate::decision_view::derive(&f.root, &[]);
+        assert!(!view["historyNotices"].as_array().unwrap().is_empty());
+        assert!(view["limits"].as_array().unwrap().is_empty(), "history, rather than an unreadable log, removes the evidence");
+        let (mut c, id) = f.compose();
+        assert_eq!(c.offers[&id].offer["packageStanding"], json!({"form":"unknown","cause":"The record history may be incomplete"}), "history pair: withdrawn");
+        assert_eq!(c.offers[&id].offer["otherRequestsForPath"], json!({"state":"not-read-whole","rows":[]}));
+        let statement = c.confirmation_statement(&id, "ALT-1", &actor).unwrap();
+        assert!(statement.text.contains("The record history may be incomplete"));
+        assert!(!statement.text.contains("No decision on this request is recorded."));
+    }
+    {
+        let mut f = Fixture::new();
+        let (mut c, id) = f.compose();
+        assert_eq!(c.offers[&id].offer["packageStanding"]["form"], "none-recorded", "own-row pair: permitted");
+        assert_eq!(c.offers[&id].offer["otherRequestsForPath"], json!({"state":"read-whole","rows":[]}));
+        assert!(c.confirmation_statement(&id, "ALT-1", &actor).unwrap().text.contains("No decision on this request is recorded."));
+        // Still schema-valid, but one alternative has no recorded consequence.
+        let mut body = f.request["body"].clone();
+        body["consequences"].as_array_mut().unwrap().retain(|value| value["alternative"] == "ALT-1");
+        f.request = records::append(&storage::project_file(&f.root, LOG).unwrap(), "act_request", &records::APP_WRITER, body).unwrap();
+        let (mut c, id) = f.compose();
+        assert_eq!(c.offers[&id].offer["packageStanding"], json!({"form":"unknown","cause":"The request's recorded standing could not be resolved"}), "own-row pair: withdrawn");
+        let statement = c.confirmation_statement(&id, "ALT-1", &actor).unwrap();
+        assert!(statement.text.contains("The request's recorded standing could not be resolved"));
+        assert!(!statement.text.contains("No decision on this request is recorded."));
+    }
+}
+
+#[test]
+fn f2_different_content_wording_requires_two_comparable_recorded_identities() {
+    for missing_identity in [false, true] {
+        let f = Fixture::new();
+        let log = storage::project_file(&f.root, LOG).unwrap();
+        let before_other_request = std::fs::read(&log).unwrap();
+        let comparable = f.request_again(true);
+        let (mut c, id) = f.compose();
+        let rows = c.offers[&id].offer["otherRequestsForPath"]["rows"].as_array().unwrap();
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0]["requestRef"], comparable["recordId"]);
+        assert_eq!(rows[0]["differentContent"], true, "content pair: permitted");
+        let actor = person(Some("Invented"), Some("invented"));
+        assert!(c.confirmation_statement(&id, "ALT-1", &actor).unwrap().text.contains("It was made on different content."));
+        // Replace the actual request suffix, not an offer/view value, then append a
+        // schema-valid request without the comparison evidence used above.
+        std::fs::write(&log, &before_other_request).unwrap();
+        let mut body = comparable["body"].clone();
+        if missing_identity {
+            body["evidence"].as_object_mut().unwrap().remove("method");
+            body["evidence"].as_object_mut().unwrap().remove("claimedIdentity");
+        } else {
+            body["evidence"]["method"] = json!("invented-incomparable-method");
+        }
+        let incomparable = records::append(&log, "act_request", &records::APP_WRITER, body).unwrap();
+        let (mut c, id) = f.compose();
+        let rows = c.offers[&id].offer["otherRequestsForPath"]["rows"].as_array().unwrap();
+        assert_eq!(rows.len(), 1);
+        assert_eq!(rows[0]["requestRef"], incomparable["recordId"]);
+        assert!(rows[0].get("differentContent").is_none(), "content pair: withdrawn (missing identity: {missing_identity})");
+        assert!(!c.confirmation_statement(&id, "ALT-1", &actor).unwrap().text.contains("It was made on different content."));
+    }
+}
+
+#[test]
+fn f2_fitting_fallback_freezes_and_captures_but_an_oversized_summary_does_neither() {
+    let actor = person(Some("Invented"), Some("invented"));
+    {
+        let f = Fixture::fallback();
+        let (mut c, id) = f.compose();
+        let statement = c.confirmation_statement(&id, "ALT-1", &actor).expect("fallback-bound pair: permitted");
+        assert!(statement.in_app.is_some());
+        assert_eq!(c.offers[&id].frozen_statement.as_deref(), Some(statement.text.as_str()));
+        assert!(c.offers[&id].frozen_offer.is_some() && c.offers[&id].frozen_actor.is_some());
+        c.present(&id).unwrap();
+        let result = c.confirm_shown(&id, "ALT-1", actor.clone(), &statement.text).unwrap();
+        assert_eq!(result["state"], "AC-7 recorded");
+        assert_eq!(result["capture"]["shownStatement"]["value"], crate::util::sha256_hex(statement.text.as_bytes()));
+    }
+    {
+        let mut f = Fixture::new();
+        let mut package: Value = serde_json::from_slice(&std::fs::read(f.path()).unwrap()).unwrap();
+        let recorded_alternative = "ALT-1\nDecide (A16)\u{202e}\u{200b}\n".repeat(100);
+        package["alternatives"][0]["id"] = json!(recorded_alternative);
+        std::fs::write(f.path(), serde_json::to_vec(&package).unwrap()).unwrap();
+        f.request = crate::recorder::identify_packages(&f.root).unwrap().remove(0);
+        f.claim(&f.request, &recorded_alternative, 1);
+        let (mut c, id) = f.compose();
+        assert_eq!(c.offers[&id].offer["packageStanding"]["form"], "decided");
+        let log = storage::project_file(&f.root, LOG).unwrap();
+        let before = std::fs::read(&log).unwrap();
+        let error = c.confirmation_statement(&id, "ALT-2", &actor).err().expect("fallback-bound pair: withdrawn");
+        assert!(error.contains("exceeds the readable native confirmation"), "{error}");
+        let slot = &c.offers[&id];
+        assert!(slot.selected.is_none() && slot.frozen_offer.is_none() && slot.frozen_actor.is_none() && slot.frozen_statement.is_none());
+        assert!(c.confirm(&id, "ALT-2", InputSource::HostNativeConfirmation, actor.clone()).unwrap_err().contains("not presented"));
+        // Even a direct attempt to mark the rejected offer Presented cannot supply its
+        // absent frozen facts. No native capture or act record can follow this refusal.
+        c.present(&id).unwrap();
+        assert!(c.confirm(&id, "ALT-2", InputSource::HostNativeConfirmation, actor).unwrap_err().contains("differs from the frozen native confirmation"));
+        assert!(c.native_captures.is_empty());
+        assert_eq!(std::fs::read(log).unwrap(), before);
+    }
+}
+
+#[test]
+fn f2_fallback_exact_text_frozen_choice_and_stale_presentation_require_their_evidence() {
+    let actor = person(Some("Invented"), Some("invented"));
+    // Exact handed text is accepted; changing that text removes capture authority.
+    for altered in [false, true] {
+        let f = Fixture::fallback();
+        let (mut c, id) = f.compose();
+        let statement = c.confirmation_statement(&id, "ALT-1", &actor).unwrap();
+        let in_app = statement.in_app.as_ref().expect("fallback-specific pair");
+        assert_eq!(in_app.digest, native_statement::content_digest("A16 pair", &in_app.content).unwrap());
+        native_statement::showing_in_app(Some(in_app), || {
+            let shown = native_statement::shown_in_app();
+            assert_eq!(shown.as_array().unwrap().len(), 1);
+            assert_eq!(shown[0]["content"], in_app.content);
+            assert_eq!(shown[0]["digest"], in_app.digest);
+        });
+        assert_eq!(native_statement::shown_in_app(), json!([]));
+        c.present(&id).unwrap();
+        let log = storage::project_file(&f.root, LOG).unwrap();
+        let before = std::fs::read(&log).unwrap();
+        let text = if altered { statement.text.clone() + "x" } else { statement.text.clone() };
+        let result = c.confirm_shown(&id, "ALT-1", actor.clone(), &text);
+        if altered {
+            assert!(result.unwrap_err().contains("differs from what was presented"), "handed-text pair: withdrawn");
+            assert!(c.native_captures.is_empty());
+            assert_eq!(std::fs::read(log).unwrap(), before);
+        } else {
+            let result = result.expect("handed-text pair: permitted");
+            assert_eq!(result["state"], "AC-7 recorded");
+            assert_eq!(result["capture"]["shownStatement"]["value"], crate::util::sha256_hex(statement.text.as_bytes()));
+        }
+    }
+    // Repeating the same frozen facts is accepted; changing the choice is refused.
+    {
+        let f = Fixture::fallback();
+        let (mut c, id) = f.compose();
+        let first = c.confirmation_statement(&id, "ALT-1", &actor).unwrap();
+        c.present(&id).unwrap();
+        let repeated = c.confirmation_statement(&id, "ALT-1", &actor).expect("frozen-choice pair: permitted");
+        assert_eq!(repeated.text, first.text);
+        assert_eq!(repeated.in_app.unwrap().content, first.in_app.as_ref().unwrap().content);
+        assert!(c.confirmation_statement(&id, "ALT-2", &actor).err().expect("frozen-choice pair: withdrawn").contains("frozen for another alternative"));
+        assert!(c.confirm(&id, "ALT-2", InputSource::HostNativeConfirmation, actor.clone()).unwrap_err().contains("differs from the frozen native confirmation"));
+        assert!(c.native_captures.is_empty());
+        assert_eq!(c.offers[&id].frozen_statement.as_deref(), Some(first.text.as_str()));
+        assert_eq!(c.confirm_shown(&id, "ALT-1", actor.clone(), &first.text).unwrap()["state"], "AC-7 recorded");
+    }
+    // Fresh presentation is accepted; changed evidence makes that same slot Stale.
+    // Restoring the bytes cannot revive it, while a fresh offer can proceed.
+    {
+        let f = Fixture::fallback();
+        let (mut c, id) = f.compose();
+        let first = c.confirmation_statement(&id, "ALT-1", &actor).unwrap();
+        assert!(first.in_app.is_some());
+        c.present(&id).expect("stale-presentation pair: permitted");
+        let log = storage::project_file(&f.root, LOG).unwrap();
+        let before = std::fs::read(&log).unwrap();
+        f.claim(&f.request, "ALT-2", 1);
+        assert_eq!(c.confirm_shown(&id, "ALT-1", actor.clone(), &first.text).unwrap_err(), package_standing::CHANGED);
+        assert_eq!(c.offers[&id].state, OfferState::Stale);
+        std::fs::write(&log, &before).unwrap();
+        let restored = c.confirmation_statement(&id, "ALT-1", &actor).unwrap();
+        assert_eq!(restored.text, first.text);
+        assert_eq!(restored.in_app.unwrap().content, first.in_app.unwrap().content);
+        assert!(c.present(&id).unwrap_err().contains("Stale"), "stale-presentation pair: withdrawn");
+        assert!(c.confirm_shown(&id, "ALT-1", actor.clone(), &first.text).unwrap_err().contains("Stale"));
+        assert!(c.native_captures.is_empty());
+        assert_eq!(std::fs::read(log).unwrap(), before);
+        let fresh = c.compose_a16(f.request["recordId"].as_str().unwrap()).unwrap();
+        let fresh_id = fresh["offerId"].as_str().unwrap();
+        let statement = c.confirmation_statement(fresh_id, "ALT-1", &actor).unwrap();
+        assert!(statement.in_app.is_some());
+        c.present(fresh_id).unwrap();
+        assert_eq!(c.confirm_shown(fresh_id, "ALT-1", actor, &statement.text).unwrap()["state"], "AC-7 recorded");
+    }
+}
