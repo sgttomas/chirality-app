@@ -807,23 +807,43 @@ class RunningProcess(unittest.TestCase):
     def written(self, target):
         return target.read_text() if target.exists() else None
 
-    def test_a_narrower_turn_asks_before_it_uses_a_process_started_at_full_access(self):
-        for decision, expected in (('decline', ''), ('accept', 'used on a read-only turn\n')):
-            saved = dict(L.DECLINE)
-            L.DECLINE['item/commandExecution/requestApproval'] = {'decision': decision}
-            try:
-                with L.Run(SCRATCH, BINARY) as run:
-                    client = run.start()
-                    thread = client.start_thread()['thread']['id']
-                    target, session = self.hold(run, client, thread)
-                    self.send(run, client, thread, session, 'use', 'used on a read-only turn', **READ_ONLY)
-                    asked = [r for r in client.server_requests if r['method'] == 'item/commandExecution/requestApproval']
-                    self.assertEqual(len(asked), 1, decision)
+    def use_at(self, row, decision):
+        """Hold a process at full access, then try to use it on a turn at `row`, answering any request with
+        `decision`. Returns (requests raised, the call's output, what reached the process)."""
+        saved = dict(L.DECLINE)
+        L.DECLINE['item/commandExecution/requestApproval'] = {'decision': decision}
+        try:
+            with L.Run(SCRATCH, BINARY) as run:
+                client = run.start()
+                thread = client.start_thread()['thread']['id']
+                target, session = self.hold(run, client, thread)
+                output = self.send(run, client, thread, session, 'use', 'used on a narrower turn',
+                                   **level_settings(row)[1])
+                asked = [r for r in client.server_requests if r['method'] == 'item/commandExecution/requestApproval']
+                return asked, output, self.written(target)
+        finally:
+            L.DECLINE.clear()
+            L.DECLINE.update(saved)
+
+    def test_each_narrower_level_of_the_apps_table_asks_or_refuses_before_it_uses_a_process_started_at_full_access(self):
+        table = json.loads(LEVELS_TABLE.read_text())
+        for row in table['levels']:
+            if row['id'] == 'full':
+                continue
+            with self.subTest(level=row['id']):
+                asked, output, written = self.use_at(row, 'decline')
+                self.assertEqual(written, '', row['id'])  # nothing reached the process
+                if row['approvalPolicy'] == 'never':
+                    self.assertEqual(asked, [])  # refused without a request to the person
+                    self.assertIn('AskForApproval is set to Never', output)
+                else:
+                    self.assertEqual(len(asked), 1)  # put to the person first; declined here
                     self.assertIn('runs without a filesystem sandbox', asked[0]['params'].get('reason') or '')
-                    self.assertEqual(self.written(target), expected, decision)
-            finally:
-                L.DECLINE.clear()
-                L.DECLINE.update(saved)
+        supervised = next(r for r in table['levels'] if r['id'] == 'supervised')
+        asked, output, written = self.use_at(supervised, 'accept')  # the control: accepted, the line is written
+        self.assertEqual(len(asked), 1)
+        self.assertIn('runs without a filesystem sandbox', asked[0]['params'].get('reason') or '')
+        self.assertEqual(written, 'used on a narrower turn\n')
 
     def test_an_interrupt_leaves_running_processes_and_cleaning_ends_them(self):
         with L.Run(SCRATCH, BINARY) as run:
