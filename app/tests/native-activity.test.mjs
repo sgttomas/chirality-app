@@ -67,20 +67,20 @@ test('messages are readable, escaped and never presented as acts',()=>{
   assert.ok(html.includes('Please &lt;b&gt;list&lt;/b&gt; files'));assert.ok(!html.includes('<b>list</b>'));
   assert.match(html,/User message<\/b> \(text Codex recorded as input; not an act\)/);
   assert.match(html,/Agent<\/b> · final answer/);assert.ok(html.includes('Thinking about listing'));
-  assert.ok(html.includes('Goal (thread/goal/updated): ⟦Codex sent: Ship the slice⟧'));
+  assert.ok(html.includes('Goal (⟦Source: thread/goal/updated⟧): ⟦Codex sent: Ship the slice⟧'));
   assert.ok(html.includes('Turn error: ⟦Codex sent: interrupted by request⟧'));
 });
 
 test('tool rows keep native status beside the display reading and invent no outcome',()=>{
   const html=render();
   assert.ok(html.includes('ls -la'));assert.ok(html.includes('exit code: 0'));assert.ok(html.includes('file.txt'));
-  assert.ok(html.includes('agent at start, unifiedExecStartup at completion'));
-  assert.match(html,/not completed \(turn ended\)<\/b> · native status inProgress/);
+  assert.ok(html.includes('the agent at start, a session start at completion'));
+  assert.match(html,/not completed \(turn ended\)<\/b> · native status in progress/);
   assert.ok(html.includes('result not supplied by Codex'));
   assert.match(html,/waiting on a request<\/b>.*answer it on its request card/);
   assert.ok(!/<button/.test(html),'activity view offers no answer or act control');
   assert.match(html,/unknown — no completion observed<\/b> · native status <i>none in this item kind<\/i>/);
-  assert.ok(html.includes('unfamiliar item <code>futureTool</code>'));assert.ok(html.includes('&quot;raw&quot;: 42'));
+  assert.ok(html.includes('unfamiliar item</b> ⟦Type: futureTool⟧'));assert.ok(html.includes('&quot;raw&quot;: 42'));
   assert.doesNotMatch(html.toLowerCase(),/\b(approved|accepted|verified|checked by|relied on|returned|integrated)\b/);
   assert.equal(displayStateText({displayState:'unknown'}),'unknown — no completion observed');
   assert.equal(resultNotSupplied({displayState:'not-completed',native:{type:'mcpToolCall',result:null,error:null}}),false);
@@ -101,8 +101,8 @@ test('plans, checklist revisions and their recovery gap are shown as observed',(
   const html=render();
   assert.match(html,/Plan<\/b> · revision 1 in this conversation/);assert.ok(html.includes('1. Do it'));
   assert.ok(html.includes('revision 2 of 2 observed live'));assert.ok(html.includes('[completed] ⟦Step: Read⟧'));assert.ok(html.includes('[pending] ⟦Step: Write⟧'));
-  assert.ok(html.includes('revision 1: <span>[inProgress] ⟦Step: Read⟧</span>'));
-  assert.ok(html.includes('Checklist for turn turn-0: checklist updates are not kept in Codex history'));
+  assert.ok(html.includes('revision 1: <span>[in progress] ⟦Step: Read⟧</span>'));
+  assert.ok(html.includes('Checklist for turn <code>turn-0</code>: ⟦Reason: checklist updates are not kept in Codex history'));
   const v=view();v.items=v.items.map(r=>r.native.id==='turn-2-plan'?{...r,native:{id:r.native.id,type:'plan'},displayState:'in-progress',preview:'Draft plan',previewStanding:'in progress; may differ from completed plan'}:r);
   const draft=render(v);assert.ok(draft.includes('Draft plan'));assert.ok(draft.includes('may differ from completed plan'));
 });
@@ -124,11 +124,11 @@ test('the delegation view follows the host’s NPTD §7.1 reading, and arrived d
   const missing={reading:'missing',reason:'the effective configuration sets features.multi_agent = false (NPTD §7.1 (2))',readAt:'2026-10-10T00:00:00Z'};
   const unread={reading:'not established',reason:'multiAgentVersion not read: no response (NPTD §7.1 (3))'};
   // Present: shown, empty or not.
-  assert.match(withReading(empty,present),/Delegation available \(read 2026-10-10T00:00:00Z\); no descendants observed\./);
+  assert.match(agentPlain(withReading(empty,present)),/Delegation available \(read ⟦Read at: 2026-10-10T00:00:00Z⟧\); no descendants observed\./);
   assert.ok(withReading(view(),present).includes('<h4>Descendants</h4>'));
   // Missing: absent, with the first reason; descendants that arrive anyway are shown.
   const hidden=withReading(empty,missing);
-  assert.match(hidden,/Delegation not available: the effective configuration sets features\.multi_agent = false \(NPTD §7\.1 \(2\)\)/);
+  assert.match(agentPlain(hidden),/Delegation not available: ⟦Reason: the effective configuration sets features\.multi_agent = false \(NPTD §7\.1 \(2\)\)⟧/);
   assert.doesNotMatch(hidden,/<h4>Descendants<\/h4>|no descendants observed/);
   const arrived=withReading(view(),missing);
   assert.ok(arrived.includes('<h4>Descendants</h4>')&&arrived.includes('Descendants that arrived anyway are shown below.'));
@@ -136,7 +136,7 @@ test('the delegation view follows the host’s NPTD §7.1 reading, and arrived d
   const quiet=withReading(empty,unread);
   assert.doesNotMatch(quiet,/Delegation availab|Delegation not available|<h4>Descendants/);
   const shown=withReading(view(),unread);
-  assert.ok(shown.includes('<h4>Descendants</h4>')&&shown.includes('Delegation availability not established: multiAgentVersion not read'));
+  assert.ok(shown.includes('<h4>Descendants</h4>')&&agentPlain(shown).includes('Delegation availability not established: ⟦Reason: multiAgentVersion not read'));
   assert.doesNotMatch(withReading(empty,undefined),/Delegation availab|Delegation not available|<h4>Descendants/,'no reading: nothing claimed');
 });
 
@@ -152,7 +152,8 @@ test('an unfinished message, reasoning or compaction never reads as finished',()
       row('turn-1',1,{id:'r',type:'reasoning',summary:[],content:[]},{displayState:state,summaryPreview:['thinking part']}),
       row('turn-1',2,{id:'k',type:'contextCompaction'},{displayState:state})];
     const html=render(v);
-    assert.equal((html.match(new RegExp(displayStateText({displayState:state}).replace(/[()]/g,'\\$&'),'g'))??[]).length,3,state);
+    // The display state, in bold on each row's state line (a native status may share its word).
+    assert.equal((html.match(new RegExp(`<b>${displayStateText({displayState:state}).replace(/[()]/g,'\\$&')}</b>`,'g'))??[]).length,3,state);
     assert.ok(html.includes('Partial ans'));assert.ok(html.includes('streamed so far'));assert.ok(html.includes('thinking part'));
   }
   const done=view();done.items=[row('turn-1',0,{id:'m',type:'agentMessage',text:'Final',phase:'final_answer'},{preview:'stale'})];
@@ -179,7 +180,7 @@ test('every descendant in the subtree is selectable and roles show as Codex repo
   const html=render(v);
   assert.ok(html.includes('<option value="G">descendant G (of C)</option>'));
   assert.ok(html.includes('role ⟦Role: explorer⟧ (as Codex reports)'));assert.ok(html.includes('nickname ⟦Name: Ada⟧'));
-  assert.ok(html.includes('(status source collabAgentToolCall.agentsStates)'));
+  assert.ok(html.includes('(status source ⟦Status source: collabAgentToolCall.agentsStates⟧)'));
   const model=activityModel(v,'C');assert.equal(model.parent.parentThreadId,'T');
   assert.ok(!renderToStaticMarkup(React.createElement(NativeActivityView,{view:v,threadId:'C'})).includes('status source',html.indexOf('G ·')));
 });
@@ -222,10 +223,10 @@ test('off-schema collections and nested values render as text instead of throwin
   // An off-schema receiver is not a plain identifier, so it is boxed as Codex's text, never in the App's sentence.
   assert.ok(html.includes('to <span>⟦Identity: {&quot;id&quot;:&quot;X&quot;}⟧</span><span>, Y</span>'));
   assert.ok(html.includes('obj output'));assert.ok(html.includes('{&quot;t&quot;:&quot;obj text&quot;}'));
-  assert.ok(html.includes('unfamiliar item <code>{&quot;weird&quot;:true}</code>'));
-  assert.ok(html.includes('native status {&quot;nested&quot;:&quot;status&quot;}'));
-  assert.ok(html.includes('[{&quot;st&quot;:2}] ⟦Step: {&quot;s&quot;:1}⟧'));
-  assert.ok(html.includes('C · last observed Codex status {&quot;deep&quot;:&quot;status&quot;}'));
+  assert.ok(html.includes('unfamiliar item</b> ⟦Type: {&quot;weird&quot;:true}⟧'));
+  assert.ok(html.includes('native status ⟦Codex sent: {&quot;nested&quot;:&quot;status&quot;}⟧'));
+  assert.ok(html.includes('[⟦Codex sent: {&quot;st&quot;:2}⟧] ⟦Step: {&quot;s&quot;:1}⟧'));
+  assert.ok(html.includes('C · last observed Codex status ⟦Codex sent: {&quot;deep&quot;:&quot;status&quot;}⟧'));
   assert.ok(html.includes('D · last observed Codex status running'));assert.ok(html.includes('E · last observed Codex status not reported'));
   assert.ok(render({items:{},turns:'x',turnRecords:5,revisions:{},descendants:'d',checklistGaps:{}},'T').includes('No activity observed'));
   const latest=view();latest.revisions=[{kind:'checklist',revisionId:'l',threadId:'T',turnId:'turn-1',ordinal:1,content:{explanation:{e:1},steps:'not an array'}}];
@@ -253,7 +254,7 @@ test('the host’s trial labels show on the trial turn and the linked sub-agent 
   assert.ok(label>turn2&&label<html.indexOf('Second answer'),'the label sits on turn-2’s row');
   assert.equal(html.match(/not a step of/g).length,1,'only the labelled turn');
   assert.ok(!html.includes('elsewhere'));
-  assert.ok(html.includes('<b>sub-agent of trial 4 of draft load-check</b> · C · last observed'));
+  assert.ok(agentPlain(html).includes('⟦Trial: sub-agent of trial 4 of draft load-check⟧ · C · last observed'));
   assert.ok(!render().includes('trial 4'),'no labels without the host’s');
 });
 
@@ -350,7 +351,7 @@ test('a turn’s error notices show in Codex’s words with the retry state it g
  const v=view();v.turns.push({id:'turn-3',status:'inProgress',startedAt:300,items:[]});v.turnRecords.push({threadId:'T',turnId:'turn-3'});
  v.turnErrors=[notice('turn-3',40,1),notice('turn-3',41,2),{...notice('turn-x',42,1),threadId:'OTHER'}];
  const html=render(v);
- assert.match(html,/<h4>Turn 3 · inProgress<\/h4>/);
+ assert.match(html,/<h4>Turn 3 · in progress<\/h4>/);
  assert.match(html,/<div role="status" aria-label="Errors Codex reported in this turn"><p>Codex reported an error in this turn 2 times; the latest: ⟦Codex sent: Reconnecting\.\.\. waiting for network — Connection failed: error sending request⟧ Codex said it will retry\. No later event naming this turn has reached the App\.<\/p>/);
  assert.match(html,/The 2 error notices in the order received, each with its whole error object/);
  assert.match(html,/<li value="2">⟦Codex sent: Reconnecting\.\.\. waiting for network — Connection failed: error sending request⟧ · will retry<small> · received at position 41<\/small>⟦As Codex sent it:\n\{\n  &quot;message&quot;: &quot;Reconnecting\.\.\. waiting for network&quot;,\n  &quot;additionalDetails&quot;: &quot;Connection failed: error sending request&quot;,\n  &quot;codexErrorInfo&quot;: \{\n    &quot;responseStreamDisconnected&quot;: \{\n      &quot;httpStatusCode&quot;: null\n    \}\n  \}\n\}⟧<\/li>/);
@@ -384,7 +385,7 @@ test('a final error notice alerts, and a stopped Codex or a dropped notice is sa
 
 test('a turn last seen in progress is not headed in progress once Codex has stopped',()=>{
  const v=view();v.turns.push({id:'turn-3',status:'inProgress',startedAt:300,items:[]});v.turnRecords.push({threadId:'T',turnId:'turn-3'});
- assert.match(render(v),/<h4>Turn 3 · inProgress<\/h4>/);
+ assert.match(render(v),/<h4>Turn 3 · in progress<\/h4>/);
  v.observationEnded=true;
  const html=render(v);
  assert.match(html,/<h4>Turn 3 · in progress when last observed; the App is no longer receiving from that Codex process, so its outcome is unknown<\/h4>/);
@@ -397,20 +398,20 @@ test('a frame named error that the App could not read is said as that and given 
  const unreadable=(turnId,receiptPosition,extra={})=>({threadId:'T',turnId,receiptPosition,observedOrder:receiptPosition,ordinalInTurn:1,kind:'not-the-pinned-error-notification',reason:'its meaning and retry state are not established',standing:'live-observed',...extra});
  v.unreadableTurnErrors=[unreadable('turn-3',50),unreadable('turn-x',51,{threadId:'OTHER'})];
  const only=render(v);
- assert.match(only,/<div aria-label="Frames named error that the App could not read"><p role="status">Codex sent a frame named <code>error<\/code> for this turn that the App could not read as the error notice its Codex version defines, so its meaning and retry state are not established\. Received at position 50; the original envelope is under Host diagnostics only while the host(&#x27;|')s journal still holds it\.<\/p><\/div>/);
+ assert.match(only,/<div aria-label="Frames named error that the App could not read"><p role="status">Codex sent a frame named <code>error<\/code> for this turn that the App could not read as the error notice its Codex version defines, so its meaning and retry state are not established\. Received at position <span>50<\/span>; the original envelope is under Host diagnostics only while the host(&#x27;|')s journal still holds it\.<\/p><\/div>/);
  assert.doesNotMatch(only,/will retry|will not retry|Codex reported an error in this turn|kept unchanged|an error notice for this turn/);
  // A request from Codex that happened to be named error is said to be a request, not a notice.
  v.unreadableTurnErrors=[unreadable('turn-3',50,{kind:'server-request-named-error'})];
- const request=render(v);assert.match(request,/not established\. It was a request from Codex and not a notice\. Received at position 50;/);
+ const request=render(v);assert.match(request,/not established\. It was a request from Codex and not a notice\. Received at position <span>50<\/span>;/);
  assert.doesNotMatch(request,/Errors Codex reported in this turn/,'a request that was not a notice is not labelled an error Codex reported');
  v.unreadableTurnErrors=[unreadable('turn-3',50,{kind:'server-request-named-error'}),unreadable('turn-3',51,{ordinalInTurn:2,kind:'server-request-named-error'})];
- assert.match(render(v),/not established\. They were requests from Codex and not notices\. Received at position 50, 51;/);
+ assert.match(render(v),/not established\. They were requests from Codex and not notices\. Received at position <span>50<\/span><span>, 51<\/span>;/);
  // Beside a readable notice, and past the per-turn cap: the count is what was received, and what was kept is said.
  v.turnErrors=[notice('turn-3',40,1,{laterFrameForTurn:true})];
  v.unreadableTurnErrors=[unreadable('turn-3',60,{ordinalInTurn:11}),unreadable('turn-3',61,{ordinalInTurn:12,kind:'server-request-named-error'})];
  const both=render(v);
  assert.match(both,/Codex said it will retry\. The App has since received a later event naming this turn\./);
- assert.match(both,/Codex sent 12 frames named <code>error<\/code> for this turn that the App could not read.*their meaning and retry state are not established\. 1 of those kept was a request from Codex and not a notice\. The App kept the latest 2\. Received at position 60, 61; the original envelopes are under Host diagnostics only while the host(&#x27;|')s journal still holds them\./);
+ assert.match(both,/Codex sent 12 frames named <code>error<\/code> for this turn that the App could not read.*their meaning and retry state are not established\. 1 of those kept was a request from Codex and not a notice\. The App kept the latest 2\. Received at position <span>60<\/span><span>, 61<\/span>; the original envelopes are under Host diagnostics only while the host(&#x27;|')s journal still holds them\./);
 });
 
 test('a turn known only by an error notice keeps its place in the receiving order',()=>{

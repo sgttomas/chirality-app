@@ -78,34 +78,10 @@
   "reason": "the App's words: a literal tuple list in the same expression"
  },
  {
-  "file": "NativeHistory.tsx",
-  "where": "<summary>",
-  "expr": "kind",
-  "reason": "the App's words: RawPage is called with \"turn\" or \"item\" only"
- },
- {
-  "file": "NativeHistory.tsx",
-  "where": "<button>",
-  "expr": "kind",
-  "reason": "the App's words: paging is typed \"turns\" | \"items\""
- },
- {
-  "file": "NativeActivity.tsx",
-  "where": "<summary>",
-  "expr": "label",
-  "reason": "the App's words: every caller passes a string literal (Raw and LongText callers in NativeActivity.tsx; the result entry's label is \"result content N\")"
- },
- {
   "file": "ModelChoice.tsx",
   "where": "<button>",
   "expr": "builtIn.label",
   "reason": "the App's words: a literal in the same function"
- },
- {
-  "file": "ConversationRoles.tsx",
-  "where": "@aria-label",
-  "expr": "lead",
-  "reason": "the App's words: limitSubjectWords, whose role and conversation id go through idWords"
  },
  {
   "file": "App.tsx",
@@ -210,39 +186,9 @@
   "reason": "the App's words: the host's describe() (records_store.rs), counts and literal kinds only"
  },
  {
-  "file": "RecoveryCustodyPanel.tsx",
-  "where": "<summary>",
-  "expr": "restartWords(event)",
-  "reason": "the App's words: restartWords returns a literal sentence, or an event kind through idWords"
- },
- {
-  "file": "RecoveryCustodyPanel.tsx",
-  "where": "<summary>",
-  "expr": "requestEndWords(event)",
-  "reason": "the App's words: requestEndWords returns a literal sentence, or an event kind through idWords"
- },
- {
-  "file": "RequestCards.tsx",
-  "where": "<button>",
-  "expr": "decisionWords(decision)",
-  "reason": "the App's words: decisionWords returns only literals (\"Codex option\" for an unknown kind; the whole value is boxed beside)"
- },
- {
-  "file": "RequestCards.tsx",
-  "where": "<label>",
-  "expr": "decisionWords(\"denied\")",
-  "reason": "the App's words: decisionWords returns only literals"
- },
- {
   "file": "WorkflowContext.tsx",
   "where": "@aria-label",
   "expr": "label",
   "reason": "the App's words: every caller passes a string literal (the five ConversationContext uses)"
- },
- {
-  "file": "WorkflowRegistrationReview.tsx",
-  "where": "@aria-label",
-  "expr": "`Reviewed workflow ${index + 1}`",
-  "reason": "a count: ReviewEntry's index prop is typed number and its only caller passes the .map index"
  }
 ]

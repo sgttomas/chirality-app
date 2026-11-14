@@ -1,4 +1,3 @@
-import {  } from "./AgentText";
 import type { CSSProperties } from "react";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -38,18 +37,32 @@ const MARKED = /[\p{C}\p{Zl}\p{Zp}]/u;
 const SPECIAL = /(\r?\n|\t|[\p{C}\p{Zl}\p{Zp}])/u;
 
 /** A Codex-supplied identifier (a thread's, for example) that may stand in the App's own words or in a
- * control: letters, digits and . _ : / - only, at most 128 characters. Anything else is shown beside, as
+ * control: letters, digits and . _ : - only, at most 128 characters. Anything else is shown beside, as
  * text the App did not write. */
-export const PLAIN_ID = /^[A-Za-z0-9._:\/-]{1,128}$/;
+export const PLAIN_ID = /^[A-Za-z0-9._:-]{1,128}$/;
 export const plainId = (value: unknown): string | null => typeof value === "string" && PLAIN_ID.test(value) ? value : null;
-/** A Codex-supplied identifier or enum in a control's own words, which cannot hold a box: as written when it is a
- * plain identifier, "not recorded" when there is none, else the App's words for one that is not (the value itself is
- * then shown beside, boxed). */
+/** A Codex-supplied identifier or enum in the App's own words, where no box can stand (a control's name, an
+ * attribute, a sentence the App builds as one string): as written when it is a plain identifier, "not recorded"
+ * when there is none, else the App's words for one that is not (the value itself is then shown beside, boxed). */
 export const idWords = (value: unknown): string => value === null || value === undefined ? "not recorded" : plainId(typeof value === "number" && Number.isSafeInteger(value) ? String(value) : value) ?? "with an identity that is not a plain identifier";
 /** The App's own workflow-name rule (workflow_workspace::valid_name): lowercase letters, digits and single hyphens,
  * at most 64 characters. A name from a file an agent may have written stands in the App's words only in this form. */
 export const SAFE_WORKFLOW_NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 export const safeName = (value: unknown): string => typeof value === "string" && value.length <= 64 && SAFE_WORKFLOW_NAME.test(value) ? value : "a workflow whose name is shown beside";
+/** The App's word for a supplied value, when the value is one of the table's own keys; null for anything else.
+ * The table is the App's: a const object of literal words in the caller's file (the presentation guard checks
+ * this). A generated type is no guarantee at run time, so the value is checked here. */
+export const wordOf = (words: Readonly<Record<string, string>>, value: unknown): string | null =>
+  typeof value === "string" && Object.prototype.hasOwnProperty.call(words, value) ? words[value] : null;
+/** A supplied time in seconds since the epoch, in the App's words (ISO 8601, UTC); null for anything that is not a
+ * finite number giving a valid date. */
+export const isoSeconds = (value: unknown): string | null => {
+  if (typeof value !== "number" || !Number.isFinite(value)) return null;
+  const date = new Date(value * 1000);
+  return Number.isFinite(date.getTime()) ? date.toISOString() : null;
+};
+/** A supplied number in the App's words: a finite number as written, else null. */
+export const numberWords = (value: unknown): string | null => typeof value === "number" && Number.isFinite(value) ? String(value) : null;
 
 export const LINE_BREAK_MARK = "⏎";
 export const TAB_MARK = "→";
@@ -130,4 +143,33 @@ export function RecordedData({ value, label = RECORDED_DATA_LABEL, name, style }
   let shown: string;
   try { shown = JSON.stringify(value, null, 2) ?? String(value); } catch { shown = String(value); }
   return <AgentText block value={shown} source="record" label={label} name={name ?? "Recorded data"} style={style} />;
+}
+
+// The presentations a supplied value may take on a guarded view (tests/support/presentation-guard.mjs). Each
+// shows the App's own words only for a value it has checked at run time, and the value itself, boxed, for
+// anything else. An identifier or a number shown as written is still a supplied value: only its presentation
+// is the App's.
+
+/** A supplied identifier: as written in code type when it is a plain identifier, else boxed. */
+export function SuppliedId({ value, source = "codex", label = "Identity:", name = "Identity as Codex reported it, not the App's words" }: { value: Json; source?: AgentTextSource; label?: string; name?: string }) {
+  const plain = plainId(typeof value === "number" && Number.isSafeInteger(value) ? String(value) : value);
+  if (value === null || value === undefined) return <i>not recorded</i>;
+  return plain !== null ? <code>{plain}</code> : <AgentText value={value} source={source} label={label} name={name} />;
+}
+/** A supplied value from a closed vocabulary: the App's word when the value is one of the table's keys, else boxed. */
+export function Word({ value, words, source = "codex", label = "Codex sent:", name = "A value Codex sent that the App does not recognise, not the App's words" }: { value: Json; words: Readonly<Record<string, string>>; source?: AgentTextSource; label?: string; name?: string }) {
+  const word = wordOf(words, value);
+  if (value === null || value === undefined) return <i>not recorded</i>;
+  return word !== null ? <>{word}</> : <AgentText value={value} source={source} label={label} name={name} />;
+}
+/** A supplied number: as written when it is a finite number, else boxed. */
+export function Num({ value, source = "codex", label = "Codex sent:", name = "A value Codex sent where a number was expected, not the App's words" }: { value: Json; source?: AgentTextSource; label?: string; name?: string }) {
+  const shown = numberWords(value);
+  if (value === null || value === undefined) return <i>not recorded</i>;
+  return shown !== null ? <>{shown}</> : <AgentText value={value} source={source} label={label} name={name} />;
+}
+/** A supplied boolean in the App's words, else boxed. */
+export function Flag({ value, yes, no, source = "codex", label = "Codex sent:", name = "A value Codex sent where yes or no was expected, not the App's words" }: { value: Json; yes: string; no: string; source?: AgentTextSource; label?: string; name?: string }) {
+  if (value === null || value === undefined) return <i>not recorded</i>;
+  return value === true ? <>{yes}</> : value === false ? <>{no}</> : <AgentText value={value} source={source} label={label} name={name} />;
 }
