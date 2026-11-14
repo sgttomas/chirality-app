@@ -865,6 +865,17 @@ export function RegisteredRevisions({ library, rows, busy, act, chatAvailable = 
     {row.reconfirm===true&&<small> To use it again in this App session: Refine makes a draft with its bytes; review that draft and confirm in the App's dialog (re-confirmation).</small>}</li>)}</ul>;
 }
 
+/** What "bound in current generation" says, by what the binding rests on, and
+ * only that. None says the project now at the path is the one bound: every
+ * read an agent makes goes through the records capability's answer, which
+ * checks that again. */
+export const BOUND_MEANING:Record<string,string>={
+  "receipt":" (a receipt held for this conversation; whether the project at its path is still the one it names is checked again on every read)",
+  "offer":" (offered to this conversation when it started in this generation, with no receipt held; whether the project at its path is still the one offered is checked again on every read)",
+  "fork of an offered conversation":" (admitted to this conversation as a fork of one offered it in this generation, with no receipt held; whether the project at its path is still the one offered is checked again on every read)",
+};
+/** The meaning of a bound row, or none where its basis is not stated. */
+export const boundMeaning=(binding:Json)=>binding?.state==="bound in current generation"?(BOUND_MEANING[binding?.basis]??""):"";
 export function RecordsCapabilityBindings({ host }:{ host: Json }) {
   const rows=(host?.threads??[]).filter((row:Json)=>JSON.stringify(row.generation)===JSON.stringify(host?.generation)&&row.recordsCapabilityBinding);
   // Why the last read could not be recorded (LIM-014 among them): shown whole,
@@ -873,7 +884,7 @@ export function RecordsCapabilityBindings({ host }:{ host: Json }) {
   if (!rows.length && !readLogLimit) return null;
   return <section aria-label="Conversation records capability"><h3>Conversation records capability</h3>
     {readLogLimit&&<p role="alert">Records capability: {readLogLimit}</p>}
-    {rows.map((row:Json)=><p key={row.threadId}>{row.threadId}: {row.recordsCapabilityBinding.state}. {row.recordsCapabilityBinding.persistence??""}{row.recordsCapabilityBinding.limit?` · ${row.recordsCapabilityBinding.limit}`:""}</p>)}
+    {rows.map((row:Json)=><p key={row.threadId}>{row.threadId}: {row.recordsCapabilityBinding.state}{boundMeaning(row.recordsCapabilityBinding)}. {row.recordsCapabilityBinding.persistence??""}{row.recordsCapabilityBinding.limit?` · ${row.recordsCapabilityBinding.limit}`:""}</p>)}
   </section>;
 }
 
