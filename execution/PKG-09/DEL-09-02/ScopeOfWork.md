@@ -23,6 +23,25 @@ The two standalone journeys the release target keeps in scope for 4.0.0, J1 and 
 | SOW-196 | V4-EXM-11 inside that journey: stop, close and reopen, one request denied and one granted, quit and relaunch, continuation | OUT-001; OUT-002 |
 | SOW-197 | V4-EXM-12: ChatGPT account and a local model server configured together, one conversation with each | OUT-001; OUT-002 |
 
+## For 4.0.0
+
+The owner decided on 14 November 2026: "For v4 I'm really focused on the Codex path. To simplify this I can forego the local model entirely for 4.0.0 and it can come in a later update."
+
+Every requirement, criterion and verification of this scope, or clause of one, that concerns the local model server, the dedicated local home, both kinds of access configured together, or switching between them, is not in force for 4.0.0, and 4.0.0 neither meets nor fails it. It stays written for the later update that brings the local model server back. The clauses that concern the ChatGPT account stand for 4.0.0 as written.
+
+The steps of run B planned for 4.0.0 are M12-1 (sign-in), M12-4 (no model selected) and M12-6 (the custody scan). M12-2, M12-3 and M12-5 are out of 4.0.0 and stay defined, as the step map's `out_of_release` entry records (`app/examination/sq_receiving/sq.step-map.json`). For 4.0.0 the conversation served by the ChatGPT account is observed in run A's conversations on the same candidate, whose results name the account as the access used; run B adds no separate conversation step. AC-007's "every planned step" counts the planned steps only.
+
+The items affected, by identifier. An item not listed stands as written. Rows of the Output and Evaluation Matrix follow their items.
+
+- **Run B** (term) — Not in force: "configure a local model server with its credential", "and enters the credential" and "hold one conversation with each mode and switch between them". Stands: "V4-EXM-12 on the same candidate: sign in with a ChatGPT account, […] (the owner signs in […]), confirm that a new conversation shows no model selected until the person chooses, […]. No credential appears in any record."
+- **Agent-operated journey examination** (term) — Not in force: "and key entry" in "except sign-in and key entry". The rest stands.
+- **REQ-006** — Not in force: "and local model-server access configured together", "with one conversation using each and observed selection between them" and the whole second sentence. Stands: "V4-EXM-12 keeps ChatGPT sign-in […] on the candidate" and "Standalone OpenAI API-key access is outside this qualification."
+- **REQ-009** — Not in force: "and key entry" in "Sign-in and key entry, and the release target's criterion 8 protection act and policy-lowering confirmation […] are the owner's and never an agent's". The rest stands.
+- **AC-006** — Not in force: the local half of "both access modes configured together" and of "one conversation served by each mode", the words "with a switch between them", and the whole second sentence. Stands: run B shows the ChatGPT account configured, "no model selected in a new conversation until the person chooses", one conversation served by the ChatGPT account, "and no credential in any record". For 4.0.0 the conversation served by the ChatGPT account is observed in run A's conversations on the same candidate, whose results name the account as the access used; run B adds no separate conversation step.
+- **Praxeology, opening paragraph** — Not in force: "and key entry" in "The owner performs sign-in and key entry first." The rest stands.
+- **VER-006** — Not in force: "With both modes configured,", "observe the switch", the local half of "select each for one conversation", and the whole second sentence. Stands: select the ChatGPT account for one conversation and observe the result, "inspect the records for credentials", and "A mode that cannot be obtained is a named input gap or an observed failure".
+- **TBD-003** — Not in force: "The access modes are two, the account and local modes that PRD V4-APP-02 and V4-EXM-12 require;". For 4.0.0 PRD V4-APP-02 and V4-EXM-12 require the ChatGPT account. The rest stands.
+
 ## Deliverable Definition — Ontology
 
 - **OUT-001** — The journey and scenario definitions (J1, J2, V4-EXM-10, V4-EXM-11, V4-EXM-12) and one result record for each step planned on the candidate. Supports SOW-195, SOW-196 and SOW-197; OBJ-001, OBJ-002, OBJ-003 and OBJ-008.

@@ -14,15 +14,18 @@ needs:
     observed capability.
   gating: true
   when: Qualification of the account, provider and local-server interfaces and the handoff to the
-    host loop contract
+    host loop contract. For 4.0.0 the local-server interfaces and the handoff do not apply, because
+    the owner decided on 14 November 2026 that the local model server is not offered in 4.0.0 and
+    comes in a later update; the account and provider interfaces stand.
 - from: external:OpenAI ChatGPT sign-in service
   condition: The Codex-managed ChatGPT sign-in completes in the system browser for the person's
     own account.
   when: Sign-in on the candidate
 - from: external:local model server
-  condition: A local model server on the same machine serves the Responses interface at the
-    address set in the local model settings, has the model named there and accepts the key the
-    person holds.
+  condition: A local model server on the same machine serves the Responses interface at the address
+    set in the local model settings, has the model named there and accepts the key the person holds.
+    This need does not apply to 4.0.0, because the owner decided on 14 November 2026 that the local
+    model server is not offered in 4.0.0 and comes in a later update.
   when: A local conversation and the substitution of a second server
 code_paths:
 - app/src-tauri/src/access.rs

@@ -31,6 +31,8 @@ fn artifact_ref(path: &str, bytes: &[u8]) -> Artifact {
     }
 }
 fn parent(root: &File, path: &str, create: bool) -> Result<(File, String), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("distribution_store_s1::parent");
     let mut parts = path.split('/').peekable();
     let mut fd = root.try_clone().map_err(error)?;
     while let Some(part) = parts.next() {
@@ -228,6 +230,8 @@ impl Store {
         mut files: Files,
         lifecycle: bool,
     ) -> Result<S1Reference, String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("distribution_store_s1::Store::publish_s1");
         self.generation(&lease,g)?;
         let root = self.guard_s1(&lease)?;
         let name = util::opaque_id("s1-")?;

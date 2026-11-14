@@ -45,7 +45,7 @@ sending a message or replacing unsent work. Tab and Shift-Tab move through
 native HTML controls; Enter activates a focused link or button, and Space
 activates a focused button or disclosure summary.
 
-Sign-in, key entry and the native confirmation retain their existing actor and
+Sign-in and the native confirmation retain their existing actor and
 permission requirements. This guide does not authorize credentials, signing or
 release. Verify the procedure on the selected release candidate before publishing
 it as a release manual.

@@ -180,6 +180,8 @@ pub(crate) fn read_lock(path:&Path)->Result<Ownership,String>{flock(path,libc::L
 /// Nonblocking read ownership, including closed retained payloads.
 pub(crate) fn try_read_lock(path:&Path)->Result<Option<Ownership>,String>{flock(path,libc::LOCK_EX|libc::LOCK_NB,true)}
 fn flock(path: &Path, operation: libc::c_int, read: bool) -> Result<Option<Ownership>, String> {
+    #[cfg(test)]
+    mutation_for_test("write-capable lock acquisition");
     let admission=if read {crate::records_retention::read_path(path)?}else{crate::records_retention::write_path(path)?};
     check_path(path)?;
     ensure_directory_impl(path.parent().ok_or("lock has no parent")?)?;
@@ -199,6 +201,8 @@ fn flock(path: &Path, operation: libc::c_int, read: bool) -> Result<Option<Owner
     }
     Ok(Some(Ownership(file,admission.map(Box::new))))
 }
+#[cfg(test)]
+pub(crate) use crate::records_effect_guard::{mutation_for_test, without_mutations_for_test};
 #[cfg(test)]
 thread_local! { static FAIL_DIRECTORY: std::cell::RefCell<Option<PathBuf>> = const { std::cell::RefCell::new(None) }; }
 #[cfg(test)]
@@ -352,6 +356,8 @@ pub(crate) fn assert_publication_order_for_test(
 }
 pub fn sync_dir(path: &Path) -> Result<(), String> {
     #[cfg(test)]
+    mutation_for_test("directory sync");
+    #[cfg(test)]
     if FAIL_DIRECTORY.with(|p| p.borrow().as_deref() == Some(path)) {
         return Err("directory sync: injected failure".into());
     }
@@ -364,10 +370,14 @@ pub fn sync_dir(path: &Path) -> Result<(), String> {
 }
 /// Persist each newly created directory and its link in the pre-existing ancestor.
 pub fn ensure_directory(path: &Path) -> Result<(), String> {
+    #[cfg(test)]
+    mutation_for_test("ensure_directory");
     let _admission=crate::records_retention::write_path(path)?;
     ensure_directory_impl(path)
 }
 fn ensure_directory_impl(path:&Path)->Result<(),String>{
+    #[cfg(test)]
+    mutation_for_test("directory creation");
     check_path(path)?;
     let mut missing = vec![];
     let mut ancestor = path;
@@ -388,6 +398,8 @@ fn ensure_directory_impl(path:&Path)->Result<(),String>{
 }
 /// Re-establish complete publication durability up through the owning project/library root.
 pub fn sync_publication(path: &Path) -> Result<(), String> {
+    #[cfg(test)]
+    mutation_for_test("publication sync");
     check_path(path)?;
     #[cfg(test)]
     publication_sync_for_test(path, PublicationSyncStage::File)?;
@@ -432,6 +444,8 @@ fn publish_json_observed(
     attempted_publication: &mut bool,
     write: impl FnOnce(&mut File, &[u8]) -> Result<(), String>,
 ) -> Result<(), String> {
+    #[cfg(test)]
+    mutation_for_test("JSON publication");
     let _admission=crate::records_retention::write_path(path)?;
     check_path(path)?;
     let parent = path.parent().ok_or("evidence has no parent")?;
@@ -510,6 +524,8 @@ thread_local! { static FAIL_CAPTURE_WRITE: std::cell::Cell<bool> = const { std::
 #[cfg(test)]
 pub(crate) fn fail_capture_write_for_test(fail: bool) { FAIL_CAPTURE_WRITE.with(|v|v.set(fail)); }
 pub(crate) fn create_capture_json(path: &Path, value: &Value) -> Result<(), CapturePublicationFailure> {
+    #[cfg(test)]
+    mutation_for_test("create_capture_json");
     let mut attempted = false;
     let result = publish_json_observed(path, value, false, None, &mut attempted, |file, bytes| {
         #[cfg(test)]
@@ -521,6 +537,8 @@ pub(crate) fn create_capture_json(path: &Path, value: &Value) -> Result<(), Capt
 /// Publishes exact `bytes` once (an import's byte-identical copy): temporary
 /// file in the same folder, written and synced, renamed without replacing.
 pub(crate) fn create_bytes(path: &Path, bytes: &[u8]) -> Result<(), String> {
+    #[cfg(test)]
+    mutation_for_test("create_bytes");
     let _admission=crate::records_retention::write_path(path)?;
     check_path(path)?;
     let parent = path.parent().ok_or("copy has no parent")?;
@@ -549,6 +567,8 @@ pub(crate) fn create_bytes(path: &Path, bytes: &[u8]) -> Result<(), String> {
     result
 }
 pub fn create_json(path: &Path, value: &Value) -> Result<(), String> {
+    #[cfg(test)]
+    mutation_for_test("create_json");
     publish_json(path, value, false, |file, bytes| {
         file.write_all(bytes)
             .map_err(|e| format!("temporary evidence write: {e}"))
@@ -558,12 +578,16 @@ pub fn create_json(path: &Path, value: &Value) -> Result<(), String> {
 /// Administrative callers stage outside their strict events inventory. Both
 /// destination and staging folders are synced before success is reported.
 pub(crate) fn create_json_staged(path: &Path, value: &Value, staging: &Path) -> Result<(), String> {
+    #[cfg(test)]
+    mutation_for_test("create_json_staged");
     publish_json_observed(path, value, false, Some(staging), &mut false, |file, bytes| {
         file.write_all(bytes).map_err(|e| format!("temporary evidence write: {e}"))
     })
 }
 /// Atomic mutable writer metadata/sole backlink annotation; caller holds owning lock.
 pub(crate) fn replace_json(path: &Path, value: &Value) -> Result<(), String> {
+    #[cfg(test)]
+    mutation_for_test("replace_json");
     publish_json(path, value, true, |file, bytes| {
         file.write_all(bytes)
             .map_err(|e| format!("temporary annotation write: {e}"))
