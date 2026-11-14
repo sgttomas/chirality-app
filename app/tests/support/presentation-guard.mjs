@@ -698,10 +698,21 @@ function stringsOf(node, context, seen = new Set()) {
   if (ts.isIdentifier(node)) {
     const d = declarationOf(node, context);
     if (!d || seen.has(d) || !isConst(d) || !d.initializer) return null;
-    seen.add(d);
-    return stringsOf(d.initializer, context, seen);
+    // Recursion is detected along one resolution path only: sibling branches may revisit the same const.
+    return stringsOf(d.initializer, context, new Set([...seen, d]));
   }
   return null;
+}
+/** Whether an identifier is established as a component: imported, or declared as a function or class, or a const
+ * whose initializer is a function. */
+function componentIdentity(node, context) {
+  if (!ts.isIdentifier(node)) return false;
+  if (importOf(node, context)) return true;
+  const d = declarationOf(node, context);
+  if (!d) return false;
+  if (ts.isFunctionDeclaration(d) || ts.isClassDeclaration(d)) return true;
+  if (ts.isVariableDeclaration(d) && isConst(d) && d.initializer) { const i = unwrap(d.initializer); return ts.isArrowFunction(i) || ts.isFunctionExpression(i); }
+  return false;
 }
 /** The object literals a style expression can be; null when the style cannot be read as a whole. */
 function objectsOf(node, context, seen = new Set()) {
@@ -713,8 +724,7 @@ function objectsOf(node, context, seen = new Set()) {
   if (ts.isIdentifier(node)) {
     const d = declarationOf(node, context);
     if (!d || seen.has(d) || !isConst(d) || !d.initializer) return null;
-    seen.add(d);
-    return objectsOf(d.initializer, context, seen);
+    return objectsOf(d.initializer, context, new Set([...seen, d]));
   }
   if (ts.isPropertyAccessExpression(node) && ts.isIdentifier(unwrap(node.expression))) {
     const holders = objectsOf(node.expression, context, seen);
@@ -773,8 +783,9 @@ export function preformattedFindings(name, text) {
       const named = ts.isIdentifier(callee) ? callee.text : ts.isPropertyAccessExpression(callee) ? callee.name.text : null;
       if (named === 'createElement' && node.arguments.length) {
         const tags = stringsOf(node.arguments[0], context);
-        // A component written as a capitalised identifier that is not a const string is a component, not a tag.
-        const component = !tags && ts.isIdentifier(unwrap(node.arguments[0])) && /^[A-Z]/.test(unwrap(node.arguments[0]).text) && !(declarationOf(unwrap(node.arguments[0]), context) && isConst(declarationOf(unwrap(node.arguments[0]), context)) && stringsOf(declarationOf(unwrap(node.arguments[0]), context).initializer, context));
+        // An unresolved tag is taken as a component only where its identity as one is established: an import, a
+        // function or class declaration, or a const holding a function. A parameter or any other value is not.
+        const component = !tags && componentIdentity(unwrap(node.arguments[0]), context);
         if (tags?.includes('pre')) record(node, '(b) createElement("pre")', false);
         else if (!tags && !component) record(node, '(b) createElement with a tag that is not resolved', false);
         const props = node.arguments[1] && objectsOf(node.arguments[1], context);
