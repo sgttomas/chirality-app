@@ -929,7 +929,11 @@ fn alias_read_log(kind: &str) {
     let project = f.project("project");
     write_run(&project, "run:alias", 1, "secret-invented-record-content", false);
     let cap = capability(&f, &project);
-    crate::storage::append_alias_fixture(kind, b"", |path| {
+    // The timed operation is the whole capability answer: its source reads
+    // and the history notice's routing reads and census run before the read
+    // log is opened. A blocking open is still caught by the bound and by the
+    // fixture's three-second kill.
+    crate::storage::append_alias_fixture_within(kind, b"", std::time::Duration::from_millis(1500), |path| {
         cap.log.lock().unwrap().place = LogPlace::Fixed(path.to_path_buf());
         let request = call(1, json!({"operation":"read_run","run":"run:alias"}));
         let answer = cap.answer(&request, project.to_str());
