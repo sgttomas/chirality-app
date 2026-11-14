@@ -1331,15 +1331,17 @@ pub fn attach(root: &Path, mint: bool) -> Result<Attachment, String> {
                 // never registered here on the link alone.
                 let released = lines.iter().any(|l| l["projectId"] == project.as_str());
                 let known = released || identity_held(&project_dir(&store, project))?;
-                if mint && !released {
+                if mint && !known {
                     // A link the store does not know yet, or an identity whose
-                    // minting stopped before its first roots line.
+                    // minting stopped before publishing its identity record.
+                    // Retained history without roots needs the same explicit
+                    // confirmation as a read; a write cannot associate it.
                     register(&store, project, &at, "registered")?;
                     out.limits.push(format!("the records store held no record of project {project}; registered from its project file"));
                     out.how = "registered";
                     attach_to(&mut out, project);
                 } else if known {
-                    out.refusal = Some(format!("records kept, not attached: the records store holds project {project}, which this folder's project file names, and records no folder for it; nothing is read or written for it until the person confirms this folder is that project"));
+                    out.refusal = Some(format!("project identity kept, not attached: the records store holds project identity {project}, which this folder's project file names, and records no folder for it; nothing is read or written for it until the person confirms this folder is that project"));
                     out.how = "unattached";
                     out.linked = Some(project.clone());
                     out.fault = Some("no folder recorded");
@@ -1419,7 +1421,7 @@ impl std::fmt::Display for ReaderError {
 }
 /// A kept reader's binding: the records store, the project folder and the
 /// project's records folder in the store that the reader was opened for. It
-/// protects kept readers; a writer's binding is not this.
+/// also supplies the held folders used by a pending writer's binding.
 ///
 /// A folder's physical identity here is the device and inode of the folder
 /// itself, read without following a link. Each bound folder is held open for
@@ -1523,6 +1525,11 @@ impl ReaderBinding {
     /// refuses with its reason; the binding is kept, never moved, so the
     /// reader reads again once what changed is as it was.
     pub(crate) fn prove(&self) -> Result<(), ReaderError> {
+        let project_now = self.prove_store_and_project()?;
+        let now = decided_place(&self.root, self.decision)?;
+        self.prove_folders(project_now, now)
+    }
+    fn prove_store_and_project(&self) -> Result<(u64, u64), ReaderError> {
         if let Some((root, id)) = &self.store {
             let (now, now_id) = opened()?;
             if &now != root || &now_id != id {
@@ -1532,9 +1539,10 @@ impl ReaderBinding {
         // The project folder examined first, so that what cannot be examined
         // is not known; compared only after the decision, so that the
         // decision's own refusal (not attached, disposed) keeps its reason.
-        let project_now = node(&self.root)
-            .map_err(|e| format!("not known: the project folder {} could not be examined ({e}); nothing read", self.root.display()))?;
-        let now = decided_place(&self.root, self.decision)?;
+        node(&self.root)
+            .map_err(|e| format!("not known: the project folder {} could not be examined ({e}); nothing read", self.root.display()).into())
+    }
+    fn prove_folders(&self, project_now: (u64, u64), now: Option<PathBuf>) -> Result<(), ReaderError> {
         if project_now != self.project {
             return Err(format!("the project folder at {} is not the folder this reader was opened for; nothing read", self.root.display()).into());
         }
@@ -1575,6 +1583,132 @@ impl ReaderBinding {
     }
 }
 
+/// Pending work keeps the same held folders as a reader, plus the project
+/// identity its attachment named. It never follows a later attachment.
+#[derive(Debug)]
+pub(crate) struct WriterBinding {
+    source: ReaderBinding,
+    project: String,
+}
+fn writing_reason(reason: String) -> String {
+    reason
+        .replace("this reader", "this writer")
+        .replace("nothing read", "nothing written")
+}
+fn writer_binding(root: &Path, attachment: Attachment) -> Result<WriterBinding, String> {
+    if let Some(reason) = attachment.refusal {
+        return Err(reason);
+    }
+    let project_id = attachment
+        .project
+        .ok_or("no project identity; nothing written")?;
+    let dir = attachment
+        .dir
+        .ok_or("no project records folder; nothing written")?;
+    let (project, project_open) =
+        hold_folder(root, "the project folder").map_err(writing_reason)?;
+    let store = opened()?;
+    let (node, open) =
+        hold_folder(&dir, "the project's records folder in the store").map_err(writing_reason)?;
+    Ok(WriterBinding {
+        source: ReaderBinding {
+            decision: ReaderDecision::Records,
+            root: root.to_path_buf(),
+            project,
+            _project_open: project_open,
+            store: Some(store),
+            records: Some(BoundFolder {
+                path: dir,
+                node,
+                _open: open,
+            }),
+            in_place: None,
+        },
+        project: project_id,
+    })
+}
+/// Opened for pending writing: give a new project its first attachment, as
+/// write_dir does, but keep the pending work even when import is still needed.
+pub(crate) fn bind_writer(root: &Path) -> Result<WriterBinding, String> {
+    writer_binding(root, attach(root, true)?)
+}
+/// A handle also used for reading may retain a writer binding only if already
+/// attached. Opening that handle for a read mints nothing.
+pub(crate) fn bind_writer_if_attached(root: &Path) -> Result<Option<WriterBinding>, String> {
+    let attachment = attach(root, false)?;
+    if let Some(reason) = &attachment.refusal {
+        return Err(reason.clone());
+    }
+    if attachment.dir.is_none() {
+        return Ok(None);
+    }
+    writer_binding(root, attachment).map(Some)
+}
+impl WriterBinding {
+    pub(crate) fn records_dir(&self) -> &Path {
+        &self.source.records.as_ref().unwrap().path
+    }
+    pub(crate) fn project_id(&self) -> &str {
+        &self.project
+    }
+    pub(crate) fn project_folder(&self) -> (u64, u64) {
+        self.source.project_folder()
+    }
+    /// A kept reader must accept this writer's original destination before
+    /// publication. An in-place reader requires reopening. A reader already
+    /// bound to this store folder can accept an original-byte retry even when
+    /// removing a failed-write obstruction temporarily left that folder empty.
+    /// The caller proves this writer under write admission first.
+    pub(crate) fn prove_reader(&self, reader: &ReaderBinding) -> Result<(), String> {
+        let project = reader.prove_store_and_project()?;
+        reader.prove_folders(project, Some(self.records_dir().to_path_buf())).map_err(String::from)
+    }
+    /// Read-only preflight of this binding, retaining the attachment's own
+    /// refusal. This alone admits no write; prove_for_write still runs under
+    /// the shared admission after a queued writer obtains it.
+    pub(crate) fn check_attachment(&self) -> Result<(u64, u64), String> {
+        let project = self
+            .source
+            .prove_store_and_project()
+            .map_err(|error| writing_reason(error.into()))?;
+        if project != self.source.project {
+            return Err("the project folder is not the folder this writer was opened for; reopen; nothing written".into());
+        }
+        let attachment = attach(&self.source.root, false)?;
+        if let Some(reason) = attachment.refusal {
+            return Err(reason);
+        }
+        if attachment.project.as_deref() != Some(&self.project)
+            || attachment.dir.as_deref() != Some(self.records_dir())
+        {
+            return Err("the project's records identity changed since this writer was opened; reopen; nothing written".into());
+        }
+        Ok(project)
+    }
+    /// Run inside write_path's shared admission. App identity acts take it
+    /// exclusively. A hosted agent, the person or another program can still
+    /// change files: this proof is an observation, not a filesystem transaction.
+    /// The caller keeps its admission through publication and writes only to
+    /// the bound folder; it must not resolve a new destination after this proof.
+    pub(crate) fn prove_for_write(&self) -> Result<(), String> {
+        let project = self.check_attachment()?;
+        let now = write_dir(&self.source.root)?;
+        self.source
+            .prove_folders(project, Some(now.clone()))
+            .map_err(|error| writing_reason(error.into()))?;
+        // Permission's census and completion proof contain further reads.
+        // Recheck the association and physical folders after those reads too.
+        package::check_write_binding(self.records_dir())?;
+        let project = self
+            .source
+            .prove_store_and_project()
+            .map_err(|error| writing_reason(error.into()))?;
+        self.source
+            .prove_folders(project, Some(now))
+            .map_err(|error| writing_reason(error.into()))
+    }
+}
+
 /// For a handle bound earlier to the store folder `bound`: `root` must be
 /// attached now, cleanly, to that same folder. Whatever stands between the
 /// folder and its records refuses with the attachment's own text; a check
@@ -1594,6 +1728,50 @@ pub(crate) fn require_attached(root: &Path, bound: &Path) -> Result<(), String> 
     }
 }
 
+// Only the synchronous registering call on this thread can use this mark.
+// The held descriptor prevents inode reuse; a substituted folder is refused.
+thread_local! { static REGISTRATION: std::cell::RefCell<Option<BoundFolder>> = const { std::cell::RefCell::new(None) }; }
+struct Registration(std::marker::PhantomData<std::rc::Rc<()>>);
+impl Registration {
+    fn enter(dir: &Path) -> Result<Self, String> {
+        if REGISTRATION.with(|r| r.borrow().is_some()) {
+            return Err("nested project registration refused".into());
+        }
+        // Registration creates its one payload folder before it can bind it.
+        // The caller holds the store lock and has checked retention. No
+        // association is remembered until its identity and roots line exist.
+        let parent = dir.parent().ok_or("registration folder has no parent")?;
+        crate::storage::ensure_directory(parent)?;
+        crate::storage::check_path(dir)?;
+        match std::fs::create_dir(dir) {
+            Ok(()) => crate::storage::sync_dir(parent)?,
+            Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {}
+            Err(e) => return Err(format!("registration folder unavailable: {e}")),
+        }
+        let (node, open) = hold_folder(dir, "the registering project's records folder")?;
+        REGISTRATION.with(|r| {
+            *r.borrow_mut() = Some(BoundFolder {
+                path: dir.to_path_buf(),
+                node,
+                _open: open,
+            })
+        });
+        Ok(Self(std::marker::PhantomData))
+    }
+}
+impl Drop for Registration {
+    fn drop(&mut self) {
+        REGISTRATION.with(|r| *r.borrow_mut() = None);
+    }
+}
+fn registration_owns(dir: &Path) -> bool {
+    REGISTRATION.with(|r| {
+        r.borrow()
+            .as_ref()
+            .is_some_and(|bound| bound.path == dir && node(dir).is_ok_and(|now| now == bound.node))
+    })
+}
+
 /// The store's identity record for `project` (once) and a roots line.
 fn register(store: &Path, project: &str, root: &str, how: &str) -> Result<(), String> {
     #[cfg(test)]
@@ -1603,15 +1781,21 @@ fn register(store: &Path, project: &str, root: &str, how: &str) -> Result<(), St
     require_roots_whole(store)?;
     let dir = project_dir(store, project);
     let record = dir.join("project.json");
+    let _registration;
     if !record.exists() {
         crate::records_retention::check_write(&dir)?;
         // The witness of legacy imports begins before any project is created
         // after it, so such a project is known to have been created after it.
         witness::begin(store)?;
+        _registration = Some(Registration::enter(&dir)?);
+        #[cfg(test)]
+        if let Some(hook) = REGISTER_BEFORE_PUBLICATION.with(|h| h.borrow_mut().take()) { hook(&dir); }
         crate::storage::create_json(&record, &json!({"format":PROJECT_FORMAT,"formatVersion":VERSION,"projectId":project,"createdAt":now_rfc3339(),"how":how}))?;
-    }
+    } else { _registration = None; }
     append_line(&store.join("roots.jsonl"), &json!({"format":ROOT_FORMAT,"formatVersion":VERSION,"projectId":project,"root":root,"at":now_rfc3339(),"how":how}))
 }
+#[cfg(test)]
+thread_local! { static REGISTER_BEFORE_PUBLICATION: std::cell::RefCell<Option<Box<dyn FnOnce(&Path)>>> = const { std::cell::RefCell::new(None) }; }
 
 /// The project's imports as recorded: each import writes a "started" line
 /// with its whole census before it copies anything, and a "completed" line
@@ -2219,7 +2403,11 @@ fn accounts_in_project(root: &Path, location: String) -> AccountsPlace {
 /// no §13.7 records waiting for import. Every refusal names its cause.
 pub(crate) fn write_dir(root: &Path) -> Result<PathBuf, String> {
     let attachment = attach(root, true).map_err(|e| format!("nothing written: {e}"))?;
-    let dir = attachment.dir.clone().ok_or_else(|| format!("no project identity in the records store; nothing written: {}", attachment.refusal.clone().unwrap_or_default()))?;
+    let dir = attachment.dir.clone().ok_or_else(|| {
+        let refusal = attachment.refusal.clone().unwrap_or_default();
+        if attachment.fault == Some("no folder recorded") { refusal }
+        else { format!("no project identity in the records store; nothing written: {refusal}") }
+    })?;
     write_permitted(&dir, &attachment.root)?;
     Ok(dir)
 }
@@ -2305,7 +2493,9 @@ fn inspect_write(root: &Path) -> WriteInspection {
     };
     let Some(dir) = attachment.dir else {
         return match attachment.refusal {
-            Some(refusal) => WriteInspection::Refused(WriteRefusal::new(WriteRefusalKind::Association, format!("no project identity in the records store; nothing written: {refusal}"))),
+            Some(refusal) => WriteInspection::Refused(WriteRefusal::new(WriteRefusalKind::Association,
+                if attachment.fault == Some("no folder recorded") { refusal }
+                else { format!("no project identity in the records store; nothing written: {refusal}") })),
             None => WriteInspection::Outstanding(OutstandingWriteProof::FirstWriteMint),
         };
     };
@@ -2588,6 +2778,7 @@ pub(crate) const READ_LOG: &str = "reads/records-reads.jsonl";
 pub(crate) fn read_log_path(root: &Path) -> Result<PathBuf, String> {
     let attachment = attach(root, false).map_err(|e| format!("records store unavailable: {e}"))?;
     let dir = attachment.dir.ok_or_else(|| match attachment.refusal {
+        Some(refusal) if attachment.fault == Some("no folder recorded") => refusal,
         Some(refusal) => format!("no project identity in the records store: {refusal}"),
         None => "the project has no records store identity yet (the App mints it when it opens the project; an agent's read does not); nothing recorded".into(),
     })?;
@@ -3337,7 +3528,7 @@ pub fn status(project: Option<&Path>) -> Value {
                 // A refused attachment is said first: files kept in the
                 // project folder are not read in the place of records the
                 // store holds, and no import is asked for while it stands.
-                "reading":if home.attachment.fault == Some("no folder recorded") {"records kept in the records store under the identity this folder's file names, not attached to this folder"}
+                "reading":if home.attachment.fault == Some("no folder recorded") {"nothing from the records store: this folder's project identity is kept there with no folder recorded; not attached to this folder"}
                     else if home.attachment.fault == Some("association not known") {"nothing from the records store (association not known)"}
                     else {match &read {Err(_) => "nothing from the records store (the project is not attached)", Ok(read) => read.reading(!census.is_empty(), import_needed)}},
                 "importNeeded":import_needed,

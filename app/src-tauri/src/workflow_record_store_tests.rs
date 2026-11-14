@@ -24,6 +24,187 @@ fn pending(p: &ProjectRecords) -> PendingRecord {
     PendingRecord::new(p, selection(), vec![], vec![], "writer", "original").unwrap()
 }
 
+#[test]
+fn records_store_writer_binding_wr_nonfreezing_import_needed_publication_retries_after_import() {
+    let f = Fixture::new();
+    let legacy = f.0.join(".chirality/records/acts");
+    std::fs::create_dir_all(&legacy).unwrap();
+    crate::records::append(&legacy.join("fixture.jsonl"), "evidence_limit", &crate::records::APP_WRITER,
+        json!({"label":"unresolvable reference","subjectRef":"fixture","detail":"invented legacy history"})).unwrap();
+    let p = f.store();
+    let waiting = pending(&p);
+    let original = waiting.bytes.clone();
+    let refusal = p.publish(&waiting).unwrap_err();
+    assert!(refusal.contains("import needed"), "{refusal}");
+    assert!(waiting.binding.is_ok(), "import needed is a publication refusal, not an initial binding refusal");
+    crate::records_store::import(&f.0).unwrap();
+    let saved = p.publish(&waiting).unwrap();
+    assert_eq!(saved.reference(), waiting.reference());
+    assert_eq!(saved.bytes, original);
+    assert_eq!(p.resolve(waiting.reference()).unwrap().bytes, original);
+}
+
+#[test]
+fn records_store_writer_binding_f4_workflow_publication_keeps_refused_bytes() {
+    let f = Fixture::new();
+    let p = f.store();
+    p.publish(&pending(&p)).unwrap();
+    let admitted = pending(&p);
+    let admitted_bytes = admitted.bytes.clone();
+    let registry = crate::records_store::store_root().unwrap().join("roots.jsonl");
+    std::fs::write(&registry, b"").unwrap();
+    let reason = crate::records_store::attach(&f.0, false).unwrap().refusal.unwrap();
+    assert_eq!(p.publish(&admitted).err().as_deref(), Some(reason.as_str()));
+    assert_eq!(admitted.bytes, admitted_bytes);
+    let original_writer = p;
+    let p = f.store(); // A first admission in F4, rather than a previously bound writer.
+    let waiting = pending(&p);
+    let original = waiting.bytes.clone();
+    assert_eq!(p.publish(&waiting).err().as_deref(), Some(reason.as_str()));
+    assert_eq!(waiting.bytes, original);
+    assert_eq!(std::fs::read(&registry).unwrap(), b"");
+    crate::records_store::adopt(&f.0).unwrap();
+    assert!(original_writer.publish(&admitted).is_ok());
+    assert_eq!(admitted.bytes, admitted_bytes);
+    // A refused admission is frozen with its bytes, not rebound by confirmation.
+    assert_eq!(p.publish(&waiting).err().as_deref(), Some(reason.as_str()));
+    assert_eq!(waiting.bytes, original);
+    assert!(p.resolve(waiting.reference()).is_err());
+    assert!(p.publish(&pending(&p)).is_ok(), "a fresh admission after confirmation works");
+}
+
+#[test]
+fn records_store_writer_binding_wr_in_place_handle_refuses_before_publication_after_import() {
+    let f = Fixture::new();
+    let kept = f.store();
+    let original = pending(&kept);
+    let legacy = f.0.join(".chirality/records/workflow");
+    std::fs::create_dir_all(&legacy).unwrap();
+    std::fs::write(legacy.join(format!("{}.json", key(original.reference()).unwrap())), &original.bytes).unwrap();
+    assert!(kept.resolve(original.reference()).is_ok());
+    let waiting = pending(&kept);
+    let before = crate::records_store::attach(&f.0, false).unwrap().project;
+    crate::records_store::import(&f.0).unwrap();
+    let home = crate::records_store::attach(&f.0, false).unwrap();
+    let result = kept.publish(&waiting);
+    let fresh = f.store().resolve(waiting.reference());
+    let target = home.dir.unwrap().join("workflow").join(format!("{}.json", key(waiting.reference()).unwrap()));
+    assert!(!target.exists(), "published then refused: before identity={before:?}, after={:?}, result={result:?}, fresh={fresh:?}", home.project);
+    assert!(result.as_ref().is_err_and(|e| e.contains("reopen")), "{result:?}");
+}
+
+#[test]
+fn records_store_writer_binding_wr_pending_under_a_is_not_published_under_b() {
+    let f = Fixture::new();
+    let a = crate::records_store::write_dir(&f.0).unwrap();
+    let kept = f.store();
+    let activity = crate::records_retention::activity(&f.0).unwrap();
+    let waiting = pending(&kept);
+    drop(activity);
+    crate::records_store::new_identity(&f.0).unwrap();
+    let b = crate::records_store::write_dir(&f.0).unwrap();
+    assert_ne!(a, b);
+    let result = kept.publish(&waiting);
+    let leaf = format!("{}.json", key(waiting.reference()).unwrap());
+    assert!(!a.join("workflow").join(&leaf).exists() && !b.join("workflow").join(&leaf).exists(), "pending entry published under another identity: {result:?}");
+    assert!(result.is_err(), "{result:?}");
+}
+
+#[test]
+fn records_store_writer_binding_wr_unexaminable_project_is_not_known() {
+    let f = Fixture::new();
+    crate::records_store::write_dir(&f.0).unwrap();
+    let kept = f.store();
+    let waiting = pending(&kept);
+    let aside = f.0.with_extension("held");
+    std::fs::rename(&f.0, &aside).unwrap();
+    let result = kept.publish(&waiting);
+    std::fs::rename(&aside, &f.0).unwrap();
+    assert!(result.as_ref().is_err_and(|e| e.contains("not known")), "{result:?}");
+    assert!(kept.publish(&waiting).is_ok(), "the original pending work remains usable");
+}
+
+#[test]
+fn records_store_writer_binding_wr_refused_admission_keeps_pending_bytes_without_rebinding() {
+    let f = Fixture::new();
+    let p = f.store();
+    let outside = f.0.with_extension("outside");
+    std::fs::create_dir(&outside).unwrap();
+    std::os::unix::fs::symlink(&outside, f.0.join(".chirality")).unwrap();
+    let waiting = pending(&p);
+    let original_bytes = waiting.bytes.clone();
+    assert!(p.publish(&waiting).is_err());
+    std::fs::remove_file(f.0.join(".chirality")).unwrap();
+    std::fs::remove_dir(outside).unwrap();
+    let dir = crate::records_store::write_dir(&f.0).unwrap();
+    let result = p.publish(&waiting);
+    assert!(result.is_err(), "a refused pending admission acquired a later binding: {result:?}");
+    assert_eq!(waiting.bytes, original_bytes);
+    assert!(!dir.join("workflow").join(format!("{}.json", key(waiting.reference()).unwrap())).exists());
+    assert!(p.publish(&pending(&p)).is_ok(), "a new admission is explicit");
+}
+
+#[test]
+fn records_store_writer_binding_wr_replacement_project_with_copied_link_is_refused() {
+    let f = Fixture::new();
+    let dir = crate::records_store::write_dir(&f.0).unwrap();
+    let kept = f.store();
+    let waiting = pending(&kept);
+    let aside = f.0.with_extension("held");
+    std::fs::rename(&f.0, &aside).unwrap();
+    std::fs::create_dir_all(f.0.join(".chirality")).unwrap();
+    std::fs::copy(aside.join(crate::records_store::PROJECT_LINK), f.0.join(crate::records_store::PROJECT_LINK)).unwrap();
+    let result = kept.publish(&waiting);
+    std::fs::remove_dir_all(&f.0).unwrap();
+    std::fs::rename(&aside, &f.0).unwrap();
+    assert!(result.is_err(), "{result:?}");
+    assert!(!dir.join("workflow").join(format!("{}.json", key(waiting.reference()).unwrap())).exists());
+    assert!(kept.publish(&waiting).is_ok());
+}
+
+#[test]
+fn records_store_writer_binding_wr_records_folder_renamed_between_reads_is_refused() {
+    let f = Fixture::new();
+    let dir = crate::records_store::write_dir(&f.0).unwrap();
+    let kept = f.store();
+    let waiting = pending(&kept);
+    let aside = dir.with_extension("moved");
+    let (at, moved) = (dir.clone(), aside.clone());
+    WRITER_BEFORE_PUBLICATION.with(|h| *h.borrow_mut() = Some(Box::new(move || {
+        std::fs::rename(&at, &moved).unwrap();
+        std::fs::create_dir(&at).unwrap();
+    })));
+    let result = kept.publish(&waiting);
+    let leaf = format!("{}.json", key(waiting.reference()).unwrap());
+    let published = dir.join("workflow").join(&leaf).exists() || aside.join("workflow").join(&leaf).exists();
+    std::fs::remove_dir_all(&dir).unwrap();
+    std::fs::rename(&aside, &dir).unwrap();
+    assert!(!published, "write followed a renamed folder: {result:?}");
+    assert!(result.is_err(), "{result:?}");
+    assert!(kept.publish(&waiting).is_ok());
+}
+
+#[test]
+fn records_store_writer_binding_wr_link_swapped_between_reads_is_refused() {
+    let f = Fixture::new();
+    let dir = crate::records_store::write_dir(&f.0).unwrap();
+    let kept = f.store();
+    let waiting = pending(&kept);
+    let link = f.0.join(crate::records_store::PROJECT_LINK);
+    let original = std::fs::read(&link).unwrap();
+    let at = link.clone();
+    WRITER_BEFORE_PUBLICATION.with(|h| *h.borrow_mut() = Some(Box::new(move || {
+        let mut value: Value = serde_json::from_slice(&std::fs::read(&at).unwrap()).unwrap();
+        value["projectId"] = json!("invented:hosted-agent-swapped-link");
+        std::fs::write(&at, serde_json::to_vec(&value).unwrap()).unwrap();
+    })));
+    let result = kept.publish(&waiting);
+    std::fs::write(&link, original).unwrap();
+    assert!(!dir.join("workflow").join(format!("{}.json", key(waiting.reference()).unwrap())).exists(), "published then refused after swapped link: {result:?}");
+    assert!(result.is_err(), "{result:?}");
+    assert!(kept.publish(&waiting).is_ok());
+}
+
 // The independent empty-child probe, using main's current reader binding.
 fn empty_folder_keeps_history_in_place(name: &str) {
     let f = Fixture::new();

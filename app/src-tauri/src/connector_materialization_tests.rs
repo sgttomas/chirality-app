@@ -297,6 +297,25 @@ fn current_draft(v: &Value) -> (&str, &str) {
     )
 }
 #[test]
+fn records_store_writer_binding_f4_connector_draft_outcome_says_not_recorded() {
+    let (repo, source, input) = prepared();
+    let registry = Mutex::new(Registry::default());
+    let ready = prepare(&registry, &source, input, &repo.root).unwrap();
+    let (token, generation) = current_draft(&ready);
+    let roots = crate::records_store::store_root().unwrap().join("roots.jsonl");
+    fs::write(&roots, b"").unwrap();
+    let reason = crate::records_store::attach(&repo.root, false).unwrap().refusal.unwrap();
+    let result = super::registry::publish_with(&registry, &source, token, generation, &repo.root, |_, _| {
+        panic!("refused association must not invoke the account writer")
+    }).unwrap();
+    let entry = &result["entries"][0];
+    assert_eq!(entry["status"], "refused");
+    assert!(entry["draft"].is_null(), "the once-only draft is not a pending retry");
+    let message = entry["outcomeText"].as_str().unwrap();
+    assert!(message.contains("account was not recorded") && message.contains(&reason), "{message}");
+    assert_eq!(fs::read(&roots).unwrap(), b"");
+}
+#[test]
 fn connector_materialization_once_only_actual_outcome_survives_cancel_and_new_session() {
     let (r, s, i) = prepared();
     let registry = Mutex::new(Registry::default());

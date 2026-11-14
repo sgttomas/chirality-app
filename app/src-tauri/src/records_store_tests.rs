@@ -15,6 +15,7 @@ mod publication { include!("records_store_publication_tests.rs"); }
 mod safe_append { include!("records_store_lines_tests.rs"); }
 mod legacy_witness { include!("records_store_witness_tests.rs"); }
 mod sync { include!("records_store_sync_tests.rs"); }
+mod writer_binding { include!("records_store_writer_binding_tests.rs"); }
 mod status_gate { include!("records_store_status_tests.rs"); }
 
 fn folder(prefix: &str) -> PathBuf {
@@ -908,20 +909,20 @@ fn an_adoption_stopped_after_its_release_lines_is_offered_to_the_person_to_compl
     append_line(&store.join("roots.jsonl"), &json!({"format":ROOT_FORMAT,"formatVersion":VERSION,"projectId":q,"root":before.display().to_string(),"at":now_rfc3339(),"how":"released","by":"adopt"})).unwrap();
     let stopped = attach(&after, false).unwrap();
     // Review round 2, finding 6: known history with no folder recorded is
-    // "records kept, not attached", never a project with no records: it
+    // "project identity kept, not attached", with no reading location: it
     // refuses (the earlier expectation, no refusal, was that defect).
     assert!(stopped.dir.is_none(), "{stopped:?}");
-    assert!(stopped.refusal.as_deref().is_some_and(|r| r.starts_with("records kept, not attached")), "{stopped:?}");
+    assert!(stopped.refusal.as_deref().is_some_and(|r| r.starts_with("project identity kept, not attached")), "{stopped:?}");
     assert_eq!((stopped.how, stopped.fault, stopped.resolutions.as_slice(), stopped.linked.as_deref()), ("unattached", Some("no folder recorded"), ["adopt"].as_slice(), Some(q.as_str())));
     let view = status(Some(&after));
     assert_eq!(view["project"]["attachment"]["resolutions"], json!(["adopt"]));
     assert_ne!(view["project"]["reading"], "no records yet", "{view}");
-    assert!(view["project"]["reading"].as_str().unwrap().starts_with("records kept in the records store"), "{view}");
+    assert!(view["project"]["reading"].as_str().unwrap().starts_with("nothing from the records store: this folder's project identity is kept there"), "{view}");
     // No supplier is admitted for it, and the App's opening attach does not
     // register the folder on its link alone: nothing is written.
     let roots_before = std::fs::read(store.join("roots.jsonl")).unwrap();
     let supplier = crate::records_retention::activity(&after).err().expect("no supplier admitted");
-    assert!(supplier.starts_with("records kept, not attached"), "{supplier}");
+    assert!(supplier.starts_with("project identity kept, not attached"), "{supplier}");
     let opening = attach(&after, true).unwrap();
     assert!(opening.dir.is_none() && opening.fault == Some("no folder recorded"), "{opening:?}");
     assert!(records::append_project(&after, None, "writer:q", "evidence_limit", &APP_WRITER, body("not Q's until confirmed")).is_err());
@@ -1146,9 +1147,9 @@ fn selected_source_lines_about_where_a_projects_records_are_read_are_held_by_con
         ("records_retention.rs", "61c7d3cfd6140ced", "administration and admission: for a path already in hand, the project store folder it lies in, to take that project's admission (no folder is read through it); and the activity lease and the retention acts take the attachment and themselves refuse a refused one, an identity limit and an unread registry"),
         ("storage.rs", "48623ca56512f990", "all of a path already in hand: its label for presentation, its sync boundary, its records root, and the project root its store folder was opened from for a writer; none gives a reader a place for a project"),
         ("file_act_view.rs", "e74763194a74bba7", "the folder a log path already in hand lies in, as the base for reading that log"),
-        ("records.rs", "85c289c7b5d8b971", "the appender takes the writer lock of the store folder a log path already in hand lies in"),
+        ("records.rs", "e0d568dd1d8c96e2", "the appender takes the writer lock of the store folder a log path already in hand lies in, after the read-only attachment diagnostic for that folder's store (the writer lock's admission decides; neither gives a reader a place)"),
         ("records_access.rs", "519c5024fe3afbe5", "the records capability's own read log, a writer: its path in the project's store folder, refused with the read when the attachment gives none"),
-        ("role_observations.rs", "c024537e4e6f86bd", "the census of files kept in the project folder, read only to REFUSE role observation history while an import is needed; and a writer taking the project's identity from the attachment (none for a refused one)"),
+        ("role_observations.rs", "17be76e78435e746", "the census of files kept in the project folder, read only to REFUSE role observation history while an import is needed; a writer takes its project identity from its held writer binding, not a fresh attachment"),
         ("role_record_source.rs", "b7a86f4abea1daee", "the role source takes the project's identity from the attachment, to refuse a reference that belongs to another project; no place is taken"),
         ("workflow_record_store.rs", "06f4e510163168a1", "the workflow record store's read admission takes the attachment and returns its refusal for a refused one before anything is read; and the census of files kept in the project folder, read only to decide whether a kept reader binds in place (records in place hold records), never to take a place: the place is the binding's, from readable_home"),
         ("native_conversation_links.rs", "58c2472c29734ec3", "the native relationship writer captures the attachment it will write under and refuses a refusal"),
@@ -2839,7 +2840,7 @@ fn an_identity_record_that_cannot_be_examined_is_never_taken_for_one_the_store_d
     std::fs::write(store.join("roots.jsonl"), b"").unwrap();
     *ROOTS.lock().unwrap() = None;
     let readable = attach(&root, false).unwrap();
-    assert_eq!(readable.fault, Some("no folder recorded"), "readable: records kept, not attached: {readable:?}");
+    assert_eq!(readable.fault, Some("no folder recorded"), "readable: project identity kept, not attached: {readable:?}");
     std::fs::set_permissions(&dir, std::fs::Permissions::from_mode(0o000)).unwrap();
     let denied = std::fs::symlink_metadata(dir.join("project.json")).map(|_| ()).map_err(|e| e.kind());
     let attached = attach(&root, false);

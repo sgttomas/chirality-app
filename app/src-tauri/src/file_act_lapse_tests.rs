@@ -4,6 +4,59 @@ use super::*;
 use std::{io::Write, os::unix::fs::symlink, path::Path};
 use tauri_plugin_dialog::MessageDialogResult;
 const C0: &[u8] = b"original reviewed bytes";
+
+#[test]
+fn records_store_writer_binding_f4_file_act_lapse_reports_no_observation_recorded() {
+    let (root, state, _) = captured(act_control::FileActKind::Check, "act");
+    let log = storage::project_file(&root, recorder::LOG).unwrap();
+    let before = std::fs::read(&log).unwrap();
+    std::fs::write(root.join("output.txt"), b"changed but not observed").unwrap();
+    let registry = records_store::store_root().unwrap().join("roots.jsonl");
+    std::fs::write(&registry, b"").unwrap();
+    let reason = records_store::attach(&root, false).unwrap().refusal.unwrap();
+    let result = observe(&state);
+    let shown = &result["lapseObservation"];
+    assert!(shown["state"].as_str().unwrap().contains("no lapse observation recorded"), "{shown}");
+    assert!(shown["limits"].to_string().contains(&reason), "{shown}");
+    assert!(shown["pending"].as_array().unwrap().is_empty(), "nothing observed before the association check");
+    assert_eq!(std::fs::read(&log).unwrap(), before);
+    assert_eq!(std::fs::read(&registry).unwrap(), b"");
+    drop(state);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn records_store_writer_binding_file_act_lapse_refuses_a_replaced_records_folder_at_write() {
+    let (root, state, _) = captured(act_control::FileActKind::Check, "act");
+    let dir = records_store::attach(&root, false).unwrap().dir.unwrap();
+    let log = storage::project_file(&root, recorder::LOG).unwrap();
+    let before = std::fs::read(&log).unwrap();
+    std::fs::write(root.join("output.txt"), b"pending lapse change").unwrap();
+    let aside = dir.with_extension("original");
+    let (at, moved) = (dir.clone(), aside.clone());
+    file_act_lapse::BEFORE_WRITER_PROOF.with(|h| *h.borrow_mut() = Some(Box::new(move || {
+        std::fs::rename(&at, &moved).unwrap();
+        std::fs::create_dir(&at).unwrap();
+        for entry in std::fs::read_dir(&moved).unwrap() {
+            let entry = entry.unwrap();
+            std::fs::rename(entry.path(), at.join(entry.file_name())).unwrap();
+        }
+    })));
+    let result = observe(&state);
+    let after = std::fs::read(&log).unwrap();
+    for entry in std::fs::read_dir(&dir).unwrap() {
+        let entry = entry.unwrap();
+        std::fs::rename(entry.path(), aside.join(entry.file_name())).unwrap();
+    }
+    std::fs::remove_dir(&dir).unwrap();
+    std::fs::rename(aside, dir).unwrap();
+    assert_eq!(after, before, "pending lapse written after its records folder changed: {result}");
+    assert_eq!(result["lapseObservation"]["pending"].as_array().unwrap().len(), 1, "{result}");
+    assert!(result["lapseObservation"]["recorded"].as_array().unwrap().is_empty(), "{result}");
+    assert_eq!(retry(&state)["lapseObservation"]["recorded"].as_array().unwrap().len(), 1);
+    drop(state);
+    std::fs::remove_dir_all(root).unwrap();
+}
 fn captured(kind: act_control::FileActKind, choice: &str) -> (PathBuf, AppState, Value) {
     let (root, state, home, _, _, _) = workflow_root_context_tests::fixture();
     std::fs::write(root.join("output.txt"), C0).unwrap();

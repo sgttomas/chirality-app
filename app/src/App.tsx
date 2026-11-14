@@ -820,6 +820,8 @@ function NativeConfirmationContent() {
 const PREFILL_RESULTS = new Set(["workflow_trial_prepare", "workflow_trial_again", "workflow_trial_bring_back", "workflow_run_bring_back"]);
 export function workflowActionMessage(command: string, result: Json): string {
   if (PREFILL_RESULTS.has(command)) return "";
+  if (Array.isArray(result?.recordAdmissionRefusals)&&result.recordAdmissionRefusals.length) return result.recordAdmissionRefusals.join("\n");
+  if (result?.retryAvailable===false&&typeof result.limit==="string") return result.limit;
   return JSON.stringify(result);
 }
 
@@ -1034,8 +1036,20 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
     : !name.trim() ? "Enter a name for your new draft. The App will check the exact name and destination."
     : "Ready to create a draft from the displayed content in the opened library. This does not register or run it.";
   const guideOutcome = outcome ? { command: outcome.relation.command, message: outcome.message, failed: outcome.failed === true, settled: outcome.settled === true } : null;
+  const unsavedRecords: {reference:string;limit:string}[] = [];
+  for (const run of data?.runs??[]) {
+    if (run.publication?.admissionRefusal) unsavedRecords.push({reference:run.reference,limit:run.publication.admissionRefusal});
+    if (run.endNotice?.admissionRefusal) unsavedRecords.push({reference:run.endNotice.record,limit:run.endNotice.admissionRefusal});
+    for (const check of [...(run.checks??[]),...(run.noticeChecks??[])]) {
+      if (check.retryAvailable===false&&check.publicationLimit) unsavedRecords.push({reference:check.reference,limit:check.publicationLimit});
+    }
+  }
+  for (const end of data?.endedAfterRelaunch??[]) {
+    if (end.endNotice?.admissionRefusal) unsavedRecords.push({reference:end.endNotice.record,limit:end.endNotice.admissionRefusal});
+  }
   return <section aria-label="Workflow studio controls" aria-busy={busy}>
     {busy && <p role="status" aria-live="polite">{progress} No automatic retry.</p>}
+    {unsavedRecords.length>0&&<aside aria-label="Workflow records not saved">{unsavedRecords.map((record,index)=><p role="alert" key={`${record.reference}:${index}`}>{record.reference}: {record.limit}</p>)}</aside>}
     <div id="view-run" data-workspace-view="run" hidden={view !== undefined && view !== "run"}>
     <RunWorkflowGuide data={data} host={host} thread={thread} chooseThread={chooseWorkflowChat} act={action} busy={busy} text={text} setText={setText}
       outcome={guideOutcome} showConversation={showConversation} viewStale={viewStale} readFailure={readFailure}/>
@@ -1126,24 +1140,27 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
     <button disabled={busy||!context||host?.state!=="ready"||!thread||selected?.runnable!==true} onClick={()=>action("workflow_prepare_run",{generation:host.generation,threadId:thread,personText:text})}>Prepare exact selected workflow text</button>
     {(data?.endedAfterRelaunch??[]).map((end:Json)=><article key={end.run}><h3>{end.run} (ended after the relaunch)</h3>
       <p>End notice: {end.endNotice?.state??"none"}. {end.limit}</p>
+      {end.endNotice?.admissionRefusal&&<p role="alert">{end.endNotice.admissionRefusal}</p>}
       <HistoryReferenceNotice pointers={end.learningPointers}/>
-      {(end.endNotice?.state?.startsWith("pending")||hasUnsavedHistoryReference(end))&&<p role="status">{end.endNotice?.state?.startsWith("pending")&&<>The next message in conversation {end.conversation} carries this end notice first, once. </>}
-        <button disabled={busy} onClick={()=>action("workflow_reopened_notice",{runId:end.run,action:"retry"})}>{end.endNotice?.state?.startsWith("pending")?"Retry the end-notice record":"Retry saving records (never sends)"}</button>
-        {end.endNotice?.state?.startsWith("pending")&&end.noticeRecordFailure&&<button disabled={busy} onClick={()=>action("workflow_reopened_notice",{runId:end.run,action:"skip"})}>Send without the end notice (recorded as not supplied)</button>}</p>}
+      {(end.endNotice?.state?.startsWith("pending")||end.endNotice?.admissionRefusal||hasUnsavedHistoryReference(end))&&<p role="status">{end.endNotice?.state?.startsWith("pending")&&<>The next message in conversation {end.conversation} carries this end notice first, once. </>}
+        <button disabled={busy||!!end.endNotice?.admissionRefusal} onClick={()=>action("workflow_reopened_notice",{runId:end.run,action:"retry"})}>{end.endNotice?.state?.startsWith("pending")||end.endNotice?.admissionRefusal?"Retry the end-notice record":"Retry saving records (never sends)"}</button>
+        {(end.endNotice?.state?.startsWith("pending")&&end.noticeRecordFailure||end.endNotice?.admissionRefusal)&&<button disabled={busy} onClick={()=>action("workflow_reopened_notice",{runId:end.run,action:"skip"})}>Send without the end notice (recorded as not supplied)</button>}</p>}
     </article>)}
     {(data?.runs??[]).map((run:Json)=>{const next=chatWorkflow(data,data?.context?.sourceRef,run.conversation);return <article key={run.reference} id={runEvidenceAnchor(run.reference)}><h3>{run.reference}</h3>
       <p>Run: {run.lifecycle?.state}{run.lifecycle?.follows?` · follows ${run.lifecycle.follows}`:""}{run.lifecycle?.end?` · ${run.lifecycle.end.cause}`:""}. Records: {run.publication?.state}. Send: {run.status?.state}{run.status?.limit?` (${run.status.limit})`:""}. Supplied: {suppliedSummary(run)}. Adoption: unknown.</p>
+      {run.publication?.admissionRefusal&&<p role="alert">{run.publication.admissionRefusal}</p>}
       {run.endNotice&&<p>End notice: {run.endNotice.state}</p>}
-      {!isRecordedRun(run)&&run.endNotice?.state?.startsWith("pending")&&<p role="status">The next message in this conversation, with or without attachments or a mode, carries this end notice first, once.{run.status?.limit?` Last attempt: ${run.status.limit}`:""}
-        <button disabled={busy} onClick={()=>action("workflow_retry_records",{runRef:run.reference})}>Retry the end-notice record</button>
-        {run.noticeRecordFailure&&<button disabled={busy} onClick={()=>action("workflow_skip_notice",{runRef:run.reference})}>Send without the end notice (recorded as not supplied)</button>}</p>}
-      <ul>{[...(run.checks??[]),...(run.noticeChecks??[])].map((check:Json)=><li key={check.reference}>{check.readAt}: {check.state} ({check.supplyReading}); check record {check.published?"recorded":`pending${check.publicationLimit?` — ${check.publicationLimit}`:""}`}; R3 {check.r3?.state}{check.r3?.limit?` — ${check.r3.limit}`:""}</li>)}</ul>
+      {run.endNotice?.admissionRefusal&&<p role="alert">{run.endNotice.admissionRefusal}</p>}
+      {!isRecordedRun(run)&&(run.endNotice?.state?.startsWith("pending")||run.endNotice?.admissionRefusal)&&<p role="status">{!run.endNotice?.admissionRefusal&&<>The next message in this conversation, with or without attachments or a mode, carries this end notice first, once.{run.status?.limit?` Last attempt: ${run.status.limit}`:""}</>}
+        <button disabled={busy||!!run.endNotice?.admissionRefusal} onClick={()=>action("workflow_retry_records",{runRef:run.reference})}>Retry the end-notice record</button>
+        {(run.noticeRecordFailure||run.endNotice?.admissionRefusal)&&<button disabled={busy} onClick={()=>action("workflow_skip_notice",{runRef:run.reference})}>Send without the end notice (recorded as not supplied)</button>}</p>}
+      <ul>{[...(run.checks??[]),...(run.noticeChecks??[])].map((check:Json)=><li key={check.reference}>{check.readAt}: {check.state} ({check.supplyReading}); check record {check.published?"recorded":`${check.publicationState??"pending"}${check.publicationLimit?` — ${check.publicationLimit}`:""}`}; R3 {check.r3?.state}{check.r3?.limit?` — ${check.r3.limit}`:""}</li>)}</ul>
       <RunPanel run={run} conversations={conversations} bringBackDefault={runBringBackDefault(data,run.reference)} busy={busy || fileActBusy} act={action} openFileAct={openFileAct}/>
       <details><summary>Complete run evidence (paths shown as text)</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(readablePaths(run),null,2)}</pre></details>
       {!isRecordedRun(run)&&<>
-      <button disabled={busy||!!run.source||host?.state!=="ready"} onClick={()=>action("workflow_send_run",{runRef:run.reference})}>Record, then send original prepared text once</button>
+      <button disabled={busy||!!run.source||host?.state!=="ready"||!!run.publication?.admissionRefusal} onClick={()=>action("workflow_send_run",{runRef:run.reference})}>Record, then send original prepared text once</button>
       <button disabled={busy||!run.turn||host?.state!=="ready"} onClick={()=>action("workflow_check_supply",{runRef:run.reference})}>Check original native supplied text pages (new check)</button>
-      <button disabled={busy||(!run.pendingRecords&&!hasUnsavedHistoryReference(run))} onClick={()=>action("workflow_retry_records",{runRef:run.reference})}>Retry pending records (never sends)</button>
+      <button disabled={busy||!!run.publication?.admissionRefusal||(!run.pendingRecords&&!hasUnsavedHistoryReference(run))} onClick={()=>action("workflow_retry_records",{runRef:run.reference})}>Retry pending records (never sends)</button>
       {run.lifecycle?.state?.startsWith("open")&&<>
         <button disabled={busy} onClick={()=>action("workflow_end_run",{runRef:run.reference,finishedReport:null})}>End run</button>
         {next&&run.home===host?.generation?.home&&<section aria-label="Selected workflow for the next run">

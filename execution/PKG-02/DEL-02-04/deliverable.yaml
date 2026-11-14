@@ -28,6 +28,8 @@ needs:
     Where a project's records are read from is decided by the records store, which gives no
     location, in the store or in the project folder, while the project's link to the store is
     unresolved.
+    Pending role-supply observations retain their admitted project identity and physical
+    project and records folders, and prove that binding again inside write admission before publication.
   gating: false
 - from: DEL-01-06
   condition: The default guidance, the role documents and the role set are packaged as supplied.

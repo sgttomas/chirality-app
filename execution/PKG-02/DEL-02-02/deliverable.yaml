@@ -70,6 +70,8 @@ needs:
     Where a project's records are read from is decided by the records store, which gives no
     location, in the store or in the project folder, while the project's link to the store is
     unresolved.
+    Pending workflow records retain their admitted project identity and physical
+    project and records folders, and prove that binding again inside write admission before publication.
   gating: false
 - from: external:sgttomas/chirality-library release
   condition: The selected Library release publishes its source archive with a digest, and its

@@ -165,7 +165,7 @@ const IDENTITY_FAULTS: Record<string, string> = {
   "duplicated": "Another folder already holds this project’s identity, so this folder is treated as a copy and no records are attached.",
   "another store": "This project’s records were kept in another records store, so nothing is attached here.",
   "link names another store": "This folder’s project file names another records store than this one, so its records are not attached.",
-  "no folder recorded": "The records store holds the project this folder’s file names and has no folder recorded for it, so its records are not attached here yet.",
+  "no folder recorded": "The records store holds this folder’s project identity and has no folder recorded for it, so the identity is not attached here yet.",
   "association not known": "The records store’s list of project folders was not read whole, and what it could read records no project for this folder, so nothing is attached here.",
 };
 

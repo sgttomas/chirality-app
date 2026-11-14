@@ -2694,6 +2694,40 @@ fn native_child_guidance_actual_event_metadata_and_deferred_task_delegation() {
     std::fs::remove_dir_all(root).unwrap();
 }
 #[test]
+fn records_store_writer_binding_f4_native_child_role_refusals_retain_the_reason() {
+    let (root, mut peer, roles, _) = child_parent();
+    let project = root.join("project");
+    std::fs::create_dir(&project).unwrap();
+    crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store {
+        root: root.join("record-store"),
+        placement: crate::records_store::Placement::Test,
+        limits: vec![],
+    })));
+    crate::records::append_project(&project, None, "f4", "evidence_limit", &crate::records::APP_WRITER,
+        json!({"label":"unresolvable reference","subjectRef":"retained","detail":"invented F4 history"})).unwrap();
+    let registry = root.join("record-store/roots.jsonl");
+    std::fs::write(&registry, b"").unwrap();
+    let reason = crate::records_store::attach(&project, false).unwrap().refusal.unwrap();
+    let log_source = Ok(std::sync::Arc::new(crate::role_observations::RoleLog::open(&project).unwrap()));
+    let mut associations = crate::native_child_guidance::ChildGuidance::default();
+    child_event(&peer, "parent", "child", "spawn-child-f4");
+    child_event(&peer, "child", "grandchild", "spawn-grandchild-f4");
+    associations.reconcile(&peer.host, &roles, Some(&log_source));
+    let read = peer.frame();
+    peer.host.native_frame_for_test(&peer.g, &json!({"id":read["id"],"result":{"thread":child_thread("child",Some("parent"),Some("TASK"))}}));
+    associations.reconcile(&peer.host, &roles, Some(&log_source));
+    let child = associations.for_thread("child-home", "child");
+    let task = associations.limits()[0].clone();
+    for record in [&child["roleSupplyRecord"], &task["roleSupplyRecord"]] {
+        assert_eq!(record["state"], "not-confirmed");
+        let message = record["limit"].as_str().unwrap();
+        assert!(message.contains("not recorded") && message.contains(&reason), "{record}");
+    }
+    assert_eq!(std::fs::read(&registry).unwrap(), b"");
+    crate::records_store::use_store_for_test(None);
+    std::fs::remove_dir_all(root).unwrap();
+}
+#[test]
 fn native_child_guidance_rejects_role_parent_fork_and_source_mismatches() {
     for case in [
         "role",

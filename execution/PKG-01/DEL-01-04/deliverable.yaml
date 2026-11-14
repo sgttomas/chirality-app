@@ -55,6 +55,8 @@ needs:
     Where a project's records are read from is decided by the records store, which gives no
     location, in the store or in the project folder, while the project's link to the store is
     unresolved.
+    Pending standalone file-act lapse observations retain their admitted project identity and physical
+    project and records folders, and prove that binding again inside write admission before publication.
   gating: true
 - from: DEL-06-02
   condition: A decision package is a project file that states the exact act requested of the
