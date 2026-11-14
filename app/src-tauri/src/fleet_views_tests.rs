@@ -716,7 +716,7 @@ fn fleet_views_app_dispatch_holds_an_item_until_its_return_and_an_ended_observat
     let w = f.read();
     let held = work(view(&w), "W1");
     assert_eq!(held["category"], "unknown");
-    assert!(held["causes"].to_string().contains("observation ended (App quit) as recorded invented time, last recorded status completed; outcome unknown"));
+    assert!(held["causes"].to_string().contains("observation ended (App quit) as recorded invented time; the status recorded with this end: completed; outcome unknown"));
     assert_eq!(view(&w)["queue"], json!([]), "an ended observation is no return");
     // A status of the ended generation written after its end (a delayed write) does not revive it.
     f.observed(&[dispatch.clone(), f.status("child-a", "running"), f.status("child-a", "completed"), f.ended("child-a", "completed"), f.status("child-a", "pendingInit")]);
@@ -1033,4 +1033,22 @@ fn a_generation_observed_only_by_its_dispatch_stays_open_beside_another_generati
     assert!(words.starts_with("observed in 2 generations, none superseding another: "), "{words}");
     assert!(words.contains(&format!("no child status recorded in that generation since the dispatch was recorded {dispatched_at}")), "{words}");
     assert!(words.contains("observation ended (App quit)"), "{words}");
+}
+
+/// An end says only the status recorded with it, never that it is the latest
+/// recorded at its publication; an end that carries none says so.
+#[test]
+fn an_end_states_the_status_recorded_with_it_or_that_none_was() {
+    for (status, words) in [(json!("running"), "the status recorded with this end: running"), (Value::Null, "no status recorded with this end")] {
+        let mut f = Fixture::new();
+        let association = f.briefed();
+        let mut end = f.ended("worker", "running");
+        end["body"]["lastObserved"] = status;
+        end["body"]["cause"] = json!("App relaunch");
+        f.observed(&[f.dispatch("worker", association), end]);
+        let read = f.read();
+        let worker = &work(view(&read), "W1")["dispatches"][0];
+        let observed = worker["lastObserved"].as_str().unwrap();
+        assert!(observed.starts_with("observation ended (App relaunch) as recorded ") && observed.ends_with(&format!("; {words}; outcome unknown")), "{observed}");
+    }
 }

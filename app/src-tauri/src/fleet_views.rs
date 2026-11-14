@@ -367,8 +367,9 @@ impl<'a> Delegation<'a> {
         let words = |o: &Value| if o["record"]["kind"] == "dispatch_observed" {
             format!("no child status recorded in that generation since the dispatch was recorded {}", text(&o["record"]["observedAt"]))
         } else if o["record"]["kind"] == "observation_ended" {
-            format!("observation ended ({}) as recorded {}, last recorded status {}; outcome unknown",
-                text(&o["record"]["body"]["cause"]), text(&o["record"]["observedAt"]), o["record"]["body"]["lastObserved"].as_str().unwrap_or("none"))
+            format!("observation ended ({}) as recorded {}; {}; outcome unknown",
+                text(&o["record"]["body"]["cause"]), text(&o["record"]["observedAt"]),
+                o["record"]["body"]["lastObserved"].as_str().map_or("no status recorded with this end".to_owned(), |status| format!("the status recorded with this end: {status}")))
         } else {
             format!("child last observed {} as recorded {}; nothing has been recorded of it in that generation since",
                 text(&o["record"]["body"]["status"]), text(&o["record"]["observedAt"]))

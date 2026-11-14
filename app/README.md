@@ -907,8 +907,11 @@ implemented behavior and qualification limits.
     it has run, for each child an earlier session of this App recorded and
     left without an end, where the App ledger established that session ended
     at this session's start (the rule by which the ledger reads it as ended),
-    it records the end with the cause "App relaunch" and the status last
-    recorded. A session the ledger did not establish as ended (still running,
+    it records the end with the cause "App relaunch" and the status its scan
+    read as last recorded; statuses recorded after that scan and before the
+    end's publication are not reflected in it (possible only while a build
+    from before the hold is still alive). A session the ledger did not
+    establish as ended (still running,
     another App's, or of liveness not established) gets no end from this
     session, is not looked at again in it, and is stated as a limit. After a
     crash or a kill no end is recorded until the next start does so. Neither
@@ -941,13 +944,19 @@ implemented behavior and qualification limits.
     project's files is consulted to tie anything, so a brief file changed,
     replaced or superseded afterwards moves no worker. An item so held, with
     no return recorded, reads `dispatched` and lists every worker dispatched
-    for it, each with its last recorded status, when it was recorded and
-    that nothing has been recorded since; it reads `unknown` once an end of
-    every such worker's observation is recorded, or where its named brief
-    cannot be found. A dispatch under an earlier brief of the item still
-    holds it and says so. A worker still observed for work that is not
-    selected in the current graph leaves no row plainly ready. A child tied to no brief
-    leaves no item plainly ready while it is observed. An incomplete source packet cannot produce unqualified readiness
+    for it with, for each generation in which it was observed, the status
+    last recorded in that generation and when (or, where none has been
+    recorded since the dispatch, when the dispatch was recorded), and that
+    nothing has been recorded of it in that generation since; generations
+    are not ordered against each other, and none supersedes another. It
+    reads `unknown` once every generation's observation of every such worker
+    has an end recorded, or where its named brief cannot be found. A
+    dispatch under an earlier brief of the item still
+    holds it and says so. A worker last observed, with no ending of that
+    observation recorded, for work that is not selected in the current graph
+    leaves no row plainly ready. A child tied to no brief leaves no item
+    plainly ready while no ending of its observation is recorded. An
+    incomplete source packet cannot produce unqualified readiness
     or an apparently complete empty queue. The complete source packet remains
     available beside the derived views.
 
