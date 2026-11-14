@@ -99,6 +99,8 @@ fn private(file: &File, directory: bool) -> Result<(), String> {
     Ok(())
 }
 fn mkdir(parent: &File, name: &str, exclusive: bool) -> Result<File, String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("distribution_store::mkdir");
     let c = component(name)?;
     if unsafe { libc::mkdirat(parent.as_raw_fd(), c.as_ptr(), 0o700) } != 0 {
         let e = std::io::Error::last_os_error();
@@ -111,6 +113,8 @@ fn mkdir(parent: &File, name: &str, exclusive: bool) -> Result<File, String> {
     Ok(fd)
 }
 fn write_new(parent: &File, name: &str, bytes: &[u8]) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("distribution_store::write_new");
     if bytes.len() > LIMIT {
         return Err("publication exceeds bounded artifact size".into());
     }
@@ -161,6 +165,8 @@ fn read_exact(parent: &File, name: &str, expected: &str) -> Result<Vec<u8>, Stri
     Ok(raw)
 }
 fn publish_rename(parent: &File, from: &str, to: &str) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("distribution_store::publish_rename");
     let from = component(from)?;
     let to = component(to)?;
     #[cfg(target_os = "macos")]
@@ -253,6 +259,8 @@ impl Store {
         vendor: &Path,
         namespaces: Arc<NativeNamespaceBindings>,
     ) -> Result<Arc<Self>, String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("distribution_store::Store::open");
         namespaces.guard_app_root(app_data)?;
         let root = app_data.join("runtime/distribution");
         namespaces.guard_domains(&[root.clone()])?;
@@ -325,6 +333,8 @@ impl Store {
     /// S4 typed installed observation and selected-closure publication are separate;
     /// this legacy attempt envelope cannot confer production authority.
     pub(crate) fn publish_attempt(&self, g: &Value, attempt: &Value) -> Result<Reference, String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("distribution_store::Store::publish_attempt");
         let lease=self.authority.lease()?;
         self.generation(&lease,g)?;
         if attempt["format"] != "host-successor-attempt.s2"

@@ -191,6 +191,8 @@ impl Drop for StartClaim {
 }
 
 fn os_lock(file: &File) -> Result<File, std::io::Error> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("home_hold::os_lock");
     // A duplicate shares the open file description, so the lock taken here
     // is the one every role of this process holds.
     let held = file.try_clone()?;

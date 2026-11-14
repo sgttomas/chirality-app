@@ -255,6 +255,8 @@ impl DirectoryLease {
     }
     /// `held`: what is said when another open file description holds the lock.
     fn acquire_or(path: &Path, held: &str) -> Result<Self, String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("desktop_startup::DirectoryLease::acquire_or");
         storage::check_path(path)?;
         let file = OpenOptions::new()
             .read(true)
@@ -408,6 +410,8 @@ impl ReceivingSource {
 }
 
 fn protected_directory(path: &Path) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("desktop_startup::protected_directory");
     storage::check_path(path)?;
     if !path.exists() {
         let mut missing = Vec::new();
@@ -597,6 +601,8 @@ fn read_profile(path: &Path) -> Result<RequestedInputs, String> {
         .map_err(|e| format!("desktop request is incomplete or invalid: {e}"))
 }
 fn write_profile(path: &Path, requested: &RequestedInputs) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("desktop_startup::write_profile");
     storage::check_path(path)?;
     // Explicit setup may replace malformed request *bytes*, but must not
     // overwrite a symlink, special file, foreign owner or hard alias.
@@ -1654,6 +1660,8 @@ impl DesktopSetup {
     }
     /// Deliberate setup event; never receives or mutates AppState/live owners.
     pub fn prepare_and_save(&mut self, token: &str) -> Result<Value, String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("desktop_startup::DesktopSetup::prepare_and_save");
         let preview = self
             .preview
             .take()
@@ -1816,6 +1824,8 @@ fn private_dir(file: &File, what: &str) -> Result<(), String> {
 /// than write elsewhere. A failure leaves only what was created inside the
 /// new leaf.
 fn create_settings(data: &Path, settings: &Path, shared: &SharedResourceTargets) -> Result<CreatedSettings, String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("desktop_startup::create_settings");
     use std::os::fd::FromRawFd;
     let leaf = settings.file_name().and_then(|n| n.to_str()).ok_or("new settings leaf name unavailable")?;
     if settings.parent() != Some(data.join(SETTINGS).as_path())

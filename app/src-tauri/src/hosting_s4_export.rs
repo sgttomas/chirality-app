@@ -106,6 +106,8 @@ fn verify(
     Ok(())
 }
 fn write_files(root: &std::path::Path, files: &BTreeMap<String, Vec<u8>>) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("hosting_s4_export::write_files");
     fs::create_dir(root).map_err(|e| e.to_string())?;
     fs::set_permissions(root, fs::Permissions::from_mode(0o700)).map_err(|e| e.to_string())?;
     for (path, bytes) in files {
@@ -132,6 +134,8 @@ fn export(
     producer: Value,
     candidate: Value,
 ) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("hosting_s4_export::export");
     if !hex(producer["sourceRevision"].as_str().unwrap_or(""), 40)
         || !hex(
             producer["harnessExecutableSha256"].as_str().unwrap_or(""),

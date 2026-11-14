@@ -115,15 +115,13 @@ impl State {
         }
         view
     }
-    fn writable(&self) -> Result<(), String> {
+    fn writable(&self) -> Result<(), records_store::WriteRefusal> {
         if self.disposition.is_some() {
-            return Err("project records are disposed or disposal is incomplete; no recording or reassociation".into());
+            return Err(records_store::WriteRefusal::new(records_store::WriteRefusalKind::Disposed, "project records are disposed or disposal is incomplete; no recording or reassociation"));
         }
         if self.closed {
-            return Err(
-                "project is closed; reopen it through the native records control before recording"
-                    .into(),
-            );
+            return Err(records_store::WriteRefusal::new(records_store::WriteRefusalKind::Closed,
+                "project is closed; reopen it through the native records control before recording"));
         }
         Ok(())
     }
@@ -363,6 +361,8 @@ fn history_state(dir: &Path) -> Result<State, String> {
 /// Permission is checked after taking the stable lock. A path resolved before
 /// closure can never recreate the subtree after disposal, even in another process.
 pub(crate) fn write_path(path: &Path) -> Result<Option<storage::Ownership>, String> {
+    #[cfg(test)]
+    storage::mutation_for_test("write admission");
     let Some(dir) = records_store::configured_project_dir(path) else {
         return Ok(None);
     };
@@ -377,6 +377,8 @@ pub(crate) fn write_path(path: &Path) -> Result<Option<storage::Ownership>, Stri
 /// missing control: with none, the write is refused, and so is the read it
 /// would have recorded.
 pub(crate) fn write_path_existing(path: &Path) -> Result<Option<storage::Ownership>, String> {
+    #[cfg(test)]
+    storage::mutation_for_test("write admission");
     let Some(dir) = records_store::configured_project_dir(path) else {
         return Ok(None);
     };
@@ -448,7 +450,10 @@ pub(crate) fn quiet_for_reassociation(dir: &Path, project: &str) -> Result<Optio
     Ok(Some(guard))
 }
 pub(crate) fn check_write(dir: &Path) -> Result<(), String> {
-    state(dir)?.writable()
+    check_write_refusal(dir).map_err(String::from)
+}
+pub(crate) fn check_write_refusal(dir: &Path) -> Result<(), records_store::WriteRefusal> {
+    state(dir).map_err(records_store::WriteRefusal::at(records_store::WriteRefusalKind::Retention))?.writable()
 }
 pub(crate) fn terminal(dir: &Path) -> Result<bool, String> {
     Ok(state(dir)?.disposition.is_some())
@@ -814,7 +819,7 @@ thread_local! { pub(crate) static AROUND_SNAPSHOT_EVENTS: std::cell::RefCell<Opt
 #[cfg(test)]
 thread_local! { static AROUND_APPLY_HISTORY: std::cell::RefCell<Option<(Box<dyn FnOnce()>, Box<dyn FnOnce()>)>> = const { std::cell::RefCell::new(None) }; }
 #[cfg(test)]
-thread_local! { static AFTER_DISPOSAL_ACT:std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const {std::cell::RefCell::new(None)}; static FAIL_COMPLETION_PUBLICATION: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; static FAIL_ADMIN_PUBLICATION: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; static FAIL_REMOVE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; }
+thread_local! { static AFTER_DISPOSAL_ACT:std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const {std::cell::RefCell::new(None)}; pub(crate) static FAIL_COMPLETION_PUBLICATION: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; static FAIL_ADMIN_PUBLICATION: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; static FAIL_REMOVE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; }
 #[cfg(test)]
 pub(crate) fn fail_remove_for_test(fail: bool) {
     FAIL_REMOVE.with(|v| v.set(fail));
