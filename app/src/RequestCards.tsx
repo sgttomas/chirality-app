@@ -555,13 +555,15 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
 
 export type WaitingRequestGroup = { modeHomeClass: string; generation: Json; threadId: string | null; count: number };
 
-/** WI-1…WI-3: local all-home metadata only; opening revalidates its native source. */
+/** WI-1…WI-3: local all-home metadata only; opening revalidates its native
+ * source. It sits inside "Waiting on you" (WaitingOnYou.tsx), whose line holds
+ * the one count; this part gives no total of its own, only each group's count. */
 export function WaitingRequestsIndicator({ overview, view, busy = false, open }: { overview: Json; view?: Json; busy?: boolean; open: (group: WaitingRequestGroup) => void }) {
   const available = Array.isArray(overview?.groups);
   const waiting: WaitingRequestGroup[] = available ? overview.groups : [];
   const total = waiting.reduce((sum, row) => sum + row.count, 0);
-  return <section aria-label="Requests waiting for your answer" style={{ border: "1px solid #888", padding: "4px 8px", margin: "8px 0" }}>
-    <b>{!available ? "Waiting-request overview unavailable." : total === 0 ? "No current waiting requests observed in configured homes." : `${total} request${total === 1 ? "" : "s"} from Codex waiting for your answer`}</b>
+  return <section aria-label="Requests waiting for your answer" className="waiting-requests-by-home">
+    <b>{!available ? "Waiting-request overview unavailable." : total === 0 ? "No current waiting requests observed in configured homes." : "Requests from Codex waiting for your answer, by home and conversation"}</b>
     {waiting.map(row => <div key={JSON.stringify([row.modeHomeClass, row.generation, row.threadId])}>
       <button disabled={busy} onClick={() => open(row)}>{row.modeHomeClass} · {row.threadId ? `thread ${row.threadId}` : "no conversation named"}: {row.count}</button>
       {row.threadId && <> <AskedBy asker={requestAsker(row.threadId, row.generation, view)} />.</>}

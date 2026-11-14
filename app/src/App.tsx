@@ -3,6 +3,7 @@ import { LOCAL_ENTRY, LOCAL_FORK_AVAILABLE, LOCAL_FORK_UNAVAILABLE, LOCAL_MODE, 
 import { NativeWaitingBridge } from "./NativeWaitingBridge";
 import { ConnectorSourcePanel } from "./ConnectorSourcePanel";
 import { FleetRecordsPanel, readFleetPacket, type FleetPacket } from "./FleetRecordsPanel";
+import { WaitingOnYou, WAITING_SOURCE_POLL_MS, decisionPackageAnchor, waitingEntries, type WaitingEntry } from "./WaitingOnYou";
 import { RecordsStorePanel } from "./RecordsStorePanel";
 import { ConnectorRoutePanel, emptyRouteRead, routeReadTransition, type RouteReadState, type RouteView } from "./ConnectorRoutePanel";
 // The interface reads host snapshots and asks the host to act. It holds no pipe
@@ -19,7 +20,7 @@ import { NativeActivityView, activityModel, sameActivityGeneration, type NativeA
 import { ContinuationContext, historyPageBinding, StoredItemPage, StoredTurnPage } from "./NativeHistory";
 import { ObserverAttachment } from "./ObserverAttachment";
 import { PlanModeControl } from "./PlanMode";
-import { NativeRequestCard, WaitingRequestsIndicator, answerable, hostRequests, requestItem, requestPlace, requestThread, requestScopeKey, requestReplyGuarded, type RequestActivityLink, type RequestAnswer, type ReadRequestCustody, type RequestReplyObservation, type WaitingRequestGroup } from "./RequestCards";
+import { NativeRequestCard, answerable, hostRequests, requestItem, requestPlace, requestThread, requestScopeKey, requestReplyGuarded, type RequestActivityLink, type RequestAnswer, type ReadRequestCustody, type RequestReplyObservation, type WaitingRequestGroup } from "./RequestCards";
 import { RunOffer, type RunAct } from "./RunOffers";
 import { RecoveryCustodyPanel } from "./RecoveryCustodyPanel";
 import { LastCleanTrialLine, WorkflowDraftsView } from "./WorkflowDrafts";
@@ -391,8 +392,8 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
       return <div key={`doubt:${id}`} role={row.acknowledged ? "note" : "alert"} tabIndex={-1} ref={node => { if (node && where === "same" && !announcedDoubt.current.has(id)) { announcedDoubt.current.add(id); node.focus?.({ preventScroll: false }); } }} aria-label="Bring-back send not confirmed">
         <p><strong>{what} results may have been sent to {destination}.</strong> The App couldn't confirm the send. {(host?.workflowRoot?.pendingBringBacks ?? []).some((pending: Json) => pending?.id === row.preparedId)
           ? "Its prepared message is still listed, but that copy is not sent again; after reading the conversation you can remove it."
-          : "The prepared message was withdrawn, so nothing is resent."} Read that conversation to see whether it arrived.{row.acknowledged ? " You've said you checked; bringing it back there again is allowed." : " Bringing it back there again is held until you've checked."}</p>
-        {where === "same-id-other-source" && <p><small>Codex or the home has changed since that send. The conversation shown now has the same ID, so bringing these results back to it is held too; that doesn't make the earlier destination this one.</small></p>}
+          : "The prepared message was withdrawn, so nothing is resent."} Read that conversation to see whether it arrived.{row.acknowledged ? " You've said you checked; bringing it back there again is allowed." : " The App won't bring it back there again until you've said you checked."}</p>
+        {where === "same-id-other-source" && <p><small>Codex or the home has changed since that send. The conversation shown now has the same ID, so the App won't bring these results back to it either until then; that doesn't make the earlier destination this one.</small></p>}
         {!row.acknowledged && <p><button onClick={() => acknowledgeBringBackDoubt(row)}>I've checked this conversation — allow bringing it back again</button> <small>Starts nothing; this record stays.</small></p>}
         <details><summary>Your message and what was reported</summary><p><small>Your message: {row.personText || "(empty)"}</small></p><p><small>Reported: {row.message}</small></p>
           <p><small>Original destination: conversation <code>{String(row.target?.threadId ?? "")}</code> in Codex session {String(row.target?.generation?.spawnCounter ?? "not reported")} of the {String(row.source?.modeHomeClass ?? "unreported")} home.</small></p></details>
@@ -428,8 +429,8 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
       const loaded = currentThreads.find((t: Json) => t.threadId === row.request.threadId && JSON.stringify(t.generation) === JSON.stringify(row.request.generation));
       const destination = sameSource ? "this conversation" : loaded ? conversationLabel(host, loaded) : `conversation ${row.request.threadId} in a Codex session that isn't loaded now`;
       return <div key={row.id} role={row.acknowledged ? "note" : "alert"} tabIndex={-1} ref={node => { if (node && shownHere && !announcedUnconfirmed.current.has(row.id)) { announcedUnconfirmed.current.add(row.id); node.focus?.({ preventScroll: false }); } }}>
-        <p><strong>Your message to {destination} may have been sent.</strong> The App couldn't confirm it, so it isn't resent and its text was not cleared.{row.acknowledged ? " You've said you read that conversation; sending there again is allowed." : " Sending to that conversation again is held until you've read it."}</p>
-        {shownHere && !sameSource && <p><small>Codex or the home has changed since that send. The conversation shown now has the same ID, so sending to it is held too; that doesn't make the earlier destination this one.</small></p>}
+        <p><strong>Your message to {destination} may have been sent.</strong> The App couldn't confirm it, so it isn't resent and its text was not cleared.{row.acknowledged ? " You've said you read that conversation; sending there again is allowed." : " The App won't send to that conversation again until you've said you read it."}</p>
+        {shownHere && !sameSource && <p><small>Codex or the home has changed since that send. The conversation shown now has the same ID, so the App won't send to it either until then; that doesn't make the earlier destination this one.</small></p>}
         {!row.acknowledged && <p><button onClick={() => setUnconfirmed(rows => rows.map(r => r.id === row.id ? { ...r, acknowledged: true } : r))}>I've read that conversation — allow sending again</button> <small>Sends nothing; this record stays.</small></p>}
         <details><summary>The message and what was reported</summary><pre style={{ whiteSpace: "pre-wrap" }}>{row.request.text}</pre>
           <p><small>Mode {row.request.mode ?? "not overridden"} · model {row.request.model ?? "not chosen"} · conversation <code>{row.request.threadId}</code> in Codex session {String(row.request.generation?.spawnCounter ?? "")} of home {String(row.request.generation?.home ?? "")}.</small></p>
@@ -1432,7 +1433,7 @@ export function DecisionPackagesPanel({ view, name, setName, recordName, refresh
     <p>Last writer continuation: {writer?.trigger ?? "not run"} · {writer?.state ?? "not run"} · new requests recorded: {writer?.requestsRecordedNow ?? 0}.</p>
     {(writer?.captureRecovery ?? []).filter((r: Json) => r.state !== "AC-7 recorded" || r.backlinkPending || r.delayEvidencePending).map((r: Json, i: number) => <p key={i}>Capture: {r.state} · {r.statusDetail ?? r.writeFailure ?? r.backlinkFailure ?? r.delayEvidenceFailure ?? r.captureDurability}</p>)}
     {(writer?.limits ?? []).map((limit: string, index: number) => <p key={index}>Writer limit: {limit}</p>)}
-    {(view?.rows ?? []).map((row: Json) => <article key={row.package} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
+    {(view?.rows ?? []).map((row: Json) => <article key={row.package} id={typeof row.package === "string" ? decisionPackageAnchor(row.package) : undefined} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
       <h3>{row.package} — {row.actRequested} — {row.state}</h3>
       <p>Request resolution: {row.requestResolution ?? "not reported"}. Recorded request sources: {JSON.stringify(row.requestSources ?? [])}.</p>
       {row.state === "unresolvable request identity" && <p>The recorded request identity conflicts. No current request or act is selected by this view; existing package and record admission checks remain in force.</p>}
@@ -1479,11 +1480,28 @@ export function App() {
   const [fleet, setFleet] = useState<FleetPacket | null>(null);
   const [fleetError, setFleetError] = useState("");
   const [fleetBusy, setFleetBusy] = useState(false);
+  // When the fleet packet shown was read, and whether the last automatic read
+  // failed ("Waiting on you" shows returns "as of" that read). A read started
+  // later wins over one that answers late.
+  const [fleetReadAt, setFleetReadAt] = useState<number | null>(null);
+  const [fleetAutoFailure, setFleetAutoFailure] = useState<string | null>(null);
+  const fleetSequence = useRef(0);
   const refreshFleet = async () => {
+    const sequence = ++fleetSequence.current;
     setFleetBusy(true); setFleetError("");
-    try { setFleet(await readFleetPacket(command => invoke<FleetPacket>(command))); }
-    catch (error) { setFleet(null); setFleetError(String(error)); }
+    try { const packet = await readFleetPacket(command => invoke<FleetPacket>(command)); if (sequence === fleetSequence.current) { setFleet(packet); setFleetReadAt(Date.now()); setFleetAutoFailure(null); } }
+    catch (error) { if (sequence === fleetSequence.current) { setFleet(null); setFleetReadAt(null); setFleetError(String(error)); } }
     finally { setFleetBusy(false); }
+  };
+  // The return-review queue is read each time the person opens "Waiting on you",
+  // as well as by hand in its panel. Not on a timer: read_fleet_records is a
+  // command a person presses, so it marks (hostReads.ts), and a timer issuing it
+  // would withhold the guides with nobody having done anything. A read on
+  // opening that fails keeps the packet shown, with its time, and says so.
+  const readFleetOnOpen = async () => {
+    const sequence = ++fleetSequence.current;
+    try { const packet = await readFleetPacket(command => invoke<FleetPacket>(command)); if (sequence === fleetSequence.current) { setFleet(packet); setFleetReadAt(Date.now()); setFleetError(""); setFleetAutoFailure(null); } }
+    catch (error) { if (sequence === fleetSequence.current) setFleetAutoFailure(String(error)); }
   };
   const [routeRead, setRouteRead] = useState<RouteReadState>(emptyRouteRead);
   const readRoutes = async () => {
@@ -1519,6 +1537,9 @@ export function App() {
     revealWorkspaceTarget("file-acts");
   };
   const [view, setView] = useState<Json>(null);
+  // When the decision packages shown were read ("Waiting on you" shows them "as of" that read).
+  const [decisionsReadAt, setDecisionsReadAt] = useState<number | null>(null);
+  useEffect(() => { if (view && !view.error) setDecisionsReadAt(Date.now()); }, [view]);
   const [offer, setOffer] = useState<Json>(null);
   const [choice, setChoice] = useState<string>("");
   const [name, setName] = useState<string>("");
@@ -2051,6 +2072,17 @@ export function App() {
     return () => { clearInterval(t); document.removeEventListener("visibilitychange", shown); };
   }, [refresh]);
 
+  // "Waiting on you": the decision packages are read again every
+  // WAITING_SOURCE_POLL_MS through the command their panel uses, a read the web
+  // view already issues by itself (SELF_ISSUED_QUIET). A read that fails keeps
+  // the packages shown, with the time they were read.
+  useEffect(() => {
+    const t = setInterval(() => {
+      invoke<Json>("decision_view").then(decisions => setView(decisions), () => undefined);
+    }, WAITING_SOURCE_POLL_MS);
+    return () => clearInterval(t);
+  }, []);
+
   const act = async (cmd: string, args?: Record<string, unknown>) => {
     try {
       const r: Json = await invoke(cmd, args);
@@ -2273,7 +2305,8 @@ export function App() {
     return operation;
   };
   // WI-3: opening a conversation from the indicator shows its cards; it answers nothing.
-  const openRequests = async (group: WaitingRequestGroup) => {
+  // `anchor`: the one request card to land on ("Waiting on you"); without it, its section.
+  const openRequests = async (group: WaitingRequestGroup, anchor: string | null = null) => {
     if (homePendingRef.current) return;
     const revision = threadChoiceRevision.current;
     const viewAtIntent = currentHost.current;
@@ -2296,6 +2329,11 @@ export function App() {
         setMessage("Waiting-request navigation superseded or its original source is no longer current; refresh the overview."); return;
       }
       const current = result.threadLoaded && (snapshot.threads ?? []).find((t: Json) => t.threadId === group.threadId && same(t.generation, group.generation));
+      if (anchor) {
+        flushSync(() => setThreadKey(current ? JSON.stringify([current.generation, current.threadId]) : ""));
+        revealWorkspaceTarget(document.getElementById?.(anchor) ? anchor : current ? "conversation" : "other-requests", true);
+        return;
+      }
       setThreadKey(current ? JSON.stringify([current.generation, current.threadId]) : "");
       revealWorkspaceTarget(current ? "conversation" : "other-requests");
     } catch (error) { setMessage(`Waiting-request navigation: ${String(error)}`); }
@@ -2475,6 +2513,15 @@ export function App() {
     setOffer(null);
   };
 
+  // "Waiting on you": every source's records waiting on the person, and the way to each one's control.
+  const waiting = waitingEntries({ host, fleet, fleetReadAt, decisions: view, decisionsReadAt });
+  const goToWaiting = (entry: WaitingEntry) => {
+    const target = entry.target;
+    if (target.kind === "request") { void openRequests(target.group, target.anchor); return; }
+    // A run's record is in the workflow studio, a return in Records and Fleet, a package in
+    // Connectors and examination: revealing the target shows its view and opens its disclosure.
+    revealWorkspaceTarget(document.getElementById?.(target.anchor) ? target.anchor : target.kind === "run" ? "workflow-studio" : target.kind === "return" ? "workspace-records" : "workspace-evidence", true);
+  };
   const outsideRequests = hostRequests(host).filter((request: Json) => requestThread(request) === null || requestThread(request) !== selectedThread);
   // First use: while the launch needs setup, a focused welcome replaces the
   // workspace, whose controls cannot work yet. Everything stays mounted.
@@ -2490,9 +2537,16 @@ export function App() {
         {firstRead === "read" && <div hidden={setupRequired}>
         <header className="workspace-heading"><div><h1>Chirality</h1><p>Workflow workspace</p></div><p>Make, try, review and refine workflows through conversation.</p></header>
         <WorkflowAssuranceSetting setting={host?.workflowRoot?.assuranceSetting} act={async (command, args) => commandThenRefresh(() => invoke(command, args), refresh, () => setMessage(withRefreshFailure))}/>
+        </div>}
+        {/* The navigation and "Waiting on you" stay in view together whichever view is shown. A sticky
+            element sticks only within its parent, so this is a direct child of the workspace, which holds every view. */}
+        {firstRead === "read" && <div className="workspace-sticky" hidden={setupRequired}>
         <nav className="workspace-nav" aria-label="Workspace navigation">
           {WORKSPACE_VIEWS.map(item => <a key={item.id} href={`#${item.target}`} aria-current={taskView === item.id ? "page" : undefined}>{item.label}</a>)}
         </nav>
+        <WaitingOnYou entries={waiting} overview={host?.waitingRequests} view={host?.nativeView} busy={homePending} fleetFailure={fleetAutoFailure} onOpen={() => { void readFleetOnOpen(); }} openGroup={group => { void openRequests(group); }} go={goToWaiting}/>
+        </div>}
+        {firstRead === "read" && <div hidden={setupRequired}>
         <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome} refusalCause={host?.startRefusalCause} build={host?.build}/>
         </div>}
         <NativeWaitingBridge ready={!!host} report={setMessage} checkpoint={() => ({ signature: JSON.stringify([threadChoiceRevision.current, chooserHome.current.epoch, editRevision.current]),
@@ -2513,7 +2567,6 @@ export function App() {
               await openRequests(group);
           };
       }}/>
-        {firstRead === "read" && <div hidden={setupRequired}><WaitingRequestsIndicator overview={host?.waitingRequests} view={host?.nativeView} busy={homePending} open={group => { void openRequests(group); }}/></div>}
         <NativeConfirmationContent />
         {firstRead === "read" && <div hidden={setupRequired}>
         {offer && (<section style={{ border: "1px solid #888", padding: 8 }}>

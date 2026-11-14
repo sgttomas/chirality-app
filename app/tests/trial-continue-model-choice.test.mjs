@@ -478,7 +478,7 @@ test('in the App, an unconfirmed bring-back send is named in its conversation an
     assert.equal(region(c, 'Bring back composer'), undefined, 'the host withdrew the pre-fill');
     const notice = region(c, 'Bring-back send not confirmed');
     assert.ok(notice, 'the conversation names the unconfirmed send');
-    assert.match(notice.textContent, /Trial 2's results may have been sent to this conversation\..*nothing is resent.*held until you've checked.*Your message: Here is how trial 2 went.*Reported: .*not established/);
+    assert.match(notice.textContent, /Trial 2's results may have been sent to this conversation\..*nothing is resent.*The App won't bring it back there again until you've said you checked\..*Your message: Here is how trial 2 went.*Reported: .*not established/);
     const guide = region(c, 'Make a workflow from your work');
     await React.act(async () => { props(nodes(guide, 'select')[0]).onChange({target:{value:JSON.stringify([g, 'T1'])}}); });
     await React.act(async () => { props(nodes(guide, 'input')[0]).onChange({target:{value:'spacing-check'}}); });
@@ -584,7 +584,7 @@ test('in the App, an unconfirmed run bring-back is acknowledged from its own not
     await ui.select('T1');
     await React.act(async () => { props(button(region(ui.c, 'Bring back composer'), 'Send')).onClick(); }); await ui.settle();
     const notice = () => region(ui.c, 'Bring-back send not confirmed');
-    assert.match(notice().textContent, /The run's results may have been sent to this conversation\..*held until you've checked/);
+    assert.match(notice().textContent, /The run's results may have been sent to this conversation\..*The App won't bring it back there again until you've said you checked\./);
     const view = () => RunBringBackView({run, conversations:[{threadId:'T1', generation:g, model:'m'}], target:JSON.stringify([g, 'T1']), setTarget:() => {}, includeNative:false, setIncludeNative:() => {}, busy:false, act:() => assert.fail('held')});
     const find = (node, out = []) => { if (Array.isArray(node)) { node.forEach(n => find(n, out)); return out; } if (!node || typeof node !== 'object') return out; if (node.type === 'button') out.push(node); find(node.props?.children, out); return out; };
     assert.equal(find(view())[0].props.disabled, true, 'the run bring-back is held');

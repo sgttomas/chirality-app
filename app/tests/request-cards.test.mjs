@@ -149,7 +149,7 @@ test('item anchors link the card and the activity row both ways (§4.7, TR-6)',(
 test('the waiting indicator shows the native all-home groups and source limits (WI-1…WI-3)',()=>{
   const overview={groups:[{modeHomeClass:'account',generation:g,threadId:'T',count:3},{modeHomeClass:'api-key',generation:{...g,home:'key'},threadId:'T',count:1}],sources:[{modeHomeClass:'account',state:'ready'},{modeHomeClass:'api-key',state:'ready'}],coverage:'Sequential local snapshots; no supplier read.'};
   const html=renderToStaticMarkup(React.createElement(WaitingRequestsIndicator,{overview,open:()=>{}}));
-  assert.match(html,/4 requests from Codex waiting for your answer/);assert.match(html,/account · thread T: 3<\/button>/);assert.match(html,/it answers nothing/);
+  assert.match(html,/Requests from Codex waiting for your answer, by home and conversation/);assert.doesNotMatch(html,/\b4 requests\b/,'no total of its own: the one count is the Waiting on you line');assert.match(html,/account · thread T: 3<\/button>/);assert.match(html,/it answers nothing/);
   assert.match(html,/api-key · thread T: 1<\/button>/);assert.match(html,/Sequential local snapshots/);
   assert.match(renderToStaticMarkup(React.createElement(WaitingRequestsIndicator,{overview:{groups:[],sources:[{modeHomeClass:'account',state:'stopped'}]},open:()=>{}})),/account: stopped; no current waiting groups shown/);
   assert.match(renderToStaticMarkup(React.createElement(WaitingRequestsIndicator,{overview:null,open:()=>{}})),/overview unavailable/);

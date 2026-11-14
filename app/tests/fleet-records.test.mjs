@@ -107,7 +107,7 @@ test('actual Rust brief attribution reaches each visible return row without chan
   const visibleRow=(actual,reference)=>{
     const html=renderToStaticMarkup(React.createElement(FleetRecordsPanel,{packet:actual,error:'',busy:false,refresh:()=>{}}));
     const queue=html.split('<h5>Return-review queue')[1].split('<h5>Selected work and waiting causes')[0];
-    const row=queue.match(/<li>[\s\S]*?<\/li>/g).find(row=>row.includes(`Return: ${reference}.`));
+    const row=queue.match(/<li(?: id="[^"]*")?>[\s\S]*?<\/li>/g).find(row=>row.includes(`Return: ${reference}.`));
     assert.ok(row,`visible return ${reference}`);
     return row.split('<details>')[0]; // Packet JSON in disclosure cannot satisfy display assertions.
   };
