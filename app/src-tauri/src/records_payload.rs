@@ -11,7 +11,13 @@ use std::path::{Path, PathBuf};
 #[derive(Default)]
 pub(crate) struct Census {
     pub(crate) members: BTreeMap<String, Stamp>,
-    pub(crate) holds_records: bool,
+    holds_records: bool,
+}
+
+#[derive(Default)]
+struct Scan {
+    census: Census,
+    unknown: Option<String>,
 }
 
 #[derive(Clone, Copy)]
@@ -145,12 +151,12 @@ fn member(
     }
 }
 
-pub(crate) fn census(root: &Path) -> Result<Census, String> {
+fn scan(root: &Path) -> Scan {
     fn walk(
         root: &Path,
         dir: &Path,
         folder: Folder,
-        out: &mut Census,
+        out: &mut Scan,
         depth: usize,
     ) -> Result<(), String> {
         if depth > 256 {
@@ -161,35 +167,69 @@ pub(crate) fn census(root: &Path) -> Result<Census, String> {
             .map_err(|e| format!("{}: inventory incomplete: {e}", dir.display()))?
             .unwrap_or_default();
         for entry in entries {
-            let path: PathBuf = entry.path;
-            let meta = entry
-                .metadata
-                .map_err(|e| format!("{}: inventory incomplete: {e}", path.display()))?;
-            let name = path
-                .file_name()
-                .and_then(|n| n.to_str())
-                .ok_or_else(|| format!("{}: unrecognised name", path.display()))?;
-            let rel = path
-                .strip_prefix(root)
-                .unwrap()
-                .to_str()
-                .ok_or("payload path is not UTF-8")?;
-            if meta.is_dir() {
-                let next = child(folder, name).ok_or_else(|| {
-                    format!("{}: unrecognised payload folder; not known", path.display())
-                })?;
-                walk(root, &path, next, out, depth + 1)?;
-            } else {
-                let (retained, record) = member(root, &path, folder, name, rel, &meta)?;
-                if retained {
-                    out.members.insert(rel.into(), Stamp::of(&meta));
+            // An uncertain earlier member must not hide a final later in this
+            // folder, or prevent the parent from visiting its other folders.
+            let result = (|| {
+                let path: PathBuf = entry.path;
+                let meta = entry
+                    .metadata
+                    .map_err(|e| format!("{}: inventory incomplete: {e}", path.display()))?;
+                let name = path
+                    .file_name()
+                    .and_then(|n| n.to_str())
+                    .ok_or_else(|| format!("{}: unrecognised name", path.display()))?;
+                let rel = path
+                    .strip_prefix(root)
+                    .unwrap()
+                    .to_str()
+                    .ok_or("payload path is not UTF-8")?;
+                if meta.is_dir() {
+                    let next = child(folder, name).ok_or_else(|| {
+                        format!("{}: unrecognised payload folder; not known", path.display())
+                    })?;
+                    walk(root, &path, next, out, depth + 1)?;
+                } else {
+                    let (retained, record) = member(root, &path, folder, name, rel, &meta)?;
+                    if retained {
+                        out.census.members.insert(rel.into(), Stamp::of(&meta));
+                    }
+                    out.census.holds_records |= record;
                 }
-                out.holds_records |= record;
+                Ok::<(), String>(())
+            })();
+            if let Err(error) = result {
+                out.unknown.get_or_insert(error);
             }
         }
         Ok(())
     }
-    let mut out = Census::default();
-    walk(root, root, Folder::Root, &mut out, 0)?;
-    Ok(out)
+    let mut out = Scan::default();
+    if let Err(error) = walk(root, root, Folder::Root, &mut out, 0) {
+        out.unknown.get_or_insert(error);
+    }
+    out
+}
+
+/// Routing needs one final to establish that records are held. Uncertainty
+/// decides the answer only when no final establishes it; readers keep their
+/// own per-member limits after this home decision.
+pub(crate) fn holds_records(root: &Path) -> Result<bool, String> {
+    let observed = scan(root);
+    if observed.census.holds_records {
+        return Ok(true);
+    }
+    match observed.unknown {
+        Some(error) => Err(error),
+        None => Ok(false),
+    }
+}
+
+/// Inventories must account for every member. A final elsewhere cannot excuse
+/// an unresolved publication or an unexaminable member from an export/package.
+pub(crate) fn census(root: &Path) -> Result<Census, String> {
+    let observed = scan(root);
+    match observed.unknown {
+        Some(error) => Err(error),
+        None => Ok(observed.census),
+    }
 }

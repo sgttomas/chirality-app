@@ -1581,7 +1581,7 @@ fn store_holds(dir: &Path) -> Result<bool, String> {
         i if i.completed => true,
         i if i.incomplete.as_ref().is_some_and(|s| s["storeHeld"] == true) => true,
         i if i.any => false,
-        _ => payload::census(dir).map_err(unknown)?.holds_records,
+        _ => payload::holds_records(dir).map_err(unknown)?,
     })
 }
 

@@ -16,6 +16,10 @@ fn routing_fixture() -> (OwnStore, PathBuf, PathBuf, String) {
 
 fn unknown_case(kind: &str) {
     let (_own, root, dir, _) = routing_fixture();
+    assert!(
+        !store_holds(&dir).unwrap(),
+        "no store record beside the ambiguous member"
+    );
     let acts = dir.join("acts");
     std::fs::create_dir_all(&acts).unwrap();
     let member = acts.join(format!("{}.jsonl", storage::key("invented")));
@@ -83,6 +87,53 @@ fn unknown_case(kind: &str) {
     } else {
         inspect();
     }
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn records_store_routing_recognised_final_wins_over_earlier_unrecognised_member_shown_by_reader() {
+    let (_own, root, dir, in_place) = routing_fixture();
+    let log = dir.join(storage::log_rel(
+        Some("run:recognised"),
+        "writer:recognised",
+    ));
+    let record = records::append(
+        &log,
+        "evidence_limit",
+        &APP_WRITER,
+        body("recognised store record"),
+    )
+    .unwrap();
+    let unknown = dir.join("acts/.unrecognised-member.jsonl");
+    std::fs::create_dir_all(unknown.parent().unwrap()).unwrap();
+    std::fs::write(&unknown, b"unrecognised retained bytes\n").unwrap();
+    // acts is visited before runs, and this member is not a final name the
+    // census recognises. It must not prevent finding the later real record.
+    assert!(store_holds(&dir).unwrap());
+    let home = readable_home(&root).unwrap();
+    assert!(home.store_mode);
+    let (read, limits) = storage::read_all(&root);
+    assert!(
+        read.iter().any(|r| r["recordId"] == record["recordId"]),
+        "{read:?}, {limits:?}"
+    );
+    assert!(!read.iter().any(|r| r["recordId"] == in_place));
+    assert!(
+        limits
+            .iter()
+            .any(|e| e.contains(".unrecognised-member.jsonl")),
+        "the reader must show the member's own limit: {limits:?}"
+    );
+    assert_eq!(status(Some(&root))["project"]["reading"], "records store");
+    // A known records home never excuses a member from whole inventories.
+    assert!(crate::records_package::payload_inventory(&dir)
+        .unwrap_err()
+        .contains(".unrecognised-member.jsonl"));
+    let output = folder("refused-unrecognised-export-");
+    assert!(crate::records_export::export(&root, &output.join("bag"))
+        .unwrap_err()
+        .contains(".unrecognised-member.jsonl"));
+    std::fs::remove_dir_all(output).unwrap();
     std::fs::remove_dir_all(root).unwrap();
 }
 
