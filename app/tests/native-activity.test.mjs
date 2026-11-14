@@ -294,7 +294,7 @@ test('plan revisions and tool rows carry the run in force at their turn, from th
       {kind:'plan-item',revisionId:'p2',threadId:'T',turnId:'t4',itemId:'plan-b',ordinal:2,standing:'live-observed'},
       {kind:'checklist',revisionId:'c1',threadId:'T',turnId:'t3',ordinal:1,content:{explanation:null,steps:[{step:'A-check',status:'completed'}]}},
     ]};
-  const run=(reference,name,turnId,endedAfterTurn)=>({reference,conversation:'T',turn:turnId,workflow:{name,revision:`${name.toLowerCase()}0123456789abcdef`},
+  const run=(reference,name,turnId,endedAfterTurn)=>({reference,conversation:'T',turn:turnId,workflow:{name,revision:`${name.slice(-1).toLowerCase()}0123456789abcdef`},
     lifecycle:endedAfterTurn?{state:'ended by the person',end:{cause:'ended by the person'}}:{state:'open (live)'},...(endedAfterTurn?{endedAfterTurn}:{})});
   const shown=runs=>renderToStaticMarkup(React.createElement(NativeActivityView,{view:v,threadId:'T',runs}));
   // The label within one row: from its text to the next row or checklist.
@@ -302,27 +302,29 @@ test('plan revisions and tool rows carry the run in force at their turn, from th
     const ends=[html.indexOf('id="item-',i),html.indexOf('<b>Checklist</b>',i)].filter(n=>n>=0);
     const m=html.slice(i,ends.length?Math.min(...ends):undefined).match(/During the run of <b>([^<]*)<\/b>/);return m?m[1]:null;};
   // Chained A→B: A from t2, ended after t3; B from t4, open.
-  const chained=shown([run('run:a','WF-A','t2','t3'),run('run:b','WF-B','t4')]);
+  const chained=shown([run('run:a','wf-a','t2','t3'),run('run:b','wf-b','t4')]);
   assert.equal(labelIn(chained,'echo before'),null,'a row before any run carries no label');
   assert.equal(labelIn(chained,'Working in A'),null,'a message carries none');
-  assert.equal(labelIn(chained,'1. A step'),'WF-A wf-a01234567');
-  assert.equal(labelIn(chained,'echo a'),'WF-A wf-a01234567','a tool row inside run A, at its recorded end turn');
-  assert.equal(labelIn(chained,'1. B step'),'WF-B wf-b01234567');
-  assert.equal(labelIn(chained,'search in B'),'WF-B wf-b01234567','an open run stays in force');
+  assert.equal(labelIn(chained,'1. A step'),'wf-a a0123456789a');
+  assert.equal(labelIn(chained,'echo a'),'wf-a a0123456789a','a tool row inside run A, at its recorded end turn');
+  assert.equal(labelIn(chained,'1. B step'),'wf-b b0123456789a');
+  assert.equal(labelIn(chained,'search in B'),'wf-b b0123456789a','an open run stays in force');
   assert.match(chained,/Plan<\/b> · revision 1 in this conversation/);
   assert.match(chained,/Plan<\/b> · revision 2 in this conversation/,'run B does not reset run A’s plan (PC-18)');
-  assert.equal(labelIn(chained,'A-check'),'WF-A wf-a01234567','a checklist revision carries its turn’s run');
+  assert.equal(labelIn(chained,'A-check'),'wf-a a0123456789a','a checklist revision carries its turn’s run');
   // A ended after t2, B from t4: t3 is between runs and carries none.
-  const gap=shown([run('run:a','WF-A','t2','t2'),run('run:b','WF-B','t4')]);
+  const gap=shown([run('run:a','wf-a','t2','t2'),run('run:b','wf-b','t4')]);
   assert.equal(labelIn(gap,'echo a'),null,'a row between runs carries no label');
   assert.equal(labelIn(gap,'A-check'),null);
-  assert.equal(labelIn(gap,'1. A step'),'WF-A wf-a01234567');
+  assert.equal(labelIn(gap,'1. A step'),'wf-a a0123456789a');
   // No runs: no labels; a run whose end turn is not shown is in force only at its start turn.
   assert.ok(!shown([]).includes('During the run of'));
-  const unplaced=shown([run('run:a','WF-A','t2','t-missing')]);
-  assert.equal(labelIn(unplaced,'1. A step'),'WF-A wf-a01234567');assert.equal(labelIn(unplaced,'echo a'),null);
+  const unplaced=shown([run('run:a','wf-a','t2','t-missing')]);
+  assert.equal(labelIn(unplaced,'1. A step'),'wf-a a0123456789a');assert.equal(labelIn(unplaced,'echo a'),null);
   // A turn the view does not show is in no run.
-  assert.equal(exports.runInForce([run('run:a','WF-A','t2')],['t1','t2'],'t9'),null);
+  assert.equal(exports.runInForce([run('run:a','wf-a','t2')],['t1','t2'],'t9'),null);
+  // A name outside the App's name rule is never drawn inside the App's sentence.
+  assert.equal(labelIn(shown([run('run:a','WF-A','t2')]),'1. A step'),null);
 });
 
 

@@ -117,6 +117,7 @@ pub(crate) mod a15_native;
 pub mod schema_validation;
 pub mod standing;
 pub mod storage;
+pub mod working_folder;
 pub mod stop_records;
 pub mod util;
 
@@ -298,7 +299,7 @@ fn complete_config_resource_continuation(
 
 /// A fresh probe home for the label probe (HOSTING §7.2 H-probe), in the temp directory.
 fn probe_home() -> Result<PathBuf,String> {
-    runtime_session::allocate_fresh_probe(&std::env::temp_dir())
+    runtime_session::allocate_fresh_probe(&runtime_session::temporary_root("The version probe's home")?)
 }
 
 /// Whether this build admits development startup inputs. The release
@@ -310,20 +311,31 @@ pub(crate) fn development_inputs_admitted(is_dev: bool) -> bool {
 
 /// Complete explicit environment route; no private supplier/home path is built in.
 /// Desktop requests are a separate exclusive source, resolved before Root binding.
-pub fn host_config_from_env(workspace: Option<&PathBuf>) -> Result<HostConfig, String> {
-    host_config_from_inputs(workspace, |key|std::env::var_os(key), probe_home)
+/// The App data folder and its folder set aside must already be established
+/// (`working_folder::establish`); the project is admitted against them here.
+pub fn host_config_from_env(workspace: Option<&PathBuf>, app_data: &std::path::Path) -> Result<HostConfig, String> {
+    let established = working_folder::established(app_data).map_err(|blocked| blocked.sentence())?;
+    let project = workspace.map(|project| established.admit_project(project)).transpose()?;
+    host_config_from_inputs(project.as_ref(), Ok(&established), |key|std::env::var_os(key), probe_home)
 }
 
-fn host_config_from_inputs(workspace: Option<&PathBuf>, input: impl Fn(&str)->Option<std::ffi::OsString>, probe: impl FnOnce()->Result<PathBuf,String>) -> Result<HostConfig,String> {
+/// `project` has passed admission; with none, the working folder is the
+/// established folder set aside (DEL-01-01).
+fn host_config_from_inputs(project: Option<&working_folder::AdmittedProject>, established: Result<&working_folder::Established, String>, input: impl Fn(&str)->Option<std::ffi::OsString>, probe: impl FnOnce()->Result<PathBuf,String>) -> Result<HostConfig,String> {
     let bin = input("CHIRALITY_CODEX_BIN").ok_or(()).map_err(|_| {
         "CHIRALITY_CODEX_BIN is not set: no supplier distribution resolved".to_string()
     })?;
     let home = input("CHIRALITY_CODEX_HOME").ok_or(()).map_err(|_| {
         "CHIRALITY_CODEX_HOME is not set: no App-owned Codex home given".to_string()
     })?;
-    let cwd = workspace.cloned().unwrap_or_else(std::env::temp_dir);
+    let established = established?;
+    let cwd = match project {
+        Some(project) => project.to_path_buf(),
+        None => established.leaf().to_path_buf(),
+    };
     let mut cfg = HostConfig::new(bin.into(), home.into(), probe()?, cwd);
-    cfg.records_project=workspace.is_some();
+    cfg.records_project=project.is_some();
+    cfg.app_data=Some(established.data().to_path_buf());
     cfg.expected_sha256 = input("CHIRALITY_CODEX_EXPECTED_SHA256").and_then(|v|v.into_string().ok());
     cfg.allow_unverified_dev = input("CHIRALITY_ALLOW_UNVERIFIED").is_some_and(|v|v == "1");
     Ok(cfg)
@@ -903,6 +915,7 @@ fn read_fleet_records_for_workspace(workspace: Option<&std::path::Path>) -> Resu
 fn records_store_export(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<Value, String> {
     let project = state.workspace.as_ref().ok_or("no project is open; nothing exported")?;
     let Some(parent) = workflow_native_folder(&app, "Choose a folder for the records export")? else { return Ok(json!({"state":"export cancelled"})); };
+    chosen_folder_outside_app_data(&state, &parent, "Nothing was exported")?;
     let destination = parent.join(util::opaque_id("records-export-")?);
     records_export::export(project, &destination)
 }
@@ -1052,12 +1065,18 @@ fn records_store_choose(app: tauri::AppHandle, state: State<'_, AppState>, actio
         };
         Some(records_store::location_for_choice(&picked)?)
     } else { None };
-    records_store::confirm_placement(&data, location.as_deref(), state.workspace.as_deref(), &codex_homes(configs.iter(), Some(&data)), |text, dont, perform| {
+    records_store::confirm_placement_beside(&data, location.as_deref(), state.workspace.as_deref(), &codex_homes(configs.iter(), Some(&data)), &working_folders(configs.iter()), |text, dont, perform| {
         let mut refused = None;
         let statement = ns::bounded("records store location", text).map(|text| ns::NativeStatement { text, in_app: None });
         let yes = confirm_choice(&app, "Records store location", statement, dont, perform, &mut refused);
         refused.map_or(Ok(yes), Err)
     })
+}
+/// DEL-01-01: the working folders the App gives its Codex. A records store
+/// location that overlaps one is refused when it is admitted, whatever folder
+/// that is.
+fn working_folders<'a>(configs: impl Iterator<Item = &'a hosting::HostConfig>) -> Vec<PathBuf> {
+    configs.map(|cfg| cfg.cwd.clone()).collect()
 }
 /// The App-owned and configured Codex homes (account, key and probe homes,
 /// and the explicit home variables) the records store must stay out of.
@@ -2269,6 +2288,21 @@ fn workflow_review_digest(state:State<'_,AppState>,review_ref:String)->Result<Va
     let presentation=review.status.get("presentation").ok_or("Review presentation not available in this state")?;
     Ok(match act_control::review_digest(presentation){Ok(d)=>json!({"reviewRef":review_ref,"digest":d}),Err(cause)=>json!({"reviewRef":review_ref,"unavailable":cause})})
 }
+/// DEL-01-01: a folder the person chooses for the App to write into (a records export's parent,
+/// a workflow library root) is outside the App data folder, the folder kept for conversations
+/// without a project included: decided by identity against the established folder, before
+/// anything is written. A folder that contains the App data folder is outside it.
+fn chosen_folder_outside_app_data(state:&AppState,folder:&std::path::Path,refused:&str)->Result<(),String>{
+    let data=state.app_user_data_root.lock().unwrap().clone().map_err(|e|format!("{refused}: Chirality's data folder is unavailable ({e})"))?;
+    folder_outside_app_data(&data,folder,refused)
+}
+pub(crate) fn folder_outside_app_data(data:&std::path::Path,folder:&std::path::Path,refused:&str)->Result<(),String>{
+    let set=working_folder::established(data).map_err(|blocked|format!("{refused}. {}",blocked.sentence()))?;
+    match set.place(folder) {
+        working_folder::WorkingFolder::Outside=>Ok(()),
+        _=>Err(format!("{refused}: the folder {} is in Chirality's own data folder ({}), or its place cannot be established. Choose a folder outside it.",folder.display(),set.data().display())),
+    }
+}
 fn workflow_native_folder(app:&tauri::AppHandle,title:&str)->Result<Option<PathBuf>,String>{
     app.dialog().file().set_title(title).blocking_pick_folder().map(|path|path.into_path().map_err(|_|"Native folder has no local filesystem path".to_string())).transpose()
 }
@@ -2325,6 +2359,7 @@ fn workflow_open_library(app:tauri::AppHandle,state:State<'_,AppState>,origin:St
     if !matches!(origin.as_str(),"project"|"user"){return Err("Choose project or user library; no default".into());}
     workflow_context_home(&state,&context,wait)?;
     let Some(path)=workflow_native_folder(&app,"Open existing physical workflow library root")? else{return Ok(json!({"state":"native library selection dismissed"}));};
+    chosen_folder_outside_app_data(&state,&path,"The library was not opened")?;
     let wait=workflow_selection::Wait::for_press(); // the picker took the person's time, not the press's
     let home=workflow_context_home(&state,&context,wait)?;let view=host_tick::receive_view(&home);
     let (mut root,_,_)=workflow_selection::lock_root(&state.workflows,&context,||state.homes.lock().unwrap().active(),wait)?;root.verify_library_context(&context)?;
@@ -2671,7 +2706,7 @@ fn workflow_reopen(state:State<'_,AppState>)->Result<Value,String>{
     // The REC custody projection is where the Host derives app_restart_interruption.
     for event in restart_events(&home.host.recovery_custody().snapshot()){if !events.contains(&event){events.push(event);}}
     let homes=state.homes.lock().unwrap().entries();
-    state.workflows.lock().unwrap().reopen_for_learning(root,&events,&homes)
+    runtime_session::read_reopened_history(&state.workflows,root,&events,&homes)
 }
 /// The person's explicit end of a run the record shows open and interrupted after relaunch.
 #[tauri::command]
@@ -2684,6 +2719,10 @@ fn workflow_end_recorded(state:State<'_,AppState>,run_id:String,thread_id:Option
     // keyed to the conversation's own home; with no established home, none is sent.
     let mut out=state.workflows.lock().unwrap().end_recorded_run(root,&run_id,&thread,false,home.as_ref().ok().cloned())?;
     if let Err(reason)=home{out["endNotice"]=json!({"state":format!("not composed: {reason}; no end notice is sent for this end (WR TX-5 / SQ-END)")});}
+    // Refresh the cached reopened reading, with both routing observations and
+    // the notice census outside the workflow owner, as on explicit reopen.
+    let homes = state.homes.lock().unwrap().entries();
+    runtime_session::read_reopened_history(&state.workflows, root, &[], &homes).ok();
     Ok(out)
 }
 /// WR TX-5 / SQ-END: the Codex home of a conversation named by the record, from the
@@ -2949,6 +2988,15 @@ pub(crate) fn admitted_startup(
             let inputs = desktop.refuse_environment(&reason);
             return (desktop, inputs);
         }
+        // DEL-01-01: App data is held; the folder set aside is established before this route's
+        // inputs are placed against it, unless the inputs are already refused without the file
+        // system (that refusal stays first, and makes nothing).
+        if environment_path_refusal(&input).is_none() {
+            if let Err(blocked) = data.as_ref().map_err(|e| working_folder::Blocked::CannotExamine(e.clone())).and_then(|data| working_folder::establish(data)) {
+                let inputs = desktop.refuse_environment(&blocked.sentence());
+                return (desktop, inputs);
+            }
+        }
     }
     let environment = explicit_environment_launch(&input, &data, &resources, is_dev, &probe);
     let launch = desktop.resolve(environment, is_dev, &probe);
@@ -3011,18 +3059,32 @@ fn explicit_environment_launch(
     probe: impl FnOnce()->Result<PathBuf,String>,
 ) -> Option<desktop_startup::Launch> {
     if !environment_selected(&input) { return None; }
-    let workspace = input("CHIRALITY_WORKSPACE").map(PathBuf::from);
+    // The raw project input is read once and never carried: the only project this route carries
+    // is one admitted below against the established App data folder (DEL-01-01). Every return
+    // before that carries none.
+    let raw_workspace = input("CHIRALITY_WORKSPACE").map(PathBuf::from);
+    // The key and shared values are carried as received, never read as not supplied; nothing
+    // reads them while the configuration is refused.
+    let key = input("CHIRALITY_KEY_HOME").map(PathBuf::from);
+    let shared = ["CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS"].map(|key|input(key).map(PathBuf::from));
     // Refused at admission, on both branches, before any configuration is
-    // built or the probe home allocated. The key and shared values are carried
-    // as received, never read as not supplied; nothing reads them while the
-    // configuration is refused.
+    // built or the probe home allocated. Needs no file system.
     if let Some(reason) = environment_path_refusal(&input) {
-        let key = input("CHIRALITY_KEY_HOME").map(PathBuf::from);
-        let shared = ["CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS"].map(|key|input(key).map(PathBuf::from));
-        return Some(desktop_startup::Launch::environment(workspace, Err(reason), key, shared));
+        return Some(desktop_startup::Launch::environment(None, Err(reason), key, shared));
     }
+    // The App data folder was held and the folder set aside established before this route is
+    // read (`admitted_startup`); here they are only read. Not established, nothing is placed.
+    let established = match data.as_ref().map_err(Clone::clone).and_then(|data| working_folder::established(data).map_err(|blocked| blocked.sentence())) {
+        Ok(established) => established,
+        Err(reason) => return Some(desktop_startup::Launch::environment(None, Err(reason), key, shared)),
+    };
+    // A project in the App data folder (the folder set aside included) is refused and not carried.
+    let workspace = match raw_workspace.as_deref().map(|project| established.admit_project(project)).transpose() {
+        Ok(workspace) => workspace,
+        Err(reason) => return Some(desktop_startup::Launch::environment(None, Err(format!("CHIRALITY_WORKSPACE is refused: {reason}")), key, shared)),
+    };
     let host_config = if is_dev || !cfg!(feature = "distribution-successor") {
-        host_config_from_inputs(workspace.as_ref(), &input, probe).and_then(|mut cfg| {
+        host_config_from_inputs(workspace.as_ref(), Ok(&established), &input, probe).and_then(|mut cfg| {
             if is_dev && input("CHIRALITY_DISTRIBUTION_SUCCESSOR").is_some_and(|v|v == "1") {
                 cfg.distribution = Some(hosting::successor::Distribution::development_from_binary(&cfg.codex_bin)?);
             }
@@ -3031,14 +3093,16 @@ fn explicit_environment_launch(
     } else {
         (|| {
             let resources = resources.as_ref().map_err(Clone::clone)?.clone();
-            let data = data.as_ref().map_err(Clone::clone)?.clone();
             let home = input("CHIRALITY_CODEX_HOME").map(PathBuf::from).ok_or("No explicit App-owned account home")?;
-            Ok(hosting::successor::production_config(resources, home, probe()?, workspace.clone().unwrap_or(data)))
+            let cwd = workspace.as_deref().map(std::path::Path::to_path_buf).unwrap_or_else(|| established.leaf().to_path_buf());
+            let mut cfg = hosting::successor::production_config(resources, home, probe()?, cwd);
+            // As on the other routes: only a project is a records project.
+            cfg.records_project = workspace.is_some();
+            cfg.app_data = Some(established.data().to_path_buf());
+            Ok(cfg)
         })()
     };
     let host_config = host_config.map(|mut cfg| { cfg.require_distribution_artifacts = cfg.distribution.is_some(); cfg });
-    let key = input("CHIRALITY_KEY_HOME").map(PathBuf::from);
-    let shared = ["CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS"].map(|key|input(key).map(PathBuf::from));
     Some(desktop_startup::Launch::environment(workspace, host_config, key, shared))
 }
 
@@ -3057,6 +3121,8 @@ pub(crate) fn automatic_start(host: &Arc<Host>, recovery: &Mutex<runtime_session
 }
 fn freeze_startup_state(launch: desktop_startup::Launch, desktop: Arc<Mutex<desktop_startup::DesktopSetup>>, compiled_selection: Value) -> (AppState, Arc<runtime_session::HomeSession>) {
     let desktop_startup::Launch { workspace, host_config, key_path, shared_paths, bootstrap, namespaces, source } = launch;
+    // The admitted project, and only that, is the workspace from here on (DEL-01-01).
+    let workspace: Option<PathBuf> = workspace.map(working_folder::AdmittedProject::into_path);
     let source = if source == "explicit environment (exclusive)" { "explicit Root native environment path inputs" } else { source };
     let project = runtime_session::freeze_configured_project(workspace.as_deref());
     let project_context_limit = project.as_ref().err().cloned();
@@ -3112,7 +3178,7 @@ fn initialize_startup_consumers(state: &AppState, home: &Arc<runtime_session::Ho
     {
         let codex_homes = codex_homes(home.host_config.as_ref().ok().into_iter(), data.as_deref().ok());
 
-        records_store::configure(if allow_operational { records_store::for_app(records_override, data.as_deref().map_err(Clone::clone), is_dev, workspace.as_deref(), &codex_homes) } else { Err(data.as_ref().err().cloned().unwrap_or_else(||"Desktop Root consumers not admitted".into())) });
+        records_store::configure(if allow_operational { records_store::for_app_beside(records_override, data.as_deref().map_err(Clone::clone), is_dev, workspace.as_deref(), &codex_homes, &working_folders(home.host_config.as_ref().ok().into_iter())) } else { Err(data.as_ref().err().cloned().unwrap_or_else(||"Desktop Root consumers not admitted".into())) });
         // The store is created here, once, when the App starts: no reader
         // creates it (a read writes nothing). A failure is shown by the
         // store's status and refuses recording; there is no fallback.

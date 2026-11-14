@@ -12,6 +12,84 @@ import './support/rust-prebuild.mjs';
 const document = installMiniDom();
 const {createRoot} = await import('react-dom/client');
 const {App,WorkflowRootPanel} = loadSrc('App');
+
+const HISTORY_NOTICE = "This project's records are kept in the records store. Records in the project folder have not been imported and may not be shown in this view.";
+const HISTORY_LIMIT = 'invented unreadable line 1';
+async function historyRender(t, component, values) {
+  const container = document.createElement('div');document.body.appendChild(container);
+  const root = createRoot(container);
+  t.after(() => React.act(() => root.unmount()));
+  await React.act(async () => root.render(React.createElement(component,values)));
+  return container;
+}
+function visibleHistoryNotice(container) {
+  const paragraph = nodes(container,'p').find(node => node.textContent === HISTORY_NOTICE);
+  assert.ok(paragraph,'history notice is a separate paragraph, including for an empty reading');
+  for (let node=paragraph.parentNode;node && node!==container;node=node.parentNode) {
+    assert.notEqual(node.localName,'details','the notice is outside collapsed source details');
+  }
+  assert.match(container.textContent,/invented unreadable line 1/,'real corruption limit remains visible');
+}
+async function pressHistory(container,label) {
+  const button=nodes(container,'button').find(node=>node.textContent===label);assert.ok(button,label);
+  await React.act(async()=>props(button).onClick());
+}
+test('history notice: empty decision packages retain notice and corruption warning',async t=>{
+  const container=await historyRender(t,loadSrc('App').DecisionPackagesPanel,{view:{rows:[],limits:[HISTORY_LIMIT],historyNotices:[HISTORY_NOTICE]},name:'',setName:()=>{},recordName:()=>{},refresh:async()=>{},continueRecording:async()=>{},openControl:async()=>{}});
+  visibleHistoryNotice(container);
+});
+test('history notice: empty file-act log retains notice outside source details',async t=>{
+  const container=await historyRender(t,loadSrc('FileActPanel').FileActPanel,{command:async()=>({rows:[],limits:[HISTORY_LIMIT],historyNotices:[HISTORY_NOTICE]})});
+  await pressHistory(container,'Read file-act log and current content');visibleHistoryNotice(container);
+});
+test('history notice: workflow supply command result retains notice outside response details',async t=>{
+  const container=await historyRender(t,WorkflowRootPanel,{view:'make',data:{},host:{},act:async()=>({records:[],rsLimits:[HISTORY_LIMIT],historyNotices:[HISTORY_NOTICE]})});
+  await pressHistory(container,'Read recorded workflow supply (durable, read-only)');visibleHistoryNotice(container);
+});
+test('history notice: empty reopened runs retain notice beside record limits',async t=>{
+  const container=await historyRender(t,WorkflowRootPanel,{view:'make',data:{reopened:{runs:[],limits:[HISTORY_LIMIT],historyNotices:[HISTORY_NOTICE]}},host:{},act:async()=>{}});
+  visibleHistoryNotice(container);
+});
+test('history notice: empty post-end history retains notice beside observation limits',async t=>{
+  const container=await historyRender(t,WorkflowRootPanel,{view:'make',data:{afterRunEnd:{runs:[],limits:[HISTORY_LIMIT],historyNotices:[HISTORY_NOTICE]}},host:{},act:async()=>{}});
+  visibleHistoryNotice(container);
+});
+test('history notice: historical Bring back source retains notice outside transcript details',async t=>{
+  const container=await historyRender(t,loadSrc('TrialComposer').BringBackComposerView,{pending:{source:{limits:[HISTORY_LIMIT],historyNotices:[HISTORY_NOTICE]}},conversations:[],prompt:'',setPrompt:()=>{},target:'',setTarget:()=>{},outcome:{state:'unsent'},setOutcome:()=>{},busy:false,ready:false,act:async()=>{}});
+  visibleHistoryNotice(container);
+});
+test('history notice: historical Compare retains notice beside summary limits',async t=>{
+  const container=await historyRender(t,loadSrc('WorkflowDrafts').CompareResult,{result:{historyNotices:[HISTORY_NOTICE],left:{summary:{limits:[HISTORY_LIMIT]}},right:{summary:{limits:[]}}}});
+  visibleHistoryNotice(container);
+});
+test('history notice: retained comparison remains visible after another action with the real studio collapsed',async t=>{
+  const data={projectLibraryAvailable:true,drafts:{drafts:[{name:'invented',trials:[
+    {reference:'trial:one',sequence:1,kind:'delegated',version:'current'},
+    {reference:'trial:two',sequence:2,kind:'delegated',version:'current'},
+  ]}]}};
+  const compared={historyNotices:[HISTORY_NOTICE],left:{summary:{limits:[HISTORY_LIMIT]}},right:{summary:{limits:[]}}};
+  const container=await historyRender(t,WorkflowRootPanel,{view:'make',data,host:{},act:async command=>command==='workflow_trial_compare'?compared:{}});
+  const studio=nodes(container,'details').find(node=>node.getAttribute('id')==='workflow-studio');
+  assert.ok(studio,'real Advanced workflow studio ancestor is mounted');
+  assert.equal(studio.getAttribute('open'),null,'studio starts collapsed');
+  for(let index=0;index<2;index++){
+    const choice=nodes(container,'label').filter(node=>node.textContent.trim()==='Compare')[index];
+    await React.act(()=>props(nodes(choice,'input')[0]).onChange());
+  }
+  await pressHistory(container,'Compare');
+  await pressHistory(container,'Refresh draft list');
+  assert.equal(labelled(container,'Workflow action response').textContent.includes(HISTORY_NOTICE),false,'later action replaced the last-action notice');
+  const result=labelled(container,'Compare result');assert.ok(result,'comparison remains retained');
+  visibleHistoryNotice(result);
+  for(let node=result.parentNode;node&&node!==container;node=node.parentNode){
+    assert.notEqual(node,studio,'retained result and notice are outside the collapsed real ancestor');
+  }
+});
+test('history notice: empty log-integrity reading retains notice outside reader notes',async t=>{
+  const container=await historyRender(t,loadSrc('RecordsStorePanel').RecordsStorePanel,{store:{state:'available',project:{reading:'records store',attachment:{projectId:'invented'},notes:[]}},invoke:async()=>({logs:[],limits:[HISTORY_LIMIT],notes:[],historyNotices:[HISTORY_NOTICE]}),refresh:async()=>{}});
+  await pressHistory(container,'Check the logs now');visibleHistoryNotice(container);
+});
+
 const nodes = (container,tag) => container.querySelectorAll(node => node.localName === tag);
 const labelled = (container,label) => container.querySelectorAll(node => node.getAttribute('aria-label') === label)[0];
 const props = node => node[Object.keys(node).find(key => key.startsWith('__reactProps$'))];

@@ -46,6 +46,7 @@ def handle(f):
   t={'id':'thread' if starts[0]==1 else 'thread-%d'%starts[0],'cliVersion':'0.167.0','createdAt':1,'updatedAt':2,'cwd':os.getcwd(),'ephemeral':False,'modelProvider':'fixture-provider','preview':'stop fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[]}
   result={'thread':t,'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}
  elif m=='turn/steer': result={'turnId':f['params']['expectedTurnId']}
+ elif m=='account/logout': result={}
  elif m=='turn/interrupt':
   emit({'id':f['id'],'result':{}})
   emit({'method':'turn/completed','params':{'threadId':f['params']['threadId'],'turn':{'id':f['params']['turnId'],'status':'interrupted','items':[],'error':None,'itemsView':'summary'}}})
@@ -788,4 +789,436 @@ fn a_request_with_both_a_reading_deadline_and_an_interrupt_bound_is_refused() {
     }
     assert_eq!(f.attempted_interrupts("turn-1"), 0);
     f.assert_nothing_held();
+}
+
+/// A turn start sent, or being sent, that the App has not yet associated with
+/// a turn is live work at the quit, Stop Codex and logout: Codex may be
+/// starting a turn the App cannot yet interrupt. Only the reply to its request
+/// associates it with a turn. Each of the three callers of the shared
+/// assessment counts it beside the turns observed, names it in what the person
+/// reads, and goes on only by the person's choice.
+mod a_turn_start_not_yet_answered {
+    use super::*;
+    use crate::app_quit::{quit_sequence, Decision, HostQuit};
+    use crate::act_control::native_statement::{codex_stop_statement, logout_statement, quit_statement};
+
+    /// The sentence the person reads at a quit, written here independently of
+    /// the code that forms it.
+    const QUITTING: &str = "The App began to send a turn start to Codex and has not yet associated it with a turn it can interrupt. It may be a listed turn, which is then interrupted with the others; if not, Quitting stops Codex wherever it has got to, and its outcome may remain unknown.";
+
+    /// A turn/start of `text` sent on its own thread through the Host's own
+    /// request path (the stand-in never answers it); waits until the Host
+    /// lists a new start with the given write state, and returns its request identity.
+    fn send_turn_start(f: &mut Fixture, text: String, write: &str) -> Value {
+        let before: Vec<Value> = f.host().snapshot()["unansweredTurnStarts"].as_array().unwrap().iter().map(|s| s["requestIdentity"].clone()).collect();
+        let host = Arc::clone(f.host());
+        let generation = f.generation.clone();
+        f.held.push(std::thread::spawn(move || { let _ = host.turn_start_text(&generation, "thread", &text); }));
+        let deadline = Instant::now() + Duration::from_secs(3);
+        loop {
+            if let Some(start) = f.host().snapshot()["unansweredTurnStarts"].as_array().unwrap().iter().find(|s| s["write"] == write && !before.contains(&s["requestIdentity"])) {
+                return start["requestIdentity"].clone();
+            }
+            assert!(Instant::now() < deadline, "the turn start is not listed as {write}: {}", f.host().snapshot()["unansweredTurnStarts"]);
+            std::thread::sleep(Duration::from_millis(5));
+        }
+    }
+    /// Codex's frame, emitted by the stand-in (whether or not it reads its input).
+    fn emit(f: &Fixture, frame: &Value) {
+        let tmp = f.root.join("new-event.json");
+        std::fs::write(&tmp, serde_json::to_vec(frame).unwrap()).unwrap();
+        let deadline = Instant::now() + Duration::from_secs(3);
+        while f.root.join("queued-event.json").exists() {
+            assert!(Instant::now() < deadline, "previous event not taken");
+            std::thread::sleep(Duration::from_millis(2));
+        }
+        std::fs::rename(tmp, f.root.join("queued-event.json")).unwrap();
+    }
+    fn turn(id: &str, status: &str) -> Value {
+        json!({"id":id,"status":status,"items":[],"error":null,"itemsView":"summary"})
+    }
+    fn until(what: &str, done: impl Fn() -> bool) {
+        let deadline = Instant::now() + Duration::from_secs(3);
+        while !done() {
+            assert!(Instant::now() < deadline, "{what}");
+            std::thread::sleep(Duration::from_millis(5));
+        }
+    }
+    /// Codex's reply to the turn start, naming its turn; waits until the Host has it.
+    fn reply(f: &Fixture, request: &Value, id: &str) {
+        emit(f, &json!({"id":request,"result":{"turn":turn(id, "inProgress")}}));
+        until("the reply was not received", || f.host().inner.0.lock().unwrap().source_requests.get(&request.to_string()).is_some_and(|e| e.response.is_some()));
+    }
+    fn completed(f: &Fixture, id: &str) {
+        emit(f, &json!({"method":"turn/completed","params":{"threadId":"thread","turn":turn(id, "completed")}}));
+        until("turn/completed not received", || f.host().conversation_turn(&f.generation, "thread", id).is_some_and(|t| t["nativeTurn"]["status"] == "completed"));
+    }
+    fn starts(view: &Value) -> Vec<Value> { view["observedUnansweredTurnStarts"].as_array().cloned().unwrap_or_default() }
+    fn live(view: &Value) -> Vec<Value> { view["observedLiveTurns"].as_array().cloned().unwrap_or_default() }
+    /// The quit, through its own sequence: what it asked, the person keeping
+    /// the App running; None where it asked nothing.
+    fn quit_asks(f: &Fixture) -> Option<Value> {
+        let workflows = Mutex::new(WorkflowRootSession::default());
+        let mut asked = None;
+        let mut quit = HostQuit::new(vec![Arc::clone(&f.home)], &workflows, "Invented Person", |view: &Value| { asked = Some(view.clone()); Ok(false) });
+        let decision = quit_sequence(&mut quit, LIMIT);
+        drop(quit);
+        match decision {
+            Decision::Cancelled(_) => asked,
+            Decision::Quit(done) => { assert_eq!(done["asked"], false, "{done}"); None }
+            other => panic!("{other:?}"),
+        }
+    }
+    fn stop_asks(f: &Fixture) -> Value {
+        let workflows = Mutex::new(WorkflowRootSession::default());
+        crate::codex_stop::assess(&f.home, &workflows, &f.generation, false).unwrap().view().clone()
+    }
+    fn logout_asks(f: &Fixture) -> Value {
+        let mut asked = None;
+        let result = crate::runtime_session::logout_native_home(&f.home, None, &f.generation, |view| { asked = Some(view.clone()); false }).unwrap();
+        assert_eq!(result["state"], "native confirmation cancelled; no logout request", "{result}");
+        asked.unwrap()
+    }
+    /// At each caller: (turns observed in progress, starts), the quit having
+    /// asked. A second turn in progress on one thread is listed as an
+    /// unresolved turn observation, which is live work too; both count here.
+    fn counts(f: &Fixture) -> Vec<(usize, usize)> {
+        let quit = quit_asks(f).expect("the quit asks: work is live");
+        [quit, stop_asks(f), logout_asks(f)].iter().map(|v| {
+            let unresolved = v["coverage"]["turns"]["unresolved"].as_array().map_or(0, Vec::len);
+            (live(v).len() + unresolved, starts(v).len())
+        }).collect()
+    }
+    /// One start counted on the thread, and no turn; the row carries no write
+    /// state (round 2: not a change the person decides on).
+    fn counted(view: &Value) {
+        let starts = starts(view);
+        assert_eq!(starts.len(), 1, "{view}");
+        assert_eq!(starts[0]["threadId"].as_str(), Some("thread"), "{view}");
+        assert!(starts[0].get("write").is_none(), "{view}");
+        assert!(live(view).is_empty(), "no turn identity, so not a live turn that can be interrupted: {view}");
+    }
+    fn named(text: &str, sentence: Option<String>) {
+        assert!(text.contains("Turn start not yet associated with a turn: thread (request #"), "{text}");
+        assert!(text.contains("It may be one of the turns listed here; the App has not yet associated this start with a turn it can interrupt."), "{text}");
+        assert!(text.contains("0 live turns") && text.contains("1 turn starts not yet associated with a turn"), "{text}");
+        if let Some(sentence) = sentence { assert!(text.contains(&sentence), "{text}"); }
+    }
+
+    #[test]
+    fn written_with_no_response_at_each_caller() {
+        let mut f = Fixture::new();
+        send_turn_start(&mut f, "hello".into(), "written");
+        let (quit, stop, logout) = (quit_asks(&f).unwrap(), stop_asks(&f), logout_asks(&f));
+        for view in [&quit, &stop, &logout] { counted(view); }
+        named(&quit_statement(&quit).unwrap().text, Some(QUITTING.into()));
+        named(&codex_stop_statement(&stop).unwrap().text, Some(QUITTING.replace("if not, Quitting stops", "if not, Stopping Codex stops")));
+        named(&logout_statement(&logout).unwrap().text, None);
+    }
+
+    #[test]
+    fn held_mid_write_at_each_caller() {
+        let mut f = Fixture::new();
+        f.stop_reading();
+        send_turn_start(&mut f, "x".repeat(4 << 20), "in-progress");
+        let (quit, stop, logout) = (quit_asks(&f).unwrap(), stop_asks(&f), logout_asks(&f));
+        for view in [&quit, &stop, &logout] { counted(view); }
+        named(&quit_statement(&quit).unwrap().text, Some(QUITTING.into()));
+    }
+
+    /// Round 1, finding 1: Codex's reply arrives while the start's write is
+    /// still being recorded. Since the scoped reading after round 3, a reply
+    /// to a start in the table is taken in at receipt, from the line as Codex
+    /// sent it: the start becomes the turn it names at once, and is never
+    /// dropped between the reply and the write's record, at every caller.
+    #[test]
+    fn a_reply_before_the_write_is_recorded_is_taken_in_at_receipt() {
+        let mut f = Fixture::new();
+        f.stop_reading();
+        let request = send_turn_start(&mut f, "x".repeat(4 << 20), "in-progress");
+        reply(&f, &request, "turn-1");
+        assert!(f.host().inner.0.lock().unwrap().source_requests.get(&request.to_string()).unwrap().write_attempt_in_progress, "the write is still in progress");
+        assert_eq!(counts(&f), [(1, 0); 3], "the turn it names is counted at once, and the start is not counted beside it");
+    }
+
+    /// The reply arrives while the person is being asked. The start neither
+    /// disappears nor is counted again beside the turn it became: the quit
+    /// asks again, with that turn as one live turn, now with its identity.
+    #[test]
+    fn a_reply_arriving_during_the_confirmation() {
+        let mut f = Fixture::new();
+        let request = send_turn_start(&mut f, "hello".into(), "written");
+        let workflows = Mutex::new(WorkflowRootSession::default());
+        let mut asked = Vec::new();
+        let mut quit = HostQuit::new(vec![Arc::clone(&f.home)], &workflows, "Invented Person", |view: &Value| {
+            asked.push(view.clone());
+            if asked.len() == 1 { reply(&f, &request, "turn-1"); Ok(true) } else { Ok(false) }
+        });
+        let decision = quit_sequence(&mut quit, LIMIT);
+        drop(quit);
+        assert!(matches!(decision, Decision::Cancelled(_)), "{decision:?}");
+        assert_eq!(asked.len(), 2, "asked again once the start became a turn: {asked:?}");
+        counted(&asked[0]);
+        assert_eq!(asked[1]["changedWhileAsking"], true);
+        assert!(starts(&asked[1]).is_empty(), "not counted a second time: {}", asked[1]);
+        let turns = live(&asked[1]);
+        assert_eq!((turns.len(), turns[0]["threadId"].as_str(), turns[0]["turnId"].as_str()), (1, Some("thread"), Some("turn-1")), "it did not disappear: {}", asked[1]);
+    }
+
+    /// Round 1, finding 2, as the INTERLOCUTOR corrected it: only the reply to
+    /// a start's request associates it with a turn. Before the reply, a notice
+    /// of a turn on its thread does not; the start is listed beside it. After
+    /// the reply the start is that turn, counted once, whichever came first.
+    #[test]
+    fn only_the_reply_associates_a_start_with_its_turn_whichever_arrives_first() {
+        for notice_first in [true, false] {
+            let mut f = Fixture::new();
+            let request = send_turn_start(&mut f, "hello".into(), "written");
+            if notice_first {
+                f.live_turn("thread", "turn-1");
+                assert_eq!(counts(&f), [(1, 1); 3], "a notice alone associates nothing: the start is listed beside the turn");
+                reply(&f, &request, "turn-1");
+            } else {
+                reply(&f, &request, "turn-1");
+                assert_eq!(counts(&f), [(1, 0); 3], "the reply associates the start with its turn");
+                f.live_turn("thread", "turn-1");
+            }
+            assert_eq!(counts(&f), [(1, 0); 3], "notice first: {notice_first}");
+            completed(&f, "turn-1");
+            assert!(quit_asks(&f).is_none(), "the start does not come back once its turn ended (notice first: {notice_first})");
+        }
+    }
+
+    /// The notice of an OLDER turn arrives late, after a newer start was sent:
+    /// the newer start stays listed until its own reply.
+    #[test]
+    fn a_late_notice_of_an_older_turn_does_not_take_a_newer_start() {
+        let mut f = Fixture::new();
+        let request = send_turn_start(&mut f, "newer".into(), "written");
+        f.live_turn("thread", "older-turn");
+        assert_eq!(counts(&f), [(1, 1); 3]);
+        reply(&f, &request, "turn-2");
+        assert_eq!(counts(&f), [(2, 0); 3]);
+    }
+
+    /// A second start on a thread whose first start's turn is live is counted
+    /// as its own start, beside that turn; so is a start beside an older turn.
+    #[test]
+    fn a_second_start_beside_a_live_turn_is_its_own_start() {
+        let mut f = Fixture::new();
+        let first = send_turn_start(&mut f, "first".into(), "written");
+        reply(&f, &first, "turn-1");
+        send_turn_start(&mut f, "second".into(), "written");
+        assert_eq!(counts(&f), [(1, 1); 3]);
+        let mut f = Fixture::new();
+        f.live_turn("thread", "older-turn");
+        send_turn_start(&mut f, "newer".into(), "written");
+        assert_eq!(counts(&f), [(1, 1); 3]);
+    }
+
+    /// An unresolved start makes the quit and Stop Codex ask; it never becomes
+    /// a refusal the person's confirmation cannot pass. Confirmed, each goes on.
+    #[test]
+    fn the_persons_yes_goes_ahead_past_an_unresolved_start() {
+        let mut f = Fixture::new();
+        send_turn_start(&mut f, "hello".into(), "written");
+        let workflows = Mutex::new(WorkflowRootSession::default());
+        let mut asked = 0;
+        let mut quit = HostQuit::new(vec![Arc::clone(&f.home)], &workflows, "Invented Person", |_: &Value| { asked += 1; Ok(true) });
+        let decision = quit_sequence(&mut quit, LIMIT);
+        drop(quit);
+        assert_eq!(asked, 1, "asked once");
+        match decision { Decision::Quit(done) => assert_eq!(done["asked"], true, "{done}"), other => panic!("the confirmed quit goes on: {other:?}") }
+        f.host().reopen_to_new_turns(&f.generation);
+        let mut asked = 0;
+        let stopped = crate::codex_stop::stop_native_home_within(&f.home, &workflows, &f.generation, false, "Invented Person", LIMIT, |_| { asked += 1; true }, || Ok(Value::Null));
+        assert_eq!(asked, 1, "asked once");
+        assert!(stopped.is_ok(), "the confirmed stop goes on: {stopped:?}");
+        assert_eq!(f.host().snapshot()["state"], "stopped");
+    }
+
+    /// Round 2, finding 1: a start leaves the list only when its reply ties
+    /// it to a valid turn or refuses it with an error. A result with no usable
+    /// turn, or a reply with neither, leaves it counted.
+    #[test]
+    fn only_a_valid_turn_or_an_error_resolves_a_start() {
+        for (reply, resolved) in [
+            (json!({"result":{"turn":{"id":"turn-x"}}}), false),
+            (json!({"result":{}}), false),
+            (json!({}), false),
+            (json!({"error":"not an error object"}), false),
+            (json!({"error":{"code":-32600,"message":"invented refusal"}}), true),
+        ] {
+            let mut f = Fixture::new();
+            let request = send_turn_start(&mut f, "hello".into(), "written");
+            let mut frame = reply.clone();
+            frame["id"] = request.clone();
+            emit(&f, &frame);
+            // A frame with neither a result nor an error object may not be
+            // taken as a reply at all; then the start is waiting as before.
+            let taken = || !f.host().inner.0.lock().unwrap().pending.contains_key(&request.to_string());
+            if resolved { until("the reply was not received", taken); } else {
+                let deadline = Instant::now() + Duration::from_millis(500);
+                while !taken() && Instant::now() < deadline { std::thread::sleep(Duration::from_millis(5)); }
+            }
+            if resolved {
+                assert!(quit_asks(&f).is_none(), "Codex refused the start: nothing is live ({reply})");
+            } else {
+                assert_eq!(counts(&f), [(0, 1); 3], "still counted after {reply}");
+            }
+        }
+    }
+
+    /// App Agent 0 and the INTERLOCUTOR, before round 3: a write that began
+    /// and failed may have reached Codex in part, so its start stays counted
+    /// (outcome not known), and the person is asked. A reply to that request
+    /// naming a valid turn still resolves it, through the one function.
+    #[test]
+    fn a_failed_write_stays_counted_until_its_reply_resolves_it() {
+        let mut f = Fixture::new();
+        *f.host().turn_start_simulated_write.lock().unwrap() = Some("invented write failure");
+        let request = send_turn_start(&mut f, "hello".into(), "failed; outcome not known");
+        assert!(f.host().inner.0.lock().unwrap().source_requests.get(&request.to_string()).unwrap().write_error.is_some());
+        assert_eq!(counts(&f), [(0, 1); 3], "a failed write is counted");
+        emit(&f, &json!({"id":request,"result":{"turn":turn("turn-1", "inProgress")}}));
+        until("the reply did not resolve the start", || f.host().snapshot()["unansweredTurnStarts"].as_array().unwrap().is_empty());
+        assert_eq!(counts(&f), [(1, 0); 3], "its reply ties it to its turn");
+    }
+
+    /// Round 2, finding 2: the sentence is true whether the start is one of
+    /// the listed turns, is not, or there is no turn at all.
+    #[test]
+    fn the_sentence_holds_in_each_state() {
+        let sentence = |f: &Fixture| quit_statement(&quit_asks(f).unwrap()).unwrap().text;
+        // No turn at all.
+        let mut f = Fixture::new();
+        send_turn_start(&mut f, "hello".into(), "written");
+        assert!(sentence(&f).contains(QUITTING));
+        // The start is one of the listed turns: Codex named it before replying.
+        let mut f = Fixture::new();
+        send_turn_start(&mut f, "hello".into(), "written");
+        f.live_turn("thread", "turn-1");
+        assert!(sentence(&f).contains(QUITTING));
+        // It is not: the listed turn is an older one.
+        let mut f = Fixture::new();
+        f.live_turn("thread", "older-turn");
+        send_turn_start(&mut f, "hello".into(), "written");
+        assert!(sentence(&f).contains(QUITTING));
+        // Round 3: a write that began and failed, with no reply.
+        let mut f = Fixture::new();
+        *f.host().turn_start_simulated_write.lock().unwrap() = Some("invented write failure");
+        send_turn_start(&mut f, "hello".into(), "failed; outcome not known");
+        assert!(sentence(&f).contains(QUITTING));
+    }
+
+    /// Round 3, finding 1: a reply that came while the write was being made is
+    /// taken in through the one function even when the write then fails. A
+    /// valid turn is then that live turn; an error refusal retires the start.
+    #[test]
+    fn a_reply_during_a_write_that_fails_is_still_taken_in() {
+        for (reply, live) in [(json!({"result":{"turn":turn("turn-1", "inProgress")}}), 1usize), (json!({"error":{"code":-32600,"message":"invented refusal"}}), 0)] {
+            let f = Fixture::new();
+            *f.host().turn_start_simulated_write.lock().unwrap() = Some("invented write failure");
+            let root = f.root.clone();
+            *f.host().before_request_write.lock().unwrap() = Some(Box::new(move |h: &Host| {
+                let key = h.inner.0.lock().unwrap().source_requests.iter().find(|(_, e)| e.write_attempt_in_progress && e.request.frame["method"] == "turn/start").map(|(k, _)| k.clone()).unwrap();
+                let mut frame = reply.clone();
+                frame["id"] = serde_json::from_str(&key).unwrap();
+                let tmp = root.join("new-event.json");
+                std::fs::write(&tmp, serde_json::to_vec(&frame).unwrap()).unwrap();
+                std::fs::rename(tmp, root.join("queued-event.json")).unwrap();
+                until("the reply was not stored during the write", || h.inner.0.lock().unwrap().source_requests[&key].response.is_some());
+            }));
+            let _ = f.host().turn_start_text(&f.generation, "thread", "hello");
+            assert!(f.host().inner.0.lock().unwrap().source_requests.values().any(|e| e.request.frame["method"] == "turn/start" && e.write_error.is_some()), "the write failed");
+            assert_eq!(f.host().snapshot()["unansweredTurnStarts"], json!([]), "the stored reply resolved the start");
+            if live == 1 {
+                assert_eq!(counts(&f), [(1, 0); 3], "the turn the reply names is the live turn");
+            } else {
+                assert!(quit_asks(&f).is_none(), "Codex refused the start: nothing is live");
+            }
+        }
+    }
+
+    /// Round 2: logout goes on when the person confirms past an unresolved start.
+    #[test]
+    fn a_confirmed_logout_goes_ahead_past_an_unresolved_start() {
+        let mut f = Fixture::new();
+        send_turn_start(&mut f, "hello".into(), "written");
+        let mut asked = 0;
+        let result = crate::runtime_session::logout_native_home(&f.home, None, &f.generation, |view| { counted(view); asked += 1; true }).unwrap();
+        assert_eq!(asked, 1);
+        assert_ne!(result["state"], "native confirmation cancelled; no logout request", "{result}");
+        assert!(!result.to_string().contains("changed during native confirmation"), "{result}");
+    }
+
+    /// Round 1, finding 4: once the generation is closed, none of its starts is listed.
+    #[test]
+    fn a_closed_generation_lists_no_start() {
+        let mut f = Fixture::new();
+        send_turn_start(&mut f, "hello".into(), "written");
+        let _ = f.host().stop("Invented Person", "test");
+        assert_eq!(f.host().snapshot()["unansweredTurnStarts"], json!([]));
+    }
+}
+
+/// The scoped reading after round 3 of #317: its findings on the size of the
+/// question and on a projection that withheld a valid reply.
+mod after_the_scoped_reading {
+    use super::*;
+
+    fn turn() -> Value { json!({"id":"scoped-turn","status":"inProgress","items":[],"error":null}) }
+    fn start(f: &Fixture) -> SourceRequest {
+        f.host().request_begin_scoped("turn/start", Host::text_turn_params("thread", "invented text").unwrap(),
+            json!({"kind":"person-directed"}), false, Some(&f.generation)).unwrap()
+    }
+
+    /// A correlated reply whose result also carries a configuration object,
+    /// on a generation with a private configuration reading, is withheld from
+    /// records as before, and its valid turn still resolves the start.
+    #[test]
+    fn a_valid_reply_a_projection_withholds_still_resolves_its_start() {
+        let f = Fixture::new();
+        let source = start(&f);
+        f.host().inner.0.lock().unwrap().private_config_channels.push(f.generation.clone());
+        let mut native = turn();
+        native["itemsView"] = json!("summary");
+        let reply = json!({"id": source.request_id(), "result": {"turn": native, "config": {"invented": "private"}}});
+        Host::validate_native_result("TurnStartResponse", &reply["result"]).unwrap();
+        f.host().on_line(&serde_json::to_vec(&reply).unwrap(), &f.generation);
+        assert_eq!(f.host().snapshot()["unansweredTurnStarts"], json!([]), "the valid turn must resolve its start");
+        let i = f.host().inner.0.lock().unwrap();
+        assert!(i.conversation_turns.iter().any(|e| e["turnId"] == "scoped-turn"), "the turn is counted");
+        assert!(!serde_json::to_string(&i.conversation_turns).unwrap().contains("private"), "nothing of the configuration is kept with the turn");
+    }
+
+    /// The real Stop and Restart callers, with an unresolved start and, for
+    /// Stop, a second start begun while the first question is open: every
+    /// question they ask can be shown.
+    #[test]
+    fn stop_and_restart_can_ask_with_a_start_and_when_asking_again() {
+        let mut refused = Vec::new();
+        for restart in [false, true] {
+            let f = Fixture::new();
+            let begin = || {
+                *f.host().turn_start_simulated_write.lock().unwrap() = Some("invented uncertain write");
+                f.host().request_begin_scoped("turn/start", Host::text_turn_params("thread", "invented text").unwrap(),
+                    json!({"kind":"person-directed"}), false, Some(&f.generation)).unwrap()
+            };
+            let _first = begin();
+            let workflows = Mutex::new(WorkflowRootSession::default());
+            let mut asked = 0;
+            let mut refusal = None;
+            let _ = crate::codex_stop::stop_native_home_within(&f.home, &workflows, &f.generation, restart, "Invented Person", LIMIT, |view| {
+                asked += 1;
+                match crate::act_control::native_statement::codex_stop_statement(view) {
+                    Ok(_) => { if !restart && asked == 1 { let _second = begin(); } true }
+                    Err(cause) => { refusal = Some(cause); false }
+                }
+            }, || Err("no restart source is needed for this check".into()));
+            if let Some(cause) = refusal { refused.push(format!("restart={restart}, question {asked}: {cause}")); }
+            let _ = f.host().stop("test", "test ended");
+        }
+        assert!(refused.is_empty(), "a question was refused before it could be confirmed: {refused:?}");
+    }
 }

@@ -99,6 +99,7 @@ fn child(folder: Folder, name: &str) -> Option<Folder> {
 
 pub(crate) const CONTROLS: &[&str] = &[
     ".writer.lock",
+    ".after-run-end.lock",
     "captures/.capture.lock",
     "role-supply/.writer.lock",
 ];
