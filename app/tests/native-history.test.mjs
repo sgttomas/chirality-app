@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {agentPlain} from './support/agent-text.mjs';
 import assert from 'node:assert/strict';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
@@ -49,9 +50,9 @@ const renderTurns = host => renderToStaticMarkup(React.createElement(StoredTurnP
 test('a selected native page reads messages, plans, substantive tool results and delegation in supplier order', () => {
   const host = fixture(), before = clone(host);
   const html = renderItems(host);
-  for (const value of ['Stored final &lt;answer&gt;', 'Stored input &lt;script&gt;unsafe()&lt;/script&gt;', 'Stored reasoning summary', 'Stored plan: inspect, then repair', 'Stored command output', 'exit code: 0', '+stored change', 'Stored MCP text', 'Stored resource text', 'Stored App tool text', 'Stored function result', 'agent child: Codex status running', 'unfamiliar item <code>futureNativeKind</code>']) assert.ok(html.includes(value), value);
+  for (const value of ['Stored final &lt;answer&gt;', 'Stored input &lt;script&gt;unsafe()&lt;/script&gt;', 'Stored reasoning summary', 'Stored plan: inspect, then repair', 'Stored command output', 'exit code: 0', '+stored change', 'Stored MCP text', 'Stored resource text', 'Stored App tool text', 'Stored function result', 'agent child: Codex status running', 'unfamiliar item</b> ⟦Type: futureNativeKind⟧']) assert.ok(agentPlain(html).includes(value), value);
   assert.ok(html.indexOf('Stored final') < html.indexOf('Stored input'), 'the selected native page order is retained even newest first');
-  assert.ok(html.includes('Source home history-home · conversation stored · turn turn-source') && html.includes('Newest first · first page request'));
+  assert.ok(html.includes('Source home <code>history-home</code> · conversation <code>stored</code> · turn <code>turn-source</code>') && html.includes('Newest first · first page request'));
   assert.ok(html.includes('&quot;factory_id&quot;: 7') && html.includes('&quot;query_id&quot;: 22') && html.includes('&quot;revision&quot;: 2'), 'exact query identity remains in source details');
   assert.ok(html.includes('Original native item page') && html.includes('&quot;entryExtra&quot;: &quot;kept&quot;') && html.includes('&quot;pageExtra&quot;: &quot;preserved page&quot;'));
   assert.ok(html.includes('&quot;unchanged&quot;: true'));
@@ -74,8 +75,8 @@ test('history state keeps unknown or inProgress outcomes unknown and preserves u
   ];
   const html = renderItems(host);
   assert.ok(html.includes('unknown — no completion observed'));
-  assert.ok(html.includes('native status inProgress') && html.includes('in progress at the read'));
-  assert.ok(html.includes('native status future-valid-native-status'));
+  assert.ok(html.includes('native status in progress') && html.includes('in progress at the read'));
+  assert.ok(agentPlain(html).includes('native status ⟦Codex sent: future-valid-native-status⟧'),'a status the App does not know is shown as Codex sent it, boxed');
   assert.equal((html.match(/result not supplied by Codex/g) ?? []).length, 1);
   assert.equal(historyItemRow({type: 'futureNativeKind'}, 'T', 'U').displayState, 'unknown');
   assert.equal(historyItemRow({type: 'imageGeneration', status: 'future-valid-native-status'}, 'T', 'U').displayState, 'unknown');
@@ -134,7 +135,7 @@ test('malformed entries are isolated, identity mismatches cannot enter a differe
   const html = renderItems(host);
   assert.equal((html.match(/readable body is withheld/g) ?? []).length, 3);
   assert.ok(html.includes('Neighbor still readable') && html.includes('{&quot;p&quot;:1}'));
-  assert.ok(html.includes('native status {&quot;odd&quot;:true}'));
+  assert.ok(agentPlain(html).includes('native status ⟦Codex sent: {&quot;odd&quot;:true}⟧'));
   assert.ok(!html.includes('Native item wrong ·'));
   assert.ok(html.includes('&quot;Wrong turn body&quot;'), 'the mismatched source remains raw');
   assert.ok(html.includes('&quot;item&quot;: &quot;bad-item&quot;'));
@@ -153,7 +154,7 @@ test('turn summaries distinguish summary, unloaded, full-default, empty and unre
   const html = renderTurns(host);
   assert.ok(html.includes('Input preview:') && html.includes('Agent preview:'));
   assert.ok(html.includes('Items view: summary · 3 embedded items') && html.includes('Summary items can omit substantive activity'));
-  assert.ok(html.includes('Items view: notLoaded · 0 embedded items') && html.includes('Items have not been loaded'));
+  assert.ok(html.includes('Items view: not loaded · 0 embedded items') && html.includes('Items have not been loaded'));
   assert.ok(html.includes('Items view: full (native default) · 0 embedded items'));
   assert.ok(html.includes('Items view: null (as supplied) · 0 embedded items'), 'native null does not become the default or unreported');
   assert.ok(html.includes('items malformed or not reported') && html.includes('Malformed native turn identity'));
@@ -163,7 +164,7 @@ test('turn summaries distinguish summary, unloaded, full-default, empty and unre
   host.nativeHistory.selected.turnsPage.data = [];
   assert.ok(renderTurns(host).includes('empty turn page'));
   host.nativeHistory.selected.itemsPage.data = [];
-  assert.ok(renderItems(host).includes('empty item page for turn turn-source'));
+  assert.ok(renderItems(host).includes('empty item page for turn <code>turn-source</code>'));
   host.nativeHistory.selected.itemsPage = null;
   assert.ok(renderItems(host).includes('This page has not been read'));
 });
@@ -190,7 +191,7 @@ test('admitted continuation renders only its independently accepted bounded prio
   current.host.nativeHistory.selectionEpoch++;
   const html = renderContext(current);
   for (const text of ['Stored final &lt;answer&gt;', 'Stored plan: inspect, then repair', 'Stored command output', 'Stored MCP text']) assert.ok(html.includes(text), text);
-  assert.ok(html.includes('admitted resume req:resume') && html.includes('bounded partial snapshot'));
+  assert.ok(html.includes('admitted resume <code>req:resume</code>') && html.includes('bounded partial snapshot'));
   assert.ok(html.includes('at most 20 turn summaries and 50 items in each page'));
   assert.ok(html.includes('not a complete transcript or a rebuild of live state'));
   assert.ok(html.includes('checklist revisions are not restored') && html.includes('Recovered plans have no live revision number'));
@@ -260,7 +261,7 @@ test('queued, partial and unavailable prior work remains separate from resume ad
   current.context.history.selected.streamResolutions['item-pages'].outcome = 'native-error-observed';
   current.context.history.selected.errorsByStream['item-pages'] = {message: 'Selected item read failed'};
   const html = renderContext(current);
-  assert.ok(html.includes('Some prior work could not be read') && html.includes('<b>Turn prior-turn</b>'));
+  assert.ok(html.includes('Some prior work could not be read') && html.includes('<b>Turn <code>prior-turn</code></b>'));
   assert.ok(html.includes('Selected item read failed') && html.includes('Retry prior-work read'));
   assert.doesNotMatch(html, /Native item agent ·|<b>Agent<\/b>/);
   assert.equal(current.thread.nativeResumeObserved, true, 'failed context is not a failed resume');
