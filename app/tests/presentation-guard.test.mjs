@@ -1,8 +1,8 @@
-// The presentation boundary on the three covered views (RequestCards, NativeActivity, NativeHistory): every value
-// from Codex, an agent or a record reaches the page only through an approved presentation (AgentText, SuppliedId,
-// Word, Num, Flag, or the functions plainId, idWords, wordOf, numberWords, isoSeconds), and a control or heading
-// holds only the App's words. Two kinds of evidence: the guard's verdict on the source, and the rendered page with
-// every supplied string poisoned. Invented material only.
+// The presentation boundary on the four covered views (RequestCards, NativeActivity, NativeHistory, RunOffers): every
+// value from Codex, an agent or a record reaches the page only through an approved presentation (AgentText,
+// SuppliedId, Word, Num, Flag, or the functions plainId, idWords, wordOf, numberWords, isoSeconds, clockWords), and a
+// control or heading holds only the App's words. Two kinds of evidence: the guard's verdict on the source, and the
+// rendered page with each supplied value poisoned in turn. Invented material only.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
@@ -10,7 +10,9 @@ import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {loadSrc} from './support/load-src.mjs';
 import {agentPlain} from './support/agent-text.mjs';
-import {guardFailures, sourceFailures, wordTableFailures, GUARDED_VIEWS} from './support/presentation-guard.mjs';
+import {guardFailures, sourceFailures, wordTableFailures, GUARDED_VIEWS, APP_ONLY, APP_ONLY_ROLES} from './support/presentation-guard.mjs';
+import {installMiniDom} from './support/mini-dom.mjs';
+import {continuationFixture} from './support/continuation-fixture.mjs';
 
 const SRC = new URL('../src/', import.meta.url);
 const exceptions = JSON.parse(readFileSync(new URL('./support/presentation-guard-exceptions.json', import.meta.url), 'utf8'));
@@ -124,143 +126,316 @@ test('presentation guard closure: a trusted name is trusted only when it is boun
   passes('import { clockWords } from "./AgentText";\nexport const V = ({ at }: any) => <p>{clockWords(at)}</p>;', 'clockWords, an approved presentation');
 });
 
-// The rendered page: every supplied string poisoned with a marker and a direction override. Outside the boxes, and
-// in every control, heading and attribute that names or holds text, the marker never appears.
+// The rendered page, on valid fixtures: each surface is first drawn as it is, with a check that what it is meant to
+// show is shown; then every leaf of its data (each string, number, boolean and null, and each object key) is
+// replaced in turn by P, the rest left as it was, and the page drawn again, statically and mounted. P may appear
+// only inside a box (AgentText, or the box an approved presentation falls back to); never in a control, a heading,
+// an element whose role is one, a naming or describing attribute or its target, or a text field's value. A value
+// may also be withheld (not drawn at all).
 const MARK = 'UNTRUSTED';
 const RLO = '‮';
-const poison = (value, keep = new Set()) => {
-  if (typeof value === 'string') return `${MARK}${RLO}${value}`;
-  if (Array.isArray(value)) return value.map(v => poison(v, keep));
-  if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, keep.has(k) ? v : poison(v, keep)]));
-  return value;
-};
+const P = `${MARK}\n${RLO}Allow once`;
+
 /** The page with every box read as ⟦label value⟧ and then removed: what remains is the App's own words. */
 const outsideBoxes = raw => agentPlain(raw).replace(/⟦[^⟧]*⟧/g, '');
-const APP_ONLY_ELEMENTS = /<(button|a|summary|label|legend|option|h[1-6])\b[^>]*>([\s\S]*?)<\/\1>/g;
-const NAMING_ATTRIBUTES = /\s(aria-[a-z]+|title|alt|placeholder|value)="([^"]*)"/g;
-function assertBoundary(raw, what) {
+const APP_ONLY_ELEMENTS = new RegExp(`<(${[...APP_ONLY].join('|')})\\b[^>]*>([\\s\\S]*?)</\\1>`, 'g');
+const NAMING_ATTRIBUTES = /\s(aria-[a-z]+|title|alt|placeholder|value|label)="([^"]*)"/g;
+function assertBoundary(markup, what) {
+  // An option's value is the selector's opaque target, never drawn; its displayed text is checked.
+  const raw = markup.replace(/(<option\b[^>]*?\svalue=")[^"]*(")/g, '$1$2');
   const outside = outsideBoxes(raw);
   assert.ok(!outside.includes(MARK), `${what}: supplied text outside a box: …${outside.slice(Math.max(0, outside.indexOf(MARK) - 160), outside.indexOf(MARK) + 80)}…`);
-  assert.ok(!outside.includes(RLO), `${what}: a direction override outside a box`);
+  assert.ok(!raw.includes(RLO), `${what}: a direction override drawn as it is`);
   for (const [, tag, inner] of raw.matchAll(APP_ONLY_ELEMENTS)) {
     assert.ok(!inner.includes(MARK), `${what}: supplied text inside a ${tag}: ${inner.slice(0, 200)}`);
     assert.ok(!/agent-text/.test(inner), `${what}: a box inside a ${tag}: ${inner.slice(0, 200)}`);
   }
-  for (const [, name, value] of raw.matchAll(NAMING_ATTRIBUTES)) assert.ok(!value.includes(MARK) && !value.includes(RLO), `${what}: supplied text in ${name}="${value.slice(0, 120)}"`);
+  for (const [, name, value] of raw.matchAll(NAMING_ATTRIBUTES)) {
+    assert.ok(!value.includes(MARK), `${what}: supplied text in ${name}="${value.slice(0, 120)}"`);
+  }
 }
 
-const {NativeRequestCard, WaitingRequestsIndicator} = loadSrc('RequestCards');
-const {NativeActivityView, RunStartMarker, RunEndMarker, RunLabel, StopLabel} = loadSrc('NativeActivity');
-const {StoredTurnPage, StoredItemPage, HistoryPageSource} = loadSrc('NativeHistory');
-const g = {appSession: 's', home: 'h', spawnCounter: 1};
-const request = (method, nativeParameters, extra = {}) => ({recordKind: 'server-request-entry', requestIdentity: method, generation: g, method, classification: 'known-answerable',
-  originClass: ['item/tool/requestUserInput', 'mcpServer/elicitation/request'].includes(method) ? 'person-input' : 'a14', nativeParameters, state: 'outstanding',
-  replyWriteResult: 'not-attempted', acknowledgmentObservation: {status: 'not-observed'}, ...extra});
-const REQUESTS = [
-  request('item/commandExecution/requestApproval', {threadId: 'T', turnId: 'u', itemId: 'i', command: 'ls', cwd: '/w', reason: 'list', kind: 'shell', proposedExecpolicyAmendment: ['ls'],
-    availableDecisions: ['accept', 'acceptForSession', {acceptWithExecpolicyAmendment: {execpolicy_amendment: ['ls']}}, 'decline', 'cancel', 'a future decision']}),
-  request('item/fileChange/requestApproval', {threadId: 'T', turnId: 'u', itemId: 'f', reason: 'edit', grantRoot: '/w'}),
-  request('item/permissions/requestApproval', {threadId: 'T', turnId: 'u', itemId: 'p', cwd: '/w', reason: 'more', permissions: {network: true}}),
-  request('execCommandApproval', {conversationId: 'T', callId: 'c', command: ['ls'], cwd: '/w', reason: 'legacy'}),
-  request('applyPatchApproval', {conversationId: 'T', callId: 'c', reason: 'legacy patch', fileChanges: {'a.txt': {}}, grantRoot: '/w'}),
-  request('item/tool/requestUserInput', {threadId: 'T', turnId: 'u', itemId: 'q', questions: [{id: 'q1', header: 'Pick', question: 'Which?', isOther: true, isSecret: false,
-    options: [{label: 'Allow once', description: 'first'}]}]}),
-  request('mcpServer/elicitation/request', {threadId: 'T', turnId: 'u', serverName: 'srv', mode: 'form', message: 'Fill in', requestedSchema: {type: 'object'}}),
-  request('a/future/method', {threadId: 'T'}),
-];
-// Request states and reply observations that put the register's values into the App's sentences.
-const REQUEST_STATES = [
-  {state: 'errored', settlement: {origin: {class: 'app-rule', ruleName: 'no-tools'}, kind: 'error'}},
-  {state: 'declined', settlement: {origin: {class: 'app-rule', ruleName: 'on-stop'}, kind: 'decline'}},
-  {state: 'resolved-by-supplier', supplierResolution: {cause: 'turn ended'}},
-  {state: 'a future state'},
-];
-const activityItem = (id, native, extra = {}) => ({threadId: 'T', turnId: 'turn-1', native: {id, ...native}, displayState: 'completed', standing: 'live-observed', observationEnded: false, observedOrder: 0, ...extra});
-const ACTIVITY = {
-  typesPin: '0.167.0', supplierStanding: 'verified-pin', limits: ['a limit'],
-  items: [
-    activityItem('m', {type: 'agentMessage', text: 'answer', phase: 'final_answer'}, {displayState: 'in-progress', previewStanding: 'streamed so far; may differ from the completed item', preview: 'ans'}),
-    activityItem('r', {type: 'reasoning', summary: ['think'], content: []}, {displayState: 'unknown', endReason: 'turn ended without item completion'}),
-    activityItem('c', {type: 'commandExecution', command: 'ls', cwd: '/w', source: 'userShell', status: 'failed', exitCode: 2, durationMs: 5, aggregatedOutput: 'out', commandActions: []}, {startNative: {source: 'agent'}, settlementOrigin: {origin: 'person'}}),
-    activityItem('f', {type: 'fileChange', status: 'declined', changes: [{path: 'a.txt', kind: {type: 'update', move_path: 'b.txt'}, diff: '+x'}]}),
-    activityItem('t', {type: 'mcpToolCall', server: 'srv', tool: 'read', arguments: {a: 1}, readOnlyHint: true, durationMs: 3, status: 'completed', result: {content: [{type: 'text', text: 'tool text'}]}, error: null}),
-    activityItem('d', {type: 'dynamicToolCall', namespace: 'ns', tool: 'tool', arguments: {}, success: false, status: 'completed', contentItems: [{type: 'inputText', text: 'dyn'}]}),
-    activityItem('o', {type: 'functionCallOutput', namespace: 'ns', name: 'fn', output: 'result'}),
-    activityItem('g', {type: 'collabAgentToolCall', tool: 'spawnAgent', status: 'completed', senderThreadId: 'T', receiverThreadIds: ['C'], model: 'm', reasoningEffort: 'high', prompt: 'help',
-      agentsStates: {C: {status: 'running', message: 'busy'}}}),
-    activityItem('s', {type: 'subAgentActivity', kind: 'started', agentPath: 'reviewer', agentThreadId: 'C'}),
-    activityItem('w', {type: 'webSearch', query: 'q'}),
-    activityItem('i', {type: 'imageView', path: 'p.png'}),
-    activityItem('x', {type: 'a future item', raw: 'r'}),
-  ],
-  turns: [{id: 'turn-1', status: 'inProgress', startedAt: 100, durationMs: 9, error: {message: 'turn error'}, items: []}],
-  turnRecords: [{threadId: 'T', turnId: 'turn-1', errors: [{error: {message: 'err', additionalDetails: 'more'}, willRetry: true, receiptPosition: 4, ordinalInTurn: 1}],
-    unreadableErrors: [{kind: 'server-request-named-error', receiptPosition: 5, ordinalInTurn: 1}]}],
-  revisions: [{kind: 'checklist', revisionId: 'k1', threadId: 'T', turnId: 'turn-1', ordinal: 1, content: {explanation: 'plan', steps: [{step: 'Read', status: 'inProgress'}]}},
-    {kind: 'checklist', revisionId: 'k2', threadId: 'T', turnId: 'turn-1', ordinal: 2, content: {explanation: 'plan', steps: [{step: 'Read', status: 'completed'}]}}],
-  descendants: [{threadId: 'C', parentThreadId: 'T', parentSource: 'collabAgentToolCall.senderThreadId', statusSource: 'collabAgentToolCall.agentsStates', lastObservedStatus: {status: 'running', message: 'm'},
-    guidance: 'a reading', observationEnded: false, nativeThread: {id: 'C', agentRole: 'reviewer', agentNickname: 'Ada'}}],
-  goals: {T: {native: {objective: 'goal'}, source: 'thread/goal/updated'}},
-  checklistGaps: [{threadId: 'T', turnId: 'turn-0', reason: 'not kept'}],
-};
-const run = {reference: 'run:1', workflow: {name: 'pump-skid', revision: 'abc123'}, conversation: 'T', turn: 'turn-1', lifecycle: {state: 'ended', end: {cause: 'you ended it'}}, endedAfterTurn: 'turn-1'};
-const stop = {stopRequestId: 's1', label: 'interrupted by the person', reading: 'Final status observed when the turn ended.', codexReported: 'interrupted', persistence: 'recorded in the App ledger', earlierSession: true};
-const binding = (page, kind) => ({accepted: true, notice: 'Latest accepted page for this selection.', page, rawPage: page, home: 'h', generation: g, epoch: 1, threadId: 'T', resolution: {outcome: 'matched'},
-  query: {params: {turnId: kind === 'items' ? 'turn-1' : undefined, sortDirection: 'desc'}}});
-const turnPage = {data: [{id: 'turn-1', status: 'interrupted', itemsView: 'summary', startedAt: 100, completedAt: 200, durationMs: 9, error: {message: 'e'},
-  items: [{type: 'userMessage', content: [{type: 'text', text: 'hi'}]}, {type: 'agentMessage', text: 'there'}, {type: 'a future item'}]}]};
-const itemPage = {data: ACTIVITY.items.map(row => row.native)};
-
-function renders(keep) {
-  const p = value => poison(value, keep);
-  const out = [];
-  for (const r of REQUESTS) {
-    const poisoned = p(r);
-    out.push([`card ${r.method}`, renderToStaticMarkup(React.createElement(NativeRequestCard, {request: poisoned, view: null, answer: async () => {}}))]);
-    for (const extra of REQUEST_STATES) out.push([`card ${r.method} ${extra.state}`, renderToStaticMarkup(React.createElement(NativeRequestCard, {request: {...poisoned, ...p(extra)}, view: null, answer: async () => {}}))]);
-    for (const command of [{kind: 'rejected', reason: 'already-resolved'}, {kind: 'unconfirmed', writeResult: 'unknown'}]) {
-      const scope = JSON.stringify([poisoned.generation, poisoned.requestIdentity]);
-      out.push([`card ${r.method} reply ${command.kind}`, renderToStaticMarkup(React.createElement(NativeRequestCard, {request: poisoned, view: null, answer: async () => {},
-        observation: {scope, command: p(command), custody: {scope, available: false, reason: p('custody unavailable')}}}))]);
+// The mounted page, read node by node.
+const document = installMiniDom();
+const {createRoot} = await import('react-dom/client');
+const props = node => node[Object.keys(node).find(k => k.startsWith('__reactProps$'))];
+const classes = node => (node.getAttribute?.('class') ?? '').split(/\s+/);
+const SHOWN_ATTRIBUTES = name => name.startsWith('aria-') || ['title', 'alt', 'placeholder', 'label'].includes(name);
+function assertMounted(container, what) {
+  const byId = new Map();
+  container.querySelectorAll(n => n.hasAttribute('id')).forEach(n => byId.set(n.getAttribute('id'), n));
+  const walk = (node, ctx) => {
+    if (node.nodeType === 3) {
+      const t = node.nodeValue ?? '';
+      assert.ok(!t.includes(RLO), `${what}: a direction override drawn as it is`);
+      if (t.includes(MARK)) {
+        assert.ok(ctx.box, `${what}: supplied text outside a box, in <${ctx.tag}>: ${t.slice(0, 80)}`);
+        assert.ok(!ctx.control, `${what}: supplied text inside ${ctx.control}`);
+      }
+      return;
     }
-  }
-  out.push(['waiting count', renderToStaticMarkup(React.createElement(WaitingRequestsIndicator, {overview: p({groups: [{modeHomeClass: 'account', generation: g, threadId: 'T', count: 2}],
-    sources: [{modeHomeClass: 'account', state: 'stopped'}], coverage: 'coverage words'}), open: () => {}}))]);
-  const view = p(ACTIVITY);
-  out.push(['activity', renderToStaticMarkup(React.createElement(NativeActivityView, {view, threadId: keep.has('threadId') ? 'T' : p('T'), runs: [p(run)],
-    stopLabelFor: () => p(stop), trialTurns: [p({threadId: 'T', turnId: 'turn-1', label: 'trial 1'})], trialChildren: [p({threadId: 'C', label: 'trial child'})], delegation: p({reading: 'missing', reason: 'off', readAt: 'now'})}))]);
-  out.push(['run markers', renderToStaticMarkup(React.createElement('div', null, React.createElement(RunStartMarker, {run: p(run)}), React.createElement(RunEndMarker, {run: p(run)}), React.createElement(RunLabel, {run: p(run)})))]);
-  out.push(['stop label', renderToStaticMarkup(React.createElement(StopLabel, {stop: p(stop)}))]);
-  out.push(['stop label, no request', renderToStaticMarkup(React.createElement(StopLabel, {stop: p({label: 'interrupted by Stop Codex', codexReported: 'completed'})}))]);
-  out.push(['history source', renderToStaticMarkup(React.createElement(HistoryPageSource, {binding: p(binding(turnPage, 'turns'))}))]);
-  out.push(['history turns', renderToStaticMarkup(React.createElement(StoredTurnPage, {binding: p(binding(turnPage, 'turns')), canRead: true, readItems: () => {}}))]);
-  out.push(['history items', renderToStaticMarkup(React.createElement(StoredItemPage, {binding: p(binding(itemPage, 'items'))}))]);
+    if (node.nodeType !== 1) return;
+    const tag = node.localName, role = node.getAttribute('role');
+    for (const [name, value] of node.attributes) {
+      if (name === 'value' && tag === 'option') continue;
+      assert.ok(!value.includes(RLO), `${what}: a direction override in ${name}`);
+      if (SHOWN_ATTRIBUTES(name) || (name === 'value' && ['input', 'textarea'].includes(tag))) assert.ok(!value.includes(MARK), `${what}: supplied text in <${tag} ${name}>`);
+      if (['aria-labelledby', 'aria-describedby', 'aria-details', 'aria-errormessage'].includes(name)) for (const id of value.split(/\s+/)) {
+        const target = byId.get(id);
+        assert.ok(!target || (!target.textContent.includes(MARK) && target.querySelectorAll(n => classes(n).includes('agent-text')).length === 0), `${what}: <${tag} ${name}> names supplied text`);
+      }
+    }
+    for (const field of ['value', 'defaultValue']) if (['input', 'textarea'].includes(tag) && typeof node[field] === 'string') assert.ok(!node[field].includes(MARK), `${what}: supplied text in a field's ${field}`);
+    const control = ctx.control || (APP_ONLY.has(tag) ? `<${tag}>` : role && APP_ONLY_ROLES.has(role) ? `role="${role}"` : null);
+    if (control) assert.ok(!classes(node).includes('agent-text'), `${what}: a box inside ${control}`);
+    const box = ctx.box || classes(node).includes('agent-text-value');
+    for (const child of node.childNodes) walk(child, {box, control, tag});
+  };
+  walk(container, {box: false, control: null, tag: 'div'});
+}
+
+// Every leaf of a fixture, and the fixture with one leaf replaced by P. A surface's own top-level keys name the props
+// the test passes (request, view, host…), not supplied data, so they are not renamed; everything under them is. The
+// App's own structures beside a request (its place and a reply observation: RequestPlace, RequestReplyObservation)
+// keep their keys too; their values are poisoned.
+const APP_SHAPED = new Set(['place', 'command', 'custody']);
+function leaves(value, path = [], out = []) {
+  if (Array.isArray(value)) value.forEach((v, i) => leaves(v, [...path, i], out));
+  else if (value && typeof value === 'object') for (const key of Object.keys(value)) { if (path.length > 0 && !APP_SHAPED.has(path[0])) out.push({path, key}); leaves(value[key], [...path, key], out); }
+  else out.push({path});
   return out;
 }
-
-test('rendered: with every supplied string poisoned (the routing fields kept), no supplied text reaches a control, heading, attribute or the App\'s sentences', () => {
-  // The routing fields keep their values so each kind of card, item and state is drawn by its own code.
-  const keep = new Set(['method', 'type', 'state', 'displayState', 'originClass', 'classification', 'recordKind', 'mode', 'isOther', 'isSecret', 'reading', 'kind', 'threadId', 'turnId', 'conversation', 'turn', 'endedAfterTurn',
-    'generation', 'appSession', 'home', 'requestIdentity', 'class', 'standing', 'sortDirection', 'outcome', 'accepted',
-    // A history binding's notice is the App's: historyPageBinding sets it from literals (the listed exception).
-    'notice']);
-  const pages = renders(keep);
-  assert.ok(pages.length > 40, 'every surface drawn');
-  for (const [what, raw] of pages) {
-    // The source line draws only the identities kept for routing in this run; the second run poisons those too.
-    if (what !== 'history source') assert.ok(raw.includes(MARK), `${what}: the poisoned values are drawn somewhere (inside boxes)`);
-    assertBoundary(raw, what);
+function poisonedAt(data, {path, key}) {
+  const copy = structuredClone(data);
+  const at = path.reduce((v, k) => v[k], copy);
+  if (key === undefined) {
+    if (path.length === 0) return P;
+    path.slice(0, -1).reduce((v, k) => v[k], copy)[path.at(-1)] = P;
+    return copy;
   }
+  const renamed = Object.fromEntries(Object.entries(at).map(([k, v]) => [k === key ? P : k, v]));
+  if (path.length === 0) return renamed;
+  path.slice(0, -1).reduce((v, k) => v[k], copy)[path.at(-1)] = renamed;
+  return copy;
+}
+const where = ({path, key}) => `${path.join('.')}${key === undefined ? '' : ` key ${key}`}`;
+
+// The fixtures. g is a valid generation; T the conversation; every supplied text is distinctive so a positive check
+// can find it.
+const {NativeRequestCard, WaitingRequestsIndicator, requestScopeKey} = loadSrc('RequestCards');
+const {NativeActivityView, RunStartMarker, RunEndMarker, RunLabel, StopLabel} = loadSrc('NativeActivity');
+const {StoredTurnPage, StoredItemPage, historyPageBinding, ContinuationContext} = loadSrc('NativeHistory');
+const {RunOffer} = loadSrc('RunOffers');
+const g = {appSession: 's', home: 'h', spawnCounter: 1};
+const descendant = {threadId: 'C', parentThreadId: 'T', parentSource: 'collabAgentToolCall.senderThreadId', statusSource: 'collabAgentToolCall.agentsStates', lastObservedStatus: {status: 'running', message: 'child-status-message'},
+  guidance: 'child-guidance', observationEnded: false, nativeThread: {id: 'C', agentRole: 'child-role', agentNickname: 'child-nickname'}};
+const request = (method, nativeParameters, extra = {}) => ({recordKind: 'server-request-entry', requestIdentity: 7, generation: g, method, classification: 'known-answerable',
+  originClass: ['item/tool/requestUserInput', 'mcpServer/elicitation/request'].includes(method) ? 'person-input' : 'a14', nativeParameters, state: 'outstanding',
+  replyWriteResult: 'not-attempted', acknowledgmentObservation: {status: 'not-observed'}, ...extra});
+const requestView = items => ({generation: g, home: 'h', items, descendants: [descendant]});
+const fileRow = {threadId: 'C', turnId: 'u', native: {id: 'f', type: 'fileChange', status: 'inProgress', changes: [{path: 'rel/changed.txt', kind: {type: 'update', move_path: '/outside/moved.txt'}, diff: '+diff-line'}]}, displayState: 'waiting-on-request', standing: 'live-observed'};
+const commandRow = {threadId: 'T', turnId: 'u', native: {id: 'i', type: 'commandExecution', command: 'ls'}, displayState: 'waiting-on-request', standing: 'live-observed'};
+const COMMAND = request('item/commandExecution/requestApproval', {threadId: 'T', turnId: 'u', itemId: 'i', command: 'cmd-text', cwd: '/cmd-folder', reason: 'cmd-reason', kind: 'cmd-kind',
+  proposedExecpolicyAmendment: ['rule-word'], proposedNetworkPolicyAmendments: [{host: 'net-host'}], additionalPermissions: {network: true},
+  availableDecisions: ['accept', 'acceptForSession', {acceptWithExecpolicyAmendment: {execpolicy_amendment: ['amend-word']}}, 'decline', 'cancel', 'future-decision']});
+const QUESTION = request('item/tool/requestUserInput', {threadId: 'C', turnId: 'u', itemId: 'q', isBlocking: false, questions: [{id: 'q1', header: 'question-header', question: 'question-words', isOther: true, isSecret: false,
+  options: [{label: 'option-label', description: 'option-description'}]}]});
+const PLACE = {project: {kind: 'folder', folder: '/project'}, conversationFolder: '/conversation', permissionProfile: ':workspace'};
+const requestSurface = (name, req, view, expect, extra = {}) => ({name, data: {request: req, view, place: PLACE, refusal: 'refusal-words already-resolved', ...extra},
+  draw: d => React.createElement(NativeRequestCard, {request: d.request, view: d.view, place: d.place, activityLink: () => ({open() {}}),
+    answer: async () => { throw new Error(d.refusal); }, ...(d.command ? {observation: {scope: requestScopeKey(d.request), command: d.command, custody: {...d.custody, scope: requestScopeKey(d.request)}}} : {})}),
+  expect, interact: true});
+
+const offerWorkflow = {kind: 'workflow', origin: 'project', source_root: '/offer-library', name: 'load-check', revision: 'abcdef0123456789', revision_method: 'm'};
+const compatibility = {occasionLabel: 'CK-1 offered candidate', statement: 'compat-statement', advisory: true, notCurrent: true,
+  preparation: {check: {result: 'unsupported', findings: ['compat-finding']}, role: {standing: 'app-observed', role: 'role-in-force'}, declaration: {raw: {compatible_roles: ['declared-role']}},
+    requirements: [{name: 'requirement-name', purpose: 'requirement-purpose', reason: 'requirement-reason', fallback: 'requirement-fallback', outcome: 'missing'}],
+    basis: {surface: 'basis-surface', acting_pin: 'basis-pin', catalog_edition: 'basis-catalog', environment_observation: 'basis-environment', conversation: 'T', home: 'h', generation: g}, evaluated_at: 'evaluated-at-time'},
+  inventoryOrigin: {kind: 'inventory-kind', source: 'inventory-source'}, publication: {state: 'not published', factsNotSupplied: ['publication-limit']}, r14: 'r14-words'};
+const finishedOffer = {message: {threadId: 'T', turnId: 'turn-1', itemId: 'm'}, finished: {run: 'run:workflow:a', statement: 'Workflow finished: project:finished-flow', standing: 'finished-standing'},
+  proposal: {proposed: 'project:proposed-flow', resolution: {workflow: offerWorkflow, standing: 'registered — selectable in this App session', notice: null},
+    runInForce: {run: 'run:workflow:a', workflow: 'pump-skid', endCause: 'completed'}, compatibility, context: {sourceRef: 'source:original'}, standing: 'proposal-standing'}};
+const unresolvedOffer = {message: {threadId: 'T', turnId: 'turn-2', itemId: 'm2'}, finished: null,
+  proposal: {proposed: 'project:unknown-flow', resolution: {workflow: null, notice: 'resolution-notice-words'}, runInForce: null, standing: 'proposal-standing'}};
+const run = {reference: 'run:workflow:a', workflow: {name: 'pump-skid', revision: 'abc123'}, conversation: 'T', turn: 'turn-1', lifecycle: {state: 'ended by the person', end: {cause: 'ended to start next-flow'}}, endedAfterTurn: 'turn-2', finishedReport: {run: 'run:workflow:a'}};
+const unplacedRun = {reference: 'run:workflow:b', workflow: {name: 'Unsafe Name', revision: 'not-hex-revision'}, conversation: 'T', turn: 'gone', lifecycle: {state: 'open (live)'}, endedAfterTurn: null};
+const item = (turnId, order, native, extra = {}) => ({threadId: 'T', turnId, native, displayState: 'completed', standing: 'live-observed', observationEnded: false, observedOrder: order, ...extra});
+const RUN_TEXT = '[Chirality] Workflow run start: pump-skid from the project library "/lib", revision abc123, run run:workflow:a.\nrun-text-body';
+const ACTIVITY = {
+  generation: g, home: 'h', typesPin: '0.167.0', supplierStanding: 'supplier-standing', limits: ['activity-limit'], observationEnded: false,
+  items: [
+    item('turn-1', 0, {id: 'u', type: 'userMessage', content: [{type: 'text', text: RUN_TEXT}, {type: 'text', text: 'user-message-words'}, {type: 'image', url: 'image-url'}]}),
+    item('turn-1', 1, {id: 'm', type: 'agentMessage', text: 'agent-message-words', phase: 'final_answer'}),
+    item('turn-1', 2, {id: 'r', type: 'reasoning', summary: ['reasoning-words'], content: []}, {displayState: 'unknown', endReason: 'turn ended without item completion', summaryPreview: ['reasoning-preview']}),
+    item('turn-1', 3, {id: 'p', type: 'plan', text: 'plan-words'}, {displayState: 'in-progress', preview: 'plan-preview', previewStanding: 'in progress; may differ from completed plan'}),
+    item('turn-1', 4, {id: 'c', type: 'commandExecution', command: 'command-words', cwd: '/command-folder', source: 'userShell', status: 'failed', exitCode: 2, durationMs: 5, aggregatedOutput: 'command-output', commandActions: []},
+      {displayState: 'failed', startNative: {source: 'agent'}, settlementOrigin: {origin: 'settlement-origin'}, requestRef: {generation: g, requestIdentity: 7}}),
+    item('turn-1', 5, {id: 'f', type: 'fileChange', status: 'declined', changes: [{path: 'change-path', kind: {type: 'update', move_path: 'moved-path'}, diff: 'diff-words'}]}, {displayState: 'declined'}),
+    item('turn-1', 6, {id: 't', type: 'mcpToolCall', server: 'mcp-server', tool: 'mcp-tool', arguments: {argument: 'mcp-argument'}, readOnlyHint: true, durationMs: 3, status: 'completed',
+      result: {content: [{type: 'text', text: 'mcp-result-text'}, {type: 'resource', resource: {text: 'mcp-resource-text'}}, {type: 'image', data: 'image-data'}]}, error: {message: 'mcp-error'}}),
+    item('turn-1', 7, {id: 'd', type: 'dynamicToolCall', namespace: 'dyn-namespace', tool: 'dyn-tool', arguments: {}, success: false, status: 'completed', contentItems: [{type: 'inputText', text: 'dyn-text'}]}),
+    item('turn-1', 8, {id: 'o', type: 'functionCallOutput', namespace: 'fn-namespace', name: 'fn-name', output: 'fn-output'}),
+    item('turn-1', 9, {id: 'g', type: 'collabAgentToolCall', tool: 'spawnAgent', status: 'completed', senderThreadId: 'T', receiverThreadIds: ['C'], model: 'requested-model', reasoningEffort: 'high', prompt: 'delegation-prompt',
+      agentsStates: {C: {status: 'running', message: 'agent-state-message'}}}),
+    item('turn-1', 10, {id: 's', type: 'subAgentActivity', kind: 'started', agentPath: 'agent-path', agentThreadId: 'C'}),
+    item('turn-1', 11, {id: 'w', type: 'webSearch', query: 'search-query'}),
+    item('turn-1', 12, {id: 'i', type: 'imageView', path: 'image-path'}),
+    item('turn-1', 13, {id: 'k', type: 'contextCompaction'}),
+    item('turn-1', 14, {id: 'x', type: 'future-item-kind', raw: 'future-raw'}),
+    item('turn-2', 15, {id: 'm2', type: 'agentMessage', text: 'second-turn-words'}),
+  ],
+  turns: [{id: 'turn-1', status: 'inProgress', startedAt: 100, durationMs: 9, error: {message: 'native-turn-error'}, items: []}, {id: 'turn-2', status: 'completed', startedAt: 200, items: []}],
+  turnRecords: [{threadId: 'T', turnId: 'turn-1'}, {threadId: 'T', turnId: 'turn-2'}],
+  turnErrors: [{threadId: 'T', turnId: 'turn-1', error: {message: 'error-notice-message', additionalDetails: 'error-notice-details'}, willRetry: true, receiptPosition: 4, ordinalInTurn: 2}],
+  unreadableTurnErrors: [{threadId: 'T', turnId: 'turn-1', kind: 'server-request-named-error', receiptPosition: 5, ordinalInTurn: 1}],
+  revisions: [{kind: 'checklist', revisionId: 'k1', threadId: 'T', turnId: 'turn-1', ordinal: 1, content: {explanation: 'checklist-explanation', steps: [{step: 'earlier-step', status: 'inProgress'}]}},
+    {kind: 'checklist', revisionId: 'k2', threadId: 'T', turnId: 'turn-1', ordinal: 2, content: {explanation: 'checklist-explanation', steps: [{step: 'checklist-step', status: 'completed'}]}},
+    {kind: 'plan-item', threadId: 'T', turnId: 'turn-1', itemId: 'p', ordinal: 3, standing: 'live-observed'}],
+  descendants: [descendant],
+  goals: {T: {native: {objective: 'goal-objective'}, source: 'goal-source'}},
+  checklistGaps: [{threadId: 'T', turnId: 'turn-0', reason: 'gap-reason'}],
+};
+const stop = {stopRequestId: 's1', label: 'interrupted by the person', reading: 'stop-reading', codexReported: 'interrupted', persistence: 'stop-persistence', earlierSession: true};
+const historyItems = [
+  {id: 'h-user', type: 'userMessage', content: [{type: 'text', text: 'history-user-words'}]},
+  {id: 'h-plan', type: 'plan', text: 'history-plan-words'},
+  {id: 'h-command', type: 'commandExecution', command: 'history-command', status: 'completed', exitCode: 0, aggregatedOutput: 'history-output'},
+  {id: 'h-tool', type: 'mcpToolCall', server: 'history-server', tool: 'history-tool', status: 'inProgress', result: null, error: null},
+  {id: 'h-agent', type: 'agentMessage', text: 'history-agent-words'},
+  {id: 'h-future', type: 'history-future-kind'},
+];
+const historyHost = () => {
+  const context = continuationFixture({generation: g, items: historyItems});
+  context.history.selected.turnsPage.data[0] = {...context.history.selected.turnsPage.data[0], startedAt: 100, completedAt: 'not-a-time', durationMs: 9, error: {message: 'history-turn-error'}};
+  return {state: 'ready', generation: g, nativeHistory: context.history};
+};
+const continuation = () => ({host: {state: 'ready', generation: g, continuationContexts: [continuationFixture({generation: g, items: historyItems})]},
+  thread: {nativeResumeObserved: true, resumeRequestRef: 'req:resume', generation: g, threadId: 'stored'}});
+const noop = async () => {};
+
+const SURFACES = [
+  requestSurface('command card', COMMAND, requestView([commandRow]), ['cmd-text', '/cmd-folder', 'cmd-reason', 'cmd-kind', 'rule-word', 'net-host', 'amend-word', 'future-decision']),
+  requestSurface('file change card', request('item/fileChange/requestApproval', {threadId: 'C', turnId: 'u', itemId: 'f', reason: 'file-reason', grantRoot: '/grant-root', cwd: '/cwd'}), requestView([fileRow]),
+    ['file-reason', '/grant-root', '/cwd/rel/changed.txt', '/outside/moved.txt', '+diff-line', 'child-role']),
+  requestSurface('permissions card', request('item/permissions/requestApproval', {threadId: 'T', turnId: 'u', itemId: 'p', cwd: '/perm-folder', reason: 'perm-reason', permissions: {network: 'perm-value'}}), null, ['/perm-folder', 'perm-reason', 'perm-value']),
+  requestSurface('legacy command card', request('execCommandApproval', {conversationId: 'T', callId: 'c', command: ['legacy-cmd'], cwd: '/legacy-folder', reason: 'legacy-reason'}), null, ['legacy-cmd', '/legacy-folder', 'legacy-reason']),
+  requestSurface('legacy patch card', request('applyPatchApproval', {conversationId: 'T', callId: 'c', reason: 'patch-reason', fileChanges: {'patch-file.txt': {}}, grantRoot: '/patch-root'}), null, ['patch-reason', 'patch-file.txt', '/patch-root']),
+  requestSurface('question card', QUESTION, requestView([]), ['question-header', 'question-words', 'option-label', 'option-description', 'child-role', 'child-nickname']),
+  requestSurface('input request card', request('mcpServer/elicitation/request', {threadId: 'T', turnId: 'u', serverName: 'server-name', mode: 'url', message: 'elicitation-message', url: 'https://elicitation.invalid', requestedSchema: {field: 'schema-field'}}), null,
+    ['server-name', 'elicitation-message', 'https://elicitation.invalid', 'schema-field']),
+  requestSurface('unknown request card', request('future/method', {threadId: 'T', detail: 'future-detail'}), null, ['future/method', 'future-detail']),
+  requestSurface('errored by rule', {...COMMAND, state: 'errored', settlement: {origin: {class: 'app-rule', ruleName: 'rule-name'}, kind: 'error'}}, null, ['rule-name']),
+  requestSurface('resolved by Codex', {...COMMAND, state: 'resolved-by-supplier', supplierResolution: {cause: 'supplier-cause'}}, null, ['supplier-cause']),
+  requestSurface('retained reply', {...COMMAND, state: 'declined', closedGeneration: true, replyWriteResult: 'written', settlement: {origin: {class: 'person'}, kind: 'decline', nativeContent: {answer: 'retained-answer'}, redaction: true}}, null, ['retained-answer']),
+  requestSurface('reply rejected', COMMAND, null, ['rejected-reason', 'custody-reason'], {command: {kind: 'rejected', reason: 'rejected-reason'}, custody: {available: false, reason: 'custody-reason'}}),
+  requestSurface('reply unconfirmed', QUESTION, null, ['write-result-value'], {command: {kind: 'unconfirmed', writeResult: 'write-result-value'}, custody: {available: true, state: 'outstanding'}}),
+  {name: 'waiting requests', data: {overview: {groups: [{modeHomeClass: 'account', generation: g, threadId: 'C', count: 2}, {modeHomeClass: 'project', generation: g, threadId: 'thread with spaces', count: 1}],
+    sources: [{modeHomeClass: 'source-home', state: 'source-state'}], coverage: 'coverage-words'}, view: requestView([])},
+  draw: d => React.createElement(WaitingRequestsIndicator, {overview: d.overview, view: d.view, open: () => {}}), expect: ['thread with spaces', 'coverage-words', 'source-home', 'source-state', 'child-nickname']},
+  {name: 'activity', data: {view: ACTIVITY, threadId: 'T', runs: [run, unplacedRun], offers: [finishedOffer, unresolvedOffer], stop, trialTurns: [{threadId: 'T', turnId: 'turn-1', label: 'trial-turn-label'}],
+    trialChildren: [{threadId: 'C', label: 'trial-child-label'}], delegation: {reading: 'missing', reason: 'delegation-reason', readAt: 'delegation-read-at'}},
+  draw: d => React.createElement(NativeActivityView, {view: d.view, threadId: d.threadId, runs: d.runs, offers: d.offers, offerControls: {generation: g, ready: true, busy: false, act: noop},
+    stopLabelFor: () => d.stop, trialTurns: d.trialTurns, trialChildren: d.trialChildren, delegation: d.delegation}),
+  expect: ['run-text-body', 'user-message-words', 'agent-message-words', 'reasoning-preview', 'plan-preview', 'command-words', '/command-folder', 'command-output', 'change-path', 'moved-path', 'diff-words',
+    'mcp-server', 'mcp-tool', 'mcp-argument', 'mcp-result-text', 'mcp-resource-text', 'mcp-error', 'dyn-namespace / dyn-tool', 'dyn-text', 'fn-namespace / fn-name', 'fn-output', 'requested-model', 'delegation-prompt',
+    'agent-state-message', 'agent-path', 'search-query', 'future-item-kind', 'second-turn-words', 'native-turn-error', 'error-notice-message — error-notice-details', 'checklist-explanation', 'checklist-step', 'earlier-step',
+    'goal-objective', 'goal-source', 'gap-reason', 'supplier-standing', 'activity-limit', 'child-status-message', 'child-guidance', 'child-role', 'child-nickname', 'trial-turn-label', 'trial-child-label',
+    'delegation-reason', 'delegation-read-at', 'stop-reading', 'stop-persistence', 'settlement-origin', 'revision 3 in this conversation', 'Unsafe Name not-hex-revi', 'ended to start next-flow',
+    'Workflow finished: project:finished-flow', 'project:proposed-flow', 'compat-statement', 'compat-finding', 'role-in-force', 'declared-role', 'requirement-name', 'requirement-purpose', 'requirement-reason',
+    'requirement-fallback', 'basis-surface', 'basis-pin', 'basis-catalog', 'basis-environment', 'evaluated-at-time', 'inventory-kind', 'inventory-source', 'publication-limit', 'r14-words', '/offer-library',
+    'End pump-skid and start load-check', 'project:unknown-flow', 'resolution-notice-words']},
+  {name: 'run offer, plain start', data: {offer: {message: {threadId: 'T', turnId: 'turn-1', itemId: 'm'}, finished: null,
+    proposal: {proposed: 'project:Unsafe Flow', resolution: {workflow: {...offerWorkflow, name: 'Unsafe Flow', origin: 'bundled', revision: 'not-hex'}, standing: 'registered — selectable in this App session', notice: null},
+      runInForce: null, compatibility: {occasionLabel: 'occasion-label', limit: 'compat-limit', advisory: true}, context: {}}}},
+  draw: d => React.createElement(RunOffer, {offer: d.offer, generation: g, ready: true, busy: false, act: noop}), expect: ['Start the proposed workflow (proposed by the agent)', 'Unsafe Flow', 'occasion-label', 'compat-limit', 'not-hex']},
+  {name: 'run offer, unsafe run in force', data: {offer: {message: {}, finished: {run: 'run with spaces', statement: 'finished-statement'},
+    proposal: {proposed: 'p', resolution: {workflow: offerWorkflow, standing: 'unknown-standing'}, runInForce: {run: 'run with spaces', workflow: 'Unsafe Current', endCause: 'unknown-cause'}, compatibility: {preparation: {role: {standing: 'unknown', reason: 'role-reason'}}}}}},
+  draw: d => React.createElement(RunOffer, {offer: d.offer, generation: g, ready: true, busy: false, act: noop}),
+  expect: ['End the current run and start load-check', 'Unsafe Current', 'unknown-cause', 'run with spaces', 'finished-statement', 'unknown-standing', 'role-reason']},
+  {name: 'run markers and stop labels', data: {run: {...run, lifecycle: {state: 'ended', end: {cause: 'end-cause-words'}}}, unsafe: unplacedRun, stop, stopNoRequest: {label: 'stop-label-words', codexReported: 'turn-status-words'}},
+  draw: d => React.createElement('div', null, React.createElement(RunStartMarker, {run: d.run}), React.createElement(RunEndMarker, {run: d.run}), React.createElement(RunLabel, {run: d.unsafe}),
+    React.createElement(StopLabel, {stop: d.stop}), React.createElement(StopLabel, {stop: d.stopNoRequest})),
+  expect: ['pump-skid', 'run:workflow:a', 'end-cause-words', 'Unsafe Name', 'stop-reading', 'stop-persistence', 'stop-label-words', 'turn-status-words']},
+  {name: 'history turns', data: {host: historyHost()}, draw: d => React.createElement(StoredTurnPage, {binding: historyPageBinding(d.host, 'turns'), canRead: true, readItems: () => {}}),
+    expect: ['prior-turn', '1970-01-01T00:01:40.000Z', 'not-a-time', 'history-user-words', 'history-future-kind', 'history-turn-error', 'Latest accepted page for this selection']},
+  {name: 'history items', data: {host: historyHost()}, draw: d => React.createElement(StoredItemPage, {binding: historyPageBinding(d.host, 'items')}),
+    expect: ['history-user-words', 'history-plan-words', 'history-command', 'history-output', 'history-server', 'history-tool', 'history-agent-words', 'history-future-kind', 'h-command']},
+  {name: 'continuation context', data: continuation(), draw: d => React.createElement(ContinuationContext, {host: d.host, thread: d.thread}),
+    expect: ['Prior work: bounded partial snapshot', 'req:resume', 'history-user-words', 'history-plan-words', 'history-command', 'history-agent-words', 'Read more turns']},
+];
+
+// One surface drawn statically and mounted; the question and command cards are also answered, so the chosen option
+// and a refused answer are drawn.
+async function drawn(surface, data, what) {
+  const raw = renderToStaticMarkup(surface.draw(data));
+  assertBoundary(raw, `${what} (static)`);
+  const container = document.createElement('div'); document.body.appendChild(container);
+  const root = createRoot(container);
+  try {
+    await React.act(() => root.render(surface.draw(data)));
+    assertMounted(container, `${what} (mounted)`);
+    let text = container.textContent;
+    if (surface.interact) {
+      const button = words => container.querySelectorAll(n => n.localName === 'button' && n.textContent === words)[0];
+      for (const words of ['Choose option 1', 'Allow once']) if (button(words)) {
+        await React.act(async () => { await props(button(words)).onClick(); });
+        assertMounted(container, `${what} (mounted, after ${words})`);
+        text += container.textContent;
+      }
+    }
+    return {raw, text};
+  } finally { await React.act(() => root.unmount()); document.body.removeChild(container); }
+}
+
+test('rendered: each surface, drawn on valid fixtures, shows what it is meant to show, and stays within the boundary', async t => {
+  let positive = 0;
+  for (const surface of SURFACES) {
+    const {raw, text} = await drawn(surface, surface.data, surface.name);
+    const shown = agentPlain(raw) + '\n' + text;
+    for (const value of surface.expect) { assert.ok(shown.includes(value), `${surface.name}: ${value} is drawn`); positive++; }
+  }
+  // The interactions draw what they are for.
+  const answered = await drawn(SURFACES.find(s => s.name === 'question card'), SURFACES.find(s => s.name === 'question card').data, 'question card');
+  assert.ok(answered.text.includes('Its label: option-label'), 'the chosen option is drawn, boxed');
+  const refused = await drawn(SURFACES[0], SURFACES[0].data, 'command card');
+  assert.ok(refused.text.includes('Last answer not taken: Codex already resolved it.') && refused.text.includes('refusal-words'), 'a refused answer is drawn, its report boxed');
+  positive += 2;
+  t.diagnostic(`${SURFACES.length} surfaces; ${positive} positive assertions`);
+  assert.ok(positive > 150);
 });
 
-test('rendered: with every string poisoned, routing fields too, every kind and state is drawn as one the App does not recognise, and still nothing escapes', () => {
-  // Only what links rows together keeps its value; every kind, method, state and status is a value the App does not know.
-  for (const [what, raw] of renders(new Set(['threadId', 'turnId', 'generation', 'appSession', 'home', 'requestIdentity', 'conversation', 'turn', 'endedAfterTurn', 'accepted', 'notice']))) assertBoundary(raw, `${what} (unfamiliar)`);
+test('rendered: each leaf of every surface poisoned in turn (strings, numbers, booleans, null and object keys) reaches the page only inside a box', async t => {
+  let renders = 0, boxed = 0, withheld = 0;
+  for (const surface of SURFACES) {
+    for (const leaf of leaves(surface.data)) {
+      const what = `${surface.name} @ ${where(leaf)}`;
+      // A render that throws fails the test as well.
+      const {raw, text} = await drawn(surface, poisonedAt(surface.data, leaf), what);
+      renders += 2;
+      if (raw.includes(MARK) || text.includes(MARK)) boxed++; else withheld++;
+    }
+  }
+  t.diagnostic(`${renders} renders (${renders / 2} static, ${renders / 2} mounted): ${boxed} poisoned variants drew the value boxed, ${withheld} withheld it`);
+  assert.ok(boxed > 500 && renders > 1500);
 });
 
-test('rendered: a removed boundary is caught: a supplied value drawn raw fails the rendered check', () => {
-  // The check itself, on a page that breaks the rule in each place it looks.
-  for (const [raw, where] of [[`<p>About ${MARK}</p>`, 'a sentence'], [`<button>${MARK}</button>`, 'a button'], [`<h3>x</h3><p title="${MARK}"></p>`, 'an attribute'],
+test('rendered: a removed boundary is caught: a supplied value drawn raw fails the rendered checks', async () => {
+  // The static check, on a page that breaks the rule in each place it looks.
+  for (const [raw, where] of [[`<p>About ${MARK}</p>`, 'a sentence'], [`<button>${MARK}</button>`, 'a button'], [`<h3>x</h3><p title="${MARK}"></p>`, 'an attribute'], [`<p>${RLO}</p>`, 'a direction override'],
     [`<summary>x <span role="group" aria-label="n" class="agent-text"><span class="agent-text-label">L</span> <span class="agent-text-value">${MARK}</span></span></summary>`, 'a box inside a summary']])
     assert.throws(() => assertBoundary(raw, where), undefined, where);
+  // The mounted check: raw text, text inside a control role, a box inside a heading role, a reference to supplied text, a field's value.
+  const box = React.createElement('span', {className: 'agent-text'}, React.createElement('span', {className: 'agent-text-value'}, MARK));
+  for (const [element, where] of [[React.createElement('p', null, MARK), 'raw text'], [React.createElement('div', {role: 'button'}, box), 'a box inside role=button'],
+    [React.createElement('div', {role: 'heading'}, box), 'a box inside role=heading'], [React.createElement('div', null, React.createElement('span', {id: 'x'}, box), React.createElement('button', {'aria-labelledby': 'x'}, 'App')), 'a reference to a box'],
+    [React.createElement('input', {value: MARK, readOnly: true}), 'a field value'], [React.createElement('p', {'aria-label': MARK}), 'an accessible name']]) {
+    const surface = {draw: () => element};
+    await assert.rejects(drawnMountedOnly(surface), undefined, where);
+  }
 });
+async function drawnMountedOnly(surface) {
+  const container = document.createElement('div'); document.body.appendChild(container);
+  const root = createRoot(container);
+  try { await React.act(() => root.render(surface.draw())); assertMounted(container, 'self-check'); }
+  finally { await React.act(() => root.unmount()); document.body.removeChild(container); }
+}
