@@ -8,6 +8,7 @@ import hashlib
 import importlib.util
 import io
 import json
+import os
 from pathlib import Path
 import tempfile
 import unittest
@@ -103,10 +104,11 @@ class Steps(Fixture):
         repo = self.repo()
         results = self.results()
         rows = results / 'rows.jsonl'
-        rows.write_text(json.dumps({'comparison': 'C3', 'outcome': 'failed'}) + '\n')
+        rows.write_text(json.dumps({'header': True, 'candidate_key': 'c'}) + '\n'
+                        + json.dumps({'comparison': 'C3', 'outcome': 'failed'}) + '\n')
         digest = 'sha256:' + hashlib.sha256(rows.read_bytes()).hexdigest()
         self.results({'step': 'A-1', 'candidate': 'c', 'date': 'd', 'outcome': 'passed',
-                      'cites': [{'file': 'rows.jsonl', 'sha256': digest, 'rows': [1]}]},
+                      'cites': [{'file': 'rows.jsonl', 'sha256': digest, 'rows': [2]}]},
                      {'step': 'A-2', 'candidate': 'c', 'date': 'd', 'outcome': 'passed',
                       'cites': [{'file': 'rows.jsonl', 'sha256': 'sha256:' + '0' * 64, 'rows': [1]}]})
         text = self.printed('--repo', str(repo), '--results', str(results), '--candidate', 'c')
@@ -177,6 +179,79 @@ class TheClaim(Fixture):
         section = text[text.index('SESSION COMPARISON'):]
         self.assertNotIn('| k1 | W1 |', section)
         self.assertIn('a W1 row says passed although the header says the workflow comparison is not available', section)
+
+
+class TheClaimAgain(Fixture):
+    """The second reading's three paths to a pass, each closed."""
+
+    def cite(self, results, lines, rows):
+        (results / 'rows').mkdir(exist_ok=True)
+        path = results / 'rows/rows.jsonl'
+        path.write_text(''.join(json.dumps(line) + '\n' for line in lines))
+        return {'file': 'rows/rows.jsonl', 'sha256': 'sha256:' + hashlib.sha256(path.read_bytes()).hexdigest(), 'rows': rows}
+
+    def test_an_empty_candidate_stops_the_print(self):
+        results = self.results({'step': 'A-1', 'candidate': '', 'date': 'd', 'outcome': 'passed'})
+        for empty in ('', '  '):
+            with self.subTest(repr(empty)), self.assertRaises(SystemExit):
+                table.main(['--repo', str(self.repo()), '--results', str(results), '--candidate', empty])
+
+    def test_tied_passes_are_checked_together_so_one_unsupported_citation_withholds_the_pass(self):
+        results = self.results()
+        self.results({'step': 'A-1', 'candidate': 'c', 'date': 'd', 'outcome': 'passed'},
+                     {'step': 'A-1', 'candidate': 'c', 'date': 'd', 'outcome': 'passed',
+                      'cites': [{'file': 'absent.jsonl', 'sha256': 'sha256:' + '0' * 64, 'rows': [1]}]})
+        text = self.printed('--repo', str(self.repo()), '--results', str(results), '--candidate', 'c')
+        self.assertIn('0 passed', text)
+        self.assertIn('A-1: citation unsupported (absent.jsonl missing or changed)', text)
+
+    def test_rows_the_comparison_would_not_count_never_support_a_step(self):
+        results = self.results()
+        cases = {
+            'a header naming another candidate': ([{'header': True, 'candidate_key': 'other'},
+                                                   {'comparison': 'C2', 'outcome': 'passed'}], [2], None),
+            'a launch record beside it naming another': ([{'header': True, 'candidate_key': 'c'},
+                                                          {'comparison': 'C2', 'outcome': 'passed'}], [2], 'other'),
+            'a passed W1 row under a withholding header': ([{'header': True, 'candidate_key': 'c',
+                                                             'workflow_comparison': 'not available'},
+                                                            {'comparison': 'W1', 'outcome': 'passed'}], [2], None)}
+        for name, (lines, rows, launch) in cases.items():
+            with self.subTest(name):
+                (results / 'rows').mkdir(exist_ok=True)
+                for stale in (results / 'rows').glob('launch-record*.json'):
+                    stale.unlink()
+                if launch:
+                    (results / 'rows/launch-record-1.json').write_text(
+                        json.dumps({'bundle': {'identifier': f'dev.chirality.app-v4.candidate.{launch}'}}))
+                cite = self.cite(results, lines, rows)
+                (results / 'r0.json').write_text(json.dumps({'step': 'A-1', 'candidate': 'c', 'date': 'd',
+                                                             'outcome': 'passed', 'cites': [cite]}))
+                text = self.printed('--repo', str(self.repo()), '--results', str(results), '--candidate', 'c')
+                self.assertIn('0 passed', text)
+                self.assertIn('A-1: citation unsupported (rows/rows.jsonl', text)
+        for stale in (results / 'rows').glob('launch-record*.json'):
+            stale.unlink()
+        cite = self.cite(results, [{'header': True, 'candidate_key': 'c'}, {'comparison': 'C2', 'outcome': 'passed'}], [2])
+        (results / 'r0.json').write_text(json.dumps({'step': 'A-1', 'candidate': 'c', 'date': 'd', 'outcome': 'passed',
+                                                     'cites': [cite]}))
+        self.assertIn('1 passed', self.printed('--repo', str(self.repo()), '--results', str(results), '--candidate', 'c'))
+
+    def test_an_unreadable_results_folder_stops_the_print(self):
+        results = self.results()
+        results.chmod(0)
+        self.addCleanup(results.chmod, 0o700)
+        if os.access(results, os.R_OK):
+            self.skipTest('this user can read a folder without permission (root)')
+        with self.assertRaises(SystemExit):
+            table.main(['--repo', str(self.repo()), '--results', str(results), '--candidate', 'c'])
+
+    def test_the_comparisons_standing_heads_its_section(self):
+        folder = self.rows('session-comparison-20261114T080000Z-00000001.jsonl', [
+            {'header': True, 'candidate_key': 'k1'}, {'comparison': 'C2', 'outcome': 'passed'}])
+        text = self.printed('--repo', str(self.repo()), '--candidate', 'c', '--comparisons', str(folder),
+                            '--comparison-standing', 'session comparison: a reading is still out')
+        section = text[text.index('SESSION COMPARISON'):]
+        self.assertIn('Standing: session comparison: a reading is still out', section.splitlines()[2])
 
 
 class Comparisons(Fixture):

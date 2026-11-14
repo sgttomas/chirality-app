@@ -18,9 +18,12 @@ It reads and writes nothing in the repository, and its output is never committed
   not there. Records for another candidate or naming none, and records that cannot be read, are named beneath the
   table and never counted. Of a step's records, the latest date decides; records of the latest date that disagree
   print as inconclusive and are named. A step with no record prints "not run (no record)". A record may cite
-  session-comparison rows: "cites": [{file, sha256, rows}], the file relative to --results. A pass that cites a row
-  not passed, or a citation whose file is missing or has changed, prints as "recorded passed; not counted", is
-  named beneath the table, and is never counted as passed;
+  session-comparison rows: "cites": [{file, sha256, rows}], the file relative to --results. A cited row supports a
+  pass only when it says passed, its file has the digest cited, the file's header names the candidate named and any
+  launch record beside it agrees, and it is not a W1 row of a file that withholds the workflow comparison. A pass
+  whose citations do not support it, in any of a step's records of the latest date, prints as "recorded passed; not
+  counted", is named beneath the table, and is never counted as passed. An empty candidate, or a results folder that
+  cannot be read, stops the print;
 - the scripted driver's runs, from --driver FOLDER=RUN@HEAD: a folder holding the reports a hosted run uploaded
   (report.json, scenario-report.json, and setup-report.json when the run made one). The driver is development
   evidence on a test build and satisfies no step;
@@ -32,11 +35,13 @@ It reads and writes nothing in the repository, and its output is never committed
   the header's "written_at" when every one has it, else by the time in the name, and two of the same time count
   for neither. When a file's header says the workflow comparison is not available ("workflow_comparison"), that
   sentence is written first beneath the section: W1 is counted only as blocked (a W1 row of that file saying
-  anything else is named and not counted), and C2, C3 and C4 passing do not meet the first target.
+  anything else is named and not counted), and C2, C3 and C4 passing do not meet the first target. --comparison-standing
+  prints a sentence at the head of the section, for the comparison tool's own standing.
 """
 import argparse
 import hashlib
 import json
+import os
 import re
 from pathlib import Path
 import sys
@@ -49,8 +54,11 @@ def results(folder, candidate):
     """The latest record of each step for the candidate named, by date, with what was set aside: records for another
     candidate or none, and records that cannot be read. Records of the latest date that disagree are kept apart as
     contradictory: which came last cannot be told, so neither decides."""
-    if folder is not None and not Path(folder).is_dir():
-        raise SystemExit(f'the results folder {folder} is not a folder that can be read')
+    if folder is not None:
+        try:
+            os.listdir(folder)
+        except OSError as error:
+            raise SystemExit(f'the results folder {folder} cannot be read ({type(error).__name__})') from None
     by_step, other, unreadable = {}, [], []
     for path in sorted(Path(folder).glob('*.json')) if folder else []:
         try:
@@ -71,27 +79,49 @@ def results(folder, candidate):
         if len({record['outcome'] for record in last}) > 1:
             contradictory[step] = last
         else:
-            latest[step] = last[0]
+            latest[step] = last  # every record of the latest date, all with one outcome; each one's citations count
     return latest, contradictory, other, unreadable
 
 
-def citation_marks(record, folder):
+def launch_candidates(folder):
+    """The candidate keys the launch records in a folder name, by their bundle identifiers."""
+    keys = set()
+    for path in Path(folder).glob('launch-record*.json'):
+        identifier = json.loads(path.read_text()).get('bundle', {}).get('identifier') or ''
+        keys.add(re.sub(r'^dev\.chirality\.app-v4\.candidate\.', '', identifier))
+    return keys
+
+
+def citation_marks(record, folder, candidate):
+    """Why a record's citations do not support it, if they do not. A cited row supports a pass only when it says
+    passed, its file is the file cited (by digest), the file's header names the candidate named and any launch
+    record beside it agrees, and it is not a W1 row of a file whose header says the workflow comparison is withheld:
+    the rows the comparison section would not count never support a step."""
     marks = []
     for cite in record.get('cites') or []:
         path = Path(folder) / cite['file']
         if not path.is_file() or 'sha256:' + hashlib.sha256(path.read_bytes()).hexdigest() != cite['sha256']:
             marks.append(f"citation unsupported ({cite['file']} missing or changed)")
             continue
-        rows = path.read_text().splitlines()
-        cited = [json.loads(rows[n - 1]) for n in cite['rows'] if 0 < n <= len(rows)]
+        lines = path.read_text().splitlines()
+        cited = [json.loads(lines[n - 1]) for n in cite['rows'] if 0 < n <= len(lines)]
         if len(cited) != len(cite['rows']):
             marks.append(f"citation unsupported ({cite['file']} has no such row)")
+            continue
+        header = next((json.loads(line) for line in lines if line.strip() and json.loads(line).get('header')), {})
+        beside = launch_candidates(path.parent)
+        if header.get('candidate_key') != candidate or (beside and beside != {candidate}):
+            marks.append(f"citation unsupported ({cite['file']} does not name candidate {candidate} alone)")
+        elif header.get('workflow_comparison') and any(row.get('comparison') == 'W1' for row in cited):
+            marks.append(f"citation unsupported ({cite['file']} withholds the workflow comparison it cites)")
         elif record['outcome'] == 'passed' and any(row.get('outcome') != 'passed' for row in cited):
             marks.append('disagrees with the rows it cites')
     return marks
 
 
 def table(repo, folder, release, candidate):
+    if not str(candidate or '').strip():
+        raise SystemExit('the candidate named is empty; the table is for one named candidate')
     step_map = json.loads((Path(repo) / STEP_MAP).read_text())
     out = step_map.get('out_of_release', {})
     seen, contradictory, other, unreadable = results(folder, candidate)
@@ -129,14 +159,15 @@ def table(repo, folder, release, candidate):
                     totals['inconclusive'] += 1
                 lines.append(f"| {scenario} | {step['step']} | {counts} | inconclusive (records disagree) | {last[0]['date']} | — |")
                 continue
-            record = seen.get(step['step'])
+            tied = seen.get(step['step'])
+            record = tied[0] if tied else None
             if record is None:
                 if step.get('counts'):
                     totals['not run'] += 1
                 lines.append(f"| {scenario} | {step['step']} | {counts} | not run (no record) | — | — |")
                 continue
             outcome = record['outcome']
-            marks = citation_marks(record, folder)
+            marks = [mark for each in tied for mark in citation_marks(each, folder, candidate)]
             shown = outcome
             if marks:
                 disputed.append(f"{step['step']}: {'; '.join(marks)}")
@@ -163,8 +194,9 @@ def table(repo, folder, release, candidate):
     return lines
 
 
-def comparisons(folders):
+def comparisons(folders, standing=None):
     lines = ['', 'SESSION COMPARISON (rows of the execution lane\'s comparison; not step results)', '',
+             *([f'Standing: {standing}', ''] if standing else []),
              '| Candidate | Comparison | ' + ' | '.join(OUTCOMES) + ' |', '| --- | --- |' + ' --- |' * len(OUTCOMES)]
     counts, notes, withheld = {}, [], set()
     for folder in folders:
@@ -271,9 +303,11 @@ def main(argv=None):
     parser.add_argument('--release', default='4.0.0')
     parser.add_argument('--driver', action='append', default=[], help='FOLDER=RUN@HEAD of a hosted driver run')
     parser.add_argument('--comparisons', action='append', default=[], help='a record folder holding session-comparison rows')
+    parser.add_argument('--comparison-standing', help='a sentence printed at the head of the comparison section, for the '
+                        'comparison tool\'s own standing (for example, a reading still out)')
     args = parser.parse_args(argv)
     print('\n'.join(table(args.repo, args.results, args.release, args.candidate) + (driver(args.driver) if args.driver else [])
-                    + (comparisons(args.comparisons) if args.comparisons else [])))
+                    + (comparisons(args.comparisons, args.comparison_standing) if args.comparisons else [])))
     return 0
 
 
