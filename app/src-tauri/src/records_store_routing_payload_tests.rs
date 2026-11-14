@@ -377,13 +377,10 @@ fn records_store_routing_unknown_generic_publication() {
 #[test]
 fn records_store_routing_only_validated_controls_and_each_exact_preparation_keeps_in_place_history()
 {
-    for name in [
-        ".writer.lock",
-        "captures/.capture.lock",
-        "role-supply/.writer.lock",
+    for name in payload::CONTROLS.iter().copied().chain([
         "..writer.lock.11111111-1111-4111-8111-111111111111.tmp",
         "captures/..capture.lock.11111111-1111-4111-8111-111111111111.tmp",
-    ] {
+    ]) {
         let (_own, root, dir, id) = routing_fixture();
         let path = dir.join(name);
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
