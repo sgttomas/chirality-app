@@ -336,7 +336,7 @@ pub(crate) fn file_material_for_test(root: &Path) -> crate::capture_seal_keychai
 }
 /// Build the complete pair on a private copy. Failure never leaves a
 /// provisional provider claim on the capture that the writer will publish.
-fn attach(capture: &mut Value, material: crate::capture_seal_keychain::Material) -> Result<SealVerification, EvidenceFailure> {
+fn attach_seal(capture: &mut Value, material: crate::capture_seal_keychain::Material) -> Result<SealVerification, EvidenceFailure> {
     let mut facts = capture.clone();
     let object = facts.as_object_mut().ok_or_else(|| failure(Cause::CaptureFactsUnencodable, "capture is not an object"))?;
     object.insert("sealProvider".into(), json!(material.provider));
@@ -353,7 +353,7 @@ pub fn seal(root: &Path, capture: &mut Value) -> Result<SealVerification, Eviden
     let folder = folder_for(root)?;
     crate::capture_seal_keychain::with_sealing_provider(&folder, root, |material| {
         let material = match material { Some(material) => material, None => file_material(load_or_create(&folder)?) };
-        attach(capture, material)
+        attach_seal(capture, material)
     })
 }
 /// The original wording remains the wording lane's; append provider/cause
@@ -496,7 +496,7 @@ mod tests {
         let ring = load(&folder).unwrap().unwrap();
         let material = Material { current: ring.current, keys: ring.keys, provider: SealProvider::Keychain };
         let mut keychain = capture();
-        attach(&mut keychain, material.clone()).unwrap();
+        attach_seal(&mut keychain, material.clone()).unwrap();
         let supplied = material.clone();
         set_material_provider_for_test(Some(Box::new(move |_, _| Ok(supplied.clone()))));
         verify(&project, &keychain).unwrap();

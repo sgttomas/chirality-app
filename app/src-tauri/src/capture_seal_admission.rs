@@ -170,7 +170,7 @@ pub(super) fn selected_lookup(expected: &EnrollmentPolicy, authority: &KeychainA
     Ok(())
 }
 pub(super) fn with_material<R>(legacy: &Path, current: &Path, authority: &KeychainAuthority,
-    backend: &(impl Backend + ?Sized), inventory: Option<&[PathBuf]>, attach: impl FnOnce(Option<Material>) -> Result<R, EvidenceFailure>) -> Result<R, EvidenceFailure> {
+    backend: &(impl Backend + ?Sized), inventory: Option<&[PathBuf]>, attach_seal: impl FnOnce(Option<Material>) -> Result<R, EvidenceFailure>) -> Result<R, EvidenceFailure> {
     let root = legacy.parent().ok_or_else(|| failure(Cause::SealRootUnavailable, "SEAL-C installation root unavailable"))?;
     let join = EnrollmentJoin::acquire(root)?;
     let protection = protection_observation(backend, &authority.identity, Some(&root.join(POLICY_HEAD)))?;
@@ -181,7 +181,7 @@ pub(super) fn with_material<R>(legacy: &Path, current: &Path, authority: &Keycha
         let material = operate(&legacy.with_file_name("capture-seal-keychain"), legacy, &authority.identity, authority.allow_first,
             backend, Operation::Seal, &mut || Err("no new key during capture sealing".into()))?;
         join.recheck()?;
-        return attach(Some(material));
+        return attach_seal(Some(material));
     }
     let mut captures = known_captures(root, current)?;
     if let Some(extra) = inventory { captures.extend_from_slice(extra); }
@@ -196,7 +196,7 @@ pub(super) fn with_material<R>(legacy: &Path, current: &Path, authority: &Keycha
     join.recheck()?;
     // No further recheck around attachment: undetected join replacement in
     // that window is the expressly accepted release exclusion.
-    attach(None)
+    attach_seal(None)
 }
 pub(super) fn fresh(legacy: &Path, identity: &ItemIdentity, backend: &(impl Backend + ?Sized)) -> Result<(), EvidenceFailure> {
     let root = legacy.parent().ok_or_else(|| failure(Cause::SealRootUnavailable, "SEAL-C installation root unavailable"))?;

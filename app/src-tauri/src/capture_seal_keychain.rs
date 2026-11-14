@@ -163,21 +163,21 @@ thread_local! { static TEST_INSTALLATION: std::cell::RefCell<Option<TestInstalla
 pub(crate) fn register_library_for_protection_inventory(root: &Path) { admission::register_library(root); }
 /// Runs the attachment while the participating-App enrolment join is held.
 /// `None` grants only the file source; callers still load/create it normally.
-pub(crate) fn with_sealing_provider<R>(legacy: &Path, project: &Path, attach: impl FnOnce(Option<Material>) -> Result<R, EvidenceFailure>) -> Result<R, EvidenceFailure> {
+pub(crate) fn with_sealing_provider<R>(legacy: &Path, project: &Path, attach_seal: impl FnOnce(Option<Material>) -> Result<R, EvidenceFailure>) -> Result<R, EvidenceFailure> {
     #[cfg(test)]
     if let Some(context) = TEST_INSTALLATION.with(|s| s.borrow().clone()) {
         admission::selected_lookup(&context.expected, &context.authority)?;
-        return admission::with_material(legacy, project, &context.authority, &*context.backend, Some(&context.inventory), attach);
+        return admission::with_material(legacy, project, &context.authority, &*context.backend, Some(&context.inventory), attach_seal);
     }
     #[cfg(test)]
-    if let Some(result) = TEST_PROVIDER.with(|s| s.borrow().as_ref().map(|p| p(legacy, Operation::Seal))) { return attach(Some(result?)); }
+    if let Some(result) = TEST_PROVIDER.with(|s| s.borrow().as_ref().map(|p| p(legacy, Operation::Seal))) { return attach_seal(Some(result?)); }
     match publisher_route() {
-        Ok(false) => attach(None),
+        Ok(false) => attach_seal(None),
         Err(()) => Err(failure(Cause::AuthorityUnavailable, "SEAL-C publisher validation unavailable; file fallback prohibited")),
         Ok(true) => {
             let authority = process_authority(false).map_err(|e| failure(Cause::AuthorityUnavailable, e))?;
             let backend = macos::NativeBackend::new(&authority);
-            admission::with_material(legacy, project, &authority, &backend, None, attach)
+            admission::with_material(legacy, project, &authority, &backend, None, attach_seal)
         },
     }
 }
