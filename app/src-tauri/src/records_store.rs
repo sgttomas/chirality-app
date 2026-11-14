@@ -2030,8 +2030,9 @@ pub(crate) struct ReadHome {
     /// Otherwise the project's §13.7 records (if any) are read in place.
     pub store_mode: bool,
     place: ReadPlace,
+    legacy: Option<Vec<LegacyFile>>,
 }
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 enum ReadPlace {
     /// The project's folder in the records store.
     Store(PathBuf),
@@ -2045,6 +2046,12 @@ enum ReadPlace {
 /// in the project folder are never read in the place of records the store
 /// holds and will not attach. A folder that is simply new and unlinked has
 /// no refusal and reads in place as before.
+#[cfg(test)]
+thread_local! { static AFTER_READ_ROUTING: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = std::cell::RefCell::new(None); }
+#[cfg(test)]
+pub(crate) fn after_read_routing_for_test(hook: impl FnOnce() + 'static) {
+    AFTER_READ_ROUTING.with(|slot| *slot.borrow_mut() = Some(Box::new(hook)));
+}
 fn decide(attachment: Attachment, store_mode: bool) -> Result<ReadHome, String> {
     if let Some(refusal) = &attachment.refusal {
         return Err(format!("project records unavailable: {refusal}; the files kept in the project folder are not read in their place"));
@@ -2053,7 +2060,13 @@ fn decide(attachment: Attachment, store_mode: bool) -> Result<ReadHome, String> 
         (true, Some(dir)) => ReadPlace::Store(dir),
         _ => ReadPlace::InPlace(attachment.root.clone()),
     };
-    Ok(ReadHome { attachment, store_mode, place })
+    let read = ReadHome { attachment, store_mode, place, legacy: None };
+    #[cfg(test)]
+    AFTER_READ_ROUTING.with(|slot| {
+        let hook = slot.borrow_mut().take();
+        if let Some(hook) = hook { hook(); }
+    });
+    Ok(read)
 }
 /// The project's records home for an ordinary reader: the one decision, after
 /// the unrefusing home's own refusals (an unavailable store, a disposal).
@@ -2062,7 +2075,9 @@ pub(crate) fn readable_home(root: &Path) -> Result<ReadHome, String> {
 }
 fn readable_home_checked(root: &Path) -> Result<ReadHome, ReaderError> {
     let home = unrefusing_home_checked(root)?;
-    decide(home.attachment, home.store_mode).map_err(ReaderError::from)
+    let mut read = decide(home.attachment, home.store_mode).map_err(ReaderError::from)?;
+    read.legacy = home.legacy;
+    Ok(read)
 }
 impl ReadHome {
     /// The project's store folder, when its records are read from the store.
@@ -2360,8 +2375,13 @@ thread_local! {
     // A directory iterator can fail after returning some entries. Exercise
     // that boundary without mistaking a partial census for an empty one.
     static LEGACY_LISTING_FAIL_AFTER: std::cell::RefCell<Option<(PathBuf, usize)>> = const { std::cell::RefCell::new(None) };
+    static LEGACY_CENSUS_CALLS: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
+#[cfg(test)]
+pub(crate) fn take_census_calls_for_test() -> usize { LEGACY_CENSUS_CALLS.with(|calls| calls.replace(0)) }
 pub(crate) fn legacy_census(root: &Path) -> Result<Vec<LegacyFile>, String> {
+    #[cfg(test)]
+    LEGACY_CENSUS_CALLS.with(|calls| calls.set(calls.get() + 1));
     let mut out = Vec::new();
     let records = root.join(".chirality/records");
     let captures = root.join(".chirality/captures");
@@ -3118,46 +3138,109 @@ fn uncovered_files(census: &[LegacyFile], covered: &HashMap<String, (String, Str
 }
 
 /// Display information only. Never part of an RS record-set completeness result.
+/// At the six deep sites the notice reports the records' home as read before
+/// and after the rows, not the home the rows were read from; at the two direct
+/// sites the rows and notice come from one routing value. A reading describes
+/// the records' home as it was while it was read.
+#[derive(Clone, Debug, Default)]
 pub(crate) enum HistoryNotice {
+    #[default]
     None,
     Unimported,
     Unavailable(String),
+    Changed,
 }
+pub(crate) const HISTORY_CHANGED_VIEW: &str = "Whether records in the project folder are left out of this view is not known: where this project's records are kept changed while it was being read.";
+pub(crate) const HISTORY_CHANGED_PAGE: &str = "Whether records in the project folder are left out of this page is not known: where this project's records are kept changed while it was being read.";
+pub(crate) const HISTORY_UNIMPORTED_VIEW: &str = "This project's records are kept in the records store. Records in the project folder have not been imported and may not be shown in this view.";
+pub(crate) const HISTORY_UNIMPORTED_PAGE: &str = "This project's records are kept in the records store. Records in the project folder have not been imported and may not be shown on this page.";
 impl HistoryNotice {
     fn words(&self, unimported: &str) -> Vec<String> {
         match self {
             Self::None => vec![],
             Self::Unimported => vec![unimported.into()],
             Self::Unavailable(error) => vec![format!("History notice unavailable: {error}; whether project-folder records are omitted is not known.")],
+            Self::Changed => unreachable!("the presentation selects the changed-home sentence"),
         }
     }
     pub(crate) fn view(&self) -> Vec<String> {
-        self.words("This view reads the records store. Records in the project folder have not been imported and are not shown.")
+        if matches!(self, Self::Changed) { return vec![HISTORY_CHANGED_VIEW.into()]; }
+        self.words(HISTORY_UNIMPORTED_VIEW)
     }
     pub(crate) fn page(&self) -> Vec<String> {
+        if matches!(self, Self::Changed) { return vec![HISTORY_CHANGED_PAGE.into()]; }
         if matches!(self, Self::Unavailable(_)) {
             // Capability diagnostics name the failure without returning local
             // store paths or filesystem error text to the agent. This fixed
             // message also leaves page bounding independent of error length.
             return vec!["History notice unavailable: the project-folder census or import coverage could not be read; whether records are omitted is not known.".into()];
         }
-        self.words("This page reads the records store. Records in the project folder have not been imported and are not included.")
+        self.words(HISTORY_UNIMPORTED_PAGE)
     }
 }
 /// Read outside Host, workflow-owner and index locks: this performs the same
 /// unbounded census and import-coverage read as status. It admits no operation.
-pub(crate) fn history_notice(root: &Path) -> HistoryNotice {
+pub(crate) fn history_notice(home: Result<&ReadHome, &str>) -> HistoryNotice {
     let read = || -> Result<bool, String> {
-        let mut home = unrefusing_home(root)?;
-        let read = decide(home.attachment.clone(), home.store_mode)?;
-        let Some(dir) = read.in_store() else { return Ok(false) };
-        let census = home.census()?;
+        let home = home.map_err(str::to_owned)?;
+        let Some(dir) = home.in_store() else { return Ok(false) };
+        let census = match &home.legacy {
+            Some(census) => census.clone(),
+            None => legacy_census(&home.attachment.root)?,
+        };
         Ok(!uncovered_files(&census, &coverage(dir)?).is_empty())
     };
     match read() {
         Ok(false) => HistoryNotice::None,
         Ok(true) => HistoryNotice::Unimported,
         Err(error) => HistoryNotice::Unavailable(error),
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub(crate) struct HistoryRoute {
+    root: PathBuf,
+    project: Option<String>,
+    store: Option<PathBuf>,
+    place: ReadPlace,
+}
+impl ReadHome {
+    pub(crate) fn history_route(&self) -> HistoryRoute {
+        HistoryRoute { root: self.attachment.root.clone(), project: self.attachment.project.clone(), store: self.attachment.dir.clone(), place: self.place.clone() }
+    }
+}
+/// The shared readers decide routing inside themselves, so the notice cannot
+/// share their routing value. Owed with slice 2: each shared reader returns
+/// the routing it read under. Then remove this before-and-after check and the
+/// not-known sentence, and replace "may not be shown" with "are not shown"
+/// again on all eight surfaces.
+///
+/// Census cost remains unbounded. A single-source deep reading can run up to
+/// three folder censuses while store payload is ambiguous or unreadable, none
+/// otherwise beyond the notice's own, until the shared readers return their
+/// routing (owed with slice 2). Multi-source readers can make more internal
+/// routing decisions and hence more censuses. The before read's census is
+/// reused for the notice; the two added observations cost at most two censuses.
+pub(crate) struct HistoryRead {
+    before: Result<ReadHome, String>,
+}
+#[cfg(test)]
+thread_local! { pub(crate) static HISTORY_AFTER_ROWS: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const { std::cell::RefCell::new(None) }; }
+impl HistoryRead {
+    pub(crate) fn begin(root: &Path) -> Self { Self { before: readable_home(root) } }
+    pub(crate) fn finish(self, root: &Path) -> HistoryNotice {
+        #[cfg(test)]
+        HISTORY_AFTER_ROWS.with(|slot| { let hook = slot.borrow_mut().take(); if let Some(hook) = hook { hook(); } });
+        let after = readable_home(root);
+        match (&self.before, &after) {
+            (Ok(before), Ok(after)) if before.history_route() != after.history_route() => HistoryNotice::Changed,
+            (Err(error), _) | (_, Err(error)) => HistoryNotice::Unavailable(error.clone()),
+            (Ok(before), Ok(_)) => history_notice(Ok(before)),
+        }
+    }
+    pub(crate) fn attach(self, root: &Path, mut rows: Value) -> Value {
+        rows["historyNotices"] = json!(self.finish(root).view());
+        rows
     }
 }
 

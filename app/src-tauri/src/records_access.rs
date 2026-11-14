@@ -631,17 +631,30 @@ impl RecordsCapability {
         let (text, success, record) = match request {
             Err(reason) => (refusal_text(&read_id, &reason), false, json!({"outcome":"refused","refusal":reason})),
             Ok(request) => {
+                // See records_store::HistoryRead for the shared-reader check and slice 2.
+                let reading = crate::records_store::HistoryRead::begin(&self.project);
                 let corpus = self.source.read();
                 // File I/O stays with the source read: no Host or read-log
                 // lock is held. Snapshot reads never compute this notice.
-                let history_notices = crate::records_store::history_notice(&self.project).page();
                 let prepared = self.project_identity().map(|_| {
-                    let mut page = page(&corpus, &request, &self.root);
-                    page.history_notices = history_notices;
+                    let page = page(&corpus, &request, &self.root);
                     let (text, mut page) = bounded_document(&read_id, &request, page);
-                    if text.is_none() || request.operation != "read_run" { return (text, page); }
-                    enrich_role_metadata(&self.project, &corpus, &read_id, &request, &mut page);
-                    (Some(document_text(&read_id, &request, &page)), page)
+                    if text.is_some() && request.operation == "read_run" {
+                        enrich_role_metadata(&self.project, &corpus, &read_id, &request, &mut page);
+                    }
+                    page.history_notices = reading.finish(&self.project).page();
+                    // The final notice participates in the same page bound.
+                    // Optional companions still yield before original items.
+                    for n in 0..page.items.len() {
+                        if document_text(&read_id, &request, &page).len() <= RESPONSE_LIMIT { break; }
+                        if page.items[n].get("supplierReading").is_some() {
+                            page.items[n]["supplierReading"] = crate::role_observations::BoundedRoleReading::omitted("role-companion-page-budget-omitted");
+                            if document_text(&read_id, &request, &page).len() > RESPONSE_LIMIT {
+                                page.items[n].as_object_mut().unwrap().remove("supplierReading");
+                            }
+                        }
+                    }
+                    bounded_document(&read_id, &request, page)
                 });
                 match prepared {
                     Err(reason) => (refusal_text(&read_id,&reason), false, json!({"outcome":"refused","refusal":reason})),

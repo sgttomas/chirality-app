@@ -14,6 +14,40 @@ fn routing_fixture() -> (OwnStore, PathBuf, PathBuf, String) {
     (own, root, dir, record["recordId"].as_str().unwrap().into())
 }
 
+fn flip_history_routing(dir: &Path) {
+    let dir = dir.to_path_buf();
+    after_read_routing_for_test(move || {
+        std::fs::create_dir_all(dir.join("acts")).unwrap();
+        std::fs::write(dir.join("acts").join(format!("{}.jsonl", storage::key("route-flip"))), b"corrupt final\n").unwrap();
+    });
+}
+
+#[test]
+fn records_store_routing_history_notice_decision_read_keeps_one_home() {
+    let (_own, root, dir, _) = routing_fixture();
+    flip_history_routing(&dir);
+    let first = crate::runtime_session::read_decision_packages(&root);
+    assert_eq!(first["historyNotices"], json!([]), "in-place reading: {first}");
+    assert_eq!(first["limits"], json!([]), "rows must keep the routing taken before the store changed: {first}");
+    let next = crate::runtime_session::read_decision_packages(&root);
+    assert_eq!(next["historyNotices"].as_array().unwrap().len(), 1);
+    assert!(next["limits"].as_array().unwrap().iter().any(|l| l.as_str().is_some_and(|l| l.contains("unreadable line 1"))), "next reading sees the new home: {next}");
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn records_store_routing_history_notice_file_act_read_keeps_one_home() {
+    let (_own, root, dir, _) = routing_fixture();
+    flip_history_routing(&dir);
+    let first = crate::file_act_view::read(&root);
+    assert_eq!(first["historyNotices"], json!([]), "in-place reading: {first}");
+    assert_eq!(first["limits"], json!([]), "rows must keep the routing taken before the store changed: {first}");
+    let next = crate::file_act_view::read(&root);
+    assert_eq!(next["historyNotices"].as_array().unwrap().len(), 1);
+    assert!(next["limits"].as_array().unwrap().iter().any(|l| l.as_str().is_some_and(|l| l.contains("unreadable line 1"))), "next reading sees the new home: {next}");
+    std::fs::remove_dir_all(root).unwrap();
+}
+
 #[test]
 fn records_store_routing_in_place_empty_and_only_unknown_store_member_reads_the_store() {
     let _own = OwnStore::new();
@@ -372,7 +406,7 @@ fn records_store_routing_history_notice_names_omitted_in_place_records() {
     // Proposed display channel and wording, for Agent 0's decision before
     // implementation. This must not be added to storage::read_all's limits.
     assert_eq!(view["historyNotices"], json!([
-        "This view reads the records store. Records in the project folder have not been imported and are not shown."
+        "This project's records are kept in the records store. Records in the project folder have not been imported and may not be shown in this view."
     ]), "the person-facing history result must explain the omitted in-place history beside its corruption limit; status elsewhere is insufficient");
 }
 
@@ -393,7 +427,7 @@ fn records_store_routing_history_notice_capability_pages_keep_real_limits() {
     }
     std::fs::remove_dir_all(root).unwrap();
     for page in pages {
-        assert_eq!(page["historyNotices"], json!(["This page reads the records store. Records in the project folder have not been imported and are not included."]), "{}", page["operation"]);
+        assert_eq!(page["historyNotices"], json!(["This project's records are kept in the records store. Records in the project folder have not been imported and may not be shown on this page."]), "{}", page["operation"]);
     }
 }
 
@@ -530,4 +564,136 @@ fn records_store_routing_status_import_needed_is_never_claimed_on_uncertain_auth
     let notes = shown["project"]["notes"].as_array().unwrap().iter().filter_map(Value::as_str).collect::<Vec<_>>();
     assert!(notes.iter().any(|n| n.contains("records store governs this project's records is unknown")), "{notes:?}");
     std::fs::remove_dir_all(root).unwrap();
+}
+
+fn notice_run(root: &Path, ended: bool) -> String {
+    let run = "run:notice-cache";
+    let fixtures: Vec<Value> = serde_json::from_str(include_str!("../schemas/fixtures/valid-records.json")).unwrap();
+    let mut entries = Vec::new();
+    for (i, kind) in ["run_opened", "run_ended"].into_iter().take(if ended {2} else {1}).enumerate() {
+        let mut e = fixtures.iter().find(|e| e["kind"] == kind).unwrap().clone();
+        e["runId"] = json!(run);
+        if kind == "run_opened" { e["body"]["runId"] = json!(run); }
+        e["seq"] = json!(i + 1); e["recordId"] = json!(format!("rec:app:notice:{}", i + 1));
+        e["writtenAt"] = json!(format!("2026-11-01T00:00:0{i}Z"));
+        entries.push(format!("{e}\n"));
+    }
+    let log = root.join(".chirality/records").join(storage::log_rel(Some(run), crate::records::supply::LIVE_WRITER));
+    std::fs::create_dir_all(log.parent().unwrap()).unwrap();
+    std::fs::write(log, entries.concat()).unwrap(); run.into()
+}
+fn notice_seed_store(dir: &Path) {
+    let e = records::envelope("evidence_limit", &APP_WRITER, body("store only"), "rec:app:notice-store".into(), 1, None, None);
+    std::fs::create_dir_all(dir.join("acts")).unwrap();
+    std::fs::write(dir.join("acts").join(format!("{}.jsonl", storage::key("notice-store"))), format!("{e}\n")).unwrap();
+}
+fn notice_flip_store(dir: &Path) { let dir = dir.to_path_buf(); after_read_routing_for_test(move || notice_seed_store(&dir)); }
+fn notice_page(root: &Path, log: &Path) -> Value {
+    let capability = crate::records_access::RecordsCapability::at(root, log.to_path_buf()).unwrap();
+    let call = crate::records_access::Call {app_session:"notice-test".into(),generation:"notice-generation".into(),request:json!(0),thread:"notice-thread".into(),turn:"notice-turn".into(),call:"notice-read".into(),arguments:json!({"operation":"list_runs"})};
+    let answer = capability.answer(&call, root.to_str()); assert_eq!(answer["success"], true, "{answer}");
+    serde_json::from_str(answer["contentItems"][0]["text"].as_str().unwrap()).unwrap()
+}
+#[test]
+fn review_notice_cached_reopened_after_import() {
+    let (_own, root, dir, _) = routing_fixture(); let run = notice_run(&root, false); notice_seed_store(&dir);
+    let workflow = Mutex::new(crate::runtime_session::WorkflowRootSession::default());
+    let old = crate::runtime_session::read_reopened_history(&workflow, &root, &[], &[]).unwrap();
+    assert_eq!(old["runs"], json!([])); assert_eq!(old["historyNotices"].as_array().unwrap().len(), 1);
+    import(&root).unwrap(); let shown = workflow.lock().unwrap().snapshot()["reopened"].clone();
+    assert_eq!(shown["runs"], old["runs"]); assert_eq!(shown["historyNotices"], old["historyNotices"], "status keeps the cached reading's notice");
+    let fresh = crate::runtime_session::read_reopened_history(&workflow, &root, &[], &[]).unwrap();
+    assert!(fresh["runs"].as_array().unwrap().iter().any(|r| r["run"] == run)); assert_eq!(fresh["historyNotices"], json!([]));
+    std::fs::remove_dir_all(root).unwrap();
+}
+#[test]
+fn review_notice_cached_reopened_route_changes() {
+    let (_own, root, dir, _) = routing_fixture(); let run = notice_run(&root, false);
+    let workflow = Mutex::new(crate::runtime_session::WorkflowRootSession::default());
+    let old = crate::runtime_session::read_reopened_history(&workflow, &root, &[], &[]).unwrap();
+    assert!(old["runs"].as_array().unwrap().iter().any(|r| r["run"] == run)); notice_seed_store(&dir);
+    let shown = workflow.lock().unwrap().snapshot()["reopened"].clone();
+    assert_eq!(shown["runs"], old["runs"]); assert_eq!(shown["historyNotices"], json!([]), "status cannot freshly decorate cached in-place rows");
+    std::fs::remove_dir_all(root).unwrap();
+}
+#[test]
+fn records_store_routing_history_notice_reopened_change_is_not_known() {
+    let (_own, root, dir, _) = routing_fixture(); notice_run(&root, false);
+    let workflow = Mutex::new(crate::runtime_session::WorkflowRootSession::default()); notice_flip_store(&dir);
+    let old = crate::runtime_session::read_reopened_history(&workflow, &root, &[], &[]).unwrap();
+    assert_eq!(old["historyNotices"], json!([HISTORY_CHANGED_VIEW]));
+    assert_eq!(workflow.lock().unwrap().snapshot()["reopened"]["historyNotices"], old["historyNotices"]);
+    let next = crate::runtime_session::read_reopened_history(&workflow, &root, &[], &[]).unwrap(); assert_ne!(next["historyNotices"], old["historyNotices"]);
+    std::fs::remove_dir_all(root).unwrap();
+}
+#[test]
+#[ignore = "in-place ended history creates .after-run-end.lock, which payload routing classifies as an unrecognised member; separate payload-control repair required"]
+fn records_store_routing_history_notice_post_end_cache_rebuilds_on_route_change() {
+    let (_own, root, dir, _) = routing_fixture(); let run = notice_run(&root, true);
+    let workflow = Mutex::new(crate::runtime_session::WorkflowRootSession::default()); crate::host_tick::observe_project_history(&workflow, &root);
+    let old = workflow.lock().unwrap().snapshot()["afterRunEnd"].clone();
+    assert!(old["runs"].as_array().unwrap().iter().any(|r| r["run"] == run), "{old}"); assert_eq!(old["historyNotices"], json!([]));
+    notice_seed_store(&dir); crate::host_tick::observe_project_history(&workflow, &root);
+    let next = workflow.lock().unwrap().snapshot()["afterRunEnd"].clone();
+    assert_eq!(next["runs"], json!([]), "cache rebuilt: {next}"); assert_eq!(next["historyNotices"].as_array().unwrap().len(), 1);
+    std::fs::remove_dir_all(root).unwrap();
+}
+#[test]
+fn records_store_routing_history_notice_post_end_nonended_cache_rebuilds_on_route_change() {
+    let (_own, root, dir, _) = routing_fixture(); notice_run(&root, false);
+    let workflow = Mutex::new(crate::runtime_session::WorkflowRootSession::default());
+    crate::host_tick::observe_project_history(&workflow, &root);
+    assert_eq!(workflow.lock().unwrap().ended_cached_logs_for_test(), 1, "the in-place run populated the incremental cache");
+    let old = workflow.lock().unwrap().snapshot()["afterRunEnd"].clone();
+    assert_eq!(old["historyNotices"], json!([])); assert_eq!(old["limits"], json!([]));
+    notice_seed_store(&dir); crate::host_tick::observe_project_history(&workflow, &root);
+    assert_eq!(workflow.lock().unwrap().ended_cached_logs_for_test(), 0, "no in-place log survives the store refresh");
+    let next = workflow.lock().unwrap().snapshot()["afterRunEnd"].clone();
+    assert_eq!(next["runs"], json!([])); assert_eq!(next["historyNotices"].as_array().unwrap().len(), 1);
+    std::fs::remove_dir_all(root).unwrap();
+}
+#[test]
+fn records_store_routing_history_notice_post_end_import_refreshes_rows_and_notice() {
+    let (_own, root, dir, _) = routing_fixture(); let run = notice_run(&root, true); notice_seed_store(&dir);
+    let workflow = Mutex::new(crate::runtime_session::WorkflowRootSession::default()); crate::host_tick::observe_project_history(&workflow, &root);
+    let old = workflow.lock().unwrap().snapshot()["afterRunEnd"].clone();
+    assert_eq!(old["runs"], json!([])); assert_eq!(old["historyNotices"].as_array().unwrap().len(), 1); import(&root).unwrap();
+    assert_eq!(workflow.lock().unwrap().snapshot()["afterRunEnd"]["historyNotices"], old["historyNotices"]);
+    crate::host_tick::observe_project_history(&workflow, &root); let next = workflow.lock().unwrap().snapshot()["afterRunEnd"].clone();
+    assert!(next["runs"].as_array().unwrap().iter().any(|r| r["run"] == run), "{next}"); assert_eq!(next["historyNotices"], json!([]));
+    std::fs::remove_dir_all(root).unwrap();
+}
+#[test]
+fn records_store_routing_history_notice_post_end_change_is_not_known_until_refresh() {
+    let (_own, root, dir, _) = routing_fixture(); let workflow = Mutex::new(crate::runtime_session::WorkflowRootSession::default());
+    notice_flip_store(&dir); crate::host_tick::observe_project_history(&workflow, &root);
+    let old = workflow.lock().unwrap().snapshot()["afterRunEnd"].clone(); assert_eq!(old["historyNotices"], json!([HISTORY_CHANGED_VIEW]));
+    crate::host_tick::observe_project_history(&workflow, &root); assert_ne!(workflow.lock().unwrap().snapshot()["afterRunEnd"]["historyNotices"], old["historyNotices"]);
+    std::fs::remove_dir_all(root).unwrap();
+}
+#[test]
+fn records_store_routing_history_notice_integrity_change_is_not_known() {
+    let (_own, root, dir, _) = routing_fixture(); notice_flip_store(&dir); let read = crate::records_index::chain_heads(&root);
+    assert_eq!(read["historyNotices"], json!([HISTORY_CHANGED_VIEW])); std::fs::remove_dir_all(root).unwrap();
+}
+#[test]
+fn records_store_routing_history_notice_capability_change_is_not_known() {
+    let (own, root, dir, _) = routing_fixture(); notice_flip_store(&dir); let read = notice_page(&root, &own.0.join("notice-reads.jsonl"));
+    assert_eq!(read["historyNotices"], json!([HISTORY_CHANGED_PAGE])); std::fs::remove_dir_all(root).unwrap();
+}
+#[test]
+fn records_store_routing_history_notice_supply_change_is_not_known() {
+    let (_own, root, dir, _) = routing_fixture(); let records = crate::workflow_workspace::publication::ProjectRecords::open(&root).unwrap();
+    notice_flip_store(&dir); let read = crate::records::supply::read_project_supply(&records);
+    assert_eq!(read["historyNotices"], json!([HISTORY_CHANGED_VIEW])); std::fs::remove_dir_all(root).unwrap();
+}
+#[test]
+fn records_store_routing_history_notice_capability_census_counts() {
+    let (own, root, dir, _) = routing_fixture(); notice_seed_store(&dir); take_census_calls_for_test();
+    let read = notice_page(&root, &own.0.join("notice-counts.jsonl")); assert_eq!(read["historyNotices"].as_array().unwrap().len(), 1);
+    assert_eq!(take_census_calls_for_test(), 1, "only the notice census");
+    std::fs::remove_dir_all(dir.join("acts")).unwrap(); std::fs::create_dir_all(dir.join("acts")).unwrap();
+    std::fs::write(dir.join("acts/.unknown"), b"unknown retained bytes").unwrap(); std::fs::remove_dir_all(root.join(".chirality/records")).unwrap(); take_census_calls_for_test();
+    let read = notice_page(&root, &own.0.join("notice-ambiguous-counts.jsonl")); assert_eq!(read["historyNotices"], json!([]));
+    assert_eq!(take_census_calls_for_test(), 3, "before, source and after; reuse before for notice"); std::fs::remove_dir_all(root).unwrap();
 }

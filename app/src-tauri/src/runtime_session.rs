@@ -1745,12 +1745,24 @@ pub fn claim_start(
 /// Public decision-view command's receiving path. No writer/control is available
 /// to this function: reading cannot append, replay captures or repair backlinks.
 pub fn read_decision_packages(workspace: &std::path::Path) -> Value {
-    let history_notices = crate::records_store::history_notice(workspace).view();
     let mut view = crate::decision_view::derive(workspace, &[]);
-    view["historyNotices"] = json!(history_notices);
     view["workspace"] = json!(workspace.display().to_string());
     view["readOnly"] = json!(true);
     view
+}
+
+pub(crate) fn read_reopened_history(workflows: &std::sync::Mutex<WorkflowRootSession>, project: &std::path::Path, events: &[Value], homes: &[std::sync::Arc<HomeSession>]) -> Result<Value, String> {
+    // See records_store::HistoryRead for the shared-reader check and slice 2.
+    let reading = crate::records_store::HistoryRead::begin(project);
+    let (view, generation) = {
+        let mut root = workflows.lock().unwrap();
+        root.reopened_generation += 1;
+        (root.reopen_for_learning(project, events, homes)?, root.reopened_generation)
+    };
+    let view = reading.attach(project, view);
+    let mut root = workflows.lock().unwrap();
+    if root.reopened_generation == generation { root.reopened = Some(view.clone()); }
+    Ok(view)
 }
 
 /// Separately invoked writer responsibility, preserving native pending-before-
@@ -4484,6 +4496,7 @@ pub(crate) struct WorkflowRootSession {
     conversations: std::collections::HashMap<(String, String), Vec<String>>,
     /// Last durable reopen of the explicit project's records (display only).
     reopened: Option<Value>,
+    reopened_generation: u64,
     /// V10 G-5: per-run "end notice must go first" flags, readable without the
     /// run's lock, so a busy run never blocks ordinary text by itself.
     notice_flags: std::collections::HashMap<String, std::sync::Arc<std::sync::atomic::AtomicBool>>,
@@ -4536,6 +4549,7 @@ impl Default for WorkflowRootSession {
             runs: Default::default(),
             conversations: Default::default(),
             reopened: None,
+            reopened_generation: 0,
             notice_flags: Default::default(),
             held_successors: Default::default(),
             app_user_data: None,
@@ -4636,7 +4650,12 @@ impl WorkflowRootSession {
         result["choiceChat"] = chat.map(|c|json!({"sourceRef":c.source,"threadId":c.thread})).unwrap_or(Value::Null);
         result
     }
+    /// Row refresh only; host_tick::observe_project_history publishes its paired notice.
     pub(crate) fn observe_ended_runs(&mut self,project:&std::path::Path){self.after_run_end.observe(project);}
+    pub(crate) fn ended_history_reading(&self) -> (u64, Value) { self.after_run_end.reading() }
+    #[cfg(test)]
+    pub(crate) fn ended_cached_logs_for_test(&self) -> usize { self.after_run_end.cached_logs_for_test() }
+    pub(crate) fn publish_ended_history(&mut self, generation: u64, view: Value, changed: bool) { self.after_run_end.publish(generation, view, changed); }
     pub fn snapshot(&self) -> Value {
         // Inventory describes verified build inputs, never release registration.
         let production_catalog = match crate::workflow_workspace::production_catalog::ProductionCatalog::load() {
@@ -5747,7 +5766,6 @@ impl WorkflowRootSession {
             },
         };
         let view = json!({"run":run,"state":"ended by the person","cause":cause,"endNotice":notice});
-        self.reopen(project, &[]).ok();
         Ok(view)
     }
     /// WR TX-5 / SQ-END: compose and hold the end notice of a run the person just ended
@@ -6025,14 +6043,14 @@ impl WorkflowRootSession {
         }
         prepared
     }
-    /// Durable reopen for display: the explicit project's records only.
+    /// Durable reopened rows. `read_reopened_history` publishes them with the
+    /// completed notice after releasing this workflow owner.
     pub fn reopen(&mut self, project: &std::path::Path, restart_events: &[Value]) -> Result<Value, String> {
         let records = crate::workflow_workspace::publication::ProjectRecords::open(project)?;
         let mut view = crate::records::supply::read_project_runs(&records, restart_events).view();
         // EXEC §2.7 / RECOVERY §4.1: what the host's startup writer did with this session's restart facts.
         view["restartLimits"] = self.restart_limits.clone();
         view["endedAfterRelaunch"] = self.reopened_ends_view();
-        self.reopened = Some(view.clone());
         Ok(view)
     }
     /// Person-directed learning readiness from current records and recovery
@@ -6048,7 +6066,6 @@ impl WorkflowRootSession {
                 }
             }
         }
-        self.reopened = Some(view.clone());
         Ok(view)
     }
 }
@@ -11739,7 +11756,7 @@ for line in sys.stdin:
         let before = std::fs::read(&log).unwrap();
         std::fs::write(peer.fixture.root.join("out/summary.md"), b"v2").unwrap();
         for _ in 0..2 {
-            root.lock().unwrap().observe_ended_runs(&peer.fixture.root);
+            crate::host_tick::observe_project_history(&root, &peer.fixture.root);
         }
         let dto = root.lock().unwrap().snapshot();
         assert_eq!(std::fs::read(&log).unwrap(), before);
@@ -11757,9 +11774,10 @@ for line in sys.stdin:
             .any(|r| r["kind"] == "run_ended"));
         let mut cold = WorkflowRootSession::default();
         cold.reopen(&peer.fixture.root, &[]).unwrap();
-        cold.observe_ended_runs(&peer.fixture.root);
-        assert_eq!(cold.snapshot()["afterRunEnd"]["pending"], false);
-        assert!(cold.snapshot()["afterRunEnd"]["runs"][0]["records"]
+        let cold = Mutex::new(cold);
+        crate::host_tick::observe_project_history(&cold, &peer.fixture.root);
+        assert_eq!(cold.lock().unwrap().snapshot()["afterRunEnd"]["pending"], false);
+        assert!(cold.lock().unwrap().snapshot()["afterRunEnd"]["runs"][0]["records"]
             .as_array()
             .unwrap()
             .iter()
@@ -11775,7 +11793,7 @@ for line in sys.stdin:
         .unwrap();
         crate::records_retention::apply(plan, &actor, &observed).unwrap();
         for _ in 0..3 {
-            root.lock().unwrap().observe_ended_runs(&peer.fixture.root);
+            crate::host_tick::observe_project_history(&root, &peer.fixture.root);
         }
         let rows = own_log(&peer, &a);
         assert_eq!(rows.iter().filter(|r| r["kind"] == "act_lapsed").count(), 1);
@@ -11821,7 +11839,7 @@ for line in sys.stdin:
             .unwrap();
         synthetic_ended_retention_action(&peer, "close");
         let before = std::fs::read(&log).unwrap();
-        root.lock().unwrap().observe_ended_runs(&peer.fixture.root);
+        crate::host_tick::observe_project_history(&root, &peer.fixture.root);
         assert_eq!(std::fs::read(&log).unwrap(), before);
         assert_eq!(
             root.lock().unwrap().snapshot()["afterRunEnd"]["pending"],
@@ -11829,7 +11847,7 @@ for line in sys.stdin:
         );
         assert!(root.lock().unwrap().retention_ready().is_ok());
         synthetic_ended_retention_action(&peer, "reopen");
-        root.lock().unwrap().observe_ended_runs(&peer.fixture.root);
+        crate::host_tick::observe_project_history(&root, &peer.fixture.root);
         let rows = own_log(&peer, &a);
         assert_eq!(
             rows.iter()
@@ -11944,7 +11962,7 @@ for line in sys.stdin:
         std::fs::remove_dir_all(export).unwrap();
         std::fs::write(peer.fixture.root.join("out/summary.md"), b"v3").unwrap();
         for _ in 0..3 {
-            root.lock().unwrap().observe_ended_runs(&peer.fixture.root);
+            crate::host_tick::observe_project_history(&root, &peer.fixture.root);
         }
         assert_eq!(
             external(&activity).code(),
