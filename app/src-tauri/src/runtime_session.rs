@@ -7229,13 +7229,12 @@ impl WorkflowRun {
             basis: basis.clone(),
             occasion,
             evaluated_at: crate::util::now_rfc3339(),
-            inventory: report::Inventory {
-                origin: report::InventoryOrigin::CallerSupplied {
-                    source: "App Root: no environment collector; nothing observed".into(),
-                },
-                host_id: None,
-                observations: report::Observations::default(),
-            },
+            inventory: proposal_advisory::conversation_inventory(
+                &self.home,
+                &self.home.host.snapshot()["threads"],
+                &scope.generation,
+                &scope.conversation,
+            ),
             model_destination: None,
         });
         self.compatibility.push(CompatibilitySlot {
@@ -10100,6 +10099,27 @@ for line in sys.stdin:
         peer.home.host.delegation_signals_read(&old,"thread",json!({"kind":"person-directed"}));
         let kept=peer.home.host.delegation_readings();
         assert_eq!(kept.len(),1,"{kept:?}");assert_eq!(kept[0]["key"]["generation"],current);
+    }
+    // The requirement check is given the host's own reading for the
+    // conversation's model, provider and folder, and nothing it did not observe.
+    #[test]
+    fn the_requirement_check_inventory_carries_the_conversations_own_delegation_reading(){
+        use crate::execution_compatibility::report::CatalogCoverage;
+        let peer=Peer::new();
+        let threads=||peer.home.host.snapshot()["threads"].clone();
+        let before=proposal_advisory::conversation_inventory(&peer.home,&threads(),&peer.generation,"thread");
+        assert!(before.observations.harness_signals.is_none(),"nothing read yet");
+        assert!(matches!(before.observations.catalog,CatalogCoverage::Unobserved));
+        assert_eq!(before.observations.channel_enabled,None,"no host channel is observed");
+        assert!(before.host_id.is_none());
+        assert_eq!(crate::host_tick::delegation_tick_home(&peer.home),1);
+        let after=proposal_advisory::conversation_inventory(&peer.home,&threads(),&peer.generation,"thread");
+        let signals=after.observations.harness_signals.expect("the host's reading for this conversation");
+        assert_eq!(crate::delegation_availability::evaluate(Some(&signals))["reading"],"present");
+        assert!(matches!(after.observations.catalog,CatalogCoverage::Unobserved));
+        assert_eq!(after.observations.channel_enabled,None);
+        // Another conversation does not take this one's reading.
+        assert!(proposal_advisory::conversation_inventory(&peer.home,&threads(),&peer.generation,"another").observations.harness_signals.is_none());
     }
     // ---- #1247 review leftovers H-2, H-5 and the send refusals' prefillKept ----
     fn pending_refs(root:&Mutex<WorkflowRootSession>)->Vec<String>{

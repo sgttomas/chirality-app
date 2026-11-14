@@ -898,10 +898,30 @@ fn publish(
         ),
         _ => {}
     }
-    if elements
-        .iter()
-        .any(|e| e.value["class"] == "harness_capability")
-    {
+    let harness = |delegation: bool| {
+        elements.iter().any(|e| {
+            e.value["class"] == "harness_capability"
+                && (e.value["capability"] == "agent-delegation") == delegation
+        })
+    };
+    if basis.acting_pin == super::DELEGATION_RULE_PIN && (harness(true) || harness(false)) {
+        if harness(false) {
+            limitations.push(format!(
+                "no adopted supplier availability account at acting pin {}; the 0.158.0 account is not borrowed, so harness capabilities other than agent-delegation are not established",
+                basis.acting_pin
+            ));
+        }
+        if harness(true) {
+            limitations.push(if observations.harness_signals.is_none() {
+                "agent-delegation: delegation signals not read for this conversation".into()
+            } else {
+                format!(
+                    "agent-delegation read at acting pin {} by DEL-01-03 NPTD §7.1 as revised on 2026-11-09",
+                    basis.acting_pin
+                )
+            });
+        }
+    } else if harness(true) || harness(false) {
         if basis.acting_pin != "App Codex 0.158.0" {
             limitations.push(format!(
                 "no adopted supplier availability account at acting pin {}; the 0.158.0 account is not borrowed, so harness capabilities are not established",
