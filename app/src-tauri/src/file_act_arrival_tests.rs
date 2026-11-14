@@ -1187,3 +1187,73 @@ fn a_capture_without_native_custody_or_record_is_never_appended_by_a_flush_or_by
     assert_eq!(counted.len(), 1);
     assert_eq!(counted[0]["body"]["act"]["recordId"], recorded["record"]["recordId"]);
 }
+
+/// Seals made on this thread find no key folder (as a signed build before keychain enrolment
+/// finds none it may use): the act is captured and recorded unsealed, and is not counted.
+struct NoSealKeys;
+impl NoSealKeys {
+    fn on() -> NoSealKeys {
+        crate::capture_seal::set_folder_for_test(Some(None));
+        NoSealKeys
+    }
+}
+impl Drop for NoSealKeys {
+    fn drop(&mut self) {
+        crate::capture_seal::set_folder_for_test(None);
+    }
+}
+
+// The settled no-seal verdict (347, before the landing): an act recorded on the arrival's file
+// whose capture carries no seal can never count, so it holds nothing. The offer opens with no
+// not-read sentence and a new act is offered. In this state that act is again captured unsealed
+// and not counted, until the sealing and the telling units land; once seals can be made, the
+// next act counts.
+#[test]
+fn an_act_recorded_unsealed_holds_nothing_and_the_offer_stays_open() {
+    use crate::checkpoint_recorder::not_answering::PERFORMED;
+    let (peer, state, run, arrival) = fixture("A7");
+    {
+        let _unsealed = NoSealKeys::on();
+        let first = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+        let recorded = confirm(&state, first["reference"].as_str().unwrap(), "act");
+        assert_eq!(recorded["state"], "AC-7 recorded", "{recorded}");
+        assert!(recorded["capture"]["seal"].is_null() && recorded["capture"]["evidenceLimits"].to_string().contains("capture not sealed"), "{recorded}");
+        observe(&state, &peer, &run);
+        assert_eq!(rs_for(&peer, &run).iter().filter(|e| e["kind"] == "act_counted").count(), 0, "not counted");
+        let read = crate::checkpoint_recorder::project_act_records(&peer.fixture.root).unwrap();
+        assert!(read.unresolved.iter().any(|u| u["settled"] == true && u["record"]["recordId"] == recorded["record"]["recordId"]), "{:?}", read.unresolved);
+        // The offer opens, with no not-read sentence, and a new act is offered.
+        let again = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+        assert!(again["reference"].is_string(), "{again}");
+        assert_eq!(confirm(&state, again["reference"].as_str().unwrap(), "act")["state"], "AC-7 recorded");
+        observe(&state, &peer, &run);
+        assert_eq!(rs_for(&peer, &run).iter().filter(|e| e["kind"] == "act_counted").count(), 0, "again not counted in this state");
+    }
+    // Seals can be made again: the next act through the offer counts.
+    let sealed = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+    let counted = confirm(&state, sealed["reference"].as_str().unwrap(), "act");
+    observe(&state, &peer, &run);
+    let counts: Vec<_> = rs_for(&peer, &run).into_iter().filter(|e| e["kind"] == "act_counted").collect();
+    assert_eq!(counts.len(), 1);
+    assert_eq!(counts[0]["body"]["act"]["recordId"], counted["record"]["recordId"]);
+    assert_eq!(crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap_err(), PERFORMED);
+}
+
+// A true limit of the read still refuses: a sealed act on the arrival's file whose seal cannot be
+// checked now (no key folder at reading) may be an answer, so the offer is withheld with the
+// not-read reason, and opens once the seal can be checked (then as pending, since it answers).
+#[test]
+fn a_seal_that_cannot_be_checked_now_still_withholds_the_offer_with_its_reason() {
+    use crate::checkpoint_recorder::not_answering::{ACTS_NOT_READ, ANSWER_PENDING};
+    let (peer, state, run, arrival) = fixture("A7");
+    let rely = standing(&state, &peer, crate::act_control::FileActKind::Rely);
+    let recorded = confirm_plain(&state, &rely).unwrap();
+    assert!(recorded["capture"]["seal"].is_object(), "sealed: {recorded}");
+    {
+        let _unchecked = NoSealKeys::on();
+        let read = crate::checkpoint_recorder::project_act_records(&peer.fixture.root).unwrap();
+        assert!(read.unresolved.iter().any(|u| u["settled"].is_null() && u["record"]["recordId"] == recorded["record"]["recordId"]), "{:?}", read.unresolved);
+        assert_eq!(crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap_err(), ACTS_NOT_READ);
+    }
+    assert_eq!(crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap_err(), ANSWER_PENDING);
+}

@@ -1111,7 +1111,9 @@ pub(crate) fn answer_once_taken_up(entries: &[Value], read: &ActRead, root: &Pat
         .find(|e| e["kind"] == "checkpoint_arrival" && e["body"]["checkpoint"] == arrival["checkpoint"] && e["body"]["arrivalOrdinal"] == arrival["arrivalOrdinal"])
         .and_then(|e| e["body"]["referents"][0]["subject"].as_str());
     let files = subject.map(|s| subject_files(s, &root)).unwrap_or_default();
-    let unsettled = |u: &Value| u["reason"].as_str().is_some_and(|r| r.starts_with("capture evidence not resolved") || r.starts_with("record relation not resolved"));
+    // A capture that carries no seal is settled (it never counts), so it holds nothing; the
+    // reader decides that where it reads the capture.
+    let unsettled = |u: &Value| u["settled"] != true && u["reason"].as_str().is_some_and(|r| r.starts_with("capture evidence not resolved") || r.starts_with("record relation not resolved"));
     let on_file = |record: &Value| named(record).as_array().is_some_and(|subjects| subjects.iter().any(|s| s.as_str().is_some_and(|p| files.iter().any(|f| Path::new(p) == f))));
     if read.unresolved.iter().any(|u| unsettled(u) && on_file(&u["record"])) {
         return Err(not_answering::ACTS_NOT_READ);
@@ -1712,6 +1714,8 @@ pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
         if state.corrected {
             continue; // a corrected record is not current (RS R-6)
         }
+        // Whether a refusal is a settled verdict on the record, never a limit of this read.
+        let mut settled = false;
         let verified: Result<Value, String> = if let Some(limit) = state.relation_limit {
             Err(format!("record relation not resolved: {limit}"))
         } else if state.identity_resolution == "conflicting identity" {
@@ -1721,6 +1725,7 @@ pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
         } else {
             let observed = crate::file_act_view::observe_capture(&root, b);
             reusable &= observed.reusable;
+            settled = observed.no_seal && observed.result.is_err();
             if let Some(watch) = observed.watch { captures.push(watch); }
             match observed.result {
                 Err(e) => Err(format!("capture evidence not resolved: {e}")),
@@ -1743,7 +1748,12 @@ pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
                 }
                 read.acts.push(Value::Object(fields));
             }
-            Err(reason) => read.unresolved.push(Value::Object(serde_json::Map::from_iter([("record".into(), record), ("reason".into(), Value::String(reason))]))),
+            Err(reason) => {
+                let mut entry = serde_json::Map::from_iter([("record".into(), record), ("reason".into(), Value::String(reason))]);
+                // Marked only where settled; an entry without it is not settled.
+                if settled { entry.insert("settled".into(), Value::Bool(true)); }
+                read.unresolved.push(Value::Object(entry));
+            }
         }
     }
     // RS R-8: one capture is one act; records sharing a capture are none of them acts.
