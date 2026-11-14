@@ -257,7 +257,7 @@ export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPr
   const existingDraft = drafts.find((draft: Json) => draft.name === trimmed);
   const registeredSame = list(active?.registered).some((row: Json) => row.name === trimmed);
   const unfinished = drafts.filter((draft: Json) => draft.state !== "registered, unchanged since" && draft.state !== "removed");
-  const blocked = !ready ? "Connect Codex first: open Connection & access and start Codex."
+  const blocked = !ready ? "Connect Codex first: open Connection and access and start Codex."
     : !sourceCurrent ? "The workflow view is out of date. Wait for it to refresh, or reopen the App view."
     : !active ? data?.projectLibraryAvailable === true ? "Show this project's workflows so the draft has a place to go, and to see unfinished drafts." : "Open a workflow library in the workflow studio below, or choose a project in Desktop setup."
     : !chosen ? conversations.length ? "Choose the conversation where you did the work." : "Do the work in a conversation first, then choose it here."

@@ -79,8 +79,30 @@ export function librarySourceWords(source: Json): string {
   return version ? `Chirality Library ${version}` : tag ? `Chirality Library (${tag})` : "";
 }
 
+/** The Library paths a catalogue entry's files name that the App does not include. */
+const libraryPathsOf = (entry: Json): string[] => list(entry?.libraryPathsNamed).filter(path => typeof path === "string");
+/**
+ * The About disclosure's sentence for those paths, the place a person meets
+ * LIM-008 of the release's limitations: the workflow ships as its text,
+ * without the Library's tools it names. One sentence, used in About and beside
+ * the chosen workflow, so the two never say it differently.
+ */
+function libraryPathsSentence(paths: string[], from: string): ReactNode {
+  return <>This workflow's files name {paths.length === 1 ? "1 path" : `${paths.length} paths`} of {from || "the Chirality Library"} that {paths.length === 1 ? "is" : "are"} not included in the App (for example <code>{paths[0]}</code>). The App has not checked whether a run uses {paths.length === 1 ? "it" : "them"}.</>;
+}
+/**
+ * Beside the chosen workflow: the same sentence as its About, for a catalogue
+ * entry whose files name Library paths. Nothing for an entry that names none,
+ * or for a selection that is not a catalogue entry.
+ */
+export function LibraryPathsBesideWorkflow({ entry, source }: { entry: Json; source: Json }) {
+  const paths = libraryPathsOf(entry);
+  if (!entry || !paths.length) return null;
+  return <p role="note" aria-label="Library paths the workflow names">{libraryPathsSentence(paths, librarySourceWords(source))}</p>;
+}
+
 function About({ entry, source, textControl, open }: { entry: Json; source: Json; textControl?: ReactNode; open: boolean }) {
-  const paths = list(entry?.libraryPathsNamed).filter(path => typeof path === "string");
+  const paths = libraryPathsOf(entry);
   const roles = list(entry?.roles).filter(role => typeof role === "string");
   const from = librarySourceWords(source);
   return <details open={open ? true : undefined}><summary>About {text(entry.name)}</summary>
@@ -89,7 +111,7 @@ function About({ entry, source, textControl, open }: { entry: Json; source: Json
     {roles.length > 0 && <p>The Library lists it for these roles: {roles.join(", ")}.</p>}
     {entry?.compatibility === "legacy" && <p>The Library marks it as legacy.</p>}
     {paths.length > 0 && <>
-      <p>This workflow's files name {paths.length === 1 ? "1 path" : `${paths.length} paths`} of {from || "the Chirality Library"} that {paths.length === 1 ? "is" : "are"} not included in the App (for example <code>{paths[0]}</code>). The App has not checked whether a run uses {paths.length === 1 ? "it" : "them"}.</p>
+      <p>{libraryPathsSentence(paths, from)}</p>
       {paths.length > 1 && <details><summary>All {paths.length} paths</summary><ul>{paths.map(path => <li key={path}><code>{path}</code></li>)}</ul></details>}
     </>}
   </details>;
