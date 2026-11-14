@@ -2993,6 +2993,55 @@ fn drifted(path: &Path, sha: &str, stamp: &Value) -> Result<bool, String> {
     Ok(d)
 }
 
+// The same uncovered-files calculation serves status and reading notices.
+fn uncovered_files(census: &[LegacyFile], covered: &HashMap<String, (String, String, Value)>) -> Vec<LegacyFile> {
+    census.iter().filter(|file| !covered.contains_key(&file.rel)).cloned().collect()
+}
+
+/// Display information only. Never part of an RS record-set completeness result.
+pub(crate) enum HistoryNotice {
+    None,
+    Unimported,
+    Unavailable(String),
+}
+impl HistoryNotice {
+    fn words(&self, unimported: &str) -> Vec<String> {
+        match self {
+            Self::None => vec![],
+            Self::Unimported => vec![unimported.into()],
+            Self::Unavailable(error) => vec![format!("History notice unavailable: {error}; whether project-folder records are omitted is not known.")],
+        }
+    }
+    pub(crate) fn view(&self) -> Vec<String> {
+        self.words("This view reads the records store. Records in the project folder have not been imported and are not shown.")
+    }
+    pub(crate) fn page(&self) -> Vec<String> {
+        if matches!(self, Self::Unavailable(_)) {
+            // Capability diagnostics name the failure without returning local
+            // store paths or filesystem error text to the agent. This fixed
+            // message also leaves page bounding independent of error length.
+            return vec!["History notice unavailable: the project-folder census or import coverage could not be read; whether records are omitted is not known.".into()];
+        }
+        self.words("This page reads the records store. Records in the project folder have not been imported and are not included.")
+    }
+}
+/// Read outside Host, workflow-owner and index locks: this performs the same
+/// unbounded census and import-coverage read as status. It admits no operation.
+pub(crate) fn history_notice(root: &Path) -> HistoryNotice {
+    let read = || -> Result<bool, String> {
+        let mut home = unrefusing_home(root)?;
+        let read = decide(home.attachment.clone(), home.store_mode)?;
+        let Some(dir) = read.in_store() else { return Ok(false) };
+        let census = home.census()?;
+        Ok(!uncovered_files(&census, &coverage(dir)?).is_empty())
+    };
+    match read() {
+        Ok(false) => HistoryNotice::None,
+        Ok(true) => HistoryNotice::Unimported,
+        Err(error) => HistoryNotice::Unavailable(error),
+    }
+}
+
 /// Host status: which store the App writes, and the project's standing in it.
 pub fn status(project: Option<&Path>) -> Value {
     let store = current();
@@ -3023,7 +3072,7 @@ pub fn status(project: Option<&Path>) -> Value {
             let imports = account.as_ref().map_or(0, |a| a.lines);
             let covered = match home.attachment.dir.as_ref() { Some(d) => coverage(d)?, None => HashMap::new() };
             // §13.7 files no import has copied (all of them before the first).
-            let to_import = census.iter().filter(|f| !covered.contains_key(&f.rel)).count();
+            let to_import = uncovered_files(&census, &covered);
             // "importNeeded" says what the write gate would say: recording is
             // refused until an import. Where the store is read, it is the gate's
             // own question on status's account snapshot (no re-proof: status
@@ -3048,8 +3097,8 @@ pub fn status(project: Option<&Path>) -> Value {
                     else if home.attachment.fault == Some("association not known") {"nothing from the records store (association not known)"}
                     else {match &read {Err(_) => "nothing from the records store (the project is not attached)", Ok(read) => read.reading(!census.is_empty())}},
                 "importNeeded":store_import_needed || read.as_ref().is_ok_and(|read| read.import_needed(!census.is_empty())),
-                "legacyFiles":census.len(),"notImported":to_import,
-                "notImportedKinds":describe(&census.iter().filter(|f| !covered.contains_key(&f.rel)).cloned().collect::<Vec<_>>()),"imports":imports,"importStanding":IMPORT_STANDING,"notes":notes_from_home(home.clone()).into_iter().chain(gate_notes).collect::<Vec<_>>()}))
+                "legacyFiles":census.len(),"notImported":to_import.len(),
+                "notImportedKinds":describe(&to_import),"imports":imports,"importStanding":IMPORT_STANDING,"notes":notes_from_home(home.clone()).into_iter().chain(gate_notes).collect::<Vec<_>>()}))
         }) {
             Ok(view) => view,
             Err(e) => {

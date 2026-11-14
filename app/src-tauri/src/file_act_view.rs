@@ -461,6 +461,7 @@ pub(crate) fn source_claims(root: &Path) -> SourceClaims {
     }
 }
 pub(crate) fn read(root: &Path) -> Value {
+    let history_notices = crate::records_store::history_notice(root).view();
     let source = source_claims(root);
     let SourceClaims {
         claims,
@@ -566,7 +567,7 @@ pub(crate) fn read(root: &Path) -> Value {
         }
         rows.push(json!({"recordId":record["recordId"],"kind":kind,"event":if decline{"declined this act"}else{"recorded human-act claim"},"actor":actor,"recordedBy":record["recorder"],"subject":subject,"boundContent":bound,"scope":if decline{captured.map(|c|c["scope"].clone()).unwrap_or(Value::Null)}else{b["scope"].clone()},"purpose":if decline{captured.map(|c|c["purpose"].clone()).unwrap_or(Value::Null)}else{b["purpose"].clone()},"recordingMode":b["recordingMode"],"lapseHistoryClaims":history.claims,"lapseHistoryLimitedClaims":history.limited,"lapseHistoryLimits":history.limits,"captureCorrespondence":correspondence,"captureEvidence":b["captureEvidence"],"captureTime":if decline{b["time"].clone()}else{b["captureTime"].clone()},"comparison":comparison_label,"currentContent":current.map(|c|json!({"method":c.method,"value":c.value})),"source":claim["source"],"correctedBy":claim["correctedBy"],"identityResolution":claim["identityResolution"],"relationLimit":claim["relationLimit"],"limits":row_limits}));
     }
-    json!({"view":"App file acts and declines; read-only source claims","rows":rows,"correctionGroups":relations["correctionGroups"],"diagnostics":relations["diagnostics"],"limits":limits,"standing":"Checking, engineering approval and professional reliance remain distinct; no acceptance, execution, request settlement or native provenance is inferred"})
+    json!({"view":"App file acts and declines; read-only source claims","historyNotices":history_notices,"rows":rows,"correctionGroups":relations["correctionGroups"],"diagnostics":relations["diagnostics"],"limits":limits,"standing":"Checking, engineering approval and professional reliance remain distinct; no acceptance, execution, request settlement or native provenance is inferred"})
 }
 #[cfg(test)]
 mod tests {

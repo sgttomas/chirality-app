@@ -844,7 +844,9 @@ implemented behavior and qualification limits.
     `{"rewrittenPath":"<project>/…"}` or `{"withheldPath":"outside-project"}`;
     every other string is quoted exactly and may contain paths. Every
     return is one JSON document marked as quoted evidence, not instructions
-    or authority. Before the
+    or authority. Its `historyNotices` array separately explains project-folder
+    records omitted from a store reading, or a failure to determine that omission;
+    `limits` still carries every original completeness diagnostic. Before the
     agent gets an answer, the call (returned or refused) is written to the
     read log in the project's records store subtree
     (`reads/records-reads.jsonl`) and synced, so a read that cannot be

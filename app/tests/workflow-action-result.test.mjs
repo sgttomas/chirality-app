@@ -12,6 +12,64 @@ import './support/rust-prebuild.mjs';
 const document = installMiniDom();
 const {createRoot} = await import('react-dom/client');
 const {App,WorkflowRootPanel} = loadSrc('App');
+
+const HISTORY_NOTICE = 'This view reads the records store. Records in the project folder have not been imported and are not shown.';
+const HISTORY_LIMIT = 'invented unreadable line 1';
+async function historyRender(t, component, values) {
+  const container = document.createElement('div');document.body.appendChild(container);
+  const root = createRoot(container);
+  t.after(() => React.act(() => root.unmount()));
+  await React.act(async () => root.render(React.createElement(component,values)));
+  return container;
+}
+function visibleHistoryNotice(container) {
+  const paragraph = nodes(container,'p').find(node => node.textContent === HISTORY_NOTICE);
+  assert.ok(paragraph,'history notice is a separate paragraph, including for an empty reading');
+  for (let node=paragraph.parentNode;node && node!==container;node=node.parentNode) {
+    assert.notEqual(node.localName,'details','the notice is outside collapsed source details');
+  }
+  assert.match(container.textContent,/invented unreadable line 1/,'real corruption limit remains visible');
+}
+async function pressHistory(container,label) {
+  const button=nodes(container,'button').find(node=>node.textContent===label);assert.ok(button,label);
+  await React.act(async()=>props(button).onClick());
+}
+test('history notice: empty decision packages retain notice and corruption warning',async t=>{
+  const container=await historyRender(t,loadSrc('App').DecisionPackagesPanel,{view:{rows:[],limits:[HISTORY_LIMIT],historyNotices:[HISTORY_NOTICE]},name:'',setName:()=>{},recordName:()=>{},refresh:async()=>{},continueRecording:async()=>{},openControl:async()=>{}});
+  visibleHistoryNotice(container);
+});
+test('history notice: empty file-act log retains notice outside source details',async t=>{
+  const container=await historyRender(t,loadSrc('FileActPanel').FileActPanel,{command:async()=>({rows:[],limits:[HISTORY_LIMIT],historyNotices:[HISTORY_NOTICE]})});
+  await pressHistory(container,'Read file-act log and current content');visibleHistoryNotice(container);
+});
+test('history notice: workflow supply command result retains notice outside response details',async t=>{
+  const container=await historyRender(t,WorkflowRootPanel,{view:'make',data:{},host:{},act:async()=>({records:[],rsLimits:[HISTORY_LIMIT],historyNotices:[HISTORY_NOTICE]})});
+  await pressHistory(container,'Read recorded workflow supply (durable, read-only)');visibleHistoryNotice(container);
+});
+test('history notice: empty reopened runs retain notice beside record limits',async t=>{
+  const container=await historyRender(t,WorkflowRootPanel,{view:'make',data:{reopened:{runs:[],limits:[HISTORY_LIMIT],historyNotices:[HISTORY_NOTICE]}},host:{},act:async()=>{}});
+  visibleHistoryNotice(container);
+});
+test('history notice: empty post-end history retains notice beside observation limits',async t=>{
+  const container=await historyRender(t,WorkflowRootPanel,{view:'make',data:{afterRunEnd:{runs:[],limits:[HISTORY_LIMIT],historyNotices:[HISTORY_NOTICE]}},host:{},act:async()=>{}});
+  visibleHistoryNotice(container);
+});
+test('history notice: historical Bring back source retains notice outside transcript details',async t=>{
+  const container=await historyRender(t,loadSrc('TrialComposer').BringBackComposerView,{pending:{source:{limits:[HISTORY_LIMIT],historyNotices:[HISTORY_NOTICE]}},conversations:[],prompt:'',setPrompt:()=>{},target:'',setTarget:()=>{},outcome:{state:'unsent'},setOutcome:()=>{},busy:false,ready:false,act:async()=>{}});
+  visibleHistoryNotice(container);
+});
+test('history notice: historical Compare retains notice beside summary limits',async t=>{
+  const container=await historyRender(t,loadSrc('WorkflowDrafts').CompareResult,{result:{historyNotices:[HISTORY_NOTICE],left:{summary:{limits:[HISTORY_LIMIT]}},right:{summary:{limits:[]}}}});
+  visibleHistoryNotice(container);
+});
+test('history notice: empty log-integrity reading retains notice outside reader notes',async t=>{
+  const container=await historyRender(t,loadSrc('RecordsStorePanel').RecordsStorePanel,{store:{state:'available',project:{reading:'records store',attachment:{projectId:'invented'},notes:[]}},invoke:async()=>({logs:[],limits:[HISTORY_LIMIT],notes:[],historyNotices:[HISTORY_NOTICE]}),refresh:async()=>{}});
+  await pressHistory(container,'Check the logs now');visibleHistoryNotice(container);
+});
+test('history notice: cached log-integrity counts retain notice before an explicit fresh check',async t=>{
+  const container=await historyRender(t,loadSrc('RecordsStorePanel').RecordsStorePanel,{store:{state:'available',project:{reading:'records store',attachment:{projectId:'invented'},notes:[]}},chain:{state:'as the records index last read it',logs:0,broken:0,discoveryLimit:HISTORY_LIMIT,historyNotices:[HISTORY_NOTICE]},invoke:async()=>{},refresh:async()=>{}});
+  visibleHistoryNotice(container);
+});
 const nodes = (container,tag) => container.querySelectorAll(node => node.localName === tag);
 const labelled = (container,label) => container.querySelectorAll(node => node.getAttribute('aria-label') === label)[0];
 const props = node => node[Object.keys(node).find(key => key.startsWith('__reactProps$'))];

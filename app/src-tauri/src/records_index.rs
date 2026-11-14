@@ -181,6 +181,7 @@ pub(crate) fn chain_status(root: Option<&Path>) -> Value {
 /// Each log's chain head and the chain limits, as the bounded index reads
 /// them now (refreshed): on demand, for the person and later for export.
 pub(crate) fn chain_heads(root: &Path) -> Value {
+    let history_notices = crate::records_store::history_notice(root).view();
     // Auxiliary role observations have their own schema and are read on demand
     // outside INDEXES; no role row or source bytes enter the R1 query index.
     let role=crate::role_observations::project_chain_head(root);
@@ -193,6 +194,7 @@ pub(crate) fn chain_heads(root: &Path) -> Value {
         "broken":ix.limits().into_iter().filter(|l| l.contains("chain broken")).collect::<Vec<_>>(),"notes":ix.notes(),
         "signedCheckpoints":"not written: signed checkpoints wait for App signing (OI-011)"}));
     match role{Ok(Some(head))=>heads["logs"].as_array_mut().unwrap().push(head),Ok(None)=>{},Err(limit)=>heads["notes"].as_array_mut().unwrap().push(serde_json::json!(format!("role supply chain not established: {limit}")))}
+    heads["historyNotices"] = serde_json::json!(history_notices);
     heads
 }
 /// Seconds between verifier passes (`CHIRALITY_RECORDS_VERIFY_SECS`).

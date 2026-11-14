@@ -377,6 +377,65 @@ fn records_store_routing_history_notice_names_omitted_in_place_records() {
 }
 
 #[test]
+fn records_store_routing_history_notice_capability_pages_keep_real_limits() {
+    let (own, root, dir, _) = routing_fixture();
+    std::fs::create_dir_all(dir.join("acts")).unwrap();
+    std::fs::write(dir.join("acts").join(format!("{}.jsonl", storage::key("corrupt"))), b"corrupt final\n").unwrap();
+    let capability = crate::records_access::RecordsCapability::at(&root, own.0.join("reads.jsonl")).unwrap();
+    let mut pages = Vec::new();
+    for (n, arguments) in [json!({"operation":"list_runs"}), json!({"operation":"read_run","run":"run:invented"}), json!({"operation":"read_acts"})].into_iter().enumerate() {
+        let call = crate::records_access::Call {app_session:"notice-test".into(), generation:"notice-generation".into(), request:json!(n), thread:"notice-thread".into(), turn:"notice-turn".into(), call:format!("notice-{n}"), arguments};
+        let answer = capability.answer(&call, root.to_str());
+        assert_eq!(answer["success"], true, "{answer}");
+        let page: Value = serde_json::from_str(answer["contentItems"][0]["text"].as_str().unwrap()).unwrap();
+        assert!(page["limits"].as_array().unwrap().iter().any(|l| l.as_str().is_some_and(|s| s.contains("not JSON"))), "{page}");
+        pages.push(page);
+    }
+    std::fs::remove_dir_all(root).unwrap();
+    for page in pages {
+        assert_eq!(page["historyNotices"], json!(["This page reads the records store. Records in the project folder have not been imported and are not included."]), "{}", page["operation"]);
+    }
+}
+
+#[test]
+fn records_store_routing_history_notice_census_failure_keeps_successful_read() {
+    let (own, root, dir, _) = routing_fixture();
+    std::fs::create_dir_all(dir.join("acts")).unwrap();
+    std::fs::copy(root.join(".chirality/records/acts/in-place.jsonl"), dir.join("acts").join(format!("{}.jsonl", storage::key("readable")))).unwrap();
+    // The store is readable; only the independent census is uninspectable.
+    std::fs::write(root.join(".chirality/records/workflow"), b"not a folder").unwrap();
+    let (records, limits) = storage::read_all(&root);
+    assert_eq!(records.len(), 1);
+    assert!(limits.is_empty(), "{limits:?}");
+    let view = crate::runtime_session::read_decision_packages(&root);
+    assert!(view["limits"].as_array().unwrap().is_empty(), "{view}");
+    let capability = crate::records_access::RecordsCapability::at(&root, own.0.join("reads.jsonl")).unwrap();
+    let call = crate::records_access::Call {app_session:"notice-test".into(), generation:"notice-generation".into(), request:json!(0), thread:"notice-thread".into(), turn:"notice-turn".into(), call:"notice-census".into(), arguments:json!({"operation":"read_run","run":"run:invented"})};
+    let answer = capability.answer(&call, root.to_str());
+    assert_eq!(answer["success"], true, "the notice's own failure cannot refuse a page: {answer}");
+    let page: Value = serde_json::from_str(answer["contentItems"][0]["text"].as_str().unwrap()).unwrap();
+    assert_eq!(page["limits"], json!(["no readable entries for run run:invented"]), "the pre-existing missing-run diagnostic is retained, and the census failure is separate: {page}");
+    assert!(page["historyNotices"][0].as_str().is_some_and(|n| n.contains("History notice unavailable") && n.contains("census")), "{page}");
+    assert!(!page["historyNotices"].to_string().contains(root.to_str().unwrap()), "the diagnostic does not disclose the local project path");
+    std::fs::remove_dir_all(root).unwrap();
+    assert!(view["historyNotices"].as_array().is_some_and(|notices| notices.iter().any(|n| n.as_str().is_some_and(|s| s.contains("History notice unavailable") && s.contains("not a folder")))), "a census failure must be explicit without refusing the successful read: {view}");
+}
+
+#[test]
+fn records_store_routing_history_notice_does_not_hide_completeness_refusal() {
+    let (_own, root, dir, _) = routing_fixture();
+    std::fs::create_dir_all(dir.join("acts")).unwrap();
+    std::fs::write(dir.join("acts").join(format!("{}.jsonl", storage::key("corrupt"))), b"corrupt final\n").unwrap();
+    std::fs::create_dir_all(root.join(crate::recorder::DECISIONS_DIR)).unwrap();
+    let refused = crate::recorder::identify_packages(&root).unwrap_err();
+    assert!(refused.contains("incomplete record set") && refused.contains("unreadable line 1"), "{refused}");
+    let view = crate::runtime_session::read_decision_packages(&root);
+    std::fs::remove_dir_all(root).unwrap();
+    assert!(view["historyNotices"].as_array().is_some_and(|n| !n.is_empty()), "the completeness refusal and display notice coexist: {view}");
+    assert!(view["limits"].as_array().unwrap().iter().any(|l| l.as_str().is_some_and(|s| s.contains("unreadable line 1"))), "{view}");
+}
+
+#[test]
 fn records_store_routing_connector_attempt_is_retained_without_hiding_in_place_history() {
     let (_own, root, dir, id) = routing_fixture();
     std::fs::create_dir_all(dir.join("connectors/route-accounts")).unwrap();

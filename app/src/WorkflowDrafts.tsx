@@ -228,6 +228,7 @@ export function CompareResult({ result }: { result: Json }) {
   const row = (label: string, read: (s: Json) => string) => <tr><th scope="row">{label}</th>{sides.map((s, i) => <td key={i}>{read(s ?? {})}</td>)}</tr>;
   const difference = result.difference ?? {};
   return <div aria-label="Compare result">
+    {list(result.historyNotices).map((notice,i)=><p role="note" key={i}>{text(notice)}</p>)}
     <table><tbody>
       {row("Side", s => valueWords(s.label, "not reported"))}{row("Kind", s => valueWords(s.kind, "not reported"))}{row("Version", s => compareVersionWords(s.version))}
       {row("Conversation", s => compareConversationWords(s.conversation))}{row("Snapshot", s => compareSnapshotWords(s.snapshot))}

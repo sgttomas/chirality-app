@@ -818,6 +818,14 @@ fn host_status(state: State<'_, AppState>) -> Value {
     // and the trial reads run on the host's own tick (`host_tick`).
     s["hostTicks"] = host_tick::tick_state();
     s["workflowRoot"] = host_tick::workflow_status_after_history(&state.workflows, &home, &s["nativeView"], state.workspace.is_some(),history);
+    // The snapshot returned above has released the workflow owner. Census I/O
+    // must stay here, outside locks used by Stop, quit and Host snapshots.
+    let history_notices = state.workspace.as_deref().map(|project| records_store::history_notice(project).view()).unwrap_or_default();
+    for field in ["reopened", "afterRunEnd"] {
+        if s["workflowRoot"][field].is_object() {
+            s["workflowRoot"][field]["historyNotices"] = json!(history_notices);
+        }
+    }
     let trial_homes = state.homes.lock().unwrap().entries();
     runtime_session::trial_flows::decorate_restart_sources(&state.workflows, &trial_homes, &mut s["workflowRoot"]);
     workflow_selection::publish_context(&mut s, &home);
@@ -829,6 +837,7 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["recordsStore"]["placementChoice"] = records_store::choice_view(state.app_user_data_root.lock().unwrap().as_deref().map_err(Clone::clone), tauri::is_dev());
     s["nativeConversationLinks"] = state.native_links.lock().map(|links| links.snapshot()).unwrap_or_else(|_|json!({"state":"unavailable","limit":"native relationship recording session unavailable; native operation outcomes remain as observed"}));
     s["recordChain"] = records_index::chain_status(state.workspace.as_deref());
+    s["recordChain"]["historyNotices"] = json!(history_notices);
     s["currentAppProjectContext"] = state.project_context.view();
     s["configuredProviderReadRevision"] = if home.class() == home_resources::HomeClass::Account {
         home.host_config.as_ref().ok().and_then(|cfg|cfg.cwd.to_str())
@@ -2640,13 +2649,16 @@ fn workflow_check_notice(state:State<'_,AppState>,run_ref:String)->Result<Value,
 #[tauri::command(async)]
 fn workflow_reopen(state:State<'_,AppState>)->Result<Value,String>{
     let root=state.workspace.as_ref().ok_or("No explicit App project (CHIRALITY_WORKSPACE); nothing to reopen and no fallback")?;
+    let history_notices = records_store::history_notice(root).view();
     let home=state.homes.lock().unwrap().active();
     let recovery=home.recovery_startup.lock().unwrap().snapshot();
     let mut events=restart_events(&recovery);
     // The REC custody projection is where the Host derives app_restart_interruption.
     for event in restart_events(&home.host.recovery_custody().snapshot()){if !events.contains(&event){events.push(event);}}
     let homes=state.homes.lock().unwrap().entries();
-    state.workflows.lock().unwrap().reopen_for_learning(root,&events,&homes)
+    let mut view = state.workflows.lock().unwrap().reopen_for_learning(root,&events,&homes)?;
+    view["historyNotices"] = json!(history_notices);
+    Ok(view)
 }
 /// The person's explicit end of a run the record shows open and interrupted after relaunch.
 #[tauri::command]

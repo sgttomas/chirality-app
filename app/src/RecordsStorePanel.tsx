@@ -133,6 +133,7 @@ function LogIntegrity({ chain, heads, busy, act }: { chain: Json; heads: Json; b
   // interpreting their prose as proof that every chain was examined.
   const limited = heads && (heads.discoveryLimit || heads.error || heads.state === "unavailable" || notes.length > 0 || limits.length > 0 || !Array.isArray(heads.limits) || !Array.isArray(heads.logs));
   return <div role="group" aria-label="Log integrity">
+    {!heads && read && (chain.historyNotices ?? []).map((notice:string,i:number)=><p role="note" key={`history-${i}`}>{notice}</p>)}
     {read && <p>As last read{chain.readAt ? ` (${text(chain.readAt)})` : ""}:</p>}
     {read && Number(chain.broken) > 0 && <p role="alert">{count(chain.broken, "log has", "logs have")} a broken chain, of {count(chain.logs, "log")} read{Array.isArray(chain.brokenLogs) && chain.brokenLogs.length ? ` (${chain.brokenLogs.map(text).join(", ")})` : ""}. The records are kept as they are and nothing is repaired. Check the logs now to see each line.</p>}
     {read && Number(chain.broken) === 0 && <p>{count(chain.logs, "log")} listed in the last read.{" Chain integrity is not established by this count; check now for the reader’s limits."}{Number(chain.legacy) > 0 ? ` ${count(chain.legacy, "log has", "logs have")} lines written before chaining began.` : ""}</p>}
@@ -143,6 +144,7 @@ function LogIntegrity({ chain, heads, busy, act }: { chain: Json; heads: Json; b
       {(heads.error || heads.state === "unavailable") && <p role="alert">Log integrity unavailable: {text(heads.error ?? heads.state)}</p>}
       {heads.discoveryLimit && <p role="alert">Not every log could be listed: {text(heads.discoveryLimit)}</p>}
       {limited && <p role="alert">Log integrity: UNKNOWN. Chain integrity is not established for every log.</p>}
+      {(heads.historyNotices ?? []).map((notice:string,i:number)=><p role="note" key={`history-${i}`}>{notice}</p>)}
       {limits.length > 0 && <ul>{limits.map((limit, i) => <li key={i}>{limit}</li>)}</ul>}
       {broken.length > 0
         ? <><p role="alert">Checked now: {count(broken.length, "broken chain link")} in {count(logs.length, "log")}. Each is kept as it is and never repaired:</p><ul>{broken.map((line, i) => <li key={i}>{line}</li>)}</ul></>

@@ -1741,7 +1741,9 @@ pub fn claim_start(
 /// Public decision-view command's receiving path. No writer/control is available
 /// to this function: reading cannot append, replay captures or repair backlinks.
 pub fn read_decision_packages(workspace: &std::path::Path) -> Value {
+    let history_notices = crate::records_store::history_notice(workspace).view();
     let mut view = crate::decision_view::derive(workspace, &[]);
+    view["historyNotices"] = json!(history_notices);
     view["workspace"] = json!(workspace.display().to_string());
     view["readOnly"] = json!(true);
     view

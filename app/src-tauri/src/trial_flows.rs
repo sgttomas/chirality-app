@@ -2035,6 +2035,7 @@ impl LearningSource {
     fn source_view(&self) -> Value {
         let mut view = json!({"threadId":self.history.thread,"generation":self.generation,"modeHomeClass":self.home.class().as_str(),"standing":self.standing});
         if let LearningProof::Historical { records, run, home } = &self.proof {
+            view["historyNotices"] = json!(crate::records_store::history_notice(records.root()).view());
             view["project"] = json!(records.root());
             view["workflow"] = run.workflow.clone();
             view["limits"] = json!(run.limits);
@@ -2655,11 +2656,15 @@ pub(crate) fn compare_with_homes(
             json!({"limit":"exact source-qualified revision bytes are unavailable for one side; no version difference shown"})
         }
     };
-    Ok(transcript::compare_result(
-        &view(&a, a_summary),
-        &view(&b, b_summary),
-        difference,
-    ))
+    let mut result = transcript::compare_result(&view(&a, a_summary), &view(&b, b_summary), difference);
+    // Historical RS proofs were read outside the workflow owner; keep the
+    // independent display census outside that owner too.
+    let historical = a.version_proof.is_some() || b.version_proof.is_some()
+        || [&a, &b].iter().any(|side| side.source.as_ref().is_ok_and(|s| matches!(s.proof, LearningProof::Historical { .. })));
+    result["historyNotices"] = json!(if historical {
+        project.map(|p| crate::records_store::history_notice(p).view()).unwrap_or_default()
+    } else { vec![] });
+    Ok(result)
 }
 #[cfg(test)]
 pub(crate) fn compare(
