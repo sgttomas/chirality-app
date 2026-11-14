@@ -1,1 +1,116 @@
-[]
+[
+ {
+  "file": "ActionFeedback.tsx",
+  "where": "@aria-label",
+  "expr": "label",
+  "reason": "the App's words: every caller passes a string literal (App.tsx: \"Workflow command result\"; else the default)"
+ },
+ {
+  "file": "DailyWorkspace.tsx",
+  "where": "<summary>",
+  "expr": "title",
+  "reason": "the App's words: every caller passes a string literal (the eight WorkspaceDisclosure uses in App.tsx)"
+ },
+ {
+  "file": "DailyWorkspace.tsx",
+  "where": "<summary>",
+  "expr": "description",
+  "reason": "the App's words: every caller passes a string literal (the eight WorkspaceDisclosure uses in App.tsx)"
+ },
+ {
+  "file": "DesktopSetupPanel.tsx",
+  "where": "<label>",
+  "expr": "label",
+  "reason": "the App's words: a literal list in the same expression (Shared config.toml, Shared AGENTS.md, Shared skills directory)"
+ },
+ {
+  "file": "DesktopSetupPanel.tsx",
+  "where": "@aria-label",
+  "expr": "label",
+  "reason": "the App's words: a literal list in the same expression (Shared config.toml, Shared AGENTS.md, Shared skills directory)"
+ },
+ {
+  "file": "DesktopSetupPanel.tsx",
+  "where": "<button>",
+  "expr": "label",
+  "reason": "the App's words: a literal list in the same expression (Shared config.toml, Shared AGENTS.md, Shared skills directory)"
+ },
+ {
+  "file": "DesktopSetupPanel.tsx",
+  "where": "<button>",
+  "expr": "preview.affirmative",
+  "reason": "the App's words: the host's setup preview (desktop_startup.rs), a literal per setup kind"
+ },
+ {
+  "file": "FirstUse.tsx",
+  "where": "<button>",
+  "expr": "preview.affirmative",
+  "reason": "the App's words: the host's setup preview (desktop_startup.rs), a literal per setup kind"
+ },
+ {
+  "file": "FirstUse.tsx",
+  "where": "@aria-label",
+  "expr": "preview.defaults.heading",
+  "reason": "the App's words: the host's first_use_defaults heading (desktop_startup.rs), a literal per route"
+ },
+ {
+  "file": "FirstUse.tsx",
+  "where": "<label>",
+  "expr": "item.label",
+  "reason": "the App's words: the SHARED literal list in FirstUse.tsx"
+ },
+ {
+  "file": "FirstUse.tsx",
+  "where": "@aria-label",
+  "expr": "item.label",
+  "reason": "the App's words: the SHARED literal list in FirstUse.tsx"
+ },
+ {
+  "file": "RequirementCheck.tsx",
+  "where": "@aria-label",
+  "expr": "label",
+  "reason": "the App's words: a string constant in the same function"
+ },
+ {
+  "file": "RunJourney.tsx",
+  "where": "@aria-label",
+  "expr": "label",
+  "reason": "the App's words: every caller passes a string literal (GuideResult and GuideWithheld callers in RunJourney.tsx and MakeJourney.tsx)"
+ },
+ {
+  "file": "ConnectorSourcePanel.tsx",
+  "where": "<label>",
+  "expr": "title",
+  "reason": "the App's words: a literal tuple list in the same expression"
+ },
+ {
+  "file": "NativeHistory.tsx",
+  "where": "<summary>",
+  "expr": "kind",
+  "reason": "the App's words: RawPage is called with \"turn\" or \"item\" only"
+ },
+ {
+  "file": "NativeHistory.tsx",
+  "where": "<button>",
+  "expr": "kind",
+  "reason": "the App's words: paging is typed \"turns\" | \"items\""
+ },
+ {
+  "file": "NativeActivity.tsx",
+  "where": "<summary>",
+  "expr": "label",
+  "reason": "the App's words: every caller passes a string literal (Raw and LongText callers in NativeActivity.tsx; the result entry's label is \"result content N\")"
+ },
+ {
+  "file": "ModelChoice.tsx",
+  "where": "<button>",
+  "expr": "builtIn.label",
+  "reason": "the App's words: a literal in the same function"
+ },
+ {
+  "file": "ConversationRoles.tsx",
+  "where": "@aria-label",
+  "expr": "lead",
+  "reason": "the App's words: limitSubjectWords, whose role and conversation id go through idWords"
+ }
+]

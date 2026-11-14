@@ -1,4 +1,4 @@
-import { AgentText, RecordedData } from "./AgentText";
+import { AgentText, RecordedData, idWords, safeName } from "./AgentText";
 import { ActionFeedback } from "./ActionFeedback";
 import { LOCAL_ENTRY, LOCAL_FORK_AVAILABLE, LOCAL_FORK_UNAVAILABLE, LOCAL_MODE, LocalProviderAccess, generationKey, localRoute, localViewFrom, readAttemptedLocalEntries, recordAttemptedLocalEntry, forgetAttemptedLocalEntry, type LocalView } from "./LocalProviderAccess";
 import { NativeWaitingBridge } from "./NativeWaitingBridge";
@@ -440,7 +440,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
     {text && selected && textWrittenFor.current && textWrittenFor.current !== threadKey && <p role="note" aria-label="Where your text goes">Your unsent text was written while another conversation was shown. It is kept; if you send it now it goes to {conversationLabel(host, selected)}.</p>}
     <p><label>Text <textarea id="ordinary-composer-text" ref={composerField} aria-describedby="ordinary-send-readiness" disabled={!!busy} value={text} onChange={e => { textRevision.current += 1; textWrittenFor.current = threadKey; setText(e.target.value); }} rows={4} style={{ display: "block", width: "100%" }} /></label></p>
     <button className="setup-primary" aria-describedby="ordinary-send-readiness" disabled={!sourceReady || !selected || !text || !!busy || unconfirmed.some(row => !row.acknowledged && row.request.threadId === selected?.threadId)} onClick={() => { void sendText(); }}>{(host?.attachmentSelections?.selections ?? []).length > 0 ? "Send text only" : "Send text"}</button>
-    <details className="conversation-model-options"><summary>Model and effort{ordinaryModel.owner === ordinaryOwner && ordinaryModel.effort ? ` · next send: ${ordinaryModel.effort}` : ""}</summary>
+    <details className="conversation-model-options"><summary>Model and effort{ordinaryModel.owner === ordinaryOwner && ordinaryModel.effort ? ` · next send: ${idWords(ordinaryModel.effort)}` : ""}</summary>
     <p><label>Optional model identifier for next ordinary text turn <input {...EXACT_TEXT} disabled={!selected || !!busy} value={ordinaryModelValue}
       onChange={e => setOrdinaryModel(current => ({ owner: ordinaryOwner, value: e.target.value, effort: "", effortModel: "", revision: current.revision + 1 }))} aria-describedby="ordinary-model-help" /></label></p>
     <p id="ordinary-model-help">Applies to Send text and the plan/default text controls below. Empty keeps the existing native model choice. An explicit identifier overrides the model for this turn and subsequent native turns; clearing this field does not revert it. Attachment, steering and prepared-message sends do not use this field.</p>
@@ -481,7 +481,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
     <SteeringControl target={steeringTarget} reason={steering?.reason} ready={sourceReady && !!selected} busy={!!busy} text={text} submit={() => { void steerText(); }} />
     <section aria-label="Turn interruption"><h3>Interrupt a live turn</h3>
     <p id="conversation-interrupt-readiness" role="status" aria-live="polite">{interruptReadiness}</p>
-    <label>Observed live turn <select disabled={!!ownBusy} value={turnId} onChange={e => setTurnId(e.target.value)}><option value="">Select a live turn</option>{liveTurns.map((turn: Json) => <option key={turn.turnId} value={turn.turnId}>{turn.turnId} · {turn.nativeTurn.status}</option>)}</select></label>{" "}
+    <label>Observed live turn <select disabled={!!ownBusy} value={turnId} onChange={e => setTurnId(e.target.value)}><option value="">Select a live turn</option>{liveTurns.map((turn: Json) => <option key={turn.turnId} value={turn.turnId}>{idWords(turn.turnId)} · {idWords(turn.nativeTurn.status)}</option>)}</select></label>{" "}
     <button aria-describedby="conversation-interrupt-readiness" disabled={!sourceReady || !live || !!ownBusy || alreadyRequested} onClick={interruptTurn}>Interrupt selected live turn</button>
     <p>An interrupt acknowledgment does not establish turn end or rollback. Turn status comes from native observations.</p>
     {(host?.conversationTurns ?? []).filter((turn: Json) => turn.terminalEventObserved && turn.nativeTurn?.status === "inProgress").map((turn: Json) => <p key={JSON.stringify([turn.generation, turn.threadId, turn.turnId])}>Native turn inconsistency: {turn.threadId}/{turn.turnId} has a terminal event observation and contradictory progress status; interruption is unavailable.</p>)}
@@ -861,7 +861,7 @@ export function WorkflowAssuranceSetting({ setting, act }: { setting: Json; act:
  * Every row keeps Refine. */
 export function RegisteredRevisions({ library, rows, busy, act, chatAvailable = true }:{ library: string; rows: Json[]; busy: boolean; chatAvailable?: boolean; act: (command:string,args:Record<string,unknown>)=>unknown }) {
   return <ul aria-label="Registered revisions in the active library">{rows.map((row:Json)=><li key={`${row.name}@${row.revision}`} id={registeredRevisionAnchor(library,row.name,row.revision)}>{row.name} · revision {row.sequence} · {row.label}
-    {row.selectable===true&&<> <button disabled={busy||!chatAvailable} onClick={()=>act("workflow_select_listed",{libraryRef:library,name:row.name,revision:row.revision})}>Select revision {row.sequence}</button></>}
+    {row.selectable===true&&<> <button disabled={busy||!chatAvailable} onClick={()=>act("workflow_select_listed",{libraryRef:library,name:row.name,revision:row.revision})}>Select revision {idWords(row.sequence)}</button></>}
     {" "}<button disabled={busy} onClick={()=>act("workflow_refine_registered",{name:row.name,revision:row.revision})}>Refine from the revision store…</button>
     {row.reconfirm===true&&<small> To use it again in this App session: Refine makes a draft with its bytes; review that draft and confirm in the App's dialog (re-confirmation).</small>}</li>)}</ul>;
 }
@@ -922,7 +922,7 @@ export function ReviewSelectButtons({ review, libraries, busy, act, chatAvailabl
     .flatMap((l:Json)=>Array.isArray(l.registered)?l.registered:[])
     .find((row:Json)=>row.name===id?.name&&row.revision===id?.revision)?.sequence;
   return <>{(review?.status?.entries??[]).filter((entry:Json)=>entry.state==="registered"||entry.state==="re-confirmed").map((entry:Json)=>
-    <button key={entry.identity.revision} disabled={busy||!chatAvailable} onClick={()=>act("workflow_select_registered",{reviewRef:review.reference,revision:entry.identity.revision})}>Select revision {listed(entry.identity)??String(entry.identity.revision).slice(0,12)}</button>)}</>;
+    <button key={entry.identity.revision} disabled={busy||!chatAvailable} onClick={()=>act("workflow_select_registered",{reviewRef:review.reference,revision:entry.identity.revision})}>Select revision {idWords(listed(entry.identity)??String(entry.identity.revision).slice(0,12))}</button>)}</>;
 }
 
 /** WR SL-2: "newer revision ‹n› available" beside the selection. The selection
@@ -1091,7 +1091,7 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
       {item.kind === "clean" ? <div aria-label="Original composer owner"><p>This trial starts its own new conversation; it isn't sent in an existing one.</p>
         <details><summary>Exact scope</summary><p><small>Trial reference <code>{item.pending?.reference ?? "not reported"}</code>. Its composer belongs to no existing conversation; Send starts the new conversation with the connection and model you choose.</small></p></details></div>
         : <><ConversationContext label="Original composer owner" host={host} reference={item.owner} workflow limit={preparedMessageLimit(host, item)} />
-          <button onClick={() => openPreparedMessage(item)}>View prepared message in conversation {item.owner?.threadId ?? "unavailable"}</button></>}
+          <button onClick={() => openPreparedMessage(item)}>View prepared message in conversation {item.owner?.threadId ? idWords(item.owner.threadId) : "unavailable"}</button></>}
     </div>)}
     {(data?.libraries??[]).filter((l:Json)=>l.reference===data?.activeLibrary&&Array.isArray(l.registered)).map((l:Json)=><RegisteredRevisions key={l.reference} library={l.reference} rows={l.registered} busy={busy} chatAvailable={chatAvailable} act={action}/>)}
     {(data?.libraries??[]).filter((l:Json)=>l.reference===data?.activeLibrary).map((l:Json)=><LibraryEntries key={`${l.reference}:${l.entryListing?.reference??"unobserved"}`} library={l} busy={busy} available={!!context} act={action}/>)}
@@ -1152,7 +1152,7 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
           <p>Holding library: {next.compatibility?.holdingLibrary??"not supplied"}.</p>
           <ul><CompatibilityAdvisory entry={next.compatibility}/></ul>
         </section>}
-        <button disabled={busy||host?.state!=="ready"||run.home!==host?.generation?.home||next?.runnable!==true} onClick={()=>action("workflow_end_and_start",{runRef:run.reference,generation:host.generation,threadId:run.conversation,personText:text})}>End this run and start {next?.identity?.name??"this chat’s selected workflow"}</button>
+        <button disabled={busy||host?.state!=="ready"||run.home!==host?.generation?.home||next?.runnable!==true} onClick={()=>action("workflow_end_and_start",{runRef:run.reference,generation:host.generation,threadId:run.conversation,personText:text})}>End this run and start {next?.identity?.name ? safeName(next.identity.name) : "this chat’s selected workflow"}</button>
       </>}
       {run.endNotice?.state?.startsWith("sent")&&<button disabled={busy||host?.state!=="ready"} onClick={()=>action("workflow_check_notice",{runRef:run.reference})}>Check the end notice in native history (new check)</button>}
       <p>Selection and run text are recorded before sending; if recording fails nothing is sent. A run opens when its start turn is observed and ends only when the person ends it: an interrupt, stop, quit, failed or completed turn, or an agent's "Workflow finished" line does not end it. Ending here records "ended by the person"; when the agent writes its "Workflow finished" line, the conversation offers End run beneath that message, which records cause "completed". After an end, the next message in this conversation (text, a plan or default mode turn, an attachment-bearing turn or a Continue-as request) carries the end notice first, once. Load/select this conversation and its received turn in native History before checking.</p>
@@ -2534,8 +2534,10 @@ export function App() {
             </p>
             {offer.alternatives.map((a: Json) => (<label key={a.id} style={{ display: "block" }}>
                 <input type="radio" name="alt" value={a.id} checked={choice === a.id} onChange={() => setChoice(a.id)}/>{" "}
-                <b>{a.id}</b> {a.statement} — {a.consequences.join("; ")}
+                <b>Alternative {idWords(a.id)}</b>
               </label>))}
+            {/* What each alternative says and does is the package file's text: beside the controls, never in their labels. */}
+            {offer.alternatives.map((a: Json) => <div key={`text:${a.id}`}><AgentText block value={`${String(a.id ?? "")}: ${String(a.statement ?? "")} — ${(Array.isArray(a.consequences) ? a.consequences : []).map(String).join("; ")}`} source="file" label={`Alternative ${idWords(a.id)}, as the package states it:`} name="An alternative as the decision package states it, not the App's words" /></div>)}
             <p>The host shows its own confirmation with this text; only that confirmation records the decision.</p>
             <button onClick={decide} disabled={!choice}>Decide…</button> <button onClick={() => setOffer(null)}>Close</button>
           </section>)}

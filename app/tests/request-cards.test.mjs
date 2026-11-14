@@ -6,7 +6,7 @@ import {createRequire} from 'node:module';
 import ts from 'typescript';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
-import {localRequire} from './support/load-src.mjs';
+import {localRequire, loadSrc} from './support/load-src.mjs';
 import {agentPlain,agentBoxNames} from './support/agent-text.mjs';
 
 // Each module is transpiled alone; a local import is served from the modules already loaded.
@@ -168,7 +168,9 @@ test('DM-3: a legacy decline carries the person\'s reason as written, empty when
   for(const r of [A14.execCommandApproval,A14.applyPatchApproval]){
     const html=render(r);
     assert.match(html,/<label>Reason for Codex with “Don&#x27;t allow; the agent tries something else” \(optional; sent exactly as written, up to 2000 characters\) <textarea/,'the card offers the field');
-    assert.match(html,/Don&#x27;t allow; the agent tries something else <code>\{&quot;denied&quot;:\{&quot;rejection&quot;:&quot;&quot;\}\}<\/code>/,'an empty field sends ""');
+    // The button holds the answer's kind; the whole value, with the person's reason in it, stands beside it.
+    assert.match(html,/Don&#x27;t allow; the agent tries something else <code>&quot;denied&quot;<\/code><\/button>/);
+    assert.match(agentPlain(html),/<small>Sends:<\/small> ⟦The whole value this answer sends: \{&quot;denied&quot;:\{&quot;rejection&quot;:&quot;&quot;\}\}⟧/,'an empty field sends ""');
     assert.match(html,/Don&#x27;t allow; the agent waits for your next message <code>&quot;abort&quot;<\/code>/,'abort keeps its label');
     assert.doesNotMatch(appWords(html),/accept|approv/i);
   }
@@ -197,7 +199,9 @@ test('DM-3: a legacy decline carries the person\'s reason as written, empty when
   await React.act(()=>props(deny()).onClick());
   assert.deepEqual(sent.at(-1),{decision:{denied:{rejection:''}}},'nothing written: ""');
   await type(written);
-  assert.equal(deny().textContent,`Don't allow; the agent tries something else ${JSON.stringify({denied:{rejection:written}})}`,'the native value shown is the one sent');
+  // The button holds the answer's kind only; the whole value it sends, with the person's reason, stands beside it, marked.
+  assert.equal(deny().textContent,`Don't allow; the agent tries something else "denied"`,'the button holds the kind');
+  assert.ok(deny().parentNode.textContent.includes(loadSrc('AgentText').agentTextShown(JSON.stringify({denied:{rejection:written}}))),'the native value shown beside is the one sent');
   await React.act(()=>props(deny()).onClick());
   assert.deepEqual(sent.at(-1),{decision:{denied:{rejection:written}}},'written text, verbatim');
   assert.equal(props(box()).value,'','the draft is cleared once sent');

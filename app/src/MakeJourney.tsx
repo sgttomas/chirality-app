@@ -1,3 +1,4 @@
+import { idWords, safeName } from "./AgentText";
 import { useEffect, useRef, useState } from "react";
 import { conversationLabel, nativePathText } from "./presentation";
 import { draftStateWords } from "./WorkflowDrafts";
@@ -55,7 +56,7 @@ function DraftActions({ draft, chosen, host, canAct, act, openPreparedMessage, f
     {draft.reviewLimit && <p role="note"><small>{text(draft.reviewLimit)}</small></p>}
     {prepared.map(item => <p key={item.identity}>Trial {text(item.pending?.sequence)} is ready to send.{" "}
       {item.kind === "clean" ? <a href={`#${cleanTrialAnchor(item.pending?.reference)}`}>Read and send it in the new-trial message box</a>
-        : openPreparedMessage && <button disabled={preparedMessageLimit(host, item) !== null} onClick={() => openPreparedMessage(item)}>Read and send trial {text(item.pending?.sequence)}</button>}</p>)}
+        : openPreparedMessage && <button disabled={preparedMessageLimit(host, item) !== null} onClick={() => openPreparedMessage(item)}>Read and send trial {idWords(item.pending?.sequence)}</button>}</p>)}
     <DraftTrials draft={draft} chosen={chosen} host={host} canAct={canAct} perform={performed} openPreparedMessage={openPreparedMessage} findInHistory={findInHistory}/>
   </div>;
 }
@@ -328,7 +329,7 @@ export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPr
       <h3>Unfinished drafts in this library</h3>
       <p><small>Drafts are files in the library, so they are still here after you quit and reopen the App. Their earlier conversations are in History. Reading one there only shows it; to keep working in it, press Continue there, which is a separate step.</small></p>
       <ul>{unfinished.map((draft: Json) => <li key={text(draft.name)}><strong>{text(draft.name)}</strong> — {draftStateWords(draft.state, draft.content)}{" "}
-        <button disabled={busy} onClick={() => { setName(text(draft.name)); revealDraft.current = { library: data?.activeLibrary ?? null, name: text(draft.name) }; setRevealRequest(n => n + 1); }}>Continue {text(draft.name)}</button></li>)}</ul>
+        <button disabled={busy} onClick={() => { setName(text(draft.name)); revealDraft.current = { library: data?.activeLibrary ?? null, name: text(draft.name) }; setRevealRequest(n => n + 1); }}>Continue {safeName(draft.name)}</button></li>)}</ul>
     </div>}
   </section>;
 }

@@ -1,4 +1,4 @@
-import { AgentText } from "./AgentText";
+import { AgentText, safeName, idWords } from "./AgentText";
 import { useCallback, useRef, useState } from "react";
 import { invoke } from "./hostReads";
 
@@ -103,25 +103,25 @@ export function WorkflowTextControl({ slot, identity, target, context, source, t
   // Said only of a text that was read. An earlier refusal, or a read still in flight, read no text.
   const earlier = !current && texts.held[slot]?.state === "read";
   const read = () => texts.read(slot, identity, target, context());
-  if (!current) return <div aria-label={`Text of ${name}`}>
+  if (!current) return <div aria-label={`Text of ${safeName(name)}`}>
     {earlier && <p><small>The text read earlier here was of another workflow or revision; it is not shown.</small></p>}
-    <button disabled={disabled} onClick={read}>Read {name}'s text</button>
+    <button disabled={disabled} onClick={read}>Read {safeName(name)}'s text</button>
   </div>;
-  if (current.state === "reading") return <div aria-label={`Text of ${name}`}>
-    <button disabled>Reading {name}'s text…</button>
+  if (current.state === "reading") return <div aria-label={`Text of ${safeName(name)}`}>
+    <button disabled>Reading {safeName(name)}'s text…</button>
   </div>;
-  if (current.state === "refused") return <div aria-label={`Text of ${name}`}>
+  if (current.state === "refused") return <div aria-label={`Text of ${safeName(name)}`}>
     <p role="alert">The App did not show {name}'s text: {current.reason}.</p>
     {current.cause && <details><summary>What the App reported</summary><AgentText block value={current.cause} source="record" /></details>}
-    <button disabled={disabled} onClick={read}>Read {name}'s text again</button>{" "}
+    <button disabled={disabled} onClick={read}>Read {safeName(name)}'s text again</button>{" "}
     <button onClick={() => texts.hide(slot)}>Dismiss</button>
   </div>;
-  return <div aria-label={`Text of ${name}`}>
-    <p aria-label={`What this text is`}>The <code>WORKFLOW.md</code> of <strong>{name}</strong>{source ? ` — ${source}` : ""}, revision <code title={revision}>{revision.slice(0, 12)}…</code>, as the App read it when you asked ({size(current.bytes)}). Its files matched this revision when they were read. Shown as read, with tabs and any control or invisible characters shown as marks.</p>
+  return <div aria-label={`Text of ${safeName(name)}`}>
+    <p aria-label={`What this text is`}>The <code>WORKFLOW.md</code> of <strong>{name}</strong>{source ? ` — ${source}` : ""}, revision <code title={idWords(revision)}>{revision.slice(0, 12)}…</code>, as the App read it when you asked ({size(current.bytes)}). Its files matched this revision when they were read. Shown as read, with tabs and any control or invisible characters shown as marks.</p>
     <AgentText block value={current.text} source="file" label="WORKFLOW.md, as read:" name={`${name} WORKFLOW.md, text from a file the App read, not the App's words`} tabIndex={0} style={{ maxHeight: "28em", overflow: "auto" }} />
     {current.files.length > 0 && <details><summary>This revision's other {current.files.length === 1 ? "file" : `${current.files.length} files`}</summary>
       <ul>{current.files.map(file => <li key={file.path}><code>{file.path}</code> ({size(file.bytes)})</li>)}</ul>
     </details>}
-    <button onClick={() => texts.hide(slot)}>Hide {name}'s text</button>
+    <button onClick={() => texts.hide(slot)}>Hide {safeName(name)}'s text</button>
   </div>;
 }

@@ -1,4 +1,4 @@
-import { AgentText } from "./AgentText";
+import { AgentText, idWords, safeName } from "./AgentText";
 import { conversationLabel, nativePathText } from "./presentation";
 import { hostRequests, requestThread } from "./RequestCards";
 import { errorWords } from "./NativeActivity";
@@ -248,8 +248,8 @@ const INPUT_KIND: Record<string, string> = { host_read: "read by Codex from the 
 function RunResult({ run, host, loaded, showConversation }: { run: Json; host: Json; loaded: boolean; showConversation?: (threadId: string, target?: string) => void }) {
   const reading = runReading(run, host);
   const outputs = declaredRows(list(run?.compatibility).find((c: Json) => c?.preparation?.declaration)?.preparation?.declaration, "returned_outputs");
-  return <li aria-label={`Run ${text(run.reference)}`}>
-    <strong>{text(run.workflow?.name) || "Workflow run"}</strong>{run.workflow?.revision ? <> (<code title={text(run.workflow.revision)}>{text(run.workflow.revision).slice(0, 12)}…</code>)</> : null} · {reading.title}.
+  return <li aria-label={`Run ${idWords(run.reference)}`}>
+    <strong>{text(run.workflow?.name) || "Workflow run"}</strong>{run.workflow?.revision ? <> (<code title={idWords(run.workflow.revision)}>{text(run.workflow.revision).slice(0, 12)}…</code>)</> : null} · {reading.title}.
     {outputs.length > 0 && <> It declares: {outputs.map((output: Json, index: number) => <span key={index}>{index ? "; " : ""}<strong>{text(output.name)}</strong>{output.path ? <> (<code>{text(output.path)}</code>)</> : null}</span>)}.</>}
     <br/><small>The agent reports its results in the conversation; the App hasn't checked them.</small>{" "}
     {!loaded ? <small>Its conversation isn't loaded in this Codex session; find it in History.</small>
@@ -410,7 +410,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
         <p><small>The workflow runs inside this conversation; you answer its questions there.</small></p>
       </li>
       <li aria-labelledby="run-workflow-heading"><h3 id="run-workflow-heading">Workflow</h3>
-        {chosen && <p aria-label="Workflow chosen for this run"><strong>{text(chosen.identity?.name)}</strong> — {chosenSource}, {chosenSequence !== undefined ? `revision ${text(chosenSequence)} ` : "revision "}<code title={text(chosen.identity?.revision)}>{text(chosen.identity?.revision).slice(0, 12)}…</code>. {chosenReady ? "Ready to run." : `Can't run: ${text(chosenLimit)}`}</p>}
+        {chosen && <p aria-label="Workflow chosen for this run"><strong>{text(chosen.identity?.name)}</strong> — {chosenSource}, {chosenSequence !== undefined ? `revision ${text(chosenSequence)} ` : "revision "}<code title={idWords(chosen.identity?.revision)}>{text(chosen.identity?.revision).slice(0, 12)}…</code>. {chosenReady ? "Ready to run." : `Can't run: ${text(chosenLimit)}`}</p>}
         {chosen && <WorkflowTextControl slot={chosenSlot} identity={chosen.identity} source={chosenSource} texts={workflowTexts} disabled={!canAct}
           target={{ kind: "selection", revision: chosen.identity?.revision }} context={() => workflowContext(data, host, thread)}/>}
         {chosen && <RoleBesideWorkflow entry={includedEntryOf(data?.productionCatalog, chosen)} conversation={conversations.find((row: Json) => row.threadId === thread)}/>}
@@ -422,9 +422,9 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
             {newer.selectable === true ? <button disabled={!canAct} onClick={() => perform("workflow_follow_newer_revision", { selectionRef: chosen.reference, revision: newer.revision })}>{text(newer.offered)}</button> : <small>{text(newer.offered)}.</small>}</p>)}
         {active && registered.length > 0 && <ul aria-label="Workflows ready to use">{registered.map((row: Json) => <li key={`${row.name}@${row.revision}`}>
           <strong>{text(row.name)}</strong> · revision {text(row.sequence)}{chosen && chosen.identity?.name === row.name && chosen.identity?.revision === row.revision ? <> — chosen</> : row.selectable === true
-            ? <> <button disabled={!canAct || !thread} onClick={() => perform("workflow_select_listed", { libraryRef: active.reference, name: row.name, revision: row.revision })}>Use {text(row.name)}{sameName(row.name) ? ` revision ${text(row.sequence)}` : ""}</button></>
+            ? <> <button disabled={!canAct || !thread} onClick={() => perform("workflow_select_listed", { libraryRef: active.reference, name: row.name, revision: row.revision })}>Use {safeName(row.name)}{sameName(row.name) ? ` revision ${idWords(row.sequence)}` : ""}</button></>
             : <> — {text(row.label)}.{" "}
-              <a href={`#${registeredRevisionAnchor(active.reference, row.name, row.revision)}`}>{row.reconfirm === true ? `Re-confirm ${text(row.name)} in the workflow studio` : "See this revision in the workflow studio"}</a>
+              <a href={`#${registeredRevisionAnchor(active.reference, row.name, row.revision)}`}>{row.reconfirm === true ? `Re-confirm ${safeName(row.name)} in the workflow studio` : "See this revision in the workflow studio"}</a>
               {row.reconfirm === true && <small> Refine it into a draft, then review that draft and confirm in the App's dialog. Nothing is chosen or run until you do.</small>}</>}
           {row.selectable === true && <small> · {text(row.label)}</small>}
         </li>)}</ul>}
@@ -433,7 +433,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
         {active && unregistered.length > 0 && <div aria-label="Workflows that need a first review">
           <p>These workflows are in the folder but haven't been approved for use here. Read one once and confirm it in the App's confirmation dialog; after that it is listed above. Nothing runs during the review.</p>
           <ul>{unregistered.map((entry: Json) => <li key={entry.reference}><strong>{text(entry.name)}</strong>{" "}
-            <button disabled={!canAct} onClick={() => perform("workflow_review_library_entries", { libraryRef: active.reference, listingRef: listing.reference, entryRefs: [entry.reference] })}>Review {text(entry.name)} for first use…</button></li>)}</ul>
+            <button disabled={!canAct} onClick={() => perform("workflow_review_library_entries", { libraryRef: active.reference, listingRef: listing.reference, entryRefs: [entry.reference] })}>Review {safeName(entry.name)} for first use…</button></li>)}</ul>
         </div>}
         {active && listing?.libraryRef === active.reference && listing?.state === "unavailable" && <p role="note">The App couldn't look in this library's folder for other workflows{list(listing.limits).length ? `: ${list(listing.limits).map(text).join("; ")}` : "."}</p>}
         {pendingReview && <p role="note">A review is open. <a href="#workflow-reviews">Read it and confirm</a> to approve the workflow for use.</p>}
@@ -488,7 +488,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
         </div>}
         {recordedRuns.length > 0 && <div aria-label="Recorded runs of this workflow">
           <p>Recorded runs of {text(chosen?.identity?.name)} from the project's records (read only; not live in this session):</p>
-          <ul>{recordedRuns.map((run: Json) => <li key={text(run.run)}>{text(run.run)}{run.workflow?.revision ? <> · revision <code title={text(run.workflow.revision)}>{text(run.workflow.revision).slice(0, 12)}…</code></> : null} · {text(run.state)} · recorded conversation <code>{text(run.conversation) || "not recorded"}</code> · {workflowAssurance(run.assurance)}</li>)}</ul>
+          <ul>{recordedRuns.map((run: Json) => <li key={text(run.run)}>{text(run.run)}{run.workflow?.revision ? <> · revision <code title={idWords(run.workflow.revision)}>{text(run.workflow.revision).slice(0, 12)}…</code></> : null} · {text(run.state)} · recorded conversation <code>{text(run.conversation) || "not recorded"}</code> · {workflowAssurance(run.assurance)}</li>)}</ul>
         </div>}
         {outputs.length > 0 ? <ul aria-label="Where the results go">{outputs.map((output: Json, index: number) => <li key={index}>
           <strong>{text(output.name)}</strong>{output.path ? <> — declared path <code>{text(output.path)}</code></> : ""}{output.meaning ? `: ${text(output.meaning)}` : ""}</li>)}</ul>

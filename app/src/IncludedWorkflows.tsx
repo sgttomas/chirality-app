@@ -1,3 +1,4 @@
+import { safeName, idWords } from "./AgentText";
 import { useState, type ReactNode } from "react";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -105,8 +106,8 @@ function About({ entry, source, textControl, open }: { entry: Json; source: Json
   const paths = libraryPathsOf(entry);
   const roles = list(entry?.roles).filter(role => typeof role === "string");
   const from = librarySourceWords(source);
-  return <details open={open ? true : undefined}><summary>About {text(entry.name)}</summary>
-    <p>Source: {from ? `${from}, included with the App` : "included with the App"}. Revision <code title={text(entry.revision)}>{text(entry.revision).slice(0, 12)}…</code></p>
+  return <details open={open ? true : undefined}><summary>About {safeName(entry.name)}</summary>
+    <p>Source: {from ? `${from}, included with the App` : "included with the App"}. Revision <code title={idWords(entry.revision)}>{text(entry.revision).slice(0, 12)}…</code></p>
     {textControl}
     {roles.length > 0 && <p>The Library lists it for these roles: {roles.join(", ")}.</p>}
     {entry?.compatibility === "legacy" && <p>The Library marks it as legacy.</p>}
@@ -144,10 +145,10 @@ export function IncludedWorkflows({ catalog, chosen, disabled, needsConversation
   const holds = (entry: Json) => holdsText?.(entry) === true;
   const row = (entry: Json) => {
     const shownName = text(entry?.navigation?.displayName) || text(entry.name);
-    return <li key={text(entry.name)} aria-label={`Included workflow ${text(entry.name)}`}>
+    return <li key={text(entry.name)} aria-label={`Included workflow ${safeName(entry.name)}`}>
       <strong>{shownName}</strong>{shownName !== entry.name && <> (<code>{text(entry.name)}</code>)</>}{entry.description ? <> — {text(entry.description)}</> : null}{" "}
       {isChosen(entry) ? <em>Chosen.</em>
-        : entry.runnable === true ? <button disabled={disabled || needsConversation} onClick={() => choose(entry.name)}>Use {text(entry.name)}</button>
+        : entry.runnable === true ? <button disabled={disabled || needsConversation} onClick={() => choose(entry.name)}>Use {safeName(entry.name)}</button>
         : entry.runnable === false ? <small>Can't be used in this App: {text(entry.runLimit) || text(catalog?.standing) || "the App reports it as not runnable"}.</small>
         : <small>The App hasn't reported whether this workflow can be used here.</small>}
       <About entry={entry} source={catalog?.source} textControl={readText?.(entry)} open={holds(entry)}/>

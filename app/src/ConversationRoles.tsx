@@ -1,4 +1,4 @@
-import { AgentText, RecordedData } from "./AgentText";
+import { AgentText, RecordedData, idWords } from "./AgentText";
 import { useEffect, useRef, useState } from "react";
 import { EXACT_TEXT } from "./exactText";
 import { readingRefusal } from "./readingSentences";
@@ -79,11 +79,12 @@ export type LimitSubject =
   | { of: "conversation-supply"; thread: string; own: boolean }
   | { of: "child-supply" };
 export function limitSubjectWords(subject: LimitSubject, role: string | null): string {
-  const guidance = role ? `the ${role} guidance` : "the guidance";
-  if (subject.of === "current-files") return `Limits of ${role ?? "no role"} in its guidance file as the App last read it`;
+  // A role name and a conversation id come from guidance files and Codex: in these App words only as plain identifiers.
+  const guidance = role ? `the ${idWords(role)} guidance` : "the guidance";
+  if (subject.of === "current-files") return `Limits of ${role ? idWords(role) : "no role"} in its guidance file as the App last read it`;
   if (subject.of === "child-supply") return `Limits in ${guidance} the App supplied for this child`;
   return subject.own ? `Limits in ${guidance} the App supplied when this conversation started`
-    : `This fork was sent no guidance of its own. Limits in ${guidance} the App supplied when conversation ${subject.thread} started`;
+    : `This fork was sent no guidance of its own. Limits in ${guidance} the App supplied when conversation ${idWords(subject.thread)} started`;
 }
 
 /** LA-4: one account of limits, under the guidance it describes. This is the

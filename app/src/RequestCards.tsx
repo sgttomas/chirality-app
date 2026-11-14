@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { itemAnchorId, requestAnchorId, sameActivityGeneration } from "./NativeActivity";
 import { EXACT_TEXT } from "./exactText";
-import { AgentText, agentTextShown, plainId } from "./AgentText";
+import { AgentText, agentTextShown, plainId, idWords } from "./AgentText";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 export type RequestActivityLink = (request: Json) => { open: () => void } | null;
 
@@ -403,7 +403,7 @@ function Subject({ request, item, place }: { request: Json; item: Json; place?: 
 function About({ request, item, navigation }: { request: Json; item: Json; navigation: { open: () => void } | null }) {
   const p = request?.nativeParameters ?? {};
   if (!p.itemId) return null;
-  if (item && navigation) return <div>About: <a href={`#${itemAnchorId(item.threadId, item.turnId, item.native?.id)}`} onClick={event => { event.preventDefault(); navigation.open(); }}>{text(item.native?.type) || "item"} in this conversation’s activity</a></div>;
+  if (item && navigation) return <div>About: <a href={`#${itemAnchorId(item.threadId, item.turnId, item.native?.id)}`} onClick={event => { event.preventDefault(); navigation.open(); }}>{item.native?.type ? idWords(item.native.type) : "item"} in this conversation’s activity</a></div>;
   return <div>About: Codex item <code>{text(p.itemId)}</code> in turn <code>{text(p.turnId)}</code> (not in this view’s activity)</div>;
 }
 
@@ -478,9 +478,11 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
   // shows the App's words and the form's name, and the whole value it sends
   // stands beside it as the agent's text. Every other value stays in the button.
   const decisionButton = (decision: Json, value: Json, blocked = false) => {
-    const carriesAgentWords = decision && typeof decision === "object" && ["acceptWithExecpolicyAmendment", "applyNetworkPolicyAmendment"].includes(keyOf(decision));
-    const button = <button key={JSON.stringify(decision)} disabled={busy || blocked} onClick={() => send(value)}>{decisionWords(decision)} <code>{JSON.stringify(carriesAgentWords ? keyOf(decision) : decision)}</code></button>;
-    return carriesAgentWords ? <span key={JSON.stringify(decision)}>{button} <small>Sends:</small> <AgentText value={JSON.stringify(decision)} label="Native value with the agent's words:" /></span> : button;
+    // Any decision given as an object (the two that carry the agent's words, or a kind the App does not know) shows
+    // only its kind in the button, as a plain identifier; its whole value stands beside as text the App did not write.
+    const carriesAgentWords = !!decision && typeof decision === "object";
+    const button = <button key={JSON.stringify(decision)} disabled={busy || blocked} onClick={() => send(value)}>{decisionWords(decision)} <code>"{idWords(carriesAgentWords ? keyOf(decision) : decision)}"</code></button>;
+    return carriesAgentWords ? <span key={JSON.stringify(decision)}>{button} <small>Sends:</small> <AgentText value={JSON.stringify(decision)} source="codex" label="The whole value this answer sends:" name="The whole value this answer sends, as Codex offered it with any words in it, not the App's words" /></span> : button;
   };
   const modern = method === COMMAND || method === FILE_CHANGE;
   const legacy = method === LEGACY_EXEC || method === LEGACY_PATCH;
@@ -570,7 +572,7 @@ export function WaitingRequestsIndicator({ overview, view, busy = false, open }:
     <b>{!available ? "Waiting-request overview unavailable." : total === 0 ? "No current waiting requests observed in configured homes." : `${total} request${total === 1 ? "" : "s"} from Codex waiting for your answer`}</b>
     {waiting.map(row => <div key={JSON.stringify([row.modeHomeClass, row.generation, row.threadId])}>
       {/* A control carries only the App's words: a thread id stands in it only when it is a plain identifier. */}
-      <button disabled={busy} onClick={() => open(row)}>{row.modeHomeClass} · {!row.threadId ? "no conversation named" : plainId(row.threadId) ? `thread ${row.threadId}` : "a conversation (its identity is shown beside)"}: {row.count}</button>
+      <button disabled={busy} onClick={() => open(row)}>{row.modeHomeClass} · {!row.threadId ? "no conversation named" : plainId(row.threadId) ? `thread ${idWords(row.threadId)}` : "a conversation (its identity is shown beside)"}: {idWords(row.count)}</button>
       {row.threadId && !plainId(row.threadId) && <> <AgentText value={row.threadId} source="codex" label="Conversation:" name="Conversation identity as Codex reported it, not the App's words" /></>}
       {" "}<AskedBy asker={requestAsker(row.threadId, row.generation, view)} />.
       <small> Source: {JSON.stringify(row.generation)}.</small>

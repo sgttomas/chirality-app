@@ -1,4 +1,4 @@
-import { AgentText } from "./AgentText";
+import { AgentText, idWords, safeName } from "./AgentText";
 import { useRef, useState } from "react";
 import { isRecordedRun, runLearningLimit } from "./RunPanel";
 import { ConversationSelect, conversationKey, conversationName, findConversation } from "./TrialComposer";
@@ -88,7 +88,7 @@ function SubAgent({ trial, busy, act }: { trial: Json; busy: boolean; act: Draft
   const candidate = (child: Json) => !!text(child) && text(child) !== linked;
   // Why a read failed, as the host reports it, so the person can judge Read again.
   const unreadReason = (child: Json) => text(list(sub.unreadReasons).find((r: Json) => text(r?.thread) === text(child))?.reason);
-  const linkButton = (child: Json) => <button disabled={busy} onClick={() => { void act("workflow_trial_link", { reference: trial.reference, childThread: child }); }}>Link as trial {text(trial.sequence)}</button>;
+  const linkButton = (child: Json) => <button disabled={busy} onClick={() => { void act("workflow_trial_link", { reference: trial.reference, childThread: child }); }}>Link as trial {idWords(trial.sequence)}</button>;
   return <>
     {sub.state === "linked" ? <>sub-agent {text(sub.thread)}{sub.linkedBy ? ` (${linkOriginWords(sub.linkedBy)})` : ""}{" "}
       <button disabled={busy} onClick={() => { void act("workflow_trial_unlink", { reference: trial.reference, childThread: sub.thread }); }}>Unlink</button></> : "sub-agent not linked"}
@@ -138,7 +138,7 @@ export function TrialRow({ trial, conversations, bringBacks = [], busy, act, sta
     try { call = Promise.resolve(act("workflow_trial_bring_back", { reference, generation: destination.generation, threadId: destination.threadId, includeNative })); } catch (error) { call = Promise.reject(error); }
     void call.catch(() => undefined).finally(() => endBringBack(key));
   };
-  return <li aria-label={`Trial ${text(trial.sequence)}`}>
+  return <li aria-label={`Trial ${idWords(trial.sequence)}`}>
     <label><input type="checkbox" checked={ticked} disabled={busy} onChange={() => update({ chosen: ticked ? state.chosen.filter(c => c !== side) : [...state.chosen, side] })} /> Compare</label>{" "}
     <b>Trial {text(trial.sequence)}</b> · {trial.kind === "clean" ? "clean (fresh conversation)" : "delegated (with the authoring agent)"} · {text(trial.time)}
     <div><small>Content {short(trial.content?.value)} ({versionWords(trial.version)}) · authoring conversation {conversationName(trial.authoringConversation)} · {trial.kind === "clean"
@@ -173,7 +173,7 @@ export function DraftRow({ draft, authoring, conversations = [], pending = [], b
   // keeps it offered with the note.
   const delegation = authoring?.delegation;
   const delegationMissing = delegation?.reading === "missing";
-  return <article aria-label={`Draft ${text(draft.name)}`} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
+  return <article aria-label={`Draft ${safeName(draft.name)}`} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
     <h4>{text(draft.name)} · {draftStateWords(draft.state, draft.content)}</h4>
     <p>Content {draft.content?.value ? `${short(draft.content.value)} (${text(draft.content.method)})` : `not established: ${text(draft.content?.not_established)}`}{draft.fileCount !== undefined && draft.fileCount !== null ? ` · ${text(draft.fileCount)} files` : ""}. Attribution: {attributionWords(draft.attribution)}.</p>
     {(draft.findings ?? []).length > 0 && <ul aria-label="Hygiene findings">{draft.findings.map((f: Json) => <li key={text(f)}>{text(f)}</li>)}</ul>}
@@ -314,7 +314,7 @@ export function WorkflowDraftsList({ data, workspace, pointerLimits, conversatio
       {runCandidates.size > 0 && <ul aria-label="Run candidates for comparison">{[...runCandidates].map(([ref, run]) => {
         const side = runSide(ref); const ticked = sides.includes(side); const limit = runLearningLimit(run, "compare");
         const workflow = run.workflow;
-        return <li key={ref}><label><input type="checkbox" checked={ticked} disabled={busy || (!!limit && !ticked)} onChange={() => update({ chosen: ticked ? sides.filter(c => c !== side) : [...sides, side] })} /> run {ref}{workflow ? ` · ${text(workflow.origin)}:${text(workflow.name)} · revision ${short(workflow.revision)}` : ""}{isRecordedRun(run) ? " · recorded evidence (unsigned)" : ""}</label>
+        return <li key={ref}><label><input type="checkbox" checked={ticked} disabled={busy || (!!limit && !ticked)} onChange={() => update({ chosen: ticked ? sides.filter(c => c !== side) : [...sides, side] })} /> run {idWords(ref)}{workflow ? ` · ${idWords(workflow.origin)}:${safeName(workflow.name)} · revision ${idWords(short(workflow.revision))}` : ""}{isRecordedRun(run) ? " · recorded evidence (unsigned)" : ""}</label>
           {isRecordedRun(run) && run.learning?.standing && <p><small>{text(run.learning.standing)}</small></p>}
           {run.learning?.compare?.activityLimit && <p role="note">Conversation history: {text(run.learning.compare.activityLimit)}</p>}
           {limit && <p role="note">Compare is unavailable: {limit}</p>}</li>;
