@@ -405,6 +405,71 @@ class TemporaryFolderEntries(Probing):
             self.succeeded(probe(run, client, thread, 'tmpdir', **FULL))
 
 
+LEVELS_TABLE = L.APP / 'src-tauri' / 'src' / 'codex_levels.json'
+
+
+def level_settings(row):
+    """What the App sends for one row of its table: on thread/start, the mode name and the workspace options
+    through `config`; on each turn, the structured policy. Built from the table alone."""
+    common = {'approvalPolicy': row['approvalPolicy'], 'approvalsReviewer': 'user'}
+    start = dict(common, sandbox=row['sandbox'])
+    if row['workspaceWrite'] is not None:
+        start['config'] = {'sandbox_workspace_write': row['workspaceWrite']}
+    return start, dict(common, sandboxPolicy=row['sandboxPolicy'])
+
+
+class Table(Probing):
+    """The App's own table (`codex_levels.json`), row by row: each row's values are sent as the App sends them,
+    Codex's reply reports them, and the effects each row's dimensions state are observed."""
+
+    def test_each_row_of_the_apps_table_does_what_its_dimensions_say(self):
+        table = json.loads(LEVELS_TABLE.read_text())
+        self.assertEqual(table['pin'], L.PIN)
+        self.assertEqual([r['id'] for r in table['levels']],
+                         ['supervised', 'edits', 'edits-network', 'edits-no-asking', 'full'])
+        for row in table['levels']:
+            with self.subTest(level=row['id']), L.Run(SCRATCH, BINARY, slash_tmp=True, git_marker=True) as run:
+                start, turn = level_settings(row)
+                client = run.start()
+                reply = client.start_thread(**start)
+                thread = reply['thread']['id']
+                self.assertEqual(reply['approvalPolicy'], row['approvalPolicy'])
+                self.assertEqual(reply['approvalsReviewer'], 'user')
+                for key, value in row['sandboxPolicy'].items():
+                    self.assertEqual(reply['sandbox'].get(key), value, key)
+                dims = row['dimensions']
+                if dims['asks'] == 'before-a-command-not-known-safe':
+                    # Every command tried is put to the person first; the client declines, so the writes'
+                    # own effects are not observed here (the read-only sandbox's are, in the "nothing sent" row).
+                    for key in ('in', 'read'):
+                        self.declined(probe(run, client, thread, key, **turn), thread)
+                    self.assertEqual((dims['writes'], dims['network'], reply['sandbox']['type']),
+                                     ('nowhere', 'off', 'readOnly'))
+                    continue
+                if dims['writes'] == 'project':
+                    self.succeeded(probe(run, client, thread, 'in', **turn))
+                    for key in ('out', 'git', 'tmpdir', 'slashtmp'):
+                        self.refused(probe(run, client, thread, key, **turn))
+                elif dims['writes'] == 'everywhere':
+                    for key in ('in', 'out', 'git', 'tmpdir', 'slashtmp'):
+                        self.succeeded(probe(run, client, thread, key, **turn))
+                else:
+                    self.fail('a writes value this test does not know: %r' % dims['writes'])
+                net = probe(run, client, thread, 'net', **turn)
+                if dims['network'] == 'on':
+                    self.succeeded(net, network=True)
+                else:
+                    self.refused(net)
+                escalation = probe(run, client, thread, 'out', escalate=True, **turn)
+                if dims['asks'] == 'when-beyond-the-sandbox':
+                    self.declined(escalation, thread)
+                elif dims['asks'] == 'never':
+                    self.rejected(escalation)
+                    self.channel_live(run, client)
+                else:
+                    self.fail('an asks value this test does not know: %r' % dims['asks'])
+
+
 class Carriers(Probing):
     """Case 2: where a setting can be sent, whether it is held to, and what the replies report."""
 
