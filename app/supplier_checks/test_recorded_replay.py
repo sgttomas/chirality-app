@@ -37,6 +37,29 @@ def app_level(method):
     return copy.deepcopy(APP_LEVEL["turn" if method == "turn/start" else "thread"])
 
 
+# What the pinned 0.167.0 reports for that level in a start or resume reply (supplier_checks/level, Carriers and
+# Table rows; an explicit sandbox mode reports activePermissionProfile null). The double replaces these fields of the
+# recorded reply to the adapted request, as a declared adaptation; written out here independently of it.
+APP_LEVEL_REPORTED = {"approvalPolicy": "on-request", "approvalsReviewer": "user",
+                      "sandbox": {"type": "workspaceWrite", "writableRoots": [], "networkAccess": False,
+                                  "excludeTmpdirEnvVar": True, "excludeSlashTmp": True},
+                      "activePermissionProfile": None}
+LEVEL_REPLY_METHOD = {"app": "thread/start", "app-continue": "thread/resume"}
+
+
+def as_sent(recording, row, profile):
+    """A recorded codex->app frame as the double sends it under `profile`: the reply to the request the profile adds
+    the level to reports that level; every other frame is the recording's own."""
+    frame = copy.deepcopy(row["frame"])
+    method = LEVEL_REPLY_METHOD.get(profile)
+    if method and "id" in frame and "method" not in frame and any(
+            other["generation"] == row["generation"] and other["direction"] == "app->codex"
+            and other["frame"].get("method") == method and other["frame"].get("id") == frame["id"]
+            for other in recording["frames"]):
+        frame["result"].update(APP_LEVEL_REPORTED)
+    return frame
+
+
 def capture(scenario="st5"):
     path = RECORDINGS / (scenario + ".recording.json")
     digest = hashlib.sha256(path.read_bytes()).hexdigest()
@@ -253,9 +276,10 @@ class AppProfiles(unittest.TestCase):
         for scenario in ("st5", "nv04", "st5-race"):
             _, _, recording = capture(scenario)
             output, audit = run_memory(recording, profile="app")
-            self.assertEqual(output, [row["frame"] for row in recording["frames"]
+            self.assertEqual(output, [as_sent(recording, row, "app") for row in recording["frames"]
                                       if row["generation"] == 1 and row["direction"] == "codex->app"])
             adaptations = [change for row in audit for change in row.get("adaptations", [])]
+            self.assertIn("thread/start.result:report-exact-App-level-edits;not-recorded-output", adaptations)
             self.assertIn("thread/start:add-exact-captured-model-and-modelProvider", adaptations)
             self.assertIn("turn/start.input[0].text_elements:add-empty-array", adaptations)
             self.assertIn("thread/start:add-exact-App-level-edits", adaptations)
@@ -381,7 +405,7 @@ class SubprocessReplay(unittest.TestCase):
         for index in range(19, 35):
             row = recording["frames"][index]
             if row["direction"] == "codex->app":
-                frame = copy.deepcopy(row["frame"])
+                frame = as_sent(recording, row, "app-continue")
                 if "id" in frame and "method" not in frame:
                     frame["id"] = mapped_ids[frame["id"]]
                 expected.append(frame)
@@ -441,7 +465,11 @@ class SubprocessReplay(unittest.TestCase):
         output = [json.loads(line) for line in result.stdout.splitlines()]
         recorded_reply = recording["frames"][33]["frame"]
         self.assertTrue(recorded_reply["result"]["thread"]["turns"], "captured full reply is not rewritten as metadata-only")
-        self.assertIn(recorded_reply, output)
+        sent_reply = as_sent(recording, recording["frames"][33], "app-continue")
+        self.assertEqual(sent_reply["result"]["thread"], recorded_reply["result"]["thread"], "only the level fields are adapted")
+        self.assertIn(sent_reply, output)
+        reply_row = next(row for row in rows if row.get("frame_index") == 33 and row["event"] == "frame")
+        self.assertEqual(reply_row["adaptations"], ["thread/resume.result:report-exact-App-level-edits;not-recorded-output"])
         self.assertIn(recording["frames"][31]["frame"], output, "recorded deprecation notice remains original supplier data")
         strict = inputs(recording, 2)
         resume = next(frame for frame in strict if frame.get("method") == "thread/resume")
@@ -625,7 +653,7 @@ class SubprocessReplay(unittest.TestCase):
         self.assertEqual(rows[-2]["remaining_frame_indices"], list(range(30, 35)))
         self.assertEqual(rows[-1]["outcome"], "error")
 
-    def test_continue_pause_holds_idle_before_unchanged_resume_reply(self):
+    def test_continue_pause_holds_idle_before_the_resume_reply(self):
         release = Path(self.root.name) / "continue-release"
         process, reader, recording = self.start(generation=2, extra=("--profile", "app-continue", "--pause-after-frame", "32", "--release", str(release)))
         supplied = iter(inputs(recording, 2, "app-continue"))
@@ -654,7 +682,7 @@ class SubprocessReplay(unittest.TestCase):
         self.assertFalse(select.select([process.stdout], [], [], .05)[0])
         self.assertIsNone(process.poll())
         release.touch()
-        self.assertEqual(reader.read(), recording["frames"][33]["frame"])
+        self.assertEqual(reader.read(), as_sent(recording, recording["frames"][33], "app-continue"))
         self.assertEqual(reader.read(), recording["frames"][34]["frame"])
         self.assertIsNone(process.poll())
         process.stdin.close()

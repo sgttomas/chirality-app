@@ -24,6 +24,17 @@ The current App resume request adds exactly excludeTurns:true (0.160.0 native
 metadata/live-resume response coverage). This request-only adaptation is audited;
 the tape's full-history reply and deprecation notice are kept unchanged, not
 claimed as observed supplier behavior for that adapted request.
+Level: each thread/start, thread/resume and turn/start request adds exactly the
+App test Host's level ("edits"). The replies to the adapted thread/start and
+thread/resume report that level's exact values: approvalPolicy,
+approvalsReviewer "user", the structured sandbox, and activePermissionProfile
+null. This is what the pinned 0.167.0 reports for an explicit level
+(supplier_checks/level, Carriers rows and Table). It is a declared exact
+reply-side adaptation; the tape is unchanged, and the adapted values are not
+claimed as recorded supplier output. The resume request's label
+"recorded-reply-unchanged" concerns excludeTurns only: the reply's history is
+not narrowed. The reply's level fields are adapted as stated here, each such
+reply audited with its own adaptation entry.
 The audit destination must be fresh: exclusive creation refuses existing files,
 symlinks and hardlinks without overwriting their bytes.
 """
@@ -330,6 +341,7 @@ class Replay:
             self.indices, self.outside_segment = self.indices[:end], self.indices[end:]
         self.consumed, self.current_index = [], None
         self.id_map, self.actual_ids, self.pending_server = {}, set(), set()
+        self.level_replies = {}  # recorded request id -> method, for replies that report the level sent
         self.catalog_request_id = None
         self.provider_reading_request_id = None
         self.catalog_result = self.continue_catalog_result() if profile == "app-continue" else None
@@ -429,6 +441,15 @@ class Replay:
                 fields["config"] = {"sandbox_workspace_write": level["workspaceWrite"]}
         return fields
 
+    @staticmethod
+    def level_reported():
+        """What the pinned Codex reports for the level under test in a start or resume reply."""
+        table = json.loads((Path(__file__).resolve().parent.parent / "src-tauri" / "src" / "codex_levels.json").read_text())
+        rows = [row for row in table["levels"] if row["id"] == LEVEL_UNDER_TEST]
+        require(len(rows) == 1, "unknown-level-under-test")
+        return {"approvalPolicy": rows[0]["approvalPolicy"], "approvalsReviewer": "user",
+                "sandbox": copy.deepcopy(rows[0]["sandboxPolicy"]), "activePermissionProfile": None}
+
     def adapted_params(self, expected, actual):
         """Return only declared, exact App alternatives; never wildcard fields."""
         require(isinstance(expected, dict), "invalid-captured-adaptation-request")
@@ -511,6 +532,9 @@ class Replay:
             require(exact(expected_body, actual_body), "request-method-or-params-mismatch")
             self.id_map[recorded_id] = actual["id"]
             self.actual_ids.add(actual_id)
+            if any(change.endswith(":add-exact-App-level-%s" % LEVEL_UNDER_TEST) for change in changes) \
+                    and expected.get("method") in ("thread/start", "thread/resume"):
+                self.level_replies[recorded_id] = expected["method"]
             correlation = {"recorded_rpc_id": expected["id"], "actual_rpc_id": actual["id"],
                            "recorded_rpc_id_type": recorded_id[0], "actual_rpc_id_type": actual_id[0]}
         else:
@@ -560,6 +584,11 @@ class Replay:
                         outgoing["id"] = self.id_map[key]
                         info = {"recorded_rpc_id": frame["id"], "actual_rpc_id": outgoing["id"],
                                 "recorded_rpc_id_type": key[0], "actual_rpc_id_type": rpc_id(outgoing["id"])[0]}
+                        if key in self.level_replies:
+                            require(isinstance(outgoing.get("result"), dict), "invalid-captured-level-reply")
+                            outgoing["result"].update(self.level_reported())
+                            info["adaptations"] = ["%s.result:report-exact-App-level-%s;not-recorded-output"
+                                                   % (self.level_replies[key], LEVEL_UNDER_TEST)]
                     elif kind == "request":
                         self.pending_server.add(rpc_id(frame["id"]))
                     write_protocol_frame(writer, outgoing)
