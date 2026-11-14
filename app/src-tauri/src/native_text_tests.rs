@@ -55,6 +55,18 @@ fn a_value_in_its_closed_form_is_given_back_as_written() {
     assert_eq!(inline(workflow_name(&json!("Invented Flow"), WITHHELD)), VALUE_NOT_SHOWN);
 }
 
+/// The plain identifier examples the view's test reads too: one set of cases for both sides.
+#[test]
+fn the_shared_plain_identifier_examples_are_accepted_and_refused_as_listed() {
+    let examples: Value = serde_json::from_str(include_str!("../../tests/fixtures/plain_id_examples.json")).unwrap();
+    for accepted in examples["accepted"].as_array().unwrap() {
+        assert_eq!(inline(identifier(accepted, WITHHELD)), accepted.as_str().unwrap(), "accepted: {accepted}");
+    }
+    for refused in examples["refused"].as_array().unwrap() {
+        assert_eq!(inline(identifier(refused, WITHHELD)), VALUE_NOT_SHOWN, "refused: {refused}");
+    }
+}
+
 #[test]
 fn a_known_value_becomes_the_apps_word_and_an_unknown_one_is_withheld() {
     const TABLE: &[(&str, &str)] = &[("inProgress", "in progress")];

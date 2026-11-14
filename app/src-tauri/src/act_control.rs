@@ -371,6 +371,8 @@ pub(crate) mod native_statement {
     fn word(placed: crate::native_text::Placed) -> String {
         match placed {
             crate::native_text::Placed::Inline(closed) => closed.to_string(),
+            // These sheets never pass Unfit::Supplied, so no value comes back as lines here; this
+            // arm is not a decided fallback for supplied words.
             crate::native_text::Placed::Lines(_) => crate::native_text::VALUE_NOT_SHOWN.to_owned(),
         }
     }
