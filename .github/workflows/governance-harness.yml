@@ -73,6 +73,7 @@ jobs:
           python -m pytest -q app/tests/group_b*test.py
           python -m pytest -q app/tests/examination_repin_test.py
           python -m pytest -q app/examination/session_comparison/test_compare.py
+          python -m pytest -q app/supplier_checks/level/test_level_stub.py
           python -m tools.deliverables --project . check > deliverable-check.json
           python -m unittest tools.test_instruction_resources
           python app/examination/repin.py --check
