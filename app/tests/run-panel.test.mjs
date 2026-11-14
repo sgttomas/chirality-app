@@ -50,7 +50,7 @@ test('a checkpoint is guidance: never a hold or block, governed changes nothing,
   assert.ok(html.includes('this checkpoint is missing in record (no checkpoint_listed entry for it)'),'PD-7: what the record lacks is shown');
   assert.ok(html.includes('not listed: the run record lists only the checkpoints the App recognizes (CE-1)'),'an invalid checkpoint is not listed');
   assert.ok(!html.includes('No arrival recorded in this run'),'no arrival reading without a listing');
-  assert.ok(html.includes('the App records the act only from your own confirmation at its act control'));
+  assert.ok(html.includes('the App records the act only from your own confirmation at its act control, or continues recording one you confirmed earlier'));
   assert.ok(html.includes('present, currently unavailable: host reported unavailable'),'a runtime unavailability is a requirement outcome, not a hold');
   assert.ok(!FORBIDDEN.test(html),html.match(FORBIDDEN)?.[0]);
   assert.equal(arrivalLabel('waiting'),'reached; act not yet recorded');
