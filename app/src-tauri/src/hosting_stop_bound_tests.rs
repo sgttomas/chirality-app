@@ -789,3 +789,150 @@ fn a_request_with_both_a_reading_deadline_and_an_interrupt_bound_is_refused() {
     assert_eq!(f.attempted_interrupts("turn-1"), 0);
     f.assert_nothing_held();
 }
+
+/// A turn start sent and not yet answered is live work at the quit, Stop Codex
+/// and logout: Codex may be starting a turn the App cannot yet name, so no
+/// interrupt can be sent for it. Each of the three callers of the shared
+/// assessment counts it, names it in what the person reads, and goes on only
+/// by the person's choice.
+mod a_turn_start_not_yet_answered {
+    use super::*;
+    use crate::app_quit::{quit_sequence, Decision, HostQuit};
+    use crate::act_control::native_statement::{codex_stop_statement, logout_statement, quit_statement, unanswered_starts_sentence};
+
+    /// A turn/start of `text` sent on its own thread through the Host's own
+    /// request path (the stand-in never answers it); waits until the Host
+    /// lists it with the given write state, and returns its request identity.
+    fn send_turn_start(f: &mut Fixture, text: String, write: &str) -> Value {
+        let host = Arc::clone(f.host());
+        let generation = f.generation.clone();
+        f.held.push(std::thread::spawn(move || { let _ = host.turn_start_text(&generation, "thread", &text); }));
+        let deadline = Instant::now() + Duration::from_secs(3);
+        loop {
+            if let Some(start) = f.host().snapshot()["unansweredTurnStarts"].as_array().unwrap().iter().find(|s| s["write"] == write) {
+                return start["requestIdentity"].clone();
+            }
+            assert!(Instant::now() < deadline, "the turn start is not listed as {write}: {}", f.host().snapshot()["unansweredTurnStarts"]);
+            std::thread::sleep(Duration::from_millis(5));
+        }
+    }
+    /// Codex's frame, emitted by the stand-in.
+    fn emit(f: &Fixture, frame: &Value) {
+        let tmp = f.root.join("new-event.json");
+        std::fs::write(&tmp, serde_json::to_vec(frame).unwrap()).unwrap();
+        let deadline = Instant::now() + Duration::from_secs(3);
+        while f.root.join("queued-event.json").exists() {
+            assert!(Instant::now() < deadline, "previous event not taken");
+            std::thread::sleep(Duration::from_millis(2));
+        }
+        std::fs::rename(tmp, f.root.join("queued-event.json")).unwrap();
+    }
+    fn turn(id: &str) -> Value {
+        json!({"id":id,"status":"inProgress","items":[],"error":null,"itemsView":"summary"})
+    }
+    /// Codex's reply to the turn start, naming its turn; waits until received.
+    fn reply(f: &Fixture, request: &Value, id: &str) {
+        emit(f, &json!({"id":request,"result":{"turn":turn(id)}}));
+        let deadline = Instant::now() + Duration::from_secs(3);
+        while !f.host().snapshot()["unansweredTurnStarts"].as_array().unwrap().is_empty() {
+            assert!(Instant::now() < deadline, "the reply was not received");
+            std::thread::sleep(Duration::from_millis(5));
+        }
+    }
+    fn starts(view: &Value) -> Vec<Value> { view["observedUnansweredTurnStarts"].as_array().cloned().unwrap_or_default() }
+    fn live(view: &Value) -> Vec<Value> { view["observedLiveTurns"].as_array().cloned().unwrap_or_default() }
+    /// The quit, through its own sequence: what it asked, the person keeping the App running.
+    fn quit_asks(f: &Fixture) -> Value {
+        let workflows = Mutex::new(WorkflowRootSession::default());
+        let mut asked = None;
+        let mut quit = HostQuit::new(vec![Arc::clone(&f.home)], &workflows, "Invented Person", |view: &Value| { asked = Some(view.clone()); Ok(false) });
+        let decision = quit_sequence(&mut quit, LIMIT);
+        drop(quit);
+        assert!(matches!(decision, Decision::Cancelled(_)), "the quit asked, and kept running on the person's answer: {decision:?}");
+        asked.unwrap()
+    }
+    fn stop_asks(f: &Fixture) -> Value {
+        let workflows = Mutex::new(WorkflowRootSession::default());
+        crate::codex_stop::assess(&f.home, &workflows, &f.generation, false).unwrap().view().clone()
+    }
+    fn logout_asks(f: &Fixture) -> Value {
+        let mut asked = None;
+        let result = crate::runtime_session::logout_native_home(&f.home, None, &f.generation, |view| { asked = Some(view.clone()); false }).unwrap();
+        assert_eq!(result["state"], "native confirmation cancelled; no logout request", "{result}");
+        asked.unwrap()
+    }
+    fn counted(view: &Value, write: &str) {
+        let starts = starts(view);
+        assert_eq!(starts.len(), 1, "{view}");
+        assert_eq!((starts[0]["threadId"].as_str(), starts[0]["write"].as_str()), (Some("thread"), Some(write)), "{view}");
+        assert!(live(view).is_empty(), "no turn identity, so not a live turn that can be interrupted: {view}");
+    }
+    fn named(text: &str, doing: Option<&str>) {
+        assert!(text.contains("Turn start not yet answered: thread (request #"), "{text}");
+        assert!(text.contains("the App cannot ask Codex to stop it yet"), "{text}");
+        assert!(text.contains("0 live turns") && text.contains("1 turn starts not yet answered"), "{text}");
+        if let Some(doing) = doing { assert!(text.contains(&unanswered_starts_sentence(doing)), "{text}"); }
+    }
+
+    #[test]
+    fn written_with_no_response_at_each_caller() {
+        let mut f = Fixture::new();
+        send_turn_start(&mut f, "hello".into(), "written");
+        let (quit, stop, logout) = (quit_asks(&f), stop_asks(&f), logout_asks(&f));
+        for view in [&quit, &stop, &logout] { counted(view, "written"); }
+        named(&quit_statement(&quit).unwrap().text, Some("Quitting"));
+        named(&codex_stop_statement(&stop).unwrap().text, Some("Stopping Codex"));
+        named(&logout_statement(&logout).unwrap().text, None);
+    }
+
+    #[test]
+    fn held_mid_write_at_each_caller() {
+        let mut f = Fixture::new();
+        f.stop_reading();
+        send_turn_start(&mut f, "x".repeat(4 << 20), "in-progress");
+        let (quit, stop, logout) = (quit_asks(&f), stop_asks(&f), logout_asks(&f));
+        for view in [&quit, &stop, &logout] { counted(view, "in-progress"); }
+        named(&quit_statement(&quit).unwrap().text, Some("Quitting"));
+        named(&codex_stop_statement(&stop).unwrap().text, Some("Stopping Codex"));
+    }
+
+    /// The reply arrives while the person is being asked. The start neither
+    /// disappears nor is counted again beside the turn it became: the quit
+    /// asks again, with that turn as one live turn, now with its identity.
+    #[test]
+    fn a_reply_arriving_during_the_confirmation() {
+        let mut f = Fixture::new();
+        let request = send_turn_start(&mut f, "hello".into(), "written");
+        let workflows = Mutex::new(WorkflowRootSession::default());
+        let mut asked = Vec::new();
+        let mut quit = HostQuit::new(vec![Arc::clone(&f.home)], &workflows, "Invented Person", |view: &Value| {
+            asked.push(view.clone());
+            if asked.len() == 1 { reply(&f, &request, "turn-1"); Ok(true) } else { Ok(false) }
+        });
+        let decision = quit_sequence(&mut quit, LIMIT);
+        drop(quit);
+        assert!(matches!(decision, Decision::Cancelled(_)), "{decision:?}");
+        assert_eq!(asked.len(), 2, "asked again once the start became a turn: {asked:?}");
+        counted(&asked[0], "written");
+        assert_eq!(asked[1]["changedWhileAsking"], true);
+        assert!(starts(&asked[1]).is_empty(), "not counted a second time: {}", asked[1]);
+        let turns = live(&asked[1]);
+        assert_eq!((turns.len(), turns[0]["threadId"].as_str(), turns[0]["turnId"].as_str()), (1, Some("thread"), Some("turn-1")), "it did not disappear: {}", asked[1]);
+    }
+
+    /// Codex names the turn (turn/started) before replying: one live turn, not
+    /// also a start; the reply after it changes nothing.
+    #[test]
+    fn a_turn_named_before_its_reply_is_counted_once() {
+        let mut f = Fixture::new();
+        let request = send_turn_start(&mut f, "hello".into(), "written");
+        f.live_turn("thread", "turn-1");
+        for view in [stop_asks(&f), logout_asks(&f), quit_asks(&f)] {
+            assert!(starts(&view).is_empty(), "{view}");
+            assert_eq!(live(&view).len(), 1, "{view}");
+        }
+        reply(&f, &request, "turn-1");
+        let view = stop_asks(&f);
+        assert!(starts(&view).is_empty() && live(&view).len() == 1, "{view}");
+    }
+}

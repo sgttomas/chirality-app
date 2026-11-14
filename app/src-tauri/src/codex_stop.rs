@@ -120,6 +120,7 @@ pub(crate) fn assess(
         "state": state,
         "notReady": not_ready,
         "observedLiveTurns": list("observedLiveTurns"),
+        "observedUnansweredTurnStarts": list("observedUnansweredTurnStarts"),
         "observedOutstandingRequests": list("observedOutstandingRequests"),
         "observedActiveChildren": list("observedActiveChildren"),
         "knownChildActivityUnknown": list("knownChildActivityUnknown"),

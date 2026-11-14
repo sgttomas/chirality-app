@@ -3081,6 +3081,14 @@ pub fn assess_native_home_work(
     }
     let mut requests = requests;
     requests.sort_by_key(Value::to_string);
+    // A turn start written, or being written, and not yet answered is live
+    // work: Codex may be starting a turn the App cannot yet name, so it can
+    // ask Codex to stop none of it. One whose thread already shows a live
+    // turn is that turn, listed above with its identity.
+    let starts: Vec<Value> = snapshot["unansweredTurnStarts"].as_array().into_iter().flatten()
+        .filter(|start| start["generation"] == *generation && !live.iter().any(|row| row["threadId"] == start["threadId"]))
+        .map(|start| json!({"generation":generation,"threadId":start["threadId"],"requestIdentity":start["requestIdentity"],"write":start["write"],"limit":"turn start not yet answered by Codex; no turn identity, so no interrupt can be sent"}))
+        .collect();
     let coverage = json!({"turns":{"scope":"current selected-home source","available":snapshot["conversationTurns"].is_array(),"complete":false,"unresolved":unresolved_turns},"requests":{"scope":"current received register","available":snapshot["serverRequests"].is_array(),"complete":false},"children":{"receivingViewAvailable":valid_view,"complete":false,"limit":"child visibility/completeness not established; additional work may exist"},"receivingLimits":received["nativeViewLimits"]});
     let namespace_revision = &snapshot["accountNamespaceRevision"];
     if namespace_revision["generation"] != *generation {
@@ -3119,8 +3127,8 @@ pub fn assess_native_home_work(
         Some(_)=>json!({"state":"redacted/unavailable account; unknown","nativeType":null}),
     }).unwrap_or_else(||json!({"state":"current native report unavailable; previous read is only last observed","nativeType":null}));
     let account = json!({"state":received["accountObservation"]["state"],"nativeType":received["accountObservation"]["nativeAccount"]["type"],"readAvailability":read_availability,"currentReport":current_account,"namespaceRevision":namespace_revision,"operations":operations,"identityVerified":false,"unchangedIdentityProven":false,"limit":"redacted/unavailable equality does not prove unchanged identity; another identical read/clock tick alone is not a namespace change"});
-    let material = json!({"modeHomeClass":home.class.as_str(),"generation":generation,"account":account,"observedLiveTurns":live,"observedOutstandingRequests":requests,"observedActiveChildren":children,"knownChildActivityUnknown":unknown,"coverage":coverage});
-    let view = json!({"modeHomeClass":home.class.as_str(),"generation":generation,"observedAt":crate::util::now_rfc3339(),"sourceCursor":received["observerCursor"],"account":account,"observedLiveTurns":live,"observedOutstandingRequests":requests,"observedActiveChildren":children,"knownChildActivityUnknown":unknown,"coverage":coverage,"warning":"None observed is not none. Child visibility/completeness is not established; additional work may exist. Logout acknowledgment does not end turns/children, delete history or prove credential-store removal."});
+    let material = json!({"modeHomeClass":home.class.as_str(),"generation":generation,"account":account,"observedLiveTurns":live,"observedUnansweredTurnStarts":starts,"observedOutstandingRequests":requests,"observedActiveChildren":children,"knownChildActivityUnknown":unknown,"coverage":coverage});
+    let view = json!({"modeHomeClass":home.class.as_str(),"generation":generation,"observedAt":crate::util::now_rfc3339(),"sourceCursor":received["observerCursor"],"account":account,"observedLiveTurns":live,"observedUnansweredTurnStarts":starts,"observedOutstandingRequests":requests,"observedActiveChildren":children,"knownChildActivityUnknown":unknown,"coverage":coverage,"warning":"None observed is not none. Child visibility/completeness is not established; additional work may exist. Logout acknowledgment does not end turns/children, delete history or prove credential-store removal."});
     Ok(HomeLogoutAssessment {
         generation: generation.clone(),
         material,

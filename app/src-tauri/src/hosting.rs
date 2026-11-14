@@ -1374,9 +1374,27 @@ impl Host {
         let i=self.inner.0.lock().unwrap();
         i.conversation_turns.iter().find(|t|t["generation"]==*generation&&t["threadId"]==thread_id&&t["turnId"]==turn_id).cloned()
     }
+    /// Each `turn/start` of the current generation whose write has begun (in
+    /// progress, or written) and that has no response and no write error, in
+    /// the order the writes began. An entry leaves this list when its
+    /// response or its write error is observed, or with its generation.
+    fn unanswered_turn_starts(i: &Inner) -> Vec<Value> {
+        let mut starts: Vec<(u64, Value)> = i.turn_request_threads.iter().filter_map(|(key, (generation, thread, _))| {
+            let e = i.source_requests.get(key)?;
+            let position = e.attempt_position?;
+            if *generation != i.generation || e.response.is_some() || e.write_error.is_some() { return None; }
+            let write = if e.write_attempt_in_progress { "in-progress" } else if e.written { "written" } else { return None };
+            Some((position, json!({"generation":generation,"threadId":thread,"requestIdentity":e.request.request_id(),"write":write})))
+        }).collect();
+        starts.sort_by_key(|(position, _)| *position);
+        starts.into_iter().map(|(_, start)| start).collect()
+    }
     fn snapshot_inner(i: &mut Inner) -> Value {
         Self::observe_reply_writes(i);
-        json!({
+        // A turn start whose write has begun and that Codex has not answered:
+        // live work with no turn identity yet, so no interrupt can name it.
+        let unanswered_turn_starts = Self::unanswered_turn_starts(i);
+        let mut snapshot = json!({
             "state": i.state,
             "generation": i.generation,
             "generationClosed": i.server_requests.is_closed(&i.generation),
@@ -1418,7 +1436,9 @@ impl Host {
             "stopRequests": Self::stop_request_view(i),
             "modelTurnExercised": if i.source_requests.values().any(|e|e.request.frame["method"]=="turn/start")||i.client_requests.iter().any(|r| r["method"] == "turn/start") { Value::Null } else { json!(false) },
             "modelTurnEvidence": {"standing":"provider/model execution not established by request or mock result", "protocolRequests":i.client_requests.iter().filter(|r| r["method"] == "turn/start").collect::<Vec<_>>()},
-        })
+        });
+        snapshot["unansweredTurnStarts"] = Value::Array(unanswered_turn_starts);
+        snapshot
     }
 
     /// Adopt actual original App session/ledger authority, including unavailable
