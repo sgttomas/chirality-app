@@ -7032,6 +7032,18 @@ mod tests {
     /// First use with new App-owned settings: nothing exists after review; the
     /// confirmed prepare creates only the new settings leaf, the new home and
     /// the pending request, which the next launch admits.
+    // The routes that use existing settings say the settings in use decide, and restate nothing.
+    #[test]
+    fn first_use_routes_with_existing_settings_say_their_settings_decide_and_restate_nothing() {
+        let shared = DesktopSetup::first_use_defaults("new-home");
+        assert_eq!(shared["sentences"][0], "Your own Codex settings decide what Codex may read and change, and where your sign-in is kept. The App does not change them and does not restate them here; after you reopen the App, Connection and access shows what Codex reports for this launch.");
+        let kept = DesktopSetup::first_use_defaults("retain-account-project");
+        assert!(kept["sentences"][0].as_str().unwrap().starts_with("This keeps your current sign-in folder and the settings it uses"));
+        for view in [shared, kept] {
+            let text = view.to_string();
+            assert!(!text.contains("read-only") && !text.contains("auth.json") && !text.contains("by default"), "no default is restated as the settings in use");
+        }
+    }
     #[test]
     fn new_settings_are_created_only_at_confirmed_prepare_inside_the_app_data() {
         use std::os::unix::fs::PermissionsExt;
@@ -7056,6 +7068,18 @@ mod tests {
         assert_eq!(settings.parent().unwrap(), f.data.join(SETTINGS));
         assert!(!settings.exists() && !account.exists(), "review creates nothing");
         assert!(setup.preview_statement(preview["token"].as_str().unwrap()).unwrap().contains("Read, import or change no other Codex settings, home or credential"));
+        // Before confirming, the review page says what Codex may do by default and where a sign-in is
+        // kept, as Codex's defaults; the sheet says what Codex adds when it starts and no more.
+        assert_eq!(preview["defaults"]["heading"], "What Codex may do, by default");
+        let defaults: Vec<&str> = preview["defaults"]["sentences"].as_array().unwrap().iter().map(|s| s.as_str().unwrap()).collect();
+        assert_eq!(defaults.first(), Some(&"With new settings, Codex's own defaults apply; the App sets none of these."));
+        assert!(defaults.contains(&"It cannot create or change any file unless you allow it."));
+        assert!(defaults.contains(&"When you allow a command, it runs outside Codex's sandbox with your account's access to your files and the network."));
+        assert!(defaults.iter().any(|s| s.starts_with("By default your ChatGPT sign-in is kept as a file, auth.json, in the sign-in folder")));
+        assert!(defaults.iter().all(|s| !s.contains("one request at a time") && !s.contains("will ask") && !s.contains("always")), "nothing promises the person will always be asked");
+        assert!(statement.contains("with an empty config.toml, an empty AGENTS.md and a skills folder. Codex adds its own system skills there, and its own working files to the account directory, when it starts.\n"));
+        assert!(!statement.contains("an empty skills folder") && !statement.contains("Codex's defaults then apply"), "the sheet carries only the corrected line");
+        assert!(preview["effects"][1].as_str().unwrap().contains("a skills folder; Codex adds its own system skills there"));
         assert_eq!(setup.preview_action(preview["token"].as_str().unwrap()).unwrap(), "Create settings and save for next launch");
         let saved = setup.prepare_and_save(preview["token"].as_str().unwrap()).unwrap();
         assert_eq!(saved["pending"]["state"], "saved-for-next-launch", "{saved}");
