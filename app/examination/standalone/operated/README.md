@@ -1183,7 +1183,15 @@ failure, the same scenario and acts.
   With the named control absent, such a line drew a click, a set-value and a
   press. The reading showed the calls issued and their arguments, not whether
   the live supplier accepts an index it did not assign. No further patch was
-  made to the parser (App Agent 0).
+  made to the parser (App Agent 0). A probe on 14 November 2026 (candidate
+  9d997626, 13:13 UTC) made one click at index 999999 in a first-use view
+  whose largest index was 52. The supplier refused it ("Computer Use server
+  error -10005: 999999 is an invalid element ID"), and the views before and
+  after were identical. So a click at an index the supplier did not assign,
+  such as the fresh index of a line imitating an element, failed. That is one
+  click on one candidate. A set-value at such an index was not probed. The
+  limit stands as stated for anything that leads the walk to a real element it
+  should not act on.
 - **Where the walk acts, and why it is sound there (App Agent 0, 14 November
   2026).** The tool acts only in the listed states below. It is sound there
   because every text in those views is established and plain: the build's
