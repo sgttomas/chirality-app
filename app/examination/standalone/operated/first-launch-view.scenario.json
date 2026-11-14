@@ -1,0 +1,52 @@
+{
+  "scenario": "first launch, signed out, before setup: one view",
+  "version": 1,
+  "what_it_is": "Agent-operated development evidence on a development build in a throwaway home: what a person sees on the first launch, before any setup, read by one view with nothing clicked, typed or pressed. Its expectations are read from the first-use page as the setup walk's listed state S1 recorded it on 14 November 2026. It is not a person's observation and meets no criterion.",
+  "starting_state": "A fresh home made by the launcher, its network blocks on; no credential; setup not yet made.",
+  "acts": "one view, read and acted on nothing",
+  "never_clicked": [
+    "every control: this scenario acts on nothing"
+  ],
+  "window": "Chirality",
+  "window_holds": [
+    "scroll area",
+    "close button",
+    "full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window",
+    "minimize button",
+    "text Chirality"
+  ],
+  "starts_no_process": true,
+  "steps": [
+    {
+      "id": "L1",
+      "act": "view",
+      "wait_ms": 15000,
+      "says": "the first-use page as it first stands: the welcome, the project folder field empty, Start with new settings chosen, and Review setup unavailable; the whole view is kept",
+      "expect": [
+        {
+          "heading": "Welcome to Chirality"
+        },
+        {
+          "text": "Choose the folder you want to work in, or continue without a project."
+        },
+        {
+          "radio": "Start with new settings (recommended) The App creates its own empty Codex settings, instructions file and skills folder inside its data folder. Your existing Codex settings aren't read or changed, and the App doesn't use them.",
+          "is": "chosen"
+        },
+        {
+          "button": "Review setup",
+          "is": "unavailable"
+        },
+        {
+          "summary": "Technical details",
+          "is": "off"
+        }
+      ]
+    }
+  ],
+  "outcomes": {
+    "FIRST-USE PAGE SHOWN": [
+      "L1"
+    ]
+  }
+}
