@@ -99,7 +99,7 @@ jobs:
               --test act_storage --test recovery_startup --test access_integration \
               --test policy_standing --test decision_standing --test record_semantics --test record_relations \
               --test native_backend_smoke --test native_history --test history_integration --test steering_integration --test decide_flow --test role_lifecycle --test attested_reference_packaging --test schema_validation --test menu_capability \
-              --test hosting_contract --test runtime_integration -- --test-threads=1
+              --test hosting_contract --test runtime_integration --test native_namespaces -- --test-threads=1
       - name: Record schemas and connector presentation (Rust fixtures)
         # Web tests that run Rust tests built by the compile step above, offline and without the supplier;
         # validate-records skips its Codex handshake case here, which the full route runs.
