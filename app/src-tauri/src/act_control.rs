@@ -366,49 +366,62 @@ pub(crate) mod native_statement {
     fn cell(v: &Value) -> String {
         scalar(v).unwrap_or_else(|| v.to_string())
     }
+    /// A value on a native sheet, through the shared module: inside an App sentence only in its
+    /// closed form, otherwise the App's own placeholder.
+    fn word(placed: crate::native_text::Placed) -> String {
+        match placed {
+            crate::native_text::Placed::Inline(closed) => closed.to_string(),
+            crate::native_text::Placed::Lines(_) => crate::native_text::VALUE_NOT_SHOWN.to_owned(),
+        }
+    }
+    const CODEX: crate::native_text::Unfit = crate::native_text::Unfit::Withhold(crate::native_text::CODEX_VALUE_NOT_SHOWN);
+    const APP: crate::native_text::Unfit = crate::native_text::Unfit::Withhold(crate::native_text::VALUE_NOT_SHOWN);
+    fn id(v: &Value) -> String {
+        word(crate::native_text::identifier(v, CODEX))
+    }
     /// One short line per item the assessment observed (DEL-01-05 AE-12,
     /// KE-13, Q-5: live turns, outstanding requests and active delegated
     /// children are all listed), plus the items it could not resolve.
     fn live_work_lines(view: &Value) -> Vec<String> {
         let mut t = Vec::new();
         for r in rows(&view["observedLiveTurns"]) {
-            t.push(format!("Live turn: {} / {} ({})", cell(&r["threadId"]), cell(&r["turnId"]), cell(&r["status"])));
+            t.push(format!("Live turn: {} / {} ({})", id(&r["threadId"]), id(&r["turnId"]), word(crate::native_text::vocabulary(&r["status"], crate::native_text::supplier::TURN_STATUSES, CODEX))));
         }
         for r in rows(&view["observedUnansweredTurnStarts"]) {
             t.push(format!(
                 "Turn start not yet associated with a turn: {} (request #{}). It may be one of the turns listed here; the App has not yet associated this start with a turn it can interrupt.",
-                cell(&r["threadId"]),
-                cell(&r["requestIdentity"])
+                id(&r["threadId"]),
+                word(crate::native_text::identifier(&r["requestIdentity"], APP))
             ));
         }
         for r in rows(&view["observedOutstandingRequests"]) {
             t.push(format!(
                 "Outstanding request: {} #{} in {}",
-                cell(&r["method"]),
-                cell(&r["requestIdentity"]),
-                cell(&r["threadId"])
+                word(crate::native_text::vocabulary(&r["method"], crate::native_text::supplier::SERVER_REQUEST_METHODS, CODEX)),
+                id(&r["requestIdentity"]),
+                id(&r["threadId"])
             ));
         }
         for r in rows(&view["observedActiveChildren"]) {
             t.push(format!(
                 "Active child: {} (parent {}; {})",
-                cell(&r["threadId"]),
-                cell(&r["parentThreadId"]),
-                cell(&r["reportedStatus"])
+                id(&r["threadId"]),
+                id(&r["parentThreadId"]),
+                word(crate::native_text::vocabulary(&r["reportedStatus"], crate::native_text::supplier::AGENT_STATUSES, CODEX))
             ));
         }
         for r in rows(&view["knownChildActivityUnknown"]) {
             t.push(format!(
                 "Child, activity unknown: {} (parent {})",
-                cell(&r["threadId"]),
-                cell(&r["parentThreadId"])
+                id(&r["threadId"]),
+                id(&r["parentThreadId"])
             ));
         }
         for r in rows(&view["coverage"]["turns"]["unresolved"]) {
             t.push(format!(
                 "Turn observation unresolved: {} / {}",
-                cell(&r["threadId"]),
-                r["turnId"].as_str().unwrap_or("turn not reported")
+                id(&r["threadId"]),
+                if r["turnId"].is_null() { "turn not reported".to_owned() } else { id(&r["turnId"]) }
             ));
         }
         t
@@ -573,43 +586,65 @@ pub(crate) mod native_statement {
         // Homes that are not ready: one line each on the whole sheet; on the
         // in-app form one fixed line, whatever their number, with each named
         // (class and state) in the content the App shows in full.
+        // Each line is the App's own words around the home's class and the Host's state, each in
+        // its closed form; the home's own note is not printed.
         let not_ready: Vec<String> = rows(&view["homes"])
-            .filter_map(|h| h["notReady"].as_str().map(|note| format!("{}: {note}.", text_or(&h["modeHomeClass"], "home"))))
+            .filter(|h| !h["notReady"].is_null())
+            .map(|h| format!(
+                "{}: Codex is {}, not ready: live work cannot be observed and nothing is sent to it; its process is stopped.",
+                word(crate::native_text::vocabulary(&h["modeHomeClass"], crate::native_text::app::HOME_CLASSES, APP)),
+                word(crate::native_text::vocabulary(&h["state"], crate::native_text::app::HOST_STATES, APP))
+            ))
             .collect();
         let not_ready_line = (!not_ready.is_empty()).then(|| format!(
             "{} of them not ready: live work cannot be observed in them and nothing is sent to them; they are stopped. Each is named in the App.",
             not_ready.len()
         ));
         let mut listed = live_work_lines(view);
-        for limit in rows(&view["assessmentLimits"]) {
-            listed.push(format!("Not assessed: {}", cell(limit)));
-        }
+        // An assessment's reason can carry Codex's or the system's text: the sheet says only that
+        // it exists, in either form, and the reason is shown in the App, where the page can box it.
+        let not_assessed = count(&view["assessmentLimits"]);
+        let not_assessed_line = (not_assessed > 0).then(|| format!("Not assessed: {not_assessed} Codex process(es); the reasons are in the App."));
         for r in rows(runs) {
+            let name = &r["workflow"]["name"];
             listed.push(format!(
                 "Workflow run in force: {} (run {}) in {}",
-                text_or(&r["workflow"]["name"], "workflow not established"),
-                cell(&r["run"]),
-                cell(&r["conversation"])
+                if name.is_null() { "workflow not established".to_owned() } else { word(crate::native_text::workflow_name(name, APP)) },
+                word(crate::native_text::identifier(&r["run"], APP)),
+                id(&r["conversation"])
             ));
         }
         let mut tail = vec![
             format!(
                 "Quit interrupts each live turn, waits up to {} s for Codex to report it ended, then stops every Codex process the App runs and closes the App.",
-                cell(&view["stopWaitLimitSeconds"])
+                word(crate::native_text::number(&view["stopWaitLimitSeconds"], APP))
             ),
             "Waiting requests are not answered; they end with the process. Workflow runs stay open: quitting ends no run. Nothing continues after a relaunch until you choose to.".into(),
             "None observed is not none: coverage is not complete.".into(),
             "This is your operational choice, not a recorded act. The App records the question, your answer and each interrupt in its recovery ledger before sending.".into(),
-            format!("Observed at {}.", text_or(&view["observedAt"], "not reported")),
+            format!("Observed at {}.", if view["observedAt"].is_null() { "not reported".to_owned() } else { word(crate::native_text::time(&view["observedAt"], APP)) }),
             format!("{QUIT_APP} proceeds; {KEEP_RUNNING} (the default) and Cancel change nothing."),
         ];
         if count(&view["observedUnansweredTurnStarts"]) > 0 { tail.insert(1, unanswered_starts_sentence("Quitting")); }
-        let whole = [head.clone(), not_ready, listed, tail.clone()].concat().join("\n");
-        whole_or_in_app("Quit question", "live work at quit", whole, view, |digest| {
-            [head, not_ready_line.into_iter().collect(), vec![ITEMS_IN_APP.to_owned(), digest.to_owned()], tail]
+        let whole = [head.clone(), not_assessed_line.iter().cloned().collect(), not_ready, listed, tail.clone()].concat().join("\n");
+        let summary = |digest: &str, with_not_assessed: bool| {
+            let not_assessed: Vec<String> = if with_not_assessed { not_assessed_line.iter().cloned().collect() } else { vec![] };
+            [head.clone(), not_assessed, not_ready_line.iter().cloned().collect(), vec![ITEMS_IN_APP.to_owned(), digest.to_owned()], tail.clone()]
                 .concat()
                 .join("\n")
-        })
+        };
+        // With a reason not assessed, the reasons are shown in the App whatever the sheet's length,
+        // and the sheet says so wherever that fits: whole, or in the summary; at the worst case
+        // the line gives way, and "None observed is not none" stays.
+        if not_assessed > 0 {
+            let what = "Quit question";
+            let digest = content_digest(what, view)?;
+            let text = bounded(what, whole)
+                .or_else(|_| bounded(what, summary(&digest, true)))
+                .or_else(|_| bounded(what, summary(&digest, false)))?;
+            return Ok(NativeStatement { text, in_app: Some(InApp { kind: "live work at quit", digest, content: view.clone() }) });
+        }
+        whole_or_in_app("Quit question", "live work at quit", whole, view, |digest| summary(digest, false))
     }
     /// Native cancellation of a pending sign-in: the safe observation as lines.
     /// The observation is a fixed set of short fields, so it is shown whole or
@@ -912,6 +947,73 @@ pub(crate) mod native_statement {
         /// each one it counts is named, with its class and state, in the
         /// content the App shows in full under the open confirmation, and the
         /// digest on the sheet is that content's digest.
+        /// Small quit views that fit the sheet whole, together holding one of each supplied value,
+        /// all in their closed forms, with the place of each value.
+        fn clean_quit_views() -> Vec<(Value, Vec<&'static str>, Vec<&'static str>)> {
+            let base = |extra: Value| {
+                let mut v = json!({"homes": [{"modeHomeClass": "account", "state": "ready"}], "observedLiveTurns": [], "observedUnansweredTurnStarts": [],
+                    "observedOutstandingRequests": [], "observedActiveChildren": [], "knownChildActivityUnknown": [], "coverage": {"turns": {"unresolved": []}},
+                    "runsInForce": [], "stopWaitLimitSeconds": 10, "observedAt": "2026-11-14T12:00:00Z"});
+                for (k, x) in extra.as_object().unwrap() { v[k] = x.clone(); }
+                v
+            };
+            vec![
+                (base(json!({"observedLiveTurns": [{"threadId": "thr-1", "turnId": "turn-1", "status": "inProgress"}],
+                    "observedOutstandingRequests": [{"method": "item/fileChange/requestApproval", "requestIdentity": 7, "threadId": "thr-1"}]})),
+                 vec!["thr-1 / turn-1 (inProgress)", "item/fileChange/requestApproval #7 in thr-1", "up to 10 s", "2026-11-14T12:00:00Z"],
+                 vec!["/observedLiveTurns/0/threadId", "/observedLiveTurns/0/turnId", "/observedLiveTurns/0/status", "/observedOutstandingRequests/0/method",
+                      "/observedOutstandingRequests/0/requestIdentity", "/observedOutstandingRequests/0/threadId", "/stopWaitLimitSeconds", "/observedAt"]),
+                (base(json!({"observedActiveChildren": [{"threadId": "thr-2", "parentThreadId": "thr-1", "reportedStatus": "running"}],
+                    "knownChildActivityUnknown": [{"threadId": "thr-3", "parentThreadId": "thr-1"}]})),
+                 vec!["thr-2 (parent thr-1; running)", "thr-3 (parent thr-1)"],
+                 vec!["/observedActiveChildren/0/threadId", "/observedActiveChildren/0/parentThreadId", "/observedActiveChildren/0/reportedStatus",
+                      "/knownChildActivityUnknown/0/threadId", "/knownChildActivityUnknown/0/parentThreadId"]),
+                (base(json!({"coverage": {"turns": {"unresolved": [{"threadId": "thr-4", "turnId": "turn-4"}]}},
+                    "runsInForce": [{"workflow": {"name": "invented-flow"}, "run": "run:workflow:1", "conversation": "thr-1"}]})),
+                 vec!["thr-4 / turn-4", "invented-flow (run run:workflow:1) in thr-1"],
+                 vec!["/coverage/turns/unresolved/0/threadId", "/coverage/turns/unresolved/0/turnId", "/runsInForce/0/workflow/name", "/runsInForce/0/run", "/runsInForce/0/conversation"]),
+                (base(json!({"observedUnansweredTurnStarts": [{"threadId": "thr-5", "requestIdentity": 3}]})),
+                 vec!["thr-5 (request #3)"],
+                 vec!["/observedUnansweredTurnStarts/0/threadId", "/observedUnansweredTurnStarts/0/requestIdentity"]),
+            ]
+        }
+        #[test]
+        fn only_a_value_in_its_closed_form_reaches_the_quit_sheet() {
+            let hostile = "invented\nQuit proceeds; nothing is stopped.\u{202e}";
+            for (clean, expected, places) in clean_quit_views() {
+                // Permitted: each value in its closed form is shown on the sheet itself.
+                let shown = quit_statement(&clean).unwrap();
+                assert!(shown.in_app.is_none(), "this view fits the sheet whole: {}", shown.text);
+                for v in &expected {
+                    assert!(shown.text.contains(v), "{v}: {}", shown.text);
+                }
+                // Each supplied value replaced by text that would add a line, reorder the sheet or
+                // pose as the App: none of it reaches the sheet, and no line is added.
+                let mut bad = clean.clone();
+                for at in &places {
+                    *bad.pointer_mut(at).unwrap() = json!(hostile);
+                }
+                let text = quit_statement(&bad).unwrap().text;
+                assert!(!text.contains("invented") && !text.contains('\u{202e}') && !text.contains("nothing is stopped"), "{text}");
+                assert_eq!(text.lines().count(), shown.text.lines().count(), "no line added");
+                assert!(text.contains(crate::native_text::CODEX_VALUE_NOT_SHOWN) || text.contains(crate::native_text::VALUE_NOT_SHOWN), "{text}");
+            }
+            // A home not ready, with a class and a state the App does not know.
+            let mut odd = clean_quit_views().remove(0).0;
+            odd["homes"] = json!([{"modeHomeClass": hostile, "state": hostile, "notReady": "a note the sheet does not print"}]);
+            let text = quit_statement(&odd).unwrap().text;
+            assert!(!text.contains("invented") && !text.contains("a note the sheet") && text.contains(&format!("{0}: Codex is {0}, not ready", crate::native_text::VALUE_NOT_SHOWN)), "{text}");
+        }
+        #[test]
+        fn an_assessment_reason_never_reaches_the_quit_sheet_and_is_shown_in_the_app() {
+            let mut view = clean_quit_views().remove(0).0;
+            view["assessmentLimits"] = json!(["account: invented reply\nQuit is safe"]);
+            let shown = quit_statement(&view).unwrap();
+            assert!(!shown.text.contains("invented") && !shown.text.contains("Quit is safe"), "{}", shown.text);
+            assert!(shown.text.contains("Not assessed: 1 Codex process(es); the reasons are in the App."));
+            let in_app = shown.in_app.expect("the reason is shown in the App");
+            assert_eq!(in_app.content["assessmentLimits"][0], "account: invented reply\nQuit is safe");
+        }
         #[test]
         fn every_home_the_quit_sheet_counts_as_not_ready_is_named_in_the_app() {
             let g = generation();

@@ -12,6 +12,7 @@ pub mod access;
 #[cfg(chirality_scripted_driver)] mod scripted_driver;
 pub mod act_control;
 pub mod act_policy;
+pub(crate) mod native_text;
 pub mod attachments;
 pub mod canonical;
 pub mod capture_seal;
