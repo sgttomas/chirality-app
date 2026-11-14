@@ -943,6 +943,51 @@ class QuitEnds(unittest.TestCase):
             self.assertEqual((after['7772'], after['7773']), (before['7772'], before['7773']))  # these outlived it
 
 
+class TrustWrite(unittest.TestCase):
+    """At full access, with the home's own new, empty settings (the App's layout): what `thread/start` writes into
+    the settings with and without one explicit project trust entry, as the App sends it, for the project's root."""
+
+    FULL_START = {'approvalPolicy': 'never', 'approvalsReviewer': 'user', 'sandbox': 'danger-full-access'}
+
+    def settings_after(self, run, entry_root):
+        cfg = run.home / 'config.toml'
+        self.assertEqual(cfg.read_bytes(), b'')
+        client = run.start()
+        params = dict(self.FULL_START)
+        if entry_root is not None:
+            params['config'] = {'projects': {os.path.realpath(str(entry_root)): {'trust_level': 'untrusted'}}}
+        self.assertEqual(client.start_thread(**params)['sandbox']['type'], 'dangerFullAccess')
+        time.sleep(2)
+        return cfg.read_text()
+
+    def test_a_git_project_is_marked_trusted_in_the_settings_unless_an_entry_is_sent(self):
+        for entry in (False, True):
+            with self.subTest(entry=entry), L.Run(SCRATCH, BINARY, working_files=True, git_marker=True) as run:
+                (run.project / '.git' / 'HEAD').write_text('ref: refs/heads/main\n')
+                written = self.settings_after(run, run.project if entry else None)
+                if entry:
+                    self.assertEqual(written, '')
+                else:
+                    self.assertEqual(written, '[projects."%s"]\ntrust_level = "trusted"\n' % os.path.realpath(str(run.project)))
+
+    def test_a_worktree_marks_its_main_repository_unless_an_entry_for_the_worktree_is_sent(self):
+        for entry in (False, True):
+            with self.subTest(entry=entry), L.Run(SCRATCH, BINARY, working_files=True, project_name='wt') as run:
+                main = run.root / 'outside' / 'main'
+                linked = main / '.git' / 'worktrees' / 'wt'
+                linked.mkdir(parents=True)
+                (main / '.git' / 'HEAD').write_text('ref: refs/heads/main\n')
+                (linked / 'HEAD').write_text('ref: refs/heads/wt\n')
+                (linked / 'commondir').write_text('../..\n')
+                (linked / 'gitdir').write_text(str(run.project / '.git') + '\n')
+                (run.project / '.git').write_text('gitdir: %s\n' % linked)
+                written = self.settings_after(run, run.project if entry else None)
+                if entry:
+                    self.assertEqual(written, '')  # the entry for the worktree's own root is enough
+                else:
+                    self.assertEqual(written, '[projects."%s"]\ntrust_level = "trusted"\n' % os.path.realpath(str(main)))
+
+
 class Background(Probing):
     def test_a_background_commands_item_stays_in_progress_after_its_turn_and_completes_when_it_ends(self):
         """A command left running when its turn completes: its item was started with a process id, and is still
