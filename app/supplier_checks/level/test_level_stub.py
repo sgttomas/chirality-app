@@ -303,6 +303,14 @@ class Judging(unittest.TestCase):
                            target=lines, items=())
         self.assertEqual(other.kind, L.FAILED)
 
+    def test_an_item_that_contradicts_a_refusal_refuses(self):
+        refused = 'Process exited with code 1\nOutput:\nzsh:1: operation not permitted: /run/project/w-in\n'
+        self.assertEqual(self.judge(refused, items=()).kind, L.SANDBOX_REFUSED)  # no item: a refusal
+        self.assertEqual(self.judge(refused, item_status='failed', item_exit=1).kind, L.SANDBOX_REFUSED)
+        for status, exit_code in (('completed', 0), ('completed', 1), ('failed', 0), (None, 0)):
+            with self.assertRaises(L.Refused, msg=(status, exit_code)):
+                self.judge(refused, item_status=status, item_exit=exit_code)
+
     def test_a_failure_without_the_sandbox_text_is_not_a_refusal(self):
         failed = self.judge('Process exited with code 7\nOutput:\ncurl: (7) Failed to connect\n', items=())
         self.assertEqual(failed.kind, L.FAILED)

@@ -448,7 +448,8 @@ def judge(call_id, issued, not_offered, output, item_ids, request_item_ids, turn
       inconclusive, never as a pass;
     - otherwise the stub must have issued it, and the turn must have completed;
     - succeeded: the output says exit 0, and a commandExecution item with the call's id started in that turn;
-    - refused by the sandbox: a non-zero exit, and the whole output is the refusal line for the expected target;
+    - refused by the sandbox: a non-zero exit, and the whole output is the refusal line for the expected target; no
+      item is required, but an item that completed, or carries another exit code, contradicts it and refuses;
     - declined: an approval request with the call's id reached the fixture, the output says rejected, and the
       call's item, if any, ended declined, not run;
     - rejected by policy: the output says so, and no approval request with the call's id was raised.
@@ -472,6 +473,11 @@ def judge(call_id, issued, not_offered, output, item_ids, request_item_ids, turn
             raise Refused('%s was declined, yet its item ended %s' % (call_id, item_status))
         if item_exit is not None:
             raise Refused('%s was declined, yet its item carries exit code %r' % (call_id, item_exit))
+    if outcome.kind == SANDBOX_REFUSED and (item_status == 'completed' or
+                                            (item_exit is not None and item_exit != outcome.exit)):
+        # No item is required for a refusal (a refused command completes none), but one that is present and says
+        # otherwise contradicts it.
+        raise Refused('%s printed a refusal, yet its item ended %s with exit code %r' % (call_id, item_status, item_exit))
     if outcome.kind == REJECTED and asked:
         raise Refused('%s was reported rejected by policy, yet a request was raised for it' % call_id)
     outcome.evidence = {'issued': True, 'item': call_id in item_ids, 'request': asked, 'turn': turn_status,
