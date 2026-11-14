@@ -1887,7 +1887,10 @@ impl HotRegistrationAttempt {
     fn append_entry_line(&mut self, index: usize, line: &Value) -> Result<(), String> {
         match append_line(&self.session.root, line) {
             Err(error) if error.is_refusal() => {
-                let reason = format!("{error}; registration was not made. The App is not retrying; waiting will not resolve this refusal");
+                // "the workflow registry file <path> has another name; nothing was written to it" becomes
+                // "... has another name. Nothing was written to it, and the registration was not made. ..."
+                let refusal = error.to_string().replacen("; nothing was written to it", ". Nothing was written to it", 1);
+                let reason = format!("{refusal}, and the registration was not made. The App is not retrying; waiting will not resolve this.");
                 self.progress[index] = Progress::Pending(reason.clone());
                 Err(reason)
             }
@@ -2347,7 +2350,7 @@ fn append_line(root: &Path, line: &Value) -> Result<(), storage::AppendOpenError
     if FAIL_LEDGER_APPEND.with(|fail| fail.replace(false)) {
         return Err("injected ledger append failure before any write".into());
     }
-    let mut file = storage::open_append(&path, true, false)?;
+    let mut file = storage::open_append(&path, "workflow registry", true, false)?;
     storage::check_path(&path)?;
     let mut bytes = serde_json::to_vec(line).map_err(|e| e.to_string())?;
     bytes.push(b'\n');

@@ -2940,7 +2940,7 @@ fn alias_refusal_registry_pending_retains_liveness_and_true_sentence_on_repeat()
     for _ in 0..2 {
         match &attempt.advance()[0] {
             EntryOutcome::Pending { reason, .. } => {
-                assert!(reason.contains("has another name") && reason.contains("nothing was written") && reason.contains("registration was not made"), "{reason}");
+                assert!(reason.starts_with("the workflow registry file ") && reason.contains(" has another name. Nothing was written to it, and the registration was not made. The App is not retrying; waiting will not resolve this."), "{reason}");
                 assert!(!reason.contains("durability uncertain"), "{reason}");
                 reasons.push(reason.clone());
             }

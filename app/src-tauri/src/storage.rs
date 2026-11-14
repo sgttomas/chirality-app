@@ -164,10 +164,13 @@ impl From<&str> for AppendOpenError {
 /// This checks the file at open; it does not protect against parent-directory
 /// substitution or mutation after open. Callers retain their path/admission
 /// checks. `read` grants access for a writer's last-byte check or repair read.
-pub(crate) fn open_append(path: &Path, create: bool, read: bool) -> Result<File, AppendOpenError> {
+/// `what` names the file as the App names it elsewhere ("records log",
+/// "read log", "records store control", "workflow registry"), so a refusal
+/// tells the person which of their files is affected.
+pub(crate) fn open_append(path: &Path, what: &str, create: bool, read: bool) -> Result<File, AppendOpenError> {
     use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
     let refused = |reason: &str| AppendOpenError(AppendOpenCause::Refused(format!(
-        "append file {} {reason}; nothing was written", path.display()
+        "the {what} file {} {reason}; nothing was written to it", path.display()
     )));
     let open = |exclusive: bool| {
         OpenOptions::new().append(true).read(read).create_new(exclusive)
@@ -185,7 +188,7 @@ pub(crate) fn open_append(path: &Path, create: bool, read: bool) -> Result<File,
         other => other,
     };
     let file = result.map_err(|e| match e.raw_os_error() {
-        Some(libc::ELOOP) if std::fs::symlink_metadata(path).is_ok_and(|m| m.file_type().is_symlink()) => refused("has another name (symbolic link refused)"),
+        Some(libc::ELOOP) if std::fs::symlink_metadata(path).is_ok_and(|m| m.file_type().is_symlink()) => refused("is a symbolic link"),
         // A write-only, nonblocking FIFO with no reader fails at open, before
         // it can supply a handle for fstat. Directories also refuse at open.
         Some(libc::ENXIO) | Some(libc::EISDIR) => refused("is not a regular file"),
@@ -201,6 +204,26 @@ pub(crate) fn open_append(path: &Path, create: bool, read: bool) -> Result<File,
     if flags == -1 || unsafe { libc::fcntl(file.as_raw_fd(), libc::F_SETFL, flags & !libc::O_NONBLOCK) } == -1 {
         return Err(AppendOpenError(AppendOpenCause::Io(std::io::Error::last_os_error())));
     }
+    Ok(file)
+}
+/// A path that only reads asks only for read access: open the final name
+/// read-only, without following a link or waiting on a special file, and
+/// require a regular file. It does not require one link (readers admit a
+/// two-link log); the stricter checks belong to `open_append`, the handle
+/// that writes. Nothing is written through this handle.
+pub(crate) fn open_read_regular(path: &Path, what: &str) -> Result<File, AppendOpenError> {
+    use std::os::unix::fs::OpenOptionsExt;
+    let refused = |reason: &str| AppendOpenError(AppendOpenCause::Refused(format!(
+        "the {what} file {} {reason}; nothing was written to it", path.display()
+    )));
+    let file = OpenOptions::new().read(true)
+        .custom_flags(libc::O_NOFOLLOW | libc::O_CLOEXEC | libc::O_NONBLOCK).open(path)
+        .map_err(|e| match e.raw_os_error() {
+            Some(libc::ELOOP) if std::fs::symlink_metadata(path).is_ok_and(|m| m.file_type().is_symlink()) => refused("is a symbolic link"),
+            _ => AppendOpenError(AppendOpenCause::Io(e)),
+        })?;
+    let meta = file.metadata().map_err(|e| AppendOpenError(AppendOpenCause::Io(e)))?;
+    if !meta.is_file() { return Err(refused("is not a regular file")); }
     Ok(file)
 }
 
@@ -219,7 +242,7 @@ pub(crate) fn append_alias_fixture(kind: &str, before: &[u8], write: impl Fn(&Pa
             assert!(elapsed < Duration::from_millis(500), "FIFO refusal took {elapsed:?}");
         }
         let error = result.expect_err("aliased or special file must be refused");
-        assert!(error.contains(if kind == "fifo" { "not a regular file" } else { "has another name" }), "{error}");
+        assert!(error.contains(match kind { "fifo" => "not a regular file", "symlink" | "dangling" => "is a symbolic link", _ => "has another name" }), "{error}");
         assert!(error.contains("nothing was written"), "{error}");
         return;
     }
@@ -903,7 +926,7 @@ pub(crate) fn project_of_log(log: &Path) -> Result<Option<PathBuf>, String> {
 mod tests {
     use super::*;
     fn alias_open(kind: &str) {
-        append_alias_fixture(kind, b"original\n", |path| open_append(path, true, true).map(|_| ()).map_err(|e| e.to_string()));
+        append_alias_fixture(kind, b"original\n", |path| open_append(path, "records log", true, true).map(|_| ()).map_err(|e| e.to_string()));
     }
     #[test]
     fn alias_refusal_storage_hardlink() { alias_open("hardlink"); }
