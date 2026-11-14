@@ -1,31 +1,80 @@
 # Sandbox and approval settings at Codex 0.167.0
 
 What the pinned Codex app server does with the approval and sandbox settings a
-client may send, shown by starting it against a loopback stub that scripts the
-model's tool calls. No model, no sign-in, no credential. These are facts about
+client may send. The tests start it against a loopback stub that scripts the
+model's tool calls: no model, no sign-in, no credential. They are facts about
 the supplier at the pin, kept as tests so that they keep guarding it. They
 qualify no App candidate.
 
+## What a pass means
+
+**Acceptance rule.** A test passes only when it has observed what its row
+names: for the listed operations, at the levels stated, within the stated
+observation window. The observations are the protocol stages of each call,
+tied to the call's id (see "How an outcome is decided"), and the effects on
+the file system and on the stub.
+
+**The fixture's own inputs are fixed, and this is enforced before anything
+reaches Codex:**
+- **The commands.** The only commands a scripted shell call may carry are
+  those of `Run.commands()`. The stub refuses any other before issuing it
+  (`ScriptedStub.answer`, against `allowed_commands`, which `Run.__enter__`
+  sets), so such a call never reaches Codex.
+- **The paths.** Every path lies under a scratch base the fixture checks
+  (`checked_scratch`, called by `Run`). The base and each of its ancestors
+  must be free of `$`, a backquote, `"` and `\`, the characters a shell
+  expands or mishandles inside double quotes. Only the project folder's own
+  name may differ, and only in the one test that needs it (`project_name`).
+  Every path in a command is quoted for the shell.
+
+**The faults the suite has been shown to reject.** Each class below was
+introduced on purpose, and the tests concerned then failed or were
+inconclusive. The second independent reading did this by hand across the suite
+(137 calls removed, 132 completions suppressed, 125 effects inverted, 54
+non-sandbox failures substituted). The stub-only tests do it for the judge
+itself.
+- a tested call removed from the script;
+- a turn's completion suppressed;
+- a command's effect inverted;
+- a command failing for a reason that is not the sandbox, including the words
+  "operation not permitted" printed by the command or held in its path, and the
+  refusal line for a different target;
+- a reply reporting one policy while the effects are another's;
+- a declined command whose item ran;
+- an item of another type or turn carrying the call's id;
+- a command off the fixed list;
+- a scratch base holding an expanding character;
+- a process of the run left behind, and a permission error from the final
+  signal while the group has members.
+
+This shows the tests are sensitive to those faults. It does not show that
+every possible false pass is excluded.
+
+**Not guarded, and so stated:**
+- a command or a path written to imitate evidence: the fixture writes all of
+  them;
+- a process of the run whose command line names no path of the run. After the
+  servers stop, `Run.nothing_remains` waits until no process names the run's
+  root, or fails listing each one that does. The network probe is such a
+  process: its argument is only the port, and it ends within its 3 s timeout.
+
+## Files
+
 - `level_fixture.py`: the stub, a fresh root per run, the App side of the
-  JSON-RPC exchange, and `judge`, which decides what happened to one scripted
-  call. Every approval request the fixture receives is declined. Every command
-  the stub scripts is one of `Run.commands()`. Each writes one file under the
-  run's own folders, reads the project, or connects to the stub's own loopback
-  address, and every path in it is quoted for the shell.
+  JSON-RPC exchange, and `judge`. Every approval request the fixture receives
+  is declined.
 - `test_level_live.py`: one fact per test.
   - It needs `CHIRALITY_CODEX_BIN` set to the pinned binary, whose digest is
-    checked against `GENERATION.json` before every start, and is skipped
-    otherwise.
-  - It runs in the full suite's product job (`.github/workflows/app-v4.yml`).
-    That step sets `LEVEL_REQUIRE_LIVE=1`, under which a missing binary fails
-    the suite instead of skipping it. An unpinned binary fails either way.
-  - `LEVEL_SCRATCH` names where the roots are made. `LEVEL_HOLD_SECONDS` sets
-    how long a call to an App-supplied tool is left unanswered (default 120).
+    checked before every start, and is skipped otherwise.
+  - The full suite's product job (`.github/workflows/app-v4.yml`) runs it with
+    `LEVEL_REQUIRE_LIVE=1`, under which a missing binary fails instead of
+    skipping. An unpinned binary fails either way.
+  - `LEVEL_SCRATCH` names the scratch base, which the check above admits or
+    refuses. `LEVEL_HOLD_SECONDS` sets how long a call to an App-supplied tool
+    is left unanswered (default 120).
 - `test_level_stub.py`: the stub, the run's folders, the fixed commands, the
-  cleanup, and `judge` itself, with no Codex. It runs in `repository-checks`.
-  It includes tests that break the suite on purpose and must fail: a call
-  removed from the script, a turn that never completes, a failure without the
-  sandbox's text, and a misleading configuration report.
+  guards above, the cleanup and `judge`, with no Codex. It runs in
+  `repository-checks`.
 
 From `app/`: `CHIRALITY_CODEX_BIN=/abs/codex python3 supplier_checks/level/test_level_live.py`.
 
@@ -42,8 +91,8 @@ app-server`), with an environment built whole:
 The stub answers the WebSocket upgrade with 426, so Codex uses HTTP at once.
 The project has no `.git` above it, as the launcher requires; some cases put a
 `.git` folder inside the project. The cases that write to `/tmp` use a folder
-`/private/tmp/chirality-level-<run>/`. The run refuses to start if that folder
-exists, makes it itself, and removes it afterwards.
+`/private/tmp/chirality-level-<run>/` that the run refuses to start if it
+exists, makes itself, and removes afterwards.
 
 "Edits" below is `on-request` with `workspaceWrite`; "supervised" is
 `untrusted` with `readOnly`; "full access" is `never` with `dangerFullAccess`.
@@ -52,60 +101,67 @@ The level is sent on each turn (`turn/start` `approvalPolicy` and
 
 ## How an outcome is decided
 
-Each assertion names one outcome of one scripted call. `judge` decides it from
-the protocol stages that outcome has, each tied to the call's id:
-- **ran and succeeded**: the output says exit 0, and Codex started a command
-  item with the call's id;
-- **ran and was refused by the sandbox**: the output says a non-zero exit and
-  carries the refusal's own text ("operation not permitted", from the shell, or
-  from the network probe, which prints the system's reason where curl would
-  not);
-- **declined**: an approval request with the call's id reached the fixture, and
-  the output says rejected;
-- **rejected by policy**: the output says so, and no request was raised for the
-  call;
-- **not offered**: the stub could not make the call. This is inconclusive: the
-  test fails, saying so.
+`judge` decides each scripted call's outcome from the protocol stages that
+outcome has, tied to the call's id:
+- **ran and succeeded**: the output says exit 0, and a `commandExecution` item
+  with the call's id started in the call's own turn;
+- **ran and was refused by the sandbox**: a non-zero exit, and the whole output
+  is exactly the refusal line for the expected target. For a write, that is
+  the line zsh, bash or sh prints naming that path and "operation not
+  permitted". For the network probe (a perl connect, because curl prints the
+  same text for a sandbox refusal and a closed port), it is its own
+  "connect failed: Operation not permitted". Any other failure is
+  inconclusive when a refusal was expected;
+- **declined**: an approval request with the call's id reached the fixture, the
+  output says rejected, and the call's item ended `declined` with no exit code;
+- **rejected by policy**: the output says so, and no request was raised for
+  the call;
+- **not offered**: the stub could not make the call. This is inconclusive, and
+  the test fails.
 
 A turn that did not complete, a call the stub never issued, or an output
-nobody recognises refuses. Every assertion that no request arrived keeps, in
-the same test, a request arriving on the same client where one is expected.
+nobody recognises refuses.
 
 ## What the tests show
 
-Each row is asserted by its test, as the row states it. The commands and
-destinations named are the only ones tried. The 0.167.0 schema is the source
-for the parameter names; no row rests on the schema alone.
+Each row is asserted by its test as stated, for the operations named, and
+names its control. A row marked **observation** states its window and has no
+control.
 
-| Fact | Test |
-| --- | --- |
-| **The examinations' level.** Edits with approval `never`, network off and both temporary folders excluded. The project write succeeds. Writes outside the project, to `TMPDIR`, to `/tmp` and into the project's `.git`, and the network probe, each run and are refused by the sandbox, with its text. A command asking for escalation is rejected by Codex's policy before it runs. No request of any kind arises on that thread. The control: on the same client, an escalation at edits raises a request. | `Presets.test_edits_that_never_ask_fail_whatever_needs_more_and_raise_nothing` |
-| **Nothing sent** (what the App sends today). The reply reports `on-request`, `readOnly` with network off, and profile `:read-only`. The writes tried (the project, outside it, `TMPDIR`, `/tmp`, `.git`) and the network probe each run and are refused by the sandbox, and none raises a request. On the same thread, a command that asks for escalation raises `item/commandExecution/requestApproval` for that call. | `Presets.test_nothing_sent_is_on_request_read_only_and_a_refused_write_asks_no_one` |
-| A write the sandbox refused completes no `commandExecution` item; a write that succeeds has one. | `Presets.test_a_write_the_sandbox_refused_completes_no_command_item` |
-| **Supervised** raises a command approval, for that call, before every command tried: the five writes, the network probe and a plain `/bin/ls`. Each declined command does not run. | `Presets.test_supervised_asks_before_every_command_tried_and_a_declined_one_does_not_run` |
-| **Edits, network off.** The writes to the project, `TMPDIR` and `/tmp` succeed. The writes outside the project and into `.git`, and the network probe, are refused by the sandbox. Nothing is asked, except for a command asking for escalation. | `Presets.test_edits_with_network_off` |
-| **Edits, network on.** The same, except that the network probe connects to the stub. | `Presets.test_edits_with_network_on` |
-| **Full access.** Every write tried, `.git` included, and the network probe succeed, and nothing is asked. A command asking for escalation is rejected by Codex's policy. The control: on the same client, an escalation at edits raises a request. | `Presets.test_full_access_writes_everywhere_tried_and_an_escalation_request_is_refused_by_codex` |
-| `excludeSlashTmp` makes a write to `/tmp` refused, while `TMPDIR` stays writable. `excludeTmpdirEnvVar` makes a write to `TMPDIR` refused, while `/tmp` stays writable. | `Presets.test_the_two_temporary_folder_exclusions` |
-| A `writableRoots` entry makes a write there succeed that is refused without it, and the project stays writable. | `Presets.test_an_extra_writable_root` |
-| Under a scratch folder whose name holds spaces, single quotes, parentheses, a semicolon and an ampersand, the quoted commands write only their own targets, and nothing appears beside the folder. | `Presets.test_paths_with_spaces_and_shell_characters_stay_contained` |
-| **Codex finding.** With a double quote in the project's path, the macOS sandbox profile Codex writes does not parse. A command under workspace write fails with `sandbox-exec`'s own parse error and does not run, so it fails closed. Under full access, which uses no sandbox, the same write succeeds. | `Presets.test_a_double_quote_in_the_project_path_makes_every_sandboxed_command_fail_to_start` |
-| A setting sent on `thread/start` is held to and reported. A setting on `turn/start` is held to on that turn and on the next one sent with none. `thread/read` reports neither `approvalPolicy` nor `sandbox`. After a restart, `thread/resume` with none reports and holds the last setting, whether it was set at start or on a turn. `thread/resume` with a narrower setting reports it and holds to it. | `Carriers.test_thread_start_turn_start_and_resume` |
-| `thread/start`, `thread/resume` and `thread/fork` take only a sandbox mode name. `config.sandbox_workspace_write` carries `network_access`, `exclude_slash_tmp`, `exclude_tmpdir_env_var` and `writable_roots`. Each reply reports the whole policy, and on start, fork and resume the allowed and the refused effects are each observed. | `Carriers.test_config_carries_the_workspace_write_options_on_start_fork_and_resume` |
-| A writable root in the Codex home's `config.toml` (the person's own settings) widens workspace write, and the start reply lists it. `config.sandbox_workspace_write.writable_roots = []` on `thread/start` removes it: the write there is then refused, and the project's write succeeds. A turn's `sandboxPolicy` with `writableRoots: []` does not remove it: the write still succeeds. | `Carriers.test_writable_roots_from_the_home_config_are_removed_only_by_a_start_override` |
-| Two home configurations were tried. One names the widest values: approval `never`, the automatic reviewer, full access, network on, neither temporary folder excluded. The other names a full-access permissions profile. In each, nothing sent gives the person's own: the reply reports them, and a write outside the project succeeds. The level sent at start, or on each turn alone, then decides approval, reviewer, sandbox, network and both exclusions. The project write succeeds; outside, `TMPDIR`, `/tmp` and the network probe are refused by the sandbox; an escalation raises a request for the call. Writable roots are the one exception (row above). | `Carriers.test_the_level_sent_wins_over_the_home_config_on_every_other_dimension` |
-| `thread/fork` with none inherits the source's setting; with a setting, it applies it. Each fork reply reports it, and each fork is held to it: a write its level forbids is refused, and one it allows succeeds. A fork's requests to the provider carry no `tools`, yet a call made anyway runs. | `Carriers.test_fork` |
-| A command started in one turn is still running when the turn completes. The next turn's narrower setting is in force (its own write is refused), yet the running command still writes outside the project. | `Narrowing.test_a_running_command_outlives_its_turn_and_a_narrower_next_turn` |
-| A child spawned by `spawn_agent` is held to the parent's level. Under edits, its project write succeeds, its write outside is refused by the sandbox, and its escalation is declined at a request raised on the child's thread for that call. Under full access, both writes succeed and its escalation is rejected by policy. Neither child is offered `spawn_agent`, and each child's turn completes. | `Child.test_a_child_under_edits`, `Child.test_a_child_under_full_access` |
-| **A call to an App-supplied tool** (`dynamicTools` at thread start) arrives on its thread and turn.<br>Unanswered for `LEVEL_HOLD_SECONDS`, the turn does not end and the server stays up; answered, the turn completes with the answer.<br>`turn/interrupt` ends the turn as interrupted, and by the end of that server's life no `serverRequest/resolved` was sent (the interval is in the test's message).<br>Ended with a call outstanding, the restarted server, after resume, never raised that call or the interrupted one again, through the rest of its life in the test (10 s and more). That turn reads interrupted.<br>After resume, a new call is raised and answered.<br>On a fork the tool is not listed to the model, yet a call is routed to the fork's thread and answered. | `AppTool.test_held_interrupted_relaunched_resumed_and_forked` |
-| A child is not offered the App-supplied tool, and Codex answers its call as unsupported; nothing reaches the client. The control: the parent's own call reaches the client. | `AppTool.test_a_child_is_not_given_the_app_tool` |
-| `request_user_input` is listed to the model in an ordinary conversation, but a call to it is refused in Default mode, and nothing reaches the client. In plan mode the call reaches the client as `item/tool/requestUserInput`. | `Question.test_offered_but_refused_in_default_mode`, `Question.test_reaches_the_client_in_plan_mode` |
+| Fact | Control | Test |
+| --- | --- | --- |
+| **The examinations' level.** Edits with approval `never`, network off and both temporary folders excluded. The project write succeeds. Writes outside the project, to `TMPDIR`, to `/tmp` and into `.git`, and the network probe, each run and are refused by the sandbox. A command asking for escalation is rejected by policy. No request of any kind arises on that thread in the test. | On the same client, an escalation at edits raises a request. | `Presets.test_edits_that_never_ask_fail_whatever_needs_more_and_raise_nothing` |
+| **Nothing sent** (what the App sends today). The reply reports `on-request`, `readOnly` with network off, and profile `:read-only`. Each write tried and the network probe are refused by the sandbox, with no request. | On the same thread, an escalation raises a request for that call. | `Presets.test_nothing_sent_is_on_request_read_only_and_a_refused_write_asks_no_one` |
+| A write the sandbox refused completes no `commandExecution` item. | On the same thread, a write that succeeds has one. | `Presets.test_a_write_the_sandbox_refused_completes_no_command_item` |
+| **Supervised** raises a command approval, for that call, before every command tried: the five writes, the network probe and a plain `/bin/ls`. Each declined command is not reached: its item ends `declined`, with no exit code and no effect. | Every row is its own: each request is tied to its call. | `Presets.test_supervised_asks_before_every_command_tried_and_a_declined_one_does_not_run` |
+| **Edits, network off.** The project, `TMPDIR` and `/tmp` writes succeed. Outside, `.git` and the network probe are refused by the sandbox. An escalation is declined at its request. | The allowed and refused writes on the same thread. | `Presets.test_edits_with_network_off` |
+| **Edits, network on.** The same, except that the network probe connects to the stub. | As above. | `Presets.test_edits_with_network_on` |
+| **Full access.** Every write tried and the network probe succeed, and nothing is asked. An escalation is rejected by policy. | On the same client, an escalation at edits raises a request. | `Presets.test_full_access_writes_everywhere_tried_and_an_escalation_request_is_refused_by_codex` |
+| `excludeSlashTmp` makes a `/tmp` write refused while `TMPDIR` stays writable; `excludeTmpdirEnvVar` the reverse. | Each exclusion's other folder, and the project. | `Presets.test_the_two_temporary_folder_exclusions` |
+| A `writableRoots` entry makes a write there succeed that is refused without it. | The same write without the entry. | `Presets.test_an_extra_writable_root` |
+| Under a scratch base whose name holds spaces, single quotes, parentheses, a semicolon and an ampersand, the commands write only their own targets, and nothing appears beside the base. | The refused write outside the project. | `Presets.test_paths_with_spaces_and_shell_characters_stay_contained` |
+| **Codex finding.** With a double quote in the project folder's name, the macOS sandbox profile Codex writes does not parse. A command under workspace write fails with `sandbox-exec: unbound variable:` and does not run, so it fails closed. | Full access in the same project succeeds, and the same level in a plain project succeeds. | `Presets.test_a_double_quote_in_the_project_path_makes_every_sandboxed_command_fail_to_start` |
+| **Carriers.** A setting sent on `thread/start` is held to and reported. A setting on `turn/start` is held to on that turn and the next one sent with none. After a restart, `thread/resume` with none reports and holds the last setting. `thread/resume` with a narrower setting reports and holds it. Each approval stated is shown by an escalation: rejected under `never`, declined under `on-request`. `thread/read` reports neither `approvalPolicy` nor `sandbox`. | The same thread before the turn's setting (refused), and the narrowed resume (refused, and declined). | `Carriers.test_thread_start_turn_start_and_resume` |
+| **The config carrier.** `thread/start`, `thread/fork` and `thread/resume` take only a sandbox mode name; `config.sandbox_workspace_write` carries `network_access`, both exclusions and `writable_roots`. A root given at start is writable. The fork's `[]` removes it, so that write is refused. Resume gives it again, so it is writable again. Each reply reports the whole policy, and each policy's allowed and refused effects are observed. | Each step's opposite effects. | `Carriers.test_config_carries_the_workspace_write_options_on_start_fork_and_resume` |
+| **The writable-roots override.** A writable root in the Codex home's `config.toml` (the person's own settings) widens workspace write, and the start reply lists it. `writable_roots = []` through `config` on `thread/start` removes it: the write there is refused. A turn's `sandboxPolicy` with `writableRoots: []` does not remove it: the write succeeds. | The project write succeeds where the root is removed. | `Carriers.test_writable_roots_from_the_home_config_are_removed_only_by_a_start_override` |
+| **The level wins.** Two home configurations were tried: one names approval `never`, the automatic reviewer, full access, network on and neither temporary folder excluded; the other names a full-access permissions profile. With nothing sent, the reply reports the person's own, and a write outside the project succeeds. The level sent at start, or on each turn alone, decides approval, reviewer, sandbox, network and both exclusions: the project write succeeds; outside, `TMPDIR`, `/tmp` and the network probe are refused; an escalation is declined at its request. Writable roots are the exception (row above). | The unsent thread's own effects. | `Carriers.test_the_level_sent_wins_over_the_home_config_on_every_other_dimension` |
+| **Fork.** `thread/fork` with none inherits; with a setting, applies it; each reply reports it. A full-access fork writes outside and reaches the network. A read-only fork's writes in and outside the project are refused, and its read succeeds. A fork's requests to the provider carry no `tools`, yet a call made anyway runs. | Each fork's allowed and forbidden operations. | `Carriers.test_fork` |
+| **Narrowing.** A command started in one turn is still running when the turn completes. On the next turn read-only is in force: the project write, which workspace write would allow, is refused. Yet the running command still writes outside the project. | The refused project write on the narrowed turn. | `Narrowing.test_a_running_command_outlives_its_turn_and_a_narrower_next_turn` |
+| **A child** spawned by `spawn_agent` is held to the parent's level. Under edits, its project write succeeds, its write outside is refused, and its escalation is declined at a request raised for that call on the child's thread. Under full access, both writes succeed and its escalation is rejected by policy. Neither child is offered `spawn_agent`, and each child's turn completes. | Each child's allowed and forbidden writes. | `Child.test_a_child_under_edits`, `Child.test_a_child_under_full_access` |
+| **A call to an App-supplied tool** (`dynamicTools` at thread start) arrives on its thread and turn. Unanswered for `LEVEL_HOLD_SECONDS`, the turn does not end and the server stays up; answered, the turn completes with the answer. `turn/interrupt` ends the turn as interrupted. After a restart and resume, a new call is raised and answered. On a fork the tool is not listed to the model, yet a call is routed to the fork's thread and answered. | The answer completing the held turn; the new calls on the restarted server. | `AppTool.test_held_interrupted_relaunched_resumed_and_forked` |
+| **Observation:** no `serverRequest/resolved` arrived for the interrupted call during that server's whole life, read to its end. The window is from the interrupt to the server's end, stated in the test's message. | None. | same test |
+| **Observation:** after the restart, the call outstanding when the server ended, and the interrupted one, were never raised again in the second server's whole life, read to its end (from resume to its stop, 10 s and more). | New calls on the same client were raised. | same test |
+| A child is not offered the App-supplied tool, and Codex answers its call as unsupported; nothing reaches the client. | The parent's own call reaches the client. | `AppTool.test_a_child_is_not_given_the_app_tool` |
+| `request_user_input` is listed in an ordinary conversation, but a call to it is refused in Default mode, and nothing reaches the client. In plan mode the call reaches the client as `item/tool/requestUserInput`. | Each mode, on one client, is the other's. | `Question.test_refused_in_default_mode_and_reaches_the_client_in_plan_mode` |
+
+One further observation about the supplier is held out of this folder pending
+the owner's decision.
 
 ## Read from the source, not shown by a fixture
 
 `CODEX_EXEC_SERVER_URL`, `CODEX_HOME/environments.toml` and the
 `CODEX_EXEC_SERVER_NOISE_*` variables. What these do was read from the public
-source at `rust-v0.167.0`; none was set by any fixture. Set to a URL, or
+source at `rust-v0.167.0`; no fixture set any of them. Set to a URL, or
 configured by the file, they move commands and file edits to another exec
 server, where this Mac's sandbox does not apply, while the replies report the
 same policy.

@@ -138,6 +138,27 @@ def tool_names(body):
     return names
 
 
+def shell_command_of(item):
+    """The command a shell call would run, or None for any other item. A shell call whose command cannot be read
+    is returned as its raw arguments, so that it never matches the fixed list."""
+    if not isinstance(item, dict) or item.get('type') != 'function_call':
+        return None
+    if item.get('name') not in ('exec_command', 'shell_command', 'shell'):
+        return None
+    try:
+        args = json.loads(item.get('arguments') or '{}')
+    except ValueError:
+        return item.get('arguments')
+    if item['name'] == 'exec_command':
+        return args.get('cmd')
+    if item['name'] == 'shell_command':
+        return args.get('command')
+    command = args.get('command')
+    if isinstance(command, list) and len(command) == 3 and command[:2] == ['/bin/sh', '-c']:
+        return command[2]
+    return json.dumps(command)
+
+
 def tool_parameters(body, name):
     """The property names of one offered tool's parameters (names only), or None."""
     for tool in (body or {}).get('tools') or []:
@@ -213,6 +234,8 @@ class ScriptedStub:
         self.net_probes = 0
         self.not_offered = set()  # call ids a command script could not call: no shell tool offered
         self.issued = set()  # call ids the stub put into a response as a call
+        self.allowed_commands = None  # set by Run: the only commands a shell call may carry
+        self.violations = []  # shell calls a script tried to issue with a command off that list
         self.unexpected = []
         stub = self
 
@@ -298,6 +321,12 @@ class ScriptedStub:
         if script is None:
             return [message('No script for this turn.', 'msg_none')]
         items = script(body, outputs, self) or [message('Done.', 'msg_done_%s' % key)]
+        for item in items:
+            command = shell_command_of(item)
+            if command is not None and (self.allowed_commands is None or command not in self.allowed_commands):
+                with self.lock:
+                    self.violations.append(command)
+                return [message('Refused by the fixture: a command off the fixed list.', 'msg_refused')]
         with self.lock:
             self.issued.update(i['call_id'] for i in items if i.get('call_id'))
         return items
@@ -333,7 +362,22 @@ DECLINED = 'declined-at-approval'            # an approval request for this call
 REJECTED = 'rejected-by-policy'              # refused by Codex's approval policy before it ran
 UNSUPPORTED = 'unsupported-call'             # Codex has no such tool in this conversation
 NOT_OFFERED = 'not-offered'                  # the stub could not make the call: inconclusive, never a pass
-SANDBOX_REFUSAL = 'operation not permitted'  # what the shell and the network probe print when the sandbox refuses
+NETWORK = 'network'  # the target of the network probe
+
+
+def refusal_lines(target):
+    """The exact lines that show the sandbox refused the expected target, one per shell seen at the pin: zsh's,
+    bash's and sh's for a write to `target`, and the network probe's own line. Nothing else counts."""
+    if target == NETWORK:
+        return {'connect failed: Operation not permitted'}
+    path = str(target)
+    return {'zsh:1: operation not permitted: %s' % path,
+            '/bin/zsh:1: operation not permitted: %s' % path,
+            '/bin/bash: %s: Operation not permitted' % path,
+            'bash: %s: Operation not permitted' % path,
+            'bash: line 1: %s: Operation not permitted' % path,
+            '/bin/sh: %s: Operation not permitted' % path,
+            'sh: %s: Operation not permitted' % path}
 
 
 class Outcome:
@@ -346,9 +390,10 @@ class Outcome:
         return 'Outcome(%s, exit=%r, text=%r)' % (self.kind, self.exit, self.text[:160])
 
 
-def classify(output):
-    """The outcome a call's output shows, from Codex's own words at the pin. An output this does not recognise
-    refuses: it is never read as an absence."""
+def classify(output, target=None):
+    """The outcome a call's output shows, from Codex's own words at the pin. A failure is a sandbox refusal only
+    when its whole output is exactly one of `refusal_lines(target)`; any other failure is FAILED. An output this
+    does not recognise refuses: it is never read as an absence."""
     if output is None:
         raise Refused('no output was received for the call')
     if 'Process exited with code ' in output:
@@ -356,7 +401,8 @@ def classify(output):
         text = output.split('Output:', 1)[1].strip() if 'Output:' in output else ''
         if code == 0:
             return Outcome(SUCCEEDED, code, text)
-        return Outcome(SANDBOX_REFUSED if SANDBOX_REFUSAL in text.lower() else FAILED, code, text)
+        refused = target is not None and text in refusal_lines(target)
+        return Outcome(SANDBOX_REFUSED if refused else FAILED, code, text)
     if 'Process running with session ID' in output:
         return Outcome(RUNNING, text=output)
     if 'rejected by user' in output:
@@ -368,15 +414,19 @@ def classify(output):
     raise Refused('an output this fixture does not recognise: %r' % output[:200])
 
 
-def judge(call_id, issued, not_offered, output, item_ids, request_item_ids, turn_status):
+def judge(call_id, issued, not_offered, output, item_ids, request_item_ids, turn_status, target=None,
+          item_status=None):
     """The outcome of one call, from the protocol stages that outcome has, each tied to the call's id.
 
+    `item_ids` are the ids of commandExecution items started in the call's own turn; `item_status` is the status
+    that call's item completed with, if it completed.
     - not offered: the stub could not make the call; returned as NOT_OFFERED, which `expect` reports as
       inconclusive, never as a pass;
     - otherwise the stub must have issued it, and the turn must have completed;
-    - succeeded: the output says exit 0, and Codex started a command item with the call's id;
-    - refused by the sandbox: the output says a non-zero exit and carries the refusal's own text;
-    - declined: an approval request with the call's id reached the fixture, and the output says rejected;
+    - succeeded: the output says exit 0, and a commandExecution item with the call's id started in that turn;
+    - refused by the sandbox: a non-zero exit, and the whole output is the refusal line for the expected target;
+    - declined: an approval request with the call's id reached the fixture, the output says rejected, and the
+      call's item, if any, ended declined, not run;
     - rejected by policy: the output says so, and no approval request with the call's id was raised.
     Anything short of that refuses; nothing is inferred from an absence."""
     if call_id in not_offered:
@@ -387,25 +437,68 @@ def judge(call_id, issued, not_offered, output, item_ids, request_item_ids, turn
         raise Refused('unresolved: the turn carrying %s did not complete in time' % call_id)
     if turn_status != 'completed':
         raise Refused('the turn carrying %s ended %s' % (call_id, turn_status))
-    outcome = classify(output)
+    outcome = classify(output, target)
     asked = call_id in request_item_ids
     if outcome.kind == SUCCEEDED and call_id not in item_ids:
-        raise Refused('%s reported exit 0 without its command item' % call_id)
-    if outcome.kind == DECLINED and not asked:
-        raise Refused('%s was reported rejected without an approval request for it' % call_id)
+        raise Refused('%s reported exit 0 without its command item in its turn' % call_id)
+    if outcome.kind == DECLINED:
+        if not asked:
+            raise Refused('%s was reported rejected without an approval request for it' % call_id)
+        if item_status not in (None, 'declined'):
+            raise Refused('%s was declined, yet its item ended %s' % (call_id, item_status))
     if outcome.kind == REJECTED and asked:
         raise Refused('%s was reported rejected by policy, yet a request was raised for it' % call_id)
-    outcome.evidence = {'issued': True, 'item': call_id in item_ids, 'request': asked, 'turn': turn_status}
+    outcome.evidence = {'issued': True, 'item': call_id in item_ids, 'request': asked, 'turn': turn_status,
+                        'item_status': item_status}
     return outcome
 
 
 def expect(outcome, kind):
-    """Assert one outcome. NOT_OFFERED is inconclusive: it fails, saying so, whatever was expected."""
+    """Assert one outcome. NOT_OFFERED is inconclusive, and so is a failure where a sandbox refusal was expected
+    but the refusal line for the target was not what the command printed: each fails, saying so."""
     if outcome.kind == NOT_OFFERED:
         raise AssertionError('INCONCLUSIVE: the call was never offered, so nothing was observed')
+    if kind == SANDBOX_REFUSED and outcome.kind == FAILED:
+        raise AssertionError('INCONCLUSIVE: it failed, but not with the refusal line for its target: %r' % outcome)
     if outcome.kind != kind:
         raise AssertionError('expected %s, observed %r' % (kind, outcome))
     return outcome
+
+
+UNSAFE_PATH_CHARACTERS = '$`"\\'
+
+
+def checked_scratch(scratch):
+    """The resolved scratch base, refused unless it and every ancestor are free of the characters a shell expands
+    inside double quotes, so no path the fixture makes can carry them to Codex."""
+    base = Path(scratch).resolve()
+    if not base.is_dir():
+        raise Refused('the scratch folder does not exist')
+    for part in (base,) + tuple(base.parents):
+        bad = [c for c in UNSAFE_PATH_CHARACTERS if c in part.name]
+        if bad:
+            raise Refused('the scratch base %s holds %r; choose another' % (part, ''.join(bad)))
+    return base
+
+
+def processes_naming(text, run=subprocess.run):
+    """(pid, command) of every process whose command line contains `text`, other than this check itself."""
+    result = run(['/bin/ps', '-axww', '-o', 'pid=,command='], capture_output=True, text=True, timeout=20)
+    if result.returncode != 0:
+        raise Refused('the process list could not be read')
+    found = []
+    for line in result.stdout.splitlines():
+        pid, _, command = line.strip().partition(' ')
+        if text in command and int(pid) != os.getpid():
+            found.append((int(pid), command.strip()))
+    return found
+
+
+def group_members(pgid, run=subprocess.run):
+    result = run(['/bin/ps', '-axo', 'pgid='], capture_output=True, text=True, timeout=20)
+    if result.returncode != 0:
+        raise Refused('the process list could not be read')
+    return result.stdout.split().count(str(pgid))
 
 
 # ---------- one run ----------
@@ -413,13 +506,13 @@ def expect(outcome, kind):
 class Run:
     """A fresh root and one stub. Use as a context manager; the root is removed on exit."""
 
-    def __init__(self, scratch, binary, slash_tmp=False, git_marker=False):
+    def __init__(self, scratch, binary, slash_tmp=False, git_marker=False, project_name='project'):
         self.binary = binary
+        if '/' in project_name or project_name in ('', '.', '..'):
+            raise Refused('a project folder name, not a path')
+        self.project_name = project_name  # only this folder's name may carry characters the scratch base may not
         self.name = 'level-' + secrets.token_hex(6)
-        scratch = Path(scratch).resolve()
-        if not scratch.is_dir():
-            raise Refused('the scratch folder does not exist')
-        self.root = scratch / self.name
+        self.root = checked_scratch(scratch) / self.name
         self.slash_tmp = SLASH_TMP / ('chirality-level-' + self.name) if slash_tmp else None
         self.git_marker = git_marker
         self.made_slash_tmp = False
@@ -440,14 +533,15 @@ class Run:
             raise Refused('%s already exists' % self.slash_tmp)
         os.mkdir(self.root, 0o700)
         try:
-            for child in ('home', 'userhome', 'project', 'outside', 'tmpdir'):
+            for child in ('home', 'userhome', self.project_name, 'outside', 'tmpdir'):
                 os.mkdir(self.root / child, 0o700)
             if self.git_marker:
-                os.mkdir(self.root / 'project' / '.git', 0o700)
+                os.mkdir(self.project / '.git', 0o700)
             if self.slash_tmp is not None:
                 os.mkdir(self.slash_tmp, 0o700)  # fails if it appeared since the check
                 self.made_slash_tmp = True
             self.stub = ScriptedStub()
+            self.stub.allowed_commands = set(self.commands().values())  # enforced before any call reaches Codex
         except BaseException:
             self.__exit__()
             raise
@@ -457,6 +551,8 @@ class Run:
         """Every step runs even when an earlier one raises; the first error is raised after all have run, so a
         failed removal is never silent."""
         steps = [client.stop for client in self.clients]
+        if self.clients:
+            steps.append(self.nothing_remains)
         if self.stub is not None:
             steps.append(self.stub.close)
         if self.made_slash_tmp:  # only the folder this run made, never one it found
@@ -472,9 +568,23 @@ class Run:
             raise Refused('cleanup failed: %s' % '; '.join('%s: %s' % (type(e).__name__, e) for e in errors))
         return False
 
+    def nothing_remains(self, wait=10.0):
+        """After the servers are stopped: wait until no process remains whose command line names this run's root,
+        or fail naming each one that does. It cannot see a process of the run whose command line names no path of
+        the run (the network probe, whose argument is only the port, is one; it ends within its 3 s timeout)."""
+        deadline = time.monotonic() + wait
+        while True:
+            left = processes_naming(str(self.root))
+            if not left:
+                return
+            if time.monotonic() >= deadline:
+                raise Refused('processes of the run remain after %.0f s: %s' % (
+                    wait, '; '.join('pid %d: %s' % (pid, command[:200]) for pid, command in left)))
+            time.sleep(0.25)
+
     @property
     def project(self):
-        return self.root / 'project'
+        return self.root / self.project_name
 
     def environment(self, extra=None):
         package = Path(self.binary).resolve().parent.parent
@@ -534,7 +644,8 @@ class Client:
         self.tool_call_policy = 'answer'  # 'answer' or 'hold'
         self.held = []
         self.writer = threading.Lock()
-        threading.Thread(target=self.read, daemon=True).start()
+        self.reader = threading.Thread(target=self.read, daemon=True)
+        self.reader.start()
 
     def read(self):
         for line in self.proc.stdout:
@@ -669,10 +780,18 @@ class Client:
             os.killpg(self.pgid, signal.SIGKILL)
         except ProcessLookupError:  # the group is gone
             pass
-        except PermissionError:  # macOS: a group whose members have all exited and await reaping
-            pass
+        except PermissionError:  # macOS answers so for a group whose members have all exited and await reaping
+            if group_members(self.pgid):
+                raise
         if self.proc.poll() is None:
             self.proc.wait(5)
+
+    def drain(self, timeout=10):
+        """After the server has ended: wait until the reader has taken every frame up to the end of its output, so
+        an absence asserted afterwards covers the server's whole life."""
+        self.reader.join(timeout)
+        if self.reader.is_alive():
+            raise Refused('the reader did not reach the end of the server output')
 
     def close_pipes(self):
         for stream in (self.proc.stdin, self.proc.stdout, self.stderr):

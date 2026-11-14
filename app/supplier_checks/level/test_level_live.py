@@ -65,12 +65,26 @@ def reported(reply):
     return {k: reply.get(k) for k in ('approvalPolicy', 'sandbox')}
 
 
-def evidence(client, thread, call_id):
-    """The protocol stages tied to one call id on one thread: Codex's command items and approval requests."""
-    items = {n['params']['item'].get('id') for n in client.notes_for('item/started', thread)}
+def evidence(client, thread, call_id, turn=None):
+    """The protocol stages tied to one call id: the commandExecution items started in that turn on that thread
+    (in any of the thread's turns when `turn` is None), the status that call's item completed with, and the
+    approval requests raised on that thread."""
+    def ours(note):
+        p = note['params']
+        return p['item'].get('type') == 'commandExecution' and (turn is None or p.get('turnId') == turn)
+    items = {n['params']['item'].get('id') for n in client.notes_for('item/started', thread) if ours(n)}
+    status = next((n['params']['item'].get('status') for n in client.notes_for('item/completed', thread)
+                   if ours(n) and n['params']['item'].get('id') == call_id), None)
     asked = {(r['params'] or {}).get('itemId') for r in client.server_requests
              if r['method'] == COMMAND_APPROVAL and r['thread'] == thread}
-    return items, asked
+    return items, asked, status
+
+
+def target_of(run, key):
+    """What a refusal of this command must name: its file, the network, or nothing (a read)."""
+    if key == 'net':
+        return L.NETWORK
+    return run.paths().get(key)
 
 
 def probe(run, client, thread, key, escalate=False, forced=False, **settings):
@@ -92,9 +106,9 @@ def probe(run, client, thread, key, escalate=False, forced=False, **settings):
     else:
         run.stub.scripts[call_id] = L.command_script(call_id, command, escalate=escalate)
     turn, done = client.turn(thread, 'LEVEL[%s] go' % call_id, **settings)
-    items, asked = evidence(client, thread, call_id)
+    items, asked, status = evidence(client, thread, call_id, turn)
     outcome = L.judge(call_id, run.stub.issued, run.stub.not_offered, run.stub.outputs.get(call_id), items, asked,
-                      done and done['turn']['status'])
+                      done and done['turn']['status'], target=target_of(run, key), item_status=status)
     outcome.present = path.exists() if path is not None else None
     outcome.reached = run.stub.net_probes > nets
     outcome.requests = [(r['method'], r['thread']) for r in client.server_requests[seen:]]
@@ -121,10 +135,14 @@ class Probing(unittest.TestCase):
         return outcome
 
     def declined(self, outcome, thread):
-        """An approval request raised for exactly this call, on its own thread, and nothing done."""
+        """An approval request raised for exactly this call, on its own thread, and the command not reached: its
+        item ended declined, with no exit code, and nothing was done."""
         expect(outcome, DECLINED)
         self.assertEqual(outcome.requests, [(COMMAND_APPROVAL, thread)])
+        self.assertEqual(outcome.evidence['item_status'], 'declined')
+        self.assertIsNone(outcome.exit)
         self.assertFalse(outcome.present)
+        self.assertFalse(outcome.reached)
         return outcome
 
     def rejected(self, outcome):
@@ -275,18 +293,18 @@ class Presets(Probing):
         """With a double quote in the project's path, the sandbox profile Codex writes for macOS does not parse:
         a command under workspace write fails with sandbox-exec's own parse error and does not run. It fails
         closed: nothing is written. Under full access, which uses no sandbox, the same write succeeds."""
-        odd = Path(tempfile.mkdtemp(prefix='level dq "x" ', dir=SCRATCH))
-        try:
-            with L.Run(odd, BINARY) as run:
-                client = run.start()
-                thread = client.start_thread()['thread']['id']
-                failed = probe(run, client, thread, 'in', **EDITS_NET_OFF)
-                expect(failed, L.FAILED)
-                self.assertTrue(failed.text.startswith('sandbox-exec: '), failed.text)  # the profile's own parse error
-                self.assertFalse(failed.present)
-                self.succeeded(probe(run, client, thread, 'in', **FULL))
-        finally:
-            odd.rmdir()
+        with L.Run(SCRATCH, BINARY, project_name='project dq "x"') as run:
+            client = run.start()
+            thread = client.start_thread()['thread']['id']
+            failed = probe(run, client, thread, 'in', **EDITS_NET_OFF)
+            expect(failed, L.FAILED)
+            self.assertTrue(failed.text.startswith('sandbox-exec: unbound variable: '), failed.text)
+            self.assertFalse(failed.present)
+            self.succeeded(probe(run, client, thread, 'in', **FULL))
+        with L.Run(SCRATCH, BINARY) as run:  # the control: the same command and level in a plain folder
+            client = run.start()
+            thread = client.start_thread()['thread']['id']
+            self.succeeded(probe(run, client, thread, 'in', **EDITS_NET_OFF))
 
 
 class Carriers(Probing):
@@ -299,11 +317,13 @@ class Carriers(Probing):
             a = started['thread']['id']
             self.assertEqual(reported(started), {'approvalPolicy': 'never', 'sandbox': {'type': 'dangerFullAccess'}})
             self.succeeded(probe(run, client, a, 'out'))
+            self.rejected(probe(run, client, a, 'out2', escalate=True))  # approval never, in effect
 
             b = client.start_thread()['thread']['id']
             self.refused(probe(run, client, b, 'out'))  # before: read-only
             self.succeeded(probe(run, client, b, 'out', **FULL))
             self.succeeded(probe(run, client, b, 'out'))  # the turn's setting holds for the next turn
+            self.rejected(probe(run, client, b, 'out2', escalate=True))  # its approval too
             # thread/read reports no setting: these two fields are absent or null.
             self.assertEqual(reported(client.result('thread/read', {'threadId': b})),
                              {'approvalPolicy': None, 'sandbox': None})
@@ -314,6 +334,7 @@ class Carriers(Probing):
                 resumed = again.result('thread/resume', {'threadId': thread})
                 self.assertEqual(reported(resumed), {'approvalPolicy': 'never', 'sandbox': {'type': 'dangerFullAccess'}})
                 self.succeeded(probe(run, again, thread, 'out'))
+                self.rejected(probe(run, again, thread, 'out2', escalate=True))
             again.stop()
 
             third = run.start()
@@ -322,24 +343,28 @@ class Carriers(Probing):
             self.assertEqual(reported(narrowed), {'approvalPolicy': 'on-request',
                                                   'sandbox': {'type': 'readOnly', 'networkAccess': False}})
             self.refused(probe(run, third, a, 'out'))
+            self.declined(probe(run, third, a, 'out2', escalate=True), a)  # approval on-request, in effect
 
     def test_config_carries_the_workspace_write_options_on_start_fork_and_resume(self):
         """thread start, resume and fork take only a sandbox mode name; `config` carries the rest. Each reply
         reports the whole policy, and each policy is exercised, allowed and refused effects both."""
-        def options(net, slash, tmpdir):
-            return {'sandbox_workspace_write': {'network_access': net, 'exclude_slash_tmp': slash,
-                                                'exclude_tmpdir_env_var': tmpdir, 'writable_roots': []}}
-
-        def policy(net, slash, tmpdir):
-            return {'type': 'workspaceWrite', 'writableRoots': [], 'networkAccess': net,
-                    'excludeTmpdirEnvVar': tmpdir, 'excludeSlashTmp': slash}
         with L.Run(SCRATCH, BINARY, slash_tmp=True) as run:
+            outside = [str(run.root / 'outside')]
+
+            def options(net, slash, tmpdir, roots=()):
+                return {'sandbox_workspace_write': {'network_access': net, 'exclude_slash_tmp': slash,
+                                                    'exclude_tmpdir_env_var': tmpdir, 'writable_roots': list(roots)}}
+
+            def policy(net, slash, tmpdir, roots=()):
+                return {'type': 'workspaceWrite', 'writableRoots': list(roots), 'networkAccess': net,
+                        'excludeTmpdirEnvVar': tmpdir, 'excludeSlashTmp': slash}
             client = run.start()
             started = client.start_thread(approvalPolicy='on-request', sandbox='workspace-write',
-                                          config=options(True, True, True))
+                                          config=options(True, True, True, outside))
             thread = started['thread']['id']
-            self.assertEqual(started['sandbox'], policy(True, True, True))
+            self.assertEqual(started['sandbox'], policy(True, True, True, outside))
             self.succeeded(probe(run, client, thread, 'in'))
+            self.succeeded(probe(run, client, thread, 'out'))  # the root given at start
             self.succeeded(probe(run, client, thread, 'net'), network=True)
             self.refused(probe(run, client, thread, 'tmpdir'))
             self.refused(probe(run, client, thread, 'slashtmp'))
@@ -352,13 +377,14 @@ class Carriers(Probing):
             self.succeeded(probe(run, client, forked, 'tmpdir', forced=True))
             self.succeeded(probe(run, client, forked, 'slashtmp', forced=True))
             self.refused(probe(run, client, forked, 'net', forced=True))
-            self.refused(probe(run, client, forked, 'out', forced=True))
+            self.refused(probe(run, client, forked, 'out', forced=True))  # the start's root removed on fork
             client.stop()
 
             again = run.start()
             resumed = again.result('thread/resume', {'threadId': thread, 'sandbox': 'workspace-write',
-                                                     'config': options(False, True, False)})
-            self.assertEqual(resumed['sandbox'], policy(False, True, False))
+                                                     'config': options(False, True, False, outside)})
+            self.assertEqual(resumed['sandbox'], policy(False, True, False, outside))
+            self.succeeded(probe(run, again, thread, 'out'))  # the root given again on resume
             self.succeeded(probe(run, again, thread, 'tmpdir'))
             self.refused(probe(run, again, thread, 'slashtmp'))
             self.refused(probe(run, again, thread, 'net'))
@@ -445,9 +471,11 @@ class Carriers(Probing):
                 seen = len(run.stub.requests)
                 if sandbox['type'] == 'dangerFullAccess':
                     self.succeeded(probe(run, client, forked, 'out', forced=True))
+                    self.succeeded(probe(run, client, forked, 'net', forced=True), network=True)
                 else:
                     self.refused(probe(run, client, forked, 'out', forced=True))
                     self.refused(probe(run, client, forked, 'in', forced=True))
+                    self.succeeded(probe(run, client, forked, 'read', forced=True))  # what read-only allows
                 fork_requests = run.stub.requests[seen:]
                 self.assertTrue(fork_requests)
                 for request in fork_requests:
@@ -464,12 +492,12 @@ class Narrowing(Probing):
             late = run.paths()['late']
             run.stub.scripts['late'] = L.command_script('call_late', run.commands()['late'], background=True)
             turn, done = client.turn(thread, 'LEVEL[late] go', **FULL)
-            items, asked = evidence(client, thread, 'call_late')
+            items, asked, status = evidence(client, thread, 'call_late', turn)
             started = L.judge('call_late', run.stub.issued, run.stub.not_offered, run.stub.outputs.get('call_late'),
-                              items, asked, done and done['turn']['status'])
+                              items, asked, done and done['turn']['status'], item_status=status)
             expect(started, RUNNING)  # the turn completed while the command sleeps
             self.assertFalse(late.exists())
-            self.refused(probe(run, client, thread, 'out', **READ_ONLY))  # the narrower level is in force
+            self.refused(probe(run, client, thread, 'in', **READ_ONLY))  # read-only is in force: workspace write would allow this
             deadline = time.monotonic() + 15
             while not late.exists() and time.monotonic() < deadline:
                 time.sleep(0.25)
@@ -523,9 +551,10 @@ class Child(Probing):
             child_thread = spawn_child(self, run, client, thread, **settings)
             outcomes = {}
             for call_id, key, _ in calls:
-                items, asked = evidence(client, child_thread, call_id)
+                items, asked, status = evidence(client, child_thread, call_id)
                 outcomes[key] = L.judge(call_id, run.stub.issued, run.stub.not_offered,
-                                        run.stub.outputs.get(call_id), items, asked, 'completed')
+                                        run.stub.outputs.get(call_id), items, asked, 'completed',
+                                        target=run.paths()[key], item_status=status)
             paths = run.paths()
             tools = next(r['tools'] for r in run.stub.requests if r['key'] == 'child')
             requests = [(r['method'], r['thread'], (r['params'] or {}).get('itemId')) for r in client.server_requests]
@@ -610,10 +639,11 @@ class AppTool(unittest.TestCase):
             self.assertEqual(done[0]['params']['turn']['status'], 'interrupted')
 
             turn, outstanding = self.start_call(run, client, thread, 'relaunch')
-            # At the end of this generation: the client was never told that the interrupted call ended.
+            client.kill()
+            client.drain()  # every frame of this server's life has been read
+            # An observation, with no control: no serverRequest/resolved arrived in this server's whole life.
             observed = time.monotonic() - interrupted_at
             self.assertEqual(client.notes_for('serverRequest/resolved'), [], 'within %.1f s' % observed)
-            client.kill()
 
             again = run.start()
             again.tool_call_policy = 'hold'
@@ -642,10 +672,14 @@ class AppTool(unittest.TestCase):
             self.assertEqual([c['thread'] for c in tool_calls(again, 'call_forked')], [fork])  # yet routed
             self.assertEqual(run.stub.outputs.get('call_forked'), 'Invented records answer.')
 
-            # At the end of the second generation: the outstanding call was never raised again.
+            # Over the second server's whole life, read to its end: the outstanding call was never raised again,
+            # while new calls on the same client were (call_resumed, call_forked: the control).
+            again.stop()
+            again.drain()
             observed = time.monotonic() - resumed_at
             self.assertEqual(tool_calls(again, outstanding['params']['callId']), [], 'within %.1f s' % observed)
             self.assertEqual(tool_calls(again, interrupted['params']['callId']), [])
+            self.assertEqual(len(tool_calls(again)), 2)
 
     def test_a_child_is_not_given_the_app_tool(self):
         with L.Run(SCRATCH, BINARY) as run:
@@ -672,38 +706,41 @@ def offered_to_parent(test, run, client, thread):
 
 
 class Question(unittest.TestCase):
-    """Case 6: the supplier's question tool in an ordinary conversation."""
+    """Case 6: the supplier's question tool in an ordinary conversation. Default mode and plan mode run on one
+    client, each the other's control."""
 
-    def ask(self, **settings):
+    def test_refused_in_default_mode_and_reaches_the_client_in_plan_mode(self):
         with L.Run(SCRATCH, BINARY) as run:
             client = run.start()
-            thread = client.start_thread()['thread']['id']
+            seen = {}
+            for mode, settings in (('default', {}),
+                                   ('plan', {'collaborationMode': {'mode': 'plan', 'settings': {'model': L.MODEL}}})):
+                thread = client.start_thread()['thread']['id']
+                call_id = 'call_ask_' + mode
 
-            def script(body, outputs, stub):
-                if 'call_ask' in outputs:
-                    return [L.message('Asked.', 'msg_asked')]
-                return [{'type': 'function_call', 'name': 'request_user_input', 'call_id': 'call_ask', 'id': 'fc_ask',
-                         'arguments': json.dumps({'questions': [{
-                             'id': 'q1', 'header': 'Invented', 'question': 'Invented question?',
-                             'options': [{'label': 'Yes', 'description': 'Invented yes'},
-                                         {'label': 'No', 'description': 'Invented no'}]}]})}]
-            run.stub.scripts['ask'] = script
-            _, done = client.turn(thread, 'LEVEL[ask] go', **settings)
-            self.assertEqual(done['turn']['status'], 'completed')
-            self.assertIn('call_ask', run.stub.issued)
-            return ('request_user_input' in run.stub.requests[0]['tools'],
-                    [r['method'] for r in client.server_requests], run.stub.outputs.get('call_ask', ''))
-
-    def test_offered_but_refused_in_default_mode(self):
-        listed, requests, output = self.ask()
-        self.assertTrue(listed)
-        self.assertEqual(requests, [])
-        self.assertIn('unavailable in Default mode', output)
-
-    def test_reaches_the_client_in_plan_mode(self):
-        listed, requests, _ = self.ask(collaborationMode={'mode': 'plan', 'settings': {'model': L.MODEL}})
-        self.assertTrue(listed)
-        self.assertEqual(requests, ['item/tool/requestUserInput'])
+                def script(body, outputs, stub, call_id=call_id):
+                    if call_id in outputs:
+                        return [L.message('Asked.', 'msg_' + call_id)]
+                    return [{'type': 'function_call', 'name': 'request_user_input', 'call_id': call_id,
+                             'id': 'fc_' + call_id, 'arguments': json.dumps({'questions': [{
+                                 'id': 'q1', 'header': 'Invented', 'question': 'Invented question?',
+                                 'options': [{'label': 'Yes', 'description': 'Invented yes'},
+                                             {'label': 'No', 'description': 'Invented no'}]}]})}]
+                run.stub.scripts[call_id] = script
+                _, done = client.turn(thread, 'LEVEL[%s] go' % call_id, **settings)
+                self.assertEqual(done['turn']['status'], 'completed')
+                self.assertIn(call_id, run.stub.issued)
+                request = next(r for r in run.stub.requests if r['key'] == call_id)
+                seen[mode] = ('request_user_input' in request['tools'],
+                              [r['method'] for r in client.server_requests if r['thread'] == thread],
+                              run.stub.outputs.get(call_id, ''))
+            listed, requests, output = seen['default']
+            self.assertTrue(listed)
+            self.assertEqual(requests, [])
+            self.assertIn('unavailable in Default mode', output)
+            listed, requests, _ = seen['plan']
+            self.assertTrue(listed)
+            self.assertEqual(requests, ['item/tool/requestUserInput'])
 
 
 if __name__ == '__main__':

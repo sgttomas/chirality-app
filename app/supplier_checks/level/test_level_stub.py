@@ -80,6 +80,7 @@ class Stub(unittest.TestCase):
         self.assertEqual(self.stub.unexpected, [('GET', '/v1/models'), ('POST', '/v1/other')])
 
     def test_a_scripted_turn_streams_its_call_and_records_the_tools_offered(self):
+        self.stub.allowed_commands = {'printf ok > /x'}  # a bare stub allows no command until given its list
         self.stub.scripts['k'] = L.command_script('call_k', 'printf ok > /x')
         status, raw = self.request('POST', '/v1/responses', body('LEVEL[k] go'))
         self.assertEqual(status, 200)
@@ -145,16 +146,37 @@ class Runs(unittest.TestCase):
                 self.assertEqual(shlex.split(commands['net'])[-1], str(run.stub.port))
 
     def test_a_scratch_name_with_spaces_and_shell_characters_stays_one_word(self):
-        odd = Path(self.scratch) / "odd dir $(touch x) 'q' ;`y`"
+        odd = Path(self.scratch) / "odd dir 'q' (p) ; & #"
         odd.mkdir()
         try:
-            with L.Run(odd, '/nonexistent/codex') as run:
+            with L.Run(odd, '/nonexistent/codex', project_name='project dq "x"') as run:
                 for key, path in run.paths().items():
                     self.assertEqual(shlex.split(run.commands()[key])[-1], str(path), key)
                 self.assertEqual(shlex.split(run.commands()['read']), ['/bin/ls', str(run.project)])
             self.assertEqual(list(odd.iterdir()), [])
         finally:
             odd.rmdir()
+
+    def test_a_scratch_base_holding_a_character_a_shell_expands_is_refused(self):
+        for name in ('has $(x)', 'has `y`', 'has "q"', 'has \\ b', 'has $HOME'):
+            bad = Path(self.scratch) / name / 'inner'
+            bad.mkdir(parents=True)
+            try:
+                with self.assertRaises(L.Refused):
+                    L.Run(bad, '/nonexistent/codex')  # the ancestor carries it
+            finally:
+                bad.rmdir()
+                bad.parent.rmdir()
+
+    def test_a_command_off_the_fixed_list_never_reaches_codex(self):
+        with L.Run(self.scratch, '/nonexistent/codex') as run:
+            run.stub.scripts['k'] = L.command_script('call_k', 'printf ok > /somewhere/else')
+            items = run.stub.answer(body('LEVEL[k] go'))
+            self.assertEqual([i['type'] for i in items], ['message'])
+            self.assertEqual(run.stub.violations, ['printf ok > /somewhere/else'])
+            self.assertNotIn('call_k', run.stub.issued)
+            run.stub.scripts['j'] = L.command_script('call_j', run.commands()['in'])
+            self.assertEqual(run.stub.answer(body('LEVEL[j] go'))[0]['type'], 'function_call')
 
     def test_a_toml_string_survives_any_path(self):
         import tomllib
@@ -174,18 +196,22 @@ class Runs(unittest.TestCase):
 class Judging(unittest.TestCase):
     """The fixture can fail: each way a call can go unobserved, or be misread, refuses or fails."""
 
-    def judge(self, output, call='c', issued=('c',), not_offered=(), items=('c',), asked=(), turn='completed'):
-        return L.judge(call, set(issued), set(not_offered), output, set(items), set(asked), turn)
+    def judge(self, output, call='c', issued=('c',), not_offered=(), items=('c',), asked=(), turn='completed',
+              target='/run/project/w-in', item_status=None):
+        return L.judge(call, set(issued), set(not_offered), output, set(items), set(asked), turn, target=target,
+                       item_status=item_status)
 
     def test_the_six_outcomes_each_need_their_own_evidence(self):
         ok = 'Chunk ID: 1\nProcess exited with code 0\nOutput:\n'
-        refused = 'Process exited with code 1\nOutput:\nzsh:1: operation not permitted: /x\n'
+        refused = 'Process exited with code 1\nOutput:\nzsh:1: operation not permitted: /run/project/w-in\n'
         self.assertEqual(self.judge(ok).kind, L.SUCCEEDED)
         self.assertEqual(self.judge(refused, items=()).kind, L.SANDBOX_REFUSED)
         network = 'Process exited with code 3\nOutput:\nconnect failed: Operation not permitted\n'
-        self.assertEqual(self.judge(network).kind, L.SANDBOX_REFUSED)
-        self.assertEqual(self.judge('exec_command failed: Rejected("rejected by user")', items=(), asked=('c',)).kind,
-                         L.DECLINED)
+        self.assertEqual(self.judge(network, target=L.NETWORK).kind, L.SANDBOX_REFUSED)
+        bash = 'Process exited with code 1\nOutput:\n/bin/bash: /run/project/w-in: Operation not permitted\n'
+        self.assertEqual(self.judge(bash, items=()).kind, L.SANDBOX_REFUSED)
+        self.assertEqual(self.judge('exec_command failed: Rejected("rejected by user")', items=(), asked=('c',),
+                                    item_status='declined').kind, L.DECLINED)
         self.assertEqual(self.judge('approval policy is Never; reject command', items=()).kind, L.REJECTED)
         self.assertEqual(self.judge('unsupported call: apply_patch', items=()).kind, L.UNSUPPORTED)
 
@@ -197,6 +223,28 @@ class Judging(unittest.TestCase):
         for kind in (L.SANDBOX_REFUSED, L.SUCCEEDED, L.DECLINED, L.REJECTED):
             with self.assertRaisesRegex(AssertionError, 'INCONCLUSIVE'):
                 L.expect(not_offered, kind)
+
+    def test_the_readers_three_misclassifications_are_not_refusals(self):
+        # A path holding the words, failing for another reason.
+        words = '/run/operation not permitted/w-in'
+        other = 'Process exited with code 1\nOutput:\nzsh:1: no such file or directory: %s\n' % words
+        self.assertEqual(self.judge(other, items=(), target=words).kind, L.FAILED)
+        with self.assertRaisesRegex(AssertionError, 'INCONCLUSIVE'):
+            L.expect(self.judge(other, items=(), target=words), L.SANDBOX_REFUSED)
+        # A command that prints the words and exits 1.
+        printed = 'Process exited with code 1\nOutput:\nsomething: operation not permitted\n'
+        self.assertEqual(self.judge(printed, items=()).kind, L.FAILED)
+        # The refusal line for another target is not a refusal of this one.
+        elsewhere = 'Process exited with code 1\nOutput:\nzsh:1: operation not permitted: /run/outside/w-out\n'
+        self.assertEqual(self.judge(elsewhere, items=()).kind, L.FAILED)
+        # An item of another turn or type with the same id cannot carry a success: only this turn's
+        # commandExecution ids are passed in, so an exit 0 without one refuses.
+        with self.assertRaises(L.Refused):
+            self.judge('Process exited with code 0\nOutput:\n', items=())
+
+    def test_a_declined_call_whose_item_ran_refuses(self):
+        with self.assertRaises(L.Refused):
+            self.judge('Rejected("rejected by user")', items=('c',), asked=('c',), item_status='completed')
 
     def test_a_turn_that_did_not_complete_is_unresolved(self):
         for turn in (None, 'interrupted', 'failed'):
@@ -213,7 +261,7 @@ class Judging(unittest.TestCase):
         with self.assertRaises(L.Refused):  # exit 0 without its command item
             self.judge('Process exited with code 0\nOutput:\n', items=())
         with self.assertRaises(L.Refused):  # a decline with no request for this call
-            self.judge('Rejected("rejected by user")', items=(), asked=('other',))
+            self.judge('Rejected("rejected by user")', items=(), asked=('other',), item_status='declined')
         with self.assertRaises(L.Refused):  # a policy rejection, yet a request was raised for it
             self.judge('approval policy is Never; reject command', items=(), asked=('c',))
         with self.assertRaises(L.Refused):  # no output at all
@@ -251,6 +299,31 @@ class Cleanup(unittest.TestCase):
             with self.assertRaisesRegex(L.Refused, 'invented removal failure'):
                 run.__exit__(None, None, None)
         __import__('shutil').rmtree(run.root)
+
+    def test_a_process_of_the_run_left_behind_fails_naming_it(self):
+        run = L.Run(self.scratch, '/nonexistent/codex')
+        run.__enter__()
+        try:
+            left = [(999999, 'sleep 4; printf ok > %s/outside/w-late' % run.root)]
+            with mock.patch.object(L, 'processes_naming', return_value=left):
+                with self.assertRaisesRegex(L.Refused, 'pid 999999: sleep 4'):
+                    run.nothing_remains(wait=0.5)
+            with mock.patch.object(L, 'processes_naming', return_value=[]):
+                run.nothing_remains(wait=0.5)
+        finally:
+            run.__exit__(None, None, None)
+
+    def test_a_permission_error_from_the_signal_fails_while_the_group_has_members(self):
+        client = L.Client.__new__(L.Client)
+        client.pgid = 4242
+        client.proc = mock.Mock()
+        client.proc.poll.return_value = 0
+        with mock.patch.object(L.os, 'killpg', side_effect=PermissionError('invented')):
+            with mock.patch.object(L, 'group_members', return_value=1):
+                with self.assertRaises(PermissionError):
+                    client.kill_group()
+            with mock.patch.object(L, 'group_members', return_value=0):
+                client.kill_group()  # the group has no members: nothing is left to signal
 
     def test_the_whole_group_is_signalled_even_after_its_leader_exited(self):
         client = L.Client.__new__(L.Client)
