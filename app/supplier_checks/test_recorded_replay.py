@@ -34,7 +34,29 @@ APP_LEVEL = {
 
 
 def app_level(method):
-    return copy.deepcopy(APP_LEVEL["turn" if method == "turn/start" else "thread"])
+    """The level fields for `method`. Start, resume and fork also carry one project trust entry, untrusted (the test
+    Host reads no settings), for the project root of the conversation's folder: every recording's `<WORKSPACE>`,
+    which the Host resolves in the folder it starts the double in."""
+    fields = copy.deepcopy(APP_LEVEL["turn" if method == "turn/start" else "thread"])
+    if method != "turn/start":
+        fields["config"]["projects"] = {workspace_project_root(): {"trust_level": "untrusted"}}
+    return fields
+
+
+def workspace_project_root():
+    """The project root of `<WORKSPACE>` resolved in this folder, by the App's rule (codex_level::project_root):
+    the nearest folder above it holding a `.git` file, or a `.git` folder with a HEAD, canonical; else the folder as
+    given, which does not exist."""
+    folder = os.path.join(os.getcwd(), "<WORKSPACE>")
+    here = folder
+    while True:
+        marker = os.path.join(here, ".git")
+        if os.path.isfile(marker) or os.path.isfile(os.path.join(marker, "HEAD")):
+            return os.path.realpath(here)
+        parent = os.path.dirname(here)
+        if parent == here:
+            return folder
+        here = parent
 
 
 # What the pinned 0.167.0 reports for that level in a start or resume reply (supplier_checks/level, Carriers and

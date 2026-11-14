@@ -446,7 +446,13 @@ runpy.run_path({peer},run_name='__main__')
         let resume = self.history_action(&generation, 1, "continue");
         assert_eq!(
             resume.source().attempted_frame()["params"],
-            crate::codex_level::with_test_level(&json!({"threadId":self.thread(),"excludeTurns":true}), "thread/resume")
+            crate::codex_level::with_test_level_at(
+                &json!({"threadId":self.thread(),"excludeTurns":true}),
+                "thread/resume",
+                // The resumed conversation's folder: the recording's `<WORKSPACE>`, which the Host resolves in the
+                // folder it started Codex in.
+                &self.root.join("<WORKSPACE>"),
+            )
         );
         self.until("recorded idle before resume reply", || {
             self.audit(2)

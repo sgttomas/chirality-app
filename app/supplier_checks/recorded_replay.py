@@ -424,10 +424,40 @@ class Replay:
         self.audit.emit("constructed-frame", direction="codex->app", kind="reply", **fields)
 
     @staticmethod
-    def level_fields(method):
+    def project_root(cwd):
+        """The project root as codex_level::project_root computes it, in the canonical spelling the App sends: the
+        nearest folder holding `.git` (a `.git` folder only with a HEAD in it), else the folder itself."""
+        folder = Path(cwd)
+        if not folder.is_absolute():  # the Host resolves a relative folder in the folder it started this process in
+            folder = Path(os.getcwd()) / folder
+        root = folder
+        for ancestor in [folder, *folder.parents]:
+            marker = ancestor / ".git"
+            if marker.is_dir() and not (marker / "HEAD").exists():
+                continue
+            if marker.exists():
+                root = ancestor
+                break
+        # The canonical spelling when the folder exists (std::fs::canonicalize), else as given.
+        return os.path.realpath(root) if root.exists() else str(root)
+
+    def resume_folder(self):
+        """The folder the App's Host takes for a resumed conversation: the folder Codex reported for that thread
+        in this generation's recorded replies, else the folder the Host started this process in."""
+        for row in self.recording["frames"]:
+            if row["generation"] != self.generation or row["direction"] != "codex->app":
+                continue
+            thread = ((row["frame"].get("result") or {}) if isinstance(row["frame"], dict) else {}).get("thread")
+            if isinstance(thread, dict) and isinstance(thread.get("cwd"), str) and thread["cwd"]:
+                return thread["cwd"]
+        return os.getcwd()
+
+    @staticmethod
+    def level_fields(method, cwd=None):
         """The exact fields of the level the App's test Host sends ("edits"), built from the App's own level table
         as codex_level.rs builds them: start, resume and fork carry the mode name and the workspace options in
-        config; a turn carries the structured policy. The person answers at every level."""
+        config, and one project trust entry for the conversation's project root, untrusted, since the test Host
+        reads no settings; a turn carries the structured policy. The person answers at every level."""
         table = json.loads((Path(__file__).resolve().parent.parent / "src-tauri" / "src" / "codex_levels.json").read_text())
         rows = [row for row in table["levels"] if row["id"] == LEVEL_UNDER_TEST]
         require(len(rows) == 1, "unknown-level-under-test")
@@ -437,8 +467,12 @@ class Replay:
             fields["sandboxPolicy"] = level["sandboxPolicy"]
         else:
             fields["sandbox"] = level["sandbox"]
+            config = {}
             if level["workspaceWrite"] is not None:
-                fields["config"] = {"sandbox_workspace_write": level["workspaceWrite"]}
+                config["sandbox_workspace_write"] = level["workspaceWrite"]
+            require(isinstance(cwd, str) and bool(cwd), "missing-conversation-folder-for-trust-entry")
+            config["projects"] = {Replay.project_root(cwd): {"trust_level": "untrusted"}}
+            fields["config"] = config
         return fields
 
     @staticmethod
@@ -477,7 +511,8 @@ class Replay:
             require(isinstance(adapted["model"], str) and bool(adapted["model"])
                     and isinstance(adapted["modelProvider"], str) and bool(adapted["modelProvider"]),
                     "missing-captured-model-selection")
-            adapted.update(self.level_fields("thread/start"))
+            self.conversation_folder = params["cwd"]
+            adapted.update(self.level_fields("thread/start", params["cwd"]))
             return adapted, ["thread/start:omit-captured-approvalPolicy-and-sandbox", "thread/start:add-exact-captured-model-and-modelProvider",
                              "thread/start:add-exact-App-level-%s" % LEVEL_UNDER_TEST]
         if self.profile == "app" and method == "turn/start":
@@ -511,7 +546,7 @@ class Replay:
             # ThreadResumeParams.excludeTurns at the pinned 0.160.0 changes
             # response coverage only, without instructions/model/settings.
             # Supplier replies remain original recorded payloads in this peer.
-            return {**params, "excludeTurns": True, **self.level_fields("thread/resume")}, [
+            return {**params, "excludeTurns": True, **self.level_fields("thread/resume", self.resume_folder())}, [
                 "thread/resume.excludeTurns:add-true-request-only;recorded-reply-unchanged",
                 "thread/resume:add-exact-App-level-%s" % LEVEL_UNDER_TEST]
         return params, changes
