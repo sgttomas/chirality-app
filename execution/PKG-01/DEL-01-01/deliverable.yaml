@@ -89,7 +89,7 @@ code_paths:
 - app/supplier_checks/recordings
 # level/ starts the pinned supplier against a loopback stub that scripts the model's tool calls,
 # and asserts what its sandbox and approval settings do at the pin.
-- app/supplier_checks/level
+- app/supplier_checks/level/**
 checks:
 - app/supplier_checks/level/test_level_stub.py
 # Live: runs where the pinned binary is present (the full suite's product job); skipped otherwise.
