@@ -376,7 +376,7 @@ pub(crate) mod native_statement {
         }
         for r in rows(&view["observedUnansweredTurnStarts"]) {
             t.push(format!(
-                "Turn start not yet answered: {} (request #{}). Codex has not yet given it a turn, so the App cannot ask Codex to stop it yet.",
+                "Turn start not yet associated with a turn: {} (request #{}). It may be one of the turns listed here; the App has not yet associated this start with a turn it can interrupt.",
                 cell(&r["threadId"]),
                 cell(&r["requestIdentity"])
             ));
@@ -433,7 +433,7 @@ pub(crate) mod native_statement {
             format!("Account read: {}", text_or(&account["readAvailability"], "not reported")),
             format!("Current report: {}", text_or(&account["currentReport"]["state"], "not reported")),
             format!(
-                "Observed: {} live turns, {} turn starts not yet answered, {} outstanding requests, {} active children, {} children with unknown activity, {} unresolved turn observations.",
+                "Observed: {} live turns, {} turn starts not yet associated with a turn, {} outstanding requests, {} active children, {} children with unknown activity, {} unresolved turn observations.",
                 count(&view["observedLiveTurns"]),
                 count(&view["observedUnansweredTurnStarts"]),
                 count(&view["observedOutstandingRequests"]),
@@ -507,11 +507,11 @@ pub(crate) mod native_statement {
         }
         let mut tail = Vec::new();
         if live + others == 0 {
-            head.push("Observed: no live turns, turn starts not yet answered, waiting requests, delegated agents or workflow runs in force.".into());
+            head.push("Observed: no live turns, turn starts not yet associated with a turn, waiting requests, delegated agents or workflow runs in force.".into());
             tail.push(format!("{act} stops this Codex process{}.", if restart { " and starts it again" } else { "" }));
         } else {
             head.push(format!(
-                "Observed: {live} live turns, {starts} turn starts not yet answered, {} waiting requests, {} delegated agents, {} workflow runs in force.",
+                "Observed: {live} live turns, {starts} turn starts not yet associated with a turn, {} waiting requests, {} delegated agents, {} workflow runs in force.",
                 count(&view["observedOutstandingRequests"]),
                 count(&view["observedActiveChildren"]) + count(&view["knownChildActivityUnknown"]),
                 count(runs)
@@ -542,7 +542,7 @@ pub(crate) mod native_statement {
     /// answered: what is under way, that the App cannot ask Codex to stop it
     /// yet, and what the act will do to it.
     pub(crate) fn unanswered_starts_sentence(doing: &str) -> String {
-        format!("A turn start not yet answered has been sent to Codex, and Codex has not yet said whether it began the turn, so the App cannot ask Codex to stop it. {doing} stops Codex wherever that turn has got to: it may have done nothing yet, or part of its work. The App will not know which, and does not report it as interrupted.")
+        format!("A turn start has been sent, or is being sent, to Codex. The App has not yet associated this start with a turn it can interrupt, so it cannot ask Codex to stop it; it may be one of the turns listed. {doing} stops Codex wherever that turn has got to: it may not have begun, or may have done part of its work, and its outcome may remain unknown. It is not reported as interrupted.")
     }
     /// Labels of the App quit question (K-4; DEL-01-04 §5.2), in the same
     /// default-safe layout as Stop Codex: Return keeps the App running.
@@ -558,7 +558,7 @@ pub(crate) mod native_statement {
         let mut head = vec![
             "Quit Chirality while work is live?".to_owned(),
             format!(
-                "Observed across {} App-owned Codex process(es): {} live turns, {} turn starts not yet answered, {} waiting requests, {} delegated agents, {} workflow runs in force.",
+                "Observed across {} App-owned Codex process(es): {} live turns, {} turn starts not yet associated with a turn, {} waiting requests, {} delegated agents, {} workflow runs in force.",
                 count(&view["homes"]),
                 count(&view["observedLiveTurns"]),
                 count(&view["observedUnansweredTurnStarts"]),
@@ -865,7 +865,7 @@ pub(crate) mod native_statement {
             assert!(s.in_app.is_none());
             for needle in ["Live turn: thread-0 / turn-0 (inProgress)", "Live turn: thread-1 / turn-1", "Outstanding request: item/tool/requestUserInput #0 in thread-r",
                 "Active child: child-0 (parent thread-0; running)", "Child, activity unknown: child-u (parent thread-0)", "Turn observation unresolved: thread-x / turn not reported",
-                "Observed: 2 live turns, 0 turn starts not yet answered, 1 outstanding requests, 1 active children", "None observed is not none.", "Cancel sends nothing", "0123456789abcdef"] {
+                "Observed: 2 live turns, 0 turn starts not yet associated with a turn, 1 outstanding requests, 1 active children", "None observed is not none.", "Cancel sends nothing", "0123456789abcdef"] {
                 assert!(s.text.contains(needle), "{needle} in\n{}", s.text);
             }
             assert!(!s.text.contains('{'), "{}", s.text);
@@ -877,7 +877,7 @@ pub(crate) mod native_statement {
             assert_eq!(shown.content, view);
             assert_eq!(shown.digest, content_digest("x", &view).unwrap());
             assert!(s.text.lines().any(|l| l == shown.digest), "{}", s.text);
-            assert!(s.text.contains("Observed: 60 live turns, 0 turn starts not yet answered, 30 outstanding requests, 30 active children"));
+            assert!(s.text.contains("Observed: 60 live turns, 0 turn starts not yet associated with a turn, 30 outstanding requests, 30 active children"));
             assert!(s.text.contains("Each of these is listed in the frozen assessment, shown in full in the App now"), "{}", s.text);
             assert!(bounded("x", s.text.clone()).is_ok());
         }

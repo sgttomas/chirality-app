@@ -3081,13 +3081,14 @@ pub fn assess_native_home_work(
     }
     let mut requests = requests;
     requests.sort_by_key(Value::to_string);
-    // A turn start written, or being written, and not yet answered is live
-    // work: Codex may be starting a turn the App cannot yet name, so it can
-    // ask Codex to stop none of it. One whose thread already shows a live
-    // turn is that turn, listed above with its identity.
+    // A turn start written, or being written, that the Host has not yet
+    // associated with a turn is live work: Codex may be starting a turn the
+    // App cannot yet interrupt. It is listed beside the turns observed, and
+    // may be one of them: only the reply to its request associates it with a
+    // turn, and the Host then drops it from its list.
     let starts: Vec<Value> = snapshot["unansweredTurnStarts"].as_array().into_iter().flatten()
-        .filter(|start| start["generation"] == *generation && !live.iter().any(|row| row["threadId"] == start["threadId"]))
-        .map(|start| json!({"generation":generation,"threadId":start["threadId"],"requestIdentity":start["requestIdentity"],"write":start["write"],"limit":"turn start not yet answered by Codex; no turn identity, so no interrupt can be sent"}))
+        .filter(|start| start["generation"] == *generation)
+        .map(|start| json!({"generation":generation,"threadId":start["threadId"],"requestIdentity":start["requestIdentity"],"write":start["write"],"limit":"turn start not yet associated with a turn; it may be one of the turns listed; no interrupt can be sent for it"}))
         .collect();
     let coverage = json!({"turns":{"scope":"current selected-home source","available":snapshot["conversationTurns"].is_array(),"complete":false,"unresolved":unresolved_turns},"requests":{"scope":"current received register","available":snapshot["serverRequests"].is_array(),"complete":false},"children":{"receivingViewAvailable":valid_view,"complete":false,"limit":"child visibility/completeness not established; additional work may exist"},"receivingLimits":received["nativeViewLimits"]});
     let namespace_revision = &snapshot["accountNamespaceRevision"];

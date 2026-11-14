@@ -54,8 +54,8 @@ impl Assessment {
 
 const LISTS: [&str; 5] = ["observedLiveTurns", "observedUnansweredTurnStarts", "observedOutstandingRequests", "observedActiveChildren", "knownChildActivityUnknown"];
 
-/// AS-03 / AS-04 guard: live work is a live turn, a turn start written and
-/// not yet answered (it has no turn identity, so it cannot be interrupted), an outstanding entry or a
+/// AS-03 / AS-04 guard: live work is a live turn, a turn start written, or
+/// being written, not yet associated with a turn (it cannot be interrupted), an outstanding entry or a
 /// delegated child observed active, plus anything the assessment could not
 /// resolve (a child of unknown activity, an unresolved turn observation, a
 /// ready home it could not assess): none observed is not none, so those ask.

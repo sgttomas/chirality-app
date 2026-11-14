@@ -1374,15 +1374,20 @@ impl Host {
         let i=self.inner.0.lock().unwrap();
         i.conversation_turns.iter().find(|t|t["generation"]==*generation&&t["threadId"]==thread_id&&t["turnId"]==turn_id).cloned()
     }
-    /// Each `turn/start` of the current generation whose write has begun (in
-    /// progress, or written) and that has no response and no write error, in
-    /// the order the writes began. An entry leaves this list when its
-    /// response or its write error is observed, or with its generation.
+    /// Each `turn/start` of the current, open generation whose write has
+    /// begun (in progress, or written) and that the Host has not yet
+    /// associated with a turn, in the order the writes began. An entry stays
+    /// while it is in `turn_request_threads`, which the Host leaves only when
+    /// it has taken in the reply to that request (and remembered the turn the
+    /// reply names) or the request has failed. A reply that arrived while its
+    /// write was still being recorded does not end it, and neither does a
+    /// notice of a turn on its thread: order of receipt shows no association.
     fn unanswered_turn_starts(i: &Inner) -> Vec<Value> {
+        if i.server_requests.is_closed(&i.generation) { return Vec::new(); }
         let mut starts: Vec<(u64, Value)> = i.turn_request_threads.iter().filter_map(|(key, (generation, thread, _))| {
             let e = i.source_requests.get(key)?;
             let position = e.attempt_position?;
-            if *generation != i.generation || e.response.is_some() || e.write_error.is_some() { return None; }
+            if *generation != i.generation || e.write_error.is_some() { return None; }
             let write = if e.write_attempt_in_progress { "in-progress" } else if e.written { "written" } else { return None };
             Some((position, json!({"generation":generation,"threadId":thread,"requestIdentity":e.request.request_id(),"write":write})))
         }).collect();

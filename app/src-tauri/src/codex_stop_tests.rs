@@ -228,7 +228,7 @@ fn no_live_work_is_a_simple_confirmation_and_sends_no_interrupt() {
     let statement = crate::act_control::native_statement::codex_stop_statement(&ops.asked[0]).unwrap();
     assert!(statement.in_app.is_none());
     assert!(statement.text.starts_with("Stop Codex for this home?"));
-    assert!(statement.text.contains("Observed: no live turns, turn starts not yet answered, waiting requests, delegated agents or workflow runs in force."));
+    assert!(statement.text.contains("Observed: no live turns, turn starts not yet associated with a turn, waiting requests, delegated agents or workflow runs in force."));
     assert!(statement.text.contains("Stop Codex stops this Codex process."));
     assert!(!statement.text.contains("interrupts each live turn"), "no interrupt wording without live work");
     assert!(statement.text.contains("Keep Codex running (the default) and Cancel change nothing"));
