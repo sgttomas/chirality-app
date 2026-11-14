@@ -19,6 +19,7 @@ The facts each test guards are listed in README.md beside this file.
 """
 import json
 import os
+import stat
 import sys
 import tempfile
 import time
@@ -32,6 +33,9 @@ from level_fixture import DECLINED, REJECTED, RUNNING, SANDBOX_REFUSED, SUCCEEDE
 BINARY = os.environ.get('CHIRALITY_CODEX_BIN')
 SCRATCH = os.environ.get('LEVEL_SCRATCH') or tempfile.gettempdir()
 HOLD = float(os.environ.get('LEVEL_HOLD_SECONDS') or 120)
+# Debug only: a folder to write the raw record of the temporary folder rows into (see `raw_record`). It changes
+# no judgment and no assertion; unset, nothing is written.
+RAW = os.environ.get('LEVEL_RAW_DIR')
 
 WW = {'type': 'workspaceWrite'}
 SUPERVISED = {'approvalPolicy': 'untrusted', 'sandboxPolicy': {'type': 'readOnly'}}
@@ -324,6 +328,42 @@ class Presets(Probing):
             self.succeeded(probe(run, client, thread, 'in', **EDITS_NET_OFF))
 
 
+def raw_record(name, record):
+    """With LEVEL_RAW_DIR set, write one record as a plain JSON file there; otherwise do nothing. A record holds
+    what was observed, as observed; nothing is summarised."""
+    if not RAW:
+        return
+    folder = Path(RAW)
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / (name + '.json')).write_text(json.dumps(record, indent=2, sort_keys=True) + '\n')
+
+
+def raw_entries(run):
+    """For the raw record only (the assertions use `Run.entries`): each folder on the temporary folder's path, as
+    lstat sees it, or absent; whether it is a link; and the names each of the run's root, the Working Files
+    folder and codex-tmp holds, or why they could not be listed."""
+    out = {}
+    for folder in (run.root, run.data, run.working, run.codex_tmp, run.tmpdir):
+        try:
+            st = os.lstat(folder)
+            out[str(folder)] = {'device': st.st_dev, 'inode': st.st_ino, 'type': oct(stat.S_IFMT(st.st_mode)),
+                                'link': stat.S_ISLNK(st.st_mode)}
+        except OSError as error:
+            out[str(folder)] = {'absent': str(error)}
+    names = {}
+    for folder in (run.root, run.working, run.codex_tmp):
+        try:
+            names[str(folder)] = sorted(os.listdir(folder))
+        except OSError as error:
+            names[str(folder)] = 'not listed: %s' % error
+    return {'identity': out, 'names': names}
+
+
+def raw_ident(reading):
+    ident, names = reading
+    return {'identity (device, inode, type)': ident, 'names': names}
+
+
 class TemporaryFolderEntries(Probing):
     """The App's layout (`Run(working_files=True)`): a fresh home with new, empty settings inside an invented data
     folder, and TMPDIR a folder made in "codex-tmp" inside the "<data folder> Working Files" folder beside it.
@@ -342,7 +382,25 @@ class TemporaryFolderEntries(Probing):
                           item_status=completed and completed.get('status'),
                           item_exit=completed and completed.get('exitCode'))
         outcome.requests = [(r['method'], r['thread']) for r in client.server_requests if r['thread'] == thread]
+        outcome.command, outcome.output = command, run.stub.outputs.get(call_id)
         return outcome
+
+    def raw(self, run, level, key, outcome, before, after):
+        raw_record('%s--%s' % (level, key), {
+            'level': level, 'operation': key, 'command': outcome.command,
+            'output returned by Codex': outcome.output,
+            'outcome judged': {'kind': outcome.kind, 'exit': outcome.exit, 'text': outcome.text,
+                               'evidence': outcome.evidence},
+            'requests seen on the thread': [{'method': m, 'thread': t} for m, t in outcome.requests],
+            'entries before': before, 'entries after': after})
+
+    def raw_start(self, run, level, reply):
+        raw_record('%s--start' % level, {
+            'level': level, 'binary': run.binary, 'binary sha256 as checked': L.sha256_file(L.admitted_binary(run.binary)),
+            'pinned sha256 (supplier manifest)': L.pinned_sha256(),
+            'reply approvalPolicy': reply.get('approvalPolicy'), 'reply sandbox': reply.get('sandbox'),
+            'reply activePermissionProfile': reply.get('activePermissionProfile'),
+            'environment given to Codex': run.environment()})
 
     def test_with_nothing_sent_no_entry_on_the_temporary_folders_path_changes(self):
         with L.Run(SCRATCH, BINARY, working_files=True) as run:
@@ -351,14 +409,23 @@ class TemporaryFolderEntries(Probing):
             thread = reply['thread']['id']
             self.assertEqual((reply['approvalPolicy'], reply['sandbox']),
                              ('on-request', {'type': 'readOnly', 'networkAccess': False}))
+            self.raw_start(run, 'nothing-sent', reply)
             before = run.entries()
             for key in run.entry_operations():
+                one_before = raw_entries(run)
                 outcome = self.entry_probe(run, client, thread, key)
+                self.raw(run, 'nothing-sent', key, outcome, one_before, raw_entries(run))
                 expect(outcome, SANDBOX_REFUSED)
                 self.assertEqual(outcome.requests, [], key)
             self.assertEqual(run.entries(), before)  # every entry the same folder, by device and inode
+            one_before = raw_entries(run)
             inside = probe(run, client, thread, 'tmpdir')  # a write inside the temporary folder itself
+            inside.command, inside.output = run.commands()['tmpdir'], run.stub.outputs.get(inside.call_id)
+            self.raw(run, 'nothing-sent', 'write-inside-tmpdir', inside, one_before, raw_entries(run))
             self.refused(inside)
+            raw_record('nothing-sent--entries-compared', {
+                'Run.entries() before the operations': raw_ident(before),
+                'Run.entries() after the operations and the write inside': raw_ident(run.entries())})
             self.assertEqual(run.entries(), before)
             self.declined(probe(run, client, thread, 'out', escalate=True), thread)  # the same thread asks
 
@@ -368,7 +435,9 @@ class TemporaryFolderEntries(Probing):
         it first. After each, the layout is put back by the fixture, outside Codex."""
         with L.Run(SCRATCH, BINARY, working_files=True) as run:
             client = run.start()
-            thread = client.start_thread()['thread']['id']
+            reply = client.start_thread()
+            thread = reply['thread']['id']
+            self.raw_start(run, 'full-access-on-each-turn', reply)  # full access is sent on each turn; no reply echoes it
             t, p, w = run.tmpdir, run.codex_tmp, run.working
             aside = lambda path, suffix: path.with_name(path.name + suffix)  # noqa: E731
 
@@ -393,7 +462,9 @@ class TemporaryFolderEntries(Probing):
             }
             for key in run.entry_operations():
                 remade_from = [os.lstat(t).st_ino]
+                one_before = raw_entries(run)
                 outcome = self.entry_probe(run, client, thread, key, **FULL)
+                self.raw(run, 'full-access-on-each-turn', key, outcome, one_before, raw_entries(run))
                 if key == 'entry-p-remove':
                     expect(outcome, L.FAILED)
                     self.assertEqual(outcome.text, 'rmdir: %s: Directory not empty' % p)
@@ -402,7 +473,11 @@ class TemporaryFolderEntries(Probing):
                 changed, restore = checks[key]
                 self.assertTrue(changed(), key)
                 restore()
-            self.succeeded(probe(run, client, thread, 'tmpdir', **FULL))
+            one_before = raw_entries(run)
+            inside = probe(run, client, thread, 'tmpdir', **FULL)
+            inside.command, inside.output = run.commands()['tmpdir'], run.stub.outputs.get(inside.call_id)
+            self.raw(run, 'full-access-on-each-turn', 'write-inside-tmpdir', inside, one_before, raw_entries(run))
+            self.succeeded(inside)
 
 
 LEVELS_TABLE = L.APP / 'src-tauri' / 'src' / 'codex_levels.json'
