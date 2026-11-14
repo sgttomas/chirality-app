@@ -1069,6 +1069,17 @@ pub(crate) mod not_answering {
     pub(crate) const NOT_YET_RECORDED: &str = "This arrival's latest disposition is not yet recorded, so no act is offered for it here. Review again once it is.";
     pub(crate) const NOT_ESTABLISHED: &str = "This arrival's disposition cannot be established from its run's records, so no act is offered for it here.";
     pub(crate) const UNFAMILIAR: &str = "This arrival's recorded disposition is not one the App writes, so no act is offered for it here.";
+    pub(crate) const ANSWER_PENDING: &str = "An act or decline answering this arrival is already recorded and not yet taken up, so no second act is offered for it here. Review again once it is.";
+}
+/// Whether the record `id` is one the recorder has taken up for `arrival`: counted, not counted
+/// or recorded as declining it, by the run's own entries (the same test the recorder uses not
+/// to count it twice).
+pub(crate) fn taken_up(entries: &[Value], arrival: &Value, id: &Value) -> bool {
+    entries.iter().any(|e| e["body"]["arrival"] == *arrival && match e["kind"].as_str() {
+        Some("act_counted" | "act_not_counted") => e["body"]["act"]["recordId"] == *id,
+        Some("arrival_declined") => e["body"]["declinedEventRef"] == *id,
+        _ => false,
+    })
 }
 /// Whether an act on `arrival` now would be counted for it, by the rule acts are counted by
 /// (CE-5, RC-8): its latest disposition, recorded, is *waiting*, or it is *performed* with a

@@ -853,3 +853,28 @@ fn file_act_arrival_is_offered_only_while_an_act_would_answer_it() {
     assert_eq!(standing["kind"], "human_act");
     assert!(standing["body"]["relations"]["arrivalAnswered"].is_null(), "a standing act, answering no arrival: {standing}");
 }
+
+
+#[test]
+fn a_second_offer_on_an_arrival_already_answered_but_not_yet_taken_up_is_refused() {
+    // found (reading of 347): two offers confirmed before the recorder's next observation both
+    // recorded, though only the first could count.
+    let (peer, state, run, arrival) = fixture("A7");
+    let first = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+    let second = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+    assert_eq!(confirm(&state, first["reference"].as_str().unwrap(), "act")["state"], "AC-7 recorded");
+    // Before the recorder observes: the second is refused before the native question, and a new
+    // offer is not made.
+    let before = acts(&peer).len();
+    let mut asked = false;
+    let refused = crate::file_act_confirm_original(&state, second["reference"].as_str().unwrap(), |control, offer, observe| {
+        control.synthetic_file_native(offer, observe, |_, kind| { asked = true; MessageDialogResult::Custom(kind.wording().into()) })
+    }).unwrap();
+    assert!(!asked && refused["error"] == crate::checkpoint_recorder::not_answering::ANSWER_PENDING, "{refused}");
+    assert_eq!(acts(&peer).len(), before, "nothing recorded");
+    assert_eq!(crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap_err(), crate::checkpoint_recorder::not_answering::ANSWER_PENDING);
+    // Once taken up, the arrival reads performed, and the reason says that.
+    state.workflows.lock().unwrap().runs[&run].lock().unwrap().observe_checkpoints(&recorder_view(&peer, &summary_items()[1..]));
+    assert_eq!(rs_for(&peer, &run).iter().filter(|e| e["kind"] == "act_counted").count(), 1);
+    assert_eq!(crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap_err(), crate::checkpoint_recorder::not_answering::PERFORMED);
+}

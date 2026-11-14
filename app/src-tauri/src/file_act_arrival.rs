@@ -234,6 +234,21 @@ fn basis(run: &WorkflowRun, id: &str) -> Result<Basis, String> {
     {
         return Err("The run source records an end; no live arrival offer".into());
     }
+    // Only one act answers an arrival: an act or decline already recorded as answering it,
+    // which the recorder has not yet taken up, means no second offer, until it has.
+    let arrival = json!({"checkpoint":candidate.arrival["checkpoint"],"arrivalOrdinal":candidate.arrival["arrivalOrdinal"]});
+    let taken: Vec<Value> = run.entries.iter().map(|e| json!({"kind":e.kind,"body":e.body})).collect();
+    if source.claims.iter().map(|c| &c["record"]).any(|r| {
+        r["runId"] == *run_id
+            && match r["kind"].as_str() {
+                Some("human_act") => r["body"]["relations"]["arrivalAnswered"] == arrival,
+                Some("act_declined") => r["body"]["arrival"] == arrival,
+                _ => false,
+            }
+            && !crate::checkpoint_recorder::taken_up(&taken, &arrival, &r["recordId"])
+    }) {
+        return Err(crate::checkpoint_recorder::not_answering::ANSWER_PENDING.into());
+    }
     let openings: Vec<_> = run
         .entries
         .iter()
