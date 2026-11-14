@@ -19,13 +19,16 @@ The owner approved one bounded step on 13 November 2026, in these words
 
 **State:**
 
-- Step one, the hosted proof: **shown on hosted run 1 of 2**, 13 November
+- (a) Step one, the hosted proof: **shown on hosted run 1 of 2**, 13 November
   2026, run 43490769105.
-- Step two, the scenario end to end: in progress. Built attempts made: 0 of
-  2, and a repair to the driver or its runner counts as one.
+- (b) Step two, the scenario end to end: **shown on built attempt 1 of 2**,
+  13 November 2026, run 43508391064.
 
-This section is updated with each built attempt, and says when the stop point
-is reached or both results are shown.
+Both results are shown and the approved step is complete. The two built
+attempts were attempts to reach the scenario's pass; with a pass shown, later
+hosted runs of the scenario are regression runs, not attempts (App Agent 0,
+stated before attempt 1's result). The first, run 43520740915 on 13 November
+2026, also passed.
 
 ## How it is kept out of the shipped App
 
@@ -149,7 +152,11 @@ handful the first-use page shows. The judge's model holds only rendered
 elements. Each scenario report also counts the page's buttons three ways (in
 the document, under a hidden element, visible), at the start and at the end.
 Why the two totals differ between this Mac and the runner is not
-established.
+established. On the runner they also differ between runs: attempt 1 counted
+347 buttons in the document at the start and the first regression run 202,
+with 3 visible in both and 346 in both at the end, so the hidden workspace
+can still be mounting when the walk starts. The verdict rests on visible
+elements only, so this does not bear on it.
 
 ## What it does not establish
 
