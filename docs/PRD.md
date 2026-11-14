@@ -127,6 +127,9 @@ embedding interface, with native sign-in (D-19; [architecture](ARCHITECTURE.md))
 - **V4-APP-04** The App presents what the harness produces in its native form
   — plans, tool activity, delegation, requests — without translating it into
   a Chirality-specific vocabulary (L-05; [architecture](ARCHITECTURE.md) M-2).
+  A harness request shown in the person's list of what waits on them
+  (V4-PM-07) keeps its native form; the names of points (V4-AUT-07) belong
+  to the points the person and the agents place and do not rename it.
 
 ### 2.2 Host applications — Chirality inside the owner's applications
 
@@ -266,9 +269,12 @@ with a small declared part the product can observe (D-03).
 - **V4-WF-01** A workflow is prose method guidance plus a declared part
   stating: the inputs it expects; the host tools it needs; the checkpoints
   where a human act is required; and the outputs and evidence it returns.
+  Other points the method places (V4-AUT-07) may be stated in its guidance.
 - **V4-WF-02** A person creates and revises workflows through conversation.
   A new or changed workflow is a draft until the person reviews it and
   registers it explicitly; registration never overwrites silently (X-02).
+  A point placed during work (V4-AUT-08) becomes part of a workflow only
+  through this review and registration, which the App offers.
 - **V4-WF-03** Every workflow keeps a source-qualified identity (project,
   user, bundled, or host-supplied). A selection is never rebound silently to a
   same-named workflow from another source.
@@ -284,7 +290,12 @@ with a small declared part the product can observe (D-03).
   unsupported because a hold cannot be enforced. Enforced holds are applied
   later to the workflows that need them; the declared checkpoint and the
   definitions that enforcement needs are kept so that every such workflow can
-  be served. Reserved human acts (§4.5) are unaffected.
+  be served. Reserved human acts (§4.5) are unaffected. In the current phase a
+  pause at a declared checkpoint is the agent's cooperation, and the App says
+  so. While an arrival's recorded disposition is waiting, the App shows it as
+  a point waiting on the person (V4-PM-07); an arrival already answered keeps
+  its disposition in the run's history. The App does not pause, interrupt or
+  refuse because of an arrival.
 - **V4-WF-06** Workflows made in the Chirality App can be carried into a host
   and adapted there; a host's own workflows can be opened and refined in the
   Chirality App.
@@ -314,6 +325,15 @@ with a small declared part the product can observe (D-03).
   unobserved outcome is shown as unknown (X-05).
 - **V4-EXE-04** After a restart, a person can continue a conversation and see
   what was done before it.
+- **V4-EXE-05** Where work waits, the App says which of three things it
+  observed: the agent was asked to pause (the request alone shows neither
+  that its turn ended nor that it paused, and delegated agents and background
+  commands may still be running); a question is waiting (that one call stays
+  open until it is answered or ends unanswered, and other work goes on); or a
+  turn completed. It never shows work as held or blocked by a hold
+  it does not enforce (V4-WF-05). An arrival at a point that the agent
+  reports is recorded as reported, unless the App itself observed what
+  triggers it.
 
 ### 4.4 Semantic parity
 
@@ -365,13 +385,70 @@ Shared access does not transfer decision rights (OD-05).
   ruling; graduated autonomy does not settle them.
 - **V4-AUT-04** First-increment ruling DEC-1 D3 leaves routine tool-permission
   and sandbox modes, including classifier-based modes, as the person's own
-  Codex setting in the App. Hosts have no classifier permission mode in that
+  setting for Codex in the App: the person sets them in the App as the
+  permission level (V4-AUT-06), and the App carries that level to its Codex.
+  The harness's own requests for permission remain and are shown truthfully
+  (V4-APP-04). Hosts have no classifier permission mode in that
   increment. These settings never stand in for an attributable human or
   professional act. Further operation-specific policy remains with the owners
   at OQ-02/OI-021's point of need.
 - **V4-AUT-05** Nothing the agent produces is presented as certified, sealed,
   approved or code-compliant; such statements belong to the accountable
   professional (X-09; SWBPIPE `docs/PROFESSIONAL_BOUNDARY.md`).
+- **V4-AUT-06** In the Chirality App the person sets how far the agent may
+  act, as a **permission level** that the App sends to its Codex on every
+  turn and when a conversation is started, resumed or forked. A level states
+  where the agent may write (nowhere; the project; the project and named
+  further folders; anywhere), whether the commands it runs have network
+  access, and when it asks (before a command it does not know to be safe;
+  when it wants to go beyond its sandbox; never). With every level the App
+  sends that the person answers the harness's requests, whatever review
+  routing the person's own settings name. Reading is not limited at
+  any level: Codex can read whatever the person's account can read, and the
+  App says so wherever the level is shown. The level in force is always
+  shown. The App offers a level only once a fixture has shown that level at
+  the pinned Codex version. The level is the person's own setting (V4-AUT-04):
+  it is no reserved act and stands in for none. Only the person sets or
+  changes it, by a confirmation the App takes from the person alone, and the
+  change is recorded with its scope, its values and when it took effect;
+  sending a level already chosen again is not a change. No agent, tool or
+  App rule changes the level the person chose, and an agent never raises its
+  own; a delegated agent taking its parent's level, and a narrower limit set
+  on work that is assigned, are not changes to it. A narrower
+  level does not restrain a command already running, and the App does not
+  imply that it does. At every level the harness's own requests are shown
+  truthfully (V4-AUT-04). A
+  system password prompt is the person's to answer. A new person
+  chooses a level among those offered before the first conversation, and
+  none applies until they have chosen; a level marked as recommended is shown
+  as such beside the others.
+- **V4-AUT-07** A **point** is a place in the work where a named party is
+  called to respond. The person's vocabulary has five kinds, and each point
+  names the actual response or act it asks for: a **checkpoint** shows where
+  things stand, to continue or redirect; a **review point** shows a result
+  before it is used; a **decision point** asks for a choice; an **input
+  point** asks the person for something the work needs; a **sign-off point**
+  always names its act, engineering approval or professional reliance, which
+  stay different. A point states when it arises, whether it asks the agent to
+  pause, who must respond, what resolves it, which content and revision it
+  concerns, and who integrates the result. Whether a point asks the agent to
+  pause is the person's to define, and the agent can set it too. Where both
+  have set it, the person's explicit setting wins; the agent's applies where
+  the person has set nothing, and an agent changes a person's setting only
+  within a delegation the person gave in advance (V4-AUT-08). A declared
+  checkpoint (V4-WF-01, V4-WF-05) is a point declared in a workflow that
+  requires a reserved human act, irrespective of its kind or whether it asks
+  the agent to pause. A
+  decision reserved to the person remains a decision package decided at the
+  act control (V4-PM-04); an ordinary choice is a response in conversation.
+- **V4-AUT-08** A person places a point by asking the agent, while making a
+  workflow or in the middle of work. A point placed in conversation amends
+  the run in hand and is recorded with who placed it; the App shows what took
+  effect and does not claim that running agents have received it. An agent
+  may place or change points within a delegation the person gave in advance,
+  relaxation included. Removing a point, narrowing when it arises, changing
+  who must respond, or turning a pause into a notice is recorded as a change
+  to the requirement, with who made it, and never as a performed act.
 
 ### 4.6 Coordinating an agent fleet
 
@@ -382,12 +459,37 @@ For the owner and an agent fleet, in the Chirality App (D-09, option B).
 - **V4-PM-02** Each undertaking has one current work graph, kept as a file,
   that shows selected work, prerequisites, owners, results and what comes next.
 - **V4-PM-03** Returns awaiting examination form a visible queue; the
-  product shows waiting work by its cause (X-16).
+  product shows waiting work by its cause (X-16). The queue is presented in
+  the person's list of what waits on them (V4-PM-07).
 - **V4-PM-04** Decisions reserved to the person arrive as decision packages
   naming the exact act requested, with alternatives and consequences (X-17).
+  They are presented in the person's list of what waits on them (V4-PM-07).
 - **V4-PM-05** Status is recoverable across sessions from the files.
 - **V4-PM-06** Coordination views are derived from files and can be rebuilt;
-  they never become the authority (X-18).
+  they never become the authority (X-18). The person's list of what waits on
+  them (V4-PM-07) is such a view.
+- **V4-PM-07** Everything waiting on the person, from every agent, is one
+  list: a view over what the App already keeps (the harness's requests,
+  arrivals at checkpoints, returns awaiting review under V4-PM-03 and
+  decision packages under V4-PM-04), never a second queue or a second source
+  of status. One request has one disposition wherever it is seen. Each card
+  stands out from the agents' activity and names who asks (for a delegated
+  agent, its role and name as Codex reports them), who must respond, what it
+  concerns and who integrates the result. The App draws each card on a path
+  that agent text cannot reach or imitate, so that nothing an agent writes
+  into the stream can pass for a card, to a person's eye or to an assistive
+  reader. Text an agent supplies inside a card, such as a command, a path or
+  a question's wording, is marked as the agent's in what is seen and in what
+  the accessibility layer reports, with line breaks and control characters
+  made visible and never acted on. Related obligations stay distinct:
+  answering the harness's question does not capture a reserved act. A request
+  waiting on an agent is activity, not a demand on the person.
+- **V4-PM-08** An agent's contribution arriving completes a request for that
+  contribution, with its actor, subject and limits kept; it never completes
+  anything reserved to a person (V4-AUT-03). A returned review reads "review
+  returned" and then "awaiting integration", with the integration owner
+  named; there is no general "approved". A review is an assignment, not a
+  role (V4-ROLE-01, V4-ROLE-03).
 - Further project-management scope indicated by the owner is an open question
   (§9, OQ-06).
 
@@ -532,6 +634,8 @@ to repeat already settled direction.
 | Harness | The agent program that runs the model loop and tools (for example Codex) |
 | Workflow | Reusable method guidance with a declared part (§4.1) |
 | Declared checkpoint | A point in a workflow where a human act is required |
+| Point | A place in the work where a named party is called to respond (V4-AUT-07): a checkpoint, review point, decision point, input point or sign-off point. The kind named checkpoint does not itself require a reserved human act; a declared checkpoint can be of any kind |
+| Permission level | How far the agent in the Chirality App may act, set by the person: where it may write, network for its commands and when it asks; reading is not limited (V4-AUT-06) |
 | Capability catalog | A host's single description of every operation a person can perform |
 | Semantic parity | Meaningful reads, operations, validation, results and recovery across human, embedded and external agency; shared semantics does not transfer human decision rights |
 | Proposal | A change an agent submits for a person's acceptance |
