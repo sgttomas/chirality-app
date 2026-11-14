@@ -870,6 +870,13 @@ pub(crate) fn remove_test_ledger(path: &std::path::Path) {
         let _ = std::fs::remove_file(leaf);
     }
 }
+/// Test support: as [`stored_entries`], or why the ledger could not be opened. For a test
+/// that reads, from this process, a ledger another App process writes: its open can meet that
+/// process's journal while SQLite removes it at commit, and the test reads again.
+#[cfg(test)]
+pub(crate) fn try_stored_entries(path: &std::path::Path) -> Result<Vec<Value>, String> {
+    Ok(RecoveryLedger::open(path.to_path_buf())?.recorded_entries().as_array().cloned().unwrap_or_default())
+}
 /// Test support: every entry the ledger at `path` holds, as a reopen reads them.
 #[cfg(test)]
 pub(crate) fn stored_entries(path: &std::path::Path) -> Vec<Value> {
