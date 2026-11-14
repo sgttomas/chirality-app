@@ -239,60 +239,68 @@ An entry is added in the same pull request that makes the limitation standing.
   of the reach of the account the App runs under.
 - **Basis:** DEL-01-04 and DEL-04-02 (the permission level); PRD V4-AUT-06.
 
-### LIM-024: Plugins are unavailable in the App's Codex in this release
+### LIM-024: The App shows whether plugins are on in its Codex, not which plugins act
 
 - **Id:** LIM-024
 - **Exit criteria:** 6
-- **What is unavailable:** plugins in the App's Codex. Plugins are not available
-  in the App's Codex in this release, and your own Codex settings cannot turn
-  them on there. A plugin's hooks, those that approve and those that refuse, do
-  not apply to conversations in the App, and nor do its skills or tool servers.
-  They continue to apply in your own Codex. So if a plugin's hook stops a
-  command for you in your own Codex, it does not stop it in the App.
-- **Why:** the App cannot yet show which plugins are named or loaded, or what
-  each one approves or refuses. With plugins on, they would apply unseen, and
-  the level you set and see in the App would not be what governs a
-  conversation.
-- **What the person does instead:** use the plugin in your own Codex, outside
-  the App. Where a plugin's hook is what keeps a command from running for you,
-  choose a level in the App that asks before commands. The App's list of the
-  settings it applies to its Codex shows this one, with its reason.
-- **If your Mac or your ChatGPT account is managed so that plugins are turned
-  on:** the App cannot run a conversation in its Codex at all in this release.
-  Before each conversation the App reads whether plugins are on. If they are,
-  it starts nothing and says that a setting outside the App turns plugins on.
-  The App does not change that setting. Ask whoever manages your Mac or account,
-  or use your own Codex.
-- **Basis:** DEL-01-05 (REQ-010, the settings the App applies to its Codex).
-  That turning plugins off stops the start-up plugin traffic is shown for the
-  lock file of the curated sync and for the featured list. The sync's own
-  network attempts are read from the source (`app/supplier_checks/level`).
-  Not established at the pinned Codex version: that no part of Codex outside
-  its plugin handling reads installed plugins from the App's Codex folder.
+- **What is unavailable:** a view of the plugins in the App's Codex. Plugins
+  are as your own Codex settings have them. Beside the level in force, the App
+  shows whether plugins are on in this home's Codex, and where that comes
+  from: this home's settings, a project's settings, Codex's default, or a
+  setting outside the App. If the App could not read it, it says so. It does
+  not show which plugins are installed, which hooks they bring, or when a hook
+  acted. If a plugin is installed, its hooks can approve or refuse a request
+  without a card. The level shown describes commands and file changes, not
+  what a plugin's hooks decide.
+- **Start-up connections:** while plugins are on, the App's Codex makes these
+  connections when it starts, without sign-in:
+  - github.com, to fetch the curated list of plugins (api.github.com instead
+    if git is not available or fails);
+  - chatgpt.com, for the curated list if both of those fail, and for the list
+    of featured plugins.
+- **Why:** listing plugins and their hooks needs reads of Codex that the App
+  has not shown to stay on this Mac at the pinned Codex version.
+- **What the person does instead:** see and manage your plugins in your own
+  Codex. To turn plugins off in the App's Codex, set `plugins = false` under
+  `[features]` in your Codex settings. The App's Codex uses your settings, so
+  this turns them off in your own Codex too. If you turn plugins off and a
+  plugin's hook was what stopped a command for you, choose a level in the App
+  that asks before commands. If the App shows the setting as set outside the App, it does not change it:
+  ask whoever manages your Mac or account.
+- **Basis:** DEL-01-05 (REQ-010). The App's reading of the setting and its
+  source is covered by tests. A fixture shows the start-up plugin traffic with
+  plugins on, and its absence with `plugins = false` in the home's own
+  settings (`app/supplier_checks/level`): the start of the curated sync and the
+  featured-list request are shown. The sync's own network attempts are read
+  from the source. Not established at the pinned Codex version: whether a
+  plugin can add command rules, and whether listing installed plugins makes a
+  network request when signed in.
 
-### LIM-025: Apps connected to your ChatGPT account are unavailable in the App's Codex in this release
+### LIM-025: The App shows whether connected apps are on in its Codex, not which apps act
 
 - **Id:** LIM-025
 - **Exit criteria:** 6
-- **What is unavailable:** the apps connected to your ChatGPT account, in the
-  App's Codex. Your own settings cannot turn them on there: none of their tools
-  is given to the App's Codex. You keep your connected apps; the App's Codex
-  does not use them.
-- **Why:** the App cannot make every connected app's tool ask you first, and
-  some would run with no request to you and outside the permission level you
-  set. Connected apps stay off until each tool can be shown and asked for.
-- **What the person does instead:** use connected apps in ChatGPT or in your
-  own Codex, outside the App. The App's list of the settings it applies to its
-  Codex shows this one, with its reason.
-- **If your Mac or your ChatGPT account is managed so that connected apps are
-  turned on:** the App cannot run a conversation in its Codex at all in this
-  release. Before each conversation the App reads whether connected apps are
-  on. If they are, it starts nothing and says that a setting outside the App
-  turns on apps connected to your ChatGPT account. The App does not change that
-  setting. Ask whoever manages your Mac or account, or use your own Codex.
-- **Basis:** DEL-01-05 (REQ-010, the settings the App applies to its Codex).
-  That turning the setting off removes the connected apps' tools is read from
-  the source at the pinned Codex version. It is not shown by a fixture, because
-  the connected apps start only for a signed-in account. Not established: that
-  no further setting is needed beside the ones the App sends; the source was not
-  searched whole.
+- **What is unavailable:** a view of the apps connected to your ChatGPT
+  account, in the App's Codex. Connected apps are as your own Codex settings
+  have them. Beside the level in force, the App shows whether connected apps
+  are on in this home's Codex, and where that comes from: this home's
+  settings, a project's settings, Codex's default, or a setting outside the
+  App. If the App could not read it, it says so. Once you are signed in, a
+  connected app's tools are given to the App's Codex. A tool that the app marks
+  read-only can run without a card. The level shown describes commands and
+  file changes, not these tools. The App does not show which apps are
+  connected, or which of their tools run without a card.
+- **Why:** at the pinned Codex version, the requests Codex offers for listing
+  connected apps are marked experimental. The App has not shown that the
+  read-only marks they report are the ones Codex uses to decide whether to
+  ask.
+- **What the person does instead:** manage your connected apps in ChatGPT. To
+  turn them off in the App's Codex, set `apps = false` under `[features]` in
+  your Codex settings. This turns them off in your own Codex too, and an older
+  `connectors = true` in the same settings turns them back on. If the App shows
+  the setting as set outside the App, it does not change it: ask whoever
+  manages your Mac or account.
+- **Basis:** DEL-01-05 (REQ-010). The App's reading of the setting and its
+  source is covered by tests. What a connected app's tools do with the setting
+  on is read from the source at the pinned Codex version. It is not shown by a
+  fixture, because connected apps start only for a signed-in account.

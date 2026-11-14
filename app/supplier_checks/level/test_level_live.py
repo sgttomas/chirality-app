@@ -306,18 +306,22 @@ class Presets(Probing):
 
 
 class Plugins(unittest.TestCase):
-    """The App's account home turns plugins off with `features.plugins=false`. Here two fresh homes are started on the
-    account route, without and with that setting, and nothing else is done. The ChatGPT base address points at the
-    stub, so the featured-plugins request reaches it; every other address goes to the closed proxy port, and the
-    system proxy fallback is off, so nothing leaves loopback. What distinguishes the two starts: the curated sync's lock
-    file in the home (made before any network attempt) and the featured-plugins request at the stub."""
+    """Plugins in the App's Codex are as the home's own settings have them. Two fresh homes are started on the account
+    route, one with an empty `config.toml` and one whose `config.toml` holds exactly `plugins = false` and
+    `apps = false` under `[features]` (the settings file the examination's home uses), and nothing else is done. The
+    ChatGPT base address points at the stub, so the featured-plugins request reaches it; every other address goes to
+    the closed proxy port, and the system proxy fallback is off, so nothing leaves loopback. What distinguishes the two
+    starts: the curated sync's lock file in the home (made before any network attempt) and the featured-plugins request
+    at the stub."""
 
     WAIT = 15
+    OFF = '[features]\nplugins = false\napps = false\n'
 
-    def observe(self, flags):
+    def observe(self, settings):
         with L.Run(SCRATCH, BINARY) as run:
+            (run.root / 'home' / 'config.toml').write_text(settings)
             base = '"http://127.0.0.1:%d/backend-api/"' % run.stub.port
-            client = run.start(flags=['chatgpt_base_url=%s' % base, 'features.system_proxy_fallback=false'] + flags)
+            client = run.start(flags=['chatgpt_base_url=%s' % base, 'features.system_proxy_fallback=false'])
             lock = run.root / 'home' / '.tmp' / 'plugins.sync.lock'
 
             def featured():
@@ -330,13 +334,15 @@ class Plugins(unittest.TestCase):
             self.assertIsNone(client.proc.poll(), 'the server is still running when observed')
             return seen
 
-    def test_plugins_off_stops_the_curated_sync_and_the_featured_list_that_start_without_it(self):
-        on = self.observe([])
+    def test_plugins_off_in_the_homes_own_settings_stops_the_curated_sync_and_the_featured_list(self):
+        on = self.observe('')
         self.assertTrue(on['sync lock'], on)  # the curated sync began
         self.assertTrue(on['featured requests'], on)  # the featured list was asked for
-        off = self.observe(['features.plugins=false'])
+        off = self.observe(self.OFF)
         self.assertEqual(off, {'sync lock': False, 'tmp folder': False, 'plugins cache': False,
                                'featured requests': []}, 'with plugins off, after %d s' % self.WAIT)
+
+
 class TemporaryFolderEntries(Probing):
     """The App's layout (`Run(working_files=True)`): a fresh home with new, empty settings inside an invented data
     folder, and TMPDIR a folder made in "codex-tmp" inside the "<data folder> Working Files" folder beside it.
