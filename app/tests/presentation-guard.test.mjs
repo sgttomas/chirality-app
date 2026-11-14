@@ -507,6 +507,60 @@ test('rendered: the detectors take a box only as AgentText draws it, and a role 
   } finally { await React.act(() => root.unmount()); document.body.removeChild(container); }
 });
 
+test('rendered: each property of a box is required on its own: a well-formed box with exactly one thing removed is refused by both detectors', async () => {
+  // The positive control: the real AgentText box passes both detectors.
+  const real = renderToStaticMarkup(React.createElement(AgentText, {value: P, source: 'codex'}));
+  assertBoundary(real, 'the real box');
+  const once = (markup, from, to) => { assert.equal(markup.split(from).length, 2, `the row changes exactly one place: ${from}`); return markup.replace(from, to); };
+  const label = real.match(/<span class="agent-text-label" style="[^"]*">[^<]*<\/span> /)[0];
+  const value = real.match(/<span class="agent-text-value"[\s\S]*<\/span><\/span>$/)[0].replace(/<\/span>$/, '');
+  const name = real.match(/ aria-label="[^"]*"/)[0];
+  const border = real.match(/border:[^;]*;/)[0];
+  // The static detector reads the markup as AgentText writes it: a group with a name and a border whose first child is
+  // the label, then the value. Each row breaks one of those.
+  const staticRows = [
+    ['the source label empty', once(real, label, label.replace(/>[^<]*<\/span> $/, '></span> '))],
+    ['the source label element absent', once(real, label, '')],
+    ['the accessible name empty', once(real, name, ' aria-label=""')],
+    ['the name attribute absent', once(real, name, '')],
+    ['the border absent', once(real, border, '')],
+    ['the value a sibling of the group, not inside it', once(real, value + '</span>', '</span>' + value)],
+    ['a value with the box\'s class and no group at all', value],
+    ['the label not the group\'s first child', once(real, label + value, value + ' ' + label.trim())],
+    ['the group\'s role absent', once(real, ' role="group"', '')],
+    ['the group\'s class absent', once(real, ' class="agent-text"', '')],
+  ];
+  for (const [what, markup] of staticRows) assert.throws(() => assertBoundary(markup, what), undefined, `static: ${what}`);
+  // The mounted detector reads the document: the value's group must carry a non-empty name and a border, and hold a
+  // non-empty label. It does not check the label's position among the group's children (the static detector does), so
+  // that row is static only.
+  const mountedRows = [
+    ['the source label empty', ({labelNode}) => { labelNode.textContent = ''; }],
+    ['the source label element absent', ({group, labelNode}) => { group.removeChild(labelNode); }],
+    ['the accessible name empty', ({group}) => { group.setAttribute('aria-label', ''); }],
+    ['the name attribute absent', ({group}) => { group.removeAttribute('aria-label'); }],
+    ['the border absent', ({group}) => { delete group.style.border; }],
+    ['the value a sibling of the group, not inside it', ({wrapper, valueNode}) => { wrapper.appendChild(valueNode); }],
+    ['a value with the box\'s class and no group at all', ({wrapper, group, valueNode}) => { wrapper.appendChild(valueNode); wrapper.removeChild(group); }],
+    ['the group\'s role absent', ({group}) => { group.removeAttribute('role'); }],
+    ['the group\'s class absent', ({group}) => { group.removeAttribute('class'); }],
+  ];
+  for (const [what, breakIt] of [['the real box, unbroken', () => {}], ...mountedRows]) {
+    const container = document.createElement('div'); document.body.appendChild(container);
+    const root = createRoot(container);
+    try {
+      await React.act(() => root.render(React.createElement('div', null, React.createElement(AgentText, {value: P, source: 'codex'}))));
+      const wrapper = container.firstChild, group = wrapper.firstChild;
+      const labelNode = group.childNodes.find(n => classes(n).includes('agent-text-label'));
+      const valueNode = group.childNodes.find(n => classes(n).includes('agent-text-value'));
+      assert.ok(String(group.style.border ?? '').trim() !== '' && (group.getAttribute('aria-label') ?? '') !== '' && labelNode && valueNode, 'the mounted box is well formed before the row breaks it');
+      breakIt({wrapper, group, labelNode, valueNode});
+      if (what === 'the real box, unbroken') assertMounted(container, what);
+      else assert.throws(() => assertMounted(container, what), undefined, `mounted: ${what}`);
+    } finally { await React.act(() => root.unmount()); document.body.removeChild(container); }
+  }
+});
+
 test('rendered: the positives read the readable body: history entries without their {turnId,item} wrapper fail them, though every value is still in the source dumps', async () => {
   const surface = SURFACES.find(s => s.name === 'history items');
   const bare = JSON.parse(JSON.stringify(surface.data));
