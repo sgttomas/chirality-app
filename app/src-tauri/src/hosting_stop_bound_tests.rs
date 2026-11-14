@@ -1642,3 +1642,33 @@ fn a_successor_check_under_the_host_state_never_waits_on_the_session_end_or_cust
     *custody.end_observation.lock().unwrap() = Some(json!({"ended":"invented"}));
     assert_eq!(check(&host).unwrap_err(), "App session ended; successor start refused");
 }
+
+/// F-5: settlement takes each home's request gate within the quit's bound. A
+/// holder that is not a start (any App request to that Codex) and that never
+/// lets go refuses the settlement at the bound, rather than holding the quit.
+#[test]
+fn settlement_does_not_wait_past_its_bound_on_a_held_request_gate() {
+    let f = Fixture::new();
+    let group = f.group();
+    let host = Arc::clone(f.host());
+    host.begin_quit_by(Instant::now() + Duration::from_secs(1)).unwrap();
+    let (held_tx, held_rx) = channel();
+    let (release_tx, release_rx) = channel::<()>();
+    let holder = Arc::clone(&host);
+    let holding = std::thread::spawn(move || {
+        let _gate = holder.attachment_gate.lock().unwrap();
+        held_tx.send(()).unwrap();
+        let _ = release_rx.recv();
+    });
+    held_rx.recv().unwrap();
+    let begin = Instant::now();
+    let settled = host.settle_for_quit("the person", "quit");
+    let took = begin.elapsed();
+    let _ = release_tx.send(());
+    holding.join().unwrap();
+    assert!(took >= crate::app_quit::QUIT_FENCE_WAIT_LIMIT && took < crate::app_quit::QUIT_FENCE_WAIT_LIMIT + SLACK, "{took:?}");
+    let error = settled.unwrap_err();
+    assert!(error.contains("another App activity held this home's request gate past the quit's bound"), "{error}");
+    assert!(!f.group_ended(group), "nothing was stopped while the gate was held");
+    host.cancel_quit();
+}

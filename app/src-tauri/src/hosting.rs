@@ -1938,7 +1938,7 @@ impl Host {
     /// nothing about that start's process is inferred. From the fence on,
     /// recovery drains are deferred to the quit's bounded recording.
     pub(crate) fn begin_quit_by(&self, deadline: std::time::Instant) -> Result<(), String> {
-        let _gate = crate::util::lock_by(&self.attachment_gate, deadline).ok_or("a Codex start held the source gate past the quit's fencing bound")?;
+        let _gate = crate::util::lock_by(&self.attachment_gate, deadline).ok_or("another App activity held this home's request gate past the quit's fencing bound")?;
         self.quit_defers_drains.store(true, std::sync::atomic::Ordering::SeqCst);
         self.quit_fence.store(true, std::sync::atomic::Ordering::SeqCst);
         Ok(())
@@ -1999,8 +1999,11 @@ impl Host {
         // rather than interpreting an idle-state Stop refusal as cleanup loss.
         #[cfg(test)]
         if let Some(hook) = self.before_quit_stop.lock().unwrap().take() { hook(); }
+        // The home's request gate is taken within the quit's bound: after the
+        // fence a start lets it go at once, but other App requests to this
+        // Codex take it too, and none of them may hold settlement unbounded.
         let stop_error = if !matches!(state.as_str(), "absent" | "stopped" | "refused") {
-            self.stop(actor, reason).err()
+            self.stop_for_quit(actor, reason, std::time::Instant::now() + crate::app_quit::QUIT_FENCE_WAIT_LIMIT).err()
         } else { None };
         let mut processes: Vec<_> = self.probe_processes.lock().unwrap().iter()
             .map(|(attempt, p)| (json!({"kind":"label-probe","startAttempt":attempt}), Arc::clone(p))).collect();
@@ -5595,7 +5598,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
     fn stop_inner(&self,expected_generation:Option<&Value>, actor: &str, reason: &str, for_quit: Option<std::time::Instant>) -> Result<Value, String> {
         let source_gate = match for_quit {
             None => self.attachment_gate.lock().unwrap(),
-            Some(deadline) => crate::util::lock_by(&self.attachment_gate, deadline).ok_or("a Codex start for this home held its source gate past the quit's bound")?,
+            Some(deadline) => crate::util::lock_by(&self.attachment_gate, deadline).ok_or("another App activity held this home's request gate past the quit's bound")?,
         };
         let process;let target_generation;
         {
