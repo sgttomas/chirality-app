@@ -2506,22 +2506,45 @@ class TheMethodReadsNoCommandLine(unittest.TestCase):
         lists = [words[i + 1] for i, word in enumerate(words[:-1]) if word in ('-o', '-axo')]
         return bool(lists) and all(field.rstrip('=') in self.PS_FIELDS for each in lists for field in each.split(','))
 
+    # A ps in code: a list whose head is '/bin/ps', 'ps' (either quote) or PS. Any such literal elsewhere is a form
+    # this cannot read, and fails. In prose: a ps in backticks, at the head of a code line, or followed by a flag or a
+    # placeholder is a command; a bare one names no output and fails.
+    PS_CALL = re.compile(r"""\[\s*(?:(['"])(?:/bin/)?ps\1|PS)\s*,?([^\]]*)\]""")
+    PS_LITERAL = re.compile(r"""(?<!PS = )(['"])(?:/bin/)?ps\1|(?<![\w.])PS\b(?!\s*=[^=])""")
+    PS_PROSE = re.compile(r"""(?<![\w/'".-])ps\b(?![\w.'"/=-])([^`);\n]*)""")
+
+    def ps_commands(self, text):
+        """Each ps command in a source, as its words after ps, and each ps literal this cannot read, as None."""
+        spans = [m.span() for m in self.PS_CALL.finditer(text)]
+        inside = lambda at: any(start <= at < end for start, end in spans)
+        found = [[word for _, word in re.findall(r"""(['"])(.*?)\1""", m.group(2))] for m in self.PS_CALL.finditer(text)]
+        found += [None for m in self.PS_LITERAL.finditer(text) if not inside(m.start())]
+        for m in self.PS_PROSE.finditer(text):
+            words, before = m.group(1).split(), text[:m.start()].rsplit('\n', 1)[-1]
+            if not inside(m.start()) and (before.endswith('`') or not before.strip() or words[:1] and words[0][:1] in ('-', '<')):
+                found.append(words)
+        return found
+
     def test_every_ps_names_only_its_allowed_fields(self):
-        for words in (['-p', '<number>'], ['-o', 'pid=,command=', '-p', '1'], ['-axo', 'pid=,comm='], ['-p', '1', '-o']):
+        for words in (['-p', '<number>'], ['-o', 'pid=,command=', '-p', '1'], ['-axo', 'pid=,comm='], ['-p', '1', '-o'], []):
             with self.subTest(refused=words):
                 self.assertFalse(self.ps_names_its_output(words))
+        refused = {'double quotes': 'x = ["/bin/ps", "-p", "601"]', 'a bare ps in backticks': 'Run `ps` to see it.',
+                   'a bare ps in a code block': '```sh\nps\n```', 'ps by name in a list': "run(['ps', '-p', '1'])",
+                   'a ps literal outside a list': "cmd = '/bin/ps'", 'a ps -p in prose': 'check with `ps -p <number>`'}
+        for name, text in refused.items():
+            with self.subTest(refused=name):
+                commands = self.ps_commands(text)
+                self.assertTrue(commands and not all(c is not None and self.ps_names_its_output(c) for c in commands), commands)
         readme = (OPERATED / 'README.md').read_text()
         sources = {'README.md (the method)': readme[:readme.index('## What was observed on 13 November 2026')],
                    **{path.name: path.read_text() for path in sorted(OPERATED.glob('*.py')) + sorted(OPERATED.glob('*.mjs'))}}
         found = 0
         for name, text in sources.items():
-            calls = [re.findall(r"'([^']*)'", m.group(1)) for m in re.finditer(r"\[\s*(?:'/bin/ps'|PS)\s*,([^\]]*)\]", text)]
-            # In prose and docstrings, a ps followed by a flag or a placeholder, read to the end of its span.
-            prose = [m.group(1).split() for m in re.finditer(r"\bps\b([^`);\n]*)", text)]
-            for words in calls + [w for w in prose if w and w[0][:1] in ('-', '<')]:
+            for words in self.ps_commands(text):
                 found += 1
-                with self.subTest(source=name, ps=' '.join(words)):
-                    self.assertTrue(self.ps_names_its_output(words))
+                with self.subTest(source=name, ps=words):
+                    self.assertTrue(words is not None and self.ps_names_its_output(words))
         self.assertGreater(found, 10)
 
     def test_no_tool_or_instruction_asks_for_one(self):

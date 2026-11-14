@@ -254,8 +254,8 @@ neither ours nor the supplier's window service. Every process read is made
 through `proc_read.py`, `route.py`, `stray.py` or `watch.py`, each of which
 states in its header the exact forms it uses, and through the few single
 commands written out below (`pgrep -P`, `pgrep -g`, `ps -o pid= -p`, `ps -o stat=`,
-each on a known number). Every `ps` names its output with `-o`, and only
-these fields: `pid`, `ppid`, `lstart`, `stat`, `ucomm`; a `ps` without `-o`
+each on a known number). Every ps command names its output with `-o`, and only
+these fields: `pid`, `ppid`, `lstart`, `stat`, `ucomm`; a ps command without `-o`
 prints the command line by default and is never run. No command line is
 printed, matched on or kept, by any tool or by hand; `comm` is never asked for (on this host it is argv[0]),
 nor `pgrep` with its full-argument or exact-name flag, nor `lsof` on anything but one process's
