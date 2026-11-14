@@ -104,9 +104,10 @@ unknown rather than being reconstructed as success.
 **V4-EXM-12 ChatGPT account access.** The person signs in with their ChatGPT
 account and the App shows the account Codex reports; a new conversation shows
 no model selected until the person chooses; a conversation runs with the
-account; and no credential appears in any record or log the App wrote. Standalone OpenAI API-key access and its
-qualification commitment are omitted from this increment; historical API-key
-fixtures retain their subjects and supply no current pass.
+account; and no credential appears in any record or log the App wrote.
+Standalone OpenAI API-key access and its qualification commitment are omitted
+from this increment; historical API-key fixtures retain their subjects and
+supply no current pass.
 *Verifies* V4-APP-02. The steps with a local model server (ChatGPT account and
 oMLX/local access configured together, one conversation with each and a switch
 between them preserving the other configuration, and the local credential's
