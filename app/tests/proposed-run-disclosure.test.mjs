@@ -11,6 +11,7 @@ import './support/rust-prebuild.mjs';
 const document = installMiniDom();
 const {createRoot} = await import('react-dom/client');
 const {RunOffer} = loadSrc('RunOffers');
+const {agentTextShown} = loadSrc('AgentText');
 const nodes = (container,tag) => container.querySelectorAll(node => node.localName === tag);
 const labelled = (container,label) => container.querySelectorAll(node => node.getAttribute('aria-label') === label)[0];
 const props = node => node[Object.keys(node).find(key => key.startsWith('__reactProps$'))];
@@ -82,7 +83,8 @@ test('actual Rust production offer DTO discloses the proposed B role, tools and 
       assert.ok(text.includes('never decides whether the run starts'));
       assert.ok(text.includes('Role in force:'));
       if (p.role.standing === 'unknown') {
-        assert.ok(text.includes(`not established (${p.role.reason})`));
+        // The host's reason is boxed beside the App's words.
+        assert.ok(text.includes(`not established (Reason: ${p.role.reason})`));
         assert.ok(!text.includes('this conversation has'),'unknown original role is not a deliberate no-role or mismatch');
       } else {
         assert.ok(text.includes(p.role.role));assert.ok(text.includes('The check does not pass for the role.'));
@@ -123,8 +125,12 @@ test('End A/start B shows B’s advisory before the join; End A alone keeps its 
     const view = await mount(offer,sample.generation);
     try {
       const {button} = assertDisclosureBeforeStart(view.container);
-      assert.ok(button.textContent.startsWith('End synthetic-A and start '));
-      assert.ok(view.container.textContent.includes(`ends with cause “${endCause}”`));
+      // synthetic-A is outside the App's workflow-name rule (it has a capital), so the button says "the current run"
+      // and the name stands boxed beside it.
+      assert.ok(button.textContent.startsWith('End the current run and start '));
+      assert.ok(view.container.textContent.includes('Workflow: synthetic-A'));
+      // The host's own cause is in the App's words; a cause the host does not write is boxed.
+      assert.ok(view.container.textContent.includes(endCause === 'completed' ? 'ends with cause “completed”' : `ends with cause Cause: ${endCause}`));
       assert.equal(nodes(view.container,'button').length,2,'no second confirmation or report action');
       assert.deepEqual(view.calls,[]);
       const endOnly = nodes(view.container,'button').find(node => node.textContent === 'End run');
@@ -218,9 +224,10 @@ test('an earlier evaluation stays labelled not current and missing basis remains
   try {
     const disclosure = labelled(view.container,'Proposed workflow compatibility');
     assert.ok(disclosure.textContent.includes('evaluated on an earlier basis, so it is not current'));
-    assert.ok(disclosure.textContent.includes('catalog edition synthetic-earlier-catalog'));
-    assert.ok(disclosure.textContent.includes('environment observation synthetic-earlier-environment'));
-    assert.ok(disclosure.textContent.includes(report.preparation.requirements[0].purpose));assert.equal(nodes(view.container,'script').length,0);
+    // Reported values are boxed beside the App's words, their line breaks shown as marks.
+    assert.ok(disclosure.textContent.includes('catalog edition Recorded: synthetic-earlier-catalog'));
+    assert.ok(disclosure.textContent.includes('environment observation Recorded: synthetic-earlier-environment'));
+    assert.ok(disclosure.textContent.includes(agentTextShown(report.preparation.requirements[0].purpose)));assert.equal(nodes(view.container,'script').length,0);
     assert.equal(!!props(startButton(view.container)).disabled,false);
     const unknownBasis = structuredClone(offer);delete unknownBasis.proposal.compatibility.preparation.basis;
     await view.render(unknownBasis,sample.generation);
