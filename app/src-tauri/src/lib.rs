@@ -2989,6 +2989,17 @@ fn explicit_environment_launch(
         let shared = ["CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS"].map(|key|input(key).map(PathBuf::from));
         return Some(desktop_startup::Launch::environment(workspace, Err(reason), key, shared));
     }
+    // DEL-01-01: a project in the App data folder (the folder set aside for conversations without
+    // a project included) is refused, and is not carried: nothing of the App's, such as a
+    // project's records link, is made there.
+    if let (Some(project), Ok(data)) = (workspace.as_ref(), data) {
+        if desktop_startup::working_folder_place(data, project) != desktop_startup::WorkingFolder::Outside {
+            let reason = format!("CHIRALITY_WORKSPACE is refused: {} is in Chirality's own data folder ({}), or its place cannot be established; choose a project folder outside it", project.display(), data.display());
+            let key = input("CHIRALITY_KEY_HOME").map(PathBuf::from);
+            let shared = ["CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS"].map(|key|input(key).map(PathBuf::from));
+            return Some(desktop_startup::Launch::environment(None, Err(reason), key, shared));
+        }
+    }
     let host_config = if is_dev || !cfg!(feature = "distribution-successor") {
         host_config_from_inputs(workspace.as_ref(), data.as_deref(), &input, probe).and_then(|mut cfg| {
             if is_dev && input("CHIRALITY_DISTRIBUTION_SUCCESSOR").is_some_and(|v|v == "1") {

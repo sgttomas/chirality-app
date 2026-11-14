@@ -7378,4 +7378,26 @@ mod tests {
         cfg.app_data = Some(f.data.clone());
         assert!(Host::check_working_folder(&cfg).is_ok());
     }
+
+    /// DEL-01-01: on the environment route a project in the App data folder, the folder set aside
+    /// included, is refused and not carried, so no project's records link is made there.
+    #[test]
+    fn a_project_in_the_app_data_folder_is_refused_on_the_environment_route() {
+        let f = Fixture::new();
+        let leaf = ensure_no_project_folder(&f.data).unwrap();
+        for project in [leaf.clone(), f.data.join("records")] {
+            std::fs::create_dir_all(&project).unwrap();
+            let variables = json!({"CHIRALITY_APP_DATA":f.data,"CHIRALITY_CODEX_BIN":"/invented/bin/codex","CHIRALITY_CODEX_HOME":f.root.join("environment-home"),"CHIRALITY_WORKSPACE":project,"CHIRALITY_ALLOW_UNVERIFIED":"1"});
+            let input = |key: &str| variables[key].as_str().map(std::ffi::OsString::from);
+            let env = crate::explicit_environment_launch(&input, &Ok(f.data.clone()), &Ok(f.resources.clone()), true, || f.probe()).unwrap();
+            assert!(env.workspace.is_none(), "{project:?}");
+            assert!(env.host_config.as_ref().unwrap_err().contains("CHIRALITY_WORKSPACE is refused"), "{project:?}");
+        }
+        assert_eq!(std::fs::read_dir(&leaf).unwrap().count(), 0);
+        // A project beside the App data folder is carried as before.
+        let variables = json!({"CHIRALITY_APP_DATA":f.data,"CHIRALITY_CODEX_BIN":"/invented/bin/codex","CHIRALITY_CODEX_HOME":f.root.join("environment-home"),"CHIRALITY_WORKSPACE":f.project,"CHIRALITY_ALLOW_UNVERIFIED":"1"});
+        let input = |key: &str| variables[key].as_str().map(std::ffi::OsString::from);
+        let env = crate::explicit_environment_launch(&input, &Ok(f.data.clone()), &Ok(f.resources.clone()), true, || f.probe()).unwrap();
+        assert_eq!(env.workspace.as_deref(), Some(f.project.as_path()));
+    }
 }
