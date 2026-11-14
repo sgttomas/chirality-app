@@ -48,6 +48,109 @@ fn records_store_routing_history_notice_file_act_read_keeps_one_home() {
     std::fs::remove_dir_all(root).unwrap();
 }
 
+fn app_observer_control_case(kind: &str) {
+    let (_own, root, dir, id) = routing_fixture();
+    let name = ".after-run-end.lock";
+    let path = if kind == "wrong folder" {
+        std::fs::create_dir(dir.join("acts")).unwrap();
+        dir.join("acts").join(name)
+    } else {
+        dir.join(name)
+    };
+    let target = root.join("control-target");
+    match kind {
+        "directory" => std::fs::create_dir(&path).unwrap(),
+        "symlink" => {
+            std::fs::write(&target, b"").unwrap();
+            std::os::unix::fs::symlink(&target, &path).unwrap();
+        }
+        "hard link" => {
+            std::fs::write(&target, b"").unwrap();
+            std::fs::hard_link(&target, &path).unwrap();
+        }
+        "nonempty" => std::fs::write(&path, b"record content must not be hidden").unwrap(),
+        _ => std::fs::write(&path, b"").unwrap(),
+    }
+    assert!(!dir.join("imports.jsonl").exists());
+    if kind == "plain empty" {
+        let home = readable_home(&root).unwrap();
+        assert!(home.in_store().is_none());
+        assert!(!store_holds(&dir).unwrap());
+        let (read, limits) = storage::read_all(&root);
+        assert!(
+            read.iter().any(|r| r["recordId"] == id),
+            "{read:?}, {limits:?}"
+        );
+        assert!(!format!("{limits:?}").contains("not known"));
+        let state = status(Some(&root));
+        assert_eq!(state["project"]["importNeeded"], true, "{state}");
+        assert!(!state.to_string().contains("not known"), "{state}");
+        assert!(!crate::records_package::payload_inventory(&dir)
+            .unwrap()
+            .contains_key(name));
+        // Once imported, the same validated control is absent from the export,
+        // while the older record bytes are retained and the package verifies.
+        import(&root).unwrap();
+        let output = folder("observer-control-export-");
+        let bag = output.join("bag");
+        crate::records_export::export(&root, &bag).unwrap();
+        assert!(!bag.join("data").join(name).exists());
+        crate::records_export::verify(&bag).unwrap();
+        std::fs::remove_dir_all(output).unwrap();
+    } else {
+        let error = readable_home(&root).unwrap_err();
+        assert!(
+            error.contains(&path.display().to_string()),
+            "{kind}: {error}"
+        );
+        assert!(
+            error.contains("unknown"),
+            "{kind}: {error}"
+        );
+        let (read, limits) = storage::read_all(&root);
+        assert!(
+            read.is_empty() && limits.iter().any(|e| e.contains("unknown")),
+            "{kind}: {read:?}, {limits:?}"
+        );
+        let state = status(Some(&root));
+        assert_eq!(state["project"]["state"], "unavailable", "{kind}: {state}");
+        assert!(state["project"]["error"].as_str().unwrap().contains("unknown"), "{kind}: {state}");
+        let inventory = crate::records_package::payload_inventory(&dir);
+        if kind == "wrong folder" {
+            assert!(inventory.unwrap().contains_key(&format!("acts/{name}")));
+            assert!(error.contains("unrecognised payload member"), "{error}");
+        } else {
+            assert!(inventory.is_err(), "{kind} must never be omitted");
+        }
+    }
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn records_store_app_control_plain_empty_reads_in_place_and_is_omitted() {
+    app_observer_control_case("plain empty");
+}
+#[test]
+fn records_store_app_control_nonempty_is_unknown() {
+    app_observer_control_case("nonempty");
+}
+#[test]
+fn records_store_app_control_directory_is_unknown() {
+    app_observer_control_case("directory");
+}
+#[test]
+fn records_store_app_control_symlink_is_unknown() {
+    app_observer_control_case("symlink");
+}
+#[test]
+fn records_store_app_control_hard_link_is_unknown() {
+    app_observer_control_case("hard link");
+}
+#[test]
+fn records_store_app_control_wrong_folder_is_unknown() {
+    app_observer_control_case("wrong folder");
+}
+
 #[test]
 fn records_store_routing_in_place_empty_and_only_unknown_store_member_reads_the_store() {
     let _own = OwnStore::new();
@@ -308,13 +411,10 @@ fn records_store_routing_unknown_generic_publication() {
 #[test]
 fn records_store_routing_only_validated_controls_and_each_exact_preparation_keeps_in_place_history()
 {
-    for name in [
-        ".writer.lock",
-        "captures/.capture.lock",
-        "role-supply/.writer.lock",
+    for name in payload::CONTROLS.iter().copied().chain([
         "..writer.lock.11111111-1111-4111-8111-111111111111.tmp",
         "captures/..capture.lock.11111111-1111-4111-8111-111111111111.tmp",
-    ] {
+    ]) {
         let (_own, root, dir, id) = routing_fixture();
         let path = dir.join(name);
         std::fs::create_dir_all(path.parent().unwrap()).unwrap();
