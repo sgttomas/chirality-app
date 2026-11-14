@@ -216,7 +216,9 @@ unmet; the owner's verdict supplies no missing evidence.
 
 Each criterion says in plain words what is observed, and then names the
 acceptance criteria that govern it. The named criteria are what is met; the
-description narrows none of them.
+description narrows none of them. Where a criterion's governing text is named
+as still to come from the pull request that builds it, the criterion is unmet
+until that text exists and is met.
 
 Every result names the candidate it was observed on: an App source revision, a
 build identity and the supplier pin. Criteria 1 to 7 and 15 may be observed on an
@@ -363,9 +365,11 @@ the owner decide on what was actually observed.
    runs with the ChatGPT account. The start-up connections of the App's Codex
    are listed, and those an App setting stops are absent. No credential
    appears in anything the App wrote. In the examination the owner performs
-   the sign-in, and agents examine what follows. At setup the person chooses
-   a permission level among those offered, the default shown beside the
-   others; every level offered was first shown at the pin by a fixture; the
+   the sign-in, and agents examine what follows. Before the first
+   conversation the person chooses a permission level among those offered,
+   and none applies until they have chosen; a level marked as recommended is
+   shown as such beside the others; every level offered was first shown at
+   the pin by a fixture; the
    level in force is always shown, with the statement that reading is not
    limited; the App sends it to Codex on each turn and on start, resume and
    fork; a change of level is taken from the person only and recorded, as

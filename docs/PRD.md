@@ -418,10 +418,10 @@ Shared access does not transfer decision rights (OD-05).
   level does not restrain a command already running, and the App does not
   imply that it does. At every level the harness's own requests are shown
   truthfully (V4-AUT-04). A
-  system password prompt is the person's to answer. A new person's level
-  is one named default, chosen visibly at setup beside the other levels:
-  edits in the project without asking, network off, and asks when it wants
-  to go beyond that.
+  system password prompt is the person's to answer. A new person
+  chooses a level among those offered before the first conversation, and
+  none applies until they have chosen; a level marked as recommended is shown
+  as such beside the others.
 - **V4-AUT-07** A **point** is a place in the work where a named party is
   called to respond. The person's vocabulary has five kinds, and each point
   names the actual response or act it asks for: a **checkpoint** shows where
