@@ -587,6 +587,8 @@ impl LibraryOwner {
     /// forbids the App to overwrite. Only exactly the copied bytes are removed;
     /// anything else in the folder keeps the whole draft.
     pub(crate) fn discard_unbased_copy(&self, name: &str, copied: &Snapshot) -> Result<(), String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("workflow_library::LibraryOwner::discard_unbased_copy");
         if !super::valid_name(name) {
             return Err("invalid draft name".into());
         }
@@ -1934,6 +1936,8 @@ impl HotRegistrationAttempt {
 /// G-5: publish the copy at `workflows/<name>/` from the registered bytes,
 /// moving unrecorded content aside first (LS-3); never overwrites it.
 fn publish_copy_of(root: &Path, name: &str, snapshot: &Snapshot) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("workflow_library::publish_copy_of");
     let copy = root.join(".chirality/workflows").join(name);
     storage::check_path(&copy)?;
     if copy.exists() && Snapshot::capture(&copy)?.files() == snapshot.files() {
@@ -2321,6 +2325,8 @@ fn reconcile_attempts(root: &Path, origin: &str, source: &str) -> Vec<String> {
     outcomes
 }
 fn append_line(root: &Path, line: &Value) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("workflow_library::append_line");
     let path = root.join(".chirality/workflow-registry.jsonl");
     storage::check_path(&path)?;
     storage::ensure_directory(path.parent().unwrap())?;
@@ -2349,6 +2355,8 @@ fn append_line(root: &Path, line: &Value) -> Result<(), String> {
     storage::sync_dir(path.parent().unwrap())
 }
 fn sync_package(path: &Path) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("workflow_library::sync_package");
     for entry in fs::read_dir(path).map_err(|e| e.to_string())? {
         let p = entry.map_err(|e| e.to_string())?.path();
         storage::check_path(&p)?;
@@ -2512,6 +2520,8 @@ impl BaseCustody {
     /// observes the draft folder absent. The App does not watch the folder
     /// between its own observations (D3).
     fn drop_if_removed(&self, name: &str, draft: &Path) -> Result<(), String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("workflow_library::BaseCustody::drop_if_removed");
         match fs::symlink_metadata(draft) {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
             _ => return Ok(()),
@@ -2566,6 +2576,8 @@ pub(crate) mod drafts;
 // Only remove files/directories this attempt actually created, never an existing
 // directory when exclusive reservation fails. Unknown external contents remain.
 fn publish_reserved_store(snapshot: &Snapshot, store: &Path) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("workflow_library::publish_reserved_store");
     fs::create_dir(store).map_err(|e| format!("exclusive store reservation: {e}"))?;
     let mut created = Vec::new();
     let result = (|| {

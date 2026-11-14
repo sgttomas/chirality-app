@@ -45,6 +45,8 @@ fn folder() -> Option<PathBuf> {
 
 /// One stage, appended as one line. A stage that cannot be written is said on stderr; the run then shows no report.
 pub fn stage(name: &str, detail: Value) {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("scripted_driver::stage");
     let at_ms = SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as u64).unwrap_or(0);
     let line = json!({ "marker": MARKER, "stage": name, "at_ms": at_ms, "detail": detail }).to_string();
     let written = folder().ok_or("HOME is not set").and_then(|dir| {

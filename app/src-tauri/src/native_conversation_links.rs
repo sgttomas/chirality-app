@@ -1018,6 +1018,8 @@ fn accept_prefix(scope: &Scope, bytes: &[u8], phase: usize) -> Result<(), String
     Ok(())
 }
 fn opened_at(parent: &std::fs::File, name: &str, flags: i32) -> Result<std::fs::File, String> {
+    #[cfg(test)]
+    if flags & (libc::O_WRONLY | libc::O_RDWR | libc::O_CREAT | libc::O_TRUNC | libc::O_APPEND) != 0 { crate::records_effect_guard::mutation_for_test("native_conversation_links::opened_at"); }
     use std::os::fd::{AsRawFd, FromRawFd};
     let name = std::ffi::CString::new(name).map_err(|e| e.to_string())?;
     let fd = unsafe {
@@ -1034,6 +1036,8 @@ fn opened_at(parent: &std::fs::File, name: &str, flags: i32) -> Result<std::fs::
     Ok(unsafe { std::fs::File::from_raw_fd(fd) })
 }
 fn child(parent: &std::fs::File, name: &str) -> Result<std::fs::File, String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("native_conversation_links::child");
     use std::os::fd::AsRawFd;
     let name_c = std::ffi::CString::new(name).map_err(|e| e.to_string())?;
     if unsafe { libc::mkdirat(parent.as_raw_fd(), name_c.as_ptr(), 0o700) } != 0
@@ -1196,6 +1200,8 @@ fn publish_bound(
     phase: usize,
     origin: Option<(&Value, &[u8])>,
 ) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("native_conversation_links::publish_bound");
     use std::io::Write;
     scope.check()?;
     validate_record(record)?;

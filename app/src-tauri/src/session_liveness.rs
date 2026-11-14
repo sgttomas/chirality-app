@@ -114,6 +114,8 @@ impl std::fmt::Debug for Hold {
 }
 impl Hold {
     pub(crate) fn acquire(ledger: &Path, session: &str) -> Result<Self, String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("session_liveness::Hold::acquire");
         if session.is_empty() {
             return Err("App session identity is empty; no liveness lock".into());
         }
@@ -212,6 +214,8 @@ pub(crate) enum Liveness {
 /// and says nothing. `declared`: the session's `session_started` carries
 /// [`FIELD`]; it changes only the description.
 pub(crate) fn probe(ledger: &Path, session: &str, declared: bool) -> Liveness {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("session_liveness::probe");
     let path = lock_path(ledger, session);
     let file = match OpenOptions::new()
         .read(true)
@@ -256,6 +260,8 @@ pub(crate) fn probe(ledger: &Path, session: &str, declared: bool) -> Liveness {
 /// path still names it and it names its session, so a live holder's file and
 /// a file this process cannot account for are never removed.
 pub(crate) fn sweep(ledger: &Path, ended: &BTreeSet<&str>) {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("session_liveness::sweep");
     let Ok(entries) = std::fs::read_dir(directory(ledger)) else {
         return;
     };

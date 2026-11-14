@@ -45,30 +45,31 @@ fn decode(path: &str) -> Result<String, String> {
     relative(Path::new(&out))?;
     Ok(out)
 }
+// Disposal validates these controls separately before removing any bytes.
 fn excluded(rel: &Path) -> bool {
-    // Omit only actual owning controls. Imported connector publication files
-    // (including .tmp/.lock names) are retained evidence, not scratch to drop.
-    rel == Path::new(".writer.lock") || rel == Path::new("captures/.capture.lock")
+    rel.to_str().is_some_and(crate::records_store::payload::control)
 }
 fn files(root: &Path, omit_controls: bool) -> Result<BTreeMap<String, crate::records_index::Stamp>, String> {
-    fn walk(root: &Path, dir: &Path, omit: bool, out: &mut BTreeMap<String, crate::records_index::Stamp>) -> Result<(), String> {
+    if omit_controls { return Ok(crate::records_store::payload::census(root)?.members); }
+    fn walk(root: &Path, dir: &Path, out: &mut BTreeMap<String, crate::records_index::Stamp>) -> Result<(), String> {
         crate::storage::check_path(dir)?;
         for item in std::fs::read_dir(dir).map_err(io)? {
             let path = item.map_err(io)?.path();
             let rel = path.strip_prefix(root).map_err(|e| e.to_string())?;
-            if omit && excluded(rel) { continue; }
             let meta = std::fs::symlink_metadata(&path).map_err(io)?;
-            if meta.is_dir() { walk(root, &path, omit, out)?; }
+            if meta.is_dir() { walk(root, &path, out)?; }
             else if meta.is_file() { out.insert(relative(rel)?, crate::records_index::Stamp::of(&meta)); }
             else { return Err(format!("unsupported or linked export member: {}", path.display())); }
         }
         Ok(())
     }
     let mut out = BTreeMap::new();
-    walk(root, root, omit_controls, &mut out)?;
+    walk(root, root, &mut out)?;
     Ok(out)
 }
 fn write(path: &Path, bytes: &[u8]) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records_export::write");
     let mut f = OpenOptions::new().write(true).create_new(true).mode(0o600).open(path).map_err(io)?;
     f.write_all(bytes).map_err(io)?;
     f.sync_all().map_err(io)
@@ -117,6 +118,8 @@ fn heads(folder: &Path, paths: impl Iterator<Item = String>) -> Value { heads_pr
 /// Puts `from` in place at `to` by an exclusive rename: never replaces a file
 /// already at `to` (also used for a new records store line file).
 pub(crate) fn publish(from: &Path, to: &Path) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records_export::publish");
     use std::os::unix::ffi::OsStrExt;
     let from = std::ffi::CString::new(from.as_os_str().as_bytes()).map_err(|e| e.to_string())?;
     let to = std::ffi::CString::new(to.as_os_str().as_bytes()).map_err(|e| e.to_string())?;
@@ -134,6 +137,8 @@ pub(crate) fn publish(from: &Path, to: &Path) -> Result<(), String> {
 /// Exports the already attached project's store to a new folder. No identity
 /// is minted by this read; import-needed and identity refusals stay explicit.
 pub fn export(project: &Path, destination: &Path) -> Result<Value, String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records_export::export");
     let home = crate::records_store::readable_home(project)?;
     let source = home.attachment.dir.clone().ok_or("project has no attached records in the store; nothing exported")?;
     crate::records_store::export_permitted(&source,&home.attachment.root)?;
@@ -472,6 +477,8 @@ pub(crate) fn staged_payload(folder: &Path, bag: &Path) -> Result<Value, String>
     )
 }
 fn remove_empty_tree(folder: &Path) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records_export::remove_empty_tree");
     if !present(folder)? {
         return Ok(());
     }
@@ -528,6 +535,8 @@ pub(crate) fn dispose_members(
     stage: &Path,
     identity: &str,
 ) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records_export::dispose_members");
     let tags = read_tag(&bag.join("tagmanifest-sha256.txt"))?;
     if crate::util::sha256_hex(&tags) != identity {
         return Err("original export changed; nothing more disposed".into());
@@ -552,7 +561,7 @@ pub(crate) fn dispose_members(
     staged_payload(stage, bag)?;
     crate::storage::ensure_directory(stage)?;
     let mut expected: Vec<String> = exported.keys().cloned().collect();
-    expected.extend([".writer.lock".into(), "captures/.capture.lock".into()]);
+    expected.extend(crate::records_store::payload::CONTROLS.iter().map(|name| (*name).into()));
     for rel in expected {
         let input = source.join(&rel);
         let staged = stage.join(&rel);

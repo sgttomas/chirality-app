@@ -29,6 +29,8 @@ impl QueryDb {
         }
     }
     fn at(path: &Path) -> Result<Self, String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("records_query::QueryDb::at");
         use std::os::unix::fs::OpenOptionsExt;
         crate::storage::check_path(path)?;
         let created = std::fs::OpenOptions::new().write(true).create_new(true).mode(0o600).custom_flags(libc::O_NOFOLLOW).open(path).map_err(|e| e.to_string())?;
@@ -92,6 +94,8 @@ impl QueryDb {
         Ok(())
     }
     pub(super) fn begin_log(&self, log: u32, from: u64) -> rusqlite::Result<()> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("records_query::QueryDb::begin_log");
         self.conn.execute_batch("BEGIN IMMEDIATE")?;
         // Take SQLite's writer lock first, then check the cache basis before
         // our first mutation. External SQL commits cannot slip between them.
@@ -101,15 +105,21 @@ impl QueryDb {
         Ok(())
     }
     pub(super) fn clear_log(&self, log: u32) -> rusqlite::Result<()> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("records_query::QueryDb::clear_log");
         if !self.writing.get() { return Err(rusqlite::Error::InvalidQuery); }
         self.conn.execute("DELETE FROM entries WHERE log=?", [log])?; Ok(())
     }
     pub(super) fn finish_log(&mut self, success: bool) -> rusqlite::Result<()> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("records_query::QueryDb::finish_log");
         if !self.writing.replace(false) { return Err(rusqlite::Error::InvalidQuery); }
         self.conn.execute_batch(if success { "COMMIT" } else { "ROLLBACK" })?;
         self.mark()?; Ok(())
     }
     pub(super) fn insert(&self, log: u32, l: &Line) -> rusqlite::Result<()> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("records_query::QueryDb::insert");
         if !self.writing.get() { return Err(rusqlite::Error::InvalidQuery); }
         self.conn.prepare_cached("INSERT INTO entries VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)")?.execute(params![log, l.offset, l.len as u64, l.seq.to_string(), l.id, l.act, l.corrects, l.late_subject, l.member.map(|m| m as u64), l.digest])?;
         Ok(())
@@ -122,6 +132,8 @@ impl QueryDb {
     /// The staging file is newly built by this process, checked before/after
     /// the copy, and writer-locked by the attached SQLite transaction.
     pub(super) fn copy_log(&mut self, source: &Self, log: u32, from: u64, source_still_current: impl FnOnce() -> bool) -> rusqlite::Result<()> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("records_query::QueryDb::copy_log");
         if !source.unchanged() || !self.unchanged() { return Err(rusqlite::Error::InvalidQuery); }
         self.conn.execute("ATTACH DATABASE ? AS verified", [source.path.to_str().ok_or(rusqlite::Error::InvalidQuery)?])?;
         let result = (|| {
@@ -189,6 +201,8 @@ const READS_WRITE_CACHE: bool = true;
 /// in the existing bound store: never the store, any ancestor of it, or a
 /// folder anywhere else (no temporary-folder fallback).
 fn cache_folder() -> Result<(PathBuf, PathBuf), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records_query::cache_folder");
     if !READS_WRITE_CACHE {
         return Err("reads write no query cache".into());
     }
@@ -212,6 +226,8 @@ fn same_identity(path: &Path, identity: (u64, u64)) -> bool {
 }
 impl Drop for QueryDb {
     fn drop(&mut self) {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("records_query::QueryDb::drop");
         // Remove only our own file, never a substituted path or symlink.
         if self.unchanged() { let _ = std::fs::remove_file(&self.path); }
     }
