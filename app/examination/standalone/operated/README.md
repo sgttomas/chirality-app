@@ -1630,7 +1630,14 @@ either driver marker.
   - `launch.py keep-launch --folder <kept folder> --candidate <candidate
     folder>` launches the App in it, once for each launch, with one numbered
     launch record each. It is refused 12 hours after the folder was made, or
-    while a candidate process is running;
+    while a candidate process is running. Nothing removes a kept folder by
+    itself: the 12 hours only refuse a later launch. A folder named in
+    `kept-exemptions.json` (beside the kept folders under the homes root,
+    never inside one) holds the owner's sign-in on the owner's word: each
+    entry names one folder by its full name, quotes the owner's words, and
+    gives the sign-in time as the owner said it and its end exactly seven days
+    later. For that folder keep-launch honours the exemption's end in place of
+    the 12 hours. It is an exemption by name, never a longer `expires_at`;
   - `launch.py keep-remove --folder <kept folder> --candidate <candidate
     folder>` removes it whole. It first makes keep-launch's checks of the
     candidate (admitted, identified, without the driver's markers, and the one
@@ -1780,7 +1787,12 @@ typed path" applies to every sheet:
   candidate's executable, is seen by neither. That it has ended is not
   established.
 - `keep-remove` removes it whole the same working day, after the run's review,
-  and also whenever a rehearsal is abandoned. It is not refused for age.
+  and also whenever a rehearsal is abandoned. It is not refused for age, except
+  that an exempted folder (above) is refused before its exemption's end unless
+  given the end's own word (`--exemption-end`). Removing a folder, by
+  keep-remove or by any removal of its top folder by name, makes the system
+  enumerate the entries it unlinks. Nothing in them is opened, read, printed,
+  kept or digested, and no more than that is claimed.
 - After the removal, the lane tells App Agent 0, who tells the owner. Removing
   the folder removes the credential file stored in it. Whether the account
   session that the sign-in created at the service is also ended is not

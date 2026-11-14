@@ -14,6 +14,15 @@ for an operated walk that must see the launch after setup:
   record per launch;
 - `keep-remove` removes it whole.
 
+A kept folder may be launched for twelve hours after it is made (KEPT_HOURS). Nothing removes a kept folder by
+itself: the twelve hours only refuse a later launch. The one exception is a folder named in kept-exemptions.json,
+beside the kept folders under the homes root and never inside one (kept_exemption): a folder holding the owner's
+sign-in, kept on the owner's word for seven days from the sign-in. For it, keep-launch honours the exemption's end in
+place of the twelve hours, and keep-remove refuses before that end unless it is given the end's own word
+(--exemption-end). It is an exemption by the folder's name, never a longer expires_at. Removing a folder, by
+keep-remove or by any removal of its top folder, makes the system enumerate the entries it unlinks; nothing in them is
+opened, read, printed, kept or digested, and no more than that is claimed.
+
 `keep-make --network open` instead makes a rehearsal folder, named
 `rehearsal-...`. Its launches are made without the network blocks, so that
 the owner can sign in, and its project starts with DEVELOPMENT-EVIDENCE.txt
@@ -224,6 +233,10 @@ KEPT_PREFIX, KEPT_RECORD = 'kept-', 'kept.json'  # a kept folder's name begins s
 # by path, device and inode; the record's own "network" must agree with it, or the launch is refused.
 OPEN_PREFIX = 'rehearsal-'
 KEPT_HOURS = 12  # a kept folder may be launched for this long after it was made, and removed at any time
+# The exemptions file, beside the kept folders under the homes root (never inside one), and the length of an exemption.
+EXEMPTIONS = 'kept-exemptions.json'
+EXEMPT_DAYS = 7
+_STAMP = '%Y-%m-%dT%H:%M:%SZ'
 # A build carrying the scripted driver (a test build) is never launched by the kept-home commands: what an operator
 # meets must be the real App, its native confirmation included. These strings are in such a build and in no other.
 DRIVER_MARKERS = (b'chirality-scripted-driver-test-build-v1', b'chirality-setup-confirmation-stand-in-v1')
@@ -942,6 +955,47 @@ def running_candidates(executable):
     return found
 
 
+def kept_exemption(root_fd, name):
+    """The exemption naming this kept folder by its full name in kept-exemptions.json under the homes root, or None.
+    The file is a regular file of this user, written by no one else, read without following a link. Each entry names
+    one folder (folder), quotes the owner's words (owner_words), gives the sign-in time as the owner said it
+    (signed_in_at) and its end (ends_at), which must be exactly seven days after the sign-in. Anything else is a
+    refusal, never an exemption."""
+    try:
+        fd = os.open(EXEMPTIONS, os.O_RDONLY | os.O_NOFOLLOW, dir_fd=root_fd)
+    except FileNotFoundError:
+        return None
+    except OSError as error:
+        raise Refusal(f'the kept exemptions could not be read ({type(error).__name__}); refusing') from None
+    with os.fdopen(fd, 'rb') as stream:
+        info = os.fstat(stream.fileno())
+        if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o022:
+            raise Refusal('the kept exemptions file is not a regular file of this user, written by no one else; refusing')
+        try:
+            data = json.loads(stream.read())
+        except ValueError:
+            raise Refusal('the kept exemptions file is not JSON; refusing') from None
+    entries = data.get('exemptions') if isinstance(data, dict) else None
+    if not isinstance(entries, list):
+        raise Refusal('the kept exemptions file holds no list of exemptions; refusing')
+    named = [entry for entry in entries if isinstance(entry, dict) and entry.get('folder') == name]
+    if not named:
+        return None
+    if len(named) > 1:
+        raise Refusal('the kept exemptions name this folder more than once; refusing')
+    entry = named[0]
+    if set(entry) != {'folder', 'owner_words', 'signed_in_at', 'ends_at'} or not isinstance(entry['owner_words'], str) or not entry['owner_words'].strip():
+        raise Refusal('the exemption of this kept folder is not of its form (folder, owner_words, signed_in_at, ends_at); refusing')
+    try:
+        signed_in = datetime.strptime(entry['signed_in_at'], _STAMP).replace(tzinfo=timezone.utc)
+        ends = datetime.strptime(entry['ends_at'], _STAMP).replace(tzinfo=timezone.utc)
+    except (TypeError, ValueError):
+        raise Refusal('the exemption of this kept folder does not give its times as UTC stamps; refusing') from None
+    if ends - signed_in != timedelta(days=EXEMPT_DAYS):
+        raise Refusal(f'the exemption of this kept folder does not end exactly {EXEMPT_DAYS} days after the sign-in; refusing')
+    return {**entry, 'ends': ends}
+
+
 def kept_folder(root, root_fd, text):
     """A kept folder named by the caller: directly under the homes root, named kept-..., reached without following a
     link, and the very directory its record/kept.json names (path, device and inode). Returns its path, a held handle
@@ -1030,10 +1084,15 @@ def keep_launch(args):
         check_not_a_test_build(app / executable_path)
         identify_candidate(app, record_path)
         folder, fd, kept = kept_folder(root, root_fd, args.folder)
+        exemption = kept_exemption(root_fd, folder.name)
     finally:
         os.close(root_fd)
     try:
-        if datetime.now(timezone.utc) >= datetime.strptime(kept['expires_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=timezone.utc):
+        now = datetime.now(timezone.utc)
+        if exemption is not None:
+            if now >= exemption['ends']:
+                raise Refusal(f"the kept folder's exemption ended at {exemption['ends_at']}; it may only be removed")
+        elif now >= datetime.strptime(kept['expires_at'], _STAMP).replace(tzinfo=timezone.utc):
             raise Refusal('the kept folder has expired; it may only be removed')
         if (kept.get('candidate_key'), kept.get('identifier')) != (record_data['candidate_key'], record_data['bundle']['identifier']):
             raise Refusal('the kept folder was made for another candidate; refusing')
@@ -1078,6 +1137,10 @@ def keep_remove(args):
         folder, fd, kept = kept_folder(root, root_fd, args.folder)
         if (kept.get('candidate_key'), kept.get('identifier')) != (record_data['candidate_key'], record_data['bundle']['identifier']):
             raise Refusal('the kept folder was made for another candidate; refusing')
+        exemption = kept_exemption(root_fd, folder.name)
+        if exemption is not None and datetime.now(timezone.utc) < exemption['ends'] and args.exemption_end != exemption['ends_at']:
+            raise Refusal(f"the kept folder is exempted on the owner's word until {exemption['ends_at']}; removing it before "
+                          f"then needs --exemption-end {exemption['ends_at']}; refusing")
         if running_candidates(app / executable_path):
             raise Refusal('the candidate is still running; refusing to remove the kept folder')
         if not shutil.rmtree.avoids_symlink_attacks:
@@ -1149,6 +1212,8 @@ def main(argv=None):
                         help='the candidate folder made by build_candidate.py; the identification record is '
                              'identification/candidate-identification.json in it and the bundle the one entry of '
                              "target/debug/bundle/macos, named as the record names it; identification's check must pass")
+    parser.add_argument('--exemption-end', help='keep-remove only: the end of an exempted kept folder\'s exemption, as '
+                        'kept-exemptions.json gives it, to remove the folder before that end')
     parser.add_argument('--network', choices=NETWORK_CHOICES, default='blocked',
                         help='keep-make only: "open" makes a rehearsal folder, every launch in which is made without '
                              'the nine overrides; the default keeps them')

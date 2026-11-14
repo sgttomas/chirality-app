@@ -1117,6 +1117,81 @@ class KeptHome(Fixture):  # keep-make, keep-launch and keep-remove: one home acr
         with self.assertRaises(SystemExit), contextlib.redirect_stderr(io.StringIO()):  # no address override: every block stays
             launch.main(['keep-launch', '--folder', str(folder), '--candidate', str(candidate), '--model-address', 'http://127.0.0.1:1/v1'])
 
+    def exempt(self, folder, **change):
+        """Write kept-exemptions.json beside the kept folders, naming this folder, with an invented sign-in time."""
+        from datetime import datetime, timedelta, timezone
+        signed = datetime.now(timezone.utc).replace(microsecond=0) - timedelta(hours=13)
+        entry = {'folder': folder.name, 'owner_words': 'invented: kept for further runs',
+                 'signed_in_at': f'{signed:%Y-%m-%dT%H:%M:%SZ}', 'ends_at': f'{signed + timedelta(days=7):%Y-%m-%dT%H:%M:%SZ}', **change}
+        path = self.root / launch.EXEMPTIONS
+        path.write_text(json.dumps({'exemptions': [entry]}))
+        path.chmod(0o600)
+        self.addCleanup(lambda: path.unlink(missing_ok=True))
+        return entry
+
+    def expire(self, folder):
+        kept = json.loads((folder / 'record/kept.json').read_text())
+        (folder / 'record/kept.json').write_text(json.dumps({**kept, 'expires_at': '2000-01-01T00:00:00Z'}))
+
+    def test_a_folder_exempted_by_name_launches_past_its_twelve_hours_until_the_exemptions_end(self):
+        candidate = self.candidate()
+        folder = self.make(candidate)
+        self.expire(folder)
+        code, out = self.call('keep-launch', '--folder', str(folder), '--candidate', str(candidate))
+        self.assert_refused(code, out, 'expired')  # not exempted: the twelve hours stand
+        self.exempt(folder)
+        code, out = self.call('keep-launch', '--folder', str(folder), '--candidate', str(candidate))
+        record = json.loads((folder / 'record/launch-record-1.json').read_text())
+        self.groups.append(record['pid'])
+        self.assertTrue((folder / 'record/launch-record-1.json').is_file(), out)
+        # Its end passed: only removal.
+        self.exempt(folder, signed_in_at='2000-01-01T00:00:00Z', ends_at='2000-01-08T00:00:00Z')
+        code, out = self.call('keep-launch', '--folder', str(folder), '--candidate', str(candidate))
+        self.assert_refused(code, out, "exemption ended")
+
+    def test_an_exemption_not_of_its_form_is_a_refusal_never_an_exemption(self):
+        candidate = self.candidate()
+        folder = self.make(candidate)
+        self.expire(folder)
+        cases = {'not seven days': {'ends_at': '2099-01-01T00:00:00Z'},
+                 'no owner words': {'owner_words': ' '},
+                 'an extra key': {'renewed': True},
+                 'a time that is not a UTC stamp': {'signed_in_at': 'yesterday'}}
+        for name, change in cases.items():
+            with self.subTest(name):
+                self.exempt(folder, **change)
+                code, out = self.call('keep-launch', '--folder', str(folder), '--candidate', str(candidate))
+                self.assertNotEqual(code, 0, out)
+                self.assertFalse(list((folder / 'record').glob('launch-record-*.json')))
+        with self.subTest('written by another'):
+            self.exempt(folder)
+            (self.root / launch.EXEMPTIONS).chmod(0o622)
+            code, out = self.call('keep-launch', '--folder', str(folder), '--candidate', str(candidate))
+            self.assert_refused(code, out, 'written by no one else')
+        with self.subTest('named twice'):
+            entry = self.exempt(folder)
+            (self.root / launch.EXEMPTIONS).write_text(json.dumps({'exemptions': [entry, entry]}))
+            code, out = self.call('keep-launch', '--folder', str(folder), '--candidate', str(candidate))
+            self.assert_refused(code, out, 'more than once')
+        with self.subTest('another folder named'):
+            entry = self.exempt(folder)
+            (self.root / launch.EXEMPTIONS).write_text(json.dumps({'exemptions': [{**entry, 'folder': folder.name + '-other'}]}))
+            code, out = self.call('keep-launch', '--folder', str(folder), '--candidate', str(candidate))
+            self.assert_refused(code, out, 'expired')
+
+    def test_an_exempted_folder_is_removed_before_its_end_only_with_the_ends_own_word(self):
+        candidate = self.candidate()
+        folder = self.make(candidate)
+        entry = self.exempt(folder)
+        code, out = self.call('keep-remove', '--folder', str(folder), '--candidate', str(candidate))
+        self.assert_refused(code, out, "exempted on the owner's word")
+        self.assertTrue(folder.exists())
+        code, out = self.call('keep-remove', '--folder', str(folder), '--candidate', str(candidate), '--exemption-end', '2000-01-01T00:00:00Z')
+        self.assert_refused(code, out, "exempted on the owner's word")
+        code, out = self.call('keep-remove', '--folder', str(folder), '--candidate', str(candidate), '--exemption-end', entry['ends_at'])
+        self.assertEqual(code, 0, out)
+        self.assertFalse(folder.exists())
+
     def test_a_test_build_carrying_the_scripted_driver_is_never_kept_or_launched(self):
         for marker in launch.DRIVER_MARKERS:
             with self.subTest(marker.decode()):
