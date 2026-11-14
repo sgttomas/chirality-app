@@ -46,11 +46,12 @@ pub(crate) enum Source {
     /// A managed requirement pins it, or its key's origin is a managed layer (MDM, system, legacy
     /// managed, or the enterprise cloud bundle).
     OutsideApp,
-    /// Its key's origin is the user layer: this home's own `config.toml`.
+    /// Its key's origin is the user layer (this home's own `config.toml`), and the requirements
+    /// were read and pin nothing for it.
     ThisHome,
-    /// Its key's origin is a project layer.
+    /// Its key's origin is a project layer, and the requirements were read and pin nothing for it.
     Project,
-    /// No origin for its key and no pin, both read: Codex's own default.
+    /// No origin for its key, or Codex's packaged defaults, and no pin, both read: Codex's own default.
     Default,
     /// Not established by the evidence available.
     NotEstablished,
@@ -145,8 +146,10 @@ fn layer_source(origin: &Value) -> Source {
         Some("user") => Source::ThisHome,
         Some("project") => Source::Project,
         Some("mdm" | "system" | "enterpriseManaged" | "legacyManagedConfigTomlFromFile" | "legacyManagedConfigTomlFromMdm") => Source::OutsideApp,
-        // The App's own `-c` settings (none for these features), Codex's packaged defaults, or a
-        // layer this version does not name: not established.
+        // Codex's packaged defaults are its own default.
+        Some("packagedDefaults") => Source::Default,
+        // The App's own `-c` settings (none for these features), or a layer this version does not
+        // name: not established.
         _ => Source::NotEstablished,
     }
 }
@@ -157,10 +160,17 @@ fn layer_source(origin: &Value) -> Source {
 pub(super) fn source(feature: Feature, origins: Option<&Value>, pins: Option<&Value>) -> Source {
     if pins.is_some_and(|p| feature.requirement_names().iter().any(|n| p.get(*n).is_some())) { return Source::OutsideApp; }
     let Some(origins) = origins.filter(|o| o.is_object()) else { return Source::NotEstablished; };
-    match feature.origin_keys().iter().find_map(|key| origins.get(*key)) {
+    let from_layer = match feature.origin_keys().iter().find_map(|key| origins.get(*key)) {
         Some(origin) => layer_source(origin),
-        None if pins.is_some() => Source::Default,
-        None => Source::NotEstablished,
+        None => Source::Default,
+    };
+    // A managed layer's origin is evidence on its own. Any other source holds only once the
+    // requirements were read and pin nothing for this feature: without that reading, a requirement
+    // could be what decides the value, so the source is not established.
+    match from_layer {
+        Source::OutsideApp => Source::OutsideApp,
+        _ if pins.is_none() => Source::NotEstablished,
+        other => other,
     }
 }
 

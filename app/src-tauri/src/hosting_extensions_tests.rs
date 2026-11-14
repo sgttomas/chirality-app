@@ -211,13 +211,19 @@ fn each_source_follows_its_evidence() {
     // Pinned: outside the App, whatever the origin.
     assert_eq!(source(Plugins, Some(&o(&[("features.plugins", "user")])), Some(&json!({"plugins":false}))), Source::OutsideApp);
     assert_eq!(source(Apps, None, Some(&json!({"connectors":true}))), Source::OutsideApp);
-    // Origins by layer.
-    assert_eq!(source(Plugins, Some(&o(&[("features.plugins", "user")])), None), Source::ThisHome);
-    assert_eq!(source(Plugins, Some(&o(&[("features.plugins", "project")])), None), Source::Project);
+    // Origins by layer: this home and a project hold only once the requirements were read and
+    // pin nothing; without that reading, a requirement could decide the value.
+    assert_eq!(source(Plugins, Some(&o(&[("features.plugins", "user")])), Some(&nothing_pinned)), Source::ThisHome);
+    assert_eq!(source(Plugins, Some(&o(&[("features.plugins", "project")])), Some(&nothing_pinned)), Source::Project);
+    assert_eq!(source(Plugins, Some(&o(&[("features.plugins", "user")])), None), Source::NotEstablished, "requirements not read");
+    assert_eq!(source(Plugins, Some(&o(&[("features.plugins", "project")])), None), Source::NotEstablished, "requirements not read");
+    assert_eq!(source(Plugins, Some(&o(&[("features.plugins", "mdm")])), None), Source::OutsideApp, "a managed origin is evidence on its own");
     for managed in ["mdm", "system", "enterpriseManaged", "legacyManagedConfigTomlFromFile", "legacyManagedConfigTomlFromMdm"] {
         assert_eq!(source(Plugins, Some(&o(&[("features.plugins", managed)])), Some(&nothing_pinned)), Source::OutsideApp, "{managed}");
     }
-    for unnamed in ["sessionFlags", "packagedDefaults", "invented"] {
+    assert_eq!(source(Plugins, Some(&o(&[("features.plugins", "packagedDefaults")])), Some(&nothing_pinned)), Source::Default);
+    assert_eq!(source(Plugins, Some(&o(&[("features.plugins", "packagedDefaults")])), None), Source::NotEstablished);
+    for unnamed in ["sessionFlags", "invented"] {
         assert_eq!(source(Plugins, Some(&o(&[("features.plugins", unnamed)])), Some(&nothing_pinned)), Source::NotEstablished, "{unnamed}");
     }
     // No origin: Codex's default only when nothing is pinned on a requirements reading.
@@ -226,8 +232,8 @@ fn each_source_follows_its_evidence() {
     assert_eq!(source(Apps, None, Some(&nothing_pinned)), Source::NotEstablished, "origins not read");
     // `connectors` is applied after `apps`: its origin decides where both are present.
     assert_eq!(source(Apps, Some(&o(&[("features.apps", "user"), ("features.connectors", "mdm")])), Some(&nothing_pinned)), Source::OutsideApp);
-    assert_eq!(source(Apps, Some(&o(&[("features.apps", "mdm"), ("features.connectors", "user")])), None), Source::ThisHome);
-    assert_eq!(source(Apps, Some(&o(&[("features.apps", "project")])), None), Source::Project);
+    assert_eq!(source(Apps, Some(&o(&[("features.apps", "mdm"), ("features.connectors", "user")])), Some(&nothing_pinned)), Source::ThisHome);
+    assert_eq!(source(Apps, Some(&o(&[("features.apps", "project")])), Some(&nothing_pinned)), Source::Project);
     // The state is never off when not read.
     assert_eq!(evaluate(&[], Plugins), Observed { state: State::NotRead, not_read_because: Some("missing") });
     assert_ne!(State::NotRead, State::Off);

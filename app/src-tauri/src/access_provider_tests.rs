@@ -4749,13 +4749,23 @@ fn access_provider_cloud_start_admission_reads_again_and_does_not_reuse_an_earli
 fn extensions_sources_come_from_the_admitting_readings_origins() {
     let user = json!({"name":{"type":"user","file":"/invented/home/config.toml"},"version":"invented-user-version"});
     let managed = json!({"name":{"type":"mdm","domain":"invented.domain","key":"invented-key"},"version":"invented-mdm-version"});
-    for (case, features, origins, apps_enabled, expected) in [
-        ("this home sets both off", json!({"plugins":false,"apps":false}), json!({"features.plugins":user,"features.apps":user}), false,
+    for (case, requirements_read, features, origins, apps_enabled, expected) in [
+        ("this home sets both off", true, json!({"plugins":false,"apps":false}), json!({"features.plugins":user,"features.apps":user}), false,
             [("plugins", "off", "this-home"), ("apps", "off", "this-home")]),
-        ("managed connectors over the home's apps", json!({"plugins":false,"apps":false,"connectors":true}), json!({"features.plugins":user,"features.apps":user,"features.connectors":managed}), true,
+        ("managed connectors over the home's apps", true, json!({"plugins":false,"apps":false,"connectors":true}), json!({"features.plugins":user,"features.apps":user,"features.connectors":managed}), true,
             [("plugins", "off", "this-home"), ("apps", "on", "outside-app")]),
+        // Without a requirements reading on the generation, a requirement could decide the value, so
+        // a user-layer origin establishes no source; a managed origin still does.
+        ("requirements not read", false, json!({"plugins":false,"apps":false,"connectors":true}), json!({"features.plugins":user,"features.apps":user,"features.connectors":managed}), true,
+            [("plugins", "off", "not-established"), ("apps", "on", "outside-app")]),
     ] {
         let mut peer = Peer::new("home");
+        if requirements_read {
+            let source = peer.host.request_begin_scoped("configRequirements/read", json!({}), json!({"kind":"person-directed"}), false, Some(&peer.g)).unwrap();
+            assert_eq!(peer.frame()["method"], "configRequirements/read");
+            peer.host.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"result":{"requirements":{"featureRequirements":{}}}})).unwrap(), &peer.g);
+            peer.host.source_request_wait(&source, Duration::from_secs(1)).unwrap();
+        }
         let mut reading = config(json!({}));
         reading["config"]["features"] = features;
         reading["origins"] = origins;
