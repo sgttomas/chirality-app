@@ -555,9 +555,6 @@ fn placement_problems_in(root: &Path, project: Option<&Path>, codex_homes: &[Pat
             // Established absent (not yet made): a store established by identity to lie outside
             // the App data folder needs nothing here. Anything else (a failed lookup, or something
             // else in the folder's place, which may lead anywhere) refuses.
-            // The App's own default store is a fixed name beside the folder set aside's own fixed
-            // name in the same folder: neither can be another spelling of the other.
-            Err(crate::working_folder::Blocked::AppDataAbsent(_) | crate::working_folder::Blocked::LeafAbsent(_)) if root == data.join("records") => {}
             Err(blocked @ (crate::working_folder::Blocked::AppDataAbsent(_) | crate::working_folder::Blocked::LeafAbsent(_))) => if crate::working_folder::may_be_in_app_data(data, root) != Ok(false) {
                 problems.push(format!("{} cannot be placed yet: {}", root.display(), blocked.sentence()));
             },

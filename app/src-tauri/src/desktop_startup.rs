@@ -811,6 +811,11 @@ impl DesktopSetup {
                 // A held home is not a missing setup: the saved request stands and is not shown as needed.
                 self.launch_state = if home_held(&reason) {
                     json!({"state":"home-held","reason":reason,"operationalData":"not admitted; nothing operational started"})
+                } else if let Some(at) = reason.find(SET_ASIDE_OCCUPIED) {
+                    // DEL-01-01: kept through admission as resolve set it; only the person can
+                    // move what is in the folder's place, so setup is not offered. The sentence is
+                    // shown as itself, without the launch's own prefix.
+                    json!({"state":"set-aside-occupied","reason":&reason[at..],"operationalData":"not admitted; nothing operational started"})
                 } else {
                     json!({"state":"setup-required","reason":reason,"operationalData":"not admitted; setup-only local input capability retained"})
                 };
@@ -7002,7 +7007,8 @@ mod tests {
         std::fs::write(&leaf, b"invented").unwrap();
         let set_aside_review_refusal = occupied.setup().preview_new_settings(None).unwrap_err();
         let mut later = occupied.setup();
-        let _ = occupied.resolve(&mut later);
+        let launch = occupied.resolve(&mut later);
+        assert!(!later.admit_root(launch, Ok(occupied.data.clone())).allow_operational);
         let set_aside_occupied = later.view();
         drop(later);
         let retained = json!({"initial":retain_initial,"preview":retain_preview,"saved":retain_saved,"conflict":conflict,"supersededError":superseded,"freshQ":q_view,"nonePreview":none_preview,"noneSaved":none_saved,"project":native_path_identity(&q),"currentProject":native_path_identity(&keep.project)});
@@ -7458,14 +7464,21 @@ mod tests {
     /// as the person is shown it, and whether the folder set aside exists and what is in it.
     struct Started { view: Value, config: Result<HostConfig, String>, workspace: Option<PathBuf>, leaf_entries: Option<Vec<PathBuf>> }
     fn start_through_consumers(f: &Fixture, data: &Path, input: impl Fn(&str) -> Option<std::ffi::OsString>, is_dev: bool) -> Started {
-        let (desktop, inputs) = crate::admitted_startup(input, Ok(data.to_path_buf()), Ok(f.resources.clone()), is_dev, || f.probe());
-        let view = desktop.view();
+        start_with_probe(f, data, input, is_dev, || f.probe())
+    }
+    /// As `start_through_consumers`, with the probe home allocated by `probe` (the App's own
+    /// allocator, `crate::probe_home`, where a test needs it). The view is read at the end, after
+    /// the consumers have run.
+    fn start_with_probe(f: &Fixture, data: &Path, input: impl Fn(&str) -> Option<std::ffi::OsString>, is_dev: bool, probe: impl Fn() -> Result<PathBuf, String>) -> Started {
+        let (desktop, inputs) = crate::admitted_startup(input, Ok(data.to_path_buf()), Ok(f.resources.clone()), is_dev, probe);
         let RootInputs { launch, data: admitted, allow_operational } = inputs;
         let (key, shared, config) = (launch.key_path.clone(), launch.shared_paths.clone(), launch.host_config.clone());
         let workspace = launch.workspace.clone().map(AdmittedProject::into_path);
-        let (state, home) = crate::freeze_startup_state(launch, Arc::new(Mutex::new(desktop)), Value::Null);
+        let desktop = Arc::new(Mutex::new(desktop));
+        let (state, home) = crate::freeze_startup_state(launch, desktop.clone(), Value::Null);
         crate::initialize_startup_consumers(&state, &home, admitted, allow_operational, is_dev, Some(f.root.join("store")), key, shared);
         drop((state, home));
+        let view = desktop.lock().unwrap().view();
         let leaf = no_project_folder(&std::fs::canonicalize(data).unwrap_or_else(|_| data.to_path_buf()));
         let leaf_entries = std::fs::read_dir(&leaf).ok().map(|entries| entries.map(|e| e.unwrap().path()).collect());
         Started { view, config, workspace, leaf_entries }
@@ -7553,11 +7566,11 @@ mod tests {
                 _ => { std::fs::create_dir(&leaf).unwrap(); std::fs::set_permissions(&leaf, std::fs::Permissions::from_mode(0o755)).unwrap(); "a folder that other accounts can use".to_string() }
             };
             assert_eq!(f.setup().preview_new_settings(None).unwrap_err(), sentence(&leaf, &what), "{case}: on review");
-            let mut later = f.setup();
-            assert!(f.resolve(&mut later).host_config.is_err());
-            let view = later.view();
-            assert_eq!(view["launch"]["state"], "set-aside-occupied", "{case}");
-            assert_eq!(view["launch"]["reason"], sentence(&leaf, &what), "{case}: at a later start");
+            // A later start, followed all the way through admission and its consumers.
+            let later = start_through_consumers(&f, &f.data, |_| None, true);
+            assert!(later.config.is_err() && later.workspace.is_none(), "{case}");
+            assert_eq!(later.view["launch"]["state"], "set-aside-occupied", "{case}: the state survives the whole start");
+            assert_eq!(later.view["launch"]["reason"], sentence(&leaf, &what), "{case}: at a later start");
             assert!(std::fs::symlink_metadata(&leaf).is_ok() && target.is_dir(), "{case}: nothing removed or replaced");
         }
     }
@@ -7674,5 +7687,118 @@ mod tests {
         let cfg = saved.config.unwrap();
         assert_eq!(cfg.cwd, no_project_folder(&std::fs::canonicalize(&data).unwrap()));
         assert_eq!(saved.leaf_entries, Some(vec![]));
+    }
+
+    /// Sets the temporary root for one test, and puts it back when dropped.
+    struct TemporaryRoot(Option<std::ffi::OsString>);
+    impl TemporaryRoot {
+        fn at(path: &Path) -> Self {
+            let previous = std::env::var_os("TMPDIR");
+            std::env::set_var("TMPDIR", path);
+            Self(previous)
+        }
+    }
+    impl Drop for TemporaryRoot {
+        fn drop(&mut self) {
+            match self.0.take() { Some(previous) => std::env::set_var("TMPDIR", previous), None => std::env::remove_var("TMPDIR") }
+        }
+    }
+    /// DEL-01-01 (round 3, finding 1): the App's own probe allocation, with the temporary root
+    /// pointed at the folder set aside, makes nothing there: on the saved and environment routes,
+    /// in development and built configurations. The place is checked by identity before anything
+    /// is allocated, and the start is refused with a plain reason naming it.
+    #[test]
+    fn the_version_probe_is_never_made_in_the_no_project_folder() {
+        for (route, is_dev) in [("saved", true), ("saved", false), ("environment", true), ("environment", false)] {
+            let f = Fixture::new();
+            let (data, input): (PathBuf, Value) = if route == "saved" {
+                let mut setup = f.setup();
+                f.prepare(&mut setup, false);
+                drop(setup);
+                (f.data.clone(), json!({}))
+            } else {
+                let data = f.root.join("new-data");
+                (data.clone(), json!({"CHIRALITY_APP_DATA":data,"CHIRALITY_CODEX_BIN":"/invented/bin/codex","CHIRALITY_CODEX_HOME":f.root.join("environment-home"),"CHIRALITY_ALLOW_UNVERIFIED":"1"}))
+            };
+            let leaf = no_project_folder(&f.root.canonicalize().unwrap().join(data.file_name().unwrap()));
+            let started = {
+                let _temporary = TemporaryRoot::at(&leaf);
+                start_with_probe(&f, &data, environment(input), is_dev, crate::probe_home)
+            };
+            let refused = started.config.unwrap_err();
+            assert!(refused.contains("The version probe's home was not made") && refused.contains(&leaf.display().to_string()), "{route} {is_dev}: {refused}");
+            assert_eq!(started.leaf_entries, Some(vec![]), "{route} {is_dev}: nothing was made in the folder set aside");
+        }
+    }
+
+    /// DEL-01-01 (round 3, finding 2): a records store at the App's own default name that is a
+    /// dangling link into the folder set aside (not yet made) is never placed: not before the
+    /// folder is established, and not after, when the link resolves into it.
+    #[test]
+    fn a_default_store_behind_a_link_into_the_no_project_folder_is_never_placed() {
+        let f = Fixture::new();
+        let data = f.root.join("other-data");
+        std::fs::create_dir(&data).unwrap();
+        let leaf = no_project_folder(&data);
+        let records = data.join("records");
+        std::os::unix::fs::symlink(&leaf, &records).unwrap();
+        assert!(records_store::for_app(Some(records.clone()), Ok(&data), true, None, &[]).is_err(), "before the folder is established");
+        establish(&data).unwrap();
+        let placed = records_store::for_app(Some(records.clone()), Ok(&data), true, None, &[]);
+        assert!(placed.as_ref().is_err_and(|e| e.contains("overlaps the folder set aside")), "{placed:?}");
+        assert_eq!(std::fs::read_dir(&leaf).unwrap().count(), 0, "nothing of the store was made there");
+    }
+
+    /// DEL-01-01 (found by the inventory): a folder the person chooses for the App to write into
+    /// (a records export's parent, a workflow library root) is refused in the App data folder and
+    /// in the folder set aside, by identity; a folder outside it, or containing it, is admitted.
+    #[test]
+    fn a_chosen_folder_in_the_app_data_folder_is_never_written_into() {
+        let f = Fixture::new();
+        let leaf = ensure_no_project_folder(&f.data).unwrap();
+        let alias = f.root.join("alias-of-leaf");
+        std::os::unix::fs::symlink(&leaf, &alias).unwrap();
+        for folder in [leaf.clone(), alias, f.data.clone(), f.data.join("records")] {
+            std::fs::create_dir_all(&folder).unwrap();
+            let refused = crate::folder_outside_app_data(&f.data, &folder, "Nothing was exported").unwrap_err();
+            assert!(refused.starts_with("Nothing was exported: the folder") && refused.contains("Choose a folder outside it."), "{folder:?}: {refused}");
+        }
+        for folder in [f.project.clone(), f.root.clone()] {
+            assert!(crate::folder_outside_app_data(&f.data, &folder, "Nothing was exported").is_ok(), "{folder:?}");
+        }
+        assert_eq!(std::fs::read_dir(&leaf).unwrap().count(), 0);
+    }
+
+    /// DEL-01-01 (round 3, finding 1, and the connector's working folder found by the inventory):
+    /// the temporary root is checked by identity against the App data folders this process holds
+    /// before anything is allocated in it.
+    #[test]
+    fn a_temporary_root_in_held_app_data_refuses_every_allocation() {
+        use crate::working_folder::check_temporary_root;
+        use std::os::unix::fs::MetadataExt;
+        let f = Fixture::new();
+        let leaf = ensure_no_project_folder(&f.data).unwrap();
+        let meta = std::fs::metadata(&f.data).unwrap();
+        let held = [(meta.dev(), meta.ino())];
+        let alias = f.root.join("alias-of-leaf");
+        std::os::unix::fs::symlink(&leaf, &alias).unwrap();
+        for root in [leaf.clone(), alias, f.data.clone(), f.data.join("records")] {
+            std::fs::create_dir_all(&root).unwrap();
+            let refused = check_temporary_root(&root, &held, "The connector's working folder").unwrap_err();
+            assert!(refused.starts_with("The connector's working folder was not made") && refused.contains("Set TMPDIR"), "{root:?}: {refused}");
+        }
+        assert!(check_temporary_root(&f.root.join("missing"), &held, "x").is_err(), "a root that cannot be examined");
+        assert_eq!(check_temporary_root(&f.project, &held, "x").unwrap(), f.project);
+        assert_eq!(check_temporary_root(&f.root, &held, "x").unwrap(), f.root, "a root containing the App data folder is not in it");
+        // Through the App's own entry: with this process holding the App data, TMPDIR at the folder
+        // set aside refuses.
+        let mut setup = f.setup();
+        setup.hold_environment_data(&f.data).unwrap();
+        {
+            let _temporary = TemporaryRoot::at(&leaf);
+            assert!(crate::runtime_session::temporary_root("The connector's working folder").is_err());
+        }
+        drop(setup);
+        assert_eq!(std::fs::read_dir(&leaf).unwrap().count(), 0);
     }
 }

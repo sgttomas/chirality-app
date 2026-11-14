@@ -525,8 +525,13 @@ fn records_store_import_gate_recognised_capture_during_create_link_waives_census
 
 #[test]
 fn placement_uses_the_override_or_app_data_and_never_falls_back() {
-    // The App data folder as a release build sees it (never created here; outside every temporary folder).
-    let data = PathBuf::from(format!("/nonexistent-app-data-for-test/{}", crate::util::opaque_id("").unwrap()));
+    // The App data folder as a release build sees it, outside every temporary folder, and
+    // established as a start establishes it before any store is placed against it (DEL-01-01:
+    // a store is never placed against an App data folder that does not exist).
+    let made = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("target").join(format!("placement-app-data-for-test-{}", crate::util::opaque_id("").unwrap()));
+    std::fs::create_dir_all(&made).unwrap();
+    let data = std::fs::canonicalize(&made).unwrap();
+    crate::working_folder::establish(&data).unwrap();
     let project = folder("placement-project-");
     // A development build without the override has no store, and says why.
     let dev = for_app(None, Ok(&data), true, Some(&project), &[]).unwrap_err();
@@ -553,6 +558,7 @@ fn placement_uses_the_override_or_app_data_and_never_falls_back() {
     assert!(matches!(test_store.placement, Placement::Test | Placement::Override));
     assert!(test_store.root.starts_with(std::env::temp_dir()) || test_store.placement == Placement::Override);
     let _ = std::fs::remove_dir_all(&project);
+    let _ = std::fs::remove_dir_all(&data);
 }
 
 #[test]

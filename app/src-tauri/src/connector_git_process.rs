@@ -66,7 +66,11 @@ pub struct Engine {
 impl Engine {
     pub fn create(objects: &Path, format: &str, control: &Control) -> Result<Self> {
         use std::os::unix::fs::DirBuilderExt;
-        let helper = std::env::temp_dir().join(
+        // DEL-01-01: never in Chirality's data folder (its folder for conversations without a
+        // project included), checked by identity before anything is made.
+        let temporary = crate::runtime_session::temporary_root("The connector's working folder")
+            .map_err(|e| Failure::abort("supervision", e))?;
+        let helper = temporary.join(
             crate::util::opaque_id("connector-git-")
                 .map_err(|e| Failure::abort("supervision", e))?,
         );

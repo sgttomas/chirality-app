@@ -293,7 +293,7 @@ fn complete_config_resource_continuation(
 
 /// A fresh probe home for the label probe (HOSTING §7.2 H-probe), in the temp directory.
 fn probe_home() -> Result<PathBuf,String> {
-    runtime_session::allocate_fresh_probe(&std::env::temp_dir())
+    runtime_session::allocate_fresh_probe(&runtime_session::temporary_root("The version probe's home")?)
 }
 
 /// Whether this build admits development startup inputs. The release
@@ -890,6 +890,7 @@ fn read_fleet_records_for_workspace(workspace: Option<&std::path::Path>) -> Resu
 fn records_store_export(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<Value, String> {
     let project = state.workspace.as_ref().ok_or("no project is open; nothing exported")?;
     let Some(parent) = workflow_native_folder(&app, "Choose a folder for the records export")? else { return Ok(json!({"state":"export cancelled"})); };
+    chosen_folder_outside_app_data(&state, &parent, "Nothing was exported")?;
     let destination = parent.join(util::opaque_id("records-export-")?);
     records_export::export(project, &destination)
 }
@@ -2261,6 +2262,21 @@ fn workflow_review_digest(state:State<'_,AppState>,review_ref:String)->Result<Va
     let presentation=review.status.get("presentation").ok_or("Review presentation not available in this state")?;
     Ok(match act_control::review_digest(presentation){Ok(d)=>json!({"reviewRef":review_ref,"digest":d}),Err(cause)=>json!({"reviewRef":review_ref,"unavailable":cause})})
 }
+/// DEL-01-01: a folder the person chooses for the App to write into (a records export's parent,
+/// a workflow library root) is outside the App data folder, the folder kept for conversations
+/// without a project included: decided by identity against the established folder, before
+/// anything is written. A folder that contains the App data folder is outside it.
+fn chosen_folder_outside_app_data(state:&AppState,folder:&std::path::Path,refused:&str)->Result<(),String>{
+    let data=state.app_user_data_root.lock().unwrap().clone().map_err(|e|format!("{refused}: Chirality's data folder is unavailable ({e})"))?;
+    folder_outside_app_data(&data,folder,refused)
+}
+pub(crate) fn folder_outside_app_data(data:&std::path::Path,folder:&std::path::Path,refused:&str)->Result<(),String>{
+    let set=working_folder::established(data).map_err(|blocked|format!("{refused}. {}",blocked.sentence()))?;
+    match set.place(folder) {
+        working_folder::WorkingFolder::Outside=>Ok(()),
+        _=>Err(format!("{refused}: the folder {} is in Chirality's own data folder ({}), or its place cannot be established. Choose a folder outside it.",folder.display(),set.data().display())),
+    }
+}
 fn workflow_native_folder(app:&tauri::AppHandle,title:&str)->Result<Option<PathBuf>,String>{
     app.dialog().file().set_title(title).blocking_pick_folder().map(|path|path.into_path().map_err(|_|"Native folder has no local filesystem path".to_string())).transpose()
 }
@@ -2317,6 +2333,7 @@ fn workflow_open_library(app:tauri::AppHandle,state:State<'_,AppState>,origin:St
     if !matches!(origin.as_str(),"project"|"user"){return Err("Choose project or user library; no default".into());}
     workflow_context_home(&state,&context,wait)?;
     let Some(path)=workflow_native_folder(&app,"Open existing physical workflow library root")? else{return Ok(json!({"state":"native library selection dismissed"}));};
+    chosen_folder_outside_app_data(&state,&path,"The library was not opened")?;
     let wait=workflow_selection::Wait::for_press(); // the picker took the person's time, not the press's
     let home=workflow_context_home(&state,&context,wait)?;let view=host_tick::receive_view(&home);
     let (mut root,_,_)=workflow_selection::lock_root(&state.workflows,&context,||state.homes.lock().unwrap().active(),wait)?;root.verify_library_context(&context)?;

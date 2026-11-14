@@ -326,6 +326,19 @@ pub fn may_be_in_app_data(app_data: &Path, candidate: &Path) -> Result<bool, ()>
         Err(_) => Err(()),
     }
 }
+/// DEL-01-01: the temporary root the App is given (`TMPDIR`) is checked by identity before the
+/// App allocates anything in it: a root that is an App data folder this process holds, or a
+/// folder inside one (the folder set aside included), refuses with a plain reason naming it, and
+/// so does a root whose place cannot be established. Returns the canonical root to allocate in.
+pub fn check_temporary_root(root: &Path, held: &[Identity], what: &str) -> Result<PathBuf, String> {
+    let refused = |why: String| format!("{what} was not made: {why}. Set TMPDIR to a folder outside Chirality's data folder.");
+    let canonical_root = canonical(root).map_err(|e| refused(format!("the temporary folder {} could not be examined ({e})", root.display())))?;
+    let chain = identity_chain(&canonical_root).map_err(refused)?;
+    if held.iter().any(|data| chain.contains(data)) {
+        return Err(refused(format!("the temporary folder {} is inside Chirality's own data folder (its folder for conversations without a project included)", root.display())));
+    }
+    Ok(canonical_root)
+}
 /// A project folder that has passed admission ([`Established::admit_project`]).
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct AdmittedProject(PathBuf);

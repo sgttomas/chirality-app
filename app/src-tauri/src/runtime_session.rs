@@ -3203,6 +3203,13 @@ pub fn logout_native_home<F: FnOnce(&Value) -> bool>(
 
 /// Allocate a new probe using the physical OS temp parent and mktemp -d. This
 /// resolves an allocation source, never relocates an existing received home.
+/// DEL-01-01: the temporary root (`TMPDIR`) to allocate in, after checking by identity that it is
+/// not inside an App data folder this process holds (`working_folder::check_temporary_root`).
+/// Every production allocation the App makes in the temporary folder asks for it here first.
+pub(crate) fn temporary_root(what: &str) -> Result<std::path::PathBuf, String> {
+    let held = crate::session_liveness::held_app_data_identities()?;
+    crate::working_folder::check_temporary_root(&std::env::temp_dir(), &held, what)
+}
 pub fn allocate_fresh_probe(temp_parent: &std::path::Path) -> Result<std::path::PathBuf, String> {
     let parent = std::fs::canonicalize(temp_parent)
         .map_err(|_| "OS scratch parent unavailable; no probe default")?;
