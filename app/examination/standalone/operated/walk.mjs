@@ -307,22 +307,45 @@ export function stateCheck(text, lines, values, appName) {
 }
 
 /**
- * The one admission for what an effect or an affirmative output rests on: a recorded state (kind 'state', its record
- * in state_records) or a sheet template (kind 'sheet', its record in sheet_records). Each is bound to the build it was
- * recorded on (recorded_on: the bundle identifier and the App's name, from record_state.mjs) and must have been judged
- * before it was recorded (judged.result). A walk on another build, or with a record missing or never judged, uses
- * neither. Returns null when it may be used, or why not. Line-for-line equality with what the record names is the
- * second requirement, checked where it is used (stateCheck, sheetCheck).
+ * Whether a record (of a recorded state, kind 'state', in state_records; or of the sheet template, kind 'sheet', in
+ * sheet_records) may be used on this launch. It must have been judged before it was recorded (judged.result), and it
+ * must be for this build: the record's candidate key must be the candidate key of the identified candidate this
+ * launch's bundle belongs to, and its bundle identifier and App name this launch's. The candidate key is the revision
+ * and the first 12 hex digits of the bundle tree's sha256 (candidate_identity/identify.py); the launcher checks the
+ * bundle's bytes against that identification before it launches, and the method keeps the bundle unchanged from then.
+ * Returns null when it may be used, or why not. It is used only by admission, below.
  */
 export const JUDGED = { state: 'every expectation held', sheet: 'every line agreed with the template' };
-export function recordUsable(scenario, kind, id, app, appName) {
+export function recordUsable(scenario, kind, id, app, appName, candidateKey) {
   const records = kind === 'state' ? scenario?.state_records : kind === 'sheet' ? scenario?.sheet_records : undefined;
   const what = kind === 'sheet' ? `sheet template ${id}` : `recorded state ${id}`;
   const record = records?.[id];
   if (!record?.recorded_on) return `the ${what} has no record of the build it was recorded on`;
-  if (record.recorded_on.identifier !== app || record.recorded_on.app_name !== appName) return `the ${what} was recorded on another build (${record.recorded_on.app_name})`;
+  if (typeof candidateKey !== 'string' || !candidateKey) return `the candidate this launch's bundle belongs to is not identified, so no ${what} can be used`;
+  if (record.recorded_on.candidate_key !== candidateKey || record.recorded_on.identifier !== app || record.recorded_on.app_name !== appName) {
+    return `the ${what} was recorded on another build (${record.recorded_on.candidate_key}, ${record.recorded_on.app_name})`;
+  }
   if (record.judged?.result !== JUDGED[kind]) return `the ${what} was not judged before it was recorded`;
   return null;
+}
+
+/**
+ * The one admission. What a step's verdict, an act and the press rest on is admitted here and nowhere else: the record
+ * of the state or template is judged and usable for this launch (recordUsable), and the view equals what it names line
+ * for line (stateCheck for a state, sheetCheck for the sheet). Returns {admitted: true} (and, for the sheet, the press
+ * index and the comparison record), or {admitted: false, unusable or difference}.
+ */
+export function admission(scenario, kind, id, text, values, app, appName, candidateKey) {
+  const unusable = recordUsable(scenario, kind, id, app, appName, candidateKey);
+  if (unusable) return { admitted: false, unusable };
+  if (kind === 'state') {
+    const differs = Array.isArray(scenario.states?.[id]) ? stateCheck(text, scenario.states[id], values, appName) : [`the scenario holds no recorded state ${id}`];
+    return differs.length ? { admitted: false, difference: differs[0] } : { admitted: true };
+  }
+  const sheet = (scenario.sheets ?? []).find(candidate => candidate?.id === id);
+  const checked = sheet ? sheetCheck(text, sheet, values, appName) : { problems: [`the scenario names no sheet ${id}`], record: {} };
+  if (checked.problems.length) return { admitted: false, difference: checked.problems.join('; '), first_difference: checked.record.first_difference ?? null };
+  return { admitted: true, press: checked.press, record: checked.record };
 }
 
 export function sheetCheck(text, sheet, values, appName) {
@@ -428,6 +451,9 @@ export function checkOne(elements, expectation, values) {
  *   watch     the path of the file watch.py keeps while that process runs; the walk reads it before the first view
  *             and at every step, since the node runtime cannot ask the system about a process itself
  *   readWatch optional: () => the parsed watch file, or null (default: reads `watch`)
+ *   readIdentification optional: () => the candidate's identification record, or null (default: reads
+ *             identification/candidate-identification.json in the candidate folder that holds the bundle,
+ *             <candidate>/target/debug/bundle/macos/<name>.app). Its candidate_key binds the records used.
  *   sleep     optional: (milliseconds) => a promise (default: a timer)
  *   now       optional: () => the time as text (default: the UTC time)
  *   project   the invented project folder beside the home, for a scenario with a `type` step: the one value it types
@@ -484,11 +510,18 @@ export function failure(where, error) {
   return { where, message: text(error), causes };
 }
 
-export async function run({ sky, scenario, app, home, bundle, pid, watch, readWatch, sleep, now, project }) {
+export async function run({ sky, scenario, app, home, bundle, pid, watch, readWatch, readIdentification, sleep, now, project }) {
   if (!readWatch && typeof watch === 'string') {
     const fs = await import('node:fs');
     readWatch = () => { try { return JSON.parse(fs.readFileSync(watch, 'utf8')); } catch { return null; } };
   }
+  if (!readIdentification && typeof bundle === 'string' && /\/target\/debug\/bundle\/macos\/[^/]+\.app$/.test(bundle)) {
+    const fs = await import('node:fs');
+    const candidate = bundle.replace(/\/target\/debug\/bundle\/macos\/[^/]+\.app$/, '');
+    readIdentification = () => { try { return JSON.parse(fs.readFileSync(`${candidate}/identification/candidate-identification.json`, 'utf8')); } catch { return null; } };
+  }
+  const identified = readIdentification ? readIdentification() : null;
+  const candidateKey = typeof identified?.candidate_key === 'string' && /^[A-Za-z0-9-]+$/.test(identified.candidate_key) ? identified.candidate_key : null;
   // The build is running when the watch file is for this process, says so, names an executable inside the bundle, and
   // was written in the last three seconds. That is a sample, not custody: see README.md.
   const watched = () => {
@@ -523,10 +556,7 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
     report.outcomes = Object.fromEntries(Object.entries(scenario.outcomes ?? {}).map(([name, ids]) => {
       // An outcome is "shown" only when every step it rests on was judged equal to its recorded state and met its
       // expectations: as for the verdict, no affirmative line rests on the anchor or on expectations alone.
-      const steps = ids.map(id => report.steps.find(step => step.id === id));
-      if (steps.some(step => !step)) return [name, 'not reached'];
-      if (steps.some(step => !Array.isArray(step.unmet) || step.unmet.length)) return [name, 'not shown'];
-      return [name, steps.every(step => step.judged === true) ? 'shown' : 'captured, not judged'];
+      return [name, outcomeOf(ids.map(id => report.steps.find(step => step.id === id)))];
     }));
     return report;
   };
@@ -580,10 +610,13 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
   let elements = [], latest = null;
   const appName = bundle.slice(bundle.lastIndexOf('/') + 1, -'.app'.length);
   // Before any act: the latest view must be the listed state the step acts from, line for line.
+  // Every act (the click, the set-value, the sheet opener) is made only from an admitted view: the latest view admitted
+  // against the recorded state the step acts from, by the one admission.
   const notListed = (step, act) => {
-    const unbound = recordUsable(scenario, 'state', step.from_state, app, appName);
-    const differs = unbound ? [unbound] : latest === null ? ['the latest view was not recognised'] : stateCheck(latest, scenario.states[step.from_state], values, appName);
-    return differs.length ? finish('inconclusive', `stopped at ${step.id}: the view is not the listed state ${step.from_state} (${differs[0]}); nothing was ${act}`) : null;
+    if (latest === null) return finish('inconclusive', `stopped at ${step.id}: the view is not the listed state ${step.from_state} (the latest view was not recognised); nothing was ${act}`);
+    const admitted = admission(scenario, 'state', step.from_state, latest, values, app, appName, candidateKey);
+    if (admitted.admitted) return null;
+    return finish('inconclusive', `stopped at ${step.id}: the view is not the listed state ${step.from_state} (${admitted.unusable ?? admitted.difference}); nothing was ${act}`);
   };
   // A view is whole, or the walk stops there. One that comes back as differences is kept, with the view rebuilt from
   // it, for reading only: no check is credited from a rebuilt view and no click is made from one. Whether a view is
@@ -752,18 +785,17 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       if (step.press === false) return finish('inconclusive', `stopped at ${step.id}: the sheet is captured, and this step has no press`);
       if (!shown.whole) return finish('inconclusive', asDifferences(step.id));
       if (shown.refusal) return finish('inconclusive', `${unaddressed(step.id, shown.refusal)}; nothing was pressed`);
-      // The press's admission: the sheet template's record, judged and bound to this build, then the sheet equal to it
-      // line for line. A refused press leaves only the refusal (and the difference found, if any): never a record that
-      // reads as a comparison that agreed.
-      const sheetUnusable = recordUsable(scenario, 'sheet', sheet.id, app, appName);
-      if (sheetUnusable) {
-        entry.sheet = { refused: sheetUnusable };
-        return finish('inconclusive', `stopped at ${step.id}: ${sheetUnusable}; nothing was pressed`);
+      // The press, by the one admission: the sheet template's record judged and usable for this launch, and the sheet
+      // equal to it line for line. A refused press leaves only the refusal (and the difference found, if any): never a
+      // record that reads as a comparison that agreed.
+      const checked = admission(scenario, 'sheet', sheet.id, shown.text, values, app, appName, candidateKey);
+      if (checked.unusable) {
+        entry.sheet = { refused: checked.unusable };
+        return finish('inconclusive', `stopped at ${step.id}: ${checked.unusable}; nothing was pressed`);
       }
-      const checked = sheetCheck(shown.text, sheet, values, appName);
-      if (checked.problems.length) {
-        entry.sheet = { refused: checked.problems.join('; '), ...(checked.record.first_difference ? { first_difference: checked.record.first_difference } : {}) };
-        return finish('inconclusive', `stopped at ${step.id}: the sheet is not the one named (${checked.problems.join('; ')}); nothing was pressed`);
+      if (!checked.admitted) {
+        entry.sheet = { refused: checked.difference, ...(checked.first_difference ? { first_difference: checked.first_difference } : {}) };
+        return finish('inconclusive', `stopped at ${step.id}: the sheet is not the one named (${checked.difference}); nothing was pressed`);
       }
       entry.sheet = checked.record;
       const beforePress = gate(`at ${step.id}, before the press`);
@@ -818,19 +850,19 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       const pattern = typeof form === 'string' ? new RegExp('^' + fill(form, values).split('{~uuid}').map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}') + '$', 'u') : null;
       if (!pattern || !pattern.test(values[name])) return finish('inconclusive', `stopped at ${step.id}: the location "${location}" is not of the form the App makes`);
     }
-    // The step's judgement, after its captures (a state can name a path captured at this step): its view must equal the recorded state it names, line for line, under the comparison the
-    // acts use. A step that names none is captured, not judged; a view that differs is a failed check.
+    // The step's one verdict, after its captures (a state can name a path captured at this step), made by the one
+    // admission: "admitted" when the record of the state it names is judged and usable for this launch, its view equals
+    // that state line for line, and no expectation is unmet; "failed" when an expectation is unmet or the view differs;
+    // "captured, not judged" when it names no state. A record not usable for this launch says nothing of this build:
+    // the walk stops there, and the step has no verdict. Every affirmative output is derived from these verdicts.
     if (step.state !== undefined) {
-      // A state recorded on another build, or never judged, says nothing of this one: the walk stops, judging nothing.
-      const unbound = Array.isArray(scenario.states?.[step.state]) ? recordUsable(scenario, 'state', step.state, app, appName) : null;
-      if (unbound) return finish('inconclusive', `stopped at ${step.id}: ${unbound}; its view is not judged`);
-      const differs = !Array.isArray(scenario.states?.[step.state]) ? [`the scenario holds no recorded state ${step.state}`]
-        : stateCheck(seen.text, scenario.states[step.state], values, appName);
       entry.state = step.state;
-      entry.judged = differs.length === 0;
-      if (differs.length) entry.unmet.push({ expectation: { state: step.state }, found: differs[0] });
+      const admitted = admission(scenario, 'state', step.state, seen.text, values, app, appName, candidateKey);
+      if (admitted.unusable) return finish('inconclusive', `stopped at ${step.id}: ${admitted.unusable}; its view is not admitted`);
+      if (!admitted.admitted) entry.unmet.push({ expectation: { state: step.state }, found: admitted.difference });
+      entry.verdict = entry.unmet.length ? 'failed' : 'admitted';
     } else {
-      entry.judged = false;
+      entry.verdict = entry.unmet.length ? 'failed' : 'captured, not judged';
     }
     const after = gate(`after ${step.id}`);
     entry.child_processes = lastChildren ?? 'not known: the watch file does not show the build running';
@@ -840,17 +872,25 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
 }
 
 /**
- * The verdict of a walk that reached its end. No affirmative result rests on the anchor alone (App Agent 0, after the
- * second independent reading of PR 351): 'pass' only when every step's view equalled the recorded state it names,
- * line for line, and every expectation held. Expectations can only fail. A view that passed the anchor but names no
- * recorded state is 'captured, not judged'. The anchor itself only refuses (recognise), and never grounds a pass.
+ * Every affirmative output is derived from the steps' verdicts, which only admission makes (App Agent 0 and the
+ * INTERLOCUTOR, after the third independent reading of PR 351): nothing affirmative is computed anywhere else.
+ * - The scenario's verdict: "pass" when every step's verdict is "admitted"; "fail" when any step's is "failed";
+ *   otherwise "captured, not judged". A walk that stops early takes "inconclusive" where it stops (finish).
+ * - An outcome line: "shown" when every step it names was admitted; "not reached" when one was not reached; "not shown"
+ *   when one failed or has no verdict; otherwise "captured, not judged".
+ * Expectations are failures only (unmet): an expectation alone can never make "pass" or "shown".
  */
 export function verdictOf(steps) {
-  if (steps.some(step => !Array.isArray(step.unmet) || step.unmet.length)) return steps.some(step => step.unmet?.length) ? 'fail' : 'captured, not judged';
-  return steps.length > 0 && steps.every(step => step.judged === true) ? 'pass' : 'captured, not judged';
+  if (steps.some(step => step.verdict === 'failed')) return 'fail';
+  return steps.length > 0 && steps.every(step => step.verdict === 'admitted') ? 'pass' : 'captured, not judged';
 }
 
-/** The result as the few lines a reader wants first. */
+export function outcomeOf(steps) {
+  if (steps.some(step => !step)) return 'not reached';
+  if (steps.some(step => step.verdict !== 'admitted' && step.verdict !== 'captured, not judged')) return 'not shown';
+  return steps.every(step => step.verdict === 'admitted') ? 'shown' : 'captured, not judged';
+}
+
 export function summary(report) {
   const lines = [`${report.scenario} (version ${report.version}): ${String(report.verdict).toUpperCase()}`];
   for (const [name, state] of Object.entries(report.outcomes ?? {})) lines.push(`  ${name}: ${state}`);

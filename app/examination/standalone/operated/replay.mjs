@@ -34,7 +34,9 @@ const standIn = {  // every other method of the service is absent here, so a cal
   async set_value(input) { made.push(['set_value', input]); },
 };
 const running = () => ({ pid: process.pid, running: true, at_ms: Date.now(), executable: recorded.bundle + '/Contents/MacOS/chirality-app-v4', children: [] });  // stands in for watch.py's file
-const report = await run({ sky: standIn, scenario, app: recorded.app, home: recorded.home, bundle: recorded.bundle, pid: process.pid, readWatch: running, sleep: async () => {}, project: recorded.project });
+const report = await run({ sky: standIn, scenario, app: recorded.app, home: recorded.home, bundle: recorded.bundle, pid: process.pid, readWatch: running, sleep: async () => {}, project: recorded.project,
+  // Offline, the recorded views carry the candidate key they were recorded for; without one, no record is usable.
+  readIdentification: () => (typeof recorded.candidate_key === 'string' ? { candidate_key: recorded.candidate_key } : null) });
 report.replayed = { views: viewsPath, wrong_state: wrongPath ?? null, calls_received: made.length };
 console.log(JSON.stringify(report, null, 2));
 console.error(summary(report));

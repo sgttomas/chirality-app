@@ -58,7 +58,7 @@ const bindAll = options => {
   if (!scenario.states || scenario.state_records) return;
   const app_name = String(options.bundle ?? '').split('/').pop().replace(/\\.app$/, '');
   scenario.state_records = Object.fromEntries(Object.keys(scenario.states).map(id =>
-    [id, { recorded_on: { identifier: options.app, app_name }, judged: { result: 'every expectation held' } }]));
+    [id, { recorded_on: { candidate_key: 'invented-key', identifier: options.app, app_name }, judged: { result: 'every expectation held' } }]));
 };
 const walk = { ...walkModule, run: options => { listAll(); bindAll(options); return walkModule.run(options); } };
 const scenario = JSON.parse(readFileSync(process.argv[2], 'utf8'));
@@ -92,7 +92,7 @@ const viewOf = { app: recorded.bundle };
 const watched = (change = {}) => () => ({ pid: process.pid, running: true, at_ms: Date.now(), children: [],
   executable: recorded.bundle + '/Contents/MacOS/chirality-app-v4', ...change });
 const base = { sky: service, scenario, app: recorded.app, home: recorded.home, bundle: recorded.bundle, pid: process.pid,
-  readWatch: watched(), sleep: async () => {} };
+  readWatch: watched(), readIdentification: () => ({ candidate_key: 'invented-key' }), sleep: async () => {} };
 const out = await (async () => { CASE })();
 console.log(JSON.stringify({ out, touched }));
 '''
@@ -174,7 +174,7 @@ class Replay(unittest.TestCase):
         scenario['state_records']['S1']['judged']['result'] = 'not judged'
         self.assertIn('was not judged before it was recorded',
                       harness(f"return walk.recordUsable({json.dumps(scenario)}, 'state', 'S1', {json.dumps(scenario['state_records']['S1']['recorded_on']['identifier'])}, "
-                              f"{json.dumps(scenario['state_records']['S1']['recorded_on']['app_name'])});")['out'])
+                              f"{json.dumps(scenario['state_records']['S1']['recorded_on']['app_name'])}, {json.dumps(scenario['state_records']['S1']['recorded_on']['candidate_key'])});")['out'])
 
     def test_a_scenario_that_acts_and_names_no_listed_state_is_refused_before_any_call(self):
         code, report, said = replay(SCENARIO, VIEWS)  # the first-use scenario, kept for the hosted driver
@@ -960,7 +960,7 @@ STATEMENT = '\n'.join(json.loads(SETUP.read_text())['sheets'][0]['statement']).f
     {'settings': SETTINGS, 'account': ACCOUNT, 'project': PROJECT, 'request': REQUEST}) if SETUP.exists() else ''
 SETUP_HARNESS = HARNESS.replace("if (name === 'click') return async () => {};",
                                 "if (name === 'click' || name === 'set_value') return async () => {};").replace(
-    "readWatch: watched(), sleep: async () => {} };", "readWatch: watched(), sleep: async () => {}, project: recorded.project };")
+    "sleep: async () => {} };", "sleep: async () => {}, project: recorded.project };")
 
 
 def setup_state(name):
@@ -985,7 +985,7 @@ def setup_views(sheet=None, after=None):
     """Whole views for the signed-out setup walk: the scenario's own listed states filled with invented values, the
     recorded sheet, and the recorded page after it. sheet: the whole view of the sheet; by default the recorded one."""
     with_sheet = SHEET_ON_ITS_OWN if sheet is None else sheet
-    return {**INVENTED, 'project': PROJECT,
+    return {**INVENTED, 'project': PROJECT, 'candidate_key': 'invented-key',
             'views': [{'text': text} for text in (setup_state('S1'), setup_state('S2'), setup_state('S3'), setup_state('S4'),
                                                   with_sheet, after or AFTER_THE_PRESS)]}
 
@@ -998,7 +998,7 @@ def rebound(scenario_path, folder):
     that its walk's mechanics can be tested on them. The committed file stays bound to the build it was recorded on."""
     scenario = json.loads(Path(scenario_path).read_text())
     for record in [*(scenario.get('state_records') or {}).values(), *(scenario.get('sheet_records') or {}).values()]:
-        record['recorded_on'] = {**record['recorded_on'], 'identifier': INVENTED['app'], 'app_name': INVENTED_APP}
+        record['recorded_on'] = {**record['recorded_on'], 'candidate_key': 'invented-key', 'identifier': INVENTED['app'], 'app_name': INVENTED_APP}
     path = Path(folder) / ('rebound-' + Path(scenario_path).name)
     path.write_text(json.dumps(scenario))
     return path
@@ -1544,7 +1544,7 @@ class TheViewOnlyScenarios(unittest.TestCase):
         outcomes = {}
         for path in files:
             scenario = json.loads(path.read_text())
-            entries = [{'unmet': [], 'judged': isinstance((scenario.get('states') or {}).get(step.get('state')), list)}
+            entries = [{'unmet': [], 'verdict': 'admitted' if isinstance((scenario.get('states') or {}).get(step.get('state')), list) else 'captured, not judged'}
                        for step in scenario['steps']]
             verdict = harness(f'return walk.verdictOf({json.dumps(entries)});')['out']
             names_all = all(isinstance((scenario.get('states') or {}).get(step.get('state')), list) for step in scenario['steps'])
@@ -1555,10 +1555,11 @@ class TheViewOnlyScenarios(unittest.TestCase):
         for name in ('first-launch-view.scenario.json', 'signed-out-relaunch.scenario.json', 'first-use-setup.scenario.json'):
             self.assertEqual(outcomes[name], 'captured, not judged')
         # And the rule itself: a step judged false, or one with no judgement at all, is never a pass.
-        self.assertEqual(harness("return walk.verdictOf([{unmet: [], judged: true}, {unmet: []}]);")['out'], 'captured, not judged')
+        self.assertEqual(harness("return walk.verdictOf([{verdict: 'admitted'}, {verdict: 'captured, not judged'}]);")['out'], 'captured, not judged')
         self.assertEqual(harness("return walk.verdictOf([]);")['out'], 'captured, not judged')
-        self.assertEqual(harness("return walk.verdictOf([{unmet: [{expectation: {}, found: 'x'}], judged: true}]);")['out'], 'fail')
-        self.assertEqual(harness("return walk.verdictOf([{judged: true}]);")['out'], 'captured, not judged')  # never evaluated
+        self.assertEqual(harness("return walk.verdictOf([{verdict: 'failed'}, {verdict: 'admitted'}]);")['out'], 'fail')
+        self.assertEqual(harness("return walk.verdictOf([{verdict: 'admitted'}, {}]);")['out'], 'captured, not judged')  # a step with no verdict
+        self.assertEqual(harness("return walk.outcomeOf([{verdict: 'admitted'}, {}]);")['out'], 'not shown')
 
     def test_the_first_launch_view_does_not_pass_on_a_view_with_a_line_inside_its_menu_bar_block(self):
         # The independent reading of PR 351 (round one): a further line inside the block was accepted, and this
@@ -1607,7 +1608,8 @@ class TheRecorder(unittest.TestCase):
         made = self.record('S5', AFTER_THE_PRESS)
         self.assertNotIn('refusal', made)
         self.assertEqual(made['state'], json.loads(SETUP.read_text())['states']['S5'])
-        self.assertEqual(made['record']['recorded_on'], {'candidate_key': 'invented-key', 'identifier': INVENTED['app'], 'app_name': INVENTED_APP})
+        self.assertEqual(made['record']['recorded_on'], {'candidate_key': 'invented-key', 'candidate_key_from': 'given; no identification record holds the bundle',
+                                                         'identifier': INVENTED['app'], 'app_name': INVENTED_APP})
         self.assertEqual(made['record']['judged']['result'], 'every expectation held')
         self.assertEqual(made['record']['judged']['expectations'], next(s for s in json.loads(SETUP.read_text())['steps'] if s['id'] == 'S5')['expect'])
 
@@ -1650,7 +1652,7 @@ class TheClosedList(unittest.TestCase):
     # Where each record is first used, as the number of effects made before that use.
     FIRST_USE = {('state', 'S1'): 0, ('state', 'S2'): 1, ('state', 'S3'): 2, ('state', 'S4'): 3, ('sheet', 'desktop-setup'): 4, ('state', 'S5'): 5}
     # The only keys in a result that carry an agreement, each with why it may.
-    ALLOWED = {'.steps[].judged': 'the judgment itself, made by recordUsable and equality',
+    ALLOWED = {
                '.whole_views_before_any_click[].whole': "the form of the supplier's reply (whole or differences), not an agreement",
                '.calls[].disableDiff': 'a parameter the walk asked the supplier with'}
 
@@ -1672,8 +1674,12 @@ class TheClosedList(unittest.TestCase):
             if isinstance(node, dict):
                 for key, value in node.items():
                     here = f'{path}.{key}'
+                    general = re.sub(r'\[\d+\]', '[]', here)
                     if value is True or re.search(r'pass|^ok$|held|match|agree', key, re.I):
-                        found.add(re.sub(r'\[\d+\]', '[]', here))
+                        found.add(general)
+                    # The affirmative words may stand only in the derived outputs and the steps' admitted verdicts.
+                    if value in ('pass', 'shown', 'admitted') and not (general in ('.verdict', '.steps[].verdict') or general.startswith('.outcomes.')):
+                        found.add(general)
                     walk(value, here)
             elif isinstance(node, list):
                 for value in node:
@@ -1700,8 +1706,11 @@ class TheClosedList(unittest.TestCase):
 
         def absent(record):
             record.clear()
+
+        def other_candidate(record):
+            record['recorded_on']['candidate_key'] = 'another-key'
         for (kind, rid), made in self.FIRST_USE.items():
-            for name, spoil in (('unjudged', unjudged), ('of another build', other_build), ('absent', absent)):
+            for name, spoil in (('unjudged', unjudged), ('of another build', other_build), ('absent', absent), ('of another candidate', other_candidate)):
                 with self.subTest(record=f'{kind} {rid}', made=name):
                     result = self.run_with(lambda scenario: spoil(self.records(scenario, kind, rid)))
                     self.assertEqual(self.effects(result), self.EFFECTS[:made], result['stopped'])  # the effect resting on it is not made
@@ -1714,6 +1723,27 @@ class TheClosedList(unittest.TestCase):
                     self.assertEqual(self.agreement_keys(result) - set(self.ALLOWED), set())
                     for step in result['steps']:
                         self.assertNotIn('first_difference', step.get('sheet', {}) if 'pressed' not in step else {})
+                    using = {'S1': 'S1', 'S2': 'S2', 'S3': 'S3', 'S4': 'S4', 'S5': 'S5', 'desktop-setup': 'S5'}[rid]
+                    self.assertNotEqual(next((st for st in result['steps'] if st['id'] == using), {}).get('verdict'), 'admitted')
+
+    def test_a_view_differing_from_its_recorded_state_is_not_admitted_and_nothing_follows_from_it(self):
+        # Each listed state altered in one line in turn: that step's view no longer equals it, so its verdict is not
+        # admitted, no effect is made from it, and neither the verdict nor an outcome line derived from it is affirmative.
+        for rid, made in (('S1', 0), ('S2', 1), ('S3', 2), ('S4', 3), ('S5', 5)):
+            with self.subTest(rid):
+                def alter(scenario, rid=rid):
+                    lines = scenario['states'][rid]
+                    n = next(i for i, line in enumerate(lines) if ' text ' in line)
+                    lines[n] = lines[n] + ' (altered)'
+                result = self.run_with(alter)
+                step = next(st for st in result['steps'] if st['id'] == rid)
+                self.assertNotEqual(step.get('verdict'), 'admitted')
+                self.assertEqual(self.effects(result), self.EFFECTS[:made])
+                self.assertNotEqual(result['verdict'], 'pass')
+                for name, ids in json.loads(SETUP.read_text())['outcomes'].items():
+                    if rid in ids:
+                        self.assertNotEqual(result['outcomes'][name], 'shown')
+                self.assertEqual(self.agreement_keys(result) - set(self.ALLOWED), set())
 
     def test_every_record_unjudged_at_once_makes_no_effect_at_all(self):
         def spoil_all(scenario):
@@ -1756,7 +1786,7 @@ class TheClosedList(unittest.TestCase):
         self.assertNotIn('shown', result['outcomes'].values())
         self.assertNotIn(': shown', harness(f'return walk.summary({json.dumps(result)});')['out'])
         unjudged_s5 = self.run_with(lambda s: s['state_records']['S5']['judged'].update(result='not judged'))
-        self.assertEqual(unjudged_s5['outcomes']["SETUP SAVED THROUGH THE APP'S OWN CONFIRMATION"], 'captured, not judged')
+        self.assertEqual(unjudged_s5['outcomes']["SETUP SAVED THROUGH THE APP'S OWN CONFIRMATION"], 'not shown')  # S5 has no verdict
         self.assertEqual(unjudged_s5['outcomes']['PROJECT TYPED AND REVIEWED'], 'shown')  # S2 to S4 were judged
 
     def test_the_recorder_records_the_sheet_only_when_it_agrees_with_the_template(self):

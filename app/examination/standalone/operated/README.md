@@ -1206,34 +1206,51 @@ failure, the same scenario and acts.
   - **Its limit.** The anchor is relied on for the rehearsal tier only. It
     does not show that text cannot lead an agent to choose a real element it
     should not.
-- **One admission for every effect and every affirmative output (App Agent 0,
-  after the third independent reading of PR 351).** The walk has four effects:
-  the click (an ordinary click, and a button pressed if offered), the
-  set-value, the click that opens the sheet, and the press. The first three
-  are made only when the latest view equals, line for line, the recorded
-  state the step acts from; the press only when the sheet equals, line for
-  line, the sheet template. Each rests also on `recordUsable`: the state's or
-  the template's record must be judged and bound to this build. It has two
-  affirmative outputs: the verdict is "pass" only when every step's view
-  equalled the recorded state it names (`state`), each admitted the same way,
-  and no expectation failed; an outcome line is "shown" only when every step
-  it rests on was so judged. Otherwise they say "captured, not judged", "not
-  shown" or "not reached". The result records expectations as failures only
-  (`unmet`), with each step's judgment (`judged`): no field says that an
-  expectation held. The records of an effect made (`pressed`,
-  `pressed_index`, `typed`, `offered`) are written only after its admission,
-  and a refused press leaves only its refusal (`sheet.refused`, with the
-  difference found, if any), never a comparison that reads as agreed.
-  "Captured, not judged" is not one of REQ-007's five outcomes, so the
-  examination table refuses to print a record holding it. In page content an
-  element's words, its depth, its further lines and the window's title are
-  accepted by recognition without a comparison of their own; they are
-  content, and every effect and pass compares them whole. Today
-  `signed-out-setup.scenario.json` names a state for every step (S1 to S5)
-  and holds the sheet template's record; `first-launch-view.scenario.json`
-  and `signed-out-relaunch.scenario.json` name none and are captured, not
-  judged, until their states are recorded; `first-use-setup.scenario.json`
-  names no state it acts from and is refused before any call.
+- **One admission, one verdict per step, everything affirmative derived
+  from it (App Agent 0 and the INTERLOCUTOR, after the third independent
+  reading of PR 351).** `admission` is the one function that admits: the
+  record of the recorded state or sheet template is judged and usable for
+  this launch (`recordUsable`), and the view equals what it names line for
+  line (`stateCheck`, `sheetCheck`). Each step gets one verdict from it:
+  "admitted" (record usable, view equal to the state the step names, no
+  expectation unmet), "failed" (an expectation unmet or the view different),
+  or "captured, not judged" (the step names no state); a record not usable
+  for this launch stops the walk, and that step has no verdict. Every
+  affirmative output is derived from those verdicts and computed nowhere
+  else: the scenario's verdict is "pass" only when every step was admitted;
+  an outcome line is "shown" only when every step it names was admitted; the
+  summary prints those. The four effects each need the same admission: the
+  click (an ordinary click, and a button pressed if offered), the set-value
+  and the click that opens the sheet are made only from a view admitted
+  against the state the step acts from, and the press only from a sheet
+  admitted against the template. Expectations are recorded as failures only
+  (`unmet`): no field of the result says that an expectation held. The
+  records of an effect made (`pressed`, `pressed_index`, `typed`, `offered`)
+  are written only after its admission, and a refused press leaves only its
+  refusal (`sheet.refused`, with the difference found, if any). "Captured,
+  not judged" is not one of REQ-007's five outcomes, so the examination table
+  refuses to print a record holding it. In page content an element's words,
+  its depth, its further lines and the window's title are accepted by
+  recognition without a comparison of their own; they are content, and every
+  admission compares them whole. Today `signed-out-setup.scenario.json`
+  names a state for every step (S1 to S5) and holds the sheet template's
+  record; `first-launch-view.scenario.json` and
+  `signed-out-relaunch.scenario.json` name none and are captured, not judged,
+  until their states are recorded; `first-use-setup.scenario.json` names no
+  state it acts from and is refused before any call.
+- **What "recorded for this build" means.** A record is usable only when its
+  `candidate_key` is the candidate key of the identified candidate this
+  launch's bundle belongs to, and its bundle identifier and App name are this
+  launch's. The walk reads that key from the identification record of the
+  candidate folder that holds the bundle
+  (`identification/candidate-identification.json`). The key is the revision
+  and the first 12 hex digits of the bundle tree's sha256
+  (`candidate_identity/identify.py`, method `bundle-tree.sha256/v2`); the
+  launcher checks the bundle's bytes against that identification before it
+  launches (`launch.py`, `identify_candidate`), and the method keeps the
+  bundle unchanged from identification through recovery. So a record is
+  bound to the identified bundle's tree digest as the launcher checked it at
+  launch, by a 12-hex-digit prefix, not to bytes the walk measures itself.
 - **How a view becomes a recorded state.** A capture shows fidelity, not
   correctness (the INTERLOCUTOR, on PR 351). `record_state.mjs` writes a state
   only when the captured view, recognised as a whole view of the launched
@@ -1270,15 +1287,18 @@ failure, the same scenario and acts.
     it. Review before merge protects the committed files; the operator's
     confirmation of the tool revision (`git rev-parse HEAD`) at the start of
     each launch protects the files a walk loads.
-  - *Binding is to the bundle identifier and the App's name, not to the
-    binary's bytes.* Exact bundle identity rests on the method's conditions:
-    the operator's `identify.py check` against the candidate's
-    identification record and its `candidate_key` ("The candidate folder",
-    above); the lane keeping the bundle unchanged from identification through
-    recovery, with no rebuild, replacement, renaming or added link (checked
-    by the lane's pre-launch check: the bundle executable's link count and
-    the driver markers); and the walk's gate that the watched process's
-    executable is inside the bundle.
+  - *Binding rests on the launcher's identification, not on bytes the walk
+    measures.* The record's candidate key carries the first 12 hex digits of
+    the bundle tree's sha256, which the launcher checks against the bundle's
+    bytes before it launches; between that check and the walk the bundle's
+    identity rests on the method's conditions: the operator's `identify.py
+    check` against the candidate's identification record and its
+    `candidate_key` ("The candidate folder", above); the lane keeping the
+    bundle unchanged from identification through recovery, with no rebuild,
+    replacement, renaming or added link (checked by the lane's pre-launch
+    check: the bundle executable's link count and the driver markers); and
+    the walk's gate that the watched process's executable is inside the
+    bundle.
 - **The parser's limit, which stands.** Recognising a view line for line does
   not tell a real element from a line of text that imitates one. The fourth
   independent reading of PR 323 (14 November 2026) answered its two questions

@@ -372,6 +372,7 @@
     "S1": {
       "recorded_on": {
         "candidate_key": "1023908b64-012ad5568eb2",
+        "candidate_key_from": "the identification record of the candidate folder holding the bundle",
         "identifier": "dev.chirality.app-v4.candidate.20261114-1023908b-f466b7",
         "app_name": "Chirality App v4 (development 20261114-1023908b-f466b7)"
       },
@@ -405,6 +406,7 @@
     "S2": {
       "recorded_on": {
         "candidate_key": "1023908b64-012ad5568eb2",
+        "candidate_key_from": "the identification record of the candidate folder holding the bundle",
         "identifier": "dev.chirality.app-v4.candidate.20261114-1023908b-f466b7",
         "app_name": "Chirality App v4 (development 20261114-1023908b-f466b7)"
       },
@@ -431,6 +433,7 @@
     "S3": {
       "recorded_on": {
         "candidate_key": "1023908b64-012ad5568eb2",
+        "candidate_key_from": "the identification record of the candidate folder holding the bundle",
         "identifier": "dev.chirality.app-v4.candidate.20261114-1023908b-f466b7",
         "app_name": "Chirality App v4 (development 20261114-1023908b-f466b7)"
       },
@@ -479,6 +482,7 @@
     "S4": {
       "recorded_on": {
         "candidate_key": "1023908b64-012ad5568eb2",
+        "candidate_key_from": "the identification record of the candidate folder holding the bundle",
         "identifier": "dev.chirality.app-v4.candidate.20261114-1023908b-f466b7",
         "app_name": "Chirality App v4 (development 20261114-1023908b-f466b7)"
       },

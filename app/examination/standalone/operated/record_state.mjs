@@ -19,7 +19,7 @@
  * state when it enters the repository. The record is kept beside the
  * state in the scenario (state_records) and says:
  * - recorded_on: the candidate key, the bundle identifier and the App's name of the build it was recorded on. The walk
- *   uses a state only on that build (walk.mjs, stateRecordedOn);
+ *   uses a state or template only when its record is usable for the launch (walk.mjs, recordUsable, through admission);
  * - from: the evidence it was recorded from, the step, and the view's sha256;
  * - judged: what it was compared against (the step's expectations, listed), by what (this tool), and the result.
  *
@@ -29,11 +29,30 @@
  * prints {record} for sheet_records, and refuses when any line differs.
  */
 import { createHash } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { basename } from 'node:path';
 import { APP_NAME, DEVELOPMENT_PREFIX, JUDGED, checkOne, recognise, sheetCheck } from './walk.mjs';
 
 const PATH_FLAGS = ['settings', 'account', 'request'];
+
+/**
+ * The candidate key the record is bound to: the one in the identification record of the candidate folder that holds
+ * the bundle (<candidate>/target/debug/bundle/macos/<name>.app), when it can be read; a key given as well must equal
+ * it. Without that record, only a given key, and the record says which.
+ */
+function candidateKeyOf(bundle, given) {
+  const folder = typeof bundle === 'string' ? bundle.replace(/\/target\/debug\/bundle\/macos\/[^/]+\.app$/, '') : '';
+  const path = `${folder}/identification/candidate-identification.json`;
+  if (folder && folder !== bundle && existsSync(path)) {
+    let key = null;
+    try { key = JSON.parse(readFileSync(path, 'utf8')).candidate_key; } catch { return { refusal: "the candidate's identification record could not be read" }; }
+    if (typeof key !== 'string' || !key) return { refusal: "the candidate's identification record names no candidate key" };
+    if (given !== undefined && given !== key) return { refusal: `the candidate key given (${given}) is not the identified candidate's (${key})` };
+    return { key, from: 'the identification record of the candidate folder holding the bundle' };
+  }
+  if (typeof given !== 'string' || !given) return { refusal: 'no candidate key is given, and no identification record holds the bundle' };
+  return { key: given, from: 'given; no identification record holds the bundle' };
+}
 
 export function recordSheet(scenario, stepId, result, options) {
   const refuse = why => ({ refusal: why });
@@ -46,7 +65,8 @@ export function recordSheet(scenario, stepId, result, options) {
   const appName = typeof bundle === 'string' && bundle.endsWith('.app') ? basename(bundle, '.app') : null;
   if (!appName || !APP_NAME.test(appName)) return refuse('the launched bundle is not named as a development build is');
   if (typeof result.app !== 'string' || !result.app.startsWith(DEVELOPMENT_PREFIX)) return refuse('the result does not name a development build');
-  if (typeof candidateKey !== 'string' || !candidateKey) return refuse('no candidate key is given');
+  const keyed = candidateKeyOf(bundle, candidateKey);
+  if (keyed.refusal) return refuse(keyed.refusal);
   if (typeof project !== 'string' || !project.startsWith('/')) return refuse('no absolute project path is given');
   const values = { identifier: result.app, home: result.home, app_data: `${result.home}/Library/Application Support/${result.app}`, project };
   for (const name of PATH_FLAGS) if (options[name] !== undefined) values[name] = options[name];
@@ -54,7 +74,7 @@ export function recordSheet(scenario, stepId, result, options) {
   if (checked.problems.length) return refuse(`the captured sheet does not agree with the template (${checked.problems.join('; ')})`);
   return {
     record: {
-      recorded_on: { candidate_key: candidateKey, identifier: result.app, app_name: appName },
+      recorded_on: { candidate_key: keyed.key, candidate_key_from: keyed.from, identifier: result.app, app_name: appName },
       from: { evidence: options.from ?? null, step: stepId, view_sha256: createHash('sha256').update(text).digest('hex') },
       judged: {
         by: 'record_state.mjs --sheet, with the walk\'s own sheetCheck',
@@ -78,7 +98,8 @@ export function record(scenario, stepId, result, options) {
   const appName = typeof bundle === 'string' && bundle.endsWith('.app') ? basename(bundle, '.app') : null;
   if (!appName || !APP_NAME.test(appName)) return refuse('the launched bundle is not named as a development build is');
   if (typeof result.app !== 'string' || !result.app.startsWith(DEVELOPMENT_PREFIX)) return refuse('the result does not name a development build');
-  if (typeof candidateKey !== 'string' || !candidateKey) return refuse('no candidate key is given');
+  const keyed = candidateKeyOf(bundle, candidateKey);
+  if (keyed.refusal) return refuse(keyed.refusal);
   if (typeof project !== 'string' || !project.startsWith('/')) return refuse('no absolute project path is given');
   const { elements, refusal } = recognise(text, appName);
   if (refusal) return refuse(`the view is not a whole view of the launched build (${refusal})`);
@@ -108,7 +129,7 @@ export function record(scenario, stepId, result, options) {
   return {
     state: state.split('\n'),
     record: {
-      recorded_on: { candidate_key: candidateKey, identifier: result.app, app_name: appName },
+      recorded_on: { candidate_key: keyed.key, candidate_key_from: keyed.from, identifier: result.app, app_name: appName },
       from: { evidence: options.from ?? null, step: stepId, view_sha256: createHash('sha256').update(text).digest('hex') },
       judged: {
         by: 'record_state.mjs, with the walk\'s own recognition and checks',
