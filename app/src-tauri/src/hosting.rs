@@ -107,12 +107,13 @@ use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, Condvar, Mutex, Weak};
 use std::time::Duration;
-/// How long the final reread of a turn's selected files may take while the frame writer is held
-/// (`Host::recheck_attachment_sources`), with the writer, the custody's source lock and the request
-/// gate held. It is a fifth of Stop's limit, `codex_stop::STOP_WAIT_LIMIT` (ten seconds), within which
-/// Stop and the quit take the writer for their interrupts, and it is inside the quit fence's bound for
-/// taking each home's request gate: a reading that runs to this limit still leaves them most of theirs,
-/// and a refused turn releases the gate, the source lock and the writer at once.
+/// How long the App's last look at a turn's selected files may take (`Host::recheck_attachment_sources`),
+/// made with the writer, the custody's source lock and the request gate held. It is a fifth of Stop's limit, `codex_stop::STOP_WAIT_LIMIT` (ten seconds), within which
+/// Stop and the quit take the writer for their interrupts. The quit fence takes each home's request
+/// gate in turn within one ten-second bound; an attachment send holds its home's gate for at most this
+/// limit plus work in memory, so at most about two seconds per home, taken in turn. The fence's longest
+/// wait belongs to other holders of the gate (a start's spawn and handshake, Stop Codex), not to this.
+/// A refused turn releases the gate, the source lock and the writer at once.
 pub(crate) const ATTACHMENT_RECHECK_LIMIT: Duration = Duration::from_secs(2);
 #[cfg(test)]
 static ATTACHMENT_RECHECK_DELAY: std::sync::Mutex<Option<Duration>> = std::sync::Mutex::new(None);
@@ -3729,7 +3730,7 @@ impl Host {
         match rx.recv_timeout(ATTACHMENT_RECHECK_LIMIT){
             Ok(Ok(inputs)) if inputs==expected=>Ok(()),
             Ok(Ok(_))=>Err("attachment source changed while the turn waited to be sent; confirm current content or remove; nothing sent".into()),
-            Ok(Err(error))=>Err(error),
+            Ok(Err(error))=>Err(format!("{error}; nothing sent")),
             Err(_)=>Err(format!("attachment sources could not be read again within {} seconds; nothing sent",ATTACHMENT_RECHECK_LIMIT.as_secs())),
         }
     }
