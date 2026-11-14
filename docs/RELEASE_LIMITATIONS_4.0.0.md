@@ -238,3 +238,39 @@ An entry is added in the same pull request that makes the limitation standing.
 - **What the person does instead:** keep material the agent must not read out
   of the reach of the account the App runs under.
 - **Basis:** DEL-01-04 and DEL-04-02 (the permission level); PRD V4-AUT-06.
+
+### LIM-027: A command an agent left running can keep running after Codex ends abruptly
+
+- **Id:** LIM-027
+- **Exit criteria:** 6
+- **What is unavailable:** a way in the App to end a command that an agent
+  left running in the background, other than closing Codex. Such a command
+  keeps running until it ends or until Codex closes normally, which is what
+  stopping Codex, restarting Codex or quitting the App ordinarily does.
+  Stopping a conversation does not end it. It keeps the access it was started
+  with, even if you choose a narrower level afterwards. When Codex closes
+  normally, it ends these commands as it closes. If Codex ends abruptly instead
+  (it stops unexpectedly, or, when you stop Codex, restart Codex or quit the
+  App, it does not answer and the App has to end it), such a command can keep
+  running after Codex and the App are gone, with the access it was started
+  with.
+- **Why:** Codex runs each such command apart from itself, so the command
+  does not end just because Codex does. The App does not yet offer a way to end
+  running commands on their own.
+- **What the person does instead:** stop Codex, restart Codex or quit the App
+  when you want commands an agent left running to end; this ends them when
+  Codex closes normally. If the App or Codex has ended abruptly, open Activity
+  Monitor, find the command by its name, and quit it.
+- **Basis:** DEL-01-02 (stop) and DEL-01-04 (the permission level). The level
+  fixtures show, at the pinned Codex version (`app/supplier_checks/level`):
+  - stopping a turn leaves running commands running;
+  - closing Codex's input, as the App's stop does first, ends them and what
+    they started;
+  - ending Codex at once can leave a command and what it started running;
+  - Codex's request to end a conversation's running commands ends them while
+    Codex runs. The App does not send it in this release.
+
+  Stop Codex, Restart Codex and Quit all close Codex this way: they close
+  Codex's input first, and end it at once only if it has not closed within
+  3 seconds. This is read from the App's code (`hosting.rs` `stop_inner`,
+  reached from `codex_stop.rs` and from the quit path), not shown by a test.
