@@ -4,7 +4,7 @@ import type { DesktopSetupView } from "./DesktopSetupPanel";
 
 type NativePath = { encoding: "unix_bytes"; bytes: number[] };
 type Location = { displayPath: string; nativePath: NativePath };
-type Preview = { token: string; kind: string; affirmative: string; effects: string[]; standing: string; locations?: Array<{ name: string; path: string }> };
+type Preview = { token: string; kind: string; affirmative: string; effects: string[]; standing: string; locations?: Array<{ name: string; path: string }>; defaults?: { heading: string; sentences: string[] } };
 /** Effect text with any absolute path shown as a quieter, wrapping path. */
 const Effect = ({ text }: { text: string }) => {
   const at = text.search(/(^|[\s:→])\//);
@@ -189,6 +189,8 @@ export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
           <ul>{preview.effects.map(effect => <li key={effect}><Effect text={effect}/></li>)}</ul>
           {preview.locations && preview.locations.length > 0 && <details><summary>Exact locations</summary>
             <dl>{preview.locations.map(location => <div key={location.name}><dt>{location.name}</dt><dd><code className="first-use-path">{location.path}</code></dd></div>)}</dl></details>}
+          {preview.defaults && <div aria-label={preview.defaults.heading}><h4>{preview.defaults.heading}</h4>
+            {preview.defaults.sentences.map(sentence => <p key={sentence}>{sentence}</p>)}</div>}
           <p>{preview.standing}</p>
           <p><button className="setup-primary" disabled={busy} onClick={() => { void confirm(); }}>{preview.affirmative}…</button>{" "}
             <button disabled={busy} onClick={changed}>Change my choices</button></p>

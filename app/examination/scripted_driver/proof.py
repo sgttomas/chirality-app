@@ -496,7 +496,7 @@ def setup(bundle, out, timeout, scenario_path, hold_awake=None):
                         'without pressing anything, and how many presses it takes to learn which project the App holds '
                         'and whether they are signed in, as read in the App\'s source for this revision',
             'seen_without_pressing': 'the workspace heading "Chirality" and its connection line ("Codex is connected", '
-                                     '"Codex is starting…" or "Codex could not stay connected", with guidance)',
+                                     '"Codex could not stay connected", "Codex is starting…" or "Codex was not started", with guidance)',
             'project': 'shown as "Project folder: …" under "Project" in "Run a workflow", the task view shown first: no '
                        'press, unless that guide is withheld',
             'signed_in': 'shown only after "Check account status", inside "Connection and access" in the "Settings & tools" '
