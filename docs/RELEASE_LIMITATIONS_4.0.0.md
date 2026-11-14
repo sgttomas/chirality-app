@@ -208,3 +208,32 @@ An entry is added in the same pull request that makes the limitation standing.
 - **What the person does instead:** sign in with a ChatGPT account.
 - **Basis:** DEL-01-05 (its section for 4.0.0; REQ-003, REQ-005 and AC-005
   for the account home); PRD V4-APP-02.
+
+### LIM-016: A pause at a point is the agent's cooperation
+
+- **Id:** LIM-016
+- **Exit criteria:** 2, 4
+- **What is unavailable:** a pause the App enforces. When a point or a
+  declared checkpoint asks the agent to pause, the agent ends its turn because
+  it was asked to; the App does not stop it. Delegated agents and background
+  commands may still be running after the turn ends. The App shows that the
+  agent was asked to pause and never says the work is held or blocked.
+- **Why:** holds the App itself enforces are phased to the governance layer
+  and are not built for 4.0.0.
+- **What the person does instead:** read what is still running before relying
+  on the pause, and stop a turn or Codex when work must not go on.
+- **Basis:** DEL-02-03 (REQ-002, TBD-006); PRD V4-WF-05, V4-EXE-05.
+
+### LIM-017: Reading is not limited at any permission level
+
+- **Id:** LIM-017
+- **Exit criteria:** 6
+- **What is unavailable:** a permission level that limits what the agent can
+  read. Every level limits where it may write, network for the commands it
+  runs and when it asks; at every level Codex can read whatever the person's
+  macOS account can read.
+- **Why:** the levels the App offers in 4.0.0 limit writing, network and
+  asking; none of them limits reading.
+- **What the person does instead:** keep material the agent must not read out
+  of the reach of the account the App runs under.
+- **Basis:** DEL-01-04 and DEL-04-02 (the permission level); PRD V4-AUT-06.
