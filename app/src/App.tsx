@@ -1,6 +1,7 @@
 import { AgentText, ConversationChoices, RecordedData, idWords, numberWords, safeName, wordOf } from "./AgentText";
 import { ActionFeedback } from "./ActionFeedback";
 import { LOCAL_ROUTE_OFFERED } from "./localRoute";
+import { PackageStanding } from "./PackageStanding";
 import { LOCAL_ENTRY, LOCAL_FORK_AVAILABLE, LOCAL_FORK_UNAVAILABLE, LOCAL_MODE, LocalProviderAccess, generationKey, localRoute, localViewFrom, readAttemptedLocalEntries, recordAttemptedLocalEntry, forgetAttemptedLocalEntry, type LocalView } from "./LocalProviderAccess";
 import { NativeWaitingBridge } from "./NativeWaitingBridge";
 import { ConnectorSourcePanel } from "./ConnectorSourcePanel";
@@ -825,6 +826,8 @@ function NativeConfirmationContent() {
       <p>sha-256 digest, as named in the native confirmation: <code style={{ userSelect: "all", overflowWrap: "anywhere" }}>{row.digest}</code>. {checks[row.digest] ?? ""} {DIGEST_LIMIT}</p>
       {row.kind === "A15 complete review" && Array.isArray(row.content?.entries) && row.content.entries.every((entry: Json) => entry !== null && typeof entry === "object" && !Array.isArray(entry))
         ? <WorkflowRegistrationReview presentation={row.content} />
+        : row.kind === "A16 chosen alternative" && typeof row.content?.markedStatement === "string"
+        ? <pre style={{ whiteSpace: "pre-wrap" }}>{row.content.markedStatement}</pre>
         : <RecordedData value={readablePaths(row.content)} />}
     </article>)}
   </section>;
@@ -1462,6 +1465,7 @@ export function DecisionPackagesPanel({ view, name, setName, recordName, refresh
     {(decision.equivalentCaptureRecords ?? []).length > 1 && <p>Equivalent records of the same agreeing capture: {decision.equivalentCaptureRecords.join(", ")}. Each original record's source and time remains available below.</p>}
     <p>Capture time: {decision.capturedAt ?? "not reported"} · observed at: {decision.observedAt ?? ((decision.equivalentCaptureRecords ?? []).length > 1 ? "multiple records; see individual observations" : "not reported")} · record written at: {decision.recordedAt ?? ((decision.equivalentCaptureRecords ?? []).length > 1 ? "multiple records; see individual written times" : "not reported")}. Recorded observation order does not establish human performance chronology.</p>
     <p>{decision.lapse} · {decision.captureProvenance}</p>
+    <p>{decision.shownStatementBinding?.statement ?? "Whether what was shown is bound in this capture is not known."}</p>
     {decision.currentContentComparison && <p>Current file comparison: {JSON.stringify(decision.currentContentComparison)}. This describes current bytes separately from past lapse history.</p>}
     {decision.historyResolution && <p>Recorded lapse history resolution: {JSON.stringify(decision.historyResolution)}.</p>}
     {decision.historyIncomplete && <p>Recorded history is incomplete; unresolved observations remain in the source details below.</p>}
@@ -2645,6 +2649,7 @@ export function App() {
               <br />
               Purpose: {offer.purpose} · Scope: {offer.scope} · {offer.answers.standing}
             </p>
+            <PackageStanding standing={offer.packageStanding} other={offer.otherRequestsForPath} />
             {offer.alternatives.map((a: Json) => (<label key={a.id} style={{ display: "block" }}>
                 <input type="radio" name="alt" value={a.id} checked={choice === a.id} onChange={() => setChoice(a.id)}/>{" "}
                 <b>Alternative {idWords(a.id)}</b>

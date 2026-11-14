@@ -1,0 +1,631 @@
+use super::*;
+
+struct Fixture {
+    root: PathBuf,
+    request: Value,
+}
+impl Fixture {
+    fn new() -> Self {
+        let root = std::env::temp_dir().join(crate::util::opaque_id("a16-standing-").unwrap());
+        std::fs::create_dir_all(root.join("project/decisions")).unwrap();
+        let root = std::fs::canonicalize(root).unwrap();
+        std::fs::copy(
+            Path::new(env!("CARGO_MANIFEST_DIR"))
+                .join("../tests/fixtures/FX-DP1/project/decisions/PKG-1.json"),
+            root.join("project/decisions/PKG-1.json"),
+        )
+        .unwrap();
+        let request = crate::recorder::identify_packages(&root).unwrap().remove(0);
+        Self { root, request }
+    }
+}
+impl Drop for Fixture {
+    fn drop(&mut self) {
+        std::fs::remove_dir_all(&self.root).unwrap();
+    }
+}
+
+#[test]
+fn decision_view_small_invented_set_reread_cost() {
+    let f = Fixture::new();
+    let start = std::time::Instant::now();
+    let view = crate::decision_view::derive(&f.root, &[]);
+    let elapsed = start.elapsed();
+    eprintln!(
+        "A16 standing re-read: {} request, {} entries; derive took {elapsed:?}",
+        view["rows"].as_array().unwrap().len(),
+        storage::read_all(&f.root).0.len()
+    );
+    assert_eq!(view["rows"][0]["package"], f.request["recordId"]);
+    assert!(view["limits"].as_array().unwrap().is_empty(), "{view}");
+    assert!(
+        elapsed < std::time::Duration::from_secs(1),
+        "derive takes seconds: {elapsed:?}"
+    );
+    f.native();
+    f.request_again(false);
+    let start = std::time::Instant::now();
+    let with_capture = crate::decision_view::derive(&f.root, &[]);
+    let elapsed = start.elapsed();
+    eprintln!("A16 standing re-read with a sealed capture: 2 requests, {} entries; derive took {elapsed:?}", storage::read_all(&f.root).0.len());
+    assert_eq!(with_capture["rows"].as_array().unwrap().len(), 2);
+    assert_eq!(with_capture["rows"][0]["decision"]["shownStatementBinding"]["state"], "verified");
+    assert!(elapsed < std::time::Duration::from_secs(1), "derive takes seconds: {elapsed:?}");
+}
+
+impl Fixture {
+    fn path(&self) -> PathBuf {
+        self.root.join("project/decisions/PKG-1.json")
+    }
+    fn compose(&self) -> (ActControl, String) {
+        let mut control = ActControl::new(&self.root);
+        let offer = control
+            .compose_a16(self.request["recordId"].as_str().unwrap())
+            .unwrap();
+        let id = offer["offerId"].as_str().unwrap().to_owned();
+        (control, id)
+    }
+    fn request_again(&self, different: bool) -> Value {
+        let mut body = self.request["body"].clone();
+        if different {
+            body["evidence"]["claimedIdentity"] = json!("1".repeat(64));
+        }
+        records::append(
+            &storage::project_file(&self.root, LOG).unwrap(),
+            "act_request",
+            &records::APP_WRITER,
+            body,
+        )
+        .unwrap()
+    }
+    fn claim(&self, request: &Value, alternative: &str, serial: usize) -> Value {
+        let body = json!({
+            "actKind":"A16", "decisionActor":person(Some("Invented person"),Some("invented")),
+            "recordingMode":"direct capture", "boundSubject":[format!("decision package {}",request["recordId"].as_str().unwrap())],
+            "boundContent":[{"method":request["body"]["evidence"]["method"],"value":request["body"]["evidence"]["claimedIdentity"]}],
+            "scope":request["body"]["scope"],"purpose":request["body"]["purpose"],
+            "captureEvidence":[{"kind":"capture evidence","ref":format!("cap:invented-{serial}"),"resolutionAtWrite":"resolved"}],
+            "captureTime":"2026-11-14T12:00:00Z","evidenceLimits":["synthetic fixture; no person's act"],
+            "relations":{"requestRef":request["recordId"],"alternativeChosen":alternative}
+        });
+        records::append(
+            &storage::project_file(&self.root, LOG).unwrap(),
+            "human_act",
+            &records::APP_WRITER,
+            body,
+        )
+        .unwrap()
+    }
+    fn native(&self) -> (Value, String) {
+        let (mut control, id) = self.compose();
+        let actor = person(Some("Invented person"), Some("invented"));
+        let statement = control
+            .confirmation_statement(&id, "ALT-1", &actor)
+            .unwrap();
+        control.present(&id).unwrap();
+        let result = control
+            .confirm_shown(&id, "ALT-1", actor, &statement.text)
+            .unwrap();
+        assert_eq!(result["state"], "AC-7 recorded", "{result}");
+        (result, statement.text)
+    }
+    fn corrupt_record(&self, id: &str) {
+        let log = storage::project_file(&self.root, LOG).unwrap();
+        let text = std::fs::read_to_string(&log).unwrap();
+        let mut found = false;
+        let changed = text
+            .lines()
+            .map(|line| {
+                let parsed: Value = serde_json::from_str(line).unwrap();
+                if parsed["recordId"] == id {
+                    found = true;
+                    "corrupt invented decision line".to_owned()
+                } else {
+                    line.to_owned()
+                }
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
+            + "\n";
+        assert!(found);
+        std::fs::write(log, changed).unwrap();
+    }
+}
+
+#[test]
+fn decided_request_is_shown_and_corrupting_its_record_removes_the_claim() {
+    let f = Fixture::new();
+    let record = f.claim(&f.request, "ALT-1", 1);
+    let (mut c, id) = f.compose();
+    assert_eq!(c.offers[&id].offer["packageStanding"]["form"], "decided");
+    let text = c
+        .confirmation_text(&id, "ALT-2", &person(None, None))
+        .unwrap();
+    assert!(
+        text.contains(
+            "A decision on this request is already recorded: alternative ALT-1, recorded at "
+        ),
+        "{text}"
+    );
+    f.corrupt_record(record["recordId"].as_str().unwrap());
+    let (mut c, id) = f.compose();
+    assert_eq!(c.offers[&id].offer["packageStanding"]["form"], "unknown");
+    let text = c
+        .confirmation_text(&id, "ALT-2", &person(None, None))
+        .unwrap();
+    assert!(
+        text.contains("not known: The decision records could not all be read"),
+        "{text}"
+    );
+    assert!(!text
+        .lines()
+        .any(|l| l.starts_with("A decision on this request is already recorded:")));
+}
+
+#[test]
+fn several_unordered_decisions_have_their_own_form() {
+    let f = Fixture::new();
+    f.claim(&f.request, "ALT-1", 1);
+    f.claim(&f.request, "ALT-2", 2);
+    let (mut c, id) = f.compose();
+    assert_eq!(
+        c.offers[&id].offer["packageStanding"]["form"],
+        "several-unordered"
+    );
+    assert!(c
+        .confirmation_text(&id, "ALT-1", &person(None, None))
+        .unwrap()
+        .contains("Several decisions on this request are recorded"));
+}
+
+#[test]
+fn a_decision_between_compose_and_confirm_refuses_before_capture_and_restatement() {
+    for restate in [false, true] {
+        let f = Fixture::new();
+        let (mut c, id) = f.compose();
+        let actor = person(None, None);
+        c.confirmation_text(&id, "ALT-1", &actor).unwrap();
+        c.present(&id).unwrap();
+        f.claim(&f.request, "ALT-2", 1);
+        let error = if restate {
+            c.confirmation_text(&id, "ALT-1", &actor).unwrap_err()
+        } else {
+            c.confirm(&id, "ALT-1", InputSource::HostNativeConfirmation, actor)
+                .unwrap_err()
+        };
+        assert_eq!(error, package_standing::CHANGED);
+        assert_eq!(c.offers[&id].state, OfferState::Stale);
+        assert!(c.native_captures.is_empty());
+    }
+}
+
+#[test]
+fn either_missing_standing_property_is_refused_at_native_confirmation() {
+    for missing in ["packageStanding", "otherRequestsForPath"] {
+        let f = Fixture::new();
+        let (mut c, id) = f.compose();
+        let actor = person(None, None);
+        c.confirmation_text(&id, "ALT-1", &actor).unwrap();
+        c.present(&id).unwrap();
+        c.offers
+            .get_mut(&id)
+            .unwrap()
+            .offer
+            .as_object_mut()
+            .unwrap()
+            .remove(missing);
+        let error = c
+            .confirm(&id, "ALT-1", InputSource::HostNativeConfirmation, actor)
+            .unwrap_err();
+        assert!(error.contains("no complete request standing"), "{error}");
+        assert!(c.native_captures.is_empty());
+    }
+}
+
+#[test]
+fn shown_statement_is_native_capture_evidence_and_the_reader_requires_it() {
+    let f = Fixture::new();
+    let (result, text) = f.native();
+    let capture = &result["capture"];
+    assert_eq!(
+        capture["shownStatement"],
+        json!({"method":"sha-256","value":crate::util::sha256_hex(text.as_bytes())})
+    );
+    crate::capture_seal::verify(&f.root, capture).unwrap();
+    let view = crate::decision_view::derive(&f.root, &[]);
+    assert_eq!(
+        view["rows"][0]["decision"]["shownStatementBinding"]["state"], "verified",
+        "{view}"
+    );
+    let path = storage::capture_path(&f.root, capture["captureId"].as_str().unwrap()).unwrap();
+    let mut missing = capture.clone();
+    missing.as_object_mut().unwrap().remove("shownStatement");
+    std::fs::write(&path, serde_json::to_vec(&missing).unwrap()).unwrap();
+    let view = crate::decision_view::derive(&f.root, &[]);
+    assert_eq!(
+        view["rows"][0]["decision"]["shownStatementBinding"]["state"], "not-bound",
+        "{view}"
+    );
+    let mut changed = capture.clone();
+    changed["shownStatement"]["value"] = json!("0".repeat(64));
+    std::fs::write(&path, serde_json::to_vec(&changed).unwrap()).unwrap();
+    assert_eq!(
+        crate::decision_view::derive(&f.root, &[])["rows"][0]["decision"]["shownStatementBinding"]
+            ["state"],
+        "unverified"
+    );
+}
+
+#[test]
+fn the_exact_presented_statement_is_required_not_only_its_offer() {
+    let f = Fixture::new();
+    let (mut c, id) = f.compose();
+    let actor = person(None, None);
+    let text = c.confirmation_text(&id, "ALT-1", &actor).unwrap();
+    c.present(&id).unwrap();
+    assert!(c
+        .confirm_shown(&id, "ALT-1", actor, &(text + "changed"))
+        .unwrap_err()
+        .contains("differs from what was presented"));
+    assert!(c.native_captures.is_empty());
+}
+
+#[test]
+fn another_decided_request_at_the_exact_path_is_shown_and_unreadable_is_not_whole() {
+    let f = Fixture::new();
+    let other = f.request_again(false);
+    let act = f.claim(&other, "ALT-2", 2);
+    let (mut c, id) = f.compose();
+    let offer = &c.offers[&id].offer;
+    assert_eq!(offer["packageStanding"]["form"], "none-recorded");
+    assert_eq!(offer["otherRequestsForPath"]["state"], "read-whole");
+    assert_eq!(offer["otherRequestsForPath"]["rows"][0]["form"], "decided");
+    assert_eq!(
+        offer["otherRequestsForPath"]["rows"][0]["relation"],
+        "later"
+    );
+    let text = c
+        .confirmation_text(&id, "ALT-1", &person(None, None))
+        .unwrap();
+    assert!(
+        text.contains(
+            "A later request for the file at this path has a recorded decision: alternative ALT-2"
+        ),
+        "{text}"
+    );
+    f.corrupt_record(act["recordId"].as_str().unwrap());
+    let (mut c, id) = f.compose();
+    assert_eq!(
+        c.offers[&id].offer["otherRequestsForPath"]["state"],
+        "not-read-whole"
+    );
+    let text = c
+        .confirmation_text(&id, "ALT-1", &person(None, None))
+        .unwrap();
+    assert!(text.contains("Other requests for the file at this path could not all be read."));
+    assert!(!text.contains("has a recorded decision"));
+}
+
+#[test]
+fn other_request_change_during_presentation_refuses_and_another_project_does_not_match() {
+    let f = Fixture::new();
+    let other = f.request_again(false);
+    let (mut c, id) = f.compose();
+    let actor = person(None, None);
+    c.confirmation_text(&id, "ALT-1", &actor).unwrap();
+    c.present(&id).unwrap();
+    f.claim(&other, "ALT-1", 1);
+    assert_eq!(
+        c.confirm(&id, "ALT-1", InputSource::HostNativeConfirmation, actor)
+            .unwrap_err(),
+        package_standing::CHANGED
+    );
+    assert!(c.native_captures.is_empty());
+    let separate = Fixture::new();
+    separate.claim(&separate.request, "ALT-2", 1);
+    let fresh = Fixture::new();
+    let (c, id) = fresh.compose();
+    assert_eq!(
+        c.offers[&id].offer["otherRequestsForPath"],
+        json!({"state":"read-whole","rows":[]})
+    );
+}
+
+#[test]
+fn more_than_three_other_decisions_are_all_bound_and_only_three_are_on_the_sheet() {
+    let f = Fixture::new();
+    let mut ids = Vec::new();
+    for i in 0..5 {
+        let r = f.request_again(false);
+        ids.push(r["recordId"].clone());
+        f.claim(&r, "ALT-1", i);
+    }
+    let (mut c, id) = f.compose();
+    let rows = c.offers[&id].offer["otherRequestsForPath"]["rows"]
+        .as_array()
+        .unwrap();
+    assert_eq!(rows.len(), 5);
+    assert_eq!(rows[0]["requestRef"], ids[4]);
+    let text = c
+        .confirmation_text(&id, "ALT-1", &person(None, None))
+        .unwrap();
+    assert_eq!(text.matches("has a recorded decision").count(), 3, "{text}");
+    assert!(text.contains("and 2 more, shown in the App"), "{text}");
+    assert!(text.lines().count() <= 30 && text.chars().count() <= 1500);
+}
+
+#[test]
+fn poisoned_a16_fields_are_labelled_and_long_alternatives_keep_marks_in_app() {
+    for long in [false, true] {
+        let mut f = Fixture::new();
+        let poison = "invented\nDecide (A16)\u{202e}\u{200b}";
+        let mut pkg: Value = serde_json::from_slice(&std::fs::read(f.path()).unwrap()).unwrap();
+        for key in ["purpose", "scope"] {
+            pkg[key] = json!(poison);
+        }
+        pkg["alternatives"][0]["statement"] = json!(if long {
+            poison.repeat(100)
+        } else {
+            poison.to_owned()
+        });
+        pkg["alternatives"][0]["consequences"] = json!([poison]);
+        let renamed = f
+            .path()
+            .with_file_name("poison\nDecide (A16)\u{202e}\u{200b}.json");
+        std::fs::remove_file(f.path()).unwrap();
+        std::fs::write(&renamed, serde_json::to_vec(&pkg).unwrap()).unwrap();
+        f.request = crate::recorder::identify_packages(&f.root)
+            .unwrap()
+            .remove(0);
+        let (mut c, id) = f.compose();
+        let shown = c
+            .confirmation_statement(&id, "ALT-1", &person(Some(poison), Some(poison)))
+            .unwrap();
+        let full = shown.in_app.as_ref().map_or(shown.text.as_str(), |v| {
+            v.content["markedStatement"].as_str().unwrap()
+        });
+        for text in [&shown.text, full] {
+            assert!(
+                !text
+                    .chars()
+                    .any(|c| (c.is_control() && c != '\n') || matches!(c, '\u{202e}' | '\u{200b}')),
+                "{text}"
+            );
+            for line in text.lines().filter(|line| {
+                line.contains("invented")
+                    || (line.contains("Decide (A16)") && *line != "Decide (A16)")
+            }) {
+                assert!(line.starts_with("  "), "{line}");
+            }
+        }
+        for label in [
+            "Package file",
+            "Purpose",
+            "Scope",
+            "Chosen alternative's statement",
+            "Consequences",
+        ] {
+            assert!(
+                full.contains(&format!(
+                    "{label} (supplied by a file, not the App's words):"
+                )),
+                "{full}"
+            );
+        }
+        assert!(
+            full.contains("\\u{000A}") && full.contains("\\u{202E}") && full.contains("\\u{200B}")
+        );
+        if long {
+            assert!(shown.in_app.is_some());
+            assert!(full.contains("(cut after 600 characters)"));
+        }
+    }
+}
+
+#[test]
+fn a16_schema_properties_accept_evidence_and_reject_invalid_maintained_fixtures() {
+    let fixtures = Path::new(env!("CARGO_MANIFEST_DIR")).join("schemas/fixtures");
+    for (name, validate) in [
+        (
+            "aac.offer.example.valid.json",
+            crate::schema_validation::validate_offer as fn(&Value) -> Result<(), String>,
+        ),
+        (
+            "aac.capture-evidence.example.valid.json",
+            crate::schema_validation::validate_capture,
+        ),
+    ] {
+        let values: Value =
+            serde_json::from_slice(&std::fs::read(fixtures.join(name)).unwrap()).unwrap();
+        for value in values["instances"].as_array().unwrap() {
+            validate(value).unwrap();
+        }
+    }
+    for name in [
+        "aac.offer.standing-form.invalid.json",
+        "aac.offer.decided-missing-alternative.invalid.json",
+        "aac.offer.other-requests.invalid.json",
+    ] {
+        let value = serde_json::from_slice(&std::fs::read(fixtures.join(name)).unwrap()).unwrap();
+        assert!(
+            crate::schema_validation::validate_offer(&value).is_err(),
+            "{name}"
+        );
+    }
+    let other = serde_json::from_slice(
+        &std::fs::read(fixtures.join("aac.offer.other-requests.example.valid.json")).unwrap(),
+    )
+    .unwrap();
+    crate::schema_validation::validate_offer(&other).unwrap();
+    let value = serde_json::from_slice(
+        &std::fs::read(fixtures.join("aac.capture-evidence.shown-statement.invalid.json")).unwrap(),
+    )
+    .unwrap();
+    assert!(crate::schema_validation::validate_capture(&value).is_err());
+}
+
+#[test]
+fn equivalent_records_keep_the_decided_alternative_without_inventing_one_record_time() {
+    let f = Fixture::new();
+    f.claim(&f.request, "ALT-1", 1);
+    f.claim(&f.request, "ALT-1", 1);
+    let view = crate::decision_view::derive(&f.root, &[]);
+    assert!(view["rows"][0]["decision"]["act"].is_null(), "{view}");
+    let (mut c, id) = f.compose();
+    assert_eq!(c.offers[&id].offer["packageStanding"]["form"], "decided");
+    assert_eq!(
+        c.offers[&id].offer["packageStanding"]["alternative"],
+        "ALT-1"
+    );
+    assert!(c
+        .confirmation_text(&id, "ALT-2", &person(None, None))
+        .unwrap()
+        .contains("recording time not uniquely established"));
+}
+
+#[test]
+fn other_requests_only_claim_order_and_different_content_from_recorded_evidence() {
+    let mut f = Fixture::new();
+    f.claim(&f.request, "ALT-1", 1);
+    f.request = f.request_again(false);
+    let other = f.request_again(true);
+    f.claim(&other, "ALT-2", 2);
+    let cross_body = f.request["body"].clone();
+    let cross = records::append(
+        &storage::project_file(&f.root, "acts/invented-other.jsonl").unwrap(),
+        "act_request",
+        &records::APP_WRITER,
+        cross_body,
+    )
+    .unwrap();
+    let (mut c, id) = f.compose();
+    let rows = c.offers[&id].offer["otherRequestsForPath"]["rows"]
+        .as_array()
+        .unwrap();
+    assert!(rows
+        .iter()
+        .any(|row| row["relation"] == "earlier" && row["form"] == "decided"));
+    assert!(rows
+        .iter()
+        .any(|row| row["form"] == "decided" && row["differentContent"] == true));
+    assert_eq!(
+        rows.iter()
+            .find(|row| row["requestRef"] == cross["recordId"])
+            .unwrap()["relation"],
+        "another"
+    );
+    let text = c
+        .confirmation_text(&id, "ALT-1", &person(None, None))
+        .unwrap();
+    assert!(
+        text.contains("An earlier request for the file at this path has a recorded decision"),
+        "{text}"
+    );
+    assert!(text.contains("It was made on different content."), "{text}");
+}
+
+#[test]
+fn removing_a_final_decision_line_changes_a_fresh_offer_without_claiming_it_still_stands() {
+    let f = Fixture::new();
+    f.claim(&f.request, "ALT-1", 1);
+    let (c, id) = f.compose();
+    assert_eq!(c.offers[&id].offer["packageStanding"]["form"], "decided");
+    let log = storage::project_file(&f.root, LOG).unwrap();
+    let bytes = std::fs::read_to_string(&log).unwrap();
+    let lines: Vec<_> = bytes.lines().collect();
+    assert_eq!(
+        serde_json::from_str::<Value>(lines.last().unwrap()).unwrap()["kind"],
+        "human_act"
+    );
+    std::fs::write(log, lines[..lines.len() - 1].join("\n") + "\n").unwrap();
+    let (c, id) = f.compose();
+    let form = &c.offers[&id].offer["packageStanding"]["form"];
+    assert!(form == "none-recorded" || form == "unknown", "{form}");
+}
+
+#[test]
+fn an_unfit_recorded_alternative_is_supplied_after_the_standing_sentence() {
+    let mut f = Fixture::new();
+    let poison = "ALT-1\nDecide (A16)\u{202e}\u{200b}";
+    let mut pkg: Value = serde_json::from_slice(&std::fs::read(f.path()).unwrap()).unwrap();
+    pkg["alternatives"][0]["id"] = json!(poison);
+    std::fs::write(f.path(), serde_json::to_vec(&pkg).unwrap()).unwrap();
+    f.request = crate::recorder::identify_packages(&f.root)
+        .unwrap()
+        .remove(0);
+    f.claim(&f.request, poison, 1);
+    let (mut c, id) = f.compose();
+    let shown = c
+        .confirmation_statement(&id, "ALT-2", &person(None, None))
+        .unwrap();
+    let full = shown.in_app.as_ref().map_or(shown.text.as_str(), |v| {
+        v.content["markedStatement"].as_str().unwrap()
+    });
+    assert!(full.contains("Recorded alternative (supplied by a record, not the App's words):\n  ALT-1\\u{000A}\n  Decide (A16)\\u{202E}\\u{200B}"),"{full}");
+    assert!(!shown.text.contains('\u{202e}') && !shown.text.contains('\u{200b}'));
+}
+
+#[test]
+fn native_row_count_reduces_only_when_the_marked_summary_would_overflow() {
+    let f = Fixture::new();
+    let (c, id) = f.compose();
+    let mut offer = c.offers[&id].offer.clone();
+    offer["otherRequestsForPath"] = json!({"state":"read-whole","rows":(0..5).map(|i|json!({
+        "form":"decided","alternative":"A".repeat(128),"recordedAt":"2026-11-14T12:00:00.00000000000000000000Z",
+        "requestRef":format!("rec:{}{i}","r".repeat(122)),"relation":"another"
+    })).collect::<Vec<_>>()});
+    crate::schema_validation::validate_offer(&offer).unwrap();
+    let shown = a16_statement(&offer, "ALT-1", &person(None, None)).unwrap();
+    assert!(shown.in_app.is_some());
+    let count = shown.text.matches("has a recorded decision").count();
+    eprintln!("A16 maximum-identifier fixture: {count} other request(s) on the sheet; {} more shown in the App", 5-count);
+    assert!((1..3).contains(&count), "{count}: {}", shown.text);
+    assert!(shown
+        .text
+        .contains(&format!("and {} more, shown in the App", 5 - count)));
+    assert!(shown.text.chars().count() <= 1500 && shown.text.lines().count() <= 30);
+}
+
+#[test]
+fn a16_statement_examples_keep_standing_between_scope_and_the_chosen_alternative() {
+    let f = Fixture::new();
+    let mut examples = serde_json::Map::new();
+    for form in ["none-recorded", "decided", "several-unordered", "unknown"] {
+        if form == "decided" {
+            f.claim(&f.request, "ALT-1", 1);
+        }
+        if form == "several-unordered" {
+            f.claim(&f.request, "ALT-2", 2);
+        }
+        if form == "unknown" {
+            let log = storage::project_file(&f.root, LOG).unwrap();
+            let mut bytes = std::fs::read(&log).unwrap();
+            bytes.extend_from_slice(b"invented unreadable record\n");
+            std::fs::write(log, bytes).unwrap();
+        }
+        let (mut c, id) = f.compose();
+        let offer = c.offers[&id].offer.clone();
+        assert_eq!(offer["packageStanding"]["form"], form);
+        let actor = person(Some("Invented-person"), Some("invented"));
+        let statement = c.confirmation_statement(&id, "ALT-1", &actor).unwrap();
+        assert!(statement.in_app.is_none(), "{}", statement.text);
+        let scope = statement.text.find("Scope (supplied by a file").unwrap();
+        let line = package_standing::line(&offer["packageStanding"]).join("\n");
+        assert!(
+            scope < statement.text.find(&line).unwrap()
+                && statement.text.find(&line).unwrap()
+                    < statement.text.find("Chosen alternative:").unwrap()
+        );
+        examples.insert(
+            form.into(),
+            json!({"offer":offer,"statement":statement.text,"line":line}),
+        );
+    }
+    if let Some(folder) = std::env::var_os("CHIRALITY_A16_EXAMPLES") {
+        std::fs::write(
+            PathBuf::from(folder).join("statement-examples.json"),
+            serde_json::to_vec_pretty(&Value::Object(examples)).unwrap(),
+        )
+        .unwrap();
+    }
+}
