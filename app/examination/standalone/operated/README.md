@@ -880,8 +880,12 @@ service act outside it on every call (see "What the route starts").
 ## Running a scenario
 
 A scenario is a file of steps and expected states, walked by a script the
-operator loads. There is one: `first-use-setup.scenario.json`, "first-use setup
-without a project, new settings". It is the opening of the first-use setup page
+operator loads. There are three. Two of them, `signed-out-setup.scenario.json`
+and `signed-out-relaunch.scenario.json`, type the project path and confirm
+setup, and see the launch after it. They are run only under "The App's own
+setup confirmation, and the typed path" below. What follows here is about the
+first, `first-use-setup.scenario.json`, "first-use setup without a project,
+new settings". It is the opening of the first-use setup page
 up to, and not including, the App's own confirmation. Its acts are views and
 clicks; nothing is typed, no file or folder is chosen, no confirmation is
 answered and no setup is confirmed. The App starts no Codex in it and it needs
@@ -1062,6 +1066,7 @@ var scenario = JSON.parse(fs.readFileSync('<repository>/app/examination/standalo
 var report = await walk.run({sky, scenario, app: '<bundle identifier>', home: '<launch folder>/home',
   bundle: '<the bundle, the path of the .app folder>',
   pid: <the App's process number>, watch: '<evidence folder>/watch.json'});
+// A scenario with a `type` step also gives project: '<launch folder>/project'.
 fs.writeFileSync('<evidence folder>/scenario-result.json', JSON.stringify(report, null, 2));
 nodeRepl.write(walk.summary(report));
 ```
@@ -1076,17 +1081,30 @@ failure, the same scenario and acts.
 - The script refuses, before any call, an application not named by a
   development build's bundle identifier, and a process the watch file does not
   show running, with its executable inside the bundle, within the last three
-  seconds. It reads the watch file again before every click and every view.
-  It makes views and clicks and nothing else. It clicks only a control a step
+  seconds. It reads the watch file again before every click, set-value, press
+  and view, and after every wait.
+  It makes views and clicks, and only where a scenario names them one
+  set-value and one press on the App's own setup confirmation ("The App's own
+  setup confirmation, and the typed path" below), and nothing else. It clicks only a control a step
   names, found by its words whole: a control whose words merely begin the
   same way is not it, and a control whose words end with an ellipsis is never
-  clicked.
+  clicked by a click step. The one exception is the control that opens the App's
+  own setup confirmation, clicked only by the one sheet step that names it.
 - It stops, and says where, if a view holds anything that is not the
   scenario's page. The rule is what a view may hold, not a list of things it
   may not: the view must say it is of the bundle; at the top it holds the
   App's one window and the menu bar and nothing else; directly inside the
-  window it holds only what the scenario lists. A sheet, a dialog, an alert,
-  a second window, or a kind of thing nobody named, stops it. It also stops
+  window it holds only what the scenario lists, and nowhere below the window,
+  at any depth, a window, sheet, dialog, alert or popover. One kind of alert is
+  allowed outside the sheet step: one inside the page's web content (below
+  "HTML content") that holds only words, with nothing a person can operate.
+  The App writes its refusals that way. Only the page's own content can put
+  an element there. An alert holding a control, or any alert outside the web
+  content, stops the walk. A sheet, a dialog,
+  an alert, a second window, or a kind of thing nobody named, stops it; the one
+  exception is the sheet a scenario's one `confirm_sheet` step names, checked
+  whole before its one press, and a sheet still there after that press stops
+  it and is not pressed again. It also stops
   if the watch file stops showing the build running, at the last step as at
   any other. A result that stopped this way is inconclusive, not a pass:
   report it as it is.
@@ -1146,6 +1164,119 @@ failure, the same scenario and acts.
 - Then step 8: end the launch, confirm that neither process remains, and keep
   the launch record with the result.
 
+## The App's own setup confirmation, and the typed path
+
+The owner, 14 November 2026, relayed by the Inter-Project Agent 0, on an agent
+pressing the App's own setup confirmation: "yes that's a permissible act and
+doesn't loosen the rule." The rule stands: no agent answers a macOS
+permission, licence or sign-in prompt. The bounds below are App Agent 0's.
+
+This extends this method with the supplier's own window-service methods,
+set-value and click, on the development build's own window. It is not new
+native tooling and adds no driver. A walk that uses it runs on a build without
+the scripted driver: `launch.py`'s kept-home commands refuse a build carrying
+either driver marker.
+
+- **The typed path.** Only the project path is typed, because the alternative
+  is the system's folder panel, which no agent operates. The scenario names
+  the one field in `typed_fields`, and its one `type` step's value is
+  `{project}`. Before any call, the walk refuses:
+  - a scenario that types more than once, types anything else, or names a
+    second field;
+  - a project that is not exactly the launch folder's own `project`, beside
+    its `home`: the home must end in `/home` with no empty, `.` or `..` part,
+    and the project must be the same path ending in `/project`.
+
+  The walk sets the value once, by the field's element index from the latest
+  view. The field must be empty and exactly as the view gives it: the named
+  label and the placeholder the scenario names (the App's own, from
+  `FirstUse.tsx`), and nothing more. It must come directly after the page's
+  label text for it, at the same depth, and be found once. That checks how the
+  field is presented, not the page's own tie between the field and its label;
+  the view does not show that tie. A field inside an alert, a sheet or a dialog
+  is not reached, since any of those stops the walk first. It judges by what the page then does, not by the value the field
+  shows.
+- **The sheet.** The scenario names one sheet in `sheets`: the control that
+  opens it, its title, its three buttons, the button to press, and the
+  complete statement. The statement uses the exact locations the page showed
+  one step earlier, kept by that step's `capture`. The one `confirm_sheet`
+  step does this, in order:
+  1. It is not taken if any earlier check failed.
+  2. It clicks the opener once, waits, and views.
+  3. Before any press, it checks the view, the App's own element tree:
+     - the view says it is of the bundle;
+     - at the top it holds the one window and the menu bar;
+     - directly inside the window it holds what the scenario lists and
+       exactly one thing more, a sheet;
+     - below the window, at any depth, there is no other window, sheet,
+       dialog, alert or popover, the page's own alerts included;
+     - directly inside the sheet, and nothing deeper, are exactly the named
+       buttons, the named title once, and the statement's text. An image (the
+       App's icon) is allowed and recorded. Anything else in the sheet is a
+       difference;
+     - the statement's text equals the complete statement. Line breaks, in
+       whatever form the view gives them (a new element, a new line, or
+       written as `\n`), become one space, and each line is trimmed at its
+       ends. Nothing else is changed, so every word and every path is
+       compared exactly, and nothing may be added.
+
+     So its paths are exactly the locations the page named, and the previous
+     step checked that each lies under the App data folder in the home. Any
+     of these differences stops the walk, and nothing is pressed.
+  4. It reads the watch file again just before the press. If the build is
+     not shown running, it stops without pressing.
+  5. The App shows the statement whole within 30 lines and 1,500 characters,
+     and otherwise a digest of it. For the walk's paths it is whole. A
+     statement too long for the captured paths, or a digest, stops the walk.
+  6. It presses the named button once, by its index, waits and views. If the
+     sheet, or anything else that is not the page, is still there, the walk
+     stops and does not press again.
+- **What the tree does not show.** The view is the development build's own
+  tree. A window of another application, or of the system, over the build is
+  not in it, and the walk cannot see one. The operator stops if one appears in
+  what the view returns or in the screenshot it refers to, and if anything
+  but the build asks for an answer.
+- **What the checks establish, and what the record shows.** The checks on
+  the field and the sheet are of the App's own tree as the view returned it.
+  They cannot tell apart a sheet or field that looks the same in every checked
+  part, and the App could change between the view and the press. Those are
+  limits, not refusals. A wrong field or a wrong sheet inside the App's own
+  window costs a throwaway home and a walk run again. So the walk's result
+  keeps what would show a wrong act afterwards:
+  - the sheet's whole view;
+  - the statement seen and the statement wanted;
+  - the button pressed and its index;
+  - the field typed into, with its index and the value.
+- **A walk that sees the next launch.** `launch` makes a new home each time.
+  A walk that must see the launch after setup uses one kept folder, with the
+  same environment and every network block unchanged:
+  - `launch.py keep-make --candidate <candidate folder>` makes it and prints
+    its path;
+  - `launch.py keep-launch --folder <kept folder> --candidate <candidate
+    folder>` launches the App in it, once for each launch, with one numbered
+    launch record each. It is refused 12 hours after the folder was made, or
+    while a candidate process is running;
+  - `launch.py keep-remove --folder <kept folder> --candidate <candidate
+    folder>` removes it whole. It first makes keep-launch's checks of the
+    candidate (admitted, identified, without the driver's markers, and the one
+    the kept record names) and of the folder, and refuses while a candidate
+    process is running. It is not refused for age. It empties the folder
+    through the handle it holds on the directory the record names, with
+    `record/` last. Then it removes the emptied folder by name, if that name
+    still names that directory; otherwise it removes nothing at that name and
+    refuses. A removal that is interrupted can be run again while
+    `record/kept.json` remains. If it was interrupted after that, what is left
+    is the folder holding at most what remained of `record/`, and it is
+    removed by hand by exact path. Between the last check and the removal by name, another
+    process could put an empty directory in the folder's place. That is not
+    ruled out, and only an empty directory is at stake.
+
+  `keep-launch` is run through `detached.py`, as `launch` is.
+- **The record.** It says that an agent pressed the confirmation, by the
+  supplier's click on the sheet's button by element index. The records the App
+  writes will say that setup was confirmed. It is development evidence and
+  meets no criterion.
+
 ## What the calls take
 
 Read in the supplier's own documentation of its window service, and given here
@@ -1155,10 +1286,12 @@ only as far as the steps need it:
   window as text on every call.
 - A click takes the application and the index of an element from the latest
   view.
-- The service also has methods that type, set a field's value, press keys,
-  scroll, drag, paste and list applications. None is used unless the scenario
-  and App Agent 0's go for the walk name the act, and `list_apps` is never
-  used.
+- A set-value takes the application, the index of a settable field from the
+  latest view, and the value. The walk uses it once at most, in a scenario's
+  one `type` step, for the project path.
+- The service also has methods that type, press keys, scroll, drag, paste and
+  list applications. None is used unless the scenario and App Agent 0's go for
+  the walk name the act, and `list_apps` is never used.
 
 ## What was observed on 13 November 2026
 

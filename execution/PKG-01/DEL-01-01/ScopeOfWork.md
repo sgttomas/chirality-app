@@ -15,6 +15,15 @@ This deliverable makes the standalone App a host for stock Codex. The App's Rust
 
 It is the BACKEND_FEATURE_SLICE `DEL-01-01` of PKG-01 in the accepted decomposition. It serves OBJ-002 (the chosen App architecture) through SOW-097, SOW-099, SOW-100, SOW-101, SOW-118, SOW-119, SOW-121, SOW-131 and SOW-135; OBJ-001 through the supplier side of plan visibility and selected-version identification (SOW-128, shared with `DEL-01-03`); and OBJ-004 through qualification of the embedding protocol and the provider requirements it implies (SOW-149, shared with `DEL-01-05`). Its PRD sources are V4-APP-04, V4-CST-01, V4-CST-03, V4-EXE-02 and V4-EXE-03; its architecture sources are V4-ARC-01, V4-ARC-02, V4-ARC-03 and V4-ARC-05, the properties of ARCHITECTURE §3, the supplier assumptions of §6 and principles M-2, M-4, M-6 and M-7.
 
+## For 4.0.0
+
+The owner decided on 14 November 2026: "For v4 I'm really focused on the Codex path. To simplify this I can forego the local model entirely for 4.0.0 and it can come in a later update." As a consequence, the executable check of the provider route against a named local server is not in force for 4.0.0, and 4.0.0 neither meets nor fails it; it stays written for the later update that brings the local model server back. AC-011 requires AC-005 in its 4.0.0 form. Everything not listed here stands; the AC-005 row of the Output and Evaluation Matrix follows AC-005 and VER-005.
+
+- **AC-005** — Not in force: "observed on a named server". Stands: "The selected embedding protocol behaves on the candidate as the supplier publishes it, and the provider requirement account names each requirement as published […] or not observed."
+- **VER-005** — Not in force: "plus an executable check on a named local server" and "run the provider route against the server,". Stands: "Comparison with the supplier's published protocol at the pin […]: replay recorded exchanges, […] and mark each requirement published, observed or not observed."
+- **REQ-005** — Stands. For 4.0.0 no requirement need be observed on an identified server; one not observed is marked not observed.
+- **Needs** — The need for a named local model server (`external:DEP-005`, when examining the provider requirement account) and the need on DEL-01-05 for a conversation started through a configured local server do not apply to 4.0.0, as `deliverable.yaml` states.
+
 ## Deliverable Definition — Ontology
 
 - **OUT-001** — The hosting boundary: the code in the Rust main process that identifies and verifies the supplier distribution, starts, handshakes with, observes and stops one Codex child per App-owned Codex home, exchanges and correlates protocol frames, keeps the register of server requests, and delivers native frames to receivers. Supports SOW-097, SOW-099, SOW-101, SOW-118, SOW-119, SOW-131; OBJ-002.

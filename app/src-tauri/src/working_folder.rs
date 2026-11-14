@@ -428,6 +428,8 @@ fn located(path: &Path, depth: usize) -> Option<PathBuf> {
 /// ancestors when absent; a link, a file or a directory that is not private
 /// refuses.
 pub fn protected_directory(path: &Path) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("desktop_startup::protected_directory");
     storage::check_path(path)?;
     if !path.exists() {
         let mut missing = Vec::new();

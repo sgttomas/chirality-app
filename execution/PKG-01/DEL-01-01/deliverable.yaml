@@ -7,11 +7,15 @@ needs:
     protocol's types.
 - from: external:DEP-005
   condition: A named local model server, independent of the App and importing no App code, is
-    available to run the provider route against.
+    available to run the provider route against. This need does not apply to 4.0.0, because the
+    owner decided on 14 November 2026 that the local model server is not offered in 4.0.0 and comes
+    in a later update.
   when: Examining the provider requirement account
 - from: DEL-01-05
-  condition: A conversation on the candidate can be started through a configured local server,
-    with the provider selection reported.
+  condition: A conversation on the candidate can be started through a configured local server, with
+    the provider selection reported. This need does not apply to 4.0.0, because the owner decided on
+    14 November 2026 that the local model server is not offered in 4.0.0 and comes in a later
+    update.
   gating: false
   when: Examining the embedding protocol and the provider requirement account on the candidate
 - from: DEL-01-05

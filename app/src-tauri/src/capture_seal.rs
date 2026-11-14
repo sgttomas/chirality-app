@@ -214,6 +214,8 @@ fn load(folder: &Path) -> Result<Option<Keyring>, String> {
 }
 /// Publish the keyring readable by its owner only: a 0600 file in a 0700 folder.
 fn publish(folder: &Path, raw: &Value, replace: bool) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("capture_seal::publish");
     crate::storage::ensure_directory(folder)?;
     std::fs::set_permissions(folder, std::fs::Permissions::from_mode(0o700)).map_err(|e| format!("capture-seal key folder: {e}"))?;
     let path = folder.join(KEY_FILE);

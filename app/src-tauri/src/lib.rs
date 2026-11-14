@@ -5,6 +5,8 @@
 //! capture (HOSTING §12 O-1 "Rust envelope core"; AAC §6.2 under R17-5). The
 //! webview only reads snapshots and asks the host to act.
 
+#[cfg(test)]
+mod records_effect_guard;
 pub mod access;
 // A test build only (build.rs sets this cfg and refuses it with the release feature).
 #[cfg(chirality_scripted_driver)] mod scripted_driver;
@@ -149,6 +151,10 @@ pub struct AppState {
     attachment_selection: Mutex<Result<runtime_session::AttachmentSelectionSession, String>>,
     role_log: Result<Arc<role_observations::RoleLog>, String>,
     native_links: Mutex<native_conversation_links::Session>,
+    /// DEL-06-01: what the session's reconciliation of earlier sessions'
+    /// delegation observations has done, as the record tick last left it. A
+    /// read reports it and triggers nothing; memory only.
+    delegation_reconciliation: Mutex<Value>,
     project_context: recovery::ExplicitAppProjectContext,
     project_context_limit: Option<String>,
     homes: Mutex<runtime_session::HomeRouter>,
@@ -715,6 +721,17 @@ fn desktop_setup_project_preview(state: State<'_, AppState>, project_path: Optio
 #[tauri::command(async)]
 fn desktop_setup_prepare(window: tauri::Window, state: State<'_, AppState>, preview_token: String) -> Result<Value, String> {
     let controller = desktop_controller(&state)?;
+    // A test build carrying the scripted driver answers this one confirmation through its stand-in, never by the
+    // native sheet (scripted_driver.rs); no other confirmation has one.
+    #[cfg(chirality_scripted_driver)]
+    {
+        let _ = &window;
+        return desktop_setup_confirmation::prepare(&controller, &preview_token, |statement, action| {
+            scripted_driver::setup_confirmation_stand_in(desktop_setup_confirmation::TITLE, &statement.text,
+                desktop_setup_confirmation::LEAVE, action, act_control::native_statement::CANCEL)
+        });
+    }
+    #[cfg(not(chirality_scripted_driver))]
     desktop_setup_confirmation::prepare(&controller, &preview_token,
         |statement, action| desktop_setup_confirmation::confirm(&window, statement, action))
 }
@@ -880,7 +897,15 @@ fn records_chain_heads(state: State<'_, AppState>) -> Result<Value, String> {
 /// webview supplies no path, graph selection, record or association.
 #[tauri::command(async)]
 fn read_fleet_records(state: State<'_, AppState>) -> Result<Value, String> {
-    read_fleet_records_for_workspace(state.workspace.as_deref())
+    let mut packet = read_fleet_records_for_workspace(state.workspace.as_deref())?;
+    // What this session's reconciliation of earlier sessions' observations has
+    // done, as the record tick last left it: reported, never triggered here.
+    let reconciliation = state.delegation_reconciliation.lock().unwrap().clone();
+    if let (Some(limit), Some(limits)) = (reconciliation["limit"].as_str(), packet["limits"].as_array_mut()) {
+        limits.push(json!({"source":{"home":"This App"},"reason":limit}));
+    }
+    packet["delegationReconciliation"] = reconciliation;
+    Ok(packet)
 }
 fn read_fleet_records_for_workspace(workspace: Option<&std::path::Path>) -> Result<Value,String> {
     fleet_records::read_for_workspace(workspace)
@@ -3119,6 +3144,7 @@ fn freeze_startup_state(launch: desktop_startup::Launch, desktop: Arc<Mutex<desk
         attachment_selection: Mutex::new(runtime_session::AttachmentSelectionSession::new(workspace.clone())),
         role_log: workspace.as_deref().ok_or_else(||"explicit App project unavailable for role observations".to_string()).and_then(role_observations::RoleLog::open).map(Arc::new),
         native_links: Mutex::new(native_conversation_links::Session::default()),
+        delegation_reconciliation: Mutex::new(native_conversation_links::Session::default().delegation_reconciliation()),
         project_context, project_context_limit,
         homes: Mutex::new(runtime_session::HomeRouter::new(home.clone()).expect("explicit primary account class")),
         home_bootstrap: Mutex::new(bootstrap.ok_or_else(||"Explicit Root home descriptors not initialized".into())),
@@ -3302,11 +3328,23 @@ pub fn run() {
                     host_tick::guarded("record", || received = host_tick::tick_project(&state.homes, &state.workflows, state.workspace.as_deref()));
                     // DEL-06-01: what those views show of native delegation is recorded once.
                     host_tick::guarded("native-delegation", || {
+                        // The session's start for the project comes first: the ends
+                        // of earlier sessions' observations, until it has run. Its
+                        // read is made with no lock held; only its publication is
+                        // made under the links mutex, as for every delegation fact.
+                        let home = state.homes.lock().unwrap().entries().into_iter().next();
+                        let pending = state.native_links.lock().unwrap().earlier_delegation_pending();
+                        let read = home.filter(|_| pending).map(|home| native_conversation_links::read_earlier_delegation(state.workspace.as_deref(), &home.host));
                         let mut links = state.native_links.lock().unwrap();
+                        if let Some(read) = read { links.apply_earlier_delegation(read); }
                         for (home, views) in &received { links.observe_delegation(state.workspace.as_deref(), home, views); }
                     });
                     // Native relationship publication runs independently of web reads.
-                    host_tick::guarded("native-links", || {state.native_links.lock().unwrap().retry(state.workspace.as_deref());});
+                    host_tick::guarded("native-links", || {
+                        let mut links = state.native_links.lock().unwrap();
+                        links.retry(state.workspace.as_deref());
+                        *state.delegation_reconciliation.lock().unwrap() = links.delegation_reconciliation();
+                    });
                 }).map_err(|e| format!("host tick thread not started: {e}"))?;
                 // TT-9 reads wait on Codex; their own thread never delays the record tick.
                 let handle = app.handle().clone();
@@ -3462,7 +3500,7 @@ mod workflow_root_context_tests {
         let control=Arc::new(Mutex::new(Some(ActControl::new(&root))));
         let mut workflows=runtime_session::WorkflowRootSession::default();workflows.open_library(root.clone(),"project",Some(&root),control.clone()).unwrap();
         let library=workflows.active_library().unwrap();
-        let state=AppState{desktop_setup:None,endpoint_edits:Arc::new(Mutex::new(Default::default())),compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),file_act_lapses:Mutex::new(file_act_lapse::Observer::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),role_log:role_observations::RoleLog::open(&root).map(Arc::new),native_links:Mutex::new(native_conversation_links::Session::default()),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),local_credentials:Default::default(),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new()),continue_as:Mutex::new(Default::default()),app_quit:Default::default()};
+        let state=AppState{desktop_setup:None,endpoint_edits:Arc::new(Mutex::new(Default::default())),compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),file_act_lapses:Mutex::new(file_act_lapse::Observer::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),role_log:role_observations::RoleLog::open(&root).map(Arc::new),native_links:Mutex::new(native_conversation_links::Session::default()),delegation_reconciliation:Mutex::new(Value::Null),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),local_credentials:Default::default(),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new()),continue_as:Mutex::new(Default::default()),app_quit:Default::default()};
         let (_,context)=current_actor_context_for(&state,&home);
         let package=root.join(workflow_workspace::development_catalog::NAME);std::fs::create_dir(&package).unwrap();
         let catalog=workflow_workspace::development_catalog::DevelopmentCatalog::load().unwrap();for(name,bytes)in catalog.select_embedded().snapshot().files(){std::fs::write(package.join(name),bytes).unwrap();}

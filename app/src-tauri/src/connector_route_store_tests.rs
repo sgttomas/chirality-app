@@ -1025,6 +1025,43 @@ fn inspection_fixture() -> (Scratch, PathBuf, ProjectRouteStore, BoundReference)
         .unwrap();
     (scratch, p, store, binding)
 }
+
+#[test]
+fn records_store_kept_reader_reports_unsafe_census_and_changed_binding_with_distinct_kinds() {
+    for kind in ["symlink", "hard link", "fifo", "directory", "changed binding"] {
+        let (scratch, project, store, reference) = inspection_fixture();
+        assert_ne!(store.anchor(), project.as_path(), "reader must already be bound in the store");
+        // Once the sole final becomes unsafe, this real in-place alternative
+        // makes the census uncertainty decide the proof (and its true kind).
+        crate::records::append(&project.join(".chirality/records/acts/in-place.jsonl"), "evidence_limit", &crate::records::APP_WRITER, serde_json::json!({"label":"unresolvable reference","subjectRef":"invented alternate history"})).unwrap();
+        store.resolve(&reference).unwrap();
+        if kind == "changed binding" {
+            let aside = scratch.0.join("original-project");
+            fs::rename(&project, &aside).unwrap();
+            let link = Path::new(crate::records_store::PROJECT_LINK);
+            fs::create_dir_all(project.join(link.parent().unwrap())).unwrap();
+            fs::copy(aside.join(link), project.join(link)).unwrap();
+        } else {
+            let target = store.anchor().join(&reference.relative_path);
+            let saved = target.with_extension("saved");
+            fs::rename(&target, &saved).unwrap();
+            match kind {
+                "symlink" => symlink(&saved, &target).unwrap(),
+                "hard link" => fs::hard_link(&saved, &target).unwrap(),
+                "directory" => fs::create_dir(&target).unwrap(),
+                _ => {
+                    let name = std::ffi::CString::new(target.as_os_str().as_encoded_bytes()).unwrap();
+                    assert_eq!(unsafe { libc::mkfifo(name.as_ptr(), 0o600) }, 0);
+                }
+            }
+        }
+        let inspected = store.inspect_published(&reference, &project);
+        let read = store.resolve(&reference).unwrap_err();
+        assert_eq!(inspected["status"], if kind == "changed binding" { "changed" } else { "unsafe" }, "{kind}: {inspected}");
+        assert_eq!(read.kind, if kind == "changed binding" { ErrorKind::LocationMismatch } else { ErrorKind::UnsafeEntry }, "{kind}: {read}");
+    }
+}
+
 #[test]
 fn published_inspection_direct_only_ignores_hostile_unrelated_and_duplicate_accounts() {
     let (_scratch, p, store, binding) = inspection_fixture();

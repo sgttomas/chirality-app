@@ -52,6 +52,8 @@ use std::sync::{Mutex, RwLock};
 
 #[path = "records_package_import.rs"]
 pub(crate) mod package;
+#[path = "records_payload.rs"]
+pub(crate) mod payload;
 #[path = "records_package.rs"]
 pub(crate) mod custody;
 #[path = "records_store_lines.rs"]
@@ -406,6 +408,8 @@ pub fn location_for_choice(picked: &Path) -> Result<PathBuf, String> {
 /// The person returns the store to its default place, `<App data>/records/`,
 /// from the next start. Records in the chosen location are not moved.
 pub fn clear_choice(app_data: &Path) -> Result<Value, String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records_store::clear_choice");
     let path = app_data.join(CHOICE_FILE);
     let had = match std::fs::remove_file(&path) {
         Ok(()) => { crate::storage::sync_dir(app_data)?; true }
@@ -629,6 +633,8 @@ pub(crate) fn opened_existing() -> Result<(PathBuf, String), String> {
 /// the App's start and the entry points that write for the person call it
 /// (`attach` with `mint`, the imports and the identity acts).
 fn created() -> Result<(PathBuf, String), String> {
+    #[cfg(test)]
+    crate::storage::mutation_for_test("store creation");
     open(true)
 }
 /// The App creates its store when it starts, before any reader asks for it.
@@ -817,6 +823,8 @@ fn store_lock(store: &Path) -> Result<crate::storage::Ownership, String> {
 /// registry while an interrupted package import is still writing it; either
 /// way its bytes are left exactly as they were.
 fn append_line(path: &Path, value: &Value) -> Result<(), String> {
+    #[cfg(test)]
+    crate::storage::mutation_for_test("store append");
     let parent = path.parent().ok_or("record has no folder")?;
     crate::storage::ensure_directory(parent)?;
     let mut line = serde_json::to_vec(value).map_err(|e| e.to_string())?;
@@ -885,6 +893,8 @@ fn append_stop() -> Option<AppendStop> {
 }
 /// A new store line file, whole or not at all.
 fn create_whole(path: &Path, bytes: &[u8]) -> Result<(), String> {
+    #[cfg(test)]
+    crate::storage::mutation_for_test("store create_whole");
     let parent = path.parent().ok_or("record has no folder")?;
     let temp = parent.join(format!(".{}.{}.tmp", path.file_name().unwrap_or_default().to_string_lossy(), crate::util::opaque_id("")?));
     let result = (|| {
@@ -906,6 +916,8 @@ fn create_whole(path: &Path, bytes: &[u8]) -> Result<(), String> {
 /// One write appended to an existing store line file, then synced. The file
 /// is never created here.
 fn write_appending(path: &Path, bytes: &[u8]) -> Result<(), String> {
+    #[cfg(test)]
+    crate::storage::mutation_for_test("store write_appending");
     use std::os::unix::fs::OpenOptionsExt;
     let mut f = std::fs::OpenOptions::new().append(true).custom_flags(libc::O_NOFOLLOW).open(path).map_err(|e| format!("{}: {e}; nothing changed", path.display()))?;
     #[cfg(test)]
@@ -1185,6 +1197,8 @@ impl Attachment {
 /// link whose identity the store does not know yet is registered; without it
 /// nothing is written. `Err` only when the store or the root is unavailable.
 pub fn attach(root: &Path, mint: bool) -> Result<Attachment, String> {
+    #[cfg(test)]
+    if mint { crate::storage::mutation_for_test("identity mint/registration"); }
     let (store, store_id) = if mint { created()? } else { opened()? };
     // The physical project folder only: an alias (symlink) is refused, never
     // resolved into another folder's identity.
@@ -1374,6 +1388,36 @@ pub(crate) enum ReaderDecision {
     Records,
     Accounts,
 }
+
+/// Preserve a census refusal through the same home decision and proof. Other
+/// proof failures retain their existing association/binding classification.
+#[derive(Debug)]
+pub(crate) enum ReaderError {
+    Binding(String),
+    Census(payload::CensusError),
+}
+impl ReaderError {
+    pub(crate) fn unsafe_member(&self) -> Option<&Path> {
+        match self { Self::Census(error) => error.unsafe_path(), Self::Binding(_) => None }
+    }
+}
+impl From<String> for ReaderError {
+    fn from(message: String) -> Self { Self::Binding(message) }
+}
+impl From<&str> for ReaderError {
+    fn from(message: &str) -> Self { Self::Binding(message.into()) }
+}
+impl From<ReaderError> for String {
+    fn from(error: ReaderError) -> Self { error.to_string() }
+}
+impl std::fmt::Display for ReaderError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Binding(message) => f.write_str(message),
+            Self::Census(error) => write!(f, "whether the records store holds this project's records is unknown, so nothing is read in its place: {error}"),
+        }
+    }
+}
 /// A kept reader's binding: the records store, the project folder and the
 /// project's records folder in the store that the reader was opened for. It
 /// protects kept readers; a writer's binding is not this.
@@ -1425,16 +1469,16 @@ fn hold_folder(path: &Path, what: &str) -> Result<((u64, u64), std::fs::File), S
 }
 /// The decision made again: the project's folder in the store, or `None` for
 /// records read in place.
-fn decided_place(root: &Path, decision: ReaderDecision) -> Result<Option<PathBuf>, String> {
+fn decided_place(root: &Path, decision: ReaderDecision) -> Result<Option<PathBuf>, ReaderError> {
     decided_home(root, decision).map(|(store, _)| store)
 }
 /// The decision, with the folder records are read from in place when it
 /// says in place (workflow records: `ReadHome::records`), so that a reader
 /// takes its in-place folder from the decision and spells no location.
-fn decided_home(root: &Path, decision: ReaderDecision) -> Result<(Option<PathBuf>, Option<InPlace>), String> {
+fn decided_home(root: &Path, decision: ReaderDecision) -> Result<(Option<PathBuf>, Option<InPlace>), ReaderError> {
     match decision {
         ReaderDecision::Records => {
-            let home = readable_home(root)?;
+            let home = readable_home_checked(root)?;
             Ok(match home.in_store() {
                 Some(dir) => (Some(dir.to_path_buf()), None),
                 None => {
@@ -1448,8 +1492,8 @@ fn decided_home(root: &Path, decision: ReaderDecision) -> Result<(Option<PathBuf
     }
 }
 /// The connector accounts' place, with the store's own record of a disposal.
-fn decided_accounts(root: &Path) -> Result<Option<PathBuf>, String> {
-    let place = route_accounts_place(root, false)?;
+fn decided_accounts(root: &Path) -> Result<Option<PathBuf>, ReaderError> {
+    let place = route_accounts_place_checked(root, false)?;
     if let Some(dir) = &place.store_dir {
         if crate::records_retention::terminal(dir)? {
             return Err("project records disposed or disposal incomplete; nothing read".into());
@@ -1479,11 +1523,11 @@ impl ReaderBinding {
     /// examined refuses as not known, never as unchanged. A changed one
     /// refuses with its reason; the binding is kept, never moved, so the
     /// reader reads again once what changed is as it was.
-    pub(crate) fn prove(&self) -> Result<(), String> {
+    pub(crate) fn prove(&self) -> Result<(), ReaderError> {
         if let Some((root, id)) = &self.store {
             let (now, now_id) = opened()?;
             if &now != root || &now_id != id {
-                return Err(format!("the records store open now ({}) is not the one this reader was opened for; nothing read", now.display()));
+                return Err(format!("the records store open now ({}) is not the one this reader was opened for; nothing read", now.display()).into());
             }
         }
         // The project folder examined first, so that what cannot be examined
@@ -1493,7 +1537,7 @@ impl ReaderBinding {
             .map_err(|e| format!("not known: the project folder {} could not be examined ({e}); nothing read", self.root.display()))?;
         let now = decided_place(&self.root, self.decision)?;
         if project_now != self.project {
-            return Err(format!("the project folder at {} is not the folder this reader was opened for; nothing read", self.root.display()));
+            return Err(format!("the project folder at {} is not the folder this reader was opened for; nothing read", self.root.display()).into());
         }
         match (&self.records, now) {
             (Some(bound), Some(dir)) if dir == bound.path => {}
@@ -1504,8 +1548,8 @@ impl ReaderBinding {
         if let Some(bound) = &self.records {
             match node(&bound.path) {
                 Ok(at) if at == bound.node => {}
-                Ok(_) => return Err(format!("the project's records folder {} is not the folder this reader was opened for; nothing read", bound.path.display())),
-                Err(e) => return Err(format!("not known: the project's records folder {} could not be examined ({e}); nothing read", bound.path.display())),
+                Ok(_) => return Err(format!("the project's records folder {} is not the folder this reader was opened for; nothing read", bound.path.display()).into()),
+                Err(e) => return Err(format!("not known: the project's records folder {} could not be examined ({e}); nothing read", bound.path.display()).into()),
             }
         }
         Ok(())
@@ -1553,6 +1597,8 @@ pub(crate) fn require_attached(root: &Path, bound: &Path) -> Result<(), String> 
 
 /// The store's identity record for `project` (once) and a roots line.
 fn register(store: &Path, project: &str, root: &str, how: &str) -> Result<(), String> {
+    #[cfg(test)]
+    crate::storage::mutation_for_test("identity registration");
     // Whatever the caller checked: no line is ever appended after an
     // incomplete one, which the append would close and change.
     require_roots_whole(store)?;
@@ -1767,7 +1813,7 @@ fn accept_import_completion(dir: &Path, attempts: &str) -> Result<(), String> {
 /// `Err` when that cannot be known (an unreadable import record, package
 /// import state or store folder): never "the store holds nothing", which
 /// would read the kept originals or an empty history in its place.
-fn store_holds(dir: &Path) -> Result<bool, String> {
+fn store_holds(dir: &Path) -> Result<bool, ReaderError> {
     let unknown = |e: String| format!("whether the records store holds this project's records is unknown, so nothing is read in its place: {e}");
     // The account is read, and found whole, before anything is concluded:
     // a completed package import does not excuse an account that cannot be read.
@@ -1776,57 +1822,33 @@ fn store_holds(dir: &Path) -> Result<bool, String> {
 }
 /// Admission uses the same account snapshot for completion acceptance and
 /// store routing, so a completion cannot enter through a second account read.
-fn store_holds_from_imports(dir: &Path, state: &Imports) -> Result<bool, String> {
+fn store_holds_from_imports(dir: &Path, state: &Imports) -> Result<bool, ReaderError> {
     let unknown = |e: String| format!("whether the records store holds this project's records is unknown, so nothing is read in its place: {e}");
     if package::completed(dir).map_err(unknown)? { return Ok(true); }
     Ok(match state {
         i if i.completed => true,
         i if i.incomplete.as_ref().is_some_and(|s| s["storeHeld"] == true) => true,
         i if i.any => false,
-        _ => {
-            for name in ["runs", "acts", "workflow", "legacy", "connectors"] {
-                let folder = dir.join(name);
-                match crate::records_inspect::presence(&folder) {
-                    Ok(Some(meta)) if meta.is_dir() => {
-                        let entries = crate::records_inspect::listing(&folder)
-                            .map_err(|e| unknown(format!("{}: inventory incomplete: {e}", folder.display())))?;
-                        if let Some(entries) = entries {
-                            for entry in &entries {
-                                entry.metadata.as_ref().map_err(|e| unknown(format!("{}: inventory incomplete: {e}", entry.path.display())))?;
-                            }
-                            if !entries.is_empty() { return Ok(true); }
-                        }
-                    }
-                    Ok(Some(_)) => return Ok(true), // Caution for readers, never write authority.
-                    Ok(None) => {}
-                    Err(e) => return Err(unknown(format!("{}: {e}", dir.join(name).display()))),
-                }
-            }
-            captures_hold_records(dir).map_err(unknown)?
-        }
+        _ => payload::holds_records(dir).map_err(ReaderError::Census)?,
     })
 }
 
-/// Export may acquire capture ownership before any capture was recorded.
-/// That exact control file (or an empty folder) establishes no RS home. Any
-/// unknown/non-control member or unreadable inventory remains conservative.
-fn captures_hold_records(dir: &Path) -> Result<bool, String> {
-    use std::os::unix::fs::MetadataExt;
-    let folder = dir.join("captures");
-    match std::fs::symlink_metadata(&folder) {
-        Ok(meta) if meta.is_dir() => {},
-        Ok(_) => return Ok(true),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(false),
-        Err(error) => return Err(format!("{}: {error}", folder.display())),
-    }
-    let entries = std::fs::read_dir(&folder).map_err(|e| format!("{}: {e}", folder.display()))?;
-    for entry in entries {
-        let entry = entry.map_err(|e| format!("{}: {e}", folder.display()))?;
-        if entry.file_name() != ".capture.lock" || !std::fs::symlink_metadata(entry.path()).is_ok_and(|m|m.is_file() && m.nlink()==1) {
-            return Ok(true);
+/// A census ambiguity matters only if there are in-place records to choose
+/// instead. Only a complete legacy census can establish that there are none.
+/// Account refusals are never bypassed, and an existing census can be reused.
+fn store_read_holds(dir: &Path, legacy_empty: impl FnOnce() -> Result<bool, String>) -> Result<bool, ReaderError> {
+    read_holds_from_result(store_holds(dir), legacy_empty)
+}
+fn read_holds_from_result(held: Result<bool, ReaderError>, legacy_empty: impl FnOnce() -> Result<bool, String>) -> Result<bool, ReaderError> {
+    match held {
+        Err(error @ ReaderError::Census(_)) => {
+            match legacy_empty().map_err(|cause| format!("the project's records home is unknown: {cause}; nothing read"))? {
+                true => Ok(true),
+                false => Err(error),
+            }
         }
+        result => result,
     }
-    Ok(false)
 }
 
 /// Cautious read routing is not authority to waive the import census. Only
@@ -1881,9 +1903,8 @@ impl WriteFolder {
         if matches!(self, Self::Captures) && name == ".capture.lock" { return true; }
         if matches!(self, Self::Workflow) && name.strip_prefix(".pending-").is_some_and(record_uuid) { return true; }
         if matches!(self, Self::Accounts) && name.strip_prefix(".route-").and_then(|n| n.strip_suffix(".tmp")).is_some_and(record_uuid) { return true; }
-        let Some((final_name, nonce)) = name.strip_prefix('.').and_then(|n| n.strip_suffix(".tmp")).and_then(|n| n.rsplit_once('.')) else { return false };
-        record_uuid(nonce) && (self.record_name(final_name)
-            || matches!(self, Self::Captures) && final_name == ".capture.lock")
+        let Some(final_name) = payload::publication_name(name) else { return false };
+        self.record_name(final_name) || matches!(self, Self::Captures) && final_name == ".capture.lock"
     }
 }
 /// A positive member suffices; an error never becomes an empty inventory.
@@ -1985,8 +2006,8 @@ pub(crate) fn export_permitted(dir: &Path, root: &Path) -> Result<(), String> {
     if state.completed {
         accept_import_completion(dir, &state.ids.iter().cloned().collect::<Vec<_>>().join(", ")).map_err(|e| format!("{e}; nothing exported"))?;
     }
-    if store_holds_from_imports(dir, &state).map_err(|e|format!("{e}; nothing exported"))? { return Ok(()); }
-    if !state.any && ["fleet","role-supply"].iter().any(|name|std::fs::symlink_metadata(dir.join(name)).is_ok()) && legacy_census(root)?.is_empty() {
+    if read_holds_from_result(store_holds_from_imports(dir, &state), || legacy_census(root).map(|c| c.is_empty())).map_err(|e|format!("{e}; nothing exported"))? { return Ok(()); }
+    if !state.any && payload::census(dir)?.members.keys().any(|name| ["fleet/", "role-supply/", "connectors/"].iter().any(|prefix| name.starts_with(prefix))) && legacy_census(root)?.is_empty() {
         return Ok(());
     }
     Err("project records need import before export".into())
@@ -2001,11 +2022,21 @@ pub(crate) struct Home {
     /// The store holds this project's records: they are read from the store.
     /// Otherwise the project's §13.7 records (if any) are read in place.
     pub store_mode: bool,
+    legacy: Option<Vec<LegacyFile>>,
+}
+impl Home {
+    fn census(&mut self) -> Result<Vec<LegacyFile>, String> {
+        if self.legacy.is_none() { self.legacy = Some(legacy_census(&self.attachment.root)?); }
+        Ok(self.legacy.as_ref().unwrap().clone())
+    }
 }
 /// The project's home for reading. An unavailable configured store never
 /// falls back to retained originals, even with a missing project link. Explicit
 /// library readers use their library's own log/capture paths independently.
 fn unrefusing_home(root: &Path) -> Result<Home, String> {
+    unrefusing_home_checked(root).map_err(String::from)
+}
+fn unrefusing_home_checked(root: &Path) -> Result<Home, ReaderError> {
     match attach(root, false) {
         Ok(attachment) => {
             if attachment.dir.is_none() {
@@ -2016,11 +2047,20 @@ fn unrefusing_home(root: &Path) -> Result<Home, String> {
                 }
             }
             if let Some(dir)=attachment.dir.as_deref(){if crate::records_retention::terminal(dir)?{return Err("project records disposed or disposal incomplete; ordinary project record reads are unavailable; administrative recovery and export verification remain separate".into());}}
-            let store_mode = match attachment.dir.as_deref() { Some(dir) => store_holds(dir)?, None => false };
-            Ok(Home { attachment, store_mode })
+            let mut legacy = None;
+            let store_mode = match attachment.dir.as_deref() {
+                Some(dir) => store_read_holds(dir, || {
+                    let census = legacy_census(&attachment.root)?;
+                    let empty = census.is_empty();
+                    legacy = Some(census);
+                    Ok(empty)
+                })?,
+                None => false,
+            };
+            Ok(Home { attachment, store_mode, legacy })
         }
 
-        Err(e) => Err(e),
+        Err(e) => Err(e.into()),
     }
 }
 
@@ -2072,8 +2112,11 @@ fn decide(attachment: Attachment, store_mode: bool) -> Result<ReadHome, String> 
 /// The project's records home for an ordinary reader: the one decision, after
 /// the unrefusing home's own refusals (an unavailable store, a disposal).
 pub(crate) fn readable_home(root: &Path) -> Result<ReadHome, String> {
-    let home = unrefusing_home(root)?;
-    decide(home.attachment, home.store_mode)
+    readable_home_checked(root).map_err(String::from)
+}
+fn readable_home_checked(root: &Path) -> Result<ReadHome, ReaderError> {
+    let home = unrefusing_home_checked(root)?;
+    decide(home.attachment, home.store_mode).map_err(ReaderError::from)
 }
 impl ReadHome {
     /// The project's store folder, when its records are read from the store.
@@ -2121,20 +2164,18 @@ impl ReadHome {
             ReadPlace::InPlace(_) => Some(crate::storage::LEGACY_RECORDS.split('/').chain([leaf]).collect()),
         }
     }
-    /// What status says is being read. "In place" and "import needed" are
-    /// said only here and in `import_needed_note`, of the in-place variant.
-    fn reading(&self, kept_in_project: bool) -> &'static str {
+    /// The reading home stays factual when admission refuses earlier.
+    /// Only the gate's ImportNeeded kind adds the import-needed qualifier.
+    fn reading(&self, kept_in_project: bool, import_needed: bool) -> &'static str {
         match (&self.place, kept_in_project) {
             (ReadPlace::Store(_), _) => "records store",
-            (ReadPlace::InPlace(_), true) => "records in place in the project (import needed)",
+            (ReadPlace::InPlace(_), true) if import_needed => "records in place in the project (import needed)",
+            (ReadPlace::InPlace(_), true) => "records in place in the project",
             (ReadPlace::InPlace(_), false) => "no records yet",
         }
     }
-    fn import_needed(&self, kept_in_project: bool) -> bool {
-        matches!(self.place, ReadPlace::InPlace(_)) && kept_in_project
-    }
-    fn import_needed_note(&self, census: &[LegacyFile]) -> Option<String> {
-        if !self.import_needed(!census.is_empty()) {
+    fn import_needed_note(&self, census: &[LegacyFile], inspection: &WriteInspection) -> Option<String> {
+        if !matches!(self.place, ReadPlace::InPlace(_)) || !inspection.import_needed() {
             return None;
         }
         Some(format!("import needed: {} record file(s) ({}) are read in place; all new recording for the project is refused until they are imported into the records store", census.len(), describe(census)))
@@ -2171,32 +2212,140 @@ pub(crate) fn write_dir(root: &Path) -> Result<PathBuf, String> {
 /// Whether the project's store folder may be written now: no import is
 /// incomplete, and no project records wait for one.
 fn write_permitted(dir: &Path, root: &Path) -> Result<(), String> {
-    require_roots_whole(dir.parent().and_then(Path::parent).ok_or("project store absent")?)?;
-    crate::records_retention::check_write(dir)?;
-    let current=attach(root,false)?;
-    if current.dir.as_deref()!=Some(dir) || current.refusal.is_some(){return Err("project root association changed; stale queued writer refused".into());}
-    let state = imports(dir).map_err(|e| format!("the project's import record is unreadable, so whether its history is in the store is unknown; nothing written: {e}"))?;
-    if let Some(started) = &state.incomplete {
-        return Err(format!("import incomplete: the import started at {} did not complete; run the import again before recording (nothing written; no history is split across two homes)", started["at"].as_str().unwrap_or("an unknown time")));
+    ordered_write_check(dir, root, |dir, attempts| {
+        accept_import_completion(dir, attempts).map(|()| None)
+    }).map(|_| ()).map_err(String::from)
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum WriteRefusalKind {
+    Registry, Retention, Disposed, Closed, Association, ImportAccount,
+    ImportIncomplete, CompletionProof, NotKnown, Census, ImportNeeded,
+}
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) struct WriteRefusal {
+    kind: WriteRefusalKind,
+    message: String,
+}
+impl WriteRefusal {
+    pub(crate) fn new(kind: WriteRefusalKind, message: impl Into<String>) -> Self {
+        Self { kind, message: message.into() }
     }
+    pub(crate) fn at(kind: WriteRefusalKind) -> impl FnOnce(String) -> Self {
+        move |message| Self::new(kind, message)
+    }
+    fn imports_assessed(&self) -> bool {
+        !matches!(self.kind, WriteRefusalKind::Registry | WriteRefusalKind::Retention |
+            WriteRefusalKind::Disposed | WriteRefusalKind::Closed | WriteRefusalKind::Association)
+    }
+}
+impl From<WriteRefusal> for String {
+    fn from(refusal: WriteRefusal) -> Self { refusal.message }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+enum OutstandingWriteProof { CompletionReproof, FirstWriteMint }
+impl OutstandingWriteProof {
+    fn note(self) -> &'static str {
+        match self {
+            Self::CompletionReproof => "Write admission has an outstanding completion re-proof: status reads what is readable; a write is refused with the sync error if witness or account durability cannot be re-proved (pull request 300's stated limit).",
+            Self::FirstWriteMint => "Write admission has an outstanding mint on a first write: status creates no store or project identity and does not establish whether that write will succeed. Imports were not assessed for write admission.",
+        }
+    }
+}
+const ORDERED_CHECKS_NO_REFUSAL: &str = "No refusal found by the ordered checks. Whether the owning locks can be taken, and any outstanding write-time proof (the completion's re-proof or the mint on a first write), are established only at the write. A writer waits without limit behind a held lock.";
+
+#[derive(Debug, PartialEq, Eq)]
+enum WriteInspection {
+    Refused(WriteRefusal),
+    Outstanding(OutstandingWriteProof),
+    None,
+}
+impl WriteInspection {
+    fn import_needed(&self) -> bool {
+        matches!(self, Self::Refused(WriteRefusal { kind: WriteRefusalKind::ImportNeeded, .. }))
+    }
+    fn notes(&self) -> Vec<String> {
+        match self {
+            Self::Refused(refusal) => {
+                let mut notes = vec![refusal.message.clone()];
+                if !refusal.imports_assessed() {
+                    notes.push("Imports were not assessed for write admission: the gate refused before its import checks. The reading home and not-imported history are reported separately.".into());
+                }
+                notes
+            }
+            Self::Outstanding(proof) => vec![ORDERED_CHECKS_NO_REFUSAL.into(), proof.note().into()],
+            Self::None => vec![ORDERED_CHECKS_NO_REFUSAL.into()],
+        }
+    }
+}
+
+/// Read-only report of the ordered checks, not the writer's eventual result.
+/// Owning locks are established only at the write, outside this result.
+/// This entry point supplies no durability operation to the shared
+/// order, and never calls attach(true). First-write minting and PR 300's
+/// completion re-proof remain explicitly outstanding, never an admission.
+fn inspect_write(root: &Path) -> WriteInspection {
+    let attachment = match attach(root, false) {
+        Ok(attachment) => attachment,
+        Err(error) => return WriteInspection::Refused(WriteRefusal::new(WriteRefusalKind::Association, format!("nothing written: {error}"))),
+    };
+    let Some(dir) = attachment.dir else {
+        return match attachment.refusal {
+            Some(refusal) => WriteInspection::Refused(WriteRefusal::new(WriteRefusalKind::Association, format!("no project identity in the records store; nothing written: {refusal}"))),
+            None => WriteInspection::Outstanding(OutstandingWriteProof::FirstWriteMint),
+        };
+    };
+    match ordered_write_check(&dir, &attachment.root, |_, _| Ok(Some(OutstandingWriteProof::CompletionReproof))) {
+        Err(refusal) => WriteInspection::Refused(refusal),
+        Ok(Some(proof)) => WriteInspection::Outstanding(proof),
+        Ok(None) => WriteInspection::None,
+    }
+}
+
+/// One ordered check for both entry points. Only the writer supplies an
+/// effectful completion step. Even when that proof is outstanding, inspection
+/// continues through every remaining readable check on this same Imports.
+fn ordered_write_check(
+    dir: &Path, root: &Path,
+    completion: impl FnOnce(&Path, &str) -> Result<Option<OutstandingWriteProof>, String>,
+) -> Result<Option<OutstandingWriteProof>, WriteRefusal> {
+    require_roots_whole(dir.parent().and_then(Path::parent).ok_or_else(|| WriteRefusal::new(WriteRefusalKind::Registry, "project store absent"))?)
+        .map_err(WriteRefusal::at(WriteRefusalKind::Registry))?;
+    crate::records_retention::check_write_refusal(dir)?;
+    let current=attach(root,false).map_err(WriteRefusal::at(WriteRefusalKind::Association))?;
+    if current.dir.as_deref()!=Some(dir) || current.refusal.is_some(){return Err(WriteRefusal::new(WriteRefusalKind::Association, "project root association changed; stale queued writer refused"));}
+    let state = imports(dir).map_err(|e| WriteRefusal::new(WriteRefusalKind::ImportAccount, format!("the project's import record is unreadable, so whether its history is in the store is unknown; nothing written: {e}")))?;
+    if let Some(refusal) = import_incomplete(&state) { return Err(WriteRefusal::new(WriteRefusalKind::ImportIncomplete, refusal)); }
     // A completion admits a write only once its durability is proved again
     // (pull request 300), and authority is read from the same account
     // snapshot, so a completion cannot enter through a second read.
-    if state.completed {
-        accept_import_completion(dir, &state.ids.iter().cloned().collect::<Vec<_>>().join(", ")).map_err(|e| format!("{e}; nothing written"))?;
+    let outstanding = if state.completed {
+        completion(dir, &state.ids.iter().cloned().collect::<Vec<_>>().join(", "))
+            .map_err(|e| WriteRefusal::new(WriteRefusalKind::CompletionProof, format!("{e}; nothing written")))?
+    } else { None };
+    let mut legacy = Vec::new();
+    if import_needed_from(dir, &state, || { legacy = legacy_census(root)?; Ok(!legacy.is_empty()) })? {
+        return Err(WriteRefusal::new(WriteRefusalKind::ImportNeeded, format!("import needed: {} record file(s) in this project ({}) are not in the records store; import them before recording. Until then nothing is recorded for the project, runs, acts, captures and connector accounts alike, so no history is split across two homes", legacy.len(), describe(&legacy))));
     }
-    let authority = store_write_authority_from_imports(dir, &state);
-    if !matches!(authority, Ok(true)) {
-        // The authority question arises only when there is something to
-        // import. With no in-place history nothing is waived: the writers
-        // keep handling their own malformed or unfinished payloads as before.
-        let legacy = legacy_census(root)?;
-        if !legacy.is_empty() {
-            authority?;
-            return Err(format!("import needed: {} record file(s) in this project ({}) are not in the records store; import them before recording. Until then nothing is recorded for the project, runs, acts, captures and connector accounts alike, so no history is split across two homes", legacy.len(), describe(&legacy)));
-        }
-    }
-    Ok(())
+    Ok(outstanding)
+}
+/// The write gate's first refusal, also said by status: an import that
+/// started and did not complete.
+fn import_incomplete(state: &Imports) -> Option<String> {
+    state.incomplete.as_ref().map(|started| format!("import incomplete: the import started at {} did not complete; run the import again before recording (nothing written; no history is split across two homes)", started["at"].as_str().unwrap_or("an unknown time")))
+}
+/// Whether a write would be refused as "import needed": in-place records wait
+/// and the store has no positive write authority. Internal to the shared order;
+/// status never calls this separately. `in_place` is asked only when authority is not established, and
+/// says whether the project folder holds records. With no in-place history
+/// nothing is waived: the writers keep handling their own malformed or
+/// unfinished payloads as before. An uncertain authority is an error here,
+/// as in the gate ("not known"), never "import needed".
+fn import_needed_from(dir: &Path, state: &Imports, in_place: impl FnOnce() -> Result<bool, String>) -> Result<bool, WriteRefusal> {
+    let authority = store_write_authority_from_imports(dir, state);
+    if matches!(authority, Ok(true)) || !in_place().map_err(WriteRefusal::at(WriteRefusalKind::Census))? { return Ok(false); }
+    authority.map_err(WriteRefusal::at(WriteRefusalKind::NotKnown))?;
+    Ok(true)
 }
 /// The project's writer lock (shared for writers that do not wait on each
 /// other), with the write permission checked again once it is held: an
@@ -2260,6 +2409,12 @@ fn identity_held(dir: &Path) -> Result<bool, String> {
 /// records, and capture evidence (with pending submissions) other than A15
 /// captures, which stay with their library (U-STORE-2). The library's own act
 /// log and the registered legacy log are not among them.
+#[cfg(test)]
+thread_local! {
+    // A directory iterator can fail after returning some entries. Exercise
+    // that boundary without mistaking a partial census for an empty one.
+    static LEGACY_LISTING_FAIL_AFTER: std::cell::RefCell<Option<(PathBuf, usize)>> = const { std::cell::RefCell::new(None) };
+}
 pub(crate) fn legacy_census(root: &Path) -> Result<Vec<LegacyFile>, String> {
     let mut out = Vec::new();
     let records = root.join(".chirality/records");
@@ -2278,8 +2433,12 @@ pub(crate) fn legacy_census(root: &Path) -> Result<Vec<LegacyFile>, String> {
             Err(e) => return Err(format!("§13.7 records could not all be listed: {}: {e}", dir.display())),
         };
         let mut v = Vec::new();
-        for entry in rd {
-            let entry = entry.map_err(|e| e.to_string())?;
+        for (index, entry) in rd.enumerate() {
+            #[cfg(test)]
+            let entry = if LEGACY_LISTING_FAIL_AFTER.with(|hook| hook.borrow().as_ref().is_some_and(|(path, after)| path == dir && *after == index)) {
+                Err(std::io::Error::other("injected partial directory listing failure"))
+            } else { entry };
+            let entry = entry.map_err(|e| format!("§13.7 records could not all be listed: {} after {index} entries: {e}", dir.display()))?;
             let path = entry.path();
             if path.file_name().is_some_and(|n| n.to_string_lossy().starts_with('.')) {
                 continue;
@@ -2437,6 +2596,9 @@ pub(crate) struct AccountsPlace {
 /// identity yet is read in place and written nowhere. A folder whose
 /// attachment is refused has no accounts place at all: an error.
 pub(crate) fn route_accounts_place(root: &Path, mint: bool) -> Result<AccountsPlace, String> {
+    route_accounts_place_checked(root, mint).map_err(String::from)
+}
+fn route_accounts_place_checked(root: &Path, mint: bool) -> Result<AccountsPlace, ReaderError> {
     // The one named case outside the decision, unchanged: with no records
     // store available and no link in the folder, connector accounts are read
     // in place and nothing is written (ordinary records in that state are
@@ -2446,26 +2608,38 @@ pub(crate) fn route_accounts_place(root: &Path, mint: bool) -> Result<AccountsPl
         Err(e) if !mint && read_link(root) == Link::Absent && root.is_dir() => {
             return Ok(accounts_in_project(root, format!("the project, read in place; nothing written: records store unavailable: {e}")));
         }
-        Err(e) => return Err(e),
+        Err(e) => return Err(e.into()),
     };
     let attachment = attach(root, mint)?;
     // Whether the store holds the project's records can be unknown (an import
     // account that cannot be read): that is an error here as everywhere the
     // account is read through the store, never "does not hold".
-    let store_mode = match attachment.dir.as_deref() { Some(dir) => store_holds(dir)?, None => false };
+    let mut legacy = None;
+    let store_mode = match attachment.dir.as_deref() {
+        Some(dir) => store_read_holds(dir, || {
+            let census = legacy_census(&attachment.root)?;
+            let empty = census.is_empty();
+            legacy = Some(census);
+            Ok(empty)
+        })?,
+        None => false,
+    };
     // The one decision, entered from the attachment: a refused attachment has
     // no accounts place, in the store or in the project.
     let read = decide(attachment, store_mode)?;
-    let in_project = !connector_census(&read.attachment.root)?.is_empty();
+    let in_project = match legacy {
+        Some(census) => census.iter().any(|file| file.copy.starts_with("connectors/")),
+        None => !connector_census(&read.attachment.root)?.is_empty(),
+    };
     let Some(dir) = read.attachment.dir.clone() else {
         return read.accounts_in_place(if in_project {
             "the project, read in place: import needed before accounts are written in the records store"
         } else {
             "the project, read in place: no project identity in the records store yet (a writer opening the accounts mints it)"
-        });
+        }).map_err(ReaderError::from);
     };
     if !read.store_mode && in_project {
-        return read.accounts_in_place("the project, read in place: import needed before accounts are written in the records store");
+        return read.accounts_in_place("the project, read in place: import needed before accounts are written in the records store").map_err(ReaderError::from);
     }
     let key = dir.file_name().ok_or("project store folder has no name")?.to_string_lossy().into_owned();
     let mut parts = vec!["projects".to_owned(), key.clone()];
@@ -2659,7 +2833,7 @@ pub fn import(root: &Path) -> Result<Value, String> {
     };
     // Whether the store already held the project's records: a late import,
     // during which (and if it is interrupted) readers keep reading the store.
-    let store_held = store_holds(&dir).map_err(|e| format!("{e}; nothing imported"))?;
+    let store_held = store_read_holds(&dir, || Ok(census.is_empty())).map_err(|e| format!("{e}; nothing imported"))?;
     // The store's witness of this import, outside the project's subtree,
     // before the account's "started" line and before any copy.
     let witnessed: Vec<witness::WitnessedFile> = pending.iter().map(|(file, sha, bytes, _)| witness::WitnessedFile { copy: file.copy.clone(), length: bytes.len() as u64, sha256: sha.clone() }).collect();
@@ -2908,6 +3082,13 @@ pub(crate) fn notes(root: &Path) -> Vec<String> {
         Ok(h) => h,
         Err(e) => return vec![e],
     };
+    notes_from_home(home)
+}
+fn notes_from_home(home: Home) -> Vec<String> {
+    let inspection = inspect_write(&home.attachment.root);
+    notes_from_home_with_inspection(home, &inspection)
+}
+fn notes_from_home_with_inspection(mut home: Home, inspection: &WriteInspection) -> Vec<String> {
     let mut notes = home.attachment.limits.clone();
     notes.extend(home.attachment.registry.clone());
     if home.attachment.dir.as_deref().is_some_and(|d|crate::records_retention::terminal(d).unwrap_or(false)){notes.push("Records disposed or disposal incomplete; only surviving administration and export evidence remain. Retained project originals are not read or re-imported.".into());}
@@ -2920,7 +3101,7 @@ pub(crate) fn notes(root: &Path) -> Vec<String> {
             return notes;
         }
     };
-    let census = match legacy_census(&read.attachment.root) {
+    let census = match home.census() {
         Ok(c) => c,
         Err(e) => {
             notes.push(e);
@@ -2928,7 +3109,10 @@ pub(crate) fn notes(root: &Path) -> Vec<String> {
         }
     };
     let Some(dir) = read.in_store().map(Path::to_path_buf) else {
-        notes.extend(read.import_needed_note(&census));
+        notes.extend(read.import_needed_note(&census, inspection));
+        if !census.is_empty() {
+            notes.push(format!("{} record file(s) ({}) are read in place and are not imported into the records store", census.len(), describe(&census)));
+        }
         return notes;
     };
     let covered = match coverage(&dir) {
@@ -3004,14 +3188,19 @@ pub fn status(project: Option<&Path>) -> Value {
         // What the project holds is read whole or reported unavailable: an
         // unreadable census or import record is never "no records yet" and
         // never a count of nothing.
-        out["project"] = match unrefusing_home(root).and_then(|home| {
-            let census = legacy_census(&home.attachment.root)?;
+        out["project"] = match unrefusing_home(root).and_then(|mut home| {
+            let census = home.census()?;
             // What is read comes from the one decision.
             let read = decide(home.attachment.clone(), home.store_mode);
-            let imports = match home.attachment.dir.as_ref() { Some(d) => imports(d)?.lines, None => 0 };
+            let account = match home.attachment.dir.as_ref() { Some(d) => Some(imports(d)?), None => None };
+            let imports = account.as_ref().map_or(0, |a| a.lines);
             let covered = match home.attachment.dir.as_ref() { Some(d) => coverage(d)?, None => HashMap::new() };
             // §13.7 files no import has copied (all of them before the first).
             let to_import = census.iter().filter(|f| !covered.contains_key(&f.rel)).count();
+            // Admission, reading home and import coverage are separate facts.
+            // Earlier gate refusals do not establish anything about imports.
+            let inspection = inspect_write(root);
+            let import_needed = inspection.import_needed();
             Ok(json!({"attachment":home.attachment.view(),
                 "retention":home.attachment.dir.as_deref().map(crate::records_retention::view),
                 // A refused attachment is said first: files kept in the
@@ -3019,10 +3208,10 @@ pub fn status(project: Option<&Path>) -> Value {
                 // store holds, and no import is asked for while it stands.
                 "reading":if home.attachment.fault == Some("no folder recorded") {"records kept in the records store under the identity this folder's file names, not attached to this folder"}
                     else if home.attachment.fault == Some("association not known") {"nothing from the records store (association not known)"}
-                    else {match &read {Err(_) => "nothing from the records store (the project is not attached)", Ok(read) => read.reading(!census.is_empty())}},
-                "importNeeded":read.as_ref().is_ok_and(|read| read.import_needed(!census.is_empty())),
+                    else {match &read {Err(_) => "nothing from the records store (the project is not attached)", Ok(read) => read.reading(!census.is_empty(), import_needed)}},
+                "importNeeded":import_needed,
                 "legacyFiles":census.len(),"notImported":to_import,
-                "notImportedKinds":describe(&census.iter().filter(|f| !covered.contains_key(&f.rel)).cloned().collect::<Vec<_>>()),"imports":imports,"importStanding":IMPORT_STANDING,"notes":notes(root)}))
+                "notImportedKinds":describe(&census.iter().filter(|f| !covered.contains_key(&f.rel)).cloned().collect::<Vec<_>>()),"imports":imports,"importStanding":IMPORT_STANDING,"notes":notes_from_home_with_inspection(home.clone(), &inspection).into_iter().chain(inspection.notes()).collect::<Vec<_>>()}))
         }) {
             Ok(view) => view,
             Err(e) => {
