@@ -480,9 +480,16 @@ to end. Dropped and reported if the hosted run is not shown within two runs,
 or the scenario does not pass within two built attempts. Nothing in the
 shipped build. Development evidence only: it satisfies nothing in criteria 1
 and 2 and does not replace your own use. No later scenario, chooser, typing
-or confirmation is covered." Nothing beyond those words is approved. The
-approval is in force until its stop point is reached or its two results are
-shown; `app/examination/scripted_driver/README.md` says which. Build offline by default;
+or confirmation is covered." Both its results are shown
+(`app/examination/scripted_driver/README.md`). A further approval was decided
+by the Inter-Project Agent 0 under the owner's instruction of 13 November 2026
+at 21:46 UTC, and taken up by App Agent 0; it is recorded as that agent's
+decision, not the owner's own word: a second scripted-driver scenario on a
+hosted runner, in a test build with a throwaway home and no credential, that
+types a project path, confirms setup through a test-build stand-in for the
+App's native confirmation, and reads the state the next launch reaches; two
+built attempts to reach its pass; development evidence only, satisfying
+nothing in criteria 1 and 2. Nothing beyond those words is approved. Build offline by default;
 downloads, including binaries and archives, require explicit permission
 identifying the file, source and size. Routine read-only inspection of public
 source code and documentation text is authorized.

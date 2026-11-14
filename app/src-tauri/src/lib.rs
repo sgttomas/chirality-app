@@ -703,6 +703,17 @@ fn desktop_setup_project_preview(state: State<'_, AppState>, project_path: Optio
 #[tauri::command(async)]
 fn desktop_setup_prepare(window: tauri::Window, state: State<'_, AppState>, preview_token: String) -> Result<Value, String> {
     let controller = desktop_controller(&state)?;
+    // A test build carrying the scripted driver answers this one confirmation through its stand-in, never by the
+    // native sheet (scripted_driver.rs); no other confirmation has one.
+    #[cfg(chirality_scripted_driver)]
+    {
+        let _ = &window;
+        return desktop_setup_confirmation::prepare(&controller, &preview_token, |statement, action| {
+            scripted_driver::setup_confirmation_stand_in(desktop_setup_confirmation::TITLE, &statement.text,
+                desktop_setup_confirmation::LEAVE, action, act_control::native_statement::CANCEL)
+        });
+    }
+    #[cfg(not(chirality_scripted_driver))]
     desktop_setup_confirmation::prepare(&controller, &preview_token,
         |statement, action| desktop_setup_confirmation::confirm(&window, statement, action))
 }

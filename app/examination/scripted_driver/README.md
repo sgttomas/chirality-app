@@ -39,6 +39,29 @@ could not make it pass, the scenario passed in the same run, and the counted
 pass stands. Since then the proof waits for the expected heading itself
 ("The hosted proof", above).
 
+**The further approval: the setup scenario.** The Inter-Project Agent 0
+decided it under the owner's instruction of 13 November 2026 at 21:46 UTC,
+and App Agent 0 took it up. It is recorded as that agent's decision, not
+the owner's own word (`AGENTS.md`, "Continuing boundaries"). It covers a
+second scripted-driver scenario on a hosted runner, in a test build with a
+throwaway home and no credential. The scenario types a project path, confirms
+setup through a test-build stand-in for the App's native confirmation, and
+reads the state the next launch reaches. Two built attempts are allowed to
+reach its pass. It is development evidence only and satisfies nothing in
+criteria 1 and 2. Its conditions:
+
+- the stand-in is for desktop setup's confirmation and no other; needing a
+  second one stops the work;
+- it records the sheet's exact words, and the scenario judges them;
+- both answers are run, each with its own inventory;
+- it is compiled only with the driver's flag, and release-free proves it
+  absent from the release-features build on every run;
+- every use of the result says the native confirmation was not exercised;
+- no build carrying the flag is ever the candidate for the operator
+  rehearsal, the owner's sign-in or the owner's sitting.
+
+State: built attempts 0 of 2.
+
 ## How it is kept out of the shipped App
 
 - **A cfg, not a feature.** `build.rs` compiles this crate alone with cfg
@@ -49,10 +72,14 @@ pass stands. Since then the proof waits for the expected heading itself
   together with the release feature `distribution-successor` or with any
   publisher selection. `src/scripted_driver.rs` also carries a
   `compile_error!` for the same pairing.
-- **Checked by a run.** `proof.py release-free` requires three things: the
-  marker string is present in the test binary; it is absent from a build of
-  the same revision with the release features; and the driver is refused with
-  the release feature. A part that did not run is a failure.
+- **Checked by a run.** `proof.py release-free` requires five things:
+  - the marker string is present in the test binary;
+  - the setup stand-in's own marker is present in the test binary;
+  - both markers are absent from a build of the same revision with the
+    release features;
+  - the driver is refused with the release feature.
+
+  A part that did not run is a failure.
   `app/tests/group_b_scripted_driver_test.py` pins that the cfg is named in no
   manifest or configuration, and that the release route unsets compiler flags.
 
@@ -166,6 +193,57 @@ established. On the runner they also differ between runs: attempt 1 counted
 with 3 visible in both and 346 in both at the end, so the hidden workspace
 can still be mounting when the walk starts. The verdict rests on visible
 elements only, so this does not bear on it.
+
+## The setup scenario
+
+`proof.py setup` runs `setup-complete.scenario.json` in the same test build:
+three launches in one throwaway home on the runner. The runner makes an empty
+project folder inside that home, and the system frameworks are pointed at the
+home too.
+
+1. **L1.** The project path is typed into "Project folder", setup is
+   reviewed, and "Create settings and save for next launch…" is pressed. The
+   stand-in answers "Leave setup unchanged", and the page must say nothing was
+   saved.
+2. **L2.** The same steps, answered with the create button. The page must say
+   "You're set up", with the project.
+3. **L3.** A relaunch. These are judged from visible elements: no welcome,
+   the workspace heading, and the connection line saying whether Codex
+   started. These come apart, from the App's state as the page's own status
+   read gives it, and no person-visible element is judged for them: that
+   setup is no longer required, the project, the launch state and Codex's
+   state.
+
+Every launch keeps every guard the first scenario has: the census, one window
+and one web view, one process start, the exit status and the marker. Two
+differences:
+
+- On L3 the processes whose executable is the bundle's own Codex, by file
+  identity, are allowed and recorded, with the network connections they held
+  at each census as a fact. Anything else below the App or in its group still
+  fails. What the App leaves in its group after it ends is seen too, and
+  ended.
+- After each launch, the inventory lists every name under the home without
+  opening anything. It judges three things:
+  - the saved request and the account homes, as the scenario says for that
+    launch;
+  - on L3, the account home's sign-in file absent by name;
+  - nothing outside the App data folder, the project and the system's own
+    folders named for this bundle.
+
+**The stand-in.** In this test build only, `desktop_setup_prepare` answers
+desktop setup's confirmation through `scripted_driver::setup_confirmation_stand_in`
+instead of the native sheet. The stand-in records the sheet's title,
+statement and buttons as a stage, and returns the scenario's answer for that
+launch. With no answer left it answers nothing and refuses, so nothing is
+saved. It is the only confirmation with a stand-in; the driver test pins
+that. **The App's native confirmation is not exercised by this scenario.**
+The real sheet is exercised by the operator rehearsal and by the owner. This
+is not an examination of a shipped control under DEL-09-02's REQ-009, and
+nothing it shows counts as one.
+
+**Typing** sets the field's value as a script does and fires the page's
+input event. It is not input from the system.
 
 ## What it does not establish
 

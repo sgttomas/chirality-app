@@ -35,7 +35,8 @@ const PROOF: &str = r#"(() => {
            open_dialogs: document.querySelectorAll('dialog[open], [role="dialog"], [role="alertdialog"]').length };
 })()"#;
 const TRIES: u32 = 60;
-/// The first-use page's heading; `proof.py` expects the same words.
+/// The first-use page's heading; `proof.py` expects the same words. A scenario may name another for its launch
+/// (`expected_heading` in `scenario.json`), as the setup scenario's relaunch does for the workspace.
 const EXPECTED_HEADING: &str = "Welcome to Chirality";
 const WAIT: Duration = Duration::from_millis(500);
 
@@ -131,6 +132,9 @@ pub fn install<R: Runtime>(builder: Builder<R>) -> Builder<R> {
 }
 
 fn evaluate<R: Runtime>(webview: tauri::Webview<R>) {
+    let input = scenario_input();
+    let expected: String = input.as_ref().and_then(|read| read.as_ref().ok()).and_then(|v| v.get("expected_heading"))
+        .and_then(Value::as_str).unwrap_or(EXPECTED_HEADING).to_owned();
     // Each distinct heading in the order first read (null for none), so a report says what came before, or instead.
     let mut headings_seen: Vec<Value> = Vec::new();
     for attempt in 1..=TRIES {
@@ -152,17 +156,17 @@ fn evaluate<R: Runtime>(webview: tauri::Webview<R>) {
         if !headings_seen.contains(&seen) {
             headings_seen.push(seen);
         }
-        let expected_seen = heading.as_deref() == Some(EXPECTED_HEADING);
+        let expected_seen = heading.as_deref() == Some(expected.as_str());
         if expected_seen || attempt == TRIES {
             let windows = webview.app_handle().webview_windows().len();
             // `attempt` is the number of tries made, and `returned` the last read, whose heading is the last seen.
-            stage("script evaluated", json!({ "attempt": attempt, "tries": TRIES, "expected_heading": EXPECTED_HEADING,
+            stage("script evaluated", json!({ "attempt": attempt, "tries": TRIES, "expected_heading": expected,
                                               "expected_seen": expected_seen, "headings_seen": headings_seen,
                                               "returned": read, "windows": windows, "created": created() }));
             if !expected_seen {
                 std::process::exit(5);
             }
-            match scenario_input() {
+            match input {
                 None => finish_on_main(webview.app_handle(), || {
                     let ever = created();
                     let one = exactly_one_each();
@@ -226,4 +230,28 @@ fn walk<R: Runtime>(webview: &tauri::Webview<R>, input: Value) -> ! {
     }
     stage("scenario did not finish", json!({ "seconds": WALK_LIMIT.as_secs(), "most_windows": most_windows, "created": created() }));
     std::process::exit(8);
+}
+
+/// THE STAND-IN FOR DESKTOP SETUP'S NATIVE CONFIRMATION, and for nothing else (the setup scenario's approval, App
+/// Agent 0's record of it). In this test build `desktop_setup_prepare` (lib.rs) passes this function where the shipped
+/// App shows its native sheet. It shows nothing: it records the sheet's exact title, statement and buttons as a
+/// stage, and returns the answer the scenario names for this launch (`setup_answers` in `scenario.json`, taken in
+/// order: "leave" or "create"). With no answer left it answers nothing and refuses, so nothing is saved. The native
+/// confirmation itself is not exercised by any scenario that uses this; release-free shows the marker below absent
+/// from a release-features build.
+pub const STAND_IN_MARKER: &str = "chirality-setup-confirmation-stand-in-v1";
+static SETUP_ANSWERS_TAKEN: AtomicUsize = AtomicUsize::new(0);
+
+pub(crate) fn setup_confirmation_stand_in(title: &str, statement: &str, leave: &str, action: &str, cancel: &str)
+    -> Result<tauri_plugin_dialog::MessageDialogResult, String> {
+    let index = SETUP_ANSWERS_TAKEN.fetch_add(1, Ordering::SeqCst);
+    let answer = scenario_input().and_then(Result::ok).and_then(|v| v.get("setup_answers").and_then(|a| a.get(index)).cloned())
+        .and_then(|a| a.as_str().map(str::to_owned));
+    let label = match answer.as_deref() { Some("leave") => Some(leave), Some("create") => Some(action), _ => None };
+    stage("setup confirmation stand-in", json!({ "stand_in": STAND_IN_MARKER, "index": index, "title": title,
+        "statement": statement, "buttons": [leave, action, cancel], "answer": answer, "returned": label }));
+    match label {
+        Some(label) => Ok(tauri_plugin_dialog::MessageDialogResult::Custom(label.to_owned())),
+        None => Err("the test build's stand-in had no answer for desktop setup's confirmation; nothing was saved".into()),
+    }
 }
