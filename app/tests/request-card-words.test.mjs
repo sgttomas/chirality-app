@@ -17,7 +17,7 @@ const load=(name,local={})=>{
   new Function('require','exports',compiled.outputText)(spec=>local[spec]??localRequire(base)(spec),exports);return exports;
 };
 const activity=load('NativeActivity');
-const {NativeRequestCard,requestPlace,resolvePath,conversationPermissionWords}=load('RequestCards',{'./NativeActivity':activity});
+const {NativeRequestCard,requestPlace,resolvePath}=load('RequestCards',{'./NativeActivity':activity});
 
 const g={appSession:'s',home:'h',spawnCounter:1};
 const at={threadId:'T',turnId:'u',itemId:'i'};
@@ -113,8 +113,8 @@ test('the command card says the command runs outside the sandbox under a built-i
 test('the rule answer: its label and the line beside it, with the rule words',()=>{
   const html=render(recorded(),null,project);
   assert.match(html,/<button>Allow, and add a lasting rule \(see below\) <code>\{&quot;acceptWithExecpolicyAmendment&quot;/);
-  assert.match(html,/<small> This adds a lasting rule to the rules file in this App’s sign-in folder: from then on, in every conversation of this home, any command beginning with <code>mkdir st5-marker-pump-skid<\/code> runs with more access than Codex’s sandbox gives, without asking\. It stays until it is removed from that file\.<\/small>/);
-  assert.match(render(recorded(),null,{...project,permissionProfile:':read-only'}),/beginning with <code>mkdir st5-marker-pump-skid<\/code> runs outside Codex’s sandbox without asking\. It stays until it is removed from that file\./);
+  assert.match(html,/<small> This adds a lasting rule to the rules file in this App’s sign-in folder: from then on, in every conversation of this home, any command beginning with <code>mkdir st5-marker-pump-skid<\/code> runs with more access than Codex’s sandbox gives, with no request to you\. It stays until it is removed from that file\.<\/small>/);
+  assert.match(render(recorded(),null,{...project,permissionProfile:':read-only'}),/beginning with <code>mkdir st5-marker-pump-skid<\/code> runs outside Codex’s sandbox, with no request to you\. It stays until it is removed from that file\./);
   // A bare rule value takes its words from the proposed rule.
   assert.match(render(request('item/commandExecution/requestApproval',{command:'ls',cwd:'/w',proposedExecpolicyAmendment:['ls','-la'],availableDecisions:['acceptWithExecpolicyAmendment','cancel']}),null,project),/beginning with <code>ls -la<\/code>/);
 });
@@ -128,9 +128,9 @@ test('with no decline-type answer but cancel offered, the card says refusing int
 
 test('"Allow for this session" says what it covers on both kinds of card',()=>{
   const files=render(fileChange(),viewWith([change('/invented/pump-skid/a')]),project);
-  assert.match(files,/<button>Allow for this session <code>&quot;acceptForSession&quot;<\/code><\/button><small> Later changes to only these same files are not asked again until Codex stops\. Nothing is saved\.<\/small>/);
+  assert.match(files,/<button>Allow for this session <code>&quot;acceptForSession&quot;<\/code><\/button><small> This answer also covers later changes to only these same files, until Codex stops\. Nothing is saved\.<\/small>/);
   const command=render(request('item/commandExecution/requestApproval',{command:'ls',cwd:'/w',availableDecisions:['accept','acceptForSession','decline','cancel']}),null,project);
-  assert.match(command,/<button>Allow for this session <code>&quot;acceptForSession&quot;<\/code><\/button><small> This same command, in this folder, is not asked again until Codex stops\. Nothing is saved\.<\/small>/);
+  assert.match(command,/<button>Allow for this session <code>&quot;acceptForSession&quot;<\/code><\/button><small> This answer also covers this same command, in this folder, until Codex stops\. Nothing is saved\.<\/small>/);
 });
 
 test('none of the words accept, approve or approval appear as the card’s own words',()=>{
@@ -151,13 +151,12 @@ test('the reported permission profile comes from the conversation\'s row in the 
   assert.equal(requestPlace(r,{currentAppProjectContext:{reference:'/invented/pump-skid'},threads},'/invented/pump-skid').permissionProfile,':read-only');
   assert.equal(requestPlace(r,{threads:[{...threads[0],activePermissionProfile:null}]},null).permissionProfile,null,'unreported stays null');
 });
-// What Codex may do in a conversation, as Codex reported it when the conversation started.
-test('a conversation says what Codex reported it may do there, in the person\'s words, and says unreported as unreported',()=>{
-  assert.equal(conversationPermissionWords({sandbox:{type:'readOnly',networkAccess:false},approvalPolicy:'on-request'}),
-    'it can read files your account can read and change none without your permission (read-only); it asks you before doing more than that (on-request)');
-  assert.equal(conversationPermissionWords({sandbox:{type:'workspaceWrite',networkAccess:true},approvalPolicy:'never'}),
-    'it can read files your account can read and change files in its working folder without asking (workspace-write, with network); it never asks you (never)');
-  assert.equal(conversationPermissionWords({sandbox:{type:'externalSandbox'},approvalPolicy:{granular:{}}}),
-    'Codex reported its sandbox as externalSandbox; Codex reported its approval setting as {"granular":{}}');
-  assert.equal(conversationPermissionWords({}),'Codex did not report its sandbox; Codex did not report when it asks you');
+
+// A card describes this request and this answer; none of its own sentences says Codex asks in
+// general or that a later step will be asked (the owner, 14 November).
+test('no card sentence says or implies that Codex asks before it changes something',()=>{
+  const cards=[render(recorded(),null,{project:{kind:'folder',folder:'/invented/pump-skid'},conversationFolder:'/invented/pump-skid',permissionProfile:':read-only'}),
+    render(fileChange(),viewWith([change('/invented/pump-skid/a')]),{project:{kind:'folder',folder:'/invented/pump-skid'},conversationFolder:'/invented/pump-skid',permissionProfile:null}),
+    render(request('item/commandExecution/requestApproval',{command:'ls',cwd:'/w',availableDecisions:['accept','acceptForSession','decline','cancel']}),null,{project:{kind:'none'},conversationFolder:'/w',permissionProfile:null})];
+  for(const html of cards) assert.doesNotMatch(words(html),/asked again|without asking|always asks|asks before|will ask/);
 });

@@ -53,10 +53,9 @@ test('effective access settings actual private Host projection reaches explicit 
 });
 // The reading, at the person's press, says where Codex keeps a sign-in in the person's words, with
 // Codex's value beside them; nothing is read without the press, and nothing is inferred.
-test('the explicit reading says where the sign-in is kept, in the person\'s words, and that sandbox and approval show per conversation',async()=>{
+test('the explicit reading says where the sign-in is kept, in the person\'s words',async()=>{
  await mountedSettings(async()=>structuredClone(settingsPacket),async(c,calls)=>{
   assert.equal(calls.length,0,'no automatic settings or authentication reads');
-  assert.match(c.textContent,/its sandbox and when it asks you, is shown for each conversation when it is started/);
   await press(c,'Read effective storage and plugin settings');
   assert.match(c.textContent,/Where your sign-in is kept: in a file, auth\.json, in this home's sign-in folder \(file\), as Codex reported it for this launch\./);
  });

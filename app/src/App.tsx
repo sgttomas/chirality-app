@@ -19,7 +19,7 @@ import { NativeActivityView, activityModel, sameActivityGeneration, type NativeA
 import { ContinuationContext, historyPageBinding, StoredItemPage, StoredTurnPage } from "./NativeHistory";
 import { ObserverAttachment } from "./ObserverAttachment";
 import { PlanModeControl } from "./PlanMode";
-import { NativeRequestCard, WaitingRequestsIndicator, answerable, hostRequests, requestItem, requestPlace, requestThread, requestScopeKey, requestReplyGuarded, type RequestActivityLink, type RequestAnswer, type ReadRequestCustody, type RequestReplyObservation, type WaitingRequestGroup, ConversationPermissions } from "./RequestCards";
+import { NativeRequestCard, WaitingRequestsIndicator, answerable, hostRequests, requestItem, requestPlace, requestThread, requestScopeKey, requestReplyGuarded, type RequestActivityLink, type RequestAnswer, type ReadRequestCustody, type RequestReplyObservation, type WaitingRequestGroup } from "./RequestCards";
 import { RunOffer, type RunAct } from "./RunOffers";
 import { RecoveryCustodyPanel } from "./RecoveryCustodyPanel";
 import { LastCleanTrialLine, WorkflowDraftsView } from "./WorkflowDrafts";
@@ -367,7 +367,6 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
       {currentThreads.map((thread: Json) => <option key={JSON.stringify([thread.generation, thread.threadId])} value={JSON.stringify([thread.generation, thread.threadId])}>{conversationLabel(host, thread)} via {thread.modelProvider ?? "provider not reported"}</option>)}
     </select></label>
     {selected && <details className="conversation-identity"><summary>Exact conversation ID</summary><code>{selected.threadId}</code></details>}
-    {selected && <ConversationPermissions thread={selected}/>}
     {selected && <details className="conversation-options"><summary>Role and continuation options</summary><RoleHeader key={`role-header:${JSON.stringify([selected.generation, selected.threadId])}`} thread={selected} limits={host?.roleLimits} busy={!!busy || forkBusy} ready={host?.state === "ready"} trialConversation={trialConversation} trialsStartedHere={trialsStartedHere}
       readSupplyHistory={() => invoke("role_supply_history", { generation: selected.generation, thread: selected.threadId })}
       continueAs={role => { void roleAct("asking for a handoff summary", "continue_as_begin", { generation: selected.generation, threadId: selected.threadId, role }); }}
@@ -1321,7 +1320,6 @@ export function EffectiveAccessSettingsPanel({ host, navigating, refresh }: { ho
       <p>Read from the selected {host.homeRouting.activeModeHomeClass} home’s current Codex process. A source category is shown only when its reported origin matches an enabled layer and that layer reports the same setting.</p>
     </div> : <p>No current settings observation. An earlier reading is not reused after a source change or a newer configuration read.</p>}
     {error && !current && <p role="alert">{error}</p>}
-    <p>What Codex may do in a conversation, its sandbox and when it asks you, is shown for each conversation when it is started.</p>
     <p>Only these two settings are shown from Codex’s effective configuration response, at the time of the read. Missing values and sources stay unknown. This is separate from login requirements and does not prove credential custody, actual file or keychain effects, plugin activity or ongoing configuration freshness. Reading changes no setting and starts no sign-in, model or conversation.</p>
   </section>;
 }

@@ -113,30 +113,6 @@ const keyOf = (decision: Json): string => typeof decision === "string" ? decisio
 
 /** The place of a request from the host snapshot; `projectFolder` is the
  * displayable project folder (WorkflowContext's appProjectFolder). */
-/**
- * What Codex may do in one conversation, as Codex reported it in that conversation's start reply
- * (its sandbox and approval setting, carried on the host's thread row): the person's words for the
- * forms the pinned Codex's source establishes, the reported value beside them, and the value alone
- * for any other form. Nothing is inferred from defaults; an unreported setting is said as unreported.
- */
-export function conversationPermissionWords(thread: Json): string {
-  const sandbox = thread?.sandbox, approval = thread?.approvalPolicy;
-  const type = typeof sandbox === "string" ? sandbox : typeof sandbox?.type === "string" ? sandbox.type : null;
-  const net = sandbox && typeof sandbox === "object" && sandbox.networkAccess === true;
-  const reads = type === "readOnly" ? `it can read files your account can read and change none without your permission (read-only${net ? ", with network" : ""})`
-    : type === "workspaceWrite" ? `it can read files your account can read and change files in its working folder without asking (workspace-write${net ? ", with network" : ""})`
-    : type === "dangerFullAccess" ? "it runs without Codex's sandbox, with your account's access (full access)"
-    : type ? `Codex reported its sandbox as ${type}` : "Codex did not report its sandbox";
-  const asks = approval === "on-request" ? "it asks you before doing more than that (on-request)"
-    : approval === "never" ? "it never asks you (never)"
-    : typeof approval === "string" && approval ? `Codex reported its approval setting as ${approval}`
-    : approval && typeof approval === "object" ? `Codex reported its approval setting as ${JSON.stringify(approval)}`
-    : "Codex did not report when it asks you";
-  return `${reads}; ${asks}`;
-}
-export function ConversationPermissions({ thread }: { thread: Json }) {
-  return <p aria-label="What Codex may do in this conversation"><strong>What Codex may do here:</strong> {conversationPermissionWords(thread)}, as Codex reported it when this conversation started.</p>;
-}
 export function requestPlace(request: Json, host: Json, projectFolder: string | null): RequestPlace {
   const context = host?.currentAppProjectContext;
   const project: RequestPlace["project"] = projectFolder !== null ? { kind: "folder", folder: projectFolder }
@@ -185,11 +161,11 @@ const ruleWords = (request: Json, decision: Json): string | null => {
 /** The App's words beside one answer: what that answer lets Codex do. */
 function DecisionNote({ request, decision, place }: { request: Json; decision: Json; place?: RequestPlace }) {
   const key = keyOf(decision);
-  if (key === "acceptForSession" && request?.method === FILE_CHANGE) return <small> Later changes to only these same files are not asked again until Codex stops. Nothing is saved.</small>;
-  if (key === "acceptForSession" && request?.method === COMMAND) return <small> This same command, in this folder, is not asked again until Codex stops. Nothing is saved.</small>;
+  if (key === "acceptForSession" && request?.method === FILE_CHANGE) return <small> This answer also covers later changes to only these same files, until Codex stops. Nothing is saved.</small>;
+  if (key === "acceptForSession" && request?.method === COMMAND) return <small> This answer also covers this same command, in this folder, until Codex stops. Nothing is saved.</small>;
   if (key === "acceptWithExecpolicyAmendment" && request?.method === COMMAND) {
     const words = ruleWords(request, decision);
-    return <small> This adds a lasting rule to the rules file in this App’s sign-in folder: from then on, in every conversation of this home, any command beginning with <code>{words ?? "(rule words not reported)"}</code> {builtInProfile(place) ? "runs outside Codex’s sandbox without asking" : "runs with more access than Codex’s sandbox gives, without asking"}. It stays until it is removed from that file.</small>;
+    return <small> This adds a lasting rule to the rules file in this App’s sign-in folder: from then on, in every conversation of this home, any command beginning with <code>{words ?? "(rule words not reported)"}</code> {builtInProfile(place) ? "runs outside Codex’s sandbox, with no request to you" : "runs with more access than Codex’s sandbox gives, with no request to you"}. It stays until it is removed from that file.</small>;
   }
   return null;
 }

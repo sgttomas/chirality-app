@@ -1553,7 +1553,7 @@ impl DesktopSetup {
             PreviewKind::RetainProject { .. } => "Save project for next launch",
         })
     }
-    /// What the review page says, before confirming, about what Codex may do and where a sign-in is
+    /// What the review page says, before confirming, about what Codex can read and where a sign-in is
     /// kept. The App sets none of these: on the new-settings route Codex's own defaults apply (the
     /// pinned Codex's read-only profile, on-request approval and file credential storage, as read
     /// from its source and observed in one start), so they are said as defaults; on the other routes
@@ -1561,18 +1561,16 @@ impl DesktopSetup {
     /// conversation is shown after setup (Connection and access), never a default in its place.
     fn first_use_defaults(kind: &str) -> Value {
         match kind {
-            "new-settings" => json!({"heading":"What Codex may do, by default","sentences":[
+            "new-settings" => json!({"heading":"What applies by default","sentences":[
                 "With new settings, Codex's own defaults apply; the App sets none of these.",
                 "By default, Codex can read any file your Mac account can read, inside and outside your project, so choose a project folder with that in mind.",
-                "It cannot create or change any file unless you allow it.",
-                "When you allow a command, it runs outside Codex's sandbox with your account's access to your files and the network.",
                 "By default your ChatGPT sign-in is kept as a file, auth.json, in the sign-in folder listed under Exact locations, readable only by your account. Connection and access shows where Codex keeps it before you sign in.",
                 "After you reopen the App, Connection and access shows what Codex reports for this launch.",
             ]}),
-            "new-home" => json!({"heading":"What Codex may do","sentences":[
+            "new-home" => json!({"heading":"What applies","sentences":[
                 "Your own Codex settings decide what Codex may read and change, and where your sign-in is kept. The App does not change them and does not restate them here; after you reopen the App, Connection and access shows what Codex reports for this launch.",
             ]}),
-            _ => json!({"heading":"What Codex may do","sentences":[
+            _ => json!({"heading":"What applies","sentences":[
                 "This keeps your current sign-in folder and the settings it uses: what Codex may read and change, and where your sign-in is kept, stay as they are. After you reopen the App, Connection and access shows what Codex reports for this launch.",
             ]}),
         }
@@ -7070,13 +7068,13 @@ mod tests {
         assert!(setup.preview_statement(preview["token"].as_str().unwrap()).unwrap().contains("Read, import or change no other Codex settings, home or credential"));
         // Before confirming, the review page says what Codex may do by default and where a sign-in is
         // kept, as Codex's defaults; the sheet says what Codex adds when it starts and no more.
-        assert_eq!(preview["defaults"]["heading"], "What Codex may do, by default");
+        assert_eq!(preview["defaults"]["heading"], "What applies by default");
         let defaults: Vec<&str> = preview["defaults"]["sentences"].as_array().unwrap().iter().map(|s| s.as_str().unwrap()).collect();
         assert_eq!(defaults.first(), Some(&"With new settings, Codex's own defaults apply; the App sets none of these."));
-        assert!(defaults.contains(&"It cannot create or change any file unless you allow it."));
-        assert!(defaults.contains(&"When you allow a command, it runs outside Codex's sandbox with your account's access to your files and the network."));
+        assert!(defaults.contains(&"By default, Codex can read any file your Mac account can read, inside and outside your project, so choose a project folder with that in mind."));
         assert!(defaults.iter().any(|s| s.starts_with("By default your ChatGPT sign-in is kept as a file, auth.json, in the sign-in folder")));
-        assert!(defaults.iter().all(|s| !s.contains("one request at a time") && !s.contains("will ask") && !s.contains("always")), "nothing promises the person will always be asked");
+        // Nothing says or implies the agent asks before it changes something (the owner, 14 November).
+        assert!(defaults.iter().all(|s| !s.contains("allow") && !s.contains("ask") && !s.contains("permission")), "no sentence rests on asking before change");
         assert!(statement.contains("with an empty config.toml, an empty AGENTS.md and a skills folder. Codex adds its own system skills there, and its own working files to the account directory, when it starts.\n"));
         assert!(!statement.contains("an empty skills folder") && !statement.contains("Codex's defaults then apply"), "the sheet carries only the corrected line");
         assert!(preview["effects"][1].as_str().unwrap().contains("a skills folder; Codex adds its own system skills there"));
