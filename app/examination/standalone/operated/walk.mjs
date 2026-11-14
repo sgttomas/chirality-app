@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { isValidPart, isValidScenario } from './scenario.mjs';
+import { CAPTURE_NAMES, isExpectation, isSheet, isValidScenario } from './scenario.mjs';
 // Walks one scenario file on a running development build and checks each view against the scenario's
 // expected states. An operator loads this inside the node runtime's js tool and gives it the supplier's
 // window service; replay.mjs gives it a stand-in that returns recorded views. See README.md beside it.
@@ -28,7 +28,7 @@ const ELEMENT_LINE = new RegExp(`^(\\t*)${INDEX} (${WORDS}+)$`, 'u');
 const WINDOW_LINE = new RegExp(`^Window: "${WORDS}*", App: ${WORDS}+\\.$`, 'u');
 const FOCUSED_LINE = new RegExp(`^The focused UI element is ${INDEX} (${WORDS}+)$`, 'u');
 const FURTHER_LINE = new RegExp(`^${WORDS}+$`, 'u');  // a text element's further lines: no tab can begin one
-export const UNADDRESSED = 'the view gives the same element index to more than one element, so it cannot be addressed';
+const UNADDRESSED = 'the view gives the same element index to more than one element, so it cannot be addressed';
 
 /**
  * A whole view as the walk recognises it: {elements: [{index, depth, content}], refusal}. The view is the supplier's
@@ -123,13 +123,13 @@ function anchored(lines, last, elements, launchedName) {
 }
 
 /** The elements of a whole view: [{index, depth, content}] in the order returned (none if it is not recognised). */
-export function parseView(text, launchedName) {
+function parseView(text, launchedName) {
   const { elements, refusal } = recognise(text, launchedName);
   return refusal ? [] : elements;
 }
 
 /** A view that came back as differences, applied to the elements of the view before it. */
-export function applyDifference(previous, text) {
+function applyDifference(previous, text) {
   let elements = previous.map(element => ({ ...element }));
   if (String(text).startsWith(NO_CHANGE)) return elements;
   let pointer = -1;
@@ -168,7 +168,7 @@ const fill = (text, values) => String(text).replace(/\{(\w+)\}/g, (whole, name) 
  * link, or text field (a settable text field; its value and placeholder, after the label, are not part of the label).
  * The label is the control's words whole: a control whose words merely begin with the label is not it.
  */
-export function select(elements, selector) {
+function select(elements, selector) {
   const { kind, label } = selector;
   return elements.filter(({ content }) => {
     if (kind === 'button') return content === `button ${label}` || content === `button (disabled) ${label}`;
@@ -224,7 +224,7 @@ function modalAt(elements, from, strict = false) {
   return found;
 }
 
-export function notThePage(elements, scenario) {
+function notThePage(elements, scenario) {
   const title = `standard window ${scenario.window}`;
   const isWindow = ({ content }) => content === title || content.startsWith(title + ', ');
   const top = elements.filter(({ depth }) => depth === 0);
@@ -274,7 +274,7 @@ const NUMBER = '{~number}';  // in a template's element words: a decimal number 
  * equal it exactly; the focused-element line must name, by the indices in the same places, the element the
  * template's names. at maps each template index to the view's index for the element in the same place.
  */
-export function compareView(wanted, text) {
+function compareView(wanted, text) {
   const seen = String(text).split('\n');
   const at = new Map();
   const differs = [];
@@ -298,7 +298,7 @@ export function compareView(wanted, text) {
 }
 
 /** Whether a view is the listed state the scenario names, filled with the run's values: the reasons it is not. */
-export function stateCheck(text, lines, values, appName) {
+function stateCheck(text, lines, values, appName) {
   if (!APP_NAME.test(appName)) return [`the candidate bundle's name is not of the development build's form: ${JSON.stringify(appName)}`];
   if (!Array.isArray(lines) || !lines.length) return ['the scenario gives no recorded view of this state'];
   const wanted = fill(lines.join('\n'), { ...values, app_name: appName }).split('\n');
@@ -318,7 +318,7 @@ export function stateCheck(text, lines, values, appName) {
  * Returns null when it may be used, or why not. It is used only by admission, below.
  */
 export const JUDGED = { state: 'every expectation held', sheet: 'every line agreed with the template' };
-export function recordUsable(scenario, kind, id, app, appName, candidateKey) {
+function recordUsable(scenario, kind, id, app, appName, candidateKey) {
   if (!isValidScenario(scenario)) return 'the scenario was not made by validateScenario, so none of its records is used';
   const records = kind === 'state' ? scenario?.state_records : kind === 'sheet' ? scenario?.sheet_records : undefined;
   const what = kind === 'sheet' ? `sheet template ${id}` : `recorded state ${id}`;
@@ -338,7 +338,7 @@ export function recordUsable(scenario, kind, id, app, appName, candidateKey) {
  * for line (stateCheck for a state, sheetCheck for the sheet). Returns {admitted: true} (and, for the sheet, the press
  * index and the comparison record), or {admitted: false, unusable or difference}.
  */
-export function admission(scenario, kind, id, text, values, app, appName, candidateKey) {
+function admission(scenario, kind, id, text, values, app, appName, candidateKey) {
   if (!isValidScenario(scenario)) return { admitted: false, unusable: 'the scenario was not made by validateScenario' };
   const unusable = recordUsable(scenario, kind, id, app, appName, candidateKey);
   if (unusable) return { admitted: false, unusable };
@@ -354,8 +354,8 @@ export function admission(scenario, kind, id, text, values, app, appName, candid
 
 export function sheetCheck(text, sheet, values, appName) {
   const problems = [], record = { compared_with: 'the recorded view of the sheet' };
-  if (!isValidPart(sheet)) {
-    problems.push('the sheet is not part of a scenario validateScenario made');
+  if (!isSheet(sheet)) {
+    problems.push('the sheet is not a sheet of a scenario validateScenario made');
     return { problems, record, press: null };
   }
   // The name guards against a mistaken build: it must be of the development build's form before the template is made.
@@ -391,7 +391,7 @@ export function sheetCheck(text, sheet, values, appName) {
 /** One expectation against one view's elements: {expectation, pass, found}. */
 export function checkOne(elements, expectation, values) {
   const result = (pass, found) => ({ expectation, pass, found });
-  if (!isValidPart(expectation)) return result(false, 'an expectation that is not part of a scenario validateScenario made');
+  if (!isExpectation(expectation)) return result(false, 'not an expectation of a scenario validateScenario made');
   const one = (kind, label) => select(elements, { kind, label: fill(label, values) });
   const count = found => (found.length === 1 ? 'present' : found.length ? `present ${found.length} times` : 'absent');
   if ('text' in expectation) {  // exactly once in the view
@@ -461,12 +461,12 @@ export function checkOne(elements, expectation, values) {
  *             and at every step, since the node runtime cannot ask the system about a process itself
  *   readWatch optional: () => the parsed watch file, or null (default: reads `watch`)
  *   attemptLog optional: a file path; the attempt log (not a result) is written there when the walk ends
- *   onLog     optional: (log) => anything; given the attempt log when the walk ends
+ *   onLog     optional: (log) => nothing, or a promise of nothing; given a copy of the attempt log when the walk ends,
+ *             and settled before the verdict is returned. Every injected option is called through one adapter (walk)
  *   readIdentification optional: () => the candidate's identification record, or null (default: reads
  *             identification/candidate-identification.json in the candidate folder that holds the bundle,
  *             <candidate>/target/debug/bundle/macos/<name>.app). Its candidate_key binds the records used.
  *   sleep     optional: (milliseconds) => a promise (default: a timer)
- *   now       optional: () => the time as text (default: the UTC time)
  *   project   the invented project folder beside the home, for a scenario with a `type` step: the one value it types
  * Returns the walk's one result, its verdict (verdictAt): one of SCENARIO_VERDICTS, derived by position over the
  * scenario's required steps. The attempt log (ATTEMPT_LOG_NOTE), which is not a result, goes to attemptLog and onLog:
@@ -484,7 +484,7 @@ export function checkOne(elements, expectation, values) {
  * walk and could change anything the walk holds without throwing at all; so the walk's verdict rests on that client,
  * as every call does, and not on how a failure is read. Nothing here defends against it.
  */
-export function readFailure(where, error) {
+function readFailure(where, error) {
   try {
     return failure(where, error);
   } catch {
@@ -492,7 +492,7 @@ export function readFailure(where, error) {
   }
 }
 
-export function failure(where, error) {
+function failure(where, error) {
   const text = value => {
     try {
       if (value === null || (typeof value !== 'object' && typeof value !== 'function')) return String(value);
@@ -522,6 +522,37 @@ export function failure(where, error) {
   return { where, message: text(error), causes };
 }
 
+// The values the walk supplies, and the names a capture may carry (scenario.mjs). They are disjoint, which is checked
+// here when the module loads, and the walk keeps them in separate places: the supplied values are frozen when the walk
+// starts, the captured ones are held apart, and what a template is filled with is a new frozen view of the two made
+// each time it is needed. No assignment can put a captured value in place of a supplied one, whatever the names (the
+// first reading of PR 355, finding 1).
+const SUPPLIED_NAMES = ['identifier', 'home', 'app_data', 'project', 'title', 'statement', 'app_name'];
+if (CAPTURE_NAMES.some(name => SUPPLIED_NAMES.includes(name))) throw new Error('a capture name is also a supplied name');
+
+/** The view a template is filled with: the supplied values, and of the captured ones only those of a capture name. */
+function namesView(supplied, captured) {
+  const view = {};
+  for (const name of CAPTURE_NAMES) if (Object.prototype.hasOwnProperty.call(captured, name)) view[name] = captured[name];
+  for (const [name, value] of Object.entries(supplied)) view[name] = value;
+  return Object.freeze(view);
+}
+
+// Raised by the one adapter for injected options once one has failed; every supplier call is refused after it.
+const BROKEN = Symbol('an injected option failed');
+// The kinds of value each injected option must give (the first reading of PR 355, findings 3 and 4): a value of the
+// wrong kind is a failure like a throw. Data is copied to plain data inside the adapter, so a getter on it runs there.
+const KIND = {
+  text: value => { if (typeof value !== 'string') throw new TypeError('it gave something that is not text'); return value; },
+  data: value => {
+    if (value === null || value === undefined) return null;
+    const copy = JSON.parse(JSON.stringify(value));
+    if (copy === null || typeof copy !== 'object' || Array.isArray(copy)) throw new TypeError('it gave something that is not a record');
+    return copy;
+  },
+  nothing: value => { if (value !== undefined) throw new TypeError('it gave a value where it gives none'); },
+};
+
 export async function run(options) {
   // Whatever the walk meets that it does not handle itself ends it here, inconclusive, with the attempt log delivered
   // as far as the walk had made it: nothing escapes a run without a verdict, and no later call is made, since the walk
@@ -530,40 +561,74 @@ export async function run(options) {
   try {
     return await walk(options, holder);
   } catch (error) {
-    const why = `stopped: the walk met a failure it does not handle (${readFailure('the walk', error).message})`;
+    const why = error === BROKEN ? 'stopped: an injected option failed'
+      : `stopped: the walk met a failure it does not handle (${readFailure('the walk', error).message})`;
     if (holder.finish) {
-      try { return holder.finish('inconclusive', why); } catch { /* the verdict below */ }
+      try { return await holder.finish('inconclusive', why); } catch { /* the verdict below */ }
     }
     return 'inconclusive';
   }
 }
 
 async function walk(options, holder) {
-  let { sky, scenario, app, home, bundle, pid, watch, readWatch, readIdentification, sleep, now, project, attemptLog, onLog } = options;
-  // The clock is read through a guard: a time that cannot be read is said to be so.
-  const clock = typeof now === 'function' ? now : () => new Date().toISOString();
-  now = () => { try { const time = clock(); return typeof time === 'string' ? time : '(a time that is not text)'; } catch { return '(a time that could not be read)'; } };
+  let { sky, scenario, app, home, bundle, pid, watch, readWatch, readIdentification, sleep, project, attemptLog, onLog } = options;
+  // THE ONE ADAPTER for every injected option: the watch (readWatch), the identification (readIdentification), the
+  // pause (sleep) and the log (onLog); and for the walk's own clock, which is not injected. Every call to one goes through it, and nothing else
+  // calls them. It awaits whatever comes back, and treats a throw, a rejection, a throwing getter on what came back and
+  // a value of the wrong kind the same way: it marks the walk broken and raises BROKEN. From then on every supplier call
+  // is refused (supply, below), so no effect and no view can follow; the walk ends inconclusive, and its attempt log is
+  // still written and still handed to the log.
+  let broken = null;
+  const option = async (name, kind, call, { evenIfBroken = false } = {}) => {
+    if (broken && !evenIfBroken) throw BROKEN;
+    try {
+      const returned = call();
+      return kind(await returned);
+    } catch (error) {
+      broken ??= `the injected ${name} failed (${readFailure(name, error).message})`;
+      throw BROKEN;
+    }
+  };
+  const clock = () => new Date().toISOString();
+  const time = () => option('clock', KIND.text, () => clock());
+  // A time for the log that never throws: the clock through the adapter, or words.
+  const logTime = async () => { try { return await time(); } catch { return '(the time could not be read)'; } };
   const calls = [];
   const valid = isValidScenario(scenario);
   // The attempt log: everything the walk did and saw, which is not a result (ATTEMPT_LOG_NOTE). The walk's one result,
   // its verdict, is made only by verdictAt, from the steps' judgments by position, when the walk ends.
   const report = { note: ATTEMPT_LOG_NOTE, scenario: valid ? scenario.scenario : null, version: valid ? scenario.version : null,
-    app: typeof app === 'string' ? app : null, home: typeof home === 'string' ? home : null, started: now(), steps: [], calls, stopped: null };
+    app: typeof app === 'string' ? app : null, home: typeof home === 'string' ? home : null, started: null, steps: [], calls, stopped: null };
   // The steps' judgments by position, kept apart from the attempt log: only verdictAt reads them.
   const marks = [];
-  // Every return of the walk is its verdict alone. The attempt log goes apart: to the attemptLog file and to onLog.
-  // Delivering it cannot end the walk otherwise: a log that cannot be written or taken is not retried.
+  // Every return of the walk is its verdict alone. The attempt log goes apart: to the attemptLog file and to onLog,
+  // through the adapter even when the walk is broken. A log that cannot be written or taken is not retried; a log the
+  // injected onLog failed to take leaves the verdict inconclusive.
   let logFile = null;
-  const finish = (verdict, stopped = null) => {
+  const finish = async (verdict, stopped = null) => {
     report.stopped = stopped;
-    report.finished = now();
-    const result = verdictAt(scenario, marks, verdict);
-    if (logFile) { try { logFile.writeFileSync(attemptLog, JSON.stringify(report, null, 2) + '\n'); } catch { /* not written */ } }
-    if (typeof onLog === 'function') { try { onLog(report); } catch { /* not taken */ } }
+    report.finished = await logTime();
+    if (broken) report.broken = broken;
+    let result = verdictAt(scenario, marks, broken && verdict !== 'fail' ? 'inconclusive' : verdict);
+    const write = () => { if (logFile) { try { logFile.writeFileSync(attemptLog, JSON.stringify(report, null, 2) + '\n'); } catch { /* not written */ } } };
+    write();
+    if (typeof onLog === 'function') {
+      // The log is handed a copy, so that nothing it does changes what was written. If it fails to take it, the file
+      // is written again saying so.
+      let copy = null;
+      try { copy = JSON.parse(JSON.stringify(report)); } catch { /* handed nothing */ }
+      try { await option('log', KIND.nothing, () => onLog(copy), { evenIfBroken: true }); } catch {
+        result = result === 'fail' ? 'fail' : 'inconclusive';
+        report.broken = broken;
+        write();
+      }
+    }
     return result;
   };
   holder.finish = finish;
   if (typeof attemptLog === 'string') logFile = await import('node:fs');
+  report.started = await logTime();
+  if (broken) return finish('inconclusive', 'stopped before any call: the clock failed');
   // Refusals before any call. First, the scenario: only one validateScenario made is walked (scenario.mjs).
   if (!valid) return finish('inconclusive', 'refused before any call: the scenario was not made by validateScenario (scenario.mjs), so nothing in it is read');
   if (!readWatch && typeof watch === 'string') {
@@ -575,12 +640,12 @@ async function walk(options, holder) {
     const candidate = bundle.replace(/\/target\/debug\/bundle\/macos\/[^/]+\.app$/, '');
     readIdentification = () => { try { return JSON.parse(fs.readFileSync(`${candidate}/identification/candidate-identification.json`, 'utf8')); } catch { return null; } };
   }
-  const identified = readIdentification ? readIdentification() : null;
+  const identified = readIdentification ? await option('identification', KIND.data, () => readIdentification()) : null;
   const candidateKey = typeof identified?.candidate_key === 'string' && /^[A-Za-z0-9-]+$/.test(identified.candidate_key) ? identified.candidate_key : null;
   // The build is running when the watch file is for this process, says so, names an executable inside the bundle, and
   // was written in the last three seconds. That is a sample, not custody: see README.md.
-  const watched = () => {
-    const seen = readWatch ? readWatch() : null;
+  const watched = async () => {
+    const seen = readWatch ? await option('watch', KIND.data, () => readWatch()) : null;
     const running = !!seen && seen.pid === pid && seen.running === true && typeof seen.executable === 'string'
       && seen.executable.startsWith(bundle + '/Contents/MacOS/') && Math.abs(Date.now() - seen.at_ms) <= 3000
       && Array.isArray(seen.children);
@@ -590,9 +655,11 @@ async function walk(options, holder) {
   // stops the walk, and a child process, in a scenario that starts none, stops it and fails it. A reading is never
   // taken and then set aside. Returns the finished report, or null to go on.
   let lastChildren = null;  // the number of child processes the latest reading showed, as it showed them
-  const gate = where => {
-    const seen = watched();
+  const gate = async (where, entry = null) => {
+    const seen = await watched();
     lastChildren = seen.running ? seen.children.length : null;
+    // A step's own record of its child processes is made here, before the reading can end the walk.
+    if (entry) entry.child_processes = lastChildren ?? 'not known: the watch file does not show the build running';
     if (!seen.running) return finish('inconclusive', `stopped ${where}: the watch file no longer shows the build running`);
     if (scenario.starts_no_process && seen.children.length) {
       return finish('fail', `stopped ${where}: the App has a child process (${seen.children.length}), and this scenario starts none`);
@@ -600,7 +667,16 @@ async function walk(options, holder) {
     return null;
   };
   sleep ??= milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));
-  const values = { identifier: app, home, app_data: `${home}/Library/Application Support/${app}`, ...(project ? { project } : {}) };
+  const pause = milliseconds => option('sleep', KIND.nothing, () => sleep(milliseconds));
+  // The supplied values, frozen; the captured ones, apart (namesView).
+  const suppliedValues = Object.freeze({ identifier: app, home, app_data: `${home}/Library/Application Support/${app}`, ...(project ? { project } : {}) });
+  const captured = {};
+  const values = () => namesView(suppliedValues, captured);
+  // Every supplier call goes through here, and none is made once an injected option has failed.
+  const supply = (method, input) => {
+    if (broken) throw BROKEN;
+    return sky[method](input);
+  };
   if (typeof app !== 'string' || !app.startsWith(DEVELOPMENT_PREFIX) || !/^[A-Za-z0-9.-]+$/.test(app)) {
     return finish('inconclusive', 'refused before any call: the application is not named by a development build\'s bundle identifier');
   }
@@ -630,7 +706,7 @@ async function walk(options, holder) {
   }
   // The first reading of the watch, like every other, is the gate's: a view of an application that is not running
   // would start it outside the launcher.
-  const atStart = gate('before any call');
+  const atStart = await gate('before any call');
   if (atStart) return atStart;
   let elements = [], latest = null;
   const appName = bundle.slice(bundle.lastIndexOf('/') + 1, -'.app'.length);
@@ -638,7 +714,7 @@ async function walk(options, holder) {
   // An effect, in the attempt log, as an attempt and its return, written in two steps round the call: what was sent,
   // then when it returned or what it threw. It is not a result: whether the step held is said only by its verdict.
   const attempt = async (entry, act, element_index, call, extra = {}) => {
-    const record = { act, element_index, ...extra, sent_at: now() };
+    const record = { act, element_index, ...extra, sent_at: await time() };
     entry.attempts.push(record);
     // An explicit discriminator, and every caller tests it (ok), never the truthiness of what came back.
     // The supplier's contract (the @oai/sky declarations, types/window/Click.d.ts and SetValue.d.ts): click and
@@ -650,11 +726,11 @@ async function walk(options, holder) {
     try {
       const value = await call();
       if (value !== undefined) {
-        record.returned_at = now();
+        record.returned_at = await time();
         record.effect = 'uncertain: the call returned a value its contract (Promise<void>) does not give';
         return { ok: false, error: new Error('the supplier returned a value its contract does not give') };
       }
-      record.returned_at = now();
+      record.returned_at = await time();
       return { ok: true };
     } catch (error) {
       record.threw = readFailure(act, error).message;
@@ -666,7 +742,7 @@ async function walk(options, holder) {
   // against the recorded state the step acts from, by the one admission.
   const notListed = (step, act) => {
     if (latest === null) return finish('inconclusive', `stopped at ${step.id}: the view is not the listed state ${step.from_state} (the latest view was not recognised); nothing was ${act}`);
-    const admitted = admission(scenario, 'state', step.from_state, latest, values, app, appName, candidateKey);
+    const admitted = admission(scenario, 'state', step.from_state, latest, values(), app, appName, candidateKey);
     if (admitted.admitted) return null;
     return finish('inconclusive', `stopped at ${step.id}: the view is not the listed state ${step.from_state} (${admitted.unusable ?? admitted.difference}); nothing was ${act}`);
   };
@@ -677,8 +753,8 @@ async function walk(options, holder) {
   // asks for the whole window (disableDiff). That the first view's form matters is not established (README.md).
   const view = async ({ plain = false } = {}) => {
     const asked = plain ? { app } : { app, disableDiff: true };
-    calls.push({ at: now(), call: 'get_app_state', ...asked });
-    const state = await sky.get_app_state(asked);
+    calls.push({ at: await time(), call: 'get_app_state', ...asked });
+    const state = await supply('get_app_state', asked);
     if (state?.app !== bundle) throw new Error(`the view does not say it is of the bundle; it names: ${state?.app}`);
     if (typeof state?.text !== 'string') throw new Error('the view returned no text');
     const text = state.text;
@@ -707,7 +783,7 @@ async function walk(options, holder) {
   // for the whole window, and only it shows that asking is honoured. Either coming back as differences stops the walk.
   report.whole_views_before_any_click = [];
   for (const ordinal of ['first', 'second']) {
-    const beforeView = gate(`before the ${ordinal} view before any click`);
+    const beforeView = await gate(`before the ${ordinal} view before any click`);
     if (beforeView) return beforeView;
     let seen;
     try {
@@ -716,22 +792,22 @@ async function walk(options, holder) {
       report.view_error = readFailure(`the ${ordinal} view before any click`, error);
       return finish('inconclusive', `stopped at the ${ordinal} view before any click: the view failed (${report.view_error.message})`);
     }
-    report.whole_views_before_any_click.push({ at: now(), whole: seen.whole, returned: seen.text, ...(seen.whole ? {} : { rebuilt_for_reading: seen.rebuilt }) });
+    report.whole_views_before_any_click.push({ at: await time(), whole: seen.whole, returned: seen.text, ...(seen.whole ? {} : { rebuilt_for_reading: seen.rebuilt }) });
     if (!seen.whole) return finish('inconclusive', asDifferences(`the ${ordinal} view before any click`, ordinal === 'first'));
     if (seen.refusal) return finish('inconclusive', unaddressed(`the ${ordinal} view before any click`, seen.refusal));
     const stray = notThePage(elements, scenario);
     if (stray) return finish('inconclusive', `stopped at the ${ordinal} view before any click: ${stray}; no agent answers a prompt or a dialog`);
-    const afterView = gate(`after the ${ordinal} view before any click`);
+    const afterView = await gate(`after the ${ordinal} view before any click`);
     if (afterView) return afterView;
   }
   for (const step of scenario.steps) {
     // A step's expectations are kept as failures only (unmet), in its judgment by position, which only verdictAt
     // reads. unmet is absent until the step's view has been evaluated.
-    const entry = { id: step.id, at: now(), act: step.act, intended: step.says, attempts: [] };
+    const entry = { id: step.id, at: await time(), act: step.act, intended: step.says, attempts: [] };
     report.steps.push(entry);
     const mark = { position: marks.length };
     marks.push(mark);
-    const before = gate(`at ${step.id}`);
+    const before = await gate(`at ${step.id}`);
     if (before) return before;
     if (step.act === 'click') {
       if (endsWithEllipsis(step.control.label)) return finish('inconclusive', `stopped at ${step.id}: a control whose words end with an ellipsis is never clicked`);
@@ -754,8 +830,8 @@ async function walk(options, holder) {
       if (found.length !== 1) return finish(marks.some(s => s.unmet?.length) ? 'fail' : 'inconclusive',
         `stopped at ${step.id}: the control to click was found ${found.length} times in the latest view`);
       if (found[0].content.startsWith('button (disabled) ')) return finish('fail', `stopped at ${step.id}: the control to click is unavailable`);
-      calls.push({ at: now(), call: 'click', app, element_index: found[0].index });
-      const clickFailed = await attempt(entry, 'click', found[0].index, () => sky.click({ app, element_index: found[0].index }));
+      calls.push({ at: await time(), call: 'click', app, element_index: found[0].index });
+      const clickFailed = await attempt(entry, 'click', found[0].index, () => supply('click', { app, element_index: found[0].index }));
       if (!clickFailed.ok) {
         // Kept as a view's failure is, and the walk stops: a click that throws has not been shown to have had no
         // effect, so nothing further is called and the verdict is inconclusive.
@@ -763,9 +839,9 @@ async function walk(options, holder) {
         entry.error = report.click_error.message;
         return finish('inconclusive', `stopped at ${step.id}: the click failed (${entry.error})`);
       }
-      if (step.wait_ms) await sleep(step.wait_ms);
+      if (step.wait_ms) await pause(step.wait_ms);
       }
-      const beforeView = gate(`at ${step.id}, before its view`);  // read again immediately before the view
+      const beforeView = await gate(`at ${step.id}, before its view`);  // read again immediately before the view
       if (beforeView) return beforeView;
     } else if (step.act === 'type') {
       // One set-value into one field the scenario names; nothing else is typed in a walk.
@@ -783,16 +859,16 @@ async function walk(options, holder) {
         return finish('inconclusive', `stopped at ${step.id}: the field is not directly after its label "${step.control.label}"`);
       }
       if (report.calls.some(call => call.call === 'set_value')) return finish('inconclusive', `stopped at ${step.id}: a walk sets one value once`);
-      const value = fill(step.value, values);
-      calls.push({ at: now(), call: 'set_value', app, element_index: found[0].index, value });
-      const setFailed = await attempt(entry, 'set_value', found[0].index, () => sky.set_value({ app, element_index: found[0].index, value }), { value });
+      const value = fill(step.value, values());
+      calls.push({ at: await time(), call: 'set_value', app, element_index: found[0].index, value });
+      const setFailed = await attempt(entry, 'set_value', found[0].index, () => supply('set_value', { app, element_index: found[0].index, value }), { value });
       if (!setFailed.ok) {
         report.set_value_error = readFailure(step.id, setFailed.error);
         entry.error = report.set_value_error.message;
         return finish('inconclusive', `stopped at ${step.id}: setting the field's value failed (${entry.error})`);
       }
-      if (step.wait_ms) await sleep(step.wait_ms);
-      const beforeView = gate(`at ${step.id}, before its view`);
+      if (step.wait_ms) await pause(step.wait_ms);
+      const beforeView = await gate(`at ${step.id}, before its view`);
       if (beforeView) return beforeView;
     } else if (step.act === 'confirm_sheet') {
       // The App's own confirmation: click the control that opens it, view the sheet and check it whole, press the
@@ -809,15 +885,15 @@ async function walk(options, holder) {
       entry.control = step.control;
       if (opener.length !== 1) return finish('inconclusive', `stopped at ${step.id}: the control that opens the sheet was found ${opener.length} times`);
       if (opener[0].content.startsWith('button (disabled) ')) return finish('fail', `stopped at ${step.id}: the control that opens the sheet is unavailable`);
-      calls.push({ at: now(), call: 'click', app, element_index: opener[0].index });
-      const openFailed = await attempt(entry, 'click', opener[0].index, () => sky.click({ app, element_index: opener[0].index }));
+      calls.push({ at: await time(), call: 'click', app, element_index: opener[0].index });
+      const openFailed = await attempt(entry, 'click', opener[0].index, () => supply('click', { app, element_index: opener[0].index }));
       if (!openFailed.ok) {
         report.click_error = readFailure(step.id, openFailed.error);
         entry.error = report.click_error.message;
         return finish('inconclusive', `stopped at ${step.id}: the click failed (${entry.error})`);
       }
-      await sleep(step.sheet_wait_ms ?? 2000);
-      const beforeSheet = gate(`at ${step.id}, before the sheet's view`);
+      await pause(step.sheet_wait_ms ?? 2000);
+      const beforeSheet = await gate(`at ${step.id}, before the sheet's view`);
       if (beforeSheet) return beforeSheet;
       let shown;
       try {
@@ -837,7 +913,7 @@ async function walk(options, holder) {
       // The press, by the one admission: the sheet template's record judged and usable for this launch, and the sheet
       // equal to it line for line. A refused press leaves only the refusal (and the difference found, if any): never a
       // record that reads as a comparison that agreed.
-      const checked = admission(scenario, 'sheet', sheet.id, shown.text, values, app, appName, candidateKey);
+      const checked = admission(scenario, 'sheet', sheet.id, shown.text, values(), app, appName, candidateKey);
       // In the attempt log the sheet is a capture (above) and, when it was not admitted, the difference: whether it
       // agreed is said only by the step's verdict.
       if (checked.unusable) {
@@ -849,23 +925,23 @@ async function walk(options, holder) {
         return finish('inconclusive', `stopped at ${step.id}: the sheet is not the one named (${checked.difference}); nothing was pressed`);
       }
       entry.sheet_observation = 'the sheet matched the template when it was compared (an observation, not a press)';
-      const beforePress = gate(`at ${step.id}, before the press`);
+      const beforePress = await gate(`at ${step.id}, before the press`);
       if (beforePress) return beforePress;
-      calls.push({ at: now(), call: 'click', app, element_index: checked.press });
-      const pressFailed = await attempt(entry, 'press', checked.press, () => sky.click({ app, element_index: checked.press }), { button: sheet.press });
+      calls.push({ at: await time(), call: 'click', app, element_index: checked.press });
+      const pressFailed = await attempt(entry, 'press', checked.press, () => supply('click', { app, element_index: checked.press }), { button: sheet.press });
       if (!pressFailed.ok) {
         report.click_error = readFailure(step.id, pressFailed.error);
         entry.error = report.click_error.message;
         return finish('inconclusive', `stopped at ${step.id}: the press on the sheet failed (${entry.error})`);
       }
-      if (step.wait_ms) await sleep(step.wait_ms);
-      const afterPress = gate(`at ${step.id}, after the press`);
+      if (step.wait_ms) await pause(step.wait_ms);
+      const afterPress = await gate(`at ${step.id}, after the press`);
       if (afterPress) return afterPress;
     } else if (step.act !== 'view') {
       return finish('inconclusive', `stopped at ${step.id}: an act this script does not perform`);
     } else if (step.wait_ms) {
-      await sleep(step.wait_ms);
-      const afterWait = gate(`at ${step.id}, after its wait`);
+      await pause(step.wait_ms);
+      const afterWait = await gate(`at ${step.id}, after its wait`);
       if (afterWait) return afterWait;
     }
     let seen;
@@ -888,7 +964,7 @@ async function walk(options, holder) {
     if (stray) return finish('inconclusive', `stopped at ${step.id}: ${stray}; no agent answers a prompt or a dialog`);
     // Unmet expectations: in the step's judgment as codes with the condition's own parameters (its index and kind); in
     // the attempt log, what was found.
-    const failedChecks = (step.expect ?? []).map((expectation, index) => ({ ...checkOne(elements, expectation, values), index }))
+    const failedChecks = (step.expect ?? []).map((expectation, index) => ({ ...checkOne(elements, expectation, values()), index }))
       .filter(check => !check.pass);
     mark.unmet = failedChecks.map(({ expectation, index }) => ({ code: 'expectation-unmet', index, kind: Object.keys(expectation)[0] }));
     if (failedChecks.length) entry.expectations_not_found = failedChecks.map(({ index, expectation, found }) => ({ index, expectation, found }));
@@ -896,12 +972,15 @@ async function walk(options, holder) {
     for (const [name, location] of Object.entries(step.capture ?? {})) {
       const named = elements.filter(element => element.content === `text ${location}`);
       const next = named.length === 1 ? elements[elements.indexOf(named[0]) + 1] : null;
-      values[name] = next && next.content.startsWith('text /') ? next.content.slice(5) : undefined;
-      if (values[name] === undefined) return finish('inconclusive', `stopped at ${step.id}: the location "${location}" could not be read`);
+      if (!CAPTURE_NAMES.includes(name)) return finish('inconclusive', `stopped at ${step.id}: "${name}" is not a name a capture may carry`);
+      captured[name] = next && next.content.startsWith('text /') ? next.content.slice(5) : undefined;
+      if (captured[name] === undefined) return finish('inconclusive', `stopped at ${step.id}: the location "${location}" could not be read`);
       // The App makes these paths itself: each must be of the form the scenario gives, under the App data folder.
       const form = scenario.capture_forms?.[name];
-      const pattern = typeof form === 'string' ? new RegExp('^' + fill(form, values).split('{~uuid}').map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}') + '$', 'u') : null;
-      if (!pattern || !pattern.test(values[name])) return finish('inconclusive', `stopped at ${step.id}: the location "${location}" is not of the form the App makes`);
+      // A capture form is filled from the supplied values alone (scenario.mjs allows it no other name), so no captured
+      // value can change how a form is read.
+      const pattern = typeof form === 'string' ? new RegExp('^' + fill(form, suppliedValues).split('{~uuid}').map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}') + '$', 'u') : null;
+      if (!pattern || !pattern.test(captured[name])) return finish('inconclusive', `stopped at ${step.id}: the location "${location}" is not of the form the App makes`);
     }
     // The step's one verdict, after its captures (a state can name a path captured at this step), made by the one
     // admission: "admitted" when the record of the state it names is judged and usable for this launch, its view equals
@@ -910,7 +989,7 @@ async function walk(options, holder) {
     // the walk stops there, and the step has no verdict. Every affirmative output is derived from these verdicts.
     if (step.state !== undefined) {
       entry.state_named = step.state;
-      const admitted = admission(scenario, 'state', step.state, seen.text, values, app, appName, candidateKey);
+      const admitted = admission(scenario, 'state', step.state, seen.text, values(), app, appName, candidateKey);
       if (admitted.unusable) return finish('inconclusive', `stopped at ${step.id}: ${admitted.unusable}; its view is not admitted`);
       if (!admitted.admitted) {
         mark.unmet.push({ code: 'view-differs-from-state', state: step.state });
@@ -920,8 +999,7 @@ async function walk(options, holder) {
     } else {
       mark.verdict = mark.unmet.length ? 'failed' : 'captured, not judged';
     }
-    const after = gate(`after ${step.id}`);
-    entry.child_processes = lastChildren ?? 'not known: the watch file does not show the build running';
+    const after = await gate(`after ${step.id}`, entry);
     if (after) return after;
   }
   return finish('end');
@@ -937,8 +1015,8 @@ async function walk(options, holder) {
  * Expectations are failures only (unmet): an expectation alone can never make "pass" or "shown".
  */
 // The attempt log's first line, and the README's: what the log is not.
-export const ATTEMPT_LOG_NOTE = 'ATTEMPT LOG. This is not a result: it holds what the walk did and saw (attempts and their returns, captures, the scenario\'s intended text). The walk\'s one result is its verdict.';
-export const SCENARIO_VERDICTS = ['pass', 'fail', 'inconclusive', 'captured, not judged'];
+const ATTEMPT_LOG_NOTE = 'ATTEMPT LOG. This is not a result: it holds what the walk did and saw (attempts and their returns, captures, the scenario\'s intended text). The walk\'s one result is its verdict.';
+const SCENARIO_VERDICTS = ['pass', 'fail', 'inconclusive', 'captured, not judged'];
 
 function sha256(text) {
   return createHash('sha256').update(String(text)).digest('hex');
@@ -950,7 +1028,7 @@ function sha256(text) {
  * verdict it stopped with (fail or inconclusive); only a walk that reached its end is given the derived verdict, and
  * only that can be "pass".
  */
-export function verdictAt(scenario, marks, verdict) {
+function verdictAt(scenario, marks, verdict) {
   if (verdict !== 'end') return verdict === 'fail' ? 'fail' : 'inconclusive';
   if (!isValidScenario(scenario)) return 'inconclusive';
   const required = scenario.steps;
@@ -961,7 +1039,7 @@ export function verdictAt(scenario, marks, verdict) {
   }));
 }
 
-export function verdictOf(steps) {
+function verdictOf(steps) {
   if (steps.some(step => step.verdict === 'failed')) return 'fail';
   if (!steps.length || steps.some(step => !['admitted', 'captured, not judged'].includes(step.verdict))) return 'inconclusive';
   return steps.every(step => step.verdict === 'admitted') ? 'pass' : 'captured, not judged';

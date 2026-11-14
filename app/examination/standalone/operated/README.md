@@ -1130,7 +1130,7 @@ verdict, and the operator writes it as `verdict.json`. It is one of "pass",
 every step the scenario requires (`verdictAt`, `verdictOf`): "pass" only when
 every required position was admitted; a missing, failed or unjudged position
 cannot drop out. A walk that stopped keeps the verdict it stopped with. The
-walk takes only a scenario `validateScenario` made ("The scenario's closed
+walk takes only a scenario `parseScenario` made ("The scenario's closed
 form", below); any other is refused before any call, inconclusive. The walk
 reports nothing per step or
 per outcome, and copies nothing from the scenario into what it returns.
@@ -1150,9 +1150,10 @@ as a string could reach an effect or a pass. And a thrown value whose text
 could not be read left a run without a verdict or a log. This replaces that
 check with one boundary:
 
-- **One form, checked whole.** `validateScenario` copies the scenario once
-  into plain data, so that nothing read later can differ from what was
-  checked. It then refuses the copy unless every part is of the closed form:
+- **One form, checked whole.** `parseScenario`, the one entry, parses a
+  scenario file's text and copies it into plain data, so that nothing read
+  later can differ from what was checked. It then refuses the copy unless
+  every part is of the closed form:
   - every level holds only its known keys;
   - each of the four acts holds exactly the keys it uses, with their types.
     A view needs nothing more. A click needs a control (a button, summary or
@@ -1165,29 +1166,57 @@ check with one boundary:
     exactly its companions and their types (an `is` from that kind's own
     states);
   - every record, sheet and capture is of its form, and every name one part
-    gives another (a state, a sheet, a step id) is one the scenario lists.
+    gives another (a state, a sheet, a step id) is one the scenario lists;
+  - a capture carries one of three names only (`settings`, `account`,
+    `request`), none of them a value the walk supplies, and a capture form is
+    filled only from the values the walk supplies (`identifier`, `home`,
+    `app_data`, `project`) and the App's `{~uuid}`.
 
-  It then freezes the copy and registers it, and every part of it, in a set
-  that only `scenario.mjs` can add to. It never throws: it returns the
-  scenario or the refusal.
-- **Only what it made is consumed.** The walk (`run`, `admission`,
-  `recordUsable`, `verdictAt`, `checkOne`, `sheetCheck`), `replay.mjs` and
-  `record_state.mjs` each take only a registered scenario or part. Anything
-  else is refused before anything in it is read: a plain object, a copy of
-  a validated scenario, or an object made with its prototype. That is a
-  matter of the only constructor, not of a caller remembering to check.
-  `replay.mjs` and the recorder's command validate the file they are given.
-  The operator does the same, above. So a malformed scenario gives no
-  effect, no "pass" from replay and no record from the recorder.
-- **No failure escapes.** A thrown value of any shape is described by the
-  guarded reader (`readFailure`), which says a part cannot be read rather
-  than throwing. Anything else the walk does not handle ends the run there,
-  inconclusive, with the attempt log delivered, and no later call. Writing
-  or handing over the log cannot end the walk otherwise.
+  It then freezes the copy and registers it, and each of its parts in the set
+  of that part's own kind (a step, an expectation, a selector, a control, a
+  sheet, a record), never in another's. It never throws: it returns the
+  scenario or the refusal. These are the constructor's contract: what the
+  consumers rely on (which names may be captured, and that a part is of the
+  kind a helper takes) is established by the constructor itself, not beside
+  it (the first reading of PR 355, findings 1 and 2).
+- **Only what it made is consumed, and the boundary is small.** Of the walk,
+  only `run`, `summary`, `checkOne` and `sheetCheck` take anything from
+  outside, with `recognise` and a few constants; of `scenario.mjs`, only
+  `parseScenario`, `isValidScenario`, `isExpectation`, `isSheet` and the
+  capture names; of the recorder, only its command. `run` takes only a
+  registered scenario, `checkOne` only a registered expectation, and
+  `sheetCheck` only a registered sheet. Anything else is refused before
+  anything in it is read: a plain object, a copy of a validated scenario, an
+  object made with its prototype, or a part validated as another kind. That is
+  a matter of the only constructor, not of a caller remembering to check.
+  `replay.mjs` and the recorder's command parse the file they are given; the
+  operator does the same, above. So a malformed scenario gives no effect, no
+  "pass" from replay and no record from the recorder.
+- **Supplied and captured values are kept apart.** The values the walk
+  supplies are frozen when it starts. What it captures is held apart, and a
+  template is filled from a fresh frozen view of the two, whose names are
+  disjoint by construction. No assignment can put a captured value in place of
+  a supplied one, whatever the names.
+- **One adapter for every injected option, and no failure escapes.** The
+  options a caller may inject are four: `readWatch`, `readIdentification`,
+  `sleep` and `onLog` (the clock is the walk's own). Every call to one, and to
+  the walk's clock, goes through one adapter. It awaits whatever comes back,
+  and treats a throw, a rejection, a throwing getter on what came back and a
+  value of the wrong kind the same way: it marks the walk broken, after which
+  every supplier call is refused, and the walk ends inconclusive. Failure
+  handling depends on neither the clock nor the logger that failed: the log's
+  time is words when the clock is broken, and a logger that failed is not
+  given the log again. The attempt log is always written to its file, and
+  written again saying so when the logger refused it. An asynchronous log is
+  settled before the verdict is returned or printed. A thrown value of any
+  shape is described by the guarded reader, which says a part cannot be read
+  rather than throwing. Anything else the walk does not handle ends the run
+  there, inconclusive, with the attempt log delivered, and no later call.
 
-Both findings, the sixth reader's probes and a sweep over every key of every
-committed scenario's steps are required cases in the tests
-(`group_b_operated_contract_probe.mjs`).
+Both findings of PR 351's sixth reading, the four of PR 355's first, that
+reader's probes, a table of every injected option failing in every way, and a
+sweep over every key of every committed scenario's steps are required cases in
+the tests (`group_b_operated_contract_probe.mjs`).
 
 **What a call's success is.** The supplier declares `click` and `set_value`
 each as `Promise<void>` (`types/window/Click.d.ts`, `SetValue.d.ts` in the

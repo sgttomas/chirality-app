@@ -8,29 +8,46 @@
  * test is membership in a set private to this module, which nothing else can add to. It is not a check a caller must
  * remember to make.
  *
- * validateScenario(raw):
+ * parseScenario(text), the one entry, parses a scenario file's text and gives it to validateScenario(raw), which:
  * - first copies raw once into plain data (JSON), so that nothing read later can differ from what was checked;
  * - then refuses the copy unless every part of it is of the form below: unknown keys are refused at every level, and
  *   every value has the type its consumer reads;
- * - then freezes the copy deeply and registers the scenario and each of its parts.
+ * - then freezes the copy deeply and registers the scenario, and each of its parts in the set of its own kind (a step,
+ *   an expectation, a selector, a control, a sheet, a record), never in another's.
  * It never throws. It returns { scenario } or { refusal }.
  */
 
 const VALID_SCENARIOS = new WeakSet();
-const VALID_PARTS = new WeakSet();
+// The parts, registered BY KIND: each set holds only parts validated as that kind, so a helper that takes one kind
+// cannot be given a part of another (the first reading of PR 355, finding 2).
+const KINDS = { step: new WeakSet(), expectation: new WeakSet(), selector: new WeakSet(), control: new WeakSet(),
+  sheet: new WeakSet(), record: new WeakSet() };
+const member = (kind, value) => value !== null && typeof value === 'object' && KINDS[kind].has(value);
 
 /** True only for a scenario validateScenario made. */
 export function isValidScenario(value) {
   return value !== null && typeof value === 'object' && VALID_SCENARIOS.has(value);
 }
 
-/** True only for a part (a step, an expectation, a sheet, a record, ...) of a scenario validateScenario made. */
-export function isValidPart(value) {
-  return value !== null && typeof value === 'object' && VALID_PARTS.has(value);
-}
+/** True only for an expectation validated as one, in a scenario validateScenario made. */
+export const isExpectation = value => member('expectation', value);
+/** True only for a sheet validated as one. */
+export const isSheet = value => member('sheet', value);
+/** True only for a step validated as one. */
+const isStep = value => member('step', value);
+/** True only for a record validated as one. */
+const isRecord = value => member('record', value);
+/** True only for a selector (texts_from, up_to) validated as one. */
+const isSelector = value => member('selector', value);
 
-export const ID = /^[A-Za-z0-9_-]{1,40}$/;
-export const ACTS = ['view', 'click', 'type', 'confirm_sheet'];
+// The names a capture may carry: the three paths the App makes and the sheet's statement names. They are disjoint
+// from every value the walk supplies (walk.mjs, SUPPLIED_NAMES), which the walk also checks before any call.
+export const CAPTURE_NAMES = ['settings', 'account', 'request'];
+// What a capture form may be filled from: the values the walk supplies for the launch, and the App's own {~uuid}.
+const FORM_NAMES = ['identifier', 'home', 'app_data', 'project', '~uuid'];
+
+const ID = /^[A-Za-z0-9_-]{1,40}$/;
+const ACTS = ['view', 'click', 'type', 'confirm_sheet'];
 // The kinds of control each act may name, as select() in walk.mjs finds them.
 const CLICKED = ['button', 'summary', 'radio'];
 // The kinds a selector inside an expectation may name (texts_from, up_to).
@@ -168,6 +185,8 @@ function stepProblem(step, where, scenario) {
   for (const key of ['wait_ms', 'sheet_wait_ms']) if (has(step, key) && !isWait(step[key])) return `${where}'s ${key} is not a non-negative number`;
   if (has(step, 'capture')) {
     if (!isObject(step.capture) || !Object.values(step.capture).every(isString)) return `${where}'s capture is not an object of text`;
+    const named = Object.keys(step.capture).find(name => !CAPTURE_NAMES.includes(name));
+    if (named !== undefined) return `${where} captures ${JSON.stringify(named)}, which is not one of the names a capture may carry`;
     const forms = scenario.capture_forms ?? {};
     const unformed = Object.keys(step.capture).find(name => !has(forms, name));
     if (unformed !== undefined) return `${where} captures ${JSON.stringify(unformed)}, which has no form in capture_forms`;
@@ -205,7 +224,7 @@ const TOP_OPTIONAL = ['what_it_is', 'starting_state', 'acts', 'limit', 'states_r
   'typed_fields', 'sheets', 'states', 'state_records', 'sheet_records', 'capture_forms', 'outcomes'];
 
 /** Why the plain scenario is not of the closed form, or null. */
-export function formProblem(scenario) {
+function formProblem(scenario) {
   if (!isObject(scenario)) return 'the scenario is not an object';
   const keys = keysProblem(scenario, TOP_REQUIRED, TOP_OPTIONAL, 'the scenario');
   if (keys) return keys;
@@ -241,6 +260,10 @@ export function formProblem(scenario) {
     }
   }
   if (has(scenario, 'capture_forms') && (!isObject(scenario.capture_forms) || !Object.values(scenario.capture_forms).every(isString))) return "the scenario's capture_forms is not an object of text";
+  if (has(scenario, 'capture_forms') && Object.keys(scenario.capture_forms).some(name => !CAPTURE_NAMES.includes(name))) return "the scenario's capture_forms names something that is not one of the names a capture may carry";
+  // A capture form may be filled only from values the walk supplies (and the {~uuid} the App makes), never from a
+  // captured value, so that what a capture is checked against cannot depend on another capture.
+  if (has(scenario, 'capture_forms') && Object.values(scenario.capture_forms).some(form => [...form.matchAll(/\{(~?\w+)\}/g)].some(([, name]) => !FORM_NAMES.includes(name)))) return "a capture form names something other than the values the walk supplies";
   const steps = scenario.steps;
   if (!Array.isArray(steps) || !steps.length) return 'its steps are not a non-empty list';
   const seen = new Set();
@@ -262,15 +285,32 @@ export function formProblem(scenario) {
   return null;
 }
 
-function freezeAndRegister(value) {
+function freeze(value) {
   if (value === null || typeof value !== 'object') return;
-  for (const part of Object.values(value)) freezeAndRegister(part);
+  for (const part of Object.values(value)) freeze(part);
   Object.freeze(value);
-  VALID_PARTS.add(value);
+}
+
+/** Each part into the set of its own kind, as formProblem validated it, and into no other. */
+function registerKinds(scenario) {
+  const expectation = item => {
+    KINDS.expectation.add(item);
+    if (has(item, 'texts_from')) { KINDS.selector.add(item.texts_from); KINDS.selector.add(item.up_to); }
+  };
+  for (const step of scenario.steps) {
+    KINDS.step.add(step);
+    step.expect.forEach(expectation);
+    if (has(step, 'control')) KINDS.control.add(step.control);
+  }
+  for (const sheet of scenario.sheets ?? []) KINDS.sheet.add(sheet);
+  for (const record of [...Object.values(scenario.state_records ?? {}), ...Object.values(scenario.sheet_records ?? {})]) {
+    KINDS.record.add(record);
+    (record.judged.expectations ?? []).forEach(expectation);
+  }
 }
 
 /** The only constructor of a validated scenario. Never throws: { scenario } or { refusal }. */
-export function validateScenario(raw) {
+function validateScenario(raw) {
   let plain;
   try {
     const text = JSON.stringify(raw);
@@ -286,7 +326,8 @@ export function validateScenario(raw) {
     problem = 'the scenario could not be checked';
   }
   if (problem) return { refusal: problem };
-  freezeAndRegister(plain);
+  freeze(plain);
+  registerKinds(plain);
   VALID_SCENARIOS.add(plain);
   return { scenario: plain };
 }

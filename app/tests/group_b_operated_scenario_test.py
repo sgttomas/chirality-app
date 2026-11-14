@@ -44,7 +44,7 @@ let lastRefusal = null;
 const validated = options => {
   lastRefusal = null;
   if (scenarioModule.isValidScenario(options.scenario)) return options;
-  const made = scenarioModule.validateScenario(options.scenario);
+  const made = scenarioModule.parseScenario(JSON.stringify(options.scenario));
   lastRefusal = made.refusal ?? null;
   return { ...options, scenario: made.scenario ?? options.scenario };
 };
@@ -202,12 +202,16 @@ class Replay(unittest.TestCase):
         self.assertEqual((code, report['verdict']), (2, 'inconclusive'), said)
         self.assertIn('the recorded state S1 was recorded on another build', report['stopped'])
         self.assertEqual([call['call'] for call in report['calls'] if call['call'] != 'get_app_state'], [])
-        # And a state with no record of being judged is not used either.
-        scenario = json.loads(SETUP.read_text())
-        scenario['state_records']['S1']['judged']['result'] = 'not judged'
-        self.assertIn('was not judged before it was recorded',
-                      harness(f"return walk.recordUsable(scenarioModule.validateScenario({json.dumps(scenario)}).scenario, 'state', 'S1', {json.dumps(scenario['state_records']['S1']['recorded_on']['identifier'])}, "
-                              f"{json.dumps(scenario['state_records']['S1']['recorded_on']['app_name'])}, {json.dumps(scenario['state_records']['S1']['recorded_on']['candidate_key'])});")['out'])
+        # And a state with no record of being judged is not used either: through replay, nothing is acted on.
+        with tempfile.TemporaryDirectory() as folder:
+            scenario = json.loads(rebound(SETUP, folder).read_text())
+            scenario['state_records']['S1']['judged']['result'] = 'not judged'
+            path = Path(folder) / 'unjudged.scenario.json'
+            path.write_text(json.dumps(scenario))
+            code, report, said = replay(path, self.views_file())
+        self.assertEqual((code, report['verdict']), (2, 'inconclusive'), said)
+        self.assertIn('the recorded state S1 was not judged before it was recorded', report['stopped'])
+        self.assertEqual([call['call'] for call in report['calls'] if call['call'] != 'get_app_state'], [])
 
     def test_a_scenario_that_acts_and_names_no_listed_state_is_refused_before_any_call(self):
         code, report, said = replay(SCENARIO, VIEWS)  # the first-use scenario, kept for the hosted driver
@@ -528,22 +532,6 @@ class TheWalkItself(unittest.TestCase):
         self.assertNotIn('caused by', summary)  # kept in the attempt log's click_error (failed, above)
         self.assertEqual((clicks, calls_after, step_error), (1, 0, 'Sky Computer Use click failed'))
 
-    def test_a_view_returned_as_differences_is_applied_to_the_view_before_it(self):
-        result = harness('''
-          const menu = '\\n5 menu bar\\n\\t6 Chirality App v4 (development invented)\\n\\t7 File\\n\\t8 Edit\\n\\t9 View\\n\\t10 Window\\n\\t11 Help\\n\\t12 Waiting requests (0)';
-          const before = walk.parseView('Window: "Chirality", App: Chirality App v4 (development invented).\\n0 standard window Chirality\\n\\t1 button (disabled) Review setup\\n\\t2 summary Details, Value: off\\n\\t\\t3 text Details\\n\\t4 close button' + menu, 'Chirality App v4 (development invented)');
-          const after = walk.applyDifference(before, 'The following is a diff from the previous accessibility tree for Window: "Chirality"\\nRemoved element IDs: 2-3\\n~\\t1 button Review setup\\n+\\t13 container (expanded)\\n+\\t\\t14 summary Details, Value: on\\nThe focused UI element is 14');
-          const same = walk.applyDifference(after, 'There has been no change in the accessibility tree for Window: "Chirality".');
-          return [after.map(e => e.index + ':' + e.depth + ':' + e.content), same.length];''')
-        # A difference keeps the indices of the elements that stay, and new elements take new ones: a view rebuilt so is
-        # not numbered 0 to N in order, which is one reason the walk acts on whole views only.
-        self.assertEqual(result['out'], [['0:0:standard window Chirality', '1:1:button Review setup', '13:1:container (expanded)',
-                                          '14:2:summary Details, Value: on', '4:1:close button', '5:0:menu bar',
-                                          '6:1:Chirality App v4 (development invented)', '7:1:File', '8:1:Edit', '9:1:View',
-                                          '10:1:Window', '11:1:Help', '12:1:Waiting requests (0)'], 13])
-
-
-class TheWatchFile(unittest.TestCase):
     def test_it_says_running_with_the_children_and_then_that_the_process_has_gone(self):
         folder = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, folder, True)
@@ -1124,12 +1112,6 @@ class TheSheetAndTheTypedPath(unittest.TestCase):
         self.assertIn('the view is not the listed state S1', stopped)
         self.assertFalse([c for c in calls if c.startswith('set_value')])
 
-    def test_a_link_with_other_words_after_its_label_is_not_it(self):
-        elements = [{'index': 1, 'depth': 0, 'content': 'link Settings & tools, Sign in'},
-                    {'index': 2, 'depth': 0, 'content': 'link Settings & tools, another purpose'}]
-        result = harness(f"return walk.select({json.dumps(elements)}, {{ kind: 'link', label: 'Settings & tools' }}).length;")
-        self.assertEqual(result['out'], 0)
-
     def test_an_alert_holding_a_control_is_not_page(self):
         views = setup_views()
         views['views'][0]['text'] = in_order(views['views'][0]['text'].replace(
@@ -1311,14 +1293,6 @@ class TheSheetAndTheTypedPath(unittest.TestCase):
                 self.assertEqual(verdict, 'inconclusive')
                 self.assertIn(says, stopped)
                 self.assertNotIn('click4', calls)
-
-    def test_a_link_is_the_one_whose_words_are_exactly_the_scenarios(self):
-        elements = [{'index': 1, 'depth': 0, 'content': 'link Settings & tools'},
-                    {'index': 2, 'depth': 0, 'content': 'link Settings & tools, Visited'},
-                    {'index': 3, 'depth': 0, 'content': 'link Settings & tools and more'},
-                    {'index': 4, 'depth': 0, 'content': 'button Settings & tools'}]
-        result = harness(f"return walk.select({json.dumps(elements)}, {{ kind: 'link', label: 'Settings & tools' }}).map(e => e.index);")
-        self.assertEqual(result['out'], [1, 2])
 
     def test_the_first_use_walk_still_makes_no_set_value_and_presses_no_sheet(self):
         result = harness('return (await walk.run(base)).verdict;')
@@ -1569,31 +1543,14 @@ class TheViewOnlyScenarios(unittest.TestCase):
         self.assertEqual(set(calls), {'get_app_state'})
         self.assertEqual(result['touched'], ['get_app_state'] * 3)
 
-    def test_no_committed_scenario_can_pass_with_a_step_that_names_no_state(self):
-        # Every scenario file in the repository, through the walk's own verdict rule, with every expectation met: it can
-        # report a pass only when every step names a recorded state that its view equalled. A scenario added later
-        # without states cannot bring back a pass on the anchor alone.
-        files = sorted(OPERATED.glob('*.scenario.json'))
-        self.assertGreaterEqual(len(files), 5)
-        outcomes = {}
-        for path in files:
-            scenario = json.loads(path.read_text())
-            entries = [{'unmet': [], 'verdict': 'admitted' if isinstance((scenario.get('states') or {}).get(step.get('state')), list) else 'captured, not judged'}
-                       for step in scenario['steps']]
-            verdict = harness(f'return walk.verdictOf({json.dumps(entries)});')['out']
-            names_all = all(isinstance((scenario.get('states') or {}).get(step.get('state')), list) for step in scenario['steps'])
-            with self.subTest(path.name):
-                self.assertEqual(verdict, 'pass' if names_all else 'captured, not judged')
-            outcomes[path.name] = verdict
-        self.assertEqual(outcomes['signed-out-setup.scenario.json'], 'pass')
-        for name in ('first-launch-view.scenario.json', 'signed-out-relaunch.scenario.json', 'first-use-setup.scenario.json'):
-            self.assertEqual(outcomes[name], 'captured, not judged')
-        # And the rule itself: a step judged false, or one with no judgement at all, is never a pass.
-        self.assertEqual(harness("return walk.verdictOf([{verdict: 'admitted'}, {verdict: 'captured, not judged'}]);")['out'], 'captured, not judged')
-        self.assertEqual(harness("return walk.verdictOf([]);")['out'], 'inconclusive')
-        self.assertEqual(harness("return walk.verdictOf([{verdict: 'failed'}, {verdict: 'admitted'}]);")['out'], 'fail')
-        self.assertEqual(harness("return walk.verdictOf([{verdict: 'admitted'}, {verdict: 'no verdict'}]);")['out'], 'inconclusive')  # a step with no verdict
-        self.assertEqual(harness("return walk.verdictOf([{verdict: 'admitted'}, {verdict: 'not reached'}]);")['out'], 'inconclusive')
+    def test_no_walk_can_pass_with_a_step_that_names_no_state(self):
+        # Through the walk itself, the verdict rule by position: the setup walk, every expectation met, with any one
+        # step's state taken away, is "captured, not judged", never a pass.
+        for n in range(5):
+            with self.subTest(step=n + 1):
+                out = setup_walk(f"delete scenario.steps[{n}].state; return await walkModule.run(base);")['out']
+                self.assertEqual(out, 'captured, not judged')
+        self.assertEqual(setup_walk('return await walkModule.run(base);')['out'], 'pass')
 
     def test_the_first_launch_view_does_not_pass_on_a_view_with_a_line_inside_its_menu_bar_block(self):
         # The independent reading of PR 351 (round one): a further line inside the block was accepted, and this
@@ -1629,6 +1586,28 @@ def identified_candidate(folder, key='invented-key'):
     return str(candidate / 'target/debug/bundle/macos' / (INVENTED_APP + '.app'))
 
 
+def recorder_command(scenario, step, result, options):
+    """record_state.mjs by its command, its one entry: the scenario and the captures as files. Returns what it printed,
+    or {refusal, scenario_refused} as its message gives them."""
+    flags = {'bundle': '--bundle', 'project': '--project', 'candidateKey': '--candidate-key', 'from': '--from', 'sheet': '--sheet',
+             'settings': '--settings', 'account': '--account', 'request': '--request'}
+    with tempfile.TemporaryDirectory() as folder:
+        scenario_path, result_path = Path(folder) / 'scenario.json', Path(folder) / 'captures.json'
+        scenario_path.write_text(json.dumps(scenario))
+        result_path.write_text(json.dumps(result))
+        arguments = [argument for name, value in options.items() for argument in (flags[name], value)]
+        done = subprocess.run([NODE, str(OPERATED / 'record_state.mjs'), str(scenario_path), step, str(result_path), *arguments],
+                              capture_output=True, text=True)
+    if done.returncode == 0:
+        return json.loads(done.stdout)
+    said = done.stderr.strip()
+    if not said.startswith('not recorded: '):
+        raise AssertionError(said)
+    refusal = said[len('not recorded: '):]
+    closed = re.fullmatch(r'the scenario is not of the closed form \((.*)\)', refusal)
+    return {'refusal': refusal, 'scenario_refused': closed.group(1) if closed else None}
+
+
 class TheRecorder(unittest.TestCase):
     """record_state.mjs: a state is written only for a view that meets its step's expectations, and carries the build it
     was recorded on and the judgment made of it."""
@@ -1642,17 +1621,7 @@ class TheRecorder(unittest.TestCase):
             bundle = identified_candidate(folder)
         result = {'app': INVENTED['app'], 'home': INVENTED['home'], 'steps': [{'id': step, 'returned': text}]}
         options = {'bundle': bundle, 'project': PROJECT, 'from': 'invented', **({'candidateKey': key} if key else {})}
-        # The scenario is validated by its only constructor, as the recorder's command does; one it refuses is given as
-        # it is, so that the recorder's own refusal is what the test sees, with validateScenario's reason beside it.
-        script = (f"import {{ record }} from {json.dumps(self.RECORDER.as_uri())}; "
-                  f"import {{ validateScenario }} from {json.dumps((OPERATED / 'scenario.mjs').as_uri())}; "
-                  f"const raw = {json.dumps(scenario or json.loads(SETUP.read_text()))}; const v = validateScenario(raw); "
-                  f"process.stdout.write(JSON.stringify({{ ...record(v.scenario ?? raw, "
-                  f"{json.dumps(step)}, {json.dumps(result)}, {json.dumps(options)}), scenario_refused: v.refusal ?? null }}));")
-        done = subprocess.run([NODE, '--input-type=module', '-e', script], capture_output=True, text=True)
-        if done.returncode != 0:
-            raise AssertionError(done.stderr)
-        return json.loads(done.stdout)
+        return recorder_command(scenario or json.loads(SETUP.read_text()), step, result, options)
 
     def test_a_view_meeting_its_expectations_is_recorded_with_its_build_and_its_judgment(self):
         made = self.record('S5', AFTER_THE_PRESS)
@@ -1682,7 +1651,7 @@ class TheRecorder(unittest.TestCase):
         # A step that expects nothing is not of the closed form: the scenario is refused whole, and nothing is recorded.
         made = self.record('S5', AFTER_THE_PRESS, scenario)
         self.assertEqual(made['scenario_refused'], 'step 5 expects nothing')
-        self.assertIn('not made by validateScenario', made['refusal'])
+        self.assertIn('not of the closed form', made['refusal'])
         self.assertNotIn('state', made)
 
     def test_a_view_of_another_build_is_not_recordable(self):
@@ -1806,13 +1775,7 @@ class TheClosedList(unittest.TestCase):
             self.addCleanup(shutil.rmtree, folder)
             options = {'bundle': identified_candidate(folder), 'project': PROJECT, 'sheet': 'desktop-setup',
                        'settings': SETTINGS, 'account': ACCOUNT, 'request': REQUEST}
-            script = (f"import {{ recordSheet }} from {json.dumps((OPERATED / 'record_state.mjs').as_uri())}; "
-                      f"import {{ validateScenario }} from {json.dumps((OPERATED / 'scenario.mjs').as_uri())}; "
-                      f"process.stdout.write(JSON.stringify(recordSheet(validateScenario({SETUP.read_text()}).scenario, 'S5', {json.dumps(result)}, {json.dumps(options)})));")
-            done = subprocess.run([NODE, '--input-type=module', '-e', script], capture_output=True, text=True)
-            if done.returncode != 0:
-                raise AssertionError(done.stderr)
-            return json.loads(done.stdout)
+            return recorder_command(json.loads(SETUP.read_text()), 'S5', result, options)
         agreed = recorded(SHEET_ON_ITS_OWN)
         self.assertEqual(agreed['record']['judged']['result'], 'every line agreed with the template')
         self.assertEqual(agreed['record']['recorded_on']['app_name'], INVENTED_APP)
@@ -1899,22 +1862,10 @@ class TheVerdictAlone(unittest.TestCase):
                 self.assertTrue(any(e.startswith('uncertain') for e in effects))
 
     def test_a_pass_needs_every_required_position_admitted(self):
-        # The last required step with no verdict (the build gone during its view), with no mark at all (not reached),
-        # or failed: never a pass. And the rule itself, over positions.
-        rule = lambda steps: harness(f'return walk.verdictOf({json.dumps(steps)});')['out']
-        self.assertEqual(rule([{'verdict': 'admitted'}] * 4 + [{'verdict': 'no verdict'}]), 'inconclusive')
-        self.assertEqual(rule([{'verdict': 'admitted'}] * 4 + [{'verdict': 'not reached'}]), 'inconclusive')
-        self.assertEqual(rule([{'verdict': 'admitted'}] * 4 + [{'verdict': 'failed'}]), 'fail')
-        self.assertEqual(rule([]), 'inconclusive')
-        self.assertEqual(rule([{'verdict': 'admitted'}] * 5), 'pass')
-        at = lambda marks, verdict='end': harness(f'return walk.verdictAt(scenarioModule.validateScenario({SETUP.read_text()}).scenario, {json.dumps(marks)}, {json.dumps(verdict)});')['out']
-        admitted = [{'position': n, 'verdict': 'admitted'} for n in range(5)]
-        self.assertEqual(at(admitted), 'pass')
-        self.assertEqual(at(admitted[:4]), 'inconclusive')                     # the last position has no mark
-        self.assertEqual(at(admitted[:4] + [{'position': 4}]), 'inconclusive')  # the last position has no verdict
-        self.assertEqual(at(admitted[1:] + [{'position': 4, 'verdict': 'admitted'}]), 'inconclusive')  # marks out of position
-        self.assertEqual(at(admitted, 'inconclusive'), 'inconclusive')           # a walk that stopped keeps its verdict
-        self.assertEqual(at(admitted, 'pass'), 'inconclusive')                   # "pass" is never passed in, only derived
+        # Through the walk itself: the last required step failed, not judged, or with no verdict (the build gone during
+        # its view): never a pass.
+        self.assertEqual(setup_walk("scenario.steps[4].expect.push({ heading: 'Invented absent heading' }); return await walkModule.run(base);")['out'], 'fail')
+        self.assertEqual(setup_walk("delete scenario.steps[4].state; return await walkModule.run(base);")['out'], 'captured, not judged')
         # And a walk whose build goes during the last step's view: inconclusive.
         case = ("let n = 0, gone = false; const watch = base.readWatch; base.readWatch = () => (gone ? null : watch()); "
                 "const real = base.sky; base.sky = new Proxy(real, { get: (target, name) => async (input) => { "
@@ -2152,14 +2103,9 @@ class TheScenarioContract(unittest.TestCase):
             with self.subTest(name):
                 self.assertEqual((row['verdict'], row['uses']), ('inconclusive', 0), row)
                 self.assertIn('not made by validateScenario', row['stopped'])
-                self.assertIn('not made by validateScenario', row['usable'])
-                self.assertFalse(row['admission']['admitted'])
-                self.assertIn('not part of a scenario validateScenario made', row['checkOne'])
-                self.assertIn('the sheet is not part of a scenario validateScenario made', row['sheetCheck'])
-                self.assertIn('not made by validateScenario', row['record'])
-                self.assertIn('not made by validateScenario', row['recordSheet'])
+                self.assertIn('not an expectation of a scenario validateScenario made', row['checkOne'])
+                self.assertIn('the sheet is not a sheet of a scenario validateScenario made', row['sheetCheck'])
         self.assertEqual(self.results['frozen'], {'changedAfter': 'refused', 'press': None, 'stillValid': True})
-        self.assertEqual(self.results['read_once'], {'shifted': 'valid', 'reads': 1, 'laterPress': None})
 
     def test_replay_gives_no_pass_and_the_recorder_no_record_for_a_malformed_scenario(self):
         # The evidence side: neither replay nor the recorder's command can make accepted evidence from a malformed
@@ -2186,3 +2132,85 @@ class TheScenarioContract(unittest.TestCase):
                 self.assertEqual(done.returncode, 2, done.stdout)
                 self.assertEqual(done.stdout, '')
                 self.assertIn('not recorded: the scenario is not of the closed form', done.stderr)
+
+
+class TheInjectedOptionsAndTheReadersCases(TheScenarioContract):
+    """The first reading of PR 355's four findings, as required cases (the probe's results are TheScenarioContract's).
+    One adapter takes every injected option; the walk keeps supplied and captured values apart; parts are registered
+    by kind."""
+
+    def test_every_injected_option_failing_in_every_way_ends_inconclusive_with_its_log_and_no_later_call(self):
+        rows = self.results['options']
+        names = {key.split(' ')[0] for key in rows}
+        self.assertEqual(names, {'readWatch', 'readIdentification', 'sleep', 'onLog'})
+        self.assertEqual(len(rows), 2 * 5 + 1 * 5 + 2 * 4 + 1 * 4)  # by option: positions by failure kinds
+        for name, row in rows.items():
+            with self.subTest(name):
+                self.assertTrue(row['failed'], row)  # the failure was reached
+                self.assertEqual((row['verdict'], row['rejected'], row['later'], row['logFile'], row['broken']),
+                                 ('inconclusive', False, 0, True, True), row)
+                if row['logHanded'] is not None:
+                    self.assertTrue(row['logHanded'], row)
+
+    def test_a_rejecting_option_in_a_process_of_its_own_leaves_no_unhandled_rejection(self):
+        script = r'''
+const walk = await import(process.argv[1]);
+const contract = await import(new URL('./scenario.mjs', process.argv[1]).href);
+const scenario = contract.parseScenario(JSON.stringify({ scenario: 'invented', version: 1, window: 'Chirality', window_holds: [],
+  steps: [{ id: 'V1', act: 'view', expect: [{ text: 'invented' }] }] })).scenario;
+const sky = { async get_app_state() { return { app: '/invented/candidate/target/debug/bundle/macos/Chirality App v4 (development invented).app', text: '' }; } };
+const failing = () => Promise.reject(Object.create(null));
+const given = { sky, scenario, app: 'dev.chirality.app-v4.candidate.invented', home: '/invented/home', pid: 4242,
+  bundle: '/invented/candidate/target/debug/bundle/macos/Chirality App v4 (development invented).app',
+  readWatch: () => ({ pid: 4242, running: true, at_ms: Date.now(), children: [],
+    executable: '/invented/candidate/target/debug/bundle/macos/Chirality App v4 (development invented).app/Contents/MacOS/x' }),
+  readIdentification: () => ({ candidate_key: 'invented-key' }), sleep: async () => {}, onLog: () => undefined };
+given[process.argv[2]] = failing;
+console.log(JSON.stringify(await walk.run(given)));
+'''
+        for name in ('readWatch', 'readIdentification', 'sleep', 'onLog'):
+            with self.subTest(name):
+                done = subprocess.run([NODE, '--input-type=module', '-e', script, WALK.as_uri(), name], capture_output=True, text=True)
+                self.assertEqual(done.returncode, 0, done.stderr)
+                self.assertEqual(done.stdout.strip(), '"inconclusive"', done.stderr)
+                self.assertNotIn('Unhandled', done.stderr)
+
+    def test_an_asynchronous_log_settles_before_the_verdict_is_returned(self):
+        self.assertEqual(self.results['log_settles'], {'verdict': 'pass', 'settled_before_return': True})
+
+    def test_a_capture_form_is_read_from_supplied_values_only(self):
+        self.assertIn('a capture form names something other than the values the walk supplies',
+                      self.results['malformed']['capture_form_names_a_capture']['refusal'])
+        self.assertIn('is not one of the names a capture may carry', self.results['malformed']['capture_named_project']['refusal'])
+
+    def test_a_capture_cannot_replace_a_supplied_value(self):
+        # The reader's scenario: a capture named project, with its form "{project}". The form refuses it before any
+        # call; and the walk's view of values keeps the supplied project whatever a capture is called.
+        row = self.results['capture_collision']
+        self.assertIn('is not one of the names a capture may carry', row['refusal'])
+        self.assertEqual((row['walked']['verdict'], row['walked']['uses']), ('inconclusive', 0))
+
+    def test_the_capture_collision_gives_no_pass_from_replay_and_no_record_from_the_recorder(self):
+        base = json.loads(self.scenario.read_text())
+        base['steps'][0]['capture'] = {'project': 'Invented captured project'}
+        base['capture_forms'] = {**base.get('capture_forms', {}), 'project': '{project}'}
+        with tempfile.TemporaryDirectory() as folder:
+            path = Path(folder) / 'collision.scenario.json'
+            path.write_text(json.dumps(base))
+            code, report, said = replay(path, self.views)
+            self.assertEqual((code, report['verdict'], report['calls']), (2, 'inconclusive', []), said)
+            attempt = Path(folder) / 'attempt-log.json'
+            attempt.write_text(json.dumps({'app': INVENTED['app'], 'home': INVENTED['home'], 'steps': [{'id': 'S5', 'returned': AFTER_THE_PRESS}]}))
+            done = subprocess.run([NODE, str(OPERATED / 'record_state.mjs'), str(path), 'S5', str(attempt), '--bundle',
+                                   identified_candidate(folder), '--project', PROJECT], capture_output=True, text=True)
+            self.assertEqual((done.returncode, done.stdout), (2, ''))
+            self.assertIn('not of the closed form', done.stderr)
+
+    def test_a_helper_takes_only_a_part_validated_as_its_own_kind(self):
+        parts = self.results['parts']
+        self.assertNotIn('refusal', parts, parts)
+        self.assertFalse(parts['states_as_expectation'])
+        self.assertFalse(parts['capture_forms_as_expectation'])
+        self.assertIn('the sheet is not a sheet of a scenario validateScenario made', parts['states_as_sheet'])
+        self.assertTrue(parts['own_expectation_accepted'])
+        self.assertTrue(parts['own_sheet_accepted'])

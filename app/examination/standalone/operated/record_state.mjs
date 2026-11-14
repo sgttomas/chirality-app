@@ -60,7 +60,7 @@ function candidateKeyOf(bundle, given) {
   return { key, from: 'the identification record of the candidate folder holding the bundle' };
 }
 
-export function recordSheet(scenario, stepId, result, options) {
+function recordSheet(scenario, stepId, result, options) {
   const refuse = why => ({ refusal: why });
   if (!isValidScenario(scenario)) return refuse('the scenario was not made by validateScenario (scenario.mjs), so nothing is recorded from it');
   const sheet = (scenario?.sheets ?? []).find(candidate => candidate?.id === options.sheet);
@@ -92,7 +92,7 @@ export function recordSheet(scenario, stepId, result, options) {
   };
 }
 
-export function record(scenario, stepId, result, options) {
+function record(scenario, stepId, result, options) {
   const refuse = why => ({ refusal: why });
   if (!isValidScenario(scenario)) return refuse('the scenario was not made by validateScenario (scenario.mjs), so nothing is recorded from it');
   const step = (scenario?.steps ?? []).find(candidate => candidate?.id === stepId);

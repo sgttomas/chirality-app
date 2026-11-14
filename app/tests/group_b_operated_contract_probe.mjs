@@ -13,10 +13,11 @@ import { pathToFileURL } from 'node:url';
 const [folder, scenarioPath, viewsPath, ...committed] = process.argv.slice(2);
 const walk = await import(pathToFileURL(`${folder}/walk.mjs`).href);
 const contract = await import(pathToFileURL(`${folder}/scenario.mjs`).href);
-const recorder = await import(pathToFileURL(`${folder}/record_state.mjs`).href);
 const original = JSON.parse(readFileSync(scenarioPath, 'utf8'));
 const recorded = JSON.parse(readFileSync(viewsPath, 'utf8'));
 const clone = value => structuredClone(value);
+// A scenario through its one entry, as replay, the recorder and the operator give it: as text.
+const validate = raw => contract.parseScenario(JSON.stringify(raw));
 const EFFECTS = ['set_value', 'ordinary_click', 'summary_click', 'sheet_opener', 'press'];
 
 // An invented supplier fed the recorded views. The effect at position `effect` throws `value` (mode 'throw') or returns
@@ -50,7 +51,7 @@ const options = sky => ({ sky, app: recorded.app, home: recorded.home, bundle: r
 // A walk as a consumer makes it: the scenario validated by its only constructor, and the walk given only what that made
 // (a refused scenario is given as it is, so that the walk's own refusal is what is seen).
 async function walked(raw, given = {}) {
-  const made = contract.validateScenario(raw);
+  const made = validate(raw);
   const { sky, seen } = supplier(given);
   let verdict = null, rejected = null, log = null;
   try {
@@ -87,6 +88,8 @@ const MALFORMED = {
   press_not_a_boolean_number: s => { s.steps[4].press = 1; }, is_not_of_its_kind: s => { s.steps[0].expect[1].is = 'on'; },
   selector_extra_key: s => { s.steps[2].expect[1].texts_from.invented = 1; }, record_extra_key: s => { s.state_records.S1.invented = 1; },
   record_for_unlisted_state: s => { s.state_records.S9 = clone(s.state_records.S1); }, from_state_unlisted: s => { s.steps[2].from_state = 'S9'; },
+  capture_form_names_a_capture: s => { s.capture_forms.request = '{settings}/invented'; },
+  capture_named_project: s => { s.steps[3].capture = { ...s.steps[3].capture, project: 'Settings folder' }; },
 };
 results.malformed = {};
 for (const [name, change] of Object.entries(MALFORMED)) {
@@ -127,7 +130,7 @@ results.sweep = [];
 const SPOILS = [['deleted', undefined], ['a number', 5], ['a truthy string', 'false'], ['null', null]];
 for (const path of committed) {
   const scenario = JSON.parse(readFileSync(path, 'utf8'));
-  if (contract.validateScenario(scenario).refusal) continue;
+  if (validate(scenario).refusal) continue;
   scenario.steps.forEach((step, n) => {
     const targets = [[[], step]];
     if (step.control) targets.push([['control'], step.control]);
@@ -139,7 +142,7 @@ for (const path of committed) {
           let at = changed.steps[n];
           for (const part of where) at = at[part];
           if (value === undefined) delete at[key]; else at[key] = value;
-          const made = contract.validateScenario(changed);
+          const made = validate(changed);
           results.sweep.push({ scenario: path.split('/').pop(), step: step.id, key: [...where, key].join('.'), spoil, refusal: made.refusal ?? null });
         }
       }
@@ -164,7 +167,7 @@ for (const row of results.sweep.filter(row => row.refusal === null && row.scenar
 
 // Consumers cannot be handed a raw scenario: a plain object, a copy of a validated one, an object made with a validated
 // one's prototype, and a validated one changed after validation.
-const valid = contract.validateScenario(clone(original)).scenario;
+const valid = validate(clone(original)).scenario;
 const raws = { plain: clone(original), spread_copy: { ...valid }, same_prototype: Object.assign(Object.create(Object.getPrototypeOf(valid)), clone(original)) };
 results.raw = {};
 for (const [name, raw] of Object.entries(raws)) {
@@ -173,26 +176,87 @@ for (const [name, raw] of Object.entries(raws)) {
   try { verdict = await walk.run({ ...options(sky), scenario: raw, onLog: delivered => { log = delivered; } }); } catch { verdict = 'rejected'; }
   results.raw[name] = {
     verdict, uses: seen.uses, stopped: log?.stopped ?? null,
-    usable: walk.recordUsable(raw, 'state', 'S1', recorded.app, 'Chirality App v4 (development invented)', 'invented-key'),
-    admission: walk.admission(raw, 'state', 'S1', recorded.views[0].text, {}, recorded.app, 'Chirality App v4 (development invented)', 'invented-key'),
     checkOne: walk.checkOne([], clone(original.steps[4].expect[2]), {}).found,
     sheetCheck: walk.sheetCheck('', clone(original.sheets[0]), {}, 'Chirality App v4 (development invented)').problems,
-    record: recorder.record(raw, 'S5', { app: recorded.app, home: recorded.home, steps: [] }, {}).refusal ?? null,
-    recordSheet: recorder.recordSheet(raw, 'S5', { app: recorded.app, home: recorded.home, steps: [] }, { sheet: 'desktop-setup' }).refusal ?? null,
   };
 }
 let changedAfter = 'unchanged';
 try { valid.steps[4].press = 'false'; } catch { changedAfter = 'refused'; }
 results.frozen = { changedAfter, press: valid.steps[4].press ?? null, stillValid: contract.isValidScenario(valid) };
 
-// What is validated is read once: a raw scenario whose reads change after validation, or which is changed afterwards,
-// does not change what the walk is given.
-let reads = 0;
-const shifting = new Proxy(clone(original), { get(target, name) { if (name === 'steps' && reads++ > 0) return 'changed'; return target[name]; } });
-const shifted = contract.validateScenario(shifting);
-const later = clone(original);
-const laterMade = contract.validateScenario(later);
-later.steps[4].press = 'false';
-results.read_once = { shifted: shifted.refusal ?? 'valid', reads, laterPress: laterMade.scenario?.steps[4].press ?? null };
+// THE INJECTED OPTIONS, one table (the first reading of PR 355, findings 3 and 4; App Agent 0's change: one adapter):
+// each of the five options failing in each way, at its first reading and, where it is read more than once, at a later
+// one. Each run must end inconclusive, never reject, deliver its attempt log, and make no supplier call after the
+// failure. The walk's clock is its own and no longer injected (App Agent 0: no option without a consumer).
+const { mkdtempSync, existsSync } = await import('node:fs');
+const { tmpdir } = await import('node:os');
+const logFolder = mkdtempSync(`${tmpdir()}/contract-options-`);
+const FAILURES = {
+  throw: () => () => { throw Object.create(null); },
+  reject: () => () => Promise.reject(Object.create(null)),
+  then_getter: () => () => ({ get then() { throw new Error('invented'); } }),
+  wrong_kind: wrong => () => wrong,
+  property_getter: () => () => ({ get pid() { throw new Error('invented'); }, running: true }),
+};
+const WRONG = { readWatch: 'invented text', readIdentification: 'invented text', sleep: 1, onLog: 'a value' };
+const DATA = ['readWatch', 'readIdentification'];
+results.options = {};
+let runNumber = 0;
+for (const name of ['readWatch', 'readIdentification', 'sleep', 'onLog']) {
+  for (const [failure, make] of Object.entries(FAILURES)) {
+    if (failure === 'property_getter' && !DATA.includes(name)) continue;
+    for (const position of [0, 2]) {
+      if (position > 0 && ['readIdentification', 'onLog'].includes(name)) continue;  // read once only
+      const { sky, seen } = supplier();
+      const base = options(sky);
+      const real = { readWatch: base.readWatch, readIdentification: base.readIdentification,
+        sleep: base.sleep, onLog: () => undefined };
+      let reads = 0, usesAtFailure = null, logged = null;
+      const failing = make(WRONG[name]);
+      const injected = (...args) => {
+        if (reads++ === position) { usesAtFailure = seen.uses; return failing(...args); }
+        return real[name](...args);
+      };
+      const attemptLog = `${logFolder}/run-${runNumber++}.json`;
+      const given = { ...base, ...real, scenario: validate(clone(original)).scenario, attemptLog, [name]: injected };
+      if (name !== 'onLog') given.onLog = log => { logged = log; };
+      let verdict = null, rejected = false;
+      try { verdict = await walk.run(given); } catch { rejected = true; }
+      results.options[`${name} ${failure} at reading ${position}`] = {
+        verdict, rejected, failed: usesAtFailure !== null, later: usesAtFailure === null ? null : seen.uses - usesAtFailure,
+        logFile: existsSync(attemptLog), logHanded: name === 'onLog' ? null : logged !== null,
+        broken: existsSync(attemptLog) ? Boolean(JSON.parse(readFileSync(attemptLog, 'utf8')).broken) : null };
+    }
+  }
+}
+
+// FINALISATION: an asynchronous log is settled before the verdict is returned.
+{
+  const { sky } = supplier();
+  let settled = false;
+  const verdict = await walk.run({ ...options(sky), scenario: validate(clone(original)).scenario,
+    onLog: async () => { await new Promise(resolve => setTimeout(resolve, 30)); settled = true; } });
+  results.log_settles = { verdict, settled_before_return: settled };
+}
+
+// THE CAPTURE: the first reader's scenario (a capture named project, its form "{project}") is refused by the form, and
+// the walk keeps supplied and captured values apart whatever the names (namesView).
+const collision = clone(original);
+collision.steps[0].capture = { project: 'Invented captured project' };
+collision.capture_forms = { ...(collision.capture_forms ?? {}), project: '{project}' };
+results.capture_collision = { refusal: validate(collision).refusal ?? null, walked: await walked(collision) };
+// THE PARTS: registration by kind. The first reader's wrong parts (a map validated as states, or as capture forms,
+// given as an expectation or a sheet) are refused; each kind's own parts are accepted.
+const parted = clone(original);
+parted.states.no_text = ['invented-absent'];
+for (const key of ['id', 'opener', 'title', 'press', 'view', 'statement']) parted.states[key] = clone(original.sheets[0].view);
+const madeParts = validate(parted).scenario;
+results.parts = madeParts ? {
+  states_as_expectation: walk.checkOne([], madeParts.states, {}).pass,
+  capture_forms_as_expectation: walk.checkOne([], madeParts.capture_forms, {}).pass,
+  states_as_sheet: walk.sheetCheck('', madeParts.states, {}, 'Chirality App v4 (development invented)').problems,
+  own_expectation_accepted: !walk.checkOne([], madeParts.steps[4].expect[2], {}).found.startsWith('not an expectation'),
+  own_sheet_accepted: !walk.sheetCheck('', madeParts.sheets[0], {}, 'Chirality App v4 (development invented)').problems.some(p => p.includes('is not a sheet')),
+} : { refusal: validate(parted).refusal };
 
 console.log(JSON.stringify(results));
