@@ -1290,15 +1290,20 @@ evidence and satisfies nothing in criteria 1 and 2.
 
 **The folder.**
 - `launch.py keep-make --network open --candidate <candidate>` makes it. It is
-  a kept folder like any other, under the homes root and never under a
-  temporary folder, holding `home/`, `project/` and `record/`.
+  a kept folder like any other, named `rehearsal-<stamp>-<hex>`, under the
+  homes root and never under a temporary folder, holding `home/`, `project/`
+  and `record/`.
 - `project/` starts with one file, `DEVELOPMENT-EVIDENCE.txt`, which says that
   acts recorded there were operated by an agent, not a person.
 - Every `keep-launch` in it is made without the eight proxy overrides and
   without `CHIRALITY_DEV_OPENAI_BASE_URL`; nothing else of `launch` changes.
   The kept record and every launch record say `"network": "open"`.
-- The choice is made once, when the folder is made, and read from its record
-  after.
+- The choice is made once, when the folder is made. `keep-launch` reads it
+  from the folder's name, which the kept record binds by path, device and
+  inode. A record whose `"network"` disagrees with the name is refused. So an
+  ordinary `kept-` folder is never launched open. Making one open would take
+  renaming the folder and editing its record by hand, which is outside the
+  launcher and is not done.
 
 **The layout.**
 - The App's data folder is `home/Library/Application Support/<identifier>`.
@@ -1306,8 +1311,11 @@ evidence and satisfies nothing in criteria 1 and 2.
   are inside it.
 - The project is `project/`, a sibling of `home/`, never the parent of the App
   data folder.
-- The temporary folder each launch is given is its own folder inside `home/`.
-  The App data folder is not under it.
+- The temporary folder each launch is given (TMPDIR) is its own folder,
+  `home/.chirality-launch-tmp-<hex>`, made new for that launch. The App data
+  folder is not under it. Neither are the credential file (in its account
+  home under the App data folder) and the records store (`<App data>/records`
+  by default, `records_store.rs`). None of the three is under `project/`.
 
 So the App data folder, the credential file and the records lie outside the
 project's writable tree and outside the writable temporary folders. The
@@ -1349,8 +1357,14 @@ typed path" applies to every sheet:
 - any sheet the scenario does not name is a stop.
 
 **The end.**
-- The App and everything it started are established ended (`stray.py`, the
-  launch record's process group after settle) before the folder is removed.
+- Before the folder is removed, two observations are made:
+  - the launch record shows the App's process group with no member left after
+    the settle time;
+  - `stray.py` finds no process running the candidate's executable.
+
+  A process the App started that left its process group, and is not the
+  candidate's executable, is seen by neither. That it has ended is not
+  established.
 - `keep-remove` removes it whole the same working day, after the run's review,
   and also whenever a rehearsal is abandoned. It is not refused for age.
 - After the removal, the lane tells App Agent 0, who tells the owner. Removing

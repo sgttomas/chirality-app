@@ -1030,6 +1030,7 @@ class KeptHome(Fixture):  # keep-make, keep-launch and keep-remove: one home acr
         code, out = self.call('keep-make', '--candidate', str(candidate), '--network', 'open')
         self.assertEqual(code, 0, out)
         folder = Path(json.loads(out)['kept_folder'])
+        self.assertTrue(folder.name.startswith('rehearsal-'), folder.name)
         kept = json.loads((folder / 'record/kept.json').read_text())
         self.assertEqual(kept['network'], 'open')
         self.assertEqual(sorted(p.name for p in (folder / 'project').iterdir()), ['DEVELOPMENT-EVIDENCE.txt'])
@@ -1061,12 +1062,15 @@ class KeptHome(Fixture):  # keep-make, keep-launch and keep-remove: one home acr
                 with self.assertRaises(SystemExit):
                     launch.main(argv)
         saved = (folder / 'record/kept.json').read_text()
-        (folder / 'record/kept.json').write_text(json.dumps({**json.loads(saved), 'network': 'wide'}))
-        try:
-            code, out = self.call('keep-launch', '--folder', str(folder), '--candidate', str(candidate))
-        finally:
-            (folder / 'record/kept.json').write_text(saved)
-        self.assert_refused(code, out, 'no known network choice')
+        for value in ('open', 'wide'):  # an ordinary folder's record edited to say open is refused, never launched open
+            with self.subTest(value):
+                (folder / 'record/kept.json').write_text(json.dumps({**json.loads(saved), 'network': value}))
+                try:
+                    code, out = self.call('keep-launch', '--folder', str(folder), '--candidate', str(candidate))
+                finally:
+                    (folder / 'record/kept.json').write_text(saved)
+                self.assert_refused(code, out, 'does not match the folder it names')
+        self.assertFalse((folder / 'record/launch-record-1.json').exists())
 
     def test_the_open_allowlist_takes_no_override_and_the_blocked_one_needs_them_all(self):
         home, tmp = Path('/invented/home'), '.t'

@@ -1,16 +1,23 @@
 #!/usr/bin/env python3
 """Launch one identified development App build, once, in a new throwaway home (DEL-09-02 examination tooling).
 
-A development launcher for first launches on new throwaway homes that never
-hold a sign-in, all under one homes root. It is not a boundary around the App
-or around anything the App starts. Each run creates a launch folder under the
-root, launches the App once with its home there, publishes a record, and does
-nothing more with them; `launch` cannot relaunch a home. The kept-home commands
-(below) keep ONE home for an operated walk that must see the launch after
-setup: `keep-make` makes a kept folder, `keep-launch` launches the App in it as
-`launch` does (the same environment, every network block unchanged, the same
-listings and record, one numbered record per launch), and `keep-remove` removes
-it whole. The caller does not choose where a folder, its home or its records
+A development launcher for first launches on new throwaway homes, all under
+one homes root. Apart from a rehearsal folder (below), these homes never hold
+a sign-in. It is not a boundary around the App or around anything the App
+starts. Each run creates a launch folder under the root, launches the App once
+with its home there, publishes a record, and does nothing more with them;
+`launch` cannot relaunch a home. The kept-home commands (below) keep ONE home
+for an operated walk that must see the launch after setup:
+- `keep-make` makes a kept folder, with an empty project;
+- `keep-launch` launches the App in it as `launch` does: the same environment,
+  every network block unchanged, the same listings and record, one numbered
+  record per launch;
+- `keep-remove` removes it whole.
+
+`keep-make --network open` instead makes a rehearsal folder, named
+`rehearsal-...`. Its launches are made without the network blocks, so that
+the owner can sign in, and its project starts with DEVELOPMENT-EVIDENCE.txt
+(STATEMENT 1). The caller does not choose where a folder, its home or its records
 go; the candidate folder, and for a kept folder its path, are the only paths a
 caller gives.
 
@@ -213,6 +220,9 @@ HOME, RECORD_FOLDER, PROJECT = 'home', 'record', 'project'  # the three children
 MARKER = '.git'  # the entry the supplier's upward search stops at
 RECORD = 'launch-record.json'  # in record/
 KEPT_PREFIX, KEPT_RECORD = 'kept-', 'kept.json'  # a kept folder's name begins so; its own record is record/kept.json
+# A rehearsal folder's name begins so instead. The network choice is read from the name, which the kept record binds
+# by path, device and inode; the record's own "network" must agree with it, or the launch is refused.
+OPEN_PREFIX = 'rehearsal-'
 KEPT_HOURS = 12  # a kept folder may be launched for this long after it was made, and removed at any time
 # A build carrying the scripted driver (a test build) is never launched by the kept-home commands: what an operator
 # meets must be the real App, its native confirmation included. These strings are in such a build and in no other.
@@ -934,7 +944,7 @@ def kept_folder(root, root_fd, text):
     link, and the very directory its record/kept.json names (path, device and inode). Returns its path, a held handle
     on it and its kept record."""
     path = Path(text)
-    if path.parent != root or not path.name.startswith(KEPT_PREFIX) or '/' in path.name:
+    if path.parent != root or not path.name.startswith((KEPT_PREFIX, OPEN_PREFIX)) or '/' in path.name:
         raise Refusal(f'not a kept folder directly under the homes root: {text}')
     try:
         fd = os.open(path.name, DIRECTORY, dir_fd=root_fd)
@@ -968,7 +978,7 @@ def keep_make(args):
         check_executable(executable)
         check_not_a_test_build(app / executable_path)
         identify_candidate(app, record_path)
-        name = KEPT_PREFIX + new_folder_name()[len('launch-'):]
+        name = (OPEN_PREFIX if args.network == 'open' else KEPT_PREFIX) + new_folder_name()[len('launch-'):]
         os.mkdir(name, 0o700, dir_fd=root_fd)
         fd = os.open(name, DIRECTORY, dir_fd=root_fd)
         try:
@@ -1024,9 +1034,9 @@ def keep_launch(args):
             raise Refusal('the kept folder has expired; it may only be removed')
         if (kept.get('candidate_key'), kept.get('identifier')) != (record_data['candidate_key'], record_data['bundle']['identifier']):
             raise Refusal('the kept folder was made for another candidate; refusing')
-        network = kept.get('network', 'blocked')
-        if network not in NETWORK_CHOICES:
-            raise Refusal('the kept record names no known network choice; refusing')
+        network = 'open' if folder.name.startswith(OPEN_PREFIX) else 'blocked'
+        if kept.get('network', 'blocked') != network:
+            raise Refusal('the kept record\'s network choice does not match the folder it names; refusing')
         if running_candidates(app / executable_path):
             raise Refusal('the candidate is already running; refusing')
         home_fd = os.open(HOME, DIRECTORY, dir_fd=fd)
