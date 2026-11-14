@@ -250,7 +250,7 @@ impl LibraryOwner {
         // store: a registration completes or ends *not completed*; a
         // re-confirmation is never completed (RC-7).
         owner.reconciliation = reconcile_attempts(&owner.root, &owner.origin, &owner.source_root);
-        crate::capture_seal_keychain::register_library_for_protection_inventory(&owner.root);
+        crate::capture_seal_keychain::register_library_for_protection_inventory(&owner.root).map_err(String::from)?;
         Ok(owner)
     }
     /// What SQ-X X-1/X-2 did at open (WR §6 SQ-X; §4.8 RC-7).
@@ -1586,6 +1586,7 @@ impl HotRegistrationAttempt {
     }
     fn advance_entry(&mut self, index: usize) -> Result<(), String> {
         self.session.listed_sources_current()?;
+        crate::capture_seal_keychain::register_library_for_protection_inventory(&self.session.root).map_err(String::from)?;
         let e = &self.session.entries[index];
         let root = &self.session.root;
         let rows = read_ledger(root)?;

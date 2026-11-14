@@ -24,6 +24,8 @@
 //! Codex agent whose sandbox lets it read the App data folder (Codex's default
 //! read policy does). It shows that a capture was sealed by a holder of this
 //! installation's key, not that a person acted or who the person is (K1-4).
+#[cfg(test)]
+use std::os::unix::fs::DirBuilderExt;
 use serde_json::{json, Value};
 use crate::act_evidence_cause::{ActEvidenceCause as Cause, EvidenceFailure};
 fn failure(cause: Cause, detail: impl Into<String>) -> EvidenceFailure { EvidenceFailure::new(cause, detail) }
@@ -153,7 +155,11 @@ fn folder() -> Result<PathBuf, String> {
             return chosen.ok_or_else(|| "this App installation's capture-seal key folder is not known".into());
         }
         return Ok(TEST_DEFAULT
-            .get_or_init(|| std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("chirality-seal-test-").unwrap()))
+            .get_or_init(|| {
+                let app_data = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("chirality-seal-test-").unwrap());
+                std::fs::DirBuilder::new().mode(0o700).create(&app_data).unwrap();
+                app_data.join(KEY_FOLDER)
+            })
             .clone());
     }
     #[allow(unreachable_code)]

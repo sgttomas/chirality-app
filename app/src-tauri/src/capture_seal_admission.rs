@@ -4,31 +4,83 @@
 use super::*;
 use std::collections::BTreeSet;
 
+// This process remembers having OBSERVED protection. It can only veto; it
+// never proves absence or authorizes a provider. Quit loses this memory by
+// design, and the next process must observe protected and local evidence anew.
 static PROTECTED: std::sync::Mutex<BTreeSet<PathBuf>> = std::sync::Mutex::new(BTreeSet::new());
-static LIBRARIES: std::sync::Mutex<std::collections::BTreeMap<PathBuf, BTreeSet<PathBuf>>> = std::sync::Mutex::new(std::collections::BTreeMap::new());
-#[cfg(test)]
-thread_local! {
-    static TEST_PROTECTED: std::cell::RefCell<BTreeSet<PathBuf>> = const { std::cell::RefCell::new(BTreeSet::new()) };
-}
 pub(super) fn remember(root: &Path) {
-    #[cfg(test)]
-    { TEST_PROTECTED.with(|s| { s.borrow_mut().insert(root.to_owned()); }); return; }
-    #[allow(unreachable_code)]
     PROTECTED.lock().unwrap_or_else(|p| p.into_inner()).insert(root.to_owned());
 }
 fn remembered(root: &Path) -> bool {
-    #[cfg(test)]
-    { return TEST_PROTECTED.with(|s| s.borrow().contains(root)); }
-    #[allow(unreachable_code)]
     PROTECTED.lock().unwrap_or_else(|p| p.into_inner()).contains(root)
 }
 #[cfg(test)]
-pub(super) fn forget(root: &Path) { TEST_PROTECTED.with(|s| { s.borrow_mut().remove(root); }); }
+pub(super) fn forget(root: &Path) { PROTECTED.lock().unwrap_or_else(|p| p.into_inner()).remove(root); }
 
-pub(super) fn register_library(root: &Path) {
-    if let Ok(installation) = crate::capture_seal::installed_root_for_enrollment() {
-        LIBRARIES.lock().unwrap_or_else(|p| p.into_inner()).entry(installation).or_default().insert(root.to_owned());
+const LIBRARIES_FILE: &str = "capture-seal-libraries.json";
+const LIBRARIES_FORMAT: &str = "chirality.app.capture-seal-library-inventory/v1";
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct LibraryInventory {
+    format: String,
+    roots: BTreeSet<PathBuf>,
+    complete: bool,
+}
+fn inventory_failure(detail: impl std::fmt::Display) -> EvidenceFailure {
+    failure(Cause::ProtectionInconsistent, format!("Library protection inventory is incomplete: {detail}. Restore the original complete library list and listed libraries, then open Recover capture verification and check again."))
+}
+fn library_roots(installation: &Path) -> Result<BTreeSet<PathBuf>, EvidenceFailure> {
+    let path = installation.join(LIBRARIES_FILE);
+    // Only a missing file means no library known. A present empty, partial or
+    // malformed document is an incomplete census, never an empty one. This
+    // removable local trace may veto only; losing it is the LIM-026 loss class.
+    if !exists(&path)? { return Ok(BTreeSet::new()); }
+    let inventory: LibraryInventory = serde_json::from_slice(&snapshot_bytes(&path)?)
+        .map_err(|_| inventory_failure("the list is malformed or truncated"))?;
+    if inventory.format != LIBRARIES_FORMAT || !inventory.complete
+        || inventory.roots.iter().any(|root| !root.is_absolute() || root.components().any(|c| !matches!(c, std::path::Component::RootDir | std::path::Component::Normal(_)))) {
+        return Err(inventory_failure("the list has an unknown or incomplete format"));
     }
+    Ok(inventory.roots)
+}
+pub(super) fn register_library(root: &Path) -> Result<(), EvidenceFailure> {
+    let installation = crate::capture_seal::installed_root_for_enrollment()
+        .map_err(inventory_failure)?;
+    crate::storage::check_path(root).map_err(inventory_failure)?;
+    if !root.is_absolute() { return Err(inventory_failure("the library root is not absolute")); }
+    let root = root.canonicalize().map_err(inventory_failure)?;
+    // Append the root logically, publishing the entire closed JSON document
+    // atomically under the existing product enrolment join. No root is pruned;
+    // this unit has no removal act, including for moved or unavailable roots.
+    let join = EnrollmentJoin::acquire(&installation)?;
+    let mut roots = library_roots(&installation)?;
+    if !roots.insert(root) { return Ok(()); }
+    let bytes = serde_json::to_vec(&LibraryInventory { format: LIBRARIES_FORMAT.into(), roots, complete: true })
+        .map_err(inventory_failure)?;
+    let temp = installation.join(format!(".{LIBRARIES_FILE}.{}.tmp", crate::util::opaque_id("").map_err(inventory_failure)?));
+    let result = (|| {
+        let mut file = OpenOptions::new().create_new(true).write(true).mode(0o600).open(&temp).map_err(inventory_failure)?;
+        file.write_all(&bytes).map_err(inventory_failure)?;
+        file.sync_all().map_err(inventory_failure)?;
+        join.recheck()?;
+        fs::rename(&temp, installation.join(LIBRARIES_FILE)).map_err(inventory_failure)?;
+        crate::storage::sync_dir(&installation).map_err(inventory_failure)
+    })();
+    let _ = fs::remove_file(temp);
+    result
+}
+fn library_trace(root: &Path) -> Result<bool, EvidenceFailure> {
+    crate::storage::check_path(root).map_err(inventory_failure)?;
+    let held = HeldDirectory::open(root).map_err(inventory_failure)?;
+    let before = held.file.metadata().map_err(inventory_failure)?;
+    // The listed root must itself be readable. Its disappearance must not be
+    // mistaken for an absent capture subfolder in an otherwise readable root.
+    for entry in fs::read_dir(root).map_err(inventory_failure)? { entry.map_err(inventory_failure)?; }
+    let found = capture_trace(&root.join(crate::storage::CAPTURES), 0)?;
+    held.recheck().map_err(inventory_failure)?;
+    let after = held.file.metadata().map_err(inventory_failure)?;
+    if FileStamp::of(&before) != FileStamp::of(&after) { return Err(inventory_failure("a listed root changed during its census")); }
+    Ok(found)
 }
 /// Participating App operations share the existing enrolment join. Holding a
 /// named file is advisory coordination, not a tamper-proof continuity anchor.
@@ -145,8 +197,10 @@ fn known_captures(installation: &Path, current: &Path) -> Result<Vec<PathBuf>, E
             result.push(path.join("captures"));
         }
     }
-    if let Some(libraries) = LIBRARIES.lock().unwrap_or_else(|p| p.into_inner()).get(installation) {
-        result.extend(libraries.iter().map(|p| p.join(crate::storage::CAPTURES)));
+    for library in library_roots(installation)? {
+        if library_trace(&library)? {
+            return Err(failure(Cause::ProtectionInconsistent, "A keychain-labelled capture survives in a known library. No file key is substituted. Open Recover capture verification."));
+        }
     }
     result.sort(); result.dedup();
     Ok(result)

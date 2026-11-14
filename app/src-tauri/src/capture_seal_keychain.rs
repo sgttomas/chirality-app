@@ -68,6 +68,18 @@ pub(super) trait Backend {
     fn read(&self, identity: &ItemIdentity) -> Result<Vec<u8>, BackendError>;
     fn add(&self, identity: &ItemIdentity, bytes: &[u8]) -> Result<(), BackendError>;
 }
+// Records successful protected-item observations before any subsequent read,
+// head parsing or key validation can fail. Production and mocks use this same
+// wrapper and the same process memory; no successful-result test-only latch.
+struct ObservingBackend<'a, B: Backend + ?Sized> { backend: &'a B, root: Option<&'a Path> }
+impl<B: Backend + ?Sized> Backend for ObservingBackend<'_, B> {
+    fn read(&self, identity: &ItemIdentity) -> Result<Vec<u8>, BackendError> {
+        let result = self.backend.read(identity);
+        if result.is_ok() { if let Some(root) = self.root { admission::remember(root); } }
+        result
+    }
+    fn add(&self, identity: &ItemIdentity, bytes: &[u8]) -> Result<(), BackendError> { self.backend.add(identity, bytes) }
+}
 /// Constructed only after compiled selection, publisher and own installed checks.
 /// A continuity marker cannot construct this or choose namespace/permissions.
 pub(super) struct KeychainAuthority {
@@ -160,7 +172,7 @@ struct TestInstallation {
 }
 #[cfg(test)]
 thread_local! { static TEST_INSTALLATION: std::cell::RefCell<Option<TestInstallation>> = const { std::cell::RefCell::new(None) }; }
-pub(crate) fn register_library_for_protection_inventory(root: &Path) { admission::register_library(root); }
+pub(crate) fn register_library_for_protection_inventory(root: &Path) -> Result<(), EvidenceFailure> { admission::register_library(root) }
 /// Runs the attachment while the participating-App enrolment join is held.
 /// `None` grants only the file source; callers still load/create it normally.
 pub(crate) fn with_sealing_provider<R>(legacy: &Path, project: &Path, attach_seal: impl FnOnce(Option<Material>) -> Result<R, EvidenceFailure>) -> Result<R, EvidenceFailure> {
@@ -972,6 +984,8 @@ fn operate_bound(
     if matches!(operation, Operation::Enroll) && prepared.is_none() {
         return Err(failure(Cause::AuthorityUnavailable, "SEAL-C prepared enrollment intent required"));
     }
+    let observed = ObservingBackend { backend, root: legacy_folder.parent() };
+    let backend = &observed;
     validate_identity(i).map_err(|e| failure(Cause::AuthorityUnavailable, e))?;
     // First-enrollment admission is serialized outside the not-yet-created
     // continuity directory. A transient keychain refusal leaves no empty
@@ -1207,6 +1221,8 @@ struct ProtectionObservation {
     policy: Option<(u64, Vec<u8>)>,
 }
 fn protection_observation(backend: &(impl Backend + ?Sized), i: &ItemIdentity, head: Option<&Path>) -> Result<ProtectionObservation, EvidenceFailure> {
+    let observed = ObservingBackend { backend, root: head.and_then(Path::parent) };
+    let backend = &observed;
     let enrolled = match backend.read(i) {
         Ok(bytes) => {
             if bytes.len() != 32 { return Err(failure(Cause::KeyMaterialInvalid, "SEAL-C keychain item malformed")); }
@@ -1217,7 +1233,6 @@ fn protection_observation(backend: &(impl Backend + ?Sized), i: &ItemIdentity, h
     };
     let head_sequence = recorded_head(head)?;
     let policy = policy_probe(backend, i)?;
-    if enrolled || policy.is_some() { if let Some(root) = head.and_then(Path::parent) { admission::remember(root); } }
     Ok(ProtectionObservation { enrolled, head_sequence, policy })
 }
 fn policy_from_observation(observed: ProtectionObservation) -> Result<PolicyRead, EvidenceFailure> {
@@ -1251,6 +1266,8 @@ pub(crate) fn write_policy(backend: &(impl Backend + ?Sized), i: &ItemIdentity, 
     if !["robust", "relaxed"].contains(&level) {
         return Err("unknown workflow approval policy".into());
     }
+    let observed = ObservingBackend { backend, root: head.and_then(Path::parent) };
+    let backend = &observed;
     match backend.read(i) {
         Ok(_) => (),
         Err(BackendError::Missing) => return Err("keychain protection is not set up; nothing stored".into()),

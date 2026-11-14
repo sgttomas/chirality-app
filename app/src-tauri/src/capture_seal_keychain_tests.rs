@@ -1321,6 +1321,9 @@ fn capture_seal_locked_denied_late_failed_and_wrong_identity_reads_never_grant_f
     f.backend.items.lock().unwrap().insert(name(&f.fixture.identity), vec![1]);
     assert_eq!(crate::capture_seal::seal(&p, &mut f.ordinary_capture()).unwrap_err().cause, Cause::KeyMaterialInvalid);
     f.backend.items.lock().unwrap().clear();
+    assert_eq!(crate::capture_seal::seal(&p, &mut f.ordinary_capture()).unwrap_err().cause, Cause::ProtectionInconsistent,
+        "even malformed protected-item presence was observed; removing it cannot erase this process's veto");
+    f.new_process_observation();
     crate::capture_seal::seal(&p, &mut f.ordinary_capture()).unwrap();
     let inventory = f.root().join("invented-capture-inventory"); fs::create_dir(&inventory).unwrap();
     let original: serde_json::Value = serde_json::from_str(include_str!("../schemas/fixtures/aac.capture-evidence.example.valid.json")).unwrap();
@@ -1476,9 +1479,14 @@ fn review_publish(project: &Path) -> serde_json::Value {
     assert_eq!(serde_json::from_slice::<serde_json::Value>(&fs::read(path).unwrap()).unwrap(), out["capture"]);
     out["capture"].clone()
 }
-fn review_unsealed(project: &Path) {
+fn review_unsealed(project: &Path) -> serde_json::Value {
     let capture = review_publish(project);
     assert!(capture.get("sealProvider").is_none(), "inventory/protection refusal must not publish a file seal: {capture}");
+    capture
+}
+fn review_inventory_unsealed(project: &Path) {
+    let capture = review_unsealed(project);
+    assert!(capture["evidenceLimits"].to_string().contains("Recover capture verification"), "{capture}");
 }
 #[test]
 fn capture_seal_review_library_inventory_survives_a_fresh_process() { review_library_inventory(false); }
@@ -1501,7 +1509,7 @@ fn review_library_inventory(unreadable: bool) {
             crate::storage::create_json(&path, &capture).unwrap();
             f.clear_protected_state(); admission::forget(f.root());
         }
-        review_unsealed(&project); // permitted -> veto while that library is open
+        review_inventory_unsealed(&project); // permitted -> veto while that library is open
         let status = std::process::Command::new(std::env::current_exe().unwrap())
             .args(["--exact", "capture_seal_keychain::tests::capture_seal_review_library_fresh_process_probe", "--ignored", "--nocapture", "--test-threads=1"])
             .env("CHIRALITY_SEAL_LIBRARY_FIXTURE_ROOT", f.root()).status().unwrap();
@@ -1518,13 +1526,13 @@ fn capture_seal_review_library_fresh_process_probe() {
     crate::capture_seal::set_folder_for_test(Some(Some(f.legacy.clone())));
     a._installed = crate::installed_custody::synthetic_for_tests(&f.root.join("Synthetic.app/Contents/Resources")).unwrap();
     let installation = SelectedInstallation::from_parts(f, a);
-    review_unsealed(&installation.project());
+    review_inventory_unsealed(&installation.project());
 }
 fn review_damaged_library_list(bytes: &[u8]) {
     let f = SelectedInstallation::new(); let project = f.project();
     assert_eq!(review_publish(&project)["sealProvider"], "file-key");
     fs::write(f.root().join("capture-seal-libraries.json"), bytes).unwrap();
-    review_unsealed(&project);
+    review_inventory_unsealed(&project);
 }
 #[test]
 fn capture_seal_review_empty_library_list_refuses() { review_damaged_library_list(b""); }
@@ -1582,4 +1590,41 @@ fn capture_seal_review_production_dispatch_remembers_named_verification() {
     assert_eq!(material.provider, crate::capture_seal::SealProvider::Keychain);
     f.clear_protected_state();
     review_unsealed(&project);
+}
+
+#[test]
+fn capture_seal_review_library_list_adds_roots_without_pruning_and_recovers_read_only() {
+    let f = SelectedInstallation::new(); let project = f.project();
+    let roots = [project.join("known-first"), project.join("known-second")];
+    for root in &roots {
+        fs::create_dir(root).unwrap();
+        crate::workflow_workspace::registration::LibraryOwner::open(root.clone(), "user", "review-library").unwrap();
+    }
+    let list = f.root().join("capture-seal-libraries.json");
+    let original = fs::read(&list).unwrap();
+    let value: serde_json::Value = serde_json::from_slice(&original).unwrap();
+    assert_eq!(value["complete"], true);
+    assert_eq!(value["roots"].as_array().unwrap().len(), 2);
+    assert_eq!(review_publish(&project)["sealProvider"], "file-key", "knowing readable empty libraries grants no stronger standing");
+    let moved = project.join("retained-second"); fs::rename(&roots[1], &moved).unwrap();
+    crate::workflow_workspace::registration::LibraryOwner::open(roots[0].clone(), "user", "review-library").unwrap();
+    assert_eq!(fs::read(&list).unwrap(), original, "opening another library never prunes the unavailable root");
+    review_inventory_unsealed(&project);
+    fs::rename(moved, &roots[1]).unwrap();
+    assert_eq!(review_publish(&project)["sealProvider"], "file-key");
+    assert_eq!(fs::read(&list).unwrap(), original, "recovery observes the original complete inventory without editing it");
+}
+
+#[test]
+fn capture_seal_review_reopening_a_live_library_restores_its_lost_list_entry() {
+    let f = SelectedInstallation::new(); let project = f.project();
+    let library = project.join("live-library"); fs::create_dir(&library).unwrap();
+    let mut root = crate::runtime_session::WorkflowRootSession::default();
+    let first = root.open_library(library.clone(), "user", None, std::sync::Arc::new(std::sync::Mutex::new(None))).unwrap();
+    let list = f.root().join("capture-seal-libraries.json");
+    let original = fs::read(&list).unwrap();
+    fs::remove_file(&list).unwrap(); // removable local trace; no removal act
+    let reopened = root.open_library(library, "user", None, std::sync::Arc::new(std::sync::Mutex::new(None))).unwrap();
+    assert_eq!(first, reopened);
+    assert_eq!(fs::read(&list).unwrap(), original, "the already-open context must re-register its root on a new opening");
 }

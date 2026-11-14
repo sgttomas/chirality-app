@@ -4892,6 +4892,7 @@ impl WorkflowRootSession {
             if existing.origin != origin {
                 return Err("Actual library root already opened with a different source origin; no reinterpretation".into());
             }
+            crate::capture_seal_keychain::register_library_for_protection_inventory(&root).map_err(String::from)?;
             let id = existing.reference.clone();
             self.active_library = Some(id.clone());
             self.observe_library_entries(&id)?;

@@ -3018,6 +3018,9 @@ fn a15_single_and_reconfirmation_use_the_provider_in_force_without_resealing_his
 #[test]
 fn a15_multi_entry_capture_uses_each_admitted_provider_and_keeps_hot_admission() {
     let installation=crate::capture_seal_keychain::tests::SelectedInstallation::new();
+    // Known roots must remain readable across enrolment; do not delete the
+    // first library between the two provider cases of this installation.
+    let mut libraries = Vec::new();
     for provider in ["file-key","keychain"] {
         if provider=="keychain" {installation.enroll().unwrap();}
         let s=Scratch::new();s.put("one",true,"one");s.put("two",true,"two");
@@ -3036,5 +3039,6 @@ fn a15_multi_entry_capture_uses_each_admitted_provider_and_keeps_hot_admission()
         for outcome in &outcomes {assert!(cold.resolve_registered(registered(outcome).identity()).is_err());}
         fs::write(capture_path(&s),serde_json::to_vec(&capture).unwrap()).unwrap();
         for outcome in &outcomes {assert_eq!(cold.resolve_registered(registered(outcome).identity()).is_ok(),provider=="keychain");}
+        libraries.push(s);
     }
 }
