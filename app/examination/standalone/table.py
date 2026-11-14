@@ -18,13 +18,17 @@ table. What it reads:
 - step results, from --results, for the one candidate named by --candidate: a folder of JSON records {step,
   candidate, configuration, date, outcome, operated_by}, the outcome one of DEL-09-02 REQ-007's five (passed,
   failed, blocked, not run, inconclusive); any other outcome stops the print, and so does a results folder that is
-  not there or cannot be read, and an empty candidate. Records for another candidate or naming none, and records
-  that cannot be read, are named beneath the table and never counted. A record that is not a JSON object, names no
-  step, or has a date that is neither a calendar date (YYYY-MM-DD) nor a time in the one written form accepted
-  (YYYY-MM-DDTHH:MM:SS, an optional fraction of a second after a point, and Z or an offset) cannot be read, and is
-  listed as set aside. Every other written form of a time is refused, however a lenient reader would take it: one
-  without seconds, a fraction of a minute or an hour, a week or ordinal date, a comma as the decimal mark. A time read
-  wrongly could make an older pass beat a later failure. Dates are compared as dates or as exact instants (whole seconds in UTC and the fraction to
+  not there or cannot be read, and an empty candidate. Records for another candidate or naming none are named
+  beneath the table and never counted. A record whose date is neither a calendar date (YYYY-MM-DD) nor a time in the
+  one written form accepted (YYYY-MM-DDTHH:MM:SS, an optional fraction of a second after a point, and Z or an offset)
+  cannot be placed in time. Every other written form of a time is refused, however a lenient reader would take it:
+  one without seconds, a fraction of a minute or an hour, a week or ordinal date, a comma as the decimal mark. A time
+  read wrongly could make an older pass beat a later failure. Such a record, on the candidate named and naming a step,
+  is never less damaging than a readable failure (App Agent 0's rule after the third reading): its step prints and
+  counts as inconclusive, whatever its other records say, and the reason is printed directly under the counts. A
+  record whose own candidate and step cannot be read (a file that is not JSON or not a JSON object, or one that names
+  no step) is attributed to no step: it is listed as set aside and cannot lower any step, so a pass beside it
+  stands. Dates are compared as dates or as exact instants (whole seconds in UTC and the fraction to
   whatever precision it is written), so one time written with two zones is the same date; a step whose records mix
   calendar dates and times cannot be ordered and prints as inconclusive. Nothing read from an input can make a line
   of its own in the print: each control character, line separator or paragraph separator prints as its escape, and a
@@ -32,7 +36,7 @@ table. What it reads:
 
   THE CLAIM (App Agent 0, 14 November 2026). A step prints as passed only when a result record for that step, on the
   candidate named, says passed, and no other record for that step on that candidate of the same latest date says
-  otherwise. Every other state prints as what it is: a step with no record prints "not run (no record)", and records
+  otherwise, and every record for that step on that candidate can be placed in time. Every other state prints as what it is: a step with no record prints "not run (no record)", and records
   of the latest date that disagree print as inconclusive, with the disagreement printed directly under the counts.
   A record may cite session-comparison rows ("cites": [{file, sha256, rows}], the file relative to --results). Cited
   rows are listed beneath the table as cited, with whether each file exists, whether it is unchanged (its digest is
@@ -121,13 +125,15 @@ def when(text):
 def results(folder, candidate):
     """The latest record of each step for the candidate named, by date, with what was set aside: records for another
     candidate or none, and records that cannot be read. Records of the latest date that disagree are kept apart as
-    contradictory: which came last cannot be told, so neither decides."""
+    contradictory: which came last cannot be told, so neither decides. Records on the candidate naming a step whose
+    date cannot be read are kept by step as unplaced: they cannot be ordered against the others, so they decide that
+    the step's outcome is not known."""
     if folder is not None:
         try:
             os.listdir(folder)
         except OSError as error:
             raise SystemExit(f'the results folder {folder} cannot be read ({type(error).__name__})') from None
-    by_step, other, unreadable = {}, [], []
+    by_step, unplaced, other, unreadable = {}, {}, [], []
     for path in sorted(Path(folder).glob('*.json')) if folder else []:
         try:
             record = json.loads(path.read_text())
@@ -147,7 +153,8 @@ def results(folder, candidate):
             continue
         moment = when(record.get('date'))
         if moment is None:
-            unreadable.append(f"{path.name} (its date {record.get('date')!r} is not a calendar date or a time with its zone)")
+            unplaced.setdefault(record['step'], []).append(
+                f"{path.name} (its date {record.get('date')!r} is not a calendar date or a time with its zone)")
             continue
         by_step.setdefault(record['step'], []).append(dict(record, file=path.name, moment=moment))
     latest, contradictory = {}, {}
@@ -162,7 +169,7 @@ def results(folder, candidate):
             contradictory[step] = (last, 'records of the same date disagree')
         else:
             latest[step] = last  # every record of the latest date, all with one outcome
-    return latest, contradictory, other, unreadable
+    return latest, contradictory, unplaced, other, unreadable
 
 
 def cited(record, folder):
@@ -215,14 +222,14 @@ def table(repo, folder, release, candidate):
         raise SystemExit('the candidate named is empty; the table is for one named candidate')
     step_map = json.loads((Path(repo) / STEP_MAP).read_text())
     out = step_map.get('out_of_release', {})
-    seen, contradictory, other, unreadable = results(folder, candidate)
+    seen, contradictory, unplaced, other, unreadable = results(folder, candidate)
     known = {step['step'] for steps in step_map['scenarios'].values() for step in steps}
-    stray = sorted((set(seen) | set(contradictory)) - known)
+    stray = sorted((set(seen) | set(contradictory) | set(unplaced)) - known)
     lines = [f'EXAMINATION TABLE for {release}, candidate {candidate}, from {STEP_MAP} at the checkout given', '',
              '| Scenario | Step | Counts | Outcome (REQ-007) | Date | Operated by |',
              '| --- | --- | --- | --- | --- | --- |']
     totals = dict.fromkeys(OUTCOMES, 0)
-    removed, disputed, citations = 0, [], []
+    removed, disputed, unknown_outcome, citations = 0, [], [], []
     for scenario, steps in step_map['scenarios'].items():
         decision = out.get(scenario)
         if decision and decision.get('release') == release:
@@ -241,6 +248,16 @@ def table(repo, folder, release, candidate):
                        + (f"; steps as read by {decision['steps_by']}" if decision.get('steps_by') else '')
                        + f" ({decision['stated_in']})")
                 lines.append(f"| {scenario} | {step['step']} | {counts} | {why} | — | — |")
+                continue
+            if step['step'] in unplaced:
+                # Never less damaging than a readable failure: whatever the other records say, the step is not known.
+                readable = seen.get(step['step']) or contradictory.get(step['step'], ([], ''))[0]
+                unknown_outcome.append(f"{step['step']}: a record for this step could not be read, so the step's outcome "
+                                       f"is not known ({', '.join(unplaced[step['step']])}); counted inconclusive")
+                citations += [f"{step['step']} ({r['file']}) cites {c}" for r in readable for c in cited(r, folder)]
+                if step.get('counts'):
+                    totals['inconclusive'] += 1
+                lines.append(f"| {cell(scenario)} | {cell(step['step'])} | {counts} | inconclusive (a record could not be read) | — | — |")
                 continue
             if step['step'] in contradictory:
                 last, why = contradictory[step['step']]
@@ -265,6 +282,8 @@ def table(repo, folder, release, candidate):
             lines.append(f"| {cell(scenario)} | {cell(step['step'])} | {counts} | {outcome} | {cell(record['date'])} | {cell(record.get('operated_by', '—'))} |")
     lines += ['', 'Counted steps in the release: ' + ', '.join(f'{totals[o]} {o}' for o in OUTCOMES)
               + f'. Steps out of {release} by a recorded decision: {removed}.']
+    if unknown_outcome:
+        lines.append('Records that could not be read for a step: ' + ' | '.join(unknown_outcome))
     if disputed:
         lines.append('Records that disagree: ' + ' | '.join(disputed))
     if stray:

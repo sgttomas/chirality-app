@@ -122,7 +122,15 @@ are never counted as steps.
 
 The table accepts one written form for a time, `YYYY-MM-DDTHH:MM:SS` with an optional fraction of a second and its
 zone, and a calendar date `YYYY-MM-DD`, and refuses the rest, because a time read wrongly can make an older pass beat
-a later failure. A record in another form is set aside and listed.
+a later failure.
+
+A record that cannot be read is never less damaging to a pass than a readable failure would have been (App Agent 0's
+rule after the third reading). A record on the candidate named whose step can be read, but whose date cannot be
+placed in time, makes that step print and count as inconclusive, whatever its other records say. The reason is printed
+directly under the counts: a record for this step could not be read, so the step's outcome is not known. A record
+whose own candidate and step cannot be read (a file that is not JSON or not a JSON object, or one that names no step)
+is attributed to no step. It is listed as set aside and cannot lower any step. A record is attributed by its step and
+candidate exactly as written, so one written with another step or candidate belongs to that one and is listed there.
 
 Limits:
 - Citations are listed only for the records that decide a shown step.

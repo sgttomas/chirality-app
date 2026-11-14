@@ -302,8 +302,9 @@ class TheSecondReading(Fixture):
             {'step': 'B-1', 'candidate': 'c', 'date': '2026-11-14', 'outcome': 'passed'},
             {'step': 'B-1', 'candidate': 'c', 'date': '2026-11-14T10:00:00Z', 'outcome': 'passed'})
         text = self.printed('--repo', str(self.repo()), '--results', str(results), '--candidate', 'c')
-        self.assertIn('| failed | 2026-11-14 |', self.row(text, 'A-1'))
-        self.assertIn('not run (no record)', self.row(text, 'A-2'))
+        # A record that cannot be placed in time makes its step not known, beside a failure as beside a pass.
+        self.assertIn('| inconclusive (a record could not be read) |', self.row(text, 'A-1'))
+        self.assertIn('| inconclusive (a record could not be read) |', self.row(text, 'A-2'))
         self.assertIn('| inconclusive (records disagree) |', self.row(text, 'B-1'))
         self.assertIn("r0.json (its date '20261113' is not a calendar date or a time with its zone)", text)
         self.assertIn("r2.json (its date '2026-11-14T10:00:00' is not a calendar date or a time with its zone)", text)
@@ -343,7 +344,9 @@ class TheSecondReading(Fixture):
         self.rows('session-comparison-20261114T080000Z-bbbbbbbb.jsonl', [[]], folder)
         text = self.printed('--repo', str(self.repo()), '--results', str(results), '--candidate', 'c',
                             '--comparisons', str(folder), '--comparisons', str(self.root / 'absent'))
-        self.assertIn('0 passed, 0 failed, 0 blocked, 5 not run', text)
+        # The record naming A-1 with no date cannot be placed, so A-1 is not known (App Agent 0's rule after the
+        # third reading); the records naming no step are attributed to none.
+        self.assertIn('0 passed, 0 failed, 0 blocked, 4 not run, 1 inconclusive', text)
         self.assertIn('r0.json (not a record)', text)
         self.assertIn('r1.json (names no step)', text)
         self.assertIn("r2.json (its date None is not a calendar date or a time with its zone)", text)
@@ -426,19 +429,63 @@ class TheThirdReading(Fixture):
 class TheLastReading(Fixture):
     """The third and last reading found two more; each is repaired with the reader's input as a test."""
 
-    def test_one_written_form_of_a_time_is_accepted_and_the_rest_are_set_aside_and_listed(self):
-        records = [{'step': 'A-1', 'candidate': 'c', 'date': '2026-11-14T10:00:00.9Z', 'outcome': 'passed'},
-                   {'step': 'A-1', 'candidate': 'c', 'date': '2026-11-14T10:00.5Z', 'outcome': 'failed'}]
+    def test_one_written_form_of_a_time_is_accepted_and_the_rest_cannot_be_placed(self):
         refused = ['2026-11-14T10:00Z', '2026-11-14T10.5Z', '2026-W46-6T10:00:00Z', '2026-318T10:00:00Z',
-                   '2026-11-14T10:00:00,5Z', '2026-11-14 10:00:00Z', '20261114T100000Z']
-        records += [{'step': 'B-1', 'candidate': 'c', 'date': form, 'outcome': 'passed'} for form in refused]
+                   '2026-11-14T10:00:00,5Z', '2026-11-14 10:00:00Z', '20261114T100000Z', '2026-11-14T10:00.5Z']
+        records = [{'step': 'B-1', 'candidate': 'c', 'date': form, 'outcome': 'passed'} for form in refused]
         text = self.printed('--repo', str(self.repo()), '--results', str(self.results(*records)), '--candidate', 'c')
-        a1 = next(line for line in text.splitlines() if '| A-1 |' in line)
-        self.assertIn('| passed | 2026-11-14T10:00:00.9Z |', a1)  # the one readable record; the other is set aside
-        self.assertIn("r1.json (its date '2026-11-14T10:00.5Z' is not a calendar date or a time with its zone)", text)
-        self.assertIn('not run (no record)', next(line for line in text.splitlines() if '| B-1 |' in line))
-        for n, form in enumerate(refused, start=2):
-            self.assertIn(f"r{n}.json (its date {form!r}", text)
+        # A step whose only records cannot be placed in time is not known: neither passed nor "not run".
+        self.assertIn('| inconclusive (a record could not be read) |', next(l for l in text.splitlines() if '| B-1 |' in l))
+        for n, form in enumerate(refused):
+            self.assertIn(f"r{n}.json (its date {form!r} is not a calendar date or a time with its zone)", text)
+
+
+class AnUnreadableRecordNeverRevivesAPass(Fixture):
+    """App Agent 0's rule after the third reading: a record that cannot be read is never less damaging to a pass than
+    a readable failure would have been."""
+
+    PASS = {'step': 'A-1', 'candidate': 'c', 'date': '2026-11-14T10:00:00.9Z', 'outcome': 'passed'}
+    LATER_FAILURE = {'step': 'A-1', 'candidate': 'c', 'date': '2026-11-14T10:00.5Z', 'outcome': 'failed'}
+
+    def a1_and_counts(self, *records):
+        text = self.printed('--repo', str(self.repo()), '--results', str(self.results(*records)), '--candidate', 'c')
+        lines = text.splitlines()
+        counts = next(i for i, l in enumerate(lines) if l.startswith('Counted steps in the release: '))
+        return next(l for l in lines if '| A-1 |' in l), lines[counts], lines[counts + 1], text
+
+    def test_a_later_failure_whose_time_is_refused_makes_an_earlier_pass_inconclusive_in_either_order(self):
+        for name, records in (('pass first', (self.PASS, self.LATER_FAILURE)), ('failure first', (self.LATER_FAILURE, self.PASS))):
+            with self.subTest(name):
+                a1, counts, under, _ = self.a1_and_counts(*records)
+                self.assertIn('| inconclusive (a record could not be read) |', a1)
+                self.assertNotIn('passed', a1)
+                self.assertIn('0 passed', counts)
+                self.assertIn('1 inconclusive', counts)
+                self.assertTrue(under.startswith('Records that could not be read for a step: A-1: a record for this step '
+                                                 "could not be read, so the step's outcome is not known"), under)
+                self.assertIn("'2026-11-14T10:00.5Z'", under)
+
+    def test_a_set_aside_record_of_another_step_or_candidate_does_not_change_this_step(self):
+        for name, other in (('another step', dict(self.LATER_FAILURE, step='A-2')),
+                            ('another candidate', dict(self.LATER_FAILURE, candidate='d')),
+                            ('no candidate', {k: v for k, v in self.LATER_FAILURE.items() if k != 'candidate'})):
+            with self.subTest(name):
+                for f in (self.root / 'results').glob('*.json') if (self.root / 'results').exists() else []:
+                    f.unlink()
+                a1, counts, _, _ = self.a1_and_counts(self.PASS, other)
+                self.assertIn('| passed | 2026-11-14T10:00:00.9Z |', a1)
+                self.assertIn('1 passed', counts)
+
+    def test_a_record_whose_candidate_and_step_cannot_be_read_is_attributed_to_no_step(self):
+        # It cannot lower a step, as the docstring says: it is listed as set aside and a pass beside it stands.
+        folder = self.results(self.PASS)
+        (folder / 'r1.json').write_text('{"step": "A-1", "candidate": "c", "outcome": "failed"')  # not JSON
+        (folder / 'r2.json').write_text('["A-1", "c", "failed"]')
+        (folder / 'r3.json').write_text(json.dumps(dict(self.LATER_FAILURE, step=7)))
+        text = self.printed('--repo', str(self.repo()), '--results', str(folder), '--candidate', 'c')
+        self.assertIn('| passed | 2026-11-14T10:00:00.9Z |', next(l for l in text.splitlines() if '| A-1 |' in l))
+        self.assertIn('Records that could not be read (not counted): r1.json (JSONDecodeError), r2.json (not a record), '
+                      'r3.json (names no step)', text)
 
     def test_a_character_that_cannot_be_printed_is_written_as_its_escape(self):
         results = self.results()
