@@ -1,4 +1,5 @@
 import test from 'node:test';
+import {agentPlain} from './support/agent-text.mjs';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
@@ -90,14 +91,15 @@ test('stop-request records label turns first and read back after a relaunch (REC
   assert.equal(stopLabel(stops([outcome]),'thread','t1',requests).label,'interrupted by the person');
   assert.equal(stopLabel(stops([outcome]),'thread','t2',requests).label,'interrupted by Stop Codex (final status not observed)','no record: the outcome still labels');
   const label=renderToStaticMarkup(React.createElement(StopLabel,{stop:stopLabel(undefined,'thread','t1',requests)}));
-  assert.ok(label.includes('App label: <b>interrupted by the person</b>. Final status observed when the turn ended. Codex reported: interrupted.'));
-  assert.ok(label.includes('Record: recorded in the App ledger.'));
+  assert.ok(agentPlain(label).includes('App label: <b>interrupted by the person</b>. ⟦Reading: Final status observed when the turn ended.⟧ Codex reported: interrupted.'));
+  assert.ok(agentPlain(label).includes('Record: ⟦Record: recorded in the App ledger⟧.'));
   const earlier=renderToStaticMarkup(React.createElement(StopLabel,{stop:stopLabel(undefined,'thread','t3',requests)}));
   assert.ok(earlier.includes('<b>outcome unknown (stop requested)</b> (derived; not written).')&&earlier.includes('From an earlier App session.'),earlier);
   assert.ok(!label.includes('derived'),'a recorded label is not marked derived');
   const refused=renderToStaticMarkup(React.createElement(StopLabel,{stop:stopLabel(undefined,'thread','t4',requests)}));
-  assert.ok(refused.includes('Stop request: Codex refused the stop request: no active turn')&&!refused.includes('App label'),refused);
-  assert.ok(refused.includes('Record: not yet written to the App ledger; kept in this App process.'),'a write not yet accepted is visible');
+  // The reading carries Codex's refusal, so it stands boxed.
+  assert.ok(agentPlain(refused).includes('Stop request: ⟦Reading: Codex refused the stop request: no active turn⟧')&&!refused.includes('App label'),refused);
+  assert.ok(agentPlain(refused).includes('Record: ⟦Record: not yet written to the App ledger; kept in this App process⟧.'),'a write not yet accepted is visible');
   const listed=renderToStaticMarkup(React.createElement(StopRequests,{requests}));
   assert.ok(listed.includes('Recorded stop requests (3)'));
   assert.ok(listed.includes('turn t1 · your interrupt at 2026-10-10T00:00:01Z: <b>interrupted by the person</b>. Final status observed'));

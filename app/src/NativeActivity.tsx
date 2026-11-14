@@ -444,11 +444,26 @@ export function RunEndMarker({ run }: { run: Json }) {
 // TO-4 / RECOVERY §3.4: the App's own label for a turn it was asked to stop,
 // beside Codex's reported status (Codex cannot say who interrupted). A REC SR
 // row carries its own reading and where it is recorded.
+// The App's own labels for a stopped turn (stop_records.rs label, codex_stop.rs outcome_label).
+const STOP_LABEL = {
+  "interrupted by the person": "interrupted by the person",
+  "completed (stop requested)": "completed (stop requested)",
+  "failed (stop requested)": "failed (stop requested)",
+  "outcome unknown (stop requested)": "outcome unknown (stop requested)",
+  "interrupted by quit": "interrupted by quit",
+  "completed (quit requested)": "completed (quit requested)",
+  "failed (quit requested)": "failed (quit requested)",
+  "interrupted by quit (final status not observed)": "interrupted by quit (final status not observed)",
+  "interrupted by Stop Codex": "interrupted by Stop Codex",
+  "completed (Stop Codex requested)": "completed (Stop Codex requested)",
+  "failed (Stop Codex requested)": "failed (Stop Codex requested)",
+  "interrupted by Stop Codex (final status not observed)": "interrupted by Stop Codex (final status not observed)",
+} as const;
 const STOP_WORDS = { label: "The stop's label as recorded, not the App's words", reading: "The stop request's reading as recorded, not the App's words", persistence: "Where the stop is recorded, as recorded, not the App's words" } as const;
 export function StopLabel({ stop }: { stop: Json | null }) {
   if (!stop) return null;
-  if (stop.stopRequestId) return <p role="note">{stop.label ? <>App label: <AgentText value={text(stop.label)} source="codex" label="Label:" name={STOP_WORDS.label} />{stop.labelDerived ? " (derived; not written)" : ""}. </> : "Stop request: "}<AgentText value={text(stop.reading)} source="codex" label="Reading:" name={STOP_WORDS.reading} />{stop.codexReported ? <> Codex reported: <AgentText value={text(stop.codexReported)} source="codex" />.</> : ""}{stop.earlierSession ? " From an earlier App session." : ""} Codex's own status is shown beside it. <small>Record: <AgentText value={text(stop.persistence)} source="codex" label="Record:" name={STOP_WORDS.persistence} />.</small></p>;
-  return <p role="note">App label: <AgentText value={text(stop.label)} source="codex" label="Label:" name={STOP_WORDS.label} /> ({stop.codexReported ? <>Codex reported at the stop: <AgentText value={text(stop.codexReported)} source="codex" /></> : "Codex reported no end before the stop"}). Codex's own status is shown beside it.</p>;
+  if (stop.stopRequestId) return <p role="note">{stop.label ? <>App label: <b><Word value={stop.label} words={STOP_LABEL} name={STOP_WORDS.label} /></b>{stop.labelDerived ? " (derived; not written)" : ""}. </> : "Stop request: "}<AgentText value={text(stop.reading)} source="codex" label="Reading:" name={STOP_WORDS.reading} />{stop.codexReported ? <> Codex reported: <Word value={stop.codexReported} words={TURN_STATUS} />.</> : ""}{stop.earlierSession ? " From an earlier App session." : ""} Codex's own status is shown beside it. <small>Record: <AgentText value={text(stop.persistence)} source="codex" label="Record:" name={STOP_WORDS.persistence} />.</small></p>;
+  return <p role="note">App label: <b><Word value={stop.label} words={STOP_LABEL} name={STOP_WORDS.label} /></b> ({stop.codexReported ? <>Codex reported at the stop: <Word value={stop.codexReported} words={TURN_STATUS} /></> : "Codex reported no end before the stop"}). Codex's own status is shown beside it.</p>;
 }
 
 // NPTD §7.1: the delegation view by the host's reading for this conversation.

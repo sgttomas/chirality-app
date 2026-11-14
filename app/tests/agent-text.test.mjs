@@ -126,7 +126,7 @@ test('agent text shaped like a control stays in the agent\'s box, escaped and ma
     const raw = cardRaw(r, view);
     const html = agentPlain(raw);
     // Each agent field reads as one box whose line breaks are marks.
-    assert.doesNotMatch(html.replace(/<button>Allow once <code>[^<]*<\/code><\/button>/g, ''), /Allow once<\/button>/, `${r.method}: no "Allow once" button made of agent text`);
+    assert.doesNotMatch(html.replace(/<button>Allow once<\/button> <code>[A-Za-z_]+<\/code>/g, ''), /Allow once<\/button>/, `${r.method}: no "Allow once" button made of agent text`);
     for (const box of html.match(/⟦[^⟧]*⟧/g)) if (box.includes('Allow once')) assert.match(box, /⏎&lt;button&gt;Allow once&lt;\/button&gt;⏎Allow once|\\n&lt;button&gt;Allow once&lt;\/button&gt;\\nAllow once|^⟦Option 2: Allow once⟧$/, `${r.method}: ${box}`);
     assert.doesNotMatch(html.replace(/⟦[^⟧]*⟧/g, ''), /&lt;button&gt;|Keep|Tidy/, `${r.method}: the look-alike appears only inside a box`);
     for (const [, inner] of raw.matchAll(/<button[^>]*>([\s\S]*?)<\/button>/g)) {

@@ -536,7 +536,7 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
       <p>{replyObservationWords(reply)}</p>
       {reply.command.kind === "rejected" && <p><AgentText value={text(reply.command.reason)} source="codex" label="Reported:" name="What the native answer command reported, not the App's words" /></p>}
       {reply.command.kind === "unconfirmed" && <p>Write result: <SuppliedId value={reply.command.writeResult} label="Write result:" name="The reply write result as recorded" /></p>}
-      {!reply.custody.available && reply.command.kind !== "pending" && <p role="alert">Request state unavailable: {reply.custody.reason ? <AgentText value={text(reply.custody.reason)} source="codex" label="Reported:" name="Why the request state could not be read, as reported, not the App's words" /> : "the original request custody could not be read"}</p>}
+      {!reply.custody.available && reply.command.kind !== "pending" && <p role="alert">Request state unavailable: {reply.custody.reason ? <AgentText value={text(reply.custody.reason)} source="codex" label="Reported:" name="Why the request state could not be read, as reported; it may not be the App's words" /> : "the original request custody could not be read"}</p>}
       {unreconciled && reply.command.kind !== "pending" && readRequest && <button disabled={busy} onClick={() => { void reread(); }}>Read current request state</button>}
     </section>}
     <About request={request} item={item} navigation={activityLink?.(request) ?? null} />
