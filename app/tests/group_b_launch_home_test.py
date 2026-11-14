@@ -1106,10 +1106,30 @@ class KeptHome(Fixture):  # keep-make, keep-launch and keep-remove: one home acr
             return []
         with mock.patch.object(launch, 'running_candidates', side_effect=swap):
             code, out = self.call('keep-remove', '--folder', str(folder), '--candidate', str(candidate))
-        self.assert_refused(code, out, 'no longer names the directory that was checked')
+        self.assert_refused(code, out, 'no longer names the directory that was emptied')
         self.assertEqual((folder / 'kept-by-someone-else').read_text(), 'must stay')
-        self.assertTrue((moved / 'record/kept.json').is_file())
-        self.assertFalse([p for p in self.root.iterdir() if p.name.startswith('.removing-')])
+        self.assertEqual(list(moved.iterdir()), [])  # the checked directory was emptied through its handle, wherever it went
+
+    def test_an_interrupted_removal_can_be_run_again_while_the_record_remains(self):
+        candidate = self.candidate()
+        folder = self.make(candidate)
+        (folder / 'project/deep').mkdir()
+        real_rmtree = launch.shutil.rmtree
+        seen = []
+
+        def fail_once(name, dir_fd=None, **kwargs):
+            seen.append(name)
+            if len(seen) == 1:
+                raise OSError('interrupted')
+            real_rmtree(name, dir_fd=dir_fd, **kwargs)
+        with mock.patch.object(launch.shutil, 'rmtree', side_effect=fail_once):
+            code, out = self.call('keep-remove', '--folder', str(folder), '--candidate', str(candidate))
+        self.assertNotEqual(code, 0, out)
+        self.assertNotEqual(seen[0], 'record')
+        self.assertTrue((folder / 'record/kept.json').is_file())
+        code, out = self.call('keep-remove', '--folder', str(folder), '--candidate', str(candidate))
+        self.assertEqual(code, 0, out)
+        self.assertFalse(folder.exists())
 
 
 class Housekeeping(unittest.TestCase):

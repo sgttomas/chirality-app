@@ -95,19 +95,30 @@ const MODAL = /^(sheet|dialog|alert|system dialog|popover|drawer|standard window
  * entries the scenario lists; and nowhere below it, at any depth, a window, sheet, dialog, alert or popover. Anything
  * else unlisted is not the page.
  */
+// What an alert of the page's own may hold: words, and the containers and lists that hold them; nothing a person can
+// operate.
+const READ_ONLY = /^(text|container|group|heading|list marker|content list|list|description list)( |,|$)/;
+
 /**
  * The positions of a view's elements that are a window or something modal. An alert inside the page's own web
- * content (an element below "HTML content") is a region of the page, as the App writes its refusals, not a modal
- * surface; any other alert, and a sheet, dialog, popover or window anywhere, is modal.
+ * content (below "HTML content") that holds only words is a region of the page, as the App writes its refusals; it
+ * is not counted when `strict` is false. Any other alert (outside the web content, or holding a control), and a
+ * sheet, dialog, popover or window anywhere, is modal; with `strict`, every alert is.
  */
-function modalAt(elements, from) {
+function modalAt(elements, from, strict = false) {
   const found = [];
   let web = null;  // the depth of the web content being walked, or null
   for (let at = from; at < elements.length && elements[at].depth > 0; at++) {
     const { depth, content } = elements[at];
     if (web !== null && depth <= web) web = null;
     if (web === null && content.startsWith('HTML content')) { web = depth; continue; }
-    if (MODAL.test(content) && !(web !== null && /^alert(,| |$)/.test(content))) found.push(at);
+    if (!MODAL.test(content)) continue;
+    if (!strict && web !== null && /^alert(,| |$)/.test(content)) {
+      let inside = at + 1;
+      while (inside < elements.length && elements[inside].depth > depth && READ_ONLY.test(elements[inside].content)) inside++;
+      if (inside >= elements.length || elements[inside].depth <= depth) continue;  // words only: the page's own
+    }
+    found.push(at);
   }
   return found;
 }
@@ -152,7 +163,7 @@ export function sheetCheck(text, elements, scenario, sheet, values) {
     problems.push('the view is not of the one window and the menu bar');
   }
   const start = elements.findIndex(isWindow);
-  const extra = [], modal = modalAt(elements, start + 1);
+  const extra = [], modal = modalAt(elements, start + 1, true);
   for (let at = start + 1; at < elements.length && elements[at].depth > 0; at++) {
     if (elements[at].depth === 1 && !scenario.window_holds.includes(elements[at].content)) extra.push(at);
   }
