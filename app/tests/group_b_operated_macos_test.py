@@ -8,6 +8,9 @@ import importlib.util
 import os
 from pathlib import Path
 import subprocess
+import struct
+import contextlib
+import io
 import sys
 import unittest
 
@@ -130,3 +133,83 @@ class EnvironmentNamesOnMacOS(unittest.TestCase):
     def test_no_such_process_is_cannot_be_read(self):
         done = self.run_names(99999999)
         self.assertEqual((done.returncode, done.stdout), (2, ''))
+
+    def started(self, argv, environment):
+        child = subprocess.Popen(argv, executable=sys.executable, env=environment)
+        self.addCleanup(child.wait)
+        self.addCleanup(child.kill)
+        return child
+
+    def test_an_empty_argv0_and_an_empty_later_argument_do_not_hide_the_environment(self):
+        # The independent reading of PR 351 (round one): an empty argv[0] was taken for padding, and the environment
+        # read as empty. Each of these must read back its invented names exactly.
+        cases = {'an empty argv[0]': ['', '-c', 'import time; time.sleep(30)'],
+                 'an empty later argument': ['invented', '-c', 'import time; time.sleep(30)', ''],
+                 'both': ['', '-c', 'import time; time.sleep(30)', '', '']}
+        for name, argv in cases.items():
+            with self.subTest(name):
+                child = self.started(argv, self.INVENTED)
+                done = self.run_names(child.pid)
+                self.assertEqual((done.returncode, done.stdout.split('\n')[:-1]), (0, sorted(self.INVENTED)), done.stderr)
+
+    def test_an_empty_environment_is_reported_empty_only_as_seen(self):
+        child = self.started(['invented', '-c', 'import time; time.sleep(30)'], {})
+        done = self.run_names(child.pid)
+        self.assertEqual((done.returncode, done.stdout), (0, ''), done.stderr)
+
+    def load(self):
+        spec = importlib.util.spec_from_file_location('env_names_under_test', OPERATED / 'env_names.py')
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
+
+    def test_the_calibration_withholds_the_real_read_when_the_parsing_is_wrong(self):
+        # Put back the parsing the first reading found wrong (every NUL after the path skipped): the calibration's
+        # empty-argv[0] child no longer reads back, so the real read is not made and nothing is printed.
+        module = self.load()
+        right = module.parse
+
+        def skipping_every_nul(block):
+            end = block.find(b'\0', 4)
+            at = end
+            while at < len(block) and block[at] == 0:
+                at += 1
+            fake = block[:end + 1] + b'\0' * ((8 - (end + 1 - 4) % 8) % 8) + block[at:]
+            return right(fake)
+
+        read = []
+        real_read_block = module.read_block
+        module.read_block = lambda pid: (read.append(pid), real_read_block(pid))[1]
+        module.parse = skipping_every_nul
+        target = self.started(['invented', '-c', 'import time; time.sleep(30)'], self.INVENTED)
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(io.StringIO()):
+            code = module.main([str(target.pid)])
+        self.assertEqual((code, out.getvalue()), (2, ''))
+        self.assertNotIn(target.pid, read)
+        # With the right parsing back, the same target reads.
+        module.parse = right
+        self.assertTrue(module.calibrated())
+        self.assertEqual(module.names(target.pid), sorted(self.INVENTED))
+
+    def test_a_block_not_of_the_layout_is_not_read_as_an_environment(self):
+        module = self.load()
+        path = b'/invented/exe\0'
+        head = path + b'\0' * ((8 - len(path) % 8) % 8)   # argc (4 bytes) + path, padded to 4 + 8k
+
+        def block(argc, rest):
+            return struct.pack('i', argc) + head + rest
+
+        good = block(1, b'arg\0NAME=v\0\0apple=x\0')
+        self.assertEqual(module.parse(good), ([b'arg'], ['NAME']))
+        cases = {
+            'the block ends exactly after the arguments (as for an Apple binary)': block(1, b'arg\0'),
+            'the closing empty string ends the block': block(1, b'arg\0NAME=v\0\0'),
+            'an entry with no "="': block(1, b'arg\0NOEQUALS\0\0apple=x\0'),
+            'an entry with an empty name': block(1, b'arg\0=v\0\0apple=x\0'),
+            'fewer arguments than argc': block(3, b'arg\0'),
+            'padding that is not NUL': struct.pack('i', 1) + path + b'X' * ((8 - len(path) % 8) % 8 or 8) + b'arg\0N=v\0\0a=x\0',
+        }
+        for name, data in cases.items():
+            with self.subTest(name):
+                self.assertIsNone(module.parse(data))

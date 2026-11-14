@@ -1365,6 +1365,42 @@ class AViewRecognisedLineForLine(unittest.TestCase):
                 refusal, _ = self.recognise(text)
                 self.assertIsNotNone(refusal)
 
+    def test_the_menu_bar_block_is_compared_whole_line_for_line(self):
+        # One comparison of the view's last eight lines with the block built from the window line's App name: an extra,
+        # missing or altered line anywhere in it refuses, not only one the piecewise checks looked at.
+        whole = AFTER_THE_PRESS
+        lines = whole.split('\n')
+        start = lines.index('19 menu bar')
+        block = lines[start:start + 8]
+        self.assertEqual(block[1], '\t20 Chirality App v4 (development invented)')
+        self.assertEqual(block[7], '\t26 Waiting requests (0)')
+        self.assertIsNone(self.recognise(whole)[0])
+        cases = {}
+        for i, line in enumerate(block):  # a further line after each of the block's eight lines
+            cases[f'a further line after {line.strip()!r}'] = '\n'.join(lines[:start + i + 1] + ['unfamiliar text inside menu block'] + lines[start + i + 1:])
+        # A well-formed element line with the next index, between two of the block's elements, the rest renumbered so
+        # that the indices stay in order.
+        renumbered = [block[0], block[1], '\t21 menu item Inserted'] + [
+            line.replace(f'\t{20 + j} ', f'\t{21 + j} ', 1) for j, line in enumerate(block[2:], start=1)]
+        focused = [line for line in lines[start + 8:] if line.startswith('The focused UI element is ')]
+        self.assertTrue(all(int(line.split()[5]) < 20 for line in focused), 'the focused line must not need renumbering')
+        cases['an element line with the next index inside the block, the rest renumbered'] = '\n'.join(lines[:start] + renumbered + lines[start + 8:])
+        window = lines[0]
+        cases["the window line naming another App before the block's"] = whole.replace(
+            window, window.replace(', App: ', ', App: Another App, App: ', 1))
+        cases['a quote in the window title'] = whole.replace(window, window.replace('Window: "', 'Window: "Chi"', 1))
+        cases['words after the window line'] = whole.replace(window, window + ' and more')
+        cases['a waiting count with a leading zero'] = whole.replace('Waiting requests (0)', 'Waiting requests (01)')
+        cases['a negative waiting count'] = whole.replace('Waiting requests (0)', 'Waiting requests (-1)')
+        cases['the menu items out of order'] = whole.replace('\t22 Edit', '\t22 View').replace('\t23 View', '\t23 Edit')
+        for name, text in cases.items():
+            with self.subTest(name):
+                self.assertNotEqual(text, whole)
+                refusal, _ = self.recognise(text)
+                self.assertIsNotNone(refusal)
+        # The one free part: any non-negative count of waiting requests.
+        self.assertIsNone(self.recognise(whole.replace('Waiting requests (0)', 'Waiting requests (12)'))[0])
+
     def test_anything_else_is_refused(self):
         own = SHEET_ON_ITS_OWN
         cases = {
@@ -1379,6 +1415,7 @@ class AViewRecognisedLineForLine(unittest.TestCase):
             'a line after the focused line': own + '\nInvented',
             'two lines after the blank line': own.replace('\n\nThe focused', '\n\nInvented\nThe focused'),
             'the focused line naming no element': own.replace('The focused UI element is 0 sheet', 'The focused UI element is 99 sheet'),
+            "the focused line not repeating its element's words": own.replace('The focused UI element is 0 sheet', 'The focused UI element is 0 button Create'),
             'a difference marker in a whole view': own.replace('\t3 button Cancel', '~\t3 button Cancel'),
             'one index given twice': own.replace('\t3 button Cancel', '\t4 button Cancel')}
         for name, text in cases.items():
@@ -1408,6 +1445,19 @@ class TheViewOnlyScenarios(unittest.TestCase):
         self.assertEqual((verdict, stopped), ('pass', None))
         self.assertEqual(set(calls), {'get_app_state'})
         self.assertEqual(result['touched'], ['get_app_state'] * 3)
+
+
+    def test_the_first_launch_view_does_not_pass_on_a_view_with_a_line_inside_its_menu_bar_block(self):
+        # The independent reading of PR 351 (round one): a further line inside the block was accepted, and this
+        # view-only scenario reported a pass on it. It must not.
+        views = setup_views()
+        first = views['views'][0]['text'].split('\n')
+        bar = next(n for n, line in enumerate(first) if line.endswith(' menu bar') and not line.startswith('\t'))
+        views['views'] = [dict(views['views'][0], text='\n'.join(first[:bar + 1] + ['unfamiliar text inside menu block'] + first[bar + 1:]))]
+        result = setup_walk(RESULT.replace('OPTIONS', 'base'), views, OPERATED / 'first-launch-view.scenario.json')
+        verdict, stopped, calls = result['out']
+        self.assertNotEqual(verdict, 'pass')
+        self.assertEqual(set(calls), {'get_app_state'})
 
 
 class TheSignedOutScenarioFiles(unittest.TestCase):

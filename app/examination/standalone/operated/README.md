@@ -1152,14 +1152,16 @@ failure, the same scenario and acts.
   Agent 0, 14 November 2026). The walk does not decide what a view it does
   not recognise means; it refuses it, and the step ends with no act, at every
   view, the first ones included:
-  - the first line is the supplier's window line,
-    `Window: "<words>", App: <words>.`;
+  - the first line is the supplier's window line, whole:
+    `Window: "<title>", App: <name>.`, a title holding no quote and nothing
+    after the full stop;
   - then element lines, each a run of tabs, an index, one space and its
     words, and each perhaps followed by further lines of its own words (a
     text running over more than one line), which cannot begin with a tab;
   - then, at most, one blank line and, after it, at most the focused-element
     line, `The focused UI element is <index> <words>`, naming an element of
-    the view;
+    the view and repeating that element's own words, as every focused line
+    recorded does;
   - an index is accepted only in its canonical form, at most 15 digits with
     no leading zero, so one text names one element and it reads as one exact
     number; a view holding an index in any other form (`016` beside `16`, say)
@@ -1169,10 +1171,47 @@ failure, the same scenario and acts.
     element only by its index, so a view that gives one index to two
     elements cannot be addressed.
 
-  Whether a view came back whole rests on the supplier's two fixed openings
-  for a view of differences or of no change; that is a reliance on the
-  supplier's format, not an independent proof that a malformed reply holds
-  every element.
+  - **The anchor: the view's shape, whole.** The k-th element line must
+    carry index k, and the view's last eight lines before its blank line
+    must equal, line for line and whole, the App window's own menu bar block
+    built from the window line's App name and the menu bar's index:
+    `<k> menu bar`, then one tab in, `<k+1> <name>`, `File`, `Edit`, `View`,
+    `Window`, `Help` and `Waiting requests (<n>)`, numbered on. Only `<n>`
+    is free, a non-negative integer with no leading zero. It is one
+    comparison, not a check of pieces: an extra line of any kind (a further
+    line, a well-formed element line with the next index), a missing line or
+    an altered line inside the block refuses, and so does a view without it.
+    A line imitating an element appears straight after the element whose
+    text carries it, where it breaks the index order or repeats an index, so
+    such a view is refused before any call.
+  - **What the anchor rests on.** The supplier's contract (the `@oai/sky`
+    type declarations) says that `get_app_state` returns "Accessibility
+    text, prefixed with app-specific guidance on first access when
+    available", that `disableDiff` gives "a full accessibility tree instead
+    of a diff", and that `click` and `set_value` take an "Element index from
+    the latest `get_app_state()` text". It states no order and no menu bar.
+    The shape is observed, not promised: every whole view recorded on
+    14 November 2026 has it (R1; S1 to S5; the index probe's views; the
+    sheet; the re-recording launches' views; the view after the press). If
+    the supplier changes the shape, the walk refuses and does not act. A
+    guidance prefix has not been seen; text before the window line is
+    refused, and the view must still end on the block.
+  - **Its limit.** The anchor is relied on for the rehearsal tier only. It
+    does not show that text cannot lead an agent to choose a real element it
+    should not.
+  - **What else a recognised view lets through, and why.** In page content,
+    before the block, an element's words, its depth, its further lines and
+    the window's title are accepted without a comparison of their own. They
+    are content: wherever the walk acts, the whole view, line for line with
+    these lines included, must equal the listed state it acts from
+    (`stateCheck`, `compareView`), and the sheet must equal its template.
+    A view-only step acts on nothing; its pass says only that its named
+    expectations were found in a whole, anchored view, not that the rest of
+    the page is the recorded one.
+
+  Whether a view came back as differences or as no change rests on the
+  supplier's two fixed openings for those; a whole view must also carry the
+  anchor above.
 - **The parser's limit, which stands.** Recognising a view line for line does
   not tell a real element from a line of text that imitates one. The fourth
   independent reading of PR 323 (14 November 2026) answered its two questions
@@ -1192,6 +1231,21 @@ failure, the same scenario and acts.
   click on one candidate. A set-value at such an index was not probed. The
   limit stands as stated for anything that leads the walk to a real element it
   should not act on.
+- **Environment names (`env_names.py`).** It prints the names, never a
+  value, of one process's environment, from the sysctl KERN_PROCARGS2 block,
+  whose entries are NUL-separated, so a name is exact. Where the arguments
+  start is found by the kernel's alignment of the path's padding, measured
+  on this Mac and not promised, so the read does not rest on it alone: at
+  every run a calibration starts the script's own children with invented
+  environments (an empty argv[0], an empty later argument, an empty
+  environment) and requires each to read back exactly, or the real read is
+  not made; and the real read must parse exactly argc arguments and then
+  only name=value entries with a non-empty name, closed by an empty string
+  with the block going on after it. Anything else is "not observed" (exit
+  2). No environment for one of Apple's own binaries (the kernel withholds
+  it; the block ends after the arguments) stays "not observed", never an
+  empty environment. Its first use is a dry run in a launch with no sign-in
+  and no conversation, not the signed-in rehearsal (App Agent 0).
 - **Where the walk acts, and why it is sound there (App Agent 0, 14 November
   2026).** The tool acts only in the listed states below. It is sound there
   because every text in those views is established and plain: the build's

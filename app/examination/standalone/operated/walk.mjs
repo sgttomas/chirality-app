@@ -36,21 +36,28 @@ export const UNADDRESSED = 'the view gives the same element index to more than o
  */
 // The App window's own menu bar, with which every whole view of the App ends (see anchored, below).
 const MENU_ITEMS = ['File', 'Edit', 'View', 'Window', 'Help'];
-const LAST_ELEMENT = /^Waiting requests \((0|[1-9][0-9]{0,5})\)$/;
+const WAITING = '(0|[1-9][0-9]{0,5})';  // the one free part of the block: a non-negative integer
+// The window line, whole: a title holding no quote, the App's name, and nothing after.
+const WINDOW_PARTS = new RegExp(`^Window: "([^"]*)", App: (${WORDS}+)\\.$`, 'u');
 
 export function recognise(text) {
   const lines = String(text).split('\n'), elements = [], seen = new Set();
   const refuse = why => ({ elements, refusal: why });
   if (!WINDOW_LINE.test(lines[0])) return refuse("its first line is not the supplier's window line");
-  let previous = 'window';
+  let previous = 'window', last = lines.length - 1;  // last: the view's last line before its blank line, if any
   for (let n = 1; n < lines.length; n++) {
     const line = lines[n], element = ELEMENT_LINE.exec(line);
     if (line === '') {
+      last = n - 1;
       const rest = lines.slice(n + 1);
       if (rest.length === 0) break;
       const focused = rest.length === 1 ? FOCUSED_LINE.exec(rest[0]) : null;
       if (!focused) return refuse(`line ${n + 2} is not one the walk recognises after the view's blank line`);
       if (!seen.has(focused[1])) return refuse('the focused-element line names no element of the view');
+      // It must repeat that element's own words, as every focused line recorded does, not only its index.
+      if (elements.find(element => String(element.index) === focused[1])?.content !== focused[2]) {
+        return refuse("the focused-element line does not repeat its element's words");
+      }
       break;
     }
     if (element) {
@@ -64,7 +71,7 @@ export function recognise(text) {
       return refuse(`line ${n + 1} is not one the walk recognises`);
     }
   }
-  return anchored(lines[0], elements, previous) ?? { elements, refusal: null };
+  return anchored(lines, last, elements) ?? { elements, refusal: null };
 }
 
 /**
@@ -75,26 +82,29 @@ export function recognise(text) {
  * controls and that menu bar. So:
  * - the k-th element line must carry index k: a line imitating an element, carried by text inside an element, appears
  *   straight after that element, where it breaks this order or repeats an index;
- * - the view must end with that menu bar block, the App's name in it equal to the window line's: a copy of the block
- *   in page content would break the order, and a view without the genuine block, or with anything after it (a further
- *   line included), is refused;
+ * - the view's last eight lines (before its blank line) must equal, line for line and whole, the block built from the
+ *   App's name in the window line and the menu bar's index, with only the number in "Waiting requests (n)" free. It is
+ *   one comparison, not a check of pieces: an extra line of any kind (a further line, a well-formed element line), a
+ *   missing line or an altered line inside the block refuses, and so does a view without the block;
+ * - the window line must be whole: `Window: "<title>", App: <name>.`, a title holding no quote, nothing after; <name>
+ *   is the one the block is built from;
  * - so every index the walk may act on is one the view assigns, in order, each once, and an index it does not assign
  *   is refused here, before any call. Refusal is the default: a view lacking any part of this shape is not acted on.
  */
-function anchored(windowLine, elements, previous) {
+function anchored(lines, last, elements) {
   const refuse = why => ({ elements, refusal: why });
   for (let k = 0; k < elements.length; k++) {
     if (elements[k].index !== k) return refuse(`the element lines are not in index order from 0 (element ${k + 1} carries ${elements[k].index})`);
   }
-  if (previous === 'further') return refuse('text follows the last element line');
-  const tail = elements.slice(-8);
-  const [bar, name, ...items] = tail;
-  if (tail.length !== 8 || bar.depth !== 0 || bar.content !== 'menu bar' || tail.slice(1).some(element => element.depth !== 1)
-      || items.slice(0, 5).map(item => item.content).join('\n') !== MENU_ITEMS.join('\n')
-      || !LAST_ELEMENT.test(items[5].content)) {
-    return refuse('it does not end with the App window\'s own menu bar (menu bar; the App\'s name, File, Edit, View, Window, Help, "Waiting requests (n)")');
+  const windowParts = WINDOW_PARTS.exec(lines[0]);
+  if (!windowParts) return refuse('its first line is not a whole window line (a title holding no quote, the App\'s name, nothing after)');
+  const name = windowParts[2], k = elements.length - 8;
+  const block = lines.slice(last - 7, last + 1);
+  const expected = [`${k} menu bar`, `\t${k + 1} ${name}`, ...MENU_ITEMS.map((item, i) => `\t${k + 2 + i} ${item}`)];
+  const waiting = new RegExp(`^\\t${k + 7} Waiting requests \\(${WAITING}\\)$`);
+  if (k < 0 || last - 7 < 1 || block.length !== 8 || expected.some((line, i) => block[i] !== line) || !waiting.test(block[7])) {
+    return refuse('it does not end with the App window\'s own menu bar, line for line (menu bar; the window line\'s App name, File, Edit, View, Window, Help, "Waiting requests (n)")');
   }
-  if (windowLine !== undefined && !windowLine.endsWith(`, App: ${name.content}.`)) return refuse("the menu bar's App name is not the window line's");
   return null;
 }
 
