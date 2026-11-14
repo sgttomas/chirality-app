@@ -74,7 +74,7 @@ test('an adoption that stopped part-way is offered to complete, without saying r
  const value=store(undefined);
  value.project.attachment={projectId:null,how:'none',limits:[],fault:'no folder recorded',resolutions:['adopt'],linkedIdentity:'invented-Q'};
  const html=renderToStaticMarkup(React.createElement(RecordsStorePanel,{store:value,act:async()=>{}}));
- assert.match(html,/holds the project this folder’s file names and has no folder recorded for it/);
+ assert.match(html,/holds this folder’s project identity and has no folder recorded for it/);
  assert.match(html,ADOPT);assert.doesNotMatch(html,RESTORE);assert.doesNotMatch(html,FRESH);
  assert.doesNotMatch(html,/Nothing is recorded for this project until/);
 });
@@ -293,10 +293,10 @@ test('Finish disposal is not offered while the folder is unattached; restoring t
 // Review round 2, findings 6 and 7.
 test('an interrupted adoption and an unknown association say so and offer only what can succeed',()=>{
  const kept=store(undefined);
- kept.project.reading="records kept in the records store under the identity this folder's file names, not attached to this folder";
- kept.project.attachment={projectId:null,refusal:'records kept, not attached',limits:[],fault:'no folder recorded',resolutions:['adopt'],linkedIdentity:'invented-Q'};
+ kept.project.reading="nothing from the records store: this folder's project identity is kept there with no folder recorded; not attached to this folder";
+ kept.project.attachment={projectId:null,refusal:'project identity kept, not attached',limits:[],fault:'no folder recorded',resolutions:['adopt'],linkedIdentity:'invented-Q'};
  const one=renderToStaticMarkup(React.createElement(RecordsStorePanel,{store:kept,act:async()=>{}}));
- assert.match(one,/holds the project this folder’s file names/);assert.match(one,/reading records kept in the records store/);assert.match(one,ADOPT);assert.doesNotMatch(one,/no records yet/);
+ assert.match(one,/holds this folder’s project identity/);assert.match(one,/reading nothing from the records store: this folder&#x27;s project identity is kept there/);assert.match(one,ADOPT);assert.doesNotMatch(one,/no records yet/);
  const unknown=store(undefined);
  unknown.registry='the records store’s registry of project folders (roots.jsonl) was not read whole';
  unknown.project.attachment={projectId:null,refusal:'association not known; not attached',limits:[],fault:'association not known',resolutions:[],registry:unknown.registry};
@@ -341,7 +341,7 @@ test('regression 4: store registry alert and main identity fault wording survive
  const registry='Invented store registry was not read whole.';
  assert.match(view({state:'available',root:'/invented/store',placement:'test',registry}),/<p role="alert">Invented store registry was not read whole\.<\/p>/);
  for(const [fault,words]of[
-  ['no folder recorded',/holds the project this folder’s file names and has no folder recorded for it/],
+  ['no folder recorded',/holds this folder’s project identity and has no folder recorded for it/],
   ['association not known',/list of project folders was not read whole, and what it could read records no project for this folder/],
  ]){
   // Isolate the fault vocabulary from the host's independently tested choice of resolutions.

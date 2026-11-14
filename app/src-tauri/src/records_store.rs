@@ -1342,7 +1342,7 @@ pub fn attach(root: &Path, mint: bool) -> Result<Attachment, String> {
                     out.how = "registered";
                     attach_to(&mut out, project);
                 } else if known {
-                    out.refusal = Some(format!("records kept, not attached: the records store holds project {project}, which this folder's project file names, and records no folder for it; nothing is read or written for it until the person confirms this folder is that project"));
+                    out.refusal = Some(format!("project identity kept, not attached: the records store holds project identity {project}, which this folder's project file names, and records no folder for it; nothing is read or written for it until the person confirms this folder is that project"));
                     out.how = "unattached";
                     out.linked = Some(project.clone());
                     out.fault = Some("no folder recorded");
@@ -2404,7 +2404,11 @@ fn accounts_in_project(root: &Path, location: String) -> AccountsPlace {
 /// no §13.7 records waiting for import. Every refusal names its cause.
 pub(crate) fn write_dir(root: &Path) -> Result<PathBuf, String> {
     let attachment = attach(root, true).map_err(|e| format!("nothing written: {e}"))?;
-    let dir = attachment.dir.clone().ok_or_else(|| format!("no project identity in the records store; nothing written: {}", attachment.refusal.clone().unwrap_or_default()))?;
+    let dir = attachment.dir.clone().ok_or_else(|| {
+        let refusal = attachment.refusal.clone().unwrap_or_default();
+        if attachment.fault == Some("no folder recorded") { refusal }
+        else { format!("no project identity in the records store; nothing written: {refusal}") }
+    })?;
     write_permitted(&dir, &attachment.root)?;
     Ok(dir)
 }
@@ -2490,7 +2494,9 @@ fn inspect_write(root: &Path) -> WriteInspection {
     };
     let Some(dir) = attachment.dir else {
         return match attachment.refusal {
-            Some(refusal) => WriteInspection::Refused(WriteRefusal::new(WriteRefusalKind::Association, format!("no project identity in the records store; nothing written: {refusal}"))),
+            Some(refusal) => WriteInspection::Refused(WriteRefusal::new(WriteRefusalKind::Association,
+                if attachment.fault == Some("no folder recorded") { refusal }
+                else { format!("no project identity in the records store; nothing written: {refusal}") })),
             None => WriteInspection::Outstanding(OutstandingWriteProof::FirstWriteMint),
         };
     };
@@ -3522,7 +3528,7 @@ pub fn status(project: Option<&Path>) -> Value {
                 // A refused attachment is said first: files kept in the
                 // project folder are not read in the place of records the
                 // store holds, and no import is asked for while it stands.
-                "reading":if home.attachment.fault == Some("no folder recorded") {"records kept in the records store under the identity this folder's file names, not attached to this folder"}
+                "reading":if home.attachment.fault == Some("no folder recorded") {"nothing from the records store: this folder's project identity is kept there with no folder recorded; not attached to this folder"}
                     else if home.attachment.fault == Some("association not known") {"nothing from the records store (association not known)"}
                     else {match &read {Err(_) => "nothing from the records store (the project is not attached)", Ok(read) => read.reading(!census.is_empty(), import_needed)}},
                 "importNeeded":import_needed,

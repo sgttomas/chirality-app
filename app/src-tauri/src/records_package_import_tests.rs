@@ -594,12 +594,42 @@ fn package_import_pending_registry_write_holds_every_other_registry_append_until
         apply(retry, &actor(), &observed()).unwrap();
         assert!(require_complete(&f.dir()).is_ok(), "{at}: the import finishes");
         assert_eq!(attach(&f.root, false).unwrap().project.as_deref(), Some(f.project.as_str()));
-        // The refused mint wrote the folder's link first (the link-first
-        // order); the registry now takes its line. Where the registry was not
-        // read whole, the mint was refused before anything was written, the
-        // link included, so the folder is minted now.
-        let expected = if at == "roots-partial" { "minted" } else { "registered" };
-        assert_eq!(attach(&other, true).unwrap().how, expected, "{at}: then the registry is appended to again");
+        if at == "roots-partial" {
+            // The torn registry refused the first mint before even its link
+            // or identity file was written: this is still a new identity.
+            assert_eq!(attach(&other, true).unwrap().how, "minted");
+        } else {
+            // The interrupted first registration already published an
+            // identity file. Status requires confirmation, so a write must
+            // not complete that association silently, even without records.
+            let stopped = attach(&other, false).unwrap();
+            let reason = stopped.refusal.unwrap();
+            assert_eq!(stopped.fault, Some("no folder recorded"));
+            let identity_dir = project_dir(&f.destination, stopped.linked.as_deref().unwrap());
+            assert_eq!(bag::payload_inventory(&identity_dir).unwrap().keys().map(String::as_str).collect::<Vec<_>>(), ["project.json"]);
+            let view = crate::records_store::status(Some(&other));
+            assert_eq!(view["project"]["attachment"]["refusal"], reason);
+            assert_eq!(view["project"]["reading"], "nothing from the records store: this folder's project identity is kept there with no folder recorded; not attached to this folder");
+            assert!(view["project"]["notes"].as_array().unwrap().iter().all(|note|
+                !note.as_str().unwrap().contains("no project identity in the records store")));
+            fn bytes(dir: &Path) -> BTreeMap<PathBuf, Vec<u8>> {
+                let mut files = BTreeMap::new();
+                for entry in std::fs::read_dir(dir).unwrap() {
+                    let entry = entry.unwrap();
+                    if entry.file_type().unwrap().is_dir() { files.extend(bytes(&entry.path())); }
+                    else { files.insert(entry.path(), std::fs::read(entry.path()).unwrap()); }
+                }
+                files
+            }
+            let before = bytes(&f.destination);
+            assert_eq!(attach(&other, true).unwrap().refusal.as_deref(), Some(reason.as_str()));
+            assert_eq!(write_dir(&other).unwrap_err(), reason);
+            assert_eq!(bytes(&f.destination), before, "no registration or record bytes changed");
+            adopt(&other).unwrap(); // Existing person confirmation; synthetic fixture only.
+            assert!(attach(&other, false).unwrap().dir.is_some());
+            crate::records::append_project(&other, None, "writer:confirmed", "evidence_limit", &crate::records::APP_WRITER,
+                json!({"label":"unresolvable reference","subjectRef":"invented confirmation"})).unwrap();
+        }
     }
 }
 

@@ -31,6 +31,7 @@ fn records_store_writer_binding_f4_retained_history_requires_confirmation_before
     let reason = before.refusal.unwrap();
     let view = status(Some(&root));
     assert_eq!(view["project"]["attachment"]["refusal"], reason);
+    assert_eq!(view["project"]["reading"], "nothing from the records store: this folder's project identity is kept there with no folder recorded; not attached to this folder");
     let (entries, limits) = storage::read_all(&root);
     assert!(entries.is_empty(), "ordinary reading cannot take the retained identity");
     assert!(limits.iter().any(|limit| limit.contains(&reason)), "{limits:?}");
