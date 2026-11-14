@@ -40,7 +40,7 @@ APP = HERE.parent.parent
 GENERATION = APP / 'src-tauri' / 'resources' / 'supplier' / '0.167.0' / 'GENERATION.json'
 PIN = '0.167.0'
 SYSTEM_PATH = '/usr/bin:/bin:/usr/sbin:/sbin'
-# The examination launcher's values (app/examination/standalone/launch.py): every outbound attempt
+# The examination launcher's proxy values (launch.py, copied here, not read): every outbound attempt
 # that is not loopback goes to a closed port.
 PROXY = 'http://127.0.0.1:9'
 PROXY_NAMES = ('HTTPS_PROXY', 'https_proxy', 'HTTP_PROXY', 'http_proxy', 'ALL_PROXY', 'all_proxy')
