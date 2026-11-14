@@ -134,6 +134,14 @@ export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
     <p className="first-use-lead" role="alert">{view.launch.reason}</p>
     <p>Nothing operational was started. This launch did not change your saved setup. Quit this Chirality instance (⌘Q), then reopen it after the process holding the home has released it.</p>
   </section>;
+  // Something else is where Chirality keeps its folder for conversations without
+  // a project: only the person can move it, so the host's reason, with its path,
+  // is the whole surface. Nothing is removed or replaced for them.
+  if (view.launch?.state === "set-aside-occupied") return <section className="first-use" aria-label="Welcome">
+    <h1>A folder Chirality keeps is taken</h1>
+    <p className="first-use-lead" role="alert">{view.launch.reason}</p>
+    <p>Nothing operational was started. This launch did not change your saved setup.</p>
+  </section>;
   return <section className="first-use" aria-label="Welcome" aria-busy={busy}>
     <h1>Welcome to Chirality</h1>
     <p className="first-use-lead">Chirality runs Codex on this Mac to do project work with you, and to turn work that goes well into workflows you can run again.{shown.pending ? "" : " First, choose a project folder and how Codex is set up. Your choices take effect when you next open the App."}</p>
@@ -155,6 +163,7 @@ export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
         {projectProblem && <p id="first-use-project-problem" className="setup-guidance">{projectProblem}</p>}
         <p id="first-use-project-help"><small>Type or paste the folder's full path, or use Browse… to choose it. Whether the folder exists and can be used is checked when you review; nothing is created.</small></p>
         {noProject && <p>No project for now. You can still have conversations, and choose a project later in Desktop setup.</p>}
+        {noProject && <p>Conversations without a project work in one folder that Chirality sets aside. What a conversation creates there stays between launches and is shared by every conversation without a project, including any instructions a conversation writes there.</p>}
         {!noProject && <p><button disabled={busy} onClick={() => { changed(); setProject({ kind: "none" }); }}>Continue without a project</button></p>}
       </li>
       <li><h2>Codex settings</h2>
@@ -191,6 +200,7 @@ export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
     <details className="setup-diagnostics"><summary>Technical details</summary>
       <p>Launch: {shown.launch.state}. {shown.launch.reason ?? shown.launch.standing}</p>
       <p>App data: {shown.appData ?? shown.appDataProblem ?? "unavailable"}</p>
+      <p>Conversations without a project work in: {shown.noProjectFolder ?? "unavailable"}</p>
       <p>Codex: the copy included with this App ({shown.supplier.path ?? "location unavailable"}). {shown.supplier.standing}</p>
       {!keepAvailable && shown.retainProject?.reason && <p>Keeping an existing sign-in isn't available: {shown.retainProject.reason}</p>}
       {shown.activeResourceProblem && <p>Shared settings could not be checked: {shown.activeResourceProblem}</p>}

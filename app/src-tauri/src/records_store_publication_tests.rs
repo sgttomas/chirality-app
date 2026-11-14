@@ -78,6 +78,9 @@ fn wait_for(path: &Path) {
 }
 fn selected_store(root: &Path, name: &str, project: &Path) -> Store {
     std::fs::create_dir_all(project).unwrap();
+    // As a start does before a store is placed (DEL-01-01).
+    std::fs::create_dir_all(root.join("app-data")).unwrap();
+    crate::working_folder::establish(&root.join("app-data")).unwrap();
     for_app(
         Some(root.join(name)),
         Ok(&root.join("app-data")),
