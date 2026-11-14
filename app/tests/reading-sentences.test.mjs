@@ -4,10 +4,15 @@
 // sentences are made and passed through, is checked by hosting::reading_gate_tests and
 // desktop_startup::access_provider_saves_state_the_write_first_when_reading_again_is_not_sent.
 // No supplier, model, sign-in, network or person act.
-import test from 'node:test';
+import test, {beforeEach, afterEach} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {loadSrc} from './support/load-src.mjs';
+// The kept local route's views are gated off in this version (DEL-01-05 "For 4.0.0"); the test of the kept
+// local flow turns the gate on, as a later update would. The host refuses every local command regardless.
+const localRoute = loadSrc('localRoute');
+beforeEach(t => { localRoute.LOCAL_ROUTE_OFFERED = /^the oMLX connection:/.test(t.name); });
+afterEach(() => { localRoute.LOCAL_ROUTE_OFFERED = false; });
 import {installMiniDom} from './support/mini-dom.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 const document = installMiniDom();
