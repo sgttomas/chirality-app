@@ -131,15 +131,20 @@ fn a_reading_that_cannot_read_stores_nothing_and_says_it_was_not_read_and_why() 
     // As the launch reads, through the same function as the person's Reopen.
     let (peer, a) = reopened_after_an_arrival();
     let workflows = std::sync::Mutex::new(WorkflowRootSession::default());
-    let missing = peer.fixture.root.join("invented-project-not-there");
-    for project in [Err("No explicit App project (CHIRALITY_WORKSPACE); nothing to reopen and no fallback"), Ok(missing.as_path())] {
+    // A folder name a person or a file could choose: it must never reach the App's own words.
+    let missing = peer.fixture.root.join("invented project; chosen 'name' \u{202e}not-there");
+    for (project, words) in [(Err("No explicit App project (CHIRALITY_WORKSPACE); nothing to reopen and no fallback"), 0), (Ok(missing.as_path()), 1)] {
         let refused = crate::runtime_session::reopen_recorded(&workflows, project, &[], &[]);
         assert!(refused.is_err());
         let root = workflows.lock().unwrap();
         assert!(root.reopened.is_none(), "nothing stored");
         let not_read = root.reopened_not_read.clone().unwrap();
         assert_eq!(not_read["state"], "not read");
-        assert_eq!(not_read["because"].as_str(), refused.as_ref().err().map(String::as_str), "its reason, as the reading gave it");
+        assert_eq!(not_read["words"], crate::runtime_session::REOPEN_NOT_READ_WORDS[words], "one of the closed set, exactly");
+        assert_eq!(not_read["detail"].as_str(), refused.as_ref().err().map(String::as_str), "the reading's own reason, apart");
+        assert_eq!(not_read["project"].as_str(), project.ok().map(|p| p.display().to_string()).as_deref());
+        let detail = not_read["detail"].as_str().unwrap();
+        assert!(!not_read["words"].as_str().unwrap().contains(detail) && !not_read["words"].as_str().unwrap().contains("chosen"), "nothing variable in the words");
     }
     assert!(!missing.exists(), "nothing was made");
     // A reading that reads replaces the reason and stores the view.

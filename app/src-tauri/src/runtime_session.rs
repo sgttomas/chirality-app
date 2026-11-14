@@ -1751,14 +1751,26 @@ pub fn read_decision_packages(workspace: &std::path::Path) -> Value {
     view
 }
 
+/// The closed set of sentences `reopenedNotRead.words` takes, with nothing interpolated: the
+/// App's own words. Anything variable (the reading's own reason, the project's path) is in its
+/// own field.
+pub(crate) const REOPEN_NOT_READ_WORDS: [&str; 2] = [
+    "No project is open, so there are no recorded runs to read.",
+    "The project's recorded runs could not be read.",
+];
 /// The person's Reopen and the launch's one reading: [`read_reopened_history`]. Where it cannot
 /// read, nothing is stored and nothing else is stopped; the reopened view says it was not read,
-/// and why, in the App's own words. A later reading that reads replaces the reason.
+/// in one of [`REOPEN_NOT_READ_WORDS`], with the reason given apart (`detail`, and `project`, the
+/// folder's path), both of them text the App did not choose. A later reading that reads replaces
+/// it.
 pub(crate) fn reopen_recorded(workflows: &std::sync::Mutex<WorkflowRootSession>, project: Result<&std::path::Path, &str>, events: &[Value], homes: &[std::sync::Arc<HomeSession>]) -> Result<Value, String> {
+    let (words, path) = match project {
+        Ok(path) => (REOPEN_NOT_READ_WORDS[1], Some(path.display().to_string())),
+        Err(_) => (REOPEN_NOT_READ_WORDS[0], None),
+    };
     let outcome = project.map_err(str::to_owned).and_then(|project| read_reopened_history(workflows, project, events, homes));
     let mut root = workflows.lock().unwrap();
-    root.reopened_not_read = outcome.as_ref().err().map(|because| json!({"state":"not read","because":because,
-        "words":"the App's own words, which may name a folder; no recorded value is shown"}));
+    root.reopened_not_read = outcome.as_ref().err().map(|detail| json!({"state":"not read","words":words,"detail":detail,"project":path}));
     outcome
 }
 pub(crate) fn read_reopened_history(workflows: &std::sync::Mutex<WorkflowRootSession>, project: &std::path::Path, events: &[Value], homes: &[std::sync::Arc<HomeSession>]) -> Result<Value, String> {
