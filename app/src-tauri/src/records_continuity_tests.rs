@@ -869,7 +869,7 @@ fn records_notifications_and_mismatched_fork_inheritance_take_no_project_reading
         *host.within_records_identity_read.lock().unwrap() = Some(Box::new(move || { *at.lock().unwrap() = Some(std::backtrace::Backtrace::force_capture().to_string()); }));
         host.thread_fork_finish(&request).unwrap();
         if let Some(trace) = taken.lock().unwrap().as_deref() {
-            assert!(trace.contains("offered_reading"), "the only reading is the fork's offer check, not receipt inheritance: {trace}");
+            assert!(trace.contains("persist_records_receipt"), "the only reading is the fork's offer check, not receipt inheritance: {trace}");
         }
         assert!(!host.inner.0.lock().unwrap().records_receipts.iter().any(|(_, thread, _)| thread == "forked"));
         stop(&host);
@@ -915,4 +915,115 @@ fn every_bound_state_states_its_basis() {
         assert_eq!((bound["state"].as_str(), bound["basis"].as_str()), (Some("bound in current generation"), Some("fork of an offered conversation")), "{bound}");
         stop(&host);
     }
+}
+
+fn reads(host: &Host) -> usize {
+    host.records_identity_reads.load(std::sync::atomic::Ordering::SeqCst)
+}
+
+/// thread_fork_finish: each refusal the old code gave under the state before
+/// its project reading (a local provider's reported source, a fork already
+/// admitted, a generation replaced or closed) takes no reading and gives the
+/// old error. The checks and the look that decides the reading are one
+/// function (fork_admission).
+#[test]
+fn fork_finish_refusals_before_its_reading_take_none_and_keep_their_errors() {
+    let f = Fixture::new();
+    let host = f.host(true, None, "account");
+    f.start(&host, "fixture-model").unwrap();
+    let generation = host.snapshot()["generation"].clone();
+    let request = host.thread_fork_dispatch(&generation, "thread").unwrap();
+    host.source_request_wait(&request, Duration::from_secs(2)).unwrap();
+    // The source holds a receipt for the current records project context, so
+    // an admitted fork would read the project to inherit it.
+    assert!(host.inner.0.lock().unwrap().records_receipts.iter().any(|(_, thread, _)| thread == "thread"));
+    host.inner.0.lock().unwrap().local_provider = Some(access_provider::LocalProviderBinding::for_test("invented-local-home", "/invented/work"));
+    let before = reads(&host);
+    assert_eq!(host.thread_fork_finish(&request).unwrap_err(), crate::native_local_provider::LIMIT);
+    assert_eq!(reads(&host), before, "a local provider's refusal takes no reading");
+    host.inner.0.lock().unwrap().local_provider = None;
+    let before = reads(&host);
+    host.thread_fork_finish(&request).unwrap();
+    assert!(reads(&host) > before, "an admitted fork that inherits a receipt reads the project");
+    let before = reads(&host);
+    assert_eq!(host.thread_fork_finish(&request).unwrap_err(), "forked thread already operationally admitted in generation");
+    assert_eq!(reads(&host), before, "a duplicate finish takes no reading (round 3)");
+    stop(&host);
+    let before = reads(&host);
+    assert_eq!(host.thread_fork_finish(&request).unwrap_err(), "thread/fork result belongs to a closed or replaced generation; native response retained");
+    assert_eq!(reads(&host), before, "a finish after the generation closed takes no reading");
+}
+
+/// on_line: each condition under which the old receipt read nothing of the
+/// project before deciding a records call (a generation replaced or closed;
+/// not a server request; another tool or a namespace; a conversation not
+/// offered it) takes no reading. The look that decides the reading is the
+/// receipt's own projection (received_view) and the records branch's checks
+/// (records_call_look). A records call that qualifies takes one.
+#[test]
+fn records_call_lines_the_receipt_would_not_take_as_records_calls_take_no_reading() {
+    let f = Fixture::new();
+    let host = f.host(true, None, "account");
+    f.start(&host, "fixture-model").unwrap();
+    let generation = host.snapshot()["generation"].clone();
+    let call = |id: &str, thread: &str| json!({"id":id,"method":"item/tool/call","params":{"tool":crate::records_access::TOOL,"threadId":thread,"turnId":"turn","callId":id,"namespace":null,"arguments":{}}});
+    let stale = json!({"appSession":"stale", "home":"app-home:stale", "spawnCounter":1});
+    let mut notification = call("n", "thread");
+    notification.as_object_mut().unwrap().remove("id");
+    let mut observation = call("o", "thread");
+    observation["observation"] = json!("a frame carrying an observation is not a server request");
+    let mut other_tool = call("t", "thread");
+    other_tool["params"]["tool"] = json!("another_tool");
+    let mut namespaced = call("s", "thread");
+    namespaced["params"]["namespace"] = json!("a-namespace");
+    let cases: [(&str, Value, &Value); 6] = [
+        ("a generation replaced", call("g", "thread"), &stale),
+        ("a notification", notification, &generation),
+        ("an observation frame", observation, &generation),
+        ("another tool", other_tool, &generation),
+        ("a namespace", namespaced, &generation),
+        ("a conversation not offered it", call("u", "unoffered"), &generation),
+    ];
+    for (case, frame, at) in cases {
+        let before = reads(&host);
+        host.on_line(&serde_json::to_vec(&frame).unwrap(), at);
+        assert_eq!(reads(&host), before, "{case} takes no reading");
+    }
+    let before = reads(&host);
+    f.tool(&host, "thread");
+    assert!(reads(&host) > before, "a records call the receipt takes as one reads the project");
+    stop(&host);
+    let before = reads(&host);
+    host.on_line(&serde_json::to_vec(&call("c", "thread")).unwrap(), &generation);
+    assert_eq!(reads(&host), before, "a call on a closed generation takes no reading");
+}
+
+/// The receipt's persistence and binding: each refusal the old code gave
+/// before its reading takes none. Persistence: the conversation out of scope,
+/// or never offered the capability. Binding: a lookup that failed, the
+/// conversation out of scope, or no capability configured.
+#[test]
+fn receipt_persistence_and_binding_refusals_before_their_reading_take_none() {
+    let f = Fixture::new();
+    let host = f.host(true, None, "account");
+    f.start(&host, "fixture-model").unwrap();
+    let generation = host.snapshot()["generation"].clone();
+    let stale = json!({"appSession":"stale", "home":"app-home:stale", "spawnCounter":1});
+    for (case, generation, thread) in [("out of scope", &stale, "thread"), ("not a conversation of this generation", &generation, "unknown")] {
+        let before = reads(&host);
+        host.persist_records_receipt(generation, thread, Some("H-acct"));
+        host.restore_records_receipt(generation, thread);
+        assert_eq!(reads(&host), before, "{case}: persistence and binding take no reading");
+    }
+    // A conversation of this generation never offered the capability.
+    host.inner.0.lock().unwrap().threads.push(json!({"generation":generation,"threadId":"unoffered"}));
+    let before = reads(&host);
+    host.persist_records_receipt(&generation, "unoffered", Some("H-acct"));
+    assert_eq!(reads(&host), before, "never offered: persistence takes no reading");
+    // No capability configured: the binding's look refuses before any reading.
+    host.inner.0.lock().unwrap().records_capability = None;
+    let before = reads(&host);
+    host.restore_records_receipt(&generation, "thread");
+    assert_eq!(reads(&host), before, "no capability configured: the binding takes no reading");
+    stop(&host);
 }
