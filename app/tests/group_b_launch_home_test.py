@@ -55,7 +55,7 @@ echo invented > "$HOME/Library/WebKit/{id}/WebsiteData/store"
 SHELL_OWN = {'PWD', 'SHLVL', '_', 'OLDPWD', '__CF_USER_TEXT_ENCODING'}  # set by /bin/sh or the macOS runtime itself
 OVERRIDES = {**{n: v for n, (v, _) in launch.PROXY_OVERRIDES.items()}, launch.MODEL_ADDRESS: 'http://127.0.0.1:9/v1'}
 CLEAN_RECORD_FIELDS = {'note', 'made_by', 'made_at', 'candidate_key', 'identifier', 'candidate_folder', 'bundle',
-                       'launch_folder', 'home', 'project', 'git_marker_above', 'codex', 'address_override', 'environment_constructed_for_the_app',
+                       'launch_folder', 'home', 'project', 'git_marker_above', 'codex', 'address_override', 'network', 'environment_constructed_for_the_app',
                        'output', 'started_at', 'pid', 'ended_at', 'process_group_after_settle', 'disclosed',
                        'app_started', 'ended', 'real_library', 'signals_received', 'failures', 'outcome'}
 
@@ -1024,6 +1024,60 @@ class KeptHome(Fixture):  # keep-make, keep-launch and keep-remove: one home acr
         self.assertEqual(set(env), set(launch.ALLOWED))  # the allowlist of launch, every proxy and the address on it
         self.assertTrue(all(env[name] == value for name, (value, _) in launch.PROXY_OVERRIDES.items()))
         self.assertEqual(env[launch.MODEL_ADDRESS], launch.DEFAULT_MODEL_ADDRESS)
+
+    def test_a_rehearsal_folder_launches_without_the_overrides_and_says_so(self):
+        candidate = self.candidate()
+        code, out = self.call('keep-make', '--candidate', str(candidate), '--network', 'open')
+        self.assertEqual(code, 0, out)
+        folder = Path(json.loads(out)['kept_folder'])
+        kept = json.loads((folder / 'record/kept.json').read_text())
+        self.assertEqual(kept['network'], 'open')
+        self.assertEqual(sorted(p.name for p in (folder / 'project').iterdir()), ['DEVELOPMENT-EVIDENCE.txt'])
+        self.assertIn('operated by an agent, not a person', (folder / 'project/DEVELOPMENT-EVIDENCE.txt').read_text())
+        code, out = self.call('keep-launch', '--folder', str(folder), '--candidate', str(candidate))
+        record = json.loads((folder / 'record/launch-record-1.json').read_text())
+        self.groups.append(record['pid'])
+        self.assertEqual(record['network'], 'open')
+        env = record['environment_constructed_for_the_app']
+        self.assertEqual(set(env), set(launch.ALLOWED_OPEN))
+        self.assertEqual(set(env), {'HOME', 'CFFIXED_USER_HOME', 'TMPDIR', 'PATH', 'LANG'})
+        received = self.received(record)
+        self.assertFalse(set(received) & (set(launch.PROXY_OVERRIDES) | {launch.MODEL_ADDRESS}), received)
+        self.assertEqual(record['real_library']['result'], 'unchanged')
+
+    def test_an_ordinary_kept_folder_records_the_network_blocked_and_its_project_is_empty(self):
+        candidate = self.candidate()
+        folder = self.make(candidate)
+        self.assertEqual(json.loads((folder / 'record/kept.json').read_text())['network'], 'blocked')
+        self.assertEqual(list((folder / 'project').iterdir()), [])
+
+    def test_the_network_is_chosen_only_when_the_folder_is_made_and_only_as_named(self):
+        candidate = self.candidate()
+        folder = self.make(candidate)
+        for argv in (['keep-launch', '--folder', str(folder), '--candidate', str(candidate), '--network', 'open'],
+                     ['launch', '--candidate', str(candidate), '--network', 'open'],
+                     ['keep-make', '--candidate', str(candidate), '--network', 'wide']):
+            with self.subTest(argv[0]), contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit):
+                    launch.main(argv)
+        saved = (folder / 'record/kept.json').read_text()
+        (folder / 'record/kept.json').write_text(json.dumps({**json.loads(saved), 'network': 'wide'}))
+        try:
+            code, out = self.call('keep-launch', '--folder', str(folder), '--candidate', str(candidate))
+        finally:
+            (folder / 'record/kept.json').write_text(saved)
+        self.assert_refused(code, out, 'no known network choice')
+
+    def test_the_open_allowlist_takes_no_override_and_the_blocked_one_needs_them_all(self):
+        home, tmp = Path('/invented/home'), '.t'
+        open_env = launch.child_environment(home, tmp, launch.DEFAULT_MODEL_ADDRESS, 'open')
+        self.assertEqual(launch.check_environment(dict(open_env), home, tmp, 'open'), open_env)
+        with self.assertRaises(launch.Refusal):
+            launch.check_environment({**open_env, 'HTTPS_PROXY': 'http://127.0.0.1:9'}, home, tmp, 'open')
+        with self.assertRaises(launch.Refusal):
+            launch.check_environment(dict(open_env), home, tmp, 'blocked')
+        with self.assertRaises(launch.Refusal):
+            launch.check_environment(dict(open_env), home, tmp, 'wide')
 
     def test_a_kept_launch_is_refused_unless_every_condition_holds(self):
         candidate = self.candidate()

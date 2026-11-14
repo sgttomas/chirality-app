@@ -20,6 +20,11 @@ What the launcher states, and nothing more:
    and the nine overrides (the eight proxy names and
    CHIRALITY_DEV_OPENAI_BASE_URL). The exact mapping is checked against this
    list immediately before the start (child_environment, check_environment).
+   The one exception is a rehearsal folder, made by `keep-make --network
+   open`: every launch in it is made without the nine overrides, so that the
+   owner's sign-in and one model turn can reach the service. Its record and
+   every launch record in it say "network": "open". `launch`, and a kept folder
+   made without that choice, are as above.
 2. A run's record is whole or absent (write_record), and the record never says
    clean on what was not established: clean means the App's process was
    started and exited with status 0, no member of its process group was alive
@@ -34,8 +39,9 @@ reviewed code; what it does with the home and environment it is given is the
 App's. The App starts the supplier's Codex, which is not this
 project's code. What applies to Codex in a launch by this launcher is only
 this: it receives, through the App, the nine overrides, which redirect its
-model address and obstruct its other network clients under their defaults, and
-nothing more; it runs commands under the supplier's own sandbox and the App's
+model address and obstruct its other network clients under their defaults
+(none of them in a rehearsal folder, where it reaches the network as the App
+lets it), and nothing more; it runs commands under the supplier's own sandbox and the App's
 permission model, neither of which this launcher sets, checks or observes.
 What the launcher can see of Codex is whether a member of the App's process
 group was alive after the settle time, and nothing else: not what Codex read,
@@ -245,6 +251,12 @@ ALLOWED = {
     **{name: why for name, (_, why) in PROXY_OVERRIDES.items()},
     MODEL_ADDRESS: 'the address override; the default where nothing listens, or a loopback stub the caller names',
 }
+# A kept folder made for the rehearsal (keep-make --network open): the same allowlist without the nine overrides, so
+# that the owner's sign-in and one model turn can reach the service. Only keep-launch on such a folder uses it.
+ALLOWED_OPEN = {name: why for name, why in ALLOWED.items() if name not in PROXY_OVERRIDES and name != MODEL_ADDRESS}
+NETWORK_CHOICES = ('blocked', 'open')
+EVIDENCE_NOTE = ('DEVELOPMENT-EVIDENCE.txt', 'Development evidence. Acts recorded in this project were operated by an '
+                 'agent, not a person. To be removed whole after the rehearsal.\n')
 
 # STATEMENT 3: the Library folders searched, beside the Library's own first level. Protected folders (Containers,
 # Group Containers, Mail, Safari and the like) are not listed: reading them can be refused or raise a privacy prompt.
@@ -700,17 +712,23 @@ def check_model_address(value):
     return value
 
 
-def child_environment(home, tmp, model_address):
-    """STATEMENT 1: a new mapping from the allowlist alone; nothing is read from this process's environment."""
+def child_environment(home, tmp, model_address, network='blocked'):
+    """STATEMENT 1: a new mapping from the allowlist alone; nothing is read from this process's environment. With
+    network 'open' (a rehearsal folder only), the nine overrides are left out."""
     env = {'HOME': str(home), 'CFFIXED_USER_HOME': str(home), 'TMPDIR': str(Path(home, tmp)),
            'PATH': SYSTEM_PATH, 'LANG': LANG}
+    if network == 'open':
+        return env
     env.update({name: value for name, (value, _) in PROXY_OVERRIDES.items()})
     env[MODEL_ADDRESS] = model_address
     return env
 
 
-def check_environment(env, home, tmp):
-    """STATEMENT 1, immediately before the App starts: exactly the allowlist, with these values."""
+def check_environment(env, home, tmp, network='blocked'):
+    """STATEMENT 1, immediately before the App starts: exactly the allowlist, with these values; for network 'open',
+    exactly the open allowlist, with none of the overrides."""
+    if network not in NETWORK_CHOICES:
+        raise Refusal('the network choice is neither blocked nor open; refusing to launch')
     if not isinstance(env, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in env.items()):
         raise Refusal('the App environment is not a mapping of names to text')
     for name in ('HOME', 'CFFIXED_USER_HOME'):  # a guard of its own: each names the home allocated for this launch
@@ -718,13 +736,16 @@ def check_environment(env, home, tmp):
             raise Refusal(f'{name} is unset or empty in the App environment; refusing to launch')
         if env[name] != str(home):
             raise Refusal(f'{name} does not name the home allocated for this launch; refusing to launch')
-    if set(env) != set(ALLOWED):
-        raise Refusal(f'App environment outside the allowlist: extra {sorted(set(env) - set(ALLOWED))}, '
-                      f'missing {sorted(set(ALLOWED) - set(env))}')
+    allowed = ALLOWED_OPEN if network == 'open' else ALLOWED
+    if set(env) != set(allowed):
+        raise Refusal(f'App environment outside the allowlist: extra {sorted(set(env) - set(allowed))}, '
+                      f'missing {sorted(set(allowed) - set(env))}')
     if env['TMPDIR'] != str(Path(home, tmp)):
         raise Refusal("TMPDIR is not this launch's folder in the new home; refusing to launch")
     if env['PATH'] != SYSTEM_PATH or env['LANG'] != LANG:
         raise Refusal('PATH or LANG differs from the allowlist')
+    if network == 'open':
+        return env
     if any(env[name] != value for name, (value, _) in PROXY_OVERRIDES.items()):
         raise Refusal('a proxy override differs from its fixed value; refusing to launch')
     check_model_address(env[MODEL_ADDRESS])
@@ -786,7 +807,7 @@ def launch(args):
 
 
 def _run(args, app, record_data, executable_path, executable, model_address, folder, home_fd, record_fd,
-         record_name=RECORD):
+         record_name=RECORD, network='blocked'):
     identifier = record_data['bundle']['identifier']
     home = folder / HOME
     tmp = f'.chirality-launch-tmp-{secrets.token_hex(4)}'
@@ -794,8 +815,9 @@ def _run(args, app, record_data, executable_path, executable, model_address, fol
               'candidate_key': record_data['candidate_key'], 'identifier': identifier, 'candidate_folder': args.candidate,
               'bundle': str(app), 'launch_folder': str(folder), 'home': str(home),
               'project': str(folder / PROJECT), 'codex': CODEX_NOTE,
-              'address_override': 'the default (nothing listens there)' if args.model_address is None
-              else 'given by the caller'}
+              'address_override': 'none: a rehearsal folder, network open' if network == 'open'
+              else 'the default (nothing listens there)' if args.model_address is None else 'given by the caller',
+              'network': network}
     facts = {'started': False, 'signals': [], 'open': True, 'record': str(folder / RECORD_FOLDER / record_name),
              'record_name': record_name}
     proc, output = None, None
@@ -817,7 +839,7 @@ def _run(args, app, record_data, executable_path, executable, model_address, fol
             previous[s] = signal.signal(s, latch)
         _forwarding.set()
         os.mkdir(tmp, 0o700, dir_fd=home_fd)
-        env = child_environment(home, tmp, model_address)
+        env = child_environment(home, tmp, model_address, network)
         record['environment_constructed_for_the_app'] = env
         try:
             before = listing(real_home() / 'Library', ('', *WATCHED), identifier, executable)
@@ -828,7 +850,7 @@ def _run(args, app, record_data, executable_path, executable, model_address, fol
         prefs_before = preferences_observation()
         cache_before = observe(cache, ('',), identifier, executable, 'per-user cache folder')
         try:  # immediately before the start: the exact mapping (STATEMENT 1), its home, and no .git entry above
-            check_environment(env, home, tmp)
+            check_environment(env, home, tmp, network)
             check_home(env, home_fd)
             asked = git_marker_above(home, folder / PROJECT)
         except Refusal as error:
@@ -952,8 +974,20 @@ def keep_make(args):
         try:
             for child in (HOME, RECORD_FOLDER, PROJECT):
                 os.mkdir(child, 0o700, dir_fd=fd)
+            if args.network == 'open':
+                project_fd = os.open(PROJECT, DIRECTORY, dir_fd=fd)
+                try:
+                    note_fd = os.open(EVIDENCE_NOTE[0], os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=project_fd)
+                    with os.fdopen(note_fd, 'w') as stream:
+                        stream.write(EVIDENCE_NOTE[1])
+                finally:
+                    os.close(project_fd)
             info, made = os.fstat(fd), datetime.now(timezone.utc)
-            kept = {'note': 'A kept folder for one operated walk; the network blocks of every launch are unchanged.',
+            kept = {'note': 'A kept folder for one operated walk; the network blocks of every launch are unchanged.'
+                    if args.network == 'blocked' else 'A kept folder for the rehearsal: every launch in it is made '
+                    'without the proxy and model-address overrides, so that the owner can sign in and one model turn '
+                    'can reach the service.',
+                    'network': args.network,
                     'folder': str(root / name), 'device': info.st_dev, 'inode': info.st_ino, 'made_at': f'{made:%Y-%m-%dT%H:%M:%SZ}',
                     'expires_at': f'{made + timedelta(hours=KEPT_HOURS):%Y-%m-%dT%H:%M:%SZ}',
                     'candidate_key': record_data['candidate_key'], 'identifier': record_data['bundle']['identifier']}
@@ -966,7 +1000,7 @@ def keep_make(args):
             os.close(fd)
     finally:
         os.close(root_fd)
-    print(json.dumps({'kept_folder': str(root / name), 'expires_at': kept['expires_at']}, indent=2))
+    print(json.dumps({'kept_folder': str(root / name), 'expires_at': kept['expires_at'], 'network': args.network}, indent=2))
     return 0
 
 
@@ -990,6 +1024,9 @@ def keep_launch(args):
             raise Refusal('the kept folder has expired; it may only be removed')
         if (kept.get('candidate_key'), kept.get('identifier')) != (record_data['candidate_key'], record_data['bundle']['identifier']):
             raise Refusal('the kept folder was made for another candidate; refusing')
+        network = kept.get('network', 'blocked')
+        if network not in NETWORK_CHOICES:
+            raise Refusal('the kept record names no known network choice; refusing')
         if running_candidates(app / executable_path):
             raise Refusal('the candidate is already running; refusing')
         home_fd = os.open(HOME, DIRECTORY, dir_fd=fd)
@@ -998,10 +1035,10 @@ def keep_launch(args):
         os.close(fd)
     try:
         number = 1 + sum(1 for n in os.listdir(record_fd) if n.startswith('launch-record-') and n.endswith('.json'))
-        print(json.dumps({'launch_folder': str(folder), 'launch': number}), file=sys.stderr, flush=True)
+        print(json.dumps({'launch_folder': str(folder), 'launch': number, 'network': network}), file=sys.stderr, flush=True)
         args.model_address = None
         return _run(args, app, record_data, executable_path, executable, model_address, folder, home_fd, record_fd,
-                    record_name=f'launch-record-{number}.json')
+                    record_name=f'launch-record-{number}.json', network=network)
     finally:
         os.close(record_fd)
         os.close(home_fd)
@@ -1099,6 +1136,9 @@ def main(argv=None):
                         help='the candidate folder made by build_candidate.py; the identification record is '
                              'identification/candidate-identification.json in it and the bundle the one entry of '
                              "target/debug/bundle/macos, named as the record names it; identification's check must pass")
+    parser.add_argument('--network', choices=NETWORK_CHOICES, default='blocked',
+                        help='keep-make only: "open" makes a rehearsal folder, every launch in which is made without '
+                             'the nine overrides; the default keeps them')
     parser.add_argument('--model-address', help=f'a loopback stub address for {MODEL_ADDRESS}; omitted means the default '
                         f'{DEFAULT_MODEL_ADDRESS} (nothing listens there); empty or blank is refused; '
                         'http(s)://127.0.0.1 or [::1] only')
@@ -1107,6 +1147,8 @@ def main(argv=None):
         parser.error('--candidate is required')
     if args.command in ('keep-launch', 'keep-remove') and not args.folder:
         parser.error('--folder is required')
+    if args.command != 'keep-make' and args.network != 'blocked':
+        parser.error('--network is chosen once, when the kept folder is made, and is read from its record after')
     if args.command.startswith('keep-') and args.model_address is not None:
         parser.error('the kept-home commands take no model address: every network block stays as launch sets it')
     try:
