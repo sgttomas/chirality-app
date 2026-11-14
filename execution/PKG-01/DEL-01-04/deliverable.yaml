@@ -78,6 +78,12 @@ needs:
     then a synthetic examination artifact that establishes no person's decision. The protection act
     and the confirmation of a lowered policy (VER-009) are the person's and never an agent's.
 code_paths:
+# Admission of a new signed-route seal. It keeps one file in the App data folder,
+# capture-seal-libraries.json (format chirality.app.capture-seal-library-inventory/v1: the
+# physical roots of the libraries this installation has opened or registered into, and a
+# completion marker). The App adds a root when a library is opened or registered into, under
+# the enrolment join, and never removes one. The file can only veto the App's key file: its
+# absence authorises nothing, and a present but damaged list refuses with words and an action.
 - app/src-tauri/src/capture_seal_admission.rs
 - app/src-tauri/src/act_evidence_cause.rs
 - app/src-tauri/src/installed_custody.rs
