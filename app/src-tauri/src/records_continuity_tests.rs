@@ -1069,22 +1069,41 @@ fn a_fork_whose_first_source_receipt_is_of_another_context_takes_no_inheritance_
     stop(&host);
 }
 
-/// The fork's reading is bound to the receipt and context its look selected:
-/// the records project context changed while the project was read, the
-/// selection after the reading differs, and nothing is admitted.
+/// The fork's reading is bound to the receipt and capability its look
+/// selected. The records project context changed while the project was read:
+/// the second call selects nothing to inherit, and the fork is admitted
+/// without inheriting, as the old code was silent there. The capability
+/// configured again (another instance, same context) while the project was
+/// read: the second call selects a capability the reading was not taken
+/// through, and nothing is admitted (the one new refusal, reached only in the
+/// unlocked interval).
 #[test]
-fn a_fork_whose_selected_receipt_or_context_changes_during_its_reading_is_refused() {
-    let f = Fixture::new();
-    let host = f.host(true, None, "account");
-    f.start(&host, "fixture-model").unwrap();
-    let generation = host.snapshot()["generation"].clone();
-    let request = host.thread_fork_dispatch(&generation, "thread").unwrap();
-    host.source_request_wait(&request, Duration::from_secs(2)).unwrap();
-    let during = Arc::clone(&host);
-    *host.within_records_identity_read.lock().unwrap() = Some(Box::new(move || {
-        during.configure_records_capability_with_context(during.records_capability().unwrap(), ExplicitAppProjectContext::known("different explicit project", AppProjectSource::OpenedDirectory).unwrap());
-    }));
-    assert_eq!(host.thread_fork_finish(&request).unwrap_err(), "thread/fork records project reading no longer matches the admission it was taken for; native response retained");
-    assert!(!host.inner.0.lock().unwrap().threads.iter().any(|row| row["generation"] == generation && row["threadId"] == "forked"), "nothing is admitted");
-    stop(&host);
+fn a_fork_whose_selection_changes_during_its_reading_inherits_nothing_or_is_refused() {
+    for reconfigure in [false, true] {
+        let f = Fixture::new();
+        let host = f.host(true, None, "account");
+        f.start(&host, "fixture-model").unwrap();
+        let generation = host.snapshot()["generation"].clone();
+        let request = host.thread_fork_dispatch(&generation, "thread").unwrap();
+        host.source_request_wait(&request, Duration::from_secs(2)).unwrap();
+        let during = Arc::clone(&host);
+        let (project, reads_log) = (f.0.join("project"), f.0.join("app/reads.jsonl"));
+        *host.within_records_identity_read.lock().unwrap() = Some(Box::new(move || {
+            if reconfigure {
+                let context = during.records_project_context().unwrap();
+                during.configure_records_capability_with_context(Arc::new(crate::records_access::RecordsCapability::at(&project, reads_log).unwrap()), context);
+            } else {
+                during.configure_records_capability_with_context(during.records_capability().unwrap(), ExplicitAppProjectContext::known("different explicit project", AppProjectSource::OpenedDirectory).unwrap());
+            }
+        }));
+        let finished = host.thread_fork_finish(&request);
+        let forked = host.inner.0.lock().unwrap().records_receipts.iter().any(|(g, thread, _)| g == &generation && thread != "thread");
+        if reconfigure {
+            assert_eq!(finished.unwrap_err(), "thread/fork records project reading no longer matches the admission it was taken for; native response retained");
+        } else {
+            assert!(finished.is_ok(), "{finished:?}");
+            assert!(!forked, "nothing is inherited");
+        }
+        stop(&host);
+    }
 }

@@ -3419,11 +3419,14 @@ impl Host {
         // The reading is bound to what the first call captured: the same
         // selected receipt, still the source's first and still of the current
         // context, read through the same capability. Where the second call
-        // selects otherwise (or reads where the first did not, or not where it
-        // did), nothing is admitted.
+        // selects nothing to inherit, the fork is admitted without inheriting,
+        // as the old code was silent there. Where it selects a receipt, or a
+        // capability, the reading was not taken for, this new refusal (reached
+        // only in the unlocked interval; the old code had none) admits nothing.
         let again=self.fork_admission(&i,request,&response)?;
-        let same=match (&again,&look) {(Some((a,ra)),Some((b,rb)))=>Arc::ptr_eq(a,b)&&ra==rb,(None,None)=>true,_=>false};
-        if !same {return Err("thread/fork records project reading no longer matches the admission it was taken for; native response retained".into());}
+        let unread=match (&again,&look) {(Some((a,ra)),Some((b,rb)))=>!(Arc::ptr_eq(a,b)&&ra==rb),(Some(_),None)=>true,(None,_)=>false};
+        if unread {return Err("thread/fork records project reading no longer matches the admission it was taken for; native response retained".into());}
+        let records_reading=if again.is_some() {records_reading} else {None};
         let standing=i.supplier_standing.clone();let result=&response["result"];
         let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":t.get("id"),"name":t.get("name").and_then(Value::as_str),"preview":t.get("preview").and_then(Value::as_str),"status":t.get("status"),"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"supplierStanding":standing,"forkedFrom":{"threadId":source,"forkRequestRef":request.request_ref,"reportedForkedFromId":t.get("forkedFromId")},"requestedDestination":{"source":"inherited from the forked conversation; none chosen at fork"},"reportedDestination":{"scope":"thread","model":result.get("model"),"modelProvider":result.get("modelProvider")},"networkDisclosure":network_disclosure()}),&response);
         // Stock Codex retains the dynamic tool in a fork. Admit its calls only
