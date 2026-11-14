@@ -158,6 +158,8 @@ export function FileActPanel({ command, controlRef, onBusyChange }: {
       {row.limits.map((limit: string, i: number) => <p key={i}>{limit}</p>)}
       <details><summary>Source, content identities and correction relations</summary><pre>{JSON.stringify(row, null, 2)}</pre></details>
     </article>)}
+    {(view?.historyNotices ?? []).map((notice:string,i:number)=><p role="note" key={`history-${i}`}>{notice}</p>)}
+    {(view?.limits ?? []).map((limit:string,i:number)=><p role="alert" key={`read-${i}`}>{limit}</p>)}
     <details><summary>Read limits and correction groups</summary><pre>{JSON.stringify({ limits: view?.limits, diagnostics: view?.diagnostics, correctionGroups: view?.correctionGroups }, null, 2)}</pre></details>
   </section>;
 }

@@ -16,6 +16,61 @@ fn observed() -> Value {
     json!({"fixture":"native context test double; no actual human act"})
 }
 
+// A development export can be consistent BagIt while carrying an operational
+// control. Preparation must reject it before publishing an import intent.
+fn package_with_active_control(name: &str, bytes: &[u8]) -> Fixture {
+    let f = Fixture::new();
+    let member = f.bag.join("data").join(name);
+    std::fs::create_dir_all(member.parent().unwrap()).unwrap();
+    std::fs::write(member, bytes).unwrap();
+    let manifest = f.bag.join("manifest-sha256.txt");
+    let mut lines = std::fs::read_to_string(&manifest).unwrap();
+    lines.push_str(&format!("{}  data/{name}\n", sha256_hex(bytes)));
+    std::fs::write(manifest, lines).unwrap();
+    let tags = f.bag.join("tagmanifest-sha256.txt");
+    let mut rehashed = String::new();
+    for line in std::fs::read_to_string(&tags).unwrap().lines() {
+        let (_, name) = line.split_once("  ").unwrap();
+        rehashed.push_str(&format!("{}  {name}\n", sha256_hex(&std::fs::read(f.bag.join(name)).unwrap())));
+    }
+    std::fs::write(tags, rehashed).unwrap();
+    crate::records_export::verify(&f.bag).unwrap();
+    f
+}
+
+fn refuses_package_control_before_intent(name: &str, bytes: &[u8]) {
+    let f = package_with_active_control(name, bytes);
+    let link = std::fs::read(f.root.join(PROJECT_LINK)).unwrap();
+    let roots = optional(&f.destination.join("roots.jsonl")).unwrap();
+    let error = match prepare(&f.root, &f.bag, &actor(), &observed()) {
+        Err(error) => error,
+        Ok(_) => panic!("preparation admitted data/{name} ({} bytes)", bytes.len()),
+    };
+    assert!(error.contains("package payload contains an active owning control"), "{error}");
+    assert!(error.contains(&format!("data/{name}")), "refusal must name the member: {error}");
+    assert!(!journal(&f.dir()).unwrap().exists(), "no durable import intent");
+    assert!(!f.destination.join("package-associations").exists(), "no association intent");
+    assert!(!f.dir().join("package-imports").exists(), "no payload receipt");
+    assert!(!f.dir().join(name).exists(), "no restored control");
+    assert_eq!(optional(&f.destination.join("roots.jsonl")).unwrap(), roots);
+    assert_eq!(std::fs::read(f.root.join(PROJECT_LINK)).unwrap(), link);
+}
+
+macro_rules! package_control_case {
+    ($test:ident, $name:literal, $bytes:expr) => {
+        #[test]
+        fn $test() { refuses_package_control_before_intent($name, $bytes); }
+    };
+}
+package_control_case!(package_import_control_writer_empty, ".writer.lock", b"");
+package_control_case!(package_import_control_writer_bytes, ".writer.lock", b"historical payload bytes");
+package_control_case!(package_import_control_observer_empty, ".after-run-end.lock", b"");
+package_control_case!(package_import_control_observer_bytes, ".after-run-end.lock", b"historical payload bytes");
+package_control_case!(package_import_control_capture_empty, "captures/.capture.lock", b"");
+package_control_case!(package_import_control_capture_bytes, "captures/.capture.lock", b"historical payload bytes");
+package_control_case!(package_import_control_role_empty, "role-supply/.writer.lock", b"");
+package_control_case!(package_import_control_role_bytes, "role-supply/.writer.lock", b"historical payload bytes");
+
 #[test]
 fn records_store_routing_package_preparation_interrupts_outside_live_payload() {
     for name in ["captures/.capture.lock", ".writer.lock"] {

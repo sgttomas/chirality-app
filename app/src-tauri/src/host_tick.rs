@@ -82,8 +82,22 @@ pub(crate) fn tick(homes: &Mutex<HomeRouter>, workflows: &Mutex<WorkflowRootSess
 /// requiring a running supplier or a web-view read.
 pub(crate) fn tick_project(homes:&Mutex<HomeRouter>,workflows:&Mutex<WorkflowRootSession>,project:Option<&std::path::Path>) -> Vec<(std::sync::Arc<HomeSession>, Vec<Value>)> {
     let views=tick(homes,workflows);
-    if let Some(project)=project {if let Ok(mut root)=workflows.try_lock(){root.observe_ended_runs(project);}}
+    if let Some(project)=project {observe_project_history(workflows, project);}
     views
+}
+
+pub(crate) fn observe_project_history(workflows: &Mutex<WorkflowRootSession>, project: &std::path::Path) {
+    // See records_store::HistoryRead for the shared-reader check and slice 2.
+    let reading = crate::records_store::HistoryRead::begin(project);
+    let (generation, mut view) = {
+        let Ok(mut root) = workflows.try_lock() else { return; };
+        root.observe_ended_runs(project);
+        root.ended_history_reading()
+    };
+    let notice = reading.finish(project);
+    let changed = matches!(notice, crate::records_store::HistoryNotice::Changed);
+    view["historyNotices"] = json!(notice.view());
+    workflows.lock().unwrap().publish_ended_history(generation, view, changed);
 }
 
 /// The trial tick for one home: the TT-9 reads due in the view as last
