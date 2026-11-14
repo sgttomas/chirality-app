@@ -1,3 +1,9 @@
+// WHAT THIS IS, AND IS NOT. These guards are a regression aid: they detect exactly the forms their tests exercise,
+// listed below and in the tests. They are not a boundary, not a proof, and not mechanically complete coverage of
+// what reaches the page. A form not listed is not claimed. The present views were examined separately, by reading and
+// rendering them; that examination, not this guard, is what found them sound. A later unit that needs complete coverage
+// must establish it itself and cannot inherit it from here.
+//
 // The presentation guard: a syntactic check, on each guarded view (GUARDED_VIEWS), of the forms listed below, under
 // named assumptions. Its aim is that a value the App did not write reaches the page only through one of the approved
 // presentations, and that a control or heading holds only the App's words; it does not prove that page property. It
