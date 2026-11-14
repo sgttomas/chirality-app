@@ -602,7 +602,8 @@ test('a refused start at launch is shown in the connection status with its reaso
   try {
     await React.act(()=>root.render(React.createElement(App)));
     const status=region(c,'Workspace connection status');
-    assert.match(status.textContent,/Codex is not connected/);
+    // A start refused before anything connected is said as not started, with the home's own reason.
+    assert.match(status.textContent,/Codex was not started/);assert.doesNotMatch(status.textContent,/could not stay connected/);
     assert.equal(region(c,'Why Codex was not started').textContent,reason);
     assert.ok(!calls.includes('host_start'),'shown without a start being pressed');
     const poll=async()=>React.act(async()=>{for(const t of timers.values())await t.fn();});
