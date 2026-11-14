@@ -94,11 +94,15 @@ selection, and any specialised workspace, keep their own.
   pause at a point is the agent's cooperation, and the App says so (LIM-016).
   Holds the App itself enforces stay phased to the governance layer and are
   not withdrawn (PRD V4-WF-05). A point arises where the person or the agent
-  places it, not on a condition the App evaluates.
+  places it. The App evaluates no condition about the work itself, such as
+  results that disagree, something unexpected or a limit reached. Observing
+  that a declared checkpoint's named output was produced or its named tool
+  was started stays as DEL-02-03 states it.
 - **The supplier's automatic reviewer, and elevation.** The App offers no
   permission level that hands the supplier's requests to its automatic
-  reviewer, and provides no elevation to administrator; a system password
-  prompt is the person's.
+  reviewer, and with every level it sends that the person answers them,
+  whatever review routing the person's own settings name. It provides no
+  elevation to administrator; a system password prompt is the person's.
 - **A form for every kind of point, and points declared in the bundled
   workflows.** A person places a point by asking the agent; the App needs no
   form for each kind. No bundled workflow declares a point, and 4.0.0 adds
@@ -362,8 +366,9 @@ the owner decide on what was actually observed.
    others; every level offered was first shown at the pin by a fixture; the
    level in force is always shown, with the statement that reading is not
    limited; the App sends it to Codex on each turn and on start, resume and
-   fork; a change of level is captured from the person only, as changing the
-   grant, and no agent raises its own level.
+   fork; a change of level is taken from the person only and recorded, as
+   the person's own setting and not as a reserved act, and no agent raises
+   its own level.
 
    *Governed by:* DEL-09-02 AC-006; DEL-01-05 AC-001 to AC-005 and AC-011;
    each in the words that its scope states are in force for 4.0.0. The

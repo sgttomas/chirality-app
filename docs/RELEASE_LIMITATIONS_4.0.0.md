@@ -214,10 +214,11 @@ An entry is added in the same pull request that makes the limitation standing.
 - **Id:** LIM-016
 - **Exit criteria:** 2, 4
 - **What is unavailable:** a pause the App enforces. When a point or a
-  declared checkpoint asks the agent to pause, the agent ends its turn because
-  it was asked to; the App does not stop it. Delegated agents and background
-  commands may still be running after the turn ends. The App shows that the
-  agent was asked to pause and never says the work is held or blocked.
+  declared checkpoint asks the agent to pause, whether it pauses is the
+  agent's cooperation; the App does not stop it. Where the agent does end its
+  turn, delegated agents and background commands may still be running. The
+  App shows that the agent was asked to pause and, separately, whether a turn
+  completed, and never says the work is held or blocked.
 - **Why:** holds the App itself enforces are phased to the governance layer
   and are not built for 4.0.0.
 - **What the person does instead:** read what is still running before relying

@@ -324,10 +324,11 @@ with a small declared part the product can observe (D-03).
 - **V4-EXE-04** After a restart, a person can continue a conversation and see
   what was done before it.
 - **V4-EXE-05** Where work waits, the App says which of three things it
-  observed: the agent was asked to pause (its turn ended; delegated agents
-  and background commands may still be running); a question is waiting (the
-  harness keeps that one call open until it is answered, and other work goes
-  on); or a turn completed. It never shows work as held or blocked by a hold
+  observed: the agent was asked to pause (the request alone shows neither
+  that its turn ended nor that it paused, and delegated agents and background
+  commands may still be running); a question is waiting (that one call stays
+  open until it is answered or ends unanswered, and other work goes on); or a
+  turn completed. It never shows work as held or blocked by a hold
   it does not enforce (V4-WF-05). An arrival at a point that the agent
   reports is recorded as reported, unless the App itself observed what
   triggers it.
@@ -398,17 +399,21 @@ Shared access does not transfer decision rights (OD-05).
   where the agent may write (nowhere; the project; the project and named
   further folders; anywhere), whether the commands it runs have network
   access, and when it asks (before a command it does not know to be safe;
-  when it wants to go beyond its sandbox; never). Reading is not limited at
+  when it wants to go beyond its sandbox; never). With every level the App
+  sends that the person answers the harness's requests, whatever review
+  routing the person's own settings name. Reading is not limited at
   any level: Codex can read whatever the person's account can read, and the
   App says so wherever the level is shown. The level in force is always
   shown. The App offers a level only once a fixture has shown that level at
-  the pinned Codex version. Setting or changing the level is the person's act
-  of changing the grant (V4-AUT-03), captured from the person only, with its
-  scope, its policy and when it took effect; sending a level already chosen
-  again is not a new act. An agent never raises its own level. A narrower
+  the pinned Codex version. The level is the person's own setting (V4-AUT-04):
+  it is no reserved act and stands in for none. Only the person sets or
+  changes it, by a confirmation the App takes from the person alone, and the
+  change is recorded with its scope, its values and when it took effect;
+  sending a level already chosen again is not a change. No agent, tool or
+  App rule changes a level, and an agent never raises its own. A narrower
   level does not restrain a command already running, and the App does not
-  imply that it does. With a wider level the person meets the harness's own
-  requests seldom; with any level they are shown truthfully (V4-AUT-04). A
+  imply that it does. At every level the harness's own requests are shown
+  truthfully (V4-AUT-04). A
   system password prompt is the person's to answer. A new person's level
   is one named default, chosen visibly at setup beside the other levels:
   edits in the project without asking, network off, and asks when it wants
@@ -424,8 +429,9 @@ Shared access does not transfer decision rights (OD-05).
   pause, who must respond, what resolves it, which content and revision it
   concerns, and who integrates the result. Whether a point asks the agent to
   pause is the person's to define, and the agent can set it too. A declared
-  checkpoint (V4-WF-01, V4-WF-05) is a point that requires a reserved human
-  act; a point that asks no one to pause is not a declared checkpoint. A
+  checkpoint (V4-WF-01, V4-WF-05) is a point declared in a workflow that
+  requires a reserved human act, irrespective of its kind or whether it asks
+  the agent to pause. A
   decision reserved to the person remains a decision package decided at the
   act control (V4-PM-04); an ordinary choice is a response in conversation.
 - **V4-AUT-08** A person places a point by asking the agent, while making a
@@ -621,7 +627,7 @@ to repeat already settled direction.
 | Harness | The agent program that runs the model loop and tools (for example Codex) |
 | Workflow | Reusable method guidance with a declared part (§4.1) |
 | Declared checkpoint | A point in a workflow where a human act is required |
-| Point | A place in the work where a named party is called to respond (V4-AUT-07): a checkpoint, review point, decision point, input point or sign-off point. A point of the kind named checkpoint is a declared checkpoint only when it is declared in a workflow and requires a human act |
+| Point | A place in the work where a named party is called to respond (V4-AUT-07): a checkpoint, review point, decision point, input point or sign-off point. The kind named checkpoint does not itself require a reserved human act; a declared checkpoint can be of any kind |
 | Permission level | How far the agent in the Chirality App may act, set by the person: where it may write, network for its commands and when it asks; reading is not limited (V4-AUT-06) |
 | Capability catalog | A host's single description of every operation a person can perform |
 | Semantic parity | Meaningful reads, operations, validation, results and recovery across human, embedded and external agency; shared semantics does not transfer human decision rights |
