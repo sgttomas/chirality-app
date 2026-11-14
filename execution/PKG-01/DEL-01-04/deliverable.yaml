@@ -59,7 +59,9 @@ needs:
 - from: DEL-06-02
   condition: A decision package is a project file that states the exact act requested of the
     person, its subject, purpose and basis, and each alternative with its consequences, and a
-    pending package is shown as its file states them.
+    pending package is shown as its file states them, with who requested it where the package
+    records it. For "Waiting on you", the return-review queue gives each return awaiting review
+    with its reference, who returned it and who prepared its brief, as recorded.
   gating: false
 - from: DEL-01-06
   condition: The installed App is signed with the same Developer ID team and bundle identifier
