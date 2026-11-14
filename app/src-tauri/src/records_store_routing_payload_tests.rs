@@ -331,6 +331,52 @@ fn records_store_routing_corrupt_final_is_still_record_evidence() {
 }
 
 #[test]
+fn records_store_routing_history_notice_names_omitted_in_place_records() {
+    let (_own, root, dir, _) = routing_fixture();
+    let (in_place, limits) = storage::read_all(&root);
+    assert_eq!(in_place.len(), 1, "the project starts with readable history");
+    assert!(limits.is_empty(), "{limits:?}");
+    std::fs::create_dir_all(dir.join("acts")).unwrap();
+    std::fs::write(
+        dir.join("acts").join(format!("{}.jsonl", storage::key("corrupt"))),
+        b"corrupt final\n",
+    ).unwrap();
+    assert!(!dir.join("imports.jsonl").exists(), "no import account in this case");
+    let shown = status(Some(&root));
+    assert_eq!(shown["project"]["reading"], "records store");
+    assert_eq!(shown["project"]["notImported"], 1);
+    let view = crate::runtime_session::read_decision_packages(&root);
+    assert!(view["rows"].as_array().unwrap().is_empty(), "{view}");
+    assert!(view["limits"].as_array().unwrap().iter().any(|limit| {
+        limit.as_str().is_some_and(|s| s.contains("unreadable line 1"))
+    }), "the corrupt store line remains a separate reading limit: {view}");
+
+    // Control: the originals remain in the project after a complete import,
+    // but those files are covered and must not produce the omission notice.
+    let imported_root = folder("history-notice-imported-project-");
+    records::append(
+        &imported_root.join(".chirality/records/acts/in-place.jsonl"),
+        "evidence_limit", &APP_WRITER, body("imported history"),
+    ).unwrap();
+    import(&imported_root).unwrap();
+    let imported_status = status(Some(&imported_root));
+    assert_eq!(imported_status["project"]["reading"], "records store");
+    assert_eq!(imported_status["project"]["notImported"], 0);
+    let imported_view = crate::runtime_session::read_decision_packages(&imported_root);
+    assert!(imported_view.get("historyNotices").is_none_or(|notices| {
+        notices.as_array().is_some_and(Vec::is_empty)
+    }), "imported originals must not be reported as omitted: {imported_view}");
+    std::fs::remove_dir_all(imported_root).unwrap();
+    std::fs::remove_dir_all(root).unwrap();
+
+    // Proposed display channel and wording, for Agent 0's decision before
+    // implementation. This must not be added to storage::read_all's limits.
+    assert_eq!(view["historyNotices"], json!([
+        "This view reads the records store. Records in the project folder have not been imported and are not shown."
+    ]), "the person-facing history result must explain the omitted in-place history beside its corruption limit; status elsewhere is insufficient");
+}
+
+#[test]
 fn records_store_routing_connector_attempt_is_retained_without_hiding_in_place_history() {
     let (_own, root, dir, id) = routing_fixture();
     std::fs::create_dir_all(dir.join("connectors/route-accounts")).unwrap();
