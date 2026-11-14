@@ -727,7 +727,6 @@ fn records_store_routing_history_notice_reopened_change_is_not_known() {
     std::fs::remove_dir_all(root).unwrap();
 }
 #[test]
-#[ignore = "in-place ended history creates .after-run-end.lock, which payload routing classifies as an unrecognised member; separate payload-control repair required"]
 fn records_store_routing_history_notice_post_end_cache_rebuilds_on_route_change() {
     let (_own, root, dir, _) = routing_fixture(); let run = notice_run(&root, true);
     let workflow = Mutex::new(crate::runtime_session::WorkflowRootSession::default()); crate::host_tick::observe_project_history(&workflow, &root);
