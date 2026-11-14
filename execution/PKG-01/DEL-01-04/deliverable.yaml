@@ -173,6 +173,8 @@ checks:
 - app/tests/presentation-guard.test.mjs
 - app/tests/support/presentation-guard.mjs
 - app/tests/support/presentation-guard-exceptions.json
+- app/tests/support/controls-guard-exceptions.json
+- app/tests/support/choices.mjs
 - app/tests/request-activity-navigation.test.mjs
 - app/tests/waiting-requests.test.mjs
 - app/tests/native-waiting.test.mjs
