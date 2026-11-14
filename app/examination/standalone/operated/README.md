@@ -1152,16 +1152,19 @@ failure, the same scenario and acts.
   - then, at most, one blank line and, after it, at most the focused-element
     line, `The focused UI element is <index> <words>`, naming an element of
     the view;
-  - an index is at most 15 digits with no leading zero, so it reads as one
-    exact number and two different texts never name the same element; words
-    hold no control character and no line or paragraph separator;
+  - an index is accepted only in its canonical form, at most 15 digits with
+    no leading zero, so one text names one element and it reads as one exact
+    number; a view holding an index in any other form (`016` beside `16`, say)
+    is refused; words hold no control character and no line or paragraph
+    separator;
   - each index names one element. A click, a set-value or a press names an
     element only by its index, so a view that gives one index to two
     elements cannot be addressed.
 
   The claim this makes, with the adversary it is made against: the walk acts
-  only on a view whose every line it recognises, and only on the one element
-  whose index and words both match what the step names; anything else ends
+  only on a view whose every line it recognises, with every index in its
+  canonical form, and only on the one element whose index and words both
+  match what the step names; anything else ends
   the step with no act. The adversary is text in the view the lane did not
   write: the App's own strings and the names of files in the invented
   project. A crafted build is not: the lane builds the candidate from a named

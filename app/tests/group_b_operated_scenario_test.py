@@ -1216,6 +1216,15 @@ return [r.verdict, r.stopped, r.calls.filter(c => c.call !== 'get_app_state').ma
                 self.assertIn('is not one the walk recognises; nothing is clicked, typed or pressed from it', stopped)
                 self.assertEqual([c for c in calls if not c.startswith('get_app_state')], [])
 
+    def test_a_non_canonical_index_beside_the_same_index_in_canonical_form_leads_to_no_act(self):
+        views = setup_views()
+        views['views'][0]['text'] = views['views'][0]['text'].replace('\n45 menu bar', '\n\t\t\t\t016 button Sign in\n45 menu bar')
+        self.assertIn('016 button Sign in', views['views'][0]['text'])
+        verdict, stopped, calls = setup_walk(RESULT.replace('OPTIONS', 'base'), views)['out']
+        self.assertEqual(verdict, 'inconclusive', stopped)
+        self.assertIn('is not one the walk recognises', stopped)
+        self.assertEqual([c for c in calls if not c.startswith('get_app_state')], [])
+
     def test_an_index_too_long_to_read_exactly_is_refused(self):
         views = setup_views()
         views['views'][0]['text'] = views['views'][0]['text'].replace('16 text field', '9007199254740993 text field')
@@ -1244,6 +1253,7 @@ class AViewRecognisedLineForLine(unittest.TestCase):
             'no window line': own.split('\n', 1)[1],
             'a window line without its application': own.replace(', App: Chirality App v4 (development invented).', ''),
             'an index with a leading zero': own.replace('\t3 button Cancel', '\t03 button Cancel'),
+            'a non-canonical form of an index that is also present': own.replace('\t3 button Cancel, ID: action-button-3', '\t3 button Cancel, ID: action-button-3\n\t03 button Sign in'),
             'an index of sixteen digits': own.replace('\t3 button Cancel', '\t1000000000000003 button Cancel'),
             'a further line straight after the window line': own.replace('\n0 sheet', '\nwords\n0 sheet'),
             'a further line beginning with a tab': own.replace('\nwith an empty config.toml', '\n\twith an empty config.toml'),
