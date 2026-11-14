@@ -9,6 +9,8 @@ export type DesktopSetupView = {
   appData?: string; appDataProblem?: string; custodyProblem?: string;
   /** DEL-01-01: the folder the App gives Codex as its working folder when no project is open. */
   noProjectFolder?: string;
+  workingFiles?: string;
+  workingFilesKept?: number;
   activeResources?: Resource[] | null; activeResourceProblem?: string | null;
   retainProject?: { available: boolean; accountHome?: string; reason?: string };
   supplier: { selection: string; path?: string; standing: string };

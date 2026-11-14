@@ -356,7 +356,7 @@ fn open_at(dir: &fs::File, name: &std::ffi::OsStr, flags: i32) -> std::io::Resul
 /// directory stream over a duplicate of it. No path is looked up, so nothing
 /// that happens to the folders above after the open can change what is listed.
 #[cfg(unix)]
-fn names_in(dir: &fs::File) -> std::io::Result<Vec<std::ffi::OsString>> {
+pub(crate) fn names_in(dir: &fs::File) -> std::io::Result<Vec<std::ffi::OsString>> {
     use std::os::fd::AsRawFd;
     use std::os::unix::ffi::OsStringExt;
     // SAFETY: a duplicate of an open descriptor; on success the stream owns it and closes it.
