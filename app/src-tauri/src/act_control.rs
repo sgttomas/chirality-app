@@ -59,14 +59,21 @@ fn capture_time() -> String {
 
 const STANDING: &str = "no arrival: a standing act (RC-6)";
 
-fn check_standing(root: &Path, offer: &Value) -> Result<(), String> {
+/// Err((words, stale)). A standing that changed, or an offer without one, makes the offer
+/// stale. Records that cannot be read now are reported with their own cause, never as a
+/// changed standing, and the offer stays presented so the same decision can be made once
+/// they can be read.
+fn check_standing(root: &Path, offer: &Value) -> Result<(), (String, bool)> {
     if offer.get("packageStanding").is_none() || offer.get("otherRequestsForPath").is_none() {
-        return Err("The A16 offer has no complete request standing; review it again; nothing captured.".into());
+        return Err(("The A16 offer has no complete request standing; review it again; nothing captured.".into(), true));
+    }
+    if let Err(cause) = crate::records_store::readable_home(root) {
+        return Err((format!("The records cannot be read now, so this request's standing cannot be checked again: {cause}; nothing captured."), false));
     }
     let (standing, others) = package_standing::read(root,
         offer["requestRef"].as_str().unwrap_or(""), offer["subject"]["ref"].as_str().unwrap_or(""));
     if standing != offer["packageStanding"] || others != offer["otherRequestsForPath"] {
-        return Err(package_standing::CHANGED.into());
+        return Err((package_standing::CHANGED.into(), true));
     }
     Ok(())
 }
@@ -285,7 +292,6 @@ pub(crate) mod native_statement {
     /// Shown before a full identity on its own (copyable) line.
     pub(crate) const SHORT: usize = 12;
 
-    /// Refuses a statement that would not fit a readable native alert.
     #[cfg(test)]
     thread_local! {
         /// Test-only seam: a lower limit, so a test can reach the refusal that no real
@@ -293,6 +299,7 @@ pub(crate) mod native_statement {
         /// shipped builds.
         pub(crate) static TEST_LIMIT: std::cell::Cell<Option<(usize, usize)>> = const { std::cell::Cell::new(None) };
     }
+    /// Refuses a statement that would not fit a readable native alert.
     pub(crate) fn bounded(what: &str, text: String) -> Result<String, String> {
         #[cfg(test)]
         let (max_lines, max_chars) = TEST_LIMIT.with(|limit| limit.get()).unwrap_or((MAX_LINES, MAX_CHARS));
@@ -1413,8 +1420,10 @@ impl ActControl {
     ) -> Result<native_statement::NativeStatement, String> {
         let workspace = self.workspace.clone();
         let s = self.offers.get_mut(offer_id).ok_or("no such offer")?;
-        if let Err(error) = check_standing(&workspace, &s.offer) {
-            s.state = OfferState::Stale;
+        if let Err((error, stale)) = check_standing(&workspace, &s.offer) {
+            if stale {
+                s.state = OfferState::Stale;
+            }
             return Err(error);
         }
         if let Err(error) = check_request_binding(&workspace, &s.request_record, &s.offer["requestRef"]) {
@@ -1485,8 +1494,10 @@ impl ActControl {
             }
         }
         let o = slot.offer.clone();
-        if let Err(error) = check_standing(&ws, &o) {
-            slot.state = OfferState::Stale;
+        if let Err((error, stale)) = check_standing(&ws, &o) {
+            if stale {
+                slot.state = OfferState::Stale;
+            }
             return Err(error);
         }
         if slot.selected.as_deref() != Some(alternative)
@@ -2480,7 +2491,7 @@ mod persistence_tests {
             } else {
                 std::fs::write(crate::storage::project_file(&root, LOG).unwrap(), &before).unwrap();
                 assert_eq!(control.confirm(&next_id, "ALT-1", InputSource::HostNativeConfirmation, actor.clone()).unwrap_err(), package_standing::CHANGED);
-                control.refresh_recording();
+                let _ = control.refresh_recording();
                 let next = control.compose_a16(&request_ref).unwrap();
                 let next_id = next["offerId"].as_str().unwrap().to_owned();
                 control.confirmation_text(&next_id, "ALT-1", &actor).unwrap();
