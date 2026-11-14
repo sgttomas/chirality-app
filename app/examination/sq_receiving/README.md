@@ -91,3 +91,31 @@ A result record's structured home field (`configuration.model_server.home`)
 admits only `H-acct`, `H-key` and `not_applicable`, so it cannot name the App's
 dedicated local home: a result for the local model server leaves `home` out and
 states the dedicated local home `H-omlx` in its label and evidence.
+
+Steps out of the release. The step map's `out_of_release` entry records a decision
+that takes steps out of one named release; for 4.0.0 they are run B's local model
+server steps, M12-2, M12-3 and M12-5 (DEL-09-02). The positive evidence that a
+dossier is read under that decision is the dossier's own `release` field, equal
+to the decision's `release`.
+- **Scope and lifetime.** The evidence is one decision, for one named release,
+  as long as the step map holds it.
+- **The field is bound with the rest.** It is inside the bytes the selection's
+  digest covers, so changing it after selection is refused as any other change
+  is. The schema refuses a value that is not a non-empty string.
+- **No match means no decision.** With no `release`, or one no decision names,
+  no decision applies: every step counts and SQ-R3 requires the two modes.
+
+A step a decision does take out stays listed in its scenario and is never
+counted:
+- it is not aggregated into the scenario's outcome;
+- it need not be recorded before an outcome or a handover;
+- the receivers do not report it as an outstanding obligation.
+
+With all three local steps out, SQ-R3 admits one declared mode, the ChatGPT
+account in `H-acct`. A decision that takes only some of them out admits no
+declaration.
+
+The field was added to the SQ-v0.2 schema in place. The schema allows no property
+it does not name, so a reader of the earlier file would refuse a dossier
+carrying it. Every reader of the format is in this repository and changed with
+it, and no copy of the earlier schema is kept as a snapshot.
