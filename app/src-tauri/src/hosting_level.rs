@@ -3,20 +3,56 @@
 //! level's App ledger entries (`level_chosen`, `level_sent`, `level_reported`), the reading of the recorded level at
 //! launch, the level's status, and the lasting rules each App-owned Codex home holds.
 //!
-//! The level is the person's own setting. Nothing here is an act-control act or a human-act record, and no entry
-//! carries an actor. The only paths that change the level in force in production are [`Host::choose_level`] (the
-//! App's `set_level` command, after the person's native confirmation) and [`Host::read_levels_at_launch`].
+//! The level is the person's own setting, a plain setting with no confirmation and no seal. Nothing here is an
+//! act-control act or a human-act record, and no entry carries an actor. The only paths that change the level in
+//! force in production are [`Host::choose_level`] (the App's `set_level` command) and
+//! [`Host::read_levels_at_launch`] (the recorded choices, or the App's default `codex_level::DEFAULT_LEVEL` where a
+//! complete read finds none for the default scope).
+//!
+//! The project trust entry each start, resume and fork carries is read here too ([`Host::trust_reading`]).
 use super::*;
 use crate::codex_level::{self as cl, Level, Target};
 use std::path::Path;
 
-/// One recorded choice of the person: its ledger entry, when they confirmed it, and the level.
+/// Where a level in force comes from (`origin` in the status).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum Origin {
+    /// The person's choice, recorded in the ledger.
+    Chosen,
+    /// The App's default, put in force by a complete launch read that found no valid choice for the default scope.
+    /// Never written to the ledger.
+    AppDefault,
+    /// The person's choice, held in memory only because the App's records could not be read or saved.
+    SessionOnly,
+}
+impl Origin {
+    pub(crate) fn as_str(self) -> &'static str {
+        match self { Self::Chosen => "chosen", Self::AppDefault => "app-default", Self::SessionOnly => "session-only" }
+    }
+}
+
+/// A level in force for a scope: the ledger entry it was recorded as (None for the App's default and a
+/// session-only choice), when, the level, and where it comes from.
 #[derive(Clone, Debug)]
 pub(crate) struct Chosen {
-    pub(crate) entry: String,
+    pub(crate) entry: Option<String>,
     pub(crate) at: String,
     pub(crate) level: &'static Level,
+    pub(crate) origin: Origin,
 }
+
+/// The App's default level (`codex_level::DEFAULT_LEVEL`), per Host. Only the `cfg(test)` setter
+/// `Host::set_app_default_for_test` changes it.
+#[derive(Clone, Copy, Debug)]
+pub(crate) struct AppDefault(pub(crate) Option<&'static Level>);
+impl Default for AppDefault {
+    fn default() -> Self {
+        AppDefault(cl::DEFAULT_LEVEL.map(|id| cl::level(id).expect("the App's default level is a row of the table")))
+    }
+}
+
+/// The `config/read` the trust entry is read from is named so in the request record.
+pub(crate) const TRUST_READING_INITIATOR: &str = "project-trust-reading";
 
 /// Where a choice applies (the `set_level` command's scope).
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -78,6 +114,16 @@ pub(crate) struct LevelState {
     pub(crate) launch: Value,
     /// This Host's home's lasting rules as last read.
     pub(crate) rules: Option<Value>,
+    /// The App's default level for this Host.
+    pub(crate) app_default: AppDefault,
+    /// Why the person may choose a level for this session only: the launch read positively failed or was limited
+    /// (`{reason, detail}`). None after a complete read, and never for an empty ledger.
+    pub(crate) session_only: Option<Value>,
+    /// Advanced by every attempted configuration write; a trust reading made before one is not current.
+    pub(crate) config_writes: u64,
+    /// The unit tests' Host makes no trust reading (its peers answer no `config/read`); a test turns it on.
+    #[cfg(test)]
+    pub(crate) trust_reads: bool,
 }
 
 impl Places {
@@ -114,10 +160,27 @@ fn takes_effect_now(i: &Inner, thread: Option<&str>) -> &'static str {
     }
 }
 
-fn chosen_view(chosen: Option<&Chosen>, level: Option<&'static Level>, scope: &str) -> Value {
+fn chosen_view(chosen: Option<&Chosen>, level: Option<&'static Level>, scope: &str, session_only: Option<&Value>) -> Value {
     match (chosen, level) {
-        (Some(c), _) => json!({"id": c.level.id, "dimensions": c.level.dimensions, "ledgerEntry": c.entry, "chosenAt": c.at, "scope": scope, "reading": "not-limited"}),
-        (None, Some(level)) => json!({"id": level.id, "dimensions": level.dimensions, "ledgerEntry": null, "chosenAt": null, "scope": scope, "reading": "not-limited"}),
+        (Some(c), _) => {
+            let mut view = json!({"id": c.level.id, "dimensions": c.level.dimensions, "ledgerEntry": c.entry,
+                "chosenAt": if c.origin == Origin::AppDefault { Value::Null } else { json!(c.at) }, "scope": scope, "reading": "not-limited",
+                "origin": c.origin.as_str()});
+            match c.origin {
+                Origin::Chosen => {}
+                Origin::AppDefault => {
+                    view["originSentence"] = json!(cl::APP_DEFAULT_SENTENCE);
+                    if c.level.id == "full" { view["explanation"] = json!(cl::APP_DEFAULT_EXPLAINED); }
+                }
+                Origin::SessionOnly => {
+                    view["originSentence"] = json!(cl::SESSION_ONLY_SENTENCE);
+                    view["sessionOnly"] = session_only.cloned().unwrap_or(Value::Null);
+                }
+            }
+            view
+        }
+        // A level set without a record or an origin: only the test setters do this.
+        (None, Some(level)) => json!({"id": level.id, "dimensions": level.dimensions, "ledgerEntry": null, "chosenAt": null, "scope": scope, "reading": "not-limited", "origin": null}),
         (None, None) => Value::Null,
     }
 }
@@ -223,13 +286,14 @@ impl Host {
 
     /// The recorded choice behind the level a frame resolved to, by where it came from.
     pub(super) fn level_chosen_for(i: &Inner, method: cl::Method, thread: &str, new_choice: bool) -> Option<String> {
+        let entry = |c: Option<&Chosen>| c.and_then(|c| c.entry.clone());
         if new_choice {
-            return i.level.new_chosen.as_ref().map(|c| c.entry.clone());
+            return entry(i.level.new_chosen.as_ref());
         }
         match method {
-            cl::Method::ThreadStart => i.level.default_chosen.as_ref().map(|c| c.entry.clone()),
-            _ if i.thread_levels.contains_key(thread) => i.level.thread_chosen.get(thread).map(|c| c.entry.clone()),
-            _ => i.level.default_chosen.as_ref().map(|c| c.entry.clone()),
+            cl::Method::ThreadStart => entry(i.level.default_chosen.as_ref()),
+            _ if i.thread_levels.contains_key(thread) => entry(i.level.thread_chosen.get(thread)),
+            _ => entry(i.level.default_chosen.as_ref()),
         }
     }
 
@@ -257,7 +321,8 @@ impl Host {
         let at = now_rfc3339();
         let write_result = if written { "written" } else { "not-established" };
         let takes_effect = takes_effect_now(i, thread.as_deref());
-        let row = json!({"method": method, "requestRef": request_ref, "levelId": bound.level.id, "fields": bound.fields, "chosen": bound.chosen, "writeResult": write_result, "at": at});
+        let mut row = json!({"method": method, "requestRef": request_ref, "levelId": bound.level.id, "fields": bound.fields, "chosen": bound.chosen, "writeResult": write_result, "at": at});
+        if let Some(trust) = &bound.trust { row["projectTrust"] = trust.status(); }
         match &thread { Some(t) => { i.level.last_sent.insert(t.clone(), row); } None => { i.level.request_sent.insert(key.to_owned(), row); } }
         let Some(chosen) = bound.chosen.clone() else { return };
         if let Some(t) = &thread {
@@ -340,46 +405,66 @@ impl Host {
         Self::queue_level_entry(i, entry);
     }
 
-    // ---- The person's choice (item 5) ----
+    // ---- The person's choice ----
 
-    /// The person confirmed `level` for `scope` in the App's native statement (`statement_digest`). The
+    /// The person chose `level` for `scope` in the App's level control: a plain setting, with no confirmation. The
     /// `level_chosen` entry is written first; only once it is in the ledger does the level in force change, here
-    /// and, for the default, in each Host of `also` (the App's other homes, which share this ledger). A write that
-    /// fails changes nothing and is returned as an error. A new-conversation choice has no ledger scope of its
-    /// own: its entry is written, as the conversation's, when the start or fork reply names the conversation.
-    pub(crate) fn choose_level(&self, scope: &LevelScope, level: &'static Level, statement_digest: &str, also: &[Arc<Host>]) -> Result<Value, String> {
-        if statement_digest.len() != 64 || !statement_digest.bytes().all(|b| b.is_ascii_hexdigit() && !b.is_ascii_uppercase()) {
-            return Err("The level's native statement has no digest; nothing was changed".into());
-        }
+    /// and, for the default, in each Host of `also` (the App's other homes, which share this ledger). A new-
+    /// conversation choice has no ledger scope of its own: its entry is written, as the conversation's, when the
+    /// start or fork reply names the conversation.
+    ///
+    /// Where the launch read positively failed or was limited (never an empty ledger), and the choice cannot be
+    /// written, it is held for this session only: in memory, never written, dropped at quit and by any later
+    /// complete read. Otherwise a write that fails changes nothing and is returned as an error.
+    pub(crate) fn choose_level(&self, scope: &LevelScope, level: &'static Level, also: &[Arc<Host>]) -> Result<Value, String> {
         let _writer = self.recovery_writer.lock().unwrap();
         self.drain_recovery_owned();
-        let (ledger, session, home) = {
+        let (ledger, session, home, session_only) = {
             let i = self.inner.0.lock().unwrap();
-            (i.recovery.clone(), i.app_session.clone(), i.level.places.as_ref().and_then(|p| p.home_identity.clone()))
+            (i.recovery.clone(), i.app_session.clone(), i.level.places.as_ref().and_then(|p| p.home_identity.clone()), i.level.session_only.is_some())
         };
         let entry_id = opaque_id("level-chosen:")?;
         let at = now_rfc3339();
-        let chosen = Chosen { entry: entry_id.clone(), at: at.clone(), level };
+        let scope_view = match scope { LevelScope::Default => json!("default"), LevelScope::Conversation(t) => json!({"conversation": t}), LevelScope::NewConversation => json!("new-conversation") };
+        if let LevelScope::Conversation(thread) = scope {
+            let known = self.inner.0.lock().unwrap().threads.iter().any(|t| t["threadId"] == thread.as_str());
+            if !known { return Err("The conversation is not one this Codex home has open; the level was not changed".into()); }
+        }
+        // The App's records could not be read at launch, and this choice cannot be saved: held for this session.
+        let for_this_session = |failure: Option<String>| -> Result<Value, String> {
+            let chosen = Chosen { entry: None, at: at.clone(), level, origin: Origin::SessionOnly };
+            Self::apply_chosen(&mut self.inner.0.lock().unwrap(), scope, chosen.clone());
+            if *scope == LevelScope::Default {
+                for other in also.iter().filter(|h| !std::ptr::eq(Arc::as_ptr(h), self)) {
+                    Self::apply_chosen(&mut other.inner.0.lock().unwrap(), scope, chosen.clone());
+                }
+            }
+            Ok(json!({"state": "chosen", "scope": scope_view, "levelId": level.id, "ledgerEntry": null, "origin": "session-only",
+                "recorded": "not recorded", "sentence": cl::SESSION_ONLY_SENTENCE,
+                "writeFailure": failure.map(|text| json!({"text": text, "standing": cl::NOT_THE_APPS_TEXT}))}))
+        };
         let ledger_scope = match scope {
             LevelScope::Default => json!({"kind": "default-for-new-conversations"}),
-            LevelScope::Conversation(thread) => {
-                let home = home.ok_or("This conversation's Codex home is not established; the level was not changed")?;
-                let known = self.inner.0.lock().unwrap().threads.iter().any(|t| t["threadId"] == thread.as_str());
-                if !known { return Err("The conversation is not one this Codex home has open; the level was not changed".into()); }
-                json!({"kind": "conversation", "home": home, "threadId": thread})
-            }
+            LevelScope::Conversation(thread) => match &home {
+                Some(home) => json!({"kind": "conversation", "home": home, "threadId": thread}),
+                None if session_only => return for_this_session(None),
+                None => return Err("This conversation's Codex home is not established; the level was not changed".into()),
+            },
             LevelScope::NewConversation => Value::Null,
         };
         let mut entry = json!({"kind": "level_chosen", "session": session, "entryId": entry_id, "at": at, "scope": ledger_scope,
-            "level": cl::recorded_values(level), "previous": null, "confirmation": {"kind": "native", "statementDigest": statement_digest}});
+            "level": cl::recorded_values(level), "previous": null});
+        let Some(ledger) = ledger else {
+            if session_only { return for_this_session(None); }
+            return Err("The App ledger is unavailable, so the level could not be recorded; nothing was changed".into());
+        };
+        let chosen = Chosen { entry: Some(entry_id.clone()), at: at.clone(), level, origin: Origin::Chosen };
         if *scope == LevelScope::NewConversation {
-            if ledger.is_none() { return Err("The App ledger is unavailable, so the level could not be recorded; nothing was changed".into()); }
             let mut i = self.inner.0.lock().unwrap();
             i.level.deferred.insert(entry_id.clone(), entry);
             Self::apply_chosen(&mut i, scope, chosen);
-            return Ok(json!({"state": "chosen", "scope": "new-conversation", "levelId": level.id, "ledgerEntry": entry_id, "recorded": "when the new conversation is named"}));
+            return Ok(json!({"state": "chosen", "scope": "new-conversation", "levelId": level.id, "ledgerEntry": entry_id, "origin": "chosen", "recorded": "when the new conversation is named"}));
         }
-        let ledger = ledger.ok_or("The App ledger is unavailable, so the level could not be recorded; nothing was changed")?;
         let appended = {
             let mut ledger = ledger.lock().unwrap();
             let previous = ledger.current_entries().iter().rev()
@@ -390,21 +475,23 @@ impl Host {
             (appended, ledger.observation())
         };
         self.inner.0.lock().unwrap().recovery_snapshot = Some(appended.1);
-        appended.0.map_err(|e| format!("The level was not recorded in the App ledger ({e}); nothing was changed"))?;
+        if let Err(e) = appended.0 {
+            if session_only { return for_this_session(Some(e)); }
+            return Err(format!("The level was not recorded in the App ledger ({e}); nothing was changed"));
+        }
         Self::apply_chosen(&mut self.inner.0.lock().unwrap(), scope, chosen.clone());
         if *scope == LevelScope::Default {
             for other in also.iter().filter(|h| !std::ptr::eq(Arc::as_ptr(h), self)) {
                 Self::apply_chosen(&mut other.inner.0.lock().unwrap(), scope, chosen.clone());
             }
         }
-        Ok(json!({"state": "chosen", "scope": match scope { LevelScope::Default => json!("default"), LevelScope::Conversation(t) => json!({"conversation": t}), LevelScope::NewConversation => json!("new-conversation") },
-            "levelId": level.id, "ledgerEntry": entry_id, "previous": entry["previous"], "recorded": "in the App ledger"}))
+        Ok(json!({"state": "chosen", "scope": scope_view, "levelId": level.id, "ledgerEntry": entry_id, "previous": entry["previous"], "origin": "chosen", "recorded": "in the App ledger"}))
     }
 
-    /// The one change of the level in force from a recorded choice. Called only by [`Self::choose_level`] and
-    /// [`Self::read_levels_at_launch`].
+    /// The one change of the level in force for a scope. Called only by [`Self::choose_level`] (a recorded or a
+    /// session-only choice) and [`Self::read_levels_at_launch`] (a recorded choice, or the App's default).
     fn apply_chosen(i: &mut Inner, scope: &LevelScope, chosen: Chosen) {
-        i.level.by_entry.insert(chosen.entry.clone(), chosen.clone());
+        if let Some(entry) = &chosen.entry { i.level.by_entry.insert(entry.clone(), chosen.clone()); }
         match scope {
             LevelScope::Default => { i.default_level = Some(chosen.level); i.level.default_chosen = Some(chosen); }
             LevelScope::Conversation(t) => { i.thread_levels.insert(t.clone(), chosen.level); i.level.thread_chosen.insert(t.clone(), chosen); }
@@ -413,17 +500,21 @@ impl Host {
         i.level_revision += 1;
     }
 
-    /// Whether a turn is running in the conversation now (a level then takes effect from its next turn).
-    pub(crate) fn level_turn_running(&self, thread: &str) -> bool {
-        Self::current_live_turn(&self.inner.0.lock().unwrap(), thread).is_some()
+    /// Tests only: the App's default level for this Host (`None`: no default). A shipped build has no route here.
+    #[cfg(test)]
+    pub(crate) fn set_app_default_for_test(&self, id: Option<&str>) {
+        self.inner.0.lock().unwrap().level.app_default = AppDefault(id.map(|id| cl::level(id).expect("a row of the table")));
     }
 
-    // ---- Launch read (item 6) ----
+    // ---- Launch read ----
 
     /// At launch: the level for each scope is the latest `level_chosen` in that scope, accepted only if its id is
-    /// in the table, its values equal that row exactly and its table digest matches. Otherwise there is no level
-    /// for that scope, and the person chooses before any conversation; nothing falls back to Codex's own setting,
-    /// to an earlier entry or to a recommended level. `home` is this Host's `home_identity`.
+    /// in the table and its values (the table's digest among them) equal that row exactly. A recorded level that is
+    /// not accepted is no level for that scope, never an earlier entry and never Codex's own setting. When the read
+    /// is complete and no valid choice for the default scope is found, the App's default
+    /// (`codex_level::DEFAULT_LEVEL`) is in force there, shown as the App's default and never written. A ledger
+    /// that cannot be read, or is limited, puts nothing in force and lets the person choose for this session only.
+    /// A complete read drops every session-only choice. `home` is this Host's `home_identity`.
     pub(crate) fn read_levels_at_launch(&self, home: Option<&str>) -> Value {
         let (ledger, limit) = {
             let i = self.inner.0.lock().unwrap();
@@ -431,14 +522,18 @@ impl Host {
         };
         let read = match (ledger, limit) {
             (Some(ledger), None) => Ok(ledger.lock().unwrap().current_entries().to_vec()),
-            (_, Some(limit)) => Err(format!("The App ledger could not be read ({limit}), so no level is in force; choose a level before any conversation.")),
-            (None, None) => Err("The App ledger is unavailable, so no level is in force; choose a level before any conversation.".into()),
+            (_, Some(limit)) => Err((format!("The App ledger could not be read ({limit}), so no level is in force; choose a level before any conversation."),
+                json!({"reason": cl::RECORDS_NOT_READ, "detail": {"text": limit, "standing": cl::NOT_THE_APPS_TEXT}}))),
+            (None, None) => Err(("The App ledger is unavailable, so no level is in force; choose a level before any conversation.".into(),
+                json!({"reason": cl::RECORDS_UNAVAILABLE, "detail": null}))),
         };
         let rows = match read {
             Ok(rows) => rows,
-            Err(reason) => {
+            Err((reason, session_only)) => {
                 let view = json!({"state": "not-read", "reason": reason});
-                self.inner.0.lock().unwrap().level.launch = view.clone();
+                let mut i = self.inner.0.lock().unwrap();
+                i.level.launch = view.clone();
+                i.level.session_only = Some(session_only);
                 return view;
             }
         };
@@ -458,11 +553,21 @@ impl Host {
         let mut accepted = Vec::new();
         let mut refused = Vec::new();
         let mut i = self.inner.0.lock().unwrap();
+        // A complete read governs: every session-only choice is dropped.
+        i.level.session_only = None;
+        let mut dropped = false;
+        if i.level.default_chosen.as_ref().is_some_and(|c| c.origin == Origin::SessionOnly) { i.default_level = None; i.level.default_chosen = None; dropped = true; }
+        if i.level.new_chosen.as_ref().is_some_and(|c| c.origin == Origin::SessionOnly) { i.new_conversation_level = None; i.level.new_chosen = None; dropped = true; }
+        let session_threads: Vec<String> = i.level.thread_chosen.iter().filter(|(_, c)| c.origin == Origin::SessionOnly).map(|(t, _)| t.clone()).collect();
+        for t in session_threads { i.thread_levels.remove(&t); i.level.thread_chosen.remove(&t); dropped = true; }
+        if dropped { i.level_revision += 1; }
+        let mut default_accepted = false;
         for (scope, row) in latest {
             let entry = row["entryId"].as_str().unwrap_or_default().to_owned();
             match cl::accept_recorded(&row["level"]) {
                 Some(level) => {
-                    let chosen = Chosen { entry: entry.clone(), at: row["at"].as_str().unwrap_or_default().to_owned(), level };
+                    let chosen = Chosen { entry: Some(entry.clone()), at: row["at"].as_str().unwrap_or_default().to_owned(), level, origin: Origin::Chosen };
+                    if scope == LevelScope::Default { default_accepted = true; }
                     Self::apply_chosen(&mut i, &scope, chosen);
                     accepted.push(json!({"entryId": entry, "levelId": level.id}));
                 }
@@ -483,26 +588,34 @@ impl Host {
                 i.level.sent_keys.insert((t.to_owned(), c.to_owned()), id.to_owned());
             }
         }
-        let view = json!({"state": "read", "accepted": accepted, "refused": refused});
+        let mut view = json!({"state": "read", "accepted": accepted, "refused": refused});
+        // The App's default, where the complete read found no valid choice for the default scope.
+        if let (false, Some(level)) = (default_accepted, i.level.app_default.0) {
+            Self::apply_chosen(&mut i, &LevelScope::Default, Chosen { entry: None, at: now_rfc3339(), level, origin: Origin::AppDefault });
+            view["appDefault"] = json!(level.id);
+        }
         i.level.launch = view.clone();
         view
     }
 
-    // ---- Status (item 7) ----
+    // ---- Status ----
 
     pub(super) fn level_status(i: &Inner, status: &mut Value) {
-        status["levelDefault"] = chosen_view(i.level.default_chosen.as_ref(), i.default_level, "default");
+        let session_only = i.level.session_only.as_ref();
+        status["levelDefault"] = chosen_view(i.level.default_chosen.as_ref(), i.default_level, "default", session_only);
         status["levelStartRefusal"] = json!(i.level.start_refusal);
         status["levelSendRefusal"] = json!(i.level.last_refusal);
         status["levelLaunchRead"] = i.level.launch.clone();
-        status["levelRecommended"] = json!(cl::RECOMMENDED_LEVEL);
+        status["levelAppDefault"] = json!(i.level.app_default.0.map(|l| l.id.as_str()));
+        // Offered only when the launch read positively failed or was limited.
+        status["levelSessionOnlyOffered"] = json!(session_only);
         if let Some(threads) = status["threads"].as_array_mut() {
             for row in threads.iter_mut() {
                 let Some(t) = row["threadId"].as_str().map(str::to_owned) else { continue };
                 let own = i.thread_levels.get(&t).copied();
                 let chosen = match own {
-                    Some(level) => chosen_view(i.level.thread_chosen.get(&t), Some(level), "conversation"),
-                    None => chosen_view(i.level.default_chosen.as_ref(), i.default_level, "default"),
+                    Some(level) => chosen_view(i.level.thread_chosen.get(&t), Some(level), "conversation", session_only),
+                    None => chosen_view(i.level.default_chosen.as_ref(), i.default_level, "default", session_only),
                 };
                 let in_force = own.or(i.default_level);
                 let sent = i.level.last_sent.get(&t).cloned();
@@ -515,11 +628,79 @@ impl Host {
                 };
                 let changed = match (&sent, in_force) { (Some(s), Some(level)) => s["levelId"] != level.id.as_str(), _ => false };
                 let takes_effect = if changed && Self::current_live_turn(i, &t).is_some() { "from-next-turn" } else { "now" };
+                let project_trust = sent.as_ref().map(|s| s["projectTrust"].clone()).filter(|v| !v.is_null());
                 let mut level = json!({"chosen": chosen, "sent": sent, "reported": reported, "agreement": agreement, "takesEffect": takes_effect});
+                if let Some(trust) = project_trust { level["projectTrust"] = trust; }
                 if let Some(cause) = i.level.refused.get(&t) { level["refused"] = cause.clone(); }
                 row["level"] = level;
             }
         }
+    }
+
+    // ---- Project trust ----
+
+    /// The project trust a start, resume or fork carries, read just before its frame is built: the conversation's
+    /// working folder (as sent, else the conversation's, else the folder Codex was started in), its project root as
+    /// Codex computes it, and a `config/read` (that folder, layers included) of this generation. Only a whole reading
+    /// whose user layers mark the root trusted gives "trusted"; anything else is untrusted, a failed or limited
+    /// reading included. Holds no lock while it reads. None for a method that carries no trust entry, or when the
+    /// folder is not known (the frame is then refused).
+    pub(super) fn trust_reading(&self, method: &str, params: &Value, generation: Option<&Value>) -> Option<cl::TrustReading> {
+        if !matches!(cl::Method::of(method)?, cl::Method::ThreadStart | cl::Method::ThreadResume | cl::Method::ThreadFork) { return None; }
+        let (cwd, generation, epoch) = {
+            let i = self.inner.0.lock().unwrap();
+            let thread = params["threadId"].as_str();
+            let process_cwd = i.level.places.as_ref().and_then(|p| p.process_cwd.clone());
+            let cwd = params.get("cwd").and_then(Value::as_str).map(PathBuf::from)
+                .or_else(|| thread.and_then(|t| i.threads.iter().rev().find(|r| r["threadId"] == t).and_then(|r| r["cwd"].as_str()).map(PathBuf::from)))
+                .or_else(|| process_cwd.clone());
+            let cwd = match cwd {
+                Some(c) if c.is_relative() => process_cwd.map(|p| p.join(c)),
+                other => other,
+            };
+            // A Host that is not ready sends nothing; its frame is refused for that reason.
+            if i.state != "ready" { return cwd.map(|cwd| cl::TrustReading::not_read(cwd, cl::TRUST_READ_FAILED, None)); }
+            #[cfg(test)]
+            if !i.level.trust_reads { return cwd.map(|cwd| cl::TrustReading::not_read(cwd, cl::TRUST_READ_FAILED, None)); }
+            (cwd?, generation.cloned().unwrap_or_else(|| i.generation.clone()), i.level.config_writes)
+        };
+        let deadline = std::time::Instant::now() + reading_gate::READING_DEFAULT_BUDGET;
+        let params = json!({"cwd": cwd.to_string_lossy(), "includeLayers": true});
+        let request = match self.request_reading("config/read", params, json!({"kind":"person-directed","name":TRUST_READING_INITIATOR}), &generation, true, deadline) {
+            Ok(request) => request,
+            Err(error) => return Some(cl::TrustReading::not_read(cwd, cl::TRUST_READ_FAILED, Some(error))),
+        };
+        let response = match self.wait_source_response(&request, deadline.saturating_duration_since(std::time::Instant::now())) {
+            Ok(response) => response,
+            Err(error) => { self.delegation_wait_ended(&request); return Some(cl::TrustReading::not_read(cwd, cl::TRUST_READ_FAILED, Some(error))); }
+        };
+        // A native error or a schema finding can quote configuration: neither is passed on, only an error's code.
+        if let Some(error) = response.get("error") {
+            let detail = error["code"].as_i64().map(|code| format!("config/read answered with an error (code {code})"));
+            return Some(cl::TrustReading::not_read(cwd, cl::TRUST_READ_FAILED, detail));
+        }
+        let result = response.get("result").cloned().unwrap_or(Value::Null);
+        if Self::validate_native_result("ConfigReadResponse", &result).is_err() {
+            return Some(cl::TrustReading::not_read(cwd, cl::TRUST_READ_FAILED, None));
+        }
+        let mut reading = cl::TrustReading::not_read(cwd, cl::TRUST_READ_FAILED, None);
+        match cl::person_mark(&result, &reading.root) {
+            Ok(case) => {
+                reading.case = case;
+                reading.generation = Some(json!({"generation": generation, "configWrites": epoch}));
+                reading.request_ref = Some(request.request_ref.clone());
+                reading.read_at = Some(now_rfc3339());
+            }
+            Err(reason) => reading.case = cl::TrustCase::NotRead { reason, detail: None },
+        }
+        Some(reading)
+    }
+
+    /// The reading as the frame relies on it: still of this generation with no configuration write since, or else
+    /// never trusted.
+    pub(super) fn trust_current(i: &Inner, reading: cl::TrustReading) -> cl::TrustReading {
+        let current = reading.generation.as_ref().is_some_and(|g| g["generation"] == i.generation && g["configWrites"] == i.level.config_writes);
+        if current || matches!(reading.case, cl::TrustCase::NotRead { .. }) { reading } else { reading.stale() }
     }
 
     // ---- Lasting rules (item 8) ----

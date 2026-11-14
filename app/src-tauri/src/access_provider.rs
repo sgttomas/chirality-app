@@ -1340,7 +1340,7 @@ impl Host {
     pub(crate) fn role_metadata_request(&self, source: &SourceRequest, request: crate::role_lifecycle::MetadataRequest) -> Result<crate::role_lifecycle::MetadataRequest, String> {
         self.check_source(source)?;
         // The level the frame carried, as bound when it was built (V4-AUT-06).
-        let request = request.with_sent_level(source.level.as_ref().map(|b| b.level));
+        let request = request.with_sent_level(source.level.as_ref());
         let i = self.inner.0.lock().map_err(|_| unavailable())?;
         let Some(binding) = &i.local_provider else { return Ok(request); };
         if i.generation != *source.generation() || i.state != "ready" || i.server_requests.is_closed(source.generation())

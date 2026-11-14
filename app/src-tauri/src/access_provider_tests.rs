@@ -2621,7 +2621,7 @@ fn child_parent_edited(
         &c,
     )
     .unwrap()
-    .with_sent_level(receipt.level_sent().map(|b| b.level))
+    .with_sent_level(receipt.level_sent())
     .observe(&peer.g, &sent, &response)
     .unwrap();
     let mut roles = crate::role_lifecycle::RoleBindings::default();

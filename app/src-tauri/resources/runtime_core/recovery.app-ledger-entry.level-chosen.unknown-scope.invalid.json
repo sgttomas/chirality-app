@@ -26,9 +26,5 @@
       "writable_roots": []
     }
   },
-  "previous": null,
-  "confirmation": {
-    "kind": "native",
-    "statementDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-  }
+  "previous": null
 }

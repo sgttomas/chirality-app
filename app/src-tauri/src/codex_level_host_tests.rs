@@ -47,15 +47,25 @@ fn with_fields(built: &Value, level: &cl::Level, method: Method) -> Value {
         Method::TurnStart => out["sandboxPolicy"] = level.sandbox_policy.clone(),
         _ => {
             out["sandbox"] = json!(level.sandbox);
+            if out.get("config").is_none() {
+                out["config"] = json!({});
+            }
             if let Some(options) = &level.workspace_write {
-                if out.get("config").is_none() {
-                    out["config"] = json!({});
-                }
                 out["config"]["sandbox_workspace_write"] = options.clone();
             }
+            // The one trust entry: this test Host makes no settings reading, so it is untrusted, for the project root of
+            // the conversation's folder (`/invented`, the test Host's working folder, where nothing names another).
+            out["config"]["projects"] = untrusted();
         }
     }
     out
+}
+fn untrusted() -> Value {
+    json!({"/invented": {"trust_level": "untrusted"}})
+}
+/// What the Host adds to `method`'s params at `level` in these tests.
+fn added(level: &cl::Level, method: Method) -> serde_json::Map<String, Value> {
+    cl::additions(level, method, Some(&untrusted()))
 }
 fn level(id: &str) -> &'static cl::Level {
     cl::level(id).unwrap()
@@ -124,12 +134,12 @@ fn each_of_the_four_frames_carries_exactly_the_level() {
             let written = wire.next();
             assert_eq!(written["method"], method);
             assert_eq!(written["params"], with_fields(&built(method), level(id), m), "{id} {method}");
-            assert!(cl::carries_exactly(&built(method), &written["params"], level(id), m));
+            assert!(cl::carries_exactly_fields(&built(method), &written["params"], &added(level(id), m)));
             // The frame the Host keeps is the frame it wrote, level included.
             assert_eq!(source.attempted_frame(), &written);
             assert_eq!(source.evidence()["sentFrame"], written);
             assert_eq!(source.level_sent_id(), Some((id, m)));
-            assert_eq!(source.level_sent().unwrap().fields, cl::params(level(id), m));
+            assert_eq!(source.level_sent().unwrap().fields, added(level(id), m));
         }
         wire.close(&host);
     }
@@ -162,10 +172,10 @@ fn a_frame_that_would_carry_other_than_exactly_its_level_writes_nothing() {
     let edits = level("edits");
     let start = built("thread/start");
     let mut sent = with_fields(&start, edits, Method::ThreadStart);
-    assert!(cl::carries_exactly(&start, &sent, edits, Method::ThreadStart));
+    assert!(cl::carries_exactly_fields(&start, &sent, &added(edits, Method::ThreadStart)));
     sent["config"]["invented"] = json!(1);
-    assert!(!cl::carries_exactly(&start, &sent, edits, Method::ThreadStart), "an extra configuration key");
-    assert!(!cl::carries_exactly(&start, &with_fields(&start, level("full"), Method::ThreadStart), edits, Method::ThreadStart), "another level");
+    assert!(!cl::carries_exactly_fields(&start, &sent, &added(edits, Method::ThreadStart)), "an extra configuration key");
+    assert!(!cl::carries_exactly_fields(&start, &with_fields(&start, level("full"), Method::ThreadStart), &added(edits, Method::ThreadStart)), "another level");
     wire.close(&host);
 }
 
@@ -225,6 +235,7 @@ fn a_configuration_collision_refuses_and_the_childrens_configuration_survives() 
         if let Some(options) = &level(id).workspace_write {
             want["sandbox_workspace_write"] = options.clone();
         }
+        want["projects"] = untrusted();
         assert_eq!(written["params"]["config"], want, "{id}: the children's keys plus exactly the level's");
         assert_eq!(written["params"], with_fields(&params, level(id), Method::ThreadStart));
     }
@@ -409,7 +420,7 @@ fn each_frame_carries_its_intended_conversations_level_and_never_anothers() {
         let written = wire.next()["params"].clone();
         assert_eq!(written, with_fields(&built(method), level(intended), m), "{method}: the intended conversation's level");
         assert_ne!(written, with_fields(&built(method), level(other), m), "{method}: another conversation's level does not match");
-        assert!(!cl::carries_exactly(&built(method), &written, level(other), m), "{method}");
+        assert!(!cl::carries_exactly_fields(&built(method), &written, &added(level(other), m)), "{method}");
         wire.close(&host);
     }
 }

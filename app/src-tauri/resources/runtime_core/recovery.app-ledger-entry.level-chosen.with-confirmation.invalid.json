@@ -1,7 +1,7 @@
 {
   "kind": "level_chosen",
   "session": "app-session:invented",
-  "entryId": "level-chosen:1",
+  "entryId": "level-chosen:with-confirmation",
   "at": "2026-11-14T12:00:00Z",
   "scope": {
     "kind": "default-for-new-conversations"
@@ -28,6 +28,7 @@
   },
   "previous": null,
   "confirmation": {
-    "kind": "native"
+    "kind": "native",
+    "statementDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
   }
 }

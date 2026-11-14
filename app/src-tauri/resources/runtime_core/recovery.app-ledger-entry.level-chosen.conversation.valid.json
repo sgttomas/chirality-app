@@ -28,9 +28,5 @@
       "writable_roots": []
     }
   },
-  "previous": "level-chosen:1",
-  "confirmation": {
-    "kind": "native",
-    "statementDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-  }
+  "previous": "level-chosen:1"
 }

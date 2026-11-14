@@ -3144,22 +3144,29 @@ impl Host {
     /// The level is merged, and the frame's params must then be `built` plus exactly the level's fields, or the
     /// frame is refused. Returns the params to write and the level bound to the request; None for a method
     /// that carries no level (every method but start, resume, fork and turn start).
-    fn level_frame(&self, i: &mut Inner, method: &str, built: &Value) -> Result<Option<(Value, codex_level::Bound)>, String> {
+    /// `trust` is the project trust read for a start, resume or fork just before (`Host::trust_reading`); such a
+    /// frame without one is refused.
+    fn level_frame(&self, i: &mut Inner, method: &str, built: &Value, trust: Option<codex_level::TrustReading>) -> Result<Option<(Value, codex_level::Bound)>, String> {
         let Some((level, target, chosen_for_new)) = Self::resolve_level(i, method, built) else { return Ok(None) };
         let kind = codex_level::Method::of(method).expect("resolved methods carry a level");
         let level = level.ok_or_else(|| format!("refused-not-sent: no level chosen; {method} was not sent"))?;
         let thread = built.get("threadId").and_then(Value::as_str).unwrap_or_default().to_owned();
         let chosen = Self::level_chosen_for(i, kind, &thread, chosen_for_new);
         Self::level_send_check(i, method, built, level, &target)?;
+        let trust = match kind {
+            codex_level::Method::TurnStart => None,
+            _ => Some(Self::trust_current(i, trust.ok_or_else(|| format!("refused-not-sent: the conversation's folder is not known, so its project trust cannot be sent; {method} was not sent"))?)),
+        };
+        let fields = codex_level::additions(level, kind, trust.as_ref().map(|t| t.projects()).as_ref());
         let mut params = built.clone();
-        codex_level::merge(&mut params, level, kind).map_err(|e| format!("refused-not-sent: {e}; {method} was not sent"))?;
+        codex_level::merge_fields(&mut params, &fields).map_err(|e| format!("refused-not-sent: {e}; {method} was not sent"))?;
         #[cfg(test)] {let hook=self.after_level_merge.lock().unwrap().take();if let Some(h)=hook{h(&mut params);}}
-        if !codex_level::carries_exactly(built, &params, level, kind) {
+        if !codex_level::carries_exactly_fields(built, &params, &fields) {
             return Err(format!("refused-not-sent: {method} would carry other than exactly its level; nothing written"));
         }
+        codex_level::config_post_condition(&params, kind).map_err(|e| format!("refused-not-sent: {e}; {method} was not sent"))?;
         if chosen_for_new { i.new_conversation_level = None; i.level.new_chosen = None; }
-        let fields = codex_level::params(level, kind);
-        Ok(Some((params, codex_level::Bound { level, method: kind, fields, revision: i.level_revision, target, chosen })))
+        Ok(Some((params, codex_level::Bound { level, method: kind, fields, trust, revision: i.level_revision, target, chosen })))
     }
     /// A frame is written only under the level revision it was built under.
     fn check_level_current(i: &Inner, bound: &codex_level::Bound) -> Result<(), String> {
@@ -3195,6 +3202,8 @@ impl Host {
         // A configuration reading first takes its generation's reservation, holding no lock while
         // it waits (`reading_gate`). The hold is declared before every lock guard below, so it is
         // dropped after them: an early return or a panic before the write is admitted withdraws.
+        // The project trust a start, resume or fork carries (V4-AUT-06), read before any lock is taken.
+        let trust=if handshake {None} else {self.trust_reading(method,&params,expected_generation)};
         let reading=reading_gate::is_reading(method);
         let hold:Option<ReadingHold>=if reading {Some(self.reading_reserve(method,expected_generation,reading_deadline.unwrap_or_else(||std::time::Instant::now()+reading_gate::READING_DEFAULT_BUDGET))?)} else {None};
         #[cfg(test)] if hold.is_some() {let hook=self.reading_after_reserve.lock().unwrap().take();if let Some(h)=hook{h(self);}}
@@ -3227,7 +3236,7 @@ impl Host {
         // The level (V4-AUT-06), after every check above has run on the params as built and before an id is
         // reserved. `built` keeps the params as built for the final admission's checks, which run on them,
         // never on the level's fields; the frame below is the one recorded and written.
-        let (params,level,built)=match self.level_frame(&mut i,method,&params)? {Some((sent,bound))=>(sent,Some(bound),Some(params)),None=>(params,None,None)};
+        let (params,level,built)=match self.level_frame(&mut i,method,&params,trust)? {Some((sent,bound))=>(sent,Some(bound),Some(params)),None=>(params,None,None)};
         i.next_id+=1;let id=i.next_id;
         let raw_frame=json!({"jsonrpc":"2.0","id":id,"method":method,"params":params});
         let(frame,auth_projection)=if endpoint_write.is_some(){(json!({"jsonrpc":"2.0","id":id,"method":method,"params":endpoint_write.unwrap().public_params()}),true)}else{auth_rpc::project_frame(&raw_frame,Some(method))};
@@ -3236,7 +3245,7 @@ impl Host {
         if auth_rpc::account_method(method)&&!i.account_channels.contains(&i.generation){let g=i.generation.clone();i.account_channels.push(g);}
         let request=SourceRequest {source:Arc::downgrade(&self.inner),generation:i.generation.clone(),frame:frame.clone(),level:level.clone(),request_ref:format!("{}:client:{id}",opaque_id("host-request")?),receiver:Arc::new(Mutex::new(rx))};
         // Reserved to Registered: this reading becomes the newest of its generation.
-        if let Some(hold)=&hold {Self::reading_register_locked(&mut i,hold,&request,method)?;}
+        if let Some(hold)=&hold {Self::reading_register_locked(&mut i,hold,&request,method,initiator["name"]!=level_state::TRUST_READING_INITIATOR)?;}
         if method=="config/read"&&private_config {if let Some(cwd)=frame["params"]["cwd"].as_str().filter(|cwd|!cwd.is_empty()){
             i.provider_observation_revisions.insert(cwd.to_owned(),(request.generation.clone(),request.request_ref.clone()));
         }}
@@ -3290,7 +3299,7 @@ impl Host {
                 if let Some(proof)=provider_admission{if matches!(method,"thread/resume"|"thread/fork"){self.check_continuation_proof(&i,proof)?;}else{self.check_provider_admission(&i,proof,checked)?;}}
                 // A confirmed provider write's attempt: no reading of this generation is current, for
                 // any folder, and an earlier reading's reply arriving later restores nothing.
-                if let Some(write)=endpoint_write {write.check(self,&i)?;write.mark_attempt()?;i.reading_current=None;i.provider_observation_revisions.remove(write.cwd());}
+                if let Some(write)=endpoint_write {write.check(self,&i)?;write.mark_attempt()?;i.reading_current=None;i.level.config_writes+=1;i.provider_observation_revisions.remove(write.cwd());}
                 if expected_generation.is_some()&&matches!(method,"turn/start"|"turn/interrupt"|"turn/steer"){Self::check_conversation_request_excluding(&i,method,checked,Some(&json!(id)))?;}
                 if let Some(original)=oauth_cancel{
                     let state=Self::oauth_scope(&i,original)?;
@@ -4064,7 +4073,7 @@ impl Host {
             Self::check_local_request(&i,method,&params,Some(generation),false,false,false,None)?;
             Self::check_send_admitted(&i,method)?;Self::check_conversation_request(&i,method,&params)?;let pipe=self.stdin.lock().unwrap();let identity=Self::pipe_identity(pipe.as_ref().ok_or("actual source pipe unavailable; nothing reserved")?)?;drop(pipe);
             // The level (V4-AUT-06): after every check above on the params as built, before an id is reserved.
-            let (sent,level)=match self.level_frame(&mut i,method,&params)? {Some((sent,bound))=>(sent,Some(bound)),None=>(params.clone(),None)};
+            let (sent,level)=match self.level_frame(&mut i,method,&params,None)? {Some((sent,bound))=>(sent,Some(bound)),None=>(params.clone(),None)};
             i.next_id+=1;let id=i.next_id;let frame=json!({"jsonrpc":"2.0","id":id,"method":method,"params":sent});
             let source=SourceRequest{source:Arc::downgrade(&self.inner),generation:generation.clone(),frame,level,request_ref:opaque_id("host-attachment-request:")?,receiver:Arc::new(Mutex::new(rx))};
             let mut association=json!({"submissionRef":submission,"threadId":thread,"supplyRefs":list.supply_refs()});if let Some(turn)=expected_turn{association["expectedTurnId"]=json!(turn);}
@@ -4353,7 +4362,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                         // The params as sent: the very frame, compared as it is.
                         StartParams::Sent(sent) => source.request.frame["params"] == *sent,
                         // The params as built: augmented by the level bound to the frame, compared whole.
-                        StartParams::Built(built) => codex_level::expected_with_level(built, source.request.level.as_ref().map(|b| b.level), codex_level::Method::ThreadStart).is_ok_and(|expected| source.request.frame["params"] == expected),
+                        StartParams::Built(built) => codex_level::expected_with_bound(built, source.request.level.as_ref()).is_ok_and(|expected| source.request.frame["params"] == expected),
                     }
                     && source.written && !source.write_attempt_in_progress
                     && source.write_error.is_none() && source.source_limit.is_none()

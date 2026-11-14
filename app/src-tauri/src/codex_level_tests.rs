@@ -15,7 +15,8 @@ fn the_table_holds_the_five_levels_with_the_person_answering() {
         assert_eq!(params(level, Method::TurnStart)["approvalsReviewer"], "user");
         assert_eq!(params(level, Method::ThreadStart)["approvalsReviewer"], "user");
     }
-    assert!(RECOMMENDED_LEVEL.map_or(true, |id| level(id).is_some()));
+    assert_eq!(DEFAULT_LEVEL, Some("full"), "the App's default level is full access in the shipped build");
+    assert!(DEFAULT_LEVEL.map_or(true, |id| level(id).is_some()));
 }
 
 #[test]
@@ -184,7 +185,7 @@ fn the_level_ledger_rows_are_valid_under_0_6_only_and_carry_no_decision_actor() 
         (include_str!("../resources/runtime_core/recovery.app-ledger-entry.level-chosen.conversation.valid.json"), true),
         (include_str!("../resources/runtime_core/recovery.app-ledger-entry.level-sent.valid.json"), true),
         (include_str!("../resources/runtime_core/recovery.app-ledger-entry.level-reported.valid.json"), true),
-        (include_str!("../resources/runtime_core/recovery.app-ledger-entry.level-chosen.no-digest.invalid.json"), false),
+        (include_str!("../resources/runtime_core/recovery.app-ledger-entry.level-chosen.with-confirmation.invalid.json"), false),
         (include_str!("../resources/runtime_core/recovery.app-ledger-entry.level-chosen.unknown-scope.invalid.json"), false),
         (include_str!("../resources/runtime_core/recovery.app-ledger-entry.level-chosen.actor.invalid.json"), false),
     ];

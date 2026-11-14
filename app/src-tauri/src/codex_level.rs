@@ -11,9 +11,24 @@ use std::sync::OnceLock;
 
 pub const TABLE: &str = include_str!("codex_levels.json");
 
-/// The level marked as recommended beside the others. A mark only: never applied and never preselected. None
-/// applies until the person has chosen (V4-AUT-06). The owner's to set.
-pub const RECOMMENDED_LEVEL: Option<&str> = None;
+/// The App's default level: the row a complete launch read puts in force for the default scope when the ledger
+/// holds no valid `level_chosen` for it. It is shown as the App's default, never as the person's choice, and is
+/// never written to the ledger; any recorded choice wins over it. An unreadable or limited ledger never takes it.
+/// Tests replace it only through the `cfg(test)` setter `Host::set_app_default_for_test`; a shipped build has no
+/// other route to it.
+pub const DEFAULT_LEVEL: Option<&str> = Some("full");
+
+/// The status's closed sentence for a level in force by the App's default.
+pub const APP_DEFAULT_SENTENCE: &str = "The App's default level, not chosen by you. You can choose another level at any time.";
+/// Where the status explains the App's default.
+pub const APP_DEFAULT_EXPLAINED: &str = "The App's default level is full access: commands run with no sandbox, with your account's access to your files and the network, including the App's own records and settings. You can choose another level at any time.";
+/// The status's closed sentence for a level chosen while the App's records could not be read or saved.
+pub const SESSION_ONLY_SENTENCE: &str = "Chosen for now. The App could not read or save its records, so this level is not kept after the App closes.";
+/// Why a session-only choice was offered: the App's own sentences, beside which any raw detail is kept apart.
+pub const RECORDS_NOT_READ: &str = "The App's records could not be read when it started.";
+pub const RECORDS_UNAVAILABLE: &str = "The App's records are not available in this session.";
+/// How the status marks text the App did not write (a raw error detail).
+pub const NOT_THE_APPS_TEXT: &str = "Text the App did not write.";
 
 /// The fields of a request that belong to the level and to nothing else. No other code may put them in a
 /// request; `merge` refuses a request that already carries one.
@@ -129,25 +144,50 @@ pub fn params(level: &Level, method: Method) -> Map<String, Value> {
     out
 }
 
+/// The configuration key that carries the project's trust entry on start, resume and fork.
+pub const PROJECTS_CONFIG: &str = "projects";
+/// Configuration keys no frame ever carries.
+pub const NEVER_SENT_CONFIG: [&str; 2] = ["bypass_hook_trust", "hooks.state"];
+
+/// Everything the App adds to a request of `method` beside what the frame's builder made: the level's fields
+/// (`params`) and, on start, resume and fork, `config.projects` with its one trust entry (`projects`, see
+/// [`TrustReading::projects`]).
+pub fn additions(level: &Level, method: Method, projects: Option<&Value>) -> Map<String, Value> {
+    let mut out = params(level, method);
+    if let (Some(projects), Method::ThreadStart | Method::ThreadResume | Method::ThreadFork) = (projects, method) {
+        let config = out.entry("config").or_insert_with(|| json!({}));
+        config.as_object_mut().expect("level config is an object").insert(PROJECTS_CONFIG.into(), projects.clone());
+    }
+    out
+}
+
 /// Adds the level's fields to a request's params. Refuses a request that already carries any of them, or a
 /// `config.sandbox_workspace_write`: the level is the only source of these fields.
 pub fn merge(request: &mut Value, level: &Level, method: Method) -> Result<(), String> {
+    merge_fields(request, &params(level, method))
+}
+
+/// Adds `fields` (from [`additions`]) to a request's params. Refuses a request that already carries a level field
+/// or any configuration key `fields` adds (`sandbox_workspace_write`, `projects`): only the App adds them.
+pub fn merge_fields(request: &mut Value, fields: &Map<String, Value>) -> Result<(), String> {
     let object = request.as_object_mut().ok_or("request params must be an object")?;
     if let Some(key) = LEVEL_KEYS.iter().find(|k| object.contains_key(**k)) {
         return Err(format!("level field already present: {key}"));
     }
-    if object.get("config").and_then(|c| c.get(WORKSPACE_WRITE_CONFIG)).is_some() {
-        return Err(format!("level field already present: config.{WORKSPACE_WRITE_CONFIG}"));
+    for key in [WORKSPACE_WRITE_CONFIG, PROJECTS_CONFIG] {
+        if object.get("config").and_then(|c| c.get(key)).is_some() {
+            return Err(format!("level field already present: config.{key}"));
+        }
     }
-    for (key, value) in params(level, method) {
+    for (key, value) in fields {
         if key == "config" {
             let config = object.entry("config").or_insert_with(|| json!({}));
             let config = config.as_object_mut().ok_or("config must be an object")?;
-            for (k, v) in value.as_object().expect("level config is an object") {
+            for (k, v) in value.as_object().ok_or("level config must be an object")? {
                 config.insert(k.clone(), v.clone());
             }
         } else {
-            object.insert(key, value);
+            object.insert(key.clone(), value.clone());
         }
     }
     Ok(())
@@ -158,7 +198,8 @@ pub fn merge(request: &mut Value, level: &Level, method: Method) -> Result<(), S
 /// the frame builder made. A site comparing sent params with rebuilt or expected ones compares the whole sent params
 /// with this, so a missing, partial or extra level field, an unexpected field and a configuration key `merge` would
 /// refuse all still differ. It only adds; nothing is removed from what was sent. `None` (no level bound to the
-/// request) is `base` unchanged.
+/// request) is `base` unchanged. A start, resume or fork also carries its trust entry: compare those with
+/// [`expected_with_bound`].
 pub fn expected_with_level(base: &Value, level: Option<&Level>, method: Method) -> Result<Value, String> {
     let mut expected = base.clone();
     if let Some(level) = level {
@@ -167,13 +208,28 @@ pub fn expected_with_level(base: &Value, level: Option<&Level>, method: Method) 
     Ok(expected)
 }
 
+/// The complete params a request must carry when `base` is what the App built and `bound` what was bound to it
+/// when its frame was built: `base` with exactly the bound additions (the level's fields and, on start, resume and
+/// fork, the trust entry). `None` is `base` unchanged.
+pub fn expected_with_bound(base: &Value, bound: Option<&Bound>) -> Result<Value, String> {
+    let mut expected = base.clone();
+    if let Some(bound) = bound {
+        merge_fields(&mut expected, &bound.fields)?;
+    }
+    Ok(expected)
+}
+
 /// The post-condition of the frame builder, checked independently of `merge`: `sent` is exactly `built` with
-/// `params(level, method)` added and nothing else. Every field of `built` is in `sent` unchanged, every level field
-/// is in `sent` with the level's value and was not in `built`, and `config` is `built`'s configuration (or none)
-/// with the level's configuration keys added, none of which it already had.
+/// `params(level, method)` added and nothing else.
 pub fn carries_exactly(built: &Value, sent: &Value, level: &Level, method: Method) -> bool {
+    carries_exactly_fields(built, sent, &params(level, method))
+}
+
+/// `sent` is exactly `built` with `fields` added and nothing else. Every field of `built` is in `sent` unchanged,
+/// every added field is in `sent` with its value and was not in `built`, and `config` is `built`'s configuration (or
+/// none) with the added configuration keys, none of which it already had.
+pub fn carries_exactly_fields(built: &Value, sent: &Value, fields: &Map<String, Value>) -> bool {
     let (Some(b), Some(s)) = (built.as_object(), sent.as_object()) else { return false };
-    let fields = params(level, method);
     let keys: std::collections::BTreeSet<&String> = b.keys().chain(s.keys()).chain(fields.keys()).collect();
     for key in keys {
         let ok = match (b.get(key), s.get(key), fields.get(key)) {
@@ -202,6 +258,166 @@ pub fn carries_exactly(built: &Value, sent: &Value, level: &Level, method: Metho
     true
 }
 
+/// The configuration a start, resume or fork frame may carry, checked on the frame as it is about to be written:
+/// `projects` with exactly one entry whose only field is `trust_level`, "trusted" or "untrusted"; never
+/// `bypass_hook_trust`, `hooks.state` or a `hooks` table with `state`. Other methods carry no `projects`.
+pub fn config_post_condition(sent: &Value, method: Method) -> Result<(), String> {
+    let config = sent.get("config");
+    if let Some(config) = config {
+        let Some(config) = config.as_object() else { return Err("config is not an object".into()) };
+        if let Some(key) = NEVER_SENT_CONFIG.iter().find(|k| config.contains_key(**k)) {
+            return Err(format!("config.{key} is never sent"));
+        }
+        if config.get("hooks").is_some_and(|h| h.get("state").is_some()) {
+            return Err("config.hooks.state is never sent".into());
+        }
+    }
+    let projects = config.and_then(|c| c.get(PROJECTS_CONFIG));
+    match method {
+        Method::TurnStart => match projects {
+            None => Ok(()),
+            Some(_) => Err("a turn carries no projects entry".into()),
+        },
+        _ => {
+            let entries = projects.and_then(Value::as_object).ok_or("config.projects is missing")?;
+            let [(_, entry)] = entries.iter().collect::<Vec<_>>()[..] else {
+                return Err(format!("config.projects has {} entries, not exactly one", entries.len()));
+            };
+            match entry.as_object() {
+                Some(o) if o.len() == 1 && matches!(o.get("trust_level").and_then(Value::as_str), Some("trusted" | "untrusted")) => Ok(()),
+                _ => Err("config.projects' entry is not exactly a trust level".into()),
+            }
+        }
+    }
+}
+
+// ---- Project trust (Codex's `projects.<path>.trust_level`) ----
+
+/// The project root Codex computes for a working folder with its default markers: the nearest folder, the
+/// working folder included, holding `.git` (a file, or a folder with `HEAD` in it), else the working folder
+/// (codex-rs/config/src/loader/mod.rs `discover_project_root` at rust-v0.167.0).
+pub fn project_root(cwd: &Path) -> PathBuf {
+    for ancestor in cwd.ancestors() {
+        let marker = ancestor.join(".git");
+        match std::fs::metadata(&marker) {
+            Ok(m) if m.is_dir() && std::fs::metadata(marker.join("HEAD")).is_err() => continue,
+            Ok(_) => return ancestor.to_path_buf(),
+            Err(_) => continue,
+        }
+    }
+    cwd.to_path_buf()
+}
+
+/// The spellings Codex looks a project's trust up by on macOS, in its order: the canonical path first, then the
+/// path as given when it differs. It matches each exactly (loader/mod.rs:1571-1618 at rust-v0.167.0).
+pub fn trust_lookup_keys(path: &Path) -> Vec<String> {
+    let given = path.to_string_lossy().into_owned();
+    let canonical = std::fs::canonicalize(path).map(|p| p.to_string_lossy().into_owned()).unwrap_or_else(|_| given.clone());
+    if canonical == given { vec![canonical] } else { vec![canonical, given] }
+}
+
+/// What a whole, current reading of the person's settings says of a project's trust.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum TrustCase {
+    /// The person's settings mark the root trusted, under `key`.
+    Trusted { key: String },
+    /// The person's settings mark the root untrusted, under `key`.
+    MarkedUntrusted { key: String },
+    /// No mark for the root in the person's settings.
+    Unmarked,
+    /// No whole, current reading: `reason` is the App's own sentence, `detail` any raw text it did not write.
+    NotRead { reason: String, detail: Option<String> },
+}
+
+/// The status's closed sentences for the trust entry.
+pub const TRUST_TRUSTED_PREFIX: &str = "This project is marked trusted in your Codex settings (read at ";
+pub const TRUST_TRUSTED_SUFFIX: &str = "). Its own Codex folder (.codex) applies to conversations here.";
+pub const TRUST_NOT_USED: &str = "This project's own Codex folder (.codex) is not used in the App.";
+pub const TRUST_MARKED_UNTRUSTED: &str = "This project is marked untrusted in your Codex settings.";
+pub const TRUST_NOT_READ: &str = "The App could not read your Codex settings for this project, so it is sent as untrusted.";
+/// The reasons a reading is not whole and current (`TrustCase::NotRead`), in the App's own words.
+pub const TRUST_READ_FAILED: &str = "The App's reading of your Codex settings did not complete.";
+pub const TRUST_READ_LIMITED: &str = "The App's reading of your Codex settings did not include the settings files.";
+pub const TRUST_READ_STALE: &str = "The App's reading of your Codex settings was no longer the latest when the request was built.";
+pub const TRUST_READ_NO_FOLDER: &str = "The conversation's folder is not known to the App.";
+
+/// The project trust the App sends on one start, resume or fork, and why.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct TrustReading {
+    /// The conversation's working folder, absolute, and its project root as Codex computes it.
+    pub cwd: PathBuf,
+    pub root: PathBuf,
+    /// The spelling the entry is sent under: the first Codex looks up.
+    pub key: String,
+    pub case: TrustCase,
+    /// The generation and request reference of the `config/read` the case comes from; None when none was made.
+    pub generation: Option<Value>,
+    pub request_ref: Option<String>,
+    pub read_at: Option<String>,
+}
+
+impl TrustReading {
+    /// A reading that cannot be relied on: the entry is sent as untrusted.
+    pub fn not_read(cwd: PathBuf, reason: &str, detail: Option<String>) -> Self {
+        let root = project_root(&cwd);
+        let key = trust_lookup_keys(&root).remove(0);
+        TrustReading { cwd, root, key, case: TrustCase::NotRead { reason: reason.into(), detail }, generation: None, request_ref: None, read_at: None }
+    }
+    /// What the reading becomes when it is not the newest of the frame's generation: never trusted.
+    pub fn stale(mut self) -> Self {
+        if !matches!(self.case, TrustCase::NotRead { .. }) {
+            self.case = TrustCase::NotRead { reason: TRUST_READ_STALE.into(), detail: None };
+        }
+        self
+    }
+    pub fn trust_level(&self) -> &'static str {
+        if matches!(self.case, TrustCase::Trusted { .. }) { "trusted" } else { "untrusted" }
+    }
+    /// The `config.projects` value: exactly one entry, for the project root under the spelling Codex looks up
+    /// first.
+    pub fn projects(&self) -> Value {
+        json!({ self.key.clone(): {"trust_level": self.trust_level()} })
+    }
+    /// The status (`threads[].level.projectTrust`): what was sent, the case, and its closed sentences. The matched
+    /// key, folders and any raw detail are supplied text, kept in their own fields.
+    pub fn status(&self) -> Value {
+        let (case, lines, matched): (&str, Vec<String>, Option<&String>) = match &self.case {
+            TrustCase::Trusted { key } => ("trusted", vec![format!("{TRUST_TRUSTED_PREFIX}{}{TRUST_TRUSTED_SUFFIX}", self.read_at.as_deref().unwrap_or("an unknown time"))], Some(key)),
+            TrustCase::MarkedUntrusted { key } => ("marked-untrusted", vec![TRUST_MARKED_UNTRUSTED.into(), TRUST_NOT_USED.into()], Some(key)),
+            TrustCase::Unmarked => ("not-used", vec![TRUST_NOT_USED.into()], None),
+            TrustCase::NotRead { .. } => ("not-read", vec![TRUST_NOT_READ.into(), TRUST_NOT_USED.into()], None),
+        };
+        let mut out = json!({"case": case, "sent": self.trust_level(), "lines": lines, "projectRoot": self.root.to_string_lossy(),
+            "sentKey": self.key, "matchedKey": matched, "readAt": self.read_at, "standing": "Folders and keys are supplied text."});
+        if let TrustCase::NotRead { reason, detail } = &self.case {
+            out["reason"] = json!(reason);
+            out["detail"] = match detail { Some(text) => json!({"text": text, "standing": NOT_THE_APPS_TEXT}), None => Value::Null };
+        }
+        out
+    }
+}
+
+/// The person's mark for `root` in a `config/read` result with layers: the user layers' `projects` table, looked
+/// up by Codex's spellings in Codex's order, so a mark under either spelling is honoured. `Err` when the result
+/// carries no layers or no user layer (a limited reading).
+pub fn person_mark(result: &Value, root: &Path) -> Result<TrustCase, String> {
+    let layers = result.get("layers").and_then(Value::as_array).ok_or(TRUST_READ_LIMITED)?;
+    let user: Vec<&Value> = layers.iter().filter(|l| l["name"]["type"] == "user").collect();
+    if user.is_empty() {
+        return Err(TRUST_READ_LIMITED.into());
+    }
+    for key in trust_lookup_keys(root) {
+        for layer in &user {
+            match layer["config"]["projects"][&key]["trust_level"].as_str() {
+                Some("trusted") => return Ok(TrustCase::Trusted { key }),
+                Some("untrusted") => return Ok(TrustCase::MarkedUntrusted { key }),
+                _ => {}
+            }
+        }
+    }
+    Ok(TrustCase::Unmarked)
+}
+
 /// The conversation a level was taken for when a frame was built.
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Target {
@@ -219,8 +435,11 @@ pub enum Target {
 pub struct Bound {
     pub level: &'static Level,
     pub method: Method,
-    /// Exactly `params(level, method)`: the fields the frame carries for the level.
+    /// Exactly `additions(level, method, trust)`: the fields the frame carries for the level, and on start, resume
+    /// and fork its `config.projects` trust entry.
     pub fields: Map<String, Value>,
+    /// The project trust sent on a start, resume or fork (None on a turn).
+    pub trust: Option<TrustReading>,
     /// The Host's level revision when the frame was built; a frame built under an older revision is not written.
     pub revision: u64,
     pub target: Target,
@@ -365,9 +584,6 @@ pub fn writable_roots(level: &Level) -> Vec<PathBuf> {
         .unwrap_or_default()
 }
 
-/// Said, verbatim, by the native statement for the full level.
-pub const FULL_ACCESS_STATEMENT: &str = "At full access, Codex can change any file your Mac account can change, including the App's own records and settings, and its commands can reach the network. Choosing a narrower level later does not undo what was done at full access, and does not stop a command left running from then.";
-
 /// Whether a project's path, as given or as resolved, holds a double quote. Every sandboxed level is refused for
 /// such a project; the person can rename the folder, choose another, or choose full access.
 pub fn project_path_breaks_sandbox(project: &Path) -> bool {
@@ -442,7 +658,17 @@ fn same_folder(a: &Path, b: &Path) -> bool {
 #[cfg(test)]
 pub(crate) fn with_test_level(params: &Value, method: &str) -> Value {
     match Method::of(method) {
-        Some(method) => expected_with_level(params, level("edits"), method).expect("the test level merges"),
+        Some(Method::TurnStart) => expected_with_level(params, level("edits"), Method::TurnStart).expect("the test level merges"),
+        Some(method) => {
+            // The unit tests' Host makes no settings reading, so its trust entry is untrusted, for the project root of
+            // the conversation's folder (as sent, else the test Host's working folder).
+            let cwd = PathBuf::from(params["cwd"].as_str().unwrap_or("/invented"));
+            let cwd = if cwd.is_relative() { PathBuf::from("/invented").join(cwd) } else { cwd };
+            let trust = TrustReading::not_read(cwd, TRUST_READ_FAILED, None);
+            let mut out = params.clone();
+            merge_fields(&mut out, &additions(level("edits").unwrap(), method, Some(&trust.projects()))).expect("the test level merges");
+            out
+        }
         None => params.clone(),
     }
 }

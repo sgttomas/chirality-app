@@ -2269,16 +2269,16 @@ fn answer_native_request(
 }
 
 /// PRD V4-AUT-06: the person sets the permission level, `{scope: "default" | {conversation: threadId} |
-/// "new-conversation", levelId}`. The App's native statement is shown first; declining or closing it changes
-/// nothing. On confirmation the `level_chosen` ledger entry is written, then the level in force changes. A
-/// conversation scope names a conversation of the active home; the default reaches every home.
+/// "new-conversation", levelId}`, from the level control. A plain setting: the `level_chosen` ledger entry is
+/// written, then the level in force changes. A conversation scope names a conversation of the active home; the
+/// default reaches every home.
 #[tauri::command(async)]
-fn set_level(window: tauri::Window, state: State<'_, AppState>, scope: Value, level_id: String) -> Result<Value, String> {
+fn set_level(state: State<'_, AppState>, scope: Value, level_id: String) -> Result<Value, String> {
     let (target, hosts) = {
         let homes = state.homes.lock().unwrap();
         (homes.active().host.clone(), homes.entries().iter().map(|home| home.host.clone()).collect::<Vec<_>>())
     };
-    level_choice::set_level(&target, &hosts, &scope, &level_id, |statement| level_choice::confirm(&window, statement))
+    level_choice::set_level(&target, &hosts, &scope, &level_id)
 }
 
 /// J6: a native confirmation shows a bounded, readable statement, with any

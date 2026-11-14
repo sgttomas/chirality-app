@@ -27,10 +27,6 @@
     }
   },
   "previous": null,
-  "confirmation": {
-    "kind": "native",
-    "statementDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
-  },
   "actor": {
     "kind": "person"
   }

@@ -557,10 +557,10 @@
       }
     },
     "level_chosen": {
-      "description": "0.6: the permission level the person chose (PRD V4-AUT-06): the person's own setting, confirmed by the App's native statement. No decision actor and no act kind: it is not a human-act record.",
+      "description": "0.6: the permission level the person chose in the App's level control (PRD V4-AUT-06): the person's own setting, a plain setting with no confirmation. The App's default level is never written as one. No decision actor and no act kind: it is not a human-act record.",
       "type": "object",
       "additionalProperties": false,
-      "required": ["kind", "session", "entryId", "at", "scope", "level", "previous", "confirmation"],
+      "required": ["kind", "session", "entryId", "at", "scope", "level", "previous"],
       "properties": {
         "kind": {"const": "level_chosen"},
         "session": {"$ref": "#/$defs/nonempty"},
@@ -574,10 +574,7 @@
                           "threadId": {"$ref": "#/$defs/nonempty"}}}
         ]},
         "level": {"$ref": "#/$defs/levelValues"},
-        "previous": {"oneOf": [{"$ref": "#/$defs/nonempty"}, {"type": "null"}]},
-        "confirmation": {"type": "object", "additionalProperties": false, "required": ["kind", "statementDigest"],
-                         "properties": {"kind": {"const": "native"},
-                                        "statementDigest": {"type": "string", "pattern": "^[0-9a-f]{64}$"}}}
+        "previous": {"oneOf": [{"$ref": "#/$defs/nonempty"}, {"type": "null"}]}
       }
     },
     "level_sent": {

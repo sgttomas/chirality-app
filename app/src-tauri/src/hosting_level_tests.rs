@@ -74,7 +74,6 @@ impl Wire {
         assert!(self.child.wait().unwrap().success());
     }
 }
-const DIGEST: &str = "0000000000000000000000000000000000000000000000000000000000000000";
 
 // ---- Item 3: start refusals ----
 
@@ -213,14 +212,14 @@ fn a_choice_is_written_first_and_a_resend_writes_nothing() {
     host.inner.0.lock().unwrap().default_level = None;
     let wire = Wire::attach(&host);
     let edits = cl::level("edits").unwrap();
-    let chosen = host.choose_level(&LevelScope::Default, edits, DIGEST, &[]).unwrap();
+    let chosen = host.choose_level(&LevelScope::Default, edits, &[]).unwrap();
     let rows = entries(&host, "level_chosen");
     assert_eq!(rows.len(), 1);
     assert_eq!(rows[0]["entryId"], chosen["ledgerEntry"]);
     assert_eq!(rows[0]["scope"], json!({"kind":"default-for-new-conversations"}));
     assert_eq!(rows[0]["level"], cl::recorded_values(edits));
     assert_eq!(rows[0]["previous"], Value::Null);
-    assert_eq!(rows[0]["confirmation"], json!({"kind":"native","statementDigest":DIGEST}));
+    assert!(rows[0].get("confirmation").is_none(), "a plain setting: no confirmation");
     assert!(rows[0].get("actor").is_none(), "the person's own setting carries no actor");
     assert_eq!(host.snapshot()["levelDefault"]["ledgerEntry"], chosen["ledgerEntry"]);
     // The same level sent twice to one conversation: one level_sent.
@@ -234,7 +233,7 @@ fn a_choice_is_written_first_and_a_resend_writes_nothing() {
     assert_eq!((sent[0]["threadId"].as_str(), sent[0]["method"].as_str(), sent[0]["writeResult"].as_str(), sent[0]["chosen"].clone()),
                (Some("thread"), Some("turn/start"), Some("written"), chosen["ledgerEntry"].clone()));
     // A second choice names the first as previous, and the next send writes one more level_sent.
-    let second = host.choose_level(&LevelScope::Default, cl::level("supervised").unwrap(), DIGEST, &[]).unwrap();
+    let second = host.choose_level(&LevelScope::Default, cl::level("supervised").unwrap(), &[]).unwrap();
     assert_eq!(entries(&host, "level_chosen")[1]["previous"], chosen["ledgerEntry"]);
     send(&host, "turn/start", turn_params("thread")).unwrap();
     wire.next();
@@ -254,7 +253,7 @@ fn a_choice_the_ledger_does_not_take_changes_nothing() {
     std::fs::rename(&database, base.join("displaced")).unwrap();
     std::fs::create_dir(&database).unwrap();
     let revision = host.inner.0.lock().unwrap().level_revision;
-    let refused = host.choose_level(&LevelScope::Default, cl::level("full").unwrap(), DIGEST, &[]).unwrap_err();
+    let refused = host.choose_level(&LevelScope::Default, cl::level("full").unwrap(), &[]).unwrap_err();
     assert!(refused.contains("nothing was changed"), "{refused}");
     let i = host.inner.0.lock().unwrap();
     assert!(i.default_level.is_none() && i.level.default_chosen.is_none());
@@ -262,7 +261,7 @@ fn a_choice_the_ledger_does_not_take_changes_nothing() {
     drop(i);
     // No ledger at all: refused the same way.
     let unledgered = Host::new();
-    assert!(unledgered.choose_level(&LevelScope::Default, cl::level("full").unwrap(), DIGEST, &[]).unwrap_err().contains("unavailable"));
+    assert!(unledgered.choose_level(&LevelScope::Default, cl::level("full").unwrap(), &[]).unwrap_err().contains("unavailable"));
     assert_eq!(unledgered.default_level().map(|l| l.id.as_str()), Some("edits"), "the test Host's level is unchanged");
     std::fs::remove_dir_all(&base).unwrap();
 }
@@ -273,14 +272,14 @@ fn a_default_choice_reaches_every_home_and_a_conversation_choice_only_its_own() 
     let account = ready_with_ledger(&base, "/invented");
     let key = Arc::new(Host::new_with_app_custody(account.app_runtime_custody().unwrap()).unwrap());
     let hosts = [Arc::clone(&account), Arc::clone(&key)];
-    account.choose_level(&LevelScope::Default, cl::level("supervised").unwrap(), DIGEST, &hosts).unwrap();
+    account.choose_level(&LevelScope::Default, cl::level("supervised").unwrap(), &hosts).unwrap();
     assert_eq!(key.default_level().unwrap().id, "supervised");
-    account.choose_level(&LevelScope::Conversation("thread".into()), cl::level("full").unwrap(), DIGEST, &hosts).unwrap();
+    account.choose_level(&LevelScope::Conversation("thread".into()), cl::level("full").unwrap(), &hosts).unwrap();
     assert_eq!(account.thread_level("thread").unwrap().id, "full");
     assert!(key.thread_level("thread").is_none());
     let row = entries(&account, "level_chosen").pop().unwrap();
     assert_eq!(row["scope"], json!({"kind":"conversation","home":"app-home:invented","threadId":"thread"}));
-    assert!(account.choose_level(&LevelScope::Conversation("unknown".into()), cl::level("full").unwrap(), DIGEST, &hosts).unwrap_err().contains("not one this Codex home has open"));
+    assert!(account.choose_level(&LevelScope::Conversation("unknown".into()), cl::level("full").unwrap(), &hosts).unwrap_err().contains("not one this Codex home has open"));
     std::fs::remove_dir_all(&base).unwrap();
 }
 
@@ -289,7 +288,7 @@ fn a_start_reply_reports_agreement_and_a_differing_reply_refuses_the_next_turn_w
     let base = root("reported");
     let host = ready_with_ledger(&base, "/invented");
     let wire = Wire::attach(&host);
-    let chosen = host.choose_level(&LevelScope::Default, cl::level("edits").unwrap(), DIGEST, &[]).unwrap();
+    let chosen = host.choose_level(&LevelScope::Default, cl::level("edits").unwrap(), &[]).unwrap();
     let edits_sandbox = cl::level("edits").unwrap().sandbox_policy.clone();
     send(&host, "thread/start", json!({"cwd": "/invented"})).unwrap();
     let written = wire.next();
@@ -349,7 +348,7 @@ fn a_new_conversation_choice_is_recorded_as_that_conversations_when_the_reply_na
     let base = root("new-conversation");
     let host = ready_with_ledger(&base, "/invented");
     let wire = Wire::attach(&host);
-    let chosen = host.choose_level(&LevelScope::NewConversation, cl::level("supervised").unwrap(), DIGEST, &[]).unwrap();
+    let chosen = host.choose_level(&LevelScope::NewConversation, cl::level("supervised").unwrap(), &[]).unwrap();
     assert!(entries(&host, "level_chosen").is_empty(), "no ledger scope names a conversation not yet created");
     send(&host, "thread/start", json!({"cwd": "/invented"})).unwrap();
     let written = wire.next();
@@ -370,7 +369,7 @@ fn at_launch_only_the_latest_exact_choice_in_a_scope_is_in_force() {
     let base = root("launch");
     let path = base.join("recovery.ledger.jsonl");
     let row = |id: &str, scope: Value, values: Value| json!({"kind":"level_chosen","session":"app-session:earlier","entryId":id,"at":"2026-11-14T12:00:00Z",
-        "scope":scope,"level":values,"previous":null,"confirmation":{"kind":"native","statementDigest":DIGEST}});
+        "scope":scope,"level":values,"previous":null});
     let default = json!({"kind":"default-for-new-conversations"});
     let mut tampered = cl::recorded_values(cl::level("supervised").unwrap());
     tampered["approvalPolicy"] = json!("never");
@@ -384,6 +383,7 @@ fn at_launch_only_the_latest_exact_choice_in_a_scope_is_in_force() {
         ledger.append(row("level-chosen:d", json!({"kind":"conversation","home":"app-home:mine","threadId":"t3"}), old_table)).unwrap();
     }
     let host = Host::new_without_level();
+    host.set_app_default_for_test(None);
     host.configure_recovery(path.clone()).unwrap();
     let read = host.read_levels_at_launch(Some("app-home:mine"));
     assert_eq!(read["state"], "read");
@@ -401,12 +401,14 @@ fn at_launch_only_the_latest_exact_choice_in_a_scope_is_in_force() {
         ledger.append(row("level-chosen:e", default, tampered)).unwrap();
     }
     let host = Host::new_without_level();
+    host.set_app_default_for_test(None);
     host.configure_recovery(path).unwrap();
     host.read_levels_at_launch(Some("app-home:mine"));
     assert!(host.default_level().is_none());
     assert!(host.snapshot()["levelDefault"].is_null());
     // A ledger that cannot be read: no level, and the reason is shown.
     let unread = Host::new_without_level();
+    unread.set_app_default_for_test(None);
     let view = unread.read_levels_at_launch(None);
     assert_eq!(view["state"], "not-read");
     assert!(unread.default_level().is_none());
@@ -436,7 +438,8 @@ fn production_code_changes_the_level_only_from_set_level_and_the_launch_read() {
     }
     assert!(offending.is_empty(), "{offending:#?}");
     let level_state = without_test_modules(&std::fs::read_to_string(dir.join("hosting_level.rs")).unwrap());
-    assert_eq!(level_state.matches("Self::apply_chosen(").count(), 4, "choose_level (a new conversation, its own Host, the other homes) and the launch read");
+    assert_eq!(level_state.matches("Self::apply_chosen(").count(), 7,
+        "choose_level (a session-only choice here and in the other homes; a new conversation; a recorded choice here and in the other homes) and the launch read (a recorded choice; the App's default)");
 }
 
 /// The source with each `#[cfg(test)]` item (a module, function or block) removed.

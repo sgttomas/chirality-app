@@ -477,12 +477,12 @@ pub struct PreparedStart {
     limits: Result<Value, String>,
     continued_from: Option<Value>,
     /// The level the start's frame carried, bound when it was built (V4-AUT-06).
-    sent_level: Option<&'static crate::codex_level::Level>,
+    sent_level: Option<crate::codex_level::Bound>,
 }
 impl PreparedStart {
     /// The level bound to this start's frame when it was built: the observed frame must carry exactly it.
-    pub(crate) fn with_sent_level(mut self, level: Option<&'static crate::codex_level::Level>) -> Self {
-        self.sent_level = level;
+    pub(crate) fn with_sent_level(mut self, level: Option<&crate::codex_level::Bound>) -> Self {
+        self.sent_level = level.cloned();
         self
     }
     /// CA-3: this start continues another conversation. The relation names the
@@ -540,7 +540,7 @@ impl PreparedStart {
         // The children's keys plus exactly the configuration of the level bound to the frame (V4-AUT-06).
         let children=!expected.as_object().unwrap().is_empty();
         let mut base=json!({});if children {base["config"]=expected;}
-        let expected=crate::codex_level::expected_with_level(&base,self.sent_level,crate::codex_level::Method::ThreadStart)?.get("config").cloned().unwrap_or(json!({}));
+        let expected=crate::codex_level::expected_with_bound(&base,self.sent_level.as_ref())?.get("config").cloned().unwrap_or(json!({}));
         if (children || self.sent_level.is_some()) && config!=expected {return Err("actual native start child keys differ from frozen supply".into())}
         if !children && config.as_object().is_some_and(|c|c.keys().any(|k|k.starts_with("agents."))){return Err("unaccounted native child keys".into())}
         native_validate("ThreadStartParams", &actual_sent["params"])?;
@@ -590,12 +590,12 @@ pub struct MetadataRequest {
     fork_supply_ref: Option<String>,
     classified_cwd: Option<String>,
     /// The level the resume's or fork's frame carried, bound when it was built (V4-AUT-06).
-    sent_level: Option<&'static crate::codex_level::Level>,
+    sent_level: Option<crate::codex_level::Bound>,
 }
 impl MetadataRequest {
     /// The level bound to this request's frame when it was built: the observed frame must carry exactly it.
-    pub(crate) fn with_sent_level(mut self, level: Option<&'static crate::codex_level::Level>) -> Self {
-        self.sent_level = level;
+    pub(crate) fn with_sent_level(mut self, level: Option<&crate::codex_level::Bound>) -> Self {
+        self.sent_level = level.cloned();
         self
     }
     fn new(
@@ -670,9 +670,8 @@ impl MetadataRequest {
         actual_sent: &Value,
         frame: &Value,
     ) -> Result<RoleBinding, String> {
-        let method = if self.is_fork { crate::codex_level::Method::ThreadFork } else { crate::codex_level::Method::ThreadResume };
-        // The metadata-only packet plus exactly the level bound to the frame (V4-AUT-06), compared whole.
-        let expected = crate::codex_level::expected_with_level(&self.params(), self.sent_level, method)?;
+        // The metadata-only packet plus exactly what was bound to the frame (V4-AUT-06), compared whole.
+        let expected = crate::codex_level::expected_with_bound(&self.params(), self.sent_level.as_ref())?;
         if actual_sent["id"] != self.id
             || actual_sent["method"] != self.method()
             || actual_sent["params"] != expected

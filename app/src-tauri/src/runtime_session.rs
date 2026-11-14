@@ -1377,7 +1377,7 @@ impl HistorySession {
             let Some(prepared) = pending.prepared.take() else {
                 continue;
             };
-            match prepared.with_sent_level(pending.receipt.level_sent().map(|b| b.level)).observe(
+            match prepared.with_sent_level(pending.receipt.level_sent()).observe(
                 &status["generation"],
                 &status["sentFrame"],
                 &status["response"],
