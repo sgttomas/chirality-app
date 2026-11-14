@@ -6500,6 +6500,45 @@ mod tests {
         (state, home, desktop, started)
     }
 
+    /// The launch reads the recorded runs whether or not Codex's start configuration admits a
+    /// start, and whether the start is then refused: the reading is made, or the reopened view
+    /// says it was not read and why. Through the function `run` calls.
+    #[test]
+    fn the_launch_reads_the_recorded_runs_when_codexs_start_is_refused() {
+        use crate::native_local_provider::{take_process_lock, PROCESS_LOCK};
+        for refused in ["start configuration", "start"] {
+            let f = Fixture::new();
+            let home = f.root.join("environment-home");
+            std::fs::create_dir_all(&home).unwrap();
+            let bin = surviving_stand_in(&f.root);
+            let held = (refused == "start").then(|| take_process_lock(&home.join(PROCESS_LOCK)).unwrap());
+            let input = environment_input(&f.data, (refused == "start").then_some(home.as_path()), Some(&bin));
+            let (desktop, RootInputs { launch, data, allow_operational }) =
+                crate::admitted_startup(input, Ok(PathBuf::from("/invented/platform-app-data")), Ok(f.resources.clone()), true, || runtime_session::allocate_fresh_probe(&f.root));
+            let (key, shared) = (launch.key_path.clone(), launch.shared_paths.clone());
+            let host_config = launch.host_config.clone();
+            assert_eq!(host_config.is_err(), refused == "start configuration", "{refused}");
+            let desktop = Arc::new(Mutex::new(desktop));
+            let (state, app_home) = crate::freeze_startup_state(launch, desktop.clone(), Value::Null);
+            crate::initialize_startup_consumers(&state, &app_home, data.clone(), allow_operational, true, None, key, shared);
+            let state = Arc::new(state);
+            let reader = Arc::clone(&state);
+            let read = crate::LaunchRead::new(move || { let _ = crate::reopen_recorded_runs(&reader); }, None);
+            let started = crate::launch_start_and_read(&app_home.host, &app_home.recovery_startup, data.as_deref().map_err(String::as_str), host_config.as_ref().map_err(String::as_str), &desktop, &read);
+            read.wait();
+            match refused {
+                "start" => assert!(started.as_ref().is_some_and(Result::is_err), "{refused}: {started:?}"),
+                _ => assert!(started.is_none(), "{refused}: no start is made"),
+            }
+            let root = state.workflows.lock().unwrap().snapshot();
+            assert!(!root["reopened"].is_null() || root["reopenedNotRead"]["state"] == "not read", "{refused}: the reading was made or says why: {root}");
+            // This fixture opens no project, so the reading says which of the App's sentences applies.
+            assert_eq!(root["reopenedNotRead"]["words"], crate::runtime_session::REOPEN_NOT_READ_WORDS[0], "{refused}");
+            let _ = app_home.host.stop("fixture", "test ended");
+            drop(held);
+        }
+    }
+
     /// The child half of the two-process route tests: one App through its
     /// complete launch on the route its fixture names, alive until its stdin
     /// closes. It prints `READY <state>` with what its start reached.
