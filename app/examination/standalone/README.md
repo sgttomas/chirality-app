@@ -116,7 +116,9 @@ python3 -B -m unittest discover -s tests -p 'group_b_pre_run_inputs_test.py' -v
 for that candidate state it, and, kept apart, the scripted driver's runs and the session comparison's rows. Its
 docstring gives what it reads and how. Its claim (App Agent 0, 14 November 2026): a step prints as passed only when a
 result record for that step, on the candidate named, says passed, and no other record for that step on that
-candidate of the same latest date says otherwise; every other state prints as what it is; cited rows are listed
+candidate of the same latest date says otherwise, every record for that step on that candidate can be placed in
+time, and no record that could bear on any step (one naming no step, or one that cannot be read at all) remains;
+every other state prints as what it is; cited rows are listed
 beneath the table and never raise, lower or protect an outcome or a count; the driver's runs and the comparison's rows
 are never counted as steps.
 
@@ -124,13 +126,24 @@ The table accepts one written form for a time, `YYYY-MM-DDTHH:MM:SS` with an opt
 zone, and a calendar date `YYYY-MM-DD`, and refuses the rest, because a time read wrongly can make an older pass beat
 a later failure.
 
-A record that cannot be read is never less damaging to a pass than a readable failure would have been (App Agent 0's
-rule after the third reading). A record on the candidate named whose step can be read, but whose date cannot be
-placed in time, makes that step print and count as inconclusive, whatever its other records say. The reason is printed
-directly under the counts: a record for this step could not be read, so the step's outcome is not known. A record
-whose own candidate and step cannot be read (a file that is not JSON or not a JSON object, or one that names no step)
-is attributed to no step. It is listed as set aside and cannot lower any step. A record is attributed by its step and
-candidate exactly as written, so one written with another step or candidate belongs to that one and is listed there.
+A record that cannot be read is never less damaging to a pass than a readable failure would have been. The doubt it
+carries reaches as far as what it could be (App Agent 0, on the INTERLOCUTOR's finding):
+- **Another candidate, readably named.** It bears on nothing here.
+- **A step named, but not placed.** On the candidate named but with a date that cannot be placed in time, or naming no
+  candidate (it cannot be shown to be another's): that step's outcome is not known. The step prints and counts as
+  inconclusive, whatever its other records say, and the reason is printed directly under the counts.
+- **No step named, or not readable at all** (not JSON, not a JSON object; a truncated failure record, say). It may bear
+  on any step, so while one remains no pass is established. A row whose records say passed prints as inconclusive,
+  saying that a record that could not be read may bear on it, and counts as inconclusive. Failed, blocked, not run and
+  inconclusive rows stay as they are, and every row and its readable evidence still print. The counts line itself says
+  how many such records there are and how many passes they hold.
+
+Nothing else is relied on to confine that doubt: not a file's name, and not any part of content that failed to read.
+Records are attributed by their step and candidate exactly as written, so one written with another step or candidate
+belongs to that one.
+
+**The way out of a table held this way** is to repair or remove the damaged record. Removing a readable failure
+record is something the table cannot see.
 
 Limits:
 - Citations are listed only for the records that decide a shown step.
