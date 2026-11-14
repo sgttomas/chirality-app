@@ -3378,20 +3378,27 @@ impl Host {
     /// `thread/fork` result only. The fork must be a new thread reporting the
     /// source as `forkedFromId`; otherwise nothing is admitted.
     /// A fork's admission checks under the state, in the order they refuse,
-    /// with their errors; then the capability to read the project through,
-    /// where the source holds a receipt for the current records project
-    /// context to inherit. Reads the state only, so it is called twice: before
-    /// the project is read and after.
-    fn fork_admission(&self,i:&Inner,request:&SourceRequest,response:&Value)->Result<Option<Arc<crate::records_access::RecordsCapability>>,String>{
+    /// with their errors; then, where the source's selected receipt names the
+    /// current records project context (inheritable_receipt), that receipt and
+    /// the capability to read the project through. Reads the state only, so it
+    /// is called twice: before the project is read and after.
+    fn fork_admission(&self,i:&Inner,request:&SourceRequest,response:&Value)->Result<Option<(Arc<crate::records_access::RecordsCapability>,records_continuity::Receipt)>,String>{
         let generation=request.generation();let t=&response["result"]["thread"];let source=&request.frame["params"]["threadId"];
         if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation) {return Err("thread/fork result belongs to a closed or replaced generation; native response retained".into());}
         if i.threads.iter().any(|e|e["generation"]==*generation&&e["threadId"]==t["id"]) {return Err("forked thread already operationally admitted in generation".into());}
         Self::check_local_reported(i,&response["result"])?;
         let reading=i.local_fork_configs.get(request.request_ref()).cloned();
         self.check_local_reading_current(i,reading.as_ref())?;
-        let context=i.records_project_context.as_ref().and_then(|context|context.reference());
-        let inherits=i.records_receipts.iter().any(|(g,thread,receipt)|g==generation&&Some(thread.as_str())==source.as_str()&&context==Some(receipt.project.as_str()));
-        Ok(inherits.then(||i.records_capability.clone()).flatten())
+        Ok(Self::inheritable_receipt(i,generation,source).and_then(|receipt|Some((i.records_capability.clone()?,receipt.clone()))))
+    }
+    /// The receipt a fork of `source` inherits, before its project is read:
+    /// the source's first receipt in the generation, where it names the
+    /// current records project context. One expression, used by the look that
+    /// decides the reading (fork_admission) and by the inheritance after it.
+    fn inheritable_receipt<'a>(i:&'a Inner,generation:&Value,source:&Value)->Option<&'a records_continuity::Receipt>{
+        i.records_receipts.iter().find(|(g,thread,_)|g==generation&&Some(thread.as_str())==source.as_str())
+            .filter(|(_,_,receipt)|i.records_project_context.as_ref().and_then(|context|context.reference())==Some(receipt.project.as_str()))
+            .map(|(_,_,receipt)|receipt)
     }
     pub fn thread_fork_finish(&self, request: &SourceRequest) -> Result<Value,String> {
         self.check_source(request)?;let evidence=request.evidence();
@@ -3406,13 +3413,17 @@ impl Host {
         // decide whether the project is read, with no state held, then again
         // under the state after the reading: the same code, so a refusal the
         // checks give never follows a reading.
-        let capability={let i=self.inner.0.lock().unwrap();self.fork_admission(&i,request,&response)?};
-        let records_reading=capability.clone().map(|capability|self.records_reading(capability));
+        let look={let i=self.inner.0.lock().unwrap();self.fork_admission(&i,request,&response)?};
+        let records_reading=look.as_ref().map(|(capability,_)|self.records_reading(Arc::clone(capability)));
         let mut i=self.inner.0.lock().unwrap();
-        // The reading is bound to what the first call captured: where the
-        // second would read through another capability, or read where the
-        // first did not (or not where it did), nothing is admitted.
-        if !records_continuity::same_capability(&self.fork_admission(&i,request,&response)?,&capability) {return Err("thread/fork records project reading no longer matches the admission it was taken for; native response retained".into());}
+        // The reading is bound to what the first call captured: the same
+        // selected receipt, still the source's first and still of the current
+        // context, read through the same capability. Where the second call
+        // selects otherwise (or reads where the first did not, or not where it
+        // did), nothing is admitted.
+        let again=self.fork_admission(&i,request,&response)?;
+        let same=match (&again,&look) {(Some((a,ra)),Some((b,rb)))=>Arc::ptr_eq(a,b)&&ra==rb,(None,None)=>true,_=>false};
+        if !same {return Err("thread/fork records project reading no longer matches the admission it was taken for; native response retained".into());}
         let standing=i.supplier_standing.clone();let result=&response["result"];
         let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":t.get("id"),"name":t.get("name").and_then(Value::as_str),"preview":t.get("preview").and_then(Value::as_str),"status":t.get("status"),"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"supplierStanding":standing,"forkedFrom":{"threadId":source,"forkRequestRef":request.request_ref,"reportedForkedFromId":t.get("forkedFromId")},"requestedDestination":{"source":"inherited from the forked conversation; none chosen at fork"},"reportedDestination":{"scope":"thread","model":result.get("model"),"modelProvider":result.get("modelProvider")},"networkDisclosure":network_disclosure()}),&response);
         // Stock Codex retains the dynamic tool in a fork. Admit its calls only
@@ -3424,10 +3435,9 @@ impl Host {
                 i.records_offer_projects.push((generation.clone(),t["id"].clone(),project));
             }
         }
-        let inherited = i.records_receipts.iter().find(|(g,thread,_)|g == generation && Some(thread.as_str()) == source.as_str())
-            .filter(|(_,_,receipt)|i.records_project_context.as_ref().and_then(|context|context.reference()) == Some(receipt.project.as_str())
-                &&records_reading.as_ref().and_then(|reading|reading.current(&i).ok()) == Some(&receipt.directory))
-            .and_then(|(_,_,receipt)|records_continuity::Source::new(generation,&request.request_ref,request.request_id(),"thread/fork",t["id"].as_str().unwrap_or_default()).ok().map(|source|receipt.fork(t["id"].as_str().unwrap_or_default(),source)));
+        let inherited = Self::inheritable_receipt(&i,generation,source)
+            .filter(|receipt|records_reading.as_ref().and_then(|reading|reading.current(&i).ok()) == Some(&receipt.directory))
+            .and_then(|receipt|records_continuity::Source::new(generation,&request.request_ref,request.request_id(),"thread/fork",t["id"].as_str().unwrap_or_default()).ok().map(|source|receipt.fork(t["id"].as_str().unwrap_or_default(),source)));
         let context = i.records_project_context.clone();
         let home = inherited.as_ref().map(|receipt|receipt.home_class.clone());
         if let Some(receipt) = inherited { i.records_receipts.push((generation.clone(),receipt.thread.clone(),receipt)); }

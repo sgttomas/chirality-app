@@ -1027,3 +1027,64 @@ fn receipt_persistence_and_binding_refusals_before_their_reading_take_none() {
     assert_eq!(reads(&host), before, "no capability configured: the binding takes no reading");
     stop(&host);
 }
+
+/// Round 4's case, inverted: the source's first receipt names another records
+/// project context and a later one the current context. The old inheritance
+/// took the first receipt and read nothing; the look that decides the reading
+/// is now that same expression (inheritable_receipt), so the fork takes no
+/// inheritance reading. The fork's own offer persistence still reads, as
+/// before.
+#[test]
+fn a_fork_whose_first_source_receipt_is_of_another_context_takes_no_inheritance_reading() {
+    let f = Fixture::new();
+    let host = f.host(true, None, "account");
+    f.start(&host, "fixture-model").unwrap();
+    let generation = host.snapshot()["generation"].clone();
+    host.configure_records_capability_with_context(
+        host.records_capability().unwrap(),
+        ExplicitAppProjectContext::known("different explicit project", AppProjectSource::OpenedDirectory).unwrap(),
+    );
+    host.thread_start_selected(f.0.join("project").to_str().unwrap(), "fixture-model", "fixture-provider").unwrap();
+    {
+        let inner = host.inner.0.lock().unwrap();
+        let context = inner.records_project_context.as_ref().and_then(|c| c.reference());
+        let receipts = inner.records_receipts.iter().filter(|(g, thread, _)| g == &generation && thread == "thread").collect::<Vec<_>>();
+        assert_eq!(receipts.len(), 2, "both receipts for the source are held");
+        assert_ne!(context, Some(receipts[0].2.project.as_str()), "the first is of another context");
+        assert_eq!(context, Some(receipts[1].2.project.as_str()), "a later one is of the current context");
+    }
+    let request = host.thread_fork_dispatch(&generation, "thread").unwrap();
+    host.source_request_wait(&request, Duration::from_secs(2)).unwrap();
+    let taken = Arc::new(std::sync::Mutex::new(None::<String>));
+    let at = Arc::clone(&taken);
+    *host.within_records_identity_read.lock().unwrap() = Some(Box::new(move || {
+        *at.lock().unwrap() = Some(std::backtrace::Backtrace::force_capture().to_string());
+    }));
+    let before = reads(&host);
+    host.thread_fork_finish(&request).unwrap();
+    assert_eq!(reads(&host) - before, 1, "only the fork's offer persistence reads");
+    let trace = taken.lock().unwrap().clone().expect("the offer persistence reads");
+    assert!(trace.contains("persist_records_receipt"), "the one reading is the offer persistence, not inheritance: {trace}");
+    assert!(!host.inner.0.lock().unwrap().records_receipts.iter().any(|(_, thread, _)| thread == "forked"), "nothing is inherited");
+    stop(&host);
+}
+
+/// The fork's reading is bound to the receipt and context its look selected:
+/// the records project context changed while the project was read, the
+/// selection after the reading differs, and nothing is admitted.
+#[test]
+fn a_fork_whose_selected_receipt_or_context_changes_during_its_reading_is_refused() {
+    let f = Fixture::new();
+    let host = f.host(true, None, "account");
+    f.start(&host, "fixture-model").unwrap();
+    let generation = host.snapshot()["generation"].clone();
+    let request = host.thread_fork_dispatch(&generation, "thread").unwrap();
+    host.source_request_wait(&request, Duration::from_secs(2)).unwrap();
+    let during = Arc::clone(&host);
+    *host.within_records_identity_read.lock().unwrap() = Some(Box::new(move || {
+        during.configure_records_capability_with_context(during.records_capability().unwrap(), ExplicitAppProjectContext::known("different explicit project", AppProjectSource::OpenedDirectory).unwrap());
+    }));
+    assert_eq!(host.thread_fork_finish(&request).unwrap_err(), "thread/fork records project reading no longer matches the admission it was taken for; native response retained");
+    assert!(!host.inner.0.lock().unwrap().threads.iter().any(|row| row["generation"] == generation && row["threadId"] == "forked"), "nothing is admitted");
+    stop(&host);
+}
