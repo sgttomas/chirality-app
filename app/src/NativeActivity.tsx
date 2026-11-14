@@ -391,8 +391,16 @@ export function runInForce(runs: Json[], turnIds: string[], turnId: string): Jso
 // ‹revision›". Messages, reasoning and compaction are conversation, not plan or
 // tool rows, and carry none.
 const UNLABELLED = new Set(["userMessage", "agentMessage", "reasoning", "contextCompaction"]);
-function RunLabel({ run }: { run: Json | null }) {
-  return run ? <div><small>During the run of <b>{runName(run)}</b>, as the App's run markers place this turn.</small></div> : null;
+/** A workflow name the App's own rule admits (`workflow_workspace::valid_name`): lowercase letters,
+ * digits and single hyphens, at most 64 characters. A name outside it may come from a file an agent
+ * wrote, so it is drawn as text the App did not write, never inside the App's sentence. */
+const SAFE_WORKFLOW_NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+export function RunLabel({ run }: { run: Json | null }) {
+  if (!run) return null;
+  const name = text(run?.workflow?.name), revision = text(run?.workflow?.revision);
+  if ((!name || (name.length <= 64 && SAFE_WORKFLOW_NAME.test(name))) && /^[0-9a-f]*$/i.test(revision))
+    return <div><small>During the run of <b>{runName(run)}</b>, as the App's run markers place this turn.</small></div>;
+  return <div><small>During the run of a workflow, as the App's run markers place this turn. Its name as recorded: </small><AgentText value={runName(run)} source="codex" label="Workflow name:" name="Workflow name as recorded, not the App's words"/></div>;
 }
 export function RunStartMarker({ run }: { run: Json }) {
   return <div role="note" style={marker}>Workflow run started: <b>{runName(run)}</b> (run {text(run?.reference)}), as the App recorded it. The workflow text it supplied is folded in the user message of this turn.</div>;

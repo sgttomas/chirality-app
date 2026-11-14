@@ -309,7 +309,9 @@ export function cardState(request: Json): string {
       if (origin?.class === "app-rule") return `Declined by App rule ${text(origin.ruleName)}, not by you`;
       return confirmed ? "You declined; written; Codex reported the request resolved" : request?.closedGeneration ? "You declined; the reply was written locally; whether Codex received or acted on it is unknown" : "You declined; written to Codex; Codex has not confirmed it";
     case "settle-write-failed": return "Your answer could not be written; whether Codex received it is unknown";
-    case "resolved-by-supplier": return `Resolved by Codex before you answered (cause: ${text(request?.supplierResolution?.cause) || "not reported"})`;
+    // Codex's cause is shown inside the App's sentence only in a plain token's form; anything else is
+    // said as reported in a form the App does not show inside its own sentence.
+    case "resolved-by-supplier": { const cause = text(request?.supplierResolution?.cause); return `Resolved by Codex before you answered (cause: ${!cause ? "not reported" : /^[A-Za-z0-9][A-Za-z0-9_.\/-]{0,63}$/.test(cause) ? cause : "reported in a form the App does not show here"})`; }
     case "ended-unanswered": return request?.endContext === "app-quit" ? "Ended unanswered: the Codex process ended when you quit" : "Ended unanswered: the Codex process ended";
     default: return `Register state ${text(request?.state) || "not reported"}`;
   }

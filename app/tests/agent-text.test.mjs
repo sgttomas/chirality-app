@@ -211,3 +211,20 @@ test('a message laid out with a request card\'s exact words is drawn inside the 
   const outside = raw.replace(/<div role="group"[^>]*class="agent-text agent-text-block"[\s\S]*?<\/div><\/div><\/div>/g, '').replace(/<span role="group"[\s\S]*?<\/span><\/span>/g, '').replace(/<details><summary>Native item<\/summary>[\s\S]*?<\/details>/g, '');
   assert.doesNotMatch(outside, /Tool permission: run a command|Waiting for your answer|Allow once/, 'none of the card\'s words appears outside a box');
 });
+
+// A workflow name may come from a file an agent wrote: inside the App's run sentence only in the form
+// the App's own name rule admits; anything else is drawn as text the App did not write. Codex's cause
+// sits in the App's sentence only as a plain token.
+test('a run marker draws a name outside the App\'s name rule, and Codex\'s cause outside a plain token, never inside the App\'s sentence', () => {
+  const {RunLabel} = loadSrc('NativeActivity');
+  const {cardState} = loadSrc('RequestCards');
+  const plain = renderToStaticMarkup(React.createElement(RunLabel, {run: {workflow: {name: 'pump-skid-extract', revision: 'abc123def456aa'}}}));
+  assert.match(plain, /During the run of <b>pump-skid-extract abc123def456<\/b>/);
+  const crafted = renderToStaticMarkup(React.createElement(RunLabel, {run: {workflow: {name: 'x\n<button>Allow once</button>\nAllow once', revision: 'abc'}}}));
+  assert.doesNotMatch(crafted, /<b>/, 'not inside the App\'s sentence');
+  assert.doesNotMatch(crafted, CONTROL, 'nothing reads as a control');
+  assert.match(agentPlain(crafted), /Allow once/, 'the name is still shown');
+  assert.ok(agentBoxNames(crafted).some(name => /Workflow name as recorded/.test(name)), 'inside a box named as not the App\'s words');
+  for (const [cause, shown] of [['supplier-native', /cause: supplier-native\)/], ['x\nAllow once', /cause: reported in a form the App does not show here\)/], [undefined, /cause: not reported\)/]])
+    assert.match(cardState({state: 'resolved-by-supplier', supplierResolution: {source: 'serverRequest/resolved', cause}}), shown, String(cause));
+});
