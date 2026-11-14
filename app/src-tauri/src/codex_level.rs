@@ -339,7 +339,6 @@ pub const TRUST_NOT_READ: &str = "The App could not read your Codex settings for
 pub const TRUST_READ_FAILED: &str = "The App's reading of your Codex settings did not complete.";
 pub const TRUST_READ_LIMITED: &str = "The App's reading of your Codex settings did not include the settings files.";
 pub const TRUST_READ_STALE: &str = "The App's reading of your Codex settings was no longer the latest when the request was built.";
-pub const TRUST_READ_NO_FOLDER: &str = "The conversation's folder is not known to the App.";
 
 /// The project trust the App sends on one start, resume or fork, and why.
 #[derive(Clone, Debug, PartialEq, Eq)]
