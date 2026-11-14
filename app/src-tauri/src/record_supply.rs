@@ -663,7 +663,7 @@ fn record_view(entry: &Value, run: &[Value]) -> Value {
 /// record names, by the library's own reader, and used only when the bytes
 /// recompute to the package digest the run-start and selection records both
 /// hold under the recorded method. Nothing is inferred when it is not.
-fn declared_by_records(project: &ProjectRecords, start: &ResolvedRecord) -> Result<Value, String> {
+fn declared_by_records(project: &ProjectRecords, start: &ResolvedRecord, packages: &mut std::collections::BTreeMap<(std::path::PathBuf, String), Result<Value, String>>) -> Result<Value, String> {
     use crate::workflow_workspace::{Snapshot, WorkflowIdentity, SNAPSHOT_METHOD};
     let body = start.body();
     let identity: WorkflowIdentity = serde_json::from_value(body["workflow"].clone())
@@ -691,14 +691,20 @@ fn declared_by_records(project: &ProjectRecords, start: &ResolvedRecord) -> Resu
         return Err("the run start and its selection record do not agree on the workflow or its holding library".into());
     }
     let package = holding.join(&identity.name);
-    crate::storage::check_path(&package)?;
-    let snapshot = Snapshot::capture(&package)
-        .map_err(|e| format!("the holding library no longer yields that revision: {e}"))?;
-    if snapshot.revision() != identity.revision {
-        return Err("the holding library's bytes differ from the recorded package digest".into());
-    }
-    let declaration = snapshot.declaration().map_err(|e| format!("that revision's declaration is not readable: {e}"))?;
-    serde_json::to_value(declaration).map_err(|e| format!("that revision's declaration is not readable: {e}"))
+    // One reading of a package serves every run started from it in this read.
+    packages
+        .entry((package.clone(), identity.revision.clone()))
+        .or_insert_with(|| {
+            crate::storage::check_path(&package)?;
+            let snapshot = Snapshot::capture(&package)
+                .map_err(|e| format!("the holding library no longer yields that revision: {e}"))?;
+            if snapshot.revision() != identity.revision {
+                return Err("the holding library's bytes differ from the recorded package digest".into());
+            }
+            let declaration = snapshot.declaration().map_err(|e| format!("that revision's declaration is not readable: {e}"))?;
+            serde_json::to_value(declaration).map_err(|e| format!("that revision's declaration is not readable: {e}"))
+        })
+        .clone()
 }
 /// Reopen: read the explicit project's RS logs and WR records (and the REC
 /// restart facts the caller supplies) into each run's recorded lifecycle.
@@ -725,6 +731,7 @@ pub fn read_project_runs(project: &ProjectRecords, restart_events: &[Value]) -> 
     }
     let mut starts: std::collections::BTreeMap<String, Value> = Default::default();
     let mut declared: std::collections::BTreeMap<String, Result<Value, String>> = Default::default();
+    let mut packages = Default::default();
     match project.list_references() {
         Ok(references) => {
             for reference in references {
@@ -740,7 +747,7 @@ pub fn read_project_runs(project: &ProjectRecords, restart_events: &[Value]) -> 
                         let read = if starts.contains_key(&run) {
                             Err("the records hold more than one start for this run".into())
                         } else {
-                            declared_by_records(project, &record)
+                            declared_by_records(project, &record, &mut packages)
                         };
                         declared.insert(run.clone(), read);
                         starts.insert(run, record.body().clone());

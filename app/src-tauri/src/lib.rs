@@ -2699,6 +2699,11 @@ fn workflow_check_notice(state:State<'_,AppState>,run_ref:String)->Result<Value,
 /// Reopen: the explicit project's WR/RS records plus the REC restart facts this process holds.
 #[tauri::command(async)]
 fn workflow_reopen(state:State<'_,AppState>)->Result<Value,String>{
+    reopen_recorded_runs(&state)
+}
+/// Reading only: the project's recorded runs, with this session's restart facts, read into the
+/// reopened view under its generation. The person's Reopen and the launch's one read are this.
+fn reopen_recorded_runs(state:&AppState)->Result<Value,String>{
     let root=state.workspace.as_ref().ok_or("No explicit App project (CHIRALITY_WORKSPACE); nothing to reopen and no fallback")?;
     let home=state.homes.lock().unwrap().active();
     let recovery=home.recovery_startup.lock().unwrap().snapshot();
@@ -3371,7 +3376,7 @@ pub fn run() {
             // EXEC §2.7 / RECOVERY §4.1, OI-008: the host writes RS "App-restart interruption" limits
             // from this session's REC restart facts, at startup, never on a web-view
             // request. Its outcome is shown by workflow_reopen.
-            {
+            let restart_limits = {
                 let handle = app.handle().clone();
                 std::thread::Builder::new().name("chirality-restart-limits".into()).spawn(move || {
                     let state = handle.state::<AppState>();
@@ -3382,14 +3387,22 @@ pub fn run() {
                     let mut workflows = state.workflows.lock().unwrap();
                     let outcome = run_restart::startup(&homes, state.workspace.as_deref());
                     workflows.set_restart_limits(outcome);
-                }).map_err(|e| format!("restart-limit thread not started: {e}"))?;
-            }
+                }).map_err(|e| format!("restart-limit thread not started: {e}"))?
+            };
             // App start-up starts the supplier (HOSTING §4.6 start, actor `app-startup`).
             if let Ok(cfg) = host_config {
                 let h = Arc::clone(&host);
                 let recovery = Arc::clone(&home.recovery_startup);
+                let handle = app.handle().clone();
                 std::thread::spawn(move || {
                     let _ = automatic_start(&h, &recovery, data.as_deref().map_err(String::as_str), &cfg, &desktop);
+                    // The launch's one reading of the recorded runs, once this session's restart
+                    // facts and limits exist, so that what waits on the person is read without a
+                    // press. Reading only; the person's Reopen reads again.
+                    let _ = restart_limits.join();
+                    if let Err(reason) = reopen_recorded_runs(&handle.state::<AppState>()) {
+                        eprintln!("chirality: the recorded runs were not read at launch: {reason}");
+                    }
                 });
             }
             Ok(())
