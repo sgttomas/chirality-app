@@ -1605,7 +1605,7 @@ fn request_quit(app: tauri::AppHandle) {
         // Codex or quit); a second Quit while the question is open (or this
         // quit is under way) is ignored, since that question is in front of
         // the person. Any other refusal is told in a dialog.
-        let _held = match app_quit::admit_quit(&state.app_quit, &state.codex_stop_gate) {
+        let held = match app_quit::admit_quit(&state.app_quit, &state.codex_stop_gate) {
             Ok(held) => held,
             Err(reason) if reason.starts_with("The quit question") => return,
             Err(reason) => {
@@ -1630,12 +1630,16 @@ fn request_quit(app: tauri::AppHandle) {
         };
         // The list of homes is read within a bound: a command can hold it while
         // it reads a home's full state, which waits on file I/O.
+        // A refusal ends this quit: what it held is let go before the notice,
+        // which waits for the person, so Stop/Restart Codex and key operations
+        // are not held up by an unanswered notice.
         let Some(homes) = util::lock_by(&state.homes, std::time::Instant::now() + app_quit::QUIT_ASSESSMENT_WAIT_LIMIT).map(|router| router.entries()) else {
+            drop(held);
             show_main_window(&app);
             native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality", app_quit::homes_not_read());
             return;
         };
-        let _key_setup = match app_quit::admit_key_setup(&state.key_setup, &state.key_hold, &homes, offer, app_quit::KEY_RELEASE_WAIT_LIMIT) {
+        let key_setup = match app_quit::admit_key_setup(&state.key_setup, &state.key_hold, &homes, offer, app_quit::KEY_RELEASE_WAIT_LIMIT) {
             app_quit::KeyAdmission::Admitted(held) => held,
             app_quit::KeyAdmission::KeptRunning => return,
             app_quit::KeyAdmission::NotAsked(reason) => {
@@ -1643,6 +1647,7 @@ fn request_quit(app: tauri::AppHandle) {
                 return;
             }
             app_quit::KeyAdmission::Refused(reason) => {
+                drop(held);
                 show_main_window(&app);
                 native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality", reason);
                 return;
@@ -1650,6 +1655,8 @@ fn request_quit(app: tauri::AppHandle) {
         };
         // Read again now that the key setup is held: no home is added meanwhile.
         let Some(homes) = util::lock_by(&state.homes, std::time::Instant::now() + app_quit::QUIT_ASSESSMENT_WAIT_LIMIT).map(|router| router.entries()) else {
+            drop(key_setup);
+            drop(held);
             show_main_window(&app);
             native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality", app_quit::homes_not_read());
             return;
@@ -1686,6 +1693,9 @@ fn request_quit(app: tauri::AppHandle) {
             Ok(false) => {},
             Err(error) => {
                 app_quit::QuitOps::reopen_to_new_turns(&mut ops);
+                drop(ops);
+                drop(key_setup);
+                drop(held);
                 eprintln!("chirality: {error}");
                 show_main_window(&app);
                 native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality — still running", error);
