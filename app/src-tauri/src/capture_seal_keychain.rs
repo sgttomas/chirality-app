@@ -14,6 +14,8 @@ use std::{
 };
 #[path = "capture_seal_keychain_macos.rs"]
 mod macos;
+#[path = "capture_seal_admission.rs"]
+mod admission;
 
 /// Exact signing-stage choice. Never derive an access-group prefix from a team.
 /// The signer must supply entitlement/profile compatibility separately.
@@ -106,6 +108,7 @@ impl KeychainAuthority {
             .ok_or("SEAL-C own bundle unavailable")?
             .join("Resources");
         let installed = crate::installed_custody::observe(&resources)?;
+        installed.validate_keychain_lookup(choice.bundle_identifier, choice.team_identifier, choice.access_group)?;
         let identity = ItemIdentity {
             service: choice.service.into(),
             account: choice.account.into(),
@@ -141,11 +144,60 @@ pub(crate) enum Operation {
 thread_local! {static TEST_PROVIDER:std::cell::RefCell<Option<Box<dyn Fn(&Path,Operation)->Result<Material,EvidenceFailure>>>>=const{std::cell::RefCell::new(None)};}
 #[cfg(test)]
 fn test_selected() -> bool {
-    TEST_PROVIDER.with(|provider| provider.borrow().is_some())
+    TEST_PROVIDER.with(|provider| provider.borrow().is_some()) || TEST_INSTALLATION.with(|s| s.borrow().is_some())
 }
 #[cfg(test)]
 pub(crate) fn set_material_provider_for_test(provider: Option<Box<dyn Fn(&Path, Operation) -> Result<Material, EvidenceFailure>>>) {
     TEST_PROVIDER.with(|slot| *slot.borrow_mut() = provider);
+}
+#[cfg(test)]
+#[derive(Clone)]
+struct TestInstallation {
+    authority: std::rc::Rc<KeychainAuthority>,
+    expected: EnrollmentPolicy,
+    backend: std::rc::Rc<dyn Backend>,
+    inventory: Vec<PathBuf>,
+}
+#[cfg(test)]
+thread_local! { static TEST_INSTALLATION: std::cell::RefCell<Option<TestInstallation>> = const { std::cell::RefCell::new(None) }; }
+pub(crate) fn register_library_for_protection_inventory(root: &Path) { admission::register_library(root); }
+/// Runs the attachment while the participating-App enrolment join is held.
+/// `None` grants only the file source; callers still load/create it normally.
+pub(crate) fn with_sealing_provider<R>(legacy: &Path, project: &Path, attach: impl FnOnce(Option<Material>) -> Result<R, EvidenceFailure>) -> Result<R, EvidenceFailure> {
+    #[cfg(test)]
+    if let Some(context) = TEST_INSTALLATION.with(|s| s.borrow().clone()) {
+        admission::selected_lookup(&context.expected, &context.authority)?;
+        return admission::with_material(legacy, project, &context.authority, &*context.backend, Some(&context.inventory), attach);
+    }
+    #[cfg(test)]
+    if let Some(result) = TEST_PROVIDER.with(|s| s.borrow().as_ref().map(|p| p(legacy, Operation::Seal))) { return attach(Some(result?)); }
+    match publisher_route() {
+        Ok(false) => attach(None),
+        Err(()) => Err(failure(Cause::AuthorityUnavailable, "SEAL-C publisher validation unavailable; file fallback prohibited")),
+        Ok(true) => {
+            let authority = process_authority(false).map_err(|e| failure(Cause::AuthorityUnavailable, e))?;
+            let backend = macos::NativeBackend::new(&authority);
+            admission::with_material(legacy, project, &authority, &backend, None, attach)
+        },
+    }
+}
+pub(crate) fn legacy_verification_provider(legacy: &Path, project: &Path, id: &str) -> Result<Option<Material>, EvidenceFailure> {
+    #[cfg(test)]
+    if let Some(context) = TEST_INSTALLATION.with(|s| s.borrow().clone()) {
+        admission::selected_lookup(&context.expected, &context.authority)?;
+        return admission::legacy_material(legacy, project, &context.authority, &*context.backend, Some(&context.inventory), id);
+    }
+    #[cfg(test)]
+    if let Some(result) = TEST_PROVIDER.with(|s| s.borrow().as_ref().map(|p| p(legacy, Operation::VerifyKey(id.into())))) { return result.map(Some); }
+    match publisher_route() {
+        Ok(false) => Ok(None),
+        Err(()) => Err(failure(Cause::AuthorityUnavailable, "SEAL-C publisher validation unavailable; file fallback prohibited")),
+        Ok(true) => {
+            let authority = process_authority(false).map_err(|e| failure(Cause::AuthorityUnavailable, e))?;
+            let backend = macos::NativeBackend::new(&authority);
+            admission::legacy_material(legacy, project, &authority, &backend, None, id)
+        },
+    }
 }
 pub(crate) fn dispatch(
     legacy_folder: &Path,
@@ -155,6 +207,17 @@ pub(crate) fn dispatch(
         return Some(Err(
             failure(Cause::AuthorityUnavailable, "SEAL-C enrollment requires the original prepared intent"),
         ));
+    }
+    #[cfg(test)]
+    if let Some(context) = TEST_INSTALLATION.with(|s| s.borrow().clone()) {
+        return Some((|| {
+            admission::selected_lookup(&context.expected, &context.authority)?;
+            let result = operate(&legacy_folder.with_file_name("capture-seal-keychain"), legacy_folder,
+                &context.authority.identity, context.authority.allow_first, &*context.backend, operation,
+                &mut || Ok([9;32]));
+            if result.is_ok() { if let Some(root) = legacy_folder.parent() { admission::remember(root); } }
+            result
+        })());
     }
     #[cfg(test)]
     if let Some(result) = TEST_PROVIDER.with(|provider| {
@@ -220,6 +283,8 @@ pub(crate) fn enroll_initial(prepared: PreparedSealEnrollment) -> Result<(), Str
 /// Explicitly labelled file captures may be verified read-only after
 /// enrolment. This validates the signed authority, never grants new sealing.
 pub(crate) fn file_read_authority() -> Result<(), EvidenceFailure> {
+    #[cfg(test)]
+    if let Some(context) = TEST_INSTALLATION.with(|s| s.borrow().clone()) { return admission::selected_lookup(&context.expected, &context.authority); }
     #[cfg(test)]
     if test_selected() { return Ok(()) }
     match publisher_route() {
@@ -338,19 +403,15 @@ fn item(i: &ItemIdentity, index: usize, key: &KeyRef) -> ItemIdentity {
     item
 }
 fn read_key(
-    backend: &impl Backend,
+    backend: &(impl Backend + ?Sized),
     i: &ItemIdentity,
     index: usize,
     k: &KeyRef,
 ) -> Result<[u8; 32], EvidenceFailure> {
     let raw = backend.read(&item(i, index, k)).map_err(|error| {
-        let cause = match error {
-            BackendError::Missing => Cause::KeyNotHeld,
-            BackendError::Unavailable(_) => Cause::KeychainUnavailable,
-            BackendError::Invalid => Cause::KeyMaterialInvalid,
-            BackendError::Duplicate => Cause::ProtectionInconsistent,
-        };
-        failure(cause, format!("SEAL-C keychain item missing, locked, denied or unavailable; no replacement ({})", backend_cause(error)))
+        let error = backend_failure(error);
+        let detail = format!("SEAL-C keychain item missing, locked, denied or unavailable; no replacement ({})", error.detail);
+        error.with_detail(detail)
     })?;
     let key: [u8; 32] = raw
         .try_into()
@@ -471,6 +532,7 @@ pub(crate) struct PreparedSealEnrollment {
     marker: Option<MarkerSnapshot>,
     marker_summary: serde_json::Value,
     policy: EnrollmentPolicy,
+    file_subject: RetainedFileSubject,
 }
 impl PreparedSealEnrollment {
     pub(crate) fn preview(&self) -> serde_json::Value {
@@ -479,7 +541,7 @@ impl PreparedSealEnrollment {
             "access_group":self.policy.identity.access_group,"allow_first_enrollment":self.policy.allow_first,
             "publisher_subject":self.policy.publisher_subject,"continuity_directory_present":self.namespace.is_some(),
             "marker_sha256":self.marker.as_ref().map(|m|&m.sha256),"marker":self.marker_summary,
-            "legacy_directory_observed_absent":true,"limit":"Frozen read-only provider subject; not native confirmation or permission. Keychain presence remains unobserved."})
+            "legacy_directory_observed_absent":matches!(self.file_subject, RetainedFileSubject::Absent),"file_key_subject":if matches!(self.file_subject, RetainedFileSubject::Absent){"absent"}else{"retained for read-only verification; never imported or resealed"},"limit":"Frozen read-only provider subject; not native confirmation or permission. Keychain presence remains unobserved."})
     }
     fn directory(&self) -> PathBuf {
         self.app_data.join("capture-seal-keychain")
@@ -491,7 +553,7 @@ impl PreparedSealEnrollment {
         for held in &self.ancestors {
             held.recheck()?;
         }
-        legacy_absent(&self.legacy())
+        self.file_subject.recheck(&self.legacy())
     }
     fn before_namespace(&self) -> Result<(), String> {
         self.recheck_root_and_legacy()?;
@@ -528,10 +590,46 @@ impl PreparedSealEnrollment {
         Ok(())
     }
 }
-fn legacy_absent(path: &Path) -> Result<(), String> {
-    match fs::symlink_metadata(path) {
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        _ => Err("SEAL-C prepared enrollment requires observed legacy namespace absence".into()),
+enum RetainedFileSubject {
+    Absent,
+    Present { directory: HeldDirectory, file: File, stamp: FileStamp, sha256: String },
+}
+impl RetainedFileSubject {
+    fn observe(path: &Path) -> Result<Self, String> {
+        match fs::symlink_metadata(path) {
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Self::Absent),
+            Err(_) => return Err("SEAL-C retained file-key source unavailable".into()),
+            Ok(m) if !private_metadata(&m, true) => return Err("SEAL-C retained file-key source unsafe".into()),
+            Ok(_) => (),
+        }
+        crate::capture_seal::validate_retained_ring(path)?;
+        let directory = HeldDirectory::open(path)?;
+        let mut file = OpenOptions::new().read(true).custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
+            .open(path.join("keys.json")).map_err(|_| "SEAL-C retained file-key source unavailable")?;
+        let before = file.metadata().map_err(|_| "SEAL-C retained file-key metadata unavailable")?;
+        if !private_metadata(&before, false) { return Err("SEAL-C retained file-key source unsafe".into()); }
+        let stamp = FileStamp::of(&before);
+        let mut bytes = Vec::new();
+        (&mut file).take(1024 * 1024 + 1).read_to_end(&mut bytes).map_err(|_| "SEAL-C retained file-key source unreadable")?;
+        let named = fs::symlink_metadata(path.join("keys.json")).map_err(|_| "SEAL-C retained file-key source disappeared")?;
+        let after = file.metadata().map_err(|_| "SEAL-C retained file-key metadata unavailable")?;
+        if bytes.len() > 1024 * 1024 || stamp != FileStamp::of(&named) || stamp != FileStamp::of(&after) {
+            return Err("SEAL-C retained file-key source changed or oversized".into());
+        }
+        directory.recheck()?;
+        Ok(Self::Present { directory, file, stamp, sha256: digest(&bytes) })
+    }
+    fn recheck(&self, path: &Path) -> Result<(), String> {
+        match (self, Self::observe(path)?) {
+            (Self::Absent, Self::Absent) => Ok(()),
+            (Self::Present { directory, file, stamp, sha256 }, Self::Present { directory: now, stamp: next, sha256: hash, .. }) => {
+                directory.recheck()?;
+                let current = file.metadata().map_err(|_| "SEAL-C retained file-key descriptor unavailable")?;
+                if directory.stamp == now.stamp && stamp == &next && *stamp == FileStamp::of(&current) && sha256 == &hash { Ok(()) }
+                else { Err("SEAL-C retained file-key source changed after preparation".into()) }
+            },
+            _ => Err("SEAL-C prepared legacy namespace presence changed after preparation".into()),
+        }
     }
 }
 fn prepare_subject(
@@ -578,6 +676,7 @@ fn prepare_subject(
         marker: observed.map(|(_, s)| s),
         marker_summary: summary,
         policy: authority.enrollment_policy(),
+        file_subject: RetainedFileSubject::observe(&app_data.join(crate::capture_seal::KEY_FOLDER))?,
     };
     intent.before_namespace()?;
     Ok(intent)
@@ -585,7 +684,7 @@ fn prepare_subject(
 fn consume_prepared(
     prepared: PreparedSealEnrollment,
     authority: &KeychainAuthority,
-    backend: &impl Backend,
+    backend: &(impl Backend + ?Sized),
     entropy: &mut impl FnMut() -> Result<[u8; 32], String>,
 ) -> Result<Material, String> {
     // Refresh is performed by enroll_initial before this comparison and before
@@ -599,7 +698,7 @@ fn consume_prepared(
     // Precheck prevents stale path work even before lock-file creation. The
     // authoritative joins are repeated at the two in-lock effect boundaries.
     prepared.before_namespace()?;
-    operate_bound(
+    let material = operate_bound(
         &prepared.directory(),
         &prepared.legacy(),
         &authority.identity,
@@ -608,7 +707,9 @@ fn consume_prepared(
         Operation::Enroll,
         entropy,
         Some(&prepared),
-    ).map_err(Into::into)
+    ).map_err(String::from)?;
+    admission::remember(&prepared.app_data);
+    Ok(material)
 }
 
 struct Guard {
@@ -792,7 +893,7 @@ fn publish(directory: &Path, m: &Marker) -> Result<(), EvidenceFailure> {
     crate::storage::sync_dir(directory)
         .map_err(|_| failure(Cause::SealWriteUnavailable, "SEAL-C continuity durability uncertain; no key operation"))
 }
-fn material(backend: &impl Backend, i: &ItemIdentity, m: &Marker) -> Result<Material, EvidenceFailure> {
+fn material(backend: &(impl Backend + ?Sized), i: &ItemIdentity, m: &Marker) -> Result<Material, EvidenceFailure> {
     let mut keys = BTreeMap::new();
     for (index, k) in m.keys.iter().enumerate() {
         keys.insert(k.id.clone(), read_key(backend, i, index, k)?);
@@ -806,26 +907,14 @@ fn material(backend: &impl Backend, i: &ItemIdentity, m: &Marker) -> Result<Mate
 fn fresh_namespace(
     legacy_folder: &Path,
     i: &ItemIdentity,
-    backend: &impl Backend,
+    backend: &(impl Backend + ?Sized),
 ) -> Result<(), EvidenceFailure> {
-    match fs::symlink_metadata(legacy_folder) {
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => (),
-        Err(_) => {
-            return Err(failure(Cause::ProtectionInconsistent, "SEAL-C legacy namespace presence unavailable; enrollment refused"))
-        }
-        Ok(_) => {
-            return Err(
-                failure(Cause::ProtectionInconsistent, "SEAL-C existing file-key namespace retained; implicit migration prohibited"),
-            )
-        }
-    }
-    match backend.read(i) {
-        Err(BackendError::Missing) => Ok(()),
-        _ => Err(failure(Cause::ProtectionInconsistent, "SEAL-C namespace not demonstrably new; enrollment refused")),
-    }
+    RetainedFileSubject::observe(legacy_folder).map_err(|e| failure(Cause::KeyStorageUnsafe, e))?;
+    admission::fresh(legacy_folder, i, backend)
+
 }
 fn verification_material(
-    backend: &impl Backend,
+    backend: &(impl Backend + ?Sized),
     i: &ItemIdentity,
     m: &Marker,
     operation: &Operation,
@@ -860,7 +949,7 @@ fn operate(
     legacy_folder: &Path,
     i: &ItemIdentity,
     allow_first: bool,
-    backend: &impl Backend,
+    backend: &(impl Backend + ?Sized),
     operation: Operation,
     entropy: &mut impl FnMut() -> Result<[u8; 32], String>,
 ) -> Result<Material, EvidenceFailure> {
@@ -880,7 +969,7 @@ fn operate_bound(
     legacy_folder: &Path,
     i: &ItemIdentity,
     allow_first: bool,
-    backend: &impl Backend,
+    backend: &(impl Backend + ?Sized),
     operation: Operation,
     entropy: &mut impl FnMut() -> Result<[u8; 32], String>,
     prepared: Option<&PreparedSealEnrollment>,
@@ -896,37 +985,8 @@ fn operate_bound(
     // continuity directory. A transient keychain refusal leaves no empty
     // enrollment directory that could masquerade as a crashed reservation.
     let _enrollment = if matches!(operation, Operation::Enroll) {
-        let parent = directory
-            .parent()
-            .ok_or(failure(Cause::ContinuityUnavailable, "SEAL-C continuity parent absent"))?;
-        crate::storage::check_path(parent).map_err(|e| failure(Cause::KeyStorageUnsafe, e))?;
-        let file = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .create(true)
-            .truncate(false)
-            .mode(0o600)
-            .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
-            .open(parent.join(".seal-c-enrollment.lock"))
-            .map_err(|_| failure(Cause::SealOperationBusy, "SEAL-C enrollment lock unavailable"))?;
-        if !private_metadata(
-            &file
-                .metadata()
-                .map_err(|_| failure(Cause::SealOperationBusy, "SEAL-C enrollment lock unavailable"))?,
-            false,
-        ) {
-            return Err(failure(Cause::KeyStorageUnsafe, "SEAL-C enrollment lock unsafe"));
-        }
-        if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX) } != 0 {
-            return Err(failure(Cause::SealOperationBusy, "SEAL-C enrollment lock unavailable"));
-        }
-        Some(Guard {
-            file,
-            directory: None,
-        })
-    } else {
-        None
-    };
+        Some(admission::EnrollmentJoin::acquire(directory.parent().ok_or_else(|| failure(Cause::SealRootUnavailable, "SEAL-C continuity parent absent"))?)?)
+    } else { None };
     #[cfg(test)]
     BEFORE_ENROLLMENT_JOIN.with(|hook| {
         if let Some(hook) = hook.borrow_mut().take() {
@@ -942,6 +1002,7 @@ fn operate_bound(
             hook();
         }
     });
+    if let Some(join) = &_enrollment { join.recheck()?; }
     let observed_absent = !directory
         .try_exists()
         .map_err(|_| failure(Cause::ContinuityUnavailable, "SEAL-C continuity presence unavailable"))?;
@@ -1100,6 +1161,15 @@ fn policy_sequence(i: &ItemIdentity, item: &ItemIdentity) -> Option<u64> {
         .flatten()
         .filter(|n| (1..=POLICY_MAX).contains(n))
 }
+fn backend_failure(error: BackendError) -> EvidenceFailure {
+    let cause = match error {
+        BackendError::Missing => Cause::KeyNotHeld,
+        BackendError::Duplicate => Cause::ProtectionInconsistent,
+        BackendError::Unavailable(_) => Cause::KeychainUnavailable,
+        BackendError::Invalid => Cause::KeyMaterialInvalid,
+    };
+    failure(cause, backend_cause(error))
+}
 fn backend_cause(error: BackendError) -> String {
     match error {
         BackendError::Unavailable(code) => format!("keychain locked, denied or unavailable (status {code})"),
@@ -1112,13 +1182,13 @@ fn backend_cause(error: BackendError) -> String {
 /// bounded range. Items are add-only, so the highest is the latest choice and
 /// an earlier gap hides nothing. Any read failure other than Missing is an
 /// error: it never reads as "no policy".
-fn policy_probe(backend: &impl Backend, i: &ItemIdentity) -> Result<Option<(u64, Vec<u8>)>, String> {
+fn policy_probe(backend: &(impl Backend + ?Sized), i: &ItemIdentity) -> Result<Option<(u64, Vec<u8>)>, EvidenceFailure> {
     let mut last = None;
     for sequence in 1..=POLICY_MAX {
         match backend.read(&policy_item(i, sequence)) {
             Ok(bytes) => last = Some((sequence, bytes)),
             Err(BackendError::Missing) => (),
-            Err(error) => return Err(format!("workflow approval policy not readable: {}", backend_cause(error))),
+            Err(error) => { let error = backend_failure(error); let detail = format!("workflow approval policy not readable: {}", error.detail); return Err(error.with_detail(detail)); },
         }
     }
     Ok(last)
@@ -1127,53 +1197,63 @@ fn policy_probe(backend: &impl Backend, i: &ItemIdentity) -> Result<Option<(u64,
 /// keychain's latest item cannot silently roll back to an earlier choice:
 /// a recorded head beyond the present items needs recovery. A missing head
 /// file is not evidence of anything (the items still govern).
-fn recorded_head(head: Option<&Path>) -> Result<u64, String> {
+fn recorded_head(head: Option<&Path>) -> Result<u64, EvidenceFailure> {
     let Some(path) = head else { return Ok(0) };
     match fs::read(path) {
         Ok(bytes) => serde_json::from_slice::<serde_json::Value>(&bytes)
             .ok()
             .and_then(|v| v["sequence"].as_u64())
             .filter(|n| *n <= POLICY_MAX)
-            .ok_or_else(|| "workflow approval policy head record is corrupt; recovery required".into()),
+            .ok_or_else(|| failure(Cause::ProtectionInconsistent, "workflow approval policy head record is corrupt; recovery required")),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(0),
-        Err(e) => Err(format!("workflow approval policy head not readable: {e}")),
+        Err(e) => Err(failure(Cause::ProtectionInconsistent, format!("workflow approval policy head not readable: {e}"))),
     }
 }
-pub(crate) fn read_policy(backend: &impl Backend, i: &ItemIdentity, head: Option<&Path>) -> Result<PolicyRead, String> {
-    // Protection is set up only with the namespace sentinel (the first seal
-    // key). Policy items without it are not protection; enrollment is offered.
+struct ProtectionObservation {
+    enrolled: bool,
+    head_sequence: u64,
+    policy: Option<(u64, Vec<u8>)>,
+}
+fn protection_observation(backend: &(impl Backend + ?Sized), i: &ItemIdentity, head: Option<&Path>) -> Result<ProtectionObservation, EvidenceFailure> {
     let enrolled = match backend.read(i) {
-        Ok(_) => true,
+        Ok(bytes) => {
+            if bytes.len() != 32 { return Err(failure(Cause::KeyMaterialInvalid, "SEAL-C keychain item malformed")); }
+            true
+        },
         Err(BackendError::Missing) => false,
-        Err(error) => return Err(format!("keychain protection state not readable: {}", backend_cause(error))),
+        Err(error) => { let error = backend_failure(error); let detail = format!("keychain protection state not readable: {}", error.detail); return Err(error.with_detail(detail)); },
     };
     let head_sequence = recorded_head(head)?;
-    let found = policy_probe(backend, i)?;
+    let policy = policy_probe(backend, i)?;
+    if enrolled || policy.is_some() { if let Some(root) = head.and_then(Path::parent) { admission::remember(root); } }
+    Ok(ProtectionObservation { enrolled, head_sequence, policy })
+}
+fn policy_from_observation(observed: ProtectionObservation) -> Result<PolicyRead, EvidenceFailure> {
+    let ProtectionObservation { enrolled, head_sequence, policy: found } = observed;
     if !enrolled {
-        // Policy items or a recorded head show protection was set up: losing
-        // the seal key is recovery, never a fall back to the settings file.
         if found.is_some() || head_sequence > 0 {
-            return Err("keychain protection was set up but its seal key is missing; recovery required".into());
+            return Err(failure(Cause::ProtectionInconsistent, "keychain protection was set up but its seal key is missing; recovery required"));
         }
         return Ok(PolicyRead::Absent { enrolled: false });
     }
     if head_sequence > found.as_ref().map_or(0, |(sequence, _)| *sequence) {
-        return Err("the latest stored workflow approval policy item is missing; recovery required".into());
+        return Err(failure(Cause::ProtectionInconsistent, "the latest stored workflow approval policy item is missing; recovery required"));
     }
-    let Some((sequence, bytes)) = found else {
-        return Ok(PolicyRead::Absent { enrolled: true });
-    };
+    let Some((sequence, bytes)) = found else { return Ok(PolicyRead::Absent { enrolled: true }); };
     let value: serde_json::Value = serde_json::from_slice(&bytes)
-        .map_err(|_| "stored workflow approval policy is corrupt; recovery required")?;
+        .map_err(|_| failure(Cause::ProtectionInconsistent, "stored workflow approval policy is corrupt; recovery required"))?;
     let level = value["level"].as_str().filter(|l| ["robust", "relaxed"].contains(l));
     match level {
         Some(level) if value["format"] == POLICY_FORMAT && value["sequence"] == sequence => Ok(PolicyRead::Stored(level.into())),
-        _ => Err("stored workflow approval policy is corrupt; recovery required".into()),
+        _ => Err(failure(Cause::ProtectionInconsistent, "stored workflow approval policy is corrupt; recovery required")),
     }
+}
+pub(crate) fn read_policy(backend: &(impl Backend + ?Sized), i: &ItemIdentity, head: Option<&Path>) -> Result<PolicyRead, String> {
+    protection_observation(backend, i, head).and_then(policy_from_observation).map_err(Into::into)
 }
 /// Adds the next sequence after every present or recorded one. Never replaces
 /// or deletes an earlier item. Requires enrollment.
-pub(crate) fn write_policy(backend: &impl Backend, i: &ItemIdentity, level: &str, head: Option<&Path>) -> Result<(), String> {
+pub(crate) fn write_policy(backend: &(impl Backend + ?Sized), i: &ItemIdentity, level: &str, head: Option<&Path>) -> Result<(), String> {
     #[cfg(test)]
     crate::records_effect_guard::mutation_for_test("capture_seal_keychain::write_policy");
     if !["robust", "relaxed"].contains(&level) {

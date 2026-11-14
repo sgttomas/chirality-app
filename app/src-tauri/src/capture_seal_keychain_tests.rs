@@ -6,6 +6,7 @@ struct Mock {
     reads: Mutex<Vec<ItemIdentity>>,
     adds: Mutex<usize>,
     read_error: Mutex<Option<BackendError>>,
+    read_errors: Mutex<BTreeMap<String, BackendError>>,
     add_mode: Mutex<u8>,
 }
 fn name(i: &ItemIdentity) -> String {
@@ -17,6 +18,7 @@ impl Backend for Mock {
         if let Some(error) = self.read_error.lock().unwrap().clone() {
             return Err(error);
         }
+        if let Some(error) = self.read_errors.lock().unwrap().get(&name(i)).cloned() { return Err(error) }
         self.items
             .lock()
             .unwrap()
@@ -274,7 +276,7 @@ fn seal_keychain_busy_and_legacy_namespace_refuse_without_key_mutation() {
         .run(&b, Operation::Enroll, 1)
         .err()
         .unwrap()
-        .contains("migration prohibited"));
+        .contains("retained file-key source unsafe"));
     assert!(b.reads.lock().unwrap().is_empty());
     assert_eq!(
         fs::read(f.legacy.join("keys.json")).unwrap(),
@@ -1120,4 +1122,203 @@ fn capture_seal_keychain_read_key_preserves_backend_causes() {
     }
     b.items.lock().unwrap().insert(name(&f.identity), vec![1]);
     assert_eq!(read_key(&b, &f.identity, 0, reference).unwrap_err().cause, Cause::KeyMaterialInvalid);
+}
+
+/// A synthetic selected installation that exercises real authority comparison,
+/// absence selection, provider dispatch and the existing native coordinator.
+/// The backend and installed identity are mocks, not installed qualification.
+pub(crate) struct SelectedInstallation {
+    fixture: std::rc::Rc<Fixture>,
+    authority: std::rc::Rc<KeychainAuthority>,
+    backend: std::rc::Rc<Mock>,
+    previous_store: Result<crate::records_store::Store, String>,
+}
+impl SelectedInstallation {
+    pub(crate) fn new() -> Self {
+        let (f, a) = enrollment_fixture();
+        let fixture = std::rc::Rc::new(f);
+        let authority = std::rc::Rc::new(a);
+        let backend = std::rc::Rc::new(Mock::default());
+        let previous_store = crate::records_store::current();
+        crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store { root: fixture.root.join("invented-records-store"), placement: crate::records_store::Placement::Test, limits: vec![] })));
+        TEST_INSTALLATION.with(|slot| *slot.borrow_mut() = Some(TestInstallation {
+            authority: authority.clone(), expected: authority.enrollment_policy(), backend: backend.clone(),
+            inventory: vec![fixture.root.join("invented-capture-inventory")],
+        }));
+        Self { fixture, authority, backend, previous_store }
+    }
+    pub(crate) fn enroll(&self) -> Result<(), String> {
+        crate::seal_c_enrollment::confirm_provider_for_test(
+            || prepare_subject(&self.fixture.root, &self.authority),
+            |intent| {
+                consume_prepared(intent, &self.authority, &*self.backend, &mut || Ok([9;32]))?;
+                write_policy(&*self.backend, &self.fixture.identity, "robust", Some(&self.fixture.root.join(POLICY_HEAD)))
+            },
+        )
+    }
+    pub(crate) fn lock(&self) { *self.backend.read_error.lock().unwrap() = Some(BackendError::Unavailable(-25308)); }
+    pub(crate) fn unlock(&self) { *self.backend.read_error.lock().unwrap() = None; }
+    pub(crate) fn root(&self) -> &Path { &self.fixture.root }
+    pub(crate) fn include_capture_store(&self, path: PathBuf) {
+        TEST_INSTALLATION.with(|slot| slot.borrow_mut().as_mut().unwrap().inventory.push(path));
+    }
+    fn clear_protected_state(&self) {
+        self.backend.items.lock().unwrap().clear();
+        let _ = fs::remove_dir_all(&self.fixture.dir);
+        let _ = fs::remove_file(self.fixture.root.join(POLICY_HEAD));
+    }
+    fn new_process_observation(&self) { admission::forget(&self.fixture.root); }
+    fn ordinary_capture(&self) -> serde_json::Value { serde_json::json!({"captureId":"cap:invented-provider-pair","choice":"act","actKind":"A4"}) }
+    fn project(&self) -> PathBuf {
+        let p = self.fixture.root.with_file_name(format!("{}-project", self.fixture.root.file_name().unwrap().to_string_lossy()));
+        fs::create_dir_all(&p).unwrap(); p
+    }
+}
+impl Drop for SelectedInstallation {
+    fn drop(&mut self) {
+        crate::records_store::use_store_for_test(Some(self.previous_store.clone()));
+        TEST_INSTALLATION.with(|s| *s.borrow_mut() = None);
+        TEST_PROVIDER.with(|s| *s.borrow_mut() = None);
+        crate::capture_seal::set_folder_for_test(None);
+        crate::capture_seal::BEFORE_ATTACHMENT.with(|s| *s.borrow_mut() = None);
+        admission::forget(&self.fixture.root);
+        let p = self.fixture.root.with_file_name(format!("{}-project", self.fixture.root.file_name().unwrap().to_string_lossy()));
+        let _ = fs::remove_dir_all(p);
+    }
+}
+#[test]
+fn capture_seal_signed_absence_then_real_enrollment_retains_old_file_evidence() {
+    let f = SelectedInstallation::new(); let project = f.project();
+    let mut old = f.ordinary_capture();
+    assert_eq!(crate::capture_seal::seal(&project, &mut old).unwrap().verified_with, crate::capture_seal::SealProvider::FileKey);
+    let bytes = old.clone();
+    assert!(crate::capture_seal::verify(&project, &old).unwrap().sentence().contains("could forge"));
+    f.enroll().unwrap();
+    let mut new = f.ordinary_capture();
+    assert_eq!(crate::capture_seal::seal(&project, &mut new).unwrap().verified_with, crate::capture_seal::SealProvider::Keychain);
+    assert_eq!(crate::capture_seal::verify(&project, &old).unwrap().verified_with, crate::capture_seal::SealProvider::FileKey);
+    assert_eq!(old, bytes);
+    let continuity = fs::read(f.fixture.dir.join(MARKER)).unwrap();
+    fs::remove_dir_all(&f.fixture.dir).unwrap();
+    assert_eq!(crate::capture_seal::seal(&project, &mut f.ordinary_capture()).unwrap_err().cause, Cause::ContinuityUnavailable);
+    fs::create_dir(&f.fixture.dir).unwrap();
+    fs::set_permissions(&f.fixture.dir, std::os::unix::fs::PermissionsExt::from_mode(0o700)).unwrap();
+    fs::write(f.fixture.dir.join(MARKER), &continuity).unwrap();
+    fs::set_permissions(f.fixture.dir.join(MARKER), std::os::unix::fs::PermissionsExt::from_mode(0o600)).unwrap();
+    crate::capture_seal::verify(&project, &new).unwrap();
+    fs::remove_file(f.fixture.dir.join(MARKER)).unwrap();
+    assert_eq!(crate::capture_seal::seal(&project, &mut f.ordinary_capture()).unwrap_err().cause, Cause::ContinuityUnavailable);
+    fs::write(f.fixture.dir.join(MARKER), &continuity).unwrap();
+    fs::set_permissions(f.fixture.dir.join(MARKER), std::os::unix::fs::PermissionsExt::from_mode(0o600)).unwrap();
+    crate::capture_seal::verify(&project, &new).unwrap();
+    fs::remove_dir_all(&f.fixture.legacy).unwrap();
+    assert_eq!(crate::capture_seal::verify(&project, &old).unwrap_err().cause, Cause::KeyNotHeld);
+    assert_eq!(old, bytes);
+}
+#[test]
+fn capture_seal_signed_absence_requires_each_veto_to_be_absent() {
+    for veto in ["directory", "pending", "head-zero", "head-corrupt", "capture", "memory"] {
+        let f = SelectedInstallation::new(); let p = f.project();
+        crate::capture_seal::seal(&p, &mut f.ordinary_capture()).unwrap();
+        match veto {
+            "directory" => { fs::create_dir(&f.fixture.dir).unwrap(); },
+            "pending" => {
+                *f.backend.add_mode.lock().unwrap() = 1;
+                assert!(f.enroll().is_err());
+                assert!(load(&f.fixture.dir, &f.fixture.identity).unwrap().unwrap().pending.is_some());
+            },
+            "head-zero" | "head-corrupt" => {
+                f.enroll().unwrap(); f.clear_protected_state(); f.new_process_observation();
+                fs::write(f.root().join(POLICY_HEAD), if veto == "head-zero" { b"{\"sequence\":0}".as_slice() } else { b"bad head".as_slice() }).unwrap();
+            },
+            "capture" => {
+                f.enroll().unwrap();
+                let mut capture = f.ordinary_capture(); crate::capture_seal::seal(&p, &mut capture).unwrap();
+                f.clear_protected_state(); f.new_process_observation();
+                let store = f.root().join("invented-capture-inventory"); fs::create_dir(&store).unwrap();
+                fs::write(store.join("capture.json"), serde_json::to_vec(&capture).unwrap()).unwrap();
+            },
+            "memory" => { f.enroll().unwrap(); crate::capture_seal::seal(&p, &mut f.ordinary_capture()).unwrap(); f.clear_protected_state(); },
+            _ => unreachable!(),
+        }
+        let mut refused = f.ordinary_capture();
+        assert!(crate::capture_seal::seal(&p, &mut refused).is_err(), "{veto}");
+        assert!(refused.get("seal").is_none()); assert!(refused.get("sealProvider").is_none());
+        f.clear_protected_state();
+        let _ = fs::remove_dir_all(f.root().join("invented-capture-inventory"));
+        f.new_process_observation();
+        assert_eq!(crate::capture_seal::seal(&p, &mut f.ordinary_capture()).unwrap().verified_with, crate::capture_seal::SealProvider::FileKey, "{veto}");
+    }
+}
+#[test]
+fn capture_seal_ordinary_policy_preferences_are_never_protection_vetoes() {
+    let f = SelectedInstallation::new(); let p = f.project();
+    for level in ["relaxed", "robust"] {
+        fs::write(f.root().join("workflow-approval-policy.json"), serde_json::to_vec(&serde_json::json!({"format":"chirality.app.workflow-approval-policy-setting","formatVersion":"1","level":level,"writtenAt":"2026-11-14T00:00:00Z"})).unwrap()).unwrap();
+        assert_eq!(crate::capture_seal::seal(&p, &mut f.ordinary_capture()).unwrap().verified_with, crate::capture_seal::SealProvider::FileKey);
+        f.enroll().unwrap();
+        assert_eq!(crate::capture_seal::seal(&p, &mut f.ordinary_capture()).unwrap().verified_with, crate::capture_seal::SealProvider::Keychain);
+        f.clear_protected_state(); f.new_process_observation();
+    }
+}
+#[test]
+fn capture_seal_locked_denied_late_failed_and_wrong_identity_reads_never_grant_file() {
+    let f = SelectedInstallation::new(); let p = f.project();
+    crate::capture_seal::seal(&p, &mut f.ordinary_capture()).unwrap();
+    for code in [-25308, -25293, -1] {
+        *f.backend.read_error.lock().unwrap() = Some(BackendError::Unavailable(code));
+        assert_eq!(crate::capture_seal::seal(&p, &mut f.ordinary_capture()).unwrap_err().cause, Cause::KeychainUnavailable);
+        f.unlock(); crate::capture_seal::seal(&p, &mut f.ordinary_capture()).unwrap();
+    }
+    f.backend.read_errors.lock().unwrap().insert(name(&policy_item(&f.fixture.identity, 256)), BackendError::Unavailable(-25308));
+    assert_eq!(crate::capture_seal::seal(&p, &mut f.ordinary_capture()).unwrap_err().cause, Cause::KeychainUnavailable);
+    f.backend.read_errors.lock().unwrap().clear();
+    crate::capture_seal::seal(&p, &mut f.ordinary_capture()).unwrap();
+    f.backend.reads.lock().unwrap().clear();
+    TEST_INSTALLATION.with(|slot| slot.borrow_mut().as_mut().unwrap().expected.identity.access_group.push_str(".wrong"));
+    assert_eq!(crate::capture_seal::seal(&p, &mut f.ordinary_capture()).unwrap_err().cause, Cause::AuthorityUnavailable);
+    assert!(f.backend.reads.lock().unwrap().is_empty());
+    TEST_INSTALLATION.with(|slot| slot.borrow_mut().as_mut().unwrap().expected = f.authority.enrollment_policy());
+    crate::capture_seal::seal(&p, &mut f.ordinary_capture()).unwrap();
+    f.backend.items.lock().unwrap().insert(name(&f.fixture.identity), vec![1]);
+    assert_eq!(crate::capture_seal::seal(&p, &mut f.ordinary_capture()).unwrap_err().cause, Cause::KeyMaterialInvalid);
+    f.backend.items.lock().unwrap().clear();
+    crate::capture_seal::seal(&p, &mut f.ordinary_capture()).unwrap();
+    let inventory = f.root().join("invented-capture-inventory"); fs::create_dir(&inventory).unwrap();
+    fs::write(inventory.join("broken.json"), b"not JSON").unwrap();
+    assert_eq!(crate::capture_seal::seal(&p, &mut f.ordinary_capture()).unwrap_err().cause, Cause::ProtectionInconsistent);
+    fs::remove_file(inventory.join("broken.json")).unwrap();
+    crate::capture_seal::seal(&p, &mut f.ordinary_capture()).unwrap();
+}
+#[test]
+fn capture_seal_policy_only_far_item_and_head_deletion_never_authorize_file() {
+    let f = SelectedInstallation::new(); let p = f.project();
+    crate::capture_seal::seal(&p, &mut f.ordinary_capture()).unwrap(); f.enroll().unwrap();
+    let mut original = f.ordinary_capture(); crate::capture_seal::seal(&p, &mut original).unwrap();
+    fs::write(f.root().join(POLICY_HEAD), b"{\"sequence\":255}").unwrap();
+    write_policy(&*f.backend, &f.fixture.identity, "robust", Some(&f.root().join(POLICY_HEAD))).unwrap();
+    let sentinel = f.backend.items.lock().unwrap().remove(&name(&f.fixture.identity)).unwrap();
+    fs::remove_file(f.root().join(POLICY_HEAD)).unwrap();
+    assert_eq!(crate::capture_seal::seal(&p, &mut f.ordinary_capture()).unwrap_err().cause, Cause::ProtectionInconsistent);
+    f.backend.items.lock().unwrap().insert(name(&f.fixture.identity), sentinel);
+    crate::capture_seal::verify(&p, &original).unwrap();
+    assert_eq!(crate::capture_seal::seal(&p, &mut f.ordinary_capture()).unwrap().verified_with, crate::capture_seal::SealProvider::Keychain);
+}
+#[test]
+fn capture_seal_prepared_retained_ring_is_frozen_and_never_imported() {
+    let f = SelectedInstallation::new(); let p = f.project();
+    let mut original=f.ordinary_capture(); crate::capture_seal::seal(&p,&mut original).unwrap();
+    let before=fs::read(f.fixture.legacy.join("keys.json")).unwrap();
+    let prepared=prepare_subject(f.root(),&f.authority).unwrap();
+    assert_eq!(prepared.preview()["legacy_directory_observed_absent"], false);
+    let moved=f.root().join("held-original-keys"); fs::rename(f.fixture.legacy.join("keys.json"),&moved).unwrap();
+    fs::write(f.fixture.legacy.join("keys.json"),&before).unwrap();
+    fs::set_permissions(f.fixture.legacy.join("keys.json"),std::os::unix::fs::PermissionsExt::from_mode(0o600)).unwrap();
+    assert!(consume_prepared(prepared,&f.authority,&*f.backend,&mut || Ok([9;32])).is_err());
+    assert_eq!(*f.backend.adds.lock().unwrap(),0);
+    fs::remove_file(f.fixture.legacy.join("keys.json")).unwrap(); fs::rename(moved,f.fixture.legacy.join("keys.json")).unwrap();
+    f.enroll().unwrap();
+    assert_eq!(fs::read(f.fixture.legacy.join("keys.json")).unwrap(),before);
+    assert_ne!(original["seal"]["value"].as_str().unwrap().split(':').next().unwrap(),key_id(&[9;32]));
+    crate::capture_seal::verify(&p,&original).unwrap();
 }

@@ -14,8 +14,10 @@
 //! the backlink needs no reseal and recovery's comparisons are unchanged.
 //!
 //! The separately gated signing-stage keychain provider preserves this seal
-//! format. It never imports or falls back to file keys for a selected publisher.
-//! Default unsigned/development installations retain the file provider below.
+//! format. Named keychain verification never falls back to file keys. On the
+//! signed route, fresh protected absence with no surviving veto admits new file
+//! seals; this is not proof of historical non-enrolment. Default development
+//! installations retain the file provider below.
 //!
 //! What the file provider does not do (stated, not hidden): anything that can read the key
 //! file can seal. That includes any process running as the same OS user, and a
@@ -250,6 +252,11 @@ fn load(folder: &Path) -> Result<Option<Keyring>, EvidenceFailure> {
     let current = raw["current"].as_str().filter(|c| keys.contains_key(*c)).ok_or_else(bad)?.to_owned();
     Ok(Some(Keyring { current, keys, raw }))
 }
+/// Validation only, for the original native enrolment subject. No creation,
+/// rotation, import or disclosure of key bytes to the keychain provider.
+pub(crate) fn validate_retained_ring(folder: &Path) -> Result<(), EvidenceFailure> {
+    load(folder)?.map(|_| ()).ok_or_else(|| failure(Cause::KeyMaterialInvalid, "SEAL-C retained file-key ring is missing or incomplete"))
+}
 /// Publish the keyring readable by its owner only: a 0600 file in a 0700 folder.
 fn publish(folder: &Path, raw: &Value, replace: bool) -> Result<(), EvidenceFailure> {
     #[cfg(test)]
@@ -310,6 +317,8 @@ pub fn rotate() -> Result<String, String> {
     Ok(key_id(&key))
 }
 
+#[cfg(test)]
+thread_local! { pub(crate) static BEFORE_ATTACHMENT: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const { std::cell::RefCell::new(None) }; }
 /// Build the complete pair on a private copy. Failure never leaves a
 /// provisional provider claim on the capture that the writer will publish.
 fn attach(capture: &mut Value, material: crate::capture_seal_keychain::Material) -> Result<SealVerification, EvidenceFailure> {
@@ -319,17 +328,18 @@ fn attach(capture: &mut Value, material: crate::capture_seal_keychain::Material)
     let key = material.keys.get(&material.current).ok_or_else(|| failure(Cause::KeyNotHeld, "SEAL-C current key unavailable"))?;
     let mac = hmac(key, &message(&facts)?);
     facts["seal"] = json!({"method":SEAL_METHOD,"value":format!("{}:{}",material.current,hex(&mac))});
+    #[cfg(test)]
+    BEFORE_ATTACHMENT.with(|hook| { if let Some(hook) = hook.borrow_mut().take() { hook(); } });
     *capture = facts;
     Ok(SealVerification { recorded_provider: Some(material.provider), verified_with: material.provider, key_id: material.current })
 }
 /// Seal a capture before its first publication, using only admitted material.
 pub fn seal(root: &Path, capture: &mut Value) -> Result<SealVerification, EvidenceFailure> {
     let folder = folder_for(root)?;
-    let material = match crate::capture_seal_keychain::dispatch(&folder, crate::capture_seal_keychain::Operation::Seal) {
-        Some(result) => result?,
-        None => file_material(load_or_create(&folder)?),
-    };
-    attach(capture, material)
+    crate::capture_seal_keychain::with_sealing_provider(&folder, root, |material| {
+        let material = match material { Some(material) => material, None => file_material(load_or_create(&folder)?) };
+        attach(capture, material)
+    })
 }
 /// Kept until the A15 writer moves to generic sealing; admission stays keychain-only.
 pub(crate) fn seal_a15_if_keychain_available(root: &Path, capture: &mut Value) -> Result<SealVerification, EvidenceFailure> {
@@ -384,10 +394,11 @@ fn verify_with(root: &Path, capture: &Value, keychain_only: bool) -> Result<Seal
         Some(SealProvider::FileKey) => file_read(),
         Some(SealProvider::Keychain) => crate::capture_seal_keychain::dispatch(&folder, crate::capture_seal_keychain::Operation::VerifyKey(id.into()))
             .unwrap_or_else(|| Err(failure(Cause::KeychainProviderUnavailableOnThisBuild, "keychain protection is not available on this build; not verified here"))),
-        None => match crate::capture_seal_keychain::dispatch(&folder, crate::capture_seal_keychain::Operation::VerifyKey(id.into())) {
-            Some(result) => result,
-            None if keychain_only => Err(failure(Cause::KeychainProviderUnavailableOnThisBuild, "keychain protection is not available on this build; not verified here")),
-            None => file_read(),
+        None => match crate::capture_seal_keychain::legacy_verification_provider(&folder, root, id) {
+            Ok(Some(material)) => Ok(material),
+            Ok(None) if keychain_only && !crate::capture_seal_keychain::selected_route() => Err(failure(Cause::KeychainProviderUnavailableOnThisBuild, "keychain protection is not available on this build; not verified here")),
+            Ok(None) => file_read(),
+            Err(error) => Err(error),
         },
     }.map_err(|e| { let detail = format!("capture seal not checked: {e}; not verified here"); e.with_detail(detail) })?;
     if let Some(recorded) = recorded_provider {
@@ -509,6 +520,24 @@ mod tests {
         set_folder_for_test(None);
         std::fs::remove_dir_all(project).unwrap();
         std::fs::remove_dir_all(keys).unwrap();
+    }
+    #[test]
+    fn legacy_signed_empty_route_reads_file_without_creating_or_labelling() {
+        let selected = crate::capture_seal_keychain::tests::SelectedInstallation::new();
+        let project = temp("legacy-signed-project-");
+        let folder = selected.root().join(KEY_FOLDER);
+        let ring = load_or_create(&folder).unwrap();
+        let mut legacy = capture();
+        legacy["seal"] = json!({"method":SEAL_METHOD,"value":format!("{}:{}",ring.current,hex(&hmac(&ring.keys[&ring.current], &message(&legacy).unwrap())))});
+        let bytes = legacy.clone();
+        let result = verify(&project,&legacy).unwrap();
+        assert_eq!(result.recorded_provider,None);
+        assert_eq!(result.verified_with,SealProvider::FileKey);
+        assert!(!selected.root().join(".seal-c-enrollment.lock").exists());
+        selected.enroll().unwrap();
+        assert_eq!(verify(&project,&legacy).unwrap_err().cause,Cause::KeyNotHeld);
+        assert_eq!(legacy,bytes);
+        std::fs::remove_dir_all(project).unwrap();
     }
     #[test]
     fn hmac_matches_rfc_4231_case_2() {

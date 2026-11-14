@@ -33,6 +33,26 @@ impl InstalledCustody {
         self.facts.clone()
     }
 
+    /// Bind the selected keychain query to the signed own-App identifier.
+    /// Installed/profile enforcement remains an installed qualification, not a
+    /// claim made from a serialized custody observation or a mock.
+    pub(crate) fn validate_keychain_lookup(&self, bundle: &str, team: &str, group: &str) -> Result<(), String> {
+        if self.facts["static"]["identifier"] != bundle || self.facts["dynamic"]["identifier"] != bundle
+            || self.facts["static"]["team_identifier"] != team || self.facts["dynamic"]["team_identifier"] != team {
+            return Err("SEAL-C installed publisher does not bind the selected lookup namespace".into());
+        }
+        let installed_bundle = self.facts["location"]["bundle"].as_str().ok_or("SEAL-C installed bundle identity unavailable")?;
+        let profile = std::fs::symlink_metadata(Path::new(installed_bundle).join("Contents/embedded.provisionprofile"))
+            .map_err(|_| "SEAL-C installed provisioning profile unavailable")?;
+        if !profile.file_type().is_file() || profile.len() == 0 || profile.len() > 2 * 1024 * 1024 {
+            return Err("SEAL-C installed provisioning profile is not a regular bounded file".into());
+        }
+        #[cfg(all(target_os = "macos", not(test)))]
+        { validate_lookup_entitlements(&native::lookup_entitlements()?, team, group) }
+        #[cfg(any(not(target_os = "macos"), test))]
+        { let _ = group; Err("SEAL-C native lookup entitlement observation unavailable on this build".into()) }
+    }
+
     /// Fresh validation immediately before spawn; never reload a serialized observation.
     pub(crate) fn recheck(&self, resources: &Path) -> Result<Self, String> {
         #[cfg(test)]
@@ -69,6 +89,13 @@ pub(crate) fn observe(resources: &Path) -> Result<InstalledCustody, String> {
         let _ = (resources, requirement);
         Err("installed integrity unavailable on this platform".into())
     }
+}
+
+fn validate_lookup_entitlements(value: &Value, team: &str, group: &str) -> Result<(), String> {
+    if value["application_identifier"] != group || value["team_identifier"] != team || value["explicit_keychain_groups"] != false {
+        return Err("SEAL-C signed App ID, team or default own-App keychain group differs from the selected lookup namespace".into());
+    }
+    Ok(())
 }
 
 fn build_gate(requirement: Option<&str>, debug: bool, macos: bool) -> Result<&str, String> {
@@ -425,6 +452,21 @@ mod native {
         signing(&value)?;
         Ok(value)
     }
+    #[cfg(not(test))]
+    pub(super) fn lookup_entitlements() -> Result<Value, String> {
+        unsafe {
+            let code = copy("resolve own process for keychain lookup", |out| SecCodeCopySelf(0, out))?;
+            let info = copy("copy own keychain entitlements", |out| SecCodeCopySigningInformation(code.0, 1 << 1, out))?;
+            typed(info.0, CFDictionaryGetTypeID())?;
+            let entitlements = typed(CFDictionaryGetValue(info.0, kSecCodeInfoEntitlementsDict), CFDictionaryGetTypeID())?;
+            let app_id = cf_string("com.apple.application-identifier")?;
+            let team = cf_string("com.apple.developer.team-identifier")?;
+            let groups = cf_string("keychain-access-groups")?;
+            Ok(json!({"application_identifier":text(CFDictionaryGetValue(entitlements,app_id.0))?,
+                "team_identifier":text(CFDictionaryGetValue(entitlements,team.0))?,
+                "explicit_keychain_groups":!CFDictionaryGetValue(entitlements,groups.0).is_null()}))
+        }
+    }
     pub(super) fn observe(resources: &Path, requirement: &str) -> Result<InstalledCustody, String> {
         let executable = std::env::current_exe()
             .and_then(|p| p.canonicalize())
@@ -652,5 +694,20 @@ mod tests {
             .unwrap_err()
             .contains("changed before spawn"));
         std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[cfg(test)]
+mod keychain_lookup_tests {
+    use super::*;
+    #[test]
+    fn capture_seal_lookup_requires_the_exact_signed_default_group_and_team() {
+        let valid = json!({"application_identifier":"SYNTHETIC0.invalid.example.app","team_identifier":"SYNTHETIC0","explicit_keychain_groups":false});
+        validate_lookup_entitlements(&valid, "SYNTHETIC0", "SYNTHETIC0.invalid.example.app").unwrap();
+        for (key, wrong) in [("application_identifier",json!("OTHER00000.invalid.example.app")),
+            ("team_identifier",json!("OTHER00000")),("explicit_keychain_groups",json!(true)),("application_identifier",Value::Null)] {
+            let mut changed=valid.clone(); changed[key]=wrong;
+            assert!(validate_lookup_entitlements(&changed,"SYNTHETIC0","SYNTHETIC0.invalid.example.app").is_err());
+        }
     }
 }
