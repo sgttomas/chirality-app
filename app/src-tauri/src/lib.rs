@@ -3432,17 +3432,11 @@ pub fn run() {
                 // what it has not written is left as a crash leaves it.
                 let by = std::time::Instant::now() + app_quit::QUIT_ASSESSMENT_WAIT_LIMIT;
                 let (handle, worker_homes) = (app.clone(), homes.clone());
-                let (done, finished) = std::sync::mpsc::channel();
-                let started = std::thread::Builder::new().name("delegation-exit".into()).spawn(move || {
+                if let Some(limit) = app_quit::end_delegation_within(by, move |by| {
                     let st: State<'_, AppState> = handle.state();
-                    let ended = util::lock_by(&st.native_links, by).map(|mut links| links.end_delegation_at_exit(&worker_homes)).is_some();
-                    let _ = done.send(ended);
-                });
-                match started.map(|_| finished.recv_timeout(by.saturating_duration_since(std::time::Instant::now()))) {
-                    Ok(Ok(true)) => {}
-                    Ok(Ok(false)) => eprintln!("chirality: exit: delegation observation not ended: the App's conversation links were held by another App activity for {} seconds", app_quit::QUIT_ASSESSMENT_WAIT_LIMIT.as_secs()),
-                    Ok(Err(_)) => eprintln!("chirality: exit: ending this session's delegation observations did not finish within {} seconds; what it had not written is left as a crash leaves it", app_quit::QUIT_ASSESSMENT_WAIT_LIMIT.as_secs()),
-                    Err(error) => eprintln!("chirality: exit: delegation observation not ended: its thread could not be started ({error})"),
+                    util::lock_by(&st.native_links, by).map(|mut links| links.end_delegation_at_exit(&worker_homes)).is_some()
+                }) {
+                    eprintln!("chirality: exit: {limit}");
                 }
                 if !records_index::close_all_by(std::time::Instant::now() + app_quit::QUIT_ASSESSMENT_WAIT_LIMIT) {
                     eprintln!("chirality: exit: the records index caches were held by a records reader for {} seconds and are left as a crash leaves them", app_quit::QUIT_ASSESSMENT_WAIT_LIMIT.as_secs());

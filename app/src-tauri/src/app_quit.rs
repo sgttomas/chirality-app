@@ -695,6 +695,21 @@ fn within<T: Send + 'static>(name: &str, limit: Duration, work: impl FnOnce() ->
     received.recv_timeout(limit).map_err(|_| Within::NotInTime)
 }
 enum Within { NotStarted(String), NotInTime }
+/// The exit's end of this session's delegation observations. `end` takes the
+/// conversation links by the deadline it is given and records the ends, which
+/// writes and syncs files; it runs on its own thread, and the exit waits for
+/// it until `by`, never longer. Returns what the exit logs, if anything: the
+/// links not had, the work not finished (what it had not written is left as a
+/// crash leaves it), or the thread not started.
+pub(crate) fn end_delegation_within(by: Instant, end: impl FnOnce(Instant) -> bool + Send + 'static) -> Option<String> {
+    let limit = QUIT_ASSESSMENT_WAIT_LIMIT.as_secs();
+    match within("delegation-exit", by.saturating_duration_since(Instant::now()), move || end(by)) {
+        Ok(true) => None,
+        Ok(false) => Some(format!("delegation observation not ended: the App's conversation links were held by another App activity for {limit} seconds")),
+        Err(Within::NotInTime) => Some(format!("ending this session's delegation observations did not finish within {limit} seconds; what it had not written is left as a crash leaves it")),
+        Err(Within::NotStarted(error)) => Some(format!("delegation observation not ended: its thread could not be started ({error})")),
+    }
+}
 /// The session-end write (taking the App custody first if it is not yet
 /// held) on its own thread, waited for at most `limit`. That thread drains
 /// every home's queued recovery facts, in each home's order, before the end

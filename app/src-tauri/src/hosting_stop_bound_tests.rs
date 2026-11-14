@@ -1598,3 +1598,22 @@ fn a_home_whose_state_is_held_does_not_hold_the_quit_assessment_past_its_deadlin
     assert!(rows.is_empty() && runs.is_empty(), "nothing is said of the home's state: {rows:?}");
     assert_eq!(limits, vec![json!(crate::app_quit::live_work_not_read(crate::home_resources::HomeClass::Account))]);
 }
+
+/// The exit's delegation ending (P28): the exit waits for its worker at most
+/// until the deadline, whatever the worker does; a writer that never returns
+/// does not hold the exit, and each outcome has its log line.
+#[test]
+fn the_exits_delegation_ending_never_holds_the_exit_past_its_deadline() {
+    let by = Instant::now() + Duration::from_millis(300);
+    let (_never, blocked) = channel::<()>();
+    let begin = Instant::now();
+    let logged = crate::app_quit::end_delegation_within(by, move |_| { let _ = blocked.recv(); true });
+    assert!(begin.elapsed() < Duration::from_millis(300) + SLACK, "{:?}", begin.elapsed());
+    assert_eq!(logged.as_deref(), Some("ending this session's delegation observations did not finish within 5 seconds; what it had not written is left as a crash leaves it"));
+    let given = Arc::new(Mutex::new(None));
+    let seen = Arc::clone(&given);
+    assert_eq!(crate::app_quit::end_delegation_within(by + Duration::from_secs(5), move |deadline| { *seen.lock().unwrap() = Some(deadline); true }), None, "ended: nothing logged");
+    assert_eq!(*given.lock().unwrap(), Some(by + Duration::from_secs(5)), "the worker takes the links by the exit's own deadline");
+    assert_eq!(crate::app_quit::end_delegation_within(Instant::now() + Duration::from_secs(5), |_| false).as_deref(),
+        Some("delegation observation not ended: the App's conversation links were held by another App activity for 5 seconds"));
+}
