@@ -2184,6 +2184,59 @@ mod persistence_tests {
         (control, id, actor)
     }
     #[test]
+    fn a16_provider_observation_never_changes_recorded_decided_selection() {
+        let installation = crate::capture_seal_keychain::tests::SelectedInstallation::new();
+        for provider in ["file-key", "keychain"] {
+            if provider == "keychain" { installation.enroll().unwrap(); }
+            let root = scratch();
+            let (mut control,id,actor) = prepared(&root);
+            let out=control.confirm(&id,"ALT-2",InputSource::HostNativeConfirmation,actor).unwrap();
+            let capture=out["capture"].clone();
+            assert_eq!(capture["sealProvider"],provider);
+            let row=|| crate::decision_view::derive(&root,&[])["rows"][0].clone();
+            let baseline=row();
+            assert_eq!(baseline["state"],"decided", "{baseline}");
+            assert_eq!(baseline["decision"]["captureSeal"]["verifiedWith"],provider);
+            let path=crate::storage::capture_path(&root,capture["captureId"].as_str().unwrap()).unwrap();
+            let original=std::fs::read(&path).unwrap();
+            if provider=="keychain" {
+                installation.lock();
+                let pending=row();
+                assert_eq!(pending["state"],baseline["state"]);
+                assert_eq!(pending["decision"]["alternativeChosen"],baseline["decision"]["alternativeChosen"]);
+                assert_eq!(pending["decision"]["captureSeal"]["cause"],"KeychainUnavailable");
+                installation.unlock();
+                assert_eq!(row()["decision"]["captureSeal"]["status"],"verified");
+            }
+            let mut unsealed=capture.clone();
+            unsealed.as_object_mut().unwrap().remove("seal");
+            unsealed.as_object_mut().unwrap().remove("sealProvider");
+            std::fs::write(&path,serde_json::to_vec(&unsealed).unwrap()).unwrap();
+            let observed=row();
+            assert_eq!(observed["state"],baseline["state"]);
+            assert_eq!(observed["decision"]["captureSeal"]["cause"],"NoSeal");
+            let mut mismatch=capture.clone();
+            mismatch["sealProvider"]=json!(if provider=="file-key" {"keychain"} else {"file-key"});
+            std::fs::write(&path,serde_json::to_vec(&mismatch).unwrap()).unwrap();
+            let observed=row();
+            assert_eq!(observed["state"],baseline["state"]);
+            assert_eq!(observed["decision"]["captureSeal"]["status"],"not-verified");
+            std::fs::write(&path,&original).unwrap();
+            assert_eq!(row()["decision"]["captureSeal"]["status"],"verified");
+            std::fs::remove_dir_all(root).unwrap();
+        }
+        installation.lock();
+        let root=scratch();let (mut control,id,actor)=prepared(&root);
+        let out=control.confirm(&id,"ALT-2",InputSource::HostNativeConfirmation,actor).unwrap();
+        assert!(out["capture"].get("seal").is_none());
+        assert_eq!(out["recordDurable"],true,"the genuine act remains recorded: {out}");
+        installation.unlock();
+        let row=crate::decision_view::derive(&root,&[])["rows"][0].clone();
+        assert_eq!(row["state"],"decided");
+        assert_eq!(row["decision"]["captureSeal"]["cause"],"NoSeal");
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    #[test]
     fn a16_statement_is_bounded_and_an_over_long_one_is_refused_before_presentation() {
         let edited = |edit: &dyn Fn(&mut Value)| {
             let root = scratch();

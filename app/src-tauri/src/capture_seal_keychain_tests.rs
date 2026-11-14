@@ -959,7 +959,6 @@ impl InMemoryKeychain {
     /// Locked / denied: every read fails as the native backend reports it.
     pub(crate) fn lock(&self) { *self.backend.read_error.lock().unwrap() = Some(BackendError::Unavailable(-25308)); }
     pub(crate) fn unlock(&self) { *self.backend.read_error.lock().unwrap() = None; }
-    /// Replace the latest policy item's bytes (corruption in the keychain).
     pub(crate) fn corrupt_policy(&self) {
         let mut items = self.backend.items.lock().unwrap();
         let key = items.keys().filter(|k| k.contains(".assurance-policy.")).max().cloned().expect("a policy item");
@@ -1134,6 +1133,14 @@ pub(crate) struct SelectedInstallation {
     previous_store: Result<crate::records_store::Store, String>,
 }
 impl SelectedInstallation {
+    pub(crate) fn on_unselected_build<R>(&self, read: impl FnOnce() -> R) -> R {
+        let selected = TEST_INSTALLATION.with(|slot| slot.borrow_mut().take());
+        crate::checkpoint_recorder::forget_act_read_for_test();
+        let result = read();
+        TEST_INSTALLATION.with(|slot| *slot.borrow_mut() = selected);
+        crate::checkpoint_recorder::forget_act_read_for_test();
+        result
+    }
     pub(crate) fn new() -> Self {
         let (f, a) = enrollment_fixture();
         let fixture = std::rc::Rc::new(f);
@@ -1158,6 +1165,34 @@ impl SelectedInstallation {
     }
     pub(crate) fn lock(&self) { *self.backend.read_error.lock().unwrap() = Some(BackendError::Unavailable(-25308)); }
     pub(crate) fn unlock(&self) { *self.backend.read_error.lock().unwrap() = None; }
+    /// Confirm before the file operation starts; replace its held join only
+    /// after its last check, then commit through the real enrolment path.
+    pub(crate) fn enroll_at_attachment(&self, restore_join: bool) {
+        let authority = self.authority.clone();
+        let backend = self.backend.clone();
+        let root = self.fixture.root.clone();
+        let prepared_root = root.clone();
+        let prepared_authority = authority.clone();
+        crate::seal_c_enrollment::confirm_provider_for_test(
+            || prepare_subject(&prepared_root, &prepared_authority),
+            |intent| {
+                let root = root.clone();
+                crate::capture_seal::BEFORE_ATTACHMENT.with(|slot| *slot.borrow_mut() = Some(Box::new(move || {
+                    let join = root.join(".seal-c-enrollment.lock");
+                    let held = root.join("invented-held-join");
+                    fs::rename(&join, &held).unwrap();
+                    consume_prepared(intent, &authority, &*backend, &mut || Ok([9;32])).unwrap();
+                    write_policy(&*backend, &authority.identity, "robust", Some(&root.join(POLICY_HEAD))).unwrap();
+                    if restore_join {
+                        fs::remove_file(&join).unwrap();
+                        fs::rename(held, join).unwrap();
+                    }
+                })));
+                Ok(())
+            },
+        ).unwrap();
+    }
+    /// Replace the latest policy item's bytes (corruption in the keychain).
     pub(crate) fn root(&self) -> &Path { &self.fixture.root }
     pub(crate) fn include_capture_store(&self, path: PathBuf) {
         TEST_INSTALLATION.with(|slot| slot.borrow_mut().as_mut().unwrap().inventory.push(path));
@@ -1321,4 +1356,76 @@ fn capture_seal_prepared_retained_ring_is_frozen_and_never_imported() {
     assert_eq!(fs::read(f.fixture.legacy.join("keys.json")).unwrap(),before);
     assert_ne!(original["seal"]["value"].as_str().unwrap().split(':').next().unwrap(),key_id(&[9;32]));
     crate::capture_seal::verify(&p,&original).unwrap();
+}
+
+#[test]
+fn capture_seal_total_loss_exposes_the_stated_continuity_exclusion_and_unknown_inventory_refuses() {
+    let f=SelectedInstallation::new();let p=f.project();
+    crate::capture_seal::seal(&p,&mut f.ordinary_capture()).unwrap();
+    let configured=crate::records_store::current();
+    crate::records_store::use_store_for_test(Some(Err("invented unavailable inventory".into())));
+    assert_eq!(crate::capture_seal::seal(&p,&mut f.ordinary_capture()).unwrap_err().cause,Cause::ProtectionInconsistent);
+    crate::records_store::use_store_for_test(Some(configured));
+    crate::capture_seal::seal(&p,&mut f.ordinary_capture()).unwrap();
+    f.enroll().unwrap();
+    assert_eq!(crate::capture_seal::seal(&p,&mut f.ordinary_capture()).unwrap().verified_with,crate::capture_seal::SealProvider::Keychain);
+    f.clear_protected_state();
+    assert!(crate::capture_seal::seal(&p,&mut f.ordinary_capture()).is_err(),"surviving process memory vetoes");
+    f.new_process_observation();
+    assert_eq!(crate::capture_seal::seal(&p,&mut f.ordinary_capture()).unwrap().verified_with,crate::capture_seal::SealProvider::FileKey,
+        "invented fresh-process inputs after complete loss or coherent pre-protection rollback are indistinguishable; this is excluded, not prevented");
+}
+
+#[test]
+fn capture_seal_intact_enrollment_join_serializes_file_attachment_before_protection() {
+    let f=SelectedInstallation::new();let p=f.project();
+    crate::capture_seal::seal(&p,&mut f.ordinary_capture()).unwrap();
+    let prepared=prepare_subject(f.root(),&f.authority).unwrap();
+    let store=crate::records_store::current();
+    let legacy=f.fixture.legacy.clone();
+    let (start_tx,start_rx)=std::sync::mpsc::channel();
+    let (done_tx,done_rx)=std::sync::mpsc::channel();
+    std::thread::scope(|scope| {
+        let authority=&*f.authority;let backend=&*f.backend;
+        let worker=scope.spawn(move || {
+            crate::records_store::use_store_for_test(Some(store));
+            crate::capture_seal::set_folder_for_test(Some(Some(legacy)));
+            start_rx.recv().unwrap();
+            consume_prepared(prepared,authority,backend,&mut || Ok([9;32])).unwrap();
+            let _ = done_tx.send(()); // the hook drops its receiver after attachment
+        });
+        crate::capture_seal::BEFORE_ATTACHMENT.with(|slot| *slot.borrow_mut()=Some(Box::new(move || {
+            start_tx.send(()).unwrap();
+            assert!(matches!(done_rx.recv_timeout(std::time::Duration::from_millis(30)),Err(std::sync::mpsc::RecvTimeoutError::Timeout)),"enrolment must wait for the intact file-operation join");
+        })));
+        let mut file=f.ordinary_capture();crate::capture_seal::seal(&p,&mut file).unwrap();
+        assert_eq!(file["sealProvider"],"file-key");
+        worker.join().unwrap();
+    });
+    assert_eq!(crate::capture_seal::seal(&p,&mut f.ordinary_capture()).unwrap().verified_with,crate::capture_seal::SealProvider::Keychain);
+}
+
+#[test]
+fn capture_seal_detected_enrollment_join_replacement_refuses_before_attachment() {
+    let f=SelectedInstallation::new();let p=f.project();
+    crate::capture_seal::seal(&p,&mut f.ordinary_capture()).unwrap();
+    struct Replacing<'a> { backend:&'a Mock, reads:std::cell::Cell<usize>, root:PathBuf, sentinel:ItemIdentity }
+    impl Backend for Replacing<'_> {
+        fn read(&self,item:&ItemIdentity)->Result<Vec<u8>,BackendError> {
+            if item==&self.sentinel {
+                self.reads.set(self.reads.get()+1);
+                if self.reads.get()==2 {
+                    let join=self.root.join(".seal-c-enrollment.lock");fs::rename(&join,self.root.join("held-original-join")).unwrap();
+                    OpenOptions::new().write(true).create_new(true).mode(0o600).open(join).unwrap();
+                }
+            }
+            self.backend.read(item)
+        }
+        fn add(&self,item:&ItemIdentity,bytes:&[u8])->Result<(),BackendError> {self.backend.add(item,bytes)}
+    }
+    let backend=Replacing {backend:&f.backend,reads:std::cell::Cell::new(0),root:f.root().to_owned(),sentinel:f.fixture.identity.clone()};
+    let called=std::cell::Cell::new(false);
+    let result=admission::with_material(&f.fixture.legacy,&p,&f.authority,&backend,Some(&[]),|_| {called.set(true);Ok(())});
+    assert_eq!(result.unwrap_err().cause,Cause::SealSourceChanged);assert!(!called.get());
+    crate::capture_seal::seal(&p,&mut f.ordinary_capture()).unwrap();
 }

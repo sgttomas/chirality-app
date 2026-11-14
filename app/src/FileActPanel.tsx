@@ -160,6 +160,10 @@ export function FileActPanel({ command, controlRef, onBusyChange }: {
       <p>Actor (identity not verified): {JSON.stringify(row.actor)}. Recorder: {JSON.stringify(row.recordedBy)}.</p>
       <p>Current content comparison: {row.comparison}. Captured at: {row.captureTime}. {row.identityResolution}.</p>
       <FileActLapseHistory row={row}/>
+      {row.captureSeal?.standing === "read-limit" && <div>
+        <p>Recover capture verification: restore access to the original key and continuity, or open the original signed installation, then check again. This read never seals a capture published without a seal.</p>
+        <button disabled={busy} onClick={() => run("file_act_read", {})}>Check capture verification again</button>
+      </div>}
       {row.limits.map((limit: string, i: number) => <p key={i}>{limit}</p>)}
       <details><summary>Source, content identities and correction relations</summary><pre>{JSON.stringify(row, null, 2)}</pre></details>
     </article>)}

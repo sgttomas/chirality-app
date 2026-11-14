@@ -319,6 +319,14 @@ pub fn rotate() -> Result<String, String> {
 
 #[cfg(test)]
 thread_local! { pub(crate) static BEFORE_ATTACHMENT: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const { std::cell::RefCell::new(None) }; }
+/// Construct invented original legacy bytes, never amend a published capture.
+#[cfg(test)]
+pub(crate) fn legacy_file_fixture(root: &Path, capture: &mut Value) {
+    assert!(capture.get("seal").is_none() && capture.get("sealProvider").is_none());
+    let ring = load_or_create(&folder_for(root).unwrap()).unwrap();
+    let mac = hmac(&ring.keys[&ring.current], &message(capture).unwrap());
+    capture["seal"] = json!({"method":SEAL_METHOD,"value":format!("{}:{}",ring.current,hex(&mac))});
+}
 /// Build the complete pair on a private copy. Failure never leaves a
 /// provisional provider claim on the capture that the writer will publish.
 fn attach(capture: &mut Value, material: crate::capture_seal_keychain::Material) -> Result<SealVerification, EvidenceFailure> {

@@ -114,9 +114,9 @@ test('counted and not-counted acts, requests, declines and declaration findings 
   assert.ok(html.includes('Request for the act observed: supplier person-input request from agent; act kind not named by the request. A request is not the act.'));
   assert.ok(!html.includes('no request from the agent observed'));
   assert.ok(html.includes('Act not counted: A7 rec:app:old, captured 2026-09-21T13:00:00.000Z: content no longer current (prior act not counted).'));
-  assert.ok(html.includes('Act counted: A7 rec:app:rely, captured 2026-09-21T15:00:00.000Z in the App act control, after the arrival.'));
+  assert.ok(html.includes('Act counted: A7 rec:app:rely, captured 2026-09-21T15:00:00.000Z in the App act control, after the arrival; seal provider not recorded.'));
   const declined=h(ArrivalRecord,{arrival:a,all:[a,entry('arrival_declined',{arrival:at,declinedEventRef:'rec:app:no'}),disposition('CP-rely',1,'resolved negatively')]});
-  assert.ok(declined.includes('Arrival 1: resolved negatively.')&&declined.includes('Declined by the person (rec:app:no).'));
+  assert.ok(declined.includes('Arrival 1: resolved negatively.')&&declined.includes('Declined by the person (rec:app:no); seal provider not recorded.'));
   const element={value:{...raw.checkpoints[0],name:'CP-bad',required_act:'A3'},reading:'invalid',findings:['FB-03: recognized act not permitted as checkpoint']};
   const finding=entry('declaration_finding',{checkpoint:'CP-bad',finding:'invalid',code:'FB-03'});
   const guidance=h(CheckpointGuidance,{element,run:run({lifecycle:{state:'open',records:[entry('run_opened',{}),finding]}})});
@@ -600,4 +600,17 @@ test('actual held lapse DTO qualifies its pending label and later write on the s
   const dto=marker=>{const line=proc.stdout.split('\n').find(line=>line.includes(marker));assert.ok(line);return JSON.parse(line.slice(line.indexOf(marker)+marker.length));};
   const pending=dto('AFTER_END_LAPSE_PENDING_DTO:');const records=pending.afterRunEnd.runs[0].records;const a=records.find(r=>r.kind==='checkpoint_arrival');const held=records.find(r=>r.kind==='act_lapsed');assert.equal(held.written,false);const html=h(ArrivalRecord,{arrival:a,all:records});assert.match(html,/arrival’s pending label is lapsed/);assert.match(html,/Not yet written to the run record/);assert.doesNotMatch(html,/arrival is recorded as lapsed/);
   const late=dto('AFTER_END_LAPSE_LATE_DTO:');const recovered=late.afterRunEnd.runs[0].records;assert.equal(recovered.filter(r=>r.recordId===held.recordId).length,1);const again=h(ArrivalRecord,{arrival:recovered.find(r=>r.kind==='checkpoint_arrival'),all:recovered});assert.match(again,/Written late; the run record carries/);assert.doesNotMatch(again,/pending label/);assert.equal(recovered.find(r=>r.recordId===held.recordId).observedAt,held.observedAt);
+});
+
+test('counted and declined provider standing is read from the historical record using closed clauses',()=>{
+  const a=arrival('CP-check',1,'item:invented','invented file');
+  for(const [provider,clause] of [['file-key','sealed with the key file, which a process on this account could forge'],['keychain','sealed with the keychain key'],[undefined,'seal provider not recorded'],['injected <assurance>','seal provider not recorded']]) {
+    const act={recordId:'rec:invented',actKind:'A4',capturedAt:'invented time',capturingSurface:'app_act_control'};
+    if(provider!==undefined)act.sealProvider=provider;
+    const counted=entry('act_counted',{arrival:{checkpoint:'CP-check',arrivalOrdinal:1},act,relation:'after arrival',referents:['invented file']});
+    const html=h(ArrivalRecord,{arrival:a,all:[a,counted]});
+    assert.ok(html.includes(clause));assert.ok(!html.includes('injected'));
+    const declined=entry('arrival_declined',{arrival:{checkpoint:'CP-check',arrivalOrdinal:1},declinedEventRef:'rec:decline',...(provider===undefined?{}:{sealProvider:provider})});
+    assert.ok(h(ArrivalRecord,{arrival:a,all:[a,declined]}).includes(clause));
+  }
 });
