@@ -2,7 +2,7 @@
 """The examination's table: every planned step, its latest candidate and its outcome; then, kept apart, the scripted
 driver's runs and the session comparison's rows (DEL-09-02 examination tooling).
 
-    python3 -B table.py --repo <a checkout> [--results <folder>] [--driver FOLDER=RUN@HEAD ...]
+    python3 -B table.py --repo <a checkout> --candidate <key> [--results <folder>] [--driver FOLDER=RUN@HEAD ...]
                         [--comparisons <record folder> ...] [--release 4.0.0]
 
 It reads and writes nothing in the repository, and its output is never committed. What it reads:
@@ -12,24 +12,27 @@ It reads and writes nothing in the repository, and its output is never committed
   release, naming the decision and, when the entry has "steps_by", who read which steps it takes. They are neither
   "not run" nor dropped, and the scenario's other steps are ordinary planned steps. An entry naming a step the
   scenario does not have stops the print;
-- step results, from --results: a folder of JSON records {step, candidate, configuration, date, outcome,
-  operated_by}, the outcome one of DEL-09-02 REQ-007's five (passed, failed, blocked, not run, inconclusive); any
-  other outcome stops the print. A step with no record prints "not run (no record)". A record may cite
-  session-comparison rows: "cites": [{file, sha256, rows}], the file relative to --results. A step recorded as
-  passed that cites a row not passed, or a citation whose file is missing or has changed, is named beneath the
-  table; its own outcome is shown as recorded;
+- step results, from --results, for the one candidate named by --candidate: a folder of JSON records {step,
+  candidate, configuration, date, outcome, operated_by}, the outcome one of DEL-09-02 REQ-007's five (passed,
+  failed, blocked, not run, inconclusive); any other outcome stops the print, and so does a results folder that is
+  not there. Records for another candidate or naming none, and records that cannot be read, are named beneath the
+  table and never counted. Of a step's records, the latest date decides; records of the latest date that disagree
+  print as inconclusive and are named. A step with no record prints "not run (no record)". A record may cite
+  session-comparison rows: "cites": [{file, sha256, rows}], the file relative to --results. A pass that cites a row
+  not passed, or a citation whose file is missing or has changed, prints as "recorded passed; not counted", is
+  named beneath the table, and is never counted as passed;
 - the scripted driver's runs, from --driver FOLDER=RUN@HEAD: a folder holding the reports a hosted run uploaded
   (report.json, scenario-report.json, and setup-report.json when the run made one). The driver is development
   evidence on a test build and satisfies no step;
 - session-comparison rows, from --comparisons FOLDER: a record folder holding session-comparison-*.jsonl files
   (one row per comparison on one subject, each with one of REQ-007's outcomes) and the launch record beside them.
   Rows are not step results. They are counted from the rows themselves, by candidate (the header's candidate_key,
-  else the launch record's identifier), comparison and outcome; a summary line is compared with the rows, never
+  else the launch record's identifier; a file whose two disagree is named and not counted), comparison and outcome; a summary line is compared with the rows, never
   counted. Of the answers files made from one screen list (the header's "answers_of"), only the latest counts: by
   the header's "written_at" when every one has it, else by the time in the name, and two of the same time count
   for neither. When a file's header says the workflow comparison is not available ("workflow_comparison"), that
-  sentence is written first beneath the section: W1's rows are blocked, and C2, C3 and C4 passing do not meet the
-  first target.
+  sentence is written first beneath the section: W1 is counted only as blocked (a W1 row of that file saying
+  anything else is named and not counted), and C2, C3 and C4 passing do not meet the first target.
 """
 import argparse
 import hashlib
@@ -42,16 +45,34 @@ OUTCOMES = ('passed', 'failed', 'blocked', 'not run', 'inconclusive')
 STEP_MAP = 'app/examination/sq_receiving/sq.step-map.json'
 
 
-def results(folder):
-    latest = {}
+def results(folder, candidate):
+    """The latest record of each step for the candidate named, by date, with what was set aside: records for another
+    candidate or none, and records that cannot be read. Records of the latest date that disagree are kept apart as
+    contradictory: which came last cannot be told, so neither decides."""
+    if folder is not None and not Path(folder).is_dir():
+        raise SystemExit(f'the results folder {folder} is not a folder that can be read')
+    by_step, other, unreadable = {}, [], []
     for path in sorted(Path(folder).glob('*.json')) if folder else []:
-        record = json.loads(path.read_text())
+        try:
+            record = json.loads(path.read_text())
+        except (OSError, ValueError) as error:
+            unreadable.append(f'{path.name} ({type(error).__name__})')
+            continue
         if record.get('outcome') not in OUTCOMES:
             raise SystemExit(f'{path}: outcome {record.get("outcome")!r} is not one of REQ-007\'s five')
-        step = record['step']
-        if step not in latest or record['date'] >= latest[step]['date']:
-            latest[step] = record
-    return latest
+        if record.get('candidate') != candidate:
+            other.append(f"{path.name} ({record.get('candidate') or 'no candidate'})")
+            continue
+        by_step.setdefault(record['step'], []).append(dict(record, file=path.name))
+    latest, contradictory = {}, {}
+    for step, records in by_step.items():
+        newest = max(record['date'] for record in records)
+        last = [record for record in records if record['date'] == newest]
+        if len({record['outcome'] for record in last}) > 1:
+            contradictory[step] = last
+        else:
+            latest[step] = last[0]
+    return latest, contradictory, other, unreadable
 
 
 def citation_marks(record, folder):
@@ -70,17 +91,17 @@ def citation_marks(record, folder):
     return marks
 
 
-def table(repo, folder, release):
+def table(repo, folder, release, candidate):
     step_map = json.loads((Path(repo) / STEP_MAP).read_text())
     out = step_map.get('out_of_release', {})
-    seen = results(folder)
+    seen, contradictory, other, unreadable = results(folder, candidate)
     known = {step['step'] for steps in step_map['scenarios'].values() for step in steps}
-    stray = sorted(set(seen) - known)
-    lines = [f'EXAMINATION TABLE for {release}, from {STEP_MAP} at the checkout given', '',
-             '| Scenario | Step | Counts | Latest candidate | Outcome (REQ-007) | Date | Operated by |',
-             '| --- | --- | --- | --- | --- | --- | --- |']
+    stray = sorted((set(seen) | set(contradictory)) - known)
+    lines = [f'EXAMINATION TABLE for {release}, candidate {candidate}, from {STEP_MAP} at the checkout given', '',
+             '| Scenario | Step | Counts | Outcome (REQ-007) | Date | Operated by |',
+             '| --- | --- | --- | --- | --- | --- |']
     totals = dict.fromkeys(OUTCOMES, 0)
-    removed, disputed = 0, []
+    removed, disputed, recorded_disputed = 0, [], 0
     for scenario, steps in step_map['scenarios'].items():
         decision = out.get(scenario)
         if decision and decision.get('release') == release:
@@ -92,29 +113,53 @@ def table(repo, folder, release):
         else:
             taken = set()
         for step in steps:
+            counts = 'yes' if step.get('counts') else 'no'
             if step['step'] in taken:
                 removed += 1
                 why = (f"out of {release} by {decision['by']}'s decision of {decision['decided']}"
                        + (f"; steps as read by {decision['steps_by']}" if decision.get('steps_by') else '')
                        + f" ({decision['stated_in']})")
-                lines.append(f"| {scenario} | {step['step']} | {'yes' if step.get('counts') else 'no'} | — | {why} | — | — |")
+                lines.append(f"| {scenario} | {step['step']} | {counts} | {why} | — | — |")
+                continue
+            if step['step'] in contradictory:
+                last = contradictory[step['step']]
+                shown = ', '.join(f"{r['file']} {r['outcome']}" for r in last)
+                disputed.append(f"{step['step']}: records of the same date disagree ({shown}); counted inconclusive")
+                if step.get('counts'):
+                    totals['inconclusive'] += 1
+                lines.append(f"| {scenario} | {step['step']} | {counts} | inconclusive (records disagree) | {last[0]['date']} | — |")
                 continue
             record = seen.get(step['step'])
-            outcome = record['outcome'] if record else 'not run'
-            marks = citation_marks(record, folder) if record else []
+            if record is None:
+                if step.get('counts'):
+                    totals['not run'] += 1
+                lines.append(f"| {scenario} | {step['step']} | {counts} | not run (no record) | — | — |")
+                continue
+            outcome = record['outcome']
+            marks = citation_marks(record, folder)
+            shown = outcome
             if marks:
                 disputed.append(f"{step['step']}: {'; '.join(marks)}")
+                if outcome == 'passed':
+                    # A pass its own evidence does not support is shown as recorded and never counted as passed.
+                    shown = 'recorded passed; not counted (its citations do not support it)'
             if step.get('counts'):
-                totals[outcome] += 1
-            lines.append(f"| {scenario} | {step['step']} | {'yes' if step.get('counts') else 'no'} | "
-                         f"{record['candidate'] if record else '—'} | {outcome if record else 'not run (no record)'} | "
-                         f"{record['date'] if record else '—'} | {record.get('operated_by', '—') if record else '—'} |")
+                if shown == outcome:
+                    totals[outcome] += 1
+                else:
+                    recorded_disputed += 1
+            lines.append(f"| {scenario} | {step['step']} | {counts} | {shown} | {record['date']} | {record.get('operated_by', '—')} |")
     lines += ['', 'Counted steps in the release: ' + ', '.join(f'{totals[o]} {o}' for o in OUTCOMES)
+              + (f', {recorded_disputed} recorded passed but not supported by their citations' if recorded_disputed else '')
               + f'. Steps out of {release} by a recorded decision: {removed}.']
     if stray:
         lines.append('Records naming no planned step (not counted): ' + ', '.join(stray))
     if disputed:
-        lines.append('Steps whose citations do not support them (their own outcome is shown above): ' + ' | '.join(disputed))
+        lines.append('Steps whose evidence is contradictory or does not support them: ' + ' | '.join(disputed))
+    if other:
+        lines.append(f'Records for another candidate, or naming none (not counted for {candidate}): ' + ', '.join(other))
+    if unreadable:
+        lines.append('Records that could not be read (not counted): ' + ', '.join(unreadable))
     return lines
 
 
@@ -158,9 +203,14 @@ def comparisons(folders):
             summary = next((row for row in rows if 'summary' in row), None)
             if header.get('workflow_comparison'):
                 withheld.add(header['workflow_comparison'])
+            keys = {re.sub(r'^dev\.chirality\.app-v4\.candidate\.', '', i or '') for i in identifiers if i}
             candidate = header.get('candidate_key')
+            if candidate is not None and keys and keys != {candidate}:
+                # The header and the launch record name different candidates: whose rows these are cannot be told.
+                notes.append(f"{path.name}: its header names candidate {candidate} and the launch record "
+                             f"{', '.join(sorted(keys))}; its rows are not counted")
+                continue
             if candidate is None:
-                keys = {re.sub(r'^dev\.chirality\.app-v4\.candidate\.', '', i or '') for i in identifiers if i}
                 candidate = keys.pop() if len(keys) == 1 else f'not known ({path.name})'
             seen = {}
             for row in rows:
@@ -168,6 +218,10 @@ def comparisons(folders):
                     continue
                 if row.get('outcome') not in OUTCOMES:
                     notes.append(f'{path.name}: a row with outcome {row.get("outcome")!r} (not counted)')
+                    continue
+                if header.get('workflow_comparison') and row.get('comparison') == 'W1' and row['outcome'] != 'blocked':
+                    notes.append(f"{path.name}: a W1 row says {row['outcome']} although the header says the workflow "
+                                 'comparison is not available; it is not counted')
                     continue
                 key = (candidate, row['comparison'])
                 counts.setdefault(key, dict.fromkeys(OUTCOMES, 0))[row['outcome']] += 1
@@ -182,7 +236,7 @@ def comparisons(folders):
         lines.append(f'| {candidate} | {comparison} | ' + ' | '.join(str(by[o]) for o in OUTCOMES) + ' |')
     for sentence in sorted(withheld):
         # The tool's own words; a row of W1 is blocked, and passes of the other comparisons do not make up for it.
-        notes.insert(0, f'W1, the workflow comparison: "{sentence}". Its rows are blocked. C2, C3 and C4 passing '
+        notes.insert(0, f'W1, the workflow comparison: "{sentence}". It is counted only as blocked. C2, C3 and C4 passing '
                         'do not meet the first target; the workflow part stays unvalidated until W1 can be compared.')
     return lines + [''] + notes if notes else lines
 
@@ -212,11 +266,13 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument('--repo', required=True, help='a checkout of main')
     parser.add_argument('--results', help='a folder of step result records')
+    parser.add_argument('--candidate', required=True, help='the candidate key the step table is for; records of any other '
+                        'candidate, or naming none, are not counted')
     parser.add_argument('--release', default='4.0.0')
     parser.add_argument('--driver', action='append', default=[], help='FOLDER=RUN@HEAD of a hosted driver run')
     parser.add_argument('--comparisons', action='append', default=[], help='a record folder holding session-comparison rows')
     args = parser.parse_args(argv)
-    print('\n'.join(table(args.repo, args.results, args.release) + (driver(args.driver) if args.driver else [])
+    print('\n'.join(table(args.repo, args.results, args.release, args.candidate) + (driver(args.driver) if args.driver else [])
                     + (comparisons(args.comparisons) if args.comparisons else [])))
     return 0
 
