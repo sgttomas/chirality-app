@@ -1139,11 +1139,37 @@ failure, the same scenario and acts.
   App, and the operator ends it only after the walk. A process the App started
   that has been given another parent, or that came and went between samples,
   is not seen as a child.
-- **Each view whole and uniquely addressed, or nothing.** These are the two
-  properties of every view the walk acts on. A view in which any element
-  index is given to more than one element cannot be addressed, since a click
-  names an element only by its index: the walk stops there, before any act,
-  at every view, the first ones included (App Agent 0, 14 November 2026).
+- **Each view whole, recognised line for line and uniquely addressed, or
+  nothing.** These are the properties of every view the walk acts on (App
+  Agent 0, 14 November 2026). The walk does not decide what a view it does
+  not recognise means; it refuses it, and the step ends with no act, at every
+  view, the first ones included:
+  - the first line is the supplier's window line,
+    `Window: "<words>", App: <words>.`;
+  - then element lines, each a run of tabs, an index, one space and its
+    words, and each perhaps followed by further lines of its own words (a
+    text running over more than one line), which cannot begin with a tab;
+  - then, at most, one blank line and, after it, at most the focused-element
+    line, `The focused UI element is <index> <words>`, naming an element of
+    the view;
+  - an index is at most 15 digits with no leading zero, so it reads as one
+    exact number and two different texts never name the same element; words
+    hold no control character and no line or paragraph separator;
+  - each index names one element. A click, a set-value or a press names an
+    element only by its index, so a view that gives one index to two
+    elements cannot be addressed.
+
+  The claim this makes, with the adversary it is made against: the walk acts
+  only on a view whose every line it recognises, and only on the one element
+  whose index and words both match what the step names; anything else ends
+  the step with no act. The adversary is text in the view the lane did not
+  write: the App's own strings and the names of files in the invented
+  project. A crafted build is not: the lane builds the candidate from a named
+  commit, and the check of the App's name (below) guards against a mistaken
+  build. Whether a view came back whole rests on the supplier's two fixed
+  openings for a view of differences or of no change; that is a reliance on
+  the supplier's format, not an independent proof that a malformed reply
+  holds every element.
 - **Whole views.** Before any click the script asks for two
   views, one after the other, and both must come back whole. The first asks
   with the application alone; the first view of an application was seen to be
@@ -1241,8 +1267,12 @@ either driver marker.
      with its paths, identifier and name replaced by invented ones). The
      template is filled with three things only: the statement, made from the
      exact locations the page showed one step earlier; the sheet's title; and
-     the App's name, which is the candidate bundle's own folder name. The
-     identifier is inside the paths. Then:
+     the App's name, which is the candidate bundle's own folder name and must
+     first be of the development build's form,
+     `Chirality App v4 (development <letters, digits, dots, dashes>)`, or the
+     step stops before the template is made. The identifier is inside the
+     paths. The filled template must itself be a recognised view whose
+     indices each name one element. Then:
      - each element line must equal the template's in its depth and its
        words; element indices are not compared, since a view numbers its
        elements as it goes;

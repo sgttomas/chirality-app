@@ -418,7 +418,7 @@ class TheWalkItself(unittest.TestCase):
 
     def test_a_view_returned_as_differences_is_applied_to_the_view_before_it(self):
         result = harness('''
-          const before = walk.parseView('Window: "Chirality"\\n0 standard window Chirality\\n\\t1 button (disabled) Review setup\\n\\t2 summary Details, Value: off\\n\\t\\t3 text Details\\n\\t4 close button');
+          const before = walk.parseView('Window: "Chirality", App: Chirality App v4 (development invented).\\n0 standard window Chirality\\n\\t1 button (disabled) Review setup\\n\\t2 summary Details, Value: off\\n\\t\\t3 text Details\\n\\t4 close button');
           const after = walk.applyDifference(before, 'The following is a diff from the previous accessibility tree for Window: "Chirality"\\nRemoved element IDs: 2-3\\n~\\t1 button Review setup\\n+\\t5 container (expanded)\\n+\\t\\t6 summary Details, Value: on\\nThe focused UI element is 6');
           const same = walk.applyDifference(after, 'There has been no change in the accessibility tree for Window: "Chirality".');
           return [after.map(e => e.index + ':' + e.depth + ':' + e.content), same.length];''')
@@ -691,6 +691,58 @@ class ScreenLock(unittest.TestCase):
             values = self.lock.session_values()
             self.assertEqual(set(values), {self.lock.KEY, self.lock.CONSOLE})
             self.assertTrue(all(value is None or value == self.lock.OTHER or isinstance(value, int) for value in values.values()))
+
+    @unittest.skipUnless(sys.platform == 'darwin', 'CoreFoundation')
+    def test_the_lookup_reads_what_a_real_session_dictionary_holds(self):
+        import ctypes
+        import ctypes.util
+        from types import SimpleNamespace
+        core = ctypes.CDLL(ctypes.util.find_library('CoreFoundation'))
+        core.CFStringCreateWithCString.argtypes = [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_uint32]
+        core.CFStringCreateWithCString.restype = ctypes.c_void_p
+        core.CFNumberCreate.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p]
+        core.CFNumberCreate.restype = ctypes.c_void_p
+        core.CFDictionaryCreate.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_long, ctypes.c_void_p, ctypes.c_void_p]
+        core.CFDictionaryCreate.restype = ctypes.c_void_p
+        core.CFRetain.argtypes = [ctypes.c_void_p]
+        core.CFRetain.restype = ctypes.c_void_p
+        core.CFRelease.argtypes = [ctypes.c_void_p]
+        keys_cb = ctypes.addressof(ctypes.c_ubyte.in_dll(core, 'kCFTypeDictionaryKeyCallBacks'))
+        values_cb = ctypes.addressof(ctypes.c_ubyte.in_dll(core, 'kCFTypeDictionaryValueCallBacks'))
+
+        def made(value):
+            if isinstance(value, str):
+                return core.CFStringCreateWithCString(None, value.encode(), 0x08000100)
+            if isinstance(value, bool):
+                return core.CFRetain(ctypes.c_void_p.in_dll(core, 'kCFBooleanTrue' if value else 'kCFBooleanFalse').value)
+            number = ctypes.c_double(value) if isinstance(value, float) else ctypes.c_int64(value)
+            return core.CFNumberCreate(None, 6 if isinstance(value, float) else 4, ctypes.byref(number))
+
+        def read(values):
+            keys = [core.CFStringCreateWithCString(None, name.encode(), 0x08000100) for name in values]
+            objects = [made(value) for value in values.values()]
+            dictionary = core.CFDictionaryCreate(None, (ctypes.c_void_p * len(keys))(*keys), (ctypes.c_void_p * len(objects))(*objects),
+                                                 len(keys), keys_cb, values_cb)
+            graphics = SimpleNamespace(CGSessionCopyCurrentDictionary=lambda: core.CFRetain(dictionary))
+            try:
+                with mock.patch.object(self.lock.ctypes, 'CDLL', side_effect=lambda name: core if 'CoreFoundation' in name else graphics), \
+                        contextlib.redirect_stdout(io.StringIO()):
+                    return self.lock.session_values(), self.lock.main()
+            finally:
+                core.CFRelease(dictionary)
+                for made_object in keys + objects:
+                    core.CFRelease(made_object)
+
+        KEY, CONSOLE, OTHER = self.lock.KEY, self.lock.CONSOLE, self.lock.OTHER
+        self.assertEqual(read({KEY: 1, CONSOLE: 1}), ({KEY: 1, CONSOLE: 1}, 3))
+        self.assertEqual(read({KEY: True, CONSOLE: True}), ({KEY: 1, CONSOLE: 1}, 3))
+        self.assertEqual(read({CONSOLE: 1}), ({KEY: None, CONSOLE: 1}, 0))
+        self.assertEqual(read({KEY: False, CONSOLE: 1}), ({KEY: 0, CONSOLE: 1}, 0))
+        self.assertEqual(read({KEY: '0', CONSOLE: 1}), ({KEY: OTHER, CONSOLE: 1}, 2))
+        self.assertEqual(read({KEY: 0.5, CONSOLE: 1}), ({KEY: OTHER, CONSOLE: 1}, 2))
+        self.assertEqual(read({'Other' + KEY: 1, CONSOLE: 1}), ({KEY: None, CONSOLE: 1}, 0))
+        self.assertEqual(read({KEY: 1}), ({KEY: 1, CONSOLE: None}, 3))
+        self.assertEqual(read({}), ({KEY: None, CONSOLE: None}, 2))
 
     def test_its_exit_status_refuses_a_walk_unless_the_screen_is_not_locked(self):
         KEY, CONSOLE = self.lock.KEY, self.lock.CONSOLE
@@ -1018,6 +1070,9 @@ class TheSheetAndTheTypedPath(unittest.TestCase):
             'the focused line missing': own.replace('\n\nThe focused UI element is 0 sheet Description: alert, Secondary Actions: Raise', ''),
             'a line added at the end': own + '\nInvented line',
             'the sheet inside the window, the shape never seen': own.replace('0 sheet Description: alert, Secondary Actions: Raise\n', '0 standard window Chirality, Secondary Actions: Raise\n\t13 sheet Description: alert, Secondary Actions: Raise\n').replace('\n\t1 text', '\n\t\t1 text').replace('\n\t2 button', '\n\t\t2 button').replace('\n\t3 button', '\n\t\t3 button').replace('\n\t4 button', '\n\t\t4 button'),
+            'a space after a button\'s words': own.replace('\t3 button Cancel, ID: action-button-3', '\t3 button Cancel, ID: action-button-3 '),
+            'a space before a button\'s words': own.replace('\t3 button Cancel, ID: action-button-3', '\t3  button Cancel, ID: action-button-3'),
+            'a space after a statement line': own.replace('home or credential.\n', 'home or credential. \n'),
             'something deeper inside the sheet': own.replace('\t2 button', '\t\t97 text Hidden\n\t2 button')}
         for name, view in cases.items():
             with self.subTest(name):
@@ -1114,6 +1169,95 @@ class AViewThatCannotBeAddressed(unittest.TestCase):
                 self.assertIn('the view gives the same element index to more than one element, so it cannot be addressed', stopped)
                 self.assertEqual([c for c in calls if not c.startswith('get_app_state')], acts)
                 self.assertEqual(calls[-1], 'get_app_state')
+
+
+class TheThirdReadingsActs(unittest.TestCase):
+    """The three acts the third reading reproduced at 78362f38, each with the reader's own input; none is made now."""
+
+    def test_a_bundle_name_carrying_a_line_break_and_a_button_does_not_redirect_the_press(self):
+        case = r'''
+const appName = 'Invented\n\t4 button Sign in';
+const bundle = '/invented/candidate/' + appName + '.app';
+base.bundle = bundle;
+viewOf.app = bundle;
+base.readWatch = () => ({ pid: base.pid, running: true, at_ms: Date.now(), children: [], executable: bundle + '/Contents/MacOS/chirality-app-v4' });
+const contaminated = texts[4].replaceAll('Chirality App v4 (development invented)', appName);
+let nextIndex = 100;
+let rootIndex;
+texts[4] = contaminated.replace(/^(\t*)(\d+) (.*)$/gm, (line, tabs, old, words) => {
+  const index = nextIndex++;
+  if (old === '0') rootIndex = index;
+  return tabs + index + ' ' + words;
+}).replace('The focused UI element is 0 sheet', 'The focused UI element is ' + rootIndex + ' sheet');
+const r = await walk.run(base);
+return [r.verdict, r.stopped, r.calls.filter(c => c.call !== 'get_app_state').map(c => c.call + (c.element_index ?? ''))];
+'''
+        verdict, stopped, acts = setup_walk(case)['out']
+        self.assertEqual((verdict, acts), ('inconclusive', ['set_value16', 'click37', 'click89', 'click85']), stopped)
+        self.assertIn('nothing was pressed', stopped)
+
+    def test_a_name_not_of_the_development_builds_form_is_refused_before_the_template_is_made(self):
+        case = (
+            "const bundle = '/invented/candidate/Other App.app'; base.bundle = bundle; viewOf.app = bundle; "
+            "base.readWatch = () => ({ pid: base.pid, running: true, at_ms: Date.now(), children: [], executable: bundle + '/Contents/MacOS/chirality-app-v4' }); "
+            "texts[4] = texts[4].replaceAll('Chirality App v4 (development invented)', 'Other App'); "
+            "const r = await walk.run(base); return [r.verdict, r.stopped, r.calls.filter(c => c.call === 'click').map(c => c.element_index)];")
+        verdict, stopped, clicks = setup_walk(case)['out']
+        self.assertEqual((verdict, clicks), ('inconclusive', [37, 89, 85]), stopped)
+        self.assertIn("the candidate bundle's name is not of the development build's form", stopped)
+
+    def test_a_row_holding_a_line_or_paragraph_separator_or_a_carriage_return_does_not_hide_a_second_index(self):
+        for char, name in (('\u2028', 'line separator'), ('\u2029', 'paragraph separator'), ('\r', 'carriage return')):
+            with self.subTest(name):
+                views = setup_views()
+                views['views'][0]['text'] = views['views'][0]['text'].replace('\n45 menu bar', '\n\t\t\t\t16 button Sign in' + char + 'other words\n45 menu bar')
+                verdict, stopped, calls = setup_walk(RESULT.replace('OPTIONS', 'base'), views)['out']
+                self.assertEqual(verdict, 'inconclusive', stopped)
+                self.assertIn('is not one the walk recognises; nothing is clicked, typed or pressed from it', stopped)
+                self.assertEqual([c for c in calls if not c.startswith('get_app_state')], [])
+
+    def test_an_index_too_long_to_read_exactly_is_refused(self):
+        views = setup_views()
+        views['views'][0]['text'] = views['views'][0]['text'].replace('16 text field', '9007199254740993 text field')
+        verdict, stopped, calls = setup_walk(RESULT.replace('OPTIONS', 'base'), views)['out']
+        self.assertEqual(verdict, 'inconclusive', stopped)
+        self.assertIn('is not one the walk recognises', stopped)
+        self.assertEqual([c for c in calls if not c.startswith('get_app_state')], [])
+
+
+class AViewRecognisedLineForLine(unittest.TestCase):
+    """walk.recognise: the supplier's window line, element lines with their further lines, then at most a blank line
+    and the focused-element line. Anything else is refused."""
+
+    def recognise(self, text):
+        return harness(f'const r = walk.recognise({json.dumps(text)}); return [r.refusal, r.elements.length];')['out']
+
+    def test_the_recorded_views_are_recognised(self):
+        self.assertEqual(self.recognise(SHEET_ON_ITS_OWN), [None, 13])
+        for view in json.loads(VIEWS.read_text())['views']:
+            self.assertIsNone(self.recognise(view['text'])[0])
+        self.assertIsNone(self.recognise(json.loads(VIEWS.read_text())['views'][0]['text'] + '\n')[0])  # as a real view ends
+
+    def test_anything_else_is_refused(self):
+        own = SHEET_ON_ITS_OWN
+        cases = {
+            'no window line': own.split('\n', 1)[1],
+            'a window line without its application': own.replace(', App: Chirality App v4 (development invented).', ''),
+            'an index with a leading zero': own.replace('\t3 button Cancel', '\t03 button Cancel'),
+            'an index of sixteen digits': own.replace('\t3 button Cancel', '\t1000000000000003 button Cancel'),
+            'a further line straight after the window line': own.replace('\n0 sheet', '\nwords\n0 sheet'),
+            'a further line beginning with a tab': own.replace('\nwith an empty config.toml', '\n\twith an empty config.toml'),
+            'a control character in the words': own.replace('button Cancel', 'button Can\x07cel'),
+            'a line after the focused line': own + '\nInvented',
+            'two lines after the blank line': own.replace('\n\nThe focused', '\n\nInvented\nThe focused'),
+            'the focused line naming no element': own.replace('The focused UI element is 0 sheet', 'The focused UI element is 99 sheet'),
+            'a difference marker in a whole view': own.replace('\t3 button Cancel', '~\t3 button Cancel'),
+            'one index given twice': own.replace('\t3 button Cancel', '\t4 button Cancel')}
+        for name, text in cases.items():
+            with self.subTest(name):
+                self.assertNotEqual(text, own)
+                refusal, _ = self.recognise(text)
+                self.assertIsNotNone(refusal)
 
 
 class TheSignedOutScenarioFiles(unittest.TestCase):

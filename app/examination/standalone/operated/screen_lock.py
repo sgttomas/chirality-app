@@ -18,7 +18,7 @@ absent, a number or a boolean (read as 1 or 0), or anything else. No text is par
 Anything but 0 means no walk.
 
 Limits. It is one look, at one moment: the screen can lock after it. The keys are the session's own and are not
-documented by Apple.
+documented by Apple. A number that does not convert exactly to a 64-bit integer (a fraction, say) is not established.
 """
 import ctypes
 import ctypes.util
