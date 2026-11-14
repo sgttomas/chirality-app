@@ -8076,6 +8076,7 @@ mod workflow_root_tests {
     mod run_preparation_order_tests { use super::*; include!("run_preparation_order_tests.rs"); }
     mod text_read_tests { use super::*; include!("workflow_text_read_tests.rs"); }
     mod records_store_controls_lifecycle_tests { use super::*; include!("records_store_controls_lifecycle_tests.rs"); }
+    mod reopened_checkpoint_tests { use super::*; include!("reopened_checkpoint_tests.rs"); }
     impl WorkflowRootSession {
         fn fixture_chat(&self) -> crate::workflow_selection::Chat {
             self.selected.keys().next().cloned().unwrap_or(crate::workflow_selection::Chat { source:"explicit single-chat selection fixture".into(), thread:"thread".into() })
