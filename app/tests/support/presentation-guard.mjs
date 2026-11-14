@@ -1,31 +1,54 @@
-// The presentation guard: on a guarded view, a value the App did not write reaches the page only through one
-// of the approved presentations.
+// The presentation guard: on a guarded view (GUARDED_VIEWS), a value the App did not write reaches the page only
+// through one of the approved presentations, and a control or heading holds only the App's words.
 //
-// It parses each guarded view with the TypeScript parser and its checker (one file at a time, so an identifier
-// is judged by what it is declared as, never by its name), and looks at
+// It parses each guarded view with the TypeScript parser and its checker, one file at a time, and judges an
+// identifier by the declaration it resolves to in that file, never by its name: an approved presentation (TRUSTED)
+// is recognised only where the identifier is bound to the import of that name from its module, so a local, a
+// parameter or a destructured prop that shadows the name is not. It looks at
 //   - every expression drawn as a child of an element, anywhere in the view;
-//   - every attribute that names, describes or holds a value: title, alt, placeholder, value, defaultValue and
-//     every aria- attribute, and every attribute of an approved presentation other than the value it presents;
-//   - every spread of attributes;
-//   - every component the view draws.
-// An expression passes only if it is built from the closed list of forms below. Anything else fails, including a
-// form the guard has never seen: it never passes an expression by checking only the forms it knows to be bad.
-// A listed exception (presentation-guard-exceptions.json) names one expression exactly, with its reason; a listed
-// exception that no longer matches a failing expression is itself a failure, so the list cannot drift.
-// Writes to the page that bypass React's rendering (raw HTML, assigning DOM text or values, DOM insertion) fail
-// and cannot be listed.
+//   - every attribute that names, describes or holds a value: title, alt, placeholder, label, a text field's value
+//     and defaultValue, and every aria- attribute; and every attribute of an approved presentation other than the
+//     value it presents;
+//   - aria-labelledby, aria-describedby, aria-details and aria-errormessage, which pass only as a literal list of
+//     ids each naming exactly one element written in the same file whose content is only the App's words;
+//   - the contents of every attribute: an element written in an attribute is judged where it is written, a
+//     children attribute is judged as drawn, and a function in an attribute (an event handler, a ref callback) is
+//     searched for writes to the page like the rest of the view;
+//   - every spread of attributes, which passes only as object literals whose keys are on SPREAD_KEYS;
+//   - the elements that hold only the App's words (APP_ONLY tags, and any element whose role is in APP_ONLY_ROLES:
+//     a heading or a control role), in which no approved presentation that may draw a box is allowed; a role
+//     attribute not built of literals fails;
+//   - every component the view draws: one written in this file is judged where its JSX is written, one imported
+//     from another guarded view is judged in that view, and any other fails unless it is listed.
+// An expression passes only if it is built from the closed list of forms below (appMade); anything else fails,
+// including a form the guard has never seen.
+// Assignments to the properties in FORBIDDEN_PROPERTIES, calls of the methods in FORBIDDEN_CALLS, and raw HTML
+// (dangerouslySetInnerHTML, directly or in a spread) fail and cannot be listed.
+// A listed exception (presentation-guard-exceptions.json) names one expression exactly, with its reason. A listed
+// exception whose expression no longer appears as a failing finding is itself a failure. That detects the
+// expression disappearing; it does not detect its reason becoming untrue: if the code that produces an excepted
+// value changes (a notice factory that starts copying supplied text, a listed constant that is replaced), the guard
+// still passes. Each reason is checked by reading that code.
 //
-// What the guard proves is that every drawn expression takes an approved form. It does not prove what an approved
-// presentation does with its value: those are the examined implementations named in TRUSTED (AgentText.tsx), and
-// their own tests show what they draw.
+// Outside what the guard catches, by design of a one-file syntactic check:
+//   - a const table or object field mutated after its declaration (the guard reads the initializer);
+//   - a fabricated event object: a field's state counts as the person's typing when it is set from any
+//     `<x>.target.value`, whatever made `<x>`;
+//   - data read back from the DOM through a ref (an attribute or text read from an element and drawn);
+//   - numbers taken by method name: a .map or .flatMap callback's second argument, and the result of findIndex,
+//     indexOf, lastIndexOf or findLastIndex, even when the method is a supplied object's own;
+//   - a write to the page through a computed property name held in a variable, or through Object.assign.
+// It does not prove what an approved presentation does with its value: those are the examined implementations
+// named in TRUSTED (AgentText.tsx), and their own tests show what they draw. The rendered regression in
+// presentation-guard.test.mjs draws the views with each supplied value poisoned in turn.
 import ts from 'typescript';
 import {readFileSync} from 'node:fs';
 
 /** The approved presentations, by the module they must be imported from under these names. */
 export const TRUSTED = {
   './AgentText': {
-    // Functions whose result is the App's words, a checked identifier or a checked number: plainId and idWords (an
-    // identifier checked against PLAIN_ID, else fixed App words); wordOf (the App's word for a key of the App's own
+    // Functions whose result is the App's words, a checked identifier or a checked number: plainId (an identifier
+    // checked against PLAIN_ID, else null) and idWords (the same, else fixed App words); wordOf (the App's word for a key of the App's own
     // table, else null); numberWords (a finite number, else null); isoSeconds (a valid time in seconds, as ISO 8601);
     // clockWords (a time the App holds, as HH:MM:SS; non-finite or invalid gives null).
     functions: ['plainId', 'idWords', 'wordOf', 'numberWords', 'isoSeconds', 'clockWords'],
