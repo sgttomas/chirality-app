@@ -259,3 +259,22 @@ An entry is added in the same pull request that makes the limitation standing.
   That turning plugins off stops the start-up plugin traffic is shown for the
   lock file of the curated sync and for the featured list. The sync's own
   network attempts are read from the source (`app/supplier_checks/level`).
+
+### LIM-025: Apps connected to your ChatGPT account are not available in the App's Codex
+
+- **Id:** LIM-025
+- **Exit criteria:** 6
+- **What is unavailable:** the apps connected to your ChatGPT account, in the
+  App's Codex. The App starts its Codex with connected apps turned off, so none
+  of their tools is given to it. You keep your connected apps; the App's Codex
+  does not use them.
+- **Why:** the App cannot make every connected app's tool ask you first, and
+  some would run with no request to you and outside the permission level you
+  set. Connected apps stay off until each tool can be shown and asked for.
+- **What the person does instead:** use connected apps in ChatGPT or in your
+  own Codex, outside the App. The App's list of the settings it applies to its
+  Codex shows this one, with its reason.
+- **Basis:** DEL-01-05 (REQ-010, the settings the App applies to its Codex).
+  That turning the setting off removes the connected apps' tools is read from
+  the source at the pinned Codex version. It is not shown by a fixture, because
+  the connected apps start only for a signed-in account.

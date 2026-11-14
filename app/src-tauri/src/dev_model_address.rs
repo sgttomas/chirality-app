@@ -356,10 +356,10 @@ for line in sys.stdin:
         std::fs::remove_dir_all(root).unwrap();
     }
 
-    /// DEL-01-05 REQ-010: plugins are off at every start of the account home's Codex, start and
-    /// restart, as `-c features.plugins=false`, and the configuration identity records it.
+    /// DEL-01-05 REQ-010: plugins and connected apps are off at every start of the account home's
+    /// Codex, start and restart, each as one `-c` setting, and the configuration identity records both.
     #[test]
-    fn the_account_home_starts_codex_with_plugins_off_every_time() {
+    fn the_account_home_starts_codex_with_plugins_and_apps_off_every_time() {
         let (root, cfg) = fixture();
         let host = Arc::new(Host::new());
         host.start(&cfg, "fixture").unwrap();
@@ -368,13 +368,17 @@ for line in sys.stdin:
         let starts = started_with(&root);
         assert_eq!(starts.len(), 2);
         for arguments in &starts {
-            let at = arguments.iter().position(|a| a == crate::hosting::PLUGINS_OFF_FLAG).expect("plugins off is passed");
-            assert_eq!(arguments[at - 1], "-c");
-            assert_eq!(arguments.iter().filter(|a| a.contains("features.plugins")).count(), 1, "{arguments:?}");
+            for (flag, key) in [(crate::hosting::PLUGINS_OFF_FLAG, "features.plugins"), (crate::hosting::APPS_OFF_FLAG, "features.apps")] {
+                let at = arguments.iter().position(|a| a == flag).expect("passed");
+                assert_eq!(arguments[at - 1], "-c");
+                assert_eq!(arguments.iter().filter(|a| a.contains(key)).count(), 1, "{arguments:?}");
+            }
             assert_eq!(arguments.last().map(String::as_str), Some("app-server"));
         }
         let identity = host.snapshot()["configurationIdentity"].clone();
-        assert!(identity["sessionFlags"].as_array().unwrap().iter().any(|f| f == crate::hosting::PLUGINS_OFF_FLAG), "{identity}");
+        for flag in [crate::hosting::PLUGINS_OFF_FLAG, crate::hosting::APPS_OFF_FLAG] {
+            assert!(identity["sessionFlags"].as_array().unwrap().iter().any(|f| f == flag), "{identity}");
+        }
         host.stop("fixture", "test ended").unwrap();
         std::fs::remove_dir_all(root).unwrap();
     }
