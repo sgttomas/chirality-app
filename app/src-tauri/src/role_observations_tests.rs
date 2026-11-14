@@ -535,7 +535,6 @@ fn close_hold_dispose_and_old_openers_preserve_existing_retention_boundary() {
 #[test]
 fn legacy_02_keeps_its_exact_evidence_and_unknown_home() {
     let f = Fixture::new();
-    let log = f.log();
     let dir = records_store::write_dir(&f.project).unwrap().join(FOLDER);
     std::fs::create_dir(&dir).unwrap();
     let old = composition()
@@ -544,6 +543,7 @@ fn legacy_02_keeps_its_exact_evidence_and_unknown_home() {
     let mut bytes = serde_json::to_vec(&old).unwrap();
     bytes.push(b'\n');
     std::fs::write(dir.join(LOG), &bytes).unwrap();
+    let log = f.log();
     let view = log.read("home", None);
     assert_eq!(view["observations"][0]["record"], old);
     assert_eq!(view["observations"][0]["legacy"], true);

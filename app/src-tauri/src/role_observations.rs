@@ -277,7 +277,7 @@ impl RoleLog {
         )>,
         String,
     > {
-        if !write { self.check_project()?; }
+        self.check_project()?;
         let dir = if write {
             self.writer_dir()?
         } else {

@@ -1555,6 +1555,15 @@ impl WriterBinding {
     pub(crate) fn project_folder(&self) -> (u64, u64) {
         self.source.project_folder()
     }
+    /// A kept reader must accept this writer's original destination before
+    /// publication. An in-place reader requires reopening. A reader already
+    /// bound to this store folder can accept an original-byte retry even when
+    /// removing a failed-write obstruction temporarily left that folder empty.
+    /// The caller proves this writer under write admission first.
+    pub(crate) fn prove_reader(&self, reader: &ReaderBinding) -> Result<(), String> {
+        let project = reader.prove_store_and_project()?;
+        reader.prove_folders(project, Some(self.records_dir().to_path_buf()))
+    }
     /// Read-only preflight of this binding, retaining the attachment's own
     /// refusal. This alone admits no write; prove_for_write still runs under
     /// the shared admission after a queued writer obtains it.

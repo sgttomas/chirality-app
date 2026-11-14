@@ -566,7 +566,11 @@ impl ProjectRecords {
         binding.prove_for_write()?;
         // A handle that read in place must refuse an import before publishing,
         // rather than first discovering it in a closing read after publication.
-        let _read = self.read_admission()?;
+        // Prove only a reader already kept by a read. A failed publication
+        // must not bind a new reader to an empty or obstructed records home.
+        if let Some(reader) = self.reader.lock().unwrap_or_else(|p| p.into_inner()).as_ref() {
+            binding.prove_reader(reader)?;
+        }
         if pending.project != self.identity {
             return Err("pending WR record belongs to another project".into());
         }
