@@ -148,8 +148,8 @@ fn every_session_setting_the_app_applies_is_listed_with_a_reason() {
     assert_eq!(account.session_flags, ["analytics.enabled=false", "features.plugins=false", "features.apps=false", "model_provider=\"openai\""]);
     let listed = applied_session_settings(&account.session_flags);
     assert_eq!(listed.as_array().unwrap().len(), 4);
-    assert!(listed[1]["reason"].as_str().unwrap().contains("a plugin named in your own Codex settings is not loaded here"));
-    assert!(listed[2]["reason"].as_str().unwrap().contains("apps connected to your ChatGPT account"));
+    assert!(listed[1]["reason"].as_str().unwrap().contains("a plugin named in your settings is not loaded here"));
+    assert!(listed[2]["reason"].as_str().unwrap().contains("Apps connected to your ChatGPT account are unavailable"));
     assert!(listed[3]["reason"].as_str().unwrap().contains("Your files are not changed"));
     let unknown = applied_session_settings(&["invented.setting=1".into()]);
     assert_eq!(unknown, json!([{"setting":"invented.setting=1","reason":"No reason is recorded for this setting."}]), "an unrecognised setting is listed, not dropped");

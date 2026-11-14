@@ -386,8 +386,8 @@ pub(crate) fn applied_session_settings(flags: &[String]) -> Value {
         let key = flag.split('=').next().unwrap_or("");
         match key {
             "analytics.enabled" => "Turns off Codex's analytics traffic.",
-            "features.plugins" if flag == PLUGINS_OFF_FLAG => "Turns off Codex's plugins in this home: the App's Codex fetches, installs and loads none, so a plugin named in your own Codex settings is not loaded here. Your own Codex and its files are not changed.",
-            "features.apps" if flag == APPS_OFF_FLAG => "Turns off apps connected to your ChatGPT account in this home: the App's Codex is given none of their tools here. Your account and its connected apps are not changed.",
+            "features.plugins" if flag == PLUGINS_OFF_FLAG => "Plugins are unavailable in the App's Codex in this release, whatever your own Codex settings say: it fetches, installs and loads none, so a plugin named in your settings is not loaded here. Your own Codex and its files are not changed.",
+            "features.apps" if flag == APPS_OFF_FLAG => "Apps connected to your ChatGPT account are unavailable in the App's Codex in this release, whatever your own settings say: it is given none of their tools here. Your account and its connected apps are not changed.",
             "features.api_key_model_discovery" => "Stops Codex sending the local server's key to a model catalogue address.",
             "cli_auth_credentials_store" => "Keeps the local server's key in this home's own Codex file, not your keychain or your own Codex home.",
             "model_provider" if flag == ACCOUNT_PROVIDER_FLAG => "Codex runs a conversation only on the provider it was started with, so this home's Codex is started on its built-in OpenAI provider, whatever default your Codex settings name. Your files are not changed.",

@@ -239,34 +239,38 @@ An entry is added in the same pull request that makes the limitation standing.
   of the reach of the account the App runs under.
 - **Basis:** DEL-01-04 and DEL-04-02 (the permission level); PRD V4-AUT-06.
 
-### LIM-024: Plugins are not available in the App's Codex
+### LIM-024: Plugins are unavailable in the App's Codex in this release
 
 - **Id:** LIM-024
 - **Exit criteria:** 6
-- **What is unavailable:** plugins in the App's Codex. The App starts its Codex
-  with plugins turned off, whatever your own plugin setting, so the App's Codex
-  fetches, installs and loads no plugin. A plugin named in your own Codex
-  settings is not loaded in the App, and no skill, tool server or hook comes
-  from one.
-- **Why:** the App does not yet show which plugins are named or loaded, or what
-  each one adds. A plugin that runs where the App shows nothing could act on
-  your behalf without your seeing it, so plugins stay off until the App can
-  show them.
+- **What is unavailable:** plugins in the App's Codex. Plugins are not available
+  in the App's Codex in this release, and your own Codex settings cannot turn
+  them on there. A plugin's hooks, those that approve and those that refuse, do
+  not apply to conversations in the App, and nor do its skills or tool servers.
+  They continue to apply in your own Codex. So if a plugin's hook stops a
+  command for you in your own Codex, it does not stop it in the App.
+- **Why:** the App cannot yet show which plugins are named or loaded, or what
+  each one approves or refuses. With plugins on, they would apply unseen, and
+  the level you set and see in the App would not be what governs a
+  conversation.
 - **What the person does instead:** use the plugin in your own Codex, outside
-  the App. The App's list of the settings it applies to its Codex shows this
-  one, with its reason.
+  the App. Where a plugin's hook is what keeps a command from running for you,
+  choose a level in the App that asks before commands. The App's list of the
+  settings it applies to its Codex shows this one, with its reason. If the App
+  finds plugins turned on by a setting outside it, it does not start a
+  conversation in that home and says so.
 - **Basis:** DEL-01-05 (REQ-010, the settings the App applies to its Codex).
   That turning plugins off stops the start-up plugin traffic is shown for the
   lock file of the curated sync and for the featured list. The sync's own
   network attempts are read from the source (`app/supplier_checks/level`).
 
-### LIM-025: Apps connected to your ChatGPT account are not available in the App's Codex
+### LIM-025: Apps connected to your ChatGPT account are unavailable in the App's Codex in this release
 
 - **Id:** LIM-025
 - **Exit criteria:** 6
 - **What is unavailable:** the apps connected to your ChatGPT account, in the
-  App's Codex. The App starts its Codex with connected apps turned off, so none
-  of their tools is given to it. You keep your connected apps; the App's Codex
+  App's Codex. Your own settings cannot turn them on there: none of their tools
+  is given to the App's Codex. You keep your connected apps; the App's Codex
   does not use them.
 - **Why:** the App cannot make every connected app's tool ask you first, and
   some would run with no request to you and outside the permission level you
