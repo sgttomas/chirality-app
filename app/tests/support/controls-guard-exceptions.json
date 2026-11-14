@@ -66,12 +66,6 @@
   "reason": "the App's words: the SHARED literal list in FirstUse.tsx"
  },
  {
-  "file": "RequirementCheck.tsx",
-  "where": "@aria-label",
-  "expr": "label",
-  "reason": "the App's words: a string constant in the same function"
- },
- {
   "file": "RunJourney.tsx",
   "where": "@aria-label",
   "expr": "label",
@@ -112,5 +106,143 @@
   "where": "@aria-label",
   "expr": "lead",
   "reason": "the App's words: limitSubjectWords, whose role and conversation id go through idWords"
+ },
+ {
+  "file": "App.tsx",
+  "where": "<a>",
+  "expr": "item.label",
+  "reason": "the App's words: WORKSPACE_VIEWS, a literal list (DailyWorkspace.tsx)"
+ },
+ {
+  "file": "ConnectorReconstruction.tsx",
+  "where": "<label>",
+  "expr": "side",
+  "reason": "the App's words: the literal list [\"since\",\"at\"] in the same expression"
+ },
+ {
+  "file": "ConnectorReconstruction.tsx",
+  "where": "<option>",
+  "expr": "x",
+  "reason": "the App's words: a literal list in the same expression (asserted roles, reported duties, reported statuses)"
+ },
+ {
+  "file": "ConnectorRoutePanel.tsx",
+  "where": "<summary>",
+  "expr": "section.label",
+  "reason": "the App's words: the host's literal section labels (connector_route_view.rs, the sections list)"
+ },
+ {
+  "file": "ConnectorSourcePanel.tsx",
+  "where": "<option>",
+  "expr": "v",
+  "reason": "the App's words: the literal list ['absent','stale','partial','failing'] in the same expression"
+ },
+ {
+  "file": "ConnectorSourcePanel.tsx",
+  "where": "<legend>",
+  "expr": "side",
+  "reason": "the App's words: the literal list [\"at\",\"since\"] in the same expression"
+ },
+ {
+  "file": "ConnectorSourcePanel.tsx",
+  "where": "<legend>",
+  "expr": "duty",
+  "reason": "the App's words: the keys of the duties state, initialised with three literal keys and never given others"
+ },
+ {
+  "file": "ConversationRoles.tsx",
+  "where": "<label>",
+  "expr": "name",
+  "reason": "the App's words: a role name, kept only when it is one of CONVERSATION_ROLES (a literal list)"
+ },
+ {
+  "file": "ConversationRoles.tsx",
+  "where": "<label>",
+  "expr": "text(r.meaning)",
+  "reason": "the App's words: a role meaning from the bundled role set, which the host refuses unless each meaning equals its literal (role_supply.rs, RoleSet::parse)"
+ },
+ {
+  "file": "ConversationRoles.tsx",
+  "where": "<option>",
+  "expr": "`${r}: ${meaningOf(r)}`",
+  "reason": "the App's words: r is from CONVERSATION_ROLES (a literal list); its meaning is from the bundled role set, which the host refuses unless each meaning equals its literal (role_supply.rs, RoleSet::parse)"
+ },
+ {
+  "file": "ConversationRoles.tsx",
+  "where": "<option>",
+  "expr": "r",
+  "reason": "the App's words: from CONVERSATION_ROLES, a literal list"
+ },
+ {
+  "file": "IncludedWorkflows.tsx",
+  "where": "<summary>",
+  "expr": "section.label",
+  "reason": "the App's words or the pinned Library index shipped in the App's resources: a literal section name, or a group label of an entry included with the App, which no agent or project file writes"
+ },
+ {
+  "file": "MakeJourney.tsx",
+  "where": "<a>",
+  "expr": "next.link",
+  "reason": "the App's words: every draftStep return gives a literal link"
+ },
+ {
+  "file": "ModelChoice.tsx",
+  "where": "<button>",
+  "expr": "`Use ${text(row.displayName)}`",
+  "reason": "a display name from the model list Codex returns (model/list) for the built-in OpenAI route, the only route 4.0.0 offers; not text an agent or a project file writes. It would be false if a route whose model list a third party or the person configures were offered again (the local and configured-provider routes are refused in 4.0.0)"
+ },
+ {
+  "file": "ModelChoice.tsx",
+  "where": "<button>",
+  "expr": "`Use ${text(row.displayName)} (provider not confirmed)`",
+  "reason": "a display name from the model list Codex returns (model/list) for the built-in OpenAI route, the only route 4.0.0 offers; not text an agent or a project file writes. It would be false if a route whose model list a third party or the person configures were offered again (the local and configured-provider routes are refused in 4.0.0)"
+ },
+ {
+  "file": "ModelChoice.tsx",
+  "where": "<label>",
+  "expr": "row?.displayName || (model ? idWords(model) : \"the current conversation model\")",
+  "reason": "a display name from the model list Codex returns (model/list) for the built-in OpenAI route, the only route 4.0.0 offers; not text an agent or a project file writes. It would be false if a route whose model list a third party or the person configures were offered again (the local and configured-provider routes are refused in 4.0.0); the model it falls back to goes through idWords"
+ },
+ {
+  "file": "RecordsStorePanel.tsx",
+  "where": "<button>",
+  "expr": "` (${String(project.notImportedKinds)})`",
+  "reason": "the App's words: the host's describe() (records_store.rs), counts and literal kinds only"
+ },
+ {
+  "file": "RecoveryCustodyPanel.tsx",
+  "where": "<summary>",
+  "expr": "restartWords(event)",
+  "reason": "the App's words: restartWords returns a literal sentence, or an event kind through idWords"
+ },
+ {
+  "file": "RecoveryCustodyPanel.tsx",
+  "where": "<summary>",
+  "expr": "requestEndWords(event)",
+  "reason": "the App's words: requestEndWords returns a literal sentence, or an event kind through idWords"
+ },
+ {
+  "file": "RequestCards.tsx",
+  "where": "<button>",
+  "expr": "decisionWords(decision)",
+  "reason": "the App's words: decisionWords returns only literals (\"Codex option\" for an unknown kind; the whole value is boxed beside)"
+ },
+ {
+  "file": "RequestCards.tsx",
+  "where": "<label>",
+  "expr": "decisionWords(\"denied\")",
+  "reason": "the App's words: decisionWords returns only literals"
+ },
+ {
+  "file": "WorkflowContext.tsx",
+  "where": "@aria-label",
+  "expr": "label",
+  "reason": "the App's words: every caller passes a string literal (the five ConversationContext uses)"
+ },
+ {
+  "file": "WorkflowRegistrationReview.tsx",
+  "where": "@aria-label",
+  "expr": "`Reviewed workflow ${index + 1}`",
+  "reason": "a count: ReviewEntry's index prop is typed number and its only caller passes the .map index"
  }
 ]

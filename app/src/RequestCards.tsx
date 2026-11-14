@@ -572,7 +572,7 @@ export function WaitingRequestsIndicator({ overview, view, busy = false, open }:
     <b>{!available ? "Waiting-request overview unavailable." : total === 0 ? "No current waiting requests observed in configured homes." : `${total} request${total === 1 ? "" : "s"} from Codex waiting for your answer`}</b>
     {waiting.map(row => <div key={JSON.stringify([row.modeHomeClass, row.generation, row.threadId])}>
       {/* A control carries only the App's words: a thread id stands in it only when it is a plain identifier. */}
-      <button disabled={busy} onClick={() => open(row)}>{row.modeHomeClass} · {!row.threadId ? "no conversation named" : plainId(row.threadId) ? `thread ${idWords(row.threadId)}` : "a conversation (its identity is shown beside)"}: {idWords(row.count)}</button>
+      <button disabled={busy} onClick={() => open(row)}>{idWords(row.modeHomeClass)} · {!row.threadId ? "no conversation named" : plainId(row.threadId) ? `thread ${idWords(row.threadId)}` : "a conversation (its identity is shown beside)"}: {idWords(row.count)}</button>
       {row.threadId && !plainId(row.threadId) && <> <AgentText value={row.threadId} source="codex" label="Conversation:" name="Conversation identity as Codex reported it, not the App's words" /></>}
       {" "}<AskedBy asker={requestAsker(row.threadId, row.generation, view)} />.
       <small> Source: {JSON.stringify(row.generation)}.</small>

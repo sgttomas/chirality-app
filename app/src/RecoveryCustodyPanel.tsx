@@ -9,12 +9,12 @@ export const OPEN_AT_APP_SESSION_END_WORDS = "The App session that held this req
 export const requestEndWords = (event: Json): string => event?.kind === "request_open_at_app_session_end"
   ? OPEN_AT_APP_SESSION_END_WORDS
   : event?.kind === "request_ended_unanswered" ? "Recorded by an earlier build as ended unanswered when its App session ended without a record:"
-  : `${event?.kind ? idWords(event.kind) : "unnamed event"}:`;
+  : `${event?.kind ? idWords(event.kind) : "not established"}:`;
 /** What a restart fact establishes: live work as an earlier App session last recorded it, and
  *  whether it was live when that session ended only where the App recorded that at its quit. */
 export const LAST_RECORDED_LIVE_WORDS = "Live work as an earlier App session last recorded it. That session has ended; whether the work was still live when it ended was not observed.";
 export const RECORDED_AT_QUIT_WORDS = "Live work an earlier App session recorded losing sight of at its quit.";
-export const restartWords = (event: Json): string => event?.kind !== "app_restart_interruption" ? `${event?.kind ? idWords(event.kind) : "unnamed event"}:`
+export const restartWords = (event: Json): string => event?.kind !== "app_restart_interruption" ? `${event?.kind ? idWords(event.kind) : "not established"}:`
   : event?.liveAtSessionEnd === "recorded-at-quit" ? RECORDED_AT_QUIT_WORDS : LAST_RECORDED_LIVE_WORDS;
 const detail = (value: Json) => <RecordedData value={value} />;
 

@@ -324,10 +324,21 @@ test('a recorded dump is marked, with a plain label true of App-only and mixed d
 // ---- The sweep: guard 2's own behaviour ----
 test('guard 2 passes only App-made forms or listed exceptions, and fails a form it has never seen', async () => {
   const {findings, appMade} = await import('./support/controls-guard.mjs');
-  const judge = source => findings('Invented.tsx', source).map(f => ({where: f.where, expr: f.expr, ok: !!(f.node && appMade(f.node))}));
+  const judge = (source, name = 'Invented.tsx') => findings(name, source).map(f => ({where: f.where, expr: f.expr, ok: !!(f.node && appMade(f.node, f.context))}));
+  const imports = 'import { idWords } from "./AgentText";\n';
   // App-made: literals, choices between them, counts, index arithmetic, the App-word helpers.
-  assert.deepEqual(judge('const x = <button>{busy ? "Reading…" : "Read"} {rows.length} {i + 1} {idWords(row.id)}</button>;').map(f => f.ok), [true, true, true, true, true], 'each branch of a choice is judged on its own');
-  assert.deepEqual(judge('const x = <summary>{`Trial ${n} of ${count(rows.length, "draft", "drafts")}`}</summary>;').map(f => f.ok), [true]);
+  assert.deepEqual(judge(imports + 'const x = rows.map((row, i) => <button>{busy ? "Reading…" : "Read"} {rows.length} {i + 1} {idWords(row.id)}</button>);').map(f => f.ok), [true, true, true, true, true], 'each branch of a choice is judged on its own');
+  assert.deepEqual(judge('const x = rows.map((row, n) => <summary>{`Trial ${n} of ${count(rows.length, "draft", "drafts")}`}</summary>);', 'RecordsStorePanel.tsx').map(f => f.ok), [true], 'a file\'s own helper, in the file that defines it');
+  // A helper's name alone is not trusted: AgentText's only where imported from ./AgentText under its own name, a file's own only in that file.
+  assert.deepEqual(judge('const idWords = (v: any) => v;\nconst x = <button>{idWords(row.title)}</button>;').map(f => f.ok), [false], 'a local function named idWords');
+  assert.deepEqual(judge('import { text as idWords } from "./AgentText";\nconst x = <button>{idWords(row.title)}</button>;').map(f => f.ok), [false], 'another function imported as idWords');
+  assert.deepEqual(judge('import { idWords } from "./elsewhere";\nconst x = <button>{idWords(row.title)}</button>;').map(f => f.ok), [false], 'idWords from another module');
+  assert.deepEqual(judge('const x = <summary>{count(row.title, "x")}</summary>;').map(f => f.ok), [false], 'count outside the file that defines it');
+  // An identifier is judged by its declaration, never its name: an index of a .map callback or a const with an App-made value passes.
+  assert.deepEqual(judge('const n = row.title;\nconst x = <button>{n}</button>;').map(f => f.ok), [false], 'an index-like name holding a supplied value');
+  assert.deepEqual(judge('const x = (i: any) => <button>{i}</button>;').map(f => f.ok), [false], 'a parameter named i that is not a .map index');
+  assert.deepEqual(judge('let n = "Read";\nconst x = <button>{n}</button>;').map(f => f.ok), [false], 'a let can be reassigned');
+  assert.deepEqual(judge(imports + 'const n = idWords(row.sequence);\nconst LIMIT = 2000;\nconst x = <button>{`Trial ${n}`} {LIMIT}</button>;').map(f => f.ok), [true, true], 'a const whose value is App-made');
   // A supplied value in a control or a naming attribute fails.
   assert.deepEqual(judge('const x = <button>{agent.text}</button>;'), [{where: '<button>', expr: 'agent.text', ok: false}]);
   assert.deepEqual(judge('const x = <div aria-label={`Run ${run.name}`} />;'), [{where: '@aria-label', expr: '`Run ${run.name}`', ok: false}]);

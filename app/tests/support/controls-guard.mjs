@@ -11,31 +11,79 @@ import {readdirSync, readFileSync} from 'node:fs';
 
 export const CONTROLS = new Set(['summary', 'button', 'option', 'a', 'label', 'legend']);
 export const NAMING_ATTRIBUTES = new Set(['title', 'aria-label', 'alt', 'placeholder']);
-/** Helpers whose result is always the App's words, a count or a checked identifier (each one read in its source). */
-export const APP_WORD_HELPERS = new Set(['plainId', 'idWords', 'count', 'size', 'safeName']);
+/** Helpers whose result is always the App's words, a count or a checked identifier (each one read in its source).
+ *  AgentText's helpers count only where the file imports them by these names from ./AgentText, and a file's own
+ *  helper only in the file that defines it, so a different function under the same name is never trusted. */
+export const AGENT_TEXT_HELPERS = new Set(['plainId', 'idWords', 'safeName']);
+export const LOCAL_HELPERS = {'RecordsStorePanel.tsx': ['count'], 'WorkflowText.tsx': ['size']};
+/** The helpers trusted in one source file. */
+export function helpersOf(name, sf) {
+  const trusted = new Set(LOCAL_HELPERS[name] ?? []);
+  for (const statement of sf.statements) {
+    if (!ts.isImportDeclaration(statement) || !ts.isStringLiteral(statement.moduleSpecifier) || statement.moduleSpecifier.text !== './AgentText') continue;
+    const bindings = statement.importClause?.namedBindings;
+    if (bindings && ts.isNamedImports(bindings)) for (const element of bindings.elements) {
+      // `import { other as idWords }` is not AgentText's idWords.
+      if (!element.propertyName && AGENT_TEXT_HELPERS.has(element.name.text)) trusted.add(element.name.text);
+    }
+  }
+  return trusted;
+}
 
 const normal = text => text.replace(/\s+/g, ' ').trim();
 
 /** Whether an expression is built only from the closed list of App-made forms. */
-export function appMade(node) {
-  if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isNonNullExpression(node)) return appMade(node.expression);
+/** One file's program, so an identifier is resolved to its own declaration rather than trusted by its name. */
+function parsed(name, text) {
+  const options = {noLib: true, noResolve: true, jsx: ts.JsxEmit.Preserve, target: ts.ScriptTarget.Latest, allowJs: false};
+  const source = ts.createSourceFile(name, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const host = ts.createCompilerHost(options);
+  host.getSourceFile = file => file === name ? source : undefined;
+  host.fileExists = file => file === name;
+  host.readFile = file => file === name ? text : undefined;
+  const program = ts.createProgram([name], options, host);
+  return {sf: program.getSourceFile(name), checker: program.getTypeChecker()};
+}
+/** An identifier is App-made only by what it is declared as: the index parameter of a .map callback (a count),
+ *  or a const in the same file whose own initializer is App-made. Its name alone is never trusted. */
+function trustedIdentifier(node, context) {
+  if (!context.checker || context.seen.has(node.text)) return false;
+  const symbol = context.checker.getSymbolAtLocation(node);
+  const declaration = symbol?.valueDeclaration ?? symbol?.declarations?.[0];
+  if (!declaration || declaration.getSourceFile() !== node.getSourceFile()) return false;
+  if (ts.isParameter(declaration)) {
+    const fn = declaration.parent, call = fn.parent;
+    return (ts.isArrowFunction(fn) || ts.isFunctionExpression(fn)) && fn.parameters.indexOf(declaration) === 1 && ts.isIdentifier(declaration.name)
+      && ts.isCallExpression(call) && call.arguments[0] === fn && ts.isPropertyAccessExpression(call.expression) && call.expression.name.text === 'map';
+  }
+  if (ts.isVariableDeclaration(declaration) && ts.isIdentifier(declaration.name) && declaration.initializer
+    && ts.isVariableDeclarationList(declaration.parent) && (declaration.parent.flags & ts.NodeFlags.Const)) {
+    context.seen.add(node.text);
+    try { return appMade(declaration.initializer, context); } finally { context.seen.delete(node.text); }
+  }
+  return false;
+}
+export function appMade(node, context = {helpers: new Set(), checker: null, seen: new Set()}) {
+  const made = child => appMade(child, context);
+  const helpers = context.helpers;
+  if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isNonNullExpression(node)) return made(node.expression);
   if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node) || ts.isNumericLiteral(node)) return true;
   if (node.kind === ts.SyntaxKind.NullKeyword || node.kind === ts.SyntaxKind.TrueKeyword || node.kind === ts.SyntaxKind.FalseKeyword) return true;
-  if (ts.isTemplateExpression(node)) return node.templateSpans.every(span => appMade(span.expression));
+  if (ts.isTemplateExpression(node)) return node.templateSpans.every(span => made(span.expression));
   // A choice shows one of its branches; its condition is not shown.
-  if (ts.isConditionalExpression(node)) return appMade(node.whenTrue) && appMade(node.whenFalse);
+  if (ts.isConditionalExpression(node)) return made(node.whenTrue) && made(node.whenFalse);
   if (ts.isBinaryExpression(node)) {
     const op = node.operatorToken.kind;
     // `a && b` shows b (or a false or empty a, which renders nothing; a number a is a count by the next rule or fails).
-    if (op === ts.SyntaxKind.AmpersandAmpersandToken) return appMade(node.right) && (isCondition(node.left) || appMade(node.left));
-    if (op === ts.SyntaxKind.BarBarToken || op === ts.SyntaxKind.QuestionQuestionToken || op === ts.SyntaxKind.PlusToken) return appMade(node.left) && appMade(node.right);
-    if ([ts.SyntaxKind.MinusToken, ts.SyntaxKind.AsteriskToken, ts.SyntaxKind.SlashToken].includes(op)) return appMade(node.left) && appMade(node.right);
+    if (op === ts.SyntaxKind.AmpersandAmpersandToken) return made(node.right) && (isCondition(node.left) || made(node.left));
+    if (op === ts.SyntaxKind.BarBarToken || op === ts.SyntaxKind.QuestionQuestionToken || op === ts.SyntaxKind.PlusToken) return made(node.left) && made(node.right);
+    if ([ts.SyntaxKind.MinusToken, ts.SyntaxKind.AsteriskToken, ts.SyntaxKind.SlashToken].includes(op)) return made(node.left) && made(node.right);
     return false;
   }
-  // A count: the length of something, or a plain index arithmetic on one.
+  // A count: the length of something. An identifier stands for what it is declared as (trustedIdentifier).
   if (ts.isPropertyAccessExpression(node) && node.name.text === 'length') return true;
-  if (ts.isIdentifier(node) && /^(index|i|j|k|n)$/.test(node.text)) return true;
-  if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && APP_WORD_HELPERS.has(node.expression.text)) return true;
+  if (ts.isIdentifier(node)) return trustedIdentifier(node, context);
+  if (ts.isCallExpression(node) && ts.isIdentifier(node.expression) && helpers.has(node.expression.text)) return true;
   return false;
 }
 const hasJsx = node => { let found = false; const walk = n => { if (found) return; if (ts.isJsxElement(n) || ts.isJsxSelfClosingElement(n) || ts.isJsxFragment(n)) { found = true; return; } ts.forEachChild(n, walk); }; walk(node); return found; };
@@ -54,8 +102,9 @@ function isCondition(node) {
 
 /** Every expression the guard looks at in one source text: { line, where, expr }. */
 export function findings(name, text) {
-  const sf = ts.createSourceFile(name, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const {sf, checker} = parsed(name, text);
   const out = [];
+  const context = {helpers: helpersOf(name, sf), checker, seen: new Set()};
   const at = node => sf.getLineAndCharacterOfPosition(node.getStart()).line + 1;
   const attributes = props => { for (const a of props) if (ts.isJsxAttribute(a) && NAMING_ATTRIBUTES.has(a.name.getText()) && a.initializer && ts.isJsxExpression(a.initializer) && a.initializer.expression)
     out.push({line: at(a), where: `@${a.name.getText()}`, node: a.initializer.expression}); };
@@ -86,17 +135,21 @@ export function findings(name, text) {
     ts.forEachChild(node, child => visit(child, control));
   };
   visit(sf, null);
-  return out.map(({line, where, node, component}) => ({line, where, expr: component ? `<${component}>` : normal(node.getText()), node: component ? null : node}));
+  return out.map(({line, where, node, component}) => ({line, where, expr: component ? `<${component}>` : normal(node.getText()), node: component ? null : node, context}));
 }
 
 /** The failures in the views: each expression neither App-made nor listed with its reason. */
 export function guardFailures(srcDir, exceptions) {
   const listed = new Set(exceptions.map(e => `${e.file}|${e.where}|${normal(e.expr)}`));
-  const failures = [];
+  const failures = [], used = new Set();
   for (const name of readdirSync(srcDir).filter(n => n.endsWith('.tsx') && n !== 'AgentText.tsx').sort()) {
     for (const f of findings(name, readFileSync(new URL(name, srcDir), 'utf8'))) {
-      if (!(f.node && appMade(f.node)) && !listed.has(`${name}|${f.where}|${f.expr}`)) failures.push(`${name}:${f.line} ${f.where} ${f.expr}`);
+      if (f.node && appMade(f.node, f.context)) continue;
+      const key = `${name}|${f.where}|${f.expr}`;
+      if (listed.has(key)) used.add(key); else failures.push(`${name}:${f.line} ${f.where} ${f.expr}`);
     }
   }
+  // A listed exception that no longer matches an expression the guard would fail is stale: it is removed, not kept.
+  for (const key of listed) if (!used.has(key)) failures.push(`stale exception ${key}`);
   return failures;
 }

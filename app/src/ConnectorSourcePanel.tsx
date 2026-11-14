@@ -1,4 +1,4 @@
-import { AgentText, RecordedData } from "./AgentText";
+import { AgentText, RecordedData, idWords } from "./AgentText";
 import { ReconstructionFields, ReconstructionView, emptyReconstruction, reconstructionPayload } from "./ConnectorReconstruction";
 import { EXACT_TEXT } from "./exactText";
 import { useEffect, useRef, useState } from "react";
@@ -149,7 +149,7 @@ export function ConnectorSourcePanel({availability,command}:{availability?:Route
       <p>One-based LF lines; terminal LF belongs to its preceding line. CR and Unicode bytes are retained. Empty files have no selectable lines.</p>
       <label>Revision treatment<select value={kind} onChange={e=>setKind(e.target.value)}><option value="unavailable">Unavailable</option><option value="caller_assertion">Caller assertion (unverified)</option><option value="source_text_located">Source text located (inclusion only)</option></select></label>
       <label>Caller revision label / interpretation<input value={label} onChange={e=>setLabel(e.target.value)}/></label>
-      {kind==="source_text_located" && <label>Checked excerpt<select value={anchor} onChange={e=>setAnchor(e.target.value)}><option value="">Choose an excerpt</option>{observation.anchors.map((a:Json)=><option key={a.reference} value={a.reference}>{a.anchor}</option>)}</select></label>}
+      {kind==="source_text_located" && <label>Checked excerpt<select value={anchor} onChange={e=>setAnchor(e.target.value)}><option value="">Choose an excerpt</option>{observation.anchors.map((a:Json)=><option key={a.reference} value={a.reference}>{idWords(a.anchor)}</option>)}</select></label>}
       <button onClick={()=>act("revise_connector_source",{...bindings(),observationReference:observation.reference,kind,label,anchorReference:anchor||null})}>Record preview interpretation</button>
     </fieldset>}
     <ConnectorDraftPanel source={state} availability={availability} command={command}/>
@@ -191,10 +191,10 @@ export function ConnectorDraftPanel({source,availability,command}:{source:Source
  <p>Editing these inputs cancels an unsubmitted frozen draft. Publication already started may finish; its actual outcome remains below.</p>
  <fieldset disabled={!eligible||busy||!!registry?.inflight}><legend>Explicit caller inputs</legend><label>Account format<select value={format} onChange={e=>{invalidate();setFormat(e.target.value);}}><option value="0.3">Source-evidence draft (0.3)</option><option value="0.4">Bounded record comparison (0.4, two pins)</option></select></label>
  <label>Constructed connector label<select value={connector} onChange={e=>{invalidate();setConnector(e.target.value);}}><option value="">Choose…</option><option value="pec">PEC</option><option value="domains">Domains</option></select></label>
- {(["at","since"] as const).map(side=>{const item=result?.observation?.[side];if(item?.status!=="Git-object-verified")return null;const ref=item.object.reference,c=choices[ref]??{selected:false,role:"",anchors:[]};return <fieldset key={ref}><legend>{side}: {item.object.readCommit}</legend>
+ {(["at","since"] as const).map(side=>{const item=result?.observation?.[side];if(item?.status!=="Git-object-verified")return null;const ref=item.object.reference,c=choices[ref]??{selected:false,role:"",anchors:[]};return <fieldset key={ref}><legend>{side}: {idWords(item.object.readCommit)}</legend>
  <label><input type="checkbox" checked={c.selected} onChange={e=>choose(ref,{selected:e.target.checked})}/>Include this successfully observed side</label>
  <label>Intended source role (caller assertion)<input {...EXACT_TEXT} value={c.role} onChange={e=>choose(ref,{role:e.target.value})}/></label>
- {result.anchors?.filter((a:Json)=>a.sideObservationReference===ref).map((a:Json)=><label key={a.reference}><input type="checkbox" checked={c.anchors.includes(a.reference)} onChange={e=>choose(ref,{anchors:e.target.checked?[...c.anchors,a.reference]:c.anchors.filter(x=>x!==a.reference)})}/>Include checked excerpt {a.anchor}: {a.text}</label>)}
+ {result.anchors?.filter((a:Json)=>a.sideObservationReference===ref).map((a:Json)=><div key={a.reference}><label><input type="checkbox" checked={c.anchors.includes(a.reference)} onChange={e=>choose(ref,{anchors:e.target.checked?[...c.anchors,a.reference]:c.anchors.filter(x=>x!==a.reference)})}/>Include checked excerpt {idWords(a.anchor)}</label><AgentText value={a.text} source="record"/></div>)}
  </fieldset>;})}
  {format==="0.3"&&<><label>Optional caller interpretation<textarea value={statement} onChange={e=>{invalidate();setStatement(e.target.value);}}/></label>
  <label>Asserted by (unverified caller identity)<input {...EXACT_TEXT} value={assertedBy} onChange={e=>{invalidate();setAssertedBy(e.target.value);}}/></label>

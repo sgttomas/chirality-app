@@ -124,7 +124,7 @@ function DraftTrials({ draft, chosen, host, canAct, perform, openPreparedMessage
   return <div aria-label="Trials of this draft">
     <h4>Trials so far</h4>
     {trials.length > 0 && <ul>{trials.map((trial: Json) => {
-      const n = text(trial.sequence), brought = list(trial.broughtBack);
+      const n = idWords(trial.sequence), brought = list(trial.broughtBack);
       const mine = bringBackDoubtsFor("trial", trial.reference, doubts);
       const held = target ? mine.find(doubt => !doubt.acknowledged && doubtDestination(doubt, target) !== "other") : undefined;
       const existing = target ? feedback.find(item => item.pending?.trial === trial.reference && sameTarget(item.pending?.target, target) && item.pending?.includeNative !== true) : undefined;
@@ -148,13 +148,13 @@ function DraftTrials({ draft, chosen, host, canAct, perform, openPreparedMessage
             // The results line below already offers this held copy; the row only says where it is.
             ? <small>Its results are prepared for this conversation but held, so they aren't sent again; see below.</small>
             : <><button disabled={!openPreparedMessage || preparedMessageLimit(host, existing) !== null} onClick={() => openPreparedMessage?.(existing)}>Read and send trial {n}'s prepared results</button><small> Its results are already prepared for this conversation.</small></>)
-          : <><button disabled={!canAct || limit !== null} onClick={() => bring(trial)}>{chosen ? `Bring trial ${n} back to ${conversationLabel(host, chosen)}` : `Bring trial ${n} back`}</button>{limit && <small> {limit}</small>}{limit === COLD_TRIAL && <details><summary>Why</summary><p><small>{text(trial.sourceLimit)}</small></p></details>}</>}
+          : <><button disabled={!canAct || limit !== null} onClick={() => bring(trial)}>{chosen ? `Bring trial ${n} back to the conversation chosen above` : `Bring trial ${n} back`}</button>{limit && <small> {limit}</small>}{limit === COLD_TRIAL && <details><summary>Why</summary><p><small>{text(trial.sourceLimit)}</small></p></details>}</>}
       </li>;
     })}</ul>}
     <div aria-live="polite">{feedback.map(item => {
       // A copy the dispatch guard holds is prepared, not ready to send (same rule as its Send).
       const block = bringBackSendBlock(item.pending, item.pending?.target, doubts);
-      const n = text(item.pending?.sequence);
+      const n = idWords(item.pending?.sequence);
       return <p key={item.identity}>{block
         ? <>Trial {n}'s results are prepared in <ConversationRef host={host} refValue={item.owner} none="its conversation"/>, but sending them is held: {block}</>
         : <>Trial {n}'s results are ready to send in <ConversationRef host={host} refValue={item.owner} none="its conversation"/>.</>}{" "}

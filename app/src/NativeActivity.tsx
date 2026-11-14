@@ -247,7 +247,7 @@ function ItemBody({ row, plans, runStart = false }: { row: Json; plans: Json[]; 
         <AgentText block value={streamed(row) ?? text(n.text)} /></div>;
     case "reasoning": {
       const summary: Json[] = Array.isArray(row.summaryPreview) && row.displayState !== "completed" ? row.summaryPreview : list(n.summary);
-      return <details><summary>Reasoning summary<Unfinished row={row} /></summary>{summary.length === 0 ? <i> (none supplied{row.displayState === "completed" ? "" : " so far"})</i> : <AgentText block value={summary.map(text).join("\n\n")} />}</details>;
+      return <details><summary>Reasoning summary{row.displayState === "completed" ? "" : " (not finished; its state is shown inside)"}</summary><Unfinished row={row} />{summary.length === 0 ? <i> (none supplied{row.displayState === "completed" ? "" : " so far"})</i> : <AgentText block value={summary.map(text).join("\n\n")} />}</details>;
     }
     case "plan": {
       // An ordinal counts revisions in the order this App received them, so it

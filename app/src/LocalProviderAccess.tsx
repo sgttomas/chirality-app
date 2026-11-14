@@ -155,7 +155,7 @@ export function LocalModelSettings({ disabled, changed }: { disabled: boolean; c
         : "The saved local model settings could not be read, so nothing is shown as set. The local connection is unavailable until they can be."}</p>
       {view.keyMismatch && view.settings && (view.keyMismatch.recorded
         ? <><p role="alert">The saved key was entered for <code>{view.keyMismatch.recorded}</code>, and the address now set is <code>{view.settings.endpoint}</code>. The App will not use that key with another address.</p>
-          <p><button disabled={disabled || busy} onClick={() => { void run("local_model_settings_save", { endpoint: view.keyMismatch!.recorded, model: view.settings!.model }); }}>Set the address back to {view.keyMismatch.recorded}…</button>{" "}
+          <p><button disabled={disabled || busy} onClick={() => { void run("local_model_settings_save", { endpoint: view.keyMismatch!.recorded, model: view.settings!.model }); }}>Set the address back to the one the key was entered for…</button>{" "}
             <small>Asks you to confirm in a native question first. The saved key is kept and the model name is not changed.</small></p></>
         : <p role="alert">A key is saved, and the App has no record of the server address it was entered for, so it will not use that key at any address. This cannot be put right from the App.</p>)}
       {view.inForce && <p>The local connection was prepared in this session with: server <code>{view.inForce.endpoint}</code> · model <code>{view.inForce.model}</code>.</p>}

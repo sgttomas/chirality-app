@@ -1,4 +1,4 @@
-import { AgentText } from "./AgentText";
+import { AgentText, idWords } from "./AgentText";
 import { useState } from "react";
 import { ConnectionAndModel, RoleChoice, type SendState, type StartChoice } from "./ConversationRoles";
 import { useBoundModelChoice, type BoundModelChoice, type ModelRoute } from "./ModelChoice";
@@ -97,7 +97,7 @@ export function TrialSendOutcome({ outcome }: { outcome: SendState }) {
 export function TrialCard({ pending, busy, act }: { pending: Json; busy: boolean; act: TrialAct }) {
   return <div aria-label="Trial text" style={{ border: "1px dashed #888", padding: 6, margin: "6px 0" }}>
     <p><b>{text(pending?.card)}</b></p>
-    <details><summary>Open the trial text ({text(pending?.bytes)} bytes; identity {text(pending?.textIdentity?.value ?? pending?.textIdentity).slice(0, 12)})</summary><AgentText block value={text(pending?.text)} source="record" /></details>
+    <details><summary>Open the trial text ({idWords(pending?.bytes)} bytes; identity {idWords(text(pending?.textIdentity?.value ?? pending?.textIdentity).slice(0, 12))})</summary><AgentText block value={text(pending?.text)} source="record" /></details>
     <p><small>Not editable here: to change it, change the draft and Try again. Removing it cancels the trial; nothing is recorded.</small>{" "}
       <button disabled={busy} onClick={() => { void Promise.resolve(act("workflow_trial_cancel", { reference: pending?.reference })).catch(() => undefined); }}>Remove</button></p>
   </div>;
@@ -230,7 +230,7 @@ export function BringBackComposerView({ pending, conversations, prompt, setPromp
     <label>Your message (editable; not sent) <textarea value={prompt} disabled={busy || sent} onChange={e => setPrompt(e.target.value)} rows={4} style={{ display: "block", width: "100%" }} /></label>
     <div aria-label="Transcript" style={{ border: "1px dashed #888", padding: 6, margin: "6px 0" }}>
       <p><b>{text(pending?.card)}</b></p>
-      <details><summary>Open the transcript ({text(pending?.bytes)} bytes{pending?.includeNative ? "; native items included" : ""})</summary><AgentText block value={text(pending?.transcript)} source="record" /></details>
+      <details><summary>Open the transcript ({idWords(pending?.bytes)} bytes{pending?.includeNative ? "; native items included" : ""})</summary><AgentText block value={text(pending?.transcript)} source="record" /></details>
       {pending?.source?.standing && <p><small>{text(pending.source.standing)}</small></p>}
       {list(pending?.source?.historyNotices).map((notice,i)=><p role="note" key={`history-${i}`}>{text(notice)}</p>)}
       {list(pending?.source?.limits).length > 0 && <ul aria-label="History source limits">{list(pending.source.limits).map((limit, i) => <li key={i}><small>{text(limit)}</small></li>)}</ul>}

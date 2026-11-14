@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "./hostReads";
+import { AgentText, idWords } from "./AgentText";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const list = (value: Json): Json[] => (Array.isArray(value) ? value : []);
 const text = (value: Json): string => value === null || value === undefined ? "" : typeof value === "string" ? value : JSON.stringify(value);
@@ -49,7 +50,7 @@ export function AccessRouteChoice({ homeClass, modelProvider, entryId, model = "
   return <div aria-label="How this conversation connects">
     {builtIn ? <p><button disabled={disabled || !!chosen} aria-pressed={!!chosen} onClick={() => choose({ modelProvider: BUILT_IN_PROVIDER, entryId: builtIn.entryId })}>{builtIn.label}</button>{chosen ? " — chosen" : ""}</p>
       : homeClass === "local-provider" ? (local
-        ? <p><button disabled={disabled || localChosen} aria-pressed={localChosen} onClick={() => choose({ modelProvider: local.providerId, entryId: local.entryId, model: local.model })}>Use oMLX model {local.model}</button>{localChosen ? " — chosen" : ""}
+        ? <p><button disabled={disabled || localChosen} aria-pressed={localChosen} onClick={() => choose({ modelProvider: local.providerId, entryId: local.entryId, model: local.model })}>Use oMLX model {idWords(local.model)}</button>{localChosen ? " — chosen" : ""}
           <br/><small>Local server <code>{local.endpoint}</code>; the key stays with Codex in the local home.</small>
           {local.credentialState === "entry-required" && <><br/><span role="note">No key is saved for this server yet. A conversation can be started, but its messages will fail until the key is entered under Connection &amp; access.</span></>}</p>
         : <p>Prepare the oMLX connection under Connection &amp; access for this Codex session first.</p>)
@@ -230,16 +231,18 @@ export function OfferedEffortChoice({ owner, threadId, generation, homeClass, mo
     <button disabled={disabled || reading || !owner} onClick={() => { void read(); }}>Read effort choices for this model</button>
     {reading && <p role="status">Reading model effort choices…</p>}
     {current?.message && <p role="alert">{current.message}</p>}
-    <p><label>Reasoning effort for {row?.displayName || model || "the current conversation model"}{" "}
+    <p><label>Reasoning effort for {row?.displayName || (model ? idWords(model) : "the current conversation model")}{" "}
       <select value={effort} disabled={disabled || !row || options.length === 0} onChange={event => {
         const value = event.target.value;
         if (live() && current && resultRef.current === current && current.sequence === sequence.current && !pending.current
           && (value === "" || options.some(option => option.reasoningEffort === value))) choose(value, offeredModel);
       }}>
         <option value="">Use current Codex setting</option>
-        {effort && !options.some(option => option.reasoningEffort === effort) && <option value={effort}>{effort} · selected</option>}
-        {options.map(option => <option key={option.reasoningEffort} value={option.reasoningEffort}>{option.reasoningEffort}{option.reasoningEffort === row.defaultReasoningEffort ? " · model default" : ""}{option.description ? ` — ${option.description}` : ""}</option>)}
+        {effort && !options.some(option => option.reasoningEffort === effort) && <option value={effort}>{idWords(effort)} · selected</option>}
+        {options.map(option => <option key={option.reasoningEffort} value={option.reasoningEffort}>{idWords(option.reasoningEffort)}{option.reasoningEffort === row.defaultReasoningEffort ? " · model default" : ""}</option>)}
       </select></label></p>
+    {/* Codex's description of each effort stands beside the list, boxed: an option cannot hold a box. */}
+    {options.some(option => option.description) && <ul aria-label="What Codex says each effort does">{options.filter(option => option.description).map(option => <li key={option.reasoningEffort}>{idWords(option.reasoningEffort)}: <AgentText value={option.description} source="codex" /></li>)}</ul>}
     {current?.packet && !row && <p>No effort choices could be matched to this model and provider. Choose an explicit model ID or read the choices again.</p>}
     {row && options.length === 0 && <p>Codex offered no effort choices for this model.</p>}
     <p><small>Applies to ordinary text and plan/default text sends. A chosen effort continues on later Codex turns; “Use current Codex setting” leaves it as it is. Attachments, steering and prepared messages use their existing settings.</small></p>

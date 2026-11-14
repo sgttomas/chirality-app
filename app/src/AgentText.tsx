@@ -43,8 +43,9 @@ const SPECIAL = /(\r?\n|\t|[\p{C}\p{Zl}\p{Zp}])/u;
 export const PLAIN_ID = /^[A-Za-z0-9._:\/-]{1,128}$/;
 export const plainId = (value: unknown): string | null => typeof value === "string" && PLAIN_ID.test(value) ? value : null;
 /** A Codex-supplied identifier or enum in a control's own words, which cannot hold a box: as written when it is a
- * plain identifier, else the App's words for one that is not (the value itself is then shown beside, boxed). */
-export const idWords = (value: unknown): string => plainId(typeof value === "number" && Number.isSafeInteger(value) ? String(value) : value) ?? "with an identity that is not a plain identifier";
+ * plain identifier, "not recorded" when there is none, else the App's words for one that is not (the value itself is
+ * then shown beside, boxed). */
+export const idWords = (value: unknown): string => value === null || value === undefined ? "not recorded" : plainId(typeof value === "number" && Number.isSafeInteger(value) ? String(value) : value) ?? "with an identity that is not a plain identifier";
 /** The App's own workflow-name rule (workflow_workspace::valid_name): lowercase letters, digits and single hyphens,
  * at most 64 characters. A name from a file an agent may have written stands in the App's words only in this form. */
 export const SAFE_WORKFLOW_NAME = /^[a-z0-9]+(-[a-z0-9]+)*$/;
