@@ -1,3 +1,4 @@
+import { sealProviderClause } from "./captureSeal";
 import { ActionFeedback } from "./ActionFeedback";
 import { LOCAL_ENTRY, LOCAL_FORK_AVAILABLE, LOCAL_FORK_UNAVAILABLE, LOCAL_MODE, LocalProviderAccess, generationKey, localRoute, localViewFrom, readAttemptedLocalEntries, recordAttemptedLocalEntry, forgetAttemptedLocalEntry, type LocalView } from "./LocalProviderAccess";
 import { NativeWaitingBridge } from "./NativeWaitingBridge";
@@ -1424,6 +1425,8 @@ export function DecisionPackagesPanel({ view, name, setName, recordName, refresh
     {(decision.equivalentCaptureRecords ?? []).length > 1 && <p>Equivalent records of the same agreeing capture: {decision.equivalentCaptureRecords.join(", ")}. Each original record's source and time remains available below.</p>}
     <p>Capture time: {decision.capturedAt ?? "not reported"} · observed at: {decision.observedAt ?? ((decision.equivalentCaptureRecords ?? []).length > 1 ? "multiple records; see individual observations" : "not reported")} · record written at: {decision.recordedAt ?? ((decision.equivalentCaptureRecords ?? []).length > 1 ? "multiple records; see individual written times" : "not reported")}. Recorded observation order does not establish human performance chronology.</p>
     <p>{decision.lapse} · {decision.captureProvenance}</p>
+    {decision.captureSeal?.status === "verified" && <p>Capture seal: {decision.captureSeal.recordedProvider == null ? "provider not recorded; verified here using a key, " : ""}{sealProviderClause(decision.captureSeal.verifiedWith)}. Recorded decision selection is unchanged.</p>}
+    {decision.captureSeal?.status === "not-verified" && <p>Decision recorded; capture verification: {decision.captureSeal.sentence}. Recorded decision selection is unchanged.</p>}
     {decision.currentContentComparison && <p>Current file comparison: {JSON.stringify(decision.currentContentComparison)}. This describes current bytes separately from past lapse history.</p>}
     {decision.historyResolution && <p>Recorded lapse history resolution: {JSON.stringify(decision.historyResolution)}.</p>}
     {decision.historyIncomplete && <p>Recorded history is incomplete; unresolved observations remain in the source details below.</p>}

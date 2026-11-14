@@ -1,3 +1,4 @@
+import { sealProviderClause } from "./captureSeal";
 import { useImperativeHandle, useRef, useState, type Ref } from "react";
 type Json = any;
 const list = (value: Json): Json[] => Array.isArray(value) ? value : [];
@@ -128,6 +129,7 @@ export function FileActPanel({ command, controlRef, onBusyChange }: {
       <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{JSON.stringify(preview.offer, null, 2)}</pre>
       {preview.utf8 !== null && <details open><summary>Exact frozen UTF-8 text</summary><pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", maxHeight: 360, overflow: "auto" }}>{preview.utf8}</pre></details>}
       <details><summary>Exact frozen bytes (hexadecimal)</summary><pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", maxHeight: 360, overflow: "auto" }}>{preview.hex}</pre></details>
+      <p>Before keychain protection is set up, the sealing key is in the App's data folder. A process able to write there could forge a capture. Reading that key is enough to compute a seal. Earlier file-key acts keep their weaker standing after keychain setup and can still count.</p>
       <button disabled={busy || attempted} onClick={() => run("file_act_confirm", { reference: preview.reference })}>Review native act / decline / cancel…</button>
       <button disabled={busy || attempted} onClick={() => run("file_act_dismiss", { reference: preview.reference })}>Dismiss offer without capture</button>
     </article>}
@@ -140,7 +142,10 @@ export function FileActPanel({ command, controlRef, onBusyChange }: {
       </p>)}
     </div>}
     {error && <p role="alert">{error}</p>}
-    {status && <div role="status"><p>{status.state}</p><pre>{JSON.stringify(status, null, 2)}</pre></div>}
+    {status && <div role="status"><p>{status.state}</p>
+      {status.capture?.seal && <p>{status.recordDurable === true ? "Act recorded; " : "Capture published; record not established; "}{sealProviderClause(status.capture?.sealProvider)}.</p>}
+      {status.capture && !status.capture.seal && <p>{status.recordDurable === true ? "Act recorded without a seal. " : "Capture unsealed; recording is not established. "}This capture will never be sealed later. To obtain a counted act, review and perform the act again.</p>}
+      <pre>{JSON.stringify(status, null, 2)}</pre></div>}
     <p>Uncertain capture publication is neither a recorded act nor an act awaiting its record. A definite capture failure requires a new review and confirmation. A durable capture with a failed record remains missing in record until its original continuation succeeds.</p>
     {(view?.hotOffers ?? []).map((offer: Json) => <article key={offer.reference}>
       <p>Original offer {offer.reference}: {outcomes[offer.reference]?.state ?? offer.status?.state ?? offer.state}</p>

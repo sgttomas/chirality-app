@@ -678,6 +678,21 @@ pub fn derive(root: &Path, record_paths: &[&str]) -> Value {
             } else {
                 label(state)
             };
+            // Separate observation only: this result changes no eligibility,
+            // maxima, ordering or decided selection rule.
+            let observed = crate::file_act_view::observe_capture(root, ab);
+            let capture_seal = match observed.result {
+                Ok(capture) if same_subject_scope && capture["actKind"] == "A16" && capture["choice"] == "act"
+                    && capture["requestRef"] == pid && capture["alternativeChosen"] == chosen
+                    && capture.get("recordId").is_none_or(|id| id == arid)
+                    && crate::act_control::act_body(&capture) == *ab => observed.verification.map(|v| v.view()).unwrap_or(Value::Null),
+                Ok(_) => {
+                    let e = crate::act_evidence_cause::EvidenceFailure::new(crate::act_evidence_cause::ActEvidenceCause::RecordDiffersFromCapture,
+                        "The decision record differs from its cited capture or named package; recorded decision selection is unchanged.");
+                    json!({"status":"not-verified","cause":e.cause,"standing":"settled","detail":e.detail,"sentence":e.display_sentence()})
+                },
+                Err(e) => json!({"status":"not-verified","cause":e.cause,"standing":if e.cause.standing() == crate::act_evidence_cause::Standing::Settled { "settled" } else { "read-limit" },"detail":e.detail,"sentence":e.display_sentence()}),
+            };
             let projection = json!({
                 "act": arid,
                 "actKind": ab["actKind"],
@@ -688,6 +703,7 @@ pub fn derive(root: &Path, record_paths: &[&str]) -> Value {
                 "recordedBy": format!("{} {}", a["recorder"]["role"].as_str().unwrap_or(""), a["recorder"]["identity"].as_str().unwrap_or("")),
                 "recordingMode": ab["recordingMode"],
                 "captureProvenance": "recorded claim; native capture origin not verified by this unsealed reader",
+                "captureSeal": capture_seal,
                 "captureEvidence": ab["captureEvidence"].as_array().map(|c| c.iter().map(|x| x["ref"].clone()).collect::<Vec<_>>()),
                 "capturedAt": ab["captureTime"],
                 "lapse": lapse,

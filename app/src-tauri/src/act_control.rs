@@ -1449,7 +1449,7 @@ impl ActControl {
         let request_ref = o["requestRef"].as_str().unwrap().to_string();
         let capture_id = crate::util::opaque_id("cap:")?;
         let bound = o["subject"]["contentIdentity"].clone();
-        let capture = json!({
+        let mut capture = json!({
             "format": "chirality.aac.capture-evidence", "formatVersion": "0.3",
             "captureId": capture_id, "offerId": offer_id, "offerDigest": o["offerDigest"],
             "choice": "act", "actKind": "A16", "actor": actor,
@@ -1460,6 +1460,10 @@ impl ActControl {
             "answers": o["answers"], "requestRef": request_ref, "alternativeChosen": alternative,
             "evidenceLimits": ["identity not verified"],
         });
+        if let Err(reason) = crate::capture_seal::seal(&ws, &mut capture) {
+            capture["evidenceLimits"].as_array_mut().unwrap().push(json!(format!(
+                "A16 capture unsealed: {reason}; recorded decision selection is unchanged. This capture will never be sealed later.")));
+        }
         crate::schema_validation::validate_capture(&capture)?;
         // The project's records store subtree (RS §13.8); a refusal (store
         // unavailable, import needed) captures nothing.

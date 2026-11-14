@@ -341,13 +341,6 @@ pub fn seal(root: &Path, capture: &mut Value) -> Result<SealVerification, Eviden
         attach(capture, material)
     })
 }
-/// Kept until the A15 writer moves to generic sealing; admission stays keychain-only.
-pub(crate) fn seal_a15_if_keychain_available(root: &Path, capture: &mut Value) -> Result<SealVerification, EvidenceFailure> {
-    let folder = folder_for(root)?;
-    let material = crate::capture_seal_keychain::dispatch(&folder, crate::capture_seal_keychain::Operation::Seal)
-        .ok_or_else(|| failure(Cause::KeychainProviderUnavailableOnThisBuild, "SEAL-C keychain provider is not selected/enrolled"))??;
-    attach(capture, material)
-}
 /// The original wording remains the wording lane's; append provider/cause
 /// presentation separately after the record's publication is known.
 pub fn unsealed_limit(reason: impl std::fmt::Display) -> String {
