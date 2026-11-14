@@ -1861,6 +1861,7 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runti
         Err(_)=>{crate::child_roles::prepare(&mut composition,Err("App data unavailable".into()),&instruction_root,std::path::Path::new("/unavailable"));},
     }
     let mut native_relationship = continued_source.map(|origin| (native_conversation_links::freeze_source(state.workspace.as_deref(), &home), origin));
+    let mut relationship_recording = None;
     let attempt_id = util::opaque_id("conversation:")?;
     let frozen_project = state.project_context.clone();
     let mut selection = access::ConversationSelection::new_explicit(&attempt_id, frozen_project.reference())?;
@@ -1888,9 +1889,10 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runti
             if let Some((context, origin)) = native_relationship.take() {
                 // Retain the genuine receipt before any wait or role callback.
                 // Recording limits never replace the native operation result.
-                if let Ok(mut links) = state.native_links.lock() {
-                    let _ = links.track_continued(context, Arc::clone(&home.host), receipt.clone(), origin);
-                }
+                let tracked = state.native_links.lock()
+                    .map_err(|_| "native relationship recording session unavailable".to_owned())
+                    .and_then(|mut links| links.track_continued(context, Arc::clone(&home.host), receipt.clone(), origin));
+                relationship_recording = Some(native_conversation_links::RecordingReply::new(&receipt, tracked));
             }
             home.history.lock().unwrap().start_dispatched_selected(receipt.clone(), &composition, &supply_ref, continued_from.clone(), preselected)
                 .map_err(|error| format!("Native start dispatched; original role preparation failed: {error}. Native effect remains as observed in the retained receipt; no automatic resend"))?;
@@ -1927,6 +1929,7 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runti
     // The start's own generation, for a caller that continues in the new
     // conversation (a clean trial's first turn, WR FT-4).
     let result = result.map(|mut response| { response["startGeneration"] = generation.clone(); response["roleSupplyRecord"]=record_status.clone(); response });
+    let result = native_conversation_links::with_recording_view(result, relationship_recording, &state.native_links);
     if let Ok(response) = &result {
         if let Some(thread) = response["result"]["thread"]["id"].as_str() {
             if let Some(home_kind) = recovery_home { home.thread_home_kinds.lock().unwrap().insert(serde_json::to_string(&json!([generation,thread])).unwrap(),home_kind); }
@@ -2110,11 +2113,14 @@ fn conversation_fork(state: State<'_, AppState>, generation: Value, thread_id: S
         return Err(format!("{reason}; role supply observation: {publication}"));
     }};
     let context = native_conversation_links::freeze_source(state.workspace.as_deref(), &home);
+    let mut relationship_recording = None;
     let forked = conversation_roles::fork_conversation_tracked(&home, &generation, &thread_id, std::time::Duration::from_secs(20), |receipt| {
-        if let Ok(mut links) = state.native_links.lock() {
-            let _ = links.track_fork(context, Arc::clone(&home.host), receipt.clone());
-        }
-    })?;
+        let tracked = state.native_links.lock()
+            .map_err(|_| "native relationship recording session unavailable".to_owned())
+            .and_then(|mut links| links.track_fork(context, Arc::clone(&home.host), receipt.clone()));
+        relationship_recording = Some(native_conversation_links::RecordingReply::new(receipt, tracked));
+    });
+    let forked = native_conversation_links::with_recording_view(forked, relationship_recording, &state.native_links)?;
     // WR TT-3b: a fork of a trial conversation is labelled and offers no run.
     if let Some(fork) = forked["thread"]["threadId"].as_str() {
         state.workflows.lock().unwrap().mark_fork(&thread_id, fork);

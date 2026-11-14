@@ -360,6 +360,99 @@ struct Attempt {
     fact: bool,
     limit: Option<String>,
 }
+/// The recording callback's own answer, retained independently of the native
+/// wait and the following status read. This is presentation, never a record or
+/// a receipt admitting a conversation.
+pub(crate) struct RecordingReply {
+    generation: Value,
+    request_ref: String,
+    initial: Value,
+}
+impl RecordingReply {
+    pub(crate) fn new(request: &SourceRequest, tracked: Result<Value, String>) -> Self {
+        let generation = request.generation().clone();
+        let request_ref = request.request_ref().to_owned();
+        let initial = match tracked {
+            Ok(snapshot) => recording_in_snapshot(&snapshot, &generation, &request_ref)
+                .unwrap_or_else(|| unavailable_recording(request, "original relationship recording observation unavailable")),
+            Err(reason) => unavailable_recording(request, &reason),
+        };
+        Self { generation, request_ref, initial }
+    }
+    fn view(self, session: &Mutex<Session>) -> Value {
+        // A later unrelated observation cannot replace the callback's error.
+        if self.initial["trackingLimit"].is_string() {
+            return self.initial;
+        }
+        let limit = match session.lock() {
+            Ok(links) => {
+                if let Some(view) = links.recording_for(&self.generation, &self.request_ref) {
+                    return view;
+                }
+                "original relationship recording observation unavailable"
+            }
+            Err(_) => "native relationship recording session unavailable",
+        };
+        let mut view = self.initial;
+        view["observationLimit"] = json!(limit);
+        view
+    }
+}
+fn recording_in_snapshot(snapshot: &Value, generation: &Value, request_ref: &str) -> Option<Value> {
+    snapshot["relationshipRecordings"].as_array()?.iter()
+        .find(|view| view["generation"] == *generation && view["requestRef"] == request_ref).cloned()
+}
+fn unavailable_recording(request: &SourceRequest, reason: &str) -> Value {
+    json!({"generation":request.generation(),"requestRef":request.request_ref(),"method":request.attempted_frame()["method"],"state":"unavailable","trackingLimit":reason})
+}
+/// Add the original recording answer only to a native reply. Recording errors
+/// never turn native success into failure, and a native error stays verbatim.
+pub(crate) fn with_recording_view(
+    result: Result<Value, String>,
+    recording: Option<RecordingReply>,
+    session: &Mutex<Session>,
+) -> Result<Value, String> {
+    result.map(|mut reply| {
+        if let Some(recording) = recording {
+            reply["nativeConversationLinkRecording"] = recording.view(session);
+        }
+        reply
+    })
+}
+/// Project only held recording facts. In particular this does not call
+/// progress, settle, retry, the Host, or the filesystem.
+fn recording_state(context: &SourceContext, fact: Option<&Pending>) -> Value {
+    let permanent = fact.and_then(|p| p.permanent.as_ref())
+        .or_else(|| context.scope.as_ref().err())
+        .or_else(|| context.native_home.as_ref().err())
+        .or(context.custody_limit.as_ref());
+    let failures = fact.map(|p| p.first_failure.clone()).unwrap_or_default();
+    let stored = fact.is_some_and(|p| p.store_done);
+    let copied = fact.is_some_and(|p| p.project_done);
+    let limit = if stored && copied { None }
+        else if stored { permanent.or(failures[1].as_ref()) }
+        else { permanent.or(failures[0].as_ref()) };
+    let state = if stored && copied { "recorded" }
+        else if limit.is_some() && stored { "project-copy-not-saved" }
+        else if limit.is_some() { "not-saved" }
+        else { "not-confirmed" };
+    // Only recognized attachment refusals receive that explanation. Arbitrary
+    // filesystem/supplier text stays the exact reported cause, never a guess
+    // about which identity act could resolve it.
+    let attachment = limit.is_some_and(|cause| {
+        matches!(cause.as_str(),
+            "original source lacks one uniquely attached project identity"
+            | "original project link is not JSON"
+            | "original project link has unsupported format/version or typed identity; no reassociation"
+            | "no existing project/store association; recording context unavailable"
+            | "original protected payload project identity is unknown or inconsistent; no reassociation"
+            | "original project/store association changed; no reassociation")
+        || cause.starts_with("link changed; not attached:")
+        || cause.starts_with("link missing; not attached:")
+        || cause.starts_with("link unreadable; not attached:")
+    });
+    json!({"state":state,"storeRecorded":fact.map(|p|p.store_done),"projectCopied":fact.map(|p|p.project_done),"permanentRecordingLimit":permanent,"firstFailures":failures,"recordingLimit":limit,"attachmentState":attachment})
+}
 #[derive(Default)]
 pub(crate) struct Session {
     attempts: BTreeMap<String, Attempt>,
@@ -397,6 +490,32 @@ pub(crate) fn read_earlier_delegation(project: Option<&Path>, host: &crate::host
     EarlierDelegation(delegation::read_earlier(project, &|| host.established_ended_sessions()))
 }
 impl Session {
+    fn recording_for(&self, generation: &Value, request_ref: &str) -> Option<Value> {
+        let attempt = self.attempts.get(request_ref)?;
+        if attempt.request.generation() != generation {
+            return None;
+        }
+        Some(self.recording_for_attempt(attempt))
+    }
+    fn recording_for_attempt(&self, attempt: &Attempt) -> Value {
+        let fact = self.facts.values().find(|p| {
+            p.record["kind"] == "related_conversation"
+                && p.record["body"]["rpc"]["requestRef"] == attempt.request.request_ref()
+                && p.record["body"]["thread"]["generation"] == *attempt.request.generation()
+        });
+        let mut view = recording_state(&attempt.context, fact);
+        view["generation"] = attempt.request.generation().clone();
+        view["requestRef"] = json!(attempt.request.request_ref());
+        view["method"] = attempt.request.attempted_frame()["method"].clone();
+        view["source"] = match &attempt.origin {
+            Some(origin) => json!({"threadId":origin.thread(),"generation":origin.generation()}),
+            None => json!({"threadId":attempt.request.attempted_frame()["params"]["threadId"],"generation":attempt.request.generation()}),
+        };
+        view["thread"] = fact.map(|p| p.record["body"]["thread"].clone()).unwrap_or(Value::Null);
+        view["nativeFactObserved"] = json!(attempt.fact);
+        view["nativeLimit"] = json!(attempt.limit);
+        view
+    }
     /// The App is exiting: this session's own observation of each child it
     /// recorded ends, with the cause the host's lifecycle gives for that
     /// generation or, where Codex was not seen to end, "App quit".
@@ -875,7 +994,7 @@ impl Session {
         Ok(())
     }
     pub(crate) fn snapshot(&self) -> Value {
-        json!({"nativeAttempts":self.attempts.values().map(|a|json!({"generation":a.request.generation(),"requestId":a.request.request_id(),"requestRef":a.request.request_ref(),"method":a.request.attempted_frame()["method"],"factObserved":a.fact,"limit":a.limit})).collect::<Vec<_>>(),"observations":self.facts.values().map(|p|json!({"observation":if p.context.native_home.is_ok(){Some(&p.record)}else{None},"unrecordedSourceLimitedFact":if p.context.native_home.is_err(){Some(json!({"observationId":p.record["observationId"],"observedAt":p.record["observedAt"],"nativeResult":p.record["body"],"limit":p.context.native_home.as_ref().err()}))}else{None},"storeRecorded":p.store_done,"projectCopied":p.project_done,"permanentRecordingLimit":p.permanent,"firstFailures":p.first_failure,"recordingEvents":p.events.iter().map(|e|json!({"record":e.record,"storeRecorded":e.store_done,"projectCopied":e.project_done,"limit":e.failure})).collect::<Vec<_>>()})).collect::<Vec<_>>(),"quotedCopyRecovery":{"standing":"Existing stored exact lines only; no cold native observation or authority minted","limit":self.recovery_limit,"completedCopies":self.completed_copies,"copies":self.copies.values().map(|p|json!({"observationId":p.record["observationId"],"storeRecorded":p.store_done,"projectCopied":p.project_done,"firstFailures":p.first_failure,"recordingEvents":p.events.iter().map(|e|json!({"record":e.record,"storeRecorded":e.store_done,"projectCopied":e.project_done,"limit":e.failure})).collect::<Vec<_>>()})).collect::<Vec<_>>()},"pending":self.has_pending(),"limits":self.limits,"standing":"Observed native conversation relationships and native delegation; recording status is separate from native operation success. A recorded dispatch establishes a child and its parent only. No role, workflow or work state is restored or derived."})
+        json!({"relationshipRecordings":self.attempts.values().map(|attempt|self.recording_for_attempt(attempt)).collect::<Vec<_>>(),"nativeAttempts":self.attempts.values().map(|a|json!({"generation":a.request.generation(),"requestId":a.request.request_id(),"requestRef":a.request.request_ref(),"method":a.request.attempted_frame()["method"],"factObserved":a.fact,"limit":a.limit})).collect::<Vec<_>>(),"observations":self.facts.values().map(|p|json!({"observation":if p.context.native_home.is_ok(){Some(&p.record)}else{None},"unrecordedSourceLimitedFact":if p.context.native_home.is_err(){Some(json!({"observationId":p.record["observationId"],"observedAt":p.record["observedAt"],"nativeResult":p.record["body"],"limit":p.context.native_home.as_ref().err()}))}else{None},"storeRecorded":p.store_done,"projectCopied":p.project_done,"permanentRecordingLimit":p.permanent,"firstFailures":p.first_failure,"recordingEvents":p.events.iter().map(|e|json!({"record":e.record,"storeRecorded":e.store_done,"projectCopied":e.project_done,"limit":e.failure})).collect::<Vec<_>>()})).collect::<Vec<_>>(),"quotedCopyRecovery":{"standing":"Existing stored exact lines only; no cold native observation or authority minted","limit":self.recovery_limit,"completedCopies":self.completed_copies,"copies":self.copies.values().map(|p|json!({"observationId":p.record["observationId"],"storeRecorded":p.store_done,"projectCopied":p.project_done,"firstFailures":p.first_failure,"recordingEvents":p.events.iter().map(|e|json!({"record":e.record,"storeRecorded":e.store_done,"projectCopied":e.project_done,"limit":e.failure})).collect::<Vec<_>>()})).collect::<Vec<_>>()},"pending":self.has_pending(),"limits":self.limits,"standing":"Observed native conversation relationships and native delegation; recording status is separate from native operation success. A recorded dispatch establishes a child and its parent only. No role, workflow or work state is restored or derived."})
     }
 }
 fn line(v: &Value) -> Result<Vec<u8>, String> {

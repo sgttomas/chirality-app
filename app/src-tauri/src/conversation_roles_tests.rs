@@ -524,6 +524,154 @@ impl LinksFixture {
  fn copied(&self)->PathBuf{self.native.root.join(".chirality/fleet/coordination.fleet.jsonl")}
 }
 impl Drop for LinksFixture {fn drop(&mut self){let _=self.native.home.host.stop("owned fixture cleanup","test ended");crate::records_store::use_store_for_test(None);let _=std::fs::remove_dir_all(&self.store);}}
+
+#[test]
+fn native_links_recording_fork_reply_carries_its_frozen_attachment_limit() {
+    use crate::native_conversation_links::{self as links, RecordingReply};
+    let fixture = LinksFixture::new();
+    let f = &fixture.native;
+    let source = f.start(None, None);
+    let registry = fixture.store.join("roots.jsonl");
+    let original = std::fs::read(&registry).unwrap();
+    std::fs::write(&registry, b"").unwrap();
+    let context = links::freeze_source(Some(&f.root), &f.home);
+    std::fs::write(&registry, original).unwrap();
+    let session = std::sync::Mutex::new(links::Session::default());
+    let mut recording = None;
+    let native = fork_conversation_tracked(&f.home, &f.generation, &source, Duration::from_secs(2), |receipt| {
+        let tracked = session.lock().unwrap().track_fork(context, Arc::clone(&f.home.host), receipt.clone());
+        recording = Some(RecordingReply::new(receipt, tracked));
+    }).unwrap();
+    let mut reply = links::with_recording_view(Ok(native.clone()), recording, &session).unwrap();
+    let view = reply.as_object_mut().unwrap().remove("nativeConversationLinkRecording").unwrap_or(Value::Null);
+    assert_eq!(reply, native, "recording refusal preserves every native admission field");
+    assert_eq!(view["state"], "not-saved");
+    assert_eq!(view["permanentRecordingLimit"], "original source lacks one uniquely attached project identity");
+    assert_eq!(view["attachmentState"], true);
+    assert_eq!(view["source"]["threadId"], source);
+    assert_eq!(view["generation"], f.generation);
+    assert_eq!(view["requestRef"], native["thread"]["forkedFrom"]["forkRequestRef"]);
+    // Only the existing writer tick advances recording; the held refusal stays
+    // bound to the original operation even though the current attachment works.
+    session.lock().unwrap().retry(Some(&f.root));
+    assert_eq!(session.lock().unwrap().snapshot()["relationshipRecordings"][0]["state"], "not-saved");
+    assert!(!fixture.log().exists() && !fixture.copied().exists());
+    assert_eq!(f.wire().iter().filter(|row| row["method"] == "thread/fork").count(), 1);
+}
+
+#[test]
+fn native_links_recording_continue_reply_carries_limit_without_changing_native_start() {
+    use crate::native_conversation_links::{self as links, RecordingReply};
+    let fixture = LinksFixture::new();
+    let f = &fixture.native;
+    let source = f.start(None, None);
+    let handoffs = std::sync::Mutex::new(Handoffs::default());
+    let workflows = std::sync::Mutex::new(crate::runtime_session::WorkflowRootSession::default());
+    let handoff = continue_as_begin(&handoffs, &workflows, &f.home, &f.generation, &source, Some(Role::WORKING_ITEMS)).unwrap();
+    let id = handoff["id"].as_str().unwrap();
+    let (metadata, origin) = continuation_for_start_observed(&handoffs, &f.home, Some(id), Some(Role::WORKING_ITEMS)).unwrap();
+    let context = links::freeze_source(None, &f.home);
+    let composition = crate::runtime_session::compose_role(&f.instructions, Some(Role::WORKING_ITEMS)).unwrap();
+    let receipt = f.home.host.thread_start_with_guidance_dispatch(&f.generation, &f.root.to_string_lossy(), "fixture-model", "fixture-provider", &composition.text).unwrap();
+    let session = std::sync::Mutex::new(links::Session::default());
+    let tracked = session.lock().unwrap().track_continued(context, Arc::clone(&f.home.host), receipt.clone(), origin.unwrap());
+    let recording = RecordingReply::new(&receipt, tracked);
+    f.home.history.lock().unwrap().start_dispatched_continuing(receipt.clone(), &composition, &crate::util::opaque_id("sup:").unwrap(), metadata).unwrap();
+    let evidence = f.home.host.source_request_wait(&receipt, Duration::from_secs(2)).unwrap();
+    f.home.history.lock().unwrap().reconcile(&f.home.host);
+    assert!(f.home.history.lock().unwrap().start_admitted(&receipt));
+    let native = evidence["response"].clone();
+    let mut reply = links::with_recording_view(Ok(native.clone()), Some(recording), &session).unwrap();
+    let view = reply.as_object_mut().unwrap().remove("nativeConversationLinkRecording").unwrap_or(Value::Null);
+    assert_eq!(reply, native);
+    assert_eq!(view["state"], "not-saved");
+    assert_eq!(view["permanentRecordingLimit"], "no explicit selected App project; native relation recording unavailable");
+    assert_eq!(view["source"]["threadId"], source);
+    assert_eq!(view["method"], "thread/start");
+    assert_eq!(view["requestRef"], receipt.request_ref());
+    assert!(!fixture.log().exists() && !fixture.copied().exists());
+    assert_eq!(f.wire().iter().filter(|row| row["method"] == "thread/start").count(), 2);
+}
+
+#[test]
+fn native_links_recording_fork_reply_retains_tracking_error_and_native_error_separately() {
+    use crate::native_conversation_links::{self as links, RecordingReply};
+    let fixture = LinksFixture::new();
+    let f = &fixture.native;
+    let source = f.start(None, None);
+    let session = std::sync::Mutex::new(links::Session::default());
+    let mut recording = None;
+    let mut retained = None;
+    let native = fork_conversation_tracked(&f.home, &f.generation, &source, Duration::from_secs(2), |receipt| {
+        let foreign = Arc::new(Host::new());
+        let context = links::freeze_source(Some(&f.root), &f.home);
+        let tracked = session.lock().unwrap().track_fork(context, foreign, receipt.clone());
+        assert!(tracked.is_err());
+        retained = Some(receipt.clone());
+        recording = Some(RecordingReply::new(receipt, tracked));
+    }).unwrap();
+    let reply = links::with_recording_view(Ok(native.clone()), recording, &session).unwrap();
+    assert_eq!(reply["thread"], native["thread"]);
+    assert_eq!(reply["nativeConversationLinkRecording"]["state"], "unavailable");
+    assert!(reply["nativeConversationLinkRecording"]["trackingLimit"].as_str().unwrap().contains("another Host"));
+    let receipt = retained.unwrap();
+    let error = "invented original native outcome remains unknown";
+    let recording = RecordingReply::new(&receipt, Err("invented tracking failure".into()));
+    assert_eq!(links::with_recording_view(Err(error.into()), Some(recording), &session), Err(error.into()));
+    assert_eq!(links::with_recording_view(Ok(native.clone()), None, &session).unwrap(), native, "ordinary starts are unchanged");
+}
+
+#[test]
+fn native_links_recording_fork_reply_reads_only_its_original_request() {
+    use crate::native_conversation_links::{self as links, RecordingReply};
+    let fixture = LinksFixture::new();
+    let f = &fixture.native;
+    let source = f.start(None, None);
+    let session = std::sync::Mutex::new(links::Session::default());
+    let mut first = None;
+    let mut first_receipt = None;
+    let native = fork_conversation_tracked(&f.home, &f.generation, &source, Duration::from_secs(2), |receipt| {
+        let tracked = session.lock().unwrap().track_fork(links::freeze_source(None, &f.home), Arc::clone(&f.home.host), receipt.clone());
+        first_receipt = Some(receipt.clone());
+        first = Some(RecordingReply::new(receipt, tracked));
+    }).unwrap();
+    let mut second = None;
+    let other = fork_conversation_tracked(&f.home, &f.generation, &source, Duration::from_secs(2), |receipt| {
+        let tracked = session.lock().unwrap().track_fork(links::freeze_source(Some(&f.root), &f.home), Arc::clone(&f.home.host), receipt.clone());
+        second = Some(RecordingReply::new(receipt, tracked));
+    }).unwrap();
+    session.lock().unwrap().retry(Some(&f.root));
+    let stored = std::fs::read(fixture.log()).unwrap();
+    let (first_view, second_view) = crate::records_effect_guard::without_mutations_for_test(|| (
+        links::with_recording_view(Ok(native), first, &session).unwrap()["nativeConversationLinkRecording"].clone(),
+        links::with_recording_view(Ok(other), second, &session).unwrap()["nativeConversationLinkRecording"].clone(),
+    ));
+    assert_eq!(first_view["state"], "not-saved");
+    assert_eq!(second_view["state"], "recorded");
+    assert_ne!(first_view["requestRef"], second_view["requestRef"]);
+    assert_eq!(std::fs::read(fixture.log()).unwrap(), stored, "reading the reply does not write either original line again");
+    // A failed later read retains the already captured cause, rather than
+    // discarding it or presenting an unobserved successful recording.
+    let receipt = first_receipt.unwrap();
+    let initial = session.lock().unwrap().snapshot();
+    let mut wrong_generation = initial.clone();
+    for view in wrong_generation["relationshipRecordings"].as_array_mut().unwrap() {
+        view["generation"]["home"] = json!("invented-other-home");
+    }
+    let mismatched = RecordingReply::new(&receipt, Ok(wrong_generation));
+    let reply = links::with_recording_view(Ok(json!({})), Some(mismatched), &session).unwrap();
+    assert_eq!(reply["nativeConversationLinkRecording"]["state"], "unavailable", "a callback snapshot from another generation supplies no recording state");
+    let recording = RecordingReply::new(&receipt, Ok(initial));
+    let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let _guard = session.lock().unwrap();
+        panic!("invented recording session unavailable");
+    }));
+    let reply = links::with_recording_view(Ok(json!({"native":"unchanged"})), Some(recording), &session).unwrap();
+    assert_eq!(reply["nativeConversationLinkRecording"]["state"], "not-saved");
+    assert_eq!(reply["nativeConversationLinkRecording"]["permanentRecordingLimit"], first_view["permanentRecordingLimit"]);
+    assert!(reply["nativeConversationLinkRecording"]["observationLimit"].is_string());
+}
+
 #[test]
 fn native_links_actual_fork_dispatch_receipt_tick_store_copy_and_reader_dto(){
  let l=LinksFixture::new();let f=&l.native;let source=f.start(Some(Role::WORKING_ITEMS),None);let before=f.role(&source);let mut links=crate::native_conversation_links::Session::default();let context=crate::native_conversation_links::freeze_source(Some(&f.root),&f.home);
