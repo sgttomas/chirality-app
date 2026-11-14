@@ -256,13 +256,19 @@ An entry is added in the same pull request that makes the limitation standing.
 - **What the person does instead:** use the plugin in your own Codex, outside
   the App. Where a plugin's hook is what keeps a command from running for you,
   choose a level in the App that asks before commands. The App's list of the
-  settings it applies to its Codex shows this one, with its reason. If the App
-  finds plugins turned on by a setting outside it, it does not start a
-  conversation in that home and says so.
+  settings it applies to its Codex shows this one, with its reason.
+- **If your Mac or your ChatGPT account is managed so that plugins are turned
+  on:** the App cannot run a conversation in its Codex at all in this release.
+  Before each conversation the App reads whether plugins are on. If they are,
+  it starts nothing and says that a setting outside the App turns plugins on.
+  The App does not change that setting. Ask whoever manages your Mac or account,
+  or use your own Codex.
 - **Basis:** DEL-01-05 (REQ-010, the settings the App applies to its Codex).
   That turning plugins off stops the start-up plugin traffic is shown for the
   lock file of the curated sync and for the featured list. The sync's own
   network attempts are read from the source (`app/supplier_checks/level`).
+  Not established at the pinned Codex version: that no part of Codex outside
+  its plugin handling reads installed plugins from the App's Codex folder.
 
 ### LIM-025: Apps connected to your ChatGPT account are unavailable in the App's Codex in this release
 
@@ -278,7 +284,15 @@ An entry is added in the same pull request that makes the limitation standing.
 - **What the person does instead:** use connected apps in ChatGPT or in your
   own Codex, outside the App. The App's list of the settings it applies to its
   Codex shows this one, with its reason.
+- **If your Mac or your ChatGPT account is managed so that connected apps are
+  turned on:** the App cannot run a conversation in its Codex at all in this
+  release. Before each conversation the App reads whether connected apps are
+  on. If they are, it starts nothing and says that a setting outside the App
+  turns on apps connected to your ChatGPT account. The App does not change that
+  setting. Ask whoever manages your Mac or account, or use your own Codex.
 - **Basis:** DEL-01-05 (REQ-010, the settings the App applies to its Codex).
   That turning the setting off removes the connected apps' tools is read from
   the source at the pinned Codex version. It is not shown by a fixture, because
-  the connected apps start only for a signed-in account.
+  the connected apps start only for a signed-in account. Not established: that
+  no further setting is needed beside the ones the App sends; the source was not
+  searched whole.
