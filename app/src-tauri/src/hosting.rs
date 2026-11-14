@@ -237,6 +237,8 @@ pub(crate) const REMOVED_ENVIRONMENT: &[(&str, RemovalClass)] = {
         ("CODEX_ACCESS_TOKEN", CredentialVariable),
         ("OPENAI_ORG_ID", CredentialVariable),
         ("OPENAI_PROJECT_ID", CredentialVariable),
+        ("OPENAI_ORGANIZATION", CredentialVariable),
+        ("OPENAI_PROJECT", CredentialVariable),
         ("AZURE_OPENAI_API_KEY", CredentialVariable),
         ("ANTHROPIC_API_KEY", CredentialVariable),
         ("ANTHROPIC_AUTH_TOKEN", CredentialVariable),
@@ -245,6 +247,7 @@ pub(crate) const REMOVED_ENVIRONMENT: &[(&str, RemovalClass)] = {
         ("CODEX_GITHUB_PERSONAL_ACCESS_TOKEN", CredentialBearing),
         ("CODEX_GUARDIAN_DECISIONS_API_KEY", CredentialBearing),
         ("CODEX_EXEC_SERVER_NOISE_AUTH_TOKEN", CredentialBearing),
+        ("OPENAI_IDENTITY_TOKEN_FILE", CredentialBearing),
         ("CODEX_APP_SERVER_LOGIN_ISSUER", SignInOrTokenRefresh),
         ("CODEX_APP_SERVER_LOGIN_CLIENT_ID", SignInOrTokenRefresh),
         ("CODEX_AUTHAPI_BASE_URL", SignInOrTokenRefresh),
@@ -253,6 +256,11 @@ pub(crate) const REMOVED_ENVIRONMENT: &[(&str, RemovalClass)] = {
         ("CODEX_AGENT_IDENTITY_AUTHAPI_BASE_URL", SignInOrTokenRefresh),
         ("CODEX_AGENT_IDENTITY_JWKS_BASE_URL", SignInOrTokenRefresh),
         ("CODEX_APP_SERVER_CHATGPT_BASE_URL", SignInOrTokenRefresh),
+        ("OPENAI_FEDERATION_RULE_ID", SignInOrTokenRefresh),
+        ("OPENAI_WORKLOAD_IDENTITY_CONTEXT", SignInOrTokenRefresh),
+        ("CODEX_EXEC_SERVER_NOISE_REGISTRY_URL", SignInOrTokenRefresh),
+        ("CODEX_EXEC_SERVER_NOISE_ENVIRONMENT_ID", SignInOrTokenRefresh),
+        ("CODEX_EXEC_SERVER_NOISE_CHATGPT_ACCOUNT_ID", SignInOrTokenRefresh),
         ("CODEX_SQLITE_HOME", HomeSeparation),
         ("CODEX_ROLLOUT_TRACE_ROOT", HomeSeparation),
         ("CODEX_PLUGIN_METRICS_OUTPUT", HomeSeparation),
@@ -402,6 +410,27 @@ impl HostConfig {
     }
 }
 
+/// Why the last start of Codex was refused, in the classes the workspace words for a person
+/// (`startRefusalCause` in the host status). Chosen where each refusal is raised. The persisted
+/// lifecycle record keeps its shape; this is status only.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum StartRefusalCause {
+    /// The App's copy of Codex, or its own files, are not what the App was built with (a mismatch).
+    Changed,
+    /// They could not be confirmed (unverifiable).
+    Unconfirmed,
+    /// A step of the start was overtaken while it ran; starting again may succeed.
+    Busy,
+    /// The home was not available: missing, held or replaced (`lastStartRefusal` says which).
+    Home,
+}
+impl StartRefusalCause {
+    pub(crate) fn as_str(self) -> &'static str {
+        match self { Self::Changed => "changed", Self::Unconfirmed => "unconfirmed", Self::Busy => "busy", Self::Home => "home" }
+    }
+    /// For a verification result the start refused: a mismatch is Changed, anything else Unconfirmed.
+    fn of_verification(result: &Value) -> Self { if result["result"] == "mismatch" { Self::Changed } else { Self::Unconfirmed } }
+}
 #[derive(Default)]
 struct Inner {
     /// The last start of Codex refused before its app-server was spawned: its
@@ -409,6 +438,8 @@ struct Inner {
     /// it was refused before it was admitted as an attempt). Host status
     /// `lastStartRefusal`; see [`Host::start`].
     last_start_refusal: Option<Value>,
+    /// The class of the last refused start; see [`StartRefusalCause`].
+    start_refusal_cause: Option<StartRefusalCause>,
     cce_offer: Option<call_custody::Offer>,
     /// RS §13.9: the records capability offered in the App's current project,
     /// and the (generation, thread) pairs whose `thread/start` carried it.
@@ -1127,6 +1158,9 @@ pub struct Host {
     /// Runs once after any request's final admission, frame writer held, before its write.
     #[cfg(test)]
     pub(crate) before_request_write: Mutex<Option<Box<dyn FnOnce(&Host) + Send>>>,
+    /// A `turn/start`'s write fails with this error after it has begun.
+    #[cfg(test)]
+    pub(crate) turn_start_simulated_write: Mutex<Option<&'static str>>,
     #[cfg(test)]
     before_eof_gate: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     #[cfg(test)]
@@ -1288,6 +1322,7 @@ impl Host {
             #[cfg(test)] reading_after_reserve: Mutex::new(None),
             #[cfg(test)] reading_after_register: Mutex::new(None),
             #[cfg(test)] before_request_write: Mutex::new(None),
+            #[cfg(test)] turn_start_simulated_write: Mutex::new(None),
             #[cfg(test)]
             before_eof_gate: Mutex::new(None),
             #[cfg(test)]
@@ -1411,9 +1446,35 @@ impl Host {
         let i=self.inner.0.lock().unwrap();
         i.conversation_turns.iter().find(|t|t["generation"]==*generation&&t["threadId"]==thread_id&&t["turnId"]==turn_id).cloned()
     }
+    /// Each unresolved turn start of the current, open generation: exactly the
+    /// entries of `turn_request_threads` (entered when a start's write
+    /// begins, left only through [`Self::resolve_start`]), in the order the
+    /// writes began. The write state is reported, never used to drop one: a
+    /// failed write's outcome is not known.
+    fn unanswered_turn_starts(i: &Inner) -> Vec<Value> {
+        if i.server_requests.is_closed(&i.generation) { return Vec::new(); }
+        let mut starts: Vec<(u64, Value)> = i.turn_request_threads.iter().filter_map(|(key, (generation, thread, _))| {
+            let e = i.source_requests.get(key)?;
+            let position = e.attempt_position?;
+            if *generation != i.generation { return None; }
+            let write = if e.write_attempt_in_progress { "in-progress" } else if e.written { "written" } else { "failed; outcome not known" };
+            Some((position, json!({"generation":generation,"threadId":thread,"requestIdentity":e.request.request_id(),"write":write})))
+        }).collect();
+        starts.sort_by_key(|(position, _)| *position);
+        starts.into_iter().map(|(_, start)| start).collect()
+    }
     fn snapshot_inner(i: &mut Inner) -> Value {
         Self::observe_reply_writes(i);
-        json!({
+        let mut status = Self::snapshot_fields(i);
+        status["startRefusalCause"] = json!(i.start_refusal_cause.map(StartRefusalCause::as_str));
+        status["build"] = json!(if cfg!(debug_assertions) { "development" } else { "release" });
+        status
+    }
+    fn snapshot_fields(i: &mut Inner) -> Value {
+        // A turn start whose write has begun and that Codex has not answered:
+        // live work with no turn identity yet, so no interrupt can name it.
+        let unanswered_turn_starts = Self::unanswered_turn_starts(i);
+        let mut snapshot = json!({
             "state": i.state,
             "generation": i.generation,
             "generationClosed": i.server_requests.is_closed(&i.generation),
@@ -1455,7 +1516,9 @@ impl Host {
             "stopRequests": Self::stop_request_view(i),
             "modelTurnExercised": if i.source_requests.values().any(|e|e.request.frame["method"]=="turn/start")||i.client_requests.iter().any(|r| r["method"] == "turn/start") { Value::Null } else { json!(false) },
             "modelTurnEvidence": {"standing":"provider/model execution not established by request or mock result", "protocolRequests":i.client_requests.iter().filter(|r| r["method"] == "turn/start").collect::<Vec<_>>()},
-        })
+        });
+        snapshot["unansweredTurnStarts"] = Value::Array(unanswered_turn_starts);
+        snapshot
     }
 
     /// Adopt actual original App session/ledger authority, including unavailable
@@ -1889,10 +1952,13 @@ impl Host {
             .checked_add(1).ok_or("home spawn counter exhausted")?;
         Ok(json!({"appSession":i.app_session,"home":home,"spawnCounter":counter}))
     }
-    fn refuse_successor(&self, attempt: u64, reason: String) -> Result<Value, String> {
+    /// `cause` is chosen by the caller where the refusal is raised; `None` takes it from the result
+    /// this refusal records (a mismatch is Changed, anything else Unconfirmed).
+    fn refuse_successor(&self, attempt: u64, cause: Option<StartRefusalCause>, reason: String) -> Result<Value, String> {
         let mut i = self.inner.0.lock().unwrap();
         if Self::check_start_admission(&i,attempt).is_err() { return Err(format!("stale start attempt; {reason}")); }
         let result = json!({"result":if reason.starts_with("mismatch:") { "mismatch" } else { "unverifiable" },"reason":reason});
+        i.start_refusal_cause = Some(cause.unwrap_or_else(|| StartRefusalCause::of_verification(&result)));
         i.verification = Some(result.clone());
         i.supplier_standing = None;
         self.lt(&mut i,"LT-05","verification-failed","refused",json!({"verificationResult":result}));
@@ -2075,10 +2141,10 @@ impl Host {
     /// refused for a reason that is not kept leaves no refusal showing, and
     /// never an older one. Not a lifecycle transition.
     pub(crate) fn begin_start_request(&self) {
-        self.inner.0.lock().unwrap().last_start_refusal = None;
+        let mut i = self.inner.0.lock().unwrap(); i.last_start_refusal = None; i.start_refusal_cause = None;
     }
     pub(crate) fn note_start_refusal(&self, actor: &str, home: &std::path::Path, reason: &str) {
-        self.inner.0.lock().unwrap().last_start_refusal = Some(Self::start_refusal(actor, home, None, reason));
+        let mut i = self.inner.0.lock().unwrap(); i.last_start_refusal = Some(Self::start_refusal(actor, home, None, reason)); i.start_refusal_cause = Some(StartRefusalCause::Home);
     }
     /// What a start is told when the home's process lock was not taken. Held: another start of
     /// this Host under way holds it; or this Host started a process group on the home that it has
@@ -2280,7 +2346,7 @@ impl Host {
                 _ => "LT-03",
             };
             // A later attempt is admitted: an earlier refusal no longer describes the start.
-            i.last_start_refusal = None;
+            i.last_start_refusal = None; i.start_refusal_cause = None;
             self.lt(&mut i, id, "start-requested", "verifying", json!({"actor": actor}));
             // The lock becomes this attempt's in the Host's slot in the same step that admits
             // the attempt, under the source gate Stop takes: a Stop that cancels the attempt
@@ -2309,7 +2375,7 @@ impl Host {
             let i = self.inner.0.lock().unwrap();
             self.successor_prospective(&i, cfg).map(Some)
         } else { Ok(None) };
-        let prospective = match prospective { Ok(g) => g, Err(e) => return self.refuse_successor(attempt, e) };
+        let prospective = match prospective { Ok(g) => g, Err(e) => return self.refuse_successor(attempt, None, e) };
         // The only reference source is the configured Store's compiled selection,
         // so the comparison and the published observation share one closure.
         let reference_store = self.distribution_store.lock().unwrap().clone();
@@ -2319,23 +2385,23 @@ impl Host {
                 (None, Some(limit)) => successor::Reference::Unavailable(limit),
                 (None, None) => successor::Reference::None,
             },
-            Some(Err(error)) if cfg.distribution.is_some() => return self.refuse_successor(attempt, error.clone()),
-            None if cfg.distribution.is_some() && cfg.require_distribution_artifacts => return self.refuse_successor(attempt, "native distribution store not configured".into()),
+            Some(Err(error)) if cfg.distribution.is_some() => return self.refuse_successor(attempt, None, error.clone()),
+            None if cfg.distribution.is_some() && cfg.require_distribution_artifacts => return self.refuse_successor(attempt, Some(StartRefusalCause::Unconfirmed), "native distribution store not configured".into()),
             _ => successor::Reference::None,
         };
         let prepared = if let Some(distribution) = &cfg.distribution {
             match successor::prepare_with_probe(distribution, cfg, prospective.as_ref().unwrap(), reference, |command, wait| self.run_label_probe(attempt, &home, command, wait)) {
-                Ok(p) => Some(p), Err(e) => return self.refuse_successor(attempt, e),
+                Ok(p) => Some(p), Err(e) => return self.refuse_successor(attempt, None, e),
             }
         } else { None };
         let successor_reference = if let Some(p) = &prepared {
             let store = self.distribution_store.lock().unwrap().clone();
             match store {
                 Some(Ok(store)) => match (|| { p.revalidate()?; let (observation,facts)=p.observation(cfg,prospective.as_ref().unwrap()); store.publish_observed_with_installed(prospective.as_ref().unwrap(),observation,facts,p.installed.as_ref()) })() {
-                    Ok(reference) => Some(reference), Err(e) => return self.refuse_successor(attempt, e),
+                    Ok(reference) => Some(reference), Err(e) => return self.refuse_successor(attempt, None, e),
                 },
-                Some(Err(e)) => return self.refuse_successor(attempt, e),
-                None if cfg.require_distribution_artifacts => return self.refuse_successor(attempt, "native distribution store not configured".into()),
+                Some(Err(e)) => return self.refuse_successor(attempt, None, e),
+                None if cfg.require_distribution_artifacts => return self.refuse_successor(attempt, Some(StartRefusalCause::Unconfirmed), "native distribution store not configured".into()),
                 None => None, // Source-only fixtures retain the explicit in-memory route.
             }
         } else { None };
@@ -2344,7 +2410,7 @@ impl Host {
             None => self.verify(attempt, &home, cfg),
         };
         if let Some(p) = &prepared {
-            if let Err(e) = p.revalidate() { return self.refuse_successor(attempt, e); }
+            if let Err(e) = p.revalidate() { return self.refuse_successor(attempt, None, e); }
         }
         #[cfg(test)]
         {let hook=self.before_successor_gate.lock().unwrap().take();if let Some(hook)=hook{hook();}}
@@ -2354,7 +2420,7 @@ impl Host {
         let app_spawn_guard = if prepared.is_some() {
             match app_writer.try_lock() {
                 Ok(guard) => guard,
-                Err(_) => return self.refuse_successor(attempt, "App writer busy after revalidation; no spawn".into()),
+                Err(_) => return self.refuse_successor(attempt, Some(StartRefusalCause::Busy), "App writer busy after revalidation; no spawn".into()),
             }
         } else { app_writer.lock().unwrap() };
         // Same ordering as publication: App writer -> source gate -> Inner.
@@ -2363,7 +2429,7 @@ impl Host {
         let successor_gate = if prepared.is_some() {
             match self.attachment_gate.try_lock() {
                 Ok(guard) => Some(guard),
-                Err(_) => return self.refuse_successor(attempt, "source gate busy after revalidation; no spawn".into()),
+                Err(_) => return self.refuse_successor(attempt, Some(StartRefusalCause::Busy), "source gate busy after revalidation; no spawn".into()),
             }
         } else { Some(self.attachment_gate.lock().unwrap()) };
         {
@@ -2376,7 +2442,7 @@ impl Host {
             let current = self.successor_prospective(&i, cfg);
             if i.start_attempt != attempt || i.state != "verifying" || current.as_ref().ok() != Some(expected) {
                 drop(i); drop(successor_gate); drop(app_spawn_guard);
-                return self.refuse_successor(attempt, "prospective generation or start attempt changed; no spawn".into());
+                return self.refuse_successor(attempt, Some(StartRefusalCause::Busy), "prospective generation or start attempt changed; no spawn".into());
             }
         }
         #[cfg(test)]
@@ -2399,6 +2465,7 @@ impl Host {
                 i.verification = Some(refused.clone());
                 i.supplier_standing = None;
                 i.last_start_refusal = Some(Self::start_refusal(actor, &cfg.codex_home, Some(attempt), &reason));
+                i.start_refusal_cause = Some(StartRefusalCause::Home);
                 self.lt(&mut i, "LT-05", "verification-failed", "refused", json!({"verificationResult": refused}));
                 return Err(reason);
             }
@@ -2406,6 +2473,7 @@ impl Host {
             i.successor_reference = successor_reference;
             i.verification = Some(result.clone());
             if !(verified || dev_ok) {
+                i.start_refusal_cause = Some(StartRefusalCause::of_verification(&result));
                 self.lt(&mut i, "LT-05", "verification-failed", "refused", json!({"verificationResult": result}));
                 return Err(format!("refused: {}", result));
             }
@@ -3007,7 +3075,6 @@ impl Host {
             let state=i.oauth.get_mut(original.request_ref()).unwrap();
             state.cancel_request=Some(json!(id));
         }
-        if expected_generation.is_some()&&method=="turn/start" {let gen=i.generation.clone();let pos=i.receipt_position;i.turn_request_threads.insert(id.to_string(),(gen,frame["params"]["threadId"].as_str().unwrap().into(),pos));}
         if expected_generation.is_some()&&method=="turn/interrupt" {let gen=i.generation.clone();i.interrupt_requests.push(json!({"generation":gen,"threadId":frame["params"]["threadId"],"turnId":frame["params"]["turnId"],"requestIdentity":id,"initiator":"person-directed"}));}
         let captured=self.capture_pipe(&i);
         i.source_requests.get_mut(&id.to_string()).unwrap().source_pipe=captured.as_ref().ok().map(|bound|(bound.epoch,bound.identity));
@@ -3062,12 +3129,14 @@ impl Host {
                 // attempt is registered and nothing is written.
                 if let Some(limit)=write_bound{limit.begin_write()?;}
                 i.send_position+=1;let position=i.send_position;let e=i.source_requests.get_mut(&id.to_string()).unwrap();e.write_attempt_in_progress=true;e.attempt_position=Some(position);e.turn_model_cut=cut;e.turn_model_context=context;
+                // A turn start enters the table of unresolved starts when its write begins.
+                if expected_generation.is_some()&&method=="turn/start" {let gen=i.generation.clone();let pos=i.receipt_position;i.turn_request_threads.insert(id.to_string(),(gen,frame["params"]["threadId"].as_str().unwrap().into(),pos));}
                 let epoch=i.aa_epoch;let cut=i.receipt_position;
                 if let Some(c)=i.aa_capture.as_mut(){c.prewrite(&request.generation,epoch,request.request_ref(),(bound.epoch,bound.identity),cut);}}
             #[cfg(test)] if write_bound.is_some() {let hook=self.after_interrupt_decision.lock().unwrap().take();if let Some(h)=hook{h();}}
             #[cfg(test)] if aa_selected {let hook=self.aa_before_write.lock().unwrap().take();if let Some(h)=hook{h(self,&request);}}
             #[cfg(test)] {let hook=self.before_request_write.lock().unwrap().take();if let Some(h)=hook{h(self);}}
-            #[cfg(test)] let simulated=if aa_selected{self.aa_simulated_write.lock().unwrap().take()}else if cce_selected{self.cce_start_simulated_write.lock().unwrap().take()}else{None};
+            #[cfg(test)] let simulated=if aa_selected{self.aa_simulated_write.lock().unwrap().take()}else if cce_selected{self.cce_start_simulated_write.lock().unwrap().take()}else if method=="turn/start"{self.turn_start_simulated_write.lock().unwrap().take()}else{None};
             #[cfg(test)] let result=match simulated{Some(reason)=>Err(format!("simulated write settlement: {reason}")),None=>Self::write_complete(&mut bound.file,&bytes)};
             #[cfg(not(test))] let result=Self::write_complete(&mut bound.file,&bytes);
             #[cfg(test)] if aa_selected {let hook=self.aa_after_write.lock().unwrap().take();if let Some(h)=hook{h(self,&request);}}
@@ -3079,12 +3148,19 @@ impl Host {
         match write_result {
             Ok(())=> {i.source_requests.get_mut(&key).unwrap().written=true;record["writeResult"]=json!("written");record["outcome"]=json!(if closed{"unknown-no-response"}else{"pending"});
                 match Self::completed_client_response(&mut record,response.as_ref(),response_position,native_settlement){Ok(())=>i.client_requests[idx]=catalog_record(record),Err(error)=>i.source_requests.get_mut(&key).unwrap().source_limit=Some(error)}
-                if !closed&&method=="turn/start"&&response.is_some(){if let Some((source_gen,thread,sent_after_receipt))=i.turn_request_threads.remove(&key){if source_gen==i.generation{if let Some(turn)=response.as_ref().and_then(|r|r.get("result")).and_then(|r|r.get("turn")){let position=response_position.unwrap_or(i.receipt_position);Self::remember_turn(&mut i,&source_gen,&thread,turn,"turn/start response",position);Self::note_turn_request(&mut i,&key,&source_gen,&thread,&turn["id"]);if let Some(e)=i.conversation_turns.iter_mut().find(|e|e["generation"]==source_gen&&e["threadId"]==thread&&e["turnId"]==turn["id"]&&e["source"]=="turn/start response"&&e["receiptPosition"]==position){e["startResponseIssuedAfterReceipt"]=json!(sent_after_receipt);}}}}}
+                if !closed&&method=="turn/start"{if let Some(reply)=response.as_ref(){let generation=i.generation.clone();let position=response_position.unwrap_or(i.receipt_position);Self::resolve_start(&mut i,&key,reply,position,&generation);}}
             }
-            Err(error)=> {i.pending.remove(&key);i.turn_request_threads.remove(&key);let e=i.source_requests.get_mut(&key).unwrap();
+            // A write that began and failed may have reached Codex in part: its
+            // start stays unresolved (outcome not known) until a reply resolves
+            // it or its generation closes. A start whose write never began never
+            // entered the table.
+            Err(error)=> {i.pending.remove(&key);let e=i.source_requests.get_mut(&key).unwrap();
                 if e.attempt_position.is_none(){e.source_limit=Some(format!("No actual write attempt: reserved source invalidated/refused before pipe commit: {error}; native reply facts retained if present"));}
                 else{e.write_error=Some(error);if response.is_some(){e.source_limit=Some("Matching native reply and write failure both observed; v0.10 cannot faithfully project that combination; raw source retained".into());}
                     else{record["writeResult"]=json!("write-failed");record["outcome"]=json!("unknown-no-response");i.client_requests[idx]=record;}}
+                // A reply that came while the write was being recorded is taken
+                // in here as on success: the failure itself retires nothing.
+                if !closed&&method=="turn/start"{if let Some(reply)=response.as_ref(){let generation=i.generation.clone();let position=response_position.unwrap_or(i.receipt_position);Self::resolve_start(&mut i,&key,reply,position,&generation);}}
             }
         }
         let write=if closed{oauth_control::WriteFinish::SourceUnavailable}else if i.source_requests[&key].written{oauth_control::WriteFinish::Written}else{oauth_control::WriteFinish::Failed};
@@ -3504,7 +3580,7 @@ impl Host {
         if i.threads.iter().any(|t|t["generation"]==*generation&&t["threadId"]==native["id"]) {return Err("thread already operationally admitted in generation".into());}
         Self::check_local_reported(&i,&response["result"])?;
         self.check_local_reading_current(&i,dispatch.local_config.as_ref())?;
-        let result=&response["result"];let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":native["id"],"name":native.get("name").and_then(Value::as_str),"preview":native.get("preview").and_then(Value::as_str),"status":native["status"],"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"supplierStanding":i.supplier_standing,"resumeRequestRef":dispatch.source.request_ref,"nativeResumeObserved":true,"appRole":{"standing":"unknown"},"networkDisclosure":network_disclosure()}),response);i.threads.push(row.clone());
+        let result=&response["result"];let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":native["id"],"name":native.get("name").and_then(Value::as_str),"preview":native.get("preview").and_then(Value::as_str),"status":native["status"],"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"approvalPolicy":result.get("approvalPolicy"),"sandbox":result.get("sandbox"),"activePermissionProfile":result.get("activePermissionProfile"),"supplierStanding":i.supplier_standing,"resumeRequestRef":dispatch.source.request_ref,"nativeResumeObserved":true,"appRole":{"standing":"unknown"},"networkDisclosure":network_disclosure()}),response);i.threads.push(row.clone());
         // Admission is already established. Context preparation/read failure must
         // never revoke it, change role/CCE state or make Continue wait on history.
         let thread=native["id"].as_str().unwrap();
@@ -3619,7 +3695,7 @@ impl Host {
         if unread {return Err("thread/fork records project reading no longer matches the admission it was taken for; native response retained".into());}
         let records_reading=if again.is_some() {records_reading} else {None};
         let standing=i.supplier_standing.clone();let result=&response["result"];
-        let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":t.get("id"),"name":t.get("name").and_then(Value::as_str),"preview":t.get("preview").and_then(Value::as_str),"status":t.get("status"),"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"supplierStanding":standing,"forkedFrom":{"threadId":source,"forkRequestRef":request.request_ref,"reportedForkedFromId":t.get("forkedFromId")},"requestedDestination":{"source":"inherited from the forked conversation; none chosen at fork"},"reportedDestination":{"scope":"thread","model":result.get("model"),"modelProvider":result.get("modelProvider")},"networkDisclosure":network_disclosure()}),&response);
+        let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":t.get("id"),"name":t.get("name").and_then(Value::as_str),"preview":t.get("preview").and_then(Value::as_str),"status":t.get("status"),"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"approvalPolicy":result.get("approvalPolicy"),"sandbox":result.get("sandbox"),"activePermissionProfile":result.get("activePermissionProfile"),"supplierStanding":standing,"forkedFrom":{"threadId":source,"forkRequestRef":request.request_ref,"reportedForkedFromId":t.get("forkedFromId")},"requestedDestination":{"source":"inherited from the forked conversation; none chosen at fork"},"reportedDestination":{"scope":"thread","model":result.get("model"),"modelProvider":result.get("modelProvider")},"networkDisclosure":network_disclosure()}),&response);
         // Stock Codex retains the dynamic tool in a fork. Admit its calls only
         // after the correlated fork of a source offered it in this generation.
         // The capability still checks the fork's observed cwd on every read.
@@ -3861,20 +3937,18 @@ impl Host {
             let mut i=self.inner.0.lock().unwrap();let closed=i.generation!=*generation||i.server_requests.is_closed(generation)||i.state!="ready";
             let e=i.source_requests.get_mut(&key).unwrap();e.write_attempt_in_progress=false;let response=e.response.clone();let response_position=e.response_position;
             i.client_requests[index]["sendPosition"]=json!(position);
+            // A reply that arrived while the write was in progress is handed to the one function that
+            // retires a start, before either write arm and before any exit from them, as the ordinary
+            // path does: a result naming a turn the Host remembers, or an error object, resolves it;
+            // anything else leaves it listed. A write error alone retires nothing. (A reply to a start
+            // in the table is already taken in at receipt; this hand-over covers the stored copy.)
+            if !closed&&frame["method"]=="turn/start"{if let Some(reply)=response.as_ref(){let generation=i.generation.clone();let position=response_position.unwrap_or(i.receipt_position);Self::resolve_start(&mut i,&key,reply,position,&generation);}}
             match written {Ok(())=>{i.source_requests.get_mut(&key).unwrap().written=true;i.client_requests[index]["writeResult"]=json!("written");i.client_requests[index]["outcome"]=json!(if closed{"unknown-no-response"}else{"pending"});
                 if response.is_some(){let(record,limit)=attachment_custody::project_observation(&i.client_requests[index],response.as_ref(),response_position)?;i.client_requests[index]=record;if let Some(limit)=limit{if let Some(a)=i.source_requests.get_mut(&key).unwrap().attachment.as_mut(){a.limit=Some(limit);}}}
                 }
                 // A write that began and failed may have reached Codex in part: the failure itself retires
                 // nothing, and the start stays listed unless a stored reply resolves it below.
                 Err(error)=>{i.pending.remove(&key);let e=i.source_requests.get_mut(&key).unwrap();e.write_error=Some(error);if response.is_some(){e.source_limit=Some("Matching native reply and write failure both observed; canonical projection unavailable".into());if let Some(a)=e.attachment.as_mut(){a.limit=Some("Combined failed write and observed reply cannot be projected into v0.10; last prewrite source is historical only".into());}i.client_requests[index]=prepared.client.clone();}else{i.client_requests[index]["writeResult"]=json!("write-failed");i.client_requests[index]["outcome"]=json!("unknown-no-response");}}}
-            // A reply that arrived while the write was in progress is taken in here, whether the write
-            // succeeded or failed, since the reader deferred it. Only Codex's reply to this very request
-            // retires the start: a result naming a turn (remembered as that turn) or an error object (a
-            // refusal). Anything else leaves it listed until a reply resolves it or its generation closes.
-            // "Naming a turn" is the Host's own test of a turn it remembers (native_turn_shape), so a
-            // start is never retired by a reply whose turn is then not remembered.
-            let resolves=response.as_ref().is_some_and(|r|r.get("error").is_some_and(Value::is_object)||r.get("result").and_then(|r|r.get("turn")).is_some_and(Self::native_turn_shape));
-            if !closed&&frame["method"]=="turn/start"&&resolves{if let Some((source_gen,thread,sent_after_receipt))=i.turn_request_threads.remove(&key){if source_gen==i.generation{if let Some(turn)=response.as_ref().and_then(|r|r.get("result")).and_then(|r|r.get("turn")){let position=response_position.unwrap_or(i.receipt_position);Self::remember_turn(&mut i,&source_gen,&thread,turn,"turn/start response",position);Self::note_turn_request(&mut i,&key,&source_gen,&thread,&turn["id"]);if let Some(e)=i.conversation_turns.iter_mut().find(|e|e["generation"]==source_gen&&e["threadId"]==thread&&e["turnId"]==turn["id"]&&e["source"]=="turn/start response"&&e["receiptPosition"]==position){e["startResponseIssuedAfterReceipt"]=json!(sent_after_receipt);}}}}}
             drop(i);drop(namespace_lease);
             #[cfg(test)] {let hook=self.after_attachment_namespace_write.lock().unwrap().take();if let Some(hook)=hook{hook();}}
             let _=self.persist_attachment_observation(&prepared.source);Ok(prepared.source.clone())
@@ -4108,7 +4182,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 if let Some(receipt) = receipt { i.records_receipts.push((generation.clone(), receipt.thread.clone(), receipt)); }
             }
         }
-        let standing=i.supplier_standing.clone();let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":t.get("id"),"name":t.get("name").and_then(Value::as_str),"preview":t.get("preview").and_then(Value::as_str),"status":t.get("status"),"model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider"),"reasoningEffort":response["result"].get("reasoningEffort"),"cwd":response["result"].get("cwd"),"supplierStanding":standing,"requestedDestination":{"source":"person-selected","model":params["model"],"modelProvider":params["modelProvider"]},"reportedDestination":{"scope":"thread","model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider")},"networkDisclosure":network_disclosure()}),response);i.threads.push(row);Ok(())
+        let standing=i.supplier_standing.clone();let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":t.get("id"),"name":t.get("name").and_then(Value::as_str),"preview":t.get("preview").and_then(Value::as_str),"status":t.get("status"),"model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider"),"reasoningEffort":response["result"].get("reasoningEffort"),"cwd":response["result"].get("cwd"),"approvalPolicy":response["result"].get("approvalPolicy"),"sandbox":response["result"].get("sandbox"),"activePermissionProfile":response["result"].get("activePermissionProfile"),"supplierStanding":standing,"requestedDestination":{"source":"person-selected","model":params["model"],"modelProvider":params["modelProvider"]},"reportedDestination":{"scope":"thread","model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider")},"networkDisclosure":network_disclosure()}),response);i.threads.push(row);Ok(())
     }
 
     /// Plain text only, with complete native text input; all thread settings
@@ -5048,6 +5122,30 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         Ok(response)
     }
 
+    /// The only way a turn start leaves the table of unresolved starts
+    /// (`turn_request_threads`), which a start enters when its write begins.
+    /// `reply` must be Codex's reply to that very request (its `id` is the
+    /// request's). A result naming a valid turn ties the start to that turn,
+    /// which is remembered, and retires it; an error object refuses it and
+    /// retires it. Anything else (a result with no usable turn, a reply with
+    /// neither, a reply to another request) leaves it unresolved, and so
+    /// counted as live work. A write error never retires a start: a write
+    /// that began may have reached Codex in part. Its generation's closing
+    /// ends its listing (`unanswered_turn_starts`), not this table.
+    fn resolve_start(i: &mut Inner, key: &str, reply: &Value, position: u64, generation: &Value) {
+        if reply["id"].to_string() != key || !i.turn_request_threads.contains_key(key) { return; }
+        let refused = reply.get("error").is_some_and(Value::is_object);
+        let turn = reply.get("result").and_then(|r| r.get("turn")).filter(|t| Self::native_turn_shape(t)).cloned();
+        if !refused && turn.is_none() { return; }
+        let Some((source_gen, thread, sent_after_receipt)) = i.turn_request_threads.remove(key) else { return };
+        let Some(turn) = turn else { return };
+        if source_gen != *generation { return; }
+        Self::remember_turn(i, &source_gen, &thread, &turn, "turn/start response", position);
+        Self::note_turn_request(i, key, &source_gen, &thread, &turn["id"]);
+        if let Some(entry) = i.conversation_turns.iter_mut().find(|e| e["generation"] == source_gen && e["threadId"] == thread && e["turnId"] == turn["id"] && e["source"] == "turn/start response" && e["receiptPosition"] == position) {
+            entry["startResponseIssuedAfterReceipt"] = json!(sent_after_receipt);
+        }
+    }
     fn native_turn_shape(turn: &Value) -> bool {
         turn["id"].as_str().map(|s| !s.is_empty()).unwrap_or(false)
             && turn["items"].is_array()
@@ -5344,6 +5442,17 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             i.journal.push(json!({"generation":generation,"class":"closed-generation-frame","frame":journalled,"sourceProjection":projection_label}));return;
         }
         i.receipt_position+=1;let pos=i.receipt_position;let gen=i.generation.clone();
+        // A reply to a turn start in the table is taken in from the line as
+        // Codex sent it, before any projection is acted on: a projection that
+        // withholds the frame (a private configuration channel) must not leave
+        // a valid turn uncounted. resolve_start reads only the id, whether an
+        // error object is present, and the turn's shape, so nothing private is
+        // kept by it; the projection then withholds the frame as before.
+        if let Some(raw)=parsed.as_ref().filter(|f|f.get("method").is_none()){
+            if let Some(key)=raw.get("id").map(Value::to_string).filter(|key|i.turn_request_threads.get(key).is_some_and(|(g,_,_)|*g==gen)){
+                Self::resolve_start(&mut i,&key,raw,pos,&gen);
+            }
+        }
         i.observation_facts.receive(&gen, pos, &frame);
         let epoch=i.aa_epoch;let pipe_epoch=i.attachment_pipe_epoch;
         if let Some(c)=i.aa_capture.as_mut(){c.observe(&gen,epoch,pipe_epoch,pos,&frame);}
@@ -5456,23 +5565,18 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             // reading's request, releases the reservation; one naming another generation or request,
             // or one settlement rejects, releases nothing.
             if native_settlement.is_some_and(|verdict|verdict.is_ok()) && Self::reading_reply_locked(&mut i, generation, &key) { self.inner.1.notify_all(); }
+            // A reply to a turn start whose write failed after it began: no
+            // longer pending, but its start is still unresolved.
+            if frame.get("method").is_none() && !i.pending.contains_key(&key) && i.turn_request_threads.contains_key(&key) {
+                Self::resolve_start(&mut i, &key, &frame, pos, &gen);
+            }
             if let Some((idx, tx)) = i.pending.remove(&key) {
                 let deferred=!i.client_requests[idx].is_object()||i.source_requests.get(&key).is_some_and(|e|e.write_attempt_in_progress);
                 if !deferred {
                     let mut record=i.client_requests[idx].clone();
                     match Self::completed_client_response(&mut record,Some(&frame),Some(pos),native_settlement){Ok(())=>i.client_requests[idx]=catalog_record(record),Err(error)=>if let Some(e)=i.source_requests.get_mut(&key){e.source_limit=Some(error)}}
                 }
-                if !deferred&&i.client_requests[idx]["method"] == "turn/start" {
-                    if let Some((source_gen, thread, sent_after_receipt)) = i.turn_request_threads.remove(&key) {
-                        if source_gen == gen {
-                            if let Some(turn) = frame.get("result").and_then(|r| r.get("turn")) {
-                                Self::remember_turn(&mut i, &gen, &thread, turn, "turn/start response", pos);
-                                Self::note_turn_request(&mut i, &key, &gen, &thread, &turn["id"]);
-                                if let Some(entry) = i.conversation_turns.iter_mut().find(|e| e["generation"] == gen && e["threadId"] == thread && e["turnId"] == turn["id"] && e["source"] == "turn/start response" && e["receiptPosition"] == pos) { entry["startResponseIssuedAfterReceipt"] = json!(sent_after_receipt); }
-                            }
-                        }
-                    }
-                }
+                if !deferred&&i.client_requests[idx]["method"] == "turn/start" { Self::resolve_start(&mut i, &key, &frame, pos, &gen); }
                 // A delegation read's reply after its reading stopped waiting is
                 // kept as its outcome only; a reply still awaited is kept whole
                 // until the reading takes its fields (`delegation_signals_read`).
@@ -6019,7 +6123,8 @@ mod additive_guidance_transport_tests {
         *host.stdin.lock().unwrap()=child.stdin.take();let stdout=child.stdout.take().unwrap();let me=Arc::clone(&host);let g=generation.clone();let (tx,rx)=channel();
         let worker=std::thread::spawn(move|| {
             let mut line=String::new();BufReader::new(stdout).read_line(&mut line).unwrap();let frame:Value=serde_json::from_str(&line).unwrap();
-            let response=json!({"id":frame["id"],"result":{"thread":{"id":"mock-thread","status":"idle"},"model":"reported-model","modelProvider":"reported-provider","cwd":"/reported/work"}});
+            let response=json!({"id":frame["id"],"result":{"thread":{"id":"mock-thread","status":"idle"},"model":"reported-model","modelProvider":"reported-provider","cwd":"/reported/work",
+                "approvalPolicy":"on-request","approvalsReviewer":"user","sandbox":{"type":"readOnly","networkAccess":false},"activePermissionProfile":{"id":":read-only"}}});
             tx.send((frame,response.clone())).unwrap();me.on_line(&serde_json::to_vec(&response).unwrap(),&g);
         });
         let result=match guidance {Some(text)=>host.thread_start_with_guidance("/invented/work","chosen-model","chosen-provider",text),None=>host.thread_start_selected("/invented/work","chosen-model","chosen-provider")};
@@ -6030,6 +6135,9 @@ mod additive_guidance_transport_tests {
     fn both_public_wrappers_use_the_same_stdio_correlation_and_thread_snapshot_path() {
         for guidance in [None,Some("Exact role bytes\n\né / 家\n")] {
             let run=mock_thread_start(guidance,None);let response=run.result.unwrap();
+            // What Codex reported it may do in the conversation is kept on its row, as reported.
+            let row=&run.snapshot["threads"][0];
+            assert_eq!((row["approvalPolicy"].as_str(),row["sandbox"]["type"].as_str(),row["activePermissionProfile"]["id"].as_str()),(Some("on-request"),Some("readOnly"),Some(":read-only")));
             assert_eq!(run.outbound["method"],"thread/start");assert_eq!(run.outbound["params"],Host::thread_start_params("/invented/work","chosen-model","chosen-provider",guidance).unwrap());assert_eq!(response,run.native_response);
             let thread=&run.snapshot["threads"][0];assert_eq!(thread["generation"],run.generation);assert_eq!(thread["supplierStanding"],"unverified-development");assert_eq!(thread["requestedDestination"]["model"],"chosen-model");assert_eq!(thread["reportedDestination"]["model"],"reported-model");assert_eq!(run.snapshot["clientRequests"][0]["outcome"],"response-observed-result");assert_eq!(run.snapshot["journal"][0]["frame"],run.native_response);
         }
@@ -8701,10 +8809,12 @@ mod local_process_lock_tests {
         assert_eq!(status["lastStartRefusal"]["reason"], PROCESS_HELD, "kept for the window");
         assert_eq!(status["lastStartRefusal"]["home"], home_identity(&f.cfg.codex_home));
         assert!(status["lastStartRefusal"]["attempt"].is_null(), "refused before the call was an attempt");
+        assert_eq!(status["startRefusalCause"], "home");
         drop(earlier);
         // Free: the same configuration starts, and its child now holds the lock itself.
         assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
         assert!(host.snapshot()["lastStartRefusal"].is_null(), "an admitted attempt clears it");
+        assert!(host.snapshot()["startRefusalCause"].is_null(), "and its cause");
         assert_eq!(take_process_lock(&f.lock_path()).unwrap_err(), EARLIER_PROCESS, "held by the child");
         stop_and_wait(&host);
         drop(take_process_lock(&f.lock_path()).expect("free once the child has exited"));

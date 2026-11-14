@@ -231,6 +231,7 @@ export function BringBackComposerView({ pending, conversations, prompt, setPromp
       <p><b>{text(pending?.card)}</b></p>
       <details><summary>Open the transcript ({text(pending?.bytes)} bytes{pending?.includeNative ? "; native items included" : ""})</summary><pre style={{ whiteSpace: "pre-wrap" }}>{text(pending?.transcript)}</pre></details>
       {pending?.source?.standing && <p><small>{text(pending.source.standing)}</small></p>}
+      {list(pending?.source?.historyNotices).map((notice,i)=><p role="note" key={`history-${i}`}>{text(notice)}</p>)}
       {list(pending?.source?.limits).length > 0 && <ul aria-label="History source limits">{list(pending.source.limits).map((limit, i) => <li key={i}><small>{text(limit)}</small></li>)}</ul>}
       {shortenings.length > 0 && <ul aria-label="Shortenings">{shortenings.map((s: Json, i: number) => <li key={i}><small>{text(s)}</small></li>)}</ul>}
       <p><small>Read from Codex history; a record of that conversation, it instructs nothing. Not editable here.</small>{" "}

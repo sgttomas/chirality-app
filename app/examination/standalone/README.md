@@ -116,13 +116,50 @@ python3 -B -m unittest discover -s tests -p 'group_b_pre_run_inputs_test.py' -v
 for that candidate state it, and, kept apart, the scripted driver's runs and the session comparison's rows. Its
 docstring gives what it reads and how. Its claim (App Agent 0, 14 November 2026): a step prints as passed only when a
 result record for that step, on the candidate named, says passed, and no other record for that step on that
-candidate of the same latest date says otherwise; every other state prints as what it is; cited rows are listed
+candidate of the same latest date says otherwise, every record for that step on that candidate can be placed in
+time, and no record that could bear on any step (one naming no step, or one that cannot be read at all) remains;
+every other state prints as what it is; cited rows are listed
 beneath the table and never raise, lower or protect an outcome or a count; the driver's runs and the comparison's rows
 are never counted as steps.
 
 The table accepts one written form for a time, `YYYY-MM-DDTHH:MM:SS` with an optional fraction of a second and its
 zone, and a calendar date `YYYY-MM-DD`, and refuses the rest, because a time read wrongly can make an older pass beat
-a later failure. A record in another form is set aside and listed.
+a later failure.
+
+A record that cannot be read is never less damaging to a pass than a readable failure would have been. The doubt it
+carries reaches as far as what it could be (App Agent 0, on the INTERLOCUTOR's finding):
+- **Another candidate, readably named.** It bears on nothing here.
+- **A step named, but not placed.** On the candidate named but with a date that cannot be placed in time, or naming no
+  candidate (it cannot be shown to be another's): that step's outcome is not known. The step prints and counts as
+  inconclusive, whatever its other records say, and the reason is printed directly under the counts.
+- **No step named, or not readable at all** (not JSON, not a JSON object; a truncated failure record, say). It may bear
+  on any step, so while one remains no pass is established. A row whose records say passed prints as inconclusive,
+  saying that a record that could not be read may bear on it, and counts as inconclusive. Failed, blocked, not run and
+  inconclusive rows stay as they are, and every row and its readable evidence still print. A step with no readable
+  record does not say it was not run: it says that no readable result is recorded and that a record that could not be
+  read may bear on it, and it is still counted as not run (App Agent 0, from the INTERLOCUTOR). The counts line itself says
+  how many such records there are and how many passes they hold.
+
+Nothing else is relied on to confine that doubt: not a file's name, and not any part of content that failed to read.
+
+**What releases a table held this way** is resolving each such record, never deleting it to clear an inconclusive
+result. The table reads only `.json` files directly in the results folder, so a record is out of what it reads once it
+is in a subfolder, which is kept and not read. Name the subfolder without a `.json` ending: a folder so named is read
+as a record that cannot be read. The person who keeps the results does one of two things for each record:
+- **Corrects it.** Reads what the record was, writes the corrected record in the results folder, and moves the
+  original, unchanged, into a subfolder (`resolved/`, say) with a note of what it was and who resolved it. A corrected
+  record written beside an original left in place does not release the table: the original is still read, and still
+  holds every pass.
+- **Shows it does not belong.** Establishes that the record does not belong to this set of results, and moves it out
+  of the folder or into such a subfolder, noting why.
+
+Removing a readable failure record is something the table cannot see.
+
+**What the table trusts.** The table trusts the identities a record states. A record that readably names another
+candidate, or a step the plan does not know, is listed beneath the table and lowers nothing. The table does not
+establish that whoever wrote the record named them correctly, nor that every record made is in the folder. Only
+`.json` files directly in the results folder are read. A record that names no candidate or no step is different: its
+relevance is unknown, which is why it is treated as in the rule above.
 
 Limits:
 - Citations are listed only for the records that decide a shown step.

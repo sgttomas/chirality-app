@@ -1217,6 +1217,34 @@ failure, the same scenario and acts.
   | S4, Exact locations open | click "Create settings and save for next launch…" | as S3, and three paths the App makes under its data folder (`shared-settings/settings-<uuid>`, `account-homes/account-<uuid>`, `desktop-startup/request.json`), each checked against that form |
   | S5, the sheet | press "Create settings and save for next launch" | the build's strings (`desktop_startup.rs`, `desktop_setup_confirmation.rs`, `act_control.rs`) filled with the same paths; macOS's alert text (`Description: alert`, `ID: action-button-<n>`); the App's menu; the supplier's lines |
 
+  **Stale against main since fc1b222d (PR 334, 14 November 2026): S3, S4 and
+  S5.** The states are kept as recorded from candidate 9d997626, and so are
+  the step expectations and the sheet's statement that describe them. PR 334
+  changed what a build of main shows:
+  - **S3 and S4.** Their line "In it, create an empty config.toml, an empty
+    AGENTS.md and an empty skills folder" now reads "In it, create an empty
+    config.toml, an empty AGENTS.md and a skills folder; Codex adds its own
+    system skills there, and its own working files to the sign-in folder, when
+    it starts".
+  - **S3 and S4, a new block.** A block headed "What applies by default", with
+    four sentences, is now shown after Exact locations. Its words are read from
+    `desktop_startup.rs` and `FirstUse.tsx` at fc1b222d. The driver's views file
+    does not show it.
+  - **S5, the sheet.** Its second line now reads "with an empty config.toml, an
+    empty AGENTS.md and a skills folder. Codex adds its own system skills there,
+    and its own working files to the account directory, when it starts."
+
+  On a build of main the walk therefore acts from S1 and S2. Both are
+  unaffected: 334 changed only the review page, which first appears after
+  "Review setup", and the sheet. After the click from S2, the review page's
+  lines do not match that step's recorded expectation, so the walk stops there.
+  Even past that, the view is not S3 line for line, so nothing is acted on from
+  S3, S4 or the sheet. That is the safe side. The states are re-recorded in a later change from a build of main,
+  under the pre-launch check for a walk with no conversation, and are not edited
+  to the new words by hand: a recorded state comes from a recorded view. The
+  relaunch reading is unaffected. It checks only the "Run a workflow" heading
+  and the welcome's absence, and 334 changed neither.
+
   No conversation exists in any of them, and nothing in them comes from
   Codex or a model. The relaunch is not a listed state: its first view can
   show why a Codex start was refused, composed partly from errors of the

@@ -2706,7 +2706,7 @@ fn workflow_reopen(state:State<'_,AppState>)->Result<Value,String>{
     // The REC custody projection is where the Host derives app_restart_interruption.
     for event in restart_events(&home.host.recovery_custody().snapshot()){if !events.contains(&event){events.push(event);}}
     let homes=state.homes.lock().unwrap().entries();
-    state.workflows.lock().unwrap().reopen_for_learning(root,&events,&homes)
+    runtime_session::read_reopened_history(&state.workflows,root,&events,&homes)
 }
 /// The person's explicit end of a run the record shows open and interrupted after relaunch.
 #[tauri::command]
@@ -2719,6 +2719,10 @@ fn workflow_end_recorded(state:State<'_,AppState>,run_id:String,thread_id:Option
     // keyed to the conversation's own home; with no established home, none is sent.
     let mut out=state.workflows.lock().unwrap().end_recorded_run(root,&run_id,&thread,false,home.as_ref().ok().cloned())?;
     if let Err(reason)=home{out["endNotice"]=json!({"state":format!("not composed: {reason}; no end notice is sent for this end (WR TX-5 / SQ-END)")});}
+    // Refresh the cached reopened reading, with both routing observations and
+    // the notice census outside the workflow owner, as on explicit reopen.
+    let homes = state.homes.lock().unwrap().entries();
+    runtime_session::read_reopened_history(&state.workflows, root, &[], &homes).ok();
     Ok(out)
 }
 /// WR TX-5 / SQ-END: the Codex home of a conversation named by the record, from the

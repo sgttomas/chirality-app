@@ -374,6 +374,13 @@ pub(crate) mod native_statement {
         for r in rows(&view["observedLiveTurns"]) {
             t.push(format!("Live turn: {} / {} ({})", cell(&r["threadId"]), cell(&r["turnId"]), cell(&r["status"])));
         }
+        for r in rows(&view["observedUnansweredTurnStarts"]) {
+            t.push(format!(
+                "Turn start not yet associated with a turn: {} (request #{}). It may be one of the turns listed here; the App has not yet associated this start with a turn it can interrupt.",
+                cell(&r["threadId"]),
+                cell(&r["requestIdentity"])
+            ));
+        }
         for r in rows(&view["observedOutstandingRequests"]) {
             t.push(format!(
                 "Outstanding request: {} #{} in {}",
@@ -426,8 +433,9 @@ pub(crate) mod native_statement {
             format!("Account read: {}", text_or(&account["readAvailability"], "not reported")),
             format!("Current report: {}", text_or(&account["currentReport"]["state"], "not reported")),
             format!(
-                "Observed: {} live turns, {} outstanding requests, {} active children, {} children with unknown activity, {} unresolved turn observations.",
+                "Observed: {} live turns, {} turn starts not yet associated with a turn, {} outstanding requests, {} active children, {} children with unknown activity, {} unresolved turn observations.",
                 count(&view["observedLiveTurns"]),
+                count(&view["observedUnansweredTurnStarts"]),
                 count(&view["observedOutstandingRequests"]),
                 count(&view["observedActiveChildren"]),
                 count(&view["knownChildActivityUnknown"]),
@@ -464,7 +472,9 @@ pub(crate) mod native_statement {
         let generation = &view["generation"];
         let runs = &view["runsInForce"];
         let live = count(&view["observedLiveTurns"]);
-        let others = count(&view["observedOutstandingRequests"])
+        let starts = count(&view["observedUnansweredTurnStarts"]);
+        let others = starts
+            + count(&view["observedOutstandingRequests"])
             + count(&view["observedActiveChildren"])
             + count(&view["knownChildActivityUnknown"])
             + count(&view["coverage"]["turns"]["unresolved"])
@@ -497,11 +507,11 @@ pub(crate) mod native_statement {
         }
         let mut tail = Vec::new();
         if live + others == 0 {
-            head.push("Observed: no live turns, waiting requests, delegated agents or workflow runs in force.".into());
+            head.push("Observed: no live turns, turn starts not yet associated with a turn, waiting requests, delegated agents or workflow runs in force.".into());
             tail.push(format!("{act} stops this Codex process{}.", if restart { " and starts it again" } else { "" }));
         } else {
             head.push(format!(
-                "Observed: {live} live turns, {} waiting requests, {} delegated agents, {} workflow runs in force.",
+                "Observed: {live} live turns, {starts} turn starts not yet associated with a turn, {} waiting requests, {} delegated agents, {} workflow runs in force.",
                 count(&view["observedOutstandingRequests"]),
                 count(&view["observedActiveChildren"]) + count(&view["knownChildActivityUnknown"]),
                 count(runs)
@@ -511,21 +521,28 @@ pub(crate) mod native_statement {
                 cell(&view["stopWaitLimitSeconds"]),
                 if restart { " and starts it again" } else { "" }
             ));
+            if starts > 0 { tail.push(unanswered_starts_sentence(if restart { "Restarting Codex" } else { "Stopping Codex" })); }
             tail.push("Waiting requests are not answered; they end with the process. Workflow runs stay open: stopping Codex ends no run.".into());
         }
         if restart {
             tail.push("No conversation is continued automatically; continue one yourself.".into());
         }
         tail.push("None observed is not none: coverage is not complete.".into());
-        tail.push("This is your operational choice, not a recorded act. If you confirm, the App writes the stop and each interrupt to its recovery ledger before sending; what the ledger accepts can be read after a relaunch.".into());
+        tail.push("This is your operational choice, not a recorded act. If you confirm, the App writes the stop and each interrupt to its recovery ledger before sending.".into());
         tail.push(format!("Observed at {}.", text_or(&view["observedAt"], "not reported")));
         tail.push(format!("{act} proceeds; {KEEP_CODEX} (the default) and Cancel change nothing."));
         let whole = [head.clone(), listed, tail.clone()].concat().join("\n");
         whole_or_in_app("Stop Codex question", "live work at Stop Codex", whole, view, |digest| {
-            [head, vec![format!("Each item is listed in the assessment, {IN_APP}"), digest.to_owned()], tail]
+            [head, vec![ITEMS_IN_APP.to_owned(), digest.to_owned()], tail]
                 .concat()
                 .join("\n")
         })
+    }
+    /// What the person reads when a turn start has been sent and not yet
+    /// answered: what is under way, that the App cannot ask Codex to stop it
+    /// yet, and what the act will do to it.
+    pub(crate) fn unanswered_starts_sentence(doing: &str) -> String {
+        format!("The App began to send a turn start to Codex and has not yet associated it with a turn it can interrupt. It may be a listed turn, which is then interrupted with the others; if not, {doing} stops Codex wherever it has got to, and its outcome may remain unknown.")
     }
     /// Labels of the App quit question (K-4; DEL-01-04 §5.2), in the same
     /// default-safe layout as Stop Codex: Return keeps the App running.
@@ -541,9 +558,10 @@ pub(crate) mod native_statement {
         let mut head = vec![
             "Quit Chirality while work is live?".to_owned(),
             format!(
-                "Observed across {} App-owned Codex process(es): {} live turns, {} waiting requests, {} delegated agents, {} workflow runs in force.",
+                "Observed across {} App-owned Codex process(es): {} live turns, {} turn starts not yet associated with a turn, {} waiting requests, {} delegated agents, {} workflow runs in force.",
                 count(&view["homes"]),
                 count(&view["observedLiveTurns"]),
+                count(&view["observedUnansweredTurnStarts"]),
                 count(&view["observedOutstandingRequests"]),
                 count(&view["observedActiveChildren"]) + count(&view["knownChildActivityUnknown"]),
                 count(runs)
@@ -552,11 +570,16 @@ pub(crate) mod native_statement {
         if view["changedWhileAsking"] == true {
             head.push("Live work changed while this question was open; this is the current list.".into());
         }
-        for h in rows(&view["homes"]) {
-            if let Some(note) = h["notReady"].as_str() {
-                head.push(format!("{}: {note}.", text_or(&h["modeHomeClass"], "home")));
-            }
-        }
+        // Homes that are not ready: one line each on the whole sheet; on the
+        // in-app form one fixed line, whatever their number, with each named
+        // (class and state) in the content the App shows in full.
+        let not_ready: Vec<String> = rows(&view["homes"])
+            .filter_map(|h| h["notReady"].as_str().map(|note| format!("{}: {note}.", text_or(&h["modeHomeClass"], "home"))))
+            .collect();
+        let not_ready_line = (!not_ready.is_empty()).then(|| format!(
+            "{} of them not ready: live work cannot be observed in them and nothing is sent to them; they are stopped. Each is named in the App.",
+            not_ready.len()
+        ));
         let mut listed = live_work_lines(view);
         for limit in rows(&view["assessmentLimits"]) {
             listed.push(format!("Not assessed: {}", cell(limit)));
@@ -569,20 +592,21 @@ pub(crate) mod native_statement {
                 cell(&r["conversation"])
             ));
         }
-        let tail = vec![
+        let mut tail = vec![
             format!(
                 "Quit interrupts each live turn, waits up to {} s for Codex to report it ended, then stops every Codex process the App runs and closes the App.",
                 cell(&view["stopWaitLimitSeconds"])
             ),
-            "Waiting requests are not answered; they end with the process. Workflow runs stay open: quitting ends no run. After a relaunch the turns read \"interrupted by quit\" and nothing continues until you choose to.".into(),
+            "Waiting requests are not answered; they end with the process. Workflow runs stay open: quitting ends no run. Nothing continues after a relaunch until you choose to.".into(),
             "None observed is not none: coverage is not complete.".into(),
             "This is your operational choice, not a recorded act. The App records the question, your answer and each interrupt in its recovery ledger before sending.".into(),
             format!("Observed at {}.", text_or(&view["observedAt"], "not reported")),
             format!("{QUIT_APP} proceeds; {KEEP_RUNNING} (the default) and Cancel change nothing."),
         ];
-        let whole = [head.clone(), listed, tail.clone()].concat().join("\n");
+        if count(&view["observedUnansweredTurnStarts"]) > 0 { tail.insert(1, unanswered_starts_sentence("Quitting")); }
+        let whole = [head.clone(), not_ready, listed, tail.clone()].concat().join("\n");
         whole_or_in_app("Quit question", "live work at quit", whole, view, |digest| {
-            [head, vec![format!("Each item is listed in the assessment, {IN_APP}"), digest.to_owned()], tail]
+            [head, not_ready_line.into_iter().collect(), vec![ITEMS_IN_APP.to_owned(), digest.to_owned()], tail]
                 .concat()
                 .join("\n")
         })
@@ -696,6 +720,8 @@ pub(crate) mod native_statement {
         pub(crate) in_app: Option<InApp>,
     }
     const IN_APP: &str = "shown in full in the App now, under \"Content named by an open native confirmation\". Its sha-256 digest:";
+    /// The Stop, Restart and quit questions' pointer to the in-app list.
+    const ITEMS_IN_APP: &str = "Each item is shown in full in the App now, under \"Content named by an open native confirmation\"; its sha-256 digest:";
 
     fn non_integer_at(v: &Value, at: &str) -> Option<String> {
         match v {
@@ -820,6 +846,158 @@ pub(crate) mod native_statement {
         }
     }
 
+    /// Every question's in-app fallback, built with the longest values its
+    /// views can carry and every optional line present, fits the readable
+    /// native confirmation. A question that grew past it would be an act the
+    /// person cannot confirm; this is where that is found, not by a reader.
+    ///
+    /// The limit (`MAX_CHARS`, `MAX_LINES`) protects what a person can read in
+    /// one native sheet before they confirm an act. The sheet is shown to fit
+    /// for up to 99,999 items of each kind (`ITEMS`), with a spawn counter at
+    /// its type's largest value; the worst cases are Restart asked again and
+    /// Quit across three homes asked again. Past that bound the question is
+    /// refused whole, never cut short. A change that fails this test must shorten
+    /// the question's text; it must not raise the limit, which is tunable only
+    /// after a native look at the sheet.
+    #[cfg(test)]
+    mod worst_case_fallbacks {
+        use super::*;
+        use serde_json::json;
+
+        const LONGEST_CLASS: &str = "local-provider";
+        const LONGEST_STATE: &str = "initializing-recovering";
+        const LONGEST_ACCOUNT_STATE: &str = "native acknowledgment only; no filesystem removal/history deletion or turn end inferred";
+
+        fn generation() -> Value {
+            // The App's own formats, from the functions that make them; the
+            // spawn counter at its type's largest value.
+            json!({"appSession": crate::util::opaque_id("app-session:").unwrap(), "home": crate::util::opaque_id("home-").unwrap(), "spawnCounter": u64::MAX})
+        }
+        /// More items than any alert holds, so only the fallback can be shown.
+        /// The bound the sheet is shown to hold for: up to this many items of
+        /// each kind (each list, and the workflow runs). Past it the question
+        /// is refused whole (`bounded`): nothing is presented, captured or sent.
+        const ITEMS: usize = 99_999;
+        /// The counts lines read only each list's length, so the rows are
+        /// placeholders: the longest counts, not the longest rows, are tested.
+        fn work(_g: &Value) -> Value {
+            let rows = || Value::Array(vec![Value::Null; ITEMS]);
+            json!({
+                "observedLiveTurns": rows(),
+                "observedUnansweredTurnStarts": rows(),
+                "observedOutstandingRequests": rows(),
+                "observedActiveChildren": rows(),
+                "knownChildActivityUnknown": rows(),
+                "coverage": {"turns": {"unresolved": rows()}},
+            })
+        }
+        fn runs() -> Value {
+            Value::Array(vec![json!({"workflow": {"name": "w".repeat(60)}, "run": "run-1", "conversation": "thread-1", "state": "open"}); ITEMS])
+        }
+        fn fits(question: &str, built: Result<NativeStatement, String>) {
+            match built {
+                Ok(statement) => {
+                    let chars = statement.text.chars().count();
+                    assert!(chars <= MAX_CHARS, "{question}: the fallback is {chars} characters, {} over the {MAX_CHARS}-character limit", chars - MAX_CHARS);
+                    assert!(statement.text.lines().count() <= MAX_LINES, "{question}: the fallback has {} lines, over the {MAX_LINES}-line limit", statement.text.lines().count());
+                }
+                Err(e) => {
+                    let over = e.split(", ").nth(1).and_then(|s| s.split(' ').next()).and_then(|n| n.parse::<usize>().ok()).map(|n| n.saturating_sub(MAX_CHARS));
+                    panic!("{question}: the fallback does not fit{}: {e}", over.map(|n| format!(", {n} characters over the {MAX_CHARS}-character limit")).unwrap_or_default());
+                }
+            }
+        }
+
+        /// The quit sheet's fixed line counts the homes that are not ready;
+        /// each one it counts is named, with its class and state, in the
+        /// content the App shows in full under the open confirmation, and the
+        /// digest on the sheet is that content's digest.
+        #[test]
+        fn every_home_the_quit_sheet_counts_as_not_ready_is_named_in_the_app() {
+            let g = generation();
+            for not_ready in 1..=2usize {
+                let mut view = work(&g);
+                let homes: Vec<Value> = ["account", "api-key", LONGEST_CLASS].iter().enumerate().map(|(i, class)| {
+                    let mut h = json!({"modeHomeClass": class, "generation": g, "state": "ready"});
+                    if i >= 3 - not_ready {
+                        h["state"] = json!(format!("state-{i}"));
+                        h["notReady"] = json!(format!("Codex is state-{i}, not ready: live work cannot be observed and nothing is sent to it; its process is stopped"));
+                    }
+                    h
+                }).collect();
+                view["homes"] = json!(homes);
+                view["stopWaitLimitSeconds"] = json!(10);
+                view["observedAt"] = json!(crate::util::now_rfc3339());
+                let statement = quit_statement(&view).unwrap();
+                let in_app = statement.in_app.as_ref().expect("this many items needs the in-app form");
+                let line = statement.text.lines().find(|l| l.contains(" of them not ready: ")).expect("the sheet carries the fixed line");
+                let counted: usize = line.split(' ').next().unwrap().parse().unwrap();
+                assert_eq!(counted, not_ready, "{line}");
+                let named: Vec<(String, String)> = in_app.content["homes"].as_array().unwrap().iter()
+                    .filter(|h| h["notReady"].is_string())
+                    .map(|h| (h["modeHomeClass"].as_str().unwrap().to_owned(), h["state"].as_str().unwrap().to_owned()))
+                    .collect();
+                assert_eq!(named.len(), counted, "every home the sheet counts is named in the App's content: {named:?}");
+                for (i, (class, state)) in named.iter().enumerate() {
+                    let rendered = in_app.content["homes"].as_array().unwrap().iter().find(|h| h["modeHomeClass"] == class.as_str()).unwrap();
+                    assert_eq!(rendered["state"], json!(state), "home {i}");
+                }
+                let digest = content_digest("Quit question", &in_app.content).unwrap();
+                assert_eq!(in_app.digest, digest);
+                assert!(statement.text.lines().any(|l| l == digest), "the sheet gives the digest of that content");
+                assert!(!statement.text.contains(": Codex is state-"), "the per-home lines are on the whole sheet only");
+            }
+        }
+
+        #[test]
+        fn every_questions_worst_case_fallback_fits() {
+            let g = generation();
+            let wait = crate::codex_stop::STOP_WAIT_LIMIT.as_secs();
+            for restart in [false, true] {
+                for changed in [false, true] {
+                    let mut view = work(&g);
+                    for (k, v) in [("restart", json!(restart)), ("changedWhileAsking", json!(changed)), ("modeHomeClass", json!(LONGEST_CLASS)), ("generation", g.clone()),
+                                   ("state", json!("ready")), ("notReady", Value::Null), ("runsInForce", runs()), ("stopWaitLimitSeconds", json!(wait)), ("observedAt", json!(crate::util::now_rfc3339()))] {
+                        view[k] = v;
+                    }
+                    let question = format!("{} question (re-asked: {changed})", if restart { "Restart Codex" } else { "Stop Codex" });
+                    fits(&question, codex_stop_statement(&view));
+                    // A home that is not ready has no work to list (nothing is
+                    // observed in it) but carries its note; its runs are listed.
+                    let mut not_ready = json!({});
+                    for k in ["restart", "changedWhileAsking", "modeHomeClass", "generation", "runsInForce", "stopWaitLimitSeconds", "observedAt"] { not_ready[k] = view[k].clone(); }
+                    not_ready["state"] = json!(LONGEST_STATE);
+                    not_ready["notReady"] = json!(format!("Codex is {LONGEST_STATE}, not ready: live work cannot be observed and nothing is sent to it; only the process is stopped"));
+                    fits(&format!("{question}, home not ready"), codex_stop_statement(&not_ready));
+                }
+            }
+            for changed in [false, true] {
+                let mut view = work(&g);
+                let homes: Vec<Value> = ["account", "api-key", LONGEST_CLASS].iter().enumerate().map(|(i, class)| {
+                    let mut h = json!({"modeHomeClass": class, "generation": g, "state": "ready"});
+                    if i > 0 {
+                        h["state"] = json!(LONGEST_STATE);
+                        h["notReady"] = json!(format!("Codex is {LONGEST_STATE}, not ready: live work cannot be observed and nothing is sent to it; its process is stopped"));
+                    }
+                    h
+                }).collect();
+                for (k, v) in [("homes", json!(homes)), ("changedWhileAsking", json!(changed)), ("runsInForce", runs()), ("stopWaitLimitSeconds", json!(wait)),
+                               ("observedAt", json!(crate::util::now_rfc3339())), ("assessmentLimits", json!((0..3).map(|i| format!("home {i}: {}", "x".repeat(80))).collect::<Vec<_>>()))] {
+                    view[k] = v;
+                }
+                fits(&format!("Quit question (re-asked: {changed})"), quit_statement(&view));
+            }
+            let mut view = work(&g);
+            for (k, v) in [("modeHomeClass", json!(LONGEST_CLASS)), ("generation", g.clone()), ("observedAt", json!(crate::util::now_rfc3339())),
+                           ("account", json!({"state": LONGEST_ACCOUNT_STATE, "nativeType": "chatgptAuthTokens", "readAvailability": "native account read pending/shape unavailable; prior report only",
+                                              "currentReport": {"state": "current native report unavailable; previous read is only last observed"}})),
+                           ("warning", json!("None observed is not none. Child visibility/completeness is not established; additional work may exist. Logout acknowledgment does not end turns/children, delete history or prove credential-store removal."))] {
+                view[k] = v;
+            }
+            fits("Logout confirmation", logout_statement(&view));
+        }
+    }
+
     #[cfg(test)]
     mod tests {
         use super::*;
@@ -846,7 +1024,7 @@ pub(crate) mod native_statement {
             assert!(s.in_app.is_none());
             for needle in ["Live turn: thread-0 / turn-0 (inProgress)", "Live turn: thread-1 / turn-1", "Outstanding request: item/tool/requestUserInput #0 in thread-r",
                 "Active child: child-0 (parent thread-0; running)", "Child, activity unknown: child-u (parent thread-0)", "Turn observation unresolved: thread-x / turn not reported",
-                "Observed: 2 live turns, 1 outstanding requests, 1 active children", "None observed is not none.", "Cancel sends nothing", "0123456789abcdef"] {
+                "Observed: 2 live turns, 0 turn starts not yet associated with a turn, 1 outstanding requests, 1 active children", "None observed is not none.", "Cancel sends nothing", "0123456789abcdef"] {
                 assert!(s.text.contains(needle), "{needle} in\n{}", s.text);
             }
             assert!(!s.text.contains('{'), "{}", s.text);
@@ -858,7 +1036,7 @@ pub(crate) mod native_statement {
             assert_eq!(shown.content, view);
             assert_eq!(shown.digest, content_digest("x", &view).unwrap());
             assert!(s.text.lines().any(|l| l == shown.digest), "{}", s.text);
-            assert!(s.text.contains("Observed: 60 live turns, 30 outstanding requests, 30 active children"));
+            assert!(s.text.contains("Observed: 60 live turns, 0 turn starts not yet associated with a turn, 30 outstanding requests, 30 active children"));
             assert!(s.text.contains("Each of these is listed in the frozen assessment, shown in full in the App now"), "{}", s.text);
             assert!(bounded("x", s.text.clone()).is_ok());
         }
@@ -2080,6 +2258,31 @@ mod persistence_tests {
         assert_eq!(log.len(), 4);
         assert_eq!(log[3]["body"]["label"], "record write failed");
         assert_eq!(log[2]["observedAt"], recovered["capture"]["capturedAt"]);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    /// A path that only reads asks only for read access: a complete owning
+    /// log restored read-only, already holding the capture's record, is
+    /// reconciled without any write, not held as "record pending".
+    #[test]
+    fn cold_reconciliation_of_a_recorded_capture_in_a_complete_read_only_log_needs_no_write_access() {
+        use std::os::unix::fs::PermissionsExt;
+        let root = scratch();
+        let (mut control, id, actor) = prepared(&root);
+        let recorded = control.confirm(&id, "ALT-2", InputSource::HostNativeConfirmation, actor).unwrap();
+        assert_eq!(recorded["state"], "AC-7 recorded", "{recorded}");
+        let log = crate::storage::project_file(&root, LOG).unwrap();
+        let before = std::fs::read(&log).unwrap();
+        assert!(before.ends_with(b"\n"));
+        std::fs::set_permissions(&log, std::fs::Permissions::from_mode(0o400)).unwrap();
+        let mut cold = ActControl::new(&root);
+        let results = cold.recover_pending();
+        std::fs::set_permissions(&log, std::fs::Permissions::from_mode(0o600)).unwrap();
+        let results = results.unwrap();
+        assert!(!results.is_empty(), "the recorded capture is reconciled");
+        for result in &results {
+            assert_eq!(result["state"], "AC-7 recorded", "{result}");
+        }
+        assert_eq!(std::fs::read(&log).unwrap(), before, "nothing was written to the log");
         std::fs::remove_dir_all(root).unwrap();
     }
     #[test]

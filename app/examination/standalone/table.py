@@ -18,13 +18,35 @@ table. What it reads:
 - step results, from --results, for the one candidate named by --candidate: a folder of JSON records {step,
   candidate, configuration, date, outcome, operated_by}, the outcome one of DEL-09-02 REQ-007's five (passed,
   failed, blocked, not run, inconclusive); any other outcome stops the print, and so does a results folder that is
-  not there or cannot be read, and an empty candidate. Records for another candidate or naming none, and records
-  that cannot be read, are named beneath the table and never counted. A record that is not a JSON object, names no
-  step, or has a date that is neither a calendar date (YYYY-MM-DD) nor a time in the one written form accepted
-  (YYYY-MM-DDTHH:MM:SS, an optional fraction of a second after a point, and Z or an offset) cannot be read, and is
-  listed as set aside. Every other written form of a time is refused, however a lenient reader would take it: one
-  without seconds, a fraction of a minute or an hour, a week or ordinal date, a comma as the decimal mark. A time read
-  wrongly could make an older pass beat a later failure. Dates are compared as dates or as exact instants (whole seconds in UTC and the fraction to
+  not there or cannot be read, and an empty candidate. Records readably naming another candidate are named beneath
+  the table and bear on nothing here. A record whose date is neither a calendar date (YYYY-MM-DD) nor a time in the
+  one written form accepted (YYYY-MM-DDTHH:MM:SS, an optional fraction of a second after a point, and Z or an offset)
+  cannot be placed in time. Every other written form of a time is refused, however a lenient reader would take it:
+  one without seconds, a fraction of a minute or an hour, a week or ordinal date, a comma as the decimal mark. A time
+  read wrongly could make an older pass beat a later failure.
+
+  A record that cannot be read is never less damaging to a pass than a readable failure would have been, and the
+  doubt it carries reaches as far as what it could be (App Agent 0, on the INTERLOCUTOR's finding):
+  - one readably naming another candidate bears on nothing here;
+  - one that names a step and either is on the candidate named but cannot be placed in time, or names no candidate
+    (so it cannot be shown to be another's): that step's outcome is not known. It prints and counts as
+    inconclusive, whatever its other records say, with the reason directly under the counts;
+  - one that names no step, or cannot be read at all (not JSON, not a JSON object), may bear on any step. While one
+    remains, no pass is established: a row whose records say passed prints as inconclusive, with that reason, and
+    counts as inconclusive; failed, blocked, not run and inconclusive rows stay as they are, and every row and its
+    readable evidence still print, except that a step with no readable record says that no readable result is
+    recorded and that a record that could not be read may bear on it, instead of "not run (no record)", and is still
+    counted as not run. The counts line itself says how many such records there are and how many passes
+    they hold. Nothing else, a file's name included, is relied on to confine that doubt to one step.
+  A table held this way is released only by resolving each such record, never by deleting it to clear the result:
+  write the corrected record and move the original, unchanged, into a subfolder of the results folder with a note of
+  what it was and who resolved it, or establish that it does not belong to this set of results and move it out with
+  the reason noted (the README says more). A subfolder is kept and not read; a corrected record beside an original
+  left in place releases nothing.
+  Removing a readable failure record is something the table cannot see. The table trusts the identities a record
+  states: one readably naming another candidate, or a step the plan does not know, is listed and lowers nothing, and
+  whether its writer named them correctly, or every record made is in the folder, is not established. Only .json
+  files in the results folder are read. Dates are compared as dates or as exact instants (whole seconds in UTC and the fraction to
   whatever precision it is written), so one time written with two zones is the same date; a step whose records mix
   calendar dates and times cannot be ordered and prints as inconclusive. Nothing read from an input can make a line
   of its own in the print: each control character, line separator or paragraph separator prints as its escape, and a
@@ -32,7 +54,8 @@ table. What it reads:
 
   THE CLAIM (App Agent 0, 14 November 2026). A step prints as passed only when a result record for that step, on the
   candidate named, says passed, and no other record for that step on that candidate of the same latest date says
-  otherwise. Every other state prints as what it is: a step with no record prints "not run (no record)", and records
+  otherwise, every record for that step on that candidate can be placed in time, and no record that could bear on
+  any step (one naming no step, or one that cannot be read at all) remains. Every other state prints as what it is: a step with no record prints "not run (no record)", and records
   of the latest date that disagree print as inconclusive, with the disagreement printed directly under the counts.
   A record may cite session-comparison rows ("cites": [{file, sha256, rows}], the file relative to --results). Cited
   rows are listed beneath the table as cited, with whether each file exists, whether it is unchanged (its digest is
@@ -121,13 +144,17 @@ def when(text):
 def results(folder, candidate):
     """The latest record of each step for the candidate named, by date, with what was set aside: records for another
     candidate or none, and records that cannot be read. Records of the latest date that disagree are kept apart as
-    contradictory: which came last cannot be told, so neither decides."""
+    contradictory: which came last cannot be told, so neither decides. The doubt a record that cannot be read carries
+    reaches as far as what it could be (App Agent 0): one readably naming another candidate bears on nothing here; one
+    on the candidate, or naming no candidate, that names a step but cannot be placed in time is kept by step as
+    unplaced, and that step's outcome is not known; one that names no step, or cannot be read at all, may bear on any
+    step, and is kept in the list returned last, whose being non-empty means no pass is established."""
     if folder is not None:
         try:
             os.listdir(folder)
         except OSError as error:
             raise SystemExit(f'the results folder {folder} cannot be read ({type(error).__name__})') from None
-    by_step, other, unreadable = {}, [], []
+    by_step, unplaced, other, unreadable = {}, {}, [], []
     for path in sorted(Path(folder).glob('*.json')) if folder else []:
         try:
             record = json.loads(path.read_text())
@@ -139,15 +166,22 @@ def results(folder, candidate):
             continue
         if record.get('outcome') not in OUTCOMES:
             raise SystemExit(f'{path}: outcome {record.get("outcome")!r} is not one of REQ-007\'s five')
-        if record.get('candidate') != candidate:
-            other.append(f"{path.name} ({record.get('candidate') or 'no candidate'})")
+        named = record.get('candidate')
+        if isinstance(named, str) and named.strip() and named != candidate:
+            other.append(f'{path.name} ({named})')  # readably another candidate's: it bears on nothing here
             continue
+        # On this candidate, or naming none readably: a record naming no candidate cannot be shown to be another's.
         if not isinstance(record.get('step'), str) or not record['step']:
             unreadable.append(f'{path.name} (names no step)')
             continue
+        if named != candidate:
+            unplaced.setdefault(record['step'], []).append(
+                f'{path.name} (names no candidate, so it cannot be shown to belong to another)')
+            continue
         moment = when(record.get('date'))
         if moment is None:
-            unreadable.append(f"{path.name} (its date {record.get('date')!r} is not a calendar date or a time with its zone)")
+            unplaced.setdefault(record['step'], []).append(
+                f"{path.name} (its date {record.get('date')!r} is not a calendar date or a time with its zone)")
             continue
         by_step.setdefault(record['step'], []).append(dict(record, file=path.name, moment=moment))
     latest, contradictory = {}, {}
@@ -162,7 +196,7 @@ def results(folder, candidate):
             contradictory[step] = (last, 'records of the same date disagree')
         else:
             latest[step] = last  # every record of the latest date, all with one outcome
-    return latest, contradictory, other, unreadable
+    return latest, contradictory, unplaced, other, unreadable
 
 
 def cited(record, folder):
@@ -215,14 +249,14 @@ def table(repo, folder, release, candidate):
         raise SystemExit('the candidate named is empty; the table is for one named candidate')
     step_map = json.loads((Path(repo) / STEP_MAP).read_text())
     out = step_map.get('out_of_release', {})
-    seen, contradictory, other, unreadable = results(folder, candidate)
+    seen, contradictory, unplaced, other, unreadable = results(folder, candidate)
     known = {step['step'] for steps in step_map['scenarios'].values() for step in steps}
-    stray = sorted((set(seen) | set(contradictory)) - known)
+    stray = sorted((set(seen) | set(contradictory) | set(unplaced)) - known)
     lines = [f'EXAMINATION TABLE for {release}, candidate {candidate}, from {STEP_MAP} at the checkout given', '',
              '| Scenario | Step | Counts | Outcome (REQ-007) | Date | Operated by |',
              '| --- | --- | --- | --- | --- | --- |']
     totals = dict.fromkeys(OUTCOMES, 0)
-    removed, disputed, citations = 0, [], []
+    removed, held, disputed, unknown_outcome, citations = 0, 0, [], [], []
     for scenario, steps in step_map['scenarios'].items():
         decision = out.get(scenario)
         if decision and decision.get('release') == release:
@@ -242,6 +276,16 @@ def table(repo, folder, release, candidate):
                        + f" ({decision['stated_in']})")
                 lines.append(f"| {scenario} | {step['step']} | {counts} | {why} | — | — |")
                 continue
+            if step['step'] in unplaced:
+                # Never less damaging than a readable failure: whatever the other records say, the step is not known.
+                readable = seen.get(step['step']) or contradictory.get(step['step'], ([], ''))[0]
+                unknown_outcome.append(f"{step['step']}: a record for this step could not be read, so the step's outcome "
+                                       f"is not known ({', '.join(unplaced[step['step']])}); counted inconclusive")
+                citations += [f"{step['step']} ({r['file']}) cites {c}" for r in readable for c in cited(r, folder)]
+                if step.get('counts'):
+                    totals['inconclusive'] += 1
+                lines.append(f"| {cell(scenario)} | {cell(step['step'])} | {counts} | inconclusive (a record could not be read) | — | — |")
+                continue
             if step['step'] in contradictory:
                 last, why = contradictory[step['step']]
                 shown = ', '.join(f"{r['file']} {r['outcome']}" for r in last)
@@ -256,15 +300,30 @@ def table(repo, folder, release, candidate):
             if record is None:
                 if step.get('counts'):
                     totals['not run'] += 1
-                lines.append(f"| {scenario} | {step['step']} | {counts} | not run (no record) | — | — |")
+                # With a record in reach that could not be read, all that is known is that no readable result is
+                # recorded; it is still not a pass, and its count stays where it is.
+                empty = ('not run (no readable result recorded; a record that could not be read may bear on it)'
+                         if unreadable else 'not run (no record)')
+                lines.append(f"| {scenario} | {step['step']} | {counts} | {empty} | — | — |")
                 continue
             outcome = record['outcome']
             citations += [f"{step['step']} ({r['file']}) cites {c}" for r in tied for c in cited(r, folder)]
+            shown_outcome = outcome
+            if outcome == 'passed' and unreadable:
+                # A record that may bear on any step could be this step's later failure: no pass is established.
+                outcome = 'inconclusive'
+                held += 1
+                shown_outcome = 'inconclusive (passed, but a record that could not be read may bear on it)'
             if step.get('counts'):
                 totals[outcome] += 1
-            lines.append(f"| {cell(scenario)} | {cell(step['step'])} | {counts} | {outcome} | {cell(record['date'])} | {cell(record.get('operated_by', '—'))} |")
+            lines.append(f"| {cell(scenario)} | {cell(step['step'])} | {counts} | {shown_outcome} | {cell(record['date'])} | {cell(record.get('operated_by', '—'))} |")
     lines += ['', 'Counted steps in the release: ' + ', '.join(f'{totals[o]} {o}' for o in OUTCOMES)
-              + f'. Steps out of {release} by a recorded decision: {removed}.']
+              + f'. Steps out of {release} by a recorded decision: {removed}.'
+              + (f' Records that could not be read at all or name no step: {len(unreadable)}. Any of them may bear on '
+                 f'any step, so no step is counted as passed while they remain; {held} step(s) whose records say passed '
+                 'are counted inconclusive. Resolve each one, keeping it, before any pass is taken as established.' if unreadable else '')]
+    if unknown_outcome:
+        lines.append('Records that could not be read for a step: ' + ' | '.join(unknown_outcome))
     if disputed:
         lines.append('Records that disagree: ' + ' | '.join(disputed))
     if stray:
@@ -273,9 +332,10 @@ def table(repo, folder, release, candidate):
         lines += ['', 'Cited rows, listed as cited (they never raise, lower or protect a step\'s outcome or any count):',
                   *(f'- {c}' for c in citations)]
     if other:
-        lines.append(f'Records for another candidate, or naming none (not counted for {candidate}): ' + ', '.join(other))
+        lines.append(f'Records for another candidate (they bear on nothing for {candidate}): ' + ', '.join(other))
     if unreadable:
-        lines.append('Records that could not be read (not counted): ' + ', '.join(unreadable))
+        lines.append('Records that could not be read at all or name no step (they may bear on any step): '
+                     + ', '.join(unreadable))
     return lines
 
 

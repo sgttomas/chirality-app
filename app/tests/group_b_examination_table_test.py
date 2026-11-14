@@ -143,9 +143,13 @@ class TheClaim(Fixture):
                                {'step': 'B-2', 'date': '2026-11-14', 'outcome': 'passed'})
         text = self.printed('--repo', str(repo), '--results', str(results), '--candidate', 'c')
         self.assertIn('0 passed', text)
+        # Another candidate's record bears on nothing here; one naming no candidate cannot be shown to be another's,
+        # so its step is not known (App Agent 0, on the INTERLOCUTOR's finding).
         self.assertIn('not run (no record)', self.row(text, 'A-1'))
-        self.assertIn('Records for another candidate, or naming none (not counted for c): r0.json (other), '
-                      'r1.json (no candidate), r2.json (no candidate), r3.json (no candidate)', text)
+        for step in ('A-2', 'B-1', 'B-2'):
+            self.assertIn('| inconclusive (a record could not be read) |', self.row(text, step))
+        self.assertIn('Records for another candidate (they bear on nothing for c): r0.json (other)', text)
+        self.assertIn('r1.json (names no candidate, so it cannot be shown to belong to another)', text)
 
     def test_records_of_the_same_date_that_disagree_are_inconclusive_whatever_their_names(self):
         repo = self.repo()
@@ -169,8 +173,11 @@ class TheClaim(Fixture):
         results = self.results({'step': 'A-1', 'candidate': 'c', 'date': '2026-11-14', 'outcome': 'passed'})
         (results / 'broken.json').write_text('{ not json')
         text = self.printed('--repo', str(self.repo()), '--results', str(results), '--candidate', 'c')
-        self.assertIn('Records that could not be read (not counted): broken.json (JSONDecodeError)', text)
-        self.assertIn('1 passed', text)
+        # It may be A-1's later failure, so A-1's pass is not established (App Agent 0, on the INTERLOCUTOR's finding).
+        self.assertIn('Records that could not be read at all or name no step (they may bear on any step): '
+                      'broken.json (JSONDecodeError)', text)
+        self.assertIn('0 passed', text)
+        self.assertIn('1 inconclusive', text)
 
     def test_a_comparison_whose_header_and_launch_record_disagree_is_not_counted(self):
         folder = self.rows('session-comparison-20261114T080000Z-00000001.jsonl', [
@@ -302,8 +309,9 @@ class TheSecondReading(Fixture):
             {'step': 'B-1', 'candidate': 'c', 'date': '2026-11-14', 'outcome': 'passed'},
             {'step': 'B-1', 'candidate': 'c', 'date': '2026-11-14T10:00:00Z', 'outcome': 'passed'})
         text = self.printed('--repo', str(self.repo()), '--results', str(results), '--candidate', 'c')
-        self.assertIn('| failed | 2026-11-14 |', self.row(text, 'A-1'))
-        self.assertIn('not run (no record)', self.row(text, 'A-2'))
+        # A record that cannot be placed in time makes its step not known, beside a failure as beside a pass.
+        self.assertIn('| inconclusive (a record could not be read) |', self.row(text, 'A-1'))
+        self.assertIn('| inconclusive (a record could not be read) |', self.row(text, 'A-2'))
         self.assertIn('| inconclusive (records disagree) |', self.row(text, 'B-1'))
         self.assertIn("r0.json (its date '20261113' is not a calendar date or a time with its zone)", text)
         self.assertIn("r2.json (its date '2026-11-14T10:00:00' is not a calendar date or a time with its zone)", text)
@@ -343,7 +351,9 @@ class TheSecondReading(Fixture):
         self.rows('session-comparison-20261114T080000Z-bbbbbbbb.jsonl', [[]], folder)
         text = self.printed('--repo', str(self.repo()), '--results', str(results), '--candidate', 'c',
                             '--comparisons', str(folder), '--comparisons', str(self.root / 'absent'))
-        self.assertIn('0 passed, 0 failed, 0 blocked, 5 not run', text)
+        # The record naming A-1 with no date cannot be placed, so A-1 is not known (App Agent 0's rule after the
+        # third reading); the records naming no step are attributed to none.
+        self.assertIn('0 passed, 0 failed, 0 blocked, 4 not run, 1 inconclusive', text)
         self.assertIn('r0.json (not a record)', text)
         self.assertIn('r1.json (names no step)', text)
         self.assertIn("r2.json (its date None is not a calendar date or a time with its zone)", text)
@@ -426,19 +436,16 @@ class TheThirdReading(Fixture):
 class TheLastReading(Fixture):
     """The third and last reading found two more; each is repaired with the reader's input as a test."""
 
-    def test_one_written_form_of_a_time_is_accepted_and_the_rest_are_set_aside_and_listed(self):
-        records = [{'step': 'A-1', 'candidate': 'c', 'date': '2026-11-14T10:00:00.9Z', 'outcome': 'passed'},
-                   {'step': 'A-1', 'candidate': 'c', 'date': '2026-11-14T10:00.5Z', 'outcome': 'failed'}]
+    def test_one_written_form_of_a_time_is_accepted_and_the_rest_cannot_be_placed(self):
         refused = ['2026-11-14T10:00Z', '2026-11-14T10.5Z', '2026-W46-6T10:00:00Z', '2026-318T10:00:00Z',
-                   '2026-11-14T10:00:00,5Z', '2026-11-14 10:00:00Z', '20261114T100000Z']
-        records += [{'step': 'B-1', 'candidate': 'c', 'date': form, 'outcome': 'passed'} for form in refused]
+                   '2026-11-14T10:00:00,5Z', '2026-11-14 10:00:00Z', '20261114T100000Z', '2026-11-14T10:00.5Z']
+        records = [{'step': 'B-1', 'candidate': 'c', 'date': form, 'outcome': 'passed'} for form in refused]
         text = self.printed('--repo', str(self.repo()), '--results', str(self.results(*records)), '--candidate', 'c')
-        a1 = next(line for line in text.splitlines() if '| A-1 |' in line)
-        self.assertIn('| passed | 2026-11-14T10:00:00.9Z |', a1)  # the one readable record; the other is set aside
-        self.assertIn("r1.json (its date '2026-11-14T10:00.5Z' is not a calendar date or a time with its zone)", text)
-        self.assertIn('not run (no record)', next(line for line in text.splitlines() if '| B-1 |' in line))
-        for n, form in enumerate(refused, start=2):
-            self.assertIn(f"r{n}.json (its date {form!r}", text)
+        # A step whose only records cannot be placed in time is not known: neither passed nor "not run".
+        self.assertIn('| inconclusive (a record could not be read) |', next(l for l in text.splitlines() if '| B-1 |' in l))
+        for n, form in enumerate(refused):
+            self.assertIn(f"r{n}.json (its date {form!r} is not a calendar date or a time with its zone)", text)
+
 
     def test_a_character_that_cannot_be_printed_is_written_as_its_escape(self):
         results = self.results()
@@ -459,6 +466,143 @@ class TheLastReading(Fixture):
                                '--candidate', 'c', '--driver', f'{run}=1@abc'], capture_output=True, text=True)
         self.assertEqual((done.returncode, done.stdout), (3, ''))
         self.assertTrue(done.stderr.startswith('THE TABLE WAS NOT PRINTED: '), done.stderr)
+
+
+class AnUnreadableRecordNeverRevivesAPass(Fixture):
+    """App Agent 0's rule after the third reading: a record that cannot be read is never less damaging to a pass than
+    a readable failure would have been."""
+
+    PASS = {'step': 'A-1', 'candidate': 'c', 'date': '2026-11-14T10:00:00.9Z', 'outcome': 'passed'}
+    LATER_FAILURE = {'step': 'A-1', 'candidate': 'c', 'date': '2026-11-14T10:00.5Z', 'outcome': 'failed'}
+
+    def a1_and_counts(self, *records):
+        text = self.printed('--repo', str(self.repo()), '--results', str(self.results(*records)), '--candidate', 'c')
+        lines = text.splitlines()
+        counts = next(i for i, l in enumerate(lines) if l.startswith('Counted steps in the release: '))
+        return next(l for l in lines if '| A-1 |' in l), lines[counts], lines[counts + 1], text
+
+    def test_a_later_failure_whose_time_is_refused_makes_an_earlier_pass_inconclusive_in_either_order(self):
+        for name, records in (('pass first', (self.PASS, self.LATER_FAILURE)), ('failure first', (self.LATER_FAILURE, self.PASS))):
+            with self.subTest(name):
+                a1, counts, under, _ = self.a1_and_counts(*records)
+                self.assertIn('| inconclusive (a record could not be read) |', a1)
+                self.assertNotIn('passed', a1)
+                self.assertIn('0 passed', counts)
+                self.assertIn('1 inconclusive', counts)
+                self.assertTrue(under.startswith('Records that could not be read for a step: A-1: a record for this step '
+                                                 "could not be read, so the step's outcome is not known"), under)
+                self.assertIn("'2026-11-14T10:00.5Z'", under)
+
+    def test_a_set_aside_record_of_another_step_or_candidate_does_not_change_this_step(self):
+        for name, other in (('another step', dict(self.LATER_FAILURE, step='A-2')),
+                            ('another candidate', dict(self.LATER_FAILURE, candidate='d'))):
+            with self.subTest(name):
+                for f in (self.root / 'results').glob('*.json') if (self.root / 'results').exists() else []:
+                    f.unlink()
+                a1, counts, _, _ = self.a1_and_counts(self.PASS, other)
+                self.assertIn('| passed | 2026-11-14T10:00:00.9Z |', a1)
+                self.assertIn('1 passed', counts)
+
+    def test_a_record_naming_this_step_and_no_candidate_makes_the_step_not_known(self):
+        # It cannot be shown to belong to another candidate (App Agent 0, on the INTERLOCUTOR's finding).
+        nameless = {k: v for k, v in self.LATER_FAILURE.items() if k != 'candidate'}
+        for record in (nameless, dict(nameless, date='2026-11-14T11:00:00Z')):
+            with self.subTest(date=record['date']):
+                for f in (self.root / 'results').glob('*.json') if (self.root / 'results').exists() else []:
+                    f.unlink()
+                a1, counts, _, _ = self.a1_and_counts(self.PASS, record)
+                self.assertIn('| inconclusive (a record could not be read) |', a1)
+                self.assertIn('0 passed', counts)
+
+    def truncated(self, folder, name):
+        (folder / name).write_text('{"step": "A-1", "candidate": "c", "date": "2026-11-14T11:00:00Z", "outcome": "fai')
+
+    def test_an_earlier_pass_beside_a_truncated_failure_is_not_counted_as_passed_in_either_order(self):
+        for name, (pass_file, broken_file) in (('pass first', ('r0.json', 'r1.json')), ('truncated first', ('r1.json', 'r0.json'))):
+            with self.subTest(name):
+                folder = self.root / 'results'
+                if folder.exists():
+                    for f in folder.glob('*.json'):
+                        f.unlink()
+                folder.mkdir(exist_ok=True)
+                (folder / pass_file).write_text(json.dumps(self.PASS))
+                self.truncated(folder, broken_file)
+                a1, counts, _, text = self.a1_and_counts()
+                self.assertIn('| inconclusive (passed, but a record that could not be read may bear on it) | '
+                              '2026-11-14T10:00:00.9Z |', a1)
+                self.assertTrue(counts.startswith('Counted steps in the release: 0 passed, 0 failed, 0 blocked, 4 not run, '
+                                                  '1 inconclusive.'), counts)
+                self.assertIn('Records that could not be read at all or name no step: 1. Any of them may bear on any step, '
+                              'so no step is counted as passed while they remain; 1 step(s) whose records say passed are '
+                              'counted inconclusive. Resolve each one, keeping it, before any pass is taken as established.', counts)
+
+    def test_a_record_that_cannot_be_read_at_all_or_names_no_step_holds_every_pass_and_nothing_else(self):
+        folder = self.results(self.PASS, {'step': 'B-1', 'candidate': 'c', 'date': '2026-11-14', 'outcome': 'failed'},
+                              {'step': 'B-2', 'candidate': 'c', 'date': '2026-11-14', 'outcome': 'blocked'})
+        for name, write in (('not JSON', lambda f: f.write_text('{"step": "A-1", "candidate": "c", "outcome": "failed"')),
+                            ('not an object', lambda f: f.write_text('["A-1", "c", "failed"]')),
+                            ('no step', lambda f: f.write_text(json.dumps(dict(self.LATER_FAILURE, step=7)))),
+                            ('no step and no candidate', lambda f: f.write_text(json.dumps({'outcome': 'failed'})))):
+            with self.subTest(name):
+                write(folder / 'r9.json')
+                text = self.printed('--repo', str(self.repo()), '--results', str(folder), '--candidate', 'c')
+                rows = {s: next(l for l in text.splitlines() if f'| {s} |' in l) for s in ('A-1', 'B-1', 'B-2', 'B-3')}
+                # The pass is held, with its readable evidence still printed; the other rows stay as they are.
+                self.assertIn('| inconclusive (passed, but a record that could not be read may bear on it) | '
+                              '2026-11-14T10:00:00.9Z |', rows['A-1'])
+                self.assertIn('| failed |', rows['B-1'])
+                self.assertIn('| blocked |', rows['B-2'])
+                # A step with no readable record is not said to be not run, and is still counted so.
+                self.assertIn('| not run (no readable result recorded; a record that could not be read may bear on it) |',
+                              rows['B-3'])
+                self.assertNotIn('(no record)', rows['B-3'])
+                self.assertIn('Counted steps in the release: 0 passed, 1 failed, 1 blocked, 2 not run, 1 inconclusive.', text)
+                self.assertIn('r9.json', next(l for l in text.splitlines() if l.startswith('Records that could not be read at all')))
+        # With every record readable, nothing is held and the counts line says nothing of the kind.
+        (folder / 'r9.json').unlink()
+        text = self.printed('--repo', str(self.repo()), '--results', str(folder), '--candidate', 'c')
+        self.assertIn('Counted steps in the release: 1 passed, 1 failed, 1 blocked, 2 not run, 0 inconclusive.', text)
+        self.assertNotIn('could not be read', text)
+        self.assertIn('| not run (no record) |', next(l for l in text.splitlines() if '| B-3 |' in l))
+
+
+class ResolvingADamagedRecord(Fixture):
+    """What releases a table held by a record that cannot be read: the corrected record written, and the original kept
+    unchanged in a subfolder, which is not read (App Agent 0)."""
+
+    PASS = {'step': 'A-1', 'candidate': 'c', 'date': '2026-11-14T10:00:00Z', 'outcome': 'passed'}
+    DAMAGED = '{"step": "B-1", "candidate": "c", "date": "2026-11-14T11:00:00Z", "outcome": "fai'
+    CORRECTED = {'step': 'B-1', 'candidate': 'c', 'date': '2026-11-14T11:00:00Z', 'outcome': 'failed'}
+
+    def counts(self, folder):
+        text = self.printed('--repo', str(self.repo()), '--results', str(folder), '--candidate', 'c')
+        return next(l for l in text.splitlines() if l.startswith('Counted steps in the release: ')), text
+
+    def test_a_corrected_record_beside_the_original_left_in_place_releases_nothing(self):
+        folder = self.results(self.PASS, self.CORRECTED)
+        (folder / 'r9.json').write_text(self.DAMAGED)
+        counts, text = self.counts(folder)
+        self.assertTrue(counts.startswith('Counted steps in the release: 0 passed, 1 failed, 0 blocked, 3 not run, '
+                                          '1 inconclusive.'), counts)
+        self.assertIn('Records that could not be read at all or name no step: 1.', counts)
+
+    def test_the_corrected_record_with_the_original_kept_in_a_subfolder_counts_the_passes_again(self):
+        folder = self.results(self.PASS, self.CORRECTED)
+        (folder / 'resolved').mkdir()
+        (folder / 'resolved/r9.json').write_text(self.DAMAGED)
+        (folder / 'resolved/r9.note.txt').write_text('r9.json was a truncated failure of B-1; corrected as r1.json.\n')
+        counts, text = self.counts(folder)
+        self.assertTrue(counts.startswith('Counted steps in the release: 1 passed, 1 failed, 0 blocked, 3 not run, '
+                                          '0 inconclusive.'), counts)
+        self.assertNotIn('could not be read', text)
+        self.assertEqual((folder / 'resolved/r9.json').read_text(), self.DAMAGED)  # the original kept unchanged
+
+    def test_a_subfolder_named_like_a_record_is_read_as_one_that_cannot_be_read(self):
+        folder = self.results(self.PASS)
+        (folder / 'resolved.json').mkdir()
+        counts, _ = self.counts(folder)
+        self.assertIn('0 passed', counts)
+        self.assertIn('Records that could not be read at all or name no step: 1.', counts)
 
 
 class Comparisons(Fixture):

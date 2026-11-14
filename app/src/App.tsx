@@ -19,15 +19,15 @@ import { NativeActivityView, activityModel, sameActivityGeneration, type NativeA
 import { ContinuationContext, historyPageBinding, StoredItemPage, StoredTurnPage } from "./NativeHistory";
 import { ObserverAttachment } from "./ObserverAttachment";
 import { PlanModeControl } from "./PlanMode";
-import { NativeRequestCard, WaitingRequestsIndicator, answerable, hostRequests, requestItem, requestThread, requestScopeKey, requestReplyGuarded, type RequestActivityLink, type RequestAnswer, type ReadRequestCustody, type RequestReplyObservation, type WaitingRequestGroup } from "./RequestCards";
+import { NativeRequestCard, WaitingRequestsIndicator, answerable, hostRequests, requestItem, requestPlace, requestThread, requestScopeKey, requestReplyGuarded, type RequestActivityLink, type RequestAnswer, type ReadRequestCustody, type RequestReplyObservation, type WaitingRequestGroup } from "./RequestCards";
 import { RunOffer, type RunAct } from "./RunOffers";
 import { RecoveryCustodyPanel } from "./RecoveryCustodyPanel";
-import { LastCleanTrialLine, WorkflowDraftsView } from "./WorkflowDrafts";
+import { CompareResult, initialDraftsState, LastCleanTrialLine, WorkflowDraftsView, type DraftsState } from "./WorkflowDrafts";
 import { LibraryEntries } from "./LibraryEntries";
 import { WorkflowRegistrationReview } from "./WorkflowRegistrationReview";
 import { BringBackComposer, CleanTrialPanel, DelegatedTrialComposer, composersFor, conversationKey, findConversation, hostMessage, prefillKept } from "./TrialComposer";
 import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./preparedMessages";
-import { ConversationContext, ProjectLibraryContext, conversationFromKey, workflowSourceLimit } from "./WorkflowContext";
+import { ConversationContext, ProjectLibraryContext, appProjectFolder, conversationFromKey, workflowSourceLimit } from "./WorkflowContext";
 import { DailyWorkspace, WorkspaceDisclosure, WorkspaceConnectionStatus, revealWorkspaceTarget, registerWorkspaceViews, WORKSPACE_VIEWS } from "./DailyWorkspace";
 import { flushSync } from "react-dom";
 import { DesktopSetupPanel } from "./DesktopSetupPanel";
@@ -414,7 +414,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
     {selected && <div id="conversation-requests" aria-label="Requests from Codex in this conversation">
       <h3>Requests from Codex in this conversation ({requests.filter(answerable).length} waiting)</h3>
       {ordered.length === 0 && <p>No requests from Codex in this conversation.</p>}
-      {ordered.map((request: Json) => <NativeRequestCard activityLink={activityLink} key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answer} readRequest={readRequest} observation={replyObservations?.[requestScopeKey(request)]} />)}
+      {ordered.map((request: Json) => <NativeRequestCard activityLink={activityLink} key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answer} readRequest={readRequest} place={requestPlace(request, host, appProjectFolder(host))} observation={replyObservations?.[requestScopeKey(request)]} />)}
     </div>}
     <p id="ordinary-send-readiness" role="status" aria-live="polite">{sendReadiness}</p>
     {!sourceReady && <p><a href="#workspace-connection">Open connection controls</a></p>}
@@ -940,6 +940,7 @@ export function NewerRevisionNotice({ selection, busy, act }:{ selection: Json; 
 export function WorkflowRootPanel({ viewStale = false, readFailure = null, data, host, act, observeView, openFileAct, fileActBusy = false, openPreparedMessage, operationalReference, offerComposer, showConversation, view, findInHistory }:{ viewStale?: boolean; readFailure?: string | null; findInHistory?: (hint: string) => void; view?: string; showConversation?: (threadId: string, target?: string) => void; offerComposer?: (threadKey: string, text: string) => void; data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json>; observeView?: ()=>Promise<unknown>; openFileAct?: OpenArrivalFileAct; fileActBusy?: boolean; openPreparedMessage?: (item: PreparedMessage) => void; operationalReference?: Json }) {
   const [name,setName]=useState("");
   const [revision,setRevision]=useState("");
+  const [draftsState,setDraftsState]=useState<DraftsState>(initialDraftsState);
   const [thread,setThread]=useState("");
   const [chatChoice, setChatChoice] = useState<{ source: string; reference: Json } | null>(null);
   const chatScope = JSON.stringify([data?.context?.sourceRef, data?.context?.generation]);
@@ -959,7 +960,7 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
   const [busy,setBusy]=useState(false);
   const pendingAction = useRef(false);
   const [progress, setProgress] = useState("");
-  const [outcome,setOutcome]=useState<{relation:{command:string;source:Json;request:Record<string,unknown>};message:string;limits:string[];failed?:boolean;settled?:boolean}>();
+  const [outcome,setOutcome]=useState<{relation:{command:string;source:Json;request:Record<string,unknown>};message:string;limits:string[];historyNotices?:string[];readLimits?:string[];failed?:boolean;settled?:boolean}>();
   // Native results and later observation limits belong to the original press.
   // Children receive the unchanged native value, including pre-fill results.
   const action=async(command:string,args:Record<string,unknown>):Promise<Json>=>{
@@ -986,7 +987,7 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
     }
     try{
       const result=await act(command,request);
-      setOutcome(old=>old?.relation===relation?{...old,message:workflowActionMessage(command,result),failed:false,settled:true}:old);
+      setOutcome(old=>old?.relation===relation?{...old,message:workflowActionMessage(command,result),historyNotices:result?.historyNotices??[],readLimits:command==="workflow_read_records"?(result?.rsLimits??[]):[],failed:false,settled:true}:old);
       await observe(command);
       // SQ-D D-2 stays one original-context read even if the view refresh failed.
       if(command==="workflow_create_draft"||command==="workflow_refine_registered"){
@@ -1082,6 +1083,7 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
     </section>
     <h3>3. Try and review drafts</h3>
     <WorkflowDraftsView data={data?.drafts} workspace={data?.projectLibraryAvailable===true} pointerLimits={data?.trialPointerLimits} conversations={conversations} contextHost={host}
+      state={draftsState} update={patch=>setDraftsState(state=>({...state,...patch}))} comparisonOutside
       runs={[...(data?.runs??[]),...(data?.reopened?.runs??[])]} pending={data?.pendingTrials} busy={busy} act={action}/>
     {openPreparedMessage && preparedMessages(host).map(item => <div key={item.identity}>
       <small>{item.kind !== "bring-back" ? `Trial ${item.pending.sequence} of draft ${item.pending.draftName}` : item.pending.trial ? "Trial feedback" : "Run feedback"} · prepared message.</small>{" "}
@@ -1122,21 +1124,6 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
     <label>Person text <textarea value={text} onChange={e=>setText(e.target.value)} disabled={busy} rows={3}/></label>
     {selected&&selected.runnable!==true&&<p role="note">Not runnable: {selected.runLimit}</p>}
     <button disabled={busy||!context||host?.state!=="ready"||!thread||selected?.runnable!==true} onClick={()=>action("workflow_prepare_run",{generation:host.generation,threadId:thread,personText:text})}>Prepare exact selected workflow text</button>
-    <button disabled={busy} onClick={()=>action("workflow_read_records",{})}>Read recorded workflow supply (durable, read-only)</button>
-    <button disabled={busy} onClick={()=>action("workflow_reopen",{})}>Reopen recorded workflow runs (read-only)</button>
-    {data?.reopened&&<article><h3>Recorded runs (reopened from project records)</h3><p>{data.reopened.standing}</p>
-      <ul>{(data.reopened.runs??[]).map((r:Json)=><li key={r.run}>{r.run} · conversation {r.conversation??"unknown"} · {r.state}{r.detail?` (${typeof r.detail==="string"?r.detail:JSON.stringify(r.detail)})`:""}{r.follows?` · follows ${r.follows}`:""}{(r.restartInterruptions??[]).length?` · App restart facts recorded for this conversation: ${r.restartInterruptions.length}`:""}
-        {r.workflow&&<p>Recorded workflow {r.workflow.origin}:{r.workflow.name}, revision {String(r.workflow.revision??"").slice(0,12)}.</p>}
-        {!(data?.runs??[]).some((h:Json)=>h.reference===r.run)&&<RunBringBack run={r} conversations={conversations} defaultThread={runBringBackDefault(data,r.run)} busy={busy} act={action}/>}
-        {r.state?.startsWith("open")&&!(data?.runs??[]).some((h:Json)=>h.reference===r.run)&&<button disabled={busy} onClick={()=>action("workflow_end_recorded",{runId:r.run,threadId:r.conversation??null})}>End this interrupted run</button>}</li>)}</ul>
-      {(data.reopened.limits??[]).length>0&&<p>Record limits: {JSON.stringify(data.reopened.limits)}</p>}
-      {data.reopened.restartLimits&&<p>App-restart interruption limits (written by the host at startup): {(data.reopened.restartLimits.outcomes??[]).map((o:Json)=>`${o.threadId}: ${o.outcome}${o.run?` on ${o.run}`:""}${typeof o.detail==="string"?` (${o.detail})`:""}`).join("; ")||data.reopened.restartLimits.reason||"no restart facts"}</p>}</article>}
-    {data?.afterRunEnd&&<article><h3>After-run-end observations</h3><p>{data.afterRunEnd.standing}</p>
-      {(data.afterRunEnd.limits??[]).length>0&&<p role="alert">Observation/recording limits: {JSON.stringify(data.afterRunEnd.limits)}</p>}
-      {(data.afterRunEnd.held??[]).map((r:Json)=><p key={r.recordId} role="status">Not yet recorded: {r.recordId} for ended run {r.run}, first observed {r.observedAt}. {r.limit}</p>)}
-      <details><summary>Recorded post-end source history (JSON)</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(data.afterRunEnd.runs??[],null,2)}</pre></details>
-      {(data.afterRunEnd.runs??[]).filter((r:Json)=>!(data?.runs??[]).some((h:Json)=>h.reference===r.run)).map((r:Json)=><div key={r.run}><p>Ended run {r.run}. Source project {r.source?.projectId}.</p><ul>{(r.records??[]).filter((e:Json)=>e.kind==="checkpoint_arrival").map((e:Json)=><ArrivalRecord key={e.recordId} arrival={e} all={r.records??[]}/>)}</ul></div>)}
-    </article>}
     {(data?.endedAfterRelaunch??[]).map((end:Json)=><article key={end.run}><h3>{end.run} (ended after the relaunch)</h3>
       <p>End notice: {end.endNotice?.state??"none"}. {end.limit}</p>
       <HistoryReferenceNotice pointers={end.learningPointers}/>
@@ -1170,13 +1157,33 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
       <p>Selection and run text are recorded before sending; if recording fails nothing is sent. A run opens when its start turn is observed and ends only when the person ends it: an interrupt, stop, quit, failed or completed turn, or an agent's "Workflow finished" line does not end it. Ending here records "ended by the person"; when the agent writes its "Workflow finished" line, the conversation offers End run beneath that message, which records cause "completed". After an end, the next message in this conversation (text, a plan or default mode turn, an attachment-bearing turn or a Continue-as request) carries the end notice first, once. Load/select this conversation and its received turn in native History before checking.</p>
       </>}
     </article>;})}
+    </div>
+    </details>
+    <button disabled={busy} onClick={()=>action("workflow_read_records",{})}>Read recorded workflow supply (durable, read-only)</button>
+    <CompareResult result={draftsState.compared}/>
+    <button disabled={busy} onClick={()=>action("workflow_reopen",{})}>Reopen recorded workflow runs (read-only)</button>
+    {data?.reopened&&<article><h3>Recorded runs (reopened from project records)</h3><p>{data.reopened.standing}</p>
+      <ul>{(data.reopened.runs??[]).map((r:Json)=><li key={r.run}>{r.run} · conversation {r.conversation??"unknown"} · {r.state}{r.detail?` (${typeof r.detail==="string"?r.detail:JSON.stringify(r.detail)})`:""}{r.follows?` · follows ${r.follows}`:""}{(r.restartInterruptions??[]).length?` · App restart facts recorded for this conversation: ${r.restartInterruptions.length}`:""}
+        {r.workflow&&<p>Recorded workflow {r.workflow.origin}:{r.workflow.name}, revision {String(r.workflow.revision??"").slice(0,12)}.</p>}
+        {!(data?.runs??[]).some((h:Json)=>h.reference===r.run)&&<RunBringBack run={r} conversations={conversations} defaultThread={runBringBackDefault(data,r.run)} busy={busy} act={action}/>}
+        {r.state?.startsWith("open")&&!(data?.runs??[]).some((h:Json)=>h.reference===r.run)&&<button disabled={busy} onClick={()=>action("workflow_end_recorded",{runId:r.run,threadId:r.conversation??null})}>End this interrupted run</button>}</li>)}</ul>
+      {(data.reopened.historyNotices??[]).map((notice:string,i:number)=><p role="note" key={i}>{notice}</p>)}
+      {(data.reopened.limits??[]).length>0&&<p>Record limits: {JSON.stringify(data.reopened.limits)}</p>}
+      {data.reopened.restartLimits&&<p>App-restart interruption limits (written by the host at startup): {(data.reopened.restartLimits.outcomes??[]).map((o:Json)=>`${o.threadId}: ${o.outcome}${o.run?` on ${o.run}`:""}${typeof o.detail==="string"?` (${o.detail})`:""}`).join("; ")||data.reopened.restartLimits.reason||"no restart facts"}</p>}</article>}
+    {data?.afterRunEnd&&<article><h3>After-run-end observations</h3><p>{data.afterRunEnd.standing}</p>
+      {(data.afterRunEnd.historyNotices??[]).map((notice:string,i:number)=><p role="note" key={i}>{notice}</p>)}
+      {(data.afterRunEnd.limits??[]).length>0&&<p role="alert">Observation/recording limits: {JSON.stringify(data.afterRunEnd.limits)}</p>}
+      {(data.afterRunEnd.held??[]).map((r:Json)=><p key={r.recordId} role="status">Not yet recorded: {r.recordId} for ended run {r.run}, first observed {r.observedAt}. {r.limit}</p>)}
+      <details><summary>Recorded post-end source history (JSON)</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(data.afterRunEnd.runs??[],null,2)}</pre></details>
+      {(data.afterRunEnd.runs??[]).filter((r:Json)=>!(data?.runs??[]).some((h:Json)=>h.reference===r.run)).map((r:Json)=><div key={r.run}><p>Ended run {r.run}. Source project {r.source?.projectId}.</p><ul>{(r.records??[]).filter((e:Json)=>e.kind==="checkpoint_arrival").map((e:Json)=><ArrivalRecord key={e.recordId} arrival={e} all={r.records??[]}/>)}</ul></div>)}
+    </article>}
     {/* The exact reply and request of the last press. The guides say the result in words. */}
     {outcome&&<div aria-label="Workflow action response">
+      {(outcome.historyNotices??[]).map((notice,i)=><p role="note" key={i}>{notice}</p>)}
+      {(outcome.readLimits??[]).map((limit,i)=><p role="alert" key={`read-${i}`}>{limit}</p>)}
       {outcome.message&&<ActionFeedback message={`${outcome.relation.command}: ${outcome.message}`} label="Workflow command result"/>}
       <details><summary>Original workflow request</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(outcome.relation,null,2)}</pre></details>
     </div>}
-    </div>
-    </details>
     {outcome?.limits.map((message,index)=><p role="status" aria-label="Workflow observation limit" key={index} style={{whiteSpace:"pre-wrap"}}>{message}</p>)}
   </section>;
 }
@@ -1199,6 +1206,7 @@ export function HomeAccessPanel({ host, resources, navigating = false, act, read
     {routing?.activeModeHomeClass !== "account" && entries.map(entry => <article key={entry.modeHomeClass}><p>{entry.state}{entry.configurationLimit ? ` — ${entry.configurationLimit}` : ""}</p><details><summary>Connection source</summary><pre>{JSON.stringify(entry.generation, null, 2)}</pre></details><button disabled={busy || navigating || routing?.activeModeHomeClass === entry.modeHomeClass} onClick={() => action("select_home", {modeHomeClass: entry.modeHomeClass})}>Use {entry.modeHomeClass} home</button></article>)}
     <AccountStatus host={host} navigating={navigating} busy={busy} read={readAccount}/>
     {routing?.activeModeHomeClass === "account" && <p aria-label="Provider in this home">In this home the App starts Codex on its built-in OpenAI provider, whatever default provider your own Codex settings name. Your Codex files are not changed. A local model server is set up below, under “Use oMLX / a local model”.</p>}
+    {routing?.activeModeHomeClass === "account" && <p aria-label="Where a sign-in will be kept">Before you sign in, you can see where Codex will keep your sign-in: press “Read effective storage and plugin settings” below.</p>}
     <button className="setup-primary" disabled={busy || routing?.activeModeHomeClass !== "account" || !generation} onClick={() => action("oauth_start", {generation,mode:"browser"})}>Sign in with your ChatGPT account (through Codex)…</button>
     <details><summary>Other sign-in options</summary>
     <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation} onClick={() => action("oauth_start", {generation,mode:"device-code"})}>Sign in through native device code…</button>
@@ -1235,6 +1243,18 @@ const accessSettingSources: Record<string, string> = {
   sessionFlags: "Session overrides", legacyManagedConfigTomlFromFile: "Legacy managed configuration",
   legacyManagedConfigTomlFromMdm: "Legacy managed preferences",
 };
+/** Where Codex keeps a sign-in, in the person's words, from the credential store Codex reported; the
+ * value Codex gave stays in brackets. Nothing is inferred when Codex reported none. */
+export function signInKept(field: Json): string {
+  const value = field?.state === "reported" ? field?.value : undefined;
+  switch (value) {
+    case "file": return "in a file, auth.json, in this home's sign-in folder (file)";
+    case "keyring": return "in your Mac's keychain (keyring)";
+    case "auto": return "in your Mac's keychain where available, otherwise in a file, auth.json, in this home's sign-in folder (auto)";
+    case "ephemeral": return "not kept after Codex stops (ephemeral)";
+    default: return "Codex did not report it";
+  }
+}
 export function EffectiveAccessSettingsPanel({ host, navigating, refresh }: { host: Json; navigating: boolean; refresh: (isCurrent: () => boolean) => Promise<Json> }) {
   const scopeOf = (snapshot: Json) => JSON.stringify([snapshot?.homeRouting?.activeModeHomeClass, snapshot?.generation, snapshot?.currentAppProjectContext ?? null, snapshot?.state, snapshot?.generationClosed]);
   const context = useRef({ key: "", epoch: 0, host });
@@ -1297,6 +1317,7 @@ export function EffectiveAccessSettingsPanel({ host, navigating, refresh }: { ho
     <button disabled={!ready || reading} onClick={read}>Read effective storage and plugin settings</button>
     {reading && <p role="status">Reading the selected Codex source…</p>}
     {current ? <div role="status">
+      <p aria-label="Where your sign-in is kept"><strong>Where your sign-in is kept:</strong> {signInKept(observation.packet.credentialStore)}, as Codex reported it for this launch.</p>
       {row("Credential storage", observation.packet.credentialStore, true)}
       {row("Plugins", observation.packet.plugins, false)}
       {host.homeRouting.activeModeHomeClass === "account" && (observation.packet.personDefaultProvider?.state === "reported" && observation.packet.personDefaultProvider.value !== "openai"
@@ -1431,6 +1452,7 @@ export function DecisionPackagesPanel({ view, name, setName, recordName, refresh
       {(row.limits ?? []).length > 0 && <p>Limits: {row.limits.join(" | ")}</p>}
       <button onClick={() => openControl(row.package)}>Open act control (decide)</button>
     </article>)}
+    {(view?.historyNotices ?? []).map((notice:string,i:number)=><p role="note" key={`history-${i}`}>{notice}</p>)}
     {(view?.limits ?? []).length > 0 && <p>View limits: {view.limits.join(" | ")}</p>}
   </section>;
 }
@@ -2479,7 +2501,7 @@ export function App() {
         <nav className="workspace-nav" aria-label="Workspace navigation">
           {WORKSPACE_VIEWS.map(item => <a key={item.id} href={`#${item.target}`} aria-current={taskView === item.id ? "page" : undefined}>{item.label}</a>)}
         </nav>
-        <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome}/>
+        <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome} refusalCause={host?.startRefusalCause} build={host?.build}/>
         </div>}
         <NativeWaitingBridge ready={!!host} report={setMessage} checkpoint={() => ({ signature: JSON.stringify([threadChoiceRevision.current, chooserHome.current.epoch, editRevision.current]),
           pristine: threadChoiceRevision.current === 0 && editRevision.current === 0 })} capture={() => {
@@ -2519,7 +2541,7 @@ export function App() {
         <div className="workspace-notices"><div id="other-requests">
             {outsideRequests.length > 0 && <h3>Requests outside the selected conversation</h3>}
             {outsideRequests.length > 0 && <p>Requests of the selected conversation are shown beside it. Select another conversation to answer its requests there.</p>}
-            {outsideRequests.map((request: Json) => <NativeRequestCard activityLink={activityLink} key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answerRequest} readRequest={readRequestCustody} observation={replyObservations[requestScopeKey(request)]}/>)}
+            {outsideRequests.map((request: Json) => <NativeRequestCard activityLink={activityLink} key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answerRequest} readRequest={readRequestCustody} place={requestPlace(request, host, appProjectFolder(host))} observation={replyObservations[requestScopeKey(request)]}/>)}
           </div>
 
   <ActionFeedback message={message}/>
