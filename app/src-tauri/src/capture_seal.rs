@@ -23,6 +23,8 @@
 //! read policy does). It shows that a capture was sealed by a holder of this
 //! installation's key, not that a person acted or who the person is (K1-4).
 use serde_json::{json, Value};
+use crate::act_evidence_cause::{ActEvidenceCause as Cause, EvidenceFailure};
+fn failure(cause: Cause, detail: impl Into<String>) -> EvidenceFailure { EvidenceFailure::new(cause, detail) }
 use sha2::{Digest, Sha256};
 use std::{
     collections::BTreeMap,
@@ -70,12 +72,12 @@ pub(crate) fn key_id(key: &[u8; 32]) -> String {
 }
 /// The sealed bytes: the domain, then the capture without `seal` and `recordId`
 /// in the offer-digest canonical form (AAC §5.1).
-fn message(capture: &Value) -> Result<Vec<u8>, String> {
-    let mut facts = capture.as_object().ok_or("capture is not an object")?.clone();
+fn message(capture: &Value) -> Result<Vec<u8>, EvidenceFailure> {
+    let mut facts = capture.as_object().ok_or_else(|| failure(Cause::CaptureFactsUnencodable, "capture is not an object"))?.clone();
     facts.remove("seal");
     facts.remove("recordId");
     let mut text = String::new();
-    crate::canonical::canonical(&Value::Object(facts), &mut text)?;
+    crate::canonical::canonical(&Value::Object(facts), &mut text).map_err(|e| failure(Cause::CaptureFactsUnencodable, e))?;
     Ok([DOMAIN, text.as_bytes()].concat())
 }
 
@@ -126,8 +128,8 @@ pub(crate) fn installed_root_for_enrollment() -> Result<PathBuf, String> {
     installed.parent().map(Path::to_path_buf).ok_or_else(||"this App installation's capture-seal root is unavailable".into())
 }
 /// The key folder must be outside the project whose captures it seals or reads.
-fn folder_for(root: &Path) -> Result<PathBuf, String> {
-    let folder = folder()?;
+fn folder_for(root: &Path) -> Result<PathBuf, EvidenceFailure> {
+    let folder = folder().map_err(|e| failure(Cause::SealRootUnavailable, e))?;
     // Resolve through the nearest existing ancestor, so a folder not made yet
     // is compared as it will be.
     let real = |p: &Path| {
@@ -139,11 +141,11 @@ fn folder_for(root: &Path) -> Result<PathBuf, String> {
     if crate::capture_seal_keychain::selected_route() {
         let continuity=real(&folder.with_file_name("capture-seal-keychain"));
         if continuity.starts_with(&r)||r.starts_with(&continuity){
-            return Err("the capture-seal keychain continuity folder overlaps this project; provider not used there".into());
+            return Err(failure(Cause::SealRootUnavailable, "the capture-seal keychain continuity folder overlaps this project; provider not used there"));
         }
     }
     if f.starts_with(&r) || r.starts_with(&f) {
-        return Err("the capture-seal key folder is inside this project (or contains it); keys are not used there".into());
+        return Err(failure(Cause::SealRootUnavailable, "the capture-seal key folder is inside this project (or contains it); keys are not used there"));
     }
     Ok(folder)
 }
@@ -172,7 +174,7 @@ fn uid() -> u32 {
     unsafe { libc::geteuid() }
 }
 /// Read the keyring; `Ok(None)` only when no key file exists yet.
-fn load(folder: &Path) -> Result<Option<Keyring>, String> {
+fn load(folder: &Path) -> Result<Option<Keyring>, EvidenceFailure> {
     use std::io::Read;
     let path = folder.join(KEY_FILE);
     // Open without following a link and judge the opened file itself (fstat),
@@ -180,24 +182,24 @@ fn load(folder: &Path) -> Result<Option<Keyring>, String> {
     let mut file = match std::fs::OpenOptions::new().read(true).custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK).open(&path) {
         Ok(f) => f,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-        Err(e) if e.raw_os_error() == Some(libc::ELOOP) => return Err("capture-seal keys are a link, not a regular file in a folder; not used".into()),
-        Err(e) => return Err(format!("capture-seal keys not readable: {e}")),
+        Err(e) if e.raw_os_error() == Some(libc::ELOOP) => return Err(failure(Cause::KeyStorageUnsafe, "capture-seal keys are a link, not a regular file in a folder; not used")),
+        Err(e) => return Err(failure(Cause::SealRootUnavailable, format!("capture-seal keys not readable: {e}"))),
     };
-    let meta = file.metadata().map_err(|e| format!("capture-seal keys not readable: {e}"))?;
-    let dir = std::fs::symlink_metadata(folder).map_err(|e| format!("capture-seal key folder not readable: {e}"))?;
+    let meta = file.metadata().map_err(|e| failure(Cause::SealRootUnavailable, format!("capture-seal keys not readable: {e}")))?;
+    let dir = std::fs::symlink_metadata(folder).map_err(|e| failure(Cause::SealRootUnavailable, format!("capture-seal key folder not readable: {e}")))?;
     if !meta.file_type().is_file() || !dir.file_type().is_dir() || crate::storage::check_path(folder).is_err() {
-        return Err("capture-seal keys are a link, not a regular file in a folder; not used".into());
+        return Err(failure(Cause::KeyStorageUnsafe, "capture-seal keys are a link, not a regular file in a folder; not used"));
     }
     if meta.uid() != uid() || dir.uid() != uid() {
-        return Err("capture-seal keys are owned by another user; not used".into());
+        return Err(failure(Cause::KeyStorageUnsafe, "capture-seal keys are owned by another user; not used"));
     }
     if meta.mode() & 0o077 != 0 || dir.mode() & 0o077 != 0 {
-        return Err("capture-seal keys are open to other users; not used".into());
+        return Err(failure(Cause::KeyStorageUnsafe, "capture-seal keys are open to other users; not used"));
     }
     let mut bytes = Vec::new();
-    file.read_to_end(&mut bytes).map_err(|e| format!("capture-seal keys not readable: {e}"))?;
-    let raw: Value = serde_json::from_slice(&bytes).map_err(|e| format!("capture-seal keys not readable: {e}"))?;
-    let bad = || "capture-seal keys not in their format; not used".to_owned();
+    file.read_to_end(&mut bytes).map_err(|e| failure(Cause::SealRootUnavailable, format!("capture-seal keys not readable: {e}")))?;
+    let raw: Value = serde_json::from_slice(&bytes).map_err(|e| failure(Cause::KeyMaterialInvalid, format!("capture-seal keys not readable: {e}")))?;
+    let bad = || failure(Cause::KeyMaterialInvalid, "capture-seal keys not in their format; not used");
     if raw["format"] != KEYRING_FORMAT || raw["formatVersion"] != "1" {
         return Err(bad());
     }
@@ -213,55 +215,55 @@ fn load(folder: &Path) -> Result<Option<Keyring>, String> {
     Ok(Some(Keyring { current, keys, raw }))
 }
 /// Publish the keyring readable by its owner only: a 0600 file in a 0700 folder.
-fn publish(folder: &Path, raw: &Value, replace: bool) -> Result<(), String> {
+fn publish(folder: &Path, raw: &Value, replace: bool) -> Result<(), EvidenceFailure> {
     #[cfg(test)]
     crate::records_effect_guard::mutation_for_test("capture_seal::publish");
-    crate::storage::ensure_directory(folder)?;
-    std::fs::set_permissions(folder, std::fs::Permissions::from_mode(0o700)).map_err(|e| format!("capture-seal key folder: {e}"))?;
+    crate::storage::ensure_directory(folder).map_err(|e| failure(Cause::SealWriteUnavailable, e))?;
+    std::fs::set_permissions(folder, std::fs::Permissions::from_mode(0o700)).map_err(|e| failure(Cause::SealWriteUnavailable, format!("capture-seal key folder: {e}")))?;
     let path = folder.join(KEY_FILE);
-    let temp = folder.join(format!(".{KEY_FILE}.{}.tmp", crate::util::opaque_id("")?));
+    let temp = folder.join(format!(".{KEY_FILE}.{}.tmp", crate::util::opaque_id("").map_err(|e| failure(Cause::SealEntropyUnavailable, e))?));
     let result = (|| {
         let mut file = std::fs::OpenOptions::new().create_new(true).write(true).mode(0o600).open(&temp)
-            .map_err(|e| format!("capture-seal keys: {e}"))?;
-        file.write_all(&serde_json::to_vec_pretty(raw).map_err(|e| e.to_string())?).map_err(|e| format!("capture-seal keys: {e}"))?;
-        file.sync_all().map_err(|e| format!("capture-seal keys: {e}"))?;
+            .map_err(|e| failure(Cause::SealWriteUnavailable, format!("capture-seal keys: {e}")))?;
+        file.write_all(&serde_json::to_vec_pretty(raw).map_err(|e| failure(Cause::SealWriteUnavailable, e.to_string()))?).map_err(|e| failure(Cause::SealWriteUnavailable, format!("capture-seal keys: {e}")))?;
+        file.sync_all().map_err(|e| failure(Cause::SealWriteUnavailable, format!("capture-seal keys: {e}")))?;
         if replace {
             std::fs::rename(&temp, &path)
         } else {
             std::fs::hard_link(&temp, &path)
         }
-        .map_err(|e| format!("capture-seal keys: {e}"))?;
-        crate::storage::sync_dir(folder)
+        .map_err(|e| failure(Cause::SealWriteUnavailable, format!("capture-seal keys: {e}")))?;
+        crate::storage::sync_dir(folder).map_err(|e| failure(Cause::SealWriteUnavailable, e))
     })();
     let _ = std::fs::remove_file(&temp);
     result
 }
-fn new_key() -> Result<([u8; 32], Value), String> {
+fn new_key() -> Result<([u8; 32], Value), EvidenceFailure> {
     let mut key = [0u8; 32];
-    getrandom::fill(&mut key).map_err(|e| format!("capture-seal key entropy unavailable: {e}"))?;
+    getrandom::fill(&mut key).map_err(|e| failure(Cause::SealEntropyUnavailable, format!("capture-seal key entropy unavailable: {e}")))?;
     Ok((key, json!({"keyId":key_id(&key),"key":hex(&key),"createdAt":crate::util::now_rfc3339()})))
 }
 /// The current keyring, creating this installation's first key when none exists.
-fn load_or_create(folder: &Path) -> Result<Keyring, String> {
+fn load_or_create(folder: &Path) -> Result<Keyring, EvidenceFailure> {
     if let Some(ring) = load(folder)? {
         return Ok(ring);
     }
-    let _lock = crate::storage::lock(&folder.join(".keys.lock"))?;
+    let _lock = crate::storage::lock(&folder.join(".keys.lock")).map_err(|e| failure(Cause::SealOperationBusy, e))?;
     if let Some(ring) = load(folder)? {
         return Ok(ring);
     }
     let (key, entry) = new_key()?;
     let raw = json!({"format":KEYRING_FORMAT,"formatVersion":"1","current":key_id(&key),"keys":[entry]});
     publish(folder, &raw, false)?;
-    load(folder)?.ok_or_else(|| "capture-seal keys not readable after creation".into())
+    load(folder)?.ok_or_else(|| failure(Cause::SealWriteUnavailable, "capture-seal keys not readable after creation"))
 }
 /// Rotate: add a new current key; earlier keys stay held so captures sealed
 /// under them still verify here. Returns the new key identity.
 pub fn rotate() -> Result<String, String> {
     let folder = folder()?;
-    if let Some(result)=crate::capture_seal_keychain::dispatch(&folder,crate::capture_seal_keychain::Operation::Rotate){return result.map(|ring|ring.current);}
+    if let Some(result)=crate::capture_seal_keychain::dispatch(&folder,crate::capture_seal_keychain::Operation::Rotate){return result.map(|ring|ring.current).map_err(Into::into);}
     load_or_create(&folder)?; // takes and releases the lock itself
-    let _lock = crate::storage::lock(&folder.join(".keys.lock"))?;
+    let _lock = crate::storage::lock(&folder.join(".keys.lock")).map_err(|e| failure(Cause::SealOperationBusy, e))?;
     // Read the keyring under the lock, so a concurrent rotation is not lost.
     let ring = load(&folder)?.ok_or("capture-seal keys not readable for rotation")?;
     let (key, entry) = new_key()?;
@@ -273,7 +275,7 @@ pub fn rotate() -> Result<String, String> {
 }
 
 /// Seal a capture for the project at `root` before its first publication.
-pub fn seal(root: &Path, capture: &mut Value) -> Result<(), String> {
+pub fn seal(root: &Path, capture: &mut Value) -> Result<(), EvidenceFailure> {
     let folder=folder_for(root)?;
     let ring=match crate::capture_seal_keychain::dispatch(&folder,crate::capture_seal_keychain::Operation::Seal){
         Some(result)=>{let material=result?;Keyring{current:material.current,keys:material.keys,raw:Value::Null}},
@@ -287,51 +289,57 @@ pub fn seal(root: &Path, capture: &mut Value) -> Result<(), String> {
 /// A15 opportunistic sealing uses only the enrolled SEAL-C keychain provider.
 /// Development file keys cannot supply robust registration assurance. Failure
 /// preserves the present native A15 with an explicit unsealed evidence limit.
-pub(crate) fn seal_a15_if_keychain_available(root: &Path, capture: &mut Value) -> Result<(), String> {
+pub(crate) fn seal_a15_if_keychain_available(root: &Path, capture: &mut Value) -> Result<(), EvidenceFailure> {
     let folder = folder_for(root)?;
     let material = crate::capture_seal_keychain::dispatch(&folder, crate::capture_seal_keychain::Operation::Seal)
-        .ok_or("SEAL-C keychain provider is not selected/enrolled")??;
-    let key = material.keys.get(&material.current).ok_or("SEAL-C current key unavailable")?;
+        .ok_or_else(|| failure(Cause::KeychainProviderUnavailableOnThisBuild, "SEAL-C keychain provider is not selected/enrolled"))??;
+    let key = material.keys.get(&material.current).ok_or_else(|| failure(Cause::KeyNotHeld, "SEAL-C current key unavailable"))?;
     let mac = hmac(key, &message(capture)?);
     capture["seal"] = json!({"method":SEAL_METHOD,"value":format!("{}:{}",material.current,hex(&mac))});
     Ok(())
 }
 /// The evidence limit a capture of the App act control carries when it could
 /// not be sealed; such a capture is recorded but never counted.
-pub fn unsealed_limit(reason: &str) -> String {
+pub fn unsealed_limit(reason: impl std::fmt::Display) -> String {
     format!("capture not sealed ({reason}); not verifiable as this App's capture, so it is not counted as an act")
 }
 /// Whether this installation verifies the capture's seal. `Err` is the stated
 /// limit for a capture that is not counted; it never claims a forgery.
-pub fn verify(root: &Path, capture: &Value) -> Result<(), String> {
+pub fn verify(root: &Path, capture: &Value) -> Result<(), EvidenceFailure> {
     verify_with(root, capture, false)
 }
 /// Verification for sealed workflow-approval admission: only the gated SEAL-C
 /// keychain provider qualifies. Development file keys never do.
-pub(crate) fn verify_keychain(root: &Path, capture: &Value) -> Result<(), String> {
+pub(crate) fn verify_keychain(root: &Path, capture: &Value) -> Result<(), EvidenceFailure> {
     verify_with(root, capture, true)
 }
-fn verify_with(root: &Path, capture: &Value, keychain_only: bool) -> Result<(), String> {
+fn verify_with(root: &Path, capture: &Value, keychain_only: bool) -> Result<(), EvidenceFailure> {
     let Some(seal) = capture.get("seal") else {
-        return Err("capture has no App seal (written before capture sealing, or not by this App's act control); not verified here".into());
+        return Err(failure(Cause::NoSeal, "capture has no App seal (written before capture sealing, or not by this App's act control); not verified here"));
     };
+    if !seal.is_object() || !seal["method"].is_string() || !seal["value"].is_string() {
+        return Err(failure(Cause::SealMalformed, "capture seal is malformed; not verified here"));
+    }
     if seal["method"] != SEAL_METHOD {
-        return Err(format!("capture seal method {} is not one this App verifies; not verified here", seal["method"]));
+        return Err(failure(Cause::SealMethodUnsupported, format!("capture seal method {} is not one this App verifies; not verified here", seal["method"])));
     }
     let value = seal["value"].as_str().unwrap_or("");
     let (id, mac) = value.split_once(':').unwrap_or(("", ""));
-    let folder = folder_for(root).map_err(|e| format!("capture seal not checked: {e}; not verified here"))?;
+    if id.len() != 16 || mac.len() != 64 || unhex(id).is_none() || unhex(mac).is_none() {
+        return Err(failure(Cause::SealMalformed, "capture seal value is malformed; not verified here"));
+    }
+    let folder = folder_for(root).map_err(|e| { let detail = format!("capture seal not checked: {e}; not verified here"); e.with_detail(detail) })?;
     let ring=match crate::capture_seal_keychain::dispatch(&folder,crate::capture_seal_keychain::Operation::VerifyKey(id.to_owned())){
         Some(result)=>result.map(|material|Some(Keyring{current:material.current,keys:material.keys,raw:Value::Null})),
-        None if keychain_only=>return Err("keychain protection is not available on this build; not verified here".into()),
+        None if keychain_only=>return Err(failure(Cause::KeychainProviderUnavailableOnThisBuild, "keychain protection is not available on this build; not verified here")),
         None=>load(&folder),
-    }.map_err(|e|format!("capture seal not checked: {e}; not verified here"))?;
+    }.map_err(|e| { let detail = format!("capture seal not checked: {e}; not verified here"); e.with_detail(detail) })?;
     let Some(key) = ring.as_ref().and_then(|r| r.keys.get(id)) else {
-        return Err(format!("capture sealed under key {id:?}, which this App installation does not hold (another installation, or a key lost here); not verified here"));
+        return Err(failure(Cause::KeyNotHeld, format!("capture sealed under key {id:?}, which this App installation does not hold (another installation, or a key lost here); not verified here")));
     };
     match unhex(mac) {
         Some(mac) if equal(&mac, &hmac(key, &message(capture)?)) => Ok(()),
-        _ => Err(format!("capture seal does not verify under this installation's key {id:?}: the capture's act facts changed after sealing, or it was not sealed by this App; not verified")),
+        _ => Err(failure(Cause::SealInvalid, format!("capture seal does not verify under this installation's key {id:?}: the capture's act facts changed after sealing, or it was not sealed by this App; not verified"))),
     }
 }
 
@@ -347,6 +355,31 @@ mod tests {
         json!({"captureId":"cap:x","choice":"act","actKind":"A6","boundSubject":["/p/a"],"capturedAt":"2026-10-11T00:00:00.000Z","answers":{"n":1},
             "boundContent":[{"method":"m","value":"v"}],"scope":"the file","purpose":"rely","actor":{"osAccount":"fixture","identityVerified":false},
             "offerDigest":{"method":"aac-offer-digest/0.1","value":"0".repeat(64)}})
+    }
+    #[test]
+    fn verify_returns_closed_causes_at_the_failing_primitive() {
+        let (project, keys) = (temp("typed-seal-project-"), temp("typed-seal-keys-"));
+        set_folder_for_test(Some(Some(keys.join(KEY_FOLDER))));
+        let mut original = capture();
+        seal(&project, &mut original).unwrap();
+        verify(&project, &original).unwrap();
+        let mut changed = original.clone();
+        changed["choice"] = json!("decline");
+        assert_eq!(verify(&project, &changed).unwrap_err().cause, Cause::SealInvalid);
+        changed = original.clone();
+        changed["seal"]["value"] = json!("bad encoding");
+        assert_eq!(verify(&project, &changed).unwrap_err().cause, Cause::SealMalformed);
+        changed = original.clone();
+        changed["seal"]["method"] = json!("unknown");
+        assert_eq!(verify(&project, &changed).unwrap_err().cause, Cause::SealMethodUnsupported);
+        changed = original.clone();
+        changed.as_object_mut().unwrap().remove("seal");
+        assert_eq!(verify(&project, &changed).unwrap_err().cause, Cause::NoSeal);
+        std::fs::remove_dir_all(keys.join(KEY_FOLDER)).unwrap();
+        assert_eq!(verify(&project, &original).unwrap_err().cause, Cause::KeyNotHeld);
+        set_folder_for_test(None);
+        std::fs::remove_dir_all(project).unwrap();
+        std::fs::remove_dir_all(keys).unwrap();
     }
     #[test]
     fn hmac_matches_rfc_4231_case_2() {

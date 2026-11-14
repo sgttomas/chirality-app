@@ -1,6 +1,8 @@
 //! SEAL-C storage transition only; not SEAL-2, entry sealing or person proof.
 //! Compiled None prevents ALL real SecItem operations until reviewed signing activation.
 use serde::{Deserialize, Serialize};
+use crate::act_evidence_cause::{ActEvidenceCause as Cause, EvidenceFailure};
+fn failure(cause: Cause, detail: impl Into<String>) -> EvidenceFailure { EvidenceFailure::new(cause, detail) }
 use sha2::{Digest, Sha256};
 use std::{
     collections::BTreeMap,
@@ -134,7 +136,7 @@ pub(crate) enum Operation {
 /// None means the unchanged unsigned/development file provider. A selected or
 /// invalid publisher never falls back, even when keychain activation is absent.
 #[cfg(test)]
-thread_local! {static TEST_PROVIDER:std::cell::RefCell<Option<Box<dyn Fn(&Path,Operation)->Result<Material,String>>>>=const{std::cell::RefCell::new(None)};}
+thread_local! {static TEST_PROVIDER:std::cell::RefCell<Option<Box<dyn Fn(&Path,Operation)->Result<Material,EvidenceFailure>>>>=const{std::cell::RefCell::new(None)};}
 #[cfg(test)]
 fn test_selected() -> bool {
     TEST_PROVIDER.with(|provider| provider.borrow().is_some())
@@ -142,10 +144,10 @@ fn test_selected() -> bool {
 pub(crate) fn dispatch(
     legacy_folder: &Path,
     operation: Operation,
-) -> Option<Result<Material, String>> {
+) -> Option<Result<Material, EvidenceFailure>> {
     if matches!(operation, Operation::Enroll) {
         return Some(Err(
-            "SEAL-C enrollment requires the original prepared intent".into(),
+            failure(Cause::AuthorityUnavailable, "SEAL-C enrollment requires the original prepared intent"),
         ));
     }
     #[cfg(test)]
@@ -160,11 +162,11 @@ pub(crate) fn dispatch(
     match publisher_route() {
         Ok(false) => None,
         Err(_) => Some(Err(
-            "SEAL-C publisher validation unavailable; file fallback prohibited".into(),
+            failure(Cause::AuthorityUnavailable, "SEAL-C publisher validation unavailable; file fallback prohibited"),
         )),
         Ok(true) => Some((|| {
             let authority =
-                process_authority(matches!(operation, Operation::Enroll | Operation::Rotate))?;
+                process_authority(matches!(operation, Operation::Enroll | Operation::Rotate)).map_err(|e| failure(Cause::AuthorityUnavailable, e))?;
             let backend = macos::NativeBackend::new(&authority);
             let directory = legacy_folder.with_file_name("capture-seal-keychain");
             let mut entropy = || {
@@ -323,15 +325,21 @@ fn read_key(
     i: &ItemIdentity,
     index: usize,
     k: &KeyRef,
-) -> Result<[u8; 32], String> {
-    let raw = backend.read(&item(i, index, k)).map_err(|_| {
-        "SEAL-C keychain item missing, locked, denied or unavailable; no replacement"
+) -> Result<[u8; 32], EvidenceFailure> {
+    let raw = backend.read(&item(i, index, k)).map_err(|error| {
+        let cause = match error {
+            BackendError::Missing => Cause::KeyNotHeld,
+            BackendError::Unavailable(_) => Cause::KeychainUnavailable,
+            BackendError::Invalid => Cause::KeyMaterialInvalid,
+            BackendError::Duplicate => Cause::ProtectionInconsistent,
+        };
+        failure(cause, format!("SEAL-C keychain item missing, locked, denied or unavailable; no replacement ({})", backend_cause(error)))
     })?;
     let key: [u8; 32] = raw
         .try_into()
-        .map_err(|_| "SEAL-C keychain item malformed")?;
+        .map_err(|_| failure(Cause::KeyMaterialInvalid, "SEAL-C keychain item malformed"))?;
     if key_id(&key) != k.id || digest(&key) != k.sha256 {
-        return Err("SEAL-C keychain item contradicts retained continuity".into());
+        return Err(failure(Cause::KeyMaterialInvalid, "SEAL-C keychain item contradicts retained continuity"));
     }
     Ok(key)
 }
@@ -583,7 +591,7 @@ fn consume_prepared(
         Operation::Enroll,
         entropy,
         Some(&prepared),
-    )
+    ).map_err(Into::into)
 }
 
 struct Guard {
@@ -598,7 +606,7 @@ impl Drop for Guard {
     }
 }
 #[cfg(test)]
-fn guard(directory: &Path, create: bool) -> Result<Option<Guard>, String> {
+fn guard(directory: &Path, create: bool) -> Result<Option<Guard>, EvidenceFailure> {
     guard_mode(directory, create, false, false)
 }
 fn guard_mode(
@@ -606,10 +614,10 @@ fn guard_mode(
     create: bool,
     shared: bool,
     wait: bool,
-) -> Result<Option<Guard>, String> {
+) -> Result<Option<Guard>, EvidenceFailure> {
     #[cfg(test)]
     crate::records_effect_guard::mutation_for_test("capture_seal_keychain::guard_mode");
-    crate::storage::check_path(directory)?;
+    crate::storage::check_path(directory).map_err(|e| failure(Cause::KeyStorageUnsafe, e))?;
     match fs::symlink_metadata(directory) {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => {
             if !create {
@@ -618,25 +626,25 @@ fn guard_mode(
             fs::DirBuilder::new()
                 .mode(0o700)
                 .create(directory)
-                .map_err(|_| "SEAL-C continuity directory creation unavailable")?;
+                .map_err(|_| failure(Cause::SealWriteUnavailable, "SEAL-C continuity directory creation unavailable"))?;
             crate::storage::sync_dir(
                 directory
                     .parent()
-                    .ok_or("SEAL-C continuity parent absent")?,
-            )?;
+                    .ok_or(failure(Cause::ContinuityUnavailable, "SEAL-C continuity parent absent"))?,
+            ).map_err(|e| failure(Cause::SealWriteUnavailable, e))?;
         }
-        Err(_) => return Err("SEAL-C continuity directory unavailable".into()),
+        Err(_) => return Err(failure(Cause::ContinuityUnavailable, "SEAL-C continuity directory unavailable")),
         Ok(_) if create => {
-            return Err("SEAL-C expected absent continuity directory appeared".into())
+            return Err(failure(Cause::SealSourceChanged, "SEAL-C expected absent continuity directory appeared"))
         }
         Ok(_) => (),
     }
-    let held_directory = HeldDirectory::open(directory)?;
+    let held_directory = HeldDirectory::open(directory).map_err(|e| failure(Cause::KeyStorageUnsafe, e))?;
     if !private_metadata(
-        &fs::symlink_metadata(directory).map_err(|_| "SEAL-C continuity directory unavailable")?,
+        &fs::symlink_metadata(directory).map_err(|_| failure(Cause::ContinuityUnavailable, "SEAL-C continuity directory unavailable"))?,
         true,
     ) {
-        return Err("SEAL-C continuity directory unsafe".into());
+        return Err(failure(Cause::KeyStorageUnsafe, "SEAL-C continuity directory unsafe"));
     }
     let lock = OpenOptions::new()
         .read(true)
@@ -646,33 +654,33 @@ fn guard_mode(
         .mode(0o600)
         .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
         .open(directory.join(".continuity.lock"))
-        .map_err(|_| "SEAL-C continuity lock unavailable")?;
+        .map_err(|_| failure(Cause::SealOperationBusy, "SEAL-C continuity lock unavailable"))?;
     if !private_metadata(
         &lock
             .metadata()
-            .map_err(|_| "SEAL-C continuity lock unavailable")?,
+            .map_err(|_| failure(Cause::SealOperationBusy, "SEAL-C continuity lock unavailable"))?,
         false,
     ) {
-        return Err("SEAL-C continuity lock unsafe".into());
+        return Err(failure(Cause::KeyStorageUnsafe, "SEAL-C continuity lock unsafe"));
     }
     let flags =
         (if shared { libc::LOCK_SH } else { libc::LOCK_EX }) | if wait { 0 } else { libc::LOCK_NB };
     if unsafe { libc::flock(lock.as_raw_fd(), flags) } != 0 {
-        return Err("SEAL-C continuity busy; retry without key mutation".into());
+        return Err(failure(Cause::SealOperationBusy, "SEAL-C continuity busy; retry without key mutation"));
     }
-    held_directory.recheck()?;
+    held_directory.recheck().map_err(|e| failure(Cause::SealSourceChanged, e))?;
     Ok(Some(Guard {
         file: lock,
         directory: Some(held_directory),
     }))
 }
-fn load(directory: &Path, i: &ItemIdentity) -> Result<Option<Marker>, String> {
+fn load(directory: &Path, i: &ItemIdentity) -> Result<Option<Marker>, EvidenceFailure> {
     Ok(load_snapshot(directory, i)?.map(|(marker, _)| marker))
 }
 fn load_snapshot(
     directory: &Path,
     i: &ItemIdentity,
-) -> Result<Option<(Marker, MarkerSnapshot)>, String> {
+) -> Result<Option<(Marker, MarkerSnapshot)>, EvidenceFailure> {
     let mut file = match OpenOptions::new()
         .read(true)
         .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
@@ -680,49 +688,49 @@ fn load_snapshot(
     {
         Ok(f) => f,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(None),
-        Err(_) => return Err("SEAL-C continuity marker unavailable".into()),
+        Err(_) => return Err(failure(Cause::ContinuityUnavailable, "SEAL-C continuity marker unavailable")),
     };
     if !private_metadata(
         &file
             .metadata()
-            .map_err(|_| "SEAL-C continuity marker unavailable")?,
+            .map_err(|_| failure(Cause::ContinuityUnavailable, "SEAL-C continuity marker unavailable"))?,
         false,
     ) {
-        return Err("SEAL-C continuity marker unsafe".into());
+        return Err(failure(Cause::KeyStorageUnsafe, "SEAL-C continuity marker unsafe"));
     }
     let before = FileStamp::of(
         &file
             .metadata()
-            .map_err(|_| "SEAL-C marker metadata unavailable")?,
+            .map_err(|_| failure(Cause::ContinuityUnavailable, "SEAL-C marker metadata unavailable"))?,
     );
     let mut bytes = Vec::new();
     (&mut file)
         .take(65537)
         .read_to_end(&mut bytes)
-        .map_err(|_| "SEAL-C continuity marker unreadable")?;
+        .map_err(|_| failure(Cause::ContinuityUnavailable, "SEAL-C continuity marker unreadable"))?;
     if bytes.len() > 65536 {
-        return Err("SEAL-C continuity marker oversized".into());
+        return Err(failure(Cause::ContinuityUnavailable, "SEAL-C continuity marker oversized"));
     }
     let after = FileStamp::of(
         &file
             .metadata()
-            .map_err(|_| "SEAL-C marker metadata unavailable")?,
+            .map_err(|_| failure(Cause::ContinuityUnavailable, "SEAL-C marker metadata unavailable"))?,
     );
     let named = FileStamp::of(
         &fs::symlink_metadata(directory.join(MARKER))
-            .map_err(|_| "SEAL-C marker changed during read")?,
+            .map_err(|_| failure(Cause::SealSourceChanged, "SEAL-C marker changed during read"))?,
     );
     if before != after || after != named {
-        return Err("SEAL-C marker changed during read".into());
+        return Err(failure(Cause::SealSourceChanged, "SEAL-C marker changed during read"));
     }
     let m: Marker =
-        serde_json::from_slice(&bytes).map_err(|_| "SEAL-C continuity marker malformed")?;
+        serde_json::from_slice(&bytes).map_err(|_| failure(Cause::ContinuityUnavailable, "SEAL-C continuity marker malformed"))?;
     if m.format != "capture-seal-keychain-continuity.s1"
         || m.scope_sha256 != scope(i)
         || m.keys.len() > 128
         || m.keys.is_empty() && m.pending.is_none()
     {
-        return Err("SEAL-C continuity scope or state differs".into());
+        return Err(failure(Cause::ContinuityUnavailable, "SEAL-C continuity scope or state differs"));
     }
     let mut ids = std::collections::BTreeSet::new();
     for k in m.keys.iter().chain(m.pending.iter()) {
@@ -735,7 +743,7 @@ fn load_snapshot(
                 .all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))
             || !ids.insert(&k.id)
         {
-            return Err("SEAL-C continuity key identity invalid".into());
+            return Err(failure(Cause::ContinuityUnavailable, "SEAL-C continuity key identity invalid"));
         }
     }
     Ok(Some((
@@ -747,33 +755,33 @@ fn load_snapshot(
         },
     )))
 }
-fn publish(directory: &Path, m: &Marker) -> Result<(), String> {
+fn publish(directory: &Path, m: &Marker) -> Result<(), EvidenceFailure> {
     #[cfg(test)]
     crate::records_effect_guard::mutation_for_test("capture_seal_keychain::publish");
-    let raw = serde_json::to_vec(m).map_err(|_| "SEAL-C continuity encoding failed")?;
-    let temp = directory.join(format!(".continuity-{}.tmp", crate::util::opaque_id("")?));
+    let raw = serde_json::to_vec(m).map_err(|_| failure(Cause::SealWriteUnavailable, "SEAL-C continuity encoding failed"))?;
+    let temp = directory.join(format!(".continuity-{}.tmp", crate::util::opaque_id("").map_err(|e| failure(Cause::SealEntropyUnavailable, e))?));
     let mut file = OpenOptions::new()
         .write(true)
         .create_new(true)
         .mode(0o600)
         .custom_flags(libc::O_NOFOLLOW)
         .open(&temp)
-        .map_err(|_| "SEAL-C continuity publication unavailable")?;
+        .map_err(|_| failure(Cause::SealWriteUnavailable, "SEAL-C continuity publication unavailable"))?;
     file.write_all(&raw)
         .and_then(|_| file.sync_all())
-        .map_err(|_| "SEAL-C continuity write uncertain; no key operation")?;
+        .map_err(|_| failure(Cause::SealWriteUnavailable, "SEAL-C continuity write uncertain; no key operation"))?;
     fs::rename(&temp, directory.join(MARKER))
-        .map_err(|_| "SEAL-C continuity publication uncertain; no key operation")?;
+        .map_err(|_| failure(Cause::SealWriteUnavailable, "SEAL-C continuity publication uncertain; no key operation"))?;
     crate::storage::sync_dir(directory)
-        .map_err(|_| "SEAL-C continuity durability uncertain; no key operation".into())
+        .map_err(|_| failure(Cause::SealWriteUnavailable, "SEAL-C continuity durability uncertain; no key operation"))
 }
-fn material(backend: &impl Backend, i: &ItemIdentity, m: &Marker) -> Result<Material, String> {
+fn material(backend: &impl Backend, i: &ItemIdentity, m: &Marker) -> Result<Material, EvidenceFailure> {
     let mut keys = BTreeMap::new();
     for (index, k) in m.keys.iter().enumerate() {
         keys.insert(k.id.clone(), read_key(backend, i, index, k)?);
     }
     Ok(Material {
-        current: m.keys.last().ok_or("SEAL-C no committed key")?.id.clone(),
+        current: m.keys.last().ok_or(failure(Cause::ContinuityUnavailable, "SEAL-C no committed key"))?.id.clone(),
         keys,
     })
 }
@@ -781,21 +789,21 @@ fn fresh_namespace(
     legacy_folder: &Path,
     i: &ItemIdentity,
     backend: &impl Backend,
-) -> Result<(), String> {
+) -> Result<(), EvidenceFailure> {
     match fs::symlink_metadata(legacy_folder) {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => (),
         Err(_) => {
-            return Err("SEAL-C legacy namespace presence unavailable; enrollment refused".into())
+            return Err(failure(Cause::ProtectionInconsistent, "SEAL-C legacy namespace presence unavailable; enrollment refused"))
         }
         Ok(_) => {
             return Err(
-                "SEAL-C existing file-key namespace retained; implicit migration prohibited".into(),
+                failure(Cause::ProtectionInconsistent, "SEAL-C existing file-key namespace retained; implicit migration prohibited"),
             )
         }
     }
     match backend.read(i) {
         Err(BackendError::Missing) => Ok(()),
-        _ => Err("SEAL-C namespace not demonstrably new; enrollment refused".into()),
+        _ => Err(failure(Cause::ProtectionInconsistent, "SEAL-C namespace not demonstrably new; enrollment refused")),
     }
 }
 fn verification_material(
@@ -803,12 +811,12 @@ fn verification_material(
     i: &ItemIdentity,
     m: &Marker,
     operation: &Operation,
-) -> Result<Material, String> {
+) -> Result<Material, EvidenceFailure> {
     let mut keys = BTreeMap::new();
     let current = m
         .keys
         .last()
-        .ok_or("SEAL-C no committed key; enrollment pending")?
+        .ok_or(failure(Cause::ContinuityUnavailable, "SEAL-C no committed key; enrollment pending"))?
         .id
         .clone();
     for (index, k) in m.keys.iter().enumerate() {
@@ -837,7 +845,7 @@ fn operate(
     backend: &impl Backend,
     operation: Operation,
     entropy: &mut impl FnMut() -> Result<[u8; 32], String>,
-) -> Result<Material, String> {
+) -> Result<Material, EvidenceFailure> {
     operate_bound(
         directory,
         legacy_folder,
@@ -858,22 +866,22 @@ fn operate_bound(
     operation: Operation,
     entropy: &mut impl FnMut() -> Result<[u8; 32], String>,
     prepared: Option<&PreparedSealEnrollment>,
-) -> Result<Material, String> {
+) -> Result<Material, EvidenceFailure> {
     #[cfg(test)]
     crate::records_effect_guard::mutation_for_test("capture_seal_keychain::operate_bound");
     #[cfg(not(test))]
     if matches!(operation, Operation::Enroll) && prepared.is_none() {
-        return Err("SEAL-C prepared enrollment intent required".into());
+        return Err(failure(Cause::AuthorityUnavailable, "SEAL-C prepared enrollment intent required"));
     }
-    validate_identity(i)?;
+    validate_identity(i).map_err(|e| failure(Cause::AuthorityUnavailable, e))?;
     // First-enrollment admission is serialized outside the not-yet-created
     // continuity directory. A transient keychain refusal leaves no empty
     // enrollment directory that could masquerade as a crashed reservation.
     let _enrollment = if matches!(operation, Operation::Enroll) {
         let parent = directory
             .parent()
-            .ok_or("SEAL-C continuity parent absent")?;
-        crate::storage::check_path(parent)?;
+            .ok_or(failure(Cause::ContinuityUnavailable, "SEAL-C continuity parent absent"))?;
+        crate::storage::check_path(parent).map_err(|e| failure(Cause::KeyStorageUnsafe, e))?;
         let file = OpenOptions::new()
             .read(true)
             .write(true)
@@ -882,17 +890,17 @@ fn operate_bound(
             .mode(0o600)
             .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
             .open(parent.join(".seal-c-enrollment.lock"))
-            .map_err(|_| "SEAL-C enrollment lock unavailable")?;
+            .map_err(|_| failure(Cause::SealOperationBusy, "SEAL-C enrollment lock unavailable"))?;
         if !private_metadata(
             &file
                 .metadata()
-                .map_err(|_| "SEAL-C enrollment lock unavailable")?,
+                .map_err(|_| failure(Cause::SealOperationBusy, "SEAL-C enrollment lock unavailable"))?,
             false,
         ) {
-            return Err("SEAL-C enrollment lock unsafe".into());
+            return Err(failure(Cause::KeyStorageUnsafe, "SEAL-C enrollment lock unsafe"));
         }
         if unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX) } != 0 {
-            return Err("SEAL-C enrollment lock unavailable".into());
+            return Err(failure(Cause::SealOperationBusy, "SEAL-C enrollment lock unavailable"));
         }
         Some(Guard {
             file,
@@ -908,7 +916,7 @@ fn operate_bound(
         }
     });
     if let Some(intent) = prepared {
-        intent.before_namespace()?;
+        intent.before_namespace().map_err(|e| failure(Cause::SealSourceChanged, e))?;
     }
     #[cfg(test)]
     AFTER_ENROLLMENT_JOIN.with(|hook| {
@@ -918,14 +926,14 @@ fn operate_bound(
     });
     let observed_absent = !directory
         .try_exists()
-        .map_err(|_| "SEAL-C continuity presence unavailable")?;
+        .map_err(|_| failure(Cause::ContinuityUnavailable, "SEAL-C continuity presence unavailable"))?;
     if prepared.is_some_and(|intent| observed_absent != intent.namespace.is_none()) {
-        return Err("SEAL-C prepared presence or absence changed after enrollment join".into());
+        return Err(failure(Cause::SealSourceChanged, "SEAL-C prepared presence or absence changed after enrollment join"));
     }
     let admitted_create = matches!(operation, Operation::Enroll) && allow_first && observed_absent;
     if matches!(operation, Operation::Enroll) && observed_absent {
         if !allow_first {
-            return Err("SEAL-C explicit first enrollment not admitted".into());
+            return Err(failure(Cause::ContinuityUnavailable, "SEAL-C explicit first enrollment not admitted"));
         }
         fresh_namespace(legacy_folder, i, backend)?;
     }
@@ -941,17 +949,17 @@ fn operate_bound(
         verifying(&operation),
         !verifying(&operation),
     )?
-    .ok_or("SEAL-C keychain continuity not enrolled; not verified here")?;
+    .ok_or(failure(Cause::ContinuityUnavailable, "SEAL-C keychain continuity not enrolled; not verified here"))?;
     let snapshot = load_snapshot(directory, i)?;
     if let Some(intent) = prepared {
-        intent.after_continuity(&_lock, snapshot.as_ref().map(|(_, stamp)| stamp))?;
+        intent.after_continuity(&_lock, snapshot.as_ref().map(|(_, stamp)| stamp)).map_err(|e| failure(Cause::SealSourceChanged, e))?;
     }
     let mut m = match snapshot {
         Some((m, _)) => m,
         None => {
             if !matches!(operation, Operation::Enroll) || !allow_first {
                 return Err(
-                    "SEAL-C explicit first enrollment not admitted; no regeneration".into(),
+                    failure(Cause::ContinuityUnavailable, "SEAL-C explicit first enrollment not admitted; no regeneration"),
                 );
             }
             // An explicit enrollment may resume an unreserved empty directory
@@ -978,7 +986,7 @@ fn operate_bound(
         let current = m
             .keys
             .last()
-            .ok_or("SEAL-C no committed key; explicit enrollment recovery required")?
+            .ok_or(failure(Cause::ContinuityUnavailable, "SEAL-C no committed key; explicit enrollment recovery required"))?
             .id
             .clone();
         return verification_material(backend, i, &m, &Operation::VerifyKey(current));
@@ -1004,22 +1012,22 @@ fn operate_bound(
         }
     }
     if m.keys.len() >= 128 {
-        return Err("SEAL-C retained key limit; explicit continuity disposition required".into());
+        return Err(failure(Cause::ContinuityUnavailable, "SEAL-C retained key limit; explicit continuity disposition required"));
     }
-    let key = entropy()?;
+    let key = entropy().map_err(|e| failure(Cause::SealEntropyUnavailable, e))?;
     let reference = keyref(&key);
     if m.keys.iter().any(|k| k.id == reference.id) {
-        return Err("SEAL-C key identity collision; no add".into());
+        return Err(failure(Cause::KeyMaterialInvalid, "SEAL-C key identity collision; no add"));
     }
     m.pending = Some(reference.clone());
     publish(directory, &m)?;
     // Reservation is durable before add. No rollback/delete/retry after error.
     backend
         .add(&item(i, m.keys.len(), &reference), &key)
-        .map_err(|_| "SEAL-C keychain add failed or outcome unknown; reservation retained")?;
+        .map_err(|_| failure(Cause::SealWriteUnavailable, "SEAL-C keychain add failed or outcome unknown; reservation retained"))?;
     let observed = read_key(backend, i, m.keys.len(), &reference)?;
     if observed != key {
-        return Err("SEAL-C keychain add readback differs; reservation retained".into());
+        return Err(failure(Cause::SealSourceChanged, "SEAL-C keychain add readback differs; reservation retained"));
     }
     m.keys.push(reference);
     m.pending = None;

@@ -14,6 +14,7 @@ pub mod act_control;
 pub mod act_policy;
 pub mod attachments;
 pub mod canonical;
+pub mod act_evidence_cause;
 pub mod capture_seal;
 mod capture_seal_keychain;
 mod seal_c_enrollment;

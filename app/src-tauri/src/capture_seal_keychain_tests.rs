@@ -75,7 +75,7 @@ impl Fixture {
             },
         }
     }
-    fn run(&self, b: &Mock, o: Operation, key: u8) -> Result<Material, String> {
+    fn run(&self, b: &Mock, o: Operation, key: u8) -> Result<Material, EvidenceFailure> {
         operate(
             &self.dir,
             &self.legacy,
@@ -1096,4 +1096,28 @@ fn policy_discovery_is_authoritative_over_the_whole_range() {
     b.items.lock().unwrap().remove(&sentinel);
     let _ = fs::remove_file(&head);
     assert!(read().unwrap_err().contains("seal key is missing"));
+}
+
+#[test]
+fn capture_seal_keychain_read_key_preserves_backend_causes() {
+    let f = Fixture::new();
+    let b = Mock::default();
+    let ring = f.run(&b, Operation::Enroll, 9).unwrap();
+    let marker = load(&f.dir, &f.identity).unwrap().unwrap();
+    let reference = &marker.keys[0];
+    assert_eq!(read_key(&b, &f.identity, 0, reference).unwrap(), ring.keys[&reference.id]);
+    for (error, cause) in [
+        (BackendError::Missing, Cause::KeyNotHeld),
+        (BackendError::Unavailable(-25308), Cause::KeychainUnavailable),
+        (BackendError::Unavailable(-25293), Cause::KeychainUnavailable),
+        (BackendError::Invalid, Cause::KeyMaterialInvalid),
+        (BackendError::Duplicate, Cause::ProtectionInconsistent),
+    ] {
+        *b.read_error.lock().unwrap() = Some(error);
+        assert_eq!(read_key(&b, &f.identity, 0, reference).unwrap_err().cause, cause);
+        *b.read_error.lock().unwrap() = None;
+        assert!(read_key(&b, &f.identity, 0, reference).is_ok());
+    }
+    b.items.lock().unwrap().insert(name(&f.identity), vec![1]);
+    assert_eq!(read_key(&b, &f.identity, 0, reference).unwrap_err().cause, Cause::KeyMaterialInvalid);
 }
