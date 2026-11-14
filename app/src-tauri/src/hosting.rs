@@ -7392,6 +7392,10 @@ mod conversation_transport_tests {
             std::fs::remove_dir_all(root).unwrap();
         }
     }
+    /// Clears the test delay of the last look when a test ends, also when it panics, so a delay a
+    /// failed test set never reaches the next test.
+    struct RecheckDelay;
+    impl Drop for RecheckDelay{fn drop(&mut self){*ATTACHMENT_RECHECK_DELAY.lock().unwrap_or_else(|e|e.into_inner())=None;}}
     fn wait_for_late_rereads(before:usize){
         let deadline=std::time::Instant::now()+ATTACHMENT_RECHECK_LIMIT*4;
         while ATTACHMENT_RECHECK_RETURNED.load(std::sync::atomic::Ordering::SeqCst)==before{assert!(std::time::Instant::now()<deadline,"the late reread returned");std::thread::sleep(Duration::from_millis(10));}
@@ -7404,6 +7408,7 @@ mod conversation_transport_tests {
     // turn at the limit and releases the gate, the custody's source lock and the writer.
     #[test]
     fn attachment_host_final_reread_that_times_out_refuses_at_the_limit_and_releases_the_gate_the_source_lock_and_the_writer(){
+        let _delay=RecheckDelay;
         assert_eq!(ATTACHMENT_RECHECK_LIMIT*5,crate::codex_stop::STOP_WAIT_LIMIT,"the limit is a fifth of Stop's, as its comment says");
         let host=host();let(root,owner,selections)=attachment_fixture();event(&host,"inProgress");
         no_attachment_write(&host,||{
@@ -7428,12 +7433,13 @@ mod conversation_transport_tests {
     // of it reaches the Host, the turn stays refused, and nothing is written.
     #[test]
     fn attachment_host_final_reread_that_returns_after_its_refusal_reaches_nothing(){
+        let _delay=RecheckDelay;
         let host=host();let(root,owner,selections)=attachment_fixture();event(&host,"inProgress");
         no_attachment_write(&host,||{
             let packet=host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",Some("turn"),"Person text",&selections).unwrap();
             let before=ATTACHMENT_RECHECK_RETURNED.load(std::sync::atomic::Ordering::SeqCst);
             *host.before_attachment_gate.lock().unwrap()=Some(Box::new(||{*ATTACHMENT_RECHECK_DELAY.lock().unwrap()=Some(ATTACHMENT_RECHECK_LIMIT+Duration::from_millis(300));}));
-            assert!(host.dispatch_attachment_turn(&packet).is_err());
+            assert!(host.dispatch_attachment_turn(&packet).is_err(),"a last look that does not return within its limit refuses the turn");
             *ATTACHMENT_RECHECK_DELAY.lock().unwrap()=None;
             let refused=host.snapshot();
             wait_for_late_rereads(before);
