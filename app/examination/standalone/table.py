@@ -18,8 +18,11 @@ It reads and writes nothing in the repository, and its output is never committed
   not there or cannot be read, and an empty candidate. Records for another candidate or naming none, and records
   that cannot be read, are named beneath the table and never counted. A record that is not a JSON object, names no
   step, or has a date that is neither a calendar date (YYYY-MM-DD) nor a time with its zone (ISO 8601, Z or an
-  offset) cannot be read. Dates are compared as dates or as instants, so one time written with two zones is the same
-  date; a step whose records mix calendar dates and times cannot be ordered and prints as inconclusive.
+  offset) cannot be read. Dates are compared as dates or as exact instants (whole seconds in UTC and the fraction to
+  whatever precision it is written), so one time written with two zones is the same date; a step whose records mix
+  calendar dates and times cannot be ordered and prints as inconclusive. Nothing read from an input can make a line
+  of its own in the print: each control character, line separator or paragraph separator prints as its escape, and a
+  table cell's column separator is escaped too.
 
   THE CLAIM (App Agent 0, 14 November 2026). A step prints as passed only when a result record for that step, on the
   candidate named, says passed, and no other record for that step on that candidate of the same latest date says
@@ -28,8 +31,10 @@ It reads and writes nothing in the repository, and its output is never committed
   A record may cite session-comparison rows ("cites": [{file, sha256, rows}], the file relative to --results). Cited
   rows are listed beneath the table as cited, with whether each file exists, whether it is unchanged (its digest is
   the one cited) and what each cited row's outcome is. They never raise, lower or protect a step's outcome or any
-  count, and nothing in a citation can stop the print: one that is not a list, points outside the results folder
-  (by .. or an absolute path; listed, not read) or names a file that cannot be read is listed as such. The driver's runs and the comparison's rows are never counted as steps;
+  count, and nothing in a citation can stop the print: one that is not a list, names a path that cannot be read or
+  that resolves outside the results folder (by .., a link or an absolute path; listed, not read), or names a file
+  that cannot be read is listed as such. A path that resolves inside the folder is read, however it is written.
+  Every cited row is listed. The driver's runs and the comparison's rows are never counted as steps;
 - the scripted driver's runs, from --driver FOLDER=RUN@HEAD: a folder holding the reports a hosted run uploaded
   (report.json, scenario-report.json, and setup-report.json when the run made one). The driver is development
   evidence on a test build and satisfies no step;
@@ -39,11 +44,13 @@ It reads and writes nothing in the repository, and its output is never committed
   candidate is the header's candidate_key alone: a file whose header names none (a fallback file written after a
   refusal or failure, say) is counted under "not known", and never resolved through another field such as the
   launch record's identifier; a file whose header names a candidate the launch record beside it contradicts is named
-  and not counted. A launch record is read in the launcher's shape (candidate_key, or identifier, at its top level);
-  one that cannot be read withholds its folder's rows. A comparison folder that is not there, and a file that is not
+  and not counted. A launch record is read in the launcher's shape (candidate_key and identifier at its top level,
+  and a nested bundle.identifier); every one of those it holds must name the same candidate, and one that names
+  none, names two, or cannot be read withholds its folder's rows. A comparison folder that is not there, and a file that is not
   one JSON object per line or is empty, are noted and contribute nothing. A summary line is compared with the rows,
   never counted. Of the answers files made from one screen list (the header's "answers_of"), only the latest counts: by
-  the header's "written_at" when every one has it, else by the time in the name, and two of the same time count
+  the header's "written_at" when every one has it as a time with its zone (compared as instants), else by the time
+  in the name, and two of the same time count
   for neither. A fallback file carrying "answers_of" takes part like any other, so a refused answers run replaces
   the answers its list had before. When a file's header says the workflow comparison is not available ("workflow_comparison"), that
   sentence is written first beneath the section: W1 is counted only as blocked (a W1 row of that file saying
@@ -52,6 +59,7 @@ It reads and writes nothing in the repository, and its output is never committed
 """
 import argparse
 import datetime
+import decimal
 import hashlib
 import json
 import os
@@ -63,10 +71,22 @@ OUTCOMES = ('passed', 'failed', 'blocked', 'not run', 'inconclusive')
 STEP_MAP = 'app/examination/sq_receiving/sq.step-map.json'
 
 
+def shown(text):
+    """Text from an input as it prints: each control character, line separator or paragraph separator written as its
+    escape, so that nothing read from an input can make a line of its own."""
+    return re.sub('[\x00-\x1f\x7f-\x9f\u2028\u2029]', lambda m: m.group(0).encode('unicode_escape').decode(), str(text))
+
+
+def cell(text):
+    """Text from an input as a table cell: as shown, with its column separator escaped too."""
+    return shown(text).replace('|', '\\|')
+
+
 def when(text):
-    """A record's date as something that orders: ('date', a calendar date) for YYYY-MM-DD, or ('instant', the UTC time)
-    for an ISO 8601 time with its zone (Z or an offset). Anything else, a time without a zone among it, is None: the
-    record cannot be placed in time and is set aside as unreadable."""
+    """A record's date as something that orders: ('date', a calendar date) for YYYY-MM-DD, or ('instant', its exact
+    time: whole seconds since 1970 in UTC and the fraction as written, to any precision) for an ISO 8601 time with its
+    zone (Z or an offset). Anything else, a time without a zone among it, is None: the record cannot be placed in time
+    and is set aside as unreadable."""
     if not isinstance(text, str):
         return None
     if re.fullmatch(r'\d{4}-\d{2}-\d{2}', text):
@@ -74,13 +94,17 @@ def when(text):
             return ('date', datetime.date.fromisoformat(text))
         except ValueError:
             return None
-    if not re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})', text):
+    match = re.fullmatch(r'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})(:\d{2})?(\.\d+)?(Z|[+-]\d{2}:\d{2})', text)
+    if not match:
         return None
     try:
-        moment = datetime.datetime.fromisoformat(text.replace('Z', '+00:00'))
-    except ValueError:
+        whole = datetime.datetime.fromisoformat(match.group(1) + (match.group(2) or ':00')
+                                                + ('+00:00' if match.group(4) == 'Z' else match.group(4)))
+        since = whole - datetime.datetime(1970, 1, 1, tzinfo=datetime.timezone.utc)
+    except (ValueError, OverflowError):
         return None
-    return ('instant', moment.astimezone(datetime.timezone.utc))
+    seconds = since.days * 86400 + since.seconds
+    return ('instant', (seconds, decimal.Decimal('0' + (match.group(3) or '.0'))))
 
 
 def results(folder, candidate):
@@ -144,20 +168,24 @@ def cited(record, folder):
             shown.append(f'a citation not of the form {{file, sha256, rows}}: {json.dumps(cite)}')
             continue
         root = Path(folder).resolve()
-        path = (root / cite['file']).resolve()
+        try:
+            path = (root / cite['file']).resolve()
+        except (OSError, ValueError) as error:
+            shown.append(f"{json.dumps(cite['file'])}: not a path that can be read ({type(error).__name__})")
+            continue
         if not path.is_relative_to(root):
             shown.append(f"{cite['file']}: outside the results folder; not read")
             continue
-        exists = path.is_file()
         try:
+            exists = path.is_file()
             data = path.read_bytes() if exists else b''
-        except OSError as error:
+        except (OSError, ValueError) as error:
             shown.append(f"{cite['file']}: exists; cannot be read ({type(error).__name__})")
             continue
         unchanged = exists and 'sha256:' + hashlib.sha256(data).hexdigest() == cite.get('sha256')
         lines = data.decode('utf-8', errors='replace').splitlines()
         rows = []
-        for n in cite['rows'][:50]:
+        for n in cite['rows']:
             if not isinstance(n, int) or not 0 < n <= len(lines):
                 rows.append(f'row {n}: no such row')
                 continue
@@ -210,7 +238,7 @@ def table(repo, folder, release, candidate):
                 citations += [f"{step['step']} ({r['file']}) cites {c}" for r in last for c in cited(r, folder)]
                 if step.get('counts'):
                     totals['inconclusive'] += 1
-                lines.append(f"| {scenario} | {step['step']} | {counts} | inconclusive (records disagree) | {last[0]['date']} | — |")
+                lines.append(f"| {cell(scenario)} | {cell(step['step'])} | {counts} | inconclusive (records disagree) | {cell(last[0]['date'])} | — |")
                 continue
             tied = seen.get(step['step'])
             record = tied[0] if tied else None
@@ -223,7 +251,7 @@ def table(repo, folder, release, candidate):
             citations += [f"{step['step']} ({r['file']}) cites {c}" for r in tied for c in cited(r, folder)]
             if step.get('counts'):
                 totals[outcome] += 1
-            lines.append(f"| {scenario} | {step['step']} | {counts} | {outcome} | {record['date']} | {record.get('operated_by', '—')} |")
+            lines.append(f"| {cell(scenario)} | {cell(step['step'])} | {counts} | {outcome} | {cell(record['date'])} | {cell(record.get('operated_by', '—'))} |")
     lines += ['', 'Counted steps in the release: ' + ', '.join(f'{totals[o]} {o}' for o in OUTCOMES)
               + f'. Steps out of {release} by a recorded decision: {removed}.']
     if disputed:
@@ -264,13 +292,13 @@ def launch_keys(folder):
             unread.append(f'{path.name} (not a record)')
             continue
         bundle = record.get('bundle') if isinstance(record.get('bundle'), dict) else {}
-        named = record.get('candidate_key') if isinstance(record.get('candidate_key'), str) else None
-        identifier = next((i for i in (record.get('identifier'), bundle.get('identifier')) if isinstance(i, str)), None)
-        from_identifier = re.sub(r'^dev\.chirality\.app-v4\.candidate\.', '', identifier) if identifier else None
-        if named and from_identifier and named != from_identifier:
-            unread.append(f'{path.name} (its candidate_key and identifier disagree)')
-        elif named or from_identifier:
-            keys.add(named or from_identifier)
+        named = {record['candidate_key']} if isinstance(record.get('candidate_key'), str) else set()
+        named |= {re.sub(r'^dev\.chirality\.app-v4\.candidate\.', '', i) for i in (record.get('identifier'), bundle.get('identifier'))
+                  if isinstance(i, str)}
+        if len(named) == 1:
+            keys |= named
+        else:
+            unread.append(f"{path.name} ({'it names no candidate' if not named else 'its candidate fields disagree'})")
     return keys, unread
 
 
@@ -310,8 +338,10 @@ def comparisons(folders, standing=None):
         latest_answers, undecided = {}, set()
         for screen, entries in made_from.items():
             # The header's written_at (UTC, microseconds) when every file has one; otherwise the name's time.
-            exact = all(written for _, written in entries)
-            stamp = (lambda e: e[1]) if exact else (lambda e: e[0].name[len('session-comparison-'):].rsplit('-', 1)[0])
+            moments = [when(written) for _, written in entries]
+            exact = all(moment and moment[0] == 'instant' for moment in moments)
+            stamps = {id(e): (m[1] if exact else e[0].name[len('session-comparison-'):].rsplit('-', 1)[0]) for e, m in zip(entries, moments)}
+            stamp = lambda e: stamps[id(e)]
             newest = max(stamp(e) for e in entries)
             tied = [e[0] for e in entries if stamp(e) == newest]
             if len(tied) == 1:
@@ -356,14 +386,17 @@ def comparisons(folders, standing=None):
                 key = (candidate, str(row.get('comparison')))
                 counts.setdefault(key, dict.fromkeys(OUTCOMES, 0))[row['outcome']] += 1
                 seen.setdefault(str(row.get('comparison')), dict.fromkeys(OUTCOMES, 0))[row['outcome']] += 1
-            nonzero = lambda counts: {c: {o: n for o, n in by.items() if n} for c, by in (counts or {}).items()}
-            if summary is not None and nonzero(summary.get('summary')) != nonzero(seen):
+            nonzero = lambda counts: ({c: {o: n for o, n in by.items() if n} for c, by in counts.items()}
+                                      if isinstance(counts, dict) and all(isinstance(by, dict) for by in counts.values()) else None)
+            if summary is not None and nonzero(summary.get('summary')) is None:
+                notes.append(f'{path.name}: its summary line is not of the form the tool writes; the rows are counted')
+            elif summary is not None and nonzero(summary.get('summary')) != nonzero(seen):
                 notes.append(f'{path.name}: its summary line differs from its rows; the rows are counted')
             if summary is not None and summary.get('unrecognised'):
                 notes.append(f"{path.name}: {summary['unrecognised']} rows name a value the tool did not recognise "
                              '(counted under their own outcome; none passes)')
     for (candidate, comparison), by in sorted(counts.items()):
-        lines.append(f'| {candidate} | {comparison} | ' + ' | '.join(str(by[o]) for o in OUTCOMES) + ' |')
+        lines.append(f'| {cell(candidate)} | {cell(comparison)} | ' + ' | '.join(str(by[o]) for o in OUTCOMES) + ' |')
     for sentence in sorted(withheld):
         # The tool's own words; a row of W1 is blocked, and passes of the other comparisons do not make up for it.
         notes.insert(0, f'W1, the workflow comparison: "{sentence}". It is counted only as blocked. C2, C3 and C4 passing '
@@ -380,15 +413,15 @@ def driver(entries):
         report = json.loads((Path(folder) / 'report.json').read_text())
         scenario = Path(folder) / 'scenario-report.json'
         walked = json.loads(scenario.read_text()) if scenario.exists() else {}
-        shown = '; '.join(f'{name}: {state}' for name, state in (walked.get('outcomes') or {}).items()) or '—'
-        lines.append(f"| {run} | {head[:12]} | {walked.get('scenario', '—')} (v{walked.get('version', '?')}) | "
-                     f"{walked.get('verdict', '—')} | {report.get('result', '—')} | {shown} |")
+        outcomes = '; '.join(f'{name}: {state}' for name, state in (walked.get('outcomes') or {}).items()) or '—'
+        lines.append(f"| {cell(run)} | {cell(head[:12])} | {cell(walked.get('scenario', '—'))} (v{cell(walked.get('version', '?'))}) | "
+                     f"{cell(walked.get('verdict', '—'))} | {cell(report.get('result', '—'))} | {cell(outcomes)} |")
         setup = Path(folder) / 'setup-report.json'
         if setup.exists():
             s = json.loads(setup.read_text())
             launches = '; '.join(f"{l['id']}: {l['verdict']}" for l in s.get('launches', []))
-            lines.append(f"| {run} | {head[:12]} | {s.get('scenario', '—')} (v{s.get('version', '?')}) | {s.get('verdict', '—')} | "
-                         f"{report.get('result', '—')} | {launches} |")
+            lines.append(f"| {cell(run)} | {cell(head[:12])} | {cell(s.get('scenario', '—'))} (v{cell(s.get('version', '?'))}) | {cell(s.get('verdict', '—'))} | "
+                         f"{cell(report.get('result', '—'))} | {cell(launches)} |")
     return lines
 
 
@@ -404,8 +437,9 @@ def main(argv=None):
     parser.add_argument('--comparison-standing', help='a sentence printed at the head of the comparison section, for the '
                         'comparison tool\'s own standing (for example, a reading still out)')
     args = parser.parse_args(argv)
-    print('\n'.join(table(args.repo, args.results, args.release, args.candidate) + (driver(args.driver) if args.driver else [])
-                    + (comparisons(args.comparisons, args.comparison_standing) if args.comparisons else [])))
+    lines = (table(args.repo, args.results, args.release, args.candidate) + (driver(args.driver) if args.driver else [])
+             + (comparisons(args.comparisons, args.comparison_standing) if args.comparisons else []))
+    print('\n'.join(shown(line) for line in lines))
     return 0
 
 

@@ -350,6 +350,77 @@ class TheSecondReading(Fixture):
         self.assertIn(f"{self.root / 'absent'}: not a folder that can be read; nothing from it is counted", text)
 
 
+class TheThirdReading(Fixture):
+    """The second reading of the smaller claim found five more ways its inputs could defeat it; each is repaired here
+    with the reader's own input."""
+
+    def row(self, text, step):
+        return [line for line in text.splitlines() if f'| {step} |' in line]
+
+    def test_a_nul_in_a_citation_path_is_listed_and_the_table_prints(self):
+        results = self.results({'step': 'A-1', 'candidate': 'c', 'date': '2026-11-14', 'outcome': 'passed',
+                                'cites': [{'file': 'bad\u0000name', 'sha256': 'x', 'rows': [1]}]})
+        text = self.printed('--repo', str(self.repo()), '--results', str(results), '--candidate', 'c')
+        self.assertIn('1 passed', text)
+        self.assertIn('not a path that can be read (ValueError)', text)
+
+    def test_a_line_break_in_any_field_makes_no_row_of_its_own(self):
+        results = self.results({'step': 'A-1', 'candidate': 'c', 'date': '2026-11-14', 'outcome': 'failed',
+                                'operated_by': 'invented reader\n| S-A | A-2 | yes | passed | 2026-11-14 | invented reader |'})
+        text = self.printed('--repo', str(self.repo()), '--results', str(results), '--candidate', 'c')
+        self.assertEqual(len(self.row(text, 'A-2')), 1)
+        self.assertIn('not run (no record)', self.row(text, 'A-2')[0])
+        self.assertIn('invented reader\\n\\| S-A \\| A-2', self.row(text, 'A-1')[0])
+        for line in text.splitlines():
+            self.assertFalse(any(ch in line for ch in '\u2028\u2029\r'))
+
+    def test_every_cited_row_is_listed(self):
+        results = self.results()
+        rows = results / 'rows.jsonl'
+        rows.write_text(''.join(json.dumps({'comparison': 'C2', 'outcome': 'passed' if n < 50 else 'failed'}) + '\n' for n in range(51)))
+        self.results({'step': 'A-1', 'candidate': 'c', 'date': '2026-11-14', 'outcome': 'passed',
+                      'cites': [{'file': 'rows.jsonl', 'sha256': 'x', 'rows': list(range(1, 52))}]})
+        text = self.printed('--repo', str(self.repo()), '--results', str(results), '--candidate', 'c')
+        self.assertIn('row 51: failed', text)
+
+    def test_times_are_compared_to_the_precision_written_and_far_dates_do_not_stop_the_print(self):
+        results = self.results(
+            {'step': 'A-1', 'candidate': 'c', 'date': '2026-11-14T10:00:00.0000001Z', 'outcome': 'passed'},
+            {'step': 'A-1', 'candidate': 'c', 'date': '2026-11-14T10:00:00.0000002Z', 'outcome': 'failed'},
+            {'step': 'A-2', 'candidate': 'c', 'date': '0001-01-01T00:00:00+01:00', 'outcome': 'passed'})
+        text = self.printed('--repo', str(self.repo()), '--results', str(results), '--candidate', 'c')
+        self.assertIn('| failed | 2026-11-14T10:00:00.0000002Z |', self.row(text, 'A-1')[0])
+        self.assertIn('| passed | 0001-01-01T00:00:00+01:00 |', self.row(text, 'A-2')[0])
+        self.assertIn('1 passed, 1 failed', text)
+
+    def test_written_at_is_compared_as_an_instant_so_a_refused_run_replaces_earlier_answers(self):
+        head = {'header': True, 'candidate_key': 'k1', 'answers_of': 'screen-list-x.jsonl'}
+        folder = self.rows('session-comparison-20261114T080000Z-aaaaaaaa.jsonl',
+                           [dict(head, written_at='2026-11-14T08:00:00Z'), {'comparison': 'C2', 'outcome': 'passed'}])
+        self.rows('session-comparison-20261114T080000Z-bbbbbbbb.jsonl',
+                  [{'header': True, 'candidate_key': None, 'fallback': True, 'answers_of': 'screen-list-x.jsonl',
+                    'written_at': '2026-11-14T08:00:00.900000Z'}, {'comparison': 'C2', 'outcome': 'blocked'}], folder)
+        section = self.printed('--repo', str(self.repo()), '--candidate', 'c', '--comparisons', str(folder))
+        self.assertNotIn('| k1 |', section)
+        self.assertIn('session-comparison-20261114T080000Z-aaaaaaaa.jsonl: replaced by session-comparison-20261114T080000Z-bbbbbbbb.jsonl', section)
+
+    def test_a_summary_of_another_form_and_launch_records_that_disagree_or_name_none_do_not_count_or_stop(self):
+        folder = self.rows('session-comparison-20261114T080000Z-aaaaaaaa.jsonl', [
+            {'header': True, 'candidate_key': 'c', 'answers_of': 'screen-list-x.jsonl', 'written_at': 7},
+            {'comparison': 'C2', 'outcome': 'passed'}, {'summary': {'C2': 5}}])
+        text = self.printed('--repo', str(self.repo()), '--candidate', 'c', '--comparisons', str(folder))
+        self.assertIn('| c | C2 | 1 | 0 | 0 | 0 | 0 |', text)
+        self.assertIn('its summary line is not of the form the tool writes; the rows are counted', text)
+        for name, launch in (('fields that disagree', {'candidate_key': 'c', 'identifier': 'dev.chirality.app-v4.candidate.c',
+                                                         'bundle': {'identifier': 'dev.chirality.app-v4.candidate.other'}}),
+                             ('no identity', {})):
+            with self.subTest(name):
+                (folder / 'launch-record-0.json').write_text(json.dumps(launch))
+                text = self.printed('--repo', str(self.repo()), '--candidate', 'c', '--comparisons', str(folder))
+                self.assertNotIn('| c | C2 |', text)
+                self.assertIn("none of this folder's rows is counted", text)
+
+
 class Comparisons(Fixture):
     def section(self, folder):
         text = self.printed('--repo', str(self.repo()), '--candidate', 'c', '--comparisons', str(folder))
