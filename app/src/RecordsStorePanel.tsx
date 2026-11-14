@@ -1,3 +1,4 @@
+import { idWords } from "./AgentText";
 import { useRef, useState } from "react";
 import { REFRESH_FAILED } from "./statusRefresh";
 
@@ -269,7 +270,7 @@ export function RecordsStoreView({ store, chain, outcome = null, heads = null, b
       </p>}
       {(retention?.disposition === "disposal incomplete" || retention?.disposition === "completion durability uncertain") && <p role="alert">Disposal or completion publication is unconfirmed and recording is blocked. {retention.legalHold ? <small>Legal hold blocks further disposal.</small> : packageBlocked ? null : attachment?.projectId && !attachment?.refusal ? <button disabled={busy} onClick={()=>act("records_store_retention",{action:"resume-disposal"})}>Finish disposal</button> : <small>The disposal can be finished once this folder is attached to its records again; restore the project file first.</small>}</p>}
       {project.notImported > 0 && kept && !retention.closed && !packageBlocked && <p>
-        <button disabled={busy} onClick={() => act("records_store_import")}>Import {String(project.notImported)} record file(s){project.notImportedKinds ? ` (${String(project.notImportedKinds)})` : ""}</button>{" "}
+        <button disabled={busy} onClick={() => act("records_store_import")}>Import {idWords(project.notImported)} record file(s){project.notImportedKinds ? ` (${String(project.notImportedKinds)})` : ""}</button>{" "}
         <small>{String(project.importStanding ?? "")}</small>
       </p>}
       {attachment?.projectId && !attachment?.refusal && project.reading === "records store" && <LogIntegrity chain={chain} heads={heads} busy={busy} act={act}/>}

@@ -1,3 +1,4 @@
+import {  } from "./AgentText";
 import type { CSSProperties } from "react";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -37,9 +38,9 @@ const MARKED = /[\p{C}\p{Zl}\p{Zp}]/u;
 const SPECIAL = /(\r?\n|\t|[\p{C}\p{Zl}\p{Zp}])/u;
 
 /** A Codex-supplied identifier (a thread's, for example) that may stand in the App's own words or in a
- * control: letters, digits and . _ : - only, at most 128 characters. Anything else is shown beside, as
+ * control: letters, digits and . _ : / - only, at most 128 characters. Anything else is shown beside, as
  * text the App did not write. */
-export const PLAIN_ID = /^[A-Za-z0-9._:-]{1,128}$/;
+export const PLAIN_ID = /^[A-Za-z0-9._:\/-]{1,128}$/;
 export const plainId = (value: unknown): string | null => typeof value === "string" && PLAIN_ID.test(value) ? value : null;
 /** A Codex-supplied identifier or enum in a control's own words, which cannot hold a box: as written when it is a
  * plain identifier, else the App's words for one that is not (the value itself is then shown beside, boxed). */

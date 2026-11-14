@@ -227,7 +227,7 @@ export function ChildAssociations({ associations }: { associations: Json }) {
   return <section aria-label="Observed native child associations">
     <p><b>Observed native children</b></p>
     {rows.map((row, i) => <details key={i}>
-      <summary>Child {text(row.native?.threadId)} · parent {text(row.native?.parentThreadId)} · {row.guidance?.standing === "app-observed-child-supply" ? `original ${text(row.guidance.role)} guidance observed` : "guidance unknown"}</summary>
+      <summary>Child {idWords(row.native?.threadId)} · parent {idWords(row.native?.parentThreadId)} · {row.guidance?.standing === "app-observed-child-supply" ? `original ${idWords(row.guidance.role)} guidance observed` : "guidance unknown"}</summary>
       <ChildGuidance guidance={row.guidance ?? { standing: "unknown" }} />
       <details><summary>Native child event</summary><RecordedData value={row.native} /></details>
     </details>)}
@@ -296,15 +296,15 @@ export function RoleSupplyHistory({ view }: { view: Json }) {
     <p><b>Quoted App role-supply history</b>. {text(view.standing)}</p>
     {list(view.limits).map((limit, i) => <p role="alert" key={i}>{text(limit)}</p>)}
     {list(view.observations).map((observation, i) => <details key={i}>
-      <summary>{text(observation.record?.trigger)} · {text(observation.record?.outcome)} · {text(observation.record?.supplyId)}</summary>
+      <summary>{idWords(observation.record?.trigger)} · {idWords(observation.record?.outcome)} · {idWords(observation.record?.supplyId)}</summary>
       <RecordedData value={observation.record} />
       {list(observation.limits).map((limit, j) => <p role="alert" key={j}>{text(limit)}</p>)}
       {observation.sourceBytes ? <details><summary>Recorded App instruction bytes (quoted evidence)</summary>
         <AgentText block value={text(observation.sourceBytes.composed)} source="record" exactLineEnds />
-        {list(observation.sourceBytes.parts).map((part, j) => <details key={j}><summary>{text(part.source?.path)} · {text(part.kind)}</summary><AgentText block value={text(part.text)} source="record" exactLineEnds /></details>)}
-        {list(observation.sourceBytes.nativeChildren).map((child, j) => <details key={`child:${j}`}><summary>Recorded {text(child.role)} child instruction bytes (quoted evidence)</summary>
+        {list(observation.sourceBytes.parts).map((part, j) => <details key={j}><summary>{idWords(part.source?.path)} · {idWords(part.kind)}</summary><AgentText block value={text(part.text)} source="record" exactLineEnds /></details>)}
+        {list(observation.sourceBytes.nativeChildren).map((child, j) => <details key={`child:${j}`}><summary>Recorded {idWords(child.role)} child instruction bytes (quoted evidence)</summary>
           <AgentText block value={text(child.composed)} source="record" exactLineEnds />
-          {list(child.parts).map((part, k) => <details key={k}><summary>{text(part.source?.path)} · {text(part.kind)}</summary><AgentText block value={text(part.text)} source="record" exactLineEnds /></details>)}
+          {list(child.parts).map((part, k) => <details key={k}><summary>{idWords(part.source?.path)} · {idWords(part.kind)}</summary><AgentText block value={text(part.text)} source="record" exactLineEnds /></details>)}
           <details><summary>Recorded child configuration file bytes</summary><AgentText block value={text(child.envelope)} source="record" exactLineEnds /></details>
           <details><summary>Recorded child limit account</summary><RecordedData value={child.limitAccount} /></details>
         </details>)}
@@ -351,13 +351,13 @@ export function RoleHeader({ thread, limits, busy, ready, continueAs, fork, fork
     {(relation?.kind === "inherited-fork" || thread?.forkedFrom) && <p><small>Fork of conversation {text(relation?.sourceThread ?? thread?.forkedFrom?.threadId)} (same role): the App sent the fork no instructions of its own.</small></p>}
     <SuppliedLimits supplied={thread?.suppliedLimitAccount} childAccountHeld={thread?.childGuidance?.standing === "app-observed-child-supply"} />
     {changed.length > 0 && <p role="status"><b>Guidance changed since this conversation started</b>: {changed.map((n: Json) => `${text(n.path)} (${n.kind === "missing" ? "missing now" : "edited"})`).join(", ")}. Nothing was sent to this conversation; it keeps the guidance it started with. New conversations use the current guidance.{" "}
-      {own !== undefined && <button disabled={busy || !ready} onClick={() => continueAs(own)}>Continue as {own ?? "no role"}…</button>}</p>}
+      {own !== undefined && <button disabled={busy || !ready} onClick={() => continueAs(own)}>Continue as {own ? idWords(own) : "no role"}…</button>}</p>}
     {notRead.length > 0 && <p><small>Current guidance could not be read ({notRead.map((n: Json) => text(n.path)).join(", ")}), so it was not compared.</small></p>}
     <p>
       <label>Continue as <select value={target} disabled={busy} onChange={e => setTarget(e.target.value)}>
         {CONVERSATION_ROLES.map(r => <option key={r} value={r}>{meaningOf(r) ? `${r}: ${meaningOf(r)}` : r}</option>)}<option value="">No role: product guidance only</option>
       </select></label>{" "}
-      <button disabled={busy || !ready} onClick={() => continueAs(target === "" ? null : target)}>Continue as {target || "no role"}…</button>{" "}
+      <button disabled={busy || !ready} onClick={() => continueAs(target === "" ? null : target)}>Continue as {target ? idWords(target) : "no role"}…</button>{" "}
       <button disabled={busy || !ready || !!forkUnavailable} onClick={fork}>Fork (same role)</button>
     </p>
     {ROLE_PLAIN_MEANING[target] && <p><small>{target}: {ROLE_PLAIN_MEANING[target]}</small></p>}
@@ -544,7 +544,7 @@ export function ContinueAsPanel({ handoff, entries, homeClass, generation, busy,
     {!started && <div>
       <p>The new conversation starts with no model selected; choose how it connects and its model.</p>
       <ConnectionAndModel homeClass={homeClass ?? null} chooser={chooser} entries={entries} disabled={busy || !ready} local={local} />
-      <p><button disabled={busy || !ready || startHeld || !choice.model.trim() || !choice.modelProvider.trim() || !choice.entryId} onClick={startChosen}>Start new conversation as {target}</button>{" "}
+      <p><button disabled={busy || !ready || startHeld || !choice.model.trim() || !choice.modelProvider.trim() || !choice.entryId} onClick={startChosen}>Start new conversation as {idWords(target)}</button>{" "}
         <button disabled={busy} onClick={dismiss}>Close without starting</button></p>
       {(!choice.model.trim() || !choice.modelProvider.trim()) && <p><small>Not started — no model selected.</small></p>}
       {startRefusal && <p role="alert">{startRefusal}</p>}

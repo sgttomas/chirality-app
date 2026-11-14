@@ -131,7 +131,7 @@ function DraftTrials({ draft, chosen, host, canAct, perform, openPreparedMessage
       const existingBlock = existing ? bringBackSendBlock(existing.pending, existing.pending?.target, doubts) : null;
       const limit = held ? "Check that conversation first." : trial.live ? "Bringing it back waits until no turn is live in the trial."
         : trial.sourceLimit ? COLD_TRIAL : !chosen ? "Choose the conversation where you did the work to bring it back there." : null;
-      return <li key={text(trial.reference)} aria-label={`Trial ${n} of ${text(draft.name)}`}>
+      return <li key={text(trial.reference)} aria-label={`Trial ${n} of ${safeName(draft.name)}`}>
         <strong>Trial {n}</strong> · {trial.kind === "clean"
           ? <>in a fresh conversation (<ConversationRef host={host} refValue={trial.trialConversation} none="not started" findInHistory={findInHistory}/>)</>
           : <>with the agent in <ConversationRef host={host} refValue={trial.authoringConversation} none="no recorded conversation" findInHistory={findInHistory}/></>}{trial.time ? <> · {text(trial.time)}</> : null}

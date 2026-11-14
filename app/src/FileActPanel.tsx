@@ -1,4 +1,4 @@
-import { AgentText, RecordedData } from "./AgentText";
+import { AgentText, RecordedData, idWords } from "./AgentText";
 import { useImperativeHandle, useRef, useState, type Ref } from "react";
 type Json = any;
 const list = (value: Json): Json[] => Array.isArray(value) ? value : [];
@@ -136,7 +136,7 @@ export function FileActPanel({ command, controlRef, onBusyChange }: {
       <h3>Retained frozen offers</h3>
       <p>Showing an original offer does not recapture an act or change its context.</p>
       {Object.values(previews).filter(original => original.reference !== preview?.reference).map(original => <p key={original.reference}>
-        <button disabled={busy} onClick={() => { setPreview(original); setSelectionStatus(null); setError(""); }}>Show original offer {original.reference}</button>{" "}
+        <button disabled={busy} onClick={() => { setPreview(original); setSelectionStatus(null); setError(""); }}>Show original offer {idWords(original.reference)}</button>{" "}
         {outcomes[original.reference]?.state ?? "no native attempt made"}
       </p>)}
     </div>}
