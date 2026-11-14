@@ -540,17 +540,35 @@ fn placement_problems_in(root: &Path, project: Option<&Path>, codex_homes: &[Pat
     if let Some(home) = std::env::var_os("HOME") {
         inside(&PathBuf::from(home).join(".codex"), "the Codex home");
     }
-    // DEL-01-01: decided by the identity of what exists (the folder set aside is made to exist
-    // first), so that no spelling the file system would resolve into these folders passes.
+    // DEL-01-01: decided against the established App data folder and folder set aside, by the
+    // identity of what exists, so that no spelling the file system would resolve into them
+    // passes. Placement creates nothing: the start establishes them first. Not established
+    // (absent, something else in the folder's place, or not examinable), nothing can be decided,
+    // and the store is refused.
     if let Some(data) = app_data {
-        let set_aside = crate::desktop_startup::no_project_folder(data);
-        if crate::working_folder::may_be_in_no_project_folder(data, root) {
-            problems.push(format!("{} overlaps the folder set aside for conversations without a project {}, or its place relative to it cannot be established", root.display(), set_aside.display()));
+        match crate::working_folder::established(data) {
+            Ok(set) => match set.overlaps_leaf(root) {
+                Ok(false) => {}
+                Ok(true) => problems.push(format!("{} overlaps the folder set aside for conversations without a project {}", root.display(), set.leaf().display())),
+                Err(()) => problems.push(format!("the place of {} relative to the folder set aside for conversations without a project {} cannot be established", root.display(), set.leaf().display())),
+            },
+            // Established absent (not yet made): a store established by identity to lie outside
+            // the App data folder needs nothing here. Anything else (a failed lookup, or something
+            // else in the folder's place, which may lead anywhere) refuses.
+            // The App's own default store is a fixed name beside the folder set aside's own fixed
+            // name in the same folder: neither can be another spelling of the other.
+            Err(crate::working_folder::Blocked::AppDataAbsent(_) | crate::working_folder::Blocked::LeafAbsent(_)) if root == data.join("records") => {}
+            Err(blocked @ (crate::working_folder::Blocked::AppDataAbsent(_) | crate::working_folder::Blocked::LeafAbsent(_))) => if crate::working_folder::may_be_in_app_data(data, root) != Ok(false) {
+                problems.push(format!("{} cannot be placed yet: {}", root.display(), blocked.sentence()));
+            },
+            Err(blocked) => problems.push(format!("{} cannot be placed: {}", root.display(), blocked.sentence())),
         }
     }
     for folder in working_folders {
-        if crate::working_folder::may_overlap(root, folder) {
-            problems.push(format!("{} overlaps the working folder Codex is given {}, or its place relative to it cannot be established", root.display(), folder.display()));
+        match crate::working_folder::may_overlap(root, folder) {
+            Ok(false) => {}
+            Ok(true) => problems.push(format!("{} overlaps the working folder Codex is given {}", root.display(), folder.display())),
+            Err(()) => problems.push(format!("the place of {} relative to the working folder Codex is given {} cannot be established", root.display(), folder.display())),
         }
     }
     if !allow_temporary && is_temporary(root) {

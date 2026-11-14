@@ -2424,7 +2424,7 @@ export function App() {
   // First use: while the launch needs setup, a focused welcome replaces the
   // workspace, whose controls cannot work yet. Everything stays mounted.
   // App data held by another process shows the same focused surface, with its reason.
-  const setupRequired = ["setup-required", "data-held", "home-held"].includes(host?.desktopSetup?.launch?.state);
+  const setupRequired = ["setup-required", "data-held", "home-held", "set-aside-occupied"].includes(host?.desktopSetup?.launch?.state);
   return (<DailyWorkspace>
         {setupRequired && <FirstUseSetup view={host.desktopSetup}/>}
         <div hidden={setupRequired}>

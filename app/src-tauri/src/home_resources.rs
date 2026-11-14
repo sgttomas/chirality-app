@@ -117,7 +117,8 @@ pub enum HomeBinding<'a> {
 impl<'a> HomeBinding<'a> {
     fn check(self) -> Result<(), String> {
         match self {
-            Self::Owned(plan) => plan.check_owned_directory(),
+            // A revalidation creates nothing; preparing and starting check again strictly.
+            Self::Owned(plan) => plan.check_planned(),
             Self::Existing(reference) => reference.check(),
         }
     }
@@ -228,7 +229,7 @@ impl OwnedHomePlan {
             class,
             shared,
         };
-        plan.check_owned_directory()?;
+        plan.check_planned()?;
         Ok(plan)
     }
     pub fn native_path(&self) -> &Path {
@@ -241,15 +242,25 @@ impl OwnedHomePlan {
     pub fn opaque_home_id(&self) -> String {
         path_home_id(&self.home_path)
     }
+    /// Before anything is created, written or started on the home: the App data folder and the
+    /// folder set aside must be established.
     fn check_owned_directory(&self) -> Result<(), String> {
+        self.check_owned(true)
+    }
+    /// A plan or an inspection, which creates nothing.
+    fn check_planned(&self) -> Result<(), String> {
+        self.check_owned(false)
+    }
+    fn check_owned(&self, creating: bool) -> Result<(), String> {
         storage::check_path(&self.home_path)?;
         // DEL-01-01: no owned home is planned, inspected or prepared in the folder set aside for
-        // conversations without a project, nor a source of its settings there. Run when the plan
-        // is made and again before each step that creates anything.
-        crate::working_folder::refuse_in_no_project_folder(&self.app_data_root, &self.home_path, "a Codex home")?;
+        // conversations without a project, nor a source of its settings there. A plan made before
+        // the App data folder exists decides nothing and is checked again, by identity, before
+        // anything is created.
+        crate::working_folder::refuse_in_no_project_folder(&self.app_data_root, &self.home_path, "a Codex home", creating)?;
         if let Some(s) = &self.shared {
             for p in [&s.config_toml, &s.global_agents_md, &s.skills] {
-                crate::working_folder::refuse_source_in_no_project_folder(&self.app_data_root, p, "a source of Codex settings")?;
+                crate::working_folder::refuse_source_in_no_project_folder(&self.app_data_root, p, "a source of Codex settings", creating)?;
             }
         }
         if !self.home_path.starts_with(&self.app_data_root) {
@@ -352,7 +363,7 @@ impl OwnedHomePlan {
         out
     }
     pub fn inspect(&self) -> Result<HomeObservation, String> {
-        self.check_owned_directory()?;
+        self.check_planned()?;
         Ok(HomeObservation {
             class: self.class,
             native_path: self.home_path.clone(),

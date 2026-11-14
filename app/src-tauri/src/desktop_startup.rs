@@ -166,7 +166,9 @@ pub(crate) fn desktop_account_homes(app_data: &Path) -> PathBuf {
     app_data.join("account-homes")
 }
 
-pub(crate) use crate::working_folder::{ensure_no_project_folder, no_project_folder, refuse_in_no_project_folder, valid_no_project_folder, working_folder_place, working_folder_refusal, WorkingFolder};
+pub(crate) use crate::working_folder::{establish, established, no_project_folder, AdmittedProject, Blocked, WorkingFolder};
+/// The start of what the person is told when something else is where the folder set aside belongs.
+pub(crate) const SET_ASIDE_OCCUPIED: &str = "Chirality keeps a folder for conversations without a project at";
 use crate::working_folder::protected_directory;
 
 fn clean(path: &Path) -> Result<(), String> {
@@ -614,7 +616,8 @@ fn write_profile(path: &Path, requested: &RequestedInputs) -> Result<(), String>
 }
 
 pub(crate) struct Launch {
-    pub workspace: Option<PathBuf>,
+    /// The project, only as admitted against the established App data folder.
+    pub workspace: Option<AdmittedProject>,
     pub host_config: Result<HostConfig, String>,
     pub key_path: Option<PathBuf>,
     pub shared_paths: [Option<PathBuf>; 3],
@@ -631,7 +634,7 @@ pub(crate) struct RootInputs {
 }
 impl Launch {
     pub fn environment(
-        workspace: Option<PathBuf>,
+        workspace: Option<AdmittedProject>,
         host_config: Result<HostConfig, String>,
         key_path: Option<PathBuf>,
         shared_paths: [Option<PathBuf>; 3],
@@ -845,7 +848,10 @@ impl DesktopSetup {
                     self.launch_state = json!({"state":"data-held","reason":DATA_HELD});
                     return Launch::data_held();
                 }
-                self.launch_state = json!({"state": if home_held(&reason) { "home-held" } else { "setup-required" }, "reason": reason});
+                // DEL-01-01: something else where the folder set aside belongs is the person's to
+                // move; setup is not what is needed, so it is shown as its own state.
+                let state = if home_held(&reason) { "home-held" } else if reason.starts_with(SET_ASIDE_OCCUPIED) { "set-aside-occupied" } else { "setup-required" };
+                self.launch_state = json!({"state": state, "reason": reason});
                 Launch::setup(reason)
             }
         }
@@ -856,15 +862,18 @@ impl DesktopSetup {
     pub(crate) fn refuse_environment(&mut self, reason: &str) -> RootInputs {
         self.admitted = None;
         let refused = data_held(reason);
+        let occupied = reason.starts_with(SET_ASIDE_OCCUPIED);
         let reason = if refused {
             DATA_HELD.to_string()
+        } else if occupied {
+            reason.to_string()
         } else {
             format!("App data could not be resolved and held, so nothing was started: {reason}")
         };
         self.launch_state = if refused {
             json!({"state":"data-held","reason":DATA_HELD,"operationalData":"not admitted; nothing operational started"})
         } else {
-            json!({"state":"environment","reason":reason,"operationalData":"not admitted"})
+            json!({"state": if occupied { "set-aside-occupied" } else { "environment" },"reason":reason,"operationalData":"not admitted"})
         };
         RootInputs {
             launch: if refused {
@@ -1021,6 +1030,9 @@ impl DesktopSetup {
             return Err("No explicit desktop request saved".into());
         }
         self.acquire()?;
+        // DEL-01-01: App data is held; the folder set aside is established before anything is
+        // placed against it (the request's project and homes below).
+        let established = establish(&data).map_err(|blocked| blocked.sentence())?;
         let (bytes, baseline) = read_profile_bytes(&data.join(PROFILE))?;
         let mut requested: RequestedInputs = serde_json::from_slice(&bytes)
             .map_err(|e| format!("desktop request is incomplete or invalid: {e}"))?;
@@ -1029,6 +1041,8 @@ impl DesktopSetup {
             request: requested.clone(),
         });
         let (account, shared, workspace) = self.validate(&requested)?;
+        // The only form in which this launch carries its project forward.
+        let workspace = workspace.map(|project| established.admit_project(&project)).transpose()?;
         // A reference explicitly absent at setup can become available (CL-6).
         // Freeze its actual object for this launch's later source checks; this
         // observation is not persisted as a new request or admission receipt.
@@ -1056,8 +1070,8 @@ impl DesktopSetup {
         // set aside for conversations without a project, never the App data
         // folder itself.
         let cwd = match &workspace {
-            Some(project) => project.clone(),
-            None => ensure_no_project_folder(&data)?,
+            Some(project) => project.to_path_buf(),
+            None => established.leaf().to_path_buf(),
         };
         let mut config = if !is_dev && cfg!(feature = "distribution-successor") {
             // A desktop development selection cannot weaken a compiled
@@ -1666,6 +1680,9 @@ impl DesktopSetup {
             return Ok(self.view());
         }
         self.acquire()?;
+        // DEL-01-01: App data is held; the folder set aside is established before the planned
+        // home is checked again and anything is created.
+        establish(self.data.as_ref().map_err(Clone::clone)?).map_err(|blocked| blocked.sentence())?;
         self.recheck_storage()?;
         for reference in &preview.source_refs {
             reference.current(false)?;
@@ -4660,7 +4677,7 @@ mod tests {
         } = fresh.admit_root(launch, Ok(f.data.clone()));
         assert!(allow_operational);
         assert_eq!(launch.shared_paths[0].as_ref(), Some(&f.shared[0]));
-        assert_eq!(launch.workspace.as_ref(), Some(&f.project));
+        assert_eq!(launch.workspace.as_deref(), Some(f.project.as_path()));
         let (state, home) =
             crate::freeze_startup_state(launch, Arc::new(Mutex::new(fresh)), Value::Null);
         crate::initialize_startup_consumers(
@@ -5644,6 +5661,8 @@ mod tests {
     #[test]
     fn an_absolute_environment_home_is_admitted_as_before() {
         let f = Fixture::new();
+        // The start establishes the folder set aside before this route's inputs are read.
+        ensure_no_project_folder(&f.data).unwrap();
         let home = f.root.join("environment-home");
         let probe = f.root.join("probe-home");
         let input = |key: &str| -> Option<std::ffi::OsString> {
@@ -5665,6 +5684,8 @@ mod tests {
     #[test]
     fn the_release_environment_route_refuses_a_relative_or_empty_home_and_admits_an_absolute_one() {
         let f = Fixture::new();
+        // The start establishes the folder set aside before this route's inputs are read.
+        ensure_no_project_folder(&f.data).unwrap();
         for (value, expected) in [
             (std::ffi::OsString::from("records"), "CHIRALITY_CODEX_HOME must be an absolute path without . or .. components"),
             (std::ffi::OsString::from(""), "CHIRALITY_CODEX_HOME is empty: it must be an absolute path without . or .. components"),
@@ -6910,7 +6931,7 @@ mod tests {
         let mut environment = f.setup();
         environment.resolve(
             Some(Launch::environment(
-                Some(f.project.clone()),
+                Some(establish(&f.data).unwrap().admit_project(&f.project).unwrap()),
                 Ok(HostConfig::new(
                     f.resources.join("codex/bin/codex"),
                     f.root.join("explicit-env-home"),
@@ -6970,10 +6991,24 @@ mod tests {
         first.admit_root(launch, Ok(fresh_use.data.clone()));
         let new_settings_preview = first.preview_new_settings(Some(fresh_use.project.clone())).unwrap();
         let new_settings_saved = first.prepare_and_save(new_settings_preview["token"].as_str().unwrap()).unwrap();
+        // DEL-01-01: something else where the folder set aside belongs, on review and at a later
+        // start, as the person is told.
+        let occupied = Fixture::new();
+        let mut setup = occupied.setup();
+        occupied.prepare(&mut setup, false);
+        drop(setup);
+        let leaf = no_project_folder(&occupied.data);
+        std::fs::remove_dir(&leaf).unwrap();
+        std::fs::write(&leaf, b"invented").unwrap();
+        let set_aside_review_refusal = occupied.setup().preview_new_settings(None).unwrap_err();
+        let mut later = occupied.setup();
+        let _ = occupied.resolve(&mut later);
+        let set_aside_occupied = later.view();
+        drop(later);
         let retained = json!({"initial":retain_initial,"preview":retain_preview,"saved":retain_saved,"conflict":conflict,"supersededError":superseded,"freshQ":q_view,"nonePreview":none_preview,"noneSaved":none_saved,"project":native_path_identity(&q),"currentProject":native_path_identity(&keep.project)});
         println!(
             "DESKTOP_SETUP_PACKETS={}",
-            json!({"dataHeld":data_held,"newSettings":{"preview":new_settings_preview,"saved":new_settings_saved,"project":native_path_identity(&fresh_use.project)},"retained":retained,"initial":initial,"preview":preview,"saved":saved,"busy":busy,"fresh":fresh_view,"resourceLimits":resource_limits,"environment":environment.view(),"inputs":{"shared":f.shared.each_ref().map(|p|native_path_identity(p)),"project":native_path_identity(&f.project)}})
+            json!({"setAsideOccupied":set_aside_occupied,"setAsideReviewRefusal":set_aside_review_refusal,"dataHeld":data_held,"newSettings":{"preview":new_settings_preview,"saved":new_settings_saved,"project":native_path_identity(&fresh_use.project)},"retained":retained,"initial":initial,"preview":preview,"saved":saved,"busy":busy,"fresh":fresh_view,"resourceLimits":resource_limits,"environment":environment.view(),"inputs":{"shared":f.shared.each_ref().map(|p|native_path_identity(p)),"project":native_path_identity(&f.project)}})
         );
     }
 
@@ -7106,6 +7141,14 @@ mod tests {
         assert_eq!(NativePath::new(&raw).path().unwrap(), raw);
     }
 
+    /// The start's establishing step, as a test needs it.
+    fn ensure_no_project_folder(data: &Path) -> Result<PathBuf, String> {
+        establish(data).map(|set| set.leaf().to_path_buf()).map_err(|blocked| blocked.sentence())
+    }
+    /// Where a folder lies; not established reads as "cannot be established".
+    fn working_folder_place(data: &Path, folder: &Path) -> WorkingFolder {
+        established(data).map(|set| set.place(folder)).unwrap_or(WorkingFolder::CannotEstablish)
+    }
     /// The App-data names that must never lie under the working folder Codex
     /// is given with no project open (DEL-01-01).
     const APP_DATA_NAMES: [&str; 12] = ["records", "account-homes", "shared-settings", "runtime", "instructions", "capture-seal", "desktop-startup", "codex-omlx", "native-child-roles", "installation.json", "records-store.json", "workflow-approval-policy.json"];
@@ -7156,6 +7199,7 @@ mod tests {
     fn no_project_environment_route_works_in_the_same_folder() {
         for is_dev in [true, false] {
             let f = Fixture::new();
+            ensure_no_project_folder(&f.data).unwrap();
             let home = f.root.join("environment-home");
             let variables = json!({"CHIRALITY_APP_DATA":f.data,"CHIRALITY_CODEX_BIN":"/invented/bin/codex","CHIRALITY_CODEX_HOME":home,"CHIRALITY_ALLOW_UNVERIFIED":"1"});
             let input = |key: &str| variables[key].as_str().map(std::ffi::OsString::from);
@@ -7169,9 +7213,9 @@ mod tests {
                 assert_eq!(inputs.launch.host_config.as_ref().unwrap().cwd, f.data.join("conversations-without-project"));
             }
         }
-        // No App data, no project: no working folder, so no configuration.
+        // Not established, no configuration.
         let input = |key: &str| match key { "CHIRALITY_CODEX_BIN" => Some("/invented/bin/codex".into()), "CHIRALITY_CODEX_HOME" => Some("/invented/home".into()), _ => None };
-        assert!(crate::host_config_from_inputs(None, Err(&"no data".to_string()), input, || Ok(PathBuf::from("/invented/probe"))).unwrap_err().contains("no working folder for a conversation without a project"));
+        assert_eq!(crate::host_config_from_inputs(None, Err("not established".to_string()), input, || Ok(PathBuf::from("/invented/probe"))).unwrap_err(), "not established");
     }
 
     /// T5: configuration continuation and the endpoint source accept the
@@ -7231,9 +7275,9 @@ mod tests {
             }
             let host = Arc::new(Host::new());
             let refused = host.start(&config(leaf.clone(), home.clone()), "test").unwrap_err();
-            assert!(refused.contains("not a private folder of its own"), "{case}: {refused}");
+            assert!(refused.contains(if case == "file" { "Something else is there now: a file." } else { "Something else is there now: a link to " }), "{case}: {refused}");
             assert_eq!(host.snapshot()["state"], "absent", "{case}");
-            assert!(host.snapshot()["lastStartRefusal"]["reason"].as_str().unwrap().contains("not a private folder of its own"));
+            assert!(host.snapshot()["lastStartRefusal"]["reason"].as_str().unwrap().contains("Move it aside (do not delete what a link points to) and start Chirality again."));
             // The saved route (its setup saved before the folder was replaced) refuses its launch.
             let mut fresh = f.setup();
             assert!(f.resolve(&mut fresh).host_config.is_err(), "{case}");
@@ -7268,14 +7312,15 @@ mod tests {
         assert_eq!(place(alias), WorkingFolder::NoProject);
         // `..` out of it lands in the App's data.
         assert_eq!(place(leaf.join("..").join("records")), WorkingFolder::AppData);
-        assert_eq!(place(leaf.join("..").join("missing-here")), WorkingFolder::Unresolved);
+        assert_eq!(place(leaf.join("..").join("missing-here")), WorkingFolder::AppData, "missing, in the App data folder");
         // A link inside it to a sibling is the sibling.
         std::os::unix::fs::symlink(&records, leaf.join("to-records")).unwrap();
         assert_eq!(place(leaf.join("to-records")), WorkingFolder::AppData);
-        // Unresolvable: never admitted on a spelling that starts with the folder's.
-        assert_eq!(place(leaf.join("gone")), WorkingFolder::Unresolved);
-        assert_eq!(place(leaf.join("to-records").join("gone")), WorkingFolder::Unresolved);
-        assert_eq!(place(PathBuf::from("relative")), WorkingFolder::Unresolved);
+        // Missing in the App data folder (the folder set aside included): never admitted.
+        assert_eq!(place(leaf.join("gone")), WorkingFolder::AppData);
+        assert_eq!(place(leaf.join("to-records").join("gone")), WorkingFolder::AppData);
+        assert_eq!(place(leaf.join("gone").join("..")), WorkingFolder::CannotEstablish, "a `..` after a missing part");
+        assert_eq!(place(PathBuf::from("relative")), WorkingFolder::CannotEstablish);
         // A name that merely starts with the folder's text is another folder of the App data.
         let lookalike = f.data.join("conversations-without-project-elsewhere");
         std::fs::create_dir(&lookalike).unwrap();
@@ -7307,7 +7352,8 @@ mod tests {
         std::fs::remove_file(&leaf).unwrap();
         std::fs::create_dir(&leaf).unwrap();
         std::fs::set_permissions(&leaf, std::fs::Permissions::from_mode(0o755)).unwrap();
-        assert_eq!(working_folder_place(&f.data, &leaf), WorkingFolder::AppData);
+        assert!(!matches!(working_folder_place(&f.data, &leaf), WorkingFolder::Outside | WorkingFolder::NoProject));
+        assert_eq!(established(&f.data).unwrap_err(), Blocked::Occupied(leaf.clone(), crate::working_folder::Occupant::SharedFolder));
     }
 
     /// DEL-01-01 (reader's control F5): a link in the existing part of a path whose target cannot
@@ -7316,6 +7362,8 @@ mod tests {
     #[test]
     fn a_dangling_link_never_establishes_a_folder_outside_the_app_data_folder() {
         let f = Fixture::new();
+        // The start establishes the folder set aside before this route's inputs are read.
+        ensure_no_project_folder(&f.data).unwrap();
         let alias = f.root.join("outside-alias");
         std::os::unix::fs::symlink(f.data.join("missing"), &alias).unwrap();
         for folder in [alias.clone(), alias.join("child")] {
@@ -7335,6 +7383,8 @@ mod tests {
     #[test]
     fn no_codex_home_is_planned_in_the_no_project_folder() {
         let f = Fixture::new();
+        // The start establishes the folder set aside before this route's inputs are read.
+        ensure_no_project_folder(&f.data).unwrap();
         let leaf = no_project_folder(&f.data);
         let account = f.root.join("environment-home");
         std::fs::create_dir(&account).unwrap();
@@ -7373,6 +7423,8 @@ mod tests {
     #[test]
     fn a_project_that_contains_the_app_data_folder_is_admitted_as_before() {
         let f = Fixture::new();
+        // The start establishes the folder set aside before this route's inputs are read.
+        ensure_no_project_folder(&f.data).unwrap();
         assert_eq!(working_folder_place(&f.data, &f.root), WorkingFolder::Outside);
         let mut cfg = HostConfig::new(f.root.join("never-run"), f.root.join("home"), f.root.join("probe"), f.root.clone());
         cfg.app_data = Some(f.data.clone());
@@ -7399,5 +7451,228 @@ mod tests {
         let input = |key: &str| variables[key].as_str().map(std::ffi::OsString::from);
         let env = crate::explicit_environment_launch(&input, &Ok(f.data.clone()), &Ok(f.resources.clone()), true, || f.probe()).unwrap();
         assert_eq!(env.workspace.as_deref(), Some(f.project.as_path()));
+    }
+
+
+    /// What a start leaves, followed through to its consumers: the launch as admitted, its state
+    /// as the person is shown it, and whether the folder set aside exists and what is in it.
+    struct Started { view: Value, config: Result<HostConfig, String>, workspace: Option<PathBuf>, leaf_entries: Option<Vec<PathBuf>> }
+    fn start_through_consumers(f: &Fixture, data: &Path, input: impl Fn(&str) -> Option<std::ffi::OsString>, is_dev: bool) -> Started {
+        let (desktop, inputs) = crate::admitted_startup(input, Ok(data.to_path_buf()), Ok(f.resources.clone()), is_dev, || f.probe());
+        let view = desktop.view();
+        let RootInputs { launch, data: admitted, allow_operational } = inputs;
+        let (key, shared, config) = (launch.key_path.clone(), launch.shared_paths.clone(), launch.host_config.clone());
+        let workspace = launch.workspace.clone().map(AdmittedProject::into_path);
+        let (state, home) = crate::freeze_startup_state(launch, Arc::new(Mutex::new(desktop)), Value::Null);
+        crate::initialize_startup_consumers(&state, &home, admitted, allow_operational, is_dev, Some(f.root.join("store")), key, shared);
+        drop((state, home));
+        let leaf = no_project_folder(&std::fs::canonicalize(data).unwrap_or_else(|_| data.to_path_buf()));
+        let leaf_entries = std::fs::read_dir(&leaf).ok().map(|entries| entries.map(|e| e.unwrap().path()).collect());
+        Started { view, config, workspace, leaf_entries }
+    }
+    fn environment(values: Value) -> impl Fn(&str) -> Option<std::ffi::OsString> {
+        move |key: &str| values[key].as_str().map(std::ffi::OsString::from)
+    }
+
+    /// DEL-01-01 (round 2, finding 1): an environment start refused early (a relative Codex
+    /// home) with the folder set aside named as its project carries no project, so start-up
+    /// writes nothing of the App's (a project's records link) into that folder.
+    #[test]
+    fn an_early_environment_refusal_carries_no_project_into_the_no_project_folder() {
+        let f = Fixture::new();
+        let data = f.root.join("new-data");
+        let leaf = no_project_folder(&data);
+        let started = start_through_consumers(&f, &data, environment(json!({"CHIRALITY_APP_DATA":data,"CHIRALITY_CODEX_BIN":"/invented/bin/codex","CHIRALITY_CODEX_HOME":"records","CHIRALITY_WORKSPACE":leaf,"CHIRALITY_ALLOW_UNVERIFIED":"1"})), true);
+        assert!(started.workspace.is_none(), "a refused start carries no project");
+        assert!(started.config.unwrap_err().contains("CHIRALITY_CODEX_HOME must be an absolute path"));
+        // Refused before the file system is read: the folder set aside is not even made, and nothing
+        // of the App's is anywhere in its place.
+        assert_eq!(started.leaf_entries, None, "nothing made where the folder set aside belongs");
+        assert!(std::fs::symlink_metadata(&leaf).is_err(), "nothing of the App's (a project's records link included) is there");
+    }
+
+    /// DEL-01-01 (round 2, finding 2): first use on the environment route, with no App data
+    /// folder yet and an existing project beside it: the project is admitted (App data is held
+    /// and the folder set aside established before it is placed).
+    #[test]
+    fn first_use_admits_an_unrelated_project_before_any_app_data_exists() {
+        let f = Fixture::new();
+        let data = f.root.join("new-data");
+        assert!(!data.exists());
+        let started = start_through_consumers(&f, &data, environment(json!({"CHIRALITY_APP_DATA":data,"CHIRALITY_CODEX_BIN":"/invented/bin/codex","CHIRALITY_CODEX_HOME":f.root.join("environment-home"),"CHIRALITY_WORKSPACE":f.project,"CHIRALITY_ALLOW_UNVERIFIED":"1"})), true);
+        assert_eq!(started.workspace.as_deref(), Some(f.project.as_path()));
+        assert_eq!(started.config.unwrap().cwd, f.project);
+        assert_eq!(started.leaf_entries, Some(vec![]));
+        // Read directly, before the start has established anything, the route places nothing.
+        let fresh = f.root.join("never-started");
+        let env = crate::explicit_environment_launch(environment(json!({"CHIRALITY_CODEX_BIN":"/invented/bin/codex","CHIRALITY_CODEX_HOME":f.root.join("environment-home"),"CHIRALITY_WORKSPACE":f.project})), &Ok(fresh.clone()), &Ok(f.resources.clone()), true, || f.probe()).unwrap();
+        assert!(env.workspace.is_none() && env.host_config.unwrap_err().contains("does not exist yet"));
+        assert!(!fresh.exists());
+    }
+
+    /// DEL-01-01 (round 2, finding 3): a home planned while the App data folder does not exist
+    /// decides nothing and creates nothing; prepared, it refuses before anything is created,
+    /// whatever its spelling, until the App data folder and the folder set aside are established.
+    #[test]
+    fn a_home_planned_before_app_data_exists_creates_nothing_until_established() {
+        let f = Fixture::new();
+        let data = f.root.join("new-data");
+        for home in [data.join("CONVERSATIONS-WITHOUT-PROJECT").join("home"), data.join("codex-omlx")] {
+            let plan = OwnedHomePlan::new(data.clone(), home.clone(), HomeClass::LocalProvider, None).unwrap();
+            assert!(plan.prepare().is_err(), "{home:?}");
+            assert!(!data.exists(), "{home:?}: nothing was created");
+        }
+        std::fs::create_dir(&data).unwrap();
+        std::fs::set_permissions(&data, std::fs::Permissions::from_mode(0o700)).unwrap();
+        establish(&data).unwrap();
+        let alias = OwnedHomePlan::new(data.clone(), data.join("CONVERSATIONS-WITHOUT-PROJECT").join("home"), HomeClass::LocalProvider, None);
+        assert!(alias.err().is_some_and(|e| e.contains("may not be in, or contain, the folder Chirality sets aside")));
+        let local = OwnedHomePlan::new(data.clone(), data.join("codex-omlx"), HomeClass::LocalProvider, None).unwrap();
+        local.prepare().unwrap();
+        assert_eq!(std::fs::read_dir(no_project_folder(&data)).unwrap().count(), 0);
+    }
+
+    /// DEL-01-01 (round 2, finding 5): something else where the folder set aside belongs is said
+    /// in plain words with its path, on the first-use review and as a later start's own state,
+    /// and is left where it is.
+    #[test]
+    fn something_else_in_the_no_project_folder_is_said_where_the_person_sees_it() {
+        let sentence = |leaf: &Path, what: &str| format!("Chirality keeps a folder for conversations without a project at {}. Something else is there now: {what}. Move it aside (do not delete what a link points to) and start Chirality again.", leaf.display());
+        for case in ["file", "link", "shared"] {
+            let f = Fixture::new();
+            let mut setup = f.setup();
+            f.prepare(&mut setup, false);
+            drop(setup);
+            let leaf = no_project_folder(&f.data);
+            let target = f.root.join("kept-elsewhere");
+            std::fs::create_dir(&target).unwrap();
+            std::fs::remove_dir(&leaf).unwrap();
+            let what = match case {
+                "file" => { std::fs::write(&leaf, b"invented").unwrap(); "a file".to_string() }
+                "link" => { std::os::unix::fs::symlink(&target, &leaf).unwrap(); format!("a link to {}", target.display()) }
+                _ => { std::fs::create_dir(&leaf).unwrap(); std::fs::set_permissions(&leaf, std::fs::Permissions::from_mode(0o755)).unwrap(); "a folder that other accounts can use".to_string() }
+            };
+            assert_eq!(f.setup().preview_new_settings(None).unwrap_err(), sentence(&leaf, &what), "{case}: on review");
+            let mut later = f.setup();
+            assert!(f.resolve(&mut later).host_config.is_err());
+            let view = later.view();
+            assert_eq!(view["launch"]["state"], "set-aside-occupied", "{case}");
+            assert_eq!(view["launch"]["reason"], sentence(&leaf, &what), "{case}: at a later start");
+            assert!(std::fs::symlink_metadata(&leaf).is_ok() && target.is_dir(), "{case}: nothing removed or replaced");
+        }
+    }
+
+    /// DEL-01-01 (round 2, finding 4): a failed lookup anywhere is "cannot be established", never
+    /// "outside", the folder set aside, or a comparison of text.
+    #[test]
+    fn a_failed_lookup_at_any_position_establishes_nothing() {
+        use crate::working_folder::{fail_lookup_for_test as fail, may_be_in_app_data, may_overlap};
+        let f = Fixture::new();
+        let set = establish(&f.data).unwrap();
+        let leaf = set.leaf().to_path_buf();
+        let records = f.data.join("records");
+        std::fs::create_dir_all(&records).unwrap();
+        let alias_of_data = f.root.join("data-alias");
+        std::os::unix::fs::symlink(&f.data, &alias_of_data).unwrap();
+        let link_in_project = f.project.join("to-records");
+        std::os::unix::fs::symlink(&records, &link_in_project).unwrap();
+        let blocked = |path: &Path, at: &Path| { fail(Some(at.to_path_buf())); let r = established(path); fail(None); r };
+        // Establishing: the App data folder, its canonical form, the folder set aside, an ancestor.
+        for (path, at) in [(&f.data, f.data.clone()), (&alias_of_data, f.data.clone()), (&f.data, leaf.clone()), (&f.data, f.root.clone())] {
+            assert!(matches!(blocked(path, &at), Err(Blocked::CannotExamine(_))), "{path:?} failing at {at:?}");
+        }
+        // Placing: an ancestor of the folder, the folder, a link in it, an ancestor of App data.
+        let placed = |folder: &Path, at: &Path| { fail(Some(at.to_path_buf())); let r = set.place(folder); fail(None); r };
+        for (folder, at) in [(f.project.clone(), f.root.clone()), (f.project.clone(), f.project.clone()), (link_in_project.clone(), link_in_project.clone()), (records.clone(), f.data.clone()), (leaf.clone(), leaf.clone()), (f.root.join("missing").join("child"), f.root.clone())] {
+            assert_eq!(placed(&folder, &at), WorkingFolder::CannotEstablish, "{folder:?} failing at {at:?}");
+        }
+        // Overlap with the folder set aside, with a reserved folder, and with absent App data.
+        fail(Some(f.root.clone()));
+        assert_eq!(set.overlaps_leaf(&f.project.join("store")), Err(()));
+        assert_eq!(may_overlap(&f.root.join("elsewhere"), &f.project), Err(()));
+        fail(Some(f.project.clone()));
+        assert_eq!(may_overlap(&f.root.join("elsewhere"), &f.project), Err(()), "the reserved folder");
+        let absent = f.root.join("absent-data").join("data");
+        fail(Some(f.root.join("absent-data")));
+        assert_eq!(may_be_in_app_data(&absent, &f.project.join("store")), Err(()), "the absent data's ancestor");
+        fail(None);
+        // Through its callers: a records store, a home plan, a saved conversation's folder.
+        fail(Some(leaf.clone()));
+        let store = records_store::for_app(Some(f.root.join("store-elsewhere")), Ok(&f.data), true, None, &[]);
+        let plan = OwnedHomePlan::new(f.data.clone(), f.data.join("codex-omlx"), HomeClass::LocalProvider, None);
+        fail(None);
+        assert!(store.is_err(), "{store:?}");
+        assert!(plan.is_err());
+    }
+
+    /// DEL-01-01: every route, from no App data folder through to its consumers: what exists on
+    /// disk at the end and what was refused, with nothing of the App's in the folder set aside.
+    #[test]
+    fn every_route_from_no_app_data_establishes_the_folder_and_keeps_it_empty() {
+        // Saved route, development: first use (review creates nothing), confirm, next start.
+        let f = Fixture::new();
+        let data = f.root.join("new-data");
+        let mut first = DesktopSetup::new(Ok(data.clone()), Ok(f.resources.clone()));
+        let preview = first.preview_new_settings(None).unwrap();
+        assert!(!data.exists(), "review creates nothing");
+        first.prepare_and_save(preview["token"].as_str().unwrap()).unwrap();
+        drop(first);
+        assert_eq!(std::fs::read_dir(no_project_folder(&std::fs::canonicalize(&data).unwrap())).unwrap().count(), 0, "confirm establishes the folder, empty");
+        let saved = start_through_consumers(&f, &data, |_| None, true);
+        assert_eq!(saved.view["launch"]["state"], "saved-request");
+        let cfg = saved.config.unwrap();
+        assert_eq!(cfg.cwd, no_project_folder(&std::fs::canonicalize(&data).unwrap()));
+        assert_eq!(saved.leaf_entries, Some(vec![]));
+        // Environment route, development and built (where the App data input is not read and the
+        // platform's folder is used), from no App data folder.
+        for is_dev in [true, false] {
+            let f = Fixture::new();
+            let data = f.root.join("new-data");
+            let started = start_through_consumers(&f, &data, environment(json!({"CHIRALITY_APP_DATA":data,"CHIRALITY_CODEX_BIN":"/invented/bin/codex","CHIRALITY_CODEX_HOME":f.root.join("environment-home"),"CHIRALITY_ALLOW_UNVERIFIED":"1"})), is_dev);
+            let cfg = started.config.unwrap();
+            assert_eq!(cfg.cwd, no_project_folder(&std::fs::canonicalize(&data).unwrap()), "is_dev {is_dev}");
+            assert_eq!(started.leaf_entries, Some(vec![]), "is_dev {is_dev}");
+        }
+        // Early refusals: a project in the App data folder; something else in the folder's place.
+        let f = Fixture::new();
+        let data = f.root.join("new-data");
+        let refused = start_through_consumers(&f, &data, environment(json!({"CHIRALITY_APP_DATA":data,"CHIRALITY_CODEX_BIN":"/invented/bin/codex","CHIRALITY_CODEX_HOME":f.root.join("environment-home"),"CHIRALITY_WORKSPACE":data.join("records"),"CHIRALITY_ALLOW_UNVERIFIED":"1"})), true);
+        assert!(refused.workspace.is_none() && refused.config.unwrap_err().contains("CHIRALITY_WORKSPACE is refused"));
+        assert_eq!(refused.leaf_entries, Some(vec![]));
+        let f = Fixture::new();
+        let data = f.root.join("new-data");
+        std::fs::create_dir(&data).unwrap();
+        std::fs::set_permissions(&data, std::fs::Permissions::from_mode(0o700)).unwrap();
+        std::fs::write(no_project_folder(&data), b"invented").unwrap();
+        let occupied = start_through_consumers(&f, &data, environment(json!({"CHIRALITY_APP_DATA":data,"CHIRALITY_CODEX_BIN":"/invented/bin/codex","CHIRALITY_CODEX_HOME":f.root.join("environment-home"),"CHIRALITY_ALLOW_UNVERIFIED":"1"})), true);
+        assert_eq!(occupied.view["launch"]["state"], "set-aside-occupied");
+        assert!(occupied.view["launch"]["reason"].as_str().unwrap().contains("Something else is there now: a file."));
+        assert!(occupied.config.is_err() && occupied.workspace.is_none());
+        assert_eq!(std::fs::read(no_project_folder(&data)).unwrap(), b"invented", "left where it is");
+    }
+
+    /// DEL-01-01: the same with the successor feature built in, on the release environment route
+    /// and the release saved route.
+    #[cfg(feature = "distribution-successor")]
+    #[test]
+    fn the_release_routes_from_no_app_data_establish_the_folder_and_keep_it_empty() {
+        let f = Fixture::new();
+        let data = f.root.join("new-data");
+        let started = start_through_consumers(&f, &data, environment(json!({"CHIRALITY_CODEX_HOME":f.root.join("environment-home")})), false);
+        let cfg = started.config.unwrap();
+        assert_eq!(cfg.cwd, no_project_folder(&std::fs::canonicalize(&data).unwrap()));
+        assert!(cfg.distribution.is_some() && !cfg.records_project);
+        assert_eq!(started.leaf_entries, Some(vec![]));
+        let f = Fixture::new();
+        let data = f.root.join("new-data");
+        let mut first = DesktopSetup::new(Ok(data.clone()), Ok(f.resources.clone()));
+        let preview = first.preview_new_settings(None).unwrap();
+        assert!(!data.exists());
+        first.prepare_and_save(preview["token"].as_str().unwrap()).unwrap();
+        drop(first);
+        let saved = start_through_consumers(&f, &data, |_| None, false);
+        let cfg = saved.config.unwrap();
+        assert_eq!(cfg.cwd, no_project_folder(&std::fs::canonicalize(&data).unwrap()));
+        assert_eq!(saved.leaf_entries, Some(vec![]));
     }
 }

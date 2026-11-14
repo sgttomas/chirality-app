@@ -2061,36 +2061,45 @@ impl Host {
     /// ([`Self::check_working_folder_again`], `fchdir` in the child), never by its path again.
     /// A Codex home or probe home that would be in the folder set aside refuses.
     pub(crate) fn check_working_folder(cfg: &HostConfig) -> Result<Option<std::fs::File>, String> {
-        use crate::desktop_startup::{ensure_no_project_folder, no_project_folder, refuse_in_no_project_folder, working_folder_refusal};
         use std::os::unix::fs::OpenOptionsExt;
         let Some(data) = &cfg.app_data else { return Ok(None) };
         const NOT_STARTED: &str = "Codex was not started";
-        let literal = cfg.cwd == no_project_folder(data);
-        let path = if literal { ensure_no_project_folder(data)? } else { cfg.cwd.clone() };
+        // The start's own step: App data is held by this App; the folder set aside is made if it
+        // is established to be absent, and must then be a real private folder at its place.
+        let established = crate::working_folder::establish(data).map_err(|blocked| format!("{NOT_STARTED}. {}", blocked.sentence()))?;
+        let literal = cfg.cwd == crate::working_folder::no_project_folder(data) || cfg.cwd == established.leaf();
+        let path = if literal { established.leaf().to_path_buf() } else { cfg.cwd.clone() };
         let flags = libc::O_DIRECTORY | libc::O_CLOEXEC | if literal { libc::O_NOFOLLOW } else { 0 };
         let opened = std::fs::OpenOptions::new().read(true).custom_flags(flags).open(&path)
             .map_err(|e| format!("{NOT_STARTED}: its working folder {} could not be opened as a folder: {e}", path.display()))?;
         Self::check_working_folder_again(cfg, &opened)?;
-        if let Some(reason) = working_folder_refusal(data, &cfg.cwd, NOT_STARTED) { return Err(reason); }
-        refuse_in_no_project_folder(data, &cfg.cwd.join(&cfg.codex_home), "Codex was not started: its Codex home")?;
-        refuse_in_no_project_folder(data, &cfg.probe_home, "Codex was not started: its probe home")?;
+        let home = cfg.cwd.join(&cfg.codex_home);
+        for (path, what) in [(&home, "its Codex home"), (&cfg.probe_home, "its probe home")] {
+            match established.overlaps_leaf(path) {
+                Ok(false) => {}
+                Ok(true) => return Err(format!("{NOT_STARTED}: {what} ({}) may not be in, or contain, the folder Chirality sets aside for conversations without a project", path.display())),
+                Err(()) => return Err(format!("{NOT_STARTED}: the place of {what} ({}) relative to the folder Chirality sets aside for conversations without a project could not be established", path.display())),
+            }
+        }
         Ok(Some(opened))
     }
     /// The opened working folder is still the directory its path names, and that path is still
     /// a place Codex may be given: run at the check and again immediately before the spawn.
+    /// Any failed lookup refuses: an unexaminable path never matches the held directory.
     fn check_working_folder_again(cfg: &HostConfig, opened: &std::fs::File) -> Result<(), String> {
-        use crate::desktop_startup::{no_project_folder, valid_no_project_folder, working_folder_refusal};
         use std::os::unix::fs::MetadataExt;
         let Some(data) = &cfg.app_data else { return Ok(()) };
         const CHANGED: &str = "Codex was not started: its working folder changed while it was being checked";
+        let established = crate::working_folder::established(data).map_err(|blocked| format!("Codex was not started. {}", blocked.sentence()))?;
         let held = opened.metadata().map_err(|e| format!("{CHANGED}: {e}"))?;
-        let named = if cfg.cwd == no_project_folder(data) {
-            valid_no_project_folder(data).map(|(_, id)| id)
+        let named = if cfg.cwd == crate::working_folder::no_project_folder(data) || cfg.cwd == established.leaf() {
+            Some(established.leaf_identity())
         } else {
+            // `None` on a failed lookup: never equal to the held directory, so it refuses.
             std::fs::metadata(&cfg.cwd).ok().map(|meta| (meta.dev(), meta.ino()))
         };
         if named != Some((held.dev(), held.ino())) { return Err(CHANGED.into()); }
-        if let Some(reason) = working_folder_refusal(data, &cfg.cwd, "Codex was not started") { return Err(reason); }
+        if let Some(reason) = established.refusal(&cfg.cwd, "Codex was not started") { return Err(reason); }
         Ok(())
     }
     fn start_sequence(self: &Arc<Self>, cfg: &HostConfig, actor: &str) -> Result<Value, String> {
@@ -2859,7 +2868,14 @@ impl Host {
         // just before the request is registered: the folder set aside may have been replaced.
         if let Some(cwd)=params.get("cwd").and_then(Value::as_str) {
             let data=self.inner.0.lock().unwrap().app_data.clone();
-            if let Some(reason)=data.and_then(|data|crate::desktop_startup::working_folder_refusal(&data,std::path::Path::new(cwd),&format!("refused-not-sent: {method} was not sent"))) {return Err(reason);}
+            if let Some(data)=data {
+                let subject=format!("refused-not-sent: {method} was not sent");
+                // Not established (the folder set aside replaced, removed or unexaminable): refused.
+                match crate::working_folder::established(&data) {
+                    Ok(established)=>if let Some(reason)=established.refusal(std::path::Path::new(cwd),&subject) {return Err(reason);},
+                    Err(blocked)=>return Err(format!("{subject}. {}",blocked.sentence())),
+                }
+            }
         }
         if let Some(proof)=provider_admission { self.recheck_child_sources(proof)?; }
         // The dedicated local home's files are read again for every request that can reach a model.
@@ -3261,13 +3277,18 @@ impl Host {
     /// The reason is what is so of the folder Codex reports: in Chirality's data, or not
     /// established. A folder that contains Chirality's data is admitted, as before this change.
     fn saved_folder_admitted(data: &std::path::Path, cwd: &Value, act: &str) -> Result<(), String> {
-        use crate::desktop_startup::{working_folder_place, WorkingFolder};
+        use crate::working_folder::{established, Blocked, WorkingFolder};
         let Some(cwd) = cwd.as_str() else { return Err(SAVED_IN_APP_DATA_UNKNOWN.into()) };
-        let shown = std::fs::canonicalize(data).unwrap_or_else(|_| data.to_path_buf());
-        match working_folder_place(data, std::path::Path::new(cwd)) {
+        let set = match established(data) {
+            Ok(set) => set,
+            // Something else in the folder's place is said as it is; anything else not established is not known.
+            Err(blocked @ Blocked::Occupied(..)) => return Err(format!("This conversation was not {act}. {}", blocked.sentence())),
+            Err(_) => return Err(SAVED_IN_APP_DATA_UNKNOWN.into()),
+        };
+        match set.place(std::path::Path::new(cwd)) {
             WorkingFolder::Outside | WorkingFolder::NoProject => Ok(()),
-            WorkingFolder::AppData => Err(format!("This conversation works in {cwd}, which is in Chirality's own data folder ({}). Chirality no longer gives Codex that folder, because a conversation working there could change Chirality's records and settings, so it was not {act}. Nothing was sent to it. Start a new conversation instead.", shown.display())),
-            WorkingFolder::Unresolved => Err(SAVED_IN_APP_DATA_UNKNOWN.into()),
+            WorkingFolder::AppData => Err(format!("This conversation works in {cwd}, which is in Chirality's own data folder ({}). Chirality no longer gives Codex that folder, because a conversation working there could change Chirality's records and settings, so it was not {act}. Nothing was sent to it. Start a new conversation instead.", set.data().display())),
+            WorkingFolder::CannotEstablish => Err(SAVED_IN_APP_DATA_UNKNOWN.into()),
         }
     }
     pub fn history_dispatch(&self, query: &HistoryQuery) -> Result<HistoryDispatch,String> {
@@ -6537,7 +6558,7 @@ mod conversation_transport_tests {
         fn new()->Self{
             let root=std::env::temp_dir().canonicalize().unwrap().join(crate::util::opaque_id("saved-folder-").unwrap());
             let data=root.join("app-data");std::fs::create_dir_all(data.join("records")).unwrap();
-            let leaf=crate::desktop_startup::ensure_no_project_folder(&data).unwrap();
+            let leaf=crate::working_folder::establish(&data).unwrap().leaf().to_path_buf();
             let project=root.join("project");std::fs::create_dir(&project).unwrap();
             Self{root,data,leaf,project}
         }
@@ -6572,7 +6593,7 @@ mod conversation_transport_tests {
         let cases=[
             (s(&f.data),Some(IN_DATA)),(s(&f.data.join("records")),Some(IN_DATA)),
             (format!("{}/../records",s(&f.leaf)),Some(IN_DATA)),(s(&f.leaf.join("to-records")),Some(IN_DATA)),
-            (s(&f.leaf.join("gone")),Some(SAVED_IN_APP_DATA_UNKNOWN)),
+            (s(&f.leaf.join("gone")),Some(IN_DATA)),(format!("{}/gone/..",s(&f.leaf)),Some(SAVED_IN_APP_DATA_UNKNOWN)),
             (s(&f.leaf),None),(s(&f.project),None),(s(&f.root),None),
         ];
         for (saved_cwd,refusal) in &cases {
@@ -6641,7 +6662,7 @@ mod conversation_transport_tests {
                 assert_eq!(frames.iter().find(|f|f["method"]=="thread/start").unwrap()["params"]["cwd"],json!(leaf));
             } else {
                 let refused=result.unwrap_err();
-                assert!(refused.starts_with("refused-not-sent")&&refused.contains("no longer a private folder of its own"),"{case}: {refused}");
+                assert!(refused.starts_with("refused-not-sent")&&refused.contains("Something else is there now")&&refused.contains("Move it aside"),"{case}: {refused}");
                 assert!(frames.is_empty(),"{case}: {frames:?}");
             }
         }
@@ -7587,6 +7608,8 @@ mod conversation_transport_tests {
         let root=std::env::temp_dir().join(opaque_id("namespace-host-").unwrap());std::fs::create_dir(&root).unwrap();let root=root.canonicalize().unwrap();
         for name in ["account","shared/skills","app/runtime"]{std::fs::create_dir_all(root.join(name)).unwrap();}
         for name in ["config.toml","AGENTS.md"]{std::fs::write(root.join("shared").join(name),"synthetic source").unwrap();}
+        // As a start does before any home is prepared (DEL-01-01).
+        crate::working_folder::establish(&root.join("app")).unwrap();
         let account=ExistingHomeReference::new(root.join("account"),HomeClass::Account).unwrap();
         let key=OwnedHomePlan::new(root.join("app"),root.join("app/key"),HomeClass::ApiKey,Some(SharedResourceTargets{config_toml:root.join("shared/config.toml"),global_agents_md:root.join("shared/AGENTS.md"),skills:root.join("shared/skills")})).unwrap();
         let scope=NativeNamespaceBindings::from_root(vec![NativeHomeNamespace::received(&account,None),NativeHomeNamespace::planned(&key)]).unwrap();key.prepare().unwrap();
@@ -8190,7 +8213,7 @@ mod local_process_lock_tests {
             let reported = f.root.join("home/cwd");
             if swap {
                 let refused = started.unwrap_err();
-                assert!(refused.contains("working folder changed while it was being checked"), "{refused}");
+                assert!(refused.contains("Something else is there now: a link to"), "{refused}");
                 assert!(!reported.exists(), "nothing was spawned");
             } else {
                 assert_eq!(started.unwrap()["state"], "ready");

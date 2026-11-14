@@ -2906,11 +2906,14 @@ pub fn freeze_root_home_descriptors(
     };
     // DEL-01-01: on every route, no Codex home and no source of its settings is in the folder set
     // aside for conversations without a project; refused here, before any home is prepared.
+    // Freezing creates nothing: with the folder established (as every start establishes it
+    // first) this decides by identity; established absent, nothing is decided here and each home
+    // is decided again before anything is prepared or started on it.
     for (path, what) in [(Some(&config.codex_home), "the account Codex home"), (Some(&config.probe_home), "the probe home"), (key_path.as_ref(), "the API-key Codex home")] {
-        if let Some(path) = path { crate::working_folder::refuse_in_no_project_folder(app_data, path, what)?; }
+        if let Some(path) = path { crate::working_folder::refuse_in_no_project_folder(app_data, path, what, false)?; }
     }
     for path in targets.iter().flatten() {
-        crate::working_folder::refuse_source_in_no_project_folder(app_data, path, "a source of Codex settings")?;
+        crate::working_folder::refuse_source_in_no_project_folder(app_data, path, "a source of Codex settings", false)?;
     }
     let account = ExistingHomeReference::new(config.codex_home.clone(), HomeClass::Account)?;
     let probe = ExistingHomeReference::new(config.probe_home.clone(), HomeClass::Probe)?;

@@ -305,25 +305,31 @@ pub(crate) fn development_inputs_admitted(is_dev: bool) -> bool {
 
 /// Complete explicit environment route; no private supplier/home path is built in.
 /// Desktop requests are a separate exclusive source, resolved before Root binding.
+/// The App data folder and its folder set aside must already be established
+/// (`working_folder::establish`); the project is admitted against them here.
 pub fn host_config_from_env(workspace: Option<&PathBuf>, app_data: &std::path::Path) -> Result<HostConfig, String> {
-    host_config_from_inputs(workspace, Ok(app_data), |key|std::env::var_os(key), probe_home)
+    let established = working_folder::established(app_data).map_err(|blocked| blocked.sentence())?;
+    let project = workspace.map(|project| established.admit_project(project)).transpose()?;
+    host_config_from_inputs(project.as_ref(), Ok(&established), |key|std::env::var_os(key), probe_home)
 }
 
-fn host_config_from_inputs(workspace: Option<&PathBuf>, app_data: Result<&std::path::Path,&String>, input: impl Fn(&str)->Option<std::ffi::OsString>, probe: impl FnOnce()->Result<PathBuf,String>) -> Result<HostConfig,String> {
+/// `project` has passed admission; with none, the working folder is the
+/// established folder set aside (DEL-01-01).
+fn host_config_from_inputs(project: Option<&working_folder::AdmittedProject>, established: Result<&working_folder::Established, String>, input: impl Fn(&str)->Option<std::ffi::OsString>, probe: impl FnOnce()->Result<PathBuf,String>) -> Result<HostConfig,String> {
     let bin = input("CHIRALITY_CODEX_BIN").ok_or(()).map_err(|_| {
         "CHIRALITY_CODEX_BIN is not set: no supplier distribution resolved".to_string()
     })?;
     let home = input("CHIRALITY_CODEX_HOME").ok_or(()).map_err(|_| {
         "CHIRALITY_CODEX_HOME is not set: no App-owned Codex home given".to_string()
     })?;
-    // DEL-01-01: with no project, the folder set aside for conversations without a project.
-    let cwd = match workspace {
-        Some(project) => project.clone(),
-        None => desktop_startup::no_project_folder(app_data.map_err(|e| format!("App data folder unavailable, so there is no working folder for a conversation without a project: {e}"))?),
+    let established = established?;
+    let cwd = match project {
+        Some(project) => project.to_path_buf(),
+        None => established.leaf().to_path_buf(),
     };
     let mut cfg = HostConfig::new(bin.into(), home.into(), probe()?, cwd);
-    cfg.records_project=workspace.is_some();
-    cfg.app_data=app_data.ok().map(std::path::Path::to_path_buf);
+    cfg.records_project=project.is_some();
+    cfg.app_data=Some(established.data().to_path_buf());
     cfg.expected_sha256 = input("CHIRALITY_CODEX_EXPECTED_SHA256").and_then(|v|v.into_string().ok());
     cfg.allow_unverified_dev = input("CHIRALITY_ALLOW_UNVERIFIED").is_some_and(|v|v == "1");
     Ok(cfg)
@@ -1027,7 +1033,6 @@ fn records_store_choose(app: tauri::AppHandle, state: State<'_, AppState>, actio
     let configs: Vec<hosting::HostConfig> = [home_resources::HomeClass::Account, home_resources::HomeClass::ApiKey, home_resources::HomeClass::LocalProvider].into_iter()
         .filter_map(|class| homes.entry(class).ok()).filter_map(|home| home.host_config.as_ref().ok().cloned()).collect();
     drop(homes);
-    desktop_startup::ensure_no_project_folder(&data)?;
     let location = if action == "choose" {
         let Some(picked) = workflow_native_folder(&app, "Choose a folder for the App's records")? else {
             return Ok(json!({"state":"choice cancelled"}));
@@ -2936,6 +2941,15 @@ pub(crate) fn admitted_startup(
             let inputs = desktop.refuse_environment(&reason);
             return (desktop, inputs);
         }
+        // DEL-01-01: App data is held; the folder set aside is established before this route's
+        // inputs are placed against it, unless the inputs are already refused without the file
+        // system (that refusal stays first, and makes nothing).
+        if environment_path_refusal(&input).is_none() {
+            if let Err(blocked) = data.as_ref().map_err(|e| working_folder::Blocked::CannotExamine(e.clone())).and_then(|data| working_folder::establish(data)) {
+                let inputs = desktop.refuse_environment(&blocked.sentence());
+                return (desktop, inputs);
+            }
+        }
     }
     let environment = explicit_environment_launch(&input, &data, &resources, is_dev, &probe);
     let launch = desktop.resolve(environment, is_dev, &probe);
@@ -2998,29 +3012,32 @@ fn explicit_environment_launch(
     probe: impl FnOnce()->Result<PathBuf,String>,
 ) -> Option<desktop_startup::Launch> {
     if !environment_selected(&input) { return None; }
-    let workspace = input("CHIRALITY_WORKSPACE").map(PathBuf::from);
+    // The raw project input is read once and never carried: the only project this route carries
+    // is one admitted below against the established App data folder (DEL-01-01). Every return
+    // before that carries none.
+    let raw_workspace = input("CHIRALITY_WORKSPACE").map(PathBuf::from);
+    // The key and shared values are carried as received, never read as not supplied; nothing
+    // reads them while the configuration is refused.
+    let key = input("CHIRALITY_KEY_HOME").map(PathBuf::from);
+    let shared = ["CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS"].map(|key|input(key).map(PathBuf::from));
     // Refused at admission, on both branches, before any configuration is
-    // built or the probe home allocated. The key and shared values are carried
-    // as received, never read as not supplied; nothing reads them while the
-    // configuration is refused.
+    // built or the probe home allocated. Needs no file system.
     if let Some(reason) = environment_path_refusal(&input) {
-        let key = input("CHIRALITY_KEY_HOME").map(PathBuf::from);
-        let shared = ["CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS"].map(|key|input(key).map(PathBuf::from));
-        return Some(desktop_startup::Launch::environment(workspace, Err(reason), key, shared));
+        return Some(desktop_startup::Launch::environment(None, Err(reason), key, shared));
     }
-    // DEL-01-01: a project in the App data folder (the folder set aside for conversations without
-    // a project included) is refused, and is not carried: nothing of the App's, such as a
-    // project's records link, is made there.
-    if let (Some(project), Ok(data)) = (workspace.as_ref(), data) {
-        if desktop_startup::working_folder_place(data, project) != desktop_startup::WorkingFolder::Outside {
-            let reason = format!("CHIRALITY_WORKSPACE is refused: {} is in Chirality's own data folder ({}), or its place cannot be established; choose a project folder outside it", project.display(), data.display());
-            let key = input("CHIRALITY_KEY_HOME").map(PathBuf::from);
-            let shared = ["CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS"].map(|key|input(key).map(PathBuf::from));
-            return Some(desktop_startup::Launch::environment(None, Err(reason), key, shared));
-        }
-    }
+    // The App data folder was held and the folder set aside established before this route is
+    // read (`admitted_startup`); here they are only read. Not established, nothing is placed.
+    let established = match data.as_ref().map_err(Clone::clone).and_then(|data| working_folder::established(data).map_err(|blocked| blocked.sentence())) {
+        Ok(established) => established,
+        Err(reason) => return Some(desktop_startup::Launch::environment(None, Err(reason), key, shared)),
+    };
+    // A project in the App data folder (the folder set aside included) is refused and not carried.
+    let workspace = match raw_workspace.as_deref().map(|project| established.admit_project(project)).transpose() {
+        Ok(workspace) => workspace,
+        Err(reason) => return Some(desktop_startup::Launch::environment(None, Err(format!("CHIRALITY_WORKSPACE is refused: {reason}")), key, shared)),
+    };
     let host_config = if is_dev || !cfg!(feature = "distribution-successor") {
-        host_config_from_inputs(workspace.as_ref(), data.as_deref(), &input, probe).and_then(|mut cfg| {
+        host_config_from_inputs(workspace.as_ref(), Ok(&established), &input, probe).and_then(|mut cfg| {
             if is_dev && input("CHIRALITY_DISTRIBUTION_SUCCESSOR").is_some_and(|v|v == "1") {
                 cfg.distribution = Some(hosting::successor::Distribution::development_from_binary(&cfg.codex_bin)?);
             }
@@ -3029,19 +3046,16 @@ fn explicit_environment_launch(
     } else {
         (|| {
             let resources = resources.as_ref().map_err(Clone::clone)?.clone();
-            let data = data.as_ref().map_err(Clone::clone)?.clone();
             let home = input("CHIRALITY_CODEX_HOME").map(PathBuf::from).ok_or("No explicit App-owned account home")?;
-            let cwd = workspace.clone().unwrap_or_else(|| desktop_startup::no_project_folder(&data));
+            let cwd = workspace.as_deref().map(std::path::Path::to_path_buf).unwrap_or_else(|| established.leaf().to_path_buf());
             let mut cfg = hosting::successor::production_config(resources, home, probe()?, cwd);
             // As on the other routes: only a project is a records project.
             cfg.records_project = workspace.is_some();
-            cfg.app_data = Some(data);
+            cfg.app_data = Some(established.data().to_path_buf());
             Ok(cfg)
         })()
     };
     let host_config = host_config.map(|mut cfg| { cfg.require_distribution_artifacts = cfg.distribution.is_some(); cfg });
-    let key = input("CHIRALITY_KEY_HOME").map(PathBuf::from);
-    let shared = ["CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS"].map(|key|input(key).map(PathBuf::from));
     Some(desktop_startup::Launch::environment(workspace, host_config, key, shared))
 }
 
@@ -3060,6 +3074,8 @@ pub(crate) fn automatic_start(host: &Arc<Host>, recovery: &Mutex<runtime_session
 }
 fn freeze_startup_state(launch: desktop_startup::Launch, desktop: Arc<Mutex<desktop_startup::DesktopSetup>>, compiled_selection: Value) -> (AppState, Arc<runtime_session::HomeSession>) {
     let desktop_startup::Launch { workspace, host_config, key_path, shared_paths, bootstrap, namespaces, source } = launch;
+    // The admitted project, and only that, is the workspace from here on (DEL-01-01).
+    let workspace: Option<PathBuf> = workspace.map(working_folder::AdmittedProject::into_path);
     let source = if source == "explicit environment (exclusive)" { "explicit Root native environment path inputs" } else { source };
     let project = runtime_session::freeze_configured_project(workspace.as_deref());
     let project_context_limit = project.as_ref().err().cloned();
@@ -3113,10 +3129,6 @@ fn initialize_startup_consumers(state: &AppState, home: &Arc<runtime_session::Ho
     // its identity once (`.chirality/project.json`).
     {
         let codex_homes = codex_homes(home.host_config.as_ref().ok().into_iter(), data.as_deref().ok());
-        // DEL-01-01: the folder set aside for conversations without a project exists (empty)
-        // before any placement is decided, on every start, so that every spelling of it
-        // resolves through the real directory.
-        if allow_operational { if let Ok(data) = &data { if let Err(e) = desktop_startup::ensure_no_project_folder(data) { eprintln!("chirality: {e}"); } } }
 
         records_store::configure(if allow_operational { records_store::for_app_beside(records_override, data.as_deref().map_err(Clone::clone), is_dev, workspace.as_deref(), &codex_homes, &working_folders(home.host_config.as_ref().ok().into_iter())) } else { Err(data.as_ref().err().cloned().unwrap_or_else(||"Desktop Root consumers not admitted".into())) });
         // The store is created here, once, when the App starts: no reader

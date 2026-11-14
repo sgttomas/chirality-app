@@ -216,6 +216,8 @@ fn the_bootstrap_plans_the_local_home_placement_protects() {
     let root = folder("placement-agree-root-");
     for home in ["account", "probe"] { std::fs::create_dir_all(root.join(home)).unwrap(); }
     let cfg = hosting::HostConfig::new(PathBuf::from("/invented/bin/codex"), root.join("account"), root.join("probe"), root.clone());
+    // The start establishes the folder set aside before the homes are frozen (DEL-01-01).
+    working_folder::establish(&data).unwrap();
     let bootstrap = runtime_session::freeze_root_home_descriptors(&data, &cfg, None, [None, None, None]).unwrap();
     let planned = bootstrap.local_plan().unwrap().native_path().to_path_buf();
     assert_eq!(planned, runtime_session::local_provider_home(&data));
@@ -350,6 +352,14 @@ fn a_start_without_app_data_places_no_records_store() {
 fn the_no_project_folder_and_every_codex_working_folder_are_reserved() {
     let data = folder("placement-data-");
     let leaf = desktop_startup::no_project_folder(&data);
+    // Not established yet: nothing in or over the App data folder can be placed.
+    for store in [leaf.clone(), leaf.join("records"), data.clone(), data.join("records")] {
+        let placed = records_store::for_app(Some(store.clone()), Ok(&data), true, None, &[]);
+        assert!(placed.as_ref().is_err_and(|e| e.contains("cannot be placed yet")), "{store:?}: {placed:?}");
+    }
+    assert!(!leaf.exists(), "placement creates nothing");
+    assert!(records_store::for_app(Some(folder("placement-far-").join("records")), Ok(&data), true, None, &[]).is_ok(), "established to lie elsewhere");
+    working_folder::establish(&data).unwrap();
     const SET_ASIDE: &str = "the folder set aside for conversations without a project";
     for store in [leaf.clone(), leaf.join("records"), data.clone()] {
         let placed = records_store::for_app(Some(store.clone()), Ok(&data), true, None, &[]);
@@ -357,7 +367,6 @@ fn the_no_project_folder_and_every_codex_working_folder_are_reserved() {
         let chosen = records_store::choose_location(&data, &store, None, &[]);
         assert!(chosen.as_ref().is_err_and(|e| e.contains(SET_ASIDE)), "{store:?}: {chosen:?}");
     }
-    assert!(leaf.is_dir(), "placement makes the folder set aside exist (empty) before it decides");
     assert_eq!(std::fs::read_dir(&leaf).unwrap().count(), 0);
     assert!(records_store::for_app(Some(data.join("records")), Ok(&data), true, None, &[]).is_ok(), "beside it is accepted");
     const WORKING: &str = "the working folder Codex is given";
@@ -381,16 +390,20 @@ fn a_case_alias_of_the_no_project_folder_is_never_a_records_store() {
     let data = folder("placement-data-");
     let leaf = desktop_startup::no_project_folder(&data);
     let alias = data.join("CONVERSATIONS-WITHOUT-PROJECT").join("records");
-    assert!(!leaf.exists());
+    // Before the start establishes the folder set aside, nothing under the App data folder is
+    // placed; after, another spelling resolves through the real folder and is refused by identity.
+    assert!(records_store::for_app(Some(alias.clone()), Ok(&data), true, None, &[]).is_err());
+    working_folder::establish(&data).unwrap();
+    assert!(leaf.is_dir());
     let placed = records_store::for_app(Some(alias.clone()), Ok(&data), true, None, &[]);
     assert!(placed.as_ref().is_err_and(|e| e.contains("the folder set aside for conversations without a project")), "{placed:?}");
     assert!(!alias.exists(), "nothing created at the alias");
     let chosen = records_store::choose_location(&data, &alias, None, &[]);
     assert!(chosen.is_err(), "{chosen:?}");
-    // If the folder set aside cannot be made (a file is in its place), nothing under the App data
-    // folder can be established, and placement there refuses.
+    // Something else in the folder's place (a file, or a link that may lead anywhere): nothing can
+    // be established, and no store is placed until the person moves it.
     std::fs::remove_dir(&leaf).unwrap();
     std::fs::write(&leaf, b"invented").unwrap();
     assert!(records_store::for_app(Some(data.join("records")), Ok(&data), true, None, &[]).is_err());
-    assert!(records_store::for_app(Some(folder("placement-elsewhere-").join("records")), Ok(&data), true, None, &[]).is_ok());
+    assert!(records_store::for_app(Some(folder("placement-elsewhere-").join("records")), Ok(&data), true, None, &[]).is_err_and(|e| e.contains("Something else is there now: a file.")));
 }

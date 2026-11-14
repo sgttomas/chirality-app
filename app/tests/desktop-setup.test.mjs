@@ -526,6 +526,33 @@ test('a saved setup whose Codex home is held is not shown as setup being needed'
     assert.deepEqual(calls,[]);
   });
 });
+// DEL-01-01: what the person sees when something else is where Chirality keeps its folder for
+// conversations without a project: the host's own sentence, with the path, and no setup action.
+const OCCUPIED=/^Chirality keeps a folder for conversations without a project at \/.*\/conversations-without-project\. Something else is there now: a file\. Move it aside \(do not delete what a link points to\) and start Chirality again\.$/;
+test('a later start with something else in the folder for conversations without a project says what and where, and offers no setup',async()=>{
+  const view=packet.setAsideOccupied;
+  assert.equal(view.launch.state,'set-aside-occupied');
+  assert.match(view.launch.reason,OCCUPIED);
+  await mountedWelcome(view,()=>assert.fail('no IPC while the folder is taken'),async(c,calls)=>{
+    const welcome=region(c,'Welcome');
+    assert.match(welcome.textContent,/A folder Chirality keeps is taken/);
+    assert.equal(c.querySelectorAll(n=>n.getAttribute('role')==='alert')[0].textContent,view.launch.reason);
+    assert.doesNotMatch(welcome.textContent,/Welcome to Chirality|choose a project folder/i,'setup is not offered or said to be needed');
+    assert.equal(nodes(c,'button').length,0,'no action is offered: only the person moves it');
+    assert.deepEqual(calls,[]);
+  });
+});
+test('first-use review with something else in the folder for conversations without a project says what and where',async()=>{
+  assert.match(packet.setAsideReviewRefusal,OCCUPIED);
+  await mountedWelcome(packet.initial,(command)=>{
+    if(command==='desktop_setup_new_settings_preview')throw packet.setAsideReviewRefusal; // as the host rejects: its own sentence
+    assert.fail(command);
+  },async(c)=>{
+    await press(c,'Continue without a project');
+    await press(c,'Review setup');
+    assert.ok(c.querySelectorAll(n=>n.getAttribute('role')==='alert').some(n=>n.textContent==="Setup couldn't finish: "+packet.setAsideReviewRefusal),'the sentence, with its path, is shown where the review is');
+  });
+});
 test('a second App on data another process holds says what was observed, names no owner and offers no setup',async()=>{
   const view=packet.dataHeld;
   assert.equal(view.launch.state,'data-held');

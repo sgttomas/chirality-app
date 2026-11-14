@@ -35,6 +35,9 @@ impl Fixture {
         for name in ["config.toml", "AGENTS.md"] {
             std::fs::write(root.join("shared").join(name), b"synthetic").unwrap();
         }
+        // As a start does before any home is prepared: the folder for conversations without a
+        // project is established (DEL-01-01).
+        crate::working_folder::establish(&data).unwrap();
         let cfg = HostConfig::new(
             root.join("never-executed"),
             root.join("account"),
