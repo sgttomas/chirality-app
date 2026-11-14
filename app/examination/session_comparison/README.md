@@ -107,7 +107,7 @@ python3 -I app/examination/session_comparison/stub_provider.py --record <root>/r
 
 - **Ready.** Once listening, on a port the system chooses, it writes the ready file atomically, with `pid`, `port` and `base_url` (`http://127.0.0.1:<port>/v1`). The App is given `base_url` exactly as `CHIRALITY_DEV_OPENAI_BASE_URL`, which reaches the account home's Codex only.
 - **Turns.** Every turn completes with the fixed reply "Invented reply from the stub provider.", unless the last user message of the request carries `STUB-HOLD`. That turn gets `response.created` and is held until the client closes it (an interrupt), the bound passes (`--hold-bound`, 60 s), or the stub stops. It never sends a tool call.
-- **WebSocket.** Codex first tries a WebSocket upgrade on `/v1/responses`. The stub answers 426 (`--websocket-status`), on which Codex 0.167.0 falls back to HTTP for the session at once. That was read in its source and observed once against the pinned binary.
+- **WebSocket.** Codex first tries a WebSocket upgrade on `/v1/responses`, when the thread starts and before any message is sent: the stub sees a connection as soon as the driver starts a thread. The stub answers 426 (`--websocket-status`), on which Codex 0.167.0 falls back to HTTP for the session at once. That was read in its source and observed once against the pinned binary.
 - **Anything else** gets 404, and is logged as unexpected.
 - **Log.** `record/stub-requests.jsonl` gets one line per request: the time, method, path, disposition and header names. It never holds a body, a prompt or a header value.
 - **Stop.** SIGTERM or SIGINT ends any held stream, writes the last lines and exits 0.
