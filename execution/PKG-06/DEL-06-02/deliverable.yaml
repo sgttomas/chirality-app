@@ -36,8 +36,12 @@ needs:
     the package names and whether or not an arrival was recorded; only the person's confirmation captures;
     and each capture yields capture evidence and a direct-capture record with the person's observed
     identity marked not verified.
-    A separate named-provider seal observation preserves the recorded claim when verification
-    fails or is unavailable; it supplies no new prerequisite for recorded decided selection.
+    A read-only named-provider observation resolves each decided row's cited A16 capture and
+    reports its standing beside the recorded decision claim, including verified with keychain, verified
+    with the App's key file, seal not verified, verification unavailable now, or not sealed.
+    An absent seal alone supplies no age or explanation; an explicit publication-failure limit
+    is attributed as the capture's recorded cause. These standings preserve the recorded decision
+    and supply no new prerequisite for decided selection; the positive case of AC-004 is unchanged.
   gating: true
   when: The positive case of AC-004
 - from: external:person deciding the matter
@@ -58,7 +62,12 @@ code_paths:
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/lib.rs
 - app/src/App.tsx
+- app/src/DecisionSealStanding.tsx
+- app/src-tauri/src/file_act_view.rs
+- app/src-tauri/src/capture_seal.rs
+- app/src-tauri/src/act_evidence_cause.rs
 checks:
+- app/tests/run-panel.test.mjs
 - app/src-tauri/src/act_control.rs
 # History notices on the person-facing RS readings, including empty results.
 - app/tests/workflow-action-result.test.mjs
