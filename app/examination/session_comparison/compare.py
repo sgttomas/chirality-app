@@ -1,8 +1,13 @@
 #!/usr/bin/env python3
 """Session comparison, first part: one thread's turns, their outcomes and the
-App's recorded interrupts, compared with Codex's own session file; and the
-selected workflow's bytes, compared with what Codex recorded as the person's
-input.
+App's recorded interrupts, compared with Codex's own session file.
+
+It compares exactly three things: turns (C2), outcomes (C3) and interrupts
+(C4). The workflow comparison (W1) is not available in this version: its
+association of a run with a message needed a new rule in each of three
+readings, and it comes in its own change with its own reading. Where a session
+has a workflow run to compare, a W1 row says so with the outcome blocked; W1 is
+never passed and never left out, and asking for it by name is refused.
 
 Codex's record is the session file Codex writes under its home
 (`sessions/YYYY/MM/DD/rollout-<UTC time>-<threadId>.jsonl`). It is read only
@@ -26,18 +31,16 @@ How it holds:
     or an identifier, a digest or a number of its pattern; anything else is
     written as "unrecognised", which never passes and is counted apart.
     Reasons are the tool's own sentences. No text from any input reaches a row.
-  - The workflow check by unique identity: exactly one person message whose
-    first part is the run's text, and exactly one record with that text.
   - A candidate's result comes whole from `answers`, which derives the screen
     list again from the session file as it is then, takes only the answers to
-    items it derives identically, and computes C4 and W1 from the same bytes.
+    items it derives identically, and computes C4 from the same bytes.
   - Nothing ends without rows: after the root is admitted, any refusal or
     failure writes blocked rows for every planned comparison, naming at most
     the kind of failure.
 
-Comparisons: C2 turns (both ways), C3 each turn's outcome, C4 each interrupt the
-App recorded, W1 the selected workflow's bytes. Standard library only; nothing
-is sent anywhere.
+Comparisons: C2 turns (both ways, every turn the view shows), C3 each turn's
+outcome, C4 each interrupt the App recorded. Standard library only; nothing is
+sent anywhere.
 """
 import argparse
 import hashlib
@@ -54,7 +57,11 @@ MODEL_VERSION = 'session-comparison-model/1'
 # The Codex version whose session file layout this model was written against.
 PINNED_CODEX = '0.167.0'
 TOOL = 'app/examination/session_comparison/compare.py'
-PLANNED = ('C2', 'C3', 'C4', 'W1')
+PLANNED = ('C2', 'C3', 'C4')
+COMPARES = {'C2': 'turns', 'C3': 'outcomes', 'C4': 'interrupts'}
+NOT_AVAILABLE = 'the workflow comparison is not available in this version'
+WORKFLOW_NAMES = ('w1', 'workflow')
+WORKFLOW_MARKER = b'<<<chirality-workflow '
 OUTCOMES = ('passed', 'failed', 'blocked', 'not run', 'inconclusive')
 TERMINAL = ('completed', 'failed', 'interrupted')
 VIEW_STATUSES = ('inProgress', 'completed', 'failed', 'interrupted')
@@ -63,10 +70,11 @@ STOP_STATES = ('requested', 'sent', 'not-sent', 'accepted', 'refused', 'settled'
 OUTCOME_SOURCES = ('observed', 'recovered-from-supplier', 'not-observed')
 ABORT_REASONS = ('interrupted', 'replaced', 'review_ended', 'budget_limited')
 UNRECOGNISED = 'unrecognised'
-EXACT = 'chirality.app.exact-bytes.sha256/v1'
+# A turn the view shows with no native turn behind it (by an item, a checklist
+# or an error notice only): shown, but with no status.
+NO_STATUS = 'shown with no status'
 ID = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._:@-]{0,159}$')
 HEX64 = re.compile(r'^[0-9a-f]{64}$')
-MARKER = re.compile(r'<<<chirality-workflow ')
 START_EVENTS = ('task_started', 'turn_started')
 END_EVENTS = ('task_complete', 'turn_complete', 'turn_aborted')
 
@@ -111,14 +119,17 @@ def has_unrecognised(value):
 def row(comparison, subject, codex, app, outcome, reason):
     """One row. `subject`, `codex` and `app` hold only allowlisted values; a row
     naming anything unrecognised can never pass."""
-    assert comparison in PLANNED and outcome in OUTCOMES
+    assert outcome in OUTCOMES and (comparison in PLANNED or (comparison == 'W1' and outcome == 'blocked'))
     if outcome == 'passed' and (has_unrecognised(subject) or has_unrecognised(codex) or has_unrecognised(app)):
         outcome, reason = 'inconclusive', 'a value on one side is not one this comparison recognises'
     return {'comparison': comparison, 'subject': subject, 'codex': codex, 'app': app, 'outcome': outcome, 'reason': reason}
 
 
 def blocked_all(thread, reason):
-    return [row(c, {'thread': ident(thread)}, {'says': 'not read'}, {'says': 'not compared'}, 'blocked', reason) for c in PLANNED]
+    """Every planned comparison blocked; and, since whether the session has a
+    workflow run is then not known, the workflow comparison's row as well."""
+    return [row(c, {'thread': ident(thread)}, {'says': 'not read'}, {'says': 'not compared'}, 'blocked', reason) for c in PLANNED] + \
+        [row('W1', {'thread': ident(thread)}, {'says': 'not read'}, {'says': 'not compared'}, 'blocked', NOT_AVAILABLE)]
 
 
 # --- Where records may be read ---------------------------------------------
@@ -127,12 +138,16 @@ def examination_root(path):
     """The examination root, resolved; refused unless the launcher made it."""
     root = Path(path).resolve()
     record = root / 'record'
-    if not (root / 'home').is_dir() or not record.is_dir():
-        raise Refused('the folder is not an examination root (no home/ and record/)')
+    if not (root / 'home').is_dir() or not (root / 'project').is_dir() or not record.is_dir():
+        raise Refused('the folder is not an examination root (no home/, project/ and record/)')
     if record.is_symlink() or record.resolve() != record:
         raise Refused("record/ does not resolve to the root's own record folder")
-    if not (any(record.glob('launch-record*.json')) or (record / 'kept.json').is_file()):
+    launch = sorted(record.glob('launch-record*.json')) + ([record / 'kept.json'] if (record / 'kept.json').exists() else [])
+    if not launch:
         raise Refused('the folder has no launch record; only a folder the launcher made is read')
+    for name in launch:
+        if name.is_symlink() or root not in name.resolve().parents:
+            raise Refused('a launch record resolves outside the examination root')
     codex = (Path.home() / '.codex').resolve()
     if root == codex or codex in root.parents or root in codex.parents:
         raise Refused("the owner's Codex home is never read")
@@ -189,7 +204,7 @@ def parse_session(data, thread):
     lines = data.splitlines()
     if not lines:
         raise Refused('the session file is empty')
-    events, person, order = {}, [], []
+    events, order = {}, []
     for number_, raw in enumerate(lines, 1):
         try:
             line = json.loads(raw)
@@ -214,16 +229,9 @@ def parse_session(data, thread):
                     events[turn] = []
                     order.append(turn)
                 events[turn].append((number_, event, payload))
-        elif kind == 'response_item' and payload.get('type') == 'message' and payload.get('role') == 'user':
-            meta = payload.get('internal_chat_message_metadata_passthrough')
-            if not isinstance(meta, dict) or meta.get('content_item_kinds') != ['user.text'] or meta.get('provenance') != {'type': 'user'}:
-                continue
-            content = payload.get('content')
-            if not isinstance(content, list) or not all(isinstance(c, dict) and isinstance(c.get('text'), str) for c in content):
-                raise Refused("a message tagged as the person's has content this model does not read")
-            person.append({'line': number_, 'parts': [c['text'] for c in content]})
     turns = {turn: reading(events[turn]) for turn in order}
-    return {'thread': thread, 'order': order, 'turns': turns, 'person': person}
+    marked = sum(1 for raw in lines if WORKFLOW_MARKER in raw)
+    return {'thread': thread, 'order': order, 'turns': turns, 'workflow_marked_lines': marked}
 
 
 def reading(events):
@@ -249,7 +257,10 @@ def reading(events):
 # --- The App's account --------------------------------------------------------
 
 def view_turns(root, view, thread):
-    """Turn id to the status the view holds, joined by identity, never by position."""
+    """Turn id to the status the view holds, for every turn the App's view shows
+    in this thread: as the panel does, the union of its turn records and the
+    turns its items, checklists and error notices name. Joined by identity,
+    never by position. A turn shown with no native turn has no status."""
     try:
         saved = json.loads(inside(root, view).read_text())
     except Refused:
@@ -276,6 +287,21 @@ def view_turns(root, view, thread):
             shown[turn] = one_of(by_id[turn].get('status'), VIEW_STATUSES)
     if set(by_id) != recorded:
         raise Refused('a turn of the saved view has no turn record, so its thread is not known')
+    for name in ('items', 'revisions', 'turnErrors', 'unreadableTurnErrors'):
+        entries = native.get(name, [])
+        if not isinstance(entries, list):
+            raise Refused('a list of the saved view is not readable')
+        for entry in entries:
+            if not isinstance(entry, dict):
+                raise Refused('an entry of the saved view is not readable')
+            if name == 'revisions' and entry.get('kind') != 'checklist':
+                continue
+            if entry.get('threadId') != thread:
+                continue
+            turn = entry.get('turnId')
+            if ident(turn) == UNRECOGNISED:
+                raise Refused('an entry of the saved view names no turn this comparison can read')
+            shown.setdefault(turn, NO_STATUS)
     return shown
 
 
@@ -309,47 +335,6 @@ def stop_records(root, thread):
     return list(latest.values()), unreadable
 
 
-def run_text_records(root, thread):
-    """WR run_text records of `thread`, and how many workflow record files could
-    not be read or not be told apart (any of which may belong to it)."""
-    found, unreadable = [], 0
-    for path in sorted(root.rglob('*.json')):
-        if 'workflow' not in path.parts or 'records' not in path.parts:
-            continue
-        try:
-            value = json.loads(inside(root, path).read_text())
-        except Exception:
-            unreadable += 1
-            continue
-        records = value if isinstance(value, list) else [value.get('record', value)] if isinstance(value, dict) else None
-        if records is None or not all(isinstance(r, dict) for r in records):
-            unreadable += 1
-            continue
-        for record in records:
-            if record.get('record_kind') == 'run_text' and record.get('conversation') == thread:
-                found.append(record)
-    return found, unreadable
-
-
-def manifest_workflow(manifest, name, revision):
-    try:
-        matches = [f['sha256'] for p in manifest['packages'] if p.get('name') == name and p.get('revision') == revision
-                   for f in p['files'] if f.get('path') == 'WORKFLOW.md']
-    except Exception:
-        return None
-    return matches[0] if len(matches) == 1 and digest(matches[0]) != UNRECOGNISED else None
-
-
-def workflow_bytes(text, name, rev):
-    begin = f'<<<chirality-workflow {name}@{rev} begin>>>\n'
-    end = f'\n<<<chirality-workflow {name}@{rev} end>>>'
-    if text.count(begin) != 1 or text.count(end) != 1:
-        return None
-    start = text.index(begin) + len(begin)
-    stop = text.find(end, start)
-    return text[start:stop] if stop >= 0 else None
-
-
 # --- Comparisons --------------------------------------------------------------
 
 def codex_of(model, turn):
@@ -380,6 +365,8 @@ def compare_views(model, shown, at):
             rows.append(row('C3', subject, codex, app, 'inconclusive', "Codex's record of this turn is not one start and at most one end"))
         elif shown[turn] == UNRECOGNISED:
             rows.append(row('C3', subject, codex, app, 'inconclusive', "the App's status is not one this comparison knows"))
+        elif shown[turn] == NO_STATUS:
+            rows.append(row('C3', subject, codex, app, 'inconclusive', 'the view shows this turn with no native status'))
         elif said == 'not reported':
             failed = shown[turn] in TERMINAL
             rows.append(row('C3', subject, codex, app, 'failed' if failed else 'passed',
@@ -434,90 +421,50 @@ def compare_stops(model, stops, unreadable):
     return rows
 
 
-def text_identity(record):
-    identity = record.get('text_identity') if isinstance(record.get('text_identity'), dict) else {}
-    return digest(identity.get('value')) if identity.get('method') == EXACT else UNRECOGNISED
-
-
-def compare_workflow(model, records, unreadable, manifest):
-    thread, rows, claimed = model['thread'], [], set()
-    for _ in range(unreadable):
-        rows.append(row('W1', {'thread': thread}, {'says': 'not compared'}, {'says': UNRECOGNISED, 'from': 'workflow records'}, 'blocked',
-                        'a workflow record could not be read; whether it belongs to this thread is not known'))
-    sharing = {}
-    for record in records:
-        sharing.setdefault(text_identity(record), []).append(record)
-    for record in records:
-        workflow = record.get('workflow') if isinstance(record.get('workflow'), dict) else {}
-        name, revision = workflow.get('name'), workflow.get('revision')
-        named = ident(name) != UNRECOGNISED and digest(revision) != UNRECOGNISED
-        rev = revision[:12] if named else None
-        subject = {'thread': thread, 'run': ident(record.get('run')), 'workflow': ident(name), 'revision': digest(revision)}
-        content = record.get('workflow_file', {}).get('content') if isinstance(record.get('workflow_file'), dict) else None
-        recorded = digest(content.get('value')) if isinstance(content, dict) and content.get('method') == EXACT else UNRECOGNISED
-        bundled = manifest_workflow(manifest, name, revision) if named else None
-        app = {'says': {'bundled': bundled or UNRECOGNISED, 'runText': recorded}, 'from': 'manifest; run_text record'}
-        value = text_identity(record)
-        if not named or bundled is None or recorded == UNRECOGNISED or value == UNRECOGNISED:
-            rows.append(row('W1', subject, {'says': 'not compared'}, app, 'blocked', 'the manifest or the run record does not name this workflow, its revision and its digests'))
-            continue
-        by_identity = [m for m in model['person'] if m['parts'] and sha256(m['parts'][0].encode()) == value]
-        if len(by_identity) == 1 and len(sharing[value]) == 1:
-            message = by_identity[0]
-            claimed.add(message['line'])
-            given = workflow_bytes(message['parts'][0], name, rev)
-            others = any(MARKER.search(p) for p in message['parts'][1:])
-            codex = {'says': sha256(given.encode()) if given is not None else 'no markers', 'from': 'person message', 'line': message['line'], 'identifiedBy': 'run text identity'}
-            if given is None:
-                rows.append(row('W1', subject, codex, app, 'failed', "the run's text does not carry this workflow's markers exactly once"))
-            elif others:
-                rows.append(row('W1', subject, codex, app, 'inconclusive', "the person's message carries another workflow block beside the run's text"))
-            elif bundled == recorded == codex['says']:
-                rows.append(row('W1', subject, codex, app, 'passed', "the three digests are equal: these bytes are what Codex recorded as the person's input"))
-            else:
-                rows.append(row('W1', subject, codex, app, 'failed', 'the workflow bytes Codex recorded differ from the bundled or recorded digest'))
-            continue
-        if len(by_identity) > 1 or len(sharing[value]) > 1:
-            for m in by_identity:
-                claimed.add(m['line'])
-            rows.append(row('W1', subject, {'says': 'not one message', 'from': 'session file'}, app, 'inconclusive',
-                            "this run's text is not carried by exactly one person message and one record"))
-            continue
-        # No message is this run's by identity. One message carrying this
-        # workflow's markers that no run claims can show a difference, never
-        # agreement.
-        candidates = [m for m in model['person'] if m['line'] not in claimed and m['parts'] and workflow_bytes(m['parts'][0], name, rev) is not None]
-        if len(candidates) == 1:
-            message = candidates[0]
-            claimed.add(message['line'])
-            codex = {'says': sha256(workflow_bytes(message['parts'][0], name, rev).encode()), 'from': 'person message', 'line': message['line'], 'identifiedBy': 'markers only'}
-            same = bundled == recorded == codex['says']
-            rows.append(row('W1', subject, codex, app, 'inconclusive' if same else 'failed',
-                            "the bytes agree, but no person message carries this run's whole text" if same
-                            else "no person message carries this run's text; the one carrying this workflow has other bytes"))
-        else:
-            rows.append(row('W1', subject, {'says': 'absent', 'from': 'session file'}, app, 'blocked',
-                            "no single person message carries this run's text or this workflow"))
-    for m in model['person']:
-        if m['line'] not in claimed and any(MARKER.search(p) for p in m['parts']):
-            rows.append(row('W1', {'thread': thread}, {'says': 'workflow given', 'from': 'person message', 'line': m['line']},
-                            {'says': 'no run record of it'}, 'inconclusive', "Codex recorded a workflow in the person's input that no run record accounts for"))
-    if not rows:
-        rows.append(row('W1', {'thread': thread}, {'says': 'no workflow given'}, {'says': 'no run record of this thread'}, 'not run',
-                        'no workflow run was started in this thread'))
-    return rows
-
-
-def records_rows(root, model, manifest):
-    """C4 and W1, each blocked on its own if its side cannot be read."""
-    rows = []
+def records_rows(root, model):
+    """C4, blocked on its own if the ledger cannot be read."""
     try:
         stops, bad = stop_records(root, model['thread'])
-        rows += compare_stops(model, stops, bad)
+        return compare_stops(model, stops, bad)
     except Refused as e:
-        rows.append(row('C4', {'thread': model['thread']}, {'says': 'read'}, {'says': 'not read'}, 'blocked', str(e)))
-    records, bad = run_text_records(root, model['thread'])
-    return rows + compare_workflow(model, records, bad, manifest)
+        return [row('C4', {'thread': model['thread']}, {'says': 'read'}, {'says': 'not read'}, 'blocked', str(e))]
+
+
+def run_text_records(root, thread):
+    """How many of the App's run text records name `thread`, and how many
+    workflow record files could not be read (any of which may)."""
+    found = unreadable = 0
+    for path in sorted(root.rglob('*.json')):
+        parts = path.relative_to(root).parts
+        if 'records' not in parts or 'workflow' not in parts:
+            continue
+        try:
+            value = json.loads(inside(root, path).read_text())
+        except Exception:
+            unreadable += 1
+            continue
+        records = value if isinstance(value, list) else [value.get('record', value)] if isinstance(value, dict) else None
+        if records is None or not all(isinstance(r, dict) for r in records):
+            unreadable += 1
+            continue
+        found += sum(1 for r in records if r.get('record_kind') == 'run_text' and r.get('conversation') == thread)
+    return found, unreadable
+
+
+def workflow_rows(root, model):
+    """One blocked W1 row where the session has a workflow run to compare (a
+    line of Codex's record carries the workflow markers, or a run text record
+    names the thread, or a workflow record could not be read), and none
+    otherwise. W1 is never compared, so it never passes."""
+    try:
+        found, unreadable = run_text_records(root, model['thread'])
+    except Exception:
+        found, unreadable = 0, 1
+    marked = model.get('workflow_marked_lines', 0)
+    if not (marked or found or unreadable):
+        return []
+    return [row('W1', {'thread': model['thread']}, {'linesWithWorkflowMarkers': number(marked)},
+                {'runTextRecords': number(found), 'unreadableWorkflowRecords': number(unreadable)}, 'blocked', NOT_AVAILABLE)]
 
 
 # --- The candidate's screen list ------------------------------------------------
@@ -578,7 +525,8 @@ def answered_rows(model, answers):
 
 def header(root, **extra):
     return {'header': True, 'candidate_key': candidate_key(root), 'examination_root': str(root), 'tool': TOOL,
-            'tool_sha256': tool_digest(), 'model_version': MODEL_VERSION, 'pinned_codex': PINNED_CODEX, **extra}
+            'tool_sha256': tool_digest(), 'model_version': MODEL_VERSION, 'pinned_codex': PINNED_CODEX,
+            'compares': COMPARES, 'workflow_comparison': NOT_AVAILABLE, **extra}
 
 
 def summary(rows):
@@ -586,16 +534,25 @@ def summary(rows):
     for r in rows:
         counts.setdefault(r['comparison'], {}).setdefault(r['outcome'], 0)
         counts[r['comparison']][r['outcome']] += 1
-    return {'summary': counts, 'unrecognised': sum(1 for r in rows if has_unrecognised(r))}
+    return {'summary': counts, 'unrecognised': sum(1 for r in rows if has_unrecognised(r)),
+            'compares': COMPARES, 'workflow_comparison': NOT_AVAILABLE}
 
 
-def write(root, stem, head, body, with_summary=True):
-    """A new file in record/, never over an existing one."""
+def write(root, stem, head, body, with_summary=True, fallback=False):
+    """A new file in record/, never over an existing one. A summary is written
+    only if it agrees with its rows and every planned comparison has one. The
+    fallback's summary is counted from its own blocked rows alone, with none
+    of that checking to fail."""
     record = root / 'record'
     if record.is_symlink() or record.resolve() != record:
         raise Refused("record/ does not resolve to the root's own record folder")
     lines = [head] + body
-    if with_summary:
+    if fallback:
+        counts = {}
+        for r in body:
+            counts.setdefault(r['comparison'], {'blocked': 0})['blocked'] += 1
+        lines.append({'summary': counts, 'unrecognised': 0, 'compares': COMPARES, 'workflow_comparison': NOT_AVAILABLE})
+    elif with_summary:
         total = summary(body)
         if sum(sum(v.values()) for v in total['summary'].values()) != len(body) or not {r['comparison'] for r in body} >= set(PLANNED):
             raise Refused('the summary would not agree with the rows, or a planned comparison has no row')
@@ -613,7 +570,13 @@ def write(root, stem, head, body, with_summary=True):
     raise Refused('no new file name was free in record/')
 
 
-def run_compare(root, thread, views, manifest):
+def unnamed_views(root, named):
+    """Saved views in record/ that this run was not given: said, never silently passed over."""
+    given = {Path(v).resolve() for v in named}
+    return sorted(ident(p.name) for p in (root / 'record').glob('host-status-*.json') if p.resolve() not in given)
+
+
+def run_compare(root, thread, views):
     """(rows, None) with a saved view; (None, (model, digest)) on a candidate."""
     try:
         model, session_sha = read_session(root, thread)
@@ -629,10 +592,10 @@ def run_compare(root, thread, views, manifest):
         except Refused as e:
             for c in ('C2', 'C3'):
                 rows.append(row(c, {'thread': thread}, {'says': 'read'}, {'says': 'not read', 'from': 'view', 'at': at}, 'blocked', str(e)))
-    return rows + records_rows(root, model, manifest), None
+    return rows + records_rows(root, model) + workflow_rows(root, model), None
 
 
-def run_answers(root, screen, manifest):
+def run_answers(root, screen):
     try:
         lines = [json.loads(l) for l in inside(root, screen).read_text().splitlines() if l.strip()]
         thread = lines[0]['thread']
@@ -644,15 +607,7 @@ def run_answers(root, screen, manifest):
         model, _ = read_session(root, thread)
     except Refused as e:
         return blocked_all(thread, str(e))
-    rows = answered_rows(model, lines[1:])
-    return rows + records_rows(root, model, manifest)
-
-
-def load_manifest(path):
-    try:
-        return json.loads(Path(path).read_text())
-    except Exception:
-        return None
+    return answered_rows(model, lines[1:]) + records_rows(root, model) + workflow_rows(root, model)
 
 
 def main(argv=None):
@@ -662,12 +617,21 @@ def main(argv=None):
     c.add_argument('--root', required=True)
     c.add_argument('--thread', required=True)
     c.add_argument('--view', action='append', default=[], help='a saved host_status answer under record/, taken after the session ended')
-    c.add_argument('--manifest', required=True, help='the bundled MANIFEST.json of the build examined')
-    a = sub.add_parser('answers', help="the candidate's complete result: the operator's answers, with C4 and W1")
+    a = sub.add_parser('answers', help="the candidate's complete result: the operator's answers, with C4")
     a.add_argument('--root', required=True)
     a.add_argument('--screen', required=True)
-    a.add_argument('--manifest', required=True)
+    for parser in (c, a):
+        parser.add_argument('--comparison', action='append', default=[],
+                            help='a comparison asked for by name (C2, C3 or C4; all three are always made). '
+                                 'The workflow comparison is not available in this version.')
     args = p.parse_args(argv)
+    for name in args.comparison:
+        if name.strip().lower() in WORKFLOW_NAMES:
+            print(f'refused: {NOT_AVAILABLE}', file=sys.stderr)
+            return 2
+        if name not in PLANNED:
+            print('refused: this tool has no comparison of that name', file=sys.stderr)
+            return 2
     try:
         root = examination_root(args.root)
     except Refused as e:
@@ -675,24 +639,26 @@ def main(argv=None):
         return 2
     thread = getattr(args, 'thread', None)
     try:
-        manifest = load_manifest(args.manifest)
+        unnamed = unnamed_views(root, getattr(args, 'view', []))
+        if unnamed:
+            print(f'note: saved views in record/ not named in this run: {", ".join(unnamed)}', file=sys.stderr)
         if args.command == 'compare':
-            rows, pending = run_compare(root, args.thread, args.view, manifest)
+            rows, pending = run_compare(root, args.thread, args.view)
             if pending is not None:
                 model, session_sha = pending
-                print(write(root, 'screen-list', header(root, thread=args.thread, session_sha256=session_sha),
+                print(write(root, 'screen-list', header(root, thread=args.thread, session_sha256=session_sha, saved_views_not_named=unnamed),
                             [{**i, 'answer': None, 'note': None} for i in screen_items(model)], with_summary=False))
                 return 0
-            print(write(root, 'session-comparison', header(root), rows))
+            print(write(root, 'session-comparison', header(root, saved_views_not_named=unnamed), rows))
             return 0
-        rows = run_answers(root, args.screen, manifest)
-        print(write(root, 'session-comparison', header(root, answers_of=ident(Path(args.screen).name)), rows))
+        rows = run_answers(root, args.screen)
+        print(write(root, 'session-comparison', header(root, answers_of=ident(Path(args.screen).name), saved_views_not_named=unnamed), rows))
         return 0
     except Exception as e:
         # Nothing ends without rows: the failure's kind, and no more.
         reason = str(e) if isinstance(e, Refused) else f'the comparison failed ({e.__class__.__name__})'
         try:
-            print(write(root, 'session-comparison', header(root), blocked_all(thread, reason)))
+            print(write(root, 'session-comparison', header(root), blocked_all(thread, reason), fallback=True))
             return 1
         except Exception as inner:
             print(f'refused: no result could be written ({inner.__class__.__name__})', file=sys.stderr)
