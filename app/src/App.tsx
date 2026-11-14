@@ -1,4 +1,4 @@
-import { AgentText, RecordedData, idWords, numberWords, safeName, wordOf } from "./AgentText";
+import { AgentText, ConversationChoices, RecordedData, idWords, numberWords, safeName, wordOf } from "./AgentText";
 import { ActionFeedback } from "./ActionFeedback";
 import { LOCAL_ENTRY, LOCAL_FORK_AVAILABLE, LOCAL_FORK_UNAVAILABLE, LOCAL_MODE, LocalProviderAccess, generationKey, localRoute, localViewFrom, readAttemptedLocalEntries, recordAttemptedLocalEntry, forgetAttemptedLocalEntry, type LocalView } from "./LocalProviderAccess";
 import { NativeWaitingBridge } from "./NativeWaitingBridge";
@@ -44,7 +44,7 @@ import { acknowledgeBringBackDoubt, beginBringBack, bringBackRefusal, doubtDesti
 import { AccessRouteChoice, AvailableModels, OfferedEffortChoice, modelMatch, validModelPacket } from "./ModelChoice";
 /** One App-composed message for the person to edit and send; never sent by the App. */
 export type ComposerOffer = { sequence: number; threadKey: string; text: string };
-import { conversationTitle, DIGEST_LIMIT, digestComparison, nativePathText, readablePaths, reviewDigest, suppliedSummary, type ReviewDigestView, conversationLabel } from "./presentation";
+import { conversationTitle, DIGEST_LIMIT, digestComparison, nativePathText, readablePaths, reviewDigest, storedRelation, suppliedSummary, suppliedTitle, threadChoices, type ReviewDigestView, conversationLabel } from "./presentation";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -363,10 +363,8 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
     : "The selected live turn can be interrupted. This does not end a workflow run or prove that child work has stopped.";
   return <section id="conversation" aria-labelledby="conversation-heading">
     <h2 id="conversation-heading">Conversation</h2>
-    <label>Current-generation conversation <select disabled={!!ownBusy} value={threadKey} onChange={e => { setThreadKey(e.target.value); setTurnId(""); setError(""); }}>
-      <option value="">Select a conversation</option>
-      {currentThreads.map((thread: Json) => <option key={JSON.stringify([thread.generation, thread.threadId])} value={JSON.stringify([thread.generation, thread.threadId])}>{conversationLabel(host, thread)} via {thread.modelProvider ?? "provider not reported"}</option>)}
-    </select></label>
+    <ConversationChoices legend="Current-generation conversation" group="current-conversation" disabled={!!ownBusy} chosen={threadKey}
+      value={threadChoices(currentThreads, (thread: Json) => JSON.stringify([thread.generation, thread.threadId]))} onChoose={key => { setThreadKey(key); setTurnId(""); setError(""); }} />
     {selected && <details className="conversation-identity"><summary>Exact conversation ID</summary><code>{selected.threadId}</code></details>}
     {selected && <details className="conversation-options"><summary>Role and continuation options</summary><RoleHeader key={`role-header:${JSON.stringify([selected.generation, selected.threadId])}`} thread={selected} limits={host?.roleLimits} busy={!!busy || forkBusy} ready={host?.state === "ready"} trialConversation={trialConversation} trialsStartedHere={trialsStartedHere}
       readSupplyHistory={() => invoke("role_supply_history", { generation: selected.generation, thread: selected.threadId })}
@@ -705,7 +703,9 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureCo
     <p id="history-search-count" className="history-hint" role="status">{matches.length} matching of {received.length} received conversations. Search checks received names, previews and IDs only; it does not fetch other pages.</p>
     {received.length === 0 && <p>{history?.listPage ? "No conversation rows are available from the received list. Other pages or homes may contain more." : "No conversations have been received here yet. Select Read stored conversations to request a page."}</p>}
     {query && matches.length === 0 && received.length > 0 && <p>No received conversation matches. Clear the search or explicitly read another page.</p>}
-    <p><label>Stored conversation <select aria-describedby="history-guidance history-search-count" value={selected?.threadId ?? ""} disabled={!available || busy} onChange={e => select(e.target.value)}><option value="">Select a received conversation</option>{matches.map((row: Json) => <option key={row.native.id} value={row.native.id}>{conversationTitle(row.native, "Untitled conversation")} · {row.native.status?.type ?? "status not reported"}</option>)}{outsideFilter && <option value={selected.threadId}>{conversationTitle(retainedSelection?.native ?? selectedDescription, "Selected conversation")} · selected{retainedSelection ? " — outside this search" : " — not in the received list"}</option>}</select></label></p>
+    <ConversationChoices legend="Stored conversation" group="stored-conversation" describedBy="history-guidance history-search-count" chosen={selected?.threadId ?? ""} disabled={!available || busy} onChoose={key => { void select(key); }}
+      value={[...matches.map((row: Json) => ({ key: row.native.id, id: row.native.id, title: suppliedTitle(row.native), status: row.native.status?.type ?? null, relation: storedRelation(row.native) })),
+        ...(outsideFilter ? [{ key: selected.threadId, id: selected.threadId, title: suppliedTitle(retainedSelection?.native ?? selectedDescription), relation: storedRelation(retainedSelection?.native ?? selectedDescription), retained: retainedSelection ? "outside-search" as const : "not-received" as const }] : [])]} />
     {outsideFilter && <p>The selected conversation stays selected. Filtering does not change which conversation you inspect or continue.</p>}
     {history?.listError && <p role="alert">The conversation list could not be refreshed. Received rows are retained observations, not a successful refresh. See History dispatch and pending/error evidence below for the source error.</p>}
     </div>
@@ -1072,7 +1072,8 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
       <ConversationContext label="Workflow chat context" host={host} reference={chatChoice?.reference ?? null} workflow
         empty={!thread ? "No chat — library inspection." : undefined} limit={chatChoiceLimit || workflowSourceLimit(host)} />
     </aside>
-    <label>Workflow chat <select value={thread} onChange={e=>chooseWorkflowChat(e.target.value)} disabled={busy}><option value="">No chat — inspect library content</option>{(host?.threads??[]).filter((entry:Json)=>JSON.stringify(entry.generation)===JSON.stringify(host?.generation)).map((entry:Json)=><option key={entry.threadId} value={entry.threadId}>{entry.threadId} · {entry.modelProvider}/{entry.model}</option>)}</select></label>
+    <ConversationChoices legend="Workflow chat" group="workflow-chat" chosen={thread} onChoose={chooseWorkflowChat} disabled={busy} none="No chat — inspect library content"
+      value={threadChoices((host?.threads??[]).filter((entry:Json)=>JSON.stringify(entry.generation)===JSON.stringify(host?.generation)), (entry:Json)=>entry.threadId)} />
     {chatChoiceLimit && <button type="button" disabled={busy} onClick={()=>chooseWorkflowChat("")}>Use No chat — inspect library content</button>}
     <p>{thread ? "This chat keeps its own pending workflow selection. Started runs keep their own revision." : "Library browsing is shared. Inspection here selects no workflow for a new chat."}</p>
     <section className="workflow-stage" aria-label="Choose workflow content and library"><h3>1. Choose content and a library</h3>

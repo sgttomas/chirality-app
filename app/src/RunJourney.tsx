@@ -1,5 +1,5 @@
-import { AgentText, idWords, safeName, wordOf } from "./AgentText";
-import { conversationLabel, nativePathText } from "./presentation";
+import { AgentText, ConversationChoices, idWords, safeName, wordOf } from "./AgentText";
+import { nativePathText, threadChoices } from "./presentation";
 import { hostRequests, requestThread } from "./RequestCards";
 import { errorWords } from "./NativeActivity";
 import { chatWorkflow, workflowAssurance, workflowContext } from "./workflowSelection";
@@ -406,10 +406,8 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
           : <p><a href="#desktop-setup">Choose a project in Desktop setup</a> — the choice applies when you next open the App. Or open any workflow library from the workflow studio below.</p>}
       </li>
       <li aria-labelledby="run-conversation-heading"><h3 id="run-conversation-heading">Conversation</h3>
-        {conversations.length ? <label>Conversation to run it in <select value={thread} disabled={!canAct} onChange={event => chooseThread(event.target.value)}>
-          <option value="">Choose a conversation</option>
-          {conversations.map((row: Json) => <option key={row.threadId} value={row.threadId}>{conversationLabel(host, row)}</option>)}
-        </select></label> : <p>No conversation in this session yet. <a href="#workspace-start">Start a new conversation</a>, then choose it here.</p>}
+        {conversations.length ? <ConversationChoices legend="Conversation to run it in" group="run-conversation" chosen={thread} disabled={!canAct} onChoose={chooseThread}
+          value={threadChoices(conversations, (row: Json) => row.threadId)} /> : <p>No conversation in this session yet. <a href="#workspace-start">Start a new conversation</a>, then choose it here.</p>}
         {thread && <details className="conversation-identity"><summary>Exact conversation ID</summary><code>{thread}</code></details>}
         <p><small>The workflow runs inside this conversation; you answer its questions there.</small></p>
       </li>

@@ -1,4 +1,5 @@
 import type { CSSProperties } from "react";
+import { THREAD_STATUS } from "./nativeWords";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 // Text the App did not write, shown so it cannot pass for the App's own words,
@@ -172,4 +173,131 @@ export function Num({ value, source = "codex", label = "Codex sent:", name = "A 
 export function Flag({ value, yes, no, source = "codex", label = "Codex sent:", name = "A value Codex sent where yes or no was expected, not the App's words" }: { value: Json; yes: string; no: string; source?: AgentTextSource; label?: string; name?: string }) {
   if (value === null || value === undefined) return <i>not recorded</i>;
   return value === true ? <>{yes}</> : value === false ? <>{no}</> : <AgentText value={value} source={source} label={label} name={name} />;
+}
+
+// A choice among conversations (the controls rule: a control's name holds only the App's words). A conversation's
+// title is text Codex supplied and an <option> cannot hold a box, so a choice is a list of native radio buttons: each
+// radio button is named by the App's words alone ("Conversation" and a shortened plain identifier), and only that
+// radio button and its words are clickable. The title, model and provider stand outside the label, boxed. The
+// radio button's accessible description is the one place supplied text is attached to the control: as a description,
+// never its name, beginning with the App's attribution ("Title supplied by Codex: …") and with every line break,
+// control or direction character shown as a mark, as in a box.
+
+/** One conversation offered: `key` is what choosing it submits; every other field is shown as Codex reported it. */
+export type ConversationChoice = {
+  key: string;
+  /** The conversation's identity (thread ID) as Codex reported it. */
+  id: unknown;
+  /** Its name, or its first message, as Codex supplied it. */
+  title?: unknown;
+  /** Shown only when the field is present (null shows "not reported"). */
+  model?: unknown;
+  provider?: unknown;
+  /** ThreadStatus's type; shown only when the field is present (null shows "not recorded"). */
+  status?: unknown;
+  /** The relationship as recorded (a fork's source, a spawned child's parent), never read from the title. */
+  relation?: { kind: "child" | "fork"; id: unknown } | null;
+  /** A chosen conversation kept in the list though the current list would not show it. */
+  retained?: "outside-search" | "not-received";
+};
+
+/** The longest title shown: a longer one is shown as its first characters, with the count said in the box's label. */
+export const CHOICE_TITLE_LIMIT = 120;
+/** The fewest characters of an identifier shown when it is shortened. */
+export const SHORT_ID_MIN = 8;
+
+/** The title as shown in a choice: at most CHOICE_TITLE_LIMIT characters (whole code points), and how many there are. */
+export function boundedTitle(value: unknown): { text: string; total: number; shortened: boolean } | null {
+  const text = agentTextValue(value as Json);
+  if (!text) return null;
+  const points = [...text];
+  return points.length > CHOICE_TITLE_LIMIT ? { text: points.slice(0, CHOICE_TITLE_LIMIT).join(""), total: points.length, shortened: true } : { text, total: points.length, shortened: false };
+}
+const titleAttribution = (title: { total: number; shortened: boolean }) => title.shortened ? `Title supplied by Codex (its first ${CHOICE_TITLE_LIMIT} of ${title.total} characters)` : "Title supplied by Codex";
+
+/** Each identity's shortest form that tells it apart in the list: the shortest prefix of at least SHORT_ID_MIN
+ * characters that no other identity in the list begins with, followed by … when shortened; the whole identity when
+ * no prefix does; null for an identity that is not a plain identifier. */
+export function shortIds(ids: readonly unknown[]): (string | null)[] {
+  const plain = ids.map(id => plainId(typeof id === "number" && Number.isSafeInteger(id) ? String(id) : id));
+  return plain.map((id, i) => {
+    if (id === null) return null;
+    const others = plain.filter((other, j) => j !== i && other !== null) as string[];
+    for (let n = Math.min(SHORT_ID_MIN, id.length); n <= id.length; n++) {
+      const prefix = id.slice(0, n);
+      if (others.every(other => other.slice(0, n) !== prefix)) return n < id.length ? `${prefix}…` : prefix;
+    }
+    return id;
+  });
+}
+
+/** The App's words naming one choice: its shortened identifier, or its place in the list when the identity is not a
+ * plain identifier (the identity is then shown beside, boxed), and the recorded relationship. */
+export function choiceLabels(rows: readonly ConversationChoice[]): string[] {
+  const shorts = shortIds(rows.map(row => row.id));
+  const plain = rows.map(row => plainId(row.id));
+  const shortOf = (id: unknown): string => {
+    const p = plainId(id);
+    if (p === null) return "a conversation whose identity is shown beside";
+    const at = plain.indexOf(p);
+    return `conversation ${at >= 0 ? shorts[at] : p}`;
+  };
+  return rows.map((row, i) => {
+    const repeated = plain[i] !== null && plain.filter(p => p === plain[i]).length > 1;
+    const own = shorts[i] === null ? `Conversation ${i + 1} (identity shown beside)` : `Conversation ${shorts[i]}${repeated ? ` (entry ${i + 1}; this identity is listed more than once)` : ""}`;
+    const relation = row.relation ? `, ${row.relation.kind === "child" ? "child" : "fork"} of ${shortOf(row.relation.id)}` : "";
+    return own + relation;
+  });
+}
+
+/** The accessible description of one choice: each supplied value after the App's attribution, every mark in place. */
+export function choiceDescription(row: ConversationChoice): string {
+  const title = boundedTitle(row.title);
+  const parts = [title ? `${titleAttribution(title)}: ${agentTextShown(title.text)}` : "No title supplied by Codex"];
+  const supplied = (words: string, value: unknown) => { if (value !== null && value !== undefined) parts.push(`${words}: ${agentTextShown(agentTextValue(value as Json))}`); };
+  supplied("Model reported by Codex", row.model);
+  supplied("Provider reported by Codex", row.provider);
+  if (row.status !== undefined && row.status !== null) {
+    const word = wordOf(THREAD_STATUS, row.status);
+    parts.push(word !== null ? `Status: ${word}` : `Status reported by Codex: ${agentTextShown(agentTextValue(row.status as Json))}`);
+  }
+  if (plainId(row.id) === null) supplied("Identity reported by Codex", row.id);
+  if (row.relation && plainId(row.relation.id) === null) supplied("Recorded identity of the related conversation", row.relation.id);
+  return parts.join(". ");
+}
+
+const RETAINED_WORDS = { "outside-search": "chosen — outside this search", "not-received": "chosen — not in the received list" } as const;
+const choiceRowStyle: CSSProperties = { display: "block", margin: "2px 0" };
+
+/**
+ * A choice among conversations, as native radio buttons in a fieldset with the App's legend. `value` is the list
+ * offered; `chosen` is the key chosen ("" for none); `onChoose` is called with a key; `none`, when given, offers a
+ * first choice submitting "" and is named by those words; `group` is the radio buttons' shared name, unique on the
+ * page. Hookless, so a view that is walked as an element tree can hold it.
+ */
+export function ConversationChoices({ legend, value, chosen, onChoose, group, disabled = false, none, describedBy, style }: {
+  legend: string; value: readonly ConversationChoice[]; chosen: string; onChoose: (key: string) => void; group: string;
+  disabled?: boolean; none?: string; describedBy?: string; style?: CSSProperties;
+}) {
+  const rows: readonly ConversationChoice[] = Array.isArray(value) ? value : [];
+  const labels = choiceLabels(rows);
+  return <fieldset className="conversation-choices" disabled={disabled} aria-describedby={describedBy} style={{ border: "none", padding: 0, margin: "4px 0", ...style }}>
+    <legend>{legend}</legend>
+    {none !== undefined && <div className="conversation-choice" style={choiceRowStyle}>
+      <label><input type="radio" name={group} value="" checked={chosen === ""} disabled={disabled} onChange={() => onChoose("")} /> {none}</label>
+    </div>}
+    {rows.map((row, i) => {
+      const title = boundedTitle(row.title);
+      return <div key={row.key} className="conversation-choice" style={choiceRowStyle}>
+        <label><input type="radio" name={group} value={row.key} checked={chosen === row.key} disabled={disabled} onChange={() => onChoose(row.key)} aria-description={choiceDescription(row)} /> {labels[i]}</label>
+        {plainId(row.id) === null && <>{" "}<AgentText value={row.id} source="codex" label="Identity:" name="The conversation's identity as Codex reported it, not the App's words" /></>}
+        {row.relation && plainId(row.relation.id) === null && <>{" "}<AgentText value={row.relation.id} source="record" label="Related conversation:" name="The recorded identity of the related conversation" /></>}
+        {" "}{title ? <AgentText value={title.text} source="codex" label={`${titleAttribution(title)}:`} name="The conversation's title or first message as Codex supplied it, not the App's words" /> : <i>no title supplied</i>}
+        {row.model !== undefined && <>{" "}{row.model !== null ? <AgentText value={row.model} source="codex" label="Model:" name="The model as Codex reported it, not the App's words" /> : <i>model not reported</i>}</>}
+        {row.provider !== undefined && <>{" "}{row.provider !== null ? <AgentText value={row.provider} source="codex" label="Provider:" name="The provider as Codex reported it, not the App's words" /> : <i>provider not reported</i>}</>}
+        {row.status !== undefined && <>{" "}<small>Status: <Word value={row.status} words={THREAD_STATUS} /></small></>}
+        {row.retained && <>{" "}<small>{RETAINED_WORDS[row.retained]}</small></>}
+      </div>;
+    })}
+  </fieldset>;
 }

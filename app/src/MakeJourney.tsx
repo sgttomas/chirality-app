@@ -1,6 +1,6 @@
-import { idWords, safeName } from "./AgentText";
+import { ConversationChoices, idWords, safeName } from "./AgentText";
 import { useEffect, useRef, useState } from "react";
-import { conversationLabel, nativePathText } from "./presentation";
+import { conversationLabel, nativePathText, threadChoices } from "./presentation";
 import { draftStateWords } from "./WorkflowDrafts";
 import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./preparedMessages";
 import { cleanTrialAnchor } from "./TrialComposer";
@@ -293,10 +293,8 @@ export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPr
     {readFailure && <p role="alert" aria-label="Last status read failed">The App's last read of its state failed ({readFailure}). What is shown here was read before that.</p>}
     <ol className="run-journey-steps">
       <li><h3>Where you did the work</h3>
-        {conversations.length ? <label>Conversation with the work <select value={conversation} disabled={!canAct} onChange={event => setConversation(event.target.value)}>
-          <option value="">Choose a conversation</option>
-          {conversations.map((row: Json) => { const key = JSON.stringify([row.generation, row.threadId]); return <option key={key} value={key}>{conversationLabel(host, row)}</option>; })}
-        </select></label> : <p>No conversation in this session yet. <a href="#workspace-start">Start one</a> and do the work there first.</p>}
+        {conversations.length ? <ConversationChoices legend="Conversation with the work" group="make-conversation" chosen={conversation} disabled={!canAct} onChoose={setConversation}
+          value={threadChoices(conversations, (row: Json) => JSON.stringify([row.generation, row.threadId]))} /> : <p>No conversation in this session yet. <a href="#workspace-start">Start one</a> and do the work there first.</p>}
         {chosen && <details className="conversation-identity"><summary>Exact conversation ID</summary><code>{chosen.threadId}</code></details>}
       </li>
       <li><h3>Where the draft goes</h3>

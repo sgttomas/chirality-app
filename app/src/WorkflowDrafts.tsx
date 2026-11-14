@@ -1,7 +1,7 @@
-import { AgentText, idWords, numberWords, safeName } from "./AgentText";
+import { AgentText, ConversationChoices, idWords, numberWords, safeName } from "./AgentText";
 import { useRef, useState } from "react";
 import { isRecordedRun, runLearningLimit } from "./RunPanel";
-import { ConversationSelect, conversationKey, conversationName, findConversation } from "./TrialComposer";
+import { conversationChoices, conversationKey, conversationName, findConversation } from "./TrialComposer";
 import { ConversationContext, conversationFromKey } from "./WorkflowContext";
 import { beginBringBack, bringBackHeld, endBringBack } from "./bringBackDoubts";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -154,7 +154,7 @@ export function TrialRow({ trial, conversations, bringBacks = [], busy, act, sta
       {trial.readAgain?.offered === false
         ? <small>Read again is not offered: {text(trial.readAgain.reason)}. </small>
         : <><button disabled={busy} onClick={() => { void act("workflow_trial_read", { reference }); }}>Read again</button>{" "}</>}
-      <ConversationSelect label="Bring back to" conversations={conversations} value={target} setValue={key => update({ bbTarget: { ...state.bbTarget, [reference]: key } })} disabled={busy} />{" "}
+      <ConversationChoices legend="Bring back to" group={`trial-bring-back-${text(reference)}`} value={conversationChoices(conversations)} chosen={target} onChoose={key => update({ bbTarget: { ...state.bbTarget, [reference]: key } })} disabled={busy} none="No conversation chosen" />
       <label><input type="checkbox" checked={includeNative} disabled={busy} onChange={e => update({ bbNative: { ...state.bbNative, [reference]: e.target.checked } })} /> include native items</label>{" "}
       <button disabled={busy || !!trial.live || !chosen || !!trial.sourceLimit || !!doubt || !!prepared} onClick={bringBack}>Bring trial back</button>
       {doubt && <small> Its last send to that conversation wasn't confirmed and may have arrived; check it, then confirm in the Make a workflow guide or the conversation before bringing it back again.</small>}
@@ -297,8 +297,8 @@ export function WorkflowDraftsList({ data, workspace, pointerLimits, conversatio
     <p>Drafts are folders under <code>.chirality/workflow-drafts/</code> of the open library. A draft has no workflow identity: a trial mirrors a run of its content but is never a run, and only a registered revision runs.</p>
     <button disabled={busy || !workspace} onClick={() => { void act("workflow_open_project_library", {}); }}>Open this App project’s workflow library</button>{" "}
     <button disabled={busy || !data} onClick={() => { void act("workflow_observe_drafts", {}); }}>Refresh draft list</button>
-    <p><ConversationSelect label="Authoring conversation" conversations={conversations} value={state.authoring} setValue={authoring => update({ authoring })} disabled={busy} none="None chosen" />
-      <small> The conversation that tries a draft with its agent, and the default place a trial is brought back to.</small></p>
+    <div><ConversationChoices legend="Authoring conversation" group="authoring-conversation" value={conversationChoices(conversations)} chosen={state.authoring} onChoose={authoring => update({ authoring })} disabled={busy} none="None chosen" />
+      <small> The conversation that tries a draft with its agent, and the default place a trial is brought back to.</small></div>
     <ConversationContext label="Authoring choice for new trials" host={contextHost} reference={conversationFromKey(state.authoring)} workflow limit={authoringContextLimit}
       empty={!state.authoring ? "None chosen for new trials or default feedback." : undefined} />
     <p><small>This choice supplies new-trial and feedback defaults; it does not identify who authored a draft or relocate a prepared composer.</small></p>

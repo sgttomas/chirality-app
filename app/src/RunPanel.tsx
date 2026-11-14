@@ -1,8 +1,8 @@
-import { RecordedData, idWords, safeName, wordOf } from "./AgentText";
+import { ConversationChoices, RecordedData, idWords, safeName, wordOf } from "./AgentText";
 import { workflowAssurance } from "./workflowSelection";
 import { useState } from "react";
 import { beginBringBack, bringBackHeld, endBringBack } from "./bringBackDoubts";
-import { ConversationSelect, conversationKey, conversationReference, findConversation } from "./TrialComposer";
+import { conversationChoices, conversationKey, conversationReference, findConversation } from "./TrialComposer";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 // The run panel's readable parts (DEL-01-04 NIR §9 PD-1…PD-7, placing
@@ -471,7 +471,7 @@ export function RunBringBackView({ run, conversations, target, setTarget, includ
   const limit = runLearningLimit(run, "bringBack");
   const doubt = chosen ? bringBackHeld("run", text(run?.reference ?? run?.run), { generation: chosen.generation, threadId: chosen.threadId }) : null;
   return <div aria-label="Bring a real run back">
-    <ConversationSelect label="Bring back to" conversations={conversations} value={target} setValue={setTarget} disabled={busy} />{" "}
+    <ConversationChoices legend="Bring back to" group={`run-bring-back-${text(run?.reference ?? run?.run)}`} value={conversationChoices(conversations)} chosen={target} onChoose={setTarget} disabled={busy} none="No conversation chosen" />
     <label><input type="checkbox" checked={includeNative} disabled={busy} onChange={e => setIncludeNative(e.target.checked)} /> include native items</label>{" "}
     <button disabled={busy || !chosen || !!limit || !!doubt} onClick={() => {
       const runRef = run?.reference ?? run?.run;

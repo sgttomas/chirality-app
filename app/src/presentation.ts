@@ -2,6 +2,8 @@
 // only: nothing here is sent to the host, and identities and comparisons keep
 // the exact values the host reported.
 
+import type { ConversationChoice } from "./AgentText";
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type Json = any;
 
@@ -197,4 +199,24 @@ export function conversationLabel(host: Json, row: Json): string {
   const ordinal = current.findIndex((t: Json) => t?.threadId === row?.threadId) + 1;
   const title = conversationTitle(row, ordinal > 0 ? `Conversation ${ordinal}` : "Conversation");
   return `${title} · ${row?.model ?? "model not reported"}`;
+}
+
+/** A conversation's title as Codex supplied it: its name, else its first message (a blank one is skipped). Shown
+ * only boxed (AgentText, ConversationChoices). */
+export const suppliedTitle = (row: Json): string | null => [row?.name, row?.preview].find(value => typeof value === "string" && value.trim() !== "") ?? null;
+
+/** The App's started conversations (the host's thread rows) offered as choices (ConversationChoices): model and
+ * provider as reported, and a fork's source from the App's own fork record, never from the title. */
+export function threadChoices(rows: Json, keyOf: (row: Json) => string): ConversationChoice[] {
+  return (Array.isArray(rows) ? rows : []).map((row: Json) => ({
+    key: keyOf(row), id: row?.threadId, title: suppliedTitle(row), model: row?.model ?? null, provider: row?.modelProvider ?? null,
+    relation: row?.forkedFrom && typeof row.forkedFrom === "object" ? { kind: "fork" as const, id: row.forkedFrom.threadId } : null,
+  }));
+}
+
+/** A stored conversation's recorded relationship (Codex's Thread): a spawned child's parent, else a fork's source. */
+export function storedRelation(thread: Json): ConversationChoice["relation"] {
+  const parent = thread?.source?.subAgent?.thread_spawn?.parent_thread_id;
+  if (parent !== null && parent !== undefined) return { kind: "child", id: parent };
+  return thread?.forkedFromId !== null && thread?.forkedFromId !== undefined ? { kind: "fork", id: thread.forkedFromId } : null;
 }

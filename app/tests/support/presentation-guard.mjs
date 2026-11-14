@@ -27,9 +27,12 @@ export const TRUSTED = {
     // Functions whose result is the App's words, a checked identifier or a checked number.
     functions: ['plainId', 'idWords', 'wordOf', 'numberWords', 'isoSeconds', 'safeName'],
     // Components that draw a supplied value: boxed, or as the App's words only for a value they check at run time.
-    components: ['AgentText', 'SuppliedId', 'Word', 'Num', 'Flag'],
+    components: ['AgentText', 'SuppliedId', 'Word', 'Num', 'Flag', 'ConversationChoices'],
   },
 };
+/** Attributes of an approved presentation that it compares, calls or uses as a radio group's name, and never draws or
+ * exposes as a name or description: ConversationChoices submits and compares keys, and its group is a name= attribute. */
+export const UNDRAWN_ATTRIBUTES = {ConversationChoices: ['chosen', 'onChoose', 'disabled', 'group']};
 /** Anchor builders: an element id made from a supplied identity by hex encoding, never shown as text. Trusted only in
  * attributes that hold an id or a link target. */
 export const ANCHOR_FUNCTIONS = {'./NativeActivity': ['itemAnchorId', 'requestAnchorId', 'runEvidenceAnchor']};
@@ -335,7 +338,7 @@ export function findings(name, text, mode = 'page') {
       const expr = a.initializer.expression;
       // An approved presentation takes any value to present; its other attributes (label, name, words…) are the App's.
       if (trustedComponent) {
-        if (attribute === 'value' || STYLE_ATTRIBUTES.has(attribute)) continue;
+        if (attribute === 'value' || STYLE_ATTRIBUTES.has(attribute) || (UNDRAWN_ATTRIBUTES[tag] ?? []).includes(attribute)) continue;
         if (attribute === 'words' && isWordTable(expr, context)) continue;
         if (!appMade(expr, context)) record(expr, `@${attribute}`);
         continue;

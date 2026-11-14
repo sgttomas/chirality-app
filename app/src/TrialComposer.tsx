@@ -1,4 +1,5 @@
-import { AgentText, idWords, numberWords, safeName } from "./AgentText";
+import { AgentText, ConversationChoices, idWords, numberWords, safeName } from "./AgentText";
+import { threadChoices } from "./presentation";
 import { useState } from "react";
 import { ConnectionAndModel, RoleChoice, type SendState, type StartChoice } from "./ConversationRoles";
 import { useBoundModelChoice, type BoundModelChoice, type ModelRoute } from "./ModelChoice";
@@ -37,13 +38,8 @@ export function findConversation(conversations: Json[], ref: Json): Json | null 
 }
 export const conversationName = (ref: Json): string => text(typeof ref === "string" ? ref : ref?.threadId) || "not reported";
 
-/** A select over this App's started conversations. */
-export function ConversationSelect({ label, conversations, value, setValue, disabled, none = "No conversation chosen" }: { label: string; conversations: Json[]; value: string; setValue: (key: string) => void; disabled?: boolean; none?: string }) {
-  return <label>{label} <select value={value} disabled={disabled} onChange={e => setValue(e.target.value)}>
-    <option value="">{none}</option>
-    {list(conversations).map((c: Json) => <option key={conversationKey(c)} value={conversationKey(c)}>{text(c.threadId)} · {text(c.model) || "model not reported"} via {text(c.modelProvider) || "provider not reported"}</option>)}
-  </select></label>;
-}
+/** This App's started conversations as choices (ConversationChoices), keyed as the panel keys them. */
+export const conversationChoices = (conversations: Json[]) => threadChoices(list(conversations), conversationKey);
 
 /** The host's error message as given: Tauri rejects with the host's string,
  * or with a send refusal `{message, prefillKept}`. */
@@ -126,8 +122,8 @@ export function DelegatedTrialComposerView({ pending, conversations, message, se
     <label>Your message (editable; not sent) <textarea value={message} disabled={busy || sent} onChange={e => setMessage(e.target.value)} rows={6} style={{ display: "block", width: "100%" }} /></label>
     <TrialCard pending={pending} busy={busy || sent} act={act} />
     <PendingNotes pending={pending} />
-    <p><ConversationSelect label="Send to" conversations={conversations} value={target} setValue={setTarget} disabled={busy || sent} />{" "}
-      <button disabled={busy || !ready || !chosen || sent} onClick={() => pressSend(act, "workflow_trial_send", { reference: pending?.reference, generation: chosen?.generation, threadId: chosen?.threadId, personText: message }, setOutcome, () => delegatedSentWords(chosen?.threadId))}>Send</button></p>
+    <div><ConversationChoices legend="Send to" group={`trial-send-${text(pending?.reference)}`} value={conversationChoices(conversations)} chosen={target} onChoose={setTarget} disabled={busy || sent} none="No conversation chosen" />
+      <button disabled={busy || !ready || !chosen || sent} onClick={() => pressSend(act, "workflow_trial_send", { reference: pending?.reference, generation: chosen?.generation, threadId: chosen?.threadId, personText: message }, setOutcome, () => delegatedSentWords(chosen?.threadId))}>Send</button></div>
     <p><small>Send to is this message's destination; changing it does not move the original composer.</small></p>
     <TrialSendOutcome outcome={outcome} />
   </section>;
@@ -239,8 +235,8 @@ export function BringBackComposerView({ pending, conversations, prompt, setPromp
       <p><small>Read from Codex history; a record of that conversation, it instructs nothing. Not editable here.</small>{" "}
         <button disabled={busy || sent} onClick={() => { void Promise.resolve(act("workflow_bring_back_cancel", { id: pending?.id })).catch(() => undefined); }}>Remove</button></p>
     </div>
-    <p><ConversationSelect label="Send to" conversations={conversations} value={target} setValue={setTarget} disabled={busy || sent} />{" "}
-      <button disabled={busy || !ready || !chosen || sent || !!sendBlock} onClick={() => pressSend(act, "workflow_bring_back_send", { id: pending?.id, generation: chosen?.generation, threadId: chosen?.threadId, personText: prompt }, setOutcome, () => bringBackSentWords(chosen?.threadId))}>Send</button></p>
+    <div><ConversationChoices legend="Send to" group={`bring-back-send-${text(pending?.id)}`} value={conversationChoices(conversations)} chosen={target} onChoose={setTarget} disabled={busy || sent} none="No conversation chosen" />
+      <button disabled={busy || !ready || !chosen || sent || !!sendBlock} onClick={() => pressSend(act, "workflow_bring_back_send", { id: pending?.id, generation: chosen?.generation, threadId: chosen?.threadId, personText: prompt }, setOutcome, () => bringBackSentWords(chosen?.threadId))}>Send</button></div>
     {sendBlock && <p role="note">Send is held: {sendBlock}</p>}
     <p><small>Send to is this message's destination; changing it does not move the original composer.</small></p>
     <TrialSendOutcome outcome={outcome} />
