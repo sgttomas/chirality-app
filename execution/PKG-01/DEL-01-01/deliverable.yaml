@@ -43,6 +43,9 @@ code_paths:
 # native delivery. Recovery reads and stops are DEL-01-02's, delegation reads DEL-01-03's,
 # answer and handoff sends DEL-01-04's, account and provider carriage DEL-01-05's.
 - app/src-tauri/src/hosting.rs
+# The folder Codex works in when no project is open, and the rules that place a folder against
+# the App data folder by what it is; also applied by the Codex home plans (DEL-01-05's).
+- app/src-tauri/src/working_folder.rs
 # The reading gate: configuration readings of one Codex generation are made one at a time.
 - app/src-tauri/src/hosting_reading_gate.rs
 - app/src-tauri/src/hosting_reading_gate_tests.rs

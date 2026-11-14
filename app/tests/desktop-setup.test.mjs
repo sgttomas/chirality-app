@@ -355,6 +355,15 @@ test('first use: no project, existing settings route, cancel and change keep cho
   },async(c,calls)=>{
     await press(c,'Continue without a project');
     assert.match(region(c,'Welcome').textContent,/No project for now/);
+    // DEL-01-01: where conversations without a project work, said plainly, and the folder's path in the technical details.
+    const welcome=region(c,'Welcome');
+    const said=nodes(welcome,'p').map(p=>p.textContent);
+    const sentence='No project for now. You can still have conversations, and choose a project later in Desktop setup.';
+    const kept='Conversations without a project work in one folder that Chirality sets aside. What a conversation creates there stays between launches and is shared by every conversation without a project, including any instructions a conversation writes there.';
+    assert.equal(said[said.indexOf(sentence)+1],kept,'a separate paragraph after the unchanged sentence');
+    assert.equal(packet.initial.noProjectFolder,packet.initial.appData+'/conversations-without-project');
+    assert.ok(said.includes('Conversations without a project work in: '+packet.initial.noProjectFolder));
+    assert.ok(said.includes('App data: '+packet.initial.appData),'the App data line is unchanged');
     const existing=nodes(c,'input').find(n=>props(n).type==='radio'&&n.parentNode.textContent.startsWith(' Use my existing Codex settings'));
     await React.act(()=>props(existing).onChange());
     assert.equal(props(button(c,'Review setup')).disabled,true,'existing settings need all three');
@@ -515,6 +524,33 @@ test('a saved setup whose Codex home is held is not shown as setup being needed'
     assert.doesNotMatch(welcome.textContent,/Welcome to Chirality|choose a project folder|Set up your workspace/i,'setup is not offered or said to be needed');
     assert.equal(nodes(c,'button').length,0,'no setup action is offered');
     assert.deepEqual(calls,[]);
+  });
+});
+// DEL-01-01: what the person sees when something else is where Chirality keeps its folder for
+// conversations without a project: the host's own sentence, with the path, and no setup action.
+const OCCUPIED=/^Chirality keeps a folder for conversations without a project at \/.*\/conversations-without-project\. Something else is there now: a file\. Move it aside \(do not delete what a link points to\) and start Chirality again\.$/;
+test('a later start with something else in the folder for conversations without a project says what and where, and offers no setup',async()=>{
+  const view=packet.setAsideOccupied;
+  assert.equal(view.launch.state,'set-aside-occupied');
+  assert.match(view.launch.reason,OCCUPIED);
+  await mountedWelcome(view,()=>assert.fail('no IPC while the folder is taken'),async(c,calls)=>{
+    const welcome=region(c,'Welcome');
+    assert.match(welcome.textContent,/A folder Chirality keeps is taken/);
+    assert.equal(c.querySelectorAll(n=>n.getAttribute('role')==='alert')[0].textContent,view.launch.reason);
+    assert.doesNotMatch(welcome.textContent,/Welcome to Chirality|choose a project folder/i,'setup is not offered or said to be needed');
+    assert.equal(nodes(c,'button').length,0,'no action is offered: only the person moves it');
+    assert.deepEqual(calls,[]);
+  });
+});
+test('first-use review with something else in the folder for conversations without a project says what and where',async()=>{
+  assert.match(packet.setAsideReviewRefusal,OCCUPIED);
+  await mountedWelcome(packet.initial,(command)=>{
+    if(command==='desktop_setup_new_settings_preview')throw packet.setAsideReviewRefusal; // as the host rejects: its own sentence
+    assert.fail(command);
+  },async(c)=>{
+    await press(c,'Continue without a project');
+    await press(c,'Review setup');
+    assert.ok(c.querySelectorAll(n=>n.getAttribute('role')==='alert').some(n=>n.textContent==="Setup couldn't finish: "+packet.setAsideReviewRefusal),'the sentence, with its path, is shown where the review is');
   });
 });
 test('a second App on data another process holds says what was observed, names no owner and offers no setup',async()=>{
