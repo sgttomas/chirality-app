@@ -353,10 +353,12 @@ fn the_no_project_folder_and_every_codex_working_folder_are_reserved() {
     let data = folder("placement-data-");
     let leaf = desktop_startup::no_project_folder(&data);
     // Not established yet: nothing in or over the App data folder can be placed.
-    for store in [leaf.clone(), leaf.join("records"), data.clone(), data.join("records")] {
+    for store in [leaf.clone(), leaf.join("records"), data.clone(), data.join("other-records")] {
         let placed = records_store::for_app(Some(store.clone()), Ok(&data), true, None, &[]);
         assert!(placed.as_ref().is_err_and(|e| e.contains("cannot be placed yet")), "{store:?}: {placed:?}");
     }
+    // The App's own default store is a fixed name beside the folder set aside's fixed name.
+    assert!(records_store::for_app(Some(data.join("records")), Ok(&data), true, None, &[]).is_ok());
     assert!(!leaf.exists(), "placement creates nothing");
     assert!(records_store::for_app(Some(folder("placement-far-").join("records")), Ok(&data), true, None, &[]).is_ok(), "established to lie elsewhere");
     working_folder::establish(&data).unwrap();
