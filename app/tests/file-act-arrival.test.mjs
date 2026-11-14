@@ -147,6 +147,30 @@ test('host refusal never becomes a standing offer, and retained offers continue 
   } finally {await view.close();}
 });
 
+test('an arrival offer whose decline would not answer says so beside the native confirmation', async () => {
+  const notice = 'This arrival is performed and its file has changed since: only an act on its current content answers it. A decline here would not answer it and is not recorded; a decline of this kind stays available outside the arrival.';
+  const controlRef = React.createRef();
+  let selection = {...fixture('A7').preview,declineNotice:notice};
+  const command = async name => {
+    if (name === 'file_act_open_arrival') return selection;
+    throw Error(`Unexpected command: ${name}`);
+  };
+  const view = mount(FileActPanel,{command,controlRef});
+  try {
+    await view.show();
+    await React.act(async () => {await controlRef.current.openArrival('original-run','original-arrival');});
+    const note = nodes(view.container,'p').find(node => node.textContent === notice);
+    assert.ok(note,'the sentence is shown');
+    assert.equal(props(note).role,'note');
+    assert.ok(button(view.container,'Review native act / decline / cancel…'));
+    selection = fixture('A7').preview;
+    await React.act(async () => {await controlRef.current.openArrival('original-run','other-arrival');});
+    assert.ok(!view.container.textContent.includes(notice),'an offer whose decline answers carries no such sentence');
+  } finally {
+    await view.close();
+  }
+});
+
 test('historical, missing and host-refused arrival entries display their limits without an active review control', async () => {
   const {run,arrival} = fixture();
   const calls = [];

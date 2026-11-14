@@ -128,6 +128,7 @@ export function FileActPanel({ command, controlRef, onBusyChange }: {
       <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{JSON.stringify(preview.offer, null, 2)}</pre>
       {preview.utf8 !== null && <details open><summary>Exact frozen UTF-8 text</summary><pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", maxHeight: 360, overflow: "auto" }}>{preview.utf8}</pre></details>}
       <details><summary>Exact frozen bytes (hexadecimal)</summary><pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", maxHeight: 360, overflow: "auto" }}>{preview.hex}</pre></details>
+      {typeof preview.declineNotice === "string" && <p role="note">{preview.declineNotice}</p>}
       <button disabled={busy || attempted} onClick={() => run("file_act_confirm", { reference: preview.reference })}>Review native act / decline / cancel…</button>
       <button disabled={busy || attempted} onClick={() => run("file_act_dismiss", { reference: preview.reference })}>Dismiss offer without capture</button>
     </article>}

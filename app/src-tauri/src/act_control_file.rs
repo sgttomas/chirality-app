@@ -313,8 +313,15 @@ impl ActControl {
             .as_str()
             .map(|r| format!("\nRecorded request: {r} (a request is not the act)"))
             .unwrap_or_default();
+        // The schema keeps a decline on every A4, A6 and A7 offer; where a decline would not
+        // answer the arrival, the sheet says so before the person chooses, and it is refused.
+        let decline = if slot.arrival.as_ref().is_some_and(|a| !a.decline_answers()) {
+            format!("{} Cancel records nothing.", crate::checkpoint_recorder::not_answering::DECLINE_DOES_NOT_ANSWER)
+        } else {
+            "Decline records only a decline of this kind; Cancel records nothing.".to_owned()
+        };
         let text = format!(
-            "{}\n\nApp file: {}\nContent identity ({}), in full:\n{}\nScope: {}\nPurpose: {}\nActor requirement: {}\nActor: {}\nAnswers: {}\n\n{}\nDecline records only a decline of this kind; Cancel records nothing.",
+            "{}\n\nApp file: {}\nContent identity ({}), in full:\n{}\nScope: {}\nPurpose: {}\nActor requirement: {}\nActor: {}\nAnswers: {}\n\n{}\n{}",
             slot.kind.wording(),
             slot.offer["subject"]["ref"].as_str().unwrap_or(""),
             identity["method"].as_str().unwrap_or(""),
@@ -324,7 +331,8 @@ impl ActControl {
             slot.kind.requirement(),
             super::native_statement::actor_line(actor),
             answers,
-            format!("{statement}{request}")
+            format!("{statement}{request}"),
+            decline
         );
         // Bounded before anything is frozen or the offer is Presented: a
         // refused statement leaves the offer Composed and unfrozen (V14 F3).
@@ -360,6 +368,12 @@ impl ActControl {
             || offer_digest(&slot.offer)? != event.digest()["value"].as_str().unwrap_or("")
         {
             return Err("Native event differs from original offer/actor/context".into());
+        }
+        // A decline that would not answer the arrival, as its sheet said: refused before any
+        // capture, and nothing is captured or recorded.
+        if event.choice() == "decline" && slot.arrival.as_ref().is_some_and(|a| !a.decline_answers()) {
+            slot.state = FileActState::Dismissed;
+            return Err(crate::checkpoint_recorder::not_answering::DECLINE_DOES_NOT_ANSWER.into());
         }
         match read_subject(&slot.root, &slot.path) {
             Ok(bytes) if bytes == slot.bytes => {}
