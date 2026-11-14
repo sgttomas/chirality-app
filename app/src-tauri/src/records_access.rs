@@ -503,6 +503,9 @@ impl ReadLog {
             .as_ref()
             .map_err(Clone::clone)?;
         validator.validate(entry).map_err(|e| format!("read log entry refused: {} at {}", e.masked(), e.instance_path()))?;
+        // Keep the existing ancestor refusal ahead of creation: opening the
+        // final name first must not create an empty file through a parent link.
+        crate::storage::check_path(path.parent().ok_or("read log has no folder")?)?;
         let created = !path.exists();
         let mut file = crate::storage::open_append(path, true, true).map_err(|e| format!("read log unavailable: {e}"))?;
         crate::storage::check_path(path)?;

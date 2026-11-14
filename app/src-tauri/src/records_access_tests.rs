@@ -953,3 +953,17 @@ fn alias_refusal_read_log_symlink() { alias_read_log("symlink"); }
 fn alias_refusal_read_log_dangling() { alias_read_log("dangling"); }
 #[test]
 fn alias_refusal_read_log_fifo() { alias_read_log("fifo"); }
+
+#[test]
+fn alias_refusal_read_log_parent_symlink_creates_nothing() {
+    let f = Scratch::new();
+    let project = f.project("project");
+    let outside = f.project("outside");
+    let parent = f.0.join("alias-parent");
+    std::os::unix::fs::symlink(&outside, &parent).unwrap();
+    let cap = RecordsCapability::at(&project, parent.join("read-log.jsonl")).unwrap();
+    let answer = cap.answer(&call(1, json!({"operation":"list_runs"})), project.to_str());
+    assert_eq!(answer["success"], false, "{answer}");
+    assert!(answer.to_string().contains("owning path contains symlink"), "{answer}");
+    assert!(!outside.join("read-log.jsonl").exists(), "the existing parent-path check must precede creation");
+}
