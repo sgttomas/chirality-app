@@ -1,4 +1,5 @@
 import type { MouseEvent, ReactNode } from "react";
+import { SIGN_IN_WORDS, type AccountReading } from "./AccountStatus";
 
 /** Presentation only: disclosures retain every child while closed. */
 export function WorkspaceDisclosure({ id, title, description, open, children }: { id: string; title: string; description: string; open?: boolean; children: ReactNode }) {
@@ -83,7 +84,7 @@ export function refusedStartWords(cause?: string | null, build?: string | null):
     default: return { link: true, words: "The App did not record why. Connection and access shows Codex's controls." };
   }
 }
-export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, generationClosed, startRefusal, codexHome, refusalCause, build, signIn = "not-checked" }: {
+export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, generationClosed, startRefusal, codexHome, refusalCause, build, signIn = "unread" }: {
   state?: string; setupRequired?: boolean; savedSetup?: boolean; generationClosed?: boolean;
   /** The host status's `lastStartRefusal`: why the last start of Codex was refused before it was spawned, and for which home. */
   startRefusal?: { reason?: string; home?: string } | null;
@@ -91,9 +92,9 @@ export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, ge
   codexHome?: string | null;
   /** The host status's `startRefusalCause` and `build`. */
   refusalCause?: string | null; build?: string | null;
-  /** What Codex reported of this connection's sign-in at the person's own check (AccountStatus
-   * connectionSignIn); "not-checked" until then, and again after Codex or its home changes. */
-  signIn?: "chatgpt-account" | "no-account" | "not-checked";
+  /** What the App has established of this connection's sign-in (AccountStatus.tsx, accountReading): the same
+   * reading the account panel shows, so the two never disagree. */
+  signIn?: AccountReading;
 }) {
   const ready = state === "ready" && generationClosed !== true;
   const homeRefusal = !setupRequired && !!state && NO_START_UNDER_WAY.has(state) && !!startRefusal?.reason && !!codexHome && startRefusal.home === codexHome;
@@ -108,11 +109,9 @@ export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, ge
     : "Codex is not connected";
   const linkUseful = !cause || cause.link;
   const guidance = setupRequired ? savedSetup ? "Your saved choices apply on the next launch." : "Choose shared settings and a project below."
-    // Codex started and the App reached it. Whether anyone is signed in is known only from the
-    // person's own account check for this connection; the App makes no automatic authentication read.
-    : ready ? signIn === "chatgpt-account" ? "Choose a conversation, or choose a model for a new one."
-      : signIn === "no-account" ? "Codex reports that you're not signed in. Sign in under Connection and access to choose a model."
-      : "The App hasn't checked whether you're signed in. Check or sign in under Connection and access, then choose a model and start a conversation."
+    // Codex started and the App reached it. Whether anyone is signed in is what the account reads the host
+    // recorded for this connection establish; the App makes no automatic account read at launch.
+    : ready ? SIGN_IN_WORDS[signIn]
     : !state ? "Waiting for the App to report its current connection."
     : cause ? cause.words
     : "Open Connection and access to inspect the current status and available controls.";

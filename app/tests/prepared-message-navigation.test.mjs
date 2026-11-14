@@ -614,27 +614,55 @@ test('History navigation reveals and focuses existing history without reading or
  });
 });
 
-test('with Codex running, the line says what the App knows of the sign-in: not checked, no account, or a ChatGPT account, for this Codex process only', async () => {
- const {WorkspaceConnectionStatus}=loadSrc('DailyWorkspace');const {connectionSignIn}=loadSrc('AccountStatus');
+test('with Codex running, the workspace line and the account panel say the same of the sign-in in every state of its reading', async () => {
+ const {WorkspaceConnectionStatus}=loadSrc('DailyWorkspace');const {AccountStatus,accountReading}=loadSrc('AccountStatus');
  const {renderToStaticMarkup}=await import('react-dom/server');
- const line=signIn=>{const html=renderToStaticMarkup(React.createElement(WorkspaceConnectionStatus,{state:'ready',generationClosed:false,signIn}));
-  return {text:html.match(/<p role="status"[^>]*>([\s\S]*?)<\/p>/)[1].replace(/<[^>]+>/g,'').replace(/&#x27;/g,"'"),link:html.match(/<a href="([^"]+)">([^<]+)<\/a>/).slice(1)};};
- assert.deepEqual(line('not-checked'),{text:"Codex is running The App hasn't checked whether you're signed in. Check or sign in under Connection and access, then choose a model and start a conversation.",link:['#workspace-connection','Open connection controls']});
- assert.deepEqual(line('no-account'),{text:"Codex is running Codex reports that you're not signed in. Sign in under Connection and access to choose a model.",link:['#workspace-connection','Open connection controls']});
- assert.deepEqual(line('chatgpt-account'),{text:'Codex is running and signed in Choose a conversation, or choose a model for a new one.',link:['#workspace-start','Choose a new conversation']});
- assert.deepEqual(line(undefined),line('not-checked'),'without a reading the App says it has not checked');
- for(const s of ['not-checked','no-account','chatgpt-account'])assert.doesNotMatch(line(s).text,/Codex is connected|access entry/);
- // The reading comes only from the person's own account check of the current Codex process and home.
- const host=(account,over={})=>{const row={source:{generation:g,home:g.home,requestRef:'read-1',sourceCurrent:true,attemptedFrame:{method:'account/read',params:{}},outcome:'response-observed-result',authResponseShapeValid:true},
+ const plain=html=>html.replace(/<[^>]+>/g,'').replace(/&#x27;/g,"'").replace(/&quot;/g,'"').replace(/&amp;/g,'&');
+ const line=host=>{const html=renderToStaticMarkup(React.createElement(WorkspaceConnectionStatus,{state:'ready',generationClosed:false,signIn:accountReading(host)}));
+  return {text:plain(html.match(/<p role="status"[^>]*>([\s\S]*?)<\/p>/)[1]),link:html.match(/<a href="([^"]+)">([^<]+)<\/a>/).slice(1)};};
+ const panel=host=>plain(renderToStaticMarkup(React.createElement(AccountStatus,{host,navigating:false,busy:false,read:async()=>{}})).match(/<p role="status"[^>]*>([\s\S]*?)<\/p>/)[1]);
+ // One host account read, then each way the host can record it for the current Codex process and home.
+ const host=(account,change=()=>{})=>{const row={source:{generation:g,home:g.home,requestRef:'read-1',sourceCurrent:true,attemptedFrame:{method:'account/read',params:{}},outcome:'response-observed-result',authResponseShapeValid:true},
    accountObservation:{state:account===null?'native account null observed':'native account type observed',account,identityVerified:false}};
-  return {state:'ready',generation:g,homeRouting:{activeModeHomeClass:'account'},homeAccess:{modeHomeClass:'account',observations:[row]},
-   accountObservation:{generation:g,home:g.home,state:'observed',nativeAccount:account,identityVerified:false},...over};};
- assert.equal(connectionSignIn({state:'ready',generation:g,homeRouting:{activeModeHomeClass:'account'}}),'not-checked','no check made: not checked (no automatic read)');
- assert.equal(connectionSignIn(host({type:'chatgpt'})),'chatgpt-account');
- assert.equal(connectionSignIn(host(null)),'no-account');
- const replaced={...g,spawnCounter:2};
- assert.equal(connectionSignIn({...host({type:'chatgpt'}),generation:replaced}),'not-checked','a check of an earlier Codex process is not carried forward');
- const stale=host({type:'chatgpt'});stale.homeAccess.observations[0].source.sourceCurrent=false;
- assert.equal(connectionSignIn(stale),'not-checked','a check no longer current counts as not checked');
- assert.equal(connectionSignIn(host({type:'apiKey'})),'not-checked','only a ChatGPT account reads as signed in');
+  const h={state:'ready',generationClosed:false,generation:g,homeRouting:{activeModeHomeClass:'account'},homeAccess:{modeHomeClass:'account',observations:[row]},
+   accountObservation:{generation:g,home:g.home,state:'observed',nativeAccount:account,identityVerified:false}};change(h,row);return h;};
+ const unread={state:'ready',generationClosed:false,generation:g,homeRouting:{activeModeHomeClass:'account'}};
+ const states={
+  unread:[unread,/^Codex is running The App hasn't established whether you're signed in for this connection\./,/^Account status has not been checked for this connection\.$/],
+  'earlier process':[host({type:'chatgpt'},h=>{h.generation={...g,spawnCounter:2};}),/^Codex is running The App hasn't established whether you're signed in/,/^Account status has not been checked/],
+  stale:[host({type:'chatgpt'},(h,r)=>{r.source.sourceCurrent=false;}),/^Codex is running The App's earlier sign-in check is no longer current, so whether you're signed in is unknown\./,/^The earlier account check is no longer current\./],
+  // The reader's first probe: a check that Codex could not answer.
+  failed:[host({type:'chatgpt'},(h,r)=>{r.source.outcome='response-observed-error';}),/^Codex is running Codex could not read whether you're signed in\./,/^Codex could not read account status\./],
+  pending:[host({type:'chatgpt'},(h,r)=>{r.source.outcome='request-written';}),/^Codex is running The App's sign-in check has not produced a result, so whether you're signed in is unknown\./,/^The account read has not produced a result\./],
+  unavailable:[host({type:'chatgpt'},(h,r)=>{r.source.authResponseShapeValid=false;}),/^Codex is running Codex returned an unavailable account response, so whether you're signed in is unknown\./,/^Codex returned an unavailable account response\./],
+  omitted:[host({type:'chatgpt'},(h,r)=>{r.accountObservation={state:'account omitted; unknown/unavailable'};}),/^Codex is running Codex did not report whether you're signed in; this does not mean you are signed out\./,/^Codex did not report account status\. This does not mean you are signed out\.$/],
+  // The reader's second probe: a reading invalidated by account/updated.
+  changed:[host({type:'chatgpt'},h=>{h.accountObservation={...h.accountObservation,state:'invalidated'};}),/^Codex is running Whether you're signed in changed or is no longer confirmed for this connection\./,/^Account status changed or is no longer confirmed for this connection\./],
+  'no account':[host(null),/^Codex is running Codex reports that you're not signed in\./,/^Codex reports no account for this connection\.$/],
+  'api key':[host({type:'apiKey'}),/^Codex is running Codex reports an API key for this connection, not a ChatGPT sign-in\./,/^Codex reports an API key for this connection\.$/],
+  unsupported:[host({type:'other'}),/^Codex is running Codex did not report a sign-in the App reads, so whether you're signed in is unknown\./,/^Codex did not provide a supported account status\./],
+  chatgpt:[host({type:'chatgpt'}),/^Codex is running and signed in Choose a conversation, or choose a model for a new one\.$/,/^Codex reports a ChatGPT account for this connection: /],
+ };
+ for(const [name,[h,workspace,account]] of Object.entries(states)){
+  const l=line(h),a=panel(h);
+  assert.match(l.text,workspace,`${name}: the workspace line`);assert.match(a,account,`${name}: the account panel`);
+  // Never a contradiction: "not checked" only while the panel says it has not been checked, "signed in" only with a ChatGPT account.
+  assert.equal(/hasn't checked/.test(l.text),false,`${name}: the workspace never says no check was made`);
+  assert.equal(l.text.startsWith('Codex is running and signed in'),name==='chatgpt',`${name}: signed in only on a ChatGPT account reading`);
+  assert.deepEqual(l.link,name==='chatgpt'?['#workspace-start','Choose a new conversation']:['#workspace-connection','Open connection controls'],`${name}: the link`);
+  assert.doesNotMatch(l.text,/Codex is connected|access entry/);
+ }
+ assert.deepEqual(renderToStaticMarkup(React.createElement(WorkspaceConnectionStatus,{state:'ready',generationClosed:false})),renderToStaticMarkup(React.createElement(WorkspaceConnectionStatus,{state:'ready',generationClosed:false,signIn:'unread'})),'without a reading: not established');
+ // A check the panel holds itself (in progress, or refused before the host recorded anything) leaves the host reading
+ // unread; the workspace's "hasn't established" stays true beside the panel's own sentence.
+ const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);let refuse;
+ try{
+  await React.act(()=>root.render(React.createElement(AccountStatus,{host:unread,navigating:false,busy:false,read:()=>new Promise((_,no)=>{refuse=no;})})));
+  await React.act(async()=>{void props(elements(c,'button').find(b=>b.textContent==='Check account status')).onClick();});
+  assert.match(region(c,'Account status').textContent,/Checking account status…/);
+  assert.match(line(unread).text,/hasn't established whether you're signed in/,'in progress: not established, never "not checked"');
+  await React.act(async()=>{refuse(new Error('private diagnostic'));});
+  assert.match(region(c,'Account status').textContent,/Account status could not be confirmed/);
+  assert.match(line(unread).text,/hasn't established whether you're signed in/,'refused: not established, never "not checked"');
+ }finally{await React.act(()=>root.unmount());document.body.removeChild(c);}
 });
