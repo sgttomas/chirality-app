@@ -70,6 +70,7 @@ async function mounted(options,check){
    assert.ok(options.waiting,'waiting navigation only in its explicit source-bound case');
    assert.deepEqual(args,options.waiting);active=args.modeHomeClass;return {...args,threadLoaded:args.threadId!==null};
   }
+  if(command==='host_start'){assert.ok(options.hostStart,'a start of Codex only in its explicit case');return options.hostStart(args);}
   if(command==='thread_start'){if(options.startError)throw options.startError;account.threads.push(thread('new-choice'));return {startGeneration:g,result:{thread:{id:'new-choice'}}};}
   if(command==='workflow_trial_send'||command==='workflow_bring_back_send'){
    assert.ok(options.send,'send only in an explicit send-outcome case');return options.send(command,args);
@@ -577,6 +578,21 @@ for (const [cause,build,words,link] of [
   });
  });
 }
+// The retry the development "unconfirmed" words promise is usable: the link opens Connection and
+// access, where Start Codex is shown, can be pressed, and starts Codex.
+test('after a development "unconfirmed" refusal, Start Codex under Connection and access is reachable and starts Codex',async()=>{
+ let started=null;
+ await mounted({initialize:false,hostStart:args=>{started=args;return {state:'starting'};},beforeMount:account=>{account.state='refused';account.generationClosed=false;account.startRefusalCause='unconfirmed';account.build='development';}},async ui=>{
+  const status=region(ui.c,'Workspace connection status');
+  assert.ok(status.textContent.includes('Use Start Codex under Connection and access to try again'));
+  const link=elements(status,'a')[0];assert.equal(link?.textContent,'Open connection controls');
+  await followWorkspaceLink(ui.c,link.textContent);
+  const start=button(ui.c,'Start Codex');assert.ok(start,'Start Codex is shown under Connection and access');
+  assert.equal(!!props(start).disabled,false,'and can be pressed in the refused state');
+  await React.act(async()=>{await props(start).onClick();});
+  assert.deepEqual(started,{modeHomeClass:'account'},'pressing it asks the host to start Codex');
+ });
+});
 for (const [state,closed,expected] of [['absent',false,'Codex is not connected'],['starting',false,'Codex is starting'],['ready',false,'Codex is connected'],['ready',true,'Codex is not connected'],['refused',false,'Codex was not started'],['exited-unexpectedly',false,'Codex could not stay connected']]) {
  test(`connection overview reports ${state}/${closed} without choosing or starting`,async()=>{
   await mounted({initialize:false,beforeMount:account=>{account.state=state;account.generationClosed=closed;}},async ui=>{
