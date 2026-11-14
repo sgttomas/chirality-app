@@ -1,5 +1,5 @@
 import { type MouseEvent, type ReactNode } from "react";
-import { AgentText, plainId } from "./AgentText";
+import { AgentText, SuppliedId, idWords, plainId, wordOf } from "./AgentText";
 import { AskedBy, WaitingRequestsIndicator, answerable, hostRequests, requestAsker, requestThread, type RequestAsker, type WaitingRequestGroup } from "./RequestCards";
 import { requestAnchorId, sameActivityGeneration } from "./NativeActivity";
 import { runEvidenceAnchor } from "./RunJourney";
@@ -23,10 +23,13 @@ type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 //
 // The list is a projection of its sources' latest readings and keeps no
 // memory of entries: each reading replaces the one before. The one thing
-// retained is the source's own: when a source's latest read failed, its last
-// successful reading (the snapshot, packet or view the App already holds for
-// it, bound to its home, generation, time and limits) is shown as one block,
-// as last read at its time, not counted, its current state unknown.
+// retained is per kind of read call, not per source: the last successful
+// response of the status read, of the returns read and of the decisions read
+// (the snapshot, packet or view the App already holds, bound to its home,
+// generation, time and limits). When a call's latest read failed, its last
+// successful response is shown as it was, as last read at its time, not
+// counted, its current state unknown, with the sources it had not read whole
+// named as not read in it. Nothing says whether an earlier response held more.
 //
 // The list settles nothing; "Go to it" opens the source's existing control or
 // record (what each control checks is said in the list's footer). Related
@@ -283,15 +286,20 @@ export function decideReading(evidence: ReadEvidence): ReadingState {
   return evidence.affirmedWhole && evidence.limits.length === 0 ? "whole" : "limited";
 }
 
-/** A source's last successful reading, kept by the source itself (the status snapshot, fleet packet or
- * decision view the App holds), shown only when the source's latest read failed: one block, as it was,
- * not counted. It is bound to the home, generation, time and limits of the read that gave it. */
+/** What the last successful response of a source's read call (the status snapshot, fleet packet or decision
+ * view the App holds) read of the source, shown only when that call's latest read failed: as it was, not
+ * counted, including that it had not read the source where it had not. It is bound to the home, generation,
+ * time and limits of the read that gave it. It is the call's response, not a store per source: it says nothing
+ * of whether an earlier response held more. */
 export type LastRead = {
-  state: "whole" | "limited";
+  /** How the last successful response of the source's read call read this source: "not-read" where it had not. */
+  state: "whole" | "limited" | "not-read";
   /** When the read that gave it was started (ms since the epoch). */
   at: number | null;
   entries: WaitingEntry[];
   limits: string[];
+  /** For a source that response had not read, or read with limits: the App's sentence of that reading. */
+  note: string | null;
   /** The home it was read in, where the source belongs to one. */
   home: string | null;
   /** The Codex generation it was read from, where that applies. */
@@ -300,12 +308,27 @@ export type LastRead = {
   overview: Json;
 };
 
+/** The read call that supplies a source: the App's status read, the returns read or the decisions read. */
+export type ReadCall = "status" | "returns" | "decisions";
+/** The last successful response of each read call, in the App's words. */
+const LAST_RESPONSE: Record<ReadCall, string> = {
+  status: "The last successful status response",
+  returns: "The last successful response to the returns read",
+  decisions: "The last successful response to the decisions read",
+};
+
 export type SourceReading = {
   /** The source's identity: "requests:‹home›" (or "requests" before any home is known), "other-homes", "home:‹class›",
    * "hot-runs", "run:‹reference›", "reopened", "reopened-run:‹run›", "returns" or "decisions". */
   key: string;
   /** The source in the App's words. */
   name: string;
+  /** The read call that supplies it. */
+  call: ReadCall;
+  /** A record-supplied identity the source is named by (a reopened run's reference), shown through SuppliedId; null where none. */
+  subject: string | null;
+  /** For a reopened run not read: the App's short reason, said beside its reference. */
+  detail: string | null;
   state: ReadingState;
   /** When the read that gave this state was started (for a failed reading, the failed read), or null where none has been. */
   at: number | null;
@@ -315,7 +338,7 @@ export type SourceReading = {
   limits: string[];
   /** The App's sentence for a reading that is not whole. */
   note: string | null;
-  /** For a failed reading: the source's last successful reading, or null where there is none. */
+  /** For a failed reading: what the last successful response of its read call read of it, or null where no response has succeeded. */
   lastRead: LastRead | null;
   /** For the active home's requests read whole: the waiting overview of the same read. */
   overview: Json;
@@ -325,15 +348,19 @@ type Scope = { home: string | null; generation: Json };
 type Found = { evidence: Omit<ReadEvidence, "call">; entries: WaitingEntry[]; overview?: Json };
 const nothing = (): Found => ({ evidence: { read: false, affirmedWhole: false, limits: [] }, entries: [] });
 
-function finish(key: string, name: string, scope: Scope, call: ReadEvidence["call"], found: Found, notes: { limited: string; notRead: string; failed: string }, at: number | null, retainedAt: number | null): SourceReading {
+type Named = { readCall: ReadCall; retained: boolean; subject?: string | null; detail?: string | null };
+
+function finish(key: string, name: string, scope: Scope, call: ReadEvidence["call"], found: Found, notes: { limited: string; notRead: string; failed: string }, at: number | null, retainedAt: number | null, named: Named): SourceReading {
   const state = decideReading({ call, ...found.evidence });
-  // What the read the App still holds was, before the later read failed: only a whole or limited one is shown.
-  const held = state === "failed" ? decideReading({ call: "answered", ...found.evidence }) : null;
-  const lastRead: LastRead | null = held === "whole" || held === "limited"
-    ? { state: held, at: retainedAt, entries: found.entries, limits: found.evidence.limits, home: scope.home, generation: scope.generation, overview: found.overview ?? null } : null;
+  // How the call's last successful response, which the App still holds, read this source before the later read failed.
+  const held = state === "failed" && named.retained ? decideReading({ call: "answered", ...found.evidence }) : null;
+  const lastRead: LastRead | null = held === "whole" || held === "limited" || held === "not-read"
+    ? { state: held, at: retainedAt, entries: held === "not-read" ? [] : found.entries, limits: held === "not-read" ? [] : found.evidence.limits,
+      note: held === "not-read" ? notes.notRead : held === "limited" ? notes.limited || null : null,
+      home: scope.home, generation: scope.generation, overview: held === "not-read" ? null : found.overview ?? null } : null;
   const observed = state === "whole" || state === "limited";
   return {
-    key, name, state, at,
+    key, name, call: named.readCall, subject: named.subject ?? null, detail: named.detail ?? null, state, at,
     entries: observed ? found.entries : [],
     limits: state === "limited" ? found.evidence.limits : [],
     note: state === "whole" ? null : state === "limited" ? notes.limited : state === "failed" ? notes.failed : notes.notRead,
@@ -341,7 +368,14 @@ function finish(key: string, name: string, scope: Scope, call: ReadEvidence["cal
   };
 }
 
-const REOPENED_RUN_NOT_READ = "reopened-run-not-read";
+/** Why a run reopened after the App restarted is not known to have ended, by the state the host gives it
+ * (record_supply.rs RecordedLifecycle). Any other state is one the App does not recognise. */
+const REOPENED_REASON = {
+  "open; interrupted (no run_ended recorded)": "its records show it opened and record no end",
+  unknown: "its records do not establish whether it ended",
+} as const;
+const REOPENED_REASON_UNKNOWN = "its state is one the App does not recognise";
+const REOPENED_RUN = "reopened-run:";
 const RUN_STATE_ENDED = "ended";
 const RUN_STATE_NOT_STARTED = "start not confirmed in record";
 const statusFailed = (name: string) => `${name} could not be read at the last attempt: the App's last read of its own status failed.`;
@@ -353,8 +387,8 @@ function hostReadings(host: Json, call: ReadEvidence["call"], at: number | null,
   const out: SourceReading[] = [];
   const active = text(host?.homeRouting?.activeModeHomeClass);
   const hostScope: Scope = { home: active || null, generation: host?.generation ?? null };
-  const push = (key: string, name: string, found: Found, limited: string, notRead: string, scope: Scope = hostScope) =>
-    out.push(finish(key, name, scope, call, found, { limited, notRead, failed: statusFailed(name) }, at, retainedAt));
+  const push = (key: string, name: string, found: Found, limited: string, notRead: string, scope: Scope = hostScope, subject: string | null = null, detail: string | null = null) =>
+    out.push(finish(key, name, scope, call, found, { limited, notRead, failed: statusFailed(name) }, at, retainedAt, { readCall: "status", retained: !!host, subject, detail }));
   // Requests in the active home. The host gives the home's whole request register (serverRequests, the
   // register snapshot of native_requests.rs) whenever its Codex is ready with a generation: `state: "ready"`
   // with a generation of the generation's shape (sameActivityGeneration) and a `serverRequests` array is the
@@ -376,12 +410,14 @@ function hostReadings(host: Json, call: ReadEvidence["call"], at: number | null,
     // {reference, state: "original run operation pending"} with no lifecycle: that is not read.
     const records = Array.isArray(run?.lifecycle?.records);
     push(`run:${reference}`, `The run ${reference}`, records ? { evidence: { read: true, affirmedWhole: true, limits: [] }, entries: arrivalsOf(run, reference) } : nothing(),
-      "", `The run ${reference} could not be read just now (an operation on it was in progress), so whether one of its checkpoints waits for your act is not known.`,
+      "", `The run ${reference} could not be read (an operation on it was in progress), so whether one of its checkpoints waits for your act is not known.`,
       { home: text(run?.home) || null, generation: run?.generation ?? null });
   }
   // Other homes. waiting_requests.rs `overview` lists every configured home in `sources`, each with the
   // `state` of its register: the overview is read when `sources` is an array naming the active home, and
-  // a home's count is whole only where its source says `state: "ready"`.
+  // a home's count is whole only where its source says `state: "ready"` and every group the overview gives for
+  // that home carries a generation of the generation's shape (as the active home's register must): a group
+  // without one makes that home not read, and it contributes no count.
   const sources = Array.isArray(host?.waitingRequests?.sources) ? host.waitingRequests.sources : null;
   const overview = !!sources && sources.some((s: Json) => text(s?.modeHomeClass) === active);
   push("other-homes", "Requests in other homes", { evidence: { read: overview, affirmedWhole: overview, limits: [] }, entries: [] }, "", "Requests in other homes have not been read.");
@@ -389,8 +425,10 @@ function hostReadings(host: Json, call: ReadEvidence["call"], at: number | null,
     const home = text(source?.modeHomeClass);
     if (home === active) continue;
     const ready = source?.state === "ready";
-    push(`home:${home}`, `Requests in the ${home || "unreported"} home`, { evidence: { read: ready, affirmedWhole: ready, limits: [] }, entries: otherHomeEntries(host, home) },
-      "", `Requests in the ${home || "unreported"} home are not read (${text(source?.state) || "state not reported"}).`, { home: home || null, generation: null });
+    const shaped = list(host?.waitingRequests?.groups).filter((g: Json) => text(g?.modeHomeClass) === home).every((g: Json) => sameActivityGeneration(g?.generation, g?.generation));
+    push(`home:${home}`, `Requests in the ${home || "unreported"} home`, { evidence: { read: ready && shaped, affirmedWhole: ready && shaped, limits: [] }, entries: shaped ? otherHomeEntries(host, home) : [] },
+      "", ready && !shaped ? `Requests in the ${home || "unreported"} home are not read: the overview gave a group without a generation the App can use.`
+        : `Requests in the ${home || "unreported"} home are not read (${text(source?.state) || "state not reported"}).`, { home: home || null, generation: null });
   }
   // Runs reopened after the App restarted (record_supply.rs `RunsReading::view`, with the
   // `historyNotices` read_reopened_history attaches). The census is read when `reopened` holds a `runs`
@@ -406,6 +444,7 @@ function hostReadings(host: Json, call: ReadEvidence["call"], at: number | null,
     const reference = text(row?.reference ?? row?.run);
     if ((runs ?? []).some((live: Json) => live?.reference === reference)) continue;   // a hot run's own reading covers it
     let found: Found;
+    let detail: string | null = null;
     if (Array.isArray(row?.lifecycle?.records)) {
       // The shape the coming host read gives a reopened run: reference, lifecycle {state, end, records}
       // and limits. Its records are whole when `limits` is present and empty.
@@ -418,9 +457,13 @@ function hostReadings(host: Json, call: ReadEvidence["call"], at: number | null,
       // Still open, or a lifecycle the records do not establish ("unknown"), or a state the App does not
       // know: its checkpoints are not read.
       found = nothing();
+      detail = wordOf(REOPENED_REASON, row?.state) ?? REOPENED_REASON_UNKNOWN;
     }
-    push(`reopened-run:${reference}`, `The run ${reference}, reopened after the App restarted`, found,
-      "A run reopened after the App restarted was read with limits, so more of its checkpoints may be waiting.", REOPENED_RUN_NOT_READ);
+    // The reference is a record's: in the App's sentences through idWords, and shown beside through SuppliedId.
+    const runName = `The run ${idWords(reference)}, reopened after the App restarted`;
+    push(`${REOPENED_RUN}${reference}`, runName, found,
+      "A run reopened after the App restarted was read with limits, so more of its checkpoints may be waiting.",
+      `${runName}, is not known to have ended: ${detail ?? REOPENED_REASON_UNKNOWN}; the App does not show its checkpoints.`, hostScope, reference, detail);
   }
   return out;
 }
@@ -436,7 +479,8 @@ function returnsReading(packet: Json, call: ReadEvidence["call"], at: number | n
     && !!undertakings && undertakings.every((view: Json) => view?.queueComplete === true);
   const found: Found = read ? { evidence: { read, affirmedWhole, limits: list(packet.limits).map((l: Json) => text(l?.reason ?? l)) }, entries: returnEntries(packet, retainedAt ?? at) } : nothing();
   return finish("returns", "Returns", { home: null, generation: null }, call, found,
-    { limited: "Returns were read with limits, so more may be waiting for review.", notRead: "Returns have not been read yet.", failed: "Returns could not be read at the last attempt." }, at, retainedAt);
+    { limited: "Returns were read with limits, so more may be waiting for review.", notRead: "Returns have not been read yet.", failed: "Returns could not be read at the last attempt." }, at, retainedAt,
+    { readCall: "returns", retained: read });
 }
 
 /** The decision view. decision_view gives partial observations as values: it is whole only when its
@@ -449,7 +493,8 @@ function decisionsReading(view: Json, call: ReadEvidence["call"], at: number | n
   const affirmedWhole = read && Array.isArray(view.limits) && Array.isArray(view.historyNotices) && Array.isArray(view.unresolvedRecords);
   const found: Found = read ? { evidence: { read, affirmedWhole, limits: [...list(view.limits).map(text), ...list(view.historyNotices).map(text), ...list(view.unresolvedRecords).map(() => "unresolved record"), ...unsettled] }, entries: decisionEntries(view, retainedAt ?? at) } : nothing();
   return finish("decisions", "Decisions", { home: null, generation: null }, call, found,
-    { limited: "Decisions were read with limits, so more may be waiting.", notRead: "Decisions have not been read yet.", failed: "Decisions could not be read at the last attempt." }, at, retainedAt);
+    { limited: "Decisions were read with limits, so more may be waiting.", notRead: "Decisions have not been read yet.", failed: "Decisions could not be read at the last attempt." }, at, retainedAt,
+    { readCall: "decisions", retained: !!view });
 }
 
 export type WaitingSources = {
@@ -481,8 +526,12 @@ export function waitingEntries(sources: WaitingSources): WaitingEntry[] {
 
 // ---- What the list shows: the readings now, and nothing else ----
 
-/** One row naming a source not read whole: its reading (null for the aggregated note on reopened runs) and the App's sentence. */
-export type CoverageRow = { reading: SourceReading | null; note: string };
+/** One row naming a source not read whole: its reading (null for the aggregated note on reopened runs) and the App's
+ * sentence; for the aggregated note, each reopened run it counts, named under it. */
+export type CoverageRow = { reading: SourceReading | null; note: string; runs?: SourceReading[] };
+/** The last successful status response, shown when the status read failed: when it was given, the sources it read
+ * with something waiting (each shown as its own block), and the sources it had not read whole, named. */
+export type LastStatus = { at: number | null; withEntries: SourceReading[]; notWhole: SourceReading[] };
 export type WaitingView = {
   readings: SourceReading[];
   /** Entries observed now, in a reading that answered: only these are counted. */
@@ -493,25 +542,34 @@ export type WaitingView = {
   coverage: CoverageRow[];
   /** The App's sentences of those rows. */
   notes: string[];
-  /** The failed readings whose source keeps a last successful reading with something in it, each shown as one block. */
+  /** The failed readings whose read call's last successful response read something waiting in them, each shown as one block. */
   lastReads: SourceReading[];
+  /** When the status read failed and a status response has succeeded before: that response, as it was. */
+  lastStatus: LastStatus | null;
 };
 
 /** What one set of readings shows. Nothing is carried from an earlier set. */
 export function waitingView(readings: SourceReading[]): WaitingView {
   const observed = readings.filter(r => r.state === "whole" || r.state === "limited").flatMap(r => r.entries);
   const coverage: CoverageRow[] = [];
-  let reopenedUnread = 0;
+  const reopenedUnread: SourceReading[] = [];
   for (const reading of readings) {
     if (reading.state === "whole" || !reading.note) continue;
-    if (reading.note === REOPENED_RUN_NOT_READ) { reopenedUnread++; continue; }
+    if (reading.state === "not-read" && reading.key.startsWith(REOPENED_RUN)) { reopenedUnread.push(reading); continue; }
     coverage.push({ reading, note: reading.note });
   }
   // A run reopened after the App restarted is read from the project records, which the host gives without its
-  // checkpoints: whether one of its arrivals waits for the person's act is not shown anywhere in the App yet.
-  if (reopenedUnread > 0) coverage.push({ reading: null, note: `${reopenedUnread} run${reopenedUnread === 1 ? "" : "s"} reopened after the App restarted ${reopenedUnread === 1 ? "is" : "are"} not known to have ended: the App does not show their checkpoints, so whether one waits for your act is not shown here or anywhere else in the App yet.` });
+  // checkpoints: whether one of its arrivals waits for the person's act is not shown anywhere in the App yet. The
+  // count is read first; each run is named under it.
+  const n = reopenedUnread.length;
+  if (n > 0) coverage.push({ reading: null, runs: reopenedUnread, note: `${n} run${n === 1 ? "" : "s"} reopened after the App restarted ${n === 1 ? "is" : "are"} not known to have ended: the App does not show their checkpoints, so whether one waits for your act is not shown here or anywhere else in the App yet.` });
   const complete = readings.every(r => r.state === "whole");
-  return { readings, observed, complete, coverage, notes: coverage.map(row => row.note), lastReads: readings.filter(r => r.state === "failed" && r.lastRead && r.lastRead.entries.length > 0) };
+  const lastReads = readings.filter(r => r.state === "failed" && r.lastRead && r.lastRead.entries.length > 0);
+  const statusFailedReads = readings.filter(r => r.call === "status" && r.state === "failed" && r.lastRead);
+  const notWhole = statusFailedReads.filter(r => r.lastRead!.state === "not-read" || (r.lastRead!.state === "limited" && r.lastRead!.entries.length === 0));
+  const withEntries = lastReads.filter(r => r.call === "status");
+  const lastStatus = withEntries.length + notWhole.length > 0 ? { at: statusFailedReads[0].lastRead!.at, withEntries, notWhole } : null;
+  return { readings, observed, complete, coverage, notes: coverage.map(row => row.note), lastReads, lastStatus };
 }
 
 /** The entries grouped by assignment where one exists, otherwise by conversation, in first-seen order. */
@@ -623,11 +681,52 @@ function ReadTime({ reading }: { reading: SourceReading }) {
   if (reading.state === "not-read") return <>{when ? `Checked at ${when}.` : "No read of it has been made yet."}</>;
   const last = reading.lastRead;
   const lastWhen = last?.at === null || last?.at === undefined ? "earlier" : `at ${clockWords(last.at)}`;
-  return <>The read {when ? `started at ${when} ` : ""}failed. {!last ? "There is no earlier successful reading of it to show."
-    : last.entries.length > 0 ? `Its last successful reading, ${lastWhen}, is shown below as it was then, not counted; its current state is unknown.`
-    : `Its last successful reading, ${lastWhen}, showed nothing waiting; its current state is unknown.`}
+  const response = LAST_RESPONSE[reading.call];
+  return <>The read {when ? `started at ${when} ` : ""}failed. {!last ? "No earlier response to this read has succeeded, so there is no earlier reading of it to show."
+    : last.state === "not-read" ? `${response}, ${lastWhen}, had not read it. At that read: ${last.note ?? "no reason was given."}`
+    : last.entries.length > 0 ? `${response}, ${lastWhen}, is shown below as it was then, not counted; its current state is unknown.`
+    : `${response}, ${lastWhen}, showed nothing waiting from it; its current state is unknown.`}
     {last && last.limits.length > 0 && <> That reading had limits and may have omitted waiting items.<Limits limits={last.limits} /></>}
     {last && last.state === "limited" && last.limits.length === 0 && <> That reading was not whole and may have omitted waiting items.</>}</>;
+}
+
+/** A record-supplied identity beside the App's sentence that names it through idWords: shown only when it is not a plain identifier. */
+function Beside({ reading }: { reading: SourceReading }) {
+  return reading.subject !== null && plainId(reading.subject) === null ? <> <SuppliedId value={reading.subject} source="file" label="Run:" name="Run reference as recorded, not the App's words" /></> : null;
+}
+
+/** Several lines under a line read first: shown as they are when there is one, in a disclosure when there are more. */
+function Several({ count, summary, className, children }: { count: number; summary: string; className: string; children: ReactNode }) {
+  return count === 1 ? <div className={className}>{children}</div> : <details className={className}><summary>{summary}</summary>{children}</details>;
+}
+
+/** Each reopened run the aggregate line counts: its reference, why it is not known to have ended, and when the census observed it. */
+function ReopenedRuns({ runs }: { runs: SourceReading[] }) {
+  return <Several count={runs.length} summary={`Each of the ${runs.length} runs, by its reference`} className="waiting-reopened-runs">
+    {runs.map(run => <p key={run.key}>The run <SuppliedId value={run.subject} source="file" label="Run:" name="Run reference as recorded, not the App's words" />: {run.detail ?? REOPENED_REASON_UNKNOWN}.{" "}
+      {run.at === null ? "When the census observed it is not known." : `Observed by the census at ${clockWords(run.at)}.`}</p>)}
+  </Several>;
+}
+
+/** The last successful status response, when the status read failed: shown as it was, with what it read waiting in
+ * each source and the sources it had not read whole named. It says nothing of whether an earlier response held more. */
+function LastStatusBlock({ last, go }: { last: LastStatus; go: (entry: WaitingEntry) => void }) {
+  return <div className="waiting-on-you-last-status" role="group" aria-label="The last successful status response" data-waiting-call="status">
+    <p>The last successful status response{last.at === null ? "" : `, at ${clockWords(last.at)}`}; its current state is unknown, and nothing here is counted above.</p>
+    {last.withEntries.map(reading => <LastReadBlock key={reading.key} reading={reading} go={go} />)}
+    {last.notWhole.length > 0 && <Several count={last.notWhole.length} summary={`${last.notWhole.length} sources that response had not read whole`} className="waiting-on-you-last-status-not-whole">
+      {last.notWhole.map(reading => <p key={reading.key}>{reading.lastRead!.state === "not-read" ? "Not read in that response" : "Read with limits in that response, showing nothing waiting"}: {reading.name}.<Beside reading={reading} /> {reading.lastRead!.note}<Limits limits={reading.lastRead!.limits} /></p>)}
+    </Several>}
+  </div>;
+}
+
+/** One source's entries in a failed call's last successful response: one block, as last read, not counted. */
+function LastReadBlock({ reading, go }: { reading: SourceReading; go: (entry: WaitingEntry) => void }) {
+  const last = reading.lastRead!;
+  return <div className="waiting-on-you-last-read" role="group" aria-label="As last read, not counted" data-waiting-source-key={reading.key}>
+    <p>{reading.name}, as last read{last.at === null ? "" : ` at ${clockWords(last.at)}`}; its current state is unknown, and nothing here is counted above.{last.state === "limited" && " That reading had limits and may have omitted waiting items."}</p>
+    {last.entries.map(entry => <WaitingEntryRow key={entry.key} entry={entry} go={go} lastRead={{ at: last.at }} />)}
+  </div>;
 }
 
 /** The nested overview of requests from Codex by home, governed by the reading of the active home's
@@ -647,7 +746,7 @@ export function WaitingOnYou({ readings, view, busy = false, openGroup, go, onOp
   /** Called each time the person opens the list: the App reads the return-review queue then. */
   onOpen?: () => void;
 }) {
-  const { observed, complete, coverage, lastReads } = waitingView(readings);
+  const { observed, complete, coverage, lastReads, lastStatus } = waitingView(readings);
   return <section className="waiting-on-you" aria-label="Waiting on you">
     <details id="waiting-on-you" onToggle={event => { if ((event.currentTarget as HTMLDetailsElement).open) onOpen?.(); }}>
       <summary><span role="status" aria-live="polite">{waitingLine(observed, complete)}</span></summary>
@@ -655,18 +754,17 @@ export function WaitingOnYou({ readings, view, busy = false, openGroup, go, onOp
         {complete ? observed.length === 0 && <p>Nothing recorded is waiting on you.</p>
           : <p>{observed.length === 0 ? "Nothing is observed waiting on you now, but the status is incomplete:" : "The status is incomplete:"}</p>}
         {coverage.length > 0 && <div className="waiting-on-you-coverage" role="group" aria-label="What this list could not read whole">
-          {coverage.map(({ reading, note }, i) => <p key={reading?.key ?? `note${i}`} data-waiting-source-key={reading?.key} data-waiting-state={reading?.state}>{note}{reading && <> <small><ReadTime reading={reading} /></small></>}</p>)}
+          {coverage.map(({ reading, note, runs }, i) => reading ? <p key={reading.key} data-waiting-source-key={reading.key} data-waiting-state={reading.state}>{note}<Beside reading={reading} /> <small><ReadTime reading={reading} /></small></p>
+            : <div key={`note${i}`} data-waiting-source-key="reopened-runs"><p>{note}</p>{runs && <ReopenedRuns runs={runs} />}</div>)}
         </div>}
         {waitingGroups(observed).map(({ group, entries }) => <div key={group.key} className="waiting-on-you-group" role="group" aria-label="Entries of one conversation or assignment">
           <p className="waiting-on-you-group-label"><GroupLabel group={group} /></p>
           {entries.map(entry => <WaitingEntryRow key={entry.key} entry={entry} go={go} />)}
         </div>)}
-        {lastReads.map(reading => <div key={reading.key} className="waiting-on-you-last-read" role="group" aria-label="As last read, not counted" data-waiting-source-key={reading.key}>
-          <p>{reading.name}, as last read{reading.lastRead!.at === null ? "" : ` at ${clockWords(reading.lastRead!.at)}`}; its current state is unknown, and nothing here is counted above.{reading.lastRead!.state === "limited" && " That reading had limits and may have omitted waiting items."}</p>
-          {reading.lastRead!.entries.map(entry => <WaitingEntryRow key={entry.key} entry={entry} go={go} lastRead={{ at: reading.lastRead!.at }} />)}
-        </div>)}
+        {lastStatus && <LastStatusBlock last={lastStatus} go={go} />}
+        {lastReads.filter(reading => reading.call !== "status").map(reading => <LastReadBlock key={reading.key} reading={reading} go={go} />)}
         <RequestsOverview reading={readings.find(r => r.key === "requests" || r.key.startsWith("requests:"))} view={view} busy={busy} open={openGroup} />
-        <p><small>Each source shows what its latest reading observed, and the next reading replaces it: nothing is kept from one reading to the next, so an item a limited reading showed can drop from view when the next reading does not hold it, and after a change of home the requests of the home left are shown only as that home's overview reads them. When a source's latest read failed, its last successful reading is shown apart, as last read at its time, not counted, its current state unknown. Each item also has its own place in the App, which reads its source itself: a request from Codex on its request card, beside its conversation or under the requests outside the selected conversation (in another home, once that home is opened); a checkpoint arrival of a run in this session in that run's panel in the workflow studio; a return in the fleet records panel; a decision package in the decision packages view. A run reopened after the App restarted does not show its checkpoints anywhere in the App yet. Returns and decisions are read again every 15 seconds, and returns each time you open this list. Nothing here answers, dismisses or settles anything; Go to it opens the existing control or record. A question or tool permission already answered is refused there. A decision package and a checkpoint act are checked there against the current content of what they concern, but an earlier decision or act does not stop another being recorded, and neither yet refuses an item that is no longer waiting. Returns have no review control in the App yet: Go to it shows the return's record. A return whose examiner is an agent is not a demand on you, but the records do not yet say whether the examiner is a person or an agent, so every return waiting for review is listed.</small></p>
+        <p><small>Each source shows what its latest reading observed, and the next reading replaces it: nothing is kept from one reading to the next, so an item a limited reading showed can drop from view when the next reading does not hold it, and after a change of home the requests of the home left are shown only as that home's overview reads them. When a read fails, the last successful response to that kind of read (the status read, the returns read or the decisions read) is shown apart, as it was, as last read at its time, with the sources it had not read named, not counted, its current state unknown. These are the places each kind of item is shown in the App: a request from Codex on its request card, beside its conversation or under the requests outside the selected conversation (in another home, once that home is opened); a checkpoint arrival of a run in this session in that run's panel in the workflow studio; a return in the fleet records panel; a decision package in the decision packages view. They are fed by the same readings, so an item a limited reading omits is omitted there as well until a reading supplies it again. A run reopened after the App restarted does not show its checkpoints anywhere in the App yet. Returns and decisions are read again every 15 seconds, and returns each time you open this list. Nothing here answers, dismisses or settles anything; Go to it opens the existing control or record. A question or tool permission already answered is refused there. A decision package and a checkpoint act are checked there against the current content of what they concern, but an earlier decision or act does not stop another being recorded, and neither yet refuses an item that is no longer waiting. Returns have no review control in the App yet: Go to it shows the return's record. A return whose examiner is an agent is not a demand on you, but the records do not yet say whether the examiner is a person or an agent, so every return waiting for review is listed.</small></p>
       </div>
     </details>
   </section>;

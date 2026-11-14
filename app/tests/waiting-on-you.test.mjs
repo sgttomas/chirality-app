@@ -400,7 +400,7 @@ test('a failed manual refresh of the fleet records shows its last successful rea
     const text = place(c).textContent;
     const lastRead = c.querySelectorAll(n => n.getAttribute('aria-label') === 'As last read, not counted')[0];
     assert.ok(lastRead && /^Returns, as last read at \d\d:\d\d:\d\d; its current state is unknown, and nothing here is counted above\.[\s\S]*as last read: a return is waiting for review[\s\S]*As last read at \d\d:\d\d:\d\d; current state unknown\. Returns have no review control in the App yet: it shows the return's record\./.test(lastRead.textContent), 'the last successful fleet reading, as it was');
-    assert.match(text, /Returns could not be read at the last attempt\. The read started at \d\d:\d\d:\d\d failed\. Its last successful reading, at \d\d:\d\d:\d\d, is shown below as it was then, not counted; its current state is unknown\./);
+    assert.match(text, /Returns could not be read at the last attempt\. The read started at \d\d:\d\d:\d\d failed\. The last successful response to the returns read, at \d\d:\d\d:\d\d, is shown below as it was then, not counted; its current state is unknown\./);
     assert.match(nodes(place(c), 'summary')[0].textContent, /^Waiting on you: 8 observed now \(5 requests from Codex\); status incomplete$/, 'the last-read return is not counted');
   }, {fleetPacket});
 });
@@ -521,7 +521,7 @@ test('every state of every source, through the real adapters: no definite count 
     assert.doesNotMatch(html, /Nothing recorded is waiting on you/, `${key} / ${name}: never "nothing is waiting"`);
     assert.match(html, /status is incomplete:/, `${key} / ${name}`);
     assert.ok(shown.notes.length > 0, `${key} / ${name}: what is not read whole is named`);
-    if (reading.state !== 'whole' && reading.note !== 'reopened-run-not-read') assert.ok(shown.notes.includes(reading.note), `${key} / ${name}: its own row names it`);
+    if (reading.state !== 'whole' && !(reading.state === 'not-read' && key.startsWith('reopened-run:'))) assert.ok(shown.notes.includes(reading.note), `${key} / ${name}: its own row names it`);
     if (reading.state === 'failed') assert.deepEqual(reading.entries, [], `${key} / ${name}: a failed reading observes nothing now`);
   }
   assert.deepEqual([...sources].sort(), ['decisions', 'home', 'hot-runs', 'other-homes', 'reopened', 'reopened-run', 'requests', 'returns', 'run'], 'every source is walked');
@@ -584,7 +584,7 @@ test('a waiting arrival whose run turns busy is not shown while the run is not r
     setSnapshot(hostView({workflowRoot:{...hostView().workflowRoot, runs:[busy]}})); await timers(ms => ms <= 1000);
     assert.equal(line(), 'Waiting on you: 8 observed now (5 requests from Codex); status incomplete', 'the arrival is not counted, and the count is not definite');
     assert.doesNotMatch(place(c).textContent, /Nothing recorded is waiting on you/);
-    assert.match(place(c).textContent, /The run run-1 could not be read just now \(an operation on it was in progress\), so whether one of its checkpoints waits for your act is not known\. Checked at \d\d:\d\d:\d\d\./);
+    assert.match(place(c).textContent, /The run run-1 could not be read \(an operation on it was in progress\), so whether one of its checkpoints waits for your act is not known\. Checked at \d\d:\d\d:\d\d\./);
     assert.doesNotMatch(place(c).textContent, /a checkpoint was reached/, 'the arrival is not shown: the run\'s reading that showed it has been replaced');
     assert.equal(c.querySelectorAll(n => n.getAttribute('aria-label') === 'As last read, not counted').length, 0, 'not read is not a failed read: no last-read block');
     // The run is read again and its record shows the act performed: the count is definite again.
@@ -623,7 +623,7 @@ test('the third reader\'s first finding: after a failed status read, the nested 
     assert.ok(block, 'the active home\'s requests, as last read');
     assert.match(block.textContent, /^Requests from Codex in the account home, as last read at \d\d:\d\d:\d\d; its current state is unknown, and nothing here is counted above\./);
     assert.match(block.textContent, /as last read: a question is waiting[\s\S]*Its request card takes an answer only while the request is still outstanding\./);
-    assert.match(coverageRow(c, 'requests:account').textContent, /^Requests from Codex in the account home could not be read at the last attempt: the App's last read of its own status failed\. The read started at \d\d:\d\d:\d\d failed\. Its last successful reading, at \d\d:\d\d:\d\d, is shown below/);
+    assert.match(coverageRow(c, 'requests:account').textContent, /^Requests from Codex in the account home could not be read at the last attempt: the App's last read of its own status failed\. The read started at \d\d:\d\d:\d\d failed\. The last successful status response, at \d\d:\d\d:\d\d, is shown below/);
     const runBlock = [...lastReadBlocks(c)].find(b => b.getAttribute('data-waiting-source-key') === 'run:run-1');
     assert.match(runBlock.textContent, /as last read: a checkpoint was reached[\s\S]*It may already be settled: the checkpoint act there does not yet refuse an arrival that is no longer waiting\./);
     const homeBlock = [...lastReadBlocks(c)].find(b => b.getAttribute('data-waiting-source-key') === 'home:api-key');
@@ -709,7 +709,7 @@ test('the third reader\'s third finding: after a change of active home, the old 
     // The next status read fails: the retained reading is the api-key home's own, which showed nothing; account's question is never shown relabelled.
     setSnapshot(new Error('invented status failure')); await run(ms => ms <= 1000);
     assert.ok(!question());
-    assert.match(coverageRow(c, 'requests:api-key').textContent, /Its last successful reading, at \d\d:\d\d:\d\d, showed nothing waiting; its current state is unknown\./);
+    assert.match(coverageRow(c, 'requests:api-key').textContent, /The last successful status response, at \d\d:\d\d:\d\d, showed nothing waiting from it; its current state is unknown\./);
     assert.equal([...lastReadBlocks(c)].filter(b => /^requests/.test(b.getAttribute('data-waiting-source-key'))).length, 0);
     assert.match(c.querySelectorAll(n => n.getAttribute('aria-label') === 'Requests from Codex as last read')[0].textContent, /as last read at \d\d:\d\d:\d\d: no requests were observed then in configured homes; the current state is unknown\.[\s\S]*account: stopped at that read; no groups shown for it\./);
   });
@@ -762,11 +762,67 @@ test('a failed read whose last successful reading had limits: one block, uncount
     const [block] = lastReadBlocks(c);
     assert.ok(block && block.getAttribute('data-waiting-source-key') === 'returns');
     assert.match(block.textContent, /^Returns, as last read at \d\d:\d\d:\d\d; its current state is unknown, and nothing here is counted above\. That reading had limits and may have omitted waiting items\./);
-    assert.match(returnsRow(c).textContent, /Returns could not be read at the last attempt\. The read started at \d\d:\d\d:\d\d failed\. Its last successful reading, at \d\d:\d\d:\d\d, is shown below as it was then, not counted; its current state is unknown\. That reading had limits and may have omitted waiting items\. What its reader said it could not read: /);
+    assert.match(returnsRow(c).textContent, /Returns could not be read at the last attempt\. The read started at \d\d:\d\d:\d\d failed\. The last successful response to the returns read, at \d\d:\d\d:\d\d, is shown below as it was then, not counted; its current state is unknown\. That reading had limits and may have omitted waiting items\. What its reader said it could not read: /);
     // What a reader or a record supplied stays inside a box, never in a control.
     for (const el of [block, returnsRow(c)]) for (const control of el.querySelectorAll(n => ['a', 'button', 'li', 'summary'].includes(n.localName)))
       assert.doesNotMatch(control.textContent, /worker agent|U-pumps|protected source/, control.textContent);
     const boxed = returnsRow(c).querySelectorAll(n => n.getAttribute('role') === 'group' && /agent-text/.test(n.getAttribute('class') ?? ''));
     assert.ok(boxed.some(box => /protected source unavailable: invented/.test(box.textContent)), 'the limit is in a box');
   }, {fleetPacket});
+});
+
+// ---- The fourth reader's counterexamples ----
+const statusBlock = c => c.querySelectorAll(n => n.getAttribute('aria-label') === 'The last successful status response')[0];
+
+test('the fourth reader\'s first finding: what is retained is the last successful read of each kind of call; a run that read had not read is named as not read in it, never as having no earlier reading (the mounted App)', async () => {
+  await mountApp(async ({c, run, setSnapshot}) => {
+    await run(ms => ms > 1000);
+    const line = () => nodes(place(c), 'summary')[0].textContent;
+    assert.equal(line(), 'Waiting on you: 9 (5 requests from Codex)', 'run-1 read whole, its arrival waiting');
+    setSnapshot(hostView({workflowRoot:{...hostView().workflowRoot, runs:[busy]}})); await run(ms => ms <= 1000);   // its lock is taken: the busy placeholder
+    setSnapshot(new Error('invented status failure')); await run(ms => ms <= 1000);   // the status poll fails
+    assert.match(line(), /; status incomplete$/);
+    const row = coverageRow(c, 'run:run-1');
+    assert.doesNotMatch(row.textContent, /There is no earlier successful reading of it to show/);
+    assert.match(row.textContent, /The read started at \d\d:\d\d:\d\d failed\. The last successful status response, at \d\d:\d\d:\d\d, had not read it\. At that read: The run run-1 could not be read \(an operation on it was in progress\)/);
+    const block = statusBlock(c);
+    assert.ok(block && place(c).contains(block), 'the last successful status read is shown as one block');
+    assert.match(block.textContent, /^The last successful status response, at \d\d:\d\d:\d\d; its current state is unknown, and nothing here is counted above\./);
+    assert.match(block.textContent, /Not read in that response: The run run-1\. The run run-1 could not be read \(an operation on it was in progress\)/, 'the run is named as not read in it');
+    assert.doesNotMatch(place(c).textContent, /a checkpoint was reached/, 'the arrival of the earlier whole reading is not brought back');
+    assert.ok([...lastReadBlocks(c)].some(b => b.getAttribute('data-waiting-source-key') === 'requests:account' && block.contains(b)), 'its requests, as last read, inside it');
+  });
+});
+
+test('the fourth reader\'s second finding: each unread reopened run is named, with the time the census observed it and its reason, under the aggregate line', () => {
+  const change = withCensus(r => { r.runs = [reopenedRow({run:'missing-run-alpha'}), reopenedRow({run:'missing-run-beta', state:'unknown', detail:'invented'}), reopenedRow({run:`odd run${LOOK}`, state:'invented'})]; });
+  const readings = waitingModule().waitingReadings(emptySources({...change, hostReadAt:READ_AT}));
+  const html = renderPlace(readings);
+  const time = clock(READ_AT).slice('as of '.length);
+  const text = agentPlain(html).replace(/<[^>]+>/g, '');
+  assert.match(text, /3 runs reopened after the App restarted are not known to have ended: the App does not show their checkpoints/, 'the aggregate line is read first');
+  assert.ok(text.indexOf('3 runs reopened') < text.indexOf('missing-run-alpha'));
+  const disclosure = html.match(/<details class="waiting-reopened-runs">[\s\S]*?<\/details>/);
+  assert.ok(disclosure, 'the runs are in a disclosure under the line');
+  const listed = agentPlain(disclosure[0]).replace(/<[^>]+>/g, '');
+  assert.match(listed, new RegExp(`The run missing-run-alpha: its records show it opened and record no end\\. Observed by the census at ${time}\\.`));
+  assert.match(listed, new RegExp(`The run missing-run-beta: its records do not establish whether it ended\\. Observed by the census at ${time}\\.`));
+  assert.match(listed, new RegExp(`The run ⟦Run: odd run[\\s\\S]*?⟧: its state is one the App does not recognise\\. Observed by the census at ${time}\\.`));
+  assert.doesNotMatch(listed, /Read at|checkpoints were read/, 'the census\'s time is never presented as when the run\'s checkpoints were read');
+  assert.ok(agentBoxNames(disclosure[0]).length > 0, 'a reference that is not a plain identifier is boxed');
+  assert.doesNotMatch(html.replace(/<span class="agent-text[\s\S]*?<\/span><\/span>/g, ''), /<button>Allow once<\/button>/);
+});
+
+test('the fourth reader\'s third finding: another home\'s group whose generation is not of the generation\'s shape makes that home not read and gives no count', () => {
+  const {waitingReadings, waitingView, waitingLine} = waitingModule();
+  const change = withHost(h => { h.waitingRequests.groups = [{modeHomeClass:'api-key', generation:true, threadId:'K1', count:2}]; });
+  const readings = waitingReadings(emptySources(change));
+  assert.equal(readings.find(r => r.key === 'home:api-key').state, 'not-read');
+  const shown = waitingView(readings);
+  assert.equal(shown.observed.length, 0, 'the malformed group contributes nothing');
+  assert.equal(waitingLine(shown.observed, shown.complete), 'Waiting on you: 0 observed now; status incomplete');
+  assert.ok(shown.notes.includes('Requests in the api-key home are not read: the overview gave a group without a generation the App can use.'));
+  // The positive control: the same group with a generation of the shape is counted, and the count is definite.
+  const good = waitingView(waitingReadings(emptySources(withHost(h => { h.waitingRequests.groups = [{modeHomeClass:'api-key', generation:other, threadId:'K1', count:2}]; }))));
+  assert.equal(waitingLine(good.observed, good.complete), 'Waiting on you: 2 (2 requests from Codex)');
 });
