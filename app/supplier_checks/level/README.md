@@ -136,6 +136,7 @@ control.
 | --- | --- | --- |
 | **The examinations' level.** Edits with approval `never`, network off and both temporary folders excluded. The project write succeeds. Writes outside the project, to `TMPDIR`, to `/tmp` and into `.git`, and the network probe, each run and are refused by the sandbox. A command asking for escalation is rejected by policy. No request of any kind arises on that thread in the test. | On the same client, an escalation at edits raises a request. | `Presets.test_edits_that_never_ask_fail_whatever_needs_more_and_raise_nothing` |
 | **Nothing sent** (what the App sends today). The reply reports `on-request`, `readOnly` with network off, and profile `:read-only`. Each write tried and the network probe are refused by the sandbox, with no request. | On the same thread, an escalation raises a request for that call. | `Presets.test_nothing_sent_is_on_request_read_only_and_a_refused_write_asks_no_one` |
+| **The temporary folder's entries, with nothing sent.** The App's layout, with invented names: a fresh Codex home with new, empty settings inside an invented data folder, and `TMPDIR` a folder made inside `codex-tmp` in the `<data folder> Working Files` folder beside it. Each command tried is refused by the sandbox with its own exact line, and nothing is asked: renaming the temporary folder's entry; removing it and making it again; moving it aside to put a link in its place; making a new link beside it; renaming `codex-tmp`, removing it, and moving it aside for a link; renaming the Working Files folder, and making a link inside it. Afterwards each folder from the run's root down to the temporary folder is the same folder, by device and inode, and each holds the same names. A write inside the temporary folder itself is also refused: with nothing sent, a sandboxed command cannot use the folder the App gives Codex as `TMPDIR`. | At full access each of these succeeds and is seen to take effect, except removing the non-empty `codex-tmp`, which fails with `Directory not empty`, where the sandbox refused it with `Operation not permitted`. The write inside succeeds. On the same thread, an escalation raises a request. | `TemporaryFolderEntries.test_with_nothing_sent_no_entry_on_the_temporary_folders_path_changes`, `TemporaryFolderEntries.test_at_full_access_the_same_operations_change_the_entries` |
 | A write the sandbox refused completes no `commandExecution` item. | On the same thread, a write that succeeds has one. | `Presets.test_a_write_the_sandbox_refused_completes_no_command_item` |
 | **Supervised** raises a command approval, for that call, before every command tried: the five writes, the network probe and a plain `/bin/ls`. For each declined command, what is observed is the decline's own output, a completed item ended `declined` with no exit code, and no effect on its file or the network. | Every row is its own: each request is tied to its call. | `Presets.test_supervised_asks_before_every_command_tried_and_a_declined_one_does_not_run` |
 | **Edits, network off.** The project, `TMPDIR` and `/tmp` writes succeed. Outside, `.git` and the network probe are refused by the sandbox. An escalation is declined at its request. | The allowed and refused writes on the same thread. | `Presets.test_edits_with_network_off` |
@@ -161,6 +162,14 @@ control.
 
 One further observation about the supplier is held out of this folder pending
 the owner's decision.
+
+## What the temporary folder row does not show
+
+- Other operations on these entries: a hard link, an exchange of two entries, a change of owner, mode, access list, extended attribute or times, or a mount.
+- Ancestors above the Working Files folder: the data folder and the run's root were compared afterwards, but no operation on them was tried. The App's real folders sit under the person's Library, with other names and depth.
+- Any level other than nothing sent. The read-only sandbox refuses every write; nothing in this row is particular to these folders.
+- A process outside the sandbox: an approved escalation, a command allowed by a lasting rule, full access, Codex's own server process, the App, or another program. Any of these can change the entries.
+- The App's own checks when it makes these folders.
 
 ## Read from the source, not shown by a fixture
 
