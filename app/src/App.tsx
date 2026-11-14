@@ -1435,6 +1435,32 @@ export function DecisionPackagesPanel({ view, name, setName, recordName, refresh
   </section>;
 }
 
+/**
+ * Where the App's first read of its host state stands: "reading" before any status read has been
+ * applied and none has failed; "failed" when one has failed and none has been applied since; "read"
+ * once one has been applied. A read that fails after one was applied leaves "read": the person keeps
+ * what is shown, and the guides say their last read failed (hostReads.ts).
+ */
+export function firstReadState(reads: { applied: number; failure: string | null }): "reading" | "failed" | "read" {
+  return reads.applied > 0 ? "read" : reads.failure ? "failed" : "reading";
+}
+
+/** How long after launch, with no status read applied and none failed, the starting line says the App is
+ * taking longer than usual (App Agent 0's number). The status timer starts a new read every POLL_MS whether
+ * or not an earlier one has been answered, so the App is still trying while a read hangs. */
+export const FIRST_READ_PATIENCE_MS = 10_000;
+
+/** What stands in for the welcome and the workspace until the first status read is applied. The read's
+ * own diagnostic is not shown: hostReads drops it at the source, so no status read's raw text is rendered. */
+function FirstReadStatus({ failed, slow, retry }: { failed: boolean; slow: boolean; retry: () => void }) {
+  if (!failed && !slow) return <p role="status">Starting Chirality…</p>;
+  return <section aria-label="Chirality could not start">
+    {failed ? <p role="alert">Chirality could not read its own state. It keeps trying; you can also try again now.</p>
+      : <p role="status">Chirality is taking longer than usual to start. It keeps trying; you can also try again now.</p>}
+    <p><button onClick={retry}>Try again</button></p>
+  </section>;
+}
+
 export function App() {
   const [fleet, setFleet] = useState<FleetPacket | null>(null);
   const [fleetError, setFleetError] = useState("");
@@ -1457,6 +1483,9 @@ export function App() {
   };
   // Every status read is numbered when it starts and applied only if newer than the one shown (hostReads.ts).
   const { host, hostReads, readHost, applyHost } = useOrderedHost();
+  // Whether FIRST_READ_PATIENCE_MS has passed since launch; it only changes what the not-yet-read state says.
+  const [firstReadSlow, setFirstReadSlow] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setFirstReadSlow(true), FIRST_READ_PATIENCE_MS); return () => clearTimeout(t); }, []);
   // Safe reply observations outlive a card's move between the selected chat
   // and other requests. They are transient App UI facts, never register rows.
   const [replyObservations, setReplyObservations] = useState<Record<string, RequestReplyObservation>>({});
@@ -1997,7 +2026,8 @@ export function App() {
   };
 
   useEffect(() => {
-    refresh();
+    // A failed first read is shown by firstReadState; its rejection needs no other handler.
+    void refresh().catch(() => undefined);
     const t = setInterval(() => refreshAfterAction(() => readHost(invoke<Json>("host_status")).then(applyHost), () => setMessage(withRefreshFailure)), POLL_MS);
     // RECOVERY SQ-W W-4, W-5: when the window is shown again after it was
     // closed (hidden; DEF-1), the view replaces what it rendered with the
@@ -2436,16 +2466,21 @@ export function App() {
   // workspace, whose controls cannot work yet. Everything stays mounted.
   // App data held by another process shows the same focused surface, with its reason.
   const setupRequired = ["setup-required", "data-held", "home-held"].includes(host?.desktopSetup?.launch?.state);
+  // Until the first status read is applied, neither the welcome nor the workspace is in the document,
+  // only the line that says the App is starting (or, after FIRST_READ_PATIENCE_MS, taking longer than usual),
+  // or that the read failed (firstReadState).
+  const firstRead = firstReadState(hostReads);
   return (<DailyWorkspace>
+        {firstRead !== "read" && <FirstReadStatus failed={firstRead === "failed"} slow={firstReadSlow} retry={() => { void refresh().catch(() => undefined); }}/>}
         {setupRequired && <FirstUseSetup view={host.desktopSetup}/>}
-        <div hidden={setupRequired}>
+        {firstRead === "read" && <div hidden={setupRequired}>
         <header className="workspace-heading"><div><h1>Chirality</h1><p>Workflow workspace</p></div><p>Make, try, review and refine workflows through conversation.</p></header>
         <WorkflowAssuranceSetting setting={host?.workflowRoot?.assuranceSetting} act={async (command, args) => commandThenRefresh(() => invoke(command, args), refresh, () => setMessage(withRefreshFailure))}/>
         <nav className="workspace-nav" aria-label="Workspace navigation">
           {WORKSPACE_VIEWS.map(item => <a key={item.id} href={`#${item.target}`} aria-current={taskView === item.id ? "page" : undefined}>{item.label}</a>)}
         </nav>
         <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome}/>
-        </div>
+        </div>}
         <NativeWaitingBridge ready={!!host} report={setMessage} checkpoint={() => ({ signature: JSON.stringify([threadChoiceRevision.current, chooserHome.current.epoch, editRevision.current]),
           pristine: threadChoiceRevision.current === 0 && editRevision.current === 0 })} capture={() => {
           const revision = threadChoiceRevision.current;
@@ -2464,9 +2499,9 @@ export function App() {
               await openRequests(group);
           };
       }}/>
-        <div hidden={setupRequired}><WaitingRequestsIndicator overview={host?.waitingRequests} busy={homePending} open={group => { void openRequests(group); }}/></div>
+        {firstRead === "read" && <div hidden={setupRequired}><WaitingRequestsIndicator overview={host?.waitingRequests} busy={homePending} open={group => { void openRequests(group); }}/></div>}
         <NativeConfirmationContent />
-        <div hidden={setupRequired}>
+        {firstRead === "read" && <div hidden={setupRequired}>
         {offer && (<section style={{ border: "1px solid #888", padding: 8 }}>
             <h2>Act control: {offer.wording} ({offer.actKind})</h2>
             <p>
@@ -2658,6 +2693,6 @@ export function App() {
         </section>
           </WorkspaceDisclosure>
         </section>
-        </div>
+        </div>}
       </DailyWorkspace>);
 }
