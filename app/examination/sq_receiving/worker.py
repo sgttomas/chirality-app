@@ -214,7 +214,9 @@ def check(selection_path, expected):
         form = value['configuration']['route'].get('native_route', {}).get('form_ref')
         if form:
             external.append({'scope': slot, 'ref': form, 'kind': 'native form'})
-    if any(st['state'] != 'recorded' for s in dossier['scenarios'] for st in s['steps']):
+    taken = sq.out_of_release(step_map, dossier.get('release'))  # listed, never counted, so never outstanding
+    if any(st['state'] != 'recorded' for s in dossier['scenarios'] for st in s['steps']
+           if st['step'] not in taken.get(s['scenario'], ())):
         missing.append('non-recorded steps: examination obligations outstanding')
 
     review_selection = selected['review']

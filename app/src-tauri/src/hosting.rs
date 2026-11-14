@@ -115,6 +115,19 @@ use std::time::Duration;
 /// wait belongs to other holders of the gate (a start's spawn and handshake, Stop Codex), not to this.
 /// A refused turn releases the gate, the source lock and the writer at once.
 pub(crate) const ATTACHMENT_RECHECK_LIMIT: Duration = Duration::from_secs(2);
+/// Test support: what a cold reopen of `path` reads, read while this Host's own ledger is held.
+/// The App opens one connection on its ledger and makes every write under one lock, and the
+/// ledger's guard (`recovery_store::preflight`) rests on that. A test's second connection is
+/// opened under the same lock, so its guard never meets this Host's rollback journal while
+/// SQLite removes it at commit.
+#[cfg(test)]
+impl Host {
+    pub(crate) fn stored_entries_held(&self, path: &std::path::Path) -> Vec<Value> {
+        let held = self.inner.0.lock().unwrap().recovery.clone();
+        let _writer = held.as_ref().map(|ledger| ledger.lock().unwrap());
+        crate::recovery::stored_entries(path)
+    }
+}
 #[cfg(test)]
 static ATTACHMENT_RECHECK_DELAY: std::sync::Mutex<Option<Duration>> = std::sync::Mutex::new(None);
 #[cfg(test)]
@@ -8092,12 +8105,12 @@ mod conversation_transport_tests {
     fn namespace_guard_drift_keeps_actual_reply_stop_and_recoverable_pointer_facts(){
         use std::os::unix::fs::symlink;
         let(root,host,scope,key)=namespace_guard_fixture();let ga=app_custody_mock_home(&host,&root.join("account"));let cap=host.app_runtime_custody().unwrap();cap.bind_native_namespaces(scope).unwrap();
-        let leaf=root.join("app/runtime/recovery.ledger.jsonl");let before=crate::recovery::stored_entries(&leaf);
+        let leaf=root.join("app/runtime/recovery.ledger.jsonl");let before=host.stored_entries_held(&leaf);
         std::fs::remove_file(key.native_path().join("skills")).unwrap();symlink(root.join("app/runtime"),key.native_path().join("skills")).unwrap();
         host.on_line(&serde_json::to_vec(&json!({"id":"guard-request","method":"item/fileChange/requestApproval","params":{"threadId":"thread","itemId":"item"}})).unwrap(),&ga);
-        assert_eq!(crate::recovery::stored_entries(&leaf),before);assert_eq!(host.snapshot()["recoveryPendingObservations"].as_array().unwrap().len(),1);assert!(!host.snapshot()["recoveryPersistenceError"].is_null());
+        assert_eq!(host.stored_entries_held(&leaf),before);assert_eq!(host.snapshot()["recoveryPendingObservations"].as_array().unwrap().len(),1);assert!(!host.snapshot()["recoveryPersistenceError"].is_null());
         let reply=host.answer_server_request(&ga,&json!("guard-request"),&json!({"decision":"decline"}),"person-via-interaction",Some("person:synthetic (identity not verified)")).unwrap();assert_eq!(reply["replyWriteResult"],"written");
-        assert_eq!(host.stop_scoped(&ga,"person:synthetic","codex-stop").unwrap()["state"],"stopped");let captured=host.snapshot()["recoveryPendingObservations"].as_array().unwrap().clone();assert_eq!(captured.last().unwrap()["transition"],"RQ-05");assert_eq!(crate::recovery::stored_entries(&leaf),before);
+        assert_eq!(host.stop_scoped(&ga,"person:synthetic","codex-stop").unwrap()["state"],"stopped");let captured=host.snapshot()["recoveryPendingObservations"].as_array().unwrap().clone();assert_eq!(captured.last().unwrap()["transition"],"RQ-05");assert_eq!(host.stored_entries_held(&leaf),before);
         std::fs::remove_file(key.native_path().join("skills")).unwrap();symlink(root.join("shared/skills"),key.native_path().join("skills")).unwrap();cap.flush_captured_recovery();assert!(host.snapshot()["recoveryPendingObservations"].as_array().unwrap().is_empty());let rows=cap.recorded_recovery_entries().as_array().unwrap().clone();for fact in &captured{assert_eq!(rows.iter().filter(|row|*row==fact).count(),1);}std::fs::remove_dir_all(root).unwrap();
     }
     #[test]
