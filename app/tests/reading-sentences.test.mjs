@@ -340,7 +340,7 @@ for (const kind of ['assurance', 'attachment', 'external', 'trace', 'decide', 'p
     const own = `invented ${kind} refusal`;
     if (kind === 'decide') {
       assert.ok(c.textContent.includes(commandFails ? `decide: ${own} ${REFRESH_FAILED}` : `decide: {"selection"`), 'the decision outcome stands');
-      assert.ok(!c.textContent.includes('Act control: Invented decision'), 'decide closes its offer after the command, as before');
+      assert.ok(!nodes(c, 'h2').some(node => node.textContent === 'Act control'), 'decide closes its offer after the command, as before');
     } else if (kind === 'external') {
       assert.ok(c.textContent.includes(`${commandFails ? own : 'External selection: invented-selected invented-stage'} ${REFRESH_FAILED}`), 'the selection outcome stands, then the fixed line');
     } else if (kind === 'process') {

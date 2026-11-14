@@ -61,7 +61,7 @@ function selectionView(container) {
   const panel = nodes(container,'h2').find(node => node.textContent === 'Selected text attachments').parentNode;
   const articles = nodes(panel,'article');
   return {
-    refs:articles.filter(node => /^\d+\. /.test(nodes(node,'h3')[0]?.textContent ?? '')).map(node => JSON.parse(agentBlockText(agentBlocks(node)[0])).selectionRef),
+    refs:articles.filter(node => /^Selected attachment \d+$/.test(nodes(node,'h3')[0]?.textContent ?? '')).map(node => JSON.parse(agentBlockText(agentBlocks(node)[0])).selectionRef),
     submissions:articles.filter(node => (nodes(node,'h3')[0]?.textContent ?? '').startsWith('Submission ')).map(node => JSON.parse(agentBlockText(agentBlocks(node)[0]))),
   };
 }
