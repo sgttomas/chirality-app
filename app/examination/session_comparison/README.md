@@ -34,7 +34,7 @@ Children, items, outputs, conversations and order follow in later parts.
 | Interrupts the App recorded | The recovery ledger (`recovery.ledger.sqlite`), opened read-only. The latest `stop_request` record of each stop request on the thread is used. |
 | The workflow given | WR `run_text` records of the thread (`workflow_file.content`), and the bundled `MANIFEST.json` of the build examined (the WORKFLOW.md `sha256` of the selected name and revision). |
 
-A candidate cannot save its views. On a candidate the tool writes `record/session-comparison-screen-<UTC>.jsonl` instead. It lists, from Codex's record alone, what the screen must be found to say of each turn. The operator checks each line against the screen, and sets `answer` (passed, failed or inconclusive) and `note`. Then `answers` turns those lines into rows; an unanswered line becomes `not run`.
+A candidate cannot save its views. On a candidate the tool writes `record/screen-list-<UTC>.jsonl` instead. It lists, from Codex's record alone, what the screen must be found to say of each turn. The operator checks each line against the screen, and sets `answer` (passed, failed or inconclusive) and `note`. Then `answers` turns those lines into rows; an unanswered line becomes `not run`. An answers file's header names its screen list (`answers_of`), and the examination table counts only the latest answers file of each screen list.
 
 Where a saved view exists, the comparison is exact. It is never replaced by the operator's list.
 
@@ -46,6 +46,10 @@ Where a saved view exists, the comparison is exact. It is never replaced by the 
 | C3 outcome | completed, failed (`task_complete` with `error`), interrupted (`turn_aborted`), or not reported | the view's status | passed if equal. Where Codex reported no end: failed if the App shows an end, passed if it shows none. Any other difference fails. |
 | C4 interrupts | the turn's end | the stop record's `turnOutcome` | passed if equal, or if both have no end. Failed if the App records an end Codex did not record, or a stop of a turn Codex has no record of. Inconclusive if Codex recorded an end the App did not learn. |
 | W1 workflow | the SHA-256 of the bytes between `<<<chirality-workflow NAME@REV begin>>>\n` and `\n<<<… end>>>` in a user message: exactly the WORKFLOW.md bytes `compose_run_text` puts there | the manifest's WORKFLOW.md digest and the `run_text` record's digest | passed if all three are equal. Failed if any differs, naming which. Blocked if any is missing. Not run if no workflow run was started in the thread. |
+
+**What W1 establishes, and no more:** the selected workflow's bytes are what Codex recorded as the person's input for that turn. That is the part of exit criterion 1's "what the agent receives is the selected workflow, byte for byte" that the App answers for. What Codex adds around that input is the supplier's, and is not compared: its developer message, made from its base instructions, and its tool definitions.
+
+**What W1 rests on, observed once:** that what Codex sent to the provider as the person's input matched its session file exactly. This was observed once, at the pin, with a scripted loopback provider, on three turns. The comparison does not re-establish it on each run.
 
 When one side cannot be read, its comparisons are blocked, with the reason. A saved view is taken after the session ended. Comparing views at earlier points of a run is a later part.
 
@@ -64,7 +68,7 @@ Rows carry only identifiers, statuses, line numbers and digests, never message o
 python3 app/examination/session_comparison/compare.py compare --root <examination root> --thread <threadId> \
     --manifest <the build's MANIFEST.json> [--view <root>/record/host-status-<checkpoint>.json]
 python3 app/examination/session_comparison/compare.py answers --root <examination root> \
-    --screen <root>/record/session-comparison-screen-<UTC>.jsonl
+    --screen <root>/record/screen-list-<UTC>.jsonl
 python3 -B -m unittest discover -s app/examination/session_comparison -p 'test_*.py'
 ```
 

@@ -180,7 +180,7 @@ class SessionComparison(unittest.TestCase):
         self.r.turn('turn-1', 'interrupted')
         self.r.turn('turn-2')
         self.r.compare()
-        (screen,) = (self.r.root / 'record').glob('session-comparison-screen-*.jsonl')
+        (screen,) = (self.r.root / 'record').glob('screen-list-*.jsonl')
         items = [json.loads(l) for l in screen.read_text().splitlines()]
         self.assertTrue(items[0]['header'])
         self.assertEqual([i['screen_must_say'] for i in items[1:]],
@@ -191,8 +191,9 @@ class SessionComparison(unittest.TestCase):
             old.unlink()
         self.assertEqual(compare.main(['answers', '--root', str(self.r.root), '--screen', str(screen)]), 0)
         (out,) = (self.r.root / 'record').glob('session-comparison-2*.jsonl')
-        answered = rows([json.loads(l) for l in out.read_text().splitlines()])
-        self.assertEqual([r['outcome'] for r in answered], ['passed', 'not run'])
+        lines = [json.loads(l) for l in out.read_text().splitlines()]
+        self.assertEqual(lines[0]['answers_of'], screen.name, 'the table counts only the latest answers file of one screen list')
+        self.assertEqual([r['outcome'] for r in rows(lines)], ['passed', 'not run'])
 
 
 class TheRealFormat(unittest.TestCase):

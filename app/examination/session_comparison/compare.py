@@ -13,8 +13,8 @@ digests, so a lane acts on the rows without opening the record.
 The App's account is read three ways:
   - views: a saved `host_status` answer (`host-status-<checkpoint>.json`), where
     the build can save one; on a candidate, which cannot, the tool writes the
-    list of what the screen must be found to say instead, for the operator to
-    answer row by row (`screen` and `answers` below);
+    list of what the screen must be found to say instead (`screen-list-<UTC>.jsonl`),
+    for the operator to answer row by row (`answers` below);
   - the recovery ledger (SQLite, read-only): stop requests;
   - the workflow records (WR `run_text`).
 
@@ -327,8 +327,8 @@ def screen_list(session, thread):
 
 # --- Commands -----------------------------------------------------------------
 
-def header(root):
-    return {'header': True, 'candidate_key': candidate_key(root), 'examination_root': str(root), 'tool': TOOL}
+def header(root, **extra):
+    return {'header': True, 'candidate_key': candidate_key(root), 'examination_root': str(root), 'tool': TOOL, **extra}
 
 
 def summary(rows):
@@ -342,6 +342,8 @@ def summary(rows):
 def write(root, stem, lines):
     """A new file in record/, never over an existing one (the launcher's rule)."""
     path = root / 'record' / f'{stem}-{now_stamp()}.jsonl'
+    if path.exists():
+        raise Refused(f'{path.name} exists; nothing is written over it')
     with open(path, 'x') as f:
         for line in lines:
             f.write(json.dumps(line, sort_keys=True) + '\n')
@@ -399,17 +401,19 @@ def main(argv=None):
         out = write(root, 'session-comparison', [header(root)] + rows + [summary(rows)])
         print(out)
         if not args.view and session is not None:
-            print(write(root, 'session-comparison-screen', [header(root)] + screen_list(session, args.thread)))
+            print(write(root, 'screen-list', [header(root)] + screen_list(session, args.thread)))
         return 0
     rows = []
-    for line in inside(root, args.screen).read_text().splitlines()[1:]:
+    screen = inside(root, args.screen)
+    for line in screen.read_text().splitlines()[1:]:
         item = json.loads(line)
         answer = item.get('answer')
         outcome = answer if answer in ('passed', 'failed', 'inconclusive') else 'not run'
         rows.append(row(item['comparison'], item['subject'], {'says': item['screen_must_say'], 'from': 'session file'},
                         {'says': item.get('note'), 'from': 'operator, against the screen'}, outcome,
                         'answered by the operator' if outcome != 'not run' else 'not answered'))
-    print(write(root, 'session-comparison', [header(root)] + rows + [summary(rows)]))
+    # The table counts only the latest answers file of one screen list.
+    print(write(root, 'session-comparison', [header(root, answers_of=screen.name)] + rows + [summary(rows)]))
     return 0
 
 
