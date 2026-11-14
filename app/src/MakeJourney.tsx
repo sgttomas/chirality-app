@@ -155,7 +155,7 @@ function DraftTrials({ draft, chosen, host, canAct, perform, openPreparedMessage
       const block = bringBackSendBlock(item.pending, item.pending?.target, doubts);
       const n = text(item.pending?.sequence);
       return <p key={item.identity}>{block
-        ? <>Trial {n}'s results are prepared in <ConversationRef host={host} refValue={item.owner} none="its conversation"/>, but sending them is held: {block}</>
+        ? <>Trial {n}'s results are prepared in <ConversationRef host={host} refValue={item.owner} none="its conversation"/>, but the App won't send them yet: {block}</>
         : <>Trial {n}'s results are ready to send in <ConversationRef host={host} refValue={item.owner} none="its conversation"/>.</>}{" "}
         {openPreparedMessage && <button ref={node => { if (node) buttons.current.set(item.identity, node); else buttons.current.delete(item.identity); }} disabled={preparedMessageLimit(host, item) !== null} onClick={() => openPreparedMessage(item)}>{block ? `Open trial ${n}'s prepared results to read or remove` : `Read and send trial ${n}'s results`}</button>}</p>;
     })}</div>
@@ -180,7 +180,7 @@ function draftStep(draft: Json, data: Json, host: Json, doubts: BringBackDoubt[]
   if (doubt) return { words: `Check whether trial ${text(doubt.sequence)}'s results arrived in the conversation before bringing it back again.`, href: "#conversation", link: "Go to the conversation" };
   const results = ownResults(draft, host)[0];
   if (results) return bringBackSendBlock(results.pending, results.pending?.target, doubts)
-    ? { words: `Trial ${text(results.pending?.sequence)}'s prepared results are held and not sent again; after reading the conversation, remove that copy and bring the trial back if you still need to.`, href: "#conversation", link: "Go to the conversation" }
+    ? { words: `The App won't send trial ${text(results.pending?.sequence)}'s prepared results again; after reading the conversation, remove that copy and bring the trial back if you still need to.`, href: "#conversation", link: "Go to the conversation" }
     : { words: `Read and send trial ${text(results.pending?.sequence)}'s results in the conversation, then review the draft.`, href: "#conversation", link: "Go to the conversation" };
   const trial = preparedMessages(host).find(item => item.kind !== "bring-back" && item.pending?.draftName === draft?.name);
   if (trial) return { words: `Read and send trial ${text(trial.pending?.sequence)} in the conversation.`, href: trial.kind === "clean" ? `#${cleanTrialAnchor(trial.pending?.reference)}` : "#conversation", link: "Go to the trial message" };

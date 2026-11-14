@@ -218,7 +218,7 @@ export function bringBackTitle(pending: Json): string {
 export function BringBackComposerView({ pending, conversations, prompt, setPrompt, target, setTarget, outcome, setOutcome, busy, ready, act, sendBlock = null }: {
   pending: Json; conversations: Json[]; prompt: string; setPrompt: (p: string) => void; target: string; setTarget: (key: string) => void;
   outcome: SendState; setOutcome: (o: SendState) => void; busy: boolean; ready: boolean; act: TrialAct;
-  /** Why Send is held now (bringBackSendBlock); the dispatch guard is the boundary. */
+  /** Why the App will not send now (bringBackSendBlock); the dispatch guard is the boundary. */
   sendBlock?: string | null;
 }) {
   const chosen = list(conversations).find((c: Json) => conversationKey(c) === target) ?? null;
@@ -239,7 +239,7 @@ export function BringBackComposerView({ pending, conversations, prompt, setPromp
     </div>
     <p><ConversationSelect label="Send to" conversations={conversations} value={target} setValue={setTarget} disabled={busy || sent} />{" "}
       <button disabled={busy || !ready || !chosen || sent || !!sendBlock} onClick={() => pressSend(act, "workflow_bring_back_send", { id: pending?.id, generation: chosen?.generation, threadId: chosen?.threadId, personText: prompt }, setOutcome, () => bringBackSentWords(chosen?.threadId))}>Send</button></p>
-    {sendBlock && <p role="note">Send is held: {sendBlock}</p>}
+    {sendBlock && <p role="note">The App won't send this yet: {sendBlock}</p>}
     <p><small>Send to is this message's destination; changing it does not move the original composer.</small></p>
     <TrialSendOutcome outcome={outcome} />
   </section>;

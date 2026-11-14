@@ -616,7 +616,7 @@ test('in the App, a null send result that leaves the pre-fill visible is not sho
     assert.doesNotMatch(notice().textContent, /was withdrawn/);
     assert.match(notice().textContent, /Reported: The host did not report the send's outcome\./);
     assert.equal(!!props(button(composer(), 'Send')).disabled, true, 'Send is visibly held');
-    assert.match(composer().textContent, /Send is held: this copy's earlier send wasn't confirmed and may have arrived, so it is not sent again/);
+    assert.match(composer().textContent, /The App won't send this yet: this copy's earlier send wasn't confirmed and may have arrived, so it is not sent again/);
     await React.act(async () => { props(button(composer(), 'Send')).onClick(); }); await ui.settle();
     await React.act(async () => { send(); }); await ui.settle();
     assert.equal(ui.calls.filter(call => call.command === 'workflow_bring_back_send').length, 1, 'neither Send nor a retained callback issues another send while held');

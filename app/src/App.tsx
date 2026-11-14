@@ -309,7 +309,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
     composerField.current?.focus?.({ preventScroll: true });
   }, [focusComposer]);
   // A new unconfirmed send for the shown conversation takes the focus once, so
-  // keyboard and screen-reader users land on why Send is held.
+  // keyboard and screen-reader users land on why the App will not send.
   const announcedUnconfirmed = useRef(new Set<number>());
   useEffect(() => {
     if (!composerOffer || handledOffer.current === composerOffer.sequence || composerOffer.threadKey !== threadKey) return;
