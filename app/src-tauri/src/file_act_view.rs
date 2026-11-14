@@ -7,6 +7,7 @@ use crate::{
     util::{sha256_hex, FILE_IDENTITY_METHOD},
 };
 use serde_json::{json, Value};
+use crate::act_evidence_cause::{ActEvidenceCause as Cause, EvidenceFailure};
 use std::{
     collections::{HashMap, HashSet},
     path::Path,
@@ -222,30 +223,34 @@ pub(crate) struct CaptureWatch {
 /// resolution or ambiguous byte observation must be retried; a specifically
 /// proved absence can be watched in its checked physical owning folder.
 pub(crate) struct CaptureRead {
-    pub result: Result<Value, String>,
+    pub result: Result<Value, EvidenceFailure>,
+    pub claim: Option<Value>,
+    pub verification: Option<crate::capture_seal::SealVerification>,
     pub watch: Option<CaptureWatch>,
     pub reusable: bool,
 }
 /// The one capture object a file act or decline record cites, read from the
 /// capture store and schema-checked (SP-3, RS R-8). Shared with the checkpoint recorder.
 pub(crate) fn capture(root: &Path, body: &Value) -> Result<Value, String> {
-    observe_capture(root, body).result
+    observe_capture(root, body).result.map_err(Into::into)
 }
 pub(crate) fn observe_capture(root: &Path, body: &Value) -> CaptureRead {
     let mut watch = None;
     let mut reusable = false;
+    let mut claim = None;
+    let mut verification = None;
     let result = (|| {
         let refs = body["captureEvidence"]
             .as_array()
-            .ok_or("Capture reference missing")?;
+            .ok_or_else(|| EvidenceFailure::new(Cause::CaptureMissing, "Capture reference missing"))?;
         if refs.len() != 1 {
-            return Err("One original capture reference required".into());
+            return Err(EvidenceFailure::new(Cause::CaptureInvalid, "One original capture reference required"));
         }
-        let id = refs[0]["ref"].as_str().ok_or("Capture identity missing")?;
+        let id = refs[0]["ref"].as_str().ok_or_else(|| EvidenceFailure::new(Cause::CaptureInvalid, "Capture identity missing"))?;
         #[cfg(test)]
         capture_test_hook(root, CaptureReadStage::BeforeResolve);
-        let path = crate::storage::capture_path(root, id)?;
-        let bytes = match observed_bytes(path.parent().ok_or("capture has no folder")?, &path) {
+        let path = crate::storage::capture_path(root, id).map_err(|e| EvidenceFailure::new(Cause::CaptureUnreadable, e))?;
+        let bytes = match observed_bytes(path.parent().ok_or_else(|| EvidenceFailure::new(Cause::CaptureInvalid, "capture has no folder"))?, &path) {
             Ok((bytes, stamp, _)) => {
                 watch = Some(CaptureWatch {
                     path: path.clone(),
@@ -279,23 +284,26 @@ pub(crate) fn observe_capture(root: &Path, body: &Value) -> CaptureRead {
                 if reusable {
                     capture_test_hook(&path, CaptureReadStage::AfterAbsenceRead);
                 }
-                return Err(e.message);
+                return Err(EvidenceFailure::new(if reusable { Cause::CaptureMissing } else { Cause::CaptureUnreadable }, e.message));
             }
         };
         #[cfg(test)]
         capture_test_hook(&path, CaptureReadStage::AfterFileRead);
-        let capture: Value = serde_json::from_slice(&bytes).map_err(|e| e.to_string())?;
-        crate::schema_validation::validate_capture(&capture)?;
+        let capture: Value = serde_json::from_slice(&bytes).map_err(|e| EvidenceFailure::new(Cause::CaptureInvalid, e.to_string()))?;
+        claim = Some(capture.clone());
+        crate::schema_validation::validate_capture(&capture).map_err(|e| EvidenceFailure::new(Cause::CaptureInvalid, e))?;
         if capture["captureId"] != id {
-            return Err("Capture identity mismatch".into());
+            return Err(EvidenceFailure::new(Cause::CaptureInvalid, "Capture identity mismatch"));
         }
         // AAC §6.3 SEAL-C: only a capture sealed under a key this installation
         // holds is the App act control's capture (AAC §6.3 / EXEC §2.4–2.5, R-1).
-        crate::capture_seal::verify(root, &capture)?;
+        verification = Some(crate::capture_seal::verify(root, &capture)?);
         Ok(capture)
     })();
     CaptureRead {
         result,
+        claim,
+        verification,
         watch,
         reusable,
     }
@@ -491,12 +499,18 @@ pub(crate) fn read(root: &Path) -> Value {
             continue;
         }
         let mut row_limits=vec!["identity not verified".to_owned(),"Readable record/capture claims do not verify native origin; a verified capture seal shows only that a holder of this App installation's key wrote the capture (AAC §6.3 SEAL-C); no professional certification".into()];
-        let found = capture(root, b);
-        let captured = found.as_ref().ok();
-        if let Err(e) = &found {
-            row_limits.push(e.clone());
+        let observation = observe_capture(root, b);
+        let captured = observation.claim.as_ref();
+        if let Err(e) = &observation.result {
+            row_limits.push(e.detail.clone());
+            row_limits.push(e.display_sentence());
         }
-        let correspondence = captured.is_some_and(|c| corresponds(c, record));
+        if let Some(verified) = &observation.verification { row_limits.push(verified.sentence()); }
+        let capture_seal = match &observation.result {
+            Ok(_) => observation.verification.as_ref().map(|v| v.view()).unwrap_or(Value::Null),
+            Err(e) => json!({"status":"not-verified","cause":e.cause,"standing":if e.cause.standing() == crate::act_evidence_cause::Standing::Settled { "settled" } else { "read-limit" },"detail":e.detail,"sentence":e.display_sentence()}),
+        };
+        let correspondence = observation.result.is_ok() && captured.is_some_and(|c| corresponds(c, record));
         if !correspondence {
             row_limits.push(
                 "Capture correspondence unavailable or differs; no evidenced current act derived"
@@ -569,7 +583,7 @@ pub(crate) fn read(root: &Path) -> Value {
                 "Professional standing is the person's own recorded statement; not verified".into(),
             );
         }
-        rows.push(json!({"recordId":record["recordId"],"kind":kind,"event":if decline{"declined this act"}else{"recorded human-act claim"},"actor":actor,"recordedBy":record["recorder"],"subject":subject,"boundContent":bound,"scope":if decline{captured.map(|c|c["scope"].clone()).unwrap_or(Value::Null)}else{b["scope"].clone()},"purpose":if decline{captured.map(|c|c["purpose"].clone()).unwrap_or(Value::Null)}else{b["purpose"].clone()},"recordingMode":b["recordingMode"],"lapseHistoryClaims":history.claims,"lapseHistoryLimitedClaims":history.limited,"lapseHistoryLimits":history.limits,"captureCorrespondence":correspondence,"captureEvidence":b["captureEvidence"],"captureTime":if decline{b["time"].clone()}else{b["captureTime"].clone()},"comparison":comparison_label,"currentContent":current.map(|c|json!({"method":c.method,"value":c.value})),"source":claim["source"],"correctedBy":claim["correctedBy"],"identityResolution":claim["identityResolution"],"relationLimit":claim["relationLimit"],"limits":row_limits}));
+        rows.push(json!({"recordId":record["recordId"],"kind":kind,"event":if decline{"declined this act"}else{"recorded human-act claim"},"actor":actor,"recordedBy":record["recorder"],"subject":subject,"boundContent":bound,"scope":if decline{captured.map(|c|c["scope"].clone()).unwrap_or(Value::Null)}else{b["scope"].clone()},"purpose":if decline{captured.map(|c|c["purpose"].clone()).unwrap_or(Value::Null)}else{b["purpose"].clone()},"recordingMode":b["recordingMode"],"lapseHistoryClaims":history.claims,"lapseHistoryLimitedClaims":history.limited,"lapseHistoryLimits":history.limits,"captureCorrespondence":correspondence,"captureSeal":capture_seal,"captureEvidence":b["captureEvidence"],"captureTime":if decline{b["time"].clone()}else{b["captureTime"].clone()},"comparison":comparison_label,"currentContent":current.map(|c|json!({"method":c.method,"value":c.value})),"source":claim["source"],"correctedBy":claim["correctedBy"],"identityResolution":claim["identityResolution"],"relationLimit":claim["relationLimit"],"limits":row_limits}));
     }
     json!({"view":"App file acts and declines; read-only source claims","historyNotices":history_notices,"rows":rows,"correctionGroups":relations["correctionGroups"],"diagnostics":relations["diagnostics"],"limits":limits,"standing":"Checking, engineering approval and professional reliance remain distinct; no acceptance, execution, request settlement or native provenance is inferred"})
 }

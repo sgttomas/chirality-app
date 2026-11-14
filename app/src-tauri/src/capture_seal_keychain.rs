@@ -121,7 +121,9 @@ impl KeychainAuthority {
         })
     }
 }
+#[derive(Clone, Debug)]
 pub(crate) struct Material {
+    pub provider: crate::capture_seal::SealProvider,
     pub current: String,
     pub keys: BTreeMap<String, [u8; 32]>,
 }
@@ -140,6 +142,10 @@ thread_local! {static TEST_PROVIDER:std::cell::RefCell<Option<Box<dyn Fn(&Path,O
 #[cfg(test)]
 fn test_selected() -> bool {
     TEST_PROVIDER.with(|provider| provider.borrow().is_some())
+}
+#[cfg(test)]
+pub(crate) fn set_material_provider_for_test(provider: Option<Box<dyn Fn(&Path, Operation) -> Result<Material, EvidenceFailure>>>) {
+    TEST_PROVIDER.with(|slot| *slot.borrow_mut() = provider);
 }
 pub(crate) fn dispatch(
     legacy_folder: &Path,
@@ -210,6 +216,17 @@ pub(crate) fn enroll_initial(prepared: PreparedSealEnrollment) -> Result<(), Str
         Ok(key)
     })?;
     Ok(())
+}
+/// Explicitly labelled file captures may be verified read-only after
+/// enrolment. This validates the signed authority, never grants new sealing.
+pub(crate) fn file_read_authority() -> Result<(), EvidenceFailure> {
+    #[cfg(test)]
+    if test_selected() { return Ok(()) }
+    match publisher_route() {
+        Ok(false) => Ok(()),
+        Ok(true) => process_authority(false).map(|_| ()).map_err(|e| failure(Cause::AuthorityUnavailable, e)),
+        Err(()) => Err(failure(Cause::AuthorityUnavailable, "SEAL-C publisher validation unavailable; file fallback prohibited")),
+    }
 }
 pub(crate) fn selected_route() -> bool {
     #[cfg(test)]
@@ -781,6 +798,7 @@ fn material(backend: &impl Backend, i: &ItemIdentity, m: &Marker) -> Result<Mate
         keys.insert(k.id.clone(), read_key(backend, i, index, k)?);
     }
     Ok(Material {
+        provider: crate::capture_seal::SealProvider::Keychain,
         current: m.keys.last().ok_or(failure(Cause::ContinuityUnavailable, "SEAL-C no committed key"))?.id.clone(),
         keys,
     })
@@ -827,7 +845,7 @@ fn verification_material(
         }
         keys.insert(k.id.clone(), read_key(backend, i, index, k)?);
     }
-    Ok(Material { current, keys })
+    Ok(Material { current, keys, provider: crate::capture_seal::SealProvider::Keychain })
 }
 #[cfg(test)]
 thread_local! {static BEFORE_GUARD:std::cell::RefCell<Option<Box<dyn FnOnce()>>>=const{std::cell::RefCell::new(None)};}

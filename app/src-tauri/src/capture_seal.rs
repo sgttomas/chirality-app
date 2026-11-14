@@ -43,6 +43,42 @@ const KEY_FILE: &str = "keys.json";
 /// The key folder under the App data folder.
 pub const KEY_FOLDER: &str = "capture-seal";
 
+/// Authenticated storage-provider claim; key IDs identify bytes, not custody.
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+pub enum SealProvider {
+    #[serde(rename = "file-key")]
+    FileKey,
+    #[serde(rename = "keychain")]
+    Keychain,
+}
+impl SealProvider {
+    pub fn name(self) -> &'static str { match self { Self::FileKey => "file-key", Self::Keychain => "keychain" } }
+    pub fn sentence(self) -> &'static str { match self {
+        Self::FileKey => "Sealed with the key file, which a process on this account could forge.",
+        Self::Keychain => "Sealed with the keychain key.",
+    } }
+}
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct SealVerification {
+    pub recorded_provider: Option<SealProvider>,
+    pub verified_with: SealProvider,
+    pub key_id: String,
+}
+impl SealVerification {
+    pub fn sentence(&self) -> String {
+        match self.recorded_provider {
+            Some(provider) => provider.sentence().into(),
+            None => format!("Seal verified; provider not recorded. Verified here using {}. {}", self.verified_with.name(), self.verified_with.sentence()),
+        }
+    }
+    pub fn view(&self) -> Value {
+        json!({"status":"verified","recordedProvider":self.recorded_provider,"verifiedWith":self.verified_with,"standing":self.sentence()})
+    }
+}
+fn file_material(ring: Keyring) -> crate::capture_seal_keychain::Material {
+    crate::capture_seal_keychain::Material { current: ring.current, keys: ring.keys, provider: SealProvider::FileKey }
+}
+
 /// HMAC-SHA-256 (RFC 2104) over `message` with a key of at most one block.
 fn hmac(key: &[u8], message: &[u8]) -> [u8; 32] {
     assert!(key.len() <= 64, "capture-seal keys are one block or less");
@@ -274,48 +310,56 @@ pub fn rotate() -> Result<String, String> {
     Ok(key_id(&key))
 }
 
-/// Seal a capture for the project at `root` before its first publication.
-pub fn seal(root: &Path, capture: &mut Value) -> Result<(), EvidenceFailure> {
-    let folder=folder_for(root)?;
-    let ring=match crate::capture_seal_keychain::dispatch(&folder,crate::capture_seal_keychain::Operation::Seal){
-        Some(result)=>{let material=result?;Keyring{current:material.current,keys:material.keys,raw:Value::Null}},
-        None=>load_or_create(&folder)?,
-    };
-    let key = ring.keys[&ring.current];
-    let mac = hmac(&key, &message(capture)?);
-    capture["seal"] = json!({"method":SEAL_METHOD,"value":format!("{}:{}",ring.current,hex(&mac))});
-    Ok(())
+/// Build the complete pair on a private copy. Failure never leaves a
+/// provisional provider claim on the capture that the writer will publish.
+fn attach(capture: &mut Value, material: crate::capture_seal_keychain::Material) -> Result<SealVerification, EvidenceFailure> {
+    let mut facts = capture.clone();
+    let object = facts.as_object_mut().ok_or_else(|| failure(Cause::CaptureFactsUnencodable, "capture is not an object"))?;
+    object.insert("sealProvider".into(), json!(material.provider));
+    let key = material.keys.get(&material.current).ok_or_else(|| failure(Cause::KeyNotHeld, "SEAL-C current key unavailable"))?;
+    let mac = hmac(key, &message(&facts)?);
+    facts["seal"] = json!({"method":SEAL_METHOD,"value":format!("{}:{}",material.current,hex(&mac))});
+    *capture = facts;
+    Ok(SealVerification { recorded_provider: Some(material.provider), verified_with: material.provider, key_id: material.current })
 }
-/// A15 opportunistic sealing uses only the enrolled SEAL-C keychain provider.
-/// Development file keys cannot supply robust registration assurance. Failure
-/// preserves the present native A15 with an explicit unsealed evidence limit.
-pub(crate) fn seal_a15_if_keychain_available(root: &Path, capture: &mut Value) -> Result<(), EvidenceFailure> {
+/// Seal a capture before its first publication, using only admitted material.
+pub fn seal(root: &Path, capture: &mut Value) -> Result<SealVerification, EvidenceFailure> {
+    let folder = folder_for(root)?;
+    let material = match crate::capture_seal_keychain::dispatch(&folder, crate::capture_seal_keychain::Operation::Seal) {
+        Some(result) => result?,
+        None => file_material(load_or_create(&folder)?),
+    };
+    attach(capture, material)
+}
+/// Kept until the A15 writer moves to generic sealing; admission stays keychain-only.
+pub(crate) fn seal_a15_if_keychain_available(root: &Path, capture: &mut Value) -> Result<SealVerification, EvidenceFailure> {
     let folder = folder_for(root)?;
     let material = crate::capture_seal_keychain::dispatch(&folder, crate::capture_seal_keychain::Operation::Seal)
         .ok_or_else(|| failure(Cause::KeychainProviderUnavailableOnThisBuild, "SEAL-C keychain provider is not selected/enrolled"))??;
-    let key = material.keys.get(&material.current).ok_or_else(|| failure(Cause::KeyNotHeld, "SEAL-C current key unavailable"))?;
-    let mac = hmac(key, &message(capture)?);
-    capture["seal"] = json!({"method":SEAL_METHOD,"value":format!("{}:{}",material.current,hex(&mac))});
-    Ok(())
+    attach(capture, material)
 }
-/// The evidence limit a capture of the App act control carries when it could
-/// not be sealed; such a capture is recorded but never counted.
+/// The original wording remains the wording lane's; append provider/cause
+/// presentation separately after the record's publication is known.
 pub fn unsealed_limit(reason: impl std::fmt::Display) -> String {
     format!("capture not sealed ({reason}); not verifiable as this App's capture, so it is not counted as an act")
 }
-/// Whether this installation verifies the capture's seal. `Err` is the stated
-/// limit for a capture that is not counted; it never claims a forgery.
-pub fn verify(root: &Path, capture: &Value) -> Result<(), EvidenceFailure> {
+pub fn verify(root: &Path, capture: &Value) -> Result<SealVerification, EvidenceFailure> {
     verify_with(root, capture, false)
 }
-/// Verification for sealed workflow-approval admission: only the gated SEAL-C
-/// keychain provider qualifies. Development file keys never do.
-pub(crate) fn verify_keychain(root: &Path, capture: &Value) -> Result<(), EvidenceFailure> {
+pub(crate) fn verify_keychain(root: &Path, capture: &Value) -> Result<SealVerification, EvidenceFailure> {
     verify_with(root, capture, true)
 }
-fn verify_with(root: &Path, capture: &Value, keychain_only: bool) -> Result<(), EvidenceFailure> {
+fn provider(capture: &Value) -> Result<Option<SealProvider>, EvidenceFailure> {
+    match capture.get("sealProvider") {
+        None => Ok(None),
+        Some(value) => serde_json::from_value(value.clone()).map(Some)
+            .map_err(|_| failure(Cause::ProviderInvalid, "capture seal provider is invalid; not verified here")),
+    }
+}
+fn verify_with(root: &Path, capture: &Value, keychain_only: bool) -> Result<SealVerification, EvidenceFailure> {
+    let recorded_provider = provider(capture)?;
     let Some(seal) = capture.get("seal") else {
-        return Err(failure(Cause::NoSeal, "capture has no App seal (written before capture sealing, or not by this App's act control); not verified here"));
+        return Err(failure(if recorded_provider.is_some() { Cause::ProviderInvalid } else { Cause::NoSeal }, "capture has no App seal (written before capture sealing, or not by this App's act control); not verified here"));
     };
     if !seal.is_object() || !seal["method"].is_string() || !seal["value"].is_string() {
         return Err(failure(Cause::SealMalformed, "capture seal is malformed; not verified here"));
@@ -329,18 +373,41 @@ fn verify_with(root: &Path, capture: &Value, keychain_only: bool) -> Result<(), 
         return Err(failure(Cause::SealMalformed, "capture seal value is malformed; not verified here"));
     }
     let folder = folder_for(root).map_err(|e| { let detail = format!("capture seal not checked: {e}; not verified here"); e.with_detail(detail) })?;
-    let ring=match crate::capture_seal_keychain::dispatch(&folder,crate::capture_seal_keychain::Operation::VerifyKey(id.to_owned())){
-        Some(result)=>result.map(|material|Some(Keyring{current:material.current,keys:material.keys,raw:Value::Null})),
-        None if keychain_only=>return Err(failure(Cause::KeychainProviderUnavailableOnThisBuild, "keychain protection is not available on this build; not verified here")),
-        None=>load(&folder),
-    }.map_err(|e| { let detail = format!("capture seal not checked: {e}; not verified here"); e.with_detail(detail) })?;
-    let Some(key) = ring.as_ref().and_then(|r| r.keys.get(id)) else {
-        return Err(failure(Cause::KeyNotHeld, format!("capture sealed under key {id:?}, which this App installation does not hold (another installation, or a key lost here); not verified here")));
+    let file_read = || -> Result<crate::capture_seal_keychain::Material, EvidenceFailure> {
+        crate::capture_seal_keychain::file_read_authority()?;
+        load(&folder)?.map(file_material).ok_or_else(|| failure(Cause::KeyNotHeld,
+            format!("capture sealed under key {id:?}, which this App installation does not hold (another installation, or a key lost here); not verified here")))
     };
-    match unhex(mac) {
-        Some(mac) if equal(&mac, &hmac(key, &message(capture)?)) => Ok(()),
-        _ => Err(failure(Cause::SealInvalid, format!("capture seal does not verify under this installation's key {id:?}: the capture's act facts changed after sealing, or it was not sealed by this App; not verified"))),
+    // Labelled captures request exactly one provider. Legacy captures retain
+    // the current-route rule; no error triggers a second verifier.
+    let material = match recorded_provider {
+        Some(SealProvider::FileKey) => file_read(),
+        Some(SealProvider::Keychain) => crate::capture_seal_keychain::dispatch(&folder, crate::capture_seal_keychain::Operation::VerifyKey(id.into()))
+            .unwrap_or_else(|| Err(failure(Cause::KeychainProviderUnavailableOnThisBuild, "keychain protection is not available on this build; not verified here"))),
+        None => match crate::capture_seal_keychain::dispatch(&folder, crate::capture_seal_keychain::Operation::VerifyKey(id.into())) {
+            Some(result) => result,
+            None if keychain_only => Err(failure(Cause::KeychainProviderUnavailableOnThisBuild, "keychain protection is not available on this build; not verified here")),
+            None => file_read(),
+        },
+    }.map_err(|e| { let detail = format!("capture seal not checked: {e}; not verified here"); e.with_detail(detail) })?;
+    if let Some(recorded) = recorded_provider {
+        if recorded != material.provider {
+            let detail = match recorded {
+                SealProvider::Keychain => "This capture claims the keychain provider but the verifying key comes from the key file; the claim is not verifiable as labelled.",
+                SealProvider::FileKey => "This capture claims the file-key provider but the verifying key comes from the keychain; the claim is not verifiable as labelled.",
+            };
+            return Err(failure(Cause::ProviderMismatch, detail));
+        }
     }
+    let key = material.keys.get(id).ok_or_else(|| failure(Cause::KeyNotHeld,
+        format!("capture sealed under key {id:?}, which this App installation does not hold (another installation, or a key lost here); not verified here")))?;
+    if !equal(&unhex(mac).unwrap(), &hmac(key, &message(capture)?)) {
+        return Err(failure(Cause::SealInvalid, format!("capture seal does not verify under this installation's key {id:?}: the capture's act facts changed after sealing, or it was not sealed by this App; not verified")));
+    }
+    if keychain_only && material.provider != SealProvider::Keychain {
+        return Err(failure(Cause::ProviderNotEligible, "The file-key seal cannot supply keychain-verified workflow approval. Confirm A15 in this session, or enrol and make a new approval for future sessions."));
+    }
+    Ok(SealVerification { recorded_provider, verified_with: material.provider, key_id: id.into() })
 }
 
 #[cfg(test)]
@@ -374,9 +441,71 @@ mod tests {
         assert_eq!(verify(&project, &changed).unwrap_err().cause, Cause::SealMethodUnsupported);
         changed = original.clone();
         changed.as_object_mut().unwrap().remove("seal");
+        changed.as_object_mut().unwrap().remove("sealProvider");
         assert_eq!(verify(&project, &changed).unwrap_err().cause, Cause::NoSeal);
         std::fs::remove_dir_all(keys.join(KEY_FOLDER)).unwrap();
         assert_eq!(verify(&project, &original).unwrap_err().cause, Cause::KeyNotHeld);
+        set_folder_for_test(None);
+        std::fs::remove_dir_all(project).unwrap();
+        std::fs::remove_dir_all(keys).unwrap();
+    }
+    #[test]
+    fn named_provider_is_covered_and_never_rescued_by_another_source() {
+        use crate::capture_seal_keychain::{Material, set_material_provider_for_test};
+        let (project, keys) = (temp("provider-project-"), temp("provider-keys-"));
+        let folder = keys.join(KEY_FOLDER);
+        set_folder_for_test(Some(Some(folder.clone())));
+        let mut file = capture();
+        assert_eq!(seal(&project, &mut file).unwrap().verified_with, SealProvider::FileKey);
+        assert_eq!(file["sealProvider"], "file-key");
+        assert_eq!(verify(&project, &file).unwrap().recorded_provider, Some(SealProvider::FileKey));
+        assert_eq!(verify_keychain(&project, &file).unwrap_err().cause, Cause::ProviderNotEligible);
+        let mut removed = file.clone();
+        removed.as_object_mut().unwrap().remove("sealProvider");
+        assert_eq!(verify(&project, &removed).unwrap_err().cause, Cause::SealInvalid);
+        let ring = load(&folder).unwrap().unwrap();
+        let material = Material { current: ring.current, keys: ring.keys, provider: SealProvider::Keychain };
+        let mut keychain = capture();
+        attach(&mut keychain, material.clone()).unwrap();
+        let supplied = material.clone();
+        set_material_provider_for_test(Some(Box::new(move |_, _| Ok(supplied.clone()))));
+        verify(&project, &keychain).unwrap();
+        // An explicitly named file source remains read-only and weaker on the
+        // selected route, even with an enrolled keychain provider available.
+        assert_eq!(verify(&project, &file).unwrap().verified_with, SealProvider::FileKey);
+        set_material_provider_for_test(None);
+        assert_eq!(verify(&project, &keychain).unwrap_err().cause, Cause::KeychainProviderUnavailableOnThisBuild);
+        // Equal key bytes are insufficient: the trusted source must agree.
+        let mut wrong_source = material.clone();
+        wrong_source.provider = SealProvider::FileKey;
+        set_material_provider_for_test(Some(Box::new(move |_, _| Ok(wrong_source.clone()))));
+        assert_eq!(verify(&project, &keychain).unwrap_err().cause, Cause::ProviderMismatch);
+        set_material_provider_for_test(Some(Box::new(move |_, _| Ok(material.clone()))));
+        verify(&project, &keychain).unwrap();
+        set_material_provider_for_test(None);
+        set_folder_for_test(None);
+        std::fs::remove_dir_all(project).unwrap();
+        std::fs::remove_dir_all(keys).unwrap();
+    }
+    #[test]
+    fn genuinely_legacy_facts_verify_without_a_recorded_provider() {
+        let (project, keys) = (temp("legacy-seal-project-"), temp("legacy-seal-keys-"));
+        let folder = keys.join(KEY_FOLDER);
+        set_folder_for_test(Some(Some(folder.clone())));
+        let ring = load_or_create(&folder).unwrap();
+        let mut legacy = capture();
+        let mac = hmac(&ring.keys[&ring.current], &message(&legacy).unwrap());
+        legacy["seal"] = json!({"method":SEAL_METHOD,"value":format!("{}:{}",ring.current,hex(&mac))});
+        let result = verify(&project, &legacy).unwrap();
+        assert_eq!(result.recorded_provider, None);
+        assert!(result.sentence().contains("provider not recorded"));
+        assert_eq!(result.verified_with, SealProvider::FileKey);
+        let bytes = legacy.clone();
+        std::fs::remove_dir_all(&folder).unwrap();
+        assert_eq!(verify(&project, &legacy).unwrap_err().cause, Cause::KeyNotHeld);
+        publish(&folder, &ring.raw, false).unwrap();
+        verify(&project, &legacy).unwrap();
+        assert_eq!(legacy, bytes);
         set_folder_for_test(None);
         std::fs::remove_dir_all(project).unwrap();
         std::fs::remove_dir_all(keys).unwrap();
@@ -405,6 +534,7 @@ mod tests {
         }
         let mut unsealed = c.clone();
         unsealed.as_object_mut().unwrap().remove("seal");
+        unsealed.as_object_mut().unwrap().remove("sealProvider");
         assert!(verify(&project, &unsealed).unwrap_err().contains("no App seal"));
         let mut method = c.clone();
         method["seal"]["method"] = json!("other");
