@@ -1454,3 +1454,116 @@ fn capture_seal_detected_enrollment_join_replacement_refuses_before_attachment()
     assert_eq!(result.unwrap_err().cause,Cause::SealSourceChanged);assert!(!called.get());
     crate::capture_seal::seal(&p,&mut f.ordinary_capture()).unwrap();
 }
+
+// Review regressions publish through the real A16 writer. Native confirmation
+// is the existing fixture stand-in, never a person or a running App.
+fn review_publish(project: &Path) -> serde_json::Value {
+    use crate::act_control::{person, ActControl, InputSource};
+    fs::create_dir_all(project.join("project/decisions")).unwrap();
+    fs::copy(Path::new(env!("CARGO_MANIFEST_DIR")).join("../tests/fixtures/FX-DP1/project/decisions/PKG-1.json"), project.join("project/decisions/PKG-1.json")).unwrap();
+    crate::recorder::identify_packages(project).unwrap();
+    let (entries, limits) = crate::storage::read_all(project); assert!(limits.is_empty(), "{limits:?}");
+    let request = entries.iter().find(|e| e["kind"] == "act_request").expect("the package request remains recorded");
+    let mut control = ActControl::new(project);
+    let offer = control.compose_a16(request["recordId"].as_str().unwrap()).unwrap();
+    let id = offer["offerId"].as_str().unwrap();
+    let actor = person(Some("Review fixture person"), Some("review fixture account"));
+    control.confirmation_text(id, "ALT-2", &actor).unwrap();
+    control.present(id).unwrap();
+    let out = control.confirm(id, "ALT-2", InputSource::HostNativeConfirmation, actor).unwrap();
+    assert_eq!(out["recordDurable"], true, "{out}");
+    let path = crate::storage::capture_file_for(project, &out["capture"]).unwrap();
+    assert_eq!(serde_json::from_slice::<serde_json::Value>(&fs::read(path).unwrap()).unwrap(), out["capture"]);
+    out["capture"].clone()
+}
+fn review_unsealed(project: &Path) {
+    let capture = review_publish(project);
+    assert!(capture.get("sealProvider").is_none(), "inventory/protection refusal must not publish a file seal: {capture}");
+}
+#[test]
+fn capture_seal_review_library_inventory_survives_a_fresh_process() { review_library_inventory(false); }
+#[test]
+fn capture_seal_review_unreadable_library_survives_a_fresh_process() { review_library_inventory(true); }
+fn review_library_inventory(unreadable: bool) {
+    {
+        let f = SelectedInstallation::new(); let project = f.project();
+        assert_eq!(review_publish(&project)["sealProvider"], "file-key");
+        let library = project.join("external-library"); fs::create_dir(&library).unwrap();
+        let _owner = crate::workflow_workspace::registration::LibraryOwner::open(library.clone(), "user", "review-library").unwrap();
+        if unreadable {
+            fs::remove_dir(&library).unwrap(); fs::write(&library, b"no readable library directory").unwrap();
+        } else {
+            f.enroll().unwrap();
+            let examples: serde_json::Value = serde_json::from_str(include_str!("../schemas/fixtures/aac.capture-evidence.example.valid.json")).unwrap();
+            let mut capture = examples["instances"].as_array().unwrap().iter().find(|c| c["actKind"] == "A15").unwrap().clone();
+            crate::capture_seal::seal(&library, &mut capture).unwrap();
+            let path = crate::storage::capture_file_for(&library, &capture).unwrap();
+            crate::storage::create_json(&path, &capture).unwrap();
+            f.clear_protected_state(); admission::forget(f.root());
+        }
+        review_unsealed(&project); // permitted -> veto while that library is open
+        let status = std::process::Command::new(std::env::current_exe().unwrap())
+            .args(["--exact", "capture_seal_keychain::tests::capture_seal_review_library_fresh_process_probe", "--ignored", "--nocapture", "--test-threads=1"])
+            .env("CHIRALITY_SEAL_LIBRARY_FIXTURE_ROOT", f.root()).status().unwrap();
+        assert!(status.success(), "a retained library must veto in a real new process without being reopened");
+    }
+}
+#[test]
+#[ignore = "parent-owned invented installation; never opens the retained library"]
+fn capture_seal_review_library_fresh_process_probe() {
+    let root = PathBuf::from(std::env::var_os("CHIRALITY_SEAL_LIBRARY_FIXTURE_ROOT").expect("parent fixture required"));
+    assert!(root.starts_with(fs::canonicalize(std::env::temp_dir()).unwrap()));
+    let (mut f, mut a) = enrollment_fixture(); fs::remove_dir_all(&f.root).unwrap();
+    f.root = root; f.dir = f.root.join("capture-seal-keychain"); f.legacy = f.root.join(crate::capture_seal::KEY_FOLDER);
+    crate::capture_seal::set_folder_for_test(Some(Some(f.legacy.clone())));
+    a._installed = crate::installed_custody::synthetic_for_tests(&f.root.join("Synthetic.app/Contents/Resources")).unwrap();
+    let installation = SelectedInstallation::from_parts(f, a);
+    review_unsealed(&installation.project());
+}
+fn review_damaged_library_list(bytes: &[u8]) {
+    let f = SelectedInstallation::new(); let project = f.project();
+    assert_eq!(review_publish(&project)["sealProvider"], "file-key");
+    fs::write(f.root().join("capture-seal-libraries.json"), bytes).unwrap();
+    review_unsealed(&project);
+}
+#[test]
+fn capture_seal_review_empty_library_list_refuses() { review_damaged_library_list(b""); }
+#[test]
+fn capture_seal_review_truncated_library_list_refuses() { review_damaged_library_list(br#"{"format":"chirality.app.capture-seal-library-inventory/v1","roots":["#); }
+#[test]
+fn capture_seal_review_malformed_library_list_refuses() { review_damaged_library_list(b"not JSON"); }
+#[test]
+fn capture_seal_review_unknown_shape_library_list_refuses() { review_damaged_library_list(b"{}"); }
+#[test]
+fn capture_seal_review_observed_sentinel_survives_corrupt_head_then_loss() {
+    let f = SelectedInstallation::new(); let project = f.project();
+    assert_eq!(review_publish(&project)["sealProvider"], "file-key");
+    f.enroll().unwrap(); admission::forget(f.root()); // new process has not observed it yet
+    fs::write(f.root().join(POLICY_HEAD), b"corrupt").unwrap();
+    review_unsealed(&project);
+    f.clear_protected_state();
+    review_unsealed(&project); // old code forgot the sentinel after the corrupt head
+}
+#[test]
+fn capture_seal_review_observed_policy_survives_later_error_then_loss() {
+    let f = SelectedInstallation::new(); let project = f.project();
+    assert_eq!(review_publish(&project)["sealProvider"], "file-key");
+    f.enroll().unwrap(); admission::forget(f.root());
+    f.backend.items.lock().unwrap().remove(&name(&f.fixture.identity));
+    fs::remove_file(f.root().join(POLICY_HEAD)).unwrap();
+    f.backend.read_errors.lock().unwrap().insert(name(&policy_item(&f.fixture.identity, 2)), BackendError::Unavailable(-25308));
+    review_unsealed(&project);
+    f.clear_protected_state(); f.backend.read_errors.lock().unwrap().clear();
+    review_unsealed(&project); // policy 1 was seen before policy 2 failed
+}
+#[test]
+fn capture_seal_review_named_verification_survives_disappearance() {
+    let f = SelectedInstallation::new(); let project = f.project();
+    assert_eq!(review_publish(&project)["sealProvider"], "file-key");
+    f.enroll().unwrap();
+    let mut capture = f.ordinary_capture(); crate::capture_seal::seal(&project, &mut capture).unwrap();
+    admission::forget(f.root());
+    assert_eq!(crate::capture_seal::verify(&project, &capture).unwrap().verified_with, crate::capture_seal::SealProvider::Keychain);
+    f.clear_protected_state();
+    review_unsealed(&project);
+}
