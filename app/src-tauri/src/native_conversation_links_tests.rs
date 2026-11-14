@@ -1,6 +1,60 @@
 //! Invented local persistence fixtures; these do not witness a human/native act.
 use super::*;
 use std::os::unix::fs::{symlink, PermissionsExt};
+
+#[test]
+fn native_links_recording_projection_keeps_frozen_limit_and_does_not_publish() {
+    let fixture = Fixture::new();
+    let mut fact = fixture.pending();
+    let cause = "original source lacks one uniquely attached project identity";
+    fact.context.scope = Err(cause.into());
+    fact.permanent = Some(cause.into());
+    for observed in [None, Some(&fact)] {
+        let view = crate::records_effect_guard::without_mutations_for_test(|| recording_state(&fact.context, observed));
+        assert_eq!(view["state"], "not-saved");
+        assert_eq!(view["permanentRecordingLimit"], cause);
+        assert_eq!(view["attachmentState"], true);
+    }
+    let (store, project) = fixture.logs();
+    assert!(!store.exists() && !project.exists(), "presentation publishes neither copy");
+}
+
+#[test]
+fn native_links_recording_projection_does_not_promote_pending_to_saved() {
+    let fixture = Fixture::new();
+    let fact = fixture.pending();
+    let view = crate::records_effect_guard::without_mutations_for_test(|| recording_state(&fact.context, None));
+    assert_eq!(view["state"], "not-confirmed");
+    assert!(view["storeRecorded"].is_null());
+    assert!(view["projectCopied"].is_null());
+    assert_eq!(view["firstFailures"], json!([null, null]));
+    assert_eq!(recording_state(&fact.context, Some(&fact))["state"], "not-confirmed");
+    let (store, project) = fixture.logs();
+    assert!(!store.exists() && !project.exists());
+}
+
+#[test]
+fn native_links_recording_projection_keeps_current_copies_and_prior_failures_apart() {
+    let fixture = Fixture::new();
+    let mut fact = fixture.pending();
+    fact.first_failure = [Some("invented store failure /path\u{202e}".into()), Some("invented project failure".into())];
+    for (stored, copied, state) in [(false, false, "not-saved"), (true, false, "project-copy-not-saved"), (true, true, "recorded")] {
+        fact.store_done = stored;
+        fact.project_done = copied;
+        let view = crate::records_effect_guard::without_mutations_for_test(|| recording_state(&fact.context, Some(&fact)));
+        assert_eq!(view["state"], state);
+        assert_eq!(view["storeRecorded"], stored);
+        assert_eq!(view["projectCopied"], copied);
+        assert_eq!(view["firstFailures"], json!(fact.first_failure));
+        assert!(view["permanentRecordingLimit"].is_null());
+    }
+    // A presentation reads held facts, not a fresh attachment or a new writer.
+    std::fs::remove_file(fixture.scope.project.path.join(crate::records_store::PROJECT_LINK)).unwrap();
+    assert_eq!(recording_state(&fact.context, Some(&fact))["state"], "recorded");
+    let (store, project) = fixture.logs();
+    assert!(!store.exists() && !project.exists());
+}
+
 struct Fixture {
     root: PathBuf,
     scope: Scope,

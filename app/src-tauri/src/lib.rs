@@ -1742,8 +1742,8 @@ fn refused_role_entry(role: Option<role_supply::Role>, reason: &str) -> Value {
 
 #[tauri::command(async)]
 #[allow(clippy::too_many_arguments)]
-fn thread_start(
-    app: tauri::AppHandle,
+fn thread_start<R: tauri::Runtime>(
+    app: tauri::AppHandle<R>,
     state: State<'_, AppState>,
     model: String,
     model_provider: String,
@@ -1769,8 +1769,8 @@ fn thread_start(
 fn established_preselection(claimed: Option<bool>, role: Option<role_supply::Role>, default: Option<role_supply::Role>) -> Option<bool> {
     claimed.map(|claimed| claimed && role.is_some() && role == default)
 }
-fn start_conversation(
-    app: &tauri::AppHandle,
+fn start_conversation<R: tauri::Runtime>(
+    app: &tauri::AppHandle<R>,
     state: &AppState,
     generation: &Value,
     model: String,
@@ -1815,7 +1815,7 @@ pub(crate) fn role_supply_refusal(reason: &str, publication: &impl std::fmt::Dis
     if hosting::reading_gate::carries_reading_sentence(reason) { reason.to_owned() } else { format!("{reason}; role supply observation: {publication}") }
 }
 #[allow(clippy::too_many_arguments)]
-fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runtime_session::HomeSession>,generation:&Value,model:String,model_provider:String,entry_id:String,role:Option<role_supply::Role>,continue_as:Option<String>,preselected:Option<bool>,supply_ref:&str,dispatch_invoked:&mut bool,resolved_continued_from:&mut Option<Value>)->Result<Value,String>{
+fn start_conversation_inner<R: tauri::Runtime>(app:&tauri::AppHandle<R>,state:&AppState,home:Arc<runtime_session::HomeSession>,generation:&Value,model:String,model_provider:String,entry_id:String,role:Option<role_supply::Role>,continue_as:Option<String>,preselected:Option<bool>,supply_ref:&str,dispatch_invoked:&mut bool,resolved_continued_from:&mut Option<Value>)->Result<Value,String>{
     invalidate_endpoint_edits(state)?;
     home.history.lock().unwrap().configure_role_log_source(state.role_log.clone());
     // NIR CA-1/CA-3, ROLE CA-3: a "Continue as" start is an ordinary new start
@@ -1861,6 +1861,7 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runti
         Err(_)=>{crate::child_roles::prepare(&mut composition,Err("App data unavailable".into()),&instruction_root,std::path::Path::new("/unavailable"));},
     }
     let mut native_relationship = continued_source.map(|origin| (native_conversation_links::freeze_source(state.workspace.as_deref(), &home), origin));
+    let mut relationship_recording = None;
     let attempt_id = util::opaque_id("conversation:")?;
     let frozen_project = state.project_context.clone();
     let mut selection = access::ConversationSelection::new_explicit(&attempt_id, frozen_project.reference())?;
@@ -1888,9 +1889,10 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runti
             if let Some((context, origin)) = native_relationship.take() {
                 // Retain the genuine receipt before any wait or role callback.
                 // Recording limits never replace the native operation result.
-                if let Ok(mut links) = state.native_links.lock() {
-                    let _ = links.track_continued(context, Arc::clone(&home.host), receipt.clone(), origin);
-                }
+                let tracked = state.native_links.lock()
+                    .map_err(|_| "native relationship recording session unavailable".to_owned())
+                    .and_then(|mut links| links.track_continued(context, Arc::clone(&home.host), receipt.clone(), origin));
+                relationship_recording = Some(native_conversation_links::RecordingReply::new(&receipt, tracked));
             }
             home.history.lock().unwrap().start_dispatched_selected(receipt.clone(), &composition, &supply_ref, continued_from.clone(), preselected)
                 .map_err(|error| format!("Native start dispatched; original role preparation failed: {error}. Native effect remains as observed in the retained receipt; no automatic resend"))?;
@@ -1927,6 +1929,7 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runti
     // The start's own generation, for a caller that continues in the new
     // conversation (a clean trial's first turn, WR FT-4).
     let result = result.map(|mut response| { response["startGeneration"] = generation.clone(); response["roleSupplyRecord"]=record_status.clone(); response });
+    let result = native_conversation_links::with_recording_view(result, relationship_recording, &state.native_links);
     if let Ok(response) = &result {
         if let Some(thread) = response["result"]["thread"]["id"].as_str() {
             if let Some(home_kind) = recovery_home { home.thread_home_kinds.lock().unwrap().insert(serde_json::to_string(&json!([generation,thread])).unwrap(),home_kind); }
@@ -2110,11 +2113,14 @@ fn conversation_fork(state: State<'_, AppState>, generation: Value, thread_id: S
         return Err(format!("{reason}; role supply observation: {publication}"));
     }};
     let context = native_conversation_links::freeze_source(state.workspace.as_deref(), &home);
+    let mut relationship_recording = None;
     let forked = conversation_roles::fork_conversation_tracked(&home, &generation, &thread_id, std::time::Duration::from_secs(20), |receipt| {
-        if let Ok(mut links) = state.native_links.lock() {
-            let _ = links.track_fork(context, Arc::clone(&home.host), receipt.clone());
-        }
-    })?;
+        let tracked = state.native_links.lock()
+            .map_err(|_| "native relationship recording session unavailable".to_owned())
+            .and_then(|mut links| links.track_fork(context, Arc::clone(&home.host), receipt.clone()));
+        relationship_recording = Some(native_conversation_links::RecordingReply::new(receipt, tracked));
+    });
+    let forked = native_conversation_links::with_recording_view(forked, relationship_recording, &state.native_links)?;
     // WR TT-3b: a fork of a trial conversation is labelled and offers no run.
     if let Some(fork) = forked["thread"]["threadId"].as_str() {
         state.workflows.lock().unwrap().mark_fork(&thread_id, fork);

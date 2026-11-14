@@ -524,6 +524,319 @@ impl LinksFixture {
  fn copied(&self)->PathBuf{self.native.root.join(".chirality/fleet/coordination.fleet.jsonl")}
 }
 impl Drop for LinksFixture {fn drop(&mut self){let _=self.native.home.host.stop("owned fixture cleanup","test ended");crate::records_store::use_store_for_test(None);let _=std::fs::remove_dir_all(&self.store);}}
+
+/// Only the command environment, not a replacement for either recording
+/// callback. The mock runtime has no windows or event loop; native traffic
+/// still goes through this fixture's owned Python peer.
+fn recording_command_state(f: &Fixture) -> crate::AppState {
+    use std::sync::Mutex;
+    crate::AppState {
+        desktop_setup: None,
+        endpoint_edits: Arc::new(Mutex::new(Default::default())),
+        compiled_development_selection: json!({"standing":"invented callback fixture"}),
+        connector_drafts: Mutex::new(Default::default()),
+        connector_sources: Mutex::new(Default::default()),
+        workspace: Some(f.root.clone()),
+        act: Arc::new(Mutex::new(None)),
+        file_acts: Mutex::new(Default::default()),
+        file_act_lapses: Mutex::new(Default::default()),
+        workflows: Mutex::new(Default::default()),
+        decision_writer_status: Mutex::new(Value::Null),
+        person_name: Mutex::new(None),
+        instructions_root: Mutex::new(Ok(f.instructions.clone())),
+        app_user_data_root: Mutex::new(Ok(f.root.join("app-data"))),
+        external_observation: Mutex::new(Default::default()),
+        trace_selection: Mutex::new(Default::default()),
+        attachment_selection: Mutex::new(crate::runtime_session::AttachmentSelectionSession::new(Some(f.root.clone()))),
+        role_log: crate::role_observations::RoleLog::open(&f.root).map(Arc::new),
+        native_links: Mutex::new(Default::default()),
+        delegation_reconciliation: Mutex::new(Value::Null),
+        project_context: crate::recovery::ExplicitAppProjectContext::unknown(),
+        project_context_limit: Some("invented fixture has no recovery project context".into()),
+        homes: Mutex::new(crate::runtime_session::HomeRouter::new(f.home.clone()).unwrap()),
+        home_bootstrap: Mutex::new(Err("invented account home has no bootstrap descriptor".into())),
+        native_namespaces: Mutex::new(Err("invented fixture has no native namespace".into())),
+        key_namespace_admission: Mutex::new(Value::Null),
+        key_setup: Mutex::new(()),
+        local_credentials: Default::default(),
+        root_home_inputs: Value::Null,
+        codex_stop_gate: Mutex::new(()),
+        codex_stops: Mutex::new(Vec::new()),
+        continue_as: Mutex::new(Default::default()),
+        app_quit: Default::default(),
+    }
+}
+
+fn actual_recording_callback_evidence(continued: bool) {
+    use std::sync::atomic::{AtomicBool, Ordering};
+    use tauri::Manager;
+    // The successful recording runs first. Then remove actual attachment
+    // evidence, and finally obstruct the real project-copy destination. No
+    // observation flag or projected value is edited by the fixture.
+    for condition in ["saved", "unattached", "store-only"] {
+        let fixture = LinksFixture::new();
+        let f = &fixture.native;
+        let source = f.start(None, None);
+        let app = tauri::test::mock_app();
+        assert!(app.manage(recording_command_state(f)));
+        let state = app.state::<crate::AppState>();
+        let handoff = continued.then(|| {
+            crate::continue_as_begin(app.state(), f.generation.clone(), source.clone(), Some(Role::WORKING_ITEMS)).unwrap()["id"].as_str().unwrap().to_owned()
+        });
+        if condition == "unattached" {
+            std::fs::write(fixture.store.join("roots.jsonl"), b"").unwrap();
+            assert!(crate::records_store::attach(&f.root, false).unwrap().dir.is_none());
+        } else if condition == "store-only" {
+            std::fs::create_dir_all(f.root.join(".chirality")).unwrap();
+            std::fs::write(f.root.join(".chirality/fleet"), "invented non-folder blocks the project copy").unwrap();
+        }
+        let method = if continued { "start" } else { "fork" };
+        std::fs::write(f.root.join(format!("defer-{method}")), "invented deferred response").unwrap();
+        let cancelled = AtomicBool::new(false);
+        let (native, tick_view) = std::thread::scope(|scope| {
+            let tick = scope.spawn(|| -> Result<Value, String> {
+                crate::records_store::use_store_not_started_for_test(Some(Ok(crate::records_store::Store {
+                    root: fixture.store.clone(), placement: crate::records_store::Placement::Test, limits: vec![],
+                })));
+                let deadline = Instant::now() + Duration::from_secs(10);
+                loop {
+                    if cancelled.load(Ordering::SeqCst) || Instant::now() >= deadline {
+                        return Err("actual command did not reach its tracking callback".into());
+                    }
+                    let mut links = state.native_links.lock().unwrap();
+                    if links.snapshot()["nativeAttempts"].as_array().unwrap().is_empty() {
+                        drop(links);
+                        std::thread::sleep(Duration::from_millis(2));
+                        continue;
+                    }
+                    // Own the recorder mutex before allowing the peer's
+                    // response. The real reply can then read only after this
+                    // controlled instance of the existing recorder tick ends.
+                    std::fs::write(f.root.join(format!("release-{method}")), "invented response release").unwrap();
+                    loop {
+                        let snapshot = links.retry(Some(&f.root));
+                        if !snapshot["observations"].as_array().unwrap().is_empty() {
+                            return Ok(snapshot);
+                        }
+                        if Instant::now() >= deadline {
+                            return Err("the original peer response was not observed by the recorder".into());
+                        }
+                        std::thread::sleep(Duration::from_millis(2));
+                    }
+                }
+            });
+            let native = if continued {
+                crate::thread_start(app.handle().clone(), app.state(), "fixture-model".into(), "openai".into(), "chatgpt-account".into(), "account".into(), Some(Role::WORKING_ITEMS), Some(false), handoff, f.generation.clone())
+            } else {
+                crate::conversation_fork(app.state(), f.generation.clone(), source.clone())
+            };
+            cancelled.store(true, Ordering::SeqCst);
+            (native, tick.join().unwrap())
+        });
+        let native = native.unwrap_or_else(|error| panic!("{method}/{condition}: {error}; tick: {tick_view:?}"));
+        let tick_view = tick_view.unwrap();
+        let view = &native["nativeConversationLinkRecording"];
+        assert_eq!(tick_view["limits"], json!([]), "{method}/{condition}: the real tracker returned Ok");
+        assert!(view["trackingLimit"].is_null(), "{method}/{condition}: a tracking error is never a recording success");
+        assert_eq!(view["generation"], f.generation);
+        assert_eq!(view["source"]["threadId"], source);
+        assert_eq!(view["nativeFactObserved"], true);
+        let observed = &tick_view["observations"][0];
+        let record = &observed["observation"];
+        assert_eq!(record["body"]["rpc"]["requestRef"], view["requestRef"]);
+        assert_eq!(record["body"]["thread"]["generation"], f.generation);
+        assert_eq!(view["storeRecorded"], observed["storeRecorded"]);
+        assert_eq!(view["projectCopied"], observed["projectCopied"]);
+        match condition {
+            "saved" => {
+                assert_eq!(view["state"], "recorded", "{method}: both writes were confirmed");
+                assert_eq!(view["storeRecorded"], true);
+                assert_eq!(view["projectCopied"], true);
+                assert!(view["permanentRecordingLimit"].is_null());
+                assert_eq!(std::fs::read(fixture.log()).unwrap(), std::fs::read(fixture.copied()).unwrap());
+            }
+            "unattached" => {
+                assert_eq!(view["state"], "not-saved", "{method}: removing attachment evidence removes both affirmative claims");
+                assert_eq!(view["storeRecorded"], false);
+                assert_eq!(view["projectCopied"], false);
+                assert_eq!(view["permanentRecordingLimit"], "original source lacks one uniquely attached project identity");
+                assert_eq!(view["attachmentState"], true);
+                assert!(!fixture.copied().exists());
+            }
+            "store-only" => {
+                assert_eq!(view["state"], "project-copy-not-saved", "{method}: store success permits no project-copy claim");
+                assert_eq!(view["storeRecorded"], true);
+                assert_eq!(view["projectCopied"], false);
+                assert!(view["firstFailures"][1].is_string());
+                assert!(view["recordingLimit"].is_string());
+                let rows: Vec<Value> = std::fs::read_to_string(fixture.log()).unwrap().lines().map(|line| serde_json::from_str(line).unwrap()).collect();
+                assert!(rows.iter().any(|row| row == record), "the affirmative store claim has its exact persisted observation");
+                assert!(!fixture.copied().exists());
+            }
+            _ => unreachable!(),
+        }
+        let frames = f.wire();
+        assert_eq!(frames.iter().filter(|row| row["method"] == if continued { "thread/start" } else { "thread/fork" }).count(), if continued { 2 } else { 1 });
+    }
+}
+
+#[test]
+fn native_links_recording_actual_fork_callback_requires_its_recording_evidence() {
+    actual_recording_callback_evidence(false);
+}
+
+#[test]
+fn native_links_recording_actual_continue_callback_requires_its_recording_evidence() {
+    actual_recording_callback_evidence(true);
+}
+
+#[test]
+fn native_links_recording_fork_reply_carries_its_frozen_attachment_limit() {
+    use crate::native_conversation_links::{self as links, RecordingReply};
+    let fixture = LinksFixture::new();
+    let f = &fixture.native;
+    let source = f.start(None, None);
+    let registry = fixture.store.join("roots.jsonl");
+    let original = std::fs::read(&registry).unwrap();
+    std::fs::write(&registry, b"").unwrap();
+    let context = links::freeze_source(Some(&f.root), &f.home);
+    std::fs::write(&registry, original).unwrap();
+    let session = std::sync::Mutex::new(links::Session::default());
+    let mut recording = None;
+    let native = fork_conversation_tracked(&f.home, &f.generation, &source, Duration::from_secs(2), |receipt| {
+        let tracked = session.lock().unwrap().track_fork(context, Arc::clone(&f.home.host), receipt.clone());
+        recording = Some(RecordingReply::new(receipt, tracked));
+    }).unwrap();
+    let mut reply = links::with_recording_view(Ok(native.clone()), recording, &session).unwrap();
+    let view = reply.as_object_mut().unwrap().remove("nativeConversationLinkRecording").unwrap_or(Value::Null);
+    assert_eq!(reply, native, "recording refusal preserves every native admission field");
+    assert_eq!(view["state"], "not-saved");
+    assert_eq!(view["permanentRecordingLimit"], "original source lacks one uniquely attached project identity");
+    assert_eq!(view["attachmentState"], true);
+    assert_eq!(view["source"]["threadId"], source);
+    assert_eq!(view["generation"], f.generation);
+    assert_eq!(view["requestRef"], native["thread"]["forkedFrom"]["forkRequestRef"]);
+    // Only the existing writer tick advances recording; the held refusal stays
+    // bound to the original operation even though the current attachment works.
+    session.lock().unwrap().retry(Some(&f.root));
+    assert_eq!(session.lock().unwrap().snapshot()["relationshipRecordings"][0]["state"], "not-saved");
+    assert!(!fixture.log().exists() && !fixture.copied().exists());
+    assert_eq!(f.wire().iter().filter(|row| row["method"] == "thread/fork").count(), 1);
+}
+
+#[test]
+fn native_links_recording_continue_reply_carries_limit_without_changing_native_start() {
+    use crate::native_conversation_links::{self as links, RecordingReply};
+    let fixture = LinksFixture::new();
+    let f = &fixture.native;
+    let source = f.start(None, None);
+    let handoffs = std::sync::Mutex::new(Handoffs::default());
+    let workflows = std::sync::Mutex::new(crate::runtime_session::WorkflowRootSession::default());
+    let handoff = continue_as_begin(&handoffs, &workflows, &f.home, &f.generation, &source, Some(Role::WORKING_ITEMS)).unwrap();
+    let id = handoff["id"].as_str().unwrap();
+    let (metadata, origin) = continuation_for_start_observed(&handoffs, &f.home, Some(id), Some(Role::WORKING_ITEMS)).unwrap();
+    let context = links::freeze_source(None, &f.home);
+    let composition = crate::runtime_session::compose_role(&f.instructions, Some(Role::WORKING_ITEMS)).unwrap();
+    let receipt = f.home.host.thread_start_with_guidance_dispatch(&f.generation, &f.root.to_string_lossy(), "fixture-model", "fixture-provider", &composition.text).unwrap();
+    let session = std::sync::Mutex::new(links::Session::default());
+    let tracked = session.lock().unwrap().track_continued(context, Arc::clone(&f.home.host), receipt.clone(), origin.unwrap());
+    let recording = RecordingReply::new(&receipt, tracked);
+    f.home.history.lock().unwrap().start_dispatched_continuing(receipt.clone(), &composition, &crate::util::opaque_id("sup:").unwrap(), metadata).unwrap();
+    let evidence = f.home.host.source_request_wait(&receipt, Duration::from_secs(2)).unwrap();
+    f.home.history.lock().unwrap().reconcile(&f.home.host);
+    assert!(f.home.history.lock().unwrap().start_admitted(&receipt));
+    let native = evidence["response"].clone();
+    let mut reply = links::with_recording_view(Ok(native.clone()), Some(recording), &session).unwrap();
+    let view = reply.as_object_mut().unwrap().remove("nativeConversationLinkRecording").unwrap_or(Value::Null);
+    assert_eq!(reply, native);
+    assert_eq!(view["state"], "not-saved");
+    assert_eq!(view["permanentRecordingLimit"], "no explicit selected App project; native relation recording unavailable");
+    assert_eq!(view["source"]["threadId"], source);
+    assert_eq!(view["method"], "thread/start");
+    assert_eq!(view["requestRef"], receipt.request_ref());
+    assert!(!fixture.log().exists() && !fixture.copied().exists());
+    assert_eq!(f.wire().iter().filter(|row| row["method"] == "thread/start").count(), 2);
+}
+
+#[test]
+fn native_links_recording_fork_reply_retains_tracking_error_and_native_error_separately() {
+    use crate::native_conversation_links::{self as links, RecordingReply};
+    let fixture = LinksFixture::new();
+    let f = &fixture.native;
+    let source = f.start(None, None);
+    let session = std::sync::Mutex::new(links::Session::default());
+    let mut recording = None;
+    let mut retained = None;
+    let native = fork_conversation_tracked(&f.home, &f.generation, &source, Duration::from_secs(2), |receipt| {
+        let foreign = Arc::new(Host::new());
+        let context = links::freeze_source(Some(&f.root), &f.home);
+        let tracked = session.lock().unwrap().track_fork(context, foreign, receipt.clone());
+        assert!(tracked.is_err());
+        retained = Some(receipt.clone());
+        recording = Some(RecordingReply::new(receipt, tracked));
+    }).unwrap();
+    let reply = links::with_recording_view(Ok(native.clone()), recording, &session).unwrap();
+    assert_eq!(reply["thread"], native["thread"]);
+    assert_eq!(reply["nativeConversationLinkRecording"]["state"], "unavailable");
+    assert!(reply["nativeConversationLinkRecording"]["trackingLimit"].as_str().unwrap().contains("another Host"));
+    let receipt = retained.unwrap();
+    let error = "invented original native outcome remains unknown";
+    let recording = RecordingReply::new(&receipt, Err("invented tracking failure".into()));
+    assert_eq!(links::with_recording_view(Err(error.into()), Some(recording), &session), Err(error.into()));
+    assert_eq!(links::with_recording_view(Ok(native.clone()), None, &session).unwrap(), native, "ordinary starts are unchanged");
+}
+
+#[test]
+fn native_links_recording_fork_reply_reads_only_its_original_request() {
+    use crate::native_conversation_links::{self as links, RecordingReply};
+    let fixture = LinksFixture::new();
+    let f = &fixture.native;
+    let source = f.start(None, None);
+    let session = std::sync::Mutex::new(links::Session::default());
+    let mut first = None;
+    let mut first_receipt = None;
+    let native = fork_conversation_tracked(&f.home, &f.generation, &source, Duration::from_secs(2), |receipt| {
+        let tracked = session.lock().unwrap().track_fork(links::freeze_source(None, &f.home), Arc::clone(&f.home.host), receipt.clone());
+        first_receipt = Some(receipt.clone());
+        first = Some(RecordingReply::new(receipt, tracked));
+    }).unwrap();
+    let mut second = None;
+    let other = fork_conversation_tracked(&f.home, &f.generation, &source, Duration::from_secs(2), |receipt| {
+        let tracked = session.lock().unwrap().track_fork(links::freeze_source(Some(&f.root), &f.home), Arc::clone(&f.home.host), receipt.clone());
+        second = Some(RecordingReply::new(receipt, tracked));
+    }).unwrap();
+    session.lock().unwrap().retry(Some(&f.root));
+    let stored = std::fs::read(fixture.log()).unwrap();
+    let (first_view, second_view) = crate::records_effect_guard::without_mutations_for_test(|| (
+        links::with_recording_view(Ok(native), first, &session).unwrap()["nativeConversationLinkRecording"].clone(),
+        links::with_recording_view(Ok(other), second, &session).unwrap()["nativeConversationLinkRecording"].clone(),
+    ));
+    assert_eq!(first_view["state"], "not-saved");
+    assert_eq!(second_view["state"], "recorded");
+    assert_ne!(first_view["requestRef"], second_view["requestRef"]);
+    assert_eq!(std::fs::read(fixture.log()).unwrap(), stored, "reading the reply does not write either original line again");
+    // A failed later read retains the already captured cause, rather than
+    // discarding it or presenting an unobserved successful recording.
+    let receipt = first_receipt.unwrap();
+    let initial = session.lock().unwrap().snapshot();
+    let mut wrong_generation = initial.clone();
+    for view in wrong_generation["relationshipRecordings"].as_array_mut().unwrap() {
+        view["generation"]["home"] = json!("invented-other-home");
+    }
+    let mismatched = RecordingReply::new(&receipt, Ok(wrong_generation));
+    let reply = links::with_recording_view(Ok(json!({})), Some(mismatched), &session).unwrap();
+    assert_eq!(reply["nativeConversationLinkRecording"]["state"], "unavailable", "a callback snapshot from another generation supplies no recording state");
+    let recording = RecordingReply::new(&receipt, Ok(initial));
+    let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let _guard = session.lock().unwrap();
+        panic!("invented recording session unavailable");
+    }));
+    let reply = links::with_recording_view(Ok(json!({"native":"unchanged"})), Some(recording), &session).unwrap();
+    assert_eq!(reply["nativeConversationLinkRecording"]["state"], "not-saved");
+    assert_eq!(reply["nativeConversationLinkRecording"]["permanentRecordingLimit"], first_view["permanentRecordingLimit"]);
+    assert!(reply["nativeConversationLinkRecording"]["observationLimit"].is_string());
+}
+
 #[test]
 fn native_links_actual_fork_dispatch_receipt_tick_store_copy_and_reader_dto(){
  let l=LinksFixture::new();let f=&l.native;let source=f.start(Some(Role::WORKING_ITEMS),None);let before=f.role(&source);let mut links=crate::native_conversation_links::Session::default();let context=crate::native_conversation_links::freeze_source(Some(&f.root),&f.home);
