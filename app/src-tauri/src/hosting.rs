@@ -1877,28 +1877,24 @@ impl Host {
         self.inner.0.lock().unwrap().journal.iter().cloned().collect()
     }
 
+    /// Whether this App session's end is observed: the custody cache, then
+    /// its end observation, taken with no Host state held. The session-end
+    /// write holds the observation, and custody adoption the cache, while each
+    /// takes a Host state, so the Host state is always taken after these.
+    fn session_end_observed(&self) -> bool {
+        self.runtime_custody.lock().unwrap().as_ref().is_some_and(|c| c.end_observation.lock().unwrap().is_some())
+    }
+    /// The successor's prospective generation, with the Host state it was
+    /// read under: whether the session has ended is read first, before the
+    /// Host state is taken (one order for the three locks). An end recorded
+    /// between the two is caught by the spawn's own check.
+    fn successor_prospective_held(&self, cfg: &HostConfig) -> (std::sync::MutexGuard<'_, Inner>, Result<Value, String>) {
+        let ended = self.session_end_observed();
+        let i = self.inner.0.lock().unwrap();
+        let prospective = if ended { Err("App session ended; successor start refused".to_owned()) } else { self.successor_prospective(&i, cfg) };
+        (i, prospective)
+    }
     fn successor_prospective(&self, i: &Inner, cfg: &HostConfig) -> Result<Value, String> {
-        // Called with the Host state held, so neither custody lock is waited
-        // for: the session-end write holds its observation while it drains
-        // into every home's Host state, and custody adoption holds its cache
-        // while it takes this one. Waiting here would lock in the opposite
-        // order. A lock found busy refuses the successor, which is never
-        // spawned.
-        let ended = match self.runtime_custody.try_lock() {
-            Ok(cached) => match cached.as_ref() {
-                None => false,
-                Some(custody) => match custody.end_observation.try_lock() {
-                    Ok(observed) => observed.is_some(),
-                    Err(std::sync::TryLockError::WouldBlock) => return Err("App session end being recorded; successor start refused".into()),
-                    Err(std::sync::TryLockError::Poisoned(_)) => return Err("App session end observation unavailable; successor start refused".into()),
-                },
-            },
-            Err(std::sync::TryLockError::WouldBlock) => return Err("App custody being adopted; successor start refused".into()),
-            Err(std::sync::TryLockError::Poisoned(_)) => return Err("App custody unavailable; successor start refused".into()),
-        };
-        if ended {
-            return Err("App session ended; successor start refused".into());
-        }
         let home = home_reference(cfg);
         let counter = self.spawn_counters.lock().unwrap().get(&home).copied().unwrap_or(0)
             .checked_add(1).ok_or("home spawn counter exhausted")?;
@@ -2287,8 +2283,7 @@ impl Host {
         // the bounded probe must not stall other homes or App-session ending.
         let prospective = if cfg.distribution.is_some() {
             let _writer = self.recovery_writer.lock().unwrap();
-            let i = self.inner.0.lock().unwrap();
-            self.successor_prospective(&i, cfg).map(Some)
+            self.successor_prospective_held(cfg).1.map(Some)
         } else { Ok(None) };
         let prospective = match prospective { Ok(g) => g, Err(e) => return self.refuse_successor(attempt, e) };
         // The only reference source is the configured Store's compiled selection,
@@ -2353,8 +2348,7 @@ impl Host {
             Self::check_start_admission(&i,attempt)?;
         }
         if let Some(expected) = &prospective {
-            let i = self.inner.0.lock().unwrap();
-            let current = self.successor_prospective(&i, cfg);
+            let (i, current) = self.successor_prospective_held(cfg);
             if i.start_attempt != attempt || i.state != "verifying" || current.as_ref().ok() != Some(expected) {
                 drop(i); drop(successor_gate); drop(app_spawn_guard);
                 return self.refuse_successor(attempt, "prospective generation or start attempt changed; no spawn".into());

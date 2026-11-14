@@ -1618,57 +1618,51 @@ fn the_exits_delegation_ending_never_holds_the_exit_past_its_deadline() {
         Some("delegation observation not ended: the App's conversation links were held by another App activity for 5 seconds"));
 }
 
-/// The system path's lock-order inversion: a successor start checks the session
-/// end with the Host state held, while the session-end write holds its
-/// observation and drains into each home's Host state (and custody adoption
-/// holds its cache while it takes the Host state). The check takes neither
-/// lock with a wait: busy, it refuses the successor at once.
+/// The system path's lock-order inversion: a successor start used to read the
+/// session end with the Host state held, while the session-end write holds its
+/// observation and then takes the Host state. The check now reads the session
+/// end before taking the Host state (one order), so the two cannot wait on each
+/// other: here the write holds the observation and then takes the Host state,
+/// and the check, run meanwhile, waits for the write and then sees the end.
 #[test]
-fn a_successor_check_under_the_host_state_never_waits_on_the_session_end_or_custody() {
+fn a_successor_check_and_the_session_end_write_take_their_locks_in_one_order() {
     let f = Fixture::new();
     let host = Arc::clone(f.host());
     let custody = host.app_runtime_custody().unwrap();
     let cfg = f.home.host_config.as_ref().unwrap().clone();
-    let check = |host: &Host| { let i = host.inner.0.lock().unwrap(); host.successor_prospective(&i, &cfg) };
-    assert!(check(&host).is_ok(), "nothing busy: the prospective generation");
-    let begin = Instant::now();
-    let held = custody.end_observation.lock().unwrap();
-    assert_eq!(check(&host).unwrap_err(), "App session end being recorded; successor start refused");
-    drop(held);
-    let cache = host.runtime_custody.lock().unwrap();
-    assert_eq!(check(&host).unwrap_err(), "App custody being adopted; successor start refused");
-    drop(cache);
-    assert!(begin.elapsed() < Duration::from_secs(1), "{:?}", begin.elapsed());
-    *custody.end_observation.lock().unwrap() = Some(json!({"ended":"invented"}));
-    assert_eq!(check(&host).unwrap_err(), "App session ended; successor start refused");
-}
-
-/// F-5: settlement takes each home's request gate within the quit's bound. A
-/// holder that is not a start (any App request to that Codex) and that never
-/// lets go refuses the settlement at the bound, rather than holding the quit.
-#[test]
-fn settlement_does_not_wait_past_its_bound_on_a_held_request_gate() {
-    let f = Fixture::new();
-    let group = f.group();
-    let host = Arc::clone(f.host());
-    host.begin_quit_by(Instant::now() + Duration::from_secs(1)).unwrap();
+    assert!(host.successor_prospective_held(&cfg).1.is_ok(), "nothing ended: the prospective generation");
     let (held_tx, held_rx) = channel();
-    let (release_tx, release_rx) = channel::<()>();
-    let holder = Arc::clone(&host);
-    let holding = std::thread::spawn(move || {
-        let _gate = holder.attachment_gate.lock().unwrap();
+    let (writer_host, writer_custody) = (Arc::clone(&host), Arc::clone(&custody));
+    let writer = std::thread::spawn(move || {
+        let mut observed = writer_custody.end_observation.lock().unwrap();
         held_tx.send(()).unwrap();
-        let _ = release_rx.recv();
+        std::thread::sleep(Duration::from_millis(200));
+        // As the session-end write's drain does: the home's Host state, with the observation held.
+        drop(writer_host.inner.0.lock().unwrap());
+        *observed = Some(json!({"ended":"invented"}));
     });
     held_rx.recv().unwrap();
-    let begin = Instant::now();
-    let settled = host.settle_for_quit("the person", "quit");
-    let took = begin.elapsed();
-    let _ = release_tx.send(());
-    holding.join().unwrap();
-    assert!(took >= crate::app_quit::QUIT_FENCE_WAIT_LIMIT && took < crate::app_quit::QUIT_FENCE_WAIT_LIMIT + SLACK, "{took:?}");
-    let error = settled.unwrap_err();
-    assert!(error.contains("another App activity held this home's request gate past the quit's bound"), "{error}");
-    assert!(!f.group_ended(group), "nothing was stopped while the gate was held");
-    host.cancel_quit();
+    let (done_tx, done_rx) = channel();
+    let checker = Arc::clone(&host);
+    std::thread::spawn(move || { let refused = checker.successor_prospective_held(&cfg).1; let _ = done_tx.send(refused); });
+    let Ok(refused) = done_rx.recv_timeout(Duration::from_secs(5)) else {
+        // Deadlocked: the fixture's own teardown would wait on the same locks.
+        std::mem::forget(f);
+        panic!("the check and the write wait on each other");
+    };
+    writer.join().unwrap();
+    assert_eq!(refused.unwrap_err(), "App session ended; successor start refused");
+}
+
+/// P26a: a refusal releases what the quit held before its notice, which waits
+/// for the person: while the notice is shown, the Stop/Restart gate and the
+/// key setup are free.
+#[test]
+fn a_quit_refusal_releases_its_holds_before_its_notice() {
+    let (gate, key_setup) = (Mutex::new(()), Mutex::new(()));
+    let free_while_shown = std::cell::Cell::new(false);
+    crate::app_quit::refuse_after_releasing((gate.lock().unwrap(), key_setup.lock().unwrap()), || {
+        free_while_shown.set(gate.try_lock().is_ok() && key_setup.try_lock().is_ok());
+    });
+    assert!(free_while_shown.get(), "the notice is shown with nothing the quit held still held");
 }

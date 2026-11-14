@@ -1634,9 +1634,10 @@ fn request_quit(app: tauri::AppHandle) {
         // which waits for the person, so Stop/Restart Codex and key operations
         // are not held up by an unanswered notice.
         let Some(homes) = util::lock_by(&state.homes, std::time::Instant::now() + app_quit::QUIT_ASSESSMENT_WAIT_LIMIT).map(|router| router.entries()) else {
-            drop(held);
-            show_main_window(&app);
-            native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality", app_quit::homes_not_read());
+            app_quit::refuse_after_releasing(held, || {
+                show_main_window(&app);
+                native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality", app_quit::homes_not_read());
+            });
             return;
         };
         let key_setup = match app_quit::admit_key_setup(&state.key_setup, &state.key_hold, &homes, offer, app_quit::KEY_RELEASE_WAIT_LIMIT) {
@@ -1647,18 +1648,19 @@ fn request_quit(app: tauri::AppHandle) {
                 return;
             }
             app_quit::KeyAdmission::Refused(reason) => {
-                drop(held);
-                show_main_window(&app);
-                native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality", reason);
+                app_quit::refuse_after_releasing(held, || {
+                    show_main_window(&app);
+                    native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality", reason);
+                });
                 return;
             }
         };
         // Read again now that the key setup is held: no home is added meanwhile.
         let Some(homes) = util::lock_by(&state.homes, std::time::Instant::now() + app_quit::QUIT_ASSESSMENT_WAIT_LIMIT).map(|router| router.entries()) else {
-            drop(key_setup);
-            drop(held);
-            show_main_window(&app);
-            native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality", app_quit::homes_not_read());
+            app_quit::refuse_after_releasing((key_setup, held), || {
+                show_main_window(&app);
+                native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality", app_quit::homes_not_read());
+            });
             return;
         };
         let person = quit_person(&state);
@@ -1693,12 +1695,11 @@ fn request_quit(app: tauri::AppHandle) {
             Ok(false) => {},
             Err(error) => {
                 app_quit::QuitOps::reopen_to_new_turns(&mut ops);
-                drop(ops);
-                drop(key_setup);
-                drop(held);
                 eprintln!("chirality: {error}");
-                show_main_window(&app);
-                native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality — still running", error);
+                app_quit::refuse_after_releasing((ops, key_setup, held), || {
+                    show_main_window(&app);
+                    native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality — still running", error);
+                });
             }
         }
     });

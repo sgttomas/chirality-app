@@ -695,6 +695,14 @@ fn within<T: Send + 'static>(name: &str, limit: Duration, work: impl FnOnce() ->
     received.recv_timeout(limit).map_err(|_| Within::NotInTime)
 }
 enum Within { NotStarted(String), NotInTime }
+/// A refusal ends the person's quit: what the quit held (its question flag and
+/// the Stop/Restart gate, the key setup) is released first, and only then is
+/// the refusal shown, which waits for the person. An unanswered notice then
+/// holds up no Stop/Restart Codex and no key operation.
+pub(crate) fn refuse_after_releasing<H>(held: H, show: impl FnOnce()) {
+    drop(held);
+    show();
+}
 /// The exit's end of this session's delegation observations. `end` takes the
 /// conversation links by the deadline it is given and records the ends, which
 /// writes and syncs files; it runs on its own thread, and the exit waits for
