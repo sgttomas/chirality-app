@@ -209,17 +209,6 @@ pub(crate) fn dispatch(
         ));
     }
     #[cfg(test)]
-    if let Some(context) = TEST_INSTALLATION.with(|s| s.borrow().clone()) {
-        return Some((|| {
-            admission::selected_lookup(&context.expected, &context.authority)?;
-            let result = operate(&legacy_folder.with_file_name("capture-seal-keychain"), legacy_folder,
-                &context.authority.identity, context.authority.allow_first, &*context.backend, operation,
-                &mut || Ok([9;32]));
-            if result.is_ok() { if let Some(root) = legacy_folder.parent() { admission::remember(root); } }
-            result
-        })());
-    }
-    #[cfg(test)]
     if let Some(result) = TEST_PROVIDER.with(|provider| {
         provider
             .borrow()
@@ -228,33 +217,36 @@ pub(crate) fn dispatch(
     }) {
         return Some(result);
     }
-    match publisher_route() {
+    match dispatch_route() {
         Ok(false) => None,
-        Err(_) => Some(Err(
-            failure(Cause::AuthorityUnavailable, "SEAL-C publisher validation unavailable; file fallback prohibited"),
-        )),
-        Ok(true) => Some((|| {
-            let authority =
-                process_authority(matches!(operation, Operation::Enroll | Operation::Rotate)).map_err(|e| failure(Cause::AuthorityUnavailable, e))?;
-            let backend = macos::NativeBackend::new(&authority);
-            let directory = legacy_folder.with_file_name("capture-seal-keychain");
+        Err(_) => Some(Err(failure(Cause::AuthorityUnavailable, "SEAL-C publisher validation unavailable; file fallback prohibited"))),
+        Ok(true) => Some(with_dispatch_backend(matches!(operation, Operation::Rotate), |authority, backend| {
             let mut entropy = || {
                 let mut key = [0u8; 32];
-                getrandom::fill(&mut key)
-                    .map_err(|_| "SEAL-C key entropy unavailable".to_owned())?;
+                getrandom::fill(&mut key).map_err(|_| "SEAL-C key entropy unavailable".to_owned())?;
                 Ok(key)
             };
-            operate(
-                &directory,
-                legacy_folder,
-                &authority.identity,
-                authority.allow_first,
-                &backend,
-                operation,
-                &mut entropy,
-            )
-        })()),
+            operate(&legacy_folder.with_file_name("capture-seal-keychain"), legacy_folder,
+                &authority.identity, authority.allow_first, backend, operation, &mut entropy)
+        })),
     }
+}
+// Tests replace only selected authority and OS I/O here. Named verification
+// executes the same dispatch body and operate path as the native backend.
+fn dispatch_route() -> Result<bool, ()> {
+    #[cfg(test)]
+    if TEST_INSTALLATION.with(|s| s.borrow().is_some()) { return Ok(true); }
+    publisher_route()
+}
+fn with_dispatch_backend<R>(recheck: bool, run: impl FnOnce(&KeychainAuthority, &dyn Backend) -> Result<R, EvidenceFailure>) -> Result<R, EvidenceFailure> {
+    #[cfg(test)]
+    if let Some(context) = TEST_INSTALLATION.with(|s| s.borrow().clone()) {
+        admission::selected_lookup(&context.expected, &context.authority)?;
+        return run(&context.authority, &*context.backend);
+    }
+    let authority = process_authority(recheck).map_err(|e| failure(Cause::AuthorityUnavailable, e))?;
+    let backend = macos::NativeBackend::new(&authority);
+    run(&authority, &backend)
 }
 /// Read-only provider preparation. No SecItem, marker write or advisory lock.
 /// A future native caller still owns original-window/confirmation/key_setup/Quit.

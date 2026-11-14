@@ -1567,3 +1567,19 @@ fn capture_seal_review_named_verification_survives_disappearance() {
     f.clear_protected_state();
     review_unsealed(&project);
 }
+
+#[test]
+fn capture_seal_review_production_dispatch_remembers_named_verification() {
+    let f = SelectedInstallation::new(); let project = f.project();
+    assert_eq!(review_publish(&project)["sealProvider"], "file-key");
+    f.enroll().unwrap();
+    let mut capture = f.ordinary_capture(); crate::capture_seal::seal(&project, &mut capture).unwrap();
+    let id = capture["seal"]["value"].as_str().unwrap().split(':').next().unwrap();
+    admission::forget(f.root());
+    // Authority and OS reads are injected at the boundary, below the single
+    // production dispatch body. There is no synthetic success-memory branch.
+    let material = dispatch(&f.fixture.legacy, Operation::VerifyKey(id.into())).unwrap().unwrap();
+    assert_eq!(material.provider, crate::capture_seal::SealProvider::Keychain);
+    f.clear_protected_state();
+    review_unsealed(&project);
+}
