@@ -1434,12 +1434,18 @@ export function firstReadState(reads: { applied: number; failure: string | null 
   return reads.applied > 0 ? "read" : reads.failure ? "failed" : "reading";
 }
 
+/** How long after launch, with no status read applied and none failed, the starting line says the App is
+ * taking longer than usual (App Agent 0's number). The status timer starts a new read every POLL_MS whether
+ * or not an earlier one has been answered, so the App is still trying while a read hangs. */
+export const FIRST_READ_PATIENCE_MS = 10_000;
+
 /** What stands in for the welcome and the workspace until the first status read is applied. The read's
  * own diagnostic is not shown: hostReads drops it at the source, so no status read's raw text is rendered. */
-function FirstReadStatus({ failed, retry }: { failed: boolean; retry: () => void }) {
-  if (!failed) return <p role="status">Starting Chirality…</p>;
+function FirstReadStatus({ failed, slow, retry }: { failed: boolean; slow: boolean; retry: () => void }) {
+  if (!failed && !slow) return <p role="status">Starting Chirality…</p>;
   return <section aria-label="Chirality could not start">
-    <p role="alert">Chirality could not read its own state.</p>
+    {failed ? <p role="alert">Chirality could not read its own state. It keeps trying; you can also try again now.</p>
+      : <p role="status">Chirality is taking longer than usual to start. It keeps trying; you can also try again now.</p>}
     <p><button onClick={retry}>Try again</button></p>
   </section>;
 }
@@ -1466,6 +1472,9 @@ export function App() {
   };
   // Every status read is numbered when it starts and applied only if newer than the one shown (hostReads.ts).
   const { host, hostReads, readHost, applyHost } = useOrderedHost();
+  // Whether FIRST_READ_PATIENCE_MS has passed since launch; it only changes what the not-yet-read state says.
+  const [firstReadSlow, setFirstReadSlow] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setFirstReadSlow(true), FIRST_READ_PATIENCE_MS); return () => clearTimeout(t); }, []);
   // Safe reply observations outlive a card's move between the selected chat
   // and other requests. They are transient App UI facts, never register rows.
   const [replyObservations, setReplyObservations] = useState<Record<string, RequestReplyObservation>>({});
@@ -2447,10 +2456,11 @@ export function App() {
   // App data held by another process shows the same focused surface, with its reason.
   const setupRequired = ["setup-required", "data-held", "home-held"].includes(host?.desktopSetup?.launch?.state);
   // Until the first status read is applied, neither the welcome nor the workspace is in the document,
-  // only the line that says the App is starting, or that the read failed (firstReadState).
+  // only the line that says the App is starting (or, after FIRST_READ_PATIENCE_MS, taking longer than usual),
+  // or that the read failed (firstReadState).
   const firstRead = firstReadState(hostReads);
   return (<DailyWorkspace>
-        {firstRead !== "read" && <FirstReadStatus failed={firstRead === "failed"} retry={() => { void refresh().catch(() => undefined); }}/>}
+        {firstRead !== "read" && <FirstReadStatus failed={firstRead === "failed"} slow={firstReadSlow} retry={() => { void refresh().catch(() => undefined); }}/>}
         {setupRequired && <FirstUseSetup view={host.desktopSetup}/>}
         {firstRead === "read" && <div hidden={setupRequired}>
         <header className="workspace-heading"><div><h1>Chirality</h1><p>Workflow workspace</p></div><p>Make, try, review and refine workflows through conversation.</p></header>
