@@ -227,12 +227,15 @@ def parse_session(data, thread):
     lines = data.splitlines()
     if not lines:
         raise Refused('the session file is empty')
-    events, order = {}, []
+    events, order, marked = {}, [], 0
     for number_, raw in enumerate(lines, 1):
         try:
             line = json.loads(raw)
         except Exception:
             raise Refused('a line of the session file is not JSON')
+        # The markers, in the bytes or in any decoded value (JSON may escape them).
+        if WORKFLOW_MARKER in raw or WORKFLOW_MARKER.decode() in json.dumps(line, ensure_ascii=False):
+            marked += 1
         if not isinstance(line, dict) or not isinstance(line.get('type'), str) or not isinstance(line.get('payload'), dict):
             raise Refused('a line of the session file is not a session line')
         kind, payload = line['type'], line['payload']
@@ -253,7 +256,6 @@ def parse_session(data, thread):
                     order.append(turn)
                 events[turn].append((number_, event, payload))
     turns = {turn: reading(events[turn]) for turn in order}
-    marked = sum(1 for raw in lines if WORKFLOW_MARKER in raw)
     return {'thread': thread, 'order': order, 'turns': turns, 'workflow_marked_lines': marked}
 
 
@@ -546,6 +548,20 @@ def answered_rows(model, answers):
 
 # --- Output -------------------------------------------------------------------
 
+def fallback_header(root):
+    """The header of a file of blocked rows: every field that is read from a
+    file is taken only if reading it succeeds, so the header cannot fail."""
+    def tried(read):
+        try:
+            return read()
+        except Exception:
+            return None
+    driver = tried(lambda: driver_run(root) if (root / 'record' / DRIVER_RUN).exists() else None)
+    return {'header': True, 'candidate_key': tried(lambda: candidate_key(root)), **({'driver_run': driver} if driver else {}),
+            'examination_root': str(root), 'tool': TOOL, 'tool_sha256': tried(tool_digest), 'model_version': MODEL_VERSION,
+            'pinned_codex': PINNED_CODEX, 'compares': COMPARES, 'workflow_comparison': NOT_AVAILABLE}
+
+
 def header(root, **extra):
     driver = {'driver_run': driver_run(root)} if (root / 'record' / DRIVER_RUN).exists() else {}
     return {'header': True, 'candidate_key': candidate_key(root), **driver, 'examination_root': str(root), 'tool': TOOL,
@@ -677,6 +693,8 @@ def main(argv=None):
                 return 0
             print(write(root, 'session-comparison', header(root, saved_views_not_named=unnamed), rows))
             return 0
+        if unnamed:
+            raise Refused("a saved view exists in record/, so the operator's answers are not taken; compare it with --view")
         rows = run_answers(root, args.screen)
         print(write(root, 'session-comparison', header(root, answers_of=ident(Path(args.screen).name), saved_views_not_named=unnamed), rows))
         return 0
@@ -684,7 +702,7 @@ def main(argv=None):
         # Nothing ends without rows: the failure's kind, and no more.
         reason = str(e) if isinstance(e, Refused) else f'the comparison failed ({e.__class__.__name__})'
         try:
-            print(write(root, 'session-comparison', header(root), blocked_all(thread, reason), fallback=True))
+            print(write(root, 'session-comparison', fallback_header(root), blocked_all(thread, reason), fallback=True))
             return 1
         except Exception as inner:
             print(f'refused: no result could be written ({inner.__class__.__name__})', file=sys.stderr)
