@@ -13,7 +13,7 @@
     {
       "role": "missing-inputs.json",
       "path": "app/examination/standalone/missing-inputs.json",
-      "sha256": "sha256:d2d5dc1f2964f640b8c2172c7beb5f361655c0f12a0128b9520d13978eef0234"
+      "sha256": "sha256:89c360cb19cef98ad74d23f305f6e3d16ecd2a5dda89927cdac3f4affaf7c02a"
     },
     {
       "role": "invented-inputs.json",

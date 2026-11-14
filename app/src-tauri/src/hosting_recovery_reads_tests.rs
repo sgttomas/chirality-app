@@ -140,7 +140,7 @@ impl Fixture {
     }
     fn methods(&self) -> Vec<String> { self.wire().iter().map(|f| f["method"].as_str().unwrap_or("").to_owned()).collect() }
     fn ledger(&self) -> Vec<Value> {
-        crate::recovery::stored_entries(&self.root.join("recovery.ledger.jsonl"))
+        self.home.host.stored_entries_held(&self.root.join("recovery.ledger.jsonl"))
     }
     fn states(&self) -> Vec<String> {
         self.ledger().iter().filter(|r| r["kind"] == "conversation_index").map(|r| r["lastObservedExecution"]["state"].as_str().unwrap().to_owned()).collect()
@@ -231,7 +231,7 @@ fn vcr05_exit_restart_read_failure_retry_and_recovery_from_codex() {
     let lost_at = states.iter().position(|s| s == "observation-lost").unwrap();
     assert_eq!(states[lost_at..], ["observation-lost", "recovering", "unavailable", "recovering", "indexed"]);
     assert!(!String::from_utf8_lossy(&crate::recovery::stored_bytes(&f.root.join("recovery.ledger.jsonl"))).contains("NEVER_"));
-    assert!(!serde_json::to_string(&crate::recovery::stored_entries(&f.root.join("recovery.ledger.jsonl"))).unwrap().contains("NEVER_"));
+    assert!(!serde_json::to_string(&f.home.host.stored_entries_held(&f.root.join("recovery.ledger.jsonl"))).unwrap().contains("NEVER_"));
     crate::recovery::RecoveryLedger::open(f.root.join("recovery.ledger.jsonl")).unwrap();
     // The stale rendered view is replaced: the ready generation's view has
     // the recovered turn, and the prior one stays observation-ended.
@@ -401,7 +401,7 @@ fn cv19_relaunch_over_an_imported_json_lines_ledger_reads_as_over_the_database()
         let outcome = Fixture::events(&home, "turn_outcome")[0].clone();
         let back = home.host.snapshot()["stopRequests"]["records"][0].clone();
         let view = home.host.recovery_custody().snapshot();
-        let entries = crate::recovery::stored_entries(&root.join("recovery.ledger.jsonl"));
+        let entries = home.host.stored_entries_held(&root.join("recovery.ledger.jsonl"));
         let transitions: Vec<String> = entries.iter().filter(|e| e["kind"] == "stop_request").map(|e| e["record"]["transition"].as_str().unwrap().to_owned()).collect();
         let legacy = home.host.snapshot()["recovery"]["store"]["legacyImport"].clone();
         let _ = home.host.stop("fixture", "test ended");
