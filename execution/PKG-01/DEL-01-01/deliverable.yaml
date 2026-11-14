@@ -90,7 +90,13 @@ code_paths:
 # recordings/<pin>/ holds exchanges recorded from the stock supplier at a pin, kept as evidence
 # with a note of how they were made; the harness that made them is not maintained.
 - app/supplier_checks/recordings
+# level/ starts the pinned supplier against a loopback stub that scripts the model's tool calls,
+# and asserts what its sandbox and approval settings do at the pin.
+- app/supplier_checks/level/**
 checks:
+- app/supplier_checks/level/test_level_stub.py
+# Live: runs where the pinned binary is present (the full suite's product job); skipped otherwise.
+- app/supplier_checks/level/test_level_live.py
 - app/src-tauri/src/hosting_0167_tests.rs
 # Shared with DEL-01-05: inherited variables removed by name from every supplier start.
 - app/src-tauri/src/hosting_child_environment_tests.rs
