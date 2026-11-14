@@ -11,11 +11,11 @@ pub(crate) fn answer(
     generation: &Value,
     request_id: &Value,
     answer: &Value,
-    mut observe_original: impl FnMut() -> (Value, Value),
+    mut observe_original: impl FnMut() -> Result<(Value, Value), String>,
     confirm: impl FnOnce(&ns::NativeStatement) -> Result<MessageDialogResult, String>,
     write_original: impl FnOnce(&str) -> Result<Value, String>,
 ) -> Result<Value, String> {
-    let (snapshot, context) = observe_original();
+    let (snapshot, context) = observe_original()?;
     let actor = runtime_session::actor_reference(
         context["displayName"].as_str(),
         context["osAccount"].as_str(),
@@ -28,7 +28,7 @@ pub(crate) fn answer(
     if !ns::chose(&result, ns::SEND_ANSWER) {
         return Ok(json!({"state":"dismissed","replyWriteResult":"not-attempted"}));
     }
-    let (snapshot, current) = observe_original();
+    let (snapshot, current) = observe_original()?;
     if current != context {
         return Err("Attribution or owning host context changed during confirmation; review and confirm again".into());
     }

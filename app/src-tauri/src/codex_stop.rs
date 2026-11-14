@@ -53,7 +53,7 @@ pub const OUTCOMES_KEPT: usize = 20;
 pub(crate) const PROCESS_ENDED: &str = "Codex's process was confirmed ended during Stop.";
 pub(crate) const PROCESS_END_NOT_ESTABLISHED: &str = "Whether Codex's process ended during Stop was not established.";
 
-pub(crate) const RECORDS_LIMIT: &str = "Recorded in the App's recovery ledger: a codex_stop record when you confirm, then a stop-request record for each interrupt before it is sent, with its outcome. After a relaunch the App reads the turns' labels back from these records. A record the ledger has not accepted is shown as not yet written and kept in this App process; the stop still proceeds. The outcome panel itself is kept in this App process only.";
+pub(crate) const RECORDS_LIMIT: &str = "Recorded in the App's recovery ledger as far as it accepts them: a codex_stop record when you confirm, then a stop-request record for each interrupt, attempted before it is sent, with its outcome. After a relaunch the App reads the turns' labels back from these records. A record the ledger has not accepted is shown as not yet written and kept in this App process. An interrupt whose stop-request record could not be made is still sent, and the ledger holds no record of it. The stop still proceeds. The outcome panel itself is kept in this App process only.";
 
 fn action(restart: bool) -> &'static str {
     if restart {

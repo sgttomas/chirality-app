@@ -141,6 +141,9 @@ pub struct AppState {
     file_act_lapses: Mutex<file_act_lapse::Observer>,
     decision_writer_status: Mutex<Value>,
     person_name: Mutex<Option<String>>,
+    /// The session's one observation of the operating-system account the App
+    /// runs as ([`util::OS_ACCOUNT`] outside tests).
+    os_account: &'static util::AccountObservation,
     instructions_root: Mutex<Result<PathBuf, String>>,
     app_user_data_root: Mutex<Result<PathBuf, String>>,
     external_observation: Mutex<runtime_session::ExternalObservationSession>,
@@ -148,6 +151,10 @@ pub struct AppState {
     attachment_selection: Mutex<Result<runtime_session::AttachmentSelectionSession, String>>,
     role_log: Result<Arc<role_observations::RoleLog>, String>,
     native_links: Mutex<native_conversation_links::Session>,
+    /// DEL-06-01: what the session's reconciliation of earlier sessions'
+    /// delegation observations has done, as the record tick last left it. A
+    /// read reports it and triggers nothing; memory only.
+    delegation_reconciliation: Mutex<Value>,
     project_context: recovery::ExplicitAppProjectContext,
     project_context_limit: Option<String>,
     homes: Mutex<runtime_session::HomeRouter>,
@@ -155,6 +162,10 @@ pub struct AppState {
     native_namespaces: Mutex<Result<Arc<hosting::attachment_custody::NativeNamespaceBindings>,String>>,
     key_namespace_admission: Mutex<Value>,
     key_setup: Mutex<()>,
+    /// What a key operation holding `key_setup` has published about what it
+    /// waits on, for Quit to read beside it (SQ-Q). Set and cleared by that
+    /// operation while it holds `key_setup`.
+    key_hold: Mutex<Option<app_quit::KeyHold>>,
     local_credentials: native_local_provider::CredentialEntry,
     root_home_inputs: Value,
     /// One Stop/Restart Codex question at a time.
@@ -747,9 +758,14 @@ fn recovery_retry(state: State<'_, AppState>, mode_home_class: String, generatio
 
 #[tauri::command]
 fn host_status(state: State<'_, AppState>) -> Value {
+    host_status_of(&state)
+}
+fn host_status_of(state: &AppState) -> Value {
     let home = state.homes.lock().unwrap().active();
-    let mut runtime = home.runtime.lock().unwrap();
-    let (observation, received) = runtime.receive_native(&home.host);
+    // The home's observation is taken and released here: nothing after this
+    // reads it, and Stop's and the quit's assessments take it, so the rest of
+    // the status (which waits on other activities) never holds it.
+    let (observation, received) = home.runtime.lock().unwrap().receive_native(&home.host);
     let mut s = observation["snapshot"].clone();
     if let Ok(mut edits)=state.endpoint_edits.lock(){edits.retire_source(&home,&s["generation"],s["state"]=="ready"&&s["generationClosed"]!=true);}
     for (key, value) in received.as_object().unwrap() {
@@ -868,7 +884,15 @@ fn records_chain_heads(state: State<'_, AppState>) -> Result<Value, String> {
 /// webview supplies no path, graph selection, record or association.
 #[tauri::command(async)]
 fn read_fleet_records(state: State<'_, AppState>) -> Result<Value, String> {
-    read_fleet_records_for_workspace(state.workspace.as_deref())
+    let mut packet = read_fleet_records_for_workspace(state.workspace.as_deref())?;
+    // What this session's reconciliation of earlier sessions' observations has
+    // done, as the record tick last left it: reported, never triggered here.
+    let reconciliation = state.delegation_reconciliation.lock().unwrap().clone();
+    if let (Some(limit), Some(limits)) = (reconciliation["limit"].as_str(), packet["limits"].as_array_mut()) {
+        limits.push(json!({"source":{"home":"This App"},"reason":limit}));
+    }
+    packet["delegationReconciliation"] = reconciliation;
+    Ok(packet)
 }
 fn read_fleet_records_for_workspace(workspace: Option<&std::path::Path>) -> Result<Value,String> {
     fleet_records::read_for_workspace(workspace)
@@ -896,14 +920,7 @@ fn records_store_import_package(app:tauri::AppHandle,state:State<'_,AppState>,ac
     }
     let project=state.workspace.as_deref().ok_or("no project is open")?;
     let home=state.homes.lock().unwrap().active();
-    let observe=||->Result<(Value,Value),String>{
-        let active=state.homes.lock().unwrap().active();
-        if !Arc::ptr_eq(&active,&home){return Err("Native home selection changed; review again".into());}
-        let (_,observed)=current_actor_context_for(&state,&home);
-        let mut actor=act_control::person(observed["displayName"].as_str(),observed["osAccount"].as_str());
-        if let Some(account)=observed["codexAccount"].as_str(){actor["codexAccount"]=json!(account);}
-        Ok((actor,json!({"observedHome":observed,"modeHomeClass":home.class().as_str()})))
-    };
+    let observe=||records_act_observe(&state,&home);
     let (actor,observed)=observe()?;
     let plan=match action.as_str(){
         "import"|"restore"=>{
@@ -949,13 +966,7 @@ fn records_store_import_package(app:tauri::AppHandle,state:State<'_,AppState>,ac
 fn records_store_retention(app:tauri::AppHandle,state:State<'_,AppState>,action:String)->Result<Value,String>{
     let project=state.workspace.as_deref().ok_or("no project is open")?;
     let home=state.homes.lock().unwrap().active();
-    let observe=||->Result<(Value,Value),String>{
-        let active=state.homes.lock().unwrap().active();if !Arc::ptr_eq(&active,&home){return Err("Native home selection changed; review again".into());}
-        let (_,observed)=current_actor_context_for(&state,&home);
-        let mut actor=act_control::person(observed["displayName"].as_str(),observed["osAccount"].as_str());
-        if let Some(account)=observed["codexAccount"].as_str(){actor["codexAccount"]=json!(account);}
-        Ok((actor,json!({"observedHome":observed,"modeHomeClass":home.class().as_str()})))
-    };
+    let observe=||records_act_observe(&state,&home);
     if action=="close" {
         let links=state.native_links.try_lock().map_err(|_|"Native relationship recording is pending")?;
         if links.has_pending(){return Err("Native relationship records are still pending; wait for their recording before closing the project".into());}
@@ -1584,7 +1595,7 @@ fn request_quit(app: tauri::AppHandle) {
         // Codex or quit); a second Quit while the question is open (or this
         // quit is under way) is ignored, since that question is in front of
         // the person. Any other refusal is told in a dialog.
-        let _held = match app_quit::admit_quit(&state.app_quit, &state.codex_stop_gate) {
+        let held = match app_quit::admit_quit(&state.app_quit, &state.codex_stop_gate) {
             Ok(held) => held,
             Err(reason) if reason.starts_with("The quit question") => return,
             Err(reason) => {
@@ -1596,17 +1607,53 @@ fn request_quit(app: tauri::AppHandle) {
         // Keep the set of homes stable through settlement. Key setup is the
         // only runtime path adding a home; never let it race the quit snapshot.
         // The same gate also keeps explicit capture sealing out of Quit settlement.
-        let _key_setup = match state.key_setup.try_lock() {
-            Ok(held) => held,
-            Err(_) => {
+        // A key operation holding it is read from what it published: one waiting
+        // on a home's Codex is offered as part of quitting; any other refuses.
+        let offer_window = question_window.clone();
+        let offer = move |text: &str| -> Result<bool, String> {
+            let window = offer_window.as_ref().ok_or("Original App window unavailable; quit offer refused")?;
+            let _ = window.unminimize();
+            let _ = window.show();
+            let _ = window.set_focus();
+            let statement = act_control::native_statement::bounded("Quit offer", text.to_owned()).map(|text| act_control::native_statement::NativeStatement { text, in_app: None });
+            native_lifecycle_confirmation::confirm(window, "Quit Chirality", statement, act_control::native_statement::KEEP_RUNNING, app_quit::QUIT_ANYWAY)
+        };
+        // The list of homes is read within a bound: a command can hold it while
+        // it reads a home's full state, which waits on file I/O.
+        // A refusal ends this quit: what it held is let go before the notice,
+        // which waits for the person, so Stop/Restart Codex and key operations
+        // are not held up by an unanswered notice.
+        let Some(homes) = util::lock_by(&state.homes, std::time::Instant::now() + app_quit::QUIT_ASSESSMENT_WAIT_LIMIT).map(|router| router.entries()) else {
+            app_quit::refuse_after_releasing(held, || {
                 show_main_window(&app);
-                native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality", "An explicit key operation is under way. The App is still running; choose Quit again when that operation has finished.".into());
+                native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality", app_quit::homes_not_read());
+            });
+            return;
+        };
+        let key_setup = match app_quit::admit_key_setup(&state.key_setup, &state.key_hold, &homes, offer, app_quit::KEY_RELEASE_WAIT_LIMIT) {
+            app_quit::KeyAdmission::Admitted(held) => held,
+            app_quit::KeyAdmission::KeptRunning => return,
+            app_quit::KeyAdmission::NotAsked(reason) => {
+                crate::util::diagnostic(format!("chirality: the quit offer could not be shown ({reason}); the App keeps running"));
+                return;
+            }
+            app_quit::KeyAdmission::Refused(reason) => {
+                app_quit::refuse_after_releasing(held, || {
+                    show_main_window(&app);
+                    native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality", reason);
+                });
                 return;
             }
         };
-        let homes = state.homes.lock().unwrap().entries();
-        let active = state.homes.lock().unwrap().active();
-        let person = stop_person(&state, &active);
+        // Read again now that the key setup is held: no home is added meanwhile.
+        let Some(homes) = util::lock_by(&state.homes, std::time::Instant::now() + app_quit::QUIT_ASSESSMENT_WAIT_LIMIT).map(|router| router.entries()) else {
+            app_quit::refuse_after_releasing((key_setup, held), || {
+                show_main_window(&app);
+                native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality", app_quit::homes_not_read());
+            });
+            return;
+        };
+        let person = quit_person(&state);
         let retained_question_window = question_window.clone();
         let mut ops = app_quit::HostQuit::new(homes.clone(), &state.workflows, &person, move |view: &Value| {
             use act_control::native_statement as ns;
@@ -1618,16 +1665,31 @@ fn request_quit(app: tauri::AppHandle) {
         });
         let decision = app_quit::quit_sequence(&mut ops, app_quit::QUIT_WAIT_LIMIT);
         if let app_quit::Decision::NotAsked(outcome) = &decision {
-            eprintln!("chirality: {}", outcome["reading"].as_str().unwrap_or("quit question not shown"));
+            crate::util::diagnostic(format!("chirality: {}", outcome["reading"].as_str().unwrap_or("quit question not shown")));
         }
-        match state.app_quit.allow(&decision, |ids| app_quit::finish_exit(&homes, Some(ids.to_vec()))) {
-            Ok(true) => app.exit(0),
+        let mut ended = None;
+        match state.app_quit.allow(&decision, |ids| {
+            let observation = app_quit::finish_exit(&homes, Some(ids.to_vec()))?;
+            ended = Some(observation.clone());
+            Ok(observation)
+        }) {
+            Ok(true) => {
+                // The session end was not confirmed within its bound: say so
+                // before the exit, with OK only; nothing more is asked.
+                if let Some(notice) = ended.as_ref().and_then(app_quit::recording_notice) {
+                    show_main_window(&app);
+                    native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality", notice.to_owned());
+                }
+                app.exit(0)
+            }
             Ok(false) => {},
             Err(error) => {
                 app_quit::QuitOps::reopen_to_new_turns(&mut ops);
-                eprintln!("chirality: {error}");
-                show_main_window(&app);
-                native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality — still running", error);
+                app_quit::refuse_after_releasing((ops, key_setup, held), || {
+                    crate::util::diagnostic(format!("chirality: {error}"));
+                    show_main_window(&app);
+                    native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality — still running", error);
+                });
             }
         }
     });
@@ -2024,6 +2086,17 @@ fn conversation_interrupt(
 }
 /// The person as a stop request names them (K1-4): the App's name setting
 /// and the OS account, never verified.
+/// The person as the quit records them: the same line as [`stop_person`],
+/// formed from the same two inputs (the name the person gave and the OS
+/// account) without reading any home's observation, which the quit does not
+/// wait on.
+fn quit_person(state: &AppState) -> String {
+    let name = state.person_name.lock().unwrap().clone();
+    // Looked at, never waited for (P12): absent, the quit records no account.
+    let actor = act_control::person(name.as_deref(), state.os_account.observed().as_deref());
+    let line = act_control::native_statement::actor_line(&actor);
+    line.strip_suffix(" (identity not verified)").unwrap_or(&line).to_owned()
+}
 fn stop_person(state: &AppState, home: &Arc<runtime_session::HomeSession>) -> String {
     let (_, context) = current_actor_context_for(state, home);
     let actor = act_control::person(context["displayName"].as_str(), context["osAccount"].as_str());
@@ -2179,11 +2252,51 @@ fn current_actor_context(state: &AppState) -> (Value, Value) {
 }
 fn current_actor_context_for(state: &AppState, home: &runtime_session::HomeSession) -> (Value, Value) {
     let name = state.person_name.lock().unwrap().clone();
-    let os = util::os_account();
+    // Looked at, never waited for: Stop and the ordinary acts record no
+    // account where the session's read has not finished.
+    let os = state.os_account.observed();
     let mut runtime = home.runtime.lock().unwrap();
     let (observation, _) = runtime.receive_native(&home.host);
     let context = runtime.actor_context(&observation, name.as_deref(), os.as_deref());
     (observation["snapshot"].clone(), context)
+}
+/// The actor context of an ordinary act. An act whose actor would carry none
+/// of the name set in the App, the operating-system account, the Codex account
+/// or a host actor requires the account: decided from the context in hand,
+/// with no lookup or wait of its own, it then waits for the session's read
+/// within [`util::ACCOUNT_WAIT_LIMIT`], holding nothing, and is otherwise
+/// refused with [`util::ACCOUNT_NOT_YET_READ`]. The account is put in the
+/// context itself, so a later observation of the same act, made after the read
+/// has finished, matches it.
+fn act_actor_context_for(state: &AppState, home: &runtime_session::HomeSession) -> Result<(Value, Value), String> {
+    let (snapshot, mut context) = current_actor_context_for(state, home);
+    require_actor_identifier(state.os_account, &mut context)?;
+    Ok((snapshot, context))
+}
+fn require_actor_identifier(account: &'static util::AccountObservation, context: &mut Value) -> Result<(), String> {
+    let carried = |key: &str| context[key].as_str().is_some_and(|value| !value.is_empty());
+    if ["displayName", "osAccount", "codexAccount", "hostActor"].into_iter().any(carried) { return Ok(()); }
+    let read = account.within(util::ACCOUNT_WAIT_LIMIT).ok_or(util::ACCOUNT_NOT_YET_READ)?;
+    if let Some(name) = read { context["osAccount"] = json!(name); }
+    Ok(())
+}
+/// The actor and context of a records-store act (import, restore, resume,
+/// repair and the retention acts), observed for the active home.
+fn records_act_observe(state: &AppState, home: &Arc<runtime_session::HomeSession>) -> Result<(Value, Value), String> {
+    let active = state.homes.lock().unwrap().active();
+    if !Arc::ptr_eq(&active, home) { return Err("Native home selection changed; review again".into()); }
+    let (_, observed) = act_actor_context_for(state, home)?;
+    let mut actor = act_control::person(observed["displayName"].as_str(), observed["osAccount"].as_str());
+    if let Some(account) = observed["codexAccount"].as_str() { actor["codexAccount"] = json!(account); }
+    Ok((actor, json!({"observedHome":observed,"modeHomeClass":home.class().as_str()})))
+}
+/// The actor and context of a decision, observed for the active home.
+fn decide_actor(state: &AppState) -> Result<(Value, Value), String> {
+    let home = state.homes.lock().unwrap().active();
+    let (_, context) = act_actor_context_for(state, &home)?;
+    let mut actor = act_control::person(context["displayName"].as_str(), context["osAccount"].as_str());
+    if let Some(account) = context["codexAccount"].as_str() { actor["codexAccount"] = json!(account); }
+    Ok((actor, context))
 }
 
 /// No actor, origin, rule name or error path is exposed to the webview.
@@ -2200,7 +2313,7 @@ fn answer_native_request(
         &generation,
         &request_id,
         &answer,
-        || current_actor_context_for(&state, &home),
+        || act_actor_context_for(&state, &home),
         |statement| native_request_answer::confirm(&window, statement),
         |actor| home.host.answer_server_request(
             &generation,
@@ -2509,16 +2622,17 @@ fn workflow_create_draft(state:State<'_,AppState>,name:String,context:workflow_s
 #[tauri::command]
 fn workflow_refine_registered(state:State<'_,AppState>,name:String,revision:String)->Result<Value,String>{state.workflows.lock().unwrap().refine_registered(&name,&revision)}
 #[tauri::command]
-fn workflow_review(state:State<'_,AppState>,names:Vec<String>,in_place:bool)->Result<Value,String>{
+fn workflow_review(state:State<'_,AppState>,names:Vec<String>,in_place:bool)->Result<Value,String>{workflow_review_of(&state,names,in_place)}
+fn workflow_review_of(state:&AppState,names:Vec<String>,in_place:bool)->Result<Value,String>{
     let home=state.homes.lock().unwrap().active();state.validate_home_source(&home)?;
-    let (_,context)=current_actor_context_for(&state,&home);
+    let (_,context)=act_actor_context_for(state,&home)?;
     state.workflows.lock().unwrap().begin_review(home,context,names,in_place)
 }
 fn workflow_review_observe(state:&AppState,home:&Arc<runtime_session::HomeSession>,library:&Arc<runtime_session::WorkflowLibraryContext>,review_ref:&str,original:&Value)->Result<(Value,Value),String>{
     let active=state.homes.lock().unwrap().active();if !Arc::ptr_eq(&active,home){return Err("Original review home selection changed; nothing captured, review again".into());}
     state.validate_home_source(home)?;storage::check_path(&library.root)?;
     {let root=state.workflows.lock().unwrap();if root.active_library.as_deref()!=Some(library.reference.as_str())||root.active_review.as_deref()!=Some(review_ref){return Err("Original library/review selection changed; no retarget".into());}}
-    let (_,observed)=current_actor_context_for(state,home);
+    let (_,observed)=act_actor_context_for(state,home)?;
     if observed!=*original{return Err("Original observed actor/home context changed since review; review again".into());}
     let mut actor=act_control::person(observed["displayName"].as_str(),observed["osAccount"].as_str());
     if let Some(account)=observed["codexAccount"].as_str(){actor["codexAccount"]=json!(account);}
@@ -2738,14 +2852,7 @@ fn decide(
     offer_id: String,
     alternative: String,
 ) -> Result<Value, String> {
-    let (_, context) = current_actor_context(&state);
-    let mut actor = act_control::person(
-        context["displayName"].as_str(),
-        context["osAccount"].as_str(),
-    );
-    if let Some(account) = context["codexAccount"].as_str() {
-        actor["codexAccount"] = json!(account);
-    }
+    let (actor, context) = decide_actor(&state)?;
     let mut g = state.act.lock().unwrap();
     let ac = g.as_mut().ok_or("CHIRALITY_WORKSPACE is not set")?;
     let statement = ac.confirmation_statement(&offer_id, &alternative, &actor)?;
@@ -2787,7 +2894,10 @@ fn file_act_observe(state:&AppState, home:&Arc<runtime_session::HomeSession>) ->
     match &*binding { Ok(set)=>set.validate_binding(home.class(),home.host_config.as_ref().map_err(Clone::clone)?)?, Err(_) if home.class()==home_resources::HomeClass::Account=>{}, Err(e)=>return Err(e.clone()) }
     drop(binding);
     let name=state.person_name.try_lock().map_err(|_|"Actor setting busy; review again")?.clone();
-    let os=util::os_account();
+    // A file act records the account and requires it: it waits for the
+    // session's read within a bound, holding nothing, and is otherwise refused.
+    // A read that finished with no name keeps the file act's own refusal.
+    let os=state.os_account.within(util::ACCOUNT_WAIT_LIMIT).ok_or(util::ACCOUNT_NOT_YET_READ)?;
     let mut runtime=home.runtime.try_lock().map_err(|_|"Actor observation busy; review again")?;
     let (observed, _)=runtime.receive_native(&home.host);
     let current=runtime.actor_context(&observed,name.as_deref(),os.as_deref());
@@ -3050,6 +3160,7 @@ fn freeze_startup_state(launch: desktop_startup::Launch, desktop: Arc<Mutex<desk
         decision_writer_status: Mutex::new(json!({"state":"not-run","responsibility":"decision record writer continuation"})),
         workspace: workspace.clone(),
         person_name: Mutex::new(None),
+        os_account: &util::OS_ACCOUNT,
         instructions_root: Mutex::new(Err("App instruction root not initialized".into())),
         app_user_data_root: Mutex::new(Err("App user-data root not initialized".into())),
         external_observation: Mutex::new(runtime_session::ExternalObservationSession::default()),
@@ -3057,12 +3168,13 @@ fn freeze_startup_state(launch: desktop_startup::Launch, desktop: Arc<Mutex<desk
         attachment_selection: Mutex::new(runtime_session::AttachmentSelectionSession::new(workspace.clone())),
         role_log: workspace.as_deref().ok_or_else(||"explicit App project unavailable for role observations".to_string()).and_then(role_observations::RoleLog::open).map(Arc::new),
         native_links: Mutex::new(native_conversation_links::Session::default()),
+        delegation_reconciliation: Mutex::new(native_conversation_links::Session::default().delegation_reconciliation()),
         project_context, project_context_limit,
         homes: Mutex::new(runtime_session::HomeRouter::new(home.clone()).expect("explicit primary account class")),
         home_bootstrap: Mutex::new(bootstrap.ok_or_else(||"Explicit Root home descriptors not initialized".into())),
         native_namespaces: Mutex::new(namespaces.unwrap_or_else(||Err("Root native namespace bindings not initialized".into()))),
         key_namespace_admission: Mutex::new(json!({"state":"prospective key not admitted"})),
-        key_setup: Mutex::new(()), local_credentials: native_local_provider::CredentialEntry::default(),
+        key_setup: Mutex::new(()), key_hold: Mutex::new(None), local_credentials: native_local_provider::CredentialEntry::default(),
         root_home_inputs: json!({"source":source,"keyHome":key_path.as_ref().map(|path|attachments::native_path_identity(path)),"sharedConfig":shared_paths[0].as_ref().map(|path|attachments::native_path_identity(path)),"sharedGlobalAgents":shared_paths[1].as_ref().map(|path|attachments::native_path_identity(path)),"sharedSkills":shared_paths[2].as_ref().map(|path|attachments::native_path_identity(path)),"limit":"supplied references are not observed linked state, ownership or native discovery proof"}),
         codex_stop_gate: Mutex::new(()),
         codex_stops: Mutex::new(Vec::new()),
@@ -3191,6 +3303,11 @@ fn with_scripted_driver<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri:
 fn with_scripted_driver<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> { builder }
 
 pub fn run() {
+    // Diagnostics are written to standard error by a thread of their own,
+    // so that a stalled standard error holds up no quit, stop or exit.
+    util::start_diagnostics();
+    // The account the App runs as, read once for the session on its own thread.
+    util::OS_ACCOUNT.start();
     with_scripted_driver(tauri::Builder::default())
         .plugin(tauri_plugin_dialog::init())
         .menu(app_menu)
@@ -3240,11 +3357,23 @@ pub fn run() {
                     host_tick::guarded("record", || received = host_tick::tick_project(&state.homes, &state.workflows, state.workspace.as_deref()));
                     // DEL-06-01: what those views show of native delegation is recorded once.
                     host_tick::guarded("native-delegation", || {
+                        // The session's start for the project comes first: the ends
+                        // of earlier sessions' observations, until it has run. Its
+                        // read is made with no lock held; only its publication is
+                        // made under the links mutex, as for every delegation fact.
+                        let home = state.homes.lock().unwrap().entries().into_iter().next();
+                        let pending = state.native_links.lock().unwrap().earlier_delegation_pending();
+                        let read = home.filter(|_| pending).map(|home| native_conversation_links::read_earlier_delegation(state.workspace.as_deref(), &home.host));
                         let mut links = state.native_links.lock().unwrap();
+                        if let Some(read) = read { links.apply_earlier_delegation(read); }
                         for (home, views) in &received { links.observe_delegation(state.workspace.as_deref(), home, views); }
                     });
                     // Native relationship publication runs independently of web reads.
-                    host_tick::guarded("native-links", || {state.native_links.lock().unwrap().retry(state.workspace.as_deref());});
+                    host_tick::guarded("native-links", || {
+                        let mut links = state.native_links.lock().unwrap();
+                        links.retry(state.workspace.as_deref());
+                        *state.delegation_reconciliation.lock().unwrap() = links.delegation_reconciliation();
+                    });
                 }).map_err(|e| format!("host tick thread not started: {e}"))?;
                 // TT-9 reads wait on Codex; their own thread never delays the record tick.
                 let handle = app.handle().clone();
@@ -3372,35 +3501,80 @@ pub fn run() {
             // from the Dock's Quit, logout or shutdown).
             tauri::RunEvent::Exit => {
                 let st: State<'_, AppState> = app.state();
-                let homes = st.homes.lock().unwrap().entries();
+                // Read within a bound, as the quit reads it; not read in time,
+                // no home is settled or ended here and that is logged.
+                let homes = match util::lock_by(&st.homes, std::time::Instant::now() + app_quit::QUIT_ASSESSMENT_WAIT_LIMIT) {
+                    Some(router) => router.entries(),
+                    None => { crate::util::diagnostic(format!("chirality: exit: the App's list of Codex homes was held by another App activity for {} seconds; no home was settled or ended here, and no delegation observation is ended here (the next start ends them where it establishes this session ended and finds the store's log usable)", app_quit::QUIT_ASSESSMENT_WAIT_LIMIT.as_secs())); Vec::new() }
+                };
                 // Ordinary Quit already settled processes and recorded its end
                 // before permission to exit. Only an unapproved/system exit
                 // takes the limited AS-10 best-effort path here.
                 if st.app_quit.proceeding().is_none() {
                     if let Err(error) = app_quit::finish_exit(&homes, None) {
-                        eprintln!("chirality: system termination observation unavailable: {error}");
+                        crate::util::diagnostic(format!("chirality: system termination observation unavailable: {error}"));
                     }
                 }
                 // DEL-06-01: this session's observation of each child it recorded ends with it.
-                if let Ok(mut links) = st.native_links.lock() {
-                    links.end_delegation_at_exit(&homes);
+                // Recording an end writes and syncs files, so it runs on its own thread, and the
+                // exit waits for it (the links included) at most one bound. Not finished in time,
+                // what it has not written is left as a crash leaves it.
+                let by = std::time::Instant::now() + app_quit::QUIT_ASSESSMENT_WAIT_LIMIT;
+                let (handle, worker_homes) = (app.clone(), homes.clone());
+                if let Some(limit) = app_quit::end_delegation_within(by, move |by| {
+                    let st: State<'_, AppState> = handle.state();
+                    util::lock_by(&st.native_links, by).map(|mut links| links.end_delegation_at_exit(&worker_homes)).is_some()
+                }) {
+                    crate::util::diagnostic(format!("chirality: exit: {limit}"));
                 }
-                records_index::close_all();
+                // Each outcome its own words: a records reader holding the index is only one of them.
+                let limit = app_quit::QUIT_ASSESSMENT_WAIT_LIMIT.as_secs();
+                match records_index::close_all_by(std::time::Instant::now() + app_quit::QUIT_ASSESSMENT_WAIT_LIMIT) {
+                    util::Released::Done => {}
+                    util::Released::NotTaken => crate::util::diagnostic(format!("chirality: exit: the records index was held by a records reader for {limit} seconds; its caches are left as a crash leaves them")),
+                    util::Released::NotStarted => crate::util::diagnostic(format!("chirality: exit: the thread to release the records index caches could not be started; they are left as a crash leaves them")),
+                    util::Released::NotHanded => crate::util::diagnostic(format!("chirality: exit: the records index caches could not be handed to their release; they are left as a crash leaves them")),
+                    util::Released::NotInTime => crate::util::diagnostic(format!("chirality: exit: releasing the records index caches did not finish within {limit} seconds; what it had not released is left as a crash leaves it")),
+                }
             }
             _ => {}
         });
 }
 
 #[cfg(all(test,unix))]
+mod host_status_tests {
+    use super::*;
+    /// The status holds the home's observation only while it receives it: a
+    /// status waiting on another activity (here the conversation links) does
+    /// not hold up Stop's or the quit's assessment, which take it.
+    #[test]
+    fn a_status_waiting_on_another_activity_does_not_hold_the_homes_observation(){
+        let(_root,state,home,_,_,_)=workflow_root_context_tests::fixture();
+        let held=state.native_links.lock().unwrap();
+        std::thread::scope(|scope|{
+            let status=scope.spawn(||host_status_of(&state));
+            std::thread::sleep(std::time::Duration::from_millis(300));
+            assert!(!status.is_finished(),"the status waits on the links");
+            let taken=util::lock_by(&home.runtime,std::time::Instant::now()+std::time::Duration::from_secs(2));
+            assert!(taken.is_some(),"the home's observation is free while the status waits");
+            drop(taken);drop(held);
+            status.join().unwrap();
+        });
+    }
+}
+
+#[cfg(all(test,unix))]
 mod workflow_root_context_tests {
     use super::*;
-    pub(super) fn fixture()->(PathBuf,AppState,Arc<runtime_session::HomeSession>,Arc<runtime_session::WorkflowLibraryContext>,String,Value){
+    pub(super) fn fixture()->(PathBuf,AppState,Arc<runtime_session::HomeSession>,Arc<runtime_session::WorkflowLibraryContext>,String,Value){fixture_with(util::AccountObservation::finished(None))}
+    /// The fixture with the given observation of the operating-system account.
+    pub(super) fn fixture_with(os_account:&'static util::AccountObservation)->(PathBuf,AppState,Arc<runtime_session::HomeSession>,Arc<runtime_session::WorkflowLibraryContext>,String,Value){
         let root=std::fs::canonicalize(std::env::temp_dir()).unwrap().join(util::opaque_id("workflow-context-").unwrap());std::fs::create_dir(&root).unwrap();
         let home=Arc::new(runtime_session::HomeSession::new(home_resources::HomeClass::Account,Arc::new(Host::new()),Err("no supplier; offline registration allowed".into())).unwrap());
         let control=Arc::new(Mutex::new(Some(ActControl::new(&root))));
         let mut workflows=runtime_session::WorkflowRootSession::default();workflows.open_library(root.clone(),"project",Some(&root),control.clone()).unwrap();
         let library=workflows.active_library().unwrap();
-        let state=AppState{desktop_setup:None,endpoint_edits:Arc::new(Mutex::new(Default::default())),compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),file_act_lapses:Mutex::new(file_act_lapse::Observer::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),role_log:role_observations::RoleLog::open(&root).map(Arc::new),native_links:Mutex::new(native_conversation_links::Session::default()),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),local_credentials:Default::default(),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new()),continue_as:Mutex::new(Default::default()),app_quit:Default::default()};
+        let state=AppState{desktop_setup:None,endpoint_edits:Arc::new(Mutex::new(Default::default())),compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),file_act_lapses:Mutex::new(file_act_lapse::Observer::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),os_account,instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),role_log:role_observations::RoleLog::open(&root).map(Arc::new),native_links:Mutex::new(native_conversation_links::Session::default()),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),key_hold:Mutex::new(None),local_credentials:Default::default(),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new()),continue_as:Mutex::new(Default::default()),app_quit:Default::default(),delegation_reconciliation:Mutex::new(Value::Null)};
         let (_,context)=current_actor_context_for(&state,&home);
         let package=root.join(workflow_workspace::development_catalog::NAME);std::fs::create_dir(&package).unwrap();
         let catalog=workflow_workspace::development_catalog::DevelopmentCatalog::load().unwrap();for(name,bytes)in catalog.select_embedded().snapshot().files(){std::fs::write(package.join(name),bytes).unwrap();}

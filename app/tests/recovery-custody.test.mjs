@@ -140,6 +140,22 @@ test('the custody details show a request recorded open at App session end with n
     assert.ok(open.startsWith(OPEN_AT_APP_SESSION_END_WORDS) && !/unanswered|process/i.test(open), open);
   } finally { await React.act(() => root.unmount()); container.remove?.(); }
 });
+test('the host\'s next-start notice about the earlier session is shown as given, and only when given', async () => {
+  // The words are the host's (recovery.rs PRIOR_QUIT_END_NOT_FOUND); the view shows them as a status.
+  const notice = "The previous session's quit was confirmed, but no record of that session's end was found. Requests it left open are shown as open at that session's end; whether they were answered is not known.";
+  const data = priorSessionNotice => ({readAt:'2026-11-13T00:00:01Z', source:{modeHomeClass:'H-account', appSession:'next-start', generation:null}, readStanding:'read standing', historicalScope:'scope',
+    custody:{standing:'custody standing', automaticResume:false, pendingPointerFacts:0, limits:[], priorSessionNotice, restartEvents:[], requestEndEvents:[], historicalConversations:[]}});
+  const container = document.createElement('div'); document.body.appendChild(container);
+  const root = createRoot(container);
+  try {
+    await React.act(() => root.render(React.createElement(RecoveryCustodyDetails, {data: data(notice)})));
+    const status = container.querySelectorAll(node => node.getAttribute('role') === 'status').map(node => node.textContent);
+    assert.ok(status.includes(notice), status.join(' | '));
+    await React.act(() => root.render(React.createElement(RecoveryCustodyDetails, {data: data(null)})));
+    assert.ok(!container.textContent.includes("quit was confirmed"), container.textContent);
+    assert.doesNotMatch(container.textContent, /crash/i);
+  } finally { await React.act(() => root.unmount()); container.remove?.(); }
+});
 test('terminal outcome and typed identities are displayed without relabeling them unanswered', async () => {
   const dto = structuredClone(original);
   dto.page.entries = ['answered','declined','reply-outcome-unknown','errored','resolved-by-supplier'].map((endedAs,index) => ({

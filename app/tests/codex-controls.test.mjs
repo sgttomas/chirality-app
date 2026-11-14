@@ -15,7 +15,7 @@ const outcome={action:'Stop Codex',state:'stopped',confirmedAt:'2026-10-10T00:00
   outstandingRequests:{count:1,reading:'Not answered by the App; they end unanswered with the Codex process.'},
   runsInForce:{rows:[{run:'run-1',conversation:'thread',workflow:{name:'coordinated-knowledge-work'},state:'open'}],reading:'Stopping Codex ends no workflow run.'},
   historyNote:'A turn still live at the stop: Codex may write into its history that the user interrupted the turn on purpose. That note comes from this stop.',
-  records:"Recorded in the App's recovery ledger: a codex_stop record when you confirm, then a stop-request record for each interrupt before it is sent, with its outcome. After a relaunch the App reads the turns' labels back from these records. A record the ledger has not accepted is shown as not yet written and kept in this App process; the stop still proceeds. The outcome panel itself is kept in this App process only.",start:null,conversations:null};
+  records:"Recorded in the App's recovery ledger as far as it accepts them: a codex_stop record when you confirm, then a stop-request record for each interrupt, attempted before it is sent, with its outcome. After a relaunch the App reads the turns' labels back from these records. A record the ledger has not accepted is shown as not yet written and kept in this App process. An interrupt whose stop-request record could not be made is still sent, and the ledger holds no record of it. The stop still proceeds. The outcome panel itself is kept in this App process only.",start:null,conversations:null};
 const stops=outcomes=>({outcomes,stopWaitLimitSeconds:10,records:outcome.records});
 const render=(host,act=()=>{})=>renderToStaticMarkup(React.createElement(CodexProcessControls,{host,busy:false,act}));
 
@@ -27,7 +27,7 @@ test('Stop and Restart ask first and are offered only while Codex runs',()=>{
   assert.ok(ready.includes('with no time limit')&&ready.includes('<b>Keep Codex running</b> (the default) and Cancel change nothing'));
   assert.ok(ready.includes('waits up to 10 s')&&ready.includes('no workflow run ends')&&ready.includes('continues no conversation until you choose <b>Continue selected conversation</b>'));
   assert.ok(ready.includes('your operational choice, not a recorded act'));
-  assert.ok(ready.includes('Recorded in the App&#x27;s recovery ledger: a codex_stop record when you confirm, then a stop-request record for each interrupt before it is sent'),'what is recorded, and where, is stated');
+  assert.ok(ready.includes('Recorded in the App&#x27;s recovery ledger as far as it accepts them: a codex_stop record when you confirm, then a stop-request record for each interrupt, attempted before it is sent'),'what is recorded, and where, is stated');
   assert.ok(ready.includes('The outcome panel itself is kept in this App process only.'));
   for(const state of ['stopped','absent','refused','stopping']){
     const html=render({state,generation:g,codexStops:stops([])});

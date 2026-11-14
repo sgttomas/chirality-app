@@ -142,6 +142,19 @@ fn with_index_for<R>(root: &Path, log: Option<&Path>, f: impl FnOnce(&ProjectInd
 pub(crate) fn close_all() {
     INDEXES.lock().unwrap_or_else(|p| p.into_inner()).clear();
 }
+/// The same at the App's exit, waiting for a reader or writer that holds the
+/// indexes (across its file reads) no later than `deadline`. The caches are
+/// taken out under the lock and released on their own thread, waited for no
+/// later than `deadline` (releasing one removes its file, which can wait on
+/// the filesystem). Not done in time, what is left is what a crash leaves;
+/// false.
+pub(crate) fn close_all_by(deadline: std::time::Instant) -> crate::util::Released {
+    crate::util::release_off_thread(
+        |release| std::thread::Builder::new().name("records-index-close".into()).spawn(release).map(|_| ()),
+        || crate::util::lock_by(&INDEXES, deadline).map(|mut all| std::mem::take(&mut *all)),
+        deadline,
+    )
+}
 /// How many log names the host status carries for each chain state.
 pub(crate) const STATUS_NAMES: usize = 5;
 /// RS §13.8 Tamper-evidence, for the host's status (polled every second):

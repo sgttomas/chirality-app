@@ -1372,6 +1372,21 @@ impl RecoveryCustodyView {
         self
     }
 }
+/// The App sessions of this ledger that `session`'s own start established as
+/// ended: every earlier session with a `session_started` entry here.
+/// `session`'s start was appended only after [`RecoveryLedger::earlier_sessions_ended`]
+/// established each of them ended (an end record, or the rule of
+/// [`crate::session_liveness::establish_ended`]) and refused while any was still
+/// running, so this is that set, read back from the ledger, not decided anew.
+/// A session another App recorded in its own ledger is never here. Refused
+/// unless `session`'s own start is among `rows`: then nothing was established.
+pub(crate) fn established_ended_sessions(rows: &[Value], session: &str) -> Result<std::collections::BTreeSet<String>, String> {
+    let started = |id: &str| rows.iter().any(|e| e["kind"] == "session_started" && e["session"] == id);
+    if !started(session) {
+        return Err("this App session's start is not in the App ledger read, so no earlier session's end is established".into());
+    }
+    Ok(rows.iter().filter(|e| e["kind"] == "session_started").filter_map(|e| e["session"].as_str()).filter(|id| *id != session).map(str::to_owned).collect())
+}
 /// The limit shown for a stop request whose source session this ledger has no start record for.
 pub(crate) const STOP_SOURCE_UNAVAILABLE: &str = "Historical stop request source session start is unavailable; no startup closure inferred";
 /// SR-08 at startup: the stop requests an earlier session left unsettled that this startup may
@@ -1449,6 +1464,10 @@ fn startup_request_closures(rows: &[Value], session: &str) -> (Vec<Value>, Vec<S
     (pending, limits.into_iter().collect())
 }
 
+/// The next-start notice when the earlier App session's quit was confirmed
+/// (its `quit_answered` *confirmed* is in the ledger) and no record of that
+/// session's end is in the ledger.
+pub(crate) const PRIOR_QUIT_END_NOT_FOUND: &str = "The previous session's quit was confirmed, but no record of that session's end was found. Requests it left open are shown as open at that session's end; whether they were answered is not known.";
 /// The startup ending of a request an earlier App session left recorded open.
 pub(crate) const OPEN_AT_APP_SESSION_END: &str = "open-at-app-session-end";
 /// The custody events of the recorded startup endings (RQ-06). A row written
@@ -1521,6 +1540,10 @@ impl RecoveryCustodyView {
         let current=starts.iter().rev().find(|(_,r)|r["session"]==session).map(|(_,r)|*r);
         let prior=current.and_then(|r|r["previousSession"].as_str());
         let end=prior.and_then(|s|rows.iter().rev().find(|r|r["kind"]=="session_ended"&&r["session"]==s));
+        // The earlier session's confirmed quit is in the ledger and its end is
+        // not: said once, from what the ledger holds. Without a quit entry the
+        // reading for a session whose end is not established applies alone.
+        let prior_notice=prior.filter(|s|end.is_none()&&rows.iter().any(|r|r["kind"]=="quit_answered"&&r["session"]==*s&&r["answer"]=="confirmed")).map(|_|PRIOR_QUIT_END_NOT_FOUND);
         // Delayed old source appends cannot eclipse a later App session or a
         // later generation of the same physical home. Equal-thread references
         // in different home namespaces are never merged.
@@ -1579,6 +1602,6 @@ impl RecoveryCustodyView {
             }).collect::<Vec<_>>();
             historical.push(json!({"index":row,"metadataIndex":metadata.get(&key).map(|(_,_,r)|r),"executionGeneration":source,"standing":"Last persisted App execution pointer observation; metadataIndex preserves latest append provenance separately; neither is current Codex state or live authority","openItemAssociations":associations,"openItemCorrelation":"Per-item known/unknown from persisted turnId only; never backfilled from liveTurn, selection, tags or native history.","nativeHistory":"read separately from Codex; not supplied by this projection"}));
         }
-        Self{document:json!({"live":live,"restartEvents":events,"requestEndEvents":request_end_events,"historicalConversations":historical,"pendingPointerFacts":pending,"limits":limits,"standing":"App-observed metadata only; no native history, human act, workflow run or external operation inferred","automaticResume":false})}
+        Self{document:json!({"live":live,"priorSessionNotice":prior_notice,"restartEvents":events,"requestEndEvents":request_end_events,"historicalConversations":historical,"pendingPointerFacts":pending,"limits":limits,"standing":"App-observed metadata only; no native history, human act, workflow run or external operation inferred","automaticResume":false})}
     }
 }

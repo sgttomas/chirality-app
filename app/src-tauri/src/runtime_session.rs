@@ -5798,6 +5798,12 @@ impl WorkflowRootSession {
     /// whose operation is pending is listed with that limit, never dropped.
     /// Stopping Codex ends none of them (DEF-5). Runs recorded only by earlier
     /// App sessions are not listed here.
+    /// [`Self::runs_in_force_in_home`] for every home a run of this process
+    /// is in, read under one hold of the root.
+    pub(crate) fn runs_in_force_by_home(&self) -> std::collections::BTreeMap<String, Vec<Value>> {
+        let homes: std::collections::BTreeSet<&String> = self.conversations.keys().map(|(home, _)| home).collect();
+        homes.into_iter().map(|home| (home.clone(), self.runs_in_force_in_home(home))).collect()
+    }
     pub(crate) fn runs_in_force_in_home(&self, home: &str) -> Vec<Value> {
         let mut rows = Vec::new();
         for ((run_home, thread), references) in &self.conversations {

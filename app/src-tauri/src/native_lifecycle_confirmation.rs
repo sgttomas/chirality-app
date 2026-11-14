@@ -147,7 +147,7 @@ pub(crate) fn revalidate_original(window: &tauri::Window) -> Result<(), String> 
 /// Explanatory Quit refusals also must not fall back to an unowned alert.
 /// Logging remains available if the original window cannot present the notice.
 pub(crate) fn notice(window: Option<&tauri::Window>, title: &str, message: String) {
-    eprintln!("chirality: {message}");
+    crate::util::diagnostic(format!("chirality: {message}"));
     if let Some(window) = window {
         let _ = confirm(window, title, Err(message), "", "");
     }

@@ -251,6 +251,13 @@ pub(crate) const REMOVED_ENVIRONMENT: &[(&str, RemovalClass)] = {
 /// App's environment when the child is started is recorded, never its value.
 pub(crate) const RECORDED_PRESENCE_ONLY: &str = "CODEX_INTERNAL_APP_SERVER_REMOTE_CONTROL_DISABLED";
 
+/// The home reference a generation of this configuration carries
+/// (`generation.home`), known from the configuration alone.
+/// A stop for the quit whose home's request gate was not free by its bound.
+pub(crate) const QUIT_GATE_NOT_FREE: &str = "another App activity held this home's request gate past the quit's bound";
+pub(crate) fn home_reference(cfg: &HostConfig) -> String {
+    format!("app-home:{}", sha256_hex(cfg.codex_home.as_os_str().as_encoded_bytes()))
+}
 /// What [`Host::received_view`] takes a received line as.
 struct Received {
     correlated_method: Option<String>,
@@ -1008,6 +1015,10 @@ pub struct Host {
     pending_process_lock: Mutex<Option<(u64, std::fs::File)>>,
     probe_processes: Mutex<Vec<(u64, Arc<process_group_custody::OwnedProcess>)>>,
     quit_fence: std::sync::atomic::AtomicBool,
+    /// Set with the quit fence: from then until the exit (or a refused quit's
+    /// release) nothing drains this home's recovery queue on its own; the
+    /// quit's one bounded recording thread drains it before the session end.
+    quit_defers_drains: std::sync::atomic::AtomicBool,
     /// DEL-01-02: this App session's liveness lock, shared with the App
     /// custody of the session's other homes.
     session_liveness: Mutex<Option<Arc<crate::session_liveness::Hold>>>,
@@ -1018,6 +1029,10 @@ pub struct Host {
     home_starting: Arc<std::sync::atomic::AtomicUsize>,
     #[cfg(test)]
     before_quit_stop: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+    /// The exit's session-end thread, after its write has returned and before
+    /// it reports the result to the waiting exit.
+    #[cfg(test)]
+    pub(crate) after_quit_recording: Mutex<Option<Box<dyn FnOnce() + Send>>>,
     records_activity: Mutex<Option<(Value,crate::storage::Ownership)>>,
     #[cfg(test)]
     aa_before_write: Mutex<Option<Box<dyn FnOnce(&Host, &SourceRequest) + Send>>>,
@@ -1198,12 +1213,15 @@ impl Host {
             pending_process_lock: Mutex::new(None),
             probe_processes: Mutex::new(Vec::new()),
             quit_fence: std::sync::atomic::AtomicBool::new(false),
+            quit_defers_drains: std::sync::atomic::AtomicBool::new(false),
             session_liveness: Mutex::new(None),
             hold_id: crate::home_hold::next_id(),
             home_holds: Mutex::new(Vec::new()),
             home_starting: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
             #[cfg(test)]
             before_quit_stop: Mutex::new(None),
+            #[cfg(test)]
+            after_quit_recording: Mutex::new(None),
             records_activity: Mutex::new(None),
             #[cfg(test)]
             aa_before_write: Mutex::new(None),
@@ -1331,6 +1349,12 @@ impl Host {
             Err(error) => json!({"state":"unavailable","generation":generation,"reason":error}),
         }
     }
+    /// The Host's state without the records capability's view, which waits on
+    /// that capability's read log (held across its append and sync). The quit
+    /// reads nothing from that view.
+    pub(crate) fn snapshot_without_records(&self) -> Value {
+        Self::snapshot_inner(&mut self.inner.0.lock().unwrap())
+    }
     pub fn snapshot(&self) -> Value {
         let (mut snapshot,capability)={let mut i=self.inner.0.lock().unwrap();(Self::snapshot_inner(&mut i),i.records_capability.clone())};
         Self::with_records_capability(&mut snapshot,capability);snapshot
@@ -1438,6 +1462,20 @@ impl Host {
         {let mut i=host.inner.0.lock().unwrap();i.app_session=custody.session.clone();i.recovery=custody.ledger.clone();i.recovery_snapshot=recovery;i.recovery_initialization_error=custody.initial_limit.clone();i.recovery_path=custody.recovery_path.clone();}*host.session_liveness.lock().unwrap()=custody.liveness.clone();
         custody.sources.lock().unwrap().push(AppRecoverySource{inner:Arc::downgrade(&host.inner),queue:Arc::clone(&host.inner.0.lock().unwrap().pending_recovery)});*host.runtime_custody.lock().unwrap()=Some(Arc::clone(&custody));Ok(host)
     }
+    /// This App session and the earlier sessions its start established as
+    /// ended in the App ledger ([`crate::recovery::established_ended_sessions`]),
+    /// from the ledger's retained observation: memory only, no ledger lock or
+    /// file work under the state.
+    pub(crate) fn established_ended_sessions(&self)->Result<(String,std::collections::BTreeSet<String>),String>{
+        let (session,rows,limit)={let i=self.inner.0.lock().unwrap();
+            let limit=i.recovery_initialization_error.clone().or_else(||i.recovery_error.clone())
+                .or_else(||i.recovery_snapshot.as_ref().is_none().then(||"App ledger unavailable".to_owned()))
+                .or_else(||i.recovery_snapshot.as_ref().filter(|o|o.summary["historyLimits"].as_array().is_some_and(|l|!l.is_empty())).map(|_|"App ledger history incomplete".to_owned()));
+            (i.app_session.clone(),i.recovery_snapshot.as_ref().map(|o|Arc::clone(&o.rows)),limit)};
+        if let Some(limit)=limit{return Err(limit);}
+        let rows=rows.ok_or("App ledger unavailable")?;
+        Ok((session.clone(),crate::recovery::established_ended_sessions(&rows,&session)?))
+    }
     /// Safely retained source observation; no ledger lock/IO under Inner.
     pub fn shared_recovery_observation(&self)->Value{
         let i=self.inner.0.lock().unwrap();json!({"appSession":i.app_session,"recovery":i.recovery_snapshot.as_ref().map(|o|&o.summary),"limit":i.recovery_initialization_error.as_ref().or(i.recovery_error.as_ref()),"configured":i.recovery.is_some(),"standing":"actual App custody; last observed pointer ledger metadata, not live native reconstruction"})
@@ -1483,6 +1521,12 @@ impl Host {
         }
         if let Some(hold) = self.session_liveness.lock().unwrap().as_ref() { hold.release_as_if_killed(); }
         self.home_holds.lock().unwrap().clear();
+    }
+    /// Runs the test hook of the exit's session-end thread, if one is set.
+    #[cfg(test)]
+    pub(crate) fn after_quit_recording(&self) {
+        let hook = self.after_quit_recording.lock().unwrap().take();
+        if let Some(hook) = hook { hook(); }
     }
     /// Whether this Host holds a process whose settlement can never be established: its
     /// reservation is released and its group is not known empty (lost at creation or at a later
@@ -1673,11 +1717,17 @@ impl Host {
     /// Nonblocking writer admission: captured facts stay queued when another
     /// actual writer owns IO. No service/store or silent drop is introduced.
     pub fn flush_recovery_observations(&self)->Value{
+        if self.drains_deferred_to_quit() {return self.drain_recovery_owned();}
         let _writer=match self.recovery_writer.try_lock(){Ok(writer)=>writer,Err(_)=>{let mut i=self.inner.0.lock().unwrap();if !i.pending_recovery.facts.lock().unwrap().is_empty(){i.recovery_error=Some("REC writer busy; captured pointer observations remain queued/unpersisted".into());}return json!({"pending":i.pending_recovery.facts.lock().unwrap().len(),"standing":"writer busy; captured facts retained"});}};
         self.drain_recovery_owned()
     }
-    /// Caller owns recovery_writer, with no Inner guard held.
+    /// Caller owns recovery_writer, with no Inner guard held. Once the quit is
+    /// fenced the drain is the quit's recording thread's: the facts stay
+    /// queued, in order, for it.
     fn drain_recovery_owned(&self)->Value {
+        if self.drains_deferred_to_quit() {
+            return json!({"standing":"deferred: the App is quitting; its bounded session-end recording writes the queued facts"});
+        }
         let ledger=self.inner.0.lock().unwrap().recovery.clone();Self::drain_recovery_source(&self.inner,ledger.as_ref())
     }
     fn drain_recovery_source(source:&Arc<(Mutex<Inner>,Condvar)>,ledger:Option<&Arc<Mutex<RecoveryLedger>>>)->Value {
@@ -1829,11 +1879,25 @@ impl Host {
         self.inner.0.lock().unwrap().journal.iter().cloned().collect()
     }
 
+    /// Whether this App session's end is observed: the custody cache, then
+    /// its end observation, taken with no Host state held. The session-end
+    /// write holds the observation, and custody adoption the cache, while each
+    /// takes a Host state, so the Host state is always taken after these.
+    fn session_end_observed(&self) -> bool {
+        self.runtime_custody.lock().unwrap().as_ref().is_some_and(|c| c.end_observation.lock().unwrap().is_some())
+    }
+    /// The successor's prospective generation, with the Host state it was
+    /// read under: whether the session has ended is read first, before the
+    /// Host state is taken (one order for the three locks). An end recorded
+    /// between the two is caught by the spawn's own check.
+    fn successor_prospective_held(&self, cfg: &HostConfig) -> (std::sync::MutexGuard<'_, Inner>, Result<Value, String>) {
+        let ended = self.session_end_observed();
+        let i = self.inner.0.lock().unwrap();
+        let prospective = if ended { Err("App session ended; successor start refused".to_owned()) } else { self.successor_prospective(&i, cfg) };
+        (i, prospective)
+    }
     fn successor_prospective(&self, i: &Inner, cfg: &HostConfig) -> Result<Value, String> {
-        if self.runtime_custody.lock().unwrap().as_ref().is_some_and(|c| c.end_observation.lock().unwrap().is_some()) {
-            return Err("App session ended; successor start refused".into());
-        }
-        let home = format!("app-home:{}", sha256_hex(cfg.codex_home.as_os_str().as_encoded_bytes()));
+        let home = home_reference(cfg);
         let counter = self.spawn_counters.lock().unwrap().get(&home).copied().unwrap_or(0)
             .checked_add(1).ok_or("home spawn counter exhausted")?;
         Ok(json!({"appSession":i.app_session,"home":home,"spawnCounter":counter}))
@@ -1861,13 +1925,32 @@ impl Host {
     }
 
     /// Shares the source gate with actual probe and app-server installation.
+    #[cfg(test)]
     pub(crate) fn begin_quit(&self) {
         let _gate = self.attachment_gate.lock().unwrap();
         self.quit_fence.store(true, std::sync::atomic::Ordering::SeqCst);
     }
+    /// The quit's fence, taken through the source gate by `deadline`. A start
+    /// holds that gate across process creation, so a start under way that has
+    /// not finished by then refuses the fence: this home is not fenced and
+    /// nothing about that start's process is inferred. From the fence on,
+    /// recovery drains are deferred to the quit's bounded recording.
+    pub(crate) fn begin_quit_by(&self, deadline: std::time::Instant) -> Result<(), String> {
+        let _gate = crate::util::lock_by(&self.attachment_gate, deadline).ok_or("another App activity held this home's request gate past the quit's fencing bound")?;
+        self.quit_defers_drains.store(true, std::sync::atomic::Ordering::SeqCst);
+        self.quit_fence.store(true, std::sync::atomic::Ordering::SeqCst);
+        Ok(())
+    }
+    /// Releases a refused quit's fence and its drain deferral. Takes no gate:
+    /// a start reads the fence under the gate, and clearing it only lets later
+    /// starts proceed, so nothing here waits on a start under way.
     pub(crate) fn cancel_quit(&self) {
-        let _gate = self.attachment_gate.lock().unwrap();
         self.quit_fence.store(false, std::sync::atomic::Ordering::SeqCst);
+        self.quit_defers_drains.store(false, std::sync::atomic::Ordering::SeqCst);
+    }
+    /// True from the quit's fence on: the quit's recording drains this home.
+    pub(crate) fn drains_deferred_to_quit(&self) -> bool {
+        self.quit_defers_drains.load(std::sync::atomic::Ordering::SeqCst)
     }
 
     fn run_label_probe(&self, attempt: u64, home: &AdmittedHome, command: &mut Command, wait: Duration) -> Result<String, String> {
@@ -1914,9 +1997,21 @@ impl Host {
         // rather than interpreting an idle-state Stop refusal as cleanup loss.
         #[cfg(test)]
         if let Some(hook) = self.before_quit_stop.lock().unwrap().take() { hook(); }
+        // The home's request gate is taken within the quit's bound: after the
+        // fence a start lets it go at once, but other App requests to this
+        // Codex take it too, and none of them may hold settlement unbounded.
         let stop_error = if !matches!(state.as_str(), "absent" | "stopped" | "refused") {
-            self.stop(actor, reason).err()
+            self.stop_for_quit(actor, reason, std::time::Instant::now() + crate::app_quit::QUIT_FENCE_WAIT_LIMIT).err()
         } else { None };
+        // The gate not had, nothing of this home is ended: its stop made no
+        // record, and an ending now would leave a process ended with no
+        // deliberate stop recorded and the Host still reading it as running.
+        if stop_error.as_deref() == Some(QUIT_GATE_NOT_FREE) {
+            let observation = json!({"generation":generation,"ownedProcesses":[],"limits":[QUIT_GATE_NOT_FREE],
+                "standing":"nothing of this home was stopped or ended"});
+            self.inner.0.lock().unwrap().journal.push(json!({"class":"quit-process-settlement","observation":observation}));
+            return Err(format!("Quit withheld; owned process settlement is unavailable: {observation}"));
+        }
         let mut processes: Vec<_> = self.probe_processes.lock().unwrap().iter()
             .map(|(attempt, p)| (json!({"kind":"label-probe","startAttempt":attempt}), Arc::clone(p))).collect();
         let generation = self.inner.0.lock().unwrap().generation.clone();
@@ -2199,8 +2294,7 @@ impl Host {
         // the bounded probe must not stall other homes or App-session ending.
         let prospective = if cfg.distribution.is_some() {
             let _writer = self.recovery_writer.lock().unwrap();
-            let i = self.inner.0.lock().unwrap();
-            self.successor_prospective(&i, cfg).map(Some)
+            self.successor_prospective_held(cfg).1.map(Some)
         } else { Ok(None) };
         let prospective = match prospective { Ok(g) => g, Err(e) => return self.refuse_successor(attempt, e) };
         // The only reference source is the configured Store's compiled selection,
@@ -2265,8 +2359,7 @@ impl Host {
             Self::check_start_admission(&i,attempt)?;
         }
         if let Some(expected) = &prospective {
-            let i = self.inner.0.lock().unwrap();
-            let current = self.successor_prospective(&i, cfg);
+            let (i, current) = self.successor_prospective_held(cfg);
             if i.start_attempt != attempt || i.state != "verifying" || current.as_ref().ok() != Some(expected) {
                 drop(i); drop(successor_gate); drop(app_spawn_guard);
                 return self.refuse_successor(attempt, "prospective generation or start attempt changed; no spawn".into());
@@ -4289,14 +4382,15 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         let ids: Vec<String> = i.stop_requests.iter().filter(|r| r.generation() == generation).map(|r| r.id().to_owned()).collect();
         for id in ids { Self::stop_request_update(i, &id, |r| r.generation_closed()); }
     }
-    /// SR-10: the caller's wait for this interrupt's response ended.
-    fn stop_request_wait_ended(&self, source: &SourceRequest) {
+    /// SR-10: the caller's wait for this interrupt's response ended. `flush`:
+    /// write it now; the quit leaves it queued for its bounded recording.
+    fn stop_request_wait_ended(&self, source: &SourceRequest, flush: bool) {
         {
             let mut i = self.inner.0.lock().unwrap();
             let ids: Vec<String> = i.stop_requests.iter().filter(|r| r.generation() == source.generation() && r.request_identity() == Some(source.request_id())).map(|r| r.id().to_owned()).collect();
             for id in ids { Self::stop_request_update(&mut i, &id, |r| r.waiting_ended()); }
         }
-        self.flush_recovery_observations();
+        if flush { self.flush_recovery_observations(); }
     }
     /// The stop requests the person can see: the ledger's (every App session)
     /// and this process's, each with whether its latest record is in the
@@ -4334,15 +4428,35 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         self.record_app_entry("Stop Codex", "Recorded in the App ledger before any interrupt was sent", |session| crate::stop_records::codex_stop_entry(session, actor, home, restart, material))
     }
     /// K-4: the ledger `quit_requested` entry with the lists shown (§3.1 AS-03,
-    /// AS-04, AS-07). A ledger that does not accept it never blocks the quit
-    /// question (SQ-Q Q-1).
+    /// AS-04, AS-07), queued and never written on the quit's own thread: the
+    /// quit question waits on no ledger (SQ-Q Q-1).
     pub fn record_quit_requested(&self, actor: &Value, material: &Value) -> Value {
-        self.record_app_entry("quit request", "Recorded in the App ledger", |session| crate::stop_records::quit_requested_entry(session, actor, material))
+        self.queue_app_entry("quit request", |session| crate::stop_records::quit_requested_entry(session, actor, material))
     }
-    /// K-4: the ledger `quit_answered` entry (§3.1 AS-05, AS-06), written
-    /// before any quit interrupt is sent.
+    /// K-4: the ledger `quit_answered` entry (§3.1 AS-05, AS-06), queued
+    /// before any quit interrupt is sent and never written on the quit's own
+    /// thread.
     pub fn record_quit_answered(&self, actor: &Value, confirmed: bool) -> Value {
-        self.record_app_entry("quit answer", "Recorded in the App ledger before anything was sent", |session| crate::stop_records::quit_answered_entry(session, actor, confirmed))
+        self.queue_app_entry("quit answer", |session| crate::stop_records::quit_answered_entry(session, actor, confirmed))
+    }
+    /// One App ledger entry formed for this App session and queued, in order
+    /// with this home's other records, with no wait of any kind on the
+    /// recovery writer or the ledger. What writes it is the next drain of this
+    /// home's queue: an interrupt's own record before its send, an ordinary
+    /// flush, or the quit's bounded session-end recording. It may be absent at
+    /// the next start.
+    fn queue_app_entry(&self, what: &str, form: impl FnOnce(&str) -> Result<Value, String>) -> Value {
+        let i = self.inner.0.lock().unwrap();
+        if i.recovery.is_none() {
+            return json!({"state":"not recorded","reading":format!("App ledger unavailable: the {what} record is kept in this App process only and is not readable after a relaunch")});
+        }
+        match form(&i.app_session) {
+            Ok(entry) => {
+                i.pending_recovery.facts.lock().unwrap().push_back(entry.clone());
+                json!({"state":"not yet recorded","reading":format!("The {what} record was queued in this App process, in order with this home's other records; quitting does not wait for it to be written to the App ledger"),"entry":entry})
+            }
+            Err(error) => json!({"state":"not recorded","reading":format!("The {what} record could not be formed: {error}")}),
+        }
     }
     /// One App ledger entry formed for this App session, queued and drained in
     /// order with the stop-request records. Returns whether it is in the
@@ -4372,11 +4486,19 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
     /// ends the request stays pending and its stop request records SR-10;
     /// nothing is resent. An acknowledgment is not the turn's end.
     pub fn turn_interrupt_acknowledgment(&self, source: &SourceRequest, wait: Duration) -> Result<Value, String> {
+        self.interrupt_acknowledgment(source, wait, true)
+    }
+    /// The same wait for the quit: its SR-10 stays queued, written by the
+    /// quit's bounded recording, so the quit's thread waits on no ledger.
+    pub(crate) fn turn_interrupt_acknowledgment_for_quit(&self, source: &SourceRequest, wait: Duration) -> Result<Value, String> {
+        self.interrupt_acknowledgment(source, wait, false)
+    }
+    fn interrupt_acknowledgment(&self, source: &SourceRequest, wait: Duration, flush: bool) -> Result<Value, String> {
         if source.frame["method"] != "turn/interrupt" { return Err("not an interrupt request".into()); }
         let response = match self.wait_source_response(source, wait) {
             Ok(response) => response,
             Err(error) => {
-                if error.contains("within the wait limit") { self.stop_request_wait_ended(source); }
+                if error.contains("within the wait limit") { self.stop_request_wait_ended(source, flush); }
                 return Err(error);
             }
         };
@@ -5420,9 +5542,14 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
 
     /// HOSTING §4.5 deliberate stop (DEF-5a): stop record first, then close input,
     /// then end the whole process group after a grace period (H11).
-    pub fn stop(&self, actor: &str, reason: &str) -> Result<Value, String> {self.stop_inner(None,actor,reason)}
+    pub fn stop(&self, actor: &str, reason: &str) -> Result<Value, String> {self.stop_inner(None,actor,reason,None)}
+    /// The same deliberate stop for the quit's offer to end a key operation's
+    /// wait. It takes the source gate by `gate_by` (a start under way holds it
+    /// across process creation) and leaves its recovery facts queued rather
+    /// than draining them on the quit's thread.
+    pub(crate) fn stop_for_quit(&self, actor: &str, reason: &str, gate_by: std::time::Instant) -> Result<Value, String> {self.stop_inner(None,actor,reason,Some(gate_by))}
     pub fn stop_scoped(&self,expected_generation:&Value,actor:&str,reason:&str)->Result<Value,String>{
-        crate::recovery::generation_ref(expected_generation)?;self.stop_inner(Some(expected_generation),actor,reason)
+        crate::recovery::generation_ref(expected_generation)?;self.stop_inner(Some(expected_generation),actor,reason,None)
     }
     fn capture_terminal(i:&mut Inner,kind:TerminalKind)->Option<(TerminalToken,Value,Option<crate::distribution_store::S1Reference>)> {
         if i.successor_status.is_none(){return None;}
@@ -5471,8 +5598,13 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         {let hook=controller.after_spawn.lock().unwrap().take();if let Some(hook)=hook{hook();}}
         // Detached: EOF, Stop, restart and shutdown never join or wait for this job.
     }
-    fn stop_inner(&self,expected_generation:Option<&Value>, actor: &str, reason: &str) -> Result<Value, String> {
-        let source_gate = self.attachment_gate.lock().unwrap();
+    /// `for_quit`: Some(deadline) for the quit's own stop, which takes the
+    /// source gate by then and does not drain recovery facts on its thread.
+    fn stop_inner(&self,expected_generation:Option<&Value>, actor: &str, reason: &str, for_quit: Option<std::time::Instant>) -> Result<Value, String> {
+        let source_gate = match for_quit {
+            None => self.attachment_gate.lock().unwrap(),
+            Some(deadline) => crate::util::lock_by(&self.attachment_gate, deadline).ok_or(QUIT_GATE_NOT_FREE)?,
+        };
         let process;let target_generation;
         {
             let mut i = self.inner.0.lock().unwrap();
@@ -5576,7 +5708,8 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         let terminal=Self::capture_terminal(&mut i,TerminalKind::Stopped);
         let response=json!({"state":i.state});drop(i);
         if let Some((token,event,prior))=terminal {self.schedule_terminal_publication(token,event,prior);}
-        self.flush_recovery_observations();Ok(response)
+        if for_quit.is_none() {self.flush_recovery_observations();}
+        Ok(response)
     }
 }
 

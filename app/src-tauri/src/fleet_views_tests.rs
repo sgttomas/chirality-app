@@ -709,14 +709,14 @@ fn fleet_views_app_dispatch_holds_an_item_until_its_return_and_an_ended_observat
     let w = f.read();
     let held = work(view(&w), "W1");
     assert_eq!(held["category"], "dispatched", "a child Codex reports completed is not a return");
-    assert!(held["causes"].to_string().contains("child last observed completed as recorded invented time; nothing has been recorded of it since"));
+    assert!(held["causes"].to_string().contains("child last observed completed as recorded invented time; nothing has been recorded of it in that generation since"));
     assert_eq!(view(&w)["queue"], json!([]));
     // The governing copy is only ever appended to; a rewritten one would be refused whole.
     f.observed(&[dispatch.clone(), f.status("child-a", "running"), f.status("child-a", "completed"), f.ended("child-a", "completed")]);
     let w = f.read();
     let held = work(view(&w), "W1");
     assert_eq!(held["category"], "unknown");
-    assert!(held["causes"].to_string().contains("observation ended (App quit) as recorded invented time, last recorded status completed; outcome unknown"));
+    assert!(held["causes"].to_string().contains("observation ended (App quit) as recorded invented time; the status recorded with this end: completed; outcome unknown"));
     assert_eq!(view(&w)["queue"], json!([]), "an ended observation is no return");
     // A status of the ended generation written after its end (a delayed write) does not revive it.
     f.observed(&[dispatch.clone(), f.status("child-a", "running"), f.status("child-a", "completed"), f.ended("child-a", "completed"), f.status("child-a", "pendingInit")]);
@@ -879,9 +879,9 @@ fn fleet_views_an_unselected_held_item_qualifies_readiness_and_every_worker_of_a
     let w = f.read();
     let v = view(&w);
     assert!(v["waiting"].as_array().unwrap().iter().all(|row| row["item"] != "W1"), "an unselected item has no row");
-    assert_eq!(work(v, "W3")["category"], "ready (qualified)", "a worker is still observed for work outside the selection");
+    assert_eq!(work(v, "W3")["category"], "ready (qualified)", "a worker last observed, with no ending of that observation recorded, for work outside the selection");
     assert_eq!(v["queueComplete"], false);
-    assert!(v["notes"].to_string().contains("a worker is still observed for work that is not selected in the current graph: W1"));
+    assert!(v["notes"].to_string().contains("a worker was last observed, with no ending of that observation recorded, for work that is not selected in the current graph: W1"));
     // Removed from the graph altogether: the same.
     f.graph["body"]["items"].as_array_mut().unwrap().remove(0);
     f.graph["body"]["items"][0]["needs"] = json!([]);
@@ -891,7 +891,7 @@ fn fleet_views_an_unselected_held_item_qualifies_readiness_and_every_worker_of_a
     f.observed(&[dispatch.clone(), f.ended("held-child", "running")]);
     assert_eq!(work(view(&f.read()), "W3")["category"], "ready");
     drop(f);
-    // Two workers for one item: the earlier still observed, the later ended. Both are shown; the item is held.
+    // Two workers for one item: the earlier with no ending of its observation recorded, the later ended. Both are shown; the item is held.
     let mut f = Fixture::new();
     let association = f.briefed();
     let rows = [f.dispatch("worker-a", association.clone()), f.status("worker-a", "running"),
@@ -899,7 +899,7 @@ fn fleet_views_an_unselected_held_item_qualifies_readiness_and_every_worker_of_a
     f.observed(&rows);
     let w = f.read();
     let item = work(view(&w), "W1");
-    assert_eq!(item["category"], "dispatched", "a worker is still observed");
+    assert_eq!(item["category"], "dispatched", "a worker's observation has no ending recorded");
     let workers = item["dispatches"].as_array().unwrap();
     assert_eq!(workers.iter().map(|w| (w["child"].clone(), w["observationEnded"].clone())).collect::<Vec<_>>(),
         vec![(json!("worker-a"), json!(false)), (json!("worker-b"), json!(true))]);
@@ -910,4 +910,145 @@ fn fleet_views_an_unselected_held_item_qualifies_readiness_and_every_worker_of_a
     all.push(f.ended("worker-a", "running"));
     f.observed(&all);
     assert_eq!(work(view(&f.read()), "W1")["category"], "unknown");
+}
+
+/// A late end of an earlier generation's observation (the App relaunch end,
+/// written after the new session observed the child again) never hides the
+/// fresh observation: the child reads as last observed in the new generation,
+/// and the item stays dispatched. Without the fresh observation the same end
+/// reads as the end, and the item is unknown.
+#[test]
+fn a_late_end_of_an_earlier_generation_never_hides_a_fresh_observation_of_the_child() {
+    let mut f = Fixture::new();
+    let association = f.briefed();
+    let mut relaunch = f.ended("worker", "running");
+    relaunch["body"]["cause"] = json!("App relaunch");
+    let mut fresh = f.status("worker", "pendingInit");
+    fresh["observationId"] = json!("fl:app:status-worker-later");
+    fresh["body"]["child"]["generation"]["appSession"] = json!("later-session");
+    let earlier = [f.dispatch("worker", association), f.status("worker", "running")];
+    f.observed(&[earlier[0].clone(), earlier[1].clone(), fresh, relaunch]);
+    let read = f.read();
+    let item = work(view(&read), "W1");
+    assert_eq!(item["category"], "dispatched", "{item}");
+    let worker = &item["dispatches"][0];
+    assert_eq!(worker["observationEnded"], false, "{worker}");
+    assert!(worker["lastObserved"].as_str().unwrap().contains("child last observed pendingInit"), "{worker}");
+    drop(f);
+    let mut f = Fixture::new();
+    let association = f.briefed();
+    let mut relaunch = f.ended("worker", "running");
+    relaunch["body"]["cause"] = json!("App relaunch");
+    f.observed(&[f.dispatch("worker", association), f.status("worker", "running"), relaunch]);
+    let read = f.read();
+    let item = work(view(&read), "W1");
+    assert_eq!(item["category"], "unknown", "{item}");
+    assert!(item.to_string().contains("observation ended (App relaunch)"), "{item}");
+}
+
+/// Round 1's reproduction: a delayed status of an earlier generation, then
+/// that generation's end, never hide another generation's open observation.
+#[test]
+fn a_delayed_old_status_then_its_end_preserve_another_generations_open_observation() {
+    let mut f = Fixture::new();
+    let association = f.briefed();
+    let mut fresh = f.status("worker", "running");
+    fresh["observationId"] = json!("fl:app:fresh-status");
+    fresh["body"]["child"]["generation"]["appSession"] = json!("later-session");
+    let mut delayed = f.status("worker", "completed");
+    delayed["observationId"] = json!("fl:app:delayed-old-status");
+    let mut ended = f.ended("worker", "completed");
+    ended["body"]["cause"] = json!("App relaunch");
+    f.observed(&[f.dispatch("worker", association), f.status("worker", "pendingInit"), fresh, delayed, ended]);
+    let read = f.read();
+    let item = work(view(&read), "W1");
+    assert_eq!(item["category"], "dispatched", "the later generation's observation has no end: {item}");
+    assert_eq!(item["dispatches"][0]["observationEnded"], false);
+    assert!(item["dispatches"][0]["lastObserved"].as_str().unwrap().contains("child last observed running"), "{item}");
+}
+
+/// One generation with no end recorded, and another that has ended: the item
+/// stays dispatched, and the generation with no end is shown as last observed,
+/// since nobody recorded that observation's end.
+#[test]
+fn a_generation_with_no_end_is_shown_beside_one_that_has_ended() {
+    let mut f = Fixture::new();
+    let association = f.briefed();
+    let later = |mut row: Value, id: &str| { row["observationId"] = json!(id); row["body"]["child"]["generation"]["appSession"] = json!("later-session"); row };
+    let rows = [f.dispatch("worker", association), f.status("worker", "pendingInit"),
+        later(f.status("worker", "running"), "fl:app:later-status"), later(f.ended("worker", "running"), "fl:app:later-end")];
+    f.observed(&rows);
+    let read = f.read();
+    let item = work(view(&read), "W1");
+    assert_eq!(item["category"], "dispatched", "{item}");
+    assert_eq!(item["dispatches"][0]["observationEnded"], false);
+    assert!(item["dispatches"][0]["lastObserved"].as_str().unwrap().contains("child last observed pendingInit"), "{item}");
+}
+
+/// Two generations both open: each is shown with its own last status and
+/// when, and neither is said to supersede the other; generations are not
+/// ordered against each other.
+#[test]
+fn two_open_generations_are_each_shown_and_neither_supersedes_the_other() {
+    let mut f = Fixture::new();
+    let association = f.briefed();
+    let mut later = f.status("worker", "running");
+    later["observationId"] = json!("fl:app:later-status");
+    later["body"]["child"]["generation"]["appSession"] = json!("later-session");
+    let mut earlier_again = f.status("worker", "completed");
+    earlier_again["observationId"] = json!("fl:app:earlier-again");
+    f.observed(&[f.dispatch("worker", association), f.status("worker", "pendingInit"), later, earlier_again]);
+    let read = f.read();
+    let item = work(view(&read), "W1");
+    assert_eq!(item["category"], "dispatched", "{item}");
+    let worker = &item["dispatches"][0];
+    let words = worker["lastObserved"].as_str().unwrap();
+    assert!(words.contains("none superseding another") && words.contains("child last observed completed") && words.contains("child last observed running"), "{worker}");
+    assert!(words.contains("nothing has been recorded of it in that generation since"), "{worker}");
+    assert_eq!(worker["generations"].as_array().unwrap().len(), 2, "{worker}");
+    assert!(worker["sources"]["lastObservation"].is_null(), "no one observation is the child's last: {worker}");
+}
+
+/// A generation in which a child was dispatched and nothing of it has been
+/// recorded since is an open observation: another generation's end does not
+/// make the item unknown (round 2 of the review).
+#[test]
+fn a_generation_observed_only_by_its_dispatch_stays_open_beside_another_generations_end() {
+    let mut f = Fixture::new();
+    let association = f.briefed();
+    let mut later_status = f.status("worker", "running");
+    later_status["body"]["child"]["generation"]["appSession"] = json!("later-session");
+    let mut later_end = f.ended("worker", "running");
+    later_end["body"]["child"]["generation"]["appSession"] = json!("later-session");
+    let dispatch = f.dispatch("worker", association);
+    let dispatched_at = dispatch["observedAt"].as_str().unwrap().to_owned();
+    f.observed(&[dispatch, later_status, later_end]);
+    let read = f.read();
+    let item = work(view(&read), "W1");
+    assert_eq!(item["category"], "dispatched", "the dispatch generation has no recorded end: {item}");
+    let worker = &item["dispatches"][0];
+    assert_eq!(worker["observationEnded"], false, "{worker}");
+    assert_eq!(worker["generations"].as_array().unwrap().len(), 2, "{worker}");
+    let words = worker["lastObserved"].as_str().unwrap();
+    assert!(words.starts_with("observed in 2 generations, none superseding another: "), "{words}");
+    assert!(words.contains(&format!("no child status recorded in that generation since the dispatch was recorded {dispatched_at}")), "{words}");
+    assert!(words.contains("observation ended (App quit)"), "{words}");
+}
+
+/// An end says only the status recorded with it, never that it is the latest
+/// recorded at its publication; an end that carries none says so.
+#[test]
+fn an_end_states_the_status_recorded_with_it_or_that_none_was() {
+    for (status, words) in [(json!("running"), "the status recorded with this end: running"), (Value::Null, "no status recorded with this end")] {
+        let mut f = Fixture::new();
+        let association = f.briefed();
+        let mut end = f.ended("worker", "running");
+        end["body"]["lastObserved"] = status;
+        end["body"]["cause"] = json!("App relaunch");
+        f.observed(&[f.dispatch("worker", association), end]);
+        let read = f.read();
+        let worker = &work(view(&read), "W1")["dispatches"][0];
+        let observed = worker["lastObserved"].as_str().unwrap();
+        assert!(observed.starts_with("observation ended (App relaunch) as recorded ") && observed.ends_with(&format!("; {words}; outcome unknown")), "{observed}");
+    }
 }

@@ -21,6 +21,10 @@ fn is_fact(record: &Value) -> bool {
     !MECHANICAL.contains(&record["kind"].as_str().unwrap_or(""))
 }
 const ID: &str = "urn:chirality:app-v4:del-06-01:fleet-native-links:0.2";
+/// An observation has one end. Checked against the governing store under its
+/// writer lock, so an end taken from an earlier read is not written beside an
+/// end another writer recorded after that read.
+const ALREADY_ENDED: &str = "an end of this observation is already recorded in the governing store; no second end is written";
 pub(crate) fn validate_record(record: &Value) -> Result<(), String> {
     static SCHEMA: OnceLock<Result<jsonschema::Validator, String>> = OnceLock::new();
     SCHEMA
@@ -383,15 +387,38 @@ fn generation_end(home: &HomeSession, generation: &Value) -> Option<&'static str
         None
     }
 }
+/// What the first half of the session's start read, for the second half.
+pub(crate) struct EarlierDelegation(delegation::EarlierRead);
+/// The first half of the session's start for the selected project, with no
+/// lock held: the store's log read for each observation an earlier session of
+/// this App left open, where the App ledger established that session ended.
+/// `host` is any App-owned home's Host: they share the one App ledger.
+pub(crate) fn read_earlier_delegation(project: Option<&Path>, host: &crate::hosting::Host) -> EarlierDelegation {
+    EarlierDelegation(delegation::read_earlier(project, &|| host.established_ended_sessions()))
+}
 impl Session {
     /// The App is exiting: this session's own observation of each child it
     /// recorded ends, with the cause the host's lifecycle gives for that
     /// generation or, where Codex was not seen to end, "App quit".
     pub(crate) fn end_delegation_at_exit(&mut self, homes: &[Arc<HomeSession>]) {
         self.end_own_delegation(&|generation| {
-            let home = homes.iter().find(|home| home.host.snapshot()["generation"]["home"] == generation["home"])?;
+            let home = homes.iter().find(|home| home.host.snapshot_without_records()["generation"]["home"] == generation["home"])?;
             Some(generation_end(home, generation).unwrap_or("App quit"))
         });
+    }
+    /// Whether the session's start for the project (the end of each
+    /// observation an earlier session of this App left open) has yet to run.
+    pub(crate) fn earlier_delegation_pending(&self) -> bool {
+        self.earlier_pending()
+    }
+    /// Its second half, under the conversation links mutex: the ends the read
+    /// found, taken for recording through the writer every delegation fact uses.
+    pub(crate) fn apply_earlier_delegation(&mut self, read: EarlierDelegation) {
+        self.apply_earlier(read.0);
+    }
+    /// What that reconciliation has done in this session. Memory only.
+    pub(crate) fn delegation_reconciliation(&self) -> Value {
+        self.reconciliation_status()
     }
     /// The record tick hands over each home's native views as received. What
     /// they show of native delegation is recorded once; nothing is sent.
@@ -896,6 +923,12 @@ fn settle(p: &mut Pending) {
                     match mechanical(p,phase,"recording_recovered","The exact original line is now proved present and synced; the earlier failed/unconfirmed callback is not changed to success.".into()){Ok(e)=>p.events.push(e),Err(reason)=>p.first_failure[phase]=Some(reason)}
                 }
             }
+            Err(reason) if phase == 0 && reason == ALREADY_ENDED => {
+                // Nothing to write: the observation's end is already recorded.
+                p.permanent = Some(reason);
+                p.context.activity.take();
+                return;
+            }
             Err(reason) => {
                 if p.first_failure[phase].is_none() {
                     p.first_failure[phase] = Some(reason.clone());
@@ -1245,6 +1278,20 @@ fn publish_bound(
     let duplicate = prior.iter().find(|(row, _)| row["observationId"] == *id);
     if duplicate.is_some_and(|(_, line)| line.as_slice() != bytes) {
         return Err("original observation identity conflicts with stored bytes".into());
+    }
+    // A retry finds its own exact line and completes from it; only an end
+    // that is not this one, with this one absent, is a second end.
+    if phase == 0
+        && record["kind"] == "observation_ended"
+        && !prior.iter().any(|(_, line)| line.as_slice() == bytes)
+        && prior.iter().any(|(row, line)| {
+            row["formatVersion"] == "0.2"
+                && row["kind"] == "observation_ended"
+                && row["body"]["child"] == record["body"]["child"]
+                && line.as_slice() != bytes
+        })
+    {
+        return Err(ALREADY_ENDED.into());
     }
     if record["kind"] == "related_conversation"
         && prior.iter().any(|(row, line)| {
