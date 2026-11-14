@@ -107,6 +107,13 @@ use std::process::{Child, ChildStdin, Command, Stdio};
 use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, Condvar, Mutex, Weak};
 use std::time::Duration;
+/// How long the final reread of a turn's selected files may take while the frame writer is held
+/// (`Host::recheck_attachment_sources`). It is a fifth of Stop's limit, `codex_stop::STOP_WAIT_LIMIT`
+/// (ten seconds), within which Stop and the quit take the writer for their interrupts: a reading that
+/// runs to this limit still leaves them most of theirs, and a refused turn releases the writer.
+pub(crate) const ATTACHMENT_RECHECK_LIMIT: Duration = Duration::from_secs(2);
+#[cfg(test)]
+static ATTACHMENT_RECHECK_DELAY: std::sync::Mutex<Option<Duration>> = std::sync::Mutex::new(None);
 
 /// The pin the App candidate declares (HOSTING §7.1, D4).
 pub const DECLARED_PIN: &str = "0.167.0";
@@ -3647,6 +3654,9 @@ impl Host {
             let serial=self.frame_write.lock().unwrap();
             let source_lock=prepared.custody.lock_sources(&namespace_lease)?;
             prepared.custody.check_prepared_leased(&namespace_lease,&prepared.list.supply_records(),&prepared.client)?;
+            // After the writer wait, before the commit: the person's selected files are read again,
+            // so a file changed while the sender waited is held and not sent (DEL-01-04 AC-003).
+            Self::recheck_attachment_sources(prepared)?;
             // After the writer wait, before the commit: the local home's files are read again.
             self.check_local_files(frame["method"].as_str().unwrap_or_default())?;
             let gate=self.attachment_gate.lock().unwrap();let mut state=prepared.state.lock().unwrap();if *state!="validating"{return Err("attachment cancelled before commit; nothing sent".into());}
@@ -3672,6 +3682,27 @@ impl Host {
             #[cfg(test)] {let hook=self.after_attachment_namespace_write.lock().unwrap().take();if let Some(hook)=hook{hook();}}
             let _=self.persist_attachment_observation(&prepared.source);Ok(prepared.source.clone())
         })();if let Err(error)=&result{*prepared.state.lock().unwrap()="refused";self.attachment_limit(&prepared.source,error.clone());}result
+    }
+    /// The final reread of a turn's selected files, made while the frame writer and the custody's
+    /// source lock are held and before the request gate is taken: the files must still give exactly
+    /// the inputs prepared from them. The Host's state lock is not held. The reading is done on a
+    /// thread of its own and waited for at most ATTACHMENT_RECHECK_LIMIT: a reading that has not
+    /// returned by then refuses the turn, so the writer is released at the limit whether or not the
+    /// reading ever returns, and its late result is discarded with the thread. A thread blocked in
+    /// the system on an unanswering volume stays blocked; it holds no lock of the Host.
+    fn recheck_attachment_sources(prepared:&PreparedAttachmentDispatch)->Result<(),String>{
+        let(selections,submission,expected)=(prepared.selections.clone(),prepared.submission_ref().to_owned(),prepared.list.native_inputs());
+        let(tx,rx)=std::sync::mpsc::channel();
+        std::thread::Builder::new().name("attachment-recheck".into()).spawn(move||{
+            #[cfg(test)] {let delay=*ATTACHMENT_RECHECK_DELAY.lock().unwrap();if let Some(delay)=delay{std::thread::sleep(delay);}}
+            let _=tx.send(attachments::prepare_ordered(&selections,&submission,&now_rfc3339()).map(|list|list.native_inputs()).map_err(|e|e.message));
+        }).map_err(|e|format!("attachment sources could not be read again; nothing sent: {e}"))?;
+        match rx.recv_timeout(ATTACHMENT_RECHECK_LIMIT){
+            Ok(Ok(inputs)) if inputs==expected=>Ok(()),
+            Ok(Ok(_))=>Err("attachment source changed while the turn waited to be sent; confirm current content or remove; nothing sent".into()),
+            Ok(Err(error))=>Err(error),
+            Err(_)=>Err(format!("attachment sources could not be read again within {} seconds; nothing sent",ATTACHMENT_RECHECK_LIMIT.as_secs())),
+        }
     }
     pub fn persist_attachment_observation(&self,source:&SourceRequest)->Result<Value,String>{
         self.check_source(source)?;let(custody,record,limit)={let i=self.inner.0.lock().unwrap();let e=i.source_requests.get(&source.request_id().to_string()).ok_or("source unavailable")?;let a=e.attachment.as_ref().ok_or("source is not attachment-bearing")?;
@@ -7273,6 +7304,26 @@ mod conversation_transport_tests {
             assert_eq!(packet.source().evidence()["lastClientObservation"]["writeResult"],"not-attempted");
             assert!(packet.source().evidence()["sentFrame"].is_null());
             assert!(host.dispatch_attachment_turn(&packet).is_err(),"and it is not sent on a second press of the same packet");
+        });
+        std::fs::remove_dir_all(root).unwrap();
+    }
+    // The final reread is bounded: one that has not returned within ATTACHMENT_RECHECK_LIMIT refuses
+    // the turn and releases the writer, without waiting for the reading to return.
+    #[test]
+    fn attachment_host_reread_that_does_not_return_in_time_refuses_and_releases_the_writer(){
+        assert!(ATTACHMENT_RECHECK_LIMIT*4<=crate::codex_stop::STOP_WAIT_LIMIT,"the reread's limit stays a small part of Stop's");
+        let host=host();let(root,owner,selections)=attachment_fixture();event(&host,"inProgress");
+        no_attachment_write(&host,||{
+            let packet=host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",Some("turn"),"Person text",&selections).unwrap();
+            *host.before_attachment_writer.lock().unwrap()=Some(Box::new(||{*ATTACHMENT_RECHECK_DELAY.lock().unwrap()=Some(ATTACHMENT_RECHECK_LIMIT*3);}));
+            let started=std::time::Instant::now();
+            let refused=host.dispatch_attachment_turn(&packet).err().expect("a reread that does not return in time refuses the turn");
+            let took=started.elapsed();
+            *ATTACHMENT_RECHECK_DELAY.lock().unwrap()=None;
+            assert!(refused.contains("could not be read again within") && refused.contains("nothing sent"),"{refused}");
+            assert!(took<ATTACHMENT_RECHECK_LIMIT*2,"refused at the limit, not when the reading returned: {took:?}");
+            assert!(host.frame_write.try_lock().is_ok(),"the writer is released");
+            assert_eq!(host.inner.0.lock().unwrap().send_position,0);
         });
         std::fs::remove_dir_all(root).unwrap();
     }
