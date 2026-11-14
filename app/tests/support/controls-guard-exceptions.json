@@ -1,6 +1,7 @@
 [
  {
-  "rule": "An exception identifies evidence that an expression satisfies an existing presentation rule despite the guard's limitation. It cannot introduce another permitted source or presentation form."
+  "rule": "An exception identifies evidence that an expression satisfies an existing presentation rule despite the guard's limitation. It cannot introduce another permitted source or presentation form.",
+  "limit": "What this is: a regression aid. It detects the forms its tests exercise, listed in tests/support/presentation-guard.mjs. What it is not: a boundary, a proof, or mechanically complete coverage. A later unit that needs complete coverage must establish that itself; it cannot inherit it from this guard or this list."
  },
  {
   "file": "ActionFeedback.tsx",

@@ -462,6 +462,26 @@ test('controls rule: a same-file helper\'s returned JSX is judged with the calle
   const twice = 'function words(v: any) { return <span>{v}</span>; } export const x = ({ row }: any) => <div><p>{words(row.title)}</p><button>{words(row.title)}</button></div>;';
   assert.match(judge(twice).join('\n'), /<button> v \(in words\)/, 'the use inside the button fails');
   passes('function words(v: any) { return <span>{v}</span>; } export const x = ({ row }: any) => <div><p>{words(row.title)}</p></div>;', 'outside a control alone it is not judged by this rule');
+  // Round two's reader: a children attribute keeps the element's control context, directly and through a helper.
+  fails('export const V = ({ s }: any) => <button children={s} />;', 'a children attribute on a button');
+  fails('function words(s: any) { return <span children={s} />; } export const V = ({ s }: any) => <div><p>{words(s)}</p><button>{words(s)}</button></div>;', 'a helper whose JSX carries a children attribute, used outside then inside a button');
+  passes('export const V = () => <button children="Open the file" />;', 'a children attribute holding the App\'s literal');
+});
+test('controls rule: a field value reused as a children attribute on a button fails at every real field-value exception', async () => {
+  const {sourceFailures} = await import('./support/presentation-guard.mjs');
+  const exceptions = JSON.parse(readFileSync(new URL('./support/controls-guard-exceptions.json', import.meta.url), 'utf8')).filter(e => e.file);
+  const fields = exceptions.filter(e => e.where === '@value');
+  assert.ok(fields.length >= 30, 'the field-value exceptions are read');
+  for (const e of fields) {
+    const source = readFileSync(new URL(`../src/${e.file}`, import.meta.url), 'utf8');
+    const listed = exceptions.filter(x => x.file === e.file);
+    assert.deepEqual(sourceFailures(e.file, source, listed, 'controls').failures, [], `${e.file}: passes as it is`);
+    const at = source.indexOf(`value={${e.expr}}`);
+    assert.ok(at >= 0, `${e.file}: ${e.expr} is found`);
+    const close = source.indexOf('>', at);
+    const reused = source.slice(0, close + 1) + `<button children={${e.expr}} />` + source.slice(close + 1);
+    assert.notDeepEqual(sourceFailures(e.file, reused, listed, 'controls').failures, [], `${e.file}: ${e.expr} as a button's children attribute fails`);
+  }
 });
 test('controls rule: an exception is scoped to its place, component and count; a field value excepted never names a control', async () => {
   const {sourceFailures} = await import('./support/presentation-guard.mjs');
@@ -472,6 +492,7 @@ test('controls rule: an exception is scoped to its place, component and count; a
   assert.notDeepEqual(run(field + '<button>{draft}</button></div>; }'), [], 'the same expression as a button\'s text fails');
   assert.notDeepEqual(run('export function V({ draft }: any) { return <button>{draft}</button>; }'), [], 'a field-value exception never matches a button\'s text, even where it is the only use');
   assert.notDeepEqual(run(field + '<input aria-label={draft} /></div>; }'), [], 'and as an accessible name');
+  assert.notDeepEqual(run(field + '<button children={draft} /></div>; }'), [], 'and as a button\'s children attribute');
   assert.match(run(field + '<textarea value={draft} /></div>; }').join('\n'), /lists 1 occurrence\(s\) and matches 2/, 'an extra occurrence fails');
   assert.notDeepEqual(run('export function W({ draft }: any) { return <textarea value={draft} />; }'), [], 'outside its component it is not exempt');
 });

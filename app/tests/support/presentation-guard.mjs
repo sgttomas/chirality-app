@@ -604,7 +604,8 @@ export function findings(name, text, mode = 'page') {
         const init = ts.isJsxSpreadAttribute(a) ? a.expression : a.initializer;
         const expr = !init || ts.isStringLiteral(init) ? null : ts.isJsxExpression(init) ? init.expression : init;
         if (!expr) continue;
-        if (ts.isJsxAttribute(a) && a.name.getText() === 'children' && !trustedComponent) drawn(expr);
+        // A children attribute is drawn with the element's own control context, as its written children are.
+        if (ts.isJsxAttribute(a) && a.name.getText() === 'children' && !trustedComponent) drawn(expr, record, within);
         visit(expr, within);
       }
       if (ts.isJsxElement(node)) for (const child of node.children) visitChild(child, within);

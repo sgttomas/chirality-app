@@ -212,7 +212,7 @@ export type ConversationChoice = {
   retained?: "outside-search" | "not-received";
 };
 
-/** The longest title shown: a longer one is shown as its first characters, with the count said in the box's label. */
+/** The longest title shown: a longer one is shown as its first characters, with the count said in a small element after the title, inside the choice's label. */
 export const CHOICE_TITLE_LIMIT = 120;
 /** The fewest characters of an identifier shown when it is shortened. */
 export const SHORT_ID_MIN = 8;
