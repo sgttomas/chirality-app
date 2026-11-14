@@ -44,7 +44,7 @@ Terms:
   |---|---|---|---|
   | dispatch observed | the App | a native Codex child and its parent, with its association | that the child did the work, returned or was reviewed |
   | child observed | the App | the child's status as Codex last reported it, unchanged | a return |
-  | observation ended | the App | that observation of a child ended, with the cause (Codex stopped, Codex exited, App quit, App relaunch, or not observed) and the last status | any outcome |
+  | observation ended | the App | that observation of a child ended, with the cause (Codex stopped, Codex exited, App quit, App relaunch, or not observed) and the status its recorder had last read when it recorded the end | any outcome |
   | return recorded | whoever received it | the returned items with content identity, who returned them and the evidence | review or integration |
   | review recorded | the reviewer or the manager | the reviewer, the content reviewed, the findings and the verdict (no blocking findings; findings to repair; not concluded) | checking, acceptance or approval by a person |
   | integration recorded | the integrator | the return integrated, the review it followed and the evidence | any act of a person |

@@ -298,8 +298,12 @@ fn child_key(record: &Value) -> String {
 /// Each entry is the observation with its source and governing order.
 struct Delegation<'a> {
     dispatches: Vec<&'a Value>,
-    /// The last status or end of observation recorded for each child.
-    last: BTreeMap<String, &'a Value>,
+    /// Each child's observation in each generation it was observed in: the
+    /// status or end last recorded in that generation, in the store's order of
+    /// those rows, or its dispatch where nothing of the child has been
+    /// recorded in that generation since. Generations are not ordered against
+    /// each other.
+    observations: BTreeMap<String, Vec<(String, &'a Value)>>,
     /// Children with a status or an end recorded and no dispatch.
     orphaned: Vec<&'a str>,
 }
@@ -312,39 +316,77 @@ impl<'a> Delegation<'a> {
         let rows: Vec<&Value> = observations.iter()
             .filter(|o| o["record"]["formatVersion"] == "0.2" && DELEGATION.contains(&text(&o["record"]["kind"]))).collect();
         let dispatches: Vec<&Value> = rows.iter().copied().filter(|o| o["record"]["kind"] == "dispatch_observed").collect();
-        let mut last = BTreeMap::new();
-        // An ended generation stays ended: a status of that generation written
-        // after its end (a delayed write) never supersedes the end. A status
-        // from a later generation does.
+        // Each child's observation is kept per generation (DEL-06-02): within a
+        // generation the store's order governs, and a status of that generation
+        // recorded after its end does not replace the end. An end ends only its
+        // own generation's observation. Generation identities are compared for
+        // identity only (their parsed JSON serialization); no order is
+        // established between them, so no generation's observation supersedes
+        // another's. A dispatch opens its generation's observation of the
+        // child: with no status or end recorded after it, that observation is
+        // open, so another generation's end never makes it read as ended.
         let mut ended_generations = BTreeSet::new();
-        for row in rows.iter().copied().filter(|o| o["record"]["kind"] != "dispatch_observed") {
+        let mut observations: BTreeMap<String, Vec<(String, &'a Value)>> = BTreeMap::new();
+        for row in rows.iter().copied() {
             let record = &row["record"];
-            let generation = json!([child_key(record), record["body"]["child"]["generation"]]).to_string();
+            let generation = record["body"]["child"]["generation"].to_string();
+            let ended_key = json!([child_key(record), generation]).to_string();
+            let dispatch = record["kind"] == "dispatch_observed";
             if record["kind"] == "observation_ended" {
-                ended_generations.insert(generation);
-            } else if ended_generations.contains(&generation) {
+                ended_generations.insert(ended_key);
+            } else if ended_generations.contains(&ended_key) {
                 continue;
             }
-            last.insert(child_key(record), row);
+            let seen = observations.entry(child_key(record)).or_default();
+            match seen.iter_mut().find(|(g, _)| *g == generation) {
+                Some(_) if dispatch => {}
+                Some(slot) => slot.1 = row,
+                None => seen.push((generation, row)),
+            }
         }
         let dispatched: BTreeSet<String> = dispatches.iter().map(|d| child_key(&d["record"])).collect();
-        let orphaned = last.iter().filter(|(key, _)| !dispatched.contains(*key)).map(|(_, o)| text(&o["record"]["body"]["child"]["threadId"])).collect();
-        Self { dispatches, last, orphaned }
+        let orphaned = observations.iter().filter(|(key, _)| !dispatched.contains(*key)).filter_map(|(_, seen)| seen.first().map(|(_, o)| text(&o["record"]["body"]["child"]["threadId"]))).collect();
+        Self { dispatches, observations, orphaned }
     }
-    /// An end of this child's observation is the last thing recorded of it.
+    /// Every generation's observation of this child has an end recorded.
     fn ended(&self, record: &Value) -> bool {
-        self.last.get(&child_key(record)).is_some_and(|o| o["record"]["kind"] == "observation_ended")
+        self.observations.get(&child_key(record)).is_some_and(|seen| seen.iter().all(|(_, o)| o["record"]["kind"] == "observation_ended"))
     }
-    /// What was last recorded of a dispatched child, in words that claim
-    /// nothing about the child now, and whether its observation ended.
-    fn observed(&self, dispatch: &'a Value) -> (String, bool, Option<&'a Value>) {
-        match self.last.get(&child_key(&dispatch["record"])).copied() {
-            Some(o) if o["record"]["kind"] == "observation_ended" => (format!("observation ended ({}) as recorded {}, last recorded status {}; outcome unknown",
-                text(&o["record"]["body"]["cause"]), text(&o["record"]["observedAt"]), o["record"]["body"]["lastObserved"].as_str().unwrap_or("none")), true, Some(o)),
-            Some(o) => (format!("child last observed {} as recorded {}; nothing has been recorded of it since",
-                text(&o["record"]["body"]["status"]), text(&o["record"]["observedAt"])), false, Some(o)),
-            None => (format!("no child status recorded since the dispatch was recorded {}", text(&dispatch["record"]["observedAt"])), false, None),
-        }
+    /// Whether some generation's observation of this child has no end recorded.
+    fn open(&self, key: &str) -> bool {
+        self.observations.get(key).is_some_and(|seen| seen.iter().any(|(_, o)| o["record"]["kind"] != "observation_ended"))
+    }
+    /// What was recorded of a dispatched child, generation by generation, in
+    /// words that claim nothing about the child now; whether every generation's
+    /// observation ended; the source of the one observation where there is only
+    /// one; and each generation's observation with its source.
+    fn observed(&self, dispatch: &'a Value) -> (String, bool, Option<&'a Value>, Vec<Value>) {
+        let Some(seen) = self.observations.get(&child_key(&dispatch["record"])).filter(|seen| !seen.is_empty()) else {
+            return (format!("no child status recorded since the dispatch was recorded {}", text(&dispatch["record"]["observedAt"])), false, None, vec![]);
+        };
+        let words = |o: &Value| if o["record"]["kind"] == "dispatch_observed" {
+            format!("no child status recorded in that generation since the dispatch was recorded {}", text(&o["record"]["observedAt"]))
+        } else if o["record"]["kind"] == "observation_ended" {
+            format!("observation ended ({}) as recorded {}; {}; outcome unknown",
+                text(&o["record"]["body"]["cause"]), text(&o["record"]["observedAt"]),
+                o["record"]["body"]["lastObserved"].as_str().map_or("no status recorded with this end".to_owned(), |status| format!("the status recorded with this end: {status}")))
+        } else {
+            format!("child last observed {} as recorded {}; nothing has been recorded of it in that generation since",
+                text(&o["record"]["body"]["status"]), text(&o["record"]["observedAt"]))
+        };
+        let generation = |o: &Value| crate::recovery::generation_ref(&o["record"]["body"]["child"]["generation"]).unwrap_or_else(|_| "not identified".into());
+        let each: Vec<Value> = seen.iter().map(|(_, o)| json!({"generation":generation(o),"observed":words(o),
+            "observationEnded":o["record"]["kind"] == "observation_ended","source":observation_source(o)})).collect();
+        let text = if seen.len() == 1 && seen[0].1["record"]["kind"] == "dispatch_observed" {
+            format!("no child status recorded since the dispatch was recorded {}", text(&seen[0].1["record"]["observedAt"]))
+        } else if seen.len() == 1 {
+            words(seen[0].1)
+        } else {
+            format!("observed in {} generations, none superseding another: {}", seen.len(),
+                seen.iter().map(|(_, o)| format!("in generation {}, {}", generation(o), words(o))).collect::<Vec<_>>().join("; "))
+        };
+        let ended = seen.iter().all(|(_, o)| o["record"]["kind"] == "observation_ended");
+        (text, ended, (seen.len() == 1 && seen[0].1["record"]["kind"] != "dispatch_observed").then(|| seen[0].1), each)
     }
 }
 
@@ -371,9 +413,9 @@ pub(super) fn derive(
         let association = &record["body"]["association"];
         Some((association["undertaking"].as_str()?, association["workItem"].as_str()?))
     }
-    // Children still observed that the record ties to no work item.
+    // Children with no ending of their observation recorded that the record ties to no work item.
     let untied = delegation.dispatches.iter().filter(|d| tie(&d["record"]).is_none() && !delegation.ended(&d["record"])).count()
-        + delegation.last.iter().filter(|(key, o)| o["record"]["kind"] != "observation_ended"
+        + delegation.observations.keys().filter(|key| delegation.open(key)
             && !delegation.dispatches.iter().any(|d| &child_key(&d["record"]) == *key)).count();
     // A project line of an App-only kind is the App's observation only where
     // the protected copy holds the identical line.
@@ -422,7 +464,7 @@ pub(super) fn derive(
         let items = array(&graph.record["body"]["items"]);
         let ids: BTreeSet<_> = items.iter().map(|i| text(&i["itemId"])).collect();
         if ids.len() != items.len() { result["notes"] = json!(["selected graph repeats item identities; no item chosen"]); return result; }
-        // Workers still observed whose recorded item is not a selected item of this graph (removed or unselected).
+        // Workers with no ending of their observation recorded whose recorded item is not a selected item of this graph (removed or unselected).
         let selected: BTreeSet<_> = items.iter().filter(|i| i["selected"] == true).map(|i| text(&i["itemId"])).collect();
         let outside_selection: Vec<String> = delegation.dispatches.iter().filter(|d| !delegation.ended(&d["record"]))
             .filter_map(|d| tie(&d["record"]).filter(|(u, item)| *u == undertaking && !selected.contains(item)).map(|(_, item)| item.to_owned())).collect();
@@ -437,7 +479,7 @@ pub(super) fn derive(
         if incomplete { notes.push("coordination log incomplete or conflicting; non-done states are unknown and the queue is not complete".into()); }
         if untrusted { notes.push("App-named project observations lack a healthy protected counterpart; native execution is not established".into()); }
         if !orphaned.is_empty() { notes.push(format!("orphaned child observations: {}",orphaned.iter().copied().collect::<Vec<_>>().join(", "))); }
-        if !outside_selection.is_empty() { notes.push(format!("a worker is still observed for work that is not selected in the current graph: {}", outside_selection.join(", "))); }
+        if !outside_selection.is_empty() { notes.push(format!("a worker was last observed, with no ending of that observation recorded, for work that is not selected in the current graph: {}", outside_selection.join(", "))); }
         if !delegation.orphaned.is_empty() { notes.push(format!("child observations with no recorded dispatch: {}",delegation.orphaned.join(", "))); }
         let item_return = |id:&str| event(&active,"return_recorded",id);
         let integrated = |id:&str| item_return(id).and_then(|r|return_events(&active,"integration_recorded",id,r.id()));
@@ -543,7 +585,7 @@ pub(super) fn derive(
                 for dispatch in &for_item {
                     let record = &dispatch["record"];
                     let association = &record["body"]["association"];
-                    let (observed, ended, last) = delegation.observed(dispatch);
+                    let (observed, ended, last, generations) = delegation.observed(dispatch);
                     // The brief record named at dispatch, if it is still among the project's brief files.
                     let named: Vec<&Row> = briefs.iter().filter(|b| b.record["recordId"] == association["briefRecord"] && b.record["undertaking"] == undertaking).collect();
                     let named = (named.len() == 1 && !duplicates.contains(named[0].id())).then(|| named[0]);
@@ -566,7 +608,7 @@ pub(super) fn derive(
                         "association":association["state"],"briefNamed":association["brief"],"briefRecord":association["briefRecord"],"briefFile":association["briefFile"],
                         "briefIsCurrent":current,"currentBrief":item["brief"],
                         "briefContentMatches":matches_now,"briefContentMatchedWhenRecorded":matched_then,
-                        "recordedAt":record["observedAt"],"lastObserved":observed,"observationEnded":ended,
+                        "recordedAt":record["observedAt"],"lastObserved":observed,"observationEnded":ended,"generations":generations,
                         "sources":{"dispatch":observation_source(dispatch),"lastObservation":last.map(observation_source),"brief":named.map(sourced)}}));
                     causes.push(format!("App observed dispatch of child {} by {}; its spawn prompt named {} ({}){earlier}; {content}; {observed}",
                         text(&record["body"]["child"]["threadId"]), text(&record["body"]["parent"]["threadId"]),
