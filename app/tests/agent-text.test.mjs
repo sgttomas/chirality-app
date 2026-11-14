@@ -80,7 +80,10 @@ const command = (threadId, params = {}) => request('item/commandExecution/reques
 const askedLine = html => html.match(/<p class="request-asker">([\s\S]*?)<\/p>/)?.[1];
 
 test('who asks: this conversation\'s agent, a delegated agent with the role and name Codex reports, or one not yet read', () => {
-  assert.equal(askedLine(card(command('T'), view)), 'Asked by this conversation’s agent.');
+  assert.equal(askedLine(card(command('T'), view)), 'Asked by the conversation’s own agent.');
+  // The view covers the whole Codex process: a request on another conversation's thread is not this one's.
+  assert.equal(askedLine(card(command('U'), view)), 'Asked by the conversation’s own agent.');
+  assert.doesNotMatch(card(command('U'), view), /this conversation/);
   assert.equal(askedLine(card(command('child-read'), view)), 'Asked by the delegated agent ⟦Name: Ada⟧, role ⟦Role: reviewer⟧, as Codex reports them.');
   assert.equal(askedLine(card(command('child-unread'), view)), 'Asked by a delegated agent; role and name not reported.');
   assert.equal(askedLine(card(command('child-nick'), view)), 'Asked by the delegated agent ⟦Name: Bo⟧, as Codex reports it; role not reported.', 'a missing role is not inferred');
@@ -99,7 +102,7 @@ test('who asks in the waiting count: each group names its asker beside the butto
     sources: [{modeHomeClass: 'account', state: 'ready'}], coverage: 'Invented snapshot.'};
   const raw = renderToStaticMarkup(React.createElement(WaitingRequestsIndicator, {overview, view, open: () => {}}));
   const html = agentPlain(raw);
-  assert.match(html, /<button>account · thread T: 1<\/button> Asked by this conversation’s agent\./);
+  assert.match(html, /<button>account · thread T: 1<\/button> Asked by the conversation’s own agent\./);
   assert.match(html, /<button>account · thread child-read: 2<\/button> Asked by the delegated agent ⟦Name: Ada⟧, role ⟦Role: reviewer⟧, as Codex reports them\./);
   assert.match(html, /<button>account · thread child-unread: 3<\/button> Asked by a delegated agent; role and name not reported\./);
   assert.match(html, /<button>account · no conversation named: 4<\/button><small>/, 'a group with no conversation names no asker');
@@ -189,7 +192,7 @@ test('question options: each button says "Choose option N" and its label stands 
 
 // ---- The stream: a message carrying a card's exact words, line by line ----
 test('a message laid out with a request card\'s exact words is drawn inside the agent\'s box, line by line', () => {
-  const words = 'Tool permission: run a command\nAsked by this conversation’s agent.\nWaiting for your answer\nAllow once "accept"\nDon\'t allow, and interrupt the turn "cancel"';
+  const words = 'Tool permission: run a command\nAsked by the conversation’s own agent.\nWaiting for your answer\nAllow once "accept"\nDon\'t allow, and interrupt the turn "cancel"';
   const items = [
     {threadId: 'T', turnId: 'u', native: {id: 'm', type: 'agentMessage', text: words}, displayState: 'completed', standing: 'live-observed', observedOrder: 0},
     {threadId: 'T', turnId: 'u', native: {id: 'p', type: 'plan', text: words}, displayState: 'completed', standing: 'live-observed', observedOrder: 1},
