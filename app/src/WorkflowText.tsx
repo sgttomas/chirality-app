@@ -1,3 +1,4 @@
+import { AgentText } from "./AgentText";
 import { useCallback, useRef, useState } from "react";
 import { invoke } from "./hostReads";
 
@@ -111,13 +112,13 @@ export function WorkflowTextControl({ slot, identity, target, context, source, t
   </div>;
   if (current.state === "refused") return <div aria-label={`Text of ${name}`}>
     <p role="alert">The App did not show {name}'s text: {current.reason}.</p>
-    {current.cause && <details><summary>What the App reported</summary><pre style={{ whiteSpace: "pre-wrap" }}>{current.cause}</pre></details>}
+    {current.cause && <details><summary>What the App reported</summary><AgentText block value={current.cause} source="record" /></details>}
     <button disabled={disabled} onClick={read}>Read {name}'s text again</button>{" "}
     <button onClick={() => texts.hide(slot)}>Dismiss</button>
   </div>;
   return <div aria-label={`Text of ${name}`}>
     <p aria-label={`What this text is`}>The <code>WORKFLOW.md</code> of <strong>{name}</strong>{source ? ` — ${source}` : ""}, revision <code title={revision}>{revision.slice(0, 12)}…</code>, as the App read it when you asked ({size(current.bytes)}). Its files matched this revision when they were read. Shown exactly as read.</p>
-    <pre aria-label={`${name} WORKFLOW.md`} tabIndex={0} style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", maxHeight: "28em", overflow: "auto" }}>{current.text}</pre>
+    <AgentText block value={current.text} source="file" label="WORKFLOW.md, as read:" name={`${name} WORKFLOW.md, text from a file the App read, not the App's words`} tabIndex={0} style={{ maxHeight: "28em", overflow: "auto" }} />
     {current.files.length > 0 && <details><summary>This revision's other {current.files.length === 1 ? "file" : `${current.files.length} files`}</summary>
       <ul>{current.files.map(file => <li key={file.path}><code>{file.path}</code> ({size(file.bytes)})</li>)}</ul>
     </details>}

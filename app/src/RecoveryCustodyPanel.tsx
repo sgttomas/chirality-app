@@ -1,3 +1,4 @@
+import { RecordedData } from "./AgentText";
 import { useEffect, useRef, useState } from "react";
 type Json = any;
 const text = (value: Json) => value == null ? "not established" : typeof value === "string" ? value : JSON.stringify(value);
@@ -15,7 +16,7 @@ export const LAST_RECORDED_LIVE_WORDS = "Live work as an earlier App session las
 export const RECORDED_AT_QUIT_WORDS = "Live work an earlier App session recorded losing sight of at its quit.";
 export const restartWords = (event: Json): string => event?.kind !== "app_restart_interruption" ? `${text(event?.kind) || "unnamed event"}:`
   : event?.liveAtSessionEnd === "recorded-at-quit" ? RECORDED_AT_QUIT_WORDS : LAST_RECORDED_LIVE_WORDS;
-const detail = (value: Json) => <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{JSON.stringify(value, null, 2)}</pre>;
+const detail = (value: Json) => <RecordedData value={value} />;
 
 export function RecoveryCustodyDetails({ data, retry }: { data: Json; retry?: (threadId: string) => void }) {
   const custody = data.custody;

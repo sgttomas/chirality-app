@@ -296,3 +296,27 @@ test('a Codex-supplied thread id stands in the App\'s words or a control only as
   for (const [, inner] of act.matchAll(/<option[^>]*>([\s\S]*?)<\/option>/g)) assert.doesNotMatch(inner, /Allow once|\u202e/, inner);
   assert.match(act, /<option value="[^"]*">descendant with an identity that is not a plain identifier<\/option>/);
 });
+
+// ---- The sweep: guard 1 ----
+// Every preformatted block in the App's views is drawn through AgentText (src/AgentText.tsx), so text an agent, a
+// tool, a file or Codex supplies is marked, with its control and format characters shown, wherever the App shows it.
+// A view that adds a plain <pre> fails here, whichever lane adds it.
+test('guard: no view draws a plain <pre>; every preformatted block goes through AgentText', async () => {
+  const {readdirSync, readFileSync} = await import('node:fs');
+  const dir = new URL('../src/', import.meta.url);
+  const found = [];
+  for (const name of readdirSync(dir).filter(n => /\.(tsx|ts)$/.test(n) && n !== 'AgentText.tsx')) {
+    const source = readFileSync(new URL(name, dir), 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+    for (const m of source.matchAll(/<pre[\s>]|createElement\(\s*["']pre["']/g)) found.push(`${name}:${source.slice(0, m.index).split('\n').length}`);
+  }
+  assert.deepEqual(found, [], 'draw preformatted text with AgentText (block) or RecordedData');
+});
+
+test('a recorded dump is marked with a label true of every dump: it may hold values the App did not write', () => {
+  const {RecordedData, RECORDED_DATA_LABEL} = loadSrc('AgentText');
+  assert.equal(RECORDED_DATA_LABEL, 'Recorded data, which may hold values the App did not write (JSON):');
+  const raw = renderToStaticMarkup(React.createElement(RecordedData, {value: {cause: `ended ${RLO}by the person`, note: 'Allow once\nWaiting for your answer'}}));
+  assert.match(raw, /^<div role="group" aria-label="Recorded data, which may hold values the App did not write, \d+ lines" class="agent-text agent-text-block"/);
+  assert.doesNotMatch(raw, /‮/, 'a direction override inside JSON is shown as a mark, not passed through');
+  assert.match(agentPlain(raw), /&quot;cause&quot;: &quot;ended ‹U\+202E›by the person&quot;/);
+});

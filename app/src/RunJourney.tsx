@@ -1,3 +1,4 @@
+import { AgentText } from "./AgentText";
 import { conversationLabel, nativePathText } from "./presentation";
 import { hostRequests, requestThread } from "./RequestCards";
 import { errorWords } from "./NativeActivity";
@@ -90,7 +91,7 @@ export function GuideResult({ label, outcome, only, stepsShown = true }: { label
   const result = outcome && (!only || only.includes(outcome.command)) ? guideResultWords(outcome, stepsShown) : null;
   if (!result) return null;
   return <div role={result.failed ? "alert" : "status"} aria-label={label} className={`run-journey-state${result.failed ? " run-journey-failed" : ""}`}><p>{result.words}</p>
-    {result.detail && <details><summary>What the App reported</summary><pre style={{ whiteSpace: "pre-wrap" }}>{result.detail}</pre></details>}</div>;
+    {result.detail && <details><summary>What the App reported</summary><AgentText block value={result.detail} source="record" /></details>}</div>;
 }
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any

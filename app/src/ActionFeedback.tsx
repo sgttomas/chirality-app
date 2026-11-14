@@ -18,7 +18,8 @@ export function ActionFeedback({ message, label = "Latest App response" }: { mes
     {technical ? <>
       <p role="status">A response was received. Check the current state of your work below.</p>
       {outcome.map(([key, value]) => <p role="status" key={key} style={{ whiteSpace: "pre-wrap" }}>{key}: {typeof value === "string" ? value : JSON.stringify(value)}</p>)}
-      <details><summary>Response details</summary><pre>{message}</pre></details>
+      <details><summary>Response details</summary><AgentText block value={message} source="record" /></details>
     </> : <p role="status" style={{ whiteSpace: "pre-wrap" }}>{message}</p>}
   </div>;
-}
+}import { AgentText } from "./AgentText";
+

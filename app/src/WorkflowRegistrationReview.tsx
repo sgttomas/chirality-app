@@ -1,3 +1,4 @@
+import { AgentText, RecordedData } from "./AgentText";
 import { Fragment } from "react";
 import { nativePathText } from "./presentation";
 
@@ -49,7 +50,7 @@ function ReportedValue({ value, literalKeys = false }: { value: Json; literalKey
   const path = nativePathText(value);
   if (path !== null) return <>
     <span style={literal}>{path}</span>
-    <details><summary>Reported path identity</summary><pre style={literal}>{JSON.stringify(value, null, 2)}</pre></details>
+    <details><summary>Reported path identity</summary><RecordedData value={value} /></details>
   </>;
   if (Array.isArray(value)) return value.length
     ? <ol>{value.map((item, index) => <li key={index}><ReportedValue value={item} literalKeys={literalKeys} /></li>)}</ol>
@@ -80,7 +81,7 @@ function ReviewEntry({ entry, index }: { entry: Json; index: number }) {
     <ReportedFields value={entry} keys={entryHeader} />
     <h5>WORKFLOW.md</h5>
     {typeof entry.workflow_text === "string"
-      ? <pre aria-label="Frozen WORKFLOW.md text" style={literal}>{entry.workflow_text}</pre>
+      ? <AgentText block value={entry.workflow_text} source="record" name="Frozen WORKFLOW.md text" />
       : <ReportedValue value={own(entry, "workflow_text") ? entry.workflow_text : undefined} />}
     <h5>File manifest</h5><Manifest files={own(entry, "files") ? entry.files : undefined} />
     <ReportedFields value={entry} keys={Object.keys(entry).filter(key => ![...entryHeader, "workflow_text", "files"].includes(key))} />
@@ -97,7 +98,7 @@ export function WorkflowRegistrationReview({ presentation }: { presentation: Jso
         : <ReportedValue value={own(presentation, "entries") ? presentation.entries : undefined} />}
     </> : <ReportedValue value={presentation} />}
     <details><summary>Complete reported review (diagnostic JSON)</summary>
-      <pre style={literal}>{JSON.stringify(presentation, null, 2)}</pre>
+      <RecordedData value={presentation} />
     </details>
   </div>;
 }
