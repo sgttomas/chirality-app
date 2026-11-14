@@ -261,10 +261,19 @@ fn an_unusable_result_supplies_no_proof_but_releases_the_reservation() {
 /// A reply after its caller gave up: the reservation is held meanwhile and a later admission is
 /// refused at the gate; on the late reply it is free, the abandoned reading admits nothing, and a
 /// new admission makes its own reading.
+///
+/// The caller gives up only after its reading's frame is written. Its limit is LONG, counted from
+/// the call, so the work before the write does not use it up; once the write has returned it is
+/// held, before it waits for the reply, until that limit has passed, so its wait ends at once with
+/// no reply. A short limit could pass before the write began, and the reading was then withdrawn
+/// with nothing written.
 #[test]
 fn a_late_reply_frees_the_reservation_and_the_abandoned_reading_admits_nothing() {
     let rig = Rig::new();
-    assert!(admit(&rig.host, &rig.g, Duration::from_millis(100)).is_err(), "the caller gives up");
+    *rig.host.before_provider_wait.lock().unwrap() = Some(Box::new(|_, _| std::thread::sleep(LONG)));
+    let gave_up = admit(&rig.host, &rig.g, LONG).err().expect("the caller gives up");
+    rig.host.before_provider_wait.lock().unwrap().take();
+    assert!(!reading_gate::reading_sentence(&gave_up), "it gave up after its write, neither withdrawn nor refused at the gate: {gave_up}");
     let abandoned = rig.frame();
     assert_eq!(rig.stage(), Some((Some(abandoned["id"].to_string()), ReadingStage::Abandoned)));
     assert_eq!(admit(&rig.host, &rig.g, Duration::from_millis(150)).err().unwrap(), READING_GATE, "held meanwhile");
