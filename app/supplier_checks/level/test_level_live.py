@@ -202,7 +202,7 @@ class Presets(Probing):
             self.assertTrue(landed.evidence['item'])
             self.assertEqual(client.items(thread, refused.turn, 'commandExecution'), [])
 
-    def test_supervised_asks_before_every_command_tried_and_a_declined_one_does_not_run(self):
+    def test_supervised_asks_before_every_command_tried_and_a_declined_one_shows_no_effect(self):
         with L.Run(SCRATCH, BINARY, slash_tmp=True, git_marker=True) as run:
             client = run.start()
             thread = client.start_thread()['thread']['id']
@@ -243,6 +243,25 @@ class Presets(Probing):
             self.succeeded(rows['net'], network=True)
             self.rejected(probe(run, client, thread, 'out', escalate=True, **FULL))
             self.channel_live(run, client)
+
+    def test_no_edits_level_writes_in_private_var_tmp(self):
+        """The App's three edits levels, each with both temporary folders excluded as the App sends them: a write
+        in the run's own folder under /private/var/tmp runs and is refused by the sandbox. A write that succeeded
+        there would be a writable folder the App did not name."""
+        with L.Run(SCRATCH, BINARY, var_tmp=True) as run:
+            client = run.start()
+            both = dict(WW, excludeSlashTmp=True, excludeTmpdirEnvVar=True)
+            for name, settings in (('edits', dict(EDITS_NET_OFF, sandboxPolicy=dict(both, networkAccess=False))),
+                                   ('edits-network', dict(EDITS_NET_ON, sandboxPolicy=dict(both, networkAccess=True))),
+                                   ('edits-no-asking', EDITS_NEVER)):
+                thread = client.start_thread()['thread']['id']
+                outcome = probe(run, client, thread, 'vartmp', **settings)
+                if outcome.kind == SUCCEEDED:
+                    self.fail('%s wrote in /private/var/tmp: a writable folder the App did not name' % name)
+                self.refused(outcome)
+                self.succeeded(probe(run, client, thread, 'in', **settings))  # the same thread writes its project
+            control = client.start_thread()['thread']['id']
+            self.succeeded(probe(run, client, control, 'vartmp', **FULL))
 
     def test_the_two_temporary_folder_exclusions(self):
         with L.Run(SCRATCH, BINARY, slash_tmp=True) as run:
@@ -303,6 +322,87 @@ class Presets(Probing):
             client = run.start()
             thread = client.start_thread()['thread']['id']
             self.succeeded(probe(run, client, thread, 'in', **EDITS_NET_OFF))
+
+
+class TemporaryFolderEntries(Probing):
+    """The App's layout (`Run(working_files=True)`): a fresh home with new, empty settings inside an invented data
+    folder, and TMPDIR a folder made in "codex-tmp" inside the "<data folder> Working Files" folder beside it.
+    Nothing is sent by the client. Each scripted command tries to change the directory entry that names the
+    temporary folder, or an ancestor's entry: rename it, remove it and make it again, replace it with a link,
+    and make a new link beside it."""
+
+    def entry_probe(self, run, client, thread, key, **settings):
+        command, lines = run.entry_operations()[key]
+        call_id = 'call_%s_%d' % (key, len(run.stub.requests))
+        run.stub.scripts[call_id] = L.command_script(call_id, command)
+        turn, done = client.turn(thread, 'LEVEL[%s] go' % call_id, **settings)
+        items, asked, completed = evidence(client, thread, call_id, turn)
+        outcome = L.judge(call_id, run.stub.issued, run.stub.not_offered, run.stub.outputs.get(call_id), items,
+                          asked, done and done['turn']['status'], target=lines,
+                          item_status=completed and completed.get('status'),
+                          item_exit=completed and completed.get('exitCode'))
+        outcome.requests = [(r['method'], r['thread']) for r in client.server_requests if r['thread'] == thread]
+        return outcome
+
+    def test_with_nothing_sent_no_entry_on_the_temporary_folders_path_changes(self):
+        with L.Run(SCRATCH, BINARY, working_files=True) as run:
+            client = run.start()
+            reply = client.start_thread()
+            thread = reply['thread']['id']
+            self.assertEqual((reply['approvalPolicy'], reply['sandbox']),
+                             ('on-request', {'type': 'readOnly', 'networkAccess': False}))
+            before = run.entries()
+            for key in run.entry_operations():
+                outcome = self.entry_probe(run, client, thread, key)
+                expect(outcome, SANDBOX_REFUSED)
+                self.assertEqual(outcome.requests, [], key)
+            self.assertEqual(run.entries(), before)  # every entry the same folder, by device and inode
+            inside = probe(run, client, thread, 'tmpdir')  # a write inside the temporary folder itself
+            self.refused(inside)
+            self.assertEqual(run.entries(), before)
+            self.declined(probe(run, client, thread, 'out', escalate=True), thread)  # the same thread asks
+
+    def test_at_full_access_the_same_operations_change_the_entries(self):
+        """The control: each operation succeeds at full access, so each refusal above is the sandbox's. Removing
+        the non-empty codex-tmp folder fails here for its contents, with its own words, where the sandbox refused
+        it first. After each, the layout is put back by the fixture, outside Codex."""
+        with L.Run(SCRATCH, BINARY, working_files=True) as run:
+            client = run.start()
+            thread = client.start_thread()['thread']['id']
+            t, p, w = run.tmpdir, run.codex_tmp, run.working
+            aside = lambda path, suffix: path.with_name(path.name + suffix)  # noqa: E731
+
+            def put_back(link, folder):
+                os.unlink(link)
+                os.rename(folder, link)
+
+            checks = {
+                'entry-t-rename': (lambda: aside(t, '.moved').is_dir() and not os.path.lexists(t),
+                                   lambda: os.rename(aside(t, '.moved'), t)),
+                'entry-t-remake': (lambda: t.is_dir() and os.lstat(t).st_ino != remade_from[0], lambda: None),
+                'entry-t-link': (lambda: t.is_symlink() and aside(t, '.aside').is_dir(),
+                                 lambda: put_back(t, aside(t, '.aside'))),
+                'entry-p-new-link': (lambda: (p / 'x-link').is_symlink(), lambda: os.unlink(p / 'x-link')),
+                'entry-p-rename': (lambda: aside(p, '.moved').is_dir() and not os.path.lexists(p),
+                                   lambda: os.rename(aside(p, '.moved'), p)),
+                'entry-p-link': (lambda: p.is_symlink() and aside(p, '.aside').is_dir(),
+                                 lambda: put_back(p, aside(p, '.aside'))),
+                'entry-w-rename': (lambda: aside(w, '.moved').is_dir() and not os.path.lexists(w),
+                                   lambda: os.rename(aside(w, '.moved'), w)),
+                'entry-w-new-link': (lambda: (w / 'x-link').is_symlink(), lambda: os.unlink(w / 'x-link')),
+            }
+            for key in run.entry_operations():
+                remade_from = [os.lstat(t).st_ino]
+                outcome = self.entry_probe(run, client, thread, key, **FULL)
+                if key == 'entry-p-remove':
+                    expect(outcome, L.FAILED)
+                    self.assertEqual(outcome.text, 'rmdir: %s: Directory not empty' % p)
+                    continue
+                expect(outcome, SUCCEEDED)
+                changed, restore = checks[key]
+                self.assertTrue(changed(), key)
+                restore()
+            self.succeeded(probe(run, client, thread, 'tmpdir', **FULL))
 
 
 class Carriers(Probing):
@@ -525,6 +625,34 @@ class Narrowing(Probing):
             while not late.exists() and time.monotonic() < deadline:
                 time.sleep(0.25)
             self.assertTrue(late.exists())
+
+
+class Background(Probing):
+    def test_a_background_commands_item_stays_in_progress_after_its_turn_and_completes_when_it_ends(self):
+        """A command left running when its turn completes: its item was started with a process id, and is still
+        in progress (no completed item) once the turn has completed; when the process ends, the item completes."""
+        with L.Run(SCRATCH, BINARY) as run:
+            client = run.start()
+            thread = client.start_thread()['thread']['id']
+            late = run.paths()['late']
+            run.stub.scripts['late'] = L.command_script('call_late', run.commands()['late'], background=True)
+            turn, done = client.turn(thread, 'LEVEL[late] go', **FULL)
+            self.assertEqual(done['turn']['status'], 'completed')
+            self.assertFalse(late.exists())  # still sleeping
+            started = [n['params']['item'] for n in client.notes_for('item/started', thread)
+                       if n['params']['item'].get('id') == 'call_late']
+            self.assertEqual(len(started), 1)
+            self.assertEqual(started[0].get('status'), 'inProgress')
+            self.assertTrue(started[0].get('processId'))
+
+            def completed():
+                return [n['params']['item'] for n in client.notes_for('item/completed', thread)
+                        if n['params']['item'].get('id') == 'call_late']
+            self.assertEqual(completed(), [])  # the turn completed; the command's item did not
+            final = client.wait(completed, 20)
+            self.assertTrue(late.exists())
+            self.assertTrue(final, 'the item did not complete within 20 s of its turn')
+            self.assertEqual((final[0].get('status'), final[0].get('exitCode')), ('completed', 0))
 
 
 def spawn_script(child_marker):
