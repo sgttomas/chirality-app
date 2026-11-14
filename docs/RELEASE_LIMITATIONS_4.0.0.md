@@ -270,3 +270,60 @@ An entry is added in the same pull request that makes the limitation standing.
 - **What the person does instead:** use the App from a Mac account whose home
   folder's name contains none of these characters.
 - **Basis:** DEL-01-05 (homes) and DEL-01-01.
+
+### LIM-022: A command that has run outside Codex's sandbox can change the App's records, the recorded level included
+
+- **Id:** LIM-022
+- **Exit criteria:** 6
+- **What is unavailable:** a permission level the App can keep in force
+  against a command that has run outside Codex's sandbox. The App keeps the
+  level you chose in its own data folder, and starts every conversation at
+  that level. A command that has run outside the sandbox has your account's
+  access, so it can change that record, and the App's other records and
+  settings. The next time the App opens, it would then start conversations at a
+  level you did not choose. A command runs outside the sandbox:
+  - at full access, always;
+  - at any level, when you allow a command that Codex asked to run outside
+    the sandbox;
+  - at Supervised, when a command you allowed is run again outside the
+    sandbox after the sandbox stopped it. Any command you allow at Supervised
+    may run outside the sandbox, on the first attempt or on a retry, and the
+    request card cannot tell you which;
+  - at every level, for a command that a lasting rule allows (LIM-023).
+  Choosing a narrower level later does not undo what was done, and does not
+  stop a command left running from then. A program that holds Accessibility
+  access on this Mac can also press the App's confirmation in your place.
+  Where the supplier's computer-use service is installed, it holds that
+  access.
+- **Why:** the App's records are files in your own Library, and any program
+  running with your access can write them. The App does not seal its record of
+  the level. A seal would show that the App wrote a record, but not that the
+  record is still your latest choice, and that part is not designed.
+- **What the person does instead:** keep full access for projects you would
+  trust with your whole account. After any command may have run outside the
+  sandbox, check the level the App shows when it opens before you start a
+  conversation, and choose it again if it is not yours.
+- **Basis:** DEL-01-04 and DEL-04-02 (the permission level), DEL-01-02 (the
+  App's records), DEL-01-01.
+
+### LIM-023: A lasting rule is removed by hand
+
+- **Id:** LIM-023
+- **Exit criteria:** 6
+- **What is unavailable:** a way to remove a lasting rule from inside the App.
+  A lasting rule lets any command beginning with its words run outside Codex's
+  sandbox, with no request to you, at every level, until it is removed. The
+  App shows each lasting rule in its Codex folder beside the level, but does
+  not remove one.
+- **Why:** Codex keeps its own copy of the rules for each conversation it has
+  open, so a rule removed from the file keeps applying there until Codex is
+  started again. The App does not yet stop Codex, remove the rule and start
+  Codex again for you.
+- **What the person does instead:** stop Codex, delete the rule's line from
+  the rules file shown beside the level, and start Codex again. Until Codex is
+  started again, the rule keeps applying in conversations already open and in
+  agents they started. What the App shows is the file as it was read at the
+  time shown: right after you delete a line, a conversation opened before that
+  may still hold the rule.
+- **Basis:** DEL-01-01 (the Host's reading of the rules), DEL-01-04 (request
+  cards and the level).

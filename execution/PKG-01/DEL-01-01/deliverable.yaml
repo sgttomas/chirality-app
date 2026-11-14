@@ -77,6 +77,13 @@ code_paths:
 - app/src-tauri/src/distribution_semantics.rs
 - app/src-tauri/src/distribution_store.rs
 - app/src-tauri/src/distribution_store_s1.rs
+# The permission levels the App sends (PRD V4-AUT-06): the table, read also by supplier_checks/level,
+# the request fields each level sends, agreement with what Codex reports, and the path rules that
+# refuse a level for a conversation.
+- app/src-tauri/src/codex_levels.json
+- app/src-tauri/src/codex_level.rs
+- app/src-tauri/src/codex_level_tests.rs
+- app/src-tauri/src/codex_level_host_tests.rs
 # model_turn_recorder.rs is shared with DEL-04-03. Here: handing over the model and destination
 # the supplier reported. Writing them as the run record's model entries is DEL-04-03's.
 - app/src-tauri/src/model_turn_recorder.rs
