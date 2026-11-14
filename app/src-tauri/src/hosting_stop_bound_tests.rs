@@ -1443,11 +1443,18 @@ fn held_workflow_runs_are_shown_as_not_read_within_the_assessment_bound() {
 #[test]
 fn a_start_holding_the_source_gate_past_the_bound_refuses_the_persons_quit() {
     use crate::home_resources::HomeClass;
-    assert_eq!(crate::app_quit::gate_not_free(HomeClass::Account, 0), "Another App activity held the request gate of Codex for the account home for 10 seconds, so this quit stopped there: it stopped no Codex process and recorded no end of this session. The App is still running.");
-    assert_eq!(crate::app_quit::gate_not_free(HomeClass::Account, 2), "This quit had already asked Codex to interrupt 2 running turns; those requests are not withdrawn. Another App activity held the request gate of Codex for the account home for 10 seconds, so this quit stopped there: it stopped no Codex process and recorded no end of this session. The App is still running.");
-    assert_eq!(crate::app_quit::settlement_unavailable(1, &[HomeClass::Account], &["key: failed".into()]), "This quit had already asked Codex to interrupt 1 running turn; that request is not withdrawn. It stopped Codex for the account home. The App is still running: owned supplier settlement is unavailable (key: failed). No quit session-end record was written. Supervision is retained; inspect Host diagnostics before retrying Quit.");
-    for words in [crate::app_quit::gate_not_free(HomeClass::Account, 1), crate::app_quit::settlement_unavailable(0, &[], &["x".into()])] {
-        for claim in ["did not begin", "start is under way", "Nothing was interrupted"] {
+    use crate::app_quit::Asked;
+    let none = Asked::default();
+    assert_eq!(crate::app_quit::gate_not_free(HomeClass::Account, none), "The quit's 10-second fencing interval ended before the request gate of Codex for the account home was free, so this quit stopped there: it stopped no Codex process and recorded no end of this session. The App is still running.");
+    // Counted from the stop records: sent, write outcome unknown, not sent.
+    let records = vec![json!({"stopRequestId":"a","state":"requested"}), json!({"stopRequestId":"a","state":"sent"}),
+        json!({"stopRequestId":"b","state":"send-unknown"}), json!({"stopRequestId":"c","state":"not-sent"}), json!({"stopRequestId":"d","state":"outcome-unknown"})];
+    let asked = Asked::of(&["a".into(), "b".into(), "c".into(), "d".into()], &records);
+    assert_eq!(asked, Asked { sent: 2, unknown: 1 }, "a not-sent request is not counted as asked");
+    assert_eq!(crate::app_quit::gate_not_free(HomeClass::Account, asked), "This quit had already sent Codex 2 interrupt requests for running turns; they are not withdrawn. Whether 1 more interrupt request was sent is not known. The quit's 10-second fencing interval ended before the request gate of Codex for the account home was free, so this quit stopped there: it stopped no Codex process and recorded no end of this session. The App is still running.");
+    assert_eq!(crate::app_quit::settlement_unavailable(Asked { sent: 1, unknown: 0 }, &[HomeClass::Account], &["key: failed".into()]), "This quit had already sent Codex 1 interrupt request for a running turn; it is not withdrawn. It stopped Codex for the account home. The App is still running: owned supplier settlement is unavailable (key: failed). No quit session-end record was written. Supervision is retained; inspect Host diagnostics before retrying Quit.");
+    for words in [crate::app_quit::gate_not_free(HomeClass::Account, asked), crate::app_quit::settlement_unavailable(none, &[], &["x".into()])] {
+        for claim in ["did not begin", "start is under way", "Nothing was interrupted", "for 10 seconds"] {
             assert!(!words.contains(claim), "{words}");
         }
     }
@@ -1467,7 +1474,7 @@ fn a_start_holding_the_source_gate_past_the_bound_refuses_the_persons_quit() {
     let took = begin.elapsed();
     let _ = release_tx.send(());
     holder.join().unwrap();
-    assert_eq!(refused.unwrap_err(), crate::app_quit::gate_not_free(HomeClass::Account, 0));
+    assert_eq!(refused.unwrap_err(), crate::app_quit::gate_not_free(HomeClass::Account, crate::app_quit::Asked::default()));
     assert!(took >= crate::app_quit::QUIT_FENCE_WAIT_LIMIT && took < crate::app_quit::QUIT_FENCE_WAIT_LIMIT + SLACK, "{took:?}");
     assert!(!f.host().quit_fence.load(std::sync::atomic::Ordering::SeqCst) && !f.host().drains_deferred_to_quit(), "nothing stays fenced");
     assert!(!f.group_ended(group), "nothing was stopped");

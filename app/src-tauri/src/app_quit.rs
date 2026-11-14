@@ -640,33 +640,60 @@ pub(crate) const RECORDING_WAIT_LIMIT: Duration = Duration::from_secs(10);
 /// How long the exit waits, across every home, for a Codex start under way to
 /// let go of its home's source gate so that the home can be fenced.
 pub(crate) const QUIT_FENCE_WAIT_LIMIT: Duration = Duration::from_secs(10);
-/// What this quit had done before a refusal at fencing or settlement, from
-/// the phases it completed: the interrupts it asked for (the quit stop
-/// requests), which are not withdrawn. Empty when it asked for none.
-fn interrupts_before(interrupted: usize) -> String {
-    match interrupted {
-        0 => String::new(),
-        1 => "This quit had already asked Codex to interrupt 1 running turn; that request is not withdrawn. ".into(),
-        n => format!("This quit had already asked Codex to interrupt {n} running turns; those requests are not withdrawn. "),
+/// What this quit's interrupt requests came to, from their stop records'
+/// states: sent (the request was written to Codex), or not known to be sent
+/// (its write's outcome is unknown, or it was not yet recorded as sent).
+/// A request recorded as not sent is not counted as asked.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) struct Asked { pub(crate) sent: usize, pub(crate) unknown: usize }
+impl Asked {
+    /// Counted from the latest record of each of this quit's stop requests.
+    pub(crate) fn of(ids: &[String], records: &[Value]) -> Self {
+        let mut asked = Asked::default();
+        for id in ids {
+            match records.iter().rev().find(|r| r["stopRequestId"] == id.as_str()).and_then(|r| r["state"].as_str()) {
+                Some("sent" | "accepted" | "refused" | "settled" | "outcome-recovered" | "outcome-unknown") => asked.sent += 1,
+                Some("not-sent") => {}
+                _ => asked.unknown += 1,
+            }
+        }
+        asked
     }
 }
-/// The person's quit refused at fencing: a home's request gate (which a Codex
-/// start and the App's other requests to that Codex take) was not free within
-/// the bound. It says what the quit had done and what it then did not do; it
-/// does not say what held the gate, which is not established.
-pub(crate) fn gate_not_free(class: crate::home_resources::HomeClass, interrupted: usize) -> String {
-    format!("{}Another App activity held the request gate of Codex for the {} home for {} seconds, so this quit stopped there: it stopped no Codex process and recorded no end of this session. The App is still running.",
-        interrupts_before(interrupted), home_name(class), QUIT_FENCE_WAIT_LIMIT.as_secs())
+/// What this quit had asked of Codex before a refusal at fencing or
+/// settlement: the interrupt requests it sent, which are not withdrawn, and
+/// those whose sending is not known. Empty when there are none.
+fn interrupts_before(asked: Asked) -> String {
+    let sent = match asked.sent {
+        0 => String::new(),
+        1 => "This quit had already sent Codex 1 interrupt request for a running turn; it is not withdrawn. ".into(),
+        n => format!("This quit had already sent Codex {n} interrupt requests for running turns; they are not withdrawn. "),
+    };
+    let unknown = match asked.unknown {
+        0 => String::new(),
+        1 => "Whether 1 more interrupt request was sent is not known. ".into(),
+        n => format!("Whether {n} more interrupt requests were sent is not known. "),
+    };
+    format!("{sent}{unknown}")
+}
+/// The person's quit refused at fencing: the quit's one fencing interval,
+/// shared by every home, ended before this home's request gate (which a Codex
+/// start and the App's other requests to that Codex take) was free. It says
+/// what the quit had done and what it then did not do; it does not say what
+/// held the gate, or for how long, which is not established.
+pub(crate) fn gate_not_free(class: crate::home_resources::HomeClass, asked: Asked) -> String {
+    format!("{}The quit's {}-second fencing interval ended before the request gate of Codex for the {} home was free, so this quit stopped there: it stopped no Codex process and recorded no end of this session. The App is still running.",
+        interrupts_before(asked), QUIT_FENCE_WAIT_LIMIT.as_secs(), home_name(class))
 }
 /// The person's quit refused at settlement: what this quit had done, which
 /// homes it stopped Codex for before the failure, and that it recorded no end.
-pub(crate) fn settlement_unavailable(interrupted: usize, settled: &[crate::home_resources::HomeClass], failures: &[String]) -> String {
+pub(crate) fn settlement_unavailable(asked: Asked, settled: &[crate::home_resources::HomeClass], failures: &[String]) -> String {
     let stopped = match settled {
         [] => String::new(),
         homes => format!("It stopped Codex for the {} {}. ", homes.iter().map(|class| home_name(*class)).collect::<Vec<_>>().join(" and "), if homes.len() == 1 { "home" } else { "homes" }),
     };
     format!("{}{stopped}The App is still running: owned supplier settlement is unavailable ({}). No quit session-end record was written. Supervision is retained; inspect Host diagnostics before retrying Quit.",
-        interrupts_before(interrupted), failures.join("; "))
+        interrupts_before(asked), failures.join("; "))
 }
 /// What every notice before the person's quit exits says first: settlement
 /// established that each home's original owned process group is empty.
@@ -777,13 +804,16 @@ pub(crate) fn finish_exit(homes: &[Arc<HomeSession>], proceeding: Option<Vec<Str
     // Fence every home before settling any one of them, one deadline for all.
     // Retain these fences through session-end publication and the native exit.
     let fence_by = Instant::now() + QUIT_FENCE_WAIT_LIMIT;
-    let interrupted = proceeding.as_ref().map_or(0, Vec::len);
+    // What this quit had asked of Codex, from its stop records as they stand
+    // before the fence (a Host state read on this thread, memory only, P15a).
+    let asked = proceeding.as_ref().map_or_else(Asked::default, |ids| Asked::of(ids, &homes.iter()
+        .flat_map(|home| home.host.snapshot_without_records()["stopRequests"]["records"].as_array().cloned().unwrap_or_default()).collect::<Vec<_>>()));
     let mut failures = Vec::new();
     for home in homes {
         if let Err(error) = home.host.begin_quit_by(fence_by) {
             if proceeding.is_some() {
                 for home in homes { home.host.cancel_quit(); }
-                return Err(gate_not_free(home.class(), interrupted));
+                return Err(gate_not_free(home.class(), asked));
             }
             failures.push(format!("{}: {error}", home.class().as_str()));
         }
@@ -823,7 +853,7 @@ pub(crate) fn finish_exit(homes: &[Arc<HomeSession>], proceeding: Option<Vec<Str
         if homes.iter().any(|home| home.host.has_unestablishable_process()) {
             return Err(QUIT_CANNOT_ESTABLISH.into());
         }
-        return Err(settlement_unavailable(interrupted, &settled, &failures));
+        return Err(settlement_unavailable(asked, &settled, &failures));
     }
     let (how, stops) = session_end(proceeding, &records);
     // Q-7: a ledger limit is a recording limit, not grounds to fabricate an
