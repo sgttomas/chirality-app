@@ -239,68 +239,85 @@ An entry is added in the same pull request that makes the limitation standing.
   of the reach of the account the App runs under.
 - **Basis:** DEL-01-04 and DEL-04-02 (the permission level); PRD V4-AUT-06.
 
-### LIM-024: The App shows whether plugins are on in its Codex, not which plugins act
+### LIM-024: The App does not show which plugins act in its Codex
 
 - **Id:** LIM-024
 - **Exit criteria:** 6
-- **What is unavailable:** a view of the plugins in the App's Codex. Plugins
-  are as your own Codex settings have them. Beside the level in force, the App
-  shows whether plugins are on in this home's Codex, and where that comes
-  from: this home's settings, a project's settings, Codex's default, or a
-  setting outside the App. If the App could not read it, it says so. It does
-  not show which plugins are installed, which hooks they bring, or when a hook
-  acted. If a plugin is installed, its hooks can approve or refuse a request
-  without a card. The level shown describes commands and file changes, not
-  what a plugin's hooks decide.
+- **What is unavailable:** a view of which plugins are installed in the App's
+  Codex, which hooks they bring, and when a hook decided a request. Plugins in
+  the App's Codex are as the Codex settings the App uses have them: your own
+  Codex settings, where the App's Codex uses them, or the App's own new
+  settings, where you chose new settings at setup. With plugins on, a plugin
+  you have installed can bring hooks, and such a hook can approve a request
+  with no card, or refuse it. The level you set describes commands and file
+  changes, not what a plugin's hooks decide.
 - **Start-up connections:** while plugins are on, the App's Codex makes these
   connections when it starts, without sign-in:
-  - github.com, to fetch the curated list of plugins (api.github.com instead
-    if git is not available or fails);
-  - chatgpt.com, for the curated list if both of those fail, and for the list
-    of featured plugins.
+  - github.com, to fetch the curated list of plugins;
+  - api.github.com instead, if that fails;
+  - chatgpt.com, for the curated list if both of those fail and no copy is
+    kept yet, and for the list of featured plugins.
 - **Why:** listing plugins and their hooks needs reads of Codex that the App
   has not shown to stay on this Mac at the pinned Codex version.
 - **What the person does instead:** see and manage your plugins in your own
   Codex. To turn plugins off in the App's Codex, set `plugins = false` under
-  `[features]` in your Codex settings. The App's Codex uses your settings, so
-  this turns them off in your own Codex too. If you turn plugins off and a
-  plugin's hook was what stopped a command for you, choose a level in the App
-  that asks before commands. If the App shows the setting as set outside the App, it does not change it:
-  ask whoever manages your Mac or account.
-- **Basis:** DEL-01-05 (REQ-010). The App's reading of the setting and its
-  source is covered by tests. A fixture shows the start-up plugin traffic with
-  plugins on, and its absence with `plugins = false` in the home's own
-  settings (`app/supplier_checks/level`): the start of the curated sync and the
-  featured-list request are shown. The sync's own network attempts are read
-  from the source. Not established at the pinned Codex version: whether a
-  plugin can add command rules, and whether listing installed plugins makes a
-  network request when signed in.
+  `[features]` in the Codex settings the App uses. Where the App's Codex uses
+  your own Codex settings, this turns them off in your own Codex too. If you
+  turn plugins off and a plugin's hook was what stopped a command for you,
+  choose a level in the App that asks before commands. A setting made outside
+  the App, by whoever manages your Mac or account, the App does not change.
+- **Basis:** DEL-01-05 (REQ-010). A fixture shows the start of the curated
+  sync and the featured-list request with plugins on, and neither with
+  `plugins = false` in the home's own settings (`app/supplier_checks/level`).
+  The rest is read from Codex's source at tag rust-v0.167.0, commit
+  086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a, and not shown:
+  - the addresses and their order: `codex-rs/core-plugins/src/startup_sync.rs`
+    lines 23-30 and 96-167;
+  - the sync starts only with plugins on: `codex-rs/core-plugins/src/manager.rs`
+    lines 769-790;
+  - the featured list: `codex-rs/core-plugins/src/remote_legacy.rs` lines
+    125-149, with the default address in
+    `codex-rs/model-provider/src/chatgpt_base_url.rs` line 6;
+  - plugins bring hooks: `codex-rs/hooks/src/engine/discovery.rs` lines 280-346;
+  - a hook approves with no card, or refuses: `codex-rs/core/src/tools/approvals.rs`
+    lines 594-621.
 
-### LIM-025: The App shows whether connected apps are on in its Codex, not which apps act
+  Not established at the pinned Codex version: whether a plugin can add
+  command rules, and whether listing installed plugins makes a network request
+  when signed in.
+
+### LIM-025: The App does not show which connected apps act in its Codex
 
 - **Id:** LIM-025
 - **Exit criteria:** 6
-- **What is unavailable:** a view of the apps connected to your ChatGPT
-  account, in the App's Codex. Connected apps are as your own Codex settings
-  have them. Beside the level in force, the App shows whether connected apps
-  are on in this home's Codex, and where that comes from: this home's
-  settings, a project's settings, Codex's default, or a setting outside the
-  App. If the App could not read it, it says so. Once you are signed in, a
-  connected app's tools are given to the App's Codex. A tool that the app marks
-  read-only can run without a card. The level shown describes commands and
-  file changes, not these tools. The App does not show which apps are
-  connected, or which of their tools run without a card.
+- **What is unavailable:** a view of which apps connected to your ChatGPT
+  account are in the App's Codex, and which of their tools run without a card.
+  Connected apps in the App's Codex are as the Codex settings the App uses
+  have them: your own Codex settings, where the App's Codex uses them, or the
+  App's own new settings, where you chose new settings at setup. Once you are
+  signed in with your ChatGPT account, a connected app's tools are given to
+  the App's Codex. Unless your settings set how a tool is approved, a tool the
+  app marks read-only runs without a card. The level you set describes
+  commands and file changes, not these tools.
 - **Why:** at the pinned Codex version, the requests Codex offers for listing
   connected apps are marked experimental. The App has not shown that the
   read-only marks they report are the ones Codex uses to decide whether to
   ask.
 - **What the person does instead:** manage your connected apps in ChatGPT. To
   turn them off in the App's Codex, set `apps = false` under `[features]` in
-  your Codex settings. This turns them off in your own Codex too, and an older
-  `connectors = true` in the same settings turns them back on. If the App shows
-  the setting as set outside the App, it does not change it: ask whoever
-  manages your Mac or account.
-- **Basis:** DEL-01-05 (REQ-010). The App's reading of the setting and its
-  source is covered by tests. What a connected app's tools do with the setting
-  on is read from the source at the pinned Codex version. It is not shown by a
-  fixture, because connected apps start only for a signed-in account.
+  the Codex settings the App uses. Where the App's Codex uses your own Codex
+  settings, this turns them off in your own Codex too. An older
+  `connectors = true` in the same settings turns them back on. A setting made
+  outside the App, by whoever manages your Mac or account, the App does not
+  change.
+- **Basis:** DEL-01-05 (REQ-010). A fixture shows that `connectors = true`
+  turns apps back on over `apps = false` (`app/supplier_checks/level`). The
+  rest is read from Codex's source at tag rust-v0.167.0, commit
+  086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a, and not shown, because connected
+  apps start only for a signed-in account:
+  - the tools need apps on and a sign-in through Codex's backend:
+    `codex-rs/codex-mcp/src/mcp/mod.rs` lines 358-360;
+  - the automatic approval mode is the default:
+    `codex-rs/connectors/src/app_tool_policy.rs` lines 233-270;
+  - in it, a tool marked read-only needs no approval:
+    `codex-rs/core/src/mcp_tool_call.rs` lines 2595-2626.

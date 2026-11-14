@@ -343,6 +343,24 @@ class Plugins(unittest.TestCase):
                                'featured requests': []}, 'with plugins off, after %d s' % self.WAIT)
 
 
+class FeatureAlias(unittest.TestCase):
+    """`connectors` is an older name for `apps`. Three fresh homes, each with only a settings file, and nothing else
+    done: the effective value Codex reports for `apps` through `experimentalFeature/list`."""
+
+    def apps_reported(self, settings):
+        with L.Run(SCRATCH, BINARY) as run:
+            (run.root / 'home' / 'config.toml').write_text(settings)
+            client = run.start()
+            entries = [e for e in client.result('experimentalFeature/list', {})['data'] if e['name'] == 'apps']
+            self.assertEqual(len(entries), 1)
+            return entries[0]['enabled']
+
+    def test_an_older_connectors_entry_turns_apps_back_on_over_apps_false(self):
+        self.assertTrue(self.apps_reported(''))  # on by default
+        self.assertFalse(self.apps_reported('[features]\napps = false\n'))
+        self.assertTrue(self.apps_reported('[features]\napps = false\nconnectors = true\n'))
+
+
 class TemporaryFolderEntries(Probing):
     """The App's layout (`Run(working_files=True)`): a fresh home with new, empty settings inside an invented data
     folder, and TMPDIR a folder made in "codex-tmp" inside the "<data folder> Working Files" folder beside it.
