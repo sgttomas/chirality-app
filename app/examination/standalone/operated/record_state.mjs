@@ -11,6 +11,9 @@
  * returned (steps[].returned) and the sheet (steps[].sheet_view). The recorder reads no verdict and nothing a log
  * claims about a step: it judges the view itself.
  *
+ * It records only from a scenario validateScenario made (scenario.mjs): a scenario not of the closed form gives no
+ * record, whatever its captures show.
+ *
  * A recorded state is not acceptable merely because it was recorded: a capture shows fidelity, not correctness (the
  * INTERLOCUTOR, on PR 351). So, before it writes anything, the recorder judges the captured view against the step's
  * expectations as the scenario states them, written from the build's source and independently of any capture, using
@@ -37,6 +40,7 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { basename } from 'node:path';
 import { APP_NAME, DEVELOPMENT_PREFIX, JUDGED, checkOne, recognise, sheetCheck } from './walk.mjs';
+import { isValidScenario, parseScenario } from './scenario.mjs';
 
 const PATH_FLAGS = ['settings', 'account', 'request'];
 
@@ -58,6 +62,7 @@ function candidateKeyOf(bundle, given) {
 
 export function recordSheet(scenario, stepId, result, options) {
   const refuse = why => ({ refusal: why });
+  if (!isValidScenario(scenario)) return refuse('the scenario was not made by validateScenario (scenario.mjs), so nothing is recorded from it');
   const sheet = (scenario?.sheets ?? []).find(candidate => candidate?.id === options.sheet);
   if (!sheet) return refuse(`the scenario has no sheet ${options.sheet}`);
   const captured = (result?.steps ?? []).find(candidate => candidate?.id === stepId);
@@ -89,6 +94,7 @@ export function recordSheet(scenario, stepId, result, options) {
 
 export function record(scenario, stepId, result, options) {
   const refuse = why => ({ refusal: why });
+  if (!isValidScenario(scenario)) return refuse('the scenario was not made by validateScenario (scenario.mjs), so nothing is recorded from it');
   const step = (scenario?.steps ?? []).find(candidate => candidate?.id === stepId);
   if (!step) return refuse(`the scenario has no step ${stepId}`);
   const expectations = step.expect;
@@ -161,7 +167,12 @@ function main(argv) {
     return 2;
   }
   const make = options.sheet !== undefined ? recordSheet : record;
-  const made = make(JSON.parse(readFileSync(scenarioPath, 'utf8')), stepId, JSON.parse(readFileSync(resultPath, 'utf8')), options);
+  const validated = parseScenario(readFileSync(scenarioPath, 'utf8'));
+  if (validated.refusal) {
+    process.stderr.write(`not recorded: the scenario is not of the closed form (${validated.refusal})\n`);
+    return 2;
+  }
+  const made = make(validated.scenario, stepId, JSON.parse(readFileSync(resultPath, 'utf8')), options);
   if (made.refusal) {
     process.stderr.write(`not recorded: ${made.refusal}\n`);
     return 2;

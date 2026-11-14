@@ -7,6 +7,7 @@
 // fail, 2 otherwise.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { run, summary } from './walk.mjs';
+import { parseScenario } from './scenario.mjs';
 
 // --log <path> writes the attempt log there (it is not a result); without it the log is not kept.
 const args = process.argv.slice(2);
@@ -17,7 +18,11 @@ if (!scenarioPath || !viewsPath) {
   console.error('usage: node replay.mjs <scenario.json> <views.json> [<wrong-state.json>] [--log <attempt-log.json>]');
   process.exit(2);
 }
-const scenario = JSON.parse(readFileSync(scenarioPath, 'utf8'));
+// The scenario is validated here, by its only constructor, and the walk is given only what that made: a scenario not
+// of the closed form reaches the walk as nothing, and the walk refuses it before any call, inconclusive.
+const validated = parseScenario(readFileSync(scenarioPath, 'utf8'));
+const scenario = validated.scenario ?? null;
+if (validated.refusal) console.error(`the scenario is not of the closed form: ${validated.refusal}`);
 const recorded = JSON.parse(readFileSync(viewsPath, 'utf8'));
 const texts = recorded.views.map(view => view.text);
 if (wrongPath) {
@@ -42,7 +47,7 @@ const running = () => ({ pid: process.pid, running: true, at_ms: Date.now(), exe
 const verdict = await run({ sky: standIn, scenario, app: recorded.app, home: recorded.home, bundle: recorded.bundle, pid: process.pid, readWatch: running, sleep: async () => {}, project: recorded.project,
   // Offline, the recorded views carry the candidate key they were recorded for; without one, no record is usable.
   readIdentification: () => (typeof recorded.candidate_key === 'string' ? { candidate_key: recorded.candidate_key } : null),
-  onLog: log => { if (logPath) writeFileSync(logPath, JSON.stringify({ ...log, replayed: { views: viewsPath, wrong_state: wrongPath ?? null, calls_received: made.length } }, null, 2) + '\n'); } });
+  onLog: log => { if (logPath) writeFileSync(logPath, JSON.stringify({ ...log, replayed: { views: viewsPath, wrong_state: wrongPath ?? null, calls_received: made.length, scenario_refused: validated.refusal ?? null } }, null, 2) + '\n'); } });
 // The verdict alone on standard output; the exit status follows it alone.
 console.log(JSON.stringify(verdict));
 console.error(summary(verdict));

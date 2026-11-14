@@ -35,7 +35,20 @@ OUTCOMES = {'SETUP CHOICES REVIEWED', 'REFUSAL: REVIEW SETUP UNAVAILABLE BEFORE 
             'STARTING STATE: SETUP REQUIRED, APP DATA UNDER THE THROWAWAY HOME'}
 HARNESS = '''
 import { readFileSync } from 'node:fs';
-const walkModule = await import(process.argv[1]);
+const rawWalk = await import(process.argv[1]);
+const scenarioModule = await import(new URL('./scenario.mjs', process.argv[1]).href);
+// The harness stands where replay and the operator stand: a scenario is validated by its only constructor before the
+// walk is given it, and the walk is given only what that made. A scenario it refuses is given as it is, so that the
+// walk's own refusal of anything validateScenario did not make is what the test sees; the refusal is kept beside it.
+let lastRefusal = null;
+const validated = options => {
+  lastRefusal = null;
+  if (scenarioModule.isValidScenario(options.scenario)) return options;
+  const made = scenarioModule.validateScenario(options.scenario);
+  lastRefusal = made.refusal ?? null;
+  return { ...options, scenario: made.scenario ?? options.scenario };
+};
+const walkModule = { ...rawWalk, run: options => rawWalk.run(validated(options)) };
 // A scenario that names no listed states (the first-use scenario, kept for the hosted driver) is given, for these
 // tests of the walk's mechanics, the views it is fed as its states, read when the walk starts: each acting step's
 // from_state, and each step's own judged state (the view it is fed after it), so that a pass here rests on equality
@@ -62,7 +75,9 @@ const bindAll = options => {
 };
 // For these tests of the walk's mechanics, a view joining the attempt log and the result (test-only: the walk returns
 // them apart, and nothing in the walk reads the one from the other). The result itself is kept whole as r.result.
-const testView = (verdict, log) => ({ ...log, verdict, log });
+// Test-only: where validateScenario refused the scenario, its reason is added to the walk's own refusal, labelled.
+const testView = (verdict, log) => ({ ...log, verdict, log, scenario_refused: lastRefusal,
+  stopped: lastRefusal ? `${log.stopped} (validateScenario: ${lastRefusal})` : log.stopped });
 const walk = { ...walkModule, run: async options => {
   listAll(); bindAll(options);
   let log = null;
@@ -191,13 +206,15 @@ class Replay(unittest.TestCase):
         scenario = json.loads(SETUP.read_text())
         scenario['state_records']['S1']['judged']['result'] = 'not judged'
         self.assertIn('was not judged before it was recorded',
-                      harness(f"return walk.recordUsable({json.dumps(scenario)}, 'state', 'S1', {json.dumps(scenario['state_records']['S1']['recorded_on']['identifier'])}, "
+                      harness(f"return walk.recordUsable(scenarioModule.validateScenario({json.dumps(scenario)}).scenario, 'state', 'S1', {json.dumps(scenario['state_records']['S1']['recorded_on']['identifier'])}, "
                               f"{json.dumps(scenario['state_records']['S1']['recorded_on']['app_name'])}, {json.dumps(scenario['state_records']['S1']['recorded_on']['candidate_key'])});")['out'])
 
     def test_a_scenario_that_acts_and_names_no_listed_state_is_refused_before_any_call(self):
         code, report, said = replay(SCENARIO, VIEWS)  # the first-use scenario, kept for the hosted driver
         self.assertEqual((code, report['verdict'], report['calls']), (2, 'inconclusive', []), said)
-        self.assertIn('names no listed state it acts from; the walk acts only in a listed state', report['stopped'])
+        self.assertIn('not made by validateScenario', report['stopped'])
+        self.assertIn('the scenario is not of the closed form: step 2 (click) has no from_state', said)
+        self.assertEqual(report['replayed']['scenario_refused'], 'step 2 (click) has no from_state')
 
     def test_the_whole_result_arrives_through_a_pipe_and_the_long_attempt_log_apart(self):
         views = setup_views()
@@ -1285,10 +1302,10 @@ class TheSheetAndTheTypedPath(unittest.TestCase):
                 self.assertEqual((verdict, calls), ('inconclusive', []), stopped)
                 self.assertTrue(stopped.startswith('refused before any call: '), stopped)
         for name, change, says in (
-                ('a field the scenario does not name', "scenario.steps[1].control.label = 'Find in received conversations'", 'names no such field'),
-                ('a field that is not a text field', "scenario.steps[1].control.kind = 'button'", 'names no such field'),
-                ('a sheet opened by another control', "scenario.steps[4].control.label = 'Review setup'", 'names no such sheet'),
-                ('a sheet the scenario does not name', "scenario.steps[4].sheet = 'other'", 'names no such sheet')):
+                ('a field the scenario does not name', "scenario.steps[1].control.label = 'Find in received conversations'", 'types into a field the scenario does not name in typed_fields'),
+                ('a field that is not a text field', "scenario.steps[1].control.kind = 'button'", 'is not a text field named by text'),
+                ('a sheet opened by another control', "scenario.steps[4].control.label = 'Review setup'", 'is not the button that opens its sheet'),
+                ('a sheet the scenario does not name', "scenario.steps[4].sheet = 'other'", 'sheet is not one the scenario names')):
             with self.subTest(name):
                 verdict, stopped, calls = setup_walk(change + '; ' + RESULT.replace('OPTIONS', 'base'))['out']
                 self.assertEqual(verdict, 'inconclusive')
@@ -1625,9 +1642,13 @@ class TheRecorder(unittest.TestCase):
             bundle = identified_candidate(folder)
         result = {'app': INVENTED['app'], 'home': INVENTED['home'], 'steps': [{'id': step, 'returned': text}]}
         options = {'bundle': bundle, 'project': PROJECT, 'from': 'invented', **({'candidateKey': key} if key else {})}
+        # The scenario is validated by its only constructor, as the recorder's command does; one it refuses is given as
+        # it is, so that the recorder's own refusal is what the test sees, with validateScenario's reason beside it.
         script = (f"import {{ record }} from {json.dumps(self.RECORDER.as_uri())}; "
-                  f"process.stdout.write(JSON.stringify(record({json.dumps(scenario or json.loads(SETUP.read_text()))}, "
-                  f"{json.dumps(step)}, {json.dumps(result)}, {json.dumps(options)})));")
+                  f"import {{ validateScenario }} from {json.dumps((OPERATED / 'scenario.mjs').as_uri())}; "
+                  f"const raw = {json.dumps(scenario or json.loads(SETUP.read_text()))}; const v = validateScenario(raw); "
+                  f"process.stdout.write(JSON.stringify({{ ...record(v.scenario ?? raw, "
+                  f"{json.dumps(step)}, {json.dumps(result)}, {json.dumps(options)}), scenario_refused: v.refusal ?? null }}));")
         done = subprocess.run([NODE, '--input-type=module', '-e', script], capture_output=True, text=True)
         if done.returncode != 0:
             raise AssertionError(done.stderr)
@@ -1658,7 +1679,11 @@ class TheRecorder(unittest.TestCase):
     def test_a_step_that_states_no_expectation_is_not_recordable(self):
         scenario = json.loads(SETUP.read_text())
         next(s for s in scenario['steps'] if s['id'] == 'S5')['expect'] = []
-        self.assertIn('states no expectation of its view', self.record('S5', AFTER_THE_PRESS, scenario)['refusal'])
+        # A step that expects nothing is not of the closed form: the scenario is refused whole, and nothing is recorded.
+        made = self.record('S5', AFTER_THE_PRESS, scenario)
+        self.assertEqual(made['scenario_refused'], 'step 5 expects nothing')
+        self.assertIn('not made by validateScenario', made['refusal'])
+        self.assertNotIn('state', made)
 
     def test_a_view_of_another_build_is_not_recordable(self):
         folder = tempfile.mkdtemp()
@@ -1709,23 +1734,28 @@ class TheClosedList(unittest.TestCase):
         self.assertEqual(self.effects(result), self.EFFECTS)
 
     def test_each_record_unjudged_absent_or_of_another_build_or_candidate_withholds_its_effect_and_the_pass(self):
-        def unjudged(record):
-            record['judged']['result'] = 'not judged'
+        def unjudged(scenario, kind, rid):
+            self.records(scenario, kind, rid)['judged']['result'] = 'not judged'
 
-        def other_build(record):
-            record['recorded_on']['app_name'] = 'Chirality App v4 (development another)'
+        def other_build(scenario, kind, rid):
+            self.records(scenario, kind, rid)['recorded_on']['app_name'] = 'Chirality App v4 (development another)'
 
-        def absent(record):
-            record.clear()
+        def absent(scenario, kind, rid):
+            scenario['state_records' if kind == 'state' else 'sheet_records'].pop(rid)
 
-        def other_candidate(record):
-            record['recorded_on']['candidate_key'] = 'another-key'
+        def other_candidate(scenario, kind, rid):
+            self.records(scenario, kind, rid)['recorded_on']['candidate_key'] = 'another-key'
         for (kind, rid), made in self.FIRST_USE.items():
             for name, spoil in (('unjudged', unjudged), ('of another build', other_build), ('absent', absent), ('of another candidate', other_candidate)):
                 with self.subTest(record=f'{kind} {rid}', made=name):
-                    result = self.run_with(lambda scenario: spoil(self.records(scenario, kind, rid)))
+                    result = self.run_with(lambda scenario: spoil(scenario, kind, rid))
                     self.assertEqual(self.effects(result), self.EFFECTS[:made], result['stopped'])  # the effect resting on it is not made
                     self.assertEqual(result['verdict'], 'inconclusive')
+            # A record emptied of its form is not a record at all: the scenario is refused whole, before any call.
+            with self.subTest(record=f'{kind} {rid}', made='emptied'):
+                result = self.run_with(lambda scenario: self.records(scenario, kind, rid).clear())
+                self.assertEqual((self.effects(result), result['verdict']), ([], 'inconclusive'), result['stopped'])
+                self.assertIn(f'the record of {rid} has no recorded_on', result['stopped'])
 
     def test_every_record_unjudged_at_once_makes_no_effect_at_all(self):
         def spoil_all(scenario):
@@ -1777,7 +1807,8 @@ class TheClosedList(unittest.TestCase):
             options = {'bundle': identified_candidate(folder), 'project': PROJECT, 'sheet': 'desktop-setup',
                        'settings': SETTINGS, 'account': ACCOUNT, 'request': REQUEST}
             script = (f"import {{ recordSheet }} from {json.dumps((OPERATED / 'record_state.mjs').as_uri())}; "
-                      f"process.stdout.write(JSON.stringify(recordSheet({SETUP.read_text()}, 'S5', {json.dumps(result)}, {json.dumps(options)})));")
+                      f"import {{ validateScenario }} from {json.dumps((OPERATED / 'scenario.mjs').as_uri())}; "
+                      f"process.stdout.write(JSON.stringify(recordSheet(validateScenario({SETUP.read_text()}).scenario, 'S5', {json.dumps(result)}, {json.dumps(options)})));")
             done = subprocess.run([NODE, '--input-type=module', '-e', script], capture_output=True, text=True)
             if done.returncode != 0:
                 raise AssertionError(done.stderr)
@@ -1833,7 +1864,7 @@ class TheVerdictAlone(unittest.TestCase):
                                  scenario=path, rebind=False)['out']
                 verdict, calls, stopped = out
                 self.assertEqual((verdict, calls), ('inconclusive', 0))
-                self.assertIn('refused before any call: the scenario is not well formed', stopped)
+                self.assertIn('refused before any call: the scenario was not made by validateScenario', stopped)
 
     def test_any_throw_on_each_real_call_path_stops_the_walk_and_no_later_call_is_made(self):
         # The five falsy values, and an Error, thrown from the walk's own set_value, its click on Review setup, and its
@@ -1876,7 +1907,7 @@ class TheVerdictAlone(unittest.TestCase):
         self.assertEqual(rule([{'verdict': 'admitted'}] * 4 + [{'verdict': 'failed'}]), 'fail')
         self.assertEqual(rule([]), 'inconclusive')
         self.assertEqual(rule([{'verdict': 'admitted'}] * 5), 'pass')
-        at = lambda marks, verdict='end': harness(f'return walk.verdictAt({SETUP.read_text()}, {json.dumps(marks)}, {json.dumps(verdict)});')['out']
+        at = lambda marks, verdict='end': harness(f'return walk.verdictAt(scenarioModule.validateScenario({SETUP.read_text()}).scenario, {json.dumps(marks)}, {json.dumps(verdict)});')['out']
         admitted = [{'position': n, 'verdict': 'admitted'} for n in range(5)]
         self.assertEqual(at(admitted), 'pass')
         self.assertEqual(at(admitted[:4]), 'inconclusive')                     # the last position has no mark
@@ -1995,7 +2026,7 @@ class AButtonPressedOnlyIfOffered(unittest.TestCase):
     def test_the_mark_does_not_reach_a_control_that_is_not_a_button(self):
         verdict, stopped, clicks, _ = self.walk({'kind': 'link', 'label': 'Invented link'})
         self.assertEqual((verdict, clicks), ('inconclusive', []))
-        self.assertIn('only a button is pressed if offered', stopped)
+        self.assertIn('control is not a button, summary or radio', stopped)
 
     def test_the_buttons_words_on_a_control_of_another_kind_stop_the_walk(self):
         welcome = setup_views()['views'][0]['text']
@@ -2019,3 +2050,139 @@ class AButtonPressedOnlyIfOffered(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class TheScenarioContract(unittest.TestCase):
+    """The replacement for PR 351's partial scenario check (PR 351 stopped after six readings with two unresolved
+    findings). One closed scenario form, made only by validateScenario (scenario.mjs), before any consumer; every
+    consumer (the walk, replay, the recorder) takes only what it made; and no thrown value of any shape leaves a run
+    without a verdict and a log. The sixth reader's probes and both findings are required cases here, with a sweep over
+    every key of every committed scenario's steps (group_b_operated_contract_probe.mjs)."""
+
+    PROBE = APP / 'tests/group_b_operated_contract_probe.mjs'
+    COMMITTED = sorted(OPERATED.glob('*.scenario.json'))
+
+    @classmethod
+    def setUpClass(cls):
+        cls.folder = tempfile.mkdtemp()
+        views = Path(cls.folder) / 'views.json'
+        views.write_text(json.dumps(setup_views()))
+        cls.scenario = rebound(SETUP, cls.folder)
+        cls.views = views
+        done = subprocess.run([NODE, str(cls.PROBE), str(OPERATED), str(cls.scenario), str(views), *map(str, cls.COMMITTED)],
+                              capture_output=True, text=True)
+        if done.returncode != 0:
+            raise AssertionError(done.stderr)
+        cls.results = json.loads(done.stdout)
+
+    @classmethod
+    def tearDownClass(cls):
+        shutil.rmtree(cls.folder, True)
+
+    def test_the_valid_setup_scenario_still_passes(self):
+        self.assertEqual(self.results['baseline']['verdict'], 'pass', self.results['baseline'])
+
+    def test_every_malformed_scenario_is_refused_before_any_supplier_use_with_a_verdict_and_a_log(self):
+        # Finding 1 of the sixth reading, and every malformed form its probes tried, with more.
+        self.assertGreaterEqual(len(self.results['malformed']), 55)
+        for name, row in {**self.results['malformed'], **{'root ' + k: v for k, v in self.results['roots'].items()}}.items():
+            with self.subTest(name):
+                self.assertIsNotNone(row['refusal'], row)
+                self.assertEqual((row['verdict'], row['rejected'], row['uses'], row['logged']), ('inconclusive', None, 0, True), row)
+                self.assertIn('refused before any call: the scenario was not made by validateScenario', row['stopped'])
+
+    def test_the_findings_own_inputs_are_named_in_the_refusal(self):
+        said = {name: self.results['malformed'][name]['refusal'] for name in
+                ('missing_click_control', 'wrong_are_list', 'wrong_press_string', 'wrong_no_text_value', 'duplicate_ids')}
+        self.assertEqual(said, {'missing_click_control': 'step 3 (click) has no control',
+                                'wrong_are_list': "step 3's expectation 2's are is not of its form",
+                                'wrong_press_string': "step 5's press is not true or false",
+                                'wrong_no_text_value': "step 5's expectation 1's no_text is not text",
+                                'duplicate_ids': "step 2's id repeats an earlier step's"})
+        self.assertEqual(self.results['roots']['null']['refusal'], 'the scenario is not an object')
+
+    def test_no_thrown_or_returned_value_of_any_shape_leaves_a_run_without_a_verdict_and_a_log(self):
+        # Finding 2 of the sixth reading: Object.create(null) and an unreadable message, with every other shape, at
+        # each of the five effect positions. The walk stops inconclusive, the log is delivered, and nothing is called
+        # after the effect.
+        rows = self.results['throws']
+        self.assertEqual(len(rows), 5 * 16 + 5 * 15)
+        for name, row in rows.items():
+            with self.subTest(name):
+                self.assertEqual((row['verdict'], row['rejected'], row['logged'], row['later']), ('inconclusive', None, True, 0), row)
+        for name, row in self.results['unreadable_options'].items():
+            with self.subTest(options=name):
+                self.assertEqual(row, {'verdict': 'inconclusive'})
+
+    # What the form accepts of a spoiled key: the deletion of a key the form makes optional, or a value of the very type
+    # the form asks for (text where it asks for text, a number where it asks for a wait). Everything else is refused.
+    OPTIONAL = {'says', 'wait_ms', 'sheet_wait_ms', 'state', 'capture', 'press', 'placeholder'}
+    TEXT = {'says', 'id', 'label', 'placeholder', 'text', 'no_text', 'text_starts', 'heading', 'button', 'summary', 'radio', 'location', 'under'}
+    WAITS = {'wait_ms', 'sheet_wait_ms'}
+    # Of those, what may still pass on the setup walk: the words a step says, its waits, the name of a step nothing
+    # refers to, and the words of a no_text, which only adds a check (the pass still rests on line-for-line equality
+    # with the step's recorded state).
+    MAY_STILL_PASS = {'says', 'wait_ms', 'sheet_wait_ms', 'id', 'no_text'}
+
+    def test_the_sweep_refuses_every_spoiled_key_but_an_optional_deletion_or_a_value_of_its_type(self):
+        sweep = self.results['sweep']
+        self.assertGreaterEqual(len(sweep), 400)
+        self.assertEqual({row['scenario'] for row in sweep}, {path.name for path in self.COMMITTED} - {'first-use-setup.scenario.json'})
+        for row in sweep:
+            key = row['key'].split('.')[-1]
+            with self.subTest(scenario=row['scenario'], step=row['step'], key=row['key'], spoil=row['spoil']):
+                if row['refusal'] is None:
+                    self.assertTrue((row['spoil'] == 'deleted' and key in self.OPTIONAL)
+                                    or (row['spoil'] == 'a truthy string' and key in self.TEXT)
+                                    or (row['spoil'] == 'a number' and key in self.WAITS), row)
+                if row['spoil'] == 'null':
+                    self.assertIsNotNone(row['refusal'], row)
+
+    def test_no_spoiled_setup_scenario_the_form_accepts_passes_unless_only_words_waits_or_a_name_changed(self):
+        walked = self.results['sweep_walked']
+        self.assertGreaterEqual(len(walked), 40)
+        for name, row in walked.items():
+            with self.subTest(name):
+                self.assertEqual((row['rejected'], row['logged']), (None, True), row)
+                if name.split(' ')[0].split('.')[-1] not in self.MAY_STILL_PASS:
+                    self.assertNotEqual(row['verdict'], 'pass', row)
+
+    def test_no_consumer_takes_a_scenario_validate_scenario_did_not_make(self):
+        for name, row in self.results['raw'].items():
+            with self.subTest(name):
+                self.assertEqual((row['verdict'], row['uses']), ('inconclusive', 0), row)
+                self.assertIn('not made by validateScenario', row['stopped'])
+                self.assertIn('not made by validateScenario', row['usable'])
+                self.assertFalse(row['admission']['admitted'])
+                self.assertIn('not part of a scenario validateScenario made', row['checkOne'])
+                self.assertIn('the sheet is not part of a scenario validateScenario made', row['sheetCheck'])
+                self.assertIn('not made by validateScenario', row['record'])
+                self.assertIn('not made by validateScenario', row['recordSheet'])
+        self.assertEqual(self.results['frozen'], {'changedAfter': 'refused', 'press': None, 'stillValid': True})
+        self.assertEqual(self.results['read_once'], {'shifted': 'valid', 'reads': 1, 'laterPress': None})
+
+    def test_replay_gives_no_pass_and_the_recorder_no_record_for_a_malformed_scenario(self):
+        # The evidence side: neither replay nor the recorder's command can make accepted evidence from a malformed
+        # scenario, with no window involved.
+        base = json.loads(self.scenario.read_text())
+        spoils = {'duplicate ids': lambda s: s['steps'][1].update(id=s['steps'][0]['id']),
+                  'press as a string': lambda s: s['steps'][4].update(press='false'),
+                  'a vacuous no_text': lambda s: s['steps'][4].update(expect=[{'no_text': {'pressed': True}}]),
+                  'a missing control': lambda s: s['steps'][2].pop('control')}
+        for name, spoil in spoils.items():
+            with self.subTest(name), tempfile.TemporaryDirectory() as folder:
+                scenario = json.loads(json.dumps(base))
+                spoil(scenario)
+                path = Path(folder) / 'malformed.scenario.json'
+                path.write_text(json.dumps(scenario))
+                code, report, said = replay(path, self.views)
+                self.assertEqual((code, report['verdict'], report['calls']), (2, 'inconclusive', []), said)
+                self.assertIn('the scenario is not of the closed form', said)
+                attempt = Path(folder) / 'attempt-log.json'
+                attempt.write_text(json.dumps({'app': INVENTED['app'], 'home': INVENTED['home'], 'steps': [{'id': 'S5', 'returned': AFTER_THE_PRESS}]}))
+                bundle = identified_candidate(folder)
+                done = subprocess.run([NODE, str(OPERATED / 'record_state.mjs'), str(path), 'S5', str(attempt), '--bundle', bundle, '--project', PROJECT],
+                                      capture_output=True, text=True)
+                self.assertEqual(done.returncode, 2, done.stdout)
+                self.assertEqual(done.stdout, '')
+                self.assertIn('not recorded: the scenario is not of the closed form', done.stderr)

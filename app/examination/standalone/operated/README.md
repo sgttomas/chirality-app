@@ -983,8 +983,10 @@ node replay.mjs first-use-setup.scenario.json ../../../tests/group_b_operated_fi
 ```
 
 Both are now refused before any call (INCONCLUSIVE, exit 2): the 13 November
-scenario names no recorded state for its acts, and the walk acts only in a
-listed state (and passes only on equality with a recorded state, above). The
+scenario is not of the closed form, because its acting steps name no recorded
+state they act from ("The scenario's closed form", below), and the walk acts
+only in a listed state (and passes only on equality with a recorded state,
+above). The
 `wrong.*.json` files beside the views (a line of "What setup will do" missing,
 a sixth line added, a location outside the home, Review setup available before
 any choice or with existing settings, a control whose words begin the same
@@ -1102,14 +1104,21 @@ follows at once, in the operator's `js` tool, with the values filled in:
 ```js
 var fs = await import('node:fs');
 var walk = await import('file://<repository>/app/examination/standalone/operated/walk.mjs');
-var scenario = JSON.parse(fs.readFileSync('<repository>/app/examination/standalone/operated/first-use-setup.scenario.json', 'utf8'));
-var verdict = await walk.run({sky, scenario, app: '<bundle identifier>', home: '<launch folder>/home',
-  bundle: '<the bundle, the path of the .app folder>',
-  pid: <the App's process number>, watch: '<evidence folder>/watch.json',
-  attemptLog: '<evidence folder>/attempt-log.json'});
-// A scenario with a `type` step also gives project: '<launch folder>/project'.
-fs.writeFileSync('<evidence folder>/verdict.json', JSON.stringify(verdict) + '\n');
-nodeRepl.write(walk.summary(verdict));
+var contract = await import('file://<repository>/app/examination/standalone/operated/scenario.mjs');
+var made = contract.parseScenario(fs.readFileSync('<repository>/app/examination/standalone/operated/<the scenario>.scenario.json', 'utf8'));
+if (made.refusal) {
+  // A scenario not of the closed form is no walk: nothing is called and no verdict.json is written; the operator
+  // returns "no walk" with this line.
+  nodeRepl.write('no walk: the scenario is not of the closed form (' + made.refusal + ')');
+} else {
+  var verdict = await walk.run({sky, scenario: made.scenario, app: '<bundle identifier>', home: '<launch folder>/home',
+    bundle: '<the bundle, the path of the .app folder>',
+    pid: <the App's process number>, watch: '<evidence folder>/watch.json',
+    attemptLog: '<evidence folder>/attempt-log.json'});
+  // A scenario with a `type` step also gives project: '<launch folder>/project'.
+  fs.writeFileSync('<evidence folder>/verdict.json', JSON.stringify(verdict) + '\n');
+  nodeRepl.write(walk.summary(verdict));
+}
 ```
 
 Nothing else changes: no retry inside the walk, no second view after a
@@ -1120,11 +1129,10 @@ verdict, and the operator writes it as `verdict.json`. It is one of "pass",
 "fail", "inconclusive" and "captured, not judged", derived by position over
 every step the scenario requires (`verdictAt`, `verdictOf`): "pass" only when
 every required position was admitted; a missing, failed or unjudged position
-cannot drop out. A walk that stopped keeps the verdict it stopped with. A
-scenario that is not well formed (its steps not a non-empty list of objects,
-a step id not a string of the step id form, ids repeated, an act the walk does
-not make, a state, expect, control, wait or capture of the wrong type) is
-refused before any call, inconclusive. The walk reports nothing per step or
+cannot drop out. A walk that stopped keeps the verdict it stopped with. The
+walk takes only a scenario `validateScenario` made ("The scenario's closed
+form", below); any other is refused before any call, inconclusive. The walk
+reports nothing per step or
 per outcome, and copies nothing from the scenario into what it returns.
 Everything else the walk did and saw goes to `attempt-log.json`, the attempt
 log, whose first line says "ATTEMPT LOG. This is not a result": each effect
@@ -1134,6 +1142,52 @@ difference or the observation that it matched, where the walk stopped, and
 the scenario's text under `intended`. Nothing affirmative is read from the
 log: the summary ("verdict: ...") and `replay.mjs`'s exit status follow the
 verdict alone.
+
+**The scenario's closed form** (`scenario.mjs`). PR 351 stopped after six
+readings with two unresolved findings. A scenario's form was checked only in
+part, so a step missing its control, a malformed expectation or a press given
+as a string could reach an effect or a pass. And a thrown value whose text
+could not be read left a run without a verdict or a log. This replaces that
+check with one boundary:
+
+- **One form, checked whole.** `validateScenario` copies the scenario once
+  into plain data, so that nothing read later can differ from what was
+  checked. It then refuses the copy unless every part is of the closed form:
+  - every level holds only its known keys;
+  - each of the four acts holds exactly the keys it uses, with their types.
+    A view needs nothing more. A click needs a control (a button, summary or
+    radio) and the listed state it acts from, and may say if_offered as true
+    or false. A type needs a text field the scenario names, the listed state,
+    and the project as its value. A confirm_sheet needs the button that opens
+    a sheet the scenario names, and the listed state, and may say press as
+    true or false;
+  - each expectation is exactly one kind of those `checkOne` knows, with
+    exactly its companions and their types (an `is` from that kind's own
+    states);
+  - every record, sheet and capture is of its form, and every name one part
+    gives another (a state, a sheet, a step id) is one the scenario lists.
+
+  It then freezes the copy and registers it, and every part of it, in a set
+  that only `scenario.mjs` can add to. It never throws: it returns the
+  scenario or the refusal.
+- **Only what it made is consumed.** The walk (`run`, `admission`,
+  `recordUsable`, `verdictAt`, `checkOne`, `sheetCheck`), `replay.mjs` and
+  `record_state.mjs` each take only a registered scenario or part. Anything
+  else is refused before anything in it is read: a plain object, a copy of
+  a validated scenario, or an object made with its prototype. That is a
+  matter of the only constructor, not of a caller remembering to check.
+  `replay.mjs` and the recorder's command validate the file they are given.
+  The operator does the same, above. So a malformed scenario gives no
+  effect, no "pass" from replay and no record from the recorder.
+- **No failure escapes.** A thrown value of any shape is described by the
+  guarded reader (`readFailure`), which says a part cannot be read rather
+  than throwing. Anything else the walk does not handle ends the run there,
+  inconclusive, with the attempt log delivered, and no later call. Writing
+  or handing over the log cannot end the walk otherwise.
+
+Both findings, the sixth reader's probes and a sweep over every key of every
+committed scenario's steps are required cases in the tests
+(`group_b_operated_contract_probe.mjs`).
 
 **What a call's success is.** The supplier declares `click` and `set_value`
 each as `Promise<void>` (`types/window/Click.d.ts`, `SetValue.d.ts` in the
@@ -1418,9 +1472,9 @@ effect: whether the App acted is shown only by the next view.
   App paths, the App's name (the candidate bundle's folder name, which must
   be of the development build's form) and nothing else; the one allowance
   is `{~number}`, a scroll bar's position. Any difference stops the step with
-  no act. A scenario with a step that acts and names no listed state is
-  refused before any call, so the first-use scenario, kept for the hosted
-  driver, is not walked on this Mac. If the supplier's view of the same pages
+  no act. A step that acts must name the listed state it acts from, or the
+  scenario is not of the closed form and is refused before any call; so the
+  first-use scenario, kept for the hosted driver, is not walked on this Mac. If the supplier's view of the same pages
   changes shape, or the build's strings change, the walk stops, and a state
   is recorded again from a real observation and read again before it is
   relied on.
@@ -1590,8 +1644,9 @@ either driver marker.
   They cannot tell apart a sheet or field that looks the same in every checked
   part, and the App could change between the view and the press. Those are
   limits, not refusals. A wrong field or a wrong sheet inside the App's own
-  window costs a throwaway home and a walk run again. So the walk's result
-  keeps what would show a wrong act afterwards:
+  window costs a throwaway home and a walk run again. So the attempt log
+  keeps what would show a wrong act afterwards (it is evidence, not a
+  result; the verdict is the walk's one result):
   - the sheet's whole view;
   - the statement wanted, and the first line where the view differed from
     the recorded one, if it did;
