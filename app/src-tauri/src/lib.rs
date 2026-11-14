@@ -1047,8 +1047,9 @@ fn records_store_choose(app: tauri::AppHandle, state: State<'_, AppState>, actio
         refused.map_or(Ok(yes), Err)
     })
 }
-/// DEL-01-01: the working folders the App gives its Codex, which the records
-/// store may never overlap, whatever folder that is.
+/// DEL-01-01: the working folders the App gives its Codex. A records store
+/// location that overlaps one is refused when it is admitted, whatever folder
+/// that is.
 fn working_folders<'a>(configs: impl Iterator<Item = &'a hosting::HostConfig>) -> Vec<PathBuf> {
     configs.map(|cfg| cfg.cwd.clone()).collect()
 }

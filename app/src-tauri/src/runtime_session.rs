@@ -2904,8 +2904,8 @@ pub fn freeze_root_home_descriptors(
     use crate::home_resources::{
         ExistingHomeReference, HomeClass, OwnedHomePlan, SharedResourceTargets,
     };
-    // DEL-01-01: on every route, no Codex home and no source of its settings is in the folder set
-    // aside for conversations without a project; refused here, before any home is prepared.
+    // DEL-01-01: on every route, a Codex home or a source of its settings in the folder set aside
+    // for conversations without a project is refused here, before any home is prepared.
     // Freezing creates nothing: with the folder established (as every start establishes it
     // first) this decides by identity; established absent, nothing is decided here and each home
     // is decided again before anything is prepared or started on it.
@@ -3206,6 +3206,8 @@ pub fn logout_native_home<F: FnOnce(&Value) -> bool>(
 /// DEL-01-01: the temporary root (`TMPDIR`) to allocate in, after checking by identity that it is
 /// not inside an App data folder this process holds (`working_folder::check_temporary_root`).
 /// Every production allocation the App makes in the temporary folder asks for it here first.
+/// The check is made when this is called: the allocation resolves the path again, so a folder
+/// replaced in between is outside what it guarantees.
 pub(crate) fn temporary_root(what: &str) -> Result<std::path::PathBuf, String> {
     let held = crate::session_liveness::held_app_data_identities()?;
     crate::working_folder::check_temporary_root(&std::env::temp_dir(), &held, what)

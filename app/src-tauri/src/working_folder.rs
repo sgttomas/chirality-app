@@ -21,10 +21,14 @@ use std::path::{Path, PathBuf};
 /// DEL-01-01: the folder the App gives the Codex it hosts as its working
 /// folder when no project is open. Under Codex's workspace-write sandbox the
 /// working folder is an agent's writable root, so it is a folder of its own,
-/// set aside for this and holding nothing else of the App's: never the App
-/// data folder itself, whose other contents (the records store, the account
-/// homes, the saved setup request, the recovery ledger) stay outside it. This
-/// only calculates the path; [`establish`] creates it.
+/// set aside for this, and not the App data folder itself. The App's own fixed
+/// locations (the records store, the account homes, the saved setup request,
+/// the recovery ledger) are other children of the App data folder; a location
+/// the App is given for them is checked against this folder by identity when
+/// it is admitted (the checks below). A file that is already another name for
+/// a file inside this folder, and a location replaced after its check, are
+/// outside what those checks guarantee. This only calculates the path;
+/// [`establish`] creates it.
 pub fn no_project_folder(app_data: &Path) -> PathBuf {
     app_data.join("conversations-without-project")
 }
@@ -330,6 +334,8 @@ pub fn may_be_in_app_data(app_data: &Path, candidate: &Path) -> Result<bool, ()>
 /// App allocates anything in it: a root that is an App data folder this process holds, or a
 /// folder inside one (the folder set aside included), refuses with a plain reason naming it, and
 /// so does a root whose place cannot be established. Returns the canonical root to allocate in.
+/// The check is made when this is called; the caller's allocation resolves the path again, so a
+/// root replaced between the two is outside what it guarantees.
 pub fn check_temporary_root(root: &Path, held: &[Identity], what: &str) -> Result<PathBuf, String> {
     let refused = |why: String| format!("{what} was not made: {why}. Set TMPDIR to a folder outside Chirality's data folder.");
     let canonical_root = canonical(root).map_err(|e| refused(format!("the temporary folder {} could not be examined ({e})", root.display())))?;
@@ -354,8 +360,8 @@ impl std::ops::Deref for AdmittedProject {
     }
 }
 
-/// DEL-01-01: a Codex home is never at, in or containing the folder set
-/// aside. While nothing is to be created (`creating` false: a plan or an
+/// DEL-01-01: a Codex home at, in or containing the folder set aside is
+/// refused when it is checked. While nothing is to be created (`creating` false: a plan or an
 /// inspection) and the App data folder or the folder set aside is
 /// established to be absent, nothing is decided and nothing exists to
 /// decide against: the plan is checked again before it creates anything,
@@ -372,8 +378,8 @@ pub fn refuse_in_no_project_folder(app_data: &Path, path: &Path, what: &str, cre
         Err(blocked) => Err(blocked.sentence()),
     }
 }
-/// DEL-01-01: a source of a Codex home's settings is never in, or over, the
-/// folder set aside. A source may be absent, or behind a link whose target is
+/// DEL-01-01: a source of a Codex home's settings in, or over, the folder set
+/// aside is refused when it is checked. A source may be absent, or behind a link whose target is
 /// absent: that stays a visible source limit, as before. Such a source is
 /// placed where its links lead, by their target text, and refused when that
 /// place is in, or over, the folder set aside or cannot be followed.

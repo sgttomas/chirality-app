@@ -66,8 +66,10 @@ pub struct Engine {
 impl Engine {
     pub fn create(objects: &Path, format: &str, control: &Control) -> Result<Self> {
         use std::os::unix::fs::DirBuilderExt;
-        // DEL-01-01: never in Chirality's data folder (its folder for conversations without a
-        // project included), checked by identity before anything is made.
+        // DEL-01-01: the temporary folder is checked by identity before anything is made, and
+        // refused if it is in Chirality's data folder (its folder for conversations without a
+        // project included). The path is resolved again below, so a folder replaced after the
+        // check is outside what the check guarantees.
         let temporary = crate::runtime_session::temporary_root("The connector's working folder")
             .map_err(|e| Failure::abort("supervision", e))?;
         let helper = temporary.join(
