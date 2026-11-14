@@ -1107,3 +1107,69 @@ fn a_fork_whose_selection_changes_during_its_reading_inherits_nothing_or_is_refu
         stop(&host);
     }
 }
+
+/// The Records lane's point: the comparison at inheritance is what keeps a
+/// fork from writing durably for a binding that does not hold. With the
+/// source's project replaced or gone after its start, or the capability
+/// configured again while the fork's project is read, the fork writes neither
+/// a conversation index entry nor a receipt tag: every entry of the REC ledger
+/// (where both are written) is unchanged, nothing is inherited, and the fork's
+/// binding is the memory view only, as on main.
+#[test]
+fn a_fork_whose_inheritance_fails_writes_nothing_durable() {
+    for case in ["replaced", "gone", "reconfigured"] {
+        let f = Fixture::new();
+        let host = f.host(true, None, "account");
+        f.start(&host, "fixture-model").unwrap();
+        let generation = host.snapshot()["generation"].clone();
+        let request = host.thread_fork_dispatch(&generation, "thread").unwrap();
+        host.source_request_wait(&request, Duration::from_secs(2)).unwrap();
+        host.flush_recovery_observations();
+        let ledger = f.0.join("app/recovery.ledger.jsonl");
+        match case {
+            "replaced" => { replace_project(&f.0); }
+            "gone" => fs::rename(f.0.join("project"), f.0.join("physical-a")).unwrap(),
+            _ => {
+                let during = Arc::clone(&host);
+                let (project, reads_log) = (f.0.join("project"), f.0.join("app/reads.jsonl"));
+                *host.within_records_identity_read.lock().unwrap() = Some(Box::new(move || {
+                    let context = during.records_project_context().unwrap();
+                    during.configure_records_capability_with_context(Arc::new(crate::records_access::RecordsCapability::at(&project, reads_log).unwrap()), context);
+                }));
+            }
+        }
+        let before = crate::recovery::stored_entries(&ledger);
+        assert!(before.iter().any(|e| e["kind"] == "conversation_index" && e["threadId"] == "thread"), "{case}: the source's index entry and receipt tag are held");
+        let finished = host.thread_fork_finish(&request);
+        host.flush_recovery_observations();
+        assert_eq!(crate::recovery::stored_entries(&ledger), before, "{case}: the ledger's entries are unchanged: no index entry and no tag is written");
+        let inner = host.inner.0.lock().unwrap();
+        assert!(!inner.records_receipts.iter().any(|(g, thread, _)| g == &generation && thread != "thread"), "{case}: nothing is inherited");
+        if case == "reconfigured" {
+            assert_eq!(finished.unwrap_err(), "thread/fork records project reading no longer matches the admission it was taken for; native response retained");
+        } else {
+            let forked = finished.unwrap();
+            let id = forked["threadId"].as_str().unwrap();
+            let row = inner.threads.iter().rev().find(|row| row["generation"] == generation && row["threadId"] == id).unwrap();
+            assert_eq!(row["recordsCapabilityBinding"]["state"], "unknown/unsupported", "{case}: {row}");
+        }
+        drop(inner);
+        stop(&host);
+    }
+    // The control: with the project unchanged, the fork inherits and writes
+    // its index entry and tag, so the comparison above would see a write.
+    let f = Fixture::new();
+    let host = f.host(true, None, "account");
+    f.start(&host, "fixture-model").unwrap();
+    let generation = host.snapshot()["generation"].clone();
+    let request = host.thread_fork_dispatch(&generation, "thread").unwrap();
+    host.source_request_wait(&request, Duration::from_secs(2)).unwrap();
+    host.flush_recovery_observations();
+    let ledger = f.0.join("app/recovery.ledger.jsonl");
+    let before = crate::recovery::stored_entries(&ledger);
+    host.thread_fork_finish(&request).unwrap();
+    host.flush_recovery_observations();
+    assert_ne!(crate::recovery::stored_entries(&ledger), before, "an inheriting fork writes durably");
+    assert!(host.inner.0.lock().unwrap().records_receipts.iter().any(|(g, thread, _)| g == &generation && thread != "thread"));
+    stop(&host);
+}
