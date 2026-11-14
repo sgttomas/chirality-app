@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "./hostReads";
-import { AgentText, idWords } from "./AgentText";
+import { AgentText, idWords, plainId } from "./AgentText";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const list = (value: Json): Json[] => (Array.isArray(value) ? value : []);
 const text = (value: Json): string => value === null || value === undefined ? "" : typeof value === "string" ? value : JSON.stringify(value);
@@ -231,7 +231,7 @@ export function OfferedEffortChoice({ owner, threadId, generation, homeClass, mo
     <button disabled={disabled || reading || !owner} onClick={() => { void read(); }}>Read effort choices for this model</button>
     {reading && <p role="status">Reading model effort choices…</p>}
     {current?.message && <p role="alert">{current.message}</p>}
-    <p><label>Reasoning effort for {row?.displayName || (model ? idWords(model) : "the current conversation model")}{" "}
+    <p><label>Reasoning effort for {row?.displayName || (model ? plainId(model) ?? "the chosen model" : "the current conversation model")}{" "}
       <select value={effort} disabled={disabled || !row || options.length === 0} onChange={event => {
         const value = event.target.value;
         if (live() && current && resultRef.current === current && current.sequence === sequence.current && !pending.current

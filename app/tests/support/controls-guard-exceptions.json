@@ -170,7 +170,7 @@
  {
   "file": "ModelChoice.tsx",
   "where": "<label>",
-  "expr": "row?.displayName || (model ? idWords(model) : \"the current conversation model\")",
+  "expr": "row?.displayName || (model ? plainId(model) ?? \"the chosen model\" : \"the current conversation model\")",
   "reason": "a display name from the model list Codex returns (model/list) for the built-in OpenAI route, the only route 4.0.0 offers; not text an agent or a project file writes. It would be false if a route whose model list a third party or the person configures were offered again (the local and configured-provider routes are refused in 4.0.0); the model it falls back to goes through idWords"
  },
  {
