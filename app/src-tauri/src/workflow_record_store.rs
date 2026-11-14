@@ -48,6 +48,8 @@ fn name(s: &str) -> Result<CString, String> {
     CString::new(s).map_err(|_| "NUL in owning path".into())
 }
 fn open_at(dir: &File, leaf: &str, flags: i32) -> Result<File, std::io::Error> {
+    #[cfg(test)]
+    if flags & (libc::O_WRONLY | libc::O_RDWR | libc::O_CREAT | libc::O_TRUNC | libc::O_APPEND) != 0 { crate::records_effect_guard::mutation_for_test("workflow_record_store::open_at"); }
     let n = CString::new(leaf)
         .map_err(|_| std::io::Error::new(std::io::ErrorKind::InvalidInput, "NUL"))?;
     let fd = unsafe {
@@ -65,6 +67,8 @@ fn open_at(dir: &File, leaf: &str, flags: i32) -> Result<File, std::io::Error> {
     }
 }
 fn child(dir: &File, leaf: &str, create: bool) -> Result<File, String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("workflow_record_store::child");
     if create {
         let n = name(leaf)?;
         if unsafe { libc::mkdirat(dir.as_raw_fd(), n.as_ptr(), 0o700) } < 0 {
@@ -544,6 +548,8 @@ impl ProjectRecords {
         Ok(r)
     }
     pub fn publish(&self, pending: &PendingRecord) -> Result<ResolvedRecord, String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("workflow_record_store::ProjectRecords::publish");
         let owning=crate::records_store::write_dir(&self.root)?;
         let _admission=crate::records_retention::write_path(&owning)?;
         if pending.project != self.identity {
@@ -596,12 +602,15 @@ impl ProjectRecords {
             }
             publication_boundary()?;
             dir.sync_all().map_err(|e| e.to_string())?;
-            self.resolve(reference).map_err(|e| format!("{e:?}"))
+            Ok(())
         })();
         if let Ok(n) = name(&staging) {
             unsafe { libc::unlinkat(dir.as_raw_fd(), n.as_ptr(), 0) };
         }
-        result
+        // Reader admission must see the completed publication after this
+        // operation's temporary alias is removed, never its two-link window.
+        result?;
+        self.resolve(reference).map_err(|e| format!("{e:?}"))
     }
 }
 /// Durable historical evidence only. There is deliberately no deserializer or send API.

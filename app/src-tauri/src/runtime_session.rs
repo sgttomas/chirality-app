@@ -725,6 +725,8 @@ impl RecoveryStartup {
             String,
         >,
     ) -> Value {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("runtime_session::RecoveryStartup::initialize_inner");
         if self.attempted {
             return self.snapshot();
         }
@@ -835,6 +837,8 @@ impl RecoveryStartup {
     }
 }
 fn sync_directory(path: &std::path::Path) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("runtime_session::sync_directory");
     std::fs::File::open(path)
         .and_then(|f| f.sync_all())
         .map_err(|e| {
@@ -5059,6 +5063,8 @@ impl WorkflowRootSession {
         })
     }
     pub fn create_selected_draft(&mut self, chat: Option<&crate::workflow_selection::Chat>, name: &str) -> Result<Value, String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("runtime_session::WorkflowRootSession::create_selected_draft");
         if !crate::workflow_workspace::valid_name(name) {
             return Err("Invalid workflow draft name".into());
         }
