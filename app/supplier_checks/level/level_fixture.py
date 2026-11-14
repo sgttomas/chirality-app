@@ -59,7 +59,8 @@ DECLINE = {'item/commandExecution/requestApproval': {'decision': 'decline'},
 SLASH_TMP = Path('/private/tmp')
 # The network probe: connects to the stub's own loopback port and asks for the probe path. Unlike curl, it prints
 # the system's own reason when the connection is refused, so a sandbox refusal is in evidence, not inferred.
-NET_PROBE = ('use IO::Socket::INET; my $s = IO::Socket::INET->new(PeerAddr => "127.0.0.1", PeerPort => $ARGV[0], '
+NET_PROBE = ('$SIG{ALRM} = sub { print "timed out\\n"; exit 4 }; alarm 3; '
+             'use IO::Socket::INET; my $s = IO::Socket::INET->new(PeerAddr => "127.0.0.1", PeerPort => $ARGV[0], '
              'Proto => "tcp", Timeout => 3); if ($s) { print $s "GET /level-net-probe HTTP/1.0\\r\\n\\r\\n"; '
              '<$s>; print "connected\\n"; exit 0 } print "connect failed: $!\\n"; exit 3')
 APP_TOOL = 'level_invented_records_read'
@@ -352,6 +353,20 @@ def command_script(call_id, command, escalate=False, background=False):
     return script
 
 
+def forced_exec_script(call_id, command, escalate=False):
+    """A call to exec_command whether or not the request offers it (a fork's requests carry no tools), keeping the
+    escalation request when asked for."""
+    def script(body, outputs, stub):
+        if call_id in outputs:
+            return [message('Done.', 'msg_' + call_id)]
+        args = {'cmd': command}
+        if escalate:
+            args.update({'sandbox_permissions': 'require_escalated', 'justification': 'Invented fixture command.'})
+        return [{'type': 'function_call', 'name': 'exec_command', 'call_id': call_id, 'id': 'fc_' + call_id,
+                 'arguments': json.dumps(args)}]
+    return script
+
+
 # ---------- what a call's output shows ----------
 
 SUCCEEDED = 'ran-succeeded'
@@ -415,11 +430,11 @@ def classify(output, target=None):
 
 
 def judge(call_id, issued, not_offered, output, item_ids, request_item_ids, turn_status, target=None,
-          item_status=None):
+          item_status=None, item_exit=None):
     """The outcome of one call, from the protocol stages that outcome has, each tied to the call's id.
 
     `item_ids` are the ids of commandExecution items started in the call's own turn; `item_status` is the status
-    that call's item completed with, if it completed.
+    that call's item completed with, if it completed, and `item_exit` the exit code that item carried.
     - not offered: the stub could not make the call; returned as NOT_OFFERED, which `expect` reports as
       inconclusive, never as a pass;
     - otherwise the stub must have issued it, and the turn must have completed;
@@ -446,10 +461,12 @@ def judge(call_id, issued, not_offered, output, item_ids, request_item_ids, turn
             raise Refused('%s was reported rejected without an approval request for it' % call_id)
         if item_status not in (None, 'declined'):
             raise Refused('%s was declined, yet its item ended %s' % (call_id, item_status))
+        if item_exit is not None:
+            raise Refused('%s was declined, yet its item carries exit code %r' % (call_id, item_exit))
     if outcome.kind == REJECTED and asked:
         raise Refused('%s was reported rejected by policy, yet a request was raised for it' % call_id)
     outcome.evidence = {'issued': True, 'item': call_id in item_ids, 'request': asked, 'turn': turn_status,
-                        'item_status': item_status}
+                        'item_status': item_status, 'item_exit': item_exit}
     return outcome
 
 
@@ -644,25 +661,33 @@ class Client:
         self.tool_call_policy = 'answer'  # 'answer' or 'hold'
         self.held = []
         self.writer = threading.Lock()
+        self.reader_end = None  # set by read(): 'eof', or the error that stopped it
         self.reader = threading.Thread(target=self.read, daemon=True)
         self.reader.start()
 
     def read(self):
-        for line in self.proc.stdout:
-            try:
-                frame = json.loads(line)
-            except ValueError:
-                continue
-            if 'method' in frame and 'id' in frame:
-                self.on_request(frame)
+        """Take every frame until the server's output ends. How it ended is kept: 'eof' when the output reached its
+        end, or the error that stopped it, so that `drain` can tell the two apart."""
+        try:
+            for line in self.proc.stdout:
+                try:
+                    frame = json.loads(line)
+                except ValueError:
+                    continue
+                if 'method' in frame and 'id' in frame:
+                    self.on_request(frame)
+                with self.changed:
+                    if 'method' in frame and 'id' not in frame:
+                        self.notes.append(frame)
+                    elif 'id' in frame and 'method' not in frame:
+                        self.replies[frame['id']] = frame
+                    self.changed.notify_all()
+            self.reader_end = 'eof'
+        except BaseException as error:  # noqa: BLE001 - kept for drain() to report
+            self.reader_end = error
+        finally:
             with self.changed:
-                if 'method' in frame and 'id' not in frame:
-                    self.notes.append(frame)
-                elif 'id' in frame and 'method' not in frame:
-                    self.replies[frame['id']] = frame
                 self.changed.notify_all()
-        with self.changed:
-            self.changed.notify_all()
 
     def send(self, frame):
         with self.writer:
@@ -773,6 +798,7 @@ class Client:
             except subprocess.TimeoutExpired:
                 pass
         self.kill_group()
+        self.drain()  # every frame the server wrote is taken before its output is closed
         self.close_pipes()
 
     def kill_group(self):
@@ -788,10 +814,13 @@ class Client:
 
     def drain(self, timeout=10):
         """After the server has ended: wait until the reader has taken every frame up to the end of its output, so
-        an absence asserted afterwards covers the server's whole life."""
+        an absence asserted afterwards covers the server's whole life. A reader that stopped for any reason other
+        than the end of the output fails, with that reason."""
         self.reader.join(timeout)
         if self.reader.is_alive():
             raise Refused('the reader did not reach the end of the server output')
+        if self.reader_end != 'eof':
+            raise Refused('the reader stopped before the end of the server output: %r' % (self.reader_end,))
 
     def close_pipes(self):
         for stream in (self.proc.stdin, self.proc.stdout, self.stderr):

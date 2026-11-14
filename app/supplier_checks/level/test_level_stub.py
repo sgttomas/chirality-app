@@ -4,7 +4,9 @@
 Run from the repository root: python -m pytest -q app/supplier_checks/level/test_level_stub.py
 """
 import http.client
+import io
 import json
+import threading
 import os
 import shlex
 import sys
@@ -197,9 +199,9 @@ class Judging(unittest.TestCase):
     """The fixture can fail: each way a call can go unobserved, or be misread, refuses or fails."""
 
     def judge(self, output, call='c', issued=('c',), not_offered=(), items=('c',), asked=(), turn='completed',
-              target='/run/project/w-in', item_status=None):
+              target='/run/project/w-in', item_status=None, item_exit=None):
         return L.judge(call, set(issued), set(not_offered), output, set(items), set(asked), turn, target=target,
-                       item_status=item_status)
+                       item_status=item_status, item_exit=item_exit)
 
     def test_the_six_outcomes_each_need_their_own_evidence(self):
         ok = 'Chunk ID: 1\nProcess exited with code 0\nOutput:\n'
@@ -241,6 +243,26 @@ class Judging(unittest.TestCase):
         # commandExecution ids are passed in, so an exit 0 without one refuses.
         with self.assertRaises(L.Refused):
             self.judge('Process exited with code 0\nOutput:\n', items=())
+
+    def test_a_declined_item_carrying_an_exit_code_refuses(self):
+        # The third reading's break: a declined item with exit code 0.
+        with self.assertRaises(L.Refused):
+            self.judge('Rejected("rejected by user")', items=('c',), asked=('c',), item_status='declined', item_exit=0)
+        declined = self.judge('Rejected("rejected by user")', items=('c',), asked=('c',), item_status='declined')
+        self.assertIsNone(declined.evidence['item_exit'])
+
+    def test_a_forks_approval_inverted_fails(self):
+        # The third reading's break: a fork's effective approval inverted. The forced call keeps its escalation,
+        # so the escalation's outcome shows the approval in effect, and the other outcome fails the check.
+        script = L.forced_exec_script('call_f', 'printf ok > /x', escalate=True)
+        args = json.loads(script({}, {}, None)[0]['arguments'])
+        self.assertEqual(args['sandbox_permissions'], 'require_escalated')
+        rejected = self.judge('approval policy is Never; reject command', items=())
+        declined = self.judge('Rejected("rejected by user")', items=('c',), asked=('c',), item_status='declined')
+        with self.assertRaises(AssertionError):
+            L.expect(rejected, L.DECLINED)  # a fork reporting on-request whose approval is in fact never
+        with self.assertRaises(AssertionError):
+            L.expect(declined, L.REJECTED)  # and the reverse
 
     def test_a_declined_call_whose_item_ran_refuses(self):
         with self.assertRaises(L.Refused):
@@ -333,6 +355,68 @@ class Cleanup(unittest.TestCase):
         with mock.patch.object(L.os, 'killpg') as killpg:
             client.kill_group()
         killpg.assert_called_once_with(4242, L.signal.SIGKILL)
+
+
+class NetworkProbe(unittest.TestCase):
+    def test_one_deadline_bounds_the_whole_probe(self):
+        # A single alarm, set once before the connection: it covers connect and read together and is never reset.
+        self.assertEqual(L.NET_PROBE.count('alarm'), 1)
+        self.assertLess(L.NET_PROBE.index('alarm 3'), L.NET_PROBE.index('IO::Socket::INET->new'))
+
+
+class Draining(unittest.TestCase):
+    """A frame written before the server's output ends is taken before the output is closed, and a reader that
+    stops for any other reason than the end of the output fails."""
+
+    def client_on(self, stream):
+        client = L.Client.__new__(L.Client)
+        client.lock = threading.Lock()
+        client.changed = threading.Condition(client.lock)
+        client.notes, client.replies, client.server_requests, client.held = [], {}, [], []
+        client.tool_call_policy = 'hold'
+        client.writer = threading.Lock()
+        client.proc = mock.Mock()
+        client.proc.stdout = stream
+        client.reader_end = None
+        client.reader = threading.Thread(target=client.read, daemon=True)
+        return client
+
+    def test_a_call_raised_during_teardown_is_not_lost(self):
+        # The third reading's break: a call re-raised as the server ends. Its frame must be read before any
+        # assertion that no such call arrived.
+        read_end, write_end = os.pipe()
+        late = json.dumps({'jsonrpc': '2.0', 'id': 7, 'method': 'item/tool/call',
+                           'params': {'threadId': 't', 'callId': 'call_outstanding', 'turnId': 'u',
+                                      'tool': L.APP_TOOL, 'arguments': {}}}) + '\n'
+        os.write(write_end, late.encode())
+        os.close(write_end)
+        client = self.client_on(os.fdopen(read_end, 'rb'))
+        client.reader.start()
+        client.drain()
+        self.assertEqual([r['params']['callId'] for r in client.server_requests], ['call_outstanding'])
+
+    def test_a_reader_that_failed_is_not_taken_for_the_end(self):
+        class Broken:
+            def __iter__(self):
+                raise OSError('invented read failure')
+        client = self.client_on(Broken())
+        client.reader.start()
+        with self.assertRaisesRegex(L.Refused, 'invented read failure'):
+            client.drain()
+
+    def test_stop_drains_before_closing_the_output(self):
+        read_end, write_end = os.pipe()
+        os.write(write_end, (json.dumps({'jsonrpc': '2.0', 'method': 'turn/completed', 'params': {}}) + '\n').encode())
+        os.close(write_end)
+        client = self.client_on(os.fdopen(read_end, 'rb'))
+        client.pgid = 424242
+        client.proc.poll.return_value = 0
+        client.proc.stdin = io.BytesIO()
+        client.stderr = io.BytesIO()
+        client.reader.start()
+        with mock.patch.object(L.os, 'killpg', side_effect=ProcessLookupError):
+            client.stop()
+        self.assertEqual([n['method'] for n in client.notes], ['turn/completed'])
 
 
 class LiveRequirement(unittest.TestCase):

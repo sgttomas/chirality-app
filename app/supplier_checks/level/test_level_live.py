@@ -73,11 +73,11 @@ def evidence(client, thread, call_id, turn=None):
         p = note['params']
         return p['item'].get('type') == 'commandExecution' and (turn is None or p.get('turnId') == turn)
     items = {n['params']['item'].get('id') for n in client.notes_for('item/started', thread) if ours(n)}
-    status = next((n['params']['item'].get('status') for n in client.notes_for('item/completed', thread)
-                   if ours(n) and n['params']['item'].get('id') == call_id), None)
+    completed = next((n['params']['item'] for n in client.notes_for('item/completed', thread)
+                      if ours(n) and n['params']['item'].get('id') == call_id), None)
     asked = {(r['params'] or {}).get('itemId') for r in client.server_requests
              if r['method'] == COMMAND_APPROVAL and r['thread'] == thread}
-    return items, asked, status
+    return items, asked, completed
 
 
 def target_of(run, key):
@@ -96,19 +96,15 @@ def probe(run, client, thread, key, escalate=False, forced=False, **settings):
     nets, seen = run.stub.net_probes, len(client.server_requests)
     call_id = 'call_%s_%d' % (key, len(run.stub.requests))
     command = run.commands()[key]
-    if forced:  # call exec_command whether or not the request offers it
-        def script(body, outputs, stub):
-            if call_id in outputs:
-                return [L.message('Done.', 'msg_' + call_id)]
-            return [{'type': 'function_call', 'name': 'exec_command', 'call_id': call_id, 'id': 'fc_' + call_id,
-                     'arguments': json.dumps({'cmd': command})}]
-        run.stub.scripts[call_id] = script
+    if forced:  # call exec_command whether or not the request offers it, keeping any escalation
+        run.stub.scripts[call_id] = L.forced_exec_script(call_id, command, escalate=escalate)
     else:
         run.stub.scripts[call_id] = L.command_script(call_id, command, escalate=escalate)
     turn, done = client.turn(thread, 'LEVEL[%s] go' % call_id, **settings)
-    items, asked, status = evidence(client, thread, call_id, turn)
+    items, asked, completed = evidence(client, thread, call_id, turn)
     outcome = L.judge(call_id, run.stub.issued, run.stub.not_offered, run.stub.outputs.get(call_id), items, asked,
-                      done and done['turn']['status'], target=target_of(run, key), item_status=status)
+                      done and done['turn']['status'], target=target_of(run, key),
+                      item_status=completed and completed.get('status'), item_exit=completed and completed.get('exitCode'))
     outcome.present = path.exists() if path is not None else None
     outcome.reached = run.stub.net_probes > nets
     outcome.requests = [(r['method'], r['thread']) for r in client.server_requests[seen:]]
@@ -135,11 +131,13 @@ class Probing(unittest.TestCase):
         return outcome
 
     def declined(self, outcome, thread):
-        """An approval request raised for exactly this call, on its own thread, and the command not reached: its
-        item ended declined, with no exit code, and nothing was done."""
+        """An approval request raised for exactly this call, on its own thread; the decline's own output; a completed
+        item ended declined with no exit code; and no effect on its file or the network. (This is what is
+        observed; it does not show that the command never ran.)"""
         expect(outcome, DECLINED)
         self.assertEqual(outcome.requests, [(COMMAND_APPROVAL, thread)])
-        self.assertEqual(outcome.evidence['item_status'], 'declined')
+        self.assertEqual(outcome.evidence['item_status'], 'declined')  # the completed declined item is required
+        self.assertIsNone(outcome.evidence['item_exit'])  # and it carries no exit code
         self.assertIsNone(outcome.exit)
         self.assertFalse(outcome.present)
         self.assertFalse(outcome.reached)
@@ -469,6 +467,11 @@ class Carriers(Probing):
                 self.assertEqual(reported(fork), {'approvalPolicy': approval, 'sandbox': sandbox})
                 forked = fork['thread']['id']
                 seen = len(run.stub.requests)
+                escalated = probe(run, client, forked, 'out2', escalate=True, forced=True)
+                if approval == 'never':  # the fork's approval, in effect
+                    self.rejected(escalated)
+                else:
+                    self.declined(escalated, forked)
                 if sandbox['type'] == 'dangerFullAccess':
                     self.succeeded(probe(run, client, forked, 'out', forced=True))
                     self.succeeded(probe(run, client, forked, 'net', forced=True), network=True)
@@ -482,6 +485,25 @@ class Carriers(Probing):
                     self.assertNotIn('tools', request['body_keys'])
 
 
+    def test_a_forks_first_turn_is_governed_by_the_level_sent_on_that_turn(self):
+        """The App sends the whole level on a fork's first turn, as on every turn. That turn's setting is what the
+        fork's execution rests on, whatever the fork call carried or inherited: a fork of a full-access thread
+        whose first turn sends read-only refuses the project write and declines an escalation; a fork of a
+        read-only thread whose first turn sends edits writes in the project and is refused outside it."""
+        with L.Run(SCRATCH, BINARY) as run:
+            client = run.start()
+            full = client.start_thread(approvalPolicy='never', sandbox='danger-full-access')['thread']['id']
+            self.succeeded(probe(run, client, full, 'out'))
+            narrowed = client.result('thread/fork', {'threadId': full})['thread']['id']  # inherits full access
+            self.refused(probe(run, client, narrowed, 'in', forced=True, **READ_ONLY))
+            self.declined(probe(run, client, narrowed, 'out2', escalate=True, forced=True, **READ_ONLY), narrowed)
+            plain = client.start_thread()['thread']['id']
+            self.refused(probe(run, client, plain, 'in'))
+            widened = client.result('thread/fork', {'threadId': plain})['thread']['id']  # inherits read-only
+            self.succeeded(probe(run, client, widened, 'in', forced=True, **EDITS_NET_OFF))
+            self.refused(probe(run, client, widened, 'out', forced=True, **EDITS_NET_OFF))
+
+
 class Narrowing(Probing):
     """Case 3: a narrower setting on a later turn does not restrain a command already running."""
 
@@ -492,9 +514,10 @@ class Narrowing(Probing):
             late = run.paths()['late']
             run.stub.scripts['late'] = L.command_script('call_late', run.commands()['late'], background=True)
             turn, done = client.turn(thread, 'LEVEL[late] go', **FULL)
-            items, asked, status = evidence(client, thread, 'call_late', turn)
+            items, asked, completed = evidence(client, thread, 'call_late', turn)
             started = L.judge('call_late', run.stub.issued, run.stub.not_offered, run.stub.outputs.get('call_late'),
-                              items, asked, done and done['turn']['status'], item_status=status)
+                              items, asked, done and done['turn']['status'],
+                              item_status=completed and completed.get('status'))
             expect(started, RUNNING)  # the turn completed while the command sleeps
             self.assertFalse(late.exists())
             self.refused(probe(run, client, thread, 'in', **READ_ONLY))  # read-only is in force: workspace write would allow this
@@ -551,10 +574,11 @@ class Child(Probing):
             child_thread = spawn_child(self, run, client, thread, **settings)
             outcomes = {}
             for call_id, key, _ in calls:
-                items, asked, status = evidence(client, child_thread, call_id)
+                items, asked, completed = evidence(client, child_thread, call_id)
                 outcomes[key] = L.judge(call_id, run.stub.issued, run.stub.not_offered,
                                         run.stub.outputs.get(call_id), items, asked, 'completed',
-                                        target=run.paths()[key], item_status=status)
+                                        target=run.paths()[key], item_status=completed and completed.get('status'),
+                                        item_exit=completed and completed.get('exitCode'))
             paths = run.paths()
             tools = next(r['tools'] for r in run.stub.requests if r['key'] == 'child')
             requests = [(r['method'], r['thread'], (r['params'] or {}).get('itemId')) for r in client.server_requests]
@@ -567,6 +591,8 @@ class Child(Probing):
         expect(seen['outcomes']['in'], SUCCEEDED)
         expect(seen['outcomes']['out'], SANDBOX_REFUSED)
         expect(seen['outcomes']['out2'], DECLINED)
+        self.assertEqual(seen['outcomes']['out2'].evidence['item_status'], 'declined')
+        self.assertIsNone(seen['outcomes']['out2'].evidence['item_exit'])
         self.assertEqual(seen['files'], {'in': True, 'out': False, 'out2': False})
         self.assertEqual(seen['requests'], [(COMMAND_APPROVAL, seen['child'], 'call_cesc')])
         self.assertEqual(seen['reported']['sandbox']['type'], 'workspaceWrite')
