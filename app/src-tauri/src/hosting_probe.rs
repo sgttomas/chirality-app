@@ -159,7 +159,7 @@ for line in sys.stdin:
         let source = host.clone();
         *host.before_quit_stop.lock().unwrap() = Some(Box::new(move || {
             // Same publication as a successor probe observing the Quit fence.
-            assert!(source.refuse_successor(1, "probe cancelled by quit".into()).is_err());
+            assert!(source.refuse_successor(1, None, "probe cancelled by quit".into()).is_err());
         }));
         host.begin_quit();
         assert!(host.settle_for_quit("fixture", "quit").is_ok());
