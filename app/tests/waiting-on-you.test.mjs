@@ -805,9 +805,9 @@ test('the fourth reader\'s second finding: each unread reopened run is named, wi
   const disclosure = html.match(/<details class="waiting-reopened-runs">[\s\S]*?<\/details>/);
   assert.ok(disclosure, 'the runs are in a disclosure under the line');
   const listed = agentPlain(disclosure[0]).replace(/<[^>]+>/g, '');
-  assert.match(listed, new RegExp(`The run missing-run-alpha: its records show it opened and record no end\\. Carried in the status response read at ${time}\\. When the records were last read for it is not given\\.`));
-  assert.match(listed, new RegExp(`The run missing-run-beta: its records do not establish whether it ended\\. Carried in the status response read at ${time}\\. When the records were last read for it is not given\\.`));
-  assert.match(listed, new RegExp(`The run ⟦Run: odd run[\\s\\S]*?⟧: its state is one the App does not recognise\\. Carried in the status response read at ${time}\\. When the records were last read for it is not given\\.`));
+  assert.match(listed, new RegExp(`The run missing-run-alpha: its records show it opened and record no end\\. Carried in the status response requested at ${time}\\. When the records were last read for it is not given\\.`));
+  assert.match(listed, new RegExp(`The run missing-run-beta: its records do not establish whether it ended\\. Carried in the status response requested at ${time}\\. When the records were last read for it is not given\\.`));
+  assert.match(listed, new RegExp(`The run ⟦Run: odd run[\\s\\S]*?⟧: its state is one the App does not recognise\\. Carried in the status response requested at ${time}\\. When the records were last read for it is not given\\.`));
   assert.doesNotMatch(listed, /Read at|checkpoints were read|census at|records were last read for it at/, 'the status response\'s time is never presented as when the records were read');
   assert.ok(agentBoxNames(disclosure[0]).length > 0, 'a reference that is not a plain identifier is boxed');
   assert.doesNotMatch(html.replace(/<span class="agent-text[\s\S]*?<\/span><\/span>/g, ''), /<button>Allow once<\/button>/);
@@ -830,7 +830,7 @@ test('a reopened run is dated by the records read only where the reopened view s
   assert.doesNotMatch(valid, /Carried in the status response/);
   for (const [why, readAt] of [['removed', undefined], ['an offset, not UTC', '2026-11-14T08:15:30+00:00'], ['a date that does not exist', '2026-02-30T08:15:30Z'], ['no seconds', '2026-11-14T08:15Z'], ['a number', recordsMs], ['trailing text', recordsAt + ' ']]) {
     const listed = listedFor(readAt);
-    assert.match(listed, new RegExp(`Carried in the status response read at ${statusTime}\\. When the records were last read for it is not given\\.`), why);
+    assert.match(listed, new RegExp(`Carried in the status response requested at ${statusTime}\\. When the records were last read for it is not given\\.`), why);
     assert.doesNotMatch(listed, /records were last read for it at|census at/, why);
   }
   const {hostUtcTime} = waitingModule();

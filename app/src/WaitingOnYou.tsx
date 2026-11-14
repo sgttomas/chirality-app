@@ -726,7 +726,7 @@ function ReopenedRuns({ runs }: { runs: SourceReading[] }) {
     {runs.map(run => <p key={run.key}>The run <SuppliedId value={run.subject} source="file" label="Run:" name="Run reference as recorded, not the App's words" />: {run.detail ?? REOPENED_REASON_UNKNOWN}.{" "}
       {run.recordsReadAt !== null ? `The records were last read for it at ${clockWords(run.recordsReadAt)}.`
         : run.at === null ? "When the records were last read for it is not given."
-        : `Carried in the status response read at ${clockWords(run.at)}. When the records were last read for it is not given.`}</p>)}
+        : `Carried in the status response requested at ${clockWords(run.at)}. When the records were last read for it is not given.`}</p>)}
   </Several>;
 }
 
