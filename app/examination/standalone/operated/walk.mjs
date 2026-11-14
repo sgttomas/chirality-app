@@ -207,6 +207,47 @@ function inMenuBar(elements) {
  * template is recorded again from a real observation and read again.
  */
 export const APP_NAME = /^Chirality App v4 \(development [A-Za-z0-9.-]+\)$/;
+const NUMBER = '{~number}';  // in a template's element words: a decimal number (a scroll bar's position) and nothing else
+
+/**
+ * A view against a recorded view, line for line: {differs, at}. Each element line must equal the template's in its
+ * depth and its words, where the template's only allowance is {~number} for a decimal number; every other line must
+ * equal it exactly; the focused-element line must name, by the indices in the same places, the element the
+ * template's names. at maps each template index to the view's index for the element in the same place.
+ */
+export function compareView(wanted, text) {
+  const seen = String(text).split('\n');
+  const at = new Map();
+  const differs = [];
+  const sameWords = (template, words) => (template.includes(NUMBER)
+    ? new RegExp('^' + template.split(NUMBER).map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('[0-9]+(?:\\.[0-9]+)?') + '$', 'u').test(words)
+    : template === words);
+  if (seen.length !== wanted.length) differs.push(`the view has ${seen.length} lines and the recorded view ${wanted.length}`);
+  for (let n = 0; !differs.length && n < wanted.length; n++) {
+    const w = n > 0 && ELEMENT_LINE.exec(wanted[n]), s = n > 0 && ELEMENT_LINE.exec(seen[n]);
+    const wf = FOCUSED_LINE.exec(wanted[n]), sf = FOCUSED_LINE.exec(seen[n]);
+    if (w) {
+      if (!s || s[1] !== w[1] || !sameWords(w[3], s[3])) differs.push(`line ${n + 1} is not the recorded view's`);
+      else at.set(Number(w[2]), Number(s[2]));
+    } else if (wf) {
+      if (!sf || sf[2] !== wf[2] || !at.has(Number(wf[1])) || Number(sf[1]) !== at.get(Number(wf[1]))) differs.push(`line ${n + 1}, the focused element, is not the recorded view's`);
+    } else if (seen[n] !== wanted[n]) {
+      differs.push(`line ${n + 1} is not the recorded view's`);
+    }
+  }
+  return { differs, at };
+}
+
+/** Whether a view is the listed state the scenario names, filled with the run's values: the reasons it is not. */
+export function stateCheck(text, lines, values, appName) {
+  if (!APP_NAME.test(appName)) return [`the candidate bundle's name is not of the development build's form: ${JSON.stringify(appName)}`];
+  if (!Array.isArray(lines) || !lines.length) return ['the scenario gives no recorded view of this state'];
+  const wanted = fill(lines.join('\n'), { ...values, app_name: appName }).split('\n');
+  if (wanted.some(line => /\{\w+\}/.test(line))) return ['the recorded view names a value this walk does not have'];
+  const template = recognise(wanted.join('\n'));
+  if (template.refusal) return [`the recorded view, filled, is not a view the walk recognises (${template.refusal})`];
+  return compareView(wanted, text).differs;
+}
 
 export function sheetCheck(text, sheet, values, appName) {
   const problems = [], record = { compared_with: 'the recorded view of the sheet' };
@@ -230,22 +271,7 @@ export function sheetCheck(text, sheet, values, appName) {
     problems.push(`the recorded view, filled, is not a view the walk recognises (${template.refusal})`);
     return { problems, record, press: null };
   }
-  const seen = String(text).split('\n');
-  const at = new Map();  // template index -> the view's index for the element in the same place
-  const differs = [];
-  if (seen.length !== wanted.length) differs.push(`the view has ${seen.length} lines and the recorded view ${wanted.length}`);
-  for (let n = 0; !differs.length && n < wanted.length; n++) {
-    const w = n > 0 && ELEMENT_LINE.exec(wanted[n]), s = n > 0 && ELEMENT_LINE.exec(seen[n]);
-    const wf = FOCUSED_LINE.exec(wanted[n]), sf = FOCUSED_LINE.exec(seen[n]);
-    if (w) {
-      if (!s || s[1] !== w[1] || s[3] !== w[3]) differs.push(`line ${n + 1} is not the recorded view's`);
-      else at.set(Number(w[2]), Number(s[2]));
-    } else if (wf) {
-      if (!sf || sf[2] !== wf[2] || !at.has(Number(wf[1])) || Number(sf[1]) !== at.get(Number(wf[1]))) differs.push(`line ${n + 1}, the focused element, is not the recorded view's`);
-    } else if (seen[n] !== wanted[n]) {
-      differs.push(`line ${n + 1} is not the recorded view's`);
-    }
-  }
+  const { differs, at } = compareView(wanted, text);
   problems.push(...differs);
   record.first_difference = differs[0] ?? null;
   const named = wanted.slice(1).map(line => ELEMENT_LINE.exec(line)).filter(m => m && m[3].startsWith(`button ${sheet.press}, ID: `));
@@ -446,6 +472,20 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
     return finish('inconclusive', 'refused before any call: the project to type is not the launch folder\'s own project folder, beside its home');
   }
   const steps = Array.isArray(scenario?.steps) ? scenario.steps : [];
+  // The walk acts only in a listed state: every step that acts names the recorded view it acts from, and that view is
+  // in the scenario's states (App Agent 0, 14 November 2026).
+  const acting = steps.filter(step => ['type', 'click', 'confirm_sheet'].includes(step?.act));
+  const unlisted = acting.find(step => !Array.isArray(scenario?.states?.[step.from_state]) || !scenario.states[step.from_state].length);
+  if (unlisted) {
+    return finish('inconclusive', `refused before any call: step ${unlisted.id} acts, and names no listed state it acts from; the walk acts only in a listed state`);
+  }
+  // What the views will show that the lane supplies must be plain text: no line break, tab, control character, or
+  // line or paragraph separator, so that it can never make a line of its own in a view.
+  const supplied = { home, bundle, identifier: app, ...(project ? { project } : {}) };
+  const unplain = Object.entries(supplied).find(([, value]) => /[\p{Cc}\u2028\u2029]/u.test(String(value)));
+  if (unplain) {
+    return finish('inconclusive', `refused before any call: the ${unplain[0]} holds a line break, a tab, a control character or a line or paragraph separator`);
+  }
   if (typeof scenario?.window !== 'string' || !Array.isArray(scenario.window_holds) || !steps.length
       || steps.some(step => !Array.isArray(step.expect) || !step.expect.length)
       || Object.values(scenario.outcomes ?? {}).some(ids => !ids.length || ids.some(id => !steps.some(step => step.id === id)))) {
@@ -458,7 +498,13 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
   // would start it outside the launcher.
   const atStart = gate('before any call');
   if (atStart) return atStart;
-  let elements = [];
+  let elements = [], latest = null;
+  const appName = bundle.slice(bundle.lastIndexOf('/') + 1, -'.app'.length);
+  // Before any act: the latest view must be the listed state the step acts from, line for line.
+  const notListed = (step, act) => {
+    const differs = latest === null ? ['the latest view was not recognised'] : stateCheck(latest, scenario.states[step.from_state], values, appName);
+    return differs.length ? finish('inconclusive', `stopped at ${step.id}: the view is not the listed state ${step.from_state} (${differs[0]}); nothing was ${act}`) : null;
+  };
   // A view is whole, or the walk stops there. One that comes back as differences is kept, with the view rebuilt from
   // it, for reading only: no check is credited from a rebuilt view and no click is made from one. Whether a view is
   // whole is read from what it returned, never assumed from what was asked.
@@ -481,6 +527,7 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
     // element index names one element. A view that is not is kept, and nothing is done from it.
     const recognised = recognise(text);
     elements = recognised.refusal ? [] : recognised.elements;
+    latest = recognised.refusal ? null : text;
     return { whole: true, refusal: recognised.refusal, text };
   };
   // What was asked, said truly for each view: the first is a plain view of an identifier not viewed before in this
@@ -521,6 +568,8 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       const found = select(elements, step.control);
       entry.control = step.control;
       if (found.some(({ content }) => endsWithEllipsis(content))) return finish('inconclusive', `stopped at ${step.id}: the control found has words that end with an ellipsis, and such a control is never clicked`);
+      const unlistedClick = notListed(step, 'clicked');
+      if (unlistedClick) return unlistedClick;
       // A button the scenario presses only if the App offers it: absent or unavailable, it is recorded as not
       // offered and not pressed, and the step's view and checks are made as for any other step.
       if (step.if_offered === true && step.control.kind !== 'button') return finish('inconclusive', `stopped at ${step.id}: only a button is pressed if offered`);
@@ -556,6 +605,8 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       if (step.control?.kind !== 'text field' || !(scenario.typed_fields ?? []).includes(step.control.label)) {
         return finish('inconclusive', `stopped at ${step.id}: the scenario names no such field to type into`);
       }
+      const unlistedType = notListed(step, 'typed');
+      if (unlistedType) return unlistedType;
       const found = select(elements, step.control);
       entry.control = step.control;
       if (found.length !== 1) return finish('inconclusive', `stopped at ${step.id}: the field was found ${found.length} times in the latest view`);
@@ -588,6 +639,8 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       if (report.steps.some(earlier => earlier.checks.some(check => !check.pass))) {
         return finish('fail', `stopped at ${step.id}: an earlier check failed, so the sheet is not opened`);
       }
+      const unlistedOpener = notListed(step, 'clicked or pressed');
+      if (unlistedOpener) return unlistedOpener;
       const opener = select(elements, step.control);
       entry.control = step.control;
       if (opener.length !== 1) return finish('inconclusive', `stopped at ${step.id}: the control that opens the sheet was found ${opener.length} times`);
@@ -663,6 +716,10 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       const next = named.length === 1 ? elements[elements.indexOf(named[0]) + 1] : null;
       values[name] = next && next.content.startsWith('text /') ? next.content.slice(5) : undefined;
       if (values[name] === undefined) return finish('inconclusive', `stopped at ${step.id}: the location "${location}" could not be read`);
+      // The App makes these paths itself: each must be of the form the scenario gives, under the App data folder.
+      const form = scenario.capture_forms?.[name];
+      const pattern = typeof form === 'string' ? new RegExp('^' + fill(form, values).split('{~uuid}').map(part => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}') + '$', 'u') : null;
+      if (!pattern || !pattern.test(values[name])) return finish('inconclusive', `stopped at ${step.id}: the location "${location}" is not of the form the App makes`);
     }
     const after = gate(`after ${step.id}`);
     entry.child_processes = lastChildren ?? 'not known: the watch file does not show the build running';

@@ -49,6 +49,14 @@ times, on 13 November 2026), observed by App Agent 0, or not examined:
   later found no longer running, without the lane or App Agent 0 having
   signalled it (observed: absent at a
   later check; when it ended, and why, not known).
+- **A helper started after the walk's stop.** On 14 November 2026 (the index
+  probe, evidence `index-probe-20261114T1115Z`), the window service started a
+  second helper with the helper's exact command, its parent the service, 18
+  seconds after the walk's recorded stop. It failed the tests by parent and
+  interval, so it was not signalled; it was gone when the service had been
+  ended, with or before it. This is a known behaviour of the supplier's
+  service, and the rule stands: a process that fails the tests is not
+  signalled (App Agent 0).
 - **Not examined:** which files the app-server reads, whether it uses a
   credential (such as a sign-in held under `~/.codex`), and what it or the
   service sends. The supplier's documentation for the service says nothing
@@ -1161,18 +1169,81 @@ failure, the same scenario and acts.
     element only by its index, so a view that gives one index to two
     elements cannot be addressed.
 
-  The claim this makes, with the adversary it is made against: the walk acts
-  only on a view whose every line it recognises, with every index in its
-  canonical form, and only on the one element whose index and words both
-  match what the step names; anything else ends
-  the step with no act. The adversary is text in the view the lane did not
-  write: the App's own strings and the names of files in the invented
-  project. A crafted build is not: the lane builds the candidate from a named
-  commit, and the check of the App's name (below) guards against a mistaken
-  build. Whether a view came back whole rests on the supplier's two fixed
-  openings for a view of differences or of no change; that is a reliance on
-  the supplier's format, not an independent proof that a malformed reply
-  holds every element.
+  Whether a view came back whole rests on the supplier's two fixed openings
+  for a view of differences or of no change; that is a reliance on the
+  supplier's format, not an independent proof that a malformed reply holds
+  every element.
+- **The parser's limit, which stands.** Recognising a view line for line does
+  not tell a real element from a line of text that imitates one. The fourth
+  independent reading of PR 323 (14 November 2026) answered its two questions
+  so: "Question 1: No. Question 2: Yes." A view that does not conform leads to
+  no act; but in a view that conforms, "a line inside an App string can
+  therefore become a separate element. Its tabs become indentation; they
+  never reach the words whitelist. A fresh index passes uniqueness checking."
+  With the named control absent, such a line drew a click, a set-value and a
+  press. The reading showed the calls issued and their arguments, not whether
+  the live supplier accepts an index it did not assign. No further patch was
+  made to the parser (App Agent 0).
+- **Where the walk acts, and why it is sound there (App Agent 0, 14 November
+  2026).** The tool acts only in the listed states below. It is sound there
+  because every text in those views is established and plain: the build's
+  own strings at the named commit, the paths the lane supplies and the App
+  makes from them, the fixed text macOS gives for windows and alerts, the
+  App's own menu, and the supplier's window and focused-element lines. It
+  must never act where a conversation exists, or where a view holds text from
+  outside: a model's output, Codex's reports, a file name the lane did not
+  write. There the fourth reading's result applies in full. The walk acts in
+  a listed state only when the view IS that state, line for line (the next
+  point), so a text the recorded view did not hold, from any source, stops it
+  with no act.
+- **The listed states, and their text.** Five states of the signed-out
+  setup, each recorded from this candidate's real views on 14 November 2026
+  at 09:01 UTC and kept in `signed-out-setup.scenario.json` (`states`, and
+  the sheet's `view`):
+
+  | State | The act taken from it | Sources of the text in the view |
+  | --- | --- | --- |
+  | S1, the first-use page | type the project path | the build's strings (`FirstUse.tsx`); macOS's fixed accessibility text (window chrome, roles, a scroll bar's position); the App's menu; the supplier's window line |
+  | S2, after typing | click Review setup | as S1, and the project path the lane supplies (`kept-<UTC>-<8 hex>/project`) |
+  | S3, What setup will do | open Exact locations | as S2 |
+  | S4, Exact locations open | click "Create settings and save for next launch…" | as S3, and three paths the App makes under its data folder (`shared-settings/settings-<uuid>`, `account-homes/account-<uuid>`, `desktop-startup/request.json`), each checked against that form |
+  | S5, the sheet | press "Create settings and save for next launch" | the build's strings (`desktop_startup.rs`, `desktop_setup_confirmation.rs`, `act_control.rs`) filled with the same paths; macOS's alert text (`Description: alert`, `ID: action-button-<n>`); the App's menu; the supplier's lines |
+
+  No conversation exists in any of them, and nothing in them comes from
+  Codex or a model. The relaunch is not a listed state: its first view can
+  show why a Codex start was refused, composed partly from errors of the
+  system or of Codex's verification, and once Codex is ready the App shows
+  what Codex reports. So the relaunch scenario is one view, read and acted on
+  nothing, and what "Credential storage" shows signed out is not observed in
+  this walk. That is a limit of the walk, not something worked round.
+- **Each act from its listed state, line for line.** Every step that acts
+  names the state it acts from (`from_state`), and before the act the latest
+  view must equal that state's recorded view: each element line in its depth
+  and words, every other line exactly, the focused-element line naming the
+  same element. The templates are filled with the project path, the three
+  App paths, the App's name (the candidate bundle's folder name, which must
+  be of the development build's form) and nothing else; the one allowance
+  is `{~number}`, a scroll bar's position. Any difference stops the step with
+  no act. A scenario with a step that acts and names no listed state is
+  refused before any call, so the first-use scenario, kept for the hosted
+  driver, is not walked on this Mac. If the supplier's view of the same pages
+  changes shape, or the build's strings change, the walk stops, and a state
+  is recorded again from a real observation and read again before it is
+  relied on.
+- **What the lane supplies is plain.** Before any call the walk refuses a
+  home, bundle, identifier or project holding a line break, a tab, a control
+  character, or a line or paragraph separator, so none can make a line of its
+  own in a view. The build's strings in the listed states were checked by
+  their recorded views, where every line was recognised. Strings those views
+  did not show, such as an error on a failure path, were not checked; a view
+  showing one is not a listed state, and the walk stops.
+- **No structured view.** The supplier gives a view as its application, a
+  screenshot and text, and nothing else; an act names its target by "Element
+  index from the latest `get_app_state()` text" (the supplier's own words), or
+  by a point in the screenshot. Acting by index is acting on text, and by a
+  point is acting on a picture: neither gives an element an identity a script
+  can hold. So no agent acts in a conversation with this tool. That is a fact
+  about the tool, not only a rule.
 - **Whole views.** Before any click the script asks for two
   views, one after the other, and both must come back whole. The first asks
   with the application alone; the first view of an application was seen to be
@@ -1357,19 +1428,15 @@ either driver marker.
     ruled out, and only an empty directory is at stake.
 
   `keep-launch` is run through `detached.py`, as `launch` is.
-- **A read pressed only if offered.** The relaunch's step R7 presses "Read
-  effective storage and plugin settings" (App Agent 0, 14 November 2026), so
-  that what "Credential storage" shows signed out is recorded word for word in
-  the view kept. The App offers that read only while its Codex is ready, so the
-  step is marked `if_offered`: a button that is absent or unavailable is not
+- **A button pressed only if offered.** A click step may be marked
+  `if_offered`; no scenario now uses it (the relaunch acts in no state). A
+  button that is absent or unavailable is not
   pressed, and the step records "absent; not pressed" or "unavailable; not
   pressed" and makes its view and checks as any other step. Absent means
   its words are on nothing in the view: words on a control of another kind,
   or on any other element, stop the walk, as does a button found twice. Only
   a button may be marked. "available; pressed" is recorded only when the
-  press is made. The read
-  changes no setting and starts no sign-in, model or conversation (the App's
-  own words under it).
+  press is made. A marked step acts from a listed state like any other.
 - **The record.** It says that an agent pressed the confirmation, by the
   supplier's click on the sheet's button by element index. The records the App
   writes will say that setup was confirmed. It is development evidence and

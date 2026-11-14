@@ -35,7 +35,20 @@ OUTCOMES = {'SETUP CHOICES REVIEWED', 'REFUSAL: REVIEW SETUP UNAVAILABLE BEFORE 
             'STARTING STATE: SETUP REQUIRED, APP DATA UNDER THE THROWAWAY HOME'}
 HARNESS = '''
 import { readFileSync } from 'node:fs';
-const walk = await import(process.argv[1]);
+const walkModule = await import(process.argv[1]);
+// A scenario that names no listed states (the first-use scenario, kept for the hosted driver) is given, for these
+// tests of the walk's mechanics, the views it is fed as its states, read when the walk starts.
+const listAll = () => {
+  if (scenario.states) return;
+  scenario.states = {};
+  scenario.steps.forEach((step, n) => {
+    if (['type', 'click', 'confirm_sheet'].includes(step.act)) {
+      step.from_state = 'V' + (n - 1);
+      scenario.states[step.from_state] = String(texts[Math.max(n - 1, 0)] ?? '').split('\\n');
+    }
+  });
+};
+const walk = { ...walkModule, run: options => { listAll(); return walkModule.run(options); } };
 const scenario = JSON.parse(readFileSync(process.argv[2], 'utf8'));
 const recorded = JSON.parse(readFileSync(process.argv[3], 'utf8'));
 let texts = recorded.views.map(view => view.text);
@@ -80,41 +93,32 @@ def harness(case):
 
 
 class Replay(unittest.TestCase):
-    def test_the_recorded_views_show_the_outcome_and_both_refusals(self):
-        code, report, said = replay(SCENARIO, VIEWS)
+    def views_file(self, views=None):
+        folder = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, folder, True)
+        path = folder / 'views.json'
+        path.write_text(json.dumps(views or setup_views()))
+        return path
+
+    def test_the_setup_scenario_replays_against_its_own_listed_states(self):
+        code, report, said = replay(SETUP, self.views_file())
         self.assertEqual((code, report['verdict'], report['stopped']), (0, 'pass', None), said)
-        self.assertEqual(report['outcomes'], {name: 'shown' for name in OUTCOMES})
-        self.assertEqual([step['id'] for step in report['steps']], [f'S{n}' for n in range(1, 9)])
-        self.assertTrue(all(step['checks'] and all(check['pass'] for check in step['checks']) for step in report['steps']))
-        self.assertEqual([call['call'] for call in report['calls']],
-                         ['get_app_state'] * 3 + ['click', 'get_app_state'] * 7)  # two whole views first, then the walk
-        self.assertEqual([view['whole'] for view in report['whole_views_before_any_click']], [True, True])
+        self.assertEqual([step['id'] for step in report['steps']], ['S1', 'S2', 'S3', 'S4', 'S5'])
+        self.assertEqual([call['call'] for call in report['calls'] if call['call'] != 'get_app_state'],
+                         ['set_value', 'click', 'click', 'click', 'click'])
         self.assertEqual({call['app'] for call in report['calls']}, {'dev.chirality.app-v4.candidate.invented'})
 
-    def test_each_known_wrong_state_is_rejected_at_its_step_and_only_there(self):
-        wrong = sorted(FIXTURES.glob('wrong.*.json'))
-        self.assertEqual(len(wrong), 6)
-        for path in wrong:
-            with self.subTest(path.name):
-                expected = json.loads(path.read_text())
-                code, report, said = replay(SCENARIO, VIEWS, path)
-                if 'stops' in expected:  # a control that is not the one named: nothing is clicked, and nothing is concluded
-                    self.assertEqual((code, report['verdict']), (2, expected['verdict']), said)
-                    self.assertIn(f"stopped at {expected['stops']}: the control to click was found 0 times", report['stopped'])
-                    self.assertEqual(report['outcomes']['REFUSAL: REVIEW SETUP UNAVAILABLE WITH EXISTING SETTINGS AND NOTHING CHOSEN'],
-                                     'not shown')
-                    self.assertEqual(len([call for call in report['calls'] if call['call'] == 'click']), 5)
-                    continue
-                self.assertEqual((code, report['verdict']), (1, 'fail'), said)
-                failed = {step['id']: [check['expectation'] for check in step['checks'] if not check['pass']]
-                          for step in report['steps'] if any(not check['pass'] for check in step['checks'])}
-                self.assertEqual(failed, {step: [expectation] for step, expectation in expected['fails'].items()})
-                self.assertEqual({name for name, state in report['outcomes'].items() if state != 'shown'},
-                                 {expected['outcome_not_shown']})
-                self.assertIn('found:', said)
+    def test_a_scenario_that_acts_and_names_no_listed_state_is_refused_before_any_call(self):
+        code, report, said = replay(SCENARIO, VIEWS)  # the first-use scenario, kept for the hosted driver
+        self.assertEqual((code, report['verdict'], report['calls']), (2, 'inconclusive', []), said)
+        self.assertIn('names no listed state it acts from; the walk acts only in a listed state', report['stopped'])
 
     def test_the_whole_result_arrives_through_a_pipe(self):
-        done = subprocess.run([NODE, str(REPLAY), str(SCENARIO), str(VIEWS)], capture_output=True, text=True)
+        views = setup_views()
+        # The page after the press, which nothing acts from, given a long text so the result outgrows a pipe.
+        views['views'][5]['text'] = views['views'][5]['text'].replace(f'\t\t\t\t6 text Project: {PROJECT}',
+                                                                      f'\t\t\t\t6 text Project: {PROJECT}\n\t\t\t\t7 text ' + 'invented words ' * 5000)
+        done = subprocess.run([NODE, str(REPLAY), str(SETUP), str(self.views_file(views))], capture_output=True, text=True)
         self.assertGreater(len(done.stdout), 65536)  # longer than a pipe holds at once
         self.assertEqual(json.loads(done.stdout)['verdict'], 'pass')
 
@@ -122,7 +126,7 @@ class Replay(unittest.TestCase):
         bad = FIXTURES.parent / 'does-not-apply.json'
         bad.write_text(json.dumps({'replace': [{'view': 0, 'from': 'button Not On The Page', 'to': 'x'}]}))
         self.addCleanup(bad.unlink)
-        code, report, said = replay(SCENARIO, VIEWS, bad)
+        code, report, said = replay(SETUP, self.views_file(), bad)
         self.assertEqual((code, report), (2, None), said)
 
 
@@ -880,20 +884,19 @@ SETUP_HARNESS = HARNESS.replace("if (name === 'click') return async () => {};",
     "readWatch: watched(), sleep: async () => {} };", "readWatch: watched(), sleep: async () => {}, project: recorded.project };")
 
 
+def setup_state(name):
+    """A listed state of the setup scenario, filled with the invented values."""
+    text = '\n'.join(json.loads(SETUP.read_text())['states'][name])
+    for placeholder, value in {'{app_name}': 'Chirality App v4 (development invented)', '{project}': PROJECT,
+                               '{settings}': SETTINGS, '{account}': ACCOUNT, '{request}': REQUEST, '{~number}': '0'}.items():
+        text = text.replace(placeholder, value)
+    return text
+
+
 def setup_views(sheet=None, after=None):
-    # sheet: the whole view of the sheet; by default the recorded one (sheet-on-its-own.txt).
-    """Invented views for the signed-out setup walk, made from the recorded first-use views (which see no project)."""
+    """Invented views for the signed-out setup walk: the scenario's own listed states filled with invented values, the
+    recorded sheet, and the page after it. sheet: the whole view of the sheet; by default the recorded one."""
     recorded = json.loads(VIEWS.read_text())
-    welcome, reviewed = recorded['views'][0]['text'], recorded['views'][4]['text']
-    field = '16 text field (settable) Project folder, Placeholder: /full/path/to/your/project'
-    typed = (welcome.replace(field, f'16 text field (settable) Project folder, Value: {PROJECT}, Placeholder: /full/path/to/your/project')
-             .replace('36 text Choose the folder you want to work in, or continue without a project.',
-                      '36 text Ready to review. Nothing is created or saved until you confirm.')
-             .replace('37 button (disabled) Review setup', '37 button Review setup'))
-    located = reviewed.replace('Project when you next open the App: none', f'Project when you next open the App: {PROJECT}')
-    located = located.replace('/invented/homes/launch-invented/home/Library/Application Support/dev.chirality.app-v4.candidate.invented', DATA)
-    review = '\n'.join(line for line in located.split('\n') if not re.match(r'^\t+(9[1-7]) ', line)).replace(
-        'summary Exact locations, Value: on', 'summary Exact locations, Value: off')
     with_sheet = SHEET_ON_ITS_OWN if sheet is None else sheet
     done = '\n'.join(['Window: "Chirality", App: Chirality App v4 (development invented).',
                       '0 standard window Chirality, Secondary Actions: Raise', '\t1 scroll area',
@@ -903,7 +906,8 @@ def setup_views(sheet=None, after=None):
                       '\t42 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window',
                       '\t43 minimize button', '\t44 text Chirality', '45 menu bar'])
     return {'app': recorded['app'], 'home': recorded['home'], 'bundle': recorded['bundle'], 'project': PROJECT,
-            'views': [{'text': text} for text in (welcome, typed, review, located, with_sheet, after or done)]}
+            'views': [{'text': text} for text in (setup_state('S1'), setup_state('S2'), setup_state('S3'), setup_state('S4'),
+                                                  with_sheet, after or done)]}
 
 
 SHEET_ON_ITS_OWN = (APP / 'tests/group_b_operated_fixtures/signed-out-setup/sheet-on-its-own.txt').read_text()
@@ -930,7 +934,7 @@ class TheSheetAndTheTypedPath(unittest.TestCase):
         self.assertEqual((verdict, stopped), ('pass', None))
         self.assertEqual(set(result['touched']), {'get_app_state', 'click', 'set_value'})
         self.assertEqual([c for c in calls if not c.startswith('get_app_state')],
-                         [f'set_value16={PROJECT}', 'click37', 'click89', 'click85', 'click4'])
+                         [f'set_value16={PROJECT}', 'click37', 'click57', 'click69', 'click4'])
 
     def test_a_dialog_anywhere_below_the_window_stops_an_ordinary_step(self):
         result = harness("texts[2] = texts[2].replace('\\t\\t2 HTML content', '\\t\\t\\t\\t950 sheet Confirm\\n\\t\\t2 HTML content'); "
@@ -952,12 +956,13 @@ class TheSheetAndTheTypedPath(unittest.TestCase):
                 views['views'][0]['text'] = views['views'][0]['text'].replace(field, line)
                 verdict, stopped, calls = setup_walk(RESULT.replace('OPTIONS', 'base'), views)['out']
                 self.assertEqual(verdict, 'inconclusive')
-                self.assertIn('the field was found 0 times', stopped)
+                self.assertIn('stopped at S2: the view is not the listed state S1', stopped)
+                self.assertIn('nothing was typed', stopped)
                 self.assertFalse([c for c in calls if c.startswith('set_value')])
         views = setup_views()
         views['views'][0]['text'] = views['views'][0]['text'].replace('15 text Project folder\n', '15 text Your folder\n')
         verdict, stopped, calls = setup_walk(RESULT.replace('OPTIONS', 'base'), views)['out']
-        self.assertIn('not directly after its label', stopped)
+        self.assertIn('the view is not the listed state S1', stopped)
         self.assertFalse([c for c in calls if c.startswith('set_value')])
 
     def test_a_link_with_other_words_after_its_label_is_not_it(self):
@@ -1107,9 +1112,14 @@ class TheSheetAndTheTypedPath(unittest.TestCase):
         views = setup_views()
         views['views'][3]['text'] = views['views'][3]['text'].replace(SETTINGS, '/invented/elsewhere/settings')
         verdict, stopped, calls = setup_walk(RESULT.replace('OPTIONS', 'base'), views)['out']
+        self.assertEqual(verdict, 'inconclusive')
+        self.assertIn('stopped at S4: the location "Settings folder" is not of the form the App makes', stopped)
+        self.assertNotIn('click69', calls)
+        # A path of the App's form whose check failed still keeps the sheet closed.
+        verdict, stopped, calls = setup_walk("scenario.steps[3].expect.push({ text: 'Invented absent words' }); " + RESULT.replace('OPTIONS', 'base'))['out']
         self.assertEqual(verdict, 'fail')
         self.assertIn('an earlier check failed, so the sheet is not opened', stopped)
-        self.assertNotIn('click85', calls)
+        self.assertNotIn('click69', calls)
 
     def test_only_the_project_is_typed_only_into_the_named_field_and_only_once(self):
         cases = {
@@ -1159,7 +1169,7 @@ class AViewThatCannotBeAddressed(unittest.TestCase):
         for name, at, text, acts in (
                 ('the first view', 0, welcome.replace('\n\t\t\t\t38 summary', twice + '\n\t\t\t\t38 summary'), []),
                 ("a step's view (the second reader's input)", 1, typed.replace('\n\t\t\t\t38 summary', twice + '\n\t\t\t\t38 summary'), [f'set_value16={PROJECT}']),
-                ("the sheet's view", 4, SHEET_ON_ITS_OWN.replace('\t3 button Cancel', '\t4 button Cancel'), [f'set_value16={PROJECT}', 'click37', 'click89', 'click85'])):
+                ("the sheet's view", 4, SHEET_ON_ITS_OWN.replace('\t3 button Cancel', '\t4 button Cancel'), [f'set_value16={PROJECT}', 'click37', 'click57', 'click69'])):
             with self.subTest(name):
                 views = setup_views()
                 views['views'][at]['text'] = text
@@ -1193,8 +1203,8 @@ const r = await walk.run(base);
 return [r.verdict, r.stopped, r.calls.filter(c => c.call !== 'get_app_state').map(c => c.call + (c.element_index ?? ''))];
 '''
         verdict, stopped, acts = setup_walk(case)['out']
-        self.assertEqual((verdict, acts), ('inconclusive', ['set_value16', 'click37', 'click89', 'click85']), stopped)
-        self.assertIn('nothing was pressed', stopped)
+        self.assertEqual((verdict, acts), ('inconclusive', []), stopped)
+        self.assertIn('refused before any call: the bundle holds a line break, a tab, a control character or a line or paragraph separator', stopped)
 
     def test_a_name_not_of_the_development_builds_form_is_refused_before_the_template_is_made(self):
         case = (
@@ -1203,8 +1213,8 @@ return [r.verdict, r.stopped, r.calls.filter(c => c.call !== 'get_app_state').ma
             "texts[4] = texts[4].replaceAll('Chirality App v4 (development invented)', 'Other App'); "
             "const r = await walk.run(base); return [r.verdict, r.stopped, r.calls.filter(c => c.call === 'click').map(c => c.element_index)];")
         verdict, stopped, clicks = setup_walk(case)['out']
-        self.assertEqual((verdict, clicks), ('inconclusive', [37, 89, 85]), stopped)
-        self.assertIn("the candidate bundle's name is not of the development build's form", stopped)
+        self.assertEqual((verdict, clicks), ('inconclusive', []), stopped)
+        self.assertIn("stopped at S2: the view is not the listed state S1 (the candidate bundle's name is not of the development build's form", stopped)
 
     def test_a_row_holding_a_line_or_paragraph_separator_or_a_carriage_return_does_not_hide_a_second_index(self):
         for char, name in (('\u2028', 'line separator'), ('\u2029', 'paragraph separator'), ('\r', 'carriage return')):
@@ -1294,18 +1304,25 @@ class TheSignedOutScenarioFiles(unittest.TestCase):
         setup, relaunch = json.loads(SETUP.read_text()), json.loads(RELAUNCH.read_text())
         self.assertEqual([step['act'] for step in setup['steps']], ['view', 'type', 'click', 'click', 'confirm_sheet'])
         self.assertEqual(setup['typed_fields'], ['Project folder'])
-        for step in relaunch['steps']:
-            self.assertIn(step['act'], ('view', 'click'))
-            if step['act'] == 'click':
-                self.assertNotIn(step['control']['label'], relaunch['never_clicked'])
-                self.assertIn(step['control']['kind'], ('button', 'summary', 'link'))
-                self.assertFalse(step['control']['label'].endswith(('…', '...')))
+        # The setup acts only in its five listed states: four recorded views and the sheet.
+        self.assertEqual({step['id']: step.get('from_state') for step in setup['steps'] if step['act'] != 'view'},
+                         {'S2': 'S1', 'S3': 'S2', 'S4': 'S3', 'S5': 'S4'})
+        self.assertEqual(sorted(setup['states']), ['S1', 'S2', 'S3', 'S4'])
+        # The relaunch acts in no state: one view, read.
+        self.assertEqual([(step['id'], step['act']) for step in relaunch['steps']], [('R1', 'view')])
+        self.assertNotIn('states', relaunch)
         self.assertNotIn('typed_fields', relaunch)
         self.assertNotIn('sheets', relaunch)
-        pressed = [step['control']['label'] for step in relaunch['steps'] if step['act'] == 'click' and step['control']['kind'] == 'button']
-        self.assertEqual(pressed, ['Check account status', 'Read effective storage and plugin settings'])
-        self.assertEqual([step['id'] for step in relaunch['steps'] if step.get('if_offered')], ['R7'])
-        self.assertIn('>Read effective storage and plugin settings</button>', (APP / 'src/App.tsx').read_text())
+
+    def test_the_listed_states_are_the_recorded_views_and_recognised(self):
+        setup = json.loads(SETUP.read_text())
+        for name in ('S1', 'S2', 'S3', 'S4'):
+            with self.subTest(name):
+                text = setup_state(name)
+                self.assertNotIn('{', text.replace('{~', ''))  # every placeholder filled
+                self.assertIsNone(harness(f'return walk.recognise({json.dumps(text)}).refusal;')['out'])
+        self.assertIn('0 standard window Chirality', setup_state('S1'))
+        self.assertIn('summary Exact locations, Value: on', setup_state('S4'))
 
 
 class AButtonPressedOnlyIfOffered(unittest.TestCase):
