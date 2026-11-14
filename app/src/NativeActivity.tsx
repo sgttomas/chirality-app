@@ -436,9 +436,19 @@ const RUN_ID = { label: "Run:", name: "Run reference, as recorded; the App does 
 export function RunStartMarker({ run }: { run: Json }) {
   return <div role="note" style={marker}>Workflow run started: <RunName run={run} /> (run <SuppliedId value={run?.reference} label={RUN_ID.label} name={RUN_ID.name} />), as the App recorded it. The workflow text it supplied is folded in the user message of this turn.</div>;
 }
+// The host's run-end causes (runtime_session.rs run_end_cause): its own words, or "ended to start ‹name›" with a
+// name the App's rule admits. Anything else is boxed.
+const RUN_END_CAUSE = { "ended by the person": "ended by the person", completed: "completed", invalid: "invalid" } as const;
+function RunEndCause({ cause }: { cause: Json }) {
+  if (cause === undefined || cause === null || cause === "") return <b>cause not recorded</b>;
+  const word = wordOf(RUN_END_CAUSE, cause);
+  if (word !== null) return <b>{word}</b>;
+  const successor = typeof cause === "string" && cause.startsWith("ended to start ") ? cause.slice("ended to start ".length) : null;
+  if (successor !== null && successor.length <= 64 && SAFE_WORKFLOW_NAME.test(successor)) return <b>ended to start {plainId(successor)}</b>;
+  return <AgentText value={cause} source="codex" label="Cause:" name="Why the run ended, as recorded; the App does not vouch for its words" />;
+}
 export function RunEndMarker({ run }: { run: Json }) {
-  const cause = run?.lifecycle?.end?.cause;
-  return <div role="note" style={marker}>Run ended: {cause === undefined || cause === null || cause === "" ? <b>cause not recorded</b> : <AgentText value={cause} source="codex" label="Cause:" name="Why the run ended, as recorded; the App does not vouch for its words" />} (<RunName run={run} />, run <SuppliedId value={run?.reference} label={RUN_ID.label} name={RUN_ID.name} />){run?.finishedReport ? "; you ended it on the agent's “Workflow finished” statement" : ""}. You ended it; this marker checks nothing and does not take the work as done.</div>;
+  return <div role="note" style={marker}>Run ended: <RunEndCause cause={run?.lifecycle?.end?.cause} /> (<RunName run={run} />, run <SuppliedId value={run?.reference} label={RUN_ID.label} name={RUN_ID.name} />){run?.finishedReport ? "; you ended it on the agent's “Workflow finished” statement" : ""}. You ended it; this marker checks nothing and does not take the work as done.</div>;
 }
 
 // TO-4 / RECOVERY §3.4: the App's own label for a turn it was asked to stop,
