@@ -548,9 +548,11 @@ def answered_rows(model, answers):
 
 # --- Output -------------------------------------------------------------------
 
-def fallback_header(root):
+def fallback_header(root, **extra):
     """The header of a file of blocked rows: every field that is read from a
-    file is taken only if reading it succeeds, so the header cannot fail."""
+    file is taken only if reading it succeeds, so the header cannot fail. It
+    says it is a fallback, and keeps `extra` (an answers run's `answers_of`),
+    so a refused answers run still supersedes that list's earlier answers."""
     def tried(read):
         try:
             return read()
@@ -559,7 +561,7 @@ def fallback_header(root):
     driver = tried(lambda: driver_run(root) if (root / 'record' / DRIVER_RUN).exists() else None)
     return {'header': True, 'candidate_key': tried(lambda: candidate_key(root)), **({'driver_run': driver} if driver else {}),
             'examination_root': str(root), 'tool': TOOL, 'tool_sha256': tried(tool_digest), 'model_version': MODEL_VERSION,
-            'pinned_codex': PINNED_CODEX, 'compares': COMPARES, 'workflow_comparison': NOT_AVAILABLE}
+            'pinned_codex': PINNED_CODEX, 'compares': COMPARES, 'workflow_comparison': NOT_AVAILABLE, 'fallback': True, **extra}
 
 
 def header(root, **extra):
@@ -702,7 +704,8 @@ def main(argv=None):
         # Nothing ends without rows: the failure's kind, and no more.
         reason = str(e) if isinstance(e, Refused) else f'the comparison failed ({e.__class__.__name__})'
         try:
-            print(write(root, 'session-comparison', fallback_header(root), blocked_all(thread, reason), fallback=True))
+            extra = {'answers_of': ident(Path(args.screen).name)} if args.command == 'answers' else {}
+            print(write(root, 'session-comparison', fallback_header(root, **extra), blocked_all(thread, reason), fallback=True))
             return 1
         except Exception as inner:
             print(f'refused: no result could be written ({inner.__class__.__name__})', file=sys.stderr)

@@ -9,6 +9,7 @@ import os
 import sqlite3
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -761,6 +762,62 @@ class FourthReading(unittest.TestCase):
         self.assertIsNone(lines[0]['tool_sha256'])
         self.assertEqual(lines[0]['workflow_comparison'], compare.NOT_AVAILABLE)
         self.assertEqual({r['outcome'] for r in rows(lines)}, {'blocked'})
+
+
+
+class FifthReading(unittest.TestCase):
+    """The focused reading after round 4: a refused answers run supersedes the
+    list's earlier answers at the examination table, and a fallback says so."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.r = Root(self.tmp.name)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def table_passes(self):
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'standalone'))
+        try:
+            import table
+        finally:
+            sys.path.pop(0)
+        text = '\n'.join(table.comparisons([self.r.root / 'record']))
+        return [l for l in text.splitlines() if l.startswith('| ') and '| C3 |' in l]
+
+    def test_a_refused_answers_run_leaves_no_earlier_pass_counted(self):
+        self.r.turn('turn-1', 'completed')
+        self.r.compare(candidate=True)
+        (screen,) = (self.r.root / 'record').glob('screen-list-*.jsonl')
+        lines = screen.read_text().splitlines()
+        screen.write_text('\n'.join([lines[0]] + [json.dumps({**json.loads(l), 'answer': 'passed', 'note': 'seen'}) for l in lines[1:]]) + '\n')
+        self.assertEqual(compare.main(['answers', '--root', str(self.r.root), '--screen', str(screen)]), 0)
+        passed = lambda row: int(row.split('| C3 |')[1].split('|')[0])  # the first outcome column is passed
+        (first,) = self.table_passes()
+        self.assertEqual(passed(first), 1, first)
+        # A saved view now shows the turn otherwise; the answers are revised and run again, later.
+        self.r.view({'turn-1': 'interrupted'})
+        time.sleep(1.1)
+        screen.write_text('\n'.join([lines[0]] + [json.dumps({**json.loads(l), 'answer': 'failed', 'note': 'seen'}) for l in lines[1:]]) + '\n')
+        self.assertEqual(compare.main(['answers', '--root', str(self.r.root), '--screen', str(screen)]), 1)
+        refused = max((self.r.root / 'record').glob('session-comparison-2*.jsonl'))
+        head = json.loads(refused.read_text().splitlines()[0])
+        self.assertEqual((head['fallback'], head['answers_of']), (True, screen.name))
+        (row,) = self.table_passes()
+        self.assertEqual(passed(row), 0, f'the earlier operator pass is still counted: {row}')
+
+    def test_a_fallback_header_says_it_is_one(self):
+        self.r.turn('turn-1', 'completed')
+        self.r.write()
+        self.assertEqual(compare.main(['compare', '--root', str(self.r.root), '--thread', THREAD, '--view', '/nonexistent/host-status-x.json']), 0)
+        original = compare.compare_views
+        compare.compare_views = lambda *a: (_ for _ in ()).throw(RuntimeError('invented'))
+        try:
+            self.assertEqual(compare.main(['compare', '--root', str(self.r.root), '--thread', THREAD, '--view', self.r.view({})]), 1)
+        finally:
+            compare.compare_views = original
+        heads = [json.loads(p.read_text().splitlines()[0]) for p in (self.r.root / 'record').glob('session-comparison-2*.jsonl')]
+        self.assertEqual(sorted(h.get('fallback', False) for h in heads), [False, True])
 
 
 if __name__ == '__main__':
