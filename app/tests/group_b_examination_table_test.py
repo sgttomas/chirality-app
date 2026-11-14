@@ -96,7 +96,7 @@ class Steps(Fixture):
         text = self.printed('--repo', str(repo), '--results', str(results), '--candidate', 'c2')
         self.assertIn('| passed | 2026-11-14 | agent |', self.row(text, 'A-1'))
         self.assertIn('1 passed, 0 failed, 0 blocked, 4 not run', text)  # A-2R does not count, nor the other candidate's
-        self.results({'step': 'A-2', 'candidate': 'c', 'date': 'd', 'outcome': 'shown'})
+        self.results({'step': 'A-2', 'candidate': 'c', 'date': '2026-11-14', 'outcome': 'shown'})
         with self.assertRaises(SystemExit):
             table.main(['--repo', str(repo), '--results', str(results), '--candidate', 'c2'])
 
@@ -107,16 +107,16 @@ class Steps(Fixture):
         rows.write_text(json.dumps({'header': True, 'candidate_key': 'c'}) + '\n'
                         + json.dumps({'comparison': 'C3', 'outcome': 'failed'}) + '\n')
         digest = 'sha256:' + hashlib.sha256(rows.read_bytes()).hexdigest()
-        self.results({'step': 'A-1', 'candidate': 'c', 'date': 'd', 'outcome': 'passed',
+        self.results({'step': 'A-1', 'candidate': 'c', 'date': '2026-11-14', 'outcome': 'passed',
                       'cites': [{'file': 'rows.jsonl', 'sha256': digest, 'rows': [2, 9]}]},
-                     {'step': 'A-2', 'candidate': 'c', 'date': 'd', 'outcome': 'passed',
+                     {'step': 'A-2', 'candidate': 'c', 'date': '2026-11-14', 'outcome': 'passed',
                       'cites': [{'file': 'rows.jsonl', 'sha256': 'sha256:' + '0' * 64, 'rows': [2]}]},
-                     {'step': 'B-1', 'candidate': 'c', 'date': 'd', 'outcome': 'failed',
+                     {'step': 'B-1', 'candidate': 'c', 'date': '2026-11-14', 'outcome': 'failed',
                       'cites': [{'file': 'absent.jsonl', 'sha256': digest, 'rows': [1]}, 'not a citation']})
         text = self.printed('--repo', str(repo), '--results', str(results), '--candidate', 'c')
-        self.assertIn('| passed | d |', self.row(text, 'A-1'))
-        self.assertIn('| passed | d |', self.row(text, 'A-2'))
-        self.assertIn('| failed | d |', self.row(text, 'B-1'))
+        self.assertIn('| passed | 2026-11-14 |', self.row(text, 'A-1'))
+        self.assertIn('| passed | 2026-11-14 |', self.row(text, 'A-2'))
+        self.assertIn('| failed | 2026-11-14 |', self.row(text, 'B-1'))
         self.assertIn('Counted steps in the release: 2 passed, 1 failed, 0 blocked, 2 not run, 0 inconclusive.', text)
         listing = text[text.index('Cited rows, listed as cited'):]
         self.assertIn("they never raise, lower or protect a step's outcome or any count", listing)
@@ -135,10 +135,10 @@ class TheClaim(Fixture):
 
     def test_records_for_another_candidate_or_none_never_pass_for_the_one_named(self):
         repo = self.repo()
-        results = self.results({'step': 'A-1', 'candidate': 'other', 'date': 'd', 'outcome': 'passed'},
-                               {'step': 'A-2', 'candidate': None, 'date': 'd', 'outcome': 'passed'},
-                               {'step': 'B-1', 'candidate': '', 'date': 'd', 'outcome': 'passed'},
-                               {'step': 'B-2', 'date': 'd', 'outcome': 'passed'})
+        results = self.results({'step': 'A-1', 'candidate': 'other', 'date': '2026-11-14', 'outcome': 'passed'},
+                               {'step': 'A-2', 'candidate': None, 'date': '2026-11-14', 'outcome': 'passed'},
+                               {'step': 'B-1', 'candidate': '', 'date': '2026-11-14', 'outcome': 'passed'},
+                               {'step': 'B-2', 'date': '2026-11-14', 'outcome': 'passed'})
         text = self.printed('--repo', str(repo), '--results', str(results), '--candidate', 'c')
         self.assertIn('0 passed', text)
         self.assertIn('not run (no record)', self.row(text, 'A-1'))
@@ -164,7 +164,7 @@ class TheClaim(Fixture):
     def test_a_results_folder_that_is_missing_stops_and_an_unreadable_record_is_named(self):
         with self.assertRaises(SystemExit):
             table.main(['--repo', str(self.repo()), '--results', str(self.root / 'absent'), '--candidate', 'c'])
-        results = self.results({'step': 'A-1', 'candidate': 'c', 'date': 'd', 'outcome': 'passed'})
+        results = self.results({'step': 'A-1', 'candidate': 'c', 'date': '2026-11-14', 'outcome': 'passed'})
         (results / 'broken.json').write_text('{ not json')
         text = self.printed('--repo', str(self.repo()), '--results', str(results), '--candidate', 'c')
         self.assertIn('Records that could not be read (not counted): broken.json (JSONDecodeError)', text)
@@ -199,15 +199,15 @@ class TheClaimAgain(Fixture):
         return {'file': 'rows/rows.jsonl', 'sha256': 'sha256:' + hashlib.sha256(path.read_bytes()).hexdigest(), 'rows': rows}
 
     def test_an_empty_candidate_stops_the_print(self):
-        results = self.results({'step': 'A-1', 'candidate': '', 'date': 'd', 'outcome': 'passed'})
+        results = self.results({'step': 'A-1', 'candidate': '', 'date': '2026-11-14', 'outcome': 'passed'})
         for empty in ('', '  '):
             with self.subTest(repr(empty)), self.assertRaises(SystemExit):
                 table.main(['--repo', str(self.repo()), '--results', str(results), '--candidate', empty])
 
     def test_records_of_one_date_that_agree_pass_once_and_each_ones_citations_are_listed(self):
         results = self.results()
-        self.results({'step': 'A-1', 'candidate': 'c', 'date': 'd', 'outcome': 'passed'},
-                     {'step': 'A-1', 'candidate': 'c', 'date': 'd', 'outcome': 'passed',
+        self.results({'step': 'A-1', 'candidate': 'c', 'date': '2026-11-14', 'outcome': 'passed'},
+                     {'step': 'A-1', 'candidate': 'c', 'date': '2026-11-14', 'outcome': 'passed',
                       'cites': [{'file': 'absent.jsonl', 'sha256': 'sha256:' + '0' * 64, 'rows': [1]}]})
         text = self.printed('--repo', str(self.repo()), '--results', str(results), '--candidate', 'c')
         self.assertIn('1 passed', text)
@@ -218,10 +218,10 @@ class TheClaimAgain(Fixture):
         passed = self.cite(results, [{'header': True, 'candidate_key': 'c'}, {'comparison': 'C2', 'outcome': 'passed'}], [2])
         failed = dict(self.cite(results, [{'header': True, 'candidate_key': 'other', 'workflow_comparison': 'not available'},
                                           {'comparison': 'W1', 'outcome': 'failed'}], [2]))
-        records = [{'step': 'A-1', 'candidate': 'c', 'date': 'd', 'outcome': 'failed'},
-                   {'step': 'A-2', 'candidate': 'c', 'date': 'd', 'outcome': 'passed'},
-                   {'step': 'B-1', 'candidate': 'c', 'date': 'd', 'outcome': 'blocked'},
-                   {'step': 'B-2', 'candidate': 'c', 'date': 'd', 'outcome': 'inconclusive'}]
+        records = [{'step': 'A-1', 'candidate': 'c', 'date': '2026-11-14', 'outcome': 'failed'},
+                   {'step': 'A-2', 'candidate': 'c', 'date': '2026-11-14', 'outcome': 'passed'},
+                   {'step': 'B-1', 'candidate': 'c', 'date': '2026-11-14', 'outcome': 'blocked'},
+                   {'step': 'B-2', 'candidate': 'c', 'date': '2026-11-14', 'outcome': 'inconclusive'}]
         bare = self.printed('--repo', str(self.repo()), '--results', str(self.results(*records)), '--candidate', 'c')
         for record, cite in zip(records, (passed, failed, passed, passed)):
             record['cites'] = [cite]
@@ -231,9 +231,9 @@ class TheClaimAgain(Fixture):
         self.assertIn('Counted steps in the release: 1 passed, 1 failed, 1 blocked, 1 not run, 1 inconclusive.', bare)
 
     def test_a_disagreement_is_printed_directly_under_the_counts(self):
-        results = self.results({'step': 'A-1', 'candidate': 'c', 'date': 'd', 'outcome': 'failed'},
-                               {'step': 'A-1', 'candidate': 'c', 'date': 'd', 'outcome': 'passed'},
-                               {'step': 'Z-9', 'candidate': 'c', 'date': 'd', 'outcome': 'passed'})
+        results = self.results({'step': 'A-1', 'candidate': 'c', 'date': '2026-11-14', 'outcome': 'failed'},
+                               {'step': 'A-1', 'candidate': 'c', 'date': '2026-11-14', 'outcome': 'passed'},
+                               {'step': 'Z-9', 'candidate': 'c', 'date': '2026-11-14', 'outcome': 'passed'})
         lines = self.printed('--repo', str(self.repo()), '--results', str(results), '--candidate', 'c').splitlines()
         counts = next(n for n, line in enumerate(lines) if line.startswith('Counted steps in the release:'))
         self.assertEqual(lines[counts + 1], 'Records that disagree: A-1: records of the same date disagree '
@@ -255,6 +255,99 @@ class TheClaimAgain(Fixture):
                             '--comparison-standing', 'session comparison: a reading is still out')
         section = text[text.index('SESSION COMPARISON'):]
         self.assertIn('Standing: session comparison: a reading is still out', section.splitlines()[2])
+
+
+class TheSecondReading(Fixture):
+    """The first reading of the smaller claim found three ways its inputs could defeat it; each is repaired here with
+    the reader's own input."""
+
+    def row(self, text, step):
+        return next(line for line in text.splitlines() if f'| {step} |' in line)
+
+    def test_the_launchers_own_record_shape_is_read_and_the_table_still_prints(self):
+        folder = self.rows('session-comparison-20261114T080000Z-aaaaaaaa.jsonl',
+                           [{'header': True, 'candidate_key': 'c'}, {'comparison': 'C2', 'outcome': 'passed'}])
+        (folder / 'launch-record.json').write_text(json.dumps(
+            {'candidate_key': 'c', 'identifier': 'dev.chirality.app-v4.candidate.c', 'bundle': '/invented/Candidate.app'}))
+        text = self.printed('--repo', str(self.repo()), '--candidate', 'c', '--comparisons', str(folder))
+        self.assertIn('Counted steps in the release:', text)
+        self.assertIn('| c | C2 | 1 | 0 | 0 | 0 | 0 |', text)
+
+    def test_a_launch_record_naming_another_candidate_at_its_top_level_withholds_the_rows(self):
+        folder = self.rows('session-comparison-20261114T080000Z-aaaaaaaa.jsonl',
+                           [{'header': True, 'candidate_key': 'A'}, {'comparison': 'C2', 'outcome': 'passed'}])
+        (folder / 'launch-record.json').write_text(json.dumps({'candidate_key': 'B', 'identifier': 'dev.chirality.app-v4.candidate.B'}))
+        section = self.printed('--repo', str(self.repo()), '--candidate', 'c', '--comparisons', str(folder))
+        self.assertNotIn('| A | C2 |', section)
+        self.assertIn('its header names candidate A and the launch record B; its rows are not counted', section)
+
+    def test_the_later_time_decides_whatever_its_zone_and_equal_times_disagree(self):
+        results = self.results(
+            {'step': 'A-1', 'candidate': 'c', 'date': '2026-11-14T12:00:00+02:00', 'outcome': 'passed'},
+            {'step': 'A-1', 'candidate': 'c', 'date': '2026-11-14T11:00:00Z', 'outcome': 'failed'},
+            {'step': 'A-2', 'candidate': 'c', 'date': '2026-11-14T10:00:00Z', 'outcome': 'passed'},
+            {'step': 'A-2', 'candidate': 'c', 'date': '2026-11-14T10:00:00+00:00', 'outcome': 'failed'})
+        text = self.printed('--repo', str(self.repo()), '--results', str(results), '--candidate', 'c')
+        self.assertIn('| failed | 2026-11-14T11:00:00Z |', self.row(text, 'A-1'))
+        self.assertIn('| inconclusive (records disagree) |', self.row(text, 'A-2'))
+        self.assertIn('0 passed, 1 failed, 0 blocked, 3 not run, 1 inconclusive', text)
+
+    def test_dates_that_cannot_be_placed_or_ordered_never_decide(self):
+        results = self.results(
+            {'step': 'A-1', 'candidate': 'c', 'date': '20261113', 'outcome': 'passed'},
+            {'step': 'A-1', 'candidate': 'c', 'date': '2026-11-14', 'outcome': 'failed'},
+            {'step': 'A-2', 'candidate': 'c', 'date': '2026-11-14T10:00:00', 'outcome': 'passed'},
+            {'step': 'B-1', 'candidate': 'c', 'date': '2026-11-14', 'outcome': 'passed'},
+            {'step': 'B-1', 'candidate': 'c', 'date': '2026-11-14T10:00:00Z', 'outcome': 'passed'})
+        text = self.printed('--repo', str(self.repo()), '--results', str(results), '--candidate', 'c')
+        self.assertIn('| failed | 2026-11-14 |', self.row(text, 'A-1'))
+        self.assertIn('not run (no record)', self.row(text, 'A-2'))
+        self.assertIn('| inconclusive (records disagree) |', self.row(text, 'B-1'))
+        self.assertIn("r0.json (its date '20261113' is not a calendar date or a time with its zone)", text)
+        self.assertIn("r2.json (its date '2026-11-14T10:00:00' is not a calendar date or a time with its zone)", text)
+        self.assertIn('B-1: dates of different forms cannot be ordered', text)
+
+    def test_no_citation_can_stop_the_print_or_change_what_is_above_its_listing(self):
+        base = {'step': 'A-1', 'candidate': 'c', 'date': '2026-11-14', 'outcome': 'passed'}
+        bare = self.printed('--repo', str(self.repo()), '--results', str(self.results(base)), '--candidate', 'c')
+        outside = self.root / 'outside.jsonl'
+        outside.write_text(json.dumps({'comparison': 'C2', 'outcome': 'failed'}) + '\n')
+        for name, cites in (('not a list', 1), ('outside the folder', [{'file': '../outside.jsonl', 'sha256': 'x', 'rows': [1]}]),
+                            ('an absolute path', [{'file': str(outside), 'sha256': 'x', 'rows': [1]}]),
+                            ('a file that cannot be read', [{'file': 'rows.jsonl', 'sha256': 'sha256:' + '0' * 64, 'rows': [1]}])):
+            with self.subTest(name):
+                results = self.results(dict(base, cites=cites))
+                locked = results / 'rows.jsonl'
+                if locked.exists():
+                    locked.chmod(0o600)
+                locked.write_text(json.dumps({'comparison': 'C2', 'outcome': 'failed'}) + '\n')
+                locked.chmod(0)
+                self.addCleanup(locked.chmod, 0o600)
+                text = self.printed('--repo', str(self.repo()), '--results', str(results), '--candidate', 'c')
+                self.assertEqual(text[:text.index('Cited rows')].rstrip(), bare.rstrip())
+                listing = text[text.index('Cited rows'):]
+                expected = {'not a list': 'citations not given as a list: 1', 'outside the folder': 'outside the results folder; not read',
+                            'an absolute path': 'outside the results folder; not read',
+                            'a file that cannot be read': 'rows.jsonl: exists; cannot be read (PermissionError)'}[name]
+                if name == 'a file that cannot be read' and os.access(locked, os.R_OK):
+                    continue  # root reads a file without permission
+                self.assertIn(expected, listing)
+
+    def test_a_record_that_is_not_one_is_set_aside_and_bad_comparison_inputs_are_noted(self):
+        results = self.results([], {'candidate': 'c', 'date': '2026-11-14', 'outcome': 'passed'},
+                               {'step': 'A-1', 'candidate': 'c', 'outcome': 'passed'})
+        folder = self.rows('session-comparison-20261114T080000Z-aaaaaaaa.jsonl', [])
+        (folder / 'session-comparison-20261114T080000Z-aaaaaaaa.jsonl').write_text('{bad\n')
+        self.rows('session-comparison-20261114T080000Z-bbbbbbbb.jsonl', [[]], folder)
+        text = self.printed('--repo', str(self.repo()), '--results', str(results), '--candidate', 'c',
+                            '--comparisons', str(folder), '--comparisons', str(self.root / 'absent'))
+        self.assertIn('0 passed, 0 failed, 0 blocked, 5 not run', text)
+        self.assertIn('r0.json (not a record)', text)
+        self.assertIn('r1.json (names no step)', text)
+        self.assertIn("r2.json (its date None is not a calendar date or a time with its zone)", text)
+        self.assertIn('session-comparison-20261114T080000Z-aaaaaaaa.jsonl: cannot be read as one JSON object per line', text)
+        self.assertIn('session-comparison-20261114T080000Z-bbbbbbbb.jsonl: cannot be read as one JSON object per line', text)
+        self.assertIn(f"{self.root / 'absent'}: not a folder that can be read; nothing from it is counted", text)
 
 
 class Comparisons(Fixture):

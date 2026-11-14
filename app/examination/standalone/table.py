@@ -16,7 +16,10 @@ It reads and writes nothing in the repository, and its output is never committed
   candidate, configuration, date, outcome, operated_by}, the outcome one of DEL-09-02 REQ-007's five (passed,
   failed, blocked, not run, inconclusive); any other outcome stops the print, and so does a results folder that is
   not there or cannot be read, and an empty candidate. Records for another candidate or naming none, and records
-  that cannot be read, are named beneath the table and never counted.
+  that cannot be read, are named beneath the table and never counted. A record that is not a JSON object, names no
+  step, or has a date that is neither a calendar date (YYYY-MM-DD) nor a time with its zone (ISO 8601, Z or an
+  offset) cannot be read. Dates are compared as dates or as instants, so one time written with two zones is the same
+  date; a step whose records mix calendar dates and times cannot be ordered and prints as inconclusive.
 
   THE CLAIM (App Agent 0, 14 November 2026). A step prints as passed only when a result record for that step, on the
   candidate named, says passed, and no other record for that step on that candidate of the same latest date says
@@ -25,7 +28,8 @@ It reads and writes nothing in the repository, and its output is never committed
   A record may cite session-comparison rows ("cites": [{file, sha256, rows}], the file relative to --results). Cited
   rows are listed beneath the table as cited, with whether each file exists, whether it is unchanged (its digest is
   the one cited) and what each cited row's outcome is. They never raise, lower or protect a step's outcome or any
-  count. The driver's runs and the comparison's rows are never counted as steps;
+  count, and nothing in a citation can stop the print: one that is not a list, points outside the results folder
+  (by .. or an absolute path; listed, not read) or names a file that cannot be read is listed as such. The driver's runs and the comparison's rows are never counted as steps;
 - the scripted driver's runs, from --driver FOLDER=RUN@HEAD: a folder holding the reports a hosted run uploaded
   (report.json, scenario-report.json, and setup-report.json when the run made one). The driver is development
   evidence on a test build and satisfies no step;
@@ -35,7 +39,10 @@ It reads and writes nothing in the repository, and its output is never committed
   candidate is the header's candidate_key alone: a file whose header names none (a fallback file written after a
   refusal or failure, say) is counted under "not known", and never resolved through another field such as the
   launch record's identifier; a file whose header names a candidate the launch record beside it contradicts is named
-  and not counted. A summary line is compared with the rows, never counted. Of the answers files made from one screen list (the header's "answers_of"), only the latest counts: by
+  and not counted. A launch record is read in the launcher's shape (candidate_key, or identifier, at its top level);
+  one that cannot be read withholds its folder's rows. A comparison folder that is not there, and a file that is not
+  one JSON object per line or is empty, are noted and contribute nothing. A summary line is compared with the rows,
+  never counted. Of the answers files made from one screen list (the header's "answers_of"), only the latest counts: by
   the header's "written_at" when every one has it, else by the time in the name, and two of the same time count
   for neither. A fallback file carrying "answers_of" takes part like any other, so a refused answers run replaces
   the answers its list had before. When a file's header says the workflow comparison is not available ("workflow_comparison"), that
@@ -44,6 +51,7 @@ It reads and writes nothing in the repository, and its output is never committed
   prints a sentence at the head of the section, for the comparison tool's own standing.
 """
 import argparse
+import datetime
 import hashlib
 import json
 import os
@@ -53,6 +61,26 @@ import sys
 
 OUTCOMES = ('passed', 'failed', 'blocked', 'not run', 'inconclusive')
 STEP_MAP = 'app/examination/sq_receiving/sq.step-map.json'
+
+
+def when(text):
+    """A record's date as something that orders: ('date', a calendar date) for YYYY-MM-DD, or ('instant', the UTC time)
+    for an ISO 8601 time with its zone (Z or an offset). Anything else, a time without a zone among it, is None: the
+    record cannot be placed in time and is set aside as unreadable."""
+    if not isinstance(text, str):
+        return None
+    if re.fullmatch(r'\d{4}-\d{2}-\d{2}', text):
+        try:
+            return ('date', datetime.date.fromisoformat(text))
+        except ValueError:
+            return None
+    if not re.fullmatch(r'\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d+)?)?(Z|[+-]\d{2}:\d{2})', text):
+        return None
+    try:
+        moment = datetime.datetime.fromisoformat(text.replace('Z', '+00:00'))
+    except ValueError:
+        return None
+    return ('instant', moment.astimezone(datetime.timezone.utc))
 
 
 def results(folder, candidate):
@@ -71,20 +99,34 @@ def results(folder, candidate):
         except (OSError, ValueError) as error:
             unreadable.append(f'{path.name} ({type(error).__name__})')
             continue
+        if not isinstance(record, dict):
+            unreadable.append(f'{path.name} (not a record)')
+            continue
         if record.get('outcome') not in OUTCOMES:
             raise SystemExit(f'{path}: outcome {record.get("outcome")!r} is not one of REQ-007\'s five')
         if record.get('candidate') != candidate:
             other.append(f"{path.name} ({record.get('candidate') or 'no candidate'})")
             continue
-        by_step.setdefault(record['step'], []).append(dict(record, file=path.name))
+        if not isinstance(record.get('step'), str) or not record['step']:
+            unreadable.append(f'{path.name} (names no step)')
+            continue
+        moment = when(record.get('date'))
+        if moment is None:
+            unreadable.append(f"{path.name} (its date {record.get('date')!r} is not a calendar date or a time with its zone)")
+            continue
+        by_step.setdefault(record['step'], []).append(dict(record, file=path.name, moment=moment))
     latest, contradictory = {}, {}
     for step, records in by_step.items():
-        newest = max(record['date'] for record in records)
-        last = [record for record in records if record['date'] == newest]
+        if len({record['moment'][0] for record in records}) > 1:
+            # Calendar dates and times cannot be ordered against each other: which came last cannot be told.
+            contradictory[step] = (records, 'dates of different forms cannot be ordered')
+            continue
+        newest = max(record['moment'][1] for record in records)
+        last = [record for record in records if record['moment'][1] == newest]
         if len({record['outcome'] for record in last}) > 1:
-            contradictory[step] = last
+            contradictory[step] = (last, 'records of the same date disagree')
         else:
-            latest[step] = last  # every record of the latest date, all with one outcome; each one's citations count
+            latest[step] = last  # every record of the latest date, all with one outcome
     return latest, contradictory, other, unreadable
 
 
@@ -92,16 +134,30 @@ def cited(record, folder):
     """What a record cites, as listed beneath the table: for each citation, whether its file exists, whether it is
     unchanged (the digest cited), and each cited row's outcome. Listing only: nothing here bears on any outcome."""
     shown = []
-    for cite in record.get('cites') or []:
+    cites = record.get('cites')
+    if cites is None:
+        return shown
+    if not isinstance(cites, list):
+        return [f'citations not given as a list: {json.dumps(cites)}']
+    for cite in cites:
         if not isinstance(cite, dict) or not isinstance(cite.get('file'), str) or not isinstance(cite.get('rows'), list):
             shown.append(f'a citation not of the form {{file, sha256, rows}}: {json.dumps(cite)}')
             continue
-        path = Path(folder) / cite['file']
+        root = Path(folder).resolve()
+        path = (root / cite['file']).resolve()
+        if not path.is_relative_to(root):
+            shown.append(f"{cite['file']}: outside the results folder; not read")
+            continue
         exists = path.is_file()
-        unchanged = exists and 'sha256:' + hashlib.sha256(path.read_bytes()).hexdigest() == cite.get('sha256')
-        lines = path.read_text(errors='replace').splitlines() if exists else []
+        try:
+            data = path.read_bytes() if exists else b''
+        except OSError as error:
+            shown.append(f"{cite['file']}: exists; cannot be read ({type(error).__name__})")
+            continue
+        unchanged = exists and 'sha256:' + hashlib.sha256(data).hexdigest() == cite.get('sha256')
+        lines = data.decode('utf-8', errors='replace').splitlines()
         rows = []
-        for n in cite['rows']:
+        for n in cite['rows'][:50]:
             if not isinstance(n, int) or not 0 < n <= len(lines):
                 rows.append(f'row {n}: no such row')
                 continue
@@ -148,9 +204,9 @@ def table(repo, folder, release, candidate):
                 lines.append(f"| {scenario} | {step['step']} | {counts} | {why} | — | — |")
                 continue
             if step['step'] in contradictory:
-                last = contradictory[step['step']]
+                last, why = contradictory[step['step']]
                 shown = ', '.join(f"{r['file']} {r['outcome']}" for r in last)
-                disputed.append(f"{step['step']}: records of the same date disagree ({shown}); counted inconclusive")
+                disputed.append(f"{step['step']}: {why} ({shown}); counted inconclusive")
                 citations += [f"{step['step']} ({r['file']}) cites {c}" for r in last for c in cited(r, folder)]
                 if step.get('counts'):
                     totals['inconclusive'] += 1
@@ -184,6 +240,40 @@ def table(repo, folder, release, candidate):
     return lines
 
 
+def jsonl(path):
+    """The rows of a .jsonl file, each a JSON object, or None if it cannot be read as that."""
+    try:
+        rows = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+    except (OSError, ValueError):
+        return None
+    return rows if all(isinstance(row, dict) for row in rows) else None
+
+
+def launch_keys(folder):
+    """The candidate keys the launch records in a folder name, and the records that cannot be read. A launch record is
+    read in the launcher's shape: candidate_key, or else identifier, at the top level; a nested bundle.identifier is
+    read too."""
+    keys, unread = set(), []
+    for path in sorted(Path(folder).glob('launch-record*.json')):
+        try:
+            record = json.loads(path.read_text())
+        except (OSError, ValueError) as error:
+            unread.append(f'{path.name} ({type(error).__name__})')
+            continue
+        if not isinstance(record, dict):
+            unread.append(f'{path.name} (not a record)')
+            continue
+        bundle = record.get('bundle') if isinstance(record.get('bundle'), dict) else {}
+        named = record.get('candidate_key') if isinstance(record.get('candidate_key'), str) else None
+        identifier = next((i for i in (record.get('identifier'), bundle.get('identifier')) if isinstance(i, str)), None)
+        from_identifier = re.sub(r'^dev\.chirality\.app-v4\.candidate\.', '', identifier) if identifier else None
+        if named and from_identifier and named != from_identifier:
+            unread.append(f'{path.name} (its candidate_key and identifier disagree)')
+        elif named or from_identifier:
+            keys.add(named or from_identifier)
+    return keys, unread
+
+
 def comparisons(folders, standing=None):
     lines = ['', 'SESSION COMPARISON (rows of the execution lane\'s comparison; not step results)', '',
              *([f'Standing: {standing}', ''] if standing else []),
@@ -191,14 +281,30 @@ def comparisons(folders, standing=None):
     counts, notes, withheld = {}, [], set()
     for folder in folders:
         folder = Path(folder)
-        records = sorted(folder.glob('launch-record*.json'))
-        identifiers = {json.loads(p.read_text()).get('bundle', {}).get('identifier') for p in records}
-        files = [p for p in sorted(folder.glob('session-comparison-*.jsonl')) if not p.name.startswith('session-comparison-screen-')]
+        if not folder.is_dir():
+            notes.append(f'{folder}: not a folder that can be read; nothing from it is counted')
+            continue
+        keys, unread = launch_keys(folder)
+        if unread:
+            notes.append(f"{folder.name}: a launch record that cannot be read ({', '.join(unread)}); none of this folder's "
+                         'rows is counted, since whose launch they were cannot be checked')
+            continue
+        files = []
+        for p in sorted(folder.glob('session-comparison-*.jsonl')):
+            if p.name.startswith('session-comparison-screen-'):
+                continue
+            rows = jsonl(p)
+            if rows is None:
+                notes.append(f'{p.name}: cannot be read as one JSON object per line; its rows are not counted')
+            elif not rows:
+                notes.append(f'{p.name}: empty; nothing in it is counted')
+            else:
+                files.append((p, rows))
         # Of the answers files made from one screen list, the latest counts. Names begin with the UTC time to the
         # second, then a random suffix; two with the same time cannot be ordered, so neither counts and both are noted.
         made_from = {}
-        for path in files:
-            first = json.loads(path.read_text().splitlines()[0]) if path.read_text().strip() else {}
+        for path, rows in files:
+            first = rows[0]
             if first.get('answers_of'):
                 made_from.setdefault(first['answers_of'], []).append((path, first.get('written_at')))
         latest_answers, undecided = {}, set()
@@ -214,8 +320,7 @@ def comparisons(folders, standing=None):
                 undecided.add(screen)
                 notes.append(f"{', '.join(p.name for p in tied)}: answers made from {screen} at the same second; "
                              'which is later cannot be told, so none of them is counted')
-        for path in files:
-            rows = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
+        for path, rows in files:
             header = next((row for row in rows if row.get('header')), {})
             if header.get('answers_of') in undecided:
                 continue
@@ -225,7 +330,6 @@ def comparisons(folders, standing=None):
             summary = next((row for row in rows if 'summary' in row), None)
             if header.get('workflow_comparison'):
                 withheld.add(header['workflow_comparison'])
-            keys = {re.sub(r'^dev\.chirality\.app-v4\.candidate\.', '', i or '') for i in identifiers if i}
             candidate = header.get('candidate_key')
             if candidate is not None and keys and keys != {candidate}:
                 # The header and the launch record name different candidates: whose rows these are cannot be told.
@@ -249,9 +353,9 @@ def comparisons(folders, standing=None):
                     notes.append(f"{path.name}: a W1 row says {row['outcome']} although the header says the workflow "
                                  'comparison is not available; it is not counted')
                     continue
-                key = (candidate, row['comparison'])
+                key = (candidate, str(row.get('comparison')))
                 counts.setdefault(key, dict.fromkeys(OUTCOMES, 0))[row['outcome']] += 1
-                seen.setdefault(row['comparison'], dict.fromkeys(OUTCOMES, 0))[row['outcome']] += 1
+                seen.setdefault(str(row.get('comparison')), dict.fromkeys(OUTCOMES, 0))[row['outcome']] += 1
             nonzero = lambda counts: {c: {o: n for o, n in by.items() if n} for c, by in (counts or {}).items()}
             if summary is not None and nonzero(summary.get('summary')) != nonzero(seen):
                 notes.append(f'{path.name}: its summary line differs from its rows; the rows are counted')
