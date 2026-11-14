@@ -65,6 +65,8 @@ code_paths:
 - app/src/App.tsx
 - app/src/ModelChoice.tsx
 - app/src/LocalProviderAccess.tsx
+# In 4.0.0 the local route is not offered: every view that would offer it is gated on this.
+- app/src/localRoute.ts
 - app/src/AccountStatus.tsx
 - app/src/DesktopSetupPanel.tsx
 - app/src/FirstUse.tsx
@@ -96,6 +98,8 @@ checks:
 - app/tests/prepared-message-navigation.test.mjs
 - app/tests/waiting-requests.test.mjs
 - app/src-tauri/src/access_provider_tests.rs
+# Each host command of the local route refuses in 4.0.0 (For 4.0.0).
+- app/src-tauri/src/local_route_refusal_tests.rs
 - app/src-tauri/src/access_settings.rs
 - app/src-tauri/src/native_secure_entry.rs
 - app/src-tauri/tests/access_integration.rs

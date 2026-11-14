@@ -2,7 +2,7 @@
 // peer (invented snapshot and models). The native read itself is checked by
 // the Rust fixture test `model_catalog_lists_the_server_providers_models_at_a_press_and_keeps_no_configuration`.
 // No supplier, model, sign-in, network or person act.
-import test from 'node:test';
+import test, {beforeEach, afterEach} from 'node:test';
 import assert from 'node:assert/strict';
 import {loadSrc} from './support/load-src.mjs';
 import {installMiniDom} from './support/mini-dom.mjs';
@@ -12,6 +12,13 @@ const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
 const {App} = loadSrc('App');
 const {modelMatch, validModelPacket} = loadSrc('ModelChoice');
+// This version offers no local model route (DEL-01-05 "For 4.0.0"); its views are kept for a later update,
+// gated on LOCAL_ROUTE_OFFERED. The tests of the kept local flows turn the gate on, as that update would; the
+// host refuses every local command whatever the views show. Every other test runs with the gate off.
+const localRoute = loadSrc('localRoute');
+const KEPT_LOCAL_FLOW = /oMLX|^review: |^a settings save withdraws/;
+beforeEach(t => { localRoute.LOCAL_ROUTE_OFFERED = KEPT_LOCAL_FLOW.test(t.name); });
+afterEach(() => { localRoute.LOCAL_ROUTE_OFFERED = false; });
 
 const g = {home:'account', appSession:'s1', spawnCounter:1};
 const props = node => node[Object.keys(node).find(k => k.startsWith('__reactProps$'))];
@@ -154,7 +161,7 @@ test('a list for another provider, an unnamed provider and a stale or failed rea
   });
 });
 
-test('omitted OpenAI-key mode offers no product entry or dispatch; account and local remain independent', async () => {
+test('omitted OpenAI-key mode offers no product entry or dispatch; this version offers no local route', async () => {
   await mounted(async command => { throw Error(`unexpected ${command}`); }, async ui => {
     assert.equal(button(ui.c, "Use this home's API key (built-in OpenAI)"), undefined);
     assert.equal(button(ui.c, 'Add or replace key in native secure field…'), undefined);
@@ -166,10 +173,12 @@ test('omitted OpenAI-key mode offers no product entry or dispatch; account and l
     ui.setSnapshot(snapshotFor()); await ui.refresh();
     assert.ok(button(ui.c, 'Use my ChatGPT account (built-in OpenAI)'));
     assert.ok(!nodes(ui.c, 'option').some(n => props(n).value === 'local-provider'), 'the account home offers no local-provider entry');
-    assert.match(region(ui.c, 'Local model servers').textContent, /Custom local providers are not offered from this home\./);
-    assert.match(region(ui.c, 'Account connection').textContent, /A local model server \(oMLX or another that serves the same interface\) runs with Codex in a separate local home/);
-    assert.ok(button(ui.c, 'Prepare the oMLX connection'), 'keyed local access is offered separately from account sign-in');
-    assert.equal(button(ui.c, 'Enter oMLX key in a secure field…'), undefined, 'no key entry before a current local source exists');
+    assert.equal(region(ui.c, 'Local model servers').textContent, 'Local providers named in your own Codex settings are not offered: the App can’t run one in this home, and this version offers no local model server.');
+    assert.match(region(ui.c, 'Account connection').textContent, /^Connect to a modelSign in with your ChatGPT account to reach a model\./);
+    assert.equal(region(ui.c, 'oMLX and local providers'), undefined, 'no local section under Connection and access');
+    assert.equal(button(ui.c, 'Prepare the oMLX connection'), undefined, 'no local preparation offered');
+    assert.equal(button(ui.c, 'Enter oMLX key in a secure field…'), undefined, 'no key entry');
+    assert.doesNotMatch(ui.c.textContent, /oMLX|model server running on this machine|has its own home|Set up the App’s local model connection|configured local provider/i, 'nothing names a local route as something to use');
     const advanced=nodes(ui.c,'details').find(n=>n.textContent.startsWith('Other sign-in options'));
     assert.ok(advanced);assert.equal(!!props(advanced).open,false);
     assert.equal(props(button(ui.c,'Sign in with your ChatGPT account (through Codex)…')).className,'setup-primary');

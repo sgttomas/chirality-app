@@ -344,7 +344,7 @@ class TheJudgeDecidesEachKindBothWays(unittest.TestCase):
     def test_text_starts_one_of(self):
         one = {'text_starts_one_of': ['Launch: setup-required.', 'Launch: ready.']}
         self.assertEqual(self.check(one), {'expectation': one, 'pass': True, 'found': 'Launch: setup-required. Reason'})
-        self.assertFalse(self.check({'text_starts_one_of': ['Launch: ready.', 'Codex is connected']})['pass'])
+        self.assertFalse(self.check({'text_starts_one_of': ['Launch: ready.', 'Codex is running']})['pass'])
         two = PAGE + [element('text', 'Launch: ready. Other')]
         self.assertEqual(self.check(one, two)['found'], 'present 2 times')  # exactly one, or not
 
