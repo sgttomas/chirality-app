@@ -3,8 +3,12 @@
  * Make a recorded state from one captured whole view, and only when the scenario's own expectation of that step holds
  * on it (DEL-09-02 examination tooling).
  *
- *   node record_state.mjs <scenario.json> <step id> <scenario-result.json> --bundle <the launched .app> \
- *     --candidate-key <key> --project <path> [--settings <path>] [--account <path>] [--request <path>] [--from <label>]
+ *   node record_state.mjs <scenario.json> <step id> <attempt-log.json> --bundle <the launched .app> \
+ *     --project <path> [--candidate-key <key>] [--settings <path>] [--account <path>] [--request <path>] [--from <label>]
+ *
+ * The captured views are read from the walk's attempt log (or from an older walk result that holds them, as the
+ * 14 November launches' do): the views a step returned (steps[].returned) and the sheet (steps[].sheet_view). The
+ * recorder reads no verdict: it judges the view itself.
  *
  * A recorded state is not acceptable merely because it was recorded: a capture shows fidelity, not correctness (the
  * INTERLOCUTOR, on PR 351). So, before it writes anything, the recorder judges the captured view against the step's
@@ -37,21 +41,18 @@ const PATH_FLAGS = ['settings', 'account', 'request'];
 
 /**
  * The candidate key the record is bound to: the one in the identification record of the candidate folder that holds
- * the bundle (<candidate>/target/debug/bundle/macos/<name>.app), when it can be read; a key given as well must equal
- * it. Without that record, only a given key, and the record says which.
+ * the bundle (<candidate>/target/debug/bundle/macos/<name>.app), the same file the walk reads. There is no other
+ * source: without that record nothing is recorded, and a key given as well must equal it.
  */
 function candidateKeyOf(bundle, given) {
   const folder = typeof bundle === 'string' ? bundle.replace(/\/target\/debug\/bundle\/macos\/[^/]+\.app$/, '') : '';
   const path = `${folder}/identification/candidate-identification.json`;
-  if (folder && folder !== bundle && existsSync(path)) {
-    let key = null;
-    try { key = JSON.parse(readFileSync(path, 'utf8')).candidate_key; } catch { return { refusal: "the candidate's identification record could not be read" }; }
-    if (typeof key !== 'string' || !key) return { refusal: "the candidate's identification record names no candidate key" };
-    if (given !== undefined && given !== key) return { refusal: `the candidate key given (${given}) is not the identified candidate's (${key})` };
-    return { key, from: 'the identification record of the candidate folder holding the bundle' };
-  }
-  if (typeof given !== 'string' || !given) return { refusal: 'no candidate key is given, and no identification record holds the bundle' };
-  return { key: given, from: 'given; no identification record holds the bundle' };
+  if (!folder || folder === bundle || !existsSync(path)) return { refusal: 'no identification record holds the bundle, so its candidate key is not known' };
+  let key = null;
+  try { key = JSON.parse(readFileSync(path, 'utf8')).candidate_key; } catch { return { refusal: "the candidate's identification record could not be read" }; }
+  if (typeof key !== 'string' || !key) return { refusal: "the candidate's identification record names no candidate key" };
+  if (given !== undefined && given !== key) return { refusal: `the candidate key given (${given}) is not the identified candidate's (${key})` };
+  return { key, from: 'the identification record of the candidate folder holding the bundle' };
 }
 
 export function recordSheet(scenario, stepId, result, options) {

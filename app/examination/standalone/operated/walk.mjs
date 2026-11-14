@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 // Walks one scenario file on a running development build and checks each view against the scenario's
 // expected states. An operator loads this inside the node runtime's js tool and gives it the supplier's
 // window service; replay.mjs gives it a stand-in that returns recorded views. See README.md beside it.
@@ -451,15 +452,18 @@ export function checkOne(elements, expectation, values) {
  *   watch     the path of the file watch.py keeps while that process runs; the walk reads it before the first view
  *             and at every step, since the node runtime cannot ask the system about a process itself
  *   readWatch optional: () => the parsed watch file, or null (default: reads `watch`)
+ *   attemptLog optional: a file path; the attempt log (not a result) is written there when the walk ends
+ *   onLog     optional: (log) => anything; given the attempt log when the walk ends
  *   readIdentification optional: () => the candidate's identification record, or null (default: reads
  *             identification/candidate-identification.json in the candidate folder that holds the bundle,
  *             <candidate>/target/debug/bundle/macos/<name>.app). Its candidate_key binds the records used.
  *   sleep     optional: (milliseconds) => a promise (default: a timer)
  *   now       optional: () => the time as text (default: the UTC time)
  *   project   the invented project folder beside the home, for a scenario with a `type` step: the one value it types
- * Returns {scenario, app, home, verdict, outcomes, steps, calls, stopped, view_error when a view failed, click_error when a
- * click failed}. verdict is 'pass', 'fail', 'captured, not judged' or 'inconclusive'; a refusal before any call is
- * 'inconclusive' with nothing called. See verdictOf: no affirmative result rests on the anchor alone.
+ * Returns the result alone (resultOf): a closed form made from the steps' verdicts. The attempt log (ATTEMPT_LOG_NOTE),
+ * which is not a result, goes to attemptLog and onLog: the calls, each step's attempts and their returns, the views
+ * captured, where the walk stopped and any failure's message and causes. A refusal before any call is "inconclusive"
+ * with nothing called.
  */
 /**
  * A failed call, as messages only: the error's own message and then each cause it carries, in order, whole. A message
@@ -510,7 +514,8 @@ export function failure(where, error) {
   return { where, message: text(error), causes };
 }
 
-export async function run({ sky, scenario, app, home, bundle, pid, watch, readWatch, readIdentification, sleep, now, project }) {
+export async function run({ sky, scenario, app, home, bundle, pid, watch, readWatch, readIdentification, sleep, now, project, attemptLog, onLog }) {
+  const logFile = typeof attemptLog === 'string' ? (await import('node:fs')) : null;
   if (!readWatch && typeof watch === 'string') {
     const fs = await import('node:fs');
     readWatch = () => { try { return JSON.parse(fs.readFileSync(watch, 'utf8')); } catch { return null; } };
@@ -548,17 +553,19 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
   now ??= () => new Date().toISOString();
   const values = { identifier: app, home, app_data: `${home}/Library/Application Support/${app}`, ...(project ? { project } : {}) };
   const calls = [];
-  const report = { scenario: scenario.scenario, version: scenario.version, app, home, started: now(), steps: [], calls, stopped: null };
+  // The attempt log: everything the walk did and saw, which is not a result (ATTEMPT_LOG_NOTE). The result is made only
+  // by resultOf, from the steps' verdicts, when the walk ends.
+  const report = { note: ATTEMPT_LOG_NOTE, scenario: scenario.scenario, version: scenario.version, app, home, started: now(), steps: [], calls, stopped: null };
+  // The steps' judgments, kept apart from the attempt log: only resultOf reads them.
+  const marks = [];
+  // Every return of the walk is the result alone. The attempt log goes apart: to the attemptLog file and to onLog.
   const finish = (verdict, stopped = null) => {
     report.stopped = stopped;
-    report.verdict = verdict;
     report.finished = now();
-    report.outcomes = Object.fromEntries(Object.entries(scenario.outcomes ?? {}).map(([name, ids]) => {
-      // An outcome is "shown" only when every step it rests on was judged equal to its recorded state and met its
-      // expectations: as for the verdict, no affirmative line rests on the anchor or on expectations alone.
-      return [name, outcomeOf(ids.map(id => report.steps.find(step => step.id === id)))];
-    }));
-    return report;
+    const result = resultOf(scenario, marks, verdict, candidateKey, report.started, report.finished);
+    if (logFile) logFile.writeFileSync(attemptLog, JSON.stringify(report, null, 2) + '\n');
+    if (typeof onLog === 'function') onLog(report);
+    return result;
   };
   // Refusals before any call.
   if (typeof app !== 'string' || !app.startsWith(DEVELOPMENT_PREFIX) || !/^[A-Za-z0-9.-]+$/.test(app)) {
@@ -610,6 +617,21 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
   let elements = [], latest = null;
   const appName = bundle.slice(bundle.lastIndexOf('/') + 1, -'.app'.length);
   // Before any act: the latest view must be the listed state the step acts from, line for line.
+  // An effect, in the attempt log, as an attempt and its return, written in two steps round the call: what was sent,
+  // then when it returned or what it threw. It is not a result: whether the step held is said only by its verdict.
+  const attempt = async (entry, act, element_index, call, extra = {}) => {
+    const record = { act, element_index, ...extra, sent_at: now() };
+    entry.attempts.push(record);
+    try {
+      await call();
+      record.returned_at = now();
+      return null;
+    } catch (error) {
+      record.threw = String(error?.message ?? error);
+      record.effect = 'uncertain: the call threw, and whether it acted is not known';
+      return error;
+    }
+  };
   // Every act (the click, the set-value, the sheet opener) is made only from an admitted view: the latest view admitted
   // against the recorded state the step acts from, by the one admission.
   const notListed = (step, act) => {
@@ -674,8 +696,10 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
   for (const step of scenario.steps) {
     // A step's expectations are recorded as failures only (unmet), with its judgment (judged): no field of the result
     // says that an expectation held. unmet is absent until the step's view has been evaluated.
-    const entry = { id: step.id, at: now(), act: step.act, says: step.says };
+    const entry = { id: step.id, at: now(), act: step.act, intended: step.says, attempts: [] };
     report.steps.push(entry);
+    const mark = { id: step.id };
+    marks.push(mark);
     const before = gate(`at ${step.id}`);
     if (before) return before;
     if (step.act === 'click') {
@@ -694,20 +718,17 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       if (step.if_offered === true && elsewhere) return finish('inconclusive', `stopped at ${step.id}: the words of the button to press if offered are on something that is not that button`);
       const notOffered = step.if_offered === true
         && (found.length === 0 || (found.length === 1 && found[0].content.startsWith('button (disabled) ')));
-      if (notOffered) entry.offered = found.length ? 'unavailable; not pressed' : 'absent; not pressed';
+      if (notOffered) entry.not_offered = found.length ? 'unavailable' : 'absent';
       else {
-      if (found.length !== 1) return finish(report.steps.some(s => s.unmet?.length) ? 'fail' : 'inconclusive',
+      if (found.length !== 1) return finish(marks.some(s => s.unmet?.length) ? 'fail' : 'inconclusive',
         `stopped at ${step.id}: the control to click was found ${found.length} times in the latest view`);
       if (found[0].content.startsWith('button (disabled) ')) return finish('fail', `stopped at ${step.id}: the control to click is unavailable`);
-      entry.element_index = found[0].index;
-      if (step.if_offered === true) entry.offered = 'available; pressed';
       calls.push({ at: now(), call: 'click', app, element_index: found[0].index });
-      try {
-        await sky.click({ app, element_index: found[0].index });
-      } catch (error) {
-        // Kept as a view's failure is, and the walk stops with its result: a click that throws has not been shown to
-        // have had no effect, so nothing further is called and the verdict is inconclusive.
-        report.click_error = readFailure(step.id, error);
+      const clickFailed = await attempt(entry, 'click', found[0].index, () => sky.click({ app, element_index: found[0].index }));
+      if (clickFailed) {
+        // Kept as a view's failure is, and the walk stops: a click that throws has not been shown to have had no
+        // effect, so nothing further is called and the verdict is inconclusive.
+        report.click_error = readFailure(step.id, clickFailed);
         entry.error = report.click_error.message;
         return finish('inconclusive', `stopped at ${step.id}: the click failed (${entry.error})`);
       }
@@ -732,13 +753,10 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       }
       if (report.calls.some(call => call.call === 'set_value')) return finish('inconclusive', `stopped at ${step.id}: a walk sets one value once`);
       const value = fill(step.value, values);
-      entry.element_index = found[0].index;
-      entry.typed = value;
       calls.push({ at: now(), call: 'set_value', app, element_index: found[0].index, value });
-      try {
-        await sky.set_value({ app, element_index: found[0].index, value });
-      } catch (error) {
-        report.set_value_error = readFailure(step.id, error);
+      const setFailed = await attempt(entry, 'set_value', found[0].index, () => sky.set_value({ app, element_index: found[0].index, value }), { value });
+      if (setFailed) {
+        report.set_value_error = readFailure(step.id, setFailed);
         entry.error = report.set_value_error.message;
         return finish('inconclusive', `stopped at ${step.id}: setting the field's value failed (${entry.error})`);
       }
@@ -751,7 +769,7 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       // effect is not pressed again.
       const sheet = (scenario.sheets ?? []).find(named => named.id === step.sheet);
       if (!sheet || step.control?.kind !== 'button' || step.control?.label !== sheet.opener) return finish('inconclusive', `stopped at ${step.id}: the scenario names no such sheet`);
-      if (report.steps.some(earlier => earlier.unmet?.length)) {
+      if (marks.some(earlier => earlier.unmet?.length)) {
         return finish('fail', `stopped at ${step.id}: an earlier check failed, so the sheet is not opened`);
       }
       const unlistedOpener = notListed(step, 'clicked or pressed');
@@ -761,10 +779,9 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       if (opener.length !== 1) return finish('inconclusive', `stopped at ${step.id}: the control that opens the sheet was found ${opener.length} times`);
       if (opener[0].content.startsWith('button (disabled) ')) return finish('fail', `stopped at ${step.id}: the control that opens the sheet is unavailable`);
       calls.push({ at: now(), call: 'click', app, element_index: opener[0].index });
-      try {
-        await sky.click({ app, element_index: opener[0].index });
-      } catch (error) {
-        report.click_error = readFailure(step.id, error);
+      const openFailed = await attempt(entry, 'click', opener[0].index, () => sky.click({ app, element_index: opener[0].index }));
+      if (openFailed) {
+        report.click_error = readFailure(step.id, openFailed);
         entry.error = report.click_error.message;
         return finish('inconclusive', `stopped at ${step.id}: the click failed (${entry.error})`);
       }
@@ -780,6 +797,7 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
         return finish('inconclusive', `stopped at ${step.id}: the sheet's view failed (${entry.error})`);
       }
       entry.sheet_view = shown.text;
+      entry.sheet_view_sha256 = sha256(shown.text);
       // A sheet step with "press": false captures the sheet and ends the walk there, whatever the sheet says: it has no
       // press. It records a sheet from a new build before any walk presses it (the setup walk's re-recording).
       if (step.press === false) return finish('inconclusive', `stopped at ${step.id}: the sheet is captured, and this step has no press`);
@@ -789,24 +807,23 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       // equal to it line for line. A refused press leaves only the refusal (and the difference found, if any): never a
       // record that reads as a comparison that agreed.
       const checked = admission(scenario, 'sheet', sheet.id, shown.text, values, app, appName, candidateKey);
+      // In the attempt log the sheet is a capture (above) and, when it was not admitted, the difference: whether it
+      // agreed is said only by the step's verdict.
       if (checked.unusable) {
-        entry.sheet = { refused: checked.unusable };
+        entry.sheet_difference = checked.unusable;
         return finish('inconclusive', `stopped at ${step.id}: ${checked.unusable}; nothing was pressed`);
       }
       if (!checked.admitted) {
-        entry.sheet = { refused: checked.difference, ...(checked.first_difference ? { first_difference: checked.first_difference } : {}) };
+        entry.sheet_difference = checked.first_difference ? `${checked.difference} (${checked.first_difference})` : checked.difference;
         return finish('inconclusive', `stopped at ${step.id}: the sheet is not the one named (${checked.difference}); nothing was pressed`);
       }
-      entry.sheet = checked.record;
+      entry.sheet_observation = 'the sheet matched the template when it was compared (an observation, not a press)';
       const beforePress = gate(`at ${step.id}, before the press`);
       if (beforePress) return beforePress;
-      entry.pressed = sheet.press;
-      entry.pressed_index = checked.press;
       calls.push({ at: now(), call: 'click', app, element_index: checked.press });
-      try {
-        await sky.click({ app, element_index: checked.press });
-      } catch (error) {
-        report.click_error = readFailure(step.id, error);
+      const pressFailed = await attempt(entry, 'press', checked.press, () => sky.click({ app, element_index: checked.press }), { button: sheet.press });
+      if (pressFailed) {
+        report.click_error = readFailure(step.id, pressFailed);
         entry.error = report.click_error.message;
         return finish('inconclusive', `stopped at ${step.id}: the press on the sheet failed (${entry.error})`);
       }
@@ -829,6 +846,7 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
       return finish('inconclusive', `stopped at ${step.id}: the view failed (${entry.error})`);
     }
     entry.returned = seen.text;
+    entry.returned_sha256 = sha256(seen.text);
     if (!seen.whole) {
       entry.rebuilt_for_reading = seen.rebuilt;
       return finish('inconclusive', asDifferences(step.id));
@@ -837,8 +855,12 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
     const stray = notThePage(elements, scenario);
     if (stray && step.act === 'confirm_sheet') return finish('inconclusive', `stopped at ${step.id}: after the one press, ${stray}; it is not pressed again`);
     if (stray) return finish('inconclusive', `stopped at ${step.id}: ${stray}; no agent answers a prompt or a dialog`);
-    entry.unmet = (step.expect ?? []).map(expectation => checkOne(elements, expectation, values))
-      .filter(check => !check.pass).map(({ expectation, found }) => ({ expectation, found }));
+    // Unmet expectations: in the result as reason codes with the condition's own parameters (its index and kind); in
+    // the attempt log, what was found.
+    const failedChecks = (step.expect ?? []).map((expectation, index) => ({ ...checkOne(elements, expectation, values), index }))
+      .filter(check => !check.pass);
+    mark.unmet = failedChecks.map(({ expectation, index }) => ({ code: 'expectation-unmet', index, kind: Object.keys(expectation)[0] }));
+    if (failedChecks.length) entry.expectations_not_found = failedChecks.map(({ index, expectation, found }) => ({ index, expectation, found }));
     // Paths the scenario captures for a later step (the sheet's statement names them): a named location's path.
     for (const [name, location] of Object.entries(step.capture ?? {})) {
       const named = elements.filter(element => element.content === `text ${location}`);
@@ -856,19 +878,22 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
     // "captured, not judged" when it names no state. A record not usable for this launch says nothing of this build:
     // the walk stops there, and the step has no verdict. Every affirmative output is derived from these verdicts.
     if (step.state !== undefined) {
-      entry.state = step.state;
+      entry.state_named = step.state;
       const admitted = admission(scenario, 'state', step.state, seen.text, values, app, appName, candidateKey);
       if (admitted.unusable) return finish('inconclusive', `stopped at ${step.id}: ${admitted.unusable}; its view is not admitted`);
-      if (!admitted.admitted) entry.unmet.push({ expectation: { state: step.state }, found: admitted.difference });
-      entry.verdict = entry.unmet.length ? 'failed' : 'admitted';
+      if (!admitted.admitted) {
+        mark.unmet.push({ code: 'view-differs-from-state', state: step.state });
+        entry.state_difference = admitted.difference;
+      }
+      mark.verdict = mark.unmet.length ? 'failed' : 'admitted';
     } else {
-      entry.verdict = entry.unmet.length ? 'failed' : 'captured, not judged';
+      mark.verdict = mark.unmet.length ? 'failed' : 'captured, not judged';
     }
     const after = gate(`after ${step.id}`);
     entry.child_processes = lastChildren ?? 'not known: the watch file does not show the build running';
     if (after) return after;
   }
-  return finish(verdictOf(report.steps));
+  return finish('end');
 }
 
 /**
@@ -880,27 +905,76 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
  *   when one failed or has no verdict; otherwise "captured, not judged".
  * Expectations are failures only (unmet): an expectation alone can never make "pass" or "shown".
  */
+// The attempt log's first line, and the README's: what the log is not.
+export const ATTEMPT_LOG_NOTE = 'ATTEMPT LOG. This is not a result: it holds what the walk did and saw (attempts and their returns, captures, the scenario\'s intended text). Whether anything held is said only by the result\'s verdicts.';
+export const RESULT_FORM = 'chirality.walk-result/v1';
+
+function sha256(text) {
+  return createHash('sha256').update(String(text)).digest('hex');
+}
+
+/**
+ * The result, a closed form made only here, when the walk ends, from the steps' verdicts: per step its id, its verdict
+ * ("admitted", "failed", "captured, not judged", or "no verdict" for a step where the walk stopped) and its unmet
+ * reasons; and the derived scenario verdict and outcome lines, the candidate key, the times, and where it stopped.
+ * Nothing else is in it (RESULT_KEYS), and nothing in it is written before the verdicts it is derived from exist. A
+ * scenario verdict of "pass" is only ever verdictOf's.
+ */
+export const RESULT_KEYS = ['form', 'scenario', 'version', 'candidate_key', 'started', 'finished', 'verdict', 'outcomes', 'steps'];
+export const RESULT_STEP_KEYS = ['id', 'verdict', 'unmet'];
+export const STEP_VERDICTS = ['admitted', 'failed', 'captured, not judged', 'no verdict', 'not reached'];
+export const SCENARIO_VERDICTS = ['pass', 'fail', 'inconclusive', 'captured, not judged'];
+export const OUTCOMES = ['shown', 'not shown', 'captured, not judged', 'not reached'];
+export const UNMET_CODES = ['expectation-unmet', 'view-differs-from-state'];
+// An unmet reason, as written in the result: its code and the failed condition's own parameters, never scenario prose or
+// the supplier's output.
+export const UNMET_REASON = /^(expectation-unmet:(0|[1-9][0-9]{0,3}):(text|no_text|text_starts|heading|button|summary|radio|texts_from|location)|view-differs-from-state:[A-Za-z0-9_-]{1,40})$/;
+export function resultOf(scenario, marks, verdict, candidateKey, started, finished) {
+  // Every step the scenario requires, in its order: a step the walk did not reach, or stopped at, has no verdict.
+  const steps = (scenario?.steps ?? []).map(step => {
+    const mark = marks.find(candidate => candidate.id === step.id);
+    const unmet = (mark?.unmet ?? []).map(reason => reason.code === 'view-differs-from-state'
+      ? `view-differs-from-state:${reason.state}` : `expectation-unmet:${reason.index}:${reason.kind}`);
+    const judged = !mark ? 'not reached' : ['admitted', 'failed', 'captured, not judged'].includes(mark.verdict) ? mark.verdict : 'no verdict';
+    return { id: step.id, verdict: judged, unmet: unmet.filter(reason => UNMET_REASON.test(reason)) };
+  });
+  // A walk that stopped keeps the verdict it stopped with (fail or inconclusive); only a walk that reached its end is
+  // given the verdict derived from every required step, and only that can be "pass".
+  const derived = verdict === 'end' ? verdictOf(steps) : verdict === 'fail' ? 'fail' : 'inconclusive';
+  return {
+    form: RESULT_FORM,
+    scenario: scenario?.scenario ?? null,
+    version: scenario?.version ?? null,
+    candidate_key: candidateKey ?? null,
+    started,
+    finished,
+    verdict: derived,
+    outcomes: Object.fromEntries(Object.entries(scenario?.outcomes ?? {}).map(([name, ids]) =>
+      [name, outcomeOf(ids.map(id => steps.find(step => step.id === id)))])),
+    steps,
+  };
+}
+
 export function verdictOf(steps) {
   if (steps.some(step => step.verdict === 'failed')) return 'fail';
-  return steps.length > 0 && steps.every(step => step.verdict === 'admitted') ? 'pass' : 'captured, not judged';
+  if (!steps.length || steps.some(step => !['admitted', 'captured, not judged'].includes(step.verdict))) return 'inconclusive';
+  return steps.every(step => step.verdict === 'admitted') ? 'pass' : 'captured, not judged';
 }
 
 export function outcomeOf(steps) {
-  if (steps.some(step => !step)) return 'not reached';
+  if (steps.some(step => step?.verdict === 'failed')) return 'not shown';
+  if (steps.some(step => !step || step.verdict === 'not reached')) return 'not reached';
   if (steps.some(step => step.verdict !== 'admitted' && step.verdict !== 'captured, not judged')) return 'not shown';
   return steps.every(step => step.verdict === 'admitted') ? 'shown' : 'captured, not judged';
 }
 
-export function summary(report) {
-  const lines = [`${report.scenario} (version ${report.version}): ${String(report.verdict).toUpperCase()}`];
-  for (const [name, state] of Object.entries(report.outcomes ?? {})) lines.push(`  ${name}: ${state}`);
-  if (report.stopped) lines.push(`  ${report.stopped}`);
-  for (const cause of (report.view_error ?? report.click_error)?.causes ?? []) lines.push(`    caused by: ${cause}`);
-  for (const step of report.steps) {
-    for (const check of step.unmet ?? []) {
-      lines.push(`  ${step.id} expected ${JSON.stringify(check.expectation)}, found: ${JSON.stringify(check.found)}`);
-    }
+/** The text the summary prints, from the result alone: the attempt log is never read. */
+export function summary(result) {
+  const lines = [`${result.scenario} (version ${result.version}): ${String(result.verdict).toUpperCase()}`];
+  for (const [name, state] of Object.entries(result.outcomes ?? {})) lines.push(`  ${name}: ${state}`);
+  for (const step of result.steps ?? []) {
+    lines.push(`  ${step.id}: ${step.verdict}`);
+    for (const reason of step.unmet) lines.push(`    unmet: ${reason}`);
   }
-  lines.push(`  calls made: ${report.calls.filter(c => c.call === 'get_app_state').length} views, ${report.calls.filter(c => c.call === 'click').length} clicks, ${report.calls.filter(c => c.call === 'set_value').length} set-values`);
   return lines.join('\n');
 }

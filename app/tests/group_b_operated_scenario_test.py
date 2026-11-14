@@ -60,7 +60,16 @@ const bindAll = options => {
   scenario.state_records = Object.fromEntries(Object.keys(scenario.states).map(id =>
     [id, { recorded_on: { candidate_key: 'invented-key', identifier: options.app, app_name }, judged: { result: 'every expectation held' } }]));
 };
-const walk = { ...walkModule, run: options => { listAll(); bindAll(options); return walkModule.run(options); } };
+// For these tests of the walk's mechanics, a view joining the attempt log and the result (test-only: the walk returns
+// them apart, and nothing in the walk reads the one from the other). The result itself is kept whole as r.result.
+const testView = (result, log) => ({ ...log, verdict: result.verdict, outcomes: result.outcomes,
+  steps: log.steps.map(step => ({ ...step, ...(result.steps.find(judged => judged.id === step.id) ?? {}) })), result, log });
+const walk = { ...walkModule, run: async options => {
+  listAll(); bindAll(options);
+  let log = null;
+  const result = await walkModule.run({ ...options, onLog: given => { log = given; } });
+  return testView(result, log);
+} };
 const scenario = JSON.parse(readFileSync(process.argv[2], 'utf8'));
 const recorded = JSON.parse(readFileSync(process.argv[3], 'utf8'));
 // The views these tests are fed are invented. Most were rebuilt from the differences a walk received, and differences
@@ -105,9 +114,20 @@ def setUpModule():
         raise unittest.SkipTest('node is not installed')
 
 
+def joined_view(result, log):
+    """The attempt log joined with the result, for tests of the walk's mechanics (as the harness's testView)."""
+    steps = [{**step, **next((judged for judged in result['steps'] if judged['id'] == step['id']), {})} for step in log['steps']]
+    return {**log, 'verdict': result['verdict'], 'outcomes': result['outcomes'], 'steps': steps, 'result': result, 'log': log}
+
+
 def replay(*paths):
-    done = subprocess.run([NODE, str(REPLAY), *map(str, paths)], capture_output=True, text=True)
-    return done.returncode, (json.loads(done.stdout) if done.stdout.strip() else None), done.stderr
+    with tempfile.TemporaryDirectory() as folder:
+        log_path = Path(folder) / 'attempt-log.json'
+        done = subprocess.run([NODE, str(REPLAY), *map(str, paths), '--log', str(log_path)], capture_output=True, text=True)
+        log = json.loads(log_path.read_text()) if log_path.exists() else None
+    if not done.stdout.strip():
+        return done.returncode, None, done.stderr
+    return done.returncode, joined_view(json.loads(done.stdout), log), done.stderr
 
 
 def in_order(text):
@@ -181,18 +201,22 @@ class Replay(unittest.TestCase):
         self.assertEqual((code, report['verdict'], report['calls']), (2, 'inconclusive', []), said)
         self.assertIn('names no listed state it acts from; the walk acts only in a listed state', report['stopped'])
 
-    def test_the_whole_result_arrives_through_a_pipe(self):
+    def test_the_whole_result_arrives_through_a_pipe_and_the_long_attempt_log_apart(self):
         views = setup_views()
-        # The page after the press, given a long text so the result outgrows a pipe. It then no longer equals the
-        # recorded state S5, so the walk reports that as a failed check: the result arrives whole all the same.
+        # The page after the press, given a long text: the attempt log outgrows a pipe, and the view no longer equals
+        # the recorded state S5, so the result says S5 failed by its reason code. The result arrives whole on its own.
         views['views'][5]['text'] = in_order(views['views'][5]['text'].replace(f'\t\t\t\t\t\t12 text Project: {PROJECT}',
                                                                       f'\t\t\t\t\t\t12 text Project: {PROJECT}\n\t\t\t\t\t\t13 text ' + 'invented words ' * 5000))
         with tempfile.TemporaryDirectory() as folder:
-            done = subprocess.run([NODE, str(REPLAY), str(rebound(SETUP, folder)), str(self.views_file(views))], capture_output=True, text=True)
-        self.assertGreater(len(done.stdout), 65536)  # longer than a pipe holds at once
+            log = Path(folder) / 'attempt-log.json'
+            done = subprocess.run([NODE, str(REPLAY), str(rebound(SETUP, folder)), str(self.views_file(views)), '--log', str(log)],
+                                  capture_output=True, text=True)
+            self.assertGreater(log.stat().st_size, 65536)  # longer than a pipe holds at once
+            self.assertTrue(log.read_text().startswith('{\n  "note": "ATTEMPT LOG. This is not a result'))
         result = json.loads(done.stdout)
+        self.assertEqual(done.returncode, 1)
         self.assertEqual(result['verdict'], 'fail')
-        self.assertEqual([unmet['expectation'] for step in result['steps'] for unmet in step.get('unmet', [])], [{'state': 'S5'}])
+        self.assertEqual([(step['id'], step['unmet']) for step in result['steps'] if step['unmet']], [('S5', ['view-differs-from-state:S5'])])
 
     def test_a_wrong_state_file_that_does_not_match_the_views_is_an_error_not_a_pass(self):
         bad = FIXTURES.parent / 'does-not-apply.json'
@@ -299,7 +323,7 @@ class TheWalkItself(unittest.TestCase):
                 result = harness(f"texts[{view}] = inOrder(texts[{view}].replace(/\\n(\\t\\d+ close button)/, '\\n{lines}\\n$1')); "
                                  'const r = await walk.run(base); '
                                  'return [r.verdict, r.steps.filter(s => s.unmet?.length).map(s => s.id), '
-                                 'r.steps.flatMap(s => (s.unmet ?? []).map(c => String(c.found)))];')
+                                 'r.steps.flatMap(s => (s.expectations_not_found ?? []).map(c => String(c.found)))];')
                 verdict, failed, found = result['out']
                 self.assertEqual((verdict, failed), ('fail', [step]), found)
                 self.assertTrue(any('2 times' in text for text in found), found)
@@ -338,7 +362,7 @@ class TheWalkItself(unittest.TestCase):
                       'The focused UI element is 2 HTML content')
         # At a step: the walk stops there. No call follows, the step has no credited check, and nothing after is reached.
         result = harness(f"texts[1] = '{difference}'; const r = await walk.run(base); "
-                         'return [r.verdict, r.stopped, r.calls.map(c => c.call).join(" "), r.steps.map(s => [s.id, s.unmet === undefined ? 0 : 1]), '
+                         'return [r.verdict, r.stopped, r.calls.map(c => c.call).join(" "), r.steps.map(s => [s.id, s.verdict === "admitted" ? 1 : 0]), '
                          'r.outcomes, typeof r.steps.at(-1).rebuilt_for_reading, r.steps.at(-1).returned.slice(0, 30)];')
         verdict, stopped, calls, steps, outcomes, rebuilt, returned = result['out']
         self.assertEqual(verdict, 'inconclusive', stopped)
@@ -437,7 +461,8 @@ class TheWalkItself(unittest.TestCase):
         self.assertEqual(failed, {'where': 'the first view before any click', 'message': 'Sky Computer Use native pipe startup failed',
                                   'causes': ['the last attempt', 'Sky Computer Use native pipe connection timed out']})
         self.assertIn('the view failed (Sky Computer Use native pipe startup failed)', stopped)
-        self.assertIn('    caused by: the last attempt\n    caused by: Sky Computer Use native pipe connection timed out', summary)
+        # The causes are kept whole in the attempt log's error record (failed, above); the summary reads only the result.
+        self.assertNotIn('caused by', summary)
         self.assertEqual((kept_property, kept_stack), (False, False))
         # A failure at a later step is kept the same way, and an error that is not an Error is kept as its text.
         result = harness('''let calls = 0;
@@ -491,7 +516,7 @@ class TheWalkItself(unittest.TestCase):
         self.assertEqual(verdict, 'inconclusive')
         self.assertEqual(failed, {'where': 'S2', 'message': 'Sky Computer Use click failed', 'causes': ['the element is gone']})
         self.assertEqual(stopped, 'stopped at S2: the click failed (Sky Computer Use click failed)')
-        self.assertIn('    caused by: the element is gone', summary)
+        self.assertNotIn('caused by', summary)  # kept in the attempt log's click_error (failed, above)
         self.assertEqual((clicks, calls_after, step_error), (1, 0, 'Sky Computer Use click failed'))
 
     def test_a_view_returned_as_differences_is_applied_to_the_view_before_it(self):
@@ -1556,9 +1581,10 @@ class TheViewOnlyScenarios(unittest.TestCase):
             self.assertEqual(outcomes[name], 'captured, not judged')
         # And the rule itself: a step judged false, or one with no judgement at all, is never a pass.
         self.assertEqual(harness("return walk.verdictOf([{verdict: 'admitted'}, {verdict: 'captured, not judged'}]);")['out'], 'captured, not judged')
-        self.assertEqual(harness("return walk.verdictOf([]);")['out'], 'captured, not judged')
+        self.assertEqual(harness("return walk.verdictOf([]);")['out'], 'inconclusive')
         self.assertEqual(harness("return walk.verdictOf([{verdict: 'failed'}, {verdict: 'admitted'}]);")['out'], 'fail')
-        self.assertEqual(harness("return walk.verdictOf([{verdict: 'admitted'}, {}]);")['out'], 'captured, not judged')  # a step with no verdict
+        self.assertEqual(harness("return walk.verdictOf([{verdict: 'admitted'}, {verdict: 'no verdict'}]);")['out'], 'inconclusive')  # a step with no verdict
+        self.assertEqual(harness("return walk.verdictOf([{verdict: 'admitted'}, {verdict: 'not reached'}]);")['out'], 'inconclusive')
         self.assertEqual(harness("return walk.outcomeOf([{verdict: 'admitted'}, {}]);")['out'], 'not shown')
 
     def test_the_first_launch_view_does_not_pass_on_a_view_with_a_line_inside_its_menu_bar_block(self):
@@ -1587,15 +1613,27 @@ class TheViewOnlyScenarios(unittest.TestCase):
         self.assertEqual(set(calls), {'get_app_state'})
 
 
+def identified_candidate(folder, key='invented-key'):
+    """An invented candidate folder holding an identification record with this key; returns its bundle's path."""
+    candidate = Path(folder) / 'candidate'
+    (candidate / 'identification').mkdir(parents=True)
+    (candidate / 'identification/candidate-identification.json').write_text(json.dumps({'candidate_key': key}))
+    return str(candidate / 'target/debug/bundle/macos' / (INVENTED_APP + '.app'))
+
+
 class TheRecorder(unittest.TestCase):
     """record_state.mjs: a state is written only for a view that meets its step's expectations, and carries the build it
     was recorded on and the judgment made of it."""
 
     RECORDER = OPERATED / 'record_state.mjs'
 
-    def record(self, step, text, scenario=None, bundle=None):
+    def record(self, step, text, scenario=None, bundle=None, key=None):
+        if bundle is None:
+            folder = tempfile.mkdtemp()
+            self.addCleanup(shutil.rmtree, folder)
+            bundle = identified_candidate(folder)
         result = {'app': INVENTED['app'], 'home': INVENTED['home'], 'steps': [{'id': step, 'returned': text}]}
-        options = {'bundle': bundle or INVENTED['bundle'], 'candidateKey': 'invented-key', 'project': PROJECT, 'from': 'invented'}
+        options = {'bundle': bundle, 'project': PROJECT, 'from': 'invented', **({'candidateKey': key} if key else {})}
         script = (f"import {{ record }} from {json.dumps(self.RECORDER.as_uri())}; "
                   f"process.stdout.write(JSON.stringify(record({json.dumps(scenario or json.loads(SETUP.read_text()))}, "
                   f"{json.dumps(step)}, {json.dumps(result)}, {json.dumps(options)})));")
@@ -1608,10 +1646,17 @@ class TheRecorder(unittest.TestCase):
         made = self.record('S5', AFTER_THE_PRESS)
         self.assertNotIn('refusal', made)
         self.assertEqual(made['state'], json.loads(SETUP.read_text())['states']['S5'])
-        self.assertEqual(made['record']['recorded_on'], {'candidate_key': 'invented-key', 'candidate_key_from': 'given; no identification record holds the bundle',
+        self.assertEqual(made['record']['recorded_on'], {'candidate_key': 'invented-key', 'candidate_key_from': 'the identification record of the candidate folder holding the bundle',
                                                          'identifier': INVENTED['app'], 'app_name': INVENTED_APP})
         self.assertEqual(made['record']['judged']['result'], 'every expectation held')
         self.assertEqual(made['record']['judged']['expectations'], next(s for s in json.loads(SETUP.read_text())['steps'] if s['id'] == 'S5')['expect'])
+
+    def test_the_candidate_key_comes_only_from_the_identification_record(self):
+        # No fallback (the fourth reading of PR 351): without the record nothing is recorded, and a key given as well
+        # must equal the record's.
+        self.assertIn('no identification record holds the bundle', self.record('S5', AFTER_THE_PRESS, bundle=INVENTED['bundle'], key='invented-key')['refusal'])
+        self.assertIn('is not the identified candidate', self.record('S5', AFTER_THE_PRESS, key='another-key')['refusal'])
+        self.assertNotIn('refusal', self.record('S5', AFTER_THE_PRESS, key='invented-key'))
 
     def test_a_view_that_surprised_the_walk_is_not_recordable(self):
         # The heading the step expects is gone: the capture is faithful, but it is a finding, not a state.
@@ -1625,7 +1670,9 @@ class TheRecorder(unittest.TestCase):
         self.assertIn('states no expectation of its view', self.record('S5', AFTER_THE_PRESS, scenario)['refusal'])
 
     def test_a_view_of_another_build_is_not_recordable(self):
-        other = '/invented/candidate/target/debug/bundle/macos/Chirality App v4 (development another).app'
+        folder = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, folder)
+        other = identified_candidate(folder).replace('(development invented)', '(development another)')
         self.assertIn('is not a whole view of the launched build', self.record('S5', AFTER_THE_PRESS, bundle=other)['refusal'])
 
     def test_its_command_line_writes_nothing_when_it_refuses(self):
@@ -1633,10 +1680,14 @@ class TheRecorder(unittest.TestCase):
             result = Path(folder) / 'result.json'
             result.write_text(json.dumps({'app': INVENTED['app'], 'home': INVENTED['home'],
                                           'steps': [{'id': 'S5', 'returned': AFTER_THE_PRESS.replace("You're set up", 'Not set up')}]}))
-            done = subprocess.run([NODE, str(self.RECORDER), str(SETUP), 'S5', str(result), '--bundle', INVENTED['bundle'],
-                                   '--candidate-key', 'invented-key', '--project', PROJECT], capture_output=True, text=True)
+            done = subprocess.run([NODE, str(self.RECORDER), str(SETUP), 'S5', str(result), '--bundle', identified_candidate(folder),
+                                   '--project', PROJECT], capture_output=True, text=True)
         self.assertEqual((done.returncode, done.stdout), (2, ''))
         self.assertIn('not recorded:', done.stderr)
+
+
+_FORM = harness("return [walk.RESULT_KEYS, walk.SCENARIO_VERDICTS, walk.OUTCOMES, walk.STEP_VERDICTS, walk.UNMET_REASON.source];")['out']
+RESULT_KEYS, SCENARIO_VERDICTS, OUTCOME_WORDS, STEP_VERDICT_WORDS, UNMET_REASON = _FORM
 
 
 class TheClosedList(unittest.TestCase):
@@ -1651,10 +1702,6 @@ class TheClosedList(unittest.TestCase):
     EFFECTS = ['set_value', 'click', 'click', 'click', 'click']
     # Where each record is first used, as the number of effects made before that use.
     FIRST_USE = {('state', 'S1'): 0, ('state', 'S2'): 1, ('state', 'S3'): 2, ('state', 'S4'): 3, ('sheet', 'desktop-setup'): 4, ('state', 'S5'): 5}
-    # The only keys in a result that carry an agreement, each with why it may.
-    ALLOWED = {
-               '.whole_views_before_any_click[].whole': "the form of the supplier's reply (whole or differences), not an agreement",
-               '.calls[].disableDiff': 'a parameter the walk asked the supplier with'}
 
     def run_with(self, change):
         with tempfile.TemporaryDirectory() as folder:
@@ -1667,25 +1714,27 @@ class TheClosedList(unittest.TestCase):
     def effects(self, result):
         return [c['call'] for c in result['calls'] if c['call'] != 'get_app_state']
 
-    def agreement_keys(self, result):
-        found = set()
-
-        def walk(node, path):
-            if isinstance(node, dict):
-                for key, value in node.items():
-                    here = f'{path}.{key}'
-                    general = re.sub(r'\[\d+\]', '[]', here)
-                    if value is True or re.search(r'pass|^ok$|held|match|agree', key, re.I):
-                        found.add(general)
-                    # The affirmative words may stand only in the derived outputs and the steps' admitted verdicts.
-                    if value in ('pass', 'shown', 'admitted') and not (general in ('.verdict', '.steps[].verdict') or general.startswith('.outcomes.')):
-                        found.add(general)
-                    walk(value, here)
-            elif isinstance(node, list):
-                for value in node:
-                    walk(value, path + '[]')
-        walk(result, '')
-        return found
+    def form_violations(self, result, scenario=None):
+        """Every way the result departs from its closed form (walk.mjs RESULT_KEYS, RESULT_STEP_KEYS and the fixed sets of
+        values): any key not in the form, at any depth, and any value outside its set. There is no list of bad words."""
+        scenario = scenario or json.loads(SETUP.read_text())
+        bad = []
+        if set(result) != set(RESULT_KEYS):
+            bad.append(f'keys {sorted(set(result) ^ set(RESULT_KEYS))}')
+        if result.get('form') != 'chirality.walk-result/v1':
+            bad.append('form')
+        if result.get('verdict') not in SCENARIO_VERDICTS:
+            bad.append(f"verdict {result.get('verdict')!r}")
+        if set(result.get('outcomes', {})) != set(scenario.get('outcomes', {})) or any(v not in OUTCOME_WORDS for v in result.get('outcomes', {}).values()):
+            bad.append(f"outcomes {result.get('outcomes')!r}")
+        if [step.get('id') for step in result.get('steps', [])] != [step['id'] for step in scenario['steps']]:
+            bad.append('the steps are not every required step, in order')
+        for step in result.get('steps', []):
+            if set(step) != {'id', 'verdict', 'unmet'} or step['verdict'] not in STEP_VERDICT_WORDS or not isinstance(step['unmet'], list):
+                bad.append(f'step {step!r}')
+            elif any(not isinstance(reason, str) or not re.fullmatch(UNMET_REASON, reason) for reason in step['unmet']):
+                bad.append(f"unmet {step['unmet']!r}")
+        return bad
 
     def records(self, scenario, kind, rid):
         return scenario['state_records' if kind == 'state' else 'sheet_records'][rid]
@@ -1695,7 +1744,7 @@ class TheClosedList(unittest.TestCase):
         self.assertEqual(result['verdict'], 'pass', result['stopped'])
         self.assertEqual(self.effects(result), self.EFFECTS)
         self.assertEqual(set(result['outcomes'].values()), {'shown'})
-        self.assertEqual(self.agreement_keys(result) - set(self.ALLOWED), set())
+        self.assertEqual(self.form_violations(result['result']), [])
 
     def test_each_record_unjudged_or_of_another_build_withholds_its_effect_and_every_affirmative_output(self):
         def unjudged(record):
@@ -1720,9 +1769,7 @@ class TheClosedList(unittest.TestCase):
                         self.assertNotEqual(result['outcomes']["SETUP SAVED THROUGH THE APP'S OWN CONFIRMATION"], 'shown')
                     else:
                         self.assertNotIn('shown', result['outcomes'].values())
-                    self.assertEqual(self.agreement_keys(result) - set(self.ALLOWED), set())
-                    for step in result['steps']:
-                        self.assertNotIn('first_difference', step.get('sheet', {}) if 'pressed' not in step else {})
+                    self.assertEqual(self.form_violations(result['result']), [])
                     using = {'S1': 'S1', 'S2': 'S2', 'S3': 'S3', 'S4': 'S4', 'S5': 'S5', 'desktop-setup': 'S5'}[rid]
                     self.assertNotEqual(next((st for st in result['steps'] if st['id'] == using), {}).get('verdict'), 'admitted')
 
@@ -1743,7 +1790,7 @@ class TheClosedList(unittest.TestCase):
                 for name, ids in json.loads(SETUP.read_text())['outcomes'].items():
                     if rid in ids:
                         self.assertNotEqual(result['outcomes'][name], 'shown')
-                self.assertEqual(self.agreement_keys(result) - set(self.ALLOWED), set())
+                self.assertEqual(self.form_violations(result['result']), [])
 
     def test_every_record_unjudged_at_once_makes_no_effect_at_all(self):
         def spoil_all(scenario):
@@ -1762,8 +1809,10 @@ class TheClosedList(unittest.TestCase):
                 result = self.run_with(spoil)
                 self.assertEqual(self.effects(result), self.EFFECTS[:4])  # the sheet opened, never pressed
                 sheet_step = next(step for step in result['steps'] if step['id'] == 'S5')
-                self.assertEqual(set(sheet_step['sheet']), {'refused'})
-                self.assertNotIn('pressed', sheet_step)
+                self.assertIn('sheet_difference', sheet_step)  # in the attempt log, the refusal
+                self.assertNotIn('sheet_observation', sheet_step)
+                self.assertEqual([a['act'] for a in sheet_step['attempts']], ['click'])  # the opener only, no press
+                self.assertEqual(sheet_step['verdict'], 'no verdict')
                 self.assertIn('nothing was pressed', result['stopped'])
 
     def test_a_sheet_that_differs_from_the_template_is_refused_with_its_difference_and_no_agreement(self):
@@ -1771,10 +1820,10 @@ class TheClosedList(unittest.TestCase):
         with tempfile.TemporaryDirectory() as folder:
             result = setup_walk('const r = await walk.run(base); return r;', views)['out']
         sheet_step = next(step for step in result['steps'] if step['id'] == 'S5')
-        self.assertNotIn('pressed', sheet_step)
-        self.assertIn('refused', sheet_step['sheet'])
-        self.assertIsNotNone(sheet_step['sheet'].get('first_difference'))
-        self.assertNotIn('statement_wanted', sheet_step['sheet'])
+        self.assertNotIn('press', [a['act'] for a in sheet_step['attempts']])
+        self.assertIn('sheet_difference', sheet_step)
+        self.assertNotIn('sheet_observation', sheet_step)
+        self.assertEqual(sheet_step['verdict'], 'no verdict')
 
     def test_the_outcome_lines_never_say_shown_for_a_step_not_judged(self):
         # The third reading's two cases: an altered capture in a view-only scenario, and S5 never judged.
@@ -1792,7 +1841,9 @@ class TheClosedList(unittest.TestCase):
     def test_the_recorder_records_the_sheet_only_when_it_agrees_with_the_template(self):
         def recorded(text):
             result = {'app': INVENTED['app'], 'home': INVENTED['home'], 'steps': [{'id': 'S5', 'sheet_view': text}]}
-            options = {'bundle': INVENTED['bundle'], 'candidateKey': 'invented-key', 'project': PROJECT, 'sheet': 'desktop-setup',
+            folder = tempfile.mkdtemp()
+            self.addCleanup(shutil.rmtree, folder)
+            options = {'bundle': identified_candidate(folder), 'project': PROJECT, 'sheet': 'desktop-setup',
                        'settings': SETTINGS, 'account': ACCOUNT, 'request': REQUEST}
             script = (f"import {{ recordSheet }} from {json.dumps((OPERATED / 'record_state.mjs').as_uri())}; "
                       f"process.stdout.write(JSON.stringify(recordSheet({SETUP.read_text()}, 'S5', {json.dumps(result)}, {json.dumps(options)})));")
@@ -1804,6 +1855,95 @@ class TheClosedList(unittest.TestCase):
         self.assertEqual(agreed['record']['judged']['result'], 'every line agreed with the template')
         self.assertEqual(agreed['record']['recorded_on']['app_name'], INVENTED_APP)
         self.assertIn('does not agree with the template', recorded(SHEET_ON_ITS_OWN.replace('Link its config.toml', 'Link its settings'))['refusal'])
+
+
+class TheResultAndTheAttemptLog(unittest.TestCase):
+    """The walk returns the result alone, a closed form made from the steps' verdicts; the attempt log goes apart and
+    nothing affirmative depends on it."""
+
+    def replayed(self, folder, views=None, log=True):
+        views_path = Path(folder) / 'views.json'
+        views_path.write_text(json.dumps(views or setup_views()))
+        args = [NODE, str(REPLAY), str(rebound(SETUP, folder)), str(views_path)]
+        if log:
+            args += ['--log', str(Path(folder) / 'attempt-log.json')]
+        done = subprocess.run(args, capture_output=True, text=True)
+        return done.returncode, json.loads(done.stdout), done.stderr
+
+    @staticmethod
+    def untimed(result):
+        return {key: value for key, value in result.items() if key not in ('started', 'finished')}
+
+    def test_nothing_affirmative_depends_on_the_attempt_log_removed_or_replaced(self):
+        with tempfile.TemporaryDirectory() as folder:
+            code, result, said = self.replayed(folder)
+            self.assertEqual((code, result['verdict']), (0, 'pass'))
+            # The summary and the exit status are made from the result alone.
+            self.assertEqual(said.strip(), harness(f'return walk.summary({json.dumps(result)});')['out'])
+            # REMOVED: the same walk with no attempt log kept gives the same result, summary and exit status.
+            code2, result2, said2 = self.replayed(folder, log=False)
+            self.assertEqual((code2, self.untimed(result2), said2), (code, self.untimed(result), said))
+            # REPLACED by one full of misleading success claims: nothing read from it, so nothing changes.
+            misleading = {'note': 'RESULT', 'verdict': 'pass', 'outcomes': {name: 'shown' for name in result['outcomes']},
+                          'steps': [{'id': step['id'], 'verdict': 'admitted', 'pressed': True, 'agreed': True} for step in result['steps']]}
+            (Path(folder) / 'attempt-log.json').write_text(json.dumps(misleading))
+            self.assertEqual(harness(f'return walk.summary({json.dumps(result)});')['out'], said.strip())
+            # A failing walk beside a misleading log stays failing: its result alone decides.
+            views = setup_views()
+            views['views'][5]['text'] = views['views'][5]['text'].replace("You're set up", 'Something else')
+            code3, result3, said3 = self.replayed(folder, views, log=False)
+            (Path(folder) / 'attempt-log.json').write_text(json.dumps(misleading))
+            self.assertEqual(code3, 1)
+            self.assertEqual(result3['verdict'], 'fail')
+            self.assertIn("SETUP SAVED THROUGH THE APP'S OWN CONFIRMATION: not shown", said3)
+
+    def test_the_result_is_every_required_step_and_a_missing_verdict_never_shortens_it(self):
+        # The walk stops at S3 (the build gone during its wait): S3 has no verdict, S4 and S5 were not reached, and the
+        # scenario is inconclusive; the result still lists every step the scenario requires.
+        case = ("let reads = 0; base.readWatch = () => (++reads > 9 ? null : watched()()); "
+                "const r = await walk.run(base); return r.result;")
+        result = setup_walk(case)['out']
+        self.assertEqual([step['id'] for step in result['steps']], ['S1', 'S2', 'S3', 'S4', 'S5'])
+        self.assertEqual(result['verdict'], 'inconclusive')
+        self.assertIn('not reached', [step['verdict'] for step in result['steps']])
+        self.assertNotIn('shown', result['outcomes'].values())
+        self.assertEqual(TheClosedList.form_violations(TheClosedList(), result), [])
+
+    def test_unmet_reasons_are_codes_with_parameters_never_scenario_prose_or_supplier_output(self):
+        views = setup_views()
+        views['views'][5]['text'] = views['views'][5]['text'].replace("You're set up", 'Invented supplier words')
+        with tempfile.TemporaryDirectory() as folder:
+            code, result, said = self.replayed(folder, views)
+        reasons = [reason for step in result['steps'] for reason in step['unmet']]
+        self.assertTrue(reasons)
+        for reason in reasons:
+            self.assertRegex(reason, UNMET_REASON)
+            self.assertNotIn('set up', reason)
+            self.assertNotIn('Invented supplier words', reason)
+        self.assertNotIn('Invented supplier words', said)
+
+    def test_a_call_that_throws_is_logged_as_an_attempt_with_its_effect_uncertain(self):
+        case = ("const real = base.sky; base.sky = new Proxy(real, { get: (target, name) => name === 'click' ? async () => { throw new Error('invented failure'); } : target[name] }); "
+                "const r = await walk.run(base); return [r.result, r.log.steps.flatMap(s => s.attempts).filter(a => a.act === 'click')];")
+        result, attempts = setup_walk(case)['out']
+        self.assertEqual(len(attempts), 1)
+        self.assertIn('threw', attempts[0])
+        self.assertNotIn('returned_at', attempts[0])
+        self.assertTrue(attempts[0]['effect'].startswith('uncertain'))
+        self.assertEqual(result['verdict'], 'inconclusive')
+        # S3's click threw: S3 has no verdict, and S4 and S5 were not reached.
+        self.assertEqual([step['verdict'] for step in result['steps'] if step['id'] in ('S3', 'S4', 'S5')], ['no verdict', 'not reached', 'not reached'])
+
+    def test_a_sheet_that_matched_before_a_gate_refused_is_an_observation_never_a_press_or_a_pass(self):
+        case = ("let gone = false; const sheetView = texts[4]; Object.defineProperty(texts, 4, { get() { gone = true; return sheetView; } }); "
+                "base.readWatch = () => (gone ? null : watched()()); const r = await walk.run(base); "
+                "return [r.result, r.log.steps.find(s => s.id === 'S5')];")
+        result, s5 = setup_walk(case)['out']
+        self.assertIn('observation', s5['sheet_observation'])
+        self.assertNotIn('press', [a['act'] for a in s5['attempts']])
+        self.assertEqual(next(step for step in result['steps'] if step['id'] == 'S5')['verdict'], 'no verdict')
+        self.assertEqual(result['verdict'], 'inconclusive')
+        self.assertNotEqual(result['outcomes']["SETUP SAVED THROUGH THE APP'S OWN CONFIRMATION"], 'shown')
 
 
 class TheSignedOutScenarioFiles(unittest.TestCase):
@@ -1869,19 +2009,19 @@ class AButtonPressedOnlyIfOffered(unittest.TestCase):
             path = Path(folder) / 'scenario.json'
             path.write_text(json.dumps(scenario))
             return setup_walk('const r = await walk.run(base); return [r.verdict, r.stopped, '
-                              'r.calls.filter(c => c.call === "click").map(c => c.element_index), r.steps.map(s => s.offered ?? null)];',
+                              'r.calls.filter(c => c.call === "click").map(c => c.element_index), r.steps.map(s => s.not_offered ?? (s.attempts.length ? s.attempts.map(a => a.act + (a.returned_at ? ", returned" : "")).join() : null))];',
                               views, path)['out']
 
     def test_an_unavailable_button_is_not_pressed_and_is_recorded_as_not_offered(self):
-        self.assertEqual(self.walk({'kind': 'button', 'label': 'Review setup'}), ['pass', None, [], ['unavailable; not pressed']])
+        self.assertEqual(self.walk({'kind': 'button', 'label': 'Review setup'}), ['pass', None, [], ['unavailable']])
 
     def test_an_absent_button_is_not_pressed_and_is_recorded_as_not_offered(self):
         self.assertEqual(self.walk({'kind': 'button', 'label': 'Read effective storage and plugin settings'}),
-                         ['pass', None, [], ['absent; not pressed']])
+                         ['pass', None, [], ['absent']])
 
     def test_an_available_button_is_pressed_once(self):
         typed = setup_views()['views'][1]['text']
-        self.assertEqual(self.walk({'kind': 'button', 'label': 'Review setup'}, first=typed), ['pass', None, [37], ['available; pressed']])
+        self.assertEqual(self.walk({'kind': 'button', 'label': 'Review setup'}, first=typed), ['pass', None, [37], ['click, returned']])
 
     def test_the_steps_checks_still_decide_when_nothing_is_pressed(self):
         verdict, _, clicks, _ = self.walk({'kind': 'button', 'label': 'Review setup'}, expect=[{'button': 'Review setup', 'is': 'available'}])

@@ -1,15 +1,20 @@
 #!/usr/bin/env node
 // Runs walk.mjs against recorded views instead of a running App: no application, no screen, no service.
-//   node replay.mjs <scenario.json> <views.json> [<wrong-state.json>]
+//   node replay.mjs <scenario.json> <views.json> [<wrong-state.json>] [--log <attempt-log.json>]
 // A wrong-state file names replacements to make in the recorded views first, so that the unchanged walk and its
-// unchanged checks can be shown rejecting a state that is known to be wrong. Prints the result as JSON; exits 0
-// when the verdict is pass, 1 when it is fail, 2 when it is inconclusive or the inputs cannot be used.
-import { readFileSync } from 'node:fs';
+// unchanged checks can be shown rejecting a state that is known to be wrong. Prints the result alone as JSON and its
+// summary; writes the attempt log (not a result) only where --log names; exits 0 when the result's verdict is pass, 1
+// when it is fail, 2 otherwise.
+import { readFileSync, writeFileSync } from 'node:fs';
 import { run, summary } from './walk.mjs';
 
-const [scenarioPath, viewsPath, wrongPath] = process.argv.slice(2);
+// --log <path> writes the attempt log there (it is not a result); without it the log is not kept.
+const args = process.argv.slice(2);
+const logAt = args.indexOf('--log');
+const logPath = logAt >= 0 ? args.splice(logAt, 2)[1] : null;
+const [scenarioPath, viewsPath, wrongPath] = args;
 if (!scenarioPath || !viewsPath) {
-  console.error('usage: node replay.mjs <scenario.json> <views.json> [<wrong-state.json>]');
+  console.error('usage: node replay.mjs <scenario.json> <views.json> [<wrong-state.json>] [--log <attempt-log.json>]');
   process.exit(2);
 }
 const scenario = JSON.parse(readFileSync(scenarioPath, 'utf8'));
@@ -34,11 +39,12 @@ const standIn = {  // every other method of the service is absent here, so a cal
   async set_value(input) { made.push(['set_value', input]); },
 };
 const running = () => ({ pid: process.pid, running: true, at_ms: Date.now(), executable: recorded.bundle + '/Contents/MacOS/chirality-app-v4', children: [] });  // stands in for watch.py's file
-const report = await run({ sky: standIn, scenario, app: recorded.app, home: recorded.home, bundle: recorded.bundle, pid: process.pid, readWatch: running, sleep: async () => {}, project: recorded.project,
+const result = await run({ sky: standIn, scenario, app: recorded.app, home: recorded.home, bundle: recorded.bundle, pid: process.pid, readWatch: running, sleep: async () => {}, project: recorded.project,
   // Offline, the recorded views carry the candidate key they were recorded for; without one, no record is usable.
-  readIdentification: () => (typeof recorded.candidate_key === 'string' ? { candidate_key: recorded.candidate_key } : null) });
-report.replayed = { views: viewsPath, wrong_state: wrongPath ?? null, calls_received: made.length };
-console.log(JSON.stringify(report, null, 2));
-console.error(summary(report));
+  readIdentification: () => (typeof recorded.candidate_key === 'string' ? { candidate_key: recorded.candidate_key } : null),
+  onLog: log => { if (logPath) writeFileSync(logPath, JSON.stringify({ ...log, replayed: { views: viewsPath, wrong_state: wrongPath ?? null, calls_received: made.length } }, null, 2) + '\n'); } });
+// The result alone on standard output; the summary and the exit status are made from it alone.
+console.log(JSON.stringify(result, null, 2));
+console.error(summary(result));
 // The status is set and the process left to end by itself: exiting at once can cut a long result short in a pipe.
-process.exitCode = report.verdict === 'pass' ? 0 : report.verdict === 'fail' ? 1 : 2;
+process.exitCode = result.verdict === 'pass' ? 0 : result.verdict === 'fail' ? 1 : 2;

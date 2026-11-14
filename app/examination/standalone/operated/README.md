@@ -367,14 +367,18 @@ the return.
 
 ## The operator's return
 
-It leads with the walk's summary as printed (the verdict, the outcome lines
-and any "caused by:" lines), or with "no walk" and why. The words mean:
-"pass" and "shown", every step it rests on was judged equal, line for line,
-to a recorded state whose record is judged and bound to this build, and its
-expectations held; "captured, not judged", the view was captured and met its
-expectations but equals no usable recorded state, so it is NOT a pass and is
-never written as passed in any record; "not shown", an expectation failed or
-the step was not evaluated; "not reached", the walk stopped before it. Then:
+It leads with the walk's summary as printed, which is made from the result
+alone, or with "no walk" and why, and it gives the result file,
+`scenario-result.json`. The words mean: "pass" and "shown", every step it
+rests on was admitted (its view equal, line for line, to a recorded state
+whose record is judged and usable for this launch's candidate, and no
+expectation unmet); "captured, not judged", the view was captured but names
+no recorded state, so it is NOT a pass and is never written as passed in any
+record; "fail" and "not shown", a step failed or, for an outcome, was not
+admitted; "inconclusive" and "no verdict", the walk stopped; "not reached",
+the walk stopped before the step. The attempt log, `attempt-log.json`, is
+evidence and is NOT a result: the operator names it, and copies nothing from
+it into the return as an outcome. Then:
 
 - its two recorded identities (the runtime and the host: number, start in
   UTC, executable), their relationship, and the host's parent; its Codex
@@ -384,8 +388,8 @@ the step was not evaluated; "not reached", the walk stopped before it. Then:
   whole; the walk call's time;
 - the evidence folder's path, the launch folder's path (or that none was
   made), and the launch record's outcome line;
-- the raw result or error, whole, for any step with an unmet expectation or
-  that was not judged;
+- for any step that was not admitted, its entry in the attempt log, whole, as
+  evidence under the words "not a result";
 - every deviation from this method, however small, and every place it did
   not say what to do;
 - what it started (from the started files), what it ended, and how it
@@ -1098,16 +1102,36 @@ follows at once, in the operator's `js` tool, with the values filled in:
 var fs = await import('node:fs');
 var walk = await import('file://<repository>/app/examination/standalone/operated/walk.mjs');
 var scenario = JSON.parse(fs.readFileSync('<repository>/app/examination/standalone/operated/first-use-setup.scenario.json', 'utf8'));
-var report = await walk.run({sky, scenario, app: '<bundle identifier>', home: '<launch folder>/home',
+var result = await walk.run({sky, scenario, app: '<bundle identifier>', home: '<launch folder>/home',
   bundle: '<the bundle, the path of the .app folder>',
-  pid: <the App's process number>, watch: '<evidence folder>/watch.json'});
+  pid: <the App's process number>, watch: '<evidence folder>/watch.json',
+  attemptLog: '<evidence folder>/attempt-log.json'});
 // A scenario with a `type` step also gives project: '<launch folder>/project'.
-fs.writeFileSync('<evidence folder>/scenario-result.json', JSON.stringify(report, null, 2));
-nodeRepl.write(walk.summary(report));
+fs.writeFileSync('<evidence folder>/scenario-result.json', JSON.stringify(result, null, 2));
+nodeRepl.write(walk.summary(result));
 ```
 
 Nothing else changes: no retry inside the walk, no second view after a
 failure, the same scenario and acts.
+
+**The result and the attempt log.** The walk returns the result alone, and
+the operator writes it as `scenario-result.json`. It is a closed form made
+only from the steps' verdicts (`resultOf`): the form's name, the scenario
+and its version, the candidate key, the times, the scenario's verdict, its
+outcome lines, and every step the scenario requires, each with its id, its
+verdict ("admitted", "failed", "captured, not judged", "no verdict" where
+the walk stopped, or "not reached") and its unmet reasons, written as codes
+with the failed condition's own parameters (`expectation-unmet:<index>:<kind>`,
+`view-differs-from-state:<state>`), never scenario prose or the supplier's
+output. Nothing else is in it. Everything else the walk did and saw goes to
+`attempt-log.json`, the attempt log, whose first line says "ATTEMPT LOG.
+This is not a result": each effect as an attempt and its return (what was
+sent, when it returned, or what it threw, in which case its effect is
+uncertain), each view captured with its sha256, the sheet captured and,
+when it was not admitted, the difference found, or, when it matched, that
+observation, and the scenario's text under `intended`. Nothing affirmative
+is read from the log: the summary and `replay.mjs`'s exit status are made
+from the result alone.
 
 - The loading forms above were tried in a Codex session's node runtime with a
   stand-in for the service: the file imports work, bindings last from one call
@@ -1215,19 +1239,22 @@ failure, the same scenario and acts.
   "admitted" (record usable, view equal to the state the step names, no
   expectation unmet), "failed" (an expectation unmet or the view different),
   or "captured, not judged" (the step names no state); a record not usable
-  for this launch stops the walk, and that step has no verdict. Every
+  for this launch stops the walk, and that step has "no verdict"; a step the
+  walk did not reach is "not reached". The result lists every step the
+  scenario requires, so a missing verdict never shortens what a pass needs.
+  Every
   affirmative output is derived from those verdicts and computed nowhere
   else: the scenario's verdict is "pass" only when every step was admitted;
   an outcome line is "shown" only when every step it names was admitted; the
-  summary prints those. The four effects each need the same admission: the
+  summary prints those, from the result alone. The four effects each need the same admission: the
   click (an ordinary click, and a button pressed if offered), the set-value
   and the click that opens the sheet are made only from a view admitted
   against the state the step acts from, and the press only from a sheet
   admitted against the template. Expectations are recorded as failures only
-  (`unmet`): no field of the result says that an expectation held. The
-  records of an effect made (`pressed`, `pressed_index`, `typed`, `offered`)
-  are written only after its admission, and a refused press leaves only its
-  refusal (`sheet.refused`, with the difference found, if any). "Captured,
+  (unmet reason codes): no field of the result says that an expectation
+  held. Effects are not in the result at all: in the attempt log each is an
+  attempt and its return, written in two steps round the call, and a call
+  that throws leaves its effect recorded as uncertain. "Captured,
   not judged" is not one of REQ-007's five outcomes, so the examination table
   refuses to print a record holding it. In page content an element's words,
   its depth, its further lines and the window's title are accepted by
@@ -1442,8 +1469,8 @@ failure, the same scenario and acts.
   click fails, in `click_error`, and the walk stops there, inconclusive, with
   nothing further called (a click that throws has not been shown to have had
   no effect). Each holds where it failed, the error's own message, and each cause the
-  error carries, in order and whole (at most eight); the summary prints the
-  causes under the line that says where the walk stopped. The causes are
+  error carries, in order and whole (at most eight), in the attempt log; the
+  summary, made from the result alone, does not print them. The causes are
   diagnostic evidence supplied by the supplier's client, not causes
   established independently. Nothing else of the
   error is kept: a message is kept only when it is text, anything else is
