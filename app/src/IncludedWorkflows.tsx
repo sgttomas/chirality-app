@@ -83,7 +83,7 @@ export function librarySourceWords(source: Json): string {
 const libraryPathsOf = (entry: Json): string[] => list(entry?.libraryPathsNamed).filter(path => typeof path === "string");
 /**
  * The About disclosure's sentence for those paths, the place a person meets
- * LIM-008 (docs/RELEASE_LIMITATIONS_4.0.0.md): the workflow ships as its text,
+ * LIM-008 of the release's limitations: the workflow ships as its text,
  * without the Library's tools it names. One sentence, used in About and beside
  * the chosen workflow, so the two never say it differently.
  */
