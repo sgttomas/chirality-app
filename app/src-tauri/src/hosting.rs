@@ -8140,7 +8140,7 @@ mod conversation_transport_tests {
     impl PreparedTurnFixture {
         fn new(thread:&str)->Self {
             use crate::workflow_workspace::{Snapshot,Selection,WorkflowIdentity,RunScope,PreparedRunText,SNAPSHOT_METHOD};
-            let root=std::env::temp_dir().join(opaque_id("prepared-turn-").unwrap());std::fs::create_dir(&root).unwrap();std::fs::write(root.join("WORKFLOW.md"),"# Synthetic workflow\nExact prepared bytes.\n").unwrap();
+            let root=std::fs::canonicalize(std::env::temp_dir()).unwrap().join(opaque_id("prepared-turn-").unwrap());std::fs::create_dir(&root).unwrap();std::fs::write(root.join("WORKFLOW.md"),"# Synthetic workflow\nExact prepared bytes.\n").unwrap();
             let snapshot=Snapshot::capture(&root).unwrap();let identity=WorkflowIdentity{kind:"workflow".into(),origin:"bundled".into(),source_root:"synthetic-bundled-root".into(),name:"synthetic".into(),revision:snapshot.revision().to_owned(),revision_method:SNAPSHOT_METHOD.into(),derived_from:None};
             let selection=Selection::synthetic_shipped(snapshot,identity).unwrap();let scope=RunScope{run:"run:synthetic".into(),conversation:thread.into(),home:"conversation-home".into(),generation:g(),source_root:"synthetic-bundled-root".into(),holding_library:"synthetic-holding".into(),selection_ref:"selection:synthetic".into(),revision_store:root.clone()};
             let prepared=PreparedRunText::start(&selection,scope,"synthetic folder",None).unwrap();Self{root,prepared}
