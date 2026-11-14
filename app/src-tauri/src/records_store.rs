@@ -272,6 +272,12 @@ pub(crate) fn fresh_test_store_name(pid: u32) -> String {
 /// function, still admits an explicit override; the App's start never gives
 /// it that input.
 pub fn for_app(override_root: Option<PathBuf>, app_data: Result<&Path, String>, development: bool, project: Option<&Path>, codex_homes: &[PathBuf]) -> Result<Store, String> {
+    for_app_beside(override_root, app_data, development, project, codex_homes, &[])
+}
+/// As [`for_app`], and the store also stays out of every working folder the
+/// App gives its Codex (`working_folders`), whatever folder that is
+/// (DEL-01-01).
+pub fn for_app_beside(override_root: Option<PathBuf>, app_data: Result<&Path, String>, development: bool, project: Option<&Path>, codex_homes: &[PathBuf], working_folders: &[PathBuf]) -> Result<Store, String> {
     // The App data folder as placement needs it (its reserved folders),
     // taken before the branches below consume it.
     let data_for_placement: Option<&Path> = app_data.as_ref().ok().copied();
@@ -300,7 +306,7 @@ pub fn for_app(override_root: Option<PathBuf>, app_data: Result<&Path, String>, 
     }
     // Refused in every build; only the development override may name a
     // temporary folder (a test store).
-    let problems = placement_problems_in(&root, project, codex_homes, placement == Placement::Override, data_for_placement);
+    let problems = placement_problems_in(&root, project, codex_homes, working_folders, placement == Placement::Override, data_for_placement);
     if !problems.is_empty() {
         return Err(format!("records store refused: {}", problems.join("; ")));
     }
@@ -327,10 +333,15 @@ pub fn chosen_location(app_data: &Path) -> Result<Option<PathBuf>, String> {
 /// Records the person's chosen location for the next start. Records already
 /// in the current store are not moved or copied.
 pub fn choose_location(app_data: &Path, location: &Path, project: Option<&Path>, codex_homes: &[PathBuf]) -> Result<Value, String> {
+    choose_location_beside(app_data, location, project, codex_homes, &[])
+}
+/// As [`choose_location`], and the store also stays out of every working
+/// folder the App gives its Codex (DEL-01-01).
+pub fn choose_location_beside(app_data: &Path, location: &Path, project: Option<&Path>, codex_homes: &[PathBuf], working_folders: &[PathBuf]) -> Result<Value, String> {
     if !location.is_absolute() {
         return Err("choose an absolute folder for the records store".into());
     }
-    let problems = placement_problems_in(location, project, codex_homes, false, Some(app_data));
+    let problems = placement_problems_in(location, project, codex_homes, working_folders, false, Some(app_data));
     if !problems.is_empty() {
         return Err(format!("records store location refused: {}", problems.join("; ")));
     }
@@ -449,9 +460,21 @@ pub(crate) fn confirm_placement(
     codex_homes: &[PathBuf],
     confirm: impl FnOnce(String, &str, &str) -> Result<bool, String>,
 ) -> Result<Value, String> {
+    confirm_placement_beside(app_data, location, project, codex_homes, &[], confirm)
+}
+/// As [`confirm_placement`], and the store also stays out of every working
+/// folder the App gives its Codex (DEL-01-01).
+pub(crate) fn confirm_placement_beside(
+    app_data: &Path,
+    location: Option<&Path>,
+    project: Option<&Path>,
+    codex_homes: &[PathBuf],
+    working_folders: &[PathBuf],
+    confirm: impl FnOnce(String, &str, &str) -> Result<bool, String>,
+) -> Result<Value, String> {
     let default = app_data.join("records");
     let destination = location.unwrap_or(&default);
-    let problems = placement_problems_in(destination, project, codex_homes, false, Some(app_data));
+    let problems = placement_problems_in(destination, project, codex_homes, working_folders, false, Some(app_data));
     if location.is_some() && !problems.is_empty() {
         return Err(format!("records store location refused: {}", problems.join("; ")));
     }
@@ -462,7 +485,7 @@ pub(crate) fn confirm_placement(
         return Ok(json!({"state":"choice cancelled"}));
     }
     match location {
-        Some(location) => choose_location(app_data, location, project, codex_homes),
+        Some(location) => choose_location_beside(app_data, location, project, codex_homes, working_folders),
         None => clear_choice(app_data),
     }
 }
@@ -471,13 +494,16 @@ pub(crate) fn confirm_placement(
 /// home or a temporary folder (each writable by an agent under Codex's
 /// workspace-write sandbox, or the person's own Codex data).
 pub fn placement_problems(root: &Path, project: Option<&Path>, codex_homes: &[PathBuf], allow_temporary: bool) -> Vec<String> {
-    placement_problems_in(root, project, codex_homes, allow_temporary, None)
+    placement_problems_in(root, project, codex_homes, &[], allow_temporary, None)
 }
 /// As `placement_problems`, with the App data folder known: the folder where
 /// the App allocates its account homes (`desktop_startup::desktop_account_homes`)
 /// is reserved, whether or not any home has been planned or created in it,
-/// so a store equal to it, inside it or containing it is refused.
-fn placement_problems_in(root: &Path, project: Option<&Path>, codex_homes: &[PathBuf], allow_temporary: bool, app_data: Option<&Path>) -> Vec<String> {
+/// so a store equal to it, inside it or containing it is refused. The folder
+/// set aside for conversations without a project
+/// (`desktop_startup::no_project_folder`) is reserved the same way, and so is
+/// every folder in `working_folders` (DEL-01-01).
+fn placement_problems_in(root: &Path, project: Option<&Path>, codex_homes: &[PathBuf], working_folders: &[PathBuf], allow_temporary: bool, app_data: Option<&Path>) -> Vec<String> {
     let resolved = resolve_lexically(root);
     let mut problems = Vec::new();
     let mut inside = |outer: &Path, what: &str| {
@@ -517,6 +543,34 @@ fn placement_problems_in(root: &Path, project: Option<&Path>, codex_homes: &[Pat
     }
     if let Some(home) = std::env::var_os("HOME") {
         inside(&PathBuf::from(home).join(".codex"), "the Codex home");
+    }
+    // DEL-01-01: decided against the established App data folder and folder set aside, by the
+    // identity of what exists, so that no spelling the file system would resolve into them
+    // passes. Placement creates nothing: the start establishes them first. Not established
+    // (absent, something else in the folder's place, or not examinable), nothing can be decided,
+    // and the store is refused.
+    if let Some(data) = app_data {
+        match crate::working_folder::established(data) {
+            Ok(set) => match set.overlaps_leaf(root) {
+                Ok(false) => {}
+                Ok(true) => problems.push(format!("{} overlaps the folder set aside for conversations without a project {}", root.display(), set.leaf().display())),
+                Err(()) => problems.push(format!("the place of {} relative to the folder set aside for conversations without a project {} cannot be established", root.display(), set.leaf().display())),
+            },
+            // Established absent (not yet made): a store established by identity to lie outside
+            // the App data folder needs nothing here. Anything else (a failed lookup, or something
+            // else in the folder's place, which may lead anywhere) refuses.
+            Err(blocked @ (crate::working_folder::Blocked::AppDataAbsent(_) | crate::working_folder::Blocked::LeafAbsent(_))) => if crate::working_folder::may_be_in_app_data(data, root) != Ok(false) {
+                problems.push(format!("{} cannot be placed yet: {}", root.display(), blocked.sentence()));
+            },
+            Err(blocked) => problems.push(format!("{} cannot be placed: {}", root.display(), blocked.sentence())),
+        }
+    }
+    for folder in working_folders {
+        match crate::working_folder::may_overlap(root, folder) {
+            Ok(false) => {}
+            Ok(true) => problems.push(format!("{} overlaps the working folder Codex is given {}", root.display(), folder.display())),
+            Err(()) => problems.push(format!("the place of {} relative to the working folder Codex is given {} cannot be established", root.display(), folder.display())),
+        }
     }
     if !allow_temporary && is_temporary(root) {
         problems.push(format!("{} is in a temporary folder (an agent under Codex's workspace-write sandbox can write there)", root.display()));
