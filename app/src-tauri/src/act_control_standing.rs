@@ -305,13 +305,15 @@ pub(crate) fn shown_statement_binding(root: &Path, body: &Value) -> Value {
         Ok(capture)
     };
     let Ok(capture) = read() else {
-        return json!({"state":"unavailable","statement":"Whether what was shown is bound in this capture could not be verified."});
+        return json!({"state":"unavailable","statement":"Whether what was shown is bound in this capture could not be established."});
     };
     let Some(digest) = capture.get("shownStatement") else {
         return json!({"state":"not-bound","statement":"What was shown is not bound in this capture."});
     };
-    if crate::capture_seal::verify(root, &capture).is_err() {
-        return json!({"state":"unverified","statement":"A statement digest is recorded, but this capture's seal could not be verified."});
+    // Native A16 captures are unsealed. Check a seal only when one is actually recorded;
+    // a digest alone establishes neither the writer's identity nor physical display.
+    if capture.get("seal").is_some() && crate::capture_seal::verify(root, &capture).is_err() {
+        return json!({"state":"not-bound","statement":"A statement digest is recorded, but this capture's seal could not be checked; what was shown is not bound here."});
     }
-    json!({"state":"verified","digest":digest,"statement":"What was shown is bound by this capture's statement digest and verified seal. This does not establish that macOS displayed those bytes or that the person read them."})
+    json!({"state":"bound","digest":digest,"statement":"What was shown is bound by this capture's statement digest. This does not establish who wrote the capture, that macOS displayed those bytes or that the person read them."})
 }

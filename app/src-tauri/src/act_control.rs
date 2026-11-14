@@ -1523,9 +1523,6 @@ impl ActControl {
             "evidenceLimits": ["identity not verified"],
             "shownStatement": {"method":"sha-256","value":crate::util::sha256_hex(statement.text.as_bytes())},
         });
-        if let Err(reason) = crate::capture_seal::seal(&ws, &mut capture) {
-            capture["evidenceLimits"].as_array_mut().unwrap().push(json!(crate::capture_seal::unsealed_limit(&reason)));
-        }
         crate::schema_validation::validate_capture(&capture)?;
         // The project's records store subtree (RS §13.8); a refusal (store
         // unavailable, import needed) captures nothing.
