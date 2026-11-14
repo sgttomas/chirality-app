@@ -25,6 +25,10 @@
 //     approved presentation that may draw a box is allowed; a role attribute not built of literals fails;
 //   - every component the view draws: one written in this file is judged where its JSX is written, one imported
 //     from another guarded view is judged in that view, and any other fails unless it is listed.
+// Inside a control or a heading, JSX that a same-file function returns, or that a const holds, is judged again with
+// that control's context at each call, however else it is used; a component's children or ReactNode prop drawn inside
+// a control fails, since its callers write it outside the control; a call the guard cannot follow (an imported helper
+// that is not trusted, a method, a call through a variable) is not App-made and fails.
 // An expression passes only if it is built from the closed list of forms below (appMade); anything else fails,
 // including a form the guard has never seen. That is a syntactic default, not a proof of where a value came from.
 // These fail and cannot be listed: raw HTML (dangerouslySetInnerHTML) as an attribute, or in a spread under a name, a

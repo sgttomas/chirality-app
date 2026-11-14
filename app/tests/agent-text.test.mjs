@@ -429,6 +429,44 @@ test('choosing an option never puts its label in the free-answer field; the fiel
 });
 
 // ---- The sweep: the controls rule on every other view (the presentation guard's controls mode) ----
+const controlsExceptions = JSON.parse(readFileSync(new URL('./support/controls-guard-exceptions.json', import.meta.url), 'utf8'));
+test('controls rule on every other view: no failure, and each exception opens with the rule, names its basis, component and count', async () => {
+  const {controlsFailures, exceptionShapeFailures} = await import('./support/presentation-guard.mjs');
+  assert.deepEqual(controlsFailures(new URL('../src/', import.meta.url), controlsExceptions), []);
+  assert.deepEqual(exceptionShapeFailures(controlsExceptions), []);
+  const extra = {file: 'ModelChoice.tsx', where: '<button>', expr: 'row.displayName', component: 'AvailableModels', count: 1, basis: 'an App-owned literal vocabulary', reason: 'invented entry for an expression that no longer fails'};
+  assert.match(controlsFailures(new URL('../src/', import.meta.url), [...controlsExceptions, extra]).join('\n'), /stale exception ModelChoice\.tsx/, 'a listed expression that no longer fails is stale');
+  for (const e of controlsExceptions.slice(1)) assert.doesNotMatch(e.reason, /^(trusted source|Host composed|not agent written)\.?$/i, `${e.file} ${e.expr}: a reason names its producer`);
+});
+test('controls rule: a same-file helper\'s returned JSX is judged with the caller\'s control; a call the guard cannot follow fails', async () => {
+  const {sourceFailures} = await import('./support/presentation-guard.mjs');
+  const judge = source => sourceFailures('Invented.tsx', source, [], 'controls').failures;
+  const fails = (source, why) => assert.notDeepEqual(judge(source), [], why);
+  const passes = (source, why) => assert.deepEqual(judge(source), [], why);
+  fails('function words(v: any) { return <span>{v}</span>; } export const x = ({ row }: any) => <button>{words(row.title)}</button>;', "the reader's helper inside a button");
+  fails('import { words } from "./Words"; export const x = ({ row }: any) => <button>{words(row.title)}</button>;', 'an imported helper that is not trusted');
+  fails('export const x = ({ row, obj }: any) => <button>{obj.render(row.title)}</button>;', 'a method on an object');
+  fails('export const x = ({ row, f }: any) => { const g = f; return <button>{g(row.title)}</button>; };', 'a call through a variable');
+  fails('export const x = ({ row }: any) => { const label = <span>{row.title}</span>; return <button>{label}</button>; };', 'a const holding JSX with a supplied value');
+  fails('function Wrap({ children }: any) { return <button>{children}</button>; } export const x = ({ row }: any) => <Wrap>{row.title}</Wrap>;', 'children drawn inside a control');
+  passes('function words() { return <span>Open the file</span>; } export const x = () => <button>{words()}</button>;', 'a same-file helper returning only App literals');
+  // The same helper used once outside any control and once inside a button: the ordinary use does not exempt the other.
+  const twice = 'function words(v: any) { return <span>{v}</span>; } export const x = ({ row }: any) => <div><p>{words(row.title)}</p><button>{words(row.title)}</button></div>;';
+  assert.match(judge(twice).join('\n'), /<button> v \(in words\)/, 'the use inside the button fails');
+  passes('function words(v: any) { return <span>{v}</span>; } export const x = ({ row }: any) => <div><p>{words(row.title)}</p></div>;', 'outside a control alone it is not judged by this rule');
+});
+test('controls rule: an exception is scoped to its place, component and count; a field value excepted never names a control', async () => {
+  const {sourceFailures} = await import('./support/presentation-guard.mjs');
+  const entry = {file: 'Invented.tsx', where: '@value', expr: 'draft', component: 'V', count: 1, basis: 'an editable value permitted in that field', reason: 'invented'};
+  const run = (source, listed = [entry]) => sourceFailures('Invented.tsx', source, listed, 'controls').failures;
+  const field = 'export function V({ draft }: any) { return <div><textarea value={draft} />';
+  assert.deepEqual(run(field + '</div>; }'), [], 'the field value is excepted');
+  assert.notDeepEqual(run(field + '<button>{draft}</button></div>; }'), [], 'the same expression as a button\'s text fails');
+  assert.notDeepEqual(run('export function V({ draft }: any) { return <button>{draft}</button>; }'), [], 'a field-value exception never matches a button\'s text, even where it is the only use');
+  assert.notDeepEqual(run(field + '<input aria-label={draft} /></div>; }'), [], 'and as an accessible name');
+  assert.match(run(field + '<textarea value={draft} /></div>; }').join('\n'), /lists 1 occurrence\(s\) and matches 2/, 'an extra occurrence fails');
+  assert.notDeepEqual(run('export function W({ draft }: any) { return <textarea value={draft} />; }'), [], 'outside its component it is not exempt');
+});
 test('controls rule: a control, heading or naming attribute on any other view holds only App-made forms, and a form never seen fails', async () => {
   const {sourceFailures} = await import('./support/presentation-guard.mjs');
   const judge = (source, name = 'Invented.tsx') => sourceFailures(name, source, [], 'controls').failures;

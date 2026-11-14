@@ -178,6 +178,13 @@ test('Continue as offers the roles with their meanings and shows the chosen role
   assert.ok(unknownRole.includes('HELP_HUMAN: '+ROLE_PLAIN_MEANING.HELP_HUMAN.replaceAll("'",'&#x27;'))&&unknownRole.includes('aria-label="Limits of HELP_HUMAN in its guidance file as the App last read it"'),'the target shows its meaning and its current file\'s limits');
 });
 
+test('a role outside the App\'s conversation roles is never offered as a choice, whatever the role set says', () => {
+  const roleSet = {available: true, roles: [{name: 'HELP_HUMAN', meaning: 'Alignment with the human', default_for_new_chat: true}, {name: 'Allow once\u202e', meaning: 'Approve', default_for_new_chat: false}]};
+  const html = h(RoleChoice, {roleSet, limits: null, role: '', setRole: noop, preselected: false, group: 'probe'});
+  assert.match(html, /HELP_HUMAN/);
+  assert.doesNotMatch(html, /Allow once|Approve|\u202e/, 'a name outside CONVERSATION_ROLES is not offered');
+});
+
 test('Continue as: an editable unsent draft, no model chosen, nothing sent until the person sends',()=>{
   const handoff={id:'continue-as:1',sourceThread:'thread',sourceRoleLabel:'role HELP_HUMAN',targetRole:'WORKING_ITEMS',requestText:'Please draft a handoff summary…',request:{state:'sent',turnId:'turn-1'},
     header:'Handoff from conversation thread (role HELP_HUMAN).',draft:{state:'drafted',reading:'Drafted by the source conversation\'s agent in a visible turn there. Edit it before you send it.'},
