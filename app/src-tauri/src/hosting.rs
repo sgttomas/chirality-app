@@ -251,6 +251,11 @@ pub(crate) const REMOVED_ENVIRONMENT: &[(&str, RemovalClass)] = {
 /// App's environment when the child is started is recorded, never its value.
 pub(crate) const RECORDED_PRESENCE_ONLY: &str = "CODEX_INTERNAL_APP_SERVER_REMOTE_CONTROL_DISABLED";
 
+/// The home reference a generation of this configuration carries
+/// (`generation.home`), known from the configuration alone.
+pub(crate) fn home_reference(cfg: &HostConfig) -> String {
+    format!("app-home:{}", sha256_hex(cfg.codex_home.as_os_str().as_encoded_bytes()))
+}
 pub(crate) fn removed_environment_names() -> impl Iterator<Item = &'static str> {
     REMOVED_ENVIRONMENT.iter().map(|(name, _)| *name)
 }
@@ -1835,7 +1840,7 @@ impl Host {
         if self.runtime_custody.lock().unwrap().as_ref().is_some_and(|c| c.end_observation.lock().unwrap().is_some()) {
             return Err("App session ended; successor start refused".into());
         }
-        let home = format!("app-home:{}", sha256_hex(cfg.codex_home.as_os_str().as_encoded_bytes()));
+        let home = home_reference(cfg);
         let counter = self.spawn_counters.lock().unwrap().get(&home).copied().unwrap_or(0)
             .checked_add(1).ok_or("home spawn counter exhausted")?;
         Ok(json!({"appSession":i.app_session,"home":home,"spawnCounter":counter}))

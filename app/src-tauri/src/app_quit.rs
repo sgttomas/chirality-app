@@ -246,37 +246,24 @@ pub(crate) fn runs_not_read() -> String {
     format!("Workflow runs could not be read within {} seconds", QUIT_ASSESSMENT_WAIT_LIMIT.as_secs())
 }
 /// Every home's live work as Stop Codex assesses it, or the reason it is not
-/// assessed, waited for until `deadline`. Each ready home is read on its own
-/// thread; a read not finished by the deadline is left to finish on its own
-/// (it updates that home's observation as any read does) and its result is
-/// never used. Absent, stopped and refused homes have no Codex process.
+/// assessed, waited for until `deadline`. Each home is read on its own
+/// thread, its state and generation included; a read not finished by the
+/// deadline is left to finish on its own (it updates that home's observation
+/// as any read does) and its result is never used. Absent, stopped and refused
+/// homes have no Codex process. The workflow runs listed are those of each home
+/// with a Codex process and of each home whose state was not read in time.
 pub(crate) fn assess_homes(homes: &[Arc<HomeSession>], workflows: &Mutex<WorkflowRootSession>, deadline: Instant) -> (Vec<(Value, Value)>, Vec<Value>, Vec<Value>) {
     let (sent, received) = std::sync::mpsc::channel();
-    let mut rows: Vec<Option<(Value, Value)>> = Vec::new();
     let mut pending = Vec::new();
     let mut limits = Vec::new();
-    let mut home_ids = Vec::new();
     for (index, home) in homes.iter().enumerate() {
-        let snapshot = home.host.snapshot_without_records();
-        let generation = snapshot["generation"].clone();
-        let state = snapshot["state"].as_str().unwrap_or("not reported").to_owned();
         let class = home.class();
-        if matches!(state.as_str(), "absent" | "stopped" | "refused") || generation.is_null() {
-            rows.push(None);
-            continue;
-        }
-        home_ids.extend(generation["home"].as_str().map(str::to_owned));
-        let mut row = json!({"modeHomeClass":class.as_str(),"generation":generation,"state":state});
-        if state != "ready" {
-            row["notReady"] = json!(format!("Codex is {state}, not ready: live work cannot be observed and nothing is sent to it; its process is stopped"));
-            rows.push(Some((row, json!({}))));
-            continue;
-        }
-        rows.push(Some((row, json!({}))));
+        // The home's state and generation are read in the reader too: reading
+        // them takes the Host state, which a stalled activity can hold, and
+        // the deadline must cover that wait.
         let (home, sent) = (Arc::clone(home), sent.clone());
         let reader = std::thread::Builder::new().name("quit-assessment".into()).spawn(move || {
-            let read = crate::runtime_session::assess_native_home_work(&home, &generation).map(|work| work.snapshot());
-            let _ = sent.send((index, read));
+            let _ = sent.send((index, assess_home(&home)));
         });
         match reader {
             Ok(_) => pending.push((index, class)),
@@ -284,24 +271,58 @@ pub(crate) fn assess_homes(homes: &[Arc<HomeSession>], workflows: &Mutex<Workflo
         }
     }
     drop(sent);
-    let runs = match crate::util::lock_by(workflows, deadline) {
-        Some(root) => home_ids.iter().flat_map(|id| root.runs_in_force_in_home(id)).collect(),
+    let runs_by_home = match crate::util::lock_by(workflows, deadline) {
+        Some(root) => Some(root.runs_in_force_by_home()),
         None => {
             limits.push(json!(runs_not_read()));
-            Vec::new()
+            None
         }
     };
+    let mut rows: Vec<Option<(Value, Value)>> = vec![None; homes.len()];
+    // The homes whose runs are listed: each home with a Codex process, and
+    // each home whose state was not read in time (from its configuration).
+    let mut home_ids: Vec<Option<String>> = homes.iter().map(|home| home.host_config.as_ref().ok().map(crate::hosting::home_reference)).collect();
     while !pending.is_empty() {
         let Ok((index, read)) = received.recv_timeout(deadline.saturating_duration_since(Instant::now())) else { break };
         let Some(at) = pending.iter().position(|(i, _)| *i == index) else { continue };
         let (_, class) = pending.remove(at);
         match read {
-            Ok(work) => if let Some((_, slot)) = rows[index].as_mut() { *slot = work },
-            Err(error) => limits.push(json!(format!("{}: {error}", class.as_str()))),
+            None => home_ids[index] = None,
+            Some((home_id, row, work)) => {
+                home_ids[index] = home_id;
+                match work {
+                    Ok(work) => rows[index] = Some((row, work)),
+                    Err(error) => {
+                        rows[index] = Some((row, json!({})));
+                        limits.push(json!(format!("{}: {error}", class.as_str())));
+                    }
+                }
+            }
         }
     }
     limits.extend(pending.into_iter().map(|(_, class)| json!(live_work_not_read(class))));
+    let runs = runs_by_home.map(|by_home| home_ids.iter().flatten().flat_map(|id| by_home.get(id).cloned().unwrap_or_default()).collect()).unwrap_or_default();
     (rows.into_iter().flatten().collect(), runs, limits)
+}
+/// One home's part of the assessment, on its reader thread: None where the
+/// home has no Codex process (absent, stopped, refused, or no generation);
+/// otherwise its generation's home reference, its row, and its live work read
+/// (none read where Codex is not ready).
+fn assess_home(home: &HomeSession) -> Option<(Option<String>, Value, Result<Value, String>)> {
+    let snapshot = home.host.snapshot_without_records();
+    let generation = snapshot["generation"].clone();
+    let state = snapshot["state"].as_str().unwrap_or("not reported").to_owned();
+    if matches!(state.as_str(), "absent" | "stopped" | "refused") || generation.is_null() {
+        return None;
+    }
+    let home_id = generation["home"].as_str().map(str::to_owned);
+    let mut row = json!({"modeHomeClass":home.class().as_str(),"generation":generation,"state":state});
+    if state != "ready" {
+        row["notReady"] = json!(format!("Codex is {state}, not ready: live work cannot be observed and nothing is sent to it; its process is stopped"));
+        return Some((home_id, row, Ok(json!({}))));
+    }
+    let work = crate::runtime_session::assess_native_home_work(home, &generation).map(|work| work.snapshot());
+    Some((home_id, row, work))
 }
 
 impl<C> Interrupts for HostQuit<'_, C> {

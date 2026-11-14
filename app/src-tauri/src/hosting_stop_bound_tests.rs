@@ -1571,3 +1571,30 @@ fn the_quits_acknowledgment_wait_ends_at_its_limit_without_waiting_on_the_ledger
     assert!(outcome.is_err(), "Codex never acknowledged: {outcome:?}");
     let _ = release.send(());
 }
+
+/// Round 2's R2-1, the quit's side: a home whose Host state is held (by any
+/// activity) does not hold the assessment past its deadline. The home's state
+/// is read on its reader thread, the home is shown as not read, and the
+/// assessment returns.
+#[test]
+fn a_home_whose_state_is_held_does_not_hold_the_quit_assessment_past_its_deadline() {
+    let f = Fixture::new();
+    let workflows = Mutex::new(WorkflowRootSession::default());
+    let (held_tx, held_rx) = channel();
+    let (release_tx, release_rx) = channel::<()>();
+    let host = Arc::clone(f.host());
+    let holder = std::thread::spawn(move || {
+        let _held = host.inner.0.lock().unwrap();
+        held_tx.send(()).unwrap();
+        let _ = release_rx.recv();
+    });
+    held_rx.recv().unwrap();
+    let begin = Instant::now();
+    let (rows, runs, limits) = crate::app_quit::assess_homes(&[Arc::clone(&f.home)], &workflows, Instant::now() + Duration::from_millis(300));
+    let took = begin.elapsed();
+    let _ = release_tx.send(());
+    holder.join().unwrap();
+    assert!(took < Duration::from_millis(300) + SLACK, "{took:?}");
+    assert!(rows.is_empty() && runs.is_empty(), "nothing is said of the home's state: {rows:?}");
+    assert_eq!(limits, vec![json!(crate::app_quit::live_work_not_read(crate::home_resources::HomeClass::Account))]);
+}
