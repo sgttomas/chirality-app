@@ -119,6 +119,9 @@ pub(crate) struct LevelState {
     /// Why the person may choose a level for this session only: the launch read positively failed or was limited
     /// (`{reason, detail}`). None after a complete read, and never for an empty ledger.
     pub(crate) session_only: Option<Value>,
+    /// The launch read found no earlier session in a complete record although this home holds state from an earlier
+    /// Codex start: the record of the level is missing, and no default applies.
+    pub(crate) record_missing: bool,
     /// Advanced by every attempted configuration write; a trust reading made before one is not current.
     pub(crate) config_writes: u64,
     /// The unit tests' Host makes no trust reading (its peers answer no `config/read`); a test turns it on.
@@ -493,7 +496,11 @@ impl Host {
     fn apply_chosen(i: &mut Inner, scope: &LevelScope, chosen: Chosen) {
         if let Some(entry) = &chosen.entry { i.level.by_entry.insert(entry.clone(), chosen.clone()); }
         match scope {
-            LevelScope::Default => { i.default_level = Some(chosen.level); i.level.default_chosen = Some(chosen); }
+            LevelScope::Default => {
+                // A level in force for the default scope answers a missing record.
+                i.level.record_missing = false;
+                i.default_level = Some(chosen.level); i.level.default_chosen = Some(chosen);
+            }
             LevelScope::Conversation(t) => { i.thread_levels.insert(t.clone(), chosen.level); i.level.thread_chosen.insert(t.clone(), chosen); }
             LevelScope::NewConversation => { i.new_conversation_level = Some(chosen.level); i.level.new_chosen = Some(chosen); }
         }
@@ -516,6 +523,16 @@ impl Host {
     /// that cannot be read, or is limited, puts nothing in force and lets the person choose for this session only.
     /// A complete read drops every session-only choice. `home` is this Host's `home_identity`.
     pub(crate) fn read_levels_at_launch(&self, home: Option<&str>) -> Value {
+        self.read_levels_at_launch_in(home, None)
+    }
+
+    /// [`Self::read_levels_at_launch`], with the path the App made for this account home (`codex_home`). The App's
+    /// default applies only on positive evidence that the person has never chosen: the complete read holds an earlier
+    /// session's entries and no valid choice (used before, never chose), or it holds no earlier session and this home
+    /// holds no state from an earlier Codex start (a first run). A read with no earlier session where this home does
+    /// hold such state is a missing record: no default, and the person chooses. The home is probed by presence only
+    /// (`symlink_metadata` of one name in it), nothing is opened, and no other folder is looked at.
+    pub(crate) fn read_levels_at_launch_in(&self, home: Option<&str>, codex_home: Option<&std::path::Path>) -> Value {
         let (ledger, limit) = {
             let i = self.inner.0.lock().unwrap();
             (i.recovery.clone(), i.recovery_initialization_error.clone())
@@ -589,10 +606,21 @@ impl Host {
             }
         }
         let mut view = json!({"state": "read", "accepted": accepted, "refused": refused});
-        // The App's default, where the complete read found no valid choice for the default scope.
+        i.level.record_missing = false;
+        // The App's default, where the complete read found no valid choice for the default scope, and only on positive
+        // evidence that the person has never chosen.
         if let (false, Some(level)) = (default_accepted, i.level.app_default.0) {
-            Self::apply_chosen(&mut i, &LevelScope::Default, Chosen { entry: None, at: now_rfc3339(), level, origin: Origin::AppDefault });
-            view["appDefault"] = json!(level.id);
+            let current = i.app_session.clone();
+            let used_before = rows.iter().any(|r| r["session"].as_str().is_some_and(|s| s != current));
+            if !used_before && codex_home.is_some_and(cl::home_has_codex_state) {
+                // No earlier session in the record, yet this home holds state from an earlier Codex start: the
+                // record of the level is missing, not a first run.
+                i.level.record_missing = true;
+                view["recordMissing"] = json!(cl::RECORD_MISSING_SENTENCE);
+            } else {
+                Self::apply_chosen(&mut i, &LevelScope::Default, Chosen { entry: None, at: now_rfc3339(), level, origin: Origin::AppDefault });
+                view["appDefault"] = json!(level.id);
+            }
         }
         i.level.launch = view.clone();
         view
@@ -606,6 +634,7 @@ impl Host {
         status["levelStartRefusal"] = json!(i.level.start_refusal);
         status["levelSendRefusal"] = json!(i.level.last_refusal);
         status["levelLaunchRead"] = i.level.launch.clone();
+        status["levelRecordMissing"] = if i.level.record_missing { json!(cl::RECORD_MISSING_SENTENCE) } else { Value::Null };
         status["levelAppDefault"] = json!(i.level.app_default.0.map(|l| l.id.as_str()));
         // Offered only when the launch read positively failed or was limited.
         status["levelSessionOnlyOffered"] = json!(session_only);

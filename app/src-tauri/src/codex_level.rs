@@ -23,6 +23,16 @@ pub const APP_DEFAULT_SENTENCE: &str = "The App's default level, not chosen by y
 /// Where the status explains the App's default.
 pub const APP_DEFAULT_EXPLAINED: &str = "The App's default level is full access: commands run with no sandbox, with your account's access to your files and the network, including the App's own records and settings. You can choose another level at any time.";
 /// The status's closed sentence for a level chosen while the App's records could not be read or saved.
+/// Where the App's record of the level is missing although this home has been used (V4-AUT-06): no default is named.
+pub const RECORD_MISSING_SENTENCE: &str = "The App's record of your permission level is missing. Choose a level to continue. A missing record can mean that a command removed it.";
+/// The name Codex gives the state database it creates in its home when it first starts there (state/src/sqlite.rs
+/// at rust-v0.167.0). The App never creates it.
+pub const CODEX_STATE_NAME: &str = "state_5.sqlite";
+/// Whether this home holds state from an earlier Codex start: presence of [`CODEX_STATE_NAME`] directly in it, by
+/// `symlink_metadata` only. Nothing is opened, nothing is followed and no other folder is looked at.
+pub fn home_has_codex_state(codex_home: &Path) -> bool {
+    std::fs::symlink_metadata(codex_home.join(CODEX_STATE_NAME)).is_ok()
+}
 pub const SESSION_ONLY_SENTENCE: &str = "Chosen for now. The App could not read or save its records, so this level is not kept after the App closes.";
 /// Why a session-only choice was offered: the App's own sentences, beside which any raw detail is kept apart.
 pub const RECORDS_NOT_READ: &str = "The App's records could not be read when it started.";

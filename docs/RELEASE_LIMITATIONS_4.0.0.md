@@ -283,10 +283,14 @@ An entry is added in the same pull request that makes the limitation standing.
   access, so it can change that record, and the App's other records and
   settings. The next time the App opens, it would then start conversations at a
   level you did not choose: a level written into the record is shown as your
-  choice, and nothing tells it apart from one you made; a record that was
-  deleted or emptied reads as if you had never chosen, so the App's default
-  level, full access, applies, shown as the App's default. A command runs
-  outside the sandbox:
+  choice, and nothing tells it apart from one you made. If the record is
+  deleted or emptied, the App can tell when its Codex folder shows Codex has
+  run there before: it says that its record of your level is missing and asks
+  you to choose, rather than applying its default. It cannot tell a first run
+  from a removal of its whole data folder, or of the record together with
+  what Codex keeps in the App's Codex folder: then the App's default level,
+  full access, applies, shown as the App's default. A command runs outside the
+  sandbox:
   - at full access, always;
   - at any level, when you allow a command that Codex asked to run outside
     the sandbox;

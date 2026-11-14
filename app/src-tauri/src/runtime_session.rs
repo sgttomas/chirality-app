@@ -2723,7 +2723,10 @@ impl HomeSession {
     /// At launch (V4-AUT-06): the level recorded for this home's scopes, and this home's lasting rules.
     pub(crate) fn level_launch_reads(&self) {
         let cfg = self.host_config.as_ref().ok();
-        self.host.read_levels_at_launch(cfg.map(|cfg| crate::hosting::home_identity(&cfg.codex_home)).as_deref());
+        // The account home's own path, as the App made it, is the one place probed for an earlier Codex start.
+        let account_home = cfg.filter(|_| self.class == crate::home_resources::HomeClass::Account)
+            .map(|cfg| { let home = cfg.cwd.join(&cfg.codex_home); std::path::absolute(&home).unwrap_or(home) });
+        self.host.read_levels_at_launch_in(cfg.map(|cfg| crate::hosting::home_identity(&cfg.codex_home)).as_deref(), account_home.as_deref());
         if let Some(cfg) = cfg {
             let home = cfg.cwd.join(&cfg.codex_home);
             self.host.read_lasting_rules(Some(&std::path::absolute(&home).unwrap_or(home)));

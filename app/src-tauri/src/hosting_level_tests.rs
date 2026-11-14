@@ -13,6 +13,7 @@ fn g(host: &Host) -> Value {
 }
 /// A ready Host with the App ledger at `dir`, one conversation `thread` working in `cwd`.
 fn ready_with_ledger(dir: &Path, cwd: &str) -> Arc<Host> {
+    std::fs::create_dir_all(dir).unwrap();
     let host = Arc::new(Host::new());
     host.configure_recovery(dir.join("recovery.ledger.jsonl")).unwrap();
     let generation = g(&host);
@@ -417,7 +418,7 @@ fn at_launch_only_the_latest_exact_choice_in_a_scope_is_in_force() {
 }
 
 /// In production the level in force changes only through `choose_level` (the `set_level` command) and
-/// `read_levels_at_launch`: no production source calls the setters the tests use, and `apply_chosen` is called
+/// `read_levels_at_launch_in`: no production source calls the setters the tests use, and `apply_chosen` is called
 /// only from those two.
 #[test]
 fn production_code_changes_the_level_only_from_set_level_and_the_launch_read() {
@@ -431,7 +432,7 @@ fn production_code_changes_the_level_only_from_set_level_and_the_launch_read() {
         for setter in [".set_default_level(", ".set_thread_level(", ".choose_new_conversation_level(", "set_default_level(\"", "Self::apply_chosen("] {
             for (at, _) in text.match_indices(setter) {
                 let function = text[..at].rfind("fn ").map(|f| text[f + 3..].split('(').next().unwrap_or_default().trim().to_owned()).unwrap_or_default();
-                let allowed = name == "hosting_level.rs" && setter == "Self::apply_chosen(" && ["choose_level", "read_levels_at_launch"].contains(&function.as_str());
+                let allowed = name == "hosting_level.rs" && setter == "Self::apply_chosen(" && ["choose_level", "read_levels_at_launch_in"].contains(&function.as_str());
                 if !allowed { offending.push(format!("{name}: {setter} in fn {function}")); }
             }
         }
@@ -970,4 +971,112 @@ fn start_resume_and_fork_carry_exactly_the_expected_configuration_keys() {
     assert!(send(&host, "thread/start", json!({"cwd": "/invented"})).is_err());
     wire.close(&host);
     std::fs::remove_dir_all(&base).unwrap();
+}
+
+
+// ---- The App's default needs positive evidence that the person has never chosen ----
+
+/// The account home as the App made it, with or without state from an earlier Codex start in it.
+fn account_home(base: &Path, started_before: bool) -> PathBuf {
+    let home = base.join("homes").join("account");
+    std::fs::create_dir_all(&home).unwrap();
+    if started_before { std::fs::write(home.join(cl::CODEX_STATE_NAME), b"invented").unwrap(); }
+    home
+}
+/// An entry of an earlier App session, as each launch writes one.
+fn earlier_session(host: &Host) {
+    let ledger = host.inner.0.lock().unwrap().recovery.clone().unwrap();
+    ledger.lock().unwrap().append(json!({"kind":"session_started","session":"invented-earlier-session","at":"2026-11-01T00:00:00Z",
+        "previousSessionEnd":"none","candidate":"invented"})).unwrap();
+}
+
+/// Used before and never chose: a complete record holding an earlier session and no choice takes the default,
+/// whatever this home holds.
+#[test]
+fn a_record_of_earlier_use_with_no_choice_takes_the_apps_default() {
+    let base = root("used-before");
+    let host = ready_with_ledger(&base.join("data"), "/invented");
+    earlier_session(&host);
+    host.inner.0.lock().unwrap().default_level = None;
+    host.set_app_default_for_test(Some("full"));
+    let view = host.read_levels_at_launch_in(Some("app-home:invented"), Some(&account_home(&base, true)));
+    assert_eq!(view["appDefault"], "full");
+    assert!(view.get("recordMissing").is_none());
+    assert_eq!(host.snapshot()["levelDefault"]["origin"], "app-default");
+    assert!(host.snapshot()["levelRecordMissing"].is_null());
+    std::fs::remove_dir_all(base).unwrap();
+}
+
+/// Chose, then the record was removed, where this home has been used: the record is missing, no default applies,
+/// the person is told so, and their choice is recorded normally.
+#[test]
+fn a_removed_record_where_this_home_has_been_used_is_missing_and_takes_no_default() {
+    let base = root("removed");
+    let home = account_home(&base, true);
+    {
+        let before = ready_with_ledger(&base.join("data"), "/invented");
+        before.choose_level(&LevelScope::Default, cl::level("supervised").unwrap(), &[]).unwrap();
+        assert_eq!(entries(&before, "level_chosen").len(), 1);
+    }
+    // A command removed the record, and nothing else.
+    std::fs::remove_dir_all(base.join("data")).unwrap();
+    let host = ready_with_ledger(&base.join("data"), "/invented");
+    host.inner.0.lock().unwrap().default_level = None;
+    host.set_app_default_for_test(Some("full"));
+    let view = host.read_levels_at_launch_in(Some("app-home:invented"), Some(&home));
+    assert_eq!(view["recordMissing"], cl::RECORD_MISSING_SENTENCE);
+    assert!(view.get("appDefault").is_none(), "no default is named");
+    assert!(host.default_level().is_none(), "nothing is in force");
+    let status = host.snapshot();
+    assert_eq!(status["levelRecordMissing"], cl::RECORD_MISSING_SENTENCE);
+    assert!(status["levelDefault"]["origin"] != "app-default");
+    assert!(send(&host, "turn/start", turn_params("thread")).is_err(), "no conversation runs until the person chooses");
+    // The ledger can be written: the person's choice is recorded normally, and the missing record is answered.
+    host.choose_level(&LevelScope::Default, cl::level("supervised").unwrap(), &[]).unwrap();
+    assert_eq!(entries(&host, "level_chosen").len(), 1);
+    let status = host.snapshot();
+    assert_eq!(status["levelDefault"]["origin"], "chosen");
+    assert!(status["levelRecordMissing"].is_null());
+    std::fs::remove_dir_all(base).unwrap();
+}
+
+/// A genuine first run, the path every new person takes: no record and no earlier Codex start in this home. The
+/// default is in force, with no question.
+#[test]
+fn a_first_run_reaches_the_apps_default_with_no_question() {
+    let base = root("first-run");
+    let host = ready_with_ledger(&base.join("data"), "/invented");
+    host.inner.0.lock().unwrap().default_level = None;
+    host.set_app_default_for_test(Some("full"));
+    let view = host.read_levels_at_launch_in(Some("app-home:invented"), Some(&account_home(&base, false)));
+    assert_eq!(view, json!({"state": "read", "accepted": [], "refused": [], "appDefault": "full"}));
+    assert_eq!(host.default_level().unwrap().id, "full");
+    let status = host.snapshot();
+    assert_eq!(status["levelDefault"]["origin"], "app-default");
+    assert!(status["levelRecordMissing"].is_null());
+    assert!(status["levelSessionOnlyOffered"].is_null());
+    // The same when everything was removed: a complete reset reads as a first run.
+    std::fs::remove_dir_all(base).unwrap();
+}
+
+/// The probe looks at one name in this home by presence only: it follows no link, opens nothing, and looks at no
+/// other folder.
+#[test]
+fn the_home_probe_is_presence_only_in_this_home() {
+    let base = root("probe");
+    let home = account_home(&base, false);
+    assert!(!cl::home_has_codex_state(&home));
+    // State elsewhere (beside the home, or in its parent) is not this home's.
+    std::fs::write(base.join("homes").join(cl::CODEX_STATE_NAME), b"invented").unwrap();
+    assert!(!cl::home_has_codex_state(&home));
+    // A dangling link is present and is not followed.
+    std::os::unix::fs::symlink(base.join("absent"), home.join(cl::CODEX_STATE_NAME)).unwrap();
+    assert!(cl::home_has_codex_state(&home));
+    std::fs::remove_file(home.join(cl::CODEX_STATE_NAME)).unwrap();
+    // A named pipe is present, and opening it would block: the probe does not open it.
+    let pipe = home.join(cl::CODEX_STATE_NAME);
+    let c = std::ffi::CString::new(pipe.as_os_str().as_encoded_bytes()).unwrap();
+    assert_eq!(unsafe { libc::mkfifo(c.as_ptr(), 0o600) }, 0);
+    assert!(cl::home_has_codex_state(&home));
+    std::fs::remove_dir_all(base).unwrap();
 }
