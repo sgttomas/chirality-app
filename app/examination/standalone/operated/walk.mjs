@@ -34,6 +34,10 @@ export const UNADDRESSED = 'the view gives the same element index to more than o
  * line and, after it, at most the focused-element line, naming an element of the view. Each element index names one
  * element. Anything else is a refusal, and nothing is done from the view.
  */
+// The App window's own menu bar, with which every whole view of the App ends (see anchored, below).
+const MENU_ITEMS = ['File', 'Edit', 'View', 'Window', 'Help'];
+const LAST_ELEMENT = /^Waiting requests \((0|[1-9][0-9]{0,5})\)$/;
+
 export function recognise(text) {
   const lines = String(text).split('\n'), elements = [], seen = new Set();
   const refuse = why => ({ elements, refusal: why });
@@ -60,7 +64,38 @@ export function recognise(text) {
       return refuse(`line ${n + 1} is not one the walk recognises`);
     }
   }
-  return { elements, refusal: null };
+  return anchored(lines[0], elements, previous) ?? { elements, refusal: null };
+}
+
+/**
+ * The view's shape, which acceptance needs whole (the anchor). Every whole view of the App the supplier has returned
+ * (the recorded views of 14 November 2026) ends with the App window's own menu bar: an element "menu bar" at the top
+ * level, then exactly the App's name, File, Edit, View, Window, Help and "Waiting requests (n)" one level in, and
+ * nothing after them but the blank line and the focused-element line. Page content comes before the window's own
+ * controls and that menu bar. So:
+ * - the k-th element line must carry index k: a line imitating an element, carried by text inside an element, appears
+ *   straight after that element, where it breaks this order or repeats an index;
+ * - the view must end with that menu bar block, the App's name in it equal to the window line's: a copy of the block
+ *   in page content would break the order, and a view without the genuine block, or with anything after it (a further
+ *   line included), is refused;
+ * - so every index the walk may act on is one the view assigns, in order, each once, and an index it does not assign
+ *   is refused here, before any call. Refusal is the default: a view lacking any part of this shape is not acted on.
+ */
+function anchored(windowLine, elements, previous) {
+  const refuse = why => ({ elements, refusal: why });
+  for (let k = 0; k < elements.length; k++) {
+    if (elements[k].index !== k) return refuse(`the element lines are not in index order from 0 (element ${k + 1} carries ${elements[k].index})`);
+  }
+  if (previous === 'further') return refuse('text follows the last element line');
+  const tail = elements.slice(-8);
+  const [bar, name, ...items] = tail;
+  if (tail.length !== 8 || bar.depth !== 0 || bar.content !== 'menu bar' || tail.slice(1).some(element => element.depth !== 1)
+      || items.slice(0, 5).map(item => item.content).join('\n') !== MENU_ITEMS.join('\n')
+      || !LAST_ELEMENT.test(items[5].content)) {
+    return refuse('it does not end with the App window\'s own menu bar (menu bar; the App\'s name, File, Edit, View, Window, Help, "Waiting requests (n)")');
+  }
+  if (windowLine !== undefined && !windowLine.endsWith(`, App: ${name.content}.`)) return refuse("the menu bar's App name is not the window line's");
+  return null;
 }
 
 /** The elements of a whole view: [{index, depth, content}] in the order returned (none if it is not recognised). */
@@ -665,6 +700,9 @@ export async function run({ sky, scenario, app, home, bundle, pid, watch, readWa
         return finish('inconclusive', `stopped at ${step.id}: the sheet's view failed (${entry.error})`);
       }
       entry.sheet_view = shown.text;
+      // A sheet step with "press": false captures the sheet and ends the walk there, whatever the sheet says: it has no
+      // press. It records a sheet from a new build before any walk presses it (the setup walk's re-recording).
+      if (step.press === false) return finish('inconclusive', `stopped at ${step.id}: the sheet is captured, and this step has no press`);
       if (!shown.whole) return finish('inconclusive', asDifferences(step.id));
       if (shown.refusal) return finish('inconclusive', `${unaddressed(step.id, shown.refusal)}; nothing was pressed`);
       const checked = sheetCheck(shown.text, sheet, values, bundle.slice(bundle.lastIndexOf('/') + 1, -'.app'.length));

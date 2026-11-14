@@ -1,7 +1,7 @@
 """The operated method's examination tools, the parts that ask macOS itself. macOS only.
 
-These ask the system for a process's executable (libproc) and read the login session's launch domain
-(launchctl). Elsewhere every test here is skipped, and says why; the portable tests of the same tools are in
+These ask the system for a process's executable (libproc), read the login session's launch domain (launchctl), and
+read the names in a process's environment (sysctl KERN_PROCARGS2). Elsewhere every test here is skipped, and says why; the portable tests of the same tools are in
 group_b_operated_scenario_test.py. Selected by this file's name.
 """
 import importlib.util
@@ -91,3 +91,42 @@ class SessionEnvironmentOnMacOS(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+@unittest.skipUnless(sys.platform == 'darwin', MACOS_ONLY)
+class EnvironmentNamesOnMacOS(unittest.TestCase):
+    """env_names.py prints exactly a process's environment names, however its values are written, and nothing of them."""
+
+    INVENTED = {'INVENTED_PLAIN': 'one', 'INVENTED_SPACES': 'a b c = d e', 'INVENTED_BREAK': 'first\nsecond=third',
+                'INVENTED_EQUALS': '=x==y', 'INVENTED_LOOKS_LIKE_A_NAME': 'NOT_A_NAME=1 ANOTHER=2'}
+
+    def run_names(self, pid):
+        return subprocess.run([sys.executable, '-B', str(OPERATED / 'env_names.py'), str(pid)], capture_output=True, text=True)
+
+    def test_the_names_of_a_process_started_with_an_invented_environment_and_no_value(self):
+        # A process this test starts, not an Apple platform binary (whose environment the kernel withholds): the
+        # interpreter, sleeping, with exactly the invented environment.
+        child = subprocess.Popen([sys.executable, '-c', 'import time; time.sleep(30)'], env=self.INVENTED)
+        self.addCleanup(child.wait)
+        self.addCleanup(child.kill)
+        for _ in range(50):
+            done = self.run_names(child.pid)
+            if done.returncode == 0 and done.stdout:
+                break
+        self.assertEqual(done.returncode, 0, done.stderr)
+        self.assertEqual(done.stdout.split('\n')[:-1], sorted(self.INVENTED))
+        # A value that reads like further entries yields none: the output is the names alone.
+        self.assertNotIn('NOT_A_NAME', done.stdout)
+        self.assertNotIn('ANOTHER', done.stdout)
+
+    def test_a_withheld_environment_is_not_reported_as_empty(self):
+        # The kernel gives no environment for an Apple platform binary: that is "cannot be read", exit 2, nothing printed.
+        child = subprocess.Popen(['/bin/sleep', '30'], env={'INVENTED_PLAIN': 'one'})
+        self.addCleanup(child.wait)
+        self.addCleanup(child.kill)
+        done = self.run_names(child.pid)
+        self.assertEqual((done.returncode, done.stdout), (2, ''))
+
+    def test_no_such_process_is_cannot_be_read(self):
+        done = self.run_names(99999999)
+        self.assertEqual((done.returncode, done.stdout), (2, ''))

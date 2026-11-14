@@ -1,0 +1,531 @@
+{
+  "scenario": "signed-out setup with a project, confirmed on the App's own sheet — sheet captured, not pressed",
+  "version": 1,
+  "what_it_is": "The signed-out setup walk with its sheet step marked \"press\": false, for recording the sheet from a new build: it opens the sheet from S4, captures it whole and ends there, whatever the sheet says. It differs from signed-out-setup.scenario.json only in this, its name and this sentence.",
+  "starting_state": "An identified candidate built from main, without the driver's markers; a kept home made by the launcher with its network blocks on; the invented project folder beside the home, empty; no App data; the App running and confirmed from the shell; no child process.",
+  "acts": "views, clicks, one set-value of the project path into the field Project folder (typed because the alternative is the system's folder panel, which no agent operates), and one press on the App's own setup confirmation sheet; no file or folder is chosen and no other sheet, dialog or prompt is answered",
+  "never_clicked": [
+    "Browse for project folder",
+    "Choose…",
+    "Continue without a project",
+    "Use my existing Codex settings",
+    "the window's own buttons",
+    "the menu bar"
+  ],
+  "window": "Chirality",
+  "window_holds": [
+    "scroll area",
+    "close button",
+    "full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window",
+    "minimize button",
+    "text Chirality"
+  ],
+  "starts_no_process": true,
+  "typed_fields": [
+    "Project folder"
+  ],
+  "sheets": [
+    {
+      "id": "desktop-setup",
+      "opener": "Create settings and save for next launch…",
+      "title": "Desktop setup — next launch only",
+      "press": "Create settings and save for next launch",
+      "view_recorded": "14 November 2026, by the supplier's view of the development build, on this Mac: the sheet on its own beside the menu bar (tests/group_b_operated_fixtures/signed-out-setup/sheet-on-its-own.txt, with paths, identifier and name made invented). The walk presses only when the view equals this template, filled with the captured paths, the title and the candidate bundle's name; another shape stops it until a new observation is recorded and read",
+      "view": [
+        "Window: \"Unknown\", App: {app_name}.",
+        "0 sheet Description: alert, Secondary Actions: Raise",
+        "\t1 text {title} {statement}",
+        "\t2 button Leave setup unchanged, ID: action-button-1",
+        "\t3 button Cancel, ID: action-button-3",
+        "\t4 button Create settings and save for next launch, ID: action-button-2",
+        "5 menu bar",
+        "\t6 {app_name}",
+        "\t7 File",
+        "\t8 Edit",
+        "\t9 View",
+        "\t10 Window",
+        "\t11 Help",
+        "\t12 Waiting requests (0)",
+        "",
+        "The focused UI element is 0 sheet Description: alert, Secondary Actions: Raise"
+      ],
+      "statement_form": "whole: for these paths the statement is within 30 lines and 1,500 characters (ns::bounded), so the App shows it whole; the digest form stops the walk",
+      "statement": [
+        "Create NEW App-owned settings folder: {settings}",
+        "with an empty config.toml, an empty AGENTS.md and a skills folder. Codex adds its own system skills there, and its own working files to the account directory, when it starts.",
+        "Create NEW App-owned account directory: {account}",
+        "Link its config.toml, AGENTS.md and skills to those new settings.",
+        "Read, import or change no other Codex settings, home or credential.",
+        "Project for next launch: {project}",
+        "Save a private pending request in {request}.",
+        "Codex: the copy included with this App (bundled-owner-use-development).",
+        "The current workspace, homes, account/model choices, records and prepared messages stay unchanged. No automatic quit/restart/login/conversation."
+      ]
+    }
+  ],
+  "states_recorded": "14 November 2026 09:01 UTC, by the supplier's view of this candidate, signed out, in a kept home with an invented empty project: each view a step acts from, with the project path, the three paths the App made, the App's name and the scroll bar's position made placeholders. The walk acts only when the view is one of these states, line for line",
+  "states": {
+    "S1": [
+      "Window: \"Chirality\", App: {app_name}.",
+      "0 standard window Chirality, Secondary Actions: Raise",
+      "\t1 scroll area",
+      "\t\t2 HTML content Description: Chirality, URL: tauri://localhost",
+      "\t\t\t3 container Welcome",
+      "\t\t\t\t4 heading Welcome to Chirality, Value: 1",
+      "\t\t\t\t\t5 text Welcome to Chirality",
+      "\t\t\t\t6 text Chirality runs Codex on this Mac to do project work with you, and to turn work that goes well into workflows you can run again. First, choose a project folder and how Codex is set up. Your choices take effect when you next open the App.",
+      "\t\t\t\t7 content list",
+      "\t\t\t\t\t8 container Your project folder The folder you want to work in. Workflows are kept in its .chirality folder, and work you run there writes its results there. Project folder Type or paste the folder's full path, or use Browse… to choose it. Whether the folder exists and can be used is checked when you review; nothing is created.",
+      "\t\t\t\t\t\t9 list marker 1",
+      "\t\t\t\t\t\t10 heading Your project folder, Value: 2",
+      "\t\t\t\t\t\t\t11 text Your project folder",
+      "\t\t\t\t\t\t12 container",
+      "\t\t\t\t\t\t\t13 text The folder you want to work in. Workflows are kept in its .chirality folder, and work you run there writes its results there.",
+      "\t\t\t\t\t\t14 container",
+      "\t\t\t\t\t\t\t15 text Project folder",
+      "\t\t\t\t\t\t\t16 text field (settable) Project folder, Placeholder: /full/path/to/your/project",
+      "\t\t\t\t\t\t\t17 button Browse for project folder",
+      "\t\t\t\t\t\t18 text Type or paste the folder's full path, or use Browse… to choose it. Whether the folder exists and can be used is checked when you review; nothing is created.",
+      "\t\t\t\t\t\t19 button Continue without a project",
+      "\t\t\t\t\t20 container Codex settings How Codex is set up for this App",
+      "\t\t\t\t\t\t21 list marker 2",
+      "\t\t\t\t\t\t22 heading Codex settings, Value: 2",
+      "\t\t\t\t\t\t\t23 text Codex settings",
+      "\t\t\t\t\t\t24 container How Codex is set up for this App",
+      "\t\t\t\t\t\t\t25 text How Codex is set up for this App",
+      "\t\t\t\t\t\t\t26 container",
+      "\t\t\t\t\t\t\t\t27 radio button Value: 1, Start with new settings (recommended) The App creates its own empty Codex settings, instructions file and skills folder inside its data folder. Your existing Codex settings aren't read or changed, and the App doesn't use them.",
+      "\t\t\t\t\t\t\t\t28 text Start with new settings (recommended) The App creates its own empty Codex settings, instructions file and skills folder inside its data folder. Your existing Codex settings aren't read or changed, and the App doesn't use them.",
+      "\t\t\t\t\t\t\t29 container",
+      "\t\t\t\t\t\t\t\t30 radio button Value: 0, Use my existing Codex settings For people who already use Codex: the App links to your own settings, instructions and skills so it sees the same models, providers and tools. It never reads or copies your sign-in.",
+      "\t\t\t\t\t\t\t\t31 text Use my existing Codex settings For people who already use Codex: the App links to your own settings, instructions and skills so it sees the same models, providers and tools. It never reads or copies your sign-in.",
+      "\t\t\t\t\t32 container Review and confirm Choose the folder you want to work in, or continue without a project. Review setup",
+      "\t\t\t\t\t\t33 list marker 3",
+      "\t\t\t\t\t\t34 heading Review and confirm, Value: 2",
+      "\t\t\t\t\t\t\t35 text Review and confirm",
+      "\t\t\t\t\t\t36 text Choose the folder you want to work in, or continue without a project.",
+      "\t\t\t\t\t\t37 button (disabled) Review setup",
+      "\t\t\t\t38 summary Technical details, Value: off",
+      "\t\t\t\t\t39 text Technical details",
+      "\t\t40 scroll bar (settable, float) {~number}",
+      "\t41 close button",
+      "\t42 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window",
+      "\t43 minimize button",
+      "\t44 text Chirality",
+      "45 menu bar",
+      "\t46 {app_name}",
+      "\t47 File",
+      "\t48 Edit",
+      "\t49 View",
+      "\t50 Window",
+      "\t51 Help",
+      "\t52 Waiting requests (0)",
+      ""
+    ],
+    "S2": [
+      "Window: \"Chirality\", App: {app_name}.",
+      "0 standard window Chirality, Secondary Actions: Raise",
+      "\t1 scroll area",
+      "\t\t2 HTML content Description: Chirality, URL: tauri://localhost",
+      "\t\t\t3 container Welcome",
+      "\t\t\t\t4 heading Welcome to Chirality, Value: 1",
+      "\t\t\t\t\t5 text Welcome to Chirality",
+      "\t\t\t\t6 text Chirality runs Codex on this Mac to do project work with you, and to turn work that goes well into workflows you can run again. First, choose a project folder and how Codex is set up. Your choices take effect when you next open the App.",
+      "\t\t\t\t7 content list",
+      "\t\t\t\t\t8 container Your project folder The folder you want to work in. Workflows are kept in its .chirality folder, and work you run there writes its results there. Project folder Type or paste the folder's full path, or use Browse… to choose it. Whether the folder exists and can be used is checked when you review; nothing is created.",
+      "\t\t\t\t\t\t9 list marker 1",
+      "\t\t\t\t\t\t10 heading Your project folder, Value: 2",
+      "\t\t\t\t\t\t\t11 text Your project folder",
+      "\t\t\t\t\t\t12 container",
+      "\t\t\t\t\t\t\t13 text The folder you want to work in. Workflows are kept in its .chirality folder, and work you run there writes its results there.",
+      "\t\t\t\t\t\t14 container",
+      "\t\t\t\t\t\t\t15 text Project folder",
+      "\t\t\t\t\t\t\t16 text field (settable) Project folder, Value: {project}, Placeholder: /full/path/to/your/project",
+      "\t\t\t\t\t\t\t17 button Browse for project folder",
+      "\t\t\t\t\t\t18 text Type or paste the folder's full path, or use Browse… to choose it. Whether the folder exists and can be used is checked when you review; nothing is created.",
+      "\t\t\t\t\t\t19 button Continue without a project",
+      "\t\t\t\t\t20 container Codex settings How Codex is set up for this App",
+      "\t\t\t\t\t\t21 list marker 2",
+      "\t\t\t\t\t\t22 heading Codex settings, Value: 2",
+      "\t\t\t\t\t\t\t23 text Codex settings",
+      "\t\t\t\t\t\t24 container How Codex is set up for this App",
+      "\t\t\t\t\t\t\t25 text How Codex is set up for this App",
+      "\t\t\t\t\t\t\t26 container",
+      "\t\t\t\t\t\t\t\t27 radio button Value: 1, Start with new settings (recommended) The App creates its own empty Codex settings, instructions file and skills folder inside its data folder. Your existing Codex settings aren't read or changed, and the App doesn't use them.",
+      "\t\t\t\t\t\t\t\t28 text Start with new settings (recommended) The App creates its own empty Codex settings, instructions file and skills folder inside its data folder. Your existing Codex settings aren't read or changed, and the App doesn't use them.",
+      "\t\t\t\t\t\t\t29 container",
+      "\t\t\t\t\t\t\t\t30 radio button Value: 0, Use my existing Codex settings For people who already use Codex: the App links to your own settings, instructions and skills so it sees the same models, providers and tools. It never reads or copies your sign-in.",
+      "\t\t\t\t\t\t\t\t31 text Use my existing Codex settings For people who already use Codex: the App links to your own settings, instructions and skills so it sees the same models, providers and tools. It never reads or copies your sign-in.",
+      "\t\t\t\t\t32 container Review and confirm Ready to review. Nothing is created or saved until you confirm.",
+      "\t\t\t\t\t\t33 list marker 3",
+      "\t\t\t\t\t\t34 heading Review and confirm, Value: 2",
+      "\t\t\t\t\t\t\t35 text Review and confirm",
+      "\t\t\t\t\t\t36 text Ready to review. Nothing is created or saved until you confirm.",
+      "\t\t\t\t\t\t37 button Review setup",
+      "\t\t\t\t38 summary Technical details, Value: off",
+      "\t\t\t\t\t39 text Technical details",
+      "\t\t40 scroll bar (settable, float) {~number}",
+      "\t41 close button",
+      "\t42 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window",
+      "\t43 minimize button",
+      "\t44 text Chirality",
+      "45 menu bar",
+      "\t46 {app_name}",
+      "\t47 File",
+      "\t48 Edit",
+      "\t49 View",
+      "\t50 Window",
+      "\t51 Help",
+      "\t52 Waiting requests (0)",
+      ""
+    ],
+    "S3": [
+      "Window: \"Chirality\", App: {app_name}.",
+      "0 standard window Chirality, Secondary Actions: Raise",
+      "\t1 scroll area",
+      "\t\t2 HTML content Description: Chirality, URL: tauri://localhost",
+      "\t\t\t3 container Welcome",
+      "\t\t\t\t4 heading Welcome to Chirality, Value: 1",
+      "\t\t\t\t\t5 text Welcome to Chirality",
+      "\t\t\t\t6 text Chirality runs Codex on this Mac to do project work with you, and to turn work that goes well into workflows you can run again. First, choose a project folder and how Codex is set up. Your choices take effect when you next open the App.",
+      "\t\t\t\t7 content list",
+      "\t\t\t\t\t8 container Your project folder The folder you want to work in. Workflows are kept in its .chirality folder, and work you run there writes its results there. Project folder Type or paste the folder's full path, or use Browse… to choose it. Whether the folder exists and can be used is checked when you review; nothing is created.",
+      "\t\t\t\t\t\t9 list marker 1",
+      "\t\t\t\t\t\t10 heading Your project folder, Value: 2",
+      "\t\t\t\t\t\t\t11 text Your project folder",
+      "\t\t\t\t\t\t12 container",
+      "\t\t\t\t\t\t\t13 text The folder you want to work in. Workflows are kept in its .chirality folder, and work you run there writes its results there.",
+      "\t\t\t\t\t\t14 container",
+      "\t\t\t\t\t\t\t15 text Project folder",
+      "\t\t\t\t\t\t\t16 text field (settable) Project folder, Value: {project}, Placeholder: /full/path/to/your/project",
+      "\t\t\t\t\t\t\t17 button Browse for project folder",
+      "\t\t\t\t\t\t18 text Type or paste the folder's full path, or use Browse… to choose it. Whether the folder exists and can be used is checked when you review; nothing is created.",
+      "\t\t\t\t\t\t19 button Continue without a project",
+      "\t\t\t\t\t20 container Codex settings How Codex is set up for this App",
+      "\t\t\t\t\t\t21 list marker 2",
+      "\t\t\t\t\t\t22 heading Codex settings, Value: 2",
+      "\t\t\t\t\t\t\t23 text Codex settings",
+      "\t\t\t\t\t\t24 container How Codex is set up for this App",
+      "\t\t\t\t\t\t\t25 text How Codex is set up for this App",
+      "\t\t\t\t\t\t\t26 container",
+      "\t\t\t\t\t\t\t\t27 radio button Value: 1, Start with new settings (recommended) The App creates its own empty Codex settings, instructions file and skills folder inside its data folder. Your existing Codex settings aren't read or changed, and the App doesn't use them.",
+      "\t\t\t\t\t\t\t\t28 text Start with new settings (recommended) The App creates its own empty Codex settings, instructions file and skills folder inside its data folder. Your existing Codex settings aren't read or changed, and the App doesn't use them.",
+      "\t\t\t\t\t\t\t29 container",
+      "\t\t\t\t\t\t\t\t30 radio button Value: 0, Use my existing Codex settings For people who already use Codex: the App links to your own settings, instructions and skills so it sees the same models, providers and tools. It never reads or copies your sign-in.",
+      "\t\t\t\t\t\t\t\t31 text Use my existing Codex settings For people who already use Codex: the App links to your own settings, instructions and skills so it sees the same models, providers and tools. It never reads or copies your sign-in.",
+      "\t\t\t\t\t32 container Review and confirm Ready to review. Nothing is created or saved until you confirm. What setup will do",
+      "\t\t\t\t\t\t33 list marker 3",
+      "\t\t\t\t\t\t34 heading Review and confirm, Value: 2",
+      "\t\t\t\t\t\t\t35 text Review and confirm",
+      "\t\t\t\t\t\t36 text Ready to review. Nothing is created or saved until you confirm.",
+      "\t\t\t\t\t\t37 button Review setup",
+      "\t\t\t\t\t\t38 container What setup will do",
+      "\t\t\t\t\t\t\t39 heading What setup will do, Value: 3",
+      "\t\t\t\t\t\t\t\t40 text What setup will do",
+      "\t\t\t\t\t\t\t41 content list",
+      "\t\t\t\t\t\t\t\t42 container Create a new settings folder for this App, inside its data folder",
+      "\t\t\t\t\t\t\t\t\t43 list marker ◦",
+      "\t\t\t\t\t\t\t\t\t44 text Create a new settings folder for this App, inside its data folder",
+      "\t\t\t\t\t\t\t\t45 container In it, create an empty config.toml, an empty AGENTS.md and a skills folder; Codex adds its own system skills there, and its own working files to the sign-in folder, when it starts",
+      "\t\t\t\t\t\t\t\t\t46 list marker ◦",
+      "\t\t\t\t\t\t\t\t\t47 text In it, create an empty config.toml, an empty AGENTS.md and a skills folder; Codex adds its own system skills there, and its own working files to the sign-in folder, when it starts",
+      "\t\t\t\t\t\t\t\t48 container Create a new sign-in folder for this App, linked to those settings",
+      "\t\t\t\t\t\t\t\t\t49 list marker ◦",
+      "\t\t\t\t\t\t\t\t\t50 text Create a new sign-in folder for this App, linked to those settings",
+      "\t\t\t\t\t\t\t\t51 container Project when you next open the App: {project}",
+      "\t\t\t\t\t\t\t\t\t52 list marker ◦",
+      "\t\t\t\t\t\t\t\t\t53 text Project when you next open the App: {project}",
+      "\t\t\t\t\t\t\t\t54 container Save these choices privately for the next launch",
+      "\t\t\t\t\t\t\t\t\t55 list marker ◦",
+      "\t\t\t\t\t\t\t\t\t56 text Save these choices privately for the next launch",
+      "\t\t\t\t\t\t\t57 summary Exact locations, Value: off",
+      "\t\t\t\t\t\t\t\t58 text Exact locations",
+      "\t\t\t\t\t\t\t59 container What applies by default",
+      "\t\t\t\t\t\t\t\t60 heading What applies by default, Value: 4",
+      "\t\t\t\t\t\t\t\t\t61 text What applies by default",
+      "\t\t\t\t\t\t\t\t62 text With new settings, Codex's own defaults apply; the App sets none of these.",
+      "\t\t\t\t\t\t\t\t63 text By default, Codex can read any file your Mac account can read, inside and outside your project, so choose a project folder with that in mind.",
+      "\t\t\t\t\t\t\t\t64 text By default your ChatGPT sign-in is kept as a file, auth.json, in the sign-in folder listed under Exact locations, readable only by your account. Connection and access shows where Codex keeps it before you sign in.",
+      "\t\t\t\t\t\t\t\t65 text After you reopen the App, Connection and access shows what Codex reports for this launch.",
+      "\t\t\t\t\t\t\t66 text Nothing is created until you confirm. No other Codex settings, home or credential is read, imported or changed.",
+      "\t\t\t\t\t\t\t67 container",
+      "\t\t\t\t\t\t\t\t68 button Create settings and save for next launch…",
+      "\t\t\t\t\t\t\t\t69 button Change my choices",
+      "\t\t\t\t\t\t\t70 text The App asks you to confirm in its own dialog. Your current window keeps working until you reopen the App.",
+      "\t\t\t\t71 summary Technical details, Value: off",
+      "\t\t\t\t\t72 text Technical details",
+      "\t\t73 scroll bar (settable, float) {~number}",
+      "\t74 close button",
+      "\t75 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window",
+      "\t76 minimize button",
+      "\t77 text Chirality",
+      "78 menu bar",
+      "\t79 {app_name}",
+      "\t80 File",
+      "\t81 Edit",
+      "\t82 View",
+      "\t83 Window",
+      "\t84 Help",
+      "\t85 Waiting requests (0)",
+      ""
+    ],
+    "S4": [
+      "Window: \"Chirality\", App: {app_name}.",
+      "0 standard window Chirality, Secondary Actions: Raise",
+      "\t1 scroll area",
+      "\t\t2 HTML content Description: Chirality, URL: tauri://localhost",
+      "\t\t\t3 container Welcome",
+      "\t\t\t\t4 heading Welcome to Chirality, Value: 1",
+      "\t\t\t\t\t5 text Welcome to Chirality",
+      "\t\t\t\t6 text Chirality runs Codex on this Mac to do project work with you, and to turn work that goes well into workflows you can run again. First, choose a project folder and how Codex is set up. Your choices take effect when you next open the App.",
+      "\t\t\t\t7 content list",
+      "\t\t\t\t\t8 container Your project folder The folder you want to work in. Workflows are kept in its .chirality folder, and work you run there writes its results there. Project folder Type or paste the folder's full path, or use Browse… to choose it. Whether the folder exists and can be used is checked when you review; nothing is created.",
+      "\t\t\t\t\t\t9 list marker 1",
+      "\t\t\t\t\t\t10 heading Your project folder, Value: 2",
+      "\t\t\t\t\t\t\t11 text Your project folder",
+      "\t\t\t\t\t\t12 container",
+      "\t\t\t\t\t\t\t13 text The folder you want to work in. Workflows are kept in its .chirality folder, and work you run there writes its results there.",
+      "\t\t\t\t\t\t14 container",
+      "\t\t\t\t\t\t\t15 text Project folder",
+      "\t\t\t\t\t\t\t16 text field (settable) Project folder, Value: {project}, Placeholder: /full/path/to/your/project",
+      "\t\t\t\t\t\t\t17 button Browse for project folder",
+      "\t\t\t\t\t\t18 text Type or paste the folder's full path, or use Browse… to choose it. Whether the folder exists and can be used is checked when you review; nothing is created.",
+      "\t\t\t\t\t\t19 button Continue without a project",
+      "\t\t\t\t\t20 container Codex settings How Codex is set up for this App",
+      "\t\t\t\t\t\t21 list marker 2",
+      "\t\t\t\t\t\t22 heading Codex settings, Value: 2",
+      "\t\t\t\t\t\t\t23 text Codex settings",
+      "\t\t\t\t\t\t24 container How Codex is set up for this App",
+      "\t\t\t\t\t\t\t25 text How Codex is set up for this App",
+      "\t\t\t\t\t\t\t26 container",
+      "\t\t\t\t\t\t\t\t27 radio button Value: 1, Start with new settings (recommended) The App creates its own empty Codex settings, instructions file and skills folder inside its data folder. Your existing Codex settings aren't read or changed, and the App doesn't use them.",
+      "\t\t\t\t\t\t\t\t28 text Start with new settings (recommended) The App creates its own empty Codex settings, instructions file and skills folder inside its data folder. Your existing Codex settings aren't read or changed, and the App doesn't use them.",
+      "\t\t\t\t\t\t\t29 container",
+      "\t\t\t\t\t\t\t\t30 radio button Value: 0, Use my existing Codex settings For people who already use Codex: the App links to your own settings, instructions and skills so it sees the same models, providers and tools. It never reads or copies your sign-in.",
+      "\t\t\t\t\t\t\t\t31 text Use my existing Codex settings For people who already use Codex: the App links to your own settings, instructions and skills so it sees the same models, providers and tools. It never reads or copies your sign-in.",
+      "\t\t\t\t\t32 container Review and confirm Ready to review. Nothing is created or saved until you confirm. What setup will do",
+      "\t\t\t\t\t\t33 list marker 3",
+      "\t\t\t\t\t\t34 heading Review and confirm, Value: 2",
+      "\t\t\t\t\t\t\t35 text Review and confirm",
+      "\t\t\t\t\t\t36 text Ready to review. Nothing is created or saved until you confirm.",
+      "\t\t\t\t\t\t37 button Review setup",
+      "\t\t\t\t\t\t38 container What setup will do",
+      "\t\t\t\t\t\t\t39 heading What setup will do, Value: 3",
+      "\t\t\t\t\t\t\t\t40 text What setup will do",
+      "\t\t\t\t\t\t\t41 content list",
+      "\t\t\t\t\t\t\t\t42 container Create a new settings folder for this App, inside its data folder",
+      "\t\t\t\t\t\t\t\t\t43 list marker ◦",
+      "\t\t\t\t\t\t\t\t\t44 text Create a new settings folder for this App, inside its data folder",
+      "\t\t\t\t\t\t\t\t45 container In it, create an empty config.toml, an empty AGENTS.md and a skills folder; Codex adds its own system skills there, and its own working files to the sign-in folder, when it starts",
+      "\t\t\t\t\t\t\t\t\t46 list marker ◦",
+      "\t\t\t\t\t\t\t\t\t47 text In it, create an empty config.toml, an empty AGENTS.md and a skills folder; Codex adds its own system skills there, and its own working files to the sign-in folder, when it starts",
+      "\t\t\t\t\t\t\t\t48 container Create a new sign-in folder for this App, linked to those settings",
+      "\t\t\t\t\t\t\t\t\t49 list marker ◦",
+      "\t\t\t\t\t\t\t\t\t50 text Create a new sign-in folder for this App, linked to those settings",
+      "\t\t\t\t\t\t\t\t51 container Project when you next open the App: {project}",
+      "\t\t\t\t\t\t\t\t\t52 list marker ◦",
+      "\t\t\t\t\t\t\t\t\t53 text Project when you next open the App: {project}",
+      "\t\t\t\t\t\t\t\t54 container Save these choices privately for the next launch",
+      "\t\t\t\t\t\t\t\t\t55 list marker ◦",
+      "\t\t\t\t\t\t\t\t\t56 text Save these choices privately for the next launch",
+      "\t\t\t\t\t\t\t57 container (expanded) Secondary Actions: Collapse",
+      "\t\t\t\t\t\t\t\t58 summary Exact locations, Value: on",
+      "\t\t\t\t\t\t\t\t\t59 text Exact locations",
+      "\t\t\t\t\t\t\t\t60 description list",
+      "\t\t\t\t\t\t\t\t\t61 text Settings folder",
+      "\t\t\t\t\t\t\t\t\t62 text {settings}",
+      "\t\t\t\t\t\t\t\t\t63 text Sign-in folder",
+      "\t\t\t\t\t\t\t\t\t64 text {account}",
+      "\t\t\t\t\t\t\t\t\t65 text Saved choices",
+      "\t\t\t\t\t\t\t\t\t66 text {request}",
+      "\t\t\t\t\t\t\t67 container What applies by default",
+      "\t\t\t\t\t\t\t\t68 heading What applies by default, Value: 4",
+      "\t\t\t\t\t\t\t\t\t69 text What applies by default",
+      "\t\t\t\t\t\t\t\t70 text With new settings, Codex's own defaults apply; the App sets none of these.",
+      "\t\t\t\t\t\t\t\t71 text By default, Codex can read any file your Mac account can read, inside and outside your project, so choose a project folder with that in mind.",
+      "\t\t\t\t\t\t\t\t72 text By default your ChatGPT sign-in is kept as a file, auth.json, in the sign-in folder listed under Exact locations, readable only by your account. Connection and access shows where Codex keeps it before you sign in.",
+      "\t\t\t\t\t\t\t\t73 text After you reopen the App, Connection and access shows what Codex reports for this launch.",
+      "\t\t\t\t\t\t\t74 text Nothing is created until you confirm. No other Codex settings, home or credential is read, imported or changed.",
+      "\t\t\t\t\t\t\t75 container",
+      "\t\t\t\t\t\t\t\t76 button Create settings and save for next launch…",
+      "\t\t\t\t\t\t\t\t77 button Change my choices",
+      "\t\t\t\t\t\t\t78 text The App asks you to confirm in its own dialog. Your current window keeps working until you reopen the App.",
+      "\t\t\t\t79 summary Technical details, Value: off",
+      "\t\t\t\t\t80 text Technical details",
+      "\t\t81 scroll bar (settable, float) {~number}",
+      "\t82 close button",
+      "\t83 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window",
+      "\t84 minimize button",
+      "\t85 text Chirality",
+      "86 menu bar",
+      "\t87 {app_name}",
+      "\t88 File",
+      "\t89 Edit",
+      "\t90 View",
+      "\t91 Window",
+      "\t92 Help",
+      "\t93 Waiting requests (0)",
+      ""
+    ]
+  },
+  "capture_forms": {
+    "settings": "{app_data}/shared-settings/settings-{~uuid}",
+    "account": "{app_data}/account-homes/account-{~uuid}",
+    "request": "{app_data}/desktop-startup/request.json"
+  },
+  "steps": [
+    {
+      "id": "S1",
+      "act": "view",
+      "says": "the welcome, with nothing chosen yet",
+      "expect": [
+        {
+          "heading": "Welcome to Chirality"
+        },
+        {
+          "button": "Review setup",
+          "is": "unavailable"
+        },
+        {
+          "text": "Choose the folder you want to work in, or continue without a project."
+        },
+        {
+          "radio": "Start with new settings (recommended) The App creates its own empty Codex settings, instructions file and skills folder inside its data folder. Your existing Codex settings aren't read or changed, and the App doesn't use them.",
+          "is": "chosen"
+        }
+      ]
+    },
+    {
+      "id": "S2",
+      "act": "type",
+      "from_state": "S1",
+      "control": {
+        "kind": "text field",
+        "label": "Project folder",
+        "placeholder": "/full/path/to/your/project"
+      },
+      "value": "{project}",
+      "wait_ms": 1000,
+      "says": "the project path set into the field; judged by what the page does with it, not by the field's shown value",
+      "expect": [
+        {
+          "text": "Ready to review. Nothing is created or saved until you confirm."
+        },
+        {
+          "button": "Review setup",
+          "is": "available"
+        }
+      ]
+    },
+    {
+      "id": "S3",
+      "act": "click",
+      "from_state": "S2",
+      "control": {
+        "kind": "button",
+        "label": "Review setup"
+      },
+      "wait_ms": 3000,
+      "says": "what setup will do: its five lines, with the project, and the control that opens the confirmation",
+      "expect": [
+        {
+          "heading": "What setup will do"
+        },
+        {
+          "texts_from": {
+            "kind": "heading",
+            "label": "What setup will do"
+          },
+          "up_to": {
+            "kind": "summary",
+            "label": "Exact locations"
+          },
+          "are": [
+            "What setup will do",
+            "Create a new settings folder for this App, inside its data folder",
+            "In it, create an empty config.toml, an empty AGENTS.md and a skills folder; Codex adds its own system skills there, and its own working files to the sign-in folder, when it starts",
+            "Create a new sign-in folder for this App, linked to those settings",
+            "Project when you next open the App: {project}",
+            "Save these choices privately for the next launch"
+          ]
+        },
+        {
+          "button": "Create settings and save for next launch…",
+          "is": "available"
+        },
+        {
+          "summary": "Exact locations",
+          "is": "off"
+        }
+      ]
+    },
+    {
+      "id": "S4",
+      "act": "click",
+      "from_state": "S3",
+      "control": {
+        "kind": "summary",
+        "label": "Exact locations"
+      },
+      "says": "the three locations, each under the App's data folder in the kept home; their paths are kept for the sheet",
+      "capture": {
+        "settings": "Settings folder",
+        "account": "Sign-in folder",
+        "request": "Saved choices"
+      },
+      "expect": [
+        {
+          "summary": "Exact locations",
+          "is": "on"
+        },
+        {
+          "location": "Settings folder",
+          "under": "{app_data}"
+        },
+        {
+          "location": "Sign-in folder",
+          "under": "{app_data}"
+        },
+        {
+          "location": "Saved choices",
+          "under": "{app_data}"
+        }
+      ]
+    },
+    {
+      "id": "S5",
+      "act": "confirm_sheet",
+      "from_state": "S4",
+      "sheet": "desktop-setup",
+      "control": {
+        "kind": "button",
+        "label": "Create settings and save for next launch…"
+      },
+      "sheet_wait_ms": 2000,
+      "wait_ms": 3000,
+      "says": "the App's own confirmation, checked whole and pressed once: setup is saved for the next launch, with the project",
+      "expect": [
+        {
+          "heading": "You're set up"
+        },
+        {
+          "text": "Project: {project}"
+        },
+        {
+          "no_text": "Not saved — you cancelled in the dialog. Your choices are still here."
+        }
+      ],
+      "press": false
+    }
+  ],
+  "outcomes": {
+    "PROJECT TYPED AND REVIEWED": [
+      "S2",
+      "S3",
+      "S4"
+    ],
+    "SETUP SAVED THROUGH THE APP'S OWN CONFIRMATION": [
+      "S5"
+    ]
+  }
+}

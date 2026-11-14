@@ -1,0 +1,28 @@
+Window: "Chirality", App: Chirality App v4 (development invented).
+0 standard window Chirality, Secondary Actions: Raise
+	1 scroll area
+		2 HTML content Description: Chirality, URL: tauri://localhost
+			3 container Welcome
+				4 heading Welcome to Chirality, Value: 1
+					5 text Welcome to Chirality
+				6 text Chirality runs Codex on this Mac to do project work with you, and to turn work that goes well into workflows you can run again.
+				7 container Setup saved
+					8 heading You're set up, Value: 2
+						9 text You're set up
+					10 text Next: quit Chirality (⌘Q) and open it again. Reopening loads your saved project and Codex settings. Then open Connection & access to sign in with your ChatGPT account or prepare the oMLX connection. After connecting, choose a model and start a conversation.
+					11 container
+						12 text Project: /invented/homes/launch-invented/project
+				13 summary Technical details, Value: off
+					14 text Technical details
+	15 close button
+	16 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window
+	17 minimize button
+	18 text Chirality
+19 menu bar
+	20 Chirality App v4 (development invented)
+	21 File
+	22 Edit
+	23 View
+	24 Window
+	25 Help
+	26 Waiting requests (0)

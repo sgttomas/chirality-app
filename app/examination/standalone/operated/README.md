@@ -1217,33 +1217,34 @@ failure, the same scenario and acts.
   | S4, Exact locations open | click "Create settings and save for next launch…" | as S3, and three paths the App makes under its data folder (`shared-settings/settings-<uuid>`, `account-homes/account-<uuid>`, `desktop-startup/request.json`), each checked against that form |
   | S5, the sheet | press "Create settings and save for next launch" | the build's strings (`desktop_startup.rs`, `desktop_setup_confirmation.rs`, `act_control.rs`) filled with the same paths; macOS's alert text (`Description: alert`, `ID: action-button-<n>`); the App's menu; the supplier's lines |
 
-  **Stale against main since fc1b222d (PR 334, 14 November 2026): S3, S4 and
-  S5.** The states are kept as recorded from candidate 9d997626, and so are
-  the step expectations and the sheet's statement that describe them. PR 334
-  changed what a build of main shows:
-  - **S3 and S4.** Their line "In it, create an empty config.toml, an empty
-    AGENTS.md and an empty skills folder" now reads "In it, create an empty
-    config.toml, an empty AGENTS.md and a skills folder; Codex adds its own
-    system skills there, and its own working files to the sign-in folder, when
-    it starts".
-  - **S3 and S4, a new block.** A block headed "What applies by default", with
-    four sentences, is now shown after Exact locations. Its words are read from
-    `desktop_startup.rs` and `FirstUse.tsx` at fc1b222d. The driver's views file
-    does not show it.
-  - **S5, the sheet.** Its second line now reads "with an empty config.toml, an
-    empty AGENTS.md and a skills folder. Codex adds its own system skills there,
-    and its own working files to the account directory, when it starts."
+  **Re-recorded from a build of main 1023908b, 14 November 2026.** PR 334
+  (main fc1b222d) changed the review page and the sheet. S3, S4 and the sheet
+  were re-recorded from candidate 1023908b64-012ad5568eb2 by the setup walk,
+  acting only in its listed states, one launch each, each in a fresh kept folder:
+  - **R-a.** The walk stopped after the click from S2. Its captured view is the
+    new S3.
+  - **R-b.** The walk acted from S1, S2 and the new S3, and stopped before the
+    sheet. Its captured view is the new S4.
+  - **R-b′.** `signed-out-setup-sheet-capture.scenario.json`, the setup scenario
+    with its sheet step marked `"press": false`. The walk acted from S1 to S4,
+    opened the sheet, captured it whole and pressed nothing.
+  - **The offline comparison, before any press.** The captured sheet agreed line
+    for line (24 of 24) with the recorded template filled with the statement
+    read from `desktop_startup.rs` at that main. Only then did the sheet's
+    statement take the new line.
 
-  On a build of main the walk therefore acts from S1 and S2. Both are
-  unaffected: 334 changed only the review page, which first appears after
-  "Review setup", and the sheet. After the click from S2, the review page's
-  lines do not match that step's recorded expectation, so the walk stops there.
-  Even past that, the view is not S3 line for line, so nothing is acted on from
-  S3, S4 or the sheet. That is the safe side. The states are re-recorded in a later change from a build of main,
-  under the pre-launch check for a walk with no conversation, and are not edited
-  to the new words by hand: a recorded state comes from a recorded view. The
-  relaunch reading is unaffected. It checks only the "Run a workflow" heading
-  and the welcome's absence, and 334 changed neither.
+  Each recorded state is the captured view with only these made placeholders:
+  the project path, the three paths the App made, the App's name and the scroll
+  position. Nothing in them was edited to new words by hand.
+  - S3 and S4 differ from the earlier recordings by PR 334's line ("… a skills
+    folder; Codex adds its own system skills there, and its own working files
+    to the sign-in folder, when it starts") and the seven lines of the block
+    "What applies by default".
+  - The sheet differs by its second line.
+  - S1, S2 and the relaunch reading were unaffected.
+
+  The test that pinned the stale sheet line is removed in this change. The
+  sheet's statement is again the App's, line for line.
 
   No conversation exists in any of them, and nothing in them comes from
   Codex or a model. The relaunch is not a listed state: its first view can
