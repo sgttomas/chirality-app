@@ -2908,6 +2908,17 @@ pub fn freeze_root_home_descriptors(
     use crate::home_resources::{
         ExistingHomeReference, HomeClass, OwnedHomePlan, SharedResourceTargets,
     };
+    // DEL-01-01: on every route, a Codex home or a source of its settings in the folder set aside
+    // for conversations without a project is refused here, before any home is prepared.
+    // Freezing creates nothing: with the folder established (as every start establishes it
+    // first) this decides by identity; established absent, nothing is decided here and each home
+    // is decided again before anything is prepared or started on it.
+    for (path, what) in [(Some(&config.codex_home), "the account Codex home"), (Some(&config.probe_home), "the probe home"), (key_path.as_ref(), "the API-key Codex home")] {
+        if let Some(path) = path { crate::working_folder::refuse_in_no_project_folder(app_data, path, what, false)?; }
+    }
+    for path in targets.iter().flatten() {
+        crate::working_folder::refuse_source_in_no_project_folder(app_data, path, "a source of Codex settings", false)?;
+    }
     let account = ExistingHomeReference::new(config.codex_home.clone(), HomeClass::Account)?;
     let probe = ExistingHomeReference::new(config.probe_home.clone(), HomeClass::Probe)?;
     let shared_root_targets = match &targets {
@@ -3196,6 +3207,15 @@ pub fn logout_native_home<F: FnOnce(&Value) -> bool>(
 
 /// Allocate a new probe using the physical OS temp parent and mktemp -d. This
 /// resolves an allocation source, never relocates an existing received home.
+/// DEL-01-01: the temporary root (`TMPDIR`) to allocate in, after checking by identity that it is
+/// not inside an App data folder this process holds (`working_folder::check_temporary_root`).
+/// Every production allocation the App makes in the temporary folder asks for it here first.
+/// The check is made when this is called: the allocation resolves the path again, so a folder
+/// replaced in between is outside what it guarantees.
+pub(crate) fn temporary_root(what: &str) -> Result<std::path::PathBuf, String> {
+    let held = crate::session_liveness::held_app_data_identities()?;
+    crate::working_folder::check_temporary_root(&std::env::temp_dir(), &held, what)
+}
 pub fn allocate_fresh_probe(temp_parent: &std::path::Path) -> Result<std::path::PathBuf, String> {
     let parent = std::fs::canonicalize(temp_parent)
         .map_err(|_| "OS scratch parent unavailable; no probe default")?;

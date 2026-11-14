@@ -306,6 +306,15 @@ impl Drop for AppDataHeld {
         held_app_data().lock().unwrap_or_else(|e| e.into_inner()).retain(|(id, _)| *id != self.0);
     }
 }
+/// The identities (device, inode) of the App data directories this process holds, read from
+/// the held descriptors themselves. A descriptor that cannot be examined is left out of nothing:
+/// it fails the whole reading.
+pub(crate) fn held_app_data_identities() -> Result<Vec<(u64, u64)>, String> {
+    use std::os::unix::fs::MetadataExt;
+    held_app_data().lock().unwrap_or_else(|e| e.into_inner()).iter()
+        .map(|(_, file)| file.metadata().map(|meta| (meta.dev(), meta.ino())).map_err(|e| format!("held App data could not be examined: {e}")))
+        .collect()
+}
 pub(crate) fn note_app_data_held(locked: &File) -> Result<AppDataHeld, String> {
     static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(1);
     let file = locked.try_clone().map_err(|e| format!("App data custody could not be noted: {e}"))?;
