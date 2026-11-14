@@ -334,7 +334,7 @@ pub const TRUST_TRUSTED_PREFIX: &str = "This project is marked trusted in your C
 pub const TRUST_TRUSTED_SUFFIX: &str = "). Its own Codex folder (.codex) applies to conversations here.";
 pub const TRUST_NOT_USED: &str = "This project's own Codex folder (.codex) is not used in the App.";
 pub const TRUST_MARKED_UNTRUSTED: &str = "This project is marked untrusted in your Codex settings.";
-pub const TRUST_NOT_READ: &str = "The App could not read your Codex settings for this project, so it is sent as untrusted.";
+pub const TRUST_NOT_READ: &str = "The App could not read your Codex settings for this project, so its own Codex folder (.codex) is not used here, even if your settings mark it trusted.";
 /// The reasons a reading is not whole and current (`TrustCase::NotRead`), in the App's own words.
 pub const TRUST_READ_FAILED: &str = "The App's reading of your Codex settings did not complete.";
 pub const TRUST_READ_LIMITED: &str = "The App's reading of your Codex settings did not include the settings files.";
