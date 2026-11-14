@@ -945,6 +945,54 @@ fn records_continuity_physical_project_changed_during_source_read_is_a_logged_re
     let log=f.logged();assert_eq!(log.len(),1);assert_eq!(log[0]["outcome"],"refused");assert!(log[0]["refusal"].as_str().unwrap().contains("physical project changed"));
 }
 
+fn alias_read_log(kind: &str) {
+    // Setup is outside the timed refusal: schema/index setup is unrelated to
+    // whether opening the read log blocks on a FIFO.
+    let f = Scratch::new();
+    let project = f.project("project");
+    write_run(&project, "run:alias", 1, "secret-invented-record-content", false);
+    let cap = capability(&f, &project);
+    crate::storage::append_alias_fixture(kind, b"", |path| {
+        cap.log.lock().unwrap().place = LogPlace::Fixed(path.to_path_buf());
+        let request = call(1, json!({"operation":"read_run","run":"run:alias"}));
+        let answer = cap.answer(&request, project.to_str());
+        assert_eq!(answer["success"], false, "{answer}");
+        let text = answer["contentItems"][0]["text"].as_str().unwrap();
+        let reason = match kind { "fifo" => "is not a regular file", "symlink" | "dangling" => "is a symbolic link", _ => "has another name" };
+        let decided = format!("the read could not be recorded (the read log file {} {reason}; nothing was written to it); nothing returned", path.display());
+        assert!(text.contains(&decided), "{text}");
+        assert!(!text.contains("secret-invented-record-content"), "{text}");
+        let log = cap.log.lock().unwrap();
+        assert!(log.answered.is_empty(), "the repeat marker must roll back");
+        let cause = log.limit.clone().unwrap();
+        drop(log);
+        assert_eq!(cap.snapshot()["readLogLimit"], cause);
+        Err(cause)
+    });
+}
+#[test]
+fn alias_refusal_read_log_hardlink() { alias_read_log("hardlink"); }
+#[test]
+fn alias_refusal_read_log_symlink() { alias_read_log("symlink"); }
+#[test]
+fn alias_refusal_read_log_dangling() { alias_read_log("dangling"); }
+#[test]
+fn alias_refusal_read_log_fifo() { alias_read_log("fifo"); }
+
+#[test]
+fn alias_refusal_read_log_parent_symlink_creates_nothing() {
+    let f = Scratch::new();
+    let project = f.project("project");
+    let outside = f.project("outside");
+    let parent = f.0.join("alias-parent");
+    std::os::unix::fs::symlink(&outside, &parent).unwrap();
+    let cap = RecordsCapability::at(&project, parent.join("read-log.jsonl")).unwrap();
+    let answer = cap.answer(&call(1, json!({"operation":"list_runs"})), project.to_str());
+    assert_eq!(answer["success"], false, "{answer}");
+    assert!(answer.to_string().contains("owning path contains symlink"), "{answer}");
+    assert!(!outside.join("read-log.jsonl").exists(), "the existing parent-path check must precede creation");
+}
+
 #[test]
 fn records_history_notice_changed_page_keeps_notice_and_reduces_items_at_final_bound() {
     struct Fixed(Corpus);

@@ -2261,6 +2261,31 @@ mod persistence_tests {
         std::fs::remove_dir_all(root).unwrap();
     }
     include!("act_control_records_f4_tests.rs");
+    /// A path that only reads asks only for read access: a complete owning
+    /// log restored read-only, already holding the capture's record, is
+    /// reconciled without any write, not held as "record pending".
+    #[test]
+    fn cold_reconciliation_of_a_recorded_capture_in_a_complete_read_only_log_needs_no_write_access() {
+        use std::os::unix::fs::PermissionsExt;
+        let root = scratch();
+        let (mut control, id, actor) = prepared(&root);
+        let recorded = control.confirm(&id, "ALT-2", InputSource::HostNativeConfirmation, actor).unwrap();
+        assert_eq!(recorded["state"], "AC-7 recorded", "{recorded}");
+        let log = crate::storage::project_file(&root, LOG).unwrap();
+        let before = std::fs::read(&log).unwrap();
+        assert!(before.ends_with(b"\n"));
+        std::fs::set_permissions(&log, std::fs::Permissions::from_mode(0o400)).unwrap();
+        let mut cold = ActControl::new(&root);
+        let results = cold.recover_pending();
+        std::fs::set_permissions(&log, std::fs::Permissions::from_mode(0o600)).unwrap();
+        let results = results.unwrap();
+        assert!(!results.is_empty(), "the recorded capture is reconciled");
+        for result in &results {
+            assert_eq!(result["state"], "AC-7 recorded", "{result}");
+        }
+        assert_eq!(std::fs::read(&log).unwrap(), before, "nothing was written to the log");
+        std::fs::remove_dir_all(root).unwrap();
+    }
     #[test]
     fn existing_match_directory_sync_failure_holds_backlink_until_publication_durable() {
         let root = scratch();
