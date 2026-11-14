@@ -49,6 +49,14 @@ times, on 13 November 2026), observed by App Agent 0, or not examined:
   later found no longer running, without the lane or App Agent 0 having
   signalled it (observed: absent at a
   later check; when it ended, and why, not known).
+- **A helper started after the walk's stop.** On 14 November 2026 (the index
+  probe, evidence `index-probe-20261114T1115Z`), the window service started a
+  second helper with the helper's exact command, its parent the service, 18
+  seconds after the walk's recorded stop. It failed the tests by parent and
+  interval, so it was not signalled; it was gone when the service had been
+  ended, with or before it. This is a known behaviour of the supplier's
+  service, and the rule stands: a process that fails the tests is not
+  signalled (App Agent 0).
 - **Not examined:** which files the app-server reads, whether it uses a
   credential (such as a sign-in held under `~/.codex`), and what it or the
   service sends. The supplier's documentation for the service says nothing
@@ -244,7 +252,28 @@ these from its own shell, in this order, and keeps each output in the new
 evidence folder under a name beginning `lane-`. Each opens nothing under
 `~/.codex` and signals nothing.
 
-1. **The provider check, first.** The provider is the Codex the operators'
+1. **The screen lock, first.** `screen_lock.py` asks the login session's own
+   dictionary for two keys by CoreFoundation's lookup, reads each value as a
+   number or a boolean, and parses no text. It changes nothing. As read on
+   this Mac on 14 November 2026, the key `CGSSessionScreenIsLocked` is
+   present, at 1, while the screen is locked, and absent while it is not. So:
+   on the console (`kCGSSessionOnConsoleKey` 1) with the lock key absent or 0
+   is not locked; the lock key a number or boolean that is not 0 is locked;
+   anything else (no session, not on the console, either key of another type)
+   is not established:
+
+   ```sh
+   <python> -B app/examination/standalone/operated/screen_lock.py > <evidence folder>/lane-screen-lock.txt
+   ```
+
+   Exit 0 means not locked. Anything else, locked (3) or could not be
+   established (2), means no walk, and nothing else is done. The lane tells App
+   Agent 0. The window service cannot see a window behind the lock screen: on
+   14 November 2026 a walk's first view failed with "cgWindowNotFound" while
+   the screen was locked. No agent dismisses the lock screen or runs anything
+   to hold it off; unlocking it is the owner's act. It is one look, and the
+   screen can lock after it.
+2. **The provider check.** The provider is the Codex the operators'
    sessions run under: the process whose command is a `codex` executable
    with the one argument `app-server`, and whose parent is the process of the
    application that runs the delegates (on this host,
@@ -273,15 +302,15 @@ evidence folder under a name beginning `lane-`. Each opens nothing under
    running an executable replaced on disk; see "What the route starts").
    When it passes, that condition is absent, and nothing more: it does not
    show that the service will accept the call.
-2. **`stray.py`** on the candidate's bundle (step 11 shows the command): it
+3. **`stray.py`** on the candidate's bundle (step 11 shows the command): it
    exits 0 with no remaining candidate process, or no walk is made.
-3. **The lane's look**: the first `ps` command of step 10, kept whole in
+4. **The lane's look**: the first `ps` command of step 10, kept whole in
    `lane-look.txt`. A running window service, or a running process whose
    command contains `app-server --listen`, whatever its parent, means no
    walk, and the lane tells App Agent 0. An exited entry (state `Z`,
    `<defunct>`) is recorded with its number, parent and state and is not a
    bar: it has exited and can do nothing.
-4. **The sample of the service's socket folder** ("Running a scenario"),
+5. **The sample of the service's socket folder** ("Running a scenario"),
    started so that it outlives the shell call that starts it: through
    `detached.py` with the name `lane-socket`, running the loop with
    `/bin/sh -c '<the loop>'`. It ends by itself at its stated stop; step 11
@@ -1094,16 +1123,17 @@ failure, the same scenario and acts.
   scenario's page. The rule is what a view may hold, not a list of things it
   may not: the view must say it is of the bundle; at the top it holds the
   App's one window and the menu bar and nothing else; directly inside the
-  window it holds only what the scenario lists, and nowhere below the window,
-  at any depth, a window, sheet, dialog, alert or popover. One kind of alert is
+  window it holds only what the scenario lists, and nowhere below the window
+  or inside the menu bar, at any depth, a window, sheet, dialog, alert or
+  popover. One kind of alert is
   allowed outside the sheet step: one inside the page's web content (below
   "HTML content") that holds only words, with nothing a person can operate.
   The App writes its refusals that way. Only the page's own content can put
   an element there. An alert holding a control, or any alert outside the web
   content, stops the walk. A sheet, a dialog,
   an alert, a second window, or a kind of thing nobody named, stops it; the one
-  exception is the sheet a scenario's one `confirm_sheet` step names, checked
-  whole before its one press, and a sheet still there after that press stops
+  exception is the sheet a scenario's one `confirm_sheet` step names, pressed
+  once only when its view equals the recorded view of it, and a sheet still there after that press stops
   it and is not pressed again. It also stops
   if the watch file stops showing the build running, at the last step as at
   any other. A result that stopped this way is inconclusive, not a pass:
@@ -1117,7 +1147,132 @@ failure, the same scenario and acts.
   App, and the operator ends it only after the walk. A process the App started
   that has been given another parent, or that came and went between samples,
   is not seen as a child.
-- **Whole views, or nothing.** Before any click the script asks for two
+- **Each view whole, recognised line for line and uniquely addressed, or
+  nothing.** These are the properties of every view the walk acts on (App
+  Agent 0, 14 November 2026). The walk does not decide what a view it does
+  not recognise means; it refuses it, and the step ends with no act, at every
+  view, the first ones included:
+  - the first line is the supplier's window line,
+    `Window: "<words>", App: <words>.`;
+  - then element lines, each a run of tabs, an index, one space and its
+    words, and each perhaps followed by further lines of its own words (a
+    text running over more than one line), which cannot begin with a tab;
+  - then, at most, one blank line and, after it, at most the focused-element
+    line, `The focused UI element is <index> <words>`, naming an element of
+    the view;
+  - an index is accepted only in its canonical form, at most 15 digits with
+    no leading zero, so one text names one element and it reads as one exact
+    number; a view holding an index in any other form (`016` beside `16`, say)
+    is refused; words hold no control character and no line or paragraph
+    separator;
+  - each index names one element. A click, a set-value or a press names an
+    element only by its index, so a view that gives one index to two
+    elements cannot be addressed.
+
+  Whether a view came back whole rests on the supplier's two fixed openings
+  for a view of differences or of no change; that is a reliance on the
+  supplier's format, not an independent proof that a malformed reply holds
+  every element.
+- **The parser's limit, which stands.** Recognising a view line for line does
+  not tell a real element from a line of text that imitates one. The fourth
+  independent reading of PR 323 (14 November 2026) answered its two questions
+  so: "Question 1: No. Question 2: Yes." A view that does not conform leads to
+  no act; but in a view that conforms, "a line inside an App string can
+  therefore become a separate element. Its tabs become indentation; they
+  never reach the words whitelist. A fresh index passes uniqueness checking."
+  With the named control absent, such a line drew a click, a set-value and a
+  press. The reading showed the calls issued and their arguments, not whether
+  the live supplier accepts an index it did not assign. No further patch was
+  made to the parser (App Agent 0).
+- **Where the walk acts, and why it is sound there (App Agent 0, 14 November
+  2026).** The tool acts only in the listed states below. It is sound there
+  because every text in those views is established and plain: the build's
+  own strings at the named commit, the paths the lane supplies and the App
+  makes from them, the fixed text macOS gives for windows and alerts, the
+  App's own menu, and the supplier's window and focused-element lines. It
+  must never act where a conversation exists, or where a view holds text from
+  outside: a model's output, Codex's reports, a file name the lane did not
+  write. There the fourth reading's result applies in full. The walk acts in
+  a listed state only when the view IS that state, line for line (the next
+  point), so a text the recorded view did not hold, from any source, stops it
+  with no act.
+- **The listed states, and their text.** Five states of the signed-out
+  setup, each recorded from this candidate's real views on 14 November 2026
+  at 09:01 UTC and kept in `signed-out-setup.scenario.json` (`states`, and
+  the sheet's `view`):
+
+  | State | The act taken from it | Sources of the text in the view |
+  | --- | --- | --- |
+  | S1, the first-use page | type the project path | the build's strings (`FirstUse.tsx`); macOS's fixed accessibility text (window chrome, roles, a scroll bar's position); the App's menu; the supplier's window line |
+  | S2, after typing | click Review setup | as S1, and the project path the lane supplies (`kept-<UTC>-<8 hex>/project`) |
+  | S3, What setup will do | open Exact locations | as S2 |
+  | S4, Exact locations open | click "Create settings and save for next launch…" | as S3, and three paths the App makes under its data folder (`shared-settings/settings-<uuid>`, `account-homes/account-<uuid>`, `desktop-startup/request.json`), each checked against that form |
+  | S5, the sheet | press "Create settings and save for next launch" | the build's strings (`desktop_startup.rs`, `desktop_setup_confirmation.rs`, `act_control.rs`) filled with the same paths; macOS's alert text (`Description: alert`, `ID: action-button-<n>`); the App's menu; the supplier's lines |
+
+  **Stale against main since fc1b222d (PR 334, 14 November 2026): S3, S4 and
+  S5.** The states are kept as recorded from candidate 9d997626, and so are
+  the step expectations and the sheet's statement that describe them. PR 334
+  changed what a build of main shows:
+  - **S3 and S4.** Their line "In it, create an empty config.toml, an empty
+    AGENTS.md and an empty skills folder" now reads "In it, create an empty
+    config.toml, an empty AGENTS.md and a skills folder; Codex adds its own
+    system skills there, and its own working files to the sign-in folder, when
+    it starts".
+  - **S3 and S4, a new block.** A block headed "What applies by default", with
+    four sentences, is now shown after Exact locations. Its words are read from
+    `desktop_startup.rs` and `FirstUse.tsx` at fc1b222d. The driver's views file
+    does not show it.
+  - **S5, the sheet.** Its second line now reads "with an empty config.toml, an
+    empty AGENTS.md and a skills folder. Codex adds its own system skills there,
+    and its own working files to the account directory, when it starts."
+
+  On a build of main the walk therefore acts from S1 and S2. Both are
+  unaffected: 334 changed only the review page, which first appears after
+  "Review setup", and the sheet. After the click from S2, the review page's
+  lines do not match that step's recorded expectation, so the walk stops there.
+  Even past that, the view is not S3 line for line, so nothing is acted on from
+  S3, S4 or the sheet. That is the safe side. The states are re-recorded in a later change from a build of main,
+  under the pre-launch check for a walk with no conversation, and are not edited
+  to the new words by hand: a recorded state comes from a recorded view. The
+  relaunch reading is unaffected. It checks only the "Run a workflow" heading
+  and the welcome's absence, and 334 changed neither.
+
+  No conversation exists in any of them, and nothing in them comes from
+  Codex or a model. The relaunch is not a listed state: its first view can
+  show why a Codex start was refused, composed partly from errors of the
+  system or of Codex's verification, and once Codex is ready the App shows
+  what Codex reports. So the relaunch scenario is one view, read and acted on
+  nothing, and what "Credential storage" shows signed out is not observed in
+  this walk. That is a limit of the walk, not something worked round.
+- **Each act from its listed state, line for line.** Every step that acts
+  names the state it acts from (`from_state`), and before the act the latest
+  view must equal that state's recorded view: each element line in its depth
+  and words, every other line exactly, the focused-element line naming the
+  same element. The templates are filled with the project path, the three
+  App paths, the App's name (the candidate bundle's folder name, which must
+  be of the development build's form) and nothing else; the one allowance
+  is `{~number}`, a scroll bar's position. Any difference stops the step with
+  no act. A scenario with a step that acts and names no listed state is
+  refused before any call, so the first-use scenario, kept for the hosted
+  driver, is not walked on this Mac. If the supplier's view of the same pages
+  changes shape, or the build's strings change, the walk stops, and a state
+  is recorded again from a real observation and read again before it is
+  relied on.
+- **What the lane supplies is plain.** Before any call the walk refuses a
+  home, bundle, identifier or project holding a line break, a tab, a control
+  character, or a line or paragraph separator, so none can make a line of its
+  own in a view. The build's strings in the listed states were checked by
+  their recorded views, where every line was recognised. Strings those views
+  did not show, such as an error on a failure path, were not checked; a view
+  showing one is not a listed state, and the walk stops.
+- **No structured view.** The supplier gives a view as its application, a
+  screenshot and text, and nothing else; an act names its target by "Element
+  index from the latest `get_app_state()` text" (the supplier's own words), or
+  by a point in the screenshot. Acting by index is acting on text, and by a
+  point is acting on a picture: neither gives an element an identity a script
+  can hold. So no agent acts in a conversation with this tool. That is a fact
+  about the tool, not only a rule.
+- **Whole views.** Before any click the script asks for two
   views, one after the other, and both must come back whole. The first asks
   with the application alone; the first view of an application was seen to be
   whole without asking, and it counts only if what it returned is whole. The
@@ -1203,26 +1358,42 @@ either driver marker.
   step does this, in order:
   1. It is not taken if any earlier check failed.
   2. It clicks the opener once, waits, and views.
-  3. Before any press, it checks the view, the App's own element tree:
-     - the view says it is of the bundle;
-     - at the top it holds the one window and the menu bar;
-     - directly inside the window it holds what the scenario lists and
-       exactly one thing more, a sheet;
-     - below the window, at any depth, there is no other window, sheet,
-       dialog, alert or popover, the page's own alerts included;
-     - directly inside the sheet, and nothing deeper, are exactly the named
-       buttons, the named title once, and the statement's text. An image (the
-       App's icon) is allowed and recorded. Anything else in the sheet is a
-       difference;
-     - the statement's text equals the complete statement. Line breaks, in
-       whatever form the view gives them (a new element, a new line, or
-       written as `\n`), become one space, and each line is trimmed at its
-       ends. Nothing else is changed, so every word and every path is
-       compared exactly, and nothing may be added.
+  3. Before any press, it compares the view with the one recorded view of
+     the sheet, the scenario's `view`, and presses only when they are equal
+     (App Agent 0, 14 November 2026). The recorded view is the one the
+     supplier's view gave of the real sheet on 14 November 2026: the sheet on
+     its own beside the menu bar, with its title and statement as one text,
+     its three buttons each with its `, ID: action-button-<n>` suffix, the
+     App's menu, and the focused-element line
+     (`tests/group_b_operated_fixtures/signed-out-setup/sheet-on-its-own.txt`,
+     with its paths, identifier and name replaced by invented ones). The
+     template is filled with three things only: the statement, made from the
+     exact locations the page showed one step earlier; the sheet's title; and
+     the App's name, which is the candidate bundle's own folder name and must
+     first be of the development build's form,
+     `Chirality App v4 (development <letters, digits, dots, dashes>)`, or the
+     step stops before the template is made. The identifier is inside the
+     paths. The filled template must itself be a recognised view whose
+     indices each name one element. Then:
+     - each element line must equal the template's in its depth and its
+       words; element indices are not compared, since a view numbers its
+       elements as it goes;
+     - every other line, the view's first line and each line of the
+       statement among them, must equal the template's exactly;
+     - the focused-element line must name, by those indices, the element the
+       template's names;
+     - the press goes to the index the view gives the element in the
+       template's place for the named button.
 
-     So its paths are exactly the locations the page named, and the previous
-     step checked that each lies under the App data folder in the home. Any
-     of these differences stops the walk, and nothing is pressed.
+     Anything else, an added or missing line, another word, path, button,
+     line break or kind of element, is a difference, and nothing is pressed.
+     So the statement's paths are exactly the locations the page named, and
+     the previous step checked that each lies under the App data folder in
+     the home. What follows, and App Agent 0 accepts as a cost: if the
+     supplier's view of the same sheet changes shape, on another macOS or
+     another supplier version, the walk stops at the sheet. The template is
+     then recorded again from a real observation and read again before it is
+     relied on. A stop costs a rerun; a wrong press does not.
   4. It reads the watch file again just before the press. If the build is
      not shown running, it stops without pressing.
   5. The App shows the statement whole within 30 lines and 1,500 characters,
@@ -1231,6 +1402,18 @@ either driver marker.
   6. It presses the named button once, by its index, waits and views. If the
      sheet, or anything else that is not the page, is still there, the walk
      stops and does not press again.
+- **What tells the App's own sheet apart.** Not its shape alone: in the
+  recorded view no window, title or attribute names anything of the App's,
+  and an alert sheet of the same build would look the same in every part but
+  its words. What tells it apart is two things together. The view is asked of the
+  development build by its bundle identifier, and the supplier gives that
+  process's own tree, so a sheet of the system or of another application is
+  not in it (see the next point). That is a reliance on the supplier, which
+  the walk does not check independently. And the view must equal the
+  recorded view, its one text being the App's title and complete statement,
+  every word and path, with the locations the page showed one step earlier;
+  another alert of the same build, with other words, is a difference and
+  nothing is pressed.
 - **What the tree does not show.** The view is the development build's own
   tree. A window of another application, or of the system, over the build is
   not in it, and the walk cannot see one. The operator stops if one appears in
@@ -1244,7 +1427,8 @@ either driver marker.
   window costs a throwaway home and a walk run again. So the walk's result
   keeps what would show a wrong act afterwards:
   - the sheet's whole view;
-  - the statement seen and the statement wanted;
+  - the statement wanted, and the first line where the view differed from
+    the recorded one, if it did;
   - the button pressed and its index;
   - the field typed into, with its index and the value.
 - **A walk that sees the next launch.** `launch` makes a new home each time.
@@ -1272,6 +1456,15 @@ either driver marker.
     ruled out, and only an empty directory is at stake.
 
   `keep-launch` is run through `detached.py`, as `launch` is.
+- **A button pressed only if offered.** A click step may be marked
+  `if_offered`; no scenario now uses it (the relaunch acts in no state). A
+  button that is absent or unavailable is not
+  pressed, and the step records "absent; not pressed" or "unavailable; not
+  pressed" and makes its view and checks as any other step. Absent means
+  its words are on nothing in the view: words on a control of another kind,
+  or on any other element, stop the walk, as does a button found twice. Only
+  a button may be marked. "available; pressed" is recorded only when the
+  press is made. A marked step acts from a listed state like any other.
 - **The record.** It says that an agent pressed the confirmation, by the
   supplier's click on the sheet's button by element index. The records the App
   writes will say that setup was confirmed. It is development evidence and
@@ -1284,7 +1477,10 @@ in a kept folder whose launches reach the network, so that the owner can sign
 in and one model turn can be made. App Agent 0 approved its design, with the
 INTERLOCUTOR's additions, which App Agent 0 adopted. This section is its
 method text. **Nothing here is run until App Agent 0 names a date and the
-owner's sign-in is arranged.** Its scenario files, and the typing of its one
+owner's sign-in is arranged.** The candidate must contain the execution lane's
+repair of the temporary-folder allocations, and no date is named before that
+repair is on main: App Agent 0 holds that no conversation with a real model is
+made on a build without it. Its scenario files, and the typing of its one
 fixed prompt, come to App Agent 0 with that date. The rehearsal is development
 evidence and satisfies nothing in criteria 1 and 2.
 
