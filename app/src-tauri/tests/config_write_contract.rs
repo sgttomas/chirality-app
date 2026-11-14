@@ -2,7 +2,7 @@
 //! Native notifications may contain OS metadata. All raw exchanges/diagnostics stay private.
 #![cfg(target_os = "macos")]
 #![allow(dead_code)] // The real home-resource seam also supplies unrelated home classes.
-use chirality_app_v4_lib::storage;
+use chirality_app_v4_lib::{storage, working_folder};
 #[path = "../src/home_resources.rs"]
 mod home_resources;
 use home_resources::{HomeClass, OwnedHomePlan, ResourceState, SharedResourceTargets};
