@@ -32,7 +32,7 @@ fn inventory_failure(detail: impl std::fmt::Display) -> EvidenceFailure {
 fn library_roots(installation: &Path) -> Result<BTreeSet<PathBuf>, EvidenceFailure> {
     let path = installation.join(LIBRARIES_FILE);
     // Only a missing file means no library known. A present empty, partial or
-    // malformed document is an incomplete census, never an empty one. This
+    // malformed document, or one naming no library, is an incomplete census, never an empty one. This
     // removable local trace may veto only; losing it is the LIM-026 loss class.
     if !exists(&path)? { return Ok(BTreeSet::new()); }
     let inventory: LibraryInventory = serde_json::from_slice(&snapshot_bytes(&path)?)
@@ -40,6 +40,12 @@ fn library_roots(installation: &Path) -> Result<BTreeSet<PathBuf>, EvidenceFailu
     if inventory.format != LIBRARIES_FORMAT || !inventory.complete
         || inventory.roots.iter().any(|root| !root.is_absolute() || root.components().any(|c| !matches!(c, std::path::Component::RootDir | std::path::Component::Normal(_)))) {
         return Err(inventory_failure("the list has an unknown or incomplete format"));
+    }
+    // The App writes the list only when it adds a root, so a present list naming no
+    // library was not written by it: damaged, like a truncated one. This catches an
+    // accidental or careless change, not a deliberate one (a redirected list still reads).
+    if inventory.roots.is_empty() {
+        return Err(inventory_failure("the list names no library, which the App never writes"));
     }
     Ok(inventory.roots)
 }

@@ -1543,6 +1543,21 @@ fn capture_seal_review_malformed_library_list_refuses() { review_damaged_library
 #[test]
 fn capture_seal_review_unknown_shape_library_list_refuses() { review_damaged_library_list(b"{}"); }
 #[test]
+fn capture_seal_review_a_complete_list_naming_no_library_refuses() {
+    // Permitted: a complete list naming one readable library with no capture still admits.
+    let f = SelectedInstallation::new(); let project = f.project();
+    let library = project.join("external-library"); fs::create_dir(&library).unwrap();
+    let list = |roots: Vec<PathBuf>| serde_json::to_vec(&serde_json::json!({
+        "format": "chirality.app.capture-seal-library-inventory/v1", "roots": roots, "complete": true})).unwrap();
+    fs::write(f.root().join("capture-seal-libraries.json"), list(vec![fs::canonicalize(&library).unwrap()])).unwrap();
+    assert_eq!(review_publish(&project)["sealProvider"], "file-key");
+    // Spoiled: the same complete document naming no library, which the App never writes.
+    fs::write(f.root().join("capture-seal-libraries.json"), list(Vec::new())).unwrap();
+    let capture = review_unsealed(&project);
+    assert!(capture["evidenceLimits"].to_string().contains("names no library"), "{capture}");
+    assert!(capture["evidenceLimits"].to_string().contains("Recover capture verification"), "{capture}");
+}
+#[test]
 fn capture_seal_review_observed_sentinel_survives_corrupt_head_then_loss() {
     let f = SelectedInstallation::new(); let project = f.project();
     assert_eq!(review_publish(&project)["sealProvider"], "file-key");

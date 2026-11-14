@@ -245,9 +245,10 @@ An entry is added in the same pull request that makes the limitation standing.
 - **Exit criteria:** 8, 12
 - **What is unavailable:** a guarantee that earlier keychain protection can
   always be recognised after complete keychain reset or loss, coherent
-  rollback, or a same-account replacement of the enrolment join at the
-  moment of enrolment. The last case can let one file seal, labelled key
-  file, attach after protection commits. It never supplies keychain standing.
+  rollback, a same-account rewrite of the App's list of known libraries, or a
+  same-account replacement of the enrolment join at the moment of enrolment.
+  The last case can let one file seal, labelled key file, attach after
+  protection commits. It never supplies keychain standing.
 - **Why:** complete loss or coherent rollback can leave the same observations
   as a fresh installation. The enrolment join coordinates participating App
   operations; another process on the same account can replace it and already
@@ -256,9 +257,16 @@ An entry is added in the same pull request that makes the limitation standing.
   removable local trace: if it is absent, no library is known, including a
   retained library that has not been reopened. That is the same complete-loss
   class; absence permits no weaker seal while any protected item or other veto
-  survives. A present unreadable, malformed or truncated list, or an unreadable
-  listed library, refuses file-key admission. Roots are added on opening and
-  registration and are never silently removed; this unit has no removal act.
+  survives. A present unreadable, malformed or truncated list, one naming no
+  library (which the App never writes), or an unreadable listed library,
+  refuses file-key admission. Roots are added on opening and registration and
+  are never silently removed; this unit has no removal act. A program under
+  the same account can rewrite the App's list of known libraries into a valid
+  list that omits a library; where no keychain item of the App survives
+  either, the App then admits its key file although that library's
+  keychain-labelled capture is still there. Such a program could as easily
+  have removed that capture; the new seal reads as sealed with the App's key
+  file, and the omitted capture keeps its keychain standing.
   The keychain's protection is not established
   until release criterion 8 has been met on the installed, signed candidate.
 - **What the person does instead:** read the provider stated for each capture
