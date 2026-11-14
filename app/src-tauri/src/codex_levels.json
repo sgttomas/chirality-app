@@ -1,0 +1,53 @@
+{
+  "format": "chirality.app-v4.codex-levels.v1",
+  "pin": "0.167.0",
+  "note": "The permission levels the App offers (PRD V4-AUT-06). Each row holds the exact values the App sends to its Codex. supplier_checks/level sends each row to the pinned Codex and asserts the effects stated here; a level is offered only once that has passed. Reading is not limited at any level.",
+  "levels": [
+    {
+      "id": "supervised",
+      "dimensions": {"writes": "nowhere", "network": "off", "asks": "before-a-command-not-known-safe"},
+      "approvalPolicy": "untrusted",
+      "sandbox": "read-only",
+      "sandboxPolicy": {"type": "readOnly", "networkAccess": false},
+      "workspaceWrite": null
+    },
+    {
+      "id": "edits",
+      "dimensions": {"writes": "project", "network": "off", "asks": "when-beyond-the-sandbox"},
+      "approvalPolicy": "on-request",
+      "sandbox": "workspace-write",
+      "sandboxPolicy": {"type": "workspaceWrite", "writableRoots": [], "networkAccess": false,
+                        "excludeTmpdirEnvVar": true, "excludeSlashTmp": true},
+      "workspaceWrite": {"network_access": false, "exclude_slash_tmp": true, "exclude_tmpdir_env_var": true,
+                         "writable_roots": []}
+    },
+    {
+      "id": "edits-network",
+      "dimensions": {"writes": "project", "network": "on", "asks": "when-beyond-the-sandbox"},
+      "approvalPolicy": "on-request",
+      "sandbox": "workspace-write",
+      "sandboxPolicy": {"type": "workspaceWrite", "writableRoots": [], "networkAccess": true,
+                        "excludeTmpdirEnvVar": true, "excludeSlashTmp": true},
+      "workspaceWrite": {"network_access": true, "exclude_slash_tmp": true, "exclude_tmpdir_env_var": true,
+                         "writable_roots": []}
+    },
+    {
+      "id": "edits-no-asking",
+      "dimensions": {"writes": "project", "network": "off", "asks": "never"},
+      "approvalPolicy": "never",
+      "sandbox": "workspace-write",
+      "sandboxPolicy": {"type": "workspaceWrite", "writableRoots": [], "networkAccess": false,
+                        "excludeTmpdirEnvVar": true, "excludeSlashTmp": true},
+      "workspaceWrite": {"network_access": false, "exclude_slash_tmp": true, "exclude_tmpdir_env_var": true,
+                         "writable_roots": []}
+    },
+    {
+      "id": "full",
+      "dimensions": {"writes": "everywhere", "network": "on", "asks": "never"},
+      "approvalPolicy": "never",
+      "sandbox": "danger-full-access",
+      "sandboxPolicy": {"type": "dangerFullAccess"},
+      "workspaceWrite": null
+    }
+  ]
+}
