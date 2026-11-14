@@ -493,12 +493,12 @@ fn records_store_import_gate_completed_import_waives_census_but_incomplete_still
 fn records_store_import_gate_controls_and_exact_staging_names_never_waive_census() {
     let nonce = "12345678-1234-4234-8234-123456789abc";
     let hash = storage::key("cap:fixture");
-    for relative in [".writer.lock".into(), "captures/.capture.lock".into(), "captures/pending".into(),
+    for relative in payload::CONTROLS.iter().map(|name| (*name).to_owned()).chain(["captures/pending".into(),
         format!("captures/.{hash}.json.{nonce}.tmp"),
         format!("captures/pending/.{hash}.json.{nonce}.tmp"),
         format!("workflow/.pending-{nonce}"),
         format!("workflow/.{nonce}.json.{nonce}.tmp"),
-        format!("connectors/route-accounts/.route-{nonce}.tmp")] {
+        format!("connectors/route-accounts/.route-{nonce}.tmp")]) {
         let (_own, root, dir) = import_gate_project();
         let path = dir.join(&relative);
         if relative == "captures/pending" { std::fs::create_dir_all(&path).unwrap(); }

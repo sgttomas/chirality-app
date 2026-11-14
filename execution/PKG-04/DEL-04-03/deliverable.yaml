@@ -136,6 +136,8 @@ code_paths:
 - app/tools/verify_records_bag.py
 - app/src-tauri/src/role_observations.rs
 checks:
+# History notices on the person-facing RS readings, including empty results.
+- app/tests/workflow-action-result.test.mjs
 - app/src-tauri/src/record_lines_tests.rs
 - app/src-tauri/src/role_observations_tests.rs
 - app/src-tauri/src/record_lines_regression_tests.rs
@@ -148,6 +150,7 @@ checks:
 - app/src-tauri/src/records_store_tests.rs
 - app/src-tauri/src/records_store_routing_trace_tests.rs
 - app/src-tauri/src/records_store_routing_payload_tests.rs
+- app/src-tauri/src/records_store_controls_lifecycle_tests.rs
 - app/src-tauri/src/records_store_sync_tests.rs
 - app/src-tauri/src/records_store_status_tests.rs
 - app/src-tauri/src/records_effect_guard.rs

@@ -32,6 +32,11 @@ fn records_export_preserves_bytes_groups_heads_and_is_checkable_without_app() {
         id: crate::util::opaque_id("rec:app:").unwrap(), observed_at: None }).collect();
     crate::records::append_group(&log, specs, Some("run:bag"), crate::records::RecordSet::Complete).unwrap();
     let dir = records_store::home(&f.project).unwrap().attachment.dir.unwrap();
+    for control in records_store::payload::CONTROLS {
+        let path = dir.join(control);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, b"").unwrap();
+    }
     std::fs::create_dir_all(f.store.join("indexes")).unwrap();
     std::fs::write(f.store.join("indexes/query.sqlite"), b"discardable cache").unwrap();
     std::fs::create_dir_all(dir.join("connectors")).unwrap();
@@ -44,7 +49,9 @@ fn records_export_preserves_bytes_groups_heads_and_is_checkable_without_app() {
     let rel = log.strip_prefix(&dir).unwrap();
     assert_eq!(std::fs::read(&log).unwrap(), std::fs::read(f.bag().join("data").join(rel)).unwrap());
     assert!(!f.bag().join("data/indexes").exists());
-    assert!(!f.bag().join("data/.writer.lock").exists());
+    for control in records_store::payload::CONTROLS {
+        assert!(!f.bag().join("data").join(control).exists(), "{control}");
+    }
     assert_eq!(std::fs::read(f.bag().join("data/connectors/.route-fixture.tmp")).unwrap(), b"interrupted publication evidence");
     assert_eq!(std::fs::read(f.bag().join("data/connectors/retained.lock")).unwrap(), b"retained imported bytes");
     let output = std::process::Command::new("python3").arg(f.bag().join("verify.py")).arg(f.bag()).output().unwrap();

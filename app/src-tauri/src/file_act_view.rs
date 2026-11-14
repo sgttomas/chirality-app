@@ -399,6 +399,7 @@ fn read_log(
     (entries, limits, partial, Some(source))
 }
 pub(crate) struct SourceClaims {
+    pub home: Result<crate::records_store::ReadHome, String>,
     pub claims: Vec<Value>,
     pub complete: HashSet<String>,
     pub limits: Vec<String>,
@@ -411,13 +412,14 @@ pub(crate) struct SourceClaims {
 /// One nonblocking source read, retaining the physical log identity of the
 /// bytes read. Readable duplicate copies remain distinct source claims.
 pub(crate) fn source_claims(root: &Path) -> SourceClaims {
+    let home = crate::records_store::readable_home(root);
     let mut claims = Vec::new();
     let mut complete = HashSet::new();
     let mut limits = Vec::new();
     let mut files = HashMap::new();
     let mut incomplete = false;
     let mut partial_logs = HashSet::new();
-    let paths = crate::storage::discover(root).unwrap_or_else(|e| {
+    let paths = home.as_ref().map_err(Clone::clone).and_then(|home| crate::storage::discover_from_home(root, home)).unwrap_or_else(|e| {
         incomplete = true;
         limits.push(e);
         Vec::new()
@@ -452,6 +454,7 @@ pub(crate) fn source_claims(root: &Path) -> SourceClaims {
         );
     }
     SourceClaims {
+        home,
         claims,
         complete,
         limits,
@@ -462,6 +465,8 @@ pub(crate) fn source_claims(root: &Path) -> SourceClaims {
 }
 pub(crate) fn read(root: &Path) -> Value {
     let source = source_claims(root);
+    // See records_store::HistoryRead for the shared-reader check and slice 2.
+    let history_notices = crate::records_store::history_notice(source.home.as_ref().map_err(String::as_str)).view();
     let SourceClaims {
         claims,
         complete,
@@ -566,7 +571,7 @@ pub(crate) fn read(root: &Path) -> Value {
         }
         rows.push(json!({"recordId":record["recordId"],"kind":kind,"event":if decline{"declined this act"}else{"recorded human-act claim"},"actor":actor,"recordedBy":record["recorder"],"subject":subject,"boundContent":bound,"scope":if decline{captured.map(|c|c["scope"].clone()).unwrap_or(Value::Null)}else{b["scope"].clone()},"purpose":if decline{captured.map(|c|c["purpose"].clone()).unwrap_or(Value::Null)}else{b["purpose"].clone()},"recordingMode":b["recordingMode"],"lapseHistoryClaims":history.claims,"lapseHistoryLimitedClaims":history.limited,"lapseHistoryLimits":history.limits,"captureCorrespondence":correspondence,"captureEvidence":b["captureEvidence"],"captureTime":if decline{b["time"].clone()}else{b["captureTime"].clone()},"comparison":comparison_label,"currentContent":current.map(|c|json!({"method":c.method,"value":c.value})),"source":claim["source"],"correctedBy":claim["correctedBy"],"identityResolution":claim["identityResolution"],"relationLimit":claim["relationLimit"],"limits":row_limits}));
     }
-    json!({"view":"App file acts and declines; read-only source claims","rows":rows,"correctionGroups":relations["correctionGroups"],"diagnostics":relations["diagnostics"],"limits":limits,"standing":"Checking, engineering approval and professional reliance remain distinct; no acceptance, execution, request settlement or native provenance is inferred"})
+    json!({"view":"App file acts and declines; read-only source claims","historyNotices":history_notices,"rows":rows,"correctionGroups":relations["correctionGroups"],"diagnostics":relations["diagnostics"],"limits":limits,"standing":"Checking, engineering approval and professional reliance remain distinct; no acceptance, execution, request settlement or native provenance is inferred"})
 }
 #[cfg(test)]
 mod tests {
