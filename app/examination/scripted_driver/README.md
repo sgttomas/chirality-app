@@ -30,6 +30,15 @@ hosted runs of the scenario are regression runs, not attempts (App Agent 0,
 stated before attempt 1's result). The first, run 43520740915 on 13 November
 2026, also passed.
 
+The second regression run, 43528759059 on 13 November 2026, failed in the
+proof step and passed the scenario. At its second try the proof's script read
+the first heading as "Chirality", with 52 buttons: the App had not yet had its
+first host read, so the page still showed the workspace, and the script then
+stopped at the first heading present. That was a false fail. A wrong heading
+could not make it pass, the scenario passed in the same run, and the counted
+pass stands. Since then the proof waits for the expected heading itself
+("The hosted proof", above).
+
 ## How it is kept out of the shipped App
 
 - **A cfg, not a feature.** `build.rs` compiles this crate alone with cfg
