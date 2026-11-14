@@ -64,6 +64,7 @@ jobs:
           v10_r1_notice_accepted_but_never_written_stays_pending
           handoff_notice_sources_survive_native_error_and_observation_loss
           hosting::conversation_transport_tests::attachment_outcome_tests
+          hosting::conversation_transport_tests::attachment_host_final_reread_
     steps:
       - uses: actions/checkout@v4
         with:

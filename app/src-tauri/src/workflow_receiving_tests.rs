@@ -33,7 +33,8 @@ thread_local! {static TEST_COPIES:std::cell::RefCell<HeldTestCopies>=std::cell::
 fn store() -> std::path::PathBuf {
     let mut bytes = [0; 16];
     getrandom::fill(&mut bytes).unwrap();
-    let base = std::env::temp_dir().join(format!("wr-receiving-{}", util::sha256_hex(&bytes)));
+    // The real location: the package reader follows no link above a package.
+    let base = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(format!("wr-receiving-{}", util::sha256_hex(&bytes)));
     std::fs::create_dir(&base).unwrap();
     TEST_COPIES.with(|copies| copies.borrow_mut().0.push(base.clone()));
     let path = base.join("revision");

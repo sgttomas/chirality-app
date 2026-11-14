@@ -89,15 +89,18 @@ code_paths:
 - app/examination/sq_receiving/**
 - app/examination/native_support/**
 - app/examination/scripted_driver/**
+- app/examination/session_comparison/**
 - app/src-tauri/src/scripted_driver.rs
 - .github/workflows/app-scripted-driver.yml
 checks:
 - app/examination/native_support/test_*.py
+- app/examination/session_comparison/test_compare.py
 - app/tests/group_b_standalone_test.py
 - app/tests/group_b_launch_home_test.py
 - app/tests/group_b_operated_scenario_test.py
 - app/tests/group_b_operated_macos_test.py
 - app/tests/group_b_scripted_driver_test.py
+- app/tests/group_b_examination_table_test.py
 - app/tests/group_b_pre_run_inputs_test.py
 - app/tests/group_b_native_forms_test.py
 - app/tests/group_b_sq_receiving_test.py
