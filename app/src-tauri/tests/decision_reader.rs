@@ -97,7 +97,7 @@ fn actual_ab_ba_unordered_claims_and_lapse_attribution_are_invariant() {
         assert!(projection(&r, "a")["captureProvenance"]
             .as_str()
             .unwrap()
-            .contains("not verified"));
+            .contains("who wrote it is not established"));
         assert_eq!(
             before,
             std::fs::read(ws.join(".chirality/records/acts/10-first.jsonl")).unwrap()
@@ -376,7 +376,7 @@ fn original_native_admission_observation_stream_preserves_order_without_clock_or
             assert!(r["decision"]["captureProvenance"]
                 .as_str()
                 .unwrap()
-                .contains("not verified"));
+                .contains("who wrote it is not established"));
         }
     }
 }
@@ -404,7 +404,7 @@ fn matching_forgeable_markers_in_different_logs_never_create_global_or_native_au
         .all(|p| p["captureProvenance"]
             .as_str()
             .unwrap()
-            .contains("not verified")));
+            .contains("who wrote it is not established")));
     assert!(!ws.join(".chirality/captures").exists());
     assert_eq!(
         before,

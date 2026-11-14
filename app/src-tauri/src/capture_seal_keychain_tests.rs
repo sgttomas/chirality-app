@@ -1230,7 +1230,7 @@ fn capture_seal_signed_absence_then_real_enrollment_retains_old_file_evidence() 
     let mut old = f.ordinary_capture();
     assert_eq!(crate::capture_seal::seal(&project, &mut old).unwrap().verified_with, crate::capture_seal::SealProvider::FileKey);
     let bytes = old.clone();
-    assert!(crate::capture_seal::verify(&project, &old).unwrap().sentence().contains("could forge"));
+    assert!(crate::capture_seal::verify(&project, &old).unwrap().sentence().contains("sealed with the App's key file, not your keychain"));
     f.enroll().unwrap();
     let mut new = f.ordinary_capture();
     assert_eq!(crate::capture_seal::seal(&project, &mut new).unwrap().verified_with, crate::capture_seal::SealProvider::Keychain);

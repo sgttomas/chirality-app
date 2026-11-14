@@ -56,8 +56,8 @@ pub enum SealProvider {
 impl SealProvider {
     pub fn name(self) -> &'static str { match self { Self::FileKey => "file-key", Self::Keychain => "keychain" } }
     pub fn sentence(self) -> &'static str { match self {
-        Self::FileKey => "Sealed with the key file, which a process on this account could forge.",
-        Self::Keychain => "Sealed with the keychain key.",
+        Self::FileKey => "sealed with the App's key file, not your keychain",
+        Self::Keychain => "sealed with your keychain",
     } }
 }
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -71,8 +71,8 @@ impl SealVerification {
         match self.recorded_provider {
             Some(provider) => provider.sentence().into(),
             None => match self.verified_with {
-                SealProvider::FileKey => "Seal verified; provider not recorded. Verified here using the key file, which a process on this account could forge.",
-                SealProvider::Keychain => "Seal verified; provider not recorded. Verified here using the keychain key.",
+                SealProvider::FileKey => "Seal verified; provider not recorded. Verified here using the App's key file, not your keychain.",
+                SealProvider::Keychain => "Seal verified; provider not recorded. Verified here using your keychain.",
             }.into(),
         }
     }
@@ -361,6 +361,17 @@ pub fn seal(root: &Path, capture: &mut Value) -> Result<SealVerification, Eviden
 pub fn unsealed_limit(reason: impl std::fmt::Display) -> String {
     format!("capture not sealed ({reason}); not verifiable as this App's capture, so it is not counted as an act")
 }
+const A16_UNSEALED_PREFIX: &str = "A16 capture unsealed: ";
+const A16_UNSEALED_SUFFIX: &str = "; recorded decision selection is unchanged. This capture will never be sealed later.";
+pub(crate) fn a16_unsealed_limit(reason: impl std::fmt::Display) -> String {
+    format!("{A16_UNSEALED_PREFIX}{reason}{A16_UNSEALED_SUFFIX}")
+}
+/// Attribute only the existing capture's explicit publication-failure limit.
+/// Its contents classify no verifier result and establish neither age nor truth.
+pub(crate) fn recorded_a16_sealing_failure(capture: &Value) -> Option<&str> {
+    capture["evidenceLimits"].as_array()?.iter().filter_map(Value::as_str)
+        .find_map(|limit| limit.strip_prefix(A16_UNSEALED_PREFIX)?.strip_suffix(A16_UNSEALED_SUFFIX))
+}
 pub fn verify(root: &Path, capture: &Value) -> Result<SealVerification, EvidenceFailure> {
     verify_with(root, capture, false)
 }
@@ -518,7 +529,7 @@ mod tests {
         let result = verify(&project, &legacy).unwrap();
         assert_eq!(result.recorded_provider, None);
         assert!(result.sentence().contains("provider not recorded"));
-        assert!(result.sentence().contains("Verified here using the key file"));
+        assert!(result.sentence().contains("Verified here using the App's key file"));
         assert!(!result.sentence().contains("Sealed with"), "verification must not invent historical custody for legacy facts");
         assert_eq!(result.verified_with, SealProvider::FileKey);
         let bytes = legacy.clone();

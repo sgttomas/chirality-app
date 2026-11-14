@@ -129,7 +129,7 @@ export function FileActPanel({ command, controlRef, onBusyChange }: {
       <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{JSON.stringify(preview.offer, null, 2)}</pre>
       {preview.utf8 !== null && <details open><summary>Exact frozen UTF-8 text</summary><pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", maxHeight: 360, overflow: "auto" }}>{preview.utf8}</pre></details>}
       <details><summary>Exact frozen bytes (hexadecimal)</summary><pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", maxHeight: 360, overflow: "auto" }}>{preview.hex}</pre></details>
-      <p>Before keychain protection is set up, the sealing key is in the App's data folder. A process able to write there could forge a capture. Reading that key is enough to compute a seal. Earlier file-key acts keep their weaker standing after keychain setup and can still count.</p>
+      <p>Before keychain protection is set up, captures are sealed with the App's key file, not your keychain. Earlier file-key acts keep that standing after keychain setup and can still count.</p>
       <button disabled={busy || attempted} onClick={() => run("file_act_confirm", { reference: preview.reference })}>Review native act / decline / cancel…</button>
       <button disabled={busy || attempted} onClick={() => run("file_act_dismiss", { reference: preview.reference })}>Dismiss offer without capture</button>
     </article>}

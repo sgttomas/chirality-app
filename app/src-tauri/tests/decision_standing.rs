@@ -105,7 +105,7 @@ fn same_value_different_method_is_incomparable_and_claim_remains_unverified() {
     assert!(r["decision"]["captureProvenance"]
         .as_str()
         .unwrap()
-        .contains("native capture origin not verified"));
+        .contains("who wrote it is not established"));
     assert_eq!(
         r["decision"]["decidedBy"],
         "fixture person / fixture account (identity not verified)"
@@ -183,7 +183,7 @@ fn restoration_uses_only_existing_referent_bound_act_lapsed_history() {
     assert!(r["decision"]["captureProvenance"]
         .as_str()
         .unwrap()
-        .contains("recorded claim"));
+        .contains("who wrote it is not established"));
 }
 #[test]
 fn historical_test_value_bytes_and_method_remain_unchanged() {

@@ -17,6 +17,57 @@ use std::path::Path;
 
 const PERSON_WORDING: &str = "identity not verified";
 
+#[derive(Clone, Copy, serde::Serialize)]
+#[serde(rename_all = "kebab-case")]
+enum SealPresentation { KeychainVerified, FileKeyVerified, NotVerified, Unavailable, Unsealed, UnsealedRecordedFailure }
+impl SealPresentation {
+    fn sentence(self) -> &'static str {
+        match self {
+            Self::KeychainVerified => "seal verified with your keychain",
+            Self::FileKeyVerified => "sealed with the App's key file, not your keychain",
+            Self::NotVerified => "seal not verified",
+            Self::Unavailable => "seal could not be checked now",
+            Self::Unsealed => "not sealed; the record does not say why",
+            Self::UnsealedRecordedFailure => "not sealed when recorded",
+        }
+    }
+}
+
+fn decision_capture_seal(observed: crate::file_act_view::CaptureRead, corresponds: bool) -> Value {
+    use crate::act_evidence_cause::{ActEvidenceCause as Cause, EvidenceFailure, Standing};
+    let (mut view, presentation) = match observed.result {
+        Ok(_) if corresponds => {
+            let verified = observed.verification.expect("a successful capture observation has its verifying provider");
+            let presentation = match verified.verified_with {
+                crate::capture_seal::SealProvider::Keychain => SealPresentation::KeychainVerified,
+                crate::capture_seal::SealProvider::FileKey => SealPresentation::FileKeyVerified,
+            };
+            (verified.view(), presentation)
+        },
+        result => {
+            let failure = match result {
+                Ok(_) => EvidenceFailure::new(Cause::RecordDiffersFromCapture,
+                    "The decision record differs from its cited capture or named package; recorded decision selection is unchanged."),
+                Err(e) => e,
+            };
+            let recorded_failure = (failure.cause == Cause::NoSeal && corresponds)
+                .then(|| observed.claim.as_ref().and_then(crate::capture_seal::recorded_a16_sealing_failure)).flatten();
+            let presentation = match failure.cause {
+                Cause::NoSeal if recorded_failure.is_some() => SealPresentation::UnsealedRecordedFailure,
+                Cause::NoSeal => SealPresentation::Unsealed,
+                _ if failure.cause.standing() == Standing::ReadLimit => SealPresentation::Unavailable,
+                _ => SealPresentation::NotVerified,
+            };
+            (json!({"status":"not-verified","cause":failure.cause,
+                "standing":if failure.cause.standing() == Standing::Settled {"settled"} else {"read-limit"},
+                "detail":failure.detail,"recordedFailure":recorded_failure}), presentation)
+        },
+    };
+    view["presentation"] = json!(presentation);
+    view["sentence"] = json!(presentation.sentence());
+    view
+}
+
 pub fn person_label(p: &Value) -> String {
     let names: Vec<&str> = ["displayName", "osAccount", "codexAccount", "hostActor"]
         .iter()
@@ -681,18 +732,16 @@ pub fn derive(root: &Path, record_paths: &[&str]) -> Value {
             // Separate observation only: this result changes no eligibility,
             // maxima, ordering or decided selection rule.
             let observed = crate::file_act_view::observe_capture(root, ab);
-            let capture_seal = match observed.result {
-                Ok(capture) if same_subject_scope && capture["actKind"] == "A16" && capture["choice"] == "act"
+            // Only these outcomes passed schema and capture-ID validation. A raw
+            // claim is retained even on schema failure and must not reach act_body.
+            let validated = observed.result.is_ok() || matches!(&observed.result,
+                Err(e) if e.cause == crate::act_evidence_cause::ActEvidenceCause::NoSeal);
+            let corresponds = validated && observed.claim.as_ref().is_some_and(|capture| same_subject_scope && capture["actKind"] == "A16" && capture["choice"] == "act"
                     && capture["requestRef"] == pid && capture["alternativeChosen"] == chosen
                     && capture.get("recordId").is_none_or(|id| id == arid)
-                    && crate::act_control::act_body(&capture) == *ab => observed.verification.map(|v| v.view()).unwrap_or(Value::Null),
-                Ok(_) => {
-                    let e = crate::act_evidence_cause::EvidenceFailure::new(crate::act_evidence_cause::ActEvidenceCause::RecordDiffersFromCapture,
-                        "The decision record differs from its cited capture or named package; recorded decision selection is unchanged.");
-                    json!({"status":"not-verified","cause":e.cause,"standing":"settled","detail":e.detail,"sentence":e.display_sentence()})
-                },
-                Err(e) => json!({"status":"not-verified","cause":e.cause,"standing":if e.cause.standing() == crate::act_evidence_cause::Standing::Settled { "settled" } else { "read-limit" },"detail":e.detail,"sentence":e.display_sentence()}),
-            };
+                    && crate::act_control::act_body(capture) == *ab);
+            let capture_seal = decision_capture_seal(observed, corresponds);
+            let capture_provenance = format!("{}; who wrote it is not established", capture_seal["sentence"].as_str().unwrap());
             let projection = json!({
                 "act": arid,
                 "actKind": ab["actKind"],
@@ -702,7 +751,7 @@ pub fn derive(root: &Path, record_paths: &[&str]) -> Value {
                 "decidedBy": person_label(&ab["decisionActor"]),
                 "recordedBy": format!("{} {}", a["recorder"]["role"].as_str().unwrap_or(""), a["recorder"]["identity"].as_str().unwrap_or("")),
                 "recordingMode": ab["recordingMode"],
-                "captureProvenance": "recorded claim; native capture origin not verified by this unsealed reader",
+                "captureProvenance": capture_provenance,
                 "captureSeal": capture_seal,
                 "captureEvidence": ab["captureEvidence"].as_array().map(|c| c.iter().map(|x| x["ref"].clone()).collect::<Vec<_>>()),
                 "capturedAt": ab["captureTime"],

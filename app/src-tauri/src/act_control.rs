@@ -1461,8 +1461,7 @@ impl ActControl {
             "evidenceLimits": ["identity not verified"],
         });
         if let Err(reason) = crate::capture_seal::seal(&ws, &mut capture) {
-            capture["evidenceLimits"].as_array_mut().unwrap().push(json!(format!(
-                "A16 capture unsealed: {reason}; recorded decision selection is unchanged. This capture will never be sealed later.")));
+            capture["evidenceLimits"].as_array_mut().unwrap().push(json!(crate::capture_seal::a16_unsealed_limit(&reason)));
         }
         crate::schema_validation::validate_capture(&capture)?;
         // The project's records store subtree (RS §13.8); a refusal (store
@@ -2197,6 +2196,8 @@ mod persistence_tests {
             let baseline=row();
             assert_eq!(baseline["state"],"decided", "{baseline}");
             assert_eq!(baseline["decision"]["captureSeal"]["verifiedWith"],provider);
+            assert_eq!(baseline["decision"]["captureSeal"]["presentation"],if provider=="keychain" {"keychain-verified"} else {"file-key-verified"});
+            assert_eq!(baseline["decision"]["captureSeal"]["sentence"],if provider=="keychain" {"seal verified with your keychain"} else {"sealed with the App's key file, not your keychain"});
             let path=crate::storage::capture_path(&root,capture["captureId"].as_str().unwrap()).unwrap();
             let original=std::fs::read(&path).unwrap();
             if provider=="keychain" {
@@ -2205,9 +2206,21 @@ mod persistence_tests {
                 assert_eq!(pending["state"],baseline["state"]);
                 assert_eq!(pending["decision"]["alternativeChosen"],baseline["decision"]["alternativeChosen"]);
                 assert_eq!(pending["decision"]["captureSeal"]["cause"],"KeychainUnavailable");
+                assert_eq!(pending["decision"]["captureSeal"]["presentation"],"unavailable");
+                assert_eq!(pending["decision"]["captureSeal"]["sentence"],"seal could not be checked now");
                 installation.unlock();
                 assert_eq!(row()["decision"]["captureSeal"]["status"],"verified");
             }
+            // Spoil the actual MAC in the persisted capture, through the reader.
+            let mut spoiled=capture.clone();
+            let mut mac=spoiled["seal"]["value"].as_str().unwrap().to_owned();
+            let last=mac.pop().unwrap();mac.push(if last=='0' {'1'} else {'0'});
+            spoiled["seal"]["value"]=json!(mac);
+            std::fs::write(&path,serde_json::to_vec(&spoiled).unwrap()).unwrap();
+            let invalid=row();
+            assert_eq!(invalid["state"],"decided");
+            assert_eq!(invalid["decision"]["captureSeal"]["cause"],"SealInvalid");
+            assert_eq!(invalid["decision"]["captureSeal"]["sentence"],"seal not verified");
             let mut unsealed=capture.clone();
             unsealed.as_object_mut().unwrap().remove("seal");
             unsealed.as_object_mut().unwrap().remove("sealProvider");
@@ -2215,6 +2228,16 @@ mod persistence_tests {
             let observed=row();
             assert_eq!(observed["state"],baseline["state"]);
             assert_eq!(observed["decision"]["captureSeal"]["cause"],"NoSeal");
+            assert_eq!(observed["decision"]["captureSeal"]["sentence"],"not sealed; the record does not say why");
+            assert!(observed["decision"]["captureSeal"]["recordedFailure"].is_null());
+            // English diagnostics and timestamps supply no age or failure standing.
+            unsealed["evidenceLimits"]=json!(["recorded before sealing existed"]);
+            std::fs::write(&path,serde_json::to_vec(&unsealed).unwrap()).unwrap();
+            assert_eq!(row()["decision"]["captureSeal"]["presentation"],"unsealed");
+            let mut malformed=capture.clone();
+            malformed.as_object_mut().unwrap().remove("actor");
+            std::fs::write(&path,serde_json::to_vec(&malformed).unwrap()).unwrap();
+            assert_eq!(row()["decision"]["captureSeal"]["cause"],"CaptureInvalid");
             let mut mismatch=capture.clone();
             mismatch["sealProvider"]=json!(if provider=="file-key" {"keychain"} else {"file-key"});
             std::fs::write(&path,serde_json::to_vec(&mismatch).unwrap()).unwrap();
@@ -2234,6 +2257,14 @@ mod persistence_tests {
         let row=crate::decision_view::derive(&root,&[])["rows"][0].clone();
         assert_eq!(row["state"],"decided");
         assert_eq!(row["decision"]["captureSeal"]["cause"],"NoSeal");
+        assert_eq!(row["decision"]["captureSeal"]["presentation"],"unsealed-recorded-failure");
+        assert_eq!(row["decision"]["captureSeal"]["sentence"],"not sealed when recorded");
+        let recorded_cause=crate::capture_seal::recorded_a16_sealing_failure(&out["capture"]).unwrap();
+        assert_eq!(row["decision"]["captureSeal"]["recordedFailure"],recorded_cause);
+        let path=crate::storage::capture_path(&root,out["capture"]["captureId"].as_str().unwrap()).unwrap();
+        let original=std::fs::read(&path).unwrap();
+        control.recover_pending().unwrap();
+        assert_eq!(std::fs::read(&path).unwrap(),original,"restoration and continuation never seal this decision later");
         std::fs::remove_dir_all(root).unwrap();
     }
     #[test]

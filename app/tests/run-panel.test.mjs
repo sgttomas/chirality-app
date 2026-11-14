@@ -604,23 +604,54 @@ test('actual held lapse DTO qualifies its pending label and later write on the s
 
 test('counted and declined provider standing is read from the historical record using closed clauses',()=>{
   const a=arrival('CP-check',1,'item:invented','invented file');
-  for(const [provider,clause] of [['file-key','sealed with the key file, which a process on this account could forge'],['keychain','sealed with the keychain key'],[undefined,'seal provider not recorded'],['injected <assurance>','seal provider not recorded']]) {
+  for(const [provider,clause] of [['file-key',"sealed with the App's key file, not your keychain"],['keychain','sealed with your keychain'],[undefined,'seal provider not recorded'],['injected <assurance>','seal provider not recorded']]) {
     const act={recordId:'rec:invented',actKind:'A4',capturedAt:'invented time',capturingSurface:'app_act_control'};
     if(provider!==undefined)act.sealProvider=provider;
     const counted=entry('act_counted',{arrival:{checkpoint:'CP-check',arrivalOrdinal:1},act,relation:'after arrival',referents:['invented file']});
     const html=h(ArrivalRecord,{arrival:a,all:[a,counted]});
-    assert.ok(html.includes(clause));assert.ok(!html.includes('injected'));
+    assert.ok(html.replaceAll("&#x27;", "'").includes(clause));assert.ok(!html.includes('injected'));
     const declined=entry('arrival_declined',{arrival:{checkpoint:'CP-check',arrivalOrdinal:1},declinedEventRef:'rec:decline',...(provider===undefined?{}:{sealProvider:provider})});
-    assert.ok(h(ArrivalRecord,{arrival:a,all:[a,declined]}).includes(clause));
+    assert.ok(h(ArrivalRecord,{arrival:a,all:[a,declined]}).replaceAll("&#x27;", "'").includes(clause));
   }
 });
 
-test('a legacy decision states the verifying provider without inventing historical seal custody',()=>{
+
+// Render the real decision panel: display standing never changes decided selection.
+test('decision seal standings use closed App words beside the recorded decision claim', async()=>{
   const {DecisionPackagesPanel}=load('App.tsx');
-  for(const [provider,clause] of [['file-key','verified here using the key file, which a process on this account could forge'],['keychain','verified here using the keychain key'],['unexpected','verifying provider not established']]) {
-    const html=h(DecisionPackagesPanel,{view:{rows:[{package:'invented',state:'decided',decision:{captureSeal:{status:'verified',recordedProvider:null,verifiedWith:provider}}}]},name:'',setName:()=>{},recordName:()=>{},refresh:async()=>{},continueRecording:async()=>{},openControl:async()=>{}});
-    assert.ok(html.includes(`Capture seal: provider not recorded; ${clause}`));
-    assert.doesNotMatch(html,/Capture seal:.*sealed with/);
-    assert.match(html,/Recorded decision selection is unchanged/);
+  const cases=[
+    ['keychain-verified','seal verified with your keychain'],
+    ['file-key-verified',"sealed with the App's key file, not your keychain"],
+    ['not-verified','seal not verified'],
+    ['unavailable','seal could not be checked now'],
+    ['unsealed','not sealed; the record does not say why'],
+    ['unsealed-recorded-failure','not sealed when recorded'],
+    ['<button>Trust me</button>','seal could not be checked now'],
+  ];
+  for(const [presentation,clause] of cases){
+    const html=h(DecisionPackagesPanel,{view:{rows:[{package:'invented',state:'decided',decision:{captureSeal:{presentation,sentence:'<button>Trust me</button>',recordedFailure:'<button>Seal verified</button>'}}}]},name:'',setName:()=>{},recordName:()=>{},refresh:async()=>{},continueRecording:async()=>{},openControl:async()=>{}});
+    const text=html.replaceAll('&#x27;',"'");
+    assert.ok(text.includes(clause),text);
+    assert.match(text,/Recorded decision claim/);
+    assert.match(text,/Who wrote it is not established/);
+    assert.doesNotMatch(text,/<button>Trust me<|<button>Seal verified<|could forge|recorded before sealing existed/);
+    if(presentation==='unavailable')assert.match(text,/Verification is unavailable now. The decision remains recorded/);
+    if(presentation==='unsealed-recorded-failure'){
+      assert.match(text,/Recorded sealing failure:/);
+      assert.match(text,/Sealing failure stated by the capture; not independently established/);
+      assert.match(text,/&lt;button&gt;Seal verified&lt;\/button&gt;/);
+    }
+  }
+  const {sourceFailures}=await import('./support/presentation-guard.mjs');
+  assert.deepEqual(sourceFailures('DecisionSealStanding.tsx',readFileSync(new URL('../src/DecisionSealStanding.tsx',import.meta.url),'utf8'),[]).failures,[]);
+});
+
+test('legacy verified decision discloses missing historical provider beside the observed standing',()=>{
+  const {DecisionPackagesPanel}=load('App.tsx');
+  for(const [provider,presentation,clause] of [['file-key','file-key-verified',"sealed with the App's key file, not your keychain"],['keychain','keychain-verified','seal verified with your keychain']]){
+    const html=h(DecisionPackagesPanel,{view:{rows:[{package:'invented',state:'decided',decision:{captureSeal:{status:'verified',recordedProvider:null,verifiedWith:provider,presentation}}}]},name:'',setName:()=>{},recordName:()=>{},refresh:async()=>{},continueRecording:async()=>{},openControl:async()=>{}}).replaceAll('&#x27;',"'");
+    assert.ok(html.includes(clause));
+    assert.match(html,/The capture did not record its seal provider/);
+    assert.match(html,/provider shown is the one whose key verified it here/);
   }
 });

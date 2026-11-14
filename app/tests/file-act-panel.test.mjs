@@ -144,8 +144,8 @@ test('actual standalone observer DTOs preserve cold intervals and distinguish or
 
 test('publication provider clauses keep recording failure separate from a recorded unsealed act',async()=>{
   for(const [capture,recordDurable,expected,forbidden] of [
-    [{seal:{method:'invented'},sealProvider:'file-key'},true,/Act recorded; sealed with the key file, which a process on this account could forge/,/Act recorded without a seal/],
-    [{seal:{method:'invented'},sealProvider:'keychain'},true,/Act recorded; sealed with the keychain key/,/Act recorded without a seal/],
+    [{seal:{method:'invented'},sealProvider:'file-key'},true,/Act recorded; sealed with the App's key file, not your keychain/,/Act recorded without a seal/],
+    [{seal:{method:'invented'},sealProvider:'keychain'},true,/Act recorded; sealed with your keychain/,/Act recorded without a seal/],
     [{},true,/Act recorded without a seal.*never be sealed later.*perform the act again/,/recording is not established/],
     [{},false,/Capture unsealed; recording is not established/,/Act recorded without a seal/],
     [{seal:{method:'invented'},sealProvider:'untrusted assurance'},false,/Capture published; record not established; seal provider not recorded/,/Act recorded;/],
@@ -157,7 +157,7 @@ test('publication provider clauses keep recording failure separate from a record
       const inputs=view.container.querySelectorAll(n=>n.localName==='input');
       await React.act(()=>{props(inputs[0]).onChange({target:{value:'invented scope'}});props(inputs[1]).onChange({target:{value:'invented purpose'}});});
       await view.press('Select file and freeze preview…');
-      assert.match(view.container.textContent,/Before keychain protection is set up.*process able to write there could forge.*Reading that key is enough/);
+      assert.match(view.container.textContent,/Before keychain protection is set up.*sealed with the App's key file, not your keychain/);
       await view.press('Review native act / decline / cancel…');
       assert.match(view.container.textContent,expected);assert.doesNotMatch(view.container.textContent,forbidden);
     } finally {await view.close();}
