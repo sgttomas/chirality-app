@@ -72,6 +72,7 @@ jobs:
           python -m pytest -q tools/ci/test_execution_layout.py tools/ci/test_nightly_report.py
           python -m pytest -q app/tests/group_b*test.py
           python -m pytest -q app/tests/examination_repin_test.py
+          python -m pytest -q app/examination/session_comparison/test_compare.py
           python -m tools.deliverables --project . check > deliverable-check.json
           python -m unittest tools.test_instruction_resources
           python app/examination/repin.py --check
