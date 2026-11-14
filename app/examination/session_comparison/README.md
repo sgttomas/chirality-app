@@ -96,3 +96,20 @@ python3 -B -m unittest discover -s app/examination/session_comparison -p 'test_*
 Either command takes `--comparison C2`, `C3` or `C4` (all three are always made). `--comparison W1` or `--comparison workflow` is refused: the workflow comparison is not available in this version.
 
 It uses the standard library only and sends nothing anywhere.
+
+## The stub provider, for a conversation through the App
+
+`stub_provider.py` is a loopback Responses provider for the scripted driver's conversation scenario: a run through the App's own start, send, interrupt and quit, with no model and no sign-in, on a test build that is never a candidate. It is development evidence and establishes nothing about any model. It uses the standard library only, listens on 127.0.0.1 only, and forwards nothing.
+
+```sh
+python3 -I app/examination/session_comparison/stub_provider.py --record <root>/record --ready <root>/record/stub-ready.json
+```
+
+- **Ready.** Once listening, on a port the system chooses, it writes the ready file atomically, with `pid`, `port` and `base_url` (`http://127.0.0.1:<port>/v1`). The App is given `base_url` exactly as `CHIRALITY_DEV_OPENAI_BASE_URL`, which reaches the account home's Codex only.
+- **Turns.** Every turn completes with the fixed reply "Invented reply from the stub provider.", unless the last user message of the request carries `STUB-HOLD`. That turn gets `response.created` and is held until the client closes it (an interrupt), the bound passes (`--hold-bound`, 60 s), or the stub stops. It never sends a tool call.
+- **WebSocket.** Codex first tries a WebSocket upgrade on `/v1/responses`. The stub answers 426 (`--websocket-status`), on which Codex 0.167.0 falls back to HTTP for the session at once. That was read in its source and observed once against the pinned binary.
+- **Anything else** gets 404, and is logged as unexpected.
+- **Log.** `record/stub-requests.jsonl` gets one line per request: the time, method, path, disposition and header names. It never holds a body, a prompt or a header value.
+- **Stop.** SIGTERM or SIGINT ends any held stream, writes the last lines and exits 0.
+
+A root the driver made has `record/driver-run.json` (`driver_run` and `test_build` true, the 40-hex `revision`, and the `run`) in place of a launch record, and never beside one. Its header names the driver run and has no candidate key.
