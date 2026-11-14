@@ -12,9 +12,10 @@
 //!
 //! What ties a text to a workflow is its content. The caller names no path;
 //! text is returned only when the files read hash to the revision the person
-//! was shown. Where those files are read from is bounded by the shared snapshot
-//! reader exactly as it is for selecting and running: it refuses a link at the
-//! package folder and inside it, and it follows links in the folders above it.
+//! was shown. Where those files are read from is bounded by the shared package
+//! reader exactly as it is for selecting and running: on macOS its open of the
+//! package folder refuses a link anywhere on the path supplied to it, and
+//! inside the folder every entry is read through the opened folder itself.
 //! Verification also reads the fixed host authorities that selecting reads,
 //! which differ by the kind of selection:
 //! - an included entry, or a chosen installed bundle: the installed
