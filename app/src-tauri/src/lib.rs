@@ -141,6 +141,9 @@ pub struct AppState {
     file_act_lapses: Mutex<file_act_lapse::Observer>,
     decision_writer_status: Mutex<Value>,
     person_name: Mutex<Option<String>>,
+    /// The session's one observation of the operating-system account the App
+    /// runs as ([`util::OS_ACCOUNT`] outside tests).
+    os_account: &'static util::AccountObservation,
     instructions_root: Mutex<Result<PathBuf, String>>,
     app_user_data_root: Mutex<Result<PathBuf, String>>,
     external_observation: Mutex<runtime_session::ExternalObservationSession>,
@@ -917,14 +920,7 @@ fn records_store_import_package(app:tauri::AppHandle,state:State<'_,AppState>,ac
     }
     let project=state.workspace.as_deref().ok_or("no project is open")?;
     let home=state.homes.lock().unwrap().active();
-    let observe=||->Result<(Value,Value),String>{
-        let active=state.homes.lock().unwrap().active();
-        if !Arc::ptr_eq(&active,&home){return Err("Native home selection changed; review again".into());}
-        let (_,observed)=current_actor_context_for(&state,&home);
-        let mut actor=act_control::person(observed["displayName"].as_str(),observed["osAccount"].as_str());
-        if let Some(account)=observed["codexAccount"].as_str(){actor["codexAccount"]=json!(account);}
-        Ok((actor,json!({"observedHome":observed,"modeHomeClass":home.class().as_str()})))
-    };
+    let observe=||records_act_observe(&state,&home);
     let (actor,observed)=observe()?;
     let plan=match action.as_str(){
         "import"|"restore"=>{
@@ -970,13 +966,7 @@ fn records_store_import_package(app:tauri::AppHandle,state:State<'_,AppState>,ac
 fn records_store_retention(app:tauri::AppHandle,state:State<'_,AppState>,action:String)->Result<Value,String>{
     let project=state.workspace.as_deref().ok_or("no project is open")?;
     let home=state.homes.lock().unwrap().active();
-    let observe=||->Result<(Value,Value),String>{
-        let active=state.homes.lock().unwrap().active();if !Arc::ptr_eq(&active,&home){return Err("Native home selection changed; review again".into());}
-        let (_,observed)=current_actor_context_for(&state,&home);
-        let mut actor=act_control::person(observed["displayName"].as_str(),observed["osAccount"].as_str());
-        if let Some(account)=observed["codexAccount"].as_str(){actor["codexAccount"]=json!(account);}
-        Ok((actor,json!({"observedHome":observed,"modeHomeClass":home.class().as_str()})))
-    };
+    let observe=||records_act_observe(&state,&home);
     if action=="close" {
         let links=state.native_links.try_lock().map_err(|_|"Native relationship recording is pending")?;
         if links.has_pending(){return Err("Native relationship records are still pending; wait for their recording before closing the project".into());}
@@ -2103,7 +2093,7 @@ fn conversation_interrupt(
 fn quit_person(state: &AppState) -> String {
     let name = state.person_name.lock().unwrap().clone();
     // Looked at, never waited for (P12): absent, the quit records no account.
-    let actor = act_control::person(name.as_deref(), util::OS_ACCOUNT.observed().as_deref());
+    let actor = act_control::person(name.as_deref(), state.os_account.observed().as_deref());
     let line = act_control::native_statement::actor_line(&actor);
     line.strip_suffix(" (identity not verified)").unwrap_or(&line).to_owned()
 }
@@ -2264,11 +2254,49 @@ fn current_actor_context_for(state: &AppState, home: &runtime_session::HomeSessi
     let name = state.person_name.lock().unwrap().clone();
     // Looked at, never waited for: Stop and the ordinary acts record no
     // account where the session's read has not finished.
-    let os = util::OS_ACCOUNT.observed();
+    let os = state.os_account.observed();
     let mut runtime = home.runtime.lock().unwrap();
     let (observation, _) = runtime.receive_native(&home.host);
     let context = runtime.actor_context(&observation, name.as_deref(), os.as_deref());
     (observation["snapshot"].clone(), context)
+}
+/// The actor context of an ordinary act. An act whose actor would carry none
+/// of the name set in the App, the operating-system account, the Codex account
+/// or a host actor requires the account: decided from the context in hand,
+/// with no lookup or wait of its own, it then waits for the session's read
+/// within [`util::ACCOUNT_WAIT_LIMIT`], holding nothing, and is otherwise
+/// refused with [`util::ACCOUNT_NOT_YET_READ`]. The account is put in the
+/// context itself, so a later observation of the same act, made after the read
+/// has finished, matches it.
+fn act_actor_context_for(state: &AppState, home: &runtime_session::HomeSession) -> Result<(Value, Value), String> {
+    let (snapshot, mut context) = current_actor_context_for(state, home);
+    require_actor_identifier(state.os_account, &mut context)?;
+    Ok((snapshot, context))
+}
+fn require_actor_identifier(account: &'static util::AccountObservation, context: &mut Value) -> Result<(), String> {
+    let carried = |key: &str| context[key].as_str().is_some_and(|value| !value.is_empty());
+    if ["displayName", "osAccount", "codexAccount", "hostActor"].into_iter().any(carried) { return Ok(()); }
+    let read = account.within(util::ACCOUNT_WAIT_LIMIT).ok_or(util::ACCOUNT_NOT_YET_READ)?;
+    if let Some(name) = read { context["osAccount"] = json!(name); }
+    Ok(())
+}
+/// The actor and context of a records-store act (import, restore, resume,
+/// repair and the retention acts), observed for the active home.
+fn records_act_observe(state: &AppState, home: &Arc<runtime_session::HomeSession>) -> Result<(Value, Value), String> {
+    let active = state.homes.lock().unwrap().active();
+    if !Arc::ptr_eq(&active, home) { return Err("Native home selection changed; review again".into()); }
+    let (_, observed) = act_actor_context_for(state, home)?;
+    let mut actor = act_control::person(observed["displayName"].as_str(), observed["osAccount"].as_str());
+    if let Some(account) = observed["codexAccount"].as_str() { actor["codexAccount"] = json!(account); }
+    Ok((actor, json!({"observedHome":observed,"modeHomeClass":home.class().as_str()})))
+}
+/// The actor and context of a decision, observed for the active home.
+fn decide_actor(state: &AppState) -> Result<(Value, Value), String> {
+    let home = state.homes.lock().unwrap().active();
+    let (_, context) = act_actor_context_for(state, &home)?;
+    let mut actor = act_control::person(context["displayName"].as_str(), context["osAccount"].as_str());
+    if let Some(account) = context["codexAccount"].as_str() { actor["codexAccount"] = json!(account); }
+    Ok((actor, context))
 }
 
 /// No actor, origin, rule name or error path is exposed to the webview.
@@ -2285,7 +2313,7 @@ fn answer_native_request(
         &generation,
         &request_id,
         &answer,
-        || current_actor_context_for(&state, &home),
+        || act_actor_context_for(&state, &home),
         |statement| native_request_answer::confirm(&window, statement),
         |actor| home.host.answer_server_request(
             &generation,
@@ -2594,16 +2622,17 @@ fn workflow_create_draft(state:State<'_,AppState>,name:String,context:workflow_s
 #[tauri::command]
 fn workflow_refine_registered(state:State<'_,AppState>,name:String,revision:String)->Result<Value,String>{state.workflows.lock().unwrap().refine_registered(&name,&revision)}
 #[tauri::command]
-fn workflow_review(state:State<'_,AppState>,names:Vec<String>,in_place:bool)->Result<Value,String>{
+fn workflow_review(state:State<'_,AppState>,names:Vec<String>,in_place:bool)->Result<Value,String>{workflow_review_of(&state,names,in_place)}
+fn workflow_review_of(state:&AppState,names:Vec<String>,in_place:bool)->Result<Value,String>{
     let home=state.homes.lock().unwrap().active();state.validate_home_source(&home)?;
-    let (_,context)=current_actor_context_for(&state,&home);
+    let (_,context)=act_actor_context_for(state,&home)?;
     state.workflows.lock().unwrap().begin_review(home,context,names,in_place)
 }
 fn workflow_review_observe(state:&AppState,home:&Arc<runtime_session::HomeSession>,library:&Arc<runtime_session::WorkflowLibraryContext>,review_ref:&str,original:&Value)->Result<(Value,Value),String>{
     let active=state.homes.lock().unwrap().active();if !Arc::ptr_eq(&active,home){return Err("Original review home selection changed; nothing captured, review again".into());}
     state.validate_home_source(home)?;storage::check_path(&library.root)?;
     {let root=state.workflows.lock().unwrap();if root.active_library.as_deref()!=Some(library.reference.as_str())||root.active_review.as_deref()!=Some(review_ref){return Err("Original library/review selection changed; no retarget".into());}}
-    let (_,observed)=current_actor_context_for(state,home);
+    let (_,observed)=act_actor_context_for(state,home)?;
     if observed!=*original{return Err("Original observed actor/home context changed since review; review again".into());}
     let mut actor=act_control::person(observed["displayName"].as_str(),observed["osAccount"].as_str());
     if let Some(account)=observed["codexAccount"].as_str(){actor["codexAccount"]=json!(account);}
@@ -2823,14 +2852,7 @@ fn decide(
     offer_id: String,
     alternative: String,
 ) -> Result<Value, String> {
-    let (_, context) = current_actor_context(&state);
-    let mut actor = act_control::person(
-        context["displayName"].as_str(),
-        context["osAccount"].as_str(),
-    );
-    if let Some(account) = context["codexAccount"].as_str() {
-        actor["codexAccount"] = json!(account);
-    }
+    let (actor, context) = decide_actor(&state)?;
     let mut g = state.act.lock().unwrap();
     let ac = g.as_mut().ok_or("CHIRALITY_WORKSPACE is not set")?;
     let statement = ac.confirmation_statement(&offer_id, &alternative, &actor)?;
@@ -2875,7 +2897,7 @@ fn file_act_observe(state:&AppState, home:&Arc<runtime_session::HomeSession>) ->
     // A file act records the account and requires it: it waits for the
     // session's read within a bound, holding nothing, and is otherwise refused.
     // A read that finished with no name keeps the file act's own refusal.
-    let os=util::OS_ACCOUNT.within(util::ACCOUNT_WAIT_LIMIT).ok_or(util::ACCOUNT_NOT_YET_READ)?;
+    let os=state.os_account.within(util::ACCOUNT_WAIT_LIMIT).ok_or(util::ACCOUNT_NOT_YET_READ)?;
     let mut runtime=home.runtime.try_lock().map_err(|_|"Actor observation busy; review again")?;
     let (observed, _)=runtime.receive_native(&home.host);
     let current=runtime.actor_context(&observed,name.as_deref(),os.as_deref());
@@ -3138,6 +3160,7 @@ fn freeze_startup_state(launch: desktop_startup::Launch, desktop: Arc<Mutex<desk
         decision_writer_status: Mutex::new(json!({"state":"not-run","responsibility":"decision record writer continuation"})),
         workspace: workspace.clone(),
         person_name: Mutex::new(None),
+        os_account: &util::OS_ACCOUNT,
         instructions_root: Mutex::new(Err("App instruction root not initialized".into())),
         app_user_data_root: Mutex::new(Err("App user-data root not initialized".into())),
         external_observation: Mutex::new(runtime_session::ExternalObservationSession::default()),
@@ -3543,13 +3566,15 @@ mod host_status_tests {
 #[cfg(all(test,unix))]
 mod workflow_root_context_tests {
     use super::*;
-    pub(super) fn fixture()->(PathBuf,AppState,Arc<runtime_session::HomeSession>,Arc<runtime_session::WorkflowLibraryContext>,String,Value){
+    pub(super) fn fixture()->(PathBuf,AppState,Arc<runtime_session::HomeSession>,Arc<runtime_session::WorkflowLibraryContext>,String,Value){fixture_with(util::AccountObservation::finished(None))}
+    /// The fixture with the given observation of the operating-system account.
+    pub(super) fn fixture_with(os_account:&'static util::AccountObservation)->(PathBuf,AppState,Arc<runtime_session::HomeSession>,Arc<runtime_session::WorkflowLibraryContext>,String,Value){
         let root=std::fs::canonicalize(std::env::temp_dir()).unwrap().join(util::opaque_id("workflow-context-").unwrap());std::fs::create_dir(&root).unwrap();
         let home=Arc::new(runtime_session::HomeSession::new(home_resources::HomeClass::Account,Arc::new(Host::new()),Err("no supplier; offline registration allowed".into())).unwrap());
         let control=Arc::new(Mutex::new(Some(ActControl::new(&root))));
         let mut workflows=runtime_session::WorkflowRootSession::default();workflows.open_library(root.clone(),"project",Some(&root),control.clone()).unwrap();
         let library=workflows.active_library().unwrap();
-        let state=AppState{desktop_setup:None,endpoint_edits:Arc::new(Mutex::new(Default::default())),compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),file_act_lapses:Mutex::new(file_act_lapse::Observer::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),role_log:role_observations::RoleLog::open(&root).map(Arc::new),native_links:Mutex::new(native_conversation_links::Session::default()),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),key_hold:Mutex::new(None),local_credentials:Default::default(),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new()),continue_as:Mutex::new(Default::default()),app_quit:Default::default(),delegation_reconciliation:Mutex::new(Value::Null)};
+        let state=AppState{desktop_setup:None,endpoint_edits:Arc::new(Mutex::new(Default::default())),compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),file_act_lapses:Mutex::new(file_act_lapse::Observer::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),os_account,instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),role_log:role_observations::RoleLog::open(&root).map(Arc::new),native_links:Mutex::new(native_conversation_links::Session::default()),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),key_hold:Mutex::new(None),local_credentials:Default::default(),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new()),continue_as:Mutex::new(Default::default()),app_quit:Default::default(),delegation_reconciliation:Mutex::new(Value::Null)};
         let (_,context)=current_actor_context_for(&state,&home);
         let package=root.join(workflow_workspace::development_catalog::NAME);std::fs::create_dir(&package).unwrap();
         let catalog=workflow_workspace::development_catalog::DevelopmentCatalog::load().unwrap();for(name,bytes)in catalog.select_embedded().snapshot().files(){std::fs::write(package.join(name),bytes).unwrap();}

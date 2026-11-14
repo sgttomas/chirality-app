@@ -91,7 +91,7 @@ fn unavailable_parent_refuses_before_dialog_or_reply() {
         &g,
         &id,
         &a,
-        || (basis[0].clone(), basis[1].clone()),
+        || Ok((basis[0].clone(), basis[1].clone())),
         |_| {
             let _parent = checked_parent(&UnavailableParent)?;
             shown.set(true);
@@ -118,7 +118,7 @@ fn affirmative_parent_revalidation_error_refuses_before_reply() {
         &g,
         &id,
         &a,
-        || (basis[0].clone(), basis[1].clone()),
+        || Ok((basis[0].clone(), basis[1].clone())),
         |_| result_in_parent(&UnavailableParent, affirmative()),
         |_| {
             written.set(true);
@@ -141,7 +141,7 @@ fn unavailable_display_refuses_before_presentation_or_reply() {
         &g,
         &id,
         &a,
-        || (basis[0].clone(), basis[1].clone()),
+        || Ok((basis[0].clone(), basis[1].clone())),
         |_| {
             let _parent = checked_parent(&original)?;
             panic!("unavailable display presented a dialog");
@@ -174,7 +174,7 @@ fn default_cancel_abort_and_nonexact_affirmatives_never_reply() {
             &a,
             || {
                 reads.set(reads.get() + 1);
-                (basis[0].clone(), basis[1].clone())
+                Ok((basis[0].clone(), basis[1].clone()))
             },
             |_| result_in_parent(&UnavailableParent, result),
             |_| panic!("nonaffirmative wrote a reply"),
@@ -199,7 +199,7 @@ fn exact_affirmative_revalidates_original_request_and_preserves_native_reply_out
         &a,
         || {
             reads.set(reads.get() + 1);
-            (basis[0].clone(), basis[1].clone())
+            Ok((basis[0].clone(), basis[1].clone()))
         },
         |statement| {
             assert!(statement.text.contains("item/fileChange/requestApproval"));
@@ -245,7 +245,7 @@ fn changed_original_generation_or_request_refuses_after_confirmation() {
             &a,
             || {
                 let original = original.borrow();
-                (original[0].clone(), original[1].clone())
+                Ok((original[0].clone(), original[1].clone()))
             },
             |_| {
                 let mut original = original.borrow_mut();
@@ -286,7 +286,7 @@ fn changed_actor_or_owning_context_refuses_after_confirmation() {
             &a,
             || {
                 let original = original.borrow();
-                (original[0].clone(), original[1].clone())
+                Ok((original[0].clone(), original[1].clone()))
             },
             |_| {
                 original.borrow_mut()[1][field] = json!("changed");
@@ -305,7 +305,7 @@ fn invalid_initial_request_never_presents_or_writes_and_write_errors_stay_errors
         &g,
         &json!("foreign"),
         &a,
-        || (basis[0].clone(), basis[1].clone()),
+        || Ok((basis[0].clone(), basis[1].clone())),
         |_| panic!("invalid request presented"),
         |_| panic!("invalid request wrote")
     )
@@ -316,7 +316,7 @@ fn invalid_initial_request_never_presents_or_writes_and_write_errors_stay_errors
             &g,
             &id,
             &a,
-            || (basis[0].clone(), basis[1].clone()),
+            || Ok((basis[0].clone(), basis[1].clone())),
             |_| Ok(affirmative()),
             |_| Err(error.into())
         )

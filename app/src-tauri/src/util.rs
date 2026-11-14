@@ -92,6 +92,14 @@ impl AccountObservation {
     pub(crate) const fn new(read: fn() -> Option<String>) -> Self {
         Self { read, started: std::sync::atomic::AtomicBool::new(false), value: std::sync::Mutex::new(None), ready: std::sync::Condvar::new() }
     }
+    /// An observation whose read has already finished, for tests.
+    #[cfg(test)]
+    pub(crate) fn finished(read: Option<&str>) -> &'static Self {
+        let observation: &'static Self = Box::leak(Box::new(Self::new(|| None)));
+        observation.started.store(true, std::sync::atomic::Ordering::SeqCst);
+        *observation.value.lock().unwrap() = Some(read.map(str::to_owned));
+        observation
+    }
     /// Starts the read on its own thread, once; false where it could not start.
     pub(crate) fn start(&'static self) -> bool {
         if self.started.swap(true, std::sync::atomic::Ordering::SeqCst) { return true; }

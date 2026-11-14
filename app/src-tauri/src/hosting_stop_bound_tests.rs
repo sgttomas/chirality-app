@@ -1777,3 +1777,129 @@ fn the_account_observation_is_never_waited_for_except_by_an_act_that_requires_it
     assert_eq!(quick_read.within(Duration::from_secs(3)), Some(Some("invented-account".into())), "the read is started by the act, on its own thread, and waited for");
     assert_eq!(quick_read.observed().as_deref(), Some("invented-account"), "one observation for the session");
 }
+
+/// The ordinary acts whose actor would carry none of the name set in the App,
+/// the operating-system account, the Codex account or a host actor require the
+/// account: each waits for the session's read within its bound and is
+/// otherwise refused with the sentence, writing nothing; with the read
+/// completing in time, its actor carries the account and is a valid RS person.
+mod an_act_with_no_other_identifier {
+    use super::*;
+    use crate::util::{AccountObservation, ACCOUNT_NOT_YET_READ, ACCOUNT_WAIT_LIMIT};
+    fn stalled() -> Option<String> { std::thread::sleep(Duration::from_secs(60)); Some("never".into()) }
+    fn quick() -> Option<String> { std::thread::sleep(Duration::from_millis(200)); Some("invented-account".into()) }
+    fn observation(read: fn() -> Option<String>) -> &'static AccountObservation {
+        let observation: &'static AccountObservation = Box::leak(Box::new(AccountObservation::new(read)));
+        assert!(observation.start());
+        observation
+    }
+    /// Every file under the project, with its bytes: what an act wrote, if anything.
+    fn written(root: &std::path::Path) -> std::collections::BTreeMap<PathBuf, Vec<u8>> {
+        let mut files = std::collections::BTreeMap::new();
+        let mut folders = vec![root.to_path_buf()];
+        while let Some(folder) = folders.pop() {
+            for entry in std::fs::read_dir(&folder).unwrap().flatten() {
+                let path = entry.path();
+                if entry.file_type().unwrap().is_dir() { folders.push(path) } else { files.insert(path.clone(), std::fs::read(&path).unwrap()); }
+            }
+        }
+        files
+    }
+    /// The RS person definition, from the record schema the App writes against.
+    fn valid_person(actor: &Value) {
+        let (_, text) = crate::schema_validation::RESOURCES.iter().find(|(name, _)| *name == "RS_RECORD.schema.json").unwrap();
+        let schema: Value = serde_json::from_str(text).unwrap();
+        let validator = jsonschema::validator_for(&schema["$defs"]["person"]).unwrap();
+        assert!(validator.is_valid(actor), "an RS person: {actor}");
+        assert_eq!(actor["osAccount"], "invented-account", "{actor}");
+    }
+    /// The act was refused at the bound, with the sentence.
+    fn refused_at_the_bound<T: std::fmt::Debug>(act: impl FnOnce() -> Result<T, String>) {
+        let begin = Instant::now();
+        let result = act();
+        let took = begin.elapsed();
+        assert_eq!(result.unwrap_err(), ACCOUNT_NOT_YET_READ);
+        assert!(took >= ACCOUNT_WAIT_LIMIT && took < ACCOUNT_WAIT_LIMIT + SLACK, "{took:?}");
+    }
+
+    #[test]
+    fn the_records_store_import_and_retention_acts() {
+        let (root, state, home, ..) = crate::workflow_root_context_tests::fixture_with(observation(stalled));
+        let before = written(&root);
+        refused_at_the_bound(|| crate::records_act_observe(&state, &home));
+        assert_eq!(written(&root), before, "nothing written");
+        // A name set in the App is an identifier: no wait, and no account recorded.
+        *state.person_name.lock().unwrap() = Some("Invented Person".into());
+        let begin = Instant::now();
+        let (actor, _) = crate::records_act_observe(&state, &home).unwrap();
+        assert!(begin.elapsed() < Duration::from_millis(500) && actor.get("osAccount").is_none(), "{actor}");
+        std::fs::remove_dir_all(root).unwrap();
+
+        let (root, state, home, ..) = crate::workflow_root_context_tests::fixture_with(observation(quick));
+        let (actor, observed) = crate::records_act_observe(&state, &home).unwrap();
+        valid_person(&actor);
+        assert_eq!(crate::records_act_observe(&state, &home).unwrap().1, observed, "the act's second observation matches its first");
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn workflow_review() {
+        let (root, state, home, library, reference, _) = crate::workflow_root_context_tests::fixture_with(observation(stalled));
+        let reviews = state.workflows.lock().unwrap().reviews.len();
+        let before = written(&root);
+        refused_at_the_bound(|| crate::workflow_review_of(&state, vec!["coordinated-knowledge-work".into()], false));
+        assert_eq!(state.workflows.lock().unwrap().reviews.len(), reviews, "no review begun");
+        let unidentified = crate::current_actor_context_for(&state, &home).1;
+        refused_at_the_bound(|| crate::workflow_review_observe(&state, &home, &library, &reference, &unidentified));
+        assert_eq!(written(&root), before, "nothing written");
+        std::fs::remove_dir_all(root).unwrap();
+
+        // The read completes within the bound: the review's context carries the
+        // account, and the observation at its native confirmation matches it.
+        let (root, state, home, library, _, _) = crate::workflow_root_context_tests::fixture_with(observation(quick));
+        crate::workflow_review_of(&state, vec!["coordinated-knowledge-work".into()], false).unwrap();
+        let reference = state.workflows.lock().unwrap().active_review.clone().unwrap();
+        let original = state.workflows.lock().unwrap().reviews.get(&reference).unwrap().lock().unwrap().home_context.clone();
+        assert_eq!(original["osAccount"], "invented-account");
+        let (actor, _) = crate::workflow_review_observe(&state, &home, &library, &reference, &original).unwrap();
+        valid_person(&actor);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn decide() {
+        let (root, state, ..) = crate::workflow_root_context_tests::fixture_with(observation(stalled));
+        let before = written(&root);
+        refused_at_the_bound(|| crate::decide_actor(&state));
+        assert_eq!(written(&root), before, "nothing written");
+        std::fs::remove_dir_all(root).unwrap();
+
+        let (root, state, ..) = crate::workflow_root_context_tests::fixture_with(observation(quick));
+        let (actor, context) = crate::decide_actor(&state).unwrap();
+        valid_person(&actor);
+        assert_eq!(crate::current_actor_context(&state).1, context, "decide's observation after its confirmation matches");
+        std::fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn a_native_request_answer() {
+        let (root, state, home, ..) = crate::workflow_root_context_tests::fixture_with(observation(stalled));
+        let (mut confirmed, mut sent) = (false, false);
+        refused_at_the_bound(|| crate::native_request_answer::answer(&json!({}), &json!(1), &json!({}), || crate::act_actor_context_for(&state, &home), |_| { confirmed = true; Err("not shown".into()) }, |_| { sent = true; Ok(Value::Null) }));
+        assert!(!confirmed && !sent, "nothing shown and nothing sent");
+        std::fs::remove_dir_all(root).unwrap();
+
+        // The read completes within the bound: the answer's actor carries the
+        // account. (This fixture has no live request, so the answer stops at its
+        // preview; what it would send is the actor shown here.)
+        let (root, state, home, ..) = crate::workflow_root_context_tests::fixture_with(observation(quick));
+        let mut actor = None;
+        let result = crate::native_request_answer::answer(&json!({}), &json!(1), &json!({}), || { let observed = crate::act_actor_context_for(&state, &home)?; actor = Some(observed.1.clone()); Ok(observed) }, |_| Err("not shown".into()), |_| Ok(Value::Null));
+        assert_ne!(result.unwrap_err(), ACCOUNT_NOT_YET_READ);
+        let context = actor.unwrap();
+        assert_eq!(context["osAccount"], "invented-account");
+        let reference = crate::runtime_session::actor_reference(context["displayName"].as_str(), context["osAccount"].as_str(), context["codexAccount"].as_str());
+        assert!(reference.contains("/ invented-account /"), "{reference}");
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
