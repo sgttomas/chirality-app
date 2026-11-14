@@ -387,7 +387,7 @@ test('decision reads are ordered: an older reply never restores a package a newe
   assert.equal(source.match(/invoke(<[^>]*>)?\("decision_view"\)/g).length, 1, 'one place reads decision_view');
 });
 
-test('a failed manual refresh of the fleet records keeps the returns the list showed, and says it is as of the earlier read', async () => {
+test('a failed manual refresh of the fleet records keeps the returns the list showed, as last seen with their time, and does not count them', async () => {
   let fail = false;
   const fleetPacket = () => fail ? Promise.reject(new Error('invented fleet read failure')) : fleet();
   await mountApp(async ({c, run}) => {

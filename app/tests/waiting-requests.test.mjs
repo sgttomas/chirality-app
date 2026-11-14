@@ -51,7 +51,7 @@ test('actual two-home Host requests remain visible in the App overview after sel
     await React.act(async()=>props(find(container,'button','Use account home')).onClick());
     assert.match(container.textContent,/Selected home: account\./);
     const place=container.querySelectorAll(node=>node.getAttribute('aria-label')==='Waiting on you')[0];
-    assert.match(place.querySelectorAll(node=>node.localName==='summary')[0].textContent,/^Waiting on you: 4\+ \(4 requests from Codex; not every source read\)$/,'(this harness reads no returns, so "+") the inactive retained key request is counted alongside the active account requests, in the one count');
+    assert.match(place.querySelectorAll(node=>node.localName==='summary')[0].textContent,/^Waiting on you: 4 observed now \(4 requests from Codex\); status incomplete$/,'(this harness reads no returns, so the count is not definite) the inactive retained key request is counted alongside the active account requests, in the one count');
     assert.match(indicator().textContent,/Requests from Codex waiting for your answer, by home and conversation/);
     assert.match(indicator().textContent,/account.*shared-thread.*2/);
     assert.match(indicator().textContent,/api-key.*shared-thread.*1/);
