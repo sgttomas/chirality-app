@@ -320,3 +320,24 @@ test('a recorded dump is marked, with a plain label true of App-only and mixed d
   assert.doesNotMatch(raw, /‮/, 'a direction override inside JSON is shown as a mark, not passed through');
   assert.match(agentPlain(raw), /&quot;cause&quot;: &quot;ended ‹U\+202E›by the person&quot;/);
 });
+
+// ---- The sweep: guard 2's own behaviour ----
+test('guard 2 passes only App-made forms or listed exceptions, and fails a form it has never seen', async () => {
+  const {findings, appMade} = await import('./support/controls-guard.mjs');
+  const judge = source => findings('Invented.tsx', source).map(f => ({where: f.where, expr: f.expr, ok: !!(f.node && appMade(f.node))}));
+  // App-made: literals, choices between them, counts, index arithmetic, the App-word helpers.
+  assert.deepEqual(judge('const x = <button>{busy ? "Reading…" : "Read"} {rows.length} {i + 1} {idWords(row.id)}</button>;').map(f => f.ok), [true, true, true, true, true], 'each branch of a choice is judged on its own');
+  assert.deepEqual(judge('const x = <summary>{`Trial ${n} of ${count(rows.length, "draft", "drafts")}`}</summary>;').map(f => f.ok), [true]);
+  // A supplied value in a control or a naming attribute fails.
+  assert.deepEqual(judge('const x = <button>{agent.text}</button>;'), [{where: '<button>', expr: 'agent.text', ok: false}]);
+  assert.deepEqual(judge('const x = <div aria-label={`Run ${run.name}`} />;'), [{where: '@aria-label', expr: '`Run ${run.name}`', ok: false}]);
+  // An invented form the guard has never seen fails: it is not let through for want of a rule against it.
+  assert.deepEqual(judge('const x = <option>{new Proxy(target, handler)}</option>;').map(f => f.ok), [false]);
+  assert.deepEqual(judge('const x = <label>{await import("x")}</label>;').map(f => f.ok), [false]);
+  assert.deepEqual(judge('const x = <a>{tagged`words`}</a>;').map(f => f.ok), [false]);
+  // A component inside a control fails unless listed, since it draws into the control's name.
+  assert.deepEqual(judge('const x = <summary>Reasoning <AgentText value={v} /></summary>;'), [{where: '<summary>', expr: '<AgentText>', ok: false}]);
+  // A map of options is checked option by option; a condition is never taken for shown text.
+  assert.deepEqual(judge('const x = <label>Pick <select>{rows.map(r => <option key={r.id}>{r.title}</option>)}</select></label>;'), [{where: '<option>', expr: 'r.title', ok: false}]);
+  assert.deepEqual(judge('const x = <button>{a === b && "Chosen"}</button>;').map(f => f.ok), [true]);
+});

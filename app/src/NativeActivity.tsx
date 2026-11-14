@@ -1,5 +1,5 @@
 import { Component, useEffect, useImperativeHandle, useRef, useState, type ReactNode, type Ref } from "react";
-import { AgentText, type AgentTextSource, plainId } from "./AgentText";
+import { AgentText, type AgentTextSource, plainId, idWords } from "./AgentText";
 type Json = any;
 
 // Readable presentation of the host's native view (DEL-01-03 §5–§7; messages
@@ -132,8 +132,6 @@ function Id({ value }: { value: Json }) {
   const id = plainId(value);
   return id !== null ? <>{id}</> : value === null || value === undefined || value === "" ? <>not reported</> : <AgentText value={text(value)} source="codex" label="Identity:" name="Identity as Codex reported it, not the App's words" />;
 }
-/** The same for a control's own words, which cannot hold a box. */
-const idWords = (value: Json) => plainId(value) ?? "with an identity that is not a plain identifier";
 // Native fields are interpolated through text() so an off-schema value from a
 // different supplier shows as JSON instead of breaking the whole view.
 function text(value: Json): string {
