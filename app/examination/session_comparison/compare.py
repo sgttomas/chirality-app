@@ -7,59 +7,73 @@ input.
 Codex's record is the session file Codex writes under its home
 (`sessions/YYYY/MM/DD/rollout-<UTC time>-<threadId>.jsonl`). It is read only
 inside an examination root (a folder the examination launcher made: `home/`,
-`project/`, `record/`), never the owner's Codex home or any other. It is never
-copied: each output row carries only identifiers, statuses, line numbers and
-digests, never message or output text, so a lane acts on the rows without
-opening the record.
-
-The App's account is read three ways:
-  - views: a saved `host_status` answer (`host-status-<checkpoint>.json`), where
-    the build can save one; on a candidate, which cannot, the tool writes the
-    list of what the screen must be found to say instead (`screen-list-<UTC>.jsonl`),
-    for the operator to answer row by row (`answers` below);
-  - the recovery ledger (SQLite, read-only): stop requests;
-  - the workflow records (WR `run_text`).
+`project/`, `record/`), never the owner's Codex home or any other, and never
+copied.
 
 The claim: a row says passed only when both sides were read, were identified as
 the same subject by an identifier and not by position, and agree; every other
 case is failed, inconclusive, blocked or not run; every planned comparison
 yields at least one row; and no row carries message or output text.
 
-Comparisons:
-  C2  turns, both ways (views)
-  C3  each turn's outcome (views)
-  C4  each interrupt the App recorded (ledger)
-  W1  the selected workflow's bytes (bundled manifest, run_text record, Codex)
-Standard library only; nothing is sent anywhere.
+How it holds:
+  - A strict model. The session file's bytes are read once; their digest and
+    the model are made from those same bytes. Every line must be a session
+    line, the first must name this thread and the pinned Codex version, and
+    every turn event must carry a turn identity; otherwise every comparison
+    is blocked. A turn whose events are not one start and at most one end is
+    not one reading, and is never compared as agreeing.
+  - Values by allowlist. Every value written into a row is from a closed set,
+    or an identifier, a digest or a number of its pattern; anything else is
+    written as "unrecognised", which never passes and is counted apart.
+    Reasons are the tool's own sentences. No text from any input reaches a row.
+  - The workflow check by unique identity: exactly one person message whose
+    first part is the run's text, and exactly one record with that text.
+  - A candidate's result comes whole from `answers`, which derives the screen
+    list again from the session file as it is then, takes only the answers to
+    items it derives identically, and computes C4 and W1 from the same bytes.
+  - Nothing ends without rows: after the root is admitted, any refusal or
+    failure writes blocked rows for every planned comparison, naming at most
+    the kind of failure.
+
+Comparisons: C2 turns (both ways), C3 each turn's outcome, C4 each interrupt the
+App recorded, W1 the selected workflow's bytes. Standard library only; nothing
+is sent anywhere.
 """
 import argparse
 import hashlib
 import json
 import os
 import re
+import secrets
 import sqlite3
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
+MODEL_VERSION = 'session-comparison-model/1'
+# The Codex version whose session file layout this model was written against.
+PINNED_CODEX = '0.167.0'
+TOOL = 'app/examination/session_comparison/compare.py'
+PLANNED = ('C2', 'C3', 'C4', 'W1')
 OUTCOMES = ('passed', 'failed', 'blocked', 'not run', 'inconclusive')
 TERMINAL = ('completed', 'failed', 'interrupted')
-# What a saved view's turn status may be (the native TurnStatus), and what a
-# stop request's turnOutcome may be (recovery.stop-request schema).
 VIEW_STATUSES = ('inProgress', 'completed', 'failed', 'interrupted')
 STOP_OUTCOMES = ('pending', 'interrupted', 'completed', 'failed', 'unknown')
-# Codex's own end readings that no App reading can be compared with.
-UNCOMPARABLE = ('started more than once', 'ended without a start', 'ended more than once', 'malformed end')
-# The tag Codex 0.167.0 gives the person's own text; its other user-role
-# messages (environment context, abort notice) are not the person's input.
-PERSON = 'user.text'
+STOP_STATES = ('requested', 'sent', 'not-sent', 'accepted', 'refused', 'settled', 'outcome-unknown', 'outcome-recovered', 'send-unknown')
+OUTCOME_SOURCES = ('observed', 'recovered-from-supplier', 'not-observed')
+ABORT_REASONS = ('interrupted', 'replaced', 'review_ended', 'budget_limited')
+UNRECOGNISED = 'unrecognised'
 EXACT = 'chirality.app.exact-bytes.sha256/v1'
-MARKER = re.compile(r'<<<chirality-workflow (?P<name>[^\s@]+)@(?P<rev>[0-9a-f]{12}) begin>>>\n')
-TOOL = 'app/examination/session_comparison/compare.py'
+ID = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._:@-]{0,159}$')
+HEX64 = re.compile(r'^[0-9a-f]{64}$')
+MARKER = re.compile(r'<<<chirality-workflow ')
+START_EVENTS = ('task_started', 'turn_started')
+END_EVENTS = ('task_complete', 'turn_complete', 'turn_aborted')
 
 
 class Refused(Exception):
-    """A side that cannot be read: its comparisons are blocked, with this reason."""
+    """A side that cannot be read: its comparisons are blocked, with this reason
+    (always one of the tool's own sentences)."""
 
 
 def sha256(data):
@@ -70,8 +84,41 @@ def tool_digest():
     return sha256(Path(__file__).read_bytes())
 
 
-def now_stamp():
-    return datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+# --- Values by allowlist -------------------------------------------------------
+
+def ident(value):
+    return value if isinstance(value, str) and ID.match(value) else UNRECOGNISED
+
+
+def digest(value):
+    return value if isinstance(value, str) and HEX64.match(value) else UNRECOGNISED
+
+
+def one_of(value, allowed):
+    return value if value in allowed else UNRECOGNISED
+
+
+def number(value):
+    return value if isinstance(value, int) and not isinstance(value, bool) else UNRECOGNISED
+
+
+def has_unrecognised(value):
+    if isinstance(value, dict):
+        return any(has_unrecognised(v) for v in value.values())
+    return value == UNRECOGNISED
+
+
+def row(comparison, subject, codex, app, outcome, reason):
+    """One row. `subject`, `codex` and `app` hold only allowlisted values; a row
+    naming anything unrecognised can never pass."""
+    assert comparison in PLANNED and outcome in OUTCOMES
+    if outcome == 'passed' and (has_unrecognised(subject) or has_unrecognised(codex) or has_unrecognised(app)):
+        outcome, reason = 'inconclusive', 'a value on one side is not one this comparison recognises'
+    return {'comparison': comparison, 'subject': subject, 'codex': codex, 'app': app, 'outcome': outcome, 'reason': reason}
+
+
+def blocked_all(thread, reason):
+    return [row(c, {'thread': ident(thread)}, {'says': 'not read'}, {'says': 'not compared'}, 'blocked', reason) for c in PLANNED]
 
 
 # --- Where records may be read ---------------------------------------------
@@ -81,11 +128,11 @@ def examination_root(path):
     root = Path(path).resolve()
     record = root / 'record'
     if not (root / 'home').is_dir() or not record.is_dir():
-        raise Refused(f'{root} is not an examination root (no home/ and record/)')
+        raise Refused('the folder is not an examination root (no home/ and record/)')
     if record.is_symlink() or record.resolve() != record:
-        raise Refused('record/ does not resolve to the root\'s own record folder')
+        raise Refused("record/ does not resolve to the root's own record folder")
     if not (any(record.glob('launch-record*.json')) or (record / 'kept.json').is_file()):
-        raise Refused(f'{root} has no launch record; only a folder the launcher made is read')
+        raise Refused('the folder has no launch record; only a folder the launcher made is read')
     codex = (Path.home() / '.codex').resolve()
     if root == codex or codex in root.parents or root in codex.parents:
         raise Refused("the owner's Codex home is never read")
@@ -93,15 +140,14 @@ def examination_root(path):
     if value:
         other = Path(value).resolve()
         if other == root or root in other.parents or other in root.parents:
-            raise Refused('CODEX_HOME of this process overlaps the examination root; refused')
+            raise Refused('the CODEX_HOME of this process overlaps the examination root')
     return root
 
 
 def inside(root, path):
-    """`path`, resolved, if it lies under `root`; refused otherwise."""
     real = Path(path).resolve()
     if root not in real.parents:
-        raise Refused(f'{Path(path).name} resolves outside the examination root')
+        raise Refused('a file resolves outside the examination root')
     return real
 
 
@@ -109,404 +155,430 @@ def candidate_key(root):
     for name in sorted((root / 'record').glob('launch-record*.json')) + [root / 'record' / 'kept.json']:
         try:
             key = json.loads(inside(root, name).read_text()).get('candidate_key')
-        except (OSError, ValueError, AttributeError, Refused):
+        except Exception:
             continue
-        if isinstance(key, str) and key:
+        if ident(key) != UNRECOGNISED:
             return key
     return None
 
 
 def session_file(root, thread):
-    """The one session file of `thread` under the root's Codex homes."""
+    if ident(thread) == UNRECOGNISED:
+        raise Refused('the thread given is not an identifier')
     found = [p for p in root.rglob(f'rollout-*-{thread}.jsonl') if 'sessions' in p.relative_to(root).parts]
     if not found:
-        raise Refused(f'no session file of thread {thread} under the examination root')
+        raise Refused('no session file of this thread under the examination root')
     if len(found) > 1:
-        raise Refused(f'{len(found)} session files name thread {thread}; which one is the record is not established')
+        raise Refused('more than one session file names this thread')
     return inside(root, found[0])
 
 
-# --- Codex's record ----------------------------------------------------------
+# --- The strict model of Codex's record ----------------------------------------
 
-def end_of(payload):
-    """A `task_complete`'s reading: completed with no error (absent or null),
-    failed with an error object carrying a message, otherwise malformed."""
-    if 'error' not in payload or payload['error'] is None:
-        return 'completed'
-    error = payload['error']
-    if isinstance(error, dict) and isinstance(error.get('message'), str) and error['message']:
-        return 'failed'
-    return 'malformed end'
-
-
-def read_session(path, thread):
-    """Turns (in order of start) with their reported end, and the person's own
-    messages, each with its line number. Refused unless its first line names
-    this thread."""
-    turns, order, person = {}, [], []
+def read_session(root, thread):
+    """(model, digest) from one read of the session file's bytes."""
+    path = session_file(root, thread)
     try:
-        raw_lines = Path(path).read_bytes().splitlines()
-    except OSError as e:
-        raise Refused(f'the session file could not be read ({e.__class__.__name__})')
-    for number, raw in enumerate(raw_lines, 1):
+        data = path.read_bytes()
+    except OSError:
+        raise Refused('the session file could not be read')
+    return parse_session(data, thread), sha256(data)
+
+
+def parse_session(data, thread):
+    lines = data.splitlines()
+    if not lines:
+        raise Refused('the session file is empty')
+    events, person, order = {}, [], []
+    for number_, raw in enumerate(lines, 1):
         try:
             line = json.loads(raw)
-        except ValueError:
-            raise Refused(f'line {number} of the session file is not JSON')
-        if not isinstance(line, dict) or not isinstance(line.get('payload', {}), dict):
-            raise Refused(f'line {number} of the session file is not a session line')
-        kind, payload = line.get('type'), line.get('payload') or {}
-        if number == 1:
+        except Exception:
+            raise Refused('a line of the session file is not JSON')
+        if not isinstance(line, dict) or not isinstance(line.get('type'), str) or not isinstance(line.get('payload'), dict):
+            raise Refused('a line of the session file is not a session line')
+        kind, payload = line['type'], line['payload']
+        if number_ == 1:
             if kind != 'session_meta' or payload.get('id') != thread:
                 raise Refused('the session file does not begin with session_meta naming this thread')
+            if payload.get('cli_version') != PINNED_CODEX:
+                raise Refused('the session file was written by a Codex version this model was not written against')
             continue
         if kind == 'event_msg':
-            event, turn = payload.get('type'), payload.get('turn_id')
-            if not isinstance(turn, str) or not turn:
-                continue
-            if event in ('task_started', 'turn_started'):
-                if turn in turns:
-                    turns[turn]['starts'] += 1
-                else:
+            event = payload.get('type')
+            if event in START_EVENTS or event in END_EVENTS:
+                turn = payload.get('turn_id')
+                if ident(turn) == UNRECOGNISED:
+                    raise Refused('a turn event of the session file carries no turn identity')
+                if turn not in events:
+                    events[turn] = []
                     order.append(turn)
-                    turns[turn] = {'started': number, 'starts': 1, 'ends': 0, 'end': None}
-            elif event in ('task_complete', 'turn_complete', 'turn_aborted'):
-                entry = turns.setdefault(turn, {'started': None, 'starts': 0, 'ends': 0, 'end': None})
-                if turn not in order:
-                    order.append(turn)
-                entry['ends'] += 1
-                if event == 'turn_aborted':
-                    entry['end'] = {'status': 'interrupted', 'reason': payload.get('reason'), 'line': number, 'from': event}
-                else:
-                    entry['end'] = {'status': end_of(payload), 'line': number, 'from': event}
+                events[turn].append((number_, event, payload))
         elif kind == 'response_item' and payload.get('type') == 'message' and payload.get('role') == 'user':
-            meta = payload.get('internal_chat_message_metadata_passthrough') or {}
-            kinds = meta.get('content_item_kinds') if isinstance(meta, dict) else None
-            if kinds != [PERSON]:
+            meta = payload.get('internal_chat_message_metadata_passthrough')
+            if not isinstance(meta, dict) or meta.get('content_item_kinds') != ['user.text'] or meta.get('provenance') != {'type': 'user'}:
                 continue
-            parts = [c.get('text', '') for c in payload.get('content') or [] if isinstance(c, dict) and isinstance(c.get('text', ''), str)]
-            person.append({'line': number, 'turn': meta.get('turn_id'), 'parts': parts})
-    return {'turns': turns, 'order': order, 'person': person}
+            content = payload.get('content')
+            if not isinstance(content, list) or not all(isinstance(c, dict) and isinstance(c.get('text'), str) for c in content):
+                raise Refused("a message tagged as the person's has content this model does not read")
+            person.append({'line': number_, 'parts': [c['text'] for c in content]})
+    turns = {turn: reading(events[turn]) for turn in order}
+    return {'thread': thread, 'order': order, 'turns': turns, 'person': person}
 
 
-def codex_status(turn):
-    if turn['starts'] != 1:
-        return 'started more than once' if turn['starts'] > 1 else 'ended without a start'
-    if turn['ends'] > 1:
-        return 'ended more than once'
-    return turn['end']['status'] if turn['end'] else 'not reported'
-
-
-def codex_side(turn):
-    said = codex_status(turn)
-    end = turn['end']
-    side = {'says': said, 'from': end['from'] if end else 'task_started', 'line': end['line'] if end else turn['started']}
-    if end and 'reason' in end:
-        side['reason'] = end['reason']
-    return side
+def reading(events):
+    """One turn's reading: one start, then at most one end; anything else is
+    not one reading."""
+    kinds = [e[1] for e in events]
+    first = events[0][0]
+    if len(events) > 2 or kinds[0] not in START_EVENTS or (len(events) == 2 and kinds[1] not in END_EVENTS):
+        return {'says': 'not one reading', 'line': first, 'from': 'turn events'}
+    if len(events) == 1:
+        return {'says': 'not reported', 'line': first, 'from': 'task_started'}
+    line, event, payload = events[1]
+    if event == 'turn_aborted':
+        return {'says': 'interrupted', 'reason': one_of(payload.get('reason'), ABORT_REASONS), 'line': line, 'from': 'turn_aborted'}
+    if 'error' not in payload or payload['error'] is None:
+        return {'says': 'completed', 'line': line, 'from': 'task_complete'}
+    error = payload['error']
+    if isinstance(error, dict) and isinstance(error.get('message'), str) and error['message']:
+        return {'says': 'failed', 'line': line, 'from': 'task_complete'}
+    return {'says': 'not one reading', 'line': line, 'from': 'task_complete'}
 
 
 # --- The App's account --------------------------------------------------------
 
-def view_turns(view, thread):
-    """Turn id to the status the view holds, for `thread`, joined by turn id as
-    the App's own view joins them, never by position."""
-    native = view.get('nativeView') if isinstance(view, dict) else None
-    if not isinstance(native, dict):
-        raise Refused('the saved view has no nativeView')
-    keys, values = native.get('turnRecords'), native.get('turns')
-    if not isinstance(keys, list) or not isinstance(values, list):
+def view_turns(root, view, thread):
+    """Turn id to the status the view holds, joined by identity, never by position."""
+    try:
+        saved = json.loads(inside(root, view).read_text())
+    except Refused:
+        raise
+    except Exception:
+        raise Refused('the saved view could not be read')
+    native = saved.get('nativeView') if isinstance(saved, dict) else None
+    if not isinstance(native, dict) or not isinstance(native.get('turnRecords'), list) or not isinstance(native.get('turns'), list):
         raise Refused('the saved view has no readable nativeView turns')
     by_id = {}
-    for value in values:
-        if not isinstance(value, dict) or not isinstance(value.get('id'), str):
-            raise Refused('a turn in the saved view has no identity')
-        if value['id'] in by_id:
-            raise Refused(f'the saved view holds turn {value["id"]} twice')
+    for value in native['turns']:
+        if not isinstance(value, dict) or ident(value.get('id')) == UNRECOGNISED or value['id'] in by_id:
+            raise Refused('a turn of the saved view has no identity, or appears twice')
         by_id[value['id']] = value
-    shown = {}
-    for key in keys:
-        if not isinstance(key, dict):
-            raise Refused('a turn record in the saved view is not readable')
-        if key.get('threadId') != thread:
-            continue
-        turn = key.get('turnId')
-        if turn not in by_id:
-            raise Refused(f'the saved view names turn {turn} with no turn of that identity')
-        if turn in shown:
-            raise Refused(f'the saved view names turn {turn} twice')
-        shown[turn] = by_id[turn].get('status')
+    shown, recorded = {}, set()
+    for key in native['turnRecords']:
+        if not isinstance(key, dict) or ident(key.get('threadId')) == UNRECOGNISED or ident(key.get('turnId')) == UNRECOGNISED:
+            raise Refused('a turn record of the saved view is not readable')
+        turn = key['turnId']
+        if turn not in by_id or turn in recorded:
+            raise Refused('a turn record of the saved view names no single turn of that identity')
+        recorded.add(turn)
+        if key['threadId'] == thread:
+            shown[turn] = one_of(by_id[turn].get('status'), VIEW_STATUSES)
+    if set(by_id) != recorded:
+        raise Refused('a turn of the saved view has no turn record, so its thread is not known')
     return shown
 
 
-def ledger_path(root):
+def stop_records(root, thread):
     found = [p for p in root.rglob('recovery.ledger.sqlite')]
     if len(found) != 1:
-        raise Refused(f'{len(found)} recovery ledgers under the examination root; exactly one is read')
-    return inside(root, found[0])
-
-
-def stop_records(root, thread):
-    """The latest stop-request record of each stop request on `thread`, with its ledger row."""
-    path = ledger_path(root)
+        raise Refused('there is not exactly one recovery ledger under the examination root')
+    path = inside(root, found[0])
     try:
         db = sqlite3.connect(f'{path.as_uri()}?mode=ro', uri=True)
         try:
             rows = db.execute("SELECT seq, entry FROM ledger_entry WHERE kind = 'stop_request' ORDER BY seq").fetchall()
         finally:
             db.close()
-    except sqlite3.Error as e:
-        raise Refused(f'the recovery ledger could not be read: {e}')
-    latest = {}
+    except Exception:
+        raise Refused('the recovery ledger could not be read')
+    latest, unreadable = {}, 0
     for seq, entry in rows:
         try:
-            record = json.loads(entry).get('record')
-        except (ValueError, TypeError, AttributeError):
-            raise Refused(f'ledger row {seq} is not a readable stop request')
-        if not isinstance(record, dict):
-            raise Refused(f'ledger row {seq} carries no stop-request record')
-        if record.get('threadId') == thread and record.get('stopRequestId'):
-            latest[record['stopRequestId']] = (seq, record)
-    return list(latest.values())
+            record = json.loads(entry)['record']
+            assert isinstance(record, dict)
+        except Exception:
+            raise Refused('a stop request in the ledger is not readable')
+        if record.get('threadId') != thread:
+            continue
+        stop = record.get('stopRequestId')
+        if not (isinstance(stop, str) and stop.startswith('stop:') and ident(stop[5:]) != UNRECOGNISED) or ident(record.get('turnId')) == UNRECOGNISED:
+            unreadable += 1
+            continue
+        latest[stop] = (seq, record)
+    return list(latest.values()), unreadable
 
 
 def run_text_records(root, thread):
-    """WR `run_text` records of runs in `thread`, and the workflow record files
-    that could not be read (which may belong to it)."""
-    found, unreadable = [], []
+    """WR run_text records of `thread`, and how many workflow record files could
+    not be read or not be told apart (any of which may belong to it)."""
+    found, unreadable = [], 0
     for path in sorted(root.rglob('*.json')):
         if 'workflow' not in path.parts or 'records' not in path.parts:
             continue
-        where = path.relative_to(root).as_posix()
         try:
             value = json.loads(inside(root, path).read_text())
-        except (OSError, ValueError, Refused):
-            unreadable.append(where)
+        except Exception:
+            unreadable += 1
             continue
         records = value if isinstance(value, list) else [value.get('record', value)] if isinstance(value, dict) else None
-        if records is None:
-            unreadable.append(where)
+        if records is None or not all(isinstance(r, dict) for r in records):
+            unreadable += 1
             continue
         for record in records:
-            if isinstance(record, dict) and record.get('record_kind') == 'run_text' and record.get('conversation') == thread:
-                found.append((where, record))
+            if record.get('record_kind') == 'run_text' and record.get('conversation') == thread:
+                found.append(record)
     return found, unreadable
 
 
 def manifest_workflow(manifest, name, revision):
-    if not isinstance(manifest, dict):
+    try:
+        matches = [f['sha256'] for p in manifest['packages'] if p.get('name') == name and p.get('revision') == revision
+                   for f in p['files'] if f.get('path') == 'WORKFLOW.md']
+    except Exception:
         return None
-    for package in manifest.get('packages', []) if isinstance(manifest.get('packages'), list) else []:
-        if isinstance(package, dict) and package.get('name') == name and package.get('revision') == revision:
-            for f in package.get('files', []) if isinstance(package.get('files'), list) else []:
-                if isinstance(f, dict) and f.get('path') == 'WORKFLOW.md':
-                    return f.get('sha256')
-    return None
+    return matches[0] if len(matches) == 1 and digest(matches[0]) != UNRECOGNISED else None
 
 
 def workflow_bytes(text, name, rev):
-    """The exact WORKFLOW.md bytes `compose_run_text` put between this
-    workflow's markers, or None."""
     begin = f'<<<chirality-workflow {name}@{rev} begin>>>\n'
     end = f'\n<<<chirality-workflow {name}@{rev} end>>>'
-    start = text.find(begin)
-    if start < 0:
+    if text.count(begin) != 1 or text.count(end) != 1:
         return None
-    stop = text.find(end, start + len(begin))
-    return text[start + len(begin):stop] if stop >= 0 else None
+    start = text.index(begin) + len(begin)
+    stop = text.find(end, start)
+    return text[start:stop] if stop >= 0 else None
 
 
 # --- Comparisons --------------------------------------------------------------
 
-def row(comparison, subject, codex, app, outcome, reason):
-    assert outcome in OUTCOMES
-    return {'comparison': comparison, 'subject': subject, 'codex': codex, 'app': app, 'outcome': outcome, 'reason': reason}
+def codex_of(model, turn):
+    r = model['turns'][turn]
+    side = {'says': r['says'], 'from': r['from'], 'line': r['line']}
+    if 'reason' in r:
+        side['reason'] = r['reason']
+    return side
 
 
-def compare_views(session, thread, shown, at):
-    """C2 and C3 against a saved view taken after the session ended."""
-    rows, turns = [], session['turns']
+def compare_views(model, shown, at):
+    thread, rows = model['thread'], []
     view = lambda says: {'says': says, 'from': 'view:nativeView.turns', 'at': at}
-    if not session['order'] and not shown:
+    if not model['order'] and not shown:
         return [row('C2', {'thread': thread}, {'says': 'no turn'}, view('no turn'), 'not run', 'Codex recorded no turn in this thread, and the view shows none'),
-                row('C3', {'thread': thread}, {'says': 'no turn'}, view('no turn'), 'not run', 'no turn to compare')]
-    for turn in session['order']:
+                row('C3', {'thread': thread}, {'says': 'no turn'}, view('no turn'), 'not run', 'there is no turn to compare')]
+    for turn in model['order']:
         subject = {'thread': thread, 'turn': turn}
-        codex = codex_side(turns[turn])
-        said = codex['says']
+        codex = codex_of(model, turn)
         if turn not in shown:
             rows.append(row('C2', subject, codex, view('absent'), 'failed', 'Codex started this turn; the App does not show it'))
             rows.append(row('C3', subject, codex, view('absent'), 'blocked', 'the view does not show this turn'))
             continue
         app = view(shown[turn])
         rows.append(row('C2', subject, codex, app, 'passed', 'both have this turn, by its identity'))
-        if said in UNCOMPARABLE:
-            rows.append(row('C3', subject, codex, app, 'inconclusive', f"Codex's record of this turn is not one reading: {said}"))
-        elif shown[turn] not in VIEW_STATUSES:
+        said = codex['says']
+        if said == 'not one reading':
+            rows.append(row('C3', subject, codex, app, 'inconclusive', "Codex's record of this turn is not one start and at most one end"))
+        elif shown[turn] == UNRECOGNISED:
             rows.append(row('C3', subject, codex, app, 'inconclusive', "the App's status is not one this comparison knows"))
         elif said == 'not reported':
-            if shown[turn] in TERMINAL:
-                rows.append(row('C3', subject, codex, app, 'failed', f'the App shows {shown[turn]}; Codex reported no end, so it must read as not known'))
-            else:
-                rows.append(row('C3', subject, codex, app, 'passed', 'neither reports an end'))
+            failed = shown[turn] in TERMINAL
+            rows.append(row('C3', subject, codex, app, 'failed' if failed else 'passed',
+                            'the App shows an end Codex did not report' if failed else 'neither reports an end'))
         elif shown[turn] == said:
-            rows.append(row('C3', subject, codex, app, 'passed', f'both say {said}'))
+            rows.append(row('C3', subject, codex, app, 'passed', 'both give the same end'))
         else:
-            rows.append(row('C3', subject, codex, app, 'failed', f'the App shows {shown[turn]}; Codex recorded {said}'))
-    for turn in sorted(set(shown) - set(turns)):
+            rows.append(row('C3', subject, codex, app, 'failed', 'the App shows a different end from the one Codex recorded'))
+    for turn in sorted(set(shown) - set(model['turns'])):
         subject = {'thread': thread, 'turn': turn}
-        rows.append(row('C2', subject, {'says': 'absent', 'from': 'session file'}, view(shown[turn]), 'failed', 'the App shows a turn of which Codex has no record'))
-        rows.append(row('C3', subject, {'says': 'absent', 'from': 'session file'}, view(shown[turn]), 'blocked', 'Codex has no record of this turn'))
+        absent = {'says': 'absent', 'from': 'session file'}
+        rows.append(row('C2', subject, absent, view(shown[turn]), 'failed', 'the App shows a turn of which Codex has no record'))
+        rows.append(row('C3', subject, absent, view(shown[turn]), 'blocked', 'Codex has no record of this turn'))
     return rows
 
 
-def compare_stops(session, thread, stops):
-    """C4: each stop request the App recorded, against Codex's end of that turn."""
-    if not stops:
-        return [row('C4', {'thread': thread}, {'says': 'not compared'}, {'says': 'no stop request', 'from': 'ledger:stop_request'}, 'not run',
-                    'no stop was requested in this thread')]
-    rows, turns = [], session['turns']
+def compare_stops(model, stops, unreadable):
+    thread, rows = model['thread'], []
+    for _ in range(unreadable):
+        rows.append(row('C4', {'thread': thread}, {'says': 'not compared'}, {'says': UNRECOGNISED, 'from': 'ledger:stop_request'}, 'blocked',
+                        'a stop request of this thread names no stop or turn this comparison can read'))
     for seq, record in stops:
-        turn = record.get('turnId')
-        subject = {'thread': thread, 'turn': turn, 'stopRequest': record.get('stopRequestId')}
-        recorded = record.get('turnOutcome')
-        app = {'says': recorded, 'from': 'ledger:stop_request', 'seq': seq, 'state': record.get('state'), 'outcomeSource': record.get('outcomeSource')}
-        if turn not in turns:
+        turn = record['turnId']
+        subject = {'thread': thread, 'turn': turn, 'stopRequest': record['stopRequestId'][5:]}
+        recorded = one_of(record.get('turnOutcome'), STOP_OUTCOMES)
+        app = {'says': recorded, 'from': 'ledger:stop_request', 'seq': number(seq), 'state': one_of(record.get('state'), STOP_STATES),
+               'outcomeSource': one_of(record.get('outcomeSource'), OUTCOME_SOURCES)}
+        if turn not in model['turns']:
             rows.append(row('C4', subject, {'says': 'absent', 'from': 'session file'}, app, 'failed', 'the App recorded a stop of a turn of which Codex has no record'))
             continue
-        codex = codex_side(turns[turn])
+        codex = codex_of(model, turn)
         said = codex['says']
-        if said in UNCOMPARABLE:
-            rows.append(row('C4', subject, codex, app, 'inconclusive', f"Codex's record of this turn is not one reading: {said}"))
-        elif recorded not in STOP_OUTCOMES:
+        if said == 'not one reading':
+            rows.append(row('C4', subject, codex, app, 'inconclusive', "Codex's record of this turn is not one start and at most one end"))
+        elif recorded == UNRECOGNISED:
             rows.append(row('C4', subject, codex, app, 'inconclusive', "the App's recorded outcome is not one this comparison knows"))
         elif recorded == 'interrupted':
-            if said == 'interrupted' and codex.get('reason') == 'interrupted':
-                rows.append(row('C4', subject, codex, app, 'passed', 'both say interrupted'))
-            elif said == 'interrupted':
-                rows.append(row('C4', subject, codex, app, 'failed', f'the App recorded an interrupt; Codex aborted the turn for another reason ({codex.get("reason")})'))
-            else:
-                rows.append(row('C4', subject, codex, app, 'failed', f'the App recorded interrupted; Codex recorded {said}'))
+            agree = said == 'interrupted' and codex.get('reason') == 'interrupted'
+            rows.append(row('C4', subject, codex, app, 'passed' if agree else 'failed',
+                            'both record an interrupt' if agree else 'the App recorded an interrupt; Codex recorded no abort for that reason'))
         elif recorded in TERMINAL:
-            if recorded == said:
-                rows.append(row('C4', subject, codex, app, 'passed', f'both say {said}'))
-            else:
-                rows.append(row('C4', subject, codex, app, 'failed', f'the App recorded {recorded}; Codex recorded {said}'))
+            agree = recorded == said
+            rows.append(row('C4', subject, codex, app, 'passed' if agree else 'failed',
+                            'both record the same end' if agree else 'the App recorded a different end from Codex'))
         elif said == 'not reported':
             rows.append(row('C4', subject, codex, app, 'passed', 'neither records an end; the App says it is not known'))
         else:
-            rows.append(row('C4', subject, codex, app, 'inconclusive', f'the App recorded the outcome as {recorded}; Codex recorded {said}, which the App did not learn'))
+            rows.append(row('C4', subject, codex, app, 'inconclusive', 'Codex recorded an end the App did not learn'))
+    if not rows:
+        rows.append(row('C4', {'thread': thread}, {'says': 'not compared'}, {'says': 'no stop request', 'from': 'ledger:stop_request'}, 'not run',
+                        'no stop was requested in this thread'))
     return rows
 
 
-def compare_workflow(session, thread, records, unreadable, manifest):
-    """W1: for each run, the bundled WORKFLOW.md, the run_text record and the
-    bytes Codex recorded in the person's message for that run. The message is
-    the run's by its identity (its whole text is the run's text) and only then
-    can the row pass. Failing that, a message carrying this workflow's markers
-    that no other run claims can show a difference (failed), never agreement."""
-    rows, claimed, plans = [], set(), []
-    for where in unreadable:
-        rows.append(row('W1', {'thread': thread}, {'says': 'not compared'}, {'says': 'unreadable', 'from': where}, 'blocked',
+def text_identity(record):
+    identity = record.get('text_identity') if isinstance(record.get('text_identity'), dict) else {}
+    return digest(identity.get('value')) if identity.get('method') == EXACT else UNRECOGNISED
+
+
+def compare_workflow(model, records, unreadable, manifest):
+    thread, rows, claimed = model['thread'], [], set()
+    for _ in range(unreadable):
+        rows.append(row('W1', {'thread': thread}, {'says': 'not compared'}, {'says': UNRECOGNISED, 'from': 'workflow records'}, 'blocked',
                         'a workflow record could not be read; whether it belongs to this thread is not known'))
-    for where, record in records:
+    sharing = {}
+    for record in records:
+        sharing.setdefault(text_identity(record), []).append(record)
+    for record in records:
         workflow = record.get('workflow') if isinstance(record.get('workflow'), dict) else {}
         name, revision = workflow.get('name'), workflow.get('revision')
-        rev = revision[:12] if isinstance(revision, str) and len(revision) >= 12 else None
-        identity = record.get('text_identity') if isinstance(record.get('text_identity'), dict) else {}
-        found = None
-        if identity.get('method') == EXACT:
-            for m in session['person']:
-                if m['line'] in claimed:
-                    continue
-                for text in m['parts'] + [''.join(m['parts'])]:
-                    if sha256(text.encode()) == identity.get('value'):
-                        found = (m, text, True)
-                        break
-                if found:
-                    claimed.add(m['line'])
-                    break
-        plans.append([where, record, name, revision, rev, found])
-    for plan in plans:
-        where, record, name, revision, rev, found = plan
-        if found is None and rev is not None:
-            for m in session['person']:
-                text = next((t for t in m['parts'] + [''.join(m['parts'])] if workflow_bytes(t, name, rev) is not None), None)
-                if m['line'] not in claimed and text is not None:
-                    plan[5] = (m, text, False)
-                    claimed.add(m['line'])
-                    break
-    for where, record, name, revision, rev, found in plans:
-        subject = {'thread': thread, 'run': record.get('run'), 'workflow': f'{name}@{rev}'}
-        bundled = manifest_workflow(manifest, name, revision)
-        content = (record.get('workflow_file') or {}).get('content') if isinstance(record.get('workflow_file'), dict) else None
-        recorded = content.get('value') if isinstance(content, dict) and content.get('method') == EXACT else None
-        app = {'says': {'bundled': bundled, 'runText': recorded}, 'from': f'manifest; {where}'}
-        if manifest is None:
-            rows.append(row('W1', subject, {'says': 'not compared'}, app, 'blocked', 'the bundled manifest could not be read'))
+        named = ident(name) != UNRECOGNISED and digest(revision) != UNRECOGNISED
+        rev = revision[:12] if named else None
+        subject = {'thread': thread, 'run': ident(record.get('run')), 'workflow': ident(name), 'revision': digest(revision)}
+        content = record.get('workflow_file', {}).get('content') if isinstance(record.get('workflow_file'), dict) else None
+        recorded = digest(content.get('value')) if isinstance(content, dict) and content.get('method') == EXACT else UNRECOGNISED
+        bundled = manifest_workflow(manifest, name, revision) if named else None
+        app = {'says': {'bundled': bundled or UNRECOGNISED, 'runText': recorded}, 'from': 'manifest; run_text record'}
+        value = text_identity(record)
+        if not named or bundled is None or recorded == UNRECOGNISED or value == UNRECOGNISED:
+            rows.append(row('W1', subject, {'says': 'not compared'}, app, 'blocked', 'the manifest or the run record does not name this workflow, its revision and its digests'))
             continue
-        if bundled is None:
-            rows.append(row('W1', subject, {'says': 'not compared'}, app, 'blocked', 'the bundled manifest names no WORKFLOW.md for this workflow and revision'))
+        by_identity = [m for m in model['person'] if m['parts'] and sha256(m['parts'][0].encode()) == value]
+        if len(by_identity) == 1 and len(sharing[value]) == 1:
+            message = by_identity[0]
+            claimed.add(message['line'])
+            given = workflow_bytes(message['parts'][0], name, rev)
+            others = any(MARKER.search(p) for p in message['parts'][1:])
+            codex = {'says': sha256(given.encode()) if given is not None else 'no markers', 'from': 'person message', 'line': message['line'], 'identifiedBy': 'run text identity'}
+            if given is None:
+                rows.append(row('W1', subject, codex, app, 'failed', "the run's text does not carry this workflow's markers exactly once"))
+            elif others:
+                rows.append(row('W1', subject, codex, app, 'inconclusive', "the person's message carries another workflow block beside the run's text"))
+            elif bundled == recorded == codex['says']:
+                rows.append(row('W1', subject, codex, app, 'passed', "the three digests are equal: these bytes are what Codex recorded as the person's input"))
+            else:
+                rows.append(row('W1', subject, codex, app, 'failed', 'the workflow bytes Codex recorded differ from the bundled or recorded digest'))
             continue
-        if recorded is None or rev is None:
-            rows.append(row('W1', subject, {'says': 'not compared'}, app, 'blocked', 'the run_text record carries no exact-bytes digest or no full revision'))
+        if len(by_identity) > 1 or len(sharing[value]) > 1:
+            for m in by_identity:
+                claimed.add(m['line'])
+            rows.append(row('W1', subject, {'says': 'not one message', 'from': 'session file'}, app, 'inconclusive',
+                            "this run's text is not carried by exactly one person message and one record"))
             continue
-        if found is None:
-            rows.append(row('W1', subject, {'says': 'absent', 'from': 'session file'}, app, 'blocked',
-                            "no message Codex tagged as the person's carries this run's text or this workflow"))
-            continue
-        message, text, by_identity = found
-        given_bytes = workflow_bytes(text, name, rev)
-        if given_bytes is None:
-            rows.append(row('W1', subject, {'says': 'no markers', 'from': 'person message', 'line': message['line']}, app, 'failed',
-                            "the run's text carries no markers for this workflow and revision"))
-            continue
-        given = {'says': sha256(given_bytes.encode()), 'from': 'person message', 'line': message['line'],
-                 'identifiedBy': 'the run text identity' if by_identity else 'this workflow\'s markers only'}
-        agree = bundled == recorded == given['says']
-        unequal = [n for n, v in (('bundled', bundled), ('run_text', recorded)) if v != given['says']]
-        if agree and by_identity:
-            rows.append(row('W1', subject, given, app, 'passed', "the three digests are equal: these bytes are what Codex recorded as the person's input"))
-        elif agree:
-            rows.append(row('W1', subject, given, app, 'inconclusive',
-                            "the workflow's bytes agree, but no message carries this run's whole text, so the message is not identified as this run's"))
+        # No message is this run's by identity. One message carrying this
+        # workflow's markers that no run claims can show a difference, never
+        # agreement.
+        candidates = [m for m in model['person'] if m['line'] not in claimed and m['parts'] and workflow_bytes(m['parts'][0], name, rev) is not None]
+        if len(candidates) == 1:
+            message = candidates[0]
+            claimed.add(message['line'])
+            codex = {'says': sha256(workflow_bytes(message['parts'][0], name, rev).encode()), 'from': 'person message', 'line': message['line'], 'identifiedBy': 'markers only'}
+            same = bundled == recorded == codex['says']
+            rows.append(row('W1', subject, codex, app, 'inconclusive' if same else 'failed',
+                            "the bytes agree, but no person message carries this run's whole text" if same
+                            else "no person message carries this run's text; the one carrying this workflow has other bytes"))
         else:
-            rows.append(row('W1', subject, given, app, 'failed', f'differs from what Codex recorded: {", ".join(unequal) or "bundled and run_text disagree"}'))
-    for m in session['person']:
-        if m['line'] not in claimed and any(MARKER.search(t) for t in m['parts']):
+            rows.append(row('W1', subject, {'says': 'absent', 'from': 'session file'}, app, 'blocked',
+                            "no single person message carries this run's text or this workflow"))
+    for m in model['person']:
+        if m['line'] not in claimed and any(MARKER.search(p) for p in m['parts']):
             rows.append(row('W1', {'thread': thread}, {'says': 'workflow given', 'from': 'person message', 'line': m['line']},
-                            {'says': 'no run_text record of it'}, 'inconclusive',
-                            "Codex recorded a workflow in the person's input; the App has no run record whose text it is"))
+                            {'says': 'no run record of it'}, 'inconclusive', "Codex recorded a workflow in the person's input that no run record accounts for"))
     if not rows:
-        rows.append(row('W1', {'thread': thread}, {'says': 'no workflow given'}, {'says': 'no run_text record of this thread'}, 'not run',
+        rows.append(row('W1', {'thread': thread}, {'says': 'no workflow given'}, {'says': 'no run record of this thread'}, 'not run',
                         'no workflow run was started in this thread'))
     return rows
 
 
-def screen_items(session, thread):
-    """On a candidate, which cannot save its views: what the screen must be
-    found to say, from Codex's record alone, for the operator to answer."""
-    items = []
-    for turn in session['order']:
-        said = codex_status(session['turns'][turn])
-        must = {'not reported': 'not known (the turn has no reported end)'}.get(said, said)
-        items.append({'comparison': 'C2+C3', 'subject': {'thread': thread, 'turn': turn}, 'screen_must_say': f'the turn is shown, and shown as {must}'})
-    others = ', '.join(session['order']) or 'none'
-    items.append({'comparison': 'C2', 'subject': {'thread': thread},
-                  'screen_must_say': f'the screen shows no turn of this thread other than these: {others}'})
+def records_rows(root, model, manifest):
+    """C4 and W1, each blocked on its own if its side cannot be read."""
+    rows = []
+    try:
+        stops, bad = stop_records(root, model['thread'])
+        rows += compare_stops(model, stops, bad)
+    except Refused as e:
+        rows.append(row('C4', {'thread': model['thread']}, {'says': 'read'}, {'says': 'not read'}, 'blocked', str(e)))
+    records, bad = run_text_records(root, model['thread'])
+    return rows + compare_workflow(model, records, bad, manifest)
+
+
+# --- The candidate's screen list ------------------------------------------------
+
+def screen_items(model):
+    """What the screen must be found to say, derived from Codex's record alone."""
+    thread, items = model['thread'], []
+    for turn in model['order']:
+        said = model['turns'][turn]['says']
+        items.append({'comparison': 'C2', 'subject': {'thread': thread, 'turn': turn}, 'screen_must_say': 'the turn is shown'})
+        must = {'not reported': 'not known (no end reported)', 'not one reading': None}.get(said, said)
+        if must:
+            items.append({'comparison': 'C3', 'subject': {'thread': thread, 'turn': turn}, 'screen_must_say': f'the turn is shown as {must}'})
+    shown = ', '.join(model['order']) or 'none'
+    items.append({'comparison': 'C2', 'subject': {'thread': thread}, 'screen_must_say': f'no turn of this thread is shown other than: {shown}'})
     for item in items:
         item['digest'] = item_digest(item)
     return items
 
 
 def item_digest(item):
-    return sha256(json.dumps({k: item.get(k) for k in ('comparison', 'subject', 'screen_must_say')}, sort_keys=True).encode())
+    try:
+        return sha256(json.dumps({k: item[k] for k in ('comparison', 'subject', 'screen_must_say')}, sort_keys=True).encode())
+    except Exception:
+        return None
 
 
-# --- Commands -----------------------------------------------------------------
+def answered_rows(model, answers):
+    """The screen list derived now, each item taking the operator's answer only
+    from one line identical to it. Nothing in the list file is trusted."""
+    by_digest = {}
+    for line in answers:
+        d = item_digest(line) if isinstance(line, dict) else None
+        if d is not None and line.get('digest') == d:
+            by_digest.setdefault(d, []).append(line)
+    rows = []
+    for item in screen_items(model):
+        lines = by_digest.get(item['digest'], [])
+        codex = {'says': 'derived from the session file', 'from': 'session file', 'item': item['digest']}
+        operator = {'says': None, 'from': 'operator, against the screen'}
+        if len(lines) != 1:
+            rows.append(row(item['comparison'], item['subject'], codex, operator, 'not run', 'no single answer to this item'))
+            continue
+        answer, note = lines[0].get('answer'), lines[0].get('note')
+        noted = isinstance(note, str) and note.strip() != ''
+        if answer not in ('passed', 'failed', 'inconclusive'):
+            rows.append(row(item['comparison'], item['subject'], codex, operator, 'not run', 'not answered'))
+            continue
+        app = {'says': answer, 'note': sha256(note.encode('utf-8', 'replace')) if noted else None, 'from': 'operator, against the screen'}
+        if answer == 'passed' and not noted:
+            rows.append(row(item['comparison'], item['subject'], codex, app, 'not run', 'answered passed with no note of what was seen'))
+        else:
+            rows.append(row(item['comparison'], item['subject'], codex, app, answer, 'answered by the operator against the screen'))
+    return rows
+
+
+# --- Output -------------------------------------------------------------------
 
 def header(root, **extra):
-    return {'header': True, 'candidate_key': candidate_key(root), 'examination_root': str(root), 'tool': TOOL, 'tool_sha256': tool_digest(), **extra}
+    return {'header': True, 'candidate_key': candidate_key(root), 'examination_root': str(root), 'tool': TOOL,
+            'tool_sha256': tool_digest(), 'model_version': MODEL_VERSION, 'pinned_codex': PINNED_CODEX, **extra}
 
 
 def summary(rows):
@@ -514,28 +586,23 @@ def summary(rows):
     for r in rows:
         counts.setdefault(r['comparison'], {}).setdefault(r['outcome'], 0)
         counts[r['comparison']][r['outcome']] += 1
-    return {'summary': counts}
+    return {'summary': counts, 'unrecognised': sum(1 for r in rows if has_unrecognised(r))}
 
 
 def write(root, stem, head, body, with_summary=True):
-    """A new file in record/, never over an existing one (the launcher's rule).
-    A summary is written only if it is derived from these rows."""
+    """A new file in record/, never over an existing one."""
     record = root / 'record'
     if record.is_symlink() or record.resolve() != record:
-        raise Refused("record/ does not resolve to the root's own record folder; nothing is written")
+        raise Refused("record/ does not resolve to the root's own record folder")
     lines = [head] + body
     if with_summary:
         total = summary(body)
-        recount = {}
-        for r in body:
-            recount.setdefault(r['comparison'], {}).setdefault(r['outcome'], 0)
-            recount[r['comparison']][r['outcome']] += 1
-        if total['summary'] != recount or sum(sum(v.values()) for v in total['summary'].values()) != len(body):
-            raise Refused('the summary does not agree with its rows; nothing is written')
+        if sum(sum(v.values()) for v in total['summary'].values()) != len(body) or not {r['comparison'] for r in body} >= set(PLANNED):
+            raise Refused('the summary would not agree with the rows, or a planned comparison has no row')
         lines.append(total)
-    stamp = now_stamp()
-    for n in range(100):
-        path = record / (f'{stem}-{stamp}.jsonl' if n == 0 else f'{stem}-{stamp}-{n}.jsonl')
+    stamp = datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')
+    for _ in range(8):
+        path = record / f'{stem}-{stamp}-{secrets.token_hex(4)}.jsonl'
         try:
             with open(path, 'x') as f:
                 for line in lines:
@@ -543,117 +610,93 @@ def write(root, stem, head, body, with_summary=True):
             return path
         except FileExistsError:
             continue
-    raise Refused('no new file name was free in record/; nothing is written')
+    raise Refused('no new file name was free in record/')
 
 
-def compare(root, thread, views, manifest):
+def run_compare(root, thread, views, manifest):
+    """(rows, None) with a saved view; (None, (model, digest)) on a candidate."""
     try:
-        path = session_file(root, thread)
-        session = read_session(path, thread)
-        digest = sha256(path.read_bytes())
+        model, session_sha = read_session(root, thread)
     except Refused as e:
-        return [row(c, {'thread': thread}, {'says': 'not read'}, {'says': 'not compared'}, 'blocked', str(e)) for c in ('C2', 'C3', 'C4', 'W1')], None, None
+        return blocked_all(thread, str(e)), None
+    if not views:
+        return None, (model, session_sha)
     rows = []
     for view in views:
+        at = ident(Path(view).name)
         try:
-            saved = json.loads(inside(root, view).read_text())
-            rows += compare_views(session, thread, view_turns(saved, thread), Path(view).name)
-        except (Refused, OSError, ValueError) as e:
-            reason = str(e) if isinstance(e, Refused) else f'the saved view could not be read ({e.__class__.__name__})'
+            rows += compare_views(model, view_turns(root, view, thread), at)
+        except Refused as e:
             for c in ('C2', 'C3'):
-                rows.append(row(c, {'thread': thread}, {'says': 'read'}, {'says': 'not read', 'from': Path(view).name}, 'blocked', reason))
-    try:
-        rows += compare_stops(session, thread, stop_records(root, thread))
-    except Refused as e:
-        rows.append(row('C4', {'thread': thread}, {'says': 'read'}, {'says': 'not read'}, 'blocked', str(e)))
-    records, unreadable = run_text_records(root, thread)
-    rows += compare_workflow(session, thread, records, unreadable, manifest)
-    return rows, session, digest
+                rows.append(row(c, {'thread': thread}, {'says': 'read'}, {'says': 'not read', 'from': 'view', 'at': at}, 'blocked', str(e)))
+    return rows + records_rows(root, model, manifest), None
 
 
-def answers(root, screen_path):
-    """The operator's answers to a screen list, as rows. Only an answer to an
-    item the list was written with, unchanged, counts; a passed needs a note."""
-    screen = inside(root, screen_path)
+def run_answers(root, screen, manifest):
     try:
-        lines = [json.loads(l) for l in screen.read_text().splitlines() if l.strip()]
-    except (OSError, ValueError):
-        raise Refused('the screen list could not be read')
-    head = lines[0] if lines and isinstance(lines[0], dict) else {}
-    if head.get('header') is not True or head.get('examination_root') != str(root) or head.get('candidate_key') != candidate_key(root):
-        raise Refused('the screen list was not written for this examination root and candidate')
-    if head.get('tool_sha256') != tool_digest():
-        raise Refused('the screen list was written by another version of this tool')
-    thread, listed = head.get('thread'), head.get('items')
-    if not isinstance(listed, list) or not isinstance(thread, str):
-        raise Refused('the screen list carries no list of its items')
-    try:
-        if sha256(session_file(root, thread).read_bytes()) != head.get('session_sha256'):
-            raise Refused('the session file has changed since the screen list was written')
+        lines = [json.loads(l) for l in inside(root, screen).read_text().splitlines() if l.strip()]
+        thread = lines[0]['thread']
     except Refused as e:
-        raise Refused(str(e))
-    digests = [i.get('digest') for i in listed if isinstance(i, dict)]
-    given = {}
-    for item in lines[1:]:
-        if not isinstance(item, dict):
-            raise Refused('an item of the screen list is not readable')
-        digest = item_digest(item)
-        if digest not in digests or item.get('digest') != digest:
-            raise Refused('the screen list holds an item it was not written with, or an edited item')
-        if digest in given:
-            raise Refused('the screen list holds an item twice')
-        given[digest] = item
-    rows = []
-    for item in listed:
-        answered = given.get(item.get('digest'))
-        codex = {'says': item['screen_must_say'], 'from': 'session file'}
-        if answered is None:
-            rows.append(row(item['comparison'], item['subject'], codex, {'says': None, 'from': 'operator, against the screen'}, 'not run', 'deleted from the screen list'))
-            continue
-        answer, note = answered.get('answer'), answered.get('note')
-        app = {'says': answer, 'note_sha256': sha256(note.encode()) if isinstance(note, str) and note else None, 'from': 'operator, against the screen'}
-        if answer not in ('passed', 'failed', 'inconclusive'):
-            rows.append(row(item['comparison'], item['subject'], codex, app, 'not run', 'not answered'))
-        elif answer == 'passed' and app['note_sha256'] is None:
-            rows.append(row(item['comparison'], item['subject'], codex, app, 'not run', 'answered passed with no note of what was seen'))
-        else:
-            rows.append(row(item['comparison'], item['subject'], codex, app, answer, 'answered by the operator'))
-    return rows
+        return blocked_all(None, str(e))
+    except Exception:
+        return blocked_all(None, 'the screen list could not be read')
+    try:
+        model, _ = read_session(root, thread)
+    except Refused as e:
+        return blocked_all(thread, str(e))
+    rows = answered_rows(model, lines[1:])
+    return rows + records_rows(root, model, manifest)
+
+
+def load_manifest(path):
+    try:
+        return json.loads(Path(path).read_text())
+    except Exception:
+        return None
 
 
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__.split('\n\n')[0])
     sub = p.add_subparsers(dest='command', required=True)
-    c = sub.add_parser('compare', help='compare one thread; with --view, the views exactly; without, write the screen list')
+    c = sub.add_parser('compare', help='with --view, compare exactly and write rows; without, write the screen list for a candidate')
     c.add_argument('--root', required=True)
     c.add_argument('--thread', required=True)
     c.add_argument('--view', action='append', default=[], help='a saved host_status answer under record/, taken after the session ended')
     c.add_argument('--manifest', required=True, help='the bundled MANIFEST.json of the build examined')
-    a = sub.add_parser('answers', help="turn the operator's answers to a screen list into rows")
+    a = sub.add_parser('answers', help="the candidate's complete result: the operator's answers, with C4 and W1")
     a.add_argument('--root', required=True)
     a.add_argument('--screen', required=True)
+    a.add_argument('--manifest', required=True)
     args = p.parse_args(argv)
     try:
         root = examination_root(args.root)
-        if args.command == 'compare':
-            try:
-                manifest = json.loads(Path(args.manifest).read_text())
-            except (OSError, ValueError):
-                manifest = None
-            rows, session, digest = compare(root, args.thread, args.view, manifest)
-            print(write(root, 'session-comparison', header(root), rows))
-            if not args.view and session is not None:
-                items = screen_items(session, args.thread)
-                head = header(root, thread=args.thread, session_sha256=digest, items=items)
-                print(write(root, 'screen-list', head, [{**i, 'answer': None, 'note': None} for i in items], with_summary=False))
-            return 0
-        rows = answers(root, args.screen)
-        # The table counts only the latest answers file of one screen list.
-        print(write(root, 'session-comparison', header(root, answers_of=Path(args.screen).name), rows))
-        return 0
     except Refused as e:
         print(f'refused: {e}', file=sys.stderr)
         return 2
+    thread = getattr(args, 'thread', None)
+    try:
+        manifest = load_manifest(args.manifest)
+        if args.command == 'compare':
+            rows, pending = run_compare(root, args.thread, args.view, manifest)
+            if pending is not None:
+                model, session_sha = pending
+                print(write(root, 'screen-list', header(root, thread=args.thread, session_sha256=session_sha),
+                            [{**i, 'answer': None, 'note': None} for i in screen_items(model)], with_summary=False))
+                return 0
+            print(write(root, 'session-comparison', header(root), rows))
+            return 0
+        rows = run_answers(root, args.screen, manifest)
+        print(write(root, 'session-comparison', header(root, answers_of=ident(Path(args.screen).name)), rows))
+        return 0
+    except Exception as e:
+        # Nothing ends without rows: the failure's kind, and no more.
+        reason = str(e) if isinstance(e, Refused) else f'the comparison failed ({e.__class__.__name__})'
+        try:
+            print(write(root, 'session-comparison', header(root), blocked_all(thread, reason)))
+            return 1
+        except Exception as inner:
+            print(f'refused: no result could be written ({inner.__class__.__name__})', file=sys.stderr)
+            return 2
 
 
 if __name__ == '__main__':

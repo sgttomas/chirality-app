@@ -43,7 +43,8 @@ class Root:
 
     def message(self, turn, text, kind='user.text'):
         self.codex('response_item', {'type': 'message', 'role': 'user', 'content': [{'type': 'input_text', 'text': text}],
-                                     'internal_chat_message_metadata_passthrough': {'turn_id': turn, 'content_item_kinds': [kind]}})
+                                     'internal_chat_message_metadata_passthrough': {'turn_id': turn, 'content_item_kinds': [kind],
+                                                                                    'provenance': {'type': 'user' if kind == 'user.text' else 'harness'}}})
 
     def turn(self, turn, end=None, text='hello', **fields):
         self.codex('event_msg', {'type': 'task_started', 'turn_id': turn})
@@ -74,7 +75,7 @@ class Root:
         sessions.mkdir(parents=True)
         target = sessions / f'rollout-2026-11-14T00-00-00-{THREAD}.jsonl' if self.session else os.devnull
         with open(target, 'w') as f:
-            for line in [{'timestamp': 't', 'type': 'session_meta', 'payload': {'id': THREAD}}] + self.lines:
+            for line in [{'timestamp': 't', 'type': 'session_meta', 'payload': {'id': THREAD, 'cli_version': '0.167.0'}}] + self.lines:
                 f.write(json.dumps(line) + '\n')
         db = sqlite3.connect(self.data / 'runtime' / 'recovery.ledger.sqlite')
         db.execute('CREATE TABLE ledger_entry (seq INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, entry TEXT NOT NULL)')
@@ -98,13 +99,19 @@ class Root:
                              'workflow_file': {'path': 'WORKFLOW.md', 'content': {
                                  'method': 'chirality.app.exact-bytes.sha256/v1', 'value': hashlib.sha256(body.encode()).hexdigest()}}})
 
-    def compare(self, *views):
+    def compare(self, *views, candidate=False):
+        """Rows from a saved view (an empty one where the test is about C4 or
+        W1 only); with candidate=True, the screen list only."""
         manifest = self.write()
+        if not views and not candidate:
+            views = (self.view({}),)
         argv = ['compare', '--root', str(self.root), '--thread', THREAD, '--manifest', manifest]
         for v in views:
             argv += ['--view', v]
         assert compare.main(argv) == 0
         out = sorted((self.root / 'record').glob('session-comparison-2*.jsonl'))
+        if candidate:
+            return None
         lines = [json.loads(l) for l in out[-1].read_text().splitlines()]
         return lines
 
@@ -132,7 +139,7 @@ class SessionComparison(unittest.TestCase):
         self.assertEqual({r['outcome'] for r in rows(lines)}, {'passed'}, rows(lines))
         self.assertEqual([r['comparison'] for r in rows(lines)], ['C2', 'C3', 'C2', 'C3', 'C4', 'W1'])
         self.assertEqual(len(lines[0]['tool_sha256']), 64)
-        self.assertEqual(lines[-1], {'summary': {'C2': {'passed': 2}, 'C3': {'passed': 2}, 'C4': {'passed': 1}, 'W1': {'passed': 1}}})
+        self.assertEqual(lines[-1], {'summary': {'C2': {'passed': 2}, 'C3': {'passed': 2}, 'C4': {'passed': 1}, 'W1': {'passed': 1}}, 'unrecognised': 0})
         self.assertNotIn('Say hello', json.dumps(lines), 'no session content leaves the record')
 
     def test_the_app_showing_completed_where_codex_recorded_an_abort_fails(self):
@@ -179,8 +186,6 @@ class SessionComparison(unittest.TestCase):
         self.r.run_text_record()
         (w1,) = rows(self.r.compare(), 'W1')
         self.assertEqual(w1['outcome'], 'failed')
-        self.assertIn('bundled', w1['reason'])
-        self.assertIn('run_text', w1['reason'])
         self.assertEqual(w1['codex']['line'], 3, 'the line of the session file, not its text')
 
     def test_no_session_file_blocks_every_comparison(self):
@@ -188,26 +193,29 @@ class SessionComparison(unittest.TestCase):
         lines = self.r.compare()
         self.assertEqual({r['outcome'] for r in rows(lines)}, {'blocked'})
 
-    def test_a_candidate_gets_the_screen_list_and_the_operators_answers_become_rows(self):
+    def test_a_candidate_gets_the_screen_list_and_its_whole_result_from_the_answers(self):
         self.r.turn('turn-1', 'interrupted')
         self.r.turn('turn-2')
-        self.r.compare()
+        self.assertIsNone(self.r.compare(candidate=True))
+        self.assertEqual(list((self.r.root / 'record').glob('session-comparison-*.jsonl')), [], 'on a candidate, compare writes the list only')
         (screen,) = (self.r.root / 'record').glob('screen-list-*.jsonl')
         items = [json.loads(l) for l in screen.read_text().splitlines()]
         self.assertTrue(items[0]['header'])
-        self.assertEqual([i['screen_must_say'] for i in items[1:]],
-                         ['the turn is shown, and shown as interrupted', 'the turn is shown, and shown as not known (the turn has no reported end)',
-                          'the screen shows no turn of this thread other than these: turn-1, turn-2'])
-        items[1]['answer'], items[1]['note'] = 'passed', 'shown interrupted'
+        self.assertEqual([(i['comparison'], i['screen_must_say']) for i in items[1:]],
+                         [('C2', 'the turn is shown'), ('C3', 'the turn is shown as interrupted'),
+                          ('C2', 'the turn is shown'), ('C3', 'the turn is shown as not known (no end reported)'),
+                          ('C2', 'no turn of this thread is shown other than: turn-1, turn-2')])
+        items[1]['answer'], items[1]['note'] = 'passed', 'shown'
+        items[2]['answer'], items[2]['note'] = 'passed', 'shown interrupted'
         items[3]['answer'] = 'passed'
         screen.write_text('\n'.join(json.dumps(i) for i in items) + '\n')
-        for old in (self.r.root / 'record').glob('session-comparison-2*.jsonl'):
-            old.unlink()
-        self.assertEqual(compare.main(['answers', '--root', str(self.r.root), '--screen', str(screen)]), 0)
-        (out,) = (self.r.root / 'record').glob('session-comparison-2*.jsonl')
+        self.assertEqual(compare.main(['answers', '--root', str(self.r.root), '--screen', str(screen), '--manifest', self.r.write()]), 0)
+        (out,) = (self.r.root / 'record').glob('session-comparison-*.jsonl')
         lines = [json.loads(l) for l in out.read_text().splitlines()]
-        self.assertEqual(lines[0]['answers_of'], screen.name, 'the table counts only the latest answers file of one screen list')
-        self.assertEqual([r['outcome'] for r in rows(lines)], ['passed', 'not run', 'not run'], 'a passed with no note is not run')
+        self.assertEqual(lines[0]['answers_of'], screen.name)
+        self.assertEqual([(r['comparison'], r['outcome']) for r in rows(lines)],
+                         [('C2', 'passed'), ('C3', 'passed'), ('C2', 'not run'), ('C3', 'not run'), ('C2', 'not run'), ('C4', 'not run'), ('W1', 'not run')],
+                         'a passed with no note is not run; the result is whole, C4 and W1 included')
         self.assertNotIn('shown interrupted', json.dumps(lines), 'a note is carried as its digest only')
 
 
@@ -265,33 +273,47 @@ class NoFalsePass(unittest.TestCase):
 
     def test_4_the_screen_list_asks_about_turns_only_the_app_shows(self):
         self.r.turn('turn-1', 'completed')
-        self.r.compare()
+        self.r.compare(candidate=True)
         (screen,) = (self.r.root / 'record').glob('screen-list-*.jsonl')
-        self.assertIn('no turn of this thread other than these: turn-1', screen.read_text())
+        self.assertIn('no turn of this thread is shown other than: turn-1', screen.read_text())
 
-    def test_5_answers_are_bound_to_the_list_and_the_record(self):
+    def test_5_answers_count_only_for_items_derived_again_from_the_record(self):
         self.r.turn('turn-1', 'completed')
-        self.r.compare()
+        self.r.compare(candidate=True)
         (screen,) = (self.r.root / 'record').glob('screen-list-*.jsonl')
         original = screen.read_text()
         def answer(edit):
             items = [json.loads(l) for l in original.splitlines()]
             edit(items)
             screen.write_text('\n'.join(json.dumps(i) for i in items) + '\n')
-            return compare.main(['answers', '--root', str(self.r.root), '--screen', str(screen)])
-        def must(items): items[1]['screen_must_say'] = 'anything'; items[1]['answer'] = 'passed'; items[1]['note'] = 'x'
-        def subject(items): items[1]['subject'] = {'thread': THREAD, 'turn': 'turn-9'}; items[1]['answer'] = 'passed'; items[1]['note'] = 'x'
-        def added(items): items.append({**items[1], 'screen_must_say': 'invented', 'answer': 'passed', 'note': 'x'})
-        def root(items): items[0]['candidate_key'] = 'another'
-        for edit in (must, subject, added, root):
-            self.assertEqual(answer(edit), 2, edit.__name__)
-        def removed(items): del items[1:]
-        self.assertEqual(answer(removed), 0)
-        (out,) = [p for p in (self.r.root / 'record').glob('session-comparison-*.jsonl') if 'answers_of' in p.read_text()]
-        self.assertEqual({r['outcome'] for r in rows([json.loads(l) for l in out.read_text().splitlines()])}, {'not run'}, 'deleted items are not run, not gone')
+            for old in (self.r.root / 'record').glob('session-comparison-*.jsonl'):
+                old.unlink()
+            compare.main(['answers', '--root', str(self.r.root), '--screen', str(screen), '--manifest', self.r.write()])
+            (out,) = (self.r.root / 'record').glob('session-comparison-*.jsonl')
+            return [(r['comparison'], json.dumps(r['subject'], sort_keys=True), r['outcome']) for r in rows([json.loads(l) for l in out.read_text().splitlines()])
+                    if r['comparison'] in ('C2', 'C3')]
+        def all_passed(items):
+            for i in items[1:]:
+                i['answer'], i['note'] = 'passed', 'seen'
+        honest = answer(all_passed)
+        self.assertEqual({o for *_, o in honest}, {'passed'})
+        def edited(items):
+            all_passed(items)
+            items[2]['screen_must_say'] = 'the turn is shown as interrupted'
+        self.assertIn(('C3', json.dumps({'thread': THREAD, 'turn': 'turn-1'}, sort_keys=True), 'not run'), answer(edited), 'an edited item answers nothing')
+        def invented(items):
+            all_passed(items)
+            items.append({**items[1], 'subject': {'thread': THREAD, 'turn': 'turn-9'}})
+            items[0]['items'] = 'anything'
+        self.assertNotIn('turn-9', json.dumps(answer(invented)), 'an item the record does not give is not a row')
+        def removed(items):
+            del items[1:]
+        self.assertEqual({o for *_, o in answer(removed)}, {'not run'}, 'deleted items are not run, not gone')
         for path in self.r.root.rglob(f'rollout-*-{THREAD}.jsonl'):
-            path.write_text(path.read_text() + '\n')
-        self.assertEqual(answer(lambda items: None), 2, 'the session file changed since the list was written')
+            path.write_text(path.read_text().replace('task_complete', 'turn_aborted'))
+        changed = answer(all_passed)
+        self.assertIn(('C3', json.dumps({'thread': THREAD, 'turn': 'turn-1'}, sort_keys=True), 'not run'), changed,
+                      'the list is derived again from the record as it is now: an answer about the old end answers nothing')
 
     def test_6_a_turn_started_twice_is_inconclusive(self):
         self.r.turn('turn-1', 'completed')
@@ -343,7 +365,7 @@ class NoFalsePass(unittest.TestCase):
         self.r.turn('turn-1', 'completed', text=run_text())
         manifest = self.r.write()
         (self.r.data / 'records' / 'projects' / 'k' / 'workflow' / 'bad.json').write_text('{')
-        compare.main(['compare', '--root', str(self.r.root), '--thread', THREAD, '--manifest', manifest])
+        compare.main(['compare', '--root', str(self.r.root), '--thread', THREAD, '--manifest', manifest, '--view', self.r.view({})])
         (out,) = (self.r.root / 'record').glob('session-comparison-2*.jsonl')
         w1 = rows([json.loads(l) for l in out.read_text().splitlines()], 'W1')
         self.assertEqual(sorted(r['outcome'] for r in w1), ['blocked', 'inconclusive'])
@@ -366,6 +388,115 @@ class NoFalsePass(unittest.TestCase):
         self.assertIn('summary', lines[-1])
 
 
+class SecondReading(unittest.TestCase):
+    """The second independent reading's findings, against the strict model."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.r = Root(self.tmp.name)
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def session_lines(self):
+        (path,) = list(self.r.root.rglob(f'rollout-*-{THREAD}.jsonl'))
+        return path
+
+    def test_another_part_carrying_a_workflow_is_not_agreement(self):
+        self.r.codex('event_msg', {'type': 'task_started', 'turn_id': 'turn-1'})
+        self.r.codex('response_item', {'type': 'message', 'role': 'user', 'content': [
+            {'type': 'input_text', 'text': run_text()}, {'type': 'input_text', 'text': run_text(WORKFLOW.replace('hello', 'hellp'))}],
+            'internal_chat_message_metadata_passthrough': {'turn_id': 'turn-1', 'content_item_kinds': ['user.text'], 'provenance': {'type': 'user'}}})
+        self.r.run_text_record()
+        (w1,) = rows(self.r.compare(), 'W1')
+        self.assertEqual(w1['outcome'], 'inconclusive')
+
+    def test_two_records_with_one_text_do_not_pass(self):
+        self.r.turn('turn-1', 'completed', text=run_text())
+        self.r.turn('turn-2', 'completed', text=run_text())
+        self.r.run_text_record(run='run-1')
+        self.r.run_text_record(run='run-2')
+        self.assertNotIn('passed', [r['outcome'] for r in rows(self.r.compare(), 'W1')])
+
+    def test_a_user_text_message_with_harness_provenance_is_not_the_persons(self):
+        self.r.codex('event_msg', {'type': 'task_started', 'turn_id': 'turn-1'})
+        self.r.codex('response_item', {'type': 'message', 'role': 'user', 'content': [{'type': 'input_text', 'text': run_text()}],
+            'internal_chat_message_metadata_passthrough': {'turn_id': 'turn-1', 'content_item_kinds': ['user.text'], 'provenance': {'type': 'harness'}}})
+        self.r.run_text_record()
+        (w1,) = rows(self.r.compare(), 'W1')
+        self.assertEqual(w1['outcome'], 'blocked')
+
+    def test_a_completion_followed_by_a_restart_is_not_one_reading(self):
+        self.r.turn('turn-1', 'completed')
+        self.r.codex('event_msg', {'type': 'task_started', 'turn_id': 'turn-1'})
+        (c3,) = rows(self.r.compare(self.r.view({'turn-1': 'completed'})), 'C3')
+        self.assertEqual(c3['outcome'], 'inconclusive')
+
+    def test_an_empty_session_or_another_version_blocks_everything(self):
+        manifest = self.r.write()
+        path = self.session_lines()
+        for text in ('', json.dumps({'type': 'session_meta', 'payload': {'id': THREAD, 'cli_version': '0.168.0'}}) + '\n'):
+            path.write_text(text)
+            for old in (self.r.root / 'record').glob('session-comparison-*.jsonl'):
+                old.unlink()
+            compare.main(['compare', '--root', str(self.r.root), '--thread', THREAD, '--manifest', manifest])
+            (out,) = (self.r.root / 'record').glob('session-comparison-*.jsonl')
+            lines = [json.loads(l) for l in out.read_text().splitlines()]
+            self.assertEqual({r['outcome'] for r in rows(lines)}, {'blocked'})
+            self.assertEqual(lines[0]['pinned_codex'], '0.167.0')
+
+    def test_free_text_in_any_field_never_reaches_a_row_or_passes(self):
+        secret = 'INVENTED MESSAGE TEXT'
+        self.r.codex('event_msg', {'type': 'task_started', 'turn_id': 'turn-1'})
+        self.r.codex('event_msg', {'type': 'turn_aborted', 'turn_id': 'turn-1', 'reason': secret})
+        self.r.stops.append({'kind': 'stop_request', 'record': {'stopRequestId': 'stop:turn-1', 'threadId': THREAD, 'turnId': 'turn-1',
+                             'turnOutcome': 'interrupted', 'state': secret, 'outcomeSource': secret}})
+        lines = self.r.compare(self.r.view({'turn-1': secret}))
+        self.assertNotIn(secret, json.dumps(lines))
+        self.assertEqual([r['outcome'] for r in rows(lines, 'C3') + rows(lines, 'C4')], ['inconclusive', 'failed'])
+        self.assertGreater(lines[-1]['unrecognised'], 0, 'unrecognised values are counted apart')
+
+    def test_a_turn_of_the_view_with_no_record_blocks_the_view(self):
+        self.r.turn('turn-1', 'completed')
+        path = Path(self.r.view({'turn-1': 'completed'}))
+        saved = json.loads(path.read_text())
+        saved['nativeView']['turns'].append({'id': 'turn-extra', 'status': 'completed'})
+        path.write_text(json.dumps(saved))
+        lines = self.r.compare(str(path))
+        self.assertEqual({r['outcome'] for r in rows(lines, 'C2') + rows(lines, 'C3')}, {'blocked'})
+
+    def test_answers_against_a_missing_session_write_blocked_rows(self):
+        self.r.turn('turn-1', 'completed')
+        self.r.compare(candidate=True)
+        (screen,) = (self.r.root / 'record').glob('screen-list-*.jsonl')
+        self.session_lines().unlink()
+        self.assertEqual(compare.main(['answers', '--root', str(self.r.root), '--screen', str(screen), '--manifest', self.r.write()]), 0)
+        (out,) = (self.r.root / 'record').glob('session-comparison-*.jsonl')
+        self.assertEqual({(r['comparison'], r['outcome']) for r in rows([json.loads(l) for l in out.read_text().splitlines()])},
+                         {('C2', 'blocked'), ('C3', 'blocked'), ('C4', 'blocked'), ('W1', 'blocked')})
+
+    def test_an_unexpected_failure_writes_blocked_rows_naming_only_its_kind(self):
+        self.r.turn('turn-1', 'completed')
+        manifest = self.r.write()
+        original = compare.compare_views
+        compare.compare_views = lambda *a: (_ for _ in ()).throw(RuntimeError('INVENTED TRACE TEXT'))
+        try:
+            self.assertEqual(compare.main(['compare', '--root', str(self.r.root), '--thread', THREAD, '--manifest', manifest, '--view', self.r.view({})]), 1)
+        finally:
+            compare.compare_views = original
+        (out,) = (self.r.root / 'record').glob('session-comparison-*.jsonl')
+        text = out.read_text()
+        self.assertNotIn('INVENTED TRACE TEXT', text)
+        self.assertIn('RuntimeError', text)
+        self.assertEqual({r['outcome'] for r in rows([json.loads(l) for l in text.splitlines()])}, {'blocked'})
+
+    def test_a_stop_with_no_usable_identity_is_blocked_not_dropped(self):
+        self.r.turn('turn-1', 'completed')
+        self.r.stops.append({'kind': 'stop_request', 'record': {'stopRequestId': None, 'threadId': THREAD, 'turnId': 'turn-1', 'turnOutcome': 'interrupted'}})
+        (c4,) = rows(self.r.compare(), 'C4')
+        self.assertEqual(c4['outcome'], 'blocked')
+
+
 class TheRealFormat(unittest.TestCase):
     """An invented session laid out as the 0.167.0 file is: an ordinal on each
     line, a developer message and other user-role messages beside the
@@ -376,9 +507,10 @@ class TheRealFormat(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / f'rollout-2026-11-14T06-11-12-{THREAD}.jsonl'
             msg = lambda role, text, turn, kind: {'type': 'message', 'id': 'msg_x', 'role': role, 'content': [{'type': 'input_text', 'text': text}],
-                                                 'internal_chat_message_metadata_passthrough': {'turn_id': turn, 'content_item_kinds': [kind]}}
+                                                 'internal_chat_message_metadata_passthrough': {'turn_id': turn, 'content_item_kinds': [kind],
+                                                                                               'provenance': {'type': 'user' if kind == 'user.text' else 'harness'}}}
             lines = [
-                ('session_meta', {'id': THREAD, 'base_instructions': {'text': 'invented'}}),
+                ('session_meta', {'id': THREAD, 'cli_version': '0.167.0', 'base_instructions': {'text': 'invented'}}),
                 ('event_msg', {'type': 'task_started', 'turn_id': 'A', 'root_turn_id': 'A', 'started_at': 1}),
                 ('response_item', msg('developer', 'Invented role guidance.', 'A', 'developer.instructions')),
                 ('response_item', msg('user', '<environment_context>invented</environment_context>', 'A', 'environments.environment_context')),
@@ -394,10 +526,10 @@ class TheRealFormat(unittest.TestCase):
                 ('event_msg', {'type': 'task_complete', 'turn_id': 'C', 'last_agent_message': None, 'error': {'message': 'invented', 'codex_error_info': 'other'}}),
             ]
             path.write_text(''.join(json.dumps({'timestamp': 't', 'ordinal': n, 'type': k, 'payload': p}) + '\n' for n, (k, p) in enumerate(lines)))
-            session = compare.read_session(path, THREAD)
-            self.assertEqual([(t, compare.codex_status(session['turns'][t])) for t in session['order']],
+            session = compare.parse_session(path.read_bytes(), THREAD)
+            self.assertEqual([(t, session['turns'][t]['says']) for t in session['order']],
                              [('A', 'completed'), ('B', 'interrupted'), ('C', 'failed')])
-            self.assertEqual(session['turns']['B']['end']['reason'], 'interrupted')
+            self.assertEqual(session['turns']['B']['reason'], 'interrupted')
             r = Root(tmp)
             r.lines = [{'timestamp': 't', 'type': k, 'payload': p} for k, p in lines[1:]]
             r.run_text_record()
