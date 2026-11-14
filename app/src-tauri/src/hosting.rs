@@ -3699,16 +3699,18 @@ impl Host {
             i.client_requests[index]["sendPosition"]=json!(position);
             match written {Ok(())=>{i.source_requests.get_mut(&key).unwrap().written=true;i.client_requests[index]["writeResult"]=json!("written");i.client_requests[index]["outcome"]=json!(if closed{"unknown-no-response"}else{"pending"});
                 if response.is_some(){let(record,limit)=attachment_custody::project_observation(&i.client_requests[index],response.as_ref(),response_position)?;i.client_requests[index]=record;if let Some(limit)=limit{if let Some(a)=i.source_requests.get_mut(&key).unwrap().attachment.as_mut(){a.limit=Some(limit);}}}
-                // A reply that arrived while the write was in progress is taken in here, since the
-                // reader deferred it. Only Codex's reply to this very request retires the start: a
-                // result naming a turn (remembered as that turn) or an error object (a refusal).
-                // Anything else leaves it listed until a reply resolves it or its generation closes.
-                // "Naming a turn" is the Host's own test of a turn it remembers (native_turn_shape), so a
-                // start is never retired by a reply whose turn is then not remembered.
-                let resolves=response.as_ref().is_some_and(|r|r.get("error").is_some_and(Value::is_object)||r.get("result").and_then(|r|r.get("turn")).is_some_and(Self::native_turn_shape));
-                if !closed&&frame["method"]=="turn/start"&&resolves{if let Some((source_gen,thread,sent_after_receipt))=i.turn_request_threads.remove(&key){if source_gen==i.generation{if let Some(turn)=response.as_ref().and_then(|r|r.get("result")).and_then(|r|r.get("turn")){let position=response_position.unwrap_or(i.receipt_position);Self::remember_turn(&mut i,&source_gen,&thread,turn,"turn/start response",position);Self::note_turn_request(&mut i,&key,&source_gen,&thread,&turn["id"]);if let Some(e)=i.conversation_turns.iter_mut().find(|e|e["generation"]==source_gen&&e["threadId"]==thread&&e["turnId"]==turn["id"]&&e["source"]=="turn/start response"&&e["receiptPosition"]==position){e["startResponseIssuedAfterReceipt"]=json!(sent_after_receipt);}}}}}}
-                // A write that began and failed may have reached Codex in part: the start stays listed.
+                }
+                // A write that began and failed may have reached Codex in part: the failure itself retires
+                // nothing, and the start stays listed unless a stored reply resolves it below.
                 Err(error)=>{i.pending.remove(&key);let e=i.source_requests.get_mut(&key).unwrap();e.write_error=Some(error);if response.is_some(){e.source_limit=Some("Matching native reply and write failure both observed; canonical projection unavailable".into());if let Some(a)=e.attachment.as_mut(){a.limit=Some("Combined failed write and observed reply cannot be projected into v0.10; last prewrite source is historical only".into());}i.client_requests[index]=prepared.client.clone();}else{i.client_requests[index]["writeResult"]=json!("write-failed");i.client_requests[index]["outcome"]=json!("unknown-no-response");}}}
+            // A reply that arrived while the write was in progress is taken in here, whether the write
+            // succeeded or failed, since the reader deferred it. Only Codex's reply to this very request
+            // retires the start: a result naming a turn (remembered as that turn) or an error object (a
+            // refusal). Anything else leaves it listed until a reply resolves it or its generation closes.
+            // "Naming a turn" is the Host's own test of a turn it remembers (native_turn_shape), so a
+            // start is never retired by a reply whose turn is then not remembered.
+            let resolves=response.as_ref().is_some_and(|r|r.get("error").is_some_and(Value::is_object)||r.get("result").and_then(|r|r.get("turn")).is_some_and(Self::native_turn_shape));
+            if !closed&&frame["method"]=="turn/start"&&resolves{if let Some((source_gen,thread,sent_after_receipt))=i.turn_request_threads.remove(&key){if source_gen==i.generation{if let Some(turn)=response.as_ref().and_then(|r|r.get("result")).and_then(|r|r.get("turn")){let position=response_position.unwrap_or(i.receipt_position);Self::remember_turn(&mut i,&source_gen,&thread,turn,"turn/start response",position);Self::note_turn_request(&mut i,&key,&source_gen,&thread,&turn["id"]);if let Some(e)=i.conversation_turns.iter_mut().find(|e|e["generation"]==source_gen&&e["threadId"]==thread&&e["turnId"]==turn["id"]&&e["source"]=="turn/start response"&&e["receiptPosition"]==position){e["startResponseIssuedAfterReceipt"]=json!(sent_after_receipt);}}}}}
             drop(i);drop(namespace_lease);
             #[cfg(test)] {let hook=self.after_attachment_namespace_write.lock().unwrap().take();if let Some(hook)=hook{hook();}}
             let _=self.persist_attachment_observation(&prepared.source);Ok(prepared.source.clone())
@@ -7479,20 +7481,29 @@ mod conversation_transport_tests {
             std::fs::remove_dir_all(root).unwrap();
         }
     }
-    // A start whose write began and failed may have reached Codex in part: it stays listed among the
-    // unresolved starts. (A later reply resolving it is the reader's, in the Execution lane's work.)
+    // A start whose write began and failed may have reached Codex in part: the failure retires nothing,
+    // so with no reply it stays listed among the unresolved starts. A reply that came during that write
+    // is still taken in, as on success: a turn it names is remembered and an error retires the start.
+    // (A reply after the failed write is the reader's, in the Execution lane's work.)
     #[test]
-    fn attachment_host_final_reread_and_a_start_whose_write_failed_stays_listed(){
-        let host=host();let(root,owner,selections)=attachment_fixture();
-        let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();*host.stdin.lock().unwrap()=child.stdin.take();
-        let packet=host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",None,"Person text",&selections).unwrap();
-        child.kill().unwrap();child.wait().unwrap();
-        let id=packet.source().request_id().clone();let key=id.to_string();
-        let source=host.dispatch_attachment_turn(&packet).unwrap();
-        assert_eq!(source.evidence()["writeResult"],"write-failed");
-        assert!(host.inner.0.lock().unwrap().turn_request_threads.contains_key(&key),"a failed write does not retire the start");
-        *host.stdin.lock().unwrap()=None;
-        std::fs::remove_dir_all(root).unwrap();
+    fn attachment_host_final_reread_and_a_start_whose_write_failed_stays_listed_unless_a_reply_came_during_it(){
+        for reply in ["none","started","refused"]{
+            let host=host();let(root,owner,selections)=attachment_fixture();
+            let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();*host.stdin.lock().unwrap()=child.stdin.take();
+            let packet=host.prepare_attachment_turn(Arc::clone(&owner),&g(),"thread",None,"Person text",&selections).unwrap();
+            child.kill().unwrap();child.wait().unwrap();
+            let id=packet.source().request_id().clone();let key=id.to_string();
+            let frame=match reply{"started"=>Some(json!({"id":id,"result":{"turn":complete_turn()}})),"refused"=>Some(json!({"id":id,"error":{"code":-32000,"message":"invented native refusal"}})),_=>None};
+            if let Some(frame)=frame{let receiver=Arc::clone(&host);*host.after_attachment_write.lock().unwrap()=Some(Box::new(move||receiver.on_line(&serde_json::to_vec(&frame).unwrap(),&g())));}
+            let _source=host.dispatch_attachment_turn(&packet).unwrap();
+            {let i=host.inner.0.lock().unwrap();
+                assert!(i.source_requests[&key].write_error.is_some(),"{reply}: the write failed");
+                assert_eq!(i.turn_request_threads.contains_key(&key),reply=="none","{reply}: the failure retires nothing; a reply during the write is taken in");
+                let remembered=i.conversation_turns.iter().any(|e|e["threadId"]=="thread"&&e["turnId"]=="turn"&&e["source"]=="turn/start response");
+                assert_eq!(remembered,reply=="started","{reply}: the turn the reply names is remembered");}
+            *host.stdin.lock().unwrap()=None;
+            std::fs::remove_dir_all(root).unwrap();
+        }
     }
     #[test]
     fn attachment_host_actual_partial_and_sync_publication_failures_never_send(){
