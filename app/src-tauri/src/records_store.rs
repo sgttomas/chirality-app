@@ -1332,9 +1332,11 @@ pub fn attach(root: &Path, mint: bool) -> Result<Attachment, String> {
                 // never registered here on the link alone.
                 let released = lines.iter().any(|l| l["projectId"] == project.as_str());
                 let known = released || identity_held(&project_dir(&store, project))?;
-                if mint && !released {
+                if mint && !known {
                     // A link the store does not know yet, or an identity whose
-                    // minting stopped before its first roots line.
+                    // minting stopped before publishing its identity record.
+                    // Retained history without roots needs the same explicit
+                    // confirmation as a read; a write cannot associate it.
                     register(&store, project, &at, "registered")?;
                     out.limits.push(format!("the records store held no record of project {project}; registered from its project file"));
                     out.how = "registered";

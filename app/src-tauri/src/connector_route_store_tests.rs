@@ -60,6 +60,28 @@ fn records_store_writer_binding_connector_pending_after_identity_adoption_is_ref
 }
 
 #[test]
+fn records_store_writer_binding_f4_connector_write_is_refused_without_registration() {
+    let scratch = Scratch::new();
+    let p = scratch.project();
+    let store = ProjectRouteStore::open_for_write(&p).unwrap();
+    store.write(&account("ra:f4-retained")).unwrap();
+    let target = store.accounts_directory();
+    let registry = crate::records_store::store_root().unwrap().join("roots.jsonl");
+    fs::write(&registry, b"").unwrap();
+    let reason = crate::records_store::attach(&p, false).unwrap().refusal.unwrap();
+    let waiting = account("ra:f4-unwritten");
+    let before: Vec<_> = fs::read_dir(&target).unwrap().map(|e| e.unwrap().path()).collect();
+    let fresh_error = ProjectRouteStore::open_for_write(&p).err().expect("first writer must refuse");
+    assert!(fresh_error.to_string().contains(&reason), "{fresh_error}");
+    let error = store.write(&waiting).err().expect("kept writer must refuse");
+    assert!(error.to_string().contains(&reason), "{error}");
+    assert_eq!(fs::read(&registry).unwrap(), b"");
+    assert_eq!(fs::read_dir(&target).unwrap().count(), before.len());
+    crate::records_store::adopt(&p).unwrap();
+    assert!(store.write(&waiting).is_ok(), "the original account can be explicitly resubmitted");
+}
+
+#[test]
 fn records_store_writer_binding_connector_link_swapped_before_publication_is_refused() {
     let scratch = Scratch::new();
     let p = scratch.project();

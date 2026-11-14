@@ -2,6 +2,67 @@ use super::*;
 
 const UNKNOWN_FOLDER: &str = "not known which project this folder belongs to in this process; nothing written";
 
+fn store_bytes(root: &Path) -> BTreeMap<PathBuf, Vec<u8>> {
+    let mut files = BTreeMap::new();
+    let mut todo = vec![root.to_path_buf()];
+    while let Some(dir) = todo.pop() {
+        for entry in std::fs::read_dir(dir).unwrap() {
+            let entry = entry.unwrap();
+            if entry.file_type().unwrap().is_dir() {
+                todo.push(entry.path());
+            } else {
+                files.insert(entry.path(), std::fs::read(entry.path()).unwrap());
+            }
+        }
+    }
+    files
+}
+
+#[test]
+fn records_store_writer_binding_f4_retained_history_requires_confirmation_before_first_write() {
+    let own = OwnStore::new();
+    let root = folder("writer-f4-");
+    records::append_project(&root, None, "writer:f4", "evidence_limit", &APP_WRITER, body("retained")).unwrap();
+    let dir = attach(&root, false).unwrap().dir.unwrap();
+    let registry = own.0.join("roots.jsonl");
+    std::fs::write(&registry, b"").unwrap();
+    let before = attach(&root, false).unwrap();
+    assert_eq!(before.fault, Some("no folder recorded"));
+    let reason = before.refusal.unwrap();
+    let view = status(Some(&root));
+    assert_eq!(view["project"]["attachment"]["refusal"], reason);
+    let (entries, limits) = storage::read_all(&root);
+    assert!(entries.is_empty(), "ordinary reading cannot take the retained identity");
+    assert!(limits.iter().any(|limit| limit.contains(&reason)), "{limits:?}");
+    let files_before = store_bytes(&own.0);
+    assert_eq!(attach(&root, true).unwrap().refusal.as_deref(), Some(reason.as_str()));
+    let written = records::append_project(&root, None, "writer:f4-new", "evidence_limit", &APP_WRITER, body("must wait"));
+    assert!(written.as_ref().is_err_and(|e| e.contains(&reason)), "{written:?}");
+    assert_eq!(bind_writer(&root).err().as_deref(), Some(reason.as_str()));
+    assert_eq!(std::fs::read(&registry).unwrap(), b"");
+    assert!(!dir.join(storage::log_rel(None, "writer:f4-new")).exists());
+    assert_eq!(files_before, store_bytes(&own.0));
+    adopt(&root).unwrap(); // Existing confirmation act's implementation, synthetic examination only.
+    records::append_project(&root, None, "writer:f4-new", "evidence_limit", &APP_WRITER, body("must wait")).unwrap();
+    assert_eq!(storage::read_all(&root).0.len(), 2);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn records_store_writer_binding_f4_link_without_retained_history_still_registers() {
+    let own = OwnStore::new();
+    let root = folder("writer-f4-unheld-");
+    let (_, store) = opened().unwrap();
+    std::fs::create_dir_all(root.join(".chirality")).unwrap();
+    std::fs::write(root.join(PROJECT_LINK), serde_json::to_vec(&link_value("chirality-project:unheld", &store)).unwrap()).unwrap();
+    assert!(attach(&root, false).unwrap().refusal.is_none());
+    let writer = bind_writer(&root).unwrap();
+    assert_eq!(writer.project_id(), "chirality-project:unheld");
+    assert!(writer.records_dir().starts_with(&own.0));
+    assert_eq!(root_for_dir(writer.records_dir()).as_deref(), Some(root.as_path()));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
 #[test]
 fn records_store_writer_binding_moved_identity_is_not_adopted_while_activity_is_held() {
     a_moved_project_is_not_adopted_while_its_activity_is_held();

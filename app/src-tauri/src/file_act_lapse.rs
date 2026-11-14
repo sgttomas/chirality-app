@@ -575,7 +575,7 @@ impl Observer {
         self.state = "content observed; no new lapse observation needed".into();
         if let Err(error) = self.prepare(root) {
             self.limits.push(error);
-            self.state = "content observation limited; durable save not established".into();
+            self.state = "no lapse observation recorded; content observation limited".into();
         }
         self.flush(root)
     }

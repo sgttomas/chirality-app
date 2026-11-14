@@ -568,6 +568,8 @@ impl ProjectRecords {
         #[cfg(test)]
         crate::records_effect_guard::mutation_for_test("workflow_record_store::ProjectRecords::publish");
         let binding = pending.binding.as_ref().map_err(Clone::clone)?;
+        // Preserve the attachment's own refusal before generic queued-write admission.
+        binding.check_attachment()?;
         let _admission=crate::records_retention::write_path(binding.records_dir())?;
         binding.prove_for_write()?;
         // A handle that read in place must refuse an import before publishing,

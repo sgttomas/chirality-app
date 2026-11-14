@@ -2082,6 +2082,7 @@ mod persistence_tests {
         assert_eq!(log[2]["observedAt"], recovered["capture"]["capturedAt"]);
         std::fs::remove_dir_all(root).unwrap();
     }
+    include!("act_control_records_f4_tests.rs");
     #[test]
     fn existing_match_directory_sync_failure_holds_backlink_until_publication_durable() {
         let root = scratch();

@@ -25,6 +25,35 @@ fn pending(p: &ProjectRecords) -> PendingRecord {
 }
 
 #[test]
+fn records_store_writer_binding_f4_workflow_publication_keeps_refused_bytes() {
+    let f = Fixture::new();
+    let p = f.store();
+    p.publish(&pending(&p)).unwrap();
+    let admitted = pending(&p);
+    let admitted_bytes = admitted.bytes.clone();
+    let registry = crate::records_store::store_root().unwrap().join("roots.jsonl");
+    std::fs::write(&registry, b"").unwrap();
+    let reason = crate::records_store::attach(&f.0, false).unwrap().refusal.unwrap();
+    assert_eq!(p.publish(&admitted).err().as_deref(), Some(reason.as_str()));
+    assert_eq!(admitted.bytes, admitted_bytes);
+    let original_writer = p;
+    let p = f.store(); // A first admission in F4, rather than a previously bound writer.
+    let waiting = pending(&p);
+    let original = waiting.bytes.clone();
+    assert_eq!(p.publish(&waiting).err().as_deref(), Some(reason.as_str()));
+    assert_eq!(waiting.bytes, original);
+    assert_eq!(std::fs::read(&registry).unwrap(), b"");
+    crate::records_store::adopt(&f.0).unwrap();
+    assert!(original_writer.publish(&admitted).is_ok());
+    assert_eq!(admitted.bytes, admitted_bytes);
+    // A refused admission is frozen with its bytes, not rebound by confirmation.
+    assert_eq!(p.publish(&waiting).err().as_deref(), Some(reason.as_str()));
+    assert_eq!(waiting.bytes, original);
+    assert!(p.resolve(waiting.reference()).is_err());
+    assert!(p.publish(&pending(&p)).is_ok(), "a fresh admission after confirmation works");
+}
+
+#[test]
 fn records_store_writer_binding_wr_in_place_handle_refuses_before_publication_after_import() {
     let f = Fixture::new();
     let kept = f.store();

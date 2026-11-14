@@ -199,7 +199,7 @@ impl ChildGuidance {
             });
             let request = json!({"home":event.generation()["home"],"generation":event.generation(),"requestIdentity":null,"requestRef":null,"method":null,"writeResult":"not-attempted","outcome":"native-notification-observed","sourceCurrent":null});
             let row=crate::util::opaque_id("sup:limit:").and_then(|id|crate::role_observations::row(&id,"native-task-delegation",Some(event.parent()),request,json!({"role":"unknown","preselected":null,"roleSet":null}),"task-delegation-observed",None,json!({"instructionSources":null,"agentRole":null,"forkedFromId":null}),json!({"originalParentSupplyRef":task_parent_supply,"nativeChildEvent":event.evidence(),"originalTaskAssociation":limit["originalAssociation"],"standing":limit["standing"],"basis":"comparison-with-original-child-guidance"}),None));
-            limit["roleSupplyRecord"]=row.and_then(|r|match log{Some(Ok(log))=>log.append(r,None),_=>Err("App role history unavailable".into())}).unwrap_or_else(|_|json!({"state":"not-confirmed","limit":"TASK delegation history unavailable; live native event remains observed"}));
+            limit["roleSupplyRecord"]=row.and_then(|r|match log{Some(Ok(log))=>log.append(r,None),_=>Err("App role history unavailable".into())}).unwrap_or_else(|error|json!({"state":"not-confirmed","limit":error,"standing":"TASK delegation history not confirmed; live native event remains observed in this App process only; no automatic record retry"}));
             self.limit_events.push(limit);
         }
         for pending in &mut self.pending {
@@ -229,7 +229,7 @@ impl ChildGuidance {
                 Some(Ok(log)) => log.append(row, pending.composition.as_ref()),
                 _ => Err("App role history unavailable".into()),
             });
-            pending.reading["roleSupplyRecord"]=recorded.unwrap_or_else(|_|json!({"state":"not-confirmed","limit":"Child association history unavailable; native observation retained in memory"}));
+            pending.reading["roleSupplyRecord"]=recorded.unwrap_or_else(|error|json!({"state":"not-confirmed","limit":error,"standing":"Child association history not confirmed; native observation retained in this App process only; no automatic record retry"}));
         }
     }
     pub(crate) fn for_thread(&self, home: &str, thread: &str) -> Value {

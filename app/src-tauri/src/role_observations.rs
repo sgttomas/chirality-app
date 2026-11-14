@@ -568,7 +568,10 @@ impl RoleLog {
             .writer
             .lock()
             .map_err(|_| "role observation writer owner unavailable")?;
-        let Some((path, folder, _admission, _writer)) = self.location(true)? else {
+        // Location/admission fails before this observation or its content is
+        // published. Later append errors can instead have uncertain durability.
+        let Some((path, folder, _admission, _writer)) = self.location(true)
+            .map_err(|error| format!("Role observation was not recorded: {error}"))? else {
             return Err("role observation store unavailable".into());
         };
         let lock = open_at(&folder, ".writer.lock", libc::O_RDWR | libc::O_CREAT)?;
