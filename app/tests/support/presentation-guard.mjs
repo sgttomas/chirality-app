@@ -25,7 +25,7 @@ import {readFileSync} from 'node:fs';
 export const TRUSTED = {
   './AgentText': {
     // Functions whose result is the App's words, a checked identifier or a checked number.
-    functions: ['plainId', 'idWords', 'wordOf', 'numberWords', 'isoSeconds'],
+    functions: ['plainId', 'idWords', 'wordOf', 'numberWords', 'isoSeconds', 'clockWords'],
     // Components that draw a supplied value: boxed, or as the App's words only for a value they check at run time.
     components: ['AgentText', 'SuppliedId', 'Word', 'Num', 'Flag'],
   },

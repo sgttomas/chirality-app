@@ -243,6 +243,8 @@ test('in the App, a generation or home change keeps the clean trial composer and
     if (command === 'decision_view') return {rows:[]};
     if (command === 'native_confirmation_content') return [];
     if (command === 'read_available_models') return packet({generation:args.generation, serverProvider:null, serverProviderState:'unnamed', providerLimit:'the app-server\'s configuration names no provider'});
+    // "Waiting on you"'s timed read of the return queue: a read that writes nothing, not an act.
+    if (command === 'read_fleet_records') throw Error('invented: no fleet records in this harness');
     acts.push(command); throw Error(`unexpected ${command}`);
   });
   const intervals = new Map(), previous = {setInterval:globalThis.setInterval, clearInterval:globalThis.clearInterval, getElementById:document.getElementById}; let timer = 0;
@@ -478,7 +480,7 @@ test('in the App, an unconfirmed bring-back send is named in its conversation an
     assert.equal(region(c, 'Bring back composer'), undefined, 'the host withdrew the pre-fill');
     const notice = region(c, 'Bring-back send not confirmed');
     assert.ok(notice, 'the conversation names the unconfirmed send');
-    assert.match(notice.textContent, /Trial 2's results may have been sent to this conversation\..*nothing is resent.*held until you've checked.*Your message: Here is how trial 2 went.*Reported: .*not established/);
+    assert.match(notice.textContent, /Trial 2's results may have been sent to this conversation\..*nothing is resent.*The App won't bring it back there again until you've said you checked\..*Your message: Here is how trial 2 went.*Reported: .*not established/);
     const guide = region(c, 'Make a workflow from your work');
     await React.act(async () => { props(nodes(guide, 'select')[0]).onChange({target:{value:JSON.stringify([g, 'T1'])}}); });
     await React.act(async () => { props(nodes(guide, 'input')[0]).onChange({target:{value:'spacing-check'}}); });
@@ -584,7 +586,7 @@ test('in the App, an unconfirmed run bring-back is acknowledged from its own not
     await ui.select('T1');
     await React.act(async () => { props(button(region(ui.c, 'Bring back composer'), 'Send')).onClick(); }); await ui.settle();
     const notice = () => region(ui.c, 'Bring-back send not confirmed');
-    assert.match(notice().textContent, /The run's results may have been sent to this conversation\..*held until you've checked/);
+    assert.match(notice().textContent, /The run's results may have been sent to this conversation\..*The App won't bring it back there again until you've said you checked\./);
     const view = () => RunBringBackView({run, conversations:[{threadId:'T1', generation:g, model:'m'}], target:JSON.stringify([g, 'T1']), setTarget:() => {}, includeNative:false, setIncludeNative:() => {}, busy:false, act:() => assert.fail('held')});
     const find = (node, out = []) => { if (Array.isArray(node)) { node.forEach(n => find(n, out)); return out; } if (!node || typeof node !== 'object') return out; if (node.type === 'button') out.push(node); find(node.props?.children, out); return out; };
     assert.equal(find(view())[0].props.disabled, true, 'the run bring-back is held');
@@ -616,7 +618,7 @@ test('in the App, a null send result that leaves the pre-fill visible is not sho
     assert.doesNotMatch(notice().textContent, /was withdrawn/);
     assert.match(notice().textContent, /Reported: The host did not report the send's outcome\./);
     assert.equal(!!props(button(composer(), 'Send')).disabled, true, 'Send is visibly held');
-    assert.match(composer().textContent, /Send is held: this copy's earlier send wasn't confirmed and may have arrived, so it is not sent again/);
+    assert.match(composer().textContent, /The App won't send this yet: this copy's earlier send wasn't confirmed and may have arrived, so it is not sent again/);
     await React.act(async () => { props(button(composer(), 'Send')).onClick(); }); await ui.settle();
     await React.act(async () => { send(); }); await ui.settle();
     assert.equal(ui.calls.filter(call => call.command === 'workflow_bring_back_send').length, 1, 'neither Send nor a retained callback issues another send while held');

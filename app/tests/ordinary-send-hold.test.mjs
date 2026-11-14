@@ -45,7 +45,7 @@ test('an unacknowledged ordinary send keeps its text, holds that conversation fo
     assert.equal(ui.sends.length, 1);
     assert.equal(focused.at(-1)?.getAttribute('role'), 'alert', 'the new unconfirmed record takes the focus');
     assert.equal(props(ui.field()).value, 'Please summarise the report', 'the text is not cleared without a native acknowledgement');
-    assert.match(ui.notices().textContent, /Your message to this conversation may have been sent\..*isn't resent and its text was not cleared.*held until you've read it.*Please summarise the report.*Reported: invented: no response from Codex/);
+    assert.match(ui.notices().textContent, /Your message to this conversation may have been sent\..*isn't resent and its text was not cleared.*The App won't send to that conversation again until you've said you read it\..*Please summarise the report.*Reported: invented: no response from Codex/);
     assert.equal(props(ui.send()).disabled, true, 'Send is held');
     assert.match(ui.readiness(), /An earlier message to this conversation wasn't confirmed and may have been sent/);
     await React.act(async () => { retained(); }); await ui.settle();
@@ -59,7 +59,7 @@ test('an unacknowledged ordinary send keeps its text, holds that conversation fo
     // A Codex restart keeps the hold for the same conversation ID, described plainly.
     await ui.render({host:hostFor(g2), threadKey:JSON.stringify([g2, 'thread-a'])});
     assert.equal(props(ui.send()).disabled, true, 'held for the same conversation ID after a restart');
-    assert.match(ui.notices().textContent, /Your message to conversation thread-a in a Codex session that isn't loaded now may have been sent\..*The conversation shown now has the same ID, so sending to it is held too/);
+    assert.match(ui.notices().textContent, /Your message to conversation thread-a in a Codex session that isn't loaded now may have been sent\..*The conversation shown now has the same ID, so the App won't send to it either until then/);
     const before = ui.sends.length;
     await React.act(async () => { props(button(ui.notices(), 'I\'ve read that conversation — allow sending again')).onClick(); });
     assert.equal(ui.sends.length, before, 'acknowledging sends nothing');

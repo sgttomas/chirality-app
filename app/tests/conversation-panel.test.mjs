@@ -515,7 +515,8 @@ test('idle native waiting startup reads no intent, performs no action and cleans
     assert.equal(typeof waitingPoll, 'function', 'the mounted App installs its waiting recovery poll');
     assert.deepEqual(idle.calls.filter(call => call.command === 'claim_native_waiting_intent').map(call => call.args.consumer),
       [idle.calls[0].args.consumer, idle.calls[0].args.consumer], 'polls read the same single-use consumer without a target');
-    assert.ok(ui.calls.every(call => ['host_status', 'decision_view', 'native_confirmation_content'].includes(call.command)),
+    // read_fleet_records is the "Waiting on you" timer's read, on hostReads' timed-read list: it writes nothing.
+    assert.ok(ui.calls.every(call => ['host_status', 'decision_view', 'native_confirmation_content', 'read_fleet_records'].includes(call.command)),
       'an idle recovery poll also performs no navigation or supplier action');
   });
   assert.equal(intervals.size, 0, 'App unmount clears every installed poll, including native waiting');

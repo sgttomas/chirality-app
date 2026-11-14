@@ -3,6 +3,7 @@ import { LOCAL_ENTRY, LOCAL_FORK_AVAILABLE, LOCAL_FORK_UNAVAILABLE, LOCAL_MODE, 
 import { NativeWaitingBridge } from "./NativeWaitingBridge";
 import { ConnectorSourcePanel } from "./ConnectorSourcePanel";
 import { FleetRecordsPanel, readFleetPacket, type FleetPacket } from "./FleetRecordsPanel";
+import { WaitingOnYou, WAITING_SOURCE_POLL_MS, decisionPackageAnchor, waitingReadings, type WaitingEntry } from "./WaitingOnYou";
 import { RecordsStorePanel } from "./RecordsStorePanel";
 import { ConnectorRoutePanel, emptyRouteRead, routeReadTransition, type RouteReadState, type RouteView } from "./ConnectorRoutePanel";
 // The interface reads host snapshots and asks the host to act. It holds no pipe
@@ -19,7 +20,7 @@ import { NativeActivityView, activityModel, sameActivityGeneration, type NativeA
 import { ContinuationContext, historyPageBinding, StoredItemPage, StoredTurnPage } from "./NativeHistory";
 import { ObserverAttachment } from "./ObserverAttachment";
 import { PlanModeControl } from "./PlanMode";
-import { NativeRequestCard, WaitingRequestsIndicator, answerable, hostRequests, requestItem, requestPlace, requestThread, requestScopeKey, requestReplyGuarded, type RequestActivityLink, type RequestAnswer, type ReadRequestCustody, type RequestReplyObservation, type WaitingRequestGroup } from "./RequestCards";
+import { NativeRequestCard, answerable, hostRequests, requestItem, requestPlace, requestThread, requestScopeKey, requestReplyGuarded, type RequestActivityLink, type RequestAnswer, type ReadRequestCustody, type RequestReplyObservation, type WaitingRequestGroup } from "./RequestCards";
 import { RunOffer, type RunAct } from "./RunOffers";
 import { RecoveryCustodyPanel } from "./RecoveryCustodyPanel";
 import { CompareResult, initialDraftsState, LastCleanTrialLine, WorkflowDraftsView, type DraftsState } from "./WorkflowDrafts";
@@ -32,7 +33,7 @@ import { DailyWorkspace, WorkspaceDisclosure, WorkspaceConnectionStatus, revealW
 import { flushSync } from "react-dom";
 import { DesktopSetupPanel } from "./DesktopSetupPanel";
 // Every host command goes through hostReads' invoke, which marks when a command that may change the host settles.
-import { invoke, useOrderedHost, shownBeforePress, POLL_MS } from "./hostReads";
+import { invoke, invokeTimedRead, useOrderedHost, shownBeforePress, POLL_MS } from "./hostReads";
 import { readingAfterWrite, readingSentence } from "./readingSentences";
 import { REFRESH_FAILED, commandThenRefresh, observationLine, observationText, refreshAfterAction, withRefreshFailure } from "./statusRefresh";
 import { FirstUseSetup } from "./FirstUse";
@@ -308,7 +309,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
     composerField.current?.focus?.({ preventScroll: true });
   }, [focusComposer]);
   // A new unconfirmed send for the shown conversation takes the focus once, so
-  // keyboard and screen-reader users land on why Send is held.
+  // keyboard and screen-reader users land on why the App will not send.
   const announcedUnconfirmed = useRef(new Set<number>());
   useEffect(() => {
     if (!composerOffer || handledOffer.current === composerOffer.sequence || composerOffer.threadKey !== threadKey) return;
@@ -391,8 +392,8 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
       return <div key={`doubt:${id}`} role={row.acknowledged ? "note" : "alert"} tabIndex={-1} ref={node => { if (node && where === "same" && !announcedDoubt.current.has(id)) { announcedDoubt.current.add(id); node.focus?.({ preventScroll: false }); } }} aria-label="Bring-back send not confirmed">
         <p><strong>{what} results may have been sent to {destination}.</strong> The App couldn't confirm the send. {(host?.workflowRoot?.pendingBringBacks ?? []).some((pending: Json) => pending?.id === row.preparedId)
           ? "Its prepared message is still listed, but that copy is not sent again; after reading the conversation you can remove it."
-          : "The prepared message was withdrawn, so nothing is resent."} Read that conversation to see whether it arrived.{row.acknowledged ? " You've said you checked; bringing it back there again is allowed." : " Bringing it back there again is held until you've checked."}</p>
-        {where === "same-id-other-source" && <p><small>Codex or the home has changed since that send. The conversation shown now has the same ID, so bringing these results back to it is held too; that doesn't make the earlier destination this one.</small></p>}
+          : "The prepared message was withdrawn, so nothing is resent."} Read that conversation to see whether it arrived.{row.acknowledged ? " You've said you checked; bringing it back there again is allowed." : " The App won't bring it back there again until you've said you checked."}</p>
+        {where === "same-id-other-source" && <p><small>Codex or the home has changed since that send. The conversation shown now has the same ID, so the App won't bring these results back to it either until then; that doesn't make the earlier destination this one.</small></p>}
         {!row.acknowledged && <p><button onClick={() => acknowledgeBringBackDoubt(row)}>I've checked this conversation — allow bringing it back again</button> <small>Starts nothing; this record stays.</small></p>}
         <details><summary>Your message and what was reported</summary><p><small>Your message: {row.personText || "(empty)"}</small></p><p><small>Reported: {row.message}</small></p>
           <p><small>Original destination: conversation <code>{String(row.target?.threadId ?? "")}</code> in Codex session {String(row.target?.generation?.spawnCounter ?? "not reported")} of the {String(row.source?.modeHomeClass ?? "unreported")} home.</small></p></details>
@@ -428,8 +429,8 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
       const loaded = currentThreads.find((t: Json) => t.threadId === row.request.threadId && JSON.stringify(t.generation) === JSON.stringify(row.request.generation));
       const destination = sameSource ? "this conversation" : loaded ? conversationLabel(host, loaded) : `conversation ${row.request.threadId} in a Codex session that isn't loaded now`;
       return <div key={row.id} role={row.acknowledged ? "note" : "alert"} tabIndex={-1} ref={node => { if (node && shownHere && !announcedUnconfirmed.current.has(row.id)) { announcedUnconfirmed.current.add(row.id); node.focus?.({ preventScroll: false }); } }}>
-        <p><strong>Your message to {destination} may have been sent.</strong> The App couldn't confirm it, so it isn't resent and its text was not cleared.{row.acknowledged ? " You've said you read that conversation; sending there again is allowed." : " Sending to that conversation again is held until you've read it."}</p>
-        {shownHere && !sameSource && <p><small>Codex or the home has changed since that send. The conversation shown now has the same ID, so sending to it is held too; that doesn't make the earlier destination this one.</small></p>}
+        <p><strong>Your message to {destination} may have been sent.</strong> The App couldn't confirm it, so it isn't resent and its text was not cleared.{row.acknowledged ? " You've said you read that conversation; sending there again is allowed." : " The App won't send to that conversation again until you've said you read it."}</p>
+        {shownHere && !sameSource && <p><small>Codex or the home has changed since that send. The conversation shown now has the same ID, so the App won't send to it either until then; that doesn't make the earlier destination this one.</small></p>}
         {!row.acknowledged && <p><button onClick={() => setUnconfirmed(rows => rows.map(r => r.id === row.id ? { ...r, acknowledged: true } : r))}>I've read that conversation — allow sending again</button> <small>Sends nothing; this record stays.</small></p>}
         <details><summary>The message and what was reported</summary><pre style={{ whiteSpace: "pre-wrap" }}>{row.request.text}</pre>
           <p><small>Mode {row.request.mode ?? "not overridden"} · model {row.request.model ?? "not chosen"} · conversation <code>{row.request.threadId}</code> in Codex session {String(row.request.generation?.spawnCounter ?? "")} of home {String(row.request.generation?.home ?? "")}.</small></p>
@@ -1439,7 +1440,7 @@ export function DecisionPackagesPanel({ view, name, setName, recordName, refresh
     <p>Last writer continuation: {writer?.trigger ?? "not run"} · {writer?.state ?? "not run"} · new requests recorded: {writer?.requestsRecordedNow ?? 0}.</p>
     {(writer?.captureRecovery ?? []).filter((r: Json) => r.state !== "AC-7 recorded" || r.backlinkPending || r.delayEvidencePending).map((r: Json, i: number) => <p key={i}>Capture: {r.state} · {r.statusDetail ?? r.writeFailure ?? r.backlinkFailure ?? r.delayEvidenceFailure ?? r.captureDurability}</p>)}
     {(writer?.limits ?? []).map((limit: string, index: number) => <p key={index}>Writer limit: {limit}</p>)}
-    {(view?.rows ?? []).map((row: Json) => <article key={row.package} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
+    {(view?.rows ?? []).map((row: Json) => <article key={row.package} id={typeof row.package === "string" ? decisionPackageAnchor(row.package) : undefined} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
       <h3>{row.package} — {row.actRequested} — {row.state}</h3>
       <p>Request resolution: {row.requestResolution ?? "not reported"}. Recorded request sources: {JSON.stringify(row.requestSources ?? [])}.</p>
       {row.state === "unresolvable request identity" && <p>The recorded request identity conflicts. No current request or act is selected by this view; existing package and record admission checks remain in force.</p>}
@@ -1487,12 +1488,35 @@ export function App() {
   const [fleet, setFleet] = useState<FleetPacket | null>(null);
   const [fleetError, setFleetError] = useState("");
   const [fleetBusy, setFleetBusy] = useState(false);
+  // "Waiting on you" keeps its own last good fleet packet, with when its read
+  // started, and whether a later read of any route failed (and when it
+  // started): while the latest read has failed, the list shows this last
+  // successful packet as last read, uncounted. The panel keeps its own behaviour. A read started
+  // later wins over one that answers late, so an older reply never replaces a
+  // newer failed or limited one.
+  const [waitingFleet, setWaitingFleet] = useState<{ packet: FleetPacket; at: number } | null>(null);
+  const [fleetAutoFailure, setFleetAutoFailure] = useState<{ message: string; at: number } | null>(null);
+  const fleetSequence = useRef(0);
   const refreshFleet = async () => {
+    const sequence = ++fleetSequence.current; const at = Date.now();
     setFleetBusy(true); setFleetError("");
-    try { setFleet(await readFleetPacket(command => invoke<FleetPacket>(command))); }
-    catch (error) { setFleet(null); setFleetError(String(error)); }
+    try { const packet = await readFleetPacket(command => invoke<FleetPacket>(command)); if (sequence === fleetSequence.current) { setFleet(packet); setWaitingFleet({ packet, at }); setFleetAutoFailure(null); } }
+    catch (error) { if (sequence === fleetSequence.current) { setFleet(null); setFleetError(String(error)); setFleetAutoFailure({ message: String(error), at }); } }
     finally { setFleetBusy(false); }
   };
+  // The return-review queue is read every WAITING_SOURCE_POLL_MS, each time the
+  // person opens "Waiting on you", and by hand in its panel. Opening the list and
+  // the panel's button are the person's presses and go through `invoke`, so they
+  // mark; the timer goes through `invokeTimedRead` (PRESSED_AND_TIMED_READS in
+  // hostReads.ts), so a read the App issues by itself never marks. A read that
+  // fails keeps the packet, with its time, and the list shows it as last read, uncounted.
+  const readFleetForWaiting = async (route: (command: string) => Promise<FleetPacket>) => {
+    const sequence = ++fleetSequence.current; const at = Date.now();
+    try { const packet = await readFleetPacket(route); if (sequence === fleetSequence.current) { setFleet(packet); setWaitingFleet({ packet, at }); setFleetError(""); setFleetAutoFailure(null); } }
+    catch (error) { if (sequence === fleetSequence.current) setFleetAutoFailure({ message: String(error), at }); }
+  };
+  const readFleetOnOpen = () => readFleetForWaiting(command => invoke<FleetPacket>(command));
+  const readFleetOnTimer = useRef(() => readFleetForWaiting(command => invokeTimedRead<FleetPacket>(command)));
   const [routeRead, setRouteRead] = useState<RouteReadState>(emptyRouteRead);
   const readRoutes = async () => {
     setRouteRead(s => routeReadTransition(s, {type: "start"}));
@@ -1527,6 +1551,25 @@ export function App() {
     revealWorkspaceTarget("file-acts");
   };
   const [view, setView] = useState<Json>(null);
+  // "Waiting on you" keeps the last good decision view, with when its read
+  // started, and whether a later read failed (and when it started). Every path reads decision_view through
+  // readDecisions, numbered when it starts: a reply applies only if no later read
+  // has started, so an older reply never restores a package a newer read showed
+  // decided. `apply` lets a caller drop a reply its own source no longer wants.
+  const [waitingDecisions, setWaitingDecisions] = useState<{ view: Json; at: number } | null>(null);
+  const [decisionsFailure, setDecisionsFailure] = useState<{ message: string; at: number } | null>(null);
+  const decisionSequence = useRef(0);
+  const readDecisions = useCallback(async (apply: () => boolean = () => true) => {
+    const sequence = ++decisionSequence.current; const at = Date.now();
+    const latest = () => sequence === decisionSequence.current && apply();
+    try {
+      const decision: Json = await invoke("decision_view");
+      if (!latest()) return;
+      setView(decision);
+      if (decision && !decision.error) { setWaitingDecisions({ view: decision, at }); setDecisionsFailure(null); }
+      else setDecisionsFailure({ message: String(decision?.error ?? "no decision view"), at });
+    } catch (e) { if (latest()) { setView({ error: String(e) }); setDecisionsFailure({ message: String(e), at }); } }
+  }, []);
   const [offer, setOffer] = useState<Json>(null);
   const [choice, setChoice] = useState<string>("");
   const [name, setName] = useState<string>("");
@@ -1984,13 +2027,9 @@ export function App() {
   const refresh = useCallback(async () => {
     const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
     applyHost(snapshotRead);
-    try {
-      setView(await invoke("decision_view"));
-    } catch (e) {
-      setView({ error: String(e) });
-    }
+    await readDecisions();
     return snapshot;
-  }, []);
+  }, [readDecisions]);
 
   const refreshEffectiveAccessSettings = useCallback(async (isCurrent: () => boolean) => {
     const sourceAtRead = currentHost.current;
@@ -2039,10 +2078,7 @@ export function App() {
       // navigation's last-known source/intent. Shared refresh semantics stay put.
       const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
       if (isCurrent()) applyHost(snapshotRead);
-      try {
-        const decision: Json = await invoke("decision_view");
-        if (isCurrent()) setView(decision);
-      } catch (e) { if (isCurrent()) setView({ error: String(e) }); }
+      await readDecisions(isCurrent);
       return snapshot;
     } };
   };
@@ -2058,6 +2094,18 @@ export function App() {
     document.addEventListener("visibilitychange", shown);
     return () => { clearInterval(t); document.removeEventListener("visibilitychange", shown); };
   }, [refresh]);
+
+  // "Waiting on you": every WAITING_SOURCE_POLL_MS the decision packages are read
+  // again through the command their panel uses, a read the web view already
+  // issues by itself (SELF_ISSUED_QUIET), and the return-review queue through the
+  // timed-read route. A read that fails keeps what is shown, with its time.
+  useEffect(() => {
+    const t = setInterval(() => {
+      void readDecisions();
+      void readFleetOnTimer.current();
+    }, WAITING_SOURCE_POLL_MS);
+    return () => clearInterval(t);
+  }, []);
 
   const act = async (cmd: string, args?: Record<string, unknown>) => {
     try {
@@ -2281,7 +2329,8 @@ export function App() {
     return operation;
   };
   // WI-3: opening a conversation from the indicator shows its cards; it answers nothing.
-  const openRequests = async (group: WaitingRequestGroup) => {
+  // `anchor`: the one request card to land on ("Waiting on you"); without it, its section.
+  const openRequests = async (group: WaitingRequestGroup, anchor: string | null = null) => {
     if (homePendingRef.current) return;
     const revision = threadChoiceRevision.current;
     const viewAtIntent = currentHost.current;
@@ -2304,6 +2353,11 @@ export function App() {
         setMessage("Waiting-request navigation superseded or its original source is no longer current; refresh the overview."); return;
       }
       const current = result.threadLoaded && (snapshot.threads ?? []).find((t: Json) => t.threadId === group.threadId && same(t.generation, group.generation));
+      if (anchor) {
+        flushSync(() => setThreadKey(current ? JSON.stringify([current.generation, current.threadId]) : ""));
+        revealWorkspaceTarget(document.getElementById?.(anchor) ? anchor : current ? "conversation" : "other-requests", true);
+        return;
+      }
       setThreadKey(current ? JSON.stringify([current.generation, current.threadId]) : "");
       revealWorkspaceTarget(current ? "conversation" : "other-requests");
     } catch (error) { setMessage(`Waiting-request navigation: ${String(error)}`); }
@@ -2483,6 +2537,21 @@ export function App() {
     setOffer(null);
   };
 
+  // "Waiting on you": each source's reading, with when its read started and whether a later read failed.
+  // The host status read is ordered by useOrderedHost: `failure` is set only while no read started after
+  // the failed one has been applied, so an older status reply never stands over a newer failed read.
+  const waitingReads = waitingReadings({
+    host, hostReadAt: hostReads.appliedAt, hostFailure: hostReads.failure, hostFailedAt: hostReads.failedAt,
+    fleet: waitingFleet?.packet ?? null, fleetReadAt: waitingFleet?.at ?? null, fleetFailure: fleetAutoFailure?.message ?? null, fleetFailedAt: fleetAutoFailure?.at ?? null,
+    decisions: waitingDecisions?.view ?? null, decisionsReadAt: waitingDecisions?.at ?? null, decisionsFailure: decisionsFailure?.message ?? null, decisionsFailedAt: decisionsFailure?.at ?? null,
+  });
+  const goToWaiting = (entry: WaitingEntry) => {
+    const target = entry.target;
+    if (target.kind === "request") { void openRequests(target.group, target.anchor); return; }
+    // A run's record is in the workflow studio, a return in Records and Fleet, a package in
+    // Connectors and examination: revealing the target shows its view and opens its disclosure.
+    revealWorkspaceTarget(document.getElementById?.(target.anchor) ? target.anchor : target.kind === "run" ? "workflow-studio" : target.kind === "return" ? "workspace-records" : "workspace-evidence", true);
+  };
   const outsideRequests = hostRequests(host).filter((request: Json) => requestThread(request) === null || requestThread(request) !== selectedThread);
   // First use: while the launch needs setup, a focused welcome replaces the
   // workspace, whose controls cannot work yet. Everything stays mounted.
@@ -2498,9 +2567,16 @@ export function App() {
         {firstRead === "read" && <div hidden={setupRequired}>
         <header className="workspace-heading"><div><h1>Chirality</h1><p>Workflow workspace</p></div><p>Make, try, review and refine workflows through conversation.</p></header>
         <WorkflowAssuranceSetting setting={host?.workflowRoot?.assuranceSetting} act={async (command, args) => commandThenRefresh(() => invoke(command, args), refresh, () => setMessage(withRefreshFailure))}/>
+        </div>}
+        {/* The navigation and "Waiting on you" stay in view together whichever view is shown. A sticky
+            element sticks only within its parent, so this is a direct child of the workspace, which holds every view. */}
+        {firstRead === "read" && <div className="workspace-sticky" hidden={setupRequired}>
         <nav className="workspace-nav" aria-label="Workspace navigation">
           {WORKSPACE_VIEWS.map(item => <a key={item.id} href={`#${item.target}`} aria-current={taskView === item.id ? "page" : undefined}>{item.label}</a>)}
         </nav>
+        <WaitingOnYou readings={waitingReads} view={host?.nativeView} busy={homePending} onOpen={() => { void readFleetOnOpen(); }} openGroup={group => { void openRequests(group); }} go={goToWaiting}/>
+        </div>}
+        {firstRead === "read" && <div hidden={setupRequired}>
         <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome} refusalCause={host?.startRefusalCause} build={host?.build}/>
         </div>}
         <NativeWaitingBridge ready={!!host} report={setMessage} checkpoint={() => ({ signature: JSON.stringify([threadChoiceRevision.current, chooserHome.current.epoch, editRevision.current]),
@@ -2521,7 +2597,6 @@ export function App() {
               await openRequests(group);
           };
       }}/>
-        {firstRead === "read" && <div hidden={setupRequired}><WaitingRequestsIndicator overview={host?.waitingRequests} view={host?.nativeView} busy={homePending} open={group => { void openRequests(group); }}/></div>}
         <NativeConfirmationContent />
         {firstRead === "read" && <div hidden={setupRequired}>
         {offer && (<section style={{ border: "1px solid #888", padding: 8 }}>
