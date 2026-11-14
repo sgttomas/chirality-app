@@ -524,6 +524,8 @@ for(const threadId of ['B',null])test(`waiting ${threadId??'unnamed'} request st
   account.serverRequests=[{recordKind:'server-request-entry',generation:g,requestIdentity:'daily-original-question',method:'item/tool/requestUserInput',classification:'known-answerable',originClass:'person-input',nativeParameters:{...(threadId?{threadId,turnId:'original-turn',itemId:'original-item'}:{}),isBlocking:false,questions:[{id:'q',header:'Scope',question:'Which supplied boundary?',isOther:false,isSecret:false,options:[{label:'Only supplied design',description:'Use the original source'}]}]},state:'outstanding',replyWriteResult:'not-attempted',acknowledgmentObservation:{status:'not-observed'}}];
  }},async ui=>{
   for(const panel of byId(ui.c,'workspace-tools').querySelectorAll(e=>e.localName==='details'&&e.getAttribute('class')==='workspace-disclosure'))panel.open=false;
+  const place=region(ui.c,'Waiting on you');assert.ok(displayed(place));assert.match(place.textContent,/^Waiting on you: 1/);
+  await toggleDisclosure(ui.c,'waiting-on-you',true);
   const indicator=region(ui.c,'Requests waiting for your answer');assert.ok(displayed(indicator));assert.match(byId(ui.c,'other-requests').textContent,/Which supplied boundary/);assert.ok(displayed(byId(ui.c,'other-requests')));assert.ok(displayed(region(ui.c,'Content named by an open native confirmation')));
   const before=ui.calls.length;await ui.press(`account · ${threadId?'thread '+threadId:'no conversation named'}: 1`);
   assert.deepEqual(ui.calls.slice(before).filter(call=>!['host_status','decision_view'].includes(call.command)),[{command:'open_waiting_requests',args:waiting}],'only the original exact group is opened, with no answer/resume/send');

@@ -50,7 +50,7 @@ export function revealWorkspaceTarget(id: string, focus = false): void {
   }
   target?.scrollIntoView?.({ block: "start" });
 }
-const targets = new Set(["view-run", "view-make", "run-workflow", "make-workflow", "workflow-drafts", "desktop-setup", "workflow-reviews", "conversation", "workflow-studio", "workspace-start", "workspace-connection", "workspace-tools", "workspace-history", "file-acts", "other-requests"]);
+const targets = new Set(["waiting-on-you", "view-run", "view-make", "run-workflow", "make-workflow", "workflow-drafts", "desktop-setup", "workflow-reviews", "conversation", "workflow-studio", "workspace-start", "workspace-connection", "workspace-tools", "workspace-history", "file-acts", "other-requests"]);
 function revealLink(event: MouseEvent<HTMLElement>): void {
   for (let node = event.target as HTMLElement | null; node && node !== event.currentTarget; node = node.parentNode as HTMLElement | null) {
     const href = node.tagName === "A" ? node.getAttribute("href") : null;
@@ -148,6 +148,17 @@ export function DailyWorkspace({ children }: { children: ReactNode }) {
       .workspace-heading { display:flex; align-items:center; gap:16px; justify-content:space-between; margin-bottom:16px; }
       .workspace-heading p { color:var(--workspace-muted); margin:0; font-size:.88rem; }
       .workspace-nav { position:sticky; top:0; z-index:2; display:flex; flex-wrap:wrap; gap:6px 6px; padding:10px 0; background:var(--ground); border-bottom:1px solid var(--workspace-line); margin-bottom:18px; font-size:.95rem; }
+      .workspace-sticky { position:sticky; top:0; z-index:2; background:var(--ground); margin-bottom:18px; }
+      .workspace-sticky>.workspace-nav { position:static; margin-bottom:0; }
+      .waiting-on-you { border-bottom:1px solid var(--workspace-line); background:var(--ground); color:var(--ink-soft); font-size:.85rem; }
+      .waiting-on-you>details>summary { min-height:32px; display:flex; align-items:center; gap:8px; padding:0 2px; list-style-position:inside; }
+      .waiting-on-you>details>summary>[role=status] { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ink); }
+      .waiting-on-you-list { max-height:50vh; overflow-y:auto; padding:4px 2px 10px; }
+      .waiting-on-you-group { margin:6px 0 10px; }
+      .waiting-on-you-group-label { margin:4px 0; color:var(--ink); }
+      .waiting-on-you-entry { border-left:3px solid var(--accent); padding:2px 10px; margin:4px 0; }
+      .waiting-on-you-entry>strong { color:var(--ink); }
+      .waiting-requests-by-home { border-left:3px solid var(--rule-strong); padding:2px 10px; margin:8px 0; }
       .workspace-nav a { text-decoration:none; color:var(--ink); padding:6px 12px; border-radius:6px; border:1px solid transparent; }
       .workspace-nav a:hover { border-color:var(--rule-strong); }
       .workspace-nav a[aria-current="page"] { background:var(--cta); color:var(--cta-ink); }
