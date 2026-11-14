@@ -3155,3 +3155,27 @@ fn records_store_an_unexaminable_pending_capture_is_never_replaced() {
     assert!(std::fs::symlink_metadata(library.join("nothing-here")).is_err(), "nothing written through it");
     let _ = std::fs::remove_dir_all(&library);
 }
+
+/// The write gate's authority is read only from the account snapshot its own
+/// admission parsed and re-proved. A completion that appears after that read,
+/// and whose syncs fail, never enters through a second read of the account.
+#[test]
+fn records_store_import_gate_authority_reads_only_its_admission_snapshot() {
+    let (_own, root, dir) = import_gate_project();
+    let snapshot = imports(&dir).unwrap();
+    assert!(!snapshot.any && !snapshot.completed);
+    let path = dir.join("imports.jsonl");
+    let mut bytes = serde_json::to_vec(&json!({"format":IMPORT_FORMAT,"formatVersion":VERSION,
+        "event":"completed","importId":"import:later-completion","files":[],"conflicts":[]})).unwrap();
+    bytes.push(b'\n');
+    std::fs::write(&path, &bytes).unwrap();
+    storage::fail_publication_sync_after_for_test(Some((path.clone(), 0, storage::PublicationSyncStage::File)));
+    let authority = store_write_authority_from_imports(&dir, &snapshot);
+    let current_admission = write_permitted(&dir, &root);
+    storage::fail_publication_sync_after_for_test(None);
+    let unchanged = std::fs::read(path).unwrap();
+    std::fs::remove_dir_all(root).unwrap();
+    assert!(current_admission.as_ref().is_err_and(|e| e.contains("account durability not established")), "{current_admission:?}");
+    assert_eq!(unchanged, bytes);
+    assert!(matches!(authority, Ok(false)), "a later completion entered through authority without acceptance: {authority:?}");
+}
