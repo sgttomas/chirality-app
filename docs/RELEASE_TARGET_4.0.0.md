@@ -209,10 +209,12 @@ the owner decide on what was actually observed.
    any other means. Before the run the App says which of the workflow's
    declared required tools are available and which are missing, and a workflow
    whose requirements are not declared reads as undeclared and is not shown as
-   needing none. A file the person selects as an input is sent as selected: if
-   it changes between selection and sending it is held and not sent. What the
-   agent receives is the selected workflow, byte for byte. No time or step
-   limit applies.
+   needing none. A file the person selects as an input is sent as selected.
+   Immediately before attempting to send, the App checks the selected files
+   again, and if it finds one changed, missing or no longer a file it holds the
+   send and sends nothing. A change made after that check is not detected: what
+   is sent is still the content as selected. What the agent receives is the
+   selected workflow, byte for byte. No time or step limit applies.
 
    *Governed by:* DEL-02-02 AC-010 (the journey as product) and AC-005 (what
    the agent received); DEL-01-04 AC-011 (the run text reaches Codex

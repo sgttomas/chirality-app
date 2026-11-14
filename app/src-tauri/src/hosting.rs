@@ -108,9 +108,11 @@ use std::sync::mpsc::{channel, Receiver, Sender};
 use std::sync::{Arc, Condvar, Mutex, Weak};
 use std::time::Duration;
 /// How long the final reread of a turn's selected files may take while the frame writer is held
-/// (`Host::recheck_attachment_sources`). It is a fifth of Stop's limit, `codex_stop::STOP_WAIT_LIMIT`
-/// (ten seconds), within which Stop and the quit take the writer for their interrupts: a reading that
-/// runs to this limit still leaves them most of theirs, and a refused turn releases the writer.
+/// (`Host::recheck_attachment_sources`), with the writer, the custody's source lock and the request
+/// gate held. It is a fifth of Stop's limit, `codex_stop::STOP_WAIT_LIMIT` (ten seconds), within which
+/// Stop and the quit take the writer for their interrupts, and it is inside the quit fence's bound for
+/// taking each home's request gate: a reading that runs to this limit still leaves them most of theirs,
+/// and a refused turn releases the gate, the source lock and the writer at once.
 pub(crate) const ATTACHMENT_RECHECK_LIMIT: Duration = Duration::from_secs(2);
 #[cfg(test)]
 static ATTACHMENT_RECHECK_DELAY: std::sync::Mutex<Option<Duration>> = std::sync::Mutex::new(None);
@@ -1004,6 +1006,12 @@ pub struct Host {
     /// Runs in an attachment dispatch just before it waits for the frame writer.
     #[cfg(test)]
     before_attachment_writer:Mutex<Option<Box<dyn FnOnce()+Send>>>,
+    /// Runs in an attachment dispatch just before it takes the request gate.
+    #[cfg(test)]
+    before_attachment_gate:Mutex<Option<Box<dyn FnOnce()+Send>>>,
+    /// Runs in an attachment dispatch after its write and before the write is recorded.
+    #[cfg(test)]
+    after_attachment_write:Mutex<Option<Box<dyn FnOnce()+Send>>>,
     #[cfg(test)]
     before_attachment_hot_join:Mutex<Option<Box<dyn FnOnce()+Send>>>,
     distribution_store: Mutex<Option<Result<Arc<crate::distribution_store::Store>, String>>>,
@@ -1200,6 +1208,10 @@ impl Host {
             after_attachment_namespace_write:Mutex::new(None),
             #[cfg(test)]
             before_attachment_writer:Mutex::new(None),
+            #[cfg(test)]
+            before_attachment_gate:Mutex::new(None),
+            #[cfg(test)]
+            after_attachment_write:Mutex::new(None),
             #[cfg(test)]
             before_attachment_hot_join:Mutex::new(None),
             distribution_store: Mutex::new(None),
@@ -3654,12 +3666,18 @@ impl Host {
             let serial=self.frame_write.lock().unwrap();
             let source_lock=prepared.custody.lock_sources(&namespace_lease)?;
             prepared.custody.check_prepared_leased(&namespace_lease,&prepared.list.supply_records(),&prepared.client)?;
-            // After the writer wait, before the commit: the person's selected files are read again,
-            // so a file changed while the sender waited is held and not sent (DEL-01-04 AC-003).
-            Self::recheck_attachment_sources(prepared)?;
             // After the writer wait, before the commit: the local home's files are read again.
             self.check_local_files(frame["method"].as_str().unwrap_or_default())?;
-            let gate=self.attachment_gate.lock().unwrap();let mut state=prepared.state.lock().unwrap();if *state!="validating"{return Err("attachment cancelled before commit; nothing sent".into());}
+            #[cfg(test)] {let hook=self.before_attachment_gate.lock().unwrap().take();if let Some(hook)=hook{hook();}}
+            let gate=self.attachment_gate.lock().unwrap();
+            // The App's last look at the person's selected files, made with the writer, the custody's
+            // source lock and the request gate held, immediately before the frame is written and
+            // bounded (DEL-01-04 AC-003). After it no file is read and no lock is waited for that
+            // another taker holds across file or pipe I/O. A change after this look and before the
+            // write is not detected; what is written is still the frame prepared from the content as
+            // selected. A refusal here unwinds and releases the gate, the source lock and the writer.
+            Self::recheck_attachment_sources(prepared)?;
+            let mut state=prepared.state.lock().unwrap();if *state!="validating"{return Err("attachment cancelled before commit; nothing sent".into());}
             let mut i=self.inner.0.lock().unwrap();let generation=prepared.source.generation();if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation)||i.attachment_pipe_epoch!=prepared.pipe_epoch{return Err("attachment generation/pipe drift before commit; nothing sent".into());}
             Self::check_local_request(&i,frame["method"].as_str().unwrap(),&frame["params"],Some(generation),false,false,false,None)?;
             Self::check_send_admitted(&i,frame["method"].as_str().unwrap())?;
@@ -3672,12 +3690,18 @@ impl Host {
             if frame["method"]=="turn/start"{let pos=i.receipt_position;i.turn_request_threads.insert(key.clone(),(generation.clone(),frame["params"]["threadId"].as_str().unwrap().into(),pos));}
             *state="attempted";drop(state);drop(i);drop(gate);drop(source_lock);
             let written=Self::write_complete(&mut bound.file,&bytes);drop(bound);drop(serial);
+            #[cfg(test)] {let hook=self.after_attachment_write.lock().unwrap().take();if let Some(hook)=hook{hook();}}
             let mut i=self.inner.0.lock().unwrap();let closed=i.generation!=*generation||i.server_requests.is_closed(generation)||i.state!="ready";
             let e=i.source_requests.get_mut(&key).unwrap();e.write_attempt_in_progress=false;let response=e.response.clone();let response_position=e.response_position;
             i.client_requests[index]["sendPosition"]=json!(position);
             match written {Ok(())=>{i.source_requests.get_mut(&key).unwrap().written=true;i.client_requests[index]["writeResult"]=json!("written");i.client_requests[index]["outcome"]=json!(if closed{"unknown-no-response"}else{"pending"});
-                if response.is_some(){let(record,limit)=attachment_custody::project_observation(&i.client_requests[index],response.as_ref(),response_position)?;i.client_requests[index]=record;if let Some(limit)=limit{if let Some(a)=i.source_requests.get_mut(&key).unwrap().attachment.as_mut(){a.limit=Some(limit);}}}}
-                Err(error)=>{i.pending.remove(&key);let e=i.source_requests.get_mut(&key).unwrap();e.write_error=Some(error);if response.is_some(){e.source_limit=Some("Matching native reply and write failure both observed; canonical projection unavailable".into());if let Some(a)=e.attachment.as_mut(){a.limit=Some("Combined failed write and observed reply cannot be projected into v0.10; last prewrite source is historical only".into());}i.client_requests[index]=prepared.client.clone();}else{i.client_requests[index]["writeResult"]=json!("write-failed");i.client_requests[index]["outcome"]=json!("unknown-no-response");}}}
+                if response.is_some(){let(record,limit)=attachment_custody::project_observation(&i.client_requests[index],response.as_ref(),response_position)?;i.client_requests[index]=record;if let Some(limit)=limit{if let Some(a)=i.source_requests.get_mut(&key).unwrap().attachment.as_mut(){a.limit=Some(limit);}}}
+                // A reply that arrived while the write was being recorded is taken in here, as the
+                // ordinary writer's completion does: the turn request entry is removed, and the turn
+                // the reply names is remembered (none for a refusal). Otherwise the entry would stay
+                // until a later notice that may never come.
+                if !closed&&frame["method"]=="turn/start"&&response.is_some(){if let Some((source_gen,thread,sent_after_receipt))=i.turn_request_threads.remove(&key){if source_gen==i.generation{if let Some(turn)=response.as_ref().and_then(|r|r.get("result")).and_then(|r|r.get("turn")){let position=response_position.unwrap_or(i.receipt_position);Self::remember_turn(&mut i,&source_gen,&thread,turn,"turn/start response",position);Self::note_turn_request(&mut i,&key,&source_gen,&thread,&turn["id"]);if let Some(e)=i.conversation_turns.iter_mut().find(|e|e["generation"]==source_gen&&e["threadId"]==thread&&e["turnId"]==turn["id"]&&e["source"]=="turn/start response"&&e["receiptPosition"]==position){e["startResponseIssuedAfterReceipt"]=json!(sent_after_receipt);}}}}}}
+                Err(error)=>{i.pending.remove(&key);i.turn_request_threads.remove(&key);let e=i.source_requests.get_mut(&key).unwrap();e.write_error=Some(error);if response.is_some(){e.source_limit=Some("Matching native reply and write failure both observed; canonical projection unavailable".into());if let Some(a)=e.attachment.as_mut(){a.limit=Some("Combined failed write and observed reply cannot be projected into v0.10; last prewrite source is historical only".into());}i.client_requests[index]=prepared.client.clone();}else{i.client_requests[index]["writeResult"]=json!("write-failed");i.client_requests[index]["outcome"]=json!("unknown-no-response");}}}
             drop(i);drop(namespace_lease);
             #[cfg(test)] {let hook=self.after_attachment_namespace_write.lock().unwrap().take();if let Some(hook)=hook{hook();}}
             let _=self.persist_attachment_observation(&prepared.source);Ok(prepared.source.clone())
