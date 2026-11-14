@@ -14,7 +14,7 @@ io = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(io)
 files, require = io.files, io.require
 METADATA = 'app/packaging/notices'
 LIMITS = ['upstream Git text, not an archive member', 'explicit technical selection, not legal approval',
-          'transitive coverage and four supplier binary/source/notice associations remain unresolved',
+          'coverage of every shipped component is stated by notices/coverage.json, not by this supplement',
           'no download, build, signing or release authority']
 
 

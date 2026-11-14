@@ -1,0 +1,440 @@
+{
+ "format": "notice-coverage-review/1",
+ "statement": "A statement of what the reviewer of the change examined, bound to exact content: the curated inputs (the supplier component table; the coverage inputs: owner readings, permitted texts, Library content, icon provenance, stated removals), the indexes that generators make from caches CI does not hold, and the declared pin's distribution record, whose digests the account copies. The reviewer reruns the cache-reading checks for a changed index. It is not a proof: the checks are operator-run on stable inputs, and the record's truth rests on the review of the pull request that changes it, not on the tool. A supplier pin move changes which distribution record is bound, so it updates this record in the same change.",
+ "updated_by": "The independent reviewer of the pull request that changes any file listed here, after reviewing that change.",
+ "reviewed_in": "pull request 243: review round 3 confirmed the 33 supplier rows (27 covered, ICU pending, 5 uncovered); round 4 to confirm the distribution-record binding, the corrected V8 below-root text, the Library content source records, and the bundle resource accounting (app_resources, the Codex row naming codex/)",
+ "files_sha256": {
+  "app/packaging/supplier_notices/components.json": "17897046bef35847c110a69b00c81fa3ea86d37dd7afb5de4508318731dcd251",
+  "app/packaging/notices/coverage-inputs.json": "4c60159b41d4dd52dcd1afc9cc1ebbe274d1422ba4c84c81fb73cfea7372beee",
+  "app/packaging/notices/index.json": "fbf873b839b167d5347b233a7d019df4d053809e8dc9e31968e04b4e6cf46ac4",
+  "app/packaging/notices/transitive-index.json": "557c17f96f1a82982d0933a5c0ea570f000db17dad4278d67b16fd63379ed517",
+  "app/packaging/font_notice/index.json": "ad2b50d268aa1df4c856a9cb446cd0fb6821deed4a65e4214c6d5f0df69ac03f",
+  "app/packaging/sqlite_notice/index.json": "cfbe3f95ea753d14f7d50a4f55d0263693726a30f4847e5430ccadf4d943fc3b",
+  "app/src-tauri/resources/supplier/0.167.0/CANONICAL_DISTRIBUTION.json": "e6b0cd48c3d77728c44f2b79a2eb319686615b4521abb8585e9267694d380f61"
+ },
+ "supplier_components": [
+  {
+   "id": "codex",
+   "standing": "covered",
+   "version": "0.167.0",
+   "revision": "086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a",
+   "texts": [
+    "app/packaging/supplier_notices/codex/LICENSE",
+    "app/packaging/supplier_notices/codex/NOTICE"
+   ],
+   "supplier_tree_texts": [],
+   "accounts_for": [
+    "codex/"
+   ],
+   "text_exceptions": []
+  },
+  {
+   "id": "codex-skill-creator-sample",
+   "standing": "covered",
+   "version": "0.167.0",
+   "revision": "086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a",
+   "texts": [
+    "app/packaging/supplier_notices/codex-skills-086ccc83/skill-creator/license.txt"
+   ],
+   "supplier_tree_texts": [],
+   "accounts_for": [],
+   "text_exceptions": []
+  },
+  {
+   "id": "codex-skill-installer-sample",
+   "standing": "covered",
+   "version": "0.167.0",
+   "revision": "086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a",
+   "texts": [
+    "app/packaging/supplier_notices/codex-skills-086ccc83/skill-installer/LICENSE.txt"
+   ],
+   "supplier_tree_texts": [],
+   "accounts_for": [],
+   "text_exceptions": []
+  },
+  {
+   "id": "codex-crate-dependencies",
+   "standing": "uncovered",
+   "version": "0.167.0",
+   "revision": "086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a",
+   "texts": [],
+   "supplier_tree_texts": [],
+   "accounts_for": [],
+   "text_exceptions": []
+  },
+  {
+   "id": "ripgrep",
+   "standing": "covered",
+   "version": "15.2.0",
+   "revision": "e89fff89ac9af12e8d4ce9d5fd07beb408ca730f",
+   "texts": [
+    "app/packaging/supplier_notices/ripgrep-15.2.0/COPYING",
+    "app/packaging/supplier_notices/ripgrep-15.2.0/LICENSE-MIT",
+    "app/packaging/supplier_notices/ripgrep-15.2.0/UNLICENSE"
+   ],
+   "supplier_tree_texts": [],
+   "accounts_for": [],
+   "text_exceptions": []
+  },
+  {
+   "id": "pcre2-sys",
+   "standing": "covered",
+   "version": "0.2.10",
+   "revision": "fd05026e1bf3ad62b3876cf9bd952dc742368462",
+   "texts": [
+    "app/packaging/supplier_notices/pcre2-sys-0.2.10/LICENSE-MIT",
+    "app/packaging/supplier_notices/ripgrep-15.2.0/COPYING",
+    "app/packaging/supplier_notices/ripgrep-15.2.0/UNLICENSE"
+   ],
+   "supplier_tree_texts": [],
+   "accounts_for": [],
+   "text_exceptions": [
+    "app/packaging/supplier_notices/ripgrep-15.2.0/COPYING",
+    "app/packaging/supplier_notices/ripgrep-15.2.0/UNLICENSE"
+   ]
+  },
+  {
+   "id": "pcre2-in-rg",
+   "standing": "covered",
+   "version": "10.46",
+   "revision": "b2bd4254b379b9d7dc9a3dda060a7e27009ccdff",
+   "texts": [
+    "app/packaging/supplier_notices/pcre2-10.46/LICENCE.md"
+   ],
+   "supplier_tree_texts": [],
+   "accounts_for": [],
+   "text_exceptions": []
+  },
+  {
+   "id": "sljit-in-rg",
+   "standing": "covered",
+   "version": "e51eabbf",
+   "revision": "e51eabbfb8eabc6526f56e4e88b29fb10d1ee048",
+   "texts": [
+    "app/packaging/supplier_notices/sljit-e51eabbf/LICENSE"
+   ],
+   "supplier_tree_texts": [],
+   "accounts_for": [],
+   "text_exceptions": []
+  },
+  {
+   "id": "ripgrep-crate-dependencies",
+   "standing": "uncovered",
+   "version": "15.2.0",
+   "revision": "e89fff89ac9af12e8d4ce9d5fd07beb408ca730f",
+   "texts": [],
+   "supplier_tree_texts": [],
+   "accounts_for": [],
+   "text_exceptions": []
+  },
+  {
+   "id": "v8",
+   "standing": "covered",
+   "version": "15.2.124.1",
+   "revision": "d848a2b3d3aedda62fd825ce5326e5c9d32db96f",
+   "texts": [
+    "app/packaging/supplier_notices/v8-15.2.124.1/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/LICENSE.v8",
+    "app/packaging/supplier_notices/v8-15.2.124.1/LICENSE.fdlibm",
+    "app/packaging/supplier_notices/v8-15.2.124.1/LICENSE.strongtalk",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/colorama/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/disarm/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/fadec/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/fp16/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/highway/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/inspector_protocol/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/jsoncpp/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/rapidhash-v8/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/re2/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/siphash/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/utf8-decoder/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/v8/builtins/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/v8/codegen/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/valgrind/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/vtune/LICENSE",
+    "app/packaging/supplier_notices/v8-15.2.124.1/third_party/wasm-api/LICENSE"
+   ],
+   "supplier_tree_texts": [],
+   "accounts_for": [],
+   "text_exceptions": []
+  },
+  {
+   "id": "rusty_v8",
+   "standing": "covered",
+   "version": "152.2.0",
+   "revision": "350c5a859a9b3c84ab8701b3ad51e3b7699b30c0",
+   "texts": [
+    "app/packaging/supplier_notices/rusty_v8-350c5a85/LICENSE"
+   ],
+   "supplier_tree_texts": [],
+   "accounts_for": [],
+   "text_exceptions": []
+  },
+  {
+   "id": "icu",
+   "standing": "pending",
+   "version": "d578f2e8",
+   "revision": "d578f2e8b7bd5938e21cfb6bf15c079e0aa5b738",
+   "texts": [
+    "app/packaging/supplier_notices/icu-d578f2e8/LICENSE"
+   ],
+   "supplier_tree_texts": [],
+   "accounts_for": [],
+   "text_exceptions": []
+  },
+  {
+   "id": "libcxx",
+   "standing": "covered",
+   "version": "b16984ce",
+   "revision": "b16984ce99c702355a5b2b4c52574e82cec41fb9",
+   "texts": [
+    "app/packaging/supplier_notices/libcxx-b16984ce/LICENSE.TXT"
+   ],
+   "supplier_tree_texts": [],
+   "accounts_for": [],
+   "text_exceptions": []
+  },
+  {
+   "id": "libcxxabi",
+   "standing": "covered",
+   "version": "8f11bb1d",
+   "revision": "8f11bb1d4438d0239d0dfc1bd9456a9f31629dda",
+   "texts": [
+    "app/packaging/supplier_notices/libcxxabi-8f11bb1d/LICENSE.TXT"
+   ],
+   "supplier_tree_texts": [],
+   "accounts_for": [],
+   "text_exceptions": []
+  },
+  {
+   "id": "llvm-libc",
+   "standing": "covered",
+   "version": "75ae50cd",
+   "revision": "75ae50cd48c8a9d70f552ccff040029968778da9",
+   "texts": [
+    "app/packaging/supplier_notices/llvm-libc-75ae50cd/LICENSE.TXT"
+   ],
+   "supplier_tree_texts": [],
+   "accounts_for": [],
+   "text_exceptions": []
+  },
+  {
+   "id": "libcxx-credits-and-subdirectories",
+   "standing": "uncovered",
+   "version": "b16984ce",
+   "revision": "b16984ce99c702355a5b2b4c52574e82cec41fb9",
+   "texts": [],
+   "supplier_tree_texts": [],
+   "accounts_for": [],
+   "text_exceptions": []
+  },
+  {
+   "id": "libcxxabi-credits-and-subdirectories",
+   "standing": "uncovered",
+   "version": "8f11bb1d",
+   "revision": "8f11bb1d4438d0239d0dfc1bd9456a9f31629dda",
+   "texts": [],
+   "supplier_tree_texts": [],
+   "accounts_for": [],
+   "text_exceptions": []
+  },
+  {
+   "id": "llvm-libc-subdirectories",
+   "standing": "uncovered",
+   "version": "75ae50cd",
+   "revision": "75ae50cd48c8a9d70f552ccff040029968778da9",
+   "texts": [],
+   "supplier_tree_texts": [],
+   "accounts_for": [],
+   "text_exceptions": []
+  },
+  {
+   "id": "highway",
+   "standing": "covered",
+   "version": "2607d3b5",
+   "revision": "2607d3b5b0113992fe84d3848859eae13b3b52c1",
+   "texts": [
+    "app/packaging/supplier_notices/highway-2607d3b5/LICENSE"
+   ],
+   "supplier_tree_texts": [],
+   "accounts_for": [],
+   "text_exceptions": []
+  },
+  {
+   "id": "fast_float",
+   "standing": "covered",
+   "version": "8.2.10",
+   "revision": "34164f547b7df3f5d794ff67e9f885c36819ebfc",
+   "texts": [
+    "app/packaging/supplier_notices/fast_float-8.2.10/AUTHORS",
+    "app/packaging/supplier_notices/fast_float-8.2.10/LICENSE-APACHE",
+    "app/packaging/supplier_notices/fast_float-8.2.10/LICENSE-BOOST",
+    "app/packaging/supplier_notices/fast_float-8.2.10/LICENSE-MIT"
+   ],
+   "supplier_tree_texts": [],
+   "accounts_for": [],
+   "text_exceptions": []
+  },
+  {
+   "id": "simdutf",
+   "standing": "covered",
+   "version": "7.7.0",
+   "revision": "94fb52ea0219cb37092d8ae294b4702bacf5d8df",
+   "texts": [
+    "app/packaging/supplier_notices/simdutf-7.7.0/AUTHORS",
+    "app/packaging/supplier_notices/simdutf-7.7.0/LICENSE-APACHE",
+    "app/packaging/supplier_notices/simdutf-7.7.0/LICENSE-MIT"
+   ],
+   "supplier_tree_texts": [],
+   "accounts_for": [],
+   "text_exceptions": []
+  },
+  {
+   "id": "dragonbox",
+   "standing": "covered",
+   "version": "beeeef91",
+   "revision": "beeeef91cf6fef89a4d4ba5e95d47ca64ccb3a44",
+   "texts": [
+    "app/packaging/supplier_notices/dragonbox-beeeef91/LICENSE-Apache2-LLVM",
+    "app/packaging/supplier_notices/dragonbox-beeeef91/LICENSE-Boost"
+   ],
+   "supplier_tree_texts": [],
+   "accounts_for": [],
+   "text_exceptions": []
+  },
+  {
+   "id": "fp16",
+   "standing": "covered",
+   "version": "782eea12",
+   "revision": "782eea126dc5c755827be751a099eb01826175cf",
+   "texts": [
+    "app/packaging/supplier_notices/fp16-782eea12/LICENSE"
+   ],
+   "supplier_tree_texts": [],
+   "accounts_for": [],
+   "text_exceptions": []
+  },
+  {
+   "id": "abseil-cpp",
+   "standing": "covered",
+   "version": "20250814.1",
+   "revision": "d38452e1ee03523a208362186fd42248ff2609f6",
+   "texts": [
+    "app/packaging/supplier_notices/abseil-cpp-20250814.1/AUTHORS",
+    "app/packaging/supplier_notices/abseil-cpp-20250814.1/LICENSE"
+   ],
+   "supplier_tree_texts": [],
+   "accounts_for": [],
+   "text_exceptions": []
+  },
+  {
+   "id": "gstreamer",
+   "standing": "covered",
+   "version": "1.28.6",
+   "revision": null,
+   "texts": [],
+   "supplier_tree_texts": [
+    "codex-resources/voice/licenses/LGPL-2.1.txt"
+   ],
+   "accounts_for": [],
+   "text_exceptions": []
+  },
+  {
+   "id": "gst-plugins-base",
+   "standing": "covered",
+   "version": "1.28.6",
+   "revision": null,
+   "texts": [],
+   "supplier_tree_texts": [
+    "codex-resources/voice/licenses/LGPL-2.1.txt"
+   ],
+   "accounts_for": [],
+   "text_exceptions": []
+  },
+  {
+   "id": "gst-plugins-good",
+   "standing": "covered",
+   "version": "1.28.6",
+   "revision": null,
+   "texts": [],
+   "supplier_tree_texts": [
+    "codex-resources/voice/licenses/LGPL-2.1.txt"
+   ],
+   "accounts_for": [],
+   "text_exceptions": []
+  },
+  {
+   "id": "glib",
+   "standing": "covered",
+   "version": "2.88.3",
+   "revision": null,
+   "texts": [],
+   "supplier_tree_texts": [
+    "codex-resources/voice/licenses/LGPL-2.1.txt"
+   ],
+   "accounts_for": [],
+   "text_exceptions": []
+  },
+  {
+   "id": "proxy-libintl",
+   "standing": "covered",
+   "version": "0.5",
+   "revision": null,
+   "texts": [],
+   "supplier_tree_texts": [
+    "codex-resources/voice/licenses/proxy-libintl.txt"
+   ],
+   "accounts_for": [],
+   "text_exceptions": []
+  },
+  {
+   "id": "libffi",
+   "standing": "covered",
+   "version": "3.8.0",
+   "revision": null,
+   "texts": [],
+   "supplier_tree_texts": [
+    "codex-resources/voice/licenses/libffi.txt"
+   ],
+   "accounts_for": [],
+   "text_exceptions": []
+  },
+  {
+   "id": "pcre2-voice",
+   "standing": "covered",
+   "version": "10.47",
+   "revision": null,
+   "texts": [],
+   "supplier_tree_texts": [
+    "codex-resources/voice/licenses/PCRE2.md",
+    "codex-resources/voice/licenses/sljit.txt"
+   ],
+   "accounts_for": [],
+   "text_exceptions": []
+  },
+  {
+   "id": "opus",
+   "standing": "covered",
+   "version": "1.6.1",
+   "revision": null,
+   "texts": [],
+   "supplier_tree_texts": [
+    "codex-resources/voice/licenses/Opus.txt"
+   ],
+   "accounts_for": [],
+   "text_exceptions": []
+  },
+  {
+   "id": "zlib",
+   "standing": "covered",
+   "version": "1.3.2",
+   "revision": null,
+   "texts": [],
+   "supplier_tree_texts": [
+    "codex-resources/voice/licenses/zlib.txt"
+   ],
+   "accounts_for": [],
+   "text_exceptions": []
+  }
+ ]
+}

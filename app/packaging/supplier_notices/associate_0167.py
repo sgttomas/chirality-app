@@ -46,7 +46,8 @@ STANDALONE_ASSETS = ('codex-code-mode-host-aarch64-apple-darwin.tar.gz',
 RESPONSES = ('root-tree.json', 'third_party-tree.json', 'third_party-v8-tree.json',
              'codex-rs-tree-recursive.json', 'scripts-tree.json', 'scripts-codex_package-tree.json',
              'latest-release.json', 'release-tag-object.json')
-ROOT_TEXTS = 'app/packaging/supplier_notices/codex-0.160.0'
+# The supplier's root LICENSE and NOTICE, checked below against the rust-v0.167.0 tree (byte-equal to 0.160.0's).
+ROOT_TEXTS = 'app/packaging/supplier_notices/codex'
 # rg release selector files of Codex 0.160.0, kept as received beside this reader:
 # name -> (size, SHA-256, Git blob SHA-1).
 SELECTOR_DIR = 'app/packaging/supplier_notices/codex-0.160.0/scripts/codex_package'
@@ -56,7 +57,10 @@ SELECTOR_FILES = {
     'ripgrep.py': (862, 'c70947d6f7df1aa5daeca3d0fa48e65a32ee38b4f6b35694f87b2e65a4467e32',
                    '155c5d323ec60ba9fc2dfafd807145f8b26fb38b'),
 }
-SUPPLIER_BINARIES = ('bin/codex', 'bin/codex-exec-server', 'bin/codex-code-mode-host', 'codex-path/rg')
+_texts = _load('supplier_package_texts', 'app/packaging/notices/package_texts.py')
+# The tree's executables, read from this pin's distribution record rather than listed by hand.
+SUPPLIER_BINARIES = tuple(_texts.executables(
+    reader.parse((ROOT / 'app/src-tauri/resources/supplier' / PIN / 'CANONICAL_DISTRIBUTION.json').read_bytes())))
 # Exact byte patterns; a count of zero shows only that this pattern is absent.
 MARKERS = {
     'codex-rs CI path': rb'/Users/runner/work/codex/codex/codex-rs/',

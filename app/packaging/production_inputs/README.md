@@ -60,13 +60,15 @@ Test namespaces are refused in production mode.
 Outputs, in a new private directory:
 
 - `tauri.package-inputs.conf.json`: 4.0.0, minimum15.0, App-only target, signing
-  identity null, existing P2/P3 + twelve attested-reference mappings + bounded
-  direct notices + separate SQLite source-input resources + the IBM Plex font
-  notice (`third-party-notices/fonts/`, refused if its index is stale) + complete vendor P1.
+  identity null, existing P2/P3 + twelve attested-reference mappings + every notice
+  resource of `../unsigned/tauri.notices.conf.json` (direct, transitive and supplier
+  texts and the coverage account) + separate SQLite source-input resources + the
+  IBM Plex font notices (`third-party-notices/fonts/`, refused if their index is
+  stale) + complete vendor P1.
 - `input-inventory.json`: exact selected resources/files/vendor hashes and modes,
-  declared source revision, every loaded tool-module hash (four, or five with an
-  upstream supplement) and jsonschema
-  version, with limits. The source
+  declared source revision, every loaded tool-module hash (five, or six with an
+  upstream supplement) and jsonschema version, the notice coverage account's
+  digest, counts and open components, the plan's release standing, and limits. The source
   revision is a caller claim; actual export provenance is separately checked.
 - `build-recipe.json`: argv array and allowlisted build inputs, explicit offline/
   jobs2/no-sign controls and current owner-selected host/cache/scratch admission. This is
@@ -244,12 +246,10 @@ flags; do not create another cohort or convert a consistency result into release
 - Signing stage: CF-1 certificate identity/owner signing act, actual notary profile
   and the settled SEAL-C access-group/service/account plus entitlement/profile
   compatibility. Private keys/passwords do not enter this preparation.
-- Supplier/component evidence: exact source/notice associations for the retained
-  Codex main, code-mode-host, rg and zsh hashes in CACHED_SHIPPED_NOTICE_INPUTS.md.
-  The cached tree has voice notices and archive-level metadata, not those missing
-  associations. SQLite's exact source input is now prepared separately. No legal
-  approval, transitive completeness or scope waiver follows. No acquisition is
-  requested without an exact file/source/size and purpose.
+- Notices: `../notices/coverage.json` names every open component with what would
+  close it. A production plan (`--publisher-input`) refuses while any is open,
+  unless `--not-for-public-release` names the plan as not for public release, which
+  `input-inventory.json` then states as its `release_standing`.
 
 Current source-fixture checks: `python3 -m pytest -q
 app/tests/production_inputs_test.py` (16 tests, including actual case/firmlink

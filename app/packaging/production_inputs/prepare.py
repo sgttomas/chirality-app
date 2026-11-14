@@ -196,7 +196,8 @@ def profile_consistency(raw, expected_sha256, selected, now=None):
 
 def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
             test_identifier=None, publisher_input=None, publisher_sha256=None, upstream_notices=None,
-            provisioning_profile=None, provisioning_profile_sha256=None, cargo_build_input=None):
+            provisioning_profile=None, provisioning_profile_sha256=None, cargo_build_input=None,
+            not_for_public_release=False):
     cargo_contract = cargo_build_input_contract(cargo_build_input) if cargo_build_input is not None else None
     source_root, vendor, output = map(inventory.anchored, (source_root, vendor, output))
     require(not os.path.lexists(source_root / '.git'), 'source must be a disposable frozen export, not a checkout')
@@ -245,23 +246,12 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
         profile_ref = profile_consistency(profile_raw, provisioning_profile_sha256, selected)
         profile_ref['path'] = str(profile_path)
     app = source_root / 'app'
-    resources = {}
-    for name in ('tauri.attested-reference.conf.json', 'tauri.notices.conf.json'):
-        overlay = parse(read(app / 'packaging/unsigned' / name))
-        for src, dst in overlay['bundle']['resources'].items():
-            require(src not in resources or resources[src] == dst, 'resource mapping conflict')
-            resources[src] = dst
-    for name in ('index.json', 'libsqlite3-sys.LICENSE', 'sqlite3-source-header.txt', 'README.md'):
-        src, dst = '../packaging/sqlite_notice/' + name, 'third-party-notices/sqlite-preparation/' + name
-        require(src not in resources or resources[src] == dst, 'SQLite resource mapping conflict')
-        resources[src] = dst
-    # Bundle-visible copy of the frontend IBM Plex notice; refuse a stale index for this source.
+    # Bundle-visible copies of the frontend IBM Plex notices; refuse a stale index for this source.
     font_notice = load_module('production_font_notice', 'app/packaging/font_notice/check.py')
     fonts = font_notice.check(source_root)
-    for src, dst in (('../packaging/font_notice/index.json', 'third-party-notices/fonts/index.json'),
-                     ('../' + fonts['license']['path'].removeprefix('app/'), 'third-party-notices/fonts/LICENSE-IBM-Plex-OFL.txt')):
-        require(src not in resources or resources[src] == dst, 'font notice resource mapping conflict')
-        resources[src] = dst
+    # The source-selected mappings (overlays, SQLite and font notices), shared with the notice coverage account.
+    bundle = load_module('production_bundle_resources', 'app/packaging/production_inputs/bundle_resources.py')
+    resources = bundle.selected(app, [l['path'] for l in fonts['licenses']], load=lambda path: parse(read(path)))
     supplement_sources = set()
     supplement = None
     if upstream_notices is not None:
@@ -271,7 +261,7 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
         for name in supplement['files']:
             src = str(upstream_notices / name)
             require('*' not in src and src not in resources, 'supplement source conflict')
-            resources[src] = 'third-party-notices/upstream/' + name
+            resources[src] = bundle.SUPPLEMENT_DESTINATION + name
             supplement_sources.add(src)
     resource_inputs = {}
     for src, dst in resources.items():
@@ -324,7 +314,7 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
         observed_entries.append(item)
     require(sorted(observed_entries, key=lambda e: e['path']) == sorted(expected['inventory']['entries'], key=lambda e: e['path']),
             'vendor full tree differs from mapped supplier reference')
-    resources[str(vendor) + '/'] = 'codex/'
+    resources[str(vendor) + '/'] = bundle.VENDOR_DESTINATION
     # Read relevant recipe inputs without selecting a new supplier pin or changing source.
     for relative in ('app/package-lock.json', 'app/src-tauri/Cargo.lock', 'app/src-tauri/Cargo.toml', 'app/src-tauri/tauri.conf.json'):
         read(source_root / relative)
@@ -332,7 +322,27 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
         manifest = tomllib.loads(read(source_root / 'app/src-tauri/Cargo.toml').decode())
         require(manifest.get('profile', {}).get('release', {}).get('opt-level', 3) == 3,
                 'Cargo build input requires release opt-level 3')
-    tool_paths = [__file__, inventory.__file__, files.__file__, font_notice.__file__]
+    # One account of every shipped component's notice; a public-release plan refuses while any is open.
+    coverage = load_module('production_notice_coverage', 'app/packaging/notices/coverage.py')
+    notice_coverage = coverage.check(source_root)
+    # The account counts only for the supplier it describes: the selected pin and vendor manifest.
+    describes_vendor = (notice_coverage['supplier_pin'] == pin
+                        and notice_coverage['supplier_distribution']['manifest_sha256'] == expected_manifest)
+    gaps = [f"{o['name']} {o['version']}" for o in notice_coverage['open']]
+    # Every resource this plan maps, including the vendor tree and any supplement, must be named in the account.
+    unnamed = coverage.unaccounted(notice_coverage['accounts_for'], resources.values())
+    gaps += ['bundle resource not named in the notice coverage account: ' + target for target in unnamed]
+    if not describes_vendor:
+        gaps.insert(0, f"the account describes supplier {notice_coverage['supplier_pin']}, not the selected vendor")
+    if gaps:
+        require(publisher_ref is None or not_for_public_release,
+                'notice coverage is incomplete; a production plan needs --not-for-public-release: ' + ', '.join(gaps))
+    release_standing = ('not for public release: notice coverage is incomplete' if gaps
+                        else 'not for public release: package input test' if publisher_ref is None
+                        else 'notice coverage complete')
+    if not_for_public_release:
+        release_standing = 'not for public release (named by the caller)' + ('; notice coverage is incomplete' if gaps else '')
+    tool_paths = [__file__, inventory.__file__, files.__file__, font_notice.__file__, bundle.__file__, coverage.__file__]
     if supplement is not None: tool_paths.append(receipts.__file__)
     tool_hashes = {str(inventory.anchored(p)): sha(read(Path(p))) for p in tool_paths}
     no_overlap(output.parent, [source_root, vendor, *{Path(p).parent for p in inspected}])
@@ -375,6 +385,7 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
     if supplement is not None:
         require(receipts.check_stage(upstream_notices, source_root) == supplement, 'supplement changed during preparation')
     require(font_notice.check(source_root) == fonts, 'font notice changed during preparation')
+    require(coverage.check(source_root) == notice_coverage, 'notice coverage changed during preparation')
     output.mkdir(exist_ok=False, mode=0o700)
     write_new(output / 'INCOMPLETE.txt', b'Not usable until PLAN_COMPLETE.json validates and this marker is absent.\n')
     try:
@@ -383,7 +394,12 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
                    'mode': mode, 'resource_inputs': resource_inputs, 'supplier': supplier, 'inspected_files': inspected,
                    'publisher_input': publisher_ref, 'limits': ['input preparation only; no App build or resource mapper executed',
                    'stock cache selection does not qualify supplier pin', 'no signed package, S4 installed observation, OS qualification or release',
-                   'four supplier notice/source associations and transitive completeness remain unresolved']}
+                   'notice coverage is as notice_coverage states; open components are named there'],
+                   'release_standing': release_standing,
+                   'notice_coverage': {'account': 'app/packaging/notices/coverage.json', 'sha256': notice_coverage['sha256'],
+                                       'counts': notice_coverage['counts'],
+                                       'supplier_pin': notice_coverage['supplier_pin'], 'describes_selected_vendor': describes_vendor,
+                                       'open': [f"{o['name']} {o['version']} ({o['standing']})" for o in notice_coverage['open']]}}
         if supplement is not None: account['upstream_notice_supplement'] = supplement
         if profile_ref: account['provisioning_profile'] = profile_ref
         completed = {}
@@ -405,7 +421,7 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
         raise
     # Do not print production identifier/team or private input bytes.
     return {'mode': mode, 'output': str(output), 'files': check_plan(output)['files'],
-            'build_executed': False, 'signing_executed': False, 'package_complete': False}
+            'build_executed': False, 'signing_executed': False, 'package_complete': False, 'release_standing': release_standing}
 
 
 if __name__ == '__main__':
@@ -418,6 +434,8 @@ if __name__ == '__main__':
     parser.add_argument('--upstream-notices', help='Explicit completed upstream notice supplement; default omitted')
     parser.add_argument('--provisioning-profile', help='Private Developer ID profile embedded at Contents/; production only')
     parser.add_argument('--provisioning-profile-sha256')
+    parser.add_argument('--not-for-public-release', action='store_true',
+                        help='Name the plan as not for public release; required for a production plan while notice coverage is open')
     parser.add_argument('--cargo-build-input', choices=[CARGO_BUILD_PRESET],
                         help='Explicit platform/toolchain-scoped host and shipped release strip override; default omitted')
     args = vars(parser.parse_args())
