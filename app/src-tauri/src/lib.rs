@@ -1519,7 +1519,19 @@ fn local_model_settings_save(window: tauri::Window, state: State<'_, AppState>, 
 fn host_start(state: State<'_, AppState>, mode_home_class:String) -> Result<Value, String> {
     if home_class(&mode_home_class)?==home_resources::HomeClass::LocalProvider { local_route_refused()?; }
     let home = state.homes.lock().unwrap().entry(home_class(&mode_home_class)?)?;
-    start_home(&state, &home, "the person")
+    let started = start_home(&state, &home, "the person");
+    read_account_after_start(&home, &started);
+    started
+}
+/// After a start that reached ready in the account home, the App's own account read
+/// (runtime_session::read_account_at_ready), off the command's thread so the start answers at once.
+fn read_account_after_start(home: &Arc<runtime_session::HomeSession>, started: &Result<Value, String>) {
+    if !runtime_session::reads_account_at_ready(home, started) { return; }
+    let (home, started) = (Arc::clone(home), started.clone());
+    if let Err(error) = std::thread::Builder::new().name("chirality-account-read".into())
+        .spawn(move || { let _ = runtime_session::read_account_at_ready(&home, &started); }) {
+        eprintln!("chirality: the account was not read after Codex started: {error}");
+    }
 }
 /// Start Codex for one home (Start Codex, and Restart Codex after its stop).
 fn start_home(state: &AppState, home: &runtime_session::HomeSession, actor: &str) -> Result<Value, String> {
@@ -1559,7 +1571,7 @@ fn codex_stop(window: tauri::Window, state: State<'_, AppState>, generation: Val
             Ok(chosen) => chosen,
             Err(cause) => { refused = Some(cause); false }
         },
-        || start_home(&state, &home, "the person: Restart Codex"));
+        || { let started = start_home(&state, &home, "the person: Restart Codex"); read_account_after_start(&home, &started); started });
     codex_stop::finish(&state.codex_stops, title, refused, result)
 }
 
@@ -3500,8 +3512,11 @@ pub fn run() {
                 let h = Arc::clone(&host);
                 let recovery = Arc::clone(&home.recovery_startup);
                 let read = launch_read.clone();
+                let account = Arc::clone(&home);
                 std::thread::spawn(move || {
-                    let _ = launch_start_and_read(&h, &recovery, data.as_deref().map_err(String::as_str), host_config.as_ref().map_err(String::as_str), &desktop, &read);
+                    let started = launch_start_and_read(&h, &recovery, data.as_deref().map_err(String::as_str), host_config.as_ref().map_err(String::as_str), &desktop, &read);
+                    // Codex ready at launch: the App reads whether someone is signed in, as after a restart.
+                    if let Some(started) = started { let _ = runtime_session::read_account_at_ready(&account, &started); }
                 });
             }
             Ok(())

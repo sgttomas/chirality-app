@@ -2929,6 +2929,34 @@ pub fn read_native_home_access(home: &HomeSession, generation: &Value) -> Result
     Ok(home.account_view())
 }
 
+/// Whether a start's outcome calls for the App's own account read: the account home, a start that returned
+/// and the home's Codex ready in the generation that start reported.
+pub(crate) fn reads_account_at_ready(home: &HomeSession, started: &Result<Value, String>) -> bool {
+    let Ok(snapshot) = started else { return false };
+    let current = home.host.snapshot();
+    home.class() == crate::home_resources::HomeClass::Account && current["state"] == "ready" && current["generationClosed"] != true
+        && !snapshot["generation"].is_null() && current["generation"] == snapshot["generation"]
+}
+/// The App's own account read when Codex has become ready, at launch and after each start or restart:
+/// `account/read` with empty params (never a token refresh), recorded beside the person's checks under
+/// the App's own initiator, so whether someone is signed in is read without a press. A start that did not
+/// reach ready, or another home, reads nothing (None).
+pub fn read_account_at_ready(home: &HomeSession, started: &Result<Value, String>) -> Option<Result<Value, String>> {
+    read_account_at_ready_within(home, started, std::time::Duration::from_secs(20))
+}
+pub(crate) fn read_account_at_ready_within(home: &HomeSession, started: &Result<Value, String>, wait: std::time::Duration) -> Option<Result<Value, String>> {
+    if !reads_account_at_ready(home, started) { return None; }
+    let generation = home.host.snapshot()["generation"].clone();
+    Some((|| {
+        let source = home.host.account_read_at_ready_scoped(&generation)?;
+        home.account_sources.lock().unwrap().push(source.clone());
+        // A read without an answer within the limit stays recorded as waited for and unanswered; it is never
+        // taken for an absent account.
+        home.host.source_request_wait(&source, wait)?;
+        Ok(home.account_view())
+    })())
+}
+
 /// Consumes explicit Root OS paths. Existing account/probe are observations,
 /// never relocated or claimed as newly App-owned plans to fit this constructor.
 /// Where the local provider's Codex home is: a path in the App data folder.

@@ -4747,3 +4747,77 @@ fn access_provider_cloud_start_admission_reads_again_and_does_not_reuse_an_earli
         peer.safe();
     }
 }
+
+/// The App's own account read once Codex is ready (at launch and after each start or restart): account/read
+/// with empty params, never a token refresh, recorded under the App's own initiator and never as the person's;
+/// one read per start that reached ready, and one again after a restart, each in its own generation. A start
+/// that did not reach ready, one that reported another generation, or another home sends nothing. Codex's
+/// answer is recorded as it came; an unanswered read is recorded as waited for and unanswered, never as no account.
+#[test]
+fn codex_ready_reads_the_account_once_with_empty_params_as_the_apps_own_read_and_again_after_a_restart() {
+    use crate::runtime_session::{read_account_at_ready_within, HomeSession};
+    let root = std::env::temp_dir().canonicalize().unwrap().join(opaque_id("account-at-ready-").unwrap());
+    std::fs::create_dir(&root).unwrap();
+    let mut peer = Peer::new("account-home");
+    let cfg = HostConfig::new(root.join("not-run"), root.join("account"), root.join("probe"), "/invented/work".into());
+    let home = HomeSession::new(crate::home_resources::HomeClass::Account, peer.host.clone(), Ok(cfg.clone())).unwrap();
+    let wait = Duration::from_secs(5);
+    // Nothing is sent for a refused start, or for a start whose generation is not the one running.
+    assert!(read_account_at_ready_within(&home, &Err("refused".into()), wait).is_none());
+    let mut other = peer.g.clone(); other["spawnCounter"] = json!(9);
+    assert!(read_account_at_ready_within(&home, &Ok(json!({"state":"ready","generation":other})), wait).is_none());
+    // Another home reads nothing at ready.
+    let local = Peer::new("local-home");
+    let local_home = HomeSession::new(crate::home_resources::HomeClass::LocalProvider, local.host.clone(), Ok(cfg)).unwrap();
+    assert!(read_account_at_ready_within(&local_home, &Ok(local.host.snapshot()), wait).is_none());
+    assert!(local.host.client_requests().is_empty());
+    assert!(peer.host.client_requests().is_empty(), "nothing sent before a start reached ready");
+    let answers = [
+        json!({"result":{"account":{"type":"chatgpt","email":"invented@example.invalid","planType":"plus"},"requiresOpenaiAuth":true}}),
+        json!({"result":{"account":null,"requiresOpenaiAuth":true}}),
+        json!({"error":{"code":-32603,"message":"invented: workspace routing could not be read"}}),
+    ];
+    for (restart, answer) in answers.iter().enumerate() {
+        if restart > 0 {
+            // A restart: the earlier generation closes and the next one is ready.
+            let mut i = peer.host.inner.0.lock().unwrap();
+            Host::close_generation(&mut i);
+            i.generation["spawnCounter"] = json!(restart + 1);
+            peer.g = i.generation.clone();
+        }
+        let started = Ok(peer.host.snapshot());
+        let view = std::thread::scope(|scope| {
+            let work = scope.spawn(|| read_account_at_ready_within(&home, &started, wait));
+            let read = peer.frame();
+            assert_eq!(read["method"], "account/read");
+            assert_eq!(read["params"], json!({}), "empty params: no token refresh is asked for");
+            let mut reply = answer.clone(); reply["id"] = read["id"].clone();
+            peer.host.on_line(&serde_json::to_vec(&reply).unwrap(), &peer.g);
+            work.join().unwrap()
+        }).expect("a start that reached ready reads the account").unwrap();
+        let rows = peer.host.client_requests();
+        assert_eq!(rows.len(), restart + 1, "one read per start that reached ready");
+        let row = rows.last().unwrap();
+        assert_eq!(row["generation"], peer.g, "the read belongs to the generation that became ready");
+        assert_eq!(row["initiator"], json!({"kind":"app-rule","name":"app-at-ready"}), "named as the App's read, never person-directed");
+        let observation = view["observations"].as_array().unwrap().last().unwrap().clone();
+        assert_eq!(observation["source"]["generation"], peer.g);
+        match restart {
+            0 => assert_eq!(observation["accountObservation"]["state"], "native account type observed"),
+            1 => assert_eq!(observation["accountObservation"]["state"], "native account null observed"),
+            _ => assert_eq!(observation["source"]["outcome"], "response-observed-error", "an error is an error, not an absent account"),
+        }
+    }
+    // A read Codex does not answer within the limit is recorded as waited for and unanswered.
+    let started = Ok(peer.host.snapshot());
+    let view = std::thread::scope(|scope| {
+        let work = scope.spawn(|| read_account_at_ready_within(&home, &started, Duration::from_millis(50)));
+        assert_eq!(peer.frame()["method"], "account/read");
+        work.join().unwrap()
+    }).unwrap().unwrap();
+    let unanswered = view["observations"].as_array().unwrap().last().unwrap().clone();
+    assert_eq!((unanswered["source"]["outcome"].as_str(), unanswered["source"]["waitingEnded"].as_bool()), (Some("pending"), Some(true)));
+    assert!(unanswered["accountObservation"].is_null(), "no account state is claimed for an unanswered read");
+    assert!(peer.host.client_requests().iter().all(|r| r["method"] == "account/read"), "no sign-in, refresh or other request");
+    std::fs::remove_dir_all(root).unwrap();
+}

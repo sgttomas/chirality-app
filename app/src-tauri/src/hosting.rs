@@ -933,6 +933,9 @@ fn delegation_withheld(frame: &Value) -> Value {
     kept
 }
 const DELEGATION_RESULT_WITHHELD: &str = "delegation-availability read (NPTD §7.1): the result body is not kept; the reading keeps only the fields it uses";
+/// The initiator name of the App's own account read when Codex becomes ready; a person's check is
+/// `person-directed`.
+pub(crate) const ACCOUNT_READ_AT_READY: &str = "app-at-ready";
 /// The initiator name that marks a model-discovery request.
 const MODEL_CATALOG_INITIATOR: &str = "model-catalog-read";
 /// A model-discovery reply as kept: `delegation_withheld`, with any error
@@ -3265,6 +3268,9 @@ impl Host {
     }
     pub(crate) fn account_requirements_read_scoped(&self,generation:&Value)->Result<SourceRequest,String>{self.account_requirements_read_until(generation,std::time::Instant::now()+Duration::from_secs(20))}
     pub(crate) fn account_read_scoped(&self,generation:&Value)->Result<SourceRequest,String>{self.request_begin_scoped("account/read",json!({}),json!({"kind":"person-directed"}),false,Some(generation))}
+    /// The App's own account read once Codex is ready (at launch and after each start or restart): the same
+    /// request as the person's check, empty params and never a token refresh, named as the App's rule.
+    pub(crate) fn account_read_at_ready_scoped(&self,generation:&Value)->Result<SourceRequest,String>{self.request_begin_scoped("account/read",json!({}),json!({"kind":"app-rule","name":ACCOUNT_READ_AT_READY}),false,Some(generation))}
     /// Account kind only; explicitly no proactive token refresh.
     pub(crate) fn account_read_no_refresh_scoped(&self,generation:&Value)->Result<SourceRequest,String>{self.request_begin_scoped("account/read",json!({"refreshToken":false}),json!({"kind":"person-directed"}),false,Some(generation))}
     /// Caller owns explicit removal/live-work assessment; ack is not removal proof.
