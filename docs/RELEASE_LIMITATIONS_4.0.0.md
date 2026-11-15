@@ -266,10 +266,10 @@ An entry is added in the same pull request that makes the limitation standing.
   malformed, truncated, or naming no library, which the App never writes) or
   a listed library that cannot be read refuses key-file sealing. A library is
   added to the list when it is opened or registered into, and never silently
-  removed. If the list cannot be written, the library still opens and is
-  read; key-file sealing waits, and the library is remembered until the App
-  quits. It is written to the list the next time it is opened or registered
-  into with the folder writable.
+  removed. If a library newly opened or registered into cannot be added to
+  the list, the library still opens and is read; key-file sealing waits, and
+  the library is remembered until the App quits. It is added to the list the
+  next time it is opened or registered into with the folder writable.
   The keychain's protection is not established
   until release criterion 8 has been met on the installed, signed candidate.
 - **What the person does instead:** read the provider stated for each capture
