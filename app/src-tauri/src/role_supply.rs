@@ -44,7 +44,8 @@ impl Role {
         }
     }
 }
-/// Read-only App candidate data. Placement/default release choices remain U-R6/U-R11.
+/// Read-only App candidate data. Placement remains U-R6; the 4.0.0 default
+/// (HELP_HUMAN) is DEL-02-04 TBD-004's decision, carried as data here.
 pub const BUNDLED_ROLE_SET: &[u8] = include_bytes!("../resources/instructions/roles.json");
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

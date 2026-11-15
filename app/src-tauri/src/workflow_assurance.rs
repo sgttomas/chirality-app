@@ -82,6 +82,8 @@ impl Store for SettingsFile {
         }
     }
     fn write(&self, level: AssuranceLevel) -> Result<(), String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("workflow_assurance::SettingsFile::write");
         let path = Self::path()?;
         if let Some(parent) = path.parent() { crate::storage::ensure_directory(parent)?; }
         let temp = path.with_extension(format!("{}.tmp", crate::util::opaque_id("")?));

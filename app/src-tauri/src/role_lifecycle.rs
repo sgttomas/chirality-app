@@ -238,12 +238,26 @@ enum Origin {
         source_supply_ref: String,
     },
 }
+/// The limit account of the guidance one start supplied. Made once, from that
+/// start's composition (the value whose text is sent as the conversation's
+/// guidance) and from no guidance file, and never rewritten. `supplied_to`
+/// names the conversation that received that supply: a fork is sent no
+/// guidance of its own, so it carries the account of the supply it runs
+/// under, still named as the conversation that was given it.
+#[derive(Clone, Debug)]
+struct SuppliedLimits {
+    supplied_to: String,
+    supply_ref: String,
+    account: Result<Value, String>,
+}
 /// Caller-produced from an actual Host-correlated response, not a file parser.
 /// Authentic transport provenance remains Host's responsibility, not this Rust type.
 #[derive(Clone, Debug, Serialize)]
 pub struct RoleBinding {
     #[serde(skip)]
     native_children: Vec<crate::child_roles::ChildSupply>,
+    #[serde(skip)]
+    supplied_limits: SuppliedLimits,
     home: String,
     thread: String,
     supply_ref: String,
@@ -319,6 +333,22 @@ impl RoleBinding {
             role: self.original.role,
             supply_ref: self.supply_ref.clone(),
         }
+    }
+    /// The limit account of the guidance this conversation runs under, with
+    /// the subject it describes: the original supply to one named
+    /// conversation, which is this one unless it is a fork. Nothing here reads
+    /// a guidance file; where the account could not be made at the start it is
+    /// reported as not known with the reason.
+    pub fn supplied_limit_account(&self) -> Value {
+        let limits = &self.supplied_limits;
+        let mut view = json!({"subject":{"kind":"original-supply","suppliedTo":limits.supplied_to,"supplyRef":limits.supply_ref,
+            "thisConversation":limits.supplied_to==self.thread},
+            "basis":"made once from the composition supplied at that start; no guidance file is read for it"});
+        match &limits.account {
+            Ok(account) => { view["standing"] = json!("established"); view["account"] = account.clone(); }
+            Err(reason) => { view["standing"] = json!("not-known"); view["reason"] = json!(reason); }
+        }
+        view
     }
     /// Original App guidance only. No supplier base or transcript enters this account.
     pub fn evidence(&self) -> Value {
@@ -443,6 +473,8 @@ pub struct PreparedStart {
     request_ref: String,
     supply_ref: String,
     guidance: FrozenGuidance,
+    /// From the same composition as `guidance`, at the same moment.
+    limits: Result<Value, String>,
     continued_from: Option<Value>,
 }
 impl PreparedStart {
@@ -474,6 +506,7 @@ impl PreparedStart {
             request_ref: request_ref.into(),
             supply_ref: supply_ref.into(),
             guidance: FrozenGuidance::capture(composition)?,
+            limits: crate::conversation_roles::frozen_limit_account(composition),
             native_children: composition.children.clone(),
             continued_from: None,
         })
@@ -523,6 +556,7 @@ impl PreparedStart {
 
         Ok(RoleBinding {
             native_children: self.native_children,
+            supplied_limits: SuppliedLimits { supplied_to: observation.thread.clone(), supply_ref: self.supply_ref.clone(), account: self.limits },
             home: self.home,
             thread: observation.thread.clone(),
             supply_ref: self.supply_ref,
@@ -655,6 +689,9 @@ impl MetadataRequest {
         }
         Ok(RoleBinding {
             native_children: vec![],
+            // `thread/fork` carries no instructions (see `params`): the fork is
+            // sent no supply, so it keeps the account of the one it runs under.
+            supplied_limits: self.source.supplied_limits,
             home: self.home,
             thread: observation.thread.clone(),
             supply_ref: self.fork_supply_ref.ok_or("fork supply reference absent")?,

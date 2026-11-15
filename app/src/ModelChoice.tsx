@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./hostReads";
+import { AgentText, SuppliedId, idWords, plainId } from "./AgentText";
+import { LOCAL_ROUTE_OFFERED, LOCAL_ROUTE_NOT_OFFERED } from "./localRoute";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 const list = (value: Json): Json[] => (Array.isArray(value) ? value : []);
 const text = (value: Json): string => value === null || value === undefined ? "" : typeof value === "string" ? value : JSON.stringify(value);
@@ -8,6 +10,11 @@ const text = (value: Json): string => value === null || value === undefined ? ""
  * entry requires the reported built-in `openai` provider). */
 export const BUILT_IN_PROVIDER = "openai";
 export const CLOUD_ENTRIES = ["chatgpt-account"];
+/** The built-in route's control, in the App's words. */
+const BUILT_IN_ROUTE_LABEL = "Use my ChatGPT account (built-in OpenAI)";
+/** The entries that reach a local model server (LocalProviderAccess LOCAL_ENTRY is the keyed one). */
+export const LOCAL_ENTRIES = ["local-provider", "local-provider-keyed"];
+const LOCAL_HOME = "local-provider";
 /** The host's reading of the app-server's own provider. */
 export const PROVIDER_STATES = ["named", "unnamed", "not-established", "not-read"];
 
@@ -15,6 +22,10 @@ export const PROVIDER_STATES = ["named", "unnamed", "not-established", "not-read
 export function modelMatch(packet: Json, modelProvider: string, entryId: string): "confirmed" | "unconfirmed" | "none" {
   const server = typeof packet?.serverProvider === "string" ? packet.serverProvider : null;
   if (!modelProvider) return "none";
+  // Codex's list is its own catalogue (at the pin, with an anonymous local
+  // provider, no model request reached the server), so it is never offered as
+  // a local server's.
+  if (LOCAL_ENTRIES.includes(entryId)) return "none";
   if (packet?.serverProviderState === "named") return server !== null && server === modelProvider ? "confirmed" : "none";
   // A null provider is never taken as the built-in one; the person may still
   // deliberately use a reported ID for the built-in route, marked unconfirmed.
@@ -34,31 +45,51 @@ export function validModelPacket(packet: Json, generation: Json, modeHomeClass: 
 export function AccessRouteChoice({ homeClass, modelProvider, entryId, model = "", disabled, choose, localHint, local = null }: {
   homeClass: string | null; modelProvider: string; entryId: string; model?: string; disabled: boolean;
   choose: (route: { modelProvider: string; entryId: string; model?: string }) => void; localHint?: string;
-  local?: { entryId: string; providerId: string; endpoint: string; model: string } | null;
+  local?: { entryId: string; providerId: string; endpoint: string; model: string; credentialState?: string } | null;
 }) {
-  const builtIn = homeClass === "account" ? { entryId: "chatgpt-account", label: "Use my ChatGPT account (built-in OpenAI)" } : null;
+  const builtIn = homeClass === "account" ? { entryId: "chatgpt-account" } : null;
   const chosen = builtIn && modelProvider === BUILT_IN_PROVIDER && entryId === builtIn.entryId;
   const localChosen = !!local && entryId === local.entryId && modelProvider === local.providerId && model === local.model;
   return <div aria-label="How this conversation connects">
-    {builtIn ? <p><button disabled={disabled || !!chosen} aria-pressed={!!chosen} onClick={() => choose({ modelProvider: BUILT_IN_PROVIDER, entryId: builtIn.entryId })}>{builtIn.label}</button>{chosen ? " — chosen" : ""}</p>
-      : homeClass === "local-provider" ? (local
-        ? <p><button disabled={disabled || localChosen} aria-pressed={localChosen} onClick={() => choose({ modelProvider: local.providerId, entryId: local.entryId, model: local.model })}>Use oMLX model {local.model}</button>{localChosen ? " — chosen" : ""}
-          <br/><small>Local server <code>{local.endpoint}</code>; the key stays with Codex in the local home.</small></p>
+    {builtIn ? <p><button disabled={disabled || !!chosen} aria-pressed={!!chosen} onClick={() => choose({ modelProvider: BUILT_IN_PROVIDER, entryId: builtIn.entryId })}>{BUILT_IN_ROUTE_LABEL}</button>{chosen ? " — chosen" : ""}</p>
+      : homeClass === "local-provider" ? (!LOCAL_ROUTE_OFFERED ? <p>{LOCAL_ROUTE_NOT_OFFERED}</p> : local
+        ? <p><button disabled={disabled || localChosen} aria-pressed={localChosen} onClick={() => choose({ modelProvider: local.providerId, entryId: local.entryId, model: local.model })}>Use the oMLX model shown</button>{localChosen ? " — chosen" : ""} <AgentText value={local.model} source="record" label="Model:" />
+          <br/><small>Local server <code>{local.endpoint}</code>; the key stays with Codex in the local home.</small>
+          {local.credentialState === "entry-required" && <><br/><span role="note">No key is saved for this server yet. A conversation can be started, but its messages will fail until the key is entered under Connection &amp; access.</span></>}</p>
         : <p>Prepare the oMLX connection under Connection &amp; access for this Codex session first.</p>)
       : <p>Choose the account connection under Connection &amp; access first.</p>}
-    {homeClass === "account" && <p><small>{localHint ?? "Keyed oMLX uses its own local home: prepare it and switch to it under Connection & access. Anonymous configured local providers connect here."}</small></p>}
-    {entryId === "local-provider" && modelProvider && <p>Connects through configured local provider <code>{modelProvider}</code>.</p>}
+    {LOCAL_ROUTE_OFFERED && homeClass === "account" && <p><small>{localHint ?? "A local model server has its own home: set it up and switch to it under Connection & access."}</small></p>}
+    {LOCAL_ROUTE_OFFERED && entryId === "local-provider" && modelProvider && <p>Connects through configured local provider <code>{modelProvider}</code>.</p>}
   </div>;
 }
 
 /** The models Codex reports, read only when the person asks; never preselected. */
-export function AvailableModels({ packet, current, reading, message, model, modelProvider, entryId, disabled, read, choose }: {
+export function AvailableModels({ packet, current, reading, message, model, modelProvider, entryId, disabled, read, choose, setModel, fixedModel, localHome = null }: {
   packet: Json | null; current: boolean; reading: boolean; message: string; model: string; modelProvider: string; entryId: string;
   disabled: boolean; read: () => void; choose: (row: Json) => void;
+  /** Lets the person name a local server's model in this step. */
+  setModel?: (model: string) => void;
+  /** The one model of the keyed oMLX route, when that route is the choice. */
+  fixedModel?: string | null;
+  /** In the dedicated local home: whether its oMLX route is prepared. Codex's list is not offered there. */
+  localHome?: "prepared" | "unprepared" | null;
 }) {
   const match = packet && current ? modelMatch(packet, modelProvider, entryId) : "none";
   const server = typeof packet?.serverProvider === "string" ? packet.serverProvider : null;
   const rows = list(packet?.models);
+  if (localHome && !fixedModel) return <div aria-label="Available models">
+    <p>{!LOCAL_ROUTE_OFFERED ? LOCAL_ROUTE_NOT_OFFERED : localHome === "prepared" ? "The oMLX connection has one model. Choose it above." : "Prepare the oMLX connection under Connection & access first."}</p>
+  </div>;
+  if (modelProvider && LOCAL_ENTRIES.includes(entryId)) return <div aria-label="Available models">
+    {fixedModel ? <p>This connection uses one model: <code>{fixedModel}</code>{model === fixedModel ? " — chosen" : ""}.</p>
+      : <>
+        <p>The App has no list of this server's models: the models Codex lists are its own catalogue. Enter the model's name exactly as your server names it.</p>
+        {setModel
+          ? <p><label>Model name on the local server <input autoCapitalize="off" autoCorrect="off" autoComplete="off" spellCheck={false} value={model} disabled={disabled} onChange={event => setModel(event.target.value)} /></label></p>
+          : null}
+        <p><small>The name is sent to Codex as typed. Whether the server has that model is known only when the conversation's first message reaches it.</small></p>
+      </>}
+  </div>;
   return <div aria-label="Available models">
     <button disabled={disabled || reading} onClick={read}>Read available models</button>{" "}
     <small>Asks Codex for its model list now. Nothing is chosen or started.</small>
@@ -67,15 +98,17 @@ export function AvailableModels({ packet, current, reading, message, model, mode
     {packet && !current && <p role="status">This model list is out of date — Codex, the home or the project changed. Read it again.</p>}
     {packet && current && <div>
       <p><strong>{server ? <>Models Codex reports for provider <code>{server}</code></> : "Models Codex reports for its own provider"}</strong>{packet.readAt ? <small> · read {text(packet.readAt)}</small> : null}</p>
-      {packet.providerLimit && <p role="note"><small>{text(packet.providerLimit)}.</small></p>}
+      {packet.providerLimit && <p role="note"><small>{text(packet.providerLimit).replace(/\.$/, "")}.</small></p>}
       {!modelProvider ? <p role="note">Choose how this conversation connects first; then choose a model.</p>
-        : match === "none" ? <p role="note">This list isn't for this conversation's provider (<code>{modelProvider}</code>{server ? <>; the list is for <code>{server}</code></> : ""}). Enter that provider's model ID under “Advanced: enter IDs yourself”.</p>
+        : match === "none" ? <p role="note">This list isn't for this conversation's provider (<code>{modelProvider}</code>{server ? <>; the list is for <code>{server}</code></> : ""}). Enter a model ID under “Advanced: enter a model ID yourself”.</p>
         : match === "unconfirmed" ? <p role="note">Codex's configuration doesn't name its provider, so the App can't confirm these models are for the built-in OpenAI route. You can still choose one. Start re-checks that the built-in OpenAI route is configured; it doesn't confirm this model is offered on it — if it isn't, Codex reports an error when the conversation starts or its first turn runs.</p> : null}
       {rows.length === 0 ? <p>{packet.complete ? "Codex reported no models." : "No models could be read."}</p>
-        : <ul aria-label="Models Codex reports">{rows.map((row: Json) => <li key={row.id}>
-          <strong>{text(row.displayName)}</strong> <code>{text(row.model)}</code>{row.isDefault ? " · Codex's default" : ""}{row.model === model ? " · chosen" : ""}
-          {row.description && <><br/><small>{text(row.description)}</small></>}
-          {match !== "none" && row.model !== model && <><br/><button disabled={disabled} onClick={() => choose(row)}>{match === "confirmed" ? `Use ${text(row.displayName)}` : `Use ${text(row.displayName)} (provider not confirmed)`}</button></>}
+        : <ul aria-label="Models Codex reports">{rows.map((row: Json, i: number) => <li key={row.id}>
+          {/* The control is named by the App's words: the model's plain ID, else its place in this list. Codex's
+              display name and description stand beside it, boxed. */}
+          Model {i + 1}: <AgentText value={row.displayName} source="codex" label="Model name:" name="The model's name as Codex reports it, not the App's words" /> <SuppliedId value={row.model} label="Model ID:" name="The model ID as Codex reports it, not the App's words" />{row.isDefault ? " · Codex's default" : ""}{row.model === model ? " · chosen" : ""}
+          {row.description && <><br/><small><AgentText value={row.description} source="codex" label="Codex's description:" name="The model's description as Codex reports it, not the App's words" /></small></>}
+          {match !== "none" && row.model !== model && <><br/><button disabled={disabled} onClick={() => choose(row)}>{match === "confirmed" ? `Use model ${plainId(row.model) ?? `${i + 1}`}` : `Use model ${plainId(row.model) ?? `${i + 1}`} (provider not confirmed)`}</button></>}
         </li>)}</ul>}
       {!packet.complete && <p role="note">The list may be incomplete: {list(packet.limits).map(text).join("; ")}.</p>}
       {packet.complete && list(packet.limits).length > 0 && <p role="note"><small>{list(packet.limits).map(text).join("; ")}.</small></p>}
@@ -144,7 +177,7 @@ export function useBoundModelChoice({ owner, homeClass, generation, ready }: { o
       if (!validModelPacket(packet, original, mode)) throw Error("the reply was not a model list for this Codex source");
       setObservation({ packet, epoch: at, sequence: number });
     }).catch(error => {
-      if (still()) setMessage({ epoch: at, text: `Model list unavailable: ${error instanceof Error ? error.message : String(error)}. You can still enter a model ID under “Advanced: enter IDs yourself”.` });
+      if (still()) setMessage({ epoch: at, text: `Model list unavailable: ${error instanceof Error ? error.message : String(error)}. You can still enter a model ID under “Advanced: enter a model ID yourself”.` });
     }).finally(() => { pending.current = false; if (mounted.current) setReading(false); });
   };
   const choose = (row: Json) => {
@@ -155,7 +188,7 @@ export function useBoundModelChoice({ owner, homeClass, generation, ready }: { o
     if (modelMatch(shown.packet, held.route.modelProvider, held.route.entryId) === "none") return;
     revise({ model: row.model });
   };
-  const bound = () => homeClass === "account" && live() && heldRef.current === held && held.epoch === epoch
+  const bound = () => (homeClass === "account" || homeClass === LOCAL_HOME) && live() && heldRef.current === held && held.epoch === epoch
     ? { route: held.route, generation: held.generation, modeHomeClass: held.modeHomeClass } : null;
   return { route, stale: held.epoch !== epoch && chosenAny(held.route), revise, packet: observation?.packet ?? null, current, reading,
     message: message && message.epoch === epoch ? message.text : "", read, choose, bound };
@@ -203,16 +236,18 @@ export function OfferedEffortChoice({ owner, threadId, generation, homeClass, mo
     <button disabled={disabled || reading || !owner} onClick={() => { void read(); }}>Read effort choices for this model</button>
     {reading && <p role="status">Reading model effort choices…</p>}
     {current?.message && <p role="alert">{current.message}</p>}
-    <p><label>Reasoning effort for {row?.displayName || model || "the current conversation model"}{" "}
+    <p><label>Reasoning effort for {model ? (plainId(model) ? `model ${plainId(model)}` : "the chosen model") : "the current conversation model"}{" "}
       <select value={effort} disabled={disabled || !row || options.length === 0} onChange={event => {
         const value = event.target.value;
         if (live() && current && resultRef.current === current && current.sequence === sequence.current && !pending.current
           && (value === "" || options.some(option => option.reasoningEffort === value))) choose(value, offeredModel);
       }}>
         <option value="">Use current Codex setting</option>
-        {effort && !options.some(option => option.reasoningEffort === effort) && <option value={effort}>{effort} · selected</option>}
-        {options.map(option => <option key={option.reasoningEffort} value={option.reasoningEffort}>{option.reasoningEffort}{option.reasoningEffort === row.defaultReasoningEffort ? " · model default" : ""}{option.description ? ` — ${option.description}` : ""}</option>)}
-      </select></label></p>
+        {effort && !options.some(option => option.reasoningEffort === effort) && <option value={effort}>{idWords(effort)} · selected</option>}
+        {options.map(option => <option key={option.reasoningEffort} value={option.reasoningEffort}>{idWords(option.reasoningEffort)}{option.reasoningEffort === row.defaultReasoningEffort ? " · model default" : ""}</option>)}
+      </select></label>{row?.displayName ? <>{" "}<AgentText value={row.displayName} source="codex" label="Model name:" name="The model's name as Codex reports it, not the App's words" /></> : null}</p>
+    {/* Codex's description of each effort stands beside the list, boxed: an option cannot hold a box. */}
+    {options.some(option => option.description) && <ul aria-label="What Codex says each effort does">{options.filter(option => option.description).map(option => <li key={option.reasoningEffort}>{idWords(option.reasoningEffort)}: <AgentText value={option.description} source="codex" /></li>)}</ul>}
     {current?.packet && !row && <p>No effort choices could be matched to this model and provider. Choose an explicit model ID or read the choices again.</p>}
     {row && options.length === 0 && <p>Codex offered no effort choices for this model.</p>}
     <p><small>Applies to ordinary text and plan/default text sends. A chosen effort continues on later Codex turns; “Use current Codex setting” leaves it as it is. Attachments, steering and prepared messages use their existing settings.</small></p>

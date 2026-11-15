@@ -3,6 +3,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
+import {agentBlocks, agentBlockText} from './support/agent-text.mjs';
+import {choiceList, choiceLists, chooseIn} from './support/choices.mjs';
 
 // The library list's Select offer (WR §4.6 LS-1, SL-1) and the "newer revision
 // ‹n› available" notice beside the selection (WR SL-2), in the host's shapes
@@ -85,8 +87,8 @@ test('the panel sends the shown library with a list Select',async()=>{
   assert.equal(container.querySelectorAll(e=>e.localName==='button'&&e.textContent==='Select revision 1').length,0,'only the active library is listed');
   const [b]=container.querySelectorAll(e=>e.localName==='button'&&e.textContent==='Select revision 3');
   assert.ok(b);
-  const [chat]=container.querySelectorAll(e=>e.localName==='select'&&e.textContent.includes('No chat'));
-  await React.act(()=>props(chat).onChange({target:{value:'chat-1'}}));
+  const chat=choiceList(container,'Workflow chat');
+  await React.act(()=>chooseIn(chat,'chat-1'));
   const [selectedButton]=container.querySelectorAll(e=>e.localName==='button'&&e.textContent==='Select revision 3');
   await React.act(async()=>{props(selectedButton).onClick();await new Promise(r=>setTimeout(r,0));});
   assert.deepEqual(calls[0],['workflow_select_listed',{libraryRef:'lib-2',name:'load-check',revision:'a'.repeat(64),context:{sourceRef:'home:owned',generation:g,historyEpoch:0,threadId:'chat-1',selectionRef:null,inspectionRef:null,libraryRef:'lib-2'}}]);
@@ -142,6 +144,23 @@ test('records capability binding reports cold unknown and publication limits for
   const host={generation,threads:[{generation,threadId:'cold',recordsCapabilityBinding:{state:'unknown/unsupported',limit:'original receipt absent'}},{generation,threadId:'hot',recordsCapabilityBinding:{state:'bound in current generation',persistence:'memory-only',limit:'folder flush unconfirmed'}},{generation:{...generation,appSession:'old'},threadId:'stale',recordsCapabilityBinding:{state:'bound in old generation'}}]};
   assert.deepEqual(buttons(RecordsCapabilityBindings({host})),[]);
   const text=h(RecordsCapabilityBindings,{host});assert.match(text,/unknown\/unsupported/);assert.match(text,/original receipt absent/);assert.match(text,/memory-only/);assert.match(text,/folder flush unconfirmed/);assert.doesNotMatch(text,/stale/);
+  assert.ok(text.includes('hot: bound in current generation.'),'a bound row whose basis is not stated is given no meaning it may not have');
+  assert.ok(!text.includes('cold: unknown/unsupported ('),'the meaning is given only for a binding');
+  const bound=(basis)=>h(RecordsCapabilityBindings,{host:{generation,threads:[{generation,threadId:'t',recordsCapabilityBinding:{state:'bound in current generation',basis}}]}});
+  assert.ok(bound('receipt').includes('t: bound in current generation (a receipt held for this conversation; whether the project at its path is still the one it names is checked again on every read).'));
+  assert.ok(bound('offer').includes('t: bound in current generation (offered to this conversation when it started in this generation, with no receipt held; whether the project at its path is still the one offered is checked again on every read).'));
+  assert.ok(bound('fork of an offered conversation').includes('t: bound in current generation (admitted to this conversation as a fork of one offered it in this generation, with no receipt held; whether the project at its path is still the one offered is checked again on every read).'));
+  for (const basis of ['receipt','offer','fork of an offered conversation']) assert.ok(!bound(basis).includes('validated'),'none says the project now there is validated');
+});
+
+test('the read log limit is shown whole with the records capability, with or without bound conversations (LIM-014)',()=>{
+  const {RecordsCapabilityBindings}=loadSrc('App');const generation={appSession:'current',home:'home',spawnCounter:1};
+  const sentence="This project's records capability cannot answer reads until its read log is set aside: rename /a/very/long/store/path/projects/key/reads/records-reads.jsonl, in the same folder, to exactly records-reads.jsonl.torn-2026-11-13T19-17-38.143Z. That file ends in a read that was not recorded completely, so this capability cannot record or answer another read; nothing already recorded is lost.";
+  const alone=h(RecordsCapabilityBindings,{host:{generation,threads:[],recordsCapability:{readLogLimit:sentence}}});
+  assert.ok(alone.includes(sentence.replace(/'/g,'&#x27;')),alone);
+  assert.match(alone,/role="alert"/);
+  assert.deepEqual(buttons(RecordsCapabilityBindings({host:{generation,threads:[],recordsCapability:{readLogLimit:sentence}}})),[]);
+  assert.equal(h(RecordsCapabilityBindings,{host:{generation,threads:[],recordsCapability:{readLogLimit:null}}}),'');
 });
 
 test('one existing library entry goes from in-place review to an explicit native registration press',async()=>{
@@ -151,7 +170,7 @@ test('one existing library entry goes from in-place review to an explicit native
   const props=el=>el[Object.keys(el).find(k=>k.startsWith('__reactProps$'))];
   const render=()=>root.render(React.createElement(WorkflowRootPanel,{data,host:{state:'ready',generation:{},threads:[]},act}));
   await React.act(render);
-  const [name]=container.querySelectorAll(e=>e.localName==='input');
+  const name=container.querySelectorAll(e=>e.localName==='input').find(e=>e.parentNode.textContent.startsWith('New draft name'));
   await React.act(()=>props(name).onChange({target:{value:'sample'}}));
   const [review]=container.querySelectorAll(e=>e.localName==='button'&&e.textContent==='Review this unregistered in-place library entry');
   assert.ok(review);assert.equal(props(review).disabled,false);
@@ -217,7 +236,7 @@ test('native review actions end with the host presentation while original contin
       });
       const container=document.createElement('div');document.body.appendChild(container);const root=createRoot(container);
       const article=()=>container.querySelectorAll(e=>e.localName==='article'&&e.querySelectorAll(n=>n.localName==='h3'&&n.textContent==='Current review · review-native').length)[0];
-      const body=()=>article().querySelectorAll(e=>e.localName==='pre')[0];
+      const body=()=>agentBlocks(article())[0];
       try{
         await React.act(()=>root.render(React.createElement(App)));
         // Deliver the native reply inside act and await the view's real hash too:
@@ -226,7 +245,7 @@ test('native review actions end with the host presentation while original contin
         const reading=article().querySelectorAll(e=>e.getAttribute('aria-label')==='Frozen workflow registration review')[0];
         assert.ok(reading,'the current frozen presentation has a readable review');
         assert.ok(reading.textContent.includes('Complete synthetic review'));
-        assert.equal(reading.querySelectorAll(e=>e.localName==='pre').at(-1).textContent,JSON.stringify(presentation,null,2),'the complete original presentation remains in its diagnostic report');
+        assert.equal(agentBlockText(agentBlocks(reading).at(-1)),JSON.stringify(presentation,null,2),'the complete original presentation remains in its diagnostic report');
         const digest=await reviewDigest(presentation);assert.ok(article().textContent.includes(digest));
         assert.ok(article().textContent.includes(`Read the complete review below before choosing ${disposition==='re-confirmation'?'Re-confirm':'Register'}`),'fresh presentation retains the read-first action cue');
         const button=native(article());assert.ok(button);assert.equal(props(button).disabled,false);
@@ -236,7 +255,7 @@ test('native review actions end with the host presentation while original contin
         assert.deepEqual(calls.filter(([c])=>c==='workflow_register_native'),[['workflow_register_native',{reviewRef:fresh.reference}]],'one exact original command, no retry');
         assert.ok(!native(article()),`${disposition}: ${outcome} no longer supplies a native review action`);
         assert.equal(snapshot.workflowRoot.activeReview,fresh.reference,'original review stays active');
-        assert.equal(body().textContent,JSON.stringify(readablePaths(resultRow.status??{reference:fresh.reference,...resultRow}),null,2),'complete reported result or pending row stays visible');
+        assert.equal(agentBlockText(body()),JSON.stringify(readablePaths(resultRow.status??{reference:fresh.reference,...resultRow}),null,2),'complete reported result or pending row stays visible');
         assert.ok(article().textContent.includes(digest),'last shown digest evidence stays visible');
         assert.ok(article().textContent.includes('as last shown with the review'));
         assert.ok(!article().textContent.includes('Read the complete review below before choosing'),'result/pending status gets no forward registration cue');
@@ -247,8 +266,8 @@ test('native review actions end with the host presentation while original contin
         const select=controls(article()).find(e=>e.textContent==='Select revision 1');
         if(outcome==='completed'){
           assert.ok(select);assert.equal(props(select).disabled,true,'selection still requires a workflow chat');
-          const [chat]=container.querySelectorAll(e=>e.localName==='select'&&e.textContent.includes('No chat — inspect library content'));
-          await React.act(()=>props(chat).onChange({target:{value:'chat-native'}}));
+          const chat=choiceList(container,'Workflow chat');
+          await React.act(()=>chooseIn(chat,'chat-native'));
           const selectable=controls(article()).find(e=>e.textContent==='Select revision 1');assert.equal(props(selectable).disabled,false);
           await React.act(async()=>{props(selectable).onClick();await new Promise(r=>setTimeout(r,0));});
           assert.deepEqual(calls.filter(([c])=>c==='workflow_select_registered'),[['workflow_select_registered',{reviewRef:fresh.reference,revision:identity.revision,context:{sourceRef:'home:synthetic',generation,historyEpoch:0,threadId:'chat-native',selectionRef:null,inspectionRef:null,libraryRef:'lib-native'}}]]);
@@ -334,3 +353,77 @@ test('approval evidence labels never infer evidence from registered standing',()
   assert.equal(workflowAssurance(undefined),'Approval evidence unknown (not recorded).');
   assert.equal(workflowAssurance('in-process A15'),'Approval evidence unknown (not recorded).');
 });
+
+// Review of pull request 241: a press the view refuses before any host command
+// (its conversation is no longer loaded) was neither failed nor settled, so
+// the guide said nothing and the only message sat in the closed studio.
+test('a press refused before any host command is said under the Run guide\'s Next line with the studio closed',async()=>{
+  const g={home:'account',appSession:'s1',spawnCounter:1};
+  const data={context:{sourceRef:'src',generation:g},projectLibraryAvailable:true,activeLibrary:null,libraries:[],selections:[],runs:[],reviews:[],drafts:{drafts:[]}};
+  const host=threads=>({state:'ready',generation:g,workflowRoot:data,threads,serverRequests:[]});
+  const loaded=[{generation:g,threadId:'T1',model:'invented-model',status:{type:'idle'}}];
+  const c=document.createElement('div');const root=createRoot(c);const calls=[];
+  const props=node=>node[Object.keys(node).find(k=>k.startsWith('__reactProps$'))];
+  const show=threads=>React.act(()=>root.render(React.createElement(WorkflowRootPanel,{data,host:host(threads),view:'run',act:async(command,args)=>{calls.push([command,args]);return {state:'controlled result'};}})));
+  await show(loaded);
+  const guide=()=>c.querySelectorAll(n=>n.getAttribute('aria-label')==='Run a workflow')[0];
+  const select=choiceLists(guide())[0];
+  await React.act(async()=>chooseIn(select,'T1'));
+  await show([]); // same source and generation; the chosen conversation is no longer loaded
+  const press=guide().querySelectorAll(n=>n.localName==='button').find(n=>n.textContent==="Show this project's workflows");
+  assert.equal(!!props(press).disabled,false,'the button is offered');
+  await React.act(async()=>props(press).onClick());
+  assert.deepEqual(calls,[],'no host command was issued');
+  const result=c.querySelectorAll(n=>n.getAttribute('aria-label')==='Run a workflow — last result')[0];
+  assert.ok(result,'the refusal is shown in the guide');
+  assert.equal(result.getAttribute('role'),'alert');
+  assert.match(result.textContent,/^Couldn't show this project's workflows: the conversation chosen here is no longer open in this view, so nothing was done\. Choose the conversation again/);
+  const studio=c.querySelectorAll(n=>n.getAttribute('id')==='workflow-studio')[0];
+  assert.notEqual(props(studio).open,true,'the studio is closed');
+  for(let node=result;node;node=node.parentNode)assert.notEqual(node,studio,'the result is outside the studio');
+  await React.act(async()=>root.unmount());
+});
+
+// Whether what the panel shows may be from before the last command is the App's
+// to say (hostReads.ts: tests/host-reads.test.mjs has its order, the commands
+// that mark and the mounted App). The panel hands that to both guides and
+// keeps no marker of its own, so a command issued outside it withholds them too.
+test('the panel shows its guides only when the App says the view follows the last command, and passes a failed read through',async()=>{
+  const g={home:'account',appSession:'s1',spawnCounter:1};
+  const prepared={reference:'run-1',conversation:'T1',home:'account',generation:g,preparationOrder:0,workflow:{name:'invented-flow'},lifecycle:{state:'prepared; not a run until its start turn is observed'},status:{}};
+  const data={context:{sourceRef:'src',generation:g},projectLibraryAvailable:true,activeLibrary:null,libraries:[],reviews:[],drafts:{drafts:[]},
+    selections:[{sourceRef:'src',threadId:'T1',selection:{state:'selected',reference:'sel',runnable:true,identity:{name:'invented-flow',origin:'project',revision:'rev-1-0123456789'}}}],runs:[prepared]};
+  const host={state:'ready',generation:g,workflowRoot:data,threads:[{generation:g,threadId:'T1',model:'invented-model',status:{type:'idle'}}],serverRequests:[]};
+  const props=node=>node[Object.keys(node).find(k=>k.startsWith('__reactProps$'))];
+  const WITHHELD=/Next: What this view showed may be from before the App's last operation finished\./,CACHED=/Ready to start|has not been sent|Nothing has been sent yet|Ready to run/;
+  for(const [view,label,offerComposer] of [['run','Run a workflow',undefined],['make','Make a workflow from your work',()=>{}]]){
+    const c=document.createElement('div');const root=createRoot(c);const calls=[];
+    const show=over=>React.act(()=>root.render(React.createElement(WorkflowRootPanel,{data,host,view,offerComposer,act:async(command,args)=>{calls.push([command,args]);return {};},...over})));
+    const guide=()=>c.querySelectorAll(n=>n.getAttribute('aria-label')===label)[0];
+    await show({});
+    if(view==='run')await React.act(async()=>chooseIn(choiceLists(guide())[0],'T1'));
+    assert.doesNotMatch(guide().textContent,WITHHELD,`${view}: no marker, the steps are shown`);
+    if(view==='run')assert.match(guide().textContent,CACHED);
+    await show({viewStale:true});
+    assert.match(guide().textContent,WITHHELD,`${view}: withheld on the App's word`);assert.doesNotMatch(guide().textContent,CACHED);
+    assert.deepEqual(guide().querySelectorAll(n=>n.localName==='button').filter(n=>!/Show the conversation/.test(n.textContent)),[],`${view}: nothing from before the command is offered`);
+    assert.doesNotMatch(guide().textContent,/The last read failed/);
+    await show({viewStale:true,readFailure:'Error: invented status failure'});
+    assert.match(guide().textContent,/The last read failed: Error: invented status failure/,`${view}: the failed read is said in the guide`);
+    // A failed read with nothing marked withholds nothing; both guides say it above their steps.
+    await show({viewStale:false,readFailure:'Error: invented status failure'});
+    assert.doesNotMatch(guide().textContent,WITHHELD);
+    assert.match(guide().textContent,/The App's last read of its state failed \(Error: invented status failure\)\. What is shown here was read before that\./,`${view}: a failed read is said above the steps`);
+    await show({viewStale:false,readFailure:null});
+    assert.doesNotMatch(guide().textContent,/read of its state failed/);
+    assert.doesNotMatch(guide().textContent,WITHHELD,`${view}: a later read applied, the steps return`);
+    assert.deepEqual(calls,[],`${view}: showing or withholding issues no command`);
+    await React.act(async()=>root.unmount());
+  }
+});
+// The included-workflows chooser's tests run with this file, which the web
+// suite's script and both hosted presentation steps already list. The script
+// itself is not changed: app/package.json's bytes are pinned by the notices basis.
+await import('./included-workflows.test.mjs');
+// Reading a workflow's own text in Run a workflow, run here for the same reason.
+await import('./workflow-text.test.mjs');

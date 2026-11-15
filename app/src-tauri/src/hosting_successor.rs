@@ -2,7 +2,7 @@
 //! the A-IN-S3 attested reference, and a supplied tree is compared with it in
 //! full before any supplier execution. S4 requires typed installed observation;
 //! the compiled publisher requirement remains None, so production still refuses.
-use super::{HostConfig, CREDENTIAL_VARS, DECLARED_PIN, GENERATED_MANIFEST_SHA256};
+use super::{remove_inherited_environment, removed_environment_names, secret_environment_names, HostConfig, DECLARED_PIN, GENERATED_MANIFEST_SHA256};
 use crate::distribution_preflight::{self as tree, selection::Selected, Inventory, LaunchPlan};
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
@@ -130,12 +130,12 @@ pub(crate) struct Prepared {
 impl Prepared {
     pub(crate) fn observation(&self,cfg:&HostConfig,g:&Value)->(Value,Value){
         let mut argv=Vec::new();for flag in &cfg.session_flags{argv.push("-c".to_owned());argv.push(flag.clone());}argv.push("app-server".into());
-        let removed:Vec<_>=CREDENTIAL_VARS.iter().copied().chain(self.plan.removed).collect();
+        let removed:Vec<_>=removed_environment_names().chain(self.plan.removed).collect();
         let configuration=json!({"resolved_root":self.root,"resolved_executable":self.plan.executable,"working_directory":cfg.cwd,"argv":argv,
             "path_prefix":self.root.join("codex-path"),"path_remainder_provenance":"Inherited process PATH; remainder bytes omitted from this nonsecret record",
             "app_supplied_nonsecret":{"CODEX_HOME":cfg.codex_home.to_string_lossy()},"removed_environment_names":removed,
             "probe_home":cfg.probe_home,"account_home":cfg.codex_home,"home_link_states":"Root fixed namespace metadata reobserved by protected publication guard; not native discovery proof",
-            "k12_flags":cfg.session_flags,"secret_redactions":CREDENTIAL_VARS});
+            "k12_flags":cfg.session_flags,"secret_redactions":secret_environment_names()});
         let facts=json!({"format":"distribution-preflight-facts.s3","generation":g,"inventory":self.inventory,"raw_version_label":self.status["rawVersionLabel"],"configuration":configuration,"limit":"Bounded source observations; no installed integrity/custody issuer or qualification"});
         let check=|outcome:&str,reason:&str|json!({"outcome":outcome,"evidence":null,"reason":reason});
         let checks=match &self.comparison {
@@ -176,9 +176,12 @@ impl Prepared {
             .collect()
     }
 }
+/// Sets the plan's PATH and removes, by name, the host's listed inherited
+/// variables and the plan's wrapper settings. Callers set nothing listed after it.
 pub(crate) fn configure(cmd: &mut Command, plan: &LaunchPlan) {
     cmd.env("PATH", &plan.path);
-    for name in CREDENTIAL_VARS.iter().copied().chain(plan.removed) {
+    remove_inherited_environment(cmd);
+    for name in plan.removed {
         cmd.env_remove(name);
     }
 }
@@ -186,7 +189,9 @@ fn isolated(root: &Path, cfg: &HostConfig) -> Result<(), String> {
     // Canonical equality also catches ancestor aliases. Scanner checks vendor
     // no-follow traversal independently; homes must already have been admitted.
     let root = root.canonicalize().map_err(|e| e.to_string())?;
-    let account = cfg.codex_home.canonicalize().map_err(|e| e.to_string())?;
+    // The account home the child uses: it is given `cfg.cwd` as its working
+    // folder and resolves a relative CODEX_HOME there.
+    let account = cfg.cwd.join(&cfg.codex_home).canonicalize().map_err(|e| e.to_string())?;
     let probe = cfg.probe_home.canonicalize().map_err(|e| e.to_string())?;
     for (a, b) in [(&root, &account), (&root, &probe), (&account, &probe)] {
         if a.starts_with(b) || b.starts_with(a) {
@@ -324,11 +329,12 @@ fn short(sha: &Value) -> String {
 }
 fn probe(plan: &LaunchPlan, cfg: &HostConfig, run: impl FnOnce(&mut Command, Duration) -> Result<String, String>) -> Result<String, String> {
     let mut command = Command::new(&plan.executable);
-    configure(&mut command, plan);
     for flag in &cfg.session_flags { command.args(["-c", flag]); }
     command.arg("--version").env("CODEX_HOME", &cfg.probe_home)
         .current_dir(&cfg.probe_home).stdin(Stdio::null())
         .stdout(Stdio::piped()).stderr(Stdio::piped());
+    // Last, after every `env` set here, so no listed name is set after its removal.
+    configure(&mut command, plan);
     run(&mut command, cfg.probe_wait_limit)
 }
 
@@ -347,6 +353,24 @@ mod tests {
     use crate::hosting::Host;
     use std::os::unix::fs::PermissionsExt;
     use std::sync::Arc;
+
+    /// Isolation reads the account home as the child resolves it: under the
+    /// working folder the child is given, not the App's own. Defence for a
+    /// configuration built directly; the App's launch routes admit only
+    /// absolute homes.
+    #[test]
+    fn isolation_resolves_a_relative_home_where_the_child_does() {
+        let root = std::env::temp_dir().canonicalize().unwrap().join(crate::util::opaque_id("isolation-relative-").unwrap());
+        for d in ["vendor/inside", "work/account", "probe"] { std::fs::create_dir_all(root.join(d)).unwrap(); }
+        assert!(!std::env::current_dir().unwrap().join("account").exists(), "the App's own folder holds no account folder");
+        let mut cfg = HostConfig::new(root.join("vendor/bin/codex"), PathBuf::from("account"), root.join("probe"), root.join("work"));
+        assert_eq!(isolated(&root.join("vendor"), &cfg), Ok(()), "the home the child uses is outside the vendor root");
+        // A relative home that the child resolves inside the vendor root overlaps it.
+        cfg.cwd = root.join("vendor");
+        cfg.codex_home = PathBuf::from("inside");
+        assert_eq!(isolated(&root.join("vendor"), &cfg), Err("mismatch: vendor/probe/account domains overlap".to_owned()));
+        let _ = std::fs::remove_dir_all(&root);
+    }
     struct Fixture {
         root: PathBuf,
         cfg: HostConfig,
@@ -368,6 +392,7 @@ import os,sys,json,time
 if '--version' in sys.argv:
  {probe}
  print('codex-cli 0.167.0'); sys.exit(0)
+open(os.path.join(os.path.dirname(os.path.abspath(__file__)),'..','..','argv.jsonl'),'a').write(json.dumps(sys.argv[1:])+chr(10))
 for line in sys.stdin:
  f=json.loads(line)
  if 'id' in f:
@@ -392,6 +417,56 @@ for line in sys.stdin:
         fn drop(&mut self) {
             let _ = std::fs::remove_dir_all(&self.root);
         }
+    }
+    /// The arguments of every app-server start of the fixture supplier, in order.
+    fn started_with(f: &Fixture) -> Vec<Vec<String>> {
+        std::fs::read_to_string(f.root.join("argv.jsonl"))
+            .unwrap_or_default()
+            .lines()
+            .map(|line| serde_json::from_str(line).unwrap())
+            .collect()
+    }
+    /// DEL-01-05: the development model address reaches the successor start's arguments
+    /// when it is admitted, and only then.
+    #[test]
+    fn dev_model_address_successor_start_carries_the_setting_only_when_admitted() {
+        for admitted in [true, false] {
+            let f = Fixture::new("pass");
+            let cfg = crate::dev_model_address::apply(Ok(f.cfg.clone()), admitted, |_| Some("http://127.0.0.1:9/v1".into())).unwrap();
+            let host = Arc::new(Host::new());
+            host.start(&cfg, "fixture").unwrap();
+            host.stop("fixture", "restart").unwrap();
+            host.start(&cfg, "fixture restart").unwrap();
+            let starts = started_with(&f);
+            assert_eq!(starts.len(), 2, "{starts:?}");
+            for arguments in &starts {
+                assert_eq!(arguments.last().map(String::as_str), Some("app-server"));
+                assert_eq!(arguments.iter().any(|a| a == "openai_base_url=\"http://127.0.0.1:9/v1\""), admitted, "{arguments:?}");
+                assert_eq!(arguments.iter().any(|a| a.contains("openai_base_url")), admitted, "{arguments:?}");
+            }
+            let _ = host.stop("fixture", "test ended");
+        }
+    }
+    /// The release configuration, successor start: with the input present in the process
+    /// environment and read through the reader startup uses, the supplier's arguments carry
+    /// no built-in provider address.
+    #[cfg(feature = "distribution-successor")]
+    #[test]
+    fn dev_model_address_release_configuration_successor_start_has_no_built_in_address() {
+        std::env::set_var(crate::dev_model_address::INPUT, "http://127.0.0.1:9/v1");
+        let f = Fixture::new("pass");
+        let cfg = crate::dev_model_address::apply(Ok(f.cfg.clone()), crate::development_inputs_admitted(false), |name| std::env::var_os(name)).unwrap();
+        assert_eq!(cfg.session_flags, f.cfg.session_flags);
+        std::fs::write(cfg.codex_home.join("auth.json"), b"INVENTED").unwrap();
+        let host = Arc::new(Host::new());
+        host.start(&cfg, "fixture").unwrap();
+        host.stop("fixture", "restart").unwrap();
+        host.start(&cfg, "fixture restart").unwrap();
+        let starts = started_with(&f);
+        assert_eq!(starts.len(), 2, "{starts:?}");
+        assert!(starts.iter().all(|arguments| arguments.iter().all(|a| !a.contains("openai_base_url"))), "{starts:?}");
+        let _ = host.stop("fixture", "test ended");
+        std::env::remove_var(crate::dev_model_address::INPUT);
     }
     #[test]
     fn actual_host_successor_two_spawns_keep_exact_prospective_generation() {
@@ -491,6 +566,7 @@ for line in sys.stdin:
         account.configure_recovery(data.join("runtime/recovery.ledger.jsonl")).unwrap();
         let ready=account.start(&f.cfg,"fixture").unwrap();let ga=ready["generation"].clone();let before=account.distribution_evidence(&ga);
         let shared=f.root.join("shared");std::fs::create_dir(&shared).unwrap();std::fs::create_dir(shared.join("skills")).unwrap();for name in ["config.toml","AGENTS.md"]{std::fs::write(shared.join(name),b"synthetic resource").unwrap();}
+        crate::working_folder::establish(&data).unwrap(); // as a start does (DEL-01-01)
         let bootstrap=crate::runtime_session::freeze_root_home_descriptors(&data,&f.cfg,Some(data.join("key")),[Some(shared.join("config.toml")),Some(shared.join("AGENTS.md")),Some(shared.join("skills"))]).unwrap();
         let cap=account.app_runtime_custody().unwrap();let installed=std::sync::atomic::AtomicBool::new(false);
         let(tx,rx)=std::sync::mpsc::channel();let(go,wait)=std::sync::mpsc::channel();store.before_s1_audit(move||{tx.send(()).unwrap();wait.recv_timeout(Duration::from_secs(2)).unwrap();});let source=account.clone();let generation=ga.clone();let reader=std::thread::spawn(move||source.distribution_evidence(&generation));rx.recv_timeout(Duration::from_secs(2)).unwrap();
@@ -625,6 +701,7 @@ for line in sys.stdin:
         assert!(!error.contains("complete tree equals"));
         assert!(host.snapshot()["generation"].is_null());
         assert_eq!(host.snapshot()["state"], "refused");
+        assert_eq!(host.snapshot()["startRefusalCause"], "unconfirmed", "an unverifiable resolution");
         assert!(host.child.lock().unwrap().is_none());
     }
     #[test]
@@ -757,9 +834,12 @@ for line in sys.stdin:
         let mut cmd = Command::new("unused");
         configure(&mut cmd, &plan);
         let env: std::collections::HashMap<_, _> = cmd.get_envs().collect();
-        for name in CREDENTIAL_VARS.iter().copied().chain(plan.removed) {
-            assert_eq!(env.get(std::ffi::OsStr::new(name)), Some(&None));
+        // The decided names and the wrapper settings, from the test's own lists.
+        use crate::hosting::child_environment_tests::{decided_names, WRAPPER};
+        for name in decided_names().chain(WRAPPER) {
+            assert_eq!(env.get(std::ffi::OsStr::new(name)), Some(&None), "{name}");
         }
+        assert_eq!(env.len(), 1 + decided_names().count() + WRAPPER.len(), "configure touches PATH and the listed names only");
         assert_eq!(
             env[std::ffi::OsStr::new("PATH")].unwrap(),
             std::ffi::OsStr::new(&plan.path)

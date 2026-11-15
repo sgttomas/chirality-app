@@ -149,6 +149,8 @@ pub(crate) fn start_bound_clean_trial(
     };
     start_clean_trial(root, reference, || start(&home), |started, thread| send(&home, started, thread))
 }
+/// Before either reading sentence when a clean trial's start was refused at its configuration reading.
+pub(crate) const TRIAL_NOT_STARTED: &str = "The trial conversation was not started; the pre-filled trial was withdrawn. ";
 pub(crate) fn start_clean_trial(
     root: &Mutex<WorkflowRootSession>,
     reference: &str,
@@ -168,6 +170,10 @@ pub(crate) fn start_clean_trial(
         Ok(started) => started,
         Err(error) => {
             root.lock().unwrap().withdraw_clean_start(reference);
+            // A start refused at its configuration reading is known not sent: that, then the sentence.
+            if crate::hosting::reading_gate::carries_reading_sentence(&error) {
+                return Err(SendRefusal::not_kept(format!("{TRIAL_NOT_STARTED}{error}")));
+            }
             return Err(SendRefusal::not_kept(format!("{error}. The trial conversation was not started (or its start was not acknowledged); the pre-filled trial was withdrawn and nothing was recorded; press Try again")));
         }
     };
@@ -2267,6 +2273,8 @@ pub(crate) fn bring_back_with_homes(
 ) -> Result<Value, String> {
     current_conversation(&target_home.host.snapshot(), generation, thread)
         .map_err(|e| format!("{e}; nothing pre-filled"))?;
+    // See records_store::HistoryRead for the shared-reader check and slice 2.
+    let history_read = if run.is_some() { project.map(crate::records_store::HistoryRead::begin) } else { None };
     let source = resolve_learning(root, homes, project, trial, run)?;
     if source_live(&source.home, &source.generation, &source.history.thread) {
         return Err(
@@ -2294,7 +2302,7 @@ pub(crate) fn bring_back_with_homes(
             format!("Here is how a real run of {origin}:{name} went. Please assess it against the workflow: where the agent followed it, where it departed or got stuck, and what you would change in a new revision.")),
     };
     let id = crate::util::opaque_id("bring-back:")?;
-    let pending = PendingBringBack {
+    let mut pending = PendingBringBack {
         trial: trial.map(str::to_owned),
         run: run.map(str::to_owned),
         target: (generation.clone(), thread.into()),
@@ -2307,11 +2315,16 @@ pub(crate) fn bring_back_with_homes(
         in_flight: false,
         source: source.source_view(),
     };
-    let view = json!({"id":id,"card":pending.card,"source":pending.source,"bytes":pending.transcript.len(),"shortenings":pending.shortenings,"state":"pre-filled; not sent"});
     // The source and target are checked again immediately before publication;
     // none of this constructs a live run, selection, supply or act capability.
     source.recheck(root, homes)?;
     current_conversation(&target_home.host.snapshot(), generation, thread)?;
+    if matches!(source.proof, LearningProof::Historical { .. }) {
+        if let (Some(reading), Some(project)) = (history_read, project) {
+            pending.source = reading.attach(project, pending.source);
+        }
+    }
+    let view = json!({"id":id,"card":pending.card,"source":pending.source,"bytes":pending.transcript.len(),"shortenings":pending.shortenings,"state":"pre-filled; not sent"});
     root.lock()
         .unwrap()
         .trial_desk
@@ -2471,6 +2484,8 @@ pub(crate) fn compare_with_homes(
     left: &Value,
     right: &Value,
 ) -> Result<Value, String> {
+    // See records_store::HistoryRead for the shared-reader check and slice 2.
+    let history_read = if left["run"].is_string() || right["run"].is_string() { project.map(crate::records_store::HistoryRead::begin) } else { None };
     struct Side {
         label: String,
         kind: String,
@@ -2649,11 +2664,15 @@ pub(crate) fn compare_with_homes(
             json!({"limit":"exact source-qualified revision bytes are unavailable for one side; no version difference shown"})
         }
     };
-    Ok(transcript::compare_result(
-        &view(&a, a_summary),
-        &view(&b, b_summary),
-        difference,
-    ))
+    let mut result = transcript::compare_result(&view(&a, a_summary), &view(&b, b_summary), difference);
+    // The before observation preceded the proofs; the after observation and
+    // notice census follow their rechecks, outside the workflow owner.
+    let historical = a.version_proof.is_some() || b.version_proof.is_some()
+        || [&a, &b].iter().any(|side| side.source.as_ref().is_ok_and(|s| matches!(s.proof, LearningProof::Historical { .. })));
+    result["historyNotices"] = json!(if historical {
+        match (history_read, project) { (Some(reading), Some(project)) => reading.finish(project).view(), _ => vec![] }
+    } else { vec![] });
+    Ok(result)
 }
 #[cfg(test)]
 pub(crate) fn compare(

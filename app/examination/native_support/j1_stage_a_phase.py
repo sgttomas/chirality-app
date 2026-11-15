@@ -41,7 +41,7 @@ def setup_effects(subject, locations):
     checked_locations(locations, subject)
     return (
         f"Create NEW App-owned settings folder: {locations['Settings folder']}\n"
-        "with an empty config.toml, an empty AGENTS.md and an empty skills folder.\n"
+        "with an empty config.toml, an empty AGENTS.md and a skills folder. Codex adds its own system skills there, and its own working files to the account directory, when it starts.\n"
         f"Create NEW App-owned account directory: {locations['Sign-in folder']}\n"
         "Link its config.toml, AGENTS.md and skills to those new settings.\n"
         "Read, import or change no other Codex settings, home or credential.\n"

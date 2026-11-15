@@ -32,11 +32,14 @@ thread_local! {pub(crate) static METADATA_BEFORE_READ:std::cell::RefCell<Option<
 const STANDING: &str = "Quoted App supply observations; mutable file provenance is unverified. No current role, CCE authority, provider adoption or human act is established.";
 #[cfg(test)]
 thread_local! {
+    pub(crate) static BEFORE_WRITE_ADMISSION: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const { std::cell::RefCell::new(None) };
     pub(crate) static BEFORE_APPEND: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const { std::cell::RefCell::new(None) };
     pub(crate) static FAIL_AFTER_FILE_SYNC: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
 }
 
 fn open_at(parent: &File, name: &str, flags: i32) -> Result<File, String> {
+    #[cfg(test)]
+    if flags & (libc::O_WRONLY | libc::O_RDWR | libc::O_CREAT | libc::O_TRUNC | libc::O_APPEND) != 0 { crate::records_effect_guard::mutation_for_test("role_observations::open_at"); }
     let name = CString::new(name).map_err(|_| "NUL in role observation path")?;
     let fd = unsafe {
         libc::openat(
@@ -73,6 +76,8 @@ fn directory(path: &Path) -> Result<File, String> {
     Ok(at)
 }
 fn child(parent: &File, name: &str, create: bool) -> Result<Option<File>, String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("role_observations::child");
     if create {
         let name = CString::new(name).map_err(|_| "NUL directory")?;
         if unsafe { libc::mkdirat(parent.as_raw_fd(), name.as_ptr(), 0o700) } < 0
@@ -189,6 +194,11 @@ fn payload_key(identity: &Value) -> Result<&str, String> {
     }
     Ok(s)
 }
+#[derive(Debug)]
+struct WriterSource {
+    binding: Result<Option<records_store::WriterBinding>, String>,
+    origin: Result<records_store::ReaderBinding, String>,
+}
 /// Opened once from the explicit Root App project; never inferred from native cwd.
 #[derive(Debug)]
 pub struct RoleLog {
@@ -196,9 +206,18 @@ pub struct RoleLog {
     project_directory: File,
     project_identity: (u64, u64),
     writer: std::sync::Mutex<()>,
+    source: std::sync::Mutex<Option<WriterSource>>,
 }
 impl RoleLog {
     pub fn open(project: &Path) -> Result<Self, String> {
+        let log = Self::open_before_store(project)?;
+        // Writer unavailability does not prevent the existing read-only use.
+        let _ = log.bind_writer_source();
+        Ok(log)
+    }
+    /// Startup pins the project before the store has been configured. It
+    /// binds this writer once, after initializing that store and attachment.
+    pub(crate) fn open_before_store(project: &Path) -> Result<Self, String> {
         let project_directory = directory(project)?;
         let project_identity = identity(&project_directory)?;
         Ok(Self {
@@ -206,7 +225,19 @@ impl RoleLog {
             project_directory,
             project_identity,
             writer: std::sync::Mutex::new(()),
+            source: std::sync::Mutex::new(None),
         })
+    }
+    pub(crate) fn bind_writer_source(&self) -> Result<(), String> {
+        let mut source = self.source.lock().unwrap_or_else(|p| p.into_inner());
+        if source.is_none() {
+            self.check_project()?;
+            *source = Some(WriterSource {
+                binding: records_store::bind_writer_if_attached(&self.project),
+                origin: records_store::bind_reader(&self.project, records_store::ReaderDecision::Records),
+            });
+        }
+        source.as_ref().unwrap().binding.as_ref().map(|_| ()).map_err(Clone::clone)
     }
     fn check_project(&self) -> Result<(), String> {
         let current = directory(&self.project)?;
@@ -220,6 +251,24 @@ impl RoleLog {
         } else {
             Ok(())
         }
+    }
+    fn writer_dir(&self) -> Result<PathBuf, String> {
+        let mut held = self.source.lock().unwrap_or_else(|p| p.into_inner());
+        let source = held.as_mut().ok_or("role observation writer source not initialized")?;
+        let binding = source.binding.as_mut().map_err(|e| e.clone())?;
+        if binding.is_none() {
+            source.origin.as_ref().map_err(Clone::clone)?.prove()?;
+            if records_store::bind_writer_if_attached(&self.project)?.is_some() {
+                return Err("the project acquired a records identity since this role observation handle was opened; reopen; nothing written".into());
+            }
+            *binding = Some(records_store::bind_writer(&self.project)?);
+        }
+        Ok(binding.as_ref().unwrap().records_dir().to_path_buf())
+    }
+    fn prove_writer(&self) -> Result<(), String> {
+        self.source.lock().unwrap_or_else(|p| p.into_inner()).as_ref().ok_or("role observation writer source not initialized")?
+            .binding.as_ref().map_err(Clone::clone)?
+            .as_ref().ok_or("role observation writer binding unavailable")?.prove_for_write()
     }
     fn location(
         &self,
@@ -235,12 +284,9 @@ impl RoleLog {
     > {
         self.check_project()?;
         let dir = if write {
-            records_store::write_dir(&self.project)?
+            self.writer_dir()?
         } else {
-            let home = records_store::home(&self.project)?;
-            if let Some(refusal) = home.attachment.refusal {
-                return Err(refusal);
-            }
+            let home = records_store::readable_home(&self.project)?;
             let Some(dir) = home.attachment.dir else {
                 return Ok(None);
             };
@@ -251,15 +297,24 @@ impl RoleLog {
             dir
         };
         let admission = if write {
+            // Diagnostic only: admission and both writer proofs below still
+            // decide whether this original binding may write.
+            self.source.lock().unwrap_or_else(|p| p.into_inner()).as_ref().ok_or("role observation writer source not initialized")?
+                .binding.as_ref().map_err(Clone::clone)?
+                .as_ref().ok_or("role observation writer binding unavailable")?.check_attachment()?;
+            #[cfg(test)]
+            if let Some(hook) = BEFORE_WRITE_ADMISSION.with(|slot| slot.borrow_mut().take()) { hook(); }
             crate::records_retention::write_path(&dir)?
         } else {
             crate::records_retention::read_path(&dir)?
         };
+        if write { self.prove_writer()?; }
         let writer = if write {
             Some(records_store::writer_lock(&dir, true)?)
         } else {
             None
         };
+        if write { self.prove_writer()?; }
         let parent = directory(&dir)?;
         let Some(folder) = child(&parent, FOLDER, write)? else {
             return Ok(None);
@@ -317,8 +372,15 @@ impl RoleLog {
         let mut identities = std::collections::BTreeSet::new();
         let mut chain = record_lines::Chain::default();
         let mut raw = vec![];
+        // Where and why a refusal arose, for an export's account of a log
+        // this reader could not take (chain-head profile 0.3).
+        FAULT.with(|f| f.set(None));
+        let at = |line: usize, kind: &'static str| FAULT.with(|f| f.set(Some((line, kind))));
         loop {
             raw.clear();
+            // A refusal for the read itself or for the budget is of the
+            // file, not of a line: the mark of the line before does not stand.
+            FAULT.with(|f| f.set(None));
             if reader
                 .read_until(b'\n', &mut raw)
                 .map_err(|e| e.to_string())?
@@ -331,13 +393,16 @@ impl RoleLog {
                 return Err(METADATA_BUDGET.into());
             }
             if raw.pop() != Some(b'\n') {
+                at(chain.lines + 1, "torn final line");
                 return Err(
                     "role observation log has a torn final line; nothing inferred or appended"
                         .into(),
                 );
             }
+            at(chain.lines + 1, "unreadable line");
             let row: Value = serde_json::from_slice(&raw)
                 .map_err(|e| format!("unreadable role observation line: {e}"))?;
+            at(chain.lines + 1, "invalid observation");
             if row["format"] == "chirality.role.supply" && row["formatVersion"] == "0.2" {
                 // Retain older exact evidence without promoting its numeric generation.
                 static LEGACY: OnceLock<Result<jsonschema::Validator, String>> = OnceLock::new();
@@ -370,15 +435,20 @@ impl RoleLog {
                         .ok_or("observation identity absent")?
                         .to_owned(),
                 ) {
+                    at(chain.lines + 1, "duplicate observation identity");
                     return Err("duplicate role observation identity in log".into());
                 }
                 if row["seq"].as_u64() != Some(chain.lines as u64 + 1) {
+                    at(chain.lines + 1, "sequence");
                     return Err("role observation sequence differs from source order".into());
                 }
             }
+            at(chain.lines + 1, "chain");
             chain.step(chain.lines + 1, &raw, row.get("prevLine"))?;
             rows.push(row);
         }
+        // Past the lines: a later refusal is of the file, not of a line.
+        FAULT.with(|f| f.set(None));
         let after = file.metadata().map_err(|e| e.to_string())?;
         if (
             before.len(),
@@ -404,6 +474,8 @@ impl RoleLog {
         Ok((rows, chain, Some(LogBasis::of(&after))))
     }
     fn publish_bytes(content: &File, bytes: &[u8]) -> Result<(Value, File), String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("role_observations::RoleLog::publish_bytes");
         let id = role_supply::content(bytes);
         let leaf = format!("{}.utf8", payload_key(&id)?);
         let file = match open_at(
@@ -496,13 +568,18 @@ impl RoleLog {
         mut row: Value,
         composition: Option<&role_supply::Composition>,
     ) -> Result<(Value, Value, PublicationBasis), String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("role_observations::RoleLog::append_row");
         // The Root shares this owner across homes. Serialize initial store
         // attachment too, before the cross-process log lock can be opened.
         let _owner = self
             .writer
             .lock()
             .map_err(|_| "role observation writer owner unavailable")?;
-        let Some((path, folder, _admission, _writer)) = self.location(true)? else {
+        // Location/admission fails before this observation or its content is
+        // published. Later append errors can instead have uncertain durability.
+        let Some((path, folder, _admission, _writer)) = self.location(true)
+            .map_err(|error| format!("Role observation was not recorded: {error}"))? else {
             return Err("role observation store unavailable".into());
         };
         let lock = open_at(&folder, ".writer.lock", libc::O_RDWR | libc::O_CREAT)?;
@@ -607,9 +684,9 @@ impl RoleLog {
             };
             content = Some(payloads);
         }
-        let project = records_store::attach(&self.project, false)?
-            .project
-            .ok_or("record store project identity absent")?;
+        let project = self.source.lock().unwrap_or_else(|p| p.into_inner()).as_ref().ok_or("role observation writer source not initialized")?
+            .binding.as_ref().map_err(Clone::clone)?
+            .as_ref().ok_or("record store project identity absent")?.project_id().to_owned();
         row["project"] = json!({"projectId":project,"sourceRoot":crate::attachments::native_path_identity(&self.project),"device":self.project_identity.0,"inode":self.project_identity.1});
         row["seq"] = json!(chain.lines + 1);
         row["prevLine"] = record_lines::link(chain.last.as_deref());
@@ -621,6 +698,7 @@ impl RoleLog {
         if let Some(hook) = BEFORE_APPEND.with(|slot| slot.borrow_mut().take()) {
             hook();
         }
+        self.prove_writer()?;
         self.check_project()?;
         verify_directory(&path, &folder)?;
         if let Some(content) = &content {
@@ -889,6 +967,40 @@ impl RoleLog {
     }
 }
 
+thread_local! {
+    /// The line and kind of the refusal `read_lines_bounded` last returned on
+    /// this thread, when it was of a line.
+    static FAULT: std::cell::Cell<Option<(usize, &'static str)>> = const { std::cell::Cell::new(None) };
+}
+/// `copied_chain_head` with the reader's account, as an export package of
+/// chain-head profile 0.3 records it. This reader takes a role supply log
+/// whole or not at all, so a log it took has no line set aside and none torn
+/// (`setAside` and `torn` are empty); a log it refused records the line and
+/// kind of the fault that stopped it, when the refusal was of a line: "torn
+/// final line", "unreadable line", "invalid observation", "duplicate
+/// observation identity", "sequence" or "chain". Either way it records the
+/// log's exact length and SHA-256 (`bytes`, `sha256`).
+pub(crate) fn copied_chain_account(path: &Path) -> Value {
+    FAULT.with(|f| f.set(None));
+    let mut head = copied_chain_head(path);
+    if head.get("state").is_some() {
+        if let Some((line, kind)) = FAULT.with(|f| f.get()) {
+            head["line"] = json!(line);
+            head["kind"] = json!(kind);
+        }
+    } else {
+        head["setAside"] = json!([]);
+        head["torn"] = json!([]);
+        head["unclosedEnd"] = Value::Null;
+    }
+    // The exact bytes this account is of, for a log taken or refused: the
+    // tag commits to them, so a refused log cannot be replaced by another.
+    if let Ok(bytes) = std::fs::read(path) {
+        head["bytes"] = json!(bytes.len());
+        head["sha256"] = json!(crate::util::sha256_hex(&bytes));
+    }
+    head
+}
 /// Export copies and the person's on-demand head view use this format's
 /// schema/chain reader; these observations are never parsed as R1 records.
 pub(crate) fn copied_chain_head(path: &Path) -> Value {

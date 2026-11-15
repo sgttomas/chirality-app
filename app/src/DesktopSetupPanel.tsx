@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./hostReads";
 
 type NativePath = { encoding: "unix_bytes"; bytes: number[] };
 type Location = { displayPath: string; nativePath: NativePath };
@@ -7,6 +7,10 @@ type Resource = { name: string; state: string; source?: string; limit?: string |
 export type DesktopSetupView = {
   launch: { state: string; reason?: string; standing?: string };
   appData?: string; appDataProblem?: string; custodyProblem?: string;
+  /** DEL-01-01: the folder the App gives Codex as its working folder when no project is open. */
+  noProjectFolder?: string;
+  workingFiles?: string;
+  workingFilesKept?: number;
   activeResources?: Resource[] | null; activeResourceProblem?: string | null;
   retainProject?: { available: boolean; accountHome?: string; reason?: string };
   supplier: { selection: string; path?: string; standing: string };

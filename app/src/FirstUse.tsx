@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
+import { invoke } from "./hostReads";
 import type { DesktopSetupView } from "./DesktopSetupPanel";
+import { AgentText, wordOf } from "./AgentText";
 
 type NativePath = { encoding: "unix_bytes"; bytes: number[] };
 type Location = { displayPath: string; nativePath: NativePath };
-type Preview = { token: string; kind: string; affirmative: string; effects: string[]; standing: string; locations?: Array<{ name: string; path: string }> };
+type Preview = { token: string; kind: string; affirmative: string; effects: string[]; standing: string; locations?: Array<{ name: string; path: string }>; defaults?: { heading: string; sentences: string[] } };
 /** Effect text with any absolute path shown as a quieter, wrapping path. */
 const Effect = ({ text }: { text: string }) => {
   const at = text.search(/(^|[\s:→])\//);
@@ -27,6 +28,8 @@ const typedProblem = (text: string) =>
   : new TextDecoder("utf-8", { ignoreBOM: true }).decode(new TextEncoder().encode(text)) !== text ? "This path contains an incomplete character. Enter or paste it again, or choose Browse…."
   : !text.startsWith("/") ? "Use the folder's full path, starting with /. Paths such as ~/Projects or Projects/app aren't expanded or looked up."
   : null;
+/** The headings the host gives what applies by default (desktop_startup.rs, first_use_defaults). */
+const DEFAULTS_HEADING = { "What applies by default": "What applies by default", "What applies": "What applies" } as const;
 const SHARED = [
   { label: "Your config.toml", kind: "config" },
   { label: "Your AGENTS.md", kind: "agents" },
@@ -120,13 +123,35 @@ export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
     finally { finish(); }
   };
 
+  // Another process holds this App data (which one is not known): nothing
+  // operational started and setup cannot run, so the host's reason is the
+  // whole surface.
+  if (view.launch?.state === "data-held") return <section className="first-use" aria-label="Welcome">
+    <h1>This App's data is in use</h1>
+    <p className="first-use-lead" role="alert">{view.launch.reason}</p>
+  </section>;
+  // A Codex home the saved setup names is held: setup is not what is needed,
+  // and nothing operational started, so the host's reason is the whole surface.
+  if (view.launch?.state === "home-held") return <section className="first-use" aria-label="Welcome">
+    <h1>A Codex home this App uses is held</h1>
+    <p className="first-use-lead" role="alert">{view.launch.reason}</p>
+    <p>Nothing operational was started. This launch did not change your saved setup. Quit this Chirality instance (⌘Q), then reopen it after the process holding the home has released it.</p>
+  </section>;
+  // Something else is where Chirality keeps its folder for conversations without
+  // a project: only the person can move it, so the host's reason, with its path,
+  // is the whole surface. Nothing is removed or replaced for them.
+  if (view.launch?.state === "set-aside-occupied") return <section className="first-use" aria-label="Welcome">
+    <h1>A folder Chirality keeps is taken</h1>
+    <p className="first-use-lead" role="alert">{view.launch.reason}</p>
+    <p>Nothing operational was started. This launch did not change your saved setup.</p>
+  </section>;
   return <section className="first-use" aria-label="Welcome" aria-busy={busy}>
     <h1>Welcome to Chirality</h1>
     <p className="first-use-lead">Chirality runs Codex on this Mac to do project work with you, and to turn work that goes well into workflows you can run again.{shown.pending ? "" : " First, choose a project folder and how Codex is set up. Your choices take effect when you next open the App."}</p>
     {shown.custodyProblem && <p role="alert">Setup can't continue: {shown.custodyProblem}</p>}
     {shown.pending ? <div className="first-use-saved" role="status" aria-label="Setup saved">
       <h2>You're set up</h2>
-      <p><strong>Next: quit Chirality (⌘Q) and open it again.</strong> Reopening loads your saved project and Codex settings. Then open Connection &amp; access to sign in with your ChatGPT account or prepare the oMLX connection. After connecting, choose a model and start a conversation.</p>
+      <p><strong>Next: quit Chirality (⌘Q) and open it again.</strong> Reopening loads your saved project and Codex settings. Then open Connection and access to sign in with your ChatGPT account. After signing in, choose a model and start a conversation.</p>
       <p>Project: {shown.pending.project ? <code className="first-use-path">{shown.pending.project}</code> : "none"}</p>
     </div> : <>
     <ol className="first-use-steps">
@@ -141,6 +166,7 @@ export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
         {projectProblem && <p id="first-use-project-problem" className="setup-guidance">{projectProblem}</p>}
         <p id="first-use-project-help"><small>Type or paste the folder's full path, or use Browse… to choose it. Whether the folder exists and can be used is checked when you review; nothing is created.</small></p>
         {noProject && <p>No project for now. You can still have conversations, and choose a project later in Desktop setup.</p>}
+        {noProject && <p>Conversations without a project work in one folder that Chirality sets aside. What a conversation creates there stays between launches and is shared by every conversation without a project, including any instructions a conversation writes there.</p>}
         {!noProject && <p><button disabled={busy} onClick={() => { changed(); setProject({ kind: "none" }); }}>Continue without a project</button></p>}
       </li>
       <li><h2>Codex settings</h2>
@@ -166,6 +192,9 @@ export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
           <ul>{preview.effects.map(effect => <li key={effect}><Effect text={effect}/></li>)}</ul>
           {preview.locations && preview.locations.length > 0 && <details><summary>Exact locations</summary>
             <dl>{preview.locations.map(location => <div key={location.name}><dt>{location.name}</dt><dd><code className="first-use-path">{location.path}</code></dd></div>)}</dl></details>}
+          {preview.defaults && <div aria-label={wordOf(DEFAULTS_HEADING, preview.defaults.heading) ?? "What applies"}><h4>{wordOf(DEFAULTS_HEADING, preview.defaults.heading) ?? "What applies"}</h4>
+            {wordOf(DEFAULTS_HEADING, preview.defaults.heading) === null && <p>Heading as the host sent it: <AgentText value={preview.defaults.heading} source="record" name="A heading the App does not recognise, as the host sent it; the App does not vouch for its words" /></p>}
+            {preview.defaults.sentences.map(sentence => <p key={sentence}>{sentence}</p>)}</div>}
           <p>{preview.standing}</p>
           <p><button className="setup-primary" disabled={busy} onClick={() => { void confirm(); }}>{preview.affirmative}…</button>{" "}
             <button disabled={busy} onClick={changed}>Change my choices</button></p>
@@ -177,6 +206,8 @@ export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
     <details className="setup-diagnostics"><summary>Technical details</summary>
       <p>Launch: {shown.launch.state}. {shown.launch.reason ?? shown.launch.standing}</p>
       <p>App data: {shown.appData ?? shown.appDataProblem ?? "unavailable"}</p>
+      <p>Conversations without a project work in: {shown.noProjectFolder ?? "unavailable"}</p>
+      <p>Working files (the version check's folders, the connector's folder and Codex's temporary folders): {shown.workingFiles ?? "unavailable"}{typeof shown.workingFilesKept === "number" ? `. ${shown.workingFilesKept} folders are there now, with what is in them: Chirality removes none of them. They can be removed once Chirality, and any Codex it started, has stopped.` : ""}</p>
       <p>Codex: the copy included with this App ({shown.supplier.path ?? "location unavailable"}). {shown.supplier.standing}</p>
       {!keepAvailable && shown.retainProject?.reason && <p>Keeping an existing sign-in isn't available: {shown.retainProject.reason}</p>}
       {shown.activeResourceProblem && <p>Shared settings could not be checked: {shown.activeResourceProblem}</p>}

@@ -7,11 +7,15 @@ needs:
     protocol's types.
 - from: external:DEP-005
   condition: A named local model server, independent of the App and importing no App code, is
-    available to run the provider route against.
+    available to run the provider route against. This need does not apply to 4.0.0, because the
+    owner decided on 14 November 2026 that the local model server is not offered in 4.0.0 and comes
+    in a later update.
   when: Examining the provider requirement account
 - from: DEL-01-05
-  condition: A conversation on the candidate can be started through a configured local server,
-    with the provider selection reported.
+  condition: A conversation on the candidate can be started through a configured local server, with
+    the provider selection reported. This need does not apply to 4.0.0, because the owner decided on
+    14 November 2026 that the local model server is not offered in 4.0.0 and comes in a later
+    update.
   gating: false
   when: Examining the embedding protocol and the provider requirement account on the candidate
 - from: DEL-01-05
@@ -39,6 +43,17 @@ code_paths:
 # native delivery. Recovery reads and stops are DEL-01-02's, delegation reads DEL-01-03's,
 # answer and handoff sends DEL-01-04's, account and provider carriage DEL-01-05's.
 - app/src-tauri/src/hosting.rs
+# The folder Codex works in when no project is open, and the rules that place a folder against
+# the App data folder by what it is; also applied by the Codex home plans (DEL-01-05's).
+- app/src-tauri/src/working_folder.rs
+- app/src-tauri/src/working_files.rs
+- app/src-tauri/src/working_files_tests.rs
+# The reading gate: configuration readings of one Codex generation are made one at a time.
+- app/src-tauri/src/hosting_reading_gate.rs
+- app/src-tauri/src/hosting_reading_gate_tests.rs
+# Its two sentences, held once in the web view and checked against the gate's constants.
+- app/src/readingSentences.ts
+- app/tests/reading-sentences.test.mjs
 - app/src-tauri/src/hosting_probe.rs
 - app/src-tauri/src/hosting_native_delivery.rs
 - app/src-tauri/src/hosting_observation_facts.rs
@@ -48,6 +63,13 @@ code_paths:
 - app/src-tauri/src/hosting_s4_export.rs
 - app/src-tauri/src/hosting_terminal_export.rs
 - app/src-tauri/src/process_group_custody.rs
+# One App at a time on each Codex home: the process's held home inodes, shared with the saved
+# route's receiving source (DEL-01-05), taken where the Host starts its child.
+- app/src-tauri/src/home_hold.rs
+# App.tsx and DailyWorkspace.tsx are shared. Here: the connection status shows the host
+# status's last start refusal and its reason.
+- app/src/App.tsx
+- app/src/DailyWorkspace.tsx
 - app/src-tauri/src/installed_custody.rs
 - app/src-tauri/src/publisher_selection.rs
 - app/src-tauri/src/compiled_development_selection.rs
@@ -64,19 +86,37 @@ code_paths:
 # request. Here: the supplier selection and standing reported at start.
 - app/src-tauri/src/desktop_startup.rs
 - app/supplier_checks/recorded_replay.py
+# intake.py checks and inventories a supplier release archive of a pin of its table and runs
+# the supplier's generators.
+- app/supplier_checks/intake.py
+# recordings/<pin>/ holds exchanges recorded from the stock supplier at a pin, kept as evidence
+# with a note of how they were made; the harness that made them is not maintained.
+- app/supplier_checks/recordings
+# level/ starts the pinned supplier against a loopback stub that scripts the model's tool calls,
+# and asserts what its sandbox and approval settings do at the pin.
+- app/supplier_checks/level/**
 checks:
+- app/supplier_checks/level/test_level_stub.py
+# Live: runs where the pinned binary is present (the full suite's product job); skipped otherwise.
+- app/supplier_checks/level/test_level_live.py
 - app/src-tauri/src/hosting_0167_tests.rs
+# Shared with DEL-01-05: inherited variables removed by name from every supplier start.
+- app/src-tauri/src/hosting_child_environment_tests.rs
 - app/src-tauri/src/hosting_probe.rs
 - app/tests/check_git_checkout_bytes.py
 - app/src-tauri/src/hosting_native_delivery.rs
 - app/src-tauri/src/hosting_observation_custody_tests.rs
 - app/src-tauri/tests/steering_integration.rs
 - app/supplier_checks/test_recorded_replay.py
+- app/supplier_checks/test_recordings.py
+- app/supplier_checks/test_intake.py
 - app/src-tauri/src/hosting_recorded_replay_tests.rs
 - app/src-tauri/src/hosting_process_group_custody_tests.rs
 - app/tests/process-group-custody.test.mjs
 - app/src-tauri/src/hosting_build_selection_tests.rs
 - app/src-tauri/src/hosting_startup_refusal_tests.rs
+- app/src-tauri/src/home_hold_tests.rs
+- app/src-tauri/src/hosting_recovery_reads_tests.rs
 - app/src-tauri/src/model_turn_recorder_tests.rs
 - app/tests/validate-records.test.mjs
 - app/packaging/static_distribution/test_s1_value_model.py

@@ -1,5 +1,8 @@
+import { AgentText, RecordedData, idWords } from "./AgentText";
 import { useEffect, useRef, useState } from "react";
 import { EXACT_TEXT } from "./exactText";
+import { readingRefusal } from "./readingSentences";
+import { REFRESH_FAILED } from "./statusRefresh";
 import { AccessRouteChoice, AvailableModels, useBoundModelChoice, type BoundModelChoice } from "./ModelChoice";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -7,7 +10,8 @@ type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 // ROLE §3.1–§3.3, §4.4, §6.2). A conversation's role is fixed for its life
 // (L-2): nothing here changes it. "Continue as" starts a new conversation with
 // another role; "Fork" is a same-role copy. The role's limits are shown as the
-// limit account hands them ("Stated, not enforced").
+// limit account hands them ("Stated, not enforced"), and always under the
+// guidance that account describes (see LimitSubject).
 
 const list = (value: Json): Json[] => (Array.isArray(value) ? value : []);
 const text = (value: Json): string => value === null || value === undefined ? "" : typeof value === "string" ? value : JSON.stringify(value);
@@ -33,15 +37,104 @@ export function guidanceChange(notices: Json): { changed: Json[]; notRead: Json[
   };
 }
 
-/** LA-4: the limits as handed by the limit account, per role. */
-export function RoleLimits({ limits, role }: { limits: Json; role: string | null }) {
-  if (!role) return <p><small>No role: the conversation gets the product guidance only. No role limits are stated.</small></p>;
+/** What each conversation role does, in one line, taken from the opening of
+ * its shipped guidance document (resources/instructions/agents/AGENT_<ROLE>.md).
+ * The role set's own meaning stays beside the name; this says it plainly. */
+export const ROLE_PLAIN_MEANING: Record<string, string> = {
+  HELP_HUMAN: "Understands the outcome you intend, your commitments and the work already in progress, and keeps that understanding current.",
+  HELPS_HUMANS: "Helps you conceive and design workflows, tools and projects.",
+  WORKING_ITEMS: "Carries a bounded undertaking through implementation.",
+};
+
+/** The limit account's `notEnforcement` codes in plain words: things that may
+ * restrict the agent but are not this limit's enforcement (AC-004). */
+const NOT_ENFORCED_BY: Record<string, string> = {
+  "approval-policy": "your approval setting",
+  "sandbox": "your sandbox setting",
+  "user-configuration": "your Codex configuration",
+  "depth-limit": "your delegation depth limit",
+  "worktree": "working in a separate worktree",
+  "brief-text": "the brief itself",
+};
+const inWords = (items: string[]): string => items.length < 2 ? items.join("") : `${items.slice(0, -1).join(", ")} or ${items[items.length - 1]}`;
+
+/** One limit as the account hands it, in plain words. "Stated, not enforced"
+ * is the scope's own label and stays; the codes beside it are explained. */
+export function limitWords(l: Json): string {
+  const standing = text(l?.standing);
+  const others = list(l?.notEnforcement).map(c => NOT_ENFORCED_BY[text(c)] ?? text(c));
+  const separate = (either: string) => others.length ? `None of these enforces it${either}: ${inWords(others)}.` : "";
+  if (standing === "stated-not-enforced") return `It is stated in that guidance; Codex does not enforce it. ${separate(" either")}`.trim();
+  if (standing === "enforced-by-supplier") return l?.mechanism ? `Codex enforces it through ${text(l.mechanism)}.` : "";
+  return separate("");
+}
+
+/** Which guidance an account of limits describes. The host makes every
+ * account and names its subject: the guidance files as the App last read them,
+ * or the guidance supplied at one named conversation's start or for one child.
+ * The view shows an account only under that subject and never attaches it to
+ * another, by comparison or otherwise. */
+export type LimitSubject =
+  | { of: "current-files" }
+  | { of: "conversation-supply"; thread: string; own: boolean }
+  | { of: "child-supply" };
+export function limitSubjectWords(subject: LimitSubject, role: string | null): string {
+  // A role name and a conversation id come from guidance files and Codex: in these App words only as plain identifiers.
+  const guidance = role ? `the ${idWords(role)} guidance` : "the guidance";
+  if (subject.of === "current-files") return `Limits of ${role ? idWords(role) : "no role"} in its guidance file as the App last read it`;
+  if (subject.of === "child-supply") return `Limits in ${guidance} the App supplied for this child`;
+  return subject.own ? `Limits in ${guidance} the App supplied when this conversation started`
+    : `This fork was sent no guidance of its own. Limits in ${guidance} the App supplied when conversation ${idWords(subject.thread)} started`;
+}
+
+/** LA-4: one account of limits, under the guidance it describes. This is the
+ * only place a limit's standing becomes a sentence about what guidance states.
+ * `entry` is the account's row for `role` ({role, limits}); with none, or one
+ * for another role, the limits are not known and the reason is given. */
+export function RoleLimits({ subject, role, entry, notKnown }: { subject: LimitSubject; role: string | null; entry?: Json; notKnown?: string }) {
+  if (subject.of === "current-files" && !role) return <p><small>No role: the conversation gets the product guidance only. No role limits are stated.</small></p>;
+  const lead = limitSubjectWords(subject, role);
+  const mine = !!entry && (role ? entry.role === role : entry.role === "none");
+  if (!mine) return <p><small>{lead}: {notKnown || "not known"}.</small></p>;
+  if (!role) return <p><small>{subject.of === "conversation-supply" && !subject.own ? `This fork was sent no guidance of its own. Conversation ${subject.thread} was started with no role: the App supplied it` : "Started with no role: the App supplied"} the product guidance only, and no role's limits.</small></p>;
+  return <div>
+    <p><small>{lead}:</small></p>
+    <ul aria-label={lead}>
+      {list(entry.limits).map((l: Json) => <li key={text(l.limitId)}><small>{text(l.statement)}: <b>{text(l.presentedAs)}</b>. {limitWords(l)}</small></li>)}
+    </ul>
+  </div>;
+}
+
+/** The current guidance files' account for one role: what the role choice and
+ * Continue as show. A file the host could not read is reported, never guessed. */
+export function CurrentFileLimits({ limits, role }: { limits: Json; role: string | null }) {
   const entry = list(limits?.account?.roles).find((r: Json) => r?.role === role);
   const unread = list(limits?.notRead).find((r: Json) => r?.role === role);
-  if (!entry) return <p><small>Limits of {role}: {unread ? `${text(unread.reading)} (${text(unread.reason)})` : "not available"}.</small></p>;
-  return <ul aria-label={`Limits of ${role}`}>
-    {list(entry.limits).map((l: Json) => <li key={text(l.limitId)}><small>{text(l.statement)}: <b>{text(l.presentedAs)}</b>. Not this limit's enforcement: {list(l.notEnforcement).map(text).join(", ")}.</small></li>)}
-  </ul>;
+  return <RoleLimits subject={{ of: "current-files" }} role={role} entry={entry} notKnown={unread ? `${text(unread.reading)} (${text(unread.reason)})` : "not available"} />;
+}
+
+/** The limits of the guidance a conversation runs under, from the account the
+ * host made when that guidance was supplied and kept with the role binding.
+ * Without one (the binding is held only by the App process that made it) the
+ * limits are not known; the current files are never shown in its place.
+ * `childAccountHeld`: the App holds this conversation's supply as a child,
+ * which is shown under its own subject line, so nothing is denied here. */
+export function SuppliedLimits({ supplied, childAccountHeld = false }: { supplied: Json; childAccountHeld?: boolean }) {
+  const to = supplied?.subject?.kind === "original-supply" ? supplied.subject.suppliedTo : undefined;
+  if (typeof to !== "string" || !to) return childAccountHeld ? null
+    : <p><small>Limits in the guidance this conversation was given: not known. This App process holds no account of guidance it supplied to this conversation.</small></p>;
+  const account = supplied.standing === "established" ? supplied.account : undefined;
+  const role = account && account.role !== "none" ? text(account.role) : null;
+  return <RoleLimits subject={{ of: "conversation-supply", thread: to, own: supplied.subject.thisConversation === true }} role={role} entry={account}
+    notKnown={`not known${supplied.reason ? ` (${text(supplied.reason)})` : ""}`} />;
+}
+
+/** What the label means, under a role choice. It says nothing of what any
+ * guidance states: that is said with each limit, under its own subject. */
+function LimitsNote({ limits }: { limits: Json }) {
+  const all = list(limits?.account?.roles).flatMap((r: Json) => list(r?.limits));
+  if (!limits?.available || !all.some((l: Json) => l?.standing === "stated-not-enforced")) return null;
+  return <p><small>A limit shown as “Stated, not enforced” is an instruction to the agent. Codex does not enforce it, and your approval and sandbox settings are a separate matter that does not enforce it either.</small></p>;
 }
 
 /** ST-5: the start display's role choice, readable. The default is shown as a
@@ -58,11 +151,12 @@ export function RoleChoice({ roleSet, limits, role, setRole, preselected, group 
       const name = text(r.name);
       return <div key={name}>
         <label><input type="radio" name={group} value={name} checked={role === name} onChange={() => setRole(name)} /> <b>{name}</b>: {text(r.meaning)}{r.default_for_new_chat ? (role === name && preselected ? " (preselected; change or clear it before starting)" : " (the default for a new conversation)") : ""}</label>
-        {role === name && <RoleLimits limits={limits} role={name} />}
+        {ROLE_PLAIN_MEANING[name] && <p><small>{ROLE_PLAIN_MEANING[name]}</small></p>}
+        {role === name && <CurrentFileLimits limits={limits} role={name} />}
       </div>;
     })}
     <label><input type="radio" name={group} value="" checked={role === ""} onChange={() => setRole("")} /> <b>No role</b>: product guidance only.</label>
-    <p><small>{text(limits?.standing)}</small></p>
+    <LimitsNote limits={limits} />
     <p><small>TASK is not a conversation role: a manager assigns bounded work to it, and its guidance is supplied for that delegation.</small></p>
   </fieldset>;
 }
@@ -109,7 +203,7 @@ export function NativeChildRoles({ supply }: { supply: Json }) {
       {Array.isArray(namespace.candidateNames) && <p>Observed role names: {namespace.candidateNames.length ? namespace.candidateNames.map(text).join(", ") : "none"}. Sources observed: {text(namespace.sourceCount)}.</p>}
       {namespace.config && <p>Configuration identity: {text(namespace.config.method)} · {text(namespace.config.value)}</p>}
     </details>}
-    <p><small>Child supply does not establish that a child was started, provider uptake or consumer adoption. The App preserves the person's roles, features, depth and permissions. TASK's default nondelegation limit is stated, not enforced.</small></p>
+    <p><small>Child supply does not establish that a child was started, provider uptake or consumer adoption. The App leaves your own roles, features, delegation depth and permissions as they are. The TASK guidance document shipped with the App says a task agent does not delegate; that limit is stated, not enforced: Codex does not enforce it. That describes the shipped document, not what any child was given: each child's own limits are shown with it.</small></p>
   </section>;
 }
 
@@ -120,10 +214,10 @@ export function ChildGuidance({ guidance }: { guidance: Json }) {
   if (guidance.standing !== "app-observed-child-supply") return <p>Child guidance unknown: {text(guidance.reason) || "no original App supply association"}.</p>;
   return <div aria-label="Original child guidance">
     <p>Original App child guidance: <b>{text(guidance.role)}</b> (observed). Parent conversation: {text(guidance.native?.parentThreadId ?? guidance.parentThreadId)}. Provider uptake remains unknown.</p>
-    <RoleLimits limits={{ account: { roles: [guidance.limitAccount] } }} role={text(guidance.role)} />
+    <RoleLimits subject={{ of: "child-supply" }} role={text(guidance.role)} entry={guidance.limitAccount} />
     <p><small>This is evidence of the original child supply. It does not set the primary conversation role or restore current role authority. Resume, fork and later generations do not authorize new child associations from this catalog.</small></p>
     {guidance.roleSupplyRecord?.state === "not-confirmed" && <p role="alert">Child association history was not confirmed: {text(guidance.roleSupplyRecord.limit)}.</p>}
-    <details><summary>Original child supply evidence</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(guidance, null, 2)}</pre></details>
+    <details><summary>Original child supply evidence</summary><RecordedData value={guidance} /></details>
   </div>;
 }
 
@@ -133,9 +227,9 @@ export function ChildAssociations({ associations }: { associations: Json }) {
   return <section aria-label="Observed native child associations">
     <p><b>Observed native children</b></p>
     {rows.map((row, i) => <details key={i}>
-      <summary>Child {text(row.native?.threadId)} · parent {text(row.native?.parentThreadId)} · {row.guidance?.standing === "app-observed-child-supply" ? `original ${text(row.guidance.role)} guidance observed` : "guidance unknown"}</summary>
+      <summary>Child {idWords(row.native?.threadId)} · parent {idWords(row.native?.parentThreadId)} · {row.guidance?.standing === "app-observed-child-supply" ? `original ${idWords(row.guidance.role)} guidance observed` : "guidance unknown"}</summary>
       <ChildGuidance guidance={row.guidance ?? { standing: "unknown" }} />
-      <details><summary>Native child event</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(row.native, null, 2)}</pre></details>
+      <details><summary>Native child event</summary><RecordedData value={row.native} /></details>
     </details>)}
   </section>;
 }
@@ -146,18 +240,20 @@ export function RoleLimitObservations({ observations }: { observations: Json }) 
   const rows = list(observations);
   if (rows.length === 0) return null;
   return <section aria-label="Observed TASK delegations">
-    <p><b>Native delegation compared with original TASK guidance</b></p>
+    <p><b>Delegations by an agent given TASK guidance</b></p>
     {rows.map((row, i) => {
       const original = row.originalAssociation;
       const originalGeneration = original?.generation ?? row.root?.generation;
       const actionGeneration = row.actionGeneration ?? row.generation;
       return <div key={i}>
-        <p>Child {text(row.parentThreadId)} started child {text(row.threadId)}. Original TASK limit standing: <b>{row.standing === "stated-not-enforced" ? "Stated, not enforced" : text(row.standing) || "unknown"}</b>. The App did not prevent this delegation.</p>
+        <p>Child {text(row.parentThreadId)} started child {text(row.threadId)}. {row.standing === "stated-not-enforced" ? <>The TASK guidance it was given says a task agent does not delegate: <b>Stated, not enforced</b>. Codex does not enforce this limit.</>
+          : row.standing === "enforced-by-supplier" ? <>The TASK guidance it was given says a task agent does not delegate: <b>Enforced by Codex</b>.</>
+          : <>Whether the TASK guidance this child was given says a task agent does not delegate: <b>Not known whether the supplied guidance states this</b>. The App could not establish what that guidance states.</>} The App recorded this delegation and did not prevent it.</p>
         <p><small>Native event: {text(row.itemId)} · {text(row.source)} · receipt position {text(row.receiptPosition)}. Original root parent: {text(row.root?.parentThreadId)} · original parent supply: {text(original?.parentSupplyRef ?? row.parentSupplyRef)}{original?.associationId ? ` · original TASK association: ${text(original.associationId)}` : ""}.</small></p>
         {originalGeneration && actionGeneration && JSON.stringify(originalGeneration) !== JSON.stringify(actionGeneration) && <p><small>Original guidance generation: {text(originalGeneration)}. Native action generation: {text(actionGeneration)}.</small></p>}
-        <p><small>Comparison with original guidance only; no renewed supply, provider uptake or current role authority is established.</small></p>
+        <p><small>This compares the delegation with the guidance the child was given when it started. It does not show that guidance was sent again, that the model took it up, or that the role still applies.</small></p>
         {row.roleSupplyRecord?.state === "not-confirmed" && <p role="alert">TASK delegation history was not confirmed: {text(row.roleSupplyRecord.limit)}.</p>}
-        <details><summary>TASK delegation evidence</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(row, null, 2)}</pre></details>
+        <details><summary>TASK delegation evidence</summary><RecordedData value={row} /></details>
       </div>;
     })}
   </section>;
@@ -176,7 +272,7 @@ export function SupplyStatus({ supply }: { supply: Json }) {
     <ChildAssociations associations={supply.childAssociations} />
     <RoleLimitObservations observations={supply.roleLimitObservations} />
     {supply.roleSupplyRecord?.state === "not-confirmed" && <p role="alert">Role-supply history was not confirmed: {text(supply.roleSupplyRecord.limit)}. Native effects remain as observed; nothing is resent.</p>}
-    <details><summary>Role supply evidence (JSON)</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(supply, null, 2)}</pre></details>
+    <details><summary>Role supply evidence (JSON)</summary><RecordedData value={supply} /></details>
   </div>;
 }
 
@@ -200,17 +296,17 @@ export function RoleSupplyHistory({ view }: { view: Json }) {
     <p><b>Quoted App role-supply history</b>. {text(view.standing)}</p>
     {list(view.limits).map((limit, i) => <p role="alert" key={i}>{text(limit)}</p>)}
     {list(view.observations).map((observation, i) => <details key={i}>
-      <summary>{text(observation.record?.trigger)} · {text(observation.record?.outcome)} · {text(observation.record?.supplyId)}</summary>
-      <pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(observation.record, null, 2)}</pre>
+      <summary>{idWords(observation.record?.trigger)} · {idWords(observation.record?.outcome)} · {idWords(observation.record?.supplyId)}</summary>
+      <RecordedData value={observation.record} />
       {list(observation.limits).map((limit, j) => <p role="alert" key={j}>{text(limit)}</p>)}
       {observation.sourceBytes ? <details><summary>Recorded App instruction bytes (quoted evidence)</summary>
-        <pre style={{whiteSpace:"pre-wrap"}}>{text(observation.sourceBytes.composed)}</pre>
-        {list(observation.sourceBytes.parts).map((part, j) => <details key={j}><summary>{text(part.source?.path)} · {text(part.kind)}</summary><pre style={{whiteSpace:"pre-wrap"}}>{text(part.text)}</pre></details>)}
-        {list(observation.sourceBytes.nativeChildren).map((child, j) => <details key={`child:${j}`}><summary>Recorded {text(child.role)} child instruction bytes (quoted evidence)</summary>
-          <pre style={{whiteSpace:"pre-wrap"}}>{text(child.composed)}</pre>
-          {list(child.parts).map((part, k) => <details key={k}><summary>{text(part.source?.path)} · {text(part.kind)}</summary><pre style={{whiteSpace:"pre-wrap"}}>{text(part.text)}</pre></details>)}
-          <details><summary>Recorded child configuration file bytes</summary><pre style={{whiteSpace:"pre-wrap"}}>{text(child.envelope)}</pre></details>
-          <details><summary>Recorded child limit account</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(child.limitAccount, null, 2)}</pre></details>
+        <AgentText block value={text(observation.sourceBytes.composed)} source="record" exactLineEnds />
+        {list(observation.sourceBytes.parts).map((part, j) => <details key={j}><summary>Part {j + 1} · {idWords(part.kind)}</summary><AgentText value={part.source?.path} source="record" label="Path:" /><AgentText block value={text(part.text)} source="record" exactLineEnds /></details>)}
+        {list(observation.sourceBytes.nativeChildren).map((child, j) => <details key={`child:${j}`}><summary>Recorded {idWords(child.role)} child instruction bytes (quoted evidence)</summary>
+          <AgentText block value={text(child.composed)} source="record" exactLineEnds />
+          {list(child.parts).map((part, k) => <details key={k}><summary>Part {k + 1} · {idWords(part.kind)}</summary><AgentText value={part.source?.path} source="record" label="Path:" /><AgentText block value={text(part.text)} source="record" exactLineEnds /></details>)}
+          <details><summary>Recorded child configuration file bytes</summary><AgentText block value={text(child.envelope)} source="record" exactLineEnds /></details>
+          <details><summary>Recorded child limit account</summary><RecordedData value={child.limitAccount} /></details>
         </details>)}
       </details> : <p><small>Exact App instruction bytes are not established by this observation.</small></p>}
     </details>)}
@@ -241,6 +337,10 @@ export function RoleHeader({ thread, limits, busy, ready, continueAs, fork, fork
   const [target, setTarget] = useState<string>(own === undefined ? CONVERSATION_ROLES[0] : (own ?? ""));
   const relation = thread?.roleRelation;
   const { changed, notRead } = guidanceChange(thread?.futureGuidanceNotices);
+  // `changed` and `notRead` are the comparison's own statement below. They select
+  // no account: this conversation's limits come only from what it was supplied.
+  // The role set's short meaning, as the limit account hands it with each role.
+  const meaningOf = (name: string) => text(list(limits?.account?.roles).find((r: Json) => r?.role === name)?.meaning);
   return <div aria-label="Conversation role">
     <p>Role: <b>{roleName(appRole)}</b>. It is fixed for this conversation's life; native role hints do not set it.</p>
     <ChildGuidance guidance={thread?.childGuidance} />
@@ -248,33 +348,36 @@ export function RoleHeader({ thread, limits, busy, ready, continueAs, fork, fork
     <RoleHistoryReader read={readSupplyHistory} scope={JSON.stringify([thread?.generation, thread?.threadId])} ready={ready} />
     <TrialHeader trialConversation={trialConversation} trialsStartedHere={trialsStartedHere} />
     {relation?.kind === "continued-from" && <p><small>Continues conversation {text(relation.from?.sourceThread)} (its role: {roleName(relation.from?.sourceRole)}); a relation only: no history was carried.</small></p>}
-    {(relation?.kind === "inherited-fork" || thread?.forkedFrom) && <p><small>Fork of conversation {text(relation?.sourceThread ?? thread?.forkedFrom?.threadId)} (same role): the fork was sent no instructions, so it keeps the source's guidance.</small></p>}
-    {own !== undefined && <RoleLimits limits={limits} role={own} />}
+    {(relation?.kind === "inherited-fork" || thread?.forkedFrom) && <p><small>Fork of conversation {text(relation?.sourceThread ?? thread?.forkedFrom?.threadId)} (same role): the App sent the fork no instructions of its own.</small></p>}
+    <SuppliedLimits supplied={thread?.suppliedLimitAccount} childAccountHeld={thread?.childGuidance?.standing === "app-observed-child-supply"} />
     {changed.length > 0 && <p role="status"><b>Guidance changed since this conversation started</b>: {changed.map((n: Json) => `${text(n.path)} (${n.kind === "missing" ? "missing now" : "edited"})`).join(", ")}. Nothing was sent to this conversation; it keeps the guidance it started with. New conversations use the current guidance.{" "}
-      {own !== undefined && <button disabled={busy || !ready} onClick={() => continueAs(own)}>Continue as {own ?? "no role"}…</button>}</p>}
+      {own !== undefined && <button disabled={busy || !ready} onClick={() => continueAs(own)}>Continue as {own ? idWords(own) : "no role"}…</button>}</p>}
     {notRead.length > 0 && <p><small>Current guidance could not be read ({notRead.map((n: Json) => text(n.path)).join(", ")}), so it was not compared.</small></p>}
     <p>
       <label>Continue as <select value={target} disabled={busy} onChange={e => setTarget(e.target.value)}>
-        {CONVERSATION_ROLES.map(r => <option key={r} value={r}>{r}</option>)}<option value="">No role</option>
+        {CONVERSATION_ROLES.map(r => <option key={r} value={r}>{meaningOf(r) ? `${r}: ${meaningOf(r)}` : r}</option>)}<option value="">No role: product guidance only</option>
       </select></label>{" "}
-      <button disabled={busy || !ready} onClick={() => continueAs(target === "" ? null : target)}>Continue as {target || "no role"}…</button>{" "}
+      <button disabled={busy || !ready} onClick={() => continueAs(target === "" ? null : target)}>Continue as {target ? idWords(target) : "no role"}…</button>{" "}
       <button disabled={busy || !ready || !!forkUnavailable} onClick={fork}>Fork (same role)</button>
     </p>
+    {ROLE_PLAIN_MEANING[target] && <p><small>{target}: {ROLE_PLAIN_MEANING[target]}</small></p>}
+    <p><small>A conversation continued as {target || "no role"} is given the guidance files as they stand when it starts.</small></p>
+    <CurrentFileLimits limits={limits} role={target || null} />
     {forkUnavailable && <p role="status">{forkUnavailable}</p>}
-    <p><small>Continue as starts a new conversation with that role; this conversation keeps its role. The App first asks this conversation's agent for a handoff summary in a visible turn here, and you edit it before anything is sent. Fork copies this conversation with the same role and guidance.</small></p>
+    <p><small>Continue as starts a new conversation with that role; this conversation keeps its role. The App first asks this conversation's agent for a handoff summary in a visible turn here, and you edit it before anything is sent. Fork copies this conversation with the same role; the App sends the copy no guidance of its own.</small></p>
   </div>;
 }
 
 export type StartChoice = { model: string; modelProvider: string; entryId: string };
 
-/** The model and the configured provider are exact Codex identifiers, sent as
- * typed; the webview must not capitalise or correct them (EXACT_TEXT). Used by
- * the start display and by Continue as. */
-export function ModelProviderFields({ model, modelProvider, setModel, setModelProvider }: { model: string; modelProvider: string; setModel: (model: string) => void; setModelProvider: (provider: string) => void }) {
+/** The model is an exact Codex identifier, sent as typed; the webview must not
+ * capitalise or correct it (EXACT_TEXT). Used by the start display, a clean
+ * trial and Continue as. The provider is never typed: at the pin Codex runs a
+ * conversation only on the provider its process was started with. */
+export function ModelIdField({ model, setModel }: { model: string; setModel: (model: string) => void }) {
   return <>
-    <label>Model <input {...EXACT_TEXT} value={model} onChange={e => setModel(e.target.value)} /></label>{" "}
-    <label>Configured Codex provider <input {...EXACT_TEXT} value={modelProvider} onChange={e => setModelProvider(e.target.value)} /></label>
-    <small> The chosen access entry must match this provider: cloud entries use built-in OpenAI; local entries use a configured Responses provider without credentials. An unavailable definition prevents Start.</small>
+    <label>Model <input {...EXACT_TEXT} value={model} onChange={e => setModel(e.target.value)} /></label>
+    <small> A model ID for the ChatGPT account connection, sent to Codex as typed. Choose “Use my ChatGPT account” above first. If the account does not offer this model, Codex reports an error when the conversation starts or its first message runs.</small>
   </>;
 }
 
@@ -282,26 +385,28 @@ export function ModelProviderFields({ model, modelProvider, setModel, setModelPr
  * that starts one (a clean trial, Continue as): the explicit access route, the
  * models Codex reports read at the person's press, and the manual IDs under
  * Advanced. Nothing is preselected; nothing here starts or sends. */
-export function ConnectionAndModel({ homeClass, chooser, entries, disabled }: {
+export function ConnectionAndModel({ homeClass, chooser, entries, disabled, local = null }: {
   homeClass: string | null; chooser: BoundModelChoice; entries: { value: string; label: string }[]; disabled: boolean;
+  /** The keyed oMLX route of the local home in use, when it is prepared. */
+  local?: { entryId: string; providerId: string; endpoint: string; model: string; credentialState?: string } | null;
 }) {
   const { route, revise } = chooser;
   return <div aria-label="Connection and model">
     {chooser.stale && <p role="status">Codex, the home or its generation changed since you chose. Your text is kept; choose how it connects and its model again.</p>}
-    <AccessRouteChoice homeClass={homeClass} modelProvider={route.modelProvider} entryId={route.entryId} disabled={disabled} choose={revise}
-      localHint="Or use a local model server: enter its configured provider under “Advanced: enter IDs yourself”." />
+    <AccessRouteChoice homeClass={homeClass} modelProvider={route.modelProvider} entryId={route.entryId} model={route.model} disabled={disabled} choose={revise} local={local} />
     <AvailableModels packet={chooser.packet} current={chooser.current} reading={chooser.reading} message={chooser.message}
-      model={route.model} modelProvider={route.modelProvider} entryId={route.entryId} disabled={disabled} read={chooser.read} choose={chooser.choose} />
-    <details><summary>Advanced: enter IDs yourself</summary>
-      <p><ModelProviderFields model={route.model} modelProvider={route.modelProvider} setModel={model => revise({ model })} setModelProvider={modelProvider => revise({ modelProvider })} /></p>
-      <p><label>Access entry <select value={route.entryId} disabled={disabled} onChange={e => revise({ entryId: e.target.value })}><option value="">No entry selected</option>{entries.map(e => <option key={e.value} value={e.value}>{e.label}</option>)}</select></label></p>
-    </details>
+      model={route.model} modelProvider={route.modelProvider} entryId={route.entryId} disabled={disabled} read={chooser.read} choose={chooser.choose}
+      setModel={model => revise({ model })} fixedModel={local && route.entryId === local.entryId ? local.model : null}
+      localHome={homeClass === "local-provider" ? (local ? "prepared" : "unprepared") : null} />
+    {homeClass === "account" && <details><summary>Advanced: enter a model ID yourself</summary>
+      <p><ModelIdField model={route.model} setModel={model => revise({ model })} /></p>
+    </details>}
   </div>;
 }
 
 /** A Continue as start press's outcome as its caller reports it. */
 export type ContinueStartOutcome = { ok: true } | { ok: false; message: string };
-type StartAttempt = { state: "idle" } | { state: "starting" } | { state: "unconfirmed"; message: string; held: boolean };
+type StartAttempt = { state: "idle" } | { state: "starting" } | { state: "unconfirmed"; message: string; held: boolean } | { state: "not-sent"; message: string };
 
 /** The handoff message's send state. "sent" only after the send resolved
  * with a result; a refusal or error keeps the draft and allows another try. */
@@ -344,15 +449,15 @@ export function HandoffSendStatus({ outcome }: { outcome: HandoffSendOutcome }) 
     {outcome.state === "not-attempted" && <p role="alert"><small>Not sent: the native owner established that no write attempt occurred. {outcome.reason} The draft is kept; you can send it again.</small></p>}
     {outcome.state === "native-failed" && <p role="alert"><small>The original request received a native error: {text(outcome.nativeResponse?.error?.message ?? outcome.reason)}. The draft is kept; nothing is resent automatically.</small></p>}
     {outcome.state === "unknown" && <p role="alert"><small>Send outcome unknown: {outcome.reason} The draft is kept. Nothing is resent automatically; no second send is offered as proved safe.</small></p>}
-    {outcome.observationFailure && <p role="alert"><small>View refresh unavailable: {outcome.observationFailure}. The original send outcome above is retained.</small></p>}
+    {outcome.observationFailure && <p role="alert"><small>{outcome.observationFailure === REFRESH_FAILED ? REFRESH_FAILED : `View refresh unavailable: ${outcome.observationFailure}.`} The original send outcome above is retained.</small></p>}
   </>;
 }
 
 /** CA-2, CA-3: one open handoff. The draft is editable and unsent; the new
  * conversation starts with no model chosen; its first message is sent only
  * when the person sends it. */
-export function ContinueAsPanel({ handoff, entries, homeClass, generation, busy, ready, start, send, read, open, dismiss }: {
-  handoff: Json; entries: { value: string; label: string }[]; homeClass?: string | null; generation?: Json; busy: boolean; ready: boolean;
+export function ContinueAsPanel({ handoff, entries, homeClass, generation, busy, ready, start, send, read, open, dismiss, local = null }: {
+  handoff: Json; entries: { value: string; label: string }[]; homeClass?: string | null; generation?: Json; busy: boolean; ready: boolean; local?: { entryId: string; providerId: string; endpoint: string; model: string; credentialState?: string } | null;
   start: (choice: StartChoice, source: { generation: Json; modeHomeClass: string | null }) => void | Promise<ContinueStartOutcome>; send: (text: string) => Promise<HandoffSendOutcome>; read?: () => Promise<HandoffSendOutcome>; open: () => void; dismiss: () => void;
 }) {
   const [draft, setDraft] = useState<string>(text(handoff?.draftText));
@@ -365,7 +470,7 @@ export function ContinueAsPanel({ handoff, entries, homeClass, generation, busy,
   const mountedPanel = useRef(true);
   const outcomeNode = useRef<HTMLDivElement>(null);
   useEffect(() => { mountedPanel.current = true; return () => { mountedPanel.current = false; }; }, []);
-  useEffect(() => { if (startOutcome.state === "unconfirmed") outcomeNode.current?.focus?.(); }, [startOutcome.state]);
+  useEffect(() => { if (startOutcome.state === "unconfirmed" || startOutcome.state === "not-sent") outcomeNode.current?.focus?.(); }, [startOutcome.state]);
   const startHeld = startOutcome.state === "starting" || (startOutcome.state === "unconfirmed" && startOutcome.held);
   // Held across renders: a Start control from before an unconfirmed outcome
   // must not start again either. Only the person's explicit acknowledgement lifts it.
@@ -384,11 +489,14 @@ export function ContinueAsPanel({ handoff, entries, homeClass, generation, busy,
     setStartOutcome({ state: "starting" });
     void Promise.resolve(pending).then(outcome => outcome, error => ({ ok: false as const, message: String(error) })).then(outcome => {
       startPressed.current = false;
-      if (!outcome?.ok) startBlocked.current = true;
+      // A start refused at its configuration reading is known not sent (the host's message is the
+      // reading's sentence, or what is known then the sentence): shown as it is, with no hold.
+      const notSent = outcome?.ok ? null : readingRefusal(outcome?.message);
+      if (!outcome?.ok && notSent === null) startBlocked.current = true;
       if (!mountedPanel.current) return;
-      // A rejection does not say whether Codex started the conversation: hold
+      // Any other rejection does not say whether Codex started the conversation: hold
       // Start until the person has looked, so a press can't silently make a second.
-      setStartOutcome(outcome?.ok ? { state: "idle" } : { state: "unconfirmed", message: text(outcome?.message), held: true });
+      setStartOutcome(outcome?.ok ? { state: "idle" } : notSent !== null ? { state: "not-sent", message: notSent } : { state: "unconfirmed", message: text(outcome?.message), held: true });
     });
   };
   const [sending, setSending] = useState<HandoffSendOutcome>(() => handoff?.sendOutcome ? handoffOutcome(handoff.sendOutcome) : { state: "unsent" });
@@ -421,8 +529,8 @@ export function ContinueAsPanel({ handoff, entries, homeClass, generation, busy,
     } catch (error) { if (epoch === sendEpoch.current) setSending(previous => retainHandoffOutcome(previous, unknownHandoff(String(error)))); }
     finally { setReading(false); }
   };
-  // The draft is seeded once when the summary arrives. It cannot be edited while
-  // the summary is still awaited, so the seed never replaces the person's edits.
+  // The draft is seeded from handoff.draftText each time the draft's state changes, unless the person has already
+  // pressed; the field is disabled while the summary is awaited, so a seed never replaces the person's edits.
   useEffect(() => {
     const state = text(handoff?.draft?.state);
     if (state !== seededFrom && state !== "waiting") { if (!pressed.current) setDraft(text(handoff?.draftText)); setSeededFrom(state); }
@@ -430,17 +538,20 @@ export function ContinueAsPanel({ handoff, entries, homeClass, generation, busy,
   const started = handoff?.started;
   const target = handoff?.targetRole ? text(handoff.targetRole) : "no role";
   return <section aria-label="Continue as" style={{ border: "1px solid #888", padding: 8, margin: "8px 0" }}>
-    <h3>Continue as {target} from conversation {text(handoff?.sourceThread)}</h3>
+    <h3>Continue as {handoff?.targetRole ? idWords(handoff.targetRole) : "no role"} from conversation {idWords(handoff?.sourceThread)}</h3>
     <p>Source conversation: {text(handoff?.sourceThread)} ({text(handoff?.sourceRoleLabel)}); it keeps its role. {text(handoff?.draft?.reading)}</p>
     <label>Handoff message {blocked ? "(original draft retained)" : "(editable; not sent)"} <textarea value={draft} disabled={busy || blocked || text(handoff?.draft?.state) === "waiting"} onChange={e => setDraft(e.target.value)} rows={6} style={{ display: "block", width: "100%" }} /></label>
     {!started && <div>
       <p>The new conversation starts with no model selected; choose how it connects and its model.</p>
-      <ConnectionAndModel homeClass={homeClass ?? null} chooser={chooser} entries={entries} disabled={busy || !ready} />
-      <p><button disabled={busy || !ready || startHeld || !choice.model.trim() || !choice.modelProvider.trim() || !choice.entryId} onClick={startChosen}>Start new conversation as {target}</button>{" "}
+      <ConnectionAndModel homeClass={homeClass ?? null} chooser={chooser} entries={entries} disabled={busy || !ready} local={local} />
+      <p><button disabled={busy || !ready || startHeld || !choice.model.trim() || !choice.modelProvider.trim() || !choice.entryId} onClick={startChosen}>Start new conversation as {handoff?.targetRole ? idWords(handoff.targetRole) : "no role"}</button>{" "}
         <button disabled={busy} onClick={dismiss}>Close without starting</button></p>
       {(!choice.model.trim() || !choice.modelProvider.trim()) && <p><small>Not started — no model selected.</small></p>}
       {startRefusal && <p role="alert">{startRefusal}</p>}
       {startOutcome.state === "starting" && <p role="status">Starting the new conversation…</p>}
+      {startOutcome.state === "not-sent" && <div role="alert" aria-label="Start outcome" tabIndex={-1} ref={outcomeNode}>
+        <p>{startOutcome.message}</p><p>Your handoff message is kept.</p>
+      </div>}
       {startOutcome.state === "unconfirmed" && <div role="alert" aria-label="Start outcome" tabIndex={-1} ref={outcomeNode}>
         <p><strong>The new conversation wasn't confirmed as started.</strong> Your handoff message is kept.</p>
         {startOutcome.held ? <>

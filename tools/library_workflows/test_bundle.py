@@ -210,8 +210,11 @@ def test_an_archive_that_is_not_the_selected_one_is_refused(tmp_path):
 def test_a_reading_that_cannot_be_made_is_never_a_pass(tmp_path):
     tree = built(tmp_path, FILES)
     output = tmp_path / "out"
-    # No tree at all is a difference and a failed verification, not an empty match.
+    # No tree at all is a difference and a failed verification, not an empty
+    # match: also when nothing is expected, where an absent tree read as an
+    # empty one would compare equal.
     assert bundle.differences(tree, output) == [f"not a folder: {output}"]
+    assert bundle.differences({}, output) == [f"not a folder: {output}"]
     assert bundle.verify_tree(output) == [f"missing: {bundle.MANIFEST_NAME}"]
     bundle.write_tree(tree, output)
     assert bundle.differences(tree, output) == [] and bundle.verify_tree(output) == []
@@ -243,3 +246,133 @@ def test_a_reading_that_cannot_be_made_is_never_a_pass(tmp_path):
     assert bundle.verify_tree(empty) == ["the manifest names no workflow"]
     with pytest.raises(bundle.BundleError, match="names no workflow"):
         built(tmp_path, FILES, [METHODS[2]])
+    # Also when the release holds no workflow folder either, where the index
+    # and the folders agree and nothing else would refuse the empty bundle.
+    without_workflows = {path: data for path, data in FILES.items() if not path.startswith(("workflows/alpha/", "workflows/beta/"))}
+    with pytest.raises(bundle.BundleError, match="names no workflow"):
+        built(tmp_path, without_workflows, [METHODS[2]])
+
+
+def test_the_tree_is_listed_once_so_files_and_folders_agree(tmp_path, monkeypatch):
+    tree = built(tmp_path, FILES)
+    output = tmp_path / "out"
+    bundle.write_tree(tree, output)
+    listed = []
+    listdir = bundle.os.listdir
+
+    def counted(folder):
+        names = listdir(folder)
+        listed.append(Path(folder))
+        # A folder that appears once a listing is done must not be able to
+        # make a second listing disagree with the first.
+        (output / "late").mkdir(exist_ok=True)
+        return names
+
+    monkeypatch.setattr(bundle.os, "listdir", counted)
+    read, other = bundle.read_tree(output)
+    folders = [output, output / "alpha", output / "alpha/resources", output / "alpha/tools", output / "beta"]
+    assert sorted(listed) == sorted(folders), "every folder is listed exactly once"
+    assert other == [] and read == tree
+
+
+def test_an_entry_that_cannot_be_classified_or_read_stops_every_command(tmp_path, monkeypatch):
+    tree = built(tmp_path, FILES)
+    output = tmp_path / "out"
+    bundle.write_tree(tree, output)
+    (output / "unread-folder").mkdir()
+    (output / "unread-folder/unseen").write_bytes(b"not in the release\n")
+    stale = output / "stale.md"
+    stale.write_bytes(b"not in the release\n")
+    lstat = bundle.os.lstat
+
+    def failing(path, *arguments, **options):
+        # The entry's kind cannot be established: an input or output error.
+        if Path(path).name == "unread-folder":
+            raise OSError(5, "Input/output error", str(path))
+        return lstat(path, *arguments, **options)
+
+    monkeypatch.setattr(bundle.os, "lstat", failing)
+    for reading in (lambda: bundle.differences(tree, output), lambda: bundle.verify_tree(output), lambda: bundle.write_tree(tree, output)):
+        with pytest.raises(bundle.BundleError, match="cannot read .*unread-folder"):
+            reading()
+    # The writer stopped before deleting or rewriting anything.
+    assert stale.read_bytes() == b"not in the release\n" and (output / "unread-folder/unseen").is_file()
+    monkeypatch.setattr(bundle.os, "lstat", lstat)
+    # Read normally, the same tree is reported as holding what the release does not.
+    assert bundle.differences(tree, output) == ["not in the release: stale.md", "not in the release: unread-folder/unseen"]
+    # A file that cannot be read stops the reading as well.
+    (output / "alpha/WORKFLOW.md").chmod(0)
+    try:
+        with pytest.raises(bundle.BundleError, match="cannot read .*WORKFLOW.md"):
+            bundle.differences(tree, output)
+    finally:
+        (output / "alpha/WORKFLOW.md").chmod(0o600)
+
+
+def test_a_tree_that_is_a_link_is_refused_by_every_command(tmp_path):
+    tree = built(tmp_path, FILES)
+    target = tmp_path / "elsewhere"
+    bundle.write_tree(tree, target)
+    stale = target / "stale.md"
+    stale.write_bytes(b"would be deleted through the link\n")
+    output = tmp_path / "out"
+    output.symlink_to(target)
+    for reading in (lambda: bundle.differences(tree, output), lambda: bundle.verify_tree(output), lambda: bundle.write_tree(tree, output)):
+        with pytest.raises(bundle.BundleError, match="is a link"):
+            reading()
+    assert stale.is_file()
+    # A link inside the tree stops the writer before it deletes or rewrites.
+    (target / "linked").symlink_to(target / "alpha")
+    (target / "beta/WORKFLOW.md").write_bytes(b"changed\n")
+    with pytest.raises(bundle.BundleError, match="not a regular file: linked"):
+        bundle.write_tree(tree, target)
+    assert stale.is_file() and (target / "beta/WORKFLOW.md").read_bytes() == b"changed\n"
+
+
+def test_the_writers_clean_up_uses_the_same_reading_and_its_failure_is_a_refusal(tmp_path, monkeypatch, capsys):
+    # A whole generate through the command line, on an invented selection.
+    archive = release({**FILES, bundle.INDEX_PATH: index(METHODS)})
+    path = tmp_path / "invented.tar"
+    path.write_bytes(archive)
+    selection = selection_for(archive)
+    record = {key: selection[key] for key in ("repository", "tag", "commit")}
+    record["published_archive"] = {"name": "invented.tar", "bytes": len(archive), "reported_sha256": selection["archive"]["sha256"]}
+    (tmp_path / bundle.SELECTION).parent.mkdir(parents=True)
+    (tmp_path / bundle.SELECTION).write_text(json.dumps(record))
+    monkeypatch.setattr(bundle, "ROOT", tmp_path)
+    output = tmp_path / bundle.OUTPUT
+    assert bundle.main(["generate", "--archive", str(path)]) == 0
+    assert bundle.main(["compare", "--archive", str(path)]) == 0 and bundle.main(["verify"]) == 0
+    # The clean-up removes a folder left holding no file, however deep.
+    (output / "stale/deeper").mkdir(parents=True)
+    (output / "stale/deeper/old.md").write_bytes(b"not in the release\n")
+    assert bundle.main(["generate", "--archive", str(path)]) == 0
+    assert not (output / "stale").exists()
+    # A listing that fails during the clean-up, on a tree that is correct and
+    # unchanged, stops the command: generate does not report success.
+    listdir = bundle.os.listdir
+    root_listings = []
+
+    def failing(folder):
+        if Path(folder) == output:
+            root_listings.append(folder)
+            if len(root_listings) == 2:  # the first is the writer's reading, the second its clean-up
+                raise OSError(5, "Input/output error", str(folder))
+        return listdir(folder)
+
+    monkeypatch.setattr(bundle.os, "listdir", failing)
+    tree = bundle.build(bundle.read_release(path, selection), selection)
+    with pytest.raises(bundle.BundleError, match="cannot read"):
+        bundle.write_tree(tree, output)
+    assert len(root_listings) == 2, "the writer's clean-up listed the tree itself and stopped on the error"
+    root_listings.clear()
+    capsys.readouterr()
+    assert bundle.main(["generate", "--archive", str(path)]) == 2
+    assert "refused: cannot read" in capsys.readouterr().err and len(root_listings) == 2
+    # Something at the tree's place that is not a folder is refused, not replaced.
+    monkeypatch.setattr(bundle.os, "listdir", listdir)
+    plain = tmp_path / "plain"
+    plain.write_bytes(b"a file where the tree should be\n")
+    for reading in (lambda: bundle.differences({}, plain), lambda: bundle.verify_tree(plain), lambda: bundle.write_tree({}, plain)):
+        with pytest.raises(bundle.BundleError, match="is not a folder"):
+            reading()

@@ -1,7 +1,7 @@
 {
   "record_kind": "exam_result",
   "format": "EXP-v0.2",
-  "record_id": "INVENTED-SQ-RUN-B-M12-2",
+  "record_id": "INVENTED-SQ-J1-3",
   "support_revision": {
     "exp_version": "EXP-v0.2",
     "schema_id": "urn:chirality:app-v4:del-09-01:exam-result-record:0.2",
@@ -9,12 +9,11 @@
   },
   "case": {
     "owner_deliverable": "DEL-09-02",
-    "case_id": "M12-2",
-    "scenario": "V4-EXM-12"
+    "case_id": "J1-3"
   },
   "criterion": {
-    "source": "INVENTED criterion for M12-2",
-    "identity": "sha256:10bf6a535aa625fd368a0158d6993ff26967f9ca8ed25f6138c5865c558c13bb"
+    "source": "INVENTED criterion for J1-3",
+    "identity": "sha256:451c4f6b07f322b7ca42287b901a50ef84930154903fa6863489ecea64154d09"
   },
   "activity": "verification",
   "run_basis": "candidate",
@@ -36,8 +35,10 @@
         "arch": "INVENTED arm64"
       },
       "native_route": {
-        "method": "person_operated",
-        "form_ref": "INVENTED-FORM-M12-2"
+        "method": "ui_automation",
+        "tool": "INVENTED harness computer use",
+        "tool_definition_check": "INVENTED-DC-N2",
+        "form_ref": "INVENTED-FORM-J1-3"
       },
       "webview": {
         "name": "WKWebView",
@@ -46,31 +47,16 @@
       }
     },
     "model": "not_observed",
-    "model_server": {
-      "kind": "local_provider",
-      "label": "INVENTED local model server",
-      "home": "H-acct"
-    }
+    "model_server": "not_observed"
   },
   "date": {
     "value": "2026-10-08",
     "source": "record_timestamp"
   },
-  "outcome": "fail",
-  "evidence": [
-    {
-      "ref": "INVENTED native form row M12-2: local model server observed in the account home H-acct",
-      "provenance": "live_observation"
-    }
-  ],
+  "outcome": "blocked",
+  "evidence": [],
   "currency": {
     "state": "current"
   },
-  "limits": [
-    {
-      "label": "observed home differs from the declared home",
-      "vocabulary": "EXP",
-      "detail": "Observed: Codex held the local model server's key in the account home H-acct, not in the dedicated local home H-omlx declared for it; the declared access modes are unchanged."
-    }
-  ]
+  "blocked_by": "INVENTED unmet prerequisite"
 }

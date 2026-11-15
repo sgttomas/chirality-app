@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {loadSrc} from './support/load-src.mjs';
+import {agentPlain} from './support/agent-text.mjs';
 
 const {RunOffer}=loadSrc('RunOffers');
 const {NativeActivityView}=loadSrc('NativeActivity');
@@ -28,7 +29,7 @@ const pressAll=offer=>{const calls=[];const tree=RunOffer({offer,generation:g,re
 test('a finished report is the agent statement and ends nothing until the person presses End run (RN-7, FN-3)',()=>{
   const offer={message,finished,proposal:null};
   const h=html(offer);
-  assert.match(h,/The agent wrote <q>Workflow finished: project:supports-adjust<\/q>\. This is the agent’s statement; run run:workflow:a stays in force until you end it\./);
+  assert.match(agentPlain(h),/⟦The agent wrote: Workflow finished: project:supports-adjust⟧ This is the agent’s statement; run <code>run:workflow:a<\/code> stays in force until you end it\./);
   assert.match(h,/<button>End run<\/button>/);
   assert.match(h,/does not check or take the work as done/);
   assert.deepEqual(pressAll(offer),[['workflow_end_run',{runRef:'run:workflow:a',finishedReport:message}]],'the press names the message; the host re-reads it');
@@ -37,7 +38,7 @@ test('a finished report is the agent statement and ends nothing until the person
 test('a proposal is never a start: the person starts it, and only one way at a time (RN-3, RN-4, PR-4)',()=>{
   const plain={message,finished:null,proposal:proposal()};
   const h=html(plain);
-  assert.match(h,/The agent proposed <q>Next workflow: project:load-check<\/q>\. Nothing is selected or started unless you choose it\./);
+  assert.match(agentPlain(h),/The agent proposed a next workflow: ⟦Next workflow: project:load-check⟧\. Nothing is selected or started unless you choose it\./);
   assert.match(h,/<button>Start load-check \(proposed by the agent\)<\/button>/);
   assert.ok(!/End .* and start/.test(h));
   assert.deepEqual(pressAll(plain),[['workflow_start_proposed',{generation:g,message,runRef:null,personText:'',proposalContext:context}]]);
@@ -63,9 +64,9 @@ test('the activity view places offers beneath their message and run markers at t
   const view={items:[row('t1',0,{id:'u',type:'userMessage',content:[{type:'text',text:runText},{type:'text',text:'My brief'}]}),row('t2',1,{id:'m',type:'agentMessage',text:'Done.\nWorkflow finished: project:supports-adjust'}),row('t3',2,{id:'z',type:'agentMessage',text:'Later'})],
     turns:[],turnRecords:[],revisions:[],descendants:[]};
   const run={reference:'run:workflow:a',conversation:'T',turn:'t1',endedAfterTurn:'t2',workflow:{name:'supports-adjust',revision:'abcdef0123456789'},lifecycle:{state:'ended by the person',end:{cause:'completed'}},finishedReport:{run:'run:workflow:a'}};
-  const out=renderToStaticMarkup(React.createElement(NativeActivityView,{view,threadId:'T',runs:[run],offers:[{message,finished,proposal:null}],renderOffer:o=>React.createElement('span',null,`OFFER ${o.message.itemId}`)}));
+  const out=renderToStaticMarkup(React.createElement(NativeActivityView,{view,threadId:'T',runs:[run],offers:[{message,finished,proposal:null}],offerControls:{generation:g,ready:true,busy:false,act:async()=>{}}}));
   const start=out.indexOf('Workflow run started: <b>supports-adjust abcdef012345</b>');const brief=out.indexOf('My brief');
-  const offer=out.indexOf('OFFER m');const end=out.indexOf('Run ended: <b>completed</b>');const later=out.indexOf('Later');
+  const offer=out.indexOf('aria-label="Workflow run offer"');const end=out.indexOf('Run ended: <b>completed</b>');const later=out.indexOf('Later');
   assert.ok(start>=0&&start<brief&&brief<offer&&offer<end&&end<later,`order: ${[start,brief,offer,end,later]}`);
   assert.match(out,/<summary>Workflow run text the App supplied \(\d+ characters\)<\/summary>/,'the supplied bytes are folded and openable');
   assert.match(out,/you ended it on the agent&#x27;s “Workflow finished” statement/);

@@ -2391,6 +2391,28 @@ fn u_store_2_new_a15_has_unverified_provenance_and_old_a15_is_unknown() {
     assert!(!restarted.is_held(second.identity()), "persistent attribution never restores selection authority");
 }
 
+/// The library's act log that cannot be examined (its records folder not
+/// searchable, the registration ledger beside it still readable): the
+/// registration history says its act set is incomplete, and never reads as a
+/// complete history in which no registration has an act.
+#[test]
+fn u_store_2_an_unexaminable_act_log_never_reads_as_a_complete_history_without_acts() {
+    use std::os::unix::fs::PermissionsExt;
+    let s = Scratch::new();
+    let one = s.put("sample", false, "One");
+    let owner = s.persistent_owner();
+    register(&owner, one.revision());
+    let cold = s.persistent_owner();
+    assert!(cold.registration_evidence()["limits"].as_array().unwrap().is_empty(), "readable: no limit");
+    let records = storage::library_log(&s.0).parent().unwrap().to_path_buf();
+    fs::set_permissions(&records, fs::Permissions::from_mode(0o000)).unwrap();
+    let history = cold.registration_evidence();
+    fs::set_permissions(&records, fs::Permissions::from_mode(0o700)).unwrap();
+    assert_eq!(history["rows"].as_array().unwrap().len(), 1, "the ledger is still read: {history}");
+    assert!(history["limits"].as_array().unwrap().iter().any(|l| l.as_str().is_some_and(|l| l.contains("incomplete record"))),
+        "the act set is said to be incomplete: {}", history["limits"]);
+}
+
 fn registered(outcome: &EntryOutcome) -> &RegisteredRevision {
     match outcome {
         EntryOutcome::Registered { revision, .. } => revision,
@@ -2880,4 +2902,78 @@ fn owner_with_held(owner: &LibraryOwner, level: AssuranceLevel) -> LibraryOwner 
     same.held = owner.held.clone();
     same.set_assurance_level(level);
     same
+}
+
+fn alias_registry_append(kind: &str) {
+    storage::append_alias_fixture(kind, b"", |path| {
+        // The writer's fixed registry spelling, aliased to the fixture's final.
+        let library = path.parent().unwrap().join("library");
+        fs::create_dir_all(library.join(".chirality")).unwrap();
+        fs::rename(path, library.join(".chirality/workflow-registry.jsonl")).unwrap();
+        let result = append_line(&library, &json!({"invented":"line"})).map_err(|e| e.to_string());
+        fs::rename(library.join(".chirality/workflow-registry.jsonl"), path).unwrap();
+        result
+    });
+}
+#[test]
+fn alias_refusal_registry_hardlink() { alias_registry_append("hardlink"); }
+#[test]
+fn alias_refusal_registry_symlink() { alias_registry_append("symlink"); }
+#[test]
+fn alias_refusal_registry_dangling() { alias_registry_append("dangling"); }
+#[test]
+fn alias_refusal_registry_fifo() { alias_registry_append("fifo"); }
+
+#[test]
+fn alias_refusal_registry_pending_retains_liveness_and_true_sentence_on_repeat() {
+    let s = Scratch::new();
+    let snap = s.put("sample", false, "One");
+    let owner = s.persistent_owner();
+    let session = owner.review_draft("sample", snap.revision()).unwrap();
+    let r = receipt(&session);
+    let mut attempt = session.begin_hot_registration(r).unwrap();
+    let path = s.0.join(".chirality/workflow-registry.jsonl");
+    let other = s.0.join("other");
+    fs::write(&other, b"").unwrap();
+    fs::hard_link(&other, &path).unwrap();
+    let mut reasons = Vec::new();
+    for _ in 0..2 {
+        match &attempt.advance()[0] {
+            EntryOutcome::Pending { reason, .. } => {
+                assert_eq!(reason, &format!("the workflow registry file {} has another name. Nothing was written to it, and the registration was not made. The App is not retrying; waiting will not resolve this.", path.display()));
+                assert!(!reason.contains("durability uncertain"), "{reason}");
+                reasons.push(reason.clone());
+            }
+            other => panic!("expected explicit refusal with retained liveness: {other:?}"),
+        }
+        assert!(matches!(attempt.progress[0], Progress::Pending(_)));
+        assert!(attempt.session.live.is_some());
+        assert!(storage::try_lock_exclusive(&liveness_path(&s.0)).unwrap().is_none());
+        assert_eq!(fs::read(&other).unwrap(), b"");
+        assert_eq!(fs::read(&path).unwrap(), b"");
+        assert!(s.persistent_owner().reconciliation()[0].starts_with("X-2 deferred"));
+    }
+    assert_eq!(reasons[0], reasons[1]);
+}
+
+/// A folder name that contains the refusal's own words is kept verbatim: only
+/// the sentence's terminal suffix is rewritten.
+#[test]
+fn alias_refusal_registry_sentence_keeps_a_path_containing_its_own_words() {
+    let root = std::env::temp_dir().canonicalize().unwrap()
+        .join(crate::util::opaque_id("registry-words-").unwrap())
+        .join("Library; nothing was written to it");
+    fs::create_dir_all(root.join(".chirality")).unwrap();
+    let path = root.join(".chirality/workflow-registry.jsonl");
+    let other = root.join("other");
+    fs::write(&other, b"").unwrap();
+    fs::hard_link(&other, &path).unwrap();
+    let error = storage::open_append(&path, "workflow registry", true, false).unwrap_err();
+    assert!(error.is_refusal());
+    assert_eq!(
+        registry_refusal_reason(&error),
+        format!("the workflow registry file {} has another name. Nothing was written to it, and the registration was not made. The App is not retrying; waiting will not resolve this.", path.display())
+    );
+    assert_eq!(fs::read(&other).unwrap(), b"");
+    fs::remove_dir_all(root.parent().unwrap()).unwrap();
 }

@@ -73,6 +73,29 @@ fn write_act(project: &Path, id: &str, subject: &str, secret: &str) {
 fn call(n: u64, arguments: Value) -> Call {
     Call { app_session: "app-session:fixture".into(), generation: "g:fixture".into(), request: json!(n), thread: "thread".into(), turn: "turn".into(), call: format!("call-{n}"), arguments }
 }
+
+#[test]
+fn records_store_writer_binding_f4_read_log_refusal_reaches_tool_and_person() {
+    let s = Scratch::new();
+    let project = s.project("f4");
+    write_run(&project, "run:f4", 1, "retained-f4", false);
+    let dir = crate::records_store::attach(&project, false).unwrap().dir.unwrap();
+    let registry = crate::records_store::store_root().unwrap().join("roots.jsonl");
+    std::fs::write(&registry, b"").unwrap();
+    let reason = crate::records_store::attach(&project, false).unwrap().refusal.unwrap();
+    let capability = RecordsCapability::new(&project).unwrap();
+    let response = capability.answer(&call(1, json!({"operation":"list_runs"})), project.to_str());
+    assert_eq!(response["success"], false);
+    assert_eq!(returned(&response)["refused"], format!("the read could not be recorded (read log unavailable: {reason}); nothing returned"));
+    let shown = capability.snapshot();
+    assert_eq!(shown["readLogLimit"], format!("read log unavailable: {reason}"));
+    assert!(shown["recentReads"].as_array().unwrap().is_empty());
+    assert!(!dir.join(crate::records_store::READ_LOG).exists());
+    assert_eq!(std::fs::read(&registry).unwrap(), b"");
+    crate::records_store::adopt(&project).unwrap();
+    let capability = RecordsCapability::new(&project).unwrap();
+    assert_eq!(capability.answer(&call(1, json!({"operation":"list_runs"})), project.to_str())["success"], true);
+}
 fn returned(answer: &Value) -> Value {
     assert_eq!(answer["contentItems"].as_array().unwrap().len(), 1);
     assert_eq!(answer["contentItems"][0]["type"], "inputText");
@@ -226,7 +249,52 @@ fn each_call_is_recorded_once_schema_valid_and_before_it_is_answered() {
     std::fs::write(f.read_log(), b"{\"torn\":").unwrap();
     assert_eq!(cap.answer(&call(4, json!({"operation":"list_runs"})), Some(a.to_str().unwrap()))["success"], false);
     assert_eq!(std::fs::read(f.read_log()).unwrap(), b"{\"torn\":");
-    assert!(cap.snapshot()["readLogLimit"].as_str().unwrap().contains("unclosed final line"), "the cause is shown with the capability");
+    assert!(cap.snapshot()["readLogLimit"].as_str().unwrap().contains("was not recorded completely"), "the cause is shown with the capability");
+}
+
+/// LIM-014: a read log whose last line was cut short. The refusal names the
+/// file as the App resolved it, says that nothing recorded is lost, and gives
+/// the one act that recovers it: a rename, in the same folder, to the name it
+/// gives. After the rename a read is recorded in a new read log, and the
+/// renamed file's bytes are unchanged.
+#[test]
+fn records_access_a_torn_read_log_names_its_file_and_recovery_and_reads_again_after_the_rename() {
+    let f = Scratch::new();
+    let a = f.project("project");
+    write_run(&a, "run:1", 2, "T", false);
+    let cap = capability(&f, &a);
+    let first = cap.answer(&call(1, json!({"operation":"list_runs"})), Some(a.to_str().unwrap()));
+    assert_eq!(first["success"], true, "{first}");
+    let mut torn = std::fs::read(f.read_log()).unwrap();
+    torn.extend_from_slice(b"{\"format\":\"chirality.records-read-log\",\"readId\":\"rread:cut");
+    std::fs::write(f.read_log(), &torn).unwrap();
+    let refused = cap.answer(&call(2, json!({"operation":"list_runs"})), Some(a.to_str().unwrap()));
+    assert_eq!(refused["success"], false);
+    // What the person is shown with the records capability: the whole sentence.
+    let said = cap.snapshot()["readLogLimit"].as_str().unwrap().to_owned();
+    let path = f.read_log().display().to_string();
+    assert!(said.contains(&format!("rename {path}, in the same folder, to exactly ")), "the act, the file and where it is: {said}");
+    assert!(said.starts_with("This project's records capability cannot answer reads"), "the capability, not every way of reading files: {said}");
+    assert!(said.contains("ends in a read that was not recorded completely") && said.contains("nothing already recorded is lost"), "{said}");
+    let start = said.find("to exactly ").expect("the new name") + "to exactly ".len();
+    let name = said[start..].split(". ").next().unwrap().to_owned();
+    assert!(name.starts_with("records-reads.jsonl.torn-") && !name.ends_with(".jsonl") && !name.contains('/'), "a name in the same folder that no log inventory takes for a log: {name}");
+    // What the agent is told: the same sentence, within the refusal's bound.
+    // The act comes first, so here (a short path) the file and the new name
+    // are before any cut.
+    let agent = returned(&refused)["refused"].as_str().unwrap().to_owned();
+    let told = agent.trim_start_matches("the read could not be recorded (");
+    let kept = told.split("… (cut;").next().unwrap().trim_end_matches("); nothing returned");
+    assert!(said.starts_with(kept) && kept.contains(&path) && kept.contains(&name), "the agent is told the same sentence: {agent}");
+    assert_eq!(std::fs::read(f.read_log()).unwrap(), torn, "nothing appended, nothing cut");
+    // The person's act, as the sentence says it.
+    let renamed = f.read_log().with_file_name(&name);
+    std::fs::rename(f.read_log(), &renamed).unwrap();
+    let again = cap.answer(&call(3, json!({"operation":"list_runs"})), Some(a.to_str().unwrap()));
+    assert_eq!(again["success"], true, "{again}");
+    assert_eq!(f.logged().len(), 1, "the read is recorded in a new read log");
+    assert_eq!(f.logged()[0]["callId"], "call-3");
+    assert_eq!(std::fs::read(&renamed).unwrap(), torn, "the renamed file's bytes are unchanged");
 }
 
 fn text_of(answer: &Value) -> &str {
@@ -352,6 +420,9 @@ for line in sys.stdin:
   cwd=f['params'].get('cwd') or os.getcwd()
   threads['thread']=cwd
   emit({'id':f['id'],'result':{'thread':thread(cwd),'model':f['params'].get('model'),'modelProvider':f['params'].get('modelProvider'),'cwd':cwd,'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}})
+ elif method=='config/read':
+  # An App-started account home reports the built-in provider; a fork is admitted only there.
+  emit({'id':f['id'],'result':{'config':{'model_provider':'openai','model_providers':{}},'origins':{}}})
  elif method=='thread/fork':
   src=f['params']['threadId'];cwd=threads[src]
   if os.path.exists('fork-cwd'):cwd=open('fork-cwd').read()
@@ -872,4 +943,98 @@ fn records_continuity_physical_project_changed_during_source_read_is_a_logged_re
     let response=cap.answer(&call(1,json!({"operation":"list_runs"})),project.to_str());
     assert_eq!(response["success"],false);assert!(!response.to_string().contains("NEW-PROJECT-SECRET"));assert!(!response.to_string().contains("run:foreign"));
     let log=f.logged();assert_eq!(log.len(),1);assert_eq!(log[0]["outcome"],"refused");assert!(log[0]["refusal"].as_str().unwrap().contains("physical project changed"));
+}
+
+fn alias_read_log(kind: &str) {
+    // Setup is outside the timed refusal: schema/index setup is unrelated to
+    // whether opening the read log blocks on a FIFO.
+    let f = Scratch::new();
+    let project = f.project("project");
+    write_run(&project, "run:alias", 1, "secret-invented-record-content", false);
+    let cap = capability(&f, &project);
+    crate::storage::append_alias_fixture(kind, b"", |path| {
+        cap.log.lock().unwrap().place = LogPlace::Fixed(path.to_path_buf());
+        let request = call(1, json!({"operation":"read_run","run":"run:alias"}));
+        let answer = cap.answer(&request, project.to_str());
+        assert_eq!(answer["success"], false, "{answer}");
+        let text = answer["contentItems"][0]["text"].as_str().unwrap();
+        let reason = match kind { "fifo" => "is not a regular file", "symlink" | "dangling" => "is a symbolic link", _ => "has another name" };
+        let decided = format!("the read could not be recorded (the read log file {} {reason}; nothing was written to it); nothing returned", path.display());
+        assert!(text.contains(&decided), "{text}");
+        assert!(!text.contains("secret-invented-record-content"), "{text}");
+        let log = cap.log.lock().unwrap();
+        assert!(log.answered.is_empty(), "the repeat marker must roll back");
+        let cause = log.limit.clone().unwrap();
+        drop(log);
+        assert_eq!(cap.snapshot()["readLogLimit"], cause);
+        Err(cause)
+    });
+}
+#[test]
+fn alias_refusal_read_log_hardlink() { alias_read_log("hardlink"); }
+#[test]
+fn alias_refusal_read_log_symlink() { alias_read_log("symlink"); }
+#[test]
+fn alias_refusal_read_log_dangling() { alias_read_log("dangling"); }
+#[test]
+fn alias_refusal_read_log_fifo() { alias_read_log("fifo"); }
+
+#[test]
+fn alias_refusal_read_log_parent_symlink_creates_nothing() {
+    let f = Scratch::new();
+    let project = f.project("project");
+    let outside = f.project("outside");
+    let parent = f.0.join("alias-parent");
+    std::os::unix::fs::symlink(&outside, &parent).unwrap();
+    let cap = RecordsCapability::at(&project, parent.join("read-log.jsonl")).unwrap();
+    let answer = cap.answer(&call(1, json!({"operation":"list_runs"})), project.to_str());
+    assert_eq!(answer["success"], false, "{answer}");
+    assert!(answer.to_string().contains("owning path contains symlink"), "{answer}");
+    assert!(!outside.join("read-log.jsonl").exists(), "the existing parent-path check must precede creation");
+}
+
+#[test]
+fn records_history_notice_changed_page_keeps_notice_and_reduces_items_at_final_bound() {
+    struct Fixed(Corpus);
+    impl RecordsSource for Fixed {
+        fn read(&self) -> Corpus { Corpus { entries: self.0.entries.clone(), limits: self.0.limits.clone() } }
+    }
+    let f = Scratch::new(); let project = f.project("near-bound");
+    let arguments = json!({"operation":"read_run","run":"run:near-bound","limit":MAX_ITEMS});
+    let request = Request::parse(&arguments).unwrap();
+    let root = ProjectRoot::new(&project, &project);
+    let read_id = "rread:00000000-0000-4000-8000-000000000000";
+    let mut corpus = Corpus { entries: (1..=3).map(|seq| SourcedEntry {
+        entry: crate::records::envelope("evidence_limit", &crate::records::APP_WRITER,
+            json!({"label":"unresolvable reference","subjectRef":"invented bound case","detail":"x".repeat(4500)}),
+            format!("rec:app:near-bound-{seq}"), seq, Some("run:near-bound"), None),
+        log:"invented.jsonl".into(), line:seq as usize,
+    }).collect(), limits:vec![String::new(); MAX_LIMITS] };
+    // Escaped control characters create a valid near-bound document without
+    // relying on oversized entries (which the source reader would stub).
+    let target = RESPONSE_LIMIT - 50;
+    let missing = target - document_text(read_id, &request, &page(&corpus, &request, &root)).len();
+    let mut escaped = missing / 6;
+    for limit in &mut corpus.limits { let n = escaped.min(300); *limit = "\0".repeat(n); escaped -= n; }
+    assert_eq!(escaped, 0);
+    corpus.limits.last_mut().unwrap().push_str(&"x".repeat(missing % 6));
+    let near = page(&corpus, &request, &root);
+    assert_eq!(document_text(read_id, &request, &near).len(), target);
+    let before_items = near.items.len(); assert_eq!(before_items, 3);
+    let mut expanded = near;
+    expanded.history_notices = crate::records_store::HistoryNotice::Changed.page();
+    assert!(document_text(read_id, &request, &expanded).len() > RESPONSE_LIMIT);
+    let changed_project = project.clone();
+    crate::records_store::HISTORY_AFTER_ROWS.with(|hook| *hook.borrow_mut() = Some(Box::new(move || {
+        crate::records::append_project(&changed_project, None, "notice-bound", "evidence_limit", &crate::records::APP_WRITER,
+            json!({"label":"unresolvable reference","subjectRef":"routing changed","detail":"invented final store record"})).unwrap();
+    })));
+    let capability = RecordsCapability::with_source(&project, Box::new(Fixed(corpus)), f.read_log()).unwrap();
+    let answer = capability.answer(&call(1, arguments), project.to_str());
+    assert_eq!(answer["success"], true, "{answer}");
+    let text = text_of(&answer); assert!(text.len() <= RESPONSE_LIMIT, "{} bytes", text.len());
+    let result = returned(&answer);
+    assert_eq!(result["historyNotices"], json!([crate::records_store::HISTORY_CHANGED_PAGE]));
+    assert!(result["items"].as_array().unwrap().len() < before_items);
+    assert_eq!(result["next"], "o:2", "pagination resumes at the first removed original item");
 }

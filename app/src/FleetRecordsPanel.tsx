@@ -1,3 +1,4 @@
+import { returnReviewAnchor } from "./WaitingOnYou";
 type Json = any;
 export type FleetPacket = {
   format: string; formatVersion: string; standing: string;
@@ -6,6 +7,8 @@ export type FleetPacket = {
   coordination: { projectRecords: Json[]; governingStoreRecords: Json[]; appObservations: Json[]; nativeRelationships?: Json[]; recordingEvents?: Json[]; protected: { state: string } };
   limits: { source: { home?: string; path?: string; line?: number }; reason: string }[];
   nativeRecording: string;
+  /** Added by the App's read (not by the files): what this session's reconciliation of earlier sessions' delegation observations has done, as the record tick last left it; its limit, if any, is also among `limits`. */
+  delegationReconciliation?: { state: string; limit?: string; reason?: string; endsRecorded?: number; sessionsNotEstablished?: string[] };
   workspace?: { standing: string; graphIdentityMethod: string; undertakings: Json[]; limits: string[] };
 };
 
@@ -44,7 +47,7 @@ export function FleetRecordsPanel({ packet, error, busy, refresh }: {
       {packet.limits.length > 0 && <div role="alert"><p>Source and relationship limits:</p><ul>{packet.limits.map((limit, index) => <li key={index}>
         {limit.source.home}{limit.source.path ? `: ${limit.source.path}` : ""}{limit.source.line ? ` (line ${limit.source.line})` : ""}: {limit.reason}
       </li>)}</ul></div>}
-      <details><summary>Complete fleet packet, sources and provenance</summary><pre>{JSON.stringify(packet, null, 2)}</pre></details>
+      <details><summary>Complete fleet packet, sources and provenance</summary><RecordedData value={packet} /></details>
     </>}
   </section>;
 }
@@ -54,14 +57,14 @@ function FleetWorkspace({ workspace }: { workspace: NonNullable<FleetPacket["wor
     <h4>Returns and waiting work</h4>
     <p>{workspace.standing}</p>
     {workspace.undertakings.length === 0 && <p>No undertaking graph or selector was read. No conclusion about absent work follows.</p>}
-    {workspace.undertakings.map(view => <section key={view.undertaking} aria-label={`Undertaking ${view.undertaking}`}>
-      <h4>{view.undertaking}</h4>
+    {workspace.undertakings.map(view => <section key={view.undertaking} aria-label={`Undertaking ${idWords(view.undertaking)}`}>
+      <h4>Undertaking {idWords(view.undertaking)}</h4>{plainId(view.undertaking) === null && <p>Recorded undertaking: <AgentText value={view.undertaking} source="record" name="The undertaking's name, as recorded; the App does not vouch for its words" /></p>}
       {view.graph ? <p>{view.currentGraphEstablished ? "Current graph" : "Last readable graph; currentness unknown"}: {view.graph}, revision {view.revision}.</p>
         : <p>No current graph established. Returns and waiting work cannot be reconstructed for this undertaking.</p>}
       {view.notes.length > 0 && <ul>{view.notes.map((note: string, i: number) => <li key={i}>{note}</li>)}</ul>}
       <h5>Return-review queue {view.queueComplete ? "(complete for the read packet)" : "(incomplete)"}</h5>
       {view.queue.length === 0 && <p>{view.queueComplete ? "No recorded returns await review or integration in this graph." : "No readable queued return shown; more work may be unrecorded or unread."}</p>}
-      <ul>{view.queue.map((row: Json) => <li key={row.returnRef}>
+      <ul>{view.queue.map((row: Json) => <li key={row.returnRef} id={typeof row.returnRef === "string" ? returnReviewAnchor(row.returnRef) : undefined}>
         <b>{row.item}: {row.outcome}</b> — {row.state}
         <p>Returned by {row.returnedBy}; recorded by {row.recordedBy}. Who examines: {row.examines}.
           {row.examiner ? ` Recorded reviewer: ${row.examiner}.` : " No review recorded."}</p>
@@ -72,16 +75,17 @@ function FleetWorkspace({ workspace }: { workspace: NonNullable<FleetPacket["wor
             : `return does not name a brief; ${view.currentGraphEstablished ? "current" : "last readable"} graph has no brief for this item${view.currentGraphEstablished ? "" : " (currentness unknown)"}.`}
           {row.examinesProvenance.briefId && !row.examinesProvenance.briefSource ? " No preparer established from the named brief." : ""}</p>}
         <p>Return: {row.returnRef}. Returned references: {row.returned.map((ref: Json) => ref.ref).join(", ")}.</p>
-        <details><summary>Return evidence and sources</summary><pre>{JSON.stringify({evidence: row.evidence, sources: row.sources, examinesProvenance: row.examinesProvenance}, null, 2)}</pre></details>
+        <details><summary>Return evidence and sources</summary><RecordedData value={{evidence: row.evidence, sources: row.sources, examinesProvenance: row.examinesProvenance}} /></details>
       </li>)}</ul>
       <h5>Selected work and waiting causes</h5>
       <ul>{view.waiting.map((row: Json) => <li key={row.item}>
         <b>{row.item}: {row.outcome}</b> — <strong>{row.category}</strong>
         <p>Owner: {row.owner}{row.next ? `. Next: ${typeof row.next === "string" ? row.next : JSON.stringify(row.next)}` : ""}</p>
         <ul>{row.causes.map((cause: string, i: number) => <li key={i}>{cause}</li>)}</ul>
-        <details><summary>Work evidence, needs and sources</summary><pre>{JSON.stringify({needs: row.needs, writeScope: row.writeScope, sources: row.sources}, null, 2)}</pre></details>
+        <details><summary>Work evidence, needs and sources</summary><RecordedData value={{needs: row.needs, writeScope: row.writeScope, sources: row.sources}} /></details>
       </li>)}</ul>
     </section>)}
     <details><summary>Reconstruction limits</summary><ul>{workspace.limits.map((limit, i) => <li key={i}>{limit}</li>)}</ul></details>
   </div>;
-}
+}import { AgentText, RecordedData, idWords, plainId } from "./AgentText";
+

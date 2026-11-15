@@ -25,8 +25,10 @@ What it guarantees:
 It also refuses known reserved locations as the output root (listed in
 RESERVED_LOCATIONS, not exhaustive), and it sets every writable location of the
 build tools' environment inside the output root (private HOME, npm cache, logs
-and configuration, CARGO_HOME, TMPDIR, CODEX_HOME, target), re-checking them by
-device and inode between steps. The npm cache and cargo home inputs are copied
+and configuration, CARGO_HOME, TMPDIR, target), re-checking them by
+device and inode between steps. It makes no Codex home and sets no CODEX_HOME:
+nothing in the build runs the supplier, and the caller's CODEX_HOME is not
+carried. The npm cache and cargo home inputs are copied
 in and the build uses the copies; the toolchain is reached through its own bin
 folders.
 
@@ -70,7 +72,7 @@ SYSTEM_PATH = '/usr/bin:/bin:/usr/sbin:/sbin'
 RESERVED_LOCATIONS = ('/Applications', '/Library', '/System')  # a courtesy list, not exhaustive; plus each home's Library and Applications
 INPUTS = ('node_bin', 'rust_bin', 'npm_cache', 'cargo_home')
 WRITABLE_FILES = ('NPM_CONFIG_USERCONFIG', 'NPM_CONFIG_GLOBALCONFIG')
-WRITABLE = ('HOME', 'TMPDIR', 'XDG_CACHE_HOME', 'XDG_CONFIG_HOME', 'CARGO_HOME', 'CARGO_TARGET_DIR', 'CODEX_HOME',
+WRITABLE = ('HOME', 'TMPDIR', 'XDG_CACHE_HOME', 'XDG_CONFIG_HOME', 'CARGO_HOME', 'CARGO_TARGET_DIR',
             'NPM_CONFIG_CACHE', 'NPM_CONFIG_PREFIX', 'NPM_CONFIG_LOGS_DIR') + WRITABLE_FILES
 TAG = re.compile(r'[A-Za-z0-9]+(?:-[A-Za-z0-9]+)*')  # no dots, spaces or parentheses
 PREFIX = 'dev.chirality.app-v4.candidate.'
@@ -267,7 +269,6 @@ def plan(repo, revision, out, supplier_archive=None, supplier_record=None, tag=N
     env.update(HOME=str(home), PATH=f"{inputs['node_bin']}:{inputs['rust_bin']}:{SYSTEM_PATH}",
                TMPDIR=str(root / 'tmp'), XDG_CACHE_HOME=str(home / '.cache'), XDG_CONFIG_HOME=str(home / '.config'),
                CARGO_HOME=str(root / 'cargo-home'), CARGO_TARGET_DIR=str(root / 'target'), CARGO_NET_OFFLINE='true',
-               CODEX_HOME=str(root / 'codex-home'),
                NPM_CONFIG_CACHE=str(root / 'npm-cache'), NPM_CONFIG_USERCONFIG=str(home / '.npmrc'),
                NPM_CONFIG_GLOBALCONFIG=str(home / 'npmrc-global'), NPM_CONFIG_PREFIX=str(home / 'npm-prefix'),
                NPM_CONFIG_LOGS_DIR=str(home / 'npm-logs'), NPM_CONFIG_UPDATE_NOTIFIER='false', NPM_CONFIG_OFFLINE='true')
@@ -393,9 +394,9 @@ def revalidate(p, root_id, required):
 
 
 def prepare_environment(p, root_id):
-    """The private home, temporary folder, Codex home, npm cache and cargo home, all inside the root."""
+    """The private home, temporary folder, npm cache and cargo home, all inside the root."""
     root, env, inputs = Path(p['root']), p['env'], p['inputs']
-    for key in ('HOME', 'TMPDIR', 'XDG_CACHE_HOME', 'XDG_CONFIG_HOME', 'CODEX_HOME', 'NPM_CONFIG_CACHE',
+    for key in ('HOME', 'TMPDIR', 'XDG_CACHE_HOME', 'XDG_CONFIG_HOME', 'NPM_CONFIG_CACHE',
                 'NPM_CONFIG_PREFIX', 'NPM_CONFIG_LOGS_DIR', 'CARGO_HOME', 'CARGO_TARGET_DIR'):
         make_dir(root, root_id, env[key])
     for key in WRITABLE_FILES:
@@ -536,10 +537,10 @@ def validate_bundle(p, root_id):
     _, info = _part(root, root_id, bundle / 'Contents/MacOS' / executable, 'executable')
     if not stat.S_ISREG(info.st_mode) or info.st_size == 0 or not info.st_mode & 0o111:
         raise ValueError('bundle executable missing, empty or not executable: ' + executable)
-    for name in ('instructions', 'workflows'):
-        folder, _ = _part(root, root_id, bundle / 'Contents/Resources' / name, 'resources ' + name)
+    for resource in ('instructions', 'workflows'):
+        folder, _ = _part(root, root_id, bundle / 'Contents/Resources' / resource, 'resources ' + resource)
         if not stat.S_ISDIR(os.lstat(folder).st_mode) or not os.listdir(folder):
-            raise ValueError('bundle resources missing or empty: ' + name)
+            raise ValueError('bundle resources missing or empty: ' + resource)
     if p['supplier']:
         _, info = _part(root, root_id, bundle / 'Contents/Resources/codex/bin/codex', 'supplier entrypoint')
         if not stat.S_ISREG(info.st_mode) or not info.st_mode & 0o111:

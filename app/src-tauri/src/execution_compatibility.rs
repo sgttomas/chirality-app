@@ -221,7 +221,28 @@ fn host_presence(v: &Value, e: &Environment) -> (Outcome, String) {
         (Outcome::Present, String::new())
     }
 }
+/// The one harness capability with an adopted availability rule at the
+/// current pin: delegation at Codex 0.167.0, read by DEL-01-03 NPTD §7.1 as
+/// the owner revised it on 2026-11-09 (`delegation_availability`). The other
+/// capabilities' availability account was adopted at 0.158.0 only and is not
+/// borrowed for 0.167.0 (DEL-01-01 REQ-011 states it per pin).
+pub(crate) const DELEGATION_RULE_PIN: &str = "App Codex 0.167.0";
 fn harness_presence(name: &str, e: &Environment) -> (Outcome, String) {
+    if name == "agent-delegation" && e.harness_pin.as_deref() == Some(DELEGATION_RULE_PIN) {
+        let Some(s) = &e.harness_signals else {
+            return (
+                Outcome::NotEstablished,
+                "delegation signals not read for this conversation".into(),
+            );
+        };
+        let reading = crate::delegation_availability::evaluate(Some(s));
+        let reason = reading["reason"].as_str().unwrap_or("").to_owned();
+        return match reading["reading"].as_str() {
+            Some("present") => (Outcome::Present, String::new()),
+            Some("missing") => (Outcome::Missing, reason),
+            _ => (Outcome::NotEstablished, reason),
+        };
+    }
     if e.harness_pin.as_deref() != Some("App Codex 0.158.0") {
         return (
             Outcome::NotEstablished,

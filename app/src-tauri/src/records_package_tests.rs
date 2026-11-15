@@ -328,11 +328,8 @@ fn records_package_refuses_changed_project_and_bag_info_identity_or_legacy_profi
 
 #[test]
 fn records_package_refuses_active_controls_but_retains_malformed_logs_and_unknown_evidence() {
-    for (control, directory) in [
-        (".writer.lock", false),
-        ("captures/.capture.lock", false),
-        (".writer.lock", true),
-    ] {
+    for (control, directory) in crate::records_store::payload::CONTROLS
+        .iter().flat_map(|control| [(control, false), (control, true)]) {
         let f = Fixture::new();
         f.export();
         let path = f.bag.join("data").join(control);
@@ -457,15 +454,18 @@ fn records_package_payload_inventory_is_complete_and_omits_only_plain_owning_con
     f.export();
     let snapshot = snapshot(&f.bag, &f.stage()).unwrap();
     let data = snapshot.root().join("data");
-    std::fs::write(data.join(".writer.lock"), b"").unwrap();
-    std::fs::create_dir_all(data.join("captures")).unwrap();
-    std::fs::write(data.join("captures/.capture.lock"), b"").unwrap();
+    for control in crate::records_store::payload::CONTROLS {
+        let path = data.join(control);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(path, b"").unwrap();
+    }
     std::fs::create_dir_all(data.join("connectors")).unwrap();
     std::fs::write(data.join("connectors/.unknown.tmp"), b"retained").unwrap();
     std::fs::write(data.join("connectors/unknown.lock"), b"retained").unwrap();
     let inventory = payload_inventory(&data).unwrap();
-    assert!(!inventory.contains_key(".writer.lock"));
-    assert!(!inventory.contains_key("captures/.capture.lock"));
+    for control in crate::records_store::payload::CONTROLS {
+        assert!(!inventory.contains_key(*control), "{control}");
+    }
     assert!(inventory.contains_key("connectors/.unknown.tmp"));
     assert!(inventory.contains_key("connectors/unknown.lock"));
     assert!(payload_inventory(&f.root.join("absent"))

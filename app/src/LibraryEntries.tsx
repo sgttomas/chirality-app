@@ -1,3 +1,4 @@
+import { safeName } from "./AgentText";
 import { useRef, useState } from "react";
 import { nativePathText } from "./presentation";
 
@@ -38,8 +39,8 @@ export function LibraryEntries({ library, busy, available, act }: { library: Jso
     {listing?.state === "observed" && entries.length === 0 && <p>No library entries were observed.</p>}
     {(listing?.limits ?? []).map((limit: Json, index: number) => <p role="note" key={index}>Listing limit: {words(limit)}</p>)}
     <ul>{entries.map((entry: Json, index: number) => <li key={entry.reference ?? index}>
-      <label><input type="checkbox" aria-label={`Review entry ${words(entry.name)}`} disabled={disabled || !eligible(entry)} checked={selected.includes(entry.reference)}
-        onChange={event => setChosen(old => event.target.checked ? [...old.filter(reference => reference !== entry.reference), entry.reference] : old.filter(reference => reference !== entry.reference))} /> {words(entry.name)}</label>
+      <label><input type="checkbox" aria-label={`Review entry ${safeName(entry.name)}`} disabled={disabled || !eligible(entry)} checked={selected.includes(entry.reference)}
+        onChange={event => setChosen(old => event.target.checked ? [...old.filter(reference => reference !== entry.reference), entry.reference] : old.filter(reference => reference !== entry.reference))} /> {safeName(entry.name)}</label>
       {" · "}{words(entry.state)}
       {entry.content?.value && <p>Content {words(entry.content.value)} ({words(entry.content.method)}).</p>}
       {(entry.fileCount !== undefined || entry.bytes !== undefined) && <p>{entry.fileCount !== undefined ? `${entry.fileCount} files` : "File count not established"}{entry.bytes !== undefined ? ` · ${entry.bytes} bytes` : ""}.</p>}
