@@ -7,6 +7,10 @@ needs:
     and what Codex reported with their agreement, when a change takes effect, project trust as
     sent and the lasting rules read from the active Codex home. Closed App sentences and supplied
     values are distinct; setting a level returns its result or refusal without a native confirmation.
+    The status supplies the closed reading, allowing-command and next-turn sentences, the per-case
+    ask and unread-records reason, and any inherited-association persistence failure with its
+    sentence and separately marked raw detail. The requested level associated with a reply is
+    distinguished from the reply's own policy, reviewer and sandbox values.
   gating: false
 - from: DEL-04-01
   condition: Every operation class has one of the five class values; a grant has a value of direct or

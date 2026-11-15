@@ -51,7 +51,9 @@ needs:
     historical, checks passed, limitations and lapse, with missing evidence and unobserved outcomes
     explicit. For a standalone conversation, the level panel shows the host's permission level,
     origin, dimensions, ask, sent and reported settings, timing, project trust and lasting rules
-    without inferring a choice or a supplier confirmation.
+    without inferring a choice or a supplier confirmation. It presents the host's closed reading,
+    allowing-command, next-turn and per-case ask sentences, and read or inherited-association
+    persistence failures with raw details marked apart from those sentences.
   gating: false
 - from: DEL-04-03
   condition: A human act and a declined act can be written as direct-capture records that bind

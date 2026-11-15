@@ -26,7 +26,6 @@ const REFUSALS = {
   "project-not-established": "The project folder has not been established for a sandboxed level. Only Full access remains offered here.",
   "codex-reported-another-level": "Codex reported another level. The App refused the next turn.",
 };
-const NEXT_TURN = "From the next turn. Commands already running, and anything they started, keep the access they started with until they end. If the agent tries to use one of them on a later turn, it asks you first, or, at a level that never asks, it is refused. They end when Codex closes normally, as it ordinarily does when you stop or restart Codex or quit the App.";
 const CHILD_LEVEL = "An agent already started by this conversation keeps the level it was started with.";
 const list = (value: Json): Json[] => Array.isArray(value) ? value : [];
 const name = (id: Json) => wordOf(NAMES, id) ?? "Not established";
@@ -130,11 +129,14 @@ function LevelPanel({ host, threadId }: { host: Json; threadId?: string }) {
       {typeof level.originSentence === "string" && <p>{level.originSentence}</p>}
       {typeof level.explanation === "string" && <p>{level.explanation}</p>}
       <p>{wordOf(WRITES, level.dimensions?.writes) ?? "Write access was not reported."} {wordOf(NETWORK, level.dimensions?.network) ?? "Network access was not reported."} {wordOf(ASKS, level.dimensions?.asks) ?? "When Codex asks was not reported."}</p>
-      <p>{level.reading === "not-limited" ? "Reading is not limited at any permission level." : "The reading limit was not reported."}</p>
+      {typeof level.readingSentence === "string" ? <p>{level.readingSentence}</p> : <p>The reading limit was not reported.</p>}
       {typeof level.allowing === "string" && <p>{level.allowing}</p>}
       {level.id === "full" && <p>At full access commands and file changes are not asked about.</p>}
       {level.sessionOnly?.detail?.text && <ReportedValue value={level.sessionOnly.detail.text}/>}
     </>}
+    {typeof host?.levelLaunchRead?.reason === "string" && <p>{host.levelLaunchRead.reason}</p>}
+    {host?.levelSessionOnlyOffered?.detail?.text && <ReportedValue value={host.levelSessionOnlyOffered.detail.text}/>}
+    {host?.levelLaunchRead?.homeState?.state === "unknown" && host.levelLaunchRead.homeState.detail?.text && <ReportedValue value={host.levelLaunchRead.homeState.detail.text}/>}
     {typeof host?.levelRecordsUnread === "string" && <p>{host.levelRecordsUnread}</p>}
     {ask && <div role="alert"><p>{ask.sentence}</p>
       {choice !== ask.preselected && <p>Your pending choice is {name(choice)}. It takes effect only when you press “Use selected level and continue”.</p>}
@@ -159,13 +161,17 @@ function LevelPanel({ host, threadId }: { host: Json; threadId?: string }) {
     {threadId && <>
       <p>Last level sent: {name(row?.level?.sent?.levelId)}. {row?.level?.sent?.writeResult === "written" ? "Written to Codex." : "Writing it to Codex is not established."}</p>
       {row?.level?.reported ? <div>
-        <p>Codex reply for the {name(row.level.reported.levelId)} request:</p>
+        <p>Codex reply for the {name(row.level.reported.requestedLevelId)} request:</p>
         <p>Approval policy: <AgentText source="codex" value={JSON.stringify(row.level.reported.approvalPolicy) ?? "not supplied"}/></p>
         <p>Approval reviewer: <AgentText source="codex" value={JSON.stringify(row.level.reported.approvalsReviewer) ?? "not supplied"}/></p>
         <p>Sandbox: <AgentText source="codex" value={JSON.stringify(row.level.reported.sandbox) ?? "not supplied"}/></p>
       </div> : <p>Codex has not reported a level.</p>}
       <p>{wordOf(AGREEMENT, row?.level?.agreement) ?? "Agreement has not been reported."}</p>
-      {row?.level?.takesEffect === "from-next-turn" && <p>{NEXT_TURN}</p>}
+      {typeof row?.level?.takesEffectSentence === "string" && <p>{row.level.takesEffectSentence}</p>}
+      {row?.level?.inheritancePersistence?.state === "not-recorded" && <div role="alert">
+        <p>{row.level.inheritancePersistence.sentence}</p>
+        {row.level.inheritancePersistence.detail?.text && <ReportedValue value={row.level.inheritancePersistence.detail.text}/>}
+      </div>}
       <p>{CHILD_LEVEL}</p>
       <ProjectTrust trust={row?.level?.projectTrust}/>
     </>}

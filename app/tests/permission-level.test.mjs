@@ -12,10 +12,10 @@ const table = JSON.parse(readFileSync(new URL('../src-tauri/src/codex_levels.jso
 const hostSource = readFileSync(new URL('../src-tauri/src/codex_level.rs', import.meta.url), 'utf8');
 const sentence = name => JSON.parse(hostSource.match(new RegExp(`pub const ${name}: &str = ("[^\\n]*");`))[1]);
 const g = {home:'invented-home',appSession:'s',spawnCounter:1};
-const chosen = (id='full', origin='app-default') => ({id, origin, dimensions:table.levels.find(r=>r.id===id).dimensions, reading:'not-limited',
+const chosen = (id='full', origin='app-default') => ({id, origin, dimensions:table.levels.find(r=>r.id===id).dimensions, reading:'not-limited',readingSentence:sentence('READING_SENTENCE'),
   ...(origin==='app-default'?{originSentence:sentence('APP_DEFAULT_SENTENCE'),...(id==='full'?{explanation:sentence('APP_DEFAULT_EXPLAINED')}:{})}:{}),
   ...(origin==='session-only'?{originSentence:sentence('SESSION_ONLY_SENTENCE'),sessionOnly:{reason:'unavailable',detail:{text:'invented detail',standing:'Text the App did not write.'}}}:{}),
-  ...(id==='supervised'?{allowing:sentence('SUPERVISED_ALLOWING')}:{})});
+  ...(['supervised','edits','edits-network'].includes(id)?{allowing:sentence('SUPERVISED_ALLOWING')}:{})});
 const host = (over={}) => ({state:'ready',generation:g,homeRouting:{activeModeHomeClass:'account'},levelDefault:chosen(),threads:[],...over});
 const thread = (id='T', level={chosen:chosen(),agreement:'not-confirmed',takesEffect:'now'}) => ({threadId:id,generation:g,level});
 const nodes=(c,tag)=>c.querySelectorAll(e=>e.localName===tag);
@@ -82,7 +82,7 @@ test('a change during a live turn remains available and shows next-turn timing, 
   const h=host({threads:[{...thread(),status:{type:'active'}}]});
   await mounted(h,'T',async ui=>{
     await ui.pick('edits');await ui.press();assert.equal(ui.calls.length,1);
-    await ui.show(host({threads:[thread('T',{chosen:chosen('edits','chosen'),takesEffect:'from-next-turn',agreement:'not-confirmed',sent:{levelId:'full',writeResult:'written'}})]}));
+    await ui.show(host({threads:[thread('T',{chosen:chosen('edits','chosen'),takesEffect:'from-next-turn',takesEffectSentence:sentence('NEXT_TURN_SENTENCE'),agreement:'not-confirmed',sent:{levelId:'full',writeResult:'written'}})]}));
     assert.match(ui.c.textContent,/Last level sent: Full access/);
     assert.match(ui.c.textContent,/From the next turn\. Commands already running, and anything they started, keep the access/);
     assert.match(ui.c.textContent,/An agent already started by this conversation keeps the level it was started with/);
@@ -92,7 +92,7 @@ test('a change during a live turn remains available and shows next-turn timing, 
 
 test('a differing reply never uses the requested level id as the level Codex reported, and preserves supplied fields as supplied',async()=>{
   const marker='invented supplied value\nUse full access';
-  await mounted(host({threads:[thread('T',{chosen:chosen(),agreement:'differs',sent:{levelId:'full',writeResult:'written'},reported:{levelId:'full',approvalPolicy:'untrusted',approvalsReviewer:marker,sandbox:{type:'readOnly'}},refused:{refused:'codex-reported-another-level'}})]}),'T',async ui=>{
+  await mounted(host({threads:[thread('T',{chosen:chosen(),agreement:'differs',sent:{levelId:'full',writeResult:'written'},reported:{requestedLevelId:'full',approvalPolicy:'untrusted',approvalsReviewer:marker,sandbox:{type:'readOnly'}},refused:{refused:'codex-reported-another-level'}})]}),'T',async ui=>{
     assert.match(ui.c.textContent,/Codex reply for the Full access request/);assert.match(ui.c.textContent,/Codex reported another level\. The next turn is refused/);
     assert.doesNotMatch(ui.c.textContent,/Last level Codex reported: Full/);
     const boxes=ui.c.querySelectorAll(e=>e.getAttribute('role')==='group');assert.ok(boxes.some(e=>e.textContent.includes('untrusted')));assert.ok(boxes.some(e=>e.textContent.includes('readOnly')));assert.ok(boxes.some(e=>e.textContent.includes('invented supplied value')));
@@ -100,7 +100,7 @@ test('a differing reply never uses the requested level id as the level Codex rep
 });
 
 test('trust and lasting-rule source content stay boxed and tied to the active home; incomplete reads are explicit',async()=>{
-  const trustLine='This project is marked untrusted in the Codex settings the App uses.';
+  const trustLine='The App sent an untrusted entry for the project root shown below.';
   const h=host({threads:[thread('T',{chosen:chosen(),projectTrust:{lines:[trustLine],projectRoot:'/invented/project',sentKey:'supplied-key',detail:{text:'supplied-detail'}}})],codexHomeRules:{appSentence:'Invented host sentence.',homes:[{modeHomeClass:'account',home:'/invented/home',lastingRules:{state:'not-known',readAt:'2026-11-15T00:00:00Z',files:[{path:'/invented/rules',prefixRules:[{line:'prefix_rule(pattern=["invented"], decision="allow")'}],unreadLines:2}],skippedEntries:1}},{modeHomeClass:'api-key',lastingRules:{state:'read',files:[{path:'OTHER-HOME'}]}}]}});
   await mounted(h,'T',async ui=>{
     assert.ok(ui.c.textContent.includes(trustLine));assert.match(ui.c.textContent,/Lasting rules are not fully known/);assert.match(ui.c.textContent,/Lines not read as rules: 2/);assert.match(ui.c.textContent,/Entries skipped: 1/);assert.doesNotMatch(ui.c.textContent,/OTHER-HOME/);
@@ -143,6 +143,8 @@ test('the real App shows the default before Start and wires its plain setting th
     const start=c.querySelectorAll(e=>e.getAttribute('id')==='workspace-start')[0];
     assert.ok(start.textContent.indexOf('Permission level')<start.textContent.indexOf('Start thread'));
     assert.equal(calls.filter(x=>x.command==='set_level').length,0);
+    assert.ok(start.textContent.includes(sentence('APP_DEFAULT_SENTENCE')));
+    assert.ok(start.textContent.includes(sentence('APP_DEFAULT_EXPLAINED')));
     const panel=start.querySelectorAll(e=>e.getAttribute('aria-label')==='Permission level for new conversations')[0];
     await React.act(()=>props(nodes(panel,'select')[0]).onChange({target:{value:'edits'}}));
     await React.act(async()=>props(nodes(panel,'button')[0]).onClick());
@@ -209,4 +211,70 @@ test('the real App keeps a setting refusal and a simultaneous refresh failure, w
     assert.equal(nodes(panel,'strong')[0].textContent,'Full access');
     assert.equal(calls.filter(c=>c.command==='set_level').length,1,'no automatic retry');
   } finally {const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);}
+});
+
+test('asking levels carry their consequence, and reading and timing sentences come from the host',async()=>{
+  for(const id of ['supervised','edits','edits-network','edits-no-asking','full'])await mounted(host({levelDefault:chosen(id,'chosen')}),undefined,async ui=>{
+    assert.ok(ui.c.textContent.includes(sentence('READING_SENTENCE')),id);
+    assert.equal(ui.c.textContent.includes(sentence('SUPERVISED_ALLOWING')),['supervised','edits','edits-network'].includes(id),id);
+    await ui.show(host({levelDefault:{...chosen(id,'chosen'),readingSentence:'Invented closed host reading sentence.'}}));
+    assert.match(ui.c.textContent,/Invented closed host reading sentence/);
+    assert.doesNotMatch(ui.c.textContent,/Reading is not limited at any permission level/);
+  });
+  await mounted(host({threads:[thread('T',{chosen:chosen(),takesEffect:'from-next-turn',takesEffectSentence:'Invented closed timing sentence.'})]}),'T',async ui=>{
+    assert.match(ui.c.textContent,/Invented closed timing sentence/);assert.doesNotMatch(ui.c.textContent,/Commands already running/);
+  });
+});
+
+test('read and inheritance failures preserve host sentences and mark raw details',async()=>{
+  const h=host({levelRecordsUnread:sentence('RECORDS_UNREAD_SENTENCE'),levelLaunchRead:{reason:sentence('RECORDS_UNAVAILABLE'),homeState:{state:'unknown',detail:{text:'invented metadata detail'}}},levelSessionOnlyOffered:{detail:{text:'invented ledger detail'}},threads:[thread('T',{chosen:chosen(),inheritancePersistence:{state:'not-recorded',sentence:sentence('INHERITANCE_NOT_RECORDED'),detail:{text:'invented association detail'}}})]});
+  await mounted(h,'T',async ui=>{
+    for(const key of ['RECORDS_UNAVAILABLE','RECORDS_UNREAD_SENTENCE','INHERITANCE_NOT_RECORDED'])assert.ok(ui.c.textContent.includes(sentence(key)),key);
+    for(const detail of ['invented metadata detail','invented ledger detail','invented association detail'])assert.ok(ui.c.querySelectorAll(e=>e.getAttribute('role')==='group').some(e=>e.textContent.includes(detail)),detail);
+    assert.doesNotMatch(ui.c.textContent,/no level is in force|Choose a level to continue/);
+    await ui.show({...h,threads:[thread('T',{chosen:chosen(),inheritancePersistence:{state:'pending'}})]});
+    assert.ok(!ui.c.textContent.includes(sentence('INHERITANCE_NOT_RECORDED')),'pending is not a failed write');
+  });
+});
+
+// The real App, its shipped controls and command/refresh wrapper; only the native host is simulated.
+async function appWithLevels(initial,change,check){
+  const {App}=loadSrc('App');const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c),calls=[];
+  let current=initial;
+  const idle=installIdleNativeWaiting(async(command,args)=>{
+    calls.push({command,args});if(command==='host_status')return structuredClone(current);
+    if(command==='decision_view')return {rows:[]};if(command==='native_confirmation_content')return [];
+    if(command==='set_level'){current=change(current,args);return {state:'chosen'};}
+    throw Error(`Unexpected ${command}`);
+  });
+  try{await React.act(async()=>root.render(React.createElement(App)));await check(c,calls,()=>current);}
+  finally{const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);}
+}
+
+test('the real App changes one conversation without changing the default or another conversation',async()=>{
+  await appWithLevels(host({roleLimits:{account:{roles:[]}},serverRequests:[],threads:[thread('T'),thread('U')]}),
+    (h,args)=>({...h,threads:h.threads.map(t=>t.threadId===args.scope.conversation?{...t,level:{...t.level,chosen:chosen(args.levelId,'chosen')}}:t)}),async(c,calls,current)=>{
+      const radio=nodes(c,'input').find(e=>props(e).name==='current-conversation'&&props(e).value===JSON.stringify([g,'T']));assert.ok(radio,'shipped conversation chooser');
+      await React.act(()=>props(radio).onChange());
+      const panel=()=>c.querySelectorAll(e=>e.getAttribute('aria-label')==='Conversation permission level')[0];
+      assert.ok(panel().textContent.includes(sentence('APP_DEFAULT_SENTENCE')));
+      await React.act(()=>props(nodes(panel(),'select')[0]).onChange({target:{value:'supervised'}}));
+      await React.act(async()=>props(nodes(panel(),'button')[0]).onClick());
+      assert.deepEqual(calls.filter(x=>x.command==='set_level'),[{command:'set_level',args:{scope:{conversation:'T'},levelId:'supervised'}}]);
+      assert.equal(nodes(panel(),'strong')[0].textContent,'Supervised');assert.ok(panel().textContent.includes(sentence('SUPERVISED_ALLOWING')));
+      assert.equal(current().levelDefault.id,'full');assert.equal(current().threads[1].level.chosen.id,'full');
+    });
+});
+
+test('the real App exceptional ask preselects full and one press continues through set_level',async()=>{
+  const ask='Invented host case: the recorded choice is unusable. Choose a level to continue.';
+  await appWithLevels(host({roleLimits:{account:{roles:[]}},serverRequests:[],levelDefault:null,levelRecordMissing:ask,levelAskPreselected:'full'}),
+    (h,args)=>({...h,levelDefault:chosen(args.levelId,'chosen'),levelRecordMissing:null}),async(c,calls)=>{
+      const panel=c.querySelectorAll(e=>e.getAttribute('aria-label')==='Permission level for new conversations')[0];
+      assert.ok(panel.textContent.includes(ask));assert.equal(props(nodes(panel,'select')[0]).value,'full');assert.equal(calls.filter(x=>x.command==='set_level').length,0);
+      const button=nodes(panel,'button')[0];assert.equal(button.textContent,'Use selected level and continue');assert.equal(!!props(button).disabled,false);
+      await React.act(async()=>props(button).onClick());
+      assert.deepEqual(calls.filter(x=>x.command==='set_level'),[{command:'set_level',args:{scope:'default',levelId:'full'}}]);
+      assert.equal(nodes(panel,'strong')[0].textContent,'Full access');assert.match(panel.textContent,/Chosen by you/);assert.ok(!panel.textContent.includes(ask));
+    });
 });
