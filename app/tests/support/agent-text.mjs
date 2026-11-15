@@ -17,3 +17,14 @@ export function agentPlain(html) {
 
 /** The accessibility names of every AgentText box in the markup. */
 export const agentBoxNames = html => [...html.matchAll(/<(?:span|div) role="group" aria-label="([^"]*)" class="agent-text/g)].map(m => m[1]);
+
+// For a mounted tree (tests/support/mini-dom.mjs): the AgentText blocks (block text, recorded text, recorded data)
+// inside a node, and a block's text read back as it was given (its label, line numbers and line-break marks taken
+// away; marks standing for control or format characters stay as shown).
+const classes = node => (node.getAttribute?.('class') ?? '').split(' ');
+export const agentBlocks = node => node.querySelectorAll(n => classes(n).includes('agent-text-block'));
+export function agentBlockText(block) {
+  return block.querySelectorAll(n => classes(n).includes('agent-text-line'))
+    .map(line => line.childNodes.filter(c => !classes(c).includes('agent-text-line-number')).map(c => c.textContent).join('').replace(/⏎$/, ''))
+    .join('\n');
+}

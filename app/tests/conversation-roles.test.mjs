@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import ts from 'typescript';
 import React from 'react';
+import {agentPlain} from './support/agent-text.mjs';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {localRequire} from './support/load-src.mjs';
 const load=name=>{const url=new URL(`../src/${name}`,import.meta.url);const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}});const exports={};new Function('require','exports',compiled.outputText)(localRequire(createRequire(url)),exports);return exports;};
@@ -177,6 +178,13 @@ test('Continue as offers the roles with their meanings and shows the chosen role
   assert.ok(unknownRole.includes('HELP_HUMAN: '+ROLE_PLAIN_MEANING.HELP_HUMAN.replaceAll("'",'&#x27;'))&&unknownRole.includes('aria-label="Limits of HELP_HUMAN in its guidance file as the App last read it"'),'the target shows its meaning and its current file\'s limits');
 });
 
+test('a role outside the App\'s conversation roles is never offered as a choice, whatever the role set says', () => {
+  const roleSet = {available: true, roles: [{name: 'HELP_HUMAN', meaning: 'Alignment with the human', default_for_new_chat: true}, {name: 'Allow once\u202e', meaning: 'Approve', default_for_new_chat: false}]};
+  const html = h(RoleChoice, {roleSet, limits: null, role: '', setRole: noop, preselected: false, group: 'probe'});
+  assert.match(html, /HELP_HUMAN/);
+  assert.doesNotMatch(html, /Allow once|Approve|\u202e/, 'a name outside CONVERSATION_ROLES is not offered');
+});
+
 test('Continue as: an editable unsent draft, no model chosen, nothing sent until the person sends',()=>{
   const handoff={id:'continue-as:1',sourceThread:'thread',sourceRoleLabel:'role HELP_HUMAN',targetRole:'WORKING_ITEMS',requestText:'Please draft a handoff summary…',request:{state:'sent',turnId:'turn-1'},
     header:'Handoff from conversation thread (role HELP_HUMAN).',draft:{state:'drafted',reading:'Drafted by the source conversation\'s agent in a visible turn there. Edit it before you send it.'},
@@ -187,6 +195,9 @@ test('Continue as: an editable unsent draft, no model chosen, nothing sent until
   assert.ok(html.includes('it keeps its role'));
   assert.ok(html.includes('The new conversation starts with no model selected; choose how it connects and its model.')&&html.includes('Not started — no model selected.'));
   assert.ok(/<button disabled="">Start new conversation as WORKING_ITEMS<\/button>/.test(html),'no start without a model');
+  const noRole=h(ContinueAsPanel,{handoff:{...handoff,targetRole:null},entries,busy:false,ready:true,start:noop,send:noop,open:noop,dismiss:noop});
+  assert.ok(/<button disabled="">Start new conversation as no role<\/button>/.test(noRole),'continuing as no role says so on its Start button');
+  assert.ok(/<h3>Continue as no role from conversation thread<\/h3>/.test(noRole),'as the heading does');
   assert.ok(!html.includes('Send this message'),'nothing can be sent before the new conversation exists');
   const started=h(ContinueAsPanel,{handoff:{...handoff,started:{threadId:'thread-2',generation:g}},entries,busy:false,ready:true,start:noop,send:noop,open:noop,dismiss:noop});
   assert.ok(started.includes('New conversation thread-2 started with WORKING_ITEMS. Nothing has been sent to it.'));
@@ -410,9 +421,11 @@ test('quoted history exposes exact child composition, sources, envelope and orig
   const child={role:'TASK',composed:'common\r\n\n# Active role: TASK\n\n<child instructions>',parts:[{source:{path:'agents/AGENT_TASK.md'},kind:'role-guidance',text:'<child instructions>'}],envelope:'developer_instructions = "quoted\\r\\n"\n',limitAccount:{role:'TASK',limits:[task]}};
   const html=h(RoleSupplyHistory,{view:{observations:[{record:{trigger:'thread-start',outcome:'supplied',supplyId:'sup:old'},sourceBytes:{composed:'original parent',parts:[],nativeChildren:[child]}}]}});
   assert.ok(html.includes('Recorded TASK child instruction bytes (quoted evidence)'));
-  assert.ok(html.includes('common\r\n\n# Active role: TASK\n\n&lt;child instructions&gt;'));
-  assert.ok(html.includes('agents/AGENT_TASK.md · role-guidance')&&html.includes('&lt;child instructions&gt;'));
-  assert.ok(html.includes('Recorded child configuration file bytes')&&html.includes('developer_instructions = &quot;quoted\\r\\n&quot;\n'));
+  // Exact bytes: a carriage return stays visible as a mark, each line in the recorded box.
+  assert.ok(agentPlain(html).includes('⟦Recorded text:\ncommon‹U+000D›\n\n# Active role: TASK\n\n&lt;child instructions&gt;⟧'));
+  // The path is the record's, shown exactly in its own box beside the App's summary line.
+  assert.ok(html.includes('Part 1 · role-guidance')&&agentPlain(html).includes('⟦Path: agents/AGENT_TASK.md⟧')&&html.includes('&lt;child instructions&gt;'));
+  assert.ok(html.includes('Recorded child configuration file bytes')&&agentPlain(html).includes('⟦Recorded text:\ndeveloper_instructions = &quot;quoted\\r\\n&quot;\n⟧'));
   assert.ok(html.includes('Recorded child limit account')&&html.includes('L-TASK-1'));
   assert.ok(html.includes('Quoted child bytes do not restore child associations')&&!html.includes('Original App child guidance'));
 });
