@@ -438,7 +438,7 @@ fn verify_with(root: &Path, capture: &Value, keychain_only: bool) -> Result<Seal
     let key = material.keys.get(id).ok_or_else(|| failure(Cause::KeyNotHeld,
         format!("capture sealed under key {id:?}, which this App installation does not hold (another installation, or a key lost here); not verified here")))?;
     if !equal(&unhex(mac).unwrap(), &hmac(key, &message(capture)?)) {
-        return Err(failure(Cause::SealInvalid, format!("capture seal does not verify under this installation's key {id:?}: the seal does not match the covered facts under that key; capture origin not verified here")));
+        return Err(failure(Cause::SealInvalid, format!("capture seal does not verify under this installation's key {id:?}; the seal does not match the covered facts under that key; capture origin not verified here")));
     }
     if keychain_only && material.provider != SealProvider::Keychain {
         return Err(failure(Cause::ProviderNotEligible, "The file-key seal cannot supply keychain-verified workflow approval. Confirm A15 in this session, or enrol and make a new approval for future sessions."));
@@ -591,7 +591,7 @@ mod tests {
             let mut changed = c.clone();
             changed[member] = other;
             let id = c["seal"]["value"].as_str().unwrap().split(':').next().unwrap();
-            assert_eq!(verify(&project, &changed).unwrap_err(), format!("capture seal does not verify under this installation's key {id:?}; the seal does not match the covered facts under that key; capture origin not verified here"), "{member}");
+            assert_eq!(verify(&project, &changed).unwrap_err().detail, format!("capture seal does not verify under this installation's key {id:?}; the seal does not match the covered facts under that key; capture origin not verified here"), "{member}");
         }
         let mut unsealed = c.clone();
         unsealed.as_object_mut().unwrap().remove("seal");

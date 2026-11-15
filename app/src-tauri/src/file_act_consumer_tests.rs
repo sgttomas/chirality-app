@@ -80,7 +80,7 @@ fn connected_file_act_seal_disclosure_does_not_claim_origin_or_human_presence() 
     let reference = selected(&state, &home, &root, act_control::FileActKind::Check);
     synthetic(&state, &reference, "act", || {});
     let view = file_act_view::read(&root);
-    assert!(view["rows"][0]["limits"].as_array().unwrap().iter().any(|limit| limit == "Readable record/capture claims do not verify native origin. A valid capture seal shows consistency with possession of the key over the covered facts (AAC §6.3 SEAL-C). Any process running as the same user can read a file key. Keychain verification shows consistency with possession of a key held in the person's keychain under the keychain's protection. The capture does not record which provider held its key. No seal establishes who wrote the capture, that a person was present, or that they judged; no professional certification."));
+    assert!(view["rows"][0]["limits"].as_array().unwrap().iter().any(|limit| limit == "Readable record/capture claims do not verify native origin. A valid capture seal shows consistency with possession of the key over the covered facts (AAC §6.3 SEAL-C). Any process running as the same user can read a file key. Keychain verification shows consistency with possession of a key held in the person's keychain under the keychain's protection. Older captures may not record which provider held the key. A label alone is not verification. No seal establishes who wrote the capture, that a person was present, or that they judged; no professional certification."));
     std::fs::remove_dir_all(root).unwrap();
 }
 
