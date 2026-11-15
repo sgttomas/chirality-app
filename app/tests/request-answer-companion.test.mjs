@@ -171,3 +171,22 @@ test('a resolved location reads as its full path and resolution folder, with its
   assert.ok(blocks(ui2.container).some(b=>b.label.includes('JSON')&&b.text.includes('"more": "y"')));
   await ui2.done();await ui.done();
 });
+
+
+test('an arbitrary supplied object shaped like a path pair keeps its own meaning', async () => {
+  const permissions=T.obj(['path',T.str('/invented/permission')],['relativeTo',T.null()]);
+  const content=envelope({extraDetails:[T.obj(['label',T.str('Additional permissions requested')],['source',T.str('codex')],['value',permissions],['notes',T.arr()])]});
+  const ui=await mount(commandRequest('answered'),async()=>[await row(content,{pending:false})]);
+  await ui.render({});
+  const shown=blocks(ui.container).filter(b=>!b.inDetails);
+  assert.ok(shown.some(b=>b.label.includes('JSON')&&b.text.includes('"relativeTo"')));
+  assert.ok(!shown.some(b=>b.label.includes('Full path, resolved')));
+  await ui.done();
+});
+
+test('the typed companion accepts supplier JSON depth plus its envelope wrappers', () => {
+  let value=T.str('invented leaf');
+  for(let i=0;i<100;i++) value=T.arr(value);
+  const content=envelope({extraDetails:[T.obj(['label',T.str('Additional permissions requested')],['source',T.str('codex')],['value',value],['notes',T.arr()])]});
+  assert.notEqual(readEnvelope(content),null);
+});

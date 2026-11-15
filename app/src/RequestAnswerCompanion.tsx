@@ -35,7 +35,9 @@ export type Typed =
   | { type: "array"; value: Typed[] }
   | { type: "object"; value: [string, Typed][] };
 const JSON_NUMBER = /^-?(0|[1-9]\d*)(\.\d+)?([eE][+-]?\d+)?$/;
-const MAX_DEPTH = 64;
+// The supplier JSON decoder admits up to 128 levels; the frozen envelope
+// adds context and presentation wrappers. Do not reject its admitted values.
+const MAX_DEPTH = 256;
 const plainObject = (v: Json) => v !== null && typeof v === "object" && !Array.isArray(v);
 const exactKeys = (v: Json, keys: string[]) => plainObject(v) && Object.keys(v).length === keys.length && keys.every(k => Object.prototype.hasOwnProperty.call(v, k));
 
@@ -120,7 +122,7 @@ function locationPair(t: Typed): { path: string; relativeTo: string | null } | n
 /** A detail's value: text as written, a resolved location as its two parts, or any other value as JSON with its
  * numbers as spelled; the label says which. */
 function DetailValue({ detail }: { detail: CompanionDetail }) {
-  const location = locationPair(detail.value);
+  const location = detail.label === "Path" ? locationPair(detail.value) : null;
   if (location) return detail.source === "codex" ? <>
     <AgentText block value={location.path} source="codex" label="Full path, resolved by name from Codex’s words (no link followed):" name="Codex's words, not the App's" />
     {location.relativeTo !== null && <AgentText block value={location.relativeTo} source="codex" label="Codex gave a relative path; the folder it was resolved against (Codex’s words):" name="Codex's words, not the App's" />}
