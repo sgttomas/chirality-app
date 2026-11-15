@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
+import {agentBlocks, agentBlockText} from './support/agent-text.mjs';
 
 // J1 guided path over the workflow studio's existing state and commands.
 // Controlled host views only: no native App, supplier, model or person act.
@@ -264,7 +265,8 @@ test('the last result is in words with the reply under details, a newer revision
     outcome:{command:'workflow_select_listed', message:'{"state":"selected","reference":"sel-1"}', failed:false, settled:true}};
   const ui = await mount(view);
   const last = region(ui.c, 'Run a workflow — last result');
-  assert.match(last.textContent, /^Chose the workflow for this conversation\.What the App reported\{"state":"selected"/, 'words first; the exact reply under details');
+  assert.match(last.textContent, /^Chose the workflow for this conversation\.What the App reported/, 'words first; the exact reply under details');
+  assert.equal(agentBlockText(agentBlocks(last)[0]), '{"state":"selected","reference":"sel-1"}', 'the exact reply, in a marked box');
   assert.equal(all(last, 'p')[0].textContent, 'Chose the workflow for this conversation.');
   await ui.rerender({outcome:{command:'workflow_send_run', message:'Error: invented refusal text', failed:true, settled:true}});
   assert.equal(region(ui.c, 'Run a workflow — last result').textContent, "Couldn't start the run: invented refusal text", 'an unrecognised refusal stays in the App\'s words');
@@ -475,7 +477,8 @@ test('a refused press is said in plain words under Next only where nothing was d
   const ui = await mount({host:host(), data:data(), thread:'T1', outcome:busy});
   const last = region(ui.c, 'Run a workflow — last result');
   assert.equal(all(last, 'p')[0].textContent, "Couldn't choose the included workflow: the App was busy reading conversation history, so nothing was done. Press the button again.");
-  assert.match(last.textContent, /What the App reportedNative history context is busy; refresh the workflow choice$/, 'the exact reply stays under details');
+  assert.match(last.textContent, /What the App reported/, 'the exact reply stays under details');
+  assert.equal(agentBlockText(agentBlocks(last).at(-1)), 'Native history context is busy; refresh the workflow choice', 'the exact reply, in a marked box');
   assert.equal(last.getAttribute('role'), 'alert');
   const section = region(ui.c, 'Run a workflow');
   const children = Array.from(section.childNodes);

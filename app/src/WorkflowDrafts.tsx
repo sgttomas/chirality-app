@@ -1,3 +1,4 @@
+import { AgentText } from "./AgentText";
 import { useRef, useState } from "react";
 import { isRecordedRun, runLearningLimit } from "./RunPanel";
 import { ConversationSelect, conversationKey, conversationName, findConversation } from "./TrialComposer";
@@ -244,7 +245,7 @@ export function CompareResult({ result }: { result: Json }) {
       <ul>{list(difference.files).map((f: Json) => <li key={text(f.path)}>
         <b>{text(f.path)}</b>: {valueWords(f.change, "change not reported")} · before {fileSideWords(f.before)} · after {fileSideWords(f.after)}
         {f.text === true
-          ? f.limit ? <> · {text(f.limit)}</> : Array.isArray(f.lines) ? <pre style={{ whiteSpace: "pre-wrap" }}>{f.lines.map((l: Json) => valueWords(l, "")).join("\n")}</pre> : <> · line difference not reported</>
+          ? f.limit ? <> · {text(f.limit)}</> : Array.isArray(f.lines) ? <AgentText block value={f.lines.map((l: Json) => valueWords(l, "")).join("\n")} source="record" /> : <> · line difference not reported</>
           : f.text === false ? <> · not a text file: size and digest only</> : <> · text/binary not reported: size and digest only</>}
       </li>)}</ul>
       {difference.unchanged !== undefined && <p><small>Unchanged files: {valueWords(difference.unchanged, "not reported")}.</small></p>}

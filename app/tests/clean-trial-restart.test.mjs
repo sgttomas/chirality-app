@@ -6,6 +6,7 @@ import {fileURLToPath} from 'node:url';
 import React from 'react';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
+import {agentBlocks, agentBlockText} from './support/agent-text.mjs';
 import './support/rust-prebuild.mjs';
 
 const document = installMiniDom();
@@ -186,7 +187,7 @@ test('actual cold clean source supports explicit reads and feedback while its au
     const composer = labelled(view.container,'Bring back composer');
     assert.ok(composer,'the production conversation filter shows the pending transcript at the chosen target');
     assert.match(composer.textContent,/pre-filled, not sent/);
-    assert.ok(composer.textContent.includes(pending.transcript));
+    assert.ok(agentBlocks(composer).some(block => agentBlockText(block).includes(pending.transcript)), 'the transcript, in its recorded box');
     assert.ok(composer.textContent.includes(pending.source.standing));
     assert.equal(view.calls.length,3,'prefilling never submits a conversation turn');
     const prompt = nodes(composer,'textarea')[0];

@@ -1,3 +1,4 @@
+import { AgentText, RecordedData } from "./AgentText";
 import { ActionFeedback } from "./ActionFeedback";
 import { LOCAL_ROUTE_OFFERED } from "./localRoute";
 import { LOCAL_ENTRY, LOCAL_FORK_AVAILABLE, LOCAL_FORK_UNAVAILABLE, LOCAL_MODE, LocalProviderAccess, generationKey, localRoute, localViewFrom, readAttemptedLocalEntries, recordAttemptedLocalEntry, forgetAttemptedLocalEntry, type LocalView } from "./LocalProviderAccess";
@@ -433,7 +434,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
         <p><strong>Your message to {destination} may have been sent.</strong> The App couldn't confirm it, so it isn't resent and its text was not cleared.{row.acknowledged ? " You've said you read that conversation; sending there again is allowed." : " The App won't send to that conversation again until you've said you read it."}</p>
         {shownHere && !sameSource && <p><small>Codex or the home has changed since that send. The conversation shown now has the same ID, so the App won't send to it either until then; that doesn't make the earlier destination this one.</small></p>}
         {!row.acknowledged && <p><button onClick={() => setUnconfirmed(rows => rows.map(r => r.id === row.id ? { ...r, acknowledged: true } : r))}>I've read that conversation — allow sending again</button> <small>Sends nothing; this record stays.</small></p>}
-        <details><summary>The message and what was reported</summary><pre style={{ whiteSpace: "pre-wrap" }}>{row.request.text}</pre>
+        <details><summary>The message and what was reported</summary><AgentText block value={row.request.text} source="record" />
           <p><small>Mode {row.request.mode ?? "not overridden"} · model {row.request.model ?? "not chosen"} · conversation <code>{row.request.threadId}</code> in Codex session {String(row.request.generation?.spawnCounter ?? "")} of home {String(row.request.generation?.home ?? "")}.</small></p>
           <p><small>Reported: {row.reported}</small></p></details>
       </div>;
@@ -492,7 +493,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
     {!ownBusy && codexBusy && <p>Stop or Restart Codex is in progress: sending text, steering and attachments is paused; interrupting a live turn stays available.</p>}
     {error && <p role="alert">{error} No automatic retry.</p>}
     <p>Text-turn protocol requests: {host?.modelTurnEvidence?.protocolRequests?.length ?? 0}. {host?.modelTurnEvidence?.standing ?? "Provider/model execution is not established by this view."}</p>
-    <details><summary>Observed native turns, steering and interrupt request state</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify({ turns: host?.conversationTurns, steeringTargets: host?.steeringTargets, steeringRequests: (host?.clientRequests ?? []).filter((request: Json) => request.method === "turn/steer"), interrupts: host?.turnInterruptRequests, protocolEvidence: host?.modelTurnEvidence }, null, 2)}</pre></details>
+    <details><summary>Observed native turns, steering and interrupt request state</summary><RecordedData value={{ turns: host?.conversationTurns, steeringTargets: host?.steeringTargets, steeringRequests: (host?.clientRequests ?? []).filter((request: Json) => request.method === "turn/steer"), interrupts: host?.turnInterruptRequests, protocolEvidence: host?.modelTurnEvidence }} /></details>
   </section>;
 }
 
@@ -730,14 +731,14 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureCo
       <StoredItemPage binding={itemPage} />
       <h3>Native child references</h3>
       {(selected.knownChildren ?? []).map((child: Json) => <p key={child.threadId}>{child.threadId} · source {child.sourceItemId} <button disabled={!available || busy} onClick={() => run("child", null, child.threadId)}>Read child metadata</button></p>)}
-      <details><summary>Metadata, child reads, standalone receiver references and stream errors</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify({ metadata: selected.metadata, childReads: selected.childReads, receiverReferences: selected.receiverReferences, errors: selected.errorsByStream, errorHistory: selected.errorHistory, resolutions: selected.streamResolutions, resumeEligibilityCurrent: selected.resumeEligibilityCurrent }, null, 2)}</pre></details>
-      {selected.originalRoleSupply && <details><summary>Original App role supply evidence (memory only; adoption unknown)</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(selected.originalRoleSupply, null, 2)}</pre></details>}
+      <details><summary>Metadata, child reads, standalone receiver references and stream errors</summary><RecordedData value={{ metadata: selected.metadata, childReads: selected.childReads, receiverReferences: selected.receiverReferences, errors: selected.errorsByStream, errorHistory: selected.errorHistory, resolutions: selected.streamResolutions, resumeEligibilityCurrent: selected.resumeEligibilityCurrent }} /></details>
+      {selected.originalRoleSupply && <details><summary>Original App role supply evidence (memory only; adoption unknown)</summary><RecordedData value={selected.originalRoleSupply} /></details>}
     </>}
     {busy && <p role="status">{progress} No automatic retry.</p>}
     {continueNotice && <p role="status">{continueNotice}</p>}
     {error && <p role="alert">{error}</p>}
     {(history?.receivingLimits ?? history?.limits ?? []).map((limit: string, index: number) => <p key={index}>{limit}</p>)}
-    <details><summary>History dispatch and pending/error evidence</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify({ generation, selectionEpoch: epoch, listError: history?.listError, pending: history?.pending, dispatches: history?.dispatches, originalStartReceipts: history?.startReceipts }, null, 2)}</pre></details>
+    <details><summary>History dispatch and pending/error evidence</summary><RecordedData value={{ generation, selectionEpoch: epoch, listError: history?.listError, pending: history?.pending, dispatches: history?.dispatches, originalStartReceipts: history?.startReceipts }} /></details>
   </section>;
 }
 
@@ -750,11 +751,11 @@ function ExternalObservationPanel({ data, select }: { data: Json; select: () => 
       <h3>{title} · {document.assessment}</h3>
       <p>Selected file: {document.displayPath}</p>
       {document.pathDisplayLimit && <p>Path display limit: {document.pathDisplayLimit}</p>}
-      <details><summary>Exact selected native path identity</summary><pre>{JSON.stringify(document.selectedPath, null, 2)}</pre></details>
+      <details><summary>Exact selected native path identity</summary><RecordedData value={document.selectedPath} /></details>
       {document.reason && <p>Receiving limit: {document.reason}</p>}
       <h4>Complete supplied JSON: tables, basis, diagnostics and standing retained</h4>
-      {document.originalDocument !== null ? <pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(document.originalDocument, null, 2)}</pre> : <p>No parsed JSON available; see the receiving assessment.</p>}
-      <details><summary>Original bytes retained in App memory ({document.originalBytes?.length ?? "unavailable"})</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(document.originalBytes)}</pre></details>
+      {document.originalDocument !== null ? <RecordedData value={document.originalDocument} /> : <p>No parsed JSON available; see the receiving assessment.</p>}
+      <details><summary>Original bytes retained in App memory ({document.originalBytes?.length ?? "unavailable"})</summary><AgentText block value={JSON.stringify(document.originalBytes)} source="record" /></details>
     </article>;
   };
   return <section>
@@ -773,7 +774,7 @@ function ExternalObservationPanel({ data, select }: { data: Json; select: () => 
       {evidence("catalog", "Supplied catalog")}
       {evidence("read", "Supplied read")}
       {evidence("counterpart", "Optional supplied counterpart")}
-      <details><summary>Complete reported receiving snapshot</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(observation, null, 2)}</pre></details>
+      <details><summary>Complete reported receiving snapshot</summary><RecordedData value={observation} /></details>
     </>}
   </section>;
 }
@@ -809,7 +810,7 @@ function NativeConfirmationContent() {
       <p>sha-256 digest, as named in the native confirmation: <code style={{ userSelect: "all", overflowWrap: "anywhere" }}>{row.digest}</code>. {checks[row.digest] ?? ""} {DIGEST_LIMIT}</p>
       {row.kind === "A15 complete review" && Array.isArray(row.content?.entries) && row.content.entries.every((entry: Json) => entry !== null && typeof entry === "object" && !Array.isArray(entry))
         ? <WorkflowRegistrationReview presentation={row.content} />
-        : <pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(readablePaths(row.content), null, 2)}</pre>}
+        : <RecordedData value={readablePaths(row.content)} />}
     </article>)}
   </section>;
 }
@@ -1090,7 +1091,7 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
     <SelectedWorkflow selection={selected} inspection={!thread}/>
     {thread&&<NewerRevisionNotice selection={selected} busy={busy||!context} act={action}/>}
     <details><summary>Selection and libraries as the host reports them (paths shown as text; identities keep their exact bytes; a path that is not valid UTF-8 is marked)</summary>
-    <pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(readablePaths({selection:selected,inspection:data?.inspection,chatContext:context,libraries:data?.libraries,activeLibrary:data?.activeLibrary}),null,2)}</pre></details>
+    <RecordedData value={readablePaths({selection:selected,inspection:data?.inspection,chatContext:context,libraries:data?.libraries,activeLibrary:data?.activeLibrary})} /></details>
     <section className="workflow-stage" aria-label="Create a workflow draft"><h3>2. Create a named draft</h3>
     <p id="workflow-draft-next-step" role="status">{draftReason}</p>
     {draftLibrary && <p>Draft destination: {draftLibrary.origin ?? "origin not reported"} library · {nativePathText(draftLibrary.root) ?? draftLibrary.sourceRoot ?? "folder not reported"}. The host checks this opened library again before writing.</p>}
@@ -1126,11 +1127,11 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
       {review.status?.presentation ? <>
         {typeof review.status.state === "string" && <p>Review state: {review.status.state}</p>}
         <WorkflowRegistrationReview presentation={review.status.presentation} />
-        <details><summary>Complete reported review status (diagnostic JSON)</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(readablePaths(review.status),null,2)}</pre></details>
+        <details><summary>Complete reported review status (diagnostic JSON)</summary><RecordedData value={readablePaths(review.status)} /></details>
       </> : <>
         {review.status?.state==="native confirmation dismissed; no capture/registration"&&<p role="status">You cancelled the App's confirmation, so nothing was captured or registered. Review the draft again to register it.</p>}
         {review.status?.state==="native review/capture unavailable; original owner state retained"&&<p role="status">The review or its confirmation became unavailable, so registration did not complete and no receipt was made{typeof review.status?.limit==="string"?`: ${review.status.limit}`:""}. The original attempt is kept: you can continue it below, or review the draft again.</p>}
-        <details open={!["native confirmation dismissed; no capture/registration","native review/capture unavailable; original owner state retained"].includes(review.status?.state)}><summary>Complete reported review status</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(readablePaths(review.status??review),null,2)}</pre></details>
+        <details open={!["native confirmation dismissed; no capture/registration","native review/capture unavailable; original owner state retained"].includes(review.status?.state)}><summary>Complete reported review status</summary><RecordedData value={readablePaths(review.status??review)} /></details>
       </>}
       <LastCleanTrialLine line={review.lastCleanTrial} busy={busy} act={action}/>
       <button disabled={busy} onClick={()=>action("workflow_continue_registration",{reviewRef:review.reference})}>Continue original captured registration</button>
@@ -1158,7 +1159,7 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
         {(run.noticeRecordFailure||run.endNotice?.admissionRefusal)&&<button disabled={busy} onClick={()=>action("workflow_skip_notice",{runRef:run.reference})}>Send without the end notice (recorded as not supplied)</button>}</p>}
       <ul>{[...(run.checks??[]),...(run.noticeChecks??[])].map((check:Json)=><li key={check.reference}>{check.readAt}: {check.state} ({check.supplyReading}); check record {check.published?"recorded":`${check.publicationState??"pending"}${check.publicationLimit?` — ${check.publicationLimit}`:""}`}; R3 {check.r3?.state}{check.r3?.limit?` — ${check.r3.limit}`:""}</li>)}</ul>
       <RunPanel run={run} conversations={conversations} bringBackDefault={runBringBackDefault(data,run.reference)} busy={busy || fileActBusy} act={action} openFileAct={openFileAct}/>
-      <details><summary>Complete run evidence (paths shown as text)</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(readablePaths(run),null,2)}</pre></details>
+      <details><summary>Complete run evidence (paths shown as text)</summary><RecordedData value={readablePaths(run)} /></details>
       {!isRecordedRun(run)&&<>
       <button disabled={busy||!!run.source||host?.state!=="ready"||!!run.publication?.admissionRefusal} onClick={()=>action("workflow_send_run",{runRef:run.reference})}>Record, then send original prepared text once</button>
       <button disabled={busy||!run.turn||host?.state!=="ready"} onClick={()=>action("workflow_check_supply",{runRef:run.reference})}>Check original native supplied text pages (new check)</button>
@@ -1193,7 +1194,7 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
       {(data.afterRunEnd.historyNotices??[]).map((notice:string,i:number)=><p role="note" key={i}>{notice}</p>)}
       {(data.afterRunEnd.limits??[]).length>0&&<p role="alert">Observation/recording limits: {JSON.stringify(data.afterRunEnd.limits)}</p>}
       {(data.afterRunEnd.held??[]).map((r:Json)=><p key={r.recordId} role="status">Not yet recorded: {r.recordId} for ended run {r.run}, first observed {r.observedAt}. {r.limit}</p>)}
-      <details><summary>Recorded post-end source history (JSON)</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(data.afterRunEnd.runs??[],null,2)}</pre></details>
+      <details><summary>Recorded post-end source history (JSON)</summary><RecordedData value={data.afterRunEnd.runs??[]} /></details>
       {(data.afterRunEnd.runs??[]).filter((r:Json)=>!(data?.runs??[]).some((h:Json)=>h.reference===r.run)).map((r:Json)=><div key={r.run}><p>Ended run {r.run}. Source project {r.source?.projectId}.</p><ul>{(r.records??[]).filter((e:Json)=>e.kind==="checkpoint_arrival").map((e:Json)=><ArrivalRecord key={e.recordId} arrival={e} all={r.records??[]}/>)}</ul></div>)}
     </article>}
     {/* The exact reply and request of the last press. The guides say the result in words. */}
@@ -1201,9 +1202,9 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
       {(outcome.historyNotices??[]).map((notice,i)=><p role="note" key={i}>{notice}</p>)}
       {(outcome.readLimits??[]).map((limit,i)=><p role="alert" key={`read-${i}`}>{limit}</p>)}
       {outcome.message&&<ActionFeedback message={`${outcome.relation.command}: ${outcome.message}`} label="Workflow command result"/>}
-      <details><summary>Original workflow request</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(outcome.relation,null,2)}</pre></details>
+      <details><summary>Original workflow request</summary><RecordedData value={outcome.relation} /></details>
     </div>}
-    {outcome?.limits.map((message,index)=><p role="status" aria-label="Workflow observation limit" key={index} style={{whiteSpace:"pre-wrap"}}>{message}</p>)}
+    {outcome?.limits.map((message,index)=><p role="status" aria-label="Workflow observation limit" key={index}><AgentText value={message} source="record" label="Observation limit:" name="An observation limit, which may carry text the App received, not only the App's words" /></p>)}
   </section>;
 }
 
@@ -1222,7 +1223,7 @@ export function HomeAccessPanel({ host, resources, navigating = false, act, read
     <p>Sign in with your ChatGPT account to reach a model.</p>
     {routing?.activeModeHomeClass === "api-key" && <p role="status">Choose the account connection to continue. An older access home is retained without changing its saved configuration.</p>}
     {routing?.activeModeHomeClass === LOCAL_MODE && <p role="status">The local oMLX home is in use. ChatGPT sign-in applies to the account home.</p>}
-    {routing?.activeModeHomeClass !== "account" && entries.map(entry => <article key={entry.modeHomeClass}><p>{entry.state}{entry.configurationLimit ? ` — ${entry.configurationLimit}` : ""}</p><details><summary>Connection source</summary><pre>{JSON.stringify(entry.generation, null, 2)}</pre></details><button disabled={busy || navigating || routing?.activeModeHomeClass === entry.modeHomeClass} onClick={() => action("select_home", {modeHomeClass: entry.modeHomeClass})}>Use {entry.modeHomeClass} home</button></article>)}
+    {routing?.activeModeHomeClass !== "account" && entries.map(entry => <article key={entry.modeHomeClass}><p>{entry.state}{entry.configurationLimit ? ` — ${entry.configurationLimit}` : ""}</p><details><summary>Connection source</summary><RecordedData value={entry.generation} /></details><button disabled={busy || navigating || routing?.activeModeHomeClass === entry.modeHomeClass} onClick={() => action("select_home", {modeHomeClass: entry.modeHomeClass})}>Use {entry.modeHomeClass} home</button></article>)}
     <AccountStatus host={host} navigating={navigating} busy={busy} read={readAccount}/>
     {routing?.activeModeHomeClass === "account" && <p aria-label="Provider in this home">In this home the App starts Codex on its built-in OpenAI provider, whatever default provider your own Codex settings name. Your Codex files are not changed.</p>}
     {routing?.activeModeHomeClass === "account" && <p aria-label="Where a sign-in will be kept">Before you sign in, you can see where Codex will keep your sign-in: press “Read effective storage and plugin settings” below.</p>}
@@ -1237,10 +1238,10 @@ export function HomeAccessPanel({ host, resources, navigating = false, act, read
       {local && <LocalProviderAccess host={host} view={local.view} attempted={local.attempted} pending={local.pending || busy} message={local.message} navigating={navigating}
         prepare={local.prepare} enterKey={local.enterKey} settingsChanged={local.settingsTouched} useHome={() => { void action("select_home", { modeHomeClass: LOCAL_MODE }); }}/>}
     </section>}
-    <details><summary>Safe original sign-in observation</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(oauth ?? {state:"unavailable"},null,2)}</pre></details>
+    <details><summary>Safe original sign-in observation</summary><RecordedData value={oauth ?? {state:"unavailable"}} /></details>
     {error && <p role="alert">{error}</p>}
-    <details><summary>Source-owned account observations and limits</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(access, null, 2)}</pre></details>
-    <details><summary>Explicit receiving homes and shared-resource observations</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(resources ?? {state:"explicit shared-resource descriptors not configured; existing account path remains available"}, null, 2)}</pre></details>
+    <details><summary>Source-owned account observations and limits</summary><RecordedData value={access} /></details>
+    <details><summary>Explicit receiving homes and shared-resource observations</summary><RecordedData value={resources ?? {state:"explicit shared-resource descriptors not configured; existing account path remains available"}} /></details>
     <CodexSessionSettings settings={host?.codexSessionSettings}/>
     <details><summary>Connection and credential boundaries</summary><p>Native login acknowledgment reports presence with validity unknown until actual use. Credential fields, browser URLs and device codes are never accepted through this webview. Resource links do not establish native discovery or authorize a future configuration write.</p></details>
   </section>;
@@ -1377,16 +1378,16 @@ export function AttachmentSelectionPanel({ data, act }: { data: Json; act: (comm
       <h3>{index + 1}. {row.selection.displayName} · {row.selection.standing}</h3>
       {row.selection.draft && <p>draft {row.selection.draft.name} at content {String(row.selection.draft.content?.value ?? "").slice(0, 12)} — not a registered workflow; this conversation is not a workflow run.</p>}
       <p>{row.selection.displayPath} · carrier: {row.selection.carrier}.</p>
-      <pre>{JSON.stringify(readablePaths({ selectionRef: row.selection.selectionRef, nativePath: row.selection.nativePath, identityAtSelection: row.selection.identityAtSelection, draft: row.selection.draft }), null, 2)}</pre>
+      <RecordedData value={readablePaths({ selectionRef: row.selection.selectionRef, nativePath: row.selection.nativePath, identityAtSelection: row.selection.identityAtSelection, draft: row.selection.draft })} />
       <button disabled={busy || index === 0} onClick={() => move(index, -1)}>Move earlier</button>{" "}
       <button disabled={busy || index === rows.length - 1} onClick={() => move(index, 1)}>Move later</button>{" "}
       <button disabled={busy} onClick={() => invokeAction("remove_attachment", { selectionRef: row.selection.selectionRef })}>Remove</button>{" "}
       <button disabled={busy || !!row.selection.draft} onClick={() => invokeAction("reconfirm_attachment", { selectionRef: row.selection.selectionRef })}>Confirm current source…</button>
       {row.selection.draft && <small> A pre-filled draft file keeps the content it was read with; if the draft changed, remove its files and Try again.</small>}
     </article>)}
-    <details><summary>Explicit App project observation and source limits</summary><pre>{JSON.stringify(data?.launchAppProjectObservation, null, 2)}</pre></details>
+    <details><summary>Explicit App project observation and source limits</summary><RecordedData value={data?.launchAppProjectObservation} /></details>
     <p>{data?.workflowRun}</p><p>{data?.submissionStanding}</p><p>{data?.custody}</p>
-    {(data?.submissions ?? []).map((submission: Json) => <article key={submission.submissionRef}><h3>Submission {submission.submissionRef} · {submission.state}</h3><p>Frozen App context and native source outcome are distinct; native turn identity is used only when Core supplies a matching reference.</p><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(submission, null, 2)}</pre></article>)}
+    {(data?.submissions ?? []).map((submission: Json) => <article key={submission.submissionRef}><h3>Submission {submission.submissionRef} · {submission.state}</h3><p>Frozen App context and native source outcome are distinct; native turn identity is used only when Core supplies a matching reference.</p><RecordedData value={submission} /></article>)}
     <p>Plain-text controls remain available independently. Workflow-run prefix/draft association and provider uptake require their owning evidence.</p>
   </section>;
 }
@@ -1410,22 +1411,22 @@ export function TraceReceivingPanel({ data, currentContext, select }: { data: Js
     <button disabled={!record || !evidence || busy} onClick={choose}>Select supplied record…</button>
     <p>Selection: {data?.selection?.state ?? "not selected"} {data?.selection?.reason}</p>
     {busy && <p>Waiting for native selection and one source read.</p>}{error && <p role="alert">{error}</p>}
-    <details><summary>Current App-observed context, separate from imported records</summary><p>This context never fills an imported subject, configuration, date or host origin. App executable identity is not established by this selector.</p><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(currentContext, null, 2)}</pre></details>
+    <details><summary>Current App-observed context, separate from imported records</summary><p>This context never fills an imported subject, configuration, date or host origin. App executable identity is not established by this selector.</p><RecordedData value={currentContext} /></details>
     {(data?.receiving?.imports ?? []).map((imported: Json, index: number) => <article key={index} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
       <h3>Import {index + 1} · {imported.recordKind} · {imported.assessment}</h3>
       <p>Declared evidence category: {imported.declaredEvidenceCategory}. {imported.source?.sourceStanding}</p>
       {imported.reason && <p>Receiving limit: {imported.reason}</p>}
       <p>Selected source: {imported.source?.displayPath} · read: {imported.source?.readState} · {imported.source?.identityScope}</p>
       {imported.source?.pathDisplayLimit && <p>Path display limit: {imported.source.pathDisplayLimit}</p>}
-      <details><summary>Exact native path and observed input-buffer identity</summary><pre>{JSON.stringify({ selectedPath: imported.source?.selectedPath, bufferIdentity: imported.source?.bufferIdentity, readMechanism: imported.source?.readMechanism, reason: imported.source?.reason }, null, 2)}</pre></details>
+      <details><summary>Exact native path and observed input-buffer identity</summary><RecordedData value={{ selectedPath: imported.source?.selectedPath, bufferIdentity: imported.source?.bufferIdentity, readMechanism: imported.source?.readMechanism, reason: imported.source?.reason }} /></details>
       {imported.suppliedBasis ? <div>
-        <h4>Full declared subject and configuration (unverified)</h4><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify({ subject: imported.suppliedBasis.subject, configuration: imported.suppliedBasis.configuration, case: imported.suppliedBasis.case }, null, 2)}</pre>
+        <h4>Full declared subject and configuration (unverified)</h4><RecordedData value={{ subject: imported.suppliedBasis.subject, configuration: imported.suppliedBasis.configuration, case: imported.suppliedBasis.case }} />
         <p>{imported.suppliedBasis.date?.source === "stated_by_person" ? "Person-stated date (unverified)" : "Record-declared date/source (unverified)"}: {JSON.stringify(imported.suppliedBasis.date)}.</p>
-        <details><summary>Complete supplied basis and source reference</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(imported.suppliedBasis, null, 2)}</pre></details>
+        <details><summary>Complete supplied basis and source reference</summary><RecordedData value={imported.suppliedBasis} /></details>
       </div> : <p>No complete candidate/configuration/date basis is bound. Original facts remain available; no previous import's basis is inherited.</p>}
       <p>Current executable: {imported.currentExecutableIdentity} · native examination: {imported.nativeExamination} · host origin: {imported.hostOrigin}. {imported.semanticAssessment}</p>
-      <details><summary>Full original supplied document and account/refusal facts</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify({ originalDocument: imported.originalDocument, account: imported.account }, null, 2)}</pre></details>
-      <details><summary>Exact original source bytes (memory only)</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(imported.source?.originalBytes)}</pre></details>
+      <details><summary>Full original supplied document and account/refusal facts</summary><RecordedData value={{ originalDocument: imported.originalDocument, account: imported.account }} /></details>
+      <details><summary>Exact original source bytes (memory only)</summary><AgentText block value={JSON.stringify(imported.source?.originalBytes)} source="record" /></details>
       <p>EXM-24 witness count: {String(imported.countsTowardV4Exm24)} · EXM-25 witness count: {String(imported.countsTowardV4Exm25)} · {imported.oi003} · {imported.hostJoin}.</p>
     </article>)}
     <p>These imports supply no EXM-24/EXM-25 joined witness. OI-003 remains unresolved; external-host join remains deferred under DECISION-3.</p>
@@ -1446,7 +1447,7 @@ export function DecisionPackagesPanel({ view, name, setName, recordName, refresh
     {decision.currentContentComparison && <p>Current file comparison: {JSON.stringify(decision.currentContentComparison)}. This describes current bytes separately from past lapse history.</p>}
     {decision.historyResolution && <p>Recorded lapse history resolution: {JSON.stringify(decision.historyResolution)}.</p>}
     {decision.historyIncomplete && <p>Recorded history is incomplete; unresolved observations remain in the source details below.</p>}
-    <details><summary>Scoped record sources, correction/lapse history and provenance</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(decision, null, 2)}</pre></details>
+    <details><summary>Scoped record sources, correction/lapse history and provenance</summary><RecordedData value={decision} /></details>
   </>;
   return <section>
     <h2>Decision packages</h2>
@@ -2779,7 +2780,7 @@ export function App() {
   <SupplyStatus supply={host?.roleSupply}/>
           <RoleHistoryReader scope={JSON.stringify(host?.generation)} ready={host?.state === "ready"} read={() => invoke("role_supply_history", { generation: host?.generation, thread: null })}/>
           {host?.instructionsProblem && <p role="alert">Role guidance store: {host.instructionsProblem}</p>}
-  <details><summary>Last native start selection in this home</summary><pre>{JSON.stringify(host?.accessSelection ?? null, null, 2)}</pre></details>
+  <details><summary>Last native start selection in this home</summary><RecordedData value={host?.accessSelection ?? null} /></details>
           <p>Account (App-observed, identity not verified): {JSON.stringify(host?.accountObservation ?? { state: "unknown" })}</p>
   <p>Threads: {(host?.threads ?? []).map((t: Json) => `${t.threadId} (${t.status?.type ?? "?"}, gen ${JSON.stringify(t.generation)})`).join(", ") || "none"}</p>
 
@@ -2789,7 +2790,7 @@ export function App() {
           <ul>{(host?.networkDisclosure?.entries ?? []).map((entry: Json, index: number) => <li key={index}>{entry.purpose} · {entry.phase} · {entry.destination} · {entry.detail ?? entry.condition}</li>)}</ul>
           <details>
             <summary>Lifecycle events ({host?.lifecycle?.length ?? 0}) and frames ({host?.journal?.length ?? 0})</summary>
-            <pre>{JSON.stringify({ lifecycle: host?.lifecycle, clientRequests: host?.clientRequests }, null, 2)}</pre>
+            <RecordedData value={{ lifecycle: host?.lifecycle, clientRequests: host?.clientRequests }} />
           </details></section>
             <section>
           <h2>Native requests and execution</h2>
@@ -2799,12 +2800,12 @@ export function App() {
           <p>Legacy JSON Lines import location: {host?.recoveryInitialization?.path?.displayPath ?? "location not established"} {host?.recoveryInitialization?.path?.pathDisplayLimit}</p>
           {host?.recoveryInitialization?.configurationError && <p role="alert">Ledger initialization failed: {host.recoveryInitialization.configurationError}. Native supplier processing is not blocked.</p>}
           <p>Directory publication: {host?.recoveryInitialization?.directoryPublication ?? "not established"} · later persistence failure: {host?.recoveryPersistenceError ?? "none reported"}</p>
-          <details><summary>Recovery initialization and historical pointer state</summary><pre>{JSON.stringify({ initialization: host?.recoveryInitialization, recovery: host?.recovery }, null, 2)}</pre></details>
+          <details><summary>Recovery initialization and historical pointer state</summary><RecordedData value={{ initialization: host?.recoveryInitialization, recovery: host?.recovery }} /></details>
           <ObserverAttachment host={host}/>
           {(host?.nativeViewLimits ?? []).map((limit: string, i: number) => <p key={i}>{limit}</p>)}
                   <a href="#file-acts">Act on a saved App-side output file (select it explicitly)</a>
-          <details><summary>Native plans, tools, goals, turns and descendants as received (JSON)</summary><pre>{JSON.stringify({ current: host?.nativeView, observationEnded: host?.nativeViewObservationEnded, priorObservations: host?.priorNativeViews, recovery: host?.observerRecovery }, null, 2)}</pre></details>
-          <details><summary>Raw native envelopes (including unknown fields)</summary><pre>{JSON.stringify(host?.journal, null, 2)}</pre></details>
+          <details><summary>Native plans, tools, goals, turns and descendants as received (JSON)</summary><RecordedData value={{ current: host?.nativeView, observationEnded: host?.nativeViewObservationEnded, priorObservations: host?.priorNativeViews, recovery: host?.observerRecovery }} /></details>
+          <details><summary>Raw native envelopes (including unknown fields)</summary><RecordedData value={host?.journal} /></details>
         </section>
           </WorkspaceDisclosure>
         </section>

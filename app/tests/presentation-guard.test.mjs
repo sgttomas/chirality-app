@@ -12,7 +12,7 @@ import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {loadSrc} from './support/load-src.mjs';
 import {agentPlain} from './support/agent-text.mjs';
-import {guardFailures, sourceFailures, wordTableFailures, GUARDED_VIEWS, APP_ONLY, APP_ONLY_ROLES} from './support/presentation-guard.mjs';
+import {guardFailures, sourceFailures, wordTableFailures, exceptionShapeFailures, GUARDED_VIEWS, APP_ONLY, APP_ONLY_ROLES} from './support/presentation-guard.mjs';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {continuationFixture} from './support/continuation-fixture.mjs';
 
@@ -23,7 +23,7 @@ test('presentation guard: every drawn expression on the four covered views takes
   assert.deepEqual([...GUARDED_VIEWS].sort(), ['NativeActivity.tsx', 'NativeHistory.tsx', 'RequestCards.tsx', 'RunOffers.tsx']);
   assert.deepEqual(guardFailures(SRC, exceptions), []);
   assert.deepEqual(wordTableFailures(SRC), [], 'the vocabulary module holds only tables of literal words');
-  for (const e of exceptions) assert.ok(typeof e.reason === 'string' && e.reason.length > 40, `${e.file} ${e.expr}: a reason that says why`);
+  assert.deepEqual(exceptionShapeFailures(exceptions), [], 'the file opens with the exception rule; each entry names its basis, component, count and evidence');
 });
 
 // The guard on invented views: each attempt to bypass the boundary fails; the approved forms pass.
@@ -77,10 +77,17 @@ test('presentation guard: each bypass attempt fails, and only a written-down tru
   fails(field('setDraft(o.label)'), "choosing an option writes the agent's label into the person's field");
   passes(field('setDraft("")'), 'a field cleared or typed into holds only the App\'s or the person\'s text');
   // A listed exception passes only its exact expression, and a listed exception that no longer fails is stale.
-  const listed = [{file: 'Invented.tsx', where: 'drawn', expr: 'row.notice', reason: 'invented'}];
+  const listed = [{file: 'Invented.tsx', where: 'drawn', expr: 'row.notice', component: 'V', count: 1, reason: 'invented'}];
   assert.deepEqual(judge('export const V = ({ row }: any) => <p>{row.notice}</p>;', 'Invented.tsx', listed), []);
   assert.notDeepEqual(judge('export const V = ({ row }: any) => <p>{row.other}</p>;', 'Invented.tsx', listed), []);
   assert.deepEqual(sourceFailures('Invented.tsx', 'export const V = () => <p>words</p>;', listed).used.size, 0, 'an unused listing is not used, and guardFailures reports it stale');
+  // A listing is scoped: to its component, and to its count of occurrences.
+  assert.notDeepEqual(judge('export const W = ({ row }: any) => <p>{row.notice}</p>;', 'Invented.tsx', listed), [], 'the same spelling in another component is not exempt');
+  assert.match(judge('export const V = ({ row }: any) => <div><p>{row.notice}</p><p>{row.notice}</p></div>;', 'Invented.tsx', listed).join('\n'), /lists 1 occurrence\(s\) and matches 2/, 'an extra occurrence of an excepted spelling fails');
+  // The exceptions file opens with the rule, and each entry names one of the four bases.
+  assert.notDeepEqual(exceptionShapeFailures([{rule: 'another rule'}]), [], 'a file without the rule');
+  assert.notDeepEqual(exceptionShapeFailures([exceptions[0], {...listed[0], basis: 'trusted source', reason: 'x'.repeat(50)}]), [], 'a basis that is not one of the four');
+  assert.notDeepEqual(exceptionShapeFailures([exceptions[0], {...listed[0], basis: 'a validated identifier', reason: 'x'.repeat(50), count: undefined}]), [], 'an entry without a count');
 });
 
 // The third reading's bypasses (review of PR 336, round 3), each closed by one rule of the guard.
@@ -96,13 +103,13 @@ test('presentation guard closure: attribute contents are judged as children are 
 test('presentation guard closure: a spread of attributes carries only listed keys, never raw HTML', () => {
   const raw = 'export const V = ({ row }: any) => <div {...{ dangerouslySetInnerHTML: { __html: row.text } }} />;';
   fails(raw, 'raw HTML in a spread');
-  assert.notDeepEqual(judge(raw, 'Invented.tsx', [{file: 'Invented.tsx', where: '{...}', expr: '{ dangerouslySetInnerHTML: { __html: row.text } }', reason: 'invented'}]), [], 'raw HTML in a spread cannot be listed');
+  assert.notDeepEqual(judge(raw, 'Invented.tsx', [{file: 'Invented.tsx', where: '{...}', expr: '{ dangerouslySetInnerHTML: { __html: row.text } }', component: 'V', count: 1, reason: 'invented'}]), [], 'raw HTML in a spread cannot be listed');
   fails('export const V = ({ row }: any) => <div {...(row.on ? { title: "App" } : { dangerouslySetInnerHTML: { __html: row.text } })} />;', 'raw HTML in one branch of a spread');
   // Under a computed string-literal key, raw HTML is still raw HTML: it fails and cannot be listed.
   const computed = '{ ["dangerouslySetInnerHTML"]: { __html: row.text } }';
   const computedRaw = `export const V = ({ row }: any) => <div {...${computed}} />;`;
   fails(computedRaw, 'raw HTML under a computed literal key');
-  assert.notDeepEqual(judge(computedRaw, 'Invented.tsx', [{file: 'Invented.tsx', where: '{...}', expr: computed, reason: 'invented'}]), [], 'raw HTML under a computed literal key cannot be listed');
+  assert.notDeepEqual(judge(computedRaw, 'Invented.tsx', [{file: 'Invented.tsx', where: '{...}', expr: computed, component: 'V', count: 1, reason: 'invented'}]), [], 'raw HTML under a computed literal key cannot be listed');
   fails('export const V = ({ row }: any) => <div {...{ children: row.text }} />;', 'children in a spread');
   fails('import { Pretty } from "./Pretty";\nexport const V = ({ row }: any) => <div {...{ children: <Pretty value={row.text} /> }} />;', 'an outside component hidden in a spread\'s children');
   fails('export const V = () => <div {...{ onClick: () => {} }} />;', 'a key not on the list');

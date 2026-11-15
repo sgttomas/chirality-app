@@ -6,6 +6,7 @@ import {tmpdir} from 'node:os';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {loadSrc} from './support/load-src.mjs';
+import {agentPlain} from './support/agent-text.mjs';
 import './support/rust-prebuild.mjs';
 
 const {WorkflowDraftsView,WorkflowDraftsList,DraftRow,TrialRow,CompareResult,draftStateWords,attributionWords,fidelityWords,trialSide,runSide,initialDraftsState}=loadSrc('WorkflowDrafts');
@@ -395,9 +396,9 @@ test('Compare renders the host’s result readably: sides, endings, commands, fi
   // Text files: the host's line difference, one line each.
   const [workflow,checklist,logo]=compareFixture.difference.files;
   assert.ok(h.includes(`<b>WORKFLOW.md</b>: changed · before 60 bytes, sha256 ${workflow.before.sha256} · after 84 bytes, sha256 ${workflow.after.sha256}`));
-  assert.match(h,/<pre[^>]*>- Step 1: read the brief\.\n\+ Step 1: read the brief closely\.\n\+ Step 3: report\.<\/pre>/);
+  assert.match(agentPlain(h),/⟦Recorded text:\n- Step 1: read the brief\.\n\+ Step 1: read the brief closely\.\n\+ Step 3: report\.⟧/);
   assert.ok(h.includes(`<b>checklist.md</b>: added · before absent · after 16 bytes, sha256 ${checklist.after.sha256}`));
-  assert.match(h,/<pre[^>]*>\+ - scope\n\+ - risks<\/pre>/);
+  assert.match(agentPlain(h),/⟦Recorded text:\n\+ - scope\n\+ - risks⟧/);
   // A non-text file: size and digest, no line difference.
   assert.ok(h.includes(`<b>logo.png</b>: changed · before 8 bytes, sha256 ${logo.before.sha256} · after 9 bytes, sha256 ${logo.after.sha256} · not a text file: size and digest only`));
   assert.match(h,/Unchanged files: 1\./);

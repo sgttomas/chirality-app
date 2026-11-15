@@ -1,3 +1,4 @@
+import { RecordedData } from "./AgentText";
 import { workflowAssurance } from "./workflowSelection";
 import { useState } from "react";
 import { beginBringBack, bringBackHeld, endBringBack } from "./bringBackDoubts";
@@ -383,7 +384,7 @@ export function DeclaredPart({ declaration, run, openFileAct, busy = false }: { 
       {run && <StandingFacets facets={outputStanding(e.value, run)} />}</li>)}
     {category("returned_evidence", "Evidence returned", (e, i) => <li key={i}><b>{text(e.value?.name)}</b> ({EVIDENCE_KIND[text(e.value?.kind)] ?? text(e.value?.kind)}, for {names(e.value?.supports)}): {text(e.value?.meaning)}{readingNote(e)}</li>)}
     <p>Written for roles: {raw.compatible_roles === undefined ? "not stated (any role)" : names(raw.compatible_roles) || "none established"}. Tool ceiling: {raw.tool_restriction === undefined ? "none declared" : names(raw.tool_restriction?.capabilities) || "no capabilities"}.</p>
-    <details><summary>Declared part as the host read it (JSON)</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(declaration, null, 2)}</pre></details>
+    <details><summary>Declared part as the host read it (JSON)</summary><RecordedData value={declaration} /></details>
   </div>;
 }
 

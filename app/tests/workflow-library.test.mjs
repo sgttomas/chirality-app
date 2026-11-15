@@ -3,6 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
+import {agentBlocks, agentBlockText} from './support/agent-text.mjs';
 
 // The library list's Select offer (WR §4.6 LS-1, SL-1) and the "newer revision
 // ‹n› available" notice beside the selection (WR SL-2), in the host's shapes
@@ -234,7 +235,7 @@ test('native review actions end with the host presentation while original contin
       });
       const container=document.createElement('div');document.body.appendChild(container);const root=createRoot(container);
       const article=()=>container.querySelectorAll(e=>e.localName==='article'&&e.querySelectorAll(n=>n.localName==='h3'&&n.textContent==='Current review · review-native').length)[0];
-      const body=()=>article().querySelectorAll(e=>e.localName==='pre')[0];
+      const body=()=>agentBlocks(article())[0];
       try{
         await React.act(()=>root.render(React.createElement(App)));
         // Deliver the native reply inside act and await the view's real hash too:
@@ -243,7 +244,7 @@ test('native review actions end with the host presentation while original contin
         const reading=article().querySelectorAll(e=>e.getAttribute('aria-label')==='Frozen workflow registration review')[0];
         assert.ok(reading,'the current frozen presentation has a readable review');
         assert.ok(reading.textContent.includes('Complete synthetic review'));
-        assert.equal(reading.querySelectorAll(e=>e.localName==='pre').at(-1).textContent,JSON.stringify(presentation,null,2),'the complete original presentation remains in its diagnostic report');
+        assert.equal(agentBlockText(agentBlocks(reading).at(-1)),JSON.stringify(presentation,null,2),'the complete original presentation remains in its diagnostic report');
         const digest=await reviewDigest(presentation);assert.ok(article().textContent.includes(digest));
         assert.ok(article().textContent.includes(`Read the complete review below before choosing ${disposition==='re-confirmation'?'Re-confirm':'Register'}`),'fresh presentation retains the read-first action cue');
         const button=native(article());assert.ok(button);assert.equal(props(button).disabled,false);
@@ -253,7 +254,7 @@ test('native review actions end with the host presentation while original contin
         assert.deepEqual(calls.filter(([c])=>c==='workflow_register_native'),[['workflow_register_native',{reviewRef:fresh.reference}]],'one exact original command, no retry');
         assert.ok(!native(article()),`${disposition}: ${outcome} no longer supplies a native review action`);
         assert.equal(snapshot.workflowRoot.activeReview,fresh.reference,'original review stays active');
-        assert.equal(body().textContent,JSON.stringify(readablePaths(resultRow.status??{reference:fresh.reference,...resultRow}),null,2),'complete reported result or pending row stays visible');
+        assert.equal(agentBlockText(body()),JSON.stringify(readablePaths(resultRow.status??{reference:fresh.reference,...resultRow}),null,2),'complete reported result or pending row stays visible');
         assert.ok(article().textContent.includes(digest),'last shown digest evidence stays visible');
         assert.ok(article().textContent.includes('as last shown with the review'));
         assert.ok(!article().textContent.includes('Read the complete review below before choosing'),'result/pending status gets no forward registration cue');

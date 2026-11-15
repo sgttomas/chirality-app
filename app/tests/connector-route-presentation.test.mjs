@@ -12,7 +12,7 @@ const compiled = ts.transpileModule(readFileSync(sourceUrl, 'utf8'), {compilerOp
 const reconstructionUrl=new URL('../src/ConnectorReconstruction.tsx',import.meta.url);
 const reconstructionCode=ts.transpileModule(readFileSync(reconstructionUrl,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}}).outputText;
 const reconstructionExports={};new Function('require','exports',reconstructionCode)(localRequire(createRequire(reconstructionUrl)),reconstructionExports);
-const connectedRequire=name=>name==='./ConnectorReconstruction'?reconstructionExports:createRequire(sourceUrl)(name);
+const connectedRequire=name=>name==='./ConnectorReconstruction'?reconstructionExports:name.startsWith('./')?localRequire(createRequire(sourceUrl))(name):createRequire(sourceUrl)(name);
 const exports = {};
 new Function('require', 'exports', compiled.outputText)(connectedRequire, exports);
 const {ConnectorRoutePanel, routeReadTransition, emptyRouteRead} = exports;

@@ -1,3 +1,4 @@
+import { AgentText, RecordedData } from "./AgentText";
 import { useEffect, useRef, useState } from "react";
 import { EXACT_TEXT } from "./exactText";
 import { readingRefusal } from "./readingSentences";
@@ -215,7 +216,7 @@ export function ChildGuidance({ guidance }: { guidance: Json }) {
     <RoleLimits subject={{ of: "child-supply" }} role={text(guidance.role)} entry={guidance.limitAccount} />
     <p><small>This is evidence of the original child supply. It does not set the primary conversation role or restore current role authority. Resume, fork and later generations do not authorize new child associations from this catalog.</small></p>
     {guidance.roleSupplyRecord?.state === "not-confirmed" && <p role="alert">Child association history was not confirmed: {text(guidance.roleSupplyRecord.limit)}.</p>}
-    <details><summary>Original child supply evidence</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(guidance, null, 2)}</pre></details>
+    <details><summary>Original child supply evidence</summary><RecordedData value={guidance} /></details>
   </div>;
 }
 
@@ -227,7 +228,7 @@ export function ChildAssociations({ associations }: { associations: Json }) {
     {rows.map((row, i) => <details key={i}>
       <summary>Child {text(row.native?.threadId)} · parent {text(row.native?.parentThreadId)} · {row.guidance?.standing === "app-observed-child-supply" ? `original ${text(row.guidance.role)} guidance observed` : "guidance unknown"}</summary>
       <ChildGuidance guidance={row.guidance ?? { standing: "unknown" }} />
-      <details><summary>Native child event</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(row.native, null, 2)}</pre></details>
+      <details><summary>Native child event</summary><RecordedData value={row.native} /></details>
     </details>)}
   </section>;
 }
@@ -251,7 +252,7 @@ export function RoleLimitObservations({ observations }: { observations: Json }) 
         {originalGeneration && actionGeneration && JSON.stringify(originalGeneration) !== JSON.stringify(actionGeneration) && <p><small>Original guidance generation: {text(originalGeneration)}. Native action generation: {text(actionGeneration)}.</small></p>}
         <p><small>This compares the delegation with the guidance the child was given when it started. It does not show that guidance was sent again, that the model took it up, or that the role still applies.</small></p>
         {row.roleSupplyRecord?.state === "not-confirmed" && <p role="alert">TASK delegation history was not confirmed: {text(row.roleSupplyRecord.limit)}.</p>}
-        <details><summary>TASK delegation evidence</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(row, null, 2)}</pre></details>
+        <details><summary>TASK delegation evidence</summary><RecordedData value={row} /></details>
       </div>;
     })}
   </section>;
@@ -270,7 +271,7 @@ export function SupplyStatus({ supply }: { supply: Json }) {
     <ChildAssociations associations={supply.childAssociations} />
     <RoleLimitObservations observations={supply.roleLimitObservations} />
     {supply.roleSupplyRecord?.state === "not-confirmed" && <p role="alert">Role-supply history was not confirmed: {text(supply.roleSupplyRecord.limit)}. Native effects remain as observed; nothing is resent.</p>}
-    <details><summary>Role supply evidence (JSON)</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(supply, null, 2)}</pre></details>
+    <details><summary>Role supply evidence (JSON)</summary><RecordedData value={supply} /></details>
   </div>;
 }
 
@@ -295,16 +296,16 @@ export function RoleSupplyHistory({ view }: { view: Json }) {
     {list(view.limits).map((limit, i) => <p role="alert" key={i}>{text(limit)}</p>)}
     {list(view.observations).map((observation, i) => <details key={i}>
       <summary>{text(observation.record?.trigger)} · {text(observation.record?.outcome)} · {text(observation.record?.supplyId)}</summary>
-      <pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(observation.record, null, 2)}</pre>
+      <RecordedData value={observation.record} />
       {list(observation.limits).map((limit, j) => <p role="alert" key={j}>{text(limit)}</p>)}
       {observation.sourceBytes ? <details><summary>Recorded App instruction bytes (quoted evidence)</summary>
-        <pre style={{whiteSpace:"pre-wrap"}}>{text(observation.sourceBytes.composed)}</pre>
-        {list(observation.sourceBytes.parts).map((part, j) => <details key={j}><summary>{text(part.source?.path)} · {text(part.kind)}</summary><pre style={{whiteSpace:"pre-wrap"}}>{text(part.text)}</pre></details>)}
+        <AgentText block value={text(observation.sourceBytes.composed)} source="record" exactLineEnds />
+        {list(observation.sourceBytes.parts).map((part, j) => <details key={j}><summary>{text(part.source?.path)} · {text(part.kind)}</summary><AgentText block value={text(part.text)} source="record" exactLineEnds /></details>)}
         {list(observation.sourceBytes.nativeChildren).map((child, j) => <details key={`child:${j}`}><summary>Recorded {text(child.role)} child instruction bytes (quoted evidence)</summary>
-          <pre style={{whiteSpace:"pre-wrap"}}>{text(child.composed)}</pre>
-          {list(child.parts).map((part, k) => <details key={k}><summary>{text(part.source?.path)} · {text(part.kind)}</summary><pre style={{whiteSpace:"pre-wrap"}}>{text(part.text)}</pre></details>)}
-          <details><summary>Recorded child configuration file bytes</summary><pre style={{whiteSpace:"pre-wrap"}}>{text(child.envelope)}</pre></details>
-          <details><summary>Recorded child limit account</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(child.limitAccount, null, 2)}</pre></details>
+          <AgentText block value={text(child.composed)} source="record" exactLineEnds />
+          {list(child.parts).map((part, k) => <details key={k}><summary>{text(part.source?.path)} · {text(part.kind)}</summary><AgentText block value={text(part.text)} source="record" exactLineEnds /></details>)}
+          <details><summary>Recorded child configuration file bytes</summary><AgentText block value={text(child.envelope)} source="record" exactLineEnds /></details>
+          <details><summary>Recorded child limit account</summary><RecordedData value={child.limitAccount} /></details>
         </details>)}
       </details> : <p><small>Exact App instruction bytes are not established by this observation.</small></p>}
     </details>)}

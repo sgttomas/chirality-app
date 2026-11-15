@@ -12,7 +12,7 @@ type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 // alone outside it. The box is never a heading, button, link or list item and
 // carries no role that reads as a control (it is a named group).
 
-export type AgentTextSource = "agent" | "tool" | "person" | "codex" | "file";
+export type AgentTextSource = "agent" | "tool" | "person" | "codex" | "file" | "record";
 
 /** The visible label and the accessibility name for each source of text. */
 export const AGENT_TEXT_WORDS: Record<AgentTextSource, { label: string; name: string }> = {
@@ -21,6 +21,9 @@ export const AGENT_TEXT_WORDS: Record<AgentTextSource, { label: string; name: st
   person: { label: "Recorded as your message:", name: "Text Codex recorded as your message, not the App's words" },
   codex: { label: "Codex sent:", name: "Text Codex sent, not the App's words" },
   file: { label: "From a file:", name: "Text from a file the App read, not the App's words" },
+  // A record or report the App keeps or received. It may hold values the App did not write (an agent's, a tool's,
+  // a file's or Codex's), so it is shown marked; its plain label is true of App-only and mixed records alike.
+  record: { label: "Recorded text:", name: "Recorded text" },
 };
 
 // Every character in Unicode's "Other" categories (controls, format
@@ -116,7 +119,9 @@ function Parts({ value }: { value: string }) {
  * breaks are shown as ⏎. `label` replaces the visible label where a shorter
  * one sits better beside a field; `name` replaces the accessibility name.
  */
-export function AgentText({ value, source = "agent", label, name, block = false, style }: { value: Json; source?: AgentTextSource; label?: string; name?: string; block?: boolean; style?: CSSProperties }) {
+export function AgentText({ value, source = "agent", label, name, block = false, style, tabIndex, exactLineEnds = false }: { value: Json; source?: AgentTextSource; label?: string; name?: string; block?: boolean; style?: CSSProperties; tabIndex?: number;
+  /** For a view that shows exact bytes: lines break only at a line feed, so a carriage return stays visible as a mark. */
+  exactLineEnds?: boolean }) {
   const words = AGENT_TEXT_WORDS[source];
   const shownLabel = label ?? words.label;
   const text = agentTextValue(value, block);
@@ -124,8 +129,8 @@ export function AgentText({ value, source = "agent", label, name, block = false,
     <span className="agent-text-label" style={labelStyle}>{shownLabel}</span>{" "}
     <span className="agent-text-value" style={valueStyle}><Parts value={text} /></span>
   </span>;
-  const lines = text.split(/\r?\n/);
-  return <div role="group" aria-label={`${name ?? words.name}, ${lines.length} ${lines.length === 1 ? "line" : "lines"}`} className="agent-text agent-text-block" style={{ ...blockBox, ...style }}>
+  const lines = text.split(exactLineEnds ? /\n/ : /\r?\n/);
+  return <div role="group" aria-label={`${name ?? words.name}, ${lines.length} ${lines.length === 1 ? "line" : "lines"}`} className="agent-text agent-text-block" style={{ ...blockBox, ...style }} tabIndex={tabIndex}>
     <div className="agent-text-label" style={labelStyle}>{shownLabel}</div>
     <div className="agent-text-value" style={valueStyle}>
       {lines.map((line, i) => <div key={i} className="agent-text-line">
@@ -133,6 +138,15 @@ export function AgentText({ value, source = "agent", label, name, block = false,
       </div>)}
     </div>
   </div>;
+}
+
+export const RECORDED_DATA_LABEL = "Recorded data (JSON):";
+/** A diagnostic record shown as indented JSON, in a marked box since it may hold values the App did not write. JSON
+ * escapes line breaks but not direction or other format characters, so the marking matters inside JSON too. */
+export function RecordedData({ value, label = RECORDED_DATA_LABEL, name, style }: { value: Json; label?: string; name?: string; style?: CSSProperties }) {
+  let shown: string;
+  try { shown = JSON.stringify(value, null, 2) ?? String(value); } catch { shown = String(value); }
+  return <AgentText block value={shown} source="record" label={label} name={name ?? "Recorded data"} style={style} />;
 }
 
 // The presentations a supplied value may take on a guarded view (tests/support/presentation-guard.mjs). Each

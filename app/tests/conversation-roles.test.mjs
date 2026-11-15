@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {createRequire} from 'node:module';
 import ts from 'typescript';
 import React from 'react';
+import {agentPlain} from './support/agent-text.mjs';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {localRequire} from './support/load-src.mjs';
 const load=name=>{const url=new URL(`../src/${name}`,import.meta.url);const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}});const exports={};new Function('require','exports',compiled.outputText)(localRequire(createRequire(url)),exports);return exports;};
@@ -410,9 +411,10 @@ test('quoted history exposes exact child composition, sources, envelope and orig
   const child={role:'TASK',composed:'common\r\n\n# Active role: TASK\n\n<child instructions>',parts:[{source:{path:'agents/AGENT_TASK.md'},kind:'role-guidance',text:'<child instructions>'}],envelope:'developer_instructions = "quoted\\r\\n"\n',limitAccount:{role:'TASK',limits:[task]}};
   const html=h(RoleSupplyHistory,{view:{observations:[{record:{trigger:'thread-start',outcome:'supplied',supplyId:'sup:old'},sourceBytes:{composed:'original parent',parts:[],nativeChildren:[child]}}]}});
   assert.ok(html.includes('Recorded TASK child instruction bytes (quoted evidence)'));
-  assert.ok(html.includes('common\r\n\n# Active role: TASK\n\n&lt;child instructions&gt;'));
+  // Exact bytes: a carriage return stays visible as a mark, each line in the recorded box.
+  assert.ok(agentPlain(html).includes('⟦Recorded text:\ncommon‹U+000D›\n\n# Active role: TASK\n\n&lt;child instructions&gt;⟧'));
   assert.ok(html.includes('agents/AGENT_TASK.md · role-guidance')&&html.includes('&lt;child instructions&gt;'));
-  assert.ok(html.includes('Recorded child configuration file bytes')&&html.includes('developer_instructions = &quot;quoted\\r\\n&quot;\n'));
+  assert.ok(html.includes('Recorded child configuration file bytes')&&agentPlain(html).includes('⟦Recorded text:\ndeveloper_instructions = &quot;quoted\\r\\n&quot;\n⟧'));
   assert.ok(html.includes('Recorded child limit account')&&html.includes('L-TASK-1'));
   assert.ok(html.includes('Quoted child bytes do not restore child associations')&&!html.includes('Original App child guidance'));
 });

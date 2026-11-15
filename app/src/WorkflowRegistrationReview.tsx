@@ -1,3 +1,4 @@
+import { AgentText, RecordedData } from "./AgentText";
 import { Fragment } from "react";
 import { nativePathText } from "./presentation";
 
@@ -31,7 +32,6 @@ const labels: Record<string, string> = {
   written_at: "Recorded time", act: "Recorded act", label: "Label", slot_latest: "Slot latest tuple",
   statement: "Statement",
 };
-const literal = { whiteSpace: "pre-wrap", overflowWrap: "anywhere" } as const;
 const record = (value: Json): value is Record<string, Json> => value !== null && typeof value === "object" && !Array.isArray(value);
 const own = (value: Json, key: string) => record(value) && Object.hasOwn(value, key);
 
@@ -48,15 +48,16 @@ function ReportedValue({ value, literalKeys = false }: { value: Json; literalKey
   if (value === null) return <span>Reported null</span>;
   const path = nativePathText(value);
   if (path !== null) return <>
-    <span style={literal}>{path}</span>
-    <details><summary>Reported path identity</summary><pre style={literal}>{JSON.stringify(value, null, 2)}</pre></details>
+    <AgentText value={path} source="file" label="Path as reported:" name="A path as the review reported it, not the App's words" />
+    <details><summary>Reported path identity</summary><RecordedData value={value} /></details>
   </>;
   if (Array.isArray(value)) return value.length
     ? <ol>{value.map((item, index) => <li key={index}><ReportedValue value={item} literalKeys={literalKeys} /></li>)}</ol>
     : <span>Reported empty list</span>;
   if (record(value)) return Object.keys(value).length
     ? <ReportedFields value={value} literalKeys={literalKeys} /> : <span>Reported empty object</span>;
-  return <span style={literal}>{value === "" ? "Reported empty string" : String(value)}</span>;
+  if (value === "") return <span>Reported empty string</span>;
+  return <AgentText value={String(value)} source="file" label="Value as reported:" name="A value as the review reported it, not the App's words" />;
 }
 
 function Manifest({ files }: { files: Json }) {
@@ -80,7 +81,7 @@ function ReviewEntry({ entry, index }: { entry: Json; index: number }) {
     <ReportedFields value={entry} keys={entryHeader} />
     <h5>WORKFLOW.md</h5>
     {typeof entry.workflow_text === "string"
-      ? <pre aria-label="Frozen WORKFLOW.md text" style={literal}>{entry.workflow_text}</pre>
+      ? <AgentText block value={entry.workflow_text} source="file" label="WORKFLOW.md, frozen as reviewed:" name="Frozen WORKFLOW.md text" />
       : <ReportedValue value={own(entry, "workflow_text") ? entry.workflow_text : undefined} />}
     <h5>File manifest</h5><Manifest files={own(entry, "files") ? entry.files : undefined} />
     <ReportedFields value={entry} keys={Object.keys(entry).filter(key => ![...entryHeader, "workflow_text", "files"].includes(key))} />
@@ -97,7 +98,7 @@ export function WorkflowRegistrationReview({ presentation }: { presentation: Jso
         : <ReportedValue value={own(presentation, "entries") ? presentation.entries : undefined} />}
     </> : <ReportedValue value={presentation} />}
     <details><summary>Complete reported review (diagnostic JSON)</summary>
-      <pre style={literal}>{JSON.stringify(presentation, null, 2)}</pre>
+      <RecordedData value={presentation} />
     </details>
   </div>;
 }

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
+import {agentPlain} from './support/agent-text.mjs';
 
 // Trial and bring-back composers, the review's last clean trial line, and their
 // place in the conversation panel (WR TT-3a, TT-3b, TT-10, TT-13; OI-008: the
@@ -42,7 +43,7 @@ test('the delegated composer pre-fills the message and shows the card, notes and
   const html=h(DelegatedTrialComposer,{pending:pending(),conversations,busy:false,ready:true,act:async()=>{throw new Error('must not be called while rendering');}});
   assert.match(html,/<textarea[^>]*>Please try draft load-check \(trial 4, content 0123456789ab\)/);
   assert.match(html,/trial 4 of draft load-check at content 0123456789ab — not registered; not a workflow run/);
-  assert.match(html,/<details><summary>Open the trial text \(812 bytes; identity feedfacefeed\)<\/summary><pre[^>]*>\[Chirality\] Workflow trial 4 of draft project:load-check\nRUN TEXT BODY<\/pre>/);
+  assert.match(agentPlain(html),/<details><summary>Open the trial text \(812 bytes; identity feedfacefeed\)<\/summary>⟦Recorded text:\n\[Chirality\] Workflow trial 4 of draft project:load-check\nRUN TEXT BODY⟧/);
   assert.match(html,/to change it, change the draft and Try again/);
   assert.match(html,/Delegation not established: delegation tools not reported by Codex/);
   assert.match(html,/resolve-spacing is in force in this conversation/);
@@ -120,7 +121,7 @@ test('the bring-back composer pre-fills the prompt and transcript card and sends
   const html=h(BringBackComposer,{pending:bringBack(),conversations,busy:false,ready:true,act:async()=>{throw new Error('must not be called while rendering');}});
   assert.match(html,/<textarea[^>]*>Here is how trial 4 went/);
   assert.match(html,/transcript of trial 4 \(sub-agent child-1\)/);
-  assert.match(html,/<pre[^>]*>\[Chirality\] Trial 4 of draft load-check @ 0123456789ab: transcript read from Codex history/);
+  assert.match(agentPlain(html),/⟦Recorded text:\n\[Chirality\] Trial 4 of draft load-check @ 0123456789ab: transcript read from Codex history/);
   assert.match(html,/turn 2 command output: … 1200 bytes omitted/);
   assert.match(html,/<option value="[^"]*" selected="">auth ·/);
   const s=spy();

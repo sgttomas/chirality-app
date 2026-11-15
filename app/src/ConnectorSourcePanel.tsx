@@ -1,3 +1,4 @@
+import { AgentText, RecordedData } from "./AgentText";
 import { ReconstructionFields, ReconstructionView, emptyReconstruction, reconstructionPayload } from "./ConnectorReconstruction";
 import { EXACT_TEXT } from "./exactText";
 import { useEffect, useRef, useState } from "react";
@@ -38,14 +39,14 @@ export function SourceObservationView({state}:{state:SourceUiState}) {
       <p>Bytes: {observation.read.byteLength}; selectable lines: {observation.read.lineCount}; SHA-256: {observation.read.sha256}</p>
       <p>Observed at: {observation.read.observedAt} ({observation.read.timeProvenance})</p>
       <p>{observation.read.mechanism}</p><p>{observation.read.mutationLimit}</p>
-      <details><summary>Lossless path and opened file identity</summary><pre>{JSON.stringify({path:observation.read.selectedPath,file:observation.read.openedFileIdentity},null,2)}</pre></details>
-      <h4>Local text snapshot</h4><pre style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere"}}>{observation.read.text}</pre>
-      <details><summary>Escaped snapshot text (makes line endings visible)</summary><pre>{JSON.stringify(observation.read.text)}</pre></details>
+      <details><summary>Lossless path and opened file identity</summary><RecordedData value={{path:observation.read.selectedPath,file:observation.read.openedFileIdentity}} /></details>
+      <h4>Local text snapshot</h4><AgentText block value={observation.read.text} source="record" />
+      <details><summary>Escaped snapshot text (makes line endings visible)</summary><AgentText block value={JSON.stringify(observation.read.text)} source="record" /></details>
       <h4>Revision standing</h4><p>{observation.revision.kind}</p><p>{observation.revision.label ?? observation.revision.callerInterpretation}</p><p>{observation.revision.limit}</p>
       {observation.revision.anchor && <p>Located revision excerpt: {observation.revision.anchor.anchor}; interpretation is caller-supplied and unverified.</p>}
       <p>This local snapshot is not a Git binding. A typed commit, source statement, or working-tree coincidence does not establish a Git revision. No source entry or saved route account is produced.</p>
       <h4>Checked excerpts</h4>
-      {observation.anchors?.map((anchor:Json)=><div key={anchor.reference}><p>{anchor.anchor}: [{anchor.byteStart}, {anchor.byteEnd}) — {anchor.interval}</p><pre>{anchor.text}</pre><pre>{JSON.stringify(anchor.text)}</pre><p>Excerpt SHA-256: {anchor.sha256}</p><p>{anchor.standing}</p></div>)}
+      {observation.anchors?.map((anchor:Json)=><div key={anchor.reference}><p>{anchor.anchor}: [{anchor.byteStart}, {anchor.byteEnd}) — {anchor.interval}</p><AgentText block value={anchor.text} source="record" /><AgentText block value={JSON.stringify(anchor.text)} source="record" /><p>Excerpt SHA-256: {anchor.sha256}</p><p>{anchor.standing}</p></div>)}
     </article>}
     <p>Git gap responsibility: {view?.gaps?.[0]?.responsible ?? "Unassigned"}; caller assignment only, no performed responsibility.</p>
     <GitObservationView git={view?.git} historical={state.busy || !!state.error || state.draftChanged}/>
@@ -69,15 +70,15 @@ export function GitObservationView({git,historical=false}:{git:Json;historical?:
           <p>Content SHA-256: {observation[side].object.sha256}; bytes: {observation[side].object.byteLength}</p>
           <p>Observed: {observation[side].object.observedAt} ({observation[side].object.timeProvenance})</p>
           <p>{observation[side].object.standing}</p>
-          <pre style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere"}}>{observation[side].object.text}</pre>
-          <details><summary>Object path, raw commit and tree evidence</summary><pre>{JSON.stringify(observation[side].object,null,2)}</pre></details>
+          <AgentText block value={observation[side].object.text} source="record" />
+          <details><summary>Object path, raw commit and tree evidence</summary><RecordedData value={observation[side].object} /></details>
         </>}
       </article>)}
       {observation.comparison && <p>{observation.comparison}</p>}
       {observation.limits?.map((limit:string)=><p key={limit}>{limit}</p>)}
-      <details><summary>Repository association and restricted Git mechanism</summary><pre>{JSON.stringify({association:observation.association,engine:observation.engine},null,2)}</pre></details>
+      <details><summary>Repository association and restricted Git mechanism</summary><RecordedData value={{association:observation.association,engine:observation.engine}} /></details>
       <h4>Checked Git excerpts</h4>
-      {result.anchors?.map((a:Json)=><div key={a.reference}><p>{a.side}: {a.anchor}, [{a.byteStart}, {a.byteEnd})</p><p>Commit: {a.commit}; blob: {a.blob}</p><pre>{a.text}</pre><p>{a.standing}</p></div>)}
+      {result.anchors?.map((a:Json)=><div key={a.reference}><p>{a.side}: {a.anchor}, [{a.byteStart}, {a.byteEnd})</p><p>Commit: {a.commit}; blob: {a.blob}</p><AgentText block value={a.text} source="record" /><p>{a.standing}</p></div>)}
     </>}
   </section>;
 }
@@ -210,19 +211,19 @@ export function ConnectorDraftPanel({source,availability,command}:{source:Source
  {registry&&<p>{registry.used} of {registry.capacity} App-instance identities retained. {registry.limit}</p>}
  {registry?.entries?.map((entry:Json)=><article key={entry.token}><h3>{entry.accountId}: {entry.status}</h3>
  {entry.draft&&<><h4>Frozen question</h4><p>{entry.draft.account.question.text}</p><p>At: {entry.draft.account.question.at_revision}; since: {entry.draft.account.question.since_revision??"not requested"}</p><p>Exact serialized draft: {entry.draft.byteLength} bytes; SHA-256 {entry.draft.sha256}</p>
- <h4>Selected source evidence</h4>{entry.draft.account.sources.map((s:Json)=><div key={s.source_id}><p>{s.path} — {s.revision}; {s.role} (caller assertion)</p><p>Blob: {s.provenance.blob}; content hash: {s.sha256}</p>{s.excerpts.map((e:Json)=><div key={e.excerpt_id}><p>{e.anchor}: [{e.byte_start}, {e.byte_end})</p><pre>{e.text}</pre></div>)}</div>)}
+ <h4>Selected source evidence</h4>{entry.draft.account.sources.map((s:Json)=><div key={s.source_id}><p>{s.path} — {s.revision}; {s.role} (caller assertion)</p><p>Blob: {s.provenance.blob}; content hash: {s.sha256}</p>{s.excerpts.map((e:Json)=><div key={e.excerpt_id}><p>{e.anchor}: [{e.byte_start}, {e.byte_end})</p><AgentText block value={e.text} source="record" /></div>)}</div>)}
  <h4>Unreviewed caller interpretations</h4>{entry.draft.account.interpretations?.map((i:Json)=><p key={i.interpretation_id}>{i.statement} — {i.asserted_by} (caller asserted identity)</p>)}
  {entry.draft.account.formatVersion==="0.4"&&<ReconstructionView account={entry.draft.account}/>}
  <h4>Gaps and responsibility</h4>{entry.draft.account.gaps.map((g:Json,i:number)=><p key={i}>{g.origin}: {g.gap}. {g.effect}. Responsible: {g.responsible.identity??"Unassigned"}</p>)}
  <h4>Reported duties</h4>{entry.draft.account.duties.map((d:Json)=><p key={d.duty}>{d.duty}: {d.standing}; {d.reason} (unverified)</p>)}
- <details><summary>Complete frozen draft and compact receipt limits</summary><pre>{JSON.stringify(entry.draft.account,null,2)}</pre></details>
+ <details><summary>Complete frozen draft and compact receipt limits</summary><RecordedData value={entry.draft.account} /></details>
  <button disabled={busy||dirty||!eligible} onClick={()=>action("publish_connector_draft",{token:entry.token,generation:entry.generation})}>Publish this frozen draft once</button></>}
  {(entry.status==="prepared"||entry.status==="publishing")&&<button onClick={()=>action("cancel_connector_draft",{token:entry.token,generation:entry.generation})}>Cancel draft (started publication may finish)</button>}
  {entry.status==="uncertain"&&<button onClick={()=>action("reconcile_connector_draft",{token:entry.token,generation:entry.generation})}>Inspect exact uncertain attempt</button>}
- <h4>Original publication outcome</h4><pre>{entry.outcomeText}</pre><pre>{entry.reconciliationText}</pre>
+ <h4>Original publication outcome</h4><AgentText block value={entry.outcomeText} source="record" /><AgentText block value={entry.reconciliationText} source="record" />
  {entry.recheckAvailable&&<button disabled={!availability?.enabled||inspecting} onClick={()=>recheck(entry)}>Recheck this published file</button>}
  {inspection?.context===projectCut&&inspection?.token===entry.token&&inspection?.generation===entry.generation&&<div aria-label="Current exact-file inspection"><h4>Current exact-file inspection</h4>
- {inspection.error?<p role="alert">Inspection not completed: {inspection.error}</p>:<><p>{inspection.reply.inspection.status}</p><pre>{JSON.stringify(inspection.reply.inspection.observed??null,null,2)}</pre><p>{inspection.reply.inspection.detail}</p><p>{inspection.reply.inspection.limit}</p></>}
+ {inspection.error?<p role="alert">Inspection not completed: {inspection.error}</p>:<><p>{inspection.reply.inspection.status}</p><RecordedData value={inspection.reply.inspection.observed??null} /><p>{inspection.reply.inspection.detail}</p><p>{inspection.reply.inspection.limit}</p></>}
  <p>The original publication outcome is unchanged. This checks only its retained exact file; namespace uniqueness, source truth and performed duties are not established.</p></div>}
  </article>)}
  <p>Actual outcomes outlive source preparation for this App instance. Process loss loses hot tokens; cold records neither prove prior publication nor restore custody. No automatic retry, rollback or unlink.</p>

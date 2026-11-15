@@ -47,7 +47,7 @@ export function FleetRecordsPanel({ packet, error, busy, refresh }: {
       {packet.limits.length > 0 && <div role="alert"><p>Source and relationship limits:</p><ul>{packet.limits.map((limit, index) => <li key={index}>
         {limit.source.home}{limit.source.path ? `: ${limit.source.path}` : ""}{limit.source.line ? ` (line ${limit.source.line})` : ""}: {limit.reason}
       </li>)}</ul></div>}
-      <details><summary>Complete fleet packet, sources and provenance</summary><pre>{JSON.stringify(packet, null, 2)}</pre></details>
+      <details><summary>Complete fleet packet, sources and provenance</summary><RecordedData value={packet} /></details>
     </>}
   </section>;
 }
@@ -75,16 +75,17 @@ function FleetWorkspace({ workspace }: { workspace: NonNullable<FleetPacket["wor
             : `return does not name a brief; ${view.currentGraphEstablished ? "current" : "last readable"} graph has no brief for this item${view.currentGraphEstablished ? "" : " (currentness unknown)"}.`}
           {row.examinesProvenance.briefId && !row.examinesProvenance.briefSource ? " No preparer established from the named brief." : ""}</p>}
         <p>Return: {row.returnRef}. Returned references: {row.returned.map((ref: Json) => ref.ref).join(", ")}.</p>
-        <details><summary>Return evidence and sources</summary><pre>{JSON.stringify({evidence: row.evidence, sources: row.sources, examinesProvenance: row.examinesProvenance}, null, 2)}</pre></details>
+        <details><summary>Return evidence and sources</summary><RecordedData value={{evidence: row.evidence, sources: row.sources, examinesProvenance: row.examinesProvenance}} /></details>
       </li>)}</ul>
       <h5>Selected work and waiting causes</h5>
       <ul>{view.waiting.map((row: Json) => <li key={row.item}>
         <b>{row.item}: {row.outcome}</b> — <strong>{row.category}</strong>
         <p>Owner: {row.owner}{row.next ? `. Next: ${typeof row.next === "string" ? row.next : JSON.stringify(row.next)}` : ""}</p>
         <ul>{row.causes.map((cause: string, i: number) => <li key={i}>{cause}</li>)}</ul>
-        <details><summary>Work evidence, needs and sources</summary><pre>{JSON.stringify({needs: row.needs, writeScope: row.writeScope, sources: row.sources}, null, 2)}</pre></details>
+        <details><summary>Work evidence, needs and sources</summary><RecordedData value={{needs: row.needs, writeScope: row.writeScope, sources: row.sources}} /></details>
       </li>)}</ul>
     </section>)}
     <details><summary>Reconstruction limits</summary><ul>{workspace.limits.map((limit, i) => <li key={i}>{limit}</li>)}</ul></details>
   </div>;
-}
+}import { RecordedData } from "./AgentText";
+
