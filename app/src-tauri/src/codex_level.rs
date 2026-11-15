@@ -26,8 +26,12 @@ pub const APP_DEFAULT_SENTENCE: &str = "The App's default level, not chosen by y
 pub const SUPERVISED_ALLOWING: &str = "When a command needs your approval, Codex asks. If you allow it, the command can run outside the sandbox, with your account's access to all your files and to the network; Codex cannot run it limited to this project. Your own rules and hooks can allow or refuse a command without asking you.";
 pub const APP_DEFAULT_EXPLAINED: &str = "The App's default level is full access: commands run with no sandbox, with your account's access to your files and the network, including the App's own records and settings. You can choose another level at any time.";
 /// The status's closed sentence for a level chosen while the App's records could not be read or saved.
-/// Where the App's record of the level is missing although this home has been used (V4-AUT-06): no default is named.
-pub const RECORD_MISSING_SENTENCE: &str = "The App's record of your permission level is missing. Choose a level to continue. A missing record can mean that a command removed it.";
+/// The ask, the one exception to the App's default (V4-AUT-06): the App's record of the level is missing, holds a
+/// choice that no longer matches the table, or cannot be read, while this home has been used. The App's default is
+/// preselected beside it.
+pub const RECORD_MISSING_SENTENCE: &str = "The App's record of your permission level is missing or could not be used, so the App cannot tell whether you chose a level before; a missing record can mean that a command removed or changed it. Choose a level to continue. The App's default, full access, is selected.";
+/// Beside the App's default where the App's records could not be read on a first run.
+pub const RECORDS_UNREAD_SENTENCE: &str = "The App could not read its records, so a level you choose now is kept for this session only.";
 /// The name Codex gives the state database it creates in its home when it first starts there (state/src/sqlite.rs
 /// at rust-v0.167.0). The App never creates it.
 pub const CODEX_STATE_NAME: &str = "state_5.sqlite";

@@ -119,9 +119,15 @@ pub(crate) struct LevelState {
     /// Why the person may choose a level for this session only: the launch read positively failed or was limited
     /// (`{reason, detail}`). None after a complete read, and never for an empty ledger.
     pub(crate) session_only: Option<Value>,
-    /// The launch read found no earlier session in a complete record although this home holds state from an earlier
-    /// Codex start: the record of the level is missing, and no default applies.
+    /// The ask for the default scope (V4-AUT-06's one exception): the launch read found no earlier session in a
+    /// complete record, or a recorded default that no longer matches the table, or could not read the record, while
+    /// this home holds state from an earlier Codex start. No default applies until the person chooses.
     pub(crate) record_missing: bool,
+    /// The ask for one conversation: its recorded level no longer matches the table. It does not fall to the default.
+    pub(crate) thread_asks: std::collections::HashSet<String>,
+    /// The App's default applies although the launch read could not read the records (a first run by the home's
+    /// evidence): `levelRecordsUnread` says a choice made now is kept for this session only.
+    pub(crate) records_unread: bool,
     /// Advanced by every attempted configuration write; a trust reading made before one is not current.
     pub(crate) config_writes: u64,
     /// A test's own budget for the trust reading, in place of the reading default.
@@ -505,7 +511,7 @@ impl Host {
                 i.level.record_missing = false;
                 i.default_level = Some(chosen.level); i.level.default_chosen = Some(chosen);
             }
-            LevelScope::Conversation(t) => { i.thread_levels.insert(t.clone(), chosen.level); i.level.thread_chosen.insert(t.clone(), chosen); }
+            LevelScope::Conversation(t) => { i.level.thread_asks.remove(t); i.thread_levels.insert(t.clone(), chosen.level); i.level.thread_chosen.insert(t.clone(), chosen); }
             LevelScope::NewConversation => { i.new_conversation_level = Some(chosen.level); i.level.new_chosen = Some(chosen); }
         }
         i.level_revision += 1;
@@ -551,10 +557,22 @@ impl Host {
         let rows = match read {
             Ok(rows) => rows,
             Err((reason, session_only)) => {
-                let view = json!({"state": "not-read", "reason": reason});
+                let mut view = json!({"state": "not-read", "reason": reason});
                 let mut i = self.inner.0.lock().unwrap();
-                i.level.launch = view.clone();
                 i.level.session_only = Some(session_only);
+                // The App's default only on positive evidence of a first run: this home holds no state from an earlier
+                // Codex start. Otherwise the ask, with the session-only choice.
+                if let Some(level) = i.level.app_default.0.filter(|_| i.default_level.is_none()) {
+                    if codex_home.is_some_and(|home| !cl::home_has_codex_state(home)) {
+                        Self::apply_chosen(&mut i, &LevelScope::Default, Chosen { entry: None, at: now_rfc3339(), level, origin: Origin::AppDefault });
+                        i.level.records_unread = true;
+                        view["appDefault"] = json!(level.id);
+                    } else {
+                        i.level.record_missing = true;
+                        view["recordMissing"] = json!(cl::RECORD_MISSING_SENTENCE);
+                    }
+                }
+                i.level.launch = view.clone();
                 return view;
             }
         };
@@ -583,6 +601,9 @@ impl Host {
         for t in session_threads { i.thread_levels.remove(&t); i.level.thread_chosen.remove(&t); dropped = true; }
         if dropped { i.level_revision += 1; }
         let mut default_accepted = false;
+        let mut default_refused = false;
+        i.level.thread_asks.clear();
+        i.level.records_unread = false;
         for (scope, row) in latest {
             let entry = row["entryId"].as_str().unwrap_or_default().to_owned();
             match cl::accept_recorded(&row["level"]) {
@@ -594,9 +615,11 @@ impl Host {
                 }
                 None => {
                     // No level for this scope: the recorded level is withdrawn, not replaced by another.
+                    // A record that cannot be used is asked about, never answered by the App's default: a spoiled record
+                    // must not raise a level as a removed one would.
                     match &scope {
-                        LevelScope::Default => { i.default_level = None; i.level.default_chosen = None; }
-                        LevelScope::Conversation(t) => { i.thread_levels.remove(t); i.level.thread_chosen.remove(t); }
+                        LevelScope::Default => { i.default_level = None; i.level.default_chosen = None; default_refused = true; }
+                        LevelScope::Conversation(t) => { i.thread_levels.remove(t); i.level.thread_chosen.remove(t); i.level.thread_asks.insert(t.clone()); }
                         LevelScope::NewConversation => {}
                     }
                     i.level_revision += 1;
@@ -616,7 +639,7 @@ impl Host {
         if let (false, Some(level)) = (default_accepted, i.level.app_default.0) {
             let current = i.app_session.clone();
             let used_before = rows.iter().any(|r| r["session"].as_str().is_some_and(|s| s != current));
-            if !used_before && codex_home.is_some_and(cl::home_has_codex_state) {
+            if default_refused || (!used_before && codex_home.is_some_and(cl::home_has_codex_state)) {
                 // No earlier session in the record, yet this home holds state from an earlier Codex start: the
                 // record of the level is missing, not a first run.
                 i.level.record_missing = true;
@@ -639,6 +662,9 @@ impl Host {
         status["levelSendRefusal"] = json!(i.level.last_refusal);
         status["levelLaunchRead"] = i.level.launch.clone();
         status["levelRecordMissing"] = if i.level.record_missing { json!(cl::RECORD_MISSING_SENTENCE) } else { Value::Null };
+        // The level preselected in the ask: the App's default, one press away.
+        status["levelAskPreselected"] = if i.level.record_missing || !i.level.thread_asks.is_empty() { json!(i.level.app_default.0.map(|l| l.id.as_str())) } else { Value::Null };
+        status["levelRecordsUnread"] = if i.level.records_unread && i.level.default_chosen.as_ref().is_some_and(|c| c.origin == Origin::AppDefault) { json!(cl::RECORDS_UNREAD_SENTENCE) } else { Value::Null };
         status["levelAppDefault"] = json!(i.level.app_default.0.map(|l| l.id.as_str()));
         // Offered only when the launch read positively failed or was limited.
         status["levelSessionOnlyOffered"] = json!(session_only);
@@ -646,11 +672,13 @@ impl Host {
             for row in threads.iter_mut() {
                 let Some(t) = row["threadId"].as_str().map(str::to_owned) else { continue };
                 let own = i.thread_levels.get(&t).copied();
+                let asked = own.is_none() && i.level.thread_asks.contains(&t);
                 let chosen = match own {
                     Some(level) => chosen_view(i.level.thread_chosen.get(&t), Some(level), "conversation", session_only),
+                    None if asked => Value::Null,
                     None => chosen_view(i.level.default_chosen.as_ref(), i.default_level, "default", session_only),
                 };
-                let in_force = own.or(i.default_level);
+                let in_force = if asked { None } else { own.or(i.default_level) };
                 let sent = i.level.last_sent.get(&t).cloned();
                 let reported = i.level.reported.get(&t).cloned();
                 // Confirmed only by a start, resume or fork reply for the level now in force: a change sent on a turn
@@ -665,6 +693,8 @@ impl Host {
                 let mut level = json!({"chosen": chosen, "sent": sent, "reported": reported, "agreement": agreement, "takesEffect": takes_effect});
                 if let Some(trust) = project_trust { level["projectTrust"] = trust; }
                 if let Some(cause) = i.level.refused.get(&t) { level["refused"] = cause.clone(); }
+                // This conversation's recorded level could not be used: the ask, with the App's default preselected.
+                if asked { level["ask"] = json!({"sentence": cl::RECORD_MISSING_SENTENCE, "preselected": i.level.app_default.0.map(|l| l.id.as_str())}); }
                 row["level"] = level;
             }
         }

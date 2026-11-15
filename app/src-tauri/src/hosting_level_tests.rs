@@ -439,8 +439,8 @@ fn production_code_changes_the_level_only_from_set_level_and_the_launch_read() {
     }
     assert!(offending.is_empty(), "{offending:#?}");
     let level_state = without_test_modules(&std::fs::read_to_string(dir.join("hosting_level.rs")).unwrap());
-    assert_eq!(level_state.matches("Self::apply_chosen(").count(), 7,
-        "choose_level (a session-only choice here and in the other homes; a new conversation; a recorded choice here and in the other homes) and the launch read (a recorded choice; the App's default)");
+    assert_eq!(level_state.matches("Self::apply_chosen(").count(), 8,
+        "choose_level (a session-only choice here and in the other homes; a new conversation; a recorded choice here and in the other homes) and the launch read (a recorded choice; the App's default; the App's default on a first run whose records could not be read)");
 }
 
 /// The source with each `#[cfg(test)]` item (a module, function or block) removed.
@@ -570,7 +570,7 @@ fn a_complete_read_with_no_choice_puts_the_apps_default_in_force_and_writes_noth
 }
 
 #[test]
-fn a_recorded_choice_wins_over_the_default_and_an_invalid_one_leaves_the_default() {
+fn a_recorded_choice_wins_over_the_default_and_an_unusable_one_is_asked_about_not_defaulted() {
     let base = root("default-recorded");
     let path = base.join("recovery.ledger.jsonl");
     let row = |id: &str, values: Value| json!({"kind":"level_chosen","session":"app-session:earlier","entryId":id,"at":"2026-11-14T12:00:00Z",
@@ -587,7 +587,8 @@ fn a_recorded_choice_wins_over_the_default_and_an_invalid_one_leaves_the_default
     assert_eq!(host.snapshot()["levelDefault"]["origin"], "chosen");
     host.app_runtime_custody().unwrap().record_app_session_end(&[]).unwrap();
     drop(host);
-    // The latest entry does not match the table: no valid choice, so the App's default, never the earlier entry.
+    // The latest entry does not match the table: neither the earlier entry nor the App's default, but the ask, with
+    // the default preselected. A spoiled record must not raise a level as a removed one would.
     let mut tampered = cl::recorded_values(cl::level("supervised").unwrap());
     tampered["approvalPolicy"] = json!("never");
     { RecoveryLedger::open(path.clone()).unwrap().append(row("level-chosen:b", tampered)).unwrap(); }
@@ -595,9 +596,12 @@ fn a_recorded_choice_wins_over_the_default_and_an_invalid_one_leaves_the_default
     host.configure_recovery(path).unwrap();
     let view = host.read_levels_at_launch(Some("app-home:mine"));
     assert_eq!(view["refused"][0]["entryId"], "level-chosen:b");
-    assert_eq!(view["appDefault"], "full");
-    assert_eq!(host.default_level().unwrap().id, "full");
-    assert_eq!(host.snapshot()["levelDefault"]["origin"], "app-default");
+    assert!(view.get("appDefault").is_none());
+    assert_eq!(view["recordMissing"], cl::RECORD_MISSING_SENTENCE);
+    assert!(host.default_level().is_none());
+    let status = host.snapshot();
+    assert!(status["levelDefault"].is_null());
+    assert_eq!((status["levelRecordMissing"].as_str(), status["levelAskPreselected"].as_str()), (Some(cl::RECORD_MISSING_SENTENCE), Some("full")));
     std::fs::remove_dir_all(&base).unwrap();
 }
 
@@ -1123,5 +1127,141 @@ fn supervised_says_an_allowed_command_can_run_outside_the_sandbox() {
     assert_eq!(host.snapshot()["levelDefault"]["allowing"], cl::SUPERVISED_ALLOWING);
     host.choose_level(&LevelScope::Default, cl::level("edits").unwrap(), &[]).unwrap();
     assert!(host.snapshot()["levelDefault"].get("allowing").is_none());
+    std::fs::remove_dir_all(base).unwrap();
+}
+
+/// Review B1, the owner's default with its one exception: a narrower choice whose record was altered never runs at
+/// full access without the person's press. The ask names why, with full access preselected; one press continues at
+/// full access, recorded as the person's choice.
+#[test]
+fn a_narrower_choice_whose_record_was_altered_does_not_run_at_full_access_without_the_ask() {
+    let base = root("altered");
+    let home = account_home(&base, true);
+    let path = base.join("data").join("recovery.ledger.jsonl");
+    {
+        let before = ready_with_ledger(&base.join("data"), "/invented");
+        before.choose_level(&LevelScope::Default, cl::level("supervised").unwrap(), &[]).unwrap();
+        before.app_runtime_custody().unwrap().record_app_session_end(&[]).unwrap();
+    }
+    // A command changed the recorded choice so that it no longer matches the table.
+    let mut altered = cl::recorded_values(cl::level("supervised").unwrap());
+    altered["approvalPolicy"] = json!("never");
+    { RecoveryLedger::open(path).unwrap().append(json!({"kind":"level_chosen","session":"app-session:earlier","entryId":"level-chosen:altered",
+        "at":"2026-11-14T12:00:00Z","scope":{"kind":"default-for-new-conversations"},"level":altered,"previous":null})).unwrap(); }
+    let host = ready_with_ledger(&base.join("data"), "/invented");
+    host.inner.0.lock().unwrap().default_level = None;
+    host.set_app_default_for_test(Some("full"));
+    let view = host.read_levels_at_launch_in(Some("app-home:invented"), Some(&home));
+    assert!(view.get("appDefault").is_none(), "the App's default does not answer an altered record");
+    let status = host.snapshot();
+    assert_eq!((status["levelRecordMissing"].as_str(), status["levelAskPreselected"].as_str()), (Some(cl::RECORD_MISSING_SENTENCE), Some("full")));
+    let wire = Wire::attach(&host);
+    assert!(send(&host, "turn/start", turn_params("thread")).err().unwrap().contains("no level chosen"), "nothing runs before the press");
+    assert!(wire.nothing(), "no frame, at full access or any other");
+    // One press, on the preselected level.
+    host.choose_level(&LevelScope::Default, cl::level("full").unwrap(), &[]).unwrap();
+    let status = host.snapshot();
+    assert_eq!(status["levelDefault"]["origin"], "chosen");
+    assert!(status["levelRecordMissing"].is_null() && status["levelAskPreselected"].is_null());
+    send(&host, "turn/start", turn_params("thread")).unwrap();
+    assert_eq!(wire.next()["params"]["approvalPolicy"], "never");
+    wire.close(&host);
+    std::fs::remove_dir_all(base).unwrap();
+}
+
+/// A conversation's own recorded level that no longer matches the table: that conversation is asked about, with the
+/// default preselected; it does not fall to the default scope. Other conversations go on at the default.
+#[test]
+fn a_conversations_unusable_record_is_asked_about_and_never_falls_to_the_default() {
+    let base = root("altered-conversation");
+    let home = account_home(&base, true);
+    let path = base.join("data").join("recovery.ledger.jsonl");
+    {
+        let before = ready_with_ledger(&base.join("data"), "/invented");
+        before.choose_level(&LevelScope::Conversation("thread".into()), cl::level("supervised").unwrap(), &[]).unwrap();
+        before.app_runtime_custody().unwrap().record_app_session_end(&[]).unwrap();
+    }
+    let mut altered = cl::recorded_values(cl::level("supervised").unwrap());
+    altered["sandbox"] = json!("danger-full-access");
+    { RecoveryLedger::open(path).unwrap().append(json!({"kind":"level_chosen","session":"app-session:earlier","entryId":"level-chosen:altered",
+        "at":"2026-11-14T12:00:00Z","scope":{"kind":"conversation","home":"app-home:invented","threadId":"thread"},"level":altered,"previous":null})).unwrap(); }
+    let host = ready_with_ledger(&base.join("data"), "/invented");
+    let generation = g(&host);
+    host.inner.0.lock().unwrap().threads.push(json!({"generation": generation, "threadId": "other", "cwd": "/invented"}));
+    host.inner.0.lock().unwrap().default_level = None;
+    host.set_app_default_for_test(Some("full"));
+    let view = host.read_levels_at_launch_in(Some("app-home:invented"), Some(&home));
+    assert_eq!(view["appDefault"], "full", "the default scope has no unusable record");
+    let status = host.snapshot();
+    let row = |id: &str| status["threads"].as_array().unwrap().iter().find(|t| t["threadId"] == id).unwrap()["level"].clone();
+    assert_eq!(row("thread")["ask"], json!({"sentence": cl::RECORD_MISSING_SENTENCE, "preselected": "full"}));
+    assert!(row("thread")["chosen"].is_null(), "nothing is in force for that conversation");
+    assert!(row("other").get("ask").is_none());
+    assert_eq!(status["levelAskPreselected"], "full");
+    let wire = Wire::attach(&host);
+    assert!(send(&host, "turn/start", turn_params("thread")).err().unwrap().contains("no level chosen"));
+    assert!(host.level_for("thread/fork", &json!({"threadId": "thread"})).is_none(), "a fork of it carries no level either");
+    assert!(host.level_for("thread/resume", &json!({"threadId": "thread"})).is_none());
+    assert!(wire.nothing());
+    send(&host, "turn/start", turn_params("other")).unwrap();
+    assert_eq!(wire.next()["params"]["approvalPolicy"], "never", "another conversation goes on at the default");
+    host.choose_level(&LevelScope::Conversation("thread".into()), cl::level("supervised").unwrap(), &[]).unwrap();
+    assert!(host.snapshot()["levelAskPreselected"].is_null());
+    send(&host, "turn/start", turn_params("thread")).unwrap();
+    assert_eq!(wire.next()["params"]["approvalPolicy"], "untrusted");
+    wire.close(&host);
+    std::fs::remove_dir_all(base).unwrap();
+}
+
+/// Records that cannot be read, on a first run by this home's evidence (no earlier Codex start in it): the App's
+/// default applies, with the line that a choice made now is kept for this session only.
+#[test]
+fn unreadable_records_on_a_first_run_take_the_default_with_its_words() {
+    let base = root("unread-first");
+    let home = account_home(&base, false);
+    let host = ready_unledgered("/invented");
+    host.set_app_default_for_test(Some("full"));
+    host.inner.0.lock().unwrap().recovery_initialization_error = Some("invented raw ledger failure".into());
+    let view = host.read_levels_at_launch_in(Some("app-home:invented"), Some(&home));
+    assert_eq!((view["state"].as_str(), view["appDefault"].as_str()), (Some("not-read"), Some("full")));
+    let status = host.snapshot();
+    assert_eq!(status["levelDefault"]["origin"], "app-default");
+    assert_eq!(status["levelRecordsUnread"], cl::RECORDS_UNREAD_SENTENCE);
+    assert!(status["levelRecordMissing"].is_null() && status["levelAskPreselected"].is_null());
+    assert_eq!(status["levelSessionOnlyOffered"]["reason"], cl::RECORDS_NOT_READ);
+    let wire = Wire::attach(&host);
+    send(&host, "turn/start", turn_params("thread")).unwrap();
+    assert_eq!(wire.next()["params"]["approvalPolicy"], "never", "the first conversation runs at the default, with no step");
+    let out = host.choose_level(&LevelScope::Default, cl::level("supervised").unwrap(), &[]).unwrap();
+    assert_eq!(out["origin"], "session-only");
+    assert!(host.snapshot()["levelRecordsUnread"].is_null());
+    wire.close(&host);
+    std::fs::remove_dir_all(base).unwrap();
+}
+
+/// Records that cannot be read where this home has been used: the ask, with the default preselected and the choice
+/// kept for this session only.
+#[test]
+fn unreadable_records_where_this_home_has_been_used_are_asked_about() {
+    let base = root("unread-used");
+    let home = account_home(&base, true);
+    let host = ready_unledgered("/invented");
+    host.set_app_default_for_test(Some("full"));
+    host.inner.0.lock().unwrap().recovery_initialization_error = Some("invented raw ledger failure".into());
+    let view = host.read_levels_at_launch_in(Some("app-home:invented"), Some(&home));
+    assert!(view.get("appDefault").is_none());
+    let status = host.snapshot();
+    assert_eq!((status["levelRecordMissing"].as_str(), status["levelAskPreselected"].as_str()), (Some(cl::RECORD_MISSING_SENTENCE), Some("full")));
+    assert_eq!(status["levelSessionOnlyOffered"]["reason"], cl::RECORDS_NOT_READ);
+    assert!(status["levelRecordsUnread"].is_null());
+    let wire = Wire::attach(&host);
+    assert!(send(&host, "turn/start", turn_params("thread")).is_err());
+    assert!(wire.nothing());
+    let out = host.choose_level(&LevelScope::Default, cl::level("full").unwrap(), &[]).unwrap();
+    assert_eq!(out["origin"], "session-only");
+    assert!(host.snapshot()["levelRecordMissing"].is_null());
+    send(&host, "turn/start", turn_params("thread")).unwrap();
+    assert_eq!(wire.next()["params"]["approvalPolicy"], "never");
+    wire.close(&host);
     std::fs::remove_dir_all(base).unwrap();
 }

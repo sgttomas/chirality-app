@@ -3141,6 +3141,9 @@ impl Host {
         let kind = codex_level::Method::of(method)?;
         let thread = params["threadId"].as_str().unwrap_or_default().to_owned();
         let own = i.thread_levels.get(&thread).copied();
+        // A conversation whose recorded level could not be used waits for the person's choice; it never falls to the
+        // default scope.
+        let asked = own.is_none() && i.level.thread_asks.contains(&thread);
         Some(match kind {
             codex_level::Method::ThreadStart => match i.new_conversation_level {
                 Some(level) => (Some(level), codex_level::Target::New, true),
@@ -3148,9 +3151,9 @@ impl Host {
             },
             codex_level::Method::ThreadFork => match i.new_conversation_level {
                 Some(level) => (Some(level), codex_level::Target::ForkOf(thread), true),
-                None => (own.or(i.default_level), codex_level::Target::ForkOf(thread), false),
+                None => (if asked { None } else { own.or(i.default_level) }, codex_level::Target::ForkOf(thread), false),
             },
-            codex_level::Method::ThreadResume | codex_level::Method::TurnStart => (own.or(i.default_level), codex_level::Target::Conversation(thread), false),
+            codex_level::Method::ThreadResume | codex_level::Method::TurnStart => (if asked { None } else { own.or(i.default_level) }, codex_level::Target::Conversation(thread), false),
         })
     }
     /// DEL-01-01, V4-AUT-06: the one place a level enters a frame. Called by each frame builder after every
