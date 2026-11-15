@@ -9271,7 +9271,13 @@ for line in sys.stdin:
         let before=peer.turn_starts();
         assert!(root.prepare_trial("delegated",DRAFT,None,Some(&peer.home),peer.project()).unwrap_err().contains("Choose the authoring conversation"));
         let missing=crate::delegation_availability::signals(&json!({"threadSource":"appServer","modelProvider":"p"}),Ok(json!({"multiAgentVersion":"v2"})),Ok(json!({"config":{"agents":{"enabled":false}},"layers":[{"config":{"agents":{"enabled":false}}}]})),Ok(json!({"requirements":null})),Ok(json!("p")),Ok(json!({})));
-        assert!(root.prepare_trial_with("delegated",DRAFT,Some((&g,"thread")),Some(&peer.home),peer.project(),Some(&missing)).unwrap_err().contains("multi_agent = false"),"delegation missing disables Try with the reason");
+        // The decided 0.169.0 rule: complete root reads, agents disabled, neither delegation feature set.
+        let reading=crate::delegation_availability::evaluate(Some(&missing));
+        let expected_reason="agents.enabled is false with neither delegation feature set";
+        assert_eq!(reading["reading"],"missing","the fixture must establish missing delegation");
+        assert_eq!(reading["reason"],expected_reason,"the reason names the setting that disables delegation");
+        let refusal=root.prepare_trial_with("delegated",DRAFT,Some((&g,"thread")),Some(&peer.home),peer.project(),Some(&missing)).unwrap_err();
+        assert!(refusal.contains(expected_reason),"delegation missing disables Try with the reason: {refusal}");
         let view=root.prepare_trial("delegated",DRAFT,Some((&g,"thread")),Some(&peer.home),peer.project()).unwrap();
         assert_eq!(view["delegation"]["reading"],"not established");
         assert!(view["card"].as_str().unwrap().starts_with("trial 1 of draft coordinated-knowledge-work at content "));
