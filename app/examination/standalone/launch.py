@@ -850,7 +850,10 @@ def _run(args, app, record_data, executable_path, executable, model_address, fol
         _forwarding.set()
         os.mkdir(tmp, 0o700, dir_fd=home_fd)
         env = child_environment(home, tmp, model_address, network)
-        record['environment_constructed_for_the_app'] = env
+        # The names of the exact mapping handed to the App at its start (the same mapping is passed to Popen below),
+        # and no value: the values are the launcher's own constants and the home it made, stated in the source, and no
+        # environment value is kept in the evidence (App Agent 0, on PR 351).
+        record['environment_constructed_for_the_app'] = sorted(env)
         try:
             before = listing(real_home() / 'Library', ('', *WATCHED), identifier, executable)
         except OSError as error:

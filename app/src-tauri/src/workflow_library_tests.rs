@@ -1,6 +1,13 @@
 //! Synthetic native-event tests use the real AAC capture/writer/receipt path.
 use super::*;
 use crate::act_control::{person, ActControl, HotA15Result};
+
+#[test]
+fn workflow_library_keychain_display_describes_seal_verification_only() {
+    assert_eq!(Evidence::Keychain.display(), "Registration capture seal verified using your keychain; who wrote the capture, a person's presence and judgment are not established");
+    assert_eq!(Evidence::Keychain.label(), "keychain-verified approval", "the persisted evidence category is unchanged");
+}
+
 struct Scratch(PathBuf);
 impl Scratch {
     fn new() -> Self {

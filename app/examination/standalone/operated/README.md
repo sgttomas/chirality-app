@@ -367,8 +367,18 @@ the return.
 
 ## The operator's return
 
-It leads with the walk's summary as printed (the verdict, the four outcomes
-and any "caused by:" lines), or with "no walk" and why. Then:
+It leads with the walk's one result, its verdict, as printed ("verdict: ..."),
+or with "no walk" and why, and it gives `verdict.json`, which holds that
+verdict and nothing else. The verdict means: "pass", every step the scenario
+requires, by position, was admitted (its view equal, line for line, to a
+recorded state whose record is judged and usable for this launch's
+candidate, and no expectation unmet); "fail", a step failed; "captured, not
+judged", the walk reached its end but a step names no recorded state, so it
+is NOT a pass and is never written as passed in any record; "inconclusive",
+the walk stopped, or a required step has no verdict. The walk reports nothing
+per step or per outcome. The attempt log, `attempt-log.json`, is evidence
+and is NOT a result: the operator names it, and copies nothing from it into
+the return as an outcome. Then:
 
 - its two recorded identities (the runtime and the host: number, start in
   UTC, executable), their relationship, and the host's parent; its Codex
@@ -378,7 +388,8 @@ and any "caused by:" lines), or with "no walk" and why. Then:
   whole; the walk call's time;
 - the evidence folder's path, the launch folder's path (or that none was
   made), and the launch record's outcome line;
-- the raw result or error, whole, for any step that did not pass;
+- for any step that was not admitted, its entry in the attempt log, whole, as
+  evidence under the words "not a result";
 - every deviation from this method, however small, and every place it did
   not say what to do;
 - what it started (from the started files), what it ended, and how it
@@ -476,7 +487,7 @@ Its last line is the verdict, or "no walk", and the evidence folder.
 
    The first form, with the application alone, is how the views that worked
    on 13 November asked; a walk's first view asks so. The second asks for the
-   whole window, and every later view of a walk asks so. The result gives the application's path, a reference to a screenshot, and
+   whole window, and every later view of a walk asks so. The reply gives the application's path, a reference to a screenshot, and
    the window as text: one line for each element, with its index, its kind
    (button, text, radio button, heading and so on) and its words or value;
    indentation shows what contains what. A disabled control says so. Without
@@ -503,8 +514,9 @@ Its last line is the verdict, or "no walk", and the evidence folder.
    watch, and afterwards the lane's step 11); and where completing a step
    needed knowledge the interface did not give. In a scenario every click's
    control is named by the scenario file, which is such knowledge: the walk
-   is not evidence that the interface alone led to each step. The result file
-   `walk.mjs` writes carries none of this; the operator's record does.
+   is not evidence that the interface alone led to each step. Neither the
+   verdict nor the attempt log `walk.mjs` writes carries this; the operator's
+   record does.
 8. **End.** When the App's own quit is not among the allowed acts, send a
    termination to the launcher; it passes it to the App:
 
@@ -639,8 +651,8 @@ Its last line is the verdict, or "no walk", and the evidence folder.
       host (the parent's number and start time those recorded); and whose
       start, in UTC, is no earlier than the look and no later than the walk's
       end. A process meeting all three is ended. The look's time is the first
-      line of `look.txt`; the walk's end is the result file's `finished`, or,
-      where there is no result file, the time the operator records when the
+      line of `look.txt`; the walk's end is the attempt log's `finished`, or,
+      where there is no attempt log, the time the operator records when the
       walk stopped, on every path that stops it. Where either is missing, no
       endpoint is inferred: the route's processes are unresolved. In A2's fifth attempt the
       helper's parent was the host (observed, once); the earlier record saw
@@ -970,15 +982,16 @@ node replay.mjs first-use-setup.scenario.json ../../../tests/group_b_operated_fi
   ../../../tests/group_b_operated_fixtures/first-use-setup/wrong.review-available-before-any-choice.json
 ```
 
-The first prints PASS with every outcome shown and exits 0. The second makes one
-known wrong state in the recorded views (Review setup available before any
-choice) and must print FAIL, naming the step and what was found, and exit 1.
-The other `wrong.*.json` files beside it do the same for more states: a line
-of "What setup will do" missing, a sixth line added, a location outside the
-home, Review setup available with existing settings; and one where a control
-has other words that begin the same way, which the walk does not click (it
-stops, inconclusive, exit 2). This is the check rejecting wrong states; it
-says nothing about a build.
+Both are now refused before any call (INCONCLUSIVE, exit 2): the 13 November
+scenario is not of the closed form, because its acting steps name no recorded
+state they act from ("The scenario's closed form", below), and the walk acts
+only in a listed state (and passes only on equality with a recorded state,
+above). The
+`wrong.*.json` files beside the views (a line of "What setup will do" missing,
+a sixth line added, a location outside the home, Review setup available before
+any choice or with existing settings, a control whose words begin the same
+way) are kept as fixtures of wrong states; replayed with this scenario they too
+are refused before any call. They say nothing about a build.
 
 **The lane's sample of the service's socket folder.** From App Agent 0's go, the
 lane's agent (not the operator) samples, from its own shell, the names and times
@@ -999,7 +1012,7 @@ while [ "$(date +%s)" -lt "$stop" ]; do
   else
     printf '%s NOT EXAMINED: ls exited %s: %s\n' "$now" "$?" "$out"
   fi
-  [ -z "$end" ] && [ -e "<evidence folder>/scenario-result.json" ] && end=$(( $(date +%s) + 15 ))
+  [ -z "$end" ] && [ -e "<evidence folder>/verdict.json" ] && end=$(( $(date +%s) + 15 ))
   [ -n "$end" ] && [ "$(date +%s)" -ge "$end" ] && break
   sleep 1
 done > "<evidence folder>/socket-folder-sample.txt"
@@ -1091,17 +1104,137 @@ follows at once, in the operator's `js` tool, with the values filled in:
 ```js
 var fs = await import('node:fs');
 var walk = await import('file://<repository>/app/examination/standalone/operated/walk.mjs');
-var scenario = JSON.parse(fs.readFileSync('<repository>/app/examination/standalone/operated/first-use-setup.scenario.json', 'utf8'));
-var report = await walk.run({sky, scenario, app: '<bundle identifier>', home: '<launch folder>/home',
-  bundle: '<the bundle, the path of the .app folder>',
-  pid: <the App's process number>, watch: '<evidence folder>/watch.json'});
-// A scenario with a `type` step also gives project: '<launch folder>/project'.
-fs.writeFileSync('<evidence folder>/scenario-result.json', JSON.stringify(report, null, 2));
-nodeRepl.write(walk.summary(report));
+var contract = await import('file://<repository>/app/examination/standalone/operated/scenario.mjs');
+var made = contract.parseScenario(fs.readFileSync('<repository>/app/examination/standalone/operated/<the scenario>.scenario.json', 'utf8'));
+if (made.refusal) {
+  // A scenario not of the closed form is no walk: nothing is called and no verdict.json is written; the operator
+  // returns "no walk" with this line.
+  nodeRepl.write('no walk: the scenario is not of the closed form (' + made.refusal + ')');
+} else {
+  var verdict = await walk.run({sky, scenario: made.scenario, app: '<bundle identifier>', home: '<launch folder>/home',
+    bundle: '<the bundle, the path of the .app folder>',
+    pid: <the App's process number>, watch: '<evidence folder>/watch.json',
+    attemptLog: '<evidence folder>/attempt-log.json'});
+  // A scenario with a `type` step also gives project: '<launch folder>/project'.
+  fs.writeFileSync('<evidence folder>/verdict.json', JSON.stringify(verdict) + '\n');
+  nodeRepl.write(walk.summary(verdict));
+}
 ```
 
 Nothing else changes: no retry inside the walk, no second view after a
 failure, the same scenario and acts.
+
+**The verdict and the attempt log.** The walk returns one thing, its
+verdict, and the operator writes it as `verdict.json`. It is one of "pass",
+"fail", "inconclusive" and "captured, not judged", derived by position over
+every step the scenario requires (`verdictAt`, `verdictOf`): "pass" only when
+every required position was admitted; a missing, failed or unjudged position
+cannot drop out. A walk that stopped keeps the verdict it stopped with. The
+walk takes only a scenario `parseScenario` made ("The scenario's closed
+form", below); any other is refused before any call, inconclusive. The walk
+reports nothing per step or
+per outcome, and copies nothing from the scenario into what it returns.
+Everything else the walk did and saw goes to `attempt-log.json`, the attempt
+log, whose first line says "ATTEMPT LOG. This is not a result": each effect
+as an attempt and its return (what was sent, when it returned, or what it
+threw), the views captured with their sha256, the sheet captured and its
+difference or the observation that it matched, where the walk stopped, and
+the scenario's text under `intended`. Nothing affirmative is read from the
+log: the summary ("verdict: ...") and `replay.mjs`'s exit status follow the
+verdict alone.
+
+**The scenario's closed form** (`scenario.mjs`). PR 351 stopped after six
+readings with two unresolved findings. A scenario's form was checked only in
+part, so a step missing its control, a malformed expectation or a press given
+as a string could reach an effect or a pass. And a thrown value whose text
+could not be read left a run without a verdict or a log. This replaces that
+check with one boundary:
+
+- **One form, checked whole.** `parseScenario`, the one entry, parses a
+  scenario file's text and copies it into plain data, so that nothing read
+  later can differ from what was checked. It then refuses the copy unless
+  every part is of the closed form:
+  - every level holds only its known keys;
+  - each of the four acts holds exactly the keys it uses, with their types.
+    A view needs nothing more. A click needs a control (a button, summary or
+    radio) and the listed state it acts from, and may say if_offered as true
+    or false. A type needs a text field the scenario names, the listed state,
+    and the project as its value. A confirm_sheet needs the button that opens
+    a sheet the scenario names, and the listed state, and may say press as
+    true or false;
+  - each expectation is exactly one kind of those `checkOne` knows, with
+    exactly its companions and their types (an `is` from that kind's own
+    states);
+  - every record, sheet and capture is of its form, and every name one part
+    gives another (a state, a sheet, a step id) is one the scenario lists;
+  - a capture carries one of three names only (`settings`, `account`,
+    `request`), none of them a value the walk supplies, and a capture form is
+    filled only from the values the walk supplies (`identifier`, `home`,
+    `app_data`, `project`) and the App's `{~uuid}`.
+
+  It then freezes the copy and registers it, and each of its parts in the set
+  of that part's own kind (a step, an expectation, a selector, a control, a
+  sheet, a record), never in another's. It never throws: it returns the
+  scenario or the refusal. These are the constructor's contract: what the
+  consumers rely on (which names may be captured, and that a part is of the
+  kind a helper takes) is established by the constructor itself, not beside
+  it (the first reading of PR 355, findings 1 and 2).
+- **Only what it made is consumed, and the boundary is small.** Of the walk,
+  only `run`, `summary`, `checkOne` and `sheetCheck` take anything from
+  outside, with `recognise` and a few constants; of `scenario.mjs`, only
+  `parseScenario`, `isValidScenario`, `isExpectation`, `isSheet` and the
+  capture names; of the recorder, only its command. `run` takes only a
+  registered scenario, `checkOne` only a registered expectation, and
+  `sheetCheck` only a registered sheet. Anything else is refused before
+  anything in it is read: a plain object, a copy of a validated scenario, an
+  object made with its prototype, or a part validated as another kind. That is
+  a matter of the only constructor, not of a caller remembering to check.
+  `replay.mjs` and the recorder's command parse the file they are given; the
+  operator does the same, above. So a malformed scenario gives no effect, no
+  "pass" from replay and no record from the recorder.
+- **Supplied and captured values are kept apart.** The values the walk
+  supplies are frozen when it starts. What it captures is held apart, and a
+  template is filled from a fresh frozen view of the two, whose names are
+  disjoint by construction. No assignment can put a captured value in place of
+  a supplied one, whatever the names.
+- **One adapter for every injected option, and no failure escapes.** The
+  options a caller may inject are four: `readWatch`, `readIdentification`,
+  `sleep` and `onLog` (the clock is the walk's own). Every call to one, and to
+  the walk's clock, goes through one adapter. It awaits whatever comes back,
+  and treats a throw, a rejection, a throwing getter on what came back and a
+  value of the wrong kind the same way: it marks the walk broken, after which
+  every supplier call is refused, and the walk ends inconclusive, unless it
+  had already failed: a fail found before the option failed stands, since a
+  failure is never weakened to inconclusive. Failure handling depends on
+  neither the clock nor the logger that failed: the log's time is words when
+  the clock is broken, and a logger that failed is not given the log again.
+  When `attemptLog` names a file, the attempt log is written there before the
+  logger is called, and written again saying so when the logger refused it;
+  the log lists every option failure in order, the first being the one that
+  broke the walk.
+  The file is the log's only destination independent of the logger: without
+  `attemptLog`, a log the logger fails to take is lost, and the verdict is
+  inconclusive. A caller that needs the log gives `attemptLog`; `replay.mjs`
+  does whenever it keeps a log. An asynchronous log is
+  settled before the verdict is returned or printed. A thrown value of any
+  shape is described by the guarded reader, which says a part cannot be read
+  rather than throwing. Anything else the walk does not handle ends the run
+  there, inconclusive, with the attempt log delivered, and no later call.
+
+Both findings of PR 351's sixth reading, the four of PR 355's first, that
+reader's probes, a table of every injected option failing in every way, and a
+sweep over every key of every committed scenario's steps are required cases in
+the tests (`group_b_operated_contract_probe.mjs`).
+
+**What a call's success is.** The supplier declares `click` and `set_value`
+each as `Promise<void>` (`types/window/Click.d.ts`, `SetValue.d.ts` in the
+`@oai/sky` package), so a failure is a rejection, and the press is a click.
+The walk takes a call as succeeding only when it resolves with no value. Any
+throw, whatever its value (`null`, `false`, `0`, `''` and `undefined`
+included), and any resolve with a value the contract does not give, stops the
+walk at once, inconclusive, with no further call, and the attempt log records
+the effect as uncertain. A call that resolved is not thereby a completed
+effect: whether the App acted is shown only by the next view.
 
 - The loading forms above were tried in a Codex session's node runtime with a
   stand-in for the service: the file imports work, bindings last from one call
@@ -1152,14 +1285,16 @@ failure, the same scenario and acts.
   Agent 0, 14 November 2026). The walk does not decide what a view it does
   not recognise means; it refuses it, and the step ends with no act, at every
   view, the first ones included:
-  - the first line is the supplier's window line,
-    `Window: "<words>", App: <words>.`;
+  - the first line is the supplier's window line, whole:
+    `Window: "<title>", App: <name>.`, a title holding no quote and nothing
+    after the full stop;
   - then element lines, each a run of tabs, an index, one space and its
     words, and each perhaps followed by further lines of its own words (a
     text running over more than one line), which cannot begin with a tab;
   - then, at most, one blank line and, after it, at most the focused-element
     line, `The focused UI element is <index> <words>`, naming an element of
-    the view;
+    the view and repeating that element's own words, as every focused line
+    recorded does;
   - an index is accepted only in its canonical form, at most 15 digits with
     no leading zero, so one text names one element and it reads as one exact
     number; a view holding an index in any other form (`016` beside `16`, say)
@@ -1169,10 +1304,118 @@ failure, the same scenario and acts.
     element only by its index, so a view that gives one index to two
     elements cannot be addressed.
 
-  Whether a view came back whole rests on the supplier's two fixed openings
-  for a view of differences or of no change; that is a reliance on the
-  supplier's format, not an independent proof that a malformed reply holds
-  every element.
+  - **The anchor: a check that can only refuse.** The k-th element line
+    must carry index k. The view's top level must be exactly element 0 (the
+    App's window, or a sheet) and the menu bar, and the view must hold
+    exactly one menu bar. The view's last eight lines before its blank line
+    must equal, line for line, the App window's own menu bar block built
+    from the launched build's name: `<k> menu bar`, then one tab in,
+    `<k+1> <name>`, `File`, `Edit`, `View`, `Window`, `Help` and
+    `Waiting requests (<n>)`, each carrying the index the sequence requires
+    at its place, with only `<n>` free (a non-negative integer in plain
+    decimal form). The name is the one the walk was given for the build the
+    launcher started (its bundle's), not taken from the view, and the window
+    line's App must be exactly it. A view whose shape is not this one is
+    refused, and nothing is done from it. Harmless variation in the
+    supplier's tool may therefore refuse; that is intended. The anchor never
+    grounds a pass or an act: those rest on equality with a recorded state
+    (below).
+  - **What the anchor rests on.** The supplier's contract (the `@oai/sky`
+    type declarations) says that `get_app_state` returns "Accessibility
+    text, prefixed with app-specific guidance on first access when
+    available", that `disableDiff` gives "a full accessibility tree instead
+    of a diff", and that `click` and `set_value` take an "Element index from
+    the latest `get_app_state()` text". It states no order and no menu bar.
+    The shape is observed, not promised: all 35 whole views recorded on
+    14 November 2026 have it, element 0 a standard window (33) or a sheet
+    (2), with one menu bar each. A guidance prefix has not been seen; text
+    before the window line is refused.
+  - **Its limit.** The anchor is relied on for the rehearsal tier only. It
+    does not show that text cannot lead an agent to choose a real element it
+    should not.
+- **One admission, and one verdict by position (App Agent 0 and the
+  INTERLOCUTOR, after the fifth independent reading of PR 351).**
+  `admission` is the one function that admits: the record of the recorded
+  state or sheet template is judged and usable for this launch
+  (`recordUsable`), and the view equals what it names line for line
+  (`stateCheck`, `sheetCheck`). Each step's judgment is made by it and kept by
+  position, apart from the attempt log. The four effects each need the same
+  admission: the click (an ordinary click, and a button pressed if offered),
+  the set-value and the click that opens the sheet are made only from a view
+  admitted against the state the step acts from, and the press only from a
+  sheet admitted against the template. The walk's verdict is derived from
+  those judgments by position (above); "captured, not judged" is not one of
+  REQ-007's five outcomes, so the examination table refuses to print a record
+  holding it. In page content an element's words, its depth, its further
+  lines and the window's title are accepted by recognition without a
+  comparison of their own; they are content, and every admission compares
+  them whole. Today `signed-out-setup.scenario.json` names a state for every
+  step (S1 to S5) and holds the sheet template's record;
+  `first-launch-view.scenario.json` and `signed-out-relaunch.scenario.json`
+  name none and end "captured, not judged" until their states are recorded;
+  `first-use-setup.scenario.json` names no state it acts from and is refused
+  before any call.
+- **What "recorded for this build" means.** A record is usable only when its
+  `candidate_key` is the candidate key of the identified candidate this
+  launch's bundle belongs to, and its bundle identifier and App name are this
+  launch's. The walk reads that key from the identification record of the
+  candidate folder that holds the bundle
+  (`identification/candidate-identification.json`). The key is the revision
+  and the first 12 hex digits of the bundle tree's sha256
+  (`candidate_identity/identify.py`, method `bundle-tree.sha256/v2`); the
+  launcher checks the bundle's bytes against that identification before it
+  launches (`launch.py`, `identify_candidate`), and the method keeps the
+  bundle unchanged from identification through recovery. So a record is
+  bound to the identified bundle's tree digest as the launcher checked it at
+  launch, by a 12-hex-digit prefix, not to bytes the walk measures itself.
+- **How a view becomes a recorded state.** A capture shows fidelity, not
+  correctness (the INTERLOCUTOR, on PR 351). `record_state.mjs` writes a state
+  only when the captured view, recognised as a whole view of the launched
+  build, meets every expectation the scenario states for that step,
+  expectations written from the build's source and independently of any
+  capture; a step that states none cannot be recorded, and a view that fails
+  its step's stated expectations is a finding, not a state: nothing is
+  written. With `--sheet <id>` it records the judgment of the sheet template
+  from a captured sheet, which must agree line for line with the template
+  filled for this build (the walk's own `sheetCheck`; the template's
+  statement is held equal to the build's source by a test). Beside each state
+  and template the scenario keeps its record (`state_records`,
+  `sheet_records`): the build it was recorded on (candidate key, bundle
+  identifier, the App's name), the evidence and the view's sha256, and the
+  judgment (against what, by what, with what result). The setup scenario's S1
+  to S5 are recorded from launch R-c and its sheet template from launch R-b′,
+  on a build of main 1023908b, each judged so; S1 to S4 equal the states the
+  walk acted from, and S5, the view after the press, is a first recording (R-c
+  had judged that view by expectations only).
+- **Three limits, stated and not engineered away.**
+  - *The recorder protects a step's stated expectations, not every
+    difference.* A difference the expectations do not state (a changed
+    button the step does not mention, say) is recorded with "every
+    expectation held". The control for it is review: each recorded state,
+    template and record is read line by line when it enters the repository,
+    by the independent reader of the pull request that adds it and by App
+    Agent 0 before merging. Where a step's expectations are few (S2 states
+    two), that review is most of the control; adding expectations from the
+    build's source means re-recording the state with them.
+  - *Records are not authenticated.* `recordUsable` checks a record's fields,
+    not who wrote them: a person or agent with write access to the checkout
+    could edit a state, its record, a template or the walk itself so that a
+    chosen view passes or is acted on, and nothing at run time would detect
+    it. Review before merge protects the committed files; the operator's
+    confirmation of the tool revision (`git rev-parse HEAD`) at the start of
+    each launch protects the files a walk loads.
+  - *Binding rests on the launcher's identification, not on bytes the walk
+    measures.* The record's candidate key carries the first 12 hex digits of
+    the bundle tree's sha256, which the launcher checks against the bundle's
+    bytes before it launches; between that check and the walk the bundle's
+    identity rests on the method's conditions: the operator's `identify.py
+    check` against the candidate's identification record and its
+    `candidate_key` ("The candidate folder", above); the lane keeping the
+    bundle unchanged from identification through recovery, with no rebuild,
+    replacement, renaming or added link (checked by the lane's pre-launch
+    check: the bundle executable's link count and the driver markers); and
+    the walk's gate that the watched process's executable is inside the
+    bundle.
 - **The parser's limit, which stands.** Recognising a view line for line does
   not tell a real element from a line of text that imitates one. The fourth
   independent reading of PR 323 (14 November 2026) answered its two questions
@@ -1189,9 +1432,14 @@ failure, the same scenario and acts.
   error -10005: 999999 is an invalid element ID"), and the views before and
   after were identical. So a click at an index the supplier did not assign,
   such as the fresh index of a line imitating an element, failed. That is one
-  click on one candidate. A set-value at such an index was not probed. The
-  limit stands as stated for anything that leads the walk to a real element it
-  should not act on.
+  click on one candidate. A set-value at the same index was probed on
+  14 November 2026 (candidate 1023908b, 18:18 UTC; largest index 52) and
+  refused the same way ("Computer Use server error -10005: 999999 is an
+  invalid element ID"), with the views before and after identical and the
+  invented string nowhere in them. A refusal turns an invented element with an
+  invented index into a failed call; it says nothing about text that leads an
+  agent to choose a real element it should not. The limit stands as stated for
+  anything that leads the walk to a real element it should not act on.
 - **Where the walk acts, and why it is sound there (App Agent 0, 14 November
   2026).** The tool acts only in the listed states below. It is sound there
   because every text in those views is established and plain: the build's
@@ -1217,33 +1465,34 @@ failure, the same scenario and acts.
   | S4, Exact locations open | click "Create settings and save for next launch…" | as S3, and three paths the App makes under its data folder (`shared-settings/settings-<uuid>`, `account-homes/account-<uuid>`, `desktop-startup/request.json`), each checked against that form |
   | S5, the sheet | press "Create settings and save for next launch" | the build's strings (`desktop_startup.rs`, `desktop_setup_confirmation.rs`, `act_control.rs`) filled with the same paths; macOS's alert text (`Description: alert`, `ID: action-button-<n>`); the App's menu; the supplier's lines |
 
-  **Stale against main since fc1b222d (PR 334, 14 November 2026): S3, S4 and
-  S5.** The states are kept as recorded from candidate 9d997626, and so are
-  the step expectations and the sheet's statement that describe them. PR 334
-  changed what a build of main shows:
-  - **S3 and S4.** Their line "In it, create an empty config.toml, an empty
-    AGENTS.md and an empty skills folder" now reads "In it, create an empty
-    config.toml, an empty AGENTS.md and a skills folder; Codex adds its own
-    system skills there, and its own working files to the sign-in folder, when
-    it starts".
-  - **S3 and S4, a new block.** A block headed "What applies by default", with
-    four sentences, is now shown after Exact locations. Its words are read from
-    `desktop_startup.rs` and `FirstUse.tsx` at fc1b222d. The driver's views file
-    does not show it.
-  - **S5, the sheet.** Its second line now reads "with an empty config.toml, an
-    empty AGENTS.md and a skills folder. Codex adds its own system skills there,
-    and its own working files to the account directory, when it starts."
+  **Re-recorded from a build of main 1023908b, 14 November 2026.** PR 334
+  (main fc1b222d) changed the review page and the sheet. S3, S4 and the sheet
+  were re-recorded from candidate 1023908b64-012ad5568eb2 by the setup walk,
+  acting only in its listed states, one launch each, each in a fresh kept folder:
+  - **R-a.** The walk stopped after the click from S2. Its captured view is the
+    new S3.
+  - **R-b.** The walk acted from S1, S2 and the new S3, and stopped before the
+    sheet. Its captured view is the new S4.
+  - **R-b′.** `signed-out-setup-sheet-capture.scenario.json`, the setup scenario
+    with its sheet step marked `"press": false`. The walk acted from S1 to S4,
+    opened the sheet, captured it whole and pressed nothing.
+  - **The offline comparison, before any press.** The captured sheet agreed line
+    for line (24 of 24) with the recorded template filled with the statement
+    read from `desktop_startup.rs` at that main. Only then did the sheet's
+    statement take the new line.
 
-  On a build of main the walk therefore acts from S1 and S2. Both are
-  unaffected: 334 changed only the review page, which first appears after
-  "Review setup", and the sheet. After the click from S2, the review page's
-  lines do not match that step's recorded expectation, so the walk stops there.
-  Even past that, the view is not S3 line for line, so nothing is acted on from
-  S3, S4 or the sheet. That is the safe side. The states are re-recorded in a later change from a build of main,
-  under the pre-launch check for a walk with no conversation, and are not edited
-  to the new words by hand: a recorded state comes from a recorded view. The
-  relaunch reading is unaffected. It checks only the "Run a workflow" heading
-  and the welcome's absence, and 334 changed neither.
+  Each recorded state is the captured view with only these made placeholders:
+  the project path, the three paths the App made, the App's name and the scroll
+  position. Nothing in them was edited to new words by hand.
+  - S3 and S4 differ from the earlier recordings by PR 334's line ("… a skills
+    folder; Codex adds its own system skills there, and its own working files
+    to the sign-in folder, when it starts") and the seven lines of the block
+    "What applies by default".
+  - The sheet differs by its second line.
+  - S1, S2 and the relaunch reading were unaffected.
+
+  The test that pinned the stale sheet line is removed in this change. The
+  sheet's statement is again the App's, line for line.
 
   No conversation exists in any of them, and nothing in them comes from
   Codex or a model. The relaunch is not a listed state: its first view can
@@ -1260,9 +1509,9 @@ failure, the same scenario and acts.
   App paths, the App's name (the candidate bundle's folder name, which must
   be of the development build's form) and nothing else; the one allowance
   is `{~number}`, a scroll bar's position. Any difference stops the step with
-  no act. A scenario with a step that acts and names no listed state is
-  refused before any call, so the first-use scenario, kept for the hosted
-  driver, is not walked on this Mac. If the supplier's view of the same pages
+  no act. A step that acts must name the listed state it acts from, or the
+  scenario is not of the closed form and is refused before any call; so the
+  first-use scenario, kept for the hosted driver, is not walked on this Mac. If the supplier's view of the same pages
   changes shape, or the build's strings change, the walk stops, and a state
   is recorded again from a real observation and read again before it is
   relied on.
@@ -1287,12 +1536,12 @@ failure, the same scenario and acts.
   second asks for the whole window, and only it shows that asking is
   honoured. Whether a view is whole is read from what it returned, never from
   how it was asked. If either of them, or any later view, comes back as
-  differences, the walk stops there. The result records how each view was
-  asked. That view, and the window rebuilt from it, are kept in the result for
+  differences, the walk stops there. The attempt log records how each view was
+  asked. That view, and the window rebuilt from it, are kept in the attempt log for
   reading; no check is credited from a rebuilt view and no click is made from
   one, because how differences place what they add has not been established.
 - The App starts no process in this scenario. If the watch file shows the App
-  with a child process, the script stops and the result is a failure. (The
+  with a child process, the script stops and the verdict is "fail". (The
   route's own processes are not the App's children; see "What the route
   starts".)
 - A watch file that is missing, cannot be read, is for another process, says
@@ -1303,15 +1552,15 @@ failure, the same scenario and acts.
   processes as not known.
 - `nodeRepl.write` joins what successive calls write without a separator, so
   write the summary once.
-- The result file holds every call made and every view's returned text whole,
+- The attempt log holds every call made and every view's returned text whole,
   with one exception: a view whose reply names another bundle is kept only as
   an error naming that bundle; its returned text is not kept. When a view
   fails, it also holds the failure as messages only, in `view_error`; when a
   click fails, in `click_error`, and the walk stops there, inconclusive, with
   nothing further called (a click that throws has not been shown to have had
   no effect). Each holds where it failed, the error's own message, and each cause the
-  error carries, in order and whole (at most eight); the summary prints the
-  causes under the line that says where the walk stopped. The causes are
+  error carries, in order and whole (at most eight), in the attempt log; the
+  summary, made from the verdict alone, does not print them. The causes are
   diagnostic evidence supplied by the supplier's client, not causes
   established independently. Nothing else of the
   error is kept: a message is kept only when it is text, anything else is
@@ -1319,13 +1568,13 @@ failure, the same scenario and acts.
   What it cannot do: reading an error's message and cause can run code the
   error carries, in the same runtime as the walk. The error comes from the
   supplier's client, which runs there too and could change anything the walk
-  holds without throwing at all; so the walk's result rests on that client, as
+  holds without throwing at all; so the walk's verdict rests on that client, as
   every call does, not on how a failure is read.
   The operator adds the times of its own calls and what it saw outside the
   script (a prompt appearing, or the focus leaving the build) to its own
   record.
 - Then step 8: end the launch, confirm that neither process remains, and keep
-  the launch record with the result.
+  the launch record with the verdict and the attempt log.
 
 ## The App's own setup confirmation, and the typed path
 
@@ -1432,8 +1681,9 @@ either driver marker.
   They cannot tell apart a sheet or field that looks the same in every checked
   part, and the App could change between the view and the press. Those are
   limits, not refusals. A wrong field or a wrong sheet inside the App's own
-  window costs a throwaway home and a walk run again. So the walk's result
-  keeps what would show a wrong act afterwards:
+  window costs a throwaway home and a walk run again. So the attempt log
+  keeps what would show a wrong act afterwards (it is evidence, not a
+  result; the verdict is the walk's one result):
   - the sheet's whole view;
   - the statement wanted, and the first line where the view differed from
     the recorded one, if it did;
@@ -1480,7 +1730,9 @@ either driver marker.
 
 ## The view-only scenarios
 
-Two scenarios act on nothing: each is one view, read, and the walk makes no click, set-value or press in them.
+Two scenarios act on nothing: each is one view, read, and the walk makes no click, set-value or press in them. Neither
+names a recorded state yet, so each result is "captured, not judged", never a pass (above); their expectations can only
+fail. Earlier view-only passes are restated so: the 12:40 UTC relaunch below was captured, not judged.
 - `first-launch-view.scenario.json`: the first launch in a fresh home, before setup. Its expectations are the
   first-use page as the setup walk's listed state S1 recorded it: the welcome, Start with new settings chosen, Review
   setup unavailable, Technical details closed.
