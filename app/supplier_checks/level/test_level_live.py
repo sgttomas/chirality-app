@@ -612,30 +612,15 @@ class Narrowing(Probing):
 
 
 def started_at(pid):
-    """The start time of process `pid` alone (`ps -p`, one process, no search), or None when it is gone."""
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
-        return None
-    except PermissionError:
-        pass
-    out = subprocess.run(['/bin/ps', '-o', 'lstart=', '-p', str(pid)], capture_output=True, text=True, timeout=20)
-    return out.stdout.strip() or None
+    """The start time of the running process `pid`, observed alone; a failed observation fails the row."""
+    state, started = L.observe_process(pid)
+    if state != 'present':
+        raise AssertionError('process %d is not running' % pid)
+    return started
 
 
-def still_running(pid, at):
-    """Whether the process numbered `pid` that started at `at` is still running (a reused number does not count)."""
-    return at is not None and started_at(pid) == at
-
-
-def end_known(known):
-    """Ends each process of `known` ({name: (pid, start time)}) that is still the same process."""
-    for pid, at in known.values():
-        if still_running(pid, at):
-            try:
-                os.kill(pid, signal.SIGKILL)
-            except ProcessLookupError:
-                pass
+still_running = L.still_running
+end_known = L.end_known
 
 
 class RunningProcess(unittest.TestCase):
