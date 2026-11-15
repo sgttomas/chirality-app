@@ -318,7 +318,7 @@ test('an unconfirmed bring-back send holds that trial and conversation ID in the
       threads:[{threadId:'T1', generation, model:'invented-model'}, {threadId:'T2', generation, model:'invented-model'}]}), data:data({context:{sourceRef:'src', generation}, drafts:{drafts:[draft]}})});
     await ui.choose(JSON.stringify([generation, 'T1']));
     assert.ok(alert(), 'a source change does not erase the record');
-    assert.match(alert().textContent, /sent to a conversation that isn't loaded now.*Codex or the home has changed since that send\. The conversation chosen now has the same ID \(T1\), so bringing trial 2 back to it is held until you've checked\. That doesn't make the earlier destination this one\./);
+    assert.match(alert().textContent, /sent to a conversation that isn't loaded now.*Codex or the home has changed since that send\. The conversation chosen now has the same ID \(T1\), so the App won't bring trial 2 back to it until you've said you checked\. That doesn't make the earlier destination this one\./);
     assert.equal(props(bring(2)).disabled, true, `held for the same conversation ID after ${generation.home === 'api-key' ? 'a home change' : 'a restart'}`);
     await ui.choose(JSON.stringify([generation, 'T2']));
     assert.equal(props(bring(2)).disabled, false, 'a different, explicitly chosen conversation is not held');
@@ -404,13 +404,13 @@ test('a prepared copy whose send is held is offered for reading or removing, nev
   assert.match(shown(), /Trial 2's results are ready to send in/);
   await React.act(async () => doubtsModule.noteBringBackDoubt(doubt({preparedId:'bb-1'})));
   assert.doesNotMatch(shown(), /ready to send/, 'a held copy is not "ready to send"');
-  assert.match(shown(), /Trial 2's results are prepared in .+, but sending them is held: this copy's earlier send wasn't confirmed and may have arrived, so it is not sent again\./);
+  assert.match(shown(), /Trial 2's results are prepared in .+, but the App won't send them yet: this copy's earlier send wasn't confirmed and may have arrived, so it is not sent again\./);
   assert.ok(button(ui.c, 'Open trial 2\'s prepared results to read or remove'));
   await React.act(async () => { doubtsModule.acknowledgeBringBackDoubt(doubtsModule.bringBackDoubtsFor('trial', 'trial:lib-a:2')[0]); });
-  assert.match(shown(), /prepared in .+, but sending them is held/, 'that attempted copy stays held after the acknowledgement');
-  assert.match(next(ui.c), /Trial 2's prepared results are held and not sent again; after reading the conversation, remove that copy/);
+  assert.match(shown(), /prepared in .+, but the App won't send them yet/, 'the App still won\'t send that attempted copy after the acknowledgement');
+  assert.match(next(ui.c), /The App won't send trial 2's prepared results again; after reading the conversation, remove that copy/);
   assert.equal(all(ui.c, 'button').filter(node => node.textContent === 'Open trial 2\'s prepared results to read or remove').length, 1, 'one control for one held copy');
-  assert.match(region(ui.c, 'Trial 2 of spacing-check').textContent, /Its results are prepared for this conversation but held, so they aren't sent again; see below\./);
+  assert.match(region(ui.c, 'Trial 2 of spacing-check').textContent, /Its results are prepared for this conversation; the App won't send them again yet, and the results line below says why\./);
   assert.doesNotMatch(region(ui.c, 'Trial 2 of spacing-check').textContent, /already prepared for this conversation\./);
   const calls = ui.calls.length;
   await ui.press('Open trial 2\'s prepared results to read or remove');

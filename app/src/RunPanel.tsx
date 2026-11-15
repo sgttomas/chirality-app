@@ -479,7 +479,7 @@ export function RunBringBackView({ run, conversations, target, setTarget, includ
       try { call = Promise.resolve(act("workflow_run_bring_back", { runRef, generation: chosen.generation, threadId: chosen.threadId, includeNative })); } catch (error) { call = Promise.reject(error); }
       void call.catch(() => undefined).finally(() => endBringBack(key));
     }}>Bring a real run back to authoring</button>
-    {doubt && <p role="note">This run's last results sent to that conversation weren't confirmed and may have arrived. Read that conversation first; bringing it back there again is held.</p>}
+    {doubt && <p role="note">This run's last results sent to that conversation weren't confirmed and may have arrived. Read that conversation first; the App won't bring it back there again until you've said you checked.</p>}
     {isRecordedRun(run) && <p><small>Recorded evidence (unsigned). {text(run?.learning?.standing) || "Current execution and original supply are not established here."}</small></p>}
     {isRecordedRun(run) && !limit && <p><small>The recorded history is checked when you request the transcript.</small></p>}
     {limit && <p role="note">Bring back is unavailable: {limit}</p>}

@@ -1,8 +1,10 @@
 import { ActionFeedback } from "./ActionFeedback";
+import { LOCAL_ROUTE_OFFERED } from "./localRoute";
 import { LOCAL_ENTRY, LOCAL_FORK_AVAILABLE, LOCAL_FORK_UNAVAILABLE, LOCAL_MODE, LocalProviderAccess, generationKey, localRoute, localViewFrom, readAttemptedLocalEntries, recordAttemptedLocalEntry, forgetAttemptedLocalEntry, type LocalView } from "./LocalProviderAccess";
 import { NativeWaitingBridge } from "./NativeWaitingBridge";
 import { ConnectorSourcePanel } from "./ConnectorSourcePanel";
 import { FleetRecordsPanel, readFleetPacket, type FleetPacket } from "./FleetRecordsPanel";
+import { WaitingOnYou, WAITING_SOURCE_POLL_MS, decisionPackageAnchor, waitingReadings, type WaitingEntry } from "./WaitingOnYou";
 import { RecordsStorePanel } from "./RecordsStorePanel";
 import { ConnectorRoutePanel, emptyRouteRead, routeReadTransition, type RouteReadState, type RouteView } from "./ConnectorRoutePanel";
 // The interface reads host snapshots and asks the host to act. It holds no pipe
@@ -19,7 +21,7 @@ import { NativeActivityView, activityModel, sameActivityGeneration, type NativeA
 import { ContinuationContext, historyPageBinding, StoredItemPage, StoredTurnPage } from "./NativeHistory";
 import { ObserverAttachment } from "./ObserverAttachment";
 import { PlanModeControl } from "./PlanMode";
-import { NativeRequestCard, WaitingRequestsIndicator, answerable, hostRequests, requestItem, requestPlace, requestThread, requestScopeKey, requestReplyGuarded, type RequestActivityLink, type RequestAnswer, type ReadRequestCustody, type RequestReplyObservation, type WaitingRequestGroup } from "./RequestCards";
+import { NativeRequestCard, answerable, hostRequests, requestItem, requestPlace, requestThread, requestScopeKey, requestReplyGuarded, type RequestActivityLink, type RequestAnswer, type ReadRequestCustody, type RequestReplyObservation, type WaitingRequestGroup } from "./RequestCards";
 import { type RunAct } from "./RunOffers";
 import { RecoveryCustodyPanel } from "./RecoveryCustodyPanel";
 import { CompareResult, initialDraftsState, LastCleanTrialLine, WorkflowDraftsView, type DraftsState } from "./WorkflowDrafts";
@@ -32,11 +34,11 @@ import { DailyWorkspace, WorkspaceDisclosure, WorkspaceConnectionStatus, revealW
 import { flushSync } from "react-dom";
 import { DesktopSetupPanel } from "./DesktopSetupPanel";
 // Every host command goes through hostReads' invoke, which marks when a command that may change the host settles.
-import { invoke, useOrderedHost, shownBeforePress, POLL_MS } from "./hostReads";
+import { invoke, invokeTimedRead, useOrderedHost, shownBeforePress, POLL_MS } from "./hostReads";
 import { readingAfterWrite, readingSentence } from "./readingSentences";
 import { REFRESH_FAILED, commandThenRefresh, observationLine, observationText, refreshAfterAction, withRefreshFailure } from "./statusRefresh";
 import { FirstUseSetup } from "./FirstUse";
-import { AccountStatus, type ReadAccountStatus } from "./AccountStatus";
+import { AccountStatus, accountReading, type ReadAccountStatus } from "./AccountStatus";
 import { RunWorkflowGuide, registeredRevisionAnchor, runEvidenceAnchor } from "./RunJourney";
 import { MakeWorkflowGuide } from "./MakeJourney";
 import { acknowledgeBringBackDoubt, beginBringBack, bringBackRefusal, doubtDestination, endBringBack, noteBringBackDoubt, resetBringBackDoubts, sendKey, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
@@ -308,7 +310,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
     composerField.current?.focus?.({ preventScroll: true });
   }, [focusComposer]);
   // A new unconfirmed send for the shown conversation takes the focus once, so
-  // keyboard and screen-reader users land on why Send is held.
+  // keyboard and screen-reader users land on why the App will not send.
   const announcedUnconfirmed = useRef(new Set<number>());
   useEffect(() => {
     if (!composerOffer || handledOffer.current === composerOffer.sequence || composerOffer.threadKey !== threadKey) return;
@@ -352,7 +354,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
     : busy ? "An operation is pending. New messages are paused until its result is received."
     : unconfirmed.some(row => !row.acknowledged && row.request.threadId === selected.threadId) ? "An earlier message to this conversation wasn't confirmed and may have been sent. Read the conversation, then confirm below before sending again. Your text is kept."
     : !text ? "Write a message to send to the selected conversation."
-    : `Ready to send text to ${conversationLabel(host, selected)}. Sending does not change its role or access entry.`;
+    : `Ready to send text to ${conversationLabel(host, selected)}. Sending does not change its role or how it connects.`;
   const interruptReadiness = !sourceReady ? "Interruption is unavailable because this Codex source is not ready."
     : !selected ? "Choose the conversation whose turn you want to interrupt."
     : ownBusy ? "Wait for the pending conversation operation before interrupting."
@@ -391,8 +393,8 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
       return <div key={`doubt:${id}`} role={row.acknowledged ? "note" : "alert"} tabIndex={-1} ref={node => { if (node && where === "same" && !announcedDoubt.current.has(id)) { announcedDoubt.current.add(id); node.focus?.({ preventScroll: false }); } }} aria-label="Bring-back send not confirmed">
         <p><strong>{what} results may have been sent to {destination}.</strong> The App couldn't confirm the send. {(host?.workflowRoot?.pendingBringBacks ?? []).some((pending: Json) => pending?.id === row.preparedId)
           ? "Its prepared message is still listed, but that copy is not sent again; after reading the conversation you can remove it."
-          : "The prepared message was withdrawn, so nothing is resent."} Read that conversation to see whether it arrived.{row.acknowledged ? " You've said you checked; bringing it back there again is allowed." : " Bringing it back there again is held until you've checked."}</p>
-        {where === "same-id-other-source" && <p><small>Codex or the home has changed since that send. The conversation shown now has the same ID, so bringing these results back to it is held too; that doesn't make the earlier destination this one.</small></p>}
+          : "The prepared message was withdrawn, so nothing is resent."} Read that conversation to see whether it arrived.{row.acknowledged ? " You've said you checked; bringing it back there again is allowed." : " The App won't bring it back there again until you've said you checked."}</p>
+        {where === "same-id-other-source" && <p><small>Codex or the home has changed since that send. The conversation shown now has the same ID, so the App won't bring these results back to it either until then; that doesn't make the earlier destination this one.</small></p>}
         {!row.acknowledged && <p><button onClick={() => acknowledgeBringBackDoubt(row)}>I've checked this conversation — allow bringing it back again</button> <small>Starts nothing; this record stays.</small></p>}
         <details><summary>Your message and what was reported</summary><p><small>Your message: {row.personText || "(empty)"}</small></p><p><small>Reported: {row.message}</small></p>
           <p><small>Original destination: conversation <code>{String(row.target?.threadId ?? "")}</code> in Codex session {String(row.target?.generation?.spawnCounter ?? "not reported")} of the {String(row.source?.modeHomeClass ?? "unreported")} home.</small></p></details>
@@ -428,8 +430,8 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
       const loaded = currentThreads.find((t: Json) => t.threadId === row.request.threadId && JSON.stringify(t.generation) === JSON.stringify(row.request.generation));
       const destination = sameSource ? "this conversation" : loaded ? conversationLabel(host, loaded) : `conversation ${row.request.threadId} in a Codex session that isn't loaded now`;
       return <div key={row.id} role={row.acknowledged ? "note" : "alert"} tabIndex={-1} ref={node => { if (node && shownHere && !announcedUnconfirmed.current.has(row.id)) { announcedUnconfirmed.current.add(row.id); node.focus?.({ preventScroll: false }); } }}>
-        <p><strong>Your message to {destination} may have been sent.</strong> The App couldn't confirm it, so it isn't resent and its text was not cleared.{row.acknowledged ? " You've said you read that conversation; sending there again is allowed." : " Sending to that conversation again is held until you've read it."}</p>
-        {shownHere && !sameSource && <p><small>Codex or the home has changed since that send. The conversation shown now has the same ID, so sending to it is held too; that doesn't make the earlier destination this one.</small></p>}
+        <p><strong>Your message to {destination} may have been sent.</strong> The App couldn't confirm it, so it isn't resent and its text was not cleared.{row.acknowledged ? " You've said you read that conversation; sending there again is allowed." : " The App won't send to that conversation again until you've said you read it."}</p>
+        {shownHere && !sameSource && <p><small>Codex or the home has changed since that send. The conversation shown now has the same ID, so the App won't send to it either until then; that doesn't make the earlier destination this one.</small></p>}
         {!row.acknowledged && <p><button onClick={() => setUnconfirmed(rows => rows.map(r => r.id === row.id ? { ...r, acknowledged: true } : r))}>I've read that conversation — allow sending again</button> <small>Sends nothing; this record stays.</small></p>}
         <details><summary>The message and what was reported</summary><pre style={{ whiteSpace: "pre-wrap" }}>{row.request.text}</pre>
           <p><small>Mode {row.request.mode ?? "not overridden"} · model {row.request.model ?? "not chosen"} · conversation <code>{row.request.threadId}</code> in Codex session {String(row.request.generation?.spawnCounter ?? "")} of home {String(row.request.generation?.home ?? "")}.</small></p>
@@ -452,7 +454,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
       ready={sourceReady} busy={!!busy} hasText={!!text && !unconfirmed.some(row => !row.acknowledged && row.request.threadId === selected.threadId)}
       check={() => { setError(""); checkPlanMode(selected.generation).catch(e => setError(String(e))); }} send={mode => { void sendText(mode); }} />}
     {(host?.attachmentSelections?.selections ?? []).length > 0 && <p>This plain-text action excludes the selected attachments. Use the explicit ordered-attachment action to include the entire private selection.</p>}
-    <p>Text is sent unchanged to the selected native conversation. Its role, access entry, provider and home remain the conversation's existing settings; a model choice opens no new run.</p>
+    <p>Text is sent unchanged to the selected native conversation. Its role, how it connects, its provider and its home remain the conversation's existing settings; a model choice opens no new run.</p>
     {ordinaryOutcome && <div aria-label="Ordinary text submission outcome">
       <details><summary>Original message destination and choices</summary><p>Original ordinary text turn · conversation {ordinaryOutcome.request.threadId} · Home {ordinaryOutcome.request.generation.home} · App session {ordinaryOutcome.request.generation.appSession} · spawn {ordinaryOutcome.request.generation.spawnCounter} · {ordinaryOutcome.request.mode ?? "no mode override"} · requested model {ordinaryOutcome.request.model ?? "no override"} · requested effort {ordinaryOutcome.request.effort ?? "no override"}.</p></details>
       {ordinaryOutcome.result.acknowledged
@@ -820,6 +822,8 @@ function NativeConfirmationContent() {
 const PREFILL_RESULTS = new Set(["workflow_trial_prepare", "workflow_trial_again", "workflow_trial_bring_back", "workflow_run_bring_back"]);
 export function workflowActionMessage(command: string, result: Json): string {
   if (PREFILL_RESULTS.has(command)) return "";
+  if (Array.isArray(result?.recordAdmissionRefusals)&&result.recordAdmissionRefusals.length) return result.recordAdmissionRefusals.join("\n");
+  if (result?.retryAvailable===false&&typeof result.limit==="string") return result.limit;
   return JSON.stringify(result);
 }
 
@@ -1034,8 +1038,20 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
     : !name.trim() ? "Enter a name for your new draft. The App will check the exact name and destination."
     : "Ready to create a draft from the displayed content in the opened library. This does not register or run it.";
   const guideOutcome = outcome ? { command: outcome.relation.command, message: outcome.message, failed: outcome.failed === true, settled: outcome.settled === true } : null;
+  const unsavedRecords: {reference:string;limit:string}[] = [];
+  for (const run of data?.runs??[]) {
+    if (run.publication?.admissionRefusal) unsavedRecords.push({reference:run.reference,limit:run.publication.admissionRefusal});
+    if (run.endNotice?.admissionRefusal) unsavedRecords.push({reference:run.endNotice.record,limit:run.endNotice.admissionRefusal});
+    for (const check of [...(run.checks??[]),...(run.noticeChecks??[])]) {
+      if (check.retryAvailable===false&&check.publicationLimit) unsavedRecords.push({reference:check.reference,limit:check.publicationLimit});
+    }
+  }
+  for (const end of data?.endedAfterRelaunch??[]) {
+    if (end.endNotice?.admissionRefusal) unsavedRecords.push({reference:end.endNotice.record,limit:end.endNotice.admissionRefusal});
+  }
   return <section aria-label="Workflow studio controls" aria-busy={busy}>
     {busy && <p role="status" aria-live="polite">{progress} No automatic retry.</p>}
+    {unsavedRecords.length>0&&<aside aria-label="Workflow records not saved">{unsavedRecords.map((record,index)=><p role="alert" key={`${record.reference}:${index}`}>{record.reference}: {record.limit}</p>)}</aside>}
     <div id="view-run" data-workspace-view="run" hidden={view !== undefined && view !== "run"}>
     <RunWorkflowGuide data={data} host={host} thread={thread} chooseThread={chooseWorkflowChat} act={action} busy={busy} text={text} setText={setText}
       outcome={guideOutcome} showConversation={showConversation} viewStale={viewStale} readFailure={readFailure}/>
@@ -1126,24 +1142,27 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
     <button disabled={busy||!context||host?.state!=="ready"||!thread||selected?.runnable!==true} onClick={()=>action("workflow_prepare_run",{generation:host.generation,threadId:thread,personText:text})}>Prepare exact selected workflow text</button>
     {(data?.endedAfterRelaunch??[]).map((end:Json)=><article key={end.run}><h3>{end.run} (ended after the relaunch)</h3>
       <p>End notice: {end.endNotice?.state??"none"}. {end.limit}</p>
+      {end.endNotice?.admissionRefusal&&<p role="alert">{end.endNotice.admissionRefusal}</p>}
       <HistoryReferenceNotice pointers={end.learningPointers}/>
-      {(end.endNotice?.state?.startsWith("pending")||hasUnsavedHistoryReference(end))&&<p role="status">{end.endNotice?.state?.startsWith("pending")&&<>The next message in conversation {end.conversation} carries this end notice first, once. </>}
-        <button disabled={busy} onClick={()=>action("workflow_reopened_notice",{runId:end.run,action:"retry"})}>{end.endNotice?.state?.startsWith("pending")?"Retry the end-notice record":"Retry saving records (never sends)"}</button>
-        {end.endNotice?.state?.startsWith("pending")&&end.noticeRecordFailure&&<button disabled={busy} onClick={()=>action("workflow_reopened_notice",{runId:end.run,action:"skip"})}>Send without the end notice (recorded as not supplied)</button>}</p>}
+      {(end.endNotice?.state?.startsWith("pending")||end.endNotice?.admissionRefusal||hasUnsavedHistoryReference(end))&&<p role="status">{end.endNotice?.state?.startsWith("pending")&&<>The next message in conversation {end.conversation} carries this end notice first, once. </>}
+        <button disabled={busy||!!end.endNotice?.admissionRefusal} onClick={()=>action("workflow_reopened_notice",{runId:end.run,action:"retry"})}>{end.endNotice?.state?.startsWith("pending")||end.endNotice?.admissionRefusal?"Retry the end-notice record":"Retry saving records (never sends)"}</button>
+        {(end.endNotice?.state?.startsWith("pending")&&end.noticeRecordFailure||end.endNotice?.admissionRefusal)&&<button disabled={busy} onClick={()=>action("workflow_reopened_notice",{runId:end.run,action:"skip"})}>Send without the end notice (recorded as not supplied)</button>}</p>}
     </article>)}
     {(data?.runs??[]).map((run:Json)=>{const next=chatWorkflow(data,data?.context?.sourceRef,run.conversation);return <article key={run.reference} id={runEvidenceAnchor(run.reference)}><h3>{run.reference}</h3>
       <p>Run: {run.lifecycle?.state}{run.lifecycle?.follows?` · follows ${run.lifecycle.follows}`:""}{run.lifecycle?.end?` · ${run.lifecycle.end.cause}`:""}. Records: {run.publication?.state}. Send: {run.status?.state}{run.status?.limit?` (${run.status.limit})`:""}. Supplied: {suppliedSummary(run)}. Adoption: unknown.</p>
+      {run.publication?.admissionRefusal&&<p role="alert">{run.publication.admissionRefusal}</p>}
       {run.endNotice&&<p>End notice: {run.endNotice.state}</p>}
-      {!isRecordedRun(run)&&run.endNotice?.state?.startsWith("pending")&&<p role="status">The next message in this conversation, with or without attachments or a mode, carries this end notice first, once.{run.status?.limit?` Last attempt: ${run.status.limit}`:""}
-        <button disabled={busy} onClick={()=>action("workflow_retry_records",{runRef:run.reference})}>Retry the end-notice record</button>
-        {run.noticeRecordFailure&&<button disabled={busy} onClick={()=>action("workflow_skip_notice",{runRef:run.reference})}>Send without the end notice (recorded as not supplied)</button>}</p>}
-      <ul>{[...(run.checks??[]),...(run.noticeChecks??[])].map((check:Json)=><li key={check.reference}>{check.readAt}: {check.state} ({check.supplyReading}); check record {check.published?"recorded":`pending${check.publicationLimit?` — ${check.publicationLimit}`:""}`}; R3 {check.r3?.state}{check.r3?.limit?` — ${check.r3.limit}`:""}</li>)}</ul>
+      {run.endNotice?.admissionRefusal&&<p role="alert">{run.endNotice.admissionRefusal}</p>}
+      {!isRecordedRun(run)&&(run.endNotice?.state?.startsWith("pending")||run.endNotice?.admissionRefusal)&&<p role="status">{!run.endNotice?.admissionRefusal&&<>The next message in this conversation, with or without attachments or a mode, carries this end notice first, once.{run.status?.limit?` Last attempt: ${run.status.limit}`:""}</>}
+        <button disabled={busy||!!run.endNotice?.admissionRefusal} onClick={()=>action("workflow_retry_records",{runRef:run.reference})}>Retry the end-notice record</button>
+        {(run.noticeRecordFailure||run.endNotice?.admissionRefusal)&&<button disabled={busy} onClick={()=>action("workflow_skip_notice",{runRef:run.reference})}>Send without the end notice (recorded as not supplied)</button>}</p>}
+      <ul>{[...(run.checks??[]),...(run.noticeChecks??[])].map((check:Json)=><li key={check.reference}>{check.readAt}: {check.state} ({check.supplyReading}); check record {check.published?"recorded":`${check.publicationState??"pending"}${check.publicationLimit?` — ${check.publicationLimit}`:""}`}; R3 {check.r3?.state}{check.r3?.limit?` — ${check.r3.limit}`:""}</li>)}</ul>
       <RunPanel run={run} conversations={conversations} bringBackDefault={runBringBackDefault(data,run.reference)} busy={busy || fileActBusy} act={action} openFileAct={openFileAct}/>
       <details><summary>Complete run evidence (paths shown as text)</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(readablePaths(run),null,2)}</pre></details>
       {!isRecordedRun(run)&&<>
-      <button disabled={busy||!!run.source||host?.state!=="ready"} onClick={()=>action("workflow_send_run",{runRef:run.reference})}>Record, then send original prepared text once</button>
+      <button disabled={busy||!!run.source||host?.state!=="ready"||!!run.publication?.admissionRefusal} onClick={()=>action("workflow_send_run",{runRef:run.reference})}>Record, then send original prepared text once</button>
       <button disabled={busy||!run.turn||host?.state!=="ready"} onClick={()=>action("workflow_check_supply",{runRef:run.reference})}>Check original native supplied text pages (new check)</button>
-      <button disabled={busy||(!run.pendingRecords&&!hasUnsavedHistoryReference(run))} onClick={()=>action("workflow_retry_records",{runRef:run.reference})}>Retry pending records (never sends)</button>
+      <button disabled={busy||!!run.publication?.admissionRefusal||(!run.pendingRecords&&!hasUnsavedHistoryReference(run))} onClick={()=>action("workflow_retry_records",{runRef:run.reference})}>Retry pending records (never sends)</button>
       {run.lifecycle?.state?.startsWith("open")&&<>
         <button disabled={busy} onClick={()=>action("workflow_end_run",{runRef:run.reference,finishedReport:null})}>End run</button>
         {next&&run.home===host?.generation?.home&&<section aria-label="Selected workflow for the next run">
@@ -1200,12 +1219,12 @@ export function HomeAccessPanel({ host, resources, navigating = false, act, read
   };
   const entries: Json[] = (routing?.entries ?? []).filter((entry: Json) => entry.modeHomeClass === "account");
   return <section aria-label="Account connection"><h2>Connect to a model</h2>
-    <p>Use your ChatGPT account, or a model server running on this machine. Each has its own home; switching between them leaves the other set up.</p>
+    <p>Sign in with your ChatGPT account to reach a model.</p>
     {routing?.activeModeHomeClass === "api-key" && <p role="status">Choose the account connection to continue. An older access home is retained without changing its saved configuration.</p>}
     {routing?.activeModeHomeClass === LOCAL_MODE && <p role="status">The local oMLX home is in use. ChatGPT sign-in applies to the account home.</p>}
     {routing?.activeModeHomeClass !== "account" && entries.map(entry => <article key={entry.modeHomeClass}><p>{entry.state}{entry.configurationLimit ? ` — ${entry.configurationLimit}` : ""}</p><details><summary>Connection source</summary><pre>{JSON.stringify(entry.generation, null, 2)}</pre></details><button disabled={busy || navigating || routing?.activeModeHomeClass === entry.modeHomeClass} onClick={() => action("select_home", {modeHomeClass: entry.modeHomeClass})}>Use {entry.modeHomeClass} home</button></article>)}
     <AccountStatus host={host} navigating={navigating} busy={busy} read={readAccount}/>
-    {routing?.activeModeHomeClass === "account" && <p aria-label="Provider in this home">In this home the App starts Codex on its built-in OpenAI provider, whatever default provider your own Codex settings name. Your Codex files are not changed. A local model server is set up below, under “Use oMLX / a local model”.</p>}
+    {routing?.activeModeHomeClass === "account" && <p aria-label="Provider in this home">In this home the App starts Codex on its built-in OpenAI provider, whatever default provider your own Codex settings name. Your Codex files are not changed.</p>}
     {routing?.activeModeHomeClass === "account" && <p aria-label="Where a sign-in will be kept">Before you sign in, you can see where Codex will keep your sign-in: press “Read effective storage and plugin settings” below.</p>}
     <button className="setup-primary" disabled={busy || routing?.activeModeHomeClass !== "account" || !generation} onClick={() => action("oauth_start", {generation,mode:"browser"})}>Sign in with your ChatGPT account (through Codex)…</button>
     <details><summary>Other sign-in options</summary>
@@ -1213,11 +1232,11 @@ export function HomeAccessPanel({ host, resources, navigating = false, act, read
     <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation || !oauth?.source?.presentationAvailable} onClick={() => action("oauth_present", {generation})}>Show pending native sign-in…</button>
     <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation || !oauth?.source?.cancelAvailable} onClick={() => action("oauth_cancel", {generation})}>Cancel original pending sign-in with native confirmation…</button>
     <button disabled={busy || !generation || routing?.activeModeHomeClass !== "account"} onClick={() => action("logout_home", {generation,modeHomeClass:routing.activeModeHomeClass})}>Sign out of ChatGPT…</button></details>
-    <section className="local-access-alternative" aria-label="oMLX and local providers"><h3>Use oMLX / a local model</h3>
+    {LOCAL_ROUTE_OFFERED && <section className="local-access-alternative" aria-label="oMLX and local providers"><h3>Use oMLX / a local model</h3>
       <p>Local providers use their own credentials, separate from ChatGPT sign-in.</p>
       {local && <LocalProviderAccess host={host} view={local.view} attempted={local.attempted} pending={local.pending || busy} message={local.message} navigating={navigating}
         prepare={local.prepare} enterKey={local.enterKey} settingsChanged={local.settingsTouched} useHome={() => { void action("select_home", { modeHomeClass: LOCAL_MODE }); }}/>}
-    </section>
+    </section>}
     <details><summary>Safe original sign-in observation</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(oauth ?? {state:"unavailable"},null,2)}</pre></details>
     {error && <p role="alert">{error}</p>}
     <details><summary>Source-owned account observations and limits</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(access, null, 2)}</pre></details>
@@ -1439,7 +1458,7 @@ export function DecisionPackagesPanel({ view, name, setName, recordName, refresh
     <p>Last writer continuation: {writer?.trigger ?? "not run"} · {writer?.state ?? "not run"} · new requests recorded: {writer?.requestsRecordedNow ?? 0}.</p>
     {(writer?.captureRecovery ?? []).filter((r: Json) => r.state !== "AC-7 recorded" || r.backlinkPending || r.delayEvidencePending).map((r: Json, i: number) => <p key={i}>Capture: {r.state} · {r.statusDetail ?? r.writeFailure ?? r.backlinkFailure ?? r.delayEvidenceFailure ?? r.captureDurability}</p>)}
     {(writer?.limits ?? []).map((limit: string, index: number) => <p key={index}>Writer limit: {limit}</p>)}
-    {(view?.rows ?? []).map((row: Json) => <article key={row.package} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
+    {(view?.rows ?? []).map((row: Json) => <article key={row.package} id={typeof row.package === "string" ? decisionPackageAnchor(row.package) : undefined} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
       <h3>{row.package} — {row.actRequested} — {row.state}</h3>
       <p>Request resolution: {row.requestResolution ?? "not reported"}. Recorded request sources: {JSON.stringify(row.requestSources ?? [])}.</p>
       {row.state === "unresolvable request identity" && <p>The recorded request identity conflicts. No current request or act is selected by this view; existing package and record admission checks remain in force.</p>}
@@ -1487,12 +1506,35 @@ export function App() {
   const [fleet, setFleet] = useState<FleetPacket | null>(null);
   const [fleetError, setFleetError] = useState("");
   const [fleetBusy, setFleetBusy] = useState(false);
+  // "Waiting on you" keeps its own last good fleet packet, with when its read
+  // started, and whether a later read of any route failed (and when it
+  // started): while the latest read has failed, the list shows this last
+  // successful packet as last read, uncounted. The panel keeps its own behaviour. A read started
+  // later wins over one that answers late, so an older reply never replaces a
+  // newer failed or limited one.
+  const [waitingFleet, setWaitingFleet] = useState<{ packet: FleetPacket; at: number } | null>(null);
+  const [fleetAutoFailure, setFleetAutoFailure] = useState<{ message: string; at: number } | null>(null);
+  const fleetSequence = useRef(0);
   const refreshFleet = async () => {
+    const sequence = ++fleetSequence.current; const at = Date.now();
     setFleetBusy(true); setFleetError("");
-    try { setFleet(await readFleetPacket(command => invoke<FleetPacket>(command))); }
-    catch (error) { setFleet(null); setFleetError(String(error)); }
+    try { const packet = await readFleetPacket(command => invoke<FleetPacket>(command)); if (sequence === fleetSequence.current) { setFleet(packet); setWaitingFleet({ packet, at }); setFleetAutoFailure(null); } }
+    catch (error) { if (sequence === fleetSequence.current) { setFleet(null); setFleetError(String(error)); setFleetAutoFailure({ message: String(error), at }); } }
     finally { setFleetBusy(false); }
   };
+  // The return-review queue is read every WAITING_SOURCE_POLL_MS, each time the
+  // person opens "Waiting on you", and by hand in its panel. Opening the list and
+  // the panel's button are the person's presses and go through `invoke`, so they
+  // mark; the timer goes through `invokeTimedRead` (PRESSED_AND_TIMED_READS in
+  // hostReads.ts), so a read the App issues by itself never marks. A read that
+  // fails keeps the packet, with its time, and the list shows it as last read, uncounted.
+  const readFleetForWaiting = async (route: (command: string) => Promise<FleetPacket>) => {
+    const sequence = ++fleetSequence.current; const at = Date.now();
+    try { const packet = await readFleetPacket(route); if (sequence === fleetSequence.current) { setFleet(packet); setWaitingFleet({ packet, at }); setFleetError(""); setFleetAutoFailure(null); } }
+    catch (error) { if (sequence === fleetSequence.current) setFleetAutoFailure({ message: String(error), at }); }
+  };
+  const readFleetOnOpen = () => readFleetForWaiting(command => invoke<FleetPacket>(command));
+  const readFleetOnTimer = useRef(() => readFleetForWaiting(command => invokeTimedRead<FleetPacket>(command)));
   const [routeRead, setRouteRead] = useState<RouteReadState>(emptyRouteRead);
   const readRoutes = async () => {
     setRouteRead(s => routeReadTransition(s, {type: "start"}));
@@ -1527,6 +1569,25 @@ export function App() {
     revealWorkspaceTarget("file-acts");
   };
   const [view, setView] = useState<Json>(null);
+  // "Waiting on you" keeps the last good decision view, with when its read
+  // started, and whether a later read failed (and when it started). Every path reads decision_view through
+  // readDecisions, numbered when it starts: a reply applies only if no later read
+  // has started, so an older reply never restores a package a newer read showed
+  // decided. `apply` lets a caller drop a reply its own source no longer wants.
+  const [waitingDecisions, setWaitingDecisions] = useState<{ view: Json; at: number } | null>(null);
+  const [decisionsFailure, setDecisionsFailure] = useState<{ message: string; at: number } | null>(null);
+  const decisionSequence = useRef(0);
+  const readDecisions = useCallback(async (apply: () => boolean = () => true) => {
+    const sequence = ++decisionSequence.current; const at = Date.now();
+    const latest = () => sequence === decisionSequence.current && apply();
+    try {
+      const decision: Json = await invoke("decision_view");
+      if (!latest()) return;
+      setView(decision);
+      if (decision && !decision.error) { setWaitingDecisions({ view: decision, at }); setDecisionsFailure(null); }
+      else setDecisionsFailure({ message: String(decision?.error ?? "no decision view"), at });
+    } catch (e) { if (latest()) { setView({ error: String(e) }); setDecisionsFailure({ message: String(e), at }); } }
+  }, []);
   const [offer, setOffer] = useState<Json>(null);
   const [choice, setChoice] = useState<string>("");
   const [name, setName] = useState<string>("");
@@ -1984,13 +2045,9 @@ export function App() {
   const refresh = useCallback(async () => {
     const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
     applyHost(snapshotRead);
-    try {
-      setView(await invoke("decision_view"));
-    } catch (e) {
-      setView({ error: String(e) });
-    }
+    await readDecisions();
     return snapshot;
-  }, []);
+  }, [readDecisions]);
 
   const refreshEffectiveAccessSettings = useCallback(async (isCurrent: () => boolean) => {
     const sourceAtRead = currentHost.current;
@@ -2039,10 +2096,7 @@ export function App() {
       // navigation's last-known source/intent. Shared refresh semantics stay put.
       const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
       if (isCurrent()) applyHost(snapshotRead);
-      try {
-        const decision: Json = await invoke("decision_view");
-        if (isCurrent()) setView(decision);
-      } catch (e) { if (isCurrent()) setView({ error: String(e) }); }
+      await readDecisions(isCurrent);
       return snapshot;
     } };
   };
@@ -2058,6 +2112,18 @@ export function App() {
     document.addEventListener("visibilitychange", shown);
     return () => { clearInterval(t); document.removeEventListener("visibilitychange", shown); };
   }, [refresh]);
+
+  // "Waiting on you": every WAITING_SOURCE_POLL_MS the decision packages are read
+  // again through the command their panel uses, a read the web view already
+  // issues by itself (SELF_ISSUED_QUIET), and the return-review queue through the
+  // timed-read route. A read that fails keeps what is shown, with its time.
+  useEffect(() => {
+    const t = setInterval(() => {
+      void readDecisions();
+      void readFleetOnTimer.current();
+    }, WAITING_SOURCE_POLL_MS);
+    return () => clearInterval(t);
+  }, []);
 
   const act = async (cmd: string, args?: Record<string, unknown>) => {
     try {
@@ -2281,7 +2347,8 @@ export function App() {
     return operation;
   };
   // WI-3: opening a conversation from the indicator shows its cards; it answers nothing.
-  const openRequests = async (group: WaitingRequestGroup) => {
+  // `anchor`: the one request card to land on ("Waiting on you"); without it, its section.
+  const openRequests = async (group: WaitingRequestGroup, anchor: string | null = null) => {
     if (homePendingRef.current) return;
     const revision = threadChoiceRevision.current;
     const viewAtIntent = currentHost.current;
@@ -2304,6 +2371,11 @@ export function App() {
         setMessage("Waiting-request navigation superseded or its original source is no longer current; refresh the overview."); return;
       }
       const current = result.threadLoaded && (snapshot.threads ?? []).find((t: Json) => t.threadId === group.threadId && same(t.generation, group.generation));
+      if (anchor) {
+        flushSync(() => setThreadKey(current ? JSON.stringify([current.generation, current.threadId]) : ""));
+        revealWorkspaceTarget(document.getElementById?.(anchor) ? anchor : current ? "conversation" : "other-requests", true);
+        return;
+      }
       setThreadKey(current ? JSON.stringify([current.generation, current.threadId]) : "");
       revealWorkspaceTarget(current ? "conversation" : "other-requests");
     } catch (error) { setMessage(`Waiting-request navigation: ${String(error)}`); }
@@ -2483,6 +2555,21 @@ export function App() {
     setOffer(null);
   };
 
+  // "Waiting on you": each source's reading, with when its read started and whether a later read failed.
+  // The host status read is ordered by useOrderedHost: `failure` is set only while no read started after
+  // the failed one has been applied, so an older status reply never stands over a newer failed read.
+  const waitingReads = waitingReadings({
+    host, hostReadAt: hostReads.appliedAt, hostFailure: hostReads.failure, hostFailedAt: hostReads.failedAt,
+    fleet: waitingFleet?.packet ?? null, fleetReadAt: waitingFleet?.at ?? null, fleetFailure: fleetAutoFailure?.message ?? null, fleetFailedAt: fleetAutoFailure?.at ?? null,
+    decisions: waitingDecisions?.view ?? null, decisionsReadAt: waitingDecisions?.at ?? null, decisionsFailure: decisionsFailure?.message ?? null, decisionsFailedAt: decisionsFailure?.at ?? null,
+  });
+  const goToWaiting = (entry: WaitingEntry) => {
+    const target = entry.target;
+    if (target.kind === "request") { void openRequests(target.group, target.anchor); return; }
+    // A run's record is in the workflow studio, a return in Records and Fleet, a package in
+    // Connectors and examination: revealing the target shows its view and opens its disclosure.
+    revealWorkspaceTarget(document.getElementById?.(target.anchor) ? target.anchor : target.kind === "run" ? "workflow-studio" : target.kind === "return" ? "workspace-records" : "workspace-evidence", true);
+  };
   const outsideRequests = hostRequests(host).filter((request: Json) => requestThread(request) === null || requestThread(request) !== selectedThread);
   // First use: while the launch needs setup, a focused welcome replaces the
   // workspace, whose controls cannot work yet. Everything stays mounted.
@@ -2498,10 +2585,17 @@ export function App() {
         {firstRead === "read" && <div hidden={setupRequired}>
         <header className="workspace-heading"><div><h1>Chirality</h1><p>Workflow workspace</p></div><p>Make, try, review and refine workflows through conversation.</p></header>
         <WorkflowAssuranceSetting setting={host?.workflowRoot?.assuranceSetting} act={async (command, args) => commandThenRefresh(() => invoke(command, args), refresh, () => setMessage(withRefreshFailure))}/>
+        </div>}
+        {/* The navigation and "Waiting on you" stay in view together whichever view is shown. A sticky
+            element sticks only within its parent, so this is a direct child of the workspace, which holds every view. */}
+        {firstRead === "read" && <div className="workspace-sticky" hidden={setupRequired}>
         <nav className="workspace-nav" aria-label="Workspace navigation">
           {WORKSPACE_VIEWS.map(item => <a key={item.id} href={`#${item.target}`} aria-current={taskView === item.id ? "page" : undefined}>{item.label}</a>)}
         </nav>
-        <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome} refusalCause={host?.startRefusalCause} build={host?.build}/>
+        <WaitingOnYou readings={waitingReads} view={host?.nativeView} busy={homePending} onOpen={() => { void readFleetOnOpen(); }} openGroup={group => { void openRequests(group); }} go={goToWaiting}/>
+        </div>}
+        {firstRead === "read" && <div hidden={setupRequired}>
+        <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome} refusalCause={host?.startRefusalCause} build={host?.build} signIn={accountReading(host)}/>
         </div>}
         <NativeWaitingBridge ready={!!host} report={setMessage} checkpoint={() => ({ signature: JSON.stringify([threadChoiceRevision.current, chooserHome.current.epoch, editRevision.current]),
           pristine: threadChoiceRevision.current === 0 && editRevision.current === 0 })} capture={() => {
@@ -2521,7 +2615,6 @@ export function App() {
               await openRequests(group);
           };
       }}/>
-        {firstRead === "read" && <div hidden={setupRequired}><WaitingRequestsIndicator overview={host?.waitingRequests} view={host?.nativeView} busy={homePending} open={group => { void openRequests(group); }}/></div>}
         <NativeConfirmationContent />
         {firstRead === "read" && <div hidden={setupRequired}>
         {offer && (<section style={{ border: "1px solid #888", padding: 8 }}>
@@ -2551,13 +2644,13 @@ export function App() {
           requested target {JSON.stringify(trialObservation.relation.target)}): {String(trialObservation.limit).replace(/\.$/, "")}. The original command outcome is unchanged.
         </p>}</div>
         <div id="view-conversation" data-workspace-view="conversation" className="workspace-view" hidden={taskView !== "conversation"}>
-        <WorkspaceDisclosure id="workspace-start" title="New conversation" description="Model, provider, access entry and role — start explicitly" open={host?.state !== "ready" || !(host?.threads?.length) ? true : undefined}>
+        <WorkspaceDisclosure id="workspace-start" title="New conversation" description="Model and role — start explicitly" open={host?.state !== "ready" || !(host?.threads?.length) ? true : undefined}>
           <h2>New conversation</h2>
           <div className="workspace-start-fields">
           <h3>1. How it connects</h3>
           <AccessRouteChoice homeClass={homeClass} modelProvider={modelProvider} entryId={entryId} model={model} disabled={startPending || homePending || providerReading || endpointBusy}
             local={fixedLocal} choose={route => reviseChoice(route)}/>
-          {homeClass === "account" && <p aria-label="Local model servers">Custom local providers are not offered from this home. <a href="#workspace-connection">Set up the App’s local model connection</a> under Connection &amp; access, and switch to its home to start a conversation with it.</p>}
+          {homeClass === "account" && <p aria-label="Local model servers">Local providers named in your own Codex settings are not offered: the App can’t run one in this home, and this version offers no local model server.</p>}
           <h3>2. Model</h3>
           <AvailableModels packet={modelObservation?.packet ?? null} current={modelObservationCurrent} reading={modelReading} message={modelObservationMessage}
             model={model} modelProvider={modelProvider} entryId={entryId} read={() => { void readAvailableModels(); }} choose={chooseListedModel}
@@ -2569,7 +2662,7 @@ export function App() {
           </details>}
           <p>Choose how this conversation connects and a model, then a role. Switching homes never transfers an existing conversation.</p>
           <RoleChoice group="start-thread-role" roleSet={host?.roleSet} limits={host?.roleLimits} role={role} preselected={!roleTouched && !!role && role === host?.roleSet?.defaultRole} setRole={next => { expireEndpointPreview(); roleInitialized.current = true; setRoleTouched(true); setRole(next); }}/></div>
-          <p aria-label="New conversation choice">{!model.trim() || !modelProvider.trim() ? "not started — no model selected" : entryCompatible ? `New conversation choice: ${model} via ${modelProvider} (${entryId})` : "Choose an access entry for the current home."}</p>
+          <p aria-label="New conversation choice">{!model.trim() || !modelProvider.trim() ? "not started — no model selected" : entryCompatible ? `New conversation choice: ${model} via ${modelProvider} (${entryId})` : "Choose how this conversation connects (step 1)."}</p>
           <p>
             <button onClick={startConversation} disabled={!!startBlocked} aria-describedby={startBlocked ? "start-conversation-blocked" : undefined}>Start thread</button>
             {startBlocked && <>{" "}<span id="start-conversation-blocked" role="status">{startBlocked}</span></>}

@@ -444,15 +444,24 @@ pub(crate) fn check_write_binding(dir: &Path) -> Result<(), String> {
     // While the roots registry's last line is unread, no binding read from
     // its complete lines is written through (records_store::REGISTRY_TORN).
     require_roots_whole(store)?;
+    if registration_owns(dir) { return Ok(()); }
     let Some(root) = root_for_dir(dir) else {
-        return Ok(());
+        return Err("not known which project this folder belongs to in this process; nothing written".into());
     };
+    node(&root).map_err(|e| format!("not known: the project folder {} could not be examined ({e}); nothing written", root.display()))?;
     let here = listed(
         &roots(store)?,
         root.to_str().ok_or("project root is not UTF-8")?,
     );
     const STALE: &str = "project root association changed; stale queued write refused";
     if here.len() != 1 || project_dir(store, &here[0]) != dir {
+        // Admission decides from the association it finds, even when an
+        // earlier diagnostic preflight passed. Keep F4's confirmation reason
+        // for a held identity with no current folder, without admitting it.
+        let attachment = attach(&root, false)?;
+        if attachment.fault == Some("no folder recorded") {
+            if let Some(reason) = attachment.refusal { return Err(reason); }
+        }
         return Err(format!(
             "{STALE}: the records store records {} for {}, not this folder's project",
             if here.is_empty() { "no project".to_owned() } else { here.join(", ") },

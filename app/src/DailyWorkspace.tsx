@@ -1,4 +1,5 @@
 import type { MouseEvent, ReactNode } from "react";
+import { SIGN_IN_WORDS, type AccountReading } from "./AccountStatus";
 
 /** Presentation only: disclosures retain every child while closed. */
 export function WorkspaceDisclosure({ id, title, description, open, children }: { id: string; title: string; description: string; open?: boolean; children: ReactNode }) {
@@ -50,7 +51,7 @@ export function revealWorkspaceTarget(id: string, focus = false): void {
   }
   target?.scrollIntoView?.({ block: "start" });
 }
-const targets = new Set(["view-run", "view-make", "run-workflow", "make-workflow", "workflow-drafts", "desktop-setup", "workflow-reviews", "conversation", "workflow-studio", "workspace-start", "workspace-connection", "workspace-tools", "workspace-history", "file-acts", "other-requests"]);
+const targets = new Set(["waiting-on-you", "view-run", "view-make", "run-workflow", "make-workflow", "workflow-drafts", "desktop-setup", "workflow-reviews", "conversation", "workflow-studio", "workspace-start", "workspace-connection", "workspace-tools", "workspace-history", "file-acts", "other-requests"]);
 function revealLink(event: MouseEvent<HTMLElement>): void {
   for (let node = event.target as HTMLElement | null; node && node !== event.currentTarget; node = node.parentNode as HTMLElement | null) {
     const href = node.tagName === "A" ? node.getAttribute("href") : null;
@@ -83,7 +84,7 @@ export function refusedStartWords(cause?: string | null, build?: string | null):
     default: return { link: true, words: "The App did not record why. Connection and access shows Codex's controls." };
   }
 }
-export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, generationClosed, startRefusal, codexHome, refusalCause, build }: {
+export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, generationClosed, startRefusal, codexHome, refusalCause, build, signIn = "unread" }: {
   state?: string; setupRequired?: boolean; savedSetup?: boolean; generationClosed?: boolean;
   /** The host status's `lastStartRefusal`: why the last start of Codex was refused before it was spawned, and for which home. */
   startRefusal?: { reason?: string; home?: string } | null;
@@ -91,6 +92,9 @@ export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, ge
   codexHome?: string | null;
   /** The host status's `startRefusalCause` and `build`. */
   refusalCause?: string | null; build?: string | null;
+  /** What the App has established of this connection's sign-in (AccountStatus.tsx, accountReading): the same
+   * reading the account panel shows, so the two never disagree. */
+  signIn?: AccountReading;
 }) {
   const ready = state === "ready" && generationClosed !== true;
   const homeRefusal = !setupRequired && !!state && NO_START_UNDER_WAY.has(state) && !!startRefusal?.reason && !!codexHome && startRefusal.home === codexHome;
@@ -98,14 +102,16 @@ export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, ge
   const refused = !setupRequired && (state === "refused" || homeRefusal);
   const cause = state === "refused" && !setupRequired && !homeRefusal ? refusedStartWords(refusalCause, build) : null;
   const title = setupRequired ? savedSetup ? "Setup saved — reopen to use it" : "Setup needed"
-    : !state ? "Reading connection status…" : ready ? "Codex is connected"
+    : !state ? "Reading connection status…" : ready ? signIn === "chatgpt-account" ? "Codex is running and signed in" : "Codex is running"
     : state === "starting" ? "Codex is starting…" : state === "stopping" ? "Codex is stopping…"
     : refused ? "Codex was not started"
     : state === "exited-unexpectedly" ? "Codex could not stay connected"
     : "Codex is not connected";
   const linkUseful = !cause || cause.link;
   const guidance = setupRequired ? savedSetup ? "Your saved choices apply on the next launch." : "Choose shared settings and a project below."
-    : ready ? "Choose a conversation, or select a model and access entry for a new one."
+    // Codex started and the App reached it. Whether anyone is signed in is what the account reads the host
+    // recorded for this connection establish; the App makes no automatic account read at launch.
+    : ready ? SIGN_IN_WORDS[signIn]
     : !state ? "Waiting for the App to report its current connection."
     : cause ? cause.words
     : "Open Connection and access to inspect the current status and available controls.";
@@ -114,7 +120,7 @@ export function WorkspaceConnectionStatus({ state, setupRequired, savedSetup, ge
     {/* Only while no start is under way, and only for the home being shown. */}
     {homeRefusal && startRefusal?.reason
       && <p role="alert" aria-label="Why Codex was not started">{startRefusal.reason.startsWith("Codex was not started") ? startRefusal.reason : `Codex was not started: ${startRefusal.reason}`}</p>}
-    {!setupRequired && state && linkUseful && <a href={ready ? "#workspace-start" : "#workspace-connection"}>{ready ? "Choose a new conversation" : "Open connection controls"}</a>}
+    {!setupRequired && state && linkUseful && <a href={ready && signIn === "chatgpt-account" ? "#workspace-start" : "#workspace-connection"}>{ready && signIn === "chatgpt-account" ? "Choose a new conversation" : "Open connection controls"}</a>}
   </section>;
 }
 
@@ -148,6 +154,17 @@ export function DailyWorkspace({ children }: { children: ReactNode }) {
       .workspace-heading { display:flex; align-items:center; gap:16px; justify-content:space-between; margin-bottom:16px; }
       .workspace-heading p { color:var(--workspace-muted); margin:0; font-size:.88rem; }
       .workspace-nav { position:sticky; top:0; z-index:2; display:flex; flex-wrap:wrap; gap:6px 6px; padding:10px 0; background:var(--ground); border-bottom:1px solid var(--workspace-line); margin-bottom:18px; font-size:.95rem; }
+      .workspace-sticky { position:sticky; top:0; z-index:2; background:var(--ground); margin-bottom:18px; }
+      .workspace-sticky>.workspace-nav { position:static; margin-bottom:0; }
+      .waiting-on-you { border-bottom:1px solid var(--workspace-line); background:var(--ground); color:var(--ink-soft); font-size:.85rem; }
+      .waiting-on-you>details>summary { min-height:32px; display:flex; align-items:center; gap:8px; padding:0 2px; list-style-position:inside; }
+      .waiting-on-you>details>summary>[role=status] { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--ink); }
+      .waiting-on-you-list { max-height:50vh; overflow-y:auto; padding:4px 2px 10px; }
+      .waiting-on-you-group { margin:6px 0 10px; }
+      .waiting-on-you-group-label { margin:4px 0; color:var(--ink); }
+      .waiting-on-you-entry { border-left:3px solid var(--accent); padding:2px 10px; margin:4px 0; }
+      .waiting-on-you-entry>strong { color:var(--ink); }
+      .waiting-requests-by-home { border-left:3px solid var(--rule-strong); padding:2px 10px; margin:8px 0; }
       .workspace-nav a { text-decoration:none; color:var(--ink); padding:6px 12px; border-radius:6px; border:1px solid transparent; }
       .workspace-nav a:hover { border-color:var(--rule-strong); }
       .workspace-nav a[aria-current="page"] { background:var(--cta); color:var(--cta-ink); }

@@ -343,7 +343,7 @@ test('first use: choose a project, start with new App-owned settings, review the
     for(const effect of next.preview.effects)assert.ok(effects.includes(effect),effect);
     assert.match(effects,/Create a new settings folder for this App/);assert.match(effects,/No other Codex settings, home or credential is read, imported or changed/);
     await press(c,'Create settings and save for next launch…');
-    assert.match(region(c,'Setup saved').textContent,/quit Chirality \(⌘Q\) and open it again.*Connection & access.*ChatGPT account or prepare the oMLX connection/);
+    assert.match(region(c,'Setup saved').textContent,/quit Chirality \(⌘Q\) and open it again\..*Then open Connection and access to sign in with your ChatGPT account\. After signing in, choose a model and start a conversation\./);
     assert.deepEqual(calls.map(call=>call.command),['desktop_setup_pick','desktop_setup_new_settings_preview','desktop_setup_prepare']);
   });
 });
@@ -363,6 +363,11 @@ test('first use: no project, existing settings route, cancel and change keep cho
     assert.equal(said[said.indexOf(sentence)+1],kept,'a separate paragraph after the unchanged sentence');
     assert.equal(packet.initial.noProjectFolder,packet.initial.appData+'/conversations-without-project');
     assert.ok(said.includes('Conversations without a project work in: '+packet.initial.noProjectFolder));
+    // DEL-01-01: the App's working files, beside App data and named from it, in the same form.
+    assert.equal(packet.initial.workingFiles,packet.initial.appData+' Working Files');
+    assert.equal(typeof packet.initial.workingFilesKept,'number');
+    assert.ok(said.includes("Working files (the version check's folders, the connector's folder and Codex's temporary folders): "+packet.initial.workingFiles
+      +". "+packet.initial.workingFilesKept+" folders are there now, with what is in them: Chirality removes none of them. They can be removed once Chirality, and any Codex it started, has stopped."));
     assert.ok(said.includes('App data: '+packet.initial.appData),'the App data line is unchanged');
     const existing=nodes(c,'input').find(n=>props(n).type==='radio'&&n.parentNode.textContent.startsWith(' Use my existing Codex settings'));
     await React.act(()=>props(existing).onChange());
