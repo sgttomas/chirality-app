@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { AgentText } from "./AgentText";
+import { AgentText, idWords } from "./AgentText";
 import { reviewDigest } from "./presentation";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -142,11 +142,12 @@ function Snapshot({ held }: { held: Held }) {
   const { row, check } = held;
   const envelope = check === "same" ? readEnvelope(row.content) : null;
   return <article aria-label="Request and answer details named by a native confirmation" style={{ border: "1px solid #a60", padding: 8, margin: "8px 0" }}>
-    <p>sha-256 digest, as named in the native confirmation: <code style={{ userSelect: "all", overflowWrap: "anywhere" }}>{row.digest}</code>.{" "}
+    <p>sha-256 digest, as named in the native confirmation: <code style={{ userSelect: "all", overflowWrap: "anywhere" }}>{idWords(row.digest) ?? "unavailable"}</code>.{" "}
       {check === "checking" ? "This view is recomputing the digest from the details below; they are shown once it matches."
         : check === "same" ? "This view recomputed the same digest from the details below."
         : check === "different" ? "This view recomputed a different digest: do not rely on these details. They are not shown."
-        : `This view cannot recompute the digest (${check.unavailable}), so the details are not shown.`}</p>
+        : "This view cannot recompute the digest, so the details are not shown."}</p>
+    {typeof check === "object" && <AgentText block value={check.unavailable} source="record" label="Reported digest-check error:" />}
     <p>{row.pending
       ? "The native confirmation that names these details is open. They are the details as they were when it opened."
       : "The native confirmation that named these details has closed. They are kept here as they were when it opened, and they are not refreshed. If you cancelled it, you can read them here and answer again from this card; a new confirmation takes the details again, and if they have changed it names them by a new digest."}</p>

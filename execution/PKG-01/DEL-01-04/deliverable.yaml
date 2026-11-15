@@ -138,7 +138,9 @@ code_paths:
 - app/src-tauri/src/lib.rs
 - app/src/RequestCards.tsx
 - app/src/RequestAnswerCompanion.tsx
+- app/src/hostReads.ts
 - app/src/requestAnswerWords.json
+- app/tools/generate-request-answer-words.mjs
 - app/src/presentation.ts
 # Every value the App did not write, drawn as the agent's (cards and the activity stream).
 - app/src/AgentText.tsx
@@ -217,6 +219,9 @@ checks:
 - app/src-tauri/src/request_answer_presentation.rs
 - app/src-tauri/src/request_answer_sheet.rs
 - app/tests/fixtures/request_answer_cases.json
+- app/tests/request-answer-companion.test.mjs
+- app/tests/request-answer-words.test.mjs
+- app/tests/host-reads.test.mjs
 - app/tests/run-offers.test.mjs
 - app/tests/workflow-drafts.test.mjs
 - app/tests/validate-records.test.mjs

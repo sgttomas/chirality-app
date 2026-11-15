@@ -139,26 +139,28 @@ export function requestTitle(request: Json): string {
 const DECISION_TOKENS = { accept: "accept", approved: "approved", acceptForSession: "acceptForSession", approved_for_session: "approved_for_session", decline: "decline", cancel: "cancel", denied: "denied", abort: "abort" } as const;
 /** LB-1 App words for each native decision form (the value itself is shown beside them), and the
  * question buttons' words. The host's native confirmation names an answer from requestAnswerWords.json;
- * these tables are its exact copy, held here as literals so the presentation guard can read them, and a
- * page test (request-answer-words.test.mjs) keeps the two equal, entry for entry. */
+ * these tables are generated literals so the presentation guard can read them. Regenerate from app/
+ * with node tools/generate-request-answer-words.mjs; the page test checks every entry. */
+// BEGIN GENERATED REQUEST ANSWER WORDS
 export const DECISION_WORDS = {
-  accept: "Allow once",
-  approved: "Allow once",
-  acceptForSession: "Allow for this session",
-  approved_for_session: "Allow for this session",
-  acceptWithExecpolicyAmendment: "Allow, and add a lasting rule (see below)",
-  approved_execpolicy_amendment: "Allow, and add a lasting rule (see below)",
-  applyNetworkPolicyAmendment: "Apply the proposed network rule for this host",
-  network_policy_amendment: "Apply the proposed network rule for this host",
-  decline: "Don't allow; the agent continues the turn",
-  cancel: "Don't allow, and interrupt the turn",
-  denied: "Don't allow; the agent tries something else",
-  abort: "Don't allow; the agent waits for your next message",
+  "accept": "Allow once",
+  "approved": "Allow once",
+  "acceptForSession": "Allow for this session",
+  "approved_for_session": "Allow for this session",
+  "acceptWithExecpolicyAmendment": "Allow, and add a lasting rule (see below)",
+  "approved_execpolicy_amendment": "Allow, and add a lasting rule (see below)",
+  "applyNetworkPolicyAmendment": "Apply the proposed network rule for this host",
+  "network_policy_amendment": "Apply the proposed network rule for this host",
+  "decline": "Don't allow; the agent continues the turn",
+  "cancel": "Don't allow, and interrupt the turn",
+  "denied": "Don't allow; the agent tries something else",
+  "abort": "Don't allow; the agent waits for your next message"
 } as const;
 export const QUESTION_CHOICE_WORDS = {
   "question-answers": "Send current question answers…",
-  "question-decline": "Decline to answer",
+  "question-decline": "Decline to answer"
 } as const;
+// END GENERATED REQUEST ANSWER WORDS
 export function decisionWords(decision: Json): string {
   const key = typeof decision === "string" ? decision : decision && typeof decision === "object" ? Object.keys(decision)[0] : "";
   return wordOf(DECISION_WORDS, key) ?? "Codex option";

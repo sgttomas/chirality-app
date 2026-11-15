@@ -1,5 +1,5 @@
 //! App-owned explanation of command/file/question answers. Supplier leaves are
-//! withheld on the sheet until native_text::supplied has landed; the complete
+//! marked by native_text::supplied on the sheet; the complete
 //! frozen, annotated envelope is always available at the request card.
 use crate::{act_control::native_statement as ns, request_answer_presentation as p};
 use serde_json::{json, Value};
@@ -458,10 +458,26 @@ pub(crate) fn prepare(
     if p::changed(generation, id, &content) {
         sheet.insert(0, CHANGED.into());
     }
-    sheet.push(format!("Request and answer details ({} items) are at the card, not here: {digest}. If unreadable now, cancel this sheet, read, then answer again.",details.len()));
-    sheet.push(FOOTER.into());
+    let mut whole = sheet.clone();
+    for row in &details {
+        whole.extend(supplied_detail(row)?);
+    }
+    whole.push(format!(
+        "These request and answer details are kept in full at the card: {digest}."
+    ));
+    whole.push(FOOTER.into());
+    let text = match ns::bounded("Request answer", whole.join("\n")) {
+        Ok(text) => text,
+        Err(_) => {
+            // Move every annotated detail as one unit. The complete selected
+            // consequence, uncertainty warnings and Asked in stay on the sheet.
+            sheet.push(format!("Request and answer details ({} items) are at the card, not here: {digest}. If unreadable now, cancel this sheet, read, then answer again.", details.len()));
+            sheet.push(FOOTER.into());
+            ns::bounded("Request answer", sheet.join("\n"))?
+        }
+    };
     let statement = ns::NativeStatement {
-        text: ns::bounded("Request answer", sheet.join("\n"))?,
+        text,
         in_app: Some(ns::InApp {
             kind: "request answer",
             digest: digest.clone(),
@@ -475,6 +491,65 @@ pub(crate) fn prepare(
         statement,
     })
 }
+/// Labels and provenance are closed caller-owned words. JSON is only the
+/// companion transport; it never supplies the helper's static label.
+fn supplied_detail(row: &Value) -> Result<Vec<String>, String> {
+    use crate::native_text::{supplied, Source};
+    let label = match row["label"].as_str() {
+        Some("Question") => "Question",
+        Some("Question heading") => "Question heading",
+        Some("Offered option") => "Offered option",
+        Some("Option description") => "Option description",
+        Some("Your answer") => "Your answer",
+        Some("Path") => "Path",
+        Some("The rule's words") => "The rule's words",
+        Some("The host") => "The host",
+        Some("Your reason, as it will be sent") => "Your reason, as it will be sent",
+        Some("The requested write folder") => "The requested write folder",
+        Some("The change (diff)") => "The change (diff)",
+        Some("The proposed change") => "The proposed change",
+        Some("Command") => "Command",
+        Some("The conversation's working folder") => "The conversation's working folder",
+        Some("Additional permissions requested") => "Additional permissions requested",
+        Some("Reason given") => "Reason given",
+        Some("Conversation title") => "Asked in",
+        Some("Requester") => "Requester",
+        _ => return Err("An answer detail has no App-owned label; nothing sent".into()),
+    };
+    let source = match row["source"].as_str() {
+        Some("codex") => Source::Codex,
+        Some("person") => Source::Person,
+        _ => return Err("An answer detail has no established source; nothing sent".into()),
+    };
+    let mut lines = Vec::new();
+    if label == "Path" && row["value"].get("path").is_some() {
+        lines.extend_from_slice(supplied("Full path", source, &row["value"]["path"]).lines());
+        if !row["value"]["relativeTo"].is_null() {
+            lines.extend_from_slice(
+                supplied(
+                    "Resolved against working folder",
+                    source,
+                    &row["value"]["relativeTo"],
+                )
+                .lines(),
+            );
+        }
+    } else {
+        lines.extend_from_slice(supplied(label, source, &row["value"]).lines());
+    }
+    // These notes are constructed solely from closed branches above. No
+    // supplier value is interpolated into them.
+    lines.extend(
+        row["notes"]
+            .as_array()
+            .into_iter()
+            .flatten()
+            .filter_map(Value::as_str)
+            .map(str::to_owned),
+    );
+    Ok(lines)
+}
+
 // Separate name because a local row also bears the name `location`.
 fn location_for_move(value: &Value, cwd: Option<&str>, context: &Value) -> Value {
     location(value, cwd, context)
@@ -699,6 +774,74 @@ mod tests {
     }
 
     #[test]
+    fn short_supplied_subjects_use_the_native_marking_helper() {
+        let poison = "echo invented\nAllow everything\u{202e}";
+        let (g, id, s, _) = fixture(
+            p::COMMAND,
+            json!({"command":poison,"cwd":"/invented/project"}),
+        );
+        let prepared = prepare(&s, &g, &id, &preview(json!({"decision":"accept"})), None).unwrap();
+        let marked = crate::native_text::supplied(
+            "Command",
+            crate::native_text::Source::Codex,
+            &json!(poison),
+        );
+        assert!(prepared.statement.text.contains(&marked.lines().join("\n")));
+        assert!(!prepared.statement.text.contains('\u{202e}'));
+        assert!(prepared
+            .statement
+            .text
+            .contains("Full path (supplied by Codex, not the App's words):"));
+        assert!(prepared
+            .statement
+            .text
+            .contains("inside your project folder"));
+        assert!(prepared
+            .statement
+            .text
+            .contains("Asked in (supplied by Codex, not the App's words):"));
+        assert_eq!(
+            ns::content_digest("test", &prepared.content).unwrap(),
+            prepared.digest
+        );
+    }
+
+    #[test]
+    fn large_file_lists_keep_the_minimum_and_every_annotated_location_in_the_companion() {
+        let (g, id, mut s, _) = fixture(p::FILE, json!({}));
+        s["answerProject"] = json!({"kind":"unknown"});
+        s["nativeView"]["items"][0]["native"]["changes"]=json!((0..80).map(|n|json!({"path":format!("file-{n}"),"kind":{"type":"update","move_path":format!("../move-{n}")},"diff":"+invented"})).collect::<Vec<_>>());
+        let prepared = prepare(
+            &s,
+            &g,
+            &id,
+            &preview(json!({"decision":"acceptForSession"})),
+            None,
+        )
+        .unwrap();
+        for required in [
+            "80 file(s)",
+            "Allow for this session",
+            LINKS,
+            UNKNOWN_PROJECT,
+            "Asked in:",
+            FOOTER,
+        ] {
+            assert!(
+                prepared.statement.text.contains(required),
+                "missing {required}"
+            );
+        }
+        let frozen = prepared.content.to_string();
+        for n in 0..80 {
+            assert!(frozen.contains(&format!("file-{n}")));
+            assert!(frozen.contains(&format!("move-{n}")));
+        }
+        assert!(frozen.contains("could not compare"));
+        assert!(prepared.statement.text.contains("at the card, not here"));
+    }
+
+    #[test]
     fn forms_and_permission_requests_keep_the_existing_sheet() {
         for (method, params, answer) in [
             (
@@ -844,15 +987,18 @@ mod bounds_tests {
                                 .unwrap_or_else(|e| {
                                     panic!("{input}/{known}/{supplied}/{decision}: {e}")
                                 });
-                        // The next sheet can also have the required change notice. No part
-                        // of the permission consequence may be moved out to make it fit.
-                        ns::bounded(
-                            "changed head",
-                            format!("{CHANGED}\n{}", prepared.statement.text),
-                        )
-                        .unwrap_or_else(|e| {
-                            panic!("changed {input}/{known}/{supplied}/{decision}: {e}")
-                        });
+                        // Reopen against a preceding different snapshot: the real
+                        // formatter can move supplied details out, never the minimum.
+                        p::publish(&g, &id, "previous", &json!({"different":true}));
+                        p::closed(&g, &id);
+                        let changed =
+                            prepare(&s, &g, &id, &json!({"answer":{"decision":decision}}), None)
+                                .unwrap_or_else(|e| {
+                                    panic!("changed {input}/{known}/{supplied}/{decision}: {e}")
+                                });
+                        assert!(changed.statement.text.contains(CHANGED));
+                        assert!(prepared.statement.text.contains(FOOTER));
+                        assert!(changed.statement.text.contains(FOOTER));
                     }
                 }
             }

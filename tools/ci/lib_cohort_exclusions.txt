@@ -81,7 +81,6 @@ installed_custody::tests: selected on pull requests only with --features distrib
 main_window::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 native_items::request_overlay_repair_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 native_items::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
-native_request_answer::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 native_requests::contract_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 native_requests::form_alias_validation_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 native_requests::legacy_decline_text_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
