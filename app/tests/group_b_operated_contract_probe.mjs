@@ -230,6 +230,50 @@ for (const name of ['readWatch', 'readIdentification', 'sleep', 'onLog']) {
   }
 }
 
+// THE FRESHNESS CLOCK (the second reading of PR 355, finding 1): the walk's milliseconds clock is read only through
+// the adapter. Date.now fails in each way at its first reading and at a later one; the watch's own timestamp is the real
+// clock's, so that only the walk's reading fails. Each run must end inconclusive with its log and no later call.
+{
+  const realNow = Date.now.bind(Date);
+  const CLOCK_FAILURES = { throw: () => { throw Object.create(null); }, reject: () => Promise.reject(Object.create(null)),
+    wrong_kind: () => String(realNow()), not_finite: () => Number.NaN };
+  results.freshness = {};
+  for (const [failure, failing] of Object.entries(CLOCK_FAILURES)) {
+    for (const position of [0, 2]) {
+      const { sky, seen } = supplier();
+      const base = options(sky);
+      let reads = 0, usesAtFailure = null;
+      const attemptLog = `${logFolder}/clock-${failure}-${position}.json`;
+      let verdict = null, rejected = false;
+      Date.now = () => { if (reads++ === position) { usesAtFailure = seen.uses; return failing(); } return realNow(); };
+      try {
+        verdict = await walk.run({ ...base, scenario: validate(clone(original)).scenario, attemptLog, onLog: () => undefined,
+          readWatch: () => ({ pid: 41001, running: true, at_ms: realNow(), executable: `${recorded.bundle}/Contents/MacOS/chirality-app-v4`, children: [] }) });
+      } catch { rejected = true; } finally { Date.now = realNow; }
+      results.freshness[`${failure} at reading ${position}`] = { verdict, rejected, failed: usesAtFailure !== null,
+        later: usesAtFailure === null ? null : seen.uses - usesAtFailure, logFile: existsSync(attemptLog),
+        broken: existsSync(attemptLog) ? Boolean(JSON.parse(readFileSync(attemptLog, 'utf8')).broken) : null };
+    }
+  }
+}
+
+// THE LOG WITHOUT A FILE (finding 2), as now stated: without attemptLog, a log onLog fails to take is lost, and the
+// verdict is inconclusive, with no later call. And a fail found before the logger failed stays fail (finding 3).
+{
+  const { sky, seen } = supplier();
+  const verdict = await walk.run({ ...options(sky), scenario: validate(clone(original)).scenario,
+    onLog: async () => { throw new Error('invented rejection'); } });
+  results.log_without_file = { verdict, uses: seen.uses, later: seen.later };
+  const failed = clone(original);
+  failed.starts_no_process = true;
+  const { sky: sky2 } = supplier();
+  const attemptLog = `${logFolder}/known-failure.json`;
+  const verdict2 = await walk.run({ ...options(sky2), scenario: validate(failed).scenario, attemptLog,
+    readWatch: () => ({ ...options(sky2).readWatch(), children: [123] }), onLog: async () => { throw new Error('invented rejection'); } });
+  results.fail_stands = { verdict: verdict2, logFile: existsSync(attemptLog),
+    broken: existsSync(attemptLog) ? Boolean(JSON.parse(readFileSync(attemptLog, 'utf8')).broken) : null };
+}
+
 // FINALISATION: an asynchronous log is settled before the verdict is returned.
 {
   const { sky } = supplier();

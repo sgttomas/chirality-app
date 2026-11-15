@@ -2134,6 +2134,38 @@ class TheScenarioContract(unittest.TestCase):
                 self.assertIn('not recorded: the scenario is not of the closed form', done.stderr)
 
 
+class TheWalkReachesTheOutsideOnlyThroughItsAdapter(unittest.TestCase):
+    """walk.mjs reads the clock, the injected options and the timer only through its one adapter, and has no other
+    door: no performance clock, no console, no interval or immediate timer (the second reading of PR 355: Date.now
+    read outside the adapter let a wrong kind pass). Read from the source, comments removed."""
+
+    def code(self):
+        text = re.sub(r'/\*.*?\*/', '', WALK.read_text(), flags=re.S)
+        return [re.sub(r'//.*$', '', line) for line in text.splitlines()]
+
+    def lines_with(self, pattern):
+        return [line.strip() for line in self.code() if re.search(pattern, line)]
+
+    def test_the_clock_is_read_only_inside_the_adapter(self):
+        self.assertEqual(self.lines_with(r'\bDate\.now\s*\('), ["const nowMs = () => option('clock', KIND.number, () => Date.now());"])
+        self.assertEqual(self.lines_with(r'\bnew\s+Date\s*\('), ["const clock = () => new Date().toISOString();"])
+        self.assertEqual(self.lines_with(r'\bclock\s*\(\s*\)'), ["const time = () => option('clock', KIND.text, () => clock());"])
+
+    def test_every_injected_option_is_called_only_inside_the_adapter(self):
+        for name in ('readWatch', 'readIdentification', 'sleep', 'onLog'):
+            with self.subTest(name):
+                calls = self.lines_with(rf'\b{name}\s*\(')
+                self.assertTrue(calls, name)
+                for line in calls:
+                    self.assertIn('option(', line, line)
+
+    def test_there_is_no_other_door(self):
+        for pattern in (r'\bperformance\b', r'\bconsole\.', r'\bsetInterval\b', r'\bsetImmediate\b', r'\bprocess\.hrtime\b'):
+            with self.subTest(pattern):
+                self.assertEqual(self.lines_with(pattern), [])
+        self.assertEqual(self.lines_with(r'\bsetTimeout\b'), ["sleep ??= milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));"])
+
+
 class TheInjectedOptionsAndTheReadersCases(TheScenarioContract):
     """The first reading of PR 355's four findings, as required cases (the probe's results are TheScenarioContract's).
     One adapter takes every injected option; the walk keeps supplied and captured values apart; parts are registered
@@ -2165,10 +2197,18 @@ const given = { sky, scenario, app: 'dev.chirality.app-v4.candidate.invented', h
   readWatch: () => ({ pid: 4242, running: true, at_ms: Date.now(), children: [],
     executable: '/invented/candidate/target/debug/bundle/macos/Chirality App v4 (development invented).app/Contents/MacOS/x' }),
   readIdentification: () => ({ candidate_key: 'invented-key' }), sleep: async () => {}, onLog: () => undefined };
-given[process.argv[2]] = failing;
+if (process.argv[2] === 'clock') {
+  const realNow = Date.now.bind(Date);
+  let reads = 0;
+  given.readWatch = () => ({ pid: 4242, running: true, at_ms: realNow(), children: [],
+    executable: '/invented/candidate/target/debug/bundle/macos/Chirality App v4 (development invented).app/Contents/MacOS/x' });
+  Date.now = () => (reads++ === 0 ? failing() : realNow());
+} else {
+  given[process.argv[2]] = failing;
+}
 console.log(JSON.stringify(await walk.run(given)));
 '''
-        for name in ('readWatch', 'readIdentification', 'sleep', 'onLog'):
+        for name in ('readWatch', 'readIdentification', 'sleep', 'onLog', 'clock'):
             with self.subTest(name):
                 done = subprocess.run([NODE, '--input-type=module', '-e', script, WALK.as_uri(), name], capture_output=True, text=True)
                 self.assertEqual(done.returncode, 0, done.stderr)
@@ -2177,6 +2217,27 @@ console.log(JSON.stringify(await walk.run(given)));
 
     def test_an_asynchronous_log_settles_before_the_verdict_is_returned(self):
         self.assertEqual(self.results['log_settles'], {'verdict': 'pass', 'settled_before_return': True})
+
+    def test_the_freshness_clock_failing_in_every_way_ends_inconclusive_with_its_log_and_no_later_call(self):
+        # The second reading of PR 355, finding 1: Date.now read outside the adapter let a wrong kind pass.
+        rows = self.results['freshness']
+        self.assertEqual(len(rows), 4 * 2)
+        for name, row in rows.items():
+            with self.subTest(name):
+                self.assertTrue(row['failed'], row)
+                self.assertEqual((row['verdict'], row['rejected'], row['later'], row['logFile'], row['broken']),
+                                 ('inconclusive', False, 0, True, True), row)
+
+    def test_a_log_without_a_file_that_the_logger_fails_to_take_is_lost_and_the_verdict_is_inconclusive(self):
+        # Finding 2, as now stated: the file is the log's only destination independent of the logger.
+        self.assertEqual(self.results['log_without_file']['verdict'], 'inconclusive')
+        self.assertEqual(self.results['log_without_file']['later'], 0)
+        replay = (OPERATED / 'replay.mjs').read_text()
+        self.assertIn('...(logPath ? { attemptLog: logPath,', replay)  # replay gives the file wherever it keeps a log
+
+    def test_a_fail_found_before_the_logger_failed_stays_fail_with_its_file(self):
+        # Finding 3: the stated exception to "an option failure ends the walk inconclusive".
+        self.assertEqual(self.results['fail_stands'], {'verdict': 'fail', 'logFile': True, 'broken': True})
 
     def test_a_capture_form_is_read_from_supplied_values_only(self):
         self.assertIn('a capture form names something other than the values the walk supplies',
