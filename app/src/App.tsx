@@ -44,7 +44,7 @@ import { AccountStatus, DIDNT_SAY, accountReadError, accountReadRef, accountRead
 import { RunWorkflowGuide, registeredRevisionAnchor, runEvidenceAnchor } from "./RunJourney";
 import { MakeWorkflowGuide } from "./MakeJourney";
 import { acknowledgeBringBackDoubt, beginBringBack, bringBackRefusal, doubtDestination, endBringBack, noteBringBackDoubt, resetBringBackDoubts, sendKey, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
-import { AccessRouteChoice, AvailableModels, ENTRY_SOURCE_WORDS, OfferedEffortChoice, SHOWN_ROUTE, entrySourceReading, modelMatch, onlyAccessEntry, validModelPacket } from "./ModelChoice";
+import { AccessRouteChoice, AvailableModels, ENTRY_SOURCE_WORDS, MODEL_ID_PAUSE_MS, OfferedEffortChoice, SHOWN_ROUTE, entrySourceReading, modelMatch, onlyAccessEntry, validModelPacket } from "./ModelChoice";
 /** One App-composed message for the person to edit and send; never sent by the App. */
 export type ComposerOffer = { sequence: number; threadKey: string; text: string };
 import { conversationTitle, DIGEST_LIMIT, digestComparison, nativePathText, readablePaths, reviewDigest, storedRelation, suppliedSummary, suppliedTitle, threadChoices, type ReviewDigestView, conversationLabel } from "./presentation";
@@ -146,6 +146,15 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
   const composerField = useRef<HTMLTextAreaElement>(null);
   const [ordinaryModel, setOrdinaryModel] = useState({ owner: "", value: "", effort: "", effortModel: "", revision: 0 });
   const [ordinaryOutcome, setOrdinaryOutcome] = useState<OrdinaryTextOutcome | null>(null);
+  // The conversation whose model ID is being typed and has not yet settled: it settles MODEL_ID_PAUSE_MS after the last
+  // keystroke, or at once when the field is left or Enter is pressed. The effort choices are read for a typed ID only
+  // once it settles, never once per keystroke. It is not part of the choice, so settling changes no send binding.
+  const [modelTyping, setModelTyping] = useState<string | null>(null);
+  useEffect(() => {
+    if (modelTyping === null) return;
+    const pause = setTimeout(() => setModelTyping(null), MODEL_ID_PAUSE_MS);
+    return () => clearTimeout(pause);
+  }, [modelTyping, ordinaryModel.revision]);
   // Whether "Model and effort" is open: the effort choices are read for the selected conversation only then.
   const [effortShown, setEffortShown] = useState(false);
   // Per conversation, the acknowledged sends that carried a model typed here: each changes the conversation's model,
@@ -183,6 +192,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
   }
   useEffect(() => {
     setOrdinaryModel(current => current.owner === ordinaryOwner ? current : { owner: ordinaryOwner, value: "", effort: "", effortModel: "", revision: current.revision + 1 });
+    setModelTyping(typing => typing === ordinaryOwner ? typing : null);
   }, [ordinaryOwner]);
   const ordinaryModelValue = ordinaryModel.owner === ordinaryOwner ? ordinaryModel.value : "";
   // The effort in force for the selected conversation, as the host's status reports it (Host::efforts_in_force).
@@ -225,6 +235,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
         if (textRevision.current === revision) setText(current => current === request.text ? "" : current);
         setOrdinaryModel(current => current.owner === choice.owner && current.revision === choice.revision
           ? { ...current, value: "", effort: "", effortModel: "", revision: current.revision + 1 } : current);
+        setModelTyping(typing => typing === choice.owner ? null : typing);
       }
     } catch (nativeError) {
       outcome = { request, result: { acknowledged: false, nativeError } };
@@ -479,12 +490,13 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
     <button className="setup-primary" aria-describedby="ordinary-send-readiness" disabled={!sourceReady || !selected || !text || !!busy || unconfirmed.some(row => !row.acknowledged && row.request.threadId === selected?.threadId)} onClick={() => { void sendText(); }}>{(host?.attachmentSelections?.selections ?? []).length > 0 ? "Send text only" : "Send text"}</button>
     <details className="conversation-model-options" onToggle={event => setEffortShown((event.currentTarget as HTMLDetailsElement).open)}><summary>Model and effort{ordinaryModel.owner === ordinaryOwner && ordinaryModel.effort ? ` · next send: ${idWords(ordinaryModel.effort)}` : effortInForce ? ` · Effort: ${idWords(effortInForce)} (in force)` : ""}</summary>
     <p><label>Optional model identifier for next ordinary text turn <input {...EXACT_TEXT} disabled={!selected || !!busy} value={ordinaryModelValue}
-      onChange={e => setOrdinaryModel(current => ({ owner: ordinaryOwner, value: e.target.value, effort: "", effortModel: "", revision: current.revision + 1 }))} aria-describedby="ordinary-model-help" /></label></p>
+      onChange={e => { setModelTyping(ordinaryOwner); setOrdinaryModel(current => ({ owner: ordinaryOwner, value: e.target.value, effort: "", effortModel: "", revision: current.revision + 1 })); }}
+      onBlur={() => setModelTyping(null)} onKeyDown={e => { if (e.key === "Enter") setModelTyping(null); }} aria-describedby="ordinary-model-help" /></label></p>
     <p id="ordinary-model-help">Applies to Send text and the plan/default text controls below. Empty keeps the existing native model choice. An explicit identifier overrides the model for this turn and subsequent native turns; clearing this field does not revert it. Attachment, steering and prepared-message sends do not use this field.</p>
     <OfferedEffortChoice owner={ordinaryOwner} threadId={selected?.threadId ?? ""} generation={selected?.generation} homeClass={host?.homeRouting?.activeModeHomeClass ?? null}
       modelProvider={selected?.modelProvider ?? ""} entryId={selected?.requestedDestination?.entryId ?? (selected?.modelProvider === "openai" ? (host?.homeRouting?.activeModeHomeClass === "api-key" ? "api-key" : "chatgpt-account") : "local-provider")}
       model={ordinaryModelValue} effort={ordinaryModel.owner === ordinaryOwner ? ordinaryModel.effort : ""} disabled={!sourceReady || !selected || !!busy} busy={!!busy} inForce={effortInForce} shown={effortShown}
-      modelRevision={modelSends.current.get(ordinaryOwner) ?? 0}
+      settling={modelTyping !== null && modelTyping === ordinaryOwner} modelRevision={modelSends.current.get(ordinaryOwner) ?? 0}
       choose={(effort, effortModel) => setOrdinaryModel(current => ({ ...current, owner: ordinaryOwner, effort, effortModel, revision: current.revision + 1 }))} />
     </details>
     {selected && <PlanModeControl planMode={host?.planMode} requested={(host?.requestedModes ?? []).find((r: Json) => JSON.stringify(r.generation) === generationKey && r.threadId === selected.threadId) ?? null}

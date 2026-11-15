@@ -223,13 +223,18 @@ export function useBoundModelChoice({ owner, homeClass, generation, ready }: { o
     message: message && message.epoch === epoch ? message.text : "", read, choose, bound };
 }
 
+/** How long the typing of a model ID must pause before its effort choices are read (or the field is left, or Enter
+ * pressed, whichever comes first). Each read of the list leaves its own requests in host status, so it is never made
+ * once per keystroke. */
+export const MODEL_ID_PAUSE_MS = 600;
+
 /** Ordinary-text effort choices come only from the current provider's model list, read once for the conversation and
  * model when the conversation is selected with this control in view, or when the control is opened for it; not again
  * for a list already read. The choices are always the model's in use: a model typed here is read for itself, and after
  * a send that changed the conversation's model (modelRevision), the list read for its earlier model is not reused. Choosing is opening the menu, then picking. No config is edited and a catalog
  * default is never auto-selected. The effort in force (the host's reading of the last turn Codex accepted, else the
  * conversation's own setting) is what "keep" keeps, and is shown as such. */
-export function OfferedEffortChoice({ owner, threadId, generation, homeClass, modelProvider, entryId, model, effort, disabled, busy = false, inForce = null, shown = true, modelRevision = 0, choose }: {
+export function OfferedEffortChoice({ owner, threadId, generation, homeClass, modelProvider, entryId, model, effort, disabled, busy = false, inForce = null, shown = true, settling = false, modelRevision = 0, choose }: {
   owner: string; threadId: string; generation: Json; homeClass: string | null; modelProvider: string; entryId: string;
   model: string; effort: string; disabled: boolean; choose: (effort: string, model: string) => void;
   /** A send or Codex operation is under way: a pick waits for it. */
@@ -240,6 +245,9 @@ export function OfferedEffortChoice({ owner, threadId, generation, homeClass, mo
   shown?: boolean;
   /** How many acknowledged sends have changed this conversation's model: a list read before the latest is not reused. */
   modelRevision?: number;
+  /** The model ID is being typed and has not settled (MODEL_ID_PAUSE_MS): nothing is read for it yet, and no choice is
+   * offered for it until its own read returns. */
+  settling?: boolean;
 }) {
   const conversation = JSON.stringify([owner, generation, homeClass]);
   const key = JSON.stringify([conversation, modelProvider, entryId, model, modelRevision]);
@@ -284,8 +292,10 @@ export function OfferedEffortChoice({ owner, threadId, generation, homeClass, mo
     if (disabled || !shown || !owner || readFor.current === epoch) return;
     const known = lists.current.get(key);
     if (known) { readFor.current = epoch; pending.current = null; setReading(false); setResult({ epoch, sequence: ++sequence.current, packet: known }); return; }
+    // A model ID still being typed is read once it settles, never per keystroke; a list already read for it costs no read.
+    if (settling) return;
     void read();
-  }, [key, disabled, owner, shown]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [key, disabled, owner, shown, settling]); // eslint-disable-line react-hooks/exhaustive-deps
   const pick = (value: string) => {
     // A known reason says why a pick is not taken; nothing is said for a reason the App does not know.
     if (latest.current.busy) { setRefusal({ conversation, text: "Wait for the current send to finish, then choose." }); return; }
@@ -296,10 +306,11 @@ export function OfferedEffortChoice({ owner, threadId, generation, homeClass, mo
   const keep = inForce ? `Keep the effort in force (${idWords(inForce)})` : "Keep Codex's setting (not reported)";
   return <div aria-label="Model reasoning effort">
     {reading && <p role="status">Reading model effort choices…</p>}
+    {settling && !current && <p role="status">The effort choices for this model ID are read when you stop typing or leave the field.</p>}
     {current?.message && <p role="alert">{current.message}</p>}
     {inForce && !effort && <p>Effort: {idWords(inForce)} (in force)</p>}
     <p><label>Reasoning effort for {model ? (plainId(model) ? `model ${plainId(model)}` : "the chosen model") : "the current conversation model"}{" "}
-      <select value={effort} disabled={disabled || !row || options.length === 0} onChange={event => pick(event.target.value)}>
+      <select value={effort} disabled={disabled || (settling && !current) || !row || options.length === 0} onChange={event => pick(event.target.value)}>
         <option value="">{keep}</option>
         {effort && !options.some(option => option.reasoningEffort === effort) && <option value={effort}>{idWords(effort)} · selected</option>}
         {options.map(option => <option key={option.reasoningEffort} value={option.reasoningEffort}>{idWords(option.reasoningEffort)}{option.reasoningEffort === row.defaultReasoningEffort ? " · model default" : ""}</option>)}

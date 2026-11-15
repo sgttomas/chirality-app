@@ -1322,7 +1322,8 @@ test('the effort choices shown are always the selected model\'s: a model typed i
     await React.act(()=>{const d=elements(c,'details').find(d=>props(d).className==='conversation-model-options');d.open=true;props(d).onToggle({currentTarget:d});});
     assert.deepEqual(offered(),['medium','only-for-m'],'the conversation\'s model, m');
     // The person types another model in the open view: its own choices, from a read for it, never m's.
-    await change(modelField(),'n');
+    // Typed, then the field left: the typed ID is read at once (it is never read per keystroke; see below).
+    await change(modelField(),'n');await React.act(()=>props(modelField()).onBlur());
     assert.equal(calls.length,2,'a model typed here is read for itself');
     assert.deepEqual(offered(),['low','only-for-n']);
     assert.doesNotMatch(c.textContent,/only-for-m/);
@@ -1339,6 +1340,84 @@ test('the effort choices shown are always the selected model\'s: a model typed i
     await change(modelField(),'m');await change(modelField(),'');
     assert.deepEqual(offered(),['low','only-for-n']);
   } finally {await React.act(()=>root.unmount());document.body.removeChild(c);delete window.__TAURI_INTERNALS__;}
+});
+
+// The model ID field reads the effort choices only when the typing pauses (MODEL_ID_PAUSE_MS) or the field is committed
+// (left, or Enter): each read leaves its own requests in host status, so never one read per keystroke.
+const typedId='model-abcdef';
+const typingRow=(model,efforts)=>({id:model,model,displayName:`Model ${model}`,description:'',isDefault:model==='m',defaultReasoningEffort:efforts[0],supportedReasoningEfforts:efforts.map(reasoningEffort=>({reasoningEffort,description:`${model} ${reasoningEffort}`}))});
+const typingPacket={...effortPacket,conversationModel:'m',models:[typingRow('m',['medium','only-for-m']),typingRow(typedId,['low','only-for-typed'])]};
+async function typingPanel(reply,check){
+  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);const calls=[];
+  window.__TAURI_INTERNALS__={invoke:(command,args)=>{calls.push({command,args});assert.equal(command,'read_available_models');return reply(calls.length);}};
+  const host={state:'ready',generation:g,homeRouting:{activeModeHomeClass:'account'},threads:[{generation:g,threadId:'t',model:'m',modelProvider:'openai'}],planMode:{state:'offered'}};
+  const field=()=>labelled(c,'input','Optional model identifier');
+  const effort=()=>elements(c,'select').find(e=>e.parentNode.textContent.startsWith('Reasoning effort for'));
+  const ui={c,calls,field,effort,
+    offered:()=>elements(effort(),'option').map(o=>props(o).value).filter(Boolean),
+    type:async text=>{for(let i=1;i<=text.length;i++)await React.act(()=>props(field()).onChange({target:{value:text.slice(0,i)}}));},
+    wait:ms=>React.act(()=>new Promise(resolve=>setTimeout(resolve,ms)))};
+  try {
+    await React.act(()=>root.render(React.createElement(ConversationPanel,{host,threadKey:JSON.stringify([g,'t']),setThreadKey:noop,answer:noop,runAct:noop,send:noop,steer:noop,submitAttachments:noop,interrupt:noop,checkPlanMode:noop,codexBusy:false})));
+    await React.act(()=>{const d=elements(c,'details').find(d=>props(d).className==='conversation-model-options');d.open=true;props(d).onToggle({currentTarget:d});});
+    await React.act(async()=>{});
+    await check(ui);
+  } finally {await React.act(()=>root.unmount());document.body.removeChild(c);delete window.__TAURI_INTERNALS__;}
+}
+
+test('typing a model ID reads the effort choices once, after the typing pauses, never once per keystroke', async () => {
+  const {MODEL_ID_PAUSE_MS}=loadSrc('ModelChoice');
+  assert.equal(MODEL_ID_PAUSE_MS,600);
+  await typingPanel(()=>typingPacket,async ui=>{
+    assert.equal(ui.calls.length,1,'the conversation\'s model is read when Model and effort opens');
+    assert.equal(typedId.length,12);
+    await ui.type(typedId);
+    assert.equal(ui.calls.length,1,'twelve keystrokes read nothing while the typing goes on');
+    await ui.wait(MODEL_ID_PAUSE_MS/2);
+    assert.equal(ui.calls.length,1,'nothing is read before the pause');
+    await ui.wait(MODEL_ID_PAUSE_MS);
+    assert.equal(ui.calls.length,2,'one read, after the pause, for the twelve keystrokes');
+    assert.deepEqual(ui.offered(),['low','only-for-typed'],'the typed model\'s own choices');
+    await ui.wait(MODEL_ID_PAUSE_MS+100);
+    assert.equal(ui.calls.length,2,'and no more after it');
+  });
+});
+
+test('leaving the model ID field, or pressing Enter in it, reads at once', async () => {
+  await typingPanel(()=>typingPacket,async ui=>{
+    await ui.type(typedId);
+    assert.equal(ui.calls.length,1);
+    await React.act(()=>props(ui.field()).onBlur());await React.act(async()=>{});
+    assert.equal(ui.calls.length,2,'leaving the field reads at once, without waiting for the pause');
+    assert.deepEqual(ui.offered(),['low','only-for-typed']);
+  });
+  await typingPanel(()=>typingPacket,async ui=>{
+    await ui.type(typedId);
+    await React.act(()=>props(ui.field()).onKeyDown({key:'x'}));
+    assert.equal(ui.calls.length,1,'another key is typing, not a commit');
+    await React.act(()=>props(ui.field()).onKeyDown({key:'Enter'}));await React.act(async()=>{});
+    assert.equal(ui.calls.length,2,'Enter reads at once');
+  });
+});
+
+test('while a typed model ID settles and its read is under way, the earlier model\'s effort choices are never offered as its own', async () => {
+  const replies=[];
+  await typingPanel(n=>{if(n===1)return typingPacket;const held=deferred();replies.push(held);return held.promise;},async ui=>{
+    assert.deepEqual(ui.offered(),['medium','only-for-m'],'the conversation\'s model, m');
+    await ui.type(typedId);
+    assert.deepEqual(ui.offered(),[],'while typing: none of m\'s choices');
+    assert.equal(props(ui.effort()).disabled,true,'the pick is disabled');
+    assert.match(ui.c.textContent,/The effort choices for this model ID are read when you stop typing or leave the field\./);
+    await React.act(()=>props(ui.field()).onBlur());
+    assert.equal(ui.calls.length,2);
+    assert.deepEqual(ui.offered(),[],'while its read is under way: still none of m\'s');
+    assert.equal(props(ui.effort()).disabled,true);
+    assert.match(ui.c.textContent,/Reading model effort choices…/);
+    assert.doesNotMatch(ui.c.textContent,/only-for-m/);
+    await React.act(async()=>{replies[0].resolve(typingPacket);});
+    assert.deepEqual(ui.offered(),['low','only-for-typed'],'once its read returns: the typed model\'s');
+    assert.equal(props(ui.effort()).disabled,false);
+  });
 });
 
 test('delayed effort replies cannot populate another source and readiness disables retained controls', async () => {
