@@ -725,6 +725,8 @@ impl RecoveryStartup {
             String,
         >,
     ) -> Value {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("runtime_session::RecoveryStartup::initialize_inner");
         if self.attempted {
             return self.snapshot();
         }
@@ -835,6 +837,8 @@ impl RecoveryStartup {
     }
 }
 fn sync_directory(path: &std::path::Path) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("runtime_session::sync_directory");
     std::fs::File::open(path)
         .and_then(|f| f.sync_all())
         .map_err(|e| {
@@ -1094,6 +1098,9 @@ pub struct HistorySession {
     turn_direction: Option<String>,
     item_direction: Option<String>,
     item_turn: Option<String>,
+    // The App's own read of the stored history list when Codex became ready: its generation and whether it is
+    // under way, read to its end, or stopped short (read_history_at_ready). Published beside the list it filled.
+    read_at_ready: Option<Value>,
 }
 struct HistoryPending {
     receipt: crate::hosting::HistoryDispatch,
@@ -1593,7 +1600,9 @@ impl HistorySession {
                 current.insert(path.clone(), read(&path, role_default(role)));
             }
         }
-        json!({"appRole":self.role(home,thread),"originalRoleSupply":binding.evidence(),"roleRelation":binding.relation(),"futureGuidanceNotices":binding.changes(&current)})
+        // The limit account comes from the binding alone. The comparison with the
+        // current files above is its own statement and selects nothing in it.
+        json!({"appRole":self.role(home,thread),"originalRoleSupply":binding.evidence(),"roleRelation":binding.relation(),"suppliedLimitAccount":binding.supplied_limit_account(),"futureGuidanceNotices":binding.changes(&current)})
     }
     /// ROLE §3.3 F-1: bind a same-role fork from the actual `thread/fork`
     /// request and its correlated response. The fork inherits the source's
@@ -1651,9 +1660,10 @@ impl HistorySession {
     }
     pub fn snapshot(&self, instruction_root: Option<&std::path::Path>) -> Value {
         let Some(history) = self.history.as_ref() else {
-            return json!({"state":"unavailable","limits":self.limits,"durableNativeData":false,"childAssociations":self.child_guidance.snapshot(),"roleLimitObservations":self.child_guidance.limits(),"startReceipts":self.starts.iter().map(|p|&p.evidence).collect::<Vec<_>>()});
+            return json!({"state":"unavailable","readAtReady":self.read_at_ready,"limits":self.limits,"durableNativeData":false,"childAssociations":self.child_guidance.snapshot(),"roleLimitObservations":self.child_guidance.limits(),"startReceipts":self.starts.iter().map(|p|&p.evidence).collect::<Vec<_>>()});
         };
         let mut view = history.snapshot();
+        view["readAtReady"] = json!(self.read_at_ready);
         view["selectionEpoch"] = json!(history.selection_epoch());
         view["childAssociations"]=self.child_guidance.snapshot();
         view["roleLimitObservations"]=self.child_guidance.limits();
@@ -1743,6 +1753,45 @@ pub fn read_decision_packages(workspace: &std::path::Path) -> Value {
     view["workspace"] = json!(workspace.display().to_string());
     view["readOnly"] = json!(true);
     view
+}
+
+/// The closed set of sentences `reopenedNotRead.words` takes, with nothing interpolated: the
+/// App's own words. Anything variable (the reading's own reason, the project's path) is in its
+/// own field.
+pub(crate) const REOPEN_NOT_READ_WORDS: [&str; 2] = [
+    "No project is open, so there are no recorded runs to read.",
+    "The project's recorded runs could not be read.",
+];
+/// The person's Reopen and the launch's one reading: [`read_reopened_history`]. Where it cannot
+/// read, nothing is stored and nothing else is stopped; the reopened view says it was not read,
+/// in one of [`REOPEN_NOT_READ_WORDS`], with the reason given apart (`detail`, and `project`, the
+/// folder's path), both of them text the App did not choose. A later reading that reads replaces
+/// it.
+pub(crate) fn reopen_recorded(workflows: &std::sync::Mutex<WorkflowRootSession>, project: Result<&std::path::Path, &str>, events: &[Value], homes: &[std::sync::Arc<HomeSession>]) -> Result<Value, String> {
+    let (words, path) = match project {
+        Ok(path) => (REOPEN_NOT_READ_WORDS[1], Some(path.display().to_string())),
+        Err(_) => (REOPEN_NOT_READ_WORDS[0], None),
+    };
+    let outcome = project.map_err(str::to_owned).and_then(|project| read_reopened_history(workflows, project, events, homes));
+    let mut root = workflows.lock().unwrap();
+    root.reopened_not_read = outcome.as_ref().err().map(|detail| json!({"state":"not read","words":words,"detail":detail,"project":path}));
+    outcome
+}
+pub(crate) fn read_reopened_history(workflows: &std::sync::Mutex<WorkflowRootSession>, project: &std::path::Path, events: &[Value], homes: &[std::sync::Arc<HomeSession>]) -> Result<Value, String> {
+    // See records_store::HistoryRead for the shared-reader check and slice 2.
+    // When this reading of the records began, given on the view it stores and returns.
+    let read_at = crate::util::now_rfc3339();
+    let reading = crate::records_store::HistoryRead::begin(project);
+    let (view, generation) = {
+        let mut root = workflows.lock().unwrap();
+        root.reopened_generation += 1;
+        (root.reopen_for_learning(project, events, homes)?, root.reopened_generation)
+    };
+    let mut view = reading.attach(project, view);
+    view["readAt"] = json!(read_at);
+    let mut root = workflows.lock().unwrap();
+    if root.reopened_generation == generation { root.reopened = Some(view.clone()); }
+    Ok(view)
 }
 
 /// Separately invoked writer responsibility, preserving native pending-before-
@@ -2870,19 +2919,124 @@ pub(crate) fn native_api_key_entry(app: &tauri::AppHandle) -> Result<Option<Stri
 /// Explicit native source read; no credential/config filesystem access or automatic refresh.
 pub fn read_native_home_access(home: &HomeSession, generation: &Value) -> Result<Value, String> {
     for method in ["configRequirements/read", "account/read"] {
+        // The requirements reading's deadline covers its wait for the generation's reservation,
+        // for the frame writer and for its reply.
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(20);
         let source = match method {
-            "configRequirements/read" => home.host.account_requirements_read_scoped(generation)?,
+            "configRequirements/read" => home.host.account_requirements_read_until(generation, deadline)?,
             _ => home.host.account_read_scoped(generation)?,
         };
         home.account_sources.lock().unwrap().push(source.clone());
         home.host
-            .source_request_wait(&source, std::time::Duration::from_secs(20))?;
+            .source_request_wait(&source, deadline.saturating_duration_since(std::time::Instant::now()))?;
     }
     Ok(home.account_view())
 }
 
+/// Whether a start's outcome calls for the App's own account read: the account home, a start that returned
+/// and the home's Codex ready in the generation that start reported.
+pub(crate) fn reads_account_at_ready(home: &HomeSession, started: &Result<Value, String>) -> bool {
+    let Ok(snapshot) = started else { return false };
+    let current = home.host.snapshot();
+    home.class() == crate::home_resources::HomeClass::Account && current["state"] == "ready" && current["generationClosed"] != true
+        && !snapshot["generation"].is_null() && current["generation"] == snapshot["generation"]
+}
+/// The App's own account read when Codex has become ready, at launch and after each start or restart:
+/// `account/read` with empty params (never a token refresh), recorded beside the person's checks under
+/// the App's own initiator, so whether someone is signed in is read without a press. A start that did not
+/// reach ready, or another home, reads nothing (None).
+pub fn read_account_at_ready(home: &HomeSession, started: &Result<Value, String>) -> Option<Result<Value, String>> {
+    read_account_at_ready_within(home, started, std::time::Duration::from_secs(20))
+}
+pub(crate) fn read_account_at_ready_within(home: &HomeSession, started: &Result<Value, String>, wait: std::time::Duration) -> Option<Result<Value, String>> {
+    if !reads_account_at_ready(home, started) { return None; }
+    let generation = home.host.snapshot()["generation"].clone();
+    Some((|| {
+        let source = home.host.account_read_at_ready_scoped(&generation)?;
+        home.account_sources.lock().unwrap().push(source.clone());
+        // A read without an answer within the limit stays recorded as waited for and unanswered; it is never
+        // taken for an absent account.
+        home.host.source_request_wait(&source, wait)?;
+        Ok(home.account_view())
+    })())
+}
+/// The App's own reads when Codex has become ready, at launch and after each start or restart: the account
+/// (read_account_at_ready), then the stored history list (read_history_at_ready). The history read is marked as
+/// under way before the account is read, so a renderer that sees the account reading also sees that the list is
+/// still being read, and never takes an unread list for an empty one.
+pub fn read_at_ready(home: &HomeSession, started: &Result<Value, String>) {
+    if !reads_account_at_ready(home, started) { return; }
+    let generation = home.host.snapshot()["generation"].clone();
+    {
+        let mut history = home.history.lock().unwrap();
+        history.reconcile(&home.host);
+        history.read_at_ready = Some(json!({"generation":generation,"state":"reading"}));
+    }
+    let _ = read_account_at_ready(home, started);
+    let _ = read_history_at_ready(home, started);
+}
+/// The App's own read of the stored history list when Codex has become ready: the same `thread/list` the
+/// person's "Read stored conversations" sends (newest first), its cursors followed until the list says it has no
+/// more, at most the workspace reads' pages per list, each page waited for as the person's press waits. Recorded
+/// under the App's own initiator, never as the person's. It reads the list only: it selects, opens, resumes and
+/// writes nothing. Its pages are received by the same history view the History panel shows, and its outcome is
+/// published beside them as `readAtReady`: "read-to-end" only when the last page it sent was accepted and said
+/// there is no more; anything else (an error, no answer, a page not accepted, a cursor left) is "stopped".
+pub fn read_history_at_ready(home: &HomeSession, started: &Result<Value, String>) -> Option<Result<(), String>> {
+    read_history_at_ready_within(home, started, std::time::Duration::from_secs(20), trial_flows::MAX_PAGES)
+}
+pub(crate) fn read_history_at_ready_within(home: &HomeSession, started: &Result<Value, String>, wait: std::time::Duration, max_pages: usize) -> Option<Result<(), String>> {
+    if !reads_account_at_ready(home, started) { return None; }
+    let generation = home.host.snapshot()["generation"].clone();
+    home.history.lock().unwrap().read_at_ready = Some(json!({"generation":generation,"state":"reading"}));
+    let initiator = json!({"kind":"app-rule","name":crate::hosting::ACCOUNT_READ_AT_READY});
+    let outcome = (|| {
+        let mut cursor: Option<String> = None;
+        let mut seen = std::collections::BTreeSet::new();
+        for _ in 0..max_pages {
+            let query = {
+                let mut history = home.history.lock().unwrap();
+                history.reconcile(&home.host);
+                let view = history.history_mut().filter(|view| view.generation() == &generation)
+                    .ok_or("the history of the Codex that became ready is no longer open")?;
+                view.list_threads(cursor.as_deref(), crate::native_history::Direction::Desc)?
+            };
+            let receipt = home.host.history_dispatch_by(&query, initiator.clone())?;
+            home.history.lock().unwrap().dispatched(receipt.clone());
+            let evidence = home.host.history_wait(&receipt, wait)?;
+            let mut history = home.history.lock().unwrap();
+            history.reconcile(&home.host);
+            let response = &evidence["response"];
+            if response.is_null() { return Err("Codex did not answer the history list read in time".to_string()); }
+            if response.get("error").is_some() { return Err("Codex answered the history list read with an error".to_string()); }
+            let result = response.get("result").filter(|r| r.is_object()).ok_or("the history list read returned no result")?;
+            let accepted = history.history().filter(|view| view.generation() == &generation).and_then(|view| view.list_page());
+            if accepted != Some(result) { return Err("the history list page was not received into the history view".to_string()); }
+            match result.get("nextCursor") {
+                Some(Value::Null) => return Ok(()),
+                Some(Value::String(next)) if !next.is_empty() && seen.insert(next.clone()) => cursor = Some(next.clone()),
+                Some(Value::String(_)) => return Err("the history list repeated a page cursor".to_string()),
+                _ => return Err("the history list did not say whether it has more".to_string()),
+            }
+        }
+        Err(format!("the history list goes on past {max_pages} pages"))
+    })();
+    home.history.lock().unwrap().read_at_ready = Some(match &outcome {
+        Ok(()) => json!({"generation":generation,"state":"read-to-end"}),
+        Err(reason) => json!({"generation":generation,"state":"stopped","reason":reason}),
+    });
+    Some(outcome)
+}
+
 /// Consumes explicit Root OS paths. Existing account/probe are observations,
 /// never relocated or claimed as newly App-owned plans to fit this constructor.
+/// Where the local provider's Codex home is: a path in the App data folder.
+/// It only calculates the path; it creates and prepares nothing. The
+/// bootstrap plans this home here, and the records store's placement check
+/// protects the same path, whether or not the home exists yet.
+pub(crate) fn local_provider_home(app_data: &std::path::Path) -> std::path::PathBuf {
+    app_data.join("codex-omlx")
+}
 pub fn freeze_root_home_descriptors(
     app_data: &std::path::Path,
     config: &crate::hosting::HostConfig,
@@ -2892,6 +3046,17 @@ pub fn freeze_root_home_descriptors(
     use crate::home_resources::{
         ExistingHomeReference, HomeClass, OwnedHomePlan, SharedResourceTargets,
     };
+    // DEL-01-01: on every route, a Codex home or a source of its settings in the folder set aside
+    // for conversations without a project is refused here, before any home is prepared.
+    // Freezing creates nothing: with the folder established (as every start establishes it
+    // first) this decides by identity; established absent, nothing is decided here and each home
+    // is decided again before anything is prepared or started on it.
+    for (path, what) in [(Some(&config.codex_home), "the account Codex home"), (Some(&config.probe_home), "the probe home"), (key_path.as_ref(), "the API-key Codex home")] {
+        if let Some(path) = path { crate::working_folder::refuse_in_no_project_folder(app_data, path, what, false)?; }
+    }
+    for path in targets.iter().flatten() {
+        crate::working_folder::refuse_source_in_no_project_folder(app_data, path, "a source of Codex settings", false)?;
+    }
     let account = ExistingHomeReference::new(config.codex_home.clone(), HomeClass::Account)?;
     let probe = ExistingHomeReference::new(config.probe_home.clone(), HomeClass::Probe)?;
     let shared_root_targets = match &targets {
@@ -2922,7 +3087,7 @@ pub fn freeze_root_home_descriptors(
     };
     let mut set = HomeBootstrapSet::new(account, key, probe)?;
     set.shared_root_targets = shared_root_targets;
-    set.local = Some(OwnedHomePlan::new(app_data.to_path_buf(), app_data.join("codex-omlx"), HomeClass::LocalProvider, None)?);
+    set.local = Some(OwnedHomePlan::new(app_data.to_path_buf(), local_provider_home(app_data), HomeClass::LocalProvider, None)?);
     set.revalidate()?;
     Ok(set)
 }
@@ -2940,10 +3105,11 @@ pub fn submit_native_home_key<F: FnOnce() -> Result<Option<String>, ()>>(
     }
     let config = home.host_config.as_ref().map_err(Clone::clone)?;
     bootstrap.validate_binding(home.class(), config)?;
-    let policy = home.host.account_requirements_read_scoped(generation)?;
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(20);
+    let policy = home.host.account_requirements_read_until(generation, deadline)?;
     home.account_sources.lock().unwrap().push(policy.clone());
     home.host
-        .source_request_wait(&policy, std::time::Duration::from_secs(20))?;
+        .source_request_wait(&policy, deadline.saturating_duration_since(std::time::Instant::now()))?;
     let source =
         home.host
             .account_login_api_key_from_native_entry(generation, Some(&policy), || {
@@ -3068,6 +3234,17 @@ pub fn assess_native_home_work(
     }
     let mut requests = requests;
     requests.sort_by_key(Value::to_string);
+    // A turn start written, or being written, that the Host has not yet
+    // associated with a turn is live work: Codex may be starting a turn the
+    // App cannot yet interrupt. It is listed beside the turns observed, and
+    // may be one of them: only the reply to its request associates it with a
+    // turn, and the Host then drops it from its list. The row carries no
+    // write state: it is not a change the person decides on, so a write
+    // that completes during a confirmation does not make the act ask again.
+    let starts: Vec<Value> = snapshot["unansweredTurnStarts"].as_array().into_iter().flatten()
+        .filter(|start| start["generation"] == *generation)
+        .map(|start| json!({"generation":generation,"threadId":start["threadId"],"requestIdentity":start["requestIdentity"],"limit":"turn start not yet associated with a turn; it may be one of the turns listed; no interrupt can be sent for it"}))
+        .collect();
     let coverage = json!({"turns":{"scope":"current selected-home source","available":snapshot["conversationTurns"].is_array(),"complete":false,"unresolved":unresolved_turns},"requests":{"scope":"current received register","available":snapshot["serverRequests"].is_array(),"complete":false},"children":{"receivingViewAvailable":valid_view,"complete":false,"limit":"child visibility/completeness not established; additional work may exist"},"receivingLimits":received["nativeViewLimits"]});
     let namespace_revision = &snapshot["accountNamespaceRevision"];
     if namespace_revision["generation"] != *generation {
@@ -3106,8 +3283,8 @@ pub fn assess_native_home_work(
         Some(_)=>json!({"state":"redacted/unavailable account; unknown","nativeType":null}),
     }).unwrap_or_else(||json!({"state":"current native report unavailable; previous read is only last observed","nativeType":null}));
     let account = json!({"state":received["accountObservation"]["state"],"nativeType":received["accountObservation"]["nativeAccount"]["type"],"readAvailability":read_availability,"currentReport":current_account,"namespaceRevision":namespace_revision,"operations":operations,"identityVerified":false,"unchangedIdentityProven":false,"limit":"redacted/unavailable equality does not prove unchanged identity; another identical read/clock tick alone is not a namespace change"});
-    let material = json!({"modeHomeClass":home.class.as_str(),"generation":generation,"account":account,"observedLiveTurns":live,"observedOutstandingRequests":requests,"observedActiveChildren":children,"knownChildActivityUnknown":unknown,"coverage":coverage});
-    let view = json!({"modeHomeClass":home.class.as_str(),"generation":generation,"observedAt":crate::util::now_rfc3339(),"sourceCursor":received["observerCursor"],"account":account,"observedLiveTurns":live,"observedOutstandingRequests":requests,"observedActiveChildren":children,"knownChildActivityUnknown":unknown,"coverage":coverage,"warning":"None observed is not none. Child visibility/completeness is not established; additional work may exist. Logout acknowledgment does not end turns/children, delete history or prove credential-store removal."});
+    let material = json!({"modeHomeClass":home.class.as_str(),"generation":generation,"account":account,"observedLiveTurns":live,"observedUnansweredTurnStarts":starts,"observedOutstandingRequests":requests,"observedActiveChildren":children,"knownChildActivityUnknown":unknown,"coverage":coverage});
+    let view = json!({"modeHomeClass":home.class.as_str(),"generation":generation,"observedAt":crate::util::now_rfc3339(),"sourceCursor":received["observerCursor"],"account":account,"observedLiveTurns":live,"observedUnansweredTurnStarts":starts,"observedOutstandingRequests":requests,"observedActiveChildren":children,"knownChildActivityUnknown":unknown,"coverage":coverage,"warning":"None observed is not none. Child visibility/completeness is not established; additional work may exist. Logout acknowledgment does not end turns/children, delete history or prove credential-store removal."});
     Ok(HomeLogoutAssessment {
         generation: generation.clone(),
         material,
@@ -3179,6 +3356,15 @@ pub fn logout_native_home<F: FnOnce(&Value) -> bool>(
 
 /// Allocate a new probe using the physical OS temp parent and mktemp -d. This
 /// resolves an allocation source, never relocates an existing received home.
+/// DEL-01-01: the temporary root (`TMPDIR`) to allocate in, after checking by identity that it is
+/// not inside an App data folder this process holds (`working_folder::check_temporary_root`).
+/// Every production allocation the App makes in the temporary folder asks for it here first.
+/// The check is made when this is called: the allocation resolves the path again, so a folder
+/// replaced in between is outside what it guarantees.
+pub(crate) fn temporary_root(what: &str) -> Result<std::path::PathBuf, String> {
+    let held = crate::session_liveness::held_app_data_identities()?;
+    crate::working_folder::check_temporary_root(&std::env::temp_dir(), &held, what)
+}
 pub fn allocate_fresh_probe(temp_parent: &std::path::Path) -> Result<std::path::PathBuf, String> {
     let parent = std::fs::canonicalize(temp_parent)
         .map_err(|_| "OS scratch parent unavailable; no probe default")?;
@@ -3340,6 +3526,8 @@ pub(crate) fn start_native_oauth<F: FnOnce() -> bool>(
         .oauth_start_gate
         .try_lock()
         .map_err(|_| "Another native sign-in start is pending; no replacement/retry")?;
+    // DEL-01-05: sign-in is off in a home whose Codex carries the development model address.
+    crate::dev_model_address::check_sign_in(&home.host_config)?;
     check_native_oauth_home(home, bootstrap, generation)?;
     if !confirm() {
         return Ok(NativeOAuthStart {
@@ -3348,10 +3536,11 @@ pub(crate) fn start_native_oauth<F: FnOnce() -> bool>(
         });
     }
     check_native_oauth_home(home, bootstrap, generation)?;
-    let policy = home.host.account_requirements_read_scoped(generation)?;
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(20);
+    let policy = home.host.account_requirements_read_until(generation, deadline)?;
     home.account_sources.lock().unwrap().push(policy.clone());
     home.host
-        .source_request_wait(&policy, std::time::Duration::from_secs(20))?;
+        .source_request_wait(&policy, deadline.saturating_duration_since(std::time::Instant::now()))?;
     check_native_oauth_home(home, bootstrap, generation)?;
     let login = std::sync::Arc::new(home.host.account_oauth_start(
         generation,
@@ -3710,6 +3899,9 @@ mod oauth_root_tests {
     }
     impl Fixture {
         fn new() -> Self {
+            Self::with(|_| {})
+        }
+        fn with(change: impl FnOnce(&mut HostConfig)) -> Self {
             use std::os::unix::fs::PermissionsExt;
             let root = std::fs::canonicalize(std::env::temp_dir())
                 .unwrap()
@@ -3760,6 +3952,7 @@ for line in sys.stdin:
                 HostConfig::new(peer, root.join("account"), root.join("probe"), root.clone());
             cfg.allow_unverified_dev = true;
             cfg.wait_limit = Duration::from_secs(2);
+            change(&mut cfg);
             let host = Arc::new(Host::new());
             host.start(&cfg, "owned unqualified Root fixture").unwrap();
             assert_eq!(
@@ -3777,11 +3970,15 @@ for line in sys.stdin:
             }
         }
         fn behavior(&self, value: Value) {
+            // Startup requests can read this control concurrently. Publish a
+            // complete invented behavior, as emit does for queued events.
+            let temporary = self.root.join("behavior.pending");
             std::fs::write(
-                self.root.join("behavior.json"),
+                &temporary,
                 serde_json::to_vec(&value).unwrap(),
             )
             .unwrap();
+            std::fs::rename(temporary, self.root.join("behavior.json")).unwrap();
         }
         fn wire(&self) -> Vec<Value> {
             std::fs::read_to_string(self.root.join("wire.jsonl"))
@@ -3834,6 +4031,48 @@ for line in sys.stdin:
             let _ = self.home.host.stop("owned Root fixture", "bounded cleanup");
             let _ = std::fs::remove_dir_all(&self.root);
         }
+    }
+    /// DEL-01-05: a home whose Codex carries the development model address refuses sign-in
+    /// before anything is sent, in both sign-in modes, and never asks the person.
+    #[test]
+    fn dev_model_address_refuses_sign_in_before_anything_is_sent() {
+        let f = Fixture::with(|cfg| {
+            *cfg = crate::dev_model_address::apply(Ok(cfg.clone()), true, |_| {
+                Some("http://127.0.0.1:9/v1".into())
+            })
+            .unwrap();
+        });
+        for mode in [NativeLoginMode::Browser, NativeLoginMode::DeviceCode] {
+            let refusal = start_native_oauth(&f.home, &f.generation, mode, None, || {
+                panic!("the person is not asked")
+            })
+            .err()
+            .unwrap();
+            assert_eq!(refusal, crate::dev_model_address::SIGN_IN_OFF);
+        }
+        // What the host itself sent, which does not depend on when the stand-in logs a frame:
+        // the start's own request and nothing else.
+        let sent: Vec<String> = f
+            .home
+            .host
+            .client_requests()
+            .iter()
+            .map(|request| request["method"].as_str().unwrap_or_default().to_owned())
+            .collect();
+        assert_eq!(sent, ["initialize"], "no request was sent after the start's own");
+        // And what the stand-in has received so far: the start's handshake at most. Its second
+        // frame, the `initialized` notification, may be logged at any moment after the start
+        // returns, so the frames are compared by what they are and never counted.
+        let beyond: Vec<Value> = f
+            .wire()
+            .into_iter()
+            .filter(|frame| !matches!(frame["method"].as_str(), Some("initialize" | "initialized")))
+            .collect();
+        assert!(beyond.is_empty(), "a frame beyond the start's handshake reached the supplier: {beyond:?}");
+        assert!(f.home.oauth_login.lock().unwrap().is_none());
+        // The same home without the setting still starts a sign-in.
+        let plain = Fixture::new();
+        plain.start(NativeLoginMode::Browser);
     }
     #[test]
     fn oauth_root_browser_once_original_cancel_and_safe_observations() {
@@ -4416,6 +4655,10 @@ pub(crate) struct WorkflowRootSession {
     conversations: std::collections::HashMap<(String, String), Vec<String>>,
     /// Last durable reopen of the explicit project's records (display only).
     reopened: Option<Value>,
+    reopened_generation: u64,
+    /// Why the latest reading of the recorded runs did not read, while it did not; `reopened`,
+    /// if present, is then from an earlier reading.
+    reopened_not_read: Option<Value>,
     /// V10 G-5: per-run "end notice must go first" flags, readable without the
     /// run's lock, so a busy run never blocks ordinary text by itself.
     notice_flags: std::collections::HashMap<String, std::sync::Arc<std::sync::atomic::AtomicBool>>,
@@ -4468,6 +4711,8 @@ impl Default for WorkflowRootSession {
             runs: Default::default(),
             conversations: Default::default(),
             reopened: None,
+            reopened_generation: 0,
+            reopened_not_read: None,
             notice_flags: Default::default(),
             held_successors: Default::default(),
             app_user_data: None,
@@ -4522,6 +4767,16 @@ impl WorkflowRootSession {
             .map_err(|e| format!("This App's included workflows could not be verified: {e}. Nothing can be selected or run from them (WR LS-5)"))?;
         Ok(root)
     }
+    /// An included entry's own text, read as `select_production_bundle` would
+    /// resolve it from this App's installed resources, without selecting it.
+    pub(crate) fn read_included_text(&self, target: &crate::workflow_text_read::Target) -> Value {
+        crate::workflow_text_read::included(self.installed_bundle(), target)
+    }
+    /// The chosen workflow's own text (the inspected one with no chat), read
+    /// from the location it was resolved from and verified there by `verify_store`.
+    pub(crate) fn read_chosen_text(&self, chat: Option<&crate::workflow_selection::Chat>, target: &crate::workflow_text_read::Target) -> Value {
+        crate::workflow_text_read::chosen(self.choice(chat).map(|s| (&s.selection, s.package.as_path())), target)
+    }
     pub(crate) fn retention_ready(&self)->Result<(),String>{
         if self.after_run_end.has_pending(){return Err("After-run-end observations still have pending records; wait for recording before closing project records".into());}
         for run in self.runs.values(){let run=run.try_lock().map_err(|_|"A workflow operation is pending; settle it before closing project records")?;
@@ -4558,7 +4813,12 @@ impl WorkflowRootSession {
         result["choiceChat"] = chat.map(|c|json!({"sourceRef":c.source,"threadId":c.thread})).unwrap_or(Value::Null);
         result
     }
+    /// Row refresh only; host_tick::observe_project_history publishes its paired notice.
     pub(crate) fn observe_ended_runs(&mut self,project:&std::path::Path){self.after_run_end.observe(project);}
+    pub(crate) fn ended_history_reading(&self) -> (u64, Value) { self.after_run_end.reading() }
+    #[cfg(test)]
+    pub(crate) fn ended_cached_logs_for_test(&self) -> usize { self.after_run_end.cached_logs_for_test() }
+    pub(crate) fn publish_ended_history(&mut self, generation: u64, view: Value, changed: bool) { self.after_run_end.publish(generation, view, changed); }
     pub fn snapshot(&self) -> Value {
         // Inventory describes verified build inputs, never release registration.
         let production_catalog = match crate::workflow_workspace::production_catalog::ProductionCatalog::load() {
@@ -4597,6 +4857,7 @@ impl WorkflowRootSession {
             }).collect::<Vec<_>>(),
             "afterRunEnd":self.after_run_end.view(),
             "reopened":self.reopened,
+            "reopenedNotRead":self.reopened_not_read,
             "restartLimits":self.restart_limits,
             "endedAfterRelaunch":self.reopened_ends_view(),
             "drafts":self.active_library.as_deref().map(|l|self.drafts_view(l)),
@@ -4806,13 +5067,12 @@ impl WorkflowRootSession {
         workflows: &std::sync::Mutex<Self>,
         context: &crate::workflow_selection::Context,
         active_home: impl Fn() -> std::sync::Arc<HomeSession>,
+        wait: crate::workflow_selection::Wait,
         action: impl FnOnce(&mut Self, std::sync::Arc<HomeSession>) -> Result<T, String>,
     ) -> Result<T, String> {
         let home = active_home();
-        context.verify_home(&home)?;
-        let mut root = workflows.lock().unwrap();
-        let current = active_home();
-        context.verify_home(&current)?;
+        context.verify_home_within(&home, wait)?;
+        let (mut root, current, _) = crate::workflow_selection::lock_root(workflows, context, &active_home, wait)?;
         if !std::sync::Arc::ptr_eq(&home, &current) {
             return Err("Workflow App home source changed; no library operation performed".into());
         }
@@ -4988,6 +5248,8 @@ impl WorkflowRootSession {
         })
     }
     pub fn create_selected_draft(&mut self, chat: Option<&crate::workflow_selection::Chat>, name: &str) -> Result<Value, String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("runtime_session::WorkflowRootSession::create_selected_draft");
         if !crate::workflow_workspace::valid_name(name) {
             return Err("Invalid workflow draft name".into());
         }
@@ -5199,6 +5461,7 @@ impl WorkflowRootSession {
             &selected.selected_at,
             &crate::util::now_rfc3339(),
         )?;
+        let initial_refusal = publication.admission_refusal();
         let client_id = crate::util::opaque_id("workflow-message:")?;
         let retention_activity=crate::records_retention::activity(&project_root)?;
         let mut workflow_run = WorkflowRun {
@@ -5216,7 +5479,10 @@ impl WorkflowRootSession {
             source: None,
             attempted: false,
             turn_id: None,
-            status: json!({"state":"prepared; WR records pending; not sent","recorded":false,"sent":false,"supplied":"not supplied","adoption":"unknown","runStanding":"not opened: a run opens when its start turn is observed","otherFiles":files.describe()}),
+            status: match initial_refusal {
+                Some(limit) => json!({"state":"not saved; nothing was sent; start again to record it","limit":limit,"recorded":false,"sent":false,"supplied":"not supplied","retryAvailable":false,"adoption":"unknown","runStanding":"not opened","otherFiles":files.describe()}),
+                None => json!({"state":"prepared; WR records pending; not sent","recorded":false,"sent":false,"supplied":"not supplied","adoption":"unknown","runStanding":"not opened: a run opens when its start turn is observed","otherFiles":files.describe()}),
+            },
             supply: Value::Null,
             checks: Vec::new(),
             follows: prior.map(|(run, _)| run),
@@ -5668,7 +5934,6 @@ impl WorkflowRootSession {
             },
         };
         let view = json!({"run":run,"state":"ended by the person","cause":cause,"endNotice":notice});
-        self.reopen(project, &[]).ok();
         Ok(view)
     }
     /// WR TX-5 / SQ-END: compose and hold the end notice of a run the person just ended
@@ -5693,6 +5958,7 @@ impl WorkflowRootSession {
             &crate::util::now_rfc3339(),
             &generation,
         )?;
+        let initial_refusal = publication.admission_refusal();
         let end = ReopenedEnd {
             learning_pointers: Default::default(),
             home,
@@ -5702,7 +5968,8 @@ impl WorkflowRootSession {
             notice: NoticeState::Prepared(publication),
             notice_record_failure: None,
             notice_flag: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            status: json!({"state":"run ended by the person after a relaunch; its end notice is pending"}),
+            status: initial_refusal.as_deref().map(unsaved_notice_result)
+                .unwrap_or_else(|| json!({"state":"run ended by the person after a relaunch; its end notice is pending"})),
         };
         end.sync_notice_flag();
         let view = end.notice.view();
@@ -5946,14 +6213,14 @@ impl WorkflowRootSession {
         }
         prepared
     }
-    /// Durable reopen for display: the explicit project's records only.
+    /// Durable reopened rows. `read_reopened_history` publishes them with the
+    /// completed notice after releasing this workflow owner.
     pub fn reopen(&mut self, project: &std::path::Path, restart_events: &[Value]) -> Result<Value, String> {
         let records = crate::workflow_workspace::publication::ProjectRecords::open(project)?;
         let mut view = crate::records::supply::read_project_runs(&records, restart_events).view();
         // EXEC §2.7 / RECOVERY §4.1: what the host's startup writer did with this session's restart facts.
         view["restartLimits"] = self.restart_limits.clone();
         view["endedAfterRelaunch"] = self.reopened_ends_view();
-        self.reopened = Some(view.clone());
         Ok(view)
     }
     /// Person-directed learning readiness from current records and recovery
@@ -5969,7 +6236,6 @@ impl WorkflowRootSession {
                 }
             }
         }
-        self.reopened = Some(view.clone());
         Ok(view)
     }
 }
@@ -6299,6 +6565,11 @@ fn claim_prepared_notice(
     let NoticeState::Prepared(publication) = &*notice else {
         return Err("No end notice is pending for this run; nothing sent".into());
     };
+    if let Some(limit) = publication.admission_refusal() {
+        *record_failure = Some(limit.clone());
+        *status = unsaved_notice_result(&limit);
+        return Err(limit);
+    }
     let published = match publication.publish(project) {
         Ok(p) => {
             *record_failure = None;
@@ -6434,7 +6705,7 @@ impl ReopenedEnd {
         if !self.notice.awaiting_turn() {
             return Err("No end notice is pending for this run".into());
         }
-        let Some(failure) = self.notice_record_failure.clone() else {
+        let Some(failure) = self.notice_record_failure.clone().or_else(|| self.notice.admission_refusal()) else {
             return Err("The end-notice record has not failed to be written; the next ordinary turn carries the notice. Nothing recorded".into());
         };
         let NoticeState::Prepared(publication) = &self.notice else {
@@ -6459,6 +6730,11 @@ impl ReopenedEnd {
         let NoticeState::Prepared(publication) = &self.notice else {
             return Ok(json!({"endNotice":self.notice.view()}));
         };
+        if let Some(limit) = publication.admission_refusal() {
+            self.notice_record_failure = Some(limit.clone());
+            self.status = unsaved_notice_result(&limit);
+            return Ok(self.status.clone());
+        }
         match publication.publish(&self.project) {
             Ok(p) => {
                 self.notice_record_failure = None;
@@ -6474,6 +6750,10 @@ impl ReopenedEnd {
 const NOTICE_RUN_BUSY: &str = "The end notice of a run in this conversation must go first, and that run is busy (for example checking history); nothing sent. Try again shortly";
 const NOTICE_HELD_BY_START: &str = "A workflow run is starting in this conversation; its chain line says the earlier run ended, so that run's end notice waits for the start's outcome. Nothing sent. Try again shortly";
 const NOTICE_IN_FLIGHT: &str = "The end notice of a run in this conversation is going first in another new turn now; nothing sent. Try again shortly";
+fn unsaved_notice_result(limit: &str) -> Value {
+    json!({"state":"not saved; cannot be saved from within the App","limit":limit,"retryAvailable":false,
+        "choices":["Send without the end notice (recorded as not supplied)"]})
+}
 /// One new turn's claim on a pending end notice (TC-2): the notice's exact
 /// published text scoped to the current generation, and the client message
 /// identity its turn carries (the supply check locates the turn by it).
@@ -6630,6 +6910,9 @@ enum NoticeState {
     Skipped,
 }
 impl NoticeState {
+    fn admission_refusal(&self) -> Option<String> {
+        match self { Self::Prepared(p) => p.admission_refusal(), _ => None }
+    }
     fn awaiting_turn(&self) -> bool {
         matches!(self, Self::AwaitingTurn | Self::Prepared(_))
     }
@@ -6647,7 +6930,10 @@ impl NoticeState {
         match self {
             Self::None => Value::Null,
             Self::AwaitingTurn => json!({"state":"pending: the next ordinary turn in this conversation carries it"}),
-            Self::Prepared(p) => json!({"state":"pending: not yet sent (its record or its send did not complete); the next ordinary turn carries it","record":p.reference()}),
+            Self::Prepared(p) => match p.admission_refusal() {
+                Some(limit) => json!({"state":"not saved; end notice not sent","record":p.reference(),"admissionRefusal":limit,"retryAvailable":false}),
+                None => json!({"state":"pending: not yet sent (its record or its send did not complete); the next ordinary turn carries it","record":p.reference()}),
+            },
             Self::Carrying{publication,..} => json!({"state":"sending: going first in a new turn now; it stays pending if that turn is not written","record":publication.reference()}),
             Self::Sent{published,turn,outcome,..} => json!({"state":"sent once with the next ordinary turn","record":published.run_text_record().reference(),"turn":turn,"outcome":outcome}),
             Self::Superseded(run) => json!({"state":"not sent: the successor run's chain line said the run ended","successor":run}),
@@ -6692,6 +6978,10 @@ impl WorkflowCheckSlot {
         record_ready: bool,
         set: crate::records::RecordSet,
     ) -> Option<crate::records::supply::PendingRunEntry> {
+        if let Some(limit) = self.pending.admission_refusal() {
+            self.publication_failure = Some(limit);
+            return None;
+        }
         if self.published.is_none() {
             match self.pending.publish(project) {
                 Ok(p) => {
@@ -6737,14 +7027,18 @@ impl WorkflowCheckSlot {
     }
     fn view(&self) -> Value {
         let body = self.pending.body();
+        let initial_refusal = self.pending.admission_refusal();
         let r3 = match &self.r3 {
+            WorkflowR3::AwaitingCheck if initial_refusal.is_some() => json!({"state":"not recorded; original check was not saved and cannot be saved"}),
             WorkflowR3::AwaitingCheck => json!({"state":"not recorded; awaits the published check"}),
             WorkflowR3::Unavailable(e) => json!({"state":"unavailable","limit":e}),
             WorkflowR3::Pending(p) => json!({"state":"pending write; missing in record","recordId":p.record_id(),"limit":p.failure(),"retry":"retry writes the same identity and observation time"}),
             WorkflowR3::Recorded(entry) => json!({"state":"recorded","recordId":entry["recordId"],"observedAt":entry["observedAt"],"writtenAt":entry["writtenAt"],"supplyCheck":entry["body"]["supplyCheck"],"adoption":entry["body"]["adoption"]}),
         };
         json!({"reference":self.pending.reference(),"check":body["check"],"state":body["state"],"supplyReading":if body["state"]=="verified"{"supplied"}else{"supplied — not verified"},"readAt":body["read_at"],"turn":body["turn"],"locatedBy":body["located_by"],
-            "published":self.published.is_some(),"publicationLimit":self.publication_failure,"r3":r3,"adoption":"unknown"})
+            "published":self.published.is_some(),"publicationLimit":initial_refusal.as_ref().or(self.publication_failure.as_ref()),
+            "publicationState":if initial_refusal.is_some(){"not saved; cannot be saved from within the App"}else if self.published.is_some(){"recorded"}else{"pending"},
+            "retryAvailable":initial_refusal.is_none(),"r3":r3,"adoption":"unknown"})
     }
 }
 #[path = "file_act_arrival.rs"]
@@ -6884,6 +7178,7 @@ impl WorkflowRun {
     pub fn view(&self, reference: &str) -> Value {
         let publication = match &self.published {
             Some(p) => json!({"state":"selection and run_text recorded before send","selection":p.selection_record().reference(),"runText":p.run_text_record().reference()}),
+            None if self.publication.admission_refusal().is_some() => json!({"state":"not saved; nothing was sent; start again to record it","selection":self.publication.selection_reference(),"runText":self.publication.run_text_reference(),"admissionRefusal":self.publication.admission_refusal(),"retryAvailable":false}),
             None => json!({"state":"pending; not recorded","selection":self.publication.selection_reference(),"runText":self.publication.run_text_reference(),"lastFailure":self.publication_failure}),
         };
         json!({"reference":reference,"runText":self.prepared().record(),"project":crate::attachments::native_path_identity(&self.project_root),"publication":publication,
@@ -7121,13 +7416,12 @@ impl WorkflowRun {
             basis: basis.clone(),
             occasion,
             evaluated_at: crate::util::now_rfc3339(),
-            inventory: report::Inventory {
-                origin: report::InventoryOrigin::CallerSupplied {
-                    source: "App Root: no environment collector; nothing observed".into(),
-                },
-                host_id: None,
-                observations: report::Observations::default(),
-            },
+            inventory: proposal_advisory::conversation_inventory(
+                &self.home,
+                &self.home.host.snapshot()["threads"],
+                &scope.generation,
+                &scope.conversation,
+            ),
             model_destination: None,
         });
         self.compatibility.push(CompatibilitySlot {
@@ -7159,6 +7453,11 @@ impl WorkflowRun {
     fn publish_pre_send(&mut self) -> Result<(), String> {
         if self.published.is_some() {
             return Ok(());
+        }
+        if let Some(limit) = self.publication.admission_refusal() {
+            self.publication_failure = Some(json!({"limit":limit}));
+            self.status = json!({"state":"not saved; nothing was sent; start again to record it","limit":limit,"sent":false,"supplied":"not supplied","retryAvailable":false});
+            return Err(limit);
         }
         match self.publication.publish(&self.project) {
             Ok(published) => {
@@ -7676,7 +7975,7 @@ impl WorkflowRun {
         if self.notice_held_by_start.is_some() {
             return Err(NOTICE_HELD_BY_START.into());
         }
-        let Some(failure) = self.notice_record_failure.clone() else {
+        let Some(failure) = self.notice_record_failure.clone().or_else(|| self.notice.admission_refusal()) else {
             return Err("The end-notice record has not failed to be written; the next ordinary turn carries the notice. Nothing recorded".into());
         };
         let subject = match &self.notice {
@@ -7717,11 +8016,18 @@ impl WorkflowRun {
         }
         self.flush_records();
         let notice = self.retry_notice_record();
-        Ok(json!({"status":self.status,"lifecycle":self.lifecycle_view(),"checks":self.checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),"noticeChecks":self.notice_checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),"endNoticeRecord":notice,"pendingRecords":self.has_pending_records()}))
+        let record_admission_refusals = self.checks.iter().chain(&self.notice_checks)
+            .filter_map(|check| check.pending.admission_refusal())
+            .chain(self.notice.admission_refusal()).collect::<Vec<_>>();
+        Ok(json!({"status":self.status,"lifecycle":self.lifecycle_view(),"checks":self.checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),"noticeChecks":self.notice_checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),"endNoticeRecord":notice,"pendingRecords":self.has_pending_records(),"recordAdmissionRefusals":record_admission_refusals}))
     }
     /// V10 G-5 "Retry the end-notice record": publish a pending notice's record
     /// (same identity and bytes) without sending. The next ordinary turn sends it.
     fn retry_notice_record(&mut self) -> Value {
+        if let Some(limit) = self.notice.admission_refusal() {
+            self.notice_record_failure = Some(limit.clone());
+            return unsaved_notice_result(&limit);
+        }
         if matches!(self.notice, NoticeState::AwaitingTurn) {
             let prepared = (|| {
                 let end = self.end.clone().ok_or("owner end absent")?;
@@ -7948,6 +8254,10 @@ mod workflow_root_tests {
     mod real_backend_fixture_tests { use super::*; include!("workflow_real_backend_fixture_tests.rs"); }
     mod start_source_binding_tests { use super::*; include!("start_source_binding_tests.rs"); }
     mod run_preparation_order_tests { use super::*; include!("run_preparation_order_tests.rs"); }
+    mod text_read_tests { use super::*; include!("workflow_text_read_tests.rs"); }
+    mod records_store_controls_lifecycle_tests { use super::*; include!("records_store_controls_lifecycle_tests.rs"); }
+    mod records_store_writer_f4_tests { use super::*; include!("records_store_writer_f4_runtime_tests.rs"); }
+    mod reopened_checkpoint_tests { use super::*; include!("reopened_checkpoint_tests.rs"); }
     impl WorkflowRootSession {
         fn fixture_chat(&self) -> crate::workflow_selection::Chat {
             self.selected.keys().next().cloned().unwrap_or(crate::workflow_selection::Chat { source:"explicit single-chat selection fixture".into(), thread:"thread".into() })
@@ -8121,6 +8431,19 @@ for line in sys.stdin:
     emit({'method':'model/rerouted','params':{'threadId':tid,'turnId':uid,'fromModel':'fixture-model','toModel':'fixture-safe-model','reason':'highRiskCyberActivity'}})
    emit({'method':'turn/completed','params':{'threadId':tid,'turn':{'id':uid,'status':'completed','items':[],'error':None}}})
    continue
+  if mode('notify-mode')=='unreachable':
+   # The exchange observed against an unreachable model: the conversation turns active, the turn starts,
+   # its user message completes, then Codex repeats its retry notice. No end of the turn arrives.
+   tid=f['params']['threadId'];live=dict(result['turn'],status='inProgress');uid=live['id']
+   emit({'method':'thread/status/changed','params':{'threadId':tid,'status':{'type':'active','activeFlags':[]}}})
+   emit({'id':f['id'],'result':{'turn':live}})
+   emit({'method':'turn/started','params':{'threadId':tid,'turn':live}})
+   item={'id':uid+'-user','type':'userMessage','content':[]}
+   emit({'method':'item/started','params':{'threadId':tid,'turnId':uid,'item':item}})
+   emit({'method':'item/completed','params':{'threadId':tid,'turnId':uid,'item':item}})
+   for n in range(3):
+    emit({'method':'error','params':{'threadId':tid,'turnId':uid,'willRetry':True,'error':{'message':'Reconnecting... waiting for network','additionalDetails':'Connection failed: error sending request','codexErrorInfo':{'responseStreamDisconnected':{'httpStatusCode':None}}}}})
+   continue
   if mode('notify-mode')=='spawn':
    emit({'id':f['id'],'result':result})
    item={'id':'spawn-old','type':'collabAgentToolCall','status':'completed','tool':'spawnAgent','senderThreadId':f['params']['threadId'],'receiverThreadIds':['child-old'],'agentsStates':{'child-old':{'status':'running'}}}
@@ -8158,7 +8481,7 @@ for line in sys.stdin:
   where=f['params'].get('cwd')
   which='bare' if where is None else ('server' if os.path.realpath(where)==os.path.realpath(os.getcwd()) else 'folder')
   p=mode('config-provider-'+which) or mode('config-provider') or 'fixture-provider'
-  config={'model_provider':None if p=='none' else p,'developer_instructions':'fixture private configuration text'}
+  config={'model_provider':None if p=='none' else p,'model_providers':{},'developer_instructions':'fixture private configuration text'}
   if m in ('true','false'):config['features']={'multi_agent':m=='true'}
   result={'config':config,'origins':{}}
  elif method=='modelProvider/capabilities/read':
@@ -8594,6 +8917,42 @@ for line in sys.stdin:
         assert!(due.len()<=4);
         let results=trial_flows::perform_trial_reads(&peer.home,due);
         root.lock().unwrap().apply_trial_reads(results)
+    }
+    // The exchange observed against an unreachable model, through the owned peer,
+    // the real Host and the view the window reads. While the turn is live the
+    // conversation reads active and the turn in progress with Codex's own retry
+    // notices, as sent; once Codex is stopped neither reads as current, and at
+    // no point does the conversation read idle or the turn done.
+    #[test]
+    fn an_unreachable_model_shows_an_active_conversation_and_codexs_retry_notices_as_sent(){
+        let peer=Peer::new();let g=peer.generation.clone();
+        let row=||peer.home.host.snapshot()["threads"].as_array().unwrap().iter().find(|t|t["generation"]==g&&t["threadId"]=="thread").unwrap().clone();
+        assert_eq!(row()["status"],json!({"type":"idle"}),"the admission reply's status");assert!(row().get("statusSource").is_none());
+        peer.set_mode("notify-mode","unreachable");
+        peer.home.host.turn_start_text(&g,"thread","start the run").unwrap();
+        let deadline=std::time::Instant::now()+Duration::from_secs(5);
+        while crate::host_tick::receive_view(&peer.home)["turnErrors"].as_array().is_none_or(|e|e.len()<3){assert!(std::time::Instant::now()<deadline,"retry notices observed");std::thread::sleep(Duration::from_millis(20));}
+        assert_eq!(row()["status"],json!({"type":"active","activeFlags":[]}));
+        assert_eq!(row()["statusSource"]["method"],"thread/status/changed");
+        let view=crate::host_tick::receive_view(&peer.home);
+        let sent=json!({"message":"Reconnecting... waiting for network","additionalDetails":"Connection failed: error sending request","codexErrorInfo":{"responseStreamDisconnected":{"httpStatusCode":null}}});
+        let errors=view["turnErrors"].as_array().unwrap();
+        assert_eq!(errors.len(),3);
+        for (n,error) in errors.iter().enumerate(){
+            assert_eq!(error["error"],sent,"as the supplier sent it");
+            assert_eq!((error["threadId"].clone(),error["turnId"].clone(),error["willRetry"].clone(),error["laterFrameForTurn"].clone()),(json!("thread"),json!("turn"),json!(true),json!(false)));
+            assert_eq!(error["generation"],g,"the generation the window compares");assert_eq!(error["ordinalInTurn"],n as u64+1);
+        }
+        assert_eq!(view["turns"].as_array().unwrap().iter().find(|t|t["id"]=="turn").unwrap()["status"],"inProgress","no end of the turn was sent and none is shown");
+        // Stopping Codex ends the observation: the last status moves aside and the notices are marked.
+        peer.home.host.stop("fixture:person","codex-stop").unwrap();
+        assert_eq!(row()["status"],Value::Null);assert_eq!(row()["statusObservationEnded"],true);
+        assert_eq!(row()["lastObservedStatus"],json!({"type":"active","activeFlags":[]}));
+        let closed=crate::host_tick::receive_view(&peer.home);
+        assert_eq!(view["observationEnded"],false);assert_eq!(closed["observationEnded"],true,"the turn last seen in progress is no longer a current reading");
+        assert_eq!(closed["turns"].as_array().unwrap().iter().find(|t|t["id"]=="turn").unwrap()["status"],"inProgress","Codex sent no end, and none is invented");
+        assert_eq!(closed["turnErrors"].as_array().unwrap().len(),3,"the stop keeps every notice");
+        assert!(closed["turnErrors"].as_array().unwrap().iter().all(|e|e["observationEnded"]==true),"{}",closed["turnErrors"]);
     }
     // RS R5 / HOSTING §8.3 through the owned peer, the host's record tick and the
     // run's RS writer: the run-start turn is rerouted (model/rerouted names it), a
@@ -9422,6 +9781,147 @@ for line in sys.stdin:
         let mut status=root.lock().unwrap().snapshot();root.lock().unwrap().decorate_status(&mut status,&json!({}));
         assert_eq!(status["pendingBringBacks"].as_array().unwrap().len(),1);
     }
+    // DEL-06-01 AC-003: a spawn the host receives live reaches the delegation
+    // recorder through the record tick's own views, with the identities the
+    // peer reported; stopping Codex ends the child's observation with that cause.
+    #[test]
+    fn the_record_tick_hands_a_live_spawn_and_its_ended_observation_to_the_delegation_recorder(){
+        let store=std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("delegation-tick-store-").unwrap());
+        crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store{root:store.clone(),placement:crate::records_store::Placement::Test,limits:vec![]})));
+        struct ResetStore(PathBuf);
+        impl Drop for ResetStore{fn drop(&mut self){crate::records_store::use_store_for_test(None);let _=std::fs::remove_dir_all(&self.0);}}
+        let _reset=ResetStore(store);
+        let peer=Peer::new();let g=peer.generation.clone();
+        let attached=crate::records_store::attach(&peer.fixture.root,true).unwrap();
+        assert!(attached.refusal.is_none()&&attached.dir.is_some(),"the invented project is attached to the invented store");
+        let workflows=Mutex::new(WorkflowRootSession::default());let homes=Mutex::new(HomeRouter::new(peer.home.clone()).unwrap());
+        let mut links=crate::native_conversation_links::Session::default();
+        let mut recorded=|kind:&str|{
+            let deadline=std::time::Instant::now()+Duration::from_secs(5);
+            loop{
+                for (home,views) in crate::host_tick::tick_project(&homes,&workflows,peer.project()){links.observe_delegation(peer.project(),&home,&views);}
+                links.retry(peer.project());
+                let packet=crate::read_fleet_records_for_workspace(peer.project()).unwrap();
+                let rows:Vec<Value>=packet["coordination"]["nativeDelegation"].as_array().unwrap().iter().map(|row|row["record"].clone()).collect();
+                if rows.iter().any(|row|row["kind"]==kind){return rows;}
+                assert!(std::time::Instant::now()<deadline,"{kind} recorded; limits {}",links.snapshot()["limits"]);
+                std::thread::sleep(Duration::from_millis(20));
+            }
+        };
+        peer.set_mode("notify-mode","spawn");peer.home.host.turn_start_text(&g,"thread","delegate one piece").unwrap();
+        let rows=recorded("child_observed");
+        assert_eq!(rows.len(),2,"{rows:?}");
+        let dispatch=&rows[0]["body"];
+        assert_eq!(rows[0]["kind"],"dispatch_observed");
+        assert_eq!(dispatch["parent"],json!({"threadId":"thread","generation":g}));
+        assert_eq!(dispatch["child"],json!({"threadId":"child-old","generation":g}));
+        assert_eq!(dispatch["nativeHome"]["homeId"],g["home"]);
+        assert_eq!(dispatch["spawnItem"]["itemId"],"spawn-old");
+        assert_eq!(dispatch["spawnPrompt"],json!({"state":"not supplied"}),"the peer's spawn item carries no prompt");
+        assert_eq!(dispatch["association"],json!({"state":"no brief reference"}));
+        assert_eq!(rows[1]["body"]["status"],"running");
+        peer.home.host.stop("person:fixture","codex-stop").unwrap();
+        let rows=recorded("observation_ended");
+        assert_eq!(rows.len(),3,"{rows:?}");
+        assert_eq!(rows[2]["body"],json!({"child":{"threadId":"child-old","generation":g},"cause":"Codex process stopped","lastObserved":"running","nativeHome":dispatch["nativeHome"]}));
+    }
+    // DEL-06-01: at the App's own exit, with Codex still running, the session's
+    // observation of the child it recorded ends with the cause "App quit".
+    #[test]
+    fn the_apps_exit_ends_its_own_observation_of_a_recorded_child(){
+        let store=std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("delegation-exit-store-").unwrap());
+        crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store{root:store.clone(),placement:crate::records_store::Placement::Test,limits:vec![]})));
+        struct ResetStore(PathBuf);
+        impl Drop for ResetStore{fn drop(&mut self){crate::records_store::use_store_for_test(None);let _=std::fs::remove_dir_all(&self.0);}}
+        let _reset=ResetStore(store);
+        let peer=Peer::new();let g=peer.generation.clone();
+        assert!(crate::records_store::attach(&peer.fixture.root,true).unwrap().dir.is_some());
+        let workflows=Mutex::new(WorkflowRootSession::default());let homes=Mutex::new(HomeRouter::new(peer.home.clone()).unwrap());
+        let mut links=crate::native_conversation_links::Session::default();
+        let rows=||crate::read_fleet_records_for_workspace(peer.project()).unwrap()["coordination"]["nativeDelegation"].as_array().unwrap().iter().map(|row|row["record"].clone()).collect::<Vec<Value>>();
+        // An exit before anything was recorded writes nothing.
+        links.end_delegation_at_exit(&[peer.home.clone()]);assert!(rows().is_empty());
+        peer.set_mode("notify-mode","spawn");peer.home.host.turn_start_text(&g,"thread","delegate one piece").unwrap();
+        let deadline=std::time::Instant::now()+Duration::from_secs(5);
+        while rows().len()<2{
+            for (home,views) in crate::host_tick::tick_project(&homes,&workflows,peer.project()){links.observe_delegation(peer.project(),&home,&views);}
+            assert!(std::time::Instant::now()<deadline,"spawn recorded; limits {}",links.snapshot()["limits"]);std::thread::sleep(Duration::from_millis(20));
+        }
+        assert_eq!(peer.home.host.snapshot()["state"],"ready");
+        for _ in 0..2{links.end_delegation_at_exit(&[peer.home.clone()]);}
+        let recorded=rows();assert_eq!(recorded.len(),3,"{recorded:?}");
+        assert_eq!((&recorded[2]["kind"],&recorded[2]["body"]["cause"],&recorded[2]["body"]["lastObserved"]),(&json!("observation_ended"),&json!("App quit"),&json!("running")));
+        assert_eq!(recorded[2]["body"]["child"],json!({"threadId":"child-old","generation":g}));
+    }
+    // DEL-06-01: a child recorded under one project identity is given no end
+    // under a replacement identity (review round 2 of the producer).
+    //
+    // How the replacement identity is made here. The App itself refuses to
+    // give a folder a new identity, or to adopt it, while Codex runs for it
+    // (DEL-04-03 AC-008, containment), so this state can arise only from
+    // outside the App: something else changes the store's registry and the
+    // project's link while Codex runs. The test therefore writes them as an
+    // outside process would, in the store's own formats, and does not call
+    // the App's own act: a line releasing the folder from its identity, a
+    // line recording it for another, the link naming that other, and the
+    // other project's folder in the store with its identity file, which is
+    // everything the App's own act leaves. The replacement is a complete
+    // identity: its recording context is captured before the exit, so the
+    // exit has somewhere it could write and must still write nothing. This
+    // is preparation of the fixture only; the writer whose behaviour the
+    // test establishes runs untouched. It stands for the cases containment
+    // does not cover. (Setup changed by the Records lane with App Agent 0's
+    // decision; the three assertions are as 235 wrote them, and the limit's
+    // own reason is asserted beside them.)
+    #[test]
+    fn the_apps_exit_writes_nothing_under_a_replacement_project_identity(){
+        let store=std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("delegation-identity-store-").unwrap());
+        crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store{root:store.clone(),placement:crate::records_store::Placement::Test,limits:vec![]})));
+        struct ResetStore(PathBuf);
+        impl Drop for ResetStore{fn drop(&mut self){crate::records_store::use_store_for_test(None);let _=std::fs::remove_dir_all(&self.0);}}
+        let _reset=ResetStore(store.clone());
+        let peer=Peer::new();let g=peer.generation.clone();
+        let first=crate::records_store::attach(&peer.fixture.root,true).unwrap();
+        let original=first.dir.clone().unwrap();
+        let workflows=Mutex::new(WorkflowRootSession::default());let homes=Mutex::new(HomeRouter::new(peer.home.clone()).unwrap());
+        let mut links=crate::native_conversation_links::Session::default();
+        let log=|dir:&std::path::Path|std::fs::read_to_string(dir.join("fleet/coordination.fleet.jsonl")).unwrap_or_default();
+        peer.set_mode("notify-mode","spawn");peer.home.host.turn_start_text(&g,"thread","delegate one piece").unwrap();
+        let deadline=std::time::Instant::now()+Duration::from_secs(5);
+        while log(&original).lines().count()<2{
+            for (home,views) in crate::host_tick::tick_project(&homes,&workflows,peer.project()){links.observe_delegation(peer.project(),&home,&views);}
+            assert!(std::time::Instant::now()<deadline,"spawn recorded; limits {}",links.snapshot()["limits"]);std::thread::sleep(Duration::from_millis(20));
+        }
+        let before=log(&original);
+        // The App's own act is refused while this Codex runs, with nothing changed.
+        assert!(crate::records_store::new_identity(&peer.fixture.root).unwrap_err().contains("is still in use"));
+        assert_eq!(crate::records_store::attach(&peer.fixture.root,false).unwrap().dir.as_ref(),Some(&original));
+        // From outside the App: the registry and the link, written by hand.
+        let other=crate::util::opaque_id("chirality-project:").unwrap();
+        let at=peer.fixture.root.to_str().unwrap();
+        let line=|project:&str,how:&str|format!("{}\n",json!({"format":"chirality.records-store.root","formatVersion":"0.1","projectId":project,"root":at,"at":crate::util::now_rfc3339(),"how":how}));
+        let registry=store.join("roots.jsonl");
+        let mut lines=std::fs::read_to_string(&registry).unwrap();
+        lines.push_str(&line(first.project.as_deref().unwrap(),"released"));lines.push_str(&line(&other,"minted"));
+        std::fs::write(&registry,lines).unwrap();
+        let link_path=peer.fixture.root.join(crate::records_store::PROJECT_LINK);
+        let mut link:Value=serde_json::from_slice(&std::fs::read(&link_path).unwrap()).unwrap();
+        link["projectId"]=json!(other);
+        std::fs::write(&link_path,serde_json::to_vec(&link).unwrap()).unwrap();
+        let replacement=crate::records_store::attach(&peer.fixture.root,false).unwrap().dir.unwrap();
+        std::fs::create_dir_all(&replacement).unwrap();
+        std::fs::write(replacement.join("project.json"),serde_json::to_vec(&json!({"format":"chirality.records-store.project","formatVersion":"0.1","projectId":other,"createdAt":crate::util::now_rfc3339(),"how":"minted"})).unwrap()).unwrap();
+        assert_eq!(crate::native_conversation_links::captured_context_identity_for_test(&peer.fixture.root).as_deref(),Ok(other.as_str()),"the replacement identity is complete: the recording context captured now is the replacement's, and not the original's");
+        assert_ne!(first.project.as_deref(),Some(other.as_str()));
+        assert_ne!(replacement,original);
+        links.end_delegation_at_exit(&[peer.home.clone()]);links.retry(peer.project());
+        assert!(!log(&replacement).contains("observation_ended"),"nothing of that child under the replacement identity");
+        assert_eq!(log(&original),before,"and nothing more under the original, which is no longer in force");
+        assert!(links.snapshot()["limits"].to_string().contains("the context this child was first recorded under no longer holds"));
+        // For the reason the test exists for, and not because the replacement could not be opened.
+        let limits=links.snapshot()["limits"].to_string();
+        assert!(limits.contains("original project/store association changed; no reassociation")&&!limits.contains("No such file"),"{limits}");
+    }
     // M6 / H-4: a sub-agent the view showed before the trial was sent is no
     // candidate; the tick's linking read is journalled as the App rule's.
     #[test]
@@ -9541,6 +10041,41 @@ for line in sys.stdin:
         assert_eq!(r["reading"],"not established");assert!(r["reason"].as_str().unwrap().contains("not loaded"));
         // Nothing of the configuration but features.multi_agent is kept.
         assert!(!serde_json::to_string(&peer.home.host.delegation_readings()).unwrap().contains("fixture private configuration text"));
+    }
+    /// DEL-01-05: the model list read at the person's press sends config/read for the
+    /// server's own folder. It leaves the chooser's provider revision as it was and
+    /// still advances the revision the settings reading and confirmations follow.
+    #[test]
+    fn model_catalog_read_keeps_the_choosers_provider_revision_and_advances_the_strict_one(){
+        let peer=Peer::new();let host=&peer.home.host;
+        let cwd=peer.home.host_config.as_ref().unwrap().cwd.to_str().unwrap().to_owned();
+        let settings=host.effective_access_settings_read(&peer.generation,&cwd,"account").unwrap();
+        let read=settings["scope"]["readRevision"].clone();assert!(read.is_string());
+        assert_eq!(host.configured_provider_observation_revision(&peer.generation,&cwd),read);
+        assert_eq!(host.configured_provider_revision(&peer.generation,&cwd),read);
+        let setup=peer.wire().len();
+        assert_eq!(host.model_catalog_read(&peer.generation)["state"],"observed");
+        let wire=peer.wire().split_off(setup);
+        assert!(wire.iter().any(|f|f["method"]=="config/read"&&f["params"]["cwd"]==json!(cwd)),"the model list read names the provider read's folder: {wire:?}");
+        assert_eq!(host.configured_provider_observation_revision(&peer.generation,&cwd),read,"the chooser's provider revision is unchanged by the model list read");
+        let strict=host.configured_provider_revision(&peer.generation,&cwd);
+        assert!(strict.is_string()&&strict!=read,"the settings reading is no longer current after the newer read");
+    }
+    #[test]
+    fn model_catalog_records_app_reads_and_pressed_reads_as_their_actual_initiator() {
+        let peer = Peer::new();
+        for (pressed, kind) in [(false, "app-rule"), (true, "person-directed")] {
+            let before = peer.home.host.client_requests().len();
+            let view = peer.home.host.model_catalog_read_with_origin(&peer.generation, pressed);
+            assert_eq!(view["state"], "observed", "{view}");
+            let requests = peer.home.host.client_requests();
+            let rows = &requests[before..];
+            assert_eq!(rows.len(), 3, "two config reads and the model list");
+            for row in rows { assert_eq!(row["initiator"], json!({"kind":kind,"name":"model-catalog-read"}), "{row}"); }
+            assert!(!view.to_string().contains("at your press"));
+            assert!(view.to_string().contains("not your account's entitlement or access"));
+            assert!(view.to_string().contains("Start still checks the current configuration"));
+        }
     }
     #[test]
     fn model_catalog_lists_the_server_providers_models_at_a_press_and_keeps_no_configuration(){
@@ -9783,6 +10318,27 @@ for line in sys.stdin:
         let kept=peer.home.host.delegation_readings();
         assert_eq!(kept.len(),1,"{kept:?}");assert_eq!(kept[0]["key"]["generation"],current);
     }
+    // The requirement check is given the host's own reading for the
+    // conversation's model, provider and folder, and nothing it did not observe.
+    #[test]
+    fn the_requirement_check_inventory_carries_the_conversations_own_delegation_reading(){
+        use crate::execution_compatibility::report::CatalogCoverage;
+        let peer=Peer::new();
+        let threads=||peer.home.host.snapshot()["threads"].clone();
+        let before=proposal_advisory::conversation_inventory(&peer.home,&threads(),&peer.generation,"thread");
+        assert!(before.observations.harness_signals.is_none(),"nothing read yet");
+        assert!(matches!(before.observations.catalog,CatalogCoverage::Unobserved));
+        assert_eq!(before.observations.channel_enabled,None,"no host channel is observed");
+        assert!(before.host_id.is_none());
+        assert_eq!(crate::host_tick::delegation_tick_home(&peer.home),1);
+        let after=proposal_advisory::conversation_inventory(&peer.home,&threads(),&peer.generation,"thread");
+        let signals=after.observations.harness_signals.expect("the host's reading for this conversation");
+        assert_eq!(crate::delegation_availability::evaluate(Some(&signals))["reading"],"present");
+        assert!(matches!(after.observations.catalog,CatalogCoverage::Unobserved));
+        assert_eq!(after.observations.channel_enabled,None);
+        // Another conversation does not take this one's reading.
+        assert!(proposal_advisory::conversation_inventory(&peer.home,&threads(),&peer.generation,"another").observations.harness_signals.is_none());
+    }
     // ---- #1247 review leftovers H-2, H-5 and the send refusals' prefillKept ----
     fn pending_refs(root:&Mutex<WorkflowRootSession>)->Vec<String>{
         let mut status=root.lock().unwrap().snapshot();root.lock().unwrap().decorate_status(&mut status,&json!({}));
@@ -9799,6 +10355,18 @@ for line in sys.stdin:
         assert!(!err.prefill_kept&&err.contains("withdrawn"),"{err}");
         assert!(!pending_refs(&root).contains(&r1),"a failed start withdraws the pre-fill");
         assert!(root.lock().unwrap().cancel_trial(&r1).is_err());
+        // The start was refused at its configuration reading: known not started, then the sentence.
+        for sentence in [crate::hosting::reading_gate::READING_GATE, crate::hosting::reading_gate::READING_WITHDRAWN] {
+            let r=prepare();
+            let err=trial_flows::start_clean_trial(&root,&r,||Err(sentence.to_owned()),|_,_|panic!("nothing is sent")).unwrap_err();
+            assert_eq!(err.message,format!("The trial conversation was not started; the pre-filled trial was withdrawn. {sentence}"));
+            assert!(!err.prefill_kept&&!pending_refs(&root).contains(&r),"withdrawn as any failed start");
+        }
+        // Not by suffix: a start error ending in a sentence after another prefix keeps the general text.
+        let r=prepare();
+        let later=format!("{}{}",crate::hosting::reading_gate::WRITE_THEN_READING,crate::hosting::reading_gate::READING_GATE);
+        let err=trial_flows::start_clean_trial(&root,&r,||Err(later.clone()),|_,_|panic!("nothing is sent")).unwrap_err();
+        assert!(err.message.starts_with(&format!("{later}. The trial conversation was not started (or its start was not acknowledged)")),"{}",err.message);
         // The start named no thread id: withdrawn.
         let r2=prepare();
         let err=trial_flows::start_clean_trial(&root,&r2,||Ok(json!({"startGeneration":peer.generation,"result":{"thread":{}}})),|_,_|panic!("nothing is sent")).unwrap_err();
@@ -11438,7 +12006,7 @@ for line in sys.stdin:
         let before = std::fs::read(&log).unwrap();
         std::fs::write(peer.fixture.root.join("out/summary.md"), b"v2").unwrap();
         for _ in 0..2 {
-            root.lock().unwrap().observe_ended_runs(&peer.fixture.root);
+            crate::host_tick::observe_project_history(&root, &peer.fixture.root);
         }
         let dto = root.lock().unwrap().snapshot();
         assert_eq!(std::fs::read(&log).unwrap(), before);
@@ -11456,9 +12024,10 @@ for line in sys.stdin:
             .any(|r| r["kind"] == "run_ended"));
         let mut cold = WorkflowRootSession::default();
         cold.reopen(&peer.fixture.root, &[]).unwrap();
-        cold.observe_ended_runs(&peer.fixture.root);
-        assert_eq!(cold.snapshot()["afterRunEnd"]["pending"], false);
-        assert!(cold.snapshot()["afterRunEnd"]["runs"][0]["records"]
+        let cold = Mutex::new(cold);
+        crate::host_tick::observe_project_history(&cold, &peer.fixture.root);
+        assert_eq!(cold.lock().unwrap().snapshot()["afterRunEnd"]["pending"], false);
+        assert!(cold.lock().unwrap().snapshot()["afterRunEnd"]["runs"][0]["records"]
             .as_array()
             .unwrap()
             .iter()
@@ -11474,7 +12043,7 @@ for line in sys.stdin:
         .unwrap();
         crate::records_retention::apply(plan, &actor, &observed).unwrap();
         for _ in 0..3 {
-            root.lock().unwrap().observe_ended_runs(&peer.fixture.root);
+            crate::host_tick::observe_project_history(&root, &peer.fixture.root);
         }
         let rows = own_log(&peer, &a);
         assert_eq!(rows.iter().filter(|r| r["kind"] == "act_lapsed").count(), 1);
@@ -11520,7 +12089,7 @@ for line in sys.stdin:
             .unwrap();
         synthetic_ended_retention_action(&peer, "close");
         let before = std::fs::read(&log).unwrap();
-        root.lock().unwrap().observe_ended_runs(&peer.fixture.root);
+        crate::host_tick::observe_project_history(&root, &peer.fixture.root);
         assert_eq!(std::fs::read(&log).unwrap(), before);
         assert_eq!(
             root.lock().unwrap().snapshot()["afterRunEnd"]["pending"],
@@ -11528,7 +12097,7 @@ for line in sys.stdin:
         );
         assert!(root.lock().unwrap().retention_ready().is_ok());
         synthetic_ended_retention_action(&peer, "reopen");
-        root.lock().unwrap().observe_ended_runs(&peer.fixture.root);
+        crate::host_tick::observe_project_history(&root, &peer.fixture.root);
         let rows = own_log(&peer, &a);
         assert_eq!(
             rows.iter()
@@ -11643,7 +12212,7 @@ for line in sys.stdin:
         std::fs::remove_dir_all(export).unwrap();
         std::fs::write(peer.fixture.root.join("out/summary.md"), b"v3").unwrap();
         for _ in 0..3 {
-            root.lock().unwrap().observe_ended_runs(&peer.fixture.root);
+            crate::host_tick::observe_project_history(&root, &peer.fixture.root);
         }
         assert_eq!(
             external(&activity).code(),

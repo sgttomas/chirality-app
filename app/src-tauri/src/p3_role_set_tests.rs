@@ -65,7 +65,8 @@ fn p3_actual_seeded_start_preserves_identity_and_modified_guidance() {
         !root.join("roles.json").exists(),
         "read-only role set must not be seeded as editable guidance"
     );
-    assert_eq!(bundled_role_set().unwrap().default_role(), None);
+    // DEL-02-04 TBD-004: for 4.0.0 a new conversation preselects HELP_HUMAN.
+    assert_eq!(bundled_role_set().unwrap().default_role(), Some(Role::HELP_HUMAN));
     for role in [
         None,
         Some(Role::HELP_HUMAN),

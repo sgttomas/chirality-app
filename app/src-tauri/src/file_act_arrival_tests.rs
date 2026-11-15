@@ -758,3 +758,502 @@ fn metadata_retry_refuses(modes:&[&str]){
         std::fs::remove_dir_all(store).unwrap();
     }
 }
+
+/// Every path below `dir` with its bytes (folders: None), leaving out the
+/// derived query cache a read may keep under the store's `indexes/`.
+fn inventory(dir: &std::path::Path) -> std::collections::BTreeMap<std::path::PathBuf, Option<Vec<u8>>> {
+    let mut out = std::collections::BTreeMap::new();
+    let mut todo = vec![dir.to_path_buf()];
+    while let Some(at) = todo.pop() {
+        for entry in std::fs::read_dir(&at).unwrap() {
+            let path = entry.unwrap().path();
+            if path.strip_prefix(dir).is_ok_and(|rel| rel.starts_with("indexes")) { continue; }
+            // A temporary file gone between listing and reading was not kept.
+            let Ok(meta) = std::fs::symlink_metadata(&path) else { continue };
+            if meta.is_dir() { out.insert(path.clone(), None); todo.push(path); }
+            else if let Ok(bytes) = std::fs::read(&path) { out.insert(path.clone(), Some(bytes)); }
+        }
+    }
+    out
+}
+
+#[test]
+fn file_act_arrival_preview_finds_its_log_through_the_read_home_and_writes_nothing() {
+    // The test's own store, so no other test's writer shares it.
+    let own = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("arrival-preview-store-").unwrap());
+    crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store { root: own.clone(), placement: crate::records_store::Placement::Test, limits: vec![] })));
+    let (peer, state, run, arrival) = fixture("A7");
+    let store = crate::records_store::store_root().unwrap();
+    assert_eq!(store, own);
+    // The writer made the store-wide lock when it minted the project's
+    // identity. A preview, before the person has done anything, is a read:
+    // it takes no writer admission and makes no lock again.
+    let lock = store.join(".store.lock");
+    if lock.exists() { std::fs::remove_file(&lock).unwrap(); }
+    let (store_before, project_before) = (inventory(&store), inventory(&peer.fixture.root));
+    let preview = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+    assert_eq!(preview["offer"]["actKind"], "A7", "{preview}");
+    assert!(!lock.exists(), "the preview made the store-wide writer lock");
+    assert_eq!(inventory(&store), store_before, "the preview wrote in the records store");
+    assert_eq!(inventory(&peer.fixture.root), project_before, "the preview wrote in the project");
+    // The log it found is the run's own owning log.
+    assert_eq!(crate::records::supply::run_log_for_read(&peer.fixture.root, &run).unwrap(), crate::records::supply::run_log(&peer.fixture.root, &run).unwrap());
+    drop(state);
+    drop(peer);
+    crate::records_store::use_store_for_test(None);
+    let _ = std::fs::remove_dir_all(own);
+}
+
+fn entry_of(state: &crate::AppState, run: &str, arrival: &str) -> Value {
+    state.workflows.lock().unwrap().runs[run].lock().unwrap().view(run)["fileActEntries"][arrival].clone()
+}
+fn confirm_plain(state: &crate::AppState, reference: &str) -> Result<Value, String> {
+    crate::file_act_confirm_original(state, reference, |control, offer, observe| {
+        control.synthetic_file_native(offer, observe, |_, kind| MessageDialogResult::Custom(kind.wording().into()))
+    })
+}
+
+#[test]
+fn file_act_arrival_is_offered_only_while_an_act_would_answer_it() {
+    let (peer, state, run, arrival) = fixture("A7");
+    // Permitted: a waiting arrival is offered.
+    assert_eq!(entry_of(&state, &run, &arrival)["state"], "candidate");
+    let answering = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+    let later = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+    assert_eq!(confirm(&state, answering["reference"].as_str().unwrap(), "act")["state"], "AC-7 recorded");
+    // Its disposition changed through the real recorder: the offer is withdrawn, with the reason.
+    state.workflows.lock().unwrap().runs[&run].lock().unwrap().observe_checkpoints(&recorder_view(&peer, &summary_items()[1..]));
+    assert!(rs_for(&peer, &run).iter().any(|e| e["kind"] == "disposition_change" && e["body"]["disposition"] == "performed"));
+    let withdrawn = entry_of(&state, &run, &arrival);
+    assert_eq!((withdrawn["state"].as_str(), withdrawn["reason"].as_str()), (Some("unavailable"), Some(crate::checkpoint_recorder::not_answering::PERFORMED)));
+    assert_eq!(crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap_err(), crate::checkpoint_recorder::not_answering::PERFORMED);
+    // An offer taken before the arrival was answered is refused at confirmation, before the person
+    // is asked anything, and records nothing.
+    let before = acts(&peer).len();
+    let mut asked = false;
+    let refused = crate::file_act_confirm_original(&state, later["reference"].as_str().unwrap(), |control, offer, observe| {
+        control.synthetic_file_native(offer, observe, |_, kind| { asked = true; MessageDialogResult::Custom(kind.wording().into()) })
+    }).unwrap();
+    assert!(!asked, "the native question is never put");
+    assert_eq!(refused["error"], crate::checkpoint_recorder::not_answering::PERFORMED, "{refused}");
+    assert_eq!(acts(&peer).len(), before, "nothing recorded");
+    // DEL-04-01: the same act on the same file stays the person's, outside the arrival, recorded as before.
+    let home = state.homes.lock().unwrap().active();
+    let (_, context) = crate::file_act_observe(&state, &home).unwrap();
+    let path = peer.fixture.root.join("out/summary.md");
+    let offer = {
+        let mut control = state.act.lock().unwrap();
+        state.file_acts.lock().unwrap().compose(control.as_mut().unwrap(), &path, crate::act_control::FileActKind::Rely, "The summary file.", "You decide to rely on the summary.", home, context).unwrap()
+    };
+    let recorded = confirm_plain(&state, offer["reference"].as_str().unwrap()).unwrap();
+    assert_eq!(recorded["state"], "AC-7 recorded", "{recorded}");
+    let after = acts(&peer);
+    assert_eq!(after.len(), before + 1);
+    let standing = after.iter().find(|e| e["body"]["captureEvidence"].as_array().is_some_and(|refs| refs.iter().any(|r| r["ref"] == recorded["capture"]["captureId"]))).unwrap();
+    assert_eq!(standing["kind"], "human_act");
+    assert!(standing["body"]["relations"]["arrivalAnswered"].is_null(), "a standing act, answering no arrival: {standing}");
+}
+
+
+#[test]
+fn a_second_offer_on_an_arrival_already_answered_but_not_yet_taken_up_is_refused() {
+    // found (reading of 347): two offers confirmed before the recorder's next observation both
+    // recorded, though only the first could count.
+    let (peer, state, run, arrival) = fixture("A7");
+    let first = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+    let second = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+    assert_eq!(confirm(&state, first["reference"].as_str().unwrap(), "act")["state"], "AC-7 recorded");
+    // Before the recorder observes: the second is refused before the native question, and a new
+    // offer is not made.
+    let before = acts(&peer).len();
+    let mut asked = false;
+    let refused = crate::file_act_confirm_original(&state, second["reference"].as_str().unwrap(), |control, offer, observe| {
+        control.synthetic_file_native(offer, observe, |_, kind| { asked = true; MessageDialogResult::Custom(kind.wording().into()) })
+    }).unwrap();
+    assert!(!asked && refused["error"] == crate::checkpoint_recorder::not_answering::ANSWER_PENDING, "{refused}");
+    assert_eq!(acts(&peer).len(), before, "nothing recorded");
+    assert_eq!(crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap_err(), crate::checkpoint_recorder::not_answering::ANSWER_PENDING);
+    // Once taken up, the arrival reads performed, and the reason says that.
+    state.workflows.lock().unwrap().runs[&run].lock().unwrap().observe_checkpoints(&recorder_view(&peer, &summary_items()[1..]));
+    assert_eq!(rs_for(&peer, &run).iter().filter(|e| e["kind"] == "act_counted").count(), 1);
+    assert_eq!(crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap_err(), crate::checkpoint_recorder::not_answering::PERFORMED);
+}
+
+fn observe(state: &crate::AppState, peer: &Peer, run: &str) {
+    state.workflows.lock().unwrap().runs[run].lock().unwrap().observe_checkpoints(&recorder_view(peer, &summary_items()[1..]));
+}
+/// A standing offer on the arrival's file, of `kind`, composed outside any arrival.
+fn standing(state: &crate::AppState, peer: &Peer, kind: crate::act_control::FileActKind) -> String {
+    let home = state.homes.lock().unwrap().active();
+    let (_, context) = crate::file_act_observe(state, &home).unwrap();
+    let mut control = state.act.lock().unwrap();
+    state.file_acts.lock().unwrap().compose(control.as_mut().unwrap(), &peer.fixture.root.join("out/summary.md"), kind, "The summary file.", "You decide on the summary.", home, context).unwrap()["reference"].as_str().unwrap().to_owned()
+}
+/// A confirmation that records whether the native question was put, and what it said.
+fn confirm_watching(state: &crate::AppState, reference: &str, choice: &str, asked: &mut Option<String>) -> Value {
+    crate::file_act_confirm_original(state, reference, |control, offer, observe| {
+        control.synthetic_file_native(offer, observe, |text, kind| {
+            *asked = Some(text);
+            MessageDialogResult::Custom(if choice == "act" { kind.wording().into() } else { "Decline this act".into() })
+        })
+    }).unwrap()
+}
+/// Every log and capture the App could write: the project and the records store, as bytes.
+fn everything(peer: &Peer) -> (std::collections::BTreeMap<std::path::PathBuf, Option<Vec<u8>>>, std::collections::BTreeMap<std::path::PathBuf, Option<Vec<u8>>>) {
+    (inventory(&peer.fixture.root), inventory(&crate::records_store::store_root().unwrap()))
+}
+
+// Condition 1 of App Agent 0 (347, round 2): the projection writes nothing, at an opening or at a
+// refused confirmation.
+#[test]
+fn the_offers_projection_writes_nothing_at_an_opening_or_a_refused_confirmation() {
+    let own = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("arrival-projection-store-").unwrap());
+    crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store { root: own.clone(), placement: crate::records_store::Placement::Test, limits: vec![] })));
+    let (peer, state, run, arrival) = fixture("A7");
+    // The run's own memory: its entries as held, and its recorder's working state.
+    let memory = || {
+        let owned = state.workflows.lock().unwrap().runs[&run].clone();
+        let run = owned.lock().unwrap();
+        (run.entries.iter().map(|e| json!({"kind":e.kind,"body":e.body,"written":e.written,"refused":e.refused.is_some()})).collect::<Vec<_>>(), format!("{:?}", run.checkpoints))
+    };
+    let before = (everything(&peer), memory());
+    let first = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+    let second = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+    assert_eq!((everything(&peer), memory()), before, "a permitted opening wrote or changed the run's memory");
+    assert_eq!(confirm(&state, first["reference"].as_str().unwrap(), "act")["state"], "AC-7 recorded");
+    let answered = (everything(&peer), memory());
+    assert_eq!(crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap_err(), crate::checkpoint_recorder::not_answering::ANSWER_PENDING);
+    let mut asked = None;
+    let refused = confirm_watching(&state, second["reference"].as_str().unwrap(), "act", &mut asked);
+    assert!(asked.is_none() && refused["error"] == crate::checkpoint_recorder::not_answering::ANSWER_PENDING, "{refused}");
+    assert_eq!((everything(&peer), memory()), answered, "a refused opening or confirmation wrote or changed the run's memory");
+    drop(state);
+    drop(peer);
+    crate::records_store::use_store_for_test(None);
+    let _ = std::fs::remove_dir_all(own);
+}
+
+// (e), reading of 347 round 2: a standing act on the same file revision, recorded before a
+// contextual confirmation, holds the arrival until the recorder takes it up, and then the
+// arrival reads performed: unavailable throughout, and only one act answers.
+#[test]
+fn a_standing_act_recorded_first_holds_the_arrival_until_taken_up_and_it_then_reads_performed() {
+    use crate::checkpoint_recorder::not_answering::{ANSWER_PENDING, PERFORMED};
+    let (peer, state, run, arrival) = fixture("A7");
+    let contextual = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+    let rely = standing(&state, &peer, crate::act_control::FileActKind::Rely);
+    assert_eq!(confirm_plain(&state, &rely).unwrap()["state"], "AC-7 recorded");
+    assert_eq!(crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap_err(), ANSWER_PENDING);
+    let before = acts(&peer).len();
+    let mut asked = None;
+    let refused = confirm_watching(&state, contextual["reference"].as_str().unwrap(), "act", &mut asked);
+    assert!(asked.is_none() && refused["error"] == ANSWER_PENDING, "{refused}");
+    assert_eq!(acts(&peer).len(), before, "nothing recorded");
+    observe(&state, &peer, &run);
+    assert_eq!(rs_for(&peer, &run).iter().filter(|e| e["kind"] == "act_counted").count(), 1);
+    assert_eq!(crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap_err(), PERFORMED);
+}
+
+// (e), the hand-over inside a confirmation: while the contextual question is put, no other act
+// can be recorded (the act owner is held from the first check to the write), and the recorder's
+// observation then has nothing to take up; the contextual act records and is the one counted.
+#[test]
+fn no_act_is_recorded_between_a_contextual_confirmations_check_and_its_write() {
+    let (peer, state, run, arrival) = fixture("A7");
+    let contextual = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+    let rely = standing(&state, &peer, crate::act_control::FileActKind::Rely);
+    let mut during = None;
+    let recorded = crate::file_act_confirm_original(&state, contextual["reference"].as_str().unwrap(), |control, offer, check| {
+        control.synthetic_file_native(offer, check, |_, kind| {
+            during = Some(confirm_plain(&state, &rely));
+            observe(&state, &peer, &run);
+            MessageDialogResult::Custom(kind.wording().into())
+        })
+    }).unwrap();
+    let during = during.unwrap();
+    assert!(during.as_ref().is_err_and(|e| e.contains("Act owner busy")), "{during:?}");
+    assert_eq!(recorded["state"], "AC-7 recorded", "{recorded}");
+    observe(&state, &peer, &run);
+    let counted: Vec<_> = rs_for(&peer, &run).into_iter().filter(|e| e["kind"] == "act_counted").collect();
+    assert_eq!(counted.len(), 1);
+    assert_eq!(counted[0]["body"]["act"]["recordId"], recorded["record"]["recordId"]);
+}
+
+/// A claim, in another run's log, to answer `run`'s arrival with an A7 on the file, citing
+/// `capture` (its record body is the App's own for that capture, plus the arrival it claims).
+fn claim_in_another_runs_log(peer: &Peer, state: &crate::AppState, run: &str, capture: &Value) {
+    let second = peer.second_thread();
+    let other = open_run(peer, &mut state.workflows.lock().unwrap(), &second);
+    let log = crate::records::supply::run_log(&peer.fixture.root, &other).unwrap();
+    let mut claim = rs_for(peer, &other).into_iter().last().unwrap();
+    claim["kind"] = json!("human_act");
+    claim["runId"] = json!(run);
+    claim["recordId"] = json!(crate::util::opaque_id("rec:app:").unwrap());
+    claim["recorder"] = json!({"role":crate::records::APP_INTERFACE.role,"identity":crate::records::APP_INTERFACE.identity});
+    let mut body = crate::act_control::act_body(capture);
+    body["relations"] = json!({"arrivalAnswered":{"checkpoint":"CP-rely","arrivalOrdinal":1}});
+    claim["body"] = body;
+    append_raw(&log, claim);
+}
+fn invented_capture(peer: &Peer) -> Value {
+    let file = peer.fixture.root.join("out/summary.md");
+    let content = json!({"method":crate::util::FILE_IDENTITY_METHOD,"value":crate::util::sha256_hex(b"v1")});
+    crate::checkpoint_recorder::tests::capture_of("act", "A7", &file, &content, &crate::util::now_rfc3339())
+}
+
+// (b), reading of 347 round 2: a claim to answer the arrival, placed in another run's log, that
+// differs from the capture it cites, is settled by the reader as no act, and holds nothing.
+#[test]
+fn an_invented_claim_in_another_runs_log_that_differs_from_its_capture_holds_nothing() {
+    let (peer, state, run, arrival) = fixture("A7");
+    let capture = invented_capture(&peer);
+    crate::checkpoint_recorder::tests::store(&peer.fixture.root, &capture);
+    claim_in_another_runs_log(&peer, &state, &run, &capture);
+    let read = crate::checkpoint_recorder::project_act_records(&peer.fixture.root).unwrap();
+    assert!(read.unresolved.iter().any(|u| u["reason"] == "the record differs from the capture it cites"), "{:?}", read.unresolved);
+    let offered = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+    assert_eq!(confirm(&state, offered["reference"].as_str().unwrap(), "act")["state"], "AC-7 recorded");
+}
+
+// INTERLOCUTOR's condition 7 (347, round 2): a read that succeeded but could not settle a record
+// on the arrival's file (here, its capture is not in the store) is not positively complete: the
+// offer is refused with the not-read reason, at opening, and at the confirmation of an offer
+// opened before the record was written, before the native question.
+#[test]
+fn a_record_on_the_file_that_the_reader_cannot_settle_withholds_the_offer_at_opening_and_confirmation() {
+    use crate::checkpoint_recorder::not_answering::ACTS_NOT_READ;
+    let (peer, state, run, arrival) = fixture("A7");
+    let earlier = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+    claim_in_another_runs_log(&peer, &state, &run, &invented_capture(&peer));
+    let read = crate::checkpoint_recorder::project_act_records(&peer.fixture.root).unwrap();
+    assert!(read.unresolved.iter().any(|u| u["reason"].as_str().is_some_and(|r| r.starts_with("capture evidence not resolved"))), "{:?}", read.unresolved);
+    assert_eq!(crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap_err(), ACTS_NOT_READ);
+    let before = acts(&peer).len();
+    let mut asked = None;
+    let refused = confirm_watching(&state, earlier["reference"].as_str().unwrap(), "act", &mut asked);
+    assert!(asked.is_none() && refused["error"] == ACTS_NOT_READ, "{refused}");
+    assert_eq!(acts(&peer).len(), before);
+}
+
+// (d), reading of 347 round 2, and App Agent 0's option 1: on a performed arrival answered again
+// only by an act on its current content, the contextual sheet and preview say a decline would not
+// answer; a decline pressed there is refused before any capture, and nothing is written anywhere;
+// the act is offered and counted; the standing decline of the same kind stays the person's.
+#[test]
+fn a_decline_that_would_not_answer_is_said_and_refused_and_the_act_and_the_standing_decline_stay() {
+    use crate::checkpoint_recorder::not_answering::DECLINE_DOES_NOT_ANSWER;
+    let own = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("arrival-decline-store-").unwrap());
+    crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store { root: own.clone(), placement: crate::records_store::Placement::Test, limits: vec![] })));
+    let (peer, state, run, arrival) = fixture("A7");
+    let waiting = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+    assert!(waiting["declineNotice"].is_null(), "while it waits, a decline answers");
+    let stale = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+    assert_eq!(confirm(&state, waiting["reference"].as_str().unwrap(), "act")["state"], "AC-7 recorded");
+    observe(&state, &peer, &run);
+    // The run's next action, started after the act, is its resume point; the file then changes,
+    // so the lapse is after resume (RC-8) and the arrival stays performed.
+    let mut resumed = recorder_view(&peer, &[summary_items()[1].clone(), json!({"id":"c1","type":"commandExecution","source":"agent","command":"ls","status":"inProgress"})]);
+    let later = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_millis() as i64 + 60_000;
+    resumed["items"][2]["sourceFrame"] = json!({"method":"item/started","params":{"startedAtMs":later}});
+    let owned = state.workflows.lock().unwrap().runs[&run].clone();
+    owned.lock().unwrap().observe_checkpoints(&resumed);
+    std::fs::write(peer.fixture.root.join("out/summary.md"), b"v2").unwrap();
+    owned.lock().unwrap().observe_checkpoints(&resumed);
+    assert!(rs_for(&peer, &run).iter().any(|e| e["kind"] == "act_lapsed" && e["body"]["when"] == "after resume"), "{:#?}", rs_for(&peer, &run));
+    let relapsed = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+    assert_eq!(relapsed["declineNotice"], DECLINE_DOES_NOT_ANSWER);
+    let held = state.file_acts.lock().unwrap().snapshot();
+    assert!(held.as_array().unwrap().iter().any(|o| o["reference"] == relapsed["reference"] && o["declineNotice"] == DECLINE_DOES_NOT_ANSWER), "{held}");
+    let before = everything(&peer);
+    let mut asked = None;
+    let refused = confirm_watching(&state, relapsed["reference"].as_str().unwrap(), "decline", &mut asked);
+    assert!(asked.as_deref().is_some_and(|text| text.contains(DECLINE_DOES_NOT_ANSWER) && !text.contains("Decline records only")), "{asked:?}");
+    assert_eq!(refused["error"], DECLINE_DOES_NOT_ANSWER, "{refused}");
+    assert_eq!(everything(&peer), before, "nothing captured or recorded, in any log");
+    // The restriction holds at confirmation too: an offer opened while the arrival waited, whose
+    // decline would then have answered, is refused before its question once that has changed.
+    let mut asked = None;
+    let refused = confirm_watching(&state, stale["reference"].as_str().unwrap(), "decline", &mut asked);
+    assert!(asked.is_none() && refused["error"].is_string(), "{refused}");
+    assert_eq!(everything(&peer), before, "nothing captured or recorded, in any log");
+    let again = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+    let act = confirm(&state, again["reference"].as_str().unwrap(), "act");
+    assert_eq!(act["state"], "AC-7 recorded");
+    owned.lock().unwrap().observe_checkpoints(&resumed);
+    assert!(rs_for(&peer, &run).iter().any(|e| e["kind"] == "act_counted" && e["body"]["act"]["recordId"] == act["record"]["recordId"]));
+    // DEL-04-01: the standing decline of the same kind on the same file, from the standing file
+    // selection, records as before.
+    let rely = standing(&state, &peer, crate::act_control::FileActKind::Rely);
+    let mut asked = None;
+    let declined = confirm_watching(&state, &rely, "decline", &mut asked);
+    assert!(asked.as_deref().is_some_and(|text| text.contains("Decline records only a decline of this kind")), "{asked:?}");
+    assert_eq!(declined["record"]["kind"], "act_declined", "{declined}");
+    assert!(declined["record"]["body"]["arrival"].is_null());
+    drop(state);
+    drop(peer);
+    crate::records_store::use_store_for_test(None);
+    let _ = std::fs::remove_dir_all(own);
+}
+
+/// Confirms `reference` with its validations passing, then makes its record's append fail: an
+/// invented folder occupies the writer log it would be appended to. The capture is then held.
+fn confirm_holding(state: &crate::AppState, reference: &str, log: &std::path::Path) -> Value {
+    assert!(!log.exists(), "the invented first-answer log is not yet present");
+    std::fs::create_dir_all(log.parent().unwrap()).unwrap();
+    let mut checks = 0;
+    let held = crate::file_act_confirm_original(state, reference, |control, offer, check| {
+        control.synthetic_file_native(offer, || {
+            checks += 1;
+            let result = check()?;
+            if checks == 2 { std::fs::create_dir(log).unwrap(); }
+            Ok(result)
+        }, |_, kind| MessageDialogResult::Custom(kind.wording().into()))
+    }).unwrap();
+    held
+}
+fn captures(peer: &Peer) -> std::collections::BTreeMap<std::path::PathBuf, Option<Vec<u8>>> {
+    crate::storage::capture_dir(&peer.fixture.root).ok().filter(|d| d.is_dir()).map(|d| inventory(&d)).unwrap_or_default()
+}
+
+// Third reading of 347, (a) and (e): an answer confirmed whose record is not yet written is no
+// record the projection or the recorder can see, and the next recording writes it ahead of any
+// new one. While the act owner holds one, contextual or standing, no contextual offer is opened,
+// and an offer opened earlier is refused before its question, with nothing captured. Once its
+// record is written, the arrival reads pending, then performed, and only one act answers it.
+// The contextual case is also the new act's own failed append: no second offer follows it.
+#[test]
+fn an_answer_held_without_its_record_withholds_the_arrival_offer_until_its_record_is_written() {
+    use crate::checkpoint_recorder::not_answering::{ANSWER_PENDING, EARLIER_CAPTURE_HELD, PERFORMED};
+    for first_is_standing in [false, true] {
+        let (peer, state, run, arrival) = fixture("A7");
+        let earlier = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+        let (first, log) = if first_is_standing {
+            (standing(&state, &peer, crate::act_control::FileActKind::Rely), crate::storage::project_file(&peer.fixture.root, crate::recorder::LOG).unwrap())
+        } else {
+            (crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap()["reference"].as_str().unwrap().to_owned(),
+             crate::storage::project_log(&peer.fixture.root, Some(&run), crate::records::APP_INTERFACE.identity).unwrap())
+        };
+        let held = confirm_holding(&state, &first, &log);
+        assert_eq!(held["state"], "AC-8 record pending", "{held}");
+        // While the cause stays, continuing does not clear the hold, and the standing act of the
+        // same kind is still offered and captured, its record waiting behind the held one.
+        assert_eq!(crate::file_act_continue_result(&state, &first).unwrap()["state"], "AC-8 record pending");
+        let behind = standing(&state, &peer, crate::act_control::FileActKind::Rely);
+        assert_eq!(confirm_plain(&state, &behind).unwrap()["state"], "AC-8 record pending");
+        std::fs::remove_dir(&log).unwrap();
+        assert!(acts(&peer).is_empty(), "the held answer has no record yet");
+        assert_eq!(crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap_err(), EARLIER_CAPTURE_HELD, "standing first: {first_is_standing}");
+        let before = (acts(&peer).len(), captures(&peer));
+        let mut asked = None;
+        let refused = confirm_watching(&state, earlier["reference"].as_str().unwrap(), "act", &mut asked);
+        assert!(asked.is_none() && refused["error"] == EARLIER_CAPTURE_HELD, "{refused}");
+        assert_eq!((acts(&peer).len(), captures(&peer)), before, "nothing captured or recorded");
+        // The cause gone, continuing the held record alone, with no new act, clears the hold; the
+        // standing act behind it is written after it.
+        assert_eq!(crate::file_act_continue_result(&state, &first).unwrap()["state"], "AC-7 recorded");
+        assert!(!state.act.lock().unwrap().as_ref().unwrap().answer_held());
+        assert_eq!(acts(&peer).len(), 2);
+        assert_eq!(crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap_err(), ANSWER_PENDING);
+        observe(&state, &peer, &run);
+        let counted: Vec<_> = rs_for(&peer, &run).into_iter().filter(|e| e["kind"] == "act_counted").collect();
+        assert_eq!(counted.len(), 1);
+        assert_eq!(crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap_err(), PERFORMED);
+    }
+}
+
+// The ground the held-answer check rests on (App Agent 0, round 3): a capture with no native
+// custody and no matching record is never appended, not by a contextual act's flush and not by
+// recovery (act_control.rs recover_capture_recording: without native custody it returns "record
+// pending" with the origin hold, and only reconciles a record that already exists). So the check
+// need not count such a capture. Were recovery ever to replay it, this test fails.
+#[test]
+fn a_capture_without_native_custody_or_record_is_never_appended_by_a_flush_or_by_recovery() {
+    let (peer, state, run, arrival) = fixture("A7");
+    let capture = invented_capture(&peer);
+    crate::checkpoint_recorder::tests::store(&peer.fixture.root, &capture);
+    let id = capture["captureId"].clone();
+    let cited = || acts(&peer).iter().any(|e| e["body"]["captureEvidence"].as_array().is_some_and(|refs| refs.iter().any(|r| r["ref"] == id)));
+    assert!(!state.act.lock().unwrap().as_ref().unwrap().answer_held(), "not held: no native custody");
+    let offered = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+    let recorded = confirm(&state, offered["reference"].as_str().unwrap(), "act");
+    assert_eq!(recorded["state"], "AC-7 recorded");
+    assert!(!cited(), "a contextual act's flush appended a capture it had no custody of");
+    // Recovery, as at start-up and by the explicit continuation.
+    let status = crate::runtime_session::continue_decision_writer(&peer.fixture.root, state.act.lock().unwrap().as_mut(), "test");
+    assert!(!cited(), "recovery appended a capture it had no custody of: {status}");
+    assert!(status["captureRecovery"].as_array().unwrap().iter().any(|r| r["capture"]["captureId"] == id && r["state"] == "AC-8 record pending"), "{status}");
+    observe(&state, &peer, &run);
+    let counted: Vec<_> = rs_for(&peer, &run).into_iter().filter(|e| e["kind"] == "act_counted").collect();
+    assert_eq!(counted.len(), 1);
+    assert_eq!(counted[0]["body"]["act"]["recordId"], recorded["record"]["recordId"]);
+}
+
+/// Seals made on this thread find no key folder (as a signed build before keychain enrolment
+/// finds none it may use): the act is captured and recorded unsealed, and is not counted.
+struct NoSealKeys;
+impl NoSealKeys {
+    fn on() -> NoSealKeys {
+        crate::capture_seal::set_folder_for_test(Some(None));
+        NoSealKeys
+    }
+}
+impl Drop for NoSealKeys {
+    fn drop(&mut self) {
+        crate::capture_seal::set_folder_for_test(None);
+    }
+}
+
+// The settled no-seal verdict (347, before the landing): an act recorded on the arrival's file
+// whose capture carries no seal can never count, so it holds nothing. The offer opens with no
+// not-read sentence and a new act is offered. In this state that act is again captured unsealed
+// and not counted, until the sealing and the telling units land; once seals can be made, the
+// next act counts.
+#[test]
+fn an_act_recorded_unsealed_holds_nothing_and_the_offer_stays_open() {
+    use crate::checkpoint_recorder::not_answering::PERFORMED;
+    let (peer, state, run, arrival) = fixture("A7");
+    {
+        let _unsealed = NoSealKeys::on();
+        let first = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+        let recorded = confirm(&state, first["reference"].as_str().unwrap(), "act");
+        assert_eq!(recorded["state"], "AC-7 recorded", "{recorded}");
+        assert!(recorded["capture"]["seal"].is_null() && recorded["capture"]["evidenceLimits"].to_string().contains("capture not sealed"), "{recorded}");
+        observe(&state, &peer, &run);
+        assert_eq!(rs_for(&peer, &run).iter().filter(|e| e["kind"] == "act_counted").count(), 0, "not counted");
+        let read = crate::checkpoint_recorder::project_act_records(&peer.fixture.root).unwrap();
+        assert!(read.unresolved.iter().any(|u| u["settled"] == true && u["record"]["recordId"] == recorded["record"]["recordId"]), "{:?}", read.unresolved);
+        // The offer opens, with no not-read sentence, and a new act is offered.
+        let again = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+        assert!(again["reference"].is_string(), "{again}");
+        assert_eq!(confirm(&state, again["reference"].as_str().unwrap(), "act")["state"], "AC-7 recorded");
+        observe(&state, &peer, &run);
+        assert_eq!(rs_for(&peer, &run).iter().filter(|e| e["kind"] == "act_counted").count(), 0, "again not counted in this state");
+    }
+    // Seals can be made again: the next act through the offer counts.
+    let sealed = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+    let counted = confirm(&state, sealed["reference"].as_str().unwrap(), "act");
+    observe(&state, &peer, &run);
+    let counts: Vec<_> = rs_for(&peer, &run).into_iter().filter(|e| e["kind"] == "act_counted").collect();
+    assert_eq!(counts.len(), 1);
+    assert_eq!(counts[0]["body"]["act"]["recordId"], counted["record"]["recordId"]);
+    assert_eq!(crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap_err(), PERFORMED);
+}
+
+// A true limit of the read still refuses: a sealed act on the arrival's file whose seal cannot be
+// checked now (no key folder at reading) may be an answer, so the offer is withheld with the
+// not-read reason, and opens once the seal can be checked (then as pending, since it answers).
+#[test]
+fn a_seal_that_cannot_be_checked_now_still_withholds_the_offer_with_its_reason() {
+    use crate::checkpoint_recorder::not_answering::{ACTS_NOT_READ, ANSWER_PENDING};
+    let (peer, state, run, arrival) = fixture("A7");
+    let rely = standing(&state, &peer, crate::act_control::FileActKind::Rely);
+    let recorded = confirm_plain(&state, &rely).unwrap();
+    assert!(recorded["capture"]["seal"].is_object(), "sealed: {recorded}");
+    {
+        let _unchecked = NoSealKeys::on();
+        let read = crate::checkpoint_recorder::project_act_records(&peer.fixture.root).unwrap();
+        assert!(read.unresolved.iter().any(|u| u["settled"].is_null() && u["record"]["recordId"] == recorded["record"]["recordId"]), "{:?}", read.unresolved);
+        assert_eq!(crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap_err(), ACTS_NOT_READ);
+    }
+    assert_eq!(crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap_err(), ANSWER_PENDING);
+}

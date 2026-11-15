@@ -55,6 +55,8 @@ fn unavailable() -> String {
     LIMIT.into()
 }
 fn at(parent: &File, name: &str, flags: i32) -> Result<File, String> {
+    #[cfg(test)]
+    if flags & (libc::O_WRONLY | libc::O_RDWR | libc::O_CREAT | libc::O_TRUNC | libc::O_APPEND) != 0 { crate::records_effect_guard::mutation_for_test("child_roles::at"); }
     let name = CString::new(name).map_err(|_| unavailable())?;
     let fd = unsafe {
         libc::openat(
@@ -699,6 +701,8 @@ impl ChildSupply {
     }
 }
 fn publish(root: &Path, role: Role, composition: Composition) -> Result<ChildSupply, String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("child_roles::publish");
     let envelope = format!(
         "developer_instructions = {}\n",
         serde_json::to_string(&composition.text).map_err(|_| unavailable())?

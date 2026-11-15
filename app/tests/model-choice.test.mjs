@@ -2,18 +2,28 @@
 // peer (invented snapshot and models). The native read itself is checked by
 // the Rust fixture test `model_catalog_lists_the_server_providers_models_at_a_press_and_keeps_no_configuration`.
 // No supplier, model, sign-in, network or person act.
-import test from 'node:test';
+import test, {beforeEach, afterEach} from 'node:test';
 import assert from 'node:assert/strict';
 import {loadSrc} from './support/load-src.mjs';
+import {agentBlocks, agentBlockText} from './support/agent-text.mjs';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
+import {choiceLists, chooseIn} from './support/choices.mjs';
 const document = installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
 const {App} = loadSrc('App');
 const {modelMatch, validModelPacket} = loadSrc('ModelChoice');
+// This version offers no local model route (DEL-01-05 "For 4.0.0"); its views are kept for a later update,
+// gated on LOCAL_ROUTE_OFFERED. The tests of the kept local flows turn the gate on, as that update would; the
+// host refuses every local command whatever the views show. Every other test runs with the gate off.
+const localRoute = loadSrc('localRoute');
+const KEPT_LOCAL_FLOW = /oMLX|^review: |^a settings save withdraws/;
+beforeEach(t => { localRoute.LOCAL_ROUTE_OFFERED = KEPT_LOCAL_FLOW.test(t.name); });
+afterEach(() => { localRoute.LOCAL_ROUTE_OFFERED = false; });
 
 const g = {home:'account', appSession:'s1', spawnCounter:1};
+const deferred = () => { let resolve, reject; const promise = new Promise((yes, no) => { resolve = yes; reject = no; }); return {promise, resolve, reject}; };
 const props = node => node[Object.keys(node).find(k => k.startsWith('__reactProps$'))];
 const nodes = (c, tag) => c.querySelectorAll(node => node.localName === tag);
 const region = (c, label) => c.querySelectorAll(node => node.getAttribute('aria-label') === label)[0];
@@ -24,19 +34,23 @@ const models = [
   {id:'model-b', model:'model-b', displayName:'Model B', description:'Invented small model', isDefault:false},
 ];
 const packet = (over = {}) => ({state:'observed', generation:g, modeHomeClass:'account', serverProvider:'openai', serverProviderState:'named', models, complete:true, limits:[], readAt:'2026-11-03T00:00:00Z',
-  standing:'Models Codex reports for the app-server\'s own provider in this Codex generation, read now at your press. A listed model is the supplier\'s reported availability for that provider, not your account\'s entitlement or access; Start still checks the current configuration.', ...over});
+  standing:'Models Codex reports for the app-server\'s own provider in this Codex generation. A listed model is the supplier\'s reported availability for that provider, not your account\'s entitlement or access; Start still checks the current configuration.', ...over});
 const snapshotFor = (mode = 'account', generation = g) => ({state:'ready', generation, homeRouting:{activeModeHomeClass:mode}, threads:[],
   roleLimits:{account:{roles:[]}, 'api-key':{roles:[]}}, roleSet:{available:true, defaultRole:'HELP_HUMAN', roles:[{name:'HELP_HUMAN', meaning:'fixture role', default_for_new_chat:true}]}});
 
 // Optional one-shot hold of the next host_status read (its snapshot is taken first).
 let hostGate = null;
+// When set, every host_status read rejects with it (a status refresh that fails).
+let statusFailure = null;
 async function mounted(handler, check, initial = snapshotFor()) {
   const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c); const calls = [];
   let snapshot = initial;
   const idle = installIdleNativeWaiting(async (command, args) => {
     calls.push({command, args:structuredClone(args)});
-    if (command === 'host_status') { const value = structuredClone(snapshot), gate = hostGate; hostGate = null; if (gate) await gate; return value; }
+    if (command === 'host_status') { if (statusFailure) throw statusFailure; const value = structuredClone(snapshot), gate = hostGate; hostGate = null; if (gate) await gate; return value; }
     if (command === 'decision_view') return {rows:[]};
+    // The waiting list's timed returns read (it writes nothing): an established empty fleet packet.
+    if (command === 'read_fleet_records') return {format:'f', formatVersion:'0', standing:'invented', project:{canonicalRoot:'/invented/project'}, briefs:[], graphs:[], limits:[], nativeRecording:'invented', coordination:{project:{source:{path:'fleet/coordination.fleet.jsonl'}, status:'read', complete:true}, projectRecords:[], governingStoreRecords:[], appObservations:[], protected:{state:'invented'}}, workspace:{standing:'invented', graphIdentityMethod:'m', limits:[], undertakings:[]}};
     if (command === 'native_confirmation_content') return [];
     return handler(command, args, {get snapshot() { return snapshot; }});
   });
@@ -45,7 +59,7 @@ async function mounted(handler, check, initial = snapshotFor()) {
   document.getElementById = id => c.querySelectorAll(node => node.getAttribute('id') === id)[0] ?? null;
   const ui = {c, calls, press:async label => React.act(async () => { const node = button(c, label); assert.ok(node, label); assert.equal(!!props(node).disabled, false, label); await props(node).onClick(); }),
     setSnapshot:value => { snapshot = value; }, refresh:async () => React.act(async () => { for (const fn of intervals.values()) await fn(); }),
-    summary:() => region(c, 'New conversation choice').textContent, issued:() => calls.filter(call => !['host_status', 'decision_view', 'native_confirmation_content'].includes(call.command))};
+    summary:() => region(c, 'New conversation choice').textContent, issued:() => calls.filter(call => !['host_status', 'decision_view', 'read_fleet_records', 'native_confirmation_content'].includes(call.command))};
   try { await React.act(() => root.render(React.createElement(App))); await check(ui); }
   finally { const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text);
     globalThis.setInterval = previous.setInterval; globalThis.clearInterval = previous.clearInterval; document.getElementById = previous.getElementById; }
@@ -71,30 +85,98 @@ test('a listed model is offered only for a confirmed or explicitly unconfirmed b
   assert.equal(modelMatch(packet({serverProviderState:undefined}), 'openai', 'chatgpt-account'), 'none', 'an untyped reading is never matched');
 });
 
-test('a first-time account user chooses the built-in route and a reported model, then Start sends exactly that choice', async () => {
+// DEL-01-05 REQ-004 as decided: in this version the account home has exactly one access entry, a fact of the
+// configuration, shown as the connection in use without asking; the model stays the person's choice, with no default.
+const IN_USE = 'Connects with your ChatGPT account (built-in OpenAI) — the only connection this version offers.';
+const go = async (ui, label) => {
+  const anchor = nodes(ui.c, 'a').find(node => node.textContent === label); assert.ok(anchor, label);
+  const main = nodes(ui.c, 'main')[0]; await React.act(async () => props(main).onClick({target:anchor, currentTarget:main}));
+};
+test('a first-time account user meets the only connection in use and the model list the App reads, chooses a reported model, then Start sends exactly that', async () => {
+  let reply;
   await mounted(async (command, args) => {
-    if (command === 'read_available_models') return packet();
+    if (command === 'read_available_models') { reply = deferred(); return reply.promise; }
     if (command === 'thread_start') return {state:'refused-for-fixture'};
     throw Error(`unexpected ${command}`);
   }, async ui => {
     assert.match(ui.summary(), /no model selected/);
-    await ui.press('Use my ChatGPT account (built-in OpenAI)');
-    assert.deepEqual(ui.issued(), [], 'choosing the route issues nothing');
-    assert.match(region(ui.c, 'How this conversation connects').textContent, /chosen/);
-    await ui.press('Read available models');
-    assert.deepEqual(ui.issued(), [{command:'read_available_models', args:{generation:g, modeHomeClass:'account'}}]);
+    assert.equal(region(ui.c, 'Connection in use').textContent, IN_USE, 'shown as in use, where the toggle was');
+    assert.equal(button(ui.c, 'Use my ChatGPT account (built-in OpenAI)'), undefined, 'nothing to choose');
+    assert.doesNotMatch(region(ui.c, 'How this conversation connects').textContent, /signed in|sign-in|sign in/i, 'the connection line says nothing of sign-in');
+    assert.deepEqual(ui.issued(), [], 'nothing is read while New conversation is not shown');
+    await go(ui, 'Conversation');
+    // New conversation opens with the connection in use and Codex ready: the App reads the list itself.
+    assert.deepEqual(ui.issued(), [{command:'read_available_models', args:{generation:g, modeHomeClass:'account', atPersonPress:false}}]);
+    assert.match(region(ui.c, 'Available models').textContent, /Reading the models Codex offers…/, 'never just empty while it is read');
+    await React.act(async () => { reply.resolve(packet()); });
     const list = region(ui.c, 'Available models').textContent;
     assert.match(list, /Models Codex reports for provider openai/); assert.match(list, /Model A model-a · Codex's default/); assert.match(list, /not your account's entitlement or access/);
+    assert.ok(button(ui.c, 'Read the list again'), 'the button stays, to read it again');
     assert.match(ui.summary(), /no model selected/, 'the reported default is not preselected');
-    await ui.press('Use Model B');
+    assert.doesNotMatch(ui.c.textContent, /\(step 1\)/, 'no step 1 while the only connection is in use');
+    await ui.press('Use model model-b');
     assert.match(ui.summary(), /New conversation choice: model-b via openai \(chatgpt-account\)/);
     assert.match(region(ui.c, 'Available models').textContent, /Model B model-b · chosen/);
     await ui.press('Start thread');
     const start = ui.issued().find(call => call.command === 'thread_start');
+    assert.equal(start.args.entrySource, "app-showed-only-entry");
     assert.deepEqual({model:start.args.model, modelProvider:start.args.modelProvider, entryId:start.args.entryId, modeHomeClass:start.args.modeHomeClass},
       {model:'model-b', modelProvider:'openai', entryId:'chatgpt-account', modeHomeClass:'account'});
     assert.equal(ui.issued().filter(call => call.command === 'read_available_models').length, 1, 'nothing re-reads or retries on its own');
   });
+});
+
+test('with two access entries available the choice returns as before: nothing is in use until the person chooses', async () => {
+  // The kept local route's code makes a second entry available (the seam its kept-flow tests use).
+  localRoute.LOCAL_ROUTE_OFFERED = true;
+  await mounted(async command => { if (command === 'read_available_models') return packet(); throw Error(`unexpected ${command}`); }, async ui => {
+    assert.equal(region(ui.c, 'Connection in use'), undefined);
+    const route = button(ui.c, 'Use my ChatGPT account (built-in OpenAI)');
+    assert.ok(route); assert.equal(props(route)['aria-pressed'], false, 'not chosen for the person');
+    assert.match(ui.c.textContent, /Choose how this conversation connects \(step 1\)/);
+    await go(ui, 'Conversation');
+    assert.deepEqual(ui.issued(), [], 'the list is read at the person\'s press here');
+    await ui.press('Use my ChatGPT account (built-in OpenAI)');
+    assert.equal(props(button(ui.c, 'Use my ChatGPT account (built-in OpenAI)'))['aria-pressed'], true);
+    assert.ok(button(ui.c, 'Read available models'));
+  });
+});
+
+test('a read of the connections that returns one row selects nothing; while which connections exist is unknown, nothing is in use', async () => {
+  // A routing read listing a single row, with a second entry possible: one row is not "exactly one".
+  localRoute.LOCAL_ROUTE_OFFERED = true;
+  await mounted(async command => { throw Error(`unexpected ${command}`); }, async ui => {
+    assert.equal(region(ui.c, 'Connection in use'), undefined);
+    assert.equal(props(button(ui.c, 'Use my ChatGPT account (built-in OpenAI)'))['aria-pressed'], false);
+    assert.match(ui.c.textContent, /Choose how this conversation connects \(step 1\)/);
+  }, {...snapshotFor(), homeRouting:{activeModeHomeClass:'account', entries:[{modeHomeClass:'account', generation:g, state:'ready'}]}});
+  localRoute.LOCAL_ROUTE_OFFERED = false;
+  // The status names no active home yet: the connections are being read, and nothing is taken as in use.
+  await mounted(async command => { throw Error(`unexpected ${command}`); }, async ui => {
+    assert.match(region(ui.c, 'How this conversation connects').textContent, /Reading which connections this App offers…/);
+    assert.equal(region(ui.c, 'Connection in use'), undefined);
+    assert.equal(!!props(button(ui.c, 'Start thread')).disabled, true);
+  }, {...snapshotFor(), homeRouting:{}});
+});
+
+test('the connection in use is for new conversations only: an existing conversation keeps its own home and provider', async () => {
+  const existing = {generation:g, threadId:'existing', model:'their-model', modelProvider:'their-provider', requestedDestination:{entryId:'their-entry'}};
+  await mounted(async (command, args) => {
+    if (command === 'read_available_models') return packet({conversationModel:'their-model'});
+    if (command === 'conversation_send_text') return {result:{}};
+    throw Error(`unexpected ${command}`);
+  }, async ui => {
+    await go(ui, 'Conversation');
+    const list = choiceLists(region(ui.c, 'Conversation workspace') ?? ui.c)[0];
+    await React.act(() => chooseIn(list, JSON.stringify([g, 'existing'])));
+    const text = nodes(ui.c, 'textarea').find(node => props(node).id === 'ordinary-composer-text');
+    await React.act(() => props(text).onChange({target:{value:'hello'}}));
+    await ui.press('Send text');
+    const send = ui.issued().find(call => call.command === 'conversation_send_text');
+    assert.ok(send); assert.equal(send.args.modelProvider, undefined); assert.equal(send.args.entryId, undefined, 'a send names no connection: the conversation keeps its own');
+    assert.equal(ui.issued().filter(call => ['select_home', 'thread_start'].includes(call.command)).length, 0, 'no home is switched and nothing is started');
+    assert.equal(region(ui.c, 'Connection in use').textContent, IN_USE, 'the new conversation shows the connection in use beside it');
+  }, {...snapshotFor(), threads:[existing]});
 });
 
 test('a long already-safe App response keeps its distinct tail in optional details; a start error stays direct', async () => {
@@ -108,15 +190,16 @@ test('a long already-safe App response keeps its distinct tail in optional detai
     }
     throw Error(`unexpected ${command}`);
   }, async ui => {
-    await ui.press('Use my ChatGPT account (built-in OpenAI)');
-    await ui.press('Read available models'); await ui.press('Use Model B');
+    await ui.press('Read the list again');
+    assert.equal(ui.issued().filter(c => c.command === 'read_available_models').at(-1).args.atPersonPress, true);
+    await ui.press('Use model model-b');
     await ui.press('Start thread');
     const feedback = region(ui.c, 'Latest App response');
     const details = nodes(feedback, 'details')[0];
     assert.ok(details); assert.equal(!!props(details).open, false);
     const expected = `thread_start: ${JSON.stringify(response)}`;
     assert.ok(expected.length > 600);
-    assert.equal(nodes(details, 'pre')[0].textContent, expected);
+    assert.equal(agentBlockText(agentBlocks(details)[0]), expected);
     assert.doesNotMatch(nodes(feedback, 'p')[0].textContent, /success|completed|accepted/i);
     assert.ok(nodes(feedback, 'p').some(node => node.textContent === 'acknowledged: false'));
     assert.ok(nodes(feedback, 'p').some(node => node.textContent === 'error: Explicit negative acknowledgment.'));
@@ -130,29 +213,28 @@ test('a long already-safe App response keeps its distinct tail in optional detai
 test('a list for another provider, an unnamed provider and a stale or failed read never choose a model', async () => {
   let reply = packet({serverProvider:'local-lab'});
   await mounted(async command => { if (command === 'read_available_models') { if (reply instanceof Error) throw reply; return reply; } throw Error(`unexpected ${command}`); }, async ui => {
-    await ui.press('Use my ChatGPT account (built-in OpenAI)');
-    await ui.press('Read available models');
+    await ui.press('Read the list again');
     assert.match(region(ui.c, 'Available models').textContent, /This list isn't for this conversation's provider \(openai; the list is for local-lab\)/);
-    assert.deepEqual(buttons(ui.c, 'Use Model'), [], 'no choice from another provider\'s list');
+    assert.deepEqual(buttons(ui.c, 'Use model'), [], 'no choice from another provider\'s list');
     reply = packet({serverProvider:null, serverProviderState:'unnamed', providerLimit:'the app-server\'s configuration names no provider; the list is not matched to any conversation provider'});
-    await ui.press('Read available models');
+    await ui.press('Read the list again');
     assert.match(region(ui.c, 'Available models').textContent, /can't confirm these models are for the built-in OpenAI route.*it doesn't confirm this model is offered on it/);
-    await ui.press('Use Model A (provider not confirmed)');
+    await ui.press('Use model model-a (provider not confirmed)');
     assert.match(ui.summary(), /model-a via openai/);
     ui.setSnapshot(snapshotFor('account', {...g, spawnCounter:2})); await ui.refresh();
     assert.match(region(ui.c, 'Available models').textContent, /This model list is out of date/);
-    assert.deepEqual(buttons(ui.c, 'Use Model'), [], 'a stale list offers nothing');
+    assert.deepEqual(buttons(ui.c, 'Use model'), [], 'a stale list offers nothing');
     reply = Error('invented: model/list answered with an error');
-    await ui.press('Read available models');
-    assert.match(region(ui.c, 'Available models').textContent, /Model list unavailable: .*invented: model\/list answered with an error.*Advanced: enter IDs yourself/);
+    await ui.press('Read the list again');
+    assert.match(region(ui.c, 'Available models').textContent, /Model list unavailable: .*invented: model\/list answered with an error.*Advanced: enter a model ID yourself/);
     reply = packet({generation:g});
-    await ui.press('Read available models');
+    await ui.press('Read the list again');
     assert.match(region(ui.c, 'Available models').textContent, /Model list unavailable: the reply was not a model list for this Codex source/, 'a reply for another generation is refused');
     assert.equal(ui.issued().filter(call => call.command === 'thread_start').length, 0);
   });
 });
 
-test('omitted OpenAI-key mode offers no product entry or dispatch; account and local remain independent', async () => {
+test('omitted OpenAI-key mode offers no product entry or dispatch; this version offers no local route', async () => {
   await mounted(async command => { throw Error(`unexpected ${command}`); }, async ui => {
     assert.equal(button(ui.c, "Use this home's API key (built-in OpenAI)"), undefined);
     assert.equal(button(ui.c, 'Add or replace key in native secure field…'), undefined);
@@ -162,11 +244,14 @@ test('omitted OpenAI-key mode offers no product entry or dispatch; account and l
     assert.ok(!nodes(ui.c, 'option').some(n => props(n).value === 'api-key'));
     assert.equal(ui.issued().filter(x => ['add_api_key','read_available_models','thread_start'].includes(x.command)).length, 0);
     ui.setSnapshot(snapshotFor()); await ui.refresh();
-    assert.ok(button(ui.c, 'Use my ChatGPT account (built-in OpenAI)'));
-    assert.ok(nodes(ui.c, 'option').some(n => props(n).value === 'local-provider'));
-    assert.match(region(ui.c, 'Account connection').textContent, /Keyed oMLX runs Codex in a separate local home/);
-    assert.ok(button(ui.c, 'Prepare the oMLX connection'), 'keyed local access is offered separately from account sign-in');
-    assert.equal(button(ui.c, 'Enter oMLX key in a secure field…'), undefined, 'no key entry before a current local source exists');
+    assert.equal(region(ui.c, 'Connection in use').textContent, IN_USE, 'the account home shows its only connection in use');
+    assert.ok(!nodes(ui.c, 'option').some(n => props(n).value === 'local-provider'), 'the account home offers no local-provider entry');
+    assert.equal(region(ui.c, 'Local model servers').textContent, 'Local providers named in your own Codex settings are not offered: the App can’t run one in this home, and this version offers no local model server.');
+    assert.match(region(ui.c, 'Account connection').textContent, /^Connect to a modelSign in with your ChatGPT account to reach a model\./);
+    assert.equal(region(ui.c, 'oMLX and local providers'), undefined, 'no local section under Connection and access');
+    assert.equal(button(ui.c, 'Prepare the oMLX connection'), undefined, 'no local preparation offered');
+    assert.equal(button(ui.c, 'Enter oMLX key in a secure field…'), undefined, 'no key entry');
+    assert.doesNotMatch(ui.c.textContent, /oMLX|model server running on this machine|has its own home|Set up the App’s local model connection|configured local provider/i, 'nothing names a local route as something to use');
     const advanced=nodes(ui.c,'details').find(n=>n.textContent.startsWith('Other sign-in options'));
     assert.ok(advanced);assert.equal(!!props(advanced).open,false);
     assert.equal(props(button(ui.c,'Sign in with your ChatGPT account (through Codex)…')).className,'setup-primary');
@@ -178,9 +263,9 @@ test('an incomplete account model list remains explicit', async () => {
     if (command === 'read_available_models') return packet({complete:false, limits:['model list incomplete: Codex repeated a page cursor']});
     throw Error(`unexpected ${command}`);
   }, async ui => {
-    await ui.press('Use my ChatGPT account (built-in OpenAI)'); await ui.press('Read available models');
+    await ui.press('Read the list again');
     assert.match(region(ui.c, 'Available models').textContent, /The list may be incomplete: model list incomplete: Codex repeated a page cursor/);
-    await ui.press('Use Model A'); assert.match(ui.summary(), /model-a via openai \(chatgpt-account\)/);
+    await ui.press('Use model model-a'); assert.match(ui.summary(), /model-a via openai \(chatgpt-account\)/);
   });
 });
 
@@ -195,7 +280,7 @@ const localView = (credentialState, generation = lg, over = {}) => ({modeHomeCla
 const routed = (active, local = null) => ({...snapshotFor(active, active === 'local-provider' ? local : g),
   homeRouting:{activeModeHomeClass:active, entries:[{modeHomeClass:'account', generation:g, state:'ready'}, ...(local ? [{modeHomeClass:'local-provider', generation:local, state:'ready'}] : [])]}});
 let ui;
-const localAllowed = ['prepare_local_provider', 'submit_local_provider_key', 'select_home', 'thread_start', 'read_account_status', 'read_home_access'];
+const localAllowed = ['prepare_local_provider', 'submit_local_provider_key', 'select_home', 'thread_start', 'read_account_status', 'read_home_access', 'local_model_settings_read', 'local_model_settings_save'];
 const assertNoSecretTraffic = ui => {
   for (const call of ui.issued()) {
     assert.ok(localAllowed.includes(call.command), call.command);
@@ -227,7 +312,9 @@ test('keyed oMLX: prepare, native key entry, local home Start and return to acco
     assert.equal(!!props(button(ui.c, 'Sign in with your ChatGPT account (through Codex)…')).disabled, true, 'account sign-in belongs to the account home');
     assert.equal(button(ui.c, 'Use my ChatGPT account (built-in OpenAI)'), undefined);
     assert.equal(!!props(button(ui.c, 'Start thread')).disabled, true, 'no route chosen yet');
-    await ui.press(`Use oMLX model ${LOCAL.model}`);
+    // The model's name is the saved setting's, shown exactly beside the App's button words.
+    assert.ok(region(ui.c, 'How this conversation connects').textContent.includes(`Model: ${LOCAL.model}`));
+    await ui.press('Use the oMLX model shown');
     assert.match(ui.summary(), new RegExp(`${LOCAL.model} via chirality-omlx \\(local-provider-keyed\\)`));
     await ui.press('Start thread');
     const start = ui.issued().filter(call => call.command === 'thread_start');
@@ -241,6 +328,49 @@ test('keyed oMLX: prepare, native key entry, local home Start and return to acco
     assert.ok(!nodes(ui.c, 'option').some(n => props(n).value === 'api-key'));
     assertNoSecretTraffic(ui);
   });
+});
+
+test('a settings save withdraws the key and route shown before, whether it succeeded or its outcome is not established', async () => {
+  // Custody review: after a save the page said the key was removed and, beside it, "Key saved by Codex — not verified".
+  const settings = (endpoint, over = {}) => ({state:'set', settings:{endpoint, model:LOCAL.model}, offered:{endpoint:'http://127.0.0.1:8000/v1'},
+    inForce:{endpoint:LOCAL.endpoint, model:LOCAL.model}, relaunchRequired:false, ...over});
+  for (const outcome of ['saved', 'rejected-after-sign-out', 'malformed']) {
+    await mounted(async (command, args) => {
+      if (command === 'prepare_local_provider') { ui.setSnapshot(routed('account', lg)); return localView('configured-not-verified'); }
+      if (command === 'select_home') { ui.setSnapshot(routed(args.modeHomeClass, lg)); return {state:'selected'}; }
+      if (command === 'local_model_settings_read') return settings(LOCAL.endpoint);
+      if (command === 'local_model_settings_save') {
+        assert.deepEqual(args, {endpoint:'http://[::1]:9000/v1', model:LOCAL.model});
+        if (outcome === 'saved') return settings(args.endpoint, {outcome:'saved', keyRemoved:true, relaunchRequired:true});
+        if (outcome === 'malformed') return {state:'set'};
+        throw 'Codex removed the saved key; the local model settings could not be written.';
+      }
+      throw Error(`unexpected ${command}`);
+    }, async u => {
+      ui = u;
+      await ui.press('Prepare the oMLX connection');
+      const panel = () => region(ui.c, 'Keyed oMLX connection').textContent;
+      assert.match(panel(), /Key saved by Codex — not verified/);
+      await ui.press('Use local oMLX home');
+      await ui.press('Use the oMLX model shown');
+      assert.equal(!!props(button(ui.c, 'Start thread')).disabled, false);
+      await ui.press('Show local model settings');
+      const address = nodes(ui.c, 'input').find(node => node.parentNode.textContent.startsWith('Server address '));
+      await React.act(async () => { props(address).onChange({target:{value:'http://[::1]:9000/v1'}}); });
+      await ui.press('Save local model settings…');
+      assert.doesNotMatch(panel(), /Key saved by Codex — not verified/, outcome);
+      assert.equal(region(ui.c, 'oMLX destination'), undefined, `${outcome}: the earlier destination is no longer shown as prepared`);
+      assert.match(panel(), /The connection and key state shown before are withdrawn; prepare the oMLX connection again/, outcome);
+      assert.equal(button(ui.c, 'Use the oMLX model shown'), undefined, `${outcome}: the old route is not offered`);
+      assert.equal(!!props(button(ui.c, 'Start thread')).disabled, true, `${outcome}: a route chosen before the save cannot start`);
+      if (outcome === 'saved') assert.match(panel(), /Saved\. Codex removed the saved key for the earlier address/);
+      else {
+        assert.doesNotMatch(panel(), /Saved: server/, `${outcome}: nothing is shown as saved`);
+        assert.match(panel(), /Whether anything changed is not established here/);
+      }
+      if (outcome === 'rejected-after-sign-out') assert.match(panel(), /Codex removed the saved key; the local model settings could not be written\./);
+    });
+  }
 });
 
 test('keyed oMLX key entry is offered once per Codex session, including cancel and refusal', async () => {
@@ -293,7 +423,7 @@ test('keyed oMLX refuses incomplete views, stale routes and duplicate presses', 
     assert.ok(region(ui.c, 'oMLX destination'));
     await ui.press('Use local oMLX home');
     assert.match(ui.c.textContent, /Prepare the oMLX connection under Connection & access for this Codex session first/, 'a view for another generation offers no route');
-    assert.equal(button(ui.c, `Use oMLX model ${LOCAL.model}`), undefined);
+    assert.equal(button(ui.c, 'Use the oMLX model shown'), undefined);
     assert.equal(!!props(button(ui.c, 'Start thread')).disabled, true);
     assertNoSecretTraffic(ui);
   });
@@ -306,7 +436,7 @@ test('review: a retained local Start cannot dispatch against a replacement gener
     throw Error(`unexpected ${command}`);
   }, async u => {
     ui = u;
-    await ui.press('Prepare the oMLX connection'); await ui.press('Use local oMLX home'); await ui.press(`Use oMLX model ${LOCAL.model}`);
+    await ui.press('Prepare the oMLX connection'); await ui.press('Use local oMLX home'); await ui.press('Use the oMLX model shown');
     const retained = props(button(ui.c, 'Start thread')).onClick;
     assert.equal(!!props(button(ui.c, 'Start thread')).disabled, false);
     ui.setSnapshot(routed('local-provider', {...lg, spawnCounter:2})); await ui.refresh();
@@ -381,7 +511,7 @@ test('keyed oMLX: a refused preparation or Start shows the fixed limit and withd
     throw Error(`unexpected ${command}`);
   }, async u => {
     ui = u;
-    await ui.press('Prepare the oMLX connection'); await ui.press('Use local oMLX home'); await ui.press(`Use oMLX model ${LOCAL.model}`);
+    await ui.press('Prepare the oMLX connection'); await ui.press('Use local oMLX home'); await ui.press('Use the oMLX model shown');
     await ui.press('Start thread');
     assert.ok(ui.c.textContent.includes(`thread_start: Error: ${LIMIT}`), 'the fixed refusal is shown as given');
     assert.match(region(ui.c, 'Keyed oMLX connection').textContent, /Key saved by Codex — not verified/, 'a Start refusal is not a key observation');
@@ -391,7 +521,133 @@ test('keyed oMLX: a refused preparation or Start shows the fixed limit and withd
     assert.doesNotMatch(local, /Key saved by Codex|Key entry required|earlier Codex session/, 'a refusal supplies no key state');
     assert.equal(region(ui.c, 'oMLX destination'), undefined);
     assert.equal(button(ui.c, 'Enter oMLX key in a secure field…'), undefined);
-    assert.equal(button(ui.c, `Use oMLX model ${LOCAL.model}`), undefined, 'no local route without a current observation');
+    assert.equal(button(ui.c, 'Use the oMLX model shown'), undefined, 'no local route without a current observation');
     assertNoSecretTraffic(ui);
   });
+});
+
+// oMLX key entry refused (a reading sentence, or an ordinary refusal), then a failed status refresh:
+// the entry's own message stands, then the fixed refresh line once; nothing raw from the refresh.
+for (const [label, refusal] of [['the gate sentence', loadSrc('readingSentences').READING_GATE], ['an ordinary refusal', 'Keyed oMLX unavailable: invented refusal']]) test(`keyed oMLX: key entry refused (${label}) then a failed refresh shows its message, then the fixed line`, async () => {
+  const {REFRESH_FAILED} = loadSrc('statusRefresh');
+  try {
+    await mounted(async command => {
+      if (command === 'prepare_local_provider') { ui.setSnapshot(routed('account', lg)); return localView('entry-required'); }
+      if (command === 'submit_local_provider_key') { statusFailure = 'INVENTED_PRIVATE_REFRESH_DIAGNOSTIC_58'; throw refusal; }
+      throw Error(`unexpected ${command}`);
+    }, async u => {
+      ui = u;
+      await ui.press('Prepare the oMLX connection');
+      await ui.press('Enter oMLX key in a secure field…');
+      const shown = region(ui.c, 'Keyed oMLX connection').textContent;
+      assert.ok(shown.includes(`oMLX key entry did not complete: ${refusal} ${REFRESH_FAILED}`), shown);
+      assert.doesNotMatch(ui.c.textContent, /INVENTED_PRIVATE_REFRESH_DIAGNOSTIC_58/);
+      statusFailure = null;
+    });
+  } finally { statusFailure = null; }
+});
+
+// The model list's provider note ending with a reading sentence (model_catalog.rs `providerLimit`):
+// the sentence is shown as it is, with no second full stop after it.
+test('a provider note ending with a reading sentence is shown once, without a doubled full stop', async () => {
+  const {READING_GATE} = loadSrc('readingSentences');
+  const note = `provider not established: ${READING_GATE}`;
+  await mounted(async command => { if (command === 'read_available_models') return packet({serverProvider:null, serverProviderState:'not-established', providerLimit:note}); throw Error(`unexpected ${command}`); }, async ui => {
+    await ui.press('Read the list again');
+    const shown = region(ui.c, 'Available models').textContent;
+    assert.ok(shown.includes(note), shown);
+    assert.ok(!shown.includes(`${READING_GATE}.`), 'no second full stop after the sentence');
+  });
+});
+
+// A home command that succeeds and whose status refresh then fails: the command is not shown as
+// failed, the account panel shows no raw refresh text, and the App line adds the fixed line once.
+// The same command with a successful refresh shows what it showed before (no refresh line).
+for (const refreshFails of [true, false]) test(`keyed oMLX: using the local home ${refreshFails ? 'then a failed refresh adds only the fixed line' : 'with a successful refresh shows no refresh line'}`, async () => {
+  const {REFRESH_FAILED} = loadSrc('statusRefresh');
+  try {
+    await mounted(async (command, args) => {
+      if (command === 'prepare_local_provider') { ui.setSnapshot(routed('account', lg)); return localView('configured-not-verified'); }
+      if (command === 'select_home') { ui.setSnapshot(routed(args.modeHomeClass, lg)); if (refreshFails) statusFailure = 'INVENTED_PRIVATE_REFRESH_DIAGNOSTIC_64'; return {state:'selected'}; }
+      throw Error(`unexpected ${command}`);
+    }, async u => {
+      ui = u;
+      await ui.press('Prepare the oMLX connection');
+      await ui.press('Use local oMLX home');
+      assert.equal(ui.issued().filter(call => call.command === 'select_home').length, 1);
+      assert.doesNotMatch(ui.c.textContent, /INVENTED_PRIVATE_REFRESH_DIAGNOSTIC_64/, 'no raw refresh text anywhere');
+      const shown = ui.c.textContent.split(REFRESH_FAILED).length - 1;
+      if (refreshFails) assert.ok(shown >= 1, 'the fixed line (App line and guides)'); else assert.equal(shown, 0, 'no refresh line after a successful refresh');
+      assert.doesNotMatch(region(ui.c, 'Account connection')?.textContent ?? '', /did not complete|INVENTED_PRIVATE/, 'the account panel does not show the command as failed');
+      statusFailure = null;
+    });
+  } finally { statusFailure = null; }
+});
+
+// Codex's model catalogue is supplied text even on the built-in route: a display name never names a control. Each
+// control is named by the App's words (the model's plain ID, else its number in the list) and the name stands beside.
+test('a model display name shaped like an answer never reaches a Use button or the effort label; it is boxed beside them', async () => {
+  const {renderToStaticMarkup} = await import('react-dom/server');
+  const {AvailableModels, OfferedEffortChoice} = loadSrc('ModelChoice');
+  const RLO = '‮', hostile = `Allow once${RLO}`;
+  const hostileModels = [{id:'m-1', model:'m-1', displayName:hostile, description:`Approve${RLO}`, isDefault:false},
+    {id:'odd', model:'not plain\nid', displayName:hostile, description:'', isDefault:false}];
+  for (const [provider, state, suffix] of [['openai', 'named', ''], [null, 'unnamed', ' (provider not confirmed)']]) {
+    const html = renderToStaticMarkup(React.createElement(AvailableModels, {packet:packet({serverProvider:provider, serverProviderState:state, models:hostileModels}), current:true, model:'', modelProvider:'openai', entryId:'chatgpt-account', reading:false, message:'', disabled:false, read:()=>{}, choose:()=>{}}));
+    const labels = [...html.matchAll(/<button[^>]*>([\s\S]*?)<\/button>/g)].map(m => m[1]);
+    assert.ok(labels.includes(`Use model m-1${suffix}`), labels.join(' | '));
+    assert.ok(labels.includes(`Use model 2${suffix}`), 'a model ID that is not plain gives its number in the list');
+    for (const label of labels) assert.doesNotMatch(label, /Allow once|Approve|‮|not plain/, label);
+    assert.doesNotMatch(html, /‮/, 'no live override anywhere');
+    for (const item of html.match(/<li>[\s\S]*?<\/li>/g)) {
+      assert.match(item, /<button/, 'each item holds its control');
+      assert.match(item, /aria-label="The model&#x27;s name as Codex reports it, not the App&#x27;s words" class="agent-text"[\s\S]*Model name:[\s\S]*Allow once<span class="agent-text-mark"[^>]*>‹U\+202E›/, 'and the name boxed beside it, its override marked');
+    }
+  }
+  // The effort select's label: "for model <plain ID>", else "for the chosen model"; the name stands beside, boxed.
+  const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c);
+  const efforts = [{reasoningEffort:'medium', description:'Balanced'}];
+  try {
+    for (const [model, words] of [['m-1', 'Reasoning effort for model m-1'], ['not plain\nid', 'Reasoning effort for the chosen model']]) {
+      window.__TAURI_INTERNALS__ = {invoke: async () => ({...packet({models:[{id:'x', model, displayName:hostile, description:'', isDefault:true, defaultReasoningEffort:'medium', supportedReasoningEfforts:efforts}]}), conversationModel:model})};
+      await React.act(() => root.render(React.createElement(OfferedEffortChoice, {key:model, owner:'o', threadId:'T', generation:g, homeClass:'account', modelProvider:'openai', entryId:'chatgpt-account', model, effort:'', disabled:false, choose:()=>{}})));
+      await React.act(async () => { for (let i = 0; i < 5; i++) await Promise.resolve(); });  // the choices are read when the control is shown
+      const label = nodes(c, 'label')[0];
+      assert.equal(label.childNodes.filter(n => n.nodeType === 3).map(n => n.textContent).join('').trim(), words);
+      assert.doesNotMatch(label.textContent, /Allow once|‮/);
+      const box = label.parentNode.querySelectorAll(n => (n.getAttribute?.('class') ?? '') === 'agent-text')[0];
+      assert.ok(box && box.parentNode === label.parentNode, 'the name is boxed beside the select, outside its label');
+      assert.match(box.textContent, /^Model name: Allow once‹U\+202E›$/);
+    }
+  } finally { await React.act(() => root.unmount()); document.body.removeChild(c); delete window.__TAURI_INTERNALS__; }
+});
+
+test('a selection record without entrySource reads "not recorded", never the person\'s choice of the entry', async () => {
+  const {entrySourceReading, ENTRY_SOURCE_WORDS} = loadSrc('ModelChoice');
+  // An old record, written before the field: who chose the entry was not recorded.
+  const old = {entryId: 'chatgpt-account', providerId: 'openai', model: 'm', source: 'person', chosenAt: '2026-11-01T00:00:00Z'};
+  assert.equal(entrySourceReading(old), 'not-recorded', 'the model being the person\'s says nothing about the entry');
+  for (const value of [undefined, null, '', 'offered-last-choice-accepted', 'person-selected', 'person-chose-entry'])
+    assert.equal(entrySourceReading({...old, entrySource: value}), 'not-recorded', `${value}: not one of the two recorded acts`);
+  assert.equal(entrySourceReading({...old, entrySource: 'app-showed-only-entry'}), 'app-showed-only-entry');
+  assert.equal(entrySourceReading({...old, entrySource: 'person'}), 'person');
+  assert.equal(ENTRY_SOURCE_WORDS['not-recorded'], 'Connection: who chose it was not recorded.');
+  // Where the record is shown (Settings & tools, "Last native start selection in this home"), an old record says so.
+  const container = document.createElement('div'); document.body.appendChild(container); const root = createRoot(container);
+  const host = {state: 'ready', generationClosed: false, generation: g, threads: [], serverRequests: [], roleLimits: {account: {roles: []}},
+    homeRouting: {activeModeHomeClass: 'account', entries: [{modeHomeClass: 'account'}]},
+    accessSelection: {schema: 'chirality.access-selection/v0.2', conversation: 'c', project: 'p', state: 'started', selection: old}};
+  const idle = installIdleNativeWaiting(async command => {
+    if (command === 'host_status') return host;
+    if (command === 'decision_view') return {rows: []};
+    if (command === 'native_confirmation_content') return [];
+    throw Error(`Unexpected command ${command}`);
+  });
+  try {
+    await React.act(async () => root.render(React.createElement(App)));
+    const shown = nodes(container, 'details').find(d => nodes(d, 'summary')[0]?.textContent === 'Last native start selection in this home');
+    assert.ok(shown, 'the selection record is shown');
+    assert.match(shown.textContent, /Connection: who chose it was not recorded\./);
+    assert.doesNotMatch(shown.textContent, /you chose it/);
+  } finally { const text = container.textContent; await React.act(() => root.unmount()); document.body.removeChild(container); idle.restore(text); }
 });

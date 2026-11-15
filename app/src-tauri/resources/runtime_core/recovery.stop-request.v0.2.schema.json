@@ -1,0 +1,439 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:chirality:app-v4:del-01-02:stop-request:0.2",
+  "title": "DEL-01-02 stop request — the record of one turn interrupt (PROPOSED)",
+  "description": "EXECUTION_AND_RECOVERY.md §3.4 and table SR. One record per request to interrupt one turn (R17-3 operation 1), by the person or by a confirmed quit (K-4). Written before the supplier request is sent and again at every SR transition (append-only; the latest record for a stopRequestId is current). Element names are Chirality's own; supplier identities are carried as data. Not a human-act record and never a run end.",
+  "type": "object",
+  "required": [
+    "kind",
+    "stopRequestId",
+    "appSession",
+    "generation",
+    "threadId",
+    "turnId",
+    "cause",
+    "requestedBy",
+    "requestedAt",
+    "send",
+    "response",
+    "turnOutcome",
+    "outcomeSource",
+    "state",
+    "transition",
+    "home"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "const": "stop_request"
+    },
+    "stopRequestId": {
+      "type": "string",
+      "pattern": "^stop:.+"
+    },
+    "appSession": {
+      "$ref": "#/$defs/nonempty"
+    },
+    "home": {
+      "$ref": "#/$defs/home"
+    },
+    "generation": {
+      "$ref": "#/$defs/nonempty"
+    },
+    "threadId": {
+      "$ref": "#/$defs/nonempty"
+    },
+    "turnId": {
+      "$ref": "#/$defs/nonempty"
+    },
+    "cause": {
+      "description": "person-interrupt: the person's stop of this turn; quit: a confirmed quit (K-4); codex-stop: the person's Stop Codex or Restart Codex (C-12).",
+      "enum": [
+        "person-interrupt",
+        "quit",
+        "codex-stop"
+      ]
+    },
+    "requestedBy": {
+      "$ref": "#/$defs/person"
+    },
+    "requestedAt": {
+      "$ref": "#/$defs/nonempty"
+    },
+    "clientRequest": {
+      "description": "The HOSTING client-request record of the turn/interrupt request (§5.1).",
+      "$ref": "#/$defs/nonempty"
+    },
+    "send": {
+      "enum": [
+        "pending",
+        "sent",
+        "not-sent(write-failed)",
+        "not-sent(not-ready)"
+      ]
+    },
+    "response": {
+      "enum": [
+        "pending",
+        "result",
+        "error",
+        "unknown-no-response",
+        "not-applicable"
+      ]
+    },
+    "responseError": {
+      "type": "string"
+    },
+    "waitingEnded": {
+      "type": "boolean"
+    },
+    "turnOutcome": {
+      "enum": [
+        "pending",
+        "interrupted",
+        "completed",
+        "failed",
+        "unknown"
+      ]
+    },
+    "outcomeSource": {
+      "enum": [
+        "observed",
+        "recovered-from-supplier",
+        "not-observed"
+      ]
+    },
+    "outcomeLabel": {
+      "enum": [
+        "interrupted by the person",
+        "completed (stop requested)",
+        "failed (stop requested)",
+        "outcome unknown (stop requested)",
+        "interrupted by quit",
+        "completed (quit requested)",
+        "failed (quit requested)",
+        "interrupted by quit (final status not observed)",
+        "interrupted by Stop Codex",
+        "completed (Stop Codex requested)",
+        "failed (Stop Codex requested)",
+        "interrupted by Stop Codex (final status not observed)"
+      ]
+    },
+    "itemsNotCompleted": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/notCompleted"
+      }
+    },
+    "itemsCompletedAfterRequest": {
+      "description": "Items observed completing after the request: recorded as observed, never as prevented (HOSTING §6.7 HP-2).",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "itemId",
+          "itemType"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "itemId": {
+            "type": "string",
+            "minLength": 1
+          },
+          "itemType": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "descendantsActiveAtOutcome": {
+      "description": "REQ-002: the primary turn's end does not say its descendants stopped; each is reported as observed.",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/descendant"
+      }
+    },
+    "state": {
+      "enum": [
+        "requested",
+        "sent",
+        "not-sent",
+        "accepted",
+        "refused",
+        "settled",
+        "outcome-unknown",
+        "outcome-recovered"
+      ]
+    },
+    "transition": {
+      "type": "string",
+      "pattern": "^SR-[0-9][0-9]$"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "settled"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "outcomeLabel"
+        ],
+        "properties": {
+          "turnOutcome": {
+            "enum": [
+              "interrupted",
+              "completed",
+              "failed"
+            ]
+          },
+          "outcomeSource": {
+            "const": "observed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "outcome-recovered"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "outcomeLabel"
+        ],
+        "properties": {
+          "turnOutcome": {
+            "enum": [
+              "interrupted",
+              "completed",
+              "failed"
+            ]
+          },
+          "outcomeSource": {
+            "const": "recovered-from-supplier"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "outcome-unknown"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "outcomeLabel"
+        ],
+        "properties": {
+          "turnOutcome": {
+            "const": "unknown"
+          },
+          "outcomeSource": {
+            "const": "not-observed"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "not-sent"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "send": {
+            "enum": [
+              "not-sent(write-failed)",
+              "not-sent(not-ready)"
+            ]
+          },
+          "response": {
+            "enum": [
+              "unknown-no-response",
+              "not-applicable"
+            ]
+          },
+          "turnOutcome": {
+            "const": "pending"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "enum": [
+              "sent",
+              "accepted",
+              "refused",
+              "settled",
+              "outcome-unknown",
+              "outcome-recovered"
+            ]
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "clientRequest"
+        ],
+        "properties": {
+          "send": {
+            "const": "sent"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "accepted"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "response": {
+            "const": "result"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "state": {
+            "const": "refused"
+          }
+        }
+      },
+      "then": {
+        "required": [
+          "responseError"
+        ],
+        "properties": {
+          "response": {
+            "const": "error"
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "turnOutcome": {
+            "const": "pending"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "outcomeSource": {
+            "const": "not-observed"
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "nonempty": {
+      "type": "string",
+      "minLength": 1
+    },
+    "person": {
+      "description": "DECISION-K1 K1-4: the person as the App observes them, never verified.",
+      "type": "object",
+      "required": [
+        "kind",
+        "identity",
+        "identityStatus"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "person"
+        },
+        "identity": {
+          "type": "string",
+          "minLength": 1
+        },
+        "identityStatus": {
+          "const": "identity not verified"
+        }
+      }
+    },
+    "descendant": {
+      "type": "object",
+      "required": [
+        "kind",
+        "ref",
+        "observedStatus"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "child-thread",
+            "background-terminal",
+            "process"
+          ]
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "observedStatus": {
+          "enum": [
+            "active",
+            "ended",
+            "unknown"
+          ]
+        }
+      }
+    },
+    "home": {
+      "description": "The App-owned Codex home (DECISION-L L-1): H-acct, or H-key for API-key conversations.",
+      "type": "string",
+      "pattern": "^H-[a-z]+$"
+    },
+    "notCompleted": {
+      "description": "G-4 (R18-7): an item opened in the turn and never completed, settled at turn end.",
+      "type": "object",
+      "required": [
+        "itemId",
+        "itemType"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "itemId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "itemType": {
+          "type": "string",
+          "minLength": 1
+        },
+        "settled": {
+          "const": "not completed (turn ended)"
+        }
+      }
+    }
+  }
+}

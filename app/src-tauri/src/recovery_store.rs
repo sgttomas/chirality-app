@@ -42,6 +42,8 @@ use std::path::{Path, PathBuf};
 /// The exact-byte content method used for the imported file's identity.
 const EXACT_BYTES: &str = "chirality.app.exact-bytes.sha256/v1";
 const SCHEMA_VERSION: &str = "1";
+/// A guarded append found entries written since this ledger was read.
+pub(crate) const CHANGED_SINCE_READ: &str = "App history was written by another App session since this one read it; nothing was recorded";
 /// How the `currency` and `subject` columns are derived from an entry
 /// ([`currency`], [`subject`]), recorded in `ledger_meta` as `index_format`.
 /// Migration rule: a later derivation gets a new number and never rewrites
@@ -190,6 +192,8 @@ impl Store {
     /// `legacy_present`: whether a JSON Lines ledger exists beside it now; a
     /// database created without one never imports a file that appears later.
     pub(crate) fn open(path: &Path, create: bool, legacy_present: bool) -> Result<Self, String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("recovery_store::Store::open");
         preflight(path)?;
         let existed = std::fs::symlink_metadata(path).is_ok();
         if !existed && !create {
@@ -236,6 +240,8 @@ impl Store {
         Ok(store)
     }
     fn ensure_schema(&mut self, legacy_present: bool) -> Result<(), String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("recovery_store::Store::ensure_schema");
         // An established database is only read: no write lock is taken to open it.
         let established: Option<String> = self.connection
             .query_row("SELECT value FROM ledger_meta WHERE key = 'schema'", [], |r| r.get(0))
@@ -301,6 +307,11 @@ impl Store {
     /// How many entries the database holds.
     pub(crate) fn count(&self) -> Result<u64, String> {
         self.connection.query_row("SELECT COUNT(*) FROM ledger_entry", [], |r| r.get::<_, i64>(0)).map(|n| n as u64).map_err(db_error("App history unavailable"))
+    }
+    /// The last entry's sequence number (0 when there is none). Sequence
+    /// numbers only grow, so a changed value means another writer appended.
+    pub(crate) fn high_water(&self) -> Result<i64, String> {
+        self.connection.query_row("SELECT COALESCE(MAX(seq), 0) FROM ledger_entry", [], |r| r.get(0)).map_err(db_error("App history unavailable"))
     }
     /// Latest closed summary per original (full generation, typed serialized
     /// request ID), newest first at a fixed ledger cut. Only this bounded page
@@ -480,8 +491,22 @@ impl Store {
     }
     /// One transaction: every entry is recorded, or none is.
     pub(crate) fn insert_batch(&mut self, entries: &[Value]) -> Result<(), String> {
+        self.insert_batch_after(entries, None).map(|_| ())
+    }
+    /// [`Self::insert_batch`], refused with nothing recorded when `expected`
+    /// is given and the ledger's [`Self::high_water`] is no longer it (checked
+    /// inside the write transaction). Returns the high water after the batch.
+    pub(crate) fn insert_batch_after(&mut self, entries: &[Value], expected: Option<i64>) -> Result<i64, String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("recovery_store::Store::insert_batch_after");
         self.guard()?;
         let tx = self.connection.transaction_with_behavior(TransactionBehavior::Immediate).map_err(db_error("recovery ledger append not confirmed"))?;
+        if let Some(expected) = expected {
+            let current: i64 = tx.query_row("SELECT COALESCE(MAX(seq), 0) FROM ledger_entry", [], |r| r.get(0)).map_err(db_error("recovery ledger append not confirmed"))?;
+            if current != expected {
+                return Err(CHANGED_SINCE_READ.into());
+            }
+        }
         let batch = next_batch(&tx).map_err(db_error("recovery ledger append not confirmed"))?;
         for (n, entry) in entries.iter().enumerate() {
             #[cfg(test)]
@@ -493,12 +518,14 @@ impl Store {
             let text = serde_json::to_string(entry).map_err(|e| format!("recovery ledger append not confirmed: {e}"))?;
             insert(&tx, entry, &text, "app", batch).map_err(db_error("recovery ledger append not confirmed"))?;
         }
+        let high: i64 = tx.query_row("SELECT COALESCE(MAX(seq), 0) FROM ledger_entry", [], |r| r.get(0)).map_err(db_error("recovery ledger append not confirmed"))?;
         tx.commit().map_err(db_error("recovery ledger append not confirmed"))?;
         #[cfg(test)]
         if FAIL_FLUSH_AFTER_COMMIT.with(|f| f.replace(false)) {
             return Err("recovery ledger append not confirmed: the commit returned but its folder was not flushed (injected)".into());
         }
-        self.flush("recovery ledger append not confirmed")
+        self.flush("recovery ledger append not confirmed")?;
+        Ok(high)
     }
     /// The JSON Lines ledger at `legacy`, open as `file` (with the caller's
     /// descriptor guards), imported once (see the module text). It is read in
@@ -511,6 +538,8 @@ impl Store {
         file: &mut std::fs::File,
         validate: &dyn Fn(&Value) -> Result<(), String>,
     ) -> Result<Value, String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("recovery_store::Store::import_legacy");
         let source = legacy.to_string_lossy().into_owned();
         // The file as last imported, unchanged (same file, length and
         // modification time): its content identity is not read again.
@@ -717,6 +746,8 @@ fn next_batch(tx: &rusqlite::Transaction) -> rusqlite::Result<i64> {
     tx.query_row("SELECT COALESCE(MAX(batch), 0) + 1 FROM ledger_entry", [], |r| r.get(0))
 }
 fn insert(tx: &rusqlite::Transaction, entry: &Value, text: &str, origin: &str, batch: i64) -> rusqlite::Result<i64> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("recovery_store::insert");
     let column = |key: &str| entry.get(key).and_then(Value::as_str).map(str::to_owned);
     let generation = column("generation").or_else(|| column("lastLoadedGeneration"));
     tx.execute(

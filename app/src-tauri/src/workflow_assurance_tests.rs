@@ -13,6 +13,18 @@ fn lower(settings: &Settings) -> Result<(), String> {
 }
 
 #[test]
+fn verification_details_describe_capture_seals_without_claiming_an_approval() {
+    let chain = InMemoryKeychain::install(false);
+    let settings = Settings::with_stores(keychain, Box::new(file()));
+    assert_eq!(settings.view()["verification"]["detail"], "Keychain protection is not set up. Registration capture seals cannot be verified using your keychain across sessions.");
+    drop(chain);
+    let _chain = InMemoryKeychain::install(true);
+    let settings = Settings::with_stores(keychain, Box::new(file()));
+    settings.after_enrollment().unwrap();
+    assert_eq!(settings.view()["verification"]["detail"], "Registration capture seals can be verified using your keychain across sessions; this does not establish who wrote the capture, that a person was present, or that they judged.");
+}
+
+#[test]
 fn first_use_default_is_relaxed_without_keychain_and_persists_across_relaunch() {
     let store = file();
     let first = unprotected(&store);

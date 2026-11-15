@@ -3,17 +3,17 @@
     {
       "role": "step_map",
       "path": "app/examination/sq_receiving/sq.step-map.json",
-      "sha256": "sha256:c04513a8ca94a1fe9a41baf6d4f758cb33beb5a841937bd1a40f4d501c687ea8"
+      "sha256": "sha256:8f6641c56323da1ee11044059835db262c99d1814269c8cea129effc8339c564"
     },
     {
       "role": "step_operations",
       "path": "app/examination/standalone/step-operations.json",
-      "sha256": "sha256:0a691a4461058866ef1e899c9c7516c9d2c96b353c61e5117c1c2f27eb01fa23"
+      "sha256": "sha256:cd05d6bf6f15382f6356ce1d502886a5bbb9ec60cbe4dfae4c82ce27110120d6"
     },
     {
       "role": "missing-inputs.json",
       "path": "app/examination/standalone/missing-inputs.json",
-      "sha256": "sha256:a6bcd62151a467fa1ee7eee07e4138870582d2b9b04bc6fde8fcfa9a0e78556b"
+      "sha256": "sha256:89c360cb19cef98ad74d23f305f6e3d16ecd2a5dda89927cdac3f4affaf7c02a"
     },
     {
       "role": "invented-inputs.json",

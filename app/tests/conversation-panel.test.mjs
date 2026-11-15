@@ -4,6 +4,7 @@ import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 import {continuationFixture} from './support/continuation-fixture.mjs';
+import {choiceList, choiceLists, chooseIn, chooser, chosenIn} from './support/choices.mjs';
 
 // The conversation section is mounted with react-dom/client on a minimal
 // in-memory document, so the test sees what React actually leaves mounted
@@ -55,7 +56,12 @@ const props = element => element[Object.keys(element).find(key => key.startsWith
 const elements = (container, tag) => container.querySelectorAll(element => element.localName === tag);
 const button = (container, text) => elements(container, 'button').find(element => element.textContent === text);
 const labelled = (container, tag, text) => elements(container, tag).find(element => element.parentNode.textContent.startsWith(text));
-const change = (element, value) => React.act(() => props(element).onChange({target: {value}}));
+const change = (element, value) => React.act(() => element.localName === 'fieldset' ? chooseIn(element, value) : props(element).onChange({target: {value}}));
+// The account home's one connection route: the built-in OpenAI provider with the ChatGPT account entry.
+const ROUTE = 'Use my ChatGPT account (built-in OpenAI)';
+// In the account home the only connection is shown in use without a press (DEL-01-05 REQ-004); elsewhere the toggle is pressed.
+const routeChosen = container => { if (container.querySelectorAll(e => e.getAttribute('aria-label') === 'Connection in use').length) return true; const route = button(container, ROUTE); return !!route && props(route)['aria-pressed'] === true; };
+const chooseRoute = async container => { if (!routeChosen(container)) await React.act(async () => { await props(button(container, ROUTE)).onClick(); }); };
 
 async function ordinaryStartCase({initialThread = false, startGeneration = g, outcome = 'success'}) {
   const container = document.createElement('div');
@@ -82,18 +88,17 @@ async function ordinaryStartCase({initialThread = false, startGeneration = g, ou
   try {
     await React.act(async () => {root.render(React.createElement(App));});
     const conversation = () => container.querySelectorAll(element => element.getAttribute('id') === 'conversation')[0];
-    const selectedKey = () => props(elements(conversation(), 'select')[0]).value;
-    if (initialThread) await change(elements(conversation(), 'select')[0], key('existing'));
+    const selectedKey = () => chosenIn(choiceLists(conversation())[0]);
+    if (initialThread) await change(choiceLists(conversation())[0], key('existing'));
+    await chooseRoute(container);
     await change(labelled(container, 'input', 'Model '), 'chosen-model');
-    await change(labelled(container, 'input', 'Configured Codex provider '), 'openai');
-    await change(labelled(container, 'select', 'Access entry '), 'chatgpt-account');
     const draft = 'Unsent person text é / 家';
     await change(elements(conversation(), 'textarea')[0], draft);
     const start = button(container, 'Start thread');
     assert.equal(props(start).disabled, false);
     await React.act(async () => {await props(start).onClick();});
     assert.deepEqual(calls.filter(call => call.command === 'thread_start'), [{command: 'thread_start', args: {
-      model: 'chosen-model', modelProvider: 'openai', entryId: 'chatgpt-account', modeHomeClass: 'account', generation: g, role: 'HELP_HUMAN', preselected: true,
+      model: 'chosen-model', modelProvider: 'openai', entryId: 'chatgpt-account', entrySource: 'app-showed-only-entry', modeHomeClass: 'account', generation: g, role: 'HELP_HUMAN', preselected: true,
     }}], 'one person-initiated start with the chosen configuration');
     assert.ok(calls.every(call => ['host_status', 'decision_view', 'native_confirmation_content', 'thread_start'].includes(call.command)), 'Start never sends composer text or retries');
     assert.equal(props(elements(conversation(), 'textarea')[0]).value, draft, 'unsent composer retained');
@@ -102,8 +107,9 @@ async function ordinaryStartCase({initialThread = false, startGeneration = g, ou
       // ACCESS REQ-004/CS-9: admission consumes this new-conversation choice;
       // it does not apply the same choice to another conversation.
       assert.equal(props(labelled(container, 'input', 'Model ')).value, '', 'the next conversation has no model selected');
-      assert.equal(props(labelled(container, 'input', 'Configured Codex provider ')).value, '');
-      assert.equal(props(labelled(container, 'select', 'Access entry ')).value, '');
+      // DEL-01-05 REQ-004: the only connection is shown in use for the next conversation too; it is not carried from
+      // this choice, and the model, the person's choice, is not.
+      assert.equal(routeChosen(container), true, 'the next conversation shows the only connection in use');
       assert.equal(props(button(container, 'Start thread')).disabled, true, 'a second start needs a fresh explicit choice');
       assert.equal(props(button(conversation(), 'Send text')).disabled, false, 'the displayed new conversation can receive an explicit send');
       const headers = conversation().querySelectorAll(element => element.getAttribute('aria-label') === 'Conversation role');
@@ -111,8 +117,8 @@ async function ordinaryStartCase({initialThread = false, startGeneration = g, ou
       assert.ok(headers[0].textContent.startsWith('Role: HELP_HUMAN.'), 'shows the new conversation');
     } else {
       assert.equal(selectedKey(), initialThread ? key('existing') : '', 'unsuccessful start keeps the selection');
-      assert.deepEqual(['Model ', 'Configured Codex provider ', 'Access entry '].map((label,index)=>props(labelled(container,index===2?'select':'input',label)).value),
-        ['chosen-model','openai','chatgpt-account'],'a refused, unknown or incomplete attempt keeps its explicit chooser for retry');
+      assert.deepEqual([props(labelled(container,'input','Model ')).value, routeChosen(container)],
+        ['chosen-model', true],'a refused, unknown or incomplete attempt keeps its explicit chooser for retry');
       assert.equal(props(button(container,'Start thread')).disabled,false);
       assert.equal(props(button(conversation(), 'Send text')).disabled, !initialThread);
       if (outcome === 'refused' || outcome === 'failed') assert.ok(container.textContent.includes('thread_start: Error: Native start'));
@@ -171,8 +177,9 @@ async function withStartChooser(check, startReply, {homeReply,decisionReply}={})
     return startReply?startReply(args,index,admitted):admitted(args,index);
   });
   const field=(tag,label)=>labelled(container,tag,label);
-  const values=()=>({model:props(field('input','Model ')).value,modelProvider:props(field('input','Configured Codex provider ')).value,entryId:props(field('select','Access entry ')).value});
-  const edit=async(patch)=>{for(const [key,value] of Object.entries(patch)){const [tag,label]=key==='model'?['input','Model ']:key==='modelProvider'?['input','Configured Codex provider ']:['select','Access entry '];await change(field(tag,label),value);}};
+  // The model field and the route button exist only in the account home.
+  const values=()=>({model:field('input','Model ')?props(field('input','Model ')).value:null,route:routeChosen(container)});
+  const edit=async(patch)=>{if(patch.route)await chooseRoute(container);if(patch.model!==undefined)await change(field('input','Model '),patch.model);};
   const press=async(text)=>React.act(async()=>{await props(button(container,text)).onClick();});
   try {
     await React.act(async()=>root.render(React.createElement(App)));
@@ -181,8 +188,10 @@ async function withStartChooser(check, startReply, {homeReply,decisionReply}={})
       failStatus:()=>{statusFailure=true;},generation:()=>homes[active].generation});
   } finally {const renderedText=container.textContent;await React.act(()=>root.unmount());document.body.removeChild(container);idle.restore(renderedText);}
 }
-const selectedChoice={model:'chosen-model',modelProvider:'openai',entryId:'chatgpt-account'};
-const blankChoice={model:'',modelProvider:'',entryId:''};
+const selectedChoice={model:'chosen-model',route:true};
+// In the account home a fresh choice has no model; its only connection is shown in use (DEL-01-05 REQ-004), never
+// carried from an earlier choice.
+const blankChoice={model:'',route:true};
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return {promise,resolve,reject};};
 
 test('each successful ordinary Start consumes only its choice and a second conversation needs a new explicit choice',async()=>{
@@ -194,13 +203,13 @@ test('each successful ordinary Start consumes only its choice and a second conve
     await ui.press('Start thread');
     assert.deepEqual(ui.values(),blankChoice);assert.equal(props(ui.start()).disabled,true);
     assert.match(ui.container.querySelectorAll(e=>e.getAttribute('aria-label')==='New conversation choice')[0].textContent,/no model selected/);
-    assert.equal(props(elements(conversation(),'select')[0]).value,JSON.stringify([g,'created-1']));
+    assert.equal(chosenIn(choiceLists(conversation())[0]),JSON.stringify([g,'created-1']));
     assert.equal(props(elements(conversation(),'textarea')[0]).value,'Kept unsent draft / 家');
     assert.match(conversation().textContent,/HELP_HUMAN/,'the started conversation retains its role');
     await ui.press('Start thread');
     assert.equal(ui.calls.filter(c=>c.command==='thread_start').length,1,'even a queued press on an unselected chooser sends nothing');
     await ui.edit({...selectedChoice,model:'second-model'});await ui.press('Start thread');
-    assert.equal(props(elements(conversation(),'select')[0]).value,JSON.stringify([g,'created-2']));
+    assert.equal(chosenIn(choiceLists(conversation())[0]),JSON.stringify([g,'created-2']));
     assert.deepEqual(ui.values(),blankChoice);
     assert.deepEqual(ui.calls.filter(c=>c.command==='thread_start').map(c=>c.args.model),['chosen-model','second-model']);
     assert.equal(ui.calls.filter(c=>c.command==='turn/start'||c.command==='conversation_send_text').length,0);
@@ -229,7 +238,8 @@ test('refused, unknown and incomplete ordinary starts retain a usable choice for
 });
 
 test('a pending ordinary Start latches queued duplicate presses and preserves every newer edit, including away and back',async()=>{
-  for(const patch of [{model:'new-model'},{modelProvider:'new-provider'},{entryId:'local-provider'},null]) {
+  // The route cannot be unchosen or changed in the account home, so the newer edits are of the model.
+  for(const patch of [{model:'new-model'},null]) {
     const reply=deferred();let complete;
     await withStartChooser(async ui=>{
       await ui.edit(selectedChoice);
@@ -253,11 +263,11 @@ test('home choices during a pending Start neither reuse the old choice nor let i
   await withStartChooser(async ui=>{
     await ui.edit(selectedChoice);let pending;
     await React.act(()=>{pending=props(ui.start()).onClick();});
-    await ui.observeHome('api-key');assert.deepEqual(ui.values(),blankChoice);
-    const keyChoice={model:'key-model',modelProvider:'openai',entryId:'api-key'};
-    await ui.edit(keyChoice);
+    // The omitted legacy home offers no route and no model field, so no choice can be made there.
+    await ui.observeHome('api-key');assert.deepEqual(ui.values(),{model:null,route:false});
+    assert.equal(button(ui.container,ROUTE),undefined);
     reply.resolve();await React.act(async()=>{await pending;});
-    assert.deepEqual(ui.values(),keyChoice);assert.equal(props(ui.start()).disabled,true,'omitted legacy mode cannot dispatch');
+    assert.deepEqual(ui.values(),{model:null,route:false});assert.equal(props(ui.start()).disabled,true,'omitted legacy mode cannot dispatch');
     assert.equal(ui.calls.filter(c=>c.command==='thread_start').length,1);
     await ui.press('Start thread');assert.equal(ui.calls.filter(c=>c.command==='thread_start').length,1);
     await ui.press('Use account home');assert.deepEqual(ui.values(),blankChoice,'returning does not restore an invalidated choice');
@@ -287,13 +297,12 @@ test('a home transition invalidates prior-home edits but preserves newer target-
     await React.act(()=>{pendingStart=props(ui.start()).onClick();});
     await ui.observeHome('api-key');
     await React.act(()=>{pendingHome=props(button(ui.container,'Use account home')).onClick();});
-    assert.deepEqual(ui.values(),blankChoice);
-    await ui.edit({...selectedChoice,model:'edited-before-target-was-active'});
-    assert.equal(props(ui.start()).disabled,true,'the prior-home draft cannot start during selection');
+    assert.deepEqual(ui.values(),{model:null,route:false},'the legacy home offers no choice while the account home is selected');
+    assert.equal(props(ui.start()).disabled,true,'nothing can start during selection');
     await React.act(async()=>{homeReply.resolve();await targetReadReached.promise;});
-    assert.ok(button(ui.container,'Use my ChatGPT account (built-in OpenAI)'));
+    assert.ok(ui.container.querySelectorAll(e=>e.getAttribute('aria-label')==='Connection in use').length,'the account home shows its only connection in use');
     assert.deepEqual(ui.values(),blankChoice,'edits made in the legacy source do not become account-home choices');
-    const targetChoice={model:'target-home-model',modelProvider:'openai',entryId:'chatgpt-account'};
+    const targetChoice={model:'target-home-model',route:true};
     await ui.edit(targetChoice);
     startReply.resolve();await React.act(async()=>{await pendingStart;});
     assert.deepEqual(ui.values(),targetChoice,'the earlier account admission cannot consume the visible account-home draft');
@@ -320,7 +329,7 @@ test('a same-class actual generation update while Start is pending does not beco
     reply.resolve();await React.act(async()=>{await pending;});
     assert.deepEqual(ui.values(),blankChoice);
     const conversation=ui.container.querySelectorAll(e=>e.getAttribute('id')==='conversation')[0];
-    assert.equal(props(elements(conversation,'select')[0]).value,JSON.stringify([actual,'created-1']),'opens the actual returned H5, never the stale pre-click tuple');
+    assert.equal(chosenIn(choiceLists(conversation)[0]),JSON.stringify([actual,'created-1']),'opens the actual returned H5, never the stale pre-click tuple');
     assert.equal(ui.calls.filter(c=>c.command==='thread_start').length,1);
   },async(args,index,admitted)=>{await reply.promise;return admitted(args,index);});
 });
@@ -329,7 +338,7 @@ test('an admitted start consumes its chooser before an independent refresh failu
   await withStartChooser(async ui=>{
     await ui.edit(selectedChoice);ui.failStatus();await ui.press('Start thread');
     assert.deepEqual(ui.values(),blankChoice);assert.equal(props(ui.start()).disabled,true);
-    assert.match(ui.container.textContent,/current host view unavailable/);
+    assert.ok(ui.container.textContent.includes("thread_start: ")&&ui.container.textContent.includes("The App could not read Codex's status afterwards, so what is shown may be out of date."),'the start outcome stands, then the fixed refresh line');assert.doesNotMatch(ui.container.textContent,/Current status read unavailable/);
     assert.equal(ui.calls.filter(c=>c.command==='thread_start').length,1);
   });
 });
@@ -417,12 +426,12 @@ async function ordinaryContinueCase({initialThread = false, outcome = 'success',
   try {
     await React.act(async () => {root.render(React.createElement(App));});
     const conversation = () => container.querySelectorAll(element => element.getAttribute('id') === 'conversation')[0];
-    const selectedKey = () => props(elements(conversation(), 'select')[0]).value;
+    const selectedKey = () => chosenIn(choiceLists(conversation())[0]);
     const priorKey = JSON.stringify([source, 'existing']);
-    if (initialThread) await change(elements(conversation(), 'select')[0], priorKey);
+    if (initialThread) await change(choiceLists(conversation())[0], priorKey);
     const draft = 'Unsent continuation text é / 家';
     await change(elements(conversation(), 'textarea')[0], draft);
-    await React.act(async () => {await props(labelled(container, 'select', 'Stored conversation ')).onChange({target: {value: 'stored'}});});
+    await React.act(async () => {await chooseIn(choiceList(container, 'Stored conversation'), 'stored');});
     await React.act(async () => {await props(button(container, 'Read metadata')).onClick();});
     assert.equal(selectedKey(), initialThread ? priorKey : '', 'index and metadata reads do not open an operational chat');
     const continueButton = button(container, 'Continue selected conversation');
@@ -436,7 +445,7 @@ async function ordinaryContinueCase({initialThread = false, outcome = 'success',
         document.visibilityState='visible';await React.act(async()=>{for(const {type,listener} of [...document.listeners])if(type==='visibilitychange')listener();});
       }
       expectedKey = JSON.stringify([snapshot.generation, 'other-current']);
-      await change(elements(conversation(), 'select')[0], expectedKey);
+      await change(choiceLists(conversation())[0], expectedKey);
       assert.equal(selectedKey(), expectedKey, 'the person has chosen the newer current chat');
       await React.act(async () => {releaseDecision({rows: []}); await pendingContinue;});
     } else {
@@ -445,7 +454,12 @@ async function ordinaryContinueCase({initialThread = false, outcome = 'success',
     assert.deepEqual(calls.filter(call => call.command === 'history_action').map(call => call.args), ['metadata', 'continue'].map(action => ({generation: source, selectionEpoch: 1, action, cursor: null, direction: 'desc', reference: null})), 'one explicit Continue and no retry');
     assert.ok(calls.every(call => ['host_status', 'decision_view', 'native_confirmation_content', 'history_select', 'history_action', 'select_home'].includes(call.command)), 'Continue never sends text or changes role');
     assert.equal(props(elements(conversation(), 'textarea')[0]).value, draft);
-    assert.equal(selectedKey(), expectedKey, 'a delayed Continue cannot replace a newer source or chat choice');
+    if (outcome === 'source-changed') {
+      // The kept choice is no longer offered in the new generation, so no radio button shows it; the App says the
+      // selection is kept and unavailable, which it says only while the choice is not cleared.
+      assert.equal(selectedKey(), '', 'no current conversation is shown as chosen');
+      assert.match(conversation().textContent, /Selected conversation is no longer available in this generation/, 'a delayed Continue cannot replace a newer source or chat choice');
+    } else assert.equal(selectedKey(), expectedKey, 'a delayed Continue cannot replace a newer source or chat choice');
     if (outcome === 'success') {
       assert.equal(props(button(conversation(), 'Send text')).disabled, false);
       assert.ok(conversation().textContent.includes('Role not established in this App process'), 'cold role stays unknown despite native agentRole');
@@ -512,7 +526,8 @@ test('idle native waiting startup reads no intent, performs no action and cleans
     assert.equal(typeof waitingPoll, 'function', 'the mounted App installs its waiting recovery poll');
     assert.deepEqual(idle.calls.filter(call => call.command === 'claim_native_waiting_intent').map(call => call.args.consumer),
       [idle.calls[0].args.consumer, idle.calls[0].args.consumer], 'polls read the same single-use consumer without a target');
-    assert.ok(ui.calls.every(call => ['host_status', 'decision_view', 'native_confirmation_content'].includes(call.command)),
+    // read_fleet_records is the "Waiting on you" timer's read, on hostReads' timed-read list: it writes nothing.
+    assert.ok(ui.calls.every(call => ['host_status', 'decision_view', 'native_confirmation_content', 'read_fleet_records'].includes(call.command)),
       'an idle recovery poll also performs no navigation or supplier action');
   });
   assert.equal(intervals.size, 0, 'App unmount clears every installed poll, including native waiting');
@@ -542,7 +557,7 @@ async function withOrdinarySend(check, native) {
   try {
     await React.act(async () => root.render(React.createElement(App)));
     const panel = () => container.querySelectorAll(e => e.getAttribute('id') === 'conversation')[0];
-    await change(elements(panel(), 'select')[0], key('thread-a'));
+    await change(choiceLists(panel())[0], key('thread-a'));
     await check({container, calls, panel, model: () => labelled(panel(), 'input', ordinaryModelLabel), text: () => elements(panel(), 'textarea')[0],
       press: async label => React.act(async () => {props(button(panel(), label)).onClick(); await flush();})});
   } finally {const text = container.textContent; await React.act(() => root.unmount()); document.body.removeChild(container); idle.restore(text);}
@@ -562,7 +577,7 @@ test('mounted App ordinary controls send only their exact explicit choice and fu
       assert.equal(props(labelled(ui.container, 'input', 'Model ')).value, 'new-conversation-only');
       assert.match(region(ui.panel(), 'Ordinary text submission outcome').textContent, /Model adoption, execution and completion remain unestablished/);
       assert.match(ui.panel().textContent, /this turn and subsequent native turns; clearing this field does not revert it/);
-      assert.match(ui.panel().textContent, /reported-original via original-provider/);
+      assert.match(ui.panel().textContent, /Conversation thread-a no title supplied Model: reported-original Provider: original-provider/, 'the model and provider stand beside the choice, boxed');
     }, async () => ({result: {turn: {id: 'native-turn', status: 'inProgress', items: []}}}));
   }
 });
@@ -573,7 +588,8 @@ test('ordinary native result is immutable across observer failure, with refusal/
     await ui.press('Send text');
     const shown = region(ui.panel(), 'Ordinary text submission outcome').textContent;
     assert.match(shown, /Original ordinary text turn · conversation thread-a · Home h · App session s · spawn 1/);
-    assert.match(shown, /Ordinary text view refresh unavailable.*Original observer unavailable/);
+    // A failed refresh is shown only as the fixed line (App Agent 0's decision), never its raw diagnostic.
+    assert.ok(shown.includes("The App could not read Codex's status afterwards, so what is shown may be out of date."), shown); assert.doesNotMatch(shown, /Original observer unavailable/);
     if (outcome === 'acknowledged') {
       assert.match(shown, /Native turn\/start response received/); assert.doesNotMatch(shown, /Original native/);
       assert.equal(props(ui.model()).value, ''); assert.equal(props(ui.text()).value, '');
@@ -681,7 +697,7 @@ async function withDeferredConversationAction(t, command, check, {refused = fals
   const actionLabel = command === 'conversation_steer_text' ? 'Steer current live turn' : 'Interrupt selected live turn';
   const ui = {container, calls, panel, text,
     async start() {
-      await change(elements(panel(), 'select')[0], key('thread-a'));
+      await change(choiceLists(panel())[0], key('thread-a'));
       await change(text(), 'original steering text');
       if (command === 'conversation_interrupt') await change(labelled(panel(), 'select', 'Observed live turn '), 'live-a');
       const control = button(panel(), actionLabel); assert.equal(!!props(control).disabled, false);
@@ -698,15 +714,15 @@ async function withDeferredConversationAction(t, command, check, {refused = fals
         await change(text(), 'newer steering text');
         if (kind === 'same-text') await change(text(), 'original steering text');
       } else if (kind === 'thread') {
-        await change(elements(panel(), 'select')[0], key('thread-b'));
+        await change(choiceLists(panel())[0], key('thread-b'));
       } else if (kind === 'thread-away-back') {
         // Other App navigation surfaces can change this shared selection. Drive
         // the real handler twice before rendering: final thread/generation and
         // object equality cannot detect this; the dispatch intent ticket must.
-        const choose = props(elements(panel(), 'select')[0]).onChange;
+        const toB = chooser(choiceLists(panel())[0], key('thread-b')), toA = chooser(choiceLists(panel())[0], key('thread-a'));
         await React.act(() => {
-          choose({target: {value: key('thread-b')}});
-          choose({target: {value: key('thread-a')}});
+          toB();
+          toA();
         });
       } else if (kind === 'home' || kind === 'home-away-back') {
         snapshot=makeSnapshot({...g,home:'other-home'},'api-key','navigated-view');
@@ -779,7 +795,9 @@ for (const command of ['conversation_steer_text', 'conversation_interrupt']) {
         const outcome = region(ui.container, 'Original conversation action outcome');
         assert.ok(outcome);
         assert.match(outcome.textContent, refused ? /Original native refusal/ : /Native (steering|interrupt) acknowledgment received/);
-        assert.match(outcome.textContent, superseded ? /superseded/ : /Original refresh failure/);
+        // A supersession keeps its own message; a failed refresh is shown only as the fixed line (App Agent 0's decision).
+        if (superseded) assert.match(outcome.textContent, /superseded/); else assert.ok(outcome.textContent.includes("The App could not read Codex's status afterwards, so what is shown may be out of date."), outcome.textContent);
+        assert.doesNotMatch(outcome.textContent, /Original refresh failure/);
         assert.match(outcome.textContent, /command outcome.*unchanged/i);
         assert.equal(ui.panel().querySelectorAll(e => e.getAttribute('role') === 'alert').filter(e => e.textContent.includes('Original native refusal')).length, 0,
           'old refusal is not assigned to the selected conversation error');
@@ -802,7 +820,7 @@ test('ordinary send explains disconnected, unselected, empty and ready states wi
  await withReadinessPanel(async ui=>{
   assert.match(ui.byId('ordinary-send-readiness').textContent,/Write a message/);
   await change(elements(ui.c,'textarea')[0],'Retained ordinary draft');
-  assert.match(ui.byId('ordinary-send-readiness').textContent,/Ready to send text to Conversation 1 · model not reported\./,'the destination is named in the person\'s words');
+  assert.match(ui.byId('ordinary-send-readiness').textContent,/Ready to send text to conversation thread-a\./,'the destination is named by its identity in the App\'s words; its title stays in its box in the chooser');
   assert.equal(props(button(ui.c,'Send text'))['aria-describedby'],'ordinary-send-readiness');
   ui.choose('');await ui.show();assert.match(ui.byId('ordinary-send-readiness').textContent,/Choose a current conversation/);
   assert.equal(props(button(ui.c,'Send text')).disabled,true);
@@ -892,7 +910,7 @@ test('while Stop or Restart Codex runs, sends pause but the conversation and liv
   await withReadinessPanel(async ui => {
     ui.setBusy(true); await ui.show();
     assert.equal(props(button(ui.c, 'Send text')).disabled, true);
-    assert.equal(props(labelled(ui.c, 'select', 'Current-generation conversation ')).disabled, false);
+    assert.equal(props(choiceList(ui.c, 'Current-generation conversation')).disabled, false);
     assert.equal(props(labelled(ui.c, 'select', 'Observed live turn ')).disabled, false);
     await change(labelled(ui.c, 'select', 'Observed live turn '), 'live-a');
     assert.equal(props(button(ui.c, 'Interrupt selected live turn')).disabled, false);
@@ -914,7 +932,7 @@ test('the App pauses conversation sends for exactly the duration of Stop Codex',
   try {
     await React.act(async () => {root.render(React.createElement(App));});
     const conversation = () => container.querySelectorAll(element => element.getAttribute('id') === 'conversation')[0];
-    await change(elements(conversation(), 'select')[0], key('existing'));
+    await change(choiceLists(conversation())[0], key('existing'));
     await change(elements(conversation(), 'textarea')[0], 'Kept while Codex stops');
     assert.equal(props(button(conversation(), 'Send text')).disabled, false);
     let pending;
@@ -947,7 +965,7 @@ test('Continue as begins through continue_as_begin for the selected conversation
   } finally { await React.act(() => root.unmount()); document.body.removeChild(c); }
 });
 
-test('the App start display has its own role group and one shared model and provider field pair', async () => {
+test('the App start display has its own role group and one shared model field and the built-in route', async () => {
   const container = document.createElement('div'); document.body.appendChild(container); const root = createRoot(container);
   const snapshot = {...host, threads: [], homeRouting: {activeModeHomeClass: 'account'},
     roleSet: {available: true, defaultRole: 'HELP_HUMAN', roles: [{name: 'HELP_HUMAN', meaning: 'Alignment', default_for_new_chat: true}, {name: 'TASK', meaning: 'Bounded', default_for_new_chat: false}]}};
@@ -959,15 +977,19 @@ test('the App start display has its own role group and one shared model and prov
   });
   try {
     await React.act(async () => {root.render(React.createElement(App));});
-    const radios = elements(container, 'input').filter(element => props(element).type === 'radio');
+    const inChoices = element => choiceLists(container).some(list => list.contains(element));
+    const radios = elements(container, 'input').filter(element => props(element).type === 'radio' && !inChoices(element));
     assert.ok(radios.length >= 2);
     assert.deepEqual([...new Set(radios.map(element => props(element).name))], ['start-thread-role'], 'the Start thread picker keeps its own group');
+    assert.ok(elements(container, 'input').filter(inChoices).every(element => props(element).name !== 'start-thread-role'), 'no conversation choice joins the Start thread picker\'s group');
     const field = label => elements(container, 'input').filter(element => element.parentNode.textContent.startsWith(label));
     assert.equal(field('Model ').length, 1);
-    assert.equal(field('Configured Codex provider ').length, 1);
+    assert.equal(field('Configured Codex provider ').length, 0, 'the provider is never typed');
+    assert.equal(elements(container, 'select').filter(element => element.parentNode.textContent.startsWith('Access entry ')).length, 0, 'there is no access-entry select');
+    await chooseRoute(container);
     await change(field('Model ')[0], 'chosen-model');
-    await change(field('Configured Codex provider ')[0], 'openai');
-    assert.deepEqual([props(field('Model ')[0]).value, props(field('Configured Codex provider ')[0]).value], ['chosen-model', 'openai']);
+    assert.deepEqual([props(field('Model ')[0]).value, routeChosen(container)], ['chosen-model', true]);
+    assert.match(container.querySelectorAll(e => e.getAttribute('aria-label') === 'New conversation choice')[0].textContent, /chosen-model via openai \(chatgpt-account\)/);
   } finally {
     const renderedText = container.textContent;
     await React.act(() => root.unmount());
@@ -1021,13 +1043,16 @@ test('matching sign-in completion checks once, including StrictMode and repeated
       await ui.show(withAccountRead(accountHost({homeOAuth:completionPacket()})));
       assert.match(ui.container.textContent,/Codex reports a ChatGPT account for this connection/);
       assert.equal(ui.reads.length,1);
-      assert.doesNotMatch(ui.container.textContent,new RegExp(accountCanary));
       await ui.show(accountHost());await ui.show(accountHost({homeOAuth:completionPacket()}));
       assert.equal(ui.reads.length,1,'a known completion is not retried after an observation gap');
     },{strict,initial:accountHost({homeOAuth:completionPacket()}),read:()=>{complete=deferred();return complete.promise;}});
   }
 });
 
+// The panel itself checks only on a completed sign-in of this source; the account read when Codex becomes ready (at
+// launch and after a restart) is the host's own, recorded as the App's (access_provider_tests.rs
+// codex_ready_reads_the_account_once_with_empty_params_as_the_apps_own_read_and_again_after_a_restart), and reaches the
+// panel as a host reading of the new generation, never a reading carried from the earlier one.
 test('no implicit check on restart, pending, failed, foreign, missing or unavailable completion',async()=>{
   const invalid=[accountHost(),accountHost({homeOAuth:completionPacket({phase:'Pending'})}),
     accountHost({homeOAuth:completionPacket({phase:'CompletedFailure'})}),accountHost({homeOAuth:completionPacket({phase:'StartRejected'})}),
@@ -1045,6 +1070,15 @@ test('no implicit check on restart, pending, failed, foreign, missing or unavail
   });
 });
 
+test('the account view shows the email and plan Codex reports, says when no email is reported, and never an unrecognised plan',()=>{
+  const {reportedChatgptAccount}=loadSrc('AccountStatus');
+  assert.equal(reportedChatgptAccount({codexAccount:'person@example.invalid',nativeAccount:{type:'chatgpt',planType:'plus'}}),'person@example.invalid · plan plus');
+  assert.equal(reportedChatgptAccount({codexAccount:'ChatGPT account (no email reported)',nativeAccount:{type:'chatgpt',planType:'pro'}}),'ChatGPT account (no email reported) · plan pro');
+  for(const current of [{},{codexAccount:''},{codexAccount:null},{codexAccount:'two\nlines@example.invalid'},{codexAccount:'x'.repeat(255)}])
+    assert.match(reportedChatgptAccount(current),/^ChatGPT account \(no email reported\) · plan not reported$/);
+  for(const planType of ['unknown','INVENTED_PLAN',null,3,undefined])
+    assert.equal(reportedChatgptAccount({codexAccount:'person@example.invalid',nativeAccount:{planType}}),'person@example.invalid · plan not reported');
+});
 test('ordinary account summary distinguishes kinds, absence, omission, pending, invalid and failed latest reads',async()=>{
   const cases=[
     [accountReadPacket('chatgpt'),/reports a ChatGPT account/],
@@ -1055,7 +1089,9 @@ test('ordinary account summary distinguishes kinds, absence, omission, pending, 
     [accountReadPacket('chatgpt',{accountObservation:{state:'account omitted; unknown/unavailable',account:null}}),/did not report account status.*does not mean you are signed out/],
     [accountReadPacket('chatgpt',{source:{...accountReadPacket().source,outcome:'response-observed-error',response:{error:{message:accountCanary}}}}),/could not read account status/],
     [accountReadPacket('chatgpt',{source:{...accountReadPacket().source,authResponseShapeValid:false}}),/unavailable account response/],
-    [accountReadPacket('chatgpt',{source:{...accountReadPacket().source,outcome:'pending'}}),/has not produced a result/],
+    // A read Codex left unanswered past the host's wait is not a result; one still waiting for its answer is under way.
+    [accountReadPacket('chatgpt',{source:{...accountReadPacket().source,outcome:'pending',waitingEnded:true}}),/has not produced a result/],
+    [accountReadPacket('chatgpt',{source:{...accountReadPacket().source,outcome:'pending'}}),/Checking with Codex whether you're signed in/],
     [accountReadPacket('chatgpt',{source:{...accountReadPacket().source,sourceCurrent:false}}),/no longer current/],
   ];
   await mountedAccount(async ui=>{
@@ -1063,7 +1099,9 @@ test('ordinary account summary distinguishes kinds, absence, omission, pending, 
       const source=withAccountRead(accountHost(),row);
       source.homeAccess.observations.unshift(accountReadPacket());
       await ui.show(source);assert.match(ui.container.textContent,expected,'latest read controls; no fallback to old success');
-      assert.doesNotMatch(ui.container.textContent,new RegExp(accountCanary));
+      // DEL-01-05 REQ-001: the email and plan appear only with a current ChatGPT account report, never with any other outcome.
+      if(row===cases[0][0]) assert.match(ui.container.textContent,new RegExp(`reports a ChatGPT account for this connection: ${accountCanary.replace('.','\\.')} · plan not reported\\.`));
+      else assert.doesNotMatch(ui.container.textContent,new RegExp(accountCanary));
     }
     const invalidated=withAccountRead(accountHost());invalidated.accountObservation.state='unknown';
     await ui.show(invalidated);assert.match(ui.container.textContent,/changed or is no longer confirmed/);
@@ -1103,6 +1141,8 @@ async function mountedAccountApp(check,{readReply,statusReply}={}) {
       if(readReply)await readReply(args);
       snapshot=withAccountRead(snapshot);return snapshot.homeAccess;
     }
+    // The move after a confirmed sign-in opens New conversation, whose model list the App reads itself.
+    if(command==='read_available_models')return {state:'observed',generation:args.generation,modeHomeClass:args.modeHomeClass,serverProvider:'openai',serverProviderState:'named',complete:true,limits:[],models:[]};
     if(command==='select_home'){snapshot=accountHost({generation:args.modeHomeClass==='account'?g:{...g,home:'key-home'},
       homeRouting:{activeModeHomeClass:args.modeHomeClass,entries:[{modeHomeClass:'account'},{modeHomeClass:'api-key'}]}});return {};}
     throw Error(`Unexpected command ${command}`);
@@ -1117,14 +1157,18 @@ async function mountedAccountApp(check,{readReply,statusReply}={}) {
   finally{const text=container.textContent;await React.act(()=>root.unmount());document.body.removeChild(container);idle.restore(text);}
 }
 
+// The person's sign-in still leads to one read of the renderer's own, the existing non-forced one; this fixture's host
+// has recorded no read of its own at ready, so the panel starts from "not checked".
 test('App matching completion dispatches only the existing non-forced read and shows the current account',async()=>{
   await mountedAccountApp(async ui=>{
     assert.match(ui.summary().textContent,/not been checked/);
     await ui.press('Sign in with your ChatGPT account (through Codex)…');
     assert.deepEqual(ui.calls.filter(c=>c.command==='read_home_access'),[{command:'read_home_access',args:{generation:g,modeHomeClass:'account'}}]);
     assert.match(ui.summary().textContent,/reports a ChatGPT account/);
-    assert.doesNotMatch(ui.summary().textContent,new RegExp(accountCanary));
-    assert.ok(ui.calls.every(c=>['host_status','decision_view','native_confirmation_content','oauth_start','read_home_access'].includes(c.command)),
+    assert.match(ui.summary().textContent,new RegExp(accountCanary),'the account Codex reports is shown');
+    // The confirmed sign-in moves to New conversation, where the App reads Codex's model list (a catalogue read,
+    // no model is called and nothing is chosen).
+    assert.ok(ui.calls.every(c=>['host_status','decision_view','native_confirmation_content','oauth_start','read_home_access','read_available_models'].includes(c.command)),
       'completion never refreshes credentials, signs in again, or calls a model');
     const diagnostics=elements(ui.container,'details').find(d=>d.textContent.startsWith('Source-owned account observations and limits'));
     assert.equal(props(diagnostics).open,undefined,'diagnostics remain available as a disclosure');
@@ -1185,21 +1229,28 @@ const effortPacket = {state:'observed',conversationModel:'m',generation:g,modeHo
   supportedReasoningEfforts:[{reasoningEffort:'medium',description:'Balanced'},{reasoningEffort:'future-offered',description:'Supplier choice'}]
 }]};
 
-test('mounted ordinary chooser sends only deliberate offered effort, binds model, rejects old Send and resets on conversation change', async () => {
+test('mounted ordinary chooser reads choices once per conversation, sends only deliberate offered effort, binds model, rejects old Send and shows the effort in force after a send', async () => {
   const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
   const calls=[];const sends=[];let failSend=false;
   window.__TAURI_INTERNALS__={invoke:async(command,args)=>{calls.push({command,args});assert.equal(command,'read_available_models');return effortPacket;}};
-  const host={state:'ready',generation:g,homeRouting:{activeModeHomeClass:'account'},threads:['t','other'].map(threadId=>({generation:g,threadId,model:'obsolete-thread-report',modelProvider:'openai'})),planMode:{state:'offered'}};
-  const show = thread => React.act(()=>root.render(React.createElement(ConversationPanel,{host,threadKey:JSON.stringify([g,thread]),setThreadKey:noop,answer:noop,runAct:noop,send:async(...args)=>{sends.push(args);if(failSend)throw Error("unknown send");return {result:{}};},steer:noop,submitAttachments:noop,interrupt:noop,checkPlanMode:noop,codexBusy:false})));
+  let host={state:'ready',generation:g,homeRouting:{activeModeHomeClass:'account'},threads:['t','other'].map(threadId=>({generation:g,threadId,model:'obsolete-thread-report',modelProvider:'openai'})),planMode:{state:'offered'}};
+  let busy=false;
+  const show = thread => React.act(()=>root.render(React.createElement(ConversationPanel,{host,threadKey:JSON.stringify([g,thread]),setThreadKey:noop,answer:noop,runAct:noop,send:async(...args)=>{sends.push(args);if(failSend)throw Error("unknown send");return {result:{}};},steer:noop,submitAttachments:noop,interrupt:noop,checkPlanMode:noop,codexBusy:busy})));
   const change=(element,value)=>React.act(()=>props(element).onChange({target:{value}}));
   const effort=()=>elements(c,'select').find(e=>e.parentNode.textContent.startsWith('Reasoning effort for'));
+  const keepOption=()=>elements(effort(),'option').find(o=>props(o).value==='').textContent;
+  const options=()=>elements(c,'details').find(d=>props(d).className==='conversation-model-options');
   try {
-    await show('t');assert.equal(calls.length,0,'no implicit read');
+    await show('t');
+    assert.equal(calls.length,0,'nothing is read while Model and effort is closed');
+    await React.act(()=>{const d=options();d.open=true;props(d).onToggle({currentTarget:d});});
+    // With the control open, the selected conversation's effort choices are read once: open the menu, then pick.
+    assert.equal(calls.length,1,'one read for the conversation');assert.equal(calls[0].args.threadId,'t');
+    assert.equal(button(c,'Read effort choices for this model'),undefined,'no separate read press');
+    assert.ok(c.textContent.includes('future-offered'));
     assert.equal(props(effort()).value,'','catalog default not chosen');
-    await React.act(()=>props(button(c,'Read effort choices for this model')).onClick());
-    assert.equal(calls.length,1);assert.ok(c.textContent.includes('future-offered'));
+    assert.equal(keepOption(),"Keep Codex's setting (not reported)",'what keep keeps, when the effort in force is not reported');
     const oldChoice=props(effort()).onChange;
-    const oldRead=props(button(c,'Read effort choices for this model')).onClick;
     const textarea=()=>elements(c,'textarea').find(e=>props(e).id==='ordinary-composer-text');
     await change(textarea(),'Exact text');
     const oldSend=props(button(c,'Send text')).onClick;
@@ -1207,18 +1258,22 @@ test('mounted ordinary chooser sends only deliberate offered effort, binds model
     await React.act(()=>oldSend());assert.equal(sends.length,0,'earlier Send cannot carry a new effort');
     await React.act(()=>props(button(c,'Send in plan mode (experimental)')).onClick());
     assert.deepEqual(sends[0],[g,'t','Exact text','plan','m','future-offered']);
-    assert.equal(props(effort()).value,'','successful send leaves native sticky setting in force');
-    await change(effort(),'medium');
-    await React.act(()=>props(button(c,'Read effort choices for this model')).onClick());
-    await React.act(()=>oldChoice({target:{value:'future-offered'}}));
-    assert.equal(props(effort()).value,'medium','old observation cannot choose after reread');
-    await show('other');assert.equal(props(effort()).value,'','other conversation inherits no local choice');
-    assert.equal(props(effort()).disabled,true,'old list not matched to other conversation');
-    await show('t');
+    assert.equal(props(effort()).value,'','an acknowledged send clears the next-send override');
+    // The host reports the effort Codex accepted: the control shows it as in force, not an unexplained setting.
+    host={...host,threads:host.threads.map(t=>t.threadId==='t'?{...t,effortInForce:{state:'known',effort:'future-offered'}}:t)};await show('t');
+    assert.equal(keepOption(),'Keep the effort in force (future-offered)');
+    assert.match(c.textContent,/Effort: future-offered \(in force\)/);
+    // A pick from a menu whose model changed since its list was read says why and changes nothing.
+    await change(labelled(c,'input','Optional model identifier'),'m');
+    await React.act(()=>oldChoice({target:{value:'medium'}}));
+    assert.equal(props(effort()).value,'','old observation cannot choose after the model changed');
+    assert.match(c.textContent,/The model changed; choose again\./);
+    await change(labelled(c,'input','Optional model identifier'),'');
     const readCount=calls.length;
-    await React.act(()=>oldRead());assert.equal(calls.length,readCount,'old read cannot revive after A to B to A');
-    await React.act(()=>oldChoice({target:{value:'future-offered'}}));assert.equal(props(effort()).value,'');
-    await React.act(()=>props(button(c,'Read effort choices for this model')).onClick());
+    await show('other');assert.equal(props(effort()).value,'','other conversation inherits no local choice');
+    assert.equal(calls.length,readCount+1,'the other conversation reads its own choices once');assert.equal(calls.at(-1).args.threadId,'other');
+    await show('t');
+    assert.equal(calls.length,readCount+1,'returning to a conversation whose choices were read does not read them again');
     await change(effort(),'medium');await change(textarea(),'Uncertain text');failSend=true;
     await React.act(()=>props(button(c,'Send text')).onClick());
     assert.equal(sends.length,2);assert.equal(props(effort()).value,'medium','unknown outcome keeps effort');
@@ -1227,6 +1282,143 @@ test('mounted ordinary chooser sends only deliberate offered effort, binds model
   } finally {await React.act(()=>root.unmount());document.body.removeChild(c);delete window.__TAURI_INTERNALS__;}
 });
 
+test('a pick the effort control refuses while the conversation is busy says why', async () => {
+  const {OfferedEffortChoice} = loadSrc('ModelChoice');
+  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);const choices=[];
+  const previous=window.__TAURI_INTERNALS__;
+  window.__TAURI_INTERNALS__={invoke:async(command,args)=>{assert.equal(command,'read_available_models');assert.equal(args.atPersonPress,false,'opening the effort control is an App read');return effortPacket;}};
+  let current={owner:'original',threadId:'t',generation:g,homeClass:'account',modelProvider:'openai',entryId:'chatgpt-account',model:'',effort:'',disabled:false,busy:false,inForce:'medium',choose:(...args)=>choices.push(args)};
+  const show=async patch=>{current={...current,...patch};await React.act(async()=>root.render(React.createElement(OfferedEffortChoice,current)));};
+  try {
+    await show({});
+    const select=elements(c,'select')[0];const opened=props(select).onChange;
+    // The menu was opened before the send began; the pick lands while the conversation is busy.
+    await show({disabled:true,busy:true});
+    await React.act(()=>opened({target:{value:'future-offered'}}));
+    assert.equal(choices.length,0,'nothing is chosen while busy');
+    assert.match(c.textContent,/Wait for the current send to finish, then choose\./);
+    await show({disabled:false,busy:false});
+    await React.act(()=>props(elements(c,'select')[0]).onChange({target:{value:'future-offered'}}));
+    assert.deepEqual(choices,[['future-offered','m']]);
+    assert.doesNotMatch(c.textContent,/Wait for the current send/,'a pick that is taken clears the reason');
+  } finally {await React.act(()=>root.unmount());document.body.removeChild(c);window.__TAURI_INTERNALS__=previous;}
+});
+
+test('the effort choices shown are always the selected model\'s: a model typed in the open view is read for itself, and after a send that changed the model the earlier model\'s list is not reused', async () => {
+  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
+  const calls=[];const sends=[];let conversationModel='m';
+  const row=(model,efforts)=>({id:model,model,displayName:`Model ${model}`,description:'',isDefault:model==='m',defaultReasoningEffort:efforts[0],supportedReasoningEfforts:efforts.map(reasoningEffort=>({reasoningEffort,description:`${model} ${reasoningEffort}`}))});
+  // The host reads the list with the conversation's model as it stands at that read.
+  window.__TAURI_INTERNALS__={invoke:async(command,args)=>{calls.push({command,args});assert.equal(command,'read_available_models');
+    return {...effortPacket,conversationModel,models:[row('m',['medium','only-for-m']),row('n',['low','only-for-n'])]};}};
+  const host={state:'ready',generation:g,homeRouting:{activeModeHomeClass:'account'},threads:[{generation:g,threadId:'t',model:'m',modelProvider:'openai'}],planMode:{state:'offered'}};
+  const show=()=>React.act(()=>root.render(React.createElement(ConversationPanel,{host,threadKey:JSON.stringify([g,'t']),setThreadKey:noop,answer:noop,runAct:noop,send:async(...args)=>{sends.push(args);conversationModel=args[4];return {result:{}};},steer:noop,submitAttachments:noop,interrupt:noop,checkPlanMode:noop,codexBusy:false})));
+  const change=(element,value)=>React.act(()=>props(element).onChange({target:{value}}));
+  const effort=()=>elements(c,'select').find(e=>e.parentNode.textContent.startsWith('Reasoning effort for'));
+  const offered=()=>elements(effort(),'option').map(o=>props(o).value).filter(Boolean);
+  const modelField=()=>labelled(c,'input','Optional model identifier');
+  try {
+    await show();
+    await React.act(()=>{const d=elements(c,'details').find(d=>props(d).className==='conversation-model-options');d.open=true;props(d).onToggle({currentTarget:d});});
+    assert.deepEqual(offered(),['medium','only-for-m'],'the conversation\'s model, m');
+    // The person types another model in the open view: its own choices, from a read for it, never m's.
+    // Typed, then the field left: the typed ID is read at once (it is never read per keystroke; see below).
+    await change(modelField(),'n');await React.act(()=>props(modelField()).onBlur());
+    assert.equal(calls.length,2,'a model typed here is read for itself');
+    assert.deepEqual(offered(),['low','only-for-n']);
+    assert.doesNotMatch(c.textContent,/only-for-m/);
+    // Sent with that model: the conversation's model is now n. The field clears, and the list read earlier for
+    // "the conversation's model" (m then) is not reused: it is read again and shows n's choices.
+    await change(elements(c,'textarea').find(e=>props(e).id==='ordinary-composer-text'),'Use n from now on');
+    await React.act(()=>props(button(c,'Send text')).onClick());
+    assert.equal(sends[0][4],'n');
+    assert.equal(props(modelField()).value,'','an acknowledged send clears the field');
+    assert.equal(calls.length,3,'read again after the model changed');
+    assert.deepEqual(offered(),['low','only-for-n'],'the model in use, n, never the earlier m');
+    assert.doesNotMatch(c.textContent,/only-for-m/);
+    // Clearing a typed model without sending changes nothing in the conversation: m's list read earlier is not needed again.
+    await change(modelField(),'m');await change(modelField(),'');
+    assert.deepEqual(offered(),['low','only-for-n']);
+  } finally {await React.act(()=>root.unmount());document.body.removeChild(c);delete window.__TAURI_INTERNALS__;}
+});
+
+// The model ID field reads the effort choices only when the typing pauses (MODEL_ID_PAUSE_MS) or the field is committed
+// (left, or Enter): each read leaves its own requests in host status, so never one read per keystroke.
+const typedId='model-abcdef';
+const typingRow=(model,efforts)=>({id:model,model,displayName:`Model ${model}`,description:'',isDefault:model==='m',defaultReasoningEffort:efforts[0],supportedReasoningEfforts:efforts.map(reasoningEffort=>({reasoningEffort,description:`${model} ${reasoningEffort}`}))});
+const typingPacket={...effortPacket,conversationModel:'m',models:[typingRow('m',['medium','only-for-m']),typingRow(typedId,['low','only-for-typed'])]};
+async function typingPanel(reply,check){
+  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);const calls=[];
+  window.__TAURI_INTERNALS__={invoke:(command,args)=>{calls.push({command,args});assert.equal(command,'read_available_models');return reply(calls.length);}};
+  const host={state:'ready',generation:g,homeRouting:{activeModeHomeClass:'account'},threads:[{generation:g,threadId:'t',model:'m',modelProvider:'openai'}],planMode:{state:'offered'}};
+  const field=()=>labelled(c,'input','Optional model identifier');
+  const effort=()=>elements(c,'select').find(e=>e.parentNode.textContent.startsWith('Reasoning effort for'));
+  const ui={c,calls,field,effort,
+    offered:()=>elements(effort(),'option').map(o=>props(o).value).filter(Boolean),
+    type:async text=>{for(let i=1;i<=text.length;i++)await React.act(()=>props(field()).onChange({target:{value:text.slice(0,i)}}));},
+    wait:ms=>React.act(()=>new Promise(resolve=>setTimeout(resolve,ms)))};
+  try {
+    await React.act(()=>root.render(React.createElement(ConversationPanel,{host,threadKey:JSON.stringify([g,'t']),setThreadKey:noop,answer:noop,runAct:noop,send:noop,steer:noop,submitAttachments:noop,interrupt:noop,checkPlanMode:noop,codexBusy:false})));
+    await React.act(()=>{const d=elements(c,'details').find(d=>props(d).className==='conversation-model-options');d.open=true;props(d).onToggle({currentTarget:d});});
+    await React.act(async()=>{});
+    await check(ui);
+  } finally {await React.act(()=>root.unmount());document.body.removeChild(c);delete window.__TAURI_INTERNALS__;}
+}
+
+test('typing a model ID reads the effort choices once, after the typing pauses, never once per keystroke', async () => {
+  const {MODEL_ID_PAUSE_MS}=loadSrc('ModelChoice');
+  assert.equal(MODEL_ID_PAUSE_MS,600);
+  await typingPanel(()=>typingPacket,async ui=>{
+    assert.equal(ui.calls.length,1,'the conversation\'s model is read when Model and effort opens');
+    assert.equal(typedId.length,12);
+    await ui.type(typedId);
+    assert.equal(ui.calls.length,1,'twelve keystrokes read nothing while the typing goes on');
+    await ui.wait(MODEL_ID_PAUSE_MS/2);
+    assert.equal(ui.calls.length,1,'nothing is read before the pause');
+    await ui.wait(MODEL_ID_PAUSE_MS);
+    assert.equal(ui.calls.length,2,'one read, after the pause, for the twelve keystrokes');
+    assert.deepEqual(ui.offered(),['low','only-for-typed'],'the typed model\'s own choices');
+    await ui.wait(MODEL_ID_PAUSE_MS+100);
+    assert.equal(ui.calls.length,2,'and no more after it');
+  });
+});
+
+test('leaving the model ID field, or pressing Enter in it, reads at once', async () => {
+  await typingPanel(()=>typingPacket,async ui=>{
+    await ui.type(typedId);
+    assert.equal(ui.calls.length,1);
+    await React.act(()=>props(ui.field()).onBlur());await React.act(async()=>{});
+    assert.equal(ui.calls.length,2,'leaving the field reads at once, without waiting for the pause');
+    assert.deepEqual(ui.offered(),['low','only-for-typed']);
+  });
+  await typingPanel(()=>typingPacket,async ui=>{
+    await ui.type(typedId);
+    await React.act(()=>props(ui.field()).onKeyDown({key:'x'}));
+    assert.equal(ui.calls.length,1,'another key is typing, not a commit');
+    await React.act(()=>props(ui.field()).onKeyDown({key:'Enter'}));await React.act(async()=>{});
+    assert.equal(ui.calls.length,2,'Enter reads at once');
+  });
+});
+
+test('while a typed model ID settles and its read is under way, the earlier model\'s effort choices are never offered as its own', async () => {
+  const replies=[];
+  await typingPanel(n=>{if(n===1)return typingPacket;const held=deferred();replies.push(held);return held.promise;},async ui=>{
+    assert.deepEqual(ui.offered(),['medium','only-for-m'],'the conversation\'s model, m');
+    await ui.type(typedId);
+    assert.deepEqual(ui.offered(),[],'while typing: none of m\'s choices');
+    assert.equal(props(ui.effort()).disabled,true,'the pick is disabled');
+    assert.match(ui.c.textContent,/The effort choices for this model ID are read when you stop typing or leave the field\./);
+    await React.act(()=>props(ui.field()).onBlur());
+    assert.equal(ui.calls.length,2);
+    assert.deepEqual(ui.offered(),[],'while its read is under way: still none of m\'s');
+    assert.equal(props(ui.effort()).disabled,true);
+    assert.match(ui.c.textContent,/Reading model effort choices…/);
+    assert.doesNotMatch(ui.c.textContent,/only-for-m/);
+    await React.act(async()=>{replies[0].resolve(typingPacket);});
+    assert.deepEqual(ui.offered(),['low','only-for-typed'],'once its read returns: the typed model\'s');
+    assert.equal(props(ui.effort()).disabled,false);
+  });
+});
 
 test('delayed effort replies cannot populate another source and readiness disables retained controls', async () => {
   const {OfferedEffortChoice} = loadSrc('ModelChoice');
@@ -1240,26 +1432,51 @@ test('delayed effort replies cannot populate another source and readiness disabl
   let current={owner:'original',threadId:'t',generation:g,homeClass:'account',modelProvider:'openai',entryId:'chatgpt-account',model:'',effort:'',disabled:false,choose:(...args)=>choices.push(args)};
   const show=async patch=>{current={...current,...patch};await React.act(()=>root.render(React.createElement(OfferedEffortChoice,current)));};
   const effort=()=>elements(c,'select')[0];
-  const read=()=>React.act(()=>props(button(c,'Read effort choices for this model')).onClick());
   try {
-    await show({});await read();const oldRead=props(button(c,'Read effort choices for this model')).onClick;
+    // Each source reads its effort choices once when shown; a reply for an earlier source never populates a later one.
+    await show({});assert.equal(calls.length,1,'read once when shown');
     const replacement={...g,spawnCounter:2};
-    await show({owner:'replacement',generation:replacement});
+    await show({owner:'replacement',generation:replacement});assert.equal(calls.length,2,'the replacement source reads its own');
     await React.act(async()=>{replies[0].resolve(effortPacket);});
     assert.equal(props(effort()).disabled,true);assert.ok(!c.textContent.includes('future-offered'),'old-source reply is discarded');
-    await read();await show({disabled:true});
+    await show({disabled:true});
     await React.act(async()=>{replies[1].resolve({...effortPacket,generation:replacement});});
     assert.equal(props(effort()).disabled,true,'a current reply grants no action while source is unavailable');
     const retainedChoice=props(effort()).onChange;
     await React.act(()=>retainedChoice({target:{value:'medium'}}));assert.equal(choices.length,0);
     await show({disabled:false});
-    await React.act(()=>oldRead());assert.equal(calls.length,2,'original read callback stays obsolete');
-    await read();
-    const next={...g,spawnCounter:3};await show({owner:'next',generation:next});
+    assert.equal(calls.length,2,'a source whose choices were read is not read again');
+    const next={...g,spawnCounter:3};await show({owner:'next',generation:next});assert.equal(calls.length,3);
+    const last={...g,spawnCounter:4};await show({owner:'last',generation:last});assert.equal(calls.length,4);
     await React.act(async()=>{replies[2].reject(Error('obsolete read failed'));});
     assert.ok(!c.textContent.includes('could not be read'),'delayed old error is not attributed to the new source');
     await React.act(()=>retainedChoice({target:{value:'medium'}}));assert.equal(choices.length,0);
   } finally {
     await React.act(()=>root.unmount());document.body.removeChild(c);window.__TAURI_INTERNALS__=previous;
   }
+});
+
+// Each conversation choice carries its model and provider, boxed beside the label: the stored-conversation adapter
+// (History) and the current-conversation adapter, each from its own source row.
+test('the History and current-conversation choices show the model and provider their rows report, boxed outside the label', async () => {
+  const {HistoryPanel} = loadSrc('App');
+  const {choiceList, rowOf} = await import('./support/choices.mjs');
+  const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c);
+  const boxes = row => row.querySelectorAll(n => n.getAttribute?.('role') === 'group' && /agent-text/.test(n.getAttribute('class') ?? '')).map(n => n.textContent);
+  const label = row => row.querySelectorAll(n => n.localName === 'label')[0];
+  try {
+    await React.act(() => root.render(React.createElement(HistoryPanel, {host: {state: 'ready', generation: g, homeRouting: {activeModeHomeClass: 'account'}, nativeHistory: {listPage: {data: []}, threads: [
+      {native: {id: 'stored-A', name: 'Stored title', model: 'stored-model', modelProvider: 'stored-provider', status: {type: 'idle'}}},
+      {native: {id: 'stored-B', name: 'Other title', status: {type: 'idle'}}}]}}, refresh: noop, threadKey: '', setThreadKey: () => {}, captureContinueContext: () => {}})));
+    const stored = choiceList(c, 'Stored conversation');
+    const a = rowOf(stored, 'stored-A'), b = rowOf(stored, 'stored-B');
+    assert.ok(boxes(a).includes('Model: stored-model') && boxes(a).includes('Provider: stored-provider'), boxes(a).join(' | '));
+    assert.doesNotMatch(label(a).textContent, /stored-model|stored-provider/, 'outside the label');
+    assert.match(b.textContent, /model not reported/); assert.match(b.textContent, /provider not reported/);
+    const thread = {generation: g, threadId: 'T-current', model: 'current-model', modelProvider: 'current-provider'};
+    await React.act(() => root.render(React.createElement(ConversationPanel, {host: {state: 'ready', generation: g, homeRouting: {activeModeHomeClass: 'account'}, threads: [thread]}, threadKey: '', setThreadKey: () => {}, answer: noop, runAct: noop, send: noop, steer: noop, submitAttachments: noop, interrupt: noop, checkPlanMode: noop, codexBusy: false})));
+    const current = rowOf(choiceList(c, 'Current-generation conversation'), JSON.stringify([g, 'T-current']));
+    assert.ok(boxes(current).includes('Model: current-model') && boxes(current).includes('Provider: current-provider'), boxes(current).join(' | '));
+    assert.doesNotMatch(label(current).textContent, /current-model|current-provider/);
+  } finally { await React.act(() => root.unmount()); document.body.removeChild(c); }
 });

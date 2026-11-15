@@ -6,6 +6,8 @@ import {fileURLToPath} from 'node:url';
 import React from 'react';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
+import {agentBlocks, agentBlockText} from './support/agent-text.mjs';
+import {choiceLists, chooseIn, chosenIn} from './support/choices.mjs';
 import './support/rust-prebuild.mjs';
 
 const document = installMiniDom();
@@ -25,7 +27,7 @@ async function press(container,label) {
 async function choose(control,value) {
   assert.ok(control);
   assert.equal(!!props(control).disabled,false);
-  await React.act(() => props(control).onChange({target:{value}}));
+  await React.act(() => chooseIn(control,value));
 }
 
 let packet;
@@ -102,7 +104,7 @@ const modelFor = (root,reference) => {
 };
 async function showCurrentTarget(container,target) {
   const conversation = container.querySelectorAll(node => node.getAttribute('id') === 'conversation')[0];
-  await choose(nodes(conversation,'select')[0],conversationKey(target));
+  await choose(choiceLists(conversation)[0],conversationKey(target));
 }
 
 test('actual cold clean source supports explicit reads and feedback while its authoring target stays unknown', async () => {
@@ -150,12 +152,12 @@ test('actual cold clean source supports explicit reads and feedback while its au
     assert.deepEqual(view.calls,[],'mounting the recovered workspace performs no host calls');
     let row = trialElement(view.container,original);
     assert.ok(row.textContent.includes(original.trial.authoringSourceLimit));
-    assert.equal(props(nodes(row,'select')[0]).value,'','no bare saved ID supplies an implicit target');
+    assert.equal(chosenIn(choiceLists(row)[0]),'','no bare saved ID supplies an implicit target');
     assert.equal(!!props(button(row,'Bring trial back')).disabled,true);
     assert.equal(!!props(button(row,'Read again')).disabled,false,'read-source availability is independent of the authoring target');
     await showCurrentTarget(view.container,source.target);
     assert.deepEqual(view.calls,[],'choosing the current conversation does not read or prefill feedback');
-    assert.equal(props(nodes(row,'select')[0]).value,'','the trial still requires its own explicit feedback target');
+    assert.equal(chosenIn(choiceLists(row)[0]),'','the trial still requires its own explicit feedback target');
     await press(row,'Read again');
     assert.deepEqual(view.calls,[['workflow_trial_read',{reference:left}]]);
     assert.ok(view.container.textContent.includes(JSON.stringify(source.readResult)),'the existing read-result status retains source and observation evidence');
@@ -179,14 +181,14 @@ test('actual cold clean source supports explicit reads and feedback while its au
     }
     assert.match(comparison.textContent,/Version difference/);
     assert.ok(comparison.textContent.includes(source.compare.result.standing));
-    await choose(nodes(row,'select')[0],conversationKey(source.target));
+    await choose(choiceLists(row)[0],conversationKey(source.target));
     assert.equal(view.calls.length,2,'choosing a target is not Bring back or Send');
     await press(row,'Bring trial back');
     assert.equal(view.calls[2][0],'workflow_trial_bring_back');
     const composer = labelled(view.container,'Bring back composer');
     assert.ok(composer,'the production conversation filter shows the pending transcript at the chosen target');
     assert.match(composer.textContent,/pre-filled, not sent/);
-    assert.ok(composer.textContent.includes(pending.transcript));
+    assert.ok(agentBlocks(composer).some(block => agentBlockText(block).includes(pending.transcript)), 'the transcript, in its recorded box');
     assert.ok(composer.textContent.includes(pending.source.standing));
     assert.equal(view.calls.length,3,'prefilling never submits a conversation turn');
     const prompt = nodes(composer,'textarea')[0];
@@ -215,8 +217,8 @@ test('actual late source or link refusal stays named and creates no feedback pre
       assert.deepEqual(view.calls,[]);
       await showCurrentTarget(view.container,source.target);
       const row = trialElement(view.container,model);
-      assert.equal(props(nodes(row,'select')[0]).value,'');
-      await choose(nodes(row,'select')[0],conversationKey(source.target));
+      assert.equal(chosenIn(choiceLists(row)[0]),'');
+      await choose(choiceLists(row)[0],conversationKey(source.target));
       assert.deepEqual(view.calls,[]);
       await press(row,'Bring trial back');
       assert.ok(view.container.textContent.includes(refusal.reason),'the actual source/link guard cause reaches the existing status');
@@ -244,11 +246,11 @@ test('actual legacy clean and delegated cold rows retain source limits after an 
     try {
       await React.act(() => root.render(React.createElement(Row)));
       assert.deepEqual(calls,[]);
-      assert.equal(props(nodes(container,'select')[0]).value,'');
+      assert.equal(chosenIn(choiceLists(container)[0]),'');
       assert.ok(container.textContent.includes(trial.sourceLimit));
       assert.ok(container.textContent.includes(trial.authoringSourceLimit));
       assert.equal(button(container,'Read again'),undefined);
-      await choose(nodes(container,'select')[0],conversationKey(source.target));
+      await choose(choiceLists(container)[0],conversationKey(source.target));
       assert.equal(!!props(button(container,'Bring trial back')).disabled,true,'explicit target choice cannot supply missing source evidence');
       assert.deepEqual(calls,[]);
     } finally {await React.act(() => root.unmount());document.body.removeChild(container);}

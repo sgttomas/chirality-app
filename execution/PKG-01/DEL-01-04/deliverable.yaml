@@ -15,7 +15,10 @@ needs:
   gating: true
 - from: DEL-01-03
   condition: The plan-mode element for a turn is offered as plan, default, not offered with its
-    reason, or no model selected, and a native item can be referred to by an item anchor.
+    reason, or no model selected, and a native item can be referred to by an item anchor. For a
+    request card to name who asks, the host's view of a Codex process gives its descendants, each
+    with its thread, its parent and, once its thread has been read, the role and nickname Codex
+    reports for it.
   gating: true
 - from: DEL-01-05
   condition: For a conversation, whether a model is selected, which, and the person's last explicit
@@ -52,19 +55,30 @@ needs:
   condition: A human act and a declined act can be written as direct-capture records that bind
     actor, recorder, content identity, scope and purpose and cite capture evidence; a record can
     be validated; and an act whose bound content changed is reported as lapsed.
+    Where a project's records are read from is decided by the records store, which gives no
+    location, in the store or in the project folder, while the project's link to the store is
+    unresolved.
+    Pending standalone file-act lapse observations retain their admitted project identity and physical
+    project and records folders, and prove that binding again inside write admission before publication.
   gating: true
 - from: DEL-06-02
   condition: A decision package is a project file that states the exact act requested of the
     person, its subject, purpose and basis, and each alternative with its consequences, and a
-    pending package is shown as its file states them.
+    pending package is shown as its file states them, with who requested it where the package
+    records it. For "Waiting on you", the return-review queue gives each return awaiting review
+    with its reference, who returned it and who prepared its brief, as recorded.
   gating: false
 - from: DEL-01-06
   condition: The installed App is signed with the same Developer ID team and bundle identifier
     in every release, so that keychain items written by one release are readable by the next.
   gating: true
   when: Keychain protection on an installed build
-- from: external:person operating the act control
-  condition: A person confirms each act in the native confirmation while an examiner observes.
+- from: external:person or examining agent operating the act control
+  condition: A person confirms each act in the native confirmation while an examiner observes. In
+    an agent-operated journey examination as the release target defines it, the examining agent
+    confirms instead the acts of VER-005 and VER-008, on examination material only; its capture is
+    then a synthetic examination artifact that establishes no person's decision. The protection act
+    and the confirmation of a lowered policy (VER-009) are the person's and never an agent's.
 code_paths:
 # act_control.rs is shared. Here: the control, its offers and captures. The registration
 # operation is DEL-02-02's, act wording DEL-04-01's and the record writer DEL-04-03's.
@@ -74,6 +88,12 @@ code_paths:
 - app/src-tauri/src/act_control_assurance.rs
 - app/src-tauri/src/a15_native.rs
 - app/src-tauri/src/file_act_native.rs
+# native_text.rs is the closed-form text for every native sheet: a supplied value reaches a sheet
+# only in a closed form or in the form its caller chooses. Its first callers are the quit sheet
+# (here) and the Records lane's decision-standing sheet.
+- app/src-tauri/src/native_text.rs
+- app/src-tauri/src/native_text_tests.rs
+- app/tests/fixtures/plain_id_examples.json
 - app/src-tauri/src/file_act_root.rs
 - app/src-tauri/src/file_act_arrival.rs
 # file_act_view.rs and file_act_lapse.rs are shared with DEL-04-03. Here: the offers and captures
@@ -112,6 +132,13 @@ code_paths:
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/lib.rs
 - app/src/RequestCards.tsx
+- app/src/presentation.ts
+# Every value the App did not write, drawn as the agent's (cards and the activity stream).
+- app/src/AgentText.tsx
+# "Waiting on you": one list, on every view, of the records waiting on the person in the
+# request register, run records, the return-review queue and the decision packages.
+- app/src/WaitingOnYou.tsx
+- app/src/nativeWords.ts
 - app/src/NativeWaitingBridge.tsx
 - app/src/CodexControls.tsx
 - app/src/ConversationRoles.tsx
@@ -134,6 +161,9 @@ code_paths:
 - app/src/DailyWorkspace.tsx
 - app/src/workspace.css
 checks:
+- app/src-tauri/src/capture_seal.rs
+- app/src-tauri/src/seal_c_enrollment_tests.rs
+- app/src-tauri/src/file_act_consumer_tests.rs
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/hosting.rs
 - app/tests/prepared-message-navigation.test.mjs
@@ -155,6 +185,16 @@ checks:
 - app/tests/history-continue-navigation.test.mjs
 - app/tests/run-panel.test.mjs
 - app/tests/request-cards.test.mjs
+- app/tests/request-card-words.test.mjs
+- app/tests/agent-text.test.mjs
+- app/tests/waiting-on-you.test.mjs
+- app/tests/presentation-guard.test.mjs
+- app/tests/support/presentation-guard.mjs
+- app/tests/support/presentation-guard-exceptions.json
+- app/tests/support/controls-guard-exceptions.json
+- app/tests/support/choices.mjs
+- app/tests/support/agent-text.mjs
+- app/tests/support/preformatted-guard-exceptions.json
 - app/tests/request-activity-navigation.test.mjs
 - app/tests/waiting-requests.test.mjs
 - app/tests/native-waiting.test.mjs

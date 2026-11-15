@@ -52,7 +52,7 @@ impl Double {
 }
 impl Interrupts for Double {
     type Pending = String;
-    fn interrupt(&mut self, turn: &Value) -> Result<String, String> {
+    fn interrupt(&mut self, turn: &Value, _deadline: Instant) -> Result<String, crate::codex_stop::Unsent> {
         let id = turn["turnId"].as_str().unwrap().to_owned();
         self.log.push(format!("interrupt {id}"));
         Ok(id)

@@ -1,9 +1,9 @@
 //! Host-held capture seal (DEL-01-04 AAC §6.3 SEAL-C, selected 2026-10-11 for
 //! AAC §6.3 / EXEC §2.4–2.5 review finding R-1).
 //!
-//! The Rust act control seals each App-file act or decline capture it writes
-//! with HMAC-SHA-256 under a per-installation key kept in the App data folder,
-//! outside every project. The checkpoint counter and the file-act view count a
+//! The Rust act control attempts to seal each App-file act or decline capture
+//! with HMAC-SHA-256 under the selected provider's per-installation key.
+//! The checkpoint counter and the file-act view count a
 //! capture only when its seal verifies under a key this installation holds.
 //! A capture without a seal, with an unknown method, sealed under a key this
 //! installation does not hold, or whose seal does not verify is refused with a
@@ -20,8 +20,8 @@
 //! What the file provider does not do (stated, not hidden): anything that can read the key
 //! file can seal. That includes any process running as the same OS user, and a
 //! Codex agent whose sandbox lets it read the App data folder (Codex's default
-//! read policy does). It shows that a capture was sealed by a holder of this
-//! installation's key, not that a person acted or who the person is (K1-4).
+//! read policy does). A valid seal shows consistency with possession of the key
+//! over the covered facts, not who wrote them, a person's presence or judgment.
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
 use std::{
@@ -214,6 +214,8 @@ fn load(folder: &Path) -> Result<Option<Keyring>, String> {
 }
 /// Publish the keyring readable by its owner only: a 0600 file in a 0700 folder.
 fn publish(folder: &Path, raw: &Value, replace: bool) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("capture_seal::publish");
     crate::storage::ensure_directory(folder)?;
     std::fs::set_permissions(folder, std::fs::Permissions::from_mode(0o700)).map_err(|e| format!("capture-seal key folder: {e}"))?;
     let path = folder.join(KEY_FILE);
@@ -294,10 +296,10 @@ pub(crate) fn seal_a15_if_keychain_available(root: &Path, capture: &mut Value) -
     capture["seal"] = json!({"method":SEAL_METHOD,"value":format!("{}:{}",material.current,hex(&mac))});
     Ok(())
 }
-/// The evidence limit a capture of the App act control carries when it could
-/// not be sealed; such a capture is recorded but never counted.
+/// The evidence limit a file-act capture carries when it could not be sealed;
+/// such a capture is recorded but never counted by the file-act consumers.
 pub fn unsealed_limit(reason: &str) -> String {
-    format!("capture not sealed ({reason}); not verifiable as this App's capture, so it is not counted as an act")
+    format!("capture not sealed ({reason}); no seal can be verified here, so this file-act capture is not counted by the file-act reader or checkpoint counter")
 }
 /// Whether this installation verifies the capture's seal. `Err` is the stated
 /// limit for a capture that is not counted; it never claims a forgery.
@@ -311,7 +313,7 @@ pub(crate) fn verify_keychain(root: &Path, capture: &Value) -> Result<(), String
 }
 fn verify_with(root: &Path, capture: &Value, keychain_only: bool) -> Result<(), String> {
     let Some(seal) = capture.get("seal") else {
-        return Err("capture has no App seal (written before capture sealing, or not by this App's act control); not verified here".into());
+        return Err("capture has no seal; who wrote it or why it has none cannot be determined here; not verified here".into());
     };
     if seal["method"] != SEAL_METHOD {
         return Err(format!("capture seal method {} is not one this App verifies; not verified here", seal["method"]));
@@ -329,7 +331,7 @@ fn verify_with(root: &Path, capture: &Value, keychain_only: bool) -> Result<(), 
     };
     match unhex(mac) {
         Some(mac) if equal(&mac, &hmac(key, &message(capture)?)) => Ok(()),
-        _ => Err(format!("capture seal does not verify under this installation's key {id:?}: the capture's act facts changed after sealing, or it was not sealed by this App; not verified")),
+        _ => Err(format!("capture seal does not verify under this installation's key {id:?}; the seal does not match the covered facts under that key; capture origin not verified here")),
     }
 }
 
@@ -351,6 +353,10 @@ mod tests {
         assert_eq!(hex(&hmac(b"Jefe", b"what do ya want for nothing?")), "5bdcc146bf60754e6a042426089575c75a003f089d2739839dec58b964ec3843");
     }
     #[test]
+    fn unsealed_file_act_limit_states_verification_and_counting_only() {
+        assert_eq!(unsealed_limit("fixture provider unavailable"), "capture not sealed (fixture provider unavailable); no seal can be verified here, so this file-act capture is not counted by the file-act reader or checkpoint counter");
+    }
+    #[test]
     fn seal_covers_act_facts_not_the_backlink() {
         let (project, keys) = (temp("seal-project-"), temp("seal-keys-"));
         set_folder_for_test(Some(Some(keys.join(KEY_FOLDER))));
@@ -366,11 +372,12 @@ mod tests {
             ("offerDigest", json!({"method":"aac-offer-digest/0.1","value":"1".repeat(64)}))] {
             let mut changed = c.clone();
             changed[member] = other;
-            assert!(verify(&project, &changed).unwrap_err().contains("does not verify"), "{member}");
+            let id = c["seal"]["value"].as_str().unwrap().split(':').next().unwrap();
+            assert_eq!(verify(&project, &changed).unwrap_err(), format!("capture seal does not verify under this installation's key {id:?}; the seal does not match the covered facts under that key; capture origin not verified here"), "{member}");
         }
         let mut unsealed = c.clone();
         unsealed.as_object_mut().unwrap().remove("seal");
-        assert!(verify(&project, &unsealed).unwrap_err().contains("no App seal"));
+        assert_eq!(verify(&project, &unsealed).unwrap_err(), "capture has no seal; who wrote it or why it has none cannot be determined here; not verified here");
         let mut method = c.clone();
         method["seal"]["method"] = json!("other");
         assert!(verify(&project, &method).unwrap_err().contains("not one this App verifies"));

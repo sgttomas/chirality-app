@@ -48,6 +48,9 @@ struct Fixture {
     recording: Value,
     generation: Value,
     _store: OwnStore,
+    /// The root held as the App holds its App data before it opens a ledger,
+    /// so that a later App on it models a relaunch.
+    _custody: crate::AppDataCustody,
 }
 
 impl Fixture {
@@ -59,6 +62,7 @@ impl Fixture {
         for name in ["account", "probe"] {
             std::fs::create_dir_all(root.join(name)).unwrap();
         }
+        let _custody = crate::hold_app_data_for_test(&root).unwrap();
         let path = PathBuf::from(RECORDINGS).join(format!("{scenario}.recording.json"));
         let bytes = std::fs::read(&path).unwrap();
         let recording: Value = serde_json::from_slice(&bytes).unwrap();
@@ -129,6 +133,7 @@ runpy.run_path({peer},run_name='__main__')
             recording,
             generation,
             _store: store,
+            _custody,
         };
         let result = &fixture.recording["frames"][5]["frame"]["result"];
         fixture
@@ -223,6 +228,13 @@ runpy.run_path({peer},run_name='__main__')
             .iter()
             .filter(|e| matches!(e["event"].as_str(), Some("frame" | "constructed-frame")) && e["direction"] == "codex->app")
             .map(|e| {
+                if e["event"]=="constructed-frame" && e["recipe"]=="config-read-reply-constructed-for-continue" {
+                    // The player's constructed stand-in for the configuration reading, not a captured frame.
+                    assert!(e.get("frame_index").is_none() && e.get("source_frame_index").is_none(),"no recorded frame stands behind it");
+                    assert!(e["constructed_standing"].as_str().is_some_and(|s|s.contains("no such frame was captured from the supplier")));
+                    // The App journals a private configuration reply only in its withheld projection.
+                    return super::access_provider::withheld(&json!({"id":e["actual_rpc_id"],"result":{"config":{"model_provider":"openai","model_providers":{}},"origins":{}}}));
+                }
                 if e["event"]=="constructed-frame" {
                     assert_eq!(e["recipe"],"thread-list-envelope-from-thread-read");
                     assert_eq!(e["source_frame_index"],25);
@@ -246,7 +258,7 @@ runpy.run_path({peer},run_name='__main__')
             .filter(|e| e["generation"] == *generation)
             .filter_map(|e| e.get("frame").cloned())
             .collect::<Vec<_>>();
-        assert_eq!(actual, expected, "every delivered supplier payload must equal its recorded value except correlated reply ID");
+        assert_eq!(actual, expected, "every delivered recorded payload must equal its recorded value except correlated reply ID; the player's declared constructed frames are compared with their fixed constructed content");
     }
     fn lose_acknowledgment(&self) -> SourceRequest {
         self.until("recorded approval received", || {
@@ -256,6 +268,23 @@ runpy.run_path({peer},run_name='__main__')
                 .iter()
                 .any(|r| r["requestIdentity"] == 0)
         });
+        // The conversation's status as the supplier last reported it before
+        // the approval request, applied unchanged. Found in the recording by
+        // what the frames are, not by their index.
+        let frames = self.recording["frames"].as_array().unwrap();
+        let request = frames.iter().position(|f| f["frame"]["method"] == "item/commandExecution/requestApproval").unwrap();
+        let sent = frames[..request].iter().rev().map(|f| &f["frame"])
+            .find(|f| f["method"] == "thread/status/changed" && f["params"]["threadId"] == self.thread())
+            .expect("the recording reports this conversation's status before its approval request");
+        let row = self.home.host.snapshot()["threads"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .find(|t| t["generation"] == self.generation && t["threadId"] == self.thread())
+            .cloned()
+            .unwrap();
+        assert_eq!(row["status"], sent["params"]["status"], "{row}");
+        assert_eq!(row["statusSource"]["method"], "thread/status/changed");
         assert!(
             self.home
                 .host
@@ -328,6 +357,10 @@ runpy.run_path({peer},run_name='__main__')
             .host
             .stop("recorded replay old App cleanup", "done")
             .unwrap();
+        // The old App's process has ended: one App at a time on this data.
+        self.home.host.end_process_for_test();
+        // The old App's process has ended: one App at a time on this data.
+        self.home.host.end_process_for_test();
         std::fs::write(self.root.join("generation"), "2").unwrap();
         let host = Arc::new(Host::new());
         host.configure_recovery(self.root.join("recovery.ledger.jsonl"))
@@ -529,6 +562,8 @@ fn recorded_continue_admits_only_after_its_original_late_reply_and_keeps_unknown
             "thread/turns/list",
             "thread/loaded/list",
             "thread/list",
+            // The account Continue's admitting reading, answered by the player's constructed stand-in.
+            "config/read",
             "thread/resume"
         ]
     );
@@ -545,13 +580,10 @@ fn recorded_continue_admits_only_after_its_original_late_reply_and_keeps_unknown
         .unwrap();
     f.assert_recorded_frames(&generation, 2);
     let audit = f.audit(2);
-    assert_eq!(
-        audit
-            .iter()
-            .filter(|e| e["event"] == "constructed-frame")
-            .count(),
-        2
-    );
+    // The constructed catalog and the constructed stand-in for the App's configuration reading,
+    // each a request and a reply; the App made the reading before it resumed.
+    let constructed: Vec<_> = audit.iter().filter(|e| e["event"] == "constructed-frame").map(|e| (e["direction"].as_str().unwrap_or("").to_owned(), e["method"].as_str().unwrap_or("").to_owned())).collect();
+    assert_eq!(constructed, [("app->codex", "thread/list"), ("codex->app", "thread/list"), ("app->codex", "config/read"), ("codex->app", "config/read")].map(|(d, m)| (d.to_owned(), m.to_owned())));
     let binding = audit.iter().find(|e| e["event"] == "binding").unwrap();
     let adapted_resume = audit
         .iter()
@@ -851,6 +883,23 @@ fn recorded_nv04_parent_completion_keeps_its_child_live_until_separate_completio
             .any(|t| t["id"] == child_turn && t["status"] == "inProgress"),
         "{before}"
     );
+    // The parent's row carries the status the supplier last reported for it
+    // among the frames delivered so far (the peer pauses after frame 28), as
+    // sent; it says nothing about the child, whose turn is still in progress.
+    // The frame is found by what it is: the order of the frames around the
+    // parent's completion is not the supplier's settled behaviour.
+    let sent = f.recording["frames"].as_array().unwrap()[..=28].iter().rev().map(|r| &r["frame"])
+        .find(|r| r["method"] == "thread/status/changed" && r["params"]["threadId"] == f.thread())
+        .expect("the recording reports the parent's status before the pause");
+    let parent = f.home.host.snapshot()["threads"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|t| t["generation"] == f.generation && t["threadId"] == f.thread())
+        .cloned()
+        .unwrap();
+    assert_eq!(parent["status"], sent["params"]["status"], "{parent}");
+    assert_eq!(parent["statusSource"]["method"], "thread/status/changed");
     assert!(before["turnRecords"]
         .as_array()
         .unwrap()

@@ -75,6 +75,16 @@ fn census(root: &std::path::Path) -> Vec<(String, String)> {
     out
 }
 #[test]
+fn connected_file_act_seal_disclosure_does_not_claim_origin_or_human_presence() {
+    let (root, state, home, _, _, _) = workflow_root_context_tests::fixture();
+    let reference = selected(&state, &home, &root, act_control::FileActKind::Check);
+    synthetic(&state, &reference, "act", || {});
+    let view = file_act_view::read(&root);
+    assert!(view["rows"][0]["limits"].as_array().unwrap().iter().any(|limit| limit == "Readable record/capture claims do not verify native origin. A valid capture seal shows consistency with possession of the key over the covered facts (AAC §6.3 SEAL-C). Any process running as the same user can read a file key. Keychain verification shows consistency with possession of a key held in the person's keychain under the keychain's protection. The capture does not record which provider held its key. No seal establishes who wrote the capture, that a person was present, or that they judged; no professional certification."));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn connected_file_act_all_kinds_and_declines_read_original_capture_without_writes() {
     for kind in [
         act_control::FileActKind::Check,
@@ -105,9 +115,9 @@ fn connected_file_act_all_kinds_and_declines_read_original_capture_without_write
             assert_eq!(
                 row["event"],
                 if choice == "decline" {
-                    "declined this act"
+                    "recorded decline"
                 } else {
-                    "recorded human-act claim"
+                    "recorded act"
                 }
             );
             assert!(row["comparison"]
@@ -256,5 +266,5 @@ fn connected_file_act_without_seal_keys_is_recorded_unsealed_and_not_counted() {
     assert!(stored.get("seal").is_none());
     assert!(stored["evidenceLimits"].as_array().unwrap().iter().any(|l| l.as_str().unwrap().starts_with("capture not sealed (")), "{stored:#}");
     assert_eq!(row["captureCorrespondence"], false);
-    assert!(row["limits"].as_array().unwrap().iter().any(|l| l.as_str().unwrap().contains("capture has no App seal")), "{row:#}");
+    assert!(row["limits"].as_array().unwrap().iter().any(|l| l.as_str().unwrap().contains("capture has no seal")), "{row:#}");
 }

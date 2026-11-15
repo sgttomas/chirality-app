@@ -471,6 +471,8 @@ fn original_context_survives(
 // New imported evidence is private from creation. Existing evidence and its
 // permissions are never rewritten; exclusive rename cannot replace a member.
 fn publish_restored(path: &Path, bytes: &[u8]) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records_administration::publish_restored");
     storage::check_path(path)?;
     let parent = path.parent().ok_or("restored event has no parent")?;
     std::fs::DirBuilder::new()
@@ -510,6 +512,8 @@ fn publish_restored(path: &Path, bytes: &[u8]) -> Result<(), String> {
     result
 }
 fn publish_without_replace(from: &Path, to: &Path) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("records_administration::publish_without_replace");
     use std::os::unix::ffi::OsStrExt;
     let from = std::ffi::CString::new(from.as_os_str().as_bytes()).map_err(|e| e.to_string())?;
     let to = std::ffi::CString::new(to.as_os_str().as_bytes()).map_err(|e| e.to_string())?;

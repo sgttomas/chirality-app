@@ -1,5 +1,5 @@
 #![cfg(unix)]
-use chirality_app_v4_lib::storage;
+use chirality_app_v4_lib::{storage, working_folder};
 #[path = "../src/home_resources.rs"]
 mod home_resources;
 use home_resources::*;
@@ -50,6 +50,10 @@ impl Fixture {
         class: HomeClass,
         shared: Option<SharedResourceTargets>,
     ) -> OwnedHomePlan {
+        // As a start does: the App data folder exists and its folder for conversations without a
+        // project is established before any home is prepared in it (DEL-01-01).
+        std::fs::create_dir_all(self.app()).unwrap();
+        working_folder::establish(&self.app()).unwrap();
         OwnedHomePlan::new(self.app(), self.app().join(name), class, shared).unwrap()
     }
 }

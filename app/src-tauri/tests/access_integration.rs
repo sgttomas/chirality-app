@@ -27,6 +27,9 @@ impl Fixture {
         for path in [&data, &account, &probe, &user] {
             std::fs::create_dir_all(path).unwrap();
         }
+        // Stands in for a start of Chirality, which establishes the folder for conversations
+        // without a project before any home is prepared (DEL-01-01).
+        chirality_app_v4_lib::working_folder::establish(&data).unwrap();
         let config = user.join("config.toml");
         let agents = user.join("AGENTS.md");
         let skills = user.join("skills");

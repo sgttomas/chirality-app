@@ -13,7 +13,7 @@
   "artifact": {
     "kind": "review",
     "record_id": "INVENTED-SQ-REVIEW",
-    "sha256": "bb31fb403892347e90b471815261c1adeedb823c6c8c0819498641f5f0f5562c"
+    "sha256": "89b93c502b8e8f58c6f157de5619242d2725d0aa42e10681247855a0815ed276"
   },
   "binding_method": "EXP-SUPPORT-BINDING-v1",
   "binding_purpose": "current_producer_declaration"

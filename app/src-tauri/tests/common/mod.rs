@@ -17,6 +17,8 @@ pub fn records_store() {
             .map(PathBuf::from)
             .unwrap_or_else(|| std::env::temp_dir().join(format!("chirality-integration-records-{}", std::process::id())));
         configure(Ok(Store { root, placement: Placement::Override, limits: vec![] }));
+        // As the App does when it starts: a read never creates the store.
+        chirality_app_v4_lib::records_store::create_at_startup().expect("the integration records store");
     });
 }
 

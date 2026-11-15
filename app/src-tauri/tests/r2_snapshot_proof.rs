@@ -1,5 +1,8 @@
 //! Dedicated dormant proof binary. No App library call, process spawn or production activation.
 #![cfg(any(target_os = "macos", target_os = "linux"))]
+#[allow(dead_code)]
+#[path = "../src/records_effect_guard.rs"]
+mod records_effect_guard;
 #[path = "../src/r2_snapshot_proof.rs"]
 mod proof;
 use proof::*;

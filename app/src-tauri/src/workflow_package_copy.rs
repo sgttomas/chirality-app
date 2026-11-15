@@ -119,6 +119,8 @@ mod unix {
     }
     /// A new regular file `name` in `dir`: exclusive, never through a link.
     fn create_at(dir: &fs::File, name: &OsStr) -> std::io::Result<fs::File> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("workflow_package_copy::unix::create_at");
         use std::os::fd::FromRawFd;
         let c = cstr(name).map_err(std::io::Error::other)?;
         let flags = libc::O_WRONLY | libc::O_CREAT | libc::O_EXCL | libc::O_NOFOLLOW | libc::O_CLOEXEC;
@@ -132,6 +134,8 @@ mod unix {
         Ok(unsafe { fs::File::from_raw_fd(fd) })
     }
     fn mkdir_at(dir: &fs::File, name: &OsStr) -> Result<(), String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("workflow_package_copy::unix::mkdir_at");
         let c = cstr(name)?;
         // SAFETY: an open directory descriptor and a NUL-terminated name.
         if unsafe { libc::mkdirat(dir.as_raw_fd(), c.as_ptr(), 0o755) } != 0 {
@@ -163,6 +167,8 @@ mod unix {
     }
     /// Exclusive publish: refuses an existing destination of any kind.
     fn rename_no_replace(dir: &fs::File, from: &OsStr, to: &OsStr) -> std::io::Result<()> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("workflow_package_copy::unix::rename_no_replace");
         let (f, t) = (
             cstr(from).map_err(std::io::Error::other)?,
             cstr(to).map_err(std::io::Error::other)?,
@@ -189,6 +195,8 @@ mod unix {
     }
     /// Fills `staging` (an empty folder this call created) with the files.
     fn fill(staging: &fs::File, snapshot: &Snapshot) -> Result<(), String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("workflow_package_copy::unix::fill");
         let mut dirs: Vec<fs::File> = vec![];
         for (relative, bytes) in snapshot.files() {
             let path = Path::new(relative);
@@ -235,6 +243,8 @@ mod unix {
         }
     }
     pub(super) fn write(snapshot: &Snapshot, dest: &Path) -> Result<ContentCopy, String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("workflow_package_copy::unix::write");
         let parent = dest.parent().ok_or("copy destination has no parent")?;
         let name = dest.file_name().ok_or("copy destination has no name")?;
         storage::check_path(dest)?;

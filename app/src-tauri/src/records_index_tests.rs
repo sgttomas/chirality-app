@@ -843,3 +843,46 @@ fn an_older_verifier_listing_cannot_clear_a_newer_discovery_failure() {
     agree(&root, "newer discovery failure survives older verifier listing");
     std::fs::remove_dir_all(root).unwrap();
 }
+
+
+/// This is also the web guard's source DTO: an actual open refusal, not a
+/// made-up row with nested error fields the index never returns.
+#[test]
+fn records_index_chain_heads_keeps_log_read_failure_dto() {
+    use crate::records_store::{self, Placement, Store};
+    struct Fixture(PathBuf);
+    impl Drop for Fixture {
+        fn drop(&mut self) {
+            records_store::use_store_for_test(None);
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+    let f = Fixture(scratch());
+    records_store::use_store_for_test(Some(Ok(Store {
+        root: f.0.join("store"), placement: Placement::Test, limits: vec![],
+    })));
+    let log = crate::storage::project_log(&f.0, None, "app-writer:unreadable-fixture").unwrap();
+    append(&log, "evidence_limit", &APP_WRITER, body(1)).unwrap();
+    let leaf = log.clone();
+    let other = f.0.join("invented-other-bytes");
+    std::fs::write(&other, b"must not be followed\n").unwrap();
+    // Discovery sees the real file. Substitute only as its reader opens it;
+    // O_NOFOLLOW refuses it even for a privileged test process.
+    let _hook = log_open_hook_for_test(&log, None, 0, move || {
+        std::fs::remove_file(&leaf).unwrap();
+        std::os::unix::fs::symlink(other, leaf).unwrap();
+    });
+    let heads = chain_heads(&f.0);
+    assert!(heads["discoveryLimit"].is_null(), "discovery itself succeeded: {heads}");
+    assert_eq!(heads["broken"], json!([]));
+    let rows = heads["logs"].as_array().unwrap();
+    assert_eq!(rows.len(), 1);
+    assert_eq!(rows[0]["log"], log.to_string_lossy().as_ref());
+    assert!(rows[0].get("chain").is_none());
+    assert!(rows[0].get("state").is_none());
+    assert!(rows[0].get("error").is_none());
+    assert!(heads["limits"].as_array().is_some_and(|limits| limits.iter().any(|limit|
+        limit.as_str().is_some_and(|s| s.starts_with("incomplete record:") && s.contains(log.to_string_lossy().as_ref())))),
+        "chain_heads must carry its actual per-log open/read failure: {heads}");
+    println!("RECORDS_CHAIN_HEADS_READ_FAILURE_DTO:{heads}");
+}

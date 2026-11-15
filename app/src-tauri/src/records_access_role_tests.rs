@@ -41,6 +41,8 @@ fn records_access_role_actual_start_fork_and_no_role_preserve_r3_and_read_accoun
     ] {
         let _store = RoleR3Store::new();
         let peer = Peer::new();
+        // An App-started account home reports the built-in provider at its own folder; a fork is admitted only there.
+        peer.set_mode("config-provider-server", "openai");
         let composition = role_r3_composition(role, false);
         let parent = role_r3_start(&peer, &composition);
         let thread = if fork {
@@ -371,6 +373,8 @@ fn records_access_role_other_project_and_relation_budget_do_not_expose_foreign_o
 fn records_access_role_deep_fork_companion_is_stubbed_before_original_page_or_cursor() {
     let _store = RoleR3Store::new();
     let peer = Peer::new();
+    // An App-started account home reports the built-in provider at its own folder; a fork is admitted only there.
+    peer.set_mode("config-provider-server", "openai");
     let mut thread = role_r3_start(&peer, &role_r3_composition(None, false));
     for _ in 0..6 {
         thread = crate::conversation_roles::fork_conversation(
