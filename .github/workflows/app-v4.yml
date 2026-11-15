@@ -159,6 +159,8 @@ jobs:
           runtime_session::workflow_root_tests::selected_chain_disclosure_tests
           runtime_session::workflow_root_tests::action_result_tests
           local_route_refusal_tests
+          codex_level::tests hosting::codex_level_host_tests hosting::level_state::tests
+          lasting_rules::tests level_choice::tests
     steps:
       - uses: actions/checkout@v4
         with:
