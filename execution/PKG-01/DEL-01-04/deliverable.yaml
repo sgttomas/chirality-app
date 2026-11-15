@@ -53,7 +53,9 @@ needs:
     origin, dimensions, ask, sent and reported settings, timing, project trust and lasting rules
     without inferring a choice or a supplier confirmation. It presents the host's closed reading,
     allowing-command, next-turn and per-case ask sentences, and read or inherited-association
-    persistence failures with raw details marked apart from those sentences.
+    persistence failures with raw details marked apart from those sentences. The default scope's
+    consequence is shown before start; a saving outcome is shown only for its scope, apart from
+    the level in force, and unconfirmed saving never implies that no record was written.
   gating: false
 - from: DEL-04-03
   condition: A human act and a declined act can be written as direct-capture records that bind

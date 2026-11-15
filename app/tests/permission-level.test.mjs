@@ -12,11 +12,12 @@ const table = JSON.parse(readFileSync(new URL('../src-tauri/src/codex_levels.jso
 const hostSource = readFileSync(new URL('../src-tauri/src/codex_level.rs', import.meta.url), 'utf8');
 const sentence = name => JSON.parse(hostSource.match(new RegExp(`pub const ${name}: &str = ("[^\\n]*");`))[1]);
 const g = {home:'invented-home',appSession:'s',spawnCounter:1};
-const chosen = (id='full', origin='app-default') => ({id, origin, dimensions:table.levels.find(r=>r.id===id).dimensions, reading:'not-limited',readingSentence:sentence('READING_SENTENCE'),
+const chosen = (id='full', origin='app-default') => ({id, origin, recorded:origin==='chosen'?'recorded':origin==='save-unconfirmed'?'not-confirmed':'not-recorded', dimensions:table.levels.find(r=>r.id===id).dimensions, reading:'not-limited',readingSentence:sentence('READING_SENTENCE'),
   ...(origin==='app-default'?{originSentence:sentence('APP_DEFAULT_SENTENCE'),...(id==='full'?{explanation:sentence('APP_DEFAULT_EXPLAINED')}:{})}:{}),
+  ...(origin==='save-unconfirmed'?{originSentence:sentence('SAVE_UNCONFIRMED_APPLIED')}:{ }),
   ...(origin==='session-only'?{originSentence:sentence('SESSION_ONLY_SENTENCE'),sessionOnly:{reason:'unavailable',detail:{text:'invented detail',standing:'Text the App did not write.'}}}:{}),
   ...(['supervised','edits','edits-network'].includes(id)?{allowing:sentence('SUPERVISED_ALLOWING')}:{})});
-const host = (over={}) => ({state:'ready',generation:g,homeRouting:{activeModeHomeClass:'account'},levelDefault:chosen(),threads:[],...over});
+const host = (over={}) => ({state:'ready',generation:g,homeRouting:{activeModeHomeClass:'account'},levelDefault:chosen(),levelDefaultScopeSentence:sentence('DEFAULT_SCOPE_SENTENCE'),threads:[],...over});
 const thread = (id='T', level={chosen:chosen(),agreement:'not-confirmed',takesEffect:'now'}) => ({threadId:id,generation:g,level});
 const nodes=(c,tag)=>c.querySelectorAll(e=>e.localName===tag);
 const props=e=>e[Object.keys(e).find(k=>k.startsWith('__reactProps$'))];
@@ -145,6 +146,7 @@ test('the real App shows the default before Start and wires its plain setting th
     assert.equal(calls.filter(x=>x.command==='set_level').length,0);
     assert.ok(start.textContent.includes(sentence('APP_DEFAULT_SENTENCE')));
     assert.ok(start.textContent.includes(sentence('APP_DEFAULT_EXPLAINED')));
+    assert.ok(start.textContent.includes(sentence('DEFAULT_SCOPE_SENTENCE')));
     const panel=start.querySelectorAll(e=>e.getAttribute('aria-label')==='Permission level for new conversations')[0];
     await React.act(()=>props(nodes(panel,'select')[0]).onChange({target:{value:'edits'}}));
     await React.act(async()=>props(nodes(panel,'button')[0]).onClick());
@@ -227,7 +229,7 @@ test('asking levels carry their consequence, and reading and timing sentences co
 });
 
 test('read and inheritance failures preserve host sentences and mark raw details',async()=>{
-  const h=host({levelRecordsUnread:sentence('RECORDS_UNREAD_SENTENCE'),levelLaunchRead:{reason:sentence('RECORDS_UNAVAILABLE'),homeState:{state:'unknown',detail:{text:'invented metadata detail'}}},levelSessionOnlyOffered:{detail:{text:'invented ledger detail'}},threads:[thread('T',{chosen:chosen(),inheritancePersistence:{state:'not-recorded',sentence:sentence('INHERITANCE_NOT_RECORDED'),detail:{text:'invented association detail'}}})]});
+  const h=host({levelRecordsUnread:sentence('RECORDS_UNREAD_SENTENCE'),levelLaunchRead:{reason:sentence('RECORDS_UNAVAILABLE'),homeState:{state:'unknown',detail:{text:'invented metadata detail'}}},levelSessionOnlyOffered:{detail:{text:'invented ledger detail'}},threads:[thread('T',{chosen:chosen(),inheritancePersistence:{state:'not-confirmed',sentence:sentence('INHERITANCE_NOT_RECORDED'),detail:{text:'invented association detail'}}})]});
   await mounted(h,'T',async ui=>{
     for(const key of ['RECORDS_UNAVAILABLE','RECORDS_UNREAD_SENTENCE','INHERITANCE_NOT_RECORDED'])assert.ok(ui.c.textContent.includes(sentence(key)),key);
     for(const detail of ['invented metadata detail','invented ledger detail','invented association detail'])assert.ok(ui.c.querySelectorAll(e=>e.getAttribute('role')==='group').some(e=>e.textContent.includes(detail)),detail);
@@ -244,7 +246,7 @@ async function appWithLevels(initial,change,check){
   const idle=installIdleNativeWaiting(async(command,args)=>{
     calls.push({command,args});if(command==='host_status')return structuredClone(current);
     if(command==='decision_view')return {rows:[]};if(command==='native_confirmation_content')return [];
-    if(command==='set_level'){current=change(current,args);return {state:'chosen'};}
+    if(command==='set_level'){current=change(current,args);if(current.levelChoiceSave?.applied===false)throw current.levelChoiceSave.sentence;return current.levelChoiceSave ?? {state:'chosen'};}
     throw Error(`Unexpected ${command}`);
   });
   try{await React.act(async()=>root.render(React.createElement(App)));await check(c,calls,()=>current);}
@@ -277,4 +279,61 @@ test('the real App exceptional ask preselects full and one press continues throu
       assert.deepEqual(calls.filter(x=>x.command==='set_level'),[{command:'set_level',args:{scope:'default',levelId:'full'}}]);
       assert.equal(nodes(panel,'strong')[0].textContent,'Full access');assert.match(panel.textContent,/Chosen by you/);assert.ok(!panel.textContent.includes(ask));
     });
+});
+
+test('shipped default control separates each saving outcome from the current level and its scope',async()=>{
+  for(const variant of ['recorded','no-store','applied-unconfirmed','not-applied-unconfirmed']) {
+    const applied=variant!=='not-applied-unconfirmed';
+    const origin=variant==='recorded'?'chosen':variant==='no-store'?'session-only':'save-unconfirmed';
+    const recorded=variant==='recorded'?'recorded':variant==='no-store'?'not-recorded':'not-confirmed';
+    const key=variant==='no-store'?'SESSION_ONLY_SENTENCE':variant==='applied-unconfirmed'?'SAVE_UNCONFIRMED_APPLIED':variant==='not-applied-unconfirmed'?'SAVE_UNCONFIRMED_NOT_APPLIED':null;
+    await appWithLevels(host({roleLimits:{account:{roles:[]}},serverRequests:[],threads:[thread('other')]}),
+      (h,args)=>({...h,levelDefault:applied?chosen(args.levelId,origin):h.levelDefault,levelChoiceSave:{scope:args.scope,levelId:args.levelId,applied,recorded,state:applied?'chosen':undefined,...(key?{sentence:sentence(key)}:{}),...(recorded==='not-confirmed'?{writeFailure:{text:'invented raw save diagnostic',standing:'Text the App did not write.'}}:{})}}),
+      async(c,calls,current)=>{
+        const panel=()=>c.querySelectorAll(e=>e.getAttribute('aria-label')==='Permission level for new conversations')[0];
+        assert.ok(panel().textContent.includes(sentence('DEFAULT_SCOPE_SENTENCE')),variant);
+        await React.act(()=>props(nodes(panel(),'select')[0]).onChange({target:{value:'edits'}}));
+        await React.act(async()=>props(nodes(panel(),'button')[0]).onClick());
+        assert.equal(nodes(panel(),'strong')[0].textContent,applied?'Project edits':'Full access',variant);
+        const save=panel().querySelectorAll(e=>e.getAttribute('aria-label')==='Latest permission-level save attempt')[0];
+        assert.ok(save,variant);assert.match(save.textContent,new RegExp(recorded==='recorded'?'Latest choice save: Recorded':recorded==='not-recorded'?'Latest choice save: Not recorded':'Latest choice save: Not confirmed'));
+        if(key)assert.ok(save.textContent.includes(sentence(key)),variant);
+        assert.equal(panel().textContent.includes(sentence('SESSION_ONLY_SENTENCE')),variant==='no-store',variant);
+        if(recorded==='not-confirmed')assert.ok(save.querySelectorAll(e=>e.getAttribute('role')==='group').some(e=>e.textContent.includes('invented raw save diagnostic')));
+        assert.ok(!panel().textContent.includes(sentence('INHERITANCE_NOT_RECORDED')),'explicit choice never borrows inheritance fallback');
+        assert.equal(current().threads[0].level.chosen.id,'full');
+        const radio=nodes(c,'input').find(e=>props(e).name==='current-conversation'&&props(e).value===JSON.stringify([g,'other']));
+        await React.act(()=>props(radio).onChange());
+        const other=c.querySelectorAll(e=>e.getAttribute('aria-label')==='Conversation permission level')[0];
+        assert.equal(other.querySelectorAll(e=>e.getAttribute('aria-label')==='Latest permission-level save attempt').length,0,'default saving outcome never follows a conversation');
+        assert.equal(calls.filter(x=>x.command==='set_level').length,1);
+      });
+  }
+});
+
+test('conversation saving outcome belongs only to its scope and a later host read clears it',async()=>{
+  const save={scope:{conversation:'T'},levelId:'full',applied:false,recorded:'not-confirmed',sentence:sentence('SAVE_UNCONFIRMED_NOT_APPLIED'),writeFailure:{text:'T raw failure'}};
+  const h=host({threads:[thread('T',{chosen:chosen('supervised','chosen')}),thread('U')],levelChoiceSave:save});
+  await mounted(h,'T',async ui=>{
+    assert.equal(nodes(ui.c,'strong')[0].textContent,'Supervised');assert.ok(ui.c.textContent.includes(save.sentence));
+    await ui.show(h,'U');assert.ok(!ui.c.textContent.includes(save.sentence));assert.ok(!ui.c.textContent.includes('T raw failure'));
+    await ui.show(h,'T');assert.ok(ui.c.textContent.includes(save.sentence));
+    await ui.show({...h,levelChoiceSave:null});assert.ok(!ui.c.textContent.includes(save.sentence));
+  });
+  await mounted(h,undefined,async ui=>assert.ok(!ui.c.textContent.includes(save.sentence),'conversation save never follows the default control'));
+});
+
+test('failed trust writes show requested entry and key without any confirmed-send claim',async()=>{
+  for(const requested of ['trusted','untrusted']) {
+    const line=`The App tried to send ${requested==='trusted'?'a trusted':'an untrusted'} entry for the project root shown below.`;
+    const trust={case:requested==='trusted'?'trusted':'unmarked',requested,requestedKey:'/invented/requested-key',sent:null,sentKey:null,projectRoot:'/invented/project',lines:[line]};
+    await mounted(host({threads:[thread('T',{chosen:chosen(),sent:{levelId:'full',writeResult:'not-established'},projectTrust:trust})]}),'T',async ui=>{
+      assert.ok(ui.c.textContent.includes(line));assert.match(ui.c.textContent,/Writing it to Codex is not established/);
+      assert.match(ui.c.textContent,/Trust entry requested/);assert.match(ui.c.textContent,/Settings key requested/);
+      assert.doesNotMatch(ui.c.textContent,/Trust entry sent:|Settings key sent:|Written to Codex\./);
+      assert.ok(ui.c.querySelectorAll(e=>e.getAttribute('role')==='group').some(e=>e.textContent.includes(trust.requestedKey)));
+      await ui.show(host({threads:[thread('T',{chosen:chosen(),sent:{levelId:'full',writeResult:'written'},projectTrust:{...trust,sent:requested,sentKey:trust.requestedKey,lines:[line.replace('tried to send','sent')]}})]}));
+      assert.match(ui.c.textContent,/Trust entry sent:|Settings key sent:/);assert.doesNotMatch(ui.c.textContent,/tried to send/);
+    });
+  }
 });

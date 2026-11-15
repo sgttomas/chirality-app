@@ -17,7 +17,8 @@ const NAMES = { supervised: "Supervised", edits: "Project edits", "edits-network
 const WRITES = { nowhere: "Commands cannot write within the sandbox.", project: "Commands can write in the project within the sandbox.", everywhere: "Commands can write with your account's access, including outside the project." };
 const NETWORK = { off: "Network access is off within the sandbox.", on: "Commands can reach the network." };
 const ASKS = { "before-a-command-not-known-safe": "Codex asks before a command it does not know to be safe.", "when-beyond-the-sandbox": "Codex can ask to run beyond the sandbox.", never: "Commands run without asking." };
-const ORIGINS = { chosen: "Chosen by you.", "app-default": "The App's default level.", "session-only": "Chosen for this session only." };
+const ORIGINS = { chosen: "Chosen by you.", "app-default": "The App's default level.", "session-only": "Chosen for this session only.", "save-unconfirmed": "Chosen by you; saving is not confirmed." };
+const RECORDED = { recorded: "Recorded", "not-recorded": "Not recorded", "not-confirmed": "Not confirmed" };
 const AGREEMENT = { agrees: "Codex's report agrees with the level in force.", differs: "Codex reported another level. The next turn is refused.", "not-confirmed": "Codex has not confirmed the level in force." };
 const REFUSALS = {
   "edits-level-reaches-app-folders": "Project edits would reach the App's own folders. Supervised and Full access remain offered.",
@@ -63,11 +64,14 @@ function LastingRules({ rules, homeClass }: { rules: Json; homeClass: Json }) {
 }
 
 function ProjectTrust({ trust }: { trust: Json }) {
-  return <div aria-label="Project trust sent to Codex">
+  return <div aria-label="Project trust requested and sent to Codex">
     {trust ? <>
       {/* These lines are built solely from codex_level.rs's closed sentences and its own read time. */}
       {list(trust.lines).map((line, i) => <p key={i}>{line}</p>)}
       {trust.projectRoot && <p>Project: <AgentText source="file" value={trust.projectRoot}/></p>}
+      {trust.requested && <p>Trust entry requested: <AgentText source="record" value={trust.requested}/></p>}
+      {trust.requestedKey && <p>Settings key requested: <AgentText source="file" value={trust.requestedKey}/></p>}
+      {trust.sent && <p>Trust entry sent: <AgentText source="record" value={trust.sent}/></p>}
       {trust.sentKey && <p>Settings key sent: <AgentText source="file" value={trust.sentKey}/></p>}
       {trust.matchedKey && <p>Settings key read: <AgentText source="file" value={trust.matchedKey}/></p>}
       {trust.detail?.text && <ReportedValue value={trust.detail.text}/>}
@@ -97,11 +101,19 @@ function LevelPanel({ host, threadId }: { host: Json; threadId?: string }) {
   const globalAsk = !level && !row?.level?.ask && typeof host?.levelRecordMissing === "string";
   const ask = row?.level?.ask ?? (globalAsk ? { sentence: host.levelRecordMissing, preselected: host.levelAskPreselected } : null);
   const cause = threadId ? row?.level?.refused : host?.levelSendRefusal?.threadId == null ? host?.levelSendRefusal?.cause : null;
+  const scope: Scope = threadId && !globalAsk ? { conversation: threadId } : "default";
+  const save = JSON.stringify(host?.levelChoiceSave?.scope) === JSON.stringify(scope) ? host.levelChoiceSave : null;
   const initial = ask?.preselected ?? level?.id ?? "";
   const [choice, setChoice] = useState<string>(initial);
   const [pending, setPending] = useState(false);
   const pendingRef = useRef(false);
   const [outcome, setOutcome] = useState<{ error?: string; reply?: Json; refreshFailed?: boolean } | null>(null);
+  const previousSave = useRef(save);
+  useEffect(() => {
+    // A complete host read clears the latest attempt; do not resurrect its command error locally.
+    if (previousSave.current && !save) setOutcome(null);
+    previousSave.current = save;
+  }, [save]);
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const latest = useRef({ actions, choice }); latest.current = { actions, choice };
@@ -114,19 +126,20 @@ function LevelPanel({ host, threadId }: { host: Json; threadId?: string }) {
     if (!mounted.current || !actions || latest.current.actions?.unavailable || latest.current.actions?.stale || latest.current.choice !== choice || pendingRef.current || !wordOf(NAMES, choice) || !allowed(choice)) return;
     pendingRef.current = true; setPending(true); setOutcome(null);
     try {
-      const result = await actions.change(levelOwner(host), threadId && !globalAsk ? { conversation: threadId } : "default", choice);
+      const result = await actions.change(levelOwner(host), scope, choice);
       if (mounted.current) setOutcome({ error: result.error, reply: result.result, refreshFailed: result.refreshFailed });
     } catch (error) { if (mounted.current) setOutcome({ error: error instanceof Error ? error.message : String(error) }); }
     finally { pendingRef.current = false; if (mounted.current) setPending(false); }
   };
   return <section className="workflow-stage" aria-label={threadId ? "Conversation permission level" : "Permission level for new conversations"}>
     <h3>Permission level</h3>
-    {actions?.readFailed ? <p role="alert">{REFRESH_FAILED}</p> : actions?.stale ? <p role="status">The App is reading the current permission level. The last reading below may be out of date.</p> : null}
+    {actions?.readFailed ? <p role="status">The last permission-level reading could not be refreshed. The level shown may be out of date.</p> : actions?.stale ? <p role="status">The App is reading the current permission level. The last reading below may be out of date.</p> : null}
     <p><strong>{level ? name(level.id) : "No permission level reported"}</strong>{threadId ? " · this conversation" : " · new conversations"}</p>
     {level && <>
       <p>{wordOf(ORIGINS, level.origin) ?? "The origin of this level was not reported."}</p>
       {/* The host supplies closed App sentences; no supplier text is interpolated into these fields. */}
       {typeof level.originSentence === "string" && <p>{level.originSentence}</p>}
+      <p>Current level’s choice record: {wordOf(RECORDED, level.recorded) ?? "Not established"}.</p>
       {typeof level.explanation === "string" && <p>{level.explanation}</p>}
       <p>{wordOf(WRITES, level.dimensions?.writes) ?? "Write access was not reported."} {wordOf(NETWORK, level.dimensions?.network) ?? "Network access was not reported."} {wordOf(ASKS, level.dimensions?.asks) ?? "When Codex asks was not reported."}</p>
       {typeof level.readingSentence === "string" ? <p>{level.readingSentence}</p> : <p>The reading limit was not reported.</p>}
@@ -141,7 +154,7 @@ function LevelPanel({ host, threadId }: { host: Json; threadId?: string }) {
     {ask && <div role="alert"><p>{ask.sentence}</p>
       {choice !== ask.preselected && <p>Your pending choice is {name(choice)}. It takes effect only when you press “Use selected level and continue”.</p>}
     </div>}
-    {ask && host?.levelSessionOnlyOffered && <p>A choice made now is kept for this session only.</p>}
+    {scope === "default" && typeof host?.levelDefaultScopeSentence === "string" && <p>{host.levelDefaultScopeSentence}</p>}
     <LevelRefusal cause={cause}/>
     {host?.levelStartRefusal && <div role="alert"><p>Codex could not start with this home.</p><ReportedValue value={host.levelStartRefusal}/></div>}
     <details open={ask ? true : undefined}><summary>{ask ? "Choose a permission level to continue" : "Change permission level"}</summary>
@@ -153,11 +166,16 @@ function LevelPanel({ host, threadId }: { host: Json; threadId?: string }) {
       <p>{threadId && !globalAsk ? "This choice applies to this conversation." : "This choice is the default for new conversations."}</p>
     </details>
     {pending && <p role="status">Changing the permission level…</p>}
-    {outcome?.error && <div role="alert"><p>The permission level was not changed.</p><p>{outcome.error}</p></div>}
+    {save && <div aria-label="Latest permission-level save attempt">
+      <p>Latest choice save: {wordOf(RECORDED, save.recorded) ?? "Not established"}.</p>
+      {typeof save.sentence === "string" && <p>{save.sentence}</p>}
+      {save.writeFailure?.text && <ReportedValue value={save.writeFailure.text}/>}
+    </div>}
+    {outcome?.error && outcome.error !== save?.sentence && <div role="alert"><p>The permission level was not changed.</p><p>{outcome.error}</p></div>}
     {outcome?.reply && <p role="status">{outcome.reply.state === "chosen" ? "The App accepted your level choice." : "The App returned a result for the level choice."}</p>}
-    {outcome?.reply?.sentence && <p>{outcome.reply.sentence}</p>}
-    {outcome?.reply?.writeFailure && <ReportedValue value={outcome.reply.writeFailure}/>}
-    {outcome?.refreshFailed && !actions?.readFailed && <p role="alert">{REFRESH_FAILED}</p>}
+    {outcome?.refreshFailed && outcome?.reply?.sentence && <p>{outcome.reply.sentence}</p>}
+    {outcome?.refreshFailed && outcome?.reply?.writeFailure?.text && <ReportedValue value={outcome.reply.writeFailure.text}/>}
+    {outcome?.refreshFailed && <p role="alert">{REFRESH_FAILED}</p>}
     {threadId && <>
       <p>Last level sent: {name(row?.level?.sent?.levelId)}. {row?.level?.sent?.writeResult === "written" ? "Written to Codex." : "Writing it to Codex is not established."}</p>
       {row?.level?.reported ? <div>
@@ -168,7 +186,7 @@ function LevelPanel({ host, threadId }: { host: Json; threadId?: string }) {
       </div> : <p>Codex has not reported a level.</p>}
       <p>{wordOf(AGREEMENT, row?.level?.agreement) ?? "Agreement has not been reported."}</p>
       {typeof row?.level?.takesEffectSentence === "string" && <p>{row.level.takesEffectSentence}</p>}
-      {row?.level?.inheritancePersistence?.state === "not-recorded" && <div role="alert">
+      {row?.level?.inheritancePersistence?.state === "not-confirmed" && <div role="alert">
         <p>{row.level.inheritancePersistence.sentence}</p>
         {row.level.inheritancePersistence.detail?.text && <ReportedValue value={row.level.inheritancePersistence.detail.text}/>}
       </div>}

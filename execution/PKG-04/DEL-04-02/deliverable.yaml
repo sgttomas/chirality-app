@@ -10,7 +10,10 @@ needs:
     The status supplies the closed reading, allowing-command and next-turn sentences, the per-case
     ask and unread-records reason, and any inherited-association persistence failure with its
     sentence and separately marked raw detail. The requested level associated with a reply is
-    distinguished from the reply's own policy, reviewer and sandbox values.
+    distinguished from the reply's own policy, reviewer and sandbox values. The default scope's
+    consequence is supplied before start. Saving outcomes name their scope and whether the choice
+    was applied, separately from the level in force; an unconfirmed save is not a promise of
+    non-persistence. Project trust distinguishes the requested entry from a confirmed write.
   gating: false
 - from: DEL-04-01
   condition: Every operation class has one of the five class values; a grant has a value of direct or
