@@ -11,7 +11,7 @@ package_objective_refs: [OBJ-001, OBJ-002, OBJ-005]
 
 ## Purpose and Objective Traceability
 
-This deliverable keeps work going when nobody is watching it and keeps the App truthful about what happened. Closing a window ends observation and nothing else. An interrupt stops a turn; it does not end commands the turn left running in the background. After a window is lost, a Codex process stops or the App is relaunched, the person sees the actual state read back from Codex, sees every request that was left unanswered as unanswered, and can continue the conversation with what went before in view.
+This deliverable keeps work going when nobody is watching it and keeps the App truthful about what happened. Closing a window ends observation and nothing else. Work stops only when the person stops it. After a window is lost, a Codex process stops or the App is relaunched, the person sees the actual state read back from Codex, sees every request that was left unanswered as unanswered, and can continue the conversation with what went before in view.
 
 It is the BACKEND_FEATURE_SLICE `DEL-01-02` of PKG-01 in the accepted decomposition, serving OBJ-001 (recoverable interaction in the workflow-making loop), OBJ-002 (main-process execution in the chosen architecture) and OBJ-005 (truthful request and outcome evidence).
 
