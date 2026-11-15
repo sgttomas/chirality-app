@@ -717,8 +717,10 @@ PR270_EXAMINATION = [
     "app/tests/group_b_operated_fixtures/first-use-setup/wrong.review-available-with-existing-settings.json",
     "app/tests/group_b_operated_scenario_test.py", "execution/PKG-09/DEL-09-02/deliverable.yaml",
 ]
-# Inside the class B roots but read by a step of a macOS product job.
+# Inside class roots but read by a step of a macOS product job.
 MACOS_CONSUMED_IN_CLASS_ROOTS = [
+    "docs/RELEASE_LIMITATIONS_4.0.0.md",
+    "docs/release_limitations_4.0.0.md",
     "app/examination/standalone/fixtures/revision-1/invented-pipe-inventory/WORKFLOW.md",
     "app/examination/standalone/fixtures/revision-1/invented-pipe-inventory/tally.py",
     "app/examination/standalone/fixtures/inputs/initial.csv",
@@ -945,8 +947,13 @@ KNOWN_REFERRERS = {
     "app/examination/session_comparison/test_compare.py": "loads standalone/table.py's comparisons(); runs in repository-checks",
     "app/examination/sq_receiving/sq.step-map.json": "out_of_release names the release target as where it is stated; nothing reads that path from it",
     # Readers of in-root paths that stay product inputs.
+    'app/packaging/production_inputs/prepare.py': 'maps and inventories the limitations resource; sources-packaging',
+    'app/src-tauri/tauri.conf.json': 'bundles the limitations document as release/LIMITATIONS.md; product input',
+    'app/src-tauri/src/release_limitations.rs': 'reads the bundled limitations; its source-document test runs in lib shard B',
+    'app/tests/production_inputs_test.py': 'copies the limitations document into its source fixture; sources-packaging',
+    'app/tests/release_limitations_resource_test.py': 'checks the mapping and selected document bytes; sources-packaging',
     "tools/validation/test_library_v3_operational_adoption.py": "names the Library's own docs/ files",
-    "app/src-tauri/src/lib.rs": "compiles group_b_fixture_consumer.rs (product input)",
+    "app/src-tauri/src/lib.rs": "compiles group_b_fixture_consumer.rs and checks the limitations resource mapping (product inputs)",
     "app/tests/group_b_fixture_consumer.rs": "product input; reads standalone/fixtures/ (product input)",
     "app/packaging/static_distribution/test_s1_value_model.py": "reads group_b_fixtures/ (product input)",
     "app/tests/package_successor_receiving_fixtures.py": "reads group_b_sq_receiving_fixtures/ (product input)",

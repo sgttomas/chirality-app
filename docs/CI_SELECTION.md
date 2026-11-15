@@ -64,7 +64,8 @@ exact documentary paths, and all paths under the guarded declarative `execution/
 Two further classes select repository checks without product verification,
 because no macOS product job consumes them (see
 [Inputs the macOS jobs do not consume](#inputs-the-macos-jobs-do-not-consume)):
-governing text, Markdown under `docs/`; and examination tooling, the Python,
+governing text, Markdown under `docs/` except the shipped limitations document;
+and examination tooling, the Python,
 JavaScript, JSON and Markdown under `app/examination/standalone/` and the
 `app/tests/group_b_*` tests and fixtures, except the four paths in them that a
 macOS job reads.
@@ -141,18 +142,20 @@ always-run `repository-checks` job. Neither the frontend build (`tsc` includes
 only `app/src`; Vite starts at `app/index.html`) nor the Rust code and its tests
 read outside `app/src-tauri` except `app/tests/fixtures`,
 `app/supplier_checks/recordings`, `app/packaging/unsigned`,
-`tools/verify_records_bag.py` and the kept paths below. `build.rs` watches only
+`tools/verify_records_bag.py`, the shipped limitations document, and the kept paths below. `build.rs` watches only
 `src-tauri` files, and the bundle takes only `resources/instructions` and
-`resources/production_workflows`.
+`resources/production_workflows` plus the limitations document mapped to
+`release/LIMITATIONS.md`.
 The searches were made by reading each consumer and searching all tracked files
 for the paths, not by file extension.
 
 | Class and paths | Readers, and where they run | Search |
 | --- | --- | --- |
-| A: `docs/**/*.md` | `tools/validation/test_document_metadata.py` reads every header, in `repository-checks`. No App source, test, build script, bundle or pin names a `docs/` path. | `git grep` for `docs/`, `../docs/`, `"docs"`, every `docs/` basename and `include_str!`/`include_bytes!` targets in `app`, `tools` and `.github` |
+| A: `docs/**/*.md` except `docs/RELEASE_LIMITATIONS_4.0.0.md` | `tools/validation/test_document_metadata.py` reads every header, in `repository-checks`. The shipped limitations document below stays a product input. | `git grep` for `docs/`, `../docs/`, `"docs"`, every `docs/` basename and `include_str!`/`include_bytes!` targets in `app`, `tools` and `.github` |
 | A: `execution/**` | Already documentary; `tools.deliverables check` and `check_execution_layout.py` in `repository-checks`. | as above, plus `ScopeOfWork`, `deliverable.yaml` |
 | B: `app/examination/standalone/**` except `fixtures/` (`.py`, `.mjs`, `.cjs`, `.js`, `.json`, `.md`) | The Group B suites (`app/tests/group_b*test.py`), `repin.py --check` and `examination_repin_test.py` (which copies the standalone pin profiles), all in `repository-checks`; `native_forms/` reads the pre-run inputs and pins and is run only by `group_b_native_forms_test.py`. `app/examination/scripted_driver/proof.py` reads `operated/first-use-setup.scenario.json` in the scripted driver's own hosted job (`.github/workflows/app-scripted-driver.yml`, whose path trigger names that file), and `group_b_scripted_driver_test.py` reads it in `repository-checks`. `app/examination/session_comparison/test_compare.py` loads `table.py` and runs its `comparisons()` on the session comparison's own rows, in `repository-checks`. | every top-level standalone entry name, `standalone`, `group_b` |
 | B: `app/tests/group_b_*` except below (same types) | Run only by the `repository-checks` step `pytest -q app/tests/group_b*test.py`; no macOS product step names `group_b`. | every `group_b_*` directory and file name |
+| Kept product: `docs/RELEASE_LIMITATIONS_4.0.0.md` | `app/src-tauri/tauri.conf.json` bundles it; `app/packaging/production_inputs/prepare.py` maps and inventories it. `release_limitations.rs` reads the bundled resource and checks source-document bytes in lib shard B; `lib.rs` checks the mapping in the full Rust route. `production_inputs_test.py` and `release_limitations_resource_test.py` exercise the plan and selected bytes in `sources-packaging`. | `docs/`, `LIMITATIONS.md` and `RESOURCE_RELEASE_LIMITATIONS` in App code, packaging and tests |
 | Kept product: `app/examination/standalone/fixtures/` | Read at runtime by the lib tests in `group_b_fixture_consumer.rs`; no PR lib cohort runs them today, only the full suite, but a cohort filter change would. | `CARGO_MANIFEST_DIR` joins in Rust |
 | Kept product: `app/tests/group_b_fixture_consumer.rs` | Compiled into the lib by `lib.rs` (`#[path]`): the test-target build and clippy in `rust-integration`. | `group_b` in `app/src-tauri` |
 | Kept product: `app/tests/group_b_fixtures/` | `packaging/static_distribution/test_s1_value_model.py`, `sources-packaging`. | `group_b_*fixtures` outside the class |

@@ -30,15 +30,16 @@ PROSE_PATHS = frozenset({
 })
 # Inputs no macOS product job consumes; their readers run in repository checks.
 # docs/CI_SELECTION.md maps each class to its readers and the search behind it.
-# Class A, governing text: Markdown under docs/ (execution/ is documentary above).
+# Class A, governing text: unconsumed Markdown under docs/ (execution/ is documentary above).
 GOVERNING_TEXT = "docs/"
 # Class B, examination tooling: the standalone examination and its Group B tests.
 EXAMINATION_ROOTS = ("app/examination/standalone/", "app/tests/group_b_")
 EXAMINATION_SUFFIXES = (".py", ".mjs", ".cjs", ".js", ".json", ".md")
 # Inside those roots, read by a macOS product job: the Rust lib compiles the
 # consumer and its tests read standalone/fixtures; sources-packaging reads the
-# two fixture trees. These stay product inputs.
+# two fixture trees. The bundle and its native reader also consume the limitations document. These stay product inputs.
 MACOS_INPUTS_IN_CLASS_ROOTS = (
+    "docs/RELEASE_LIMITATIONS_4.0.0.md",
     "app/examination/standalone/fixtures/", "app/tests/group_b_fixture_consumer.rs",
     "app/tests/group_b_fixtures/", "app/tests/group_b_sq_receiving_fixtures/",
 )
@@ -101,11 +102,12 @@ def path_rule(path: str) -> str:
     if plain(path):
         if path in PROSE_PATHS or path.startswith("execution/"):
             return "documentary"
+        # Protected prefixes compare without regard to case, as macOS checkouts do.
+        if path.lower().startswith(tuple(item.lower() for item in MACOS_INPUTS_IN_CLASS_ROOTS)):
+            return "product-domain"
         if path.startswith(GOVERNING_TEXT) and path.endswith(".md"):
             return "governing-text"
-        # Protected prefixes compare without regard to case, as macOS checkouts do.
-        if (path.startswith(EXAMINATION_ROOTS) and path.endswith(EXAMINATION_SUFFIXES)
-                and not path.lower().startswith(tuple(item.lower() for item in MACOS_INPUTS_IN_CLASS_ROOTS))):
+        if path.startswith(EXAMINATION_ROOTS) and path.endswith(EXAMINATION_SUFFIXES):
             return "examination"
     if path in PRODUCT_FILES:
         return "product-file"
