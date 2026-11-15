@@ -174,7 +174,7 @@ export function suppliedSummary(run: Json): string {
   if (latest) {
     const of = checks.length > 1 ? ` (latest of ${checks.length} checks)` : "";
     const record = latest.published === false
-      ? `; check record pending${latest.publicationLimit ? ` — ${typeof latest.publicationLimit === "string" ? latest.publicationLimit : JSON.stringify(latest.publicationLimit)}` : ""}`
+      ? `; check record ${latest.publicationState??"pending"}${latest.publicationLimit ? ` — ${typeof latest.publicationLimit === "string" ? latest.publicationLimit : JSON.stringify(latest.publicationLimit)}` : ""}`
       : "";
     return `${latest.state} (${latest.supplyReading}) at ${latest.readAt}${of}${record}`;
   }

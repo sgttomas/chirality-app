@@ -526,6 +526,60 @@ def processes_naming(text, run=subprocess.run):
     return found
 
 
+class Unobserved(Exception):
+    """A process could not be observed: neither present nor established gone."""
+
+
+def observe_process(pid, kill=os.kill, run=subprocess.run):
+    """The process numbered `pid`, observed alone (a signal 0, then `ps -p` for that one process; no search):
+    ('gone', None) only when the signal check reports no such process; ('present', start time) when `ps` succeeds and
+    prints a start time. Anything else raises Unobserved. A process that ends between the two observations is
+    established gone by the signal check again."""
+    def absent():
+        try:
+            kill(pid, 0)
+        except ProcessLookupError:
+            return True
+        except PermissionError:
+            return False
+        return False
+    if absent():
+        return ('gone', None)
+    try:
+        out = run(['/bin/ps', '-o', 'lstart=', '-p', str(pid)], capture_output=True, text=True, timeout=20)
+    except (OSError, subprocess.SubprocessError) as error:
+        raise Unobserved('ps for process %d could not run: %s' % (pid, error))
+    started = (out.stdout or '').strip()
+    if out.returncode == 0 and started:
+        return ('present', started)
+    if absent():
+        return ('gone', None)
+    raise Unobserved('ps for process %d answered %d with %r' % (pid, out.returncode, started))
+
+
+def still_running(pid, at, observe=observe_process):
+    """Whether the process numbered `pid` that started at `at` is still the same, running process. False only on
+    positive evidence (gone, or the number now names a process with another start time); an observation that fails
+    raises Unobserved, so a row relying on it fails rather than claim the process ended."""
+    state, started = observe(pid)
+    return state == 'present' and started == at
+
+
+def end_known(known, observe=observe_process, kill=os.kill):
+    """Ends each process of `known` ({name: (pid, start time)}) that is still the same process, or that cannot be
+    observed: unknown is a reason to try, never a reason to skip."""
+    for pid, at in known.values():
+        try:
+            if not still_running(pid, at, observe):
+                continue
+        except Unobserved:
+            pass
+        try:
+            kill(pid, signal.SIGKILL)
+        except (ProcessLookupError, PermissionError):
+            pass
+
+
 def group_members(pgid, run=subprocess.run):
     result = run(['/bin/ps', '-axo', 'pgid='], capture_output=True, text=True, timeout=20)
     if result.returncode != 0:
