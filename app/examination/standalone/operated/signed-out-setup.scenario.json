@@ -52,7 +52,7 @@
       "statement_form": "whole: for these paths the statement is within 30 lines and 1,500 characters (ns::bounded), so the App shows it whole; the digest form stops the walk",
       "statement": [
         "Create NEW App-owned settings folder: {settings}",
-        "with an empty config.toml, an empty AGENTS.md and an empty skills folder.",
+        "with an empty config.toml, an empty AGENTS.md and a skills folder. Codex adds its own system skills there, and its own working files to the account directory, when it starts.",
         "Create NEW App-owned account directory: {account}",
         "Link its config.toml, AGENTS.md and skills to those new settings.",
         "Read, import or change no other Codex settings, home or credential.",
@@ -63,7 +63,7 @@
       ]
     }
   ],
-  "states_recorded": "14 November 2026 09:01 UTC, by the supplier's view of this candidate, signed out, in a kept home with an invented empty project: each view a step acts from, with the project path, the three paths the App made, the App's name and the scroll bar's position made placeholders. The walk acts only when the view is one of these states, line for line",
+  "states_recorded": "S1 and S2 recorded on 14 November 2026 at 09:01 UTC and S3 and S4 re-recorded on a build of main 1023908b (launches R-a and R-b), by the supplier's view of this candidate, signed out, in a kept home with an invented empty project; S5, the view after the press, recorded from launch R-c (17:49 UTC), which judged that view by expectations only, so S5 is a first recording and not a re-confirmation. Each view a step acts from or is judged by, with the project path, the three paths the App made, the App's name and the scroll bar's position made placeholders. The walk acts only when the view is one of these states, line for line, and passes only when every step's view equals the state it names",
   "states": {
     "S1": [
       "Window: \"Chirality\", App: {app_name}.",
@@ -226,9 +226,9 @@
       "\t\t\t\t\t\t\t\t42 container Create a new settings folder for this App, inside its data folder",
       "\t\t\t\t\t\t\t\t\t43 list marker ◦",
       "\t\t\t\t\t\t\t\t\t44 text Create a new settings folder for this App, inside its data folder",
-      "\t\t\t\t\t\t\t\t45 container In it, create an empty config.toml, an empty AGENTS.md and an empty skills folder",
+      "\t\t\t\t\t\t\t\t45 container In it, create an empty config.toml, an empty AGENTS.md and a skills folder; Codex adds its own system skills there, and its own working files to the sign-in folder, when it starts",
       "\t\t\t\t\t\t\t\t\t46 list marker ◦",
-      "\t\t\t\t\t\t\t\t\t47 text In it, create an empty config.toml, an empty AGENTS.md and an empty skills folder",
+      "\t\t\t\t\t\t\t\t\t47 text In it, create an empty config.toml, an empty AGENTS.md and a skills folder; Codex adds its own system skills there, and its own working files to the sign-in folder, when it starts",
       "\t\t\t\t\t\t\t\t48 container Create a new sign-in folder for this App, linked to those settings",
       "\t\t\t\t\t\t\t\t\t49 list marker ◦",
       "\t\t\t\t\t\t\t\t\t50 text Create a new sign-in folder for this App, linked to those settings",
@@ -240,26 +240,33 @@
       "\t\t\t\t\t\t\t\t\t56 text Save these choices privately for the next launch",
       "\t\t\t\t\t\t\t57 summary Exact locations, Value: off",
       "\t\t\t\t\t\t\t\t58 text Exact locations",
-      "\t\t\t\t\t\t\t59 text Nothing is created until you confirm. No other Codex settings, home or credential is read, imported or changed.",
-      "\t\t\t\t\t\t\t60 container",
-      "\t\t\t\t\t\t\t\t61 button Create settings and save for next launch…",
-      "\t\t\t\t\t\t\t\t62 button Change my choices",
-      "\t\t\t\t\t\t\t63 text The App asks you to confirm in its own dialog. Your current window keeps working until you reopen the App.",
-      "\t\t\t\t64 summary Technical details, Value: off",
-      "\t\t\t\t\t65 text Technical details",
-      "\t\t66 scroll bar (settable, float) {~number}",
-      "\t67 close button",
-      "\t68 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window",
-      "\t69 minimize button",
-      "\t70 text Chirality",
-      "71 menu bar",
-      "\t72 {app_name}",
-      "\t73 File",
-      "\t74 Edit",
-      "\t75 View",
-      "\t76 Window",
-      "\t77 Help",
-      "\t78 Waiting requests (0)",
+      "\t\t\t\t\t\t\t59 container What applies by default",
+      "\t\t\t\t\t\t\t\t60 heading What applies by default, Value: 4",
+      "\t\t\t\t\t\t\t\t\t61 text What applies by default",
+      "\t\t\t\t\t\t\t\t62 text With new settings, Codex's own defaults apply; the App sets none of these.",
+      "\t\t\t\t\t\t\t\t63 text By default, Codex can read any file your Mac account can read, inside and outside your project, so choose a project folder with that in mind.",
+      "\t\t\t\t\t\t\t\t64 text By default your ChatGPT sign-in is kept as a file, auth.json, in the sign-in folder listed under Exact locations, readable only by your account. Connection and access shows where Codex keeps it before you sign in.",
+      "\t\t\t\t\t\t\t\t65 text After you reopen the App, Connection and access shows what Codex reports for this launch.",
+      "\t\t\t\t\t\t\t66 text Nothing is created until you confirm. No other Codex settings, home or credential is read, imported or changed.",
+      "\t\t\t\t\t\t\t67 container",
+      "\t\t\t\t\t\t\t\t68 button Create settings and save for next launch…",
+      "\t\t\t\t\t\t\t\t69 button Change my choices",
+      "\t\t\t\t\t\t\t70 text The App asks you to confirm in its own dialog. Your current window keeps working until you reopen the App.",
+      "\t\t\t\t71 summary Technical details, Value: off",
+      "\t\t\t\t\t72 text Technical details",
+      "\t\t73 scroll bar (settable, float) {~number}",
+      "\t74 close button",
+      "\t75 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window",
+      "\t76 minimize button",
+      "\t77 text Chirality",
+      "78 menu bar",
+      "\t79 {app_name}",
+      "\t80 File",
+      "\t81 Edit",
+      "\t82 View",
+      "\t83 Window",
+      "\t84 Help",
+      "\t85 Waiting requests (0)",
       ""
     ],
     "S4": [
@@ -309,9 +316,9 @@
       "\t\t\t\t\t\t\t\t42 container Create a new settings folder for this App, inside its data folder",
       "\t\t\t\t\t\t\t\t\t43 list marker ◦",
       "\t\t\t\t\t\t\t\t\t44 text Create a new settings folder for this App, inside its data folder",
-      "\t\t\t\t\t\t\t\t45 container In it, create an empty config.toml, an empty AGENTS.md and an empty skills folder",
+      "\t\t\t\t\t\t\t\t45 container In it, create an empty config.toml, an empty AGENTS.md and a skills folder; Codex adds its own system skills there, and its own working files to the sign-in folder, when it starts",
       "\t\t\t\t\t\t\t\t\t46 list marker ◦",
-      "\t\t\t\t\t\t\t\t\t47 text In it, create an empty config.toml, an empty AGENTS.md and an empty skills folder",
+      "\t\t\t\t\t\t\t\t\t47 text In it, create an empty config.toml, an empty AGENTS.md and a skills folder; Codex adds its own system skills there, and its own working files to the sign-in folder, when it starts",
       "\t\t\t\t\t\t\t\t48 container Create a new sign-in folder for this App, linked to those settings",
       "\t\t\t\t\t\t\t\t\t49 list marker ◦",
       "\t\t\t\t\t\t\t\t\t50 text Create a new sign-in folder for this App, linked to those settings",
@@ -331,28 +338,263 @@
       "\t\t\t\t\t\t\t\t\t64 text {account}",
       "\t\t\t\t\t\t\t\t\t65 text Saved choices",
       "\t\t\t\t\t\t\t\t\t66 text {request}",
-      "\t\t\t\t\t\t\t67 text Nothing is created until you confirm. No other Codex settings, home or credential is read, imported or changed.",
-      "\t\t\t\t\t\t\t68 container",
-      "\t\t\t\t\t\t\t\t69 button Create settings and save for next launch…",
-      "\t\t\t\t\t\t\t\t70 button Change my choices",
-      "\t\t\t\t\t\t\t71 text The App asks you to confirm in its own dialog. Your current window keeps working until you reopen the App.",
-      "\t\t\t\t72 summary Technical details, Value: off",
-      "\t\t\t\t\t73 text Technical details",
-      "\t\t74 scroll bar (settable, float) {~number}",
-      "\t75 close button",
-      "\t76 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window",
-      "\t77 minimize button",
-      "\t78 text Chirality",
-      "79 menu bar",
-      "\t80 {app_name}",
-      "\t81 File",
-      "\t82 Edit",
-      "\t83 View",
-      "\t84 Window",
-      "\t85 Help",
-      "\t86 Waiting requests (0)",
+      "\t\t\t\t\t\t\t67 container What applies by default",
+      "\t\t\t\t\t\t\t\t68 heading What applies by default, Value: 4",
+      "\t\t\t\t\t\t\t\t\t69 text What applies by default",
+      "\t\t\t\t\t\t\t\t70 text With new settings, Codex's own defaults apply; the App sets none of these.",
+      "\t\t\t\t\t\t\t\t71 text By default, Codex can read any file your Mac account can read, inside and outside your project, so choose a project folder with that in mind.",
+      "\t\t\t\t\t\t\t\t72 text By default your ChatGPT sign-in is kept as a file, auth.json, in the sign-in folder listed under Exact locations, readable only by your account. Connection and access shows where Codex keeps it before you sign in.",
+      "\t\t\t\t\t\t\t\t73 text After you reopen the App, Connection and access shows what Codex reports for this launch.",
+      "\t\t\t\t\t\t\t74 text Nothing is created until you confirm. No other Codex settings, home or credential is read, imported or changed.",
+      "\t\t\t\t\t\t\t75 container",
+      "\t\t\t\t\t\t\t\t76 button Create settings and save for next launch…",
+      "\t\t\t\t\t\t\t\t77 button Change my choices",
+      "\t\t\t\t\t\t\t78 text The App asks you to confirm in its own dialog. Your current window keeps working until you reopen the App.",
+      "\t\t\t\t79 summary Technical details, Value: off",
+      "\t\t\t\t\t80 text Technical details",
+      "\t\t81 scroll bar (settable, float) {~number}",
+      "\t82 close button",
+      "\t83 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window",
+      "\t84 minimize button",
+      "\t85 text Chirality",
+      "86 menu bar",
+      "\t87 {app_name}",
+      "\t88 File",
+      "\t89 Edit",
+      "\t90 View",
+      "\t91 Window",
+      "\t92 Help",
+      "\t93 Waiting requests (0)",
+      ""
+    ],
+    "S5": [
+      "Window: \"Chirality\", App: {app_name}.",
+      "0 standard window Chirality, Secondary Actions: Raise",
+      "\t1 scroll area",
+      "\t\t2 HTML content Description: Chirality, URL: tauri://localhost",
+      "\t\t\t3 container Welcome",
+      "\t\t\t\t4 heading Welcome to Chirality, Value: 1",
+      "\t\t\t\t\t5 text Welcome to Chirality",
+      "\t\t\t\t6 text Chirality runs Codex on this Mac to do project work with you, and to turn work that goes well into workflows you can run again.",
+      "\t\t\t\t7 container Setup saved",
+      "\t\t\t\t\t8 heading You're set up, Value: 2",
+      "\t\t\t\t\t\t9 text You're set up",
+      "\t\t\t\t\t10 text Next: quit Chirality (⌘Q) and open it again. Reopening loads your saved project and Codex settings. Then open Connection & access to sign in with your ChatGPT account or prepare the oMLX connection. After connecting, choose a model and start a conversation.",
+      "\t\t\t\t\t11 container",
+      "\t\t\t\t\t\t12 text Project: {project}",
+      "\t\t\t\t13 summary Technical details, Value: off",
+      "\t\t\t\t\t14 text Technical details",
+      "\t15 close button",
+      "\t16 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window",
+      "\t17 minimize button",
+      "\t18 text Chirality",
+      "19 menu bar",
+      "\t20 {app_name}",
+      "\t21 File",
+      "\t22 Edit",
+      "\t23 View",
+      "\t24 Window",
+      "\t25 Help",
+      "\t26 Waiting requests (0)",
       ""
     ]
+  },
+  "state_records": {
+    "S1": {
+      "recorded_on": {
+        "candidate_key": "1023908b64-012ad5568eb2",
+        "candidate_key_from": "the identification record of the candidate folder holding the bundle",
+        "identifier": "dev.chirality.app-v4.candidate.20261114-1023908b-f466b7",
+        "app_name": "Chirality App v4 (development 20261114-1023908b-f466b7)"
+      },
+      "from": {
+        "evidence": "launch R-c, 14 November 2026 17:49 UTC (evidence rerecord-c-20261114T1740Z)",
+        "step": "S1",
+        "view_sha256": "8e0a3e9abe6578b11836656e7ec538afbe164fa16e103b741713c110eedb40cb"
+      },
+      "judged": {
+        "by": "record_state.mjs, with the walk's own recognition and checks",
+        "against": "the expectations of step S1 in the scenario \"signed-out setup with a project, confirmed on the App's own sheet\", written from the build's source and independently of the capture",
+        "expectations": [
+          {
+            "heading": "Welcome to Chirality"
+          },
+          {
+            "button": "Review setup",
+            "is": "unavailable"
+          },
+          {
+            "text": "Choose the folder you want to work in, or continue without a project."
+          },
+          {
+            "radio": "Start with new settings (recommended) The App creates its own empty Codex settings, instructions file and skills folder inside its data folder. Your existing Codex settings aren't read or changed, and the App doesn't use them.",
+            "is": "chosen"
+          }
+        ],
+        "result": "every expectation held"
+      }
+    },
+    "S2": {
+      "recorded_on": {
+        "candidate_key": "1023908b64-012ad5568eb2",
+        "candidate_key_from": "the identification record of the candidate folder holding the bundle",
+        "identifier": "dev.chirality.app-v4.candidate.20261114-1023908b-f466b7",
+        "app_name": "Chirality App v4 (development 20261114-1023908b-f466b7)"
+      },
+      "from": {
+        "evidence": "launch R-c, 14 November 2026 17:49 UTC (evidence rerecord-c-20261114T1740Z)",
+        "step": "S2",
+        "view_sha256": "4fae345b1f4a6f2a20876cc4679e14a76f1b368421ac8775f04177582ad180c1"
+      },
+      "judged": {
+        "by": "record_state.mjs, with the walk's own recognition and checks",
+        "against": "the expectations of step S2 in the scenario \"signed-out setup with a project, confirmed on the App's own sheet\", written from the build's source and independently of the capture",
+        "expectations": [
+          {
+            "text": "Ready to review. Nothing is created or saved until you confirm."
+          },
+          {
+            "button": "Review setup",
+            "is": "available"
+          }
+        ],
+        "result": "every expectation held"
+      }
+    },
+    "S3": {
+      "recorded_on": {
+        "candidate_key": "1023908b64-012ad5568eb2",
+        "candidate_key_from": "the identification record of the candidate folder holding the bundle",
+        "identifier": "dev.chirality.app-v4.candidate.20261114-1023908b-f466b7",
+        "app_name": "Chirality App v4 (development 20261114-1023908b-f466b7)"
+      },
+      "from": {
+        "evidence": "launch R-c, 14 November 2026 17:49 UTC (evidence rerecord-c-20261114T1740Z)",
+        "step": "S3",
+        "view_sha256": "fa8ee2510a1fef353696ef70b19020c81ffdf9c529f8557bc959d6e5df0a96c3"
+      },
+      "judged": {
+        "by": "record_state.mjs, with the walk's own recognition and checks",
+        "against": "the expectations of step S3 in the scenario \"signed-out setup with a project, confirmed on the App's own sheet\", written from the build's source and independently of the capture",
+        "expectations": [
+          {
+            "heading": "What setup will do"
+          },
+          {
+            "texts_from": {
+              "kind": "heading",
+              "label": "What setup will do"
+            },
+            "up_to": {
+              "kind": "summary",
+              "label": "Exact locations"
+            },
+            "are": [
+              "What setup will do",
+              "Create a new settings folder for this App, inside its data folder",
+              "In it, create an empty config.toml, an empty AGENTS.md and a skills folder; Codex adds its own system skills there, and its own working files to the sign-in folder, when it starts",
+              "Create a new sign-in folder for this App, linked to those settings",
+              "Project when you next open the App: {project}",
+              "Save these choices privately for the next launch"
+            ]
+          },
+          {
+            "button": "Create settings and save for next launch…",
+            "is": "available"
+          },
+          {
+            "summary": "Exact locations",
+            "is": "off"
+          }
+        ],
+        "result": "every expectation held"
+      }
+    },
+    "S4": {
+      "recorded_on": {
+        "candidate_key": "1023908b64-012ad5568eb2",
+        "candidate_key_from": "the identification record of the candidate folder holding the bundle",
+        "identifier": "dev.chirality.app-v4.candidate.20261114-1023908b-f466b7",
+        "app_name": "Chirality App v4 (development 20261114-1023908b-f466b7)"
+      },
+      "from": {
+        "evidence": "launch R-c, 14 November 2026 17:49 UTC (evidence rerecord-c-20261114T1740Z)",
+        "step": "S4",
+        "view_sha256": "1952f42f202a313c101aa59e242a0061e1de4512540d94677e70e1cdf2bcdc6b"
+      },
+      "judged": {
+        "by": "record_state.mjs, with the walk's own recognition and checks",
+        "against": "the expectations of step S4 in the scenario \"signed-out setup with a project, confirmed on the App's own sheet\", written from the build's source and independently of the capture",
+        "expectations": [
+          {
+            "summary": "Exact locations",
+            "is": "on"
+          },
+          {
+            "location": "Settings folder",
+            "under": "{app_data}"
+          },
+          {
+            "location": "Sign-in folder",
+            "under": "{app_data}"
+          },
+          {
+            "location": "Saved choices",
+            "under": "{app_data}"
+          }
+        ],
+        "result": "every expectation held"
+      }
+    },
+    "S5": {
+      "recorded_on": {
+        "candidate_key": "1023908b64-012ad5568eb2",
+        "candidate_key_from": "the identification record of the candidate folder holding the bundle",
+        "identifier": "dev.chirality.app-v4.candidate.20261114-1023908b-f466b7",
+        "app_name": "Chirality App v4 (development 20261114-1023908b-f466b7)"
+      },
+      "from": {
+        "evidence": "launch R-c, 14 November 2026 17:49 UTC (evidence rerecord-c-20261114T1740Z)",
+        "step": "S5",
+        "view_sha256": "84126114e42b17e491f48401fcc3a272fadeb52e890ef981213264a8928b4212"
+      },
+      "judged": {
+        "by": "record_state.mjs, with the walk's own recognition and checks",
+        "against": "the expectations of step S5 in the scenario \"signed-out setup with a project, confirmed on the App's own sheet\", written from the build's source and independently of the capture",
+        "expectations": [
+          {
+            "heading": "You're set up"
+          },
+          {
+            "text": "Project: {project}"
+          },
+          {
+            "no_text": "Not saved — you cancelled in the dialog. Your choices are still here."
+          }
+        ],
+        "result": "every expectation held"
+      }
+    }
+  },
+  "sheet_records": {
+    "desktop-setup": {
+      "recorded_on": {
+        "candidate_key": "1023908b64-012ad5568eb2",
+        "candidate_key_from": "the identification record of the candidate folder holding the bundle",
+        "identifier": "dev.chirality.app-v4.candidate.20261114-1023908b-f466b7",
+        "app_name": "Chirality App v4 (development 20261114-1023908b-f466b7)"
+      },
+      "from": {
+        "evidence": "launch R-b′, 14 November 2026 17:22 UTC (evidence rerecord-b2-20261114T1722Z)",
+        "step": "S5",
+        "view_sha256": "d09a2fec7ab7f458562f70eb5186e1c9ae32247997982860ccba4937b44a1da7"
+      },
+      "judged": {
+        "by": "record_state.mjs --sheet, with the walk's own sheetCheck",
+        "against": "the template of sheet desktop-setup in the scenario \"signed-out setup with a project, confirmed on the App's own sheet\", its statement held equal to the build's source by a test",
+        "result": "every line agreed with the template"
+      }
+    }
   },
   "capture_forms": {
     "settings": "{app_data}/shared-settings/settings-{~uuid}",
@@ -363,6 +605,7 @@
     {
       "id": "S1",
       "act": "view",
+      "state": "S1",
       "says": "the welcome, with nothing chosen yet",
       "expect": [
         {
@@ -384,6 +627,7 @@
     {
       "id": "S2",
       "act": "type",
+      "state": "S2",
       "from_state": "S1",
       "control": {
         "kind": "text field",
@@ -406,6 +650,7 @@
     {
       "id": "S3",
       "act": "click",
+      "state": "S3",
       "from_state": "S2",
       "control": {
         "kind": "button",
@@ -429,7 +674,7 @@
           "are": [
             "What setup will do",
             "Create a new settings folder for this App, inside its data folder",
-            "In it, create an empty config.toml, an empty AGENTS.md and an empty skills folder",
+            "In it, create an empty config.toml, an empty AGENTS.md and a skills folder; Codex adds its own system skills there, and its own working files to the sign-in folder, when it starts",
             "Create a new sign-in folder for this App, linked to those settings",
             "Project when you next open the App: {project}",
             "Save these choices privately for the next launch"
@@ -448,6 +693,7 @@
     {
       "id": "S4",
       "act": "click",
+      "state": "S4",
       "from_state": "S3",
       "control": {
         "kind": "summary",
@@ -481,6 +727,7 @@
     {
       "id": "S5",
       "act": "confirm_sheet",
+      "state": "S5",
       "from_state": "S4",
       "sheet": "desktop-setup",
       "control": {

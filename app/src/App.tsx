@@ -910,14 +910,14 @@ export function WorkflowAssuranceSetting({ setting, act }: { setting: Json; act:
     {robust && verification.available !== true && <p role="note">{setting.robustWithoutVerification}: a registered workflow runs only after you confirm it in this session.</p>}
     {setting.note && <p role="note">{setting.note}</p>}
     <details><summary>Change workflow approval</summary>
-      <p>Require verified approval: a workflow runs when you approved it in this App session, or when your approval is verified by your keychain seal. Allow disk records: a workflow you registered earlier runs after a fresh check that its ledger entry, approval record and stored bytes agree on disk; who approved it is not verified.</p>
+      <p>Require verified approval: a workflow runs after a registration captured in this App session, or after its registration capture's keychain seal and its record, ledger entry and stored bytes pass their checks. The seal shows consistency with possession of a key held in the person's keychain under the keychain's protection; it does not establish who wrote the capture, that a person was present, or that they judged. Allow disk records: a registered workflow runs after a fresh check that its ledger entry, approval record and stored bytes agree on disk; who approved it is not verified.</p>
       <p>{setting.storage}</p>
       <button disabled={pending || (robust && verification.state !== "recovery required")} onClick={() => { void choose("workflow_assurance_robust"); }}>{verification.state === "recovery required" ? "Restore verified approval in your keychain" : "Require verified approval"}</button>{" "}
       <button disabled={pending || !robust} onClick={() => { void choose("workflow_assurance_relaxed"); }}>Allow disk records (native confirmation)…</button>
       {verification.state === "recovery required" && <>{" "}<button disabled={pending} onClick={() => { void choose("workflow_assurance_recheck"); }}>Check keychain again</button></>}
       <p>{setting.lowering}</p>
       {setting.protect?.offered === true
-        ? <p><button disabled={pending} onClick={() => { void choose("workflow_protect_with_keychain"); }}>Protect registered workflows with your keychain…</button> Your keychain then verifies approvals across sessions and keeps this setting; you confirm in the App's native dialog.</p>
+        ? <p><button disabled={pending} onClick={() => { void choose("workflow_protect_with_keychain"); }}>Protect registered workflows with your keychain…</button> Your keychain then holds the sealing key and this setting. Later sessions can check registration capture seals; they do not establish who wrote the capture, that a person was present, or that they judged. You confirm in the App's native dialog.</p>
         : <p>Protect registered workflows with your keychain: unavailable. {setting.protect?.reason}</p>}
     </details>
     {error && <p role="alert">{error}</p>}
