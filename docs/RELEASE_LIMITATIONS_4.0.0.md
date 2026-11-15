@@ -243,38 +243,45 @@ An entry is added in the same pull request that makes the limitation standing.
 
 - **Id:** LIM-026
 - **Exit criteria:** 8, 12
-- **What is unavailable:** a guarantee that earlier keychain protection can
-  always be recognised after complete keychain reset or loss, coherent
-  rollback, a same-account rewrite of the App's list of known libraries, or a
-  same-account replacement of the enrolment join at the moment of enrolment.
-  The last case can let one file seal, labelled key file, attach after
-  protection commits. It never supplies keychain standing.
-- **Why:** complete loss or coherent rollback can leave the same observations
-  as a fresh installation. The enrolment join coordinates participating App
-  operations; another process on the same account can replace it and already
-  has access to the file key. “No enrolment evidence found” is not proof that
-  protection never existed. The installation's known-library list is another
-  removable local trace: if it is absent, no library is known, including a
-  retained library that has not been reopened. That is the same complete-loss
-  class; absence permits no weaker seal while any protected item or other veto
-  survives. A present unreadable, malformed or truncated list, one naming no
-  library (which the App never writes), or an unreadable listed library,
-  refuses file-key admission. Roots are added on opening and registration and
-  are never silently removed; this unit has no removal act. A program under
-  the same account can rewrite the App's list of known libraries into a valid
-  list that omits a library; where no keychain item of the App survives
-  either, the App then admits its key file although that library's
-  keychain-labelled capture is still there. Such a program could as easily
-  have removed that capture; the new seal reads as sealed with the App's key
-  file, and the omitted capture keeps its keychain standing.
+- **What is unavailable:** a guarantee that earlier keychain protection is
+  always recognised. The App finds earlier protection partly through files
+  under your account (its continuity folder, its policy head, its list of
+  known libraries, and the captures in your records and libraries), and those
+  files are not authenticated.
+- **Why:** when none of the App's keychain items survives, a program running
+  under your account can delete, redirect or validly rewrite those files so
+  that surviving evidence of protection is not found. The App may then make a
+  new key-file seal while a keychain-sealed capture still exists elsewhere,
+  for example in a library left out of a rewritten list. Complete keychain
+  reset or loss, restoring an older copy of the App's data, a rewrite of the
+  list of known libraries, and replacing the enrolment join at the moment of
+  enrolment (which can let one key-file seal attach after protection is set
+  up) are cases of this. The limit is accepted because such a program could
+  as easily remove that evidence outright. It is not a claim that nothing
+  changes: the App does accept its key file where it would otherwise refuse.
+  Such a seal still reads as sealed with the App's key file and never gains
+  keychain standing or keychain-only admission, and the keychain-sealed
+  capture keeps its standing. “No enrolment evidence found” is not proof that
+  protection never existed. Within this boundary, a damaged list (unreadable,
+  malformed, truncated, or naming no library, which the App never writes) or
+  a listed library that cannot be read refuses key-file sealing. A library is
+  added to the list when it is opened or registered into, and never silently
+  removed. If the list cannot be written, the library still opens and is
+  read; key-file sealing waits, and the library is remembered until the App
+  quits. It is written to the list the next time it is opened or registered
+  into with the folder writable.
   The keychain's protection is not established
   until release criterion 8 has been met on the installed, signed candidate.
 - **What the person does instead:** read the provider stated for each capture
   and counted act. A key-file seal remains weaker after keychain setup; a
   process on this account could forge it. When protection evidence survives
   but cannot be used, restore access to the original key and continuity, then
-  check again. A capture published without a seal is never sealed later; to
-  obtain a counted act from that case, perform the act again.
+  check again. If the App reports its library inventory incomplete, restore
+  the original list and libraries, or make the App's data folder writable and
+  open the library again, then open Recover capture verification and check
+  again. A capture published
+  without a seal is never sealed later; to obtain a counted act from that
+  case, perform the act again.
 - **What would remove it:** an independently maintained continuity anchor
   with a separately reviewed enrolment and recovery protocol, and installed
   signed qualification of the claimed protection. Repeating observations of
