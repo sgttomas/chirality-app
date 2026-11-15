@@ -134,6 +134,7 @@ export function FileActPanel({ command, controlRef, onBusyChange }: {
       <RecordedData value={preview.offer} />
       {preview.utf8 !== null && <details open><summary>Exact frozen UTF-8 text</summary><AgentText block value={preview.utf8} source="record" exactLineEnds style={{ maxHeight: 360, overflow: "auto" }} /></details>}
       <details><summary>Exact frozen bytes (hexadecimal)</summary><AgentText block value={preview.hex} source="record" style={{ maxHeight: 360, overflow: "auto" }} /></details>
+      {typeof preview.declineNotice === "string" && <p role="note">{preview.declineNotice}</p>}
       <button disabled={busy || attempted} onClick={() => run("file_act_confirm", { reference: preview.reference })}>Review native act / decline / cancel…</button>
       <button disabled={busy || attempted} onClick={() => run("file_act_dismiss", { reference: preview.reference })}>Dismiss offer without capture</button>
     </article>}

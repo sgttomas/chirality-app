@@ -912,7 +912,7 @@ mod registry {
         let (status, outcome, recovery, published) = match prepublish(&payload, source, project) {
             Err(reason) => (
                 "refused",
-                json!({"state":"refused_before_write","reason":reason,"effect":"No writer invocation; token consumed"}),
+                json!({"state":"refused_before_write","reason":reason,"effect":"The connector account was not recorded; this draft is closed. Prepare a new draft after resolving the refusal."}),
                 None,None,
             ),
             Ok(account) => match writer(&payload.store, &account) {
@@ -932,7 +932,7 @@ mod registry {
                         } else {
                             "refused"
                         },
-                        json!({"state":if error.uncertain_commit{"uncertain"}else{"definite_refusal"},"error":error,"limit":"No automatic retry, rollback or unlink"}),
+                        json!({"state":if error.uncertain_commit{"uncertain"}else{"definite_refusal"},"error":error,"limit":if error.uncertain_commit{"No automatic retry, rollback or unlink"}else{"The connector account was not recorded; this draft is closed. Prepare a new draft after resolving the refusal."}}),
                         recovery,None,
                     )
                 }

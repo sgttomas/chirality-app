@@ -148,6 +148,9 @@ checks:
 - app/tests/validate-records.test.mjs
 - app/src-tauri/src/model_turn_recorder_tests.rs
 - app/src-tauri/src/records_store_tests.rs
+- app/src-tauri/src/records_store_writer_binding_tests.rs
+- app/src-tauri/src/records_store_writer_f4_runtime_tests.rs
+- app/src-tauri/src/act_control_records_f4_tests.rs
 - app/src-tauri/src/records_store_routing_trace_tests.rs
 - app/src-tauri/src/records_store_routing_payload_tests.rs
 - app/src-tauri/src/records_store_controls_lifecycle_tests.rs

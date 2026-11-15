@@ -73,6 +73,29 @@ fn write_act(project: &Path, id: &str, subject: &str, secret: &str) {
 fn call(n: u64, arguments: Value) -> Call {
     Call { app_session: "app-session:fixture".into(), generation: "g:fixture".into(), request: json!(n), thread: "thread".into(), turn: "turn".into(), call: format!("call-{n}"), arguments }
 }
+
+#[test]
+fn records_store_writer_binding_f4_read_log_refusal_reaches_tool_and_person() {
+    let s = Scratch::new();
+    let project = s.project("f4");
+    write_run(&project, "run:f4", 1, "retained-f4", false);
+    let dir = crate::records_store::attach(&project, false).unwrap().dir.unwrap();
+    let registry = crate::records_store::store_root().unwrap().join("roots.jsonl");
+    std::fs::write(&registry, b"").unwrap();
+    let reason = crate::records_store::attach(&project, false).unwrap().refusal.unwrap();
+    let capability = RecordsCapability::new(&project).unwrap();
+    let response = capability.answer(&call(1, json!({"operation":"list_runs"})), project.to_str());
+    assert_eq!(response["success"], false);
+    assert_eq!(returned(&response)["refused"], format!("the read could not be recorded (read log unavailable: {reason}); nothing returned"));
+    let shown = capability.snapshot();
+    assert_eq!(shown["readLogLimit"], format!("read log unavailable: {reason}"));
+    assert!(shown["recentReads"].as_array().unwrap().is_empty());
+    assert!(!dir.join(crate::records_store::READ_LOG).exists());
+    assert_eq!(std::fs::read(&registry).unwrap(), b"");
+    crate::records_store::adopt(&project).unwrap();
+    let capability = RecordsCapability::new(&project).unwrap();
+    assert_eq!(capability.answer(&call(1, json!({"operation":"list_runs"})), project.to_str())["success"], true);
+}
 fn returned(answer: &Value) -> Value {
     assert_eq!(answer["contentItems"].as_array().unwrap().len(), 1);
     assert_eq!(answer["contentItems"][0]["type"], "inputText");
