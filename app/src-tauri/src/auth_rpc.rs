@@ -304,6 +304,17 @@ pub fn project_frame(frame: &Value, correlated_method: Option<&str>) -> (Value, 
                         Value::Null
                     } else if req.is_object() {
                         let mut r = json!({});
+                        // Closed boolean projection approved for the 0.169.0
+                        // delegation reading. Inspect the whole field before
+                        // dropping anything: absence after filtering must never
+                        // masquerade as absence of managed constraints.
+                        if let Some(features) = req.get("featureRequirements") {
+                            r["featureRequirements"] = match features.as_object() {
+                                Some(table) if table.iter().all(|(name, value)|
+                                    matches!(name.as_str(), "multi_agent" | "multi_agent_v2") && value.is_boolean()) => features.clone(),
+                                _ => json!(REDACTED),
+                            };
+                        }
                         if let Some(allowed) = req.get("allowedLoginMethods") {
                             r["allowedLoginMethods"] = if allowed.is_null() {
                                 Value::Null

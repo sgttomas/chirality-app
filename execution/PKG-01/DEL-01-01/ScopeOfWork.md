@@ -33,7 +33,7 @@ The owner decided on 14 November 2026: "For v4 I'm really focused on the Codex p
 
 Terms:
 
-- **Pin.** The one Codex version a candidate is built against. The current pin is Codex 0.167.0 (supplier tag `rust-v0.167.0`); it changes only by a pin advance under REQ-006.
+- **Pin.** The one Codex version a candidate is built against. The current pin is Codex 0.169.0 (supplier tag `rust-v0.169.0`); it changes only by a pin advance under REQ-006.
 - **App-owned Codex home.** A Codex home directory the App creates for its own use, named by a stable App-owned identity that is neither a credential nor a filesystem path. One child runs per home; nothing of one home's child settles, answers or is attributed to another's.
 - **Generation.** One spawn of a child, identified by {App session, home, spawn counter}. Every frame, request and register entry carries its generation, and nothing from one generation settles or answers anything in another.
 - **Distribution identity.** The complete inventory of the supplier's published vendor tree: every file's path, type, mode, size and content digest, and every directory's mode. A manifest digest of the files alone is not the identity.

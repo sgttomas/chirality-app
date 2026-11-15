@@ -1113,9 +1113,9 @@ pub(super) mod tests {
 // Canonical .167 package identity is the whole native successor inventory, not main-binary equality.
 fn canonical_167(i: &Inner) -> bool {
     let Some(pin) = &i.version_identity else { return false; };
-    pin["declaredPin"] == "0.167.0"
-        && pin["distributionContentIdentity"].as_array().is_some_and(|rows| rows.iter().any(|r| r["path"] == "bin/codex" && r["identity"]["algorithm"] == "sha-256" && r["identity"]["value"] == "030316ecfbb41f4e7946e584b0063ef333b7a36cd312ba349f2f6869e39b62cc"))
-        && (i.successor_status.as_ref().is_some_and(|s| s["verificationGeneration"] == i.generation && s["inventory"]["manifest_sha256"] == "158dd67072236253a694ca06d9bf7bfdebbe20d4a197bbf675433cbdddea7e7b")
+    pin["declaredPin"] == "0.169.0"
+        && pin["distributionContentIdentity"].as_array().is_some_and(|rows| rows.iter().any(|r| r["path"] == "bin/codex" && r["identity"]["algorithm"] == "sha-256" && r["identity"]["value"] == "739cda86e15d30a6e2b40cf8dcbbfb988aaf48b305b27065573bb8e9fd41d002"))
+        && (i.successor_status.as_ref().is_some_and(|s| s["verificationGeneration"] == i.generation && s["inventory"]["manifest_sha256"] == "c2d91de0619e9be8e9fb294af5a0323b352cadc75aabc8162469fc9a3f504012")
             // PR197's assessment_preflight validates the full canonical tree before --version.
             // Its legacy receiving path retains the complete42 per-file identities, not just main.
             || (i.successor_status.is_none() && pin["distributionContentIdentity"].as_array().is_some_and(|rows| rows.len()==42)

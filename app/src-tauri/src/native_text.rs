@@ -125,7 +125,7 @@ pub(crate) fn supplied(_label: &'static str, _source: Source, _value: &Value) ->
     todo!("the Records lane's supplied form lands in its standing-decision unit; no sheet passes Unfit::Supplied before it")
 }
 
-/// The pinned supplier's own values (0.167.0 schema), each its own App word.
+/// The pinned supplier's own values (0.169.0 schema), each its own App word.
 pub(crate) mod supplier {
     /// `TurnStatus`.
     pub(crate) const TURN_STATUSES: &[(&str, &str)] = &[("completed", "completed"), ("interrupted", "interrupted"), ("failed", "failed"), ("inProgress", "inProgress")];

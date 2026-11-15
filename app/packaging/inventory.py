@@ -100,7 +100,7 @@ def validate_package_layout(metadata, inventory, pin):
                 'variant': 'codex', 'entrypoint': 'bin/codex',
                 'resourcesDir': 'codex-resources', 'pathDir': 'codex-path'}
     executables = ['bin/codex']
-    if pin == '0.167.0':
+    if pin in ('0.167.0', '0.169.0'):
         expected['execServer'] = 'bin/codex-exec-server'
         executables.append(expected['execServer'])
     if type(metadata.get('layoutVersion')) is not int:

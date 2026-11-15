@@ -2996,10 +2996,10 @@ fn native_child_guidance_private_receipt_queue_survives_journal_burst_and_close(
 fn canonical_167_peer(peer: &Peer) {
     let mut i = peer.host.inner.0.lock().unwrap();
     i.version_identity = Some(
-        json!({"declaredPin":"0.167.0","distributionContentIdentity":[{"path":"bin/codex","identity":{"algorithm":"sha-256","value":"030316ecfbb41f4e7946e584b0063ef333b7a36cd312ba349f2f6869e39b62cc"}}]}),
+        json!({"declaredPin":"0.169.0","distributionContentIdentity":[{"path":"bin/codex","identity":{"algorithm":"sha-256","value":"739cda86e15d30a6e2b40cf8dcbbfb988aaf48b305b27065573bb8e9fd41d002"}}]}),
     );
     i.successor_status = Some(
-        json!({"verificationGeneration":peer.g,"inventory":{"manifest_sha256":"158dd67072236253a694ca06d9bf7bfdebbe20d4a197bbf675433cbdddea7e7b"}}),
+        json!({"verificationGeneration":peer.g,"inventory":{"manifest_sha256":"c2d91de0619e9be8e9fb294af5a0323b352cadc75aabc8162469fc9a3f504012"}}),
     );
 }
 pub(crate) fn local_167_config() -> Value {

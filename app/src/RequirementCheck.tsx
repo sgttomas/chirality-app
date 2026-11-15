@@ -10,11 +10,11 @@ const text = (value: Json): string => (typeof value === "string" ? value : "");
 export function toolReading(tool: Json, row: Json): { state: "available" | "missing" | "unknown"; words: string } {
   const outcome = text(row?.outcome), reason = text(row?.reason);
   const delegation = tool?.class === "harness_capability" && tool?.capability === "agent-delegation";
-  if (outcome === "present") return { state: "available", words: "Available." };
+  if (outcome === "present") return { state: "available", words: delegation ? "Available as native tools; child execution and remaining capacity are not established." : "Available." };
   if (outcome === "present_currently_unavailable") return { state: "available", words: "Present, but not available at the moment." };
   if (outcome === "missing") {
     if (delegation && reason.includes("multiAgentVersion disabled")) return { state: "missing", words: "Missing: this conversation's model doesn't offer sub-agents." };
-    if (delegation && reason.includes("multi_agent = false")) return { state: "missing", words: "Missing: your Codex settings turn sub-agents off." };
+    if (delegation && reason.includes("agents.enabled is false")) return { state: "missing", words: "Missing: your Codex settings turn sub-agents off." };
     if (tool?.class === "host_operation") return { state: "missing", words: "Missing: the connected application doesn't offer it." };
     return { state: "missing", words: "Missing: Codex reports it isn't offered in this conversation." };
   }
@@ -25,6 +25,9 @@ export function toolReading(tool: Json, row: Json): { state: "available" | "miss
     : tool?.class === "host_operation" ? "it belongs to a connected application, and this App isn't connected to one, so it can't see what that application offers"
     : reason.includes("no adopted supplier availability account") ? "at the Codex version this App runs, the App has no confirmed way to tell whether Codex offers it"
     : delegation && reason.includes("signals not read") ? "the App hasn't yet read whether this conversation's model offers sub-agents; it reads that shortly after a conversation starts"
+    : delegation && reason.includes("features.multi_agent_v2") ? "features.multi_agent_v2 is set; the App could not establish native tool availability for that setting"
+    : delegation && reason.includes("features.multi_agent") ? "features.multi_agent is set; the legacy setting alone does not establish delegation"
+    : delegation && reason.includes("agents.enabled") ? "agents.enabled is set; the App could not establish delegation for that setting"
     : delegation ? "the App couldn't read whether this conversation's model offers sub-agents"
     : reason.includes("element not established") ? "the App couldn't read how this tool is declared"
     : "the App couldn't tell";

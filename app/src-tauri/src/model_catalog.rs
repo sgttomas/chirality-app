@@ -1,9 +1,9 @@
 //! New-conversation model discovery (DEL-01-05 access; DEL-01-04 presentation):
 //! the models Codex reports, read only at the person's press.
 //!
-//! At the 0.167.0 pin `model/list` takes no provider (ModelListParams is
-//! `{cursor?, includeHidden?, limit?}`): it answers for the provider the
-//! app-server resolves for itself, read as `config/read`'s `model_provider`
+//! At the 0.169.0 pin `model/list` accepts an optional `modelProvider`, which
+//! this App omits. It therefore answers for the provider the app-server
+//! resolves for itself, read as `config/read`'s `model_provider`
 //! with no folder and at the server's own folder (DEL-01-03 NPTD §7.1, as in
 //! `delegation_availability`). This module turns those reads into a narrow
 //! view: the server provider (or why it is not established) and each listed

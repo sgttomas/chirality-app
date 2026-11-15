@@ -2,7 +2,7 @@ id: DEL-01-01
 name: Stock Codex hosting and supplier contract
 needs:
 - from: external:DEP-005
-  condition: Codex 0.167.0 is published as a stock macOS arm64 distribution whose release archive
+  condition: Codex 0.169.0 is published as a stock macOS arm64 distribution whose release archive
     digest the supplier publishes, with its App Server protocol and the generators that emit that
     protocol's types.
 - from: external:DEP-005
@@ -35,6 +35,7 @@ needs:
   gating: false
 code_paths:
 - app/src-tauri/resources/supplier/0.167.0
+- app/src-tauri/resources/supplier/0.169.0
 - app/src-tauri/resources/hosting
 - app/src-tauri/resources/distribution-reference
 - app/src-tauri/resources/distribution-development-reference
