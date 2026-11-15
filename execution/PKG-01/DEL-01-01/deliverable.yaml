@@ -92,6 +92,7 @@ code_paths:
 # Bounded scripted recordings at an explicitly approved supplier pin; no contact observation.
 - app/supplier_checks/record_at_pin.py
 - app/supplier_checks/recording_provider.py
+- app/supplier_checks/delegation_probe.py
 # same_basis.py admits a pin whose generated schema is byte-identical to the prior pin's.
 - app/supplier_checks/same_basis.py
 # version_advance/ holds the 0.160.0 to 0.167.0 comparison and its authored dispositions, kept as
@@ -119,6 +120,7 @@ checks:
 - app/supplier_checks/test_recordings.py
 - app/supplier_checks/test_intake.py
 - app/supplier_checks/test_record_at_pin.py
+- app/supplier_checks/test_delegation_probe.py
 - app/supplier_checks/test_same_basis.py
 - app/supplier_checks/test_version_advance_evidence.py
 - app/src-tauri/src/hosting_recorded_replay_tests.rs
