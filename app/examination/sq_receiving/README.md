@@ -33,6 +33,32 @@ pass an incomplete role set to canonical.py's six-role `check` API. The small
 worker separates source execution from caller files; it is not hostile-process
 isolation or authenticated filesystem custody.
 
+A J1 or J2 step's result names its step and no scenario, since the result
+format admits only V4-EXM scenarios. Its native route method must name the
+operator the dossier records: person_operated for a person, ui_automation for
+an agent. `selection_consistent` means the selected files agree with each other;
+a join the result format cannot express truthfully, such as a step recorded as
+not done through the App's controls, is reported through `coverage` as
+unsupported. The report carries each journey's basis beside its outcomes.
+
+One function, `pass_forbidden` in `sq_dossier_rules.py`, returns the reasons a
+journey step's recorded facts forbid "pass": an interface gap, an examination
+limit, a step not performed through the App's controls, a required observation
+missing, not made or not as expected, and (with the result) a planned part
+missing, repeated, set aside, marked not native or passed without native
+evidence. The dossier rules call it as SQ-R18; both workers call it again with
+the step's result record and then refuse a stated pass and, on a step with
+planned parts, a pass that EXP-R1 yields from those parts. SQ-R18 retired SQ-R14
+to SQ-R17, whose numbers are not reused. Stated outcomes and journey bases are
+reported, in the fields `reported_outcomes` and `reported_journey_basis`, only
+when the selection is admitted; a refused selection's report has neither field.
+Its error messages may quote the rejected record, as they do for every record;
+text quoted inside an error that says it was rejected is not a reported outcome.
+
+A step is given planned parts only when those parts are together the whole of the step: everything done and observed in carrying out the step is done and observed in carrying out one of its parts. A gap met while carrying out such a step was therefore met in carrying out one of its parts, and that part is not passed. A step whose parts would not be exhaustive must not be declared with planned parts.
+
+The check guarantees only that a journey step is not accepted as passed when its recorded facts forbid it; which other outcome a record states is DEL-09-01's aggregate of its parts, and whether that outcome and the record's prose are right is the independent reviewer's under DEL-09-02 VER-007.
+
 In a selection, `review.results` is an object
 mapping direct result slots to their full subject/configuration/criterion basis;
 `changes[].pairs` is an array of closed before/after/nullable-rerun selections.
@@ -60,3 +86,36 @@ not a caller pin or fallback.
 
 For the additive package/S4 route, use `receive_packages.py` with its explicit successor selection and independent
 configuration; the original entry above remains its own source/record subject.
+
+A result record's structured home field (`configuration.model_server.home`)
+admits only `H-acct`, `H-key` and `not_applicable`, so it cannot name the App's
+dedicated local home: a result for the local model server leaves `home` out and
+states the dedicated local home `H-omlx` in its label and evidence.
+
+Steps out of the release. The step map's `out_of_release` entry records a decision
+that takes steps out of one named release; for 4.0.0 they are run B's local model
+server steps, M12-2, M12-3 and M12-5 (DEL-09-02). The positive evidence that a
+dossier is read under that decision is the dossier's own `release` field, equal
+to the decision's `release`.
+- **Scope and lifetime.** The evidence is one decision, for one named release,
+  as long as the step map holds it.
+- **The field is bound with the rest.** It is inside the bytes the selection's
+  digest covers, so changing it after selection is refused as any other change
+  is. The schema refuses a value that is not a non-empty string.
+- **No match means no decision.** With no `release`, or one no decision names,
+  no decision applies: every step counts and SQ-R3 requires the two modes.
+
+A step a decision does take out stays listed in its scenario and is never
+counted:
+- it is not aggregated into the scenario's outcome;
+- it need not be recorded before an outcome or a handover;
+- the receivers do not report it as an outstanding obligation.
+
+With all three local steps out, SQ-R3 admits one declared mode, the ChatGPT
+account in `H-acct`. A decision that takes only some of them out admits no
+declaration.
+
+The field was added to the SQ-v0.2 schema in place. The schema allows no property
+it does not name, so a reader of the earlier file would refuse a dossier
+carrying it. Every reader of the format is in this repository and changed with
+it, and no copy of the earlier schema is kept as a snapshot.

@@ -1,0 +1,9 @@
+{
+  "productName": "Chirality App v4 (scripted driver test build)",
+  "identifier": "dev.chirality.app-v4.scripted-driver",
+  "app": {
+    "windows": [
+      { "title": "Chirality", "width": 1100, "height": 800, "backgroundThrottling": "disabled" }
+    ]
+  }
+}

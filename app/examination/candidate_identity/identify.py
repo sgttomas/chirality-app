@@ -4,6 +4,31 @@
 Reads an already built, unpackaged App bundle without executing it, computes its
 tree identity and writes or checks a candidate identification record. It builds
 nothing, launches nothing, opens no examination and establishes no qualification.
+
+What an identity describes: the bundle the reader actually examined, not whatever
+occupied its pathname when the caller asked. The reader makes two complete passes
+and requires their inventories to be equal. In each pass:
+- It opens each directory on the way to the bundle, and the bundle root, relative
+  to the handle of its parent, without following links, and holds those handles
+  until the pass's walk and its closing comparisons are done.
+- When it opens one, it compares what it opened with what it had just examined
+  by that name: device, inode, mode, owner, group and flags for a directory above
+  the bundle; the full stamp for the bundle root.
+- It walks the bundle from its held root, opening each directory and file inside
+  relative to its parent's handle without following links and closing it as the
+  walk goes, and comparing each entry's stamp before and after reading it. The
+  access list and extended attributes of a symbolic link inside the bundle are
+  read by pathname, not through a handle.
+- When the walk ends it examines each named directory on the way, and the bundle
+  root, once more by its name under its held parent, and compares device, inode,
+  mode, owner, group and flags with the held handle and with the first examination.
+These are comparisons at particular points. Nothing watches a pathname between
+them or between the passes. A bundle put at the name before a pass first examined
+it is what that pass describes, as one whole bundle: if both passes describe it,
+it is the bundle identified; if only the second does and its inventory differs
+from the first pass's, the reading is refused. So whoever identifies a candidate
+sees to it that nothing rebuilds or replaces the bundle during identification and
+its intended use, and identifies it in the place it will be opened from.
 """
 import argparse
 import contextlib
@@ -200,7 +225,15 @@ def _stamp(info):
 
 
 def _binding(info):
-    return info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid
+    """A directory's identity with its mode, owner, group and flags.
+
+    Not its access list or extended attributes, and never its contents. An ancestor
+    of an examined tree (a temporary folder, a home, a build root) is written by
+    other processes: an entry made or removed there can change its times, size and
+    link count and says nothing about the tree. It is bound by this.
+    """
+    return (info.st_dev, info.st_ino, info.st_mode, info.st_uid, info.st_gid,
+            getattr(info, 'st_flags', None))
 
 
 @contextlib.contextmanager
@@ -215,13 +248,23 @@ def _open_directory(root, bundle=False):
         fd = os.open('/', os.O_RDONLY | os.O_DIRECTORY)
         held.append(fd)
         bindings = []
-        for part in root.parts[1:]:
+        parts = root.parts[1:]
+        for index, part in enumerate(parts):
             info = os.stat(part, dir_fd=fd, follow_symlinks=False)
             if stat.S_ISLNK(info.st_mode):
                 raise ValueError('symlink in bundle root ancestry: ' + part)
             child = os.open(part, os.O_RDONLY | os.O_NOFOLLOW | os.O_DIRECTORY, dir_fd=fd)
             held.append(child)
-            if _stamp(info) != _stamp(os.fstat(child)):
+            # The directory opened must be the one just examined by name. For a bundle
+            # root that is its full stamp, as for everything inside it. For a directory
+            # above or outside the examined tree it is _binding: its contents are other
+            # processes' to change, and a busy one must not refuse a bundle nobody
+            # touched. What this gives up: an entry changed in such a directory in the
+            # instant between these two calls is not refused, including the next
+            # component itself being put there; that component is first examined after
+            # this (see the module docstring for which comparisons follow).
+            same = _stamp if bundle and index == len(parts) - 1 else _binding
+            if same(info) != same(os.fstat(child)):
                 raise ValueError('bundle ancestry changed during identification')
             bindings.append((fd, part, child, info))
             fd = child

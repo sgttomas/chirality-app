@@ -124,8 +124,17 @@ fn write_one(project: &std::path::Path, event: &Value, rows: &[Value]) -> Value 
         None if tags.is_empty() => "by this project's run_opened.conversationRef, because no REC run tag is stored for this conversation (the tag could not be stored)".to_owned(),
         None => "by this project's run_opened.conversationRef, because its REC run tag is not stored (the conversation's other run tags name earlier runs)".to_owned(),
     };
+    // What the fact establishes: the earlier App session ended, and this conversation had live
+    // work when that session last recorded it. Whether the work was still live when the session
+    // ended was not observed, unless the App itself recorded at its own quit that it lost sight
+    // of it. No end of the run is inferred either way.
+    let seen = if event["liveAtSessionEnd"] == "recorded-at-quit" {
+        format!("the App recorded at that quit that it lost sight of live work in conversation {thread}")
+    } else {
+        format!("conversation {thread} had live work when that session last recorded it; whether the work was still live when the session ended was not observed")
+    };
     let detail = format!(
-        "App restart fact {event_id}: App session {} ended ({}) with live work in conversation {thread}. This run was current there at the end (the run opened last with no run_ended), found {how}. It stays interrupted, not ended (EXEC RE-4); nothing was written for it automatically besides this limit.",
+        "App restart fact {event_id}: App session {} ended ({}); {seen}. This run was the one current there in the records (the run opened last with no run_ended), found {how}. No end of the run is recorded and none is inferred (EXEC RE-4); nothing was written for it automatically besides this limit.",
         event["priorSession"].as_str().unwrap_or("unknown"),
         event["priorSessionEnd"].as_str().unwrap_or("unknown"),
     );

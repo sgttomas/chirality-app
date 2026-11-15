@@ -1,7 +1,7 @@
 {
   "record_kind": "exam_result",
   "format": "EXP-v0.2",
-  "record_id": "INVENTED-SQ-RUN-B-M12-3",
+  "record_id": "INVENTED-SQ-J2-6",
   "support_revision": {
     "exp_version": "EXP-v0.2",
     "schema_id": "urn:chirality:app-v4:del-09-01:exam-result-record:0.2",
@@ -9,12 +9,11 @@
   },
   "case": {
     "owner_deliverable": "DEL-09-02",
-    "case_id": "M12-3",
-    "scenario": "V4-EXM-12"
+    "case_id": "J2-6"
   },
   "criterion": {
-    "source": "INVENTED criterion for M12-3",
-    "identity": "sha256:235b7a02bf3c948b8a8aa73d5ab82a9abeb3b4a2af3ada804f01b8284f7e9811"
+    "source": "INVENTED criterion for J2-6",
+    "identity": "sha256:a6e4de61c6fef423367aaec65bd27301d9aca70f0f26763f9c65892eae7c659f"
   },
   "activity": "verification",
   "run_basis": "candidate",
@@ -37,7 +36,7 @@
       },
       "native_route": {
         "method": "person_operated",
-        "form_ref": "INVENTED-FORM-M12-3"
+        "form_ref": "INVENTED-FORM-J2-6"
       },
       "webview": {
         "name": "WKWebView",
@@ -52,14 +51,10 @@
     "value": "2026-10-08",
     "source": "record_timestamp"
   },
-  "outcome": "pass",
-  "evidence": [
-    {
-      "ref": "INVENTED native form row M12-3",
-      "provenance": "live_observation"
-    }
-  ],
+  "outcome": "not-run",
+  "evidence": [],
   "currency": {
     "state": "current"
-  }
+  },
+  "not_run_because": "INVENTED not attempted after earlier block"
 }

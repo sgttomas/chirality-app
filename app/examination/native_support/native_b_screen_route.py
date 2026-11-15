@@ -22,10 +22,10 @@ def validate_stop_question(title,text,generation,expected_home):
     state=match.group(1)
     before_time=[prefix+state]
     if state!='ready':before_time.append('Codex is '+state+', not ready: live work cannot be observed and nothing is sent to it; only the process is stopped.')
-    before_time.extend(['Observed: no live turns, waiting requests, delegated agents or workflow runs in force.',
+    before_time.extend(['Observed: no live turns, turn starts not yet associated with a turn, waiting requests, delegated agents or workflow runs in force.',
                        'Stop Codex stops this Codex process.',
                        'None observed is not none: coverage is not complete.',
-                       'This is your operational choice, not a recorded act. If you confirm, the App writes the stop and each interrupt to its recovery ledger before sending; what the ledger accepts can be read after a relaunch.'])
+                       'This is your operational choice, not a recorded act. If you confirm, the App writes the stop and each interrupt to its recovery ledger before sending.'])
     suffix='Stop Codex proceeds; Keep Codex running (the default) and Cancel change nothing.'
     pattern=re.escape(' '.join(before_time))+r' Observed at ([0-9T:.+Z-]+)\. '+re.escape(suffix)
     whole=re.fullmatch(pattern,normalized)

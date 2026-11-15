@@ -337,7 +337,7 @@ pub(crate) fn offer(state: &AppState, id: &str, endpoint: &str) -> Result<Offer,
                 .min(Duration::from_secs(10)),
             PrivateConfigPurpose::EndpointOffer,
         )
-        .map_err(|_| LIMIT.to_owned())?;
+        .map_err(|e| crate::hosting::reading_gate::reading_or(e, || LIMIT.to_owned()))?;
     host.check_provider_read(&host.inner.0.lock().unwrap(), &read.source, &pending.cwd)
         .map_err(|_| LIMIT.to_owned())?;
     let target = pending.slot.target().map_err(|_| LIMIT)?;
@@ -494,6 +494,11 @@ pub(crate) fn save(
         Ok(false) => Ok(
             json!({"state":unconfirmed,"message":"Write observed; the current source has not been continued","endpointRereadMatched":observed}),
         ),
+        // The configuration reading after the write was refused at the reading gate or withdrawn:
+        // the known write outcome first and unqualified, then that reading's own sentence.
+        Err(error) if crate::hosting::reading_gate::reading_sentence(&error) => Ok(
+            json!({"state":unconfirmed,"message":format!("{}{error}", crate::hosting::reading_gate::WRITE_THEN_READING)}),
+        ),
         Err(_) => Ok(
             json!({"state":unconfirmed,"message":"Write observed; current source continuation unavailable or unknown; no retry"}),
         ),
@@ -522,6 +527,8 @@ impl Host {
                 None,
                 None,
                 Some(write),
+                None,
+                None,
             )
             .map_err(|_| WriteFailure::NotSent)?;
         let failure = || {

@@ -37,12 +37,15 @@ the judgment serves. It is not evidence that any criterion is met.
 **What the release is judged on.** App v4 is examined and released on working
 through the user interface it ships with. Two standalone journeys carry that:
 
-- **J1, use an existing workflow.** A person sets up a project, selects an
-  existing workflow, supplies its inputs, runs it to completion and finds the
-  results.
-- **J2, create, save, return and reuse.** A person does useful work, turns it
-  into a workflow, registers it, returns to unfinished work after closing and
-  reopening, and later runs the saved workflow with new inputs.
+- **J1, use an existing workflow.** A person sets up a project, choosing how
+  far the agent may act, selects an existing workflow, supplies its inputs,
+  runs it to completion and finds the results.
+- **J2, create, save, return and reuse.** A person does useful work, adding a
+  point during it at which a bounded agent contribution arrives and the right
+  party responds before work continues, turns the work into a workflow that
+  keeps the point, registers it, returns to unfinished work after closing and
+  reopening, and later runs the saved workflow with new inputs, meeting the
+  point again.
 
 J1 is the primary journey, and J2 is the complete workflow-making loop the App
 exists to provide (PRD §2.1). The core loop is necessary for publication and
@@ -66,8 +69,16 @@ selection, and any specialised workspace, keep their own.
 - **Windows.** It follows the macOS release and adds no gate to it.
 - **Domains.** It follows in a later increment and is no condition of release
   or of replacement. PEC adds no delivery prerequisite.
-- **Standalone OpenAI API-key access.** The access modes are the ChatGPT
-  account and a local model server (PRD V4-APP-02).
+- **Standalone OpenAI API-key access.** The App reaches a model through the
+  person's ChatGPT account (PRD V4-APP-02).
+- **A local model server.** The owner decided on 14 November 2026: "For v4
+  I'm really focused on the Codex path. To simplify this I can forego the
+  local model entirely for 4.0.0 and it can come in a later update." 4.0.0
+  does not present a local model server as a way for the App to reach a
+  model. It returns in a later update, with its own examination. What
+  DEL-01-05, DEL-01-01 and DEL-09-02 require of it stays written for that
+  update and is not in force for 4.0.0, as each of those scopes states. A
+  host application's own model server is not this route.
 - **Key rotation.** It is unavailable in 4.0.0, and the release says so.
 - **Signed records.** Log checkpoints and exported records packages are
   unsigned in 4.0.0, because no key is chosen to sign them (DEL-04-03
@@ -79,6 +90,23 @@ selection, and any specialised workspace, keep their own.
   as v4. Because 4.0.0 keeps the existing production identifier, a person's
   existing data under that identity is preserved: nothing imports, resets or
   reseals it.
+- **Holds the App enforces, and points arising on conditions.** In 4.0.0 a
+  pause at a point is the agent's cooperation, and the App says so (LIM-016).
+  Holds the App itself enforces stay phased to the governance layer and are
+  not withdrawn (PRD V4-WF-05). A point arises where the person or the agent
+  places it. The App evaluates no condition about the work itself, such as
+  results that disagree, something unexpected or a limit reached. Observing
+  that a declared checkpoint's named output was produced or its named tool
+  was started stays as DEL-02-03 states it.
+- **The supplier's automatic reviewer, and elevation.** The App offers no
+  permission level that hands the supplier's requests to its automatic
+  reviewer, and with every level it sends that the person answers them,
+  whatever review routing the person's own settings name. It provides no
+  elevation to administrator; a system password prompt is the person's.
+- **A form for every kind of point, and points declared in the bundled
+  workflows.** A person places a point by asking the agent; the App needs no
+  form for each kind. No bundled workflow declares a point, and 4.0.0 adds
+  none to them.
 - **Work beyond the PRD's commitments.** It is not part of this release's
   definition of done. A capability the PRD commits to is, unless this section
   names it.
@@ -86,17 +114,111 @@ selection, and any specialised workspace, keep their own.
 **Fallback.** v3.0.1 stays the published fallback until the owner decides that
 v4 has replaced it.
 
-**Testing.** Agents do the development testing. The owner's own use of the
-candidate begins once Agent 0 has recommended that it is ready. The two are
-different things: agents' testing verifies behaviour, and only the owner's own
-use judges whether the product is fit for real work (DEL-09-12). A control
+**Testing.** The owner's words direct it: "I expect you to do thorough user
+testing via computer use and only when that's worked out the bugs and you
+think you're ready for publishing would i then use the app for testing." This
+is direction, not evidence that any criterion is met. Agents do the
+development testing. The journeys and examinations of criteria 1 to 6 and 15
+are carried out by agent-operated journey examination: an agent operates the
+built App's shipped controls through the computer-use ability native to its
+harness, as a user would. Every journey action goes through the shipped
+controls. Preparing invented fixtures, and independent observation (reading
+the supplier's actual events, inspecting records and files on disk, verifying
+an exported package without the App), are done outside the controls, and each
+record names them as such. What is ruled out is help that conceals an unusable
+control, not independent scrutiny: a second examiner or a reviewer may take
+part. Such an examination establishes that the journey can be completed
+through the shipped controls and what the App then shows and records; it is
+not evidence of how a first-time person understands the App. Each step's
+record says who operated it and by what means, and notes where completing the
+step needed knowledge the interface did not give. No criterion reads as met by
+a person when no person did it. Findings are repaired and the affected
+scenarios run again before Agent 0 recommends the candidate; a result from an
+earlier candidate is joined as the exit criteria below state.
+
+Credential acts stay the owner's: sign-in is performed by the owner and never
+by an agent, and a run that needs a signed-in App follows the owner's
+sign-in. The criteria not named above keep
+the actors their own texts state. Criterion 8's witness on the installed,
+signed candidate needs the person's protection act and the person's
+confirmation of a lowered policy (DEL-01-04 AC-009), which the owner performs
+as bounded acts, like sign-in, apart from and before the evaluation of
+criterion 13. The first human evaluation of the product is the owner's own use
+of the candidate, which begins once Agent 0 has recommended that it is ready
+(criterion 13); the owner's bounded acts before it (sign-in and the keychain
+acts) are not that evaluation. Agents' testing and the owner's own use
+are different things: agents' testing verifies behaviour, and only the owner's
+own use judges whether the product is fit for real work (DEL-09-12). A control
 operated by an agent establishes no act of the owner.
+
+The product's rule is unchanged: the App never performs for a person an act it
+reserves to a person, and only the person's own confirmation captures an act;
+an attempt by an agent tool, an MCP operation or an App rule captures nothing
+(DEL-01-04 AC-008, DEL-04-01). Apart from that rule, and solely for synthetic
+development examination on examination material, the examining agent operates
+every shipped control the named examinations need, including those at which
+the candidate captures an act: registration and re-confirmation, checking,
+approval, reliance and decision confirmations, answers to requests, lifecycle
+confirmations, project-link resolution, records export and import, project
+closure and reopening, legal-hold setting and release, and disposal. These
+operations establish no actual person's decision and no legal or professional
+standing. Sign-in, and criterion 8's protection act and policy-lowering
+confirmation, are the owner's. The exception reaches
+examination material only; an invented input does not license an effect on the
+owner's real libraries, stores, accounts or files.
+
+What such a control captures is a synthetic capture. The candidate records the
+accounts it runs under: at an act control it builds the actor from the App's
+name setting, the macOS account it runs under and the Codex account when one
+is reported, and marks the identity not verified, as it marks every capture,
+so that mark does not show that a capture is synthetic. In an examination run
+under the owner's account, the account identifiers a synthetic capture records
+remain the owner's although an agent operated the control. Before every
+synthetic capture, and again after every restart of the candidate before
+another capture, the examining agent sets the App's name to an examination
+name and verifies that it is set. The name marks the capture as examination
+material in the candidate's own record. It does not identify who operated the
+control; the step's record, from the operator's observation, says that an
+agent did. Examination material is an identified set: the scratch libraries,
+the scratch records stores, the export packages made from them, the import
+destinations used, and the retained examination evidence. Synthetic captures
+and whatever carries them stay within that set, which is disposed of once the
+examination and review it is needed for are finished. Each of these is a
+finding (DEL-09-02 REQ-009): a synthetic capture, or anything carrying one,
+found outside the identified examination material; a synthetic capture
+presented as an actual person's act; a candidate record that marks the
+identity verified, or that carries an actor value other than what the
+candidate observed by its own rule. A step whose conditions cannot be
+established is blocked.
+
+A synthetic confirmation supplies control-and-record examination evidence only;
+it does not meet a positive case that requires evidence of an act an actual
+person performed, and that case reads as not examined until its stated evidence
+is supplied. Every acceptance criterion whose positive case is an act a person
+performed, recorded or handed over with the person as actor, is examined
+synthetically for its control and its record only; its human-positive case
+reads as not examined until an act an actual person performed is observed on
+the identified candidate. When this was written those were: the positive cases
+of DEL-06-02 AC-004, DEL-04-01 AC-002 and DEL-04-03 AC-003; DEL-09-01's
+faithful recording of an actually performed act (AC-004); DEL-01-02 AC-007 (an
+answer the person actually gave); DEL-02-02 AC-006 (a registration the person
+performed); DEL-02-03 AC-003 (a checkpoint act the person performed); DEL-01-03
+AC-005 (an act record handed in, shown with the person as actor); DEL-04-02
+AC-005 (a recorded act a person performed); and DEL-04-03 AC-010 (a permitted
+disposal recorded as the person's act). A criterion of the same kind not named
+here falls under the rule all the same. Agent 0 may recommend the candidate for
+the owner's evaluation with these human-positive cases explicitly not examined.
+Each passes only when its required act and comparison are observed on the
+identified candidate. A case the owner's chosen use does not exercise remains
+unmet; the owner's verdict supplies no missing evidence.
 
 ## Exit criteria
 
 Each criterion says in plain words what is observed, and then names the
 acceptance criteria that govern it. The named criteria are what is met; the
-description narrows none of them.
+description narrows none of them. Where a criterion's governing text is named
+as still to come from the pull request that builds it, the criterion is unmet
+until that text exists and is met.
 
 Every result names the candidate it was observed on: an App source revision, a
 build identity and the supplier pin. Criteria 1 to 7 and 15 may be observed on an
@@ -112,33 +234,47 @@ the owner decide on what was actually observed.
 1. **Use an existing workflow (J1).** Through the App alone, a person sets up
    a project, selects an existing workflow, sees its source and revision,
    supplies its inputs, runs it to completion and finds the results, with real
-   execution doing useful work and without an agent interpreting or operating
-   the App's controls. Before the run the App says which of the workflow's
+   execution doing useful work, every step taken through the App's shipped
+   controls and the words it shows, and no control interpreted or operated by
+   any other means. During setup the person chooses the permission level
+   (criterion 6). Before the run the App says which of the workflow's
    declared required tools are available and which are missing, and a workflow
    whose requirements are not declared reads as undeclared and is not shown as
-   needing none. A file the person selects as an input is sent as selected: if
-   it changes between selection and sending it is held and not sent. What the
-   agent receives is the selected workflow, byte for byte. No time or step
-   limit applies.
+   needing none. A file the person selects as an input is sent as selected.
+   Immediately before attempting to send, the App checks the selected files
+   again, and if it finds one changed, missing or no longer a file it holds the
+   send and sends nothing. A change made after that check is not detected: what
+   is sent is still the content as selected. What the agent receives is the
+   selected workflow, byte for byte. No time or step limit applies.
 
    *Governed by:* DEL-02-02 AC-010 (the journey as product) and AC-005 (what
    the agent received); DEL-01-04 AC-011 (the run text reaches Codex
    unchanged); DEL-02-03 AC-001 (the required-tool check); DEL-01-04 AC-003
-   (a selected file); DEL-09-02 AC-009 (a person observed carrying it out).
+   (a selected file); DEL-09-02 AC-009 (the journey examined on the
+   candidate through the shipped controls).
 2. **Create, save, return and reuse (J2).** Through the App alone and as one
    sequence, a person does useful work, turns it into a workflow draft,
    trials, reviews and registers it, returns to unfinished work after closing
    and reopening, and in a later session runs the saved workflow with new
    inputs under their workflow approval policy, the agent receiving that saved
-   workflow byte for byte. No time or step limit applies.
+   workflow byte for byte. During the useful work the person asks the agent to
+   place a point; the App shows what took effect and records who placed it; a
+   bounded agent contribution arrives at the point and its card names who
+   asks, who must respond, what it concerns and who integrates the result;
+   the right party responds and work continues. The registered workflow keeps
+   the point, and the later run meets it again. No time or step limit applies.
 
    *Governed by:* DEL-02-02 AC-011 and AC-005; DEL-01-04 AC-011; DEL-09-02
-   AC-010.
+   AC-010. The point placed, its card and its reuse are governed by
+   DEL-02-03 (the point and its record in the run), DEL-01-04 (the card) and
+   DEL-02-02 (the point kept through registration), with criteria to come
+   from the pull requests that build them.
 3. **The core loop at least at v3.0.1's level.** A conversation starts in a
    role: HELP_HUMAN is preselected and can be cleared, HELPS_HUMANS,
    WORKING_ITEMS and no role are offered, TASK is not, and the chosen role's
    guidance is added to the supplier's own instructions without replacing
-   them. In one continuous journey
+   them. Where the harness cannot enforce a role's limits, the App says so
+   and does not imply that they are enforced. In one continuous journey
    from an empty project folder, a person develops and revises a plan with the
    agent, has it carried out with real tools including one delegated sub-task,
    creates a workflow draft, trials and reviews it, registers it, runs it on
@@ -156,7 +292,9 @@ the owner decide on what was actually observed.
 
    *Governed by:* DEL-09-02 AC-001, AC-002 and AC-003; DEL-02-02 AC-004 (the
    identity a selection keeps, on the project, user and bundled origins);
-   DEL-02-04 AC-001 and AC-002 (the roles offered and the guidance supplied);
+   DEL-02-04 AC-001 and AC-002 (the roles offered and the guidance supplied)
+   and AC-003 and AC-004 (a limit the harness does not enforce shown as not
+   enforced);
    DEL-01-04 AC-008 (only the person's confirmation captures).
 4. **Requests, interruption and recovery.** Inside that journey, a turn is
    stopped while a delegated child is active, the window is closed and
@@ -166,19 +304,37 @@ the owner decide on what was actually observed.
    survive the closed window. At each recovery point what the App shows agrees
    with the supplier's actual events: a completed turn does not mark an active
    child done, a reply without acknowledgment is not shown as settled, and an
-   unavailable outcome is shown as unknown. When a run reaches a checkpoint
-   the workflow declares, its arrival is recorded, and the checkpoint's
-   disposition is waiting until evidence of the required human act exists; the
-   App does not pause or hold the run. Continued work, a tool's success, an
+   unavailable outcome is shown as unknown. Where work waits, the App says
+   that the agent was asked to pause, that a question is waiting or that a
+   turn completed, and never that work is held or blocked. When a run reaches
+   a checkpoint the workflow declares, its arrival is recorded, and the
+   checkpoint's disposition is waiting until evidence of the required human
+   act exists. While it is waiting, the arrival is shown as a card in the
+   list of what waits on the person; an arrival already answered by an
+   earlier act is not shown as waiting. The App does not itself pause,
+   interrupt or hold the run, and says that a pause there is the agent's
+   cooperation. Continued work, a tool's success, an
    interruption or a replay of history does not perform it. After quit and reopen it is the same run,
    and a later run inherits no arrival, disposition or act from it. A failure
-   is repaired or brought to the owner for disposition; it is never passed
-   over.
+   is repaired or given its disposition by Agent 0, which the owner sees in
+   the decision packet; it is never passed over.
 
    *Governed by:* DEL-09-02 AC-004 and AC-005; DEL-01-02 AC-001 to AC-006
    (window loss, interrupt, requests, acknowledgment, restart and quit);
    DEL-02-03 AC-002 and AC-003 (checkpoints and the run they belong to), with
-   the views of that behaviour owned by DEL-01-03 and DEL-01-04.
+   the views of that behaviour owned by DEL-01-03 and DEL-01-04. The words
+   for waiting and the arrival's card are governed by DEL-01-04, with
+   criteria to come from the pull requests that build them.
+   DEL-02-03 AC-003's positive case with the person as actor is one of the
+   human-positive cases named under Testing. A synthetic confirmation supplies
+   control-and-record examination evidence only; it does not meet a positive
+   case that requires evidence of an act an actual person performed, and that
+   case reads as not examined until its stated evidence is supplied. Agent 0
+   may recommend the candidate for the owner's evaluation with these
+   human-positive cases explicitly not examined. Each passes only when its
+   required act and comparison are observed on the identified candidate. A case
+   the owner's chosen use does not exercise remains unmet; the owner's verdict
+   supplies no missing evidence.
 5. **Coordinating delegated work.** A person delegates two bounded pieces of
    work, each with a complete brief, to agents that actually run. The person
    follows them on the undertaking's work graph, examines what they return
@@ -189,24 +345,47 @@ the owner decide on what was actually observed.
    awaits review. After the App is closed and reopened, the views are rebuilt
    from the files and show the same ownership, results, waiting causes,
    reviewed and integrated history and pending decisions, with a missing
-   observation shown as unknown.
+   observation shown as unknown. Everything waiting on the person, from every
+   agent, is in one list; each card names who asks (for a delegated agent, its
+   role and name as Codex reports them), who must respond, what it concerns
+   and who integrates the result; one request has one disposition wherever it
+   is seen, and a request waiting on an agent is shown as activity. A returned
+   review reads "review returned" and then "awaiting integration" with the
+   integration owner named, and never "approved".
 
-   *Governed by:* DEL-09-05 AC-001 to AC-007.
+   *Governed by:* DEL-09-05 AC-001 to AC-007. The list and its cards are
+   governed by DEL-06-02 (returns and decision packages) and DEL-01-04 (the
+   supplier's requests and the cards), with criteria to come from the pull
+   requests that build them.
 6. **Access.** A person signs in with their ChatGPT account, and the account
    view shows the account Codex reports. The App offers no standalone OpenAI
-   API-key entry. The ChatGPT account and a local model server are configured
-   together. A new conversation has no model until the person chooses. One
-   conversation runs with each, and switching between them leaves the other's
-   configuration in place. The local conversation runs with its required
-   credential held by Codex in the dedicated local home, examined apart from
-   account sign-in, and the two homes keep their own settings and sign-in. A
-   different compliant local server can be substituted through supported
-   settings. The start-up connections of the App's Codex are listed, and those
-   an App setting stops are absent. No credential appears in anything the App
-   wrote.
+   API-key entry, and presents no local model server as a way to reach a
+   model: none of its views offers one, and its commands for one refuse. A
+   new conversation has no model until the person chooses. A conversation
+   runs with the ChatGPT account. The start-up connections of the App's Codex
+   are listed, and those an App setting stops are absent. No credential
+   appears in anything the App wrote. In the examination the owner performs
+   the sign-in, and agents examine what follows. Before the first
+   conversation the person chooses a permission level among those offered,
+   and none applies until they have chosen; a level marked as recommended is
+   shown as such beside the others; every level offered was first shown at
+   the pin by a fixture; the
+   level in force is always shown, with the statement that reading is not
+   limited; the App sends it to Codex on each turn and on start, resume and
+   fork; a change of level is taken from the person only and recorded, as
+   the person's own setting and not as a reserved act, and no agent raises
+   its own level.
 
-   *Governed by:* DEL-09-02 AC-006; DEL-01-05 AC-001 to AC-005, AC-008 and
-   AC-011.
+   *Governed by:* DEL-09-02 AC-006; DEL-01-05 AC-001 to AC-005 and AC-011;
+   each in the words that its scope states are in force for 4.0.0. The
+   permission level is governed by DEL-01-04 (choosing and capturing it),
+   DEL-04-02 (showing it) and DEL-01-01 (carrying it to Codex), with criteria
+   to come from the pull requests that build them.
+   That no local model server is presented is governed by the "For 4.0.0"
+   section of DEL-01-05, and is examined on the candidate by inspecting every
+   view met in the journeys and examinations of criteria 1 to 6 for an offer
+   of one, and by an executable check that the App's commands for that route
+   refuse.
 7. **Visual design.** A person meeting the App's views in the journeys and
    examinations of criteria 1 to 6 and 15 finds that they share one visual form,
    drawn from v3.0.1 as installed, that they are consistent with one another,
@@ -273,7 +452,10 @@ the owner decide on what was actually observed.
 13. **The owner's verdict.** After Agent 0 has recommended the candidate
     ready, the owner uses it and answers yes or no before it is published.
     What the owner uses it for, and for how long, is the owner's to choose at
-    the time. Agent 0 gives every observation the owner makes a disposition;
+    the time. With the recommendation, Agent 0 tells the owner which criteria
+    were examined by agents and that no person has yet carried out the
+    journeys or performed the acts the human-positive cases named under
+    Testing need, which read as not examined. Agent 0 gives every observation the owner makes a disposition;
     that is Agent 0's responsibility and not a question returned to the owner.
     The criterion is met on yes. A yes meets this criterion only: any other
     criterion that is unmet stays unmet.
@@ -324,16 +506,16 @@ the owner decide on what was actually observed.
     from the last sentence of AC-009 (a signed checkpoint verifying under the
     App's key) and the signature sentence of AC-011, which wait on the key of
     DEL-04-03 TBD-003.
-
-## Open choices
-
-This decides whether a criterion can be met, and nothing accepted settles it.
-Every other undecided item stands as its owning scope states it.
-
-- **Tying a delegated child to its brief (criterion 5).** How a child is tied
-  to its brief where the supplier exposes neither the dispatch message nor a
-  mark the App can set is undecided (DEL-06-01 TBD-003), and the criterion
-  needs each delegation connected to its brief.
+    AC-010's permitted disposal recorded as the person's act is one of the
+    human-positive cases named under Testing. A synthetic confirmation supplies
+    control-and-record examination evidence only; it does not meet a positive
+    case that requires evidence of an act an actual person performed, and that
+    case reads as not examined until its stated evidence is supplied. Agent 0
+    may recommend the candidate for the owner's evaluation with these
+    human-positive cases explicitly not examined. Each passes only when its
+    required act and comparison are observed on the identified candidate. A case
+    the owner's chosen use does not exercise remains unmet; the owner's verdict
+    supplies no missing evidence.
 
 ## What stays the owner's
 

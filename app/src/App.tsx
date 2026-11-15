@@ -1,16 +1,19 @@
+import { AgentText, ConversationChoices, RecordedData, idWords, numberWords, safeName, wordOf } from "./AgentText";
 import { ActionFeedback } from "./ActionFeedback";
-import { LOCAL_ENTRY, LOCAL_FORK_AVAILABLE, LOCAL_FORK_UNAVAILABLE, LOCAL_MODE, LocalProviderAccess, generationKey, localRoute, localViewFrom, readAttemptedLocalEntries, recordAttemptedLocalEntry, type LocalView } from "./LocalProviderAccess";
+import { LOCAL_ROUTE_OFFERED } from "./localRoute";
+import { LOCAL_ENTRY, LOCAL_FORK_AVAILABLE, LOCAL_FORK_UNAVAILABLE, LOCAL_MODE, LocalProviderAccess, generationKey, localRoute, localViewFrom, readAttemptedLocalEntries, recordAttemptedLocalEntry, forgetAttemptedLocalEntry, type LocalView } from "./LocalProviderAccess";
 import { NativeWaitingBridge } from "./NativeWaitingBridge";
 import { ConnectorSourcePanel } from "./ConnectorSourcePanel";
 import { FleetRecordsPanel, readFleetPacket, type FleetPacket } from "./FleetRecordsPanel";
+import { WaitingOnYou, WAITING_SOURCE_POLL_MS, decisionPackageAnchor, waitingReadings, type WaitingEntry } from "./WaitingOnYou";
+import { RecordsStorePanel } from "./RecordsStorePanel";
 import { ConnectorRoutePanel, emptyRouteRead, routeReadTransition, type RouteReadState, type RouteView } from "./ConnectorRoutePanel";
 // The interface reads host snapshots and asks the host to act. It holds no pipe
 // (HOSTING H2), writes no record and cannot capture an act: the native
 // confirmation is the host's (AAC §6.2 P-2). Views per DECISION_VIEW.md §4.
 import { useCallback, useEffect, useRef, useState, type Ref } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { appHome, CodexProcessControls, stopLabel } from "./CodexControls";
-import { ContinueAsPanel, ModelProviderFields, RoleChoice, RoleHeader, RoleHistoryReader, SupplyStatus, type ContinueStartOutcome, type HandoffSendOutcome } from "./ConversationRoles";
+import { ContinueAsPanel, ModelIdField, RoleChoice, RoleHeader, RoleHistoryReader, SupplyStatus, type ContinueStartOutcome, type HandoffSendOutcome } from "./ConversationRoles";
 import { EXACT_TEXT } from "./exactText";
 import { ArrivalRecord, CompatibilityAdvisory, HistoryReferenceNotice, RunBringBack, RunPanel, SelectedWorkflow, hasUnsavedHistoryReference, isRecordedRun, runBringBackDefault, type OpenArrivalFileAct } from "./RunPanel";
 import { chatWorkflow, workflowArguments, workflowContext } from "./workflowSelection";
@@ -19,27 +22,31 @@ import { NativeActivityView, activityModel, sameActivityGeneration, type NativeA
 import { ContinuationContext, historyPageBinding, StoredItemPage, StoredTurnPage } from "./NativeHistory";
 import { ObserverAttachment } from "./ObserverAttachment";
 import { PlanModeControl } from "./PlanMode";
-import { NativeRequestCard, WaitingRequestsIndicator, answerable, hostRequests, requestItem, requestThread, requestScopeKey, requestReplyGuarded, type RequestActivityLink, type RequestAnswer, type ReadRequestCustody, type RequestReplyObservation, type WaitingRequestGroup } from "./RequestCards";
-import { RunOffer, type RunAct } from "./RunOffers";
+import { NativeRequestCard, answerable, hostRequests, requestItem, requestPlace, requestThread, requestScopeKey, requestReplyGuarded, type RequestActivityLink, type RequestAnswer, type ReadRequestCustody, type RequestReplyObservation, type WaitingRequestGroup } from "./RequestCards";
+import { type RunAct } from "./RunOffers";
 import { RecoveryCustodyPanel } from "./RecoveryCustodyPanel";
-import { LastCleanTrialLine, WorkflowDraftsView } from "./WorkflowDrafts";
+import { CompareResult, initialDraftsState, LastCleanTrialLine, WorkflowDraftsView, type DraftsState } from "./WorkflowDrafts";
 import { LibraryEntries } from "./LibraryEntries";
 import { WorkflowRegistrationReview } from "./WorkflowRegistrationReview";
 import { BringBackComposer, CleanTrialPanel, DelegatedTrialComposer, composersFor, conversationKey, findConversation, hostMessage, prefillKept } from "./TrialComposer";
 import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./preparedMessages";
-import { ConversationContext, ProjectLibraryContext, conversationFromKey, workflowSourceLimit } from "./WorkflowContext";
+import { ConversationContext, ProjectLibraryContext, appProjectFolder, conversationFromKey, workflowSourceLimit } from "./WorkflowContext";
 import { DailyWorkspace, WorkspaceDisclosure, WorkspaceConnectionStatus, revealWorkspaceTarget, registerWorkspaceViews, WORKSPACE_VIEWS } from "./DailyWorkspace";
 import { flushSync } from "react-dom";
 import { DesktopSetupPanel } from "./DesktopSetupPanel";
+// Every host command goes through hostReads' invoke, which marks when a command that may change the host settles.
+import { invoke, invokeTimedRead, useOrderedHost, shownBeforePress, POLL_MS } from "./hostReads";
+import { readingAfterWrite, readingSentence } from "./readingSentences";
+import { REFRESH_FAILED, commandThenRefresh, observationLine, observationText, refreshAfterAction, withRefreshFailure } from "./statusRefresh";
 import { FirstUseSetup } from "./FirstUse";
-import { AccountStatus, type ReadAccountStatus } from "./AccountStatus";
+import { AccountStatus, accountReading, type ReadAccountStatus } from "./AccountStatus";
 import { RunWorkflowGuide, registeredRevisionAnchor, runEvidenceAnchor } from "./RunJourney";
 import { MakeWorkflowGuide } from "./MakeJourney";
 import { acknowledgeBringBackDoubt, beginBringBack, bringBackRefusal, doubtDestination, endBringBack, noteBringBackDoubt, resetBringBackDoubts, sendKey, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
 import { AccessRouteChoice, AvailableModels, OfferedEffortChoice, modelMatch, validModelPacket } from "./ModelChoice";
 /** One App-composed message for the person to edit and send; never sent by the App. */
 export type ComposerOffer = { sequence: number; threadKey: string; text: string };
-import { conversationTitle, DIGEST_LIMIT, digestComparison, nativePathText, readablePaths, reviewDigest, suppliedSummary, type ReviewDigestView, conversationLabel } from "./presentation";
+import { conversationTitle, DIGEST_LIMIT, digestComparison, nativePathText, readablePaths, reviewDigest, storedRelation, suppliedSummary, suppliedTitle, threadChoices, type ReviewDigestView, conversationLabel } from "./presentation";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
@@ -57,7 +64,7 @@ const startEntries = (host: Json) => host?.homeRouting?.activeModeHomeClass === 
   ? [{ value: LOCAL_ENTRY, label: "oMLX in the local home (key kept by Codex)" }]
   : host?.homeRouting?.activeModeHomeClass !== "account"
   ? []
-  : [{ value: "chatgpt-account", label: "ChatGPT account in configured account home" }, { value: "local-provider", label: "Configured local provider" }];
+  : [{ value: "chatgpt-account", label: "ChatGPT account" }];
 
 // The ordinary native command resolves only after private receipt admission
 // and finalization, then adds its actual H5 tuple (lib.rs start_conversation).
@@ -102,7 +109,7 @@ const ordinaryConversationRef = (generation: Json, thread: string | undefined) =
   ? JSON.stringify([generation.home, generation.appSession, generation.spawnCounter, thread]) : "";
 type PreparedComposerReveal = { sequence: number; item: PreparedMessage; isCurrent: () => boolean; finish: (shown: boolean) => void };
 
-export function ConversationPanel({ focusComposer, startAct, composerOffer, host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, observeOrdinaryView, steer, submitAttachments, observeAttachmentView, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink, preparedReveal }: { focusComposer?: number; startAct?: RunAct; composerOffer?: ComposerOffer | null; preparedReveal?: PreparedComposerReveal | null; activityNavigationRef?: Ref<NativeActivityHandle>; activityLink?: RequestActivityLink; forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; handoffSend?: (id: string, text: string) => Promise<HandoffSendOutcome>; handoffRead?: (id: string) => Promise<HandoffSendOutcome>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<Json>; observeAttachmentView?: (request: AttachmentRequest) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default", model?: string, effort?: string) => Promise<Json>; observeOrdinaryView?: (request: OrdinaryTextRequest, isCurrent: () => boolean) => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<boolean | void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<boolean | void> }) {
+export function ConversationPanel({ localRoute = null, focusComposer, startAct, composerOffer, host, threadKey, setThreadKey, answer, readRequest, replyObservations, runAct, trialRunAct, send, observeOrdinaryView, steer, submitAttachments, observeAttachmentView, interrupt, checkPlanMode, codexBusy, forkConversation, handoffSend, handoffRead, activityNavigationRef, activityLink, preparedReveal }: { localRoute?: LocalView | null; focusComposer?: number; startAct?: RunAct; composerOffer?: ComposerOffer | null; preparedReveal?: PreparedComposerReveal | null; activityNavigationRef?: Ref<NativeActivityHandle>; activityLink?: RequestActivityLink; forkConversation?: (generation: Json, sourceThread: string) => Promise<void>; handoffSend?: (id: string, text: string) => Promise<HandoffSendOutcome>; handoffRead?: (id: string) => Promise<HandoffSendOutcome>; codexBusy: boolean; host: Json; threadKey: string; setThreadKey: (key: string) => void; trialRunAct?: RunAct; answer: RequestAnswer; readRequest?: ReadRequestCustody; replyObservations?: Record<string, RequestReplyObservation>; runAct: RunAct; checkPlanMode: (generation: Json) => Promise<void>; submitAttachments: (generation: Json, thread: string, expected: string | null, text: string, owner: string, revision: number, refs: string[]) => Promise<Json>; observeAttachmentView?: (request: AttachmentRequest) => Promise<void>; send: (generation: Json, thread: string, text: string, mode?: "plan" | "default", model?: string, effort?: string) => Promise<Json>; observeOrdinaryView?: (request: OrdinaryTextRequest, isCurrent: () => boolean) => Promise<void>; steer: (generation: Json, thread: string, expected: string, text: string) => Promise<boolean | void>; interrupt: (generation: Json, thread: string, turn: string) => Promise<boolean | void> }) {
   const [turnId, setTurnId] = useState<string>("");
   const [offerBusy, setOfferBusy] = useState(false);
   const [text, setText] = useState<string>("");
@@ -189,7 +196,7 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
     }
     setOrdinaryOutcome(outcome);
     try { await observeOrdinaryView?.(request, isCurrent); }
-    catch (error) { setOrdinaryOutcome({ ...outcome, observationLimit: String(error) }); }
+    catch (error) { setOrdinaryOutcome({ ...outcome, observationLimit: observationText(error) }); }
     finally { turnActionPending.current = false; setBusy(""); }
   };
   const steerText = async () => {
@@ -226,7 +233,7 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
     } catch (nativeError) { outcome = { request, result: { acknowledged: false, nativeError } }; }
     setAttachmentOutcome(outcome);
     try { await observeAttachmentView?.(request); }
-    catch (e) { setAttachmentOutcome({ ...outcome, observationLimit: String(e) }); }
+    catch (e) { setAttachmentOutcome({ ...outcome, observationLimit: observationText(e) }); }
     finally { turnActionPending.current = false; setBusy(""); }
     return outcome.result.acknowledged ? outcome.result.nativeValue : undefined;
   };
@@ -304,7 +311,7 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
     composerField.current?.focus?.({ preventScroll: true });
   }, [focusComposer]);
   // A new unconfirmed send for the shown conversation takes the focus once, so
-  // keyboard and screen-reader users land on why Send is held.
+  // keyboard and screen-reader users land on why the App will not send.
   const announcedUnconfirmed = useRef(new Set<number>());
   useEffect(() => {
     if (!composerOffer || handledOffer.current === composerOffer.sequence || composerOffer.threadKey !== threadKey) return;
@@ -348,7 +355,7 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
     : busy ? "An operation is pending. New messages are paused until its result is received."
     : unconfirmed.some(row => !row.acknowledged && row.request.threadId === selected.threadId) ? "An earlier message to this conversation wasn't confirmed and may have been sent. Read the conversation, then confirm below before sending again. Your text is kept."
     : !text ? "Write a message to send to the selected conversation."
-    : `Ready to send text to ${conversationLabel(host, selected)}. Sending does not change its role or access entry.`;
+    : `Ready to send text to conversation ${idWords(selected.threadId)}. Sending does not change its role or how it connects.`;
   const interruptReadiness = !sourceReady ? "Interruption is unavailable because this Codex source is not ready."
     : !selected ? "Choose the conversation whose turn you want to interrupt."
     : ownBusy ? "Wait for the pending conversation operation before interrupting."
@@ -358,10 +365,8 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
     : "The selected live turn can be interrupted. This does not end a workflow run or prove that child work has stopped.";
   return <section id="conversation" aria-labelledby="conversation-heading">
     <h2 id="conversation-heading">Conversation</h2>
-    <label>Current-generation conversation <select disabled={!!ownBusy} value={threadKey} onChange={e => { setThreadKey(e.target.value); setTurnId(""); setError(""); }}>
-      <option value="">Select a conversation</option>
-      {currentThreads.map((thread: Json) => <option key={JSON.stringify([thread.generation, thread.threadId])} value={JSON.stringify([thread.generation, thread.threadId])}>{conversationLabel(host, thread)} via {thread.modelProvider ?? "provider not reported"}</option>)}
-    </select></label>
+    <ConversationChoices legend="Current-generation conversation" group="current-conversation" disabled={!!ownBusy} chosen={threadKey} none="No conversation chosen"
+      value={threadChoices(currentThreads, (thread: Json) => JSON.stringify([thread.generation, thread.threadId]))} onChoose={key => { setThreadKey(key); setTurnId(""); setError(""); }} />
     {selected && <details className="conversation-identity"><summary>Exact conversation ID</summary><code>{selected.threadId}</code></details>}
     {selected && <details className="conversation-options"><summary>Role and continuation options</summary><RoleHeader key={`role-header:${JSON.stringify([selected.generation, selected.threadId])}`} thread={selected} limits={host?.roleLimits} busy={!!busy || forkBusy} ready={host?.state === "ready"} trialConversation={trialConversation} trialsStartedHere={trialsStartedHere}
       readSupplyHistory={() => invoke("role_supply_history", { generation: selected.generation, thread: selected.threadId })}
@@ -370,7 +375,7 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
       fork={() => { void forkSelected(); }} /></details>}
     {selected && <ContinuationContext key={`prior-work:${JSON.stringify([selected.generation, selected.threadId, selected.resumeRequestRef])}`} host={host} thread={selected} />}
     {threadKey && !selected && <p>Selected conversation is no longer available in this generation; choose a current conversation.</p>}
-    {handoffs.map((handoff: Json) => <ContinueAsPanel key={handoff.id} handoff={handoff} entries={startEntries(host)} homeClass={host?.homeRouting?.activeModeHomeClass ?? null} generation={host?.generation ?? null} busy={!!busy} ready={host?.state === "ready"}
+    {handoffs.map((handoff: Json) => <ContinueAsPanel key={handoff.id} handoff={handoff} entries={startEntries(host)} homeClass={host?.homeRouting?.activeModeHomeClass ?? null} generation={host?.generation ?? null} busy={!!busy} ready={host?.state === "ready"} local={localRoute}
       start={(choice, source) => startContinueAs({ ...choice, modeHomeClass: source.modeHomeClass, generation: source.generation, role: handoff.targetRole ?? null, preselected: false, continueAs: handoff.id })}
       send={draft => handoffSend ? handoffSend(handoff.id, draft) : Promise.resolve({ state: "unknown", reason: "The original handoff sender is unavailable." })}
       read={handoffRead ? () => handoffRead(handoff.id) : undefined}
@@ -387,8 +392,8 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
       return <div key={`doubt:${id}`} role={row.acknowledged ? "note" : "alert"} tabIndex={-1} ref={node => { if (node && where === "same" && !announcedDoubt.current.has(id)) { announcedDoubt.current.add(id); node.focus?.({ preventScroll: false }); } }} aria-label="Bring-back send not confirmed">
         <p><strong>{what} results may have been sent to {destination}.</strong> The App couldn't confirm the send. {(host?.workflowRoot?.pendingBringBacks ?? []).some((pending: Json) => pending?.id === row.preparedId)
           ? "Its prepared message is still listed, but that copy is not sent again; after reading the conversation you can remove it."
-          : "The prepared message was withdrawn, so nothing is resent."} Read that conversation to see whether it arrived.{row.acknowledged ? " You've said you checked; bringing it back there again is allowed." : " Bringing it back there again is held until you've checked."}</p>
-        {where === "same-id-other-source" && <p><small>Codex or the home has changed since that send. The conversation shown now has the same ID, so bringing these results back to it is held too; that doesn't make the earlier destination this one.</small></p>}
+          : "The prepared message was withdrawn, so nothing is resent."} Read that conversation to see whether it arrived.{row.acknowledged ? " You've said you checked; bringing it back there again is allowed." : " The App won't bring it back there again until you've said you checked."}</p>
+        {where === "same-id-other-source" && <p><small>Codex or the home has changed since that send. The conversation shown now has the same ID, so the App won't bring these results back to it either until then; that doesn't make the earlier destination this one.</small></p>}
         {!row.acknowledged && <p><button onClick={() => acknowledgeBringBackDoubt(row)}>I've checked this conversation — allow bringing it back again</button> <small>Starts nothing; this record stays.</small></p>}
         <details><summary>Your message and what was reported</summary><p><small>Your message: {row.personText || "(empty)"}</small></p><p><small>Reported: {row.message}</small></p>
           <p><small>Original destination: conversation <code>{String(row.target?.threadId ?? "")}</code> in Codex session {String(row.target?.generation?.spawnCounter ?? "not reported")} of the {String(row.source?.modeHomeClass ?? "unreported")} home.</small></p></details>
@@ -399,18 +404,18 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
         <details><summary>Exact scope</summary><p><small>Trial reference <code>{item.pending?.reference ?? "not reported"}</code>. Its composer belongs to no existing conversation; Send starts the new conversation with the connection and model you choose.</small></p></details></div>
         : <ConversationContext label="Original composer owner" host={host} reference={item.owner} workflow limit={preparedMessageLimit(host, item)} />}
       {item.kind === "clean" ? <CleanTrialPanel pending={item.pending} roleSet={host?.roleSet} limits={host?.roleLimits} entries={startEntries(host)}
-        modeHomeClass={host?.homeRouting?.activeModeHomeClass} generation={host?.generation ?? null} busy={!!busy} ready={host?.state === "ready" && host?.generationClosed !== true} act={trialAct} />
+        modeHomeClass={host?.homeRouting?.activeModeHomeClass} generation={host?.generation ?? null} busy={!!busy} ready={host?.state === "ready" && host?.generationClosed !== true} act={trialAct} local={localRoute} />
         : item.kind === "delegated" ? <DelegatedTrialComposer pending={item.pending} conversations={currentThreads} busy={!!busy} ready={host?.state === "ready" && host?.generationClosed !== true} act={trialAct} />
         : <BringBackComposer pending={item.pending} conversations={currentThreads} busy={!!busy} ready={host?.state === "ready" && host?.generationClosed !== true} act={trialAct} />}
     </div>)}
     <NativeActivityView navigationRef={activityNavigationRef} key={`activity:${JSON.stringify([selected?.generation, selected?.threadId])}`} view={host?.nativeView} threadId={selected?.threadId} runs={runs} offers={offers}
       trialTurns={workflowRoot?.trialTurns} trialChildren={workflowRoot?.trialChildren} delegation={selected?.delegation}
       stopLabelFor={(thread, turn) => stopLabel(host?.codexStops, thread, turn, host?.stopRequests, appHome(host?.homeRouting?.activeModeHomeClass))}
-      renderOffer={offer => <RunOffer offer={offer} generation={host?.generation} ready={host?.state === "ready"} busy={offerBusy} act={offerAct} />} />
+      offerControls={{ generation: host?.generation, ready: host?.state === "ready", busy: offerBusy, act: offerAct }} />
     {selected && <div id="conversation-requests" aria-label="Requests from Codex in this conversation">
-      <h3>Requests from Codex in this conversation ({requests.filter(answerable).length} waiting)</h3>
+      <h3>Requests from Codex in this conversation ({numberWords(requests.filter(answerable).length)} waiting)</h3>
       {ordered.length === 0 && <p>No requests from Codex in this conversation.</p>}
-      {ordered.map((request: Json) => <NativeRequestCard activityLink={activityLink} key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answer} readRequest={readRequest} observation={replyObservations?.[requestScopeKey(request)]} />)}
+      {ordered.map((request: Json) => <NativeRequestCard activityLink={activityLink} key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answer} readRequest={readRequest} place={requestPlace(request, host, appProjectFolder(host))} observation={replyObservations?.[requestScopeKey(request)]} />)}
     </div>}
     <p id="ordinary-send-readiness" role="status" aria-live="polite">{sendReadiness}</p>
     {!sourceReady && <p><a href="#workspace-connection">Open connection controls</a></p>}
@@ -424,10 +429,10 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
       const loaded = currentThreads.find((t: Json) => t.threadId === row.request.threadId && JSON.stringify(t.generation) === JSON.stringify(row.request.generation));
       const destination = sameSource ? "this conversation" : loaded ? conversationLabel(host, loaded) : `conversation ${row.request.threadId} in a Codex session that isn't loaded now`;
       return <div key={row.id} role={row.acknowledged ? "note" : "alert"} tabIndex={-1} ref={node => { if (node && shownHere && !announcedUnconfirmed.current.has(row.id)) { announcedUnconfirmed.current.add(row.id); node.focus?.({ preventScroll: false }); } }}>
-        <p><strong>Your message to {destination} may have been sent.</strong> The App couldn't confirm it, so it isn't resent and its text was not cleared.{row.acknowledged ? " You've said you read that conversation; sending there again is allowed." : " Sending to that conversation again is held until you've read it."}</p>
-        {shownHere && !sameSource && <p><small>Codex or the home has changed since that send. The conversation shown now has the same ID, so sending to it is held too; that doesn't make the earlier destination this one.</small></p>}
+        <p><strong>Your message to {destination} may have been sent.</strong> The App couldn't confirm it, so it isn't resent and its text was not cleared.{row.acknowledged ? " You've said you read that conversation; sending there again is allowed." : " The App won't send to that conversation again until you've said you read it."}</p>
+        {shownHere && !sameSource && <p><small>Codex or the home has changed since that send. The conversation shown now has the same ID, so the App won't send to it either until then; that doesn't make the earlier destination this one.</small></p>}
         {!row.acknowledged && <p><button onClick={() => setUnconfirmed(rows => rows.map(r => r.id === row.id ? { ...r, acknowledged: true } : r))}>I've read that conversation — allow sending again</button> <small>Sends nothing; this record stays.</small></p>}
-        <details><summary>The message and what was reported</summary><pre style={{ whiteSpace: "pre-wrap" }}>{row.request.text}</pre>
+        <details><summary>The message and what was reported</summary><AgentText block value={row.request.text} source="record" />
           <p><small>Mode {row.request.mode ?? "not overridden"} · model {row.request.model ?? "not chosen"} · conversation <code>{row.request.threadId}</code> in Codex session {String(row.request.generation?.spawnCounter ?? "")} of home {String(row.request.generation?.home ?? "")}.</small></p>
           <p><small>Reported: {row.reported}</small></p></details>
       </div>;
@@ -435,7 +440,7 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
     {text && selected && textWrittenFor.current && textWrittenFor.current !== threadKey && <p role="note" aria-label="Where your text goes">Your unsent text was written while another conversation was shown. It is kept; if you send it now it goes to {conversationLabel(host, selected)}.</p>}
     <p><label>Text <textarea id="ordinary-composer-text" ref={composerField} aria-describedby="ordinary-send-readiness" disabled={!!busy} value={text} onChange={e => { textRevision.current += 1; textWrittenFor.current = threadKey; setText(e.target.value); }} rows={4} style={{ display: "block", width: "100%" }} /></label></p>
     <button className="setup-primary" aria-describedby="ordinary-send-readiness" disabled={!sourceReady || !selected || !text || !!busy || unconfirmed.some(row => !row.acknowledged && row.request.threadId === selected?.threadId)} onClick={() => { void sendText(); }}>{(host?.attachmentSelections?.selections ?? []).length > 0 ? "Send text only" : "Send text"}</button>
-    <details className="conversation-model-options"><summary>Model and effort{ordinaryModel.owner === ordinaryOwner && ordinaryModel.effort ? ` · next send: ${ordinaryModel.effort}` : ""}</summary>
+    <details className="conversation-model-options"><summary>Model and effort{ordinaryModel.owner === ordinaryOwner && ordinaryModel.effort ? ` · next send: ${idWords(ordinaryModel.effort)}` : ""}</summary>
     <p><label>Optional model identifier for next ordinary text turn <input {...EXACT_TEXT} disabled={!selected || !!busy} value={ordinaryModelValue}
       onChange={e => setOrdinaryModel(current => ({ owner: ordinaryOwner, value: e.target.value, effort: "", effortModel: "", revision: current.revision + 1 }))} aria-describedby="ordinary-model-help" /></label></p>
     <p id="ordinary-model-help">Applies to Send text and the plan/default text controls below. Empty keeps the existing native model choice. An explicit identifier overrides the model for this turn and subsequent native turns; clearing this field does not revert it. Attachment, steering and prepared-message sends do not use this field.</p>
@@ -448,13 +453,13 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
       ready={sourceReady} busy={!!busy} hasText={!!text && !unconfirmed.some(row => !row.acknowledged && row.request.threadId === selected.threadId)}
       check={() => { setError(""); checkPlanMode(selected.generation).catch(e => setError(String(e))); }} send={mode => { void sendText(mode); }} />}
     {(host?.attachmentSelections?.selections ?? []).length > 0 && <p>This plain-text action excludes the selected attachments. Use the explicit ordered-attachment action to include the entire private selection.</p>}
-    <p>Text is sent unchanged to the selected native conversation. Its role, access entry, provider and home remain the conversation's existing settings; a model choice opens no new run.</p>
+    <p>Text is sent unchanged to the selected native conversation. Its role, how it connects, its provider and its home remain the conversation's existing settings; a model choice opens no new run.</p>
     {ordinaryOutcome && <div aria-label="Ordinary text submission outcome">
       <details><summary>Original message destination and choices</summary><p>Original ordinary text turn · conversation {ordinaryOutcome.request.threadId} · Home {ordinaryOutcome.request.generation.home} · App session {ordinaryOutcome.request.generation.appSession} · spawn {ordinaryOutcome.request.generation.spawnCounter} · {ordinaryOutcome.request.mode ?? "no mode override"} · requested model {ordinaryOutcome.request.model ?? "no override"} · requested effort {ordinaryOutcome.request.effort ?? "no override"}.</p></details>
       {ordinaryOutcome.result.acknowledged
         ? <p role="status">Native turn/start response received. Model adoption, execution and completion remain unestablished; reported model facts are separate.</p>
         : <p role="alert">{String(ordinaryOutcome.result.nativeError)} Text and model choice retained unless superseded by a newer edit or conversation. No automatic retry or substitution.</p>}
-      {ordinaryOutcome.observationLimit && <p role="alert">Ordinary text view refresh unavailable for this original request: {ordinaryOutcome.observationLimit}. The command outcome above is unchanged; no automatic resend.</p>}
+      {ordinaryOutcome.observationLimit && <p role="alert">{observationLine(ordinaryOutcome.observationLimit, "Ordinary text view refresh unavailable for this original request: ")} The command outcome above is unchanged; no automatic resend.</p>}
     </div>}
     {(host?.attachmentSelections?.selections ?? []).length > 0 && <div>
       <button disabled={!sourceReady || !selected || !!busy || host?.attachmentCustody?.state !== "opened"} onClick={() => attachmentText(null)}>Send text and ordered attachments</button>{" "}
@@ -467,7 +472,7 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
       {attachmentOutcome.result.acknowledged
         ? <p role="status">Matching attachment native acknowledgment observed; provider uptake and completion remain unestablished.</p>
         : <p role="alert">{String(attachmentOutcome.result.nativeError)} No automatic retry.</p>}
-      {attachmentOutcome.observationLimit && <p role="alert">Attachment view refresh unavailable for this original request: {attachmentOutcome.observationLimit}. The command outcome above is unchanged; no automatic resend.</p>}
+      {attachmentOutcome.observationLimit && <p role="alert">{observationLine(attachmentOutcome.observationLimit, "Attachment view refresh unavailable for this original request: ")} The command outcome above is unchanged; no automatic resend.</p>}
       <details><summary>Original attachment request identity</summary>
         <p>App session: {attachmentOutcome.request.generation?.appSession} · spawn: {attachmentOutcome.request.generation?.spawnCounter} · selection owner: {attachmentOutcome.request.ownerRef} · list revision: {attachmentOutcome.request.listRevision}.</p>
         <ol>{attachmentOutcome.request.selectionRefs.map((ref, index) => <li key={`${index}:${ref}`}>{ref}</li>)}</ol>
@@ -476,7 +481,7 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
     <SteeringControl target={steeringTarget} reason={steering?.reason} ready={sourceReady && !!selected} busy={!!busy} text={text} submit={() => { void steerText(); }} />
     <section aria-label="Turn interruption"><h3>Interrupt a live turn</h3>
     <p id="conversation-interrupt-readiness" role="status" aria-live="polite">{interruptReadiness}</p>
-    <label>Observed live turn <select disabled={!!ownBusy} value={turnId} onChange={e => setTurnId(e.target.value)}><option value="">Select a live turn</option>{liveTurns.map((turn: Json) => <option key={turn.turnId} value={turn.turnId}>{turn.turnId} · {turn.nativeTurn.status}</option>)}</select></label>{" "}
+    <label>Observed live turn <select disabled={!!ownBusy} value={turnId} onChange={e => setTurnId(e.target.value)}><option value="">Select a live turn</option>{liveTurns.map((turn: Json) => <option key={turn.turnId} value={turn.turnId}>{idWords(turn.turnId)} · {idWords(turn.nativeTurn.status)}</option>)}</select></label>{" "}
     <button aria-describedby="conversation-interrupt-readiness" disabled={!sourceReady || !live || !!ownBusy || alreadyRequested} onClick={interruptTurn}>Interrupt selected live turn</button>
     <p>An interrupt acknowledgment does not establish turn end or rollback. Turn status comes from native observations.</p>
     {(host?.conversationTurns ?? []).filter((turn: Json) => turn.terminalEventObserved && turn.nativeTurn?.status === "inProgress").map((turn: Json) => <p key={JSON.stringify([turn.generation, turn.threadId, turn.turnId])}>Native turn inconsistency: {turn.threadId}/{turn.turnId} has a terminal event observation and contradictory progress status; interruption is unavailable.</p>)}
@@ -486,7 +491,7 @@ export function ConversationPanel({ focusComposer, startAct, composerOffer, host
     {!ownBusy && codexBusy && <p>Stop or Restart Codex is in progress: sending text, steering and attachments is paused; interrupting a live turn stays available.</p>}
     {error && <p role="alert">{error} No automatic retry.</p>}
     <p>Text-turn protocol requests: {host?.modelTurnEvidence?.protocolRequests?.length ?? 0}. {host?.modelTurnEvidence?.standing ?? "Provider/model execution is not established by this view."}</p>
-    <details><summary>Observed native turns, steering and interrupt request state</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify({ turns: host?.conversationTurns, steeringTargets: host?.steeringTargets, steeringRequests: (host?.clientRequests ?? []).filter((request: Json) => request.method === "turn/steer"), interrupts: host?.turnInterruptRequests, protocolEvidence: host?.modelTurnEvidence }, null, 2)}</pre></details>
+    <details><summary>Observed native turns, steering and interrupt request state</summary><RecordedData value={{ turns: host?.conversationTurns, steeringTargets: host?.steeringTargets, steeringRequests: (host?.clientRequests ?? []).filter((request: Json) => request.method === "turn/steer"), interrupts: host?.turnInterruptRequests, protocolEvidence: host?.modelTurnEvidence }} /></details>
   </section>;
 }
 
@@ -657,10 +662,7 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureCo
     }
     catch (e) { setError(String(e)); }
     finally {
-      try {
-        if (navigation) await navigation.observe();
-        else await refresh();
-      } catch (e) { setError(String(e)); }
+      await refreshAfterAction(async () => { if (navigation) await navigation.observe(); else await refresh(); }, () => setError(withRefreshFailure));
       if (navigation) {
         setPendingContinue(ticket);
         setContinueNotice(ticket ? "Continue admission confirmed; waiting for its matched current conversation view. No automatic retry."
@@ -679,11 +681,12 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureCo
     setBusy(true); setError(""); setProgress("Selecting the stored conversation for inspection…");
     try { await invoke("history_select", { generation, selectionEpoch: epoch, threadId }); }
     catch (e) { setError(String(e)); }
-    finally { try { await refresh(); } catch (e) { setError(String(e)); } busyRef.current = false; setBusy(false); setProgress(""); }
+    // The selection's own error stands; a failed refresh adds the fixed line once and nothing raw.
+    finally { await refreshAfterAction(refresh, () => setError(withRefreshFailure)); busyRef.current = false; setBusy(false); setProgress(""); }
   };
   const pageButtons = (action: string, page: Json, reference: string | null = null, pageDirection = direction) => <span className="history-pagination">
-    {typeof page?.nextCursor === "string" && <button aria-label={`Next ${action === "list" ? "conversations" : action} page`} disabled={!available || busy} onClick={() => run(action, page.nextCursor, reference, pageDirection)}>Next page</button>}
-    {typeof page?.backwardsCursor === "string" && <button aria-label={`Previous ${action === "list" ? "conversations" : action} page`} disabled={!available || busy} onClick={() => run(action, page.backwardsCursor, reference, pageDirection === "desc" ? "asc" : "desc")}>Previous page</button>}
+    {typeof page?.nextCursor === "string" && <button aria-label={`Next ${action === "list" ? "conversations" : action === "turns" ? "turns" : action === "items" ? "items" : "history"} page`} disabled={!available || busy} onClick={() => run(action, page.nextCursor, reference, pageDirection)}>Next page</button>}
+    {typeof page?.backwardsCursor === "string" && <button aria-label={`Previous ${action === "list" ? "conversations" : action === "turns" ? "turns" : action === "items" ? "items" : "history"} page`} disabled={!available || busy} onClick={() => run(action, page.backwardsCursor, reference, pageDirection === "desc" ? "asc" : "desc")}>Previous page</button>}
     <small> Cursor: {page === null || page === undefined ? "not read" : page.nextCursor === null ? "exhausted" : page.nextCursor === undefined ? "not reported" : "available"}</small>
   </span>;
   return <section aria-label="Stored conversations" aria-busy={busy}>
@@ -702,12 +705,15 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureCo
     <p id="history-search-count" className="history-hint" role="status">{matches.length} matching of {received.length} received conversations. Search checks received names, previews and IDs only; it does not fetch other pages.</p>
     {received.length === 0 && <p>{history?.listPage ? "No conversation rows are available from the received list. Other pages or homes may contain more." : "No conversations have been received here yet. Select Read stored conversations to request a page."}</p>}
     {query && matches.length === 0 && received.length > 0 && <p>No received conversation matches. Clear the search or explicitly read another page.</p>}
-    <p><label>Stored conversation <select aria-describedby="history-guidance history-search-count" value={selected?.threadId ?? ""} disabled={!available || busy} onChange={e => select(e.target.value)}><option value="">Select a received conversation</option>{matches.map((row: Json) => <option key={row.native.id} value={row.native.id}>{conversationTitle(row.native, "Untitled conversation")} · {row.native.status?.type ?? "status not reported"}</option>)}{outsideFilter && <option value={selected.threadId}>{conversationTitle(retainedSelection?.native ?? selectedDescription, "Selected conversation")} · selected{retainedSelection ? " — outside this search" : " — not in the received list"}</option>}</select></label></p>
+    <ConversationChoices legend="Stored conversation" group="stored-conversation" describedBy="history-guidance history-search-count" chosen={selected?.threadId ?? ""} disabled={!available || busy} onChoose={key => { void select(key); }}
+      value={[...matches.map((row: Json) => ({ key: row.native.id, id: row.native.id, title: suppliedTitle(row.native), model: row.native.model ?? null, provider: row.native.modelProvider ?? null, status: row.native.status?.type ?? null, relation: storedRelation(row.native) })),
+        ...(outsideFilter ? [{ key: selected.threadId, id: selected.threadId, title: suppliedTitle(retainedSelection?.native ?? selectedDescription), model: (retainedSelection?.native ?? selectedDescription)?.model ?? null, provider: (retainedSelection?.native ?? selectedDescription)?.modelProvider ?? null, relation: storedRelation(retainedSelection?.native ?? selectedDescription), retained: retainedSelection ? "outside-search" as const : "not-received" as const }] : [])]} />
     {outsideFilter && <p>The selected conversation stays selected. Filtering does not change which conversation you inspect or continue.</p>}
     {history?.listError && <p role="alert">The conversation list could not be refreshed. Received rows are retained observations, not a successful refresh. See History dispatch and pending/error evidence below for the source error.</p>}
     </div>
     {selected && <>
-      <h3>Inspect selected conversation: {conversationTitle(selectedDescription, "Untitled conversation")}</h3>
+      <h3>Inspect selected conversation</h3>
+      {conversationTitle(selectedDescription, "") ? <p>Title: <AgentText value={conversationTitle(selectedDescription, "")} source="codex" name="The conversation's title or first message as Codex reported it, not the App's words" /></p> : <p>Untitled conversation</p>}
       <details><summary>Conversation source and role details</summary>
       <p>Conversation ID: <code>{selected.threadId}</code>.</p>
       <p>History state: {selected.state}. App role in force: {JSON.stringify(selected.appRole)}. Native agentRole: {JSON.stringify(selected.metadata?.thread?.agentRole === undefined ? { state: "not reported" } : selected.metadata.thread.agentRole)}.</p></details>
@@ -726,31 +732,36 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureCo
       <StoredItemPage binding={itemPage} />
       <h3>Native child references</h3>
       {(selected.knownChildren ?? []).map((child: Json) => <p key={child.threadId}>{child.threadId} · source {child.sourceItemId} <button disabled={!available || busy} onClick={() => run("child", null, child.threadId)}>Read child metadata</button></p>)}
-      <details><summary>Metadata, child reads, standalone receiver references and stream errors</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify({ metadata: selected.metadata, childReads: selected.childReads, receiverReferences: selected.receiverReferences, errors: selected.errorsByStream, errorHistory: selected.errorHistory, resolutions: selected.streamResolutions, resumeEligibilityCurrent: selected.resumeEligibilityCurrent }, null, 2)}</pre></details>
-      {selected.originalRoleSupply && <details><summary>Original App role supply evidence (memory only; adoption unknown)</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(selected.originalRoleSupply, null, 2)}</pre></details>}
+      <details><summary>Metadata, child reads, standalone receiver references and stream errors</summary><RecordedData value={{ metadata: selected.metadata, childReads: selected.childReads, receiverReferences: selected.receiverReferences, errors: selected.errorsByStream, errorHistory: selected.errorHistory, resolutions: selected.streamResolutions, resumeEligibilityCurrent: selected.resumeEligibilityCurrent }} /></details>
+      {selected.originalRoleSupply && <details><summary>Original App role supply evidence (memory only; adoption unknown)</summary><RecordedData value={selected.originalRoleSupply} /></details>}
     </>}
     {busy && <p role="status">{progress} No automatic retry.</p>}
     {continueNotice && <p role="status">{continueNotice}</p>}
     {error && <p role="alert">{error}</p>}
     {(history?.receivingLimits ?? history?.limits ?? []).map((limit: string, index: number) => <p key={index}>{limit}</p>)}
-    <details><summary>History dispatch and pending/error evidence</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify({ generation, selectionEpoch: epoch, listError: history?.listError, pending: history?.pending, dispatches: history?.dispatches, originalStartReceipts: history?.startReceipts }, null, 2)}</pre></details>
+    <details><summary>History dispatch and pending/error evidence</summary><RecordedData value={{ generation, selectionEpoch: epoch, listError: history?.listError, pending: history?.pending, dispatches: history?.dispatches, originalStartReceipts: history?.startReceipts }} /></details>
   </section>;
 }
 
+/** The three documents of a supplied external observation, and the host's assessment of each (external_observation.rs). */
+const EVIDENCE_TITLES = { catalog: "Supplied catalog", read: "Supplied read", counterpart: "Optional supplied counterpart" } as const;
+const EVIDENCE_ASSESSMENT = { unavailable: "unavailable", not_assessed: "not_assessed", malformed: "malformed", invalid: "invalid", received: "received", prerequisite_unavailable: "prerequisite_unavailable" } as const;
 function ExternalObservationPanel({ data, select }: { data: Json; select: () => Promise<void> }) {
   const observation = data?.observation;
-  const evidence = (key: string, title: string) => {
+  const evidence = (key: keyof typeof EVIDENCE_TITLES) => {
+    const title = wordOf(EVIDENCE_TITLES, key);
     const document = observation?.[key];
     if (!document) return <p key={key}>{title}: not supplied; no comparison established.</p>;
     return <article key={key} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
-      <h3>{title} · {document.assessment}</h3>
+      <h3>{`${wordOf(EVIDENCE_TITLES, key)} · ${wordOf(EVIDENCE_ASSESSMENT, document.assessment) ?? "assessment shown below"}`}</h3>
+      {wordOf(EVIDENCE_ASSESSMENT, document.assessment) === null && <p>Recorded assessment: <AgentText value={document.assessment} source="record" name="An assessment the App does not recognise, as the host recorded it; the App does not vouch for its words" /></p>}
       <p>Selected file: {document.displayPath}</p>
       {document.pathDisplayLimit && <p>Path display limit: {document.pathDisplayLimit}</p>}
-      <details><summary>Exact selected native path identity</summary><pre>{JSON.stringify(document.selectedPath, null, 2)}</pre></details>
+      <details><summary>Exact selected native path identity</summary><RecordedData value={document.selectedPath} /></details>
       {document.reason && <p>Receiving limit: {document.reason}</p>}
       <h4>Complete supplied JSON: tables, basis, diagnostics and standing retained</h4>
-      {document.originalDocument !== null ? <pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(document.originalDocument, null, 2)}</pre> : <p>No parsed JSON available; see the receiving assessment.</p>}
-      <details><summary>Original bytes retained in App memory ({document.originalBytes?.length ?? "unavailable"})</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(document.originalBytes)}</pre></details>
+      {document.originalDocument !== null ? <RecordedData value={document.originalDocument} /> : <p>No parsed JSON available; see the receiving assessment.</p>}
+      <details><summary>Original bytes retained in App memory ({numberWords(document.originalBytes?.length) ?? "unavailable"})</summary><AgentText block value={JSON.stringify(document.originalBytes)} source="record" /></details>
     </article>;
   };
   return <section>
@@ -766,10 +777,10 @@ function ExternalObservationPanel({ data, select }: { data: Json; select: () => 
       {observation.comparison === "host_table_not_supplied" && <p>No counterpart supplied; comparison not established.</p>}
       <p>Dispatch: {observation.dispatch}</p>
       <p>Evidence limits: {JSON.stringify(observation.evidenceLimits)}</p>
-      {evidence("catalog", "Supplied catalog")}
-      {evidence("read", "Supplied read")}
-      {evidence("counterpart", "Optional supplied counterpart")}
-      <details><summary>Complete reported receiving snapshot</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(observation, null, 2)}</pre></details>
+      {evidence("catalog")}
+      {evidence("read")}
+      {evidence("counterpart")}
+      <details><summary>Complete reported receiving snapshot</summary><RecordedData value={observation} /></details>
     </>}
   </section>;
 }
@@ -778,6 +789,15 @@ function ExternalObservationPanel({ data, select }: { data: Json; select: () => 
 // (a logout assessment, an A16 alternative, a request answer, an attachment
 // comparison or an A15 review), the host publishes that content here so the
 // person can read it whole. Read-only; it is withdrawn when the alert closes.
+/** The kinds of content an open native confirmation names (act_control.rs whole_or_in_app and its callers, act_control_a15.rs). */
+const CONFIRMATION_KIND = {
+  "logout assessment": "logout assessment", "live work at Stop Codex": "live work at Stop Codex", "live work at quit": "live work at quit",
+  "attachment source comparison": "attachment source comparison", "request answer": "request answer", "A16 chosen alternative": "A16 chosen alternative",
+  "A15 complete review": "A15 complete review", "provider Add effects": "provider Add effects", "provider endpoint effects": "provider endpoint effects",
+  "prepared capture-seal installation": "prepared capture-seal installation", "records administration": "records administration",
+  "original package import": "original package import", "records package": "records package", "local model settings effects": "local model settings effects",
+  "desktop setup effects": "desktop setup effects",
+} as const;
 function NativeConfirmationContent() {
   const [shown, setShown] = useState<Json[]>([]);
   const [checks, setChecks] = useState<Record<string, string>>({});
@@ -801,11 +821,11 @@ function NativeConfirmationContent() {
   return <section role="region" aria-label="Content named by an open native confirmation" style={{ border: "2px solid #a60", padding: 8 }}>
     <h2>Content named by an open native confirmation</h2>
     {shown.map((row: Json) => <article key={row.digest}>
-      <h3>{row.kind}</h3>
+      <h3>{wordOf(CONFIRMATION_KIND, row.kind) ?? "Content named by the confirmation"}</h3>{wordOf(CONFIRMATION_KIND, row.kind) === null && <p>Recorded kind: <AgentText value={row.kind} source="record" name="A kind of content the App does not recognise, as the host recorded it; the App does not vouch for its words" /></p>}
       <p>sha-256 digest, as named in the native confirmation: <code style={{ userSelect: "all", overflowWrap: "anywhere" }}>{row.digest}</code>. {checks[row.digest] ?? ""} {DIGEST_LIMIT}</p>
       {row.kind === "A15 complete review" && Array.isArray(row.content?.entries) && row.content.entries.every((entry: Json) => entry !== null && typeof entry === "object" && !Array.isArray(entry))
         ? <WorkflowRegistrationReview presentation={row.content} />
-        : <pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(readablePaths(row.content), null, 2)}</pre>}
+        : <RecordedData value={readablePaths(row.content)} />}
     </article>)}
   </section>;
 }
@@ -818,6 +838,8 @@ function NativeConfirmationContent() {
 const PREFILL_RESULTS = new Set(["workflow_trial_prepare", "workflow_trial_again", "workflow_trial_bring_back", "workflow_run_bring_back"]);
 export function workflowActionMessage(command: string, result: Json): string {
   if (PREFILL_RESULTS.has(command)) return "";
+  if (Array.isArray(result?.recordAdmissionRefusals)&&result.recordAdmissionRefusals.length) return result.recordAdmissionRefusals.join("\n");
+  if (result?.retryAvailable===false&&typeof result.limit==="string") return result.limit;
   return JSON.stringify(result);
 }
 
@@ -858,16 +880,31 @@ export function WorkflowAssuranceSetting({ setting, act }: { setting: Json; act:
  * Every row keeps Refine. */
 export function RegisteredRevisions({ library, rows, busy, act, chatAvailable = true }:{ library: string; rows: Json[]; busy: boolean; chatAvailable?: boolean; act: (command:string,args:Record<string,unknown>)=>unknown }) {
   return <ul aria-label="Registered revisions in the active library">{rows.map((row:Json)=><li key={`${row.name}@${row.revision}`} id={registeredRevisionAnchor(library,row.name,row.revision)}>{row.name} · revision {row.sequence} · {row.label}
-    {row.selectable===true&&<> <button disabled={busy||!chatAvailable} onClick={()=>act("workflow_select_listed",{libraryRef:library,name:row.name,revision:row.revision})}>Select revision {row.sequence}</button></>}
+    {row.selectable===true&&<> <button disabled={busy||!chatAvailable} onClick={()=>act("workflow_select_listed",{libraryRef:library,name:row.name,revision:row.revision})}>Select revision {idWords(row.sequence)}</button></>}
     {" "}<button disabled={busy} onClick={()=>act("workflow_refine_registered",{name:row.name,revision:row.revision})}>Refine from the revision store…</button>
     {row.reconfirm===true&&<small> To use it again in this App session: Refine makes a draft with its bytes; review that draft and confirm in the App's dialog (re-confirmation).</small>}</li>)}</ul>;
 }
 
+/** What "bound in current generation" says, by what the binding rests on, and
+ * only that. None says the project now at the path is the one bound: every
+ * read an agent makes goes through the records capability's answer, which
+ * checks that again. */
+export const BOUND_MEANING:Record<string,string>={
+  "receipt":" (a receipt held for this conversation; whether the project at its path is still the one it names is checked again on every read)",
+  "offer":" (offered to this conversation when it started in this generation, with no receipt held; whether the project at its path is still the one offered is checked again on every read)",
+  "fork of an offered conversation":" (admitted to this conversation as a fork of one offered it in this generation, with no receipt held; whether the project at its path is still the one offered is checked again on every read)",
+};
+/** The meaning of a bound row, or none where its basis is not stated. */
+export const boundMeaning=(binding:Json)=>binding?.state==="bound in current generation"?(BOUND_MEANING[binding?.basis]??""):"";
 export function RecordsCapabilityBindings({ host }:{ host: Json }) {
   const rows=(host?.threads??[]).filter((row:Json)=>JSON.stringify(row.generation)===JSON.stringify(host?.generation)&&row.recordsCapabilityBinding);
-  if (!rows.length) return null;
+  // Why the last read could not be recorded (LIM-014 among them): shown whole,
+  // since agents read nothing until it is resolved.
+  const readLogLimit=host?.recordsCapability?.readLogLimit;
+  if (!rows.length && !readLogLimit) return null;
   return <section aria-label="Conversation records capability"><h3>Conversation records capability</h3>
-    {rows.map((row:Json)=><p key={row.threadId}>{row.threadId}: {row.recordsCapabilityBinding.state}. {row.recordsCapabilityBinding.persistence??""}{row.recordsCapabilityBinding.limit?` · ${row.recordsCapabilityBinding.limit}`:""}</p>)}
+    {readLogLimit&&<p role="alert">Records capability: {readLogLimit}</p>}
+    {rows.map((row:Json)=><p key={row.threadId}>{row.threadId}: {row.recordsCapabilityBinding.state}{boundMeaning(row.recordsCapabilityBinding)}. {row.recordsCapabilityBinding.persistence??""}{row.recordsCapabilityBinding.limit?` · ${row.recordsCapabilityBinding.limit}`:""}</p>)}
   </section>;
 }
 
@@ -904,7 +941,7 @@ export function ReviewSelectButtons({ review, libraries, busy, act, chatAvailabl
     .flatMap((l:Json)=>Array.isArray(l.registered)?l.registered:[])
     .find((row:Json)=>row.name===id?.name&&row.revision===id?.revision)?.sequence;
   return <>{(review?.status?.entries??[]).filter((entry:Json)=>entry.state==="registered"||entry.state==="re-confirmed").map((entry:Json)=>
-    <button key={entry.identity.revision} disabled={busy||!chatAvailable} onClick={()=>act("workflow_select_registered",{reviewRef:review.reference,revision:entry.identity.revision})}>Select revision {listed(entry.identity)??String(entry.identity.revision).slice(0,12)}</button>)}</>;
+    <button key={entry.identity.revision} disabled={busy||!chatAvailable} onClick={()=>act("workflow_select_registered",{reviewRef:review.reference,revision:entry.identity.revision})}>Select revision {idWords(listed(entry.identity)??String(entry.identity.revision).slice(0,12))}</button>)}</>;
 }
 
 /** WR SL-2: "newer revision ‹n› available" beside the selection. The selection
@@ -916,87 +953,14 @@ export function NewerRevisionNotice({ selection, busy, act }:{ selection: Json; 
   if (newer.limit) return <p role="note">Newer revisions: {String(newer.limit)}</p>;
   return <p role="note" aria-label="Newer revision">{String(newer.notice)}. The selection stays on revision {String(selection?.identity?.revision ?? "").slice(0, 12)} until you select another.
     {newer.selectable===true
-      ? <> <button disabled={busy} onClick={()=>act("workflow_follow_newer_revision",{selectionRef:selection.reference,revision:newer.revision})}>{String(newer.offered)}</button></>
+      ? <> <button disabled={busy} onClick={()=>act("workflow_follow_newer_revision",{selectionRef:selection.reference,revision:newer.revision})}>{`Select revision ${idWords(newer.sequence)}`}</button></>
       : ` ${String(newer.offered)}.`}</p>;
 }
 
-/** RS §13.8: the records store, project identity, package recovery and the
- *  separate explicit import of §13.7 records still in the project. */
-export function RecordsStorePanel({ store, act }: { store: Json; act: (command: string, args?: Record<string, unknown>) => Promise<void> }) {
-  if (!store) return null;
-  const project = store.project;
-  const attachment = project?.attachment;
-  const retention = project?.retention;
-  const packageImport = store.packageImport;
-  const packageBlocked = packageImport?.state === "incomplete" || packageImport?.state === "unavailable";
-  const kept = retention?.disposition === "kept";
-  const identityRepair = !packageBlocked && (retention == null || kept);
-  const holdable = kept || retention?.disposition === "disposal incomplete";
-  const terminalDisposition = ["disposed", "disposal incomplete", "completion durability uncertain"].includes(retention?.disposition);
-  const packageImportable = store.state === "available" && !packageBlocked && !terminalDisposition;
-  const packageRepairable = store.state === "available" && !terminalDisposition && packageImport?.canRepair === true;
-  return <section aria-label="Records store">
-    <h3>Records store</h3>
-    {store.state === "available"
-      ? <p>Store: {String(store.root)} ({String(store.placement)}).</p>
-      : <p role="alert">No records store: {String(store.error)}. Nothing is recorded; there is no fallback.</p>}
-    {(store.limits ?? []).map((l: string) => <p key={l} role="note">{l}</p>)}
-    {project && <>
-      <p>Project: {attachment?.projectId ? String(attachment.projectId) : "no identity yet"}; reading {String(project.reading ?? project.state)}.</p>
-      {attachment?.refusal && <p role="alert">{String(attachment.refusal)}</p>}
-      {(project.notes ?? []).map((n: string) => <p key={n} role="note">{n}</p>)}
-      {attachment?.projectId && !attachment?.refusal && kept && !packageBlocked && project.reading === "records store" && <p>
-        <button onClick={() => act("records_store_export")}>Export project records</button>{" "}
-        <small>Creates a verified package in a folder you choose.</small>
-      </p>}
-      {packageImportable && <p>
-        <button onClick={() => act("records_store_import_package", { action: "import" })}>Import verified package</button>{" "}
-        <small>Choose a package for the identity already named by this folder’s project file. Exact bytes and the original identity are retained; conflicting files are refused. Unsigned package content stays quoted evidence.</small>
-      </p>}
-      {packageImportable && <p>
-        <button onClick={() => act("records_store_import_package", { action: "restore" })}>Restore project from package</button>{" "}
-        <small>Recover the package’s original project identity. The App checks whether this folder has no identity or only an unused identity created at startup. It refuses to replace an identity with records, a legal hold, closure or disposal, and retains existing bytes.</small>
-      </p>}
-      {packageImport?.state === "incomplete" && <p role="alert">
-        Package import is interrupted. Project records remain unavailable until it is finished.{" "}
-        <button onClick={() => act("records_store_import_package", { action: "resume" })}>Finish package import</button>
-      </p>}
-      {packageImport?.state === "unavailable" && <p role="alert">Package import status is unavailable. Project records remain unavailable.</p>}
-      {packageRepairable && <p>
-        <button onClick={() => act("records_store_import_package", { action: "repair" })}>Repair package controls</button>{" "}
-        <small>Uses the original native intent and retained evidence. Differing control bytes or a missing original act keep recovery held. Package claims stay quoted evidence and grant no authority to replay acts.</small>
-      </p>}
-      {packageImport?.reason && <p role="note">Package recovery: {String(packageImport.reason)}</p>}
-      {packageImport?.repairReason && packageImport.repairReason !== packageImport.reason && packageImport.repairReason !== packageImport.limit && <p role="note">Package repair: {String(packageImport.repairReason)}</p>}
-      {typeof packageImport?.needsPackage === "boolean" && <p role="note">Original package needed for repair: {packageImport.needsPackage ? "yes; the native selector will ask you to choose it again" : "no"}.</p>}
-      {packageImport?.limit && packageImport.limit !== packageImport.reason && <p role="note">Package import: {String(packageImport.limit)}</p>}
-      {(packageImport?.importId || packageImport?.packageIdentity) && <p>Package import: {String(packageImport.state)}. {packageImport.importId && <>Import reference: {String(packageImport.importId)}. </>}{packageImport.packageIdentity && <>Package identity: {String(packageImport.packageIdentity)}.</>}</p>}
-      {retention && <p role="note">{retention.disposition === "unavailable"
-        ? "Retention state unavailable. Project closure and legal hold are unknown."
-        : <>{retention.closed ? "Project closed to recording." : "Project open."} Legal hold: {retention.legalHold ? "set" : "not set"}. Records: {String(retention.disposition)}.</>}{" "}{retention.limit && String(retention.limit)}</p>}
-      {attachment?.projectId && !attachment?.refusal && holdable && !packageBlocked && <p>
-        {kept && <><button onClick={()=>act("records_store_retention",{action:retention.closed ? "reopen" : "close"})}>{retention.closed ? "Reopen project" : "Close project"}</button>{" "}</>}
-        <button onClick={()=>act("records_store_retention",{action:retention.legalHold ? "release-hold" : "set-hold"})}>{retention.legalHold ? "Release legal hold" : "Set legal hold"}</button>{" "}
-        {kept && retention.closed && !retention.legalHold && <button onClick={()=>act("records_store_retention",{action:"dispose"})}>Dispose of records after verified export</button>}
-      </p>}
-      {(retention?.disposition === "disposal incomplete" || retention?.disposition === "completion durability uncertain") && <p role="alert">Disposal or completion publication is unconfirmed and recording is blocked. {retention.legalHold ? <small>Legal hold blocks further disposal.</small> : !packageBlocked && <button onClick={()=>act("records_store_retention",{action:"resume-disposal"})}>Finish disposal</button>}</p>}
-      {project.notImported > 0 && kept && !retention.closed && !packageBlocked && <p>
-        <button onClick={() => act("records_store_import")}>Import {String(project.notImported)} record file(s){project.notImportedKinds ? ` (${String(project.notImportedKinds)})` : ""}</button>{" "}
-        <small>{String(project.importStanding ?? "")}</small>
-      </p>}
-      {(attachment?.refusal || (attachment?.limits ?? []).length > 0) && identityRepair && <p>
-        <button onClick={() => act("records_store_identity", { action: "adopt" })}>This folder is that project</button>{" "}
-        <button onClick={() => act("records_store_identity", { action: "new-identity" })}>Give this folder a new identity</button>{" "}
-        <button onClick={() => act("records_store_identity", { action: "restore-link" })}>Restore the project file</button>
-      </p>}
-    </>}
-    <p><button onClick={() => act("records_store_verify_export")}>Verify an exported package</button></p>
-  </section>;
-}
-
-export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, fileActBusy = false, openPreparedMessage, operationalReference, offerComposer, showConversation, view, findInHistory }:{ findInHistory?: (hint: string) => void; view?: string; showConversation?: (threadId: string, target?: string) => void; offerComposer?: (threadKey: string, text: string) => void; data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json>; observeView?: ()=>Promise<unknown>; openFileAct?: OpenArrivalFileAct; fileActBusy?: boolean; openPreparedMessage?: (item: PreparedMessage) => void; operationalReference?: Json }) {
+export function WorkflowRootPanel({ viewStale = false, readFailure = null, data, host, act, observeView, openFileAct, fileActBusy = false, openPreparedMessage, operationalReference, offerComposer, showConversation, view, findInHistory }:{ viewStale?: boolean; readFailure?: string | null; findInHistory?: (hint: string) => void; view?: string; showConversation?: (threadId: string, target?: string) => void; offerComposer?: (threadKey: string, text: string) => void; data: Json; host: Json; act: (command:string,args:Record<string,unknown>)=>Promise<Json>; observeView?: ()=>Promise<unknown>; openFileAct?: OpenArrivalFileAct; fileActBusy?: boolean; openPreparedMessage?: (item: PreparedMessage) => void; operationalReference?: Json }) {
   const [name,setName]=useState("");
   const [revision,setRevision]=useState("");
+  const [draftsState,setDraftsState]=useState<DraftsState>(initialDraftsState);
   const [thread,setThread]=useState("");
   const [chatChoice, setChatChoice] = useState<{ source: string; reference: Json } | null>(null);
   const chatScope = JSON.stringify([data?.context?.sourceRef, data?.context?.generation]);
@@ -1016,7 +980,7 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
   const [busy,setBusy]=useState(false);
   const pendingAction = useRef(false);
   const [progress, setProgress] = useState("");
-  const [outcome,setOutcome]=useState<{relation:{command:string;source:Json;request:Record<string,unknown>};message:string;limits:string[];failed?:boolean;settled?:boolean}>();
+  const [outcome,setOutcome]=useState<{relation:{command:string;source:Json;request:Record<string,unknown>};message:string;limits:string[];historyNotices?:string[];readLimits?:string[];failed?:boolean;settled?:boolean}>();
   // Native results and later observation limits belong to the original press.
   // Children receive the unchanged native value, including pre-fill results.
   const action=async(command:string,args:Record<string,unknown>):Promise<Json>=>{
@@ -1030,11 +994,11 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
       : "Waiting for the workflow operation and its current view…");
     let request:Record<string,unknown>;
     try{request=workflowArguments(command,args,data,host,thread);}
-    catch(error){setOutcome({relation:{command,source:structuredClone(data?.context??null),request:structuredClone(args)},message:String(error),limits:[]});pendingAction.current=false;setBusy(false);setProgress("");return undefined;}
+    catch(error){setOutcome({relation:{command,source:structuredClone(data?.context??null),request:structuredClone(args)},message:String(error),limits:[],failed:true,settled:true});pendingAction.current=false;setBusy(false);setProgress("");return undefined;}
     const relation={command,source:structuredClone(data?.context??null),request:structuredClone(request)};
     setOutcome({relation,message:"",limits:[]});
     const limit=(message:string)=>setOutcome(old=>old?.relation===relation?{...old,limits:[...old.limits,message]}:old);
-    const observe=async(after:string)=>{if(observeView)try{await observeView();}catch(error){limit(`View refresh after ${after} failed: ${String(error)}. The original command response is retained as reported.`);}};
+    const observe=async(after:string)=>{if(observeView)try{await observeView();}catch(error){limit(`View refresh after ${after} failed: ${observationLine(observationText(error),"")} The original command response is retained as reported.`);}};
     // Capture this metadata request before awaiting the command or a new view.
     let draftRequest:Record<string,unknown>|undefined,draftRequestError:unknown;
     if(command==="workflow_create_draft"||command==="workflow_refine_registered"){
@@ -1043,7 +1007,7 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
     }
     try{
       const result=await act(command,request);
-      setOutcome(old=>old?.relation===relation?{...old,message:workflowActionMessage(command,result),failed:false,settled:true}:old);
+      setOutcome(old=>old?.relation===relation?{...old,message:workflowActionMessage(command,result),historyNotices:result?.historyNotices??[],readLimits:command==="workflow_read_records"?(result?.rsLimits??[]):[],failed:false,settled:true}:old);
       await observe(command);
       // SQ-D D-2 stays one original-context read even if the view refresh failed.
       if(command==="workflow_create_draft"||command==="workflow_refine_registered"){
@@ -1089,14 +1053,27 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
     : !selected ? "Inspect bundled content or a development copy, or choose content for the Workflow chat."
     : !name.trim() ? "Enter a name for your new draft. The App will check the exact name and destination."
     : "Ready to create a draft from the displayed content in the opened library. This does not register or run it.";
+  const guideOutcome = outcome ? { command: outcome.relation.command, message: outcome.message, failed: outcome.failed === true, settled: outcome.settled === true } : null;
+  const unsavedRecords: {reference:string;limit:string}[] = [];
+  for (const run of data?.runs??[]) {
+    if (run.publication?.admissionRefusal) unsavedRecords.push({reference:run.reference,limit:run.publication.admissionRefusal});
+    if (run.endNotice?.admissionRefusal) unsavedRecords.push({reference:run.endNotice.record,limit:run.endNotice.admissionRefusal});
+    for (const check of [...(run.checks??[]),...(run.noticeChecks??[])]) {
+      if (check.retryAvailable===false&&check.publicationLimit) unsavedRecords.push({reference:check.reference,limit:check.publicationLimit});
+    }
+  }
+  for (const end of data?.endedAfterRelaunch??[]) {
+    if (end.endNotice?.admissionRefusal) unsavedRecords.push({reference:end.endNotice.record,limit:end.endNotice.admissionRefusal});
+  }
   return <section aria-label="Workflow studio controls" aria-busy={busy}>
     {busy && <p role="status" aria-live="polite">{progress} No automatic retry.</p>}
+    {unsavedRecords.length>0&&<aside aria-label="Workflow records not saved">{unsavedRecords.map((record,index)=><p role="alert" key={`${record.reference}:${index}`}>{record.reference}: {record.limit}</p>)}</aside>}
     <div id="view-run" data-workspace-view="run" hidden={view !== undefined && view !== "run"}>
     <RunWorkflowGuide data={data} host={host} thread={thread} chooseThread={chooseWorkflowChat} act={action} busy={busy} text={text} setText={setText}
-      outcome={outcome ? { command: outcome.relation.command, message: outcome.message, failed: outcome.failed === true, settled: outcome.settled === true } : null} showConversation={showConversation}/>
+      outcome={guideOutcome} showConversation={showConversation} viewStale={viewStale} readFailure={readFailure}/>
     </div>
     <div id="view-make" data-workspace-view="make" hidden={view !== undefined && view !== "make"}>
-    {offerComposer && <MakeWorkflowGuide data={data} host={host} act={action} busy={busy} offerComposer={offerComposer} openPreparedMessage={openPreparedMessage} showConversation={showConversation} findInHistory={findInHistory}/>}
+    {offerComposer && <MakeWorkflowGuide data={data} host={host} act={action} busy={busy} outcome={guideOutcome} viewStale={viewStale} readFailure={readFailure} offerComposer={offerComposer} openPreparedMessage={openPreparedMessage} showConversation={showConversation} findInHistory={findInHistory}/>}
     </div>
     {/* The detailed studio follows the guides, collapsed, in both workflow views. */}
     <details id="workflow-studio" className="workspace-disclosure workspace-advanced" data-workspace-view="make" open={view === undefined ? true : undefined}>
@@ -1111,7 +1088,8 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
       <ConversationContext label="Workflow chat context" host={host} reference={chatChoice?.reference ?? null} workflow
         empty={!thread ? "No chat — library inspection." : undefined} limit={chatChoiceLimit || workflowSourceLimit(host)} />
     </aside>
-    <label>Workflow chat <select value={thread} onChange={e=>chooseWorkflowChat(e.target.value)} disabled={busy}><option value="">No chat — inspect library content</option>{(host?.threads??[]).filter((entry:Json)=>JSON.stringify(entry.generation)===JSON.stringify(host?.generation)).map((entry:Json)=><option key={entry.threadId} value={entry.threadId}>{entry.threadId} · {entry.modelProvider}/{entry.model}</option>)}</select></label>
+    <ConversationChoices legend="Workflow chat" group="workflow-chat" chosen={thread} onChoose={chooseWorkflowChat} disabled={busy} none="No chat — inspect library content"
+      value={threadChoices((host?.threads??[]).filter((entry:Json)=>JSON.stringify(entry.generation)===JSON.stringify(host?.generation)), (entry:Json)=>entry.threadId)} />
     {chatChoiceLimit && <button type="button" disabled={busy} onClick={()=>chooseWorkflowChat("")}>Use No chat — inspect library content</button>}
     <p>{thread ? "This chat keeps its own pending workflow selection. Started runs keep their own revision." : "Library browsing is shared. Inspection here selects no workflow for a new chat."}</p>
     <section className="workflow-stage" aria-label="Choose workflow content and library"><h3>1. Choose content and a library</h3>
@@ -1129,7 +1107,7 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
     <SelectedWorkflow selection={selected} inspection={!thread}/>
     {thread&&<NewerRevisionNotice selection={selected} busy={busy||!context} act={action}/>}
     <details><summary>Selection and libraries as the host reports them (paths shown as text; identities keep their exact bytes; a path that is not valid UTF-8 is marked)</summary>
-    <pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(readablePaths({selection:selected,inspection:data?.inspection,chatContext:context,libraries:data?.libraries,activeLibrary:data?.activeLibrary}),null,2)}</pre></details>
+    <RecordedData value={readablePaths({selection:selected,inspection:data?.inspection,chatContext:context,libraries:data?.libraries,activeLibrary:data?.activeLibrary})} /></details>
     <section className="workflow-stage" aria-label="Create a workflow draft"><h3>2. Create a named draft</h3>
     <p id="workflow-draft-next-step" role="status">{draftReason}</p>
     {draftLibrary && <p>Draft destination: {draftLibrary.origin ?? "origin not reported"} library · {nativePathText(draftLibrary.root) ?? draftLibrary.sourceRoot ?? "folder not reported"}. The host checks this opened library again before writing.</p>}
@@ -1138,13 +1116,14 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
     </section>
     <h3>3. Try and review drafts</h3>
     <WorkflowDraftsView data={data?.drafts} workspace={data?.projectLibraryAvailable===true} pointerLimits={data?.trialPointerLimits} conversations={conversations} contextHost={host}
+      state={draftsState} update={patch=>setDraftsState(state=>({...state,...patch}))} comparisonOutside
       runs={[...(data?.runs??[]),...(data?.reopened?.runs??[])]} pending={data?.pendingTrials} busy={busy} act={action}/>
     {openPreparedMessage && preparedMessages(host).map(item => <div key={item.identity}>
       <small>{item.kind !== "bring-back" ? `Trial ${item.pending.sequence} of draft ${item.pending.draftName}` : item.pending.trial ? "Trial feedback" : "Run feedback"} · prepared message.</small>{" "}
       {item.kind === "clean" ? <div aria-label="Original composer owner"><p>This trial starts its own new conversation; it isn't sent in an existing one.</p>
         <details><summary>Exact scope</summary><p><small>Trial reference <code>{item.pending?.reference ?? "not reported"}</code>. Its composer belongs to no existing conversation; Send starts the new conversation with the connection and model you choose.</small></p></details></div>
         : <><ConversationContext label="Original composer owner" host={host} reference={item.owner} workflow limit={preparedMessageLimit(host, item)} />
-          <button onClick={() => openPreparedMessage(item)}>View prepared message in conversation {item.owner?.threadId ?? "unavailable"}</button></>}
+          <button onClick={() => openPreparedMessage(item)}>View prepared message in conversation {item.owner?.threadId ? idWords(item.owner.threadId) : "unavailable"}</button></>}
     </div>)}
     {(data?.libraries??[]).filter((l:Json)=>l.reference===data?.activeLibrary&&Array.isArray(l.registered)).map((l:Json)=><RegisteredRevisions key={l.reference} library={l.reference} rows={l.registered} busy={busy} chatAvailable={chatAvailable} act={action}/>)}
     {(data?.libraries??[]).filter((l:Json)=>l.reference===data?.activeLibrary).map((l:Json)=><LibraryEntries key={`${l.reference}:${l.entryListing?.reference??"unobserved"}`} library={l} busy={busy} available={!!context} act={action}/>)}
@@ -1157,18 +1136,18 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
     <small> Drafts are reviewed from the draft list above.</small>
     </details>
     <div id="workflow-reviews">{orderedReviews.map(review=><article key={review.reference}>
-      <h3>{review.reference===data?.activeReview?"Current review":"Retained review"} · {review.reference}</h3>
+      <h3>{review.reference===data?.activeReview?"Current review":"Retained review"} · {idWords(review.reference)}</h3>
       {digests[review.reference]&&<p>{digestComparison(digests[review.reference])}{review.status?.presentation?<> Read the complete review below before choosing {review.status.presentation.entries?.[0]?.disposition==="re-confirmation"?"Re-confirm":"Register"}: the native confirmation shows the act statement and this digest, not the review itself.</>:" (as last shown with the review; while the native confirmation is open, the review it names is shown under \"Content named by an open native confirmation\")"}</p>}
       {review.status?.presentation?.entries?.[0]?.disposition==="re-confirmation"&&<p role="note">{review.status.presentation.entries[0].message}. {review.status.presentation.entries[0].reconfirmation?.statement}</p>}
       {review.status?.presentation&&<p><button disabled={busy||review.reference!==data?.activeReview} onClick={()=>action("workflow_register_native",{reviewRef:review.reference})}>{review.status?.presentation?.entries?.[0]?.disposition==="re-confirmation"?"Re-confirm this revision for use in this App session through native A15 confirmation…":"Register this review through native A15 confirmation…"}</button></p>}
       {review.status?.presentation ? <>
         {typeof review.status.state === "string" && <p>Review state: {review.status.state}</p>}
         <WorkflowRegistrationReview presentation={review.status.presentation} />
-        <details><summary>Complete reported review status (diagnostic JSON)</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(readablePaths(review.status),null,2)}</pre></details>
+        <details><summary>Complete reported review status (diagnostic JSON)</summary><RecordedData value={readablePaths(review.status)} /></details>
       </> : <>
         {review.status?.state==="native confirmation dismissed; no capture/registration"&&<p role="status">You cancelled the App's confirmation, so nothing was captured or registered. Review the draft again to register it.</p>}
         {review.status?.state==="native review/capture unavailable; original owner state retained"&&<p role="status">The review or its confirmation became unavailable, so registration did not complete and no receipt was made{typeof review.status?.limit==="string"?`: ${review.status.limit}`:""}. The original attempt is kept: you can continue it below, or review the draft again.</p>}
-        <details open={!["native confirmation dismissed; no capture/registration","native review/capture unavailable; original owner state retained"].includes(review.status?.state)}><summary>Complete reported review status</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(readablePaths(review.status??review),null,2)}</pre></details>
+        <details open={!["native confirmation dismissed; no capture/registration","native review/capture unavailable; original owner state retained"].includes(review.status?.state)}><summary>Complete reported review status</summary><RecordedData value={readablePaths(review.status??review)} /></details>
       </>}
       <LastCleanTrialLine line={review.lastCleanTrial} busy={busy} act={action}/>
       <button disabled={busy} onClick={()=>action("workflow_continue_registration",{reviewRef:review.reference})}>Continue original captured registration</button>
@@ -1178,41 +1157,29 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
     <label>Person text <textarea value={text} onChange={e=>setText(e.target.value)} disabled={busy} rows={3}/></label>
     {selected&&selected.runnable!==true&&<p role="note">Not runnable: {selected.runLimit}</p>}
     <button disabled={busy||!context||host?.state!=="ready"||!thread||selected?.runnable!==true} onClick={()=>action("workflow_prepare_run",{generation:host.generation,threadId:thread,personText:text})}>Prepare exact selected workflow text</button>
-    <button disabled={busy} onClick={()=>action("workflow_read_records",{})}>Read recorded workflow supply (durable, read-only)</button>
-    <button disabled={busy} onClick={()=>action("workflow_reopen",{})}>Reopen recorded workflow runs (read-only)</button>
-    {data?.reopened&&<article><h3>Recorded runs (reopened from project records)</h3><p>{data.reopened.standing}</p>
-      <ul>{(data.reopened.runs??[]).map((r:Json)=><li key={r.run}>{r.run} · conversation {r.conversation??"unknown"} · {r.state}{r.detail?` (${typeof r.detail==="string"?r.detail:JSON.stringify(r.detail)})`:""}{r.follows?` · follows ${r.follows}`:""}{(r.restartInterruptions??[]).length?` · App restart interruptions: ${r.restartInterruptions.length}`:""}
-        {r.workflow&&<p>Recorded workflow {r.workflow.origin}:{r.workflow.name}, revision {String(r.workflow.revision??"").slice(0,12)}.</p>}
-        {!(data?.runs??[]).some((h:Json)=>h.reference===r.run)&&<RunBringBack run={r} conversations={conversations} defaultThread={runBringBackDefault(data,r.run)} busy={busy} act={action}/>}
-        {r.state?.startsWith("open")&&!(data?.runs??[]).some((h:Json)=>h.reference===r.run)&&<button disabled={busy} onClick={()=>action("workflow_end_recorded",{runId:r.run,threadId:r.conversation??null})}>End this interrupted run</button>}</li>)}</ul>
-      {(data.reopened.limits??[]).length>0&&<p>Record limits: {JSON.stringify(data.reopened.limits)}</p>}
-      {data.reopened.restartLimits&&<p>App-restart interruption limits (written by the host at startup): {(data.reopened.restartLimits.outcomes??[]).map((o:Json)=>`${o.threadId}: ${o.outcome}${o.run?` on ${o.run}`:""}${typeof o.detail==="string"?` (${o.detail})`:""}`).join("; ")||data.reopened.restartLimits.reason||"no restart facts"}</p>}</article>}
-    {data?.afterRunEnd&&<article><h3>After-run-end observations</h3><p>{data.afterRunEnd.standing}</p>
-      {(data.afterRunEnd.limits??[]).length>0&&<p role="alert">Observation/recording limits: {JSON.stringify(data.afterRunEnd.limits)}</p>}
-      {(data.afterRunEnd.held??[]).map((r:Json)=><p key={r.recordId} role="status">Not yet recorded: {r.recordId} for ended run {r.run}, first observed {r.observedAt}. {r.limit}</p>)}
-      <details><summary>Recorded post-end source history (JSON)</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(data.afterRunEnd.runs??[],null,2)}</pre></details>
-      {(data.afterRunEnd.runs??[]).filter((r:Json)=>!(data?.runs??[]).some((h:Json)=>h.reference===r.run)).map((r:Json)=><div key={r.run}><p>Ended run {r.run}. Source project {r.source?.projectId}.</p><ul>{(r.records??[]).filter((e:Json)=>e.kind==="checkpoint_arrival").map((e:Json)=><ArrivalRecord key={e.recordId} arrival={e} all={r.records??[]}/>)}</ul></div>)}
-    </article>}
-    {(data?.endedAfterRelaunch??[]).map((end:Json)=><article key={end.run}><h3>{end.run} (ended after the relaunch)</h3>
+    {(data?.endedAfterRelaunch??[]).map((end:Json)=><article key={end.run}><h3>{idWords(end.run)} (ended after the relaunch)</h3>
       <p>End notice: {end.endNotice?.state??"none"}. {end.limit}</p>
+      {end.endNotice?.admissionRefusal&&<p role="alert">{end.endNotice.admissionRefusal}</p>}
       <HistoryReferenceNotice pointers={end.learningPointers}/>
-      {(end.endNotice?.state?.startsWith("pending")||hasUnsavedHistoryReference(end))&&<p role="status">{end.endNotice?.state?.startsWith("pending")&&<>The next message in conversation {end.conversation} carries this end notice first, once. </>}
-        <button disabled={busy} onClick={()=>action("workflow_reopened_notice",{runId:end.run,action:"retry"})}>{end.endNotice?.state?.startsWith("pending")?"Retry the end-notice record":"Retry saving records (never sends)"}</button>
-        {end.endNotice?.state?.startsWith("pending")&&end.noticeRecordFailure&&<button disabled={busy} onClick={()=>action("workflow_reopened_notice",{runId:end.run,action:"skip"})}>Send without the end notice (recorded as not supplied)</button>}</p>}
+      {(end.endNotice?.state?.startsWith("pending")||end.endNotice?.admissionRefusal||hasUnsavedHistoryReference(end))&&<p role="status">{end.endNotice?.state?.startsWith("pending")&&<>The next message in conversation {end.conversation} carries this end notice first, once. </>}
+        <button disabled={busy||!!end.endNotice?.admissionRefusal} onClick={()=>action("workflow_reopened_notice",{runId:end.run,action:"retry"})}>{end.endNotice?.state?.startsWith("pending")||end.endNotice?.admissionRefusal?"Retry the end-notice record":"Retry saving records (never sends)"}</button>
+        {(end.endNotice?.state?.startsWith("pending")&&end.noticeRecordFailure||end.endNotice?.admissionRefusal)&&<button disabled={busy} onClick={()=>action("workflow_reopened_notice",{runId:end.run,action:"skip"})}>Send without the end notice (recorded as not supplied)</button>}</p>}
     </article>)}
-    {(data?.runs??[]).map((run:Json)=>{const next=chatWorkflow(data,data?.context?.sourceRef,run.conversation);return <article key={run.reference} id={runEvidenceAnchor(run.reference)}><h3>{run.reference}</h3>
+    {(data?.runs??[]).map((run:Json)=>{const next=chatWorkflow(data,data?.context?.sourceRef,run.conversation);return <article key={run.reference} id={runEvidenceAnchor(run.reference)}><h3>{idWords(run.reference)}</h3>
       <p>Run: {run.lifecycle?.state}{run.lifecycle?.follows?` · follows ${run.lifecycle.follows}`:""}{run.lifecycle?.end?` · ${run.lifecycle.end.cause}`:""}. Records: {run.publication?.state}. Send: {run.status?.state}{run.status?.limit?` (${run.status.limit})`:""}. Supplied: {suppliedSummary(run)}. Adoption: unknown.</p>
+      {run.publication?.admissionRefusal&&<p role="alert">{run.publication.admissionRefusal}</p>}
       {run.endNotice&&<p>End notice: {run.endNotice.state}</p>}
-      {!isRecordedRun(run)&&run.endNotice?.state?.startsWith("pending")&&<p role="status">The next message in this conversation, with or without attachments or a mode, carries this end notice first, once.{run.status?.limit?` Last attempt: ${run.status.limit}`:""}
-        <button disabled={busy} onClick={()=>action("workflow_retry_records",{runRef:run.reference})}>Retry the end-notice record</button>
-        {run.noticeRecordFailure&&<button disabled={busy} onClick={()=>action("workflow_skip_notice",{runRef:run.reference})}>Send without the end notice (recorded as not supplied)</button>}</p>}
-      <ul>{[...(run.checks??[]),...(run.noticeChecks??[])].map((check:Json)=><li key={check.reference}>{check.readAt}: {check.state} ({check.supplyReading}); check record {check.published?"recorded":`pending${check.publicationLimit?` — ${check.publicationLimit}`:""}`}; R3 {check.r3?.state}{check.r3?.limit?` — ${check.r3.limit}`:""}</li>)}</ul>
+      {run.endNotice?.admissionRefusal&&<p role="alert">{run.endNotice.admissionRefusal}</p>}
+      {!isRecordedRun(run)&&(run.endNotice?.state?.startsWith("pending")||run.endNotice?.admissionRefusal)&&<p role="status">{!run.endNotice?.admissionRefusal&&<>The next message in this conversation, with or without attachments or a mode, carries this end notice first, once.{run.status?.limit?` Last attempt: ${run.status.limit}`:""}</>}
+        <button disabled={busy||!!run.endNotice?.admissionRefusal} onClick={()=>action("workflow_retry_records",{runRef:run.reference})}>Retry the end-notice record</button>
+        {(run.noticeRecordFailure||run.endNotice?.admissionRefusal)&&<button disabled={busy} onClick={()=>action("workflow_skip_notice",{runRef:run.reference})}>Send without the end notice (recorded as not supplied)</button>}</p>}
+      <ul>{[...(run.checks??[]),...(run.noticeChecks??[])].map((check:Json)=><li key={check.reference}>{check.readAt}: {check.state} ({check.supplyReading}); check record {check.published?"recorded":`${check.publicationState??"pending"}${check.publicationLimit?` — ${check.publicationLimit}`:""}`}; R3 {check.r3?.state}{check.r3?.limit?` — ${check.r3.limit}`:""}</li>)}</ul>
       <RunPanel run={run} conversations={conversations} bringBackDefault={runBringBackDefault(data,run.reference)} busy={busy || fileActBusy} act={action} openFileAct={openFileAct}/>
-      <details><summary>Complete run evidence (paths shown as text)</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(readablePaths(run),null,2)}</pre></details>
+      <details><summary>Complete run evidence (paths shown as text)</summary><RecordedData value={readablePaths(run)} /></details>
       {!isRecordedRun(run)&&<>
-      <button disabled={busy||!!run.source||host?.state!=="ready"} onClick={()=>action("workflow_send_run",{runRef:run.reference})}>Record, then send original prepared text once</button>
+      <button disabled={busy||!!run.source||host?.state!=="ready"||!!run.publication?.admissionRefusal} onClick={()=>action("workflow_send_run",{runRef:run.reference})}>Record, then send original prepared text once</button>
       <button disabled={busy||!run.turn||host?.state!=="ready"} onClick={()=>action("workflow_check_supply",{runRef:run.reference})}>Check original native supplied text pages (new check)</button>
-      <button disabled={busy||(!run.pendingRecords&&!hasUnsavedHistoryReference(run))} onClick={()=>action("workflow_retry_records",{runRef:run.reference})}>Retry pending records (never sends)</button>
+      <button disabled={busy||!!run.publication?.admissionRefusal||(!run.pendingRecords&&!hasUnsavedHistoryReference(run))} onClick={()=>action("workflow_retry_records",{runRef:run.reference})}>Retry pending records (never sends)</button>
       {run.lifecycle?.state?.startsWith("open")&&<>
         <button disabled={busy} onClick={()=>action("workflow_end_run",{runRef:run.reference,finishedReport:null})}>End run</button>
         {next&&run.home===host?.generation?.home&&<section aria-label="Selected workflow for the next run">
@@ -1220,7 +1187,7 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
           <p>Holding library: {next.compatibility?.holdingLibrary??"not supplied"}.</p>
           <ul><CompatibilityAdvisory entry={next.compatibility}/></ul>
         </section>}
-        <button disabled={busy||host?.state!=="ready"||run.home!==host?.generation?.home||next?.runnable!==true} onClick={()=>action("workflow_end_and_start",{runRef:run.reference,generation:host.generation,threadId:run.conversation,personText:text})}>End this run and start {next?.identity?.name??"this chat’s selected workflow"}</button>
+        <button disabled={busy||host?.state!=="ready"||run.home!==host?.generation?.home||next?.runnable!==true} onClick={()=>action("workflow_end_and_start",{runRef:run.reference,generation:host.generation,threadId:run.conversation,personText:text})}>End this run and start {next?.identity?.name ? safeName(next.identity.name) : "this chat’s selected workflow"}</button>
       </>}
       {run.endNotice?.state?.startsWith("sent")&&<button disabled={busy||host?.state!=="ready"} onClick={()=>action("workflow_check_notice",{runRef:run.reference})}>Check the end notice in native history (new check)</button>}
       <p>Selection and run text are recorded before sending; if recording fails nothing is sent. A run opens when its start turn is observed and ends only when the person ends it: an interrupt, stop, quit, failed or completed turn, or an agent's "Workflow finished" line does not end it. Ending here records "ended by the person"; when the agent writes its "Workflow finished" line, the conversation offers End run beneath that message, which records cause "completed". After an end, the next message in this conversation (text, a plan or default mode turn, an attachment-bearing turn or a Continue-as request) carries the end notice first, once. Load/select this conversation and its received turn in native History before checking.</p>
@@ -1228,15 +1195,36 @@ export function WorkflowRootPanel({ data, host, act, observeView, openFileAct, f
     </article>;})}
     </div>
     </details>
+    <button disabled={busy} onClick={()=>action("workflow_read_records",{})}>Read recorded workflow supply (durable, read-only)</button>
+    <CompareResult result={draftsState.compared}/>
+    <button disabled={busy} onClick={()=>action("workflow_reopen",{})}>Reopen recorded workflow runs (read-only)</button>
+    {data?.reopened&&<article><h3>Recorded runs (reopened from project records)</h3><p>{data.reopened.standing}</p>
+      <ul>{(data.reopened.runs??[]).map((r:Json)=><li key={r.run}>{r.run} · conversation {r.conversation??"unknown"} · {r.state}{r.detail?` (${typeof r.detail==="string"?r.detail:JSON.stringify(r.detail)})`:""}{r.follows?` · follows ${r.follows}`:""}{(r.restartInterruptions??[]).length?` · App restart facts recorded for this conversation: ${r.restartInterruptions.length}`:""}
+        {r.workflow&&<p>Recorded workflow {r.workflow.origin}:{r.workflow.name}, revision {String(r.workflow.revision??"").slice(0,12)}.</p>}
+        {!(data?.runs??[]).some((h:Json)=>h.reference===r.run)&&<RunBringBack run={r} conversations={conversations} defaultThread={runBringBackDefault(data,r.run)} busy={busy} act={action}/>}
+        {r.state?.startsWith("open")&&!(data?.runs??[]).some((h:Json)=>h.reference===r.run)&&<button disabled={busy} onClick={()=>action("workflow_end_recorded",{runId:r.run,threadId:r.conversation??null})}>End this interrupted run</button>}</li>)}</ul>
+      {(data.reopened.historyNotices??[]).map((notice:string,i:number)=><p role="note" key={i}>{notice}</p>)}
+      {(data.reopened.limits??[]).length>0&&<p>Record limits: {JSON.stringify(data.reopened.limits)}</p>}
+      {data.reopened.restartLimits&&<p>App-restart interruption limits (written by the host at startup): {(data.reopened.restartLimits.outcomes??[]).map((o:Json)=>`${o.threadId}: ${o.outcome}${o.run?` on ${o.run}`:""}${typeof o.detail==="string"?` (${o.detail})`:""}`).join("; ")||data.reopened.restartLimits.reason||"no restart facts"}</p>}</article>}
+    {data?.afterRunEnd&&<article><h3>After-run-end observations</h3><p>{data.afterRunEnd.standing}</p>
+      {(data.afterRunEnd.historyNotices??[]).map((notice:string,i:number)=><p role="note" key={i}>{notice}</p>)}
+      {(data.afterRunEnd.limits??[]).length>0&&<p role="alert">Observation/recording limits: {JSON.stringify(data.afterRunEnd.limits)}</p>}
+      {(data.afterRunEnd.held??[]).map((r:Json)=><p key={r.recordId} role="status">Not yet recorded: {r.recordId} for ended run {r.run}, first observed {r.observedAt}. {r.limit}</p>)}
+      <details><summary>Recorded post-end source history (JSON)</summary><RecordedData value={data.afterRunEnd.runs??[]} /></details>
+      {(data.afterRunEnd.runs??[]).filter((r:Json)=>!(data?.runs??[]).some((h:Json)=>h.reference===r.run)).map((r:Json)=><div key={r.run}><p>Ended run {r.run}. Source project {r.source?.projectId}.</p><ul>{(r.records??[]).filter((e:Json)=>e.kind==="checkpoint_arrival").map((e:Json)=><ArrivalRecord key={e.recordId} arrival={e} all={r.records??[]}/>)}</ul></div>)}
+    </article>}
+    {/* The exact reply and request of the last press. The guides say the result in words. */}
     {outcome&&<div aria-label="Workflow action response">
+      {(outcome.historyNotices??[]).map((notice,i)=><p role="note" key={i}>{notice}</p>)}
+      {(outcome.readLimits??[]).map((limit,i)=><p role="alert" key={`read-${i}`}>{limit}</p>)}
       {outcome.message&&<ActionFeedback message={`${outcome.relation.command}: ${outcome.message}`} label="Workflow command result"/>}
-      {outcome.limits.map((message,index)=><p role="status" aria-label="Workflow observation limit" key={index} style={{whiteSpace:"pre-wrap"}}>{message}</p>)}
-      <details><summary>Original workflow request</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(outcome.relation,null,2)}</pre></details>
+      <details><summary>Original workflow request</summary><RecordedData value={outcome.relation} /></details>
     </div>}
+    {outcome?.limits.map((message,index)=><p role="status" aria-label="Workflow observation limit" key={index}><AgentText value={message} source="record" label="Observation limit:" name="An observation limit, which may carry text the App received, not only the App's words" /></p>)}
   </section>;
 }
 
-export type LocalAccess = { view: LocalView | null; attempted: string[]; pending: boolean; message: { kind: "status" | "alert"; text: string } | null; prepare: () => void; enterKey: (generation: Json) => void };
+export type LocalAccess = { view: LocalView | null; attempted: string[]; pending: boolean; message: { kind: "status" | "alert"; text: string } | null; prepare: () => void; enterKey: (generation: Json) => void; settingsTouched?: () => void };
 export function HomeAccessPanel({ host, resources, navigating = false, act, readAccount, local }: { host: Json; resources: Json; navigating?: boolean; act: (command: string, args: Record<string, unknown>) => Promise<void>; readAccount: ReadAccountStatus; local?: LocalAccess }) {
   const routing = host?.homeRouting, access = host?.homeAccess, oauth = host?.homeOAuth, generation = host?.generation;
   const [busy, setBusy] = useState(false);
@@ -1248,28 +1236,40 @@ export function HomeAccessPanel({ host, resources, navigating = false, act, read
   };
   const entries: Json[] = (routing?.entries ?? []).filter((entry: Json) => entry.modeHomeClass === "account");
   return <section aria-label="Account connection"><h2>Connect to a model</h2>
-    <p>Use your ChatGPT account for cloud conversations, or choose a configured oMLX/local provider.</p>
+    <p>Sign in with your ChatGPT account to reach a model.</p>
     {routing?.activeModeHomeClass === "api-key" && <p role="status">Choose the account connection to continue. An older access home is retained without changing its saved configuration.</p>}
     {routing?.activeModeHomeClass === LOCAL_MODE && <p role="status">The local oMLX home is in use. ChatGPT sign-in applies to the account home.</p>}
-    {routing?.activeModeHomeClass !== "account" && entries.map(entry => <article key={entry.modeHomeClass}><p>{entry.state}{entry.configurationLimit ? ` — ${entry.configurationLimit}` : ""}</p><details><summary>Connection source</summary><pre>{JSON.stringify(entry.generation, null, 2)}</pre></details><button disabled={busy || navigating || routing?.activeModeHomeClass === entry.modeHomeClass} onClick={() => action("select_home", {modeHomeClass: entry.modeHomeClass})}>Use {entry.modeHomeClass} home</button></article>)}
+    {routing?.activeModeHomeClass !== "account" && entries.map(entry => <article key={entry.modeHomeClass}><p>{entry.state}{entry.configurationLimit ? ` — ${entry.configurationLimit}` : ""}</p><details><summary>Connection source</summary><RecordedData value={entry.generation} /></details><button disabled={busy || navigating || routing?.activeModeHomeClass === entry.modeHomeClass} onClick={() => action("select_home", {modeHomeClass: entry.modeHomeClass})}>Use {idWords(entry.modeHomeClass)} home</button></article>)}
     <AccountStatus host={host} navigating={navigating} busy={busy} read={readAccount}/>
+    {routing?.activeModeHomeClass === "account" && <p aria-label="Provider in this home">In this home the App starts Codex on its built-in OpenAI provider, whatever default provider your own Codex settings name. Your Codex files are not changed.</p>}
+    {routing?.activeModeHomeClass === "account" && <p aria-label="Where a sign-in will be kept">Before you sign in, you can see where Codex will keep your sign-in: press “Read effective storage and plugin settings” below.</p>}
     <button className="setup-primary" disabled={busy || routing?.activeModeHomeClass !== "account" || !generation} onClick={() => action("oauth_start", {generation,mode:"browser"})}>Sign in with your ChatGPT account (through Codex)…</button>
     <details><summary>Other sign-in options</summary>
     <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation} onClick={() => action("oauth_start", {generation,mode:"device-code"})}>Sign in through native device code…</button>
     <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation || !oauth?.source?.presentationAvailable} onClick={() => action("oauth_present", {generation})}>Show pending native sign-in…</button>
     <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation || !oauth?.source?.cancelAvailable} onClick={() => action("oauth_cancel", {generation})}>Cancel original pending sign-in with native confirmation…</button>
     <button disabled={busy || !generation || routing?.activeModeHomeClass !== "account"} onClick={() => action("logout_home", {generation,modeHomeClass:routing.activeModeHomeClass})}>Sign out of ChatGPT…</button></details>
-    <section className="local-access-alternative" aria-label="oMLX and local providers"><h3>Use oMLX / a local model</h3>
+    {LOCAL_ROUTE_OFFERED && <section className="local-access-alternative" aria-label="oMLX and local providers"><h3>Use oMLX / a local model</h3>
       <p>Local providers use their own credentials, separate from ChatGPT sign-in.</p>
       {local && <LocalProviderAccess host={host} view={local.view} attempted={local.attempted} pending={local.pending || busy} message={local.message} navigating={navigating}
-        prepare={local.prepare} enterKey={local.enterKey} useHome={() => { void action("select_home", { modeHomeClass: LOCAL_MODE }); }}/>}
-      <p><small>Anonymous configured local providers connect through the account home.</small> <a href="#workspace-start">Choose a configured local provider</a></p>
-    </section>
-    <details><summary>Safe original sign-in observation</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(oauth ?? {state:"unavailable"},null,2)}</pre></details>
+        prepare={local.prepare} enterKey={local.enterKey} settingsChanged={local.settingsTouched} useHome={() => { void action("select_home", { modeHomeClass: LOCAL_MODE }); }}/>}
+    </section>}
+    <details><summary>Safe original sign-in observation</summary><RecordedData value={oauth ?? {state:"unavailable"}} /></details>
     {error && <p role="alert">{error}</p>}
-    <details><summary>Source-owned account observations and limits</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(access, null, 2)}</pre></details>
-    <details><summary>Explicit receiving homes and shared-resource observations</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(resources ?? {state:"explicit shared-resource descriptors not configured; existing account path remains available"}, null, 2)}</pre></details>
+    <details><summary>Source-owned account observations and limits</summary><RecordedData value={access} /></details>
+    <details><summary>Explicit receiving homes and shared-resource observations</summary><RecordedData value={resources ?? {state:"explicit shared-resource descriptors not configured; existing account path remains available"}} /></details>
+    <CodexSessionSettings settings={host?.codexSessionSettings}/>
     <details><summary>Connection and credential boundaries</summary><p>Native login acknowledgment reports presence with validity unknown until actual use. Credential fields, browser URLs and device codes are never accepted through this webview. Resource links do not establish native discovery or authorize a future configuration write.</p></details>
+  </section>;
+}
+
+/** DEL-01-05 REQ-010: every setting the App applies to its own Codex when it starts it, with its reason. */
+export function CodexSessionSettings({ settings }: { settings: Json }) {
+  const rows: Json[] = Array.isArray(settings) ? settings.filter((row: Json) => typeof row?.setting === "string" && typeof row?.reason === "string") : [];
+  return <section aria-label="Settings the App applies to its Codex"><h3>Settings the App applies to its Codex</h3>
+    {!Array.isArray(settings) ? <p>Not available for this connection.</p> : rows.length === 0 ? <p>The App applies no settings of its own to Codex in this home.</p>
+      : <><p>The App starts Codex in this home with these settings and no others. They apply to the App's own Codex process only; your Codex files are not written.</p>
+        <ul>{rows.map((row: Json) => <li key={row.setting}><code>{row.setting}</code> — {row.reason}</li>)}</ul></>}
   </section>;
 }
 
@@ -1279,6 +1279,18 @@ const accessSettingSources: Record<string, string> = {
   sessionFlags: "Session overrides", legacyManagedConfigTomlFromFile: "Legacy managed configuration",
   legacyManagedConfigTomlFromMdm: "Legacy managed preferences",
 };
+/** Where Codex keeps a sign-in, in the person's words, from the credential store Codex reported; the
+ * value Codex gave stays in brackets. Nothing is inferred when Codex reported none. */
+export function signInKept(field: Json): string {
+  const value = field?.state === "reported" ? field?.value : undefined;
+  switch (value) {
+    case "file": return "in a file, auth.json, in this home's sign-in folder (file)";
+    case "keyring": return "in your Mac's keychain (keyring)";
+    case "auto": return "in your Mac's keychain where available, otherwise in a file, auth.json, in this home's sign-in folder (auto)";
+    case "ephemeral": return "not kept after Codex stops (ephemeral)";
+    default: return "Codex did not report it";
+  }
+}
 export function EffectiveAccessSettingsPanel({ host, navigating, refresh }: { host: Json; navigating: boolean; refresh: (isCurrent: () => boolean) => Promise<Json> }) {
   const scopeOf = (snapshot: Json) => JSON.stringify([snapshot?.homeRouting?.activeModeHomeClass, snapshot?.generation, snapshot?.currentAppProjectContext ?? null, snapshot?.state, snapshot?.generationClosed]);
   const context = useRef({ key: "", epoch: 0, host });
@@ -1322,8 +1334,8 @@ export function EffectiveAccessSettingsPanel({ host, navigating, refresh }: { ho
         || (context.current.host?.accessSettingsReadRevision !== original.accessSettingsReadRevision
           && context.current.host?.accessSettingsReadRevision !== packet.scope.readRevision)) return;
       setObservation({ packet, epoch, sequence: attempt });
-    } catch {
-      if (current()) setError("Effective access settings unavailable; private diagnostic withheld. Read again from the current Codex source.");
+    } catch (error) {
+      if (current()) setError(readingSentence(error) ?? "Effective access settings unavailable; private diagnostic withheld. Read again from the current Codex source.");
     } finally { pending.current = false; if (mounted.current) setReading(false); }
   };
   const current = ready && observation?.epoch === epoch && observation.sequence === sequence.current
@@ -1341,8 +1353,13 @@ export function EffectiveAccessSettingsPanel({ host, navigating, refresh }: { ho
     <button disabled={!ready || reading} onClick={read}>Read effective storage and plugin settings</button>
     {reading && <p role="status">Reading the selected Codex source…</p>}
     {current ? <div role="status">
+      <p aria-label="Where your sign-in is kept"><strong>Where your sign-in is kept:</strong> {signInKept(observation.packet.credentialStore)}, as Codex reported it for this launch.</p>
       {row("Credential storage", observation.packet.credentialStore, true)}
       {row("Plugins", observation.packet.plugins, false)}
+      {host.homeRouting.activeModeHomeClass === "account" && (observation.packet.personDefaultProvider?.state === "reported" && observation.packet.personDefaultProvider.value !== "openai"
+        ? <p><strong>Default provider in your Codex settings:</strong> <code>{String(observation.packet.personDefaultProvider.value)}</code>. It is not used in this home, where the App starts Codex on its built-in OpenAI provider.</p>
+        : observation.packet.personDefaultProvider?.state === "none" || observation.packet.personDefaultProvider?.state === "reported" ? <p><strong>Default provider in your Codex settings:</strong> {observation.packet.personDefaultProvider.state === "none" ? "none named" : "the built-in OpenAI provider"}.</p>
+        : <p><strong>Default provider in your Codex settings:</strong> Unknown / not established.</p>)}
       <p>Read from the selected {host.homeRouting.activeModeHomeClass} home’s current Codex process. A source category is shown only when its reported origin matches an enabled layer and that layer reports the same setting.</p>
     </div> : <p>No current settings observation. An earlier reading is not reused after a source change or a newer configuration read.</p>}
     {error && !current && <p role="alert">{error}</p>}
@@ -1374,19 +1391,20 @@ export function AttachmentSelectionPanel({ data, act }: { data: Json; act: (comm
     {data?.operation?.state === "draft-prefilled-not-sent" && <div role="status"><p>Draft {data.operation.draft?.name} added ({data.operation.added} files). {data.operation.standing}</p>
       {(data.operation.notAttached ?? []).length > 0 && <ul role="alert" aria-label="Draft files not attached">{data.operation.notAttached.map((f: Json) => <li key={f.path}>Not attached: {f.path} ({f.bytes} bytes) — {f.reason}</li>)}</ul>}</div>}
     {rows.map((row, index) => <article key={row.selection.selectionRef} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
-      <h3>{index + 1}. {row.selection.displayName} · {row.selection.standing}</h3>
+      <h3>Selected attachment {index + 1}</h3>
+      <p>Name: <AgentText value={row.selection.displayName} source="record" name="The selected file's name, as recorded; the App does not vouch for its words" /> · standing: <AgentText value={row.selection.standing} source="record" name="The selection's standing, as the host recorded it; the App does not vouch for its words" /></p>
       {row.selection.draft && <p>draft {row.selection.draft.name} at content {String(row.selection.draft.content?.value ?? "").slice(0, 12)} — not a registered workflow; this conversation is not a workflow run.</p>}
       <p>{row.selection.displayPath} · carrier: {row.selection.carrier}.</p>
-      <pre>{JSON.stringify(readablePaths({ selectionRef: row.selection.selectionRef, nativePath: row.selection.nativePath, identityAtSelection: row.selection.identityAtSelection, draft: row.selection.draft }), null, 2)}</pre>
+      <RecordedData value={readablePaths({ selectionRef: row.selection.selectionRef, nativePath: row.selection.nativePath, identityAtSelection: row.selection.identityAtSelection, draft: row.selection.draft })} />
       <button disabled={busy || index === 0} onClick={() => move(index, -1)}>Move earlier</button>{" "}
       <button disabled={busy || index === rows.length - 1} onClick={() => move(index, 1)}>Move later</button>{" "}
       <button disabled={busy} onClick={() => invokeAction("remove_attachment", { selectionRef: row.selection.selectionRef })}>Remove</button>{" "}
       <button disabled={busy || !!row.selection.draft} onClick={() => invokeAction("reconfirm_attachment", { selectionRef: row.selection.selectionRef })}>Confirm current source…</button>
       {row.selection.draft && <small> A pre-filled draft file keeps the content it was read with; if the draft changed, remove its files and Try again.</small>}
     </article>)}
-    <details><summary>Explicit App project observation and source limits</summary><pre>{JSON.stringify(data?.launchAppProjectObservation, null, 2)}</pre></details>
+    <details><summary>Explicit App project observation and source limits</summary><RecordedData value={data?.launchAppProjectObservation} /></details>
     <p>{data?.workflowRun}</p><p>{data?.submissionStanding}</p><p>{data?.custody}</p>
-    {(data?.submissions ?? []).map((submission: Json) => <article key={submission.submissionRef}><h3>Submission {submission.submissionRef} · {submission.state}</h3><p>Frozen App context and native source outcome are distinct; native turn identity is used only when Core supplies a matching reference.</p><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(submission, null, 2)}</pre></article>)}
+    {(data?.submissions ?? []).map((submission: Json) => <article key={submission.submissionRef}><h3>Submission {idWords(submission.submissionRef)}</h3><p>State: <AgentText value={submission.state} source="record" name="The submission's state, as the host recorded it; the App does not vouch for its words" /></p><p>Frozen App context and native source outcome are distinct; native turn identity is used only when Core supplies a matching reference.</p><RecordedData value={submission} /></article>)}
     <p>Plain-text controls remain available independently. Workflow-run prefix/draft association and provider uptake require their owning evidence.</p>
   </section>;
 }
@@ -1410,22 +1428,23 @@ export function TraceReceivingPanel({ data, currentContext, select }: { data: Js
     <button disabled={!record || !evidence || busy} onClick={choose}>Select supplied record…</button>
     <p>Selection: {data?.selection?.state ?? "not selected"} {data?.selection?.reason}</p>
     {busy && <p>Waiting for native selection and one source read.</p>}{error && <p role="alert">{error}</p>}
-    <details><summary>Current App-observed context, separate from imported records</summary><p>This context never fills an imported subject, configuration, date or host origin. App executable identity is not established by this selector.</p><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(currentContext, null, 2)}</pre></details>
+    <details><summary>Current App-observed context, separate from imported records</summary><p>This context never fills an imported subject, configuration, date or host origin. App executable identity is not established by this selector.</p><RecordedData value={currentContext} /></details>
     {(data?.receiving?.imports ?? []).map((imported: Json, index: number) => <article key={index} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
-      <h3>Import {index + 1} · {imported.recordKind} · {imported.assessment}</h3>
+      <h3>Import {index + 1}</h3>
+      <p>Record kind: <AgentText value={imported.recordKind} source="record" name="The imported record's kind, as recorded; the App does not vouch for its words" /> · assessment: <AgentText value={imported.assessment} source="record" name="The host's assessment of the import, as recorded; the App does not vouch for its words" /></p>
       <p>Declared evidence category: {imported.declaredEvidenceCategory}. {imported.source?.sourceStanding}</p>
       {imported.reason && <p>Receiving limit: {imported.reason}</p>}
       <p>Selected source: {imported.source?.displayPath} · read: {imported.source?.readState} · {imported.source?.identityScope}</p>
       {imported.source?.pathDisplayLimit && <p>Path display limit: {imported.source.pathDisplayLimit}</p>}
-      <details><summary>Exact native path and observed input-buffer identity</summary><pre>{JSON.stringify({ selectedPath: imported.source?.selectedPath, bufferIdentity: imported.source?.bufferIdentity, readMechanism: imported.source?.readMechanism, reason: imported.source?.reason }, null, 2)}</pre></details>
+      <details><summary>Exact native path and observed input-buffer identity</summary><RecordedData value={{ selectedPath: imported.source?.selectedPath, bufferIdentity: imported.source?.bufferIdentity, readMechanism: imported.source?.readMechanism, reason: imported.source?.reason }} /></details>
       {imported.suppliedBasis ? <div>
-        <h4>Full declared subject and configuration (unverified)</h4><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify({ subject: imported.suppliedBasis.subject, configuration: imported.suppliedBasis.configuration, case: imported.suppliedBasis.case }, null, 2)}</pre>
+        <h4>Full declared subject and configuration (unverified)</h4><RecordedData value={{ subject: imported.suppliedBasis.subject, configuration: imported.suppliedBasis.configuration, case: imported.suppliedBasis.case }} />
         <p>{imported.suppliedBasis.date?.source === "stated_by_person" ? "Person-stated date (unverified)" : "Record-declared date/source (unverified)"}: {JSON.stringify(imported.suppliedBasis.date)}.</p>
-        <details><summary>Complete supplied basis and source reference</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(imported.suppliedBasis, null, 2)}</pre></details>
+        <details><summary>Complete supplied basis and source reference</summary><RecordedData value={imported.suppliedBasis} /></details>
       </div> : <p>No complete candidate/configuration/date basis is bound. Original facts remain available; no previous import's basis is inherited.</p>}
       <p>Current executable: {imported.currentExecutableIdentity} · native examination: {imported.nativeExamination} · host origin: {imported.hostOrigin}. {imported.semanticAssessment}</p>
-      <details><summary>Full original supplied document and account/refusal facts</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify({ originalDocument: imported.originalDocument, account: imported.account }, null, 2)}</pre></details>
-      <details><summary>Exact original source bytes (memory only)</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(imported.source?.originalBytes)}</pre></details>
+      <details><summary>Full original supplied document and account/refusal facts</summary><RecordedData value={{ originalDocument: imported.originalDocument, account: imported.account }} /></details>
+      <details><summary>Exact original source bytes (memory only)</summary><AgentText block value={JSON.stringify(imported.source?.originalBytes)} source="record" /></details>
       <p>EXM-24 witness count: {String(imported.countsTowardV4Exm24)} · EXM-25 witness count: {String(imported.countsTowardV4Exm25)} · {imported.oi003} · {imported.hostJoin}.</p>
     </article>)}
     <p>These imports supply no EXM-24/EXM-25 joined witness. OI-003 remains unresolved; external-host join remains deferred under DECISION-3.</p>
@@ -1446,7 +1465,7 @@ export function DecisionPackagesPanel({ view, name, setName, recordName, refresh
     {decision.currentContentComparison && <p>Current file comparison: {JSON.stringify(decision.currentContentComparison)}. This describes current bytes separately from past lapse history.</p>}
     {decision.historyResolution && <p>Recorded lapse history resolution: {JSON.stringify(decision.historyResolution)}.</p>}
     {decision.historyIncomplete && <p>Recorded history is incomplete; unresolved observations remain in the source details below.</p>}
-    <details><summary>Scoped record sources, correction/lapse history and provenance</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(decision, null, 2)}</pre></details>
+    <details><summary>Scoped record sources, correction/lapse history and provenance</summary><RecordedData value={decision} /></details>
   </>;
   return <section>
     <h2>Decision packages</h2>
@@ -1458,20 +1477,48 @@ export function DecisionPackagesPanel({ view, name, setName, recordName, refresh
     <p>Last writer continuation: {writer?.trigger ?? "not run"} · {writer?.state ?? "not run"} · new requests recorded: {writer?.requestsRecordedNow ?? 0}.</p>
     {(writer?.captureRecovery ?? []).filter((r: Json) => r.state !== "AC-7 recorded" || r.backlinkPending || r.delayEvidencePending).map((r: Json, i: number) => <p key={i}>Capture: {r.state} · {r.statusDetail ?? r.writeFailure ?? r.backlinkFailure ?? r.delayEvidenceFailure ?? r.captureDurability}</p>)}
     {(writer?.limits ?? []).map((limit: string, index: number) => <p key={index}>Writer limit: {limit}</p>)}
-    {(view?.rows ?? []).map((row: Json) => <article key={row.package} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
-      <h3>{row.package} — {row.actRequested} — {row.state}</h3>
+    {(view?.rows ?? []).map((row: Json) => <article key={row.package} id={typeof row.package === "string" ? decisionPackageAnchor(row.package) : undefined} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
+      <h3>Decision package {idWords(row.package)}</h3>
+      <p>Act requested: <AgentText value={row.actRequested} source="file" name="The act the decision package requests, as the package states it, not the App's words" /> · state: <AgentText value={row.state} source="record" name="The package's state, as the host recorded it; the App does not vouch for its words" /></p>
       <p>Request resolution: {row.requestResolution ?? "not reported"}. Recorded request sources: {JSON.stringify(row.requestSources ?? [])}.</p>
       {row.state === "unresolvable request identity" && <p>The recorded request identity conflicts. No current request or act is selected by this view; existing package and record admission checks remain in force.</p>}
       <p>Subject: {(row.subject ?? []).join("; ")} · Purpose: {row.purpose} · Scope: {row.scope ?? "—"} · File: {row.packageFile}</p>
       <ul>{(row.alternatives ?? []).map((a: Json) => <li key={a.id}><b>{a.id}</b> {a.statement} — {(a.consequences ?? []).join("; ")}</li>)}</ul>
       {row.state === "ambiguous current standing" && <p>Current recorded standing is ambiguous. No current act is selected from these claims; this row does not establish a pending human act. The act control retains its current package and offer checks.</p>}
       {row.decision && claim(row.decision)}
-      {(row.contenders ?? []).length > 0 && <div><h4>Recorded contenders</h4>{row.contenders.map((contender: Json) => <article key={contender.act}><h5>{contender.act}</h5>{claim(contender)}</article>)}</div>}
+      {(row.contenders ?? []).length > 0 && <div><h4>Recorded contenders</h4>{row.contenders.map((contender: Json) => <article key={contender.act}><h5>Recorded contender</h5><p>Act: <AgentText value={contender.act} source="record" name="A contending act, as recorded; the App does not vouch for its words" /></p>{claim(contender)}</article>)}</div>}
       {row.currentCandidates && <p>Current recorded candidates: {row.currentCandidates.join(", ") || "none established"}.</p>}
       {(row.limits ?? []).length > 0 && <p>Limits: {row.limits.join(" | ")}</p>}
       <button onClick={() => openControl(row.package)}>Open act control (decide)</button>
     </article>)}
+    {(view?.historyNotices ?? []).map((notice:string,i:number)=><p role="note" key={`history-${i}`}>{notice}</p>)}
     {(view?.limits ?? []).length > 0 && <p>View limits: {view.limits.join(" | ")}</p>}
+  </section>;
+}
+
+/**
+ * Where the App's first read of its host state stands: "reading" before any status read has been
+ * applied and none has failed; "failed" when one has failed and none has been applied since; "read"
+ * once one has been applied. A read that fails after one was applied leaves "read": the person keeps
+ * what is shown, and the guides say their last read failed (hostReads.ts).
+ */
+export function firstReadState(reads: { applied: number; failure: string | null }): "reading" | "failed" | "read" {
+  return reads.applied > 0 ? "read" : reads.failure ? "failed" : "reading";
+}
+
+/** How long after launch, with no status read applied and none failed, the starting line says the App is
+ * taking longer than usual (App Agent 0's number). The status timer starts a new read every POLL_MS whether
+ * or not an earlier one has been answered, so the App is still trying while a read hangs. */
+export const FIRST_READ_PATIENCE_MS = 10_000;
+
+/** What stands in for the welcome and the workspace until the first status read is applied. The read's
+ * own diagnostic is not shown: hostReads drops it at the source, so no status read's raw text is rendered. */
+function FirstReadStatus({ failed, slow, retry }: { failed: boolean; slow: boolean; retry: () => void }) {
+  if (!failed && !slow) return <p role="status">Starting Chirality…</p>;
+  return <section aria-label="Chirality could not start">
+    {failed ? <p role="alert">Chirality could not read its own state. It keeps trying; you can also try again now.</p>
+      : <p role="status">Chirality is taking longer than usual to start. It keeps trying; you can also try again now.</p>}
+    <p><button onClick={retry}>Try again</button></p>
   </section>;
 }
 
@@ -1479,12 +1526,35 @@ export function App() {
   const [fleet, setFleet] = useState<FleetPacket | null>(null);
   const [fleetError, setFleetError] = useState("");
   const [fleetBusy, setFleetBusy] = useState(false);
+  // "Waiting on you" keeps its own last good fleet packet, with when its read
+  // started, and whether a later read of any route failed (and when it
+  // started): while the latest read has failed, the list shows this last
+  // successful packet as last read, uncounted. The panel keeps its own behaviour. A read started
+  // later wins over one that answers late, so an older reply never replaces a
+  // newer failed or limited one.
+  const [waitingFleet, setWaitingFleet] = useState<{ packet: FleetPacket; at: number } | null>(null);
+  const [fleetAutoFailure, setFleetAutoFailure] = useState<{ message: string; at: number } | null>(null);
+  const fleetSequence = useRef(0);
   const refreshFleet = async () => {
+    const sequence = ++fleetSequence.current; const at = Date.now();
     setFleetBusy(true); setFleetError("");
-    try { setFleet(await readFleetPacket(command => invoke<FleetPacket>(command))); }
-    catch (error) { setFleet(null); setFleetError(String(error)); }
+    try { const packet = await readFleetPacket(command => invoke<FleetPacket>(command)); if (sequence === fleetSequence.current) { setFleet(packet); setWaitingFleet({ packet, at }); setFleetAutoFailure(null); } }
+    catch (error) { if (sequence === fleetSequence.current) { setFleet(null); setFleetError(String(error)); setFleetAutoFailure({ message: String(error), at }); } }
     finally { setFleetBusy(false); }
   };
+  // The return-review queue is read every WAITING_SOURCE_POLL_MS, each time the
+  // person opens "Waiting on you", and by hand in its panel. Opening the list and
+  // the panel's button are the person's presses and go through `invoke`, so they
+  // mark; the timer goes through `invokeTimedRead` (PRESSED_AND_TIMED_READS in
+  // hostReads.ts), so a read the App issues by itself never marks. A read that
+  // fails keeps the packet, with its time, and the list shows it as last read, uncounted.
+  const readFleetForWaiting = async (route: (command: string) => Promise<FleetPacket>) => {
+    const sequence = ++fleetSequence.current; const at = Date.now();
+    try { const packet = await readFleetPacket(route); if (sequence === fleetSequence.current) { setFleet(packet); setWaitingFleet({ packet, at }); setFleetError(""); setFleetAutoFailure(null); } }
+    catch (error) { if (sequence === fleetSequence.current) setFleetAutoFailure({ message: String(error), at }); }
+  };
+  const readFleetOnOpen = () => readFleetForWaiting(command => invoke<FleetPacket>(command));
+  const readFleetOnTimer = useRef(() => readFleetForWaiting(command => invokeTimedRead<FleetPacket>(command)));
   const [routeRead, setRouteRead] = useState<RouteReadState>(emptyRouteRead);
   const readRoutes = async () => {
     setRouteRead(s => routeReadTransition(s, {type: "start"}));
@@ -1495,7 +1565,11 @@ export function App() {
       setRouteRead(s => routeReadTransition(s, {type: "failure", error: String(error)}));
     }
   };
-  const [host, setHost] = useState<Json>(null);
+  // Every status read is numbered when it starts and applied only if newer than the one shown (hostReads.ts).
+  const { host, hostReads, readHost, applyHost } = useOrderedHost();
+  // Whether FIRST_READ_PATIENCE_MS has passed since launch; it only changes what the not-yet-read state says.
+  const [firstReadSlow, setFirstReadSlow] = useState(false);
+  useEffect(() => { const t = setTimeout(() => setFirstReadSlow(true), FIRST_READ_PATIENCE_MS); return () => clearTimeout(t); }, []);
   // Safe reply observations outlive a card's move between the selected chat
   // and other requests. They are transient App UI facts, never register rows.
   const [replyObservations, setReplyObservations] = useState<Record<string, RequestReplyObservation>>({});
@@ -1515,6 +1589,25 @@ export function App() {
     revealWorkspaceTarget("file-acts");
   };
   const [view, setView] = useState<Json>(null);
+  // "Waiting on you" keeps the last good decision view, with when its read
+  // started, and whether a later read failed (and when it started). Every path reads decision_view through
+  // readDecisions, numbered when it starts: a reply applies only if no later read
+  // has started, so an older reply never restores a package a newer read showed
+  // decided. `apply` lets a caller drop a reply its own source no longer wants.
+  const [waitingDecisions, setWaitingDecisions] = useState<{ view: Json; at: number } | null>(null);
+  const [decisionsFailure, setDecisionsFailure] = useState<{ message: string; at: number } | null>(null);
+  const decisionSequence = useRef(0);
+  const readDecisions = useCallback(async (apply: () => boolean = () => true) => {
+    const sequence = ++decisionSequence.current; const at = Date.now();
+    const latest = () => sequence === decisionSequence.current && apply();
+    try {
+      const decision: Json = await invoke("decision_view");
+      if (!latest()) return;
+      setView(decision);
+      if (decision && !decision.error) { setWaitingDecisions({ view: decision, at }); setDecisionsFailure(null); }
+      else setDecisionsFailure({ message: String(decision?.error ?? "no decision view"), at });
+    } catch (e) { if (latest()) { setView({ error: String(e) }); setDecisionsFailure({ message: String(e), at }); } }
+  }, []);
   const [offer, setOffer] = useState<Json>(null);
   const [choice, setChoice] = useState<string>("");
   const [name, setName] = useState<string>("");
@@ -1628,7 +1721,7 @@ export function App() {
       if (!validModelPacket(packet, original.generation, mode)) throw Error("the reply was not a model list for this Codex source");
       setModelObservation({ packet, source, epoch, sequence });
     } catch (error) {
-      if (current()) setModelObservationMessage(`Model list unavailable: ${error instanceof Error ? error.message : String(error)}. You can still enter a model ID under “Advanced: enter IDs yourself”.`);
+      if (current()) setModelObservationMessage(`Model list unavailable: ${error instanceof Error ? error.message : String(error)}. You can still enter a model ID under “Advanced: enter a model ID yourself”.`);
     } finally {
       modelReadPending.current = false; setModelReading(false);
     }
@@ -1677,12 +1770,12 @@ export function App() {
         || JSON.stringify(packet.scope?.generation) !== JSON.stringify(currentHost.current.generation)
         || JSON.stringify(packet.scope?.projectContext) !== JSON.stringify(currentHost.current.currentAppProjectContext ?? null)
         || typeof packet.scope?.cwd !== "string" || typeof packet.scope?.readRevision !== "string") throw Error("Unavailable endpoint offer");
-      const latest: Json = await invoke("host_status");
-      if (!current() || providerSource(latest) !== editor.source || latest.configuredProviderReadRevision !== packet.scope.readRevision) return;
-      setHost(latest);
+      const latestRead = await readHost(invoke<Json>("host_status")); const latest: Json = latestRead.snapshot;
+      if (!current() || providerSource(latest) !== editor.source || latest.providerOfferReadRevision !== packet.scope.readRevision) return;
+      applyHost(latestRead);
       updateEndpointEditor({ ...editor, offer: packet, message: "Review the exact endpoint change. Saving opens two separate native decisions." });
-    } catch {
-      if (current()) updateEndpointEditor({ ...editor, offer: null, message: "Endpoint edit unavailable; private values and diagnostics withheld. Manual conversation choices remain independent." });
+    } catch (error) {
+      if (current()) updateEndpointEditor({ ...editor, offer: null, message: readingSentence(error) ?? "Endpoint edit unavailable; private values and diagnostics withheld. Manual conversation choices remain independent." });
     } finally { if (operation === endpointOperation.current) { endpointBusyRef.current = false; setEndpointBusy(false); } }
   };
   const saveEndpoint = async () => {
@@ -1702,8 +1795,12 @@ export function App() {
         "overridden": "Write observed with an override reported; the current source has not been continued.",
         "continued": "Endpoint write and current source continuation observed. Current choices and drafts stay unchanged.",
       };
-      updateEndpointEditor({ ...editor, offer: null, message: messages[outcome?.state] ?? "Endpoint change outcome unavailable; no automatic retry." });
-      const latest: Json = await invoke("host_status"); if (current() && providerSource(latest) === editor.source) setHost(latest);
+      // A reading again after the write that was not sent: the write's outcome first, then why.
+      updateEndpointEditor({ ...editor, offer: null, message: readingAfterWrite(outcome?.message) ?? messages[outcome?.state] ?? "Endpoint change outcome unavailable; no automatic retry." });
+      // A refresh cannot revoke the save outcome already received; its failure is withheld.
+      try {
+        const latestRead = await readHost(invoke<Json>("host_status")); const latest: Json = latestRead.snapshot; if (current() && providerSource(latest) === editor.source) applyHost(latestRead);
+      } catch { /* Retain the known save outcome; private refresh diagnostics withheld. */ }
     } catch { if (current()) updateEndpointEditor({ ...editor, offer: null, message: "Endpoint change unavailable. No automatic retry; a write may already have occurred." }); }
     finally { if (operation === endpointOperation.current) { endpointBusyRef.current = false; setEndpointBusy(false); } }
   };
@@ -1730,10 +1827,10 @@ export function App() {
       if (packet?.kind !== "add-provider" || typeof packet.token !== "string" || packet.providerId !== editor.id || packet.submittedName !== editor.name || packet.endpoint !== editor.endpoint
         || packet.wireApi !== "responses" || packet.requiresOpenaiAuth !== false || JSON.stringify(packet.scope?.generation) !== JSON.stringify(currentHost.current.generation)
         || JSON.stringify(packet.scope?.projectContext) !== JSON.stringify(currentHost.current.currentAppProjectContext ?? null) || typeof packet.scope?.cwd !== "string" || typeof packet.scope?.readRevision !== "string") throw Error("Add offer unavailable");
-      const latest: Json = await invoke("host_status");
-      if (!current() || providerSource(latest) !== editor.source || latest.configuredProviderReadRevision !== packet.scope.readRevision) return;
-      setHost(latest); updateEndpointEditor({ ...editor, offer: packet, message: "Review exactly this submitted definition. Adding opens two separate native decisions." });
-    } catch { if (current()) updateEndpointEditor({ ...editor, offer: null, message: "Provider Add unavailable; absence or safe review could not be established. Private values and diagnostics withheld." }); }
+      const latestRead = await readHost(invoke<Json>("host_status")); const latest: Json = latestRead.snapshot;
+      if (!current() || providerSource(latest) !== editor.source || latest.providerOfferReadRevision !== packet.scope.readRevision) return;
+      applyHost(latestRead); updateEndpointEditor({ ...editor, offer: packet, message: "Review exactly this submitted definition. Adding opens two separate native decisions." });
+    } catch (error) { if (current()) updateEndpointEditor({ ...editor, offer: null, message: readingSentence(error) ?? "Provider Add unavailable; absence or safe review could not be established. Private values and diagnostics withheld." }); }
     finally { if (operation === endpointOperation.current) { endpointBusyRef.current = false; setEndpointBusy(false); } }
   };
   const saveProviderCreate = async () => {
@@ -1752,13 +1849,17 @@ export function App() {
         "overridden": "Provider addition write observed with an override reported; the current source has not been continued.",
         "continued": "Provider addition write and current source continuation observed. Read configured providers to see current rows. Your provider/model choice is unchanged.",
       };
-      updateEndpointEditor({ ...editor, offer: null, message: messages[outcome?.state] ?? "Provider Add outcome unavailable; no automatic retry." });
+      // A reading again after the write that was not sent: the write's outcome first, then why.
+      updateEndpointEditor({ ...editor, offer: null, message: readingAfterWrite(outcome?.message) ?? messages[outcome?.state] ?? "Provider Add outcome unavailable; no automatic retry." });
       // A refresh cannot revoke the factual save outcome already received.
       // Its failure also cannot attach an old outcome to a newer editor/source.
       try {
-        const latest: Json = await invoke("host_status"); if (current() && providerSource(latest) === editor.source) setHost(latest);
+        const latestRead = await readHost(invoke<Json>("host_status")); const latest: Json = latestRead.snapshot; if (current() && providerSource(latest) === editor.source) applyHost(latestRead);
       } catch { /* Retain the known save outcome; private refresh diagnostics withheld. */ }
-    } catch { if (current()) updateEndpointEditor({ ...editor, offer: null, message: "Provider Add unavailable; no automatic retry. Private diagnostics withheld." }); }
+    } catch (error) {
+      // Refused at the configuration reading before the write: nothing was written; that sentence alone.
+      if (current()) updateEndpointEditor({ ...editor, offer: null, message: readingSentence(error) ?? "Provider Add unavailable; no automatic retry. Private diagnostics withheld." });
+    }
     finally { if (operation === endpointOperation.current) { endpointBusyRef.current = false; setEndpointBusy(false); } }
   };
   const configuredRowChoiceStale = () => {
@@ -1791,15 +1892,21 @@ export function App() {
         && packet.rows.every((row: Json) => typeof row.id === "string" && /^[A-Za-z][A-Za-z0-9._-]{0,63}$/.test(row.id)
           && row.label === "Configured local provider" && typeof row.endpoint === "string" && row.wireApi === "responses");
       if (!valid) throw Error("unavailable projection");
-      const latest: Json = await invoke("host_status");
+      const latestRead = await readHost(invoke<Json>("host_status")); const latest: Json = latestRead.snapshot;
       if (!current() || providerSource(latest) !== source || latest?.state !== "ready" || latest?.generationClosed
         || latest?.configuredProviderReadRevision !== packet.scope.readRevision
         || (currentHost.current?.configuredProviderReadRevision !== original.configuredProviderReadRevision
           && currentHost.current?.configuredProviderReadRevision !== packet.scope.readRevision)) return;
-      setHost(latest);
+      applyHost(latestRead);
+      // A row chosen from an earlier read of this same source (home, Codex
+      // generation and project) stays chosen when this read still lists it;
+      // otherwise, and after a Codex restart, it stays retired.
+      const chosen = providerRowChoice.current, choice = choiceRef.current;
+      if (chosen && chosen.source === source && chosen.epoch === epoch && choice.modelProvider === chosen.id && choice.entryId === "local-provider"
+        && packet.rows.some((row: Json) => row.id === chosen.id)) providerRowChoice.current = { id: chosen.id, source, epoch, sequence, revision: packet.scope.readRevision };
       setProviderObservation({ packet, source, epoch, sequence });
-    } catch {
-      if (current()) setProviderObservationMessage("Configured provider observation unavailable; private diagnostic withheld. Manual explicit choices remain independent.");
+    } catch (error) {
+      if (current()) setProviderObservationMessage(readingSentence(error) ?? "Configured provider observation unavailable; private diagnostic withheld. Manual explicit choices remain independent.");
     } finally {
       providerReadPending.current = false; setProviderReading(false);
     }
@@ -1818,6 +1925,24 @@ export function App() {
   const fixedLocal = localRoute(localView, host);
   const entryCompatible = startEntries(host).some(entry => entry.value === entryId) && (homeClass === "account"
     || (homeClass === LOCAL_MODE && !!fixedLocal && model === fixedLocal.model && modelProvider === fixedLocal.providerId));
+  // Why the provider row chosen earlier no longer counts, and what restores it.
+  const rowChoiceNote = !rowChoiceStale ? "" : providerObservationCurrent
+    ? (providerObservation.packet.rows.some((row: Json) => row.id === modelProvider)
+      ? "The provider chosen in step 1 was chosen before Codex or the connection changed. Choose it again from the list."
+      : `The provider chosen in step 1 is not in the list just read. Choose a provider from the list, or enter one under “Advanced: enter IDs yourself”.`)
+    : providerReading ? "Reading configured local providers…"
+    : `The provider chosen in step 1 was chosen from a provider list that is now out of date. Read configured local providers again; if the choice is not kept, choose it again from the list.`;
+  // The first thing that keeps Start unavailable, in the order a person meets it.
+  const startBlocked = host?.state !== "ready" ? "Codex is not connected. Start it under Connection and access."
+    : startPending ? "Starting the conversation…"
+    : homePending ? "Changing the connection…"
+    : providerReading ? "Reading configured local providers…"
+    : endpointBusy ? "A provider change is in progress."
+    : !modelProvider.trim() ? "Choose how this conversation connects (step 1)."
+    : !model.trim() ? ("Choose a model (step 2).")
+    : !entryCompatible ? "This choice does not belong to the connection in use. Choose again in step 1."
+    : rowChoiceStale ? rowChoiceNote
+    : "";
   const [role, setRole] = useState<string>("");
   const [roleTouched, setRoleTouched] = useState(false);
   const [threadKey, updateThreadKey] = useState<string>("");
@@ -1905,11 +2030,11 @@ export function App() {
     try {
       // A current-pending navigation is just one observation. In particular it
       // never uses a prepare command's result or invokes a workflow operation.
-      const snapshot: Json = await invoke("host_status");
+      const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
       const limit = ticket.check() ?? (currentHost.current !== source ? "A newer host observation superseded this delayed read; open again from the current view." : null)
         ?? preparedMessageLimit(snapshot, item);
       if (limit) { refuse(limit); return; }
-      setHost(snapshot);
+      applyHost(snapshotRead);
       setThreadKey(conversationKey(findConversation(snapshot.threads, item.owner)));
       const revealRevision = threadChoiceRevision.current;
       const reveal: PreparedComposerReveal = { sequence, item,
@@ -1925,7 +2050,7 @@ export function App() {
         } };
       showView("conversation");
       setPreparedReveal(reveal);
-    } catch (error) { refuse(`The original view refresh failed: ${String(error)}. Open again from a current view.`); }
+    } catch (error) { refuse(`The original view refresh failed: ${observationLine(observationText(error), "")} Open again from a current view.`); }
     finally { if (preparedNavigation.current === ticket) preparedNavigation.current = null; }
   };
   const roleInitialized = useRef(false);
@@ -1938,22 +2063,18 @@ export function App() {
 
 
   const refresh = useCallback(async () => {
-    const snapshot: Json = await invoke("host_status");
-    setHost(snapshot);
-    try {
-      setView(await invoke("decision_view"));
-    } catch (e) {
-      setView({ error: String(e) });
-    }
+    const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
+    applyHost(snapshotRead);
+    await readDecisions();
     return snapshot;
-  }, []);
+  }, [readDecisions]);
 
   const refreshEffectiveAccessSettings = useCallback(async (isCurrent: () => boolean) => {
     const sourceAtRead = currentHost.current;
-    const snapshot: Json = await invoke("host_status");
+    const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
     // This explicit settings refresh cannot replace a newer App observation.
     // Other refresh and polling behavior keeps its existing semantics.
-    if (isCurrent() && currentHost.current === sourceAtRead) setHost(snapshot);
+    if (isCurrent() && currentHost.current === sourceAtRead) applyHost(snapshotRead);
     return snapshot;
   }, []);
 
@@ -1969,11 +2090,11 @@ export function App() {
     await invoke("read_home_access", { generation, modeHomeClass });
     if (!current()) return;
     const viewAtRead = currentHost.current;
-    const snapshot: Json = await invoke("host_status");
+    const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
     if (!current() || currentHost.current !== viewAtRead) return;
     // A current host_status may itself report a replacement source. It is a
     // new observation, never confirmation of the original account read.
-    setHost(snapshot);
+    applyHost(snapshotRead);
   }, []);
 
   const captureContinueNavigation = (generation: Json, historyCurrent: (history: Json) => boolean): ContinueNavigation => {
@@ -1993,19 +2114,17 @@ export function App() {
     return { isCurrent, observe: async () => {
       // The same two observer reads as refresh, bounded to this original
       // navigation's last-known source/intent. Shared refresh semantics stay put.
-      const snapshot: Json = await invoke("host_status");
-      if (isCurrent()) setHost(snapshot);
-      try {
-        const decision: Json = await invoke("decision_view");
-        if (isCurrent()) setView(decision);
-      } catch (e) { if (isCurrent()) setView({ error: String(e) }); }
+      const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
+      if (isCurrent()) applyHost(snapshotRead);
+      await readDecisions(isCurrent);
       return snapshot;
     } };
   };
 
   useEffect(() => {
-    refresh();
-    const t = setInterval(() => invoke("host_status").then(setHost).catch(e => setMessage(String(e))), 1000);
+    // A failed first read is shown by firstReadState; its rejection needs no other handler.
+    void refresh().catch(() => undefined);
+    const t = setInterval(() => refreshAfterAction(() => readHost(invoke<Json>("host_status")).then(applyHost), () => setMessage(withRefreshFailure)), POLL_MS);
     // RECOVERY SQ-W W-4, W-5: when the window is shown again after it was
     // closed (hidden; DEF-1), the view replaces what it rendered with the
     // host's current snapshot at once. Nothing is sent to Codex.
@@ -2014,6 +2133,18 @@ export function App() {
     return () => { clearInterval(t); document.removeEventListener("visibilitychange", shown); };
   }, [refresh]);
 
+  // "Waiting on you": every WAITING_SOURCE_POLL_MS the decision packages are read
+  // again through the command their panel uses, a read the web view already
+  // issues by itself (SELF_ISSUED_QUIET), and the return-review queue through the
+  // timed-read route. A read that fails keeps what is shown, with its time.
+  useEffect(() => {
+    const t = setInterval(() => {
+      void readDecisions();
+      void readFleetOnTimer.current();
+    }, WAITING_SOURCE_POLL_MS);
+    return () => clearInterval(t);
+  }, []);
+
   const act = async (cmd: string, args?: Record<string, unknown>) => {
     try {
       const r: Json = await invoke(cmd, args);
@@ -2021,7 +2152,9 @@ export function App() {
     } catch (e) {
       setMessage(`${cmd}: ${String(e)}`);
     }
-    await refresh();
+    // The command's own message stands and the act resolves: a failed refresh adds the fixed line
+    // once and never stops what a caller does after it (decide closes its offer).
+    await refreshAfterAction(refresh, () => setMessage(withRefreshFailure));
   };
   // A local Start is bound to the current fixed route of this exact ready generation.
   const localStartBound = (submitted: { model: string; modelProvider: string; entryId: string }, source: Json) => {
@@ -2062,8 +2195,7 @@ export function App() {
     } finally {
       startPendingRef.current = false;
       setStartPending(false);
-      try { await refresh(); }
-      catch (error) { setMessage(previous => `${previous}; current host view unavailable: ${String(error)}`); }
+      await refreshAfterAction(refresh, () => setMessage(withRefreshFailure));
     }
   };
   // Keyed oMLX: one local command at a time. Its view is shown only while it
@@ -2088,17 +2220,25 @@ export function App() {
       // A refusal (including an administrator configuration Codex reads above
       // the App's settings) supplies no key state; an earlier view is withdrawn.
       setLocalView(null); setLocalMessage({ kind: "alert", text: `${what} did not complete: ${String(error)}` });
+      // Refused at a reading, before native began the entry: it can be offered again.
+      if (generation && readingSentence(error)) { const key = generationKey(generation); forgetAttemptedLocalEntry(key); setLocalAttempted(previous => previous.filter(item => item !== key)); }
     }
     finally {
       // The latch is held through this refresh, which cannot replace a newer
       // observation or home navigation that arrived while it was read.
-      try { await refreshEffectiveAccessSettings(() => sequence === localSequence.current && !homePendingRef.current); }
-      catch (error) { setLocalMessage(previous => ({ kind: "alert", text: `${previous ? `${previous.text} ` : ""}Current view unavailable: ${String(error)}` })); }
+      try {
+        await refreshAfterAction(() => refreshEffectiveAccessSettings(() => sequence === localSequence.current && !homePendingRef.current),
+          () => setLocalMessage(previous => ({ kind: "alert", text: withRefreshFailure(previous?.text) })));
+      }
       finally { localPendingRef.current = false; setLocalPending(false); }
     }
   };
   const localAccess: LocalAccess = { view: localView, attempted: localAttempted, pending: localPending, message: localMessage,
-    prepare: () => { void localCommand("prepare_local_provider"); }, enterKey: generation => { void localCommand("submit_local_provider_key", generation); } };
+    prepare: () => { void localCommand("prepare_local_provider"); }, enterKey: generation => { void localCommand("submit_local_provider_key", generation); },
+    // A settings save, or one whose outcome is not established, can change the route and the key
+    // state: what was shown is withdrawn (and any chosen local route with it) until it is read again.
+    settingsTouched: () => { localSequence.current++; setLocalView(null);
+      setLocalMessage({ kind: "status", text: "The local model settings were saved or their save did not complete. The connection and key state shown before are withdrawn; prepare the oMLX connection again to read them." }); } };
   const homeAction = async (command: string, args: Record<string, unknown>) => {
     const navigating = command === "select_home" || command === "open_waiting_requests";
     if (navigating) {
@@ -2112,7 +2252,13 @@ export function App() {
         reviseChoice(emptyConversationChoice);
       }
     }
-    try { const result: Json = await invoke(command, args); const snapshot = await refresh(); return { result, snapshot }; }
+    try {
+      const result: Json = await invoke(command, args);
+      // The command's outcome stands: a refresh that fails after it does not make the command look
+      // failed. It adds the fixed line once to the App line, nothing raw, and gives no snapshot.
+      const snapshot: Json = await refreshAfterAction(refresh, () => setMessage(withRefreshFailure));
+      return { result, snapshot };
+    }
     finally { if (navigating) { homePendingRef.current = false; setHomePending(false); } }
   };
   // Start / Stop / Restart Codex: one at a time; the host asks first for Stop and Restart.
@@ -2125,8 +2271,9 @@ export function App() {
     } catch (e) {
       setMessage(`${cmd}: ${String(e)}`);
     } finally {
+      // The outcome and the busy state are set first; a failed refresh adds the fixed line once.
       setProcessBusy(false);
-      await refresh();
+      await refreshAfterAction(refresh, () => setMessage(withRefreshFailure));
     }
   };
 
@@ -2135,11 +2282,11 @@ export function App() {
   const observeOrdinaryView = async (request: OrdinaryTextRequest, isCurrent: () => boolean) => {
     const viewAtRead = currentHost.current;
     if (!isCurrent() || !sameActivityGeneration(viewAtRead?.generation, request.generation)) throw new Error("The original conversation/source was superseded; its view was not applied");
-    const snapshot = await invoke<Json>("host_status");
+    const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
     if (!isCurrent() || currentHost.current !== viewAtRead || !sameActivityGeneration(currentHost.current?.generation, request.generation) || !sameActivityGeneration(snapshot?.generation, request.generation)) {
       throw new Error("A newer conversation/source observation superseded this original refresh; its view was not applied");
     }
-    setHost(snapshot);
+    applyHost(snapshotRead);
   };
   const conversationAction = async (command: "conversation_steer_text" | "conversation_interrupt", args: Record<string, unknown>): Promise<boolean> => {
     // Capture before native dispatch, not after it. Epochs also invalidate an
@@ -2160,12 +2307,12 @@ export function App() {
     setConversationOutcome(outcome);
     try {
       if (!current() || currentHost.current !== sourceAtDispatch) throw new Error("Original view refresh superseded before reading; no old snapshot was applied");
-      const snapshot = await invoke<Json>("host_status");
+      const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
       if (!current() || currentHost.current !== sourceAtDispatch || !sameActivityGeneration(snapshot?.generation, args.generation)) {
         throw new Error("Original view refresh superseded while reading; no old snapshot was applied");
       }
-      setHost(snapshot);
-    } catch (e) { setConversationOutcome({ ...outcome, observationLimit: String(e) }); }
+      applyHost(snapshotRead);
+    } catch (e) { setConversationOutcome({ ...outcome, observationLimit: observationText(e) }); }
     // A refusal never clears text. A skipped/failed read never rewrites the
     // native result, and a superseded acknowledgment never clears a new owner.
     return acknowledged && current();
@@ -2220,7 +2367,8 @@ export function App() {
     return operation;
   };
   // WI-3: opening a conversation from the indicator shows its cards; it answers nothing.
-  const openRequests = async (group: WaitingRequestGroup) => {
+  // `anchor`: the one request card to land on ("Waiting on you"); without it, its section.
+  const openRequests = async (group: WaitingRequestGroup, anchor: string | null = null) => {
     if (homePendingRef.current) return;
     const revision = threadChoiceRevision.current;
     const viewAtIntent = currentHost.current;
@@ -2231,6 +2379,8 @@ export function App() {
       const opened = await homeAction("open_waiting_requests", { modeHomeClass: group.modeHomeClass, generation: group.generation, threadId: group.threadId });
       if (!opened) return;
       const { result, snapshot } = opened;
+      // No status was read after the command: the fixed line is shown; nothing is navigated.
+      if (snapshot === undefined) return;
       const same = (a: Json, b: Json) => JSON.stringify(a) === JSON.stringify(b);
       // React may batch the new snapshot until this callback finishes. Use it
       // when no newer view rendered; otherwise the newer rendered source wins.
@@ -2241,6 +2391,11 @@ export function App() {
         setMessage("Waiting-request navigation superseded or its original source is no longer current; refresh the overview."); return;
       }
       const current = result.threadLoaded && (snapshot.threads ?? []).find((t: Json) => t.threadId === group.threadId && same(t.generation, group.generation));
+      if (anchor) {
+        flushSync(() => setThreadKey(current ? JSON.stringify([current.generation, current.threadId]) : ""));
+        revealWorkspaceTarget(document.getElementById?.(anchor) ? anchor : current ? "conversation" : "other-requests", true);
+        return;
+      }
       setThreadKey(current ? JSON.stringify([current.generation, current.threadId]) : "");
       revealWorkspaceTarget(current ? "conversation" : "other-requests");
     } catch (error) { setMessage(`Waiting-request navigation: ${String(error)}`); }
@@ -2281,14 +2436,14 @@ export function App() {
         setMessage(`Fork ${target.threadId} was admitted as a same-role copy from conversation ${sourceThread} in the original ${scope.modeHomeClass} home. ${current ? "Reading its original source view." : "Navigation was superseded; no switch was made."} Record publication remains separate.`);
         if (current) setPendingFork({ ...scope, ...target });
       }
-    } catch (error) { if (forkContextCurrent(scope, currentHost.current)) setMessage(`Fork outcome is not confirmed: ${String(error)}`); }
+    } catch (error) { if (forkContextCurrent(scope, currentHost.current)) setMessage(readingSentence(error) ?? `Fork outcome is not confirmed: ${String(error)}`); }
     finally {
-      try {
-        const snapshot = await invoke("host_status");
+      await refreshAfterAction(async () => {
+        const snapshotRead = await readHost(invoke<Json>("host_status"));
         // Ignore a response to an older intent/source; it cannot restore that
         // home over a newer choice or make a stale fork current.
-        if (forkContextCurrent(scope, currentHost.current)) setHost(snapshot);
-      } catch (error) { if (forkContextCurrent(scope, currentHost.current)) setMessage(previous => `${previous}; original source view refresh unavailable: ${String(error)}`); }
+        if (forkContextCurrent(scope, currentHost.current)) applyHost(snapshotRead);
+      }, () => { if (forkContextCurrent(scope, currentHost.current)) setMessage(withRefreshFailure); });
       forkInFlight.current = false;
     }
   };
@@ -2302,11 +2457,11 @@ export function App() {
       outcome = { state: "unknown", reason: "The original send observation was unavailable." };
     }
     setMessage(`Continue-as: ${outcome.state}${outcome.reason ? ` (${outcome.reason})` : ""}`);
-    try { await refresh(); }
-    catch (error) {
-      outcome = { ...outcome, observationFailure: String(error) };
-      setMessage(`Continue-as: ${outcome.state}; view refresh failed: ${String(error)}`);
-    }
+    // The send's outcome stands; a failed refresh adds the fixed line once and nothing raw.
+    await refreshAfterAction(refresh, () => {
+      outcome = { ...outcome, observationFailure: REFRESH_FAILED };
+      setMessage(withRefreshFailure);
+    });
     return outcome;
   };
   const runAct: RunAct = async (command, args) => {
@@ -2315,7 +2470,7 @@ export function App() {
       setMessage(`${command}: ${JSON.stringify(result)}`);
       return result;
     } catch (e) { setMessage(`${command}: ${String(e)}`); }
-    finally { await refresh(); }
+    finally { await refreshAfterAction(refresh, () => setMessage(withRefreshFailure)); }
   };
   // As runAct, but a host error rejects with the host's message, for a start
   // whose own panel reports the outcome (Continue as).
@@ -2325,7 +2480,7 @@ export function App() {
       setMessage(`${command}: ${result === undefined ? "The host did not report an outcome." : JSON.stringify(result)}`);
       return result;
     } catch (e) { setMessage(`${command}: ${String(e)}`); throw e; }
-    finally { await refresh(); }
+    finally { await refreshAfterAction(refresh, () => setMessage(withRefreshFailure)); }
   };
   // A bring-back send the host could not confirm withdraws its pre-fill, so its
   // composer and outcome would disappear. Its original attempt (trial or run,
@@ -2367,8 +2522,7 @@ export function App() {
     } catch (e) { setMessage(`${command}: ${String(e)}`); if (bringBack && !prefillKept(e)) noteBringBackDoubt({ ...bringBack, message: hostMessage(e), acknowledged: false }); throw e; }
     finally {
       if (flight) endBringBack(flight);
-      try { await refresh(); }
-      catch (error) { setTrialObservation(previous => previous?.relation === relation ? { relation, limit: String(error) } : previous); }
+      await refreshAfterAction(refresh, () => setTrialObservation(previous => previous?.relation === relation ? { relation, limit: REFRESH_FAILED } : previous));
     }
   };
   // The conversation the panel actually shows (current generation only), so no request is hidden.
@@ -2421,20 +2575,48 @@ export function App() {
     setOffer(null);
   };
 
+  // "Waiting on you": each source's reading, with when its read started and whether a later read failed.
+  // The host status read is ordered by useOrderedHost: `failure` is set only while no read started after
+  // the failed one has been applied, so an older status reply never stands over a newer failed read.
+  const waitingReads = waitingReadings({
+    host, hostReadAt: hostReads.appliedAt, hostFailure: hostReads.failure, hostFailedAt: hostReads.failedAt,
+    fleet: waitingFleet?.packet ?? null, fleetReadAt: waitingFleet?.at ?? null, fleetFailure: fleetAutoFailure?.message ?? null, fleetFailedAt: fleetAutoFailure?.at ?? null,
+    decisions: waitingDecisions?.view ?? null, decisionsReadAt: waitingDecisions?.at ?? null, decisionsFailure: decisionsFailure?.message ?? null, decisionsFailedAt: decisionsFailure?.at ?? null,
+  });
+  const goToWaiting = (entry: WaitingEntry) => {
+    const target = entry.target;
+    if (target.kind === "request") { void openRequests(target.group, target.anchor); return; }
+    // A run's record is in the workflow studio, a return in Records and Fleet, a package in
+    // Connectors and examination: revealing the target shows its view and opens its disclosure.
+    revealWorkspaceTarget(document.getElementById?.(target.anchor) ? target.anchor : target.kind === "run" ? "workflow-studio" : target.kind === "return" ? "workspace-records" : "workspace-evidence", true);
+  };
   const outsideRequests = hostRequests(host).filter((request: Json) => requestThread(request) === null || requestThread(request) !== selectedThread);
   // First use: while the launch needs setup, a focused welcome replaces the
   // workspace, whose controls cannot work yet. Everything stays mounted.
-  const setupRequired = host?.desktopSetup?.launch?.state === "setup-required";
+  // App data held by another process shows the same focused surface, with its reason.
+  const setupRequired = ["setup-required", "data-held", "home-held", "set-aside-occupied"].includes(host?.desktopSetup?.launch?.state);
+  // Until the first status read is applied, neither the welcome nor the workspace is in the document,
+  // only the line that says the App is starting (or, after FIRST_READ_PATIENCE_MS, taking longer than usual),
+  // or that the read failed (firstReadState).
+  const firstRead = firstReadState(hostReads);
   return (<DailyWorkspace>
+        {firstRead !== "read" && <FirstReadStatus failed={firstRead === "failed"} slow={firstReadSlow} retry={() => { void refresh().catch(() => undefined); }}/>}
         {setupRequired && <FirstUseSetup view={host.desktopSetup}/>}
-        <div hidden={setupRequired}>
+        {firstRead === "read" && <div hidden={setupRequired}>
         <header className="workspace-heading"><div><h1>Chirality</h1><p>Workflow workspace</p></div><p>Make, try, review and refine workflows through conversation.</p></header>
-        <WorkflowAssuranceSetting setting={host?.workflowRoot?.assuranceSetting} act={async (command, args) => { const result = await invoke(command, args); await refresh(); return result; }}/>
+        <WorkflowAssuranceSetting setting={host?.workflowRoot?.assuranceSetting} act={async (command, args) => commandThenRefresh(() => invoke(command, args), refresh, () => setMessage(withRefreshFailure))}/>
+        </div>}
+        {/* The navigation and "Waiting on you" stay in view together whichever view is shown. A sticky
+            element sticks only within its parent, so this is a direct child of the workspace, which holds every view. */}
+        {firstRead === "read" && <div className="workspace-sticky" hidden={setupRequired}>
         <nav className="workspace-nav" aria-label="Workspace navigation">
           {WORKSPACE_VIEWS.map(item => <a key={item.id} href={`#${item.target}`} aria-current={taskView === item.id ? "page" : undefined}>{item.label}</a>)}
         </nav>
-        <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed}/>
-        </div>
+        <WaitingOnYou readings={waitingReads} view={host?.nativeView} busy={homePending} onOpen={() => { void readFleetOnOpen(); }} openGroup={group => { void openRequests(group); }} go={goToWaiting}/>
+        </div>}
+        {firstRead === "read" && <div hidden={setupRequired}>
+        <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome} refusalCause={host?.startRefusalCause} build={host?.build} signIn={accountReading(host)}/>
+        </div>}
         <NativeWaitingBridge ready={!!host} report={setMessage} checkpoint={() => ({ signature: JSON.stringify([threadChoiceRevision.current, chooserHome.current.epoch, editRevision.current]),
           pristine: threadChoiceRevision.current === 0 && editRevision.current === 0 })} capture={() => {
           const revision = threadChoiceRevision.current;
@@ -2453,11 +2635,11 @@ export function App() {
               await openRequests(group);
           };
       }}/>
-        <div hidden={setupRequired}><WaitingRequestsIndicator overview={host?.waitingRequests} busy={homePending} open={group => { void openRequests(group); }}/></div>
         <NativeConfirmationContent />
-        <div hidden={setupRequired}>
+        {firstRead === "read" && <div hidden={setupRequired}>
         {offer && (<section style={{ border: "1px solid #888", padding: 8 }}>
-            <h2>Act control: {offer.wording} ({offer.actKind})</h2>
+            <h2>Act control</h2>
+            <p>Act: <AgentText value={offer.wording} source="file" label="The package states the act:" name="The act's wording as the decision package states it, not the App's words" /> · kind: <AgentText value={offer.actKind} source="file" name="The act's kind as the decision package states it, not the App's words" /></p>
             <p>
               {offer.subject.ref} · {offer.subject.contentIdentity.value}
               <br />
@@ -2465,114 +2647,70 @@ export function App() {
             </p>
             {offer.alternatives.map((a: Json) => (<label key={a.id} style={{ display: "block" }}>
                 <input type="radio" name="alt" value={a.id} checked={choice === a.id} onChange={() => setChoice(a.id)}/>{" "}
-                <b>{a.id}</b> {a.statement} — {a.consequences.join("; ")}
+                <b>Alternative {idWords(a.id)}</b>
               </label>))}
+            {/* What each alternative says and does is the package file's text: beside the controls, never in their labels. */}
+            {offer.alternatives.map((a: Json) => <div key={`text:${a.id}`}><AgentText block value={`${String(a.id ?? "")}: ${String(a.statement ?? "")} — ${(Array.isArray(a.consequences) ? a.consequences : []).map(String).join("; ")}`} source="file" label={`Alternative ${idWords(a.id)}, as the package states it:`} name="An alternative as the decision package states it, not the App's words" /></div>)}
             <p>The host shows its own confirmation with this text; only that confirmation records the decision.</p>
             <button onClick={decide} disabled={!choice}>Decide…</button> <button onClick={() => setOffer(null)}>Close</button>
           </section>)}
         <div className="workspace-notices"><div id="other-requests">
             {outsideRequests.length > 0 && <h3>Requests outside the selected conversation</h3>}
             {outsideRequests.length > 0 && <p>Requests of the selected conversation are shown beside it. Select another conversation to answer its requests there.</p>}
-            {outsideRequests.map((request: Json) => <NativeRequestCard activityLink={activityLink} key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answerRequest} readRequest={readRequestCustody} observation={replyObservations[requestScopeKey(request)]}/>)}
+            {outsideRequests.map((request: Json) => <NativeRequestCard activityLink={activityLink} key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answerRequest} readRequest={readRequestCustody} place={requestPlace(request, host, appProjectFolder(host))} observation={replyObservations[requestScopeKey(request)]}/>)}
           </div>
 
   <ActionFeedback message={message}/>
         {trialObservation?.limit && <p role="status" aria-label="Trial view observation limit">
           Trial view refresh unavailable for {trialObservation.relation.command} (attempt {trialObservation.relation.attempt}; prepared message {JSON.stringify(trialObservation.relation.reference)};
           source {trialObservation.relation.source.sourceRef ?? "unavailable"}; home {trialObservation.relation.source.modeHomeClass ?? "unavailable"}; generation {JSON.stringify(trialObservation.relation.source.generation)};
-          requested target {JSON.stringify(trialObservation.relation.target)}): {trialObservation.limit}. The original command outcome is unchanged.
+          requested target {JSON.stringify(trialObservation.relation.target)}): {String(trialObservation.limit).replace(/\.$/, "")}. The original command outcome is unchanged.
         </p>}</div>
         <div id="view-conversation" data-workspace-view="conversation" className="workspace-view" hidden={taskView !== "conversation"}>
-        <WorkspaceDisclosure id="workspace-start" title="New conversation" description="Model, provider, access entry and role — start explicitly" open={host?.state !== "ready" || !(host?.threads?.length) ? true : undefined}>
+        <WorkspaceDisclosure id="workspace-start" title="New conversation" description="Model and role — start explicitly" open={host?.state !== "ready" || !(host?.threads?.length) ? true : undefined}>
           <h2>New conversation</h2>
           <div className="workspace-start-fields">
           <h3>1. How it connects</h3>
           <AccessRouteChoice homeClass={homeClass} modelProvider={modelProvider} entryId={entryId} model={model} disabled={startPending || homePending || providerReading || endpointBusy}
             local={fixedLocal} choose={route => reviseChoice(route)}/>
-          <div aria-label="Configured local providers">
-            <button disabled={host?.state !== "ready" || host?.generationClosed || homeClass !== "account" || providerReading || startPending || homePending || endpointBusy}
-              onClick={readConfiguredProviders}>Read configured local providers</button>
-            <p>Explicit metadata read for the selected account home and current project scope. This does not probe servers, list models, authenticate, or admit Start.</p>
-            {!providerObservationCurrent && !providerReading && <p>No current configured-provider observation. Read explicitly, or use the independent manual fields.</p>}
-            {providerObservationMessage && <p role="status">{providerObservationMessage}</p>}
-            {providerObservationCurrent && <>
-              <p>Observed source: Home {providerObservation.packet.scope.generation.home} · App session {providerObservation.packet.scope.generation.appSession} · spawn {providerObservation.packet.scope.generation.spawnCounter} · working folder {providerObservation.packet.scope.cwd}.</p>
-              <ul>{providerObservation.packet.rows.map((row: Json) => <li key={row.id}>
-                Configured local provider {row.id} · {row.endpoint} · Responses{" "}
-                <button disabled={providerReading || startPending || homePending || endpointBusy} onClick={() => chooseConfiguredProvider(row.id)}>Choose provider {row.id}</button>{" "}
-                <button disabled={providerReading || startPending || homePending || endpointBusy || host?.providerEndpointEdit?.available !== true} onClick={() => openEndpointEditor(row)}>Edit endpoint {row.id}</button>
-              </li>)}</ul>
-              <p>{providerObservation.packet.rows.length ? "Choosing a row changes only this new conversation's provider and access entry; choose its model separately." : "No publishable local-provider metadata was established."}</p>
-              <p>{providerObservation.packet.limit}</p>
-            </>}
-            {providerObservationCurrent && host?.providerEndpointEdit?.available !== true && <p>Endpoint editing is unavailable for this source. Manual conversation choices remain independent.</p>}
-            <button disabled={endpointBusy || providerReading || startPending || homePending || host?.providerCreate?.available !== true} onClick={openProviderCreate}>Add local provider…</button>
-            {endpointEditor?.kind === "add" && endpointSourceCurrent(endpointEditor) && <section aria-label="Provider Add editor">
-              <p>Add exactly one absent provider ID to the shared Codex configuration. Existing choices, models and drafts stay unchanged.</p>
-              <label>Provider ID <input value={endpointEditor.id} disabled={endpointBusy} onChange={e => { expireEndpointPreview(); updateEndpointEditor({ ...endpointEditorRef.current, id: e.target.value }); }} /></label>
-              <label>Submitted name <input value={endpointEditor.name} disabled={endpointBusy} onChange={e => { expireEndpointPreview(); updateEndpointEditor({ ...endpointEditorRef.current, name: e.target.value }); }} /></label>
-              <label>Endpoint URL <input value={endpointEditor.endpoint} disabled={endpointBusy} onChange={e => { expireEndpointPreview(); updateEndpointEditor({ ...endpointEditorRef.current, endpoint: e.target.value }); }} /></label>
-              <button disabled={endpointBusy || providerReading || host?.providerCreate?.available !== true || !createDraftValid(endpointEditor)} onClick={reviewProviderCreate}>Review provider Add</button>
-              {endpointEditor.offer && <div aria-label="Provider Add review">
-                <p>Submitted ID: <code>{endpointEditor.offer.providerId}</code></p>
-                <p>Submitted name (quoted data): <code>{JSON.stringify(endpointEditor.offer.submittedName)}</code></p>
-                <p>Endpoint: <code>{endpointEditor.offer.endpoint}</code></p>
-                <p>Anonymous Responses definition; requires_openai_auth: false. Other Codex clients also read this shared configuration.</p>
-                <button disabled={endpointBusy || providerReading} onClick={saveProviderCreate}>Add provider…</button>
-              </div>}
-              <p role="status">{endpointEditor.message}</p>
-              <button disabled={endpointBusy} onClick={() => { expireEndpointPreview(); updateEndpointEditor(null); }}>Close provider Add</button>
-            </section>}
-            {endpointEditor && endpointEditor.kind !== "add" && endpointSourceCurrent(endpointEditor) && <section aria-label="Provider endpoint editor">
-              <p>Configured local provider {endpointEditor.id}. Endpoint only; this does not choose a provider/model or start a conversation.</p>
-              <label>Endpoint URL <input value={endpointEditor.endpoint} disabled={endpointBusy} onChange={event => {
-                expireEndpointPreview(); updateEndpointEditor({ ...endpointEditorRef.current, endpoint: event.target.value, offer: null, message: "Review this endpoint draft before saving." });
-              }}/></label>
-              <button disabled={endpointBusy || providerReading || host?.providerEndpointEdit?.available !== true || !endpointUrl(endpointEditor.endpoint)} onClick={reviewEndpoint}>Review endpoint change</button>
-              {endpointEditor.offer && <>
-                <p>Selected account source: {endpointEditor.offer.scope.generation.home} · working folder {endpointEditor.offer.scope.cwd}</p>
-                <p>Current endpoint: {endpointEditor.offer.currentEndpoint}</p><p>Proposed endpoint: {endpointEditor.offer.proposedEndpoint}</p>
-                <p>This changes your shared Codex configuration, which other Codex clients also read. Existing conversations are not reloaded.</p>
-                <button disabled={endpointBusy || providerReading} onClick={saveEndpoint}>Save endpoint…</button>
-              </>}
-              <button disabled={endpointBusy} onClick={() => { expireEndpointPreview(); updateEndpointEditor(null); }}>Close endpoint editor</button>
-              <p role="status">{endpointEditor.message}</p>
-            </section>}
-            {(rowChoiceStale || (providerObservation && !providerObservationCurrent)) && <p role="status">Configured provider observation superseded or source unavailable. Read again, or explicitly enter a manual provider and access entry. Start always reads current configuration again.</p>}
-          </div>
+          {homeClass === "account" && <p aria-label="Local model servers">Local providers named in your own Codex settings are not offered: the App can’t run one in this home, and this version offers no local model server.</p>}
           <h3>2. Model</h3>
           <AvailableModels packet={modelObservation?.packet ?? null} current={modelObservationCurrent} reading={modelReading} message={modelObservationMessage}
             model={model} modelProvider={modelProvider} entryId={entryId} read={() => { void readAvailableModels(); }} choose={chooseListedModel}
+            setModel={model => reviseChoice({ model })} fixedModel={fixedLocal && entryId === fixedLocal.entryId ? fixedLocal.model : null}
+            localHome={homeClass === LOCAL_MODE ? (fixedLocal ? "prepared" : "unprepared") : null}
             disabled={host?.state !== "ready" || !!host?.generationClosed || homeClass !== "account" || startPending || homePending || endpointBusy}/>
-          <details className="workflow-stage"><summary>Advanced: enter IDs yourself</summary>
-          <p><ModelProviderFields model={model} modelProvider={modelProvider} setModel={model => reviseChoice({ model })} setModelProvider={modelProvider => reviseChoice({ modelProvider })}/></p>
-          <p><label>Access entry <select value={entryId} onChange={e => reviseChoice({ entryId: e.target.value })}><option value="">No entry selected</option>{startEntries(host).map(entry => <option key={entry.value} value={entry.value}>{entry.label}</option>)}</select></label></p>
-          </details>
+          {homeClass === "account" && <details className="workflow-stage"><summary>Advanced: enter a model ID yourself</summary>
+          <p><ModelIdField model={model} setModel={model => reviseChoice({ model })}/></p>
+          </details>}
           <p>Choose how this conversation connects and a model, then a role. Switching homes never transfers an existing conversation.</p>
-          <RoleChoice group="start-thread-role" roleSet={host?.roleSet} limits={host?.roleLimits} role={role} preselected={!roleTouched && !!role && role === host?.roleSet?.defaultRole} setRole={next => { expireEndpointPreview(); roleInitialized.current = true; setRoleTouched(true); setRole(next); }}/>
-          <p><small>Role set: {host?.roleSet?.standing ?? host?.roleSet?.reason ?? "unavailable"}.</small></p></div>
-          <p aria-label="New conversation choice">{!model.trim() || !modelProvider.trim() ? "not started — no model selected" : entryCompatible ? `New conversation choice: ${model} via ${modelProvider} (${entryId})` : "Choose an access entry for the current home."}</p>
+          <RoleChoice group="start-thread-role" roleSet={host?.roleSet} limits={host?.roleLimits} role={role} preselected={!roleTouched && !!role && role === host?.roleSet?.defaultRole} setRole={next => { expireEndpointPreview(); roleInitialized.current = true; setRoleTouched(true); setRole(next); }}/></div>
+          <p aria-label="New conversation choice">{!model.trim() || !modelProvider.trim() ? "not started — no model selected" : entryCompatible ? `New conversation choice: ${model} via ${modelProvider} (${entryId})` : "Choose how this conversation connects (step 1)."}</p>
           <p>
-            <button onClick={startConversation} disabled={host?.state !== "ready" || !model.trim() || !modelProvider.trim() || !entryCompatible || startPending || homePending || providerReading || endpointBusy || rowChoiceStale}>Start thread</button>
+            <button onClick={startConversation} disabled={!!startBlocked} aria-describedby={startBlocked ? "start-conversation-blocked" : undefined}>Start thread</button>
+            {startBlocked && <>{" "}<span id="start-conversation-blocked" role="status">{startBlocked}</span></>}
           </p>
           <a href="#workspace-connection">Set up access or start Codex</a>
         </WorkspaceDisclosure>
         <div className="workspace-primary">
           <div className="workspace-primary-column" aria-label="Conversation workspace">
-            <ConversationPanel focusComposer={conversationReveal?.target === "ordinary-composer-text" ? conversationReveal.sequence : undefined} composerOffer={composerOffer} preparedReveal={preparedReveal} activityNavigationRef={activityNavigationRef} activityLink={activityLink} forkConversation={forkConversation} handoffSend={(id, text) => handoffAction("continue_as_send", { id, text })} handoffRead={id => handoffAction("continue_as_send_read", { id })} codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} startAct={startRunAct} send={ordinarySend} observeOrdinaryView={observeOrdinaryView} checkPlanMode={async (generation) => {
-          try {
-              await invoke("collaboration_modes_read", { generation });
-          }
-          finally {
-              setHost(await invoke("host_status"));
-          }
+            <ConversationPanel localRoute={fixedLocal} focusComposer={conversationReveal?.target === "ordinary-composer-text" ? conversationReveal.sequence : undefined} composerOffer={composerOffer} preparedReveal={preparedReveal} activityNavigationRef={activityNavigationRef} activityLink={activityLink} forkConversation={forkConversation} handoffSend={(id, text) => handoffAction("continue_as_send", { id, text })} handoffRead={id => handoffAction("continue_as_send_read", { id })} codexBusy={processBusy} host={host} threadKey={threadKey} setThreadKey={setThreadKey} answer={answerRequest} readRequest={readRequestCustody} replyObservations={replyObservations} runAct={runAct} trialRunAct={trialRunAct} startAct={startRunAct} send={ordinarySend} observeOrdinaryView={observeOrdinaryView} checkPlanMode={async (generation) => {
+          // The check's own failure stands, with the fixed line after it when the refresh failed too.
+          // A completed check whose refresh fails rejects with the fixed line alone: its result is
+          // visible only through the refreshed status, and that line says the status was not read.
+          let failure: unknown = null, failed = false, refreshFailed = false;
+          try { await invoke("collaboration_modes_read", { generation }); }
+          catch (error) { failure = error; failed = true; }
+          await refreshAfterAction(async () => { applyHost(await readHost(invoke<Json>("host_status"))); }, () => { refreshFailed = true; });
+          if (failed) throw refreshFailed ? withRefreshFailure(String(failure)) : failure;
+          if (refreshFailed) throw REFRESH_FAILED;
       }} steer={async (generation, threadId, expectedTurnId, text) => {
           return await conversationAction("conversation_steer_text", { generation, threadId, expectedTurnId, text });
       }} submitAttachments={async (generation, threadId, expectedTurnId, text, ownerRef, listRevision, selectionRefs) => {
           return await invoke("submit_attachments", { generation, threadId, expectedTurnId, text, ownerRef, listRevision, selectionRefs });
       }} observeAttachmentView={async (request) => {
           const viewAtRead = currentHost.current;
-          const snapshot = await invoke<Json>("host_status");
+          const snapshotRead = await readHost(invoke<Json>("host_status")); const snapshot: Json = snapshotRead.snapshot;
           // This read belongs to the original attachment request, not a Home or
           // generation selected while its native response/read was pending.
           if (JSON.stringify(currentHost.current?.generation) !== JSON.stringify(request.generation) || JSON.stringify(snapshot?.generation) !== JSON.stringify(request.generation)) {
@@ -2581,7 +2719,7 @@ export function App() {
           if (currentHost.current !== viewAtRead) {
               throw new Error("A newer view arrived while this original request's refresh was pending; its snapshot was not applied");
           }
-          setHost(snapshot);
+          applyHost(snapshotRead);
       }} interrupt={async (generation, threadId, turnId) => {
           return await conversationAction("conversation_interrupt", { generation, threadId, turnId });
       }}/>
@@ -2591,16 +2729,11 @@ export function App() {
                 : conversationOutcome.native === "failed" ? `Original native request failed: ${conversationOutcome.error}`
                 : conversationOutcome.command === "conversation_steer_text" ? "Native steering acknowledgment received; turn replacement and completion remain determined by native events."
                 : "Native interrupt acknowledgment received; turn end and rollback are not established by this acknowledgment."} No automatic retry.</p>
-              {conversationOutcome.observationLimit && <p role="status">{conversationOutcome.observationLimit}. The original command outcome is unchanged.</p>}
+              {conversationOutcome.observationLimit && <p role="status">{observationLine(conversationOutcome.observationLimit, "")} The original command outcome is unchanged.</p>}
             </div>}
             <WorkspaceDisclosure id="workspace-attachments" title="Message attachments" description="Select and review files for a message">
               <AttachmentSelectionPanel data={host?.attachmentSelections} act={async (command, args) => {
-          try {
-              await invoke(command, args);
-          }
-          finally {
-              setHost(await invoke("host_status"));
-          }
+          await commandThenRefresh(() => invoke(command, args), async () => { applyHost(await readHost(invoke<Json>("host_status"))); }, () => setMessage(withRefreshFailure));
       }}/>
             </WorkspaceDisclosure>
           </div>
@@ -2608,7 +2741,7 @@ export function App() {
         </div>
         <div id="view-workflows" className="workspace-view workspace-view-narrow" hidden={taskView !== "run" && taskView !== "make"}>
           <div className="workspace-primary-column" aria-label="Workflow studio">
-            <WorkflowRootPanel findInHistory={findInHistory} view={taskView} showConversation={showConversation} offerComposer={offerComposer} data={host?.workflowRoot} host={host} operationalReference={threadKey ? conversationFromKey(threadKey) ?? undefined : null} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command, args) => { const refusal = bringBackRefusal(command, args, currentHost.current); return refusal ? Promise.reject(Error(refusal)) : invoke<Json>(command, args); }} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }}/>
+            <WorkflowRootPanel viewStale={shownBeforePress(hostReads)} readFailure={hostReads.failure} findInHistory={findInHistory} view={taskView} showConversation={showConversation} offerComposer={offerComposer} data={host?.workflowRoot} host={host} operationalReference={threadKey ? conversationFromKey(threadKey) ?? undefined : null} openFileAct={openArrivalFileAct} fileActBusy={fileActBusy} act={(command, args) => { const refusal = bringBackRefusal(command, args, currentHost.current); return refusal ? Promise.reject(Error(refusal)) : invoke<Json>(command, args); }} observeView={refresh} openPreparedMessage={item => { void openPreparedMessage(item); }}/>
         {preparedNotice && <p role="status">{preparedNotice}</p>}
           </div>
         </div>
@@ -2630,7 +2763,7 @@ export function App() {
             <FileActPanel command={(name, args) => invoke(name, args)} controlRef={fileActPanel} onBusyChange={setFileActBusy}/>
           </WorkspaceDisclosure>
           <WorkspaceDisclosure id="workspace-records" title="Records and Fleet" description="Project records, capability bindings and cross-source records">
-            <RecordsStorePanel store={host?.recordsStore} act={act}/>
+            <RecordsStorePanel store={host?.recordsStore} chain={host?.recordChain} invoke={(command, args) => invoke<Json>(command, args)} refresh={refresh}/>
           <FleetRecordsPanel packet={fleet} error={fleetError} busy={fleetBusy} refresh={() => { void refreshFleet(); }}/>
   <RecordsCapabilityBindings host={host}/>
           </WorkspaceDisclosure>
@@ -2645,17 +2778,15 @@ export function App() {
           catch (e) {
               setMessage(String(e));
           }
-          setHost(await invoke("host_status"));
+          // The selection's own message stands; a failed refresh adds the fixed line once.
+          await refreshAfterAction(async () => { applyHost(await readHost(invoke<Json>("host_status"))); }, () => setMessage(withRefreshFailure));
       }}/>
 
         <TraceReceivingPanel data={host?.traceReceiving} currentContext={{ hostState: host?.state, generation: host?.generation, nativeSupplier: host?.versionIdentity, supplierStanding: host?.supplierStanding, accessSelection: host?.accessSelection, accountObservation: host?.accountObservation, appExecutableIdentity: "not established by this selector" }} select={async (recordKind, evidenceKind) => {
-          try {
+          await commandThenRefresh(async () => {
               const received: Json = await invoke("select_trace_record", { recordKind, evidenceKind });
               setMessage(`Supplied trace selection: ${received.selection?.state ?? "unknown"}`);
-          }
-          finally {
-              setHost(await invoke("host_status"));
-          }
+          }, async () => { applyHost(await readHost(invoke<Json>("host_status"))); }, () => setMessage(withRefreshFailure));
       }}/>
   <DecisionPackagesPanel view={view} name={name} setName={setName} recordName={() => { void invoke("set_person_name", { name }); }} refresh={refresh} continueRecording={async () => { await act("continue_decision_recording"); }} openControl={openControl}/>
           </WorkspaceDisclosure>
@@ -2671,7 +2802,7 @@ export function App() {
   <SupplyStatus supply={host?.roleSupply}/>
           <RoleHistoryReader scope={JSON.stringify(host?.generation)} ready={host?.state === "ready"} read={() => invoke("role_supply_history", { generation: host?.generation, thread: null })}/>
           {host?.instructionsProblem && <p role="alert">Role guidance store: {host.instructionsProblem}</p>}
-  <details><summary>Last native start selection in this home</summary><pre>{JSON.stringify(host?.accessSelection ?? null, null, 2)}</pre></details>
+  <details><summary>Last native start selection in this home</summary><RecordedData value={host?.accessSelection ?? null} /></details>
           <p>Account (App-observed, identity not verified): {JSON.stringify(host?.accountObservation ?? { state: "unknown" })}</p>
   <p>Threads: {(host?.threads ?? []).map((t: Json) => `${t.threadId} (${t.status?.type ?? "?"}, gen ${JSON.stringify(t.generation)})`).join(", ") || "none"}</p>
 
@@ -2680,8 +2811,8 @@ export function App() {
           <p>Codex can contact the selected model provider at thread start, before a model turn. This view describes supplier behavior; socket measurements remain separate evidence.</p>
           <ul>{(host?.networkDisclosure?.entries ?? []).map((entry: Json, index: number) => <li key={index}>{entry.purpose} · {entry.phase} · {entry.destination} · {entry.detail ?? entry.condition}</li>)}</ul>
           <details>
-            <summary>Lifecycle events ({host?.lifecycle?.length ?? 0}) and frames ({host?.journal?.length ?? 0})</summary>
-            <pre>{JSON.stringify({ lifecycle: host?.lifecycle, clientRequests: host?.clientRequests }, null, 2)}</pre>
+            <summary>Lifecycle events ({numberWords(host?.lifecycle?.length) ?? 0}) and frames ({numberWords(host?.journal?.length) ?? 0})</summary>
+            <RecordedData value={{ lifecycle: host?.lifecycle, clientRequests: host?.clientRequests }} />
           </details></section>
             <section>
           <h2>Native requests and execution</h2>
@@ -2691,15 +2822,15 @@ export function App() {
           <p>Legacy JSON Lines import location: {host?.recoveryInitialization?.path?.displayPath ?? "location not established"} {host?.recoveryInitialization?.path?.pathDisplayLimit}</p>
           {host?.recoveryInitialization?.configurationError && <p role="alert">Ledger initialization failed: {host.recoveryInitialization.configurationError}. Native supplier processing is not blocked.</p>}
           <p>Directory publication: {host?.recoveryInitialization?.directoryPublication ?? "not established"} · later persistence failure: {host?.recoveryPersistenceError ?? "none reported"}</p>
-          <details><summary>Recovery initialization and historical pointer state</summary><pre>{JSON.stringify({ initialization: host?.recoveryInitialization, recovery: host?.recovery }, null, 2)}</pre></details>
+          <details><summary>Recovery initialization and historical pointer state</summary><RecordedData value={{ initialization: host?.recoveryInitialization, recovery: host?.recovery }} /></details>
           <ObserverAttachment host={host}/>
           {(host?.nativeViewLimits ?? []).map((limit: string, i: number) => <p key={i}>{limit}</p>)}
                   <a href="#file-acts">Act on a saved App-side output file (select it explicitly)</a>
-          <details><summary>Native plans, tools, goals, turns and descendants as received (JSON)</summary><pre>{JSON.stringify({ current: host?.nativeView, observationEnded: host?.nativeViewObservationEnded, priorObservations: host?.priorNativeViews, recovery: host?.observerRecovery }, null, 2)}</pre></details>
-          <details><summary>Raw native envelopes (including unknown fields)</summary><pre>{JSON.stringify(host?.journal, null, 2)}</pre></details>
+          <details><summary>Native plans, tools, goals, turns and descendants as received (JSON)</summary><RecordedData value={{ current: host?.nativeView, observationEnded: host?.nativeViewObservationEnded, priorObservations: host?.priorNativeViews, recovery: host?.observerRecovery }} /></details>
+          <details><summary>Raw native envelopes (including unknown fields)</summary><RecordedData value={host?.journal} /></details>
         </section>
           </WorkspaceDisclosure>
         </section>
-        </div>
+        </div>}
       </DailyWorkspace>);
 }

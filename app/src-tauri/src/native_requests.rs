@@ -276,7 +276,7 @@ impl RequestRegister {
             let class=if e["classification"]!="known-answerable" {"none"}else if method=="currentTime/read" || (method=="item/tool/call" && (e["cceOfferedProvenance"]==true || e["namedTool"].is_string())) {"named-service"}else if matches!(method,"item/tool/requestUserInput"|"mcpServer/elicitation/request") {"person-input"}else{"a14"};
             let mut record=json!({"recordKind":"server-request-entry","requestIdentity":e["requestId"],"generation":e["generation"],"method":method,
                 "classification":e["classification"],"originClass":class,"nativeParameters":e["nativeParameters"],"receiptPosition":e["receiptPosition"],
-                "state":if class=="none"&&e["state"]=="settling" {json!("received")}else{e["state"].clone()},"replyWriteResult":e["replyWriteResult"],
+                "state":if class=="none"&&matches!(e["state"].as_str(),Some("settling"|"outstanding")) {json!("received")}else{e["state"].clone()},"replyWriteResult":e["replyWriteResult"],
                 "acknowledgmentObservation":if e["acknowledgment"].is_object(){json!({"status":"observed","what":e["acknowledgment"]["observed"]})}else{json!({"status":"not-observed"})}});
             let mut subject=serde_json::Map::new();
             for (native,key) in [("threadId","thread"),("turnId","turn"),("itemId","item"),("callId","call")] {if let Some(value)=e["nativeParameters"].get(native){subject.insert(key.into(),value.clone());}}
@@ -567,6 +567,26 @@ impl RequestRegister {
         self.reply_writes.insert(idx, ReplyWriteState::Prepared);
         Ok(json!({"id":id,"error":error}))
     }
+    /// A prepared reply the App then refused to write: the request goes back to waiting
+    /// ("outstanding"), with its prepared settlement removed, so it can be answered again or its turn
+    /// interrupted. Only a reply prepared and never admitted to a write can be withdrawn, so nothing
+    /// was written; anything else refuses and changes nothing. Nothing prepares a reply again on
+    /// its own: the App's automatic replies are prepared once, when the request arrives.
+    pub(crate) fn withdraw_prepared(&mut self, generation: &Value, id: &Value) -> Result<(), String> {
+        let idx = self.index(generation, id)?;
+        if self.closed.contains(generation) || self.entries[idx]["state"] != "settling"
+            || self.entries[idx]["replyWriteResult"] != "not-attempted"
+            || !matches!(self.reply_writes.get(&idx), Some(ReplyWriteState::Prepared)) {
+            return Err("reply not withdrawable; nothing changed".into());
+        }
+        self.reply_writes.remove(&idx);
+        let e = &mut self.entries[idx];
+        if let Some(fields) = e.as_object_mut() {
+            for key in ["settlement", "negative", "laterProtocolError"] { fields.remove(key); }
+        }
+        e["state"] = json!("outstanding");
+        Ok(())
+    }
     pub(crate) fn begin_reply_write(&mut self, generation: &Value, id: &Value) -> Result<ReplyWriteObservation, String> {
         let idx = self.index(generation, id)?;
         if self.closed.contains(generation) || self.entries[idx]["state"] != "settling"
@@ -745,6 +765,40 @@ mod tests {
             &json!({"experimentalApi":false}),
         )
         .unwrap()
+    }
+    #[test]
+    fn a_withdrawn_prepared_reply_puts_the_request_back_to_waiting_and_answerable_again() {
+        let schema:Value=serde_json::from_str(include_str!("../resources/runtime_core/hosting.server-request-entry.schema.json")).unwrap();
+        let validator=jsonschema::options().offline().build(&schema).unwrap();
+        // A person's answer, prepared and then refused by the App before any write.
+        let mut r=RequestRegister::default();
+        receive(&mut r,"item/commandExecution/requestApproval",json!({"threadId":"t","turnId":"u","itemId":"i"}));
+        r.prepare(&gen(),&json!("opaque"),&json!({"decision":"decline"}),"person-via-interaction",Some(ACTOR)).unwrap();
+        assert_eq!(r.entries()[0]["state"],"settling");
+        r.withdraw_prepared(&gen(),&json!("opaque")).unwrap();
+        let e=r.entries()[0].clone();
+        assert_eq!((e["state"].as_str(),e["replyWriteResult"].as_str()),(Some("outstanding"),Some("not-attempted")),"waiting again; nothing written");
+        assert!(e.get("settlement").is_none()&&e.get("negative").is_none());
+        validator.validate(&r.records()[0]).unwrap();
+        assert!(r.withdraw_prepared(&gen(),&json!("opaque")).is_err(),"nothing prepared: nothing to withdraw");
+        // Answerable again, and that answer is written as any other.
+        r.prepare(&gen(),&json!("opaque"),&json!({"decision":"decline"}),"person-via-interaction",Some(ACTOR)).unwrap();
+        let admitted=r.begin_reply_write(&gen(),&json!("opaque")).unwrap();
+        assert!(r.withdraw_prepared(&gen(),&json!("opaque")).is_err(),"an admitted write is never withdrawn");
+        admitted.complete(true);r.observe_completed_reply_writes();
+        assert_eq!(r.entries()[0]["state"],"declined");
+        assert!(r.withdraw_prepared(&gen(),&json!("opaque")).is_err(),"a settled request is never withdrawn");
+        // An automatic error the register prepared on arrival: withdrawn, it waits and nothing
+        // prepares it again; at the end of the process it ends unanswered.
+        let mut r=RequestRegister::default();
+        assert!(receive(&mut r,"item/tool/call",json!({"threadId":"t","turnId":"u","callId":"c","tool":"invented","arguments":{}})).is_some_and(|reply|reply.get("error").is_some()));
+        r.withdraw_prepared(&gen(),&json!("opaque")).unwrap();
+        assert_eq!(r.entries()[0]["state"],"outstanding");
+        assert!(r.begin_reply_write(&gen(),&json!("opaque")).is_err(),"no reply is prepared: nothing can be written");
+        validator.validate(&r.records()[0]).unwrap();
+        assert_eq!(r.close_for(&gen(),"supplier-exit"),1);
+        assert_eq!(r.entries()[0]["state"],"ended-unanswered");
+        assert!(r.withdraw_prepared(&gen(),&json!("opaque")).is_err(),"a closed source refuses");
     }
     #[test]
     fn closed_unknown_and_late_write_keep_secret_reply_values_removed() {

@@ -55,6 +55,10 @@ fn historical_trial_new_process(peer: &mut Peer) {
         .host
         .stop("invented App restart", "old native Host owner ends")
         .unwrap();
+    // The old App's process has ended (one App at a time on this data), and
+    // the new one holds the App data before it opens the ledger.
+    peer.home.host.end_process_for_test();
+    let _custody = crate::hold_app_data_for_test(&peer.fixture.root.join("app-data")).unwrap();
     let cfg = peer.home.host_config.as_ref().unwrap().clone();
     let host = Arc::new(crate::hosting::Host::new());
     host.configure_recovery(
@@ -1015,6 +1019,10 @@ fn historical_trial_recorded_source_history_can_be_read_without_loading_original
             "new source starts without loading conversations",
         )
         .unwrap();
+    // The old App's process has ended (one App at a time on this data), and
+    // the new one holds the App data before it opens the ledger.
+    source.home.host.end_process_for_test();
+    let _custody = crate::hold_app_data_for_test(&source.fixture.root.join("app-data")).unwrap();
     let cfg = source.home.host_config.as_ref().unwrap().clone();
     let host = Arc::new(crate::hosting::Host::new());
     host.configure_recovery(
@@ -1062,4 +1070,41 @@ fn historical_trial_recorded_source_history_can_be_read_without_loading_original
             .is_empty(),
         "learning does not load or resume the source conversation"
     );
+}
+
+// Invented peer and records only. Move payload after every source recheck so
+// the outer observation can see a changed home without changing quoted rows.
+fn notice_remove_payload_after_rows(project: &std::path::Path) {
+    let dir = crate::records_store::readable_home(project).unwrap().attachment.dir.unwrap();
+    crate::records_store::HISTORY_AFTER_ROWS.with(|hook| *hook.borrow_mut() = Some(Box::new(move || {
+        for name in ["runs", "acts", "workflow", "role-supply", "fleet"] {
+            let path = dir.join(name);
+            if path.exists() { std::fs::remove_dir_all(path).unwrap(); }
+        }
+    })));
+}
+#[test]
+fn records_history_notice_bring_back_change_is_not_known() {
+    let _store = RoleR3Store::new();
+    let peer = historical_trial_peer(); let mut live = peer.registered(); let run = open_run(&peer, &mut live, "thread"); drop(live);
+    let mut fresh = WorkflowRootSession::default(); fresh.set_app_user_data(peer.fixture.root.join("app-data")); let root = Mutex::new(fresh);
+    notice_remove_payload_after_rows(&peer.fixture.root);
+    let pending = trial_flows::bring_back_with_homes(&root, &[peer.home.clone()], peer.project(), &peer.home, None, Some(&run), &peer.generation, "thread", false).unwrap();
+    assert_eq!(pending["source"]["historyNotices"], json!([crate::records_store::HISTORY_CHANGED_VIEW]));
+    assert_eq!(historical_trial_snapshot(&root)["pendingBringBacks"][0]["source"]["historyNotices"], pending["source"]["historyNotices"]);
+}
+#[test]
+fn records_history_notice_compare_change_is_not_known() {
+    let _store = RoleR3Store::new(); let peer = historical_trial_peer(); let mut live = trial_root(&peer);
+    let trial = live.prepare_trial("clean", DRAFT, Some((&peer.generation,"thread")), Some(&peer.home), peer.project()).unwrap()["reference"].as_str().unwrap().to_owned();
+    live.begin_clean_start(&trial).unwrap();
+    let thread = peer.second_thread(); live.mark_clean_started(&trial, &peer.generation, &thread);
+    let live = Mutex::new(live);
+    trial_flows::send_trial(&live, &peer.home, &trial, &peer.generation, &thread, "Invented notice comparison").unwrap();
+    let run = open_run(&peer, &mut live.lock().unwrap(), "thread"); drop(live);
+    let mut fresh = WorkflowRootSession::default(); fresh.set_app_user_data(peer.fixture.root.join("app-data"));
+    fresh.open_library(peer.fixture.root.clone(), "project", Some(&peer.fixture.root), Arc::new(Mutex::new(None))).unwrap(); let root = Mutex::new(fresh);
+    notice_remove_payload_after_rows(&peer.fixture.root);
+    let compared = trial_flows::compare_with_homes(&root, &[peer.home.clone()], peer.project(), &json!({"trial":trial}), &json!({"run":run})).unwrap();
+    assert_eq!(compared["historyNotices"], json!([crate::records_store::HISTORY_CHANGED_VIEW]));
 }

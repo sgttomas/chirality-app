@@ -1634,6 +1634,31 @@ mod tests {
     ) -> ConfirmedA15Event {
         ConfirmedA15Event::synthetic_for_test(offer.id().into(), digest, actor, context)
     }
+    /// The library's act log there but not examinable (its records folder
+    /// not searchable) when an A15 capture's record is replayed: the replay
+    /// is refused, nothing is recorded, and the log's bytes stay as they were.
+    #[test]
+    fn listed_a15_an_unexaminable_act_log_refuses_the_replay_and_appends_nothing() {
+        use std::os::unix::fs::PermissionsExt;
+        let (root, session) = library(&["sample"], false);
+        let log = storage::library_log(&root);
+        records::append(&log, "evidence_limit", &records::APP_WRITER, json!({"label":"unresolvable reference","subjectRef":"an earlier library act"})).unwrap();
+        let before = std::fs::read(&log).unwrap();
+        let (mut ac, offer, actor, context, digest) = ready(&root, &session);
+        let current = session.current().unwrap();
+        let folder = log.parent().unwrap().to_path_buf();
+        std::fs::set_permissions(&folder, std::fs::Permissions::from_mode(0o000)).unwrap();
+        let result = ac.confirm_a15_after_native_event(&offer, event(&offer, digest, actor, context), &current);
+        std::fs::set_permissions(&folder, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let shown = match &result { Ok(HotA15Result::Recorded(_)) => "recorded".to_string(), Ok(_) => "not recorded (held)".to_string(), Err(e) => format!("refused: {e}") };
+        println!("A15 replay with an unexaminable act log: {shown}");
+        assert!(!matches!(result, Ok(HotA15Result::Recorded(_))), "never recorded: {shown}");
+        assert_eq!(std::fs::read(&log).unwrap(), before, "nothing appended to the act log");
+        let (entries, limits) = records::library_record_set(&root);
+        assert!(limits.is_empty(), "{limits:?}");
+        assert_eq!(entries.len(), 1, "only the earlier act");
+        std::fs::remove_dir_all(root).unwrap();
+    }
     #[test]
     fn synthetic_single_receipt_durable_library_record_once_and_cold_cannot_transfer() {
         let (root, session) = library(&["sample"], false);

@@ -1,0 +1,46 @@
+{
+  "scenario": "signed-out relaunch after setup",
+  "version": 1,
+  "what_it_is": "Agent-operated development evidence on the same development build and the same kept home after setup: what the App shows on the next launch, signed out, read by one view, with nothing clicked or pressed. The labels are read from the App's source at the revision built (App.tsx, DailyWorkspace.tsx, DesktopSetupPanel.tsx, AccountStatus.tsx), not from a recorded view; a label that differs stops the walk there. It is not a person's observation and meets no criterion.",
+  "starting_state": "The kept home after the setup walk, relaunched by the launcher with its network blocks on; no credential.",
+  "acts": "one view, read and acted on nothing: the walk acts in no relaunch state, since what the relaunch shows depends on Codex (a start refusal's reason, or what Codex reports) and is not fixed and known (App Agent 0, 14 November 2026)",
+  "never_clicked": [
+    "Start",
+    "Stop",
+    "Sign in",
+    "any control that starts, resumes or forks a conversation",
+    "the window's own buttons",
+    "the menu bar"
+  ],
+  "window": "Chirality",
+  "window_holds": [
+    "scroll area",
+    "close button",
+    "full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window",
+    "minimize button",
+    "text Chirality"
+  ],
+  "starts_no_process": false,
+  "steps": [
+    {
+      "id": "R1",
+      "act": "view",
+      "wait_ms": 15000,
+      "says": "the relaunch as it first stands, in the Run a workflow view: the workspace or the welcome, the connection line, and the project under Project; the whole view is kept",
+      "expect": [
+        {
+          "no_text": "Welcome to Chirality"
+        },
+        {
+          "heading": "Run a workflow"
+        }
+      ]
+    }
+  ],
+  "outcomes": {
+    "SETUP NO LONGER REQUIRED": [
+      "R1"
+    ]
+  },
+  "limit": "What Credential storage shows signed out is not observed in this walk: reaching it needs clicks in a view whose text is not fixed and known"
+}

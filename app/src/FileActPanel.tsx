@@ -1,5 +1,11 @@
+import { AgentText, RecordedData, idWords, wordOf } from "./AgentText";
 import { useImperativeHandle, useRef, useState, type Ref } from "react";
 type Json = any;
+// The host's words for a file act (act_control_file.rs, file_act_view.rs); any other value is shown beside, boxed.
+const FILE_ACT_WORDING = { "mark checked": "mark checked", "approve (engineering approval)": "approve (engineering approval)", "rely (professional reliance)": "rely (professional reliance)" } as const;
+const FILE_ACT_KIND = { A4: "A4", A6: "A6", A7: "A7" } as const;
+const FILE_ACT_EVENT = { "declined this act": "declined this act", "recorded human-act claim": "recorded human-act claim" } as const;
+const UNRECOGNISED = "A value the App does not recognise, as the host recorded it; the App does not vouch for its words";
 const list = (value: Json): Json[] => Array.isArray(value) ? value : [];
 const content = (value: Json): string => typeof value === "string" ? value
   : value?.notObtainable ? `not obtainable: ${value.reason ?? "reason unavailable"}`
@@ -17,20 +23,20 @@ export function FileActLapseHistory({ row }: { row: Json }) {
     <h4>Recorded lapse history</h4>
     {sources.size > 1 && <p>Entries follow the sequence within each source log. No order is inferred between logs.</p>}
     {history.length ? Array.from(sources, ([source, claims]) => <div key={source}>
-      <h5>Source log: {source}</h5>
+      <h5>Source log</h5><p><AgentText value={source} source="record" label="Log:" name="The source log's name, as recorded; the App does not vouch for its words" /></p>
       <ol>{claims.map((claim, index) => {
       const record = claim.record ?? claim;
       const body = record.body ?? {};
       return <li key={`${record.recordId}-${index}`}>
         {body.state ?? "state unavailable"} · observed {body.time ?? record.observedAt ?? "time unavailable"}.
         <p>Content acted on (c₀): {content(body.c0)}. Observed content (c₁): {content(body.c1)}.</p>
-        <details><summary>Original observation and record source</summary><pre>{JSON.stringify(claim, null, 2)}</pre></details>
+        <details><summary>Original observation and record source</summary><RecordedData value={claim} /></details>
       </li>;
     })}</ol></div>) : <p>No resolved lapse observations recorded for this act. This does not establish that no earlier lapse occurred.</p>}
     {list(row?.lapseHistoryLimits).map((limit, index) => <p key={index} role="note">History limit: {String(limit)}</p>)}
     {limited.length > 0 && <details><summary>Unresolved or historical lapse claims ({limited.length})</summary>
       <p>These claims do not establish a current lapse interval for this act.</p>
-      <pre>{JSON.stringify(limited, null, 2)}</pre>
+      <RecordedData value={limited} />
     </details>}
     <p>A content match after an observed lapse does not perform or renew an act.</p>
   </div>;
@@ -114,10 +120,10 @@ export function FileActPanel({ command, controlRef, onBusyChange }: {
         <button disabled={busy} onClick={() => run("file_act_retry_lapses", {})}>Retry saving held metadata only</button>
       </>}
       {list(view.lapseObservation.limits).map((limit, index) => <p key={index} role="note">Observation limit: {String(limit)}</p>)}
-      <details><summary>Observation persistence and original pending evidence</summary><pre>{JSON.stringify(view.lapseObservation, null, 2)}</pre></details>
+      <details><summary>Observation persistence and original pending evidence</summary><RecordedData value={view.lapseObservation} /></details>
     </div>}
     {preview && <article>
-      <h3>Frozen offer: {preview.offer.wording}</h3>
+      <h3>Frozen offer: {wordOf(FILE_ACT_WORDING, preview.offer.wording) ?? "an act the App does not recognise"}</h3>{wordOf(FILE_ACT_WORDING, preview.offer.wording) === null && <p>Recorded act: <AgentText value={preview.offer.wording} source="record" name={UNRECOGNISED} /></p>}
       <p>{contextual ? `Origin: selected arrival. Run ${preview.offer.answers.runId}, checkpoint ${arrival.checkpoint}, arrival ${arrival.arrivalOrdinal}.` : "Origin: standing file selection. No arrival or request is associated."}</p>
       {preview.offer.requestRef && <p>Recorded act-request reference: {preview.offer.requestRef}. Opening this offer does not answer that request.</p>}
       <p>Kind: {preview.offer.actKind}. Subject: {preview.offer.subject.ref} · {preview.byteLength} bytes</p>
@@ -125,9 +131,10 @@ export function FileActPanel({ command, controlRef, onBusyChange }: {
       <p>Scope: {preview.offer.scope} · Purpose: {preview.offer.purpose}</p>
       <p>Actor requirement: {preview.offer.actorRequirement}. Identity not verified. A7 professional standing is the person's own statement; no certification is established.</p>
       <p>{preview.previewStanding}. {contextual ? "This offer keeps the selected arrival's host-derived kind, scope and purpose. The standing-selection fields do not edit it." : "Changes to the standing kind, scope or purpose fields require selecting and reviewing a new offer."}</p>
-      <pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{JSON.stringify(preview.offer, null, 2)}</pre>
-      {preview.utf8 !== null && <details open><summary>Exact frozen UTF-8 text</summary><pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", maxHeight: 360, overflow: "auto" }}>{preview.utf8}</pre></details>}
-      <details><summary>Exact frozen bytes (hexadecimal)</summary><pre style={{ whiteSpace: "pre-wrap", overflowWrap: "anywhere", maxHeight: 360, overflow: "auto" }}>{preview.hex}</pre></details>
+      <RecordedData value={preview.offer} />
+      {preview.utf8 !== null && <details open><summary>Exact frozen UTF-8 text</summary><AgentText block value={preview.utf8} source="record" exactLineEnds style={{ maxHeight: 360, overflow: "auto" }} /></details>}
+      <details><summary>Exact frozen bytes (hexadecimal)</summary><AgentText block value={preview.hex} source="record" style={{ maxHeight: 360, overflow: "auto" }} /></details>
+      {typeof preview.declineNotice === "string" && <p role="note">{preview.declineNotice}</p>}
       <button disabled={busy || attempted} onClick={() => run("file_act_confirm", { reference: preview.reference })}>Review native act / decline / cancel…</button>
       <button disabled={busy || attempted} onClick={() => run("file_act_dismiss", { reference: preview.reference })}>Dismiss offer without capture</button>
     </article>}
@@ -135,29 +142,31 @@ export function FileActPanel({ command, controlRef, onBusyChange }: {
       <h3>Retained frozen offers</h3>
       <p>Showing an original offer does not recapture an act or change its context.</p>
       {Object.values(previews).filter(original => original.reference !== preview?.reference).map(original => <p key={original.reference}>
-        <button disabled={busy} onClick={() => { setPreview(original); setSelectionStatus(null); setError(""); }}>Show original offer {original.reference}</button>{" "}
+        <button disabled={busy} onClick={() => { setPreview(original); setSelectionStatus(null); setError(""); }}>Show original offer {idWords(original.reference)}</button>{" "}
         {outcomes[original.reference]?.state ?? "no native attempt made"}
       </p>)}
     </div>}
     {error && <p role="alert">{error}</p>}
-    {status && <div role="status"><p>{status.state}</p><pre>{JSON.stringify(status, null, 2)}</pre></div>}
+    {status && <div role="status"><p>{status.state}</p><RecordedData value={status} /></div>}
     <p>Uncertain capture publication is neither a recorded act nor an act awaiting its record. A definite capture failure requires a new review and confirmation. A durable capture with a failed record remains missing in record until its original continuation succeeds.</p>
     {(view?.hotOffers ?? []).map((offer: Json) => <article key={offer.reference}>
       <p>Original offer {offer.reference}: {outcomes[offer.reference]?.state ?? offer.status?.state ?? offer.state}</p>
-      <pre>{JSON.stringify(outcomes[offer.reference] ?? offer.status, null, 2)}</pre>
+      <RecordedData value={outcomes[offer.reference] ?? offer.status} />
       {(offer.status?.capture || offer.status?.captureId) && <button disabled={busy} onClick={() => run("file_act_continue", { reference: offer.reference })}>Continue original capture/record only</button>}
     </article>)}
     {preview && (status?.capture || status?.captureId) && <button disabled={busy} onClick={() => run("file_act_continue", { reference: preview.reference })}>Continue this original capture/record only</button>}
     <p>{view?.standing}</p>
     {(view?.rows ?? []).map((row: Json, index: number) => <article key={`${row.recordId}-${index}`}>
-      <h3>{row.kind}: {row.event}</h3>
+      <h3>{`${wordOf(FILE_ACT_KIND, row.kind) ?? "Act"}: ${wordOf(FILE_ACT_EVENT, row.event) ?? "event shown below"}`}</h3>{wordOf(FILE_ACT_KIND, row.kind) === null && <p>Recorded act kind: <AgentText value={row.kind} source="record" name={UNRECOGNISED} /></p>}{wordOf(FILE_ACT_EVENT, row.event) === null && <p>Recorded event: <AgentText value={row.event} source="record" name={UNRECOGNISED} /></p>}
       <p>Subject: {row.subject} · Scope: {row.scope ?? "unavailable"} · Purpose: {row.purpose ?? "unavailable"}</p>
       <p>Actor (identity not verified): {JSON.stringify(row.actor)}. Recorder: {JSON.stringify(row.recordedBy)}.</p>
       <p>Current content comparison: {row.comparison}. Captured at: {row.captureTime}. {row.identityResolution}.</p>
       <FileActLapseHistory row={row}/>
       {row.limits.map((limit: string, i: number) => <p key={i}>{limit}</p>)}
-      <details><summary>Source, content identities and correction relations</summary><pre>{JSON.stringify(row, null, 2)}</pre></details>
+      <details><summary>Source, content identities and correction relations</summary><RecordedData value={row} /></details>
     </article>)}
-    <details><summary>Read limits and correction groups</summary><pre>{JSON.stringify({ limits: view?.limits, diagnostics: view?.diagnostics, correctionGroups: view?.correctionGroups }, null, 2)}</pre></details>
+    {(view?.historyNotices ?? []).map((notice:string,i:number)=><p role="note" key={`history-${i}`}>{notice}</p>)}
+    {(view?.limits ?? []).map((limit:string,i:number)=><p role="alert" key={`read-${i}`}>{limit}</p>)}
+    <details><summary>Read limits and correction groups</summary><RecordedData value={{ limits: view?.limits, diagnostics: view?.diagnostics, correctionGroups: view?.correctionGroups }} /></details>
   </section>;
 }

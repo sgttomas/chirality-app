@@ -12,8 +12,8 @@
   },
   "artifact": {
     "kind": "result",
-    "record_id": "INVENTED-SQ-RUN-B-M12-5",
-    "sha256": "f304df8d7d15d1e1e216c963a313a4e6bd140be2a6b8fffde43f2fecdb71c7d9"
+    "record_id": "INVENTED-SQ-J2-4",
+    "sha256": "5d37c6988cd9ece7a5a0b3fb148ec2548e1b58fdb977d66511a129a3e5c63e8e"
   },
   "binding_method": "EXP-SUPPORT-BINDING-v1",
   "binding_purpose": "current_producer_declaration"

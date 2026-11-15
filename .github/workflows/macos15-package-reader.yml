@@ -1,0 +1,50 @@
+name: Package reader on macOS 15
+
+# The workflow package reader opens a package folder with a flag by which the
+# system refuses a symbolic link anywhere on the path (DEL-02-01, Revision).
+# The product jobs run on macOS 26, so they are not evidence for the App's
+# minimum, macOS 15. This runs the reader's boundary tests, and nothing else,
+# on a hosted macOS 15 runner. It is not a merge check. It runs by manual
+# dispatch, and once on a pull request that changes this file itself, so that
+# the run is seen before such a change merges.
+on:
+  pull_request:
+    paths:
+      - .github/workflows/macos15-package-reader.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  RUST_TEST_THREADS: '1'
+  CARGO_INCREMENTAL: '0'
+  CARGO_BUILD_JOBS: '2'
+
+defaults:
+  run:
+    working-directory: app
+
+jobs:
+  package-reader:
+    name: The reader refuses a link above a package (macOS 15)
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          filter: blob:none
+      - uses: ./.github/actions/app-v4-setup
+        with:
+          rust-cache-job: macos15-package-reader
+      - name: Record the runner's macOS
+        run: sw_vers
+      - name: Build App frontend
+        run: npm run build
+      - name: The reader's boundary tests
+        env:
+          CHIRALITY_SKIP_CODEX: '1'
+        # A link above a package must be refused by Snapshot::capture itself, and the same
+        # package by its real path must be read: an ignored flag fails the first.
+        run: cargo test --locked --manifest-path src-tauri/Cargo.toml --lib workflow_catalog_tests::package_root -- --test-threads=1

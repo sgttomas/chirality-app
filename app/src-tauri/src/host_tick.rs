@@ -57,29 +57,47 @@ fn receive_views(home: &HomeSession) -> (Value, Vec<Value>) {
 
 /// The record tick for one home: receive, then record checkpoint
 /// observations of its open runs. Lock order as `host_status`: runtime, then
-/// Root, then a run.
-pub(crate) fn tick_home(home: &HomeSession, workflows: &Mutex<WorkflowRootSession>) {
+/// Root, then a run. Returns the views it recorded from, for the recorders
+/// that follow in the same tick.
+pub(crate) fn tick_home(home: &HomeSession, workflows: &Mutex<WorkflowRootSession>) -> Vec<Value> {
     // Reconcile this home's private receipts and deliver accepted manual pages
     // once, including a genuinely late reply without web-view polling. The
     // shared helper initializes Runtime and follows runtime -> History order.
     home.reconcile_manual_history();
     let (_, recording) = receive_views(home);
-    for view in recording { record_run_observations(workflows, &view); }
+    for view in &recording { record_run_observations(workflows, view); }
+    recording
 }
 
 /// The record tick for every home the App holds.
-pub(crate) fn tick(homes: &Mutex<HomeRouter>, workflows: &Mutex<WorkflowRootSession>) {
+pub(crate) fn tick(homes: &Mutex<HomeRouter>, workflows: &Mutex<WorkflowRootSession>) -> Vec<(std::sync::Arc<HomeSession>, Vec<Value>)> {
     let entries = homes.lock().unwrap().entries();
-    for home in entries {
-        tick_home(&home, workflows);
-    }
+    entries.into_iter().map(|home| {
+        let views = tick_home(&home, workflows);
+        (home, views)
+    }).collect()
 }
 
 /// The App's actual record tick also observes ended project arrivals without
 /// requiring a running supplier or a web-view read.
-pub(crate) fn tick_project(homes:&Mutex<HomeRouter>,workflows:&Mutex<WorkflowRootSession>,project:Option<&std::path::Path>) {
-    tick(homes,workflows);
-    if let Some(project)=project {if let Ok(mut root)=workflows.try_lock(){root.observe_ended_runs(project);}}
+pub(crate) fn tick_project(homes:&Mutex<HomeRouter>,workflows:&Mutex<WorkflowRootSession>,project:Option<&std::path::Path>) -> Vec<(std::sync::Arc<HomeSession>, Vec<Value>)> {
+    let views=tick(homes,workflows);
+    if let Some(project)=project {observe_project_history(workflows, project);}
+    views
+}
+
+pub(crate) fn observe_project_history(workflows: &Mutex<WorkflowRootSession>, project: &std::path::Path) {
+    // See records_store::HistoryRead for the shared-reader check and slice 2.
+    let reading = crate::records_store::HistoryRead::begin(project);
+    let (generation, mut view) = {
+        let Ok(mut root) = workflows.try_lock() else { return; };
+        root.observe_ended_runs(project);
+        root.ended_history_reading()
+    };
+    let notice = reading.finish(project);
+    let changed = matches!(notice, crate::records_store::HistoryNotice::Changed);
+    view["historyNotices"] = json!(notice.view());
+    workflows.lock().unwrap().publish_ended_history(generation, view, changed);
 }
 
 /// The trial tick for one home: the TT-9 reads due in the view as last
@@ -198,7 +216,7 @@ pub(crate) fn project_status_history<'a>(
     for thread in status["threads"].as_array_mut().into_iter().flatten() {
         if let (Some(home),Some(id)) = (thread["generation"]["home"].as_str(),thread["threadId"].as_str()) {
             let role = history.role_details(home,id,root.as_deref().ok());
-            for field in ["appRole","roleRelation","childGuidance","roleLimitObservations","futureGuidanceNotices"] {
+            for field in ["appRole","roleRelation","childGuidance","roleLimitObservations","suppliedLimitAccount","futureGuidanceNotices"] {
                 thread[field] = role[field].clone();
             }
         }

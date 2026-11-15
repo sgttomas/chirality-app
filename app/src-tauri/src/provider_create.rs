@@ -90,6 +90,8 @@ impl Offer {
     }
     fn reread_unchanged(&mut self, state: &AppState) -> Result<(), String> {
         self.current(state)?;
+        #[cfg(test)]
+        if let Some(hook) = BEFORE_REREAD.lock().unwrap().take() { hook(); }
         let read = read(&self.pending)?;
         // A fresh receipt can replace the private read only at EXACT reviewed
         // version/configuration equality. It never rebases the Add intention.
@@ -101,6 +103,9 @@ impl Offer {
         self.current(state)
     }
 }
+/// Runs once between the save's currency check and its reading before the write.
+#[cfg(test)]
+pub(crate) static BEFORE_REREAD: std::sync::Mutex<Option<Box<dyn FnOnce() + Send>>> = std::sync::Mutex::new(None);
 fn read(pending: &PendingConfigResource) -> Result<PrivateConfigReading, String> {
     let reading = pending
         .home
@@ -117,7 +122,7 @@ fn read(pending: &PendingConfigResource) -> Result<PrivateConfigReading, String>
                 .min(Duration::from_secs(10)),
             PrivateConfigPurpose::CreateOffer,
         )
-        .map_err(|_| LIMIT)?;
+        .map_err(|e| crate::hosting::reading_gate::reading_or(e, || LIMIT.to_owned()))?;
     pending
         .home
         .host
@@ -327,7 +332,13 @@ pub(crate) fn save(
             after(candidate, &effects)
         })
     })();
-    Ok(
-        json!({"state":if result==Ok(true) {"continued"}else if overridden{"overridden"}else{"write-observed-source-unconfirmed"}}),
-    )
+    let mut outcome = json!({"state":if result==Ok(true) {"continued"}else if overridden{"overridden"}else{"write-observed-source-unconfirmed"}});
+    // The configuration reading after the write was refused at the reading gate or withdrawn: the
+    // known write outcome first and unqualified, then that reading's own sentence.
+    if let Err(error) = &result {
+        if crate::hosting::reading_gate::reading_sentence(error) {
+            outcome["message"] = json!(format!("{}{error}", crate::hosting::reading_gate::WRITE_THEN_READING));
+        }
+    }
+    Ok(outcome)
 }

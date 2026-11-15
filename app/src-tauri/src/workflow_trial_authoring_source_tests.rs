@@ -197,3 +197,32 @@ fn trial_authoring_feedback_rechecks_source_target_and_link_after_history_wait()
         assert_eq!((a.turn_starts(), b.turn_starts()), starts, "a feedback read sends nothing");
     }
 }
+
+
+#[test]
+fn records_store_sync_trial_publication_retry_never_resends_the_acknowledged_turn() {
+    let peer = Peer::new();
+    let root = Mutex::new(trial_root(&peer));
+    let reference = root.lock().unwrap().prepare_trial("delegated", DRAFT,
+        Some((&peer.generation, "thread")), Some(&peer.home), peer.project()).unwrap()["reference"].as_str().unwrap().to_owned();
+    let dir = peer.fixture.root.join("app-data/runtime/wr/trial-pointers");
+    crate::storage::ensure_directory(&dir).unwrap();
+    let starts = peer.turn_starts();
+    crate::storage::fail_directory_for_test(Some(dir.clone()));
+    let sent = trial_flows::send_trial(&root, &peer.home, &reference, &peer.generation, "thread", "invented trial input");
+    let second = trial_flows::send_trial(&root, &peer.home, &reference, &peer.generation, "thread", "invented trial input");
+    crate::storage::fail_directory_for_test(None);
+    assert!(sent.err().unwrap().message.contains("was sent"));
+    assert!(second.is_err(), "an acknowledged trial cannot become a prefill again");
+    assert_eq!(peer.turn_starts(), starts + 1, "publication failure/retry never sends the trial again");
+    let path = std::fs::read_dir(&dir).unwrap().next().unwrap().unwrap().path();
+    let bytes = std::fs::read(&path).unwrap();
+    let retained: Value = serde_json::from_slice(&bytes).unwrap();
+    // Reopening re-establishes publication on the exact retained link, with no
+    // host send. The same trial, client message and acknowledged turn survive.
+    root.lock().unwrap().trials = links(&peer);
+    assert_eq!(root.lock().unwrap().trials.link(&reference), Some(&retained));
+    assert!(trial_flows::trial_home(&root, &[peer.home.clone()], &reference).is_ok(), "observed send retained through publication recovery");
+    assert_eq!(std::fs::read(path).unwrap(), bytes);
+    assert_eq!(peer.turn_starts(), starts + 1);
+}

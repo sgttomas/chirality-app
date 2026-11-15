@@ -5,12 +5,15 @@ use crate::recovery::{remove_test_ledger, RecoveryLedger};
 
 mod request_history { include!("recovery_request_history_tests.rs"); }
 
-struct Scratch(PathBuf);
+/// A fixture root under this process's App data custody, as the App holds its
+/// App data before it opens a ledger: a session started here models a relaunch.
+struct Scratch(PathBuf, #[allow(dead_code)] crate::AppDataCustody);
 impl Scratch {
     fn new() -> Self {
         let path = std::env::temp_dir().canonicalize().unwrap().join(crate::util::opaque_id("ledger-store-").unwrap());
         std::fs::create_dir(&path).unwrap();
-        Self(path)
+        let custody = crate::hold_app_data_for_test(&path).unwrap();
+        Self(path, custody)
     }
     fn ledger_path(&self) -> PathBuf {
         self.0.join("recovery.ledger.jsonl")

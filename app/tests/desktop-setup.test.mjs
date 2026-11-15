@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
+import {choiceList, choiceLists, chooseIn, chosenIn} from './support/choices.mjs';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
@@ -23,14 +24,14 @@ const document = installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
 const {DesktopSetupPanel} = loadSrc('DesktopSetupPanel');
-const {App} = loadSrc('App');
+const {App, FIRST_READ_PATIENCE_MS} = loadSrc('App');
 const props = node=>node[Object.keys(node).find(k=>k.startsWith('__reactProps$'))];
 const nodes = (c,tag)=>c.querySelectorAll(node=>node.localName===tag);
 const region = (c,label)=>c.querySelectorAll(node=>node.getAttribute('aria-label')===label)[0];
 const button = (c,label)=>nodes(c,'button').find(node=>node.textContent===label);
 const field = (c,label)=>region(c,label);
 const labelled = (c,tag,label)=>nodes(c,tag).find(node=>node.parentNode.textContent.startsWith(label));
-const change = (node,value)=>React.act(()=>props(node).onChange({target:{value}}));
+const change = (node,value)=>React.act(()=>node.localName==='fieldset'?chooseIn(node,value):props(node).onChange({target:{value}}));
 const press = (c,label)=>React.act(async()=>{ const node=button(c,label); assert.ok(node,label); assert.equal(!!props(node).disabled,false,label); await props(node).onClick(); });
 const textPath = path=>new TextDecoder().decode(new Uint8Array(path.bytes));
 async function explicitInputs(c, project='none') {
@@ -198,18 +199,18 @@ test('setup save in the mounted App preserves operational A, Workflow C, unsent 
     assert.fail(`Unexpected IPC: ${command}`);
   });
   const conversation=()=>c.querySelectorAll(node=>node.getAttribute('id')==='conversation')[0];
-  const choose=id=>change(nodes(conversation(),'select')[0],key(id));
+  const choose=id=>change(choiceLists(conversation())[0],key(id));
   try {
     await React.act(()=>root.render(React.createElement(App)));
     await choose('A');await change(labelled(conversation(),'textarea','Text '),'Global unsent TEXT é / 家');
-    await change(labelled(c,'select','Workflow chat '),'C');await change(labelled(c,'select','Authoring conversation '),key('B'));
+    await change(choiceList(c,'Workflow chat'),'C');await change(choiceList(c,'Authoring conversation'),key('B'));
     await change(labelled(c,'input','Model '),'explicit-model-stays');
     await choose('B');const original=region(c,'Trial composer');assert.ok(original);
-    await change(nodes(original,'textarea')[0],'Edited original B');await change(labelled(original,'select','Send to '),key('D'));
+    await change(nodes(original,'textarea')[0],'Edited original B');await change(choiceList(original,'Send to'),key('D'));
     await choose('A');const setup=region(c,'Desktop setup');
     await change(field(setup,'Desktop setup action'),'retain');await change(field(setup,'Project on next launch'),'chosen');await change(field(setup,'Next project directory'),textPath(packet.retained.project));await press(setup,'Review setup effects');await press(setup,'Save project for next launch');
-    assert.equal(props(nodes(conversation(),'select')[0]).value,key('A'));
-    assert.equal(props(labelled(c,'select','Workflow chat ')).value,'C');assert.equal(props(labelled(c,'select','Authoring conversation ')).value,key('B'));
+    assert.equal(chosenIn(choiceLists(conversation())[0]),key('A'));
+    assert.equal(chosenIn(choiceList(c,'Workflow chat')),'C');assert.equal(chosenIn(choiceList(c,'Authoring conversation')),key('B'));
     assert.equal(props(labelled(conversation(),'textarea','Text ')).value,'Global unsent TEXT é / 家');
     assert.equal(props(labelled(c,'input','Model ')).value,'explicit-model-stays');
     assert.equal(host.currentAppProjectContext.reference,textPath(packet.retained.currentProject));
@@ -217,7 +218,7 @@ test('setup save in the mounted App preserves operational A, Workflow C, unsent 
     assert.match(setup.textContent,/Current launch: saved-request/,'pending save must not replace active source status');
     await press(c,'View prepared message in conversation B');
     assert.equal(region(c,'Trial composer'),original,'same mounted composer owner');
-    assert.equal(props(nodes(original,'textarea')[0]).value,'Edited original B');assert.equal(props(labelled(original,'select','Send to ')).value,key('D'));
+    assert.equal(props(nodes(original,'textarea')[0]).value,'Edited original B');assert.equal(chosenIn(choiceList(original,'Send to')),key('D'));
     assert.ok(calls.every(c=>['host_status','decision_view','native_confirmation_content','desktop_setup_project_preview','desktop_setup_prepare'].includes(c.command)));
     idle.assertClean(c);
   } finally { const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);Object.assign(globalThis,previous);assert.equal(timers.size,0); }
@@ -343,7 +344,7 @@ test('first use: choose a project, start with new App-owned settings, review the
     for(const effect of next.preview.effects)assert.ok(effects.includes(effect),effect);
     assert.match(effects,/Create a new settings folder for this App/);assert.match(effects,/No other Codex settings, home or credential is read, imported or changed/);
     await press(c,'Create settings and save for next launch…');
-    assert.match(region(c,'Setup saved').textContent,/quit Chirality \(⌘Q\) and open it again.*Connection & access.*ChatGPT account or prepare the oMLX connection/);
+    assert.match(region(c,'Setup saved').textContent,/quit Chirality \(⌘Q\) and open it again\..*Then open Connection and access to sign in with your ChatGPT account\. After signing in, choose a model and start a conversation\./);
     assert.deepEqual(calls.map(call=>call.command),['desktop_setup_pick','desktop_setup_new_settings_preview','desktop_setup_prepare']);
   });
 });
@@ -355,6 +356,20 @@ test('first use: no project, existing settings route, cancel and change keep cho
   },async(c,calls)=>{
     await press(c,'Continue without a project');
     assert.match(region(c,'Welcome').textContent,/No project for now/);
+    // DEL-01-01: where conversations without a project work, said plainly, and the folder's path in the technical details.
+    const welcome=region(c,'Welcome');
+    const said=nodes(welcome,'p').map(p=>p.textContent);
+    const sentence='No project for now. You can still have conversations, and choose a project later in Desktop setup.';
+    const kept='Conversations without a project work in one folder that Chirality sets aside. What a conversation creates there stays between launches and is shared by every conversation without a project, including any instructions a conversation writes there.';
+    assert.equal(said[said.indexOf(sentence)+1],kept,'a separate paragraph after the unchanged sentence');
+    assert.equal(packet.initial.noProjectFolder,packet.initial.appData+'/conversations-without-project');
+    assert.ok(said.includes('Conversations without a project work in: '+packet.initial.noProjectFolder));
+    // DEL-01-01: the App's working files, beside App data and named from it, in the same form.
+    assert.equal(packet.initial.workingFiles,packet.initial.appData+' Working Files');
+    assert.equal(typeof packet.initial.workingFilesKept,'number');
+    assert.ok(said.includes("Working files (the version check's folders, the connector's folder and Codex's temporary folders): "+packet.initial.workingFiles
+      +". "+packet.initial.workingFilesKept+" folders are there now, with what is in them: Chirality removes none of them. They can be removed once Chirality, and any Codex it started, has stopped."));
+    assert.ok(said.includes('App data: '+packet.initial.appData),'the App data line is unchanged');
     const existing=nodes(c,'input').find(n=>props(n).type==='radio'&&n.parentNode.textContent.startsWith(' Use my existing Codex settings'));
     await React.act(()=>props(existing).onChange());
     assert.equal(props(button(c,'Review setup')).disabled,true,'existing settings need all three');
@@ -503,6 +518,59 @@ test('first use: a later project edit or no-project supersedes an in-flight Brow
     });
   }
 });
+test('a saved setup whose Codex home is held is not shown as setup being needed',async()=>{
+  const reason='Desktop request unavailable: Codex was not started on this home: the home is held by another process on this computer. If another Chirality App is using it, use that App or quit it first.';
+  const view={...packet.dataHeld,launch:{state:'home-held',reason,operationalData:'not admitted; nothing operational started'}};
+  await mountedWelcome(view,()=>assert.fail('no IPC while a home is held'),async(c,calls)=>{
+    const welcome=region(c,'Welcome');
+    assert.match(welcome.textContent,/A Codex home this App uses is held/);
+    assert.equal(c.querySelectorAll(n=>n.getAttribute('role')==='alert')[0].textContent,reason);
+    assert.match(welcome.textContent,/Nothing operational was started\. This launch did not change your saved setup\. Quit this Chirality instance \(⌘Q\), then reopen it after the process holding the home has released it\./);
+    assert.doesNotMatch(welcome.textContent,/saved setup is unchanged|open Chirality again when/,'no claim that nobody changed it, and the quit is said');
+    assert.doesNotMatch(welcome.textContent,/Welcome to Chirality|choose a project folder|Set up your workspace/i,'setup is not offered or said to be needed');
+    assert.equal(nodes(c,'button').length,0,'no setup action is offered');
+    assert.deepEqual(calls,[]);
+  });
+});
+// DEL-01-01: what the person sees when something else is where Chirality keeps its folder for
+// conversations without a project: the host's own sentence, with the path, and no setup action.
+const OCCUPIED=/^Chirality keeps a folder for conversations without a project at \/.*\/conversations-without-project\. Something else is there now: a file\. Move it aside \(do not delete what a link points to\) and start Chirality again\.$/;
+test('a later start with something else in the folder for conversations without a project says what and where, and offers no setup',async()=>{
+  const view=packet.setAsideOccupied;
+  assert.equal(view.launch.state,'set-aside-occupied');
+  assert.match(view.launch.reason,OCCUPIED);
+  await mountedWelcome(view,()=>assert.fail('no IPC while the folder is taken'),async(c,calls)=>{
+    const welcome=region(c,'Welcome');
+    assert.match(welcome.textContent,/A folder Chirality keeps is taken/);
+    assert.equal(c.querySelectorAll(n=>n.getAttribute('role')==='alert')[0].textContent,view.launch.reason);
+    assert.doesNotMatch(welcome.textContent,/Welcome to Chirality|choose a project folder/i,'setup is not offered or said to be needed');
+    assert.equal(nodes(c,'button').length,0,'no action is offered: only the person moves it');
+    assert.deepEqual(calls,[]);
+  });
+});
+test('first-use review with something else in the folder for conversations without a project says what and where',async()=>{
+  assert.match(packet.setAsideReviewRefusal,OCCUPIED);
+  await mountedWelcome(packet.initial,(command)=>{
+    if(command==='desktop_setup_new_settings_preview')throw packet.setAsideReviewRefusal; // as the host rejects: its own sentence
+    assert.fail(command);
+  },async(c)=>{
+    await press(c,'Continue without a project');
+    await press(c,'Review setup');
+    assert.ok(c.querySelectorAll(n=>n.getAttribute('role')==='alert').some(n=>n.textContent==="Setup couldn't finish: "+packet.setAsideReviewRefusal),'the sentence, with its path, is shown where the review is');
+  });
+});
+test('a second App on data another process holds says what was observed, names no owner and offers no setup',async()=>{
+  const view=packet.dataHeld;
+  assert.equal(view.launch.state,'data-held');
+  await mountedWelcome(view,()=>assert.fail('no IPC while another process holds this data'),async(c,calls)=>{
+    const welcome=region(c,'Welcome');
+    assert.match(welcome.textContent,/This App's data is in use/);
+    assert.equal(c.querySelectorAll(n=>n.getAttribute('role')==='alert')[0].textContent,'Chirality did not start here: its data is held by another process on this computer. Nothing operational was started. If a Chirality window is already open, use it; otherwise quit whatever is using this data, then open Chirality again.');
+    assert.doesNotMatch(welcome.textContent,/already running|another Chirality App|nothing was started or changed/i,'no owner, window or unchanged state is asserted');
+    assert.equal(nodes(c,'button').length,0,'no setup action is offered');
+    assert.deepEqual(calls,[]);
+  });
+});
 test('the mounted App shows only the welcome while setup is required and keeps confirmation content visible',async()=>{
   const host={state:'setup-required',generation:null,threads:[],desktopSetup:packet.initial,roleLimits:{account:{roles:[]}}};
   const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
@@ -525,4 +593,176 @@ test('the mounted App shows only the welcome while setup is required and keeps c
     idle.assertClean(c);
   } finally { const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);Object.assign(globalThis,previous); }
 });
+test('a refused start at launch is shown in the connection status with its reason, without pressing Start, only for its home and only while no start is under way',async()=>{
+  const reason='Codex was not started on this home: the home is held by another process on this computer. If another Chirality App is using it, use that App or quit it first.';
+  const host={state:'absent',generation:null,threads:[],desktopSetup:{...packet.retained.initial},codexHome:'app-home:invented-shown',lastStartRefusal:{reason,actor:'app-startup',at:'invented',home:'app-home:invented-shown',attempt:null},roleLimits:{account:{roles:[]}}};
+  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
+  const timers=new Map();let timer=0;const previous={setInterval:globalThis.setInterval,clearInterval:globalThis.clearInterval};
+  globalThis.setInterval=(fn,ms)=>{const id=++timer;timers.set(id,{fn,ms});return id;};globalThis.clearInterval=id=>timers.delete(id);
+  const calls=[];
+  const idle=installIdleNativeWaiting(async(command)=>{
+    calls.push(command);
+    if(command==='host_status')return structuredClone(host);if(command==='decision_view')return {rows:[]};if(command==='native_confirmation_content')return [];
+    return null;
+  });
+  try {
+    await React.act(()=>root.render(React.createElement(App)));
+    const status=region(c,'Workspace connection status');
+    // A start refused before anything connected is said as not started, with the home's own reason.
+    assert.match(status.textContent,/Codex was not started/);assert.doesNotMatch(status.textContent,/could not stay connected/);
+    assert.equal(region(c,'Why Codex was not started').textContent,reason);
+    assert.ok(!calls.includes('host_start'),'shown without a start being pressed');
+    const poll=async()=>React.act(async()=>{for(const t of timers.values())await t.fn();});
+    // A start under way: an earlier refusal is not shown beside it, even if a host still carried one.
+    for(const state of ['verifying','spawning','handshaking','ready','stopping']){
+      host.state=state;await poll();
+      assert.equal(region(c,'Why Codex was not started'),undefined,state);
+    }
+    // A refusal for another home is not shown for this one.
+    host.state='refused';host.lastStartRefusal={...host.lastStartRefusal,home:'app-home:invented-other'};await poll();
+    assert.equal(region(c,'Why Codex was not started'),undefined,'another home');
+    // A reason that does not say so itself is introduced as a refusal to start.
+    host.lastStartRefusal={reason:'The Codex home does not exist, so Codex was not started on it.',home:'app-home:invented-shown',attempt:null};await poll();
+    assert.equal(region(c,'Why Codex was not started').textContent,'Codex was not started: The Codex home does not exist, so Codex was not started on it.');
+    host.state='ready';host.lastStartRefusal=null;host.generation={appSession:'s',home:'h',spawnCounter:1};
+    await poll();
+    assert.equal(region(c,'Why Codex was not started'),undefined,'gone once Codex is connected');
+  } finally { const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);Object.assign(globalThis,previous); }
+});
 const guidance2=c=>c.querySelectorAll(n=>n.getAttribute('id')==='first-use-next')[0];
+
+// Before the App's first host read: neither the welcome nor the workspace is in the document, only a
+// line that says the App is starting; a failed first read says so and offers to try again.
+async function mountedBeforeFirstRead(check) {
+  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
+  const timers=new Map();let timer=0;const previous={setInterval:globalThis.setInterval,clearInterval:globalThis.clearInterval,setTimeout:globalThis.setTimeout,clearTimeout:globalThis.clearTimeout};
+  globalThis.setInterval=(fn,ms)=>{const id=++timer;timers.set(id,{fn,ms});return id;};globalThis.clearInterval=id=>timers.delete(id);
+  // The App's first-read patience timeout is held here and fired by the test; every other timeout runs as usual.
+  const patience=new Map();
+  globalThis.setTimeout=(fn,ms,...rest)=>{if(ms===FIRST_READ_PATIENCE_MS){const id={patience:++timer};patience.set(id,fn);return id;}return previous.setTimeout(fn,ms,...rest);};
+  globalThis.clearTimeout=id=>{if(patience.has(id))patience.delete(id);else previous.clearTimeout(id);};
+  const elapse=()=>React.act(async()=>{for(const fn of patience.values())fn();patience.clear();});
+  const reads=[],calls=[];
+  const idle=installIdleNativeWaiting(async(command)=>{
+    calls.push(command);
+    if(command==='host_status')return new Promise((resolve,reject)=>reads.push({resolve,reject}));
+    if(command==='decision_view')return {rows:[]};if(command==='native_confirmation_content')return [];
+    assert.fail(`Unexpected IPC: ${command}`);
+  });
+  const poll=()=>React.act(async()=>{for(const t of timers.values())t.fn();});
+  const settle=(outcome)=>React.act(async()=>{const read=reads.at(-1);if(outcome instanceof Error)read.reject(outcome);else read.resolve(structuredClone(outcome));});
+  try { await React.act(()=>root.render(React.createElement(App))); await check({c,reads,calls,poll,settle,elapse,patience}); idle.assertClean(c); }
+  finally { const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);Object.assign(globalThis,previous); }
+}
+const starting=c=>c.querySelectorAll(n=>n.getAttribute('role')==='status'&&n.textContent==='Starting Chirality…');
+const workspaceAbsent=(c,state)=>{
+  assert.ok(!nodes(c,'h1').some(n=>n.textContent==='Chirality'),`${state}: the workspace heading is not in the document`);
+  for(const label of ['Workspace navigation','Workspace connection status','Run a workflow','Workspace tools','Welcome'])assert.ok(!region(c,label),`${state}: ${label}`);
+  assert.equal(c.querySelectorAll(n=>n.getAttribute('id')==='view-conversation').length,0,`${state}: no workspace view, hidden or not`);
+};
+const readyHost=()=>({state:'ready',generation:{appSession:'s',home:'h',spawnCounter:1},threads:[],desktopSetup:{...packet.retained.initial},roleLimits:{account:{roles:[]}}});
+
+test('before the first host read, only the starting line is shown: no workspace heading or control, and no welcome',async()=>{
+  await mountedBeforeFirstRead(async({c,reads})=>{
+    assert.equal(reads.length,1,'the first read is under way');
+    workspaceAbsent(c,'not yet read');
+    assert.equal(nodes(c,'button').length,0,'no control can be reached or counted');
+    assert.equal(starting(c).length,1,'one status line says the App is starting');
+    const shown=nodes(c,'main')[0].childNodes.filter(n=>n.localName!=='style').map(n=>n.textContent).join('');
+    assert.equal(shown,'Starting Chirality…','nothing else is shown');
+  });
+});
+
+test('the first read decides: setup required shows the welcome with the workspace hidden, as before',async()=>{
+  await mountedBeforeFirstRead(async({c,settle})=>{
+    await settle({state:'setup-required',generation:null,threads:[],desktopSetup:packet.initial,roleLimits:{account:{roles:[]}}});
+    assert.equal(starting(c).length,0);
+    assert.ok(!!region(c,'Welcome'));
+    assert.ok(nodes(c,'h1').some(n=>n.textContent==='Welcome to Chirality'));
+    const hiddenUp=node=>{for(let n=node;n;n=n.parentNode)if(props(n)?.hidden)return true;return false;};
+    for(const label of ['Workspace navigation','Workspace connection status','Run a workflow'])assert.equal(hiddenUp(region(c,label)),true,label);
+  });
+});
+
+test('the first read decides: setup not required shows the workspace and no welcome',async()=>{
+  await mountedBeforeFirstRead(async({c,settle})=>{
+    await settle(readyHost());
+    assert.equal(starting(c).length,0);
+    assert.ok(!region(c,'Welcome'));
+    const heading=nodes(c,'h1').find(n=>n.textContent==='Chirality');
+    assert.ok(!!heading);
+    for(let n=heading;n;n=n.parentNode)assert.notEqual(props(n)?.hidden,true,'the workspace is not hidden');
+    assert.ok(!!region(c,'Workspace navigation'));
+  });
+});
+
+test('a failed first read says so and offers to try again; loading never conceals it, and a later success shows the workspace',async()=>{
+  await mountedBeforeFirstRead(async({c,reads,calls,poll,settle})=>{
+    await settle(new Error('invented raw diagnostic'));
+    workspaceAbsent(c,'failed');
+    assert.equal(starting(c).length,0,'the starting line does not stand in for a failure');
+    assert.equal(c.querySelectorAll(n=>n.getAttribute('role')==='alert')[0]?.textContent,'Chirality could not read its own state. It keeps trying; you can also try again now.');
+    assert.doesNotMatch(c.textContent,/invented raw diagnostic/,'the raw diagnostic is not shown');
+    assert.deepEqual(nodes(c,'button').map(n=>n.textContent),['Try again']);
+    // A scheduled read that is still under way leaves the failure shown.
+    await poll();
+    assert.equal(reads.length,2);
+    assert.ok(!!button(c,'Try again'),'still failed while a later read is under way');
+    await settle(new Error('invented again'));
+    assert.ok(!!button(c,'Try again'));
+    const before=calls.filter(command=>command==='host_status').length;
+    await React.act(async()=>{props(button(c,'Try again')).onClick();});
+    assert.equal(calls.filter(command=>command==='host_status').length,before+1,'Try again makes the read again');
+    await settle(readyHost());
+    assert.ok(!button(c,'Try again'));
+    assert.ok(nodes(c,'h1').some(n=>n.textContent==='Chirality'));
+    assert.ok(!!region(c,'Workspace navigation'));
+  });
+});
+
+test('a read that fails after one succeeded leaves the workspace shown, as before',async()=>{
+  await mountedBeforeFirstRead(async({c,poll,settle})=>{
+    await settle(readyHost());
+    await poll();await settle(new Error('invented later failure'));
+    assert.ok(nodes(c,'h1').some(n=>n.textContent==='Chirality'));
+    assert.ok(!!region(c,'Workspace navigation'));
+    assert.ok(!button(c,'Try again'));
+  });
+});
+
+test('a first read that neither arrives nor fails: the starting line, then after the patience time the slow line with Try again; a read arriving later shows the page',async()=>{
+  assert.equal(FIRST_READ_PATIENCE_MS,10000,"App Agent 0's number");
+  const slowLine='Chirality is taking longer than usual to start. It keeps trying; you can also try again now.';
+  const slow=c=>c.querySelectorAll(n=>n.getAttribute('role')==='status'&&n.textContent===slowLine);
+  await mountedBeforeFirstRead(async({c,reads,calls,poll,settle,elapse,patience})=>{
+    assert.equal(patience.size,1,'one patience timeout is set at launch');
+    assert.equal(starting(c).length,1);assert.equal(slow(c).length,0);
+    workspaceAbsent(c,'not yet read');assert.equal(nodes(c,'button').length,0);
+    // The status timer keeps issuing reads while the first is unanswered.
+    await poll();assert.equal(reads.length,2,'a new read starts while the first is unanswered');
+    await elapse();
+    assert.equal(starting(c).length,0,'the starting line is replaced');
+    assert.equal(slow(c).length,1,'the slow line says the App is taking longer than usual');
+    assert.equal(c.querySelectorAll(n=>n.getAttribute('role')==='alert').length,0,'nothing failed, so nothing says it did');
+    workspaceAbsent(c,'slow');
+    assert.deepEqual(nodes(c,'button').map(n=>n.textContent),['Try again']);
+    const before=calls.filter(command=>command==='host_status').length;
+    await React.act(async()=>{props(button(c,'Try again')).onClick();});
+    assert.equal(calls.filter(command=>command==='host_status').length,before+1,'Try again issues a read while earlier ones are unanswered');
+    workspaceAbsent(c,'slow after Try again');
+    await settle(readyHost());
+    assert.equal(slow(c).length,0);assert.ok(!button(c,'Try again'));
+    assert.ok(nodes(c,'h1').some(n=>n.textContent==='Chirality'));
+    assert.ok(!!region(c,'Workspace navigation'));assert.ok(!region(c,'Welcome'));
+  });
+});
+
+test('after the patience time, a first read that arrives and needs setup shows the welcome as otherwise',async()=>{
+  await mountedBeforeFirstRead(async({c,elapse,settle})=>{
+    await elapse();
+    await settle({state:'setup-required',generation:null,threads:[],desktopSetup:packet.initial,roleLimits:{account:{roles:[]}}});
+    assert.ok(nodes(c,'h1').some(n=>n.textContent==='Welcome to Chirality'));
+    assert.ok(!button(c,'Try again'));
+    assert.equal(c.querySelectorAll(n=>n.getAttribute('role')==='status'&&/taking longer than usual/.test(n.textContent)).length,0);
+  });
+});

@@ -902,13 +902,23 @@ fn comparable(time: &str) -> bool {
 /// counts (§4.7). A record that claims an act on the arrival's file but
 /// cannot be verified against its capture adds an "unresolvable reference"
 /// limit, once.
+/// The subjects a file act or decline record names: its bound subject, or a decline's subject.
+fn named(record: &Value) -> Value {
+    let b = &record["body"];
+    if record["kind"] == "act_declined" { b["subject"].clone() } else { b["boundSubject"].clone() }
+}
+/// An arrival referent's file, resolved now inside `root` (canonical) as the act control
+/// resolves its subjects.
+fn subject_files(subject: &str, root: &Path) -> Vec<std::path::PathBuf> {
+    subject.match_indices(": file ")
+        .filter_map(|(i, m)| normal(&subject[i + m.len()..]))
+        .filter_map(|rel| std::fs::canonicalize(root.join(rel)).ok())
+        .filter(|f| f.starts_with(root) && *f != root)
+        .collect()
+}
 pub(crate) fn count_acts(entries: &[Value], read: &ActRead, root: &Path) -> Vec<Output> {
     let root = std::fs::canonicalize(root).unwrap_or_else(|_| root.to_path_buf());
     let mut out: Vec<Output> = Vec::new();
-    let named = |record: &Value| -> Value {
-        let b = &record["body"];
-        if record["kind"] == "act_declined" { b["subject"].clone() } else { b["boundSubject"].clone() }
-    };
     for arrival_entry in entries.iter().filter(|e| e["kind"] == "checkpoint_arrival") {
         let body = &arrival_entry["body"];
         let arrival = json!({"checkpoint":body["checkpoint"],"arrivalOrdinal":body["arrivalOrdinal"]});
@@ -927,11 +937,7 @@ pub(crate) fn count_acts(entries: &[Value], read: &ActRead, root: &Path) -> Vec<
             continue;
         }
         // The arrival's file, resolved now as the act control resolves its subjects.
-        let files: Vec<std::path::PathBuf> = subject.match_indices(": file ")
-            .filter_map(|(i, m)| normal(&subject[i + m.len()..]))
-            .filter_map(|rel| std::fs::canonicalize(root.join(rel)).ok())
-            .filter(|f| f.starts_with(&root) && *f != root)
-            .collect();
+        let files = subject_files(subject, &root);
         if files.is_empty() {
             continue;
         }
@@ -1059,6 +1065,87 @@ fn lapsed_after_resume(entries: &[Value], arrival: &Value) -> bool {
         .map(|(i, e)| (i, &e["body"])).collect();
     lapses.last().is_some_and(|(i, b)| b["state"] == "lapsed" && b["when"] == "after resume"
         && entries[i + 1..].iter().any(|e| e["kind"] == "disposition_change" && e["body"]["arrival"] == *arrival))
+}
+/// Why no act is offered on an arrival, in the App's own sentences: a closed set, with no
+/// recorded value put in them. The dispositions named are those this recorder writes.
+pub(crate) mod not_answering {
+    pub(crate) const PERFORMED: &str = "This arrival is no longer waiting: its recorded disposition is performed. An act here would be recorded, but would not answer it.";
+    pub(crate) const RESOLVED_NEGATIVELY: &str = "This arrival is no longer waiting: its recorded disposition is resolved negatively. An act here would be recorded, but would not answer it.";
+    pub(crate) const LAPSED: &str = "This arrival is no longer waiting: its recorded disposition is lapsed. An act here would be recorded, but would not answer it.";
+    pub(crate) const NOT_YET_RECORDED: &str = "This arrival's latest disposition is not yet recorded, so no act is offered for it here. Review again once it is.";
+    pub(crate) const NOT_ESTABLISHED: &str = "This arrival's disposition cannot be established from its run's records, so no act is offered for it here.";
+    pub(crate) const UNFAMILIAR: &str = "This arrival's recorded disposition is not one the App writes, so no act is offered for it here.";
+    pub(crate) const ANSWER_PENDING: &str = "An act or decline answering this arrival is already recorded and not yet taken up, so no second act is offered for it here. Review again once it is.";
+    pub(crate) const ACTS_NOT_READ: &str = "The project's act records could not be read completely, so whether an act here would answer this arrival cannot be established, and no act is offered for it here. The same act on this file can still be made from the standing file selection; while the records cannot be read, its record may wait until they can. Review again once they can be read.";
+    /// An act already confirmed whose record is not yet written is an answer no record shows; the
+    /// next recording writes it ahead of any new one.
+    pub(crate) const EARLIER_CAPTURE_HELD: &str = "An act confirmed earlier in the App, on this arrival or on anything else, has no record written yet, so no act is offered for this arrival here. Continue that act's recording first, then review again.";
+    /// On a performed arrival answered again only by an act on its current content (RC-8), a
+    /// decline answers nothing: said on its sheet, and the reason a decline there is refused.
+    pub(crate) const DECLINE_DOES_NOT_ANSWER: &str = "This arrival is performed and its file has changed since: only an act on its current content answers it. A decline here would not answer it and is not recorded; a decline of this kind stays available outside the arrival.";
+}
+/// Whether an act offered now on `arrival` would be counted for it, once the recorder has taken
+/// up every act and decline already recorded. First the recorded disposition decides
+/// ([`act_would_answer`]); then what the recorder's own counting step ([`count_acts`]) would
+/// write from `read`, the project's act records as its own reader reads them
+/// ([`project_act_records`]), on the same gate it counts on ([`countable`]). This returns what
+/// the recorder would write and appends nothing. Where the recorded disposition answers and the
+/// projected one does not, the reason is [`not_answering::ANSWER_PENDING`].
+///
+/// `Ok` carries whether a decline offered beside the act would answer too: only while the
+/// arrival waits, since a performed arrival with a referent lapsed after its resume point is
+/// answered again only by an act (RC-8).
+///
+/// The read must be positively complete for this arrival's file: a record on that file that the
+/// reader could not settle either way (its capture or its relations not resolved) refuses with
+/// [`not_answering::ACTS_NOT_READ`], as a read that failed does. A record the reader settled as
+/// no act (it differs from its capture, another writer wrote it, it shares its capture, its
+/// identity conflicts) is never counted, so it holds nothing.
+///
+/// The decision is the projected state's answerability ([`act_would_answer`] on the entries with
+/// what the recorder would write), never whether this projection produced a new entry.
+pub(crate) fn answer_once_taken_up(entries: &[Value], read: &ActRead, root: &Path, arrival: &Value) -> Result<bool, &'static str> {
+    act_would_answer(entries, arrival)?;
+    let root = std::fs::canonicalize(root).map_err(|_| not_answering::ACTS_NOT_READ)?;
+    let subject = entries.iter()
+        .find(|e| e["kind"] == "checkpoint_arrival" && e["body"]["checkpoint"] == arrival["checkpoint"] && e["body"]["arrivalOrdinal"] == arrival["arrivalOrdinal"])
+        .and_then(|e| e["body"]["referents"][0]["subject"].as_str());
+    let files = subject.map(|s| subject_files(s, &root)).unwrap_or_default();
+    // A capture that carries no seal is settled (it never counts), so it holds nothing; the
+    // reader decides that where it reads the capture.
+    let unsettled = |u: &Value| u["settled"] != true && u["reason"].as_str().is_some_and(|r| r.starts_with("capture evidence not resolved") || r.starts_with("record relation not resolved"));
+    let on_file = |record: &Value| named(record).as_array().is_some_and(|subjects| subjects.iter().any(|s| s.as_str().is_some_and(|p| files.iter().any(|f| Path::new(p) == f))));
+    if read.unresolved.iter().any(|u| unsettled(u) && on_file(&u["record"])) {
+        return Err(not_answering::ACTS_NOT_READ);
+    }
+    let root = root.as_path();
+    let mut projected = entries.to_vec();
+    if countable(entries) {
+        projected.extend(count_acts(entries, read, root).into_iter().map(|(kind, body)| json!({"kind":kind,"body":body,"written":true})));
+    }
+    act_would_answer(&projected, arrival).map_err(|_| not_answering::ANSWER_PENDING)?;
+    Ok(disposition(&projected, &[], arrival).as_deref() == Some("waiting"))
+}
+/// Whether an act on `arrival` now would be counted for it, by the rule acts are counted by
+/// (CE-5, RC-8): its latest disposition, recorded, is *waiting*, or it is *performed* with a
+/// referent lapsed after its resume point. The arrival's act offer asks this, so that the offer
+/// and the counting answer alike. `entries` are the run's own, in order, each with `kind`,
+/// `body` and `written` (whether it is in the record).
+pub(crate) fn act_would_answer(entries: &[Value], arrival: &Value) -> Result<(), &'static str> {
+    let latest = entries.iter().filter(|e| e["kind"] == "disposition_change" && e["body"]["arrival"] == *arrival).last();
+    let Some(latest) = latest else { return Err(not_answering::NOT_ESTABLISHED) };
+    if latest["written"] != true {
+        return Err(not_answering::NOT_YET_RECORDED);
+    }
+    match disposition(entries, &[], arrival).as_deref() {
+        Some("waiting") => Ok(()),
+        Some("performed") if lapsed_after_resume(entries, arrival) => Ok(()),
+        Some("performed") => Err(not_answering::PERFORMED),
+        Some("resolved negatively") => Err(not_answering::RESOLVED_NEGATIVELY),
+        Some("lapsed") => Err(not_answering::LAPSED),
+        Some(_) => Err(not_answering::UNFAMILIAR),
+        None => Err(not_answering::NOT_ESTABLISHED),
+    }
 }
 /// Whether acts are counted for any arrival of a run: one waits, or one is
 /// performed with a referent lapsed after its resume point (RC-8).
@@ -1627,6 +1714,8 @@ pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
         if state.corrected {
             continue; // a corrected record is not current (RS R-6)
         }
+        // Whether a refusal is a settled verdict on the record, never a limit of this read.
+        let mut settled = false;
         let verified: Result<Value, String> = if let Some(limit) = state.relation_limit {
             Err(format!("record relation not resolved: {limit}"))
         } else if state.identity_resolution == "conflicting identity" {
@@ -1636,6 +1725,7 @@ pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
         } else {
             let observed = crate::file_act_view::observe_capture(&root, b);
             reusable &= observed.reusable;
+            settled = observed.no_seal && observed.result.is_err();
             if let Some(watch) = observed.watch { captures.push(watch); }
             match observed.result {
                 Err(e) => Err(format!("capture evidence not resolved: {e}")),
@@ -1658,7 +1748,12 @@ pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
                 }
                 read.acts.push(Value::Object(fields));
             }
-            Err(reason) => read.unresolved.push(Value::Object(serde_json::Map::from_iter([("record".into(), record), ("reason".into(), Value::String(reason))]))),
+            Err(reason) => {
+                let mut entry = serde_json::Map::from_iter([("record".into(), record), ("reason".into(), Value::String(reason))]);
+                // Marked only where settled; an entry without it is not settled.
+                if settled { entry.insert("settled".into(), Value::Bool(true)); }
+                read.unresolved.push(Value::Object(entry));
+            }
         }
     }
     // RS R-8: one capture is one act; records sharing a capture are none of them acts.

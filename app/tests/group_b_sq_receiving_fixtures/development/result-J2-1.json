@@ -1,7 +1,7 @@
 {
   "record_kind": "exam_result",
   "format": "EXP-v0.2",
-  "record_id": "INVENTED-SQ-RUN-B-M12-5",
+  "record_id": "INVENTED-SQ-J2-1",
   "support_revision": {
     "exp_version": "EXP-v0.2",
     "schema_id": "urn:chirality:app-v4:del-09-01:exam-result-record:0.2",
@@ -9,12 +9,11 @@
   },
   "case": {
     "owner_deliverable": "DEL-09-02",
-    "case_id": "M12-5",
-    "scenario": "V4-EXM-12"
+    "case_id": "J2-1"
   },
   "criterion": {
-    "source": "INVENTED criterion for M12-5",
-    "identity": "sha256:3ab2e196838b83eace648291d7d6a0cbb3fba7209b6c38e14c8d5e037a719c8c"
+    "source": "INVENTED criterion for J2-1",
+    "identity": "sha256:a5dd94fdd61a4c3f70f555c2bc9a67c640bf86045241afb74406c4fe036d4be3"
   },
   "activity": "verification",
   "run_basis": "candidate",
@@ -37,7 +36,7 @@
       },
       "native_route": {
         "method": "person_operated",
-        "form_ref": "INVENTED-FORM-M12-5"
+        "form_ref": "INVENTED-FORM-J2-1"
       },
       "webview": {
         "name": "WKWebView",
@@ -46,31 +45,16 @@
       }
     },
     "model": "not_observed",
-    "model_server": {
-      "kind": "local_provider",
-      "label": "INVENTED local model server",
-      "home": "H-acct"
-    }
+    "model_server": "not_observed"
   },
   "date": {
     "value": "2026-10-08",
     "source": "record_timestamp"
   },
-  "outcome": "fail",
-  "evidence": [
-    {
-      "ref": "INVENTED native form row M12-5: local model server observed in the account home H-acct",
-      "provenance": "live_observation"
-    }
-  ],
+  "outcome": "not-run",
+  "evidence": [],
   "currency": {
     "state": "current"
   },
-  "limits": [
-    {
-      "label": "observed home differs from the declared home",
-      "vocabulary": "EXP",
-      "detail": "Observed: the local model server conversation ran in the account home H-acct, where the dedicated local home H-omlx was declared for it; the declared access modes are unchanged."
-    }
-  ]
+  "not_run_because": "INVENTED not attempted after earlier block"
 }

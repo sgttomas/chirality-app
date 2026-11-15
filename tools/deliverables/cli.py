@@ -278,7 +278,8 @@ def main(argv=None):
             for identifier, doc in documents.items():
                 folder = str(PurePosixPath(doc['source']).parent) + '/'
                 hits = [path for path in paths if path.startswith(folder) or (path.startswith(prefix) and any(
-                    fnmatchcase(path[len(prefix):], pattern) for pattern in doc.get('code_paths', [])))]
+                    fnmatchcase(path[len(prefix):], pattern)
+                    for field in ('code_paths', 'checks') for pattern in doc.get(field, [])))]
                 if hits:
                     matched[identifier] = hits
             result.update(selection=selection, relevant=matched,
