@@ -2604,10 +2604,14 @@ export function App() {
   const changePermissionLevel = async (owner: string, scope: "default" | { conversation: string }, levelId: string) => {
     if (homePendingRef.current || owner !== levelOwner(currentHost.current)) throw Error("The Codex home changed. Choose the level again in the current view; nothing was changed.");
     let refreshFailed = false;
-    const result = await commandThenRefresh(() => invoke<Json>("set_level", { scope, levelId }), refresh, () => { refreshFailed = true; });
-    return { result, refreshFailed };
+    try {
+      const result = await commandThenRefresh(() => invoke<Json>("set_level", { scope, levelId }), refresh, () => { refreshFailed = true; });
+      return { result, refreshFailed };
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : String(error), refreshFailed };
+    }
   };
-  return (<PermissionLevelActions.Provider value={{ host, change: changePermissionLevel, unavailable: homePending, stale: shownBeforePress(hostReads) }}><DailyWorkspace>
+  return (<PermissionLevelActions.Provider value={{ host, change: changePermissionLevel, unavailable: homePending, stale: shownBeforePress(hostReads), readFailed: !!hostReads.failure }}><DailyWorkspace>
         {firstRead !== "read" && <FirstReadStatus failed={firstRead === "failed"} slow={firstReadSlow} retry={() => { void refresh().catch(() => undefined); }}/>}
         {setupRequired && <FirstUseSetup view={host.desktopSetup}/>}
         {firstRead === "read" && <div hidden={setupRequired}>

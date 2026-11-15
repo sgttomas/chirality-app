@@ -150,3 +150,63 @@ test('the real App shows the default before Start and wires its plain setting th
     assert.match(panel.textContent,/Project edits/);assert.match(panel.textContent,/Chosen by you/);
   } finally {const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);}
 });
+
+test('each prepared Send shows its actual destination level, including an ask there, while a different source stays selected',async()=>{
+  const {DelegatedTrialComposerView,BringBackComposerView,conversationKey}=loadSrc('TrialComposer');
+  const {ContinueAsPanel}=loadSrc('ConversationRoles');
+  for(const kind of ['delegated','bring-back','continue-as']) {
+    const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c),calls=[];
+    let destination=thread('destination',{chosen:chosen('supervised','chosen'),agreement:'not-confirmed',takesEffect:'now'});
+    const source=thread('source');
+    const pending={reference:'trial:1',id:'bring:1',sequence:1,draftName:'invented',card:'Invented trial',text:'invented',transcript:'invented'};
+    const common={pending,conversations:[source,destination],message:'inputs',prompt:'inputs',setMessage:()=>{},setPrompt:()=>{},target:conversationKey(destination),setTarget:()=>{},outcome:{state:'unsent'},setOutcome:()=>{},busy:false,ready:true,act:async(command,args)=>{calls.push([command,args]);return {};}};
+    const render=()=>{
+      const h=host({threads:[source,destination]});
+      const composer=kind==='delegated'?React.createElement(DelegatedTrialComposerView,common):kind==='bring-back'?React.createElement(BringBackComposerView,common):React.createElement(ContinueAsPanel,{handoff:{id:'handoff:1',sourceThread:'source',sourceRoleLabel:'HELP_HUMAN',targetRole:'WORKING_ITEMS',draft:{state:'drafted'},draftText:'invented',started:{threadId:'destination',generation:g}},entries:[],homeClass:'account',generation:g,busy:false,ready:true,start:async()=>({ok:true}),send:async text=>{calls.push(['handoff-send',{text,threadId:'destination'}]);return {state:'sent'};},open:()=>{},dismiss:()=>{}});
+      root.render(React.createElement(PermissionLevelActions.Provider,{value:{host:h,unavailable:false,stale:false,change:async(owner,scope,levelId)=>{calls.push(['set_level',{scope,levelId}]);return {result:{state:'chosen'},refreshFailed:false};}}},
+        React.createElement(PermissionLevel,{host:h,threadId:'source'}),composer));
+    };
+    try {
+      await React.act(render);
+      const label=kind==='delegated'?'Trial composer':kind==='bring-back'?'Bring back composer':'Continue as';
+      const composer=()=>c.querySelectorAll(e=>e.getAttribute('aria-label')===label)[0];
+      const panel=()=>composer().querySelectorAll(e=>e.getAttribute('aria-label')==='Conversation permission level')[0];
+      assert.equal(nodes(panel(),'strong')[0].textContent,'Supervised',kind);
+      assert.equal(nodes(c,'strong')[0].textContent,'Full access','source is still selected with a different level');
+      const send=nodes(composer(),'button').find(b=>b.textContent===(kind==='continue-as'?'Send this message to the new conversation':'Send'));
+      assert.ok(send);assert.equal(!!props(send).disabled,false);
+      await React.act(async()=>props(send).onClick());
+      assert.equal(calls[0][1].threadId,'destination',kind);
+      destination=thread('destination',{chosen:null,ask:{sentence:sentence('RECORD_MISSING_SENTENCE'),preselected:'full'}});
+      await React.act(render);
+      assert.ok(panel().textContent.includes(sentence('RECORD_MISSING_SENTENCE')),kind);
+      await React.act(async()=>props(nodes(panel(),'button')[0]).onClick());
+      assert.deepEqual(calls.at(-1),['set_level',{scope:{conversation:'destination'},levelId:'full'}],kind);
+    } finally {await React.act(()=>root.unmount());document.body.removeChild(c);}
+  }
+});
+
+test('the real App keeps a setting refusal and a simultaneous refresh failure, without changing the displayed level',async()=>{
+  const {App}=loadSrc('App');const {REFRESH_FAILED}=loadSrc('statusRefresh');
+  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c),calls=[];
+  const h=host({roleLimits:{account:{roles:[]}},serverRequests:[]});let refused=false;
+  const message='The level was not recorded in the App ledger (invented failure); nothing was changed';
+  const idle=installIdleNativeWaiting(async(command,args)=>{
+    calls.push({command,args});
+    if(command==='host_status'){if(refused)throw Error('private refresh diagnostic');return structuredClone(h);}
+    if(command==='decision_view')return {rows:[]};if(command==='native_confirmation_content')return [];
+    if(command==='set_level'){refused=true;throw message;}
+    throw Error(`Unexpected ${command}`);
+  });
+  try {
+    await React.act(async()=>root.render(React.createElement(App)));
+    const panel=c.querySelectorAll(e=>e.getAttribute('aria-label')==='Permission level for new conversations')[0];
+    await React.act(()=>props(nodes(panel,'select')[0]).onChange({target:{value:'edits'}}));
+    await React.act(async()=>props(nodes(panel,'button')[0]).onClick());
+    assert.ok(panel.textContent.includes(message),'the host refusal is unchanged');
+    assert.ok(panel.textContent.includes(REFRESH_FAILED),'the failed read is not lost on rejection');
+    assert.doesNotMatch(panel.textContent,/private refresh diagnostic|The App is reading the current permission level/);
+    assert.equal(nodes(panel,'strong')[0].textContent,'Full access');
+    assert.equal(calls.filter(c=>c.command==='set_level').length,1,'no automatic retry');
+  } finally {const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);}
+});

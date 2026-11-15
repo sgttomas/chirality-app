@@ -5,9 +5,10 @@ import { REFRESH_FAILED } from "./statusRefresh";
 type Json = any;
 type Scope = "default" | { conversation: string };
 export const PermissionLevelActions = createContext<null | {
-  change: (owner: string, scope: Scope, levelId: string) => Promise<{ result: Json; refreshFailed: boolean }>;
+  change: (owner: string, scope: Scope, levelId: string) => Promise<{ result?: Json; error?: string; refreshFailed: boolean }>;
   unavailable: boolean;
   stale: boolean;
+  readFailed?: boolean;
   host?: Json;
 }>(null);
 export const levelOwner = (host: Json): string => JSON.stringify([host?.homeRouting?.activeModeHomeClass, host?.generation]);
@@ -81,8 +82,11 @@ export function PermissionLevel({ host, threadId }: { host: Json; threadId?: str
 }
 
 /** Start composers use the same active-home reading as the ordinary New conversation view. */
-export function StartPermissionLevel({ threadId }: { threadId?: string }) {
+export function StartPermissionLevel({ threadId, generation }: { threadId?: string; generation?: Json }) {
   const actions = useContext(PermissionLevelActions);
+  if (actions?.host && threadId && generation && JSON.stringify(generation) !== JSON.stringify(actions.host.generation)) {
+    return <p>Permission level is not available for this conversation's Codex session.</p>;
+  }
   return actions?.host ? <PermissionLevel host={actions.host} threadId={threadId}/> : null;
 }
 
@@ -112,13 +116,13 @@ function LevelPanel({ host, threadId }: { host: Json; threadId?: string }) {
     pendingRef.current = true; setPending(true); setOutcome(null);
     try {
       const result = await actions.change(levelOwner(host), threadId && !globalAsk ? { conversation: threadId } : "default", choice);
-      if (mounted.current) setOutcome({ reply: result.result, refreshFailed: result.refreshFailed });
+      if (mounted.current) setOutcome({ error: result.error, reply: result.result, refreshFailed: result.refreshFailed });
     } catch (error) { if (mounted.current) setOutcome({ error: error instanceof Error ? error.message : String(error) }); }
     finally { pendingRef.current = false; if (mounted.current) setPending(false); }
   };
   return <section className="workflow-stage" aria-label={threadId ? "Conversation permission level" : "Permission level for new conversations"}>
     <h3>Permission level</h3>
-    {actions?.stale ? <p role="status">The App is reading the current permission level. The last reading below may be out of date.</p> : null}
+    {actions?.readFailed ? <p role="alert">{REFRESH_FAILED}</p> : actions?.stale ? <p role="status">The App is reading the current permission level. The last reading below may be out of date.</p> : null}
     <p><strong>{level ? name(level.id) : "No permission level reported"}</strong>{threadId ? " · this conversation" : " · new conversations"}</p>
     {level && <>
       <p>{wordOf(ORIGINS, level.origin) ?? "The origin of this level was not reported."}</p>
@@ -151,7 +155,7 @@ function LevelPanel({ host, threadId }: { host: Json; threadId?: string }) {
     {outcome?.reply && <p role="status">{outcome.reply.state === "chosen" ? "The App accepted your level choice." : "The App returned a result for the level choice."}</p>}
     {outcome?.reply?.sentence && <p>{outcome.reply.sentence}</p>}
     {outcome?.reply?.writeFailure && <ReportedValue value={outcome.reply.writeFailure}/>}
-    {outcome?.refreshFailed && <p role="alert">{REFRESH_FAILED}</p>}
+    {outcome?.refreshFailed && !actions?.readFailed && <p role="alert">{REFRESH_FAILED}</p>}
     {threadId && <>
       <p>Last level sent: {name(row?.level?.sent?.levelId)}. {row?.level?.sent?.writeResult === "written" ? "Written to Codex." : "Writing it to Codex is not established."}</p>
       {row?.level?.reported ? <div>

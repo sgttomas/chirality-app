@@ -564,6 +564,7 @@ export function ContinueAsPanel({ handoff, entries, homeClass, generation, busy,
       </div>}
     </div>}
     {started && <div>
+      <StartPermissionLevel threadId={started.threadId} generation={started.generation}/>
       <p>New conversation {text(started.threadId)} started with {target}.{!blocked && " Nothing has been sent to it."}</p>
       <button disabled={busy || !ready || !draft || blocked} onClick={sendDraft}>Send this message to the new conversation</button>{" "}
       {read && blocked && <><button disabled={busy || reading} onClick={() => { void readOriginal(); }}>Read the original send outcome</button>{" "}</>}
