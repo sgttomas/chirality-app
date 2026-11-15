@@ -275,49 +275,112 @@ fn with_codex_input_full_the_start_is_not_held_behind_a_reading() {
     run.finish();
 }
 
-/// A reading whose own write is blocked on Codex's input is not read at its deadline, while that
-/// write is still blocked; when Codex reads again and answers, nothing changes.
+/// The request for each conversation method, as a test sends it.
+fn conversation_params(method: &str) -> Value {
+    if method == "thread/start" { json!({"model":"m","modelProvider":"p"}) } else { json!({"threadId":"saved"}) }
+}
+fn feature_attempts(host: &Host) -> Vec<Option<u64>> {
+    host.inner.0.lock().unwrap().source_requests.values().filter(|e| e.request.frame["method"] == FEATURE_LIST).map(|e| e.attempt_position).collect()
+}
+
+/// Review 356, R1 (base form): the home's base reading meets Codex's input full. It writes
+/// nothing, releases the frame writer at once and is not read, not sent; a start, resume or fork
+/// that comes after it is not held by it and goes to its own write.
 #[test]
-fn a_reading_whose_write_is_blocked_is_not_read_at_its_deadline() {
+fn a_base_reading_that_meets_codex_input_full_holds_no_later_request() {
+    for method in ["thread/start", "thread/resume", "thread/fork"] {
+        let run = Run::new(Answer::Silent);
+        let (read, _) = full_pipe(&run.host);
+        run.host.extensions_after_ready(&g());
+        let base = run.base();
+        assert_eq!((base["plugins"]["state"].as_str(), base["plugins"]["notReadBecause"].as_str()), (Some("not-read"), Some("not-sent")));
+        assert_eq!(feature_attempts(&run.host), [None], "the reading made no write attempt");
+        assert!(run.host.frame_write.try_lock().is_ok(), "the frame writer is free");
+        let host = Arc::clone(&run.host);
+        let (done_tx, done) = std::sync::mpsc::channel();
+        let worker = std::thread::spawn(move || { done_tx.send(host.request_begin_scoped(method, conversation_params(method), json!({"kind":"person-directed"}), false, Some(&g())).map(|_| ())).unwrap(); });
+        let deadline = Instant::now() + Duration::from_secs(2);
+        while pending(&run.host, method) != [true] { assert!(Instant::now() < deadline, "{method} did not reach its own write"); std::thread::sleep(Duration::from_millis(2)); }
+        drop(read);
+        let _ = done.recv_timeout(Duration::from_secs(3)).unwrap();
+        worker.join().unwrap();
+        run.finish();
+    }
+}
+
+/// Review 356, R1 (thread form): the reading made after a start's reply meets Codex's input full
+/// and is not read, not sent, with the writer released; the next start, resume or fork goes to its
+/// own write and completes once Codex reads again. The reading's late arrival changes nothing.
+#[test]
+fn a_conversation_reading_that_meets_codex_input_full_holds_no_next_request() {
     use std::os::fd::{FromRawFd, OwnedFd};
-    let run = Run::new(Answer::Silent);
-    let mut fds = [0; 2];
-    assert_eq!(unsafe { libc::pipe(fds.as_mut_ptr()) }, 0);
-    let read = unsafe { std::fs::File::from_raw_fd(fds[0]) };
-    *run.host.stdin.lock().unwrap() = Some(ChildStdin::from(unsafe { OwnedFd::from_raw_fd(fds[1]) }));
-    let (writer, host) = (fds[1], Arc::clone(&run.host));
-    let (replied_tx, replied) = std::sync::mpsc::channel();
-    let (drain_tx, drain) = std::sync::mpsc::channel::<()>();
-    // Codex's side: it reads the start, then stops reading with its input full, then answers it;
-    // later, when told, it reads again and answers the reading with plugins on.
-    let codex = std::thread::spawn(move || {
-        let mut lines = BufReader::new(read).lines();
-        for line in lines.by_ref() {
-            let frame: Value = serde_json::from_str(&line.unwrap()).unwrap();
-            if frame["method"] == "thread/start" { fill(writer); host.on_line(&serde_json::to_vec(&conversation_reply(&frame)).unwrap(), &g()); replied_tx.send(Instant::now()).unwrap(); break; }
-        }
-        drain.recv().unwrap();
-        for line in lines {
-            let Ok(line) = line else { break };
-            if line.is_empty() { continue; }
-            let frame: Value = serde_json::from_str(&line).unwrap();
-            if frame["method"] == FEATURE_LIST { host.on_line(&serde_json::to_vec(&json!({"id":frame["id"],"result":{"data":on(),"nextCursor":null}})).unwrap(), &g()); }
-        }
-    });
-    assert!(run.start().is_ok());
-    let replied = replied.recv_timeout(Duration::from_secs(2)).unwrap();
-    let record = run.read("started");
-    let took = replied.elapsed();
-    assert!(took < Duration::from_millis(1000), "not read by its deadline: {took:?}");
-    assert_eq!((record["plugins"]["state"].as_str(), record["plugins"]["notReadBecause"].as_str()), (Some("not-read"), Some("not-answered")));
-    assert_eq!(pending(&run.host, FEATURE_LIST), [true], "its write is still blocked on Codex's input");
-    drain_tx.send(()).unwrap();
-    let deadline = Instant::now() + Duration::from_secs(2);
-    while pending(&run.host, FEATURE_LIST) != [false] { assert!(Instant::now() < deadline, "the blocked write did not finish"); std::thread::sleep(Duration::from_millis(5)); }
-    std::thread::sleep(Duration::from_millis(100));
-    assert_eq!(run.host.extensions_record_for_test("started").unwrap(), record, "its late completion changes nothing");
-    *run.host.stdin.lock().unwrap() = None;
-    codex.join().unwrap();
+    for method in ["thread/start", "thread/resume", "thread/fork"] {
+        let run = Run::new(Answer::Silent);
+        let mut fds = [0; 2];
+        assert_eq!(unsafe { libc::pipe(fds.as_mut_ptr()) }, 0);
+        let read = unsafe { std::fs::File::from_raw_fd(fds[0]) };
+        *run.host.stdin.lock().unwrap() = Some(ChildStdin::from(unsafe { OwnedFd::from_raw_fd(fds[1]) }));
+        let (writer, host) = (fds[1], Arc::clone(&run.host));
+        let (drain_tx, drain) = std::sync::mpsc::channel::<()>();
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let order = Arc::clone(&seen);
+        // Codex's side: it reads the start, stops reading with its input full and answers the
+        // start; when told, it reads again and answers what it reads.
+        let codex = std::thread::spawn(move || {
+            let mut lines = BufReader::new(read).lines();
+            let first: Value = serde_json::from_str(&lines.next().unwrap().unwrap()).unwrap();
+            assert_eq!(first["method"], "thread/start");
+            fill(writer);
+            host.on_line(&serde_json::to_vec(&conversation_reply(&first)).unwrap(), &g());
+            drain.recv().unwrap();
+            for line in lines {
+                let Ok(line) = line else { break };
+                if line.trim().is_empty() { continue; }
+                let frame: Value = serde_json::from_str(&line).unwrap();
+                order.lock().unwrap().push(frame["method"].as_str().unwrap_or("").to_owned());
+                if extensions::loads_conversation(frame["method"].as_str().unwrap_or("")) { host.on_line(&serde_json::to_vec(&conversation_reply(&frame)).unwrap(), &g()); }
+            }
+        });
+        assert!(run.start().is_ok());
+        let record = run.read("started");
+        assert_eq!((record["plugins"]["state"].as_str(), record["plugins"]["notReadBecause"].as_str()), (Some("not-read"), Some("not-sent")));
+        assert_eq!(feature_attempts(&run.host), [None], "the reading made no write attempt");
+        assert!(run.host.frame_write.try_lock().is_ok(), "the frame writer is free");
+        let host = Arc::clone(&run.host);
+        let (done_tx, done) = std::sync::mpsc::channel();
+        let worker = std::thread::spawn(move || done_tx.send(host.request_inner_scoped(method, conversation_params(method), json!({"kind":"person-directed"}), Duration::from_secs(2), false, Some(&g()))).unwrap());
+        let deadline = Instant::now() + Duration::from_secs(2);
+        while !pending(&run.host, method).contains(&true) { assert!(Instant::now() < deadline, "{method} did not reach its own write"); std::thread::sleep(Duration::from_millis(2)); }
+        drain_tx.send(()).unwrap();
+        assert!(done.recv_timeout(Duration::from_secs(3)).unwrap().is_ok(), "{method} completes once Codex reads again");
+        worker.join().unwrap();
+        let thread = match method { "thread/start" => "started", "thread/fork" => "forked", _ => "saved" };
+        run.read(thread);
+        *run.host.stdin.lock().unwrap() = None;
+        codex.join().unwrap();
+        assert_eq!(seen.lock().unwrap().first().map(String::as_str), Some(method), "the next request was the first frame Codex read after its input was full");
+        // A second start names the same thread, and its own reading replaces the first.
+        if method != "thread/start" { assert_eq!(run.host.extensions_record_for_test("started").unwrap(), record, "the first reading stays not sent"); }
+        run.finish();
+    }
+}
+
+/// A page longer than one atomic write to Codex's input is not written: the writer is not taken
+/// into a write that could be split or wait.
+#[test]
+fn a_frame_longer_than_one_atomic_write_is_not_written() {
+    let (read, write) = std::os::unix::net::UnixStream::pair().unwrap();
+    let file = std::fs::File::from(std::os::fd::OwnedFd::from(write));
+    assert_eq!(frame_fits_now(&file, libc::PIPE_BUF), Ok(()));
+    assert_eq!(frame_fits_now(&file, libc::PIPE_BUF + 1), Err(FRAME_TOO_LONG.into()));
+    drop(read);
+    let run = Run::new(Answer::Entries(on()));
+    let long = "c".repeat(libc::PIPE_BUF);
+    *run.host.feature_read_reply.lock().unwrap() = Some(Box::new(move |host, source| reply_to(host, source, json!({"data": on(), "nextCursor": long}))));
+    run.host.extensions_after_ready(&g());
+    let base = run.base();
+    assert_eq!(base["plugins"]["notReadBecause"], "not-sent", "the second page, carrying the long cursor, was not written");
+    assert_eq!(feature_attempts(&run.host).iter().filter(|a| a.is_some()).count(), 1, "only the first page was written");
     run.finish();
 }
 
@@ -403,6 +466,28 @@ fn closing_or_replacing_the_generation_drops_its_readings() {
     let refused = run.host.request_inner_scoped("thread/resume", json!({"threadId":"started"}), json!({"kind":"person-directed"}), Duration::from_millis(300), false, Some(&g())).unwrap_err();
     assert!(refused.contains("generation changed before request registration"), "{refused}");
     assert!(!run.host.extensions_kept_for_test(), "the refusal drops the replaced generation's readings");
+    run.finish();
+
+    // Review 356, R4: a replacement seen only by status drops the replaced generation's
+    // admissions and requirements times too, not only what is shown.
+    let run = Run::new(Answer::Entries(on()));
+    run.requirements_reply(json!({"result":{"requirements":null}}));
+    run.host.extensions_after_ready(&g());
+    run.base();
+    run.start().unwrap();
+    run.read("started");
+    let unanswered = run.host.request_begin_scoped("thread/resume", json!({"threadId":"saved"}), json!({"kind":"person-directed"}), false, Some(&g()));
+    {
+        let mut i = run.host.inner.0.lock().unwrap();
+        let key = i.source_requests.iter().find(|(_, e)| e.request.frame["method"] == "thread/resume").map(|(k, _)| k.clone()).unwrap();
+        i.extensions_admitted.insert(key, Admitted::default());
+        assert!(!i.requirements_read_at.is_empty());
+        i.generation = g2(); i.journal.begin_generation(g2());
+    }
+    let status = run.host.snapshot();
+    assert!(status["extensionsBase"].is_null());
+    assert!(!run.host.extensions_kept_for_test(), "nothing of the replaced generation is kept");
+    drop(unanswered);
     run.finish();
 
     // A reading of G1 still under way when G1 closes.

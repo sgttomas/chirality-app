@@ -14,6 +14,13 @@
 //! read, and its late completion changes nothing. A reading is bound to its generation: closing
 //! or replacing the generation drops every reading of it.
 //!
+//! A reading never holds the frame writer while it waits on Codex's input. With the writer held, a
+//! page is written only when its frame is no longer than the pipe's atomic size (`PIPE_BUF`) and
+//! Codex's input reports at once that it can take that much (`frame_fits_now`); every frame is
+//! written under the writer, so nothing fills the input between that check and the write, and the
+//! one write takes the frame whole. Otherwise the writer is released at once and the reading is
+//! not read, not sent: a conversation request that comes after it goes to its own write.
+//!
 //! Where each state comes from is taken only from evidence already read on the same generation,
 //! never by a further configuration reading (a configuration or requirements reading becomes the
 //! generation's newest and would retire the provider reading the next request is admitted on,
@@ -373,12 +380,17 @@ impl Host {
         i.requirements_read_at.clear();
     }
 
-    /// Drops every reading not of the current, open generation.
+    /// Drops every reading not of the current, open generation, with what was kept for them: the
+    /// admissions and requirements times of requests not of that generation.
     pub(super) fn extensions_retire_stale(i: &mut Inner) {
         if i.server_requests.is_closed(&i.generation) { Self::extensions_close(i); return; }
         let current = i.generation.clone();
         i.extensions_threads.retain(|_, r| r.shown["generation"] == current);
         if i.extensions_base.as_ref().is_some_and(|r| r.shown["generation"] != current) { i.extensions_base = None; }
+        let Inner { source_requests, extensions_admitted, requirements_read_at, .. } = i;
+        let of_current = |key: &String| source_requests.get(key).is_some_and(|e| e.request.generation == current);
+        extensions_admitted.retain(|key, _| of_current(key));
+        requirements_read_at.retain(|key, _| of_current(key));
     }
 
     /// Each conversation's reading on its row (`threads[].extensions`), and the home's base reading
@@ -475,4 +487,23 @@ impl Host {
 #[cfg(test)]
 pub(crate) fn extensions_origins_for_test(admitted: Option<&Admitted>, cwd: Option<&str>) -> (Option<Value>, &'static str) {
     Admitted::origins_for(admitted, cwd)
+}
+
+/// Why a page of the reading was not written: its frame is longer than one write that cannot be
+/// split, or Codex's input could not take it at once.
+pub(crate) const FRAME_TOO_LONG: &str = "the reading's frame is longer than one atomic write to Codex's input; nothing was written";
+pub(crate) const INPUT_FULL: &str = "Codex's input could not take the reading's frame at once; nothing was written";
+
+/// Called with the frame writer held, just before a page of the reading is written: `Ok` only when
+/// the frame (`len` bytes, its newline included) fits one atomic pipe write and Codex's input
+/// reports, without waiting, that it can take that much. On macOS a pipe reports writable only with
+/// at least `PIPE_BUF` bytes free, and a write of at most `PIPE_BUF` bytes to a pipe is made whole
+/// or not at all. Anything else, an error or an interrupted check included, is not writable.
+pub(crate) fn frame_fits_now(file: &std::fs::File, len: usize) -> Result<(), String> {
+    use std::os::fd::AsRawFd;
+    if len > libc::PIPE_BUF { return Err(FRAME_TOO_LONG.into()); }
+    let mut poll = libc::pollfd { fd: file.as_raw_fd(), events: libc::POLLOUT, revents: 0 };
+    let ready = unsafe { libc::poll(&mut poll, 1, 0) };
+    let writable = ready == 1 && poll.revents & libc::POLLOUT != 0 && poll.revents & (libc::POLLERR | libc::POLLHUP | libc::POLLNVAL) == 0;
+    if writable { Ok(()) } else { Err(INPUT_FULL.into()) }
 }

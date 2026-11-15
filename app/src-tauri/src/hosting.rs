@@ -3229,6 +3229,9 @@ impl Host {
                 if let Some(hold)=&hold {Self::reading_write_started_locked(&mut i,hold)?;}
                 // The withdraw-or-write decision (`WriteBound`): withdrawn, no
                 // attempt is registered and nothing is written.
+                // A page of the feature reading is written only if Codex's input takes it whole now,
+                // without waiting; otherwise the writer is released at once and nothing is written.
+                if feature_reading {extensions::frame_fits_now(&bound.file,bytes.len())?;}
                 if let Some(limit)=write_bound{limit.begin_write()?;}
                 i.send_position+=1;let position=i.send_position;let e=i.source_requests.get_mut(&id.to_string()).unwrap();e.write_attempt_in_progress=true;e.attempt_position=Some(position);e.turn_model_cut=cut;e.turn_model_context=context;
                 // A turn start enters the table of unresolved starts when its write begins.
