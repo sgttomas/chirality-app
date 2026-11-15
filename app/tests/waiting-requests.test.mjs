@@ -87,7 +87,8 @@ async function mounted(check,{initial='api-key',navigationWait,decisionWait,wron
   const change=async(element,value)=>{assert.equal(!!props(element).disabled,false,'no edit through disabled controls');await React.act(()=>element.localName==='fieldset'?chooseIn(element,value):props(element).onChange({target:{value}}));};
   try{
     await React.act(async()=>root.render(React.createElement(App)));
-    const routeChosen=()=>{const b=find(container,'button',ROUTE);return !!b&&props(b)['aria-pressed']===true;};
+    // In the account home the only connection is shown in use (DEL-01-05 REQ-004); a toggle is pressed only where more than one is offered.
+    const routeChosen=()=>{if(container.querySelectorAll(node=>node.getAttribute('aria-label')==='Connection in use').length)return true;const b=find(container,'button',ROUTE);return !!b&&props(b)['aria-pressed']===true;};
     const choice=()=>({model:field('input','Model ')?props(field('input','Model ')).value:null,route:routeChosen()});
     await check({dto,container,calls,scrolls,press,change,settle,conversation,field,routeChosen,choice,select:()=>choiceLists(conversation())[0],draft:()=>byTag(conversation(),'textarea')[0]});
   }finally{navigationWait?.resolve();decisionWait?.resolve();await settle();const renderedText=container.textContent;await React.act(()=>root.unmount());document.body.removeChild(container);idle.restore(renderedText);document.getElementById=priorGet;}
@@ -153,14 +154,14 @@ test('navigation invalidates the prior-home chooser at intent and preserves newe
     // The retained legacy home offers no connection route or model field, so no prior-home choice can be made.
     assert.deepEqual(ui.choice(),{model:null,route:false});
     await ui.press('account · thread shared-thread: 2');
-    assert.deepEqual(ui.choice(),{model:'',route:false});
+    // The target home's only connection is shown in use; nothing of the prior home's carries over, and no model is chosen.
+    assert.deepEqual(ui.choice(),{model:'',route:true});
     assert.match(ui.container.textContent,/Selected home: account\./,'target source is rendered while its independent decision refresh waits');
-    // While the target home's refresh is pending the route is not offered; the model field can still be edited.
-    assert.equal(props(find(ui.container,'button',ROUTE)).disabled,true);
+    // While the target home's refresh is pending nothing is offered as a choice; the model field can still be edited.
+    assert.equal(find(ui.container,'button',ROUTE),undefined);
     await ui.change(ui.field('input','Model '),'target-model');
     wait.resolve();await ui.settle();
-    assert.deepEqual(ui.choice(),{model:'target-model',route:false});
-    await ui.press(ROUTE);assert.deepEqual(ui.choice(),{model:'target-model',route:true});
+    assert.deepEqual(ui.choice(),{model:'target-model',route:true});
     assert.equal(ui.calls.filter(c=>c.command==='thread_start').length,0);
   },{decisionWait:wait});
 });
@@ -170,7 +171,7 @@ test('same-home waiting navigation preserves a separate unconsumed new-conversat
     await mounted(async ui=>{
       // Only the account home offers a new-conversation choice; the retained legacy home offers none.
       const kept=initial==='account'?{model:'unsent-new-model',route:true}:{model:null,route:false};
-      if(initial==='account'){await ui.press(ROUTE);await ui.change(ui.field('input','Model '),'unsent-new-model');}
+      if(initial==='account')await ui.change(ui.field('input','Model '),'unsent-new-model');
       assert.deepEqual(ui.choice(),kept);
       await ui.change(ui.draft(),'Kept unsent draft / 家');
       await ui.press(`${initial} · thread shared-thread: ${initial==='account'?2:1}`);
@@ -190,7 +191,7 @@ for(const initial of ['account','api-key'])test(`same-home pending navigation ke
   const wait=deferred(),account=initial==='account';
   await mounted(async ui=>{
     await ui.change(ui.select(),JSON.stringify([ui.dto[initial].generation,'shared-thread']));
-    if(account){await ui.press(ROUTE);await ui.change(ui.field('input','Model '),'unsent-new-model');}
+    if(account)await ui.change(ui.field('input','Model '),'unsent-new-model');
     const kept=account?{model:'unsent-new-model',route:true}:{model:null,route:false};
     assert.deepEqual(ui.choice(),kept);
     const waiting=`${initial} · thread shared-thread: ${account?2:1}`;

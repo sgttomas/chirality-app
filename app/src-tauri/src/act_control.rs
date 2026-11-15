@@ -15,9 +15,9 @@
 //! - §6.1 NA-3/NA-4: only a host-native confirmation captures (the Tauri layer
 //!   presents a native dialog; see lib.rs); §7 the person's identity.
 //!
-//! The RS `human_act` body follows DEL-04-03 RECORD_SEMANTICS.md §6.1 (A16 rows)
-//! and HA-11; act class from DEL-04-01 ACT_AND_POLICY_CONTRACT.md §2.1 (A16,
-//! "person's act (V4-PM-04)").
+//! The RS `human_act` body follows DEL-04-03 ScopeOfWork.md REQ-003 and
+//! `schemas/RS_RECORD.schema.json` $defs/humanAct (including its A16 relations).
+//! Capture evidence follows `schemas/aac.capture-evidence.schema.json`.
 
 #[path = "act_control_assurance.rs"]
 mod assurance;
@@ -31,6 +31,9 @@ pub(crate) use file_act::{FileActKind, FileActOfferRef, confirm_file_native};
 
 #[path = "act_control_a15.rs"]
 mod a15;
+#[path = "act_control_standing.rs"]
+mod package_standing;
+pub(crate) use package_standing::shown_statement_binding;
 pub(crate) use a15::{a15_subject_ref, a15_tuple, review_digest, A15OfferRef, A15Variant, HotA15Receipt, HotA15Result};
 use crate::canonical::{offer_digest, OFFER_DIGEST_METHOD};
 use crate::recorder::LOG;
@@ -55,6 +58,97 @@ fn capture_time() -> String {
 }
 
 const STANDING: &str = "no arrival: a standing act (RC-6)";
+
+/// Err((words, stale)). A standing that changed, or an offer without one, makes the offer
+/// stale. A records home that refuses here (the store unavailable, or its attachment refused) is reported
+/// with its own cause and leaves the offer presented, so the same decision can be made once
+/// it can be read. A home that admits but whose logs then read incompletely still reads as a
+/// different standing, and so as changed.
+fn check_standing(root: &Path, offer: &Value) -> Result<(), (String, bool)> {
+    if offer.get("packageStanding").is_none() || offer.get("otherRequestsForPath").is_none() {
+        return Err(("The A16 offer has no complete request standing; review it again; nothing captured.".into(), true));
+    }
+    if let Err(cause) = crate::records_store::readable_home(root) {
+        return Err((format!("The records cannot be read now, so this request's standing cannot be checked again: {cause}; nothing captured."), false));
+    }
+    let (standing, others) = package_standing::read(root,
+        offer["requestRef"].as_str().unwrap_or(""), offer["subject"]["ref"].as_str().unwrap_or(""));
+    if standing != offer["packageStanding"] || others != offer["otherRequestsForPath"] {
+        return Err((package_standing::CHANGED.into(), true));
+    }
+    Ok(())
+}
+
+fn a16_lines(offer: &Value, alternative: &str, actor: &Value, whole_values: bool, all_rows: bool) -> Result<String, String> {
+    use crate::native_text::{self as nt, Placed, Source, Unfit};
+    let alt = offer["alternatives"].as_array().and_then(|a| a.iter().find(|a| a["id"] == alternative))
+        .ok_or("the package names no such alternative")?;
+    let supplied = if whole_values { nt::supplied_whole } else { nt::supplied };
+    let field = |label: &'static str, value: &Value, source: Source| -> Vec<String> {
+        match nt::identifier(value, Unfit::Supplied {label,source}) {
+            Placed::Inline(closed) => vec![format!("{label}: {closed}")],
+            Placed::Lines(_) => supplied(label, source, value).lines().to_vec(),
+        }
+    };
+    let mut lines = vec!["Decide (A16)".into(), String::new()];
+    lines.extend(field("Package file", &offer["subject"]["ref"], Source::File));
+    lines.extend(field("Content identity", &offer["subject"]["contentIdentity"]["value"], Source::File));
+    lines.extend_from_slice(supplied("Purpose", Source::File, &offer["purpose"]).lines());
+    lines.extend_from_slice(supplied("Scope", Source::File, &offer["scope"]).lines());
+    lines.extend(if whole_values { package_standing::line_whole(&offer["packageStanding"]) } else { package_standing::line(&offer["packageStanding"]) });
+    lines.extend(if all_rows { package_standing::other_lines_whole(&offer["otherRequestsForPath"]) } else if whole_values { package_standing::other_lines_uncut(&offer["otherRequestsForPath"], 3) } else { package_standing::other_lines(&offer["otherRequestsForPath"], 3) });
+    lines.extend(field("Chosen alternative", &alt["id"], Source::File));
+    lines.extend_from_slice(supplied("Chosen alternative's statement", Source::File, &alt["statement"]).lines());
+    for consequence in alt["consequences"].as_array().ok_or("consequences absent")? {
+        lines.extend_from_slice(supplied("Consequences", Source::File, consequence).lines());
+    }
+    let mut actor_extra = Vec::new();
+    let who: Vec<_> = [("displayName", "Actor's name", Source::Person), ("osAccount", "OS account", Source::Tool)]
+        .into_iter().filter_map(|(member,label,source)| actor.get(member).map(|value| {
+            match nt::identifier(value, Unfit::Supplied {label,source}) {
+                Placed::Inline(closed) => closed.to_string(),
+                Placed::Lines(_) => { actor_extra.extend_from_slice(supplied(label, source, value).lines()); nt::VALUE_NOT_SHOWN.into() }
+            }
+        })).collect();
+    lines.extend([String::new(), format!("Actor: {} (identity not verified)", who.join(" / "))]);
+    lines.extend(actor_extra);
+    lines.extend([format!("Answers: {STANDING}"), "Only Decide records this decision. Don't decide (the default) records nothing; no decline exists for A16; Cancel closes the control.".into()]);
+    Ok(lines.join("\n"))
+}
+
+fn a16_statement(offer: &Value, alternative: &str, actor: &Value) -> Result<native_statement::NativeStatement, String> {
+    let native = a16_lines(offer, alternative, actor, false, false)?;
+    // A value cut at the alert's 600-character limit must have a whole App counterpart,
+    // even when the shortened native statement would fit the alert's overall bound.
+    let uncut_native = a16_lines(offer, alternative, actor, true, false)?;
+    if native == uncut_native {
+        if let Ok(text) = native_statement::bounded("A16 native confirmation", native) {
+            return Ok(native_statement::NativeStatement { text, in_app: None });
+        }
+    }
+    let content = json!({"markedStatement":a16_lines(offer, alternative, actor, true, true)?});
+    let digest = native_statement::content_digest("A16 native confirmation", &content)?;
+    let mut failure = String::new();
+    // Down to no rows, with the own standing in closed words only: a long recorded value
+    // moves wholly into the App content instead of refusing the act.
+    for limit in (0..=3).rev() {
+        let mut summary = vec!["Decide (A16)".into(), String::new(),
+            "Package file, content identity, purpose and scope: shown in the App.".into()];
+        summary.extend(package_standing::line_summary(&offer["packageStanding"]));
+        summary.extend(package_standing::other_lines(&offer["otherRequestsForPath"], limit));
+        summary.push("The complete marked statement has moved to the App, shown in full now under \"Content named by an open native confirmation\"; any values cut here are whole there. Its sha-256 digest:".into());
+        summary.push(digest.clone());
+        summary.push("Actor: shown in the App (identity not verified)".into());
+        summary.extend([format!("Answers: {STANDING}"), "Only Decide records this decision. Don't decide (the default) records nothing; no decline exists for A16; Cancel closes the control.".into()]);
+        match native_statement::bounded("A16 native confirmation", summary.join("\n")) {
+            Ok(text) => return Ok(native_statement::NativeStatement {
+                text, in_app: Some(native_statement::InApp { kind: "A16 chosen alternative", digest, content }),
+            }),
+            Err(error) => failure = error,
+        }
+    }
+    Err(failure)
+}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub enum InputSource {
@@ -94,6 +188,7 @@ pub struct OfferSlot {
     selected: Option<String>,
     frozen_offer: Option<Value>,
     frozen_actor: Option<Value>,
+    frozen_statement: Option<String>,
     // Actual complete RS request observed at compose; never supplied by renderer.
     request_record: Value,
 }
@@ -149,10 +244,10 @@ fn check_request_binding(
         );
     }
     let (entries, limits) = storage::read_all(workspace);
-    // Compose admitted this exact request from a complete schema/sequence-checked
-    // set. Later unrelated partial append tails must not discard native capture
-    // facts; existing recorder/recovery guards still hold those writes. Recheck
-    // the bound, validated readable target rather than inventing a global veto.
+    // Compose admitted this exact schema-checked request from the readable set.
+    // Standing completeness is separately derived and rechecked. Later unrelated
+    // partial append tails must not discard native capture facts; recorder/recovery
+    // guards still hold those writes. Recheck the bound, validated readable target.
     let matching = entries
         .iter()
         .filter(|entry| entry["recordId"] == original["recordId"])
@@ -198,12 +293,23 @@ pub(crate) mod native_statement {
     /// Shown before a full identity on its own (copyable) line.
     pub(crate) const SHORT: usize = 12;
 
+    #[cfg(test)]
+    thread_local! {
+        /// Test-only seam: a lower limit, so a test can reach the refusal that no real
+        /// input reaches once every unbounded value has moved to the App. Absent from
+        /// shipped builds.
+        pub(crate) static TEST_LIMIT: std::cell::Cell<Option<(usize, usize)>> = const { std::cell::Cell::new(None) };
+    }
     /// Refuses a statement that would not fit a readable native alert.
     pub(crate) fn bounded(what: &str, text: String) -> Result<String, String> {
+        #[cfg(test)]
+        let (max_lines, max_chars) = TEST_LIMIT.with(|limit| limit.get()).unwrap_or((MAX_LINES, MAX_CHARS));
+        #[cfg(not(test))]
+        let (max_lines, max_chars) = (MAX_LINES, MAX_CHARS);
         let (lines, chars) = (text.lines().count(), text.chars().count());
-        if lines > MAX_LINES || chars > MAX_CHARS {
+        if lines > max_lines || chars > max_chars {
             return Err(format!(
-                "{what}: the statement ({lines} lines, {chars} characters) exceeds the readable native confirmation ({MAX_LINES} lines, {MAX_CHARS} characters); nothing presented, nothing captured or sent"
+                "{what}: the statement ({lines} lines, {chars} characters) exceeds the readable native confirmation ({max_lines} lines, {max_chars} characters); nothing presented, nothing captured or sent"
             ));
         }
         Ok(text)
@@ -1187,13 +1293,17 @@ impl ActControl {
     pub fn compose_a16(&mut self, request_ref: &str) -> Result<Value, String> {
         refuse_unresolved_capture(&self.workspace, request_ref)?;
         let (entries, limits) = records::writer_record_set(&self.workspace);
-        if !limits.is_empty() {
-            return Err(format!("not offered: incomplete record set: {limits:?}"));
-        }
-        let req = entries
+        // A readable, unique request can still be shown when other records are unreadable.
+        // The decision view, not record presence or this writer read, determines standing.
+        let requests: Vec<_> = entries
             .iter()
-            .find(|e| e["recordId"] == json!(request_ref) && e["kind"] == "act_request")
-            .ok_or_else(|| format!("not offered: no act_request {request_ref} in the record"))?;
+            .filter(|e| e["recordId"] == json!(request_ref) && e["kind"] == "act_request").collect();
+        let req = match requests.as_slice() {
+            [request] => *request,
+            [] if !limits.is_empty() => return Err("not offered: the request could not be resolved in the incomplete record set".into()),
+            [] => return Err(format!("not offered: no act_request {request_ref} in the record")),
+            _ => return Err("not offered: request identity is not unique".into()),
+        };
         let b = &req["body"];
         if b["form"] != "decision package file" || b["actKind"] != "A16" {
             return Err(
@@ -1239,6 +1349,7 @@ impl ActControl {
             return Err("not offered: duplicate alternative identities".into());
         }
         let offer_id = crate::util::opaque_id("offer:")?;
+        let (standing, other_requests) = package_standing::read(&self.workspace, request_ref, rel);
         let mut offer = json!({
             "format": "chirality.aac.offer", "formatVersion": "0.3", "offerId": offer_id,
             "actKind": "A16", "wording": "decide",
@@ -1247,6 +1358,7 @@ impl ActControl {
             "scope": scope, "purpose": pkg["purpose"], "actorRequirement": "the person",
             "declineAvailable": false, "answers": {"standing": STANDING},
             "requestRef": request_ref, "composedAt": now_rfc3339(),
+            "packageStanding": standing, "otherRequestsForPath": other_requests,
             "alternatives": alts.iter().map(|a| json!({
                 "id": a["id"], "statement": a["statement"], "consequences": a["consequences"]})).collect::<Vec<_>>(),
         });
@@ -1261,6 +1373,7 @@ impl ActControl {
                 selected: None,
                 frozen_offer: None,
                 frozen_actor: None,
+                frozen_statement: None,
                 request_record: req.clone(),
             },
         );
@@ -1308,6 +1421,12 @@ impl ActControl {
     ) -> Result<native_statement::NativeStatement, String> {
         let workspace = self.workspace.clone();
         let s = self.offers.get_mut(offer_id).ok_or("no such offer")?;
+        if let Err((error, stale)) = check_standing(&workspace, &s.offer) {
+            if stale {
+                s.state = OfferState::Stale;
+            }
+            return Err(error);
+        }
         if let Err(error) = check_request_binding(&workspace, &s.request_record, &s.offer["requestRef"]) {
             s.state = OfferState::Stale;
             return Err(error);
@@ -1328,59 +1447,26 @@ impl ActControl {
             return Err("offer digest mismatch".into());
         }
         crate::schema_validation::validate_offer(o)?;
-        let alt = o["alternatives"]
-            .as_array()
-            .unwrap()
-            .iter()
-            .find(|a| a["id"] == json!(alternative))
-            .ok_or("the package names no such alternative")?;
-        let who = [actor.get("displayName"), actor.get("osAccount")]
-            .iter()
-            .filter_map(|v| v.and_then(|x| x.as_str()))
-            .collect::<Vec<_>>()
-            .join(" / ");
-        let consequences = alt["consequences"].as_array().unwrap();
-        let cons = consequences
-            .iter()
-            .filter_map(|c| c.as_str())
-            .map(|c| format!("  - {c}"))
-            .collect::<Vec<_>>()
-            .join("\n");
-        let head = format!(
-            "Decide (A16)\n\nPackage: {}\nContent identity: {}\nPurpose: {}\nScope: {}\n",
-            o["subject"]["ref"].as_str().unwrap_or(""),
-            o["subject"]["contentIdentity"]["value"].as_str().unwrap_or(""),
-            o["purpose"].as_str().unwrap_or(""),
-            o["scope"].as_str().unwrap_or("")
-        );
-        let tail = format!(
-            "\nActor: {who} (identity not verified)\nAnswers: {STANDING}\nOnly Decide records this decision. Don't decide (the default) records nothing; no decline exists for A16; Cancel closes the control."
-        );
-        let whole = format!(
-            "{head}\nChosen alternative: {alternative} — {}\nConsequences:\n{cons}\n{tail}",
-            alt["statement"].as_str().unwrap_or("")
-        );
-        // AAC §4.1a: all selected text without silent truncation. When the alert
-        // cannot hold it, the App shows the chosen alternative whole (AAC §6.2 native statement and default key);
-        // nothing is frozen for a refused statement.
-        let content = json!({"package":o["subject"]["ref"],"contentIdentity":o["subject"]["contentIdentity"],
-            "offerId":o["offerId"],"offerDigest":o["offerDigest"],"chosenAlternative":alt});
-        let statement = native_statement::whole_or_in_app(
-            "A16 native confirmation",
-            "A16 chosen alternative",
-            whole,
-            &content,
-            |digest| {
-                format!(
-                    "{head}\nChosen alternative: {alternative}. Its statement and all {} consequences are shown in full in the App now, under \"Content named by an open native confirmation\". Their sha-256 digest:\n{digest}\n{tail}",
-                    consequences.len()
-                )
-            },
-        )?;
+        let statement = a16_statement(o, alternative, actor)?;
+        if s.frozen_statement.as_ref().is_some_and(|text| text != &statement.text) {
+            return Err("native confirmation statement already frozen".into());
+        }
         s.selected = Some(alternative.into());
         s.frozen_offer = Some(o.clone());
         s.frozen_actor = Some(actor.clone());
+        s.frozen_statement = Some(statement.text.clone());
         Ok(statement)
+    }
+
+    /// Native caller supplies the exact string it handed to the sheet. Other test/API callers
+    /// still pass through confirm's independently recomposed frozen-statement comparison.
+    pub(crate) fn confirm_shown(&mut self, offer_id: &str, alternative: &str, actor: Value, shown: &str) -> Result<Value, String> {
+        let slot = self.offers.get_mut(offer_id).ok_or("no such offer")?;
+        if slot.frozen_statement.as_deref() != Some(shown) {
+            slot.state = OfferState::Stale;
+            return Err("The native statement differs from what was presented; review it again; nothing captured.".into());
+        }
+        self.confirm(offer_id, alternative, InputSource::HostNativeConfirmation, actor)
     }
 
     /// AX-04, AX-06, AX-08, then AX-12/AX-13. Returns {state, capture, record?}.
@@ -1409,6 +1495,12 @@ impl ActControl {
             }
         }
         let o = slot.offer.clone();
+        if let Err((error, stale)) = check_standing(&ws, &o) {
+            if stale {
+                slot.state = OfferState::Stale;
+            }
+            return Err(error);
+        }
         if slot.selected.as_deref() != Some(alternative)
             || slot.frozen_offer.as_ref() != Some(&o)
             || slot.frozen_actor.as_ref() != Some(&actor)
@@ -1416,6 +1508,11 @@ impl ActControl {
             return Err(
                 "refused: choice or content differs from the frozen native confirmation".into(),
             );
+        }
+        let statement = a16_statement(&o, alternative, &actor)?;
+        if slot.frozen_statement.as_ref() != Some(&statement.text) {
+            slot.state = OfferState::Stale;
+            return Err("The native statement differs from what was presented; review it again; nothing captured.".into());
         }
         if !o["alternatives"]
             .as_array()
@@ -1459,6 +1556,7 @@ impl ActControl {
             "surface": "App interface", "inputSource": "host-native-confirmation",
             "answers": o["answers"], "requestRef": request_ref, "alternativeChosen": alternative,
             "evidenceLimits": ["identity not verified"],
+            "shownStatement": {"method":"sha-256","value":crate::util::sha256_hex(statement.text.as_bytes())},
         });
         crate::schema_validation::validate_capture(&capture)?;
         // The project's records store subtree (RS §13.8); a refusal (store
@@ -2042,6 +2140,9 @@ fn recover_capture_recording(
         }
     };
     let mut result = json!({"state":"AC-7 recorded","record":record,"recordDurable":true,"capture":durable,"captureFile":cap_path.display().to_string(),"provenance":"recorded claim; this recovery does not verify native capture origin"});
+    if original["actKind"] == "A16" {
+        result["shownStatementBinding"] = shown_statement_binding(root, &result["record"]["body"]);
+    }
     if let Some(native) = hot.as_deref_mut() {
         // A transferred act's delayed account was already completed. A
         // backlink retry never reopens that independently settled metadata.
@@ -2159,6 +2260,9 @@ fn has_recorded_capture_claim(
         && expected.is_none_or(|rid| matches[0]["recordId"] == rid))
 }
 #[cfg(test)]
+#[path = "act_control_standing_tests.rs"]
+mod standing_tests;
+#[cfg(test)]
 mod persistence_tests {
     use super::*;
     fn scratch() -> PathBuf {
@@ -2187,7 +2291,7 @@ mod persistence_tests {
         (control, id, actor)
     }
     #[test]
-    fn a16_statement_is_bounded_and_an_over_long_one_is_refused_before_presentation() {
+    fn a16_statement_is_bounded_and_long_content_moves_to_marked_app_content() {
         let edited = |edit: &dyn Fn(&mut Value)| {
             let root = scratch();
             let package = root.join("project/decisions/PKG-1.json");
@@ -2210,11 +2314,13 @@ mod persistence_tests {
         });
         let s = control.confirmation_statement(&id, "ALT-2", &actor).unwrap();
         let shown = s.in_app.as_ref().expect("shown whole in the App");
-        assert_eq!(shown.content["chosenAlternative"], p["alternatives"][1]);
-        assert_eq!(shown.content["offerDigest"], control.offers[&id].offer["offerDigest"]);
+        let marked = shown.content["markedStatement"].as_str().unwrap();
+        for consequence in p["alternatives"][1]["consequences"].as_array().unwrap() {
+            assert!(marked.contains(consequence.as_str().unwrap()));
+        }
         assert_eq!(shown.digest, native_statement::content_digest("x", &shown.content).unwrap());
         assert!(s.text.lines().any(|l| l == shown.digest), "{}", s.text);
-        assert!(s.text.contains("Chosen alternative: ALT-2. Its statement and all 40 consequences are shown in full in the App now"), "{}", s.text);
+        assert!(s.text.contains("The complete marked statement has moved to the App, shown in full now"), "{}", s.text);
         assert!(s.text.contains("Only Decide records this decision.") && s.text.contains("Cancel closes the control"));
         assert!(native_statement::bounded("x", s.text.clone()).is_ok());
         control.present(&id).unwrap();
@@ -2229,15 +2335,17 @@ mod persistence_tests {
         assert!(s.text.lines().count() <= native_statement::MAX_LINES);
         assert!(s.text.contains("Stage 2 starts today; any changed supplier fact reopens the affected parts"));
         std::fs::remove_dir_all(root).unwrap();
-        // Hard refusal only where even the summary cannot fit (a purpose longer
-        // than the alert): nothing frozen, nothing captured.
-        let (root, mut control, id, _) = edited(&|p| p["purpose"] = json!("invented purpose ".repeat(120)));
-        let err = control.confirmation_text(&id, "ALT-2", &actor).unwrap_err();
-        assert!(err.contains("exceeds the readable native confirmation"), "{err}");
-        assert!(control.offers[&id].selected.is_none() && control.offers[&id].frozen_offer.is_none());
-        let refused = control.confirm(&id, "ALT-2", InputSource::HostNativeConfirmation, actor.clone());
-        assert!(refused.is_err() || refused.unwrap()["recorded"] != true);
-        assert!(control.native_captures.is_empty());
+        // Only alert values are bounded at 600 original characters. The App counterpart
+        // keeps the whole marked purpose; the native pointer states where it moved.
+        let purpose = format!("{}\nDecide (A16)\u{202e}\u{200b}", "p".repeat(685));
+        assert_eq!(purpose.chars().count(), 700);
+        let (root, mut control, id, _) = edited(&|p| p["purpose"] = json!(purpose));
+        let statement = control.confirmation_statement(&id, "ALT-2", &actor).unwrap();
+        let marked = statement.in_app.as_ref().expect("long purpose is whole in the App").content["markedStatement"].as_str().unwrap();
+        assert!(marked.contains(&crate::native_text::supplied_whole("Purpose", crate::native_text::Source::File, &json!(purpose)).lines().join("\n")));
+        assert!(!marked.contains("(cut after"));
+        assert!(statement.text.contains("The complete marked statement has moved to the App, shown in full now"));
+        assert!(native_statement::bounded("x", statement.text).is_ok());
         std::fs::remove_dir_all(root).unwrap();
     }
     #[test]
@@ -2333,21 +2441,25 @@ mod persistence_tests {
     fn equal_observed_times_keep_writer_admission_order_at_fresh_append_and_refresh() {
         for recorder_continuation in [false, true] {
             let root = scratch();
-            let (mut control, first_id, actor) = prepared(&root);
-            let request_ref = control.offers[&first_id].offer["requestRef"]
+            let (mut control, initial_id, actor) = prepared(&root);
+            let request_ref = control.offers[&initial_id].offer["requestRef"]
                 .as_str()
                 .unwrap()
                 .to_owned();
-            let next = control.compose_a16(&request_ref).unwrap();
-            let next_id = next["offerId"].as_str().unwrap().to_owned();
-            control
-                .confirmation_text(&next_id, "ALT-1", &actor)
-                .unwrap();
-            control.present(&next_id).unwrap();
             let before = std::fs::read(crate::storage::project_file(&root, LOG).unwrap()).unwrap();
             let mut torn = before.clone();
             torn.extend(b"{torn\n");
             std::fs::write(crate::storage::project_file(&root, LOG).unwrap(), torn).unwrap();
+            // Both presentations observe the unreadable set, so neither claims no decision.
+            // Corrupting it after presentation would now correctly make those offers stale.
+            let first = control.compose_a16(&request_ref).unwrap();
+            let first_id = first["offerId"].as_str().unwrap().to_owned();
+            control.confirmation_text(&first_id, "ALT-2", &actor).unwrap();
+            control.present(&first_id).unwrap();
+            let next = control.compose_a16(&request_ref).unwrap();
+            let next_id = next["offerId"].as_str().unwrap().to_owned();
+            control.confirmation_text(&next_id, "ALT-1", &actor).unwrap();
+            control.present(&next_id).unwrap();
             FIXED_CAPTURE_TIME
                 .with(|time| *time.borrow_mut() = Some("2026-10-04T00:00:00Z".into()));
             let first = control
@@ -2379,6 +2491,12 @@ mod persistence_tests {
                 assert_eq!(requests.unwrap().len(), 1);
             } else {
                 std::fs::write(crate::storage::project_file(&root, LOG).unwrap(), &before).unwrap();
+                assert_eq!(control.confirm(&next_id, "ALT-1", InputSource::HostNativeConfirmation, actor.clone()).unwrap_err(), package_standing::CHANGED);
+                let _ = control.refresh_recording();
+                let next = control.compose_a16(&request_ref).unwrap();
+                let next_id = next["offerId"].as_str().unwrap().to_owned();
+                control.confirmation_text(&next_id, "ALT-1", &actor).unwrap();
+                control.present(&next_id).unwrap();
                 assert_eq!(
                     control
                         .confirm(

@@ -1,6 +1,7 @@
 import { AgentText, ConversationChoices, RecordedData, idWords, numberWords, safeName, wordOf } from "./AgentText";
 import { ActionFeedback } from "./ActionFeedback";
 import { LOCAL_ROUTE_OFFERED } from "./localRoute";
+import { PackageStanding } from "./PackageStanding";
 import { LOCAL_ENTRY, LOCAL_FORK_AVAILABLE, LOCAL_FORK_UNAVAILABLE, LOCAL_MODE, LocalProviderAccess, generationKey, localRoute, localViewFrom, readAttemptedLocalEntries, recordAttemptedLocalEntry, forgetAttemptedLocalEntry, type LocalView } from "./LocalProviderAccess";
 import { NativeWaitingBridge } from "./NativeWaitingBridge";
 import { ConnectorSourcePanel } from "./ConnectorSourcePanel";
@@ -34,17 +35,18 @@ import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./
 import { ConversationContext, ProjectLibraryContext, appProjectFolder, conversationFromKey, workflowSourceLimit } from "./WorkflowContext";
 import { DailyWorkspace, WorkspaceDisclosure, WorkspaceConnectionStatus, revealWorkspaceTarget, registerWorkspaceViews, WORKSPACE_VIEWS } from "./DailyWorkspace";
 import { flushSync } from "react-dom";
+import { UnsentWork, useReportUnsent } from "./unsentWork";
 import { DesktopSetupPanel } from "./DesktopSetupPanel";
 // Every host command goes through hostReads' invoke, which marks when a command that may change the host settles.
 import { invoke, invokeTimedRead, useOrderedHost, shownBeforePress, POLL_MS } from "./hostReads";
 import { readingAfterWrite, readingSentence } from "./readingSentences";
 import { REFRESH_FAILED, commandThenRefresh, observationLine, observationText, refreshAfterAction, withRefreshFailure } from "./statusRefresh";
 import { FirstUseSetup } from "./FirstUse";
-import { AccountStatus, accountReading, type ReadAccountStatus } from "./AccountStatus";
+import { AccountStatus, DIDNT_SAY, accountReadError, accountReadRef, accountReading, reportedPlan, signInCompletion, type ReadAccountStatus } from "./AccountStatus";
 import { RunWorkflowGuide, registeredRevisionAnchor, runEvidenceAnchor } from "./RunJourney";
 import { MakeWorkflowGuide } from "./MakeJourney";
 import { acknowledgeBringBackDoubt, beginBringBack, bringBackRefusal, doubtDestination, endBringBack, noteBringBackDoubt, resetBringBackDoubts, sendKey, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
-import { AccessRouteChoice, AvailableModels, OfferedEffortChoice, modelMatch, validModelPacket } from "./ModelChoice";
+import { AccessRouteChoice, AvailableModels, ENTRY_SOURCE_WORDS, MODEL_ID_PAUSE_MS, OfferedEffortChoice, SHOWN_ROUTE, entrySourceReading, modelMatch, onlyAccessEntry, validModelPacket } from "./ModelChoice";
 /** One App-composed message for the person to edit and send; never sent by the App. */
 export type ComposerOffer = { sequence: number; threadKey: string; text: string };
 import { conversationTitle, DIGEST_LIMIT, digestComparison, nativePathText, readablePaths, reviewDigest, storedRelation, suppliedSummary, suppliedTitle, threadChoices, type ReviewDigestView, conversationLabel } from "./presentation";
@@ -81,6 +83,33 @@ const startedConversationKey = (response: Json): string | null => {
 
 const emptyConversationChoice = { model: "", modelProvider: "", entryId: "" };
 
+/** No conversation yet for this project, on positive evidence only: none loaded in this Codex session, and the stored
+ * conversations read for it in this session were read to the end and listed none. Unread history establishes nothing. */
+export const noConversationInHistory = (host: Json): boolean => {
+  const history = host?.nativeHistory;
+  return host?.state === "ready" && Array.isArray(host?.threads) && !host.threads.some((t: Json) => sameActivityGeneration(t?.generation, host.generation))
+    && history?.state === "history-receiving" && sameActivityGeneration(history?.generation, host?.generation)
+    && history?.listCursor?.state === "exhausted" && !history?.listError && Array.isArray(history?.threads) && history.threads.length === 0;
+};
+/** The App's own read of the stored history list when the running Codex became ready (runtime_session.rs
+ * read_history_at_ready): "reading", "read-to-end" or "stopped" (an error, no answer, a page not received or a cursor
+ * left), or null when none was made for this Codex. It fills the same history the History view shows. */
+export const historyReadAtReady = (host: Json): "reading" | "read-to-end" | "stopped" | null => {
+  const read = host?.nativeHistory?.readAtReady;
+  return read && sameActivityGeneration(read.generation, host?.generation) && ["reading", "read-to-end", "stopped"].includes(read.state) ? read.state : null;
+};
+/** How long after the renderer first sees a Codex generation ready the App may still make its first-view move at launch
+ * (to a new conversation, or to Settings & tools at the sign-in). A reading that arrives later is still shown, and the
+ * history it read still fills History, but it moves nothing: a person who has started reading another view does not
+ * have it change under them.
+ *
+ * Basis: a new person's history read is one page, with no cursor, and contacts no host (the AccountRead supplier row,
+ * app/supplier_checks/level/README.md: thread/list contacts nothing), so it answers as soon as Codex replies. Before it,
+ * the account read makes one or two requests to OpenAI when a sign-in is kept, and none when not. 10 s covers those
+ * with a margin, so it takes nothing from the case the move exists for. It is a product bound, not a measured one; the
+ * reads' own waits (20 s an answer, up to 100 history pages) are longer and are not shortened by it. */
+export const FIRST_VIEW_MOVE_BOUND_MS = 10_000;
+
 type ForkScope = { generation: Json; sourceThread: string; modeHomeClass: string; choiceRevision: number; homeEpoch: number; startRevision: number; sequence: number };
 type ForkNavigation = ForkScope & { threadId: string; requestRef: string };
 const sameForkGeneration = (a: Json, b: Json) => a?.appSession === b?.appSession && a?.home === b?.home && a?.spawnCounter === b?.spawnCounter;
@@ -115,9 +144,24 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
   const [offerBusy, setOfferBusy] = useState(false);
   const [text, setText] = useState<string>("");
   const textRevision = useRef(0);
+  useReportUnsent("conversation-composer", !!text);
   const composerField = useRef<HTMLTextAreaElement>(null);
   const [ordinaryModel, setOrdinaryModel] = useState({ owner: "", value: "", effort: "", effortModel: "", revision: 0 });
   const [ordinaryOutcome, setOrdinaryOutcome] = useState<OrdinaryTextOutcome | null>(null);
+  // The conversation whose model ID is being typed and has not yet settled: it settles MODEL_ID_PAUSE_MS after the last
+  // keystroke, or at once when the field is left or Enter is pressed. The effort choices are read for a typed ID only
+  // once it settles, never once per keystroke. It is not part of the choice, so settling changes no send binding.
+  const [modelTyping, setModelTyping] = useState<string | null>(null);
+  useEffect(() => {
+    if (modelTyping === null) return;
+    const pause = setTimeout(() => setModelTyping(null), MODEL_ID_PAUSE_MS);
+    return () => clearTimeout(pause);
+  }, [modelTyping, ordinaryModel.revision]);
+  // Whether "Model and effort" is open: the effort choices are read for the selected conversation only then.
+  const [effortShown, setEffortShown] = useState(false);
+  // Per conversation, the acknowledged sends that carried a model typed here: each changes the conversation's model,
+  // so the effort choices read for "the conversation's model" before it are not offered after it.
+  const modelSends = useRef(new Map<string, number>());
   // Unconfirmed ordinary sends, read at every press through the ref (not the render).
   const [unconfirmed, setUnconfirmedState] = useState<UnconfirmedSend[]>([]);
   const unconfirmedRef = useRef<UnconfirmedSend[]>([]);
@@ -150,8 +194,11 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
   }
   useEffect(() => {
     setOrdinaryModel(current => current.owner === ordinaryOwner ? current : { owner: ordinaryOwner, value: "", effort: "", effortModel: "", revision: current.revision + 1 });
+    setModelTyping(typing => typing === ordinaryOwner ? typing : null);
   }, [ordinaryOwner]);
   const ordinaryModelValue = ordinaryModel.owner === ordinaryOwner ? ordinaryModel.value : "";
+  // The effort in force for the selected conversation, as the host's status reports it (Host::efforts_in_force).
+  const effortInForce: string | null = selected?.effortInForce?.state === "known" && typeof selected.effortInForce.effort === "string" && selected.effortInForce.effort ? selected.effortInForce.effort : null;
   const liveTurns = (host?.conversationTurns ?? []).filter((turn: Json) => selected && JSON.stringify(turn.generation) === generationKey && turn.threadId === selected.threadId && turn.nativeTurn?.status === "inProgress" && !turn.observationEnded && !turn.terminalEventObserved);
   const live = liveTurns.find((turn: Json) => turn.turnId === turnId);
   const steering = (host?.steeringTargets ?? []).find((row: Json) => selected && JSON.stringify(row.generation) === generationKey && row.threadId === selected.threadId);
@@ -185,10 +232,12 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
       // A missing reply is not an acknowledgement: nothing is cleared, and it is held.
       if (nativeValue === undefined || nativeValue === null) throw new Error("The host did not report this send's outcome; it may or may not have been sent.");
       outcome = { request, result: { acknowledged: true, nativeValue } };
+      if (choice.owner === ordinaryOwner && choice.value) modelSends.current.set(choice.owner, (modelSends.current.get(choice.owner) ?? 0) + 1);
       if (isCurrent()) {
         if (textRevision.current === revision) setText(current => current === request.text ? "" : current);
         setOrdinaryModel(current => current.owner === choice.owner && current.revision === choice.revision
           ? { ...current, value: "", effort: "", effortModel: "", revision: current.revision + 1 } : current);
+        setModelTyping(typing => typing === choice.owner ? null : typing);
       }
     } catch (nativeError) {
       outcome = { request, result: { acknowledged: false, nativeError } };
@@ -377,7 +426,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
     {selected && <ContinuationContext key={`prior-work:${JSON.stringify([selected.generation, selected.threadId, selected.resumeRequestRef])}`} host={host} thread={selected} />}
     {threadKey && !selected && <p>Selected conversation is no longer available in this generation; choose a current conversation.</p>}
     {handoffs.map((handoff: Json) => <ContinueAsPanel key={handoff.id} handoff={handoff} entries={startEntries(host)} homeClass={host?.homeRouting?.activeModeHomeClass ?? null} generation={host?.generation ?? null} busy={!!busy} ready={host?.state === "ready"} local={localRoute}
-      start={(choice, source) => startContinueAs({ ...choice, modeHomeClass: source.modeHomeClass, generation: source.generation, role: handoff.targetRole ?? null, preselected: false, continueAs: handoff.id })}
+      start={(choice, source) => startContinueAs({ ...choice, entrySource: "person", modeHomeClass: source.modeHomeClass, generation: source.generation, role: handoff.targetRole ?? null, preselected: false, continueAs: handoff.id })}
       send={draft => handoffSend ? handoffSend(handoff.id, draft) : Promise.resolve({ state: "unknown", reason: "The original handoff sender is unavailable." })}
       read={handoffRead ? () => handoffRead(handoff.id) : undefined}
       open={() => { const started = handoff.started; if (started) setThreadKey(JSON.stringify([started.generation, started.threadId])); }}
@@ -444,13 +493,15 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
     {text && selected && textWrittenFor.current && textWrittenFor.current !== threadKey && <p role="note" aria-label="Where your text goes">Your unsent text was written while another conversation was shown. It is kept; if you send it now it goes to {conversationLabel(host, selected)}.</p>}
     <p><label>Text <textarea id="ordinary-composer-text" ref={composerField} aria-describedby="ordinary-send-readiness" disabled={!!busy} value={text} onChange={e => { textRevision.current += 1; textWrittenFor.current = threadKey; setText(e.target.value); }} rows={4} style={{ display: "block", width: "100%" }} /></label></p>
     <button className="setup-primary" aria-describedby="ordinary-send-readiness" disabled={!sourceReady || !selected || !text || !!busy || unconfirmed.some(row => !row.acknowledged && row.request.threadId === selected?.threadId)} onClick={() => { void sendText(); }}>{(host?.attachmentSelections?.selections ?? []).length > 0 ? "Send text only" : "Send text"}</button>
-    <details className="conversation-model-options"><summary>Model and effort{ordinaryModel.owner === ordinaryOwner && ordinaryModel.effort ? ` · next send: ${idWords(ordinaryModel.effort)}` : ""}</summary>
+    <details className="conversation-model-options" onToggle={event => setEffortShown((event.currentTarget as HTMLDetailsElement).open)}><summary>Model and effort{ordinaryModel.owner === ordinaryOwner && ordinaryModel.effort ? ` · next send: ${idWords(ordinaryModel.effort)}` : effortInForce ? ` · Effort: ${idWords(effortInForce)} (in force)` : ""}</summary>
     <p><label>Optional model identifier for next ordinary text turn <input {...EXACT_TEXT} disabled={!selected || !!busy} value={ordinaryModelValue}
-      onChange={e => setOrdinaryModel(current => ({ owner: ordinaryOwner, value: e.target.value, effort: "", effortModel: "", revision: current.revision + 1 }))} aria-describedby="ordinary-model-help" /></label></p>
+      onChange={e => { setModelTyping(ordinaryOwner); setOrdinaryModel(current => ({ owner: ordinaryOwner, value: e.target.value, effort: "", effortModel: "", revision: current.revision + 1 })); }}
+      onBlur={() => setModelTyping(null)} onKeyDown={e => { if (e.key === "Enter") setModelTyping(null); }} aria-describedby="ordinary-model-help" /></label></p>
     <p id="ordinary-model-help">Applies to Send text and the plan/default text controls below. Empty keeps the existing native model choice. An explicit identifier overrides the model for this turn and subsequent native turns; clearing this field does not revert it. Attachment, steering and prepared-message sends do not use this field.</p>
     <OfferedEffortChoice owner={ordinaryOwner} threadId={selected?.threadId ?? ""} generation={selected?.generation} homeClass={host?.homeRouting?.activeModeHomeClass ?? null}
       modelProvider={selected?.modelProvider ?? ""} entryId={selected?.requestedDestination?.entryId ?? (selected?.modelProvider === "openai" ? (host?.homeRouting?.activeModeHomeClass === "api-key" ? "api-key" : "chatgpt-account") : "local-provider")}
-      model={ordinaryModelValue} effort={ordinaryModel.owner === ordinaryOwner ? ordinaryModel.effort : ""} disabled={!sourceReady || !selected || !!busy}
+      model={ordinaryModelValue} effort={ordinaryModel.owner === ordinaryOwner ? ordinaryModel.effort : ""} disabled={!sourceReady || !selected || !!busy} busy={!!busy} inForce={effortInForce} shown={effortShown}
+      settling={modelTyping !== null && modelTyping === ordinaryOwner} modelRevision={modelSends.current.get(ordinaryOwner) ?? 0}
       choose={(effort, effortModel) => setOrdinaryModel(current => ({ ...current, owner: ordinaryOwner, effort, effortModel, revision: current.revision + 1 }))} />
     </details>
     {selected && <PlanModeControl planMode={host?.planMode} requested={(host?.requestedModes ?? []).find((r: Json) => JSON.stringify(r.generation) === generationKey && r.threadId === selected.threadId) ?? null}
@@ -833,6 +884,8 @@ function NativeConfirmationContent() {
       <p>sha-256 digest, as named in the native confirmation: <code style={{ userSelect: "all", overflowWrap: "anywhere" }}>{row.digest}</code>. {checks[row.digest] ?? ""} {DIGEST_LIMIT}</p>
       {row.kind === "A15 complete review" && Array.isArray(row.content?.entries) && row.content.entries.every((entry: Json) => entry !== null && typeof entry === "object" && !Array.isArray(entry))
         ? <WorkflowRegistrationReview presentation={row.content} />
+        : row.kind === "A16 chosen alternative" && typeof row.content?.markedStatement === "string"
+        ? <AgentText block alreadyMarkedByHost value={row.content.markedStatement} source="record" label="Complete marked statement:" name="The complete marked statement named by the native confirmation" />
         : <RecordedData value={readablePaths(row.content)} />}
     </article>)}
   </section>;
@@ -985,6 +1038,8 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
   const selected=thread ? chatWorkflow(data,data?.context?.sourceRef,thread) : data?.inspection;
   const chatAvailable=!!context&&!!thread;
   const [text,setText]=useState("");
+  // A run or draft form with entries is unsent work: the App does not move the person away from it.
+  useReportUnsent("workflow-form", !!(text || name || revision || thread));
   const [busy,setBusy]=useState(false);
   const pendingAction = useRef(false);
   const [progress, setProgress] = useState("");
@@ -1243,20 +1298,30 @@ export function HomeAccessPanel({ host, resources, navigating = false, act, read
     try { await act(command, args); } catch (e) { setError(String(e)); } finally { setBusy(false); }
   };
   const entries: Json[] = (routing?.entries ?? []).filter((entry: Json) => entry.modeHomeClass === "account");
+  // The sign-in leads only where it is what the person needs: no account, Codex didn't say, or not yet read.
+  // Signed in, the panel leads with the account and Sign out, and signing in again is among the other options.
+  const reading = accountReading(host);
+  const signedIn = reading === "chatgpt-account";
+  const offerSignIn = reading === "no-account" || reading === "unread" || DIDNT_SAY.includes(reading);
+  const signInDisabled = busy || routing?.activeModeHomeClass !== "account" || !generation;
+  const signIn = (primary: boolean) => <button id={primary ? "workspace-sign-in" : undefined} className={primary ? "setup-primary" : undefined} disabled={signInDisabled} onClick={() => action("oauth_start", {generation,mode:"browser"})}>Sign in with your ChatGPT account (through Codex)…</button>;
+  const signOut = <button disabled={busy || !generation || routing?.activeModeHomeClass !== "account"} onClick={() => action("logout_home", {generation,modeHomeClass:routing.activeModeHomeClass})}>Sign out of ChatGPT…</button>;
   return <section aria-label="Account connection"><h2>Connect to a model</h2>
-    <p>Sign in with your ChatGPT account to reach a model.</p>
+    {!signedIn && offerSignIn && <p>Sign in with your ChatGPT account to reach a model.</p>}
     {routing?.activeModeHomeClass === "api-key" && <p role="status">Choose the account connection to continue. An older access home is retained without changing its saved configuration.</p>}
     {routing?.activeModeHomeClass === LOCAL_MODE && <p role="status">The local oMLX home is in use. ChatGPT sign-in applies to the account home.</p>}
     {routing?.activeModeHomeClass !== "account" && entries.map(entry => <article key={entry.modeHomeClass}><p>{entry.state}{entry.configurationLimit ? ` — ${entry.configurationLimit}` : ""}</p><details><summary>Connection source</summary><RecordedData value={entry.generation} /></details><button disabled={busy || navigating || routing?.activeModeHomeClass === entry.modeHomeClass} onClick={() => action("select_home", {modeHomeClass: entry.modeHomeClass})}>Use {idWords(entry.modeHomeClass)} home</button></article>)}
     <AccountStatus host={host} navigating={navigating} busy={busy} read={readAccount}/>
+    {signedIn && <p>{signOut}</p>}
     {routing?.activeModeHomeClass === "account" && <p aria-label="Provider in this home">In this home the App starts Codex on its built-in OpenAI provider, whatever default provider your own Codex settings name. Your Codex files are not changed.</p>}
     {routing?.activeModeHomeClass === "account" && <p aria-label="Where a sign-in will be kept">Before you sign in, you can see where Codex will keep your sign-in: press “Read effective storage and plugin settings” below.</p>}
-    <button className="setup-primary" disabled={busy || routing?.activeModeHomeClass !== "account" || !generation} onClick={() => action("oauth_start", {generation,mode:"browser"})}>Sign in with your ChatGPT account (through Codex)…</button>
+    {offerSignIn && !signedIn && signIn(true)}
     <details><summary>Other sign-in options</summary>
+    {(signedIn || !offerSignIn) && signIn(false)}
     <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation} onClick={() => action("oauth_start", {generation,mode:"device-code"})}>Sign in through native device code…</button>
     <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation || !oauth?.source?.presentationAvailable} onClick={() => action("oauth_present", {generation})}>Show pending native sign-in…</button>
     <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation || !oauth?.source?.cancelAvailable} onClick={() => action("oauth_cancel", {generation})}>Cancel original pending sign-in with native confirmation…</button>
-    <button disabled={busy || !generation || routing?.activeModeHomeClass !== "account"} onClick={() => action("logout_home", {generation,modeHomeClass:routing.activeModeHomeClass})}>Sign out of ChatGPT…</button></details>
+    {!signedIn && signOut}</details>
     {LOCAL_ROUTE_OFFERED && <section className="local-access-alternative" aria-label="oMLX and local providers"><h3>Use oMLX / a local model</h3>
       <p>Local providers use their own credentials, separate from ChatGPT sign-in.</p>
       {local && <LocalProviderAccess host={host} view={local.view} attempted={local.attempted} pending={local.pending || busy} message={local.message} navigating={navigating}
@@ -1460,18 +1525,43 @@ export function TraceReceivingPanel({ data, currentContext, select }: { data: Js
   </section>;
 }
 
+/** The same act-control presentation mounted by App and exercised by the rendering regression. */
+export function ActControlPanel({ offer, choice, setChoice, decide, close }: {
+  offer: Json; choice: string; setChoice: (choice: string) => void; decide: () => void; close: () => void;
+}) {
+  return <section style={{ border: "1px solid #888", padding: 8 }}>
+    <h2>Act control</h2>
+    <p>Act: <AgentText value={offer.wording} source="file" label="The package states the act:" name="The act's wording as the decision package states it, not the App's words" /> · kind: <AgentText value={offer.actKind} source="file" name="The act's kind as the decision package states it, not the App's words" /></p>
+    <p>
+      <AgentText value={offer.subject.ref} source="file" label="Subject:" /> · <AgentText value={offer.subject.contentIdentity.value} source="record" label="Content identity:" />
+      <br />
+      Purpose: <AgentText value={offer.purpose} source="file" /> · Scope: <AgentText value={offer.scope} source="file" /> · <AgentText value={offer.answers.standing} source="record" />
+    </p>
+    <PackageStanding standing={offer.packageStanding} other={offer.otherRequestsForPath} />
+    {offer.alternatives.map((a: Json) => (<label key={a.id} style={{ display: "block" }}>
+        <input type="radio" name="alt" value={a.id} checked={choice === a.id} onChange={() => setChoice(a.id)}/>{" "}
+        <b>Alternative {idWords(a.id)}</b>
+      </label>))}
+    {/* What each alternative says and does is the package file's text: beside the controls, never in their labels. */}
+    {offer.alternatives.map((a: Json) => <div key={`text:${a.id}`}><AgentText block value={`${String(a.id ?? "")}: ${String(a.statement ?? "")} — ${(Array.isArray(a.consequences) ? a.consequences : []).map(String).join("; ")}`} source="file" label={`Alternative ${idWords(a.id)}, as the package states it:`} name="An alternative as the decision package states it, not the App's words" /></div>)}
+    <p>The host shows its own confirmation with this text; only that confirmation records the decision.</p>
+    <button onClick={decide} disabled={!choice}>Decide…</button> <button onClick={close}>Close</button>
+  </section>;
+}
+
 export function DecisionPackagesPanel({ view, name, setName, recordName, refresh, continueRecording, openControl }: {
   view: Json; name: string; setName: (name: string) => void; recordName: () => void;
   refresh: () => Promise<void>; continueRecording: () => Promise<void>; openControl: (request: string) => Promise<void>;
 }) {
   const writer = view?.writerStatus;
   const claim = (decision: Json) => <>
-    <p>Recorded decision claim: <b>{decision.alternativeChosen}</b> {decision.statement} · decided by {decision.decidedBy} · recorded by {decision.recordedBy} ({decision.recordingMode}) · act record {decision.act ?? "no single record ID selected"}.</p>
-    {(decision.equivalentCaptureRecords ?? []).length > 1 && <p>Equivalent records of the same agreeing capture: {decision.equivalentCaptureRecords.join(", ")}. Each original record's source and time remains available below.</p>}
-    <p>Capture time: {decision.capturedAt ?? "not reported"} · observed at: {decision.observedAt ?? ((decision.equivalentCaptureRecords ?? []).length > 1 ? "multiple records; see individual observations" : "not reported")} · record written at: {decision.recordedAt ?? ((decision.equivalentCaptureRecords ?? []).length > 1 ? "multiple records; see individual written times" : "not reported")}. Recorded observation order does not establish human performance chronology.</p>
-    <p>{decision.lapse} · {decision.captureProvenance}</p>
-    {decision.currentContentComparison && <p>Current file comparison: {JSON.stringify(decision.currentContentComparison)}. This describes current bytes separately from past lapse history.</p>}
-    {decision.historyResolution && <p>Recorded lapse history resolution: {JSON.stringify(decision.historyResolution)}.</p>}
+    <p>Recorded decision claim: <AgentText value={decision.alternativeChosen} source="record" label="Alternative:" /> <AgentText value={decision.statement} source="record" label="Statement:" /> · decided by <AgentText value={decision.decidedBy} source="record" /> · recorded by <AgentText value={decision.recordedBy} source="record" /> (<AgentText value={decision.recordingMode} source="record" />) · act record {decision.act == null ? "no single record ID selected" : <AgentText value={decision.act} source="record" />}.</p>
+    {(decision.equivalentCaptureRecords ?? []).length > 1 && <p>Equivalent records of the same agreeing capture: <AgentText value={decision.equivalentCaptureRecords.join(", ")} source="record" />. Each original record's source and time remains available below.</p>}
+    <p>Capture time: {decision.capturedAt == null ? "not reported" : <AgentText value={decision.capturedAt} source="record" />} · observed at: {decision.observedAt == null ? ((decision.equivalentCaptureRecords ?? []).length > 1 ? "multiple records; see individual observations" : "not reported") : <AgentText value={decision.observedAt} source="record" />} · record written at: {decision.recordedAt == null ? ((decision.equivalentCaptureRecords ?? []).length > 1 ? "multiple records; see individual written times" : "not reported") : <AgentText value={decision.recordedAt} source="record" />}. Recorded observation order does not establish human performance chronology.</p>
+    <p><AgentText value={decision.lapse} source="record" /> · <AgentText value={decision.captureProvenance} source="record" /></p>
+    <p>{decision.shownStatementBinding?.statement == null ? "Whether what was shown is bound in this capture is not known." : <AgentText value={decision.shownStatementBinding.statement} source="record" />}</p>
+    {decision.currentContentComparison && <div><RecordedData value={decision.currentContentComparison} label="Current file comparison (recorded data):" /><p>This describes current bytes separately from past lapse history.</p></div>}
+    {decision.historyResolution && <RecordedData value={decision.historyResolution} label="Recorded lapse history resolution:" />}
     {decision.historyIncomplete && <p>Recorded history is incomplete; unresolved observations remain in the source details below.</p>}
     <details><summary>Scoped record sources, correction/lapse history and provenance</summary><RecordedData value={decision} /></details>
   </>;
@@ -1490,12 +1580,12 @@ export function DecisionPackagesPanel({ view, name, setName, recordName, refresh
       <p>Act requested: <AgentText value={row.actRequested} source="file" name="The act the decision package requests, as the package states it, not the App's words" /> · state: <AgentText value={row.state} source="record" name="The package's state, as the host recorded it; the App does not vouch for its words" /></p>
       <p>Request resolution: {row.requestResolution ?? "not reported"}. Recorded request sources: {JSON.stringify(row.requestSources ?? [])}.</p>
       {row.state === "unresolvable request identity" && <p>The recorded request identity conflicts. No current request or act is selected by this view; existing package and record admission checks remain in force.</p>}
-      <p>Subject: {(row.subject ?? []).join("; ")} · Purpose: {row.purpose} · Scope: {row.scope ?? "—"} · File: {row.packageFile}</p>
-      <ul>{(row.alternatives ?? []).map((a: Json) => <li key={a.id}><b>{a.id}</b> {a.statement} — {(a.consequences ?? []).join("; ")}</li>)}</ul>
+      <p>Subject: <AgentText value={(row.subject ?? []).join("; ")} source="file" /> · Purpose: <AgentText value={row.purpose} source="file" /> · Scope: {row.scope == null ? "—" : <AgentText value={row.scope} source="file" />} · File: <AgentText value={row.packageFile} source="file" /></p>
+      <ul>{(row.alternatives ?? []).map((a: Json) => <li key={a.id}><AgentText value={a.id} source="file" label="Alternative:" /> <AgentText value={a.statement} source="file" label="Statement:" /> — <AgentText value={(a.consequences ?? []).join("; ")} source="file" label="Consequences:" /></li>)}</ul>
       {row.state === "ambiguous current standing" && <p>Current recorded standing is ambiguous. No current act is selected from these claims; this row does not establish a pending human act. The act control retains its current package and offer checks.</p>}
       {row.decision && claim(row.decision)}
       {(row.contenders ?? []).length > 0 && <div><h4>Recorded contenders</h4>{row.contenders.map((contender: Json) => <article key={contender.act}><h5>Recorded contender</h5><p>Act: <AgentText value={contender.act} source="record" name="A contending act, as recorded; the App does not vouch for its words" /></p>{claim(contender)}</article>)}</div>}
-      {row.currentCandidates && <p>Current recorded candidates: {row.currentCandidates.join(", ") || "none established"}.</p>}
+      {row.currentCandidates && <p>Current recorded candidates: {row.currentCandidates.length ? <AgentText value={row.currentCandidates.join(", ")} source="record" /> : "none established"}.</p>}
       {(row.limits ?? []).length > 0 && <p>Limits: {row.limits.join(" | ")}</p>}
       <button onClick={() => openControl(row.package)}>Open act control (decide)</button>
     </article>)}
@@ -1658,7 +1748,12 @@ export function App() {
     choiceRef.current = next;
     setConversationChoice(next);
   };
-  const { model, modelProvider, entryId } = conversationChoice.homeEpoch === chooserHome.current.epoch ? conversationChoice : emptyConversationChoice;
+  // DEL-01-05 REQ-004: where the configuration offers exactly one access entry, a new conversation uses it, shown as
+  // the connection in use. It is applied here, to what this chooser shows and Start sends, and never recorded as the
+  // person's choice: the chooser's own state keeps only what the person chose (the model), and the host records that
+  // the App showed the only entry. Existing conversations keep their own home and provider.
+  const shownChoice = <T extends typeof emptyConversationChoice>(choice: T): T => onlyAccessEntry(chooserHome.current.mode) ? { ...choice, ...SHOWN_ROUTE } : choice;
+  const { model, modelProvider, entryId } = shownChoice(conversationChoice.homeEpoch === chooserHome.current.epoch ? conversationChoice : emptyConversationChoice);
   const [startPending, setStartPending] = useState(false);
   const startPendingRef = useRef(false);
   const forkStartRevision = useRef(0);
@@ -1704,8 +1799,9 @@ export function App() {
     && providerObservation.source === providerSource(host) && providerObservation.epoch === chooserHome.current.epoch
     && providerObservation.sequence === providerReadSequence.current
     && providerObservation.packet.scope.readRevision === host?.configuredProviderReadRevision;
-  // DEL-01-05 model discovery: read only at the person's press, bound to the
-  // home, generation and project it was read for and to this chooser epoch.
+  // DEL-01-05 model discovery: read by the App itself when New conversation opens with its only connection in use
+  // and Codex ready, and again at the person's press ("Read the list again"); bound to the home, generation and
+  // project it was read for and to this chooser epoch. The reported default is never chosen for the person.
   const modelReadSequence = useRef(0);
   const modelReadPending = useRef(false);
   const [modelReading, setModelReading] = useState(false);
@@ -1714,7 +1810,7 @@ export function App() {
   const modelObservationCurrent = !!modelObservation && host?.state === "ready" && !host?.generationClosed
     && modelObservation.source === providerSource(host) && modelObservation.epoch === chooserHome.current.epoch
     && modelObservation.sequence === modelReadSequence.current;
-  const readAvailableModels = async () => {
+  const readAvailableModels = async (atPersonPress = false) => {
     const original = currentHost.current;
     const mode = original?.homeRouting?.activeModeHomeClass;
     if (modelReadPending.current || startPendingRef.current || homePendingRef.current || original?.state !== "ready" || original?.generationClosed
@@ -1724,7 +1820,7 @@ export function App() {
       && currentHost.current?.state === "ready" && !currentHost.current?.generationClosed && !homePendingRef.current;
     modelReadPending.current = true; setModelReading(true); setModelObservation(null); setModelObservationMessage("");
     try {
-      const packet: Json = await invoke("read_available_models", { generation: original.generation, modeHomeClass: mode });
+      const packet: Json = await invoke("read_available_models", { generation: original.generation, modeHomeClass: mode, atPersonPress });
       if (!current()) return;
       if (!validModelPacket(packet, original.generation, mode)) throw Error("the reply was not a model list for this Codex source");
       setModelObservation({ packet, source, epoch, sequence });
@@ -1738,10 +1834,14 @@ export function App() {
     const shown = modelObservation;
     if (!shown || !modelObservationCurrent || modelReadPending.current || startPendingRef.current || homePendingRef.current) return;
     if (!shown.packet.models.some((entry: Json) => entry.id === row.id && entry.model === row.model)) return;
-    const choice = choiceRef.current;
+    const choice = shownChoice(choiceRef.current);
     if (modelMatch(shown.packet, choice.modelProvider, choice.entryId) === "none") return;
     reviseChoice({ model: row.model });
   };
+  // New conversation is open: as the person left it, else open while there is no conversation to show.
+  const [startShown, setStartShown] = useState<boolean | null>(null);
+  const startOpenByDefault = host?.state !== "ready" || !(host?.threads?.length);
+  const autoModelRead = useRef<string | null>(null);
   const endpointSourceCurrent = (editor: Json) => !!editor && editor.source === providerSource(currentHost.current)
     && editor.epoch === chooserHome.current.epoch && currentHost.current?.state === "ready" && !currentHost.current?.generationClosed
     && currentHost.current?.homeRouting?.activeModeHomeClass === "account" && !homePendingRef.current && !startPendingRef.current;
@@ -1962,12 +2062,52 @@ export function App() {
   // reveal that follows finds its target visible.
   const [taskView, setTaskView] = useState<string>("run");
   const taskViewRef = useRef(taskView);
-  const showView = (next: string) => { taskViewRef.current = next; setTaskView(next); };
+  // Whether the person has navigated since launch: every view change but the App's own moves (autoMove) is theirs.
+  const navigated = useRef(false);
+  const autoMoving = useRef(false);
+  const showView = (next: string) => { navigated.current = true; taskViewRef.current = next; setTaskView(next); };
   useEffect(() => registerWorkspaceViews(next => {
+    if (!autoMoving.current) navigated.current = true;
     if (taskViewRef.current === next) return;
     taskViewRef.current = next;
     flushSync(() => setTaskView(next));
   }), []);
+  // The App's own move (the first view at launch, the move after a sign-in): the view, then its target revealed
+  // and its disclosure opened, without counting as the person's navigation.
+  const [autoReveal, setAutoReveal] = useState<{ sequence: number; target: string } | null>(null);
+  // Whether Connection and access is open: the person's toggles, and the App's own move to the sign-in, which opens it.
+  // Before either, it follows the section's own default (open while Codex is not ready).
+  const [connectionOpen, setConnectionOpen] = useState<boolean | null>(null);
+  const connectionShown = connectionOpen ?? (host?.state !== "ready");
+  const autoMove = (view: string, target: string) => {
+    if (target === "workspace-sign-in") setConnectionOpen(true);
+    taskViewRef.current = view; setTaskView(view);
+    setAutoReveal(previous => ({ sequence: (previous?.sequence ?? 0) + 1, target }));
+  };
+  useEffect(() => {
+    if (!autoReveal) return;
+    autoMoving.current = true;
+    try { revealWorkspaceTarget(autoReveal.target); } finally { autoMoving.current = false; }
+  }, [autoReveal]);
+  // The App reads the model list itself when New conversation opens with its only connection in use and Codex ready:
+  // once for each source and chooser, the same read as the person's press. The person still chooses the model.
+  const newConversationOpen = taskView === "conversation" && (startShown ?? startOpenByDefault);
+  const autoModelReadKey = onlyAccessEntry(homeClass) && newConversationOpen && host?.state === "ready" && !host?.generationClosed
+    ? JSON.stringify([providerSource(host), chooserHome.current.epoch]) : null;
+  useEffect(() => {
+    if (!autoModelReadKey || autoModelRead.current === autoModelReadKey) return;
+    void readAvailableModels();
+    // The read begins synchronously or is refused (another read, a start or a home change under way): only a read
+    // that began counts for this source.
+    if (modelReadPending.current) autoModelRead.current = autoModelReadKey;
+  }, [autoModelReadKey, startPending, homePending]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Work entered and not sent, as the views report it (unsentWork.ts).
+  const unsentWork = useRef(new Set<string>());
+  const reportUnsent = useCallback((owner: string, unsent: boolean) => { if (unsent) unsentWork.current.add(owner); else unsentWork.current.delete(owner); }, []);
+  const launchViewDecided = useRef(false);
+  // Per sign-in completion: the account read latest when it was first seen, and whether the App has moved for it.
+  const signInMoves = useRef(new Map<string, { before: string | null; moved: boolean }>());
+  const [signedInNotice, setSignedInNotice] = useState(false);
   const [composerOffer, setComposerOffer] = useState<ComposerOffer | null>(null);
   const composerOfferSequence = useRef(0);
   // A guide's "show the conversation": the person's explicit navigation selects
@@ -2173,7 +2313,7 @@ export function App() {
   const startConversation = async () => {
     const source = currentHost.current;
     const mode = source?.homeRouting?.activeModeHomeClass;
-    const submitted = choiceRef.current;
+    const submitted = shownChoice(choiceRef.current);
     const epoch = chooserHome.current.epoch;
     if (endpointBusyRef.current || startPendingRef.current || homePendingRef.current || providerReadPending.current || configuredRowChoiceStale() || source?.state !== "ready" || submitted.homeEpoch !== epoch ||
         !submitted.model.trim() || !submitted.modelProvider.trim() || (mode !== "account" && mode !== LOCAL_MODE) ||
@@ -2188,7 +2328,7 @@ export function App() {
     try {
       // `generation` is the one shown when the person pressed Start. The current
       // native receiver ignores it; a native follow-up will require it at admission.
-      const response: Json = await invoke("thread_start", { model: submitted.model, modelProvider: submitted.modelProvider, entryId: submitted.entryId,
+      const response: Json = await invoke("thread_start", { model: submitted.model, modelProvider: submitted.modelProvider, entryId: submitted.entryId, entrySource: onlyAccessEntry(mode) ? "app-showed-only-entry" : "person",
         modeHomeClass: mode, generation: source.generation, role: role || null, preselected: !roleTouched && !!role && role === source?.roleSet?.defaultRole });
       const opened = startedConversationKey(response);
       if (opened) {
@@ -2196,6 +2336,7 @@ export function App() {
         // Consume only the submitted edit, before the independent refresh.
         // Even an edit away and back is a newer choice and must survive.
         if (editRevision.current === revision && chooserHome.current.epoch === epoch) reviseChoice(emptyConversationChoice);
+        setSignedInNotice(false);
       }
       setMessage(`thread_start: ${JSON.stringify(response)}`);
     } catch (error) {
@@ -2610,7 +2751,57 @@ export function App() {
   // only the line that says the App is starting (or, after FIRST_READ_PATIENCE_MS, taking longer than usual),
   // or that the read failed (firstReadState).
   const firstRead = firstReadState(hostReads);
-  return (<DailyWorkspace>
+  // The App's own moves never take the person from work they entered and have not sent, or from a request waiting on
+  // them (a request card in "Waiting on you", including one from a recovered conversation).
+  const requestWaiting = waitingReads.filter(r => r.state === "whole" || r.state === "limited").flatMap(r => r.entries).some(entry => entry.target.kind === "request");
+  const holdsUnsent = () => unsentWork.current.size > 0 || preparedMessages(currentHost.current).length > 0;
+  const signInReading = accountReading(host);
+  // The first view at launch follows state once, when the launch's account reading arrives: no account, Settings &
+  // tools at the sign-in; signed in with no conversation yet in this project's history, a new conversation;
+  // otherwise, while the read is under way, or when Codex didn't say, Run a workflow stays. Signed in, the App's own
+  // history list read at ready is waited for, and only its reaching the end with none listed counts as no
+  // conversation: one that stopped short, or never ran, establishes nothing. Never after the person has navigated
+  // (including while the history list is still being read), and never over unsent work or a waiting request. Only the
+  // move waits for the reads: nothing in the App is disabled or covered while they are under way. A reading that
+  // arrives after FIRST_VIEW_MOVE_BOUND_MS moves nothing.
+  const historyAtReady = historyReadAtReady(host);
+  // When this renderer first saw each Codex generation ready (Date.now at that observation): the first-view move is
+  // made only within FIRST_VIEW_MOVE_BOUND_MS of it. Recorded before the move below is considered.
+  const readySince = useRef(new Map<string, number>());
+  const readyKey = host?.state === "ready" && !host.generationClosed && host.generation ? JSON.stringify(host.generation) : null;
+  useEffect(() => {
+    if (readyKey && !readySince.current.has(readyKey)) readySince.current.set(readyKey, Date.now());
+  }, [readyKey]);
+  useEffect(() => {
+    if (launchViewDecided.current || !host || setupRequired || firstRead !== "read") return;
+    if (navigated.current) { launchViewDecided.current = true; return; }
+    if (host.state !== "ready" || host.generationClosed || signInReading === "unread" || signInReading === "reading") return;
+    if (signInReading === "chatgpt-account" && historyAtReady === "reading") return;
+    launchViewDecided.current = true;
+    // A reading that settles after the bound is shown where it belongs, and moves nothing.
+    const since = readyKey ? readySince.current.get(readyKey) : undefined;
+    if (since === undefined || Date.now() - since > FIRST_VIEW_MOVE_BOUND_MS) return;
+    if (holdsUnsent() || requestWaiting) return;
+    if (signInReading === "no-account") autoMove("settings", "workspace-sign-in");
+    else if (signInReading === "chatgpt-account" && historyAtReady !== "stopped" && noConversationInHistory(host)) autoMove("conversation", "workspace-start");
+  }, [host, signInReading, historyAtReady, requestWaiting, setupRequired, firstRead]); // eslint-disable-line react-hooks/exhaustive-deps
+  // A sign-in completed in this process and the read after it confirms an account: a new conversation, with a line
+  // saying so. Signing in is the act that asks for this, so the person's navigation does not block it; unsent work
+  // and a waiting request do. Once per completion.
+  const completion = signInCompletion(host);
+  useEffect(() => {
+    if (!completion) return;
+    const seen = signInMoves.current.get(completion);
+    if (!seen) { signInMoves.current.set(completion, { before: accountReadRef(host), moved: false }); return; }
+    // The read that confirms the account is one made after the completion was seen.
+    if (seen.moved || signInReading !== "chatgpt-account" || accountReadRef(host) === seen.before) return;
+    seen.moved = true;
+    if (holdsUnsent() || requestWaiting) return;
+    autoMove("conversation", "workspace-start");
+    setSignedInNotice(true);
+  }, [completion, host, signInReading, requestWaiting]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (signInReading !== "chatgpt-account") setSignedInNotice(false); }, [signInReading]);
+  return (<UnsentWork.Provider value={reportUnsent}><DailyWorkspace>
         {firstRead !== "read" && <FirstReadStatus failed={firstRead === "failed"} slow={firstReadSlow} retry={() => { void refresh().catch(() => undefined); }}/>}
         {setupRequired && <FirstUseSetup view={host.desktopSetup}/>}
         {firstRead === "read" && <div hidden={setupRequired}>
@@ -2626,7 +2817,12 @@ export function App() {
         <WaitingOnYou readings={waitingReads} view={host?.nativeView} busy={homePending} onOpen={() => { void readFleetOnOpen(); }} openGroup={group => { void openRequests(group); }} go={goToWaiting}/>
         </div>}
         {firstRead === "read" && <div hidden={setupRequired}>
-        <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome} refusalCause={host?.startRefusalCause} build={host?.build} signIn={accountReading(host)}/>
+        <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome} refusalCause={host?.startRefusalCause} build={host?.build} signIn={signInReading}
+          plan={reportedPlan(host)} codexError={accountReadError(host)}
+          checkAgain={async () => { const shown = currentHost.current; try { await readAccountStatus(shown?.generation, shown?.homeRouting?.activeModeHomeClass, () => true); } catch (error) { setMessage(`Check again: ${readingSentence(error) ?? String(error)}`); } }}
+          // On Settings & tools with Connection and access open, that section carries the sign-in: one sign-in button on a
+          // view, never two. Closed, the line carries it again, so the view always shows a way to sign in.
+          startSignIn={taskView === "settings" && connectionShown ? undefined : async () => { try { await homeAction("oauth_start", { generation: currentHost.current?.generation, mode: "browser" }); } catch (error) { setMessage(`oauth_start: ${String(error)}`); } }}/>
         </div>}
         <NativeWaitingBridge ready={!!host} report={setMessage} checkpoint={() => ({ signature: JSON.stringify([threadChoiceRevision.current, chooserHome.current.epoch, editRevision.current]),
           pristine: threadChoiceRevision.current === 0 && editRevision.current === 0 })} capture={() => {
@@ -2648,23 +2844,7 @@ export function App() {
       }}/>
         <NativeConfirmationContent />
         {firstRead === "read" && <div hidden={setupRequired}>
-        {offer && (<section style={{ border: "1px solid #888", padding: 8 }}>
-            <h2>Act control</h2>
-            <p>Act: <AgentText value={offer.wording} source="file" label="The package states the act:" name="The act's wording as the decision package states it, not the App's words" /> · kind: <AgentText value={offer.actKind} source="file" name="The act's kind as the decision package states it, not the App's words" /></p>
-            <p>
-              {offer.subject.ref} · {offer.subject.contentIdentity.value}
-              <br />
-              Purpose: {offer.purpose} · Scope: {offer.scope} · {offer.answers.standing}
-            </p>
-            {offer.alternatives.map((a: Json) => (<label key={a.id} style={{ display: "block" }}>
-                <input type="radio" name="alt" value={a.id} checked={choice === a.id} onChange={() => setChoice(a.id)}/>{" "}
-                <b>Alternative {idWords(a.id)}</b>
-              </label>))}
-            {/* What each alternative says and does is the package file's text: beside the controls, never in their labels. */}
-            {offer.alternatives.map((a: Json) => <div key={`text:${a.id}`}><AgentText block value={`${String(a.id ?? "")}: ${String(a.statement ?? "")} — ${(Array.isArray(a.consequences) ? a.consequences : []).map(String).join("; ")}`} source="file" label={`Alternative ${idWords(a.id)}, as the package states it:`} name="An alternative as the decision package states it, not the App's words" /></div>)}
-            <p>The host shows its own confirmation with this text; only that confirmation records the decision.</p>
-            <button onClick={decide} disabled={!choice}>Decide…</button> <button onClick={() => setOffer(null)}>Close</button>
-          </section>)}
+        {offer && <ActControlPanel offer={offer} choice={choice} setChoice={setChoice} decide={decide} close={() => setOffer(null)} />}
         <div className="workspace-notices"><div id="other-requests">
             {outsideRequests.length > 0 && <h3>Requests outside the selected conversation</h3>}
             {outsideRequests.length > 0 && <p>Requests of the selected conversation are shown beside it. Select another conversation to answer its requests there.</p>}
@@ -2681,25 +2861,28 @@ export function App() {
           requested target {JSON.stringify(trialObservation.relation.target)}): {String(trialObservation.limit).replace(/\.$/, "")}. The original command outcome is unchanged.
         </p>}</div>
         <div id="view-conversation" data-workspace-view="conversation" className="workspace-view" hidden={taskView !== "conversation"}>
-        <WorkspaceDisclosure id="workspace-start" title="New conversation" description="Model and role — start explicitly" open={host?.state !== "ready" || !(host?.threads?.length) ? true : undefined}>
+        <WorkspaceDisclosure id="workspace-start" title="New conversation" description="Model and role — start explicitly" open={startOpenByDefault ? true : undefined} onToggle={setStartShown}>
           <h2>New conversation</h2>
+          {signedInNotice && <p role="status" aria-label="Signed in">You're signed in. Choose a model to start a conversation.</p>}
           <div className="workspace-start-fields">
           <h3>1. How it connects</h3>
           <AccessRouteChoice homeClass={homeClass} modelProvider={modelProvider} entryId={entryId} model={model} disabled={startPending || homePending || providerReading || endpointBusy}
-            local={fixedLocal} choose={route => reviseChoice(route)}/>
+            local={fixedLocal} choose={route => reviseChoice(route)} onlyEntry={onlyAccessEntry(homeClass)} entriesUnread={!homeClass}/>
           {homeClass === "account" && <p aria-label="Local model servers">Local providers named in your own Codex settings are not offered: the App can’t run one in this home, and this version offers no local model server.</p>}
           <h3>2. Model</h3>
           <AvailableModels packet={modelObservation?.packet ?? null} current={modelObservationCurrent} reading={modelReading} message={modelObservationMessage}
-            model={model} modelProvider={modelProvider} entryId={entryId} read={() => { void readAvailableModels(); }} choose={chooseListedModel}
+            model={model} modelProvider={modelProvider} entryId={entryId} read={() => { void readAvailableModels(true); }} choose={chooseListedModel}
             setModel={model => reviseChoice({ model })} fixedModel={fixedLocal && entryId === fixedLocal.entryId ? fixedLocal.model : null}
-            localHome={homeClass === LOCAL_MODE ? (fixedLocal ? "prepared" : "unprepared") : null}
+            localHome={homeClass === LOCAL_MODE ? (fixedLocal ? "prepared" : "unprepared") : null} auto={onlyAccessEntry(homeClass)}
             disabled={host?.state !== "ready" || !!host?.generationClosed || homeClass !== "account" || startPending || homePending || endpointBusy}/>
           {homeClass === "account" && <details className="workflow-stage"><summary>Advanced: enter a model ID yourself</summary>
           <p><ModelIdField model={model} setModel={model => reviseChoice({ model })}/></p>
           </details>}
-          <p>Choose how this conversation connects and a model, then a role. Switching homes never transfers an existing conversation.</p>
+          <p>{onlyAccessEntry(homeClass) ? "Choose a model, then a role." : "Choose how this conversation connects and a model, then a role."} Switching homes never transfers an existing conversation.</p>
           <RoleChoice group="start-thread-role" roleSet={host?.roleSet} limits={host?.roleLimits} role={role} preselected={!roleTouched && !!role && role === host?.roleSet?.defaultRole} setRole={next => { expireEndpointPreview(); roleInitialized.current = true; setRoleTouched(true); setRole(next); }}/></div>
           <p aria-label="New conversation choice">{!model.trim() || !modelProvider.trim() ? "not started — no model selected" : entryCompatible ? `New conversation choice: ${model} via ${modelProvider} (${entryId})` : "Choose how this conversation connects (step 1)."}</p>
+          {/* The level in force, its origin and what an allowed command may do: the level view fills this place. */}
+          <div id="new-conversation-level"></div>
           <p>
             <button onClick={startConversation} disabled={!!startBlocked} aria-describedby={startBlocked ? "start-conversation-blocked" : undefined}>Start thread</button>
             {startBlocked && <>{" "}<span id="start-conversation-blocked" role="status">{startBlocked}</span></>}
@@ -2768,7 +2951,7 @@ export function App() {
         <section id="workspace-tools" data-workspace-view="settings" className="workspace-tools workspace-view workspace-view-narrow" aria-label="Workspace tools" hidden={taskView !== "settings"}>
           <h2>Settings &amp; tools</h2>
           <DesktopSetupPanel view={host?.desktopSetup}/>
-          <WorkspaceDisclosure id="workspace-connection" title="Connection and access" description="Home, sign-in, provider setup and Codex controls" open={host?.state !== "ready" ? true : undefined}>
+          <WorkspaceDisclosure id="workspace-connection" title="Connection and access" description="Home, sign-in, provider setup and Codex controls" open={host?.state !== "ready" ? true : undefined} onToggle={setConnectionOpen}>
             <HomeAccessPanel host={host} resources={{ ...host?.homeResources, namespaceProtection: host?.nativeNamespaces, keyAdmission: host?.keyNamespaceAdmission }} navigating={homePending} readAccount={readAccountStatus} local={localAccess} act={async (command, args) => { await homeAction(command, args); }}/>
             <EffectiveAccessSettingsPanel host={host} navigating={homePending} refresh={refreshEffectiveAccessSettings}/>
   <CodexProcessControls host={host} busy={processBusy} act={(command, args) => { void processAct(command, args); }}/>
@@ -2816,7 +2999,7 @@ export function App() {
   <SupplyStatus supply={host?.roleSupply}/>
           <RoleHistoryReader scope={JSON.stringify(host?.generation)} ready={host?.state === "ready"} read={() => invoke("role_supply_history", { generation: host?.generation, thread: null })}/>
           {host?.instructionsProblem && <p role="alert">Role guidance store: {host.instructionsProblem}</p>}
-  <details><summary>Last native start selection in this home</summary><RecordedData value={host?.accessSelection ?? null} /></details>
+  <details><summary>Last native start selection in this home</summary>{host?.accessSelection?.selection && <p>{ENTRY_SOURCE_WORDS[entrySourceReading(host.accessSelection.selection)]}</p>}<RecordedData value={host?.accessSelection ?? null} /></details>
           <p>Account (App-observed, identity not verified): {JSON.stringify(host?.accountObservation ?? { state: "unknown" })}</p>
   <p>Threads: {(host?.threads ?? []).map((t: Json) => `${t.threadId} (${t.status?.type ?? "?"}, gen ${JSON.stringify(t.generation)})`).join(", ") || "none"}</p>
 
@@ -2846,5 +3029,5 @@ export function App() {
           </WorkspaceDisclosure>
         </section>
         </div>}
-      </DailyWorkspace>);
+      </DailyWorkspace></UnsentWork.Provider>);
 }

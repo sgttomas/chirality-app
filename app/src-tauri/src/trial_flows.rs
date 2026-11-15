@@ -32,7 +32,7 @@ pub(crate) fn rule_read() -> Value {
 /// How long one history page read waits for Codex.
 const READ_WAIT: Duration = Duration::from_secs(10);
 /// Pages read per list at most (a list that goes on is named incomplete).
-const MAX_PAGES: usize = 100;
+pub(crate) const MAX_PAGES: usize = 100;
 /// Linking reads done per tick at most; the rest wait for the next tick.
 const READS_PER_TICK: usize = 4;
 
