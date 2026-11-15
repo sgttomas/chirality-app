@@ -1754,10 +1754,12 @@ establish the permitted use, and making those functions private is later
 work. One case stands
 apart, unchanged: with no records store available at all and no link in the
 folder, connector route accounts are read in place and nothing is written,
-while ordinary records in that state are unavailable. A link naming a project whose records the store keeps
-with no folder recorded for it (an adoption that stopped part way) reads as
-"records kept, not attached", admits no Codex and is not registered on the
-link alone; the person adopts it. Restoring the link reads no record, so it
+while ordinary records in that state are unavailable. A link naming a project identity the store keeps
+with no folder recorded for it reads as "project identity kept, not attached",
+admits no Codex and is not registered on the link alone; the person adopts
+it. This includes an interrupted adoption and a first registration that
+published only its identity file before a concurrent package import blocked
+its registry write. Neither state silently completes that association. Restoring the link reads no record, so it
 stays possible when a disposal stands; finishing a disposal is offered only
 once the folder is attached again, and finishing an interrupted package
 import only where its folder and project file agree with the import's own

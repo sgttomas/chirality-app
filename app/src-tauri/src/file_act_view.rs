@@ -225,6 +225,9 @@ pub(crate) struct CaptureRead {
     pub result: Result<Value, String>,
     pub watch: Option<CaptureWatch>,
     pub reusable: bool,
+    /// The capture was read whole, is valid and is the one cited, and carries no seal: a settled
+    /// verdict, since a capture is never sealed afterwards, never a limit of this read.
+    pub no_seal: bool,
 }
 /// The one capture object a file act or decline record cites, read from the
 /// capture store and schema-checked (SP-3, RS R-8). Shared with the checkpoint recorder.
@@ -234,6 +237,7 @@ pub(crate) fn capture(root: &Path, body: &Value) -> Result<Value, String> {
 pub(crate) fn observe_capture(root: &Path, body: &Value) -> CaptureRead {
     let mut watch = None;
     let mut reusable = false;
+    let mut no_seal = false;
     let result = (|| {
         let refs = body["captureEvidence"]
             .as_array()
@@ -289,6 +293,7 @@ pub(crate) fn observe_capture(root: &Path, body: &Value) -> CaptureRead {
         if capture["captureId"] != id {
             return Err("Capture identity mismatch".into());
         }
+        no_seal = capture.get("seal").is_none();
         // AAC §6.3 SEAL-C: only a capture sealed under a key this installation
         // holds is the App act control's capture (AAC §6.3 / EXEC §2.4–2.5, R-1).
         crate::capture_seal::verify(root, &capture)?;
@@ -298,6 +303,7 @@ pub(crate) fn observe_capture(root: &Path, body: &Value) -> CaptureRead {
         result,
         watch,
         reusable,
+        no_seal,
     }
 }
 #[cfg(test)]

@@ -90,6 +90,16 @@ test('run readings keep waiting, working, failed, interrupted-start and finished
   }
   for (const reading of [sent]) assert.doesNotMatch(reading.title + reading.detail, /finished|completed/i);
 });
+test('initial WR admission refusal disables the original start and offers fresh preparation',async()=>{
+  const limit='Workflow start record not saved; nothing was sent; start again to record it. Its bytes are held in this App process only and lost on quit; cannot be saved from within the App.';
+  const view=await mount({thread:'T1',host:host(),data:data({selections:selected(),runs:[{reference:'run:unsaved',home:'account',generation:g,conversation:'T1',workflow:{name:'resolve-spacing'},lifecycle:{state:PREPARED},publication:{admissionRefusal:limit},status:{sent:false,limit}}]})});
+  try {
+    assert.equal(props(button(view.c,'Start the run')).disabled,true);
+    assert.match(region(view.c,'Run progress').textContent,/not saved.*lost on quit/);
+    await view.press('Prepare this run again');
+    assert.equal(view.calls.at(-1).command,'workflow_prepare_run');
+  } finally {await view.close();}
+});
 
 test('before Codex or a project is available the next step names a concrete action and issues nothing', async () => {
   const ui = await mount({host:host({state:'absent', generation:null}), data:data({projectLibraryAvailable:false, activeLibrary:null})});
