@@ -208,24 +208,39 @@ export function useBoundModelChoice({ owner, homeClass, generation, ready }: { o
     message: message && message.epoch === epoch ? message.text : "", read, choose, bound };
 }
 
-/** Ordinary-text effort choices come only from the current provider's model
- * list. No config is edited and a catalog default is never auto-selected. */
-export function OfferedEffortChoice({ owner, threadId, generation, homeClass, modelProvider, entryId, model, effort, disabled, choose }: {
+/** Ordinary-text effort choices come only from the current provider's model list, read once for the conversation and
+ * model when the conversation is selected with this control in view, or when the control is opened for it; not again
+ * for a list already read. Choosing is opening the menu, then picking. No config is edited and a catalog
+ * default is never auto-selected. The effort in force (the host's reading of the last turn Codex accepted, else the
+ * conversation's own setting) is what "keep" keeps, and is shown as such. */
+export function OfferedEffortChoice({ owner, threadId, generation, homeClass, modelProvider, entryId, model, effort, disabled, busy = false, inForce = null, shown = true, choose }: {
   owner: string; threadId: string; generation: Json; homeClass: string | null; modelProvider: string; entryId: string;
   model: string; effort: string; disabled: boolean; choose: (effort: string, model: string) => void;
+  /** A send or Codex operation is under way: a pick waits for it. */
+  busy?: boolean;
+  /** The effort in force for this conversation, as the host reports it; null where it is not reported. */
+  inForce?: string | null;
+  /** Whether the control is in view (its disclosure open): its choices are read only then. */
+  shown?: boolean;
 }) {
-  const key = JSON.stringify([owner, generation, homeClass, modelProvider, entryId, model]);
-  const latest = useRef({ key, epoch: 0, disabled });
-  if (latest.current.key !== key) latest.current = { key, epoch: latest.current.epoch + 1, disabled };
-  latest.current.disabled = disabled;
+  const conversation = JSON.stringify([owner, generation, homeClass]);
+  const key = JSON.stringify([conversation, modelProvider, entryId, model]);
+  const latest = useRef({ key, conversation, epoch: 0, disabled, busy });
+  if (latest.current.key !== key) latest.current = { key, conversation, epoch: latest.current.epoch + 1, disabled, busy };
+  latest.current.disabled = disabled; latest.current.busy = busy;
   const epoch = latest.current.epoch;
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const [reading, setReading] = useState(false);
-  const pending = useRef(false), sequence = useRef(0);
+  // The epoch of the read in flight: a read for an earlier conversation or model never holds up this one's.
+  const pending = useRef<number | null>(null), sequence = useRef(0), readFor = useRef(-1);
+  // Lists already read, by conversation and model (the key names the Codex generation): not read again for it.
+  const lists = useRef(new Map<string, Json>());
   type Result = { epoch: number; sequence: number; packet?: Json; message?: string };
   const [result, setResult] = useState<Result | null>(null);
   const resultRef = useRef(result); resultRef.current = result;
+  // Why a pick was not taken, where the reason is known; cleared by a pick that is taken and by a new read.
+  const [refusal, setRefusal] = useState<{ conversation: string; text: string } | null>(null);
   const live = () => mounted.current && latest.current.epoch === epoch && !latest.current.disabled;
   const current = result?.epoch === epoch && result.sequence === sequence.current ? result : null;
   const offeredModel = model || current?.packet?.conversationModel || "";
@@ -234,34 +249,46 @@ export function OfferedEffortChoice({ owner, threadId, generation, homeClass, mo
   const row = rows.length === 1 ? rows[0] : null;
   const options = list(row?.supportedReasoningEfforts).filter((option, index, all) => typeof option?.reasoningEffort === "string" && option.reasoningEffort !== "" && typeof option.description === "string" && all.findIndex(other => other.reasoningEffort === option.reasoningEffort) === index);
   const read = async () => {
-    if (!live() || pending.current || !owner) return;
+    if (!live() || pending.current === epoch || !owner) return;
     const number = ++sequence.current;
-    pending.current = true; resultRef.current = null;
-    setReading(true); setResult(null);
+    pending.current = epoch; resultRef.current = null; readFor.current = epoch;
+    setReading(true); setResult(null); setRefusal(null);
     try {
       const packet: Json = await invoke("read_available_models", { generation, modeHomeClass: homeClass, threadId });
       if (!validModelPacket(packet, generation, homeClass ?? "")) throw Error("not a model list for this Codex source");
-      if (mounted.current && latest.current.epoch === epoch && number === sequence.current) setResult({ epoch, sequence: number, packet });
+      if (mounted.current && latest.current.epoch === epoch && number === sequence.current) { lists.current.set(key, packet); setResult({ epoch, sequence: number, packet }); }
     } catch {
-      if (mounted.current && latest.current.epoch === epoch && number === sequence.current) setResult({ epoch, sequence: number, message: "Effort choices could not be read. The current Codex setting is kept." });
-    } finally { pending.current = false; if (mounted.current && number === sequence.current) setReading(false); }
+      if (mounted.current && latest.current.epoch === epoch && number === sequence.current) setResult({ epoch, sequence: number, message: "Effort choices could not be read. The effort in force is kept." });
+    } finally { if (number === sequence.current) { pending.current = null; if (mounted.current) setReading(false); } }
   };
+  // Read once for this conversation and model, when it can be used; not again while its list stands.
+  useEffect(() => {
+    if (disabled || !shown || !owner || readFor.current === epoch) return;
+    const known = lists.current.get(key);
+    if (known) { readFor.current = epoch; pending.current = null; setReading(false); setResult({ epoch, sequence: ++sequence.current, packet: known }); return; }
+    void read();
+  }, [key, disabled, owner, shown]); // eslint-disable-line react-hooks/exhaustive-deps
+  const pick = (value: string) => {
+    // A known reason says why a pick is not taken; nothing is said for a reason the App does not know.
+    if (latest.current.busy) { setRefusal({ conversation, text: "Wait for the current send to finish, then choose." }); return; }
+    if (latest.current.conversation === conversation && latest.current.key !== key) { setRefusal({ conversation, text: "The model changed; choose again." }); return; }
+    if (live() && current && resultRef.current === current && current.sequence === sequence.current && pending.current !== epoch
+      && (value === "" || options.some(option => option.reasoningEffort === value))) { setRefusal(null); choose(value, offeredModel); }
+  };
+  const keep = inForce ? `Keep the effort in force (${inForce})` : "Keep Codex's setting (not reported)";
   return <div aria-label="Model reasoning effort">
-    <button disabled={disabled || reading || !owner} onClick={() => { void read(); }}>Read effort choices for this model</button>
     {reading && <p role="status">Reading model effort choices…</p>}
     {current?.message && <p role="alert">{current.message}</p>}
+    {inForce && !effort && <p>Effort: {inForce} (in force)</p>}
     <p><label>Reasoning effort for {row?.displayName || model || "the current conversation model"}{" "}
-      <select value={effort} disabled={disabled || !row || options.length === 0} onChange={event => {
-        const value = event.target.value;
-        if (live() && current && resultRef.current === current && current.sequence === sequence.current && !pending.current
-          && (value === "" || options.some(option => option.reasoningEffort === value))) choose(value, offeredModel);
-      }}>
-        <option value="">Use current Codex setting</option>
+      <select value={effort} disabled={disabled || !row || options.length === 0} onChange={event => pick(event.target.value)}>
+        <option value="">{keep}</option>
         {effort && !options.some(option => option.reasoningEffort === effort) && <option value={effort}>{effort} · selected</option>}
         {options.map(option => <option key={option.reasoningEffort} value={option.reasoningEffort}>{option.reasoningEffort}{option.reasoningEffort === row.defaultReasoningEffort ? " · model default" : ""}{option.description ? ` — ${option.description}` : ""}</option>)}
       </select></label></p>
-    {current?.packet && !row && <p>No effort choices could be matched to this model and provider. Choose an explicit model ID or read the choices again.</p>}
+    {refusal && refusal.conversation === conversation && <p role="status" aria-label="Effort not changed">{refusal.text}</p>}
+    {current?.packet && !row && <p>No effort choices could be matched to this model and provider. Choose an explicit model ID.</p>}
     {row && options.length === 0 && <p>Codex offered no effort choices for this model.</p>}
-    <p><small>Applies to ordinary text and plan/default text sends. A chosen effort continues on later Codex turns; “Use current Codex setting” leaves it as it is. Attachments, steering and prepared messages use their existing settings.</small></p>
+    <p><small>Applies to ordinary text and plan/default text sends. A chosen effort continues on later Codex turns; “{keep}” leaves the effort in force as it is. Attachments, steering and prepared messages use their existing settings.</small></p>
   </div>;
 }

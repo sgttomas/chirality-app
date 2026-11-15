@@ -5262,6 +5262,21 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             .find(|t| t["generation"] == i.generation && t["threadId"] == thread)
             .and_then(|t| t["reasoningEffort"].as_str()).filter(|e| !e.is_empty()).map(|e| json!(e)).unwrap_or(Value::Null)))
     }
+    /// The effort in force for each conversation of the current generation: the effort of the last turn Codex accepted
+    /// for it, else the effort its thread row reports, as the next ordinary send without an override inherits it.
+    /// "not-reported" where neither names one; "unknown" where the requested context cannot be established.
+    pub(crate) fn efforts_in_force(&self) -> Vec<(Value, String, Value)> {
+        let i = self.inner.0.lock().unwrap();
+        if i.state != "ready" || i.server_requests.is_closed(&i.generation) { return vec![]; }
+        i.threads.iter().filter(|t| t["generation"] == i.generation).filter_map(|t| t["threadId"].as_str()).map(|thread| {
+            let reading = match Self::ordinary_mode_effort(&i, thread) {
+                Ok(Value::String(effort)) => json!({"state":"known","effort":effort}),
+                Ok(_) => json!({"state":"not-reported"}),
+                Err(_) => json!({"state":"unknown"}),
+            };
+            (i.generation.clone(), thread.to_owned(), reading)
+        }).collect()
+    }
     fn turn_requested_context(i: &Inner, params: &Value, cut: u64) -> Value {
         if let Some(model) = Self::frame_requested_model(params) { return json!({"requested":model,"basis":"actual explicit effective request field; native adoption unestablished"}); }
         let thread = params["threadId"].as_str().unwrap_or_default();
@@ -6553,6 +6568,34 @@ mod conversation_transport_tests {
         assert!(host.turn_start_ordinary_text_effort(&g(), "thread", "failed effort write", None, None, Some("high")).unwrap_err().contains("write failed"));
         assert_eq!(host.client_requests().last().unwrap()["writeResult"], "write-failed");
         assert!(inherited().unwrap_err().contains("requested effort context unknown"));
+    }
+
+    /// The effort in force the status shows: the effort of the last turn Codex accepted, else the thread row's; not
+    /// reported where neither names one; unknown where the requested context cannot be established. Never invented.
+    #[test]
+    fn the_effort_in_force_is_the_last_accepted_turns_else_the_thread_rows_and_never_invented() {
+        let host = host();
+        let reading = |host: &Host| host.efforts_in_force().into_iter().map(|(generation, thread, reading)| { assert_eq!(generation, g()); assert_eq!(thread, "thread"); reading }).collect::<Vec<_>>();
+        assert_eq!(reading(&host), vec![json!({"state":"not-reported"})]);
+        {
+            let mut i = host.inner.0.lock().unwrap();
+            i.declared_capabilities = Some(json!({"experimentalApi":true}));
+            i.collaboration_modes = json!({"generation":g(),"result":{"data":[{"name":"Plan","mode":"plan"}]}});
+            i.threads[0]["reasoningEffort"] = json!("medium");
+        }
+        assert_eq!(reading(&host), vec![json!({"state":"known","effort":"medium"})], "the thread row's own setting");
+        exchange(&host, Some(json!({"result":{"turn":turn("completed")}})), vec![], ||
+            host.turn_start_ordinary_text_effort(&g(), "thread", "a turn with an effort", None, None, Some("high"))).0.unwrap();
+        assert_eq!(reading(&host), vec![json!({"state":"known","effort":"high"})], "the last accepted turn's effort");
+        let mut later = turn("completed"); later["id"] = json!("later");
+        exchange(&host, Some(json!({"result":{"turn":later}})), vec![], ||
+            host.turn_start_ordinary_text_effort(&g(), "thread", "a turn without one", None, None, None)).0.unwrap();
+        assert_eq!(reading(&host), vec![json!({"state":"known","effort":"high"})], "a send without an override keeps it in force");
+        install_broken_test_input(&host);
+        let _ = host.turn_start_ordinary_text_effort(&g(), "thread", "failed write", None, None, Some("low"));
+        assert_eq!(reading(&host), vec![json!({"state":"unknown"})], "an unestablished request makes it unknown, not a guess");
+        host.inner.0.lock().unwrap().state = "stopped".into();
+        assert!(host.efforts_in_force().is_empty(), "nothing while Codex is not ready");
     }
 
     #[test]

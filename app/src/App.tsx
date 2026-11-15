@@ -127,6 +127,8 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
   const composerField = useRef<HTMLTextAreaElement>(null);
   const [ordinaryModel, setOrdinaryModel] = useState({ owner: "", value: "", effort: "", effortModel: "", revision: 0 });
   const [ordinaryOutcome, setOrdinaryOutcome] = useState<OrdinaryTextOutcome | null>(null);
+  // Whether "Model and effort" is open: the effort choices are read for the selected conversation only then.
+  const [effortShown, setEffortShown] = useState(false);
   // Unconfirmed ordinary sends, read at every press through the ref (not the render).
   const [unconfirmed, setUnconfirmedState] = useState<UnconfirmedSend[]>([]);
   const unconfirmedRef = useRef<UnconfirmedSend[]>([]);
@@ -161,6 +163,8 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
     setOrdinaryModel(current => current.owner === ordinaryOwner ? current : { owner: ordinaryOwner, value: "", effort: "", effortModel: "", revision: current.revision + 1 });
   }, [ordinaryOwner]);
   const ordinaryModelValue = ordinaryModel.owner === ordinaryOwner ? ordinaryModel.value : "";
+  // The effort in force for the selected conversation, as the host's status reports it (Host::efforts_in_force).
+  const effortInForce: string | null = selected?.effortInForce?.state === "known" && typeof selected.effortInForce.effort === "string" && selected.effortInForce.effort ? selected.effortInForce.effort : null;
   const liveTurns = (host?.conversationTurns ?? []).filter((turn: Json) => selected && JSON.stringify(turn.generation) === generationKey && turn.threadId === selected.threadId && turn.nativeTurn?.status === "inProgress" && !turn.observationEnded && !turn.terminalEventObserved);
   const live = liveTurns.find((turn: Json) => turn.turnId === turnId);
   const steering = (host?.steeringTargets ?? []).find((row: Json) => selected && JSON.stringify(row.generation) === generationKey && row.threadId === selected.threadId);
@@ -452,13 +456,13 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
     {text && selected && textWrittenFor.current && textWrittenFor.current !== threadKey && <p role="note" aria-label="Where your text goes">Your unsent text was written while another conversation was shown. It is kept; if you send it now it goes to {conversationLabel(host, selected)}.</p>}
     <p><label>Text <textarea id="ordinary-composer-text" ref={composerField} aria-describedby="ordinary-send-readiness" disabled={!!busy} value={text} onChange={e => { textRevision.current += 1; textWrittenFor.current = threadKey; setText(e.target.value); }} rows={4} style={{ display: "block", width: "100%" }} /></label></p>
     <button className="setup-primary" aria-describedby="ordinary-send-readiness" disabled={!sourceReady || !selected || !text || !!busy || unconfirmed.some(row => !row.acknowledged && row.request.threadId === selected?.threadId)} onClick={() => { void sendText(); }}>{(host?.attachmentSelections?.selections ?? []).length > 0 ? "Send text only" : "Send text"}</button>
-    <details className="conversation-model-options"><summary>Model and effort{ordinaryModel.owner === ordinaryOwner && ordinaryModel.effort ? ` · next send: ${ordinaryModel.effort}` : ""}</summary>
+    <details className="conversation-model-options" onToggle={event => setEffortShown((event.currentTarget as HTMLDetailsElement).open)}><summary>Model and effort{ordinaryModel.owner === ordinaryOwner && ordinaryModel.effort ? ` · next send: ${ordinaryModel.effort}` : effortInForce ? ` · Effort: ${effortInForce} (in force)` : ""}</summary>
     <p><label>Optional model identifier for next ordinary text turn <input {...EXACT_TEXT} disabled={!selected || !!busy} value={ordinaryModelValue}
       onChange={e => setOrdinaryModel(current => ({ owner: ordinaryOwner, value: e.target.value, effort: "", effortModel: "", revision: current.revision + 1 }))} aria-describedby="ordinary-model-help" /></label></p>
     <p id="ordinary-model-help">Applies to Send text and the plan/default text controls below. Empty keeps the existing native model choice. An explicit identifier overrides the model for this turn and subsequent native turns; clearing this field does not revert it. Attachment, steering and prepared-message sends do not use this field.</p>
     <OfferedEffortChoice owner={ordinaryOwner} threadId={selected?.threadId ?? ""} generation={selected?.generation} homeClass={host?.homeRouting?.activeModeHomeClass ?? null}
       modelProvider={selected?.modelProvider ?? ""} entryId={selected?.requestedDestination?.entryId ?? (selected?.modelProvider === "openai" ? (host?.homeRouting?.activeModeHomeClass === "api-key" ? "api-key" : "chatgpt-account") : "local-provider")}
-      model={ordinaryModelValue} effort={ordinaryModel.owner === ordinaryOwner ? ordinaryModel.effort : ""} disabled={!sourceReady || !selected || !!busy}
+      model={ordinaryModelValue} effort={ordinaryModel.owner === ordinaryOwner ? ordinaryModel.effort : ""} disabled={!sourceReady || !selected || !!busy} busy={!!busy} inForce={effortInForce} shown={effortShown}
       choose={(effort, effortModel) => setOrdinaryModel(current => ({ ...current, owner: ordinaryOwner, effort, effortModel, revision: current.revision + 1 }))} />
     </details>
     {selected && <PlanModeControl planMode={host?.planMode} requested={(host?.requestedModes ?? []).find((r: Json) => JSON.stringify(r.generation) === generationKey && r.threadId === selected.threadId) ?? null}

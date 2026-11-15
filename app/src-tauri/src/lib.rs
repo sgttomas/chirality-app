@@ -801,6 +801,14 @@ fn recovery_retry(state: State<'_, AppState>, mode_home_class: String, generatio
     recovery_root_view::read(&home, &mode_home_class, &home.host.snapshot()["generation"])
 }
 
+/// Adds `effortInForce` to each conversation row the readings name, by generation and thread.
+fn annotate_efforts_in_force(threads: &mut Value, readings: &[(Value, String, Value)]) {
+    for thread in threads.as_array_mut().into_iter().flatten() {
+        if let Some((_, _, reading)) = readings.iter().find(|(generation, id, _)| thread["generation"] == *generation && thread["threadId"] == id.as_str()) {
+            thread["effortInForce"] = reading.clone();
+        }
+    }
+}
 #[tauri::command]
 fn host_status(state: State<'_, AppState>) -> Value {
     let home = state.homes.lock().unwrap().active();
@@ -838,6 +846,8 @@ fn host_status(state: State<'_, AppState>) -> Value {
     // last read it (the reads run on the host tick and when Try with the
     // authoring agent is pressed; host_status reads nothing from Codex).
     delegation_availability::annotate_threads(&mut s["threads"], &home.host.delegation_readings());
+    // The effort in force for each current conversation (Host::efforts_in_force), shown by its effort control.
+    annotate_efforts_in_force(&mut s["threads"], &home.host.efforts_in_force());
     // ROLE §6.2 LA-4: the limits shown where a role is chosen, as handed.
     s["roleLimits"] = conversation_roles::limit_account(root.as_deref().ok());
     let generation = s["generation"].clone();
