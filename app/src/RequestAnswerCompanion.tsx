@@ -126,14 +126,14 @@ function DetailValue({ detail }: { detail: CompanionDetail }) {
   if (location) return detail.source === "codex" ? <>
     <AgentText block value={location.path} source="codex" label="Full path, resolved by name from Codex’s words (no link followed):" name="Codex's words, not the App's" />
     {location.relativeTo !== null && <AgentText block value={location.relativeTo} source="codex" label="Codex gave a relative path; the folder it was resolved against (Codex’s words):" name="Codex's words, not the App's" />}
-  </> : <AgentText block value={typedJsonText(detail.value)} source="person" label="Your words, as you wrote them (JSON):" name="Your words, as you wrote them, not the App's" />;
+  </> : <AgentText block value={typedJsonText(detail.value)} source="person" label="Your answer or reason, as it will be sent (JSON):" name="The answer or reason you chose to send, not the App's words" />;
   const text = detail.value.type === "string" ? detail.value.value : null;
   if (detail.source === "codex") return text !== null
     ? <AgentText block value={text} source="codex" label="Codex’s words, not the App’s (text):" name="Codex's words, not the App's" />
-    : <AgentText block value={typedJsonText(detail.value)} source="codex" label="Codex’s words, not the App’s (JSON, exactly as sent):" name="Codex's words, not the App's" />;
+    : <AgentText block value={typedJsonText(detail.value)} source="codex" label="Codex’s words, not the App’s (JSON):" name="Codex's words, not the App's" />;
   return text !== null
-    ? <AgentText block value={text} source="person" label="Your words, as you wrote them (text):" name="Your words, as you wrote them, not the App's" />
-    : <AgentText block value={typedJsonText(detail.value)} source="person" label="Your words, as you wrote them (JSON):" name="Your words, as you wrote them, not the App's" />;
+    ? <AgentText block value={text} source="person" label="Your answer or reason, as it will be sent (text):" name="The answer or reason you chose to send, not the App's words" />
+    : <AgentText block value={typedJsonText(detail.value)} source="person" label="Your answer or reason, as it will be sent (JSON):" name="The answer or reason you chose to send, not the App's words" />;
 }
 
 type Check = "checking" | "same" | "different" | { unavailable: string };
@@ -163,7 +163,7 @@ function Snapshot({ held }: { held: Held }) {
         {detail.notes.map((note, j) => <p key={`note:${j}`}><small>{note}</small></p>)}
       </section>)}
       <details><summary>What this confirmation was bound to, and the answer it would send (secret values masked by the host)</summary>
-        <AgentText block value={typedJsonText(envelope.context)} source="record" label="The request, its conversation and its place, as bound (JSON, numbers as sent):" name="The context the confirmation was bound to, as the host recorded it; it holds Codex's words, not only the App's" />
+        <AgentText block value={typedJsonText(envelope.context)} source="record" label="The request, its conversation and its place, as bound (JSON):" name="The context the confirmation was bound to, as the host recorded it; it holds Codex's words, not only the App's" />
         <AgentText block value={typedJsonText(envelope.answer)} source="record" label="The answer, as it would be sent, secret values masked (JSON):" name="The answer the confirmation would send, as the host recorded it, with secret values masked" />
       </details>
     </>}

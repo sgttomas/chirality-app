@@ -82,8 +82,8 @@ test('after the confirmation\'s Cancel the frozen snapshot is shown at the card,
   const shown=blocks(ui.container);
   assert.deepEqual(shown.filter(b=>!b.inDetails).map(b=>[b.label,b.text]),[
     ['Codex’s words, not the App’s (text):','ls -la'],
-    ['Codex’s words, not the App’s (JSON, exactly as sent):','{\n  "ratio": 0.5,\n  "text": "0.5",\n  "marker": {\n    "number": "0.5"\n  },\n  "big": 1e3,\n  "none": null,\n  "on": true\n}'],
-    ['Your words, as you wrote them (text):',IMITATION],
+    ['Codex’s words, not the App’s (JSON):','{\n  "ratio": 0.5,\n  "text": "0.5",\n  "marker": {\n    "number": "0.5"\n  },\n  "big": 1e3,\n  "none": null,\n  "on": true\n}'],
+    ['Your answer or reason, as it will be sent (text):',IMITATION],
   ]);
   assert.ok(shown.filter(b=>b.inDetails).some(b=>b.text.includes('"limit": 1.50')),'the bound context keeps its numeric spelling');
   assert.ok(shown.filter(b=>b.inDetails).some(b=>b.text.includes('"decision": "accept"')),'the answer is there, as the host masked it');
