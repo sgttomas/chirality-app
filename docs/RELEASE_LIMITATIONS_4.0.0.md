@@ -387,6 +387,10 @@ An entry is added in the same pull request that makes the limitation standing.
 
   These are the hosts the checks saw Codex try when every connection was
   refused. Once a connection succeeds, Codex may connect to others.
+
+  The maintained rows assert chatgpt.com at startup in both homes and during
+  the kept-sign-in account read. The other hosts named above were observed
+  in the Codex 0.167.0 runs; the rows do not assert that each appears.
 - **Why:** the App reads whether you're signed in when Codex is ready and
   after you sign in, because without that reading you cannot see whether you
   are signed in, and so whether a message can be sent. The connections at

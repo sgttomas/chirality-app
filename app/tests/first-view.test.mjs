@@ -207,6 +207,13 @@ test('exactly one sign-in start outside Other sign-in options on each signed-out
     await React.act(async () => { props(other())?.onToggle?.({currentTarget:other()}); });
     assert.equal(ui.calls.length, beforeOpening, "opening alternative methods starts nothing");
     assert.deepEqual(await starts(), [{mode:'browser', alternative:false, label:'Sign in with your ChatGPT account (through Codex)…'}, {mode:'device-code', alternative:true, label:'Sign in through native device code…'}]);
+    const alternatives = (await starts()).filter(start => start.alternative);
+    for (const alternative of alternatives) {
+      assert.equal(alternative.mode, 'device-code');
+      assert.match(alternative.label, /device code/i, 'each alternative method inside the disclosure names its method');
+    }
+    // The ordinary first route keeps the label the examination scenario checks; naming the browser there
+    // is a remaining item to change together with that scenario, not this presentation decision.
     other().open = false;
     const connection = byId(ui.container, 'workspace-connection'); connection.open = false;
     await React.act(() => props(connection).onToggle({currentTarget: {open: false}}));

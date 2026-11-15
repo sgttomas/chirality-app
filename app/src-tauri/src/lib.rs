@@ -1818,7 +1818,7 @@ fn thread_start(
     continue_as: Option<String>,
     generation: Value,
 ) -> Result<Value, String> {
-    start_conversation(&app, &state, &generation, model, model_provider, entry_id, &entry_source, &mode_home_class, role, continue_as, preselected)
+    start_conversation(&app, &state, &generation, model, model_provider, entry_id, &entry_source, access::StartKind::Ordinary, &mode_home_class, role, continue_as, preselected)
 }
 /// A new conversation as `thread_start` starts it (ROLE T-2): also the start of
 /// a clean trial's conversation (WR FT-4), which passes no `continue_as`.
@@ -1841,6 +1841,7 @@ fn start_conversation(
     model_provider: String,
     entry_id: String,
     entry_source: &str,
+    native_start_kind: access::StartKind,
     mode_home_class: &str,
     role: Option<role_supply::Role>,
     continue_as: Option<String>,
@@ -1860,7 +1861,7 @@ fn start_conversation(
     let mut dispatch_invoked=false;
     let mut resolved_continued_from=None;
     let result=match &home {
-        Ok(bound)=>start_conversation_inner(app,state,bound.clone(),&generation,model,model_provider,entry_id,entry_source,role,continue_as,preselected,&supply_ref,&mut dispatch_invoked,&mut resolved_continued_from),
+        Ok(bound)=>start_conversation_inner(app,state,bound.clone(),&generation,model,model_provider,entry_id,entry_source,native_start_kind,role,continue_as,preselected,&supply_ref,&mut dispatch_invoked,&mut resolved_continued_from),
         Err(error)=>Err(error.clone()),
     };
     if let Err(reason)=&result {
@@ -1880,13 +1881,18 @@ pub(crate) fn role_supply_refusal(reason: &str, publication: &impl std::fmt::Dis
     if hosting::reading_gate::carries_reading_sentence(reason) { reason.to_owned() } else { format!("{reason}; role supply observation: {publication}") }
 }
 #[allow(clippy::too_many_arguments)]
-fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runtime_session::HomeSession>,generation:&Value,model:String,model_provider:String,entry_id:String,entry_source:&str,role:Option<role_supply::Role>,continue_as:Option<String>,preselected:Option<bool>,supply_ref:&str,dispatch_invoked:&mut bool,resolved_continued_from:&mut Option<Value>)->Result<Value,String>{
+fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runtime_session::HomeSession>,generation:&Value,model:String,model_provider:String,entry_id:String,entry_source:&str,native_start_kind:access::StartKind,role:Option<role_supply::Role>,continue_as:Option<String>,preselected:Option<bool>,supply_ref:&str,dispatch_invoked:&mut bool,resolved_continued_from:&mut Option<Value>)->Result<Value,String>{
     invalidate_endpoint_edits(state)?;
     home.history.lock().unwrap().configure_role_log_source(state.role_log.clone());
     // NIR CA-1/CA-3, ROLE CA-3: a "Continue as" start is an ordinary new start
     // with its own role composition; it only records its relation to the source.
     let (continued_from, continued_source) = conversation_roles::continuation_for_start_observed(&state.continue_as, &home, continue_as.as_deref(), role)?;
     *resolved_continued_from=continued_from.clone();
+    // Only the successfully validated continuation relation makes a thread_start a Continue-as.
+    // Clean trials are identified by their separate native entrypoint, never by the caller's origin string.
+    let start_kind = if native_start_kind == access::StartKind::Ordinary && continued_from.is_some() {
+        access::StartKind::ContinueAs
+    } else { native_start_kind };
     let cwd = home.host_config
         .as_ref()
         .map_err(Clone::clone)?
@@ -1932,7 +1938,7 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runti
     let mut selection = access::ConversationSelection::new_explicit(&attempt_id, frozen_project.reference())?;
     // The caller records what its control did. A sole configured entry alone does not establish that the
     // person was never asked: Continue-as and clean trials still have an explicit route press.
-    selection.choose_start_entry(&entry_id, &model_provider, &model, entry_source, only_access_entry(home.class()))?;
+    selection.choose_start_entry(&entry_id, &model_provider, &model, entry_source, only_access_entry(home.class()), start_kind)?;
     selection.start_params(&generation, home.class().as_str(), false)?;
     let recovery_home = selection.recovery_home();
     // A source change during preparation is refused before the claim publishes
@@ -2566,7 +2572,7 @@ fn workflow_trial_start_clean(app:tauri::AppHandle,state:State<'_,AppState>,refe
     // The source is bound before the trial's begin step: a mismatch keeps the pre-fill.
     runtime_session::trial_flows::start_bound_clean_trial(&state.workflows,&state.homes,class,&generation,&reference,
         // As an ordinary start: the record says whether the role was the preselection or the person's choice.
-        |_|start_conversation(&app,&state,&generation,model,model_provider,entry_id,&entry_source,&mode_home_class,role,None,preselected),
+        |_|start_conversation(&app,&state,&generation,model,model_provider,entry_id,&entry_source,access::StartKind::CleanTrial,&mode_home_class,role,None,preselected),
         |home,started,thread|runtime_session::trial_flows::send_trial(&state.workflows,home,&reference,started,thread,&person_text))
 }
 fn trial_home(state:&AppState,reference:&str)->Result<Arc<runtime_session::HomeSession>,String>{

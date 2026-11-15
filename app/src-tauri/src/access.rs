@@ -73,6 +73,11 @@ pub const SHOWN_ONLY_ENTRY: &str = "app-showed-only-entry";
 /// Who chose a conversation's access entry, including a pressed single entry: the person (the schema's word for the
 /// person's choice, as `source` uses it). A record without `entrySource` says it was not recorded.
 pub const PERSON_CHOSE_ENTRY: &str = "person";
+/// Established by the native entrypoint and, for Continue-as, its validated continuation relation.
+/// This is not a renderer argument and is never inferred from a conversation identifier.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum StartKind { Ordinary, ContinueAs, CleanTrial }
+
 pub struct ConversationSelection {
     project: Option<String>,
     record: Value,
@@ -182,13 +187,19 @@ impl ConversationSelection {
         self.record["selection"]["entrySource"] = json!(SHOWN_ONLY_ENTRY);
         Ok(())
     }
-    /// Record the control's actual origin, validating a shown-entry claim against the build's offered set.
+    /// Record the control's actual origin only if it agrees with the native start kind and offered set.
     /// Neither path accepts an offered last choice or alters an existing conversation.
-    pub fn choose_start_entry(&mut self, entry: &str, provider: &str, model: &str, source: &str, only_entry: bool) -> Result<(), String> {
+    pub(crate) fn choose_start_entry(&mut self, entry: &str, provider: &str, model: &str, source: &str, only_entry: bool, kind: StartKind) -> Result<(), String> {
+        let expected = match kind {
+            StartKind::Ordinary if only_entry => SHOWN_ONLY_ENTRY,
+            StartKind::Ordinary | StartKind::ContinueAs | StartKind::CleanTrial => PERSON_CHOSE_ENTRY,
+        };
+        if source != expected {
+            return Err("The access entry's origin contradicts this start's control; nothing started".into());
+        }
         match source {
-            SHOWN_ONLY_ENTRY if only_entry => self.choose_model_for_shown_entry(entry, provider, model),
-            PERSON_CHOSE_ENTRY => self.choose(entry, provider, model, false),
-            _ => Err("The access entry's origin is not established for this start; nothing started".into()),
+            SHOWN_ONLY_ENTRY => self.choose_model_for_shown_entry(entry, provider, model),
+            _ => self.choose(entry, provider, model, false),
         }
     }
     pub fn start_params(
@@ -426,19 +437,30 @@ mod tests {
         assert!(ConversationSelection::new("c", "").is_err());
     }
     #[test]
-    fn each_start_records_the_entry_control_origin_without_an_offered_last_choice() {
-        for (start, source) in [("ordinary", SHOWN_ONLY_ENTRY), ("continue-as", PERSON_CHOSE_ENTRY), ("clean-trial", PERSON_CHOSE_ENTRY)] {
-            let mut choice = ConversationSelection::new(start, "p").unwrap();
-            choice.choose_start_entry("chatgpt-account", "openai", "m", source, true).unwrap();
-            valid(&choice);
-            assert_eq!(choice.snapshot()["selection"]["entrySource"], source, "{start}");
-            assert_eq!(choice.snapshot()["selection"]["source"], "person", "not an accepted last choice");
-            assert!(choice.snapshot().get("offer").is_none());
-        }
-        let mut invalid = ConversationSelection::new("invalid", "p").unwrap();
-        for source in ["", "unknown", SHOWN_ONLY_ENTRY] {
-            assert!(invalid.choose_start_entry("chatgpt-account", "openai", "m", source, false).is_err());
-            assert_eq!(invalid.snapshot()["state"], "no-selection");
+    fn native_start_kind_refuses_contrary_entry_origins_before_publishing_a_selection() {
+        for (kind, only_entry, expected) in [
+            (StartKind::Ordinary, true, SHOWN_ONLY_ENTRY),
+            (StartKind::Ordinary, false, PERSON_CHOSE_ENTRY),
+            (StartKind::ContinueAs, true, PERSON_CHOSE_ENTRY),
+            (StartKind::ContinueAs, false, PERSON_CHOSE_ENTRY),
+            (StartKind::CleanTrial, true, PERSON_CHOSE_ENTRY),
+            (StartKind::CleanTrial, false, PERSON_CHOSE_ENTRY),
+        ] {
+            for source in [SHOWN_ONLY_ENTRY, PERSON_CHOSE_ENTRY, "", "unknown"] {
+                // The same conversation id in every case: the native kind is the evidence, not the id's label.
+                let mut choice = ConversationSelection::new("new", "p").unwrap();
+                let before = choice.snapshot();
+                let result = choice.choose_start_entry("chatgpt-account", "openai", "m", source, only_entry, kind);
+                if source != expected {
+                    assert!(result.is_err(), "{kind:?}, only={only_entry}, source={source}");
+                    assert_eq!(choice.snapshot(), before, "a contradiction publishes no selection");
+                } else {
+                    result.unwrap(); valid(&choice);
+                    assert_eq!(choice.snapshot()["selection"]["entrySource"], expected);
+                    assert_eq!(choice.snapshot()["selection"]["source"], "person", "not an accepted last choice");
+                    assert!(choice.snapshot().get("offer").is_none());
+                }
+            }
         }
     }
     #[test]
