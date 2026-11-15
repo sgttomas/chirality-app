@@ -233,7 +233,8 @@ fn known_captures(installation: &Path, current: &Path) -> Result<Vec<PathBuf>, E
     let opened = remembered_libraries(installation);
     for library in listed.union(&opened) {
         if library_trace(library)? {
-            return Err(inventory_failure("a keychain-labelled capture survives in a known library; no file key is substituted"));
+            // A surviving capture is a found sign, not an incomplete inventory.
+            return Err(failure(Cause::ProtectionInconsistent, "A keychain-labelled capture survives in a known library. No file key is substituted. Open Recover capture verification."));
         }
     }
     if !opened.is_subset(&listed) {

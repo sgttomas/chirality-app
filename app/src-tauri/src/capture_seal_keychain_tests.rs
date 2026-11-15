@@ -1759,7 +1759,8 @@ fn capture_seal_repair3_pending_root_capture_vetoes_and_keychain_sealing_is_unaf
     fs::write(&list, serde_json::to_vec(&serde_json::json!({"format":"chirality.app.capture-seal-library-inventory/v1","roots":[other],"complete":true})).unwrap()).unwrap();
     let error = crate::capture_seal::seal(&project, &mut f.ordinary_capture()).unwrap_err();
     assert_eq!(error.cause, Cause::ProtectionInconsistent);
-    assert!(error.detail.starts_with("Library protection inventory is incomplete:"), "{error:?}");
+    // A found sign, not an incomplete inventory: the earlier words are kept.
+    assert!(!error.detail.contains("inventory is incomplete"), "{error:?}");
     assert!(error.detail.contains("keychain-labelled capture survives in a known library"), "remembered roots must be scanned as well as listed roots: {error:?}");
     assert_eq!(fs::read(path).unwrap(), original);
 }
