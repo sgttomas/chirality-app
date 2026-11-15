@@ -184,8 +184,9 @@ def main():
     parser.add_argument("--record", required=True)
     parser.add_argument("--root", required=True)
     parser.add_argument("--port", type=int, required=True)
-    parser.add_argument("--case", choices=CASES, help="Run only this case when the route gate permits it")
+    parser.add_argument("--case", choices=CASES, action="append", help="Run only named cases, in order, when the route gate permits them")
     args = parser.parse_args()
+    capture.require(args.case is None or len(args.case) == len(set(args.case)), "a case is named twice")
     record = same_basis.admit_distribution("0.169.0", Path(args.record).read_bytes())
     root = Path(args.root)
     capture.require(root.is_absolute() and root.resolve() == root, "root must be a plain absolute path")
@@ -194,7 +195,7 @@ def main():
         raise capture.Refused("case exceeded 180 seconds")
     previous = signal.signal(signal.SIGALRM, deadline)
     try:
-        for case in ((args.case,) if args.case else CASES):
+        for case in (args.case if args.case else CASES):
             signal.alarm(SECONDS)
             try:
                 result = observe(args.vendor, record, root / case, case, args.port)
