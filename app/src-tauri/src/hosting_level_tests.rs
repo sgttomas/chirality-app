@@ -1112,3 +1112,16 @@ fn a_blocked_trust_reading_write_ends_at_the_one_deadline_as_not_read() {
     *host.stdin.lock().unwrap() = None;
     std::fs::remove_dir_all(&base).unwrap();
 }
+
+
+/// Supervised says what allowing a command means at the pinned Codex.
+#[test]
+fn supervised_says_an_allowed_command_can_run_outside_the_sandbox() {
+    let base = root("supervised-words");
+    let host = ready_with_ledger(&base.join("data"), "/invented");
+    host.choose_level(&LevelScope::Default, cl::level("supervised").unwrap(), &[]).unwrap();
+    assert_eq!(host.snapshot()["levelDefault"]["allowing"], cl::SUPERVISED_ALLOWING);
+    host.choose_level(&LevelScope::Default, cl::level("edits").unwrap(), &[]).unwrap();
+    assert!(host.snapshot()["levelDefault"].get("allowing").is_none());
+    std::fs::remove_dir_all(base).unwrap();
+}

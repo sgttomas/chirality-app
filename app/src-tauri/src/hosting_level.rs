@@ -183,6 +183,7 @@ fn chosen_view(chosen: Option<&Chosen>, level: Option<&'static Level>, scope: &s
                     view["sessionOnly"] = session_only.cloned().unwrap_or(Value::Null);
                 }
             }
+            if c.level.id == "supervised" { view["allowing"] = json!(cl::SUPERVISED_ALLOWING); }
             view
         }
         // A level set without a record or an origin: only the test setters do this.
