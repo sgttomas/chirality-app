@@ -9,6 +9,8 @@ use crate::{
 };
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
+#[cfg(test)]
+thread_local! { pub(crate) static BEFORE_WRITER_PROOF: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const { std::cell::RefCell::new(None) }; }
 
 pub(crate) struct History {
     pub claims: Vec<Value>,
@@ -202,6 +204,7 @@ struct Owner {
     store_identity: FileSource,
     link: Vec<u8>,
     _activity: Option<crate::storage::Ownership>,
+    writer: crate::records_store::WriterBinding,
 }
 impl Owner {
     fn open(root: &Path) -> Result<Self, String> {
@@ -222,6 +225,7 @@ impl Owner {
         let link =
             crate::records_retention::read_plain(&root.join(crate::records_store::PROJECT_LINK))?;
         Ok(Self {
+            writer: crate::records_store::bind_writer(root)?,
             project,
             source,
             project_id,
@@ -252,9 +256,11 @@ impl Owner {
                     .into(),
             );
         }
-        if crate::records_store::write_dir(root)? != self.source.records_root() {
+        if self.writer.records_dir() != self.source.records_root() {
             return Err("Original lapse target changed; nothing written".into());
         }
+        let _admission = crate::records_retention::write_path(self.writer.records_dir())?;
+        self.writer.prove_for_write()?;
         Ok(())
     }
     fn log(&self) -> PathBuf {
@@ -359,6 +365,8 @@ impl Pending {
         Ok(())
     }
     fn append(&mut self, owner: &Owner, source: &SourceClaims) -> Result<Value, String> {
+        let _admission = crate::records_retention::write_path(owner.writer.records_dir())?;
+        owner.writer.prove_for_write()?;
         self.validate(owner, source, true)?;
         let log = owner.log();
         if source
@@ -375,6 +383,9 @@ impl Pending {
                 false,
             )?;
         }
+        #[cfg(test)]
+        if let Some(hook) = BEFORE_WRITER_PROOF.with(|h| h.borrow_mut().take()) { hook(); }
+        owner.writer.prove_for_write()?;
         let result = append_exact(
             owner.project.root(),
             &log,
@@ -392,6 +403,7 @@ impl Pending {
             let body = self.limit_body.get_or_insert_with(|| json!({"label":"record write failed","subjectRef":self.id,"detail":format!("Standalone act_lapsed saved after its original observation; first failure: {failure}; original content observation and time retained, no act recaptured")}));
             #[cfg(test)]
             before_late_limit();
+            owner.writer.prove_for_write()?;
             append_exact(
                 owner.project.root(),
                 &log,
@@ -563,7 +575,7 @@ impl Observer {
         self.state = "content observed; no new lapse observation needed".into();
         if let Err(error) = self.prepare(root) {
             self.limits.push(error);
-            self.state = "content observation limited; durable save not established".into();
+            self.state = "no lapse observation recorded; content observation limited".into();
         }
         self.flush(root)
     }
