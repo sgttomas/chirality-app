@@ -14,6 +14,9 @@ struct Peer {
     wire: Arc<Mutex<Vec<Value>>>,
     replies: Arc<Mutex<VecDeque<Reply>>>,
     child: std::process::Child,
+    root: PathBuf,
+    saved_thread: Arc<Mutex<Value>>,
+    folder_reads: Arc<Mutex<Vec<Value>>>,
     worker: Option<std::thread::JoinHandle<()>>,
 }
 fn generation() -> Value {
@@ -37,6 +40,22 @@ fn items(turn: &str, next: Value) -> Value {
 }
 impl Peer {
     fn new(extra: Vec<Reply>) -> Self {
+        // Match desktop startup's established App-data placement. Continue must
+        // read and admit the saved folder through the production preflight.
+        let root = std::env::temp_dir().canonicalize().unwrap()
+            .join(crate::util::opaque_id("continuation-context-").unwrap());
+        let data = root.join("app-data");
+        std::fs::create_dir_all(&data).unwrap();
+        crate::working_folder::establish(&data).unwrap();
+        let project = root.join("saved-project");
+        std::fs::create_dir(&project).unwrap();
+        let mut saved = thread();
+        saved["cwd"] = json!(project);
+        let mut resumed = resume();
+        resumed["thread"] = saved.clone();
+        resumed["cwd"] = saved["cwd"].clone();
+        let saved_thread = Arc::new(Mutex::new(saved.clone()));
+        let folder_reads = Arc::new(Mutex::new(Vec::new()));
         let host = Arc::new(Host::new());
         {
             let mut i = host.inner.0.lock().unwrap();
@@ -44,6 +63,7 @@ impl Peer {
             i.generation = generation();
             i.journal.begin_generation(generation());
             i.server_cwd = Some("/invented".into());
+            i.app_data = Some(data);
         }
         let mut child = Command::new("/bin/cat")
             .env_clear()
@@ -56,15 +76,24 @@ impl Peer {
         let stdout = child.stdout.take().unwrap();
         let wire = Arc::new(Mutex::new(Vec::new()));
         let replies = Arc::new(Mutex::new(VecDeque::from([
-            Reply::Frame(json!({"result":{"data":[thread()],"nextCursor":null}})),
-            Reply::Frame(json!({"result":resume()})),
+            Reply::Frame(json!({"result":{"data":[saved],"nextCursor":null}})),
+            Reply::Frame(json!({"result":resumed})),
         ])));
         replies.lock().unwrap().extend(extra);
         let (h, w, r) = (Arc::clone(&host), Arc::clone(&wire), Arc::clone(&replies));
+        let (saved_for_read, reads) = (Arc::clone(&saved_thread), Arc::clone(&folder_reads));
         let worker = std::thread::spawn(move || {
             for line in BufReader::new(stdout).lines() {
                 let Ok(line) = line else { break };
                 let frame: Value = serde_json::from_str(&line).unwrap();
+                // Keep preflight IO separate from the context-page wire corpus,
+                // as the configuration reading below already is. Retain it for
+                // the production-entry assertions; never seed a live thread row.
+                if frame["method"] == "thread/read" {
+                    reads.lock().unwrap().push(frame.clone());
+                    h.on_line(&serde_json::to_vec(&json!({"id":frame["id"],"result":{"thread":saved_for_read.lock().unwrap().clone()}})).unwrap(), &generation());
+                    continue;
+                }
                 // An account Continue first reads Codex's configuration: the stand-in reports the
                 // built-in provider and keeps its scripted replies for the history frames.
                 if frame["method"] == "config/read" {
@@ -96,6 +125,9 @@ impl Peer {
             wire,
             replies,
             child,
+            root,
+            saved_thread,
+            folder_reads,
             worker: Some(worker),
         }
     }
@@ -167,6 +199,7 @@ impl Drop for Peer {
         if let Some(worker) = self.worker.take() {
             worker.join().unwrap();
         }
+        std::fs::remove_dir_all(&self.root).unwrap();
     }
 }
 
@@ -518,4 +551,54 @@ fn delayed_item_completion_after_wait_timeout_requires_a_new_explicit_read() {
             .count(),
         1
     );
+}
+
+// The command history_action uses this same prepare/dispatch/reconcile path;
+// the fixture replaces only the native pipe peer and the desktop data folder.
+fn prepare_saved_continue(p: &Peer) -> (crate::runtime_session::HistorySession, HistoryQuery) {
+    let mut history = crate::runtime_session::HistorySession::default();
+    let list = history.prepare(&p.host.snapshot(), &generation(), 0, "list", None, Direction::Desc, None).unwrap();
+    let dispatch = p.host.history_dispatch(&list).unwrap();
+    history.dispatched_manual(dispatch.clone());
+    p.host.history_wait(&dispatch, Duration::from_secs(2)).unwrap();
+    history.reconcile(&p.host);
+    history.select(&p.host.snapshot(), &generation(), 0, "stored").unwrap();
+    let query = history.prepare(&p.host.snapshot(), &generation(), 1, "continue", None, Direction::Desc, None).unwrap();
+    (history, query)
+}
+
+#[test]
+fn saved_continue_admits_its_read_folder_before_resume_and_then_reads_context() {
+    let p = Peer::new(vec![
+        Reply::Frame(json!({"result":turns(&["newest"],Value::Null)})),
+        Reply::Frame(json!({"result":items("newest",Value::Null)})),
+    ]);
+    let (mut history, query) = prepare_saved_continue(&p);
+    assert!(p.host.snapshot()["threads"].as_array().unwrap().is_empty());
+    let dispatch = p.host.history_dispatch(&query).unwrap();
+    history.dispatched_manual(dispatch.clone());
+    p.host.history_wait(&dispatch, Duration::from_secs(2)).unwrap();
+    history.reconcile(&p.host);
+    let saved = p.saved_thread.lock().unwrap()["cwd"].clone();
+    assert_eq!(p.folder_reads.lock().unwrap().len(), 1);
+    assert_eq!(p.folder_reads.lock().unwrap()[0]["params"], json!({"threadId":"stored","includeTurns":false}));
+    assert_eq!(dispatch.evidence()["sentFrame"]["params"]["cwd"], saved);
+    assert_eq!(p.host.snapshot()["threads"][0]["cwd"], saved);
+    assert_eq!(p.context()["state"], "queued");
+    assert_eq!(p.read(), 2);
+    assert_eq!(p.context()["history"]["selected"]["itemsPage"], items("newest",Value::Null));
+    assert_eq!(p.host.snapshot()["threads"][0]["cwd"], saved);
+}
+
+#[test]
+fn saved_continue_with_unknown_read_folder_never_resumes_or_queues_context() {
+    let p = Peer::new(vec![]);
+    let (_history, query) = prepare_saved_continue(&p);
+    p.saved_thread.lock().unwrap()["cwd"] = Value::Null;
+    assert_eq!(p.host.history_dispatch(&query).err().unwrap(), SAVED_IN_APP_DATA_UNKNOWN);
+    assert_eq!(p.folder_reads.lock().unwrap().len(), 1);
+    assert!(!p.wire.lock().unwrap().iter().any(|f| f["method"] == "thread/resume"));
+    assert!(p.host.snapshot()["threads"].as_array().unwrap().is_empty());
+    assert!(p.host.snapshot()["continuationContexts"].as_array().unwrap().is_empty());
+    assert_eq!(p.read(), 0);
 }

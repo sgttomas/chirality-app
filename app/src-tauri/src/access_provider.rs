@@ -1342,7 +1342,18 @@ impl Host {
         // The level the frame carried, as bound when it was built (V4-AUT-06).
         let request = request.with_sent_level(source.level.as_ref());
         let i = self.inner.0.lock().map_err(|_| unavailable())?;
-        let Some(binding) = &i.local_provider else { return Ok(request); };
+        let Some(binding) = &i.local_provider else {
+            // The actual resume's saved folder was admitted before frame construction;
+            // carry that bound folder into the whole-packet role expectation too.
+            let request = if source.frame["method"] == "thread/resume" {
+                match source.level.as_ref().and_then(|level|level.trust.as_ref()) {
+                    Some(trust) if source.frame["params"]["cwd"].as_str() == trust.cwd.to_str() =>
+                        request.with_classified_cwd(trust.cwd.to_str().ok_or("admitted folder is not Unicode")?),
+                    _ => request,
+                }
+            } else { request };
+            return Ok(request);
+        };
         if i.generation != *source.generation() || i.state != "ready" || i.server_requests.is_closed(source.generation())
             || source.generation()["home"] != binding.home || request.generation() != source.generation()
             || request.request_id() != source.request_id() || request.request_ref() != source.request_ref()

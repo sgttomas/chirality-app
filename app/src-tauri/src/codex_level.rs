@@ -26,7 +26,7 @@ pub const APP_DEFAULT_SENTENCE: &str = "The App's default level, not chosen by y
 /// `AskEachCommandInsideTheProject`; the features that would grant less are under development and off).
 pub const SUPERVISED_ALLOWING: &str = "When a command needs your approval, Codex asks. If you allow it, the command can run outside the sandbox, with your account's access to all your files and to the network; Codex cannot run it limited to this project. Your own rules and hooks can allow or refuse a command without asking you.";
 pub const READING_SENTENCE: &str = "Reading is not limited at any permission level.";
-pub const NEXT_TURN_SENTENCE: &str = "From the next turn. Commands already running, and anything they started, keep the access they started with until they end. If a later turn uses a narrower level than Full access and the agent tries to use a command started at Full access, Codex asks you first or, at a level that never asks, refuses the request. They end when Codex closes normally, as it ordinarily does when you stop or restart Codex or quit the App.";
+pub const NEXT_TURN_SENTENCE: &str = "From the next turn. Commands already running, and anything they started, keep the access they started with until they end. They end when Codex closes normally, as it ordinarily does when you stop or restart Codex or quit the App.";
 pub const APP_DEFAULT_EXPLAINED: &str = "The App's default level is full access: commands run with no sandbox, with your account's access to your files and the network, including the App's own records and settings. You can choose another level at any time.";
 /// The status's closed sentence for a level chosen while the App's records could not be read or saved.
 /// The ask, the one exception to the App's default (V4-AUT-06): the App's record of the level is missing, holds a
@@ -34,7 +34,7 @@ pub const APP_DEFAULT_EXPLAINED: &str = "The App's default level is full access:
 /// preselected beside it.
 pub const RECORD_MISSING_SENTENCE: &str = "The App's record of your permission level is missing or could not be used, so the App cannot tell whether you chose a level before; a missing record can mean that a command removed or changed it. Choose a level to continue. The App's default, full access, is selected.";
 /// Beside the App's default where the App's records could not be read on a first run.
-pub const RECORDS_UNREAD_SENTENCE: &str = "The App could not read its records, so a level you choose now is kept for this session only.";
+pub const RECORDS_UNREAD_SENTENCE: &str = "The App could not read its records. A level you choose now is in force for this session; the App will show whether saving it is confirmed.";
 /// The name Codex gives the state database it creates in its home when it first starts there (state/src/sqlite.rs
 /// at rust-v0.167.0). The App never creates it.
 pub const CODEX_STATE_NAME: &str = "state_5.sqlite";
@@ -48,7 +48,10 @@ pub fn home_has_codex_state(codex_home: &Path) -> Result<bool, String> {
         Err(error) => Err(error.to_string()),
     }
 }
-pub const INHERITANCE_NOT_RECORDED: &str = "This conversation keeps its level for this session, but its level could not be recorded. After the App is reopened it takes the default for new conversations in force then, unless you set a level for it.";
+pub const INHERITANCE_NOT_RECORDED: &str = "The App could not confirm that this conversation's level was saved. If it is not saved before the App closes, reopening follows the default for new conversations then in force, which could allow more than this level, unless you set its level.";
+pub const DEFAULT_SCOPE_SENTENCE: &str = "Changing the level here changes the default for later new conversations too. Existing conversations keep their own level.";
+pub const SAVE_UNCONFIRMED_APPLIED: &str = "The App could not confirm the level was saved. It is in force for this session.";
+pub const SAVE_UNCONFIRMED_NOT_APPLIED: &str = "The App could not confirm the level was saved. This session's level was not changed; reopening will show the level the records then hold.";
 pub const SESSION_ONLY_SENTENCE: &str = "Chosen for now. The App could not read or save its records, so this level is not kept after the App closes.";
 /// Why a session-only choice was offered: the App's own sentences, beside which any raw detail is kept apart.
 pub const RECORDS_NOT_READ: &str = "The App's records could not be read when it started.";
@@ -409,15 +412,19 @@ impl TrustReading {
     }
     /// The status (`threads[].level.projectTrust`): what was sent, the case, and its closed sentences. The matched
     /// key, folders and any raw detail are supplied text, kept in their own fields.
-    pub fn status(&self) -> Value {
+    pub fn status(&self) -> Value { self.status_for_write(true) }
+    pub fn status_for_write(&self, written: bool) -> Value {
+        let trusted_suffix = if written { TRUST_TRUSTED_SUFFIX } else { "). The App tried to send a trusted entry for the project root shown below." };
+        let untrusted = if written { TRUST_UNTRUSTED_SENT } else { "The App tried to send an untrusted entry for the project root shown below." };
+        let not_read = if written { TRUST_NOT_READ } else { "The App could not read the Codex settings it uses for this project, so it tried to send an untrusted entry for the project root shown below." };
         let (case, lines, matched): (&str, Vec<String>, Option<&String>) = match &self.case {
-            TrustCase::Trusted { key } => ("trusted", vec![format!("{TRUST_TRUSTED_PREFIX}{}{TRUST_TRUSTED_SUFFIX}", self.read_at.as_deref().unwrap_or("an unknown time"))], Some(key)),
-            TrustCase::MarkedUntrusted { key } => ("marked-untrusted", vec![TRUST_MARKED_UNTRUSTED.into(), TRUST_UNTRUSTED_SENT.into()], Some(key)),
-            TrustCase::Unmarked => ("unmarked", vec![TRUST_UNTRUSTED_SENT.into()], None),
-            TrustCase::NotRead { .. } => ("not-read", vec![TRUST_NOT_READ.into(), TRUST_UNTRUSTED_SENT.into()], None),
+            TrustCase::Trusted { key } => ("trusted", vec![format!("{TRUST_TRUSTED_PREFIX}{}{trusted_suffix}", self.read_at.as_deref().unwrap_or("an unknown time"))], Some(key)),
+            TrustCase::MarkedUntrusted { key } => ("marked-untrusted", vec![TRUST_MARKED_UNTRUSTED.into(), untrusted.into()], Some(key)),
+            TrustCase::Unmarked => ("unmarked", vec![untrusted.into()], None),
+            TrustCase::NotRead { .. } => ("not-read", vec![not_read.into(), untrusted.into()], None),
         };
-        let mut out = json!({"case": case, "sent": self.trust_level(), "lines": lines, "projectRoot": self.root.to_string_lossy(),
-            "sentKey": self.key, "matchedKey": matched, "readAt": self.read_at, "standing": "Folders and keys are supplied text."});
+        let mut out = json!({"case": case, "sent": if written {json!(self.trust_level())} else {Value::Null}, "requested":self.trust_level(), "lines": lines, "projectRoot": self.root.to_string_lossy(),
+            "sentKey": if written {json!(self.key)} else {Value::Null}, "requestedKey":self.key, "matchedKey": matched, "readAt": self.read_at, "standing": "Folders and keys are supplied text."});
         if let TrustCase::NotRead { reason, detail } = &self.case {
             out["reason"] = json!(reason);
             out["detail"] = match detail { Some(text) => json!({"text": text, "standing": NOT_THE_APPS_TEXT}), None => Value::Null };
@@ -468,10 +475,12 @@ pub enum LevelOrigin {
     AppDefault,
     /// The person's choice, held in memory only because the App's records could not be read or saved.
     SessionOnly,
+    /// The choice is in force, but an attempted append was not confirmed.
+    SaveUnconfirmed,
 }
 impl LevelOrigin {
     pub(crate) fn as_str(self) -> &'static str {
-        match self { Self::Chosen => "chosen", Self::AppDefault => "app-default", Self::SessionOnly => "session-only" }
+        match self { Self::Chosen => "chosen", Self::AppDefault => "app-default", Self::SessionOnly => "session-only", Self::SaveUnconfirmed => "save-unconfirmed" }
     }
 }
 

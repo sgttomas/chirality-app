@@ -23,14 +23,23 @@ where
     let generation = generation.clone();
     let (tx, rx) = channel();
     let worker = std::thread::spawn(move || {
-        let outbound = super::next_operation_frame(&mut BufReader::new(stdout)).unwrap();
+        let mut reader=BufReader::new(stdout);
+        let outbound=loop {
+            let frame=super::next_operation_frame(&mut reader).unwrap();
+            if frame["method"] == "thread/read" && response["result"]["thread"].is_object() {
+                me.on_line(&serde_json::to_vec(&json!({"id":frame["id"],"result":{"thread":response["result"]["thread"]}})).unwrap(), &generation);
+                continue;
+            }
+            break frame;
+        };
         tx.send(outbound.clone()).unwrap();
         let mut response = response;
         response["id"] = outbound["id"].clone();
         me.on_line(&serde_json::to_vec(&response).unwrap(), &generation);
     });
     let result = operation();
-    let outbound = rx.recv().unwrap();
+    if result.is_err() { *host.stdin.lock().unwrap()=None; }
+    let outbound = rx.recv().unwrap_or_else(|_|panic!("role peer received no frame; operation returned {result:?}"));
     worker.join().unwrap();
     *host.stdin.lock().unwrap() = None;
     assert!(child.wait().unwrap().success());
@@ -56,6 +65,7 @@ fn actual_start_fork_continue_as_store_and_fresh_quoted_history() {
     std::fs::create_dir_all(ledger.parent().unwrap()).unwrap();
     // The App data held as the App holds it: the later Host models a relaunch.
     let _custody = crate::hold_app_data_for_test(&root.join("app")).unwrap();
+    crate::working_folder::establish(&root.join("app")).unwrap();
     let host = Arc::new(Host::new());
     host.inner.0.lock().unwrap().app_session = "conversation-session".into();
     host.configure_recovery(ledger.clone()).unwrap();
@@ -253,6 +263,7 @@ fn actual_start_fork_continue_as_store_and_fresh_quoted_history() {
     host.end_process_for_test();
     let cold_host = Arc::new(Host::new());
     cold_host.configure_recovery(ledger).unwrap();
+    cold_host.inner.0.lock().unwrap().app_data=Some(root.join("app"));
     let cold_generation = {
         let mut i = cold_host.inner.0.lock().unwrap();
         let generation =
@@ -338,7 +349,7 @@ fn actual_start_fork_continue_as_store_and_fresh_quoted_history() {
         },
     );
     assert_eq!(result.unwrap()["writeResult"], "written");
-    assert_eq!(outbound["params"], crate::codex_level::with_test_level(&json!({"threadId":"role-origin","excludeTurns":true}), "thread/resume"));
+    assert_eq!(outbound["params"], crate::codex_level::with_test_level(&json!({"threadId":"role-origin","excludeTurns":true,"cwd":project}), "thread/resume"));
     cold.dispatched(receipt.unwrap());
     cold.reconcile(&cold_host);
     assert!(cold_host.snapshot()["threads"]

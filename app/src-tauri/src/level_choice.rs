@@ -7,16 +7,16 @@ use crate::hosting::{Host, LevelScope};
 use serde_json::Value;
 use std::sync::Arc;
 
-/// `"default"`, `{"conversation": threadId}` or `"new-conversation"`.
+/// `"default"` or `{"conversation": threadId}`.
 pub(crate) fn parse_scope(scope: &Value) -> Result<LevelScope, String> {
     match scope {
         Value::String(s) if s == "default" => Ok(LevelScope::Default),
-        Value::String(s) if s == "new-conversation" => Ok(LevelScope::NewConversation),
+        Value::String(s) if s == "new-conversation" => Err("The \"new-conversation\" scope is not supported; the default was not changed".into()),
         Value::Object(o) if o.len() == 1 => match o.get("conversation").and_then(Value::as_str) {
             Some(thread) if !thread.is_empty() => Ok(LevelScope::Conversation(thread.to_owned())),
             _ => Err("A conversation's level names its conversation; nothing was changed".into()),
         },
-        _ => Err("The level's scope is \"default\", {\"conversation\": id} or \"new-conversation\"; nothing was changed".into()),
+        _ => Err("The level's scope is \"default\", {\"conversation\": id}; nothing was changed".into()),
     }
 }
 

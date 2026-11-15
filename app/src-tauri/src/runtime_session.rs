@@ -2750,12 +2750,15 @@ impl HomeSession {
         self.class
     }
     /// At launch (V4-AUT-06): the level recorded for this home's scopes, and this home's lasting rules.
-    pub(crate) fn level_launch_reads(&self) {
+    pub(crate) fn level_launch_reads(&self, account: &HomeSession) {
         let cfg = self.host_config.as_ref().ok();
-        // The account home's own path, as the App made it, is the one place probed for an earlier Codex start.
-        let account_home = cfg.filter(|_| self.class == crate::home_resources::HomeClass::Account)
-            .map(|cfg| { let home = cfg.cwd.join(&cfg.codex_home); std::path::absolute(&home).unwrap_or(home) });
-        self.host.read_levels_at_launch_in(cfg.map(|cfg| crate::hosting::home_identity(&cfg.codex_home)).as_deref(), account_home.as_deref());
+        // Every home sharing the default uses the account home's evidence.
+        // Missing account configuration is unknown, never first-run absence.
+        let state = account.host_config.as_ref().map_err(Clone::clone).and_then(|cfg| {
+            let path = cfg.cwd.join(&cfg.codex_home);
+            crate::codex_level::home_has_codex_state(&std::path::absolute(&path).unwrap_or(path))
+        });
+        self.host.read_levels_with_account_state(cfg.map(|cfg| crate::hosting::home_identity(&cfg.codex_home)).as_deref(), Some(state));
         if let Some(cfg) = cfg {
             let home = cfg.cwd.join(&cfg.codex_home);
             self.host.read_lasting_rules(Some(&std::path::absolute(&home).unwrap_or(home)));

@@ -55,8 +55,10 @@ impl Pipe {
             let mut i = h.inner.0.lock().unwrap();
             i.generation = g();
             i.state = "ready".into();
+            // An admitted conversation retains its working folder. These
+            // protocol-identity cases vary the request/response, not admission.
             i.threads
-                .push(json!({"generation":g(),"threadId":"thread"}));
+                .push(json!({"generation":g(),"threadId":"thread","cwd":"/invented"}));
         }
         Self {
             h,
