@@ -97,7 +97,12 @@ export type RequestReplyObservation = {
   command: { kind: "pending" | "written" | "dismissed" } | { kind: "rejected"; reason: string } | { kind: "unconfirmed"; writeResult: string };
   custody: RequestCustodyObservation;
 };
-export type RequestAnswer = (request: Json, answer: Json) => Promise<RequestReplyObservation | void>;
+/** Which of two buttons that can send the same native answer the person pressed
+ * (a question's "send answers" and "decline" both may send `{answers:{}}`). Only
+ * this closed App vocabulary is forwarded, so the host's confirmation can name
+ * the button; the answer itself is unchanged. Other kinds send no choice. */
+export type RequestPresentationChoice = "question-answers" | "question-decline";
+export type RequestAnswer = (request: Json, answer: Json, presentationChoice?: RequestPresentationChoice) => Promise<RequestReplyObservation | void>;
 export type ReadRequestCustody = (request: Json) => Promise<RequestCustodyObservation>;
 
 function replyObservationWords(observation: RequestReplyObservation): string {
@@ -132,20 +137,31 @@ export function requestTitle(request: Json): string {
 
 /** The native decision tokens the App knows, shown beside their buttons as Codex names them. */
 const DECISION_TOKENS = { accept: "accept", approved: "approved", acceptForSession: "acceptForSession", approved_for_session: "approved_for_session", decline: "decline", cancel: "cancel", denied: "denied", abort: "abort" } as const;
-/** LB-1 App words for each native decision form (the value itself is shown beside them). */
+/** LB-1 App words for each native decision form (the value itself is shown beside them), and the
+ * question buttons' words. The host's native confirmation names an answer from requestAnswerWords.json;
+ * these tables are its exact copy, held here as literals so the presentation guard can read them, and a
+ * page test (request-answer-words.test.mjs) keeps the two equal, entry for entry. */
+export const DECISION_WORDS = {
+  accept: "Allow once",
+  approved: "Allow once",
+  acceptForSession: "Allow for this session",
+  approved_for_session: "Allow for this session",
+  acceptWithExecpolicyAmendment: "Allow, and add a lasting rule (see below)",
+  approved_execpolicy_amendment: "Allow, and add a lasting rule (see below)",
+  applyNetworkPolicyAmendment: "Apply the proposed network rule for this host",
+  network_policy_amendment: "Apply the proposed network rule for this host",
+  decline: "Don't allow; the agent continues the turn",
+  cancel: "Don't allow, and interrupt the turn",
+  denied: "Don't allow; the agent tries something else",
+  abort: "Don't allow; the agent waits for your next message",
+} as const;
+export const QUESTION_CHOICE_WORDS = {
+  "question-answers": "Send current question answers…",
+  "question-decline": "Decline to answer",
+} as const;
 export function decisionWords(decision: Json): string {
   const key = typeof decision === "string" ? decision : decision && typeof decision === "object" ? Object.keys(decision)[0] : "";
-  switch (key) {
-    case "accept": case "approved": return "Allow once";
-    case "acceptForSession": case "approved_for_session": return "Allow for this session";
-    case "acceptWithExecpolicyAmendment": case "approved_execpolicy_amendment": return "Allow, and add a lasting rule (see below)";
-    case "applyNetworkPolicyAmendment": case "network_policy_amendment": return "Apply the proposed network rule for this host";
-    case "decline": return "Don't allow; the agent continues the turn";
-    case "cancel": return "Don't allow, and interrupt the turn";
-    case "denied": return "Don't allow; the agent tries something else";
-    case "abort": return "Don't allow; the agent waits for your next message";
-    default: return "Codex option";
-  }
+  return wordOf(DECISION_WORDS, key) ?? "Codex option";
 }
 
 /** Where a tool-permission request's work lands, as the host reports it: the
@@ -221,6 +237,17 @@ function DecisionNote({ request, decision, place }: { request: Json; decision: J
     return <><small> This adds a lasting rule to the rules file in this App’s sign-in folder: from then on, in every conversation of this home, {words === null ? <>any command beginning with words Codex has not reported {access}</> : <>any command beginning with the words shown {access}</>}. It stays until it is removed from that file.</small>
       {words !== null && <> <small>The words shown:</small> <AgentText value={words} label="Rule words:" /></>}</>;
   }
+  if (key === "applyNetworkPolicyAmendment" && request?.method === COMMAND) {
+    // The selected answer's own amendment gives the host and the action; nothing is taken from another proposal.
+    const amendment = decision && typeof decision === "object" ? decision.applyNetworkPolicyAmendment?.network_policy_amendment : undefined;
+    const action = amendment?.action;
+    const host = amendment?.host;
+    const reach = action === "allow" ? "it allows network access to that host" : action === "deny" ? "it denies network access to that host"
+      : "whether it allows or denies network access to that host is not one of the two actions the App knows (the value this answer sends is shown beside the button)";
+    return <><small> This also applies the network rule Codex proposed for the host shown: {reach}, and the rule is kept by Codex after this answer.</small>
+      {typeof host === "string" && host !== "" ? <> <small>The host (Codex’s words, not the App’s):</small> <AgentText value={host} label="Host:" /></>
+        : <> <small>Codex has not reported the host for this answer.</small></>}</>;
+  }
   return null;
 }
 
@@ -237,17 +264,47 @@ function AnswerConsequences({ request, forms, place, changesArrived }: { request
   </>;
 }
 
+/** Where a resolved location is against the folder the card measures by: the project folder, or, with no
+ * project, the conversation's working folder. When that folder is not known, the comparison is not made and
+ * the card says so; a location is never left unmarked, which would read as inside. Lexical only. */
+type LocationMark = { kind: "inside"; rest: string } | { kind: "outside" } | { kind: "project-unknown" } | { kind: "folder-unknown" };
+function locationMark(resolved: string, place: RequestPlace | undefined): LocationMark {
+  const project = place?.project ?? { kind: "unknown" as const };
+  if (project.kind === "unknown") return { kind: "project-unknown" };
+  const base = project.kind === "folder" ? project.folder : place?.conversationFolder ?? null;
+  // A folder the App cannot read as a full path cannot be compared with: that is said, never read as OUTSIDE.
+  if (!base || !resolvePath(base, null)) return { kind: project.kind === "folder" ? "project-unknown" : "folder-unknown" };
+  const rest = insideFolder(resolved, base);
+  return rest === null ? { kind: "outside" } : { kind: "inside", rest };
+}
+const PROJECT_UNKNOWN = "the App could not compare it with your project folder, because it has not established where your project folder is";
+const FOLDER_UNKNOWN = "the App has not received this conversation’s working folder, so it cannot compare this location with it";
+
 /** One location on a file-change line: the full path, how it was resolved and where it is. */
 function ChangeLocation({ path, place, cwd }: { path: Json; place?: RequestPlace; cwd: string | null }) {
   const given = text(path);
   const resolved = resolvePath(given, cwd);
   if (!resolved) return <><AgentText value={given} label="Path:" /> (relative to a working folder the App has not received; where it goes cannot be shown)</>;
-  const base = place?.project.kind === "folder" ? place.project.folder : place?.project.kind === "none" ? place.conversationFolder : null;
-  const rest = base ? insideFolder(resolved.path, base) : null;
+  const mark = locationMark(resolved.path, place);
   return <>
     <AgentText value={resolved.path} label="Path:" />{resolved.relative && <> (relative to <AgentText value={text(cwd)} label="Folder:" />)</>}
-    {base === null || base === undefined ? null : rest !== null ? <> — in {folderWords(place)}, at <AgentText value={rest === "" ? "." : rest} label="Path:" /></> : <> — OUTSIDE {folderWords(place)}</>}
+    {mark.kind === "inside" ? <> — in {folderWords(place)}, at <AgentText value={mark.rest === "" ? "." : mark.rest} label="Path:" /></>
+      : mark.kind === "outside" ? <> — OUTSIDE {folderWords(place)}</>
+      : <> — {mark.kind === "project-unknown" ? PROJECT_UNKNOWN : FOLDER_UNKNOWN}</>}
   </>;
+}
+
+/** Where a command's working folder is, by the same lexical reading as a file location. A folder given as a
+ * relative path is resolved against the conversation's working folder when the App has it. */
+function CommandFolder({ cwd, place }: { cwd: Json; place?: RequestPlace }) {
+  const conversationFolder = place?.conversationFolder ?? null;
+  if (typeof cwd !== "string" || cwd === "") return <div>Codex did not give a working folder.{conversationFolder !== null && <> The conversation’s working folder (Codex’s words, not the App’s): <AgentText value={conversationFolder} label="Folder:" /></>}</div>;
+  const resolved = resolvePath(cwd, conversationFolder);
+  if (!resolved) return <div>Where the working folder is: it is relative to a working folder the App has not received, so where it is cannot be shown.</div>;
+  const mark = locationMark(resolved.path, place);
+  return <div>Where the working folder is{resolved.relative && <> (resolved to <AgentText value={resolved.path} label="Path:" /> against <AgentText value={text(conversationFolder)} label="Folder:" />)</>}: {
+    mark.kind === "inside" ? `inside ${folderWords(place)}` : mark.kind === "outside" ? `OUTSIDE ${folderWords(place)}` : mark.kind === "project-unknown" ? PROJECT_UNKNOWN : FOLDER_UNKNOWN
+  }. <small>Read from the folder Codex gave; the App has not followed links.</small></div>;
 }
 
 /** FO-1…FO-3: the decision forms a tool-permission card offers and the native answer each
@@ -355,8 +412,9 @@ function Subject({ request, item, place }: { request: Json; item: Json; place?: 
   switch (request?.method) {
     case COMMAND:
       return <div>
-        <Field label="Command" value={p.command} />
+        {p.command === undefined || p.command === null || p.command === "" ? <div>Codex did not give a command.</div> : <Field label="Command" value={p.command} />}
         <Field label="Working folder" value={p.cwd} />
+        <CommandFolder cwd={p.cwd} place={place} />
         {p.kind && p.kind !== "command" && <Code label="Kind" value={p.kind} />}
         <Field label="Reason given" value={p.reason} />
         <Field label="Proposed exec-policy rule" value={p.proposedExecpolicyAmendment} />
@@ -386,7 +444,8 @@ function Subject({ request, item, place }: { request: Json; item: Json; place?: 
       return <div><Field label="Working folder" value={p.cwd} /><Field label="Reason given" value={p.reason} />
         <div>Requested permissions:</div><AgentText block value={JSON.stringify(p.permissions ?? null, null, 2)} label="The agent asked for (native JSON):" /></div>;
     case LEGACY_EXEC:
-      return <div><Field label="Command" value={Array.isArray(p.command) ? p.command.join(" ") : p.command} /><Field label="Working folder" value={p.cwd} /><Field label="Reason given" value={p.reason} /></div>;
+      return <div>{p.command === undefined || p.command === null || p.command === "" || (Array.isArray(p.command) && p.command.length === 0) ? <div>Codex did not give a command.</div> : <Field label="Command" value={Array.isArray(p.command) ? p.command.join(" ") : p.command} />}
+        <Field label="Working folder" value={p.cwd} /><CommandFolder cwd={p.cwd} place={place} /><Field label="Reason given" value={p.reason} /></div>;
     case LEGACY_PATCH:
       return <div><Field label="Reason given" value={p.reason} />{p.grantRoot && <div>Also asks to write under the folder shown for the session: <AgentText value={text(p.grantRoot)} label="Folder:" /></div>}
         {Object.keys(p.fileChanges && typeof p.fileChanges === "object" ? p.fileChanges : {}).map(path => <div key={path}>File: <AgentText value={path} label="Path:" /></div>)}</div>;
@@ -474,7 +533,7 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
   const unreconciled = answerable(request) && replyGuard;
   const p = request.nativeParameters ?? {};
   const method = request.method;
-  const send = async (value: Json) => {
+  const send = async (value: Json, presentationChoice?: RequestPresentationChoice) => {
     if (currentScope.current !== scopeKey || busyRef.current?.scope === scopeKey || !answerable(request) || requestReplyGuarded(replyRef.current, scopeKey)) return;
     const token = { scope: scopeKey };
     busyRef.current = token;
@@ -483,7 +542,7 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
     setDrafts({}); setChosen({}); setContent(""); setRejection("");
     try {
       let completion: ReturnType<RequestAnswer>;
-      try { completion = answer(request, value); }
+      try { completion = presentationChoice === undefined ? answer(request, value) : answer(request, value, presentationChoice); }
       finally { value = undefined; }
       const observation = await completion;
       if (currentScope.current === scopeKey && observation?.scope === scopeKey) observeReply(observation);
@@ -568,9 +627,9 @@ export function NativeRequestCard({ request, view, answer, readRequest, observat
           <button disabled={busy} onClick={() => { setChosen(c => { const next = { ...c }; delete next[q.id]; return next; }); setDrafts(d => { const next = { ...d }; delete next[q.id]; return next; }); }}>Leave unanswered</button>
           <p>Selected: {chosen[q.id] !== undefined ? q.isSecret ? "[masked]" : <SelectedOption options={q.options} index={chosen[q.id]} /> : drafts[q.id] !== undefined ? q.isSecret ? "[masked]" : "your own answer, in the field above" : "—"}</p>
         </div>)}
-        <button disabled={busy} onClick={() => send({ answers: questionAnswers(p.questions, chosen, drafts) })}>Send current question answers…</button>
+        <button disabled={busy} onClick={() => send({ answers: questionAnswers(p.questions, chosen, drafts) }, "question-answers")}>{wordOf(QUESTION_CHOICE_WORDS, "question-answers")}</button>
         <p>Unanswered questions are omitted; entered empty answers are preserved.</p>
-        <button disabled={busy} onClick={() => send({ answers: {} })}>Decline to answer</button>
+        <button disabled={busy} onClick={() => send({ answers: {} }, "question-decline")}>{wordOf(QUESTION_CHOICE_WORDS, "question-decline")}</button>
       </>}
       {method === ELICITATION && <>
         <p>Codex input mode: <SuppliedId value={p.mode} label="Mode:" name="The input mode Codex sent, not the App's words" />.</p>

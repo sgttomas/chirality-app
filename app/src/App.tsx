@@ -11,7 +11,7 @@ import { ConnectorRoutePanel, emptyRouteRead, routeReadTransition, type RouteRea
 // The interface reads host snapshots and asks the host to act. It holds no pipe
 // (HOSTING H2), writes no record and cannot capture an act: the native
 // confirmation is the host's (AAC §6.2 P-2). Views per DECISION_VIEW.md §4.
-import { useCallback, useEffect, useRef, useState, type Ref } from "react";
+import { Fragment, useCallback, useEffect, useRef, useState, type Ref } from "react";
 import { appHome, CodexProcessControls, stopLabel } from "./CodexControls";
 import { ContinueAsPanel, ModelIdField, RoleChoice, RoleHeader, RoleHistoryReader, SupplyStatus, type ContinueStartOutcome, type HandoffSendOutcome } from "./ConversationRoles";
 import { EXACT_TEXT } from "./exactText";
@@ -24,6 +24,7 @@ import { ObserverAttachment } from "./ObserverAttachment";
 import { PlanModeControl } from "./PlanMode";
 import { NativeRequestCard, answerable, hostRequests, requestItem, requestPlace, requestThread, requestScopeKey, requestReplyGuarded, type RequestActivityLink, type RequestAnswer, type ReadRequestCustody, type RequestReplyObservation, type WaitingRequestGroup } from "./RequestCards";
 import { type RunAct } from "./RunOffers";
+import { RequestAnswerCompanion, type CompanionRow, type ReadCompanions } from "./RequestAnswerCompanion";
 import { RecoveryCustodyPanel } from "./RecoveryCustodyPanel";
 import { CompareResult, initialDraftsState, LastCleanTrialLine, WorkflowDraftsView, type DraftsState } from "./WorkflowDrafts";
 import { LibraryEntries } from "./LibraryEntries";
@@ -415,7 +416,10 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
     {selected && <div id="conversation-requests" aria-label="Requests from Codex in this conversation">
       <h3>Requests from Codex in this conversation ({numberWords(requests.filter(answerable).length)} waiting)</h3>
       {ordered.length === 0 && <p>No requests from Codex in this conversation.</p>}
-      {ordered.map((request: Json) => <NativeRequestCard activityLink={activityLink} key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answer} readRequest={readRequest} place={requestPlace(request, host, appProjectFolder(host))} observation={replyObservations?.[requestScopeKey(request)]} />)}
+      {ordered.map((request: Json) => <Fragment key={JSON.stringify([request.generation, request.requestIdentity])}>
+        <NativeRequestCard activityLink={activityLink} request={request} view={host?.nativeView} answer={answer} readRequest={readRequest} place={requestPlace(request, host, appProjectFolder(host))} observation={replyObservations?.[requestScopeKey(request)]} />
+        <RequestAnswerCompanion request={request} read={readAnswerCompanions} refresh={replyObservations?.[requestScopeKey(request)]} />
+      </Fragment>)}
     </div>}
     <p id="ordinary-send-readiness" role="status" aria-live="polite">{sendReadiness}</p>
     {!sourceReady && <p><a href="#workspace-connection">Open connection controls</a></p>}
@@ -784,6 +788,10 @@ function ExternalObservationPanel({ data, select }: { data: Json; select: () => 
     </>}
   </section>;
 }
+
+// The frozen request-answer snapshots a native answer confirmation named, for one request: shown at its card,
+// including after the confirmation's Cancel (RequestAnswerCompanion.tsx).
+const readAnswerCompanions: ReadCompanions = (generation, requestId) => invoke<CompanionRow[]>("request_answer_companions", { generation, requestId });
 
 // V14 F1/F5: while a native confirmation is open and names content by digest
 // (a logout assessment, an A16 alternative, a request answer, an attachment
@@ -2334,7 +2342,7 @@ export function App() {
     if (previous && replyObservationsRef.current[scope] === previous) observeReply({ ...previous, custody });
     return custody;
   };
-  const answerRequest: RequestAnswer = (r, answer) => {
+  const answerRequest: RequestAnswer = (r, answer, presentationChoice) => {
     const scope = requestScopeKey(r);
     const pending = pendingReplies.current.get(scope);
     if (pending) return pending;
@@ -2346,7 +2354,10 @@ export function App() {
     const command = Promise.resolve().then(() => {
       const input = answer;
       answer = undefined;
-      return invoke<Json>("answer_native_request", { generation: r.generation, requestId: r.requestIdentity, answer: input });
+      // A question's button choice travels beside the unchanged answer; other kinds send none.
+      return invoke<Json>("answer_native_request", presentationChoice === undefined
+        ? { generation: r.generation, requestId: r.requestIdentity, answer: input }
+        : { generation: r.generation, requestId: r.requestIdentity, answer: input, presentationChoice });
     }).then<RequestReplyObservation["command"], RequestReplyObservation["command"]>(result => {
       // The Host reports a local write separately from supplier acknowledgment.
       // Native confirmation dismissal resolves without attempting that write.
@@ -2657,7 +2668,10 @@ export function App() {
         <div className="workspace-notices"><div id="other-requests">
             {outsideRequests.length > 0 && <h3>Requests outside the selected conversation</h3>}
             {outsideRequests.length > 0 && <p>Requests of the selected conversation are shown beside it. Select another conversation to answer its requests there.</p>}
-            {outsideRequests.map((request: Json) => <NativeRequestCard activityLink={activityLink} key={JSON.stringify([request.generation, request.requestIdentity])} request={request} view={host?.nativeView} answer={answerRequest} readRequest={readRequestCustody} place={requestPlace(request, host, appProjectFolder(host))} observation={replyObservations[requestScopeKey(request)]}/>)}
+            {outsideRequests.map((request: Json) => <Fragment key={JSON.stringify([request.generation, request.requestIdentity])}>
+              <NativeRequestCard activityLink={activityLink} request={request} view={host?.nativeView} answer={answerRequest} readRequest={readRequestCustody} place={requestPlace(request, host, appProjectFolder(host))} observation={replyObservations[requestScopeKey(request)]}/>
+              <RequestAnswerCompanion request={request} read={readAnswerCompanions} refresh={replyObservations[requestScopeKey(request)]} />
+            </Fragment>)}
           </div>
 
   <ActionFeedback message={message}/>

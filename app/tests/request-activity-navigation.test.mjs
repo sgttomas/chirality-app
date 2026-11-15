@@ -116,7 +116,8 @@ async function mounted(check, prepare = () => {}) {
     assert.equal(props(elements(conversation(), 'textarea')[0]).value, draft);
     assert.equal(conversation().querySelectorAll(element => element.getAttribute('aria-label') === 'Conversation role')[0].textContent, role);
     assert.deepEqual(host.threads.map(thread => thread.threadId), ['parent']);
-    assert.ok(calls.every(call => ['host_status', 'decision_view', 'native_confirmation_content'].includes(call.command)), 'no read/start/resume/send/answer/role RPC');
+    // request_answer_companions reads the frozen request-answer snapshots a request card shows; it writes nothing.
+    assert.ok(calls.every(call => ['host_status', 'decision_view', 'native_confirmation_content', 'request_answer_companions'].includes(call.command)), 'no read/start/resume/send/answer/role RPC');
     idle.assertClean(c);
   } finally {
     const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text);
