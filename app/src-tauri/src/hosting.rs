@@ -7224,11 +7224,12 @@ mod conversation_transport_tests {
         // A row that reports no folder is not taken to be outside the App data.
         let h=f.host();
         assert_eq!(h.thread_fork_dispatch(&g(),"thread").err().unwrap(),SAVED_IN_APP_DATA_UNKNOWN);
-        // Without a known App data folder nothing is read first, as before.
+        // Without a known App data folder or saved conversation folder, no server-folder fallback admits Continue.
         let h=host();h.inner.0.lock().unwrap().server_cwd=Some("/invented".into());
         let mut view=history_selected();let query=view.continue_query().unwrap();
         let (result,frames)=local_peer_exchange(&h,cloud_reading(),"/invented",history_resume("idle",true),||h.history_dispatch(&query).map(|_|()));
-        assert!(result.is_ok());assert!(!frames.iter().any(|f|f["method"]=="thread/read"));
+        assert!(result.err().unwrap().contains(SAVED_IN_APP_DATA_UNKNOWN));
+        assert!(!frames.iter().any(|f|matches!(f["method"].as_str(),Some("thread/read"|"thread/resume"))));
     }
     #[test]
     fn saved_working_folder_is_carried_into_the_frame_trust_entry_and_edits_check() {
@@ -7448,6 +7449,21 @@ mod conversation_transport_tests {
         assert!(host.cloud_continuation_admission(&g(),access_provider::BUILT_IN_PROVIDER_UNREPORTED_RESUME).unwrap().is_none());
         assert!(host.client_requests().is_empty(),"no reading, nothing sent");
     }
+    /// These receiving/correlation fixtures begin after folder admission. Supply a known folder for the
+    /// dispatch only, then remove that fixture metadata before testing whether the native reply activates
+    /// a conversation. The separate saved_working_folder tests exercise the actual thread/read preflight.
+    fn history_dispatch_with_known_folder(host: &Host, query: &HistoryQuery) -> Result<HistoryDispatch,String> {
+        let supplied = if query.method()=="thread/resume" {
+            let mut i=host.inner.0.lock().unwrap();
+            let known=i.threads.iter().any(|row|row["generation"]==*query.generation() && row["threadId"]==query.params()["threadId"] && row["cwd"].is_string());
+            if !known { i.threads.push(json!({"generation":query.generation(),"threadId":query.params()["threadId"],
+                "cwd":"/invented","testOnlyKnownHistoryFolder":true})); }
+            !known
+        } else { false };
+        let result=host.history_dispatch(query);
+        if supplied { host.inner.0.lock().unwrap().threads.retain(|row|row["testOnlyKnownHistoryFolder"]!=true); }
+        result
+    }
     fn history_exchange(host: &Arc<Host>, query: &HistoryQuery, response: Option<Value>) -> (HistoryDispatch, Value, Value) {
         history_exchange_observed(host, query, response, None, |_| {})
     }
@@ -7475,7 +7491,7 @@ mod conversation_transport_tests {
             let _ = done_tx.send(completed);
         });
         let result = (|| -> Result<(HistoryDispatch, Value, Value), String> {
-            let receipt = host.history_dispatch(query)?;
+            let receipt = history_dispatch_with_known_folder(host,query)?;
             let evidence = host.history_wait(&receipt, Duration::from_millis(15))?;
             after_wait(&evidence);
             let outbound = done_rx.recv_timeout(Duration::from_secs(3)).map_err(|e| format!("history peer did not complete its scripted exchange: {e}"))??;
@@ -7684,7 +7700,7 @@ mod conversation_transport_tests {
         // The admitting reading is written and answered; then the input fails, so the resume's own write fails.
         let host=host();let mut view=history_selected();let query=view.continue_query().unwrap();host.inner.0.lock().unwrap().server_cwd=Some("/invented".into());
         let mut cat=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();*host.stdin.lock().unwrap()=cat.stdin.take();
-        let kept=super::break_input_after_the_reading(&host,Some(json!({"config":{"model_provider":"openai","model_providers":{}},"origins":{}})));let failed=host.history_dispatch(&query).unwrap();
+        let kept=super::break_input_after_the_reading(&host,Some(json!({"config":{"model_provider":"openai","model_providers":{}},"origins":{}})));let failed=history_dispatch_with_known_folder(&host,&query).unwrap();
         *host.before_provider_wait.lock().unwrap()=None;drop(kept);assert!(cat.wait().unwrap().success());let evidence=failed.evidence();assert!(evidence["sentFrame"].is_null());assert_eq!(evidence["writeResult"],"write-failed");assert_eq!(evidence["outcome"],"unknown-no-response");view.receive(&query,"conversation-home",&g(),&history_resume("idle",true)).unwrap();assert!(host.history_admit_resume(&view,&failed).is_err());let other=super::conversation_transport_tests::host();assert!(other.history_dispatch_status(&failed).is_err());
         let query=view.continue_query().unwrap();let(receipt,evidence,_)=history_exchange(&host,&query,Some(json!({"result":history_resume("idle",true)})));view.receive(&query,"conversation-home",&g(),&evidence["response"]["result"]).unwrap();assert!(view.resumed_thread().is_some());let newer=view.read_metadata().unwrap();assert!(host.history_admit_resume(&view,&receipt).is_err());view.receive(&newer,"conversation-home",&g(),&json!({"thread":history_thread("notLoaded")})).unwrap();assert!(host.history_admit_resume(&view,&receipt).is_err());
         let query=view.continue_query().unwrap();let(receipt,evidence,_)=history_exchange(&host,&query,Some(json!({"result":history_resume("idle",true)})));view.receive(&query,"conversation-home",&g(),&evidence["response"]["result"]).unwrap();let count=host.client_requests().len();{let mut i=host.inner.0.lock().unwrap();Host::close_generation(&mut i);i.generation["spawnCounter"]=json!(2);i.state="ready".into();}assert!(host.history_admit_resume(&view,&receipt).is_err());assert!(host.history_dispatch(&query).is_err());assert_eq!(host.client_requests().len(),count);assert_eq!(receipt.evidence()["sourceCurrent"],false);assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);
