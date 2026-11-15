@@ -215,10 +215,11 @@ export function useBoundModelChoice({ owner, homeClass, generation, ready }: { o
 
 /** Ordinary-text effort choices come only from the current provider's model list, read once for the conversation and
  * model when the conversation is selected with this control in view, or when the control is opened for it; not again
- * for a list already read. Choosing is opening the menu, then picking. No config is edited and a catalog
+ * for a list already read. The choices are always the model's in use: a model typed here is read for itself, and after
+ * a send that changed the conversation's model (modelRevision), the list read for its earlier model is not reused. Choosing is opening the menu, then picking. No config is edited and a catalog
  * default is never auto-selected. The effort in force (the host's reading of the last turn Codex accepted, else the
  * conversation's own setting) is what "keep" keeps, and is shown as such. */
-export function OfferedEffortChoice({ owner, threadId, generation, homeClass, modelProvider, entryId, model, effort, disabled, busy = false, inForce = null, shown = true, choose }: {
+export function OfferedEffortChoice({ owner, threadId, generation, homeClass, modelProvider, entryId, model, effort, disabled, busy = false, inForce = null, shown = true, modelRevision = 0, choose }: {
   owner: string; threadId: string; generation: Json; homeClass: string | null; modelProvider: string; entryId: string;
   model: string; effort: string; disabled: boolean; choose: (effort: string, model: string) => void;
   /** A send or Codex operation is under way: a pick waits for it. */
@@ -227,9 +228,11 @@ export function OfferedEffortChoice({ owner, threadId, generation, homeClass, mo
   inForce?: string | null;
   /** Whether the control is in view (its disclosure open): its choices are read only then. */
   shown?: boolean;
+  /** How many acknowledged sends have changed this conversation's model: a list read before the latest is not reused. */
+  modelRevision?: number;
 }) {
   const conversation = JSON.stringify([owner, generation, homeClass]);
-  const key = JSON.stringify([conversation, modelProvider, entryId, model]);
+  const key = JSON.stringify([conversation, modelProvider, entryId, model, modelRevision]);
   const latest = useRef({ key, conversation, epoch: 0, disabled, busy });
   if (latest.current.key !== key) latest.current = { key, conversation, epoch: latest.current.epoch + 1, disabled, busy };
   latest.current.disabled = disabled; latest.current.busy = busy;

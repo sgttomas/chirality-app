@@ -137,6 +137,9 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
   const [ordinaryOutcome, setOrdinaryOutcome] = useState<OrdinaryTextOutcome | null>(null);
   // Whether "Model and effort" is open: the effort choices are read for the selected conversation only then.
   const [effortShown, setEffortShown] = useState(false);
+  // Per conversation, the acknowledged sends that carried a model typed here: each changes the conversation's model,
+  // so the effort choices read for "the conversation's model" before it are not offered after it.
+  const modelSends = useRef(new Map<string, number>());
   // Unconfirmed ordinary sends, read at every press through the ref (not the render).
   const [unconfirmed, setUnconfirmedState] = useState<UnconfirmedSend[]>([]);
   const unconfirmedRef = useRef<UnconfirmedSend[]>([]);
@@ -206,6 +209,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
       // A missing reply is not an acknowledgement: nothing is cleared, and it is held.
       if (nativeValue === undefined || nativeValue === null) throw new Error("The host did not report this send's outcome; it may or may not have been sent.");
       outcome = { request, result: { acknowledged: true, nativeValue } };
+      if (choice.owner === ordinaryOwner && choice.value) modelSends.current.set(choice.owner, (modelSends.current.get(choice.owner) ?? 0) + 1);
       if (isCurrent()) {
         if (textRevision.current === revision) setText(current => current === request.text ? "" : current);
         setOrdinaryModel(current => current.owner === choice.owner && current.revision === choice.revision
@@ -469,6 +473,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
     <OfferedEffortChoice owner={ordinaryOwner} threadId={selected?.threadId ?? ""} generation={selected?.generation} homeClass={host?.homeRouting?.activeModeHomeClass ?? null}
       modelProvider={selected?.modelProvider ?? ""} entryId={selected?.requestedDestination?.entryId ?? (selected?.modelProvider === "openai" ? (host?.homeRouting?.activeModeHomeClass === "api-key" ? "api-key" : "chatgpt-account") : "local-provider")}
       model={ordinaryModelValue} effort={ordinaryModel.owner === ordinaryOwner ? ordinaryModel.effort : ""} disabled={!sourceReady || !selected || !!busy} busy={!!busy} inForce={effortInForce} shown={effortShown}
+      modelRevision={modelSends.current.get(ordinaryOwner) ?? 0}
       choose={(effort, effortModel) => setOrdinaryModel(current => ({ ...current, owner: ordinaryOwner, effort, effortModel, revision: current.revision + 1 }))} />
     </details>
     {selected && <PlanModeControl planMode={host?.planMode} requested={(host?.requestedModes ?? []).find((r: Json) => JSON.stringify(r.generation) === generationKey && r.threadId === selected.threadId) ?? null}

@@ -1304,6 +1304,43 @@ test('a pick the effort control refuses while the conversation is busy says why'
   } finally {await React.act(()=>root.unmount());document.body.removeChild(c);window.__TAURI_INTERNALS__=previous;}
 });
 
+test('the effort choices shown are always the selected model\'s: a model typed in the open view is read for itself, and after a send that changed the model the earlier model\'s list is not reused', async () => {
+  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
+  const calls=[];const sends=[];let conversationModel='m';
+  const row=(model,efforts)=>({id:model,model,displayName:`Model ${model}`,description:'',isDefault:model==='m',defaultReasoningEffort:efforts[0],supportedReasoningEfforts:efforts.map(reasoningEffort=>({reasoningEffort,description:`${model} ${reasoningEffort}`}))});
+  // The host reads the list with the conversation's model as it stands at that read.
+  window.__TAURI_INTERNALS__={invoke:async(command,args)=>{calls.push({command,args});assert.equal(command,'read_available_models');
+    return {...effortPacket,conversationModel,models:[row('m',['medium','only-for-m']),row('n',['low','only-for-n'])]};}};
+  const host={state:'ready',generation:g,homeRouting:{activeModeHomeClass:'account'},threads:[{generation:g,threadId:'t',model:'m',modelProvider:'openai'}],planMode:{state:'offered'}};
+  const show=()=>React.act(()=>root.render(React.createElement(ConversationPanel,{host,threadKey:JSON.stringify([g,'t']),setThreadKey:noop,answer:noop,runAct:noop,send:async(...args)=>{sends.push(args);conversationModel=args[4];return {result:{}};},steer:noop,submitAttachments:noop,interrupt:noop,checkPlanMode:noop,codexBusy:false})));
+  const change=(element,value)=>React.act(()=>props(element).onChange({target:{value}}));
+  const effort=()=>elements(c,'select').find(e=>e.parentNode.textContent.startsWith('Reasoning effort for'));
+  const offered=()=>elements(effort(),'option').map(o=>props(o).value).filter(Boolean);
+  const modelField=()=>labelled(c,'input','Optional model identifier');
+  try {
+    await show();
+    await React.act(()=>{const d=elements(c,'details').find(d=>props(d).className==='conversation-model-options');d.open=true;props(d).onToggle({currentTarget:d});});
+    assert.deepEqual(offered(),['medium','only-for-m'],'the conversation\'s model, m');
+    // The person types another model in the open view: its own choices, from a read for it, never m's.
+    await change(modelField(),'n');
+    assert.equal(calls.length,2,'a model typed here is read for itself');
+    assert.deepEqual(offered(),['low','only-for-n']);
+    assert.doesNotMatch(c.textContent,/only-for-m/);
+    // Sent with that model: the conversation's model is now n. The field clears, and the list read earlier for
+    // "the conversation's model" (m then) is not reused: it is read again and shows n's choices.
+    await change(elements(c,'textarea').find(e=>props(e).id==='ordinary-composer-text'),'Use n from now on');
+    await React.act(()=>props(button(c,'Send text')).onClick());
+    assert.equal(sends[0][4],'n');
+    assert.equal(props(modelField()).value,'','an acknowledged send clears the field');
+    assert.equal(calls.length,3,'read again after the model changed');
+    assert.deepEqual(offered(),['low','only-for-n'],'the model in use, n, never the earlier m');
+    assert.doesNotMatch(c.textContent,/only-for-m/);
+    // Clearing a typed model without sending changes nothing in the conversation: m's list read earlier is not needed again.
+    await change(modelField(),'m');await change(modelField(),'');
+    assert.deepEqual(offered(),['low','only-for-n']);
+  } finally {await React.act(()=>root.unmount());document.body.removeChild(c);delete window.__TAURI_INTERNALS__;}
+});
+
 test('delayed effort replies cannot populate another source and readiness disables retained controls', async () => {
   const {OfferedEffortChoice} = loadSrc('ModelChoice');
   const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
