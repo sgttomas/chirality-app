@@ -92,12 +92,11 @@ export const ACCOUNT_PANEL_WORDS: Record<Exclude<AccountReading, "chatgpt-accoun
  * account; an error, an unanswered or unreadable read, or one no longer current is "didn't say", never "not signed in".
  * "Not checked" is "hasn't established" here, since a check the panel holds as failed or in progress leaves no
  * host record yet and the workspace line must stay true then too.
- * The words of the under-way, signed-in, no-account and didn't-say lines are pending App Agent 0's answer; they are
- * kept here and nowhere else. */
+ * These words are App Agent 0's decision and are kept here and nowhere else. */
 const DIDNT_SAY_LINE = "Codex is running. It didn't say whether you're signed in.";
 export const SIGN_IN_WORDS: Record<AccountReading, string> = {
   unread: "Codex is running. The App hasn't established whether you're signed in for this connection. Check or sign in under Connection and access, then choose a model and start a conversation.",
-  reading: "Codex is running. Checking whether you're signed in: with a sign-in kept, Codex checks it with OpenAI.",
+  reading: "Codex is running. Checking whether you're signed in. If a sign-in is kept, Codex checks it with OpenAI.",
   stale: DIDNT_SAY_LINE,
   failed: DIDNT_SAY_LINE,
   pending: DIDNT_SAY_LINE,

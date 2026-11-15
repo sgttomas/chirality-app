@@ -95,7 +95,7 @@ test('the first view at launch follows the launch account reading: no account, s
 test('while the launch read is under way the App stays, then moves once when the reading arrives; a failed read stays and decides', async () => {
   await mountedApp(underWay(), async ui => {
     assert.equal(currentView(ui.container), 'Run a workflow');
-    assert.match(ui.container.textContent, /Checking whether you're signed in: with a sign-in kept, Codex checks it with OpenAI\./);
+    assert.match(ui.container.textContent, /Checking whether you're signed in\. If a sign-in is kept, Codex checks it with OpenAI\./);
     await ui.observe(noAccount());
     assert.equal(currentView(ui.container), 'Settings & tools', 'moves when the reading arrives');
   });

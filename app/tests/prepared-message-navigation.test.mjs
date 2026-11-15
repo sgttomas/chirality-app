@@ -643,7 +643,7 @@ test('with Codex running, the workspace line and the account panel say the same 
   unread:[unread,/^Codex is running\. The App hasn't established whether you're signed in for this connection\./,/^Account status has not been checked for this connection\.$/],
   'earlier process':[host({type:'chatgpt'},h=>{h.generation={...g,spawnCounter:2};}),/^Codex is running\. The App hasn't established whether you're signed in/,/^Account status has not been checked/],
   // The App's own read when Codex became ready (or the person's), still waiting for Codex's answer.
-  'under way':[host({type:'chatgpt'},(h,r)=>{r.source.outcome='pending';}),/^Codex is running\. Checking whether you're signed in: with a sign-in kept, Codex checks it with OpenAI\.$/,/^Checking with Codex whether you're signed in…$/],
+  'under way':[host({type:'chatgpt'},(h,r)=>{r.source.outcome='pending';}),/^Codex is running\. Checking whether you're signed in\. If a sign-in is kept, Codex checks it with OpenAI\.$/,/^Checking with Codex whether you're signed in…$/],
   // Everything Codex did not answer with an account or with none is "didn't say", never "not signed in".
   stale:[host({type:'chatgpt'},(h,r)=>{r.source.sourceCurrent=false;}),DIDNT_SAY,/^The earlier account check is no longer current\./],
   // The reader's first probe: a check that Codex could not answer.
