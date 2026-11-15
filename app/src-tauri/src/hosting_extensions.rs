@@ -14,12 +14,12 @@
 //! read, and its late completion changes nothing. A reading is bound to its generation: closing
 //! or replacing the generation drops every reading of it.
 //!
-//! A reading never holds the frame writer while it waits on Codex's input. With the writer held, a
-//! page is written only when its frame is no longer than the pipe's atomic size (`PIPE_BUF`) and
-//! Codex's input reports at once that it can take that much (`frame_fits_now`); every frame is
-//! written under the writer, so nothing fills the input between that check and the write, and the
-//! one write takes the frame whole. Otherwise the writer is released at once and the reading is
-//! not read, not sent: a conversation request that comes after it goes to its own write.
+//! A reading never waits on Codex's input while it holds the frame writer. With the writer held, a
+//! page whose frame, newline included, is no longer than the pipe's atomic size (`PIPE_BUF`) is
+//! written in one write call that does not wait (`write_without_waiting`): the whole frame is
+//! written, or nothing is and the reading is not read, not sent, and the writer is released at
+//! once, so a conversation request that comes after it goes to its own write. A write that leaves
+//! part of a frame, or leaves the input's flags changed, stops Codex with its own words.
 //!
 //! Where each state comes from is taken only from evidence already read on the same generation,
 //! never by a further configuration reading (a configuration or requirements reading becomes the
@@ -489,21 +489,68 @@ pub(crate) fn extensions_origins_for_test(admitted: Option<&Admitted>, cwd: Opti
     Admitted::origins_for(admitted, cwd)
 }
 
-/// Why a page of the reading was not written: its frame is longer than one write that cannot be
-/// split, or Codex's input could not take it at once.
+/// Why a page of the reading was not written. A frame longer than one atomic write is not attempted;
+/// one that Codex's input could not take at once was not written, no byte of it.
 pub(crate) const FRAME_TOO_LONG: &str = "the reading's frame is longer than one atomic write to Codex's input; nothing was written";
-pub(crate) const INPUT_FULL: &str = "Codex's input could not take the reading's frame at once; nothing was written";
+pub(crate) const INPUT_FULL: &str = "Codex's input could not take the reading's frame without waiting; nothing was written";
+pub(crate) const NOT_ATTEMPTED: &str = "Codex's input could not be set not to wait; no write was made";
+/// A write of the reading that is neither written nor not sent.
+pub(crate) const INTERRUPTED: &str = "the reading's write was interrupted";
+pub(crate) const SHORT_WRITE: &str = "only part of the reading's frame reached Codex's input";
+pub(crate) const FLAGS_NOT_RESTORED: &str = "Codex's input could not be put back as it was after the reading's write";
+/// The words of the stop that follows a reading's write that changed Codex's input.
+pub(crate) const STOP_REASON: &str = "The App could not be sure that Codex's input was left as it was after it read the state of plugins and apps, so it stopped Codex. Start Codex again to continue.";
 
-/// Called with the frame writer held, just before a page of the reading is written: `Ok` only when
-/// the frame (`len` bytes, its newline included) fits one atomic pipe write and Codex's input
-/// reports, without waiting, that it can take that much. On macOS a pipe reports writable only with
-/// at least `PIPE_BUF` bytes free, and a write of at most `PIPE_BUF` bytes to a pipe is made whole
-/// or not at all. Anything else, an error or an interrupted check included, is not writable.
-pub(crate) fn frame_fits_now(file: &std::fs::File, len: usize) -> Result<(), String> {
+/// Whether the reading's write left nothing on Codex's input: its request was not sent.
+pub(crate) fn nothing_attempted(error: &str) -> bool { matches!(error, INPUT_FULL | NOT_ATTEMPTED | FRAME_TOO_LONG) }
+/// Whether the reading's write changed Codex's input for the frames after it: part of a frame on
+/// it, or its flags not put back. Codex is then stopped.
+pub(crate) fn input_changed(error: &str) -> bool { error.starts_with(SHORT_WRITE) || error.starts_with(FLAGS_NOT_RESTORED) }
+
+/// What the one write call of a page did.
+#[derive(Debug, PartialEq)]
+pub(crate) enum NoWait { Written, WouldBlock, Interrupted, Short(usize), Failed(String) }
+
+/// The one write call's return, `n` with `errno` when it is negative, for a frame of `len` bytes.
+/// Only the whole frame is written; only `EAGAIN` with nothing written is would-block.
+pub(crate) fn no_wait_outcome(n: isize, errno: i32, len: usize) -> NoWait {
+    if n < 0 {
+        return match errno {
+            libc::EAGAIN => NoWait::WouldBlock,
+            libc::EINTR => NoWait::Interrupted,
+            errno => NoWait::Failed(std::io::Error::from_raw_os_error(errno).to_string()),
+        };
+    }
+    if n as usize == len { NoWait::Written } else { NoWait::Short(n as usize) }
+}
+
+/// Writes one page's frame (`bytes`, its newline included) to Codex's input in one write call that
+/// does not wait. Called with the frame writer held, so no other frame is written while the
+/// descriptor does not wait: every write to Codex's input is made with that writer held. A frame
+/// longer than `PIPE_BUF` is not attempted. On macOS a write of at most `PIPE_BUF` bytes to a pipe
+/// that does not wait is made whole, or returns `EAGAIN` with nothing written (XNU `pipe_write`).
+/// The descriptor's flags are put back as they were before this returns; nothing between setting
+/// and putting them back can unwind. `Ok` only when the whole frame was written.
+pub(crate) fn write_without_waiting(file: &std::fs::File, bytes: &[u8], restore_fails: bool) -> Result<(), String> {
     use std::os::fd::AsRawFd;
-    if len > libc::PIPE_BUF { return Err(FRAME_TOO_LONG.into()); }
-    let mut poll = libc::pollfd { fd: file.as_raw_fd(), events: libc::POLLOUT, revents: 0 };
-    let ready = unsafe { libc::poll(&mut poll, 1, 0) };
-    let writable = ready == 1 && poll.revents & libc::POLLOUT != 0 && poll.revents & (libc::POLLERR | libc::POLLHUP | libc::POLLNVAL) == 0;
-    if writable { Ok(()) } else { Err(INPUT_FULL.into()) }
+    if bytes.len() > libc::PIPE_BUF { return Err(FRAME_TOO_LONG.into()); }
+    let fd = file.as_raw_fd();
+    let flags = unsafe { libc::fcntl(fd, libc::F_GETFL) };
+    if flags < 0 || unsafe { libc::fcntl(fd, libc::F_SETFL, flags | libc::O_NONBLOCK) } != 0 { return Err(NOT_ATTEMPTED.into()); }
+    let n = unsafe { libc::write(fd, bytes.as_ptr().cast(), bytes.len()) };
+    let errno = if n < 0 { std::io::Error::last_os_error().raw_os_error().unwrap_or(0) } else { 0 };
+    // Put back, then read back: the descriptor waits again exactly when it did before. (The kernel
+    // also reports bits of its own, such as that the descriptor was written, so only this bit is
+    // compared.)
+    let restored = !restore_fails && unsafe { libc::fcntl(fd, libc::F_SETFL, flags) } == 0
+        && unsafe { libc::fcntl(fd, libc::F_GETFL) } & libc::O_NONBLOCK == flags & libc::O_NONBLOCK;
+    let outcome = no_wait_outcome(n, errno, bytes.len());
+    if !restored { return Err(format!("{FLAGS_NOT_RESTORED} (write: {outcome:?})")); }
+    match outcome {
+        NoWait::Written => Ok(()),
+        NoWait::WouldBlock => Err(INPUT_FULL.into()),
+        NoWait::Interrupted => Err(INTERRUPTED.into()),
+        NoWait::Short(written) => Err(format!("{SHORT_WRITE}: {written} of {} bytes", bytes.len())),
+        NoWait::Failed(error) => Err(error),
+    }
 }

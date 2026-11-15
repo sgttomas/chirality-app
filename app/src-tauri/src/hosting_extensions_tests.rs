@@ -283,34 +283,62 @@ fn feature_attempts(host: &Host) -> Vec<Option<u64>> {
     host.inner.0.lock().unwrap().source_requests.values().filter(|e| e.request.frame["method"] == FEATURE_LIST).map(|e| e.attempt_position).collect()
 }
 
-/// Review 356, R1 (base form): the home's base reading meets Codex's input full. It writes
-/// nothing, releases the frame writer at once and is not read, not sent; a start, resume or fork
-/// that comes after it is not held by it and goes to its own write.
+/// Reads Codex's side of `read` after its input was full: the filler lines are skipped, and every
+/// line after them must parse whole. Returns the methods of those lines.
+fn drained_methods(read: std::fs::File) -> Vec<String> {
+    let mut methods = Vec::new();
+    for line in BufReader::new(read).lines() {
+        let Ok(line) = line else { break };
+        if line.is_empty() { continue; }
+        let frame: Value = serde_json::from_str(&line).unwrap_or_else(|e| panic!("a line after the filler is not one whole frame: {e}: {line:?}"));
+        methods.push(frame["method"].as_str().unwrap_or("").to_owned());
+    }
+    methods
+}
+/// The reading's request is recorded as never attempted, so not sent.
+fn assert_reading_not_sent(host: &Host) {
+    let i = host.inner.0.lock().unwrap();
+    let readings: Vec<_> = i.source_requests.values().filter(|e| e.request.frame["method"] == FEATURE_LIST).collect();
+    assert_eq!(readings.len(), 1);
+    let e = readings[0];
+    assert!(e.attempt_position.is_none() && !e.written && e.write_error.is_none() && !e.write_attempt_in_progress, "no attempt, not written");
+    assert!(e.source_limit.as_deref().is_some_and(|l| l.starts_with("No actual write attempt") && l.contains(INPUT_FULL)), "{:?}", e.source_limit);
+}
+
+/// Review 356, R1 (base form): the home's base reading meets Codex's input full. Its one write call
+/// returns at once with nothing written; the writer is free and the reading is not read, not sent.
+/// A start, resume or fork after it goes to its own write and, once Codex reads again, arrives
+/// whole as the first frame after the filler: nothing of the reading was left on the input.
 #[test]
 fn a_base_reading_that_meets_codex_input_full_holds_no_later_request() {
     for method in ["thread/start", "thread/resume", "thread/fork"] {
         let run = Run::new(Answer::Silent);
         let (read, _) = full_pipe(&run.host);
+        let began = Instant::now();
         run.host.extensions_after_ready(&g());
         let base = run.base();
+        assert!(began.elapsed() < Duration::from_millis(250), "the reading returned at once: {:?}", began.elapsed());
         assert_eq!((base["plugins"]["state"].as_str(), base["plugins"]["notReadBecause"].as_str()), (Some("not-read"), Some("not-sent")));
-        assert_eq!(feature_attempts(&run.host), [None], "the reading made no write attempt");
+        assert_reading_not_sent(&run.host);
         assert!(run.host.frame_write.try_lock().is_ok(), "the frame writer is free");
         let host = Arc::clone(&run.host);
         let (done_tx, done) = std::sync::mpsc::channel();
         let worker = std::thread::spawn(move || { done_tx.send(host.request_begin_scoped(method, conversation_params(method), json!({"kind":"person-directed"}), false, Some(&g())).map(|_| ())).unwrap(); });
         let deadline = Instant::now() + Duration::from_secs(2);
         while pending(&run.host, method) != [true] { assert!(Instant::now() < deadline, "{method} did not reach its own write"); std::thread::sleep(Duration::from_millis(2)); }
-        drop(read);
-        let _ = done.recv_timeout(Duration::from_secs(3)).unwrap();
+        let codex = std::thread::spawn(move || drained_methods(read));
+        done.recv_timeout(Duration::from_secs(3)).unwrap().unwrap();
         worker.join().unwrap();
+        *run.host.stdin.lock().unwrap() = None;
+        assert_eq!(codex.join().unwrap(), [method], "the request arrived whole and nothing else did");
         run.finish();
     }
 }
 
-/// Review 356, R1 (thread form): the reading made after a start's reply meets Codex's input full
-/// and is not read, not sent, with the writer released; the next start, resume or fork goes to its
-/// own write and completes once Codex reads again. The reading's late arrival changes nothing.
+/// Review 356, R1 (thread form): the reading made after a start's reply meets Codex's input full;
+/// it returns at once with nothing written and is not read, not sent, with the writer released.
+/// The next start, resume or fork goes to its own write, and once Codex reads again it is the first
+/// frame after the filler, whole.
 #[test]
 fn a_conversation_reading_that_meets_codex_input_full_holds_no_next_request() {
     use std::os::fd::{FromRawFd, OwnedFd};
@@ -325,7 +353,7 @@ fn a_conversation_reading_that_meets_codex_input_full_holds_no_next_request() {
         let seen = Arc::new(Mutex::new(Vec::new()));
         let order = Arc::clone(&seen);
         // Codex's side: it reads the start, stops reading with its input full and answers the
-        // start; when told, it reads again and answers what it reads.
+        // start; when told, it reads again, each line whole, and answers the conversation requests.
         let codex = std::thread::spawn(move || {
             let mut lines = BufReader::new(read).lines();
             let first: Value = serde_json::from_str(&lines.next().unwrap().unwrap()).unwrap();
@@ -335,8 +363,8 @@ fn a_conversation_reading_that_meets_codex_input_full_holds_no_next_request() {
             drain.recv().unwrap();
             for line in lines {
                 let Ok(line) = line else { break };
-                if line.trim().is_empty() { continue; }
-                let frame: Value = serde_json::from_str(&line).unwrap();
+                if line.is_empty() { continue; }
+                let frame: Value = serde_json::from_str(&line).unwrap_or_else(|e| panic!("a line after the filler is not one whole frame: {e}: {line:?}"));
                 order.lock().unwrap().push(frame["method"].as_str().unwrap_or("").to_owned());
                 if extensions::loads_conversation(frame["method"].as_str().unwrap_or("")) { host.on_line(&serde_json::to_vec(&conversation_reply(&frame)).unwrap(), &g()); }
             }
@@ -344,7 +372,7 @@ fn a_conversation_reading_that_meets_codex_input_full_holds_no_next_request() {
         assert!(run.start().is_ok());
         let record = run.read("started");
         assert_eq!((record["plugins"]["state"].as_str(), record["plugins"]["notReadBecause"].as_str()), (Some("not-read"), Some("not-sent")));
-        assert_eq!(feature_attempts(&run.host), [None], "the reading made no write attempt");
+        assert_reading_not_sent(&run.host);
         assert!(run.host.frame_write.try_lock().is_ok(), "the frame writer is free");
         let host = Arc::clone(&run.host);
         let (done_tx, done) = std::sync::mpsc::channel();
@@ -365,15 +393,83 @@ fn a_conversation_reading_that_meets_codex_input_full_holds_no_next_request() {
     }
 }
 
-/// A page longer than one atomic write to Codex's input is not written: the writer is not taken
-/// into a write that could be split or wait.
+/// The one write call's every return: only the whole frame is written, and only EAGAIN is
+/// would-block (nothing written). Interrupted, a short count and any other error are neither.
+#[test]
+fn only_the_whole_frame_is_written_and_only_would_block_is_not_sent() {
+    assert_eq!(no_wait_outcome(80, 0, 80), NoWait::Written);
+    assert_eq!(no_wait_outcome(-1, libc::EAGAIN, 80), NoWait::WouldBlock);
+    assert_eq!(no_wait_outcome(-1, libc::EINTR, 80), NoWait::Interrupted);
+    assert_eq!(no_wait_outcome(30, 0, 80), NoWait::Short(30));
+    assert_eq!(no_wait_outcome(0, 0, 80), NoWait::Short(0));
+    assert!(matches!(no_wait_outcome(-1, libc::EPIPE, 80), NoWait::Failed(_)));
+    assert!(nothing_attempted(INPUT_FULL) && nothing_attempted(NOT_ATTEMPTED) && nothing_attempted(FRAME_TOO_LONG));
+    assert!(!nothing_attempted(INTERRUPTED) && !nothing_attempted(&format!("{SHORT_WRITE}: 30 of 80 bytes")) && !nothing_attempted("Broken pipe (os error 32)"));
+    assert!(input_changed(&format!("{SHORT_WRITE}: 30 of 80 bytes")) && input_changed(&format!("{FLAGS_NOT_RESTORED} (write: Written)")));
+    assert!(!input_changed(INPUT_FULL) && !input_changed(INTERRUPTED) && !input_changed("Broken pipe (os error 32)"));
+}
+
+/// On a real pipe: a frame is written whole when it fits; with the pipe full nothing is written; a
+/// frame longer than one atomic write is not attempted; and each time the descriptor's flags are as
+/// they were, so a conversation frame after it is written as before, waiting.
+#[test]
+fn the_write_that_does_not_wait_leaves_the_descriptor_as_it_was() {
+    use std::io::Read;
+    use std::os::fd::{AsRawFd, FromRawFd};
+    let mut fds = [0; 2];
+    assert_eq!(unsafe { libc::pipe(fds.as_mut_ptr()) }, 0);
+    let mut read = unsafe { std::fs::File::from_raw_fd(fds[0]) };
+    let write = unsafe { std::fs::File::from_raw_fd(fds[1]) };
+    // The kernel adds bits of its own (that the descriptor was written), so only this bit is compared.
+    let flags = || unsafe { libc::fcntl(write.as_raw_fd(), libc::F_GETFL) } & libc::O_NONBLOCK;
+    let before = flags();
+    assert_eq!(before, 0);
+    let frame = b"{\"id\":1,\"method\":\"experimentalFeature/list\",\"params\":{}}\n";
+    assert_eq!(write_without_waiting(&write, frame, false), Ok(()));
+    assert_eq!(flags(), before);
+    let mut got = vec![0; frame.len()];
+    read.read_exact(&mut got).unwrap();
+    assert_eq!(&got[..], &frame[..]);
+    let long = vec![b'x'; libc::PIPE_BUF + 1];
+    assert_eq!(write_without_waiting(&write, &long, false), Err(FRAME_TOO_LONG.into()));
+    assert_eq!(flags(), before);
+    fill(write.as_raw_fd());
+    assert_eq!(write_without_waiting(&write, frame, false), Err(INPUT_FULL.into()));
+    assert_eq!(flags(), before, "the descriptor waits again, as conversation frames need");
+    assert_eq!(unsafe { libc::fcntl(read.as_raw_fd(), libc::F_SETFL, libc::O_NONBLOCK) }, 0);
+    let mut drained = Vec::new();
+    let mut chunk = vec![0; 1 << 16];
+    loop { match read.read(&mut chunk) { Ok(0) | Err(_) => break, Ok(n) => drained.extend_from_slice(&chunk[..n]) } }
+    assert!(!drained.is_empty() && drained.iter().all(|b| *b == b'\n'), "nothing of the frame that met the full pipe was written");
+    // Flags not put back: reported, and the descriptor is left not waiting (the caller stops Codex).
+    let failed = write_without_waiting(&write, frame, true).unwrap_err();
+    assert!(input_changed(&failed), "{failed}");
+    assert_ne!(flags() & libc::O_NONBLOCK, 0);
+}
+
+/// The flags of Codex's input not put back after a reading's write: Codex is stopped with the App's
+/// own words, recorded, and nothing more is written to that input.
+#[test]
+fn a_reading_that_cannot_put_codex_input_back_stops_codex_with_its_own_words() {
+    let run = Run::new(Answer::Entries(on()));
+    run.host.feature_restore_fails.store(true, std::sync::atomic::Ordering::SeqCst);
+    run.host.extensions_after_ready(&g());
+    let deadline = Instant::now() + Duration::from_secs(8);
+    while run.host.state() != "stopped" { assert!(Instant::now() < deadline, "Codex was not stopped: {}", run.host.state()); std::thread::sleep(Duration::from_millis(5)); }
+    let journal = run.host.journal();
+    let entry = journal.iter().find(|e| e["class"] == "codex-input-changed-by-reading").expect("the change is recorded");
+    assert_eq!(entry["sentence"], STOP_REASON);
+    assert!(entry["reason"].as_str().unwrap().starts_with(FLAGS_NOT_RESTORED));
+    assert!(run.host.stdin.lock().unwrap().is_none(), "Codex's input is closed");
+    let refused = run.host.request_begin_scoped("thread/start", conversation_params("thread/start"), json!({"kind":"person-directed"}), false, Some(&g()));
+    assert!(refused.is_err(), "nothing more is written to that input");
+    run.finish();
+}
+
+/// A page longer than one atomic write to Codex's input is not attempted: the second page, carrying
+/// a long cursor, is not written and the reading is not read, not sent.
 #[test]
 fn a_frame_longer_than_one_atomic_write_is_not_written() {
-    let (read, write) = std::os::unix::net::UnixStream::pair().unwrap();
-    let file = std::fs::File::from(std::os::fd::OwnedFd::from(write));
-    assert_eq!(frame_fits_now(&file, libc::PIPE_BUF), Ok(()));
-    assert_eq!(frame_fits_now(&file, libc::PIPE_BUF + 1), Err(FRAME_TOO_LONG.into()));
-    drop(read);
     let run = Run::new(Answer::Entries(on()));
     let long = "c".repeat(libc::PIPE_BUF);
     *run.host.feature_read_reply.lock().unwrap() = Some(Box::new(move |host, source| reply_to(host, source, json!({"data": on(), "nextCursor": long}))));
@@ -615,4 +711,107 @@ fn the_local_home_is_not_read_for() {
         assert!(Host::extensions_on_reply(&mut i, &source.request_id().to_string(), &g(), &reply, true).is_none());
     }
     assert!(host.snapshot()["extensionsBase"].is_null());
+}
+
+/// The production text of the hosting module, file by file: `hosting.rs` up to its test code, and
+/// each submodule it declares outside test code, up to that file's own test module. Codex's input
+/// (`Host::stdin`) and the duplicates of it (`BoundPipe`) are private to this module.
+fn hosting_production_sources() -> Vec<(String, String)> {
+    let dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("src");
+    let read = |name: &str| std::fs::read_to_string(dir.join(name)).unwrap();
+    let cut = |text: String| match text.find("#[cfg(test)]\nmod ") { Some(at) => text[..at].to_owned(), None => text };
+    let hosting = read("hosting.rs");
+    let production = hosting[..hosting.find("#[cfg(test)]\npub(crate) fn install_broken_test_input").expect("the start of hosting.rs's test code")].to_owned();
+    let lines: Vec<&str> = production.lines().collect();
+    let mut sources = vec![("hosting.rs".to_owned(), production.clone())];
+    for (n, line) in lines.iter().enumerate() {
+        let Some(rest) = line.trim().strip_prefix("#[path") else { continue };
+        let name = rest.split('"').nth(1).unwrap();
+        if name.ends_with("_tests.rs") || (n > 0 && lines[n - 1].trim() == "#[cfg(test)]") { continue; }
+        sources.push((name.to_owned(), cut(read(name))));
+    }
+    assert!(sources.len() > 20, "the submodules were found");
+    sources
+}
+/// The function each occurrence of `needle` in `text` is in: the nearest line at or above it that
+/// declares a function.
+fn occurrences_by_function(text: &str, needle: &str) -> Vec<(String, usize)> {
+    let lines: Vec<&str> = text.lines().collect();
+    let declared = |line: &str| -> Option<String> {
+        let at = line.find("fn ")?;
+        let before = line[..at].trim();
+        if !(before.is_empty() || before.starts_with("pub") || before.ends_with("unsafe")) { return None; }
+        Some(line[at + 3..].split(|c: char| !(c.is_alphanumeric() || c == '_')).next()?.to_owned())
+    };
+    let mut found = Vec::new();
+    for (n, line) in lines.iter().enumerate() {
+        for _ in line.match_indices(needle) {
+            let function = (0..=n).rev().find_map(|k| declared(lines[k])).unwrap_or_default();
+            found.push((function, n));
+        }
+    }
+    found
+}
+
+/// Review 356, R1: every write to Codex's input is made with the frame writer held, which is what
+/// lets the feature reading's write leave the input's descriptor not waiting for its one call.
+/// Codex's input is reached only through `Host::stdin` and the duplicates `capture_pipe` makes of
+/// it; this inventory fails if a write primitive, a duplicate or a writing call appears anywhere
+/// else in the hosting module's production code, or if a writing call is not inside the writer's
+/// hold (`serial`, taken before it in the same function and not dropped before it).
+#[test]
+fn every_write_to_codex_input_is_made_with_the_frame_writer_held() {
+    let sources = hosting_production_sources();
+    let inventory = |needle: &str| -> Vec<(String, String)> {
+        let mut found: Vec<(String, String)> = sources.iter().flat_map(|(file, text)| occurrences_by_function(text, needle).into_iter().map(move |(f, _)| (file.clone(), f))).collect();
+        found.sort();
+        found
+    };
+    let pairs = |list: &[(&str, &str)]| -> Vec<(String, String)> { let mut v: Vec<_> = list.iter().map(|(a, b)| (a.to_string(), b.to_string())).collect(); v.sort(); v };
+    // The only primitives that write bytes: the one waiting write and the one that does not wait.
+    // `encode` writes into a hash, not a descriptor.
+    assert_eq!(inventory("write_all("), pairs(&[("hosting.rs", "write_complete"), ("hosting_request_event_join.rs", "encode")]));
+    assert_eq!(inventory("libc::write("), pairs(&[("hosting_extensions.rs", "write_without_waiting")]));
+    for needle in [".write(&", ".write(b", "write_vectored", "pwrite", "write!(", "writeln!(", "write_fmt(", "as_raw_fd(),libc::F_SETFL", "File::from_raw_fd", "try_clone("] {
+        let found = inventory(needle);
+        let allowed = match needle { "File::from_raw_fd" => pairs(&[("hosting.rs", "capture_pipe")]), _ => vec![] };
+        assert_eq!(found, allowed, "{needle}");
+    }
+    // The only duplicate of Codex's input.
+    assert_eq!(inventory("F_DUPFD"), pairs(&[("hosting.rs", "capture_pipe")]));
+    // Every call that writes a frame to Codex's input, by function.
+    let writes = |name: &str| -> Vec<(String, String)> { inventory(&format!("{name}(")).into_iter().filter(|(_, f)| f != name).collect() };
+    assert_eq!(writes("write_complete"), pairs(&[
+        ("hosting.rs", "write_frame_scoped"), ("hosting.rs", "write_reply"),
+        ("hosting.rs", "request_begin_with_access_offer_guarded"), ("hosting.rs", "request_begin_with_access_offer_guarded"),
+        ("hosting.rs", "cce_reply_unavailable"), ("hosting.rs", "cce_reply_unavailable"),
+        ("hosting.rs", "dispatch_attachment_turn"), ("hosting.rs", "write_private_auth_rejection"),
+    ]));
+    assert_eq!(writes("write_without_waiting"), pairs(&[("hosting.rs", "request_begin_with_access_offer_guarded"), ("hosting.rs", "request_begin_with_access_offer_guarded")]));
+    // Each such call is inside the writer's hold: `serial` is taken before it in its function and
+    // not dropped before it.
+    let (_, hosting) = &sources[0];
+    let lines: Vec<&str> = hosting.lines().collect();
+    for name in ["write_complete(", "write_without_waiting("] {
+        for (function, n) in occurrences_by_function(hosting, name) {
+            if format!("{function}(") == name { continue; }
+            let start = (0..=n).rev().find(|k| lines[*k].contains(&format!("fn {function}("))).unwrap();
+            let before: String = lines[start..=n].join("\n");
+            let before = &before[..before.rfind(name).unwrap()];
+            let taken = ["let serial=", "let serial =", "break serial"].iter().filter_map(|t| before.rfind(t)).max();
+            let taken = taken.unwrap_or_else(|| panic!("{function}: {name} without the frame writer taken before it"));
+            assert!(before[taken..].contains("frame_write") || before[taken..].contains("feature_writer_within") || before[..taken].rfind("frame_write").is_some(), "{function}: the writer taken is the frame writer");
+            // A drop on a branch that returns before its block closes does not end the hold.
+            let held = &before[taken..];
+            for (at, _) in held.match_indices("drop(serial)") {
+                let branch = &held[at..held[at..].find('}').map_or(held.len(), |end| at + end)];
+                assert!(branch.contains("return "), "{function}: the frame writer is dropped before {name}");
+            }
+        }
+    }
+    // Codex's input itself is only installed, closed, duplicated by `capture_pipe`, or looked at for
+    // its identity; nothing writes through it.
+    for (file, function) in inventory(".stdin.lock()") {
+        assert!(["drop", "capture_pipe", "check_bound", "native_item_source", "prepare_attachment_turn_led", "attachment_turn_start_finish", "positive_text_start", "turn_start_prepared_notice_finish_effort", "stop_inner", "continuation_response", "handoff_source_current"].contains(&function.as_str()), "{file}: {function} takes Codex's input");
+    }
 }

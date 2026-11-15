@@ -1233,6 +1233,9 @@ pub struct Host {
     /// and before its wait, for a stand-in that cannot answer on its own pipe.
     #[cfg(test)]
     pub(crate) feature_read_reply: Mutex<Option<Box<dyn Fn(&Host,&SourceRequest) + Send>>>,
+    /// Makes the feature reading's write report its flags not put back, leaving them changed.
+    #[cfg(test)]
+    pub(crate) feature_restore_fails: std::sync::atomic::AtomicBool,
     /// Runs once when a reading first finds the reservation held, before it waits.
     #[cfg(test)]
     pub(crate) reading_waiting: Mutex<Option<Box<dyn FnOnce(&Host) + Send>>>,
@@ -1406,6 +1409,7 @@ impl Host {
             #[cfg(test)]
             before_provider_wait: Mutex::new(None),
             #[cfg(test)] feature_read_reply: Mutex::new(None),
+            #[cfg(test)] feature_restore_fails: std::sync::atomic::AtomicBool::new(false),
             #[cfg(test)] reading_waiting: Mutex::new(None),
             #[cfg(test)] reading_after_reserve: Mutex::new(None),
             #[cfg(test)] reading_after_register: Mutex::new(None),
@@ -3244,9 +3248,8 @@ impl Host {
                 if let Some(hold)=&hold {Self::reading_write_started_locked(&mut i,hold)?;}
                 // The withdraw-or-write decision (`WriteBound`): withdrawn, no
                 // attempt is registered and nothing is written.
-                // A page of the feature reading is written only if Codex's input takes it whole now,
-                // without waiting; otherwise the writer is released at once and nothing is written.
-                if feature_reading {extensions::frame_fits_now(&bound.file,bytes.len())?;}
+                // A page of the feature reading longer than one atomic write is not attempted.
+                if feature_reading&&bytes.len()>libc::PIPE_BUF {return Err(extensions::FRAME_TOO_LONG.into());}
                 if let Some(limit)=write_bound{limit.begin_write()?;}
                 i.send_position+=1;let position=i.send_position;let e=i.source_requests.get_mut(&id.to_string()).unwrap();e.write_attempt_in_progress=true;e.attempt_position=Some(position);e.turn_model_cut=cut;e.turn_model_context=context;
                 // A turn start enters the table of unresolved starts when its write begins.
@@ -3257,14 +3260,21 @@ impl Host {
             #[cfg(test)] if aa_selected {let hook=self.aa_before_write.lock().unwrap().take();if let Some(h)=hook{h(self,&request);}}
             #[cfg(test)] {let hook=self.before_request_write.lock().unwrap().take();if let Some(h)=hook{h(self);}}
             #[cfg(test)] let simulated=if aa_selected{self.aa_simulated_write.lock().unwrap().take()}else if cce_selected{self.cce_start_simulated_write.lock().unwrap().take()}else if method=="turn/start"{self.turn_start_simulated_write.lock().unwrap().take()}else{None};
-            #[cfg(test)] let result=match simulated{Some(reason)=>Err(format!("simulated write settlement: {reason}")),None=>Self::write_complete(&mut bound.file,&bytes)};
-            #[cfg(not(test))] let result=Self::write_complete(&mut bound.file,&bytes);
+            // A page of the feature reading: one write call that does not wait, under this writer.
+            #[cfg(test)] let restore_fails=self.feature_restore_fails.load(std::sync::atomic::Ordering::SeqCst);
+            #[cfg(not(test))] let restore_fails=false;
+            #[cfg(test)] let result=match simulated{Some(reason)=>Err(format!("simulated write settlement: {reason}")),None if feature_reading=>extensions::write_without_waiting(&bound.file,&bytes,restore_fails),None=>Self::write_complete(&mut bound.file,&bytes)};
+            #[cfg(not(test))] let result=if feature_reading{extensions::write_without_waiting(&bound.file,&bytes,restore_fails)}else{Self::write_complete(&mut bound.file,&bytes)};
             #[cfg(test)] if aa_selected {let hook=self.aa_after_write.lock().unwrap().take();if let Some(h)=hook{h(self,&request);}}
             drop(serial);result})();
         drop(bytes);
         let mut i=self.inner.0.lock().unwrap();let key=id.to_string();let closed=i.generation!=request.generation||i.server_requests.is_closed(&request.generation)||!matches!(i.state.as_str(),"ready"|"handshaking");
         let e=i.source_requests.get_mut(&key).unwrap();e.write_attempt_in_progress=false;let mut record=e.observation_base.clone();let response=e.response.clone();let response_position=e.response_position;let native_settlement=e.native_settlement;if let Some(position)=e.attempt_position{record["sendPosition"]=json!(position);}
         let reading_error=hold.as_ref().map(|_|write_result.as_ref().err().cloned());
+        // A page of the feature reading that Codex's input could not take at once: no byte was
+        // written, so no attempt is recorded and the request is not sent.
+        if feature_reading&&write_result.as_ref().err().is_some_and(|e|extensions::nothing_attempted(e)){i.source_requests.get_mut(&key).unwrap().attempt_position=None;}
+        let input_changed=write_result.as_ref().err().filter(|e|feature_reading&&extensions::input_changed(e)).cloned();
         match write_result {
             Ok(())=> {i.source_requests.get_mut(&key).unwrap().written=true;record["writeResult"]=json!("written");record["outcome"]=json!(if closed{"unknown-no-response"}else{"pending"});
                 match Self::completed_client_response(&mut record,response.as_ref(),response_position,native_settlement){Ok(())=>i.client_requests[idx]=catalog_record(record),Err(error)=>i.source_requests.get_mut(&key).unwrap().source_limit=Some(error)}
@@ -3309,6 +3319,13 @@ impl Host {
                     return Err(error);
                 }
             }
+        }
+        // The reading's write left part of a frame on Codex's input, or left its flags changed:
+        // the frames after it could not be written whole, so Codex is stopped, with its own words.
+        if let Some(error)=input_changed {
+            i.journal.push(json!({"generation":request.generation,"class":"codex-input-changed-by-reading","reason":error,"sentence":extensions::STOP_REASON}));
+            drop(i);
+            let _=self.stop_scoped(&request.generation,"the App",extensions::STOP_REASON);
         }
         Ok(request)
     }
