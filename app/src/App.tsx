@@ -878,7 +878,7 @@ function NativeConfirmationContent() {
       {row.kind === "A15 complete review" && Array.isArray(row.content?.entries) && row.content.entries.every((entry: Json) => entry !== null && typeof entry === "object" && !Array.isArray(entry))
         ? <WorkflowRegistrationReview presentation={row.content} />
         : row.kind === "A16 chosen alternative" && typeof row.content?.markedStatement === "string"
-        ? <AgentText block value={row.content.markedStatement} source="record" label="Complete marked statement:" name="The complete marked statement named by the native confirmation" />
+        ? <AgentText block alreadyMarkedByHost value={row.content.markedStatement} source="record" label="Complete marked statement:" name="The complete marked statement named by the native confirmation" />
         : <RecordedData value={readablePaths(row.content)} />}
     </article>)}
   </section>;
