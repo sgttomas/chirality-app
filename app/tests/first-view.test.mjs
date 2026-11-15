@@ -38,6 +38,12 @@ const underWay = (host = base()) => reading(host, undefined, {outcome: 'pending'
 const failed = (host = base()) => reading(host, undefined, {outcome: 'response-observed-error', extra: {lastClientObservation: {error: {code: -32603, message: 'invented'}}}});
 // The stored conversations read for this Codex session to the end, listing none.
 const historyEmpty = host => ({...host, nativeHistory: {state: 'history-receiving', home: g.home, generation: g, selectionEpoch: 0, threads: [], listCursor: {state: 'exhausted'}, listError: null, dispatches: []}});
+// The App's own history list read when Codex became ready, as the host publishes it beside the list it fills
+// (runtime_session.rs read_history_at_ready): under way with nothing received yet, read to its end, or stopped short
+// with the list as far as it got (a cursor left).
+const historyAtReady = (host, state, list = {}) => ({...host, nativeHistory: {state: 'history-receiving', home: g.home, generation: g, selectionEpoch: 0, threads: [],
+  listCursor: {state: state === 'read-to-end' ? 'exhausted' : state === 'stopped' ? 'available' : 'not-reported'}, listError: null, dispatches: [], ...list,
+  readAtReady: {generation: host.generation, state}}});
 // A request from a conversation recovered after the relaunch (not loaded in this session), waiting on the person.
 const recoveredRequest = host => ({...host, serverRequests: [{recordKind: 'server-request-entry', generation: g, requestIdentity: 'q1', method: 'item/tool/requestUserInput',
   classification: 'known-answerable', originClass: 'person-input', state: 'outstanding', replyWriteResult: 'not-attempted', acknowledgmentObservation: {status: 'not-observed'},
@@ -211,3 +217,45 @@ test('Connection and access leads with the sign-in only when it is needed; signe
   assert.match(after, /Sign-in completed\. /);
   assert.doesNotMatch(after, /checked separately/);
 });
+
+test('signed in, the first view waits for the App\'s own history list read at ready: none listed to its end opens a new conversation; a read that stopped short establishes nothing', async () => {
+  const historyReads = calls => calls.filter(c => ['history_action', 'history_select', 'history_continue'].includes(c.command) || /history|resume/.test(c.command));
+  // The list arrives after the account reading: the App waits for it, then moves once.
+  await mountedApp(historyAtReady(signedIn(), 'reading'), async ui => {
+    assert.equal(currentView(ui.container), 'Run a workflow', 'the list is still being read: no conversation is not established');
+    await ui.observe(historyAtReady(signedIn(), 'read-to-end'));
+    assert.equal(currentView(ui.container), 'Conversation', 'read to its end, none listed, none loaded');
+    assert.equal(disclosureOpen(byId(ui.container, 'workspace-start')), true, 'New conversation is open');
+    assert.deepEqual(historyReads(ui.calls), [], 'the renderer reads, selects, opens or resumes nothing');
+  });
+  // Stopped short (an error, no answer, a page missing or a cursor left), even with nothing listed so far: the App stays.
+  // A page that arrives after the read stopped moves nothing either.
+  await mountedApp(historyAtReady(signedIn(), 'reading'), async ui => {
+    await ui.observe(historyAtReady(signedIn(), 'stopped'));
+    assert.equal(currentView(ui.container), 'Run a workflow', 'a partial read never counts as none');
+    await ui.observe(historyAtReady(signedIn(), 'stopped', {listCursor: {state: 'exhausted'}}));
+    assert.equal(currentView(ui.container), 'Run a workflow', 'decided once: a late page moves nothing');
+  });
+  // A stored conversation listed, or one loaded in this session: Run a workflow stays.
+  for (const [name, host] of [['one listed', historyAtReady(signedIn(), 'read-to-end', {threads: [{native: {id: 'stored'}}]})],
+    ['one loaded', historyAtReady(signedIn(base({threads: [{generation: g, threadId: 't'}]})), 'read-to-end')]])
+    await mountedApp(host, async ui => { assert.equal(currentView(ui.container), 'Run a workflow', name); });
+  // The view does not jump under the person: they navigated while the list was being read, and its late result moves nothing.
+  await mountedApp(historyAtReady(signedIn(), 'reading'), async ui => {
+    await ui.navigate('History');
+    await ui.observe(historyAtReady(signedIn(), 'reading'));
+    await ui.observe(historyAtReady(signedIn(), 'read-to-end'));
+    assert.equal(currentView(ui.container), 'History', 'the person navigated before the read returned');
+  });
+  // Nor over unsent text entered while the list was being read.
+  await mountedApp(historyAtReady(signedIn(), 'reading'), async ui => {
+    await ui.type('ordinary-composer-text', 'A draft not yet sent');
+    await ui.observe(historyAtReady(signedIn(), 'read-to-end'));
+    assert.equal(currentView(ui.container), 'Run a workflow', 'unsent text: no move');
+  });
+  // A read made for an earlier Codex says nothing about this one.
+  const earlier = {...historyAtReady(signedIn(), 'read-to-end')};
+  earlier.nativeHistory = {...earlier.nativeHistory, readAtReady: {generation: {...g, spawnCounter: 0}, state: 'reading'}};
+  await mountedApp(earlier, async ui => { assert.equal(currentView(ui.container), 'Conversation', 'only the running Codex\'s read is waited for'); });
+});
+

@@ -89,6 +89,13 @@ export const noConversationInHistory = (host: Json): boolean => {
     && history?.state === "history-receiving" && sameActivityGeneration(history?.generation, host?.generation)
     && history?.listCursor?.state === "exhausted" && !history?.listError && Array.isArray(history?.threads) && history.threads.length === 0;
 };
+/** The App's own read of the stored history list when the running Codex became ready (runtime_session.rs
+ * read_history_at_ready): "reading", "read-to-end" or "stopped" (an error, no answer, a page not received or a cursor
+ * left), or null when none was made for this Codex. It fills the same history the History view shows. */
+export const historyReadAtReady = (host: Json): "reading" | "read-to-end" | "stopped" | null => {
+  const read = host?.nativeHistory?.readAtReady;
+  return read && sameActivityGeneration(read.generation, host?.generation) && ["reading", "read-to-end", "stopped"].includes(read.state) ? read.state : null;
+};
 
 type ForkScope = { generation: Json; sourceThread: string; modeHomeClass: string; choiceRevision: number; homeEpoch: number; startRevision: number; sequence: number };
 type ForkNavigation = ForkScope & { threadId: string; requestRef: string };
@@ -2679,17 +2686,21 @@ export function App() {
   const signInReading = accountReading(host);
   // The first view at launch follows state once, when the launch's account reading arrives: no account, Settings &
   // tools at the sign-in; signed in with no conversation yet in this project's history, a new conversation;
-  // otherwise, while the read is under way, or when Codex didn't say, Run a workflow stays. Never after the person
-  // has navigated, and never over unsent work or a waiting request.
+  // otherwise, while the read is under way, or when Codex didn't say, Run a workflow stays. Signed in, the App's own
+  // history list read at ready is waited for, and only its reaching the end with none listed counts as no
+  // conversation: one that stopped short, or never ran, establishes nothing. Never after the person has navigated
+  // (including while the history list is still being read), and never over unsent work or a waiting request.
+  const historyAtReady = historyReadAtReady(host);
   useEffect(() => {
     if (launchViewDecided.current || !host || setupRequired || firstRead !== "read") return;
     if (navigated.current) { launchViewDecided.current = true; return; }
     if (host.state !== "ready" || host.generationClosed || signInReading === "unread" || signInReading === "reading") return;
+    if (signInReading === "chatgpt-account" && historyAtReady === "reading") return;
     launchViewDecided.current = true;
     if (holdsUnsent() || requestWaiting) return;
     if (signInReading === "no-account") autoMove("settings", "workspace-sign-in");
-    else if (signInReading === "chatgpt-account" && noConversationInHistory(host)) autoMove("conversation", "workspace-start");
-  }, [host, signInReading, requestWaiting, setupRequired, firstRead]); // eslint-disable-line react-hooks/exhaustive-deps
+    else if (signInReading === "chatgpt-account" && historyAtReady !== "stopped" && noConversationInHistory(host)) autoMove("conversation", "workspace-start");
+  }, [host, signInReading, historyAtReady, requestWaiting, setupRequired, firstRead]); // eslint-disable-line react-hooks/exhaustive-deps
   // A sign-in completed in this process and the read after it confirms an account: a new conversation, with a line
   // saying so. Signing in is the act that asks for this, so the person's navigation does not block it; unsent work
   // and a waiting request do. Once per completion.

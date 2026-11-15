@@ -1098,6 +1098,9 @@ pub struct HistorySession {
     turn_direction: Option<String>,
     item_direction: Option<String>,
     item_turn: Option<String>,
+    // The App's own read of the stored history list when Codex became ready: its generation and whether it is
+    // under way, read to its end, or stopped short (read_history_at_ready). Published beside the list it filled.
+    read_at_ready: Option<Value>,
 }
 struct HistoryPending {
     receipt: crate::hosting::HistoryDispatch,
@@ -1657,9 +1660,10 @@ impl HistorySession {
     }
     pub fn snapshot(&self, instruction_root: Option<&std::path::Path>) -> Value {
         let Some(history) = self.history.as_ref() else {
-            return json!({"state":"unavailable","limits":self.limits,"durableNativeData":false,"childAssociations":self.child_guidance.snapshot(),"roleLimitObservations":self.child_guidance.limits(),"startReceipts":self.starts.iter().map(|p|&p.evidence).collect::<Vec<_>>()});
+            return json!({"state":"unavailable","readAtReady":self.read_at_ready,"limits":self.limits,"durableNativeData":false,"childAssociations":self.child_guidance.snapshot(),"roleLimitObservations":self.child_guidance.limits(),"startReceipts":self.starts.iter().map(|p|&p.evidence).collect::<Vec<_>>()});
         };
         let mut view = history.snapshot();
+        view["readAtReady"] = json!(self.read_at_ready);
         view["selectionEpoch"] = json!(history.selection_epoch());
         view["childAssociations"]=self.child_guidance.snapshot();
         view["roleLimitObservations"]=self.child_guidance.limits();
@@ -2955,6 +2959,73 @@ pub(crate) fn read_account_at_ready_within(home: &HomeSession, started: &Result<
         home.host.source_request_wait(&source, wait)?;
         Ok(home.account_view())
     })())
+}
+/// The App's own reads when Codex has become ready, at launch and after each start or restart: the account
+/// (read_account_at_ready), then the stored history list (read_history_at_ready). The history read is marked as
+/// under way before the account is read, so a renderer that sees the account reading also sees that the list is
+/// still being read, and never takes an unread list for an empty one.
+pub fn read_at_ready(home: &HomeSession, started: &Result<Value, String>) {
+    if !reads_account_at_ready(home, started) { return; }
+    let generation = home.host.snapshot()["generation"].clone();
+    {
+        let mut history = home.history.lock().unwrap();
+        history.reconcile(&home.host);
+        history.read_at_ready = Some(json!({"generation":generation,"state":"reading"}));
+    }
+    let _ = read_account_at_ready(home, started);
+    let _ = read_history_at_ready(home, started);
+}
+/// The App's own read of the stored history list when Codex has become ready: the same `thread/list` the
+/// person's "Read stored conversations" sends (newest first), its cursors followed until the list says it has no
+/// more, at most the workspace reads' pages per list, each page waited for as the person's press waits. Recorded
+/// under the App's own initiator, never as the person's. It reads the list only: it selects, opens, resumes and
+/// writes nothing. Its pages are received by the same history view the History panel shows, and its outcome is
+/// published beside them as `readAtReady`: "read-to-end" only when the last page it sent was accepted and said
+/// there is no more; anything else (an error, no answer, a page not accepted, a cursor left) is "stopped".
+pub fn read_history_at_ready(home: &HomeSession, started: &Result<Value, String>) -> Option<Result<(), String>> {
+    read_history_at_ready_within(home, started, std::time::Duration::from_secs(20), trial_flows::MAX_PAGES)
+}
+pub(crate) fn read_history_at_ready_within(home: &HomeSession, started: &Result<Value, String>, wait: std::time::Duration, max_pages: usize) -> Option<Result<(), String>> {
+    if !reads_account_at_ready(home, started) { return None; }
+    let generation = home.host.snapshot()["generation"].clone();
+    home.history.lock().unwrap().read_at_ready = Some(json!({"generation":generation,"state":"reading"}));
+    let initiator = json!({"kind":"app-rule","name":crate::hosting::ACCOUNT_READ_AT_READY});
+    let outcome = (|| {
+        let mut cursor: Option<String> = None;
+        let mut seen = std::collections::BTreeSet::new();
+        for _ in 0..max_pages {
+            let query = {
+                let mut history = home.history.lock().unwrap();
+                history.reconcile(&home.host);
+                let view = history.history_mut().filter(|view| view.generation() == &generation)
+                    .ok_or("the history of the Codex that became ready is no longer open")?;
+                view.list_threads(cursor.as_deref(), crate::native_history::Direction::Desc)?
+            };
+            let receipt = home.host.history_dispatch_by(&query, initiator.clone())?;
+            home.history.lock().unwrap().dispatched(receipt.clone());
+            let evidence = home.host.history_wait(&receipt, wait)?;
+            let mut history = home.history.lock().unwrap();
+            history.reconcile(&home.host);
+            let response = &evidence["response"];
+            if response.is_null() { return Err("Codex did not answer the history list read in time".to_string()); }
+            if response.get("error").is_some() { return Err("Codex answered the history list read with an error".to_string()); }
+            let result = response.get("result").filter(|r| r.is_object()).ok_or("the history list read returned no result")?;
+            let accepted = history.history().filter(|view| view.generation() == &generation).and_then(|view| view.list_page());
+            if accepted != Some(result) { return Err("the history list page was not received into the history view".to_string()); }
+            match result.get("nextCursor") {
+                Some(Value::Null) => return Ok(()),
+                Some(Value::String(next)) if !next.is_empty() && seen.insert(next.clone()) => cursor = Some(next.clone()),
+                Some(Value::String(_)) => return Err("the history list repeated a page cursor".to_string()),
+                _ => return Err("the history list did not say whether it has more".to_string()),
+            }
+        }
+        Err(format!("the history list goes on past {max_pages} pages"))
+    })();
+    home.history.lock().unwrap().read_at_ready = Some(match &outcome {
+        Ok(()) => json!({"generation":generation,"state":"read-to-end"}),
+        Err(reason) => json!({"generation":generation,"state":"stopped","reason":reason}),
+    });
+    Some(outcome)
 }
 
 /// Consumes explicit Root OS paths. Existing account/probe are observations,

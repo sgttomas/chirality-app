@@ -933,8 +933,8 @@ fn delegation_withheld(frame: &Value) -> Value {
     kept
 }
 const DELEGATION_RESULT_WITHHELD: &str = "delegation-availability read (NPTD §7.1): the result body is not kept; the reading keeps only the fields it uses";
-/// The initiator name of the App's own account read when Codex becomes ready; a person's check is
-/// `person-directed`.
+/// The initiator name of the App's own reads when Codex becomes ready (the account, and the stored history
+/// list); a person's check or read is `person-directed`.
 pub(crate) const ACCOUNT_READ_AT_READY: &str = "app-at-ready";
 /// The initiator name that marks a model-discovery request.
 const MODEL_CATALOG_INITIATOR: &str = "model-catalog-read";

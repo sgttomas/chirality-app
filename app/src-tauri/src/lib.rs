@@ -1538,14 +1538,14 @@ fn host_start(state: State<'_, AppState>, mode_home_class:String) -> Result<Valu
     read_account_after_start(&home, &started);
     started
 }
-/// After a start that reached ready in the account home, the App's own account read
-/// (runtime_session::read_account_at_ready), off the command's thread so the start answers at once.
+/// After a start that reached ready in the account home, the App's own reads at ready: the account, then the
+/// stored history list (runtime_session::read_at_ready), off the command's thread so the start answers at once.
 fn read_account_after_start(home: &Arc<runtime_session::HomeSession>, started: &Result<Value, String>) {
     if !runtime_session::reads_account_at_ready(home, started) { return; }
     let (home, started) = (Arc::clone(home), started.clone());
     if let Err(error) = std::thread::Builder::new().name("chirality-account-read".into())
-        .spawn(move || { let _ = runtime_session::read_account_at_ready(&home, &started); }) {
-        eprintln!("chirality: the account was not read after Codex started: {error}");
+        .spawn(move || runtime_session::read_at_ready(&home, &started)) {
+        eprintln!("chirality: the account and history list were not read after Codex started: {error}");
     }
 }
 /// Start Codex for one home (Start Codex, and Restart Codex after its stop).
@@ -3538,8 +3538,9 @@ pub fn run() {
                 let account = Arc::clone(&home);
                 std::thread::spawn(move || {
                     let started = launch_start_and_read(&h, &recovery, data.as_deref().map_err(String::as_str), host_config.as_ref().map_err(String::as_str), &desktop, &read);
-                    // Codex ready at launch: the App reads whether someone is signed in, as after a restart.
-                    if let Some(started) = started { let _ = runtime_session::read_account_at_ready(&account, &started); }
+                    // Codex ready at launch: the App reads whether someone is signed in, and the stored history
+                    // list, as after a restart.
+                    if let Some(started) = started { runtime_session::read_at_ready(&account, &started); }
                 });
             }
             Ok(())
