@@ -364,9 +364,9 @@ An entry is added in the same pull request that makes the limitation standing.
   3 seconds. This is read from the App's code (`hosting.rs` `stop_inner`,
   reached from `codex_stop.rs` and from the quit path), not shown by a test.
 
-### LIM-028: Codex connects to OpenAI and GitHub when it starts, and to OpenAI when the App reads your sign-in
+### LIM-029: Codex makes connections when it starts, and connects to OpenAI when the App reads your sign-in
 
-- **Id:** LIM-028
+- **Id:** LIM-029
 - **Exit criteria:** 6
 - **What is unavailable:** an App control over the connections the App's Codex
   makes. Codex makes them when it starts, and when the App asks it whether
@@ -375,8 +375,8 @@ An entry is added in the same pull request that makes the limitation standing.
   version, the App's checks saw Codex try these hosts:
   - when it starts, before the App asks it anything, with a ChatGPT sign-in
     kept: chatgpt.com and auth.openai.com;
-  - when it starts, with no sign-in kept: chatgpt.com, github.com and
-    api.github.com;
+  - when it starts, with no sign-in kept: the start-up connections LIM-024
+    lists;
   - when the App reads whether you're signed in, with a ChatGPT sign-in kept:
     chatgpt.com, and auth.openai.com. Codex's source says this read checks
     with OpenAI which ChatGPT workspace the kept sign-in belongs to and, if
@@ -401,10 +401,10 @@ An entry is added in the same pull request that makes the limitation standing.
   (`app/supplier_checks/level`). They run the pinned Codex in a home of their
   own: one with no sign-in, and one holding an invented sign-in that no server
   issued. Every connection goes to a loopback listener that refuses it and
-  keeps only the host and port. The purpose of the sign-in read is read from
+  keeps only the host and port. With no sign-in kept, the hosts the row saw
+  at start are those LIM-024 lists. The purpose of the sign-in read is read from
   Codex's source at tag rust-v0.167.0, not shown:
   `codex-rs/app-server/src/request_processors/account_processor/workspace_routing.rs`
   lines 258-293 (`get_account`) and 295-430 (`read_account`, which calls
   `get_accounts_check` on the ChatGPT base address and, if it is refused as
-  unauthorized, tries to renew the sign-in). The start-up connections without
-  a sign-in agree with LIM-024.
+  unauthorized, tries to renew the sign-in).
