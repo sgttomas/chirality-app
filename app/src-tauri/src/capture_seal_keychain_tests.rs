@@ -1245,6 +1245,11 @@ fn capture_seal_signed_absence_then_real_enrollment_retains_old_file_evidence() 
     fs::set_permissions(&f.fixture.dir, std::os::unix::fs::PermissionsExt::from_mode(0o700)).unwrap();
     fs::write(f.fixture.dir.join(MARKER), &continuity).unwrap();
     fs::set_permissions(f.fixture.dir.join(MARKER), std::os::unix::fs::PermissionsExt::from_mode(0o600)).unwrap();
+    assert_eq!(crate::capture_seal::verify(&project, &new).unwrap_err().cause, Cause::SealOperationBusy);
+    assert!(!f.fixture.dir.join(".continuity.lock").exists(), "verification does not repair an incomplete restoration");
+    // The fixture restores the missing control explicitly; a reader cannot.
+    OpenOptions::new().write(true).create_new(true).mode(0o600)
+        .open(f.fixture.dir.join(".continuity.lock")).unwrap();
     crate::capture_seal::verify(&project, &new).unwrap();
     fs::remove_file(f.fixture.dir.join(MARKER)).unwrap();
     assert_eq!(crate::capture_seal::seal(&project, &mut f.ordinary_capture()).unwrap_err().cause, Cause::ContinuityUnavailable);
@@ -1485,6 +1490,59 @@ fn review_unsealed(project: &Path) -> serde_json::Value {
     let capture = review_publish(project);
     assert!(capture.get("sealProvider").is_none(), "inventory/protection refusal must not publish a file seal: {capture}");
     capture
+}
+#[test]
+fn capture_seal_decision_standing_never_creates_or_repairs_a_continuity_lock() {
+    fn snapshot(root: &Path) -> BTreeMap<PathBuf, (u32, u64, Vec<u8>)> {
+        fn visit(root: &Path, path: &Path, out: &mut BTreeMap<PathBuf, (u32, u64, Vec<u8>)>) {
+            let metadata = fs::symlink_metadata(path).unwrap();
+            let bytes = if metadata.file_type().is_symlink() {
+                use std::os::unix::ffi::OsStrExt;
+                fs::read_link(path).unwrap().as_os_str().as_bytes().to_vec()
+            } else if metadata.is_file() {
+                fs::read(path).unwrap()
+            } else {
+                Vec::new()
+            };
+            out.insert(path.strip_prefix(root).unwrap().to_owned(), (metadata.mode(), metadata.ino(), bytes));
+            if metadata.is_dir() {
+                for entry in fs::read_dir(path).unwrap() {
+                    visit(root, &entry.unwrap().path(), out);
+                }
+            }
+        }
+        let mut result = BTreeMap::new();
+        visit(root, root, &mut result);
+        result
+    }
+    let f = SelectedInstallation::new();
+    let project = f.project();
+    f.enroll().unwrap();
+    assert_eq!(review_publish(&project)["sealProvider"], "keychain");
+    let lock = f.fixture.dir.join(".continuity.lock");
+    let held = f.fixture.dir.join("invented-held-lock");
+    let read = |expected: &str| {
+        let before = (snapshot(f.root()), snapshot(&project));
+        let adds = *f.backend.adds.lock().unwrap();
+        let view = crate::decision_view::derive(&project, &[]);
+        assert_eq!(view["rows"][0]["state"], "decided", "{view}");
+        assert_eq!(view["rows"][0]["decision"]["captureSeal"]["presentation"], expected, "{view}");
+        assert_eq!((snapshot(f.root()), snapshot(&project)), before, "a standing read changed files");
+        assert_eq!(*f.backend.adds.lock().unwrap(), adds, "a standing read added a protected item");
+    };
+    read("keychain-verified");
+    fs::rename(&lock, &held).unwrap();
+    read("unavailable");
+    assert!(!lock.exists(), "verification must not recreate a missing lock");
+    std::os::unix::fs::symlink(&held, &lock).unwrap();
+    read("unavailable");
+    fs::remove_file(&lock).unwrap();
+    fs::hard_link(&held, &lock).unwrap();
+    read("unavailable");
+    fs::remove_file(&lock).unwrap();
+    fs::rename(&held, &lock).unwrap();
+    fs::set_permissions(&lock, fs::Permissions::from_mode(0o400)).unwrap();
+    read("keychain-verified");
 }
 fn review_inventory_unsealed(project: &Path) {
     let capture = review_unsealed(project);

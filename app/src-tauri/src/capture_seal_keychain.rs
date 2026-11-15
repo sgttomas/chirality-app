@@ -768,10 +768,12 @@ fn guard_mode(
     ) {
         return Err(failure(Cause::KeyStorageUnsafe, "SEAL-C continuity directory unsafe"));
     }
+    // Verification holds an existing control read-only. A missing control is
+    // unavailable evidence, never permission for a reader to repair the store.
     let lock = OpenOptions::new()
         .read(true)
-        .write(true)
-        .create(true)
+        .write(!shared)
+        .create(!shared)
         .truncate(false)
         .mode(0o600)
         .custom_flags(libc::O_NOFOLLOW | libc::O_NONBLOCK)
