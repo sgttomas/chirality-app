@@ -294,8 +294,9 @@ pub(crate) fn observe_capture(root: &Path, body: &Value) -> CaptureRead {
             return Err("Capture identity mismatch".into());
         }
         no_seal = capture.get("seal").is_none();
-        // AAC §6.3 SEAL-C: only a capture sealed under a key this installation
-        // holds is the App act control's capture (AAC §6.3 / EXEC §2.4–2.5, R-1).
+        // AAC §6.3 SEAL-C: only a capture whose seal verifies under a key this
+        // installation holds is read here (AAC §6.3 / EXEC §2.4–2.5, R-1). The seal
+        // shows possession of that key over the covered facts, not who wrote them.
         crate::capture_seal::verify(root, &capture)?;
         Ok(capture)
     })();
@@ -496,7 +497,7 @@ pub(crate) fn read(root: &Path) -> Value {
         {
             continue;
         }
-        let mut row_limits=vec!["identity not verified".to_owned(),"Readable record/capture claims do not verify native origin; a verified capture seal shows only that a holder of this App installation's key wrote the capture (AAC §6.3 SEAL-C); no professional certification".into()];
+        let mut row_limits=vec!["identity not verified".to_owned(),"Readable record/capture claims do not verify native origin. A valid capture seal shows consistency with possession of the key over the covered facts (AAC §6.3 SEAL-C). Any process running as the same user can read a file key. Keychain verification shows consistency with possession of a key held in the person's keychain under the keychain's protection. The capture does not record which provider held its key. No seal establishes who wrote the capture, that a person was present, or that they judged; no professional certification.".into()];
         let found = capture(root, b);
         let captured = found.as_ref().ok();
         if let Err(e) = &found {
@@ -575,7 +576,7 @@ pub(crate) fn read(root: &Path) -> Value {
                 "Professional standing is the person's own recorded statement; not verified".into(),
             );
         }
-        rows.push(json!({"recordId":record["recordId"],"kind":kind,"event":if decline{"declined this act"}else{"recorded human-act claim"},"actor":actor,"recordedBy":record["recorder"],"subject":subject,"boundContent":bound,"scope":if decline{captured.map(|c|c["scope"].clone()).unwrap_or(Value::Null)}else{b["scope"].clone()},"purpose":if decline{captured.map(|c|c["purpose"].clone()).unwrap_or(Value::Null)}else{b["purpose"].clone()},"recordingMode":b["recordingMode"],"lapseHistoryClaims":history.claims,"lapseHistoryLimitedClaims":history.limited,"lapseHistoryLimits":history.limits,"captureCorrespondence":correspondence,"captureEvidence":b["captureEvidence"],"captureTime":if decline{b["time"].clone()}else{b["captureTime"].clone()},"comparison":comparison_label,"currentContent":current.map(|c|json!({"method":c.method,"value":c.value})),"source":claim["source"],"correctedBy":claim["correctedBy"],"identityResolution":claim["identityResolution"],"relationLimit":claim["relationLimit"],"limits":row_limits}));
+        rows.push(json!({"recordId":record["recordId"],"kind":kind,"event":if decline{"recorded decline"}else{"recorded act"},"actor":actor,"recordedBy":record["recorder"],"subject":subject,"boundContent":bound,"scope":if decline{captured.map(|c|c["scope"].clone()).unwrap_or(Value::Null)}else{b["scope"].clone()},"purpose":if decline{captured.map(|c|c["purpose"].clone()).unwrap_or(Value::Null)}else{b["purpose"].clone()},"recordingMode":b["recordingMode"],"lapseHistoryClaims":history.claims,"lapseHistoryLimitedClaims":history.limited,"lapseHistoryLimits":history.limits,"captureCorrespondence":correspondence,"captureEvidence":b["captureEvidence"],"captureTime":if decline{b["time"].clone()}else{b["captureTime"].clone()},"comparison":comparison_label,"currentContent":current.map(|c|json!({"method":c.method,"value":c.value})),"source":claim["source"],"correctedBy":claim["correctedBy"],"identityResolution":claim["identityResolution"],"relationLimit":claim["relationLimit"],"limits":row_limits}));
     }
     json!({"view":"App file acts and declines; read-only source claims","historyNotices":history_notices,"rows":rows,"correctionGroups":relations["correctionGroups"],"diagnostics":relations["diagnostics"],"limits":limits,"standing":"Checking, engineering approval and professional reliance remain distinct; no acceptance, execution, request settlement or native provenance is inferred"})
 }

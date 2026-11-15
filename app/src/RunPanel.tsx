@@ -74,7 +74,7 @@ const readingNote = (element: Json) => {
 const DISPOSITION: Record<string, string> = {
   "not reached": "not reached",
   waiting: "reached; act not yet recorded",
-  performed: "performed",
+  performed: "recorded as performed",
   "resolved negatively": "resolved negatively",
   lapsed: "lapsed",
   unknown: "unknown",
@@ -95,13 +95,13 @@ const ACT_RELATION: Record<string, string> = { "after arrival": "after the arriv
 const LAPSE_STATE: Record<string, string> = {
   lapsed: "the file's content changed",
   "lapsed (subject absent)": "the file is absent",
-  "matches c0 again after observed lapse": "the file matches the content acted on again, after the observed lapse",
+  "matches c0 again after observed lapse": "the file again matches the content recorded as acted on, after the observed lapse",
   "unknown (incomparable)": "lapse unknown: the content identities are not comparable",
   "unknown (unavailable)": "lapse unknown: the file could not be read",
 };
 const lapseLine = (b: Json, pending = false): string => {
   const lapsed = b?.state === "lapsed" || b?.state === "lapsed (subject absent)";
-  const label = !lapsed ? "" : b?.when === "after run end" ? ` Act lapsed at ${text(b?.time)} after run end; ${pending ? "the arrival’s pending label is lapsed" : "the arrival is recorded as lapsed"}.` : b?.when === "after resume" ? ` Act lapsed at ${text(b?.time)}; the arrival stays performed.` : ` Lapsed at ${text(b?.time)}; the arrival is recorded as waiting again.`;
+  const label = !lapsed ? "" : b?.when === "after run end" ? ` Act lapsed at ${text(b?.time)} after run end; ${pending ? "the arrival’s pending label is lapsed" : "the arrival is recorded as lapsed"}.` : b?.when === "after resume" ? ` Act lapsed at ${text(b?.time)}; the arrival stays recorded as performed.` : ` Lapsed at ${text(b?.time)}; the arrival is recorded as waiting again.`;
   return `Lapse observed for ${text(b?.act?.actKind)} ${text(b?.act?.recordId)} at ${text(b?.time)} (${text(b?.when)}): ${LAPSE_STATE[text(b?.state)] ?? text(b?.state)}.${label} Nothing is asked or stopped because of it.`;
 };
 const line = (key: string, body: Json) => <span key={key}><br /><small>{body}</small></span>;
@@ -135,13 +135,13 @@ export function ArrivalRecord({ arrival, all, runRef, fileActEntry, openFileAct,
     {requests.length
       ? requests.map((r: Json, i: number) => line(`q${i}`, `Request for the act observed: ${text(r.body?.form)} from ${text(r.body?.requester?.kind)}; act kind ${text(r.body?.actKind)}. A request is not the act.`))
       : line("q", `Request for the act: ${b.requestObservation?.state === "not yet observed" ? "no request from the agent observed" : text(b.requestObservation?.state)}.`)}
-    {related("act_counted").map((c: Json, i: number) => line(`a${i}`, `Act counted: ${text(c.body?.act?.actKind)} ${text(c.body?.act?.recordId)}, captured ${text(c.body?.act?.capturedAt)} in the App act control, ${ACT_RELATION[text(c.body?.relation)] ?? text(c.body?.relation)}.`))}
+    {related("act_counted").map((c: Json, i: number) => line(`a${i}`, `Recorded act counted: ${text(c.body?.act?.actKind)} ${text(c.body?.act?.recordId)}, capture time ${text(c.body?.act?.capturedAt)}, ${ACT_RELATION[text(c.body?.relation)] ?? text(c.body?.relation)}.`))}
     {!postEndBound && (postEnd.length>0 || related("act_lapsed").some((e: Json) => e.body?.when === "after run end")) && line("end-limit", `Post-end subject association not established for this arrival: ${text(arrival?.afterRunEndRelationLimit) || "corrected or ambiguous arrival coordinate"}. The observation remains in the recorded history.`)}
-    {(postEndBound ? postEnd : []).map((c: Json, i: number) => line(`end${i}`, `After run end: ${text(c.body?.act?.actKind)} ${text(c.body?.act?.recordId)}, captured ${text(c.body?.act?.capturedAt)} in the App act control. The ended arrival disposition is unchanged. ${writtenNote(c, all)}`))}
+    {(postEndBound ? postEnd : []).map((c: Json, i: number) => line(`end${i}`, `After run end, recorded act: ${text(c.body?.act?.actKind)} ${text(c.body?.act?.recordId)}, capture time ${text(c.body?.act?.capturedAt)}. The ended arrival disposition is unchanged. ${writtenNote(c, all)}`))}
     {related("act_not_counted").map((c: Json, i: number) => line(`n${i}`, `Act not counted: ${text(c.body?.act?.actKind)} ${text(c.body?.act?.recordId)}, captured ${text(c.body?.act?.capturedAt)}: ${text(c.body?.reason)}${c.body?.capturedBeforeArrival === true ? " (prior act not counted)" : ""}.`))}
-    {related("arrival_declined").map((c: Json, i: number) => line(`d${i}`, `Declined by the person (${text(c.body?.declinedEventRef)}).`))}
+    {related("arrival_declined").map((c: Json, i: number) => line(`d${i}`, `Recorded decline (${text(c.body?.declinedEventRef)}).`))}
     {related("continued_past").map((c: Json, i: number) => line(`c${i}`, `The agent went on with ${text(c.body?.actionRef)} with no act recorded against this arrival. This is a record, not a finding against the agent.`))}
-    {related("run_resumed").map((c: Json, i: number) => line(`s${i}`, `After the act the run went on with ${text(c.body?.firstActionRef)}.`))}
+    {related("run_resumed").map((c: Json, i: number) => line(`s${i}`, `After the recorded act the run went on with ${text(c.body?.firstActionRef)}.`))}
     {related("act_lapsed").filter((c: Json) => postEndBound || c.body?.when !== "after run end").map((c: Json, i: number) => line(`x${i}`, `${lapseLine(c.body, c.written === false)} ${writtenNote(c, all)}`))}
     {list(b.limits).map((l: Json, i: number) => line(`l${i}`, `Limit: ${text(l)}`))}
     {note && line("w", note)}
@@ -174,7 +174,7 @@ export function CheckpointGuidance({ element, run, openFileAct, busy = false }: 
     {v.held_actions && <><br /><small>Declared held actions ({v.held_actions.form === "host_operations_only" ? `host operations ${names(v.held_actions.tools)}` : list(v.held_actions.steps).map((s: Json) => `${text(s.step)}${s.app_side ? " (App side)" : ""}`).join("; ")}): plan guidance in this phase; nothing is stopped.</small></>}
     {(v.on_negative_decision || v.on_mixed_decision || v.on_subject_absent) && <><br /><small>{v.on_negative_decision ? `If declined: ${decisionPath(v.on_negative_decision)}. ` : ""}{v.on_mixed_decision ? `If mixed: ${decisionPath(v.on_mixed_decision)}. ` : ""}{v.on_subject_absent ? `If the subject is absent: ${decisionPath(v.on_subject_absent)}.` : ""}</small></>}
     {v.governed !== undefined && <><br /><small>{v.governed === "yes" ? "Declared governed. In this phase that changes nothing: the checkpoint is plan guidance (OV-7)." : `Governed value not recognized (${text(v.governed)}); preserved and reported (FB-19).`}</small></>}
-    <br /><small>The agent asks you for the act when its work reaches this point; the act is recorded only when you perform it.</small>
+    <br /><small>The agent asks you for the act when its work reaches this point; the App records the act only from your own confirmation at its act control, or continues recording one you confirmed earlier.</small>
     {run && line("record", `Run record: ${!listing ? (findings.length ? `not listed: reported as a declaration finding (${findings.map((f: Json) => `${text(f.body?.finding)}, ${text(f.body?.code)}`).join("; ")}); no arrival is recorded for it (CE-2).` : invalid ? "not listed: the run record lists only the checkpoints the App recognizes (CE-1)." : "this checkpoint is missing in record (no checkpoint_listed entry for it); it is shown here from the declaration.")
       : evaluability?.status === "not evaluable" ? `listed. The App does not record arrivals for it: ${text(evaluability?.reason)}`
       : `listed. The App records an arrival only from what it observes in the conversation: ${text(evaluability?.reason)}`}${listing && writtenNote(listing, all) ? ` ${writtenNote(listing, all)}` : ""}`)}
@@ -279,7 +279,7 @@ function gatedHumanActs(gate: string, all: Json[]): string {
   if (disposition === "unknown") return `unknown: ${where} is recorded unknown`;
   if (disposition === "resolved negatively") {
     const declined = of("arrival_declined").map((r: Json) => text(r.body?.declinedEventRef));
-    return `${where}: resolved negatively — declined (${declined.join(", ") || "the declining record is not named"}); no act counts for it.${also}`;
+    return `${where}: resolved negatively — recorded decline (${declined.join(", ") || "the declining record is not named"}); no act counts for it.${also}`;
   }
   // The latest performance and the acts that answer it.
   const performances = labels.filter((b: Json) => b?.body?.disposition === "performed" && typeof b?.body?.performanceOrdinal === "number");
@@ -308,7 +308,7 @@ function gatedHumanActs(gate: string, all: Json[]): string {
     return `${cited}${earlier}; ${state}`;
   });
   const answered = acts.length > 1 ? `answered by ${acts.length} acts: ` : "";
-  const now = disposition === "performed" ? "performed" : disposition === "waiting" ? "reached again; the act on its current content is not yet recorded" : `recorded ${disposition}`;
+  const now = disposition === "performed" ? "recorded as performed" : disposition === "waiting" ? "reached again; the act on its current content is not yet recorded" : `recorded ${disposition}`;
   return `${where}: ${now} (performance ${top}); ${answered}${acts.join(" | ")}. Actor, recorder and recording mode are in the act record, not in the run record.${also}`;
 }
 // An arrival whose bound subject is this output: what the record observed, and no more.

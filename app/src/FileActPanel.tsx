@@ -29,7 +29,7 @@ export function FileActLapseHistory({ row }: { row: Json }) {
       const body = record.body ?? {};
       return <li key={`${record.recordId}-${index}`}>
         {body.state ?? "state unavailable"} · observed {body.time ?? record.observedAt ?? "time unavailable"}.
-        <p>Content acted on (c₀): {content(body.c0)}. Observed content (c₁): {content(body.c1)}.</p>
+        <p>Content recorded as acted on (c₀): {content(body.c0)}. Observed content (c₁): {content(body.c1)}.</p>
         <details><summary>Original observation and record source</summary><RecordedData value={claim} /></details>
       </li>;
     })}</ol></div>) : <p>No resolved lapse observations recorded for this act. This does not establish that no earlier lapse occurred.</p>}
