@@ -19,12 +19,6 @@ copied unchanged from source frame 25; then exactly one config/read for the
 folder this peer runs in, answered with a constructed, fixed reply. No such
 config/read frame was captured from the supplier: its reply stands in only so the
 recorded Continue can proceed, and is not evidence of any supplier reply.
-In the app, app-recovery and app-continue profiles, a plugins-and-apps reading
-(experimentalFeature/list) sent just before a recorded thread/start, thread/resume
-or thread/fork is answered with a constructed, fixed reply reporting both off; at
-most one per such request. None was captured from the supplier: it stands in only
-so the recorded conversation request can proceed, and is not evidence of any
-supplier reply. The strict profile treats it as any unexpected frame.
 Optional gate 32 pauses after idle, before the recorded resume reply.
 The current App resume request adds exactly excludeTurns:true (0.160.0 native
 metadata/live-resume response coverage). This request-only adaptation is audited;
@@ -64,15 +58,6 @@ PROVIDER_READING_STANDING = ("constructed-provider-reading; no such frame was ca
                              "stands in so the recorded Continue can proceed; not evidence of a supplier reply")
 # Fixed: the least the App's Continue admission reads. Not configurable.
 PROVIDER_READING_RESULT = {"config": {"model_provider": "openai", "model_providers": {}}, "origins": {}}
-FEATURE_READING_RECIPE = "experimental-feature-list-reply-constructed-before-conversation-request"
-FEATURE_READING_STANDING = ("constructed-feature-reading; no such frame was captured from the supplier; "
-                            "stands in so the recorded conversation request can proceed; not evidence of a supplier reply")
-# Fixed: plugins and apps off. Not configurable.
-FEATURE_READING_RESULT = {"data": [
-    {"name": "plugins", "enabled": False, "defaultEnabled": False, "stage": "stable"},
-    {"name": "apps", "enabled": False, "defaultEnabled": False, "stage": "stable"},
-], "nextCursor": None}
-CONVERSATION_METHODS = ("thread/start", "thread/resume", "thread/fork")
 
 
 class ReplayError(Exception):
@@ -422,26 +407,6 @@ class Replay:
         write_protocol_frame(writer, {"id": actual["id"], "result": copy.deepcopy(PROVIDER_READING_RESULT)})
         self.audit.emit("constructed-frame", direction="codex->app", kind="reply", **fields)
 
-    def read_past_feature_reading(self, reader, writer, expected):
-        """The next input; before a recorded conversation request in an App profile, a
-        plugins-and-apps reading is first answered with the constructed reply (at most one)."""
-        actual = reader.read()
-        if (self.profile == "strict" or expected.get("method") not in CONVERSATION_METHODS or actual is None
-                or frame_kind(actual) != "request" or actual.get("method") != "experimentalFeature/list"):
-            return actual
-        actual_id = rpc_id(actual["id"])
-        require(actual_id not in self.actual_ids, "duplicate-actual-request-id")
-        require(exact(without_envelope(actual), {"id": actual["id"], "method": "experimentalFeature/list", "params": {}}),
-                "constructed-feature-reading-request-mismatch")
-        self.actual_ids.add(actual_id)
-        fields = {"method": "experimentalFeature/list", "recipe": FEATURE_READING_RECIPE,
-                  "actual_rpc_id": actual["id"], "actual_rpc_id_type": actual_id[0],
-                  "constructed_standing": FEATURE_READING_STANDING}
-        self.audit.emit("constructed-frame", direction="app->codex", kind="request", **fields)
-        write_protocol_frame(writer, {"id": actual["id"], "result": copy.deepcopy(FEATURE_READING_RESULT)})
-        self.audit.emit("constructed-frame", direction="codex->app", kind="reply", **fields)
-        return reader.read()
-
     def adapted_params(self, expected, actual):
         """Return only declared, exact App alternatives; never wildcard fields."""
         require(isinstance(expected, dict), "invalid-captured-adaptation-request")
@@ -558,7 +523,7 @@ class Replay:
                 row, info = self.recording["frames"][index], {}
                 frame = row["frame"]
                 if row["direction"] == "app->codex":
-                    info = self.accept(frame, self.read_past_feature_reading(reader, writer, frame))
+                    info = self.accept(frame, reader.read())
                 else:
                     outgoing = copy.deepcopy(frame)
                     kind = frame_kind(frame)
