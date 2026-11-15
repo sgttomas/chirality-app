@@ -357,7 +357,7 @@ impl NativeView {
                     "reason":p["reason"],"generation":g,"receiptPosition":pos,"standing":"live-observed"}));
             }
             Some("error") => {
-                // 0.167.0 ErrorNotification: the supplier's report of an error
+                // 0.169.0 ErrorNotification: the supplier's report of an error
                 // in a turn and whether it will retry. Kept as sent, never
                 // reworded. Only a notification that matches the pinned type
                 // is given that meaning: a frame carrying a request identity,
@@ -637,6 +637,7 @@ impl NativeView {
         let thread = text(params, "threadId")?;
         match method {
             "thread/items/list" => {
+                crate::native_history::require_complete_item_outputs(result)?;
                 let mut entries: Vec<&Value> = result["data"].as_array().ok_or("items history absent")?.iter().collect();
                 // Receipt order follows conversation order within a page.
                 if params["sortDirection"] == "desc" {
@@ -758,7 +759,7 @@ mod tests {
         let mut v = NativeView::new("h".into()).unwrap();
         v.ready(
             g(1),
-            json!("codex 0.167.0"),
+            json!("codex 0.169.0"),
             json!("unverified-development"),
         )
         .unwrap();
@@ -1076,7 +1077,7 @@ mod tests {
         assert_eq!(row(&v, "c")["displayState"], "not-completed");
         assert_eq!(row(&v, "c")["preview"], "out", "partial output stays with its not-completed state");
     }
-    // HOSTING §8.3: `model/rerouted` (0.167.0 ModelReroutedNotification) is kept
+    // HOSTING §8.3: `model/rerouted` (0.169.0 ModelReroutedNotification) is kept
     // as a live observation naming its thread and turn; a malformed one is refused.
     #[test]
     fn model_rerouted_is_observed_with_its_turn_and_receipt() {
@@ -1289,6 +1290,25 @@ mod tests {
         assert!(c["preview"].as_str().unwrap().len() <= PREVIEW_LIMIT);
         assert!(c["preview"].as_str().unwrap().ends_with('é'));
         assert_eq!(c["previewTruncated"], true);
+    }
+    #[test]
+    fn deferred_item_history_is_refused_before_mutating_the_view() {
+        let mut view = view();
+        let before = view.snapshot();
+        let page = json!({"data":[
+            {"turnId":"u","item":{"id":"first","type":"agentMessage","text":"complete"}},
+            {"turnId":"u","outputDeferred":true,"item":{"id":"second","type":"agentMessage","text":""}}
+        ],"nextCursor":null});
+        assert!(view.history("h", "thread/items/list", &json!({"threadId":"t","turnId":"u"}), &page).is_err());
+        assert_eq!(view.snapshot(), before, "a page with deferred output cannot partly become complete history");
+    }
+    #[test]
+    fn deferred_item_history_is_refused_by_the_workspace_response_reader() {
+        let mut page = json!({"data":[{"turnId":"u","outputDeferred":true,
+            "item":{"id":"message","type":"agentMessage","text":""}}],"nextCursor":null});
+        assert!(crate::native_history::validate_read_response("thread/items/list", &page).is_err());
+        page["data"][0]["outputDeferred"] = json!(false);
+        assert!(crate::native_history::validate_read_response("thread/items/list", &page).is_ok());
     }
     #[test]
     fn observed_order_follows_first_receipt_not_identity_sort() {

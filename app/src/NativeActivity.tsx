@@ -484,7 +484,7 @@ export function StopLabel({ stop }: { stop: Json | null }) {
 const DELEGATION_REASON = "Why delegation is not available, as recorded; the App does not vouch for its words";
 export function DelegationLine({ delegation, descendants }: { delegation: Json; descendants: number }) {
   const at = delegation?.readAt ? <> (read <AgentText value={text(delegation.readAt)} source="codex" label="Read at:" name="When the delegation reading was taken, as recorded; the App does not vouch for its words" />)</> : "";
-  if (delegation?.reading === "present") return descendants > 0 ? null : <p><small>Delegation available{at}; no descendants observed.</small></p>;
+  if (delegation?.reading === "present") return <p><small>Delegation available{at}{descendants > 0 ? "." : "; no descendants observed."} Native tools are offered; child execution and remaining capacity are not established.</small></p>;
   if (delegation?.reading === "missing") return <p role="note"><small>Delegation not available: <AgentText value={text(delegation.reason)} source="codex" label="Reason:" name={DELEGATION_REASON} />{at}.{descendants > 0 ? " Descendants that arrived anyway are shown below." : ""}</small></p>;
   if (descendants > 0 && delegation?.reading === "not established") return <p><small>Delegation availability not established: <AgentText value={text(delegation.reason)} source="codex" label="Reason:" name={DELEGATION_REASON} />.</small></p>;
   return null;

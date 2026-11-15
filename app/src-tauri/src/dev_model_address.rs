@@ -195,7 +195,7 @@ mod tests {
 import sys,json,os
 here=os.path.dirname(os.path.abspath(__file__))
 if '--version' in sys.argv:
-    print('codex-cli 0.167.0'); sys.exit(0)
+    print('codex-cli 0.169.0'); sys.exit(0)
 with open(os.path.join(here,'argv.jsonl'),'a') as f: f.write(json.dumps(sys.argv[1:])+'\n')
 for line in sys.stdin:
     frame=json.loads(line)
