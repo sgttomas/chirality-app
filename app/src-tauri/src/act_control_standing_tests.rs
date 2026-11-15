@@ -1009,3 +1009,23 @@ fn f2_a_summary_that_cannot_fit_neither_presents_nor_freezes_nor_captures() {
     c.present(&id).unwrap();
     assert_eq!(c.confirm_shown(&id, "ALT-1", actor, &statement.text).unwrap()["state"], "AC-7 recorded");
 }
+
+#[test]
+fn complete_a16_counterpart_fixture_uses_the_producers_exact_string() {
+    // The web regression consumes these real native producer outputs; no copied formatter or capture stand-in.
+    for (case, suffix) in [("ordinary-overflow", "ordinary ending"), ("private-use", "\u{e000}"), ("unassigned", "\u{0378}")] {
+        let mut f = Fixture::new();
+        let mut package: Value = serde_json::from_slice(&std::fs::read(f.path()).unwrap()).unwrap();
+        package["purpose"] = json!(format!("{}{} <button>invented</button>\n\u{202e}\u{200b}", "invented purpose ".repeat(60), suffix));
+        std::fs::write(f.path(), serde_json::to_vec(&package).unwrap()).unwrap();
+        f.request = crate::recorder::identify_packages(&f.root).unwrap().remove(0);
+        let (mut control, id) = f.compose();
+        let statement = control.confirmation_statement(&id, "ALT-1", &person(Some("Fixture person"), Some("fixture"))).unwrap();
+        let whole = statement.in_app.as_ref().expect("overflow points to the whole statement in the App");
+        assert!(statement.text.contains(&whole.digest));
+        let text = whole.content["markedStatement"].as_str().unwrap();
+        assert!(text.contains(suffix), "the native producer preserves this character");
+        assert!(!text.contains('\u{202e}') && !text.contains('\u{200b}'), "the host has already marked format characters");
+        println!("A16_COUNTERPART_CASE:{}", json!({"case":case,"kind":"A16 chosen alternative","content":whole.content,"digest":whole.digest,"handed":statement.text}));
+    }
+}

@@ -97,3 +97,67 @@ test('the actual act-control and decision-package panels keep poisoned supplied 
   assert.match(outside, /Decide…/);
   assert.match(outside, /Open act control \(decide\)/);
 });
+
+test('the mounted native counterpart preserves the exact producer text bound by the pointer digest', async () => {
+  await import('./support/rust-prebuild.mjs');
+  const {spawnSync} = await import('node:child_process');
+  const {createHash} = await import('node:crypto');
+  const result = spawnSync('cargo', ['test', '--offline', '--locked', '--lib',
+    'act_control::standing_tests::complete_a16_counterpart_fixture_uses_the_producers_exact_string',
+    '--', '--exact', '--nocapture', '--test-threads=1'], {
+    cwd: new URL('../src-tauri/', import.meta.url), encoding: 'utf8', timeout: 120_000,
+    maxBuffer: 16 * 1024 * 1024, env: {...process.env, CHIRALITY_SKIP_CODEX: '1', CARGO_NET_OFFLINE: 'true'},
+  });
+  assert.equal(result.status, 0, `${result.error ?? ''}\n${result.stderr}\n${result.stdout}`);
+  const cases = [...result.stdout.matchAll(/A16_COUNTERPART_CASE:(\{[^\n]+\})/g)].map(match => JSON.parse(match[1]));
+  assert.deepEqual(cases.map(row => row.case), ['ordinary-overflow', 'private-use', 'unassigned']);
+  const {installMiniDom} = await import('./support/mini-dom.mjs');
+  const {installIdleNativeWaiting} = await import('./support/idle-native-waiting.mjs');
+  const document = installMiniDom();
+  const {createRoot} = await import('react-dom/client');
+  const {App} = loadSrc('App');
+  const {canonicalJson} = loadSrc('presentation');
+  const sha = value => createHash('sha256').update(canonicalJson(value), 'utf8').digest('hex');
+  for (const row of cases) {
+    assert.equal(sha(row.content), row.digest, 'the producer digest binds the exact object supplied to the App');
+    assert.ok(row.handed.includes(row.digest), 'the real native pointer names that digest');
+    const idle = installIdleNativeWaiting(async command => {
+      if (command === 'host_status') return {state: 'ready', threads: [], serverRequests: []};
+      if (command === 'decision_view') return {rows: []};
+      if (command === 'native_confirmation_content') return [row];
+      throw Error(`Unexpected command ${command}`);
+    });
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    try {
+      await React.act(async () => root.render(React.createElement(App)));
+      await React.act(async () => await new Promise(resolve => setTimeout(resolve, 10)));
+      const region = container.querySelectorAll(node => node.getAttribute('aria-label') === 'Content named by an open native confirmation')[0];
+      assert.ok(region, 'the actual App native-content region is mounted');
+      const group = region.querySelectorAll(node => (node.getAttribute('class') ?? '').split(/\s+/).includes('agent-text-block'))[0];
+      assert.ok(group, 'the complete statement remains in the marked supplied-text wrapper');
+      const lines = group.querySelectorAll(node => node.getAttribute('class') === 'agent-text-line');
+      const shown = lines.map((line, index) => {
+        const children = [...line.childNodes];
+        assert.equal(children.shift().getAttribute('class'), 'agent-text-line-number');
+        if (index < lines.length - 1) {
+          const end = children.pop();
+          assert.equal(end.getAttribute('class'), 'agent-text-mark');
+          assert.equal(end.textContent, '⏎');
+        }
+        return children.map(node => node.textContent).join('');
+      }).join('\n');
+      assert.equal(shown, row.content.markedStatement, row.case);
+      assert.equal(sha({markedStatement: shown}), row.digest, 'the final logical text is the text the native pointer names');
+      assert.ok(region.textContent.includes('This view recomputed the same digest from the content below.'));
+      assert.ok(shown.includes('<button>invented</button>'), 'ordinary escaping retains the literal supplied text');
+      assert.equal(group.querySelectorAll(node => node.tagName === 'BUTTON').length, 0, 'supplied text never becomes markup');
+    } finally {
+      const text = container.textContent;
+      await React.act(() => root.unmount());
+      document.body.removeChild(container);
+      idle.restore(text);
+    }
+  }
+});
