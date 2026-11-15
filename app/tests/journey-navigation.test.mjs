@@ -4,6 +4,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {loadSrc} from './support/load-src.mjs';
+import {choiceList, choiceLists, chooseIn, chosenIn} from './support/choices.mjs';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 const document = installMiniDom();
@@ -37,13 +38,13 @@ test('Answer in the conversation selects the run conversation and reveals its re
   });
   try {
     await React.act(async () => root.render(React.createElement(App)));
-    const conversationSelect = () => nodes(c.querySelectorAll(n => n.getAttribute('id') === 'conversation')[0], 'select')[0];
-    assert.equal(props(conversationSelect()).value, '', 'no operational conversation is chosen yet');
-    const guideSelect = nodes(c, 'select').find(n => n.parentNode.textContent.startsWith('Conversation to run it in'));
-    await React.act(async () => props(guideSelect).onChange({target:{value:'T2'}}));
+    const conversationSelect = () => choiceLists(c.querySelectorAll(n => n.getAttribute('id') === 'conversation')[0])[0];
+    assert.equal(chosenIn(conversationSelect()), '', 'no operational conversation is chosen yet');
+    const guideSelect = choiceList(c, 'Conversation to run it in');
+    await React.act(async () => chooseIn(guideSelect, 'T2'));
     const before = calls.length;
     await React.act(async () => props(button(c, 'Answer in the conversation')).onClick());
-    assert.equal(props(conversationSelect()).value, key('T2'), 'the run conversation is now the shown conversation');
+    assert.equal(chosenIn(conversationSelect()), key('T2'), 'the run conversation is now the shown conversation');
     assert.ok(revealed.includes('conversation-requests'), 'its requests are revealed');
     assert.match(c.querySelectorAll(n => n.getAttribute('id') === 'conversation-requests')[0].textContent, /Which folder\?/);
     assert.deepEqual(calls.slice(before).filter(cmd => cmd !== 'host_status'), [], 'no answer, send or resume');
@@ -142,7 +143,7 @@ test('a saved trial conversation opens History with only its ID in the search: n
   try {
     await React.act(async () => root.render(React.createElement(App)));
     const guide = c.querySelectorAll(n => n.getAttribute('aria-label') === 'Make a workflow from your work')[0];
-    await React.act(async () => props(nodes(guide, 'input')[0]).onChange({target:{value:'spacing-check'}}));
+    await React.act(async () => props(nodes(guide, 'input').find(n => n.parentNode.textContent.startsWith('Workflow name'))).onChange({target:{value:'spacing-check'}}));
     const look = nodes(guide, 'button').find(n => n.textContent === 'Look for it in History');
     assert.ok(look);
     await React.act(async () => props(look).onClick());

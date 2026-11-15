@@ -5,6 +5,7 @@ import {spawnSync} from 'node:child_process';
 import {readFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {installMiniDom} from './support/mini-dom.mjs';
+import {choiceLists, chooseIn, chooser, chosenIn} from './support/choices.mjs';
 import {loadSrc} from './support/load-src.mjs';
 import './support/rust-prebuild.mjs';
 
@@ -83,12 +84,12 @@ async function mounted(check,{initial='api-key',navigationWait,decisionWait,wron
   const field=(tag,label)=>byTag(container,tag).find(node=>node.parentNode.textContent.startsWith(label));
   const settle=async()=>React.act(async()=>{for(let i=0;i<8;i++)await Promise.resolve();});
   const press=async text=>{const b=find(container,'button',text);assert.ok(b,text);assert.equal(!!props(b).disabled,false,text);await React.act(async()=>{props(b).onClick();});};
-  const change=async(element,value)=>{assert.equal(!!props(element).disabled,false,'no edit through disabled controls');await React.act(()=>props(element).onChange({target:{value}}));};
+  const change=async(element,value)=>{assert.equal(!!props(element).disabled,false,'no edit through disabled controls');await React.act(()=>element.localName==='fieldset'?chooseIn(element,value):props(element).onChange({target:{value}}));};
   try{
     await React.act(async()=>root.render(React.createElement(App)));
     const routeChosen=()=>{const b=find(container,'button',ROUTE);return !!b&&props(b)['aria-pressed']===true;};
     const choice=()=>({model:field('input','Model ')?props(field('input','Model ')).value:null,route:routeChosen()});
-    await check({dto,container,calls,scrolls,press,change,settle,conversation,field,routeChosen,choice,select:()=>byTag(conversation(),'select')[0],draft:()=>byTag(conversation(),'textarea')[0]});
+    await check({dto,container,calls,scrolls,press,change,settle,conversation,field,routeChosen,choice,select:()=>choiceLists(conversation())[0],draft:()=>byTag(conversation(),'textarea')[0]});
   }finally{navigationWait?.resolve();decisionWait?.resolve();await settle();const renderedText=container.textContent;await React.act(()=>root.unmount());document.body.removeChild(container);idle.restore(renderedText);document.getElementById=priorGet;}
 }
 
@@ -98,7 +99,7 @@ test('an explicit all-home click opens the original full-generation conversation
     await ui.change(ui.draft(),'Kept unsent draft / 家');
     assert.ok(!ui.container.textContent.includes('Private synthetic question content'),'inactive account question content is absent');
     await ui.press('account · thread shared-thread: 2');
-    assert.equal(props(ui.select()).value,JSON.stringify([ui.dto.account.generation,'shared-thread']));
+    assert.equal(chosenIn(ui.select()),JSON.stringify([ui.dto.account.generation,'shared-thread']));
     assert.equal(props(ui.draft()).value,'Kept unsent draft / 家');
     assert.ok(ui.container.textContent.includes('Private synthetic question content'),'ordinary selected-home view receives the original cards');
     assert.deepEqual(ui.scrolls,['conversation']);
@@ -110,7 +111,7 @@ test('an unnamed waiting group opens its original home request section without l
   await mounted(async ui=>{
     await ui.change(ui.select(),JSON.stringify([ui.dto['api-key'].generation,'shared-thread']));
     await ui.press('account · no conversation named: 1');
-    assert.equal(props(ui.select()).value,'');assert.deepEqual(ui.scrolls,['other-requests']);
+    assert.equal(chosenIn(ui.select()),'');assert.deepEqual(ui.scrolls,['other-requests']);
     assert.ok(ui.container.textContent.includes('Private synthetic question content'));
   });
 });
@@ -119,7 +120,7 @@ test('native stale-source refusal never opens a same-ID successor or falls back 
   await mounted(async ui=>{
     const selected=JSON.stringify([ui.dto['api-key'].generation,'shared-thread']);await ui.change(ui.select(),selected);
     await ui.press('account · thread shared-thread: 2');
-    assert.equal(props(ui.select()).value,selected);assert.deepEqual(ui.scrolls,[]);
+    assert.equal(chosenIn(ui.select()),selected);assert.deepEqual(ui.scrolls,[]);
     assert.match(ui.container.textContent,/Original waiting-request source is no longer current/);
   },{refuse:true});
 });
@@ -128,7 +129,7 @@ test('a mismatched post-navigation source refresh never selects or scrolls to a 
   await mounted(async ui=>{
     const selected=JSON.stringify([ui.dto['api-key'].generation,'shared-thread']);await ui.change(ui.select(),selected);
     await ui.press('account · thread shared-thread: 2');
-    assert.equal(props(ui.select()).value,selected);assert.deepEqual(ui.scrolls,[]);assert.match(ui.container.textContent,/navigation superseded/);
+    assert.equal(chosenIn(ui.select()),selected);assert.deepEqual(ui.scrolls,[]);assert.match(ui.container.textContent,/navigation superseded/);
   },{wrongRefresh:true});
 });
 
@@ -142,7 +143,7 @@ test('a newer conversation choice made during navigation takes precedence over i
     assert.equal(find(ui.container,'button','Use api-key home'),undefined,'no API-key home switch is offered');
     assert.equal(ui.calls.filter(c=>c.command==='select_home').length,0,'no manual switch is dispatched during the pending navigation');
     await ui.change(ui.select(),'');wait.resolve();await ui.settle();
-    assert.equal(props(ui.select()).value,'');assert.deepEqual(ui.scrolls,[]);assert.match(ui.container.textContent,/navigation superseded/);
+    assert.equal(chosenIn(ui.select()),'');assert.deepEqual(ui.scrolls,[]);assert.match(ui.container.textContent,/navigation superseded/);
   },{navigationWait:wait});
 });
 
@@ -175,7 +176,7 @@ test('same-home waiting navigation preserves a separate unconsumed new-conversat
       await ui.press(`${initial} · thread shared-thread: ${initial==='account'?2:1}`);
       assert.deepEqual(ui.choice(),kept);
       assert.equal(props(ui.draft()).value,'Kept unsent draft / 家');
-      assert.equal(props(ui.select()).value,JSON.stringify([ui.dto[initial].generation,'shared-thread']));
+      assert.equal(chosenIn(ui.select()),JSON.stringify([ui.dto[initial].generation,'shared-thread']));
       assert.deepEqual(ui.scrolls,['conversation']);
       assert.equal(ui.calls.filter(c=>c.command==='open_waiting_requests').length,1);
     },{initial});
@@ -211,7 +212,7 @@ for(const initial of ['account','api-key'])test(`same-home pending navigation ke
     wait.resolve();await ui.settle();
     assert.deepEqual(ui.choice(),account?{model:'newer-model',route:true}:{model:null,route:false});
     assert.equal(props(ui.draft()).value,'Newer unsent draft / 家');
-    assert.equal(props(ui.select()).value,'');assert.deepEqual(ui.scrolls,[]);
+    assert.equal(chosenIn(ui.select()),'');assert.deepEqual(ui.scrolls,[]);
     assert.match(ui.container.textContent,/navigation superseded/);
     if(!account)assert.equal(props(find(ui.container,'button','Use account home')).disabled,false);
     assert.equal(!!props(find(ui.container,'button','Start thread')).disabled,!account);
@@ -224,11 +225,11 @@ for(const initial of ['account','api-key'])test(`same-home pending navigation ke
 test('a waiting-request navigation whose refresh fails shows only the fixed line and navigates nothing',async()=>{
   const {REFRESH_FAILED}=loadSrc('statusRefresh');
   await mounted(async ui=>{
-    const before=props(ui.select()).value;
+    const before=chosenIn(ui.select());
     await ui.press('account · thread shared-thread: 2');await ui.settle();
     assert.ok(ui.container.textContent.includes(REFRESH_FAILED),'the fixed refresh line');
     assert.doesNotMatch(ui.container.textContent,/INVENTED_PRIVATE_REFRESH_DIAGNOSTIC_92|Waiting-request navigation:|superseded or its original source/);
-    assert.equal(props(ui.select()).value,before,'nothing is navigated without a status read');
+    assert.equal(chosenIn(ui.select()),before,'nothing is navigated without a status read');
     assert.equal(ui.calls.filter(c=>c.command==='open_waiting_requests').length,1);
   },{failAfterOpen:true});
 });

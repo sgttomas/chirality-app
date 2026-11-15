@@ -31,7 +31,6 @@ const TOOL_PERMISSION = [COMMAND, FILE_CHANGE, PERMISSIONS, LEGACY_EXEC, LEGACY_
 /** The methods whose card title names what they ask; any other is named beside the title, boxed. */
 const KNOWN_METHODS = [...TOOL_PERMISSION, QUESTION, ELICITATION];
 
-export const pre = { whiteSpace: "pre-wrap" as const, overflowWrap: "anywhere" as const, margin: "4px 0" };
 const text = (value: Json): string => value === null || value === undefined ? "" : typeof value === "string" ? value : JSON.stringify(value);
 
 /** The conversation a request belongs to, as Codex names it (legacy requests use conversationId). */
@@ -349,7 +348,7 @@ const Code = ({ label, value }: { label: string; value: Json }) => value === und
 
 /** What the request is about, read from its native parameters (§4.1 "What the person sees"). */
 const fileChanges = (item: Json): Json[] => Array.isArray(item?.native?.changes) ? item.native.changes : [];
-const diffBox = { ...pre, maxHeight: "24em", overflow: "auto" as const, border: "1px solid #ccc", padding: 4 };
+const diffBox = { margin: "4px 0", maxHeight: "24em", overflow: "auto" as const, border: "1px solid #ccc", padding: 4 };
 
 function Subject({ request, item, place }: { request: Json; item: Json; place?: RequestPlace }) {
   const p = request?.nativeParameters ?? {};
