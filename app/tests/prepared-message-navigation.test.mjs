@@ -65,6 +65,7 @@ async function mounted(options,check){
   }
   if(command==='decision_view')return {rows:[]};
   if(command==='native_confirmation_content')return [{kind:'A15 complete review',digest:'fixture-digest',content:frozen}];
+  if(command==='request_answer_companions')return []; // Frozen memory only; no navigation or answer.
   if(command==='workflow_review_digest')return {digest:'fixture-digest'};
   if(command==='select_home'){active=args.modeHomeClass;return {state:'selected'};}
   if(command==='open_waiting_requests'){
@@ -535,7 +536,7 @@ for(const threadId of ['B',null])test(`waiting ${threadId??'unnamed'} request st
   await toggleDisclosure(ui.c,'waiting-on-you',true);
   const indicator=region(ui.c,'Requests waiting for your answer');assert.ok(displayed(indicator));assert.match(byId(ui.c,'other-requests').textContent,/Which supplied boundary/);assert.ok(displayed(byId(ui.c,'other-requests')));assert.ok(displayed(region(ui.c,'Content named by an open native confirmation')));
   const before=ui.calls.length;await ui.press(`account · ${threadId?'thread '+threadId:'no conversation named'}: 1`);
-  assert.deepEqual(ui.calls.slice(before).filter(call=>!['host_status','decision_view'].includes(call.command)),[{command:'open_waiting_requests',args:waiting}],'only the original exact group is opened, with no answer/resume/send');
+  assert.deepEqual(ui.calls.slice(before).filter(call=>!['host_status','decision_view','request_answer_companions'].includes(call.command)),[{command:'open_waiting_requests',args:waiting}],'only the original exact group is opened, with no answer/resume/send');
   assert.equal(ui.selected(),threadId?key(threadId):'');assert.ok(displayed(threadId?conversation(ui.c):byId(ui.c,'other-requests')));assert.equal(chosenIn(choiceList(ui.c,'Workflow chat')),'C');assert.equal(chosenIn(choiceList(ui.c,'Authoring conversation')),key('B'));
  });
 });

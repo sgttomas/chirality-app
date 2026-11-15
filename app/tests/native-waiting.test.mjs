@@ -46,7 +46,7 @@ async function mounted(check,{render=()=>React.createElement(App),initial='api-k
     calls.push({command,args});
     if(command==='host_status'){if(initialStatusWait)await initialStatusWait.promise;return dto[active];}
     if(command==='decision_view')return {rows:[]};
-    if(command==='native_confirmation_content')return [];
+    if(command==='native_confirmation_content'||command==='request_answer_companions')return [];
     if(command==='host_observe')return {sourceUnavailable:true,frames:[]};
     if(command==='plugin:event|listen'){assert.equal(args.event,'chirality-native-waiting');assert.deepEqual(args.target,{kind:'AnyLabel',label:'main'});if(listenerFailure)throw Error('Synthetic listener failure');if(listenerWait)await listenerWait.promise;return args.handler;}
     if(command==='plugin:event|unlisten')return;
@@ -96,7 +96,7 @@ async function mounted(check,{render=()=>React.createElement(App),initial='api-k
       remount:async claim=>{await React.act(()=>root.unmount());owned=null;nextClaim=claim;root=createRoot(container);await React.act(async()=>root.render(render()));},
       unmount:async()=>{await React.act(()=>root.unmount());},
     });
-    const allowed=['host_status','decision_view','native_confirmation_content','host_observe','plugin:event|listen','plugin:event|unlisten','claim_native_waiting_intent','finish_native_waiting_intent','checkpoint_native_waiting_ui','open_waiting_requests'];
+    const allowed=['host_status','decision_view','native_confirmation_content','request_answer_companions','host_observe','plugin:event|listen','plugin:event|unlisten','claim_native_waiting_intent','finish_native_waiting_intent','checkpoint_native_waiting_ui','open_waiting_requests'];
     assert.deepEqual(calls.filter(c=>!allowed.includes(c.command)),[],'no native response, workflow, resume, start or send command');
   }finally{claimWait?.resolve();navigationWait?.resolve();listenerWait?.resolve();initialStatusWait?.resolve();await settle();await React.act(()=>root.unmount());document.body.removeChild(container);window.__TAURI_INTERNALS__=previous;window.__TAURI_EVENT_PLUGIN_INTERNALS__=priorEvents;document.getElementById=priorGet;}
 }
