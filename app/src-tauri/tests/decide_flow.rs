@@ -227,17 +227,24 @@ fn person_decides_a_package_and_the_view_shows_it() {
         without(&fx_offer["subject"], &["contentIdentity"]),
         "same package subject; historical identity is not relabelled"
     );
+    // The current offer adds the request/path standing required by the A16
+    // control. Preserve the historical fixture and compare its unchanged facts
+    // separately from those new, independently expected observations.
+    assert_eq!(offer["packageStanding"], json!({"form":"none-recorded"}));
+    assert_eq!(offer["otherRequestsForPath"], json!({"state":"read-whole","rows":[]}));
     let skip = [
         "offerId",
         "composedAt",
         "offerDigest",
         "requestRef",
         "subject",
+        "packageStanding",
+        "otherRequestsForPath",
     ];
     assert_eq!(
         without(&offer, &skip),
         without(&fx_offer, &skip),
-        "remaining offer shape equals Pass 4's, apart from id, time, digest and request reference"
+        "historical offer facts are preserved; current standing and content identity were checked separately"
     );
     assert_eq!(
         offer_digest(&offer).unwrap(),
@@ -378,7 +385,11 @@ fn person_decides_a_package_and_the_view_shows_it() {
     let mut b = std::fs::read(&p2).unwrap();
     b.extend_from_slice(b" ");
     std::fs::write(&p2, &b).unwrap();
-    let e = ac
+    let store = chirality_app_v4_lib::records_store::attach(&ws, false).unwrap().dir.unwrap();
+    let before_store_refusal = tree_hashes(&store);
+    assert!(!before_store_refusal.is_empty(), "the actual external store is sampled");
+    let before_refusal = hashes(&ws);
+    ac
         .confirm(
             &o2id,
             "ALT-1",
@@ -386,7 +397,10 @@ fn person_decides_a_package_and_the_view_shows_it() {
             actor.clone(),
         )
         .unwrap_err();
-    assert!(e.contains("content changed"), "{e}");
+    // Either the standing re-check or the content check can notice this
+    // change first. Both must refuse without recording or capturing anything.
+    assert_eq!(hashes(&ws), before_refusal, "stale confirmation changes no files");
+    assert_eq!(tree_hashes(&store), before_store_refusal, "stale confirmation changes no store files");
     let (entries, _) = read_log(&chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap());
     assert_eq!(entries.len(), 5, "no record written for the stale offer");
 

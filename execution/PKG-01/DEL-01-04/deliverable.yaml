@@ -71,8 +71,10 @@ needs:
   condition: A decision package is a project file that states the exact act requested of the
     person, its subject, purpose and basis, and each alternative with its consequences, and a
     pending package is shown as its file states them, with who requested it where the package
-    records it. For "Waiting on you", the return-review queue gives each return awaiting review
-    with its reference, who returned it and who prepared its brief, as recorded.
+    records it. The decision view derives each request's recorded standing, recorded path and
+    content identity, and log/sequence sources, with incomplete reads and history explicit. For
+    "Waiting on you", the return-review queue gives each return awaiting review with its reference,
+    who returned it and who prepared its brief, as recorded.
   gating: false
 - from: DEL-01-06
   condition: The installed App is signed with the same Developer ID team and bundle identifier
@@ -98,6 +100,7 @@ code_paths:
 # act_control.rs is shared. Here: the control, its offers and captures. The registration
 # operation is DEL-02-02's, act wording DEL-04-01's and the record writer DEL-04-03's.
 - app/src-tauri/src/act_control.rs
+- app/src-tauri/src/act_control_standing.rs
 - app/src-tauri/src/act_control_a15.rs
 - app/src-tauri/src/act_control_file.rs
 - app/src-tauri/src/act_control_assurance.rs
@@ -159,6 +162,7 @@ code_paths:
 - app/src/ConversationRoles.tsx
 - app/src/FileActPanel.tsx
 - app/src/exactText.ts
+- app/src/PackageStanding.tsx
 # Shared with DEL-02-02; RunPanel.tsx also with DEL-02-03 and DEL-04-02. Here: the draft view,
 # the placement of texts in turns the person sends, and the placement of run offers and the
 # checkpoint and standing display. What the drafts, trial texts and run offers show is
@@ -180,6 +184,12 @@ checks:
 - app/src-tauri/src/capture_seal.rs
 - app/src-tauri/src/seal_c_enrollment_tests.rs
 - app/src-tauri/src/file_act_consumer_tests.rs
+- app/src-tauri/src/act_control_standing_tests.rs
+- app/src-tauri/src/native_text_tests.rs
+- app/src-tauri/src/native_text_supplied_tests.rs
+- app/src-tauri/tests/decide_flow.rs
+- app/src-tauri/tests/act_storage.rs
+- app/tests/package-standing.test.mjs
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/hosting.rs
 - app/tests/prepared-message-navigation.test.mjs

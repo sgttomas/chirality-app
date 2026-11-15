@@ -469,6 +469,33 @@ An entry is added in the same pull request that makes the limitation standing.
   3 seconds. This is read from the App's code (`hosting.rs` `stop_inner`,
   reached from `codex_stop.rs` and from the quit path), not shown by a test.
 
+### LIM-028: A project whose records store cannot be used cannot start a conversation
+
+- **Id:** LIM-028
+- **Exit criteria:** 1, 4, 15
+- **What is unavailable:** starting Codex, and so a conversation or sign-in
+  through it, for a project whose records store cannot be used: its configured
+  location is refused or unreadable, its registry is not read whole, or the
+  project's attachment is refused (for example its link to the store is
+  missing). The App starts and its setup works; a conversation without a
+  project is unaffected. The App shows the store's refusal with its cause.
+- **Why:** before Codex starts for a project, the App takes the project's
+  activity, which protects closing, disposal and re-association while Codex
+  runs, and that step currently requires the project's records to be writable.
+  Protecting the project does not need recording to work; the coupling is the
+  present design, not a requirement.
+- **What the person does instead:** resolve the store's cause the App shows
+  (choose a usable records location, let the registry be read whole, or confirm
+  the project's link), then start the conversation; or work in a conversation
+  without a project meanwhile.
+- **What would remove it:** the project's activity taken without requiring its
+  records to be writable, with each record write refused visibly as now, so
+  that conversation works and recording does not, and the App says so. That
+  change is planned as its own unit.
+- **Basis:** DEL-04-03 (records store, REQ-007), DEL-01-01 and DEL-01-04
+  (starting Codex for a project); the owner's test that a person should not
+  meet restriction that is not needed.
+
 ### LIM-029: Codex makes connections when it starts, and connects to OpenAI when the App reads your sign-in
 
 - **Id:** LIM-029
