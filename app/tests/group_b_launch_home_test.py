@@ -201,7 +201,9 @@ class EnvironmentFromNothing(Fixture):  # STATEMENT 1
                          (home, home, launch.SYSTEM_PATH, 'en_US.UTF-8'))
         self.assertTrue(env['TMPDIR'].startswith(home + '/.chirality-launch-tmp-'))
         self.assertEqual({n: env[n] for n in OVERRIDES}, OVERRIDES)
-        self.assertEqual(record['environment_constructed_for_the_app'], {k: env[k] for k in launch.ALLOWED})
+        # The record keeps the names of the mapping handed to the App, and no value.
+        self.assertEqual(record['environment_constructed_for_the_app'], sorted(launch.ALLOWED))
+        self.assertNotIn(home, json.dumps(record['environment_constructed_for_the_app']))
 
     def test_no_option_passes_another_name_and_the_nine_are_on_every_launch(self):
         candidate = self.candidate()
@@ -1020,10 +1022,12 @@ class KeptHome(Fixture):  # keep-make, keep-launch and keep-remove: one home acr
             self.groups.append(record['pid'])
             self.assertEqual(record['home'], str(folder / 'home'))
             self.assertEqual((folder / 'home/launches').read_text().strip(), str(number))  # the same home, kept
-        env = record['environment_constructed_for_the_app']
-        self.assertEqual(set(env), set(launch.ALLOWED))  # the allowlist of launch, every proxy and the address on it
-        self.assertTrue(all(env[name] == value for name, (value, _) in launch.PROXY_OVERRIDES.items()))
-        self.assertEqual(env[launch.MODEL_ADDRESS], launch.DEFAULT_MODEL_ADDRESS)
+        names = record['environment_constructed_for_the_app']
+        self.assertEqual(names, sorted(launch.ALLOWED))  # the allowlist of launch, every proxy and the address on it
+        # The values are what the App received (its stand-in writes them), and not in the record.
+        received = self.received(record)
+        self.assertTrue(all(received[name] == value for name, (value, _) in launch.PROXY_OVERRIDES.items()))
+        self.assertEqual(received[launch.MODEL_ADDRESS], launch.DEFAULT_MODEL_ADDRESS)
 
     def test_a_rehearsal_folder_launches_without_the_overrides_and_says_so(self):
         candidate = self.candidate()
@@ -1039,9 +1043,9 @@ class KeptHome(Fixture):  # keep-make, keep-launch and keep-remove: one home acr
         record = json.loads((folder / 'record/launch-record-1.json').read_text())
         self.groups.append(record['pid'])
         self.assertEqual(record['network'], 'open')
-        env = record['environment_constructed_for_the_app']
-        self.assertEqual(set(env), set(launch.ALLOWED_OPEN))
-        self.assertEqual(set(env), {'HOME', 'CFFIXED_USER_HOME', 'TMPDIR', 'PATH', 'LANG'})
+        names = record['environment_constructed_for_the_app']
+        self.assertEqual(names, sorted(launch.ALLOWED_OPEN))
+        self.assertEqual(set(names), {'HOME', 'CFFIXED_USER_HOME', 'TMPDIR', 'PATH', 'LANG'})
         received = self.received(record)
         self.assertFalse(set(received) & (set(launch.PROXY_OVERRIDES) | {launch.MODEL_ADDRESS}), received)
         self.assertEqual(record['real_library']['result'], 'unchanged')
