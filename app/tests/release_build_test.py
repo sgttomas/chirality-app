@@ -391,6 +391,127 @@ class ReleaseBuild(unittest.TestCase):
     def walk_returnable(self, path):
         common.validate_returnable(json.loads(path.read_text()), {self.team, common.SUPPLIER_TEAM})
 
+    def test_private_tools_and_path_directories_refuse_before_any_reader(self):
+        real_open = os.open
+        attempts = []
+        def intercepted(path, *args, **kw):
+            if not isinstance(path, int) and common.PRIVATE_FOLDER in Path(os.fsdecode(path)).parts:
+                attempts.append(path)
+                raise AssertionError('a private component reached os.open')
+            return real_open(path, *args, **kw)
+        hidden = self.root / common.PRIVATE_FOLDER
+        for name in build.TOOLS:
+            with self.subTest(tool=name), patch.object(os, 'open', intercepted):
+                with self.assertRaises(common.Failure) as raised:
+                    self.run_build(tools=self.tools | {name: str(hidden / ('invented-' + name))})
+                self.assertEqual(raised.exception.code, 'BUILD_PRIVATE_INPUT')
+        with patch.object(os, 'open', intercepted), self.assertRaises(common.Failure) as raised:
+            self.run_build(environment=self.environment | {'PATH': str(hidden) + ':' + self.environment['PATH']})
+        self.assertEqual(raised.exception.code, 'BUILD_PRIVATE_INPUT')
+        self.assertEqual(attempts, [])
+        self.assertEqual(self.fake.calls, [])
+        self.assertFalse(self.candidate.exists())
+
+    def test_private_entries_are_refused_before_descriptor_relative_descent(self):
+        real_open = os.open
+        for root in (self.source, self.cargo_cache, self.npm_cache, self.vendor):
+            for nested in (False, True):
+                parent = root / 'invented-nested' if nested else root
+                if nested:
+                    parent.mkdir()
+                hidden = parent / common.PRIVATE_FOLDER
+                hidden.mkdir()  # Known empty; it is never opened, listed or walked.
+                attempts = []
+                def intercepted(path, *args, **kw):
+                    if not isinstance(path, int) and common.PRIVATE_FOLDER in Path(os.fsdecode(path)).parts:
+                        attempts.append((path, 'dir_fd' in kw))
+                        raise AssertionError('private descriptor-relative open attempted')
+                    return real_open(path, *args, **kw)
+                try:
+                    with self.subTest(root=root.name, nested=nested), patch.object(os, 'open', intercepted):
+                        with self.assertRaises(common.Failure) as raised:
+                            self.run_build()
+                        self.assertEqual(raised.exception.code, 'BUILD_PRIVATE_INPUT')
+                        self.assertEqual(attempts, [])
+                        self.assertFalse(self.candidate.exists())
+                finally:
+                    os.rmdir(hidden)
+                    if nested:
+                        os.rmdir(parent)
+        self.assertEqual(self.fake.calls, [])
+
+    def test_output_under_inputs_refuses_before_mkdir_copy_or_failure_receipt(self):
+        supplied = self.root / 'supplied-input'
+        supplied.mkdir()
+        publisher = supplied / 'selection.json'
+        publisher.write_text(json.dumps({'format': 'publisher-build-selection.s1',
+            'production_bundle_identifier': common.RELEASE['identifier'], 'developer_id_team_identifier': self.team}))
+        alias = self.root / 'source-alias'
+        alias.symlink_to(self.source, target_is_directory=True)
+        roots = [self.source, self.cargo_cache, self.npm_cache, self.vendor, supplied,
+                 Path(self.tools['ld']).parent, alias]
+        for parent in roots:
+            with self.subTest(parent=parent.name), patch.object(build.shutil, 'copytree', side_effect=AssertionError('copy reached')) as copied:
+                out = parent / 'candidate'
+                with self.assertRaises(common.Failure) as raised:
+                    self.run_build(out=out, publisher_input=publisher, publisher_sha256=fx.sha(publisher.read_bytes()))
+                self.assertEqual(raised.exception.code, 'BUILD_OVERLAP')
+                copied.assert_not_called()
+                self.assertFalse(os.path.lexists(out))
+        self.assertEqual(self.fake.calls, [])
+
+    def test_supplied_publisher_must_match_both_source_fields_before_build(self):
+        folder = self.root / 'supplied-input'; folder.mkdir()
+        path = folder / 'selection.json'
+        for field, value in [('developer_id_team_identifier', 'OTHER00001'),
+                             ('production_bundle_identifier', 'com.example.other')]:
+            supplied = {'format': 'publisher-build-selection.s1', 'production_bundle_identifier': common.RELEASE['identifier'],
+                        'developer_id_team_identifier': self.team, field: value}
+            path.write_text(json.dumps(supplied))
+            # The reader's compiler would consistently emit the wrong selected team.
+            original = fx.binding_bytes
+            def wrong_binding(**kw):
+                kw['team'] = supplied['developer_id_team_identifier']
+                return original(**kw)
+            with self.subTest(field=field), patch.object(fx, 'binding_bytes', wrong_binding):
+                with self.assertRaises(common.Failure) as raised:
+                    self.run_build(publisher_input=path, publisher_sha256=fx.sha(path.read_bytes()))
+                self.assertEqual(raised.exception.code, 'BUILD_PUBLISHER_MATCH')
+                self.assertFalse(self.candidate.exists())
+                self.assertEqual(self.fake.calls, [])
+
+    def test_produced_publisher_team_must_also_match_source(self):
+        original = fx.binding_bytes
+        requirement = fx.REQUIREMENT.replace(self.team, 'OTHER00001')
+        def wrong_binding(**kw):
+            kw.update(team='OTHER00001', requirement=requirement)
+            return original(**kw)
+        with patch.object(fx, 'binding_bytes', wrong_binding), patch.object(fx, 'REQUIREMENT', requirement):
+            with self.assertRaises(common.Failure) as raised:
+                self.run_build()
+        self.assertEqual(raised.exception.code, 'BUILD_CHECKS')
+        self.assertFalse((self.candidate / common.CANDIDATE_FILE).exists())
+        refused = json.loads((self.candidate / 'BUILD_REFUSED.json').read_bytes())
+        self.assertIn('publisher_binding', [entry['check'] for entry in refused['checks']])
+
+    def test_dyld_silent_success_is_byte_empty(self):
+        for stdout, stderr in [(b' \n\t', b''), (b'', b'\n')]:
+            with self.subTest(stdout=stdout, stderr=stderr):
+                self.setUp()
+                self.fake.dyld = {'chirality-app-v4': Result(0, stdout, stderr)}
+                with self.assertRaises(common.Failure) as raised:
+                    self.run_build()
+                self.assertEqual(raised.exception.code, 'BUILD_CHECKS')
+
+    def test_scope_whitespace_rule_keeps_one_line_and_ascii_only_stderr(self):
+        def runner(argv, **kw):
+            value = 'arm64' if argv[0].endswith('uname') else '27.2'
+            return Result(0, ('\u00a0 ' + value + ' \t\n').encode(), b' \t\r\n')
+        self.assertEqual(build.observe_scope(runner, {}, fx.MemoryWriter(None)), SCOPE)
+        for stdout, stderr in [(b'arm64\n\n', b''), (b'arm64\n', '\u00a0'.encode())]:
+            with self.subTest(stdout=stdout, stderr=stderr), self.assertRaises(common.Failure):
+                build.observe_scope(lambda *a, **kw: Result(0, stdout, stderr), {}, fx.MemoryWriter(None))
+
     def test_raw_output_and_exceptions_stay_out_of_returnable_files_and_streams(self):
         secrets = ['invented-owner@example.invalid', 'invented-secret', 'QQQQ11111Q']
         self.fake.install = Result(1, b'invented-owner@example.invalid\n', b'password=invented-secret QQQQ11111Q\n')

@@ -33,6 +33,7 @@ from pathlib import Path
 import platform
 import re
 import shutil
+import stat
 import sys
 import traceback
 
@@ -63,9 +64,60 @@ CHECKS = ['info_plist_identifier', 'info_plist_version', 'info_plist_bundle_vers
 common.VOCABULARY.update(CHECKS)
 
 
+def input_path(path):
+    """Refuse the private component before a path reaches an input reader."""
+    check(common.PRIVATE_FOLDER not in Path(os.fsdecode(path)).parts
+          and not common.is_private_path(path), 'BUILD_PRIVATE_INPUT')
+    return Path(path)
+
+
+def preflight_tree(root):
+    """Read directory names only, refusing private entries before opening them.
+
+    No link is followed and no file content is read. Subsequent inventory/copy
+    passes rely on the build's stated stable-input assumption.
+    """
+    root = input_path(root)
+    flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+    def visit(fd, path):
+        with os.scandir(fd) as listing:
+            names = [entry.name for entry in listing]
+        check(common.PRIVATE_FOLDER not in names, 'BUILD_PRIVATE_INPUT')
+        for name in names:
+            child_path = input_path(path / name)
+            info = os.stat(name, dir_fd=fd, follow_symlinks=False)
+            if stat.S_ISDIR(info.st_mode):
+                child = os.open(name, flags, dir_fd=fd)
+                try:
+                    visit(child, child_path)
+                finally:
+                    os.close(child)
+    fd = os.open(root, flags)
+    try:
+        visit(fd, root)
+    finally:
+        os.close(fd)
+
+
+def scan_input(root):
+    preflight_tree(root)
+    return inventory.scan(root)
+
+
+def read_input(path):
+    return input_path(path).read_bytes()
+
+
+def output_disjoint(out, roots, files):
+    """Protect each input tree and the directory holding each read-only file."""
+    ancestry = common.physical_ancestry(out.parent)
+    protected = [Path(path) for path in roots] + [Path(os.path.realpath(path)).parent for path in files]
+    check(not ancestry.intersection(prepare.identity(path) for path in protected), 'BUILD_OVERLAP')
+
+
 def publisher_values(source_root):
     """The bundle identifier and team published in the compiled keychain selection of the source being built."""
-    text = (Path(source_root) / KEYCHAIN_SOURCE).read_text()
+    text = read_input(Path(source_root) / KEYCHAIN_SOURCE).decode()
     blocks = re.findall(r'const KEYCHAIN_SELECTION: Option<Selection> = Some\(Selection \{(.*?)\}\);', text, re.S)
     require(len(blocks) == 1, 'exactly one compiled keychain selection required in ' + KEYCHAIN_SOURCE)
     def field(name):
@@ -127,7 +179,8 @@ def observe_scope(runner, env, private):
     def one(argv, shape):
         result = runner(argv, env=env)
         private.write('scope ' + Path(argv[0]).name, result.stdout + result.stderr)
-        # Declared form: exactly one line on standard output, of the expected shape; nothing on standard error.
+        # Exactly one decoded line; Unicode whitespace at its edges is stripped.
+        # Stderr may contain ASCII whitespace only (bytes.strip), and exit must be zero.
         # Sources: uname(1) -m "Write the type of the current hardware platform to standard output";
         # sw_vers(1) ProductVersion "for example, 11.3 or 12.0"; xcrun(1) --show-sdk-version
         # "Print the version number of the selected SDK".
@@ -144,6 +197,7 @@ def observe_scope(runner, env, private):
 def bundle_errors(app, plan, vendor, source_root, runner, env, private):
     """Every post-build check; returns (facts, errors). Errors are named checks with an optional relative path."""
     errors, facts = [], {}
+    preflight_tree(app)
     def error(name, path=None):
         errors.append({'check': name, 'path': path})
     info_raw, info = common.read_info_plist(app)
@@ -152,7 +206,7 @@ def bundle_errors(app, plan, vendor, source_root, runner, env, private):
     facts['info_plist_sha256'] = sha(info_raw)
     identity = common.bundle_identity(info)
     facts['identity'] = {k: common.selected(v, 'version' if 'version' in k else 'identifier') for k, v in identity.items()}
-    executable = (app / 'Contents/MacOS' / common.MAIN_EXECUTABLE).read_bytes()
+    executable = read_input(app / 'Contents/MacOS' / common.MAIN_EXECUTABLE)
     facts['executable_sha256'] = sha(executable)
     tree = inventory.scan(app)
     facts['inventory'] = common.tree_entries(tree)
@@ -163,7 +217,7 @@ def bundle_errors(app, plan, vendor, source_root, runner, env, private):
         private.write('dyld_info ' + relative, result.stdout + result.stderr)
         # dyld_info(1): "-validate_only  Display nothing if binary is valid". No output line is declared:
         # it counts only on return code zero with no output at all; any line fails the check.
-        valid = result.returncode == 0 and not result.stdout.strip() and not result.stderr.strip()
+        valid = result.returncode == 0 and result.stdout == b'' and result.stderr == b''
         validated.append({'path': relative, 'valid': valid})
         if not valid:
             error('dyld_validate', relative)
@@ -180,28 +234,28 @@ def bundle_errors(app, plan, vendor, source_root, runner, env, private):
         if os.path.lexists(app / relative):
             error('already_signed', relative)
     # Vendor tree: bytes, modes and types equal to the vendor input.
-    packaged = inventory.scan(app / common.VENDOR_DESTINATION)
-    equal = inventory.compare(packaged, inventory.scan(vendor))['equal']
+    packaged = scan_input(app / common.VENDOR_DESTINATION)
+    equal = inventory.compare(packaged, scan_input(vendor))['equal']
     facts['vendor'] = {'equal': equal, 'inventory': common.tree_entries(packaged)}
     if not equal:
         error('vendor_tree')
     # Every mapped resource equals its source, byte for byte and by type.
-    account = prepare.parse((plan / 'input-inventory.json').read_bytes())
+    account = prepare.parse(read_input(plan / 'input-inventory.json'))
     resources = []
     for source, item in sorted(account['resource_inputs'].items()):
         destination = app / 'Contents/Resources' / item['destination'].rstrip('/')
         if 'tree' in item:
-            original = inventory.scan(item['tree']['root'])
+            original = scan_input(item['tree']['root'])
             if not os.path.isdir(destination):
                 error('resource', item['destination']); continue
-            placed = inventory.scan(destination)
+            placed = scan_input(destination)
             def content(t): return {e['path']: (e['kind'], e.get('sha256')) for e in t['entries']}
             same = content(placed) == content(original)
             resources.append({'destination': item['destination'], 'manifest_sha256': placed['manifest_sha256'], 'equal': same,
                               'modes_equal': inventory.compare(placed, original)['equal']})
         else:
             path = Path(source) if Path(source).is_absolute() else Path(os.path.abspath(source_root / 'app/src-tauri' / source))
-            same = destination.is_file() and not destination.is_symlink() and sha(destination.read_bytes()) == sha(path.read_bytes())
+            same = destination.is_file() and not destination.is_symlink() and sha(read_input(destination)) == sha(read_input(path))
             resources.append({'destination': item['destination'], 'sha256': item['sha256'], 'equal': same})
         if not same:
             error('resource', item['destination'])
@@ -210,9 +264,10 @@ def bundle_errors(app, plan, vendor, source_root, runner, env, private):
 
 
 def find_publisher_outputs(target):
+    preflight_tree(target)
     found = {}
     for binding in sorted(Path(target).glob('release/build/chirality-app-v4-*/out/publisher-build-binding.s1.json')):
-        raw = binding.read_bytes()
+        raw = read_input(binding)
         if raw.strip() != b'null':
             found.setdefault(raw, binding.parent)
     return next(iter(found.values())) if len(found) == 1 else None
@@ -222,7 +277,6 @@ def build(*, out, private=common.PrivateWriter, **kw):
     """Build and publish a candidate. Any failure after the output folder exists leaves INCOMPLETE.txt and
     BUILD_FAILED.json and no CANDIDATE.json; a refusal before it exists leaves nothing but the message."""
     out = Path(os.path.abspath(out))
-    existed = os.path.lexists(out)
     stage = {}
     try:
         return _build(out=out, private=private, stage=stage, **kw)
@@ -235,7 +289,7 @@ def build(*, out, private=common.PrivateWriter, **kw):
             failure = Failure('BUILD_INTERRUPTED')
         else:
             failure = Failure('BUILD_UNEXPECTED_' + stage.get('stage', 'INPUTS'))
-        if not existed and out.is_dir() and not os.path.lexists(out / common.CANDIDATE_FILE):
+        if stage.get('output_created') and out.is_dir() and not os.path.lexists(out / common.CANDIDATE_FILE):
             try:
                 if not isinstance(error, Failure):
                     private(out).write('trace', ''.join(traceback.format_exception(error)))
@@ -255,19 +309,27 @@ def _build(*, source_root, revision, vendor, expected_manifest, pin, out, enviro
     stage = {} if stage is None else stage
     host = host or (platform.system(), platform.machine())
     check(host == ('Darwin', 'arm64'), 'BUILD_HOST')
-    for value in (source_root, vendor, out, cargo_cache, npm_cache, publisher_input):
+    check(set(tools) == set(TOOLS), 'BUILD_TOOLS')
+    check(set(environment) == set(CALLER_ENVIRONMENT)
+          and all(isinstance(v, str) and v and '\n' not in v for v in environment.values())
+          and all(Path(p).is_absolute() for p in environment['PATH'].split(':')), 'BUILD_ENVIRONMENT')
+    for value in (source_root, vendor, out, cargo_cache, npm_cache, publisher_input,
+                  *tools.values(), *environment['PATH'].split(':')):
         if value is not None:
-            check(not common.is_private_path(value), 'BUILD_PRIVATE_INPUT')
+            input_path(value)
     try:
         export, vendor, cargo_cache, npm_cache = map(inventory.anchored, (source_root, vendor, cargo_cache, npm_cache))
         common.refuse_installed_location(out, 'output')
     except ValueError:
         raise Failure('BUILD_OUT')
     check(not os.path.lexists(out) and out.parent.is_dir(), 'BUILD_OUT')
-    check(set(environment) == set(CALLER_ENVIRONMENT)
-          and all(isinstance(v, str) and v and '\n' not in v for v in environment.values())
-          and all(Path(p).is_absolute() for p in environment['PATH'].split(':')), 'BUILD_ENVIRONMENT')
-    check(set(tools) == set(TOOLS), 'BUILD_TOOLS')
+    resolved_programs = []
+    for name in ('rustc', 'cargo', 'npm', 'node'):
+        resolved = shutil.which(name, path=environment['PATH'])
+        if resolved is not None:
+            resolved_programs.append(input_path(resolved))
+    output_disjoint(out, (export, vendor, cargo_cache, npm_cache),
+                    [*tools.values(), *resolved_programs] + ([publisher_input] if publisher_input is not None else []))
     for name in ('rustc', 'cargo'):
         resolved = shutil.which(name, path=environment['PATH'])
         check(resolved is not None and os.path.samefile(resolved, tools[name]), 'BUILD_TOOLS')
@@ -276,11 +338,22 @@ def _build(*, source_root, revision, vendor, expected_manifest, pin, out, enviro
     check((publisher_input is None) == (publisher_sha256 is None), 'BUILD_PUBLISHER_PAIR')
     check(not os.path.lexists(export / 'app/node_modules'), 'BUILD_NODE_MODULES')
     check(not any(os.path.lexists(cargo_cache / n) for n in CARGO_CACHE_REFUSED), 'BUILD_CARGO_CACHE')
+    for tree in (export, cargo_cache, npm_cache, vendor):
+        preflight_tree(tree)
     # Inputs the build would write through are copied in: no link may lead out of them.
     for tree in (cargo_cache, npm_cache, export):
         refuse_links(inventory.scan(tree))
+    try:
+        source_identifier, source_team = publisher_values(export)
+        if publisher_input is not None:
+            supplied = prepare.parse(read_input(publisher_input))
+            check(supplied.get('production_bundle_identifier') == source_identifier
+                  and supplied.get('developer_id_team_identifier') == source_team, 'BUILD_PUBLISHER_MATCH')
+    except (ValueError, OSError, KeyError):
+        raise Failure('BUILD_PUBLISHER_SOURCE')
     stage['stage'] = 'COPY'
     out.mkdir(mode=0o700)
+    stage['output_created'] = True
     write_private_input(out / 'INCOMPLETE.txt', b'No candidate until CANDIDATE.json is published and this marker is removed.\n')
     private = private(out)
     source_root = out / 'source'
@@ -311,12 +384,12 @@ def _build(*, source_root, revision, vendor, expected_manifest, pin, out, enviro
     except (ValueError, OSError, KeyError):
         raise Failure('BUILD_PLAN')
     public_teams = {team, common.SUPPLIER_TEAM}
-    config = prepare.parse((plan / 'tauri.package-inputs.conf.json').read_bytes())
+    config = prepare.parse(read_input(plan / 'tauri.package-inputs.conf.json'))
     check(config['productName'] == common.PRODUCT_NAME and config['identifier'] == common.RELEASE['identifier']
           and config['version'] == common.RELEASE['version']
           and config['bundle']['macOS']['minimumSystemVersion'] == common.RELEASE['minimum_system_version']
           and config['bundle']['macOS']['signingIdentity'] is None, 'BUILD_OVERLAY')
-    recipe = prepare.parse((plan / 'build-recipe.json').read_bytes())
+    recipe = prepare.parse(read_input(plan / 'build-recipe.json'))
     stage['stage'] = 'ENVIRONMENT'
     env = dict(recipe['environment']) | environment | isolated_environment(out)
     check(recipe['inherit_environment'] is False and '--no-sign' in recipe['argv'] and set(env) == set(recipe['environment_allowlist'])
@@ -350,20 +423,21 @@ def _build(*, source_root, revision, vendor, expected_manifest, pin, out, enviro
     facts, errors = bundle_errors(app, plan, vendor, source_root, runner, env, private)
     # The publisher binding and requirement the build compiled in.
     produced = find_publisher_outputs(out / 'target')
-    executable = (app / 'Contents/MacOS' / common.MAIN_EXECUTABLE).read_bytes()
+    executable = read_input(app / 'Contents/MacOS' / common.MAIN_EXECUTABLE)
     if produced is None:
         errors.append({'check': 'publisher_binding', 'path': None})
     else:
-        binding_raw = (produced / 'publisher-build-binding.s1.json').read_bytes()
-        requirement_raw = (produced / 'publisher-requirement.txt').read_bytes()
+        binding_raw = read_input(produced / 'publisher-build-binding.s1.json')
+        requirement_raw = read_input(produced / 'publisher-requirement.txt')
         binding = prepare.parse(binding_raw)
-        if (binding.get('input_sha256') != publisher_sha256 or binding.get('production_bundle_identifier') != common.RELEASE['identifier']
+        if (binding.get('input_sha256') != publisher_sha256 or binding.get('production_bundle_identifier') != source_identifier
+                or binding.get('developer_id_team_identifier') != source_team
                 or binding.get('build_context', {}).get('application_version') != common.RELEASE['version']
                 or binding.get('requirement_sha256') != sha(requirement_raw) or binding_raw not in executable or requirement_raw not in executable):
             errors.append({'check': 'publisher_binding', 'path': None})
-    limitations_raw = limitations_source.read_bytes()
+    limitations_raw = read_input(limitations_source)
     bundled = app / common.LIMITATIONS_IN_BUNDLE
-    bundled_state = ({'sha256': sha(bundled.read_bytes()), 'equal_to_source': bundled.read_bytes() == limitations_raw}
+    bundled_state = ({'sha256': sha(read_input(bundled)), 'equal_to_source': read_input(bundled) == limitations_raw}
                      if bundled.is_file() else 'not observed')
     if isinstance(bundled_state, dict) and not bundled_state['equal_to_source']:
         errors.append({'check': 'limitations', 'path': common.LIMITATIONS_IN_BUNDLE})
@@ -374,7 +448,7 @@ def _build(*, source_root, revision, vendor, expected_manifest, pin, out, enviro
     files = {}
     for key, name in (('binding', 'publisher-build-binding.s1.json'), ('requirement', 'publisher-requirement.txt'),
                       ('projection', 'publisher-build-public-projection.s1.json')):
-        raw = (produced / name).read_bytes()
+        raw = read_input(produced / name)
         write_private_input(publisher_dir / name, raw)
         files[key] = {'path': 'publisher/' + name, 'sha256': sha(raw)}
     write_private_input(out / 'RELEASE_LIMITATIONS_4.0.0.md', limitations_raw)
@@ -408,7 +482,7 @@ def _build(*, source_root, revision, vendor, expected_manifest, pin, out, enviro
 
 
 def parse_team(publisher_input):
-    value = prepare.parse(Path(publisher_input).read_bytes())
+    value = prepare.parse(read_input(publisher_input))
     team = value['developer_id_team_identifier']
     require(re.fullmatch('[A-Z0-9]{10}', team) is not None, 'malformed team')
     return team
