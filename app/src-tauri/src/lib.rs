@@ -1705,6 +1705,12 @@ fn request_quit(app: tauri::AppHandle) {
         }
     });
 }
+/// Setup's end offers Quit beside its sentence (the reopen loads the saved setup): the same
+/// question and settlement as the menu's Quit, asked by the host; the web view only asks for it.
+#[tauri::command]
+fn quit_app(app: tauri::AppHandle) {
+    request_quit(app);
+}
 /// C-24 (DEL-01-04 §4.8): the count of supplier requests waiting for the
 /// person, on the App's Dock icon, whether or not the window is shown.
 fn show_waiting_indicator(app: &tauri::AppHandle, last: &mut Option<i64>, menu: &mut native_waiting::MenuObserver) {
@@ -3503,7 +3509,7 @@ pub fn run() {
         // DEF-1: closing or reloading a window is not a stop (HOSTING §4.5); no window
         // event touches the child.
         .invoke_handler(tauri::generate_handler![
-            desktop_setup_pick, desktop_setup_preview, desktop_setup_new_settings_preview, desktop_setup_project_preview, desktop_setup_prepare,
+            desktop_setup_pick, desktop_setup_preview, desktop_setup_new_settings_preview, desktop_setup_project_preview, desktop_setup_prepare, quit_app,
             file_act_select, file_act_open_arrival, file_act_confirm, file_act_continue, file_act_dismiss, file_act_read, file_act_observe_lapses, file_act_retry_lapses,
             read_recovery_custody,
             read_recovery_request_history,

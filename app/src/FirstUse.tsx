@@ -64,6 +64,16 @@ export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
   const seen = revision.current;
   const current = () => seen === revision.current;
   const fail = (error: unknown) => { if (mounted.current) { setFailed(true); setMessage(String(error)); } };
+  // Quit is the menu's own Quit: the host asks its question and settles Codex; the window only asks for it.
+  const [quitting, setQuitting] = useState(false);
+  const [quitMessage, setQuitMessage] = useState("");
+  const quit = async () => {
+    if (quitting) return;
+    setQuitting(true); setQuitMessage("");
+    try { await invoke("quit_app"); }
+    catch (error) { if (mounted.current) setQuitMessage(`Chirality could not ask to quit: ${String(error)} Use Quit Chirality in the menu (⌘Q).`); }
+    finally { if (mounted.current) setQuitting(false); }
+  };
 
   const shown = { ...view, pending: saved?.pending ?? view.pending, retainProject: saved?.retainProject ?? view.retainProject };
   const keepAvailable = shown.retainProject?.available === true;
@@ -74,7 +84,7 @@ export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
   const routeReady = route === "new" || route === "keep" ? true : paths.every(p => !!p?.displayPath);
   const ready = !busy && !shown.custodyProblem && projectChosen && routeReady && (route !== "keep" || keepAvailable);
   const next = busy ? progress
-    : shown.pending ? "Setup is saved. Quit Chirality and open it again to start working."
+    : shown.pending ? "Setup is saved. Quit Chirality and open it again: reopening takes you to sign in."
     : projectProblem ? "Check the project folder path using the guidance below it."
     : !projectChosen ? "Choose the folder you want to work in, or continue without a project."
     : !routeReady ? "Choose your config.toml, AGENTS.md and skills folder, or start with new settings."
@@ -144,11 +154,13 @@ export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
   </section>;
   return <section className="first-use" aria-label="Welcome" aria-busy={busy}>
     <h1>Welcome to Chirality</h1>
-    <p className="first-use-lead">Chirality runs Codex on this Mac to do project work with you, and to turn work that goes well into workflows you can run again.{shown.pending ? "" : " First, choose a project folder and how Codex is set up. Your choices take effect when you next open the App."}</p>
+    <p className="first-use-lead">Chirality runs Codex on this Mac to do project work with you, and to turn work that goes well into workflows you can run again.{shown.pending ? "" : " First, choose a project folder and how Codex is set up. Your choices take effect when you quit Chirality and open it again."}</p>
     {shown.custodyProblem && <p role="alert">Setup can't continue: {shown.custodyProblem}</p>}
     {shown.pending ? <div className="first-use-saved" role="status" aria-label="Setup saved">
       <h2>You're set up</h2>
-      <p><strong>Next: quit Chirality (⌘Q) and open it again.</strong> Reopening loads your saved project and Codex settings. Then open Connection and access to sign in with your ChatGPT account. After signing in, choose a model and start a conversation.</p>
+      <p><strong>Next: quit Chirality and open it again.</strong> Reopening loads your saved project and Codex settings, and takes you to sign in.{" "}
+        <button className="setup-primary" disabled={quitting} onClick={() => { void quit(); }}>Quit Chirality</button></p>
+      {quitMessage && <p role="alert">{quitMessage}</p>}
       <p>Project: {shown.pending.project ? <code className="first-use-path">{shown.pending.project}</code> : "none"}</p>
     </div> : <>
     <ol className="first-use-steps">
@@ -194,7 +206,7 @@ export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
           <p>{preview.standing}</p>
           <p><button className="setup-primary" disabled={busy} onClick={() => { void confirm(); }}>{preview.affirmative}…</button>{" "}
             <button disabled={busy} onClick={changed}>Change my choices</button></p>
-          <p><small>The App asks you to confirm in its own dialog. Your current window keeps working until you reopen the App.</small></p>
+          <p><small>The App asks you to confirm in its own dialog. Your current window keeps working until you quit Chirality and open it again.</small></p>
         </div>}
       </li>
     </ol></>}

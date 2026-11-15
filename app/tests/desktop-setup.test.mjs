@@ -325,6 +325,7 @@ test('first use: choose a project, start with new App-owned settings, review the
     if(command==='desktop_setup_pick'){assert.deepEqual(args,{kind:'project'});return {displayPath:textPath(next.project),nativePath:next.project};}
     if(command==='desktop_setup_new_settings_preview'){assert.deepEqual(args,{projectPath:next.project},'only the chosen project; no settings, home or supplier nomination');return next.preview;}
     if(command==='desktop_setup_prepare'){assert.deepEqual(args,{previewToken:next.preview.token});return next.saved;}
+    if(command==='quit_app'){assert.equal(args,undefined,'Quit asks the host for its own question; nothing is passed');return null;}
     assert.fail(command);
   },async(c,calls)=>{
     const welcome=region(c,'Welcome');assert.match(welcome.textContent,/Welcome to Chirality/);
@@ -343,8 +344,13 @@ test('first use: choose a project, start with new App-owned settings, review the
     for(const effect of next.preview.effects)assert.ok(effects.includes(effect),effect);
     assert.match(effects,/Create a new settings folder for this App/);assert.match(effects,/No other Codex settings, home or credential is read, imported or changed/);
     await press(c,'Create settings and save for next launch…');
-    assert.match(region(c,'Setup saved').textContent,/quit Chirality \(⌘Q\) and open it again\..*Then open Connection and access to sign in with your ChatGPT account\. After signing in, choose a model and start a conversation\./);
+    // The restart stays (setup saves a request the next launch admits); the reopen takes the person to sign in.
+    assert.match(region(c,'Setup saved').textContent,/Next: quit Chirality and open it again\. Reopening loads your saved project and Codex settings, and takes you to sign in\./);
+    assert.doesNotMatch(region(c,'Setup saved').textContent,/open Connection and access/,'the person is no longer sent to find the sign-in');
     assert.deepEqual(calls.map(call=>call.command),['desktop_setup_pick','desktop_setup_new_settings_preview','desktop_setup_prepare']);
+    // Quit beside the sentence is the menu's Quit: one command, the host's own question.
+    await press(c,'Quit Chirality');
+    assert.deepEqual(calls.map(call=>call.command),['desktop_setup_pick','desktop_setup_new_settings_preview','desktop_setup_prepare','quit_app']);
   });
 });
 test('first use: no project, existing settings route, cancel and change keep choices and never save',async()=>{
