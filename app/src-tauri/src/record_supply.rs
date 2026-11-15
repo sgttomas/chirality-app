@@ -545,7 +545,21 @@ pub struct RecordedRun {
     pub assurance: Value,
     pub lifecycle: RecordedLifecycle,
     pub restart_interruptions: Vec<Value>,
+    /// Every RS entry of this run, in the order read from its logs. None is
+    /// filtered and none is made here.
+    pub records: Vec<Value>,
+    /// The declaration of the workflow revision the run's records name,
+    /// verified against the package digest they record, or why it was not.
+    /// Read now from the holding library; it is not a record of the run.
+    pub declared: Result<Value, String>,
 }
+/// The most records the reopened view carries across all its runs. The
+/// Execution and recovery lane's own bound: every record travels in each
+/// status, so the view carries whole runs only, runs not recorded as ended
+/// first, and a run left out says so in its limits.
+pub const REOPENED_RECORDS_BOUND: usize = 2_000;
+/// Where a reopened run's declaration comes from, said beside it.
+pub const DECLARED_SOURCE: &str = "read now from the workflow revision this run's records name, verified against the package digest they record; not a record of this run";
 #[derive(Debug, Clone)]
 pub struct RunsReading {
     pub runs: Vec<RecordedRun>,
@@ -578,17 +592,127 @@ impl RunsReading {
             .collect()
     }
     pub fn view(&self) -> Value {
-        json!({"runs":self.runs.iter().map(|r|{
+        self.view_bounded(REOPENED_RECORDS_BOUND)
+    }
+    /// Each run in the form a hot run's records take (`lifecycle.records`),
+    /// whole or not at all: a part of a run could show an arrival without its
+    /// later disposition. Runs not recorded as ended are carried first.
+    pub(crate) fn view_bounded(&self, bound: usize) -> Value {
+        let ended = |r: &RecordedRun| matches!(r.lifecycle, RecordedLifecycle::Ended { .. });
+        let mut carried = vec![false; self.runs.len()];
+        let mut room = bound;
+        for first in [true, false] {
+            for (i, r) in self.runs.iter().enumerate() {
+                if ended(r) != first && r.records.len() <= room {
+                    carried[i] = true;
+                    room -= r.records.len();
+                }
+            }
+        }
+        let left_out = carried.iter().filter(|c| !**c).count();
+        let mut limits = self.limits.clone();
+        if left_out > 0 {
+            limits.push(format!("{left_out} reopened run(s) are shown without their records: this view carries at most {bound} records in all, and only whole runs; each such run's limits say so"));
+        }
+        json!({"runs":self.runs.iter().zip(carried).map(|(r,carried)|{
             let (state,detail)=match &r.lifecycle{
                 RecordedLifecycle::OpenInterrupted=>("open; interrupted (no run_ended recorded)",json!(null)),
                 RecordedLifecycle::Ended{stopped_by,cause}=>("ended",json!({"stoppedBy":stopped_by,"cause":cause})),
                 RecordedLifecycle::StartNotConfirmed=>("start not confirmed in record",json!("published run-start text without run_opened")),
                 RecordedLifecycle::Unknown(reason)=>("unknown",json!(reason)),
             };
-            json!({"run":r.run,"conversation":r.conversation,"follows":r.follows,"workflow":r.workflow,"assurance":r.assurance,"state":state,"detail":detail,"restartInterruptions":r.restart_interruptions})
-        }).collect::<Vec<_>>(),"limits":self.limits,
+            let end = match &r.lifecycle {
+                RecordedLifecycle::Ended{stopped_by,cause}=>json!({"run":r.run,"stoppedBy":stopped_by,"cause":cause}),
+                _=>Value::Null,
+            };
+            // The project's read limits bear on every run: an unreadable log
+            // could be any run's.
+            let mut run_limits = self.limits.clone();
+            let mut lifecycle = json!({"state":state,"end":end});
+            if carried {
+                lifecycle["records"] = json!(r.records.iter().map(|e| record_view(e, &r.records)).collect::<Vec<_>>());
+            } else {
+                run_limits.push(format!("this run's {} records are not in this view: it carries at most {bound} records in all, and only whole runs; its checkpoint dispositions are not known here", r.records.len()));
+            }
+            let mut row = json!({"run":r.run,"reference":r.run,"conversation":r.conversation,"follows":r.follows,"workflow":r.workflow,"assurance":r.assurance,"state":state,"detail":detail,"restartInterruptions":r.restart_interruptions,"lifecycle":lifecycle});
+            match &r.declared {
+                Ok(declaration) => row["compatibility"] = json!([{"preparation":{"declaration":declaration},"source":DECLARED_SOURCE}]),
+                Err(why) => run_limits.push(format!("the declared actor was not established: {why}")),
+            }
+            row["limits"] = json!(run_limits);
+            row
+        }).collect::<Vec<_>>(),"limits":limits,
         "standing":"reopened from project records only; completion is never inferred from a native turn, and no live process run is claimed"})
     }
+}
+/// Whether the workflow a `run_opened` record names is the one its run-start record names: the
+/// same kind, origin, source root, name and revision.
+fn same_workflow(opened: &Value, started: Option<&Value>) -> bool {
+    let Some(started) = started else { return false };
+    [("kind", "kind"), ("origin", "origin"), ("sourceRoot", "source_root"), ("name", "name"), ("revision", "revision")]
+        .iter()
+        .all(|(o, s)| opened[*o].is_string() && opened[*o] == started[*s])
+}
+/// One RS entry as read from a run's log, in the hot run's record form. It
+/// was read, so it was written; it was written late only where the run's own
+/// CE-19 limit names it.
+fn record_view(entry: &Value, run: &[Value]) -> Value {
+    let late = run.iter().find(|e| {
+        e["kind"] == "evidence_limit"
+            && e["body"]["label"] == "record write failed"
+            && e["body"]["subjectRef"] == entry["recordId"]
+            && !entry["recordId"].is_null()
+    });
+    json!({"kind":entry["kind"],"recordId":entry["recordId"],"observedAt":entry["observedAt"],"written":true,
+        "writtenLate":late.is_some(),"limit":late.map(|e| e["body"]["label"].clone()),"neverWritten":false,"body":entry["body"]})
+}
+/// The run's declared checkpoints come from its workflow's declaration, which
+/// no run record holds. It is read from the revision store the run-start
+/// record names, by the library's own reader, and used only when the bytes
+/// recompute to the package digest the run-start and selection records both
+/// hold under the recorded method. Nothing is inferred when it is not.
+fn declared_by_records(project: &ProjectRecords, start: &ResolvedRecord, packages: &mut std::collections::BTreeMap<(std::path::PathBuf, String), Result<Value, String>>) -> Result<Value, String> {
+    use crate::workflow_workspace::{Snapshot, WorkflowIdentity, SNAPSHOT_METHOD};
+    let body = start.body();
+    let identity: WorkflowIdentity = serde_json::from_value(body["workflow"].clone())
+        .map_err(|e| format!("the run start's workflow identity is not readable: {e}"))?;
+    if identity.revision_method != SNAPSHOT_METHOD {
+        return Err(format!("the recorded revision is not a package digest ({})", identity.revision_method));
+    }
+    let holding = body["holding_library"]
+        .as_str()
+        .map(std::path::PathBuf::from)
+        .filter(|p| p.is_absolute())
+        .ok_or("the run start names no holding library")?;
+    let basis = start.envelope()["basis_records"].as_array().filter(|b| b.len() == 1)
+        .and_then(|b| b[0].as_str())
+        .ok_or("the run start does not name its one selection")?;
+    let selection = project
+        .resolve(basis)
+        .map_err(|e| format!("the run's selection record is not readable: {e:?}"))?;
+    let s = selection.body();
+    if !start.same_project(&selection)
+        || s["record_kind"] != "selection_record"
+        || s["identity"] != body["workflow"]
+        || s["holding_library"] != body["holding_library"]
+    {
+        return Err("the run start and its selection record do not agree on the workflow or its holding library".into());
+    }
+    let package = holding.join(&identity.name);
+    // One reading of a package serves every run started from it in this read.
+    packages
+        .entry((package.clone(), identity.revision.clone()))
+        .or_insert_with(|| {
+            crate::storage::check_path(&package)?;
+            let snapshot = Snapshot::capture(&package)
+                .map_err(|e| format!("the holding library no longer yields that revision: {e}"))?;
+            if snapshot.revision() != identity.revision {
+                return Err("the holding library's bytes differ from the recorded package digest".into());
+            }
+            let declaration = snapshot.declaration().map_err(|e| format!("that revision's declaration is not readable: {e}"))?;
+            serde_json::to_value(declaration).map_err(|e| format!("that revision's declaration is not readable: {e}"))
+        })
+        .clone()
 }
 /// Reopen: read the explicit project's RS logs and WR records (and the REC
 /// restart facts the caller supplies) into each run's recorded lifecycle.
@@ -600,8 +724,10 @@ pub fn read_project_runs(project: &ProjectRecords, restart_events: &[Value]) -> 
     let mut ids: Vec<String> = Vec::new();
     let mut opened: std::collections::BTreeMap<String, Vec<&Value>> = Default::default();
     let mut ended: std::collections::BTreeMap<String, Vec<&Value>> = Default::default();
+    let mut recorded: std::collections::BTreeMap<String, Vec<Value>> = Default::default();
     for e in &entries {
         let Some(run) = e["runId"].as_str() else { continue };
+        recorded.entry(run.into()).or_default().push(e.clone());
         match e["kind"].as_str() {
             Some("run_opened") => opened.entry(run.into()).or_default().push(e),
             Some("run_ended") => ended.entry(run.into()).or_default().push(e),
@@ -612,6 +738,11 @@ pub fn read_project_runs(project: &ProjectRecords, restart_events: &[Value]) -> 
         }
     }
     let mut starts: std::collections::BTreeMap<String, Value> = Default::default();
+    let mut declared: std::collections::BTreeMap<String, Result<Value, String>> = Default::default();
+    let mut packages = Default::default();
+    // A record that cannot be read could be another start of any run, so no run's start is then
+    // established as its only one.
+    let mut wr_unread = false;
     match project.list_references() {
         Ok(references) => {
             for reference in references {
@@ -624,14 +755,31 @@ pub fn read_project_runs(project: &ProjectRecords, restart_events: &[Value]) -> 
                         if !ids.contains(&run) {
                             ids.push(run.clone());
                         }
+                        let read = if starts.contains_key(&run) {
+                            Err("the records hold more than one start for this run".into())
+                        } else {
+                            declared_by_records(project, &record, &mut packages)
+                        };
+                        declared.insert(run.clone(), read);
                         starts.insert(run, record.body().clone());
                     }
                     Ok(_) => {}
-                    Err(e) => limits.push(format!("WR {reference}: {e:?}")),
+                    Err(e) => {
+                        wr_unread = true;
+                        limits.push(format!("WR {reference}: {e:?}"))
+                    }
                 }
             }
         }
-        Err(e) => limits.push(format!("WR records unreadable: {e}")),
+        Err(e) => {
+            wr_unread = true;
+            limits.push(format!("WR records unreadable: {e}"))
+        }
+    }
+    // Records of a run whose start and opening are both unreadable belong to
+    // no listed run; they are named, never dropped silently.
+    for run in recorded.keys().filter(|r| !ids.contains(r)) {
+        limits.push(format!("records of run {run} are in the logs, but neither its start nor its opening is readable; they are not shown"));
     }
     let runs = ids
         .into_iter()
@@ -687,6 +835,21 @@ pub fn read_project_runs(project: &ProjectRecords, restart_events: &[Value]) -> 
                     .and_then(|e| e["body"]["follows"].as_str())
                     .map(str::to_owned),
                 assurance: start.and_then(|s| s.get("assurance")).cloned().unwrap_or(Value::Null),
+                records: recorded.remove(&run).unwrap_or_default(),
+                declared: declared
+                    .remove(&run)
+                    .unwrap_or_else(|| Err("no run-start record of this run is readable".into()))
+                    .and_then(|declaration| {
+                        if wr_unread {
+                            return Err("a record of the project could not be read, so this run's start is not established as its only one".into());
+                        }
+                        match o.as_slice() {
+                            [] => Ok(declaration),
+                            [opening] if same_workflow(&opening["body"]["workflow"], start.map(|s| &s["workflow"])) => Ok(declaration),
+                            [_] => Err("the run's opening record names another workflow revision than its start".into()),
+                            _ => Err("the run's openings conflict".into()),
+                        }
+                    }),
                 run,
                 conversation,
                 workflow,

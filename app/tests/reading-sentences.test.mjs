@@ -4,11 +4,17 @@
 // sentences are made and passed through, is checked by hosting::reading_gate_tests and
 // desktop_startup::access_provider_saves_state_the_write_first_when_reading_again_is_not_sent.
 // No supplier, model, sign-in, network or person act.
-import test from 'node:test';
+import test, {beforeEach, afterEach} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {loadSrc} from './support/load-src.mjs';
+// The kept local route's views are gated off in this version (DEL-01-05 "For 4.0.0"); the test of the kept
+// local flow turns the gate on, as a later update would. The host refuses every local command regardless.
+const localRoute = loadSrc('localRoute');
+beforeEach(t => { localRoute.LOCAL_ROUTE_OFFERED = /^the oMLX connection:/.test(t.name); });
+afterEach(() => { localRoute.LOCAL_ROUTE_OFFERED = false; });
 import {installMiniDom} from './support/mini-dom.mjs';
+import {choiceLists, chooseIn} from './support/choices.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 const document = installMiniDom();
 const React = (await import('react')).default;
@@ -27,7 +33,7 @@ const nodes = (c, tag) => c.querySelectorAll(node => node.localName === tag);
 const region = (c, label) => c.querySelectorAll(node => node.getAttribute('aria-label') === label)[0];
 const button = (c, label) => nodes(c, 'button').find(node => node.textContent === label);
 const labelled = (c, tag, label) => nodes(c, tag).find(node => node.parentNode.textContent.startsWith(label));
-const change = (node, value) => React.act(() => props(node).onChange({target:{value}}));
+const change = (node, value) => React.act(() => node.localName === 'fieldset' ? chooseIn(node, value) : props(node).onChange({target:{value}}));
 const press = (c, label) => React.act(async () => { const node = button(c, label); assert.ok(node, label); assert.equal(!!props(node).disabled, false, label); await props(node).onClick(); });
 
 test('the web strings equal the Rust constants they stand for', () => {
@@ -234,7 +240,7 @@ async function conversationWriter(operation, commandFails, check) {
   try {
     await React.act(async () => root.render(React.createElement(App)));
     const panel = () => c.querySelectorAll(node => node.getAttribute('id') === 'conversation')[0];
-    await change(nodes(panel(), 'select')[0], JSON.stringify([g, 'thread-a']));
+    await change(choiceLists(panel())[0], JSON.stringify([g, 'thread-a']));
     // The account start's one route (the built-in provider with the ChatGPT account entry), then its model.
     await tap('Use my ChatGPT account (built-in OpenAI)'); await change(labelled(c, 'input', 'Model '), 'r4-model');
     await tap('Start thread');
@@ -340,7 +346,7 @@ for (const kind of ['assurance', 'attachment', 'external', 'trace', 'decide', 'p
     const own = `invented ${kind} refusal`;
     if (kind === 'decide') {
       assert.ok(c.textContent.includes(commandFails ? `decide: ${own} ${REFRESH_FAILED}` : `decide: {"selection"`), 'the decision outcome stands');
-      assert.ok(!c.textContent.includes('Act control: Invented decision'), 'decide closes its offer after the command, as before');
+      assert.ok(!nodes(c, 'h2').some(node => node.textContent === 'Act control'), 'decide closes its offer after the command, as before');
     } else if (kind === 'external') {
       assert.ok(c.textContent.includes(`${commandFails ? own : 'External selection: invented-selected invented-stage'} ${REFRESH_FAILED}`), 'the selection outcome stands, then the fixed line');
     } else if (kind === 'process') {

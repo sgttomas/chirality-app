@@ -386,3 +386,62 @@ fn actual_start_cold_reader_rejects_rs_turn_purpose_method_and_state_drift() {
         ReadStanding::Limited
     );
 }
+
+/// An invented recorded run with `n` invented entries.
+fn invented_run(run: &str, ended: bool, n: usize) -> RecordedRun {
+    RecordedRun {
+        run: run.into(),
+        conversation: Some("invented-thread".into()),
+        follows: None,
+        workflow: Value::Null,
+        assurance: Value::Null,
+        lifecycle: if ended { RecordedLifecycle::Ended { stopped_by: "the person".into(), cause: "ended by the person".into() } } else { RecordedLifecycle::OpenInterrupted },
+        restart_interruptions: vec![],
+        records: (0..n).map(|i| json!({"kind":"checkpoint_arrival","runId":run,"recordId":format!("{run}-{i}"),"observedAt":"2026-01-01T00:00:00Z","body":{}})).collect(),
+        declared: Err("invented".into()),
+    }
+}
+fn carried(view: &Value) -> Vec<(String, Option<usize>)> {
+    view["runs"].as_array().unwrap().iter()
+        .map(|r| (r["run"].as_str().unwrap().to_owned(), r["lifecycle"]["records"].as_array().map(Vec::len)))
+        .collect()
+}
+fn left_out_limit(view: &Value, run: &str) -> Option<String> {
+    let r = view["runs"].as_array().unwrap().iter().find(|r| r["run"] == run).unwrap();
+    r["limits"].as_array().unwrap().iter().filter_map(Value::as_str).find(|l| l.contains("records are not in this view")).map(str::to_owned)
+}
+
+#[test]
+fn the_reopened_view_carries_whole_runs_only_when_the_bound_falls_between_two() {
+    let reading = RunsReading { runs: vec![invented_run("run:a", false, 3), invented_run("run:b", false, 3)], limits: vec![] };
+    let view = reading.view_bounded(4);
+    assert_eq!(carried(&view), vec![("run:a".into(), Some(3)), ("run:b".into(), None)], "never a part of run:b");
+    assert!(left_out_limit(&view, "run:b").is_some_and(|l| l.contains("this run's 3 records") && l.contains("at most 4")), "{view}");
+    assert_eq!(left_out_limit(&view, "run:a"), None);
+    assert!(view["limits"].as_array().unwrap().iter().any(|l| l.as_str().unwrap().starts_with("1 reopened run(s) are shown without their records")), "{view}");
+    // Every run is still listed, left out or not.
+    assert_eq!(view["runs"].as_array().unwrap().len(), 2);
+}
+
+#[test]
+fn a_run_that_alone_exceeds_the_bound_is_left_out_and_runs_not_ended_come_first() {
+    let reading = RunsReading {
+        runs: vec![invented_run("run:ended", true, 2), invented_run("run:large", false, 5), invented_run("run:open", false, 2)],
+        limits: vec!["an invented read limit".into()],
+    };
+    let view = reading.view_bounded(4);
+    assert_eq!(carried(&view), vec![("run:ended".into(), Some(2)), ("run:large".into(), None), ("run:open".into(), Some(2))]);
+    assert!(left_out_limit(&view, "run:large").is_some_and(|l| l.contains("this run's 5 records")), "{view}");
+    // The project's read limits bear on every run.
+    for r in view["runs"].as_array().unwrap() {
+        assert!(r["limits"].as_array().unwrap().iter().any(|l| l == "an invented read limit"), "{r}");
+    }
+    // With room for one run only, the run not recorded as ended is the one carried.
+    let view = RunsReading { runs: vec![invented_run("run:ended", true, 3), invented_run("run:open", false, 3)], limits: vec![] }.view_bounded(3);
+    assert_eq!(carried(&view), vec![("run:ended".into(), None), ("run:open".into(), Some(3))]);
+    assert!(left_out_limit(&view, "run:ended").is_some());
+    // A declaration not established is said on the run, and no compatibility is given.
+    let r = &view["runs"][1];
+    assert!(r.get("compatibility").is_none());
+    assert!(r["limits"].as_array().unwrap().iter().any(|l| l == "the declared actor was not established: invented"), "{r}");
+}

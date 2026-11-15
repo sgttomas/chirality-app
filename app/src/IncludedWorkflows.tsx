@@ -1,3 +1,4 @@
+import { safeName, idWords, numberWords, wordOf } from "./AgentText";
 import { useState, type ReactNode } from "react";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -18,6 +19,14 @@ const byPlace = (a: Json, b: Json) => tierRank(a) - tierRank(b) || orderOf(a) - 
  * then the ones it marks superseded. Each heading says only what the index
  * says; nothing here is the App's judgment of a workflow or advice to use one.
  */
+/** The Library's workflow groups in the edition the App ships (resources/production_workflows/MANIFEST.json), as the
+ * App's own table: a section is named from it only when an entry's group key and label are both in it. Any other
+ * group is shown under "Other workflows", so a section heading holds only the App's words. */
+export const LIBRARY_GROUPS = {
+  "plan-organize": "Plan & organize", "research-understand": "Research & understand", "extract-documents": "Extract from documents",
+  "build-maintain-software": "Build & maintain software", "estimate-cost": "Estimate & cost", "review-check": "Review & check",
+  "manage-changes": "Manage changes", "author-publish": "Author & publish",
+} as const;
 export function includedSections(entries: Json[]): Section[] {
   const sections = new Map<string, Section>();
   const place = (key: string, label: string, order: number, entry: Json) => {
@@ -29,7 +38,7 @@ export function includedSections(entries: Json[]): Section[] {
     const group = navigation.group;
     if (navigation.category === "superseded") place(REPLACED, "Marked superseded by the Library", Number.MAX_SAFE_INTEGER, entry);
     else if (navigation.category === "core") place(START, "The Library's core workflows", -1, entry);
-    else if (group && typeof group.key === "string" && typeof group.label === "string") place(`group:${group.key}`, group.label, Number.isFinite(group.order) ? group.order : Number.MAX_SAFE_INTEGER - 2, entry);
+    else if (group && wordOf(LIBRARY_GROUPS, group.key) !== null && wordOf(LIBRARY_GROUPS, group.key) === group.label) place(`group:${group.key}`, wordOf(LIBRARY_GROUPS, group.key) ?? "", Number.isFinite(group.order) ? group.order : Number.MAX_SAFE_INTEGER - 2, entry);
     else place(OTHER, "Other workflows", Number.MAX_SAFE_INTEGER - 1, entry);
   }
   return [...sections.values()].sort((a, b) => a.order - b.order || a.label.localeCompare(b.label)).map(section => ({ ...section, entries: [...section.entries].sort(byPlace) }));
@@ -105,14 +114,14 @@ function About({ entry, source, textControl, open }: { entry: Json; source: Json
   const paths = libraryPathsOf(entry);
   const roles = list(entry?.roles).filter(role => typeof role === "string");
   const from = librarySourceWords(source);
-  return <details open={open ? true : undefined}><summary>About {text(entry.name)}</summary>
-    <p>Source: {from ? `${from}, included with the App` : "included with the App"}. Revision <code title={text(entry.revision)}>{text(entry.revision).slice(0, 12)}…</code></p>
+  return <details open={open ? true : undefined}><summary>About {safeName(entry.name)}</summary>
+    <p>Source: {from ? `${from}, included with the App` : "included with the App"}. Revision <code title={idWords(entry.revision)}>{text(entry.revision).slice(0, 12)}…</code></p>
     {textControl}
     {roles.length > 0 && <p>The Library lists it for these roles: {roles.join(", ")}.</p>}
     {entry?.compatibility === "legacy" && <p>The Library marks it as legacy.</p>}
     {paths.length > 0 && <>
       <p>{libraryPathsSentence(paths, from)}</p>
-      {paths.length > 1 && <details><summary>All {paths.length} paths</summary><ul>{paths.map(path => <li key={path}><code>{path}</code></li>)}</ul></details>}
+      {paths.length > 1 && <details><summary>All {numberWords(paths.length)} paths</summary><ul>{paths.map(path => <li key={path}><code>{path}</code></li>)}</ul></details>}
     </>}
   </details>;
 }
@@ -144,10 +153,10 @@ export function IncludedWorkflows({ catalog, chosen, disabled, needsConversation
   const holds = (entry: Json) => holdsText?.(entry) === true;
   const row = (entry: Json) => {
     const shownName = text(entry?.navigation?.displayName) || text(entry.name);
-    return <li key={text(entry.name)} aria-label={`Included workflow ${text(entry.name)}`}>
+    return <li key={text(entry.name)} aria-label={`Included workflow ${safeName(entry.name)}`}>
       <strong>{shownName}</strong>{shownName !== entry.name && <> (<code>{text(entry.name)}</code>)</>}{entry.description ? <> — {text(entry.description)}</> : null}{" "}
       {isChosen(entry) ? <em>Chosen.</em>
-        : entry.runnable === true ? <button disabled={disabled || needsConversation} onClick={() => choose(entry.name)}>Use {text(entry.name)}</button>
+        : entry.runnable === true ? <button disabled={disabled || needsConversation} onClick={() => choose(entry.name)}>Use {safeName(entry.name)}</button>
         : entry.runnable === false ? <small>Can't be used in this App: {text(entry.runLimit) || text(catalog?.standing) || "the App reports it as not runnable"}.</small>
         : <small>The App hasn't reported whether this workflow can be used here.</small>}
       <About entry={entry} source={catalog?.source} textControl={readText?.(entry)} open={holds(entry)}/>
@@ -159,7 +168,7 @@ export function IncludedWorkflows({ catalog, chosen, disabled, needsConversation
     {searching && <p role="status">{found.length === 0 ? "No included workflow matches. Try fewer or other words." : `${found.length} of ${entries.length} match.`}</p>}
     {entries.length <= 6 ? <ul>{[...found].sort(byPlace).map(row)}</ul>
       : sections.map(section => <details key={section.key} open={searching || section.key === START || section.entries.some(isChosen) || section.entries.some(holds) ? true : undefined}>
-        <summary>{section.label} ({section.entries.length})</summary>
+        <summary>{section.label} ({numberWords(section.entries.length)})</summary>
         <ul>{section.entries.map(row)}</ul>
       </details>)}
   </div>;

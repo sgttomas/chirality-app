@@ -33,6 +33,13 @@ fn run<I>(
     coordinate(&question, key, quit, prepare, confirm, window, consume)
 }
 #[test]
+fn seal_enrollment_statement_describes_key_possession_and_keeps_the_native_policy_act() {
+    let preview = serde_json::json!({"app_data":"/invented/app-data","service":"fixture-service","account":"fixture-account","access_group":"fixture-group","marker":null});
+    let shown = statement(&preview).unwrap();
+    assert!(shown.in_app.is_none(), "the short fixture still presents the whole statement");
+    assert_eq!(shown.text, "Protect registered workflows with your keychain on this installation?\nYour workflow registrations (A15) will carry seals when the enrolled keychain provider can seal them. Verification shows consistency with possession of a key held in the person's keychain under the keychain's protection; it does not establish who wrote the capture, that a person was present, or that they judged. \"Require verified approval\" will be stored there; lowering it will need your native confirmation.\nLocation: /invented/app-data\nService: fixture-service\nAccount: fixture-account\nAccess group: fixture-group\nCommitted and pending key IDs: none observed\nExisting keys are retained. Development keys are not imported.");
+}
+#[test]
 fn seal_enrollment_unselected_publisher_hides_and_rejects_dispatch_without_preparation() {
     assert!(menu_entry().is_none());
     assert!(!provider::enrollment_compiled_available());

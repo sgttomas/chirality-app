@@ -1,5 +1,6 @@
+import { ConversationChoices, idWords, safeName } from "./AgentText";
 import { useEffect, useRef, useState } from "react";
-import { conversationLabel, nativePathText } from "./presentation";
+import { conversationLabel, nativePathText, threadChoices } from "./presentation";
 import { draftStateWords } from "./WorkflowDrafts";
 import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./preparedMessages";
 import { cleanTrialAnchor } from "./TrialComposer";
@@ -55,7 +56,7 @@ function DraftActions({ draft, chosen, host, canAct, act, openPreparedMessage, f
     {draft.reviewLimit && <p role="note"><small>{text(draft.reviewLimit)}</small></p>}
     {prepared.map(item => <p key={item.identity}>Trial {text(item.pending?.sequence)} is ready to send.{" "}
       {item.kind === "clean" ? <a href={`#${cleanTrialAnchor(item.pending?.reference)}`}>Read and send it in the new-trial message box</a>
-        : openPreparedMessage && <button disabled={preparedMessageLimit(host, item) !== null} onClick={() => openPreparedMessage(item)}>Read and send trial {text(item.pending?.sequence)}</button>}</p>)}
+        : openPreparedMessage && <button disabled={preparedMessageLimit(host, item) !== null} onClick={() => openPreparedMessage(item)}>Read and send trial {idWords(item.pending?.sequence)}</button>}</p>)}
     <DraftTrials draft={draft} chosen={chosen} host={host} canAct={canAct} perform={performed} openPreparedMessage={openPreparedMessage} findInHistory={findInHistory}/>
   </div>;
 }
@@ -123,39 +124,39 @@ function DraftTrials({ draft, chosen, host, canAct, perform, openPreparedMessage
   return <div aria-label="Trials of this draft">
     <h4>Trials so far</h4>
     {trials.length > 0 && <ul>{trials.map((trial: Json) => {
-      const n = text(trial.sequence), brought = list(trial.broughtBack);
+      const n = idWords(trial.sequence), brought = list(trial.broughtBack);
       const mine = bringBackDoubtsFor("trial", trial.reference, doubts);
       const held = target ? mine.find(doubt => !doubt.acknowledged && doubtDestination(doubt, target) !== "other") : undefined;
       const existing = target ? feedback.find(item => item.pending?.trial === trial.reference && sameTarget(item.pending?.target, target) && item.pending?.includeNative !== true) : undefined;
       const existingBlock = existing ? bringBackSendBlock(existing.pending, existing.pending?.target, doubts) : null;
       const limit = held ? "Check that conversation first." : trial.live ? "Bringing it back waits until no turn is live in the trial."
         : trial.sourceLimit ? COLD_TRIAL : !chosen ? "Choose the conversation where you did the work to bring it back there." : null;
-      return <li key={text(trial.reference)} aria-label={`Trial ${n} of ${text(draft.name)}`}>
+      return <li key={text(trial.reference)} aria-label={`Trial ${n} of ${safeName(draft.name)}`}>
         <strong>Trial {n}</strong> · {trial.kind === "clean"
           ? <>in a fresh conversation (<ConversationRef host={host} refValue={trial.trialConversation} none="not started" findInHistory={findInHistory}/>)</>
           : <>with the agent in <ConversationRef host={host} refValue={trial.authoringConversation} none="no recorded conversation" findInHistory={findInHistory}/></>}{trial.time ? <> · {text(trial.time)}</> : null}
         <br/><small>{brought.length ? <>Brought back {brought.length === 1 ? "once" : `${brought.length} times`}, to {brought.map((b: Json, i: number) => <span key={i}>{i ? ", " : ""}<ConversationRef host={host} refValue={b?.to} none="a conversation not recorded"/></span>)}.</> : "Not brought back yet."}</small>
         {mine.map(doubt => <div key={doubt.preparedId} role={doubt.acknowledged ? "note" : "alert"} aria-label={`Trial ${n} results may have been sent`}>
           <p><strong>Trial {n}'s results may already have been sent</strong> to <ConversationRef host={host} refValue={doubt.target} none="its conversation"/>: the App couldn't confirm the send{feedback.some(item => item.pending?.id === doubt.preparedId) ? ". Its prepared message is still listed, but that copy is not sent again" : ", and the prepared message was withdrawn"}.{doubt.acknowledged ? " You said you checked that conversation." : " Bringing it back there again could send the transcript twice."}</p>
-          {target && doubtDestination(doubt, target) === "same-id-other-source" && <p><small>Codex or the home has changed since that send. The conversation chosen now has the same ID ({text(target.threadId)}), so bringing trial {n} back to it {doubt.acknowledged ? "is allowed again" : "is held until you've checked"}. That doesn't make the earlier destination this one.</small></p>}
+          {target && doubtDestination(doubt, target) === "same-id-other-source" && <p><small>Codex or the home has changed since that send. The conversation chosen now has the same ID ({text(target.threadId)}), so {doubt.acknowledged ? <>bringing trial {n} back to it is allowed again</> : <>the App won't bring trial {n} back to it until you've said you checked</>}. That doesn't make the earlier destination this one.</small></p>}
           {!doubt.acknowledged && <p><button disabled={!canAct} onClick={() => acknowledgeBringBackDoubt(doubt)}>I've checked — let me bring it back again</button></p>}
           <details><summary>Your message and what was reported</summary><p><small>Your message: {doubt.personText || "(empty)"}</small></p><p><small>Reported: {doubt.message}</small></p>
             <p><small>Original destination: conversation <code>{text(doubt.target.threadId)}</code> in Codex session {text(doubt.target.generation?.spawnCounter)} of the {text(doubt.source.modeHomeClass)} home.</small></p></details>
         </div>)}
         <br/>{existing && !held
           ? (existingBlock
-            // The results line below already offers this held copy; the row only says where it is.
-            ? <small>Its results are prepared for this conversation but held, so they aren't sent again; see below.</small>
+            // The results line below already offers this copy and says why it isn't sent; the row only says where it is.
+            ? <small>Its results are prepared for this conversation; the App won't send them again yet, and the results line below says why.</small>
             : <><button disabled={!openPreparedMessage || preparedMessageLimit(host, existing) !== null} onClick={() => openPreparedMessage?.(existing)}>Read and send trial {n}'s prepared results</button><small> Its results are already prepared for this conversation.</small></>)
-          : <><button disabled={!canAct || limit !== null} onClick={() => bring(trial)}>{chosen ? `Bring trial ${n} back to ${conversationLabel(host, chosen)}` : `Bring trial ${n} back`}</button>{limit && <small> {limit}</small>}{limit === COLD_TRIAL && <details><summary>Why</summary><p><small>{text(trial.sourceLimit)}</small></p></details>}</>}
+          : <><button disabled={!canAct || limit !== null} onClick={() => bring(trial)}>{chosen ? `Bring trial ${n} back to the conversation chosen above` : `Bring trial ${n} back`}</button>{limit && <small> {limit}</small>}{limit === COLD_TRIAL && <details><summary>Why</summary><p><small>{text(trial.sourceLimit)}</small></p></details>}</>}
       </li>;
     })}</ul>}
     <div aria-live="polite">{feedback.map(item => {
       // A copy the dispatch guard holds is prepared, not ready to send (same rule as its Send).
       const block = bringBackSendBlock(item.pending, item.pending?.target, doubts);
-      const n = text(item.pending?.sequence);
+      const n = idWords(item.pending?.sequence);
       return <p key={item.identity}>{block
-        ? <>Trial {n}'s results are prepared in <ConversationRef host={host} refValue={item.owner} none="its conversation"/>, but sending them is held: {block}</>
+        ? <>Trial {n}'s results are prepared in <ConversationRef host={host} refValue={item.owner} none="its conversation"/>, but the App won't send them yet: {block}</>
         : <>Trial {n}'s results are ready to send in <ConversationRef host={host} refValue={item.owner} none="its conversation"/>.</>}{" "}
         {openPreparedMessage && <button ref={node => { if (node) buttons.current.set(item.identity, node); else buttons.current.delete(item.identity); }} disabled={preparedMessageLimit(host, item) !== null} onClick={() => openPreparedMessage(item)}>{block ? `Open trial ${n}'s prepared results to read or remove` : `Read and send trial ${n}'s results`}</button>}</p>;
     })}</div>
@@ -180,7 +181,7 @@ function draftStep(draft: Json, data: Json, host: Json, doubts: BringBackDoubt[]
   if (doubt) return { words: `Check whether trial ${text(doubt.sequence)}'s results arrived in the conversation before bringing it back again.`, href: "#conversation", link: "Go to the conversation" };
   const results = ownResults(draft, host)[0];
   if (results) return bringBackSendBlock(results.pending, results.pending?.target, doubts)
-    ? { words: `Trial ${text(results.pending?.sequence)}'s prepared results are held and not sent again; after reading the conversation, remove that copy and bring the trial back if you still need to.`, href: "#conversation", link: "Go to the conversation" }
+    ? { words: `The App won't send trial ${text(results.pending?.sequence)}'s prepared results again; after reading the conversation, remove that copy and bring the trial back if you still need to.`, href: "#conversation", link: "Go to the conversation" }
     : { words: `Read and send trial ${text(results.pending?.sequence)}'s results in the conversation, then review the draft.`, href: "#conversation", link: "Go to the conversation" };
   const trial = preparedMessages(host).find(item => item.kind !== "bring-back" && item.pending?.draftName === draft?.name);
   if (trial) return { words: `Read and send trial ${text(trial.pending?.sequence)} in the conversation.`, href: trial.kind === "clean" ? `#${cleanTrialAnchor(trial.pending?.reference)}` : "#conversation", link: "Go to the trial message" };
@@ -284,7 +285,7 @@ export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPr
     draftStatus.current?.scrollIntoView?.({ block: "start" });
     draftStatus.current?.focus?.({ preventScroll: true });
   }, [revealRequest]); // eslint-disable-line react-hooks/exhaustive-deps
-  if (viewStale && !busy) return <GuideWithheld id="make-workflow" label="Make a workflow from your work" title="Make a workflow from your work" outcome={outcome} resultLabel="Make a workflow — last result" only={MAKE_COMMANDS} readFailure={readFailure}/>;
+  if (viewStale && !busy) return <GuideWithheld guide="make" outcome={outcome} only={MAKE_COMMANDS} readFailure={readFailure}/>;
   return <section id="make-workflow" className="workflow-stage run-journey" aria-label="Make a workflow from your work" aria-busy={busy}>
     <h2>Make a workflow from your work</h2>
     <p className="run-journey-next" role="status" aria-live="polite"><strong>Next:</strong> {nextLine ?? "Put the request in the conversation, read it, and send it when you're happy with it."}</p>
@@ -292,10 +293,8 @@ export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPr
     {readFailure && <p role="alert" aria-label="Last status read failed">The App's last read of its state failed ({readFailure}). What is shown here was read before that.</p>}
     <ol className="run-journey-steps">
       <li><h3>Where you did the work</h3>
-        {conversations.length ? <label>Conversation with the work <select value={conversation} disabled={!canAct} onChange={event => setConversation(event.target.value)}>
-          <option value="">Choose a conversation</option>
-          {conversations.map((row: Json) => { const key = JSON.stringify([row.generation, row.threadId]); return <option key={key} value={key}>{conversationLabel(host, row)}</option>; })}
-        </select></label> : <p>No conversation in this session yet. <a href="#workspace-start">Start one</a> and do the work there first.</p>}
+        {conversations.length ? <ConversationChoices legend="Conversation with the work" group="make-conversation" chosen={conversation} disabled={!canAct} onChoose={setConversation} none="No conversation chosen"
+          value={threadChoices(conversations, (row: Json) => JSON.stringify([row.generation, row.threadId]))} /> : <p>No conversation in this session yet. <a href="#workspace-start">Start one</a> and do the work there first.</p>}
         {chosen && <details className="conversation-identity"><summary>Exact conversation ID</summary><code>{chosen.threadId}</code></details>}
       </li>
       <li><h3>Where the draft goes</h3>
@@ -328,7 +327,7 @@ export function MakeWorkflowGuide({ data, host, act, busy, offerComposer, openPr
       <h3>Unfinished drafts in this library</h3>
       <p><small>Drafts are files in the library, so they are still here after you quit and reopen the App. Their earlier conversations are in History. Reading one there only shows it; to keep working in it, press Continue there, which is a separate step.</small></p>
       <ul>{unfinished.map((draft: Json) => <li key={text(draft.name)}><strong>{text(draft.name)}</strong> — {draftStateWords(draft.state, draft.content)}{" "}
-        <button disabled={busy} onClick={() => { setName(text(draft.name)); revealDraft.current = { library: data?.activeLibrary ?? null, name: text(draft.name) }; setRevealRequest(n => n + 1); }}>Continue {text(draft.name)}</button></li>)}</ul>
+        <button disabled={busy} onClick={() => { setName(text(draft.name)); revealDraft.current = { library: data?.activeLibrary ?? null, name: text(draft.name) }; setRevealRequest(n => n + 1); }}>Continue {safeName(draft.name)}</button></li>)}</ul>
     </div>}
   </section>;
 }

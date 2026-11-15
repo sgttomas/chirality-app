@@ -551,6 +551,7 @@ const KIND = {
     return copy;
   },
   nothing: value => { if (value !== undefined) throw new TypeError('it gave a value where it gives none'); },
+  number: value => { if (typeof value !== 'number' || !Number.isFinite(value)) throw new TypeError('it gave something that is not a finite number'); return value; },
 };
 
 export async function run(options) {
@@ -579,18 +580,26 @@ async function walk(options, holder) {
   // is refused (supply, below), so no effect and no view can follow; the walk ends inconclusive, and its attempt log is
   // still written and still handed to the log.
   let broken = null;
+  // Every failure, in order: the first is the one that broke the walk (broken); a later one, such as the log failing
+  // to take the attempt log after the clock failed, is recorded too (the third reading of PR 355, finding 2).
+  const failures = [];
   const option = async (name, kind, call, { evenIfBroken = false } = {}) => {
     if (broken && !evenIfBroken) throw BROKEN;
     try {
       const returned = call();
       return kind(await returned);
     } catch (error) {
-      broken ??= `the injected ${name} failed (${readFailure(name, error).message})`;
+      const failure = `the injected ${name} failed (${readFailure(name, error).message})`;
+      failures.push(failure);
+      broken ??= failure;
       throw BROKEN;
     }
   };
+  // The walk's own clock, in its two forms: a time for the log, and milliseconds for the watch file's freshness. Both
+  // are read only through the adapter (the second reading of PR 355, finding 1: the freshness clock bypassed it).
   const clock = () => new Date().toISOString();
   const time = () => option('clock', KIND.text, () => clock());
+  const nowMs = () => option('clock', KIND.number, () => Date.now());
   // A time for the log that never throws: the clock through the adapter, or words.
   const logTime = async () => { try { return await time(); } catch { return '(the time could not be read)'; } };
   const calls = [];
@@ -603,13 +612,18 @@ async function walk(options, holder) {
   const marks = [];
   // Every return of the walk is its verdict alone. The attempt log goes apart: to the attemptLog file and to onLog,
   // through the adapter even when the walk is broken. A log that cannot be written or taken is not retried; a log the
-  // injected onLog failed to take leaves the verdict inconclusive.
+  // injected onLog failed to take leaves the verdict inconclusive (a fail stays fail). The file is the log's only
+  // destination independent of onLog: without attemptLog, a log onLog fails to take is lost (the second reading of
+  // PR 355, finding 2), so a caller that needs the log gives attemptLog, as replay.mjs does whenever it keeps one.
   let logFile = null;
   const finish = async (verdict, stopped = null) => {
     report.stopped = stopped;
     report.finished = await logTime();
-    if (broken) report.broken = broken;
-    let result = verdictAt(scenario, marks, broken && verdict !== 'fail' ? 'inconclusive' : verdict);
+    if (broken) { report.broken = broken; report.failures = [...failures]; }
+    // The steps' judgments first, then the failure: a fail found before an option failed stands, and anything else
+    // becomes inconclusive (the third reading of PR 355, finding 1: a clock failing at the end weakened a fail).
+    let result = verdictAt(scenario, marks, verdict);
+    if (broken && result !== 'fail') result = 'inconclusive';
     const write = () => { if (logFile) { try { logFile.writeFileSync(attemptLog, JSON.stringify(report, null, 2) + '\n'); } catch { /* not written */ } } };
     write();
     if (typeof onLog === 'function') {
@@ -620,6 +634,7 @@ async function walk(options, holder) {
       try { await option('log', KIND.nothing, () => onLog(copy), { evenIfBroken: true }); } catch {
         result = result === 'fail' ? 'fail' : 'inconclusive';
         report.broken = broken;
+        report.failures = [...failures];
         write();
       }
     }
@@ -646,8 +661,9 @@ async function walk(options, holder) {
   // was written in the last three seconds. That is a sample, not custody: see README.md.
   const watched = async () => {
     const seen = readWatch ? await option('watch', KIND.data, () => readWatch()) : null;
+    const now = await nowMs();
     const running = !!seen && seen.pid === pid && seen.running === true && typeof seen.executable === 'string'
-      && seen.executable.startsWith(bundle + '/Contents/MacOS/') && Math.abs(Date.now() - seen.at_ms) <= 3000
+      && seen.executable.startsWith(bundle + '/Contents/MacOS/') && typeof seen.at_ms === 'number' && Math.abs(now - seen.at_ms) <= 3000
       && Array.isArray(seen.children);
     return { running, children: running ? seen.children : [] };
   };
