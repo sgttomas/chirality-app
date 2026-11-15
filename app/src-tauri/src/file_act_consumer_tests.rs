@@ -255,14 +255,26 @@ fn connected_file_act_reader_does_not_upgrade_missing_or_mismatched_capture() {
 #[test]
 fn connected_file_act_without_seal_keys_is_recorded_unsealed_and_not_counted() {
     let (root, state, home, _, _, _) = workflow_root_context_tests::fixture();
+    let permitted = selected(&state, &home, &root, act_control::FileActKind::Check);
+    let permitted = synthetic(&state, &permitted, "act", || {});
+    assert!(permitted["capture"].get("seal").is_some());
     let reference = selected(&state, &home, &root, act_control::FileActKind::Rely);
     capture_seal::set_folder_for_test(Some(None));
     let result = synthetic(&state, &reference, "act", || {});
     assert_eq!(result["state"], "AC-7 recorded");
     let view = file_act_view::read(&root);
     capture_seal::set_folder_for_test(None);
-    let row = &view["rows"][0];
+    let row = view["rows"].as_array().unwrap().iter().find(|r| r["kind"]=="A7").unwrap();
     let stored: Value = serde_json::from_slice(&std::fs::read(storage::write_capture_path(&root, row["captureEvidence"][0]["ref"].as_str().unwrap()).unwrap()).unwrap()).unwrap();
+    assert_eq!(row["captureSeal"]["cause"], "NoSeal");
+    assert_eq!(row["captureSeal"]["standing"], "settled");
+    let before=stored.clone();
+    continued(&state,&reference).unwrap();
+    assert_eq!(crate::file_act_view::observe_capture(&root,&crate::act_control::act_body(&before)).result.unwrap_err().cause,crate::act_evidence_cause::ActEvidenceCause::NoSeal);
+    let after:Value=serde_json::from_slice(&std::fs::read(storage::write_capture_path(&root,before["captureId"].as_str().unwrap()).unwrap()).unwrap()).unwrap();
+    assert_eq!(after,before,"restored key access and continuation never reseal the capture");
+    let read=checkpoint_recorder::project_act_records(&root).unwrap();
+    assert!(!read.acts.iter().any(|a| a["record"]["body"]["actKind"]=="A7"));
     assert!(stored.get("seal").is_none());
     assert!(stored["evidenceLimits"].as_array().unwrap().iter().any(|l| l.as_str().unwrap().starts_with("capture not sealed (")), "{stored:#}");
     assert_eq!(row["captureCorrespondence"], false);

@@ -350,7 +350,7 @@ pub(crate) fn shown_statement_binding(root: &Path, body: &Value) -> Value {
     let Some(digest) = capture.get("shownStatement") else {
         return json!({"state":"not-bound","statement":"What was shown is not bound in this capture."});
     };
-    // Native A16 captures are unsealed. Check a seal only when one is actually recorded;
+    // Earlier captures and failed publications can be unsealed. Check a seal when recorded;
     // a digest alone establishes neither the writer's identity nor physical display.
     if capture.get("seal").is_some() && crate::capture_seal::verify(root, &capture).is_err() {
         return json!({"state":"not-bound","statement":"A statement digest is recorded, but this capture's seal could not be checked; what was shown is not bound here."});

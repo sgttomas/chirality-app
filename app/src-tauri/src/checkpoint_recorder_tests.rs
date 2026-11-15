@@ -337,7 +337,7 @@ fn acts_after_the_arrival_are_counted_against_the_files_content() {
     assert_eq!(outputs[3].1["disposition"], "waiting");
     assert_eq!((outputs[4].1["act"]["recordId"].as_str(), outputs[4].1["reason"].as_str()), (Some(old.as_str()), Some("act on other content")));
     assert_eq!(outputs[5].1["annotations"][0]["label"], "act on other content");
-    assert_eq!(outputs[6].1, json!({"arrival":arrival,"act":{"recordId":rely,"actKind":"A7","capturedAt":LATER,"capturingSurface":"app_act_control"},"relation":"after arrival","referents":[RELY]}));
+    assert_eq!(outputs[6].1, json!({"arrival":arrival,"act":{"recordId":rely,"actKind":"A7","capturedAt":LATER,"capturingSurface":"app_act_control","sealProvider":"file-key"},"relation":"after arrival","referents":[RELY]}));
     assert_eq!(outputs[7].1, json!({"arrival":arrival,"disposition":"performed","performanceOrdinal":1,"answeredBy":[rely],"annotations":[]}));
     assert!(waiting_arrivals(&all).is_empty(), "the performed arrival is not listed as waiting (AAC §6.3 / EXEC §2.4–2.5)");
     assert!(count_acts(&all, &read, &root).is_empty(), "rebuildable: acts already cited are not read again (RC-10)");
@@ -966,7 +966,7 @@ fn an_act_on_lapsed_content_after_resume_performs_the_arrival_again() {
     let next = act(&root, "A7", &file, "v2", LATER);
     let outputs = again(&mut recorder, &root, &resumed_view(), &mut all);
     assert_eq!(kinds(&outputs), ["act_counted", "disposition_change"], "{outputs:#?}");
-    assert_eq!(outputs[0].1, json!({"arrival":cp_rely(),"act":{"recordId":next,"actKind":"A7","capturedAt":LATER,"capturingSurface":"app_act_control"},"relation":"after arrival","referents":[RELY]}));
+    assert_eq!(outputs[0].1, json!({"arrival":cp_rely(),"act":{"recordId":next,"actKind":"A7","capturedAt":LATER,"capturingSurface":"app_act_control","sealProvider":"file-key"},"relation":"after arrival","referents":[RELY]}));
     assert_eq!(outputs[1].1, json!({"arrival":cp_rely(),"disposition":"performed","performanceOrdinal":2,"answeredBy":[next],"annotations":[]}));
     assert!(again(&mut recorder, &root, &resumed_view(), &mut all).is_empty(), "no duplicate; the earlier command is no new resume point");
     // A new resume point: the first run action started after the new act.
@@ -2142,7 +2142,7 @@ fn verified_candidates_keep_late_duplicate_and_interleaved_failure_order() {
     }
     let failure = |id: &str| format!("capture evidence not resolved: {}", crate::file_act_view::capture(&root, &original(id)["body"]).unwrap_err());
     let (_, outputs, read) = observe_with(&root);
-    assert_eq!(read.acts, vec![json!({"record":original(&kept)})]);
+    assert_eq!(read.acts, vec![json!({"record":original(&kept),"sealProvider":"file-key"})]);
     assert_eq!(read.unresolved, vec![
         json!({"record":original(&schema),"reason":failure(&schema)}),
         json!({"record":original(&seal),"reason":failure(&seal)}),
@@ -2187,7 +2187,7 @@ fn verified_candidates_refuse_coherent_same_id_replacements_and_recheck_both_wat
     drop(hook);
     assert!(attempted.get(), "each observed stamp is kept; the first source replacement invalidates the kept snapshot");
     assert!(!current.same_observation(&raced));
-    assert_eq!(current.acts, vec![json!({"record":source[1],"declineBoundContent":replacement["boundContent"]})]);
+    assert_eq!(current.acts, vec![json!({"record":source[1],"sealProvider":"file-key","declineBoundContent":replacement["boundContent"]})]);
     assert_eq!(current.unresolved, vec![json!({"record":source[0],"reason":"the record differs from the capture it cites"})]);
     assert!(outputs.iter().any(|(k,b)| *k == "arrival_declined" && b["declinedEventRef"] == second.as_str()), "the exact second content fact reaches the consumer");
     assert_eq!(raced.unresolved[0]["record"]["recordId"], first.as_str(), "the earlier refused snapshot stays immutable");
@@ -2218,7 +2218,7 @@ fn verified_candidates_do_not_add_failed_later_reads_to_duplicate_membership() {
         let hook = capture_read_hook_for_test(&path, CaptureReadStage::AfterFileRead, move || std::fs::rename(&next, &named).unwrap());
         let (_, outputs, raced) = observe_with(&root);
         drop(hook);
-        assert_eq!(raced.acts, vec![json!({"record":source[0]})], "the later {failure} refusal is not successful duplicate membership");
+        assert_eq!(raced.acts, vec![json!({"record":source[0],"sealProvider":"file-key"})], "the later {failure} refusal is not successful duplicate membership");
         let reason = if failure == "seal" {
             format!("capture evidence not resolved: {}", crate::file_act_view::capture(&root, &source[1]["body"]).unwrap_err())
         } else { "the record differs from the capture it cites".into() };
@@ -2239,7 +2239,7 @@ fn verified_candidates_do_not_add_failed_later_reads_to_duplicate_membership() {
         assert!(restored.acts.is_empty(), "restoration verifies both claims and restores their R-8 refusal");
         assert_eq!(restored.unresolved.len(), 2);
         assert!(restored.unresolved.iter().all(|r| r["reason"] == "several records cite one capture (RS R-8)"));
-        assert_eq!(raced.acts, vec![json!({"record":source[0]})], "held original records do not change after source replacement or restoration");
+        assert_eq!(raced.acts, vec![json!({"record":source[0],"sealProvider":"file-key"})], "held original records do not change after source replacement or restoration");
         std::fs::remove_dir_all(root).unwrap();
     }
 }
@@ -2330,4 +2330,152 @@ fn an_offer_answers_only_as_the_recorders_own_count_would_leave_the_arrival() {
     assert_eq!(kinds(&again(&mut recorder, &root, &resumed_view(), &mut all)), ["act_counted", "disposition_change"]);
     assert_eq!(now(&root, &all), Err(PERFORMED));
     std::fs::remove_dir_all(&root).unwrap();
+}
+
+#[test]
+fn provider_counting_predicate_has_one_signed_file_choice_and_bypasses_other_routes() {
+    use crate::capture_seal::{SealProvider, SealVerification};
+    for policy in [SignedFileSealCounting::CountWithDisclosure, SignedFileSealCounting::RequireKeychain] {
+        set_seal_counting_for_test(Some(policy));
+        for provider in [SealProvider::FileKey, SealProvider::Keychain] {
+            let seal = SealVerification { recorded_provider:Some(provider), verified_with:provider, key_id:"invented".into() };
+            assert!(capture_counting_admission(false, &seal));
+            assert_eq!(capture_counting_admission(true, &seal), provider == SealProvider::Keychain || policy == SignedFileSealCounting::CountWithDisclosure);
+        }
+    }
+    set_seal_counting_for_test(None);
+}
+
+#[test]
+fn counted_provider_comes_only_from_verified_material_and_survives_later_enrollment() {
+    let installation = crate::capture_seal_keychain::tests::SelectedInstallation::new();
+    let root = project("v1");
+    let file = root.join("out/summary.md");
+    let id = act(&root, "A7", &file, "v1", AFTER);
+    let (_, outputs, read) = observe_with(&root);
+    conformant(&outputs);
+    assert_eq!(read.acts[0]["sealProvider"], "file-key");
+    assert!(outputs.iter().any(|(k,b)| *k == "act_counted" && b["act"]["recordId"] == id && b["act"]["sealProvider"] == "file-key"));
+    set_seal_counting_for_test(Some(SignedFileSealCounting::RequireKeychain));
+    assert!(project_act_records(&root).unwrap().acts.is_empty());
+    assert!(!kinds(&observe_with(&root).1).contains(&"act_counted"));
+    assert_eq!(crate::file_act_view::read(&root)["rows"][0]["captureCorrespondence"], true);
+    installation.enroll().unwrap();
+    assert!(project_act_records(&root).unwrap().acts.is_empty(), "enrolment does not promote an earlier file capture under B");
+    set_seal_counting_for_test(None);
+    assert!(kinds(&observe_with(&root).1).contains(&"act_counted"), "A still counts earlier file captures after protection");
+    let keyed = project("v1"); let keyed_file = keyed.join("out/summary.md");
+    act(&keyed, "A7", &keyed_file, "v1", AFTER);
+    let (_, outputs, read) = observe_with(&keyed); conformant(&outputs);
+    assert_eq!(read.acts[0]["sealProvider"], "keychain");
+    assert!(outputs.iter().any(|(k,b)| *k == "act_counted" && b["act"]["sealProvider"] == "keychain"));
+    let bytes = std::fs::read(crate::storage::capture_path(&keyed, capture_reference(&read.acts[0])).unwrap()).unwrap();
+    installation.lock();
+    assert!(!kinds(&observe_with(&keyed).1).contains(&"act_counted"));
+    installation.unlock();
+    assert!(kinds(&observe_with(&keyed).1).contains(&"act_counted"));
+    assert_eq!(std::fs::read(crate::storage::capture_path(&keyed, capture_reference(&read.acts[0])).unwrap()).unwrap(), bytes);
+    std::fs::remove_dir_all(root).unwrap(); std::fs::remove_dir_all(keyed).unwrap();
+}
+
+#[test]
+fn declines_persist_verified_provider_and_mismatched_source_never_writes_success_standing() {
+    use crate::capture_seal_keychain::{Material, set_material_provider_for_test};
+    use crate::capture_seal::SealProvider;
+    let installation = crate::capture_seal_keychain::tests::SelectedInstallation::new();
+    for provider in ["file-key", "keychain"] {
+        if provider == "keychain" { installation.enroll().unwrap(); }
+        let root=project("v1"); let file=root.join("out/summary.md");
+        decline(&root,"A7",&file,"v1",AFTER);
+        let (_,outputs,read)=observe_with(&root);conformant(&outputs);
+        assert!(outputs.iter().any(|(k,b)| *k=="arrival_declined" && b["sealProvider"]==provider));
+        if provider == "keychain" {
+            // Same key bytes, but deliberately reported by the wrong trusted
+            // source. A matching label/MAC alone must never establish standing.
+            let capture=stored_capture(&root,&read.acts[0]);
+            let key_id=capture["seal"]["value"].as_str().unwrap().split(':').next().unwrap().to_owned();
+            installation.on_unselected_build(|| {
+            assert_eq!(crate::file_act_view::observe_capture(&root,&read.acts[0]["record"]["body"]).result.unwrap_err().cause,crate::act_evidence_cause::ActEvidenceCause::KeychainProviderUnavailableOnThisBuild);
+            let material=Material { current:key_id.clone(), keys:std::collections::BTreeMap::from([(key_id, [9;32])]), provider:SealProvider::FileKey };
+            set_material_provider_for_test(Some(Box::new(move |_,_| Ok(material.clone()))));
+            assert_eq!(crate::file_act_view::observe_capture(&root,&read.acts[0]["record"]["body"]).result.unwrap_err().cause,crate::act_evidence_cause::ActEvidenceCause::ProviderMismatch);
+            forget_act_read_for_test();
+            let (_,failed,observed)=observe_with(&root);
+            assert!(observed.acts.is_empty());
+            assert!(!kinds(&failed).contains(&"arrival_declined"));
+            assert!(!kinds(&failed).contains(&"act_counted"));
+            assert!(failed.iter().all(|(_,b)| b.get("sealProvider").is_none() && b["act"].get("sealProvider").is_none()));
+            set_material_provider_for_test(None);
+            });
+            assert!(kinds(&observe_with(&root).1).contains(&"arrival_declined"));
+            std::fs::remove_dir_all(root).unwrap();
+            break;
+        }
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[test]
+fn enrollment_moment_exclusion_stays_file_labelled_through_counter_and_keychain_admission() {
+    for restore in [false,true] {
+        let installation=crate::capture_seal_keychain::tests::SelectedInstallation::new();
+        let root=project("v1"); let file=root.join("out/summary.md");
+        let mut warm=capture_of("act","A7",&file,&digest("v1"),AFTER);
+        crate::capture_seal::seal(&root,&mut warm).unwrap();
+        installation.enroll_at_attachment(restore);
+        let capture=capture_of("act","A7",&file,&digest("v1"),AFTER);
+        store(&root,&capture); record_for(&root,&capture,&crate::records::APP_INTERFACE);
+        let (_,outputs,read)=observe_with(&root);conformant(&outputs);
+        assert!(outputs.iter().any(|(k,b)| *k=="act_counted" && b["act"]["sealProvider"]=="file-key"));
+        let captured=stored_capture(&root,&read.acts[0]);
+        assert_eq!(captured["sealProvider"],"file-key");
+        assert_eq!(crate::capture_seal::verify_keychain(&root,&captured).unwrap_err().cause,crate::act_evidence_cause::ActEvidenceCause::ProviderNotEligible);
+        set_seal_counting_for_test(Some(SignedFileSealCounting::RequireKeychain));
+        assert!(!kinds(&observe_with(&root).1).contains(&"act_counted"));
+        set_seal_counting_for_test(None);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[test]
+fn legacy_unlabelled_capture_count_records_the_provider_that_actually_verified() {
+    let installation=crate::capture_seal_keychain::tests::SelectedInstallation::new();
+    let root=project("v1");let file=root.join("out/summary.md");
+    let mut capture=capture_of("act","A7",&file,&digest("v1"),AFTER);
+    crate::capture_seal::legacy_file_fixture(&root,&mut capture);
+    assert!(capture.get("sealProvider").is_none());
+    store_as_is(&root,&capture);record_for(&root,&capture,&crate::records::APP_INTERFACE);
+    let original=capture.clone();
+    let (_,outputs,read)=observe_with(&root);conformant(&outputs);
+    assert_eq!(read.acts[0]["sealProvider"],"file-key");
+    assert!(outputs.iter().any(|(k,b)| *k=="act_counted" && b["act"]["sealProvider"]=="file-key"));
+    installation.enroll().unwrap();
+    assert!(!kinds(&observe_with(&root).1).contains(&"act_counted"),"legacy lookup does not cross providers after enrolment");
+    let path=crate::storage::capture_path(&root,capture["captureId"].as_str().unwrap()).unwrap();
+    assert_eq!(serde_json::from_slice::<Value>(&std::fs::read(path).unwrap()).unwrap(),original);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn spoiled_provider_label_cannot_write_a_count_or_success_provider() {
+    let installation=crate::capture_seal_keychain::tests::SelectedInstallation::new();
+    let root=project("v1");let file=root.join("out/summary.md");
+    act(&root,"A7",&file,"v1",AFTER);
+    let (_,outputs,read)=observe_with(&root);
+    assert!(outputs.iter().any(|(k,b)| *k=="act_counted" && b["act"]["sealProvider"]=="file-key"));
+    let original=stored_capture(&root,&read.acts[0]);
+    let mut spoiled=original.clone();spoiled["sealProvider"]=json!("keychain");store_as_is(&root,&spoiled);
+    let actual_file_material=crate::capture_seal::file_material_for_test(&root);
+    installation.on_unselected_build(|| {
+        crate::capture_seal_keychain::set_material_provider_for_test(Some(Box::new(move |_,_|Ok(actual_file_material.clone()))));
+        let observed=crate::file_act_view::observe_capture(&root,&read.acts[0]["record"]["body"]);
+        assert_eq!(observed.result.unwrap_err().cause,crate::act_evidence_cause::ActEvidenceCause::ProviderMismatch);
+        let (_,outputs,read)=observe_with(&root);
+        assert!(read.acts.is_empty());assert!(!kinds(&outputs).contains(&"act_counted"));
+        assert!(outputs.iter().all(|(_,b)|b["act"].get("sealProvider").is_none() && b.get("sealProvider").is_none()));
+        crate::capture_seal_keychain::set_material_provider_for_test(None);
+    });
+    store_as_is(&root,&original);
+    assert!(kinds(&observe_with(&root).1).contains(&"act_counted"));
+    std::fs::remove_dir_all(root).unwrap();
 }

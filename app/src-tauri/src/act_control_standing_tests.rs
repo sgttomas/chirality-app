@@ -47,7 +47,7 @@ fn decision_view_small_invented_set_reread_cost() {
     let start = std::time::Instant::now();
     let with_capture = crate::decision_view::derive(&f.root, &[]);
     let elapsed = start.elapsed();
-    eprintln!("A16 standing re-read with an unsealed A16 capture: 2 requests, {} entries; derive took {elapsed:?}", storage::read_all(&f.root).0.len());
+    eprintln!("A16 standing re-read with a sealed A16 capture: 2 requests, {} entries; derive took {elapsed:?}", storage::read_all(&f.root).0.len());
     assert_eq!(with_capture["rows"].as_array().unwrap().len(), 2);
     assert_eq!(with_capture["rows"][0]["decision"]["shownStatementBinding"]["state"], "bound");
     assert!(elapsed < std::time::Duration::from_secs(1), "derive takes seconds: {elapsed:?}");
@@ -248,7 +248,8 @@ fn shown_statement_is_native_capture_evidence_and_the_reader_requires_it() {
         capture["shownStatement"],
         json!({"method":"sha-256","value":crate::util::sha256_hex(text.as_bytes())})
     );
-    assert!(capture.get("seal").is_none());
+    assert_eq!(capture["sealProvider"], "file-key");
+    crate::capture_seal::verify(&f.root, capture).unwrap();
     assert_eq!(capture["evidenceLimits"], json!(["identity not verified"]));
     let view = crate::decision_view::derive(&f.root, &[]);
     assert_eq!(
@@ -268,6 +269,14 @@ fn shown_statement_is_native_capture_evidence_and_the_reader_requires_it() {
     changed["shownStatement"]["value"] = json!("0".repeat(64));
     let log = storage::project_file(&f.root, LOG).unwrap();
     let record_bytes = std::fs::read(&log).unwrap();
+    std::fs::write(&path, serde_json::to_vec(&changed).unwrap()).unwrap();
+    assert_eq!(crate::decision_view::derive(&f.root, &[])["rows"][0]["decision"]["shownStatementBinding"]["state"], "not-bound",
+        "the native seal covers the statement digest");
+    assert_eq!(std::fs::read(&log).unwrap(), record_bytes);
+    // Keep the historical unsealed counterexample: the record chain alone
+    // does not bind a capture's fields, even after new captures gain seals.
+    changed.as_object_mut().unwrap().remove("seal");
+    changed.as_object_mut().unwrap().remove("sealProvider");
     std::fs::write(&path, serde_json::to_vec(&changed).unwrap()).unwrap();
     let binding = crate::decision_view::derive(&f.root, &[])["rows"][0]["decision"]["shownStatementBinding"].clone();
     assert_eq!(binding["state"], "bound");
@@ -291,16 +300,18 @@ fn shown_statement_is_native_capture_evidence_and_the_reader_requires_it() {
 
 
 #[test]
-fn native_a16_does_not_create_capture_seal_keys() {
+fn native_a16_seals_the_statement_with_the_installation_key() {
     let f = Fixture::new();
-    let keys = f.root.with_file_name(crate::util::opaque_id("a16-unused-keys-").unwrap());
+    let keys = f.root.with_file_name(crate::util::opaque_id("a16-installation-keys-").unwrap());
     crate::capture_seal::set_folder_for_test(Some(Some(keys.clone())));
     let (result, _) = f.native();
     let view = crate::decision_view::derive(&f.root, &[]);
+    crate::capture_seal::verify(&f.root, &result["capture"]).unwrap();
     crate::capture_seal::set_folder_for_test(None);
-    assert!(result["capture"].get("seal").is_none());
-    assert!(!keys.exists());
+    assert_eq!(result["capture"]["sealProvider"], "file-key");
+    assert!(keys.join("keys.json").exists());
     assert_eq!(view["rows"][0]["decision"]["shownStatementBinding"]["state"], "bound");
+    std::fs::remove_dir_all(keys).unwrap();
 }
 
 #[test]

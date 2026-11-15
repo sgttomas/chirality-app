@@ -63,7 +63,7 @@ function validators() {
 const ok = (v, x, what) => assert.ok(v(x), `${what}: ${JSON.stringify(v.errors, null, 1)}`);
 
 test("Rust decide flow runs and produces outputs", () => {
-  execFileSync("cargo", ["test", "--offline", "--locked", "--test", "decide_flow"], { cwd: join(app, "src-tauri"), stdio: "inherit", env: rustEnv });
+  execFileSync("cargo", ["test", "--offline", "--locked", "--test", "decide_flow", "--", "--test-threads=1"], { cwd: join(app, "src-tauri"), stdio: "inherit", env: rustEnv });
   assert.ok(existsSync(join(out, "decide-records.jsonl")));
 });
 

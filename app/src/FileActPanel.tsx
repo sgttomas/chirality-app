@@ -1,4 +1,5 @@
 import { AgentText, RecordedData, idWords, wordOf } from "./AgentText";
+import { sealProviderClause } from "./captureSeal";
 import { useImperativeHandle, useRef, useState, type Ref } from "react";
 type Json = any;
 // The host's words for a file act (act_control_file.rs, file_act_view.rs); any other value is shown beside, boxed.
@@ -135,6 +136,7 @@ export function FileActPanel({ command, controlRef, onBusyChange }: {
       {preview.utf8 !== null && <details open><summary>Exact frozen UTF-8 text</summary><AgentText block value={preview.utf8} source="record" exactLineEnds style={{ maxHeight: 360, overflow: "auto" }} /></details>}
       <details><summary>Exact frozen bytes (hexadecimal)</summary><AgentText block value={preview.hex} source="record" style={{ maxHeight: 360, overflow: "auto" }} /></details>
       {typeof preview.declineNotice === "string" && <p role="note">{preview.declineNotice}</p>}
+      <p>Before keychain protection is set up, captures are sealed with the App's key file, not your keychain. Earlier file-key acts keep that standing after keychain setup and can still count.</p>
       <button disabled={busy || attempted} onClick={() => run("file_act_confirm", { reference: preview.reference })}>Review native act / decline / cancel…</button>
       <button disabled={busy || attempted} onClick={() => run("file_act_dismiss", { reference: preview.reference })}>Dismiss offer without capture</button>
     </article>}
@@ -147,7 +149,10 @@ export function FileActPanel({ command, controlRef, onBusyChange }: {
       </p>)}
     </div>}
     {error && <p role="alert">{error}</p>}
-    {status && <div role="status"><p>{status.state}</p><RecordedData value={status} /></div>}
+    {status && <div role="status"><p>{status.state}</p>
+      {status.capture?.seal && <p>{status.recordDurable === true ? "Act recorded; " : "Capture published; record not established; "}{sealProviderClause(status.capture?.sealProvider)}.</p>}
+      {status.capture && !status.capture.seal && <p>{status.recordDurable === true ? "Act recorded without a seal. " : "Capture unsealed; recording is not established. "}This capture will never be sealed later. To obtain a counted act, review and perform the act again.</p>}
+      <RecordedData value={status} /></div>}
     <p>Uncertain capture publication is neither a recorded act nor an act awaiting its record. A definite capture failure requires a new review and confirmation. A durable capture with a failed record remains missing in record until its original continuation succeeds.</p>
     {(view?.hotOffers ?? []).map((offer: Json) => <article key={offer.reference}>
       <p>Original offer {offer.reference}: {outcomes[offer.reference]?.state ?? offer.status?.state ?? offer.state}</p>
@@ -162,6 +167,10 @@ export function FileActPanel({ command, controlRef, onBusyChange }: {
       <p>Actor (identity not verified): {JSON.stringify(row.actor)}. Recorder: {JSON.stringify(row.recordedBy)}.</p>
       <p>Current content comparison: {row.comparison}. Captured at: {row.captureTime}. {row.identityResolution}.</p>
       <FileActLapseHistory row={row}/>
+      {row.captureSeal?.standing === "read-limit" && <div>
+        <p>Recover capture verification: restore access to the original key and continuity, or open the original signed installation, then check again. This read never seals a capture published without a seal.</p>
+        <button disabled={busy} onClick={() => run("file_act_read", {})}>Check capture verification again</button>
+      </div>}
       {row.limits.map((limit: string, i: number) => <p key={i}>{limit}</p>)}
       <details><summary>Source, content identities and correction relations</summary><RecordedData value={row} /></details>
     </article>)}

@@ -421,7 +421,7 @@ fn records_store_portable_reconstruction_cold_consumers_keep_role_wr_decision_an
         assert!(projection["captureProvenance"]
             .as_str()
             .unwrap()
-            .contains("not verified"));
+            .contains("who wrote it is not established"));
         let decision = project.join("project/decisions/PKG-1.json");
         let mut edited: Value = serde_json::from_slice(&decision_bytes).unwrap();
         edited["purpose"] = json!(

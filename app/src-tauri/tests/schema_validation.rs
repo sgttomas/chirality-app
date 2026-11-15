@@ -104,6 +104,20 @@ fn capture_fixtures() -> Value {
 }
 
 #[test]
+fn provider_and_shared_cause_fixtures_use_the_real_offline_validators() {
+    let cases: Vec<Value> = serde_json::from_str(include_str!("../schemas/fixtures/seal-provider-cases.json")).unwrap();
+    let validator = schema_validation::bundled().unwrap();
+    for case in cases {
+        let result = if case["kind"] == "capture" {
+            schema_validation::validate_capture(&case["instance"])
+        } else {
+            validator.validate(&case["instance"])
+        };
+        assert_eq!(result.is_ok(), case["valid"].as_bool().unwrap(), "{}: {result:?}", case["name"]);
+    }
+}
+
+#[test]
 fn package_offer_capture_apis_validate_full_maintained_objects() {
     schema_validation::validate_package(&package_fixture()).unwrap();
     for offer in offer_fixtures()["instances"].as_array().unwrap() {

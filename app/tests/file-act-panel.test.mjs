@@ -141,3 +141,40 @@ test('actual standalone observer DTOs preserve cold intervals and distinguish or
     } finally {await view.close();}
   }
 });
+
+test('publication provider clauses keep recording failure separate from a recorded unsealed act',async()=>{
+  for(const [capture,recordDurable,expected,forbidden] of [
+    [{seal:{method:'invented'},sealProvider:'file-key'},true,/Act recorded; sealed with the App's key file, not your keychain/,/Act recorded without a seal/],
+    [{seal:{method:'invented'},sealProvider:'keychain'},true,/Act recorded; sealed with your keychain/,/Act recorded without a seal/],
+    [{},true,/Act recorded without a seal.*never be sealed later.*perform the act again/,/recording is not established/],
+    [{},false,/Capture unsealed; recording is not established/,/Act recorded without a seal/],
+    [{seal:{method:'invented'},sealProvider:'untrusted assurance'},false,/Capture published; record not established; seal provider not recorded/,/Act recorded;/],
+  ]) {
+    const preview={reference:'invented-offer',offer:{wording:'mark checked',actKind:'A4',subject:{ref:'invented.txt',contentIdentity:{method:'invented',value:'bytes'}},answers:{},scope:'invented scope',purpose:'invented purpose'},utf8:'invented bytes',hex:'00',byteLength:1};
+    const view=mounted(async name=>name==='file_act_select'?preview:{state:'original publication result',capture,recordDurable});
+    try {
+      await view.show();
+      const inputs=view.container.querySelectorAll(n=>n.localName==='input');
+      await React.act(()=>{props(inputs[0]).onChange({target:{value:'invented scope'}});props(inputs[1]).onChange({target:{value:'invented purpose'}});});
+      await view.press('Select file and freeze preview…');
+      assert.match(view.container.textContent,/Before keychain protection is set up.*sealed with the App's key file, not your keychain/);
+      await view.press('Review native act / decline / cancel…');
+      assert.match(view.container.textContent,expected);assert.doesNotMatch(view.container.textContent,forbidden);
+    } finally {await view.close();}
+  }
+});
+
+test('recovering verification is a read-only retry for read limits and supplies no later seal for NoSeal',async()=>{
+  for(const standing of ['read-limit','settled']) {
+    const calls=[];
+    const view=mounted(async(name,args)=>{calls.push([name,args]);return {rows:[{recordId:'rec:invented',kind:'A4',event:'recorded human-act claim',captureSeal:{standing},limits:[]}]};});
+    try {
+      await view.show();await view.press('Read file-act log and current content');
+      if(standing==='read-limit') {
+        assert.match(view.container.textContent,/Recover capture verification.*original key and continuity/);
+        await view.press('Check capture verification again');
+        assert.deepEqual(calls,[['file_act_read',{}],['file_act_read',{}]]);
+      } else assert.doesNotMatch(view.container.textContent,/Check capture verification again/);
+    } finally {await view.close();}
+  }
+});

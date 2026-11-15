@@ -116,8 +116,9 @@ fn statement(preview: &Value) -> Result<ns::NativeStatement, String> {
     } else {
         preview["marker"].to_string()
     };
-    let whole=format!("Protect registered workflows with your keychain on this installation?\nYour workflow registrations (A15) will carry seals when the enrolled keychain provider can seal them. Verification shows consistency with possession of a key held in the person's keychain under the keychain's protection; it does not establish who wrote the capture, that a person was present, or that they judged. \"Require verified approval\" will be stored there; lowering it will need your native confirmation.\nLocation: {}\nService: {}\nAccount: {}\nAccess group: {}\nCommitted and pending key IDs: {}\nExisting keys are retained. Development keys are not imported.",
+    let mut whole=format!("Protect registered workflows with your keychain on this installation?\nYour workflow registrations (A15) will carry seals when the enrolled keychain provider can seal them. Verification shows consistency with possession of a key held in the person's keychain under the keychain's protection; it does not establish who wrote the capture, that a person was present, or that they judged. \"Require verified approval\" will be stored there; lowering it will need your native confirmation.\nLocation: {}\nService: {}\nAccount: {}\nAccess group: {}\nCommitted and pending key IDs: {}\nExisting keys are retained. Development keys are not imported.",
         field("app_data")?,field("service")?,field("account")?,field("access_group")?,marker);
+    whole.push_str("\nFuture captures use a fresh keychain key. Earlier file-key captures retain their weaker standing and their file key for read-only verification; enrolment imports no file-key material and never reseals existing captures.");
     ns::whole_or_in_app(
         "Capture sealing",
         "prepared capture-seal installation",
@@ -212,3 +213,12 @@ pub(crate) fn request(app: tauri::AppHandle) {
 #[cfg(test)]
 #[path = "seal_c_enrollment_tests.rs"]
 mod tests;
+
+/// Source-only exercise of the actual coordinator with an injected native
+/// confirmation. No App instance, dialog, driver or keychain API is used.
+#[cfg(test)]
+pub(crate) fn confirm_provider_for_test<I>(prepare: impl FnOnce() -> Result<I, String>, consume: impl FnOnce(I) -> Result<(), String>) -> Result<(), String> {
+    let questions = Questions::new();
+    let question = questions.acquire()?;
+    coordinate(&question, &Mutex::new(()), &AppQuit::default(), prepare, |_| Ok(true), || Ok(()), consume).map(|_| ())
+}

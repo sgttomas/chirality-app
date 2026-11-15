@@ -1,4 +1,5 @@
 import { AgentText, ConversationChoices, RecordedData, idWords, numberWords, safeName, wordOf } from "./AgentText";
+import { DecisionSealStanding } from "./DecisionSealStanding";
 import { ActionFeedback } from "./ActionFeedback";
 import { LOCAL_ROUTE_OFFERED } from "./localRoute";
 import { PackageStanding } from "./PackageStanding";
@@ -1528,6 +1529,7 @@ export function DecisionPackagesPanel({ view, name, setName, recordName, refresh
     <p>Capture time: {decision.capturedAt ?? "not reported"} · observed at: {decision.observedAt ?? ((decision.equivalentCaptureRecords ?? []).length > 1 ? "multiple records; see individual observations" : "not reported")} · record written at: {decision.recordedAt ?? ((decision.equivalentCaptureRecords ?? []).length > 1 ? "multiple records; see individual written times" : "not reported")}. Recorded observation order does not establish human performance chronology.</p>
     <p>{decision.lapse} · {decision.captureProvenance}</p>
     <p>{decision.shownStatementBinding?.statement ?? "Whether what was shown is bound in this capture is not known."}</p>
+    <DecisionSealStanding seal={decision.captureSeal} />
     {decision.currentContentComparison && <p>Current file comparison: {JSON.stringify(decision.currentContentComparison)}. This describes current bytes separately from past lapse history.</p>}
     {decision.historyResolution && <p>Recorded lapse history resolution: {JSON.stringify(decision.historyResolution)}.</p>}
     {decision.historyIncomplete && <p>Recorded history is incomplete; unresolved observations remain in the source details below.</p>}

@@ -73,8 +73,10 @@ needs:
 - from: DEL-01-06
   condition: The installed App is signed with the same Developer ID team and bundle identifier
     in every release, so that keychain items written by one release are readable by the next.
+    Before a signed-route Missing observation admits the file provider, the selected publisher,
+    installed App ID, team, default access group and stable lookup namespace are validated.
   gating: true
-  when: Keychain protection on an installed build
+  when: Signed pre-protection file sealing and keychain protection on an installed build
 - from: external:person or examining agent operating the act control
   condition: A person confirms each act in the native confirmation while an examiner observes. In
     an agent-operated journey examination as the release target defines it, the examining agent
@@ -82,6 +84,16 @@ needs:
     then a synthetic examination artifact that establishes no person's decision. The protection act
     and the confirmation of a lowered policy (VER-009) are the person's and never an agent's.
 code_paths:
+# Admission of a new signed-route seal. It keeps one file in the App data folder,
+# capture-seal-libraries.json (format chirality.app.capture-seal-library-inventory/v1: the
+# physical roots of the libraries this installation has opened or registered into, and a
+# completion marker). The App adds a root when a library is opened or registered into, under
+# the enrolment join, and never removes one. The file can only veto the App's key file: its
+# absence authorises nothing, and a present but damaged list refuses with words and an action.
+- app/src-tauri/src/capture_seal_admission.rs
+- app/src-tauri/src/act_evidence_cause.rs
+- app/src-tauri/src/installed_custody.rs
+- app/src/captureSeal.ts
 # act_control.rs is shared. Here: the control, its offers and captures. The registration
 # operation is DEL-02-02's, act wording DEL-04-01's and the record writer DEL-04-03's.
 - app/src-tauri/src/act_control.rs
@@ -174,6 +186,11 @@ checks:
 - app/src-tauri/tests/decide_flow.rs
 - app/src-tauri/tests/act_storage.rs
 - app/tests/package-standing.test.mjs
+- app/src-tauri/src/capture_seal_keychain_tests.rs
+- app/src-tauri/src/act_evidence_cause.rs
+- app/src-tauri/src/workflow_library_tests.rs
+- app/src-tauri/src/checkpoint_recorder_tests.rs
+- app/src-tauri/schemas/fixtures/seal-provider-cases.json
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/hosting.rs
 - app/tests/prepared-message-navigation.test.mjs

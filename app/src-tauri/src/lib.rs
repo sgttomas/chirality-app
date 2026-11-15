@@ -15,6 +15,7 @@ pub mod act_policy;
 pub(crate) mod native_text;
 pub mod attachments;
 pub mod canonical;
+pub mod act_evidence_cause;
 pub mod capture_seal;
 mod capture_seal_keychain;
 mod seal_c_enrollment;

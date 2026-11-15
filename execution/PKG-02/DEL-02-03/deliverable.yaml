@@ -41,6 +41,9 @@ needs:
   condition: The act control captures an act the person performs with its capture evidence and
     shows an unperformed act as not performed, and the run's state, its checkpoints and the
     control that ends a run are placed in the interface.
+    Named-provider verification supplies the actual verifying provider separately from the record,
+    shared typed settled or read-limit causes, and the single signed-file counting-policy result;
+    a provider label alone never makes an act eligible.
   gating: false
 - from: DEL-04-01
   condition: Each act kind has one name and a stated performer, the acts reserved to a person are
@@ -53,6 +56,9 @@ needs:
     Where a project's records are read from is decided by the records store, which gives no
     location, in the store or in the project folder, while the project's link to the store is
     unresolved.
+    The closed cause name can be retained on evidence_limit, and successful checkpoint evidence
+    retains the verified provider on act_counted.body.act.sealProvider or arrival_declined.body.sealProvider;
+    absent legacy fields remain readable without inferring a provider.
   gating: false
 - from: DEL-03-02
   condition: Each change item has a content identity and its own disposition, an item leaving
@@ -90,6 +96,7 @@ needs:
     operation comes first with the autonomy permitted for it.
   when: Before a hold is assigned to any checkpoint or claimed.
 code_paths:
+- app/src/captureSeal.ts
 - app/src-tauri/src/execution_compatibility.rs
 - app/src-tauri/src/compatibility_report.rs
 - app/src-tauri/src/workflow_proposal_advisory.rs
@@ -112,6 +119,8 @@ code_paths:
 # run's state, its requirement report and its checkpoints.
 - app/src/RunPanel.tsx
 checks:
+- app/src-tauri/tests/schema_validation.rs
+- app/src-tauri/schemas/fixtures/seal-provider-cases.json
 - app/src-tauri/src/compatibility_report_tests.rs
 - app/src-tauri/src/checkpoint_recorder_tests.rs
 - app/src-tauri/src/after_run_end_tests.rs

@@ -28,6 +28,9 @@ needs:
     unperformed act as not performed; it offers the native act that lowers the workflow approval
     policy and the person's keychain protection act; and a turn the person sends carries the
     run-start text, the run-end line or a trial text as this workspace supplies it.
+    Captures bind their admitted provider among the covered facts and return typed verification
+    results; only actual keychain verification supplies persistent verified approval. File seals
+    remain weaker, hot and relaxed admission stay distinct, and enrolment never reseals old evidence.
   gating: false
 - from: DEL-01-05
   condition: For a conversation, whether a model is selected and which is reported, and a workflow

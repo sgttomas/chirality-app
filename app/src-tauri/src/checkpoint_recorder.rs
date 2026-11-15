@@ -964,22 +964,22 @@ pub(crate) fn count_acts(entries: &[Value], read: &ActRead, root: &Path) -> Vec<
             }
         }
         // (time, record identity, record, kind, content) of each verified act or decline on this file.
-        let mut candidates: Vec<(&str, &str, &Value, &str, &Value)> = read.acts.iter().filter_map(|a| {
+        let mut candidates: Vec<(&str, &str, &Value, &str, &Value, Option<&Value>)> = read.acts.iter().filter_map(|a| {
             let record = &a["record"];
             let b = &record["body"];
             let id = record["recordId"].as_str()?;
             let index = on_subject(&named(record))?;
             if record["kind"] == "act_declined" {
-                Some((b["time"].as_str().filter(|t| comparable(t))?, id, record, b["declinedKind"].as_str()?, &a["declineBoundContent"][index]))
+                Some((b["time"].as_str().filter(|t| comparable(t))?, id, record, b["declinedKind"].as_str()?, &a["declineBoundContent"][index], a.get("sealProvider")))
             } else {
-                Some((b["captureTime"].as_str().filter(|t| comparable(t))?, id, record, b["actKind"].as_str()?, &b["boundContent"][index]))
+                Some((b["captureTime"].as_str().filter(|t| comparable(t))?, id, record, b["actKind"].as_str()?, &b["boundContent"][index], a.get("sealProvider")))
             }
         }).collect();
         candidates.sort_by(|a, b| (a.0, a.1).cmp(&(b.0, b.1)));
         // SB-1: Some(equal) under the same method; None when incomparable.
         let same = |content: &Value| -> Option<bool> { (content["method"] == method).then(|| content["value"] == value) };
         let governing = candidates.iter().filter(|c| c.0 < arrived && c.3 == required && same(c.4) == Some(true)).last().map(|c| c.1);
-        for (time, id, record, kind, content) in candidates {
+        for (time, id, record, kind, content, seal_provider) in candidates {
             let before = time < arrived;
             if before && kind == required && same(content) == Some(true) && Some(id) != governing {
                 continue; // superseded by a later decision before the arrival
@@ -1004,7 +1004,8 @@ pub(crate) fn count_acts(entries: &[Value], read: &ActRead, root: &Path) -> Vec<
                 if record["kind"] == "act_declined" || kind != required || same(content) != Some(true) || !ACT_KINDS.contains(&kind) {
                     continue;
                 }
-                let act = json!({"recordId":id,"actKind":kind,"capturedAt":time,"capturingSurface":"app_act_control"});
+                let mut act = json!({"recordId":id,"actKind":kind,"capturedAt":time,"capturingSurface":"app_act_control"});
+                if let Some(provider) = seal_provider { act["sealProvider"] = provider.clone(); }
                 out.push(("act_counted", json!({"arrival":arrival,"act":act,"relation":if before {"earlier act"} else {"after arrival"},"referents":[subject]})));
                 let annotations = if before { json!([{"label":"by earlier act","actRef":id,"time":time,"referents":[subject]}]) } else { json!([]) };
                 out.push(("disposition_change", json!({"arrival":arrival,"disposition":"performed","performanceOrdinal":next_ordinal(),"answeredBy":[id],"annotations":annotations})));
@@ -1015,7 +1016,9 @@ pub(crate) fn count_acts(entries: &[Value], read: &ActRead, root: &Path) -> Vec<
             }
             if record["kind"] == "act_declined" {
                 if kind == required && same(content) == Some(true) {
-                    out.push(("arrival_declined", json!({"arrival":arrival,"declinedEventRef":id})));
+                    let mut declined = json!({"arrival":arrival,"declinedEventRef":id});
+                    if let Some(provider) = seal_provider { declined["sealProvider"] = provider.clone(); }
+                    out.push(("arrival_declined", declined));
                     out.push(("disposition_change", json!({"arrival":arrival,"disposition":"resolved negatively","annotations":[]})));
                 }
                 continue;
@@ -1023,13 +1026,14 @@ pub(crate) fn count_acts(entries: &[Value], read: &ActRead, root: &Path) -> Vec<
             if !ACT_KINDS.contains(&kind) {
                 continue;
             }
-            let act = json!({"recordId":id,"actKind":kind,"capturedAt":time,"capturingSurface":"app_act_control"});
+            let mut act = json!({"recordId":id,"actKind":kind,"capturedAt":time,"capturingSurface":"app_act_control"});
             let reason = if kind != required {
                 "another act kind"
             } else {
                 match same(content) {
                     None => continue, // incomparable methods (SB-1): neither counted nor said to differ
                     Some(true) => {
+                        if let Some(provider) = seal_provider { act["sealProvider"] = provider.clone(); }
                         let ordinal = next_ordinal();
                         out.push(("act_counted", json!({"arrival":arrival,"act":act,"relation":if before {"earlier act"} else {"after arrival"},"referents":[subject]})));
                         let annotations = if before { json!([{"label":"by earlier act","actRef":id,"time":time,"referents":[subject]}]) } else { json!([]) };
@@ -1651,6 +1655,26 @@ fn captures_unchanged(captures: &[crate::file_act_view::CaptureWatch]) -> bool {
             && capture_stamp(&watch.path).is_ok_and(|stamp| stamp == watch.stamp)
     })
 }
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum SignedFileSealCounting { CountWithDisclosure, RequireKeychain }
+// The owner's pending A/B choice has exactly this one selected value. A is
+// implemented: old file-key evidence can still count after keychain setup.
+const SIGNED_FILE_SEAL_COUNTING: SignedFileSealCounting = SignedFileSealCounting::CountWithDisclosure;
+#[cfg(test)]
+thread_local! { static TEST_SEAL_COUNTING: std::cell::Cell<Option<SignedFileSealCounting>> = const { std::cell::Cell::new(None) }; }
+fn selected_seal_counting() -> SignedFileSealCounting {
+    #[cfg(test)]
+    if let Some(policy) = TEST_SEAL_COUNTING.with(|p| p.get()) { return policy }
+    SIGNED_FILE_SEAL_COUNTING
+}
+pub(crate) fn capture_counting_admission(signed_route: bool, seal: &crate::capture_seal::SealVerification) -> bool {
+    !signed_route || seal.verified_with == crate::capture_seal::SealProvider::Keychain || selected_seal_counting() == SignedFileSealCounting::CountWithDisclosure
+}
+#[cfg(test)]
+pub(crate) fn set_seal_counting_for_test(policy: Option<SignedFileSealCounting>) {
+    TEST_SEAL_COUNTING.with(|p| p.set(policy));
+    forget_act_read_for_test();
+}
 pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
     let root = std::fs::canonicalize(root).map_err(|e| format!("project root not readable: {e}"))?;
     // The record set through the bounded index (`records_index`), in one
@@ -1716,6 +1740,7 @@ pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
         }
         // Whether a refusal is a settled verdict on the record, never a limit of this read.
         let mut settled = false;
+        let mut seal_verification = None;
         let verified: Result<Value, String> = if let Some(limit) = state.relation_limit {
             Err(format!("record relation not resolved: {limit}"))
         } else if state.identity_resolution == "conflicting identity" {
@@ -1724,6 +1749,7 @@ pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
             Err("the record's recorder claim does not name the App's capturing surface (PH-4)".into())
         } else {
             let observed = crate::file_act_view::observe_capture(&root, b);
+            seal_verification = observed.verification;
             reusable &= observed.reusable;
             settled = observed.no_seal && observed.result.is_err();
             if let Some(watch) = observed.watch { captures.push(watch); }
@@ -1735,13 +1761,15 @@ pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
         };
         match verified {
             Ok(mut capture) => {
+                let verification = seal_verification.expect("a successful capture observation includes its verifying provider");
+                if !capture_counting_admission(crate::capture_seal_keychain::selected_route(), &verification) { continue; }
                 by_capture.entry(capture["captureId"].as_str().unwrap_or_default().to_owned()).or_default().push(id.to_owned());
                 // These remain private candidates until the complete R-8 pass.
                 // Full schema/seal/backlink/correspondence checks have finished;
                 // R-8 needs the verified identity above, not the full capture.
                 // Keep every original record and move the exact decline array,
                 // releasing all other capture fields before reading the next one.
-                let mut fields = serde_json::Map::from_iter([("record".into(), record)]);
+                let mut fields = serde_json::Map::from_iter([("record".into(), record), ("sealProvider".into(), json!(verification.verified_with))]);
                 if decline {
                     let content = capture.as_object_mut().and_then(|c| c.remove("boundContent")).unwrap_or(Value::Null);
                     fields.insert("declineBoundContent".into(), content);
