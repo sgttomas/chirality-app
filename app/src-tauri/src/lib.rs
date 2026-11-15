@@ -1930,7 +1930,8 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runti
     // DEL-01-05 REQ-004: in the account home, with no local route in this build, the configuration offers exactly one
     // access entry, which the App shows as the connection in use without asking; the record says so. Where more than
     // one is offered, the entry is the person's choice.
-    if only_access_entry(home.class()) { selection.choose_model_for_shown_entry(&entry_id, &model_provider, &model)?; }
+    let shown_entry = only_access_entry(home.class());
+    if shown_entry { selection.choose_model_for_shown_entry(&entry_id, &model_provider, &model)?; }
     else { selection.choose(&entry_id, &model_provider, &model, false)?; }
     selection.start_params(&generation, home.class().as_str(), false)?;
     let recovery_home = selection.recovery_home();
@@ -1998,6 +1999,7 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runti
         if let Some(thread) = response["result"]["thread"]["id"].as_str() {
             if let Some(home_kind) = recovery_home { home.thread_home_kinds.lock().unwrap().insert(serde_json::to_string(&json!([generation,thread])).unwrap(),home_kind); }
             let _ = home.host.observe_conversation_project(&generation,thread,recovery_home,&frozen_project);
+            if shown_entry { home.host.note_requested_entry_source(&generation, thread, access::SHOWN_ONLY_ENTRY); }
         }
     }
     result

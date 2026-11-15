@@ -4183,6 +4183,14 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         self.insert_start_response(&sent_generation,&params,&r,false)?;
         Ok(r)
     }
+    /// DEL-01-05 REQ-004: where the App showed the only access entry as the connection in use, the started conversation's
+    /// requested destination says so (`entrySource`) beside `source`, which stays the person's selection of the model.
+    pub(crate) fn note_requested_entry_source(&self, generation: &Value, thread: &str, entry_source: &str) {
+        let mut i = self.inner.0.lock().unwrap();
+        for row in i.threads.iter_mut().filter(|t| t["generation"] == *generation && t["threadId"] == thread && t["requestedDestination"].is_object()) {
+            row["requestedDestination"]["entrySource"] = json!(entry_source);
+        }
+    }
     fn insert_start_response(&self, generation: &Value, params: &Value, response: &Value, no_duplicate: bool) -> Result<(),String> {
         let t=response.get("result").and_then(|x|x.get("thread")).ok_or_else(||format!("thread/start answered with an error: {}",response.get("error").cloned().unwrap_or(Value::Null)))?;
         let mut i=self.inner.0.lock().unwrap();
@@ -6596,6 +6604,20 @@ mod conversation_transport_tests {
         assert_eq!(reading(&host), vec![json!({"state":"unknown"})], "an unestablished request makes it unknown, not a guess");
         host.inner.0.lock().unwrap().state = "stopped".into();
         assert!(host.efforts_in_force().is_empty(), "nothing while Codex is not ready");
+    }
+
+    #[test]
+    fn a_conversation_started_on_the_shown_only_entry_says_the_app_showed_it_and_keeps_the_persons_model_choice() {
+        let host = host();
+        {
+            let mut i = host.inner.0.lock().unwrap();
+            i.threads[0]["requestedDestination"] = json!({"source":"person-selected","model":"selected","modelProvider":"openai"});
+            i.threads.push(json!({"generation":g(),"threadId":"other","requestedDestination":{"source":"person-selected","model":"m","modelProvider":"p"}}));
+        }
+        host.note_requested_entry_source(&g(), "thread", crate::access::SHOWN_ONLY_ENTRY);
+        let threads = host.snapshot()["threads"].clone();
+        assert_eq!(threads[0]["requestedDestination"], json!({"source":"person-selected","model":"selected","modelProvider":"openai","entrySource":"app-showed-only-entry"}));
+        assert!(threads[1]["requestedDestination"].get("entrySource").is_none(), "another conversation is untouched");
     }
 
     #[test]
