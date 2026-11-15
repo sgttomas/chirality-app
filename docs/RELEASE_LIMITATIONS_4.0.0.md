@@ -382,7 +382,9 @@ An entry is added in the same pull request that makes the limitation standing.
     with OpenAI which ChatGPT workspace the kept sign-in belongs to and, if
     OpenAI refuses it as unauthorized, may try to renew the sign-in;
   - when the App reads whether you're signed in, with no sign-in kept: none;
-  - when the App reads the list of models: none during the read.
+  - when the App reads the list of models: none during the read;
+  - when the App reads the list of your past conversations: none during the
+    read.
 
   These are the hosts the checks saw Codex try when every connection was
   refused. Once a connection succeeds, Codex may connect to others.

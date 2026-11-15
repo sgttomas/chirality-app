@@ -832,8 +832,13 @@ class AccountRead(unittest.TestCase):
                 models = client.call('model/list', {'includeHidden': False}, timeout=60)
                 during_models = recorder.since(mark)
                 self.settle(recorder)
+                mark = time.monotonic()
+                history = client.call('thread/list', {'sortDirection': 'desc'}, timeout=60)
+                during_history = recorder.since(mark)
+                self.settle(recorder)
                 return {'startup': startup, 'account': account, 'during_account': during_account,
-                        'models': models, 'during_models': during_models}
+                        'models': models, 'during_models': during_models,
+                        'history': history, 'during_history': during_history}
         finally:
             recorder.close()
 
@@ -843,6 +848,8 @@ class AccountRead(unittest.TestCase):
         self.assertEqual(seen['during_account'], [])
         self.assertTrue(seen['models'].get('result', {}).get('data'), 'the model list is answered')
         self.assertEqual(seen['during_models'], [])
+        self.assertIn('data', seen['history'].get('result', {}), seen['history'])
+        self.assertEqual(seen['during_history'], [], 'the history list read contacts nothing')
         self.assertIn(('CONNECT', 'chatgpt.com:443'), seen['startup'], 'Codex itself tries the network at start')
 
     def test_with_an_invented_sign_in_the_account_read_contacts_the_account_server_and_fails_when_refused(self):
@@ -854,6 +861,8 @@ class AccountRead(unittest.TestCase):
         self.assertNotIn('result', seen['account'])
         self.assertTrue(seen['models'].get('result', {}).get('data'), 'the model list is answered')
         self.assertEqual(seen['during_models'], [], 'the model list read itself contacts nothing')
+        self.assertIn('data', seen['history'].get('result', {}), seen['history'])
+        self.assertEqual(seen['during_history'], [], 'the history list read contacts nothing')
         self.assertIn(('CONNECT', 'chatgpt.com:443'), seen['startup'], 'Codex itself tries the network at start')
 
 
