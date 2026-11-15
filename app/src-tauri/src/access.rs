@@ -70,6 +70,9 @@ impl AccountObservation {
 
 /// Who chose a conversation's access entry, where it was the only one available: the App showed it.
 pub const SHOWN_ONLY_ENTRY: &str = "app-showed-only-entry";
+/// Who chose a conversation's access entry, where several were available: the person (the schema's word for the
+/// person's choice, as `source` uses it). A record without `entrySource` says it was not recorded.
+pub const PERSON_CHOSE_ENTRY: &str = "person";
 pub struct ConversationSelection {
     project: Option<String>,
     record: Value,
@@ -163,9 +166,10 @@ impl ConversationSelection {
             return Err("offered choice differs".into());
         }
         self.record["state"] = json!("selected");
-        // `source` says who chose the model; `entrySource` who chose the access entry.
+        // `source` says who chose the model and started the conversation; `entrySource` who chose the access entry:
+        // here the person, among the entries available, directly or by accepting the offer.
         let source = if accept_offer{"offered-last-choice-accepted"}else{"person"};
-        self.record["selection"] = json!({"entryId":entry,"providerId":provider,"model":model,"source":source,"entrySource":source,"chosenAt":now_rfc3339()});
+        self.record["selection"] = json!({"entryId":entry,"providerId":provider,"model":model,"source":source,"entrySource":PERSON_CHOSE_ENTRY,"chosenAt":now_rfc3339()});
         self.record.as_object_mut().unwrap().remove("offer");
         self.record.as_object_mut().unwrap().remove("refusal");
         Ok(())
@@ -422,10 +426,25 @@ mod tests {
         assert_eq!(selection["source"], "person", "the model is the person's choice");
         assert_eq!(choice.snapshot()["state"], "selected");
         assert!(choice.snapshot().get("offer").is_none(), "nothing is offered or kept as a last choice for the project");
-        // A choice the person made of the entry says so.
+        // A choice the person made of the entry says so, also when it was the offer of the last choice they accepted;
+        // the closed set holds only the two acts.
         let mut chosen = ConversationSelection::new("c", "p").unwrap();
         chosen.choose("chatgpt-account", "openai", "m", false).unwrap();
-        assert_eq!(chosen.snapshot()["selection"]["entrySource"], "person");
+        valid(&chosen);
+        assert_eq!(chosen.snapshot()["selection"]["entrySource"], PERSON_CHOSE_ENTRY);
+        let mut offered = ConversationSelection::new("c", "p").unwrap();
+        offered.offer_last("chatgpt-account", "openai", "m").unwrap();
+        offered.choose("chatgpt-account", "openai", "m", true).unwrap();
+        valid(&offered);
+        assert_eq!((offered.snapshot()["selection"]["source"].as_str(), offered.snapshot()["selection"]["entrySource"].as_str()), (Some("offered-last-choice-accepted"), Some(PERSON_CHOSE_ENTRY)));
+        // An old record, without entrySource, stays valid: its entry's source was not recorded.
+        let mut old = chosen.snapshot();
+        old["selection"].as_object_mut().unwrap().remove("entrySource");
+        let schema: Value = serde_json::from_str(include_str!("../resources/runtime_core/access.conversation-selection.schema.json")).unwrap();
+        let validator = jsonschema::options().offline().build(&schema).unwrap();
+        assert!(validator.validate(&old).is_ok(), "the field is optional");
+        old["selection"]["entrySource"] = json!("offered-last-choice-accepted");
+        assert!(validator.validate(&old).is_err(), "a closed set of two values");
         // A model is still required: the entry alone is never a selection.
         let mut empty = ConversationSelection::new("c", "p").unwrap();
         assert!(empty.choose_model_for_shown_entry("chatgpt-account", "openai", "").is_err());

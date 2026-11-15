@@ -4184,7 +4184,9 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         Ok(r)
     }
     /// DEL-01-05 REQ-004: where the App showed the only access entry as the connection in use, the started conversation's
-    /// requested destination says so (`entrySource`) beside `source`, which stays the person's selection of the model.
+    /// requested destination says so (`entrySource`) beside `source`. `source: "person-selected"` covers the model the
+    /// App's thread/start carried and the act of starting the conversation, both the person's; it says nothing about
+    /// who chose the access entry. Without `entrySource`, the entry's source was not recorded.
     pub(crate) fn note_requested_entry_source(&self, generation: &Value, thread: &str, entry_source: &str) {
         let mut i = self.inner.0.lock().unwrap();
         for row in i.threads.iter_mut().filter(|t| t["generation"] == *generation && t["threadId"] == thread && t["requestedDestination"].is_object()) {
@@ -4224,6 +4226,9 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 if let Some(receipt) = receipt { i.records_receipts.push((generation.clone(), receipt.thread.clone(), receipt)); }
             }
         }
+        // requestedDestination.source "person-selected": the model this thread/start carried and the act of starting the
+        // conversation are the person's (turn_requested_context and the model-turn recorder key on it). It does not
+        // say who chose the access entry: `entrySource` does, where recorded (note_requested_entry_source).
         let standing=i.supplier_standing.clone();let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":t.get("id"),"name":t.get("name").and_then(Value::as_str),"preview":t.get("preview").and_then(Value::as_str),"status":t.get("status"),"model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider"),"reasoningEffort":response["result"].get("reasoningEffort"),"cwd":response["result"].get("cwd"),"approvalPolicy":response["result"].get("approvalPolicy"),"sandbox":response["result"].get("sandbox"),"activePermissionProfile":response["result"].get("activePermissionProfile"),"supplierStanding":standing,"requestedDestination":{"source":"person-selected","model":params["model"],"modelProvider":params["modelProvider"]},"reportedDestination":{"scope":"thread","model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider")},"networkDisclosure":network_disclosure()}),response);i.threads.push(row);Ok(())
     }
 

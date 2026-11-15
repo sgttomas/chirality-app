@@ -44,7 +44,7 @@ import { AccountStatus, DIDNT_SAY, accountReadError, accountReadRef, accountRead
 import { RunWorkflowGuide, registeredRevisionAnchor, runEvidenceAnchor } from "./RunJourney";
 import { MakeWorkflowGuide } from "./MakeJourney";
 import { acknowledgeBringBackDoubt, beginBringBack, bringBackRefusal, doubtDestination, endBringBack, noteBringBackDoubt, resetBringBackDoubts, sendKey, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
-import { AccessRouteChoice, AvailableModels, OfferedEffortChoice, SHOWN_ROUTE, modelMatch, onlyAccessEntry, validModelPacket } from "./ModelChoice";
+import { AccessRouteChoice, AvailableModels, ENTRY_SOURCE_WORDS, OfferedEffortChoice, SHOWN_ROUTE, entrySourceReading, modelMatch, onlyAccessEntry, validModelPacket } from "./ModelChoice";
 /** One App-composed message for the person to edit and send; never sent by the App. */
 export type ComposerOffer = { sequence: number; threadKey: string; text: string };
 import { conversationTitle, DIGEST_LIMIT, digestComparison, nativePathText, readablePaths, reviewDigest, storedRelation, suppliedSummary, suppliedTitle, threadChoices, type ReviewDigestView, conversationLabel } from "./presentation";
@@ -2932,7 +2932,7 @@ export function App() {
   <SupplyStatus supply={host?.roleSupply}/>
           <RoleHistoryReader scope={JSON.stringify(host?.generation)} ready={host?.state === "ready"} read={() => invoke("role_supply_history", { generation: host?.generation, thread: null })}/>
           {host?.instructionsProblem && <p role="alert">Role guidance store: {host.instructionsProblem}</p>}
-  <details><summary>Last native start selection in this home</summary><RecordedData value={host?.accessSelection ?? null} /></details>
+  <details><summary>Last native start selection in this home</summary>{host?.accessSelection?.selection && <p>{ENTRY_SOURCE_WORDS[entrySourceReading(host.accessSelection.selection)]}</p>}<RecordedData value={host?.accessSelection ?? null} /></details>
           <p>Account (App-observed, identity not verified): {JSON.stringify(host?.accountObservation ?? { state: "unknown" })}</p>
   <p>Threads: {(host?.threads ?? []).map((t: Json) => `${t.threadId} (${t.status?.type ?? "?"}, gen ${JSON.stringify(t.generation)})`).join(", ") || "none"}</p>
 

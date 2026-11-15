@@ -49,6 +49,16 @@ export const onlyAccessEntry = (homeClass: string | null | undefined): boolean =
 export const SHOWN_ROUTE = { modelProvider: BUILT_IN_PROVIDER, entryId: "chatgpt-account" } as const;
 /** How the only connection is shown. It says nothing of whether anyone is signed in. */
 export const CONNECTION_IN_USE = "Connects with your ChatGPT account (built-in OpenAI) — the only connection this version offers.";
+/** Who chose a conversation's access entry, as its selection record says (access.conversation-selection schema,
+ * `entrySource`): the App showed the only entry, or the person chose among several. A record without the field, or
+ * with any other value, says it was not recorded, never that the person chose it. */
+export const entrySourceReading = (selection: Json): "app-showed-only-entry" | "person" | "not-recorded" =>
+  selection?.entrySource === "app-showed-only-entry" || selection?.entrySource === "person" ? selection.entrySource : "not-recorded";
+export const ENTRY_SOURCE_WORDS = {
+  "app-showed-only-entry": "Connection: the only one this version offers, shown by the App. You weren't asked to choose it.",
+  "person": "Connection: you chose it from the connections available.",
+  "not-recorded": "Connection: who chose it was not recorded.",
+} as const;
 
 /** How a new conversation connects: the only connection, shown as in use, or an explicit choice of an existing access route. */
 export function AccessRouteChoice({ homeClass, modelProvider, entryId, model = "", disabled, choose, localHint, local = null, onlyEntry = false, entriesUnread = false }: {

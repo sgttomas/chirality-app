@@ -618,3 +618,33 @@ test('a model display name shaped like an answer never reaches a Use button or t
     }
   } finally { await React.act(() => root.unmount()); document.body.removeChild(c); delete window.__TAURI_INTERNALS__; }
 });
+
+test('a selection record without entrySource reads "not recorded", never the person\'s choice of the entry', async () => {
+  const {entrySourceReading, ENTRY_SOURCE_WORDS} = loadSrc('ModelChoice');
+  // An old record, written before the field: who chose the entry was not recorded.
+  const old = {entryId: 'chatgpt-account', providerId: 'openai', model: 'm', source: 'person', chosenAt: '2026-11-01T00:00:00Z'};
+  assert.equal(entrySourceReading(old), 'not-recorded', 'the model being the person\'s says nothing about the entry');
+  for (const value of [undefined, null, '', 'offered-last-choice-accepted', 'person-selected', 'person-chose-entry'])
+    assert.equal(entrySourceReading({...old, entrySource: value}), 'not-recorded', `${value}: not one of the two recorded acts`);
+  assert.equal(entrySourceReading({...old, entrySource: 'app-showed-only-entry'}), 'app-showed-only-entry');
+  assert.equal(entrySourceReading({...old, entrySource: 'person'}), 'person');
+  assert.equal(ENTRY_SOURCE_WORDS['not-recorded'], 'Connection: who chose it was not recorded.');
+  // Where the record is shown (Settings & tools, "Last native start selection in this home"), an old record says so.
+  const container = document.createElement('div'); document.body.appendChild(container); const root = createRoot(container);
+  const host = {state: 'ready', generationClosed: false, generation: g, threads: [], serverRequests: [], roleLimits: {account: {roles: []}},
+    homeRouting: {activeModeHomeClass: 'account', entries: [{modeHomeClass: 'account'}]},
+    accessSelection: {schema: 'chirality.access-selection/v0.2', conversation: 'c', project: 'p', state: 'started', selection: old}};
+  const idle = installIdleNativeWaiting(async command => {
+    if (command === 'host_status') return host;
+    if (command === 'decision_view') return {rows: []};
+    if (command === 'native_confirmation_content') return [];
+    throw Error(`Unexpected command ${command}`);
+  });
+  try {
+    await React.act(async () => root.render(React.createElement(App)));
+    const shown = nodes(container, 'details').find(d => nodes(d, 'summary')[0]?.textContent === 'Last native start selection in this home');
+    assert.ok(shown, 'the selection record is shown');
+    assert.match(shown.textContent, /Connection: who chose it was not recorded\./);
+    assert.doesNotMatch(shown.textContent, /you chose it/);
+  } finally { const text = container.textContent; await React.act(() => root.unmount()); document.body.removeChild(container); idle.restore(text); }
+});
