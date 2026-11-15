@@ -3042,3 +3042,55 @@ fn a15_multi_entry_capture_uses_each_admitted_provider_and_keeps_hot_admission()
         libraries.push(s);
     }
 }
+
+#[test]
+fn a15_repair3_registration_advances_with_damaged_inventory_under_each_provider() {
+    for provider in ["file-key", "keychain"] {
+        let installation = crate::capture_seal_keychain::tests::SelectedInstallation::new();
+        let library = Scratch::new(); let snapshot = library.put("sample", false, "invented work");
+        let owner = library.persistent_owner();
+        if provider == "keychain" { installation.enroll().unwrap(); }
+        let session = owner.review_draft("sample", snapshot.revision()).unwrap();
+        let list = installation.root().join("capture-seal-libraries.json");
+        let original = fs::read(&list).unwrap();
+        fs::write(&list, b"damaged list").unwrap();
+        let r = receipt(&session);
+        let mut attempt = session.begin_hot_registration(r).unwrap();
+        let outcomes = attempt.advance();
+        let registered = registered(&outcomes[0]);
+        assert!(owner.resolve_registered(registered.identity()).is_ok(), "hot admission remains its own rule");
+        let capture: Value = serde_json::from_slice(&fs::read(capture_path(&library)).unwrap()).unwrap();
+        if provider == "keychain" {
+            assert_eq!(capture["sealProvider"], "keychain");
+        } else {
+            assert!(capture.get("sealProvider").is_none());
+            assert!(capture["evidenceLimits"].to_string().contains("Library protection inventory is incomplete:"), "{capture}");
+        }
+        assert_eq!(fs::read(&list).unwrap(), b"damaged list", "registration never repairs damaged history by overwriting it");
+        fs::write(&list, original).unwrap();
+        let reopened = library.persistent_owner();
+        assert_eq!(reopened.registered_listing().as_array().unwrap().len(), 1);
+    }
+}
+
+#[test]
+fn a15_repair3_advance_retries_a_newly_opened_root_after_list_access_returns() {
+    let installation = crate::capture_seal_keychain::tests::SelectedInstallation::new();
+    let library = Scratch::new(); let snapshot = library.put("sample", false, "invented work");
+    let list = installation.root().join("capture-seal-libraries.json");
+    fs::write(&list, b"damaged list").unwrap();
+    let owner = library.persistent_owner();
+    let session = owner.review_draft("sample", snapshot.revision()).unwrap();
+    let r = receipt(&session); // hot captured act remains available, with unsealed standing
+    let mut attempt = session.begin_hot_registration(r).unwrap();
+    fs::remove_file(&list).unwrap(); // restore list access before registration's retry
+    let outcomes = attempt.advance();
+    registered(&outcomes[0]);
+    let inventory: Value = serde_json::from_slice(&fs::read(&list).unwrap()).unwrap();
+    assert_eq!(inventory["roots"], json!([library.0]));
+    let mut subsequent = json!({"captureId":"cap:subsequent-file-seal"});
+    crate::capture_seal::seal(&library.0, &mut subsequent).unwrap();
+    assert_eq!(subsequent["sealProvider"], "file-key");
+    let recorded: Value = serde_json::from_slice(&fs::read(capture_path(&library)).unwrap()).unwrap();
+    assert!(recorded.get("seal").is_none(), "retry never seals a previously recorded unsealed capture");
+}

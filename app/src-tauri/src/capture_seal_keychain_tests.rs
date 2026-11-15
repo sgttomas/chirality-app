@@ -1,5 +1,6 @@
 use super::*;
 use std::sync::Mutex;
+use std::os::unix::fs::PermissionsExt;
 #[derive(Default)]
 struct Mock {
     items: Mutex<BTreeMap<String, Vec<u8>>>,
@@ -1220,6 +1221,7 @@ impl Drop for SelectedInstallation {
         crate::capture_seal::set_folder_for_test(None);
         crate::capture_seal::BEFORE_ATTACHMENT.with(|s| *s.borrow_mut() = None);
         admission::forget(&self.fixture.root);
+        admission::forget_libraries(&self.fixture.root);
         let p = self.fixture.root.with_file_name(format!("{}-project", self.fixture.root.file_name().unwrap().to_string_lossy()));
         let _ = fs::remove_dir_all(p);
     }
@@ -1526,7 +1528,15 @@ fn capture_seal_review_library_fresh_process_probe() {
     crate::capture_seal::set_folder_for_test(Some(Some(f.legacy.clone())));
     a._installed = crate::installed_custody::synthetic_for_tests(&f.root.join("Synthetic.app/Contents/Resources")).unwrap();
     let installation = SelectedInstallation::from_parts(f, a);
-    review_inventory_unsealed(&installation.project());
+    if std::env::var_os("CHIRALITY_SEAL_LIBRARY_REWRITE_BOUNDARY").is_some() {
+        assert_eq!(review_publish(&installation.project())["sealProvider"], "file-key",
+            "boundary: a valid list rewrite can hide a retained library in a fresh process");
+    } else {
+        review_inventory_unsealed(&installation.project());
+    }
+    // The parent owns these invented files, including the retained capture.
+    // Do not run the fixture's project-deleting Drop in this child process.
+    std::mem::forget(installation);
 }
 fn review_damaged_library_list(bytes: &[u8]) {
     let f = SelectedInstallation::new(); let project = f.project();
@@ -1642,4 +1652,158 @@ fn capture_seal_review_reopening_a_live_library_restores_its_lost_list_entry() {
     let reopened = root.open_library(library, "user", None, std::sync::Arc::new(std::sync::Mutex::new(None))).unwrap();
     assert_eq!(first, reopened);
     assert_eq!(fs::read(&list).unwrap(), original, "the already-open context must re-register its root on a new opening");
+}
+
+// Repair 3: access to a library is separate from admission of a file seal.
+fn repair3_library(root: &Path, name: &str) -> PathBuf {
+    let library = root.join(name);
+    let entry = library.join(".chirality/workflows/sample");
+    fs::create_dir_all(&entry).unwrap();
+    fs::write(entry.join("WORKFLOW.md"), b"---\nname: sample\n---\n# Method\nInvented review work.\n").unwrap();
+    library
+}
+fn repair3_open(root: &mut crate::runtime_session::WorkflowRootSession, library: &Path) -> String {
+    let id = root.open_library(library.into(), "user", None, std::sync::Arc::new(std::sync::Mutex::new(None)))
+        .expect("inventory failure must not prevent opening the library");
+    let view = root.snapshot();
+    let row = view["libraries"].as_array().unwrap().iter().find(|row| row["reference"] == id).unwrap();
+    assert!(row["entryListing"]["entries"].as_array().unwrap().iter().any(|e| e["name"] == "sample" && e["reviewable"] == true), "{row}");
+    id
+}
+fn repair3_refused(f: &SelectedInstallation, project: &Path) {
+    let error = crate::capture_seal::seal(project, &mut f.ordinary_capture()).unwrap_err();
+    assert_eq!(error.cause, Cause::ProtectionInconsistent);
+    assert!(error.detail.starts_with("Library protection inventory is incomplete:"), "{error:?}");
+    assert!(error.detail.contains("Recover capture verification"), "{error:?}");
+    let capture = review_unsealed(project);
+    assert!(capture["evidenceLimits"].to_string().contains("Library protection inventory is incomplete:"), "{capture}");
+}
+#[test]
+fn capture_seal_repair3_new_library_opens_with_damaged_list_and_retries_on_reopen() {
+    let f = SelectedInstallation::new(); let project = f.project();
+    assert_eq!(review_publish(&project)["sealProvider"], "file-key");
+    let library = repair3_library(&project, "new-library");
+    let list = f.root().join("capture-seal-libraries.json");
+    fs::write(&list, b"truncated list").unwrap();
+    let mut runtime = crate::runtime_session::WorkflowRootSession::default();
+    let id = repair3_open(&mut runtime, &library);
+    repair3_refused(&f, &project);
+    fs::remove_file(&list).unwrap();
+    // Removing the damaged file does not discard a root observed this process.
+    repair3_refused(&f, &project);
+    assert_eq!(repair3_open(&mut runtime, &library), id);
+    let roots: serde_json::Value = serde_json::from_slice(&fs::read(&list).unwrap()).unwrap();
+    assert_eq!(roots["roots"], serde_json::json!([library]));
+    assert_eq!(review_publish(&project)["sealProvider"], "file-key");
+}
+#[test]
+fn capture_seal_repair3_new_library_opens_when_list_cannot_be_written() {
+    let f = SelectedInstallation::new(); let project = f.project();
+    assert_eq!(review_publish(&project)["sealProvider"], "file-key");
+    let library = repair3_library(&project, "new-library");
+    let list = f.root().join("capture-seal-libraries.json");
+    fs::set_permissions(f.root(), fs::Permissions::from_mode(0o500)).unwrap();
+    let mut runtime = crate::runtime_session::WorkflowRootSession::default();
+    let opened = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let id = repair3_open(&mut runtime, &library);
+        assert!(!list.exists(), "the read-only folder must actually have prevented list publication");
+        repair3_refused(&f, &project); // still read-only: admission holds its join without retrying a write
+        id
+    }));
+    // Always restore fixture ownership before an assertion failure unwinds.
+    fs::set_permissions(f.root(), fs::Permissions::from_mode(0o700)).unwrap();
+    let id = opened.unwrap();
+    repair3_refused(&f, &project); // writable again, but the remembered root is still not persisted
+    assert_eq!(repair3_open(&mut runtime, &library), id);
+    assert!(list.is_file());
+    assert_eq!(review_publish(&project)["sealProvider"], "file-key");
+}
+#[test]
+fn capture_seal_repair3_already_open_library_reopens_with_damaged_list() {
+    let f = SelectedInstallation::new(); let project = f.project();
+    let library = repair3_library(&project, "existing-library");
+    let mut runtime = crate::runtime_session::WorkflowRootSession::default();
+    let id = repair3_open(&mut runtime, &library);
+    assert_eq!(review_publish(&project)["sealProvider"], "file-key");
+    let list = f.root().join("capture-seal-libraries.json");
+    let original = fs::read(&list).unwrap();
+    fs::write(&list, b"truncated list").unwrap();
+    assert_eq!(repair3_open(&mut runtime, &library), id);
+    repair3_refused(&f, &project);
+    fs::write(&list, &original).unwrap();
+    assert_eq!(repair3_open(&mut runtime, &library), id);
+    assert_eq!(review_publish(&project)["sealProvider"], "file-key");
+}
+#[test]
+fn capture_seal_repair3_pending_root_capture_vetoes_and_keychain_sealing_is_unaffected() {
+    let f = SelectedInstallation::new(); let project = f.project();
+    assert_eq!(review_publish(&project)["sealProvider"], "file-key");
+    f.enroll().unwrap();
+    let library = repair3_library(&project, "pending-library");
+    let examples: serde_json::Value = serde_json::from_str(include_str!("../schemas/fixtures/aac.capture-evidence.example.valid.json")).unwrap();
+    let mut capture = examples["instances"].as_array().unwrap().iter().find(|c| c["actKind"] == "A15").unwrap().clone();
+    crate::capture_seal::seal(&library, &mut capture).unwrap();
+    let path = crate::storage::capture_file_for(&library, &capture).unwrap();
+    crate::storage::create_json(&path, &capture).unwrap(); let original = fs::read(&path).unwrap();
+    let list = f.root().join("capture-seal-libraries.json");
+    fs::write(&list, b"damaged list").unwrap();
+    let mut runtime = crate::runtime_session::WorkflowRootSession::default();
+    repair3_open(&mut runtime, &library);
+    let keychain_capture = review_publish(&project);
+    assert_eq!(keychain_capture["sealProvider"], "keychain", "inventory never gates keychain sealing");
+    // Isolate the remembered library veto from this project's keychain capture.
+    fs::remove_file(crate::storage::capture_file_for(&project, &keychain_capture).unwrap()).unwrap();
+    f.clear_protected_state(); admission::forget(f.root());
+    // A valid list can no longer hide a root already observed in this process.
+    let other = repair3_library(&project, "other-library");
+    fs::write(&list, serde_json::to_vec(&serde_json::json!({"format":"chirality.app.capture-seal-library-inventory/v1","roots":[other],"complete":true})).unwrap()).unwrap();
+    let error = crate::capture_seal::seal(&project, &mut f.ordinary_capture()).unwrap_err();
+    assert_eq!(error.cause, Cause::ProtectionInconsistent);
+    assert!(error.detail.starts_with("Library protection inventory is incomplete:"), "{error:?}");
+    assert!(error.detail.contains("keychain-labelled capture survives in a known library"), "remembered roots must be scanned as well as listed roots: {error:?}");
+    assert_eq!(fs::read(path).unwrap(), original);
+}
+
+#[test]
+fn capture_seal_boundary_valid_library_list_rewrite_admits_file_key_in_a_fresh_process() {
+    for subset in [false, true] {
+        let f = SelectedInstallation::new(); let project = f.project();
+        assert_eq!(review_publish(&project)["sealProvider"], "file-key");
+        f.enroll().unwrap();
+        let retained = repair3_library(&project, "retained-library");
+        let examples: serde_json::Value = serde_json::from_str(include_str!("../schemas/fixtures/aac.capture-evidence.example.valid.json")).unwrap();
+        let mut capture = examples["instances"].as_array().unwrap().iter().find(|c| c["actKind"] == "A15").unwrap().clone();
+        crate::capture_seal::seal(&retained, &mut capture).unwrap();
+        let path = crate::storage::capture_file_for(&retained, &capture).unwrap();
+        crate::storage::create_json(&path, &capture).unwrap(); let original = fs::read(&path).unwrap();
+        let other = repair3_library(&project, "other-readable-library");
+        let list = f.root().join("capture-seal-libraries.json");
+        let write = |roots: Vec<PathBuf>| fs::write(&list, serde_json::to_vec(&serde_json::json!({
+            "format":"chirality.app.capture-seal-library-inventory/v1","roots":roots,"complete":true})).unwrap()).unwrap();
+        write(if subset {vec![retained.clone(), other.clone()]} else {vec![retained.clone()]});
+        f.clear_protected_state(); admission::forget(f.root());
+        review_inventory_unsealed(&project); // intact-list control
+        write(vec![other]); // redirect, then separately omit one root from a subset
+        let status = std::process::Command::new(std::env::current_exe().unwrap())
+            .args(["--exact", "capture_seal_keychain::tests::capture_seal_review_library_fresh_process_probe", "--ignored", "--nocapture", "--test-threads=1"])
+            .env("CHIRALITY_SEAL_LIBRARY_FIXTURE_ROOT", f.root())
+            .env("CHIRALITY_SEAL_LIBRARY_REWRITE_BOUNDARY", "1").status().unwrap();
+        assert!(status.success(), "boundary must show file admission after a valid rewrite, subset={subset}");
+        assert_eq!(fs::read(path).unwrap(), original, "the omitted keychain capture is unchanged");
+    }
+}
+
+#[test]
+fn capture_seal_repair3_unreadable_list_still_allows_library_access() {
+    let f = SelectedInstallation::new(); let project = f.project();
+    assert_eq!(review_publish(&project)["sealProvider"], "file-key");
+    let library = repair3_library(&project, "new-library");
+    let list = f.root().join("capture-seal-libraries.json");
+    fs::create_dir(&list).unwrap(); // present, but not a readable regular list
+    let mut runtime = crate::runtime_session::WorkflowRootSession::default();
+    let id = repair3_open(&mut runtime, &library);
+    repair3_refused(&f, &project);
+    fs::remove_dir(&list).unwrap();
+    assert_eq!(repair3_open(&mut runtime, &library), id);
+    assert_eq!(review_publish(&project)["sealProvider"], "file-key");
 }

@@ -17,6 +17,20 @@ fn remembered(root: &Path) -> bool {
 #[cfg(test)]
 pub(super) fn forget(root: &Path) { PROTECTED.lock().unwrap_or_else(|p| p.into_inner()).remove(root); }
 
+// Opened roots are observed only for this process, even when persistence fails.
+// This memory can only veto; it never proves absence or authorizes a provider.
+// Quit loses it by design. None retains roots opened before a root was installed.
+static LIBRARIES: std::sync::Mutex<BTreeMap<Option<PathBuf>, BTreeSet<PathBuf>>> = std::sync::Mutex::new(BTreeMap::new());
+fn remembered_libraries(installation: &Path) -> BTreeSet<PathBuf> {
+    let libraries = LIBRARIES.lock().unwrap_or_else(|p| p.into_inner());
+    libraries.get(&Some(installation.to_owned())).into_iter()
+        .chain(libraries.get(&None)).flat_map(|roots| roots.iter().cloned()).collect()
+}
+#[cfg(test)]
+pub(super) fn forget_libraries(installation: &Path) {
+    LIBRARIES.lock().unwrap_or_else(|p| p.into_inner()).remove(&Some(installation.to_owned()));
+}
+
 const LIBRARIES_FILE: &str = "capture-seal-libraries.json";
 const LIBRARIES_FORMAT: &str = "chirality.app.capture-seal-library-inventory/v1";
 #[derive(Serialize, Deserialize)]
@@ -34,8 +48,9 @@ fn library_roots(installation: &Path) -> Result<BTreeSet<PathBuf>, EvidenceFailu
     // Only a missing file means no library known. A present empty, partial or
     // malformed document, or one naming no library, is an incomplete census, never an empty one. This
     // removable local trace may veto only; losing it is the LIM-026 loss class.
-    if !exists(&path)? { return Ok(BTreeSet::new()); }
-    let inventory: LibraryInventory = serde_json::from_slice(&snapshot_bytes(&path)?)
+    if !exists(&path).map_err(|e| inventory_failure(e.detail))? { return Ok(BTreeSet::new()); }
+    let bytes = snapshot_bytes(&path).map_err(|e| inventory_failure(e.detail))?;
+    let inventory: LibraryInventory = serde_json::from_slice(&bytes)
         .map_err(|_| inventory_failure("the list is malformed or truncated"))?;
     if inventory.format != LIBRARIES_FORMAT || !inventory.complete
         || inventory.roots.iter().any(|root| !root.is_absolute() || root.components().any(|c| !matches!(c, std::path::Component::RootDir | std::path::Component::Normal(_)))) {
@@ -49,17 +64,28 @@ fn library_roots(installation: &Path) -> Result<BTreeSet<PathBuf>, EvidenceFailu
     }
     Ok(inventory.roots)
 }
-pub(super) fn register_library(root: &Path) -> Result<(), EvidenceFailure> {
-    let installation = crate::capture_seal::installed_root_for_enrollment()
-        .map_err(inventory_failure)?;
-    crate::storage::check_path(root).map_err(inventory_failure)?;
+pub(super) fn register_library(root: &Path) {
+    let installation = crate::capture_seal::installed_root_for_enrollment().ok();
+    let physical = crate::storage::check_path(root).and_then(|_| root.canonicalize().map_err(|e| e.to_string()));
+    let remembered = physical.as_ref().cloned().unwrap_or_else(|_| root.to_owned());
+    // Remember before any list I/O can fail. Release this memory mutex before
+    // taking the enrolment join; no path holds it while waiting for that join.
+    LIBRARIES.lock().unwrap_or_else(|p| p.into_inner())
+        .entry(installation.clone()).or_default().insert(remembered);
+    if let (Some(installation), Ok(root)) = (installation, physical) {
+        // Access to a library does not depend on seal admission. Retry only at
+        // the next open/registration. Admission never writes or reacquires its
+        // already-held join, so that retry cannot recursively deadlock it.
+        let _ = persist_library(&installation, root);
+    }
+}
+fn persist_library(installation: &Path, root: PathBuf) -> Result<(), EvidenceFailure> {
     if !root.is_absolute() { return Err(inventory_failure("the library root is not absolute")); }
-    let root = root.canonicalize().map_err(inventory_failure)?;
     // Append the root logically, publishing the entire closed JSON document
     // atomically under the existing product enrolment join. No root is pruned;
     // this unit has no removal act, including for moved or unavailable roots.
-    let join = EnrollmentJoin::acquire(&installation)?;
-    let mut roots = library_roots(&installation)?;
+    let join = EnrollmentJoin::acquire(installation)?;
+    let mut roots = library_roots(installation)?;
     if !roots.insert(root) { return Ok(()); }
     let bytes = serde_json::to_vec(&LibraryInventory { format: LIBRARIES_FORMAT.into(), roots, complete: true })
         .map_err(inventory_failure)?;
@@ -70,7 +96,7 @@ pub(super) fn register_library(root: &Path) -> Result<(), EvidenceFailure> {
         file.sync_all().map_err(inventory_failure)?;
         join.recheck()?;
         fs::rename(&temp, installation.join(LIBRARIES_FILE)).map_err(inventory_failure)?;
-        crate::storage::sync_dir(&installation).map_err(inventory_failure)
+        crate::storage::sync_dir(installation).map_err(inventory_failure)
     })();
     let _ = fs::remove_file(temp);
     result
@@ -203,10 +229,15 @@ fn known_captures(installation: &Path, current: &Path) -> Result<Vec<PathBuf>, E
             result.push(path.join("captures"));
         }
     }
-    for library in library_roots(installation)? {
-        if library_trace(&library)? {
-            return Err(failure(Cause::ProtectionInconsistent, "A keychain-labelled capture survives in a known library. No file key is substituted. Open Recover capture verification."));
+    let listed = library_roots(installation)?;
+    let opened = remembered_libraries(installation);
+    for library in listed.union(&opened) {
+        if library_trace(library)? {
+            return Err(inventory_failure("a keychain-labelled capture survives in a known library; no file key is substituted"));
         }
+    }
+    if !opened.is_subset(&listed) {
+        return Err(inventory_failure("an opened library has not been written to the list; after restoring access, open or register it again"));
     }
     result.sort(); result.dedup();
     Ok(result)

@@ -172,7 +172,7 @@ struct TestInstallation {
 }
 #[cfg(test)]
 thread_local! { static TEST_INSTALLATION: std::cell::RefCell<Option<TestInstallation>> = const { std::cell::RefCell::new(None) }; }
-pub(crate) fn register_library_for_protection_inventory(root: &Path) -> Result<(), EvidenceFailure> { admission::register_library(root) }
+pub(crate) fn register_library_for_protection_inventory(root: &Path) { admission::register_library(root) }
 /// Runs the attachment while the participating-App enrolment join is held.
 /// `None` grants only the file source; callers still load/create it normally.
 pub(crate) fn with_sealing_provider<R>(legacy: &Path, project: &Path, attach_seal: impl FnOnce(Option<Material>) -> Result<R, EvidenceFailure>) -> Result<R, EvidenceFailure> {
