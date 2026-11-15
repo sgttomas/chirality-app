@@ -251,40 +251,53 @@ An entry is added in the same pull request that makes the limitation standing.
   you have installed can bring hooks, and such a hook can approve a request
   with no card, or refuse it. The level you set describes commands and file
   changes, not what a plugin's hooks decide.
-- **Start-up connections:** while plugins are on, the App's Codex makes these
+- **Start-up connections:** with plugins on, the App's Codex can make these
   connections when it starts, without sign-in:
-  - github.com, to fetch the curated list of plugins;
-  - api.github.com instead, if that fails;
-  - chatgpt.com, for the curated list if both of those fail and no copy is
-    kept yet, and for the list of featured plugins.
+  - for its copy of the curated list of plugins: to github.com with Git, when
+    Codex finds a Git program in a place it trusts; to api.github.com, when it
+    finds none or that fails; and to chatgpt.com, when that fails too and no
+    copy is kept yet. It does not fetch this list when settings made by
+    whoever manages your Mac or account do not allow its source, or when you
+    are signed in and Codex uses its remote catalog of plugins instead;
+  - for the list of featured plugins: to the ChatGPT address in the Codex
+    settings the App uses, chatgpt.com unless those settings name another.
 - **Why:** listing plugins and their hooks needs reads of Codex that the App
   has not shown to stay on this Mac at the pinned Codex version.
-- **What the person does instead:** see and manage your plugins in your own
-  Codex. To turn plugins off in the App's Codex, set `plugins = false` under
-  `[features]` in the Codex settings the App uses. Where the App's Codex uses
-  your own Codex settings, this turns them off in your own Codex too. If you
-  turn plugins off and a plugin's hook was what stopped a command for you,
-  choose a level in the App that asks before commands. A setting made outside
-  the App, by whoever manages your Mac or account, the App does not change.
-- **Basis:** DEL-01-05 (REQ-010). A fixture shows the start of the curated
-  sync and the featured-list request with plugins on, and neither with
-  `plugins = false` in the home's own settings (`app/supplier_checks/level`).
-  The rest is read from Codex's source at tag rust-v0.167.0, commit
-  086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a, and not shown:
-  - the addresses and their order: `codex-rs/core-plugins/src/startup_sync.rs`
-    lines 23-30 and 96-167;
-  - the sync starts only with plugins on: `codex-rs/core-plugins/src/manager.rs`
-    lines 769-790;
-  - the featured list: `codex-rs/core-plugins/src/remote_legacy.rs` lines
-    125-149, with the default address in
-    `codex-rs/model-provider/src/chatgpt_base_url.rs` line 6;
+- **What the person does instead:** to see or change which plugins are
+  installed, use your own Codex. To turn plugins off in the App's Codex, set
+  `plugins = false` under `[features]` in the Codex settings the App uses.
+  Where the App's Codex uses your own Codex settings, this turns them off in
+  your own Codex too. If you turn plugins off and a plugin's hook was what
+  stopped a command for you, choose a level in the App that asks before
+  commands. A setting made outside the App, by whoever manages your Mac or
+  account, the App does not change.
+- **Basis:** DEL-01-05 (REQ-010). A fixture, in a home that is not signed in
+  (`app/supplier_checks/level`), shows the start of the curated sync and the
+  featured-list request, to the fixture's own address, with the home's
+  settings empty, and neither with `plugins = false` and `apps = false`
+  together in them. It does not show `plugins = false` alone, the addresses
+  Codex contacts or their order. The rest is read from Codex's source at tag
+  rust-v0.167.0, commit 086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a, and not
+  shown:
+  - the addresses and their order, Git only when a trusted Git program is
+    found, and chatgpt.com only with no copy kept:
+    `codex-rs/core-plugins/src/startup_sync.rs` lines 23-30 and 96-167;
+  - the sync starts only with plugins on, when the managed settings allow its
+    source, and not while the remote catalog is in use:
+    `codex-rs/core-plugins/src/manager.rs` lines 769-790;
+  - the featured list, at the ChatGPT address in the settings:
+    `codex-rs/core-plugins/src/remote_legacy.rs` lines 125-149, with the
+    default address in `codex-rs/model-provider/src/chatgpt_base_url.rs`
+    line 6;
   - plugins bring hooks: `codex-rs/hooks/src/engine/discovery.rs` lines 280-346;
   - a hook approves with no card, or refuses: `codex-rs/core/src/tools/approvals.rs`
     lines 594-621.
 
-  Not established at the pinned Codex version: whether a plugin can add
-  command rules, and whether listing installed plugins makes a network request
-  when signed in.
+  The direction to use your own Codex is a direction; this basis does not
+  show how your own Codex shows plugins. Not established at the pinned Codex
+  version: when the featured list is requested, beyond the fixture's case;
+  whether a plugin can add command rules; and whether listing installed
+  plugins makes a network request when signed in.
 
 ### LIM-025: The App does not show which connected apps act in its Codex
 
@@ -294,30 +307,37 @@ An entry is added in the same pull request that makes the limitation standing.
   account are in the App's Codex, and which of their tools run without a card.
   Connected apps in the App's Codex are as the Codex settings the App uses
   have them: your own Codex settings, where the App's Codex uses them, or the
-  App's own new settings, where you chose new settings at setup. Once you are
-  signed in with your ChatGPT account, a connected app's tools are given to
-  the App's Codex. Unless your settings set how a tool is approved, a tool the
-  app marks read-only runs without a card. The level you set describes
-  commands and file changes, not these tools.
+  App's own new settings, where you chose new settings at setup. With apps on
+  in those settings, as they are unless set off, and once you are signed in
+  with your ChatGPT account, a connected app's tools are given to the App's
+  Codex. Unless settings set how a tool is approved, a tool runs without a
+  card when the app marks it read-only and does not mark it destructive, or
+  marks it neither destructive nor reaching outside. The level you set
+  describes commands and file changes, not these tools.
 - **Why:** at the pinned Codex version, the requests Codex offers for listing
   connected apps are marked experimental. The App has not shown that the
-  read-only marks they report are the ones Codex uses to decide whether to
-  ask.
-- **What the person does instead:** manage your connected apps in ChatGPT. To
-  turn them off in the App's Codex, set `apps = false` under `[features]` in
-  the Codex settings the App uses. Where the App's Codex uses your own Codex
-  settings, this turns them off in your own Codex too. An older
-  `connectors = true` in the same settings turns them back on. A setting made
-  outside the App, by whoever manages your Mac or account, the App does not
-  change.
+  marks they report are the ones Codex uses to decide whether to ask.
+- **What the person does instead:** to see or change which apps are
+  connected, use ChatGPT. To turn them off in the App's Codex, set
+  `apps = false` under `[features]` in the Codex settings the App uses. Where
+  the App's Codex uses your own Codex settings, this turns them off in your
+  own Codex too. An older `connectors = true` in the same settings turns them
+  back on. A setting made outside the App, by whoever manages your Mac or
+  account, the App does not change.
 - **Basis:** DEL-01-05 (REQ-010). A fixture shows that `connectors = true`
   turns apps back on over `apps = false` (`app/supplier_checks/level`). The
   rest is read from Codex's source at tag rust-v0.167.0, commit
-  086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a, and not shown, because connected
-  apps start only for a signed-in account:
+  086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a, and not shown, because a connected
+  app's tools are given only with apps on and a sign-in:
+  - apps are on unless set off: `codex-rs/features/src/lib.rs` lines 1658-1663;
   - the tools need apps on and a sign-in through Codex's backend:
     `codex-rs/codex-mcp/src/mcp/mod.rs` lines 358-360;
-  - the automatic approval mode is the default:
+  - the automatic approval mode is the default, after any approval set by
+    managed settings, for the tool, its link, its app or all apps:
     `codex-rs/connectors/src/app_tool_policy.rs` lines 233-270;
-  - in it, a tool marked read-only needs no approval:
-    `codex-rs/core/src/mcp_tool_call.rs` lines 2595-2626.
+  - in it, a tool marked destructive needs approval; otherwise one marked
+    read-only, or marked neither destructive nor reaching outside, needs
+    none: `codex-rs/core/src/mcp_tool_call.rs` lines 2595-2626.
+
+  The direction to use ChatGPT is a direction; this basis does not show how
+  ChatGPT shows connected apps.

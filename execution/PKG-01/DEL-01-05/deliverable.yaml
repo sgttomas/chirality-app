@@ -60,8 +60,9 @@ code_paths:
 # hosting.rs, runtime_session.rs, lib.rs and App.tsx are shared. Here: the account and provider
 # calls, a conversation's selection state, and the commands and mounting of the surfaces below.
 - app/src-tauri/src/hosting.rs
-# The state of plugins and connected apps read from Codex before each conversation start, resume
-# and fork in the account home, and where it comes from, for display.
+# The state of plugins and connected apps in the account home's Codex, and where it comes from,
+# for display: read after the reply that names a conversation's thread (start, resume, fork), with
+# that thread's id, and once after Codex is ready as the home's base, before any project's settings.
 - app/src-tauri/src/hosting_extensions.rs
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/lib.rs

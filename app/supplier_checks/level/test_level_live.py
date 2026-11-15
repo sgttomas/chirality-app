@@ -306,7 +306,8 @@ class Presets(Probing):
 
 
 class Plugins(unittest.TestCase):
-    """Plugins in the App's Codex are as the home's own settings have them. Two fresh homes are started on the account
+    """Plugins in the App's Codex are as the home's own settings have them. The control is plugins and apps off
+    together, the settings the examination's home uses, not plugins off alone. Two fresh homes are started on the account
     route, one with an empty `config.toml` and one whose `config.toml` holds exactly `plugins = false` and
     `apps = false` under `[features]` (the settings file the examination's home uses), and nothing else is done. The
     ChatGPT base address points at the stub, so the featured-plugins request reaches it; every other address goes to
@@ -334,13 +335,13 @@ class Plugins(unittest.TestCase):
             self.assertIsNone(client.proc.poll(), 'the server is still running when observed')
             return seen
 
-    def test_plugins_off_in_the_homes_own_settings_stops_the_curated_sync_and_the_featured_list(self):
+    def test_plugins_and_apps_off_together_in_the_homes_own_settings_stop_the_curated_sync_and_the_featured_list(self):
         on = self.observe('')
         self.assertTrue(on['sync lock'], on)  # the curated sync began
         self.assertTrue(on['featured requests'], on)  # the featured list was asked for
         off = self.observe(self.OFF)
         self.assertEqual(off, {'sync lock': False, 'tmp folder': False, 'plugins cache': False,
-                               'featured requests': []}, 'with plugins off, after %d s' % self.WAIT)
+                               'featured requests': []}, 'with plugins and apps off, after %d s' % self.WAIT)
 
 
 class FeatureAlias(unittest.TestCase):
