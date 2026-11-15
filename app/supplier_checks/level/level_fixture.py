@@ -40,8 +40,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 APP = HERE.parent.parent
-GENERATION = APP / 'src-tauri' / 'resources' / 'supplier' / '0.169.0' / 'GENERATION.json'
-PIN = '0.169.0'
+GENERATION = APP / 'src-tauri' / 'resources' / 'supplier' / '0.167.0' / 'GENERATION.json'
+PIN = '0.167.0'
 SYSTEM_PATH = '/usr/bin:/bin:/usr/sbin:/sbin'
 # The examination launcher's proxy values (launch.py, copied here, not read): every outbound attempt
 # that is not loopback goes to a closed port.
