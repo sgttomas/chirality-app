@@ -224,3 +224,13 @@ fn journal_independent_stop_retains_actual_original_exit_facts() {
     assert_eq!(stopped["exitFacts"]["lastReceiptPosition"], 1);
     assert_eq!(stopped["exitFacts"]["malformedFrameCount"], 0);
 }
+
+#[test]
+fn a_turn_without_its_conversation_folder_is_refused_before_registering_a_request() {
+    let host = host();
+    host.inner.0.lock().unwrap().threads[0].as_object_mut().unwrap().remove("cwd");
+    started_in_folder(&host);
+    let result = host.turn_start_text(&g(), "thread", "exact input");
+    assert!(result.unwrap_err().contains("project-not-established"));
+    assert!(host.client_requests().is_empty(), "a process folder cannot stand in for the conversation folder");
+}

@@ -1413,7 +1413,7 @@ fn add_api_key(app:tauri::AppHandle,state:State<'_,AppState>)->Result<Value,Stri
                 home.history.lock().unwrap().configure_role_log_source(state.role_log.clone());
                 *home.attachment_custody.lock().unwrap()=Ok(attachment.clone());
                 home.recovery_startup.lock().unwrap().adopt_shared_source(&home.host);
-                home.level_launch_reads();
+                home.level_launch_reads(&account);
                 bootstrap.validate_binding(home.class(),&config)?;
                 state.homes.lock().unwrap().bind_key(home.clone())?;
                 home
@@ -1481,7 +1481,7 @@ fn prepare_local_provider(window: tauri::Window, state: State<'_, AppState>) -> 
         *home.attachment_custody.lock().unwrap()=Ok(attachment);
         home.history.lock().unwrap().configure_role_log_source(state.role_log.clone());
         home.recovery_startup.lock().unwrap().adopt_shared_source(&home.host);
-        home.level_launch_reads();
+        home.level_launch_reads(&account);
         state.homes.lock().unwrap().bind_local(home.clone())?; home
     };
     provider_endpoint_confirmation::recheck_original(&window)?;
@@ -2345,8 +2345,7 @@ fn answer_native_request(
     )
 }
 
-/// PRD V4-AUT-06: the person sets the permission level, `{scope: "default" | {conversation: threadId} |
-/// "new-conversation", levelId}`, from the level control. A plain setting: the `level_chosen` ledger entry is
+/// PRD V4-AUT-06: the person sets the permission level, `{scope: "default" | {conversation: threadId}, levelId}`, from the level control. A plain setting: the `level_chosen` ledger entry is
 /// written, then the level in force changes. A conversation scope names a conversation of the active home; the
 /// default reaches every home.
 #[tauri::command(async)]
@@ -3434,7 +3433,7 @@ fn initialize_startup_consumers(state: &AppState, home: &Arc<runtime_session::Ho
         namespaces,
     );
     // V4-AUT-06: the level recorded in the ledger just opened, and the home's lasting rules.
-    home.level_launch_reads();
+    home.level_launch_reads(&home);
     let root = data.clone().and_then(|data| {
         let root = data.join("instructions");
         runtime_session::seed_instructions(&root)?;

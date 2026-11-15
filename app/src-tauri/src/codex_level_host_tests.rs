@@ -291,7 +291,6 @@ fn a_production_host_has_no_level() {
         let i = host.inner.0.lock().unwrap();
         assert!(i.default_level.is_none());
         assert!(i.thread_levels.is_empty());
-        assert!(i.new_conversation_level.is_none());
     }
     assert_eq!(host.default_level(), None);
     for method in FOUR {
@@ -366,7 +365,7 @@ fn a_frame_built_before_a_level_change_is_not_written_after_it() {
     for method in FOUR {
         let host = host();
         let wire = Wire::attach(&host);
-        for change in ["default", "conversation", "new-conversation"] {
+        for change in ["default", "conversation"] {
             let serial = host.frame_write.lock().unwrap();
             let before = host.inner.0.lock().unwrap().source_requests.len();
             let sender = Arc::clone(&host);
@@ -379,7 +378,7 @@ fn a_frame_built_before_a_level_change_is_not_written_after_it() {
             match change {
                 "default" => host.set_default_level("supervised").unwrap(),
                 "conversation" => host.set_thread_level("thread", "full").unwrap(),
-                _ => host.choose_new_conversation_level(None).unwrap(),
+                _ => unreachable!(),
             }
             drop(serial);
             // The request is returned with its refusal kept: no write attempt, nothing recorded as sent.
@@ -408,10 +407,10 @@ fn each_frame_carries_its_intended_conversations_level_and_never_anothers() {
         let wire = Wire::attach(&host);
         // The default is "edits"; the intended conversation's own choice differs, and so does the other one.
         let (intended, other) = match method {
-            // A start: the choice for the conversation it creates, not the default.
-            "thread/start" => { host.choose_new_conversation_level(Some("supervised")).unwrap(); ("supervised", "edits") }
-            // A fork: the new conversation's choice, not its source's.
-            "thread/fork" => { host.set_thread_level("thread", "full").unwrap(); host.choose_new_conversation_level(Some("supervised")).unwrap(); ("supervised", "full") }
+            // A start takes the default; an existing conversation has its own choice.
+            "thread/start" => { host.set_default_level("supervised").unwrap(); host.set_thread_level("thread", "edits").unwrap(); ("supervised", "edits") }
+            // A fork inherits its source conversation's choice.
+            "thread/fork" => { host.set_thread_level("thread", "supervised").unwrap(); ("supervised", "edits") }
             // A resume or turn: the conversation's own choice, not the default.
             _ => { host.set_thread_level("thread", "supervised").unwrap(); ("supervised", "edits") }
         };
@@ -468,55 +467,4 @@ fn the_attachment_turn_carries_exactly_its_level_and_is_refused_without_or_after
     assert!(wire.nothing());
     wire.close(&unleveled);
     std::fs::remove_dir_all(root).unwrap();
-}
-
-#[test]
-fn a_start_takes_the_new_conversations_choice_and_the_reply_keeps_it() {
-    let host = host();
-    let wire = Wire::attach(&host);
-    host.choose_new_conversation_level(Some("supervised")).unwrap();
-    assert_eq!(host.level_for("thread/start", &json!({})).unwrap().id, "supervised");
-    assert_eq!(host.level_for("turn/start", &built("turn/start")).unwrap().id, "edits", "the default is unchanged");
-    let source = send(&host, "thread/start", built("thread/start")).unwrap();
-    let written = wire.next();
-    assert_eq!(written["params"], with_fields(&built("thread/start"), level("supervised"), Method::ThreadStart));
-    assert_eq!(source.level_sent().unwrap().target, Target::New);
-    assert_eq!(host.level_for("thread/start", &json!({})).unwrap().id, "edits", "the choice is taken by the start it was bound to");
-    reply(&host, json!({"id":written["id"],"result":{"thread":{"id":"created"}}}));
-    assert_eq!(host.thread_level("created").unwrap().id, "supervised", "the created conversation keeps the level sent");
-    // Never the default reread at the reply, nor later.
-    host.set_default_level("full").unwrap();
-    admit_thread(&host, "created");
-    let params = json!({"threadId":"created","input":text()});
-    send(&host, "turn/start", params.clone()).unwrap();
-    assert_eq!(wire.next()["params"], with_fields(&params, level("supervised"), Method::TurnStart));
-    // An error reply records nothing.
-    let refused = send(&host, "thread/start", built("thread/start")).unwrap();
-    reply(&host, json!({"id":refused.request_id(),"error":{"code":-1,"message":"invented"}}));
-    wire.next();
-    assert_eq!(host.inner.0.lock().unwrap().thread_levels.len(), 1);
-    wire.close(&host);
-}
-
-#[test]
-fn a_fork_binds_the_new_conversations_level_not_its_sources() {
-    let host = host();
-    let wire = Wire::attach(&host);
-    host.set_thread_level("thread", "supervised").unwrap();
-    host.choose_new_conversation_level(Some("edits-network")).unwrap();
-    let source = send(&host, "thread/fork", built("thread/fork")).unwrap();
-    let written = wire.next();
-    assert_eq!(written["params"], with_fields(&built("thread/fork"), level("edits-network"), Method::ThreadFork));
-    assert_eq!(source.level_sent().unwrap().target, Target::ForkOf("thread".into()));
-    reply(&host, json!({"id":written["id"],"result":{"thread":{"id":"forked","forkedFromId":"thread"}}}));
-    assert_eq!(host.thread_level("forked").unwrap().id, "edits-network");
-    assert_eq!(host.thread_level("thread").unwrap().id, "supervised", "the source keeps its own");
-    // Without a choice, a fork takes its source's level, and the new conversation keeps what was sent.
-    let again = send(&host, "thread/fork", built("thread/fork")).unwrap();
-    let written = wire.next();
-    assert_eq!(written["params"], with_fields(&built("thread/fork"), level("supervised"), Method::ThreadFork));
-    reply(&host, json!({"id":again.request_id(),"result":{"thread":{"id":"forked-again"}}}));
-    host.set_thread_level("thread", "full").unwrap();
-    assert_eq!(host.thread_level("forked-again").unwrap().id, "supervised");
-    wire.close(&host);
 }

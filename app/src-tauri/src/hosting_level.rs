@@ -46,8 +46,6 @@ pub(crate) enum LevelScope {
     Default,
     /// One conversation of this Host's home.
     Conversation(String),
-    /// The conversation the next start or fork creates.
-    NewConversation,
 }
 
 /// The App's own folders and the start's working folder, as the send-time checks need them.
@@ -74,14 +72,11 @@ pub(crate) struct LevelState {
     /// `levelStartRefusal`: why the last start of Codex was refused by the level's start checks.
     pub(crate) start_refusal: Option<Value>,
     pub(crate) default_chosen: Option<Chosen>,
+    /// Latest setting-write outcome, separate from the level currently in force.
+    pub(crate) choice_save: Option<Value>,
     pub(crate) thread_chosen: HashMap<String, Chosen>,
-    pub(crate) new_chosen: Option<Chosen>,
     /// Every recorded choice by entry id, so a request's bound `chosen` can be followed.
     pub(crate) by_entry: HashMap<String, Chosen>,
-    /// A new-conversation choice's `level_chosen`, written when the start or fork reply names the conversation.
-    pub(crate) deferred: HashMap<String, Value>,
-    /// A new conversation's `level_sent`, held with its deferred choice until the reply names the conversation.
-    pub(crate) deferred_sent: HashMap<String, Value>,
     /// (conversation, chosen entry) to the `level_sent` entry written for it: once per conversation per choice.
     pub(crate) sent_keys: HashMap<(String, String), String>,
     /// A start's or fork's `level_sent` entry by request key, until the reply names the conversation.
@@ -114,7 +109,7 @@ pub(crate) struct LevelState {
     /// The ask for one conversation: its recorded level no longer matches the table. It does not fall to the default.
     pub(crate) thread_asks: std::collections::HashSet<String>,
     /// The App's default applies although the launch read could not read the records (a first run by the home's
-    /// evidence): `levelRecordsUnread` says a choice made now is kept for this session only.
+    /// evidence): `levelRecordsUnread` discloses the read failure and separate choice-saving outcome.
     pub(crate) records_unread: bool,
     /// Advanced by every attempted configuration write; a trust reading made before one is not current.
     pub(crate) config_writes: u64,
@@ -165,9 +160,10 @@ fn chosen_view(chosen: Option<&Chosen>, level: Option<&'static Level>, scope: &s
         (Some(c), _) => {
             let mut view = json!({"id": c.level.id, "dimensions": c.level.dimensions, "ledgerEntry": c.entry,
                 "chosenAt": if c.origin == Origin::AppDefault { Value::Null } else { json!(c.at) }, "scope": scope, "reading": "not-limited", "readingSentence": cl::READING_SENTENCE,
-                "origin": c.origin.as_str()});
+                "origin": c.origin.as_str(), "recorded": match c.origin { Origin::Chosen => "recorded", Origin::SaveUnconfirmed => "not-confirmed", _ => "not-recorded" }});
             match c.origin {
                 Origin::Chosen => {}
+                Origin::SaveUnconfirmed => { view["originSentence"] = json!(cl::SAVE_UNCONFIRMED_APPLIED); }
                 Origin::AppDefault => {
                     view["originSentence"] = json!(cl::APP_DEFAULT_SENTENCE);
                     if c.level.id == "full" { view["explanation"] = json!(cl::APP_DEFAULT_EXPLAINED); }
@@ -286,8 +282,7 @@ impl Host {
     }
 
     /// The recorded choice behind the level a frame resolved to, by where it came from.
-    pub(super) fn level_origin_for(i: &Inner, method: cl::Method, thread: &str, new_choice: bool) -> Option<Chosen> {
-        if new_choice { return i.level.new_chosen.clone(); }
+    pub(super) fn level_origin_for(i: &Inner, method: cl::Method, thread: &str) -> Option<Chosen> {
         match method {
             cl::Method::ThreadStart => i.level.default_chosen.clone(),
             _ if i.thread_levels.contains_key(thread) => i.level.thread_chosen.get(thread).cloned(),
@@ -320,7 +315,7 @@ impl Host {
         let write_result = if written { "written" } else { "not-established" };
         let takes_effect = takes_effect_now(i, thread.as_deref());
         let mut row = json!({"method": method, "requestRef": request_ref, "levelId": bound.level.id, "fields": bound.fields, "chosen": bound.chosen, "writeResult": write_result, "at": at});
-        if let Some(trust) = &bound.trust { row["projectTrust"] = trust.status(); }
+        if let Some(trust) = &bound.trust { row["projectTrust"] = trust.status_for_write(written); }
         match &thread { Some(t) => { i.level.last_sent.insert(t.clone(), row); } None => { i.level.request_sent.insert(key.to_owned(), row); } }
         let Some(chosen) = bound.chosen.clone() else { return };
         if let Some(t) = &thread {
@@ -330,11 +325,6 @@ impl Host {
         let Ok(entry_id) = opaque_id("level-sent:") else { return };
         let entry = json!({"kind": "level_sent", "session": i.app_session, "entryId": entry_id, "at": at, "chosen": chosen, "home": home,
             "threadId": thread, "method": method, "requestRef": request_ref, "writeResult": write_result, "takesEffect": takes_effect});
-        if i.level.deferred.contains_key(&chosen) {
-            // A new-conversation choice: its level_chosen and this entry are written when the reply names it.
-            i.level.deferred_sent.insert(key.to_owned(), entry);
-            return;
-        }
         match &thread {
             Some(t) => { i.level.sent_keys.insert((t.clone(), chosen), entry_id); }
             None => { i.level.sent_by_request.insert(key.to_owned(), entry_id); }
@@ -349,8 +339,6 @@ impl Host {
         let Some(bound) = e.request.level.clone() else { return };
         let request_ref = e.request.request_ref.clone();
         if frame.get("error").is_some() {
-            if let Some(c) = &bound.chosen { if matches!(bound.target, Target::New | Target::ForkOf(_)) { i.level.deferred.remove(c); } }
-            i.level.deferred_sent.remove(key);
             i.level.request_sent.remove(key);
             i.level.sent_by_request.remove(key);
             return;
@@ -369,7 +357,7 @@ impl Host {
                 i.level.thread_chosen.entry(thread.clone()).or_insert(chosen.clone());
                 // This records an inherited association, not a person's new choice. Session-only choices
                 // and defaults selected while records were unreadable never acquire a durable association.
-                if fresh && origin != Origin::SessionOnly && i.level.session_only.is_none() {
+                if fresh && !matches!(origin, Origin::SessionOnly | Origin::SaveUnconfirmed) && i.level.session_only.is_none() {
                     let entry_id = opaque_id("level-inherited:").unwrap_or_default();
                     i.level.inherited.insert(thread.clone(), entry_id.clone());
                     if !entry_id.is_empty() {
@@ -383,17 +371,7 @@ impl Host {
                 }
             }
             if let Some(row) = i.level.request_sent.remove(key) { i.level.last_sent.insert(thread.clone(), row); }
-            let home = Self::level_home(i);
-            if let (Some(chosen), Some(home)) = (bound.chosen.clone(), home) {
-                if let Some(mut entry) = i.level.deferred.remove(&chosen) {
-                    entry["scope"] = json!({"kind": "conversation", "home": home, "threadId": thread});
-                    Self::queue_level_entry(i, entry);
-                }
-                if let Some(mut sent) = i.level.deferred_sent.remove(key) {
-                    sent["threadId"] = json!(thread);
-                    if let Some(id) = sent["entryId"].as_str() { i.level.sent_keys.insert((thread.clone(), chosen.clone()), id.to_owned()); }
-                    Self::queue_level_entry(i, sent);
-                }
+            if let Some(chosen) = bound.chosen.clone() {
                 if let Some(sent) = i.level.sent_by_request.remove(key) { i.level.sent_keys.insert((thread.clone(), chosen), sent); }
             }
         }
@@ -427,9 +405,9 @@ impl Host {
     /// conversation choice has no ledger scope of its own: its entry is written, as the conversation's, when the
     /// start or fork reply names the conversation.
     ///
-    /// Where the launch read positively failed or was limited (never an empty ledger), and the choice cannot be
-    /// written, it is held for this session only: in memory, never written, dropped at quit and by any later
-    /// complete read. Otherwise a write that fails changes nothing and is returned as an error.
+    /// A failed launch read permits an in-session fallback. No usable writer means established
+    /// non-persistence; an attempted append error means saving is unconfirmed, possibly after commit.
+    /// Without fallback, a failed append leaves the current level unchanged and reports the uncertainty.
     pub(crate) fn choose_level(&self, scope: &LevelScope, level: &'static Level, also: &[Arc<Host>]) -> Result<Value, String> {
         let _writer = self.recovery_writer.lock().unwrap();
         self.drain_recovery_owned();
@@ -439,23 +417,31 @@ impl Host {
         };
         let entry_id = opaque_id("level-chosen:")?;
         let at = now_rfc3339();
-        let scope_view = match scope { LevelScope::Default => json!("default"), LevelScope::Conversation(t) => json!({"conversation": t}), LevelScope::NewConversation => json!("new-conversation") };
+        let scope_view = match scope { LevelScope::Default => json!("default"), LevelScope::Conversation(t) => json!({"conversation": t}) };
         if let LevelScope::Conversation(thread) = scope {
             let known = self.inner.0.lock().unwrap().threads.iter().any(|t| t["threadId"] == thread.as_str());
             if !known { return Err("The conversation is not one this Codex home has open; the level was not changed".into()); }
         }
         // The App's records could not be read at launch, and this choice cannot be saved: held for this session.
         let for_this_session = |failure: Option<String>| -> Result<Value, String> {
-            let chosen = Chosen { entry: None, at: at.clone(), level, origin: Origin::SessionOnly };
+            let attempted = failure.is_some();
+            let chosen = Chosen { entry: None, at: at.clone(), level, origin: if attempted { Origin::SaveUnconfirmed } else { Origin::SessionOnly } };
             Self::apply_chosen(&mut self.inner.0.lock().unwrap(), scope, chosen.clone());
             if *scope == LevelScope::Default {
                 for other in also.iter().filter(|h| !std::ptr::eq(Arc::as_ptr(h), self)) {
                     Self::apply_chosen(&mut other.inner.0.lock().unwrap(), scope, chosen.clone());
                 }
             }
-            Ok(json!({"state": "chosen", "scope": scope_view, "levelId": level.id, "ledgerEntry": null, "origin": "session-only",
-                "recorded": "not recorded", "sentence": cl::SESSION_ONLY_SENTENCE,
-                "writeFailure": failure.map(|text| json!({"text": text, "standing": cl::NOT_THE_APPS_TEXT}))}))
+            let outcome = json!({"state": "chosen", "scope": scope_view, "levelId": level.id, "ledgerEntry": null,
+                "origin": chosen.origin.as_str(), "applied": true,
+                "recorded": if attempted { "not-confirmed" } else { "not-recorded" },
+                "sentence": if attempted { cl::SAVE_UNCONFIRMED_APPLIED } else { cl::SESSION_ONLY_SENTENCE },
+                "writeFailure": failure.map(|text| json!({"text": text, "standing": cl::NOT_THE_APPS_TEXT}))});
+            self.inner.0.lock().unwrap().level.choice_save = Some(outcome.clone());
+            if *scope == LevelScope::Default { for other in also.iter().filter(|h| !std::ptr::eq(Arc::as_ptr(h), self)) {
+                other.inner.0.lock().unwrap().level.choice_save = Some(outcome.clone());
+            }}
+            Ok(outcome)
         };
         let ledger_scope = match scope {
             LevelScope::Default => json!({"kind": "default-for-new-conversations"}),
@@ -464,7 +450,6 @@ impl Host {
                 None if session_only => return for_this_session(None),
                 None => return Err("This conversation's Codex home is not established; the level was not changed".into()),
             },
-            LevelScope::NewConversation => Value::Null,
         };
         let mut entry = json!({"kind": "level_chosen", "session": session, "entryId": entry_id, "at": at, "scope": ledger_scope,
             "level": cl::recorded_values(level), "previous": null});
@@ -473,12 +458,6 @@ impl Host {
             return Err("The App ledger is unavailable, so the level could not be recorded; nothing was changed".into());
         };
         let chosen = Chosen { entry: Some(entry_id.clone()), at: at.clone(), level, origin: Origin::Chosen };
-        if *scope == LevelScope::NewConversation {
-            let mut i = self.inner.0.lock().unwrap();
-            i.level.deferred.insert(entry_id.clone(), entry);
-            Self::apply_chosen(&mut i, scope, chosen);
-            return Ok(json!({"state": "chosen", "scope": "new-conversation", "levelId": level.id, "ledgerEntry": entry_id, "origin": "chosen", "recorded": "when the new conversation is named"}));
-        }
         let appended = {
             let mut ledger = ledger.lock().unwrap();
             let previous = ledger.current_entries().iter().rev()
@@ -491,7 +470,10 @@ impl Host {
         self.inner.0.lock().unwrap().recovery_snapshot = Some(appended.1);
         if let Err(e) = appended.0 {
             if session_only { return for_this_session(Some(e)); }
-            return Err(format!("The level was not recorded in the App ledger ({e}); nothing was changed"));
+            self.inner.0.lock().unwrap().level.choice_save = Some(json!({"scope":scope_view,"levelId":level.id,
+                "recorded":"not-confirmed","applied":false,"sentence":cl::SAVE_UNCONFIRMED_NOT_APPLIED,
+                "writeFailure":{"text":e,"standing":cl::NOT_THE_APPS_TEXT}}));
+            return Err(cl::SAVE_UNCONFIRMED_NOT_APPLIED.into());
         }
         Self::apply_chosen(&mut self.inner.0.lock().unwrap(), scope, chosen.clone());
         if *scope == LevelScope::Default {
@@ -499,7 +481,13 @@ impl Host {
                 Self::apply_chosen(&mut other.inner.0.lock().unwrap(), scope, chosen.clone());
             }
         }
-        Ok(json!({"state": "chosen", "scope": scope_view, "levelId": level.id, "ledgerEntry": entry_id, "previous": entry["previous"], "origin": "chosen", "recorded": "in the App ledger"}))
+        let outcome = json!({"state":"chosen","scope":scope_view,"levelId":level.id,"ledgerEntry":entry_id,
+            "previous":entry["previous"],"origin":"chosen","recorded":"recorded","applied":true});
+        self.inner.0.lock().unwrap().level.choice_save = Some(outcome.clone());
+        if *scope == LevelScope::Default { for other in also.iter().filter(|h| !std::ptr::eq(Arc::as_ptr(h), self)) {
+            other.inner.0.lock().unwrap().level.choice_save = Some(outcome.clone());
+        }}
+        Ok(outcome)
     }
 
     /// The one change of the level in force for a scope. Called only by [`Self::choose_level`] (a recorded or a
@@ -513,7 +501,6 @@ impl Host {
                 i.default_level = Some(chosen.level); i.level.default_chosen = Some(chosen);
             }
             LevelScope::Conversation(t) => { i.level.inherited.remove(t); i.level.thread_asks.remove(t); i.thread_levels.insert(t.clone(), chosen.level); i.level.thread_chosen.insert(t.clone(), chosen); }
-            LevelScope::NewConversation => { i.new_conversation_level = Some(chosen.level); i.level.new_chosen = Some(chosen); }
         }
         i.level_revision += 1;
     }
@@ -546,10 +533,12 @@ impl Host {
     /// A failed fresh read preserves levels already known and exposes its failure beside any first-run default.
     /// The home is probed by one symlink_metadata call; no file contents or other folder are read.
     pub(crate) fn read_levels_at_launch_in(&self, home: Option<&str>, codex_home: Option<&std::path::Path>) -> Value {
+        self.read_levels_with_account_state(home, codex_home.map(cl::home_has_codex_state))
+    }
+    pub(crate) fn read_levels_with_account_state(&self, home: Option<&str>, home_state: Option<Result<bool, String>>) -> Value {
         // Selection and a person's choice share the existing writer; no selection can overtake a choice.
         let _writer = self.recovery_writer.lock().unwrap();
         self.drain_recovery_owned();
-        let home_state = codex_home.map(cl::home_has_codex_state);
         let home_unknown = home_state.as_ref().and_then(|state| state.as_ref().err()).map(|error|
             json!({"state":"unknown", "detail":{"text":error,"standing":cl::NOT_THE_APPS_TEXT}}));
         let (ledger, limit) = {
@@ -605,10 +594,10 @@ impl Host {
         let mut i = self.inner.0.lock().unwrap();
         // A complete read governs: every session-only choice is dropped.
         i.level.session_only = None;
+        i.level.choice_save = None;
         let mut dropped = false;
-        if i.level.default_chosen.as_ref().is_some_and(|c| c.origin == Origin::SessionOnly) { i.default_level = None; i.level.default_chosen = None; dropped = true; }
-        if i.level.new_chosen.as_ref().is_some_and(|c| c.origin == Origin::SessionOnly) { i.new_conversation_level = None; i.level.new_chosen = None; dropped = true; }
-        let session_threads: Vec<String> = i.level.thread_chosen.iter().filter(|(_, c)| c.origin == Origin::SessionOnly).map(|(t, _)| t.clone()).collect();
+        if i.level.default_chosen.as_ref().is_some_and(|c| matches!(c.origin, Origin::SessionOnly | Origin::SaveUnconfirmed)) { i.default_level = None; i.level.default_chosen = None; dropped = true; }
+        let session_threads: Vec<String> = i.level.thread_chosen.iter().filter(|(_, c)| matches!(c.origin, Origin::SessionOnly | Origin::SaveUnconfirmed)).map(|(t, _)| t.clone()).collect();
         for t in session_threads { i.thread_levels.remove(&t); i.level.thread_chosen.remove(&t); dropped = true; }
         if dropped { i.level_revision += 1; }
         let mut default_accepted = false;
@@ -639,7 +628,6 @@ impl Host {
                     match &scope {
                         LevelScope::Default => { i.default_level = None; i.level.default_chosen = None; default_refused = true; }
                         LevelScope::Conversation(t) => { i.thread_levels.remove(t); i.level.thread_chosen.remove(t); i.level.thread_asks.insert(t.clone()); }
-                        LevelScope::NewConversation => {}
                     }
                     i.level_revision += 1;
                     refused.push(json!({"entryId": entry, "reason": "The recorded level does not match the App's level table exactly; choose a level again."}));
@@ -679,6 +667,8 @@ impl Host {
 
     pub(super) fn level_status(i: &Inner, status: &mut Value) {
         let session_only = i.level.session_only.as_ref();
+        status["levelDefaultScopeSentence"] = json!(cl::DEFAULT_SCOPE_SENTENCE);
+        status["levelChoiceSave"] = json!(i.level.choice_save);
         status["levelDefault"] = chosen_view(i.level.default_chosen.as_ref(), i.default_level, "default", session_only);
         status["levelStartRefusal"] = json!(i.level.start_refusal);
         status["levelSendRefusal"] = json!(i.level.last_refusal);
@@ -720,7 +710,7 @@ impl Host {
                     if !recorded {
                         let failure = i.recovery_error.as_ref().or(i.recovery_initialization_error.as_ref());
                         if failure.is_some() || i.recovery.is_none() || entry.is_empty() {
-                            level["inheritancePersistence"] = json!({"state":"not-recorded","sentence":cl::INHERITANCE_NOT_RECORDED,
+                            level["inheritancePersistence"] = json!({"state":"not-confirmed","sentence":cl::INHERITANCE_NOT_RECORDED,
                                 "detail":failure.map(|text|json!({"text":text,"standing":cl::NOT_THE_APPS_TEXT}))});
                         } else { level["inheritancePersistence"] = json!({"state":"pending"}); }
                     }

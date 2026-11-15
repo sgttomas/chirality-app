@@ -463,8 +463,6 @@ struct Inner {
     /// conversation's turns, resumes and forks. A conversation a start or fork created takes the level its
     /// frame carried, recorded when its id is learned from the reply.
     thread_levels: HashMap<String, &'static codex_level::Level>,
-    /// The person's choice for the conversation the next start or fork creates; taken by the frame it binds to.
-    new_conversation_level: Option<&'static codex_level::Level>,
     /// Advanced by every change the person makes to the levels. A frame built under an older revision is
     /// refused at its final admission and nothing is written.
     level_revision: u64,
@@ -3119,28 +3117,16 @@ impl Host {
         i.level_revision += 1;
         Ok(())
     }
-    /// The person names the level of the conversation the next start or fork creates (None withdraws the
-    /// choice). It beats the default for a start and the source conversation's level for a fork, and is
-    /// taken by the frame it is bound to. In production called only from the App's level command.
-    pub(crate) fn choose_new_conversation_level(&self, id: Option<&str>) -> Result<(), String> {
-        let level = id.map(|id| codex_level::level(id).ok_or_else(|| format!("unknown level: {id}"))).transpose()?;
-        let mut i = self.inner.0.lock().unwrap();
-        i.new_conversation_level = level;
-        i.level.new_chosen = None;
-        i.level_revision += 1;
-        Ok(())
-    }
     pub(crate) fn default_level(&self) -> Option<&'static codex_level::Level> { self.inner.0.lock().unwrap().default_level }
     pub(crate) fn thread_level(&self, thread: &str) -> Option<&'static codex_level::Level> { self.inner.0.lock().unwrap().thread_levels.get(thread).copied() }
     /// The level a frame of `method` with `params` would carry now; None for a method that carries no level
     /// or when no level applies.
     pub(crate) fn level_for(&self, method: &str, params: &Value) -> Option<&'static codex_level::Level> {
         let i = self.inner.0.lock().unwrap();
-        Self::resolve_level(&i, method, params).and_then(|(level, _, _)| level)
+        Self::resolve_level(&i, method, params).and_then(|(level, _)| level)
     }
-    /// The level in force for a frame of `method`, the conversation it is for, and whether it is the choice
-    /// made for a new conversation. None when `method` carries no level.
-    fn resolve_level(i: &Inner, method: &str, params: &Value) -> Option<(Option<&'static codex_level::Level>, codex_level::Target, bool)> {
+    /// The level in force for a frame and its conversation. None when the method carries no level.
+    fn resolve_level(i: &Inner, method: &str, params: &Value) -> Option<(Option<&'static codex_level::Level>, codex_level::Target)> {
         let kind = codex_level::Method::of(method)?;
         let thread = params["threadId"].as_str().unwrap_or_default().to_owned();
         let own = i.thread_levels.get(&thread).copied();
@@ -3148,15 +3134,9 @@ impl Host {
         // default scope.
         let asked = own.is_none() && i.level.thread_asks.contains(&thread);
         Some(match kind {
-            codex_level::Method::ThreadStart => match i.new_conversation_level {
-                Some(level) => (Some(level), codex_level::Target::New, true),
-                None => (i.default_level, codex_level::Target::New, false),
-            },
-            codex_level::Method::ThreadFork => match i.new_conversation_level {
-                Some(level) => (Some(level), codex_level::Target::ForkOf(thread), true),
-                None => (if asked { None } else { own.or(i.default_level) }, codex_level::Target::ForkOf(thread), false),
-            },
-            codex_level::Method::ThreadResume | codex_level::Method::TurnStart => (if asked { None } else { own.or(i.default_level) }, codex_level::Target::Conversation(thread), false),
+            codex_level::Method::ThreadStart => (i.default_level, codex_level::Target::New),
+            codex_level::Method::ThreadFork => (if asked { None } else { own.or(i.default_level) }, codex_level::Target::ForkOf(thread)),
+            codex_level::Method::ThreadResume | codex_level::Method::TurnStart => (if asked { None } else { own.or(i.default_level) }, codex_level::Target::Conversation(thread)),
         })
     }
     /// DEL-01-01, V4-AUT-06: the one place a level enters a frame. Called by each frame builder after every
@@ -3168,12 +3148,12 @@ impl Host {
     /// `trust` is the project trust read for a start, resume or fork just before (`Host::trust_reading`); such a
     /// frame without one is refused.
     fn level_frame(&self, i: &mut Inner, method: &str, built: &Value, trust: Option<codex_level::TrustReading>) -> Result<Option<(Value, codex_level::Bound)>, String> {
-        let Some((level, target, chosen_for_new)) = Self::resolve_level(i, method, built) else { return Ok(None) };
+        let Some((level, target)) = Self::resolve_level(i, method, built) else { return Ok(None) };
         let kind = codex_level::Method::of(method).expect("resolved methods carry a level");
         let level = level.ok_or_else(|| format!("refused-not-sent: no level chosen; {method} was not sent"))?;
         if matches!(kind, codex_level::Method::ThreadResume | codex_level::Method::ThreadFork) && trust.is_none() { return Err(SAVED_IN_APP_DATA_UNKNOWN.into()); }
         let thread = built.get("threadId").and_then(Value::as_str).unwrap_or_default().to_owned();
-        let provenance = Self::level_origin_for(i, kind, &thread, chosen_for_new);
+        let provenance = Self::level_origin_for(i, kind, &thread);
         let chosen = provenance.as_ref().and_then(|c| c.entry.clone());
         Self::level_send_check(i, method, built, level, &target)?;
         let trust = match kind {
@@ -3188,7 +3168,6 @@ impl Host {
             return Err(format!("refused-not-sent: {method} would carry other than exactly its level; nothing written"));
         }
         codex_level::config_post_condition(&params, kind).map_err(|e| format!("refused-not-sent: {e}; {method} was not sent"))?;
-        if chosen_for_new { i.new_conversation_level = None; i.level.new_chosen = None; }
         Ok(Some((params, codex_level::Bound { level, method: kind, fields, trust, revision: i.level_revision, target, chosen, origin:provenance.as_ref().map(|c|c.origin), chosen_at:provenance.map(|c|c.at) })))
     }
     /// A frame is written only under the level revision it was built under.
@@ -6396,7 +6375,8 @@ mod additive_guidance_transport_tests {
             tx.send((frame,response.clone())).unwrap();me.on_line(&serde_json::to_vec(&response).unwrap(),&g);
         });
         let result=match guidance {Some(text)=>host.thread_start_with_guidance("/invented/work","chosen-model","chosen-provider",text),None=>host.thread_start_selected("/invented/work","chosen-model","chosen-provider")};
-        let (outbound,native_response)=rx.recv().unwrap();worker.join().unwrap();*host.stdin.lock().unwrap()=None;assert!(child.wait().unwrap().success());
+        if result.is_err() { *host.stdin.lock().unwrap()=None; }
+        let (outbound,native_response)=rx.recv().unwrap_or_else(|_|panic!("start peer received no frame; operation returned {result:?}"));worker.join().unwrap();*host.stdin.lock().unwrap()=None;assert!(child.wait().unwrap().success());
         MockRun { result,outbound,native_response,snapshot:host.snapshot(),generation }
     }
     #[test]
@@ -6465,7 +6445,7 @@ mod conversation_transport_tests {
     use super::*;
     fn g()->Value {json!({"appSession":"conversation-session","home":"conversation-home","spawnCounter":1})}
     fn host()->Arc<Host> {
-        let host=Arc::new(Host::new());{let mut i=host.inner.0.lock().unwrap();i.state="ready".into();i.generation=g();i.journal.begin_generation(g());i.threads.push(json!({"generation":g(),"threadId":"thread","model":"selected","modelProvider":"selected-provider"}));}
+        let host=Arc::new(Host::new());{let mut i=host.inner.0.lock().unwrap();i.state="ready".into();i.generation=g();i.journal.begin_generation(g());i.threads.push(json!({"generation":g(),"threadId":"thread","model":"selected","modelProvider":"selected-provider","cwd":"/invented"}));}
         host
     }
     /// The next frame written to the stand-in that is not the configuration reading (answered by the hook).
@@ -6491,7 +6471,11 @@ mod conversation_transport_tests {
             for frame in before {me.on_line(&serde_json::to_vec(&frame).unwrap(),&g());}
             if let Some(mut frame)=response {frame["id"]=outbound["id"].clone();me.on_line(&serde_json::to_vec(&frame).unwrap(),&g());}
         });
-        let result=operation();let outbound=rx.recv().unwrap();worker.join().unwrap();*host.stdin.lock().unwrap()=None;assert!(child.wait().unwrap().success());(result,outbound)
+        let result=operation();
+        // A guard can refuse before any frame exists. Close the owned peer's
+        // input so its reader ends instead of waiting forever for that frame.
+        if result.is_err() { *host.stdin.lock().unwrap()=None; }
+        let outbound=rx.recv().unwrap_or_else(|_|panic!("peer received no frame; operation returned {result:?}"));worker.join().unwrap();*host.stdin.lock().unwrap()=None;assert!(child.wait().unwrap().success());(result,outbound)
     }
     #[test]
     fn model_catalog_error_before_client_record_publication_is_redacted() {
@@ -7222,10 +7206,10 @@ mod conversation_transport_tests {
             }
         }
         // A row that reports no folder is not taken to be outside the App data.
-        let h=f.host();
+        let h=f.host();h.inner.0.lock().unwrap().threads[0].as_object_mut().unwrap().remove("cwd");
         assert_eq!(h.thread_fork_dispatch(&g(),"thread").err().unwrap(),SAVED_IN_APP_DATA_UNKNOWN);
         // Without a known App data folder or saved conversation folder, no server-folder fallback admits Continue.
-        let h=host();h.inner.0.lock().unwrap().server_cwd=Some("/invented".into());
+        let h=host();{let mut i=h.inner.0.lock().unwrap();i.server_cwd=Some("/invented".into());i.threads[0].as_object_mut().unwrap().remove("cwd");}
         let mut view=history_selected();let query=view.continue_query().unwrap();
         let (result,frames)=local_peer_exchange(&h,cloud_reading(),"/invented",history_resume("idle",true),||h.history_dispatch(&query).map(|_|()));
         assert!(result.err().unwrap().contains(SAVED_IN_APP_DATA_UNKNOWN));
@@ -7250,6 +7234,19 @@ mod conversation_transport_tests {
                 assert_eq!(trust.cwd,*saved);
                 assert_eq!(resumes[0]["params"]["config"]["projects"][&trust.key]["trust_level"],"untrusted");
                 assert_ne!(trust.cwd,server);
+                // A previously observed original role must accept this exact
+                // account Continue packet, including its admitted saved folder.
+                let common=crate::role_supply::Guidance::seeded("AGENTS.md","fixture",b"Invented original guidance".to_vec(),b"default").unwrap();
+                let composition=crate::role_supply::Composition::new(&common,None,false).unwrap();
+                let original=json!({"id":"original","method":"thread/start","params":{"developerInstructions":composition.text,"cwd":saved,"model":"reported","modelProvider":"configured"}});
+                let binding=crate::role_lifecycle::PreparedStart::new("conversation-home",g(),json!("original"),"original-request","sup:original",&composition).unwrap()
+                    .observe(&g(),&original,&json!({"id":"original","result":history_resume("idle",true)})).unwrap();
+                let expected=binding.resume("conversation-home",g(),receipt.request_id().clone(),receipt.request_ref()).unwrap();
+                let expected=h.role_metadata_request(&receipt,expected).unwrap();
+                let actual=receipt.attempted_frame();let response=receipt.evidence()["response"].clone();
+                assert!(expected.clone().observe(&g(),&actual,&response).is_ok(),"known original role accepts the admitted saved cwd");
+                let mut changed=actual.clone();changed["params"]["cwd"]=json!(server);
+                assert!(expected.observe(&g(),&changed,&response).is_err(),"whole-packet folder binding remains exact");
             } else {
                 assert!(result.err().unwrap().contains("edits-level-reaches-app-folders"));
                 assert!(resumes.is_empty(),"the saved containing folder is checked, not the separate server folder");
@@ -8773,6 +8770,7 @@ mod conversation_transport_tests {
             *host.stdin.lock().unwrap()=child.stdin.take();let reader=BufReader::new(child.stdout.take().unwrap());Self{host,child,reader}
         }
         fn reply(&mut self,dispatch:&HistoryDispatch,result:&Value){
+            assert_eq!(dispatch.source().write_attempt_observed(),Some(true),"history peer cannot read a frame refused before its write: {}",dispatch.evidence());
             let actual=next_operation_frame(&mut self.reader).unwrap();
             assert_eq!(actual["id"],*dispatch.source().request_id());assert_eq!(actual["method"],dispatch.query().method());assert_eq!(actual["params"],crate::codex_level::with_test_level(dispatch.query().params(),dispatch.query().method()));
             self.host.on_line(&serde_json::to_vec(&json!({"id":actual["id"],"result":result})).unwrap(),&g());

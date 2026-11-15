@@ -33,13 +33,13 @@ fn choosing_writes_the_choice_and_sets_the_level_with_no_confirmation() {
 #[test]
 fn the_scope_and_level_are_checked_before_anything_changes() {
     let host = Arc::new(Host::new());
-    for scope in [json!("everywhere"), json!({"conversation": ""}), json!({"conversation": "t", "extra": 1}), json!(3)] {
+    for scope in [json!("new-conversation"), json!("everywhere"), json!({"conversation": ""}), json!({"conversation": "t", "extra": 1}), json!(3)] {
         assert!(set_level(&host, &[], &scope, "edits").is_err(), "{scope}");
     }
     assert!(set_level(&host, &[], &json!("default"), "invented").is_err());
     assert_eq!(host.default_level().unwrap().id, "edits", "the test Host's level is unchanged");
     assert_eq!(parse_scope(&json!({"conversation": "t"})).unwrap(), LevelScope::Conversation("t".into()));
-    assert_eq!(parse_scope(&json!("new-conversation")).unwrap(), LevelScope::NewConversation);
+    assert!(parse_scope(&json!("new-conversation")).unwrap_err().contains("default was not changed"));
 }
 
 /// No native sheet, no statement and no stand-in: the command passes the person's choice straight to the Host.
@@ -55,4 +55,9 @@ fn the_command_shows_no_native_statement() {
     for absent in ["native_statement", "dialog", "statementDigest", "sha256"] {
         assert!(!production.contains(absent), "{absent}");
     }
+}
+
+#[test]
+fn removed_one_shot_scope_is_refused_never_reinterpreted_as_default() {
+    assert!(parse_scope(&json!("new-conversation")).is_err());
 }

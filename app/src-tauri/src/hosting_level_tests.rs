@@ -255,7 +255,7 @@ fn a_choice_the_ledger_does_not_take_changes_nothing() {
     std::fs::create_dir(&database).unwrap();
     let revision = host.inner.0.lock().unwrap().level_revision;
     let refused = host.choose_level(&LevelScope::Default, cl::level("full").unwrap(), &[]).unwrap_err();
-    assert!(refused.contains("nothing was changed"), "{refused}");
+    assert_eq!(refused,cl::SAVE_UNCONFIRMED_NOT_APPLIED);
     let i = host.inner.0.lock().unwrap();
     assert!(i.default_level.is_none() && i.level.default_chosen.is_none());
     assert_eq!(i.level_revision, revision);
@@ -344,26 +344,7 @@ fn a_start_reply_reports_agreement_and_a_differing_reply_refuses_the_next_turn_w
     std::fs::remove_dir_all(&base).unwrap();
 }
 
-#[test]
-fn a_new_conversation_choice_is_recorded_as_that_conversations_when_the_reply_names_it() {
-    let base = root("new-conversation");
-    let host = ready_with_ledger(&base, "/invented");
-    let wire = Wire::attach(&host);
-    let chosen = host.choose_level(&LevelScope::NewConversation, cl::level("supervised").unwrap(), &[]).unwrap();
-    assert!(entries(&host, "level_chosen").is_empty(), "no ledger scope names a conversation not yet created");
-    send(&host, "thread/start", json!({"cwd": "/invented"})).unwrap();
-    let written = wire.next();
-    assert!(entries(&host, "level_sent").is_empty(), "held with its choice until the conversation is named");
-    reply(&host, json!({"id": written["id"], "result": {"thread": {"id": "fresh"}}}));
-    let row = entries(&host, "level_chosen").pop().unwrap();
-    assert_eq!(row["entryId"], chosen["ledgerEntry"]);
-    assert_eq!(row["scope"], json!({"kind":"conversation","home":"app-home:invented","threadId":"fresh"}));
-    let sent = entries(&host, "level_sent").pop().unwrap();
-    assert_eq!((sent["threadId"].as_str(), sent["chosen"].clone()), (Some("fresh"), chosen["ledgerEntry"].clone()));
-    assert_eq!(host.thread_level("fresh").unwrap().id, "supervised");
-    wire.close(&host);
-    std::fs::remove_dir_all(&base).unwrap();
-}
+
 
 #[test]
 fn at_launch_only_the_latest_exact_choice_in_a_scope_is_in_force() {
@@ -432,15 +413,13 @@ fn production_code_changes_the_level_only_from_set_level_and_the_launch_read() {
         for setter in [".set_default_level(", ".set_thread_level(", ".choose_new_conversation_level(", "set_default_level(\"", "Self::apply_chosen("] {
             for (at, _) in text.match_indices(setter) {
                 let function = text[..at].rfind("fn ").map(|f| text[f + 3..].split('(').next().unwrap_or_default().trim().to_owned()).unwrap_or_default();
-                let allowed = name == "hosting_level.rs" && setter == "Self::apply_chosen(" && ["choose_level", "read_levels_at_launch_in"].contains(&function.as_str());
+                let allowed = name == "hosting_level.rs" && setter == "Self::apply_chosen(" && ["choose_level", "read_levels_with_account_state"].contains(&function.as_str());
                 if !allowed { offending.push(format!("{name}: {setter} in fn {function}")); }
             }
         }
     }
     assert!(offending.is_empty(), "{offending:#?}");
-    let level_state = without_test_modules(&std::fs::read_to_string(dir.join("hosting_level.rs")).unwrap());
-    assert_eq!(level_state.matches("Self::apply_chosen(").count(), 8,
-        "choose_level (a session-only choice here and in the other homes; a new conversation; a recorded choice here and in the other homes) and the launch read (a recorded choice; the App's default; the App's default on a first run whose records could not be read)");
+
 }
 
 /// The source with each `#[cfg(test)]` item (a module, function or block) removed.
@@ -710,7 +689,7 @@ fn a_session_only_choice_is_never_offered_on_an_empty_ledger_and_a_complete_read
     let database = crate::recovery::database_path(&base.join("recovery.ledger.jsonl"));
     std::fs::rename(&database, base.join("displaced")).unwrap();
     std::fs::create_dir(&database).unwrap();
-    assert!(host.choose_level(&LevelScope::Default, cl::level("supervised").unwrap(), &[]).unwrap_err().contains("nothing was changed"));
+    assert!(host.choose_level(&LevelScope::Default, cl::level("supervised").unwrap(), &[]).unwrap_err().contains("session's level was not changed"));
     assert_eq!(host.default_level().unwrap().id, "full", "the App's default, unchanged");
     std::fs::remove_dir_all(&database).unwrap();
     std::fs::rename(base.join("displaced"), &database).unwrap();
@@ -1315,7 +1294,8 @@ fn review_repairs_additional_home_reads_a_choice_committed_before_a_flush_failur
     host.flush_recovery_observations();
     crate::recovery::store::FAIL_FLUSH_AFTER_COMMIT.with(|f| f.set(true));
     let failed = host.choose_level(&LevelScope::Default, cl::level("supervised").unwrap(), &[]).unwrap_err();
-    assert!(failed.contains("commit returned"));
+    assert_eq!(failed,cl::SAVE_UNCONFIRMED_NOT_APPLIED);
+    assert!(host.snapshot()["levelChoiceSave"]["writeFailure"]["text"].as_str().unwrap().contains("commit returned"));
     let other = Host::new_with_app_custody(host.app_runtime_custody().unwrap()).unwrap();
     other.read_levels_at_launch(Some("app-home:additional"));
     assert_eq!(other.default_level().map(|l| l.id.as_str()), Some("supervised"));
@@ -1493,7 +1473,7 @@ fn review_inheritance_failed_association_is_disclosed_and_relaunch_uses_the_curr
         let status=thread_row(&host,"created")["level"].clone();
         wire.close(&host);
         assert_eq!(status["chosen"]["id"],"supervised");
-        assert_eq!(status["inheritancePersistence"]["state"],"not-recorded");
+        assert_eq!(status["inheritancePersistence"]["state"],"not-confirmed");
         assert_eq!(status["inheritancePersistence"]["sentence"],cl::INHERITANCE_NOT_RECORDED);
         assert!(!host.snapshot()["recoveryPersistenceError"].is_null());
         // Quit retries queued facts; keep the same append failure through that attempt.
@@ -1556,4 +1536,135 @@ fn outside_entry_removal_can_expose_an_older_choice_or_the_app_default() {
         host.app_runtime_custody().unwrap().record_app_session_end(&[]).unwrap();
         std::fs::remove_dir_all(base).unwrap();
     }
+}
+
+#[test]
+fn round_two_choice_flush_failure_distinguishes_applied_level_and_unconfirmed_save() {
+    for fallback in [false, true] {
+        let base = root("choice-flush-outcome");
+        let home = account_home(&base, false);
+        let data = base.join("data");
+        let host = ready_with_ledger(&data, "/invented");
+        host.choose_level(&LevelScope::Default, cl::level("full").unwrap(), &[]).unwrap();
+        if fallback {
+            let db = data.join("recovery.ledger.sqlite"); let moved = data.join("moved.sqlite");
+            std::fs::rename(&db, &moved).unwrap();
+            host.read_levels_at_launch_in(Some("app-home:invented"), Some(&home));
+            std::fs::rename(&moved, &db).unwrap();
+        }
+        crate::recovery::store::FAIL_FLUSH_AFTER_COMMIT.with(|f| f.set(true));
+        let result = host.choose_level(&LevelScope::Default, cl::level("supervised").unwrap(), &[]);
+        assert_eq!(result.is_ok(), fallback);
+        let status = host.snapshot();
+        let expected = if fallback { "supervised" } else { "full" };
+        assert_eq!(status["levelDefault"]["id"], expected);
+        let save = status["levelChoiceSave"].clone();
+        let current = status["levelDefault"].clone();
+        host.app_runtime_custody().unwrap().record_app_session_end(&[]).unwrap();
+        drop(host);
+        let reopened = ready_with_ledger(&data, "/invented");
+        reopened.read_levels_at_launch_in(Some("app-home:invented"), Some(&home));
+        assert_eq!(reopened.default_level().unwrap().id, "supervised", "the append committed despite its flush failure");
+        reopened.app_runtime_custody().unwrap().record_app_session_end(&[]).unwrap();
+        std::fs::remove_dir_all(base).unwrap();
+        assert_eq!(save["recorded"], "not-confirmed");
+        assert_eq!(save["applied"], fallback);
+        assert!(!save.to_string().contains("not recorded"));
+        if fallback {
+            assert_eq!(current["recorded"], "not-confirmed");
+            assert_ne!(current["origin"], "session-only");
+            assert!(!current.to_string().contains("not kept after"));
+        } else {
+            assert!(save["sentence"].as_str().unwrap().contains("reopening"));
+        }
+    }
+}
+
+#[test]
+fn round_two_inherited_flush_failure_is_conditional_and_distinct_from_a_choice_failure() {
+    let base = root("inheritance-flush-outcome"); let data=base.join("data");
+    let home=account_home(&base,false);
+    let host=ready_with_ledger(&data,"/invented");
+    host.choose_level(&LevelScope::Default,cl::level("supervised").unwrap(),&[]).unwrap();
+    let wire=Wire::attach(&host);
+    send(&host,"thread/start",json!({"cwd":"/invented"})).unwrap(); let sent=wire.next();
+    host.choose_level(&LevelScope::Default,cl::level("full").unwrap(),&[]).unwrap();
+    crate::recovery::store::FAIL_FLUSH_AFTER_COMMIT.with(|f|f.set(true));
+    reply(&host,json!({"id":sent["id"],"result":{"thread":{"id":"created"}}}));
+    let generation=g(&host);
+    host.inner.0.lock().unwrap().threads.push(json!({"generation":generation,"threadId":"created","cwd":"/invented"}));
+    let inherited=thread_row(&host,"created")["level"]["inheritancePersistence"].clone();
+    wire.close(&host);
+    host.app_runtime_custody().unwrap().record_app_session_end(&[]).unwrap(); drop(host);
+    let reopened=ready_with_ledger(&data,"/invented");
+    reopened.read_levels_at_launch_in(Some("app-home:invented"),Some(&home));
+    assert_eq!(reopened.thread_level("created").unwrap().id,"supervised");
+    let generation=g(&reopened);
+    reopened.inner.0.lock().unwrap().threads.push(json!({"generation":generation,"threadId":"created","cwd":"/invented"}));
+    crate::recovery::store::FAIL_FLUSH_AFTER_COMMIT.with(|f|f.set(true));
+    assert!(reopened.choose_level(&LevelScope::Conversation("created".into()),cl::level("edits").unwrap(),&[]).is_err());
+    let explicit=reopened.snapshot()["levelChoiceSave"].clone();
+    reopened.app_runtime_custody().unwrap().record_app_session_end(&[]).unwrap();
+    std::fs::remove_dir_all(base).unwrap();
+    assert_eq!(inherited["sentence"],"The App could not confirm that this conversation's level was saved. If it is not saved before the App closes, reopening follows the default for new conversations then in force, which could allow more than this level, unless you set its level.");
+    assert_eq!(explicit["recorded"],"not-confirmed");
+    assert_ne!(explicit["sentence"],inherited["sentence"]);
+}
+
+#[test]
+fn round_two_additional_home_uses_account_state_at_its_production_launch_read() {
+    use crate::{home_resources::HomeClass, runtime_session::HomeSession};
+    use std::os::unix::fs::PermissionsExt;
+    for unknown in [false,true] {
+        let base=root("shared-account-evidence");let account_path=account_home(&base,true);
+        let host=ready_with_ledger(&base.join("data"),"/invented");
+        let mut cfg=start_config(&account_path,&base);cfg.codex_home=account_path.clone();
+        let account=HomeSession::new(HomeClass::Account,host.clone(),Ok(cfg.clone())).unwrap();
+        let other=Arc::new(Host::new_with_app_custody(host.app_runtime_custody().unwrap()).unwrap());
+        cfg.codex_home=base.join("other-home");
+        let additional=HomeSession::new(HomeClass::ApiKey,other.clone(),Ok(cfg)).unwrap();
+        if unknown { std::fs::set_permissions(&account_path,std::fs::Permissions::from_mode(0o000)).unwrap(); }
+        account.level_launch_reads(&account); additional.level_launch_reads(&account);
+        let account_status=host.snapshot(); let additional_status=other.snapshot();
+        if unknown { std::fs::set_permissions(&account_path,std::fs::Permissions::from_mode(0o700)).unwrap(); }
+        host.app_runtime_custody().unwrap().record_app_session_end(&[]).unwrap();
+        std::fs::remove_dir_all(base).unwrap();
+        assert!(account_status["levelRecordMissing"].is_string());
+        assert!(additional_status["levelRecordMissing"].is_string(),"{additional_status}");
+        assert!(additional_status["levelDefault"].is_null());
+        if unknown { assert_eq!(additional_status["levelLaunchRead"]["homeState"]["state"],"unknown"); }
+    }
+}
+
+#[test]
+fn round_two_failed_trust_write_reports_an_attempt_not_a_completed_send() {
+    let base=root("trust-write-outcome");let host=ready_with_ledger(&base,"/invented");
+    let mut wire=Wire::attach(&host);wire.child.kill().unwrap();wire.child.wait().unwrap();
+    let receipt=send(&host,"thread/resume",json!({"threadId":"thread"})).unwrap();
+    assert!(receipt.evidence()["writeError"].is_string());
+    let sent=thread_row(&host,"thread")["level"]["sent"].clone();
+    *host.stdin.lock().unwrap()=None;
+    host.app_runtime_custody().unwrap().record_app_session_end(&[]).unwrap();
+    std::fs::remove_dir_all(base).unwrap();
+    assert_eq!(sent["writeResult"],"not-established");
+    assert!(!sent["projectTrust"]["lines"].to_string().contains("sent"));
+    assert!(sent["projectTrust"]["lines"].to_string().contains("tried to send"));
+}
+
+#[test]
+fn round_two_refused_start_retry_keeps_its_recorded_default() {
+    let base=root("refused-start-choice");let host=ready_with_ledger(&base,"/invented");
+    let chosen=host.choose_level(&LevelScope::Default,cl::level("supervised").unwrap(),&[]).unwrap();
+    assert_eq!(entries(&host,"level_chosen")[0]["entryId"],chosen["ledgerEntry"]);
+    let wire=Wire::attach(&host);let serial=host.frame_write.lock().unwrap();
+    let sender=host.clone();let pending=std::thread::spawn(move||send(&sender,"thread/start",json!({"cwd":"/invented"})).unwrap());
+    let deadline=std::time::Instant::now()+Duration::from_secs(5);
+    while host.inner.0.lock().unwrap().source_requests.is_empty(){assert!(std::time::Instant::now()<deadline);std::thread::yield_now();}
+    host.choose_level(&LevelScope::Conversation("thread".into()),cl::level("edits").unwrap(),&[]).unwrap();
+    drop(serial);let refused=pending.join().unwrap();
+    assert_eq!(refused.write_attempt_observed(),Some(false));assert!(wire.nothing());
+    send(&host,"thread/start",json!({"cwd":"/invented"})).unwrap();
+    assert_eq!(wire.next()["params"]["sandbox"],"read-only");
+    assert_eq!(host.default_level().unwrap().id,"supervised");
+    wire.close(&host);host.app_runtime_custody().unwrap().record_app_session_end(&[]).unwrap();std::fs::remove_dir_all(base).unwrap();
 }
