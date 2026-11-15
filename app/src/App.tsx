@@ -32,13 +32,14 @@ import { preparedMessages, preparedMessageLimit, type PreparedMessage } from "./
 import { ConversationContext, ProjectLibraryContext, appProjectFolder, conversationFromKey, workflowSourceLimit } from "./WorkflowContext";
 import { DailyWorkspace, WorkspaceDisclosure, WorkspaceConnectionStatus, revealWorkspaceTarget, registerWorkspaceViews, WORKSPACE_VIEWS } from "./DailyWorkspace";
 import { flushSync } from "react-dom";
+import { UnsentWork, useReportUnsent } from "./unsentWork";
 import { DesktopSetupPanel } from "./DesktopSetupPanel";
 // Every host command goes through hostReads' invoke, which marks when a command that may change the host settles.
 import { invoke, invokeTimedRead, useOrderedHost, shownBeforePress, POLL_MS } from "./hostReads";
 import { readingAfterWrite, readingSentence } from "./readingSentences";
 import { REFRESH_FAILED, commandThenRefresh, observationLine, observationText, refreshAfterAction, withRefreshFailure } from "./statusRefresh";
 import { FirstUseSetup } from "./FirstUse";
-import { AccountStatus, accountReading, type ReadAccountStatus } from "./AccountStatus";
+import { AccountStatus, DIDNT_SAY, accountReadError, accountReadRef, accountReading, reportedPlan, signInCompletion, type ReadAccountStatus } from "./AccountStatus";
 import { RunWorkflowGuide, registeredRevisionAnchor, runEvidenceAnchor } from "./RunJourney";
 import { MakeWorkflowGuide } from "./MakeJourney";
 import { acknowledgeBringBackDoubt, beginBringBack, bringBackRefusal, doubtDestination, endBringBack, noteBringBackDoubt, resetBringBackDoubts, sendKey, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
@@ -79,6 +80,15 @@ const startedConversationKey = (response: Json): string | null => {
 
 const emptyConversationChoice = { model: "", modelProvider: "", entryId: "" };
 
+/** No conversation yet for this project, on positive evidence only: none loaded in this Codex session, and the stored
+ * conversations read for it in this session were read to the end and listed none. Unread history establishes nothing. */
+export const noConversationInHistory = (host: Json): boolean => {
+  const history = host?.nativeHistory;
+  return host?.state === "ready" && Array.isArray(host?.threads) && !host.threads.some((t: Json) => sameActivityGeneration(t?.generation, host.generation))
+    && history?.state === "history-receiving" && sameActivityGeneration(history?.generation, host?.generation)
+    && history?.listCursor?.state === "exhausted" && !history?.listError && Array.isArray(history?.threads) && history.threads.length === 0;
+};
+
 type ForkScope = { generation: Json; sourceThread: string; modeHomeClass: string; choiceRevision: number; homeEpoch: number; startRevision: number; sequence: number };
 type ForkNavigation = ForkScope & { threadId: string; requestRef: string };
 const sameForkGeneration = (a: Json, b: Json) => a?.appSession === b?.appSession && a?.home === b?.home && a?.spawnCounter === b?.spawnCounter;
@@ -113,6 +123,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
   const [offerBusy, setOfferBusy] = useState(false);
   const [text, setText] = useState<string>("");
   const textRevision = useRef(0);
+  useReportUnsent("conversation-composer", !!text);
   const composerField = useRef<HTMLTextAreaElement>(null);
   const [ordinaryModel, setOrdinaryModel] = useState({ owner: "", value: "", effort: "", effortModel: "", revision: 0 });
   const [ordinaryOutcome, setOrdinaryOutcome] = useState<OrdinaryTextOutcome | null>(null);
@@ -961,6 +972,8 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
   const selected=thread ? chatWorkflow(data,data?.context?.sourceRef,thread) : data?.inspection;
   const chatAvailable=!!context&&!!thread;
   const [text,setText]=useState("");
+  // A run or draft form with entries is unsent work: the App does not move the person away from it.
+  useReportUnsent("workflow-form", !!(text || name || revision || thread));
   const [busy,setBusy]=useState(false);
   const pendingAction = useRef(false);
   const [progress, setProgress] = useState("");
@@ -1218,20 +1231,30 @@ export function HomeAccessPanel({ host, resources, navigating = false, act, read
     try { await act(command, args); } catch (e) { setError(String(e)); } finally { setBusy(false); }
   };
   const entries: Json[] = (routing?.entries ?? []).filter((entry: Json) => entry.modeHomeClass === "account");
+  // The sign-in leads only where it is what the person needs: no account, Codex didn't say, or not yet read.
+  // Signed in, the panel leads with the account and Sign out, and signing in again is among the other options.
+  const reading = accountReading(host);
+  const signedIn = reading === "chatgpt-account";
+  const offerSignIn = reading === "no-account" || reading === "unread" || DIDNT_SAY.includes(reading);
+  const signInDisabled = busy || routing?.activeModeHomeClass !== "account" || !generation;
+  const signIn = (primary: boolean) => <button id={primary ? "workspace-sign-in" : undefined} className={primary ? "setup-primary" : undefined} disabled={signInDisabled} onClick={() => action("oauth_start", {generation,mode:"browser"})}>Sign in with your ChatGPT account (through Codex)…</button>;
+  const signOut = <button disabled={busy || !generation || routing?.activeModeHomeClass !== "account"} onClick={() => action("logout_home", {generation,modeHomeClass:routing.activeModeHomeClass})}>Sign out of ChatGPT…</button>;
   return <section aria-label="Account connection"><h2>Connect to a model</h2>
-    <p>Sign in with your ChatGPT account to reach a model.</p>
+    {!signedIn && offerSignIn && <p>Sign in with your ChatGPT account to reach a model.</p>}
     {routing?.activeModeHomeClass === "api-key" && <p role="status">Choose the account connection to continue. An older access home is retained without changing its saved configuration.</p>}
     {routing?.activeModeHomeClass === LOCAL_MODE && <p role="status">The local oMLX home is in use. ChatGPT sign-in applies to the account home.</p>}
     {routing?.activeModeHomeClass !== "account" && entries.map(entry => <article key={entry.modeHomeClass}><p>{entry.state}{entry.configurationLimit ? ` — ${entry.configurationLimit}` : ""}</p><details><summary>Connection source</summary><pre>{JSON.stringify(entry.generation, null, 2)}</pre></details><button disabled={busy || navigating || routing?.activeModeHomeClass === entry.modeHomeClass} onClick={() => action("select_home", {modeHomeClass: entry.modeHomeClass})}>Use {entry.modeHomeClass} home</button></article>)}
     <AccountStatus host={host} navigating={navigating} busy={busy} read={readAccount}/>
+    {signedIn && <p>{signOut}</p>}
     {routing?.activeModeHomeClass === "account" && <p aria-label="Provider in this home">In this home the App starts Codex on its built-in OpenAI provider, whatever default provider your own Codex settings name. Your Codex files are not changed.</p>}
     {routing?.activeModeHomeClass === "account" && <p aria-label="Where a sign-in will be kept">Before you sign in, you can see where Codex will keep your sign-in: press “Read effective storage and plugin settings” below.</p>}
-    <button className="setup-primary" disabled={busy || routing?.activeModeHomeClass !== "account" || !generation} onClick={() => action("oauth_start", {generation,mode:"browser"})}>Sign in with your ChatGPT account (through Codex)…</button>
+    {offerSignIn && !signedIn && signIn(true)}
     <details><summary>Other sign-in options</summary>
+    {(signedIn || !offerSignIn) && signIn(false)}
     <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation} onClick={() => action("oauth_start", {generation,mode:"device-code"})}>Sign in through native device code…</button>
     <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation || !oauth?.source?.presentationAvailable} onClick={() => action("oauth_present", {generation})}>Show pending native sign-in…</button>
     <button disabled={busy || routing?.activeModeHomeClass !== "account" || !generation || !oauth?.source?.cancelAvailable} onClick={() => action("oauth_cancel", {generation})}>Cancel original pending sign-in with native confirmation…</button>
-    <button disabled={busy || !generation || routing?.activeModeHomeClass !== "account"} onClick={() => action("logout_home", {generation,modeHomeClass:routing.activeModeHomeClass})}>Sign out of ChatGPT…</button></details>
+    {!signedIn && signOut}</details>
     {LOCAL_ROUTE_OFFERED && <section className="local-access-alternative" aria-label="oMLX and local providers"><h3>Use oMLX / a local model</h3>
       <p>Local providers use their own credentials, separate from ChatGPT sign-in.</p>
       {local && <LocalProviderAccess host={host} view={local.view} attempted={local.attempted} pending={local.pending || busy} message={local.message} navigating={navigating}
@@ -1934,12 +1957,35 @@ export function App() {
   // reveal that follows finds its target visible.
   const [taskView, setTaskView] = useState<string>("run");
   const taskViewRef = useRef(taskView);
-  const showView = (next: string) => { taskViewRef.current = next; setTaskView(next); };
+  // Whether the person has navigated since launch: every view change but the App's own moves (autoMove) is theirs.
+  const navigated = useRef(false);
+  const autoMoving = useRef(false);
+  const showView = (next: string) => { navigated.current = true; taskViewRef.current = next; setTaskView(next); };
   useEffect(() => registerWorkspaceViews(next => {
+    if (!autoMoving.current) navigated.current = true;
     if (taskViewRef.current === next) return;
     taskViewRef.current = next;
     flushSync(() => setTaskView(next));
   }), []);
+  // The App's own move (the first view at launch, the move after a sign-in): the view, then its target revealed
+  // and its disclosure opened, without counting as the person's navigation.
+  const [autoReveal, setAutoReveal] = useState<{ sequence: number; target: string } | null>(null);
+  const autoMove = (view: string, target: string) => {
+    taskViewRef.current = view; setTaskView(view);
+    setAutoReveal(previous => ({ sequence: (previous?.sequence ?? 0) + 1, target }));
+  };
+  useEffect(() => {
+    if (!autoReveal) return;
+    autoMoving.current = true;
+    try { revealWorkspaceTarget(autoReveal.target); } finally { autoMoving.current = false; }
+  }, [autoReveal]);
+  // Work entered and not sent, as the views report it (unsentWork.ts).
+  const unsentWork = useRef(new Set<string>());
+  const reportUnsent = useCallback((owner: string, unsent: boolean) => { if (unsent) unsentWork.current.add(owner); else unsentWork.current.delete(owner); }, []);
+  const launchViewDecided = useRef(false);
+  // Per sign-in completion: the account read latest when it was first seen, and whether the App has moved for it.
+  const signInMoves = useRef(new Map<string, { before: string | null; moved: boolean }>());
+  const [signedInNotice, setSignedInNotice] = useState(false);
   const [composerOffer, setComposerOffer] = useState<ComposerOffer | null>(null);
   const composerOfferSequence = useRef(0);
   // A guide's "show the conversation": the person's explicit navigation selects
@@ -2168,6 +2214,7 @@ export function App() {
         // Consume only the submitted edit, before the independent refresh.
         // Even an edit away and back is a newer choice and must survive.
         if (editRevision.current === revision && chooserHome.current.epoch === epoch) reviseChoice(emptyConversationChoice);
+        setSignedInNotice(false);
       }
       setMessage(`thread_start: ${JSON.stringify(response)}`);
     } catch (error) {
@@ -2579,7 +2626,41 @@ export function App() {
   // only the line that says the App is starting (or, after FIRST_READ_PATIENCE_MS, taking longer than usual),
   // or that the read failed (firstReadState).
   const firstRead = firstReadState(hostReads);
-  return (<DailyWorkspace>
+  // The App's own moves never take the person from work they entered and have not sent, or from a request waiting on
+  // them (a request card in "Waiting on you", including one from a recovered conversation).
+  const requestWaiting = waitingReads.filter(r => r.state === "whole" || r.state === "limited").flatMap(r => r.entries).some(entry => entry.target.kind === "request");
+  const holdsUnsent = () => unsentWork.current.size > 0 || preparedMessages(currentHost.current).length > 0;
+  const signInReading = accountReading(host);
+  // The first view at launch follows state once, when the launch's account reading arrives: no account, Settings &
+  // tools at the sign-in; signed in with no conversation yet in this project's history, a new conversation;
+  // otherwise, while the read is under way, or when Codex didn't say, Run a workflow stays. Never after the person
+  // has navigated, and never over unsent work or a waiting request.
+  useEffect(() => {
+    if (launchViewDecided.current || !host || setupRequired || firstRead !== "read") return;
+    if (navigated.current) { launchViewDecided.current = true; return; }
+    if (host.state !== "ready" || host.generationClosed || signInReading === "unread" || signInReading === "reading") return;
+    launchViewDecided.current = true;
+    if (holdsUnsent() || requestWaiting) return;
+    if (signInReading === "no-account") autoMove("settings", "workspace-sign-in");
+    else if (signInReading === "chatgpt-account" && noConversationInHistory(host)) autoMove("conversation", "workspace-start");
+  }, [host, signInReading, requestWaiting, setupRequired, firstRead]); // eslint-disable-line react-hooks/exhaustive-deps
+  // A sign-in completed in this process and the read after it confirms an account: a new conversation, with a line
+  // saying so. Signing in is the act that asks for this, so the person's navigation does not block it; unsent work
+  // and a waiting request do. Once per completion.
+  const completion = signInCompletion(host);
+  useEffect(() => {
+    if (!completion) return;
+    const seen = signInMoves.current.get(completion);
+    if (!seen) { signInMoves.current.set(completion, { before: accountReadRef(host), moved: false }); return; }
+    // The read that confirms the account is one made after the completion was seen.
+    if (seen.moved || signInReading !== "chatgpt-account" || accountReadRef(host) === seen.before) return;
+    seen.moved = true;
+    if (holdsUnsent() || requestWaiting) return;
+    autoMove("conversation", "workspace-start");
+    setSignedInNotice(true);
+  }, [completion, host, signInReading, requestWaiting]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (signInReading !== "chatgpt-account") setSignedInNotice(false); }, [signInReading]);
+  return (<UnsentWork.Provider value={reportUnsent}><DailyWorkspace>
         {firstRead !== "read" && <FirstReadStatus failed={firstRead === "failed"} slow={firstReadSlow} retry={() => { void refresh().catch(() => undefined); }}/>}
         {setupRequired && <FirstUseSetup view={host.desktopSetup}/>}
         {firstRead === "read" && <div hidden={setupRequired}>
@@ -2595,7 +2676,10 @@ export function App() {
         <WaitingOnYou readings={waitingReads} view={host?.nativeView} busy={homePending} onOpen={() => { void readFleetOnOpen(); }} openGroup={group => { void openRequests(group); }} go={goToWaiting}/>
         </div>}
         {firstRead === "read" && <div hidden={setupRequired}>
-        <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome} refusalCause={host?.startRefusalCause} build={host?.build} signIn={accountReading(host)}/>
+        <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome} refusalCause={host?.startRefusalCause} build={host?.build} signIn={signInReading}
+          plan={reportedPlan(host)} codexError={accountReadError(host)}
+          checkAgain={async () => { const shown = currentHost.current; try { await readAccountStatus(shown?.generation, shown?.homeRouting?.activeModeHomeClass, () => true); } catch (error) { setMessage(`Check again: ${readingSentence(error) ?? String(error)}`); } }}
+          startSignIn={async () => { try { await homeAction("oauth_start", { generation: currentHost.current?.generation, mode: "browser" }); } catch (error) { setMessage(`oauth_start: ${String(error)}`); } }}/>
         </div>}
         <NativeWaitingBridge ready={!!host} report={setMessage} checkpoint={() => ({ signature: JSON.stringify([threadChoiceRevision.current, chooserHome.current.epoch, editRevision.current]),
           pristine: threadChoiceRevision.current === 0 && editRevision.current === 0 })} capture={() => {
@@ -2646,6 +2730,7 @@ export function App() {
         <div id="view-conversation" data-workspace-view="conversation" className="workspace-view" hidden={taskView !== "conversation"}>
         <WorkspaceDisclosure id="workspace-start" title="New conversation" description="Model and role — start explicitly" open={host?.state !== "ready" || !(host?.threads?.length) ? true : undefined}>
           <h2>New conversation</h2>
+          {signedInNotice && <p role="status" aria-label="Signed in">You're signed in. Choose a model to start a conversation.</p>}
           <div className="workspace-start-fields">
           <h3>1. How it connects</h3>
           <AccessRouteChoice homeClass={homeClass} modelProvider={modelProvider} entryId={entryId} model={model} disabled={startPending || homePending || providerReading || endpointBusy}
@@ -2809,5 +2894,5 @@ export function App() {
           </WorkspaceDisclosure>
         </section>
         </div>}
-      </DailyWorkspace>);
+      </DailyWorkspace></UnsentWork.Provider>);
 }

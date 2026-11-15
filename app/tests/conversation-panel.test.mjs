@@ -1036,6 +1036,10 @@ test('matching sign-in completion checks once, including StrictMode and repeated
   }
 });
 
+// The panel itself checks only on a completed sign-in of this source; the account read when Codex becomes ready (at
+// launch and after a restart) is the host's own, recorded as the App's (access_provider_tests.rs
+// codex_ready_reads_the_account_once_with_empty_params_as_the_apps_own_read_and_again_after_a_restart), and reaches the
+// panel as a host reading of the new generation, never a reading carried from the earlier one.
 test('no implicit check on restart, pending, failed, foreign, missing or unavailable completion',async()=>{
   const invalid=[accountHost(),accountHost({homeOAuth:completionPacket({phase:'Pending'})}),
     accountHost({homeOAuth:completionPacket({phase:'CompletedFailure'})}),accountHost({homeOAuth:completionPacket({phase:'StartRejected'})}),
@@ -1072,7 +1076,9 @@ test('ordinary account summary distinguishes kinds, absence, omission, pending, 
     [accountReadPacket('chatgpt',{accountObservation:{state:'account omitted; unknown/unavailable',account:null}}),/did not report account status.*does not mean you are signed out/],
     [accountReadPacket('chatgpt',{source:{...accountReadPacket().source,outcome:'response-observed-error',response:{error:{message:accountCanary}}}}),/could not read account status/],
     [accountReadPacket('chatgpt',{source:{...accountReadPacket().source,authResponseShapeValid:false}}),/unavailable account response/],
-    [accountReadPacket('chatgpt',{source:{...accountReadPacket().source,outcome:'pending'}}),/has not produced a result/],
+    // A read Codex left unanswered past the host's wait is not a result; one still waiting for its answer is under way.
+    [accountReadPacket('chatgpt',{source:{...accountReadPacket().source,outcome:'pending',waitingEnded:true}}),/has not produced a result/],
+    [accountReadPacket('chatgpt',{source:{...accountReadPacket().source,outcome:'pending'}}),/Checking with Codex whether you're signed in/],
     [accountReadPacket('chatgpt',{source:{...accountReadPacket().source,sourceCurrent:false}}),/no longer current/],
   ];
   await mountedAccount(async ui=>{
@@ -1136,6 +1142,8 @@ async function mountedAccountApp(check,{readReply,statusReply}={}) {
   finally{const text=container.textContent;await React.act(()=>root.unmount());document.body.removeChild(container);idle.restore(text);}
 }
 
+// The person's sign-in still leads to one read of the renderer's own, the existing non-forced one; this fixture's host
+// has recorded no read of its own at ready, so the panel starts from "not checked".
 test('App matching completion dispatches only the existing non-forced read and shows the current account',async()=>{
   await mountedAccountApp(async ui=>{
     assert.match(ui.summary().textContent,/not been checked/);
