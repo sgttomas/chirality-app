@@ -515,19 +515,6 @@ def checked_scratch(scratch):
     return base
 
 
-def processes_naming(text, run=subprocess.run):
-    """(pid, command) of every process whose command line contains `text`, other than this check itself."""
-    result = run(['/bin/ps', '-axww', '-o', 'pid=,command='], capture_output=True, text=True, timeout=20)
-    if result.returncode != 0:
-        raise Refused('the process list could not be read')
-    found = []
-    for line in result.stdout.splitlines():
-        pid, _, command = line.strip().partition(' ')
-        if text in command and int(pid) != os.getpid():
-            found.append((int(pid), command.strip()))
-    return found
-
-
 class Unobserved(Exception):
     """A process could not be observed: neither present nor established gone."""
 
@@ -587,6 +574,19 @@ def group_members(pgid, run=subprocess.run):
     if result.returncode != 0:
         raise Refused('the process list could not be read')
     return result.stdout.split().count(str(pgid))
+
+
+def group_has_members(pgid, killpg=os.killpg, members=group_members):
+    """Whether the process group `pgid` still has a member: a signal 0 to the group. macOS answers a group whose
+    members have all exited and await reaping with a permission error, so the group's members are then counted by
+    group number (`group_members`)."""
+    try:
+        killpg(pgid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return members(pgid) > 0
+    return True
 
 
 # ---------- one run ----------
@@ -683,17 +683,33 @@ class Run:
         return False
 
     def nothing_remains(self, wait=10.0):
-        """After the servers are stopped: wait until no process remains whose command line names this run's root,
-        or fail naming each one that does. It cannot see a process of the run whose command line names no path of
-        the run (the network probe, whose argument is only the port, is one; it ends within its 3 s timeout)."""
+        """After the servers are stopped: wait until none of the Codex servers this run started is still running
+        and no member of any of their process groups remains, or fail naming each that does. A server is known by
+        its number (the run is its parent) and the start time recorded when it started, so a number used again by
+        another process does not count; a group is checked by a signal 0 to it. No process's command line or open
+        files are read. A command that Codex ran in a process group of its own is not seen here: the rows that start
+        such commands know their numbers and end them themselves (`end_known`). The network probe is not one of the
+        run's servers; it ends within its 3 s alarm."""
         deadline = time.monotonic() + wait
         while True:
-            left = processes_naming(str(self.root))
+            left = []
+            for client in self.clients:
+                pid = client.proc.pid
+                try:
+                    running = client.proc.poll() is None or (
+                        client.started_at is not None and still_running(pid, client.started_at))
+                except Unobserved as error:
+                    running, why = True, str(error)
+                else:
+                    why = 'still running'
+                if running:
+                    left.append('server %d: %s' % (pid, why))
+                if group_has_members(client.pgid):
+                    left.append('process group %d has a member' % client.pgid)
             if not left:
                 return
             if time.monotonic() >= deadline:
-                raise Refused('processes of the run remain after %.0f s: %s' % (
-                    wait, '; '.join('pid %d: %s' % (pid, command[:200]) for pid, command in left)))
+                raise Refused('processes of the run remain after %.0f s: %s' % (wait, '; '.join(left)))
             time.sleep(0.25)
 
     @property
@@ -798,6 +814,10 @@ class Client:
             cwd=str(run.project), env=run.environment(), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
             stderr=self.stderr, start_new_session=True)
         self.pgid = self.proc.pid  # its own session, so its own process group
+        try:  # when it started, so that its number is not mistaken for another process's later
+            self.started_at = observe_process(self.proc.pid)[1]
+        except Unobserved:
+            self.started_at = None
         self.lock = threading.Lock()
         self.changed = threading.Condition(self.lock)
         self.next_id = 0

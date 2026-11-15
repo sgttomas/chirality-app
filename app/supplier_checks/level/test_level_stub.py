@@ -364,9 +364,12 @@ class Cleanup(unittest.TestCase):
         run.__enter__()
         broken = mock.Mock()
         broken.stop.side_effect = OSError('invented stop failure')
+        broken.proc.poll.return_value = 0
+        broken.started_at = None
         run.clients.append(broken)
-        with self.assertRaisesRegex(L.Refused, 'invented stop failure'):
-            run.__exit__(None, None, None)
+        with mock.patch.object(L, 'group_has_members', return_value=False):
+            with self.assertRaisesRegex(L.Refused, 'invented stop failure'):
+                run.__exit__(None, None, None)
         self.assertFalse(run.root.exists())  # removal still ran
 
     def test_a_removal_error_is_not_ignored(self):
@@ -377,18 +380,53 @@ class Cleanup(unittest.TestCase):
                 run.__exit__(None, None, None)
         __import__('shutil').rmtree(run.root)
 
-    def test_a_process_of_the_run_left_behind_fails_naming_it(self):
+    def server(self, poll=0, started_at=None, pid=999999, pgid=4242):
+        client = mock.Mock()
+        client.proc.pid, client.pgid, client.started_at = pid, pgid, started_at
+        client.proc.poll.return_value = poll
+        return client
+
+    def test_a_server_of_the_run_left_running_fails_naming_it_by_number(self):
+        """Known by its number and recorded start time, and its group by a signal 0: no command line is read."""
         run = L.Run(self.scratch, '/nonexistent/codex')
         run.__enter__()
         try:
-            left = [(999999, 'sleep 4; printf ok > %s/outside/w-late' % run.root)]
-            with mock.patch.object(L, 'processes_naming', return_value=left):
-                with self.assertRaisesRegex(L.Refused, 'pid 999999: sleep 4'):
-                    run.nothing_remains(wait=0.5)
-            with mock.patch.object(L, 'processes_naming', return_value=[]):
-                run.nothing_remains(wait=0.5)
+            with mock.patch.object(L, 'group_has_members', return_value=False):
+                run.clients = [self.server(poll=None)]
+                with self.assertRaisesRegex(L.Refused, 'server 999999: still running'):
+                    run.nothing_remains(wait=0.3)
+                run.clients = [self.server(started_at='at')]
+                with mock.patch.object(L, 'still_running', return_value=True):
+                    with self.assertRaisesRegex(L.Refused, 'server 999999: still running'):
+                        run.nothing_remains(wait=0.3)
+                with mock.patch.object(L, 'still_running', side_effect=L.Unobserved('invented ps failure')):
+                    with self.assertRaisesRegex(L.Refused, 'server 999999: invented ps failure'):
+                        run.nothing_remains(wait=0.3)
+                with mock.patch.object(L, 'still_running', return_value=False):  # gone, or the number used again
+                    run.nothing_remains(wait=0.3)
+            run.clients = [self.server()]
+            with mock.patch.object(L, 'group_has_members', return_value=True):
+                with self.assertRaisesRegex(L.Refused, 'process group 4242 has a member'):
+                    run.nothing_remains(wait=0.3)
+            with mock.patch.object(L, 'group_has_members', return_value=False):
+                run.nothing_remains(wait=0.3)
+            with mock.patch.object(L, 'subprocess') as subprocess_module:
+                with mock.patch.object(L, 'group_has_members', return_value=False):
+                    run.nothing_remains(wait=0.3)
+                subprocess_module.run.assert_not_called()  # no process list is read
         finally:
+            run.clients = []
             run.__exit__(None, None, None)
+
+    def test_a_group_is_checked_by_a_signal_to_it(self):
+        def gone(pgid, sig):
+            raise ProcessLookupError()
+        def denied(pgid, sig):
+            raise PermissionError()
+        self.assertFalse(L.group_has_members(4242, killpg=gone, members=lambda pgid: self.fail('not counted')))
+        self.assertTrue(L.group_has_members(4242, killpg=lambda pgid, sig: None, members=lambda pgid: self.fail('not counted')))
+        self.assertTrue(L.group_has_members(4242, killpg=denied, members=lambda pgid: 1))
+        self.assertFalse(L.group_has_members(4242, killpg=denied, members=lambda pgid: 0))
 
     def test_a_permission_error_from_the_signal_fails_while_the_group_has_members(self):
         client = L.Client.__new__(L.Client)
