@@ -142,9 +142,17 @@
           "minLength": 1
         },
         "source": {
+          "description": "Who chose the model and started the conversation with it: the person, or the person accepting the offer of the last choice for the project. It does not say who chose the access entry; entrySource does.",
           "enum": [
             "person",
             "offered-last-choice-accepted"
+          ]
+        },
+        "entrySource": {
+          "description": "Who chose the access entry. \"app-showed-only-entry\": the App showed the only entry the configuration offers as the connection in use, and the person was not asked (DEL-01-05 REQ-004). \"person\": the person explicitly chose an entry, including a single offered entry, directly or by accepting the offer of the last choice. A record without this field says the entry's source was not recorded; no reader may take its absence for the person having chosen the entry.",
+          "enum": [
+            "app-showed-only-entry",
+            "person"
           ]
         },
         "chosenAt": {

@@ -415,6 +415,11 @@ fn endpoint_offer_result(
 /// boundary, in words a person can act on. The discard commands stay: they only
 /// drop an offer, which no refused command can now make.
 const LOCAL_ROUTE_OFFERED: bool = false;
+/// Whether `class` offers exactly one access entry, as a fact of this build's configuration (never of a read): the
+/// account home's ChatGPT account, where the local route is not offered.
+pub(crate) fn only_access_entry(class: home_resources::HomeClass) -> bool {
+    class == home_resources::HomeClass::Account && !LOCAL_ROUTE_OFFERED
+}
 pub(crate) const LOCAL_ROUTE_NOT_OFFERED: &str = "This version of the App does not offer a local model server or a local provider. Use your ChatGPT account: sign in under Connection and access.";
 fn local_route_refused() -> Result<(), String> {
     if LOCAL_ROUTE_OFFERED { Ok(()) } else { Err(LOCAL_ROUTE_NOT_OFFERED.into()) }
@@ -797,6 +802,14 @@ fn recovery_retry(state: State<'_, AppState>, mode_home_class: String, generatio
     recovery_root_view::read(&home, &mode_home_class, &home.host.snapshot()["generation"])
 }
 
+/// Adds `effortInForce` to each conversation row the readings name, by generation and thread.
+fn annotate_efforts_in_force(threads: &mut Value, readings: &[(Value, String, Value)]) {
+    for thread in threads.as_array_mut().into_iter().flatten() {
+        if let Some((_, _, reading)) = readings.iter().find(|(generation, id, _)| thread["generation"] == *generation && thread["threadId"] == id.as_str()) {
+            thread["effortInForce"] = reading.clone();
+        }
+    }
+}
 #[tauri::command]
 fn host_status(state: State<'_, AppState>) -> Value {
     let home = state.homes.lock().unwrap().active();
@@ -834,6 +847,8 @@ fn host_status(state: State<'_, AppState>) -> Value {
     // last read it (the reads run on the host tick and when Try with the
     // authoring agent is pressed; host_status reads nothing from Codex).
     delegation_availability::annotate_threads(&mut s["threads"], &home.host.delegation_readings());
+    // The effort in force for each current conversation (Host::efforts_in_force), shown by its effort control.
+    annotate_efforts_in_force(&mut s["threads"], &home.host.efforts_in_force());
     // ROLE §6.2 LA-4: the limits shown where a role is chosen, as handed.
     s["roleLimits"] = conversation_roles::limit_account(root.as_deref().ok());
     let generation = s["generation"].clone();
@@ -1520,7 +1535,19 @@ fn local_model_settings_save(window: tauri::Window, state: State<'_, AppState>, 
 fn host_start(state: State<'_, AppState>, mode_home_class:String) -> Result<Value, String> {
     if home_class(&mode_home_class)?==home_resources::HomeClass::LocalProvider { local_route_refused()?; }
     let home = state.homes.lock().unwrap().entry(home_class(&mode_home_class)?)?;
-    start_home(&state, &home, "the person")
+    let started = start_home(&state, &home, "the person");
+    read_account_after_start(&home, &started);
+    started
+}
+/// After a start that reached ready in the account home, the App's own reads at ready: the account, then the
+/// stored history list (runtime_session::read_at_ready), off the command's thread so the start answers at once.
+fn read_account_after_start(home: &Arc<runtime_session::HomeSession>, started: &Result<Value, String>) {
+    if !runtime_session::reads_account_at_ready(home, started) { return; }
+    let (home, started) = (Arc::clone(home), started.clone());
+    if let Err(error) = std::thread::Builder::new().name("chirality-account-read".into())
+        .spawn(move || runtime_session::read_at_ready(&home, &started)) {
+        eprintln!("chirality: the account and history list were not read after Codex started: {error}");
+    }
 }
 /// Start Codex for one home (Start Codex, and Restart Codex after its stop).
 fn start_home(state: &AppState, home: &runtime_session::HomeSession, actor: &str) -> Result<Value, String> {
@@ -1560,7 +1587,7 @@ fn codex_stop(window: tauri::Window, state: State<'_, AppState>, generation: Val
             Ok(chosen) => chosen,
             Err(cause) => { refused = Some(cause); false }
         },
-        || start_home(&state, &home, "the person: Restart Codex"));
+        || { let started = start_home(&state, &home, "the person: Restart Codex"); read_account_after_start(&home, &started); started });
     codex_stop::finish(&state.codex_stops, title, refused, result)
 }
 
@@ -1706,6 +1733,12 @@ fn request_quit(app: tauri::AppHandle) {
         }
     });
 }
+/// Setup's end offers Quit beside its sentence (the reopen loads the saved setup): the same
+/// question and settlement as the menu's Quit, asked by the host; the web view only asks for it.
+#[tauri::command]
+fn quit_app(app: tauri::AppHandle) {
+    request_quit(app);
+}
 /// C-24 (DEL-01-04 §4.8): the count of supplier requests waiting for the
 /// person, on the App's Dock icon, whether or not the window is shown.
 fn show_waiting_indicator(app: &tauri::AppHandle, last: &mut Option<i64>, menu: &mut native_waiting::MenuObserver) {
@@ -1778,13 +1811,14 @@ fn thread_start(
     model: String,
     model_provider: String,
     entry_id: String,
+    entry_source: String,
     mode_home_class: String,
     role: Option<role_supply::Role>,
     preselected: Option<bool>,
     continue_as: Option<String>,
     generation: Value,
 ) -> Result<Value, String> {
-    start_conversation(&app, &state, &generation, model, model_provider, entry_id, &mode_home_class, role, continue_as, preselected)
+    start_conversation(&app, &state, &generation, model, model_provider, entry_id, &entry_source, access::StartKind::Ordinary, &mode_home_class, role, continue_as, preselected)
 }
 /// A new conversation as `thread_start` starts it (ROLE T-2): also the start of
 /// a clean trial's conversation (WR FT-4), which passes no `continue_as`.
@@ -1806,6 +1840,8 @@ fn start_conversation(
     model: String,
     model_provider: String,
     entry_id: String,
+    entry_source: &str,
+    native_start_kind: access::StartKind,
     mode_home_class: &str,
     role: Option<role_supply::Role>,
     continue_as: Option<String>,
@@ -1825,7 +1861,7 @@ fn start_conversation(
     let mut dispatch_invoked=false;
     let mut resolved_continued_from=None;
     let result=match &home {
-        Ok(bound)=>start_conversation_inner(app,state,bound.clone(),&generation,model,model_provider,entry_id,role,continue_as,preselected,&supply_ref,&mut dispatch_invoked,&mut resolved_continued_from),
+        Ok(bound)=>start_conversation_inner(app,state,bound.clone(),&generation,model,model_provider,entry_id,entry_source,native_start_kind,role,continue_as,preselected,&supply_ref,&mut dispatch_invoked,&mut resolved_continued_from),
         Err(error)=>Err(error.clone()),
     };
     if let Err(reason)=&result {
@@ -1845,13 +1881,18 @@ pub(crate) fn role_supply_refusal(reason: &str, publication: &impl std::fmt::Dis
     if hosting::reading_gate::carries_reading_sentence(reason) { reason.to_owned() } else { format!("{reason}; role supply observation: {publication}") }
 }
 #[allow(clippy::too_many_arguments)]
-fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runtime_session::HomeSession>,generation:&Value,model:String,model_provider:String,entry_id:String,role:Option<role_supply::Role>,continue_as:Option<String>,preselected:Option<bool>,supply_ref:&str,dispatch_invoked:&mut bool,resolved_continued_from:&mut Option<Value>)->Result<Value,String>{
+fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runtime_session::HomeSession>,generation:&Value,model:String,model_provider:String,entry_id:String,entry_source:&str,native_start_kind:access::StartKind,role:Option<role_supply::Role>,continue_as:Option<String>,preselected:Option<bool>,supply_ref:&str,dispatch_invoked:&mut bool,resolved_continued_from:&mut Option<Value>)->Result<Value,String>{
     invalidate_endpoint_edits(state)?;
     home.history.lock().unwrap().configure_role_log_source(state.role_log.clone());
     // NIR CA-1/CA-3, ROLE CA-3: a "Continue as" start is an ordinary new start
     // with its own role composition; it only records its relation to the source.
     let (continued_from, continued_source) = conversation_roles::continuation_for_start_observed(&state.continue_as, &home, continue_as.as_deref(), role)?;
     *resolved_continued_from=continued_from.clone();
+    // Only the successfully validated continuation relation makes a thread_start a Continue-as.
+    // Clean trials are identified by their separate native entrypoint, never by the caller's origin string.
+    let start_kind = if native_start_kind == access::StartKind::Ordinary && continued_from.is_some() {
+        access::StartKind::ContinueAs
+    } else { native_start_kind };
     let cwd = home.host_config
         .as_ref()
         .map_err(Clone::clone)?
@@ -1895,7 +1936,9 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runti
     let attempt_id = util::opaque_id("conversation:")?;
     let frozen_project = state.project_context.clone();
     let mut selection = access::ConversationSelection::new_explicit(&attempt_id, frozen_project.reference())?;
-    selection.choose(&entry_id, &model_provider, &model, false)?;
+    // The caller records what its control did. A sole configured entry alone does not establish that the
+    // person was never asked: Continue-as and clean trials still have an explicit route press.
+    selection.choose_start_entry(&entry_id, &model_provider, &model, entry_source, only_access_entry(home.class()), start_kind)?;
     selection.start_params(&generation, home.class().as_str(), false)?;
     let recovery_home = selection.recovery_home();
     // A source change during preparation is refused before the claim publishes
@@ -1962,6 +2005,7 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runti
         if let Some(thread) = response["result"]["thread"]["id"].as_str() {
             if let Some(home_kind) = recovery_home { home.thread_home_kinds.lock().unwrap().insert(serde_json::to_string(&json!([generation,thread])).unwrap(),home_kind); }
             let _ = home.host.observe_conversation_project(&generation,thread,recovery_home,&frozen_project);
+            home.host.note_requested_entry_source(&generation, thread, entry_source);
         }
     }
     result
@@ -2040,18 +2084,20 @@ fn ordinary_send_text_effort(home: &runtime_session::HomeSession, workflows: &st
         |generation, thread, text| home.host.turn_start_ordinary_text_effort(generation, thread, text, mode, model, effort))
 }
 
-/// DEL-01-05 model discovery for a new conversation, at the person's press:
+/// DEL-01-05 model discovery for a new conversation, read by the App when New conversation opens with its only
+/// connection in use, and at the person's press (Read the list again); for an existing conversation, its effort
+/// choices, read once for it while its effort control is open:
 /// only the currently selected source of the named mode, re-checked after the
 /// reads; a changed source refuses rather than answering for another.
 #[tauri::command(async)]
-fn read_available_models(state: State<'_, AppState>, generation: Value, mode_home_class: String, thread_id: Option<String>) -> Result<Value, String> {
+fn read_available_models(state: State<'_, AppState>, generation: Value, mode_home_class: String, thread_id: Option<String>, at_person_press: Option<bool>) -> Result<Value, String> {
     let refused = || "Model list unavailable: the selected Codex source changed; nothing was chosen".to_owned();
     let home = state.homes.lock().unwrap().active();
     if home.class()==home_resources::HomeClass::LocalProvider { return Err("The local home uses only the explicitly selected oMLX model; no remote catalogue discovery is offered".into()); }
     let class = match mode_home_class.as_str() { "account" => home_resources::HomeClass::Account, "api-key" => home_resources::HomeClass::ApiKey, _ => return Err(refused()) };
     if home.class() != class || home.host.snapshot()["generation"] != generation { return Err(refused()); }
     state.validate_home_source(&home).map_err(|_| refused())?;
-    let mut view = home.host.model_catalog_read_for_conversation(&generation, thread_id.as_deref());
+    let mut view = home.host.model_catalog_read_for_conversation(&generation, thread_id.as_deref(), at_person_press.unwrap_or(false));
     state.validate_home_source(&home).map_err(|_| refused())?;
     if !Arc::ptr_eq(&state.homes.lock().unwrap().active(), &home) || home.host.snapshot()["generation"] != generation { return Err(refused()); }
     view["modeHomeClass"] = json!(mode_home_class);
@@ -2521,12 +2567,12 @@ fn workflow_trial_send(state:State<'_,AppState>,reference:String,generation:Valu
 /// then its first turn carries the trial text first and the person's text.
 #[tauri::command(async)]
 #[allow(clippy::too_many_arguments)]
-fn workflow_trial_start_clean(app:tauri::AppHandle,state:State<'_,AppState>,reference:String,model:String,model_provider:String,entry_id:String,mode_home_class:String,role:Option<role_supply::Role>,preselected:Option<bool>,person_text:String,generation:Value)->Result<Value,SendRefusal>{
+fn workflow_trial_start_clean(app:tauri::AppHandle,state:State<'_,AppState>,reference:String,model:String,model_provider:String,entry_id:String,entry_source:String,mode_home_class:String,role:Option<role_supply::Role>,preselected:Option<bool>,person_text:String,generation:Value)->Result<Value,SendRefusal>{
     let class=home_class(&mode_home_class).map_err(SendRefusal::kept)?;
     // The source is bound before the trial's begin step: a mismatch keeps the pre-fill.
     runtime_session::trial_flows::start_bound_clean_trial(&state.workflows,&state.homes,class,&generation,&reference,
         // As an ordinary start: the record says whether the role was the preselection or the person's choice.
-        |_|start_conversation(&app,&state,&generation,model,model_provider,entry_id,&mode_home_class,role,None,preselected),
+        |_|start_conversation(&app,&state,&generation,model,model_provider,entry_id,&entry_source,access::StartKind::CleanTrial,&mode_home_class,role,None,preselected),
         |home,started,thread|runtime_session::trial_flows::send_trial(&state.workflows,home,&reference,started,thread,&person_text))
 }
 fn trial_home(state:&AppState,reference:&str)->Result<Arc<runtime_session::HomeSession>,String>{
@@ -3495,8 +3541,12 @@ pub fn run() {
                 let h = Arc::clone(&host);
                 let recovery = Arc::clone(&home.recovery_startup);
                 let read = launch_read.clone();
+                let account = Arc::clone(&home);
                 std::thread::spawn(move || {
-                    let _ = launch_start_and_read(&h, &recovery, data.as_deref().map_err(String::as_str), host_config.as_ref().map_err(String::as_str), &desktop, &read);
+                    let started = launch_start_and_read(&h, &recovery, data.as_deref().map_err(String::as_str), host_config.as_ref().map_err(String::as_str), &desktop, &read);
+                    // Codex ready at launch: the App reads whether someone is signed in, and the stored history
+                    // list, as after a restart.
+                    if let Some(started) = started { runtime_session::read_at_ready(&account, &started); }
                 });
             }
             Ok(())
@@ -3504,7 +3554,7 @@ pub fn run() {
         // DEF-1: closing or reloading a window is not a stop (HOSTING §4.5); no window
         // event touches the child.
         .invoke_handler(tauri::generate_handler![
-            desktop_setup_pick, desktop_setup_preview, desktop_setup_new_settings_preview, desktop_setup_project_preview, desktop_setup_prepare,
+            desktop_setup_pick, desktop_setup_preview, desktop_setup_new_settings_preview, desktop_setup_project_preview, desktop_setup_prepare, quit_app,
             file_act_select, file_act_open_arrival, file_act_confirm, file_act_continue, file_act_dismiss, file_act_read, file_act_observe_lapses, file_act_retry_lapses,
             read_recovery_custody,
             read_recovery_request_history,
