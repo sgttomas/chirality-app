@@ -2335,192 +2335,6 @@ console.log(JSON.stringify(await walk.run(given)));
         self.assertTrue(parts['own_sheet_accepted'])
 
 
-class TheRouteRecovery(unittest.TestCase):
-    """route.py: recovery signals only a process shown, at that moment, to be the operator's own descendant recorded in
-    the session, or a window service the session caused to start (App Agent 0's ruling, 14 November 2026). Every read
-    and the signal are invented here; nothing is signalled for real."""
-
-    RUNTIME, HOST = 500, 400
-    LOOK = '2026-11-14T12:00:00Z'
-
-    def setUp(self):
-        spec = importlib.util.spec_from_file_location('route_under_test', OPERATED / 'route.py')
-        self.route = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(self.route)
-        self.folder = Path(tempfile.mkdtemp())
-        self.addCleanup(shutil.rmtree, self.folder, True)
-        self.look_epoch = self.route.utc_epoch(self.LOOK)
-
-    def entry(self, pid, ppid, started, ucomm, executable):
-        return {'pid': pid, 'ppid': ppid, 'started_utc': '', 'started_epoch': started, 'ucomm': ucomm, 'executable': executable}
-
-    def app_server(self, pid, ppid, started):
-        return self.entry(pid, ppid, started, 'codex', self.route.APP_SERVER_UNDER + 'Contents/MacOS/codex')
-
-    def service(self, pid, started, path=None):
-        return self.entry(pid, 1, started, 'SkyComputerUseSe', path or self.route.proc_read.SERVICE_PATH)
-
-    def write(self, name, value):
-        (self.folder / name).write_text(json.dumps(value))
-
-    def setup(self, now, recorded=(), look_services=(), with_look=True):
-        """now: the processes as read at recovery, by number. recorded: app-servers recorded in the session."""
-        runtime = self.entry(self.RUNTIME, self.HOST, self.look_epoch - 100, 'node', self.route.RUNTIME_EXE)
-        host = self.entry(self.HOST, 300, self.look_epoch - 200, 'node_repl', self.route.HOST_EXE)
-        self.write('runtime.json', {'pid': self.RUNTIME, 'ppid': self.HOST})
-        self.write('route-identities.json', {'runtime': runtime, 'host': host})
-        if with_look:
-            self.write('route-look.json', {'at': self.LOOK, 'window_services': list(look_services)})
-        self.write('route-end.json', {'app_servers': list(recorded)})
-        processes = {self.RUNTIME: runtime, self.HOST: host, 300: self.entry(300, 1, 0, 'codex', '/invented/provider'), **now}
-        sent = []
-
-        class Reads:
-            @staticmethod
-            def parents():
-                return {pid: entry['ppid'] for pid, entry in processes.items()}
-
-            @staticmethod
-            def details(pid):
-                return processes.get(pid)
-
-            @staticmethod
-            def window_service():
-                return [entry for entry in processes.values() if entry['ucomm'] == 'SkyComputerUseSe'
-                        and entry['executable'] == self.route.proc_read.SERVICE_PATH]
-
-        def send(pid, sig):
-            sent.append(pid)
-            processes.pop(pid, None)
-        report = self.route.recover(str(self.folder), reads=Reads, send=send, sleep=lambda s: None)
-        return sent, report
-
-    def recorded(self, label, processes):
-        class Reads:
-            @staticmethod
-            def parents():
-                return {pid: entry['ppid'] for pid, entry in processes.items()}
-
-            @staticmethod
-            def details(pid):
-                return processes.get(pid)
-
-            @staticmethod
-            def window_service():
-                return [entry for entry in processes.values() if entry['ucomm'] == 'SkyComputerUseSe']
-        return self.route.record(str(self.folder), label, reads=Reads)
-
-    def test_record_identifies_the_runtime_and_refuses_a_change_or_a_route_process_at_the_look(self):
-        runtime = self.entry(self.RUNTIME, self.HOST, 100, 'node', self.route.RUNTIME_EXE)
-        host = self.entry(self.HOST, 300, 50, 'node_repl', self.route.HOST_EXE)
-        self.write('runtime.json', {'pid': self.RUNTIME, 'ppid': self.HOST})
-        base = {self.RUNTIME: runtime, self.HOST: host}
-        self.assertEqual(self.recorded('identities', base)[0], 0)
-        self.assertEqual(self.recorded('look', base)[0], 0)
-        with self.subTest('a runtime that is not ChatGPT\'s node'):
-            other = {**base, self.RUNTIME: {**runtime, 'executable': '/invented/node'}}
-            self.assertEqual(self.recorded('identities', other)[0], 3)
-        self.assertEqual(self.recorded('identities', base)[0], 0)
-        for name, change in (('the runtime replaced', {self.RUNTIME: {**runtime, 'started_epoch': 101}}),
-                             ('an app-server below the runtime', {601: self.app_server(601, self.RUNTIME, 200)}),
-                             ('a window service running', {700: self.service(700, 200)})):
-            with self.subTest(name):
-                self.assertEqual(self.recorded('look', {**base, **change})[0], 3)
-        with self.subTest('no runtime record'):
-            (self.folder / 'runtime.json').unlink()
-            self.assertEqual(self.recorded('identities', base)[0], 3)
-
-    def test_the_walks_app_server_recorded_in_the_session_is_ended(self):
-        server = self.app_server(601, self.RUNTIME, self.look_epoch + 5)
-        sent, report = self.setup({601: server}, recorded=[server])
-        self.assertEqual(sent, [601])
-        self.assertTrue(report['ended'][0]['confirmed_gone'])
-
-    def test_a_process_with_the_right_name_and_path_that_is_not_a_descendant_is_not_signalled(self):
-        stranger = self.app_server(602, 300, self.look_epoch + 5)  # the provider's child, not the runtime's
-        sent, report = self.setup({602: stranger}, recorded=[stranger])
-        self.assertEqual(sent, [])
-
-    def test_a_descendant_whose_start_time_differs_from_the_record_is_not_signalled(self):
-        now = self.app_server(603, self.RUNTIME, self.look_epoch + 9)
-        recorded = self.app_server(603, self.RUNTIME, self.look_epoch + 5)  # the same number, another start: another process
-        sent, report = self.setup({603: now}, recorded=[recorded])
-        self.assertEqual(sent, [])
-        self.assertIn('not recorded during the session', report['not_ended'][0]['why'])
-
-    def test_a_descendant_not_recorded_in_the_session_or_older_than_the_look_is_not_signalled(self):
-        unrecorded = self.app_server(604, self.RUNTIME, self.look_epoch + 5)
-        older = self.app_server(605, self.RUNTIME, self.look_epoch - 5)
-        sent, _ = self.setup({604: unrecorded, 605: older}, recorded=[older])
-        self.assertEqual(sent, [])
-
-    def test_a_descendant_that_is_not_the_app_server_by_all_three_is_not_signalled(self):
-        named = self.entry(606, self.RUNTIME, self.look_epoch + 5, 'codex', '/invented/elsewhere/codex')
-        pathed = self.entry(607, self.RUNTIME, self.look_epoch + 5, 'other', self.route.APP_SERVER_UNDER + 'Contents/MacOS/codex')
-        sent, _ = self.setup({606: named, 607: pathed}, recorded=[named, pathed])
-        self.assertEqual(sent, [])
-
-    def test_the_host_and_the_runtime_are_never_signalled(self):
-        # Even recorded as if they were app-servers in the session, and even if the host appeared below the runtime.
-        host_as_server = self.app_server(self.HOST, self.RUNTIME, self.look_epoch + 5)
-        sent, report = self.setup({self.HOST: host_as_server}, recorded=[host_as_server])
-        self.assertNotIn(self.HOST, sent)
-        self.assertNotIn(self.RUNTIME, sent)
-
-    def test_nothing_below_a_runtime_that_is_not_the_one_identified_is_signalled(self):
-        server = self.app_server(608, self.RUNTIME, self.look_epoch + 5)
-        runtime_replaced = self.entry(self.RUNTIME, self.HOST, self.look_epoch + 1, 'node', self.route.RUNTIME_EXE)
-        sent, report = self.setup({self.RUNTIME: runtime_replaced, 608: server}, recorded=[server])
-        self.assertEqual(sent, [])
-        self.assertTrue(any('not the same process as identified' in str(item) for item in report['left']))
-
-    def test_a_window_service_the_session_caused_to_start_is_ended(self):
-        sent, _ = self.setup({700: self.service(700, self.look_epoch + 3)})
-        self.assertEqual(sent, [700])
-
-    def test_a_window_service_present_before_the_session_is_never_ended(self):
-        before = self.service(701, self.look_epoch - 30)
-        for name, look_services, with_look in (('the look found one', [before], True), ('no look recorded', [], False)):
-            with self.subTest(name):
-                sent, report = self.setup({701: before}, look_services=look_services, with_look=with_look)
-                self.assertEqual(sent, [])
-                self.assertTrue(report['left'])
-        # Started before the look, though the look recorded none (the look missed it): left, not ended.
-        sent, report = self.setup({702: self.service(702, self.look_epoch - 1)})
-        self.assertEqual(sent, [])
-
-    def test_when_the_look_found_a_window_service_none_is_ended_even_one_started_after_the_look(self):
-        # The look recorded one running, so recovery cannot show that the session caused any service to start: a
-        # service started after the look (the earlier one gone, another in its place) is left, not ended.
-        earlier = self.service(704, self.look_epoch - 30)
-        sent, report = self.setup({705: self.service(705, self.look_epoch + 3)}, look_services=[earlier])
-        self.assertEqual(sent, [])
-        self.assertTrue(report['left'])
-
-    def test_both_descent_checks_hold_on_their_own(self):
-        # The descent is checked when the candidates are listed (descendants) and again immediately before the signal
-        # (descends); either alone refuses a non-descendant. Each is weakened in turn here.
-        stranger = self.app_server(609, 300, self.look_epoch + 5)
-        real_descends, real_descendants = self.route.descends, self.route.descendants
-        weakenings = {
-            'the listing': {'descendants': lambda root, table: sorted(table)},
-            'the check before the signal': {'descends': lambda pid, root, table: True,
-                                            'descendants': lambda root, table: sorted(p for p in table if real_descends(p, root, table))}}
-        for name, replaced in weakenings.items():
-            with self.subTest(name):
-                for attribute, value in replaced.items():
-                    setattr(self.route, attribute, value)
-                try:
-                    sent, _ = self.setup({609: stranger}, recorded=[stranger])
-                finally:
-                    self.route.descends, self.route.descendants = real_descends, real_descendants
-                self.assertEqual(sent, [])
-
-    def test_a_window_service_candidate_by_name_alone_is_not_signalled(self):
-        sent, _ = self.setup({703: self.service(703, self.look_epoch + 3, path='/invented/SkyComputerUseService')})
-        self.assertEqual(sent, [])
-
-
 class TheSessionDomainNames(unittest.TestCase):
     """session_env.py keeps and prints names and states only; no value reaches its output or its reasons, including
     when the domain's output cannot be parsed or decoded (App Agent 0's conditions). Invented values only."""
@@ -2560,6 +2374,26 @@ class TheSessionDomainNames(unittest.TestCase):
                 for value in self.VALUES:
                     self.assertNotIn(value, said)
 
+    def test_any_failure_to_read_the_bundles_plist_is_reported_in_fixed_words(self):
+        cases = {'a root that is not a dictionary': b'<?xml version="1.0"?><plist version="1.0"><array><string>invented-token-abc123</string></array></plist>',
+                 'an undefined entity': b'<?xml version="1.0"?><plist version="1.0"><dict><key>&invented;</key></dict></plist>',
+                 'not a plist': b'invented-token-abc123 /invented/secret/value',
+                 'LSEnvironment not a dictionary': b'<?xml version="1.0"?><plist version="1.0"><dict><key>LSEnvironment</key><string>/invented/secret/value</string></dict></plist>'}
+        for name, body in cases.items():
+            with self.subTest(name), tempfile.TemporaryDirectory() as folder:
+                app = Path(folder) / 'x.app'
+                (app / 'Contents').mkdir(parents=True)
+                (app / 'Contents/Info.plist').write_bytes(body)
+                out, err = io.StringIO(), io.StringIO()
+                with mock.patch.object(self.env, 'on_macos', return_value=False), contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                    code = self.env.main(['session_env.py', str(app)])
+                self.assertEqual(code, 2)
+                self.assertEqual(err.getvalue(), '')
+                for state in json.loads(out.getvalue()).values():
+                    self.assertTrue(state.startswith('could not be established'), state)
+                for value in self.VALUES + ('invented;', 'ExpatError', 'AttributeError'):
+                    self.assertNotIn(value, out.getvalue())
+
     def test_it_reads_the_domain_never_a_process(self):
         source = (OPERATED / 'session_env.py').read_text()
         self.assertIn("['/bin/launchctl', 'print', f'gui/{os.getuid()}']", source)
@@ -2573,6 +2407,55 @@ class TheMethodReadsNoCommandLine(unittest.TestCase):
     The 13 November record in the README is history and keeps its words; this looks at everything before it."""
 
     FORBIDDEN = (r'command=', r'(?<!u)comm=', r'args=', r'lsof -t', r'pgrep -f', r'pgrep -x', r"'-f'", r'KERN_PROCARGS', r'\beww\b')
+
+    PS_FIELDS = {'pid', 'ppid', 'lstart', 'stat', 'ucomm'}
+
+    def ps_names_its_output(self, words):
+        """A ps names its output with -o (or -axo), and every field named is one of PS_FIELDS: a ps without -o prints
+        the command line by default."""
+        lists = [words[i + 1] for i, word in enumerate(words[:-1]) if word in ('-o', '-axo')]
+        return bool(lists) and all(field.rstrip('=') in self.PS_FIELDS for each in lists for field in each.split(','))
+
+    # A ps in code: a list whose head is '/bin/ps', 'ps' (either quote) or PS. Any such literal elsewhere is a form
+    # this cannot read, and fails. In prose: a ps in backticks, at the head of a code line, or followed by a flag or a
+    # placeholder is a command; a bare one names no output and fails.
+    PS_CALL = re.compile(r"""\[\s*(?:(['"])(?:/bin/)?ps\1|PS)\s*,?([^\]]*)\]""")
+    PS_LITERAL = re.compile(r"""(?<!PS = )(['"])(?:/bin/)?ps\1|(?<![\w.])PS\b(?!\s*=[^=])""")
+    PS_PROSE = re.compile(r"""(?<![\w/'".-])ps\b(?![\w.'"/=-])([^`);\n]*)""")
+
+    def ps_commands(self, text):
+        """Each ps command in a source, as its words after ps, and each ps literal this cannot read, as None."""
+        spans = [m.span() for m in self.PS_CALL.finditer(text)]
+        inside = lambda at: any(start <= at < end for start, end in spans)
+        found = [[word for _, word in re.findall(r"""(['"])(.*?)\1""", m.group(2))] for m in self.PS_CALL.finditer(text)]
+        found += [None for m in self.PS_LITERAL.finditer(text) if not inside(m.start())]
+        for m in self.PS_PROSE.finditer(text):
+            words, before = m.group(1).split(), text[:m.start()].rsplit('\n', 1)[-1]
+            if not inside(m.start()) and (before.endswith('`') or not before.strip() or words[:1] and words[0][:1] in ('-', '<')):
+                found.append(words)
+        return found
+
+    def test_every_ps_names_only_its_allowed_fields(self):
+        for words in (['-p', '<number>'], ['-o', 'pid=,command=', '-p', '1'], ['-axo', 'pid=,comm='], ['-p', '1', '-o'], []):
+            with self.subTest(refused=words):
+                self.assertFalse(self.ps_names_its_output(words))
+        refused = {'double quotes': 'x = ["/bin/ps", "-p", "601"]', 'a bare ps in backticks': 'Run `ps` to see it.',
+                   'a bare ps in a code block': '```sh\nps\n```', 'ps by name in a list': "run(['ps', '-p', '1'])",
+                   'a ps literal outside a list': "cmd = '/bin/ps'", 'a ps -p in prose': 'check with `ps -p <number>`'}
+        for name, text in refused.items():
+            with self.subTest(refused=name):
+                commands = self.ps_commands(text)
+                self.assertTrue(commands and not all(c is not None and self.ps_names_its_output(c) for c in commands), commands)
+        readme = (OPERATED / 'README.md').read_text()
+        sources = {'README.md (the method)': readme[:readme.index('## What was observed on 13 November 2026')],
+                   **{path.name: path.read_text() for path in sorted(OPERATED.glob('*.py')) + sorted(OPERATED.glob('*.mjs'))}}
+        found = 0
+        for name, text in sources.items():
+            for words in self.ps_commands(text):
+                found += 1
+                with self.subTest(source=name, ps=words):
+                    self.assertTrue(words is not None and self.ps_names_its_output(words))
+        self.assertGreater(found, 10)
 
     def test_no_tool_or_instruction_asks_for_one(self):
         readme = (OPERATED / 'README.md').read_text()

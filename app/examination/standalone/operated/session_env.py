@@ -70,7 +70,10 @@ def read_domain(run=None):
 
 def bundle_names(bundle):
     with open(os.path.join(bundle, 'Contents', 'Info.plist'), 'rb') as stream:
-        declared = plistlib.load(stream).get('LSEnvironment', {})
+        info = plistlib.load(stream)
+    if not isinstance(info, dict):
+        raise ValueError('the Info.plist is not a dictionary')
+    declared = info.get('LSEnvironment', {})
     if not isinstance(declared, dict):
         raise ValueError('LSEnvironment is not a dictionary')
     return set(declared)
@@ -109,8 +112,8 @@ def main(argv):
         session, session_reason = read_domain()
     try:
         bundle = bundle_names(argv[1])
-    except (OSError, ValueError, plistlib.InvalidFileException) as error:
-        bundle_reason = f"the bundle's Info.plist could not be read ({type(error).__name__})"
+    except Exception:  # noqa: BLE001  any failure, in fixed words: nothing of the file or the error is shown
+        bundle_reason = "the bundle's Info.plist could not be read"
     result = states(session, session_reason, bundle, bundle_reason)
     print(json.dumps(result, indent=1))
     return status(result)
