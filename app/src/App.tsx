@@ -96,6 +96,17 @@ export const historyReadAtReady = (host: Json): "reading" | "read-to-end" | "sto
   const read = host?.nativeHistory?.readAtReady;
   return read && sameActivityGeneration(read.generation, host?.generation) && ["reading", "read-to-end", "stopped"].includes(read.state) ? read.state : null;
 };
+/** How long after the renderer first sees a Codex generation ready the App may still make its first-view move at launch
+ * (to a new conversation, or to Settings & tools at the sign-in). A reading that arrives later is still shown, and the
+ * history it read still fills History, but it moves nothing: a person who has started reading another view does not
+ * have it change under them.
+ *
+ * Basis: a new person's history read is one page, with no cursor, and contacts no host (the AccountRead supplier row,
+ * app/supplier_checks/level/README.md: thread/list contacts nothing), so it answers as soon as Codex replies. Before it,
+ * the account read makes one or two requests to OpenAI when a sign-in is kept, and none when not. 10 s covers those
+ * with a margin, so it takes nothing from the case the move exists for. It is a product bound, not a measured one; the
+ * reads' own waits (20 s an answer, up to 100 history pages) are longer and are not shortened by it. */
+export const FIRST_VIEW_MOVE_BOUND_MS = 10_000;
 
 type ForkScope = { generation: Json; sourceThread: string; modeHomeClass: string; choiceRevision: number; homeEpoch: number; startRevision: number; sequence: number };
 type ForkNavigation = ForkScope & { threadId: string; requestRef: string };
@@ -2699,14 +2710,26 @@ export function App() {
   // otherwise, while the read is under way, or when Codex didn't say, Run a workflow stays. Signed in, the App's own
   // history list read at ready is waited for, and only its reaching the end with none listed counts as no
   // conversation: one that stopped short, or never ran, establishes nothing. Never after the person has navigated
-  // (including while the history list is still being read), and never over unsent work or a waiting request.
+  // (including while the history list is still being read), and never over unsent work or a waiting request. Only the
+  // move waits for the reads: nothing in the App is disabled or covered while they are under way. A reading that
+  // arrives after FIRST_VIEW_MOVE_BOUND_MS moves nothing.
   const historyAtReady = historyReadAtReady(host);
+  // When this renderer first saw each Codex generation ready (Date.now at that observation): the first-view move is
+  // made only within FIRST_VIEW_MOVE_BOUND_MS of it. Recorded before the move below is considered.
+  const readySince = useRef(new Map<string, number>());
+  const readyKey = host?.state === "ready" && !host.generationClosed && host.generation ? JSON.stringify(host.generation) : null;
+  useEffect(() => {
+    if (readyKey && !readySince.current.has(readyKey)) readySince.current.set(readyKey, Date.now());
+  }, [readyKey]);
   useEffect(() => {
     if (launchViewDecided.current || !host || setupRequired || firstRead !== "read") return;
     if (navigated.current) { launchViewDecided.current = true; return; }
     if (host.state !== "ready" || host.generationClosed || signInReading === "unread" || signInReading === "reading") return;
     if (signInReading === "chatgpt-account" && historyAtReady === "reading") return;
     launchViewDecided.current = true;
+    // A reading that settles after the bound is shown where it belongs, and moves nothing.
+    const since = readyKey ? readySince.current.get(readyKey) : undefined;
+    if (since === undefined || Date.now() - since > FIRST_VIEW_MOVE_BOUND_MS) return;
     if (holdsUnsent() || requestWaiting) return;
     if (signInReading === "no-account") autoMove("settings", "workspace-sign-in");
     else if (signInReading === "chatgpt-account" && historyAtReady !== "stopped" && noConversationInHistory(host)) autoMove("conversation", "workspace-start");

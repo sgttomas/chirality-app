@@ -264,3 +264,85 @@ test('signed in, the first view waits for the App\'s own history list read at re
   await mountedApp(earlier, async ui => { assert.equal(currentView(ui.container), 'Conversation', 'only the running Codex\'s read is waited for'); });
 });
 
+
+// Every control in the visible view, as the person meets it: what it is, what it says, and whether it can be used.
+const controlsShown = c => c.querySelectorAll(e => ['a', 'button', 'input', 'select', 'textarea', 'summary'].includes(e.localName) && visible(e))
+  .map(e => [e.localName, e.getAttribute('id') ?? '', e.textContent.trim(), !!props(e)?.disabled]);
+const withoutReadAtReady = host => { const {readAtReady, ...history} = host.nativeHistory; return {...host, nativeHistory: history}; };
+
+test('the App is fully usable while the history list read is under way: only the automatic move waits for it', async () => {
+  const views = ['Run a workflow', 'Make a workflow', 'Conversation', 'History', 'Settings & tools'];
+  // What each view offers, view by view, with the read under way and never returning, and with no read at all.
+  const tour = async host => {
+    const seen = {};
+    await mountedApp(host, async ui => {
+      seen.first = currentView(ui.container);
+      for (const view of views) {
+        await ui.navigate(view);
+        assert.equal(currentView(ui.container), view, `the person can go to ${view} while the read is under way`);
+        seen[view] = controlsShown(ui.container);
+      }
+      seen.calls = ui.calls.map(c => c.command).filter(command => !['host_status', 'decision_view', 'native_confirmation_content'].includes(command));
+    });
+    return seen;
+  };
+  // Signed in, the account still being read, and no account: in each, the history read is under way (the host marks it
+  // before the account is read) and it never returns.
+  for (const [name, account] of [['signed in', signedIn()], ['account read under way', underWay()], ['no account', noAccount()]]) {
+    const stalled = historyAtReady(account, 'reading');
+    const during = await tour(stalled), without = await tour(withoutReadAtReady(stalled));
+    assert.equal(during.first, without.first, `${name}: the first view is the one it would be without the read`);
+    for (const view of views) assert.deepEqual(during[view], without[view], `${name}: ${view} offers the same controls, none disabled or covered by the read`);
+    assert.deepEqual(during.calls, without.calls, `${name}: the read changes nothing the App asks of the host`);
+  }
+  // Named directly: the workflow controls, New conversation's controls, History's own read and the sign-in.
+  await mountedApp(historyAtReady(signedIn(), 'reading'), async ui => {
+    assert.equal(currentView(ui.container), 'Run a workflow', 'the move waits; nothing else does');
+    const runControls = controlsShown(ui.container).filter(([tag]) => tag !== 'a');
+    assert.ok(runControls.length > 0, 'Run a workflow shows its controls');
+    await ui.navigate('Conversation');
+    assert.equal(disclosureOpen(byId(ui.container, 'workspace-start')), true, 'New conversation is open, as without the read');
+    await ui.navigate('History');
+    const read = elements(ui.container, 'button').find(b => b.textContent === 'Read stored conversations' && visible(b));
+    assert.ok(read, 'History offers its own read'); assert.equal(props(read).disabled, false, 'History\'s own read is not disabled by the App\'s');
+  });
+  await mountedApp(historyAtReady(noAccount(), 'reading'), async ui => {
+    const signIn = byId(ui.container, 'workspace-sign-in');
+    assert.ok(signIn && visible(signIn), 'the sign-in is offered'); assert.equal(props(signIn).disabled, false, 'the sign-in is not disabled by the read');
+  });
+});
+
+test('the automatic first-view move has its own bound of 10 s from the renderer first seeing Codex ready: a later reading is shown and moves nothing', async () => {
+  const {FIRST_VIEW_MOVE_BOUND_MS} = loadSrc('App');
+  assert.equal(FIRST_VIEW_MOVE_BOUND_MS, 10_000);
+  const realNow = Date.now; let now = 1_000_000; Date.now = () => now;
+  const emptyList = {threads: [], listPage: {data: [], nextCursor: null}};
+  try {
+    // Read to its end, none listed, arriving after the bound: the view stays, and History holds the empty list.
+    await mountedApp(historyAtReady(signedIn(), 'reading'), async ui => {
+      now += FIRST_VIEW_MOVE_BOUND_MS + 1;
+      await ui.observe(historyAtReady(signedIn(), 'read-to-end', emptyList));
+      assert.equal(currentView(ui.container), 'Run a workflow', 'a late reading moves nothing');
+      await ui.navigate('History');
+      assert.match(ui.container.textContent, /No conversation rows are available from the received list\./, 'History holds the empty list the read returned');
+    });
+    // Arriving within the bound: it moves.
+    await mountedApp(historyAtReady(signedIn(), 'reading'), async ui => {
+      now += FIRST_VIEW_MOVE_BOUND_MS - 1;
+      await ui.observe(historyAtReady(signedIn(), 'read-to-end', emptyList));
+      assert.equal(currentView(ui.container), 'Conversation', 'within the bound: a new conversation');
+    });
+    // The no-account move rests on the account read (its own wait is 20 s): a late answer moves nothing.
+    await mountedApp(underWay(), async ui => {
+      now += FIRST_VIEW_MOVE_BOUND_MS + 1;
+      await ui.observe(noAccount());
+      assert.equal(currentView(ui.container), 'Run a workflow', 'a late no-account reading moves nothing');
+      assert.match(ui.container.textContent, /You're not signed in/, 'the reading is still shown');
+    });
+    await mountedApp(underWay(), async ui => {
+      now += FIRST_VIEW_MOVE_BOUND_MS - 1;
+      await ui.observe(noAccount());
+      assert.equal(currentView(ui.container), 'Settings & tools', 'within the bound: the sign-in');
+    });
+  } finally { Date.now = realNow; }
+});
