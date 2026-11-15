@@ -13,8 +13,9 @@ only to the private folder (common.PrivateWriter, never read back). Files it
 returns (CANDIDATE.json, BUILD_REFUSED.json, BUILD_FAILED.json) hold only
 values it constructs or selects and validates. A failure carries a fixed
 reason from common.REASONS. CANDIDATE.json appears only as the last act, by an
-atomic rename after the final check; any failure before that leaves
-INCOMPLETE.txt and BUILD_FAILED.json.
+atomic rename after the final check. After output creation, the failure handler
+attempts to leave an incomplete marker and fixed failure description; I/O failures
+can prevent either. No candidate is published before final verification.
 
 No signing, notarization or keychain tool is run, and no credential, signing
 identity or provisioning profile is an input.
@@ -66,7 +67,7 @@ common.VOCABULARY.update(CHECKS)
 
 def input_path(path):
     """Refuse the private component before a path reaches an input reader."""
-    check(common.PRIVATE_FOLDER not in Path(os.fsdecode(path)).parts
+    check(not any(common.is_private_component(part) for part in Path(os.fsdecode(path)).parts)
           and not common.is_private_path(path), 'BUILD_PRIVATE_INPUT')
     return Path(path)
 
@@ -82,7 +83,7 @@ def preflight_tree(root):
     def visit(fd, path):
         with os.scandir(fd) as listing:
             names = [entry.name for entry in listing]
-        check(common.PRIVATE_FOLDER not in names, 'BUILD_PRIVATE_INPUT')
+        check(not any(common.is_private_component(name) for name in names), 'BUILD_PRIVATE_INPUT')
         for name in names:
             child_path = input_path(path / name)
             info = os.stat(name, dir_fd=fd, follow_symlinks=False)
@@ -274,8 +275,9 @@ def find_publisher_outputs(target):
 
 
 def build(*, out, private=common.PrivateWriter, **kw):
-    """Build and publish a candidate. Any failure after the output folder exists leaves INCOMPLETE.txt and
-    BUILD_FAILED.json and no CANDIDATE.json; a refusal before it exists leaves nothing but the message."""
+    """After output creation, the failure handler attempts to leave an incomplete marker and fixed
+    failure description; I/O failures can prevent either. No candidate is published before final
+    verification. A refusal before output creation leaves nothing but the message."""
     out = Path(os.path.abspath(out))
     stage = {}
     try:

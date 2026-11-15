@@ -225,14 +225,19 @@ def validate_returnable(value, public_teams, where='', argv_allowed=None, in_arg
             or (app_id is not None and app_id.group(1) in public_teams), 'unshaped value in returnable file at ' + where)
 
 
+def is_private_component(name):
+    """Recognize the one named private folder, including case aliases, as a whole component."""
+    return os.fsdecode(name).casefold() == PRIVATE_FOLDER.casefold()
+
+
 def is_private_path(path):
-    """True when any component of the path, as given or resolved, is the private folder's name."""
+    """True for a private whole component (including case aliases), as given or resolved."""
     try:
         text = os.fsdecode(os.fspath(path))
     except TypeError:
         return True
     parts = set(Path(text).parts) | set(Path(os.path.realpath(text)).parts)
-    return PRIVATE_FOLDER in parts
+    return any(is_private_component(part) for part in parts)
 
 
 def refuse_private(path, what):

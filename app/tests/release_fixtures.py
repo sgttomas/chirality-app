@@ -31,7 +31,7 @@ def install_private_folder_guard(folder_name):
     """A convention for this test suite, not an enforcement: in this test process, refuse the common ways
     of looking inside a folder named as the private output folder.
 
-    What it catches, for any path (text or bytes, as given or resolved) with a component of that name:
+    What it catches, for any path (text or bytes, as given or resolved) with a whole component of that name, including case aliases:
     listing (os.listdir, os.scandir, os.walk, pathlib iteration, glob.glob, glob.iglob, Path.glob and
     Path.rglob),
     every os.open other than a create-only write (O_WRONLY with O_CREAT and O_EXCL), every built-in
@@ -54,7 +54,8 @@ def install_private_folder_guard(folder_name):
             text = os.fsdecode(os.fspath(path))
         except TypeError:
             return False
-        return folder_name in Path(text).parts or folder_name in Path(os.path.realpath(text)).parts
+        return any(part.casefold() == folder_name.casefold()
+                   for part in (*Path(text).parts, *Path(os.path.realpath(text)).parts))
     def refuse(path):
         raise PermissionError('test guard: the private folder is never read or listed')
     real = {'listdir': os.listdir, 'scandir': os.scandir, 'open': os.open, 'io_open': io.open, 'walk': os.walk,
@@ -78,7 +79,7 @@ def install_private_folder_guard(folder_name):
         return real['walk'](top, *args, **kw)
     def popen_init(self, args, *rest, **kw):
         items = [args] if isinstance(args, (str, bytes, os.PathLike)) else list(args)
-        if any(isinstance(a, (str, bytes, os.PathLike)) and folder_name in os.fsdecode(os.fspath(a)) for a in items): refuse(args)
+        if any(isinstance(a, (str, bytes, os.PathLike)) and private(a) for a in items): refuse(args)
         return real['popen_init'](self, args, *rest, **kw)
     # glob and pathlib's glob may hold their own reference to os.scandir, so they are wrapped by name too.
     import glob as glob_module

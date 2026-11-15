@@ -89,8 +89,8 @@ python3 app/packaging/release/build.py \
   caches: a symbolic link, and a hard link (a regular file whose link count is
   above one).
 - It refuses any input path inside a folder named as the private folder, by
-  name, before opening anything. This includes the supplied tool paths and
-  PATH directories. A directory-name pass rejects a private entry before
+  whole component including case aliases, before opening anything. This includes
+  the supplied tool paths and PATH directories. A directory-name pass rejects a private entry before
   descending into it, before the input trees are inventoried or copied.
 - Before creating `--out`, it compares physical ancestry with the source,
   vendor and cache roots and with the directory holding each read-only input
@@ -139,7 +139,8 @@ stdout lines, a missing value or other stderr fail. These are parser rules;
 the invented tests are not observations of the Apple tools.
 
 **Publishing the candidate.** `CANDIDATE.json` appears only as the last act:
-the description is verified once more, then renamed into place. Any failure
-before that leaves `INCOMPLETE.txt` and `BUILD_FAILED.json`, and such a folder
-is not a candidate. The provisioning profile is not a build input: it is placed
-at signing.
+the description is verified once more, then renamed into place. After output
+creation, the failure handler attempts to leave an incomplete marker
+(`INCOMPLETE.txt`) and fixed failure description (`BUILD_FAILED.json`); I/O
+failures can prevent either. No candidate is published before final verification.
+The provisioning profile is not a build input: it is placed at signing.

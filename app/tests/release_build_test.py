@@ -395,50 +395,80 @@ class ReleaseBuild(unittest.TestCase):
         real_open = os.open
         attempts = []
         def intercepted(path, *args, **kw):
-            if not isinstance(path, int) and common.PRIVATE_FOLDER in Path(os.fsdecode(path)).parts:
+            if not isinstance(path, int) and any(
+                    part.casefold() == common.PRIVATE_FOLDER.casefold()
+                    for part in Path(os.fsdecode(path)).parts):
                 attempts.append(path)
                 raise AssertionError('a private component reached os.open')
             return real_open(path, *args, **kw)
+        real_transfer = build.prepare.files.transfer
+        def transfer(path, *args, **kw):
+            if any(part.casefold() == common.PRIVATE_FOLDER.casefold() for part in Path(path).parts):
+                attempts.append(path)
+                raise AssertionError('a private component reached the tool reader')
+            return real_transfer(path, *args, **kw)
         hidden = self.root / common.PRIVATE_FOLDER
-        for name in build.TOOLS:
-            with self.subTest(tool=name), patch.object(os, 'open', intercepted):
-                with self.assertRaises(common.Failure) as raised:
-                    self.run_build(tools=self.tools | {name: str(hidden / ('invented-' + name))})
+        hidden.mkdir()  # Known empty; never opened, listed or walked.
+        try:
+            for spelling in (common.PRIVATE_FOLDER, common.PRIVATE_FOLDER.lower(), common.PRIVATE_FOLDER.upper()):
+                alias = self.root / spelling
+                for name in build.TOOLS:
+                    with self.subTest(tool=name, spelling=spelling), patch.object(os, 'open', intercepted), patch.object(build.prepare.files, 'transfer', transfer):
+                        with self.assertRaises(common.Failure) as raised:
+                            self.run_build(tools=self.tools | {name: str(alias / ('invented-' + name))})
+                        self.assertEqual(raised.exception.code, 'BUILD_PRIVATE_INPUT')
+                with self.subTest(path=spelling), patch.object(os, 'open', intercepted), self.assertRaises(common.Failure) as raised:
+                    self.run_build(environment=self.environment | {'PATH': str(alias) + ':' + self.environment['PATH']})
                 self.assertEqual(raised.exception.code, 'BUILD_PRIVATE_INPUT')
-        with patch.object(os, 'open', intercepted), self.assertRaises(common.Failure) as raised:
-            self.run_build(environment=self.environment | {'PATH': str(hidden) + ':' + self.environment['PATH']})
-        self.assertEqual(raised.exception.code, 'BUILD_PRIVATE_INPUT')
-        self.assertEqual(attempts, [])
-        self.assertEqual(self.fake.calls, [])
-        self.assertFalse(self.candidate.exists())
+            self.assertEqual(attempts, [])
+            self.assertEqual(self.fake.calls, [])
+            self.assertFalse(self.candidate.exists())
+        finally:
+            os.rmdir(hidden)
 
     def test_private_entries_are_refused_before_descriptor_relative_descent(self):
         real_open = os.open
         for root in (self.source, self.cargo_cache, self.npm_cache, self.vendor):
             for nested in (False, True):
-                parent = root / 'invented-nested' if nested else root
-                if nested:
-                    parent.mkdir()
-                hidden = parent / common.PRIVATE_FOLDER
-                hidden.mkdir()  # Known empty; it is never opened, listed or walked.
-                attempts = []
-                def intercepted(path, *args, **kw):
-                    if not isinstance(path, int) and common.PRIVATE_FOLDER in Path(os.fsdecode(path)).parts:
-                        attempts.append((path, 'dir_fd' in kw))
-                        raise AssertionError('private descriptor-relative open attempted')
-                    return real_open(path, *args, **kw)
-                try:
-                    with self.subTest(root=root.name, nested=nested), patch.object(os, 'open', intercepted):
-                        with self.assertRaises(common.Failure) as raised:
-                            self.run_build()
-                        self.assertEqual(raised.exception.code, 'BUILD_PRIVATE_INPUT')
-                        self.assertEqual(attempts, [])
-                        self.assertFalse(self.candidate.exists())
-                finally:
-                    os.rmdir(hidden)
+                for spelling in (common.PRIVATE_FOLDER, common.PRIVATE_FOLDER.lower(), common.PRIVATE_FOLDER.upper()):
+                    parent = root / 'invented-nested' if nested else root
                     if nested:
-                        os.rmdir(parent)
+                        parent.mkdir()
+                    hidden = parent / spelling
+                    hidden.mkdir()  # Known empty; it is never opened, listed or walked.
+                    attempts = []
+                    def intercepted(path, *args, **kw):
+                        if not isinstance(path, int) and any(
+                                part.casefold() == common.PRIVATE_FOLDER.casefold()
+                                for part in Path(os.fsdecode(path)).parts):
+                            attempts.append((path, 'dir_fd' in kw))
+                            raise AssertionError('private descriptor-relative open attempted')
+                        return real_open(path, *args, **kw)
+                    try:
+                        with self.subTest(root=root.name, nested=nested, spelling=spelling), patch.object(os, 'open', intercepted):
+                            with self.assertRaises(common.Failure) as raised:
+                                self.run_build()
+                            self.assertEqual(raised.exception.code, 'BUILD_PRIVATE_INPUT')
+                            self.assertEqual(attempts, [])
+                            self.assertFalse(self.candidate.exists())
+                    finally:
+                        os.rmdir(hidden)
+                        if nested:
+                            os.rmdir(parent)
         self.assertEqual(self.fake.calls, [])
+
+    def test_private_case_alias_matching_keeps_whole_component_boundary(self):
+        for spelling in (common.PRIVATE_FOLDER.lower(), common.PRIVATE_FOLDER.upper()):
+            path = self.root / spelling / 'invented-tool'
+            self.assertTrue(common.is_private_path(path))
+            with self.assertRaises(common.Failure):
+                build.input_path(path)
+            # The test guard independently refuses the alias before attempting a read.
+            with self.assertRaisesRegex(PermissionError, 'test guard'):
+                os.listdir(path.parent)
+            ordinary = self.root / ('prefix-' + spelling + '-suffix') / 'invented-tool'
+            self.assertFalse(common.is_private_path(ordinary))
+            self.assertEqual(build.input_path(ordinary), ordinary)
 
     def test_output_under_inputs_refuses_before_mkdir_copy_or_failure_receipt(self):
         supplied = self.root / 'supplied-input'
