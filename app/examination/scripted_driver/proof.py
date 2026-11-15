@@ -353,11 +353,46 @@ def executable_of(pid):
     return os.fsdecode(buffer.value)
 
 
+# The App's Working Files folder (DEL-01-01, PR 340; LIM-021: the App's working folders are never removed), named by
+# the App's one rule (app/src-tauri/src/working_files.rs, folder_for and SUFFIX): the App data folder's own name and
+# " Working Files", beside it. Inside it only its three subtrees, each holding folders the App made by one name pattern
+# and, beside each, its record ".made-<folder name>.json" (working_files.rs; confirmed by the Execution lane, which owns
+# it, 15 November 2026). What a made folder holds is its user's (Codex's TMPDIR, git's connector folder, the label
+# probe's Codex home) and is not inventoried beyond the made folder's name; any other name in the Working Files folder
+# or its subtrees is outside.
+WORKING_FILES_SUFFIX = ' Working Files'
+WORKING_SUBTREES = {'probe-homes': 'probe', 'codex-tmp': 'tmp', 'connector': 'connector'}
+
+
+def working_files_for(app_data):
+    """The Working Files folder beside the App data folder, by the App's rule (working_files.rs folder_for)."""
+    app_data = Path(app_data)
+    return app_data.parent / (app_data.name + WORKING_FILES_SUFFIX)
+
+
+def in_working_files(relative):
+    """Whether a name relative to the Working Files folder is one the App makes there: the folder itself, a subtree, a
+    made folder of that subtree's pattern or its record, or anything inside a made folder."""
+    parts = Path(relative).parts
+    if not parts or parts == ('.',):
+        return True
+    prefix = WORKING_SUBTREES.get(parts[0])
+    if prefix is None:
+        return False
+    if len(parts) == 1:
+        return True
+    made = re.fullmatch(rf'{prefix}-{UUID}', parts[1])
+    if made:
+        return True  # the made folder, and whatever its user put inside it
+    return len(parts) == 2 and re.fullmatch(rf'\.made-{prefix}-{UUID}\.json', parts[1]) is not None
+
+
 def inventory(home, app_data, project):
     """Every name under the throwaway home, relative to it (names only; no file is opened), and those outside what
-    the App and the system may write for this build: the App data folder, the project folder, the driver's own folder
-    and the system's folders named for this bundle (its WebKit, Caches and HTTP storage, its preferences and saved
-    window state)."""
+    the App and the system may write for this build: the App data folder, the App's Working Files folder beside it
+    (only what the App makes there: see WORKING_SUBTREES), the project folder, the driver's own folder and the
+    system's folders named for this bundle (its WebKit, Caches and HTTP storage, its preferences and saved window
+    state)."""
     names, errors = [], []
     for root, dirs, files in os.walk(home, followlinks=False, onerror=lambda error: errors.append(f'{error.filename}: {error.strerror}')):
         for name in dirs + files:
@@ -367,9 +402,13 @@ def inventory(home, app_data, project):
     allowed_roots = [str(Path(app_data).relative_to(home)), str(Path(project).relative_to(home)), 'scripted-driver']
     allowed_roots += [f'{lib}/{place}/{name}' for place in ('WebKit', 'Caches', 'HTTPStorages') for name in (IDENTIFIER, EXECUTABLE)]
     allowed_roots += [f'{lib}/Preferences/{IDENTIFIER}.plist', f'{lib}/Saved Application State/{IDENTIFIER}.savedState']
+    working = str(working_files_for(app_data).relative_to(home))
+
     def allowed(name):
+        if name == working or name.startswith(working + '/'):
+            return in_working_files(name[len(working) + 1:] if name != working else '.')
         return any(name == root or name.startswith(root + '/') or root.startswith(name + '/') for root in allowed_roots)
-    return {'names': names, 'outside': [name for name in names if not allowed(name)], 'allowed_roots': allowed_roots,
+    return {'names': names, 'outside': [name for name in names if not allowed(name)], 'allowed_roots': allowed_roots + [working],
             'errors': errors}
 
 
@@ -448,8 +487,10 @@ def setup(bundle, out, timeout, scenario_path, hold_awake=None):
                             {'check': 'every name under the throwaway home was listed', 'pass': not listed['errors'],
                              'found': listed['errors']},
                             {'check': 'no name under the throwaway home outside the allowed places (allowed_roots: the App '
-                                      'data folder, the project, the driver\'s folder and the system\'s folders named for '
-                                      'this bundle)', 'pass': not listed['outside'], 'found': listed['outside']}]
+                                      'data folder; the App\'s Working Files folder beside it, "<App data folder\'s name> '
+                                      'Working Files", holding only probe-homes, codex-tmp and connector with their made '
+                                      'folders and .made- records; the project; the driver\'s folder; and the system\'s '
+                                      'folders named for this bundle)', 'pass': not listed['outside'], 'found': listed['outside']}]
         if want.get('settings_named_in_the_sheet'):
             named = judged[-1][1] if judged else {}
             saved = {'settings': [str(app_data / 'shared-settings' / s) for s in settings],
