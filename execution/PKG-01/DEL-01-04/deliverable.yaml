@@ -80,6 +80,11 @@ needs:
     then a synthetic examination artifact that establishes no person's decision. The protection act
     and the confirmation of a lowered policy (VER-009) are the person's and never an agent's.
 code_paths:
+# The permission level (REQ-011): the person's choice and its record in the App ledger, the App's
+# default, the launch read and its one exception (the ask), and the status the level panel shows.
+# hosting_level.rs is shared with DEL-01-01, which carries the level to Codex.
+- app/src-tauri/src/hosting_level.rs
+- app/src-tauri/src/hosting_level_tests.rs
 # act_control.rs is shared. Here: the control, its offers and captures. The registration
 # operation is DEL-02-02's, act wording DEL-04-01's and the record writer DEL-04-03's.
 - app/src-tauri/src/act_control.rs

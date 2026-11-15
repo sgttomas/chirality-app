@@ -421,7 +421,10 @@ Shared access does not transfer decision rights (OD-05).
   system password prompt is the person's to answer. Until the person
   chooses a level, the App's default level applies, which is full access; it
   is shown as the App's default level, not chosen by the person, it can be
-  changed at any time, and it is never recorded as the person's choice.
+  changed at any time, and it is never recorded as the person's choice. The
+  person is asked to choose before a conversation runs only where the App
+  cannot show that applying its default would not raise a level the person
+  had set; there the default is preselected.
 - **V4-AUT-07** A **point** is a place in the work where a named party is
   called to respond. The person's vocabulary has five kinds, and each point
   names the actual response or act it asks for: a **checkpoint** shows where

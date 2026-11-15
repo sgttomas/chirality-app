@@ -81,8 +81,10 @@ code_paths:
 - app/src-tauri/src/distribution_store_s1.rs
 # The permission levels the App sends (PRD V4-AUT-06): the table, read also by supplier_checks/level,
 # the request fields each level sends, agreement with what Codex reports, and the path rules that
-# refuse a level for a conversation.
+# refuse a level for a conversation. hosting_level.rs is shared with DEL-01-04 (choosing and
+# recording the level); here, the level added to each frame and Codex's report compared.
 - app/src-tauri/src/codex_levels.json
+- app/src-tauri/src/hosting_level.rs
 - app/src-tauri/src/codex_level.rs
 - app/src-tauri/src/codex_level_tests.rs
 - app/src-tauri/src/codex_level_host_tests.rs

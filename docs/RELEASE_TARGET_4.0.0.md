@@ -375,7 +375,7 @@ the owner decide on what was actually observed.
    does: the agent can act anywhere on the machine with no sandbox, from the
    first run."); wherever the level in force is shown it is described as the
    App's default level, not chosen by the person, it can be changed at any
-   time, and it is never recorded as the person's choice; every level offered was first shown at
+   time, and it is never recorded as the person's choice; the owner confirmed it on 14 November 2026: "Regarding the permission level I want there to be a default setting the user can change if they want, not something they have to set."; the person is asked to choose before a conversation runs only where the App cannot show that applying its default would not raise a level the person had set: the App's record of the level is missing or holds a recorded choice that no longer matches the App's level table, or the record cannot be read, while the account home holds state from an earlier Codex start; there the App's default is preselected, so one press continues, and the App says why; every level offered was first shown at
    the pin by a fixture; the
    level in force is always shown, with the statement that reading is not
    limited; the App sends it to Codex on each turn and on start, resume and
@@ -385,9 +385,9 @@ the owner decide on what was actually observed.
 
    *Governed by:* DEL-09-02 AC-006; DEL-01-05 AC-001 to AC-005 and AC-011;
    each in the words that its scope states are in force for 4.0.0. The
-   permission level is governed by DEL-01-04 (choosing and capturing it),
-   DEL-04-02 (showing it) and DEL-01-01 (carrying it to Codex), with criteria
-   to come from the pull requests that build them.
+   permission level is governed by DEL-01-04 REQ-011 and AC-012 (the
+   default, choosing it and the one exception), DEL-04-02 REQ-010 and AC-010
+   (showing it) and DEL-01-01 REQ-012 and AC-012 (carrying it to Codex).
    That no local model server is presented is governed by the "For 4.0.0"
    section of DEL-01-05, and is examined on the candidate by inspecting every
    view met in the journeys and examinations of criteria 1 to 6 for an offer
