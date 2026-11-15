@@ -1,3 +1,4 @@
+import { StartPermissionLevel } from "./PermissionLevel";
 import { AgentText, RecordedData, idWords } from "./AgentText";
 import { useEffect, useRef, useState } from "react";
 import { EXACT_TEXT } from "./exactText";
@@ -392,6 +393,7 @@ export function ConnectionAndModel({ homeClass, chooser, entries, disabled, loca
 }) {
   const { route, revise } = chooser;
   return <div aria-label="Connection and model">
+    <StartPermissionLevel/>
     {chooser.stale && <p role="status">Codex, the home or its generation changed since you chose. Your text is kept; choose how it connects and its model again.</p>}
     <AccessRouteChoice homeClass={homeClass} modelProvider={route.modelProvider} entryId={route.entryId} model={route.model} disabled={disabled} choose={revise} local={local} />
     <AvailableModels packet={chooser.packet} current={chooser.current} reading={chooser.reading} message={chooser.message}

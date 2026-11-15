@@ -1,3 +1,4 @@
+import { StartPermissionLevel } from "./PermissionLevel";
 import { AgentText, ConversationChoices, idWords, numberWords, safeName } from "./AgentText";
 import { threadChoices } from "./presentation";
 import { useState } from "react";
@@ -170,6 +171,7 @@ export function CleanTrialPanelView({ pending, roleSet, limits, entries, modeHom
     <label>Inputs for this trial (editable; not sent) <textarea value={message} disabled={busy || sent} onChange={e => setMessage(e.target.value)} rows={4} style={{ display: "block", width: "100%" }} /></label>
     <PendingNotes pending={pending} />
     {started ? <div>
+      <StartPermissionLevel threadId={started.threadId}/>
       <p>Trial conversation {conversationName(started)} started; the trial message was not sent. Send sends it to that conversation.</p>
       <button disabled={busy || !ready || sent} onClick={() => pressSend(act, "workflow_trial_send", { reference: pending?.reference, generation: started.generation, threadId: started.threadId, personText: message }, setOutcome, () => cleanSentWords(started.threadId))}>Send</button>
     </div> : <div>

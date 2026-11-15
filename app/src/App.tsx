@@ -41,6 +41,7 @@ import { REFRESH_FAILED, commandThenRefresh, observationLine, observationText, r
 import { FirstUseSetup } from "./FirstUse";
 import { AccountStatus, accountReading, type ReadAccountStatus } from "./AccountStatus";
 import { RunWorkflowGuide, registeredRevisionAnchor, runEvidenceAnchor } from "./RunJourney";
+import { PermissionLevel, PermissionLevelActions, levelOwner } from "./PermissionLevel";
 import { MakeWorkflowGuide } from "./MakeJourney";
 import { acknowledgeBringBackDoubt, beginBringBack, bringBackRefusal, doubtDestination, endBringBack, noteBringBackDoubt, resetBringBackDoubts, sendKey, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
 import { AccessRouteChoice, AvailableModels, OfferedEffortChoice, modelMatch, validModelPacket } from "./ModelChoice";
@@ -367,6 +368,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
     <h2 id="conversation-heading">Conversation</h2>
     <ConversationChoices legend="Current-generation conversation" group="current-conversation" disabled={!!ownBusy} chosen={threadKey} none="No conversation chosen"
       value={threadChoices(currentThreads, (thread: Json) => JSON.stringify([thread.generation, thread.threadId]))} onChoose={key => { setThreadKey(key); setTurnId(""); setError(""); }} />
+    {selected && <PermissionLevel host={host} threadId={selected.threadId}/>}
     {selected && <details className="conversation-identity"><summary>Exact conversation ID</summary><code>{selected.threadId}</code></details>}
     {selected && <details className="conversation-options"><summary>Role and continuation options</summary><RoleHeader key={`role-header:${JSON.stringify([selected.generation, selected.threadId])}`} thread={selected} limits={host?.roleLimits} busy={!!busy || forkBusy} ready={host?.state === "ready"} trialConversation={trialConversation} trialsStartedHere={trialsStartedHere}
       readSupplyHistory={() => invoke("role_supply_history", { generation: selected.generation, thread: selected.threadId })}
@@ -2599,7 +2601,13 @@ export function App() {
   // only the line that says the App is starting (or, after FIRST_READ_PATIENCE_MS, taking longer than usual),
   // or that the read failed (firstReadState).
   const firstRead = firstReadState(hostReads);
-  return (<DailyWorkspace>
+  const changePermissionLevel = async (owner: string, scope: "default" | { conversation: string }, levelId: string) => {
+    if (homePendingRef.current || owner !== levelOwner(currentHost.current)) throw Error("The Codex home changed. Choose the level again in the current view; nothing was changed.");
+    let refreshFailed = false;
+    const result = await commandThenRefresh(() => invoke<Json>("set_level", { scope, levelId }), refresh, () => { refreshFailed = true; });
+    return { result, refreshFailed };
+  };
+  return (<PermissionLevelActions.Provider value={{ host, change: changePermissionLevel, unavailable: homePending, stale: shownBeforePress(hostReads) }}><DailyWorkspace>
         {firstRead !== "read" && <FirstReadStatus failed={firstRead === "failed"} slow={firstReadSlow} retry={() => { void refresh().catch(() => undefined); }}/>}
         {setupRequired && <FirstUseSetup view={host.desktopSetup}/>}
         {firstRead === "read" && <div hidden={setupRequired}>
@@ -2685,6 +2693,7 @@ export function App() {
           </details>}
           <p>Choose how this conversation connects and a model, then a role. Switching homes never transfers an existing conversation.</p>
           <RoleChoice group="start-thread-role" roleSet={host?.roleSet} limits={host?.roleLimits} role={role} preselected={!roleTouched && !!role && role === host?.roleSet?.defaultRole} setRole={next => { expireEndpointPreview(); roleInitialized.current = true; setRoleTouched(true); setRole(next); }}/></div>
+          <PermissionLevel host={host}/>
           <p aria-label="New conversation choice">{!model.trim() || !modelProvider.trim() ? "not started — no model selected" : entryCompatible ? `New conversation choice: ${model} via ${modelProvider} (${entryId})` : "Choose how this conversation connects (step 1)."}</p>
           <p>
             <button onClick={startConversation} disabled={!!startBlocked} aria-describedby={startBlocked ? "start-conversation-blocked" : undefined}>Start thread</button>
@@ -2832,5 +2841,5 @@ export function App() {
           </WorkspaceDisclosure>
         </section>
         </div>}
-      </DailyWorkspace>);
+      </DailyWorkspace></PermissionLevelActions.Provider>);
 }
