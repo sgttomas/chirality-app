@@ -8,7 +8,7 @@ use chirality_app_v4_lib::{
 };
 use common::ScratchDirectory;
 use serde_json::{json, Value};
-use std::{io::Write, path::Path};
+use std::path::Path;
 fn workspace() -> ScratchDirectory {
     let ws = ScratchDirectory::new("act-storage");
     std::fs::create_dir_all(ws.join("project/decisions")).unwrap();
@@ -33,10 +33,35 @@ fn prepared(ws: &Path) -> (ActControl, String, Value) {
     let actor = person(Some("Fixture person"), Some("fixture"));
     let text = ac.confirmation_text(&id, "ALT-2", &actor).unwrap();
     assert!(text.contains("Hold stage 2 until the version check returns, then start"));
-    assert!(text.contains("Consequences:"));
+    assert!(text.contains("Stage 2 starts after the check (Prüfung); no rework from a changed fact; ≈ one day later"));
     ac.present(&id).unwrap();
     (ac, id, actor)
 }
+// Keep the standing read valid while making the actual append fail. Corrupting
+// history before confirmation now correctly refuses before a capture exists.
+struct RefusedAppend {
+    path: std::path::PathBuf,
+    permissions: std::fs::Permissions,
+}
+impl RefusedAppend {
+    fn new(workspace: &Path) -> Self {
+        use std::os::unix::fs::PermissionsExt;
+        let path = storage::project_file(workspace, LOG).unwrap();
+        let permissions = std::fs::metadata(&path).unwrap().permissions();
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o400)).unwrap();
+        let held = Self { path, permissions };
+        assert!(std::fs::OpenOptions::new().append(true).open(&held.path).is_err(),
+            "fixture must actually refuse appending");
+        assert!(storage::read_all(workspace).1.is_empty(), "standing remains readable");
+        held
+    }
+}
+impl Drop for RefusedAppend {
+    fn drop(&mut self) {
+        std::fs::set_permissions(&self.path, self.permissions.clone()).unwrap();
+    }
+}
+
 #[test]
 fn scope_absence_and_requester_limit_are_source_faithful() {
     for empty in [false, true] {
@@ -93,12 +118,7 @@ fn rejected_append_cold_hold_and_hot_late_retry_preserve_facts_and_id() {
     let ws = workspace();
     let (mut ac, id, actor) = prepared(&ws);
     let before = std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap();
-    let mut f = std::fs::OpenOptions::new()
-        .append(true)
-        .open(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap())
-        .unwrap();
-    f.write_all(b"{torn\n").unwrap();
-    f.sync_all().unwrap();
+    let refused_append = RefusedAppend::new(&ws);
     let out = ac
         .confirm(&id, "ALT-2", InputSource::HostNativeConfirmation, actor)
         .unwrap();
@@ -109,6 +129,12 @@ fn rejected_append_cold_hold_and_hot_late_retry_preserve_facts_and_id() {
     let pending: Value =
         serde_json::from_slice(&std::fs::read(storage::write_pending_path(&ws, capid).unwrap()).unwrap()).unwrap();
     let reserved = pending["recordId"].clone();
+    // Once the capture is pending, corrupt the readable history to exercise
+    // the existing recovery refusal independently of pre-capture standing.
+    drop(refused_append);
+    let mut torn = before.clone();
+    torn.extend(b"{torn\n");
+    std::fs::write(storage::project_file(&ws, LOG).unwrap(), torn).unwrap();
     let mut relaunched = ActControl::new(&ws);
     assert_eq!(
         relaunched.recover_pending().unwrap()[0]["state"],
@@ -684,9 +710,7 @@ fn hot_pending_batch_keeps_native_event_order_before_delay_limits() {
         offers.push(id);
     }
     let before = std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap();
-    let mut torn = before.clone();
-    torn.extend(b"{torn\n");
-    std::fs::write(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap(), torn).unwrap();
+    let refused_append = RefusedAppend::new(&ws);
     let mut ids = vec![];
     for offer in &offers {
         let result = control
@@ -708,7 +732,8 @@ fn hot_pending_batch_keeps_native_event_order_before_delay_limits() {
         .unwrap();
         ids.push(pending["recordId"].clone());
     }
-    std::fs::write(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap(), before).unwrap();
+    assert_eq!(std::fs::read(storage::project_file(&ws, LOG).unwrap()).unwrap(), before);
+    drop(refused_append);
     let results = control.recover_pending().unwrap();
     assert!(results.iter().all(|r| r["state"] == "AC-7 recorded"));
     let entries = records::read_log(&chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).0;
@@ -787,9 +812,7 @@ fn older_pending_act_precedes_fresh_confirmation_and_latest_decision_stays_lates
     let ws = workspace();
     let (mut control, ids, actor, request) = twice_prepared(&ws);
     let before = std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap();
-    let mut torn = before.clone();
-    torn.extend(b"{torn\n");
-    std::fs::write(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap(), torn).unwrap();
+    let refused_append = RefusedAppend::new(&ws);
     let first = control
         .confirm(
             &ids[0],
@@ -807,7 +830,8 @@ fn older_pending_act_precedes_fresh_confirmation_and_latest_decision_stays_lates
         .unwrap(),
     )
     .unwrap();
-    std::fs::write(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap(), before).unwrap();
+    assert_eq!(std::fs::read(storage::project_file(&ws, LOG).unwrap()).unwrap(), before);
+    drop(refused_append);
     let fresh = control
         .confirm(&ids[1], "ALT-2", InputSource::HostNativeConfirmation, actor)
         .unwrap();
@@ -844,9 +868,7 @@ fn fresh_confirmed_facts_remain_pending_when_older_admission_cannot_flush() {
     let ws = workspace();
     let (mut control, ids, actor, _) = twice_prepared(&ws);
     let before = std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap();
-    let mut torn = before.clone();
-    torn.extend(b"{torn\n");
-    std::fs::write(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap(), torn).unwrap();
+    let refused_append = RefusedAppend::new(&ws);
     let a = control
         .confirm(
             &ids[0],
@@ -868,7 +890,8 @@ fn fresh_confirmed_facts_remain_pending_when_older_admission_cannot_flush() {
     let id = b["capture"]["captureId"].as_str().unwrap();
     let reserved: Value =
         serde_json::from_slice(&std::fs::read(storage::write_pending_path(&ws, id).unwrap()).unwrap()).unwrap();
-    std::fs::write(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap(), before).unwrap();
+    assert_eq!(std::fs::read(storage::project_file(&ws, LOG).unwrap()).unwrap(), before);
+    drop(refused_append);
     let results = control.recover_pending().unwrap();
     assert_eq!(results[1]["record"]["recordId"], reserved["recordId"]);
     let mut original = results[1]["capture"].clone();
@@ -891,9 +914,7 @@ fn refresh_flushes_pending_native_admission_before_new_recorder_input() {
     let ws = workspace();
     let (mut control, id, actor) = prepared(&ws);
     let before = std::fs::read(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).unwrap();
-    let mut torn = before.clone();
-    torn.extend(b"{torn\n");
-    std::fs::write(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap(), torn).unwrap();
+    let refused_append = RefusedAppend::new(&ws);
     let first = control
         .confirm(&id, "ALT-2", InputSource::HostNativeConfirmation, actor)
         .unwrap();
@@ -907,7 +928,8 @@ fn refresh_flushes_pending_native_admission_before_new_recorder_input() {
     let (_, blocked) = control.refresh_recording();
     assert!(blocked.unwrap_err().contains("older trusted native"));
     assert_eq!(records::read_log(&chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap()).0.len(), 2);
-    std::fs::write(chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap(), before).unwrap();
+    assert_eq!(std::fs::read(storage::project_file(&ws, LOG).unwrap()).unwrap(), before);
+    drop(refused_append);
     let (recovery, written) = control.refresh_recording();
     assert_eq!(recovery.unwrap()[0]["state"], "AC-7 recorded");
     let written = written.unwrap();
