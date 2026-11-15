@@ -1346,11 +1346,13 @@ exchanges of the new pin are compared with those of the prior pin before the
 App relies on it". For an advance on the same generated basis the three parts
 are met in three places: the schema by this check's byte equality; the
 supplement by this check establishing that neither pin keeps one, or refusing;
-the recorded exchanges by the recordings kept at both pins and
-`test_recordings.py`, bounded as the note beside them says. For an advance
-whose schema changed, or where either pin keeps a supplement, nothing
-maintained meets that sentence: this check refuses, and a general comparison
-would have to be built first (see the note in
+the recorded exchanges by a separate comparison of the recordings at both
+pins, bounded as the note beside them says. `test_recordings.py` checks the
+kept recordings; it does not yet compare groups and shapes across pins. The
+0.160.0 to 0.167.0 comparison is retained in `supplier_checks/version_advance/`;
+a later advance still owes its own recorded-exchange comparison. For an
+advance whose schema changed, or where either pin keeps a supplement, this
+check refuses and a full comparison remains required (see the note in
 `supplier_checks/version_advance/`).
 
 ## Group B offline examination support
