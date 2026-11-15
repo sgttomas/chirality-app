@@ -60,6 +60,17 @@ class StraySearchOnMacOS(unittest.TestCase):
         gone.wait()
         self.assertIsNone(stray.executable_of(gone.pid))
 
+    def test_proc_reads_executable_is_the_process_own_program(self):
+        # What earns proc_read.py's field its name (App Agent 0, 15 November): the first program text entry lsof
+        # reports for one process (lsof -a -p <pid> -d txt -Fn, the first n line) is that process's own program file,
+        # here checked against two processes whose program is known: a /bin/sleep this test started, and this test's
+        # own process, whose program the system gives by number (stray.executable_of, proc_pidpath).
+        proc_read = load('proc_read')
+        child = self.started()
+        self.assertTrue(os.path.samefile(proc_read.executable(child.pid), self.STAND_IN))
+        self.assertTrue(os.path.samefile(proc_read.executable(os.getpid()), load('stray').executable_of(os.getpid())))
+        self.assertTrue(os.path.samefile(proc_read.details(child.pid)['executable'], self.STAND_IN))
+
     def test_this_users_processes_are_listed_by_number_and_one_this_test_started_is_found_by_its_executable(self):
         stray = load('stray')
         child = self.started()
