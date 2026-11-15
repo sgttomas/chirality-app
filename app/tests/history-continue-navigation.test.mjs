@@ -51,7 +51,7 @@ async function mounted(options,check){
   if(command==='native_confirmation_content')return [];
   if(command==='select_home'){active=args.modeHomeClass;return {state:'selected'};}
   if(command==='thread_start'){
-   assert.deepEqual(args,{model:choice.model,modelProvider:'openai',entryId:'chatgpt-account',modeHomeClass:'account',generation:g,role:null,preselected:false});
+   assert.deepEqual(args,{model:choice.model,modelProvider:'openai',entryId:'chatgpt-account',entrySource:'app-showed-only-entry',modeHomeClass:'account',generation:g,role:null,preselected:false});
    if(options.startError)throw options.startError;
    account.threads.push(thread('new-choice'));return {id:91,startGeneration:g,result:{thread:{id:'new-choice'}}};
   }
@@ -83,7 +83,8 @@ async function mounted(options,check){
  const change=async(e,value)=>React.act(()=>{if(e===choiceList(c,'Stored conversation'))selects++;track(e.localName==='fieldset'?chooseIn(e,value):props(e).onChange({target:{value}}));});
  const press=async label=>React.act(async()=>{const e=button(c,label);assert.ok(e,label);assert.equal(props(e).disabled,false,label);if(label==='Start thread')starts++;if(label==='Use account home')homes++;track(props(e).onClick());});
  const poll=async()=>React.act(async()=>{const p=[...timers.values()].find(p=>p.fn.toString().includes('host_status'));assert.ok(p);p.fn();});
- const routeChosen=()=>{const b=button(c,ROUTE);return !!b&&props(b)['aria-pressed']===true;};
+ // In the account home the only connection is shown in use without a press (DEL-01-05 REQ-004); elsewhere the toggle is pressed.
+ const routeChosen=()=>{if(c.querySelectorAll(e=>e.getAttribute('aria-label')==='Connection in use').length)return true;const b=button(c,ROUTE);return !!b&&props(b)['aria-pressed']===true;};
  const edit=async values=>{if(values.route&&!routeChosen())await press(ROUTE);if(values.model!==undefined)await change(labelled(c,'input','Model '),values.model);};
  const values=()=>({model:labelled(c,'input','Model ')?props(labelled(c,'input','Model ')).value:null,route:routeChosen()});
  const context=()=>conversation(c).querySelectorAll(e=>e.getAttribute('aria-label')==='Prior work in continued conversation')[0];

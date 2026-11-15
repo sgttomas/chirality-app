@@ -536,6 +536,42 @@ class LiveRequirement(unittest.TestCase):
                     self.live.live_binary(fake.name, required=required)
 
 
+
+class Recorder(unittest.TestCase):
+    """The recording refusal that stands in for the closed proxy port: it refuses everything, and keeps only where
+    each request was going."""
+
+    def test_it_records_the_target_only_and_refuses(self):
+        import socket
+        recorder = L.RecordingRefusal()
+        try:
+            port = int(recorder.url.rsplit(':', 1)[1])
+            for request in (b'CONNECT chatgpt.com:443 HTTP/1.1\r\nHost: chatgpt.com:443\r\n\r\n',
+                            b'GET http://example.invalid:8080/secret/path?q=1 HTTP/1.1\r\nAuthorization: x\r\n\r\n'):
+                with socket.create_connection(('127.0.0.1', port), timeout=5) as conn:
+                    conn.sendall(request)
+                    self.assertTrue(conn.recv(100).startswith(b'HTTP/1.1 502'))
+            for _ in range(50):
+                if len(recorder.since(0)) == 2:
+                    break
+                import time
+                time.sleep(0.05)
+            self.assertEqual(recorder.since(0), [('CONNECT', 'chatgpt.com:443'), ('GET', 'http://example.invalid:8080')])
+        finally:
+            recorder.close()
+
+    def test_a_run_given_a_recorder_points_every_proxy_name_at_it(self):
+        recorder = L.RecordingRefusal()
+        try:
+            run = L.Run(tempfile.gettempdir(), '/bin/true', proxy=recorder)
+            env = run.environment()
+            self.assertEqual({env[name] for name in L.PROXY_NAMES}, {recorder.url})
+            self.assertEqual(env['NO_PROXY'], L.EXEMPT)
+            plain = L.Run(tempfile.gettempdir(), '/bin/true').environment()
+            self.assertEqual({plain[name] for name in L.PROXY_NAMES}, {L.PROXY})
+        finally:
+            recorder.close()
+
 if __name__ == '__main__':
     unittest.main(verbosity=2)
 
