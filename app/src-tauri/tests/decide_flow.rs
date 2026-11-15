@@ -392,6 +392,9 @@ fn person_decides_a_package_and_the_view_shows_it() {
     let mut b = std::fs::read(&p2).unwrap();
     b.extend_from_slice(b" ");
     std::fs::write(&p2, &b).unwrap();
+    let store = chirality_app_v4_lib::records_store::attach(&ws, false).unwrap().dir.unwrap();
+    let before_store_refusal = tree_hashes(&store);
+    assert!(!before_store_refusal.is_empty(), "the actual external store is sampled");
     let before_refusal = hashes(&ws);
     ac
         .confirm(
@@ -404,6 +407,7 @@ fn person_decides_a_package_and_the_view_shows_it() {
     // Either the standing re-check or the content check can notice this
     // change first. Both must refuse without recording or capturing anything.
     assert_eq!(hashes(&ws), before_refusal, "stale confirmation changes no files");
+    assert_eq!(tree_hashes(&store), before_store_refusal, "stale confirmation changes no store files");
     let (entries, _) = read_log(&chirality_app_v4_lib::storage::project_file(&ws, LOG).unwrap());
     assert_eq!(entries.len(), 5, "no record written for the stale offer");
 
