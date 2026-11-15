@@ -31,6 +31,7 @@ impl Fixture {
         );
         fs::write(log, format!("{entry}\n")).unwrap();
         let custody = crate::hold_app_data_for_test(&root.join("app")).unwrap();
+        crate::working_folder::establish(&root.join("app")).unwrap();
         Self(root, custody)
     }
     fn context(&self) -> ExplicitAppProjectContext {
@@ -82,6 +83,7 @@ impl Fixture {
             // still retains its configured spelling (which may be an alias).
             self.0.join("project").canonicalize().unwrap(),
         );
+        config.app_data = Some(self.0.join("app"));
         config.allow_unverified_dev = true;
         config.wait_limit = Duration::from_secs(2);
         host.start(&config, "invented continuity peer").unwrap();
@@ -227,7 +229,7 @@ fn records_continuity_original_start_to_fresh_host_explicit_cold_resume_and_logg
         .into_iter()
         .find(|frame| frame["method"] == "thread/resume")
         .unwrap();
-    assert_eq!(resumed["params"], crate::codex_level::with_test_level_at(&json!({"threadId":"thread","excludeTurns":true}), "thread/resume", &f.0.join("project")));
+    assert_eq!(resumed["params"], crate::codex_level::with_test_level_at(&json!({"threadId":"thread","excludeTurns":true,"cwd":f.0.join("project")}), "thread/resume", &f.0.join("project")));
     let fork = cold.thread_fork_dispatch(&generation, "thread").unwrap();
     cold.source_request_wait(&fork, Duration::from_secs(2))
         .unwrap();
@@ -657,6 +659,7 @@ for line in sys.stdin:
    r=result('thread');r['thread']['status']={'type':'notLoaded'};emit({'id':f['id'],'result':r})
   elif f['params'].get('model')!='unknown':emit({'id':f['id'],'result':result('thread')})
  elif method=='thread/list':emit({'id':f['id'],'result':{'data':[thread('thread','notLoaded'),thread('forked','notLoaded','thread')],'nextCursor':None}})
+ elif method=='thread/read':emit({'id':f['id'],'result':{'thread':thread(f['params']['threadId'],'notLoaded')}})
  elif method=='thread/resume':emit({'id':f['id'],'result':result(f['params']['threadId'])})
  elif method=='thread/fork':emit({'id':f['id'],'result':result('forked',f['params']['threadId'])})
  elif method=='turn/start':

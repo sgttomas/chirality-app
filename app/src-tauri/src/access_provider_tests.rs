@@ -2768,7 +2768,7 @@ fn native_child_guidance_rejects_role_parent_fork_and_source_mismatches() {
                 peer.host
                     .request_begin_scoped(
                         "thread/resume",
-                        json!({"threadId":"parent"}),
+                        json!({"threadId":"parent","cwd":child_thread("parent",None,None)["cwd"]}),
                         json!({"kind":"person-directed"}),
                         false,
                         Some(&peer.g),
@@ -2889,7 +2889,7 @@ fn native_child_guidance_warm_resume_restart_compares_original_without_new_autho
     peer.host
         .request_begin_scoped(
             "thread/resume",
-            json!({"threadId":"child"}),
+            json!({"threadId":"child","cwd":child_thread("child",Some("parent"),Some("TASK"))["cwd"]}),
             json!({"kind":"person-directed"}),
             false,
             Some(&peer.g),
@@ -3351,7 +3351,7 @@ fn native_local_provider_central_guard_refuses_cross_entry_overrides_before_capt
     {
         let mut i = peer.host.inner.0.lock().unwrap();
         i.local_provider = Some(LocalProviderBinding::for_test("local-guard", "/invented/work"));
-        i.threads.push(json!({"generation":peer.g,"threadId":"local-thread","modelProvider":PROVIDER,"model":MODEL}));
+        i.threads.push(json!({"generation":peer.g,"threadId":"local-thread","modelProvider":PROVIDER,"model":MODEL,"cwd":"/invented/work"}));
     }
     let cases = [
         (
@@ -3527,7 +3527,7 @@ fn native_local_provider_central_guard_rechecks_original_thread_after_writer_wai
         let mut i = peer.host.inner.0.lock().unwrap();
         i.local_provider = Some(LocalProviderBinding::for_test("local-queue", "/invented/work"));
         i.threads.push(
-            json!({"generation":peer.g,"threadId":"t","modelProvider":PROVIDER,"model":MODEL}),
+            json!({"generation":peer.g,"threadId":"t","modelProvider":PROVIDER,"model":MODEL,"cwd":"/invented/work"}),
         );
     }
     let gate = peer.host.frame_write.lock().unwrap();
@@ -3642,7 +3642,7 @@ fn native_local_provider_reserved_attachment_rechecks_destination_before_actual_
             let mut i = peer.host.inner.0.lock().unwrap();
             i.local_provider = Some(LocalProviderBinding::for_test(&native_id, "/invented/work"));
             i.threads.push(
-                json!({"generation":peer.g,"threadId":"t","modelProvider":PROVIDER,"model":MODEL}),
+                json!({"generation":peer.g,"threadId":"t","modelProvider":PROVIDER,"model":MODEL,"cwd":"/invented/work"}),
             );
         }
         let custody = Arc::new(
@@ -3691,7 +3691,7 @@ fn native_local_provider_recovery_run_source_and_selection_keep_actual_local_cla
         .lock()
         .unwrap()
         .threads
-        .push(json!({"generation":peer.g,"threadId":"t","modelProvider":PROVIDER,"model":MODEL}));
+        .push(json!({"generation":peer.g,"threadId":"t","modelProvider":PROVIDER,"model":MODEL,"cwd":"/invented/work"}));
     let context = crate::recovery::ExplicitAppProjectContext::known(
         "project:local",
         crate::recovery::AppProjectSource::ConfiguredDirectory,
