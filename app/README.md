@@ -1310,6 +1310,51 @@ them is not maintained; `supplier_checks/test_recordings.py` checks what the
 files themselves establish. Neither a recording nor a generated basis is
 qualification of the pin (DEL-01-01 AC-011).
 
+## Admitting a pin on the same generated basis
+
+`supplier_checks/same_basis.py --from <prior pin> --to <new pin>` is the check a
+pin advance carries (DEL-01-01 REQ-006) when the supplier's generated schema did
+not change at all. It compares bytes and admits records whole; it reads no host
+source, interprets no schema and takes no dispositions.
+
+- The three generated files (the manifest and the two compiled bundles) must be
+  equal byte for byte at the two pins. If one differs it refuses: a changed
+  schema needs a full comparison of what the App relies on, with dispositions,
+  and none is maintained.
+- The new pin's distribution record and generation record are admitted whole.
+  The check works out what `intake.py` must have written from what is
+  independently determined (the table's row for the pin, the three generated
+  files, the record's own inventory entries, and the fixed words and numbers
+  `intake.py` writes) and requires each record to equal that exactly, as
+  canonical JSON text. What nothing kept in the repository determines is
+  admitted by its form only; that closed list (`FORM_ONLY`) is in the tool and
+  in every result.
+- A supplement file at either pin refuses. The prior pin must be one for which
+  a consumer analysis is kept (0.167.0, whose comparison with 0.160.0 is in
+  `supplier_checks/version_advance/` with a note of what it does and does not
+  establish); an identical basis carries that analysis over.
+
+What an admitted result establishes is that the protocol surface, as the
+supplier generates it, is the same bytes at both pins, and that the new pin's
+records are whole and bound to its release archive. It does not establish that
+the supplier behaves the same: the only behavioural evidence at a pin is its
+recorded exchanges, bounded as the note beside them says. It is not
+qualification of the pin (DEL-01-01 AC-011).
+
+REQ-006 requires that "the generated schema, the supplement and the recorded
+exchanges of the new pin are compared with those of the prior pin before the
+App relies on it". For an advance on the same generated basis the three parts
+are met in three places: the schema by this check's byte equality; the
+supplement by this check establishing that neither pin keeps one, or refusing;
+the recorded exchanges by a separate comparison of the recordings at both
+pins, bounded as the note beside them says. `test_recordings.py` checks the
+kept recordings; it does not yet compare groups and shapes across pins. The
+0.160.0 to 0.167.0 comparison is retained in `supplier_checks/version_advance/`;
+a later advance still owes its own recorded-exchange comparison. For an
+advance whose schema changed, or where either pin keeps a supplement, this
+check refuses and a full comparison remains required (see the note in
+`supplier_checks/version_advance/`).
+
 ## Group B offline examination support
 
 `examination/check.py` checks EXP result and PKG identity files and their explicit

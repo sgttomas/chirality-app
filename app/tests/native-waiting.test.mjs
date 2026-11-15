@@ -115,14 +115,15 @@ test('a native waiting selection queued before the listener opens its original c
 
 test('native wake-up after startup preserves same-home chooser and unsent draft and consumes the claim once',async()=>{
   await mounted(async ui=>{
-    await ui.press(ROUTE);
+    // The only connection is in use without a press (DEL-01-05 REQ-004); the model is the person's separate unsent choice.
+    assert.equal(ui.find('button',ROUTE),undefined);
     await ui.change(ui.field('input','Model '),'separate-unsent-model');
     await ui.change(ui.draft(),'Unsent / 家 & literal');
     await ui.wake(ui.dto.native.intents.account);
     await ui.wake(null);
     assert.equal(chosenIn(ui.select()),JSON.stringify([ui.dto.account.generation,'shared-thread']));
     assert.equal(props(ui.field('input','Model ')).value,'separate-unsent-model');
-    assert.equal(props(ui.find('button',ROUTE))['aria-pressed'],true);
+    assert.match(ui.container.textContent,/the only connection this version offers/,'the connection in use is still shown');
     assert.equal(props(ui.draft()).value,'Unsent / 家 & literal');
     assert.equal(ui.calls.filter(c=>c.command==='open_waiting_requests').length,1);
     assert.deepEqual(ui.scrolls,['conversation']);

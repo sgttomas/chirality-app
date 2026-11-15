@@ -363,3 +363,53 @@ An entry is added in the same pull request that makes the limitation standing.
   Codex's input first, and end it at once only if it has not closed within
   3 seconds. This is read from the App's code (`hosting.rs` `stop_inner`,
   reached from `codex_stop.rs` and from the quit path), not shown by a test.
+
+### LIM-029: Codex makes connections when it starts, and connects to OpenAI when the App reads your sign-in
+
+- **Id:** LIM-029
+- **Exit criteria:** 6
+- **What is unavailable:** an App control over the connections the App's Codex
+  makes. Codex makes them when it starts, and when the App asks it whether
+  you're signed in. This release offers no App control for them.
+- **What was observed:** with every connection refused, at Codex 0.167.0, the App's checks saw Codex try these hosts:
+  - when it starts, before the App asks it anything, with a ChatGPT sign-in
+    kept: chatgpt.com and auth.openai.com;
+  - when it starts, with no sign-in kept: chatgpt.com, github.com and
+    api.github.com;
+  - when the App reads whether you're signed in, with a ChatGPT sign-in kept:
+    chatgpt.com, and auth.openai.com. Codex's source says this read checks
+    with OpenAI which ChatGPT workspace the kept sign-in belongs to and, if
+    OpenAI refuses it as unauthorized, may try to renew the sign-in;
+  - when the App reads whether you're signed in, with no sign-in kept: none;
+  - when the App reads the list of models: none during the read;
+  - when the App reads the list of your past conversations: none during the
+    read.
+
+  These are the hosts the checks saw Codex try when every connection was
+  refused. Once a connection succeeds, Codex may connect to others.
+
+  The maintained rows assert chatgpt.com at startup in both homes and during
+  the kept-sign-in account read. The other hosts named above were observed
+  in the Codex 0.167.0 runs; the rows do not assert that each appears.
+- **Why:** the App reads whether you're signed in when Codex is ready and
+  after you sign in, because without that reading you cannot see whether you
+  are signed in, and so whether a message can be sent. The connections at
+  start come before the App can show anything.
+- **What the person does instead:** nothing is needed to use the App. With a
+  ChatGPT sign-in kept and no network access, Codex starts but the read may
+  not establish whether you're signed in; in that case the App says "It
+  didn't say whether you're signed in." and offers to check again. If Codex
+  reports no account, the App says you're not signed in.
+- **Basis:** DEL-01-05 (REQ-001). The fixture rows
+  `AccountRead.test_with_no_sign_in_the_account_read_contacts_nothing_and_reports_no_account`
+  and
+  `AccountRead.test_with_an_invented_sign_in_the_account_read_contacts_the_account_server_and_fails_when_refused`
+  (`app/supplier_checks/level`). They run the pinned Codex in a home of their
+  own: one with no sign-in, and one holding an invented sign-in that no server
+  issued. Every connection goes to a loopback listener that refuses it and
+  keeps only the host and port. The purpose of the sign-in read is read from
+  Codex's source at tag rust-v0.167.0, not shown:
+  `codex-rs/app-server/src/request_processors/account_processor/workspace_routing.rs`
+  lines 258-293 (`get_account`) and 295-430 (`read_account`, which calls
+  `get_accounts_check` on the ChatGPT base address and, if it is refused as
+  unauthorized, tries to renew the sign-in).

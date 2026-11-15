@@ -185,19 +185,18 @@ test('effective access settings refresh cannot overwrite a newer App status',asy
   assert.doesNotMatch(c.textContent,/OLDER_SETTINGS_STATUS_R1|Credential storage: file/);
  });
 });
-// The account home's one connection route: the built-in OpenAI provider with the ChatGPT account entry.
+// The account home's one connection route: the built-in OpenAI provider with the ChatGPT account entry. In this
+// version it is the only access entry, shown as the connection in use without a press (DEL-01-05 REQ-004).
 const ROUTE='Use my ChatGPT account (built-in OpenAI)';
-test('Start says why it is unavailable until the built-in route and a model are chosen',async()=>{
+test('Start says why it is unavailable until a model is chosen; the only connection is shown in use',async()=>{
  const generation={appSession:'invented-session',home:'invented-account-home',spawnCounter:1};
  await mountedChooser({initial:{state:'ready',generationClosed:false,generation,homeRouting:{activeModeHomeClass:'account'},threads:[]}},async command=>{throw Error(`unexpected ${command}`);},async(c,calls)=>{
   const why=()=>c.querySelectorAll(node=>node.getAttribute('id')==='start-conversation-blocked')[0]?.textContent;
-  assert.equal(props(button(c,'Start thread')).disabled,true);assert.match(why(),/Choose how this conversation connects \(step 1\)/);
-  assert.equal(props(button(c,'Start thread'))['aria-describedby'],'start-conversation-blocked');
-  await change(labelled(c,'input','Model '),'person-model');
-  assert.match(why(),/Choose how this conversation connects \(step 1\)/,'a typed model without a route is not enough');
-  await change(labelled(c,'input','Model '),'');
-  await press(c,ROUTE);
+  assert.equal(button(c,ROUTE),undefined,'no toggle for the only connection');
+  assert.match(c.textContent,/Connects with your ChatGPT account \(built-in OpenAI\) — the only connection this version offers\./);
   assert.equal(props(button(c,'Start thread')).disabled,true);assert.match(why(),/Choose a model \(step 2\)/);
+  assert.doesNotMatch(c.textContent,/\(step 1\)/,'no step 1 while the only connection is in use');
+  assert.equal(props(button(c,'Start thread'))['aria-describedby'],'start-conversation-blocked');
   await change(labelled(c,'input','Model '),'person-model');
   assert.equal(props(button(c,'Start thread')).disabled,false);assert.equal(why(),undefined,'no reason is shown while Start is available');
   assert.equal(props(button(c,'Start thread'))['aria-describedby'],undefined);

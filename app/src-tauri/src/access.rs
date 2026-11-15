@@ -68,6 +68,16 @@ impl AccountObservation {
     }
 }
 
+/// Who chose a conversation's access entry, where it was the only one available: the App showed it.
+pub const SHOWN_ONLY_ENTRY: &str = "app-showed-only-entry";
+/// Who chose a conversation's access entry, including a pressed single entry: the person (the schema's word for the
+/// person's choice, as `source` uses it). A record without `entrySource` says it was not recorded.
+pub const PERSON_CHOSE_ENTRY: &str = "person";
+/// Established by the native entrypoint and, for Continue-as, its validated continuation relation.
+/// This is not a renderer argument and is never inferred from a conversation identifier.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) enum StartKind { Ordinary, ContinueAs, CleanTrial }
+
 pub struct ConversationSelection {
     project: Option<String>,
     record: Value,
@@ -161,10 +171,36 @@ impl ConversationSelection {
             return Err("offered choice differs".into());
         }
         self.record["state"] = json!("selected");
-        self.record["selection"] = json!({"entryId":entry,"providerId":provider,"model":model,"source":if accept_offer{"offered-last-choice-accepted"}else{"person"},"chosenAt":now_rfc3339()});
+        // `source` says who chose the model and started the conversation; `entrySource` who chose the access entry:
+        // here the person, among the entries available, directly or by accepting the offer.
+        let source = if accept_offer{"offered-last-choice-accepted"}else{"person"};
+        self.record["selection"] = json!({"entryId":entry,"providerId":provider,"model":model,"source":source,"entrySource":PERSON_CHOSE_ENTRY,"chosenAt":now_rfc3339()});
         self.record.as_object_mut().unwrap().remove("offer");
         self.record.as_object_mut().unwrap().remove("refusal");
         Ok(())
+    }
+    /// The person chose the model, and the access entry is the only one the configuration offers, which the App
+    /// showed as the connection in use without asking (DEL-01-05 REQ-004): the record says the App showed it,
+    /// never that the person chose it. Nothing here offers or keeps a last choice for the project.
+    pub fn choose_model_for_shown_entry(&mut self, entry: &str, provider: &str, model: &str) -> Result<(), String> {
+        self.choose(entry, provider, model, false)?;
+        self.record["selection"]["entrySource"] = json!(SHOWN_ONLY_ENTRY);
+        Ok(())
+    }
+    /// Record the control's actual origin only if it agrees with the native start kind and offered set.
+    /// Neither path accepts an offered last choice or alters an existing conversation.
+    pub(crate) fn choose_start_entry(&mut self, entry: &str, provider: &str, model: &str, source: &str, only_entry: bool, kind: StartKind) -> Result<(), String> {
+        let expected = match kind {
+            StartKind::Ordinary if only_entry => SHOWN_ONLY_ENTRY,
+            StartKind::Ordinary | StartKind::ContinueAs | StartKind::CleanTrial => PERSON_CHOSE_ENTRY,
+        };
+        if source != expected {
+            return Err("The access entry's origin contradicts this start's control; nothing started".into());
+        }
+        match source {
+            SHOWN_ONLY_ENTRY => self.choose_model_for_shown_entry(entry, provider, model),
+            _ => self.choose(entry, provider, model, false),
+        }
     }
     pub fn start_params(
         &mut self,
@@ -400,4 +436,66 @@ mod tests {
         assert!(ConversationSelection::new_explicit("c", Some("")).is_err());
         assert!(ConversationSelection::new("c", "").is_err());
     }
+    #[test]
+    fn native_start_kind_refuses_contrary_entry_origins_before_publishing_a_selection() {
+        for (kind, only_entry, expected) in [
+            (StartKind::Ordinary, true, SHOWN_ONLY_ENTRY),
+            (StartKind::Ordinary, false, PERSON_CHOSE_ENTRY),
+            (StartKind::ContinueAs, true, PERSON_CHOSE_ENTRY),
+            (StartKind::ContinueAs, false, PERSON_CHOSE_ENTRY),
+            (StartKind::CleanTrial, true, PERSON_CHOSE_ENTRY),
+            (StartKind::CleanTrial, false, PERSON_CHOSE_ENTRY),
+        ] {
+            for source in [SHOWN_ONLY_ENTRY, PERSON_CHOSE_ENTRY, "", "unknown"] {
+                // The same conversation id in every case: the native kind is the evidence, not the id's label.
+                let mut choice = ConversationSelection::new("new", "p").unwrap();
+                let before = choice.snapshot();
+                let result = choice.choose_start_entry("chatgpt-account", "openai", "m", source, only_entry, kind);
+                if source != expected {
+                    assert!(result.is_err(), "{kind:?}, only={only_entry}, source={source}");
+                    assert_eq!(choice.snapshot(), before, "a contradiction publishes no selection");
+                } else {
+                    result.unwrap(); valid(&choice);
+                    assert_eq!(choice.snapshot()["selection"]["entrySource"], expected);
+                    assert_eq!(choice.snapshot()["selection"]["source"], "person", "not an accepted last choice");
+                    assert!(choice.snapshot().get("offer").is_none());
+                }
+            }
+        }
+    }
+    #[test]
+    fn a_shown_only_entry_is_recorded_as_shown_by_the_app_never_as_the_persons_choice() {
+        let mut choice = ConversationSelection::new("c", "p").unwrap();
+        choice.choose_model_for_shown_entry("chatgpt-account", "openai", "m").unwrap();
+        valid(&choice);
+        let selection = &choice.snapshot()["selection"];
+        assert_eq!(selection["entrySource"], SHOWN_ONLY_ENTRY, "the App showed the only entry");
+        assert_eq!(selection["source"], "person", "the model is the person's choice");
+        assert_eq!(choice.snapshot()["state"], "selected");
+        assert!(choice.snapshot().get("offer").is_none(), "nothing is offered or kept as a last choice for the project");
+        // A choice the person made of the entry says so, also when it was the offer of the last choice they accepted;
+        // the closed set holds only the two acts.
+        let mut chosen = ConversationSelection::new("c", "p").unwrap();
+        chosen.choose("chatgpt-account", "openai", "m", false).unwrap();
+        valid(&chosen);
+        assert_eq!(chosen.snapshot()["selection"]["entrySource"], PERSON_CHOSE_ENTRY);
+        let mut offered = ConversationSelection::new("c", "p").unwrap();
+        offered.offer_last("chatgpt-account", "openai", "m").unwrap();
+        offered.choose("chatgpt-account", "openai", "m", true).unwrap();
+        valid(&offered);
+        assert_eq!((offered.snapshot()["selection"]["source"].as_str(), offered.snapshot()["selection"]["entrySource"].as_str()), (Some("offered-last-choice-accepted"), Some(PERSON_CHOSE_ENTRY)));
+        // An old record, without entrySource, stays valid: its entry's source was not recorded.
+        let mut old = chosen.snapshot();
+        old["selection"].as_object_mut().unwrap().remove("entrySource");
+        let schema: Value = serde_json::from_str(include_str!("../resources/runtime_core/access.conversation-selection.schema.json")).unwrap();
+        let validator = jsonschema::options().offline().build(&schema).unwrap();
+        assert!(validator.validate(&old).is_ok(), "the field is optional");
+        old["selection"]["entrySource"] = json!("offered-last-choice-accepted");
+        assert!(validator.validate(&old).is_err(), "a closed set of two values");
+        // A model is still required: the entry alone is never a selection.
+        let mut empty = ConversationSelection::new("c", "p").unwrap();
+        assert!(empty.choose_model_for_shown_entry("chatgpt-account", "openai", "").is_err());
+        assert_eq!(empty.start_params(&serde_json::json!({"home":"h","appSession":"s","spawnCounter":1}), "account", false).unwrap_err(), "not started — no model selected");
+    }
+
 }

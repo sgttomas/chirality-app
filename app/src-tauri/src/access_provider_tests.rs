@@ -4747,3 +4747,181 @@ fn access_provider_cloud_start_admission_reads_again_and_does_not_reuse_an_earli
         peer.safe();
     }
 }
+
+/// The App's own account read once Codex is ready (at launch and after each start or restart): account/read
+/// with empty params, never a token refresh, recorded under the App's own initiator and never as the person's;
+/// one read per start that reached ready, and one again after a restart, each in its own generation. A start
+/// that did not reach ready, one that reported another generation, or another home sends nothing. Codex's
+/// answer is recorded as it came; an unanswered read is recorded as waited for and unanswered, never as no account.
+#[test]
+fn codex_ready_reads_the_account_once_with_empty_params_as_the_apps_own_read_and_again_after_a_restart() {
+    use crate::runtime_session::{read_account_at_ready_within, HomeSession};
+    let root = std::env::temp_dir().canonicalize().unwrap().join(opaque_id("account-at-ready-").unwrap());
+    std::fs::create_dir(&root).unwrap();
+    let mut peer = Peer::new("account-home");
+    let cfg = HostConfig::new(root.join("not-run"), root.join("account"), root.join("probe"), "/invented/work".into());
+    let home = HomeSession::new(crate::home_resources::HomeClass::Account, peer.host.clone(), Ok(cfg.clone())).unwrap();
+    let wait = Duration::from_secs(5);
+    // Nothing is sent for a refused start, or for a start whose generation is not the one running.
+    assert!(read_account_at_ready_within(&home, &Err("refused".into()), wait).is_none());
+    let mut other = peer.g.clone(); other["spawnCounter"] = json!(9);
+    assert!(read_account_at_ready_within(&home, &Ok(json!({"state":"ready","generation":other})), wait).is_none());
+    // Another home reads nothing at ready.
+    let local = Peer::new("local-home");
+    let local_home = HomeSession::new(crate::home_resources::HomeClass::LocalProvider, local.host.clone(), Ok(cfg)).unwrap();
+    assert!(read_account_at_ready_within(&local_home, &Ok(local.host.snapshot()), wait).is_none());
+    assert!(local.host.client_requests().is_empty());
+    assert!(peer.host.client_requests().is_empty(), "nothing sent before a start reached ready");
+    let answers = [
+        json!({"result":{"account":{"type":"chatgpt","email":"invented@example.invalid","planType":"plus"},"requiresOpenaiAuth":true}}),
+        json!({"result":{"account":null,"requiresOpenaiAuth":true}}),
+        json!({"error":{"code":-32603,"message":"invented: workspace routing could not be read"}}),
+    ];
+    for (restart, answer) in answers.iter().enumerate() {
+        if restart > 0 {
+            // A restart: the earlier generation closes and the next one is ready.
+            let mut i = peer.host.inner.0.lock().unwrap();
+            Host::close_generation(&mut i);
+            i.generation["spawnCounter"] = json!(restart + 1);
+            peer.g = i.generation.clone();
+        }
+        let started = Ok(peer.host.snapshot());
+        let view = std::thread::scope(|scope| {
+            let work = scope.spawn(|| read_account_at_ready_within(&home, &started, wait));
+            let read = peer.frame();
+            assert_eq!(read["method"], "account/read");
+            assert_eq!(read["params"], json!({}), "empty params: no token refresh is asked for");
+            let mut reply = answer.clone(); reply["id"] = read["id"].clone();
+            peer.host.on_line(&serde_json::to_vec(&reply).unwrap(), &peer.g);
+            work.join().unwrap()
+        }).expect("a start that reached ready reads the account").unwrap();
+        let rows = peer.host.client_requests();
+        assert_eq!(rows.len(), restart + 1, "one read per start that reached ready");
+        let row = rows.last().unwrap();
+        assert_eq!(row["generation"], peer.g, "the read belongs to the generation that became ready");
+        assert_eq!(row["initiator"], json!({"kind":"app-rule","name":"app-at-ready"}), "named as the App's read, never person-directed");
+        let observation = view["observations"].as_array().unwrap().last().unwrap().clone();
+        assert_eq!(observation["source"]["generation"], peer.g);
+        match restart {
+            0 => assert_eq!(observation["accountObservation"]["state"], "native account type observed"),
+            1 => assert_eq!(observation["accountObservation"]["state"], "native account null observed"),
+            _ => assert_eq!(observation["source"]["outcome"], "response-observed-error", "an error is an error, not an absent account"),
+        }
+    }
+    // A read Codex does not answer within the limit is recorded as waited for and unanswered.
+    let started = Ok(peer.host.snapshot());
+    let view = std::thread::scope(|scope| {
+        let work = scope.spawn(|| read_account_at_ready_within(&home, &started, Duration::from_millis(50)));
+        assert_eq!(peer.frame()["method"], "account/read");
+        work.join().unwrap()
+    }).unwrap().unwrap();
+    let unanswered = view["observations"].as_array().unwrap().last().unwrap().clone();
+    assert_eq!((unanswered["source"]["outcome"].as_str(), unanswered["source"]["waitingEnded"].as_bool()), (Some("pending"), Some(true)));
+    assert!(unanswered["accountObservation"].is_null(), "no account state is claimed for an unanswered read");
+    assert!(peer.host.client_requests().iter().all(|r| r["method"] == "account/read"), "no sign-in, refresh or other request");
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+/// The App's own read of the stored history list once Codex is ready (at launch and after each start or
+/// restart), beside the account read: the same thread/list as the person's "Read stored conversations", newest
+/// first, every cursor followed to the list's end, recorded under the App's own initiator. It reads the list only:
+/// no thread/read, thread/resume or other request, and no selection. Its pages reach the same history view the
+/// History panel shows. "read-to-end" only when the last page was accepted and said there is no more; an error, no
+/// answer, a cursor left or the page bound is "stopped", and leaves the list's cursor as it was, never exhausted.
+/// The list is marked as being read before the account is read, so an unread list is never taken for an empty one.
+#[test]
+fn codex_ready_reads_the_history_list_to_its_end_as_the_apps_own_read_and_selects_nothing() {
+    use crate::runtime_session::{read_at_ready, read_history_at_ready_within, HomeSession};
+    let root = std::env::temp_dir().canonicalize().unwrap().join(opaque_id("history-at-ready-").unwrap());
+    std::fs::create_dir(&root).unwrap();
+    let mut peer = Peer::new("account-home");
+    let cfg = HostConfig::new(root.join("not-run"), root.join("account"), root.join("probe"), "/invented/work".into());
+    let home = HomeSession::new(crate::home_resources::HomeClass::Account, peer.host.clone(), Ok(cfg.clone())).unwrap();
+    let wait = Duration::from_secs(5);
+    let thread = json!({"id":"stored","cliVersion":"0.167.0","createdAt":1,"updatedAt":2,"cwd":"/invented","ephemeral":false,"modelProvider":"configured","preview":"invented","projectId":null,"sessionId":"native-session","source":"appServer","status":{"type":"notLoaded"},"turns":[]});
+    // A refused start, or another home, reads nothing.
+    assert!(read_history_at_ready_within(&home, &Err("refused".into()), wait, 100).is_none());
+    let local = Peer::new("local-home");
+    let local_home = HomeSession::new(crate::home_resources::HomeClass::LocalProvider, local.host.clone(), Ok(cfg)).unwrap();
+    assert!(read_history_at_ready_within(&local_home, &Ok(local.host.snapshot()), wait, 100).is_none());
+    assert!(local.host.client_requests().is_empty() && peer.host.client_requests().is_empty());
+    let view = |home: &HomeSession| home.history.lock().unwrap().snapshot(None);
+    let reply = |peer: &Peer, frame: &Value, body: Value| {
+        let mut reply = body; reply["id"] = frame["id"].clone();
+        peer.host.on_line(&serde_json::to_vec(&reply).unwrap(), &peer.g);
+    };
+    let restart = |peer: &mut Peer, counter: usize| {
+        let mut i = peer.host.inner.0.lock().unwrap();
+        Host::close_generation(&mut i);
+        i.generation["spawnCounter"] = json!(counter);
+        peer.g = i.generation.clone();
+    };
+
+    // At launch: the list is marked as being read before the account read is answered, then read across two pages
+    // to its end. Nothing listed: the view says the list is exhausted and empty.
+    let started = Ok(peer.host.snapshot());
+    std::thread::scope(|scope| {
+        let work = scope.spawn(|| read_at_ready(&home, &started));
+        let account = peer.frame();
+        assert_eq!(account["method"], "account/read");
+        let marked = view(&home)["readAtReady"].clone();
+        assert_eq!((marked["state"].as_str(), &marked["generation"]), (Some("reading"), &peer.g), "under way before the account answers");
+        reply(&peer, &account, json!({"result":{"account":{"type":"chatgpt","email":"invented@example.invalid","planType":"plus"},"requiresOpenaiAuth":true}}));
+        let first = peer.frame();
+        assert_eq!((first["method"].as_str(), &first["params"]), (Some("thread/list"), &json!({"sortDirection":"desc"})));
+        reply(&peer, &first, json!({"result":{"data":[],"nextCursor":"page-2","backwardsCursor":null}}));
+        let second = peer.frame();
+        assert_eq!((second["method"].as_str(), &second["params"]), (Some("thread/list"), &json!({"sortDirection":"desc","cursor":"page-2"})), "the cursor is followed");
+        reply(&peer, &second, json!({"result":{"data":[],"nextCursor":null,"backwardsCursor":null}}));
+        work.join().unwrap();
+    });
+    let shown = view(&home);
+    assert_eq!(shown["readAtReady"], json!({"generation":peer.g,"state":"read-to-end"}));
+    assert_eq!((shown["listCursor"]["state"].as_str(), shown["threads"].as_array().map(Vec::len)), (Some("exhausted"), Some(0)));
+    assert!(shown["selected"].is_null() && shown["selectionEpoch"] == 0, "nothing selected");
+    let rows = peer.host.client_requests();
+    assert_eq!(rows.iter().map(|r| r["method"].as_str().unwrap()).collect::<Vec<_>>(), ["account/read", "thread/list", "thread/list"], "no thread/read, thread/resume or other request");
+    assert!(rows.iter().all(|r| r["initiator"] == json!({"kind":"app-rule","name":"app-at-ready"})), "the App's own reads, never person-directed");
+
+    // After a restart, in its own generation: one stored conversation, listed in the view; it is not selected or opened.
+    restart(&mut peer, 2);
+    let started = Ok(peer.host.snapshot());
+    let outcome = std::thread::scope(|scope| {
+        let work = scope.spawn(|| read_history_at_ready_within(&home, &started, wait, 100));
+        let list = peer.frame();
+        reply(&peer, &list, json!({"result":{"data":[thread],"nextCursor":null,"backwardsCursor":null}}));
+        work.join().unwrap()
+    });
+    assert_eq!(outcome, Some(Ok(())));
+    let shown = view(&home);
+    assert_eq!((shown["generation"].clone(), shown["threads"][0]["native"]["id"].as_str()), (peer.g.clone(), Some("stored")));
+    assert!(shown["selected"].is_null() && shown["selectionEpoch"] == 0, "listed, not selected");
+
+    // A later page that fails, an unanswered page, and a list past the page bound: each stops short, never exhausted.
+    for (counter, case) in [(3, "error"), (4, "unanswered"), (5, "bound")] {
+        restart(&mut peer, counter);
+        let started = Ok(peer.host.snapshot());
+        let (page_wait, pages) = match case { "unanswered" => (Duration::from_millis(50), 100), "bound" => (wait, 1), _ => (wait, 100) };
+        let outcome = std::thread::scope(|scope| {
+            let work = scope.spawn(|| read_history_at_ready_within(&home, &started, page_wait, pages));
+            let first = peer.frame();
+            match case {
+                "unanswered" => {}
+                _ => {
+                    reply(&peer, &first, json!({"result":{"data":[],"nextCursor":"more","backwardsCursor":null}}));
+                    if case == "error" {
+                        let second = peer.frame();
+                        reply(&peer, &second, json!({"error":{"code":-32603,"message":"invented: history could not be read"}}));
+                    }
+                }
+            }
+            work.join().unwrap()
+        });
+        assert!(matches!(outcome, Some(Err(_))), "{case}: stopped short");
+        let shown = view(&home);
+        assert_eq!(shown["readAtReady"]["state"], "stopped", "{case}");
+        assert_ne!(shown["listCursor"]["state"], "exhausted", "{case}: a partial read is never the list's end");
+    }
+    assert!(peer.host.client_requests().iter().all(|r| matches!(r["method"].as_str(), Some("account/read" | "thread/list"))));
+    std::fs::remove_dir_all(root).unwrap();
+}

@@ -1,0 +1,18 @@
+{
+  "accepted": [
+    "019a-thread_1.2:x",
+    "items/thread-1",
+    "a:b.c",
+    "42",
+    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+  ],
+  "refused": [
+    "thr-1\nQuit proceeds; nothing is stopped.",
+    "thr-1\u202e",
+    "thr-\u200b1",
+    "Quit proceeds; nothing is stopped.",
+    "",
+    "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+    "a b"
+  ]
+}

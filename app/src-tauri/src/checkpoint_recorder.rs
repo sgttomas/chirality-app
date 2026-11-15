@@ -60,7 +60,7 @@ use std::path::Path;
 
 /// The App's exact-byte content method (RS §6.2a, CC-CONTENT-RX).
 const EXACT_BYTES: &str = "chirality.app.exact-bytes.sha256/v1";
-const ACT_COUNTING: &str = "Acts are counted from the App-file act and decline records in this project's record set, each only through the capture object it cites (SP-3; the App act control's captures): an act of the required kind bound to this referent's content counts, an earlier one included (SP-6). A capture counts only when its seal verifies under a key this App installation holds (AAC §6.3 SEAL-C); an unsealed capture, or one sealed by another installation, is not verified here and not counted. A seal shows a holder of this installation's key wrote the capture, not that a person acted or who: any process that can read the key, a same-user process or an agent whose sandbox can read the App data folder included, could seal. Acts on host content and A12 control relations are not observed by this App.";
+const ACT_COUNTING: &str = "Acts are counted from the App-file act and decline records in this project's record set, each only through the capture object it cites (SP-3): an act of the required kind bound to this referent's content counts, an earlier one included (SP-6). A capture counts only when its seal verifies under a key this App installation holds (AAC §6.3 SEAL-C); an unsealed capture, or one sealed under a key not held here, is not verified here and not counted. A valid seal shows consistency with possession of the key over the covered facts. Any process running as the same user can read a file key. Keychain verification shows consistency with possession of a key held in the person's keychain under the keychain's protection. The capture does not record which provider held its key. No seal establishes who wrote the capture, that a person was present, or that they judged. Acts on host content and A12 control relations are not observed by this App.";
 const MESSAGE_ACT_LIMIT: &str = "No App act control binds an act to an agent message (CAP-1 binds App files by content identity), so no act can be counted for this arrival.";
 const MESSAGE_LIMIT: &str = "The designating line marks where the agent put the output; it does not show that the content is what the declaration describes (AW-6).";
 const FILE_LIMIT: &str = "Only an add, an in-place update or a move onto the declared path counts; a delete or a move away does not (this App's reading of AW-7). The path is compared with the declared project-relative path after removing the project root from an absolute path and normalizing `.` segments and repeated separators on both sides; a path with `..` never matches; how Codex reports file paths is not observed (O-8, U-E26).";
@@ -1721,7 +1721,7 @@ pub(crate) fn project_act_records(root: &Path) -> Result<ActRead, String> {
         } else if state.identity_resolution == "conflicting identity" {
             Err("conflicting record identity".into())
         } else if record["recorder"]["role"] != crate::records::APP_INTERFACE.role || record["recorder"]["identity"] != crate::records::APP_INTERFACE.identity {
-            Err("not written by the App's capturing surface (PH-4)".into())
+            Err("the record's recorder claim does not name the App's capturing surface (PH-4)".into())
         } else {
             let observed = crate::file_act_view::observe_capture(&root, b);
             reusable &= observed.reusable;
