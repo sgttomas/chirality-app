@@ -98,7 +98,7 @@ async function ordinaryStartCase({initialThread = false, startGeneration = g, ou
     assert.equal(props(start).disabled, false);
     await React.act(async () => {await props(start).onClick();});
     assert.deepEqual(calls.filter(call => call.command === 'thread_start'), [{command: 'thread_start', args: {
-      model: 'chosen-model', modelProvider: 'openai', entryId: 'chatgpt-account', modeHomeClass: 'account', generation: g, role: 'HELP_HUMAN', preselected: true,
+      model: 'chosen-model', modelProvider: 'openai', entryId: 'chatgpt-account', entrySource: 'app-showed-only-entry', modeHomeClass: 'account', generation: g, role: 'HELP_HUMAN', preselected: true,
     }}], 'one person-initiated start with the chosen configuration');
     assert.ok(calls.every(call => ['host_status', 'decision_view', 'native_confirmation_content', 'thread_start'].includes(call.command)), 'Start never sends composer text or retries');
     assert.equal(props(elements(conversation(), 'textarea')[0]).value, draft, 'unsent composer retained');
@@ -1286,7 +1286,7 @@ test('a pick the effort control refuses while the conversation is busy says why'
   const {OfferedEffortChoice} = loadSrc('ModelChoice');
   const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);const choices=[];
   const previous=window.__TAURI_INTERNALS__;
-  window.__TAURI_INTERNALS__={invoke:async command=>{assert.equal(command,'read_available_models');return effortPacket;}};
+  window.__TAURI_INTERNALS__={invoke:async(command,args)=>{assert.equal(command,'read_available_models');assert.equal(args.atPersonPress,false,'opening the effort control is an App read');return effortPacket;}};
   let current={owner:'original',threadId:'t',generation:g,homeClass:'account',modelProvider:'openai',entryId:'chatgpt-account',model:'',effort:'',disabled:false,busy:false,inForce:'medium',choose:(...args)=>choices.push(args)};
   const show=async patch=>{current={...current,...patch};await React.act(async()=>root.render(React.createElement(OfferedEffortChoice,current)));};
   try {

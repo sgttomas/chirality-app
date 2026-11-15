@@ -51,7 +51,7 @@ async function mounted(options,check){
   if(command==='native_confirmation_content')return [];
   if(command==='select_home'){active=args.modeHomeClass;return {state:'selected'};}
   if(command==='thread_start'){
-   assert.deepEqual(args,{model:choice.model,modelProvider:'openai',entryId:'chatgpt-account',modeHomeClass:'account',generation:g,role:null,preselected:false});
+   assert.deepEqual(args,{model:choice.model,modelProvider:'openai',entryId:'chatgpt-account',entrySource:'app-showed-only-entry',modeHomeClass:'account',generation:g,role:null,preselected:false});
    if(options.startError)throw options.startError;
    account.threads.push(thread('new-choice'));return {id:91,startGeneration:g,result:{thread:{id:'new-choice'}}};
   }

@@ -70,7 +70,7 @@ impl AccountObservation {
 
 /// Who chose a conversation's access entry, where it was the only one available: the App showed it.
 pub const SHOWN_ONLY_ENTRY: &str = "app-showed-only-entry";
-/// Who chose a conversation's access entry, where several were available: the person (the schema's word for the
+/// Who chose a conversation's access entry, including a pressed single entry: the person (the schema's word for the
 /// person's choice, as `source` uses it). A record without `entrySource` says it was not recorded.
 pub const PERSON_CHOSE_ENTRY: &str = "person";
 pub struct ConversationSelection {
@@ -181,6 +181,15 @@ impl ConversationSelection {
         self.choose(entry, provider, model, false)?;
         self.record["selection"]["entrySource"] = json!(SHOWN_ONLY_ENTRY);
         Ok(())
+    }
+    /// Record the control's actual origin, validating a shown-entry claim against the build's offered set.
+    /// Neither path accepts an offered last choice or alters an existing conversation.
+    pub fn choose_start_entry(&mut self, entry: &str, provider: &str, model: &str, source: &str, only_entry: bool) -> Result<(), String> {
+        match source {
+            SHOWN_ONLY_ENTRY if only_entry => self.choose_model_for_shown_entry(entry, provider, model),
+            PERSON_CHOSE_ENTRY => self.choose(entry, provider, model, false),
+            _ => Err("The access entry's origin is not established for this start; nothing started".into()),
+        }
     }
     pub fn start_params(
         &mut self,
@@ -415,6 +424,22 @@ mod tests {
         assert_eq!(choice.snapshot()["project"], "App P / 家");
         assert!(ConversationSelection::new_explicit("c", Some("")).is_err());
         assert!(ConversationSelection::new("c", "").is_err());
+    }
+    #[test]
+    fn each_start_records_the_entry_control_origin_without_an_offered_last_choice() {
+        for (start, source) in [("ordinary", SHOWN_ONLY_ENTRY), ("continue-as", PERSON_CHOSE_ENTRY), ("clean-trial", PERSON_CHOSE_ENTRY)] {
+            let mut choice = ConversationSelection::new(start, "p").unwrap();
+            choice.choose_start_entry("chatgpt-account", "openai", "m", source, true).unwrap();
+            valid(&choice);
+            assert_eq!(choice.snapshot()["selection"]["entrySource"], source, "{start}");
+            assert_eq!(choice.snapshot()["selection"]["source"], "person", "not an accepted last choice");
+            assert!(choice.snapshot().get("offer").is_none());
+        }
+        let mut invalid = ConversationSelection::new("invalid", "p").unwrap();
+        for source in ["", "unknown", SHOWN_ONLY_ENTRY] {
+            assert!(invalid.choose_start_entry("chatgpt-account", "openai", "m", source, false).is_err());
+            assert_eq!(invalid.snapshot()["state"], "no-selection");
+        }
     }
     #[test]
     fn a_shown_only_entry_is_recorded_as_shown_by_the_app_never_as_the_persons_choice() {

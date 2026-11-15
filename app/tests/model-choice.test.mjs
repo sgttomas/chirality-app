@@ -34,7 +34,7 @@ const models = [
   {id:'model-b', model:'model-b', displayName:'Model B', description:'Invented small model', isDefault:false},
 ];
 const packet = (over = {}) => ({state:'observed', generation:g, modeHomeClass:'account', serverProvider:'openai', serverProviderState:'named', models, complete:true, limits:[], readAt:'2026-11-03T00:00:00Z',
-  standing:'Models Codex reports for the app-server\'s own provider in this Codex generation, read now at your press. A listed model is the supplier\'s reported availability for that provider, not your account\'s entitlement or access; Start still checks the current configuration.', ...over});
+  standing:'Models Codex reports for the app-server\'s own provider in this Codex generation. A listed model is the supplier\'s reported availability for that provider, not your account\'s entitlement or access; Start still checks the current configuration.', ...over});
 const snapshotFor = (mode = 'account', generation = g) => ({state:'ready', generation, homeRouting:{activeModeHomeClass:mode}, threads:[],
   roleLimits:{account:{roles:[]}, 'api-key':{roles:[]}}, roleSet:{available:true, defaultRole:'HELP_HUMAN', roles:[{name:'HELP_HUMAN', meaning:'fixture role', default_for_new_chat:true}]}});
 
@@ -106,7 +106,7 @@ test('a first-time account user meets the only connection in use and the model l
     assert.deepEqual(ui.issued(), [], 'nothing is read while New conversation is not shown');
     await go(ui, 'Conversation');
     // New conversation opens with the connection in use and Codex ready: the App reads the list itself.
-    assert.deepEqual(ui.issued(), [{command:'read_available_models', args:{generation:g, modeHomeClass:'account'}}]);
+    assert.deepEqual(ui.issued(), [{command:'read_available_models', args:{generation:g, modeHomeClass:'account', atPersonPress:false}}]);
     assert.match(region(ui.c, 'Available models').textContent, /Reading the models Codex offers…/, 'never just empty while it is read');
     await React.act(async () => { reply.resolve(packet()); });
     const list = region(ui.c, 'Available models').textContent;
@@ -119,6 +119,7 @@ test('a first-time account user meets the only connection in use and the model l
     assert.match(region(ui.c, 'Available models').textContent, /Model B model-b · chosen/);
     await ui.press('Start thread');
     const start = ui.issued().find(call => call.command === 'thread_start');
+    assert.equal(start.args.entrySource, "app-showed-only-entry");
     assert.deepEqual({model:start.args.model, modelProvider:start.args.modelProvider, entryId:start.args.entryId, modeHomeClass:start.args.modeHomeClass},
       {model:'model-b', modelProvider:'openai', entryId:'chatgpt-account', modeHomeClass:'account'});
     assert.equal(ui.issued().filter(call => call.command === 'read_available_models').length, 1, 'nothing re-reads or retries on its own');
@@ -189,7 +190,9 @@ test('a long already-safe App response keeps its distinct tail in optional detai
     }
     throw Error(`unexpected ${command}`);
   }, async ui => {
-    await ui.press('Read the list again'); await ui.press('Use model model-b');
+    await ui.press('Read the list again');
+    assert.equal(ui.issued().filter(c => c.command === 'read_available_models').at(-1).args.atPersonPress, true);
+    await ui.press('Use model model-b');
     await ui.press('Start thread');
     const feedback = region(ui.c, 'Latest App response');
     const details = nodes(feedback, 'details')[0];

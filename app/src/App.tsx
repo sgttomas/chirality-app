@@ -424,7 +424,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
     {selected && <ContinuationContext key={`prior-work:${JSON.stringify([selected.generation, selected.threadId, selected.resumeRequestRef])}`} host={host} thread={selected} />}
     {threadKey && !selected && <p>Selected conversation is no longer available in this generation; choose a current conversation.</p>}
     {handoffs.map((handoff: Json) => <ContinueAsPanel key={handoff.id} handoff={handoff} entries={startEntries(host)} homeClass={host?.homeRouting?.activeModeHomeClass ?? null} generation={host?.generation ?? null} busy={!!busy} ready={host?.state === "ready"} local={localRoute}
-      start={(choice, source) => startContinueAs({ ...choice, modeHomeClass: source.modeHomeClass, generation: source.generation, role: handoff.targetRole ?? null, preselected: false, continueAs: handoff.id })}
+      start={(choice, source) => startContinueAs({ ...choice, entrySource: "person", modeHomeClass: source.modeHomeClass, generation: source.generation, role: handoff.targetRole ?? null, preselected: false, continueAs: handoff.id })}
       send={draft => handoffSend ? handoffSend(handoff.id, draft) : Promise.resolve({ state: "unknown", reason: "The original handoff sender is unavailable." })}
       read={handoffRead ? () => handoffRead(handoff.id) : undefined}
       open={() => { const started = handoff.started; if (started) setThreadKey(JSON.stringify([started.generation, started.threadId])); }}
@@ -1774,7 +1774,7 @@ export function App() {
   const modelObservationCurrent = !!modelObservation && host?.state === "ready" && !host?.generationClosed
     && modelObservation.source === providerSource(host) && modelObservation.epoch === chooserHome.current.epoch
     && modelObservation.sequence === modelReadSequence.current;
-  const readAvailableModels = async () => {
+  const readAvailableModels = async (atPersonPress = false) => {
     const original = currentHost.current;
     const mode = original?.homeRouting?.activeModeHomeClass;
     if (modelReadPending.current || startPendingRef.current || homePendingRef.current || original?.state !== "ready" || original?.generationClosed
@@ -1784,7 +1784,7 @@ export function App() {
       && currentHost.current?.state === "ready" && !currentHost.current?.generationClosed && !homePendingRef.current;
     modelReadPending.current = true; setModelReading(true); setModelObservation(null); setModelObservationMessage("");
     try {
-      const packet: Json = await invoke("read_available_models", { generation: original.generation, modeHomeClass: mode });
+      const packet: Json = await invoke("read_available_models", { generation: original.generation, modeHomeClass: mode, atPersonPress });
       if (!current()) return;
       if (!validModelPacket(packet, original.generation, mode)) throw Error("the reply was not a model list for this Codex source");
       setModelObservation({ packet, source, epoch, sequence });
@@ -2292,7 +2292,7 @@ export function App() {
     try {
       // `generation` is the one shown when the person pressed Start. The current
       // native receiver ignores it; a native follow-up will require it at admission.
-      const response: Json = await invoke("thread_start", { model: submitted.model, modelProvider: submitted.modelProvider, entryId: submitted.entryId,
+      const response: Json = await invoke("thread_start", { model: submitted.model, modelProvider: submitted.modelProvider, entryId: submitted.entryId, entrySource: onlyAccessEntry(mode) ? "app-showed-only-entry" : "person",
         modeHomeClass: mode, generation: source.generation, role: role || null, preselected: !roleTouched && !!role && role === source?.roleSet?.defaultRole });
       const opened = startedConversationKey(response);
       if (opened) {
@@ -2845,7 +2845,7 @@ export function App() {
           {homeClass === "account" && <p aria-label="Local model servers">Local providers named in your own Codex settings are not offered: the App can’t run one in this home, and this version offers no local model server.</p>}
           <h3>2. Model</h3>
           <AvailableModels packet={modelObservation?.packet ?? null} current={modelObservationCurrent} reading={modelReading} message={modelObservationMessage}
-            model={model} modelProvider={modelProvider} entryId={entryId} read={() => { void readAvailableModels(); }} choose={chooseListedModel}
+            model={model} modelProvider={modelProvider} entryId={entryId} read={() => { void readAvailableModels(true); }} choose={chooseListedModel}
             setModel={model => reviseChoice({ model })} fixedModel={fixedLocal && entryId === fixedLocal.entryId ? fixedLocal.model : null}
             localHome={homeClass === LOCAL_MODE ? (fixedLocal ? "prepared" : "unprepared") : null} auto={onlyAccessEntry(homeClass)}
             disabled={host?.state !== "ready" || !!host?.generationClosed || homeClass !== "account" || startPending || homePending || endpointBusy}/>

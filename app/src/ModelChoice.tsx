@@ -50,7 +50,7 @@ export const SHOWN_ROUTE = { modelProvider: BUILT_IN_PROVIDER, entryId: "chatgpt
 /** How the only connection is shown. It says nothing of whether anyone is signed in. */
 export const CONNECTION_IN_USE = "Connects with your ChatGPT account (built-in OpenAI) — the only connection this version offers.";
 /** Who chose a conversation's access entry, as its selection record says (access.conversation-selection schema,
- * `entrySource`): the App showed the only entry, or the person chose among several. A record without the field, or
+ * `entrySource`): the App showed the only entry, or the person pressed an entry (including a sole entry). A record without the field, or
  * with any other value, says it was not recorded, never that the person chose it. */
 export const entrySourceReading = (selection: Json): "app-showed-only-entry" | "person" | "not-recorded" =>
   selection?.entrySource === "app-showed-only-entry" || selection?.entrySource === "person" ? selection.entrySource : "not-recorded";
@@ -201,7 +201,7 @@ export function useBoundModelChoice({ owner, homeClass, generation, ready }: { o
     const at = epoch, number = ++sequence.current;
     const still = () => mounted.current && number === sequence.current && at === seen.current.epoch;
     pending.current = true; setReading(true); setObservation(null); setMessage(null);
-    void Promise.resolve().then(() => invoke("read_available_models", { generation: original, modeHomeClass: mode })).then((packet: Json) => {
+    void Promise.resolve().then(() => invoke("read_available_models", { generation: original, modeHomeClass: mode, atPersonPress: true })).then((packet: Json) => {
       if (!still()) return;
       if (!validModelPacket(packet, original, mode)) throw Error("the reply was not a model list for this Codex source");
       setObservation({ packet, epoch: at, sequence: number });
@@ -280,7 +280,7 @@ export function OfferedEffortChoice({ owner, threadId, generation, homeClass, mo
     pending.current = epoch; resultRef.current = null; readFor.current = epoch;
     setReading(true); setResult(null); setRefusal(null);
     try {
-      const packet: Json = await invoke("read_available_models", { generation, modeHomeClass: homeClass, threadId });
+      const packet: Json = await invoke("read_available_models", { generation, modeHomeClass: homeClass, threadId, atPersonPress: false });
       if (!validModelPacket(packet, generation, homeClass ?? "")) throw Error("not a model list for this Codex source");
       if (mounted.current && latest.current.epoch === epoch && number === sequence.current) { lists.current.set(key, packet); setResult({ epoch, sequence: number, packet }); }
     } catch {

@@ -69,7 +69,7 @@ test('a clean trial chooses the built-in route and a reported model, and Send st
     assert.deepEqual(ui.calls, [], 'choosing the route issues nothing');
     assert.equal(!!props(button(ui.c, 'Send')).disabled, true, 'a route without a model is not enough');
     await ui.press('Read available models'); await ui.settle();
-    assert.deepEqual(ui.issued(), [{command:'read_available_models', args:{generation:g, modeHomeClass:'account'}}]);
+    assert.deepEqual(ui.issued(), [{command:'read_available_models', args:{generation:g, modeHomeClass:'account', atPersonPress:true}}]);
     assert.match(region(ui.c, 'Available models').textContent, /Model A model-a · Codex's default/);
     assert.equal(!!props(button(ui.c, 'Send')).disabled, true, 'the reported default is not preselected');
     await ui.change(labelled(ui.c, 'textarea', 'Inputs for this trial'), 'my edited inputs');
@@ -77,7 +77,7 @@ test('a clean trial chooses the built-in route and a reported model, and Send st
     assert.match(region(ui.c, 'Available models').textContent, /Model B model-b · chosen/);
     assert.deepEqual(acts, [], 'choosing a model sends nothing');
     await ui.press('Send'); await ui.settle();
-    assert.deepEqual(acts, [['workflow_trial_start_clean', {reference:'trial:7', model:'model-b', modelProvider:'openai', entryId:'chatgpt-account', modeHomeClass:'account', generation:g, role:null, preselected:false, personText:'my edited inputs'}]]);
+    assert.deepEqual(acts, [['workflow_trial_start_clean', {reference:'trial:7', model:'model-b', modelProvider:'openai', entryId:'chatgpt-account', entrySource:'person', modeHomeClass:'account', generation:g, role:null, preselected:false, personText:'my edited inputs'}]]);
     assert.match(panel.textContent, /Sent in the new trial conversation clean-1/);
     assert.equal(ui.issued().length, 1, 'nothing re-reads on its own');
   });
@@ -106,7 +106,7 @@ test('a home or generation change keeps the clean trial inputs, makes the choice
     let release; reply = new Promise(resolve => { release = resolve; });
     await ui.press('Use my ChatGPT account (built-in OpenAI)');
     await ui.press('Read available models');
-    assert.deepEqual(ui.issued().at(-1).args, {generation:g2, modeHomeClass:'account'}, 'the read is for the current generation');
+    assert.deepEqual(ui.issued().at(-1).args, {generation:g2, modeHomeClass:'account', atPersonPress:true}, 'the read is for the current generation');
     await ui.render({modeHomeClass:'api-key', generation:{...g2, home:'api-key'}});
     release(packet({generation:g2})); await ui.settle();
     assert.deepEqual(buttons(ui.c, 'Use model'), [], 'a late reply for the earlier source chooses and offers nothing');
@@ -212,7 +212,7 @@ test('Continue as chooses a route and reported model, keeps the edited handoff a
     await ui.change(labelled(ui.c, 'textarea', 'Handoff message'), 'Edited handoff');
     await ui.press('Use my ChatGPT account (built-in OpenAI)');
     await ui.press('Read available models'); await ui.settle();
-    assert.deepEqual(ui.issued(), [{command:'read_available_models', args:{generation:g, modeHomeClass:'account'}}]);
+    assert.deepEqual(ui.issued(), [{command:'read_available_models', args:{generation:g, modeHomeClass:'account', atPersonPress:true}}]);
     await ui.press('Use model model-b');
     const earlierStart = props(button(ui.c, start)).onClick;
     await ui.render({generation:g2});
@@ -224,7 +224,7 @@ test('Continue as chooses a route and reported model, keeps the edited handoff a
     assert.match(region(ui.c, 'Continue as').textContent, /Not started: the connection and model you pressed for are no longer the current choice \(Codex, the home or the choice changed\)\. Your handoff message is kept/);
     await ui.press('Use my ChatGPT account (built-in OpenAI)');
     await ui.press('Read available models'); await ui.settle();
-    assert.deepEqual(ui.issued().at(-1).args, {generation:g2, modeHomeClass:'account'});
+    assert.deepEqual(ui.issued().at(-1).args, {generation:g2, modeHomeClass:'account', atPersonPress:true});
     await ui.press('Use model model-a');
     await ui.press(start);
     assert.deepEqual(starts, [{model:'model-a', modelProvider:'openai', entryId:'chatgpt-account', generation:g2, modeHomeClass:'account'}], 'the start carries the generation the choice was made for');
@@ -317,6 +317,7 @@ test('in the App, a rejected Continue as start is reported in its panel and hold
     const beforeOutcomeStart = props(button(panel(), start)).onClick;
     await press(start);
     assert.equal(starts.length, 1);
+    assert.equal(starts[0].entrySource, "person", "the route was pressed, even though only one entry was offered");
     assert.deepEqual({model:starts[0].model, modelProvider:starts[0].modelProvider, entryId:starts[0].entryId, modeHomeClass:starts[0].modeHomeClass, generation:starts[0].generation, continueAs:starts[0].continueAs}, {model:'model-b', modelProvider:'openai', entryId:'chatgpt-account', modeHomeClass:'account', generation:g, continueAs:'handoff-1'});
     const outcome = region(panel(), 'Start outcome');
     assert.ok(outcome, 'the outcome is shown in the Continue as panel');

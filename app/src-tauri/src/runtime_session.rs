@@ -10062,6 +10062,22 @@ for line in sys.stdin:
         assert!(strict.is_string()&&strict!=read,"the settings reading is no longer current after the newer read");
     }
     #[test]
+    fn model_catalog_records_app_reads_and_pressed_reads_as_their_actual_initiator() {
+        let peer = Peer::new();
+        for (pressed, kind) in [(false, "app-rule"), (true, "person-directed")] {
+            let before = peer.home.host.client_requests().len();
+            let view = peer.home.host.model_catalog_read_with_origin(&peer.generation, pressed);
+            assert_eq!(view["state"], "observed", "{view}");
+            let requests = peer.home.host.client_requests();
+            let rows = &requests[before..];
+            assert_eq!(rows.len(), 3, "two config reads and the model list");
+            for row in rows { assert_eq!(row["initiator"], json!({"kind":kind,"name":"model-catalog-read"}), "{row}"); }
+            assert!(!view.to_string().contains("at your press"));
+            assert!(view.to_string().contains("not your account's entitlement or access"));
+            assert!(view.to_string().contains("Start still checks the current configuration"));
+        }
+    }
+    #[test]
     fn model_catalog_lists_the_server_providers_models_at_a_press_and_keeps_no_configuration(){
         let peer=Peer::new();
         let read=|g:&Value|peer.home.host.model_catalog_read(g);

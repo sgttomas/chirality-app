@@ -4183,8 +4183,8 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         self.insert_start_response(&sent_generation,&params,&r,false)?;
         Ok(r)
     }
-    /// DEL-01-05 REQ-004: where the App showed the only access entry as the connection in use, the started conversation's
-    /// requested destination says so (`entrySource`) beside `source`. `source: "person-selected"` covers the model the
+    /// DEL-01-05 REQ-004: the started conversation's requested destination records whether the App showed the only
+    /// entry or the person pressed its control (`entrySource`), beside `source`. `source: "person-selected"` covers the model the
     /// App's thread/start carried and the act of starting the conversation, both the person's; it says nothing about
     /// who chose the access entry. Without `entrySource`, the entry's source was not recorded.
     pub(crate) fn note_requested_entry_source(&self, generation: &Value, thread: &str, entry_source: &str) {
@@ -4918,13 +4918,16 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         }
         signals
     }
-    /// DEL-01-05 model discovery at the person's press (`model_catalog`): the
+    /// DEL-01-05 model discovery (`model_catalog`): the
     /// app-server's own provider from `config/read` with no folder and at its
     /// own folder, then `model/list` without hidden models. Reads only, with the
     /// delegation read's waits; afterwards each request's evidence keeps its
     /// outcome only, as replies to these methods are journalled. Nothing is
-    /// kept in the host: the result answers only this press.
+    /// kept in the host: the result answers only this read. The caller distinguishes an App rule from a press.
     pub fn model_catalog_read(&self, generation: &Value) -> Value {
+        self.model_catalog_read_with_origin(generation, true)
+    }
+    pub(crate) fn model_catalog_read_with_origin(&self, generation: &Value, at_person_press: bool) -> Value {
         const WAIT: Duration = Duration::from_secs(10);
         let read_at = crate::util::now_rfc3339();
         let server_cwd = {
@@ -4936,13 +4939,13 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         let silent = std::cell::Cell::new(false);
         let sent = std::cell::RefCell::new(Vec::<String>::new());
         let read = |method: &str, params: Value, schema: &str| -> Result<Value, String> {
-            if silent.get() { return Err(format!("{method} not sent: an earlier read of this press got no response")); }
+            if silent.get() { return Err(format!("{method} not sent: an earlier request in this read got no response")); }
             let wait = deadline.saturating_duration_since(std::time::Instant::now()).min(WAIT);
             if wait.is_zero() { return Err(format!("{method} not sent: the read's time limit was reached")); }
             // Only fixed wording leaves this read: native errors and schema
             // findings can quote configuration, so neither is passed on.
             let until = std::time::Instant::now() + wait;
-            let initiator = json!({"kind":"person-directed","name":MODEL_CATALOG_INITIATOR});
+            let initiator = json!({"kind":if at_person_press { "person-directed" } else { "app-rule" },"name":MODEL_CATALOG_INITIATOR});
             let request = if reading_gate::is_reading(method) { self.request_reading(method, params, initiator, generation, false, until) }
                 else { self.request_begin_scoped(method, params, initiator, false, Some(generation)) }
                 .map_err(|e| reading_gate::reading_or(e, || format!("{method} not sent in this Codex generation")))?;
@@ -4989,9 +4992,9 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
     }
     /// Same catalog read with its conversation-model observation checked on
     /// both sides. Keep this boundary testable without AppState or a GUI.
-    pub(crate) fn model_catalog_read_for_conversation(&self, generation: &Value, thread: Option<&str>) -> Value {
+    pub(crate) fn model_catalog_read_for_conversation(&self, generation: &Value, thread: Option<&str>, at_person_press: bool) -> Value {
         let before = thread.map(|thread| self.ordinary_model_for_effort(generation, thread)).transpose();
-        let mut view = self.model_catalog_read(generation);
+        let mut view = self.model_catalog_read_with_origin(generation, at_person_press);
         if let Some(thread) = thread {
             let after = self.ordinary_model_for_effort(generation, thread);
             view["conversationModel"] = match (before, after) {
@@ -6623,6 +6626,10 @@ mod conversation_transport_tests {
         let threads = host.snapshot()["threads"].clone();
         assert_eq!(threads[0]["requestedDestination"], json!({"source":"person-selected","model":"selected","modelProvider":"openai","entrySource":"app-showed-only-entry"}));
         assert!(threads[1]["requestedDestination"].get("entrySource").is_none(), "another conversation is untouched");
+        host.note_requested_entry_source(&g(), "other", crate::access::PERSON_CHOSE_ENTRY);
+        let after = host.snapshot()["threads"].clone();
+        assert_eq!(after[0], threads[0], "the source conversation's destination is untouched");
+        assert_eq!(after[1]["requestedDestination"], json!({"source":"person-selected","model":"m","modelProvider":"p","entrySource":"person"}));
     }
 
     #[test]
@@ -6668,7 +6675,7 @@ mod conversation_transport_tests {
                 if changed { h.inner.0.lock().unwrap().threads[0]["model"] = json!("changed-model"); }
                 h.on_line(&serde_json::to_vec(&json!({"id":request["id"],"result":{"data":[],"nextCursor":null}})).unwrap(), &g());
             });
-            let result = host.model_catalog_read_for_conversation(&g(), Some("thread"));
+            let result = host.model_catalog_read_for_conversation(&g(), Some("thread"), false);
             reply.join().unwrap();
             assert_eq!(result["conversationModel"], if changed { Value::Null } else { json!("selected") });
             *host.stdin.lock().unwrap() = None; assert!(child.wait().unwrap().success());

@@ -180,22 +180,44 @@ test('a sign-in completed in this process and confirmed by the read after it ope
   });
 });
 
-test('the workspace line carries the sign-in itself when Codex reports no account, except on Settings & tools while Connection and access is open and carries it: one sign-in button on a view, and never none', async () => {
-  const SIGN_IN = 'Sign in with your ChatGPT account (through Codex)…';
+test('exactly one sign-in start outside Other sign-in options on each signed-out view; opening it offers another method', async () => {
   await mountedApp(noAccount(), async ui => {
     const status = () => ui.container.querySelectorAll(e => e.getAttribute('aria-label') === 'Workspace connection status')[0];
-    assert.match(status().textContent, /Codex is running\. You're not signed in\./);
+    const account = () => ui.container.querySelectorAll(e => e.getAttribute('aria-label') === 'Account connection')[0];
+    const other = () => elements(account(), 'details').find(d => elements(d, 'summary')[0]?.textContent === 'Other sign-in options');
+    const onScreen = e => { for (let n=e; n; n=n.parentNode) {
+      if (props(n)?.hidden || (n.localName === 'details' && !disclosureOpen(n))) return false;
+    } return true; };
+    // Invoke every available control in the two sign-in surfaces against the command stub, then count
+    // what actually starts sign-in. Labels cannot hide a second start or make a non-start count as one.
+    const starts = async () => {
+      const found = [];
+      const candidates = [...elements(status(), 'button'), ...elements(account(), 'button')].filter(b => onScreen(b) && !props(b)?.disabled);
+      for (const b of candidates) {
+        const before = ui.calls.length;
+        await React.act(async () => { await props(b).onClick(); });
+        for (const call of ui.calls.slice(before).filter(c => c.command === 'oauth_start')) found.push({mode:call.args.mode, alternative:other().contains(b), label:b.textContent});
+      }
+      return found;
+    };
     assert.equal(currentView(ui.container), 'Settings & tools');
-    assert.equal(elements(ui.container, 'button').filter(b => b.textContent === SIGN_IN).length, 1, 'one sign-in button: Connection and access');
-    assert.equal(elements(status(), 'button').filter(b => b.textContent === SIGN_IN).length, 0, 'not repeated on the line here');
-    // Collapsing Connection and access never leaves the view without a way to sign in: the line carries it again.
-    await React.act(() => props(byId(ui.container, 'workspace-connection')).onToggle({currentTarget: {open: false}}));
-    assert.ok(elements(status(), 'button').find(b => b.textContent === SIGN_IN), 'Connection and access closed: the sign-in is on the line');
-    await React.act(() => props(byId(ui.container, 'workspace-connection')).onToggle({currentTarget: {open: true}}));
-    assert.equal(elements(status(), 'button').filter(b => b.textContent === SIGN_IN).length, 0, 'opened again: one button, in the section');
-    await ui.navigate('History');
-    assert.ok(elements(status(), 'button').find(b => b.textContent === SIGN_IN), 'on another view the sign-in is on the line');
-    assert.equal(elements(status(), 'a').length, 0, 'no link to a section that holds the button');
+    assert.deepEqual(await starts(), [{mode:'browser', alternative:false, label:'Sign in with your ChatGPT account (through Codex)…'}]);
+    const beforeOpening = ui.calls.length;
+    other().open = true;
+    await React.act(async () => { props(other())?.onToggle?.({currentTarget:other()}); });
+    assert.equal(ui.calls.length, beforeOpening, "opening alternative methods starts nothing");
+    assert.deepEqual(await starts(), [{mode:'browser', alternative:false, label:'Sign in with your ChatGPT account (through Codex)…'}, {mode:'device-code', alternative:true, label:'Sign in through native device code…'}]);
+    other().open = false;
+    const connection = byId(ui.container, 'workspace-connection'); connection.open = false;
+    await React.act(() => props(connection).onToggle({currentTarget: {open: false}}));
+    assert.deepEqual(await starts(), [{mode:'browser', alternative:false, label:'Sign in with your ChatGPT account (through Codex)…'}], 'closed section keeps the primary start on the status line');
+    connection.open = true;
+    await React.act(() => props(connection).onToggle({currentTarget: {open: true}}));
+    assert.deepEqual(await starts(), [{mode:'browser', alternative:false, label:'Sign in with your ChatGPT account (through Codex)…'}]);
+    for (const view of ['History', 'Run a workflow', 'Make a workflow', 'Conversation']) {
+      await ui.navigate(view);
+      assert.deepEqual(await starts(), [{mode:'browser', alternative:false, label:'Sign in with your ChatGPT account (through Codex)…'}], view);
+    }
   });
 });
 
