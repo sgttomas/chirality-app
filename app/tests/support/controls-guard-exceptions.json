@@ -1,0 +1,609 @@
+[
+ {
+  "rule": "An exception identifies evidence that an expression satisfies an existing presentation rule despite the guard's limitation. It cannot introduce another permitted source or presentation form.",
+  "limit": "What this is: a regression aid. It detects the forms its tests exercise, listed in tests/support/presentation-guard.mjs. What it is not: a boundary, a proof, or mechanically complete coverage. A later unit that needs complete coverage must establish that itself; it cannot inherit it from this guard or this list."
+ },
+ {
+  "file": "ActionFeedback.tsx",
+  "where": "@aria-label",
+  "expr": "label",
+  "component": "ActionFeedback",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "Every caller passes a string literal or leaves the literal default \"Latest App response\": App.tsx:1203 passes \"Workflow command result\"; App.tsx:2646 passes none. The guard does not follow an exported component's prop to its callers."
+ },
+ {
+  "file": "DailyWorkspace.tsx",
+  "where": "<summary>",
+  "expr": "title",
+  "component": "WorkspaceDisclosure",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "Every caller passes a string literal title: the eight WorkspaceDisclosure uses at App.tsx:2653, 2717, 2732, 2740, 2745, 2748, 2753 and 2776. The guard does not follow an exported component's prop to its callers."
+ },
+ {
+  "file": "DailyWorkspace.tsx",
+  "where": "<summary>",
+  "expr": "description",
+  "component": "WorkspaceDisclosure",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "Every caller passes a string literal description: the eight WorkspaceDisclosure uses at App.tsx:2653, 2717, 2732, 2740, 2745, 2748, 2753 and 2776. The guard does not follow an exported component's prop to its callers."
+ },
+ {
+  "file": "DesktopSetupPanel.tsx",
+  "where": "<label>",
+  "expr": "label",
+  "component": "DesktopSetupPanel",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "label is an element of the literal array [\"Shared config.toml\", \"Shared AGENTS.md\", \"Shared skills directory\"] mapped at DesktopSetupPanel.tsx:122. The guard does not take a .map callback's element of a literal array as App-made."
+ },
+ {
+  "file": "DesktopSetupPanel.tsx",
+  "where": "@aria-label",
+  "expr": "label",
+  "component": "DesktopSetupPanel",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "label is an element of the literal array [\"Shared config.toml\", \"Shared AGENTS.md\", \"Shared skills directory\"] mapped at DesktopSetupPanel.tsx:122. The guard does not take a .map callback's element of a literal array as App-made."
+ },
+ {
+  "file": "DesktopSetupPanel.tsx",
+  "where": "<button>",
+  "expr": "label",
+  "component": "DesktopSetupPanel",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "label is an element of the literal array [\"Shared config.toml\", \"Shared AGENTS.md\", \"Shared skills directory\"] mapped at DesktopSetupPanel.tsx:122. The guard does not take a .map callback's element of a literal array as App-made."
+ },
+ {
+  "file": "DesktopSetupPanel.tsx",
+  "where": "<button>",
+  "expr": "preview.affirmative",
+  "component": "DesktopSetupPanel",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "preview.affirmative is one of the Host's three literals, one per setup kind: desktop_startup.rs:1532 \"Save project for next launch\", 1611 \"Create settings and save for next launch\", 1658 \"Prepare home and save for next launch\". The guard does not read the Host."
+ },
+ {
+  "file": "FirstUse.tsx",
+  "where": "<button>",
+  "expr": "preview.affirmative",
+  "component": "FirstUseSetup",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "preview.affirmative is one of the Host's three literals, one per setup kind: desktop_startup.rs:1532 \"Save project for next launch\", 1611 \"Create settings and save for next launch\", 1658 \"Prepare home and save for next launch\". The guard does not read the Host."
+ },
+ {
+  "file": "FirstUse.tsx",
+  "where": "<label>",
+  "expr": "item.label",
+  "component": "FirstUseSetup",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "item is an element of the literal table SHARED (FirstUse.tsx:33-37: Your config.toml, Your AGENTS.md, Your skills folder). The guard does not take a .map callback's element of a literal array as App-made."
+ },
+ {
+  "file": "FirstUse.tsx",
+  "where": "@aria-label",
+  "expr": "item.label",
+  "component": "FirstUseSetup",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "item is an element of the literal table SHARED (FirstUse.tsx:33-37: Your config.toml, Your AGENTS.md, Your skills folder). The guard does not take a .map callback's element of a literal array as App-made."
+ },
+ {
+  "file": "RunJourney.tsx",
+  "where": "@aria-label",
+  "expr": "label",
+  "component": "GuideResult",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "Every caller passes a string literal or a word of the App's table: MakeJourney.tsx:292 and RunJourney.tsx:398 pass literals; RunJourney.tsx:277 passes wordOf(GUIDE_RESULT_LABEL, guide) ?? \"\" (table at RunJourney.tsx:265). The guard does not follow an exported component's prop to its callers."
+ },
+ {
+  "file": "ConnectorSourcePanel.tsx",
+  "where": "<label>",
+  "expr": "title",
+  "component": "ConnectorSourcePanel",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "title is the second element of a literal tuple of the array mapped at ConnectorSourcePanel.tsx:125 (Question identity, Affected question, Asked revision, Since revision). The guard does not take a .map callback's element of a literal array as App-made."
+ },
+ {
+  "file": "App.tsx",
+  "where": "<a>",
+  "expr": "item.label",
+  "component": "App",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "item is an element of WORKSPACE_VIEWS, a literal array of literal labels (DailyWorkspace.tsx:13). The guard does not take a .map callback's element of a literal array as App-made."
+ },
+ {
+  "file": "ConnectorReconstruction.tsx",
+  "where": "<label>",
+  "expr": "side",
+  "component": "ReconstructionFields",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "side is an element of the literal array [\"since\",\"at\"] mapped at ConnectorReconstruction.tsx:22. The guard does not take a .map callback's element of a literal array as App-made."
+ },
+ {
+  "file": "ConnectorReconstruction.tsx",
+  "where": "<option>",
+  "expr": "x",
+  "component": "ReconstructionFields",
+  "count": 3,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "x is an element of a literal array in the same expression: asserted roles (ConnectorReconstruction.tsx:24), reported duties and reported statuses (ConnectorReconstruction.tsx:28). The guard does not take a .map callback's element of a literal array as App-made."
+ },
+ {
+  "file": "ConnectorRoutePanel.tsx",
+  "where": "<summary>",
+  "expr": "section.label",
+  "component": "ConnectorRoutePanel",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "section.label is one of the Host's literal section labels (connector_route_view.rs:89, the sections list of literal pairs). The guard does not read the Host."
+ },
+ {
+  "file": "ConnectorSourcePanel.tsx",
+  "where": "<option>",
+  "expr": "v",
+  "component": "ConnectorSourcePanel",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "v is an element of the literal array ['absent','stale','partial','failing'] mapped at ConnectorSourcePanel.tsx:126. The guard does not take a .map callback's element of a literal array as App-made."
+ },
+ {
+  "file": "ConnectorSourcePanel.tsx",
+  "where": "<legend>",
+  "expr": "side",
+  "component": "ConnectorDraftPanel",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "side is an element of the literal array [\"at\",\"since\"] mapped at ConnectorSourcePanel.tsx:201. The guard does not take a .map callback's element of a literal array as App-made."
+ },
+ {
+  "file": "ConnectorSourcePanel.tsx",
+  "where": "<legend>",
+  "expr": "duty",
+  "component": "ConnectorDraftPanel",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "duty is a key of the duties state, initialised at ConnectorSourcePanel.tsx:186 with three literal keys; its only writes (ConnectorSourcePanel.tsx:214) spread the old map and set an existing key. The guard does not follow a key of state."
+ },
+ {
+  "file": "ConversationRoles.tsx",
+  "where": "<label>",
+  "expr": "name",
+  "component": "RoleChoice",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "name is kept only when it is one of CONVERSATION_ROLES (the literal list at ConversationRoles.tsx:23), by the filter at ConversationRoles.tsx:147; conversation-roles.test.mjs shows a name outside the list is not offered. The guard does not follow a filter."
+ },
+ {
+  "file": "ConversationRoles.tsx",
+  "where": "<label>",
+  "expr": "text(r.meaning)",
+  "component": "RoleChoice",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "r.meaning is from the role set the Host admits only when each meaning equals its literal (role_supply.rs:76-98, RoleSet::parse refuses any other), for a role kept by the CONVERSATION_ROLES filter at ConversationRoles.tsx:147. The guard does not read the Host."
+ },
+ {
+  "file": "ConversationRoles.tsx",
+  "where": "<option>",
+  "expr": "`${r}: ${meaningOf(r)}`",
+  "component": "RoleHeader",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "r is an element of CONVERSATION_ROLES (ConversationRoles.tsx:23); meaningOf reads the meaning conversation_roles.rs:303 copies from the role set RoleSet::parse admits only with literal meanings (role_supply.rs:76-98). The guard does not read the Host."
+ },
+ {
+  "file": "ConversationRoles.tsx",
+  "where": "<option>",
+  "expr": "r",
+  "component": "RoleHeader",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "r is an element of CONVERSATION_ROLES, the literal list at ConversationRoles.tsx:23. The guard does not take a .map callback's element of a literal array as App-made."
+ },
+ {
+  "file": "IncludedWorkflows.tsx",
+  "where": "<summary>",
+  "expr": "section.label",
+  "component": "IncludedWorkflows",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "section.label is a literal set in includedSections (IncludedWorkflows.tsx: core, superseded, other) or a word of LIBRARY_GROUPS, the App's table of the shipped Library groups, taken by wordOf only when the entry's key and label are both in it; included-workflows.test.mjs shows any other group goes under Other workflows. The guard does not follow a field of a returned object."
+ },
+ {
+  "file": "MakeJourney.tsx",
+  "where": "<a>",
+  "expr": "next.link",
+  "component": "MakeWorkflowGuide",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "next is draftStep's or nextFor's result (MakeJourney.tsx:178-212), and every return there gives a literal link. The guard does not follow a field of a returned object."
+ },
+ {
+  "file": "RecordsStorePanel.tsx",
+  "where": "<button>",
+  "expr": "` (${String(project.notImportedKinds)})`",
+  "component": "RecordsStoreView",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "project.notImportedKinds is the Host's describe() (records_store.rs:2376-2390): counts and literal kind names only. The guard does not read the Host."
+ },
+ {
+  "file": "WorkflowContext.tsx",
+  "where": "@aria-label",
+  "expr": "label",
+  "component": "ConversationContext",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "Every caller passes a string literal: ConversationContext at App.tsx:405, 1073, 1074, 1111 and WorkflowDrafts.tsx:302. The guard does not follow an exported component's prop to its callers."
+ },
+ {
+  "file": "App.tsx",
+  "where": "@value",
+  "expr": "text",
+  "component": "ConversationPanel",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "An App-prepared composer text the person reads and edits before anything is sent: the person's typing, or a request composed in the web view by draftRequestText (MakeJourney.tsx:22) and placed by offerComposer (MakeJourney.tsx:310; App.tsx:319, 424). Its attribution line is part 3's."
+ },
+ {
+  "file": "App.tsx",
+  "where": "@value",
+  "expr": "text",
+  "component": "WorkflowRootPanel",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "A field holding only what the person typed: setText(e.target.value) at App.tsx:1143 is its only write here; the guard matches setters by name, and text is also bound in ConversationPanel."
+ },
+ {
+  "file": "App.tsx",
+  "where": "@value",
+  "expr": "ordinaryModelValue",
+  "component": "ConversationPanel",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "A field holding only what the person typed: ordinaryModelValue (App.tsx:153) is derived from state this field's onChange sets, or \"\". The guard does not follow a derived const."
+ },
+ {
+  "file": "App.tsx",
+  "where": "@value",
+  "expr": "search",
+  "component": "HistoryPanel",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "A field the App prefills for the person to read and change: setSearch is called only with the field's typing, \"\" (App.tsx:526, 703) or searchHint.text, a saved conversation identity a trial offers (App.tsx:533)."
+ },
+ {
+  "file": "App.tsx",
+  "where": "@value",
+  "expr": "name",
+  "component": "WorkflowRootPanel",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "A field holding only what the person typed: state set only by this field's onChange (App.tsx:1100). The guard matches setters by name, and name is also bound in DecisionPackagesPanel."
+ },
+ {
+  "file": "App.tsx",
+  "where": "@value",
+  "expr": "name",
+  "component": "DecisionPackagesPanel",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "A field holding only what the person typed: state set only by this field's onChange (App.tsx:1455). The guard matches setters by name, and name is also bound in WorkflowRootPanel."
+ },
+ {
+  "file": "RunJourney.tsx",
+  "where": "@value",
+  "expr": "personText",
+  "component": "RunWorkflowGuide",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "A field holding only what the person typed: App's text state, passed down as setText; setText(e.target.value) is its only call here and at App.tsx:1143. The guard does not follow a setter passed as a prop."
+ },
+ {
+  "file": "ConversationRoles.tsx",
+  "where": "@value",
+  "expr": "model",
+  "component": "ModelIdField",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "A field the App prefills for the person to read and change: the person's typing, or a model chosen through the route or model choice (ModelIdField's model prop)."
+ },
+ {
+  "file": "ConversationRoles.tsx",
+  "where": "@value",
+  "expr": "draft",
+  "component": "ContinueAsPanel",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "An App-prepared handoff draft the person reads and edits before anything is sent: seeded from handoff.draftText, which the Host composes, each time the draft's state changes, unless the person has already pressed; the field is disabled while the summary is awaited (ConversationRoles.tsx:532-536). Its attribution line is part 3's."
+ },
+ {
+  "file": "DesktopSetupPanel.tsx",
+  "where": "@value",
+  "expr": "paths[index]?.displayPath ?? \"\"",
+  "component": "DesktopSetupPanel",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "A field the App prefills for the person to read and change: the person's typing, or desktop_setup_pick, the native folder picker the person operates."
+ },
+ {
+  "file": "DesktopSetupPanel.tsx",
+  "where": "@value",
+  "expr": "project?.displayPath ?? \"\"",
+  "component": "DesktopSetupPanel",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "A field the App prefills for the person to read and change: the person's typing, or desktop_setup_pick, the native folder picker the person operates."
+ },
+ {
+  "file": "FirstUse.tsx",
+  "where": "@value",
+  "expr": "projectText",
+  "component": "FirstUseSetup",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "A field the App prefills for the person to read and change: the person's typing, or desktop_setup_pick, the native folder picker the person operates."
+ },
+ {
+  "file": "FirstUse.tsx",
+  "where": "@value",
+  "expr": "paths[index]?.displayPath ?? \"\"",
+  "component": "FirstUseSetup",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "A field the App prefills for the person to read and change: the person's typing, or desktop_setup_pick, the native folder picker the person operates."
+ },
+ {
+  "file": "LocalProviderAccess.tsx",
+  "where": "@value",
+  "expr": "draft.endpoint",
+  "component": "LocalModelSettings",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "A field the App prefills for the person to read and change: the saved local model settings the person entered, or the endpoint the Host offers."
+ },
+ {
+  "file": "LocalProviderAccess.tsx",
+  "where": "@value",
+  "expr": "draft.model",
+  "component": "LocalModelSettings",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "A field the App prefills for the person to read and change: the saved local model settings the person entered."
+ },
+ {
+  "file": "MakeJourney.tsx",
+  "where": "@value",
+  "expr": "name",
+  "component": "MakeWorkflowGuide",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "A field the App prefills for the person to read and change: the person's typing, or draft.name when the person chooses Continue on a draft."
+ },
+ {
+  "file": "ModelChoice.tsx",
+  "where": "@value",
+  "expr": "model",
+  "component": "AvailableModels",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "A field the App prefills for the person to read and change: the person's typing, or a model the person chose from Codex's list or the oMLX model."
+ },
+ {
+  "file": "TrialComposer.tsx",
+  "where": "@value",
+  "expr": "message",
+  "component": "DelegatedTrialComposerView",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "An App-prepared trial message the person reads and edits before anything is sent: prefilled from pending.message, which the Host composes from the trial and its inputs (TrialComposer.tsx:122). Its attribution line is part 3's."
+ },
+ {
+  "file": "TrialComposer.tsx",
+  "where": "@value",
+  "expr": "message",
+  "component": "CleanTrialPanelView",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "An App-prepared trial message the person reads and edits before anything is sent: prefilled from pending.message, which the Host composes from the trial and its inputs (TrialComposer.tsx:170). Its attribution line is part 3's."
+ },
+ {
+  "file": "TrialComposer.tsx",
+  "where": "@value",
+  "expr": "prompt",
+  "component": "BringBackComposerView",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "An App-prepared bring-back prompt the person reads and edits before anything is sent: prefilled from pending.prompt, which the Host composes. Its attribution line is part 3's."
+ },
+ {
+  "file": "ConnectorReconstruction.tsx",
+  "where": "@value",
+  "expr": "c.statement",
+  "component": "ReconstructionFields",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "A field holding only what the person typed: a prop of ConnectorSourcePanel's reconstruction state, which starts empty and changes only through update() with e.target.value. The guard does not follow state passed down as a prop."
+ },
+ {
+  "file": "ConnectorReconstruction.tsx",
+  "where": "@value",
+  "expr": "c.assertedBy",
+  "component": "ReconstructionFields",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "A field holding only what the person typed: a prop of ConnectorSourcePanel's reconstruction state, which starts empty and changes only through update() with e.target.value. The guard does not follow state passed down as a prop."
+ },
+ {
+  "file": "ConnectorReconstruction.tsx",
+  "where": "@value",
+  "expr": "c.description",
+  "component": "ReconstructionFields",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "A field holding only what the person typed: a prop of ConnectorSourcePanel's reconstruction state, which starts empty and changes only through update() with e.target.value. The guard does not follow state passed down as a prop."
+ },
+ {
+  "file": "ConnectorReconstruction.tsx",
+  "where": "@value",
+  "expr": "c.effect",
+  "component": "ReconstructionFields",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "A field holding only what the person typed: a prop of ConnectorSourcePanel's reconstruction state, which starts empty and changes only through update() with e.target.value. The guard does not follow state passed down as a prop."
+ },
+ {
+  "file": "ConnectorReconstruction.tsx",
+  "where": "@value",
+  "expr": "c.responsible.identity??\"\"",
+  "component": "ReconstructionFields",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "A field holding only what the person typed: a prop of ConnectorSourcePanel's reconstruction state, which starts empty and changes only through update() with e.target.value. The guard does not follow state passed down as a prop."
+ },
+ {
+  "file": "ConnectorReconstruction.tsx",
+  "where": "@value",
+  "expr": "r.reportedBy",
+  "component": "ReconstructionFields",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "A field holding only what the person typed: a prop of ConnectorSourcePanel's reconstruction state, which starts empty and changes only through update() with e.target.value. The guard does not follow state passed down as a prop."
+ },
+ {
+  "file": "ConnectorReconstruction.tsx",
+  "where": "@value",
+  "expr": "r.reportedActor??\"\"",
+  "component": "ReconstructionFields",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "A field holding only what the person typed: a prop of ConnectorSourcePanel's reconstruction state, which starts empty and changes only through update() with e.target.value. The guard does not follow state passed down as a prop."
+ },
+ {
+  "file": "ConnectorReconstruction.tsx",
+  "where": "@value",
+  "expr": "r.reason",
+  "component": "ReconstructionFields",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "A field holding only what the person typed: a prop of ConnectorSourcePanel's reconstruction state, which starts empty and changes only through update() with e.target.value. The guard does not follow state passed down as a prop."
+ },
+ {
+  "file": "ConnectorSourcePanel.tsx",
+  "where": "@value",
+  "expr": "question[key]",
+  "component": "ConnectorSourcePanel",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "A field holding only what the person typed: setQuestion({...question,[key]:e.target.value}) is its only write, from an initial object of empty strings (ConnectorSourcePanel.tsx)."
+ },
+ {
+  "file": "ConnectorSourcePanel.tsx",
+  "where": "@value",
+  "expr": "responsible",
+  "component": "ConnectorSourcePanel",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "A field holding only what the person typed: this component's responsible state is set only by its field's typing (ConnectorSourcePanel.tsx:127); the guard matches setters by name, so the other component's declaration fails this one."
+ },
+ {
+  "file": "ConnectorSourcePanel.tsx",
+  "where": "@value",
+  "expr": "responsible",
+  "component": "ConnectorDraftPanel",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "A field holding only what the person typed: this component's responsible state is set only by its field's typing (ConnectorSourcePanel.tsx:212); the guard matches setters by name, so the other component's declaration fails this one."
+ },
+ {
+  "file": "ConnectorSourcePanel.tsx",
+  "where": "@value",
+  "expr": "c.role",
+  "component": "ConnectorDraftPanel",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "A field holding only what the person typed: held in a per-reference map and set only through the choose() helper from this field's typing (ConnectorSourcePanel.tsx:203)."
+ },
+ {
+  "file": "ConnectorSourcePanel.tsx",
+  "where": "@value",
+  "expr": "value.reason",
+  "component": "ConnectorDraftPanel",
+  "count": 1,
+  "basis": "an editable value permitted in that field",
+  "reason": "A field holding only what the person typed: set only by a nested-spread updater on the duties map from this field's typing (ConnectorSourcePanel.tsx:214)."
+ },
+ {
+  "file": "App.tsx",
+  "where": "@aria-describedby",
+  "expr": "\"history-guidance\"",
+  "component": "HistoryPanel",
+  "count": 2,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "Its target #history-guidance (App.tsx:694) holds guidance (App.tsx:543), a choice of literal sentences or progress, which is set only from the literal table of history actions (App.tsx:653), a literal at 681, or \"\" (672). The guard does not follow a state set through a lookup."
+ },
+ {
+  "file": "App.tsx",
+  "where": "@aria-describedby",
+  "expr": "\"history-search-count\"",
+  "component": "HistoryPanel",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "Its target #history-search-count (App.tsx:705) holds two counts (matches.length, received.length) and a literal sentence. The guard does not trace a target's content through a filtered array's length."
+ },
+ {
+  "file": "App.tsx",
+  "where": "@aria-describedby",
+  "expr": "\"workflow-draft-next-step\"",
+  "component": "WorkflowRootPanel",
+  "count": 2,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "Its target #workflow-draft-next-step holds draftReason (App.tsx:1049), a choice of literal sentences or progress, which the workflow operations set only from literal sentences (App.tsx:988) or \"\" (1020)."
+ },
+ {
+  "file": "App.tsx",
+  "where": "@aria-describedby",
+  "expr": "{startBlocked ? \"start-conversation-blocked\" : undefined}",
+  "component": "App",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "Its target #start-conversation-blocked holds startBlocked (App.tsx:1919), a choice of literal sentences or rowChoiceNote (App.tsx:1912), itself literal sentences. The reference is conditional so no description is named when Start is available; the guard takes only a literal reference."
+ },
+ {
+  "file": "DesktopSetupPanel.tsx",
+  "where": "@aria-describedby",
+  "expr": "\"desktop-setup-next-step\"",
+  "component": "DesktopSetupPanel",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "Its target #desktop-setup-next-step holds nextStep (DesktopSetupPanel.tsx:91), a choice of literal sentences or progress, which begin() sets only from the literals its three callers pass (DesktopSetupPanel.tsx:50, 62, 79)."
+ },
+ {
+  "file": "FirstUse.tsx",
+  "where": "@aria-describedby",
+  "expr": "{projectProblem ? \"first-use-project-problem first-use-project-help\" : \"first-use-project-help\"}",
+  "component": "FirstUseSetup",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "Its targets are #first-use-project-problem, holding projectProblem from typedProblem's literal sentences (FirstUse.tsx:25, 75), and #first-use-project-help, a literal paragraph (FirstUse.tsx:167). The reference chooses between two literal id lists, which the guard does not take as a literal."
+ },
+ {
+  "file": "FirstUse.tsx",
+  "where": "@aria-describedby",
+  "expr": "\"first-use-next\"",
+  "component": "FirstUseSetup",
+  "count": 1,
+  "basis": "an App-owned literal vocabulary",
+  "reason": "Its target #first-use-next holds next (FirstUse.tsx:79), a choice of literal sentences or progress, which begin() sets only from the literals its three callers pass (FirstUse.tsx:87, 100, 115)."
+ }
+]

@@ -25,7 +25,9 @@ test('actual Host unknown census survives current publication and JSON presentat
  // App's raw native-view presentation performs this JSON serialization, with
  // no replacement of absent counts by zero. Test its actual producer result.
  const appSource=readFileSync(new URL('src/App.tsx',app),'utf8');
- assert.match(appSource,/JSON\.stringify\(\{ current: host\?\.nativeView/);
+ // The raw native view is drawn through RecordedData (src/AgentText.tsx), which serializes with JSON.stringify(value, null, 2).
+ assert.match(appSource,/<RecordedData value=\{\{ current: host\?\.nativeView/);
+ assert.match(readFileSync(new URL('src/AgentText.tsx',app),'utf8'),/shown = JSON\.stringify\(value, null, 2\)/);
  const displayed=JSON.stringify({current:{distributionEvidence:actual}},null,2);
  assert.match(displayed,/"surviving": null/);assert.match(displayed,/unavailable: invented partial owned-group inventory/);
  assert.doesNotMatch(displayed,/"surviving": 0/);assert.match(displayed,/original reserved process group only; detached\/escaped descendants unobserved/);

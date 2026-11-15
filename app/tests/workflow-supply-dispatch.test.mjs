@@ -8,6 +8,7 @@ import {createHash} from 'node:crypto';
 import React from 'react';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
+import {agentBlocks, agentBlockText} from './support/agent-text.mjs';
 import './support/rust-prebuild.mjs';
 
 const document = installMiniDom();
@@ -90,7 +91,7 @@ test('actual generated-copy refusal preserves original intent and publication st
     const runArticle = () => container.querySelectorAll(node => node.localName === 'article' && node.querySelectorAll(child => child.localName === 'h3' && child.textContent === prepared.reference).length)[0];
     const evidence = () => {
       const detail = runArticle().querySelectorAll(node => node.localName === 'details' && node.querySelectorAll(child => child.localName === 'summary' && child.textContent === 'Complete run evidence (paths shown as text)').length)[0];
-      return JSON.parse(detail.querySelectorAll(node => node.localName === 'pre')[0].textContent);
+      return JSON.parse(agentBlockText(agentBlocks(detail)[0]));
     };
     const actions = () => calls.filter(([name]) => !['host_status','decision_view','native_confirmation_content'].includes(name));
     const press = async () => {assert.ok(send());assert.equal(props(send()).disabled,false);await React.act(async () => {await props(send()).onClick();});};

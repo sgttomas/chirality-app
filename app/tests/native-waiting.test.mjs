@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {spawnSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
 import {installMiniDom} from './support/mini-dom.mjs';
+import {choiceLists, chooseIn, chooser, chosenIn} from './support/choices.mjs';
 import {loadSrc} from './support/load-src.mjs';
 import './support/rust-prebuild.mjs';
 
@@ -81,10 +82,10 @@ async function mounted(check,{render=()=>React.createElement(App),initial='api-k
   const settle=async()=>React.act(async()=>{for(let i=0;i<10;i++)await Promise.resolve();});
   const find=(tag,text)=>container.querySelectorAll(n=>n.localName===tag&&n.textContent===text)[0];
   const conversation=()=>container.querySelectorAll(n=>n.getAttribute('id')==='conversation')[0];
-  const select=()=>conversation().querySelectorAll(n=>n.localName==='select')[0];
+  const select=()=>choiceLists(conversation())[0];
   const draft=()=>conversation().querySelectorAll(n=>n.localName==='textarea')[0];
   const field=(tag,label)=>container.querySelectorAll(n=>n.localName===tag).find(n=>n.parentNode.textContent.startsWith(label));
-  const change=async(element,value)=>{assert.equal(!!props(element).disabled,false);await React.act(()=>props(element).onChange({target:{value}}));};
+  const change=async(element,value)=>{assert.equal(!!props(element).disabled,false);await React.act(()=>element.localName==='fieldset'?chooseIn(element,value):props(element).onChange({target:{value}}));};
   const queue=claim=>{assert.ok(!owned&&!nextClaim,'host admits another menu item only after the previous delivery is retired');nextClaim=claim?.target?{...claim,checkpoint:checkpoint?{...checkpoint}:null}:claim;};
   const wake=async claim=>{queue(claim);await React.act(async()=>{for(const [id,handler] of handlers)handler({id,event:'chirality-native-waiting',payload:null});});};
   const press=async text=>{const button=find('button',text);assert.ok(button,text);assert.equal(!!props(button).disabled,false);await React.act(async()=>{props(button).onClick();});};
@@ -105,7 +106,7 @@ test('a native waiting selection queued before the listener opens its original c
   await mounted(async ui=>{
     const opens=ui.calls.filter(c=>c.command==='open_waiting_requests');
     assert.equal(opens.length,1,'the outside-window selection must reach the actual App navigation consumer');
-    assert.equal(props(ui.select()).value,JSON.stringify([dto.account.generation,'shared-thread']));
+    assert.equal(chosenIn(ui.select()),JSON.stringify([dto.account.generation,'shared-thread']));
     assert.deepEqual(ui.scrolls,['conversation']);
     assert.ok(ui.container.textContent.includes('Private synthetic question content'));
     assert.equal(ui.calls.filter(c=>c.command==='finish_native_waiting_intent').length,1);
@@ -119,7 +120,7 @@ test('native wake-up after startup preserves same-home chooser and unsent draft 
     await ui.change(ui.draft(),'Unsent / 家 & literal');
     await ui.wake(ui.dto.native.intents.account);
     await ui.wake(null);
-    assert.equal(props(ui.select()).value,JSON.stringify([ui.dto.account.generation,'shared-thread']));
+    assert.equal(chosenIn(ui.select()),JSON.stringify([ui.dto.account.generation,'shared-thread']));
     assert.equal(props(ui.field('input','Model ')).value,'separate-unsent-model');
     assert.equal(props(ui.find('button',ROUTE))['aria-pressed'],true);
     assert.equal(props(ui.draft()).value,'Unsent / 家 & literal');
@@ -131,7 +132,7 @@ test('native wake-up after startup preserves same-home chooser and unsent draft 
 test('native unnamed selection shows only the original home request section',async()=>{
   await mounted(async ui=>{
     await ui.wake(ui.dto.native.intents.unnamed);
-    assert.equal(props(ui.select()).value,'');assert.deepEqual(ui.scrolls,['other-requests']);
+    assert.equal(chosenIn(ui.select()),'');assert.deepEqual(ui.scrolls,['other-requests']);
     assert.match(ui.container.textContent,/Selected home: account\./);
   });
 });
@@ -139,7 +140,7 @@ test('native unnamed selection shows only the original home request section',asy
 test('an unloaded literal native identity reaches the host unchanged and opens its original home requests',async()=>{
   const {special}=producer();
   await mounted(async ui=>{
-    assert.equal(props(ui.select()).value,'');assert.deepEqual(ui.scrolls,['other-requests']);
+    assert.equal(chosenIn(ui.select()),'');assert.deepEqual(ui.scrolls,['other-requests']);
     assert.equal(ui.calls.find(c=>c.command==='open_waiting_requests').args.threadId,'R&D && <literal> / 家 "quoted"');
   },{special:true,pending:special.claim});
 });
@@ -148,7 +149,7 @@ test('listener failure still drains the process-owned startup selection',async()
   const {dto}=producer();
   await mounted(async ui=>{
     assert.equal(ui.calls.filter(c=>c.command==='open_waiting_requests').length,1);
-    assert.equal(props(ui.select()).value,JSON.stringify([dto.account.generation,'shared-thread']));
+    assert.equal(chosenIn(ui.select()),JSON.stringify([dto.account.generation,'shared-thread']));
   },{pending:dto.native.intents.account,listenerFailure:true});
 });
 
@@ -161,7 +162,7 @@ test('native selection while existing home navigation is busy reports refusal in
     assert.equal(ui.calls.filter(c=>c.command==='open_waiting_requests').length,1);
     assert.equal(ui.calls.filter(c=>c.command==='finish_native_waiting_intent').length,1);
     wait.resolve();await ui.settle();
-    assert.equal(props(ui.select()).value,JSON.stringify([ui.dto.account.generation,'shared-thread']));
+    assert.equal(chosenIn(ui.select()),JSON.stringify([ui.dto.account.generation,'shared-thread']));
   },{navigationWait:wait});
 });
 
@@ -187,7 +188,7 @@ test('newer UI edits during admitted native navigation survive the delayed open 
     await ui.change(ui.field('input','Model '),'newer-chooser');
     await ui.change(ui.draft(),'Newer unsent draft');
     wait.resolve();await ui.settle();
-    assert.equal(props(ui.select()).value,'');assert.deepEqual(ui.scrolls,[]);
+    assert.equal(chosenIn(ui.select()),'');assert.deepEqual(ui.scrolls,[]);
     assert.equal(props(ui.field('input','Model ')).value,'newer-chooser');
     assert.equal(props(ui.draft()).value,'Newer unsent draft');
     assert.match(ui.container.textContent,/navigation superseded/);
@@ -251,7 +252,7 @@ test('lost native wake followed by a newer conversation choice refuses the queue
     await ui.poll();
     assert.equal(ui.calls.filter(c=>c.command==='open_waiting_requests').length,0,
       'recovery must bind to UI at native selection, not UI when the poll starts');
-    assert.equal(props(ui.select()).value,newer);assert.deepEqual(ui.scrolls,[]);
+    assert.equal(chosenIn(ui.select()),newer);assert.deepEqual(ui.scrolls,[]);
     assert.match(ui.container.textContent,/older|uncertain|superseded/);
   });
 });
@@ -261,7 +262,7 @@ test('lost native wake with unchanged UI recovers its original target exactly on
     ui.queue(ui.dto.native.intents.account);
     await ui.poll();await ui.poll();
     assert.equal(ui.calls.filter(c=>c.command==='open_waiting_requests').length,1);
-    assert.equal(props(ui.select()).value,JSON.stringify([ui.dto.account.generation,'shared-thread']));
+    assert.equal(chosenIn(ui.select()),JSON.stringify([ui.dto.account.generation,'shared-thread']));
   });
 });
 
@@ -271,7 +272,7 @@ test('a new native click after current UI checkpoint acknowledgment opens its ow
     await ui.settle(); // Allow the current UI checkpoint handshake to complete.
     await ui.wake(ui.dto.native.intents.account);
     assert.equal(ui.calls.filter(c=>c.command==='open_waiting_requests').length,1);
-    assert.equal(props(ui.select()).value,JSON.stringify([ui.dto.account.generation,'shared-thread']));
+    assert.equal(chosenIn(ui.select()),JSON.stringify([ui.dto.account.generation,'shared-thread']));
   });
 });
 
@@ -285,7 +286,7 @@ test('lost claim response and failed abandon retry cleanup before admitting anot
     assert.equal(ui.calls.filter(c=>c.command==='open_waiting_requests').length,0,'cleanup cannot replay uncertain navigation');
     await ui.wake(ui.dto.native.intents['api-key']);
     assert.equal(ui.calls.filter(c=>c.command==='open_waiting_requests').length,1,'a later explicit native selection is usable again');
-    assert.equal(props(ui.select()).value,JSON.stringify([ui.dto['api-key'].generation,'shared-thread']));
+    assert.equal(chosenIn(ui.select()),JSON.stringify([ui.dto['api-key'].generation,'shared-thread']));
   },{loseClaimResponses:1,abandonFailures:1});
 });
 
@@ -328,7 +329,7 @@ test('first native click after an acknowledged chooser edit succeeds while liste
     ui.queue(ui.dto.native.intents.account); // A fresh selection at that acknowledged checkpoint.
     wait.resolve();await ui.settle();
     assert.equal(ui.calls.filter(c=>c.command==='open_waiting_requests').length,1,'the first fresh click must open without requiring a second click');
-    assert.equal(props(ui.select()).value,JSON.stringify([ui.dto.account.generation,'shared-thread']));
+    assert.equal(chosenIn(ui.select()),JSON.stringify([ui.dto.account.generation,'shared-thread']));
     assert.deepEqual(ui.scrolls,['conversation']);
     assert.equal(ui.calls.filter(c=>c.command==='finish_native_waiting_intent').length,1);
     assert.doesNotMatch(ui.container.textContent,/navigation superseded|older or uncertain UI checkpoint/);

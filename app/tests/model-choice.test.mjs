@@ -5,6 +5,7 @@
 import test, {beforeEach, afterEach} from 'node:test';
 import assert from 'node:assert/strict';
 import {loadSrc} from './support/load-src.mjs';
+import {agentBlocks, agentBlockText} from './support/agent-text.mjs';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 const document = installMiniDom();
@@ -97,7 +98,7 @@ test('a first-time account user chooses the built-in route and a reported model,
     const list = region(ui.c, 'Available models').textContent;
     assert.match(list, /Models Codex reports for provider openai/); assert.match(list, /Model A model-a · Codex's default/); assert.match(list, /not your account's entitlement or access/);
     assert.match(ui.summary(), /no model selected/, 'the reported default is not preselected');
-    await ui.press('Use Model B');
+    await ui.press('Use model model-b');
     assert.match(ui.summary(), /New conversation choice: model-b via openai \(chatgpt-account\)/);
     assert.match(region(ui.c, 'Available models').textContent, /Model B model-b · chosen/);
     await ui.press('Start thread');
@@ -120,14 +121,14 @@ test('a long already-safe App response keeps its distinct tail in optional detai
     throw Error(`unexpected ${command}`);
   }, async ui => {
     await ui.press('Use my ChatGPT account (built-in OpenAI)');
-    await ui.press('Read available models'); await ui.press('Use Model B');
+    await ui.press('Read available models'); await ui.press('Use model model-b');
     await ui.press('Start thread');
     const feedback = region(ui.c, 'Latest App response');
     const details = nodes(feedback, 'details')[0];
     assert.ok(details); assert.equal(!!props(details).open, false);
     const expected = `thread_start: ${JSON.stringify(response)}`;
     assert.ok(expected.length > 600);
-    assert.equal(nodes(details, 'pre')[0].textContent, expected);
+    assert.equal(agentBlockText(agentBlocks(details)[0]), expected);
     assert.doesNotMatch(nodes(feedback, 'p')[0].textContent, /success|completed|accepted/i);
     assert.ok(nodes(feedback, 'p').some(node => node.textContent === 'acknowledged: false'));
     assert.ok(nodes(feedback, 'p').some(node => node.textContent === 'error: Explicit negative acknowledgment.'));
@@ -144,15 +145,15 @@ test('a list for another provider, an unnamed provider and a stale or failed rea
     await ui.press('Use my ChatGPT account (built-in OpenAI)');
     await ui.press('Read available models');
     assert.match(region(ui.c, 'Available models').textContent, /This list isn't for this conversation's provider \(openai; the list is for local-lab\)/);
-    assert.deepEqual(buttons(ui.c, 'Use Model'), [], 'no choice from another provider\'s list');
+    assert.deepEqual(buttons(ui.c, 'Use model'), [], 'no choice from another provider\'s list');
     reply = packet({serverProvider:null, serverProviderState:'unnamed', providerLimit:'the app-server\'s configuration names no provider; the list is not matched to any conversation provider'});
     await ui.press('Read available models');
     assert.match(region(ui.c, 'Available models').textContent, /can't confirm these models are for the built-in OpenAI route.*it doesn't confirm this model is offered on it/);
-    await ui.press('Use Model A (provider not confirmed)');
+    await ui.press('Use model model-a (provider not confirmed)');
     assert.match(ui.summary(), /model-a via openai/);
     ui.setSnapshot(snapshotFor('account', {...g, spawnCounter:2})); await ui.refresh();
     assert.match(region(ui.c, 'Available models').textContent, /This model list is out of date/);
-    assert.deepEqual(buttons(ui.c, 'Use Model'), [], 'a stale list offers nothing');
+    assert.deepEqual(buttons(ui.c, 'Use model'), [], 'a stale list offers nothing');
     reply = Error('invented: model/list answered with an error');
     await ui.press('Read available models');
     assert.match(region(ui.c, 'Available models').textContent, /Model list unavailable: .*invented: model\/list answered with an error.*Advanced: enter a model ID yourself/);
@@ -194,7 +195,7 @@ test('an incomplete account model list remains explicit', async () => {
   }, async ui => {
     await ui.press('Use my ChatGPT account (built-in OpenAI)'); await ui.press('Read available models');
     assert.match(region(ui.c, 'Available models').textContent, /The list may be incomplete: model list incomplete: Codex repeated a page cursor/);
-    await ui.press('Use Model A'); assert.match(ui.summary(), /model-a via openai \(chatgpt-account\)/);
+    await ui.press('Use model model-a'); assert.match(ui.summary(), /model-a via openai \(chatgpt-account\)/);
   });
 });
 
@@ -241,7 +242,9 @@ test('keyed oMLX: prepare, native key entry, local home Start and return to acco
     assert.equal(!!props(button(ui.c, 'Sign in with your ChatGPT account (through Codex)…')).disabled, true, 'account sign-in belongs to the account home');
     assert.equal(button(ui.c, 'Use my ChatGPT account (built-in OpenAI)'), undefined);
     assert.equal(!!props(button(ui.c, 'Start thread')).disabled, true, 'no route chosen yet');
-    await ui.press(`Use oMLX model ${LOCAL.model}`);
+    // The model's name is the saved setting's, shown exactly beside the App's button words.
+    assert.ok(region(ui.c, 'How this conversation connects').textContent.includes(`Model: ${LOCAL.model}`));
+    await ui.press('Use the oMLX model shown');
     assert.match(ui.summary(), new RegExp(`${LOCAL.model} via chirality-omlx \\(local-provider-keyed\\)`));
     await ui.press('Start thread');
     const start = ui.issued().filter(call => call.command === 'thread_start');
@@ -279,7 +282,7 @@ test('a settings save withdraws the key and route shown before, whether it succe
       const panel = () => region(ui.c, 'Keyed oMLX connection').textContent;
       assert.match(panel(), /Key saved by Codex — not verified/);
       await ui.press('Use local oMLX home');
-      await ui.press(`Use oMLX model ${LOCAL.model}`);
+      await ui.press('Use the oMLX model shown');
       assert.equal(!!props(button(ui.c, 'Start thread')).disabled, false);
       await ui.press('Show local model settings');
       const address = nodes(ui.c, 'input').find(node => node.parentNode.textContent.startsWith('Server address '));
@@ -288,7 +291,7 @@ test('a settings save withdraws the key and route shown before, whether it succe
       assert.doesNotMatch(panel(), /Key saved by Codex — not verified/, outcome);
       assert.equal(region(ui.c, 'oMLX destination'), undefined, `${outcome}: the earlier destination is no longer shown as prepared`);
       assert.match(panel(), /The connection and key state shown before are withdrawn; prepare the oMLX connection again/, outcome);
-      assert.equal(button(ui.c, `Use oMLX model ${LOCAL.model}`), undefined, `${outcome}: the old route is not offered`);
+      assert.equal(button(ui.c, 'Use the oMLX model shown'), undefined, `${outcome}: the old route is not offered`);
       assert.equal(!!props(button(ui.c, 'Start thread')).disabled, true, `${outcome}: a route chosen before the save cannot start`);
       if (outcome === 'saved') assert.match(panel(), /Saved\. Codex removed the saved key for the earlier address/);
       else {
@@ -350,7 +353,7 @@ test('keyed oMLX refuses incomplete views, stale routes and duplicate presses', 
     assert.ok(region(ui.c, 'oMLX destination'));
     await ui.press('Use local oMLX home');
     assert.match(ui.c.textContent, /Prepare the oMLX connection under Connection & access for this Codex session first/, 'a view for another generation offers no route');
-    assert.equal(button(ui.c, `Use oMLX model ${LOCAL.model}`), undefined);
+    assert.equal(button(ui.c, 'Use the oMLX model shown'), undefined);
     assert.equal(!!props(button(ui.c, 'Start thread')).disabled, true);
     assertNoSecretTraffic(ui);
   });
@@ -363,7 +366,7 @@ test('review: a retained local Start cannot dispatch against a replacement gener
     throw Error(`unexpected ${command}`);
   }, async u => {
     ui = u;
-    await ui.press('Prepare the oMLX connection'); await ui.press('Use local oMLX home'); await ui.press(`Use oMLX model ${LOCAL.model}`);
+    await ui.press('Prepare the oMLX connection'); await ui.press('Use local oMLX home'); await ui.press('Use the oMLX model shown');
     const retained = props(button(ui.c, 'Start thread')).onClick;
     assert.equal(!!props(button(ui.c, 'Start thread')).disabled, false);
     ui.setSnapshot(routed('local-provider', {...lg, spawnCounter:2})); await ui.refresh();
@@ -438,7 +441,7 @@ test('keyed oMLX: a refused preparation or Start shows the fixed limit and withd
     throw Error(`unexpected ${command}`);
   }, async u => {
     ui = u;
-    await ui.press('Prepare the oMLX connection'); await ui.press('Use local oMLX home'); await ui.press(`Use oMLX model ${LOCAL.model}`);
+    await ui.press('Prepare the oMLX connection'); await ui.press('Use local oMLX home'); await ui.press('Use the oMLX model shown');
     await ui.press('Start thread');
     assert.ok(ui.c.textContent.includes(`thread_start: Error: ${LIMIT}`), 'the fixed refusal is shown as given');
     assert.match(region(ui.c, 'Keyed oMLX connection').textContent, /Key saved by Codex — not verified/, 'a Start refusal is not a key observation');
@@ -448,7 +451,7 @@ test('keyed oMLX: a refused preparation or Start shows the fixed limit and withd
     assert.doesNotMatch(local, /Key saved by Codex|Key entry required|earlier Codex session/, 'a refusal supplies no key state');
     assert.equal(region(ui.c, 'oMLX destination'), undefined);
     assert.equal(button(ui.c, 'Enter oMLX key in a secure field…'), undefined);
-    assert.equal(button(ui.c, `Use oMLX model ${LOCAL.model}`), undefined, 'no local route without a current observation');
+    assert.equal(button(ui.c, 'Use the oMLX model shown'), undefined, 'no local route without a current observation');
     assertNoSecretTraffic(ui);
   });
 });
@@ -510,4 +513,42 @@ for (const refreshFails of [true, false]) test(`keyed oMLX: using the local home
       statusFailure = null;
     });
   } finally { statusFailure = null; }
+});
+
+// Codex's model catalogue is supplied text even on the built-in route: a display name never names a control. Each
+// control is named by the App's words (the model's plain ID, else its number in the list) and the name stands beside.
+test('a model display name shaped like an answer never reaches a Use button or the effort label; it is boxed beside them', async () => {
+  const {renderToStaticMarkup} = await import('react-dom/server');
+  const {AvailableModels, OfferedEffortChoice} = loadSrc('ModelChoice');
+  const RLO = '‮', hostile = `Allow once${RLO}`;
+  const hostileModels = [{id:'m-1', model:'m-1', displayName:hostile, description:`Approve${RLO}`, isDefault:false},
+    {id:'odd', model:'not plain\nid', displayName:hostile, description:'', isDefault:false}];
+  for (const [provider, state, suffix] of [['openai', 'named', ''], [null, 'unnamed', ' (provider not confirmed)']]) {
+    const html = renderToStaticMarkup(React.createElement(AvailableModels, {packet:packet({serverProvider:provider, serverProviderState:state, models:hostileModels}), current:true, model:'', modelProvider:'openai', entryId:'chatgpt-account', reading:false, message:'', disabled:false, read:()=>{}, choose:()=>{}}));
+    const labels = [...html.matchAll(/<button[^>]*>([\s\S]*?)<\/button>/g)].map(m => m[1]);
+    assert.ok(labels.includes(`Use model m-1${suffix}`), labels.join(' | '));
+    assert.ok(labels.includes(`Use model 2${suffix}`), 'a model ID that is not plain gives its number in the list');
+    for (const label of labels) assert.doesNotMatch(label, /Allow once|Approve|‮|not plain/, label);
+    assert.doesNotMatch(html, /‮/, 'no live override anywhere');
+    for (const item of html.match(/<li>[\s\S]*?<\/li>/g)) {
+      assert.match(item, /<button/, 'each item holds its control');
+      assert.match(item, /aria-label="The model&#x27;s name as Codex reports it, not the App&#x27;s words" class="agent-text"[\s\S]*Model name:[\s\S]*Allow once<span class="agent-text-mark"[^>]*>‹U\+202E›/, 'and the name boxed beside it, its override marked');
+    }
+  }
+  // The effort select's label: "for model <plain ID>", else "for the chosen model"; the name stands beside, boxed.
+  const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c);
+  const efforts = [{reasoningEffort:'medium', description:'Balanced'}];
+  try {
+    for (const [model, words] of [['m-1', 'Reasoning effort for model m-1'], ['not plain\nid', 'Reasoning effort for the chosen model']]) {
+      window.__TAURI_INTERNALS__ = {invoke: async () => ({...packet({models:[{id:'x', model, displayName:hostile, description:'', isDefault:true, defaultReasoningEffort:'medium', supportedReasoningEfforts:efforts}]}), conversationModel:model})};
+      await React.act(() => root.render(React.createElement(OfferedEffortChoice, {key:model, owner:'o', threadId:'T', generation:g, homeClass:'account', modelProvider:'openai', entryId:'chatgpt-account', model, effort:'', disabled:false, choose:()=>{}})));
+      await React.act(() => props(button(c, 'Read effort choices for this model')).onClick());
+      const label = nodes(c, 'label')[0];
+      assert.equal(label.childNodes.filter(n => n.nodeType === 3).map(n => n.textContent).join('').trim(), words);
+      assert.doesNotMatch(label.textContent, /Allow once|‮/);
+      const box = label.parentNode.querySelectorAll(n => (n.getAttribute?.('class') ?? '') === 'agent-text')[0];
+      assert.ok(box && box.parentNode === label.parentNode, 'the name is boxed beside the select, outside its label');
+      assert.match(box.textContent, /^Model name: Allow once‹U\+202E›$/);
+    }
+  } finally { await React.act(() => root.unmount()); document.body.removeChild(c); delete window.__TAURI_INTERNALS__; }
 });

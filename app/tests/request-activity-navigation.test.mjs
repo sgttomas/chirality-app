@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {installMiniDom} from './support/mini-dom.mjs';
+import {choiceLists, chooseIn, chooser, chosenIn} from './support/choices.mjs';
 import {loadSrc} from './support/load-src.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 
@@ -93,7 +94,7 @@ async function mounted(check, prepare = () => {}) {
   const byId = id => c.querySelectorAll(element => element.getAttribute('id') === id);
   const conversation = () => byId('conversation')[0];
   const activity = () => c.querySelectorAll(element => element.getAttribute('aria-label') === 'Native activity')[0];
-  const choose = async (element, value) => React.act(() => props(element).onChange({target: {value}}));
+  const choose = async (element, value) => React.act(() => element.localName === 'fieldset' ? chooseIn(element, value) : props(element).onChange({target: {value}}));
   const show = thread => choose(elements(activity(), 'select')[0], thread);
   const read = () => [...timers.values()].find(timer => timer.fn.toString().includes('host_status')).fn();
   const poll = async () => React.act(async () => {read();});
@@ -107,11 +108,11 @@ async function mounted(check, prepare = () => {}) {
   };
   try {
     await React.act(async () => root.render(React.createElement(App)));
-    await choose(elements(conversation(), 'select')[0], rootKey);
+    await choose(choiceLists(conversation())[0], rootKey);
     await choose(elements(conversation(), 'textarea')[0], draft);
     const role = conversation().querySelectorAll(element => element.getAttribute('aria-label') === 'Conversation role')[0].textContent;
     await check({host, c, calls, scrolls, byId, conversation, activity, show, card, about, clickAbout, choose, read, poll});
-    assert.equal(props(elements(conversation(), 'select')[0]).value, rootKey, 'read-only activity navigation never selects/adopts the child operationally');
+    assert.equal(chosenIn(choiceLists(conversation())[0]), rootKey, 'read-only activity navigation never selects/adopts the child operationally');
     assert.equal(props(elements(conversation(), 'textarea')[0]).value, draft);
     assert.equal(conversation().querySelectorAll(element => element.getAttribute('aria-label') === 'Conversation role')[0].textContent, role);
     assert.deepEqual(host.threads.map(thread => thread.threadId), ['parent']);
@@ -248,7 +249,7 @@ test('a newer explicit Show choice supersedes a reveal before its render and anc
 test('newer operational selection away and back invalidates an older captured About handler', async () => {
   await mounted(async ui => {
     const old = props(ui.about(7, childItem)).onClick;
-    const selector = () => elements(ui.conversation(), 'select')[0];
+    const selector = () => choiceLists(ui.conversation())[0];
     await ui.choose(selector(), ''); await ui.choose(selector(), rootKey);
     await React.act(() => old({preventDefault() {}}));
     assert.equal(ui.byId(itemId(childItem)).length, 0); assert.equal(ui.scrolls.length, 0);
@@ -275,10 +276,10 @@ for (const replacement of ['row', 'subtree', 'request', 'source']) test(`pending
 test('newer operational choice ABA cancels a deferred About even when its final root is unchanged', async () => {
   await mounted(async ui => {
     const old = props(ui.about(7, childItem)).onClick;
-    const select = props(elements(ui.conversation(), 'select')[0]).onChange;
+    const toNone = chooser(choiceLists(ui.conversation())[0], ''), toRoot = chooser(choiceLists(ui.conversation())[0], rootKey);
     await React.act(() => {
       React.startTransition(() => old({preventDefault() {}}));
-      select({target: {value: ''}}); select({target: {value: rootKey}});
+      toNone(); toRoot();
     });
     assert.equal(ui.scrolls.length, 0); assert.equal(ui.byId(itemId(childItem)).length, 0);
     await ui.poll(); assert.equal(ui.scrolls.length, 0);
