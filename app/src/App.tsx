@@ -362,7 +362,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
     : liveTurns.length === 0 ? "No current live turn is observed in this conversation. This does not prove that all work has ended."
     : !live ? "Choose an observed live turn below. Interruption targets that turn only."
     : alreadyRequested ? "Interrupt already requested; awaiting native turn status."
-    : "The selected live turn can be interrupted. This does not end a workflow run or commands the turn left running in the background, or prove that child work has stopped.";
+    : "The selected live turn can be interrupted. This does not end a workflow run or prove that child work has stopped.";
   return <section id="conversation" aria-labelledby="conversation-heading">
     <h2 id="conversation-heading">Conversation</h2>
     <ConversationChoices legend="Current-generation conversation" group="current-conversation" disabled={!!ownBusy} chosen={threadKey} none="No conversation chosen"

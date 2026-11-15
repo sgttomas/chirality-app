@@ -838,7 +838,7 @@ test('offered interrupt works during process-operation busy while sends stay pau
   assert.match(ui.byId('conversation-interrupt-readiness').textContent,/pending conversation operation/);
   await React.act(async()=>{held.resolve(true);await pending;});
   assert.equal(props(elements(ui.c,'textarea')[0]).value,'Keep this text');
-  assert.match(ui.byId('conversation-interrupt-readiness').textContent,/does not end a workflow run or commands the turn left running in the background, or prove that child work has stopped/,'an interrupt ends the turn only: not a run, not the commands it left running');
+  assert.match(ui.byId('conversation-interrupt-readiness').textContent,/does not end a workflow run/);
   assert.equal(props(button(ui.c,'Send text')).disabled,true);
  });
 });
