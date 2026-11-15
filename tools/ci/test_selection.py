@@ -717,8 +717,10 @@ PR270_EXAMINATION = [
     "app/tests/group_b_operated_fixtures/first-use-setup/wrong.review-available-with-existing-settings.json",
     "app/tests/group_b_operated_scenario_test.py", "execution/PKG-09/DEL-09-02/deliverable.yaml",
 ]
-# Inside the class B roots but read by a step of a macOS product job.
+# Inside class roots but read by a step of a macOS product job.
 MACOS_CONSUMED_IN_CLASS_ROOTS = [
+    "docs/RELEASE_LIMITATIONS_4.0.0.md",
+    "docs/release_limitations_4.0.0.md",
     "app/examination/standalone/fixtures/revision-1/invented-pipe-inventory/WORKFLOW.md",
     "app/examination/standalone/fixtures/revision-1/invented-pipe-inventory/tally.py",
     "app/examination/standalone/fixtures/inputs/initial.csv",
@@ -946,6 +948,8 @@ KNOWN_REFERRERS = {
     "app/examination/sq_receiving/sq.step-map.json": "out_of_release names the release target as where it is stated; nothing reads that path from it",
     "app/supplier_checks/version_advance/0.167.0-to-0.169.0.json": "retains the supplier WebSearchProvider enum value standalone, not a path; no narrowed-class path is read through this comparison",
     # Readers of in-root paths that stay product inputs.
+    "app/packaging/release/common.py": "release limitations path consumed by release/build.py and release_build_test.py; product input",
+    "app/tests/release_build_test.py": "copies the release limitations into its source fixture; sources-packaging",
     "tools/validation/test_library_v3_operational_adoption.py": "names the Library's own docs/ files",
     "app/src-tauri/src/lib.rs": "compiles group_b_fixture_consumer.rs (product input)",
     "app/tests/group_b_fixture_consumer.rs": "product input; reads standalone/fixtures/ (product input)",

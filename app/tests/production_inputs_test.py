@@ -175,6 +175,10 @@ class ProductionInputs(unittest.TestCase):
         recipe=json.loads((self.output/'build-recipe.json').read_text())
         self.assertEqual(config['identifier'],data['production_bundle_identifier'])
         self.assertEqual(recipe['environment']['CHIRALITY_PUBLISHER_SELECTION'],'production-v1')
+        # Every writable location the install and build use is named, so a driver can point each inside its run folder.
+        for key in ('RUSTUP_HOME','NPM_CONFIG_PREFIX','NPM_CONFIG_LOGS_DIR','HOME','TMPDIR','CARGO_HOME','NPM_CONFIG_CACHE'):
+            self.assertIn(key,recipe['environment_allowlist']); self.assertIn(key,recipe['required_environment'])
+        self.assertEqual(recipe['environment']['NPM_CONFIG_UPDATE_NOTIFIER'],'false')
         self.assertNotIn(data['production_bundle_identifier'],json.dumps(result))
         self.assertNotIn(data['developer_id_team_identifier'],json.dumps(result))
     @staticmethod
