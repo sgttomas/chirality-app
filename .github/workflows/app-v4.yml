@@ -55,6 +55,12 @@ jobs:
           act_control::standing_tests native_text::supplied_tests
           act_control::persistence_tests::a16_records_that_cannot_be_read_are_reported_with_their_cause_and_the_offer_stays_presented
           act_evidence_cause::tests
+          act_control::persistence_tests::a16_provider_observation_never_changes_recorded_decided_selection
+          workflow_workspace::registration::tests::a15_enrollment_moment_exclusion_cannot_supply_robust_cold_approval
+          workflow_workspace::registration::tests::a15_multi_entry_capture_uses_each_admitted_provider_and_keeps_hot_admission
+          workflow_workspace::registration::tests::a15_repair3_advance_retries_a_newly_opened_root_after_list_access_returns
+          workflow_workspace::registration::tests::a15_repair3_registration_advances_with_damaged_inventory_under_each_provider
+          workflow_workspace::registration::tests::a15_single_and_reconfirmation_use_the_provider_in_force_without_resealing_history
           act_control::a15::tests::native_presentation_failure_
           act_control::a15::tests::native_adapter_three_buttons_only_the_middle_captures
           file_act role_observations host_tick after_end_file_lapse
