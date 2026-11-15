@@ -154,7 +154,7 @@ test('a saved trial conversation opens History with only its ID in the search: n
     assert.deepEqual(active, ['History'], 'History is shown');
     const search = c.querySelectorAll(n => n.localName === 'input' && n.getAttribute('aria-describedby') === 'history-search-count')[0];
     assert.equal(props(search).value, 'thread-old-trial', 'its search holds the saved ID');
-    assert.match(c.querySelectorAll(n => n.getAttribute('aria-label') === 'Searching for a saved conversation')[0].textContent, /It is only a search: no history is read, chosen or continued\. If it isn't among the received conversations, it may be in another home/);
+    assert.match(c.querySelectorAll(n => n.getAttribute('aria-label') === 'Searching for a saved conversation')[0].textContent, /It is only a search: nothing is read, chosen or continued\. If it isn't among the received conversations, it may be in another home/);
     assert.deepEqual(calls.filter(cmd => !['host_status', 'decision_view', 'native_confirmation_content', 'request_answer_companions'].includes(cmd)), [], 'no history read, selection, home change or Continue');
   } finally { const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text); Object.assign(globalThis, {setInterval:previous.setInterval, clearInterval:previous.clearInterval}); document.getElementById = previous.getElementById; }
 });
