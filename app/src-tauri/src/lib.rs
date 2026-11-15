@@ -414,6 +414,11 @@ fn endpoint_offer_result(
 /// boundary, in words a person can act on. The discard commands stay: they only
 /// drop an offer, which no refused command can now make.
 const LOCAL_ROUTE_OFFERED: bool = false;
+/// Whether `class` offers exactly one access entry, as a fact of this build's configuration (never of a read): the
+/// account home's ChatGPT account, where the local route is not offered.
+pub(crate) fn only_access_entry(class: home_resources::HomeClass) -> bool {
+    class == home_resources::HomeClass::Account && !LOCAL_ROUTE_OFFERED
+}
 pub(crate) const LOCAL_ROUTE_NOT_OFFERED: &str = "This version of the App does not offer a local model server or a local provider. Use your ChatGPT account: sign in under Connection and access.";
 fn local_route_refused() -> Result<(), String> {
     if LOCAL_ROUTE_OFFERED { Ok(()) } else { Err(LOCAL_ROUTE_NOT_OFFERED.into()) }
@@ -1912,7 +1917,11 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runti
     let attempt_id = util::opaque_id("conversation:")?;
     let frozen_project = state.project_context.clone();
     let mut selection = access::ConversationSelection::new_explicit(&attempt_id, frozen_project.reference())?;
-    selection.choose(&entry_id, &model_provider, &model, false)?;
+    // DEL-01-05 REQ-004: in the account home, with no local route in this build, the configuration offers exactly one
+    // access entry, which the App shows as the connection in use without asking; the record says so. Where more than
+    // one is offered, the entry is the person's choice.
+    if only_access_entry(home.class()) { selection.choose_model_for_shown_entry(&entry_id, &model_provider, &model)?; }
+    else { selection.choose(&entry_id, &model_provider, &model, false)?; }
     selection.start_params(&generation, home.class().as_str(), false)?;
     let recovery_home = selection.recovery_home();
     // A source change during preparation is refused before the claim publishes
@@ -2057,7 +2066,9 @@ fn ordinary_send_text_effort(home: &runtime_session::HomeSession, workflows: &st
         |generation, thread, text| home.host.turn_start_ordinary_text_effort(generation, thread, text, mode, model, effort))
 }
 
-/// DEL-01-05 model discovery for a new conversation, at the person's press:
+/// DEL-01-05 model discovery for a new conversation, read by the App when New conversation opens with its only
+/// connection in use, and at the person's press (Read the list again); for an existing conversation, its effort
+/// choices, read once when it is selected:
 /// only the currently selected source of the named mode, re-checked after the
 /// reads; a changed source refuses rather than answering for another.
 #[tauri::command(async)]

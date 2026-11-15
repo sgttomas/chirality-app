@@ -197,7 +197,8 @@ test('the model step: a provider note ending with either sentence shows it as it
     const note = `provider not established: ${sentence}`;
     const list = {state:'observed', generation:g, modeHomeClass:'account', serverProvider:null, serverProviderState:'not-established', providerLimit:note, models:[], complete:true, limits:[]};
     await mounted({read_available_models:() => ({value:list})}, async c => {
-      await press(c, 'Use my ChatGPT account (built-in OpenAI)'); await press(c, 'Read available models');
+      // The only connection is in use (DEL-01-05 REQ-004); the list is read again at the person's press.
+      await press(c, 'Read the list again');
       const shown = region(c, 'Available models').textContent;
       assert.ok(shown.includes(note), shown);
       assert.ok(!shown.includes(`${sentence}.`), 'no second full stop after the sentence');
@@ -240,8 +241,8 @@ async function conversationWriter(operation, commandFails, check) {
     await React.act(async () => root.render(React.createElement(App)));
     const panel = () => c.querySelectorAll(node => node.getAttribute('id') === 'conversation')[0];
     await change(nodes(panel(), 'select')[0], JSON.stringify([g, 'thread-a']));
-    // The account start's one route (the built-in provider with the ChatGPT account entry), then its model.
-    await tap('Use my ChatGPT account (built-in OpenAI)'); await change(labelled(c, 'input', 'Model '), 'r4-model');
+    // The account start's one route (the built-in provider with the ChatGPT account entry) is in use; then its model.
+    await change(labelled(c, 'input', 'Model '), 'r4-model');
     await tap('Start thread');
     assert.ok(c.textContent.includes(`thread_start: ${READING_GATE}`), 'the reading sentence is on this view');
     if (operation !== 'plan' && operation !== 'interrupt') await change(nodes(panel(), 'textarea')[0], 'invented r4 text');

@@ -55,7 +55,8 @@ async function mounted(options,check) {
  });
  const selected=()=>props(elements(conversation(c),'select')[0]).value;
  const change=async(e,value)=>React.act(()=>props(e).onChange({target:{value}}));
- const routeChosen=()=>{const b=button(c,ROUTE);return !!b&&props(b)['aria-pressed']===true;};
+ // In the account home the only connection is shown in use without a press (DEL-01-05 REQ-004); elsewhere the toggle is pressed.
+ const routeChosen=()=>{if(c.querySelectorAll(e=>e.getAttribute('aria-label')==='Connection in use').length)return true;const b=button(c,ROUTE);return !!b&&props(b)['aria-pressed']===true;};
  const edit=async values=>{if(values.route&&!routeChosen())await press(ROUTE);if(values.model!==undefined)await change(labelled(c,'input','Model '),values.model);};
  const values=()=>({model:labelled(c,'input','Model ')?props(labelled(c,'input','Model ')).value:null,route:routeChosen()});
  const press=async label=>React.act(async()=>{const b=button(c,label);assert.ok(b,label);assert.equal(props(b).disabled,false,label);if(label==='Start thread')explicitStarts++;if(label==='Use account home')explicitHomes++;props(b).onClick();});

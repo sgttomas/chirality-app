@@ -58,7 +58,8 @@ const labelled = (container, tag, text) => elements(container, tag).find(element
 const change = (element, value) => React.act(() => props(element).onChange({target: {value}}));
 // The account home's one connection route: the built-in OpenAI provider with the ChatGPT account entry.
 const ROUTE = 'Use my ChatGPT account (built-in OpenAI)';
-const routeChosen = container => { const route = button(container, ROUTE); return !!route && props(route)['aria-pressed'] === true; };
+// In the account home the only connection is shown in use without a press (DEL-01-05 REQ-004); elsewhere the toggle is pressed.
+const routeChosen = container => { if (container.querySelectorAll(e => e.getAttribute('aria-label') === 'Connection in use').length) return true; const route = button(container, ROUTE); return !!route && props(route)['aria-pressed'] === true; };
 const chooseRoute = async container => { if (!routeChosen(container)) await React.act(async () => { await props(button(container, ROUTE)).onClick(); }); };
 
 async function ordinaryStartCase({initialThread = false, startGeneration = g, outcome = 'success'}) {
@@ -105,7 +106,9 @@ async function ordinaryStartCase({initialThread = false, startGeneration = g, ou
       // ACCESS REQ-004/CS-9: admission consumes this new-conversation choice;
       // it does not apply the same choice to another conversation.
       assert.equal(props(labelled(container, 'input', 'Model ')).value, '', 'the next conversation has no model selected');
-      assert.equal(routeChosen(container), false, 'the next conversation has no connection chosen');
+      // DEL-01-05 REQ-004: the only connection is shown in use for the next conversation too; it is not carried from
+      // this choice, and the model, the person's choice, is not.
+      assert.equal(routeChosen(container), true, 'the next conversation shows the only connection in use');
       assert.equal(props(button(container, 'Start thread')).disabled, true, 'a second start needs a fresh explicit choice');
       assert.equal(props(button(conversation(), 'Send text')).disabled, false, 'the displayed new conversation can receive an explicit send');
       const headers = conversation().querySelectorAll(element => element.getAttribute('aria-label') === 'Conversation role');
@@ -185,7 +188,9 @@ async function withStartChooser(check, startReply, {homeReply,decisionReply}={})
   } finally {const renderedText=container.textContent;await React.act(()=>root.unmount());document.body.removeChild(container);idle.restore(renderedText);}
 }
 const selectedChoice={model:'chosen-model',route:true};
-const blankChoice={model:'',route:false};
+// In the account home a fresh choice has no model; its only connection is shown in use (DEL-01-05 REQ-004), never
+// carried from an earlier choice.
+const blankChoice={model:'',route:true};
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return {promise,resolve,reject};};
 
 test('each successful ordinary Start consumes only its choice and a second conversation needs a new explicit choice',async()=>{
@@ -294,7 +299,7 @@ test('a home transition invalidates prior-home edits but preserves newer target-
     assert.deepEqual(ui.values(),{model:null,route:false},'the legacy home offers no choice while the account home is selected');
     assert.equal(props(ui.start()).disabled,true,'nothing can start during selection');
     await React.act(async()=>{homeReply.resolve();await targetReadReached.promise;});
-    assert.ok(button(ui.container,'Use my ChatGPT account (built-in OpenAI)'));
+    assert.ok(ui.container.querySelectorAll(e=>e.getAttribute('aria-label')==='Connection in use').length,'the account home shows its only connection in use');
     assert.deepEqual(ui.values(),blankChoice,'edits made in the legacy source do not become account-home choices');
     const targetChoice={model:'target-home-model',route:true};
     await ui.edit(targetChoice);
@@ -1128,6 +1133,8 @@ async function mountedAccountApp(check,{readReply,statusReply}={}) {
       if(readReply)await readReply(args);
       snapshot=withAccountRead(snapshot);return snapshot.homeAccess;
     }
+    // The move after a confirmed sign-in opens New conversation, whose model list the App reads itself.
+    if(command==='read_available_models')return {state:'observed',generation:args.generation,modeHomeClass:args.modeHomeClass,serverProvider:'openai',serverProviderState:'named',complete:true,limits:[],models:[]};
     if(command==='select_home'){snapshot=accountHost({generation:args.modeHomeClass==='account'?g:{...g,home:'key-home'},
       homeRouting:{activeModeHomeClass:args.modeHomeClass,entries:[{modeHomeClass:'account'},{modeHomeClass:'api-key'}]}});return {};}
     throw Error(`Unexpected command ${command}`);
@@ -1151,7 +1158,9 @@ test('App matching completion dispatches only the existing non-forced read and s
     assert.deepEqual(ui.calls.filter(c=>c.command==='read_home_access'),[{command:'read_home_access',args:{generation:g,modeHomeClass:'account'}}]);
     assert.match(ui.summary().textContent,/reports a ChatGPT account/);
     assert.match(ui.summary().textContent,new RegExp(accountCanary),'the account Codex reports is shown');
-    assert.ok(ui.calls.every(c=>['host_status','decision_view','native_confirmation_content','oauth_start','read_home_access'].includes(c.command)),
+    // The confirmed sign-in moves to New conversation, where the App reads Codex's model list (a catalogue read,
+    // no model is called and nothing is chosen).
+    assert.ok(ui.calls.every(c=>['host_status','decision_view','native_confirmation_content','oauth_start','read_home_access','read_available_models'].includes(c.command)),
       'completion never refreshes credentials, signs in again, or calls a model');
     const diagnostics=elements(ui.container,'details').find(d=>d.textContent.startsWith('Source-owned account observations and limits'));
     assert.equal(props(diagnostics).open,undefined,'diagnostics remain available as a disclosure');

@@ -3,8 +3,8 @@ import { DIDNT_SAY, SIGN_IN_WORDS, planWords, type AccountReading } from "./Acco
 import { AgentText } from "./AgentText";
 
 /** Presentation only: disclosures retain every child while closed. */
-export function WorkspaceDisclosure({ id, title, description, open, children }: { id: string; title: string; description: string; open?: boolean; children: ReactNode }) {
-  return <details id={id} className="workspace-disclosure" open={open}>
+export function WorkspaceDisclosure({ id, title, description, open, onToggle, children }: { id: string; title: string; description: string; open?: boolean; onToggle?: (open: boolean) => void; children: ReactNode }) {
+  return <details id={id} className="workspace-disclosure" open={open} onToggle={onToggle ? event => onToggle((event.currentTarget as HTMLDetailsElement).open) : undefined}>
     <summary><strong>{title}</strong><span>{description}</span></summary>
     <div className="workspace-disclosure-content">{children}</div>
   </details>;

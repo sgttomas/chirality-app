@@ -68,6 +68,8 @@ impl AccountObservation {
     }
 }
 
+/// Who chose a conversation's access entry, where it was the only one available: the App showed it.
+pub const SHOWN_ONLY_ENTRY: &str = "app-showed-only-entry";
 pub struct ConversationSelection {
     project: Option<String>,
     record: Value,
@@ -161,9 +163,19 @@ impl ConversationSelection {
             return Err("offered choice differs".into());
         }
         self.record["state"] = json!("selected");
-        self.record["selection"] = json!({"entryId":entry,"providerId":provider,"model":model,"source":if accept_offer{"offered-last-choice-accepted"}else{"person"},"chosenAt":now_rfc3339()});
+        // `source` says who chose the model; `entrySource` who chose the access entry.
+        let source = if accept_offer{"offered-last-choice-accepted"}else{"person"};
+        self.record["selection"] = json!({"entryId":entry,"providerId":provider,"model":model,"source":source,"entrySource":source,"chosenAt":now_rfc3339()});
         self.record.as_object_mut().unwrap().remove("offer");
         self.record.as_object_mut().unwrap().remove("refusal");
+        Ok(())
+    }
+    /// The person chose the model, and the access entry is the only one the configuration offers, which the App
+    /// showed as the connection in use without asking (DEL-01-05 REQ-004): the record says the App showed it,
+    /// never that the person chose it. Nothing here offers or keeps a last choice for the project.
+    pub fn choose_model_for_shown_entry(&mut self, entry: &str, provider: &str, model: &str) -> Result<(), String> {
+        self.choose(entry, provider, model, false)?;
+        self.record["selection"]["entrySource"] = json!(SHOWN_ONLY_ENTRY);
         Ok(())
     }
     pub fn start_params(
@@ -400,4 +412,24 @@ mod tests {
         assert!(ConversationSelection::new_explicit("c", Some("")).is_err());
         assert!(ConversationSelection::new("c", "").is_err());
     }
+    #[test]
+    fn a_shown_only_entry_is_recorded_as_shown_by_the_app_never_as_the_persons_choice() {
+        let mut choice = ConversationSelection::new("c", "p").unwrap();
+        choice.choose_model_for_shown_entry("chatgpt-account", "openai", "m").unwrap();
+        valid(&choice);
+        let selection = &choice.snapshot()["selection"];
+        assert_eq!(selection["entrySource"], SHOWN_ONLY_ENTRY, "the App showed the only entry");
+        assert_eq!(selection["source"], "person", "the model is the person's choice");
+        assert_eq!(choice.snapshot()["state"], "selected");
+        assert!(choice.snapshot().get("offer").is_none(), "nothing is offered or kept as a last choice for the project");
+        // A choice the person made of the entry says so.
+        let mut chosen = ConversationSelection::new("c", "p").unwrap();
+        chosen.choose("chatgpt-account", "openai", "m", false).unwrap();
+        assert_eq!(chosen.snapshot()["selection"]["entrySource"], "person");
+        // A model is still required: the entry alone is never a selection.
+        let mut empty = ConversationSelection::new("c", "p").unwrap();
+        assert!(empty.choose_model_for_shown_entry("chatgpt-account", "openai", "").is_err());
+        assert_eq!(empty.start_params(&serde_json::json!({"home":"h","appSession":"s","spawnCounter":1}), "account", false).unwrap_err(), "not started — no model selected");
+    }
+
 }

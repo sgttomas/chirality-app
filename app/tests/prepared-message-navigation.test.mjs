@@ -88,6 +88,8 @@ async function mounted(options,check){
    assert.equal(options.cleanJourney,true);assert.deepEqual(args,{reference:'trial:clean',generation:g,threadId:'A',includeNative:false});
    account.workflowRoot.pendingBringBacks=[feedback()];return {id:'feedback:original',card:'STALE returned transcript card'};
   }
+  // New conversation open with its only connection in use and Codex ready: the App reads the model list itself.
+  if(command==='read_available_models')return {state:'observed',generation:args.generation,modeHomeClass:args.modeHomeClass,serverProvider:'openai',serverProviderState:'named',complete:true,limits:[],models:[]};
   unexpected.push({command,args});throw Error(`Unexpected command: ${command}`);
  });
  const track=call=>{if(call?.then){actions.add(call);call.then(()=>actions.delete(call),()=>actions.delete(call));}};
@@ -117,8 +119,9 @@ async function mounted(options,check){
  const selected=()=>props(elements(conversation(c),'select')[0]).value;
  const choose=async id=>change(elements(conversation(c),'select')[0],key(id));
  const editChoice=async(value='newer-choice')=>{
-  const start=c.querySelectorAll(e=>e.getAttribute('id')==='workspace-start')[0];const route=elements(start,'button').find(e=>e.textContent===ROUTE);assert.ok(route,ROUTE);
-  if(props(route)['aria-pressed']!==true)await press(ROUTE,start);await change(labelled(c,'input','Model '),value);
+  // The account home's only connection is shown in use without a press (DEL-01-05 REQ-004): the choice is the model.
+  const start=c.querySelectorAll(e=>e.getAttribute('id')==='workspace-start')[0];assert.ok(region(start,'Connection in use'),'the connection in use');
+  assert.equal(elements(start,'button').find(e=>e.textContent===ROUTE),undefined);await change(labelled(c,'input','Model '),value);
  };
  const model=()=>props(labelled(c,'input','Model ')).value;
  const composer=label=>region(conversation(c),label??'Trial composer');
@@ -498,13 +501,16 @@ for(const state of ['absent','ready'])test(`first use with Codex ${state} expose
  await mounted({initialize:false,beforeMount:account=>{account.state=state;account.generation=state==='absent'?null:g;account.workflowRoot.context.generation=account.generation;account.threads=[];}},async ui=>{
   const start=byId(ui.c,'workspace-start');assert.ok(displayed(start));
   for(const label of ['How this conversation connects','Available models'])assert.ok(displayed(region(start,label)),label);
-  assert.ok(displayed(button(start,'Read available models')));assert.ok(displayed(button(start,'Start thread')));
-  assert.ok(displayed(button(start,ROUTE)),'the built-in route is the first-use connection');
+  assert.ok(displayed(button(start,'Read the list again')));assert.ok(displayed(button(start,'Start thread')));
+  assert.ok(displayed(region(start,'Connection in use')),'the built-in route is the first-use connection, shown in use');
   const advanced=start.querySelectorAll(e=>e.localName==='details'&&e.childNodes.some(n=>n.localName==='summary'&&n.textContent==='Advanced: enter a model ID yourself'))[0];assert.ok(advanced,'a typed model ID remains available');
   assert.ok(advanced.contains(labelled(start,'input','Model ')));
   assert.equal(labelled(start,'input','Configured Codex provider '),undefined,'the provider is never typed');assert.equal(labelled(start,'select','Access entry '),undefined,'there is no access-entry select');
   assert.equal(displayed(labelled(start,'input','Model ')),false,'a typed model ID is an advanced fallback, not the first-use route');
   const connection=byId(ui.c,'workspace-connection');if(state==='absent'){assert.equal(disclosureOpen(connection),true,'connection setup is exposed before Codex is ready');assert.ok(displayed(button(ui.c,'Start Codex')));}
+  // The one supplier read: Codex's model list, read by the App once New conversation is open with Codex ready (a
+  // catalogue read; nothing is chosen or started). With Codex absent nothing is read.
+  assert.equal(ui.calls.filter(call=>call.command==='read_available_models').length,state==='ready'?1:0,'the model list is read only with Codex ready');
   const before=ui.calls.length;await toggleDisclosure(ui.c,'workspace-connection',false);assert.equal(disclosureOpen(connection),false);await followWorkspaceLink(ui.c,'Set up access or start Codex');assert.equal(disclosureOpen(connection),true);assert.ok(displayed(button(ui.c,'Start Codex')));assert.equal(ui.calls.length,before,'setup navigation never starts a supplier');
  });
 });

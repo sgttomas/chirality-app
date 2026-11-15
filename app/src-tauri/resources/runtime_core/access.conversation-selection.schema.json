@@ -142,9 +142,18 @@
           "minLength": 1
         },
         "source": {
+          "description": "Who chose the model.",
           "enum": [
             "person",
             "offered-last-choice-accepted"
+          ]
+        },
+        "entrySource": {
+          "description": "Who chose the access entry: the person, an accepted offer of the last choice, or the App, which showed the only entry the configuration offers as the connection in use without asking (DEL-01-05 REQ-004).",
+          "enum": [
+            "person",
+            "offered-last-choice-accepted",
+            "app-showed-only-entry"
           ]
         },
         "chosenAt": {

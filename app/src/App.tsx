@@ -43,7 +43,7 @@ import { AccountStatus, DIDNT_SAY, accountReadError, accountReadRef, accountRead
 import { RunWorkflowGuide, registeredRevisionAnchor, runEvidenceAnchor } from "./RunJourney";
 import { MakeWorkflowGuide } from "./MakeJourney";
 import { acknowledgeBringBackDoubt, beginBringBack, bringBackRefusal, doubtDestination, endBringBack, noteBringBackDoubt, resetBringBackDoubts, sendKey, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
-import { AccessRouteChoice, AvailableModels, OfferedEffortChoice, modelMatch, validModelPacket } from "./ModelChoice";
+import { AccessRouteChoice, AvailableModels, OfferedEffortChoice, SHOWN_ROUTE, modelMatch, onlyAccessEntry, validModelPacket } from "./ModelChoice";
 /** One App-composed message for the person to edit and send; never sent by the App. */
 export type ComposerOffer = { sequence: number; threadKey: string; text: string };
 import { conversationTitle, DIGEST_LIMIT, digestComparison, nativePathText, readablePaths, reviewDigest, suppliedSummary, type ReviewDigestView, conversationLabel } from "./presentation";
@@ -1653,7 +1653,12 @@ export function App() {
     choiceRef.current = next;
     setConversationChoice(next);
   };
-  const { model, modelProvider, entryId } = conversationChoice.homeEpoch === chooserHome.current.epoch ? conversationChoice : emptyConversationChoice;
+  // DEL-01-05 REQ-004: where the configuration offers exactly one access entry, a new conversation uses it, shown as
+  // the connection in use. It is applied here, to what this chooser shows and Start sends, and never recorded as the
+  // person's choice: the chooser's own state keeps only what the person chose (the model), and the host records that
+  // the App showed the only entry. Existing conversations keep their own home and provider.
+  const shownChoice = <T extends typeof emptyConversationChoice>(choice: T): T => onlyAccessEntry(chooserHome.current.mode) ? { ...choice, ...SHOWN_ROUTE } : choice;
+  const { model, modelProvider, entryId } = shownChoice(conversationChoice.homeEpoch === chooserHome.current.epoch ? conversationChoice : emptyConversationChoice);
   const [startPending, setStartPending] = useState(false);
   const startPendingRef = useRef(false);
   const forkStartRevision = useRef(0);
@@ -1699,8 +1704,9 @@ export function App() {
     && providerObservation.source === providerSource(host) && providerObservation.epoch === chooserHome.current.epoch
     && providerObservation.sequence === providerReadSequence.current
     && providerObservation.packet.scope.readRevision === host?.configuredProviderReadRevision;
-  // DEL-01-05 model discovery: read only at the person's press, bound to the
-  // home, generation and project it was read for and to this chooser epoch.
+  // DEL-01-05 model discovery: read by the App itself when New conversation opens with its only connection in use
+  // and Codex ready, and again at the person's press ("Read the list again"); bound to the home, generation and
+  // project it was read for and to this chooser epoch. The reported default is never chosen for the person.
   const modelReadSequence = useRef(0);
   const modelReadPending = useRef(false);
   const [modelReading, setModelReading] = useState(false);
@@ -1733,10 +1739,14 @@ export function App() {
     const shown = modelObservation;
     if (!shown || !modelObservationCurrent || modelReadPending.current || startPendingRef.current || homePendingRef.current) return;
     if (!shown.packet.models.some((entry: Json) => entry.id === row.id && entry.model === row.model)) return;
-    const choice = choiceRef.current;
+    const choice = shownChoice(choiceRef.current);
     if (modelMatch(shown.packet, choice.modelProvider, choice.entryId) === "none") return;
     reviseChoice({ model: row.model });
   };
+  // New conversation is open: as the person left it, else open while there is no conversation to show.
+  const [startShown, setStartShown] = useState<boolean | null>(null);
+  const startOpenByDefault = host?.state !== "ready" || !(host?.threads?.length);
+  const autoModelRead = useRef<string | null>(null);
   const endpointSourceCurrent = (editor: Json) => !!editor && editor.source === providerSource(currentHost.current)
     && editor.epoch === chooserHome.current.epoch && currentHost.current?.state === "ready" && !currentHost.current?.generationClosed
     && currentHost.current?.homeRouting?.activeModeHomeClass === "account" && !homePendingRef.current && !startPendingRef.current;
@@ -1979,6 +1989,18 @@ export function App() {
     autoMoving.current = true;
     try { revealWorkspaceTarget(autoReveal.target); } finally { autoMoving.current = false; }
   }, [autoReveal]);
+  // The App reads the model list itself when New conversation opens with its only connection in use and Codex ready:
+  // once for each source and chooser, the same read as the person's press. The person still chooses the model.
+  const newConversationOpen = taskView === "conversation" && (startShown ?? startOpenByDefault);
+  const autoModelReadKey = onlyAccessEntry(homeClass) && newConversationOpen && host?.state === "ready" && !host?.generationClosed
+    ? JSON.stringify([providerSource(host), chooserHome.current.epoch]) : null;
+  useEffect(() => {
+    if (!autoModelReadKey || autoModelRead.current === autoModelReadKey) return;
+    void readAvailableModels();
+    // The read begins synchronously or is refused (another read, a start or a home change under way): only a read
+    // that began counts for this source.
+    if (modelReadPending.current) autoModelRead.current = autoModelReadKey;
+  }, [autoModelReadKey, startPending, homePending]); // eslint-disable-line react-hooks/exhaustive-deps
   // Work entered and not sent, as the views report it (unsentWork.ts).
   const unsentWork = useRef(new Set<string>());
   const reportUnsent = useCallback((owner: string, unsent: boolean) => { if (unsent) unsentWork.current.add(owner); else unsentWork.current.delete(owner); }, []);
@@ -2191,7 +2213,7 @@ export function App() {
   const startConversation = async () => {
     const source = currentHost.current;
     const mode = source?.homeRouting?.activeModeHomeClass;
-    const submitted = choiceRef.current;
+    const submitted = shownChoice(choiceRef.current);
     const epoch = chooserHome.current.epoch;
     if (endpointBusyRef.current || startPendingRef.current || homePendingRef.current || providerReadPending.current || configuredRowChoiceStale() || source?.state !== "ready" || submitted.homeEpoch !== epoch ||
         !submitted.model.trim() || !submitted.modelProvider.trim() || (mode !== "account" && mode !== LOCAL_MODE) ||
@@ -2728,26 +2750,28 @@ export function App() {
           requested target {JSON.stringify(trialObservation.relation.target)}): {String(trialObservation.limit).replace(/\.$/, "")}. The original command outcome is unchanged.
         </p>}</div>
         <div id="view-conversation" data-workspace-view="conversation" className="workspace-view" hidden={taskView !== "conversation"}>
-        <WorkspaceDisclosure id="workspace-start" title="New conversation" description="Model and role — start explicitly" open={host?.state !== "ready" || !(host?.threads?.length) ? true : undefined}>
+        <WorkspaceDisclosure id="workspace-start" title="New conversation" description="Model and role — start explicitly" open={startOpenByDefault ? true : undefined} onToggle={setStartShown}>
           <h2>New conversation</h2>
           {signedInNotice && <p role="status" aria-label="Signed in">You're signed in. Choose a model to start a conversation.</p>}
           <div className="workspace-start-fields">
           <h3>1. How it connects</h3>
           <AccessRouteChoice homeClass={homeClass} modelProvider={modelProvider} entryId={entryId} model={model} disabled={startPending || homePending || providerReading || endpointBusy}
-            local={fixedLocal} choose={route => reviseChoice(route)}/>
+            local={fixedLocal} choose={route => reviseChoice(route)} onlyEntry={onlyAccessEntry(homeClass)} entriesUnread={!homeClass}/>
           {homeClass === "account" && <p aria-label="Local model servers">Local providers named in your own Codex settings are not offered: the App can’t run one in this home, and this version offers no local model server.</p>}
           <h3>2. Model</h3>
           <AvailableModels packet={modelObservation?.packet ?? null} current={modelObservationCurrent} reading={modelReading} message={modelObservationMessage}
             model={model} modelProvider={modelProvider} entryId={entryId} read={() => { void readAvailableModels(); }} choose={chooseListedModel}
             setModel={model => reviseChoice({ model })} fixedModel={fixedLocal && entryId === fixedLocal.entryId ? fixedLocal.model : null}
-            localHome={homeClass === LOCAL_MODE ? (fixedLocal ? "prepared" : "unprepared") : null}
+            localHome={homeClass === LOCAL_MODE ? (fixedLocal ? "prepared" : "unprepared") : null} auto={onlyAccessEntry(homeClass)}
             disabled={host?.state !== "ready" || !!host?.generationClosed || homeClass !== "account" || startPending || homePending || endpointBusy}/>
           {homeClass === "account" && <details className="workflow-stage"><summary>Advanced: enter a model ID yourself</summary>
           <p><ModelIdField model={model} setModel={model => reviseChoice({ model })}/></p>
           </details>}
-          <p>Choose how this conversation connects and a model, then a role. Switching homes never transfers an existing conversation.</p>
+          <p>{onlyAccessEntry(homeClass) ? "Choose a model, then a role." : "Choose how this conversation connects and a model, then a role."} Switching homes never transfers an existing conversation.</p>
           <RoleChoice group="start-thread-role" roleSet={host?.roleSet} limits={host?.roleLimits} role={role} preselected={!roleTouched && !!role && role === host?.roleSet?.defaultRole} setRole={next => { expireEndpointPreview(); roleInitialized.current = true; setRoleTouched(true); setRole(next); }}/></div>
           <p aria-label="New conversation choice">{!model.trim() || !modelProvider.trim() ? "not started — no model selected" : entryCompatible ? `New conversation choice: ${model} via ${modelProvider} (${entryId})` : "Choose how this conversation connects (step 1)."}</p>
+          {/* The level in force, its origin and what an allowed command may do: the level view fills this place. */}
+          <div id="new-conversation-level"></div>
           <p>
             <button onClick={startConversation} disabled={!!startBlocked} aria-describedby={startBlocked ? "start-conversation-blocked" : undefined}>Start thread</button>
             {startBlocked && <>{" "}<span id="start-conversation-blocked" role="status">{startBlocked}</span></>}

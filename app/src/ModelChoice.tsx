@@ -38,12 +38,27 @@ export function validModelPacket(packet: Json, generation: Json, modeHomeClass: 
     && packet.models.every((row: Json) => ["id", "model", "displayName", "description"].every(key => typeof row?.[key] === "string") && typeof row.isDefault === "boolean" && row.model !== "");
 }
 
-/** How a new conversation connects: an explicit choice of an existing access route. */
-export function AccessRouteChoice({ homeClass, modelProvider, entryId, model = "", disabled, choose, localHint, local = null }: {
+/** Whether a new conversation in `homeClass` has exactly one access entry, as a known fact of this build's
+ * configuration: the account home, with the local route withdrawn (localRoute.ts). Never the result of a read that
+ * returned one row. DEL-01-05 REQ-004: that entry is shown as the connection in use, without asking. */
+export const onlyAccessEntry = (homeClass: string | null | undefined): boolean => homeClass === "account" && !LOCAL_ROUTE_OFFERED;
+/** The account home's one entry: the built-in OpenAI provider with the ChatGPT account. */
+export const SHOWN_ROUTE = { modelProvider: BUILT_IN_PROVIDER, entryId: "chatgpt-account" } as const;
+/** How the only connection is shown. It says nothing of whether anyone is signed in. */
+export const CONNECTION_IN_USE = "Connects with your ChatGPT account (built-in OpenAI) — the only connection this version offers.";
+
+/** How a new conversation connects: the only connection, shown as in use, or an explicit choice of an existing access route. */
+export function AccessRouteChoice({ homeClass, modelProvider, entryId, model = "", disabled, choose, localHint, local = null, onlyEntry = false, entriesUnread = false }: {
   homeClass: string | null; modelProvider: string; entryId: string; model?: string; disabled: boolean;
   choose: (route: { modelProvider: string; entryId: string; model?: string }) => void; localHint?: string;
   local?: { entryId: string; providerId: string; endpoint: string; model: string; credentialState?: string } | null;
+  /** Exactly one access entry, as a fact of the configuration (onlyAccessEntry): shown as in use, nothing to choose. */
+  onlyEntry?: boolean;
+  /** Which connections exist is not yet known: nothing is taken as in use. */
+  entriesUnread?: boolean;
 }) {
+  if (entriesUnread) return <div aria-label="How this conversation connects"><p role="status">Reading which connections this App offers…</p></div>;
+  if (onlyEntry && homeClass === "account") return <div aria-label="How this conversation connects"><p aria-label="Connection in use">{CONNECTION_IN_USE}</p></div>;
   const builtIn = homeClass === "account" ? { entryId: "chatgpt-account", label: "Use my ChatGPT account (built-in OpenAI)" } : null;
   const chosen = builtIn && modelProvider === BUILT_IN_PROVIDER && entryId === builtIn.entryId;
   const localChosen = !!local && entryId === local.entryId && modelProvider === local.providerId && model === local.model;
@@ -60,10 +75,14 @@ export function AccessRouteChoice({ homeClass, modelProvider, entryId, model = "
   </div>;
 }
 
-/** The models Codex reports, read only when the person asks; never preselected. */
-export function AvailableModels({ packet, current, reading, message, model, modelProvider, entryId, disabled, read, choose, setModel, fixedModel, localHome = null }: {
+/** The models Codex reports, never preselected: the person chooses. With `auto`, the App has read the list itself (a
+ * new conversation whose only connection is in use), and the button reads it again; otherwise it is read when the
+ * person asks. */
+export function AvailableModels({ packet, current, reading, message, model, modelProvider, entryId, disabled, read, choose, setModel, fixedModel, localHome = null, auto = false }: {
   packet: Json | null; current: boolean; reading: boolean; message: string; model: string; modelProvider: string; entryId: string;
   disabled: boolean; read: () => void; choose: (row: Json) => void;
+  /** The App reads the list itself when the chooser opens; the button reads it again. */
+  auto?: boolean;
   /** Lets the person name a local server's model in this step. */
   setModel?: (model: string) => void;
   /** The one model of the keyed oMLX route, when that route is the choice. */
@@ -88,9 +107,9 @@ export function AvailableModels({ packet, current, reading, message, model, mode
       </>}
   </div>;
   return <div aria-label="Available models">
-    <button disabled={disabled || reading} onClick={read}>Read available models</button>{" "}
-    <small>Asks Codex for its model list now. Nothing is chosen or started.</small>
-    {reading && <p role="status">Reading the models Codex reports…</p>}
+    <button disabled={disabled || reading} onClick={read}>{auto ? "Read the list again" : "Read available models"}</button>{" "}
+    <small>{auto ? "Asks Codex for its model list again. Nothing is chosen or started." : "Asks Codex for its model list now. Nothing is chosen or started."}</small>
+    {reading && <p role="status">{auto ? "Reading the models Codex offers…" : "Reading the models Codex reports…"}</p>}
     {message && <p role="alert">{message}</p>}
     {packet && !current && <p role="status">This model list is out of date — Codex, the home or the project changed. Read it again.</p>}
     {packet && current && <div>
@@ -120,7 +139,7 @@ const chosenAny = (route: ModelRoute) => !!(route.model || route.modelProvider |
  * full Codex generation it was made for. Any change of that source starts a new
  * binding: the earlier choice and model list no longer count (and are shown as
  * out of date), so a stale choice can't be sent. The composer's text is not
- * held here and is kept. The list is read only at the person's press. */
+ * held here and is kept. Here the list is read at the person's press. */
 /** What a press may use: the choice and the exact source it was made for. */
 export type BoundRoute = { route: ModelRoute; generation: Json; modeHomeClass: string | null };
 export type BoundModelChoice = {
