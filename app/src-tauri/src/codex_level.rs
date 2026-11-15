@@ -23,7 +23,7 @@ pub const APP_DEFAULT_SENTENCE: &str = "The App's default level, not chosen by y
 /// Where the status explains the App's default.
 /// What allowing a command means at Supervised, at the pinned Codex (supplier_checks/level: the escalation rows and
 /// `AskEachCommandInsideTheProject`; the features that would grant less are under development and off).
-pub const SUPERVISED_ALLOWING: &str = "Codex asks before running a command it does not know to be safe. If you allow one, it can run outside the sandbox, with your account's access to all your files and to the network. Codex cannot run it limited to this project.";
+pub const SUPERVISED_ALLOWING: &str = "When a command needs your approval, Codex asks. If you allow it, the command can run outside the sandbox, with your account's access to all your files and to the network; Codex cannot run it limited to this project. Your own rules and hooks can allow or refuse a command without asking you.";
 pub const APP_DEFAULT_EXPLAINED: &str = "The App's default level is full access: commands run with no sandbox, with your account's access to your files and the network, including the App's own records and settings. You can choose another level at any time.";
 /// The status's closed sentence for a level chosen while the App's records could not be read or saved.
 /// Where the App's record of the level is missing although this home has been used (V4-AUT-06): no default is named.
