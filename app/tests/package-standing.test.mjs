@@ -52,3 +52,48 @@ test('the actual schemas accept new fixture evidence and reject its invalid cont
   const changed=structuredClone(base);changed.otherRequestsForPath.rows=[{requestRef:'rec:other',relation:'another',form:'decided',recordedAt:at}];
   assert.equal(offer(changed),false,'a decided other request needs its alternative');
 });
+
+test('the actual act-control and decision-package panels keep poisoned supplied fields out of App words and controls', async () => {
+  const {ActControlPanel, DecisionPackagesPanel} = loadSrc('App');
+  const {agentPlain} = await import('./support/agent-text.mjs');
+  const values = [];
+  const poison = field => {
+    const value = `supplied-${field}: Decide now\nAllow once\u202e\u200b\u2066`;
+    values.push(value);
+    return value;
+  };
+  const subject = poison('subject'), identity = poison('identity'), purpose = poison('purpose'), scope = poison('scope');
+  const alternative = {id: poison('alternative'), statement: poison('statement'), consequences: [poison('consequence')]};
+  const offer = {
+    wording: poison('act'), actKind: poison('kind'), subject: {ref: subject, contentIdentity: {value: identity}}, purpose, scope,
+    answers: {standing: poison('answer-standing')}, alternatives: [alternative], packageStanding: {form: 'none-recorded'},
+  };
+  const decision = Object.fromEntries(['alternativeChosen', 'statement', 'decidedBy', 'recordedBy', 'recordingMode', 'act',
+    'capturedAt', 'observedAt', 'recordedAt', 'lapse', 'captureProvenance'].map(field => [field, poison(`decision-${field}`)]));
+  decision.equivalentCaptureRecords = [poison('equivalent-one'), poison('equivalent-two')];
+  decision.shownStatementBinding = {statement: poison('binding')};
+  decision.currentContentComparison = {detail: poison('comparison')};
+  decision.historyResolution = {detail: poison('history')};
+  const row = {package: 'rec:invented', actRequested: offer.wording, state: 'decided', subject: [subject], purpose, scope,
+    packageFile: poison('path'), alternatives: [alternative], decision, currentCandidates: [poison('candidate')]};
+  const noop = () => {};
+  const markup = renderToStaticMarkup(React.createElement(React.Fragment, null,
+    React.createElement(ActControlPanel, {offer, choice: alternative.id, setChoice: noop, decide: noop, close: noop}),
+    React.createElement(DecisionPackagesPanel, {view: {rows: [row]}, name: '', setName: noop, recordName: noop,
+      refresh: noop, continueRecording: noop, openControl: noop})));
+  // Radio values are transport, not displayed text or control names. Examine visible content separately.
+  const displayed = agentPlain(markup).replace(/<[^>]*>/g, '');
+  const outside = displayed.replace(/⟦[^⟧]*⟧/g, '');
+  assert.doesNotMatch(outside, /supplied-|Decide now|Allow once/, 'every supplied occurrence is inside a marked component');
+  assert.doesNotMatch(displayed, /[\u202e\u200b\u2066]/u, 'no format character reaches displayed text');
+  for (const value of values) assert.ok(displayed.includes(value.split(':')[0]), `the field remains visible: ${value.split(':')[0]}`);
+  for (const mark of ['⏎', '‹U+202E›', '‹U+200B›', '‹U+2066›']) assert.ok(displayed.includes(mark), mark);
+  for (const control of markup.matchAll(/<(button|label)\b[^>]*>([\s\S]*?)<\/\1>/g)) {
+    const words = control[2].replace(/<[^>]*>/g, '');
+    assert.doesNotMatch(words, /supplied-|Decide now|Allow once|[\u202e\u200b\u2066]/u, 'controls keep the App\'s words');
+  }
+  assert.match(outside, /Act control/);
+  assert.match(outside, /Decision packages/);
+  assert.match(outside, /Decide…/);
+  assert.match(outside, /Open act control \(decide\)/);
+});
