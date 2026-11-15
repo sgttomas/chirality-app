@@ -8087,6 +8087,54 @@ mod conversation_transport_tests {
     const AUTH_CANARY:&str="SYNTHETIC_UNIT_A_KEY_CANARY_9b71_not_a_real_credential";
     fn assert_auth_retained_safe(host:&Host,source:Option<&SourceRequest>){let mut all=json!({"snapshot":host.snapshot(),"clients":host.client_requests(),"journal":host.journal()});if let Some(source)=source{all["source"]=source.evidence();all["attempted"]=source.attempted_frame().clone();all["observation"]=host.account_rpc_observation(source).unwrap();}let text=serde_json::to_string(&all).unwrap();assert!(!text.contains(AUTH_CANARY),"synthetic canary leaked into retained output");assert!(!format!("{all:?}").contains(AUTH_CANARY));}
     #[test]
+    fn credential_rpc_user_id_only_uncorrelated_reply_is_withheld_without_correlation() {
+        for key in ["userId", "accountId"] {
+            let host = host();
+            host.inner.0.lock().unwrap().account_channels.push(g());
+            let mut result = json!({});
+            result[key] = json!(AUTH_CANARY);
+            let native = json!({"id":"unrelated-response","result":result});
+            host.on_line(&serde_json::to_vec(&native).unwrap(), &g());
+            let journal = host.journal();
+            let observed = journal.last().unwrap();
+            assert_eq!(observed["frame"]["result"], auth_rpc::REDACTED, "{key}");
+            assert!(observed["frame"].get("method").is_none());
+            assert!(observed["frame"]["id"].is_null());
+            assert!(host.client_requests().is_empty(), "privacy handling must not invent an RPC association");
+            assert_auth_retained_safe(&host, None);
+        }
+    }
+    #[test]
+    fn credential_rpc_user_id_and_account_id_in_generic_account_frames_are_withheld() {
+        let native = json!({"method":"account/updated","params":{
+            "userId":AUTH_CANARY,"accountId":AUTH_CANARY,
+            "nested":{"userId":AUTH_CANARY,"accountId":AUTH_CANARY}
+        }});
+        let (frame, projected) = auth_rpc::project_frame(&native, None);
+        assert!(projected);
+        assert_eq!(frame["params"]["userId"], auth_rpc::REDACTED);
+        assert_eq!(frame["params"]["accountId"], auth_rpc::REDACTED);
+        assert!(!frame.to_string().contains(AUTH_CANARY));
+    }
+    #[test]
+    fn credential_rpc_user_id_correlated_account_never_reaches_public_evidence() {
+        let host = host();
+        let mut source = None;
+        let (result, _) = exchange(&host, Some(json!({"result":{
+            "requiresOpenaiAuth":true,"account":{"type":"chatgpt"},"userId":AUTH_CANARY,"accountId":AUTH_CANARY
+        }})), vec![], || {
+            let request = host.account_read_no_refresh_scoped(&g())?;
+            let evidence = host.source_request_wait(&request, Duration::from_millis(20))?;
+            source = Some(request);
+            Ok(evidence)
+        });
+        assert!(result.is_ok());
+        let source = source.unwrap();
+        assert!(source.evidence()["response"]["result"].get("userId").is_none());
+        assert!(source.evidence()["response"]["result"].get("accountId").is_none());
+        assert_auth_retained_safe(&host, Some(&source));
+    }
+    #[test]
     fn credential_rpc_private_wire_once_and_redacted_receipt_typed_presence(){let host=host();let mut source=None;let(result,outbound)=exchange(&host,Some(json!({"result":{"type":"apiKey","apiKey":AUTH_CANARY,"extraEcho":AUTH_CANARY}})),vec![],||{let r=host.account_login_api_key(&g(),auth_rpc::TransientApiKey::synthetic(AUTH_CANARY),None)?;let e=host.source_request_wait(&r,Duration::from_millis(20))?;source=Some(r);Ok(e)});let e=result.unwrap();let source=source.unwrap();assert_eq!(outbound["params"],json!({"type":"apiKey","apiKey":AUTH_CANARY}));assert_eq!(serde_json::to_string(&outbound).unwrap().matches(AUTH_CANARY).count(),1);assert_eq!(e["writeResult"],"written");assert_eq!(e["outcome"],"response-observed-result");assert_eq!(e["sensitiveFieldsRedacted"],true);assert!(e["frameEvidence"].as_str().unwrap().contains("not original"));assert_eq!(e["response"]["result"],json!({"type":"apiKey"}));assert_eq!(host.account_rpc_observation(&source).unwrap()["accountObservation"]["credentialValidity"],"unknown");assert_auth_retained_safe(&host,Some(&source));let count=host.client_requests().len();host.source_request_status(&source).unwrap();assert_eq!(host.client_requests().len(),count);}
     #[test]
     fn credential_rpc_delayed_released_key_error_closed_channel_and_unrelated_notification(){let host=host();let mut source=None;let(result,outbound)=exchange(&host,None,vec![],||{let r=host.account_login_api_key(&g(),auth_rpc::TransientApiKey::synthetic(AUTH_CANARY),None)?;let e=host.source_request_wait(&r,Duration::from_millis(10))?;source=Some(r);Ok(e)});assert_eq!(result.unwrap()["waitingEnded"],true);let source=source.unwrap();assert_auth_retained_safe(&host,Some(&source));let error=json!({"id":outbound["id"],"error":{"code":-32000,"message":format!("native auth echoed {AUTH_CANARY}"),"data":{"secret":AUTH_CANARY}}});host.on_line(&serde_json::to_vec(&error).unwrap(),&g());assert_eq!(source.evidence()["outcome"],"response-observed-error");assert_eq!(source.evidence()["response"]["error"]["code"],-32000);assert_auth_retained_safe(&host,Some(&source));let ordinary=json!({"method":"unrelated/native-notification","params":{"text":"ordinary source bytes","extra":7}});host.on_line(&serde_json::to_vec(&ordinary).unwrap(),&g());assert_eq!(host.journal().last().unwrap()["frame"],ordinary);
