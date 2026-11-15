@@ -1330,6 +1330,10 @@ impl ProviderAdmission {
     pub(super) fn reading_origins(&self, generation: &Value) -> Option<Value> {
         (self.source.generation() == generation).then(|| self.config.get("origins").filter(|o| o.is_object()).cloned()).flatten()
     }
+    /// The folder named by the private reading this admission rests on (`extensions`).
+    pub(super) fn reading_cwd(&self) -> Option<&str> {
+        self.source.attempted_frame()["params"]["cwd"].as_str().filter(|cwd| !cwd.is_empty())
+    }
     pub(super) fn source(&self) -> &SourceRequest { &self.source }
     pub(super) fn cwd(&self) -> &str { &self.cwd }
 }

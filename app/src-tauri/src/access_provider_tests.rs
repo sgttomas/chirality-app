@@ -851,8 +851,6 @@ impl Peer {
             .spawn()
             .unwrap();
         *host.stdin.lock().unwrap() = child.stdin.take();
-        // The stand-in answers the plugins-and-apps reading: both off.
-        host.answer_features_off_for_test();
         let wire = BufReader::new(child.stdout.take().unwrap());
         Self {
             host,
@@ -885,8 +883,6 @@ impl Peer {
             .spawn()
             .unwrap();
         *host.stdin.lock().unwrap() = child.stdin.take();
-        // The stand-in answers the plugins-and-apps reading: both off.
-        host.answer_features_off_for_test();
         let wire = BufReader::new(child.stdout.take().unwrap());
         Self {
             host,
@@ -895,28 +891,10 @@ impl Peer {
             g,
         }
     }
-    /// Answers the next plugins-and-apps reading with both off, then waits for `go` before the
-    /// request after it continues: the test takes the frame writer between the two, so that request
-    /// is queued behind it.
-    pub(crate) fn hold_writer_after_reading(&self) -> (std::sync::mpsc::Receiver<()>, std::sync::mpsc::Sender<()>) {
-        let (answered_tx, answered) = std::sync::mpsc::channel();
-        let (go, go_rx) = std::sync::mpsc::channel::<()>();
-        let (answered_tx, go_rx) = (Mutex::new(answered_tx), Mutex::new(go_rx));
-        *self.host.feature_read_reply.lock().unwrap() = Some(Box::new(move |host, source| {
-            host.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"result":crate::hosting::extensions::features_off_page()})).unwrap(), source.generation());
-            let _ = answered_tx.lock().unwrap().send(());
-            let _ = go_rx.lock().unwrap().recv_timeout(Duration::from_secs(5));
-        }));
-        (answered, go)
-    }
-    /// The next frame written, past the plugins-and-apps readings the hook answers.
     pub(crate) fn frame(&mut self) -> Value {
-        loop {
-            let mut s = String::new();
-            self.wire.read_line(&mut s).unwrap();
-            let frame: Value = serde_json::from_str(&s).unwrap();
-            if frame["method"] != "experimentalFeature/list" { return frame; }
-        }
+        let mut s = String::new();
+        self.wire.read_line(&mut s).unwrap();
+        serde_json::from_str(&s).unwrap()
     }
     pub(crate) fn answer(&self, result: Value) {
         *self.host.before_provider_wait.lock().unwrap() = Some(Box::new(move |host, source| {
@@ -1775,13 +1753,10 @@ fn access_provider_queued_start_rechecks_original_receipt_after_source_close() {
     peer.answer(config(json!({})));
     let proof = peer.read("chatgpt-account", "openai").unwrap();
     peer.frame();
-    let (answered, go) = peer.hold_writer_after_reading();
+    let held = peer.host.frame_write.lock().unwrap();
     let host = Arc::clone(&peer.host);
     let worker =
         std::thread::spawn(move || host.thread_start_with_access_dispatch(&proof, "guidance"));
-    answered.recv_timeout(Duration::from_secs(2)).unwrap();
-    let held = peer.host.frame_write.lock().unwrap();
-    go.send(()).unwrap();
     let deadline = std::time::Instant::now() + Duration::from_secs(2);
     loop {
         if peer
@@ -2356,13 +2331,10 @@ fn native_children_queued_mutation_cannot_promote_or_strip_prepared_supply() {
             .unwrap();
         assert_eq!(peer.frame()["method"], "config/read");
         assert_eq!(composition.children.len(), 1);
-        let (answered, go) = peer.hold_writer_after_reading();
+        let held = peer.host.frame_write.lock().unwrap();
         let host = Arc::clone(&peer.host);
         let worker =
             std::thread::spawn(move || host.thread_start_with_role_dispatch(&proof, &composition));
-        answered.recv_timeout(Duration::from_secs(2)).unwrap();
-        let held = peer.host.frame_write.lock().unwrap();
-        go.send(()).unwrap();
         let deadline = std::time::Instant::now() + Duration::from_secs(2);
         while !peer
             .host
@@ -4741,25 +4713,32 @@ fn access_provider_cloud_start_admission_reads_again_and_does_not_reuse_an_earli
         peer.safe();
     }
 }
-/// DEL-01-05: where plugins and apps get their state comes from the origins in the very reading
-/// that admitted the start. The examination's scratch home sets both off in its own config.toml:
-/// "off, by this home's settings". A managed `connectors` (a second name for apps, applied after
-/// `apps`) prevails over the home's `apps`.
+/// DEL-01-05: where plugins and apps get their state comes from the origins in the reading that
+/// admitted the conversation, only when that reading was made for the folder Codex reports for the
+/// thread; otherwise not established. The reading itself follows the start's reply and names the
+/// thread. A managed `connectors` (a second name for apps, applied after `apps`) prevails over the
+/// home's `apps`; no layer detail is shown.
 #[test]
-fn extensions_sources_come_from_the_admitting_readings_origins() {
+fn extensions_sources_come_from_the_admitting_reading_of_the_threads_own_folder() {
     let user = json!({"name":{"type":"user","file":"/invented/home/config.toml"},"version":"invented-user-version"});
     let managed = json!({"name":{"type":"mdm","domain":"invented.domain","key":"invented-key"},"version":"invented-mdm-version"});
-    for (case, requirements_read, features, origins, apps_enabled, expected) in [
-        ("this home sets both off", true, json!({"plugins":false,"apps":false}), json!({"features.plugins":user,"features.apps":user}), false,
+    let both = json!({"features.plugins":user,"features.apps":user,"features.connectors":managed});
+    for (case, requirements_read, origins, thread_cwd, apps_enabled, evidence, expected) in [
+        ("this home sets both off", true, json!({"features.plugins":user,"features.apps":user}), "/invented/work", false, "admitting-reading-same-folder",
             [("plugins", "off", "this-home"), ("apps", "off", "this-home")]),
-        ("managed connectors over the home's apps", true, json!({"plugins":false,"apps":false,"connectors":true}), json!({"features.plugins":user,"features.apps":user,"features.connectors":managed}), true,
+        ("managed connectors over the home's apps", true, both.clone(), "/invented/work", true, "admitting-reading-same-folder",
             [("plugins", "off", "this-home"), ("apps", "on", "outside-app")]),
-        // Without a requirements reading on the generation, a requirement could decide the value, so
-        // a user-layer origin establishes no source; a managed origin still does.
-        ("requirements not read", false, json!({"plugins":false,"apps":false,"connectors":true}), json!({"features.plugins":user,"features.apps":user,"features.connectors":managed}), true,
+        // Without a requirements reading, a requirement could decide the value: a user-layer origin
+        // establishes nothing; a managed origin still does.
+        ("requirements not read", false, both.clone(), "/invented/work", true, "admitting-reading-same-folder",
             [("plugins", "off", "not-established"), ("apps", "on", "outside-app")]),
+        // Codex reports another folder for the thread than the one the admitting reading named:
+        // its origins describe another folder's settings and are not used.
+        ("another folder", true, both.clone(), "/invented/other", true, "admitting-reading-other-folder",
+            [("plugins", "off", "not-established"), ("apps", "on", "not-established")]),
     ] {
         let mut peer = Peer::new("home");
+        peer.host.feature_readings_for_test();
         if requirements_read {
             let source = peer.host.request_begin_scoped("configRequirements/read", json!({}), json!({"kind":"person-directed"}), false, Some(&peer.g)).unwrap();
             assert_eq!(peer.frame()["method"], "configRequirements/read");
@@ -4767,19 +4746,28 @@ fn extensions_sources_come_from_the_admitting_readings_origins() {
             peer.host.source_request_wait(&source, Duration::from_secs(1)).unwrap();
         }
         let mut reading = config(json!({}));
-        reading["config"]["features"] = features;
         reading["origins"] = origins;
         peer.answer(reading);
         let proof = peer.read("chatgpt-account", "openai").unwrap();
         assert_eq!(peer.frame()["method"], "config/read");
+        assert_eq!(proof.reading_cwd(), Some("/invented/work"), "the admitting reading names its folder");
         *peer.host.feature_read_reply.lock().unwrap() = Some(Box::new(move |host, source| {
             let page = json!({"data":[{"name":"plugins","enabled":false,"defaultEnabled":false,"stage":"stable"},{"name":"apps","enabled":apps_enabled,"defaultEnabled":false,"stage":"stable"}],"nextCursor":null});
             host.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"result":page})).unwrap(), source.generation());
         }));
-        peer.host.thread_start_with_access_dispatch(&proof, "guidance").unwrap();
-        assert_eq!(peer.frame()["method"], "thread/start", "{case}");
-        let shown = peer.host.snapshot()["extensions"].clone();
-        assert_eq!(shown["evidence"]["origins"], "admitting-reading", "{case}");
+        let start = peer.host.thread_start_with_access_dispatch(&proof, "guidance").unwrap();
+        assert_eq!(peer.frame()["method"], "thread/start", "{case}: nothing before the start");
+        assert!(peer.host.extensions_record_for_test("admitted").is_none(), "{case}: no reading before the reply");
+        peer.host.on_line(&serde_json::to_vec(&json!({"id":start.request_id(),"result":{"thread":{"id":"admitted","status":"idle"},"model":"chosen-model","modelProvider":"openai","cwd":thread_cwd}})).unwrap(), &peer.g);
+        let read = peer.frame();
+        assert_eq!((read["method"].as_str(), &read["params"]), (Some("experimentalFeature/list"), &json!({"threadId":"admitted"})), "{case}");
+        let deadline = std::time::Instant::now() + Duration::from_secs(3);
+        let shown = loop {
+            if let Some(record) = peer.host.extensions_record_for_test("admitted").filter(|r| r["plugins"]["notReadBecause"] != "reading") { break record; }
+            assert!(std::time::Instant::now() < deadline, "{case}: the reading did not finish");
+            std::thread::sleep(Duration::from_millis(5));
+        };
+        assert_eq!(shown["evidence"]["origins"], evidence, "{case}");
         for (feature, state, source) in expected {
             assert_eq!((shown[feature]["state"].as_str(), shown[feature]["source"].as_str()), (Some(state), Some(source)), "{case}: {feature}");
         }

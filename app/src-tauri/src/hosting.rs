@@ -569,11 +569,26 @@ struct Inner {
     stop_confirmed: Option<Value>,
     stderr_bytes: u64,
     child_pid: Option<i32>,
-    /// The last reading of plugins and apps before a conversation request, for display
-    /// (`extensions`). Host status `extensions`.
-    extensions: Option<Value>,
+    /// Plugins and connected apps in each conversation of the current generation, read after the
+    /// reply that named its thread (`extensions`), by thread id. Shown as `threads[].extensions`.
+    extensions_threads: HashMap<String, extensions::Record>,
+    /// The home's base reading, made once after its Codex is ready, before any project's
+    /// settings apply (`extensions`). Host status `extensionsBase`; never a conversation's state.
+    extensions_base: Option<extensions::Record>,
+    /// The cwd and origins of the private configuration reading that admitted each conversation
+    /// request still unanswered, by request id (`extensions`).
+    extensions_admitted: HashMap<String, extensions::Admitted>,
+    /// When each configuration requirements reply of the current generation was received, by
+    /// request id (`extensions`).
+    requirements_read_at: HashMap<String, String>,
+    /// The number of the latest reading begun; a reading completes only while it is the latest
+    /// for its conversation or for the base.
+    feature_read_seq: u64,
     /// The wait for that reading, within its own bound: the started Codex's `HostConfig::wait_limit`.
     feature_read_wait: Option<Duration>,
+    /// Whether this test Host makes those readings (`Host::feature_readings_for_test`).
+    #[cfg(test)]
+    feature_readings_for_test: bool,
 }
 
 #[path = "access_provider.rs"]
@@ -921,6 +936,51 @@ impl AppRuntimeCustody {
     }
 }
 
+/// The frame writer lock (`Host::frame_write`), and how many writers are waiting for it. A writer
+/// that has to wait counts itself while it waits (`lock`), and a request counts itself from the
+/// start of its preparation until it holds the writer (`queue`). The plugins-and-apps reading
+/// (`extensions`) takes the writer only while that count is zero (`try_lock_unqueued`), so it is
+/// never written ahead of a request that was waiting or being prepared when it took the writer.
+/// A request that begins after the reading took the writer waits for that one frame.
+#[derive(Default)]
+pub(crate) struct FrameWriter { lock: Mutex<()>, queued: std::sync::atomic::AtomicUsize }
+/// One writer counted as waiting for the frame writer, until dropped.
+pub(crate) struct Queued<'a>(&'a FrameWriter);
+impl Drop for Queued<'_> {
+    fn drop(&mut self) { self.0.queued.fetch_sub(1, std::sync::atomic::Ordering::SeqCst); }
+}
+impl FrameWriter {
+    /// Waits for the writer, counted as waiting while it does.
+    pub(crate) fn lock(&self) -> std::sync::LockResult<std::sync::MutexGuard<'_, ()>> {
+        match self.lock.try_lock() {
+            Ok(guard) => return Ok(guard),
+            Err(std::sync::TryLockError::Poisoned(poisoned)) => return Err(poisoned),
+            Err(std::sync::TryLockError::WouldBlock) => {}
+        }
+        let _queued = self.queue();
+        self.lock.lock()
+    }
+    pub(crate) fn try_lock(&self) -> std::sync::TryLockResult<std::sync::MutexGuard<'_, ()>> { self.lock.try_lock() }
+    /// Counts one writer as waiting until the returned value is dropped.
+    pub(crate) fn queue(&self) -> Queued<'_> {
+        self.queued.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        Queued(self)
+    }
+    /// The writer, if it is free and no other writer is waiting or being prepared.
+    pub(crate) fn try_lock_unqueued(&self) -> Result<Option<std::sync::MutexGuard<'_, ()>>, ()> {
+        match self.lock.try_lock() {
+            Ok(guard) if self.queued.load(std::sync::atomic::Ordering::SeqCst) == 0 => Ok(Some(guard)),
+            Ok(_) | Err(std::sync::TryLockError::WouldBlock) => Ok(None),
+            Err(std::sync::TryLockError::Poisoned(_)) => Err(()),
+        }
+    }
+}
+impl std::ops::Deref for FrameWriter {
+    type Target = Mutex<()>;
+    fn deref(&self) -> &Mutex<()> { &self.lock }
+}
+
+
 /// One delegation reading's whole wait (NPTD §7.1; the trial tick's reads
 /// of later homes wait behind it).
 pub const DELEGATION_READ_BUDGET: Duration = Duration::from_secs(15);
@@ -1056,7 +1116,10 @@ pub struct Host {
     /// not end it), and the attachment custody's source lock is waited for without limit. Stop,
     /// Restart and the menu quit wait for this lock at their interrupts only up to the stop limit
     /// (`Host::lock_within`), and then end the process, which ends such a stall.
-    frame_write: Mutex<()>,
+    ///
+    /// It also counts the writers waiting for it (`FrameWriter`), so that a plugins-and-apps
+    /// reading (`extensions`) takes it only when no other request is waiting.
+    frame_write: FrameWriter,
     attachment_gate: Mutex<()>,
     /// One stop request at a time for this Host (SR-11): its guard, SR-01 and
     /// its send are not interleaved with another. Per Host, so a home whose
@@ -1271,7 +1334,7 @@ impl Host {
             runtime_custody:Mutex::new(None),
             spawn_counters:Arc::new(Mutex::new(HashMap::new())),
             submission_contexts:Arc::new(Mutex::new(Vec::new())),
-            frame_write: Mutex::new(()),
+            frame_write: FrameWriter::default(),
             attachment_gate: Mutex::new(()),
             interrupt_gate: Mutex::new(()),
             this: Mutex::new(std::sync::Weak::new()),
@@ -1492,7 +1555,7 @@ impl Host {
         Self::observe_reply_writes(i);
         let mut status = Self::snapshot_fields(i);
         status["startRefusalCause"] = json!(i.start_refusal_cause.map(StartRefusalCause::as_str));
-        status["extensions"] = json!(i.extensions);
+        Self::extensions_status(i, &mut status);
         status["build"] = json!(if cfg!(debug_assertions) { "development" } else { "release" });
         status
     }
@@ -2793,12 +2856,14 @@ impl Host {
         self.lt(&mut i,"LT-09","handshake-completed","ready",json!({"versionIdentity":vi,"declaredCapabilities":caps}));
         Self::publish_native_ready(&mut i);
         Self::release_held_observations(&mut i, false);
-        if !successor {drop(i);drop(_gate);return Ok(self.snapshot());}
+        if !successor {drop(i);drop(_gate);self.extensions_after_ready(generation);return Ok(self.snapshot());}
         let event=i.lifecycle.last().cloned().ok_or("actual LT-09 absent")?;
         let sequence=event["sequence"].as_u64().ok_or("actual LT-09 sequence absent")?;
         i.successor_publication_sequence=sequence;
         let prior=i.successor_reference.clone();
         drop(i);drop(_gate);
+        // DEL-01-05: the home's base reading of plugins and apps, off this path (`extensions`).
+        self.extensions_after_ready(generation);
         #[cfg(test)]
         { let hook=self.before_s1_lt09_publish.lock().unwrap().take(); if let Some(hook)=hook{hook();} }
         if let Some(prior)=prior {
@@ -2842,6 +2907,8 @@ impl Host {
         // waiter is released below (its sender dropped); reservation waiters look again within
         // `reading_gate`'s poll interval.
         let closing=i.generation.clone();Self::reading_close_locked(i,&closing);
+        // Plugins and apps were read on this generation: no longer what its conversations or home have.
+        Self::extensions_close(i);
         if let Some(c)=i.aa_capture.as_mut(){c.retire();}
         if let Some(o)=i.cce_offer.as_mut(){o.retire();}
         let mut unknown = 0;
@@ -3023,6 +3090,10 @@ impl Host {
         // A configuration reading and a bounded interrupt are exclusive by construction: each has
         // its own withdrawal at the write-start point, and one request never carries both.
         if reading_deadline.is_some()&&write_bound.is_some() {return Err(READING_NOT_INTERRUPT.into());}
+        // Every request but the plugins-and-apps reading counts as waiting for the frame writer from
+        // here until it holds it, so that reading is not written ahead of it (`FrameWriter`).
+        let feature_reading=method==extensions::FEATURE_LIST;
+        let announced=(!feature_reading).then(||self.frame_write.queue());
         if matches!(method,"config/batchWrite"|"config/value/write") && endpoint_write.is_none() {return Err("Configuration writes require a confirmed typed provider operation; generic route refused".into());}
         if endpoint_write.is_some() && (method!="config/batchWrite" || !private_config) {return Err("Private endpoint method context differs".into());}
         if let Some(write)=endpoint_write {if params!=write.params(){return Err("Typed endpoint payload differs".into());}write.before_write()?;}
@@ -3040,9 +3111,6 @@ impl Host {
                 }
             }
         }
-        // DEL-01-05: the state of plugins and connected apps, read for display just before a
-        // conversation is loaded, holding no lock. It never refuses the request.
-        let extensions_read_on=if !handshake && extensions::loads_conversation(method) { self.extensions_read(method,expected_generation,provider_admission) } else { None };
         if let Some(proof)=provider_admission { self.recheck_child_sources(proof)?; }
         // The dedicated local home's files are read again for every request that can reach a model.
         if !handshake { self.check_local_files(method)?; }
@@ -3059,15 +3127,13 @@ impl Host {
         if cce_intent.is_some() && i.cce_offer.is_some(){return Err("one offered start per generation; no replacement".into())}
         // A request bound to a replaced generation records nothing: it is never
         // attributed to the replacement, even one still starting.
-        if expected_generation.is_some_and(|g|g!=&i.generation) {return Err(format!("refused-not-sent: {method} generation changed before request registration"));}
+        if expected_generation.is_some_and(|g|g!=&i.generation) {Self::extensions_retire_stale(&mut i);return Err(format!("refused-not-sent: {method} generation changed before request registration"));}
         let ok_state = if handshake {i.state=="handshaking"} else {i.state=="ready"};
         if !ok_state {
             let gen=i.generation.clone();i.client_requests.push(json!({"recordKind":"client-request","generation":gen,"requestIdentity":null,"method":method,"initiator":initiator,"writeResult":"not-attempted","outcome":"refused-not-sent","refusalReason":"not-ready"}));
             return Err(format!("refused-not-sent(not-ready): state {}",i.state));
         }
-        if expected_generation.map(|g|g!=&i.generation||i.server_requests.is_closed(g)).unwrap_or(false) {return Err(format!("refused-not-sent: {method} generation changed before request registration"));}
-        // A reading made on another generation than this one is shown as not read.
-        Self::extensions_registered(&mut i,extensions_read_on.as_ref());
+        if expected_generation.map(|g|g!=&i.generation||i.server_requests.is_closed(g)).unwrap_or(false) {Self::extensions_retire_stale(&mut i);return Err(format!("refused-not-sent: {method} generation changed before request registration"));}
         Self::check_send_admitted(&i,method)?;
         if let Some(proof)=provider_admission{if matches!(method,"thread/resume"|"thread/fork"){self.check_continuation_proof(&i,proof)?;}else{self.check_provider_admission(&i,proof,&params)?;}}
         if expected_generation.is_some()&&matches!(method,"turn/start"|"turn/interrupt"|"turn/steer") {Self::check_conversation_request(&i,method,&params)?;}
@@ -3097,6 +3163,9 @@ impl Host {
         // record schema; only completion of the actual write sets sentFrame.
         let rec=json!({"recordKind":"client-request","generation":i.generation,"requestIdentity":id,"method":method,"initiator":initiator});
         i.client_requests.push(Value::Null);let idx=i.client_requests.len()-1;i.pending.insert(id.to_string(),(idx,tx));
+        // A conversation request admitted on a private configuration reading: that reading's folder
+        // and origins, for the source of the plugins-and-apps reading made after its reply.
+        if extensions::loads_conversation(method) {if let Some(proof)=provider_admission {i.extensions_admitted.insert(id.to_string(),extensions::Admitted::of(proof,&request.generation));}}
         i.source_requests.insert(id.to_string(),SourceEvidence {request:request.clone(),index:idx,written:false,write_error:None,response:None,attachment:None,reserved_sender:None,write_attempt_in_progress:false,attempt_position:None,response_position:None,native_settlement:None,turn_model_cut:0,turn_model_context:Value::Null,observation_base:rec,source_limit:None,auth_projection,auth_policy_standing:None,auth_response_shape:None,source_pipe:None,private_write_reply_pipe:None,records_project,private_config});
         if let Some(mode)=oauth_mode{
             let pin=LoginSourcePin{generation:request.generation.clone(),rpc_id:json!(id),request_ref:request.request_ref.clone(),mode};
@@ -3124,7 +3193,8 @@ impl Host {
             loop{match self.frame_write.try_lock(){Ok(serial)=>break serial,Err(std::sync::TryLockError::Poisoned(_))=>return Err("frame writer unavailable; transient input released".into()),Err(std::sync::TryLockError::WouldBlock)=>{if std::time::Instant::now()>=hold.deadline{return Err(reading_gate::READING_WITHDRAWN.into());}std::thread::sleep(Duration::from_millis(2));}}}
         }else if private_credential||endpoint_write.is_some(){
             let deadline=std::time::Instant::now()+Duration::from_secs(20);loop{match self.frame_write.try_lock(){Ok(serial)=>break serial,Err(std::sync::TryLockError::Poisoned(_))=>return Err("frame writer unavailable; transient input released".into()),Err(std::sync::TryLockError::WouldBlock)=>{let i=self.inner.0.lock().unwrap();if i.generation!=request.generation||i.server_requests.is_closed(&request.generation)||i.state!="ready"||std::time::Instant::now()>=deadline{return Err("credential source lost/cancelled/queue limit; transient input released, no retry".into());}drop(i);std::thread::sleep(Duration::from_millis(2));}}}
-        }else if let Some(limit)=write_bound{self.lock_within(&self.frame_write,limit,&request.generation,NOT_WRITTEN_IN_LIMIT)?}else{self.frame_write.lock().unwrap()};
+        }else if let Some(limit)=write_bound{if feature_reading{self.feature_writer_within(limit,&request.generation)?}else{self.lock_within(&self.frame_write,limit,&request.generation,NOT_WRITTEN_IN_LIMIT)?}}else{self.frame_write.lock().unwrap()};
+            drop(announced);
             #[cfg(test)] if write_bound.is_some() {let hook=self.before_interrupt_decision.lock().unwrap().take();if let Some(h)=hook{h();}}
             // Source IO has bounded work and holds neither Inner nor the
             // attachment/Stop gate. Recheck cheap context/receipt custody below.
@@ -5623,6 +5693,9 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                     self.capture_pipe(&i).ok().map(|bound|(bound.epoch,bound.identity))
                 } else { None };
                 if let Some(e) = i.source_requests.get_mut(&key) { e.response = Some(kept.clone()); e.response_position=Some(pos); e.native_settlement=native_settlement; e.auth_response_shape=auth_shape; e.private_write_reply_pipe=private_write_reply_pipe; }
+                // DEL-01-05: a reply that names a conversation's thread is followed, off this path,
+                // by the reading of plugins and apps for that thread (`extensions`).
+                let feature_reading=Self::extensions_on_reply(&mut i,&key,&gen,parsed.as_ref().unwrap_or(&frame),native_settlement.is_some_and(|v|v.is_ok()));
                 Self::stop_request_response(&mut i, &gen, &frame);
                 let _ = tx.send(if private_config&&!waiting_ended{private_config_frame.unwrap()}else{kept});
                 // Responses are also journaled, with their metadata beside the native frame (H6).
@@ -5631,6 +5704,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 if i.state == "handshaking" { i.held.push(entry); } else { Self::publish_native_frame(&mut i, &entry); i.journal.push(entry); }
                 let attachment_source = i.source_requests.get(&key).filter(|e|e.attachment.is_some()).map(|e|e.request.clone());
                 drop(i);
+                if let Some(target) = feature_reading { self.extensions_spawn(target); }
                 if let Some(source) = attachment_source { let _ = self.persist_attachment_observation(&source); }
                 self.flush_recovery_observations();
                 return;
@@ -5989,33 +6063,14 @@ pub(crate) fn install_broken_test_input(host:&Host)->Option<ChildStdin>{
     host.stdin.lock().unwrap().replace(ChildStdin::from(input))
 }
 
-/// For tests of a resume or fork whose own write fails: the configuration reading that admits it
-/// is answered by the stand-in, or by `answer` when given; then, once the plugins-and-apps reading
-/// made just before the request has been written (and is answered by the stand-in, or here with
-/// both off when `answer` is given), the input is replaced by one that fails. The replaced input
-/// is kept, so the stand-in is not ended.
-/// For tests of a start whose own write fails: the input accepts the plugins-and-apps reading made
-/// just before the start, which is answered with both off; then, that once, it is replaced by one
-/// that fails. Later readings are answered with both off and change nothing else.
-#[cfg(test)]
-pub(crate) fn break_input_after_the_feature_reading(host:&Host){
-    let sink:std::os::fd::OwnedFd=std::fs::OpenOptions::new().write(true).open("/dev/null").unwrap().into();
-    *host.stdin.lock().unwrap()=Some(ChildStdin::from(sink));
-    let once=std::sync::atomic::AtomicBool::new(true);
-    *host.feature_read_reply.lock().unwrap()=Some(Box::new(move|h,source|{
-        h.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"result":extensions::features_off_page()})).unwrap(),source.generation());
-        if once.swap(false,std::sync::atomic::Ordering::SeqCst){install_broken_test_input(h);}
-    }));
-}
+/// For tests of a resume or fork whose own write fails: once the configuration reading that admits
+/// it has been written (and is answered by the stand-in, or by `answer` when given), the input is
+/// replaced by one that fails. The replaced input is kept, so the stand-in is not ended.
 #[cfg(test)]
 pub(crate) fn break_input_after_the_reading(host:&Host,answer:Option<Value>)->Arc<Mutex<Vec<Option<ChildStdin>>>>{
     let kept=Arc::new(Mutex::new(Vec::new()));let keep=Arc::clone(&kept);
-    let answered=answer.is_some();
-    if let Some(config)=answer{
-        *host.before_provider_wait.lock().unwrap()=Some(Box::new(move|h,source|{h.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"result":config})).unwrap(),source.generation());}));
-    }
-    *host.feature_read_reply.lock().unwrap()=Some(Box::new(move|h,source|{
-        if answered{h.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"result":extensions::features_off_page()})).unwrap(),source.generation());}
+    *host.before_provider_wait.lock().unwrap()=Some(Box::new(move|h,source|{
+        if let Some(config)=&answer{h.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"result":config})).unwrap(),source.generation());}
         keep.lock().unwrap().push(install_broken_test_input(h));
     }));
     kept
@@ -6172,11 +6227,8 @@ mod additive_guidance_transport_tests {
         // the environment and exercise the actual ChildStdin write/correlation.
         let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();
         *host.stdin.lock().unwrap()=child.stdin.take();let stdout=child.stdout.take().unwrap();let me=Arc::clone(&host);let g=generation.clone();let (tx,rx)=channel();
-        // The stand-in answers the plugins-and-apps reading: both off.
-        host.answer_features_off_for_test();
         let worker=std::thread::spawn(move|| {
-            // The first frame past the plugins-and-apps reading the hook answers.
-            let mut reader=BufReader::new(stdout);let frame:Value=loop{let mut line=String::new();reader.read_line(&mut line).unwrap();let frame:Value=serde_json::from_str(&line).unwrap();if frame["method"]!="experimentalFeature/list"{break frame;}};
+            let mut line=String::new();BufReader::new(stdout).read_line(&mut line).unwrap();let frame:Value=serde_json::from_str(&line).unwrap();
             let response=json!({"id":frame["id"],"result":{"thread":{"id":"mock-thread","status":"idle"},"model":"reported-model","modelProvider":"reported-provider","cwd":"/reported/work",
                 "approvalPolicy":"on-request","approvalsReviewer":"user","sandbox":{"type":"readOnly","networkAccess":false},"activePermissionProfile":{"id":":read-only"}}});
             tx.send((frame,response.clone())).unwrap();me.on_line(&serde_json::to_vec(&response).unwrap(),&g);
@@ -6189,13 +6241,11 @@ mod additive_guidance_transport_tests {
     fn both_public_wrappers_use_the_same_stdio_correlation_and_thread_snapshot_path() {
         for guidance in [None,Some("Exact role bytes\n\né / 家\n")] {
             let run=mock_thread_start(guidance,None);let response=run.result.unwrap();
-            // The plugins-and-apps reading came first, on the same generation.
-            assert_eq!((run.snapshot["clientRequests"][0]["method"].as_str(),&run.snapshot["clientRequests"][0]["generation"]),(Some("experimentalFeature/list"),&run.generation));
             // What Codex reported it may do in the conversation is kept on its row, as reported.
             let row=&run.snapshot["threads"][0];
             assert_eq!((row["approvalPolicy"].as_str(),row["sandbox"]["type"].as_str(),row["activePermissionProfile"]["id"].as_str()),(Some("on-request"),Some("readOnly"),Some(":read-only")));
             assert_eq!(run.outbound["method"],"thread/start");assert_eq!(run.outbound["params"],Host::thread_start_params("/invented/work","chosen-model","chosen-provider",guidance).unwrap());assert_eq!(response,run.native_response);
-            let thread=&run.snapshot["threads"][0];assert_eq!(thread["generation"],run.generation);assert_eq!(thread["supplierStanding"],"unverified-development");assert_eq!(thread["requestedDestination"]["model"],"chosen-model");assert_eq!(thread["reportedDestination"]["model"],"reported-model");assert_eq!(run.snapshot["clientRequests"][1]["outcome"],"response-observed-result");assert_eq!(run.snapshot["journal"][1]["frame"],run.native_response);
+            let thread=&run.snapshot["threads"][0];assert_eq!(thread["generation"],run.generation);assert_eq!(thread["supplierStanding"],"unverified-development");assert_eq!(thread["requestedDestination"]["model"],"chosen-model");assert_eq!(thread["reportedDestination"]["model"],"reported-model");assert_eq!(run.snapshot["clientRequests"][0]["outcome"],"response-observed-result");assert_eq!(run.snapshot["journal"][0]["frame"],run.native_response);
         }
     }
     // A request bound to G1 after a restart into G2 that is not ready yet is
@@ -6225,19 +6275,16 @@ mod additive_guidance_transport_tests {
         {let mut i=host.inner.0.lock().unwrap();i.state="ready".into();i.generation=current.clone();}
         let error=host.request_inner_scoped("thread/start",json!({"model":"m","modelProvider":"p"}),json!({"kind":"person-directed"}),Duration::from_secs(1),false,Some(&old)).unwrap_err();
         assert!(error.contains("generation changed before request registration"));assert_eq!(host.snapshot()["clientRequests"],json!([]));assert_eq!(host.inner.0.lock().unwrap().send_position,0);
-        // The plugins-and-apps reading is written and answered; then the input breaks, so the start's own write fails.
-        break_input_after_the_feature_reading(&host);
-        let error=host.thread_start_with_guidance("/invented","m","p","exact guidance").unwrap_err();assert!(error.contains("write failed"),"{error}");
-        let snapshot=host.snapshot();assert_eq!(snapshot["clientRequests"][0]["method"],"experimentalFeature/list");assert_eq!(snapshot["clientRequests"][1]["generation"],current);assert_eq!(snapshot["clientRequests"][1]["writeResult"],"write-failed");assert_eq!(snapshot["clientRequests"][1]["outcome"],"unknown-no-response");assert_eq!(snapshot["threads"],json!([]));
+        install_broken_test_input(&host);let error=host.thread_start_with_guidance("/invented","m","p","exact guidance").unwrap_err();assert!(error.contains("write failed"));
+        let snapshot=host.snapshot();assert_eq!(snapshot["clientRequests"][0]["generation"],current);assert_eq!(snapshot["clientRequests"][0]["writeResult"],"write-failed");assert_eq!(snapshot["clientRequests"][0]["outcome"],"unknown-no-response");assert_eq!(snapshot["threads"],json!([]));
     }
     #[test]
     fn response_before_generation_transition_never_mutates_successor_thread_snapshot() {
         for guidance in [None,Some("Exact role bytes\n\né / 家\n")] {
             for successor in [json!({"appSession":"mock-session","home":"mock-home","spawnCounter":2}),json!({"appSession":"next-session","home":"mock-home","spawnCounter":1}),json!({"appSession":"mock-session","home":"next-home","spawnCounter":1})] {
                 let run=mock_thread_start(guidance,Some(successor.clone()));
-                assert_eq!(run.snapshot["clientRequests"][0]["method"],"experimentalFeature/list");
                 assert!(run.result.unwrap_err().contains("closed or replaced generation"));assert_eq!(run.snapshot["generation"],successor);assert_eq!(run.snapshot["threads"],json!([]));
-                assert_eq!(run.outbound["params"],Host::thread_start_params("/invented/work","chosen-model","chosen-provider",guidance).unwrap());assert_eq!(run.snapshot["clientRequests"][1]["generation"],run.generation);assert_eq!(run.snapshot["clientRequests"][1]["outcome"],"response-observed-result");assert_eq!(run.snapshot["journal"][1]["generation"],run.generation);assert_eq!(run.snapshot["journal"][1]["frame"],run.native_response);
+                assert_eq!(run.outbound["params"],Host::thread_start_params("/invented/work","chosen-model","chosen-provider",guidance).unwrap());assert_eq!(run.snapshot["clientRequests"][0]["generation"],run.generation);assert_eq!(run.snapshot["clientRequests"][0]["outcome"],"response-observed-result");assert_eq!(run.snapshot["journal"][0]["generation"],run.generation);assert_eq!(run.snapshot["journal"][0]["frame"],run.native_response);
             }
         }
     }
@@ -6256,8 +6303,6 @@ mod conversation_transport_tests {
     fn g()->Value {json!({"appSession":"conversation-session","home":"conversation-home","spawnCounter":1})}
     fn host()->Arc<Host> {
         let host=Arc::new(Host::new());{let mut i=host.inner.0.lock().unwrap();i.state="ready".into();i.generation=g();i.journal.begin_generation(g());i.threads.push(json!({"generation":g(),"threadId":"thread","model":"selected","modelProvider":"selected-provider"}));}
-        // The stand-in answers the plugins-and-apps reading: both off.
-        host.answer_features_off_for_test();
         host
     }
     /// The next frame written to the stand-in that is not the configuration reading (answered by the hook).
@@ -6268,13 +6313,9 @@ mod conversation_transport_tests {
         {let mut i=host.inner.0.lock().unwrap();if i.server_cwd.is_none(){i.server_cwd=Some("/invented".into());}}
         let mut hook=host.before_provider_wait.lock().unwrap();
         if hook.is_none(){*hook=Some(Box::new(|host,source|{host.on_line(&serde_json::to_vec(&json!({"id":source.request_id(),"result":{"config":{"model_provider":"openai","model_providers":{}},"origins":{}}})).unwrap(),source.generation());}));}
-        drop(hook);
-        // And the stand-in answers the plugins-and-apps reading: both off.
-        if host.feature_read_reply.lock().unwrap().is_none(){host.answer_features_off_for_test();}
     }
-    /// The next frame that is not a reading the hooks answer.
     fn next_operation_frame(reader:&mut BufReader<std::process::ChildStdout>)->Result<Value,String>{
-        loop{let mut line=String::new();reader.read_line(&mut line).map_err(|e|format!("peer read failed: {e}"))?;let frame:Value=serde_json::from_str(&line).map_err(|e|format!("peer frame unavailable: {e}"))?;if !matches!(frame["method"].as_str(),Some("config/read"|"experimentalFeature/list")){return Ok(frame);}}
+        loop{let mut line=String::new();reader.read_line(&mut line).map_err(|e|format!("peer read failed: {e}"))?;let frame:Value=serde_json::from_str(&line).map_err(|e|format!("peer frame unavailable: {e}"))?;if frame["method"]!="config/read"{return Ok(frame);}}
     }
     fn turn(status:&str)->Value {json!({"id":"turn","status":status,"items":[],"itemsView":"full","nativeExtra":{"unchanged":true}})}
     fn event(host:&Host,status:&str) {host.on_line(&serde_json::to_vec(&json!({"method":if status=="inProgress"{"turn/started"}else{"turn/completed"},"params":{"threadId":"thread","turn":turn(status)}})).unwrap(),&g());}
@@ -6966,7 +7007,7 @@ mod conversation_transport_tests {
                 }
                 None=>{
                     assert!(resumed.is_ok()&&forked.is_ok(),"{saved_cwd}: {resumed:?} {forked:?}");
-                    assert_eq!(resume_frames,vec!["thread/read","config/read","experimentalFeature/list","thread/resume"],"{saved_cwd}");
+                    assert_eq!(resume_frames,vec!["thread/read","config/read","thread/resume"],"{saved_cwd}");
                     assert!(fork_frames.iter().any(|m|m=="thread/fork"),"{saved_cwd}");
                 }
             }
@@ -7082,7 +7123,7 @@ mod conversation_transport_tests {
                         _=>assert_eq!(result.unwrap_err(),refusal,"{class:?} {method} {case}"),
                     }
                     let written=home.written();
-                    let expected:Vec<&str>=if case=="built-in"{vec!["config/read","experimentalFeature/list",method]}else{vec!["config/read"]};
+                    let expected:Vec<&str>=if case=="built-in"{vec!["config/read",method]}else{vec!["config/read"]};
                     assert_eq!(written,expected,"{class:?} {method} {case}: nothing but the reading is sent unless it reports the built-in provider");
                 }
                 // A good value read for an earlier admission in this same Codex process is not reused.
@@ -7090,7 +7131,7 @@ mod conversation_transport_tests {
                 assert!(op(&home).is_ok(),"{class:?} {method}: the earlier admission");
                 home.reports("invented-corporate-gateway");
                 assert_eq!(op(&home).unwrap_err(),refusal,"{class:?} {method}: read again at this admission");
-                assert_eq!(home.written(),vec!["config/read","experimentalFeature/list",method,"config/read"],"{class:?} {method}");
+                assert_eq!(home.written(),vec!["config/read",method,"config/read"],"{class:?} {method}");
             }
         }
         assert!(access_provider::BUILT_IN_PROVIDER_UNREPORTED_RESUME.ends_with("no thread/resume sent")&&access_provider::BUILT_IN_PROVIDER_UNREPORTED_FORK.ends_with("no thread/fork sent"));
@@ -7129,7 +7170,6 @@ mod conversation_transport_tests {
                         // After its reading the frame writer is held, so the request registers and then waits
                         // for it: the confirmed write comes between registration and the final check.
                         let (release,released)=channel::<()>();
-                        host.inner.0.lock().unwrap().feature_read_wait=Some(Duration::from_millis(200));
                         let holder:Arc<Mutex<Option<std::thread::JoinHandle<()>>>>=Arc::default();
                         let (slot,writer_host)=(Arc::clone(&holder),Arc::clone(&host));
                         *host.after_continuation_reading.lock().unwrap()=Some(Box::new(move|_:&Host|{
@@ -7160,9 +7200,7 @@ mod conversation_transport_tests {
                         _=>assert_eq!(result.err().as_deref(),Some(refused),"{class:?} {method} {case}"),
                     }
                     let written=home.written();
-                    let expected:Vec<&str>=match case {"no-competitor"=>vec!["config/read","experimentalFeature/list",method],"competing-settings-read"=>vec!["config/read","config/read","experimentalFeature/list"],
-                        // The plugins-and-apps reading waits for the held writer only within its bound, then is not sent.
-                        "provider-write-before-final-write"=>vec!["config/read"],_=>vec!["config/read","experimentalFeature/list"]};
+                    let expected:Vec<&str>=match case {"no-competitor"=>vec!["config/read",method],"competing-settings-read"=>vec!["config/read","config/read"],_=>vec!["config/read"]};
                     assert_eq!(written,expected,"{class:?} {method} {case}: nothing for it is sent once its reading is no longer the folder's current one");
                 }
             }
@@ -7412,7 +7450,7 @@ mod conversation_transport_tests {
         let host=host();let mut view=history_selected();let query=view.continue_query().unwrap();host.inner.0.lock().unwrap().server_cwd=Some("/invented".into());
         let mut cat=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();*host.stdin.lock().unwrap()=cat.stdin.take();
         let kept=super::break_input_after_the_reading(&host,Some(json!({"config":{"model_provider":"openai","model_providers":{}},"origins":{}})));let failed=host.history_dispatch(&query).unwrap();
-        *host.before_provider_wait.lock().unwrap()=None;*host.feature_read_reply.lock().unwrap()=None;drop(kept);assert!(cat.wait().unwrap().success());let evidence=failed.evidence();assert!(evidence["sentFrame"].is_null());assert_eq!(evidence["writeResult"],"write-failed");assert_eq!(evidence["outcome"],"unknown-no-response");view.receive(&query,"conversation-home",&g(),&history_resume("idle",true)).unwrap();assert!(host.history_admit_resume(&view,&failed).is_err());let other=super::conversation_transport_tests::host();assert!(other.history_dispatch_status(&failed).is_err());
+        *host.before_provider_wait.lock().unwrap()=None;drop(kept);assert!(cat.wait().unwrap().success());let evidence=failed.evidence();assert!(evidence["sentFrame"].is_null());assert_eq!(evidence["writeResult"],"write-failed");assert_eq!(evidence["outcome"],"unknown-no-response");view.receive(&query,"conversation-home",&g(),&history_resume("idle",true)).unwrap();assert!(host.history_admit_resume(&view,&failed).is_err());let other=super::conversation_transport_tests::host();assert!(other.history_dispatch_status(&failed).is_err());
         let query=view.continue_query().unwrap();let(receipt,evidence,_)=history_exchange(&host,&query,Some(json!({"result":history_resume("idle",true)})));view.receive(&query,"conversation-home",&g(),&evidence["response"]["result"]).unwrap();assert!(view.resumed_thread().is_some());let newer=view.read_metadata().unwrap();assert!(host.history_admit_resume(&view,&receipt).is_err());view.receive(&newer,"conversation-home",&g(),&json!({"thread":history_thread("notLoaded")})).unwrap();assert!(host.history_admit_resume(&view,&receipt).is_err());
         let query=view.continue_query().unwrap();let(receipt,evidence,_)=history_exchange(&host,&query,Some(json!({"result":history_resume("idle",true)})));view.receive(&query,"conversation-home",&g(),&evidence["response"]["result"]).unwrap();let count=host.client_requests().len();{let mut i=host.inner.0.lock().unwrap();Host::close_generation(&mut i);i.generation["spawnCounter"]=json!(2);i.state="ready".into();}assert!(host.history_admit_resume(&view,&receipt).is_err());assert!(host.history_dispatch(&query).is_err());assert_eq!(host.client_requests().len(),count);assert_eq!(receipt.evidence()["sourceCurrent"],false);assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);
     }
@@ -7578,7 +7616,7 @@ mod conversation_transport_tests {
             let retained=session.snapshot(None)["startReceipts"].as_array().unwrap().last().unwrap().clone();assert_eq!(retained["requestIdentity"],*receipt.request_id());assert_eq!(retained["requestRef"],receipt.request_ref());assert_eq!(retained["writeResult"],"written");assert!(matches!(retained["outcome"].as_str(),Some("pending"|"response-observed-result")));assert!(retained["rolePreparationError"].is_string());
             let evidence=host.source_request_wait(&receipt,Duration::from_millis(15))?;refused_receipt=Some(receipt);Ok(evidence)
         });let evidence=result.unwrap();let refused_receipt=refused_receipt.unwrap();assert_eq!(evidence["sentFrame"],outbound);assert_eq!(evidence["outcome"],"response-observed-result");session.reconcile(&host);
-        let retained=session.snapshot(None)["startReceipts"].as_array().unwrap().last().unwrap().clone();assert_eq!(retained["requestIdentity"],*refused_receipt.request_id());assert_eq!(retained["requestRef"],refused_receipt.request_ref());assert_eq!(retained["writeResult"],"written");assert_eq!(retained["outcome"],"response-observed-result");assert!(!session.start_admitted(&refused_receipt));assert_eq!(session.role("conversation-home","rejected-role-thread")["standing"],"unknown");assert_eq!(host.snapshot()["threads"],before_threads);/* the plugins-and-apps reading and the start */assert_eq!(host.client_requests().len(),before_requests+2);assert_eq!(host.source_request_status(&refused_receipt).unwrap()["response"],evidence["response"]);
+        let retained=session.snapshot(None)["startReceipts"].as_array().unwrap().last().unwrap().clone();assert_eq!(retained["requestIdentity"],*refused_receipt.request_id());assert_eq!(retained["requestRef"],refused_receipt.request_ref());assert_eq!(retained["writeResult"],"written");assert_eq!(retained["outcome"],"response-observed-result");assert!(!session.start_admitted(&refused_receipt));assert_eq!(session.role("conversation-home","rejected-role-thread")["standing"],"unknown");assert_eq!(host.snapshot()["threads"],before_threads);assert_eq!(host.client_requests().len(),before_requests+1);assert_eq!(host.source_request_status(&refused_receipt).unwrap()["response"],evidence["response"]);
 
     }
 

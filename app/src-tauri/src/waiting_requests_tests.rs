@@ -17,7 +17,6 @@ def emit(x): print(json.dumps(x),flush=True)
 for line in sys.stdin:
  f=json.loads(line);m=f.get('method')
  if m=='initialize': emit({'id':f['id'],'result':{'userAgent':'synthetic-waiting-overview'}})
- elif m=='experimentalFeature/list': emit({'id':f['id'],'result':{'data':[{'name':'plugins','enabled':False,'defaultEnabled':False,'stage':'stable'},{'name':'apps','enabled':False,'defaultEnabled':False,'stage':'stable'}],'nextCursor':None}})
  elif m=='thread/start': emit({'id':f['id'],'result':{'thread':{'id':'shared-thread','status':{'type':'idle'}},'model':'synthetic','modelProvider':'synthetic'}})
  elif m=='fixture/emit':
   for frame in f['params']['frames']: emit(frame)

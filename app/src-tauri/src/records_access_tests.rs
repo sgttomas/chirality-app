@@ -393,7 +393,6 @@ for line in sys.stdin:
  method=f.get('method')
  if 'id' not in f or method is None:continue
  if method=='initialize':emit({'id':f['id'],'result':{'userAgent':'records-capability-fixture'}})
- elif method=='experimentalFeature/list':emit({'id':f['id'],'result':{'data':[{'name':'plugins','enabled':False,'defaultEnabled':False,'stage':'stable'},{'name':'apps','enabled':False,'defaultEnabled':False,'stage':'stable'}],'nextCursor':None}})
  elif method=='thread/start':
   cwd=f['params'].get('cwd') or os.getcwd()
   threads['thread']=cwd

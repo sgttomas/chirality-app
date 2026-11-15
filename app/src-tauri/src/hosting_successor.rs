@@ -395,9 +395,19 @@ if '--version' in sys.argv:
 open(os.path.join(os.path.dirname(os.path.abspath(__file__)),'..','..','argv.jsonl'),'a').write(json.dumps(sys.argv[1:])+chr(10))
 for line in sys.stdin:
  f=json.loads(line)
- features=os.path.join(os.path.dirname(os.path.abspath(__file__)),'..','..','features.json')
+ root=os.path.join(os.path.dirname(os.path.abspath(__file__)),'..','..')
+ # With conversations.on, the order on the wire: each frame received and each conversation reply given.
+ if os.path.exists(os.path.join(root,'conversations.on')):
+  open(os.path.join(root,'wire.jsonl'),'a').write(json.dumps({{'in':f.get('method'),'params':f.get('params')}})+chr(10))
+  m=f.get('method')
+  if m in ('thread/start','thread/resume','thread/fork'):
+   t={{'thread/start':'started','thread/fork':'forked'}}.get(m) or f['params'].get('threadId')
+   open(os.path.join(root,'wire.jsonl'),'a').write(json.dumps({{'out':m,'thread':t}})+chr(10))
+   print(json.dumps({{'id':f['id'],'result':{{'thread':{{'id':t,'status':'idle'}},'model':'m','modelProvider':'p','cwd':os.getcwd()}}}}),flush=True);continue
+ features=os.path.join(root,'features.json')
  if f.get('method')=='experimentalFeature/list' and os.path.exists(features):
-  print(json.dumps({{'id':f['id'],'result':json.load(open(features))}}),flush=True);continue
+  pages=json.load(open(features))
+  print(json.dumps({{'id':f['id'],'result':pages['thread' if 'threadId' in (f.get('params') or {{}}) else 'base']}}),flush=True);continue
  if 'id' in f:
   print(json.dumps({{'id':f['id'],'result':{{'userAgent':'codex/0.167.0'}}}}),flush=True)
 "#
@@ -429,28 +439,54 @@ for line in sys.stdin:
             .map(|line| serde_json::from_str(line).unwrap())
             .collect()
     }
-    /// DEL-01-05: on the successor route, a conversation start is preceded by the reading of
-    /// plugins and apps on the generation that route started, and the reading is shown; a reply
-    /// not in the stated shape is shown as not read, and the start is sent all the same.
+    /// DEL-01-05: on the successor route, the home's base reading follows the handshake, and each
+    /// conversation start, resume and fork is read for after its reply, with its thread's id; the
+    /// base is shown only as the home's base. A reply not in the stated shape is shown as not read.
     #[test]
-    fn the_successor_route_reads_plugins_and_apps_before_a_start() {
-        for (answer, plugins, apps) in [
-            (Some(json!({"data":[{"name":"plugins","enabled":true,"defaultEnabled":false,"stage":"stable"},{"name":"apps","enabled":false,"defaultEnabled":false,"stage":"stable"}],"nextCursor":null})), "on", "off"),
-            (None, "not-read", "not-read"),
-        ] {
+    fn the_successor_route_reads_plugins_and_apps_after_each_reply() {
+        let page = |plugins: bool| json!({"data":[{"name":"plugins","enabled":plugins,"defaultEnabled":false,"stage":"stable"},{"name":"apps","enabled":false,"defaultEnabled":false,"stage":"stable"}],"nextCursor":null});
+        let settled = |look: &dyn Fn() -> Value| {
+            let deadline = std::time::Instant::now() + Duration::from_secs(5);
+            loop {
+                let record = look();
+                if !record.is_null() && record["plugins"]["notReadBecause"] != "reading" { return record; }
+                assert!(std::time::Instant::now() < deadline, "the reading did not finish: {record}");
+                std::thread::sleep(Duration::from_millis(10));
+            }
+        };
+        for answered in [true, false] {
             let f = Fixture::new("pass");
-            if let Some(answer) = &answer { std::fs::write(f.root.join("features.json"), answer.to_string()).unwrap(); }
+            std::fs::write(f.root.join("conversations.on"), b"").unwrap();
+            // The home's base has plugins off; each conversation's project turns them on.
+            if answered { std::fs::write(f.root.join("features.json"), json!({"base": page(false), "thread": page(true)}).to_string()).unwrap(); }
             let host = Arc::new(Host::new());
+            host.feature_readings_for_test();
             host.start(&f.cfg, "fixture").unwrap();
             let generation = host.snapshot()["generation"].clone();
-            host.request_inner_scoped("thread/start", json!({"model":"m","modelProvider":"p"}), json!({"kind":"person-directed"}), Duration::from_secs(2), false, Some(&generation)).unwrap();
-            let status = host.snapshot();
-            let extensions = &status["extensions"];
-            assert_eq!((extensions["generation"].clone(), extensions["plugins"]["state"].as_str(), extensions["apps"]["state"].as_str()), (generation.clone(), Some(plugins), Some(apps)), "{extensions}");
-            if answer.is_none() { assert_eq!(extensions["plugins"]["notReadBecause"], "malformed-reply"); }
-            let methods: Vec<&str> = status["clientRequests"].as_array().unwrap().iter().filter(|r| r["generation"] == generation).map(|r| r["method"].as_str().unwrap()).filter(|m| *m != "initialize").collect();
-            assert_eq!(methods, ["experimentalFeature/list", "thread/start"], "read, then sent");
+            let base = settled(&|| host.snapshot()["extensionsBase"].clone());
+            assert_eq!((&base["generation"], base["scope"].as_str()), (&generation, Some(crate::hosting::extensions::BASE_SCOPE)));
+            for (method, thread) in [("thread/start", "started"), ("thread/resume", "saved"), ("thread/fork", "forked")] {
+                let params = if method == "thread/start" { json!({"model":"m","modelProvider":"p"}) } else { json!({"threadId":"saved"}) };
+                host.request_inner_scoped(method, params, json!({"kind":"person-directed"}), Duration::from_secs(2), false, Some(&generation)).unwrap();
+                let record = settled(&|| host.extensions_record_for_test(thread).unwrap_or(Value::Null));
+                assert_eq!((&record["generation"], record["request"].as_str(), record["threadId"].as_str()), (&generation, Some(method), Some(thread)));
+                if answered { assert_eq!((record["plugins"]["state"].as_str(), record["apps"]["state"].as_str()), (Some("on"), Some("off")), "{method}"); }
+                else { assert_eq!((record["plugins"]["state"].as_str(), record["plugins"]["notReadBecause"].as_str()), (Some("not-read"), Some("malformed-reply")), "{method}"); }
+            }
+            let base = host.snapshot()["extensionsBase"].clone();
+            if answered { assert_eq!(base["plugins"]["state"], "off", "the base stays the home's base"); }
             let _ = host.stop("fixture", "test ended");
+            let wire: Vec<Value> = std::fs::read_to_string(f.root.join("wire.jsonl")).unwrap().lines().map(|l| serde_json::from_str(l).unwrap()).collect();
+            let at = |want: &dyn Fn(&Value) -> bool| wire.iter().position(|e| want(e)).unwrap_or_else(|| panic!("{wire:?}"));
+            let readings = wire.iter().filter(|e| e["in"] == "experimentalFeature/list").count();
+            assert_eq!(readings, 4, "the base and one for each conversation: {wire:?}");
+            assert!(at(&|e| e["in"] == "initialized") < at(&|e| e["in"] == "experimentalFeature/list" && e["params"] == json!({})), "the base after the handshake");
+            for (method, thread) in [("thread/start", "started"), ("thread/resume", "saved"), ("thread/fork", "forked")] {
+                let sent = at(&|e| e["in"] == method);
+                let replied = at(&|e| e["out"] == method);
+                let read = at(&|e| e["in"] == "experimentalFeature/list" && e["params"] == json!({"threadId": thread}));
+                assert!(sent < replied && replied < read, "{method}: request, reply, then its reading: {wire:?}");
+            }
         }
     }
     /// DEL-01-05: the development model address reaches the successor start's arguments

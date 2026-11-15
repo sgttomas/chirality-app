@@ -8211,7 +8211,6 @@ for line in sys.stdin:
  with open('wire.jsonl','a') as log:log.write(json.dumps(f)+'\n')
  method=f.get('method')
  if method=='initialize':result={'userAgent':'unqualified-workflow-root-fixture'}
- elif method=='experimentalFeature/list':result={'data':[{'name':'plugins','enabled':False,'defaultEnabled':False,'stage':'stable'},{'name':'apps','enabled':False,'defaultEnabled':False,'stage':'stable'}],'nextCursor':None}
  elif method=='thread/start':
   starts[0]+=1
   result={'thread':thread('thread' if starts[0]==1 else 'thread-%d'%starts[0]),'model':f['params'].get('model') or 'fixture-model','modelProvider':f['params'].get('modelProvider') or 'fixture-provider','cwd':f['params'].get('cwd') or os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}

@@ -60,9 +60,8 @@ fn drain_from(reader: &mut std::fs::File) -> Value {
         assert!(
             unsafe { libc::poll(&mut poll, 1, remaining.as_millis().min(1000) as i32) } > 0
         );
-        // One byte at a time, so a frame written after this one stays on the pipe.
-        let mut buf = [0; 1];
-        let n = reader.read(&mut buf).unwrap();
+        let mut buf = [0; 4096];
+        let n = reader.read(&mut buf[..4096 - bytes.len()]).unwrap();
         assert!(n > 0);
         bytes.extend_from_slice(&buf[..n]);
         assert!(bytes.len() <= 4096);
@@ -98,8 +97,6 @@ impl Fixture {
         );
         let host = Host::new();
         *host.stdin.lock().unwrap() = Some(std::process::ChildStdin::from(write));
-        // The stand-in answers the plugins-and-apps reading: both off.
-        host.answer_features_off_for_test();
         {
             let mut i = host.inner.0.lock().unwrap();
             i.state = "ready".into();
@@ -112,12 +109,8 @@ impl Fixture {
             composition: composition(role),
         }
     }
-    /// The next frame written, past the plugins-and-apps readings the hook answers.
     fn drain(&mut self) -> Value {
-        loop {
-            let frame = drain_from(&mut self.reader);
-            if frame["method"] != "experimentalFeature/list" { return frame; }
-        }
+        drain_from(&mut self.reader)
     }
     fn empty(&self) {
         let mut p = libc::pollfd {
@@ -314,8 +307,6 @@ fn call_custody_partial_or_failed_start_is_simulated_and_ineligible() {
             .host
             .cce_thread_start(&generation(), "/synthetic", &f.composition, "sup:synthetic")
             .unwrap();
-        // Only the plugins-and-apps reading reached the pipe; the start's write was simulated.
-        assert_eq!(drain_from(&mut f.reader)["method"], "experimentalFeature/list");
         f.empty();
         f.history
             .start_dispatched(r.clone(), &f.composition, "sup:synthetic")

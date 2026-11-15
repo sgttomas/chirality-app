@@ -413,7 +413,6 @@ for line in sys.stdin:
  if m=='initialize' and os.path.exists('fail-initialize'):
   emit({'id':f['id'],'error':{'code':-32000,'message':'fixture handshake refused'}});continue
  if m=='initialize': result={'userAgent':'unqualified-stop-fixture'}
- elif m=='experimentalFeature/list': result={'data':[{'name':'plugins','enabled':False,'defaultEnabled':False,'stage':'stable'},{'name':'apps','enabled':False,'defaultEnabled':False,'stage':'stable'}],'nextCursor':None}
  elif m=='thread/start':
   starts[0]+=1
   t={'id':'thread' if starts[0]==1 else 'thread-%d'%starts[0],'cliVersion':'0.167.0','createdAt':1,'updatedAt':2,'cwd':os.getcwd(),'ephemeral':False,'modelProvider':'fixture-provider','preview':'stop fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[]}
@@ -581,7 +580,7 @@ for line in sys.stdin:
         f.live_turn("turn-1");
         let workflows = std::sync::Mutex::new(WorkflowRootSession::default());
         let out = stop_native_home_within(&f.home, &workflows, &f.generation, false, "fixture person", Duration::from_secs(3), |_| true, || panic!("no start")).unwrap();
-        assert_eq!(f.wire(), ["initialize", "initialized", "experimentalFeature/list", "thread/start", "turn/interrupt"], "one interrupt, then the input closed");
+        assert_eq!(f.wire(), ["initialize", "initialized", "thread/start", "turn/interrupt"], "one interrupt, then the input closed");
         assert_eq!(out["state"], "stopped");
         assert_eq!(out["turns"][0]["interruptRequest"]["state"], "acknowledged");
         assert_eq!(out["turns"][0]["codexReported"], "interrupted", "observed turn/completed, not the acknowledgment");
@@ -697,7 +696,7 @@ for line in sys.stdin:
             assert!(Instant::now() < deadline, "peer did not receive the restarted handshake: {wire:?}");
             std::thread::sleep(Duration::from_millis(5));
         };
-        assert_eq!(wire, ["initialize", "initialized", "experimentalFeature/list", "thread/start", "turn/interrupt", "initialize", "initialized"], "no thread/resume or other request after the restart");
+        assert_eq!(wire, ["initialize", "initialized", "thread/start", "turn/interrupt", "initialize", "initialized"], "no thread/resume or other request after the restart");
     }
 
     #[test]
@@ -836,7 +835,7 @@ for line in sys.stdin:
         }).unwrap());
         let ids = app.proceeding().unwrap();
         assert_eq!(ids.len(), 1);
-        assert_eq!(f.wire(), ["initialize", "initialized", "experimentalFeature/list", "thread/start", "turn/interrupt"], "one interrupt; nothing else sent before the exit");
+        assert_eq!(f.wire(), ["initialize", "initialized", "thread/start", "turn/interrupt"], "one interrupt; nothing else sent before the exit");
         assert_eq!(f.home.host.snapshot()["state"], "stopped", "settlement precedes permission for native exit");
         let late = f.home.host.turn_start_text(&f.generation, "thread", "late text").unwrap_err();
         assert!(!late.is_empty(), "settled quit rejects new turns");
