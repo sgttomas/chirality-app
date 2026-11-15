@@ -1,5 +1,6 @@
 """Invented values only: these tests never execute the supplier."""
 import copy
+import json
 import tempfile
 import tomllib
 import unittest
@@ -75,6 +76,7 @@ class ProbeTests(unittest.TestCase):
                 def __init__(self, *args):
                     self.root = root
                     self.provider = type("Provider", (), {})()
+                    self.frames = []
                 def close(self):
                     closed.append(True)
             with patch.object(probe.capture, "Run", Run), patch.object(probe.capture, "Pipe", side_effect=OSError("invented failure")):
@@ -82,6 +84,25 @@ class ProbeTests(unittest.TestCase):
                     probe.observe("unused", {}, root, "baseline", 1234)
             self.assertEqual(closed, [True])
             self.assertFalse((root / "observation.json").exists())
+            self.assertEqual(json.loads((root / "refusal.json").read_text())["refusal"], "invented failure")
+
+    def test_already_received_error_is_kept_on_refusal(self):
+        with tempfile.TemporaryDirectory() as folder:
+            run = type("Run", (), {})()
+            run.root = Path(folder)
+            run.frames = [{"direction": "codex->app", "generation": 1, "frame": {
+                "id": 2, "error": {"code": -32600, "message": "invented invalid catalogue",
+                                      "data": {"userId": "invented-identity"}}}}]
+            before = copy.deepcopy(run.frames)
+            probe.retain_refusal(run, "baseline", probe.capture.Refused("config/read did not return a result"))
+            record = json.loads((run.root / "refusal.json").read_text())
+            error = record["frames"][0]["frame"]["error"]
+            self.assertEqual(error["message"], "invented invalid catalogue")
+            self.assertEqual(error["code"], -32600)
+            self.assertEqual(error["data"]["userId"], "<WITHHELD>")
+            self.assertEqual(run.frames, before)
+            with self.assertRaises(FileExistsError):
+                probe.retain_refusal(run, "baseline", Exception("second"))
 
 
 if __name__ == "__main__":

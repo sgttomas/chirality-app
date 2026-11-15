@@ -30,6 +30,9 @@ def catalog(case):
         "description": "Fixed text loopback fixture", "supported_reasoning_levels": [],
         "shell_type": "unified_exec", "visibility": "list", "supported_in_api": True,
         "priority": 1, "support_verbosity": False,
+        # ModelsResponse's custom deserializer requires a canonical template or
+        # legacy base_instructions, although ModelInfo alone makes both optional.
+        "model_messages": {"instructions_template": "Reply with invented observation text. Request no tool."},
         "truncation_policy": {"mode": "bytes", "limit": 10000},
         "experimental_supported_tools": [],
     }
@@ -63,6 +66,22 @@ def response_plan(declarations):
         declarations.append(copy.deepcopy(body["tools"]))
         return [provider.message("Invented observation complete.", "msg_observation")], 0, "fixed text; no tool requested"
     return plan
+
+
+def retain_refusal(run, case, error):
+    """Keep already-received frames privately; no new request or inspection."""
+    def withheld(value):
+        if isinstance(value, dict):
+            return {key: ("<WITHHELD>" if key in {"userId", "accountId", "userAgent", "apiKey", "accessToken",
+                         "refreshToken", "idToken", "loginId", "userCode", "authUrl", "verificationUrl"}
+                         else withheld(item)) for key, item in value.items()}
+        if isinstance(value, list):
+            return [withheld(item) for item in value]
+        return value
+    with (run.root / "refusal.json").open("x") as handle:
+        json.dump({"case": case, "refusal": str(error), "frames": withheld(run.frames),
+                   "limits": "Already-received frames only; no completed observation or inferred cause."}, handle, indent=2)
+        handle.write("\n")
 
 
 def check_observation(case, reads, declarations):
@@ -147,6 +166,9 @@ def observe(vendor, record, root, case, port):
                              "Proxy settings are not isolation; an ignoring binary could contact other hosts.",
                              "One root conversation per case; no descendant or override observation.",
                              "Not App behavior, capacity evidence or candidate qualification."]}
+    except Exception as error:
+        retain_refusal(run, case, error)
+        raise
     finally:
         run.close()
     with (run.root / "observation.json").open("x") as handle:
@@ -162,6 +184,7 @@ def main():
     parser.add_argument("--record", required=True)
     parser.add_argument("--root", required=True)
     parser.add_argument("--port", type=int, required=True)
+    parser.add_argument("--case", choices=CASES, help="Run only this case when the route gate permits it")
     args = parser.parse_args()
     record = same_basis.admit_distribution("0.169.0", Path(args.record).read_bytes())
     root = Path(args.root)
@@ -171,7 +194,7 @@ def main():
         raise capture.Refused("case exceeded 180 seconds")
     previous = signal.signal(signal.SIGALRM, deadline)
     try:
-        for case in CASES:
+        for case in ((args.case,) if args.case else CASES):
             signal.alarm(SECONDS)
             try:
                 result = observe(args.vendor, record, root / case, case, args.port)
