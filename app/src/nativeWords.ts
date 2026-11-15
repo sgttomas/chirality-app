@@ -35,5 +35,7 @@ export const ITEMS_VIEW = { notLoaded: "not loaded", summary: "summary", full: "
 export const SUBAGENT_KIND = { review: "review", compact: "compaction", memory_consolidation: "memory consolidation" } as const;
 /** SubAgentActivityKind. */
 export const SUBAGENT_ACTIVITY = { started: "started", interacted: "interacted", interrupted: "interrupted", completed: "completed" } as const;
+/** ThreadStatus's type: a conversation's runtime status. */
+export const THREAD_STATUS = { notLoaded: "not loaded", idle: "idle", systemError: "system error", active: "active" } as const;
 /** A descendant's last observed status: CollabAgentStatus, or ThreadStatus's type. */
 export const CHILD_STATUS = { pendingInit: "starting", running: "running", interrupted: "interrupted", completed: "completed", errored: "errored", shutdown: "shut down", notFound: "not found", notLoaded: "not loaded", idle: "idle", systemError: "system error", active: "active" } as const;

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "./hostReads";
+import { idWords } from "./AgentText";
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 type Observe = (source: Json, cursor: Json, after: number) => Promise<Json>;
@@ -102,7 +103,7 @@ export function ObserverAttachment({ host, observe = nativeObserve }: { host: Js
       <p>History reconstruction: {rebuild.status}. Metadata and the latest turn-summary page can be read here. Earlier pages and item pages are not loaded; this is partial history, and checklist revisions are not reconstructed.</p>
       {rebuild.noKnownTargets && <p>No loaded conversations were available for this history read.</p>}
       {targets.map(target => <article key={target.threadId}>
-        <h4>Recovered history · {target.threadId}</h4>
+        <h4>Recovered history · {idWords(target.threadId)}</h4>
         <p>{target.status}{target.readAt ? ` · read ${target.readAt}` : ""}. This history does not establish current activity.</p>
         {target.waitingForSourceActivity && <p>More events fell outside replay after this history read began. Another automatic read waits for new Codex activity; the earlier read does not cover the newer gap.</p>}
         {target.limit && <p>{historyLimit(target.limit)}</p>}

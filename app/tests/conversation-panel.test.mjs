@@ -4,6 +4,7 @@ import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 import {continuationFixture} from './support/continuation-fixture.mjs';
+import {choiceList, choiceLists, chooseIn, chooser, chosenIn} from './support/choices.mjs';
 
 // The conversation section is mounted with react-dom/client on a minimal
 // in-memory document, so the test sees what React actually leaves mounted
@@ -55,7 +56,7 @@ const props = element => element[Object.keys(element).find(key => key.startsWith
 const elements = (container, tag) => container.querySelectorAll(element => element.localName === tag);
 const button = (container, text) => elements(container, 'button').find(element => element.textContent === text);
 const labelled = (container, tag, text) => elements(container, tag).find(element => element.parentNode.textContent.startsWith(text));
-const change = (element, value) => React.act(() => props(element).onChange({target: {value}}));
+const change = (element, value) => React.act(() => element.localName === 'fieldset' ? chooseIn(element, value) : props(element).onChange({target: {value}}));
 // The account home's one connection route: the built-in OpenAI provider with the ChatGPT account entry.
 const ROUTE = 'Use my ChatGPT account (built-in OpenAI)';
 // In the account home the only connection is shown in use without a press (DEL-01-05 REQ-004); elsewhere the toggle is pressed.
@@ -87,8 +88,8 @@ async function ordinaryStartCase({initialThread = false, startGeneration = g, ou
   try {
     await React.act(async () => {root.render(React.createElement(App));});
     const conversation = () => container.querySelectorAll(element => element.getAttribute('id') === 'conversation')[0];
-    const selectedKey = () => props(elements(conversation(), 'select')[0]).value;
-    if (initialThread) await change(elements(conversation(), 'select')[0], key('existing'));
+    const selectedKey = () => chosenIn(choiceLists(conversation())[0]);
+    if (initialThread) await change(choiceLists(conversation())[0], key('existing'));
     await chooseRoute(container);
     await change(labelled(container, 'input', 'Model '), 'chosen-model');
     const draft = 'Unsent person text é / 家';
@@ -202,13 +203,13 @@ test('each successful ordinary Start consumes only its choice and a second conve
     await ui.press('Start thread');
     assert.deepEqual(ui.values(),blankChoice);assert.equal(props(ui.start()).disabled,true);
     assert.match(ui.container.querySelectorAll(e=>e.getAttribute('aria-label')==='New conversation choice')[0].textContent,/no model selected/);
-    assert.equal(props(elements(conversation(),'select')[0]).value,JSON.stringify([g,'created-1']));
+    assert.equal(chosenIn(choiceLists(conversation())[0]),JSON.stringify([g,'created-1']));
     assert.equal(props(elements(conversation(),'textarea')[0]).value,'Kept unsent draft / 家');
     assert.match(conversation().textContent,/HELP_HUMAN/,'the started conversation retains its role');
     await ui.press('Start thread');
     assert.equal(ui.calls.filter(c=>c.command==='thread_start').length,1,'even a queued press on an unselected chooser sends nothing');
     await ui.edit({...selectedChoice,model:'second-model'});await ui.press('Start thread');
-    assert.equal(props(elements(conversation(),'select')[0]).value,JSON.stringify([g,'created-2']));
+    assert.equal(chosenIn(choiceLists(conversation())[0]),JSON.stringify([g,'created-2']));
     assert.deepEqual(ui.values(),blankChoice);
     assert.deepEqual(ui.calls.filter(c=>c.command==='thread_start').map(c=>c.args.model),['chosen-model','second-model']);
     assert.equal(ui.calls.filter(c=>c.command==='turn/start'||c.command==='conversation_send_text').length,0);
@@ -328,7 +329,7 @@ test('a same-class actual generation update while Start is pending does not beco
     reply.resolve();await React.act(async()=>{await pending;});
     assert.deepEqual(ui.values(),blankChoice);
     const conversation=ui.container.querySelectorAll(e=>e.getAttribute('id')==='conversation')[0];
-    assert.equal(props(elements(conversation,'select')[0]).value,JSON.stringify([actual,'created-1']),'opens the actual returned H5, never the stale pre-click tuple');
+    assert.equal(chosenIn(choiceLists(conversation)[0]),JSON.stringify([actual,'created-1']),'opens the actual returned H5, never the stale pre-click tuple');
     assert.equal(ui.calls.filter(c=>c.command==='thread_start').length,1);
   },async(args,index,admitted)=>{await reply.promise;return admitted(args,index);});
 });
@@ -425,12 +426,12 @@ async function ordinaryContinueCase({initialThread = false, outcome = 'success',
   try {
     await React.act(async () => {root.render(React.createElement(App));});
     const conversation = () => container.querySelectorAll(element => element.getAttribute('id') === 'conversation')[0];
-    const selectedKey = () => props(elements(conversation(), 'select')[0]).value;
+    const selectedKey = () => chosenIn(choiceLists(conversation())[0]);
     const priorKey = JSON.stringify([source, 'existing']);
-    if (initialThread) await change(elements(conversation(), 'select')[0], priorKey);
+    if (initialThread) await change(choiceLists(conversation())[0], priorKey);
     const draft = 'Unsent continuation text é / 家';
     await change(elements(conversation(), 'textarea')[0], draft);
-    await React.act(async () => {await props(labelled(container, 'select', 'Stored conversation ')).onChange({target: {value: 'stored'}});});
+    await React.act(async () => {await chooseIn(choiceList(container, 'Stored conversation'), 'stored');});
     await React.act(async () => {await props(button(container, 'Read metadata')).onClick();});
     assert.equal(selectedKey(), initialThread ? priorKey : '', 'index and metadata reads do not open an operational chat');
     const continueButton = button(container, 'Continue selected conversation');
@@ -444,7 +445,7 @@ async function ordinaryContinueCase({initialThread = false, outcome = 'success',
         document.visibilityState='visible';await React.act(async()=>{for(const {type,listener} of [...document.listeners])if(type==='visibilitychange')listener();});
       }
       expectedKey = JSON.stringify([snapshot.generation, 'other-current']);
-      await change(elements(conversation(), 'select')[0], expectedKey);
+      await change(choiceLists(conversation())[0], expectedKey);
       assert.equal(selectedKey(), expectedKey, 'the person has chosen the newer current chat');
       await React.act(async () => {releaseDecision({rows: []}); await pendingContinue;});
     } else {
@@ -453,7 +454,12 @@ async function ordinaryContinueCase({initialThread = false, outcome = 'success',
     assert.deepEqual(calls.filter(call => call.command === 'history_action').map(call => call.args), ['metadata', 'continue'].map(action => ({generation: source, selectionEpoch: 1, action, cursor: null, direction: 'desc', reference: null})), 'one explicit Continue and no retry');
     assert.ok(calls.every(call => ['host_status', 'decision_view', 'native_confirmation_content', 'history_select', 'history_action', 'select_home'].includes(call.command)), 'Continue never sends text or changes role');
     assert.equal(props(elements(conversation(), 'textarea')[0]).value, draft);
-    assert.equal(selectedKey(), expectedKey, 'a delayed Continue cannot replace a newer source or chat choice');
+    if (outcome === 'source-changed') {
+      // The kept choice is no longer offered in the new generation, so no radio button shows it; the App says the
+      // selection is kept and unavailable, which it says only while the choice is not cleared.
+      assert.equal(selectedKey(), '', 'no current conversation is shown as chosen');
+      assert.match(conversation().textContent, /Selected conversation is no longer available in this generation/, 'a delayed Continue cannot replace a newer source or chat choice');
+    } else assert.equal(selectedKey(), expectedKey, 'a delayed Continue cannot replace a newer source or chat choice');
     if (outcome === 'success') {
       assert.equal(props(button(conversation(), 'Send text')).disabled, false);
       assert.ok(conversation().textContent.includes('Role not established in this App process'), 'cold role stays unknown despite native agentRole');
@@ -551,7 +557,7 @@ async function withOrdinarySend(check, native) {
   try {
     await React.act(async () => root.render(React.createElement(App)));
     const panel = () => container.querySelectorAll(e => e.getAttribute('id') === 'conversation')[0];
-    await change(elements(panel(), 'select')[0], key('thread-a'));
+    await change(choiceLists(panel())[0], key('thread-a'));
     await check({container, calls, panel, model: () => labelled(panel(), 'input', ordinaryModelLabel), text: () => elements(panel(), 'textarea')[0],
       press: async label => React.act(async () => {props(button(panel(), label)).onClick(); await flush();})});
   } finally {const text = container.textContent; await React.act(() => root.unmount()); document.body.removeChild(container); idle.restore(text);}
@@ -571,7 +577,7 @@ test('mounted App ordinary controls send only their exact explicit choice and fu
       assert.equal(props(labelled(ui.container, 'input', 'Model ')).value, 'new-conversation-only');
       assert.match(region(ui.panel(), 'Ordinary text submission outcome').textContent, /Model adoption, execution and completion remain unestablished/);
       assert.match(ui.panel().textContent, /this turn and subsequent native turns; clearing this field does not revert it/);
-      assert.match(ui.panel().textContent, /reported-original via original-provider/);
+      assert.match(ui.panel().textContent, /Conversation thread-a no title supplied Model: reported-original Provider: original-provider/, 'the model and provider stand beside the choice, boxed');
     }, async () => ({result: {turn: {id: 'native-turn', status: 'inProgress', items: []}}}));
   }
 });
@@ -691,7 +697,7 @@ async function withDeferredConversationAction(t, command, check, {refused = fals
   const actionLabel = command === 'conversation_steer_text' ? 'Steer current live turn' : 'Interrupt selected live turn';
   const ui = {container, calls, panel, text,
     async start() {
-      await change(elements(panel(), 'select')[0], key('thread-a'));
+      await change(choiceLists(panel())[0], key('thread-a'));
       await change(text(), 'original steering text');
       if (command === 'conversation_interrupt') await change(labelled(panel(), 'select', 'Observed live turn '), 'live-a');
       const control = button(panel(), actionLabel); assert.equal(!!props(control).disabled, false);
@@ -708,15 +714,15 @@ async function withDeferredConversationAction(t, command, check, {refused = fals
         await change(text(), 'newer steering text');
         if (kind === 'same-text') await change(text(), 'original steering text');
       } else if (kind === 'thread') {
-        await change(elements(panel(), 'select')[0], key('thread-b'));
+        await change(choiceLists(panel())[0], key('thread-b'));
       } else if (kind === 'thread-away-back') {
         // Other App navigation surfaces can change this shared selection. Drive
         // the real handler twice before rendering: final thread/generation and
         // object equality cannot detect this; the dispatch intent ticket must.
-        const choose = props(elements(panel(), 'select')[0]).onChange;
+        const toB = chooser(choiceLists(panel())[0], key('thread-b')), toA = chooser(choiceLists(panel())[0], key('thread-a'));
         await React.act(() => {
-          choose({target: {value: key('thread-b')}});
-          choose({target: {value: key('thread-a')}});
+          toB();
+          toA();
         });
       } else if (kind === 'home' || kind === 'home-away-back') {
         snapshot=makeSnapshot({...g,home:'other-home'},'api-key','navigated-view');
@@ -814,7 +820,7 @@ test('ordinary send explains disconnected, unselected, empty and ready states wi
  await withReadinessPanel(async ui=>{
   assert.match(ui.byId('ordinary-send-readiness').textContent,/Write a message/);
   await change(elements(ui.c,'textarea')[0],'Retained ordinary draft');
-  assert.match(ui.byId('ordinary-send-readiness').textContent,/Ready to send text to Conversation 1 · model not reported\./,'the destination is named in the person\'s words');
+  assert.match(ui.byId('ordinary-send-readiness').textContent,/Ready to send text to conversation thread-a\./,'the destination is named by its identity in the App\'s words; its title stays in its box in the chooser');
   assert.equal(props(button(ui.c,'Send text'))['aria-describedby'],'ordinary-send-readiness');
   ui.choose('');await ui.show();assert.match(ui.byId('ordinary-send-readiness').textContent,/Choose a current conversation/);
   assert.equal(props(button(ui.c,'Send text')).disabled,true);
@@ -904,7 +910,7 @@ test('while Stop or Restart Codex runs, sends pause but the conversation and liv
   await withReadinessPanel(async ui => {
     ui.setBusy(true); await ui.show();
     assert.equal(props(button(ui.c, 'Send text')).disabled, true);
-    assert.equal(props(labelled(ui.c, 'select', 'Current-generation conversation ')).disabled, false);
+    assert.equal(props(choiceList(ui.c, 'Current-generation conversation')).disabled, false);
     assert.equal(props(labelled(ui.c, 'select', 'Observed live turn ')).disabled, false);
     await change(labelled(ui.c, 'select', 'Observed live turn '), 'live-a');
     assert.equal(props(button(ui.c, 'Interrupt selected live turn')).disabled, false);
@@ -926,7 +932,7 @@ test('the App pauses conversation sends for exactly the duration of Stop Codex',
   try {
     await React.act(async () => {root.render(React.createElement(App));});
     const conversation = () => container.querySelectorAll(element => element.getAttribute('id') === 'conversation')[0];
-    await change(elements(conversation(), 'select')[0], key('existing'));
+    await change(choiceLists(conversation())[0], key('existing'));
     await change(elements(conversation(), 'textarea')[0], 'Kept while Codex stops');
     assert.equal(props(button(conversation(), 'Send text')).disabled, false);
     let pending;
@@ -971,9 +977,11 @@ test('the App start display has its own role group and one shared model field an
   });
   try {
     await React.act(async () => {root.render(React.createElement(App));});
-    const radios = elements(container, 'input').filter(element => props(element).type === 'radio');
+    const inChoices = element => choiceLists(container).some(list => list.contains(element));
+    const radios = elements(container, 'input').filter(element => props(element).type === 'radio' && !inChoices(element));
     assert.ok(radios.length >= 2);
     assert.deepEqual([...new Set(radios.map(element => props(element).name))], ['start-thread-role'], 'the Start thread picker keeps its own group');
+    assert.ok(elements(container, 'input').filter(inChoices).every(element => props(element).name !== 'start-thread-role'), 'no conversation choice joins the Start thread picker\'s group');
     const field = label => elements(container, 'input').filter(element => element.parentNode.textContent.startsWith(label));
     assert.equal(field('Model ').length, 1);
     assert.equal(field('Configured Codex provider ').length, 0, 'the provider is never typed');
@@ -1330,4 +1338,29 @@ test('delayed effort replies cannot populate another source and readiness disabl
   } finally {
     await React.act(()=>root.unmount());document.body.removeChild(c);window.__TAURI_INTERNALS__=previous;
   }
+});
+
+// Each conversation choice carries its model and provider, boxed beside the label: the stored-conversation adapter
+// (History) and the current-conversation adapter, each from its own source row.
+test('the History and current-conversation choices show the model and provider their rows report, boxed outside the label', async () => {
+  const {HistoryPanel} = loadSrc('App');
+  const {choiceList, rowOf} = await import('./support/choices.mjs');
+  const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c);
+  const boxes = row => row.querySelectorAll(n => n.getAttribute?.('role') === 'group' && /agent-text/.test(n.getAttribute('class') ?? '')).map(n => n.textContent);
+  const label = row => row.querySelectorAll(n => n.localName === 'label')[0];
+  try {
+    await React.act(() => root.render(React.createElement(HistoryPanel, {host: {state: 'ready', generation: g, homeRouting: {activeModeHomeClass: 'account'}, nativeHistory: {listPage: {data: []}, threads: [
+      {native: {id: 'stored-A', name: 'Stored title', model: 'stored-model', modelProvider: 'stored-provider', status: {type: 'idle'}}},
+      {native: {id: 'stored-B', name: 'Other title', status: {type: 'idle'}}}]}}, refresh: noop, threadKey: '', setThreadKey: () => {}, captureContinueContext: () => {}})));
+    const stored = choiceList(c, 'Stored conversation');
+    const a = rowOf(stored, 'stored-A'), b = rowOf(stored, 'stored-B');
+    assert.ok(boxes(a).includes('Model: stored-model') && boxes(a).includes('Provider: stored-provider'), boxes(a).join(' | '));
+    assert.doesNotMatch(label(a).textContent, /stored-model|stored-provider/, 'outside the label');
+    assert.match(b.textContent, /model not reported/); assert.match(b.textContent, /provider not reported/);
+    const thread = {generation: g, threadId: 'T-current', model: 'current-model', modelProvider: 'current-provider'};
+    await React.act(() => root.render(React.createElement(ConversationPanel, {host: {state: 'ready', generation: g, homeRouting: {activeModeHomeClass: 'account'}, threads: [thread]}, threadKey: '', setThreadKey: () => {}, answer: noop, runAct: noop, send: noop, steer: noop, submitAttachments: noop, interrupt: noop, checkPlanMode: noop, codexBusy: false})));
+    const current = rowOf(choiceList(c, 'Current-generation conversation'), JSON.stringify([g, 'T-current']));
+    assert.ok(boxes(current).includes('Model: current-model') && boxes(current).includes('Provider: current-provider'), boxes(current).join(' | '));
+    assert.doesNotMatch(label(current).textContent, /current-model|current-provider/);
+  } finally { await React.act(() => root.unmount()); document.body.removeChild(c); }
 });

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {choiceLists, chooseIn, chooser, chosenIn} from './support/choices.mjs';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
@@ -53,8 +54,8 @@ async function mounted(options,check) {
   if(command==='select_home'){if(options.home)await options.home(args);active=args.modeHomeClass;return {state:'selected'};}
   unexpected.push({command,args});throw Error(`Unexpected original command: ${command}`);
  });
- const selected=()=>props(elements(conversation(c),'select')[0]).value;
- const change=async(e,value)=>React.act(()=>props(e).onChange({target:{value}}));
+ const selected=()=>chosenIn(choiceLists(conversation(c))[0]);
+ const change=async(e,value)=>React.act(()=>e.localName==='fieldset'?chooseIn(e,value):props(e).onChange({target:{value}}));
  // In the account home the only connection is shown in use without a press (DEL-01-05 REQ-004); elsewhere the toggle is pressed.
  const routeChosen=()=>{if(c.querySelectorAll(e=>e.getAttribute('aria-label')==='Connection in use').length)return true;const b=button(c,ROUTE);return !!b&&props(b)['aria-pressed']===true;};
  const edit=async values=>{if(values.route&&!routeChosen())await press(ROUTE);if(values.model!==undefined)await change(labelled(c,'input','Model '),values.model);};
@@ -63,12 +64,12 @@ async function mounted(options,check) {
  const poll=async()=>React.act(async()=>{const p=[...intervals.values()].find(p=>p.fn.toString().includes('host_status'));assert.ok(p);p.fn();});
  try{
   await React.act(async()=>root.render(React.createElement(App)));
-  await change(elements(conversation(c),'select')[0],key('source',homes[initial].generation));
+  await change(choiceLists(conversation(c))[0],key('source',homes[initial].generation));
   // Only the account home offers a new-conversation choice; a retained legacy home and an unprepared local home offer none.
   await change(elements(conversation(c),'textarea')[0],draft);if(initial==='account')await edit(choice);
   assert.deepEqual(values(),initial==='account'?choice:noChoice);
   assert.equal(calls.filter(c=>c.command==='conversation_fork').length,0,'mount/selection/edits never fork');
-  await check({c,calls,homes,snapshot,selected,values,edit,press,poll,change,chooser:()=>elements(conversation(c),'select')[0],recover:()=>{statusFailure=false;},observeHome:async mode=>{active=mode;await poll();},forkCount:()=>calls.filter(c=>c.command==='conversation_fork').length});
+  await check({c,calls,homes,snapshot,selected,values,edit,press,poll,change,chooser:()=>choiceLists(conversation(c))[0],recover:()=>{statusFailure=false;},observeHome:async mode=>{active=mode;await poll();},forkCount:()=>calls.filter(c=>c.command==='conversation_fork').length});
   assert.deepEqual(unexpected,[],'strict dispatcher rejects implicit send/resume/start/answer');
   assert.equal(calls.filter(c=>c.command==='thread_start').length,explicitStarts,'only explicit Start presses dispatch Start');
   assert.equal(calls.filter(c=>c.command==='select_home').length,explicitHomes,'Fork never selects a home');

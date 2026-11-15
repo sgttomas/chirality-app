@@ -1,3 +1,4 @@
+import { AgentText, RecordedData, idWords } from "./AgentText";
 import { useEffect, useRef, useState } from "react";
 import { EXACT_TEXT } from "./exactText";
 import { readingRefusal } from "./readingSentences";
@@ -78,11 +79,12 @@ export type LimitSubject =
   | { of: "conversation-supply"; thread: string; own: boolean }
   | { of: "child-supply" };
 export function limitSubjectWords(subject: LimitSubject, role: string | null): string {
-  const guidance = role ? `the ${role} guidance` : "the guidance";
-  if (subject.of === "current-files") return `Limits of ${role ?? "no role"} in its guidance file as the App last read it`;
+  // A role name and a conversation id come from guidance files and Codex: in these App words only as plain identifiers.
+  const guidance = role ? `the ${idWords(role)} guidance` : "the guidance";
+  if (subject.of === "current-files") return `Limits of ${role ? idWords(role) : "no role"} in its guidance file as the App last read it`;
   if (subject.of === "child-supply") return `Limits in ${guidance} the App supplied for this child`;
   return subject.own ? `Limits in ${guidance} the App supplied when this conversation started`
-    : `This fork was sent no guidance of its own. Limits in ${guidance} the App supplied when conversation ${subject.thread} started`;
+    : `This fork was sent no guidance of its own. Limits in ${guidance} the App supplied when conversation ${idWords(subject.thread)} started`;
 }
 
 /** LA-4: one account of limits, under the guidance it describes. This is the
@@ -215,7 +217,7 @@ export function ChildGuidance({ guidance }: { guidance: Json }) {
     <RoleLimits subject={{ of: "child-supply" }} role={text(guidance.role)} entry={guidance.limitAccount} />
     <p><small>This is evidence of the original child supply. It does not set the primary conversation role or restore current role authority. Resume, fork and later generations do not authorize new child associations from this catalog.</small></p>
     {guidance.roleSupplyRecord?.state === "not-confirmed" && <p role="alert">Child association history was not confirmed: {text(guidance.roleSupplyRecord.limit)}.</p>}
-    <details><summary>Original child supply evidence</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(guidance, null, 2)}</pre></details>
+    <details><summary>Original child supply evidence</summary><RecordedData value={guidance} /></details>
   </div>;
 }
 
@@ -225,9 +227,9 @@ export function ChildAssociations({ associations }: { associations: Json }) {
   return <section aria-label="Observed native child associations">
     <p><b>Observed native children</b></p>
     {rows.map((row, i) => <details key={i}>
-      <summary>Child {text(row.native?.threadId)} · parent {text(row.native?.parentThreadId)} · {row.guidance?.standing === "app-observed-child-supply" ? `original ${text(row.guidance.role)} guidance observed` : "guidance unknown"}</summary>
+      <summary>Child {idWords(row.native?.threadId)} · parent {idWords(row.native?.parentThreadId)} · {row.guidance?.standing === "app-observed-child-supply" ? `original ${idWords(row.guidance.role)} guidance observed` : "guidance unknown"}</summary>
       <ChildGuidance guidance={row.guidance ?? { standing: "unknown" }} />
-      <details><summary>Native child event</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(row.native, null, 2)}</pre></details>
+      <details><summary>Native child event</summary><RecordedData value={row.native} /></details>
     </details>)}
   </section>;
 }
@@ -251,7 +253,7 @@ export function RoleLimitObservations({ observations }: { observations: Json }) 
         {originalGeneration && actionGeneration && JSON.stringify(originalGeneration) !== JSON.stringify(actionGeneration) && <p><small>Original guidance generation: {text(originalGeneration)}. Native action generation: {text(actionGeneration)}.</small></p>}
         <p><small>This compares the delegation with the guidance the child was given when it started. It does not show that guidance was sent again, that the model took it up, or that the role still applies.</small></p>
         {row.roleSupplyRecord?.state === "not-confirmed" && <p role="alert">TASK delegation history was not confirmed: {text(row.roleSupplyRecord.limit)}.</p>}
-        <details><summary>TASK delegation evidence</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(row, null, 2)}</pre></details>
+        <details><summary>TASK delegation evidence</summary><RecordedData value={row} /></details>
       </div>;
     })}
   </section>;
@@ -270,7 +272,7 @@ export function SupplyStatus({ supply }: { supply: Json }) {
     <ChildAssociations associations={supply.childAssociations} />
     <RoleLimitObservations observations={supply.roleLimitObservations} />
     {supply.roleSupplyRecord?.state === "not-confirmed" && <p role="alert">Role-supply history was not confirmed: {text(supply.roleSupplyRecord.limit)}. Native effects remain as observed; nothing is resent.</p>}
-    <details><summary>Role supply evidence (JSON)</summary><pre style={{ whiteSpace: "pre-wrap" }}>{JSON.stringify(supply, null, 2)}</pre></details>
+    <details><summary>Role supply evidence (JSON)</summary><RecordedData value={supply} /></details>
   </div>;
 }
 
@@ -294,17 +296,17 @@ export function RoleSupplyHistory({ view }: { view: Json }) {
     <p><b>Quoted App role-supply history</b>. {text(view.standing)}</p>
     {list(view.limits).map((limit, i) => <p role="alert" key={i}>{text(limit)}</p>)}
     {list(view.observations).map((observation, i) => <details key={i}>
-      <summary>{text(observation.record?.trigger)} · {text(observation.record?.outcome)} · {text(observation.record?.supplyId)}</summary>
-      <pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(observation.record, null, 2)}</pre>
+      <summary>{idWords(observation.record?.trigger)} · {idWords(observation.record?.outcome)} · {idWords(observation.record?.supplyId)}</summary>
+      <RecordedData value={observation.record} />
       {list(observation.limits).map((limit, j) => <p role="alert" key={j}>{text(limit)}</p>)}
       {observation.sourceBytes ? <details><summary>Recorded App instruction bytes (quoted evidence)</summary>
-        <pre style={{whiteSpace:"pre-wrap"}}>{text(observation.sourceBytes.composed)}</pre>
-        {list(observation.sourceBytes.parts).map((part, j) => <details key={j}><summary>{text(part.source?.path)} · {text(part.kind)}</summary><pre style={{whiteSpace:"pre-wrap"}}>{text(part.text)}</pre></details>)}
-        {list(observation.sourceBytes.nativeChildren).map((child, j) => <details key={`child:${j}`}><summary>Recorded {text(child.role)} child instruction bytes (quoted evidence)</summary>
-          <pre style={{whiteSpace:"pre-wrap"}}>{text(child.composed)}</pre>
-          {list(child.parts).map((part, k) => <details key={k}><summary>{text(part.source?.path)} · {text(part.kind)}</summary><pre style={{whiteSpace:"pre-wrap"}}>{text(part.text)}</pre></details>)}
-          <details><summary>Recorded child configuration file bytes</summary><pre style={{whiteSpace:"pre-wrap"}}>{text(child.envelope)}</pre></details>
-          <details><summary>Recorded child limit account</summary><pre style={{whiteSpace:"pre-wrap"}}>{JSON.stringify(child.limitAccount, null, 2)}</pre></details>
+        <AgentText block value={text(observation.sourceBytes.composed)} source="record" exactLineEnds />
+        {list(observation.sourceBytes.parts).map((part, j) => <details key={j}><summary>Part {j + 1} · {idWords(part.kind)}</summary><AgentText value={part.source?.path} source="record" label="Path:" /><AgentText block value={text(part.text)} source="record" exactLineEnds /></details>)}
+        {list(observation.sourceBytes.nativeChildren).map((child, j) => <details key={`child:${j}`}><summary>Recorded {idWords(child.role)} child instruction bytes (quoted evidence)</summary>
+          <AgentText block value={text(child.composed)} source="record" exactLineEnds />
+          {list(child.parts).map((part, k) => <details key={k}><summary>Part {k + 1} · {idWords(part.kind)}</summary><AgentText value={part.source?.path} source="record" label="Path:" /><AgentText block value={text(part.text)} source="record" exactLineEnds /></details>)}
+          <details><summary>Recorded child configuration file bytes</summary><AgentText block value={text(child.envelope)} source="record" exactLineEnds /></details>
+          <details><summary>Recorded child limit account</summary><RecordedData value={child.limitAccount} /></details>
         </details>)}
       </details> : <p><small>Exact App instruction bytes are not established by this observation.</small></p>}
     </details>)}
@@ -349,13 +351,13 @@ export function RoleHeader({ thread, limits, busy, ready, continueAs, fork, fork
     {(relation?.kind === "inherited-fork" || thread?.forkedFrom) && <p><small>Fork of conversation {text(relation?.sourceThread ?? thread?.forkedFrom?.threadId)} (same role): the App sent the fork no instructions of its own.</small></p>}
     <SuppliedLimits supplied={thread?.suppliedLimitAccount} childAccountHeld={thread?.childGuidance?.standing === "app-observed-child-supply"} />
     {changed.length > 0 && <p role="status"><b>Guidance changed since this conversation started</b>: {changed.map((n: Json) => `${text(n.path)} (${n.kind === "missing" ? "missing now" : "edited"})`).join(", ")}. Nothing was sent to this conversation; it keeps the guidance it started with. New conversations use the current guidance.{" "}
-      {own !== undefined && <button disabled={busy || !ready} onClick={() => continueAs(own)}>Continue as {own ?? "no role"}…</button>}</p>}
+      {own !== undefined && <button disabled={busy || !ready} onClick={() => continueAs(own)}>Continue as {own ? idWords(own) : "no role"}…</button>}</p>}
     {notRead.length > 0 && <p><small>Current guidance could not be read ({notRead.map((n: Json) => text(n.path)).join(", ")}), so it was not compared.</small></p>}
     <p>
       <label>Continue as <select value={target} disabled={busy} onChange={e => setTarget(e.target.value)}>
         {CONVERSATION_ROLES.map(r => <option key={r} value={r}>{meaningOf(r) ? `${r}: ${meaningOf(r)}` : r}</option>)}<option value="">No role: product guidance only</option>
       </select></label>{" "}
-      <button disabled={busy || !ready} onClick={() => continueAs(target === "" ? null : target)}>Continue as {target || "no role"}…</button>{" "}
+      <button disabled={busy || !ready} onClick={() => continueAs(target === "" ? null : target)}>Continue as {target ? idWords(target) : "no role"}…</button>{" "}
       <button disabled={busy || !ready || !!forkUnavailable} onClick={fork}>Fork (same role)</button>
     </p>
     {ROLE_PLAIN_MEANING[target] && <p><small>{target}: {ROLE_PLAIN_MEANING[target]}</small></p>}
@@ -527,8 +529,8 @@ export function ContinueAsPanel({ handoff, entries, homeClass, generation, busy,
     } catch (error) { if (epoch === sendEpoch.current) setSending(previous => retainHandoffOutcome(previous, unknownHandoff(String(error)))); }
     finally { setReading(false); }
   };
-  // The draft is seeded once when the summary arrives. It cannot be edited while
-  // the summary is still awaited, so the seed never replaces the person's edits.
+  // The draft is seeded from handoff.draftText each time the draft's state changes, unless the person has already
+  // pressed; the field is disabled while the summary is awaited, so a seed never replaces the person's edits.
   useEffect(() => {
     const state = text(handoff?.draft?.state);
     if (state !== seededFrom && state !== "waiting") { if (!pressed.current) setDraft(text(handoff?.draftText)); setSeededFrom(state); }
@@ -536,13 +538,13 @@ export function ContinueAsPanel({ handoff, entries, homeClass, generation, busy,
   const started = handoff?.started;
   const target = handoff?.targetRole ? text(handoff.targetRole) : "no role";
   return <section aria-label="Continue as" style={{ border: "1px solid #888", padding: 8, margin: "8px 0" }}>
-    <h3>Continue as {target} from conversation {text(handoff?.sourceThread)}</h3>
+    <h3>Continue as {handoff?.targetRole ? idWords(handoff.targetRole) : "no role"} from conversation {idWords(handoff?.sourceThread)}</h3>
     <p>Source conversation: {text(handoff?.sourceThread)} ({text(handoff?.sourceRoleLabel)}); it keeps its role. {text(handoff?.draft?.reading)}</p>
     <label>Handoff message {blocked ? "(original draft retained)" : "(editable; not sent)"} <textarea value={draft} disabled={busy || blocked || text(handoff?.draft?.state) === "waiting"} onChange={e => setDraft(e.target.value)} rows={6} style={{ display: "block", width: "100%" }} /></label>
     {!started && <div>
       <p>The new conversation starts with no model selected; choose how it connects and its model.</p>
       <ConnectionAndModel homeClass={homeClass ?? null} chooser={chooser} entries={entries} disabled={busy || !ready} local={local} />
-      <p><button disabled={busy || !ready || startHeld || !choice.model.trim() || !choice.modelProvider.trim() || !choice.entryId} onClick={startChosen}>Start new conversation as {target}</button>{" "}
+      <p><button disabled={busy || !ready || startHeld || !choice.model.trim() || !choice.modelProvider.trim() || !choice.entryId} onClick={startChosen}>Start new conversation as {handoff?.targetRole ? idWords(handoff.targetRole) : "no role"}</button>{" "}
         <button disabled={busy} onClick={dismiss}>Close without starting</button></p>
       {(!choice.model.trim() || !choice.modelProvider.trim()) && <p><small>Not started — no model selected.</small></p>}
       {startRefusal && <p role="alert">{startRefusal}</p>}

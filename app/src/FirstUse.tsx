@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "./hostReads";
 import type { DesktopSetupView } from "./DesktopSetupPanel";
+import { AgentText, wordOf } from "./AgentText";
 
 type NativePath = { encoding: "unix_bytes"; bytes: number[] };
 type Location = { displayPath: string; nativePath: NativePath };
@@ -27,6 +28,8 @@ const typedProblem = (text: string) =>
   : new TextDecoder("utf-8", { ignoreBOM: true }).decode(new TextEncoder().encode(text)) !== text ? "This path contains an incomplete character. Enter or paste it again, or choose Browse…."
   : !text.startsWith("/") ? "Use the folder's full path, starting with /. Paths such as ~/Projects or Projects/app aren't expanded or looked up."
   : null;
+/** The headings the host gives what applies by default (desktop_startup.rs, first_use_defaults). */
+const DEFAULTS_HEADING = { "What applies by default": "What applies by default", "What applies": "What applies" } as const;
 const SHARED = [
   { label: "Your config.toml", kind: "config" },
   { label: "Your AGENTS.md", kind: "agents" },
@@ -201,7 +204,8 @@ export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
           <ul>{preview.effects.map(effect => <li key={effect}><Effect text={effect}/></li>)}</ul>
           {preview.locations && preview.locations.length > 0 && <details><summary>Exact locations</summary>
             <dl>{preview.locations.map(location => <div key={location.name}><dt>{location.name}</dt><dd><code className="first-use-path">{location.path}</code></dd></div>)}</dl></details>}
-          {preview.defaults && <div aria-label={preview.defaults.heading}><h4>{preview.defaults.heading}</h4>
+          {preview.defaults && <div aria-label={wordOf(DEFAULTS_HEADING, preview.defaults.heading) ?? "What applies"}><h4>{wordOf(DEFAULTS_HEADING, preview.defaults.heading) ?? "What applies"}</h4>
+            {wordOf(DEFAULTS_HEADING, preview.defaults.heading) === null && <p>Heading as the host sent it: <AgentText value={preview.defaults.heading} source="record" name="A heading the App does not recognise, as the host sent it; the App does not vouch for its words" /></p>}
             {preview.defaults.sentences.map(sentence => <p key={sentence}>{sentence}</p>)}</div>}
           <p>{preview.standing}</p>
           <p><button className="setup-primary" disabled={busy} onClick={() => { void confirm(); }}>{preview.affirmative}…</button>{" "}

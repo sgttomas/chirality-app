@@ -1,5 +1,5 @@
 import { type MouseEvent, type ReactNode } from "react";
-import { AgentText, SuppliedId, idWords, plainId, wordOf } from "./AgentText";
+import { AgentText, SuppliedId, idWords, numberWords, plainId, wordOf } from "./AgentText";
 import { AskedBy, WaitingRequestsIndicator, answerable, hostRequests, requestAsker, requestThread, type RequestAsker, type WaitingRequestGroup } from "./RequestCards";
 import { requestAnchorId, sameActivityGeneration } from "./NativeActivity";
 import { runEvidenceAnchor } from "./RunJourney";
@@ -609,8 +609,9 @@ export const waitingRequestCount = (entries: WaitingEntry[]) => waitingTotal(ent
  * a failed source's last successful reading is never counted. */
 export function waitingLine(observed: WaitingEntry[], complete: boolean): string {
   const requests = waitingRequestCount(observed);
-  const part = requests > 0 ? ` (${requests} request${requests === 1 ? "" : "s"} from Codex)` : "";
-  return complete ? `Waiting on you: ${waitingTotal(observed)}${part}` : `Waiting on you: ${waitingTotal(observed)} observed now${part}; status incomplete`;
+  const part = requests > 0 ? ` (${numberWords(requests) ?? "?"} request${requests === 1 ? "" : "s"} from Codex)` : "";
+  const total = numberWords(waitingTotal(observed)) ?? "?";
+  return complete ? `Waiting on you: ${total}${part}` : `Waiting on you: ${total} observed now${part}; status incomplete`;
 }
 
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -722,7 +723,7 @@ function Several({ count, summary, className, children }: { count: number; summa
 /** Each reopened run the aggregate line counts: its reference, why it is not known to have ended, and when the records
  * were last read for it where the Host states that time; otherwise only which status response carried it. */
 function ReopenedRuns({ runs }: { runs: SourceReading[] }) {
-  return <Several count={runs.length} summary={`Each of the ${runs.length} runs, by its reference`} className="waiting-reopened-runs">
+  return <Several count={runs.length} summary={`Each of the ${numberWords(runs.length) ?? "?"} runs, by its reference`} className="waiting-reopened-runs">
     {runs.map(run => <p key={run.key}>The run <SuppliedId value={run.subject} source="file" label="Run:" name="Run reference as recorded, not the App's words" />: {run.detail ?? REOPENED_REASON_UNKNOWN}.{" "}
       {run.recordsReadAt !== null ? `The records were last read for it at ${clockWords(run.recordsReadAt)}.`
         : run.at === null ? "When the records were last read for it is not given."
@@ -736,7 +737,7 @@ function LastStatusBlock({ last, go }: { last: LastStatus; go: (entry: WaitingEn
   return <div className="waiting-on-you-last-status" role="group" aria-label="The last successful status response" data-waiting-call="status">
     <p>The last successful status response{last.at === null ? "" : ` (requested at ${clockWords(last.at)})`}; its current state is unknown, and nothing here is counted above.</p>
     {last.withEntries.map(reading => <LastReadBlock key={reading.key} reading={reading} go={go} />)}
-    {last.notWhole.length > 0 && <Several count={last.notWhole.length} summary={`${last.notWhole.length} sources that response had not read whole`} className="waiting-on-you-last-status-not-whole">
+    {last.notWhole.length > 0 && <Several count={last.notWhole.length} summary={`${numberWords(last.notWhole.length) ?? "?"} sources that response had not read whole`} className="waiting-on-you-last-status-not-whole">
       {last.notWhole.map(reading => <p key={reading.key}>{reading.lastRead!.state === "not-read" ? "Not read in that response" : "Read with limits in that response, showing nothing waiting"}: {reading.name}.<Beside reading={reading} /> {reading.lastRead!.note}<Limits limits={reading.lastRead!.limits} /></p>)}
     </Several>}
   </div>;

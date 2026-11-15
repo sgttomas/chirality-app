@@ -183,7 +183,7 @@ test('a saved key entered for another address: both addresses are shown, and the
     assert.doesNotMatch(ui.c.textContent, /Saved: server/, 'the address set is not shown as usable');
     assert.equal(ui.save(), undefined, 'no other change is offered in this state');
     assert.equal(labelled(ui.c, 'Server address '), undefined);
-    await ui.press('Set the address back to http://127.0.0.1:9100/v1…');
+    await ui.press('Set the address back to the one the key was entered for…');
     assert.deepEqual(ui.calls.at(-1), {command:'local_model_settings_save', args:{endpoint:'http://127.0.0.1:9100/v1', model:'org/m'}}, 'the recorded address and the model name already set, nothing typed');
     assert.match(ui.c.textContent, /Saved: server http:\/\/127\.0\.0\.1:9100\/v1 · model org\/m\./);
     assert.doesNotMatch(ui.c.textContent, /Codex removed the saved key/, 'no key removal is claimed');
