@@ -10,7 +10,7 @@
    "app/src-tauri/src/native_history.rs": "9841224bbed6ddb63f766f2855f557434d5f1bf5fa1e764652d417cd4e7d7790",
    "app/src-tauri/src/native_items.rs": "5bd43e41b1523c99e3230825e25d18c8deb43ac6b44a8a5d101014ac07ded577",
    "app/src-tauri/src/native_requests.rs": "97cd03a21bc3b403e092e907095ad8aba8b34ccc49a9f864a6974bae7a1172ef",
-   "app/src-tauri/src/native_text.rs": "1e9c5904287d410fc8132cbb3d3c17602a8b5e2f49eb8cd05e969ea7116f1494",
+   "app/src-tauri/src/native_text.rs": "d97a3dc6a21137fb5c3a9eb8d24de9343efcb2ccb2fa6d69ae8818e7f6279324",
    "app/src/NativeActivity.tsx": "38109c03d4bdbb12a24a33cae2f07db42ff8fb3c6db6fc74b97718277a849e90",
    "app/src/RequirementCheck.tsx": "7e44a8ab4e12e5ac4bdc62f3038a0369bcbd019966fe87124a29d5554184595c"
   },
