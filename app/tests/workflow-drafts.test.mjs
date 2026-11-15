@@ -6,7 +6,9 @@ import {tmpdir} from 'node:os';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {loadSrc} from './support/load-src.mjs';
+import {agentPlain} from './support/agent-text.mjs';
 import './support/rust-prebuild.mjs';
+import {choiceLists, chooseIn, chosenIn, chosenInMarkup} from './support/choices.mjs';
 
 const {WorkflowDraftsView,WorkflowDraftsList,DraftRow,TrialRow,CompareResult,draftStateWords,attributionWords,fidelityWords,trialSide,runSide,initialDraftsState}=loadSrc('WorkflowDrafts');
 const {RunBringBack,runBringBackDefault}=loadSrc('RunPanel');
@@ -261,9 +263,9 @@ test('actual hot and cold trial projections never default feedback to another ho
   const calls=[];const act=async(command,args)=>{calls.push([command,args]);};
   const props=node=>node[Object.keys(node).find(key=>key.startsWith('__reactProps$'))];
   const named=label=>container.querySelectorAll(node=>node.localName==='button'&&node.textContent===label)[0];
-  const select=()=>container.querySelectorAll(node=>node.localName==='select')[0];
-  const selected=()=>props(select()).value;
-  const change=value=>React.act(()=>props(select()).onChange({target:{value}}));
+  const select=()=>choiceLists(container)[0];
+  const selected=()=>chosenIn(select());
+  const change=value=>React.act(()=>chooseIn(select(),value));
   const press=async label=>{const button=named(label);assert.equal(props(button).disabled,false);await React.act(()=>props(button).onClick());};
   function Row({trial,conversations}) {
     const [state,setState]=React.useState(initialDraftsState);
@@ -395,9 +397,9 @@ test('Compare renders the host’s result readably: sides, endings, commands, fi
   // Text files: the host's line difference, one line each.
   const [workflow,checklist,logo]=compareFixture.difference.files;
   assert.ok(h.includes(`<b>WORKFLOW.md</b>: changed · before 60 bytes, sha256 ${workflow.before.sha256} · after 84 bytes, sha256 ${workflow.after.sha256}`));
-  assert.match(h,/<pre[^>]*>- Step 1: read the brief\.\n\+ Step 1: read the brief closely\.\n\+ Step 3: report\.<\/pre>/);
+  assert.match(agentPlain(h),/⟦Recorded text:\n- Step 1: read the brief\.\n\+ Step 1: read the brief closely\.\n\+ Step 3: report\.⟧/);
   assert.ok(h.includes(`<b>checklist.md</b>: added · before absent · after 16 bytes, sha256 ${checklist.after.sha256}`));
-  assert.match(h,/<pre[^>]*>\+ - scope\n\+ - risks<\/pre>/);
+  assert.match(agentPlain(h),/⟦Recorded text:\n\+ - scope\n\+ - risks⟧/);
   // A non-text file: size and digest, no line difference.
   assert.ok(h.includes(`<b>logo.png</b>: changed · before 8 bytes, sha256 ${logo.before.sha256} · after 9 bytes, sha256 ${logo.after.sha256} · not a text file: size and digest only`));
   assert.match(h,/Unchanged files: 1\./);
@@ -451,7 +453,7 @@ test('the list offers the project library, refresh, the authoring conversation c
   const h=renderToStaticMarkup(React.createElement(WorkflowDraftsView,{data,conversations,workspace:true,busy:false,act:async()=>{}}));
   assert.match(h,/Open this App project’s workflow library/);
   assert.match(h,/Refresh draft list/);
-  assert.match(h,/Authoring conversation <select><option value="" selected="">None chosen<\/option>/,'defaults to none');
+  assert.match(h,/<legend>Authoring conversation<\/legend>/);assert.deepEqual(chosenInMarkup(h),{key:'',chosen:true,label:'None chosen'},'defaults to none');
   assert.match(h,/aria-label="Draft load-check"/);
   assert.match(h,/aria-label="Draft site-visit"/);
   assert.match(h,/load-check: written \(absent → draft\); attribution not observed/);
