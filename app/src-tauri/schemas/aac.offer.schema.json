@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:chirality:app-v4:del-01-04:aac:offer:0.3",
   "title": "App act control offer (PROPOSED, DEL-01-04/AAC-v0.2 §5.1; schema 0.3 at RV21)",
-  "description": "PROPOSED by DEL-01-04/AAC-v0.2 (R17-1, R17-6); the act control is PROPOSED until SCA-V4-003 carries SC2-01-04-1 as amended (SC3-01-04-1). One offer presents one act kind (EXEC CAP-2). For A4, A6, A7 it presents one subject whose content identity is fixed when the offer is composed. For A15 it is composed from exactly one of DEL-02-02's descriptors (R21-3): an `a15_descriptor` (WR RB-4; one reviewed draft or one existing library entry reviewed in place, wording 'register workflow revision') or an `a15_multi_descriptor` (WR §4.7 ME-3; DECISION-L L-4: several library entries registered in place in one act, wording 'register workflow revisions'); the entries are listed inside the one descriptor, each with its own bound bytes (K-8), and the person's confirmation is accepted only while every entry still has those bytes and the descriptor is current. Each entry names its subject by the reviewed content (WR ID-3 string, 'draft:' or 'entry:', and content identity) and the prior revision (RS workflowTuple or null), the persisted form R18-1 C-01 gives RS; 'derived-from' stays WD's parent-workflow relation and is not carried. The offer is composed on the capture side from authoritative sources, never from agent text (R17-5, PROPOSED). Wording follows ACT §9 and WR (plural for L-4). Decline only where ACT §2.3 defines an act-declined event. Schema 0.3 (RV21; R21-3): one descriptor per act, 'entry:' accepted, the plural wording; 0.2 had one descriptor per entry. AAC-v0.3 rows (pass 4, R23-18; run APP-V4-DESIGN-PASS-4-20261003, owner O-A): A16 'decide' on one decision package, with its alternatives and their consequences shown; additive, taken in place in schema 0.3 as the RV21 changes were.",
+  "description": "PROPOSED by DEL-01-04/AAC-v0.2 (R17-1, R17-6); the act control is PROPOSED until SCA-V4-003 carries SC2-01-04-1 as amended (SC3-01-04-1). One offer presents one act kind (EXEC CAP-2). For A4, A6, A7 it presents one subject whose content identity is fixed when the offer is composed. For A15 it is composed from exactly one of DEL-02-02's descriptors (R21-3): an `a15_descriptor` (WR RB-4; one reviewed draft or one existing library entry reviewed in place, wording 'register workflow revision') or an `a15_multi_descriptor` (WR §4.7 ME-3; DECISION-L L-4: several library entries registered in place in one act, wording 'register workflow revisions'); the entries are listed inside the one descriptor, each with its own bound bytes (K-8), and the person's confirmation is accepted only while every entry still has those bytes and the descriptor is current. Each entry names its subject by the reviewed content (WR ID-3 string, 'draft:' or 'entry:', and content identity) and the prior revision (RS workflowTuple or null), the persisted form R18-1 C-01 gives RS; 'derived-from' stays WD's parent-workflow relation and is not carried. The offer is composed on the capture side from authoritative sources, never from agent text (R17-5, PROPOSED). Wording follows ACT §9 and WR (plural for L-4). Decline only where ACT §2.3 defines an act-declined event. Schema 0.3 (RV21; R21-3): one descriptor per act, 'entry:' accepted, the plural wording; 0.2 had one descriptor per entry. AAC-v0.3 rows (pass 4, R23-18; run APP-V4-DESIGN-PASS-4-20261003, owner O-A): A16 'decide' on one decision package, with its alternatives and their consequences shown; additive, taken in place in schema 0.3 as the RV21 changes were. Before the first release, 0.3 gained packageStanding and otherRequestsForPath.",
   "type": "object",
   "required": [
     "format",
@@ -109,6 +109,147 @@
         }
       ],
       "description": "The revision this one follows (K-6) as an RS workflowTuple, or null for a first revision (C-01)."
+    },
+    "otherRequestForPath": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "form",
+            "alternative",
+            "recordedAt",
+            "requestRef",
+            "relation"
+          ],
+          "properties": {
+            "form": {
+              "const": "decided"
+            },
+            "alternative": {
+              "type": "string",
+              "minLength": 1
+            },
+            "recordedAt": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The decision view's selected record writtenAt. For equivalent records of one capture with no uniquely selected recording time, the App uses 'not uniquely established'; time() shows an explicit time placeholder rather than selecting a clock winner."
+            },
+            "requestRef": {
+              "type": "string",
+              "minLength": 1
+            },
+            "relation": {
+              "enum": [
+                "earlier",
+                "later",
+                "another"
+              ]
+            },
+            "differentContent": {
+              "type": "boolean",
+              "description": "Present only when both requests record comparable content identities under the same method; true when their values differ."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "form",
+            "requestRef",
+            "relation"
+          ],
+          "properties": {
+            "form": {
+              "const": "several-unordered"
+            },
+            "requestRef": {
+              "type": "string",
+              "minLength": 1
+            },
+            "relation": {
+              "enum": [
+                "earlier",
+                "later",
+                "another"
+              ]
+            },
+            "differentContent": {
+              "type": "boolean",
+              "description": "Present only when both requests record comparable content identities under the same method; true when their values differ."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "form",
+            "requestRef",
+            "relation"
+          ],
+          "properties": {
+            "form": {
+              "const": "none-recorded"
+            },
+            "requestRef": {
+              "type": "string",
+              "minLength": 1
+            },
+            "relation": {
+              "enum": [
+                "earlier",
+                "later",
+                "another"
+              ]
+            },
+            "differentContent": {
+              "type": "boolean",
+              "description": "Present only when both requests record comparable content identities under the same method; true when their values differ."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "form",
+            "cause",
+            "requestRef",
+            "relation"
+          ],
+          "properties": {
+            "form": {
+              "const": "unknown"
+            },
+            "cause": {
+              "enum": [
+                "The decision records could not all be read",
+                "The record history may be incomplete",
+                "The request could not be resolved uniquely",
+                "The request was not found in the decision view",
+                "The request's recorded standing could not be resolved"
+              ]
+            },
+            "requestRef": {
+              "type": "string",
+              "minLength": 1
+            },
+            "relation": {
+              "enum": [
+                "earlier",
+                "later",
+                "another"
+              ]
+            },
+            "differentContent": {
+              "type": "boolean",
+              "description": "Present only when both requests record comparable content identities under the same method; true when their values differ."
+            }
+          }
+        }
+      ]
     }
   },
   "properties": {
@@ -320,6 +461,123 @@
           }
         }
       }
+    },
+    "packageStanding": {
+      "description": "The decision standing of this request as decision_view derives it at compose and again at confirmation, fixed inside the digest-bound A16 offer. A changed or missing standing refuses capture. It describes readable records, not whether a person decided outside those records; it establishes neither native display nor reading by the person.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "form",
+            "alternative",
+            "recordedAt"
+          ],
+          "properties": {
+            "form": {
+              "const": "decided"
+            },
+            "alternative": {
+              "type": "string",
+              "minLength": 1
+            },
+            "recordedAt": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The decision view's selected record writtenAt. For equivalent records of one capture with no uniquely selected recording time, the App uses 'not uniquely established'; time() shows an explicit time placeholder rather than selecting a clock winner."
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "form"
+          ],
+          "properties": {
+            "form": {
+              "const": "several-unordered"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "form"
+          ],
+          "properties": {
+            "form": {
+              "const": "none-recorded"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "form",
+            "cause"
+          ],
+          "properties": {
+            "form": {
+              "const": "unknown"
+            },
+            "cause": {
+              "enum": [
+                "The decision records could not all be read",
+                "The record history may be incomplete",
+                "The request could not be resolved uniquely",
+                "The request was not found in the decision view",
+                "The request's recorded standing could not be resolved"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "otherRequestsForPath": {
+      "description": "Other decision-view request rows naming exactly the same recorded package path within this project. This establishes the same path, not the same file or a version. read-whole requires a complete view, history and resolved rows; otherwise absence is not claimed. Fixed inside the offer digest and re-read before capture; changed or missing facts refuse capture. Earlier/later requires positions in the same log.",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "rows"
+          ],
+          "properties": {
+            "state": {
+              "const": "read-whole"
+            },
+            "rows": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/otherRequestForPath"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "state",
+            "rows"
+          ],
+          "properties": {
+            "state": {
+              "const": "not-read-whole"
+            },
+            "rows": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/otherRequestForPath"
+              }
+            }
+          }
+        }
+      ]
     }
   },
   "allOf": [
@@ -732,6 +990,36 @@
           }
         }
       ]
+    },
+    {
+      "description": "packageStanding belongs to A16 only.",
+      "if": {
+        "required": [
+          "packageStanding"
+        ]
+      },
+      "then": {
+        "properties": {
+          "actKind": {
+            "const": "A16"
+          }
+        }
+      }
+    },
+    {
+      "description": "otherRequestsForPath belongs to A16 only.",
+      "if": {
+        "required": [
+          "otherRequestsForPath"
+        ]
+      },
+      "then": {
+        "properties": {
+          "actKind": {
+            "const": "A16"
+          }
+        }
+      }
     }
   ]
 }

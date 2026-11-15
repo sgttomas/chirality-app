@@ -86,6 +86,8 @@ code_paths:
 - app/src-tauri/src/record_lines.rs
 - app/src-tauri/src/record_relations.rs
 - app/src-tauri/src/record_semantics.rs
+# Shared with DEL-01-04 and DEL-06-02: the read of A16 shown-statement capture evidence.
+- app/src-tauri/src/act_control_standing.rs
 - app/src-tauri/src/schema_validation.rs
 - app/src-tauri/src/recorder.rs
 # model_turn_recorder.rs is shared with DEL-01-01, which supplies the model and destination the
