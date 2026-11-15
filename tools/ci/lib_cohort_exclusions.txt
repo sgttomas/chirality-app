@@ -30,6 +30,8 @@ act_control::native_statement::tests: full route only; left out of the pull-requ
 act_control::persistence_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 bundle_resources_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 canonical::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
+capture_seal_keychain::tests::capture_seal_review_library_fresh_process_probe: ignored (#[ignore]): a child process invoked by the retained-library, unreadable-library and valid-library-list-rewrite tests in the capture_seal cohort, with their invented installation; never run without its parent
+capture_seal_keychain::tests::capture_seal_total_loss_fresh_process_probe: ignored (#[ignore]): a child process invoked by capture_seal_total_loss_exposes_the_stated_continuity_exclusion_and_unknown_inventory_refuses in the capture_seal cohort, with its invented installation; never run without its parent
 compiled_development_selection::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 connector_git::tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
 connector_git_guard_tests: full route only; left out of the pull-request shards without a recorded reason (as found 13 November 2026)
