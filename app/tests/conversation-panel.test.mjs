@@ -59,7 +59,8 @@ const labelled = (container, tag, text) => elements(container, tag).find(element
 const change = (element, value) => React.act(() => element.localName === 'fieldset' ? chooseIn(element, value) : props(element).onChange({target: {value}}));
 // The account home's one connection route: the built-in OpenAI provider with the ChatGPT account entry.
 const ROUTE = 'Use my ChatGPT account (built-in OpenAI)';
-const routeChosen = container => { const route = button(container, ROUTE); return !!route && props(route)['aria-pressed'] === true; };
+// In the account home the only connection is shown in use without a press (DEL-01-05 REQ-004); elsewhere the toggle is pressed.
+const routeChosen = container => { if (container.querySelectorAll(e => e.getAttribute('aria-label') === 'Connection in use').length) return true; const route = button(container, ROUTE); return !!route && props(route)['aria-pressed'] === true; };
 const chooseRoute = async container => { if (!routeChosen(container)) await React.act(async () => { await props(button(container, ROUTE)).onClick(); }); };
 
 async function ordinaryStartCase({initialThread = false, startGeneration = g, outcome = 'success'}) {
@@ -97,7 +98,7 @@ async function ordinaryStartCase({initialThread = false, startGeneration = g, ou
     assert.equal(props(start).disabled, false);
     await React.act(async () => {await props(start).onClick();});
     assert.deepEqual(calls.filter(call => call.command === 'thread_start'), [{command: 'thread_start', args: {
-      model: 'chosen-model', modelProvider: 'openai', entryId: 'chatgpt-account', modeHomeClass: 'account', generation: g, role: 'HELP_HUMAN', preselected: true,
+      model: 'chosen-model', modelProvider: 'openai', entryId: 'chatgpt-account', entrySource: 'app-showed-only-entry', modeHomeClass: 'account', generation: g, role: 'HELP_HUMAN', preselected: true,
     }}], 'one person-initiated start with the chosen configuration');
     assert.ok(calls.every(call => ['host_status', 'decision_view', 'native_confirmation_content', 'thread_start'].includes(call.command)), 'Start never sends composer text or retries');
     assert.equal(props(elements(conversation(), 'textarea')[0]).value, draft, 'unsent composer retained');
@@ -106,7 +107,9 @@ async function ordinaryStartCase({initialThread = false, startGeneration = g, ou
       // ACCESS REQ-004/CS-9: admission consumes this new-conversation choice;
       // it does not apply the same choice to another conversation.
       assert.equal(props(labelled(container, 'input', 'Model ')).value, '', 'the next conversation has no model selected');
-      assert.equal(routeChosen(container), false, 'the next conversation has no connection chosen');
+      // DEL-01-05 REQ-004: the only connection is shown in use for the next conversation too; it is not carried from
+      // this choice, and the model, the person's choice, is not.
+      assert.equal(routeChosen(container), true, 'the next conversation shows the only connection in use');
       assert.equal(props(button(container, 'Start thread')).disabled, true, 'a second start needs a fresh explicit choice');
       assert.equal(props(button(conversation(), 'Send text')).disabled, false, 'the displayed new conversation can receive an explicit send');
       const headers = conversation().querySelectorAll(element => element.getAttribute('aria-label') === 'Conversation role');
@@ -186,7 +189,9 @@ async function withStartChooser(check, startReply, {homeReply,decisionReply}={})
   } finally {const renderedText=container.textContent;await React.act(()=>root.unmount());document.body.removeChild(container);idle.restore(renderedText);}
 }
 const selectedChoice={model:'chosen-model',route:true};
-const blankChoice={model:'',route:false};
+// In the account home a fresh choice has no model; its only connection is shown in use (DEL-01-05 REQ-004), never
+// carried from an earlier choice.
+const blankChoice={model:'',route:true};
 const deferred=()=>{let resolve,reject;const promise=new Promise((yes,no)=>{resolve=yes;reject=no;});return {promise,resolve,reject};};
 
 test('each successful ordinary Start consumes only its choice and a second conversation needs a new explicit choice',async()=>{
@@ -295,7 +300,7 @@ test('a home transition invalidates prior-home edits but preserves newer target-
     assert.deepEqual(ui.values(),{model:null,route:false},'the legacy home offers no choice while the account home is selected');
     assert.equal(props(ui.start()).disabled,true,'nothing can start during selection');
     await React.act(async()=>{homeReply.resolve();await targetReadReached.promise;});
-    assert.ok(button(ui.container,'Use my ChatGPT account (built-in OpenAI)'));
+    assert.ok(ui.container.querySelectorAll(e=>e.getAttribute('aria-label')==='Connection in use').length,'the account home shows its only connection in use');
     assert.deepEqual(ui.values(),blankChoice,'edits made in the legacy source do not become account-home choices');
     const targetChoice={model:'target-home-model',route:true};
     await ui.edit(targetChoice);
@@ -1044,6 +1049,10 @@ test('matching sign-in completion checks once, including StrictMode and repeated
   }
 });
 
+// The panel itself checks only on a completed sign-in of this source; the account read when Codex becomes ready (at
+// launch and after a restart) is the host's own, recorded as the App's (access_provider_tests.rs
+// codex_ready_reads_the_account_once_with_empty_params_as_the_apps_own_read_and_again_after_a_restart), and reaches the
+// panel as a host reading of the new generation, never a reading carried from the earlier one.
 test('no implicit check on restart, pending, failed, foreign, missing or unavailable completion',async()=>{
   const invalid=[accountHost(),accountHost({homeOAuth:completionPacket({phase:'Pending'})}),
     accountHost({homeOAuth:completionPacket({phase:'CompletedFailure'})}),accountHost({homeOAuth:completionPacket({phase:'StartRejected'})}),
@@ -1080,7 +1089,9 @@ test('ordinary account summary distinguishes kinds, absence, omission, pending, 
     [accountReadPacket('chatgpt',{accountObservation:{state:'account omitted; unknown/unavailable',account:null}}),/did not report account status.*does not mean you are signed out/],
     [accountReadPacket('chatgpt',{source:{...accountReadPacket().source,outcome:'response-observed-error',response:{error:{message:accountCanary}}}}),/could not read account status/],
     [accountReadPacket('chatgpt',{source:{...accountReadPacket().source,authResponseShapeValid:false}}),/unavailable account response/],
-    [accountReadPacket('chatgpt',{source:{...accountReadPacket().source,outcome:'pending'}}),/has not produced a result/],
+    // A read Codex left unanswered past the host's wait is not a result; one still waiting for its answer is under way.
+    [accountReadPacket('chatgpt',{source:{...accountReadPacket().source,outcome:'pending',waitingEnded:true}}),/has not produced a result/],
+    [accountReadPacket('chatgpt',{source:{...accountReadPacket().source,outcome:'pending'}}),/Checking with Codex whether you're signed in/],
     [accountReadPacket('chatgpt',{source:{...accountReadPacket().source,sourceCurrent:false}}),/no longer current/],
   ];
   await mountedAccount(async ui=>{
@@ -1130,6 +1141,8 @@ async function mountedAccountApp(check,{readReply,statusReply}={}) {
       if(readReply)await readReply(args);
       snapshot=withAccountRead(snapshot);return snapshot.homeAccess;
     }
+    // The move after a confirmed sign-in opens New conversation, whose model list the App reads itself.
+    if(command==='read_available_models')return {state:'observed',generation:args.generation,modeHomeClass:args.modeHomeClass,serverProvider:'openai',serverProviderState:'named',complete:true,limits:[],models:[]};
     if(command==='select_home'){snapshot=accountHost({generation:args.modeHomeClass==='account'?g:{...g,home:'key-home'},
       homeRouting:{activeModeHomeClass:args.modeHomeClass,entries:[{modeHomeClass:'account'},{modeHomeClass:'api-key'}]}});return {};}
     throw Error(`Unexpected command ${command}`);
@@ -1144,6 +1157,8 @@ async function mountedAccountApp(check,{readReply,statusReply}={}) {
   finally{const text=container.textContent;await React.act(()=>root.unmount());document.body.removeChild(container);idle.restore(text);}
 }
 
+// The person's sign-in still leads to one read of the renderer's own, the existing non-forced one; this fixture's host
+// has recorded no read of its own at ready, so the panel starts from "not checked".
 test('App matching completion dispatches only the existing non-forced read and shows the current account',async()=>{
   await mountedAccountApp(async ui=>{
     assert.match(ui.summary().textContent,/not been checked/);
@@ -1151,7 +1166,9 @@ test('App matching completion dispatches only the existing non-forced read and s
     assert.deepEqual(ui.calls.filter(c=>c.command==='read_home_access'),[{command:'read_home_access',args:{generation:g,modeHomeClass:'account'}}]);
     assert.match(ui.summary().textContent,/reports a ChatGPT account/);
     assert.match(ui.summary().textContent,new RegExp(accountCanary),'the account Codex reports is shown');
-    assert.ok(ui.calls.every(c=>['host_status','decision_view','native_confirmation_content','oauth_start','read_home_access'].includes(c.command)),
+    // The confirmed sign-in moves to New conversation, where the App reads Codex's model list (a catalogue read,
+    // no model is called and nothing is chosen).
+    assert.ok(ui.calls.every(c=>['host_status','decision_view','native_confirmation_content','oauth_start','read_home_access','read_available_models'].includes(c.command)),
       'completion never refreshes credentials, signs in again, or calls a model');
     const diagnostics=elements(ui.container,'details').find(d=>d.textContent.startsWith('Source-owned account observations and limits'));
     assert.equal(props(diagnostics).open,undefined,'diagnostics remain available as a disclosure');
@@ -1212,21 +1229,28 @@ const effortPacket = {state:'observed',conversationModel:'m',generation:g,modeHo
   supportedReasoningEfforts:[{reasoningEffort:'medium',description:'Balanced'},{reasoningEffort:'future-offered',description:'Supplier choice'}]
 }]};
 
-test('mounted ordinary chooser sends only deliberate offered effort, binds model, rejects old Send and resets on conversation change', async () => {
+test('mounted ordinary chooser reads choices once per conversation, sends only deliberate offered effort, binds model, rejects old Send and shows the effort in force after a send', async () => {
   const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
   const calls=[];const sends=[];let failSend=false;
   window.__TAURI_INTERNALS__={invoke:async(command,args)=>{calls.push({command,args});assert.equal(command,'read_available_models');return effortPacket;}};
-  const host={state:'ready',generation:g,homeRouting:{activeModeHomeClass:'account'},threads:['t','other'].map(threadId=>({generation:g,threadId,model:'obsolete-thread-report',modelProvider:'openai'})),planMode:{state:'offered'}};
-  const show = thread => React.act(()=>root.render(React.createElement(ConversationPanel,{host,threadKey:JSON.stringify([g,thread]),setThreadKey:noop,answer:noop,runAct:noop,send:async(...args)=>{sends.push(args);if(failSend)throw Error("unknown send");return {result:{}};},steer:noop,submitAttachments:noop,interrupt:noop,checkPlanMode:noop,codexBusy:false})));
+  let host={state:'ready',generation:g,homeRouting:{activeModeHomeClass:'account'},threads:['t','other'].map(threadId=>({generation:g,threadId,model:'obsolete-thread-report',modelProvider:'openai'})),planMode:{state:'offered'}};
+  let busy=false;
+  const show = thread => React.act(()=>root.render(React.createElement(ConversationPanel,{host,threadKey:JSON.stringify([g,thread]),setThreadKey:noop,answer:noop,runAct:noop,send:async(...args)=>{sends.push(args);if(failSend)throw Error("unknown send");return {result:{}};},steer:noop,submitAttachments:noop,interrupt:noop,checkPlanMode:noop,codexBusy:busy})));
   const change=(element,value)=>React.act(()=>props(element).onChange({target:{value}}));
   const effort=()=>elements(c,'select').find(e=>e.parentNode.textContent.startsWith('Reasoning effort for'));
+  const keepOption=()=>elements(effort(),'option').find(o=>props(o).value==='').textContent;
+  const options=()=>elements(c,'details').find(d=>props(d).className==='conversation-model-options');
   try {
-    await show('t');assert.equal(calls.length,0,'no implicit read');
+    await show('t');
+    assert.equal(calls.length,0,'nothing is read while Model and effort is closed');
+    await React.act(()=>{const d=options();d.open=true;props(d).onToggle({currentTarget:d});});
+    // With the control open, the selected conversation's effort choices are read once: open the menu, then pick.
+    assert.equal(calls.length,1,'one read for the conversation');assert.equal(calls[0].args.threadId,'t');
+    assert.equal(button(c,'Read effort choices for this model'),undefined,'no separate read press');
+    assert.ok(c.textContent.includes('future-offered'));
     assert.equal(props(effort()).value,'','catalog default not chosen');
-    await React.act(()=>props(button(c,'Read effort choices for this model')).onClick());
-    assert.equal(calls.length,1);assert.ok(c.textContent.includes('future-offered'));
+    assert.equal(keepOption(),"Keep Codex's setting (not reported)",'what keep keeps, when the effort in force is not reported');
     const oldChoice=props(effort()).onChange;
-    const oldRead=props(button(c,'Read effort choices for this model')).onClick;
     const textarea=()=>elements(c,'textarea').find(e=>props(e).id==='ordinary-composer-text');
     await change(textarea(),'Exact text');
     const oldSend=props(button(c,'Send text')).onClick;
@@ -1234,18 +1258,22 @@ test('mounted ordinary chooser sends only deliberate offered effort, binds model
     await React.act(()=>oldSend());assert.equal(sends.length,0,'earlier Send cannot carry a new effort');
     await React.act(()=>props(button(c,'Send in plan mode (experimental)')).onClick());
     assert.deepEqual(sends[0],[g,'t','Exact text','plan','m','future-offered']);
-    assert.equal(props(effort()).value,'','successful send leaves native sticky setting in force');
-    await change(effort(),'medium');
-    await React.act(()=>props(button(c,'Read effort choices for this model')).onClick());
-    await React.act(()=>oldChoice({target:{value:'future-offered'}}));
-    assert.equal(props(effort()).value,'medium','old observation cannot choose after reread');
-    await show('other');assert.equal(props(effort()).value,'','other conversation inherits no local choice');
-    assert.equal(props(effort()).disabled,true,'old list not matched to other conversation');
-    await show('t');
+    assert.equal(props(effort()).value,'','an acknowledged send clears the next-send override');
+    // The host reports the effort Codex accepted: the control shows it as in force, not an unexplained setting.
+    host={...host,threads:host.threads.map(t=>t.threadId==='t'?{...t,effortInForce:{state:'known',effort:'future-offered'}}:t)};await show('t');
+    assert.equal(keepOption(),'Keep the effort in force (future-offered)');
+    assert.match(c.textContent,/Effort: future-offered \(in force\)/);
+    // A pick from a menu whose model changed since its list was read says why and changes nothing.
+    await change(labelled(c,'input','Optional model identifier'),'m');
+    await React.act(()=>oldChoice({target:{value:'medium'}}));
+    assert.equal(props(effort()).value,'','old observation cannot choose after the model changed');
+    assert.match(c.textContent,/The model changed; choose again\./);
+    await change(labelled(c,'input','Optional model identifier'),'');
     const readCount=calls.length;
-    await React.act(()=>oldRead());assert.equal(calls.length,readCount,'old read cannot revive after A to B to A');
-    await React.act(()=>oldChoice({target:{value:'future-offered'}}));assert.equal(props(effort()).value,'');
-    await React.act(()=>props(button(c,'Read effort choices for this model')).onClick());
+    await show('other');assert.equal(props(effort()).value,'','other conversation inherits no local choice');
+    assert.equal(calls.length,readCount+1,'the other conversation reads its own choices once');assert.equal(calls.at(-1).args.threadId,'other');
+    await show('t');
+    assert.equal(calls.length,readCount+1,'returning to a conversation whose choices were read does not read them again');
     await change(effort(),'medium');await change(textarea(),'Uncertain text');failSend=true;
     await React.act(()=>props(button(c,'Send text')).onClick());
     assert.equal(sends.length,2);assert.equal(props(effort()).value,'medium','unknown outcome keeps effort');
@@ -1254,6 +1282,143 @@ test('mounted ordinary chooser sends only deliberate offered effort, binds model
   } finally {await React.act(()=>root.unmount());document.body.removeChild(c);delete window.__TAURI_INTERNALS__;}
 });
 
+test('a pick the effort control refuses while the conversation is busy says why', async () => {
+  const {OfferedEffortChoice} = loadSrc('ModelChoice');
+  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);const choices=[];
+  const previous=window.__TAURI_INTERNALS__;
+  window.__TAURI_INTERNALS__={invoke:async(command,args)=>{assert.equal(command,'read_available_models');assert.equal(args.atPersonPress,false,'opening the effort control is an App read');return effortPacket;}};
+  let current={owner:'original',threadId:'t',generation:g,homeClass:'account',modelProvider:'openai',entryId:'chatgpt-account',model:'',effort:'',disabled:false,busy:false,inForce:'medium',choose:(...args)=>choices.push(args)};
+  const show=async patch=>{current={...current,...patch};await React.act(async()=>root.render(React.createElement(OfferedEffortChoice,current)));};
+  try {
+    await show({});
+    const select=elements(c,'select')[0];const opened=props(select).onChange;
+    // The menu was opened before the send began; the pick lands while the conversation is busy.
+    await show({disabled:true,busy:true});
+    await React.act(()=>opened({target:{value:'future-offered'}}));
+    assert.equal(choices.length,0,'nothing is chosen while busy');
+    assert.match(c.textContent,/Wait for the current send to finish, then choose\./);
+    await show({disabled:false,busy:false});
+    await React.act(()=>props(elements(c,'select')[0]).onChange({target:{value:'future-offered'}}));
+    assert.deepEqual(choices,[['future-offered','m']]);
+    assert.doesNotMatch(c.textContent,/Wait for the current send/,'a pick that is taken clears the reason');
+  } finally {await React.act(()=>root.unmount());document.body.removeChild(c);window.__TAURI_INTERNALS__=previous;}
+});
+
+test('the effort choices shown are always the selected model\'s: a model typed in the open view is read for itself, and after a send that changed the model the earlier model\'s list is not reused', async () => {
+  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
+  const calls=[];const sends=[];let conversationModel='m';
+  const row=(model,efforts)=>({id:model,model,displayName:`Model ${model}`,description:'',isDefault:model==='m',defaultReasoningEffort:efforts[0],supportedReasoningEfforts:efforts.map(reasoningEffort=>({reasoningEffort,description:`${model} ${reasoningEffort}`}))});
+  // The host reads the list with the conversation's model as it stands at that read.
+  window.__TAURI_INTERNALS__={invoke:async(command,args)=>{calls.push({command,args});assert.equal(command,'read_available_models');
+    return {...effortPacket,conversationModel,models:[row('m',['medium','only-for-m']),row('n',['low','only-for-n'])]};}};
+  const host={state:'ready',generation:g,homeRouting:{activeModeHomeClass:'account'},threads:[{generation:g,threadId:'t',model:'m',modelProvider:'openai'}],planMode:{state:'offered'}};
+  const show=()=>React.act(()=>root.render(React.createElement(ConversationPanel,{host,threadKey:JSON.stringify([g,'t']),setThreadKey:noop,answer:noop,runAct:noop,send:async(...args)=>{sends.push(args);conversationModel=args[4];return {result:{}};},steer:noop,submitAttachments:noop,interrupt:noop,checkPlanMode:noop,codexBusy:false})));
+  const change=(element,value)=>React.act(()=>props(element).onChange({target:{value}}));
+  const effort=()=>elements(c,'select').find(e=>e.parentNode.textContent.startsWith('Reasoning effort for'));
+  const offered=()=>elements(effort(),'option').map(o=>props(o).value).filter(Boolean);
+  const modelField=()=>labelled(c,'input','Optional model identifier');
+  try {
+    await show();
+    await React.act(()=>{const d=elements(c,'details').find(d=>props(d).className==='conversation-model-options');d.open=true;props(d).onToggle({currentTarget:d});});
+    assert.deepEqual(offered(),['medium','only-for-m'],'the conversation\'s model, m');
+    // The person types another model in the open view: its own choices, from a read for it, never m's.
+    // Typed, then the field left: the typed ID is read at once (it is never read per keystroke; see below).
+    await change(modelField(),'n');await React.act(()=>props(modelField()).onBlur());
+    assert.equal(calls.length,2,'a model typed here is read for itself');
+    assert.deepEqual(offered(),['low','only-for-n']);
+    assert.doesNotMatch(c.textContent,/only-for-m/);
+    // Sent with that model: the conversation's model is now n. The field clears, and the list read earlier for
+    // "the conversation's model" (m then) is not reused: it is read again and shows n's choices.
+    await change(elements(c,'textarea').find(e=>props(e).id==='ordinary-composer-text'),'Use n from now on');
+    await React.act(()=>props(button(c,'Send text')).onClick());
+    assert.equal(sends[0][4],'n');
+    assert.equal(props(modelField()).value,'','an acknowledged send clears the field');
+    assert.equal(calls.length,3,'read again after the model changed');
+    assert.deepEqual(offered(),['low','only-for-n'],'the model in use, n, never the earlier m');
+    assert.doesNotMatch(c.textContent,/only-for-m/);
+    // Clearing a typed model without sending changes nothing in the conversation: m's list read earlier is not needed again.
+    await change(modelField(),'m');await change(modelField(),'');
+    assert.deepEqual(offered(),['low','only-for-n']);
+  } finally {await React.act(()=>root.unmount());document.body.removeChild(c);delete window.__TAURI_INTERNALS__;}
+});
+
+// The model ID field reads the effort choices only when the typing pauses (MODEL_ID_PAUSE_MS) or the field is committed
+// (left, or Enter): each read leaves its own requests in host status, so never one read per keystroke.
+const typedId='model-abcdef';
+const typingRow=(model,efforts)=>({id:model,model,displayName:`Model ${model}`,description:'',isDefault:model==='m',defaultReasoningEffort:efforts[0],supportedReasoningEfforts:efforts.map(reasoningEffort=>({reasoningEffort,description:`${model} ${reasoningEffort}`}))});
+const typingPacket={...effortPacket,conversationModel:'m',models:[typingRow('m',['medium','only-for-m']),typingRow(typedId,['low','only-for-typed'])]};
+async function typingPanel(reply,check){
+  const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);const calls=[];
+  window.__TAURI_INTERNALS__={invoke:(command,args)=>{calls.push({command,args});assert.equal(command,'read_available_models');return reply(calls.length);}};
+  const host={state:'ready',generation:g,homeRouting:{activeModeHomeClass:'account'},threads:[{generation:g,threadId:'t',model:'m',modelProvider:'openai'}],planMode:{state:'offered'}};
+  const field=()=>labelled(c,'input','Optional model identifier');
+  const effort=()=>elements(c,'select').find(e=>e.parentNode.textContent.startsWith('Reasoning effort for'));
+  const ui={c,calls,field,effort,
+    offered:()=>elements(effort(),'option').map(o=>props(o).value).filter(Boolean),
+    type:async text=>{for(let i=1;i<=text.length;i++)await React.act(()=>props(field()).onChange({target:{value:text.slice(0,i)}}));},
+    wait:ms=>React.act(()=>new Promise(resolve=>setTimeout(resolve,ms)))};
+  try {
+    await React.act(()=>root.render(React.createElement(ConversationPanel,{host,threadKey:JSON.stringify([g,'t']),setThreadKey:noop,answer:noop,runAct:noop,send:noop,steer:noop,submitAttachments:noop,interrupt:noop,checkPlanMode:noop,codexBusy:false})));
+    await React.act(()=>{const d=elements(c,'details').find(d=>props(d).className==='conversation-model-options');d.open=true;props(d).onToggle({currentTarget:d});});
+    await React.act(async()=>{});
+    await check(ui);
+  } finally {await React.act(()=>root.unmount());document.body.removeChild(c);delete window.__TAURI_INTERNALS__;}
+}
+
+test('typing a model ID reads the effort choices once, after the typing pauses, never once per keystroke', async () => {
+  const {MODEL_ID_PAUSE_MS}=loadSrc('ModelChoice');
+  assert.equal(MODEL_ID_PAUSE_MS,600);
+  await typingPanel(()=>typingPacket,async ui=>{
+    assert.equal(ui.calls.length,1,'the conversation\'s model is read when Model and effort opens');
+    assert.equal(typedId.length,12);
+    await ui.type(typedId);
+    assert.equal(ui.calls.length,1,'twelve keystrokes read nothing while the typing goes on');
+    await ui.wait(MODEL_ID_PAUSE_MS/2);
+    assert.equal(ui.calls.length,1,'nothing is read before the pause');
+    await ui.wait(MODEL_ID_PAUSE_MS);
+    assert.equal(ui.calls.length,2,'one read, after the pause, for the twelve keystrokes');
+    assert.deepEqual(ui.offered(),['low','only-for-typed'],'the typed model\'s own choices');
+    await ui.wait(MODEL_ID_PAUSE_MS+100);
+    assert.equal(ui.calls.length,2,'and no more after it');
+  });
+});
+
+test('leaving the model ID field, or pressing Enter in it, reads at once', async () => {
+  await typingPanel(()=>typingPacket,async ui=>{
+    await ui.type(typedId);
+    assert.equal(ui.calls.length,1);
+    await React.act(()=>props(ui.field()).onBlur());await React.act(async()=>{});
+    assert.equal(ui.calls.length,2,'leaving the field reads at once, without waiting for the pause');
+    assert.deepEqual(ui.offered(),['low','only-for-typed']);
+  });
+  await typingPanel(()=>typingPacket,async ui=>{
+    await ui.type(typedId);
+    await React.act(()=>props(ui.field()).onKeyDown({key:'x'}));
+    assert.equal(ui.calls.length,1,'another key is typing, not a commit');
+    await React.act(()=>props(ui.field()).onKeyDown({key:'Enter'}));await React.act(async()=>{});
+    assert.equal(ui.calls.length,2,'Enter reads at once');
+  });
+});
+
+test('while a typed model ID settles and its read is under way, the earlier model\'s effort choices are never offered as its own', async () => {
+  const replies=[];
+  await typingPanel(n=>{if(n===1)return typingPacket;const held=deferred();replies.push(held);return held.promise;},async ui=>{
+    assert.deepEqual(ui.offered(),['medium','only-for-m'],'the conversation\'s model, m');
+    await ui.type(typedId);
+    assert.deepEqual(ui.offered(),[],'while typing: none of m\'s choices');
+    assert.equal(props(ui.effort()).disabled,true,'the pick is disabled');
+    assert.match(ui.c.textContent,/The effort choices for this model ID are read when you stop typing or leave the field\./);
+    await React.act(()=>props(ui.field()).onBlur());
+    assert.equal(ui.calls.length,2);
+    assert.deepEqual(ui.offered(),[],'while its read is under way: still none of m\'s');
+    assert.equal(props(ui.effort()).disabled,true);
+    assert.match(ui.c.textContent,/Reading model effort choices…/);
+    assert.doesNotMatch(ui.c.textContent,/only-for-m/);
+    await React.act(async()=>{replies[0].resolve(typingPacket);});
+    assert.deepEqual(ui.offered(),['low','only-for-typed'],'once its read returns: the typed model\'s');
+    assert.equal(props(ui.effort()).disabled,false);
+  });
+});
 
 test('delayed effort replies cannot populate another source and readiness disables retained controls', async () => {
   const {OfferedEffortChoice} = loadSrc('ModelChoice');
@@ -1267,22 +1432,22 @@ test('delayed effort replies cannot populate another source and readiness disabl
   let current={owner:'original',threadId:'t',generation:g,homeClass:'account',modelProvider:'openai',entryId:'chatgpt-account',model:'',effort:'',disabled:false,choose:(...args)=>choices.push(args)};
   const show=async patch=>{current={...current,...patch};await React.act(()=>root.render(React.createElement(OfferedEffortChoice,current)));};
   const effort=()=>elements(c,'select')[0];
-  const read=()=>React.act(()=>props(button(c,'Read effort choices for this model')).onClick());
   try {
-    await show({});await read();const oldRead=props(button(c,'Read effort choices for this model')).onClick;
+    // Each source reads its effort choices once when shown; a reply for an earlier source never populates a later one.
+    await show({});assert.equal(calls.length,1,'read once when shown');
     const replacement={...g,spawnCounter:2};
-    await show({owner:'replacement',generation:replacement});
+    await show({owner:'replacement',generation:replacement});assert.equal(calls.length,2,'the replacement source reads its own');
     await React.act(async()=>{replies[0].resolve(effortPacket);});
     assert.equal(props(effort()).disabled,true);assert.ok(!c.textContent.includes('future-offered'),'old-source reply is discarded');
-    await read();await show({disabled:true});
+    await show({disabled:true});
     await React.act(async()=>{replies[1].resolve({...effortPacket,generation:replacement});});
     assert.equal(props(effort()).disabled,true,'a current reply grants no action while source is unavailable');
     const retainedChoice=props(effort()).onChange;
     await React.act(()=>retainedChoice({target:{value:'medium'}}));assert.equal(choices.length,0);
     await show({disabled:false});
-    await React.act(()=>oldRead());assert.equal(calls.length,2,'original read callback stays obsolete');
-    await read();
-    const next={...g,spawnCounter:3};await show({owner:'next',generation:next});
+    assert.equal(calls.length,2,'a source whose choices were read is not read again');
+    const next={...g,spawnCounter:3};await show({owner:'next',generation:next});assert.equal(calls.length,3);
+    const last={...g,spawnCounter:4};await show({owner:'last',generation:last});assert.equal(calls.length,4);
     await React.act(async()=>{replies[2].reject(Error('obsolete read failed'));});
     assert.ok(!c.textContent.includes('could not be read'),'delayed old error is not attributed to the new source');
     await React.act(()=>retainedChoice({target:{value:'medium'}}));assert.equal(choices.length,0);

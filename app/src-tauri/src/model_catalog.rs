@@ -1,5 +1,5 @@
 //! New-conversation model discovery (DEL-01-05 access; DEL-01-04 presentation):
-//! the models Codex reports, read only at the person's press.
+//! the models Codex reports, read by the App when its chooser needs them or at the person's reread press.
 //!
 //! At the 0.169.0 pin `model/list` accepts an optional `modelProvider`, which
 //! this App omits. It therefore answers for the provider the app-server
@@ -10,7 +10,7 @@
 //! model's `id`, `model`, `displayName`, a bounded `description` and
 //! `isDefault` and offered reasoning efforts/default. No configuration body, other model field, hidden model,
 //! entitlement or account fact is carried. Nothing here reads, writes or
-//! starts anything; `Host::model_catalog_read` performs the reads.
+//! starts anything; `Host::model_catalog_read_with_origin` performs the reads.
 use serde_json::{json, Value};
 
 /// Pages followed before stopping with an explicit limit.
@@ -18,7 +18,7 @@ pub(crate) const MODEL_PAGES: usize = 20;
 /// Entries kept; any beyond are reported as not shown.
 pub(crate) const MAX_MODELS: usize = 200;
 const DESCRIPTION_LIMIT: usize = 300;
-pub(crate) const STANDING: &str = "Models Codex reports for the app-server's own provider in this Codex generation, read now at your press. A listed model is the supplier's reported availability for that provider, not your account's entitlement or access; Start still checks the current configuration.";
+pub(crate) const STANDING: &str = "Models Codex reports for the app-server's own provider in this Codex generation. A listed model is the supplier's reported availability for that provider, not your account's entitlement or access; Start still checks the current configuration.";
 
 fn displayable_provider(value: &str) -> bool {
     let mut chars = value.chars();

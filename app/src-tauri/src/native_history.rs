@@ -451,6 +451,10 @@ impl NativeHistory {
     pub fn selected_thread(&self) -> Option<&str> {
         self.selection.as_ref().map(|s| s.thread.as_str())
     }
+    /// The latest list page this view accepted, if any.
+    pub(crate) fn list_page(&self) -> Option<&Value> {
+        self.list_page.as_ref()
+    }
     pub fn new(home: &str, generation: Value) -> Result<Self, String> {
         if home.is_empty() || !generation_valid(&generation) || generation["home"] != home {
             return Err("explicit selected home/full generation required".into());

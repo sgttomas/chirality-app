@@ -768,6 +768,104 @@ class QuitEnds(unittest.TestCase):
             self.assertEqual((after['7772'], after['7773']), (True, True))  # these outlived it (ended at cleanup)
 
 
+def invented_jwt(claims):
+    """An invented, unsigned token of the shape Codex parses. Nothing in it belongs to anyone."""
+    import base64
+    part = lambda value: base64.urlsafe_b64encode(json.dumps(value).encode()).rstrip(b'=').decode()  # noqa: E731
+    return '%s.%s.%s' % (part({'alg': 'none', 'typ': 'JWT'}), part(claims), 'invented-signature')
+
+
+def invented_sign_in(home, refreshed_days_ago):
+    """AN INVENTED SIGN-IN, in the run's own invented home: a made-up ChatGPT credential file with invented
+    tokens, an invented address and an invented account id, kept in the home's own file (never a keychain).
+    It signs in to nothing: no server issued it."""
+    exp = int(time.time()) + 30 * 86400
+    claims = {'email': 'invented-person@example.invalid', 'exp': exp,
+              'https://api.openai.com/auth': {'chatgpt_plan_type': 'plus',
+                                              'chatgpt_account_id': 'invented-account-0001'}}
+    last = time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime(time.time() - refreshed_days_ago * 86400))
+    (home / 'auth.json').write_text(json.dumps({
+        'auth_mode': 'chatgpt', 'OPENAI_API_KEY': None,
+        'tokens': {'id_token': invented_jwt(claims), 'access_token': invented_jwt(claims),
+                   'refresh_token': 'invented-refresh-token', 'account_id': 'invented-account-0001'},
+        'last_refresh': last}))
+    os.chmod(home / 'auth.json', 0o600)
+    (home / 'config.toml').write_text('cli_auth_credentials_store = "file"\n')
+
+
+class AccountRead(unittest.TestCase):
+    """What the App's account read (`account/read`, empty params) and model list read (`model/list`) contact, on an
+    account home with no sign-in and with an invented ChatGPT sign-in. The network is denied as everywhere in this
+    suite; the proxy's closed port is replaced by a listener that refuses the same way and records each target.
+    Before each read the run waits until Codex's own start-up attempts have stopped for 3 s, so an attempt seen
+    during a read is the read's."""
+
+    QUIET = 3.0
+
+    def settle(self, recorder, limit=30.0):
+        """Wait until QUIET seconds have passed with no new attempt (counting from now); return all attempts so far."""
+        begun = time.monotonic()
+        while True:
+            with recorder.lock:
+                last = max([begun] + [at for at, _, _ in recorder.attempts])
+            now = time.monotonic()
+            if now - last >= self.QUIET:
+                return recorder.since(0)
+            self.assertLess(now - begun, limit, 'attempts did not stop within %.0f s' % limit)
+            time.sleep(0.25)
+
+    def observe(self, signed_in):
+        recorder = L.RecordingRefusal()
+        try:
+            with L.Run(SCRATCH, BINARY, proxy=recorder) as run:
+                if signed_in:
+                    invented_sign_in(run.home, refreshed_days_ago=0)
+                else:
+                    (run.home / 'config.toml').write_text('cli_auth_credentials_store = "file"\n')
+                client = run.start()
+                startup = self.settle(recorder)
+                mark = time.monotonic()
+                account = client.call('account/read', {}, timeout=60)
+                during_account = recorder.since(mark)
+                self.settle(recorder)
+                mark = time.monotonic()
+                models = client.call('model/list', {'includeHidden': False}, timeout=60)
+                during_models = recorder.since(mark)
+                self.settle(recorder)
+                mark = time.monotonic()
+                history = client.call('thread/list', {'sortDirection': 'desc'}, timeout=60)
+                during_history = recorder.since(mark)
+                self.settle(recorder)
+                return {'startup': startup, 'account': account, 'during_account': during_account,
+                        'models': models, 'during_models': during_models,
+                        'history': history, 'during_history': during_history}
+        finally:
+            recorder.close()
+
+    def test_with_no_sign_in_the_account_read_contacts_nothing_and_reports_no_account(self):
+        seen = self.observe(signed_in=False)
+        self.assertEqual(seen['account'].get('result', {}).get('account', 'missing'), None, seen['account'])
+        self.assertEqual(seen['during_account'], [])
+        self.assertTrue(seen['models'].get('result', {}).get('data'), 'the model list is answered')
+        self.assertEqual(seen['during_models'], [])
+        self.assertIn('data', seen['history'].get('result', {}), seen['history'])
+        self.assertEqual(seen['during_history'], [], 'the history list read contacts nothing')
+        self.assertIn(('CONNECT', 'chatgpt.com:443'), seen['startup'], 'Codex itself tries the network at start')
+
+    def test_with_an_invented_sign_in_the_account_read_contacts_the_account_server_and_fails_when_refused(self):
+        seen = self.observe(signed_in=True)
+        targets = {target for _, target in seen['during_account']}
+        self.assertIn('chatgpt.com:443', targets, 'the read asks the account server (workspace routing)')
+        self.assertLessEqual(targets, {'chatgpt.com:443', 'auth.openai.com:443'}, seen['during_account'])
+        self.assertIn('error', seen['account'], 'refused, the read answers an error, never an account')
+        self.assertNotIn('result', seen['account'])
+        self.assertTrue(seen['models'].get('result', {}).get('data'), 'the model list is answered')
+        self.assertEqual(seen['during_models'], [], 'the model list read itself contacts nothing')
+        self.assertIn('data', seen['history'].get('result', {}), seen['history'])
+        self.assertEqual(seen['during_history'], [], 'the history list read contacts nothing')
+        self.assertIn(('CONNECT', 'chatgpt.com:443'), seen['startup'], 'Codex itself tries the network at start')
+
+
 def spawn_script(child_marker):
     def script(body, outputs, stub):
         if 'call_spawn' in outputs:

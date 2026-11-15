@@ -99,7 +99,7 @@ test('the clean trial panel offers the conversation roles and a model, and stays
   // The release's preselection left untouched, then the same role chosen by the person.
   buttons(cleanView(clean(),choice({model:'gpt-x',modelProvider:'openai',entryId:'chatgpt-account',role:roleSet.defaultRole}),s.act),'Send')[0].props.onClick();
   buttons(cleanView(clean(),choice({model:'gpt-x',modelProvider:'openai',entryId:'chatgpt-account',role:roleSet.defaultRole,roleTouched:true}),s.act),'Send')[0].props.onClick();
-  const sent=(role,preselected)=>['workflow_trial_start_clean',{reference:'trial:7',model:'gpt-x',modelProvider:'openai',entryId:'chatgpt-account',modeHomeClass:'account',generation:null,role,preselected,personText:'my inputs'}];
+  const sent=(role,preselected)=>['workflow_trial_start_clean',{reference:'trial:7',model:'gpt-x',modelProvider:'openai',entryId:'chatgpt-account',entrySource:'person',modeHomeClass:'account',generation:null,role,preselected,personText:'my inputs'}];
   assert.equal(roleSet.defaultRole,'HELP_HUMAN','the fixture follows the shipped role set');
   assert.deepEqual(s.calls,[sent('HELPS_HUMANS',false),sent(null,false),sent('HELP_HUMAN',true),sent('HELP_HUMAN',false)],
     'a clean trial says whether its role was the preselection or the person\'s choice, as an ordinary start does');
