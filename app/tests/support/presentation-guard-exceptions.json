@@ -20,14 +20,5 @@
   "count": 1,
   "basis": "an App-owned literal vocabulary",
   "reason": "every notice continuationContextBinding returns is a string literal (NativeHistory.tsx:142, 145, 147, and the four literal branches at 157 to 160); the guard cannot follow a field of a returned object"
- },
- {
-  "file": "RequestCards.tsx",
-  "where": "{...}",
-  "expr": "EXACT_TEXT",
-  "component": "NativeRequestCard",
-  "count": 2,
-  "basis": "an App-owned literal vocabulary",
-  "reason": "exactText.ts:6 defines EXACT_TEXT as a const of four literal attributes (autoCapitalize, autoCorrect, spellCheck, autoComplete), none of which names, describes or holds text; the guard does not read a spread imported from another module"
  }
 ]

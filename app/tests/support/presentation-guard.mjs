@@ -31,6 +31,10 @@
 //     approved presentation that may draw a box is allowed; a role attribute not built of literals fails;
 //   - every component the view draws: one written in this file is judged where its JSX is written, one imported
 //     from another guarded view is judged in that view, and any other fails unless it is listed.
+// Inside a control or a heading, JSX that a same-file function returns, or that a const holds, is judged again with
+// that control's context at each call, however else it is used; a component's children or ReactNode prop drawn inside
+// a control fails, since its callers write it outside the control; a call the guard cannot follow (an imported helper
+// that is not trusted, a method, a call through a variable) is not App-made and fails.
 // An expression passes only if it is built from the closed list of forms below (appMade); anything else fails,
 // including a form the guard has never seen. That is a syntactic default, not a proof of where a value came from.
 // These fail and cannot be listed: raw HTML (dangerouslySetInnerHTML) as an attribute, or in a spread under a name, a
@@ -70,12 +74,16 @@ export const TRUSTED = {
     // Functions whose result is the App's words, a checked identifier or a checked number: plainId (an identifier
     // checked against PLAIN_ID, else null) and idWords (the same, else fixed App words); wordOf (the App's word for a key of the App's own
     // table, else null); numberWords (a finite number, else null); isoSeconds (a valid time in seconds, as ISO 8601);
-    // clockWords (a time the App holds, as HH:MM:SS; non-finite or invalid gives null).
-    functions: ['plainId', 'idWords', 'wordOf', 'numberWords', 'isoSeconds', 'clockWords'],
+    // clockWords (a time the App holds, as HH:MM:SS; non-finite or invalid gives null); safeName (a workflow name the
+    // App's own name rule admits, else null).
+    functions: ['plainId', 'idWords', 'wordOf', 'numberWords', 'isoSeconds', 'clockWords', 'safeName'],
     // Components that draw a supplied value: boxed, or as the App's words only for a value they check at run time.
-    components: ['AgentText', 'SuppliedId', 'Word', 'Num', 'Flag'],
+    components: ['AgentText', 'SuppliedId', 'Word', 'Num', 'Flag', 'ConversationChoices'],
   },
 };
+/** Attributes of an approved presentation that it compares, calls or uses as a radio group's name, and never draws or
+ * exposes as a name or description: ConversationChoices submits and compares keys, and its group is a name= attribute. */
+export const UNDRAWN_ATTRIBUTES = {ConversationChoices: ['chosen', 'onChoose', 'disabled', 'group']};
 /** Anchor builders: an element id made from a supplied identity as a 32-bit FNV-style hash of its serialized form
  * plus that form's length, both in base 36 (letters and digits only), never shown as text. Trusted only in attributes
  * that hold an id or a link target. */
@@ -84,6 +92,11 @@ const ID_ATTRIBUTES = new Set(['id', 'href', 'htmlFor', 'aria-labelledby', 'aria
 const VALUE_ATTRIBUTES = new Set(['title', 'alt', 'placeholder', 'label']);
 /** A value attribute is drawn only by a text field; an option's, a select's or a button's value is not shown. */
 const DRAWN_VALUE_TAGS = new Set(['input', 'textarea']);
+/** An input of these literal types shows no value: a radio button's or a checkbox's value is what it submits. */
+const UNDRAWN_INPUT_TYPES = new Set(['radio', 'checkbox']);
+const literalType = props => { const t = props.find(a => ts.isJsxAttribute(a) && a.name.getText() === 'type'); return t && t.initializer && ts.isStringLiteral(t.initializer) ? t.initializer.text : null; };
+/** The aria attributes that carry words; the controls rule checks these, and leaves state flags (aria-busy…) alone. */
+const NAMING_ARIA = new Set(['aria-label', 'aria-description', 'aria-roledescription', 'aria-valuetext', 'aria-placeholder', 'aria-braillelabel', 'aria-brailleroledescription']);
 const shownAttribute = (name, tag) => VALUE_ATTRIBUTES.has(name) || name.startsWith('aria-') || ID_ATTRIBUTES.has(name) || (['value', 'defaultValue'].includes(name) && DRAWN_VALUE_TAGS.has(tag));
 /** Attributes of an approved presentation that only style or key it. */
 const STYLE_ATTRIBUTES = new Set(['style', 'key', 'className', 'block']);
@@ -326,18 +339,38 @@ function isCondition(node) {
 }
 const hasJsx = node => { let found = false; const walk = n => { if (found) return; if (ts.isJsxElement(n) || ts.isJsxSelfClosingElement(n) || ts.isJsxFragment(n)) { found = true; return; } ts.forEachChild(n, walk); }; walk(node); return found; };
 
-/** Every expression the guard judges in one view: { line, where, expr, node, context, forbidden? }. */
-export function findings(name, text) {
+/** Spreads of attributes the App defines once: examined, each a const of literal attributes that name nothing. */
+export const TRUSTED_SPREADS = {'./exactText': ['EXACT_TEXT']};
+
+/** Every expression the guard judges in one view: { line, where, expr, node, context, forbidden? }.
+ *  mode "page" (the guarded views): every drawn expression, every naming, describing or value attribute, every
+ *  component, and writes to the page. mode "controls" (every other view): what is drawn inside a control or a
+ *  heading, the attributes that name or describe, and spreads. */
+export function findings(name, text, mode = 'page') {
+  const page = mode === 'page';
   const {sf, checker} = parsed(name, text);
   const context = {name, sf, checker, seen: new Set()};
-  const out = [];
+  let out = [];
   const at = node => sf.getLineAndCharacterOfPosition(node.getStart()).line + 1;
   const record = (node, where, extra = {}) => out.push({line: at(node), where, expr: normal(node.getText()), component: enclosingName(node), node, context, ...extra});
+  // JSX that a same-file function returns, or a const holds, drawn inside a control or a heading: judged again here,
+  // with that control's context, however and wherever else it is used. Only what the control context adds is kept
+  // (what the control draws, and a component inside it); the rest is judged where the JSX is written.
+  const judgeInside = (node, inside) => {
+    const saved = out; out = [];
+    try { visit(node, inside); } finally {
+      const found = out; out = saved;
+      for (const f of found) if (f.forbidden ? false : (!page && f.where.startsWith('<') && !f.rule) || f.where.includes(' inside <')) out.push(f);
+    }
+  };
 
   // What a child expression can draw: its JSX parts are elements, visited where written; the rest is judged.
-  const drawn = (expr, sink = record) => {
+  const drawn = (expr, sink = record, inside = null) => {
+    // In controls mode only what a control or heading draws is judged.
+    if (!page && !inside) return;
     expr = unwrap(expr);
-    const again = e => drawn(e, sink);
+    const again = e => drawn(e, sink, inside);
+    const where = page ? 'drawn' : `<${inside}>`;
     if (ts.isJsxElement(expr) || ts.isJsxSelfClosingElement(expr) || ts.isJsxFragment(expr)) return;
     if (ts.isConditionalExpression(expr)) { again(expr.whenTrue); again(expr.whenFalse); return; }
     // `a && b` draws b, or a falsy a, which draws nothing or only "0" or "NaN": a is not judged (see appMade).
@@ -348,28 +381,32 @@ export function findings(name, text) {
       const fn = unwrap(expr.arguments[0]);
       if (ts.isArrowFunction(fn) || ts.isFunctionExpression(fn)) { for (const r of returnsOf(fn)) if (r) again(r); return; }
     }
-    // A same-file function drawn by call: each value it returns is drawn (its JSX is visited where written).
+    // A same-file function drawn by call: each value it returns is drawn. Its JSX is visited where written, and,
+    // when the call is inside a control or a heading, judged again with that control's context (judgeInside). A call
+    // the guard cannot follow (an imported helper that is not trusted, a method, a call through a variable) is not
+    // App-made, so it fails below.
     if (ts.isCallExpression(expr) && ts.isIdentifier(unwrap(expr.expression))) {
       // Judged at the call: it fails here when anything it returns would fail.
       const fn = functionOf(unwrap(expr.expression), context);
       if (fn) {
         let failed = false;
-        const ok = guarded(context, fn, () => { returnsOf(fn).forEach(r => { if (r) drawn(r, () => { failed = true; }); }); return true; });
+        const ok = guarded(context, fn, () => { returnsOf(fn).forEach(r => { if (!r) return; if (inside && hasJsx(r)) judgeInside(r, inside); drawn(r, () => { failed = true; }, inside); }); return true; });
         if (ok && !failed) return;
-        return sink(expr, 'drawn');
+        return sink(expr, where);
       }
     }
     if (ts.isIdentifier(expr)) {
       const declaration = declarationOf(expr, context);
       // A component's children, or a prop declared as ReactNode, is drawn where its caller writes it, and judged
-      // there when the caller is a guarded view (a caller elsewhere is outside this boundary).
-      if (declaration && ts.isBindingElement(declaration) && nodeProp(declaration)) return;
+      // there when the caller is a guarded view (a caller elsewhere is outside this boundary). Drawn inside a control
+      // or a heading it fails: its callers write it outside that control, where the control's context is not seen.
+      if (declaration && ts.isBindingElement(declaration) && nodeProp(declaration)) { if (inside) record(expr, `children or a ReactNode prop inside <${inside}>`, {rule: true}); return; }
       // A const is drawn as its own value.
       if (declaration && isConst(declaration) && declaration.initializer && hasJsx(declaration.initializer)) {
-        if (guarded(context, declaration, () => (again(declaration.initializer), true))) return;
+        if (guarded(context, declaration, () => { if (inside) judgeInside(declaration.initializer, inside); again(declaration.initializer); return true; })) return;
       }
     }
-    if (!appMade(expr, context)) sink(expr, 'drawn');
+    if (!appMade(expr, context)) sink(expr, where);
   };
   const attributes = (tag, props, trustedComponent) => {
     for (const a of props) {
@@ -388,13 +425,15 @@ export function findings(name, text) {
       const expr = a.initializer.expression;
       // An approved presentation takes any value to present; its other attributes (label, name, words…) are the App's.
       if (trustedComponent) {
-        if (attribute === 'value' || STYLE_ATTRIBUTES.has(attribute)) continue;
+        if (attribute === 'value' || STYLE_ATTRIBUTES.has(attribute) || (UNDRAWN_ATTRIBUTES[tag] ?? []).includes(attribute)) continue;
         if (attribute === 'words' && isWordTable(expr, context)) continue;
         if (!appMade(expr, context)) record(expr, `@${attribute}`);
         continue;
       }
+      if (tag === 'input' && ['value', 'defaultValue'].includes(attribute) && UNDRAWN_INPUT_TYPES.has(literalType(props))) continue;
       if (!shownAttribute(attribute, tag)) continue;
-      if (ID_ATTRIBUTES.has(attribute)) { if (!idValue(expr)) record(expr, `@${attribute}`); continue; }
+      if (!page && attribute.startsWith('aria-') && !NAMING_ARIA.has(attribute)) continue;
+      if (ID_ATTRIBUTES.has(attribute)) { if (page && !idValue(expr)) record(expr, `@${attribute}`); continue; }
       // A text field shows what the person types: its state must be set only from this kind of field's own input.
       if (['value', 'defaultValue'].includes(attribute) && personTyped(expr)) continue;
       if (!appMade(expr, context)) record(expr, `@${attribute}`);
@@ -460,6 +499,8 @@ export function findings(name, text) {
   // shown attributes are App-made: 'ok'; raw HTML anywhere in it: 'forbidden'; anything else: 'fail'.
   const spreadVerdict = (expr, tag) => {
     expr = unwrap(expr);
+    // A spread the App defines once (TRUSTED_SPREADS), bound to its import: examined, literal attributes that name nothing.
+    if (ts.isIdentifier(expr)) { const from = importOf(expr, context); return from && from.imported === expr.text && (TRUSTED_SPREADS[from.module] ?? []).includes(expr.text) ? 'ok' : 'fail'; }
     if (ts.isConditionalExpression(expr)) {
       const both = [spreadVerdict(expr.whenTrue, tag), spreadVerdict(expr.whenFalse, tag)];
       return both.includes('forbidden') ? 'forbidden' : both.every(v => v === 'ok') ? 'ok' : 'fail';
@@ -472,9 +513,10 @@ export function findings(name, text) {
       const computed = p.name && ts.isComputedPropertyName(p.name) ? unwrap(p.name.expression) : null;
       const key = !p.name ? null : computed ? (ts.isStringLiteral(computed) || ts.isNoSubstitutionTemplateLiteral(computed) ? computed.text : null) : p.name.getText().replace(/^["']|["']$/g, '');
       if (key === 'dangerouslySetInnerHTML') return 'forbidden';
-      if (!ts.isPropertyAssignment(p) || key === null || !SPREAD_KEYS.has(key)) { verdict = 'fail'; continue; }
+      // On a guarded view only listed keys pass; on every other view (controls mode) any key passes whose shown value is App-made.
+      if (!ts.isPropertyAssignment(p) || key === null || (page && !SPREAD_KEYS.has(key))) { verdict = 'fail'; continue; }
       if (!shownAttribute(key, tag)) continue;
-      if (!(ID_ATTRIBUTES.has(key) ? idValue(p.initializer) : appMade(p.initializer, context))) verdict = 'fail';
+      if (!(ID_ATTRIBUTES.has(key) ? !page || idValue(p.initializer) : appMade(p.initializer, context))) verdict = 'fail';
     }
     return verdict;
   };
@@ -544,7 +586,7 @@ export function findings(name, text) {
       // Inside a control or a heading, no presentation that may draw a box; a same-file component drawn there is
       // judged where its JSX is written, which the guard does not follow into this place, so it is listed or fails.
       if (inside && component) record(opening.tagName, `<${tag}> inside <${inside}>`, {unseen: true});
-      if (component && !trustedComponent) {
+      if (page && component && !trustedComponent) {
         const declared = ts.isIdentifier(opening.tagName) ? declarationOf(opening.tagName, context) : null;
         const local = functionOf(opening.tagName, context) ?? (declared && ts.isClassDeclaration(declared) ? declared : null);
         const from = importOf(opening.tagName, context);
@@ -554,7 +596,9 @@ export function findings(name, text) {
       }
       // A role that makes the element a control or a heading counts as that element; a role not built of literals
       // cannot be judged and fails.
-      const roles = rolesOf(opening);
+      // A role attribute is an element's: on a component it is that component's own prop (a conversation role, say),
+      // and the elements the component draws are judged where their JSX is written.
+      const roles = component ? [] : rolesOf(opening);
       if (roles === null) record(opening.tagName, `<${tag}> with a role not built of literals`, {rule: true});
       // A role value is a space-separated list of tokens ("heading note"): any token that is a control or heading role counts.
       const role = (roles ?? []).flatMap(r => r.trim().split(/\s+/)).find(r => APP_ONLY_ROLES.has(r));
@@ -566,7 +610,8 @@ export function findings(name, text) {
         const init = ts.isJsxSpreadAttribute(a) ? a.expression : a.initializer;
         const expr = !init || ts.isStringLiteral(init) ? null : ts.isJsxExpression(init) ? init.expression : init;
         if (!expr) continue;
-        if (ts.isJsxAttribute(a) && a.name.getText() === 'children' && !trustedComponent) drawn(expr);
+        // A children attribute is drawn with the element's own control context, as its written children are.
+        if (ts.isJsxAttribute(a) && a.name.getText() === 'children' && !trustedComponent) drawn(expr, record, within);
         visit(expr, within);
       }
       if (ts.isJsxElement(node)) for (const child of node.children) visitChild(child, within);
@@ -574,14 +619,14 @@ export function findings(name, text) {
     }
     if (ts.isJsxFragment(node)) { for (const child of node.children) visitChild(child, inside); return; }
     // Writes to the page outside React's rendering.
-    if (ts.isBinaryExpression(node) && node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment && node.operatorToken.kind <= ts.SyntaxKind.LastAssignment
+    if (page && ts.isBinaryExpression(node) && node.operatorToken.kind >= ts.SyntaxKind.FirstAssignment && node.operatorToken.kind <= ts.SyntaxKind.LastAssignment
       && (ts.isPropertyAccessExpression(node.left) && FORBIDDEN_PROPERTIES.has(node.left.name.text)
         || ts.isElementAccessExpression(node.left) && ts.isStringLiteralLike(node.left.argumentExpression) && FORBIDDEN_PROPERTIES.has(node.left.argumentExpression.text))) record(node, 'write to the page', {forbidden: true});
-    if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && FORBIDDEN_CALLS.has(node.expression.name.text)) record(node, 'write to the page', {forbidden: true});
+    if (page && ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression) && FORBIDDEN_CALLS.has(node.expression.name.text)) record(node, 'write to the page', {forbidden: true});
     ts.forEachChild(node, child => visit(child, inside));
   };
   const visitChild = (child, inside) => {
-    if (ts.isJsxExpression(child)) { if (child.expression) { drawn(child.expression); visit(child.expression, inside); } return; }
+    if (ts.isJsxExpression(child)) { if (child.expression) { drawn(child.expression, record, inside); visit(child.expression, inside); } return; }
     if (ts.isJsxText(child)) return;
     visit(child, inside);
   };
@@ -595,11 +640,11 @@ export const GUARDED_VIEWS = new Set(['RequestCards.tsx', 'NativeActivity.tsx', 
 /** One view's failures, given its source: each finding neither App-made nor listed, each forbidden write (never
  * listable), each listed exception whose count of matching findings differs from its count, and the listed keys it
  * used. A listing matches a finding only by its file, place, exact expression and the component it names. */
-export function sourceFailures(name, text, exceptions = []) {
+export function sourceFailures(name, text, exceptions = [], mode = 'page') {
   const entries = exceptionEntries(exceptions);
   const listed = new Map(entries.map(e => [exceptionKey(e), e]));
   const failures = [], used = new Set(), counts = new Map();
-  for (const f of findings(name, text)) {
+  for (const f of findings(name, text, mode)) {
     if (f.forbidden) { failures.push(`${name}:${f.line} ${f.where} ${f.expr} (cannot be listed)`); continue; }
     // A finding that breaks a rule (an unseen component, a spread, a reference, a role) fails whatever its expression.
     if (!f.unseen && !f.rule && f.where !== '{...}' && appMade(f.node, f.context)) continue;
@@ -638,6 +683,23 @@ export function wordTableFailures(srcDir) {
         failures.push(`${name}: ${d.name.getText()} is not a table of literal words`);
     }
   }
+  return failures;
+}
+
+/** The views outside the page boundary: every other view, whose controls, headings and naming attributes hold only
+ * the App's words (the controls rule). */
+export function controlViews(srcDir) {
+  return readdirSync(srcDir).filter(n => n.endsWith('.tsx') && n !== 'AgentText.tsx' && !GUARDED_VIEWS.has(n)).sort();
+}
+/** The controls rule's failures across every other view, and each listed exception that no longer fails. */
+export function controlsFailures(srcDir, exceptions) {
+  const failures = [], used = new Set();
+  for (const name of controlViews(srcDir)) {
+    const result = sourceFailures(name, readFileSync(new URL(name, srcDir), 'utf8'), exceptions, 'controls');
+    failures.push(...result.failures);
+    for (const key of result.used) used.add(key);
+  }
+  failures.push(...staleFailures(exceptions, used));
   return failures;
 }
 

@@ -1,4 +1,4 @@
-import { AgentText, RecordedData } from "./AgentText";
+import { AgentText, RecordedData, safeName } from "./AgentText";
 import { Fragment } from "react";
 import { nativePathText } from "./presentation";
 
@@ -75,9 +75,9 @@ function Manifest({ files }: { files: Json }) {
 const entryHeader = ["identity", "disposition", "message", "reconfirmation", "reviewed_reference", "content"];
 function ReviewEntry({ entry, index }: { entry: Json; index: number }) {
   if (!record(entry)) return <ReportedValue value={entry} />;
-  const name = typeof entry.identity?.name === "string" ? entry.identity.name : `Entry ${index + 1}`;
   return <section aria-label={`Reviewed workflow ${index + 1}`}>
-    <h4>{name}</h4>
+    {/* A workflow name stands in the heading only in the App's name form; the identity is shown in full below. */}
+    <h4>{typeof entry.identity?.name === "string" ? safeName(entry.identity.name) : `Entry ${index + 1}`}</h4>
     <ReportedFields value={entry} keys={entryHeader} />
     <h5>WORKFLOW.md</h5>
     {typeof entry.workflow_text === "string"

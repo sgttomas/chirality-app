@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import {choiceList, chooseIn} from './support/choices.mjs';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
 
@@ -206,8 +207,8 @@ test('mounted App: a command issued outside the workflow panel withholds the Run
   const poll = () => timers.find(fn => fn.toString().includes('host_status'))();
   try {
     await React.act(async () => root.render(React.createElement(App)));
-    const guideSelect = nodes('select').find(n => n.parentNode.textContent.startsWith('Conversation to run it in'));
-    await React.act(async () => props(guideSelect).onChange({target:{value:'T2'}}));
+    const guideSelect = choiceList(c, 'Conversation to run it in');
+    await React.act(async () => chooseIn(guideSelect, 'T2'));
     assert.ok(nodes('button').some(b => b.textContent === 'End this run' && !props(b).disabled), 'the open run offers End this run');
     // With nothing pressed (mount, a choice in the guide that issues no command, every timer fired once), the App
     // issues only the status read and listed self-issued commands, and the guide is shown, not withheld.

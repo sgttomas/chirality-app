@@ -1,6 +1,11 @@
-import { AgentText, RecordedData } from "./AgentText";
+import { AgentText, RecordedData, idWords, wordOf } from "./AgentText";
 import { useImperativeHandle, useRef, useState, type Ref } from "react";
 type Json = any;
+// The host's words for a file act (act_control_file.rs, file_act_view.rs); any other value is shown beside, boxed.
+const FILE_ACT_WORDING = { "mark checked": "mark checked", "approve (engineering approval)": "approve (engineering approval)", "rely (professional reliance)": "rely (professional reliance)" } as const;
+const FILE_ACT_KIND = { A4: "A4", A6: "A6", A7: "A7" } as const;
+const FILE_ACT_EVENT = { "declined this act": "declined this act", "recorded human-act claim": "recorded human-act claim" } as const;
+const UNRECOGNISED = "A value the App does not recognise, as the host recorded it; the App does not vouch for its words";
 const list = (value: Json): Json[] => Array.isArray(value) ? value : [];
 const content = (value: Json): string => typeof value === "string" ? value
   : value?.notObtainable ? `not obtainable: ${value.reason ?? "reason unavailable"}`
@@ -18,7 +23,7 @@ export function FileActLapseHistory({ row }: { row: Json }) {
     <h4>Recorded lapse history</h4>
     {sources.size > 1 && <p>Entries follow the sequence within each source log. No order is inferred between logs.</p>}
     {history.length ? Array.from(sources, ([source, claims]) => <div key={source}>
-      <h5>Source log: {source}</h5>
+      <h5>Source log</h5><p><AgentText value={source} source="record" label="Log:" name="The source log's name, as recorded; the App does not vouch for its words" /></p>
       <ol>{claims.map((claim, index) => {
       const record = claim.record ?? claim;
       const body = record.body ?? {};
@@ -118,7 +123,7 @@ export function FileActPanel({ command, controlRef, onBusyChange }: {
       <details><summary>Observation persistence and original pending evidence</summary><RecordedData value={view.lapseObservation} /></details>
     </div>}
     {preview && <article>
-      <h3>Frozen offer: {preview.offer.wording}</h3>
+      <h3>Frozen offer: {wordOf(FILE_ACT_WORDING, preview.offer.wording) ?? "an act the App does not recognise"}</h3>{wordOf(FILE_ACT_WORDING, preview.offer.wording) === null && <p>Recorded act: <AgentText value={preview.offer.wording} source="record" name={UNRECOGNISED} /></p>}
       <p>{contextual ? `Origin: selected arrival. Run ${preview.offer.answers.runId}, checkpoint ${arrival.checkpoint}, arrival ${arrival.arrivalOrdinal}.` : "Origin: standing file selection. No arrival or request is associated."}</p>
       {preview.offer.requestRef && <p>Recorded act-request reference: {preview.offer.requestRef}. Opening this offer does not answer that request.</p>}
       <p>Kind: {preview.offer.actKind}. Subject: {preview.offer.subject.ref} · {preview.byteLength} bytes</p>
@@ -137,7 +142,7 @@ export function FileActPanel({ command, controlRef, onBusyChange }: {
       <h3>Retained frozen offers</h3>
       <p>Showing an original offer does not recapture an act or change its context.</p>
       {Object.values(previews).filter(original => original.reference !== preview?.reference).map(original => <p key={original.reference}>
-        <button disabled={busy} onClick={() => { setPreview(original); setSelectionStatus(null); setError(""); }}>Show original offer {original.reference}</button>{" "}
+        <button disabled={busy} onClick={() => { setPreview(original); setSelectionStatus(null); setError(""); }}>Show original offer {idWords(original.reference)}</button>{" "}
         {outcomes[original.reference]?.state ?? "no native attempt made"}
       </p>)}
     </div>}
@@ -152,7 +157,7 @@ export function FileActPanel({ command, controlRef, onBusyChange }: {
     {preview && (status?.capture || status?.captureId) && <button disabled={busy} onClick={() => run("file_act_continue", { reference: preview.reference })}>Continue this original capture/record only</button>}
     <p>{view?.standing}</p>
     {(view?.rows ?? []).map((row: Json, index: number) => <article key={`${row.recordId}-${index}`}>
-      <h3>{row.kind}: {row.event}</h3>
+      <h3>{`${wordOf(FILE_ACT_KIND, row.kind) ?? "Act"}: ${wordOf(FILE_ACT_EVENT, row.event) ?? "event shown below"}`}</h3>{wordOf(FILE_ACT_KIND, row.kind) === null && <p>Recorded act kind: <AgentText value={row.kind} source="record" name={UNRECOGNISED} /></p>}{wordOf(FILE_ACT_EVENT, row.event) === null && <p>Recorded event: <AgentText value={row.event} source="record" name={UNRECOGNISED} /></p>}
       <p>Subject: {row.subject} · Scope: {row.scope ?? "unavailable"} · Purpose: {row.purpose ?? "unavailable"}</p>
       <p>Actor (identity not verified): {JSON.stringify(row.actor)}. Recorder: {JSON.stringify(row.recordedBy)}.</p>
       <p>Current content comparison: {row.comparison}. Captured at: {row.captureTime}. {row.identityResolution}.</p>

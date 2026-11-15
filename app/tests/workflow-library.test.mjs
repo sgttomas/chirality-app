@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
 import {agentBlocks, agentBlockText} from './support/agent-text.mjs';
+import {choiceList, choiceLists, chooseIn} from './support/choices.mjs';
 
 // The library list's Select offer (WR §4.6 LS-1, SL-1) and the "newer revision
 // ‹n› available" notice beside the selection (WR SL-2), in the host's shapes
@@ -86,8 +87,8 @@ test('the panel sends the shown library with a list Select',async()=>{
   assert.equal(container.querySelectorAll(e=>e.localName==='button'&&e.textContent==='Select revision 1').length,0,'only the active library is listed');
   const [b]=container.querySelectorAll(e=>e.localName==='button'&&e.textContent==='Select revision 3');
   assert.ok(b);
-  const [chat]=container.querySelectorAll(e=>e.localName==='select'&&e.textContent.includes('No chat'));
-  await React.act(()=>props(chat).onChange({target:{value:'chat-1'}}));
+  const chat=choiceList(container,'Workflow chat');
+  await React.act(()=>chooseIn(chat,'chat-1'));
   const [selectedButton]=container.querySelectorAll(e=>e.localName==='button'&&e.textContent==='Select revision 3');
   await React.act(async()=>{props(selectedButton).onClick();await new Promise(r=>setTimeout(r,0));});
   assert.deepEqual(calls[0],['workflow_select_listed',{libraryRef:'lib-2',name:'load-check',revision:'a'.repeat(64),context:{sourceRef:'home:owned',generation:g,historyEpoch:0,threadId:'chat-1',selectionRef:null,inspectionRef:null,libraryRef:'lib-2'}}]);
@@ -169,7 +170,7 @@ test('one existing library entry goes from in-place review to an explicit native
   const props=el=>el[Object.keys(el).find(k=>k.startsWith('__reactProps$'))];
   const render=()=>root.render(React.createElement(WorkflowRootPanel,{data,host:{state:'ready',generation:{},threads:[]},act}));
   await React.act(render);
-  const [name]=container.querySelectorAll(e=>e.localName==='input');
+  const name=container.querySelectorAll(e=>e.localName==='input').find(e=>e.parentNode.textContent.startsWith('New draft name'));
   await React.act(()=>props(name).onChange({target:{value:'sample'}}));
   const [review]=container.querySelectorAll(e=>e.localName==='button'&&e.textContent==='Review this unregistered in-place library entry');
   assert.ok(review);assert.equal(props(review).disabled,false);
@@ -265,8 +266,8 @@ test('native review actions end with the host presentation while original contin
         const select=controls(article()).find(e=>e.textContent==='Select revision 1');
         if(outcome==='completed'){
           assert.ok(select);assert.equal(props(select).disabled,true,'selection still requires a workflow chat');
-          const [chat]=container.querySelectorAll(e=>e.localName==='select'&&e.textContent.includes('No chat — inspect library content'));
-          await React.act(()=>props(chat).onChange({target:{value:'chat-native'}}));
+          const chat=choiceList(container,'Workflow chat');
+          await React.act(()=>chooseIn(chat,'chat-native'));
           const selectable=controls(article()).find(e=>e.textContent==='Select revision 1');assert.equal(props(selectable).disabled,false);
           await React.act(async()=>{props(selectable).onClick();await new Promise(r=>setTimeout(r,0));});
           assert.deepEqual(calls.filter(([c])=>c==='workflow_select_registered'),[['workflow_select_registered',{reviewRef:fresh.reference,revision:identity.revision,context:{sourceRef:'home:synthetic',generation,historyEpoch:0,threadId:'chat-native',selectionRef:null,inspectionRef:null,libraryRef:'lib-native'}}]]);
@@ -366,8 +367,8 @@ test('a press refused before any host command is said under the Run guide\'s Nex
   const show=threads=>React.act(()=>root.render(React.createElement(WorkflowRootPanel,{data,host:host(threads),view:'run',act:async(command,args)=>{calls.push([command,args]);return {state:'controlled result'};}})));
   await show(loaded);
   const guide=()=>c.querySelectorAll(n=>n.getAttribute('aria-label')==='Run a workflow')[0];
-  const select=guide().querySelectorAll(n=>n.localName==='select')[0];
-  await React.act(async()=>props(select).onChange({target:{value:'T1'}}));
+  const select=choiceLists(guide())[0];
+  await React.act(async()=>chooseIn(select,'T1'));
   await show([]); // same source and generation; the chosen conversation is no longer loaded
   const press=guide().querySelectorAll(n=>n.localName==='button').find(n=>n.textContent==="Show this project's workflows");
   assert.equal(!!props(press).disabled,false,'the button is offered');
@@ -400,7 +401,7 @@ test('the panel shows its guides only when the App says the view follows the las
     const show=over=>React.act(()=>root.render(React.createElement(WorkflowRootPanel,{data,host,view,offerComposer,act:async(command,args)=>{calls.push([command,args]);return {};},...over})));
     const guide=()=>c.querySelectorAll(n=>n.getAttribute('aria-label')===label)[0];
     await show({});
-    if(view==='run')await React.act(async()=>props(guide().querySelectorAll(n=>n.localName==='select')[0]).onChange({target:{value:'T1'}}));
+    if(view==='run')await React.act(async()=>chooseIn(choiceLists(guide())[0],'T1'));
     assert.doesNotMatch(guide().textContent,WITHHELD,`${view}: no marker, the steps are shown`);
     if(view==='run')assert.match(guide().textContent,CACHED);
     await show({viewStale:true});

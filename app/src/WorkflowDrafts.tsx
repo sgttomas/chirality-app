@@ -1,7 +1,7 @@
-import { AgentText } from "./AgentText";
+import { AgentText, ConversationChoices, idWords, numberWords, safeName } from "./AgentText";
 import { useRef, useState } from "react";
 import { isRecordedRun, runLearningLimit } from "./RunPanel";
-import { ConversationSelect, conversationKey, conversationName, findConversation } from "./TrialComposer";
+import { conversationChoices, conversationKey, conversationName, findConversation } from "./TrialComposer";
 import { ConversationContext, conversationFromKey } from "./WorkflowContext";
 import { beginBringBack, bringBackHeld, endBringBack } from "./bringBackDoubts";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -88,7 +88,7 @@ function SubAgent({ trial, busy, act }: { trial: Json; busy: boolean; act: Draft
   const candidate = (child: Json) => !!text(child) && text(child) !== linked;
   // Why a read failed, as the host reports it, so the person can judge Read again.
   const unreadReason = (child: Json) => text(list(sub.unreadReasons).find((r: Json) => text(r?.thread) === text(child))?.reason);
-  const linkButton = (child: Json) => <button disabled={busy} onClick={() => { void act("workflow_trial_link", { reference: trial.reference, childThread: child }); }}>Link as trial {text(trial.sequence)}</button>;
+  const linkButton = (child: Json) => <button disabled={busy} onClick={() => { void act("workflow_trial_link", { reference: trial.reference, childThread: child }); }}>Link as trial {idWords(trial.sequence)}</button>;
   return <>
     {sub.state === "linked" ? <>sub-agent {text(sub.thread)}{sub.linkedBy ? ` (${linkOriginWords(sub.linkedBy)})` : ""}{" "}
       <button disabled={busy} onClick={() => { void act("workflow_trial_unlink", { reference: trial.reference, childThread: sub.thread }); }}>Unlink</button></> : "sub-agent not linked"}
@@ -138,7 +138,7 @@ export function TrialRow({ trial, conversations, bringBacks = [], busy, act, sta
     try { call = Promise.resolve(act("workflow_trial_bring_back", { reference, generation: destination.generation, threadId: destination.threadId, includeNative })); } catch (error) { call = Promise.reject(error); }
     void call.catch(() => undefined).finally(() => endBringBack(key));
   };
-  return <li aria-label={`Trial ${text(trial.sequence)}`}>
+  return <li aria-label={`Trial ${idWords(trial.sequence)}`}>
     <label><input type="checkbox" checked={ticked} disabled={busy} onChange={() => update({ chosen: ticked ? state.chosen.filter(c => c !== side) : [...state.chosen, side] })} /> Compare</label>{" "}
     <b>Trial {text(trial.sequence)}</b> · {trial.kind === "clean" ? "clean (fresh conversation)" : "delegated (with the authoring agent)"} · {text(trial.time)}
     <div><small>Content {short(trial.content?.value)} ({versionWords(trial.version)}) · authoring conversation {conversationName(trial.authoringConversation)} · {trial.kind === "clean"
@@ -154,7 +154,7 @@ export function TrialRow({ trial, conversations, bringBacks = [], busy, act, sta
       {trial.readAgain?.offered === false
         ? <small>Read again is not offered: {text(trial.readAgain.reason)}. </small>
         : <><button disabled={busy} onClick={() => { void act("workflow_trial_read", { reference }); }}>Read again</button>{" "}</>}
-      <ConversationSelect label="Bring back to" conversations={conversations} value={target} setValue={key => update({ bbTarget: { ...state.bbTarget, [reference]: key } })} disabled={busy} />{" "}
+      <ConversationChoices legend="Bring back to" group={`trial-bring-back-${text(reference)}`} value={conversationChoices(conversations)} chosen={target} onChoose={key => update({ bbTarget: { ...state.bbTarget, [reference]: key } })} disabled={busy} none="No conversation chosen" />
       <label><input type="checkbox" checked={includeNative} disabled={busy} onChange={e => update({ bbNative: { ...state.bbNative, [reference]: e.target.checked } })} /> include native items</label>{" "}
       <button disabled={busy || !!trial.live || !chosen || !!trial.sourceLimit || !!doubt || !!prepared} onClick={bringBack}>Bring trial back</button>
       {doubt && <small> Its last send to that conversation wasn't confirmed and may have arrived; check it, then confirm in the Make a workflow guide or the conversation before bringing it back again.</small>}
@@ -173,8 +173,10 @@ export function DraftRow({ draft, authoring, conversations = [], pending = [], b
   // keeps it offered with the note.
   const delegation = authoring?.delegation;
   const delegationMissing = delegation?.reading === "missing";
-  return <article aria-label={`Draft ${text(draft.name)}`} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
-    <h4>{text(draft.name)} · {draftStateWords(draft.state, draft.content)}</h4>
+  return <article aria-label={`Draft ${safeName(draft.name)}`} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
+    <h4>{safeName(draft.name)}</h4>
+    {safeName(draft.name) !== draft.name && <p>Draft name: <AgentText value={draft.name} source="file" name="The draft's name as its folder gives it, not the App's words" /></p>}
+    <p>State: {draftStateWords(draft.state, draft.content)}</p>
     <p>Content {draft.content?.value ? `${short(draft.content.value)} (${text(draft.content.method)})` : `not established: ${text(draft.content?.not_established)}`}{draft.fileCount !== undefined && draft.fileCount !== null ? ` · ${text(draft.fileCount)} files` : ""}. Attribution: {attributionWords(draft.attribution)}.</p>
     {(draft.findings ?? []).length > 0 && <ul aria-label="Hygiene findings">{draft.findings.map((f: Json) => <li key={text(f)}>{text(f)}</li>)}</ul>}
     <p>{draft.base ? `App-recorded base: ${text(draft.base.name)} revision ${short(draft.base.revision)} (${text(draft.base.origin)} library).` : text(draft.baseLimit)}</p>
@@ -295,8 +297,8 @@ export function WorkflowDraftsList({ data, workspace, pointerLimits, conversatio
     <p>Drafts are folders under <code>.chirality/workflow-drafts/</code> of the open library. A draft has no workflow identity: a trial mirrors a run of its content but is never a run, and only a registered revision runs.</p>
     <button disabled={busy || !workspace} onClick={() => { void act("workflow_open_project_library", {}); }}>Open this App project’s workflow library</button>{" "}
     <button disabled={busy || !data} onClick={() => { void act("workflow_observe_drafts", {}); }}>Refresh draft list</button>
-    <p><ConversationSelect label="Authoring conversation" conversations={conversations} value={state.authoring} setValue={authoring => update({ authoring })} disabled={busy} none="None chosen" />
-      <small> The conversation that tries a draft with its agent, and the default place a trial is brought back to.</small></p>
+    <div><ConversationChoices legend="Authoring conversation" group="authoring-conversation" value={conversationChoices(conversations)} chosen={state.authoring} onChoose={authoring => update({ authoring })} disabled={busy} none="None chosen" />
+      <small> The conversation that tries a draft with its agent, and the default place a trial is brought back to.</small></div>
     <ConversationContext label="Authoring choice for new trials" host={contextHost} reference={conversationFromKey(state.authoring)} workflow limit={authoringContextLimit}
       empty={!state.authoring ? "None chosen for new trials or default feedback." : undefined} />
     <p><small>This choice supplies new-trial and feedback defaults; it does not identify who authored a draft or relocate a prepared composer.</small></p>
@@ -314,7 +316,7 @@ export function WorkflowDraftsList({ data, workspace, pointerLimits, conversatio
       {runCandidates.size > 0 && <ul aria-label="Run candidates for comparison">{[...runCandidates].map(([ref, run]) => {
         const side = runSide(ref); const ticked = sides.includes(side); const limit = runLearningLimit(run, "compare");
         const workflow = run.workflow;
-        return <li key={ref}><label><input type="checkbox" checked={ticked} disabled={busy || (!!limit && !ticked)} onChange={() => update({ chosen: ticked ? sides.filter(c => c !== side) : [...sides, side] })} /> run {ref}{workflow ? ` · ${text(workflow.origin)}:${text(workflow.name)} · revision ${short(workflow.revision)}` : ""}{isRecordedRun(run) ? " · recorded evidence (unsigned)" : ""}</label>
+        return <li key={ref}><label><input type="checkbox" checked={ticked} disabled={busy || (!!limit && !ticked)} onChange={() => update({ chosen: ticked ? sides.filter(c => c !== side) : [...sides, side] })} /> run {idWords(ref)}{workflow ? ` · ${idWords(workflow.origin)}:${safeName(workflow.name)} · revision ${idWords(short(workflow.revision))}` : ""}{isRecordedRun(run) ? " · recorded evidence (unsigned)" : ""}</label>
           {isRecordedRun(run) && run.learning?.standing && <p><small>{text(run.learning.standing)}</small></p>}
           {run.learning?.compare?.activityLimit && <p role="note">Conversation history: {text(run.learning.compare.activityLimit)}</p>}
           {limit && <p role="note">Compare is unavailable: {limit}</p>}</li>;
@@ -325,7 +327,7 @@ export function WorkflowDraftsList({ data, workspace, pointerLimits, conversatio
       {state.compareError && <p role="alert">{state.compareError}</p>}
       {!comparisonOutside && <CompareResult result={state.compared} />}
     </div>}
-    {transitions.length > 0 && <details><summary>Observed draft changes in this App session ({transitions.length})</summary><ul>{transitions.map((t, i) =>
+    {transitions.length > 0 && <details><summary>Observed draft changes in this App session ({numberWords(transitions.length)})</summary><ul>{transitions.map((t, i) =>
       <li key={i}>{text(t.time)} · {text(t.draft?.name)}: {text(t.event)} ({text(t.from)} → {text(t.to)}); attribution {attributionWords(t.attribution)}</li>)}</ul></details>}
   </section>;
 }
@@ -335,7 +337,7 @@ export function WorkflowDraftsView(props: { data: Json; workspace: boolean; poin
   const state = props.state ?? localState;
   const authoringSource = useRef<string | null>(null);
   const currentSource = props.contextHost?.workflowRoot?.context?.sourceRef ?? null;
-  return <WorkflowDraftsList {...props} state={state} authoringContextLimit={state.authoring && authoringSource.current !== currentSource ? "the authoring choice belongs to another workflow source" : null}
+  return <WorkflowDraftsList data={props.data} workspace={props.workspace} pointerLimits={props.pointerLimits} conversations={props.conversations} runs={props.runs} pending={props.pending} busy={props.busy} act={props.act} contextHost={props.contextHost} comparisonOutside={props.comparisonOutside} state={state} authoringContextLimit={state.authoring && authoringSource.current !== currentSource ? "the authoring choice belongs to another workflow source" : null}
     update={patch => { if (patch.authoring !== undefined) authoringSource.current = currentSource; if (props.update) props.update(patch); else setState(s => ({ ...s, ...patch })); }} />;
 }
 

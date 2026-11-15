@@ -4,6 +4,7 @@ import {readFileSync} from 'node:fs';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
 import {agentBlocks, agentBlockText} from './support/agent-text.mjs';
+import {choiceLists, chooseIn} from './support/choices.mjs';
 
 // J1 guided path over the workflow studio's existing state and commands.
 // Controlled host views only: no native App, supplier, model or person act.
@@ -122,7 +123,7 @@ test('an existing registered workflow is found, chosen for a conversation and pr
   assert.equal(props(button(ui.c, 'Use resolve-spacing')).disabled, true, 'a selection needs the conversation that keeps it');
   assert.equal(button(ui.c, 'Use old-method'), undefined, 'a non-selectable revision offers no Use');
   assert.match(region(ui.c, 'Workflows ready to use').textContent, /store copy missing/);
-  const select = all(ui.c, 'select')[0]; await React.act(async () => props(select).onChange({target:{value:'T1'}}));
+  const select = choiceLists(ui.c)[0]; await React.act(async () => chooseIn(select, 'T1'));
   await ui.press('Use resolve-spacing');
   assert.deepEqual(ui.calls.at(-1), {command:'workflow_select_listed', args:{libraryRef:'lib:project', name:'resolve-spacing', revision:'rev-2-abcdef0123456789'}});
   await ui.rerender({data:data({selections:selected()})});
@@ -206,7 +207,7 @@ test('a stale workflow source disables every guide command', async () => {
   await clickAll(labels);
   await ui.rerender({host:stale, data:data({selections:selected(), runs:[prepared]})}); await clickAll(['Start the run']);
   await ui.rerender({host:stale, data:data({selections:selected(), runs:[open], offers:[{message:{threadId:'T1'}, finished:{run:'run-o', statement:'s'}}]})}); await clickAll(['End this run', 'End as completed, on the agent\'s report']);
-  assert.equal(props(all(ui.c, 'select')[0]).disabled, true, 'the conversation choice follows the same guard');
+  assert.equal(props(choiceLists(ui.c)[0]).disabled, true, 'the conversation choice follows the same guard');
   assert.deepEqual(ui.calls, [], 'a retained click on a stale control dispatches nothing');
 });
 
@@ -260,7 +261,7 @@ test('the last result is in words with the reply under details, a newer revision
   const twoRevisions = data({libraries:[{...data().libraries[0], registered:[
     {name:'resolve-spacing', sequence:2, revision:'rev-2-abcdef0123456789', label:'registered — selectable', selectable:true},
     {name:'resolve-spacing', sequence:3, revision:'rev-3-abcdef0123456789', label:'registered — selectable', selectable:true}]}]});
-  const newer = {notice:'Revision 3 of resolve-spacing is registered', revision:'rev-3-abcdef0123456789', selectable:true, offered:'Use revision 3 in this conversation'};
+  const newer = {notice:'Revision 3 of resolve-spacing is registered', revision:'rev-3-abcdef0123456789', sequence:3, selectable:true, offered:'Select revision 3'};
   const view = {host:host(), data:{...twoRevisions, selections:[{...selected()[0], selection:{...selected()[0].selection, newerRevision:newer}}]}, thread:'T1',
     outcome:{command:'workflow_select_listed', message:'{"state":"selected","reference":"sel-1"}', failed:false, settled:true}};
   const ui = await mount(view);
@@ -274,7 +275,7 @@ test('the last result is in words with the reply under details, a newer revision
   assert.equal(region(ui.c, 'Run a workflow — last result'), undefined, 'nothing is claimed before the result arrives');
   const note = region(ui.c, 'Newer revision for this conversation');
   assert.match(note.textContent, /A newer revision of resolve-spacing is registered \(Revision 3 of resolve-spacing is registered\)\. This conversation keeps using the one shown above until you choose the newer one\./);
-  await ui.press('Use revision 3 in this conversation');
+  await ui.press('Select revision 3');
   assert.deepEqual(ui.calls.at(-1), {command:'workflow_follow_newer_revision', args:{selectionRef:'sel-1', revision:'rev-3-abcdef0123456789'}});
   assert.ok(button(ui.c, 'Use resolve-spacing revision 3'), 'same-name rows name their revision');
 });

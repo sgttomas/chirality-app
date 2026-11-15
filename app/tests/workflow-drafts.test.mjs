@@ -8,6 +8,7 @@ import {renderToStaticMarkup} from 'react-dom/server';
 import {loadSrc} from './support/load-src.mjs';
 import {agentPlain} from './support/agent-text.mjs';
 import './support/rust-prebuild.mjs';
+import {choiceLists, chooseIn, chosenIn, chosenInMarkup} from './support/choices.mjs';
 
 const {WorkflowDraftsView,WorkflowDraftsList,DraftRow,TrialRow,CompareResult,draftStateWords,attributionWords,fidelityWords,trialSide,runSide,initialDraftsState}=loadSrc('WorkflowDrafts');
 const {RunBringBack,runBringBackDefault}=loadSrc('RunPanel');
@@ -262,9 +263,9 @@ test('actual hot and cold trial projections never default feedback to another ho
   const calls=[];const act=async(command,args)=>{calls.push([command,args]);};
   const props=node=>node[Object.keys(node).find(key=>key.startsWith('__reactProps$'))];
   const named=label=>container.querySelectorAll(node=>node.localName==='button'&&node.textContent===label)[0];
-  const select=()=>container.querySelectorAll(node=>node.localName==='select')[0];
-  const selected=()=>props(select()).value;
-  const change=value=>React.act(()=>props(select()).onChange({target:{value}}));
+  const select=()=>choiceLists(container)[0];
+  const selected=()=>chosenIn(select());
+  const change=value=>React.act(()=>chooseIn(select(),value));
   const press=async label=>{const button=named(label);assert.equal(props(button).disabled,false);await React.act(()=>props(button).onClick());};
   function Row({trial,conversations}) {
     const [state,setState]=React.useState(initialDraftsState);
@@ -452,7 +453,7 @@ test('the list offers the project library, refresh, the authoring conversation c
   const h=renderToStaticMarkup(React.createElement(WorkflowDraftsView,{data,conversations,workspace:true,busy:false,act:async()=>{}}));
   assert.match(h,/Open this App project’s workflow library/);
   assert.match(h,/Refresh draft list/);
-  assert.match(h,/Authoring conversation <select><option value="" selected="">None chosen<\/option>/,'defaults to none');
+  assert.match(h,/<legend>Authoring conversation<\/legend>/);assert.deepEqual(chosenInMarkup(h),{key:'',chosen:true,label:'None chosen'},'defaults to none');
   assert.match(h,/aria-label="Draft load-check"/);
   assert.match(h,/aria-label="Draft site-visit"/);
   assert.match(h,/load-check: written \(absent → draft\); attribution not observed/);

@@ -1,4 +1,4 @@
-import { RecordedData } from "./AgentText";
+import { RecordedData, idWords, plainId } from "./AgentText";
 import { useEffect, useRef, useState } from "react";
 type Json = any;
 const text = (value: Json) => value == null ? "not established" : typeof value === "string" ? value : JSON.stringify(value);
@@ -9,14 +9,26 @@ export const OPEN_AT_APP_SESSION_END_WORDS = "The App session that held this req
 export const requestEndWords = (event: Json): string => event?.kind === "request_open_at_app_session_end"
   ? OPEN_AT_APP_SESSION_END_WORDS
   : event?.kind === "request_ended_unanswered" ? "Recorded by an earlier build as ended unanswered when its App session ended without a record:"
-  : `${text(event?.kind) || "unnamed event"}:`;
+  : `${event?.kind ? idWords(event.kind) : "not established"}:`;
 /** What a restart fact establishes: live work as an earlier App session last recorded it, and
  *  whether it was live when that session ended only where the App recorded that at its quit. */
 export const LAST_RECORDED_LIVE_WORDS = "Live work as an earlier App session last recorded it. That session has ended; whether the work was still live when it ended was not observed.";
 export const RECORDED_AT_QUIT_WORDS = "Live work an earlier App session recorded losing sight of at its quit.";
-export const restartWords = (event: Json): string => event?.kind !== "app_restart_interruption" ? `${text(event?.kind) || "unnamed event"}:`
+export const restartWords = (event: Json): string => event?.kind !== "app_restart_interruption" ? `${event?.kind ? idWords(event.kind) : "not established"}:`
   : event?.liveAtSessionEnd === "recorded-at-quit" ? RECORDED_AT_QUIT_WORDS : LAST_RECORDED_LIVE_WORDS;
 const detail = (value: Json) => <RecordedData value={value} />;
+/** A request identity as the record serializes it (JSON: 1 for an integer, "1" for a string), in the App's words:
+ * the plain identifier, in quotes when the record says it is a string; anything else is named as not plain and is
+ * shown exactly in the entry's recorded data below. */
+const requestIdWords = (serialized: Json, type: Json): string => {
+  if (type === "string" && typeof serialized === "string") {
+    let parsed: unknown = null;
+    try { parsed = JSON.parse(serialized); } catch { parsed = null; }
+    const id = typeof parsed === "string" ? plainId(parsed) : null;
+    return id === null ? "with an identity that is not a plain identifier" : `"${id}"`;
+  }
+  return idWords(serialized);
+};
 
 export function RecoveryCustodyDetails({ data, retry }: { data: Json; retry?: (threadId: string) => void }) {
   const custody = data.custody;
@@ -42,17 +54,17 @@ export function RecoveryCustodyDetails({ data, retry }: { data: Json; retry?: (t
     </article>)}
     <h3>Loss and recovery events observed in this App process</h3>
     <p>A source event is separate from whether its pointer facts reached durable storage. A recovery event reports what Codex history said when the App read it after a restart; the App sent Codex only those history reads, resumed nothing and sent nothing to the conversation.</p>
-    {(custody.live?.events ?? []).map((event: Json, i: number) => <details key={event.eventId ?? i}><summary>{event.kind}: {event.cause ?? event.priorEvents ?? event.outcome} · {text(event.generation ?? event.threadId)}</summary>{detail(event)}</details>)}
+    {(custody.live?.events ?? []).map((event: Json, i: number) => <details key={event.eventId ?? i}><summary>{idWords(event.kind)}: {idWords(event.cause ?? event.priorEvents ?? event.outcome)} · {event.threadId ? `conversation ${idWords(event.threadId)}` : event.generation ? `Codex session ${idWords(event.generation?.spawnCounter)}` : "no conversation recorded"}</summary>{detail(event)}</details>)}
     <h3>Restart facts derived from persisted App records</h3>
     {(custody.restartEvents ?? []).length === 0 && <p>No restart fact was derived from the available App history. See the retained pointers and recovery limits.</p>}
-    {(custody.restartEvents ?? []).map((event: Json, i: number) => <details key={event.eventId ?? i}><summary>{restartWords(event)} Home {event.home}, thread {event.threadId}, prior session {event.priorSession}</summary>{detail(event)}</details>)}
+    {(custody.restartEvents ?? []).map((event: Json, i: number) => <details key={event.eventId ?? i}><summary>{restartWords(event)} Home {idWords(event.home)}, thread {idWords(event.threadId)}, prior session {idWords(event.priorSession)}</summary>{detail(event)}</details>)}
     <h3>Requests an earlier App session left recorded open</h3>
     <p>These are endings recorded when a later App session started. They cannot be answered in this App session.</p>
-    {(custody.requestEndEvents ?? []).map((event: Json, i: number) => <details key={event.eventId ?? i}><summary>{requestEndWords(event)} {event.entry.method} · {text(event.entry.subject?.threadId)} · recorded {event.at}</summary>{detail(event)}</details>)}
+    {(custody.requestEndEvents ?? []).map((event: Json, i: number) => <details key={event.eventId ?? i}><summary>{requestEndWords(event)} {idWords(event.entry.method)} · {idWords(event.entry.subject?.threadId)} · recorded {idWords(event.at)}</summary>{detail(event)}</details>)}
     <h3>Persisted conversation pointer history</h3>
     <p>{data.historicalScope}</p>
     {(custody.historicalConversations ?? []).map((row: Json, i: number) => <article key={i}>
-      <h4>Home {row.index.home} · thread {row.index.threadId}</h4>
+      <h4>Home {idWords(row.index.home)} · thread {idWords(row.index.threadId)}</h4>
       <p>{row.standing}</p>
       <p>Execution source generation: {text(row.executionGeneration)}. Last observed state: {text(row.index.lastObservedExecution?.state)}; live-turn pointer: {text(row.index.lastObservedExecution?.liveTurn)}.</p>
       <p>Execution index project: {text(row.index.project)}; observation session: {text(row.index.session)}. Latest metadata append session: {text(row.metadataIndex?.session)}; metadata project: {text(row.metadataIndex?.project)}.</p>
@@ -103,7 +115,7 @@ export function RecoveryRequestHistory({ modeHomeClass, generation, read }: { mo
       {data.page.entries.map((entry: Json, i: number) => {
         const summary = entry.summary;
         return <details key={JSON.stringify([summary.generation, summary.requestIdentity]) + i}>
-          <summary>{text(summary.endedAs)}: {summary.method} · request {summary.requestIdentity}{entry.requestIdentityType === "legacy-unknown" ? " (legacy type unknown)" : ""} · recorded {summary.at}</summary>
+          <summary>{idWords(summary.endedAs)}: {idWords(summary.method)} · request {requestIdWords(summary.requestIdentity, entry.requestIdentityType)}{entry.requestIdentityType === "legacy-unknown" ? " (legacy type unknown)" : ""} · recorded {idWords(summary.at)}</summary>
           {summary.endedAs === "open-at-app-session-end" && <p>{OPEN_AT_APP_SESSION_END_WORDS}</p>}
           <p>Source home: {text(entry.sourceGeneration?.home)}; source App session: {text(entry.sourceGeneration?.appSession)}; spawn: {text(entry.sourceGeneration?.spawnCounter)}.</p>
           <p>Transition: {summary.transition}; context: {text(summary.context)}; reply write: {summary.replyWrite}; acknowledgment: {summary.acknowledgment}.</p>

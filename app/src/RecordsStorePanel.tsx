@@ -1,4 +1,4 @@
-import { AgentText } from "./AgentText";
+import { AgentText, idWords, numberWords } from "./AgentText";
 import { useRef, useState } from "react";
 import { REFRESH_FAILED } from "./statusRefresh";
 
@@ -149,7 +149,7 @@ function LogIntegrity({ chain, heads, busy, act }: { chain: Json; heads: Json; b
       {broken.length > 0
         ? <><p role="alert">Checked now: {count(broken.length, "broken chain link")} in {count(logs.length, "log")}. Each is kept as it is and never repaired:</p><ul>{broken.map((line, i) => <li key={i}>{line}</li>)}</ul></>
         : !limited && <p role="status">Checked now: {logs.length === 0 ? "chain integrity is not established for every log." : `${count(logs.length, "log")}; no chain is reported broken.`}</p>}
-      {notes.length > 0 && <details><summary>{count(notes.length, "reader note or limit", "reader notes or limits")}</summary><ul>{notes.map((note, i) => <li key={i}>{note}</li>)}</ul></details>}
+      {notes.length > 0 && <details><summary>{notes.length === 1 ? "1 reader note or limit" : `${numberWords(notes.length)} reader notes or limits`}</summary><ul>{notes.map((note, i) => <li key={i}>{note}</li>)}</ul></details>}
     </div>}
     <p><small>{CHAIN_LIMIT}</small></p>
   </div>;
@@ -270,7 +270,7 @@ export function RecordsStoreView({ store, chain, outcome = null, heads = null, b
       </p>}
       {(retention?.disposition === "disposal incomplete" || retention?.disposition === "completion durability uncertain") && <p role="alert">Disposal or completion publication is unconfirmed and recording is blocked. {retention.legalHold ? <small>Legal hold blocks further disposal.</small> : packageBlocked ? null : attachment?.projectId && !attachment?.refusal ? <button disabled={busy} onClick={()=>act("records_store_retention",{action:"resume-disposal"})}>Finish disposal</button> : <small>The disposal can be finished once this folder is attached to its records again; restore the project file first.</small>}</p>}
       {project.notImported > 0 && kept && !retention.closed && !packageBlocked && <p>
-        <button disabled={busy} onClick={() => act("records_store_import")}>Import {String(project.notImported)} record file(s){project.notImportedKinds ? ` (${String(project.notImportedKinds)})` : ""}</button>{" "}
+        <button disabled={busy} onClick={() => act("records_store_import")}>Import {idWords(project.notImported)} record file(s){project.notImportedKinds ? ` (${String(project.notImportedKinds)})` : ""}</button>{" "}
         <small>{String(project.importStanding ?? "")}</small>
       </p>}
       {attachment?.projectId && !attachment?.refusal && project.reading === "records store" && <LogIntegrity chain={chain} heads={heads} busy={busy} act={act}/>}

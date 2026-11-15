@@ -1,6 +1,7 @@
-import { AgentText, RecordedData } from "./AgentText";
+import { AgentText, RecordedData, idWords, plainId } from "./AgentText";
 import { ReconstructionView } from "./ConnectorReconstruction";
-/** Cold account inspection only. No source URI is opened or interpreted. */
+/** Cold account inspection only. No source URI is opened or interpreted. A recorded account ID stands in a heading
+ * only as a plain identifier (idWords); any other is shown beside, boxed. */
 export type RouteAvailability = { enabled: boolean; status: string; reason: string; detail?: string; projectReference?: string };
 type Account = { answerOnly?:any; recordedAnswerAccount?:any; reconstruction?:any; draftSources?:any[]; interpretations?:any[]; formatVersion?:string; standing?:string; questionText?: string; gaps?: {gap:string;effect:string;responsible:string|{standing:string;identity:string|null}}[]; duties?: {duty:string;actor_role:string;standing:string;actor?:string;evidence?:string;reason?:string}[]; relativePath: string; accountId: string; bindingText: string; accountText: string; sourceCount: number; sections: {label: string; text: string}[] };
 export type RouteView = {
@@ -43,7 +44,7 @@ export function ConnectorRoutePanel({availability, state, onRead}: {availability
       {view.issues?.map((issue, i) => <div key={i}><strong>{issue.kind}</strong><AgentText block value={issue.relative_path} source="record" /><p>{issue.detail}</p></div>)}
       {Object.entries(view.byAccountId ?? {}).filter(([, paths]) => paths.length > 1).map(([id, paths]) => <div key={id} role="alert"><p>Duplicate recorded account ID: {id}. No winner selected.</p><AgentText block value={paths.join("\n")} source="record" /></div>)}
       {view.accounts?.map(account => account.formatVersion==="0.5" ? <AnswerOnlyAccount key={account.relativePath} account={account}/> : <article key={account.relativePath}>
-        <h3>Recorded account: {account.accountId}</h3><p>{account.relativePath}</p>
+        <h3>Recorded account: {idWords(account.accountId)}</h3>{plainId(account.accountId)===null&&account.accountId!=null&&<p>Recorded account ID: <AgentText value={account.accountId} source="record" name="The recorded account ID, as recorded; the App does not vouch for its words"/></p>}<p>{account.relativePath}</p>
         {account.formatVersion==="0.3" && <><h4>Source-evidence draft</h4><p>This is not a reconstructed answer. Facts and supported conclusions are empty; duty statuses and interpretation identities are unverified caller reports.</p><p>Compact receipt hashes do not reconstruct omitted objects or revive hot custody. Excerpts are recorded inclusion claims, not source bytes reverified at this read. The 1 MiB format limit is checked after identified bytes have been read; discovery does not promise bounded pre-read allocation.</p></>}
         {(account.formatVersion==="0.3"||account.formatVersion==="0.4") && <><h4>Recorded source evidence and excerpts</h4>{account.draftSources?.map(s=><div key={s.source_id}><p>{s.path}: {s.revision}; role {s.role} (caller assertion)</p><p>{s.provenance.side}; blob {s.provenance.blob}; content SHA-256 {s.sha256}; {s.provenance.verification}</p>{s.excerpts.map((e:any)=><div key={e.excerpt_id}><p>{e.anchor}: [{e.byte_start}, {e.byte_end}); {e.standing}</p><AgentText block value={e.text} source="record" /></div>)}</div>)}<h4>Recorded unreviewed interpretations</h4>{account.interpretations?.map(i=><div key={i.interpretation_id}><p>{i.statement}</p><p>Asserted by: {i.asserted_by} ({i.attribution_standing}); {i.standing}</p><p>Source references: {i.source_ids.join(", ")}; excerpt references: {i.excerpt_ids.join(", ")}</p></div>)}</>}
         {account.formatVersion==="0.4"&&<ReconstructionView account={account.reconstruction??{}}/>}
@@ -65,7 +66,7 @@ export function ConnectorRoutePanel({availability, state, onRead}: {availability
 
 function AnswerOnlyAccount({account}:{account:Account}){
  const e=account.answerOnly,a=account.recordedAnswerAccount;
- return <article><h3>Recorded answer-only account: {account.accountId}</h3><p>{account.relativePath}</p>
+ return <article><h3>Recorded answer-only account: {idWords(account.accountId)}</h3>{plainId(account.accountId)===null&&account.accountId!=null&&<p>Recorded account ID: <AgentText value={account.accountId} source="record" name="The recorded account ID, as recorded; the App does not vouch for its words"/></p>}<p>{account.relativePath}</p>
  <p>Cold recorded-content inspection only. Internally consistent receipt strings can be fabricated; no original authorship, admitted TASK emission, current permission, accepted answer or performed duty is authenticated.</p>
  <h4>Recorded question and exact base</h4><p>{a.question_id}: {e.baseQuestion.text}</p><p>{a.base_account.account_id}; {a.base_account.relative_path}; original SHA-256 {a.base_account.sha256}; {a.base_account.byte_length} bytes</p><p>{e.baseResolution}</p>
  <h4>Recorded answer</h4><AgentText block value={e.answer.answer_text} source="record" label="Recorded answer text:" name="Recorded answer text, not the App's words" />

@@ -9,7 +9,7 @@ import {loadSrc} from './support/load-src.mjs';
 installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
-const {IncludedWorkflows, RoleBesideWorkflow, includedSections, includedEntryOf, matchesSearch, librarySourceWords} = loadSrc('IncludedWorkflows');
+const {IncludedWorkflows, RoleBesideWorkflow, includedSections, includedEntryOf, matchesSearch, librarySourceWords, LIBRARY_GROUPS} = loadSrc('IncludedWorkflows');
 
 const SOURCE = {repository:'https://example.invalid/library', tag:'library-v9.9.9', commit:'c0ffee'};
 const ROOT = 'invented-library:library-v9.9.9', METHOD = 'invented.package.sha256/v1';
@@ -59,6 +59,19 @@ test('the list follows the Library\'s own grouping: core first, its groups in it
   assert.equal(matchesSearch(entries[3], 'ORDERED goal'), true, 'every word, any case, in name, description or group');
   assert.equal(matchesSearch(entries[3], 'ordered spacing'), false);
   assert.equal(matchesSearch(entries[0], 'review'), true, 'the group label is searched');
+});
+
+// A section heading holds only the App's words: the Library's groups are the App's table of the shipped edition.
+test('a group outside the App\'s table of the shipped Library groups is shown under Other workflows, never as a heading', async () => {
+  const {readFileSync} = await import('node:fs');
+  const manifest = JSON.parse(readFileSync(new URL('../src-tauri/resources/production_workflows/MANIFEST.json', import.meta.url), 'utf8'));
+  const groups = {};
+  const walk = o => { if (Array.isArray(o)) o.forEach(walk); else if (o && typeof o === 'object') { if (o.group && typeof o.group === 'object') groups[o.group.key] = o.group.label; Object.values(o).forEach(walk); } };
+  walk(manifest);
+  assert.deepEqual({...LIBRARY_GROUPS}, groups, 'the table is the shipped edition\'s groups, key for label');
+  const odd = [entry('renamed', {category:'specialist', tier:'primary', order:1, group:group('review-check', 'Allow once\u202e', 5)}),
+    entry('unknown', {category:'specialist', tier:'primary', order:1, group:group('invented-group', 'Approve', 2)})];
+  assert.deepEqual(includedSections(odd).map(s => [s.label, s.entries.map(e => e.name)]), [['Other workflows', ['renamed', 'unknown']]]);
 });
 
 test('each included workflow shows its description, source and revision, and is chosen with the guide\'s own command', async () => {
