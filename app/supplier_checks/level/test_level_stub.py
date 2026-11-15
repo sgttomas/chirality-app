@@ -500,3 +500,57 @@ class LiveRequirement(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
+
+
+class ProcessObservation(unittest.TestCase):
+    """The running-command rows observe a process by number alone. Gone needs positive evidence; a failed
+    observation is unknown, never gone."""
+
+    class Done:
+        def __init__(self, code, out):
+            self.returncode, self.stdout = code, out
+
+    def kill_alive(self, pid, sig):
+        return None
+
+    def kill_gone(self, pid, sig):
+        raise ProcessLookupError
+
+    def test_present_and_gone_on_positive_evidence(self):
+        self.assertEqual(L.observe_process(7, kill=self.kill_alive, run=lambda *a, **k: self.Done(0, 'Sat Nov 14 10:00:00 2026\n')),
+                         ('present', 'Sat Nov 14 10:00:00 2026'))
+        self.assertEqual(L.observe_process(7, kill=self.kill_gone, run=lambda *a, **k: self.fail('no ps when gone')), ('gone', None))
+
+    def test_ps_failing_or_printing_nothing_is_unknown_not_gone(self):
+        for done in (self.Done(1, ''), self.Done(0, ''), self.Done(0, '  \n')):
+            with self.subTest(code=done.returncode, out=done.stdout):
+                with self.assertRaises(L.Unobserved):
+                    L.observe_process(7, kill=self.kill_alive, run=lambda *a, **k: done)
+
+    def test_a_process_that_ends_between_the_two_observations_is_established_gone(self):
+        calls = []
+        def kill(pid, sig):
+            calls.append(sig)
+            if len(calls) > 1:
+                raise ProcessLookupError
+        self.assertEqual(L.observe_process(7, kill=kill, run=lambda *a, **k: self.Done(1, '')), ('gone', None))
+
+    def test_a_row_relying_on_a_failed_observation_fails(self):
+        def failed(pid):
+            raise L.Unobserved('invented')
+        with self.assertRaises(L.Unobserved):
+            L.still_running(7, 'at', observe=failed)
+
+    def test_a_reused_number_is_not_the_same_process(self):
+        self.assertFalse(L.still_running(7, 'earlier', observe=lambda pid: ('present', 'later')))
+        self.assertTrue(L.still_running(7, 'same', observe=lambda pid: ('present', 'same')))
+
+    def test_cleanup_tries_to_end_an_unobserved_process(self):
+        ended = []
+        def failed(pid):
+            raise L.Unobserved('invented')
+        L.end_known({'a': (7, 'at')}, observe=failed, kill=lambda pid, sig: ended.append(pid))
+        self.assertEqual(ended, [7])
+        ended.clear()
+        L.end_known({'a': (7, 'at')}, observe=lambda pid: ('gone', None), kill=lambda pid, sig: ended.append(pid))
+        self.assertEqual(ended, [])

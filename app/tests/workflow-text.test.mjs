@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
+import {agentBlocks, agentBlockText} from './support/agent-text.mjs';
 
 // Reading a workflow's own text in Run a workflow: under an included entry's
 // About, and beside the chosen workflow. Controlled host views and an invented
@@ -33,6 +34,8 @@ function data(over = {}) {
 }
 // The text as a workflow might write it: markup and Markdown that must be shown, never rendered.
 const TEXT = '---\nname: alpha-flow\n---\n# Alpha\n\n<b>not markup</b> **not bold** [not a link](https://example.invalid)\n\tindented line\n';
+// As shown: the tab is a mark (AgentText shows tabs and control characters as marks, never acting on them).
+const SHOWN = TEXT.replace(/\t/g, '→');
 const readReply = (id, text = TEXT) => ({state:'read', target:{}, identity:id, text, bytes:new TextEncoder().encode(text).length,
   files:[{path:'notes/README.md', bytes:42}, {path:'scripts/run.py', bytes:7}], matched:true, standing:'invented standing'});
 
@@ -60,7 +63,7 @@ async function mount(view) {
 }
 const settle = async (pending, value, how = 'resolve') => React.act(async () => { pending[how](value); await Promise.resolve(); });
 // The App's own words around a text: the region without the text itself.
-const ownWords = (c, label) => { const r = region(c, label); const pre = all(r, 'pre')[0]; return r.textContent.replace(pre ? pre.textContent : '', ''); };
+const ownWords = (c, label) => { const r = region(c, label); const pre = agentBlocks(r)[0]; return r.textContent.replace(pre ? pre.textContent : '', ''); };
 const NO_CLAIM = /\b(requires?|required|requirements?|needs?|available|availability|missing|present|ready|works?|working|will run|can run|runnable|compatible|supported|safe|tools?|valid|summary|means)\b/i;
 
 test('an included entry\'s text is read when pressed, shown literally with its identity, and the words claim nothing of fitness', async () => {
@@ -75,16 +78,16 @@ test('an included entry\'s text is read when pressed, shown literally with its i
     assert.ok(button(ui.c, "Reading alpha-flow's text…") && props(button(ui.c, "Reading alpha-flow's text…")).disabled);
     await settle(read, readReply(identity('alpha-flow', REV)));
     const shown = region(ui.c, 'Text of alpha-flow');
-    const pre = all(shown, 'pre')[0];
-    assert.equal(pre.textContent, TEXT, 'exactly as read');
+    const pre = agentBlocks(shown)[0];
+    assert.equal(agentBlockText(pre), SHOWN, 'as read, with the tab as a mark');
     assert.equal(all(pre, 'b').length + all(pre, 'strong').length + all(pre, 'a').length + all(pre, 'h1').length, 0, 'nothing in the text is rendered');
     const words = ownWords(ui.c, 'Text of alpha-flow');
-    assert.match(words, /The WORKFLOW\.md of alpha-flow — included with the App, from Chirality Library 9\.9\.9, revision alpha-revisi…, as the App read it when you asked \(\d+ bytes\)\. Its files matched this revision when they were read\. Shown exactly as read\./);
+    assert.match(words, /The WORKFLOW\.md of alpha-flow — included with the App, from Chirality Library 9\.9\.9, revision alpha-revisi…, as the App read it when you asked \(\d+ bytes\)\. Its files matched this revision when they were read\. Shown as read, with tabs and any control or invisible characters shown as marks\./);
     assert.match(words, /This revision's other 2 files/); assert.match(words, /notes\/README\.md \(42 bytes\)/); assert.match(words, /scripts\/run\.py \(7 bytes\)/);
     assert.doesNotMatch(words, NO_CLAIM, `the App's words make no claim about requirements or fitness: ${words}`);
     // Hidden, it is gone; read again, it asks the host again.
     await ui.press("Hide alpha-flow's text");
-    assert.equal(all(region(ui.c, 'Text of alpha-flow'), 'pre').length, 0);
+    assert.equal(agentBlocks(region(ui.c, 'Text of alpha-flow')).length, 0);
     await ui.press("Read alpha-flow's text");
     assert.equal(h.of('workflow_read_text').length, 2);
   } finally { await ui.close(); h.restore(); }
@@ -97,7 +100,7 @@ test('a refusal is said with the host\'s reason and never as an empty workflow',
     await settle(h.of('workflow_read_text')[0], {state:'refused', target:{}, identity:identity('alpha-flow', REV),
       reason:'the App could not read this revision\'s files and tie them to its identity', cause:'revision not verified', standing:'no text was returned'});
     const shown = region(ui.c, 'Text of alpha-flow');
-    assert.equal(all(shown, 'pre').filter(p => !ancestors(p).some(a => a.localName === 'details')).length, 0, 'no text block');
+    assert.equal(agentBlocks(shown).filter(p => !ancestors(p).some(a => a.localName === 'details')).length, 0, 'no text block');
     const alert = all(shown, 'p').find(p => p.getAttribute('role') === 'alert');
     assert.equal(alert.textContent, "The App did not show alpha-flow's text: the App could not read this revision's files and tie them to its identity.");
     assert.match(shown.textContent, /What the App reported.*revision not verified/s);
@@ -110,7 +113,7 @@ test('a refusal is said with the host\'s reason and never as an empty workflow',
     // An empty text that the host read and matched is shown as an empty text, never confused with a refusal.
     await ui.press("Read alpha-flow's text again");
     await settle(h.of('workflow_read_text')[2], readReply(identity('alpha-flow', REV), ''));
-    assert.equal(all(region(ui.c, 'Text of alpha-flow'), 'pre')[0].textContent, '');
+    assert.equal(agentBlockText(agentBlocks(region(ui.c, 'Text of alpha-flow'))[0]), '');
     assert.match(region(ui.c, 'Text of alpha-flow').textContent, /\(0 bytes\)/);
   } finally { await ui.close(); h.restore(); }
 });
@@ -132,10 +135,10 @@ test('text read for one identity is not shown under another', async () => {
   try {
     await ui.press("Read alpha-flow's text");
     await settle(h.of('workflow_read_text')[0], readReply(identity('alpha-flow', REV)));
-    assert.equal(all(region(ui.c, 'Text of alpha-flow'), 'pre')[0].textContent, TEXT);
+    assert.equal(agentBlockText(agentBlocks(region(ui.c, 'Text of alpha-flow'))[0]), SHOWN);
     // The entry's revision changes: the earlier text is not shown under the new one.
     await ui.rerender({data:data({productionCatalog:catalogue(REV2)})});
-    assert.equal(all(region(ui.c, 'Text of alpha-flow'), 'pre').length, 0);
+    assert.equal(agentBlocks(region(ui.c, 'Text of alpha-flow')).length, 0);
     assert.match(region(ui.c, 'Text of alpha-flow').textContent, /The text read earlier here was of another workflow or revision; it is not shown\./);
     assert.ok(button(ui.c, "Read alpha-flow's text"));
     // A reply that arrives for a superseded read is not applied.
@@ -147,7 +150,7 @@ test('text read for one identity is not shown under another', async () => {
     await settle(late, readReply(identity('alpha-flow', REV2), 'late text'));
     assert.ok(button(ui.c, "Reading alpha-flow's text…"), 'the later read is still the one awaited');
     await settle(h.of('workflow_read_text')[2], readReply(identity('alpha-flow', REV)));
-    assert.equal(all(region(ui.c, 'Text of alpha-flow'), 'pre')[0].textContent, TEXT);
+    assert.equal(agentBlockText(agentBlocks(region(ui.c, 'Text of alpha-flow'))[0]), SHOWN);
   } finally { await ui.close(); h.restore(); }
 });
 
@@ -193,14 +196,14 @@ test('the chosen workflow\'s text is read as the conversation\'s selection and f
     assert.deepEqual(read.args.target, {kind:'selection', revision:PROJECT.revision});
     assert.equal(read.args.context.threadId, 'T1'); assert.equal(read.args.context.selectionRef, 'sel-1');
     await settle(read, readReply(PROJECT, 'project text\n'));
-    assert.equal(all(region(ui.c, 'Text of resolve-spacing'), 'pre')[0].textContent, 'project text\n');
+    assert.equal(agentBlockText(agentBlocks(region(ui.c, 'Text of resolve-spacing'))[0]), 'project text\n');
     const words = ownWords(ui.c, 'Text of resolve-spacing');
     assert.match(words, /The WORKFLOW\.md of resolve-spacing — project library, revision rev-2-abcdef…/);
     assert.doesNotMatch(words, NO_CLAIM, words);
     // Another revision chosen for the conversation: the earlier text is not shown under it.
     const newer = {...PROJECT, revision:'rev-3-0123456789abcdef'};
     await ui.rerender({data:data({selections:[{...selections(newer)[0], selection:{...selections(newer)[0].selection, reference:'sel-2'}}]})});
-    assert.equal(all(region(ui.c, 'Text of resolve-spacing'), 'pre').length, 0);
+    assert.equal(agentBlocks(region(ui.c, 'Text of resolve-spacing')).length, 0);
     assert.ok(button(ui.c, "Read resolve-spacing's text"));
     // No conversation chosen: no chosen workflow, so no control.
     await ui.rerender({thread:''});
@@ -218,7 +221,7 @@ test('a text asked for is still shown, its entry open, when the withheld steps c
     assert.equal(region(ui.c, 'Text of alpha-flow'), undefined, 'no step is shown while withheld');
     await ui.rerender({viewStale:false});
     const shown = region(ui.c, 'Text of alpha-flow');
-    assert.equal(all(shown, 'pre')[0].textContent, TEXT, 'the text is there when the steps come back');
+    assert.equal(agentBlockText(agentBlocks(shown)[0]), SHOWN, 'the text is there when the steps come back');
     const open = ancestors(shown).filter(a => a.localName === 'details');
     assert.equal(open.length, 2, 'inside its About and its group');
     assert.ok(open.every(d => props(d).open === true), 'both are drawn open');

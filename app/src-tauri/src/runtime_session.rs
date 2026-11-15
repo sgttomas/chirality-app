@@ -1751,15 +1751,40 @@ pub fn read_decision_packages(workspace: &std::path::Path) -> Value {
     view
 }
 
+/// The closed set of sentences `reopenedNotRead.words` takes, with nothing interpolated: the
+/// App's own words. Anything variable (the reading's own reason, the project's path) is in its
+/// own field.
+pub(crate) const REOPEN_NOT_READ_WORDS: [&str; 2] = [
+    "No project is open, so there are no recorded runs to read.",
+    "The project's recorded runs could not be read.",
+];
+/// The person's Reopen and the launch's one reading: [`read_reopened_history`]. Where it cannot
+/// read, nothing is stored and nothing else is stopped; the reopened view says it was not read,
+/// in one of [`REOPEN_NOT_READ_WORDS`], with the reason given apart (`detail`, and `project`, the
+/// folder's path), both of them text the App did not choose. A later reading that reads replaces
+/// it.
+pub(crate) fn reopen_recorded(workflows: &std::sync::Mutex<WorkflowRootSession>, project: Result<&std::path::Path, &str>, events: &[Value], homes: &[std::sync::Arc<HomeSession>]) -> Result<Value, String> {
+    let (words, path) = match project {
+        Ok(path) => (REOPEN_NOT_READ_WORDS[1], Some(path.display().to_string())),
+        Err(_) => (REOPEN_NOT_READ_WORDS[0], None),
+    };
+    let outcome = project.map_err(str::to_owned).and_then(|project| read_reopened_history(workflows, project, events, homes));
+    let mut root = workflows.lock().unwrap();
+    root.reopened_not_read = outcome.as_ref().err().map(|detail| json!({"state":"not read","words":words,"detail":detail,"project":path}));
+    outcome
+}
 pub(crate) fn read_reopened_history(workflows: &std::sync::Mutex<WorkflowRootSession>, project: &std::path::Path, events: &[Value], homes: &[std::sync::Arc<HomeSession>]) -> Result<Value, String> {
     // See records_store::HistoryRead for the shared-reader check and slice 2.
+    // When this reading of the records began, given on the view it stores and returns.
+    let read_at = crate::util::now_rfc3339();
     let reading = crate::records_store::HistoryRead::begin(project);
     let (view, generation) = {
         let mut root = workflows.lock().unwrap();
         root.reopened_generation += 1;
         (root.reopen_for_learning(project, events, homes)?, root.reopened_generation)
     };
-    let view = reading.attach(project, view);
+    let mut view = reading.attach(project, view);
+    view["readAt"] = json!(read_at);
     let mut root = workflows.lock().unwrap();
     if root.reopened_generation == generation { root.reopened = Some(view.clone()); }
     Ok(view)
@@ -3870,11 +3895,15 @@ for line in sys.stdin:
             }
         }
         fn behavior(&self, value: Value) {
+            // Startup requests can read this control concurrently. Publish a
+            // complete invented behavior, as emit does for queued events.
+            let temporary = self.root.join("behavior.pending");
             std::fs::write(
-                self.root.join("behavior.json"),
+                &temporary,
                 serde_json::to_vec(&value).unwrap(),
             )
             .unwrap();
+            std::fs::rename(temporary, self.root.join("behavior.json")).unwrap();
         }
         fn wire(&self) -> Vec<Value> {
             std::fs::read_to_string(self.root.join("wire.jsonl"))
@@ -4552,6 +4581,9 @@ pub(crate) struct WorkflowRootSession {
     /// Last durable reopen of the explicit project's records (display only).
     reopened: Option<Value>,
     reopened_generation: u64,
+    /// Why the latest reading of the recorded runs did not read, while it did not; `reopened`,
+    /// if present, is then from an earlier reading.
+    reopened_not_read: Option<Value>,
     /// V10 G-5: per-run "end notice must go first" flags, readable without the
     /// run's lock, so a busy run never blocks ordinary text by itself.
     notice_flags: std::collections::HashMap<String, std::sync::Arc<std::sync::atomic::AtomicBool>>,
@@ -4605,6 +4637,7 @@ impl Default for WorkflowRootSession {
             conversations: Default::default(),
             reopened: None,
             reopened_generation: 0,
+            reopened_not_read: None,
             notice_flags: Default::default(),
             held_successors: Default::default(),
             app_user_data: None,
@@ -4749,6 +4782,7 @@ impl WorkflowRootSession {
             }).collect::<Vec<_>>(),
             "afterRunEnd":self.after_run_end.view(),
             "reopened":self.reopened,
+            "reopenedNotRead":self.reopened_not_read,
             "restartLimits":self.restart_limits,
             "endedAfterRelaunch":self.reopened_ends_view(),
             "drafts":self.active_library.as_deref().map(|l|self.drafts_view(l)),
@@ -5352,6 +5386,7 @@ impl WorkflowRootSession {
             &selected.selected_at,
             &crate::util::now_rfc3339(),
         )?;
+        let initial_refusal = publication.admission_refusal();
         let client_id = crate::util::opaque_id("workflow-message:")?;
         let retention_activity=crate::records_retention::activity(&project_root)?;
         let mut workflow_run = WorkflowRun {
@@ -5369,7 +5404,10 @@ impl WorkflowRootSession {
             source: None,
             attempted: false,
             turn_id: None,
-            status: json!({"state":"prepared; WR records pending; not sent","recorded":false,"sent":false,"supplied":"not supplied","adoption":"unknown","runStanding":"not opened: a run opens when its start turn is observed","otherFiles":files.describe()}),
+            status: match initial_refusal {
+                Some(limit) => json!({"state":"not saved; nothing was sent; start again to record it","limit":limit,"recorded":false,"sent":false,"supplied":"not supplied","retryAvailable":false,"adoption":"unknown","runStanding":"not opened","otherFiles":files.describe()}),
+                None => json!({"state":"prepared; WR records pending; not sent","recorded":false,"sent":false,"supplied":"not supplied","adoption":"unknown","runStanding":"not opened: a run opens when its start turn is observed","otherFiles":files.describe()}),
+            },
             supply: Value::Null,
             checks: Vec::new(),
             follows: prior.map(|(run, _)| run),
@@ -5845,6 +5883,7 @@ impl WorkflowRootSession {
             &crate::util::now_rfc3339(),
             &generation,
         )?;
+        let initial_refusal = publication.admission_refusal();
         let end = ReopenedEnd {
             learning_pointers: Default::default(),
             home,
@@ -5854,7 +5893,8 @@ impl WorkflowRootSession {
             notice: NoticeState::Prepared(publication),
             notice_record_failure: None,
             notice_flag: std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false)),
-            status: json!({"state":"run ended by the person after a relaunch; its end notice is pending"}),
+            status: initial_refusal.as_deref().map(unsaved_notice_result)
+                .unwrap_or_else(|| json!({"state":"run ended by the person after a relaunch; its end notice is pending"})),
         };
         end.sync_notice_flag();
         let view = end.notice.view();
@@ -6450,6 +6490,11 @@ fn claim_prepared_notice(
     let NoticeState::Prepared(publication) = &*notice else {
         return Err("No end notice is pending for this run; nothing sent".into());
     };
+    if let Some(limit) = publication.admission_refusal() {
+        *record_failure = Some(limit.clone());
+        *status = unsaved_notice_result(&limit);
+        return Err(limit);
+    }
     let published = match publication.publish(project) {
         Ok(p) => {
             *record_failure = None;
@@ -6585,7 +6630,7 @@ impl ReopenedEnd {
         if !self.notice.awaiting_turn() {
             return Err("No end notice is pending for this run".into());
         }
-        let Some(failure) = self.notice_record_failure.clone() else {
+        let Some(failure) = self.notice_record_failure.clone().or_else(|| self.notice.admission_refusal()) else {
             return Err("The end-notice record has not failed to be written; the next ordinary turn carries the notice. Nothing recorded".into());
         };
         let NoticeState::Prepared(publication) = &self.notice else {
@@ -6610,6 +6655,11 @@ impl ReopenedEnd {
         let NoticeState::Prepared(publication) = &self.notice else {
             return Ok(json!({"endNotice":self.notice.view()}));
         };
+        if let Some(limit) = publication.admission_refusal() {
+            self.notice_record_failure = Some(limit.clone());
+            self.status = unsaved_notice_result(&limit);
+            return Ok(self.status.clone());
+        }
         match publication.publish(&self.project) {
             Ok(p) => {
                 self.notice_record_failure = None;
@@ -6625,6 +6675,10 @@ impl ReopenedEnd {
 const NOTICE_RUN_BUSY: &str = "The end notice of a run in this conversation must go first, and that run is busy (for example checking history); nothing sent. Try again shortly";
 const NOTICE_HELD_BY_START: &str = "A workflow run is starting in this conversation; its chain line says the earlier run ended, so that run's end notice waits for the start's outcome. Nothing sent. Try again shortly";
 const NOTICE_IN_FLIGHT: &str = "The end notice of a run in this conversation is going first in another new turn now; nothing sent. Try again shortly";
+fn unsaved_notice_result(limit: &str) -> Value {
+    json!({"state":"not saved; cannot be saved from within the App","limit":limit,"retryAvailable":false,
+        "choices":["Send without the end notice (recorded as not supplied)"]})
+}
 /// One new turn's claim on a pending end notice (TC-2): the notice's exact
 /// published text scoped to the current generation, and the client message
 /// identity its turn carries (the supply check locates the turn by it).
@@ -6781,6 +6835,9 @@ enum NoticeState {
     Skipped,
 }
 impl NoticeState {
+    fn admission_refusal(&self) -> Option<String> {
+        match self { Self::Prepared(p) => p.admission_refusal(), _ => None }
+    }
     fn awaiting_turn(&self) -> bool {
         matches!(self, Self::AwaitingTurn | Self::Prepared(_))
     }
@@ -6798,7 +6855,10 @@ impl NoticeState {
         match self {
             Self::None => Value::Null,
             Self::AwaitingTurn => json!({"state":"pending: the next ordinary turn in this conversation carries it"}),
-            Self::Prepared(p) => json!({"state":"pending: not yet sent (its record or its send did not complete); the next ordinary turn carries it","record":p.reference()}),
+            Self::Prepared(p) => match p.admission_refusal() {
+                Some(limit) => json!({"state":"not saved; end notice not sent","record":p.reference(),"admissionRefusal":limit,"retryAvailable":false}),
+                None => json!({"state":"pending: not yet sent (its record or its send did not complete); the next ordinary turn carries it","record":p.reference()}),
+            },
             Self::Carrying{publication,..} => json!({"state":"sending: going first in a new turn now; it stays pending if that turn is not written","record":publication.reference()}),
             Self::Sent{published,turn,outcome,..} => json!({"state":"sent once with the next ordinary turn","record":published.run_text_record().reference(),"turn":turn,"outcome":outcome}),
             Self::Superseded(run) => json!({"state":"not sent: the successor run's chain line said the run ended","successor":run}),
@@ -6843,6 +6903,10 @@ impl WorkflowCheckSlot {
         record_ready: bool,
         set: crate::records::RecordSet,
     ) -> Option<crate::records::supply::PendingRunEntry> {
+        if let Some(limit) = self.pending.admission_refusal() {
+            self.publication_failure = Some(limit);
+            return None;
+        }
         if self.published.is_none() {
             match self.pending.publish(project) {
                 Ok(p) => {
@@ -6888,14 +6952,18 @@ impl WorkflowCheckSlot {
     }
     fn view(&self) -> Value {
         let body = self.pending.body();
+        let initial_refusal = self.pending.admission_refusal();
         let r3 = match &self.r3 {
+            WorkflowR3::AwaitingCheck if initial_refusal.is_some() => json!({"state":"not recorded; original check was not saved and cannot be saved"}),
             WorkflowR3::AwaitingCheck => json!({"state":"not recorded; awaits the published check"}),
             WorkflowR3::Unavailable(e) => json!({"state":"unavailable","limit":e}),
             WorkflowR3::Pending(p) => json!({"state":"pending write; missing in record","recordId":p.record_id(),"limit":p.failure(),"retry":"retry writes the same identity and observation time"}),
             WorkflowR3::Recorded(entry) => json!({"state":"recorded","recordId":entry["recordId"],"observedAt":entry["observedAt"],"writtenAt":entry["writtenAt"],"supplyCheck":entry["body"]["supplyCheck"],"adoption":entry["body"]["adoption"]}),
         };
         json!({"reference":self.pending.reference(),"check":body["check"],"state":body["state"],"supplyReading":if body["state"]=="verified"{"supplied"}else{"supplied — not verified"},"readAt":body["read_at"],"turn":body["turn"],"locatedBy":body["located_by"],
-            "published":self.published.is_some(),"publicationLimit":self.publication_failure,"r3":r3,"adoption":"unknown"})
+            "published":self.published.is_some(),"publicationLimit":initial_refusal.as_ref().or(self.publication_failure.as_ref()),
+            "publicationState":if initial_refusal.is_some(){"not saved; cannot be saved from within the App"}else if self.published.is_some(){"recorded"}else{"pending"},
+            "retryAvailable":initial_refusal.is_none(),"r3":r3,"adoption":"unknown"})
     }
 }
 #[path = "file_act_arrival.rs"]
@@ -7035,6 +7103,7 @@ impl WorkflowRun {
     pub fn view(&self, reference: &str) -> Value {
         let publication = match &self.published {
             Some(p) => json!({"state":"selection and run_text recorded before send","selection":p.selection_record().reference(),"runText":p.run_text_record().reference()}),
+            None if self.publication.admission_refusal().is_some() => json!({"state":"not saved; nothing was sent; start again to record it","selection":self.publication.selection_reference(),"runText":self.publication.run_text_reference(),"admissionRefusal":self.publication.admission_refusal(),"retryAvailable":false}),
             None => json!({"state":"pending; not recorded","selection":self.publication.selection_reference(),"runText":self.publication.run_text_reference(),"lastFailure":self.publication_failure}),
         };
         json!({"reference":reference,"runText":self.prepared().record(),"project":crate::attachments::native_path_identity(&self.project_root),"publication":publication,
@@ -7309,6 +7378,11 @@ impl WorkflowRun {
     fn publish_pre_send(&mut self) -> Result<(), String> {
         if self.published.is_some() {
             return Ok(());
+        }
+        if let Some(limit) = self.publication.admission_refusal() {
+            self.publication_failure = Some(json!({"limit":limit}));
+            self.status = json!({"state":"not saved; nothing was sent; start again to record it","limit":limit,"sent":false,"supplied":"not supplied","retryAvailable":false});
+            return Err(limit);
         }
         match self.publication.publish(&self.project) {
             Ok(published) => {
@@ -7826,7 +7900,7 @@ impl WorkflowRun {
         if self.notice_held_by_start.is_some() {
             return Err(NOTICE_HELD_BY_START.into());
         }
-        let Some(failure) = self.notice_record_failure.clone() else {
+        let Some(failure) = self.notice_record_failure.clone().or_else(|| self.notice.admission_refusal()) else {
             return Err("The end-notice record has not failed to be written; the next ordinary turn carries the notice. Nothing recorded".into());
         };
         let subject = match &self.notice {
@@ -7867,11 +7941,18 @@ impl WorkflowRun {
         }
         self.flush_records();
         let notice = self.retry_notice_record();
-        Ok(json!({"status":self.status,"lifecycle":self.lifecycle_view(),"checks":self.checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),"noticeChecks":self.notice_checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),"endNoticeRecord":notice,"pendingRecords":self.has_pending_records()}))
+        let record_admission_refusals = self.checks.iter().chain(&self.notice_checks)
+            .filter_map(|check| check.pending.admission_refusal())
+            .chain(self.notice.admission_refusal()).collect::<Vec<_>>();
+        Ok(json!({"status":self.status,"lifecycle":self.lifecycle_view(),"checks":self.checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),"noticeChecks":self.notice_checks.iter().map(WorkflowCheckSlot::view).collect::<Vec<_>>(),"endNoticeRecord":notice,"pendingRecords":self.has_pending_records(),"recordAdmissionRefusals":record_admission_refusals}))
     }
     /// V10 G-5 "Retry the end-notice record": publish a pending notice's record
     /// (same identity and bytes) without sending. The next ordinary turn sends it.
     fn retry_notice_record(&mut self) -> Value {
+        if let Some(limit) = self.notice.admission_refusal() {
+            self.notice_record_failure = Some(limit.clone());
+            return unsaved_notice_result(&limit);
+        }
         if matches!(self.notice, NoticeState::AwaitingTurn) {
             let prepared = (|| {
                 let end = self.end.clone().ok_or("owner end absent")?;
@@ -8100,6 +8181,8 @@ mod workflow_root_tests {
     mod run_preparation_order_tests { use super::*; include!("run_preparation_order_tests.rs"); }
     mod text_read_tests { use super::*; include!("workflow_text_read_tests.rs"); }
     mod records_store_controls_lifecycle_tests { use super::*; include!("records_store_controls_lifecycle_tests.rs"); }
+    mod records_store_writer_f4_tests { use super::*; include!("records_store_writer_f4_runtime_tests.rs"); }
+    mod reopened_checkpoint_tests { use super::*; include!("reopened_checkpoint_tests.rs"); }
     impl WorkflowRootSession {
         fn fixture_chat(&self) -> crate::workflow_selection::Chat {
             self.selected.keys().next().cloned().unwrap_or(crate::workflow_selection::Chat { source:"explicit single-chat selection fixture".into(), thread:"thread".into() })

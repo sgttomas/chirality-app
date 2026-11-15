@@ -121,6 +121,7 @@ pub mod schema_validation;
 pub mod standing;
 pub mod storage;
 pub mod working_folder;
+pub mod working_files;
 pub mod stop_records;
 pub mod util;
 
@@ -300,9 +301,11 @@ fn complete_config_resource_continuation(
     )
 }
 
-/// A fresh probe home for the label probe (HOSTING §7.2 H-probe), in the temp directory.
-fn probe_home() -> Result<PathBuf,String> {
-    runtime_session::allocate_fresh_probe(&runtime_session::temporary_root("The version probe's home")?)
+/// A fresh probe home for the label probe (HOSTING §7.2 H-probe), made in the
+/// App's Working Files beside the App data folder (DEL-01-01), never in a
+/// temporary folder. The App data folder is already held.
+fn probe_home(app_data: &std::path::Path) -> Result<PathBuf,String> {
+    working_files::for_launch(app_data)?.allocate(working_files::Kind::ProbeHome).map(|made| made.path)
 }
 
 /// Whether this build admits development startup inputs. The release
@@ -319,7 +322,7 @@ pub(crate) fn development_inputs_admitted(is_dev: bool) -> bool {
 pub fn host_config_from_env(workspace: Option<&PathBuf>, app_data: &std::path::Path) -> Result<HostConfig, String> {
     let established = working_folder::established(app_data).map_err(|blocked| blocked.sentence())?;
     let project = workspace.map(|project| established.admit_project(project)).transpose()?;
-    host_config_from_inputs(project.as_ref(), Ok(&established), |key|std::env::var_os(key), probe_home)
+    host_config_from_inputs(project.as_ref(), Ok(&established), |key|std::env::var_os(key), || probe_home(app_data))
 }
 
 /// `project` has passed admission; with none, the working folder is the
@@ -2751,14 +2754,66 @@ fn workflow_check_notice(state:State<'_,AppState>,run_ref:String)->Result<Value,
 /// Reopen: the explicit project's WR/RS records plus the REC restart facts this process holds.
 #[tauri::command(async)]
 fn workflow_reopen(state:State<'_,AppState>)->Result<Value,String>{
-    let root=state.workspace.as_ref().ok_or("No explicit App project (CHIRALITY_WORKSPACE); nothing to reopen and no fallback")?;
+    reopen_recorded_runs(&state)
+}
+/// The launch's one reading of the recorded runs, so that what waits on the person is read without
+/// a press, on every launch: begun once the ledger's configuration step has run, or at once where
+/// no start is made, and never twice. It waits for this session's restart limits. Reading only;
+/// where it cannot read, the reopened view says so and why; the person's Reopen reads again.
+pub(crate) struct LaunchRead {
+    once: std::sync::Once,
+    read: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+    restart_limits: Mutex<Option<std::thread::JoinHandle<()>>>,
+    reading: Mutex<Option<std::thread::JoinHandle<()>>>,
+}
+impl LaunchRead {
+    pub(crate) fn new(read: impl FnOnce() + Send + 'static, restart_limits: Option<std::thread::JoinHandle<()>>) -> std::sync::Arc<Self> {
+        std::sync::Arc::new(LaunchRead { once: std::sync::Once::new(), read: Mutex::new(Some(Box::new(read))), restart_limits: Mutex::new(restart_limits), reading: Mutex::new(None) })
+    }
+    pub(crate) fn begin(self: &std::sync::Arc<Self>) {
+        let read = std::sync::Arc::clone(self);
+        self.once.call_once(move || {
+            let this = std::sync::Arc::clone(&read);
+            match std::thread::Builder::new().name("chirality-launch-read".into()).spawn(move || {
+                if let Some(limits) = this.restart_limits.lock().unwrap().take() {
+                    let _ = limits.join();
+                }
+                if let Some(read) = this.read.lock().unwrap().take() {
+                    read();
+                }
+            }) {
+                Ok(reading) => *read.reading.lock().unwrap() = Some(reading),
+                Err(e) => eprintln!("chirality: the recorded runs were not read at launch: the reading could not be started ({e})"),
+            }
+        });
+    }
+    /// Test support: waits until the reading has been made.
+    #[cfg(test)]
+    pub(crate) fn wait(&self) {
+        if let Some(reading) = self.reading.lock().unwrap().take() {
+            let _ = reading.join();
+        }
+    }
+}
+/// The launch's automatic start of Codex, when its configuration admits one, and its one reading
+/// of the recorded runs in every case: begun once the ledger's configuration step has run, before
+/// the start itself, or at once where no start is made.
+pub(crate) fn launch_start_and_read(host: &Arc<Host>, recovery: &Mutex<runtime_session::RecoveryStartup>, data: Result<&std::path::Path, &str>, host_config: Result<&HostConfig, &str>, desktop: &Mutex<desktop_startup::DesktopSetup>, read: &std::sync::Arc<LaunchRead>) -> Option<Result<Value, String>> {
+    let started = host_config.ok().map(|cfg| automatic_start_then(host, recovery, data, cfg, desktop, || read.begin()));
+    read.begin();
+    started
+}
+/// Reading only: the project's recorded runs, with this session's restart facts, read into the
+/// reopened view under its generation. The person's Reopen and the launch's one read are this.
+fn reopen_recorded_runs(state:&AppState)->Result<Value,String>{
+    let root=state.workspace.as_deref().ok_or("No explicit App project (CHIRALITY_WORKSPACE); nothing to reopen and no fallback");
     let home=state.homes.lock().unwrap().active();
     let recovery=home.recovery_startup.lock().unwrap().snapshot();
     let mut events=restart_events(&recovery);
     // The REC custody projection is where the Host derives app_restart_interruption.
     for event in restart_events(&home.host.recovery_custody().snapshot()){if !events.contains(&event){events.push(event);}}
     let homes=state.homes.lock().unwrap().entries();
-    runtime_session::read_reopened_history(&state.workflows,root,&events,&homes)
+    runtime_session::reopen_recorded(&state.workflows,root,&events,&homes)
 }
 /// The person's explicit end of a run the record shows open and interrupted after relaunch.
 #[tauri::command]
@@ -3030,10 +3085,12 @@ fn build_input<'a>(input: &'a impl Fn(&str)->Option<std::ffi::OsString>, is_dev:
 /// operational starts and the actual reason is shown.
 pub(crate) fn admitted_startup(
     input: impl Fn(&str)->Option<std::ffi::OsString>, platform_data: Result<PathBuf,String>, resources: Result<PathBuf,String>, is_dev: bool,
-    probe: impl Fn()->Result<PathBuf,String>,
+    probe: impl Fn(&std::path::Path)->Result<PathBuf,String>,
 ) -> (desktop_startup::DesktopSetup, desktop_startup::RootInputs) {
     let input = build_input(&input, is_dev);
     let data = environment_app_data(&input).unwrap_or(platform_data);
+    // The probe home is made against the App data folder this start holds.
+    let probe = || data.as_ref().map_err(Clone::clone).and_then(|data| probe(data));
     let mut desktop = desktop_startup::DesktopSetup::new(data.clone(), resources.clone());
     if environment_selected(&input) {
         if let Err(reason) = data.as_ref().map_err(Clone::clone).and_then(|data| desktop.hold_environment_data(data)) {
@@ -3162,7 +3219,14 @@ fn explicit_environment_launch(
 /// as `run` performs it on either route: the App ledger is configured, then
 /// this App's custody is rechecked, then the Host starts.
 pub(crate) fn automatic_start(host: &Arc<Host>, recovery: &Mutex<runtime_session::RecoveryStartup>, data: Result<&std::path::Path, &str>, cfg: &HostConfig, desktop: &Mutex<desktop_startup::DesktopSetup>) -> Result<Value, String> {
+    automatic_start_then(host, recovery, data, cfg, desktop, || {})
+}
+/// As [`automatic_start`], with `ledger_configured` called once the App ledger's configuration
+/// step has run (configured or refused), before anything of the start itself, whether the start
+/// then proceeds or is refused.
+pub(crate) fn automatic_start_then(host: &Arc<Host>, recovery: &Mutex<runtime_session::RecoveryStartup>, data: Result<&std::path::Path, &str>, cfg: &HostConfig, desktop: &Mutex<desktop_startup::DesktopSetup>, ledger_configured: impl FnOnce()) -> Result<Value, String> {
     runtime_session::start_with_recovery(host, recovery, data, Some(&cfg.codex_home), || {
+        ledger_configured();
         // A refusal before Host::start is kept as the host status's last
         // start refusal too (Host::start keeps its own home refusals).
         host.begin_start_request();
@@ -3198,7 +3262,7 @@ fn freeze_startup_state(launch: desktop_startup::Launch, desktop: Arc<Mutex<desk
         external_observation: Mutex::new(runtime_session::ExternalObservationSession::default()),
         trace_selection: Mutex::new(runtime_session::TraceSelectionSession::default()),
         attachment_selection: Mutex::new(runtime_session::AttachmentSelectionSession::new(workspace.clone())),
-        role_log: workspace.as_deref().ok_or_else(||"explicit App project unavailable for role observations".to_string()).and_then(role_observations::RoleLog::open).map(Arc::new),
+        role_log: workspace.as_deref().ok_or_else(||"explicit App project unavailable for role observations".to_string()).and_then(role_observations::RoleLog::open_before_store).map(Arc::new),
         native_links: Mutex::new(native_conversation_links::Session::default()),
         delegation_reconciliation: Mutex::new(native_conversation_links::Session::default().delegation_reconciliation()),
         project_context, project_context_limit,
@@ -3245,6 +3309,9 @@ fn initialize_startup_consumers(state: &AppState, home: &Arc<runtime_session::Ho
         match records_store::recover_at_startup() {
             Ok(left) => for note in left { eprintln!("chirality: records store line file left as it is: {note}"); },
             Err(e) => eprintln!("chirality: records store line files not examined at startup: {e}"),
+        }
+        if let Ok(log) = &state.role_log {
+            if let Err(e) = log.bind_writer_source() { eprintln!("chirality: role observation writer not bound at startup: {e}"); }
         }
     }
     // AAC §6.3 SEAL-C: install the App-owned location; the gated signed
@@ -3425,7 +3492,7 @@ pub fn run() {
             // EXEC §2.7 / RECOVERY §4.1, OI-008: the host writes RS "App-restart interruption" limits
             // from this session's REC restart facts, at startup, never on a web-view
             // request. Its outcome is shown by workflow_reopen.
-            {
+            let restart_limits = {
                 let handle = app.handle().clone();
                 std::thread::Builder::new().name("chirality-restart-limits".into()).spawn(move || {
                     let state = handle.state::<AppState>();
@@ -3436,14 +3503,26 @@ pub fn run() {
                     let mut workflows = state.workflows.lock().unwrap();
                     let outcome = run_restart::startup(&homes, state.workspace.as_deref());
                     workflows.set_restart_limits(outcome);
-                }).map_err(|e| format!("restart-limit thread not started: {e}"))?;
-            }
-            // App start-up starts the supplier (HOSTING §4.6 start, actor `app-startup`).
-            if let Ok(cfg) = host_config {
+                }).map_err(|e| format!("restart-limit thread not started: {e}"))?
+            };
+            let launch_read = {
+                let handle = app.handle().clone();
+                LaunchRead::new(move || {
+                    if let Err(reason) = reopen_recorded_runs(&handle.state::<AppState>()) {
+                        eprintln!("chirality: the recorded runs were not read at launch: {reason}");
+                    }
+                }, Some(restart_limits))
+            };
+            // App start-up starts the supplier (HOSTING §4.6 start, actor `app-startup`) when its
+            // configuration admits one, and reads the recorded runs in every case: the reading
+            // begins once the ledger's configuration step has run, not after the start, since it
+            // needs this session's restart facts and nothing from Codex.
+            {
                 let h = Arc::clone(&host);
                 let recovery = Arc::clone(&home.recovery_startup);
+                let read = launch_read.clone();
                 std::thread::spawn(move || {
-                    let _ = automatic_start(&h, &recovery, data.as_deref().map_err(String::as_str), &cfg, &desktop);
+                    let _ = launch_start_and_read(&h, &recovery, data.as_deref().map_err(String::as_str), host_config.as_ref().map_err(String::as_str), &desktop, &read);
                 });
             }
             Ok(())

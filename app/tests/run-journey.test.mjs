@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
+import {agentBlocks, agentBlockText} from './support/agent-text.mjs';
+import {choiceLists, chooseIn} from './support/choices.mjs';
 
 // J1 guided path over the workflow studio's existing state and commands.
 // Controlled host views only: no native App, supplier, model or person act.
@@ -90,6 +92,16 @@ test('run readings keep waiting, working, failed, interrupted-start and finished
   }
   for (const reading of [sent]) assert.doesNotMatch(reading.title + reading.detail, /finished|completed/i);
 });
+test('initial WR admission refusal disables the original start and offers fresh preparation',async()=>{
+  const limit='Workflow start record not saved; nothing was sent; start again to record it. Its bytes are held in this App process only and lost on quit; cannot be saved from within the App.';
+  const view=await mount({thread:'T1',host:host(),data:data({selections:selected(),runs:[{reference:'run:unsaved',home:'account',generation:g,conversation:'T1',workflow:{name:'resolve-spacing'},lifecycle:{state:PREPARED},publication:{admissionRefusal:limit},status:{sent:false,limit}}]})});
+  try {
+    assert.equal(props(button(view.c,'Start the run')).disabled,true);
+    assert.match(region(view.c,'Run progress').textContent,/not saved.*lost on quit/);
+    await view.press('Prepare this run again');
+    assert.equal(view.calls.at(-1).command,'workflow_prepare_run');
+  } finally {await view.close();}
+});
 
 test('before Codex or a project is available the next step names a concrete action and issues nothing', async () => {
   const ui = await mount({host:host({state:'absent', generation:null}), data:data({projectLibraryAvailable:false, activeLibrary:null})});
@@ -111,7 +123,7 @@ test('an existing registered workflow is found, chosen for a conversation and pr
   assert.equal(props(button(ui.c, 'Use resolve-spacing')).disabled, true, 'a selection needs the conversation that keeps it');
   assert.equal(button(ui.c, 'Use old-method'), undefined, 'a non-selectable revision offers no Use');
   assert.match(region(ui.c, 'Workflows ready to use').textContent, /store copy missing/);
-  const select = all(ui.c, 'select')[0]; await React.act(async () => props(select).onChange({target:{value:'T1'}}));
+  const select = choiceLists(ui.c)[0]; await React.act(async () => chooseIn(select, 'T1'));
   await ui.press('Use resolve-spacing');
   assert.deepEqual(ui.calls.at(-1), {command:'workflow_select_listed', args:{libraryRef:'lib:project', name:'resolve-spacing', revision:'rev-2-abcdef0123456789'}});
   await ui.rerender({data:data({selections:selected()})});
@@ -195,7 +207,7 @@ test('a stale workflow source disables every guide command', async () => {
   await clickAll(labels);
   await ui.rerender({host:stale, data:data({selections:selected(), runs:[prepared]})}); await clickAll(['Start the run']);
   await ui.rerender({host:stale, data:data({selections:selected(), runs:[open], offers:[{message:{threadId:'T1'}, finished:{run:'run-o', statement:'s'}}]})}); await clickAll(['End this run', 'End as completed, on the agent\'s report']);
-  assert.equal(props(all(ui.c, 'select')[0]).disabled, true, 'the conversation choice follows the same guard');
+  assert.equal(props(choiceLists(ui.c)[0]).disabled, true, 'the conversation choice follows the same guard');
   assert.deepEqual(ui.calls, [], 'a retained click on a stale control dispatches nothing');
 });
 
@@ -249,12 +261,13 @@ test('the last result is in words with the reply under details, a newer revision
   const twoRevisions = data({libraries:[{...data().libraries[0], registered:[
     {name:'resolve-spacing', sequence:2, revision:'rev-2-abcdef0123456789', label:'registered — selectable', selectable:true},
     {name:'resolve-spacing', sequence:3, revision:'rev-3-abcdef0123456789', label:'registered — selectable', selectable:true}]}]});
-  const newer = {notice:'Revision 3 of resolve-spacing is registered', revision:'rev-3-abcdef0123456789', selectable:true, offered:'Use revision 3 in this conversation'};
+  const newer = {notice:'Revision 3 of resolve-spacing is registered', revision:'rev-3-abcdef0123456789', sequence:3, selectable:true, offered:'Select revision 3'};
   const view = {host:host(), data:{...twoRevisions, selections:[{...selected()[0], selection:{...selected()[0].selection, newerRevision:newer}}]}, thread:'T1',
     outcome:{command:'workflow_select_listed', message:'{"state":"selected","reference":"sel-1"}', failed:false, settled:true}};
   const ui = await mount(view);
   const last = region(ui.c, 'Run a workflow — last result');
-  assert.match(last.textContent, /^Chose the workflow for this conversation\.What the App reported\{"state":"selected"/, 'words first; the exact reply under details');
+  assert.match(last.textContent, /^Chose the workflow for this conversation\.What the App reported/, 'words first; the exact reply under details');
+  assert.equal(agentBlockText(agentBlocks(last)[0]), '{"state":"selected","reference":"sel-1"}', 'the exact reply, in a marked box');
   assert.equal(all(last, 'p')[0].textContent, 'Chose the workflow for this conversation.');
   await ui.rerender({outcome:{command:'workflow_send_run', message:'Error: invented refusal text', failed:true, settled:true}});
   assert.equal(region(ui.c, 'Run a workflow — last result').textContent, "Couldn't start the run: invented refusal text", 'an unrecognised refusal stays in the App\'s words');
@@ -262,7 +275,7 @@ test('the last result is in words with the reply under details, a newer revision
   assert.equal(region(ui.c, 'Run a workflow — last result'), undefined, 'nothing is claimed before the result arrives');
   const note = region(ui.c, 'Newer revision for this conversation');
   assert.match(note.textContent, /A newer revision of resolve-spacing is registered \(Revision 3 of resolve-spacing is registered\)\. This conversation keeps using the one shown above until you choose the newer one\./);
-  await ui.press('Use revision 3 in this conversation');
+  await ui.press('Select revision 3');
   assert.deepEqual(ui.calls.at(-1), {command:'workflow_follow_newer_revision', args:{selectionRef:'sel-1', revision:'rev-3-abcdef0123456789'}});
   assert.ok(button(ui.c, 'Use resolve-spacing revision 3'), 'same-name rows name their revision');
 });
@@ -465,7 +478,8 @@ test('a refused press is said in plain words under Next only where nothing was d
   const ui = await mount({host:host(), data:data(), thread:'T1', outcome:busy});
   const last = region(ui.c, 'Run a workflow — last result');
   assert.equal(all(last, 'p')[0].textContent, "Couldn't choose the included workflow: the App was busy reading conversation history, so nothing was done. Press the button again.");
-  assert.match(last.textContent, /What the App reportedNative history context is busy; refresh the workflow choice$/, 'the exact reply stays under details');
+  assert.match(last.textContent, /What the App reported/, 'the exact reply stays under details');
+  assert.equal(agentBlockText(agentBlocks(last).at(-1)), 'Native history context is busy; refresh the workflow choice', 'the exact reply, in a marked box');
   assert.equal(last.getAttribute('role'), 'alert');
   const section = region(ui.c, 'Run a workflow');
   const children = Array.from(section.childNodes);

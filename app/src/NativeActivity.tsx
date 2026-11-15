@@ -123,7 +123,6 @@ const PARENT_SOURCE = { "collabAgentToolCall.senderThreadId": "the delegating it
 
 const KNOWN = new Set(["userMessage", "agentMessage", "reasoning", "plan", "commandExecution", "fileChange", "mcpToolCall", "dynamicToolCall", "functionCallOutput", "collabAgentToolCall", "subAgentActivity", "webSearch", "imageView", "imageGeneration", "enteredReviewMode", "exitedReviewMode", "contextCompaction", "sleep", "hookPrompt"]);
 
-const pre = { whiteSpace: "pre-wrap" as const, overflowWrap: "anywhere" as const, margin: "4px 0" };
 const card = { borderLeft: "3px solid #999", padding: "2px 8px", margin: "6px 0" };
 
 function json(value: Json): string {
