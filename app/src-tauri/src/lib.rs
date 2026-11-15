@@ -2080,7 +2080,7 @@ fn ordinary_send_text_effort(home: &runtime_session::HomeSession, workflows: &st
 
 /// DEL-01-05 model discovery for a new conversation, read by the App when New conversation opens with its only
 /// connection in use, and at the person's press (Read the list again); for an existing conversation, its effort
-/// choices, read once when it is selected:
+/// choices, read once for it while its effort control is open:
 /// only the currently selected source of the named mode, re-checked after the
 /// reads; a changed source refuses rather than answering for another.
 #[tauri::command(async)]
