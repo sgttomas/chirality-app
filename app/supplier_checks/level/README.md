@@ -55,11 +55,15 @@ every possible false pass is excluded.
 **Not guarded, and so stated:**
 - a command or a path written to imitate evidence: the fixture writes all of
   them;
-- a process of the run whose command line names no path of the run. After the
-  servers stop, `Run.nothing_remains` waits until no process names the run's
-  root, or fails listing each one that does. The network probe is such a
-  process: its argument is only the port. It bounds its whole run with a 3 s alarm, connection and read
-  included.
+- a process of the run outside the servers' process groups. After the servers
+  stop, `Run.nothing_remains` waits until none of the Codex servers the run
+  started is running (known by its number and the start time recorded when it
+  started) and each server's process group is empty (a signal 0 to the group),
+  or fails naming each that is not. It reads no process's command line or open
+  files. A command Codex ran in a process group of its own is not seen there:
+  the rows that start such commands print their numbers and end them themselves
+  (`end_known`). The network probe is not one of the servers; it bounds its
+  whole run with a 3 s alarm, connection and read included.
 
 ## Files
 
