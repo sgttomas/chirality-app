@@ -63,10 +63,13 @@ criteria 1 and 2. Its conditions:
 - no build carrying the flag is ever the candidate for the operator
   rehearsal, the owner's sign-in or the owner's sitting.
 
-State: built attempts 0 of 2.
+State: shown on built attempt 1 of 2, 14 November 2026, run 43565559167.
+With the pass shown, later hosted runs of this scenario are regression runs,
+not attempts: the same rule as for step two, here stated by App Agent 0 after
+the result, which evades no bound because the pass came on the first attempt.
 
-A hosted run of the setup scenario on PR 355's head, 43661854241 on 15
-November 2026, did not pass: L1 and L2 passed, and L3's inventory found the
+The first regression run, on PR 355's head, 43661854241 on 15 November 2026,
+did not pass: L1 and L2 passed, and L3's inventory found the
 App's Working Files folder beside its data folder (PR 340), which the allowed
 places did not yet know. That was a true fail of the inventory, for a cause
 in the App's layout, and it leaves the scenario's earlier passes as they
