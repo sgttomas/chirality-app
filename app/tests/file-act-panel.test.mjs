@@ -59,7 +59,7 @@ test('recorded intervals and return-to-content remain separate from limited sour
   const html = renderToStaticMarkup(React.createElement(FileActLapseHistory,{row:{lapseHistoryClaims:history,
     lapseHistoryLimitedClaims:[{record:{recordId:'corrected-source',body:{state:'lapsed'}}}],lapseHistoryLimits:['corrected source cannot establish current interval']}}));
   for (const state of ['lapsed (subject absent)','matches c0 again after observed lapse','unknown (unavailable)']) assert.ok(html.includes(state),state);
-  assert.match(html,/Content acted on \(c₀\): exact-byte-method: original-content/);
+  assert.match(html,/Content recorded as acted on \(c₀\): exact-byte-method: original-content/);
   assert.match(html,/observed observed-2/);
   assert.match(html,/History limit: corrected source cannot establish current interval/);
   assert.match(html,/Unresolved or historical lapse claims \(1\)/);
@@ -106,7 +106,7 @@ test('actual standalone observer DTOs preserve cold intervals and distinguish or
   const history = renderToStaticMarkup(React.createElement(FileActLapseHistory,{row}));
   assert.match(history,/lapsed \(subject absent\)/);
   assert.match(history,/matches c0 again after observed lapse/);
-  assert.match(history,/Content acted on \(c₀\)/);
+  assert.match(history,/Content recorded as acted on \(c₀\)/);
   assert.match(history,/does not perform or renew an act/);
   const coldCalls = [];
   const coldView = mounted(async (name,args) => {coldCalls.push([name,args]);return cold;});

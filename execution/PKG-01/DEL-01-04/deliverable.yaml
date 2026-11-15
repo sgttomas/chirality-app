@@ -93,6 +93,12 @@ code_paths:
 - app/src-tauri/src/act_control_assurance.rs
 - app/src-tauri/src/a15_native.rs
 - app/src-tauri/src/file_act_native.rs
+# native_text.rs is the closed-form text for every native sheet: a supplied value reaches a sheet
+# only in a closed form or in the form its caller chooses. Its first callers are the quit sheet
+# (here) and the Records lane's decision-standing sheet.
+- app/src-tauri/src/native_text.rs
+- app/src-tauri/src/native_text_tests.rs
+- app/tests/fixtures/plain_id_examples.json
 - app/src-tauri/src/file_act_root.rs
 - app/src-tauri/src/file_act_arrival.rs
 # file_act_view.rs and file_act_lapse.rs are shared with DEL-04-03. Here: the offers and captures
@@ -160,6 +166,9 @@ code_paths:
 - app/src/DailyWorkspace.tsx
 - app/src/workspace.css
 checks:
+- app/src-tauri/src/capture_seal.rs
+- app/src-tauri/src/seal_c_enrollment_tests.rs
+- app/src-tauri/src/file_act_consumer_tests.rs
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/hosting.rs
 - app/tests/prepared-message-navigation.test.mjs

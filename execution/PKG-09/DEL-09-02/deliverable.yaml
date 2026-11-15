@@ -98,6 +98,7 @@ checks:
 - app/tests/group_b_standalone_test.py
 - app/tests/group_b_launch_home_test.py
 - app/tests/group_b_operated_scenario_test.py
+- app/tests/group_b_operated_contract_probe.mjs
 - app/tests/group_b_operated_macos_test.py
 - app/tests/group_b_scripted_driver_test.py
 - app/tests/group_b_examination_table_test.py

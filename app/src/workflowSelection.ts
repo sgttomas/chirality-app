@@ -32,7 +32,7 @@ export function workflowAssurance(assurance: Json): string {
   const policy = assurance?.requested_policy === "robust" ? "Require verified approval"
     : assurance?.requested_policy === "relaxed" ? "Allow disk records" : undefined;
   const evidence = assurance?.admission_evidence === "disk-consistency" ? "Disk consistency checked; approval authenticity unverified"
-    : assurance?.admission_evidence === "keychain-verified approval" ? "Approval verified by keychain seal"
+    : assurance?.admission_evidence === "keychain-verified approval" ? "Registration capture seal verified using your keychain; who wrote the capture, a person's presence and judgment are not established"
     : assurance?.admission_evidence === "in-process A15" ? "Approved in this App session (native A15)" : undefined;
   if (!policy || !evidence) return "Approval evidence unknown (not recorded).";
   return `${evidence}. Policy: ${policy}.`;
