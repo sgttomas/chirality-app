@@ -6697,7 +6697,10 @@ mod conversation_transport_tests {
         host.inner.0.lock().unwrap().threads.push(json!({"generation":g(),"threadId":"no-model"}));
         assert!(host.turn_start_text_mode(&g(),"no-model","x","plan").unwrap_err().contains("no model selected"));
         // The conversation's reported effort is kept, not reset.
-        host.inner.0.lock().unwrap().threads.push(json!({"generation":g(),"threadId":"effort","model":"m","reasoningEffort":"high"}));
+        // This additional admitted conversation has the same known folder as the
+        // original fixture conversation; this case varies only model effort.
+        let cwd=host.snapshot()["threads"][0]["cwd"].clone();
+        host.inner.0.lock().unwrap().threads.push(json!({"generation":g(),"threadId":"effort","model":"m","reasoningEffort":"high","cwd":cwd}));
         let (refused,outbound)=exchange(&host,Some(json!({"error":{"code":-32600,"message":"invented refusal"}})),vec![],||host.turn_start_text_mode(&g(),"effort","x","plan"));
         assert_eq!(outbound["params"]["collaborationMode"]["settings"]["reasoning_effort"],"high");
         assert!(refused.is_err());
@@ -7302,10 +7305,14 @@ mod conversation_transport_tests {
     fn history_selected()->NativeHistory {let mut view=NativeHistory::new("conversation-home",g()).unwrap();let q=view.list_threads(None,crate::native_history::Direction::Desc).unwrap();view.receive(&q,"conversation-home",&g(),&json!({"data":[history_thread("notLoaded")],"nextCursor":null})).unwrap();view.select("stored").unwrap();view}
     /// An account or key-home host whose Codex answers each configuration reading as `reading` says
     /// at that moment ("openai", another provider, "absent", or "error"); every frame written is kept.
-    struct ReportingHome { home:crate::runtime_session::HomeSession, reading:Arc<Mutex<String>>, child:Child, frames:Arc<Mutex<Vec<Value>>>, reader:Option<std::thread::JoinHandle<()>> }
+    struct ReportingHome { home:crate::runtime_session::HomeSession, reading:Arc<Mutex<String>>, child:Child, frames:Arc<Mutex<Vec<Value>>>, reader:Option<std::thread::JoinHandle<()>>, _folders:SavedFolders }
     impl ReportingHome {
         fn new(class:crate::home_resources::HomeClass)->Self{
-            let host=host();host.inner.0.lock().unwrap().server_cwd=Some("/invented".into());
+            // As desktop startup does, retain App-data placement for the entire
+            // operation. Continue reads the saved folder through its real preflight.
+            let folders=SavedFolders::new();let host=folders.host();
+            host.inner.0.lock().unwrap().threads[0]["cwd"]=json!(folders.project);
+            let mut saved=history_thread("notLoaded");saved["cwd"]=json!(folders.project);
             let reading=Arc::new(Mutex::new("openai".to_owned()));let now=Arc::clone(&reading);
             *host.before_provider_wait.lock().unwrap()=Some(Box::new(move|h,source|{
                 let frame=match now.lock().unwrap().as_str(){
@@ -7325,15 +7332,40 @@ mod conversation_transport_tests {
             let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();
             *host.stdin.lock().unwrap()=child.stdin.take();let stdout=child.stdout.take().unwrap();
             let frames=Arc::new(Mutex::new(Vec::new()));let kept=Arc::clone(&frames);
-            let reader=std::thread::spawn(move||{for line in BufReader::new(stdout).lines(){let Ok(line)=line else{break};kept.lock().unwrap().push(serde_json::from_str::<Value>(&line).unwrap());}});
+            let source=Arc::clone(&host);
+            let reader=std::thread::spawn(move||{for line in BufReader::new(stdout).lines(){
+                let Ok(line)=line else{break};let frame:Value=serde_json::from_str(&line).unwrap();
+                kept.lock().unwrap().push(frame.clone());
+                // Folder admission precedes the provider admission under test.
+                // Retain every frame; written() selects the provider corpus only
+                // after checking that resume carries this actual saved folder.
+                if frame["method"]=="thread/read" {
+                    assert_eq!(frame["params"],json!({"threadId":"stored","includeTurns":false}));
+                    source.on_line(&serde_json::to_vec(&json!({"id":frame["id"],"result":{"thread":saved}})).unwrap(),&g());
+                }
+            }});
             let home=crate::runtime_session::HomeSession::new(class,host,Err("synthetic reporting home".into())).unwrap();
-            Self{home,reading,child,frames,reader:Some(reader)}
+            Self{home,reading,child,frames,reader:Some(reader),_folders:folders}
         }
         fn reports(&self,reading:&str){*self.reading.lock().unwrap()=reading.into();}
-        /// Every frame written to this Codex's input, once the input is closed.
+        /// Provider-admission frames after the real saved-folder preflight.
         fn written(mut self)->Vec<String>{
             *self.home.host.stdin.lock().unwrap()=None;assert!(self.child.wait().unwrap().success());self.reader.take().unwrap().join().unwrap();
-            self.frames.lock().unwrap().iter().map(|f|f["method"].as_str().unwrap_or("").to_owned()).collect()
+            let frames=self.frames.lock().unwrap();
+            for frame in frames.iter().filter(|f|f["method"]=="thread/resume") {
+                assert_eq!(frame["params"]["cwd"],json!(self._folders.project));
+                assert!(frames.iter().any(|f|f["method"]=="thread/read"));
+            }
+            frames.iter().filter(|f|f["method"]!="thread/read").map(|f|f["method"].as_str().unwrap_or("").to_owned()).collect()
+        }
+    }
+    impl Drop for ReportingHome {
+        fn drop(&mut self) {
+            // End the owned peer on an assertion failure too: its reader holds
+            // the Host while answering preflight and must not retain its input.
+            *self.home.host.stdin.lock().unwrap()=None;
+            let _=self.child.wait();
+            if let Some(reader)=self.reader.take(){let _=reader.join();}
         }
     }
     fn resume(home:&ReportingHome)->Result<(),String>{let mut view=history_selected();let query=view.continue_query().unwrap();home.home.host.history_dispatch(&query).map(|_|())}
@@ -8338,11 +8370,12 @@ mod conversation_transport_tests {
         use crate::recovery::{ExplicitAppProjectContext as Context,AppProjectSource};
         let(host,g,root,owner,selections)=context_fixture();let p=Context::known("P",AppProjectSource::ConfiguredDirectory).unwrap();
         host.observe_conversation_project(&g,"thread",Some("H-acct"),&p).unwrap();
+        let saved_cwd=host.snapshot()["threads"][0]["cwd"].clone();
         host.end_process_for_test();
         // The successor holds its App data before it opens the ledger, as the App does.
         let _custody=crate::hold_app_data_for_test(owner.root()).unwrap();
         let successor=Arc::new(Host::new());successor.configure_recovery(owner.root().join("runtime/recovery.ledger.jsonl")).unwrap();
-        let next={let mut i=successor.inner.0.lock().unwrap();let next=json!({"appSession":i.app_session,"home":"opaque-native-home","spawnCounter":1});i.generation=next.clone();i.state="ready".into();i.threads.push(json!({"generation":next,"threadId":"thread"}));next};
+        let next={let mut i=successor.inner.0.lock().unwrap();let next=json!({"appSession":i.app_session,"home":"opaque-native-home","spawnCounter":1});i.generation=next.clone();i.state="ready".into();i.threads.push(json!({"generation":next,"threadId":"thread","cwd":saved_cwd}));next};
         successor.observe_conversation_project(&next,"thread",Some("H-acct"),&p).unwrap();
         let packet=context_packet(&successor,&owner,&next,&selections);let q=Context::known("Q",AppProjectSource::OpenedDirectory).unwrap();let bound=successor.bind_attachment_context(&packet,&q,Some("H-acct")).unwrap();assert_eq!(bound["persistence"],"durable App metadata");
         let view=successor.recovery_custody().snapshot();let row=&view["historicalConversations"][0]["index"];
