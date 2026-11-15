@@ -368,14 +368,15 @@ the owner decide on what was actually observed.
    appears in anything the App wrote. In the examination the owner performs
    the sign-in, and agents examine what follows. Until the person chooses a
    permission level, the App's default level applies: full access, which the
-   owner chose on 14 November 2026 when asked "At first use, the App currently
+   owner chose on 14 November 2026, in a popup relayed by the Inter-Project
+   Agent 0, when asked "At first use, the App currently
    will not start a conversation until the person has chosen a permission
    level. Should 4.0.0 start with a default level instead, shown as the App's
    default and changeable at any time?", selecting "Full access" ("As T3 Code
    does: the agent can act anywhere on the machine with no sandbox, from the
    first run."); wherever the level in force is shown it is described as the
    App's default level, not chosen by the person, it can be changed at any
-   time, and it is never recorded as the person's choice; the owner confirmed it on 14 November 2026: "Regarding the permission level I want there to be a default setting the user can change if they want, not something they have to set."; the person is asked to choose before a conversation runs only where the App cannot show that applying its default would not raise a level the person had set: the App's record of the level is missing or holds a recorded choice that no longer matches the App's level table, or the record cannot be read, while the account home holds state from an earlier Codex start; there the App's default is preselected, so one press continues, and the App says why; every level offered was first shown at
+   time, and it is never recorded as the person's choice; on 15 November 2026 (UTC) the owner wrote to App Agent 0 directly, in their own words: "Regarding the permission level I want there to be a default setting the user can change if they want, not something they have to set."; the person is asked to choose before a conversation runs only where the App cannot show that applying its default would not raise a level the person had set: the App's record of the level is missing or holds a recorded choice that no longer matches the App's level table, or the record cannot be read, while the account home holds state from an earlier Codex start; there the App's default is preselected, so one press continues, and the App says why; every level offered was first shown at
    the pin by a fixture; the
    level in force is always shown, with the statement that reading is not
    limited; the App sends it to Codex on each turn and on start, resume and
