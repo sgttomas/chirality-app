@@ -2135,35 +2135,57 @@ class TheScenarioContract(unittest.TestCase):
 
 
 class TheWalkReachesTheOutsideOnlyThroughItsAdapter(unittest.TestCase):
-    """walk.mjs reads the clock, the injected options and the timer only through its one adapter, and has no other
-    door: no performance clock, no console, no interval or immediate timer (the second reading of PR 355: Date.now
-    read outside the adapter let a wrong kind pass). Read from the source, comments removed."""
+    """walk.mjs reaches the clock, a timer, the console, a global escape and every injected option only at the doors
+    listed here, word for word: each line of its source that names one (comments removed, strings kept, so a bracket
+    form is seen) must be one of these lines, and each listed line must be there. A new spelling (readWatch?.(), a
+    spaced or bracketed clock), an alias, or an extra call on an adapter line is a new line, and fails (the second and
+    third readings of PR 355: Date.now read outside the adapter let a wrong kind pass; readWatch?.() escaped the earlier
+    form of this test). A change to a door is made here deliberately, with the adapter it goes through."""
 
-    def code(self):
-        text = re.sub(r'/\*.*?\*/', '', WALK.read_text(), flags=re.S)
-        return [re.sub(r'//.*$', '', line) for line in text.splitlines()]
+    WORDS = (r'\b(readWatch|readIdentification|sleep|onLog|Date|clock|nowMs|setTimeout|setInterval|setImmediate|'
+             r'queueMicrotask|console|performance|globalThis|Reflect|eval|Function|process)\b')
+    DOORS = [
+        "let { sky, scenario, app, home, bundle, pid, watch, readWatch, readIdentification, sleep, project, attemptLog, onLog } = options;",
+        "const clock = () => new Date().toISOString();",
+        "const time = () => option('clock', KIND.text, () => clock());",
+        "const nowMs = () => option('clock', KIND.number, () => Date.now());",
+        "if (typeof onLog === 'function') {",
+        "try { await option('log', KIND.nothing, () => onLog(copy), { evenIfBroken: true }); } catch {",
+        "if (broken) return finish('inconclusive', 'stopped before any call: the clock failed');",
+        "if (!readWatch && typeof watch === 'string') {",
+        "readWatch = () => { try { return JSON.parse(fs.readFileSync(watch, 'utf8')); } catch { return null; } };",
+        "if (!readIdentification && typeof bundle === 'string' && /\\/target\\/debug\\/bundle\\/macos\\/[^/]+\\.app$/.test(bundle)) {",
+        "readIdentification = () => { try { return JSON.parse(fs.readFileSync(`${candidate}/identification/candidate-identification.json`, 'utf8')); } catch { return null; } };",
+        "const identified = readIdentification ? await option('identification', KIND.data, () => readIdentification()) : null;",
+        "const seen = readWatch ? await option('watch', KIND.data, () => readWatch()) : null;",
+        "const now = await nowMs();",
+        "return finish('fail', `stopped ${where}: the App has a child process (${seen.children.length}), and this scenario starts none`);",
+        "sleep ??= milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));",
+        "const pause = milliseconds => option('sleep', KIND.nothing, () => sleep(milliseconds));",
+        "return finish('inconclusive', 'refused before any call: the process number is not one');",
+    ]
 
-    def lines_with(self, pattern):
-        return [line.strip() for line in self.code() if re.search(pattern, line)]
+    def doors(self, source):
+        text = re.sub(r'/\*.*?\*/', '', source, flags=re.S)
+        lines = [re.sub(r'//.*$', '', line).strip() for line in text.splitlines()]
+        return [line for line in lines if re.search(self.WORDS, line)]
 
-    def test_the_clock_is_read_only_inside_the_adapter(self):
-        self.assertEqual(self.lines_with(r'\bDate\.now\s*\('), ["const nowMs = () => option('clock', KIND.number, () => Date.now());"])
-        self.assertEqual(self.lines_with(r'\bnew\s+Date\s*\('), ["const clock = () => new Date().toISOString();"])
-        self.assertEqual(self.lines_with(r'\bclock\s*\(\s*\)'), ["const time = () => option('clock', KIND.text, () => clock());"])
+    def test_every_door_of_the_walk_is_a_listed_line(self):
+        self.assertEqual(self.doors(WALK.read_text()), self.DOORS)
 
-    def test_every_injected_option_is_called_only_inside_the_adapter(self):
-        for name in ('readWatch', 'readIdentification', 'sleep', 'onLog'):
+    def test_a_new_spelling_an_alias_or_an_extra_call_is_seen(self):
+        source = WALK.read_text()
+        anchor = "const seen = readWatch ? await option('watch', KIND.data, () => readWatch()) : null;"
+        self.assertIn(anchor, source)
+        mutations = {'optional call': 'await readWatch?.();', 'alias': 'const f = readWatch; await f();',
+                     'bracket form': "await options['onLog']();", 'spaced clock': 'const t = Date . now();',
+                     'bracketed clock': "const t = Date['now']();", 'console': 'console.log(1);',
+                     'global escape': "await globalThis['set' + 'Timeout'](() => 0, 1);",
+                     'extra call on an adapter line': anchor.replace(': null;', ': readWatch();')}
+        for name, line in mutations.items():
             with self.subTest(name):
-                calls = self.lines_with(rf'\b{name}\s*\(')
-                self.assertTrue(calls, name)
-                for line in calls:
-                    self.assertIn('option(', line, line)
-
-    def test_there_is_no_other_door(self):
-        for pattern in (r'\bperformance\b', r'\bconsole\.', r'\bsetInterval\b', r'\bsetImmediate\b', r'\bprocess\.hrtime\b'):
-            with self.subTest(pattern):
-                self.assertEqual(self.lines_with(pattern), [])
-        self.assertEqual(self.lines_with(r'\bsetTimeout\b'), ["sleep ??= milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds));"])
+                mutated = source.replace(anchor, line if name == 'extra call on an adapter line' else anchor + '\n    ' + line)
+                self.assertNotEqual(self.doors(mutated), self.DOORS)
 
 
 class TheInjectedOptionsAndTheReadersCases(TheScenarioContract):
@@ -2234,6 +2256,19 @@ console.log(JSON.stringify(await walk.run(given)));
         self.assertEqual(self.results['log_without_file']['later'], 0)
         replay = (OPERATED / 'replay.mjs').read_text()
         self.assertIn('...(logPath ? { attemptLog: logPath,', replay)  # replay gives the file wherever it keeps a log
+
+    def test_a_fail_found_by_the_steps_stands_when_the_clock_fails_at_its_last_reading(self):
+        # The third reading of PR 355, finding 1.
+        rows = self.results['last_clock']
+        self.assertEqual(rows['normally'], 'fail')
+        self.assertGreater(rows['readings'], 1)
+        for failure in ('throw', 'reject', 'then_getter', 'wrong_kind'):
+            with self.subTest(failure):
+                self.assertEqual(rows[failure], {'verdict': 'fail', 'rejected': False})
+
+    def test_a_later_failure_is_listed_in_the_log_after_the_first(self):
+        # The third reading of PR 355, finding 2: the clock fails first, then the log fails to take the attempt log.
+        self.assertEqual(self.results['clock_then_log'], {'verdict': 'inconclusive', 'failures': ['clock', 'log']})
 
     def test_a_fail_found_before_the_logger_failed_stays_fail_with_its_file(self):
         # Finding 3: the stated exception to "an option failure ends the walk inconclusive".

@@ -580,13 +580,18 @@ async function walk(options, holder) {
   // is refused (supply, below), so no effect and no view can follow; the walk ends inconclusive, and its attempt log is
   // still written and still handed to the log.
   let broken = null;
+  // Every failure, in order: the first is the one that broke the walk (broken); a later one, such as the log failing
+  // to take the attempt log after the clock failed, is recorded too (the third reading of PR 355, finding 2).
+  const failures = [];
   const option = async (name, kind, call, { evenIfBroken = false } = {}) => {
     if (broken && !evenIfBroken) throw BROKEN;
     try {
       const returned = call();
       return kind(await returned);
     } catch (error) {
-      broken ??= `the injected ${name} failed (${readFailure(name, error).message})`;
+      const failure = `the injected ${name} failed (${readFailure(name, error).message})`;
+      failures.push(failure);
+      broken ??= failure;
       throw BROKEN;
     }
   };
@@ -614,8 +619,11 @@ async function walk(options, holder) {
   const finish = async (verdict, stopped = null) => {
     report.stopped = stopped;
     report.finished = await logTime();
-    if (broken) report.broken = broken;
-    let result = verdictAt(scenario, marks, broken && verdict !== 'fail' ? 'inconclusive' : verdict);
+    if (broken) { report.broken = broken; report.failures = [...failures]; }
+    // The steps' judgments first, then the failure: a fail found before an option failed stands, and anything else
+    // becomes inconclusive (the third reading of PR 355, finding 1: a clock failing at the end weakened a fail).
+    let result = verdictAt(scenario, marks, verdict);
+    if (broken && result !== 'fail') result = 'inconclusive';
     const write = () => { if (logFile) { try { logFile.writeFileSync(attemptLog, JSON.stringify(report, null, 2) + '\n'); } catch { /* not written */ } } };
     write();
     if (typeof onLog === 'function') {
@@ -626,6 +634,7 @@ async function walk(options, holder) {
       try { await option('log', KIND.nothing, () => onLog(copy), { evenIfBroken: true }); } catch {
         result = result === 'fail' ? 'fail' : 'inconclusive';
         report.broken = broken;
+        report.failures = [...failures];
         write();
       }
     }

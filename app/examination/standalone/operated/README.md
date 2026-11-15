@@ -1209,7 +1209,9 @@ check with one boundary:
   neither the clock nor the logger that failed: the log's time is words when
   the clock is broken, and a logger that failed is not given the log again.
   When `attemptLog` names a file, the attempt log is written there before the
-  logger is called, and written again saying so when the logger refused it.
+  logger is called, and written again saying so when the logger refused it;
+  the log lists every option failure in order, the first being the one that
+  broke the walk.
   The file is the log's only destination independent of the logger: without
   `attemptLog`, a log the logger fails to take is lost, and the verdict is
   inconclusive. A caller that needs the log gives `attemptLog`; `replay.mjs`
