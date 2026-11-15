@@ -1110,7 +1110,7 @@ pub(super) mod tests {
     include!("access_provider_tests.rs");
 }
 
-// Canonical .167 package identity is the whole native successor inventory, not main-binary equality.
+// Canonical .169 package identity is the whole native successor inventory, not main-binary equality.
 fn canonical_167(i: &Inner) -> bool {
     let Some(pin) = &i.version_identity else { return false; };
     pin["declaredPin"] == "0.169.0"
@@ -1119,7 +1119,7 @@ fn canonical_167(i: &Inner) -> bool {
             // PR197's assessment_preflight validates the full canonical tree before --version.
             // Its legacy receiving path retains the complete42 per-file identities, not just main.
             || (i.successor_status.is_none() && pin["distributionContentIdentity"].as_array().is_some_and(|rows| rows.len()==42)
-                && serde_json::to_vec(&pin["distributionContentIdentity"]).is_ok_and(|bytes|sha256_hex(&bytes)=="a4a5a0ab4e6f0572db715dd356e4afee9db1e8a3cef8e7e8a4a4da6a74009df9")))
+                && serde_json::to_vec(&pin["distributionContentIdentity"]).is_ok_and(|bytes|sha256_hex(&bytes)=="69b3329f282e7c5af1591bcefb92ef00aaa92fca09a1dced33a6d29768e75cdb")))
 }
 impl Host {
     pub(crate) fn require_canonical_167(&self, generation: &Value) -> Result<(), String> {

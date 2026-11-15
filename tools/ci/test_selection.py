@@ -944,6 +944,7 @@ KNOWN_REFERRERS = {
     ".github/workflows/app-scripted-driver.yml": "its path trigger names the first-use scenario its driver reads",
     "app/examination/session_comparison/test_compare.py": "loads standalone/table.py's comparisons(); runs in repository-checks",
     "app/examination/sq_receiving/sq.step-map.json": "out_of_release names the release target as where it is stated; nothing reads that path from it",
+    "app/supplier_checks/version_advance/0.167.0-to-0.169.0.json": "retains the supplier WebSearchProvider enum value standalone, not a path; no narrowed-class path is read through this comparison",
     # Readers of in-root paths that stay product inputs.
     "tools/validation/test_library_v3_operational_adoption.py": "names the Library's own docs/ files",
     "app/src-tauri/src/lib.rs": "compiles group_b_fixture_consumer.rs (product input)",
@@ -957,6 +958,14 @@ KNOWN_REFERRERS = {
 # Retained Library manifests name the Library repository's own docs/ files.
 LIBRARY_MANIFEST = re.compile(r"reference/library-v[0-9.]+/MANIFEST\.json")
 CODE_SUFFIXES = (".py", ".rs", ".mjs", ".cjs", ".js", ".ts", ".tsx", ".json", ".toml", ".sh", ".yml")
+
+
+def test_pin_comparison_change_stays_on_product_route(repo):
+    path = "app/supplier_checks/version_advance/0.167.0-to-0.169.0.json"
+    write(repo, path, '{}\n')
+    base = commit(repo)
+    write(repo, path, '{"enum":["standalone","search_mcp"]}\n')
+    assert selection(repo, base)["run_product"] is True
 
 
 def test_no_unreviewed_reader_of_a_narrowed_class():

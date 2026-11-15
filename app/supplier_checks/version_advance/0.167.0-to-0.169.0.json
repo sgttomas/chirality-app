@@ -1,7 +1,7 @@
 {
  "consumer_binding": {
   "files": {
-   "app/src-tauri/src/access_provider.rs": "5256b25aec616dea5e9cf2cec796fb30bf55b39f9792290754b0ec972c6721fe",
+   "app/src-tauri/src/access_provider.rs": "d6ce49add7313f3050d0cf2d8ad5fde1184c1b20d28e8b3011b58efb30d24661",
    "app/src-tauri/src/auth_rpc.rs": "3e7a74781493e7beb51f6217677c2a9762ab1fc936e42e1f8791c56c595ec996",
    "app/src-tauri/src/delegation_availability.rs": "7a8667f391bcf676d1739441eb69c98cebb45c883e2ed6f1a336a333124822ce",
    "app/src-tauri/src/execution_compatibility.rs": "02ae3bae6aa47b5b6a2ae6290fee05ba565eea7a444953a122a124925175efb6",

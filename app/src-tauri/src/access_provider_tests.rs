@@ -3558,13 +3558,25 @@ fn native_local_provider_central_guard_rechecks_original_thread_after_writer_wai
 #[test]
 fn native_local_provider_canonical_legacy_receiving_requires_all42_original_native_rows() {
     let rows: Value = serde_json::from_str(include_str!(
-        "../../tests/fixtures/local-provider/canonical-167-file-identities.json"
+        "../../tests/fixtures/local-provider/canonical-169-file-identities.json"
     ))
     .unwrap();
     assert_eq!(
         sha256_hex(&serde_json::to_vec(&rows).unwrap()),
-        "a4a5a0ab4e6f0572db715dd356e4afee9db1e8a3cef8e7e8a4a4da6a74009df9"
+        "69b3329f282e7c5af1591bcefb92ef00aaa92fca09a1dced33a6d29768e75cdb"
     );
+    // Derive the receiving vector from the canonical inventory, preserving its order.
+    // The retained 0.167.0 fixture remains historical evidence, not this pin's input.
+    let canonical: Value = serde_json::from_str(include_str!(
+        "../resources/supplier/0.169.0/CANONICAL_DISTRIBUTION.json"
+    )).unwrap();
+    let derived: Vec<Value> = canonical["inventory"]["entries"].as_array().unwrap()
+        .iter().filter(|row| row["kind"] == "file")
+        .map(|row| json!({"path": row["path"], "identity": {
+            "algorithm": "sha-256", "value": row["sha256"]
+        }})).collect();
+    assert_eq!(rows, json!(derived));
+    assert_eq!(derived.len(), 42);
     for case in [
         "positive",
         "npm41",
