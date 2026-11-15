@@ -52,7 +52,7 @@ jobs:
           model_turn ordinary_model model_rerouted execution_custody_tests records::durability_tests
           record_relations records_index u_store_2 recovery::store::tests stop_records
           a15_single_entry a15_native::tests native_text::tests
-          act_control::standing_tests
+          act_control::standing_tests native_text::supplied_tests
           act_control::a15::tests::native_presentation_failure_
           act_control::a15::tests::native_adapter_three_buttons_only_the_middle_captures
           file_act role_observations host_tick after_end_file_lapse
