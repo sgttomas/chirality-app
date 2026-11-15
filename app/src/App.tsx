@@ -2016,7 +2016,12 @@ export function App() {
   // The App's own move (the first view at launch, the move after a sign-in): the view, then its target revealed
   // and its disclosure opened, without counting as the person's navigation.
   const [autoReveal, setAutoReveal] = useState<{ sequence: number; target: string } | null>(null);
+  // Whether Connection and access is open: the person's toggles, and the App's own move to the sign-in, which opens it.
+  // Before either, it follows the section's own default (open while Codex is not ready).
+  const [connectionOpen, setConnectionOpen] = useState<boolean | null>(null);
+  const connectionShown = connectionOpen ?? (host?.state !== "ready");
   const autoMove = (view: string, target: string) => {
+    if (target === "workspace-sign-in") setConnectionOpen(true);
     taskViewRef.current = view; setTaskView(view);
     setAutoReveal(previous => ({ sequence: (previous?.sequence ?? 0) + 1, target }));
   };
@@ -2741,8 +2746,9 @@ export function App() {
         <WorkspaceConnectionStatus state={host?.state} setupRequired={host?.desktopSetup?.launch?.state === "setup-required"} savedSetup={!!host?.desktopSetup?.pending} generationClosed={host?.generationClosed} startRefusal={host?.lastStartRefusal} codexHome={host?.codexHome} refusalCause={host?.startRefusalCause} build={host?.build} signIn={signInReading}
           plan={reportedPlan(host)} codexError={accountReadError(host)}
           checkAgain={async () => { const shown = currentHost.current; try { await readAccountStatus(shown?.generation, shown?.homeRouting?.activeModeHomeClass, () => true); } catch (error) { setMessage(`Check again: ${readingSentence(error) ?? String(error)}`); } }}
-          // On Settings & tools, Connection and access carries the sign-in itself: one sign-in button on a view, never two.
-          startSignIn={taskView === "settings" ? undefined : async () => { try { await homeAction("oauth_start", { generation: currentHost.current?.generation, mode: "browser" }); } catch (error) { setMessage(`oauth_start: ${String(error)}`); } }}/>
+          // On Settings & tools with Connection and access open, that section carries the sign-in: one sign-in button on a
+          // view, never two. Closed, the line carries it again, so the view always shows a way to sign in.
+          startSignIn={taskView === "settings" && connectionShown ? undefined : async () => { try { await homeAction("oauth_start", { generation: currentHost.current?.generation, mode: "browser" }); } catch (error) { setMessage(`oauth_start: ${String(error)}`); } }}/>
         </div>}
         <NativeWaitingBridge ready={!!host} report={setMessage} checkpoint={() => ({ signature: JSON.stringify([threadChoiceRevision.current, chooserHome.current.epoch, editRevision.current]),
           pristine: threadChoiceRevision.current === 0 && editRevision.current === 0 })} capture={() => {
@@ -2884,7 +2890,7 @@ export function App() {
         <section id="workspace-tools" data-workspace-view="settings" className="workspace-tools workspace-view workspace-view-narrow" aria-label="Workspace tools" hidden={taskView !== "settings"}>
           <h2>Settings &amp; tools</h2>
           <DesktopSetupPanel view={host?.desktopSetup}/>
-          <WorkspaceDisclosure id="workspace-connection" title="Connection and access" description="Home, sign-in, provider setup and Codex controls" open={host?.state !== "ready" ? true : undefined}>
+          <WorkspaceDisclosure id="workspace-connection" title="Connection and access" description="Home, sign-in, provider setup and Codex controls" open={host?.state !== "ready" ? true : undefined} onToggle={setConnectionOpen}>
             <HomeAccessPanel host={host} resources={{ ...host?.homeResources, namespaceProtection: host?.nativeNamespaces, keyAdmission: host?.keyNamespaceAdmission }} navigating={homePending} readAccount={readAccountStatus} local={localAccess} act={async (command, args) => { await homeAction(command, args); }}/>
             <EffectiveAccessSettingsPanel host={host} navigating={homePending} refresh={refreshEffectiveAccessSettings}/>
   <CodexProcessControls host={host} busy={processBusy} act={(command, args) => { void processAct(command, args); }}/>

@@ -180,7 +180,7 @@ test('a sign-in completed in this process and confirmed by the read after it ope
   });
 });
 
-test('the workspace line carries the sign-in itself when Codex reports no account, except on Settings & tools, where Connection and access carries it: one sign-in button on a view', async () => {
+test('the workspace line carries the sign-in itself when Codex reports no account, except on Settings & tools while Connection and access is open and carries it: one sign-in button on a view, and never none', async () => {
   const SIGN_IN = 'Sign in with your ChatGPT account (through Codex)…';
   await mountedApp(noAccount(), async ui => {
     const status = () => ui.container.querySelectorAll(e => e.getAttribute('aria-label') === 'Workspace connection status')[0];
@@ -188,6 +188,11 @@ test('the workspace line carries the sign-in itself when Codex reports no accoun
     assert.equal(currentView(ui.container), 'Settings & tools');
     assert.equal(elements(ui.container, 'button').filter(b => b.textContent === SIGN_IN).length, 1, 'one sign-in button: Connection and access');
     assert.equal(elements(status(), 'button').filter(b => b.textContent === SIGN_IN).length, 0, 'not repeated on the line here');
+    // Collapsing Connection and access never leaves the view without a way to sign in: the line carries it again.
+    await React.act(() => props(byId(ui.container, 'workspace-connection')).onToggle({currentTarget: {open: false}}));
+    assert.ok(elements(status(), 'button').find(b => b.textContent === SIGN_IN), 'Connection and access closed: the sign-in is on the line');
+    await React.act(() => props(byId(ui.container, 'workspace-connection')).onToggle({currentTarget: {open: true}}));
+    assert.equal(elements(status(), 'button').filter(b => b.textContent === SIGN_IN).length, 0, 'opened again: one button, in the section');
     await ui.navigate('History');
     assert.ok(elements(status(), 'button').find(b => b.textContent === SIGN_IN), 'on another view the sign-in is on the line');
     assert.equal(elements(status(), 'a').length, 0, 'no link to a section that holds the button');
