@@ -14,22 +14,7 @@ use super::*;
 use crate::codex_level::{self as cl, Level, Target};
 use std::path::Path;
 
-/// Where a level in force comes from (`origin` in the status).
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub(crate) enum Origin {
-    /// The person's choice, recorded in the ledger.
-    Chosen,
-    /// The App's default, put in force by a complete launch read that found no valid choice for the default scope.
-    /// Never written to the ledger.
-    AppDefault,
-    /// The person's choice, held in memory only because the App's records could not be read or saved.
-    SessionOnly,
-}
-impl Origin {
-    pub(crate) fn as_str(self) -> &'static str {
-        match self { Self::Chosen => "chosen", Self::AppDefault => "app-default", Self::SessionOnly => "session-only" }
-    }
-}
+use crate::codex_level::LevelOrigin as Origin;
 
 /// A level in force for a scope: the ledger entry it was recorded as (None for the App's default and a
 /// session-only choice), when, the level, and where it comes from.
@@ -106,6 +91,9 @@ pub(crate) struct LevelState {
     pub(crate) request_sent: HashMap<String, Value>,
     /// What Codex last reported for each conversation (`threads[].level.reported`).
     pub(crate) reported: HashMap<String, Value>,
+    /// Association entries queued for this session, and those read back from a validated launch cut.
+    pub(crate) inherited: HashMap<String, String>,
+    pub(crate) inherited_read: std::collections::HashSet<String>,
     /// The cause a level was last not sent for each conversation (`threads[].level.refused`).
     pub(crate) refused: HashMap<String, Value>,
     /// The last refusal of any send, a start's included (`levelSendRefusal`).
@@ -176,7 +164,7 @@ fn chosen_view(chosen: Option<&Chosen>, level: Option<&'static Level>, scope: &s
     match (chosen, level) {
         (Some(c), _) => {
             let mut view = json!({"id": c.level.id, "dimensions": c.level.dimensions, "ledgerEntry": c.entry,
-                "chosenAt": if c.origin == Origin::AppDefault { Value::Null } else { json!(c.at) }, "scope": scope, "reading": "not-limited",
+                "chosenAt": if c.origin == Origin::AppDefault { Value::Null } else { json!(c.at) }, "scope": scope, "reading": "not-limited", "readingSentence": cl::READING_SENTENCE,
                 "origin": c.origin.as_str()});
             match c.origin {
                 Origin::Chosen => {}
@@ -189,11 +177,11 @@ fn chosen_view(chosen: Option<&Chosen>, level: Option<&'static Level>, scope: &s
                     view["sessionOnly"] = session_only.cloned().unwrap_or(Value::Null);
                 }
             }
-            if c.level.id == "supervised" { view["allowing"] = json!(cl::SUPERVISED_ALLOWING); }
+            if c.level.approval_policy != "never" { view["allowing"] = json!(cl::SUPERVISED_ALLOWING); }
             view
         }
         // A level set without a record or an origin: only the test setters do this.
-        (None, Some(level)) => json!({"id": level.id, "dimensions": level.dimensions, "ledgerEntry": null, "chosenAt": null, "scope": scope, "reading": "not-limited", "origin": null}),
+        (None, Some(level)) => json!({"id": level.id, "dimensions": level.dimensions, "ledgerEntry": null, "chosenAt": null, "scope": scope, "reading": "not-limited", "readingSentence": cl::READING_SENTENCE, "origin": null}),
         (None, None) => Value::Null,
     }
 }
@@ -268,7 +256,7 @@ impl Host {
             };
             let project = built.get("cwd").and_then(Value::as_str).map(PathBuf::from)
                 .or_else(|| thread.as_deref().and_then(row_cwd))
-                .or_else(|| places.process_cwd.clone());
+                .or_else(|| (method == "thread/start").then(|| places.process_cwd.clone()).flatten());
             let Some(project) = project else { return Err(json!({"refused": "project-not-established"})) };
             // A relative folder is where Codex resolves it: in the folder it was started in.
             let project = if project.is_relative() {
@@ -298,15 +286,12 @@ impl Host {
     }
 
     /// The recorded choice behind the level a frame resolved to, by where it came from.
-    pub(super) fn level_chosen_for(i: &Inner, method: cl::Method, thread: &str, new_choice: bool) -> Option<String> {
-        let entry = |c: Option<&Chosen>| c.and_then(|c| c.entry.clone());
-        if new_choice {
-            return entry(i.level.new_chosen.as_ref());
-        }
+    pub(super) fn level_origin_for(i: &Inner, method: cl::Method, thread: &str, new_choice: bool) -> Option<Chosen> {
+        if new_choice { return i.level.new_chosen.clone(); }
         match method {
-            cl::Method::ThreadStart => entry(i.level.default_chosen.as_ref()),
-            _ if i.thread_levels.contains_key(thread) => entry(i.level.thread_chosen.get(thread)),
-            _ => entry(i.level.default_chosen.as_ref()),
+            cl::Method::ThreadStart => i.level.default_chosen.clone(),
+            _ if i.thread_levels.contains_key(thread) => i.level.thread_chosen.get(thread).cloned(),
+            _ => i.level.default_chosen.clone(),
         }
     }
 
@@ -377,9 +362,25 @@ impl Host {
         };
         let Some(thread) = thread.filter(|t| !t.is_empty()) else { return };
         if matches!(bound.target, Target::New | Target::ForkOf(_)) {
+            let fresh = !i.thread_levels.contains_key(&thread);
             i.thread_levels.entry(thread.clone()).or_insert(bound.level);
-            if let Some(c) = bound.chosen.as_ref().and_then(|c| i.level.by_entry.get(c)).cloned() {
-                i.level.thread_chosen.entry(thread.clone()).or_insert(c);
+            if let Some(origin) = bound.origin {
+                let chosen = Chosen { entry:bound.chosen.clone(), at:bound.chosen_at.clone().unwrap_or_default(), level:bound.level, origin };
+                i.level.thread_chosen.entry(thread.clone()).or_insert(chosen.clone());
+                // This records an inherited association, not a person's new choice. Session-only choices
+                // and defaults selected while records were unreadable never acquire a durable association.
+                if fresh && origin != Origin::SessionOnly && i.level.session_only.is_none() {
+                    let entry_id = opaque_id("level-inherited:").unwrap_or_default();
+                    i.level.inherited.insert(thread.clone(), entry_id.clone());
+                    if !entry_id.is_empty() {
+                        if let Some(home) = Self::level_home(i) {
+                            Self::queue_level_entry(i, json!({"kind":"level_inherited", "session":i.app_session,
+                                "entryId":entry_id,"at":now_rfc3339(),"scope":{"kind":"conversation","home":home,"threadId":thread},
+                                "level":cl::recorded_values(bound.level),"origin":origin.as_str(),"chosen":chosen.entry,
+                                "chosenAt":if origin==Origin::AppDefault {Value::Null} else {json!(chosen.at)}}));
+                        }
+                    }
+                }
             }
             if let Some(row) = i.level.request_sent.remove(key) { i.level.last_sent.insert(thread.clone(), row); }
             let home = Self::level_home(i);
@@ -405,7 +406,7 @@ impl Host {
         };
         let from = match bound.method { cl::Method::ThreadStart => "thread/start", cl::Method::ThreadResume => "thread/resume", _ => "thread/fork" };
         let at = now_rfc3339();
-        i.level.reported.insert(thread.clone(), json!({"from": from, "at": at, "requestRef": request_ref, "levelId": bound.level.id,
+        i.level.reported.insert(thread.clone(), json!({"from": from, "at": at, "requestRef": request_ref, "requestedLevelId": bound.level.id,
             "approvalPolicy": result.get("approvalPolicy"), "approvalsReviewer": result.get("approvalsReviewer"), "sandbox": result.get("sandbox"),
             "agreement": agreement, "differs": differs}));
         let Some(chosen) = bound.chosen.clone() else { return };
@@ -511,7 +512,7 @@ impl Host {
                 i.level.record_missing = false;
                 i.default_level = Some(chosen.level); i.level.default_chosen = Some(chosen);
             }
-            LevelScope::Conversation(t) => { i.level.thread_asks.remove(t); i.thread_levels.insert(t.clone(), chosen.level); i.level.thread_chosen.insert(t.clone(), chosen); }
+            LevelScope::Conversation(t) => { i.level.inherited.remove(t); i.level.thread_asks.remove(t); i.thread_levels.insert(t.clone(), chosen.level); i.level.thread_chosen.insert(t.clone(), chosen); }
             LevelScope::NewConversation => { i.new_conversation_level = Some(chosen.level); i.level.new_chosen = Some(chosen); }
         }
         i.level_revision += 1;
@@ -529,41 +530,51 @@ impl Host {
     /// in the table and its values (the table's digest among them) equal that row exactly. A recorded level that is
     /// not accepted is no level for that scope, never an earlier entry and never Codex's own setting. When the read
     /// is complete and no valid choice for the default scope is found, the App's default
-    /// (`codex_level::DEFAULT_LEVEL`) is in force there, shown as the App's default and never written. A ledger
-    /// that cannot be read, or is limited, puts nothing in force and lets the person choose for this session only.
+    /// (`codex_level::DEFAULT_LEVEL`) applies subject to the account-home evidence, shown as the App's default
+    /// and never written as a choice. Failed reads preserve known levels; a first run established by absent
+    /// Codex state can use the default with its unread-records disclosure, otherwise the person is asked.
     /// A complete read drops every session-only choice. `home` is this Host's `home_identity`.
     pub(crate) fn read_levels_at_launch(&self, home: Option<&str>) -> Value {
         self.read_levels_at_launch_in(home, None)
     }
 
-    /// [`Self::read_levels_at_launch`], with the path the App made for this account home (`codex_home`). The App's
-    /// default applies only on positive evidence that the person has never chosen: the complete read holds an earlier
-    /// session's entries and no valid choice (used before, never chose), or it holds no earlier session and this home
-    /// holds no state from an earlier Codex start (a first run). A read with no earlier session where this home does
-    /// hold such state is a missing record: no default, and the person chooses. The home is probed by presence only
-    /// (`symlink_metadata` of one name in it), nothing is opened, and no other folder is looked at.
+    /// Select from a fresh, guarded, fully validated cut of this session's original ledger, under its writer.
+    /// No recorded choice means only that none was found, not that the person never chose. With no earlier
+    /// session entry and earlier Codex state in the account home, ask rather than take the default. A failed
+    /// home probe is unknown, never absence. Individual entry removal/replacement by an outside writer is not
+    /// detected (LIM-022); ordinary failed writes and detected corruption are not excluded by that limitation.
+    /// A failed fresh read preserves levels already known and exposes its failure beside any first-run default.
+    /// The home is probed by one symlink_metadata call; no file contents or other folder are read.
     pub(crate) fn read_levels_at_launch_in(&self, home: Option<&str>, codex_home: Option<&std::path::Path>) -> Value {
+        // Selection and a person's choice share the existing writer; no selection can overtake a choice.
+        let _writer = self.recovery_writer.lock().unwrap();
+        self.drain_recovery_owned();
+        let home_state = codex_home.map(cl::home_has_codex_state);
+        let home_unknown = home_state.as_ref().and_then(|state| state.as_ref().err()).map(|error|
+            json!({"state":"unknown", "detail":{"text":error,"standing":cl::NOT_THE_APPS_TEXT}}));
         let (ledger, limit) = {
             let i = self.inner.0.lock().unwrap();
             (i.recovery.clone(), i.recovery_initialization_error.clone())
         };
+        let unreadable = |detail: String| (cl::RECORDS_NOT_READ.to_owned(),
+            json!({"reason":cl::RECORDS_NOT_READ,"detail":{"text":detail,"standing":cl::NOT_THE_APPS_TEXT}}));
         let read = match (ledger, limit) {
-            (Some(ledger), None) => Ok(ledger.lock().unwrap().current_entries().to_vec()),
-            (_, Some(limit)) => Err((format!("The App ledger could not be read ({limit}), so no level is in force; choose a level before any conversation."),
-                json!({"reason": cl::RECORDS_NOT_READ, "detail": {"text": limit, "standing": cl::NOT_THE_APPS_TEXT}}))),
-            (None, None) => Err(("The App ledger is unavailable, so no level is in force; choose a level before any conversation.".into(),
+            (Some(ledger), None) => ledger.lock().unwrap().read_current_entries().map(|(_, rows)| rows).map_err(unreadable),
+            (_, Some(limit)) => Err(unreadable(limit)),
+            (None, None) => Err((cl::RECORDS_UNAVAILABLE.to_owned(),
                 json!({"reason": cl::RECORDS_UNAVAILABLE, "detail": null}))),
         };
         let rows = match read {
             Ok(rows) => rows,
             Err((reason, session_only)) => {
                 let mut view = json!({"state": "not-read", "reason": reason});
+                if let Some(state) = &home_unknown { view["homeState"] = state.clone(); }
                 let mut i = self.inner.0.lock().unwrap();
                 i.level.session_only = Some(session_only);
                 // The App's default only on positive evidence of a first run: this home holds no state from an earlier
                 // Codex start. Otherwise the ask, with the session-only choice.
                 if let Some(level) = i.level.app_default.0.filter(|_| i.default_level.is_none()) {
-                    if codex_home.is_some_and(|home| !cl::home_has_codex_state(home)) {
+                    if matches!(home_state, Some(Ok(false))) {
                         Self::apply_chosen(&mut i, &LevelScope::Default, Chosen { entry: None, at: now_rfc3339(), level, origin: Origin::AppDefault });
                         i.level.records_unread = true;
                         view["appDefault"] = json!(level.id);
@@ -577,7 +588,7 @@ impl Host {
             }
         };
         let mut latest: Vec<(LevelScope, Value)> = Vec::new();
-        for row in rows.iter().filter(|r| r["kind"] == "level_chosen") {
+        for row in rows.iter().filter(|r| matches!(r["kind"].as_str(), Some("level_chosen" | "level_inherited"))) {
             let scope = match row["scope"]["kind"].as_str() {
                 Some("default-for-new-conversations") => LevelScope::Default,
                 Some("conversation") if home.is_some_and(|h| row["scope"]["home"] == h) => match row["scope"]["threadId"].as_str() {
@@ -608,9 +619,17 @@ impl Host {
             let entry = row["entryId"].as_str().unwrap_or_default().to_owned();
             match cl::accept_recorded(&row["level"]) {
                 Some(level) => {
-                    let chosen = Chosen { entry: Some(entry.clone()), at: row["at"].as_str().unwrap_or_default().to_owned(), level, origin: Origin::Chosen };
+                    let inherited = row["kind"] == "level_inherited";
+                    let chosen = if inherited {
+                        Chosen {entry:row["chosen"].as_str().map(str::to_owned), at:row["chosenAt"].as_str().unwrap_or_default().to_owned(), level,
+                            origin:if row["origin"]=="app-default" {Origin::AppDefault} else {Origin::Chosen}}
+                    } else { Chosen { entry: Some(entry.clone()), at: row["at"].as_str().unwrap_or_default().to_owned(), level, origin: Origin::Chosen } };
                     if scope == LevelScope::Default { default_accepted = true; }
                     Self::apply_chosen(&mut i, &scope, chosen);
+                    if inherited { if let LevelScope::Conversation(thread) = &scope {
+                        i.level.inherited.insert(thread.clone(), entry.clone());
+                        i.level.inherited_read.insert(entry.clone());
+                    }}
                     accepted.push(json!({"entryId": entry, "levelId": level.id}));
                 }
                 None => {
@@ -633,13 +652,16 @@ impl Host {
             }
         }
         let mut view = json!({"state": "read", "accepted": accepted, "refused": refused});
+        if let Some(state) = &home_unknown { view["homeState"] = state.clone(); }
         i.level.record_missing = false;
-        // The App's default, where the complete read found no valid choice for the default scope, and only on positive
-        // evidence that the person has never chosen.
+        // The default where no usable choice was found, subject to the explicit missing/unknown-state cases.
         if let (false, Some(level)) = (default_accepted, i.level.app_default.0) {
             let current = i.app_session.clone();
             let used_before = rows.iter().any(|r| r["session"].as_str().is_some_and(|s| s != current));
-            if default_refused || (!used_before && codex_home.is_some_and(cl::home_has_codex_state)) {
+            if default_refused || home_unknown.is_some() || (!used_before && matches!(home_state, Some(Ok(true)))) {
+                i.default_level = None;
+                i.level.default_chosen = None;
+                i.level_revision += 1;
                 // No earlier session in the record, yet this home holds state from an earlier Codex start: the
                 // record of the level is missing, not a first run.
                 i.level.record_missing = true;
@@ -684,13 +706,25 @@ impl Host {
                 // Confirmed only by a start, resume or fork reply for the level now in force: a change sent on a turn
                 // is not confirmed until the next such reply.
                 let agreement = match (&reported, in_force) {
-                    (Some(r), Some(level)) if r["levelId"] == level.id.as_str() => r["agreement"].clone(),
+                    (Some(r), Some(level)) if r["requestedLevelId"] == level.id.as_str() => r["agreement"].clone(),
                     _ => json!("not-confirmed"),
                 };
                 let changed = match (&sent, in_force) { (Some(s), Some(level)) => s["levelId"] != level.id.as_str(), _ => false };
                 let takes_effect = if changed && Self::current_live_turn(i, &t).is_some() { "from-next-turn" } else { "now" };
                 let project_trust = sent.as_ref().map(|s| s["projectTrust"].clone()).filter(|v| !v.is_null());
                 let mut level = json!({"chosen": chosen, "sent": sent, "reported": reported, "agreement": agreement, "takesEffect": takes_effect});
+                if takes_effect == "from-next-turn" { level["takesEffectSentence"] = json!(cl::NEXT_TURN_SENTENCE); }
+                if let Some(entry) = i.level.inherited.get(&t) {
+                    let recorded = i.level.inherited_read.contains(entry) || i.recovery_snapshot.as_ref()
+                        .is_some_and(|cut| cut.rows.iter().any(|row| row["kind"]=="level_inherited" && row["entryId"]==*entry));
+                    if !recorded {
+                        let failure = i.recovery_error.as_ref().or(i.recovery_initialization_error.as_ref());
+                        if failure.is_some() || i.recovery.is_none() || entry.is_empty() {
+                            level["inheritancePersistence"] = json!({"state":"not-recorded","sentence":cl::INHERITANCE_NOT_RECORDED,
+                                "detail":failure.map(|text|json!({"text":text,"standing":cl::NOT_THE_APPS_TEXT}))});
+                        } else { level["inheritancePersistence"] = json!({"state":"pending"}); }
+                    }
+                }
                 if let Some(trust) = project_trust { level["projectTrust"] = trust; }
                 if let Some(cause) = i.level.refused.get(&t) { level["refused"] = cause.clone(); }
                 // This conversation's recorded level could not be used: the ask, with the App's default preselected.
@@ -716,7 +750,7 @@ impl Host {
             let process_cwd = i.level.places.as_ref().and_then(|p| p.process_cwd.clone());
             let cwd = params.get("cwd").and_then(Value::as_str).map(PathBuf::from)
                 .or_else(|| thread.and_then(|t| i.threads.iter().rev().find(|r| r["threadId"] == t).and_then(|r| r["cwd"].as_str()).map(PathBuf::from)))
-                .or_else(|| process_cwd.clone());
+                .or_else(|| (method == "thread/start").then(|| process_cwd.clone()).flatten());
             let cwd = match cwd {
                 Some(c) if c.is_relative() => process_cwd.map(|p| p.join(c)),
                 other => other,

@@ -637,7 +637,7 @@ fn with_no_default_the_launch_read_is_byte_for_byte_as_before() {
     let unread = Host::new_without_level();
     unread.set_app_default_for_test(None);
     assert_eq!(serde_json::to_string(&unread.read_levels_at_launch(None)).unwrap(),
-        r#"{"reason":"The App ledger is unavailable, so no level is in force; choose a level before any conversation.","state":"not-read"}"#);
+        r#"{"reason":"The App's records are not available in this session.","state":"not-read"}"#);
     assert!(unread.default_level().is_none());
     std::fs::remove_dir_all(&base).unwrap();
 }
@@ -696,6 +696,7 @@ fn a_session_only_choice_takes_effect_from_the_next_turn_while_a_turn_runs() {
     let level = thread_row(&host, "thread")["level"].clone();
     assert_eq!(level["chosen"]["origin"], "session-only");
     assert_eq!(level["takesEffect"], "from-next-turn", "{level}");
+    assert_eq!(level["takesEffectSentence"], cl::NEXT_TURN_SENTENCE);
     wire.close(&host);
 }
 
@@ -719,8 +720,8 @@ fn a_session_only_choice_is_never_offered_on_an_empty_ledger_and_a_complete_read
     unread.choose_level(&LevelScope::Default, cl::level("supervised").unwrap(), &[]).unwrap();
     unread.choose_level(&LevelScope::Conversation("thread".into()), cl::level("edits").unwrap(), &[]).unwrap();
     let other = root("session-later");
-    let ledger = RecoveryLedger::open(other.join("recovery.ledger.jsonl")).unwrap();
-    unread.inner.0.lock().unwrap().recovery = Some(Arc::new(Mutex::new(ledger)));
+    let recovered = ready_with_ledger(&other, "/invented");
+    unread.inner.0.lock().unwrap().recovery = recovered.inner.0.lock().unwrap().recovery.clone();
     unread.set_app_default_for_test(None);
     unread.read_levels_at_launch(Some("app-home:invented"));
     assert!(unread.default_level().is_none(), "dropped");
@@ -731,6 +732,7 @@ fn a_session_only_choice_is_never_offered_on_an_empty_ledger_and_a_complete_read
     assert_eq!(out["origin"], "chosen");
     assert_eq!(unread.snapshot()["levelDefault"]["origin"], "chosen");
     std::fs::remove_dir_all(&base).unwrap();
+    recovered.app_runtime_custody().unwrap().record_app_session_end(&[]).unwrap();
     std::fs::remove_dir_all(&other).unwrap();
 }
 
@@ -828,8 +830,8 @@ fn each_start_resume_and_fork_carries_exactly_one_trust_entry_for_the_project_ro
         assert_eq!(frame["params"]["config"]["projects"], json!({key(&project): {"trust_level": "untrusted"}}), "{method}: the root, nearest .git");
     }
     let row = thread_row(&host, "thread");
-    assert_eq!(row["level"]["projectTrust"]["case"], "not-used");
-    assert_eq!(row["level"]["projectTrust"]["lines"], json!([cl::TRUST_NOT_USED]));
+    assert_eq!(row["level"]["projectTrust"]["case"], "unmarked");
+    assert_eq!(row["level"]["projectTrust"]["lines"], json!([cl::TRUST_UNTRUSTED_SENT]));
     wire.close(&host);
     std::fs::remove_dir_all(&base).unwrap();
 }
@@ -875,9 +877,9 @@ fn an_untrusted_mark_is_preserved_and_a_failed_or_limited_reading_sends_untruste
         let trust = thread_row(&host, "thread")["level"]["projectTrust"].clone();
         assert_eq!(trust["case"], case, "{what}");
         match case {
-            "marked-untrusted" => assert_eq!(trust["lines"], json!([cl::TRUST_MARKED_UNTRUSTED, cl::TRUST_NOT_USED])),
+            "marked-untrusted" => assert_eq!(trust["lines"], json!([cl::TRUST_MARKED_UNTRUSTED, cl::TRUST_UNTRUSTED_SENT])),
             _ => {
-                assert_eq!(trust["lines"], json!([cl::TRUST_NOT_READ, cl::TRUST_NOT_USED]), "{what}");
+                assert_eq!(trust["lines"], json!([cl::TRUST_NOT_READ, cl::TRUST_UNTRUSTED_SENT]), "{what}");
                 assert!(!trust.to_string().contains("may quote configuration"), "{what}: a native message is not passed on");
             }
         }
@@ -1069,19 +1071,19 @@ fn a_first_run_reaches_the_apps_default_with_no_question() {
 fn the_home_probe_is_presence_only_in_this_home() {
     let base = root("probe");
     let home = account_home(&base, false);
-    assert!(!cl::home_has_codex_state(&home));
+    assert_eq!(cl::home_has_codex_state(&home), Ok(false));
     // State elsewhere (beside the home, or in its parent) is not this home's.
     std::fs::write(base.join("homes").join(cl::CODEX_STATE_NAME), b"invented").unwrap();
-    assert!(!cl::home_has_codex_state(&home));
+    assert_eq!(cl::home_has_codex_state(&home), Ok(false));
     // A dangling link is present and is not followed.
     std::os::unix::fs::symlink(base.join("absent"), home.join(cl::CODEX_STATE_NAME)).unwrap();
-    assert!(cl::home_has_codex_state(&home));
+    assert_eq!(cl::home_has_codex_state(&home), Ok(true));
     std::fs::remove_file(home.join(cl::CODEX_STATE_NAME)).unwrap();
     // A named pipe is present, and opening it would block: the probe does not open it.
     let pipe = home.join(cl::CODEX_STATE_NAME);
     let c = std::ffi::CString::new(pipe.as_os_str().as_encoded_bytes()).unwrap();
     assert_eq!(unsafe { libc::mkfifo(c.as_ptr(), 0o600) }, 0);
-    assert!(cl::home_has_codex_state(&home));
+    assert_eq!(cl::home_has_codex_state(&home), Ok(true));
     std::fs::remove_dir_all(base).unwrap();
 }
 
@@ -1126,7 +1128,7 @@ fn supervised_says_an_allowed_command_can_run_outside_the_sandbox() {
     host.choose_level(&LevelScope::Default, cl::level("supervised").unwrap(), &[]).unwrap();
     assert_eq!(host.snapshot()["levelDefault"]["allowing"], cl::SUPERVISED_ALLOWING);
     host.choose_level(&LevelScope::Default, cl::level("edits").unwrap(), &[]).unwrap();
-    assert!(host.snapshot()["levelDefault"].get("allowing").is_none());
+    assert_eq!(host.snapshot()["levelDefault"]["allowing"], cl::SUPERVISED_ALLOWING);
     std::fs::remove_dir_all(base).unwrap();
 }
 
@@ -1135,8 +1137,9 @@ fn supervised_says_an_allowed_command_can_run_outside_the_sandbox() {
 /// full access, recorded as the person's choice.
 #[test]
 fn a_narrower_choice_whose_record_was_altered_does_not_run_at_full_access_without_the_ask() {
+    for prior_state in [false, true] {
     let base = root("altered");
-    let home = account_home(&base, true);
+    let home = account_home(&base, prior_state);
     let path = base.join("data").join("recovery.ledger.jsonl");
     {
         let before = ready_with_ledger(&base.join("data"), "/invented");
@@ -1167,6 +1170,7 @@ fn a_narrower_choice_whose_record_was_altered_does_not_run_at_full_access_withou
     assert_eq!(wire.next()["params"]["approvalPolicy"], "never");
     wire.close(&host);
     std::fs::remove_dir_all(base).unwrap();
+    }
 }
 
 /// A conversation's own recorded level that no longer matches the table: that conversation is asked about, with the
@@ -1264,4 +1268,292 @@ fn unreadable_records_where_this_home_has_been_used_are_asked_about() {
     assert_eq!(wire.next()["params"]["approvalPolicy"], "never");
     wire.close(&host);
     std::fs::remove_dir_all(base).unwrap();
+}
+
+// Review regressions: decide from observed records/home state, not a failed probe or stale cache.
+#[test]
+fn review_repairs_unknown_home_state_asks_and_does_not_leave_a_default_after_access_returns() {
+    use std::os::unix::fs::PermissionsExt;
+    let base = root("unknown-state");
+    let home = account_home(&base, true);
+    for readable_ledger in [false, true] {
+        let host = if readable_ledger { ready_with_ledger(&base.join("data"), "/invented") } else { ready_unledgered("/invented") };
+        host.inner.0.lock().unwrap().default_level = None;
+        std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o000)).unwrap();
+        let observation = std::fs::symlink_metadata(home.join(cl::CODEX_STATE_NAME));
+        let view = host.read_levels_at_launch_in(Some("app-home:invented"), Some(&home));
+        std::fs::set_permissions(&home, std::fs::Permissions::from_mode(0o700)).unwrap();
+        assert_eq!(observation.unwrap_err().kind(), std::io::ErrorKind::PermissionDenied);
+        assert!(host.default_level().is_none(), "unknown home must ask: {view}");
+        assert_eq!(view["homeState"]["state"], "unknown");
+        assert_eq!(view["homeState"]["detail"]["standing"], cl::NOT_THE_APPS_TEXT);
+        assert_eq!(host.snapshot()["levelAskPreselected"], "full");
+        if readable_ledger { host.app_runtime_custody().unwrap().record_app_session_end(&[]).unwrap(); }
+    }
+    std::fs::remove_dir_all(base).unwrap();
+}
+
+#[test]
+fn review_repairs_unreadable_first_run_reason_does_not_demand_a_choice() {
+    let base = root("first-read-words");
+    let home = account_home(&base, false);
+    let host = ready_unledgered("/invented");
+    host.inner.0.lock().unwrap().recovery_initialization_error = Some("invented raw failure".into());
+    let view = host.read_levels_at_launch_in(Some("app-home:invented"), Some(&home));
+    assert_eq!(view["appDefault"], "full");
+    assert_eq!(view["reason"], cl::RECORDS_NOT_READ);
+    assert!(!view["reason"].as_str().unwrap().contains("invented raw failure"));
+    assert_eq!(host.snapshot()["levelSessionOnlyOffered"]["detail"]["text"], "invented raw failure");
+    std::fs::remove_dir_all(base).unwrap();
+}
+
+#[test]
+fn review_repairs_additional_home_reads_a_choice_committed_before_a_flush_failure() {
+    let base = root("committed-choice");
+    let host = ready_with_ledger(&base.join("data"), "/invented");
+    host.choose_level(&LevelScope::Default, cl::level("full").unwrap(), &[]).unwrap();
+    host.flush_recovery_observations();
+    crate::recovery::store::FAIL_FLUSH_AFTER_COMMIT.with(|f| f.set(true));
+    let failed = host.choose_level(&LevelScope::Default, cl::level("supervised").unwrap(), &[]).unwrap_err();
+    assert!(failed.contains("commit returned"));
+    let other = Host::new_with_app_custody(host.app_runtime_custody().unwrap()).unwrap();
+    other.read_levels_at_launch(Some("app-home:additional"));
+    assert_eq!(other.default_level().map(|l| l.id.as_str()), Some("supervised"));
+    host.app_runtime_custody().unwrap().record_app_session_end(&[]).unwrap();
+    std::fs::remove_dir_all(base).unwrap();
+}
+
+#[test]
+fn review_repairs_failed_fresh_read_preserves_a_known_narrower_level_and_reports_failure() {
+    let base = root("fresh-read-failure");
+    let host = ready_with_ledger(&base.join("data"), "/invented");
+    host.choose_level(&LevelScope::Default, cl::level("supervised").unwrap(), &[]).unwrap();
+    let db = base.join("data/recovery.ledger.sqlite");
+    let moved = base.join("data/moved.sqlite");
+    std::fs::rename(&db, &moved).unwrap();
+    let view = host.read_levels_at_launch_in(Some("app-home:invented"), Some(&account_home(&base, false)));
+    std::fs::rename(&moved, &db).unwrap();
+    assert_eq!(view["state"], "not-read");
+    assert_eq!(host.default_level().map(|l| l.id.as_str()), Some("supervised"));
+    assert_eq!(host.snapshot()["levelDefault"]["origin"], "chosen");
+    assert!(!host.snapshot()["levelSessionOnlyOffered"].is_null());
+    host.app_runtime_custody().unwrap().record_app_session_end(&[]).unwrap();
+    std::fs::remove_dir_all(base).unwrap();
+}
+
+#[test]
+fn review_repairs_unknown_resume_or_fork_folder_is_not_the_server_folder() {
+    let base = root("unknown-saved-folder");
+    let host = ready_with_ledger(&base.join("data"), "/invented");
+    host.choose_level(&LevelScope::Default, cl::level("full").unwrap(), &[]).unwrap();
+    let wire = Wire::attach(&host);
+    for method in ["thread/resume", "thread/fork"] {
+        let sent = send(&host, method, json!({"threadId":"unknown-saved"}));
+        let failed = sent.is_err();
+        if sent.is_ok() { wire.next(); }
+        assert!(failed, "{method} substituted the server folder");
+    }
+    assert!(wire.nothing());
+    wire.close(&host);
+    host.app_runtime_custody().unwrap().record_app_session_end(&[]).unwrap();
+    std::fs::remove_dir_all(base).unwrap();
+}
+
+#[test]
+fn review_repairs_report_names_the_requested_id_beside_the_actual_reply() {
+    let base = root("requested-id");
+    let host = ready_with_ledger(&base.join("data"), "/invented");
+    host.choose_level(&LevelScope::Default, cl::level("full").unwrap(), &[]).unwrap();
+    let wire = Wire::attach(&host);
+    send(&host, "thread/resume", json!({"threadId":"thread"})).unwrap();
+    let sent = wire.next();
+    reply(&host, json!({"id":sent["id"],"result":{"thread":{"id":"thread"},"approvalPolicy":"on-request","approvalsReviewer":"user","sandbox":{"type":"readOnly"}}}));
+    let report = thread_row(&host,"thread")["level"]["reported"].clone();
+    wire.close(&host);
+    assert_eq!(report["requestedLevelId"], "full");
+    assert!(report.get("levelId").is_none());
+    assert_eq!(report["sandbox"]["type"], "readOnly");
+    assert_eq!(report["agreement"], "differs");
+    host.app_runtime_custody().unwrap().record_app_session_end(&[]).unwrap();
+    std::fs::remove_dir_all(base).unwrap();
+}
+
+#[test]
+fn review_repairs_level_disclosures_come_from_the_host_for_each_asking_policy() {
+    let base = root("closed-disclosures");
+    let host = ready_with_ledger(&base.join("data"), "/invented");
+    for id in ["supervised","edits","edits-network","edits-no-asking","full"] {
+        host.choose_level(&LevelScope::Default, cl::level(id).unwrap(), &[]).unwrap();
+        let chosen = host.snapshot()["levelDefault"].clone();
+        assert_eq!(chosen["readingSentence"], "Reading is not limited at any permission level.");
+        assert_eq!(chosen["allowing"].is_string(), matches!(id,"supervised"|"edits"|"edits-network"));
+    }
+    host.app_runtime_custody().unwrap().record_app_session_end(&[]).unwrap();
+    std::fs::remove_dir_all(base).unwrap();
+}
+
+#[test]
+fn review_inheritance_created_and_forked_levels_survive_a_new_default_and_relaunch() {
+    for inherited in ["chosen", "app-default"] {
+        let base = root("inherited-relaunch");
+        let home = account_home(&base, false);
+        let expected = if inherited == "chosen" { "supervised" } else { "full" };
+        let chosen_at;
+        {
+            let host = ready_with_ledger(&base.join("data"), "/invented");
+            host.inner.0.lock().unwrap().default_level = None;
+            host.read_levels_at_launch_in(Some("app-home:invented"), Some(&home));
+            if inherited == "chosen" { host.choose_level(&LevelScope::Default, cl::level(expected).unwrap(), &[]).unwrap(); }
+            chosen_at = host.snapshot()["levelDefault"]["chosenAt"].clone();
+            let wire = Wire::attach(&host);
+            for (method,params,target) in [("thread/start",json!({"cwd":"/invented"}),"created"),
+                                           ("thread/fork",json!({"threadId":"created"}),"copied")] {
+                send(&host,method,params).unwrap();
+                let sent=wire.next();
+                reply(&host,json!({"id":sent["id"],"result":{"thread":{"id":target}}}));
+                let generation=g(&host);
+                host.inner.0.lock().unwrap().threads.push(json!({"generation":generation,"threadId":target,"cwd":"/invented"}));
+            }
+            let associations=entries(&host,"level_inherited");
+            wire.close(&host);
+            assert_eq!(associations.len(),2);
+            assert!(associations.iter().all(|r|r["origin"]==inherited));
+            let another=if expected=="full" {"supervised"} else {"full"};
+            host.choose_level(&LevelScope::Default,cl::level(another).unwrap(),&[]).unwrap();
+            for thread in ["created","copied"] {
+                assert_eq!(host.thread_level(thread).unwrap().id,expected);
+                assert_eq!(thread_row(&host,thread)["level"]["chosen"]["origin"],inherited);
+            }
+            assert_eq!(entries(&host,"level_chosen").len(),if inherited=="chosen" {2} else {1},"association is not a new choice");
+            host.app_runtime_custody().unwrap().record_app_session_end(&[]).unwrap();
+        }
+        let host=ready_with_ledger(&base.join("data"),"/invented");
+        host.read_levels_at_launch_in(Some("app-home:invented"),Some(&home));
+        for thread in ["created","copied"] {
+            assert_eq!(host.level_for("thread/resume",&json!({"threadId":thread})).unwrap().id,expected);
+            let chosen=host.inner.0.lock().unwrap().level.thread_chosen[thread].clone();
+            assert_eq!(chosen.origin.as_str(),inherited);
+            assert_eq!(if inherited=="app-default" {Value::Null} else {json!(chosen.at)},chosen_at);
+        }
+        host.app_runtime_custody().unwrap().record_app_session_end(&[]).unwrap();
+        std::fs::remove_dir_all(base).unwrap();
+    }
+}
+
+#[test]
+fn review_inheritance_session_only_origin_survives_start_and_fork_but_is_never_saved() {
+    let base=root("session-inheritance");
+    let host=ready_unledgered("/invented");
+    host.read_levels_at_launch(Some("app-home:invented"));
+    host.choose_level(&LevelScope::Default,cl::level("supervised").unwrap(),&[]).unwrap();
+    let expected=host.snapshot()["levelDefault"].clone();
+    let wire=Wire::attach(&host);
+    for (method,params,target) in [("thread/start",json!({"cwd":"/invented"}),"created"),
+                                   ("thread/fork",json!({"threadId":"created"}),"copied")] {
+        send(&host,method,params).unwrap();
+        let sent=wire.next();
+        reply(&host,json!({"id":sent["id"],"result":{"thread":{"id":target}}}));
+        let generation=g(&host);
+        host.inner.0.lock().unwrap().threads.push(json!({"generation":generation,"threadId":target,"cwd":"/invented"}));
+    }
+    wire.close(&host);
+    for thread in ["created","copied"] {
+        let chosen=thread_row(&host,thread)["level"]["chosen"].clone();
+        assert_eq!(chosen["origin"],"session-only");
+        assert_eq!(chosen["chosenAt"],expected["chosenAt"]);
+        assert_eq!(chosen["originSentence"],cl::SESSION_ONLY_SENTENCE);
+        assert!(chosen["ledgerEntry"].is_null());
+    }
+    std::fs::create_dir_all(base.join("data")).unwrap();
+    let recovered=ready_with_ledger(&base.join("data"),"/invented");
+    host.inner.0.lock().unwrap().recovery=recovered.inner.0.lock().unwrap().recovery.clone();
+    host.read_levels_at_launch(Some("app-home:invented"));
+    assert!(entries(&host,"level_inherited").is_empty());
+    assert!(entries(&host,"level_chosen").is_empty());
+    for thread in ["created","copied"] { assert!(host.thread_level(thread).is_none()); }
+    recovered.app_runtime_custody().unwrap().record_app_session_end(&[]).unwrap();
+    std::fs::remove_dir_all(base).unwrap();
+}
+
+#[test]
+fn review_inheritance_failed_association_is_disclosed_and_relaunch_uses_the_current_default() {
+    let base=root("association-failure");
+    let home=account_home(&base,false);
+    {
+        let host=ready_with_ledger(&base.join("data"),"/invented");
+        host.choose_level(&LevelScope::Default,cl::level("supervised").unwrap(),&[]).unwrap();
+        let wire=Wire::attach(&host);
+        send(&host,"thread/start",json!({"cwd":"/invented"})).unwrap();
+        let sent=wire.next();
+        host.choose_level(&LevelScope::Default,cl::level("full").unwrap(),&[]).unwrap();
+        crate::recovery::store::FAIL_BATCH_AFTER.with(|f|f.set(Some(0)));
+        reply(&host,json!({"id":sent["id"],"result":{"thread":{"id":"created"}}}));
+        let generation=g(&host);
+        host.inner.0.lock().unwrap().threads.push(json!({"generation":generation,"threadId":"created","cwd":"/invented"}));
+        let status=thread_row(&host,"created")["level"].clone();
+        wire.close(&host);
+        assert_eq!(status["chosen"]["id"],"supervised");
+        assert_eq!(status["inheritancePersistence"]["state"],"not-recorded");
+        assert_eq!(status["inheritancePersistence"]["sentence"],cl::INHERITANCE_NOT_RECORDED);
+        assert!(!host.snapshot()["recoveryPersistenceError"].is_null());
+        // Quit retries queued facts; keep the same append failure through that attempt.
+        crate::recovery::store::FAIL_BATCH_AFTER.with(|f|f.set(Some(0)));
+        let end=host.app_runtime_custody().unwrap().record_app_session_end(&[]).unwrap();
+        assert!(end["pendingPointerFacts"].as_u64().unwrap()>0);
+    }
+    let host=ready_with_ledger(&base.join("data"),"/invented");
+    host.read_levels_at_launch_in(Some("app-home:invented"),Some(&home));
+    let generation=g(&host);
+    host.inner.0.lock().unwrap().threads.push(json!({"generation":generation,"threadId":"created","cwd":"/invented"}));
+    let status=thread_row(&host,"created")["level"].clone();
+    assert_eq!(status["chosen"]["id"],"full");
+    assert_eq!(status["chosen"]["origin"],"chosen");
+    assert_eq!(status["chosen"]["scope"],"default");
+    host.app_runtime_custody().unwrap().record_app_session_end(&[]).unwrap();
+    std::fs::remove_dir_all(base).unwrap();
+}
+
+#[test]
+fn review_repairs_unknown_home_on_complete_refresh_withdraws_an_earlier_app_default() {
+    use std::os::unix::fs::PermissionsExt;
+    let base=root("unknown-refresh");let home=account_home(&base,false);
+    let host=ready_with_ledger(&base.join("data"),"/invented");
+    host.inner.0.lock().unwrap().default_level=None;
+    host.read_levels_at_launch_in(Some("app-home:invented"),Some(&home));
+    assert_eq!(host.default_level().unwrap().id,"full");
+    std::fs::set_permissions(&home,std::fs::Permissions::from_mode(0o000)).unwrap();
+    let view=host.read_levels_at_launch_in(Some("app-home:invented"),Some(&home));
+    std::fs::set_permissions(&home,std::fs::Permissions::from_mode(0o700)).unwrap();
+    let level=host.default_level().map(|l|l.id.clone());
+    host.app_runtime_custody().unwrap().record_app_session_end(&[]).unwrap();
+    std::fs::remove_dir_all(base).unwrap();
+    assert!(level.is_none(),"an earlier App default must not bypass the new ask: {view}");
+}
+
+/// LIM-022's explicit boundary, on invented data: valid remaining rows cannot establish that an outside
+/// writer removed a choice. This observes the limit, not a successful missing-record safeguard.
+#[test]
+fn outside_entry_removal_can_expose_an_older_choice_or_the_app_default() {
+    for remove_all in [false,true] {
+        let base=root("outside-choice-removal");let home=account_home(&base,true);
+        {
+            let host=ready_with_ledger(&base.join("data"),"/invented");
+            host.choose_level(&LevelScope::Default,cl::level("full").unwrap(),&[]).unwrap();
+            host.choose_level(&LevelScope::Default,cl::level("supervised").unwrap(),&[]).unwrap();
+            host.app_runtime_custody().unwrap().record_app_session_end(&[]).unwrap();
+        }
+        let db=rusqlite::Connection::open(base.join("data/recovery.ledger.sqlite")).unwrap();
+        db.execute("DROP TRIGGER ledger_entry_never_deleted",[]).unwrap();
+        let sql=if remove_all {"DELETE FROM ledger_entry WHERE kind='level_chosen'"}
+            else {"DELETE FROM ledger_entry WHERE seq=(SELECT MAX(seq) FROM ledger_entry WHERE kind='level_chosen')"};
+        assert_eq!(db.execute(sql,[]).unwrap(),if remove_all {2} else {1});drop(db);
+        let host=ready_with_ledger(&base.join("data"),"/invented");
+        host.read_levels_at_launch_in(Some("app-home:invented"),Some(&home));
+        let status=host.snapshot();
+        assert_eq!(status["levelDefault"]["id"],"full");
+        assert_eq!(status["levelDefault"]["origin"],if remove_all {"app-default"} else {"chosen"});
+        assert!(status["levelRecordMissing"].is_null());
+        host.app_runtime_custody().unwrap().record_app_session_end(&[]).unwrap();
+        std::fs::remove_dir_all(base).unwrap();
+    }
 }

@@ -13,7 +13,8 @@ pub const TABLE: &str = include_str!("codex_levels.json");
 
 /// The App's default level: the row a complete launch read puts in force for the default scope when the ledger
 /// holds no valid `level_chosen` for it. It is shown as the App's default, never as the person's choice, and is
-/// never written to the ledger; any recorded choice wins over it. An unreadable or limited ledger never takes it.
+/// never written as a person's choice; any usable recorded choice wins over it. The launch reader applies
+/// the missing/unreadable-record and home-state exceptions before selecting it.
 /// Tests replace it only through the `cfg(test)` setter `Host::set_app_default_for_test`; a shipped build has no
 /// other route to it.
 pub const DEFAULT_LEVEL: Option<&str> = Some("full");
@@ -21,9 +22,11 @@ pub const DEFAULT_LEVEL: Option<&str> = Some("full");
 /// The status's closed sentence for a level in force by the App's default.
 pub const APP_DEFAULT_SENTENCE: &str = "The App's default level, not chosen by you. You can choose another level at any time.";
 /// Where the status explains the App's default.
-/// What allowing a command means at Supervised, at the pinned Codex (supplier_checks/level: the escalation rows and
+/// What allowing a command beyond the sandbox means at an asking level, at the pinned Codex (supplier_checks/level: the escalation rows and
 /// `AskEachCommandInsideTheProject`; the features that would grant less are under development and off).
 pub const SUPERVISED_ALLOWING: &str = "When a command needs your approval, Codex asks. If you allow it, the command can run outside the sandbox, with your account's access to all your files and to the network; Codex cannot run it limited to this project. Your own rules and hooks can allow or refuse a command without asking you.";
+pub const READING_SENTENCE: &str = "Reading is not limited at any permission level.";
+pub const NEXT_TURN_SENTENCE: &str = "From the next turn. Commands already running, and anything they started, keep the access they started with until they end. If a later turn uses a narrower level than Full access and the agent tries to use a command started at Full access, Codex asks you first or, at a level that never asks, refuses the request. They end when Codex closes normally, as it ordinarily does when you stop or restart Codex or quit the App.";
 pub const APP_DEFAULT_EXPLAINED: &str = "The App's default level is full access: commands run with no sandbox, with your account's access to your files and the network, including the App's own records and settings. You can choose another level at any time.";
 /// The status's closed sentence for a level chosen while the App's records could not be read or saved.
 /// The ask, the one exception to the App's default (V4-AUT-06): the App's record of the level is missing, holds a
@@ -36,10 +39,16 @@ pub const RECORDS_UNREAD_SENTENCE: &str = "The App could not read its records, s
 /// at rust-v0.167.0). The App never creates it.
 pub const CODEX_STATE_NAME: &str = "state_5.sqlite";
 /// Whether this home holds state from an earlier Codex start: presence of [`CODEX_STATE_NAME`] directly in it, by
-/// `symlink_metadata` only. Nothing is opened, nothing is followed and no other folder is looked at.
-pub fn home_has_codex_state(codex_home: &Path) -> bool {
-    std::fs::symlink_metadata(codex_home.join(CODEX_STATE_NAME)).is_ok()
+/// `symlink_metadata` only. Ok(true) is present, Ok(false) is established absence, and Err is unknown.
+/// Nothing is opened, nothing is followed and no other folder is looked at.
+pub fn home_has_codex_state(codex_home: &Path) -> Result<bool, String> {
+    match std::fs::symlink_metadata(codex_home.join(CODEX_STATE_NAME)) {
+        Ok(_) => Ok(true),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(false),
+        Err(error) => Err(error.to_string()),
+    }
 }
+pub const INHERITANCE_NOT_RECORDED: &str = "This conversation keeps its level for this session, but its level could not be recorded. After the App is reopened it takes the default for new conversations in force then, unless you set a level for it.";
 pub const SESSION_ONLY_SENTENCE: &str = "Chosen for now. The App could not read or save its records, so this level is not kept after the App closes.";
 /// Why a session-only choice was offered: the App's own sentences, beside which any raw detail is kept apart.
 pub const RECORDS_NOT_READ: &str = "The App's records could not be read when it started.";
@@ -351,10 +360,10 @@ pub enum TrustCase {
 // shares them, the App's own new settings where the person chose new settings at setup. The mark is read from them by
 // `config/read` (cwd set, layers included), in the user layer.
 pub const TRUST_TRUSTED_PREFIX: &str = "This project is marked trusted in the Codex settings the App uses (read at ";
-pub const TRUST_TRUSTED_SUFFIX: &str = "). Its own Codex folder (.codex) applies to conversations here.";
-pub const TRUST_NOT_USED: &str = "This project's own Codex folder (.codex) is not used in the App.";
+pub const TRUST_TRUSTED_SUFFIX: &str = "). The App sent a trusted entry for the project root shown below.";
+pub const TRUST_UNTRUSTED_SENT: &str = "The App sent an untrusted entry for the project root shown below.";
 pub const TRUST_MARKED_UNTRUSTED: &str = "This project is marked untrusted in the Codex settings the App uses.";
-pub const TRUST_NOT_READ: &str = "The App could not read the Codex settings it uses for this project, so its own Codex folder (.codex) is not used here, even if those settings mark it trusted.";
+pub const TRUST_NOT_READ: &str = "The App could not read the Codex settings it uses for this project, so it sent an untrusted entry for the project root shown below.";
 /// The reasons a reading is not whole and current (`TrustCase::NotRead`), in the App's own words.
 pub const TRUST_READ_FAILED: &str = "The App's reading of the Codex settings it uses did not complete.";
 pub const TRUST_READ_LIMITED: &str = "The App's reading of the Codex settings it uses did not include the settings files.";
@@ -403,9 +412,9 @@ impl TrustReading {
     pub fn status(&self) -> Value {
         let (case, lines, matched): (&str, Vec<String>, Option<&String>) = match &self.case {
             TrustCase::Trusted { key } => ("trusted", vec![format!("{TRUST_TRUSTED_PREFIX}{}{TRUST_TRUSTED_SUFFIX}", self.read_at.as_deref().unwrap_or("an unknown time"))], Some(key)),
-            TrustCase::MarkedUntrusted { key } => ("marked-untrusted", vec![TRUST_MARKED_UNTRUSTED.into(), TRUST_NOT_USED.into()], Some(key)),
-            TrustCase::Unmarked => ("not-used", vec![TRUST_NOT_USED.into()], None),
-            TrustCase::NotRead { .. } => ("not-read", vec![TRUST_NOT_READ.into(), TRUST_NOT_USED.into()], None),
+            TrustCase::MarkedUntrusted { key } => ("marked-untrusted", vec![TRUST_MARKED_UNTRUSTED.into(), TRUST_UNTRUSTED_SENT.into()], Some(key)),
+            TrustCase::Unmarked => ("unmarked", vec![TRUST_UNTRUSTED_SENT.into()], None),
+            TrustCase::NotRead { .. } => ("not-read", vec![TRUST_NOT_READ.into(), TRUST_UNTRUSTED_SENT.into()], None),
         };
         let mut out = json!({"case": case, "sent": self.trust_level(), "lines": lines, "projectRoot": self.root.to_string_lossy(),
             "sentKey": self.key, "matchedKey": matched, "readAt": self.read_at, "standing": "Folders and keys are supplied text."});
@@ -449,6 +458,23 @@ pub enum Target {
     ForkOf(String),
 }
 
+/// Where a level in force comes from (`origin` in the status).
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum LevelOrigin {
+    /// The person's choice, recorded in the ledger.
+    Chosen,
+    /// The App's default, put in force by a complete launch read that found no valid choice for the default scope.
+    /// Never written as a choice; a conversation association can retain this origin.
+    AppDefault,
+    /// The person's choice, held in memory only because the App's records could not be read or saved.
+    SessionOnly,
+}
+impl LevelOrigin {
+    pub(crate) fn as_str(self) -> &'static str {
+        match self { Self::Chosen => "chosen", Self::AppDefault => "app-default", Self::SessionOnly => "session-only" }
+    }
+}
+
 /// The level bound to one request when its frame was built: what was checked, written and is recorded as sent.
 /// Every later comparison for that request uses this value, never the level in force at that later moment.
 #[derive(Clone, Debug, PartialEq)]
@@ -466,6 +492,8 @@ pub struct Bound {
     /// The ledger's `level_chosen` entry the level comes from, when the person's choice was recorded (None for a
     /// level set without a record, as the unit tests' Host is).
     pub chosen: Option<String>,
+    pub origin: Option<LevelOrigin>,
+    pub chosen_at: Option<String>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

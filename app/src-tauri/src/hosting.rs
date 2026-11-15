@@ -973,6 +973,9 @@ fn delegation_withheld(frame: &Value) -> Value {
     kept
 }
 const DELEGATION_RESULT_WITHHELD: &str = "delegation-availability read (NPTD §7.1): the result body is not kept; the reading keeps only the fields it uses";
+/// The initiator name of the App's own reads when Codex becomes ready (the account, and the stored history
+/// list); a person's check or read is `person-directed`.
+pub(crate) const ACCOUNT_READ_AT_READY: &str = "app-at-ready";
 /// The initiator name that marks a model-discovery request.
 const MODEL_CATALOG_INITIATOR: &str = "model-catalog-read";
 /// A model-discovery reply as kept: `delegation_withheld`, with any error
@@ -3168,8 +3171,10 @@ impl Host {
         let Some((level, target, chosen_for_new)) = Self::resolve_level(i, method, built) else { return Ok(None) };
         let kind = codex_level::Method::of(method).expect("resolved methods carry a level");
         let level = level.ok_or_else(|| format!("refused-not-sent: no level chosen; {method} was not sent"))?;
+        if matches!(kind, codex_level::Method::ThreadResume | codex_level::Method::ThreadFork) && trust.is_none() { return Err(SAVED_IN_APP_DATA_UNKNOWN.into()); }
         let thread = built.get("threadId").and_then(Value::as_str).unwrap_or_default().to_owned();
-        let chosen = Self::level_chosen_for(i, kind, &thread, chosen_for_new);
+        let provenance = Self::level_origin_for(i, kind, &thread, chosen_for_new);
+        let chosen = provenance.as_ref().and_then(|c| c.entry.clone());
         Self::level_send_check(i, method, built, level, &target)?;
         let trust = match kind {
             codex_level::Method::TurnStart => None,
@@ -3184,7 +3189,7 @@ impl Host {
         }
         codex_level::config_post_condition(&params, kind).map_err(|e| format!("refused-not-sent: {e}; {method} was not sent"))?;
         if chosen_for_new { i.new_conversation_level = None; i.level.new_chosen = None; }
-        Ok(Some((params, codex_level::Bound { level, method: kind, fields, trust, revision: i.level_revision, target, chosen })))
+        Ok(Some((params, codex_level::Bound { level, method: kind, fields, trust, revision: i.level_revision, target, chosen, origin:provenance.as_ref().map(|c|c.origin), chosen_at:provenance.map(|c|c.at) })))
     }
     /// A frame is written only under the level revision it was built under.
     fn check_level_current(i: &Inner, bound: &codex_level::Bound) -> Result<(), String> {
@@ -3446,6 +3451,9 @@ impl Host {
     }
     pub(crate) fn account_requirements_read_scoped(&self,generation:&Value)->Result<SourceRequest,String>{self.account_requirements_read_until(generation,std::time::Instant::now()+Duration::from_secs(20))}
     pub(crate) fn account_read_scoped(&self,generation:&Value)->Result<SourceRequest,String>{self.request_begin_scoped("account/read",json!({}),json!({"kind":"person-directed"}),false,Some(generation))}
+    /// The App's own account read once Codex is ready (at launch and after each start or restart): the same
+    /// request as the person's check, empty params and never a token refresh, named as the App's rule.
+    pub(crate) fn account_read_at_ready_scoped(&self,generation:&Value)->Result<SourceRequest,String>{self.request_begin_scoped("account/read",json!({}),json!({"kind":"app-rule","name":ACCOUNT_READ_AT_READY}),false,Some(generation))}
     /// Account kind only; explicitly no proactive token refresh.
     pub(crate) fn account_read_no_refresh_scoped(&self,generation:&Value)->Result<SourceRequest,String>{self.request_begin_scoped("account/read",json!({"refreshToken":false}),json!({"kind":"person-directed"}),false,Some(generation))}
     /// Caller owns explicit removal/live-work assessment; ack is not removal proof.
@@ -3605,10 +3613,10 @@ impl Host {
     /// its place cannot be established; nothing is resumed. Its folder is read first (the local
     /// route reads it too, and already requires its own folder). Without a known App data folder
     /// or on the local route, nothing is read here.
-    fn saved_thread_outside_app_data(&self, generation: &Value, thread: &Value) -> Result<(), String> {
+    fn saved_thread_outside_app_data(&self, generation: &Value, thread: &Value) -> Result<Option<String>, String> {
         let data = {
             let i = self.inner.0.lock().unwrap();
-            match (&i.local_provider, &i.app_data) { (None, Some(data)) => data.clone(), _ => return Ok(()) }
+            match (&i.local_provider, &i.app_data) { (None, Some(data)) => data.clone(), _ => return Ok(None) }
         };
         let thread = thread.as_str().filter(|t| !t.is_empty()).ok_or(SAVED_IN_APP_DATA_UNKNOWN)?;
         let read = self.request_begin_scoped("thread/read", json!({"threadId":thread,"includeTurns":false}), json!({"kind":"person-directed"}), false, Some(generation))?;
@@ -3617,7 +3625,9 @@ impl Host {
         if e["outcome"] != "response-observed-result" || e["response"]["result"]["thread"]["id"] != thread {
             return Err(SAVED_IN_APP_DATA_UNKNOWN.into());
         }
-        Self::saved_folder_admitted(&data, &e["response"]["result"]["thread"]["cwd"], "continued")
+        let cwd = &e["response"]["result"]["thread"]["cwd"];
+        Self::saved_folder_admitted(&data, cwd, "continued")?;
+        Ok(Some(cwd.as_str().ok_or(SAVED_IN_APP_DATA_UNKNOWN)?.to_owned()))
     }
     /// As [`Self::saved_thread_outside_app_data`] for a fork, on the folder the current
     /// conversation's own row reports; nothing is read or sent.
@@ -3654,7 +3664,10 @@ impl Host {
         if query.generation()["home"]!=query.home() {return Err("history home and full generation differ".into());}
         if !matches!(query.method(),"thread/list"|"thread/read"|"thread/turns/list"|"thread/items/list"|"thread/goal/get"|"thread/resume") {return Err("unsupported history factory method".into());}
         // An account or key-home Continue rests on Codex reporting the built-in provider; nothing for a local home.
-        if query.method()=="thread/resume" {self.saved_thread_outside_app_data(query.generation(),&query.params()["threadId"])?;}
+        let mut params = query.params().clone();
+        if query.method()=="thread/resume" {
+            if let Some(cwd) = self.saved_thread_outside_app_data(query.generation(),&params["threadId"])? { params["cwd"] = json!(cwd); }
+        }
         let cloud=if query.method()=="thread/resume" {self.cloud_continuation_admission(query.generation(),access_provider::BUILT_IN_PROVIDER_UNREPORTED_RESUME)?} else {None};
         // A local saved-thread Continue gets the same effective provider-definition admission as a new start.
         if let Some(proof)=(query.method()=="thread/resume").then(||self.local_resume_admission(query.generation(),&query.params()["threadId"])).transpose()?.flatten() {
@@ -3667,8 +3680,8 @@ impl Host {
         // The reading travels with the request: refused at registration or final write if a newer reading
         // of the folder, or a confirmed provider write, came in between.
         let source=match &cloud {
-            Some(proof)=>{auth_rpc::generic_guard(query.method(),query.params())?;self.request_begin_with_access_offer(query.method(),query.params().clone(),initiator,false,Some(query.generation()),false,None,None,None,None,false,Some(proof))?},
-            None=>self.request_begin_scoped(query.method(),query.params().clone(),initiator,false,Some(query.generation()))?,
+            Some(proof)=>{auth_rpc::generic_guard(query.method(),&params)?;self.request_begin_with_access_offer(query.method(),params.clone(),initiator,false,Some(query.generation()),false,None,None,None,None,false,Some(proof))?},
+            None=>self.request_begin_scoped(query.method(),params,initiator,false,Some(query.generation()))?,
         };
         Ok(HistoryDispatch {query:query.clone(),source,local_config:None})
     }
@@ -4361,6 +4374,16 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         self.insert_start_response(&sent_generation,StartParams::Built(&params),&r,false)?;
         Ok(r)
     }
+    /// DEL-01-05 REQ-004: the started conversation's requested destination records whether the App showed the only
+    /// entry or the person pressed its control (`entrySource`), beside `source`. `source: "person-selected"` covers the model the
+    /// App's thread/start carried and the act of starting the conversation, both the person's; it says nothing about
+    /// who chose the access entry. Without `entrySource`, the entry's source was not recorded.
+    pub(crate) fn note_requested_entry_source(&self, generation: &Value, thread: &str, entry_source: &str) {
+        let mut i = self.inner.0.lock().unwrap();
+        for row in i.threads.iter_mut().filter(|t| t["generation"] == *generation && t["threadId"] == thread && t["requestedDestination"].is_object()) {
+            row["requestedDestination"]["entrySource"] = json!(entry_source);
+        }
+    }
     fn insert_start_response(&self, generation: &Value, start: StartParams<'_>, response: &Value, no_duplicate: bool) -> Result<(),String> {
         let params = match start { StartParams::Sent(p) | StartParams::Built(p) => p };
         let t=response.get("result").and_then(|x|x.get("thread")).ok_or_else(||format!("thread/start answered with an error: {}",response.get("error").cloned().unwrap_or(Value::Null)))?;
@@ -4401,6 +4424,9 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 if let Some(receipt) = receipt { i.records_receipts.push((generation.clone(), receipt.thread.clone(), receipt)); }
             }
         }
+        // requestedDestination.source "person-selected": the model this thread/start carried and the act of starting the
+        // conversation are the person's (turn_requested_context and the model-turn recorder key on it). It does not
+        // say who chose the access entry: `entrySource` does, where recorded (note_requested_entry_source).
         let standing=i.supplier_standing.clone();let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":t.get("id"),"name":t.get("name").and_then(Value::as_str),"preview":t.get("preview").and_then(Value::as_str),"status":t.get("status"),"model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider"),"reasoningEffort":response["result"].get("reasoningEffort"),"cwd":response["result"].get("cwd"),"approvalPolicy":response["result"].get("approvalPolicy"),"sandbox":response["result"].get("sandbox"),"activePermissionProfile":response["result"].get("activePermissionProfile"),"supplierStanding":standing,"requestedDestination":{"source":"person-selected","model":params["model"],"modelProvider":params["modelProvider"]},"reportedDestination":{"scope":"thread","model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider")},"networkDisclosure":network_disclosure()}),response);i.threads.push(row);Ok(())
     }
 
@@ -5092,13 +5118,16 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         }
         signals
     }
-    /// DEL-01-05 model discovery at the person's press (`model_catalog`): the
+    /// DEL-01-05 model discovery (`model_catalog`): the
     /// app-server's own provider from `config/read` with no folder and at its
     /// own folder, then `model/list` without hidden models. Reads only, with the
     /// delegation read's waits; afterwards each request's evidence keeps its
     /// outcome only, as replies to these methods are journalled. Nothing is
-    /// kept in the host: the result answers only this press.
+    /// kept in the host: the result answers only this read. The caller distinguishes an App rule from a press.
     pub fn model_catalog_read(&self, generation: &Value) -> Value {
+        self.model_catalog_read_with_origin(generation, true)
+    }
+    pub(crate) fn model_catalog_read_with_origin(&self, generation: &Value, at_person_press: bool) -> Value {
         const WAIT: Duration = Duration::from_secs(10);
         let read_at = crate::util::now_rfc3339();
         let server_cwd = {
@@ -5110,13 +5139,13 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         let silent = std::cell::Cell::new(false);
         let sent = std::cell::RefCell::new(Vec::<String>::new());
         let read = |method: &str, params: Value, schema: &str| -> Result<Value, String> {
-            if silent.get() { return Err(format!("{method} not sent: an earlier read of this press got no response")); }
+            if silent.get() { return Err(format!("{method} not sent: an earlier request in this read got no response")); }
             let wait = deadline.saturating_duration_since(std::time::Instant::now()).min(WAIT);
             if wait.is_zero() { return Err(format!("{method} not sent: the read's time limit was reached")); }
             // Only fixed wording leaves this read: native errors and schema
             // findings can quote configuration, so neither is passed on.
             let until = std::time::Instant::now() + wait;
-            let initiator = json!({"kind":"person-directed","name":MODEL_CATALOG_INITIATOR});
+            let initiator = json!({"kind":if at_person_press { "person-directed" } else { "app-rule" },"name":MODEL_CATALOG_INITIATOR});
             let request = if reading_gate::is_reading(method) { self.request_reading(method, params, initiator, generation, false, until) }
                 else { self.request_begin_scoped(method, params, initiator, false, Some(generation)) }
                 .map_err(|e| reading_gate::reading_or(e, || format!("{method} not sent in this Codex generation")))?;
@@ -5163,9 +5192,9 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
     }
     /// Same catalog read with its conversation-model observation checked on
     /// both sides. Keep this boundary testable without AppState or a GUI.
-    pub(crate) fn model_catalog_read_for_conversation(&self, generation: &Value, thread: Option<&str>) -> Value {
+    pub(crate) fn model_catalog_read_for_conversation(&self, generation: &Value, thread: Option<&str>, at_person_press: bool) -> Value {
         let before = thread.map(|thread| self.ordinary_model_for_effort(generation, thread)).transpose();
-        let mut view = self.model_catalog_read(generation);
+        let mut view = self.model_catalog_read_with_origin(generation, at_person_press);
         if let Some(thread) = thread {
             let after = self.ordinary_model_for_effort(generation, thread);
             view["conversationModel"] = match (before, after) {
@@ -5448,6 +5477,21 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         Ok(known.map(Value::String).unwrap_or_else(|| i.threads.iter().rev()
             .find(|t| t["generation"] == i.generation && t["threadId"] == thread)
             .and_then(|t| t["reasoningEffort"].as_str()).filter(|e| !e.is_empty()).map(|e| json!(e)).unwrap_or(Value::Null)))
+    }
+    /// The effort in force for each conversation of the current generation: the effort of the last turn Codex accepted
+    /// for it, else the effort its thread row reports, as the next ordinary send without an override inherits it.
+    /// "not-reported" where neither names one; "unknown" where the requested context cannot be established.
+    pub(crate) fn efforts_in_force(&self) -> Vec<(Value, String, Value)> {
+        let i = self.inner.0.lock().unwrap();
+        if i.state != "ready" || i.server_requests.is_closed(&i.generation) { return vec![]; }
+        i.threads.iter().filter(|t| t["generation"] == i.generation).filter_map(|t| t["threadId"].as_str()).map(|thread| {
+            let reading = match Self::ordinary_mode_effort(&i, thread) {
+                Ok(Value::String(effort)) => json!({"state":"known","effort":effort}),
+                Ok(_) => json!({"state":"not-reported"}),
+                Err(_) => json!({"state":"unknown"}),
+            };
+            (i.generation.clone(), thread.to_owned(), reading)
+        }).collect()
     }
     fn turn_requested_context(i: &Inner, params: &Value, cut: u64) -> Value {
         if let Some(model) = Self::frame_requested_model(params) { return json!({"requested":model,"basis":"actual explicit effective request field; native adoption unestablished"}); }
@@ -6746,6 +6790,52 @@ mod conversation_transport_tests {
         assert!(inherited().unwrap_err().contains("requested effort context unknown"));
     }
 
+    /// The effort in force the status shows: the effort of the last turn Codex accepted, else the thread row's; not
+    /// reported where neither names one; unknown where the requested context cannot be established. Never invented.
+    #[test]
+    fn the_effort_in_force_is_the_last_accepted_turns_else_the_thread_rows_and_never_invented() {
+        let host = host();
+        let reading = |host: &Host| host.efforts_in_force().into_iter().map(|(generation, thread, reading)| { assert_eq!(generation, g()); assert_eq!(thread, "thread"); reading }).collect::<Vec<_>>();
+        assert_eq!(reading(&host), vec![json!({"state":"not-reported"})]);
+        {
+            let mut i = host.inner.0.lock().unwrap();
+            i.declared_capabilities = Some(json!({"experimentalApi":true}));
+            i.collaboration_modes = json!({"generation":g(),"result":{"data":[{"name":"Plan","mode":"plan"}]}});
+            i.threads[0]["reasoningEffort"] = json!("medium");
+        }
+        assert_eq!(reading(&host), vec![json!({"state":"known","effort":"medium"})], "the thread row's own setting");
+        exchange(&host, Some(json!({"result":{"turn":turn("completed")}})), vec![], ||
+            host.turn_start_ordinary_text_effort(&g(), "thread", "a turn with an effort", None, None, Some("high"))).0.unwrap();
+        assert_eq!(reading(&host), vec![json!({"state":"known","effort":"high"})], "the last accepted turn's effort");
+        let mut later = turn("completed"); later["id"] = json!("later");
+        exchange(&host, Some(json!({"result":{"turn":later}})), vec![], ||
+            host.turn_start_ordinary_text_effort(&g(), "thread", "a turn without one", None, None, None)).0.unwrap();
+        assert_eq!(reading(&host), vec![json!({"state":"known","effort":"high"})], "a send without an override keeps it in force");
+        install_broken_test_input(&host);
+        let _ = host.turn_start_ordinary_text_effort(&g(), "thread", "failed write", None, None, Some("low"));
+        assert_eq!(reading(&host), vec![json!({"state":"unknown"})], "an unestablished request makes it unknown, not a guess");
+        host.inner.0.lock().unwrap().state = "stopped".into();
+        assert!(host.efforts_in_force().is_empty(), "nothing while Codex is not ready");
+    }
+
+    #[test]
+    fn a_conversation_started_on_the_shown_only_entry_says_the_app_showed_it_and_keeps_the_persons_model_choice() {
+        let host = host();
+        {
+            let mut i = host.inner.0.lock().unwrap();
+            i.threads[0]["requestedDestination"] = json!({"source":"person-selected","model":"selected","modelProvider":"openai"});
+            i.threads.push(json!({"generation":g(),"threadId":"other","requestedDestination":{"source":"person-selected","model":"m","modelProvider":"p"}}));
+        }
+        host.note_requested_entry_source(&g(), "thread", crate::access::SHOWN_ONLY_ENTRY);
+        let threads = host.snapshot()["threads"].clone();
+        assert_eq!(threads[0]["requestedDestination"], json!({"source":"person-selected","model":"selected","modelProvider":"openai","entrySource":"app-showed-only-entry"}));
+        assert!(threads[1]["requestedDestination"].get("entrySource").is_none(), "another conversation is untouched");
+        host.note_requested_entry_source(&g(), "other", crate::access::PERSON_CHOSE_ENTRY);
+        let after = host.snapshot()["threads"].clone();
+        assert_eq!(after[0], threads[0], "the source conversation's destination is untouched");
+        assert_eq!(after[1]["requestedDestination"], json!({"source":"person-selected","model":"m","modelProvider":"p","entrySource":"person"}));
+    }
+
     #[test]
     fn model_turn_inherited_effort_rechecks_after_writer_wait_with_an_explicit_model() {
         let host = host();
@@ -6789,7 +6879,7 @@ mod conversation_transport_tests {
                 if changed { h.inner.0.lock().unwrap().threads[0]["model"] = json!("changed-model"); }
                 h.on_line(&serde_json::to_vec(&json!({"id":request["id"],"result":{"data":[],"nextCursor":null}})).unwrap(), &g());
             });
-            let result = host.model_catalog_read_for_conversation(&g(), Some("thread"));
+            let result = host.model_catalog_read_for_conversation(&g(), Some("thread"), false);
             reply.join().unwrap();
             assert_eq!(result["conversationModel"], if changed { Value::Null } else { json!("selected") });
             *host.stdin.lock().unwrap() = None; assert!(child.wait().unwrap().success());
@@ -7134,12 +7224,39 @@ mod conversation_transport_tests {
         // A row that reports no folder is not taken to be outside the App data.
         let h=f.host();
         assert_eq!(h.thread_fork_dispatch(&g(),"thread").err().unwrap(),SAVED_IN_APP_DATA_UNKNOWN);
-        // Without a known App data folder nothing is read first, as before.
+        // Without a known App data folder or saved conversation folder, no server-folder fallback admits Continue.
         let h=host();h.inner.0.lock().unwrap().server_cwd=Some("/invented".into());
         let mut view=history_selected();let query=view.continue_query().unwrap();
         let (result,frames)=local_peer_exchange(&h,cloud_reading(),"/invented",history_resume("idle",true),||h.history_dispatch(&query).map(|_|()));
-        assert!(result.is_ok());assert!(!frames.iter().any(|f|f["method"]=="thread/read"));
+        assert!(result.err().unwrap().contains(SAVED_IN_APP_DATA_UNKNOWN));
+        assert!(!frames.iter().any(|f|matches!(f["method"].as_str(),Some("thread/read"|"thread/resume"))));
     }
+    #[test]
+    fn saved_working_folder_is_carried_into_the_frame_trust_entry_and_edits_check() {
+        let f=SavedFolders::new();
+        let server=f.root.join("server-project");std::fs::create_dir(&server).unwrap();
+        for (saved,allowed) in [(&f.project,true),(&f.root,false)] {
+            let h=f.host();h.set_default_level("edits").unwrap();
+            { let mut i=h.inner.0.lock().unwrap();i.threads.clear();i.server_cwd=Some(server.to_string_lossy().into_owned());
+              let places=i.level.places.as_mut().unwrap();places.process_cwd=Some(server.clone());places.app_data=Some(f.data.clone()); }
+            let mut view=history_selected();let query=view.continue_query().unwrap();
+            let (result,frames)=local_peer_exchange(&h,cloud_reading(),saved.to_str().unwrap(),history_resume("idle",true),||h.history_dispatch(&query));
+            let resumes:Vec<_>=frames.iter().filter(|frame|frame["method"]=="thread/resume").collect();
+            if allowed {
+                let receipt=result.unwrap().source;
+                assert_eq!(resumes.len(),1);
+                assert_eq!(resumes[0]["params"]["cwd"],saved.to_str().unwrap());
+                let trust=receipt.level.as_ref().unwrap().trust.as_ref().unwrap();
+                assert_eq!(trust.cwd,*saved);
+                assert_eq!(resumes[0]["params"]["config"]["projects"][&trust.key]["trust_level"],"untrusted");
+                assert_ne!(trust.cwd,server);
+            } else {
+                assert!(result.err().unwrap().contains("edits-level-reaches-app-folders"));
+                assert!(resumes.is_empty(),"the saved containing folder is checked, not the separate server folder");
+            }
+        }
+    }
+
     /// DEL-01-01 (reader's control F2): the folder set aside replaced by a link to the records
     /// folder is never the folder set aside: neither it nor its target is resumed or forked.
     #[test]
@@ -7332,6 +7449,21 @@ mod conversation_transport_tests {
         assert!(host.cloud_continuation_admission(&g(),access_provider::BUILT_IN_PROVIDER_UNREPORTED_RESUME).unwrap().is_none());
         assert!(host.client_requests().is_empty(),"no reading, nothing sent");
     }
+    /// These receiving/correlation fixtures begin after folder admission. Supply a known folder for the
+    /// dispatch only, then remove that fixture metadata before testing whether the native reply activates
+    /// a conversation. The separate saved_working_folder tests exercise the actual thread/read preflight.
+    fn history_dispatch_with_known_folder(host: &Host, query: &HistoryQuery) -> Result<HistoryDispatch,String> {
+        let supplied = if query.method()=="thread/resume" {
+            let mut i=host.inner.0.lock().unwrap();
+            let known=i.threads.iter().any(|row|row["generation"]==*query.generation() && row["threadId"]==query.params()["threadId"] && row["cwd"].is_string());
+            if !known { i.threads.push(json!({"generation":query.generation(),"threadId":query.params()["threadId"],
+                "cwd":"/invented","testOnlyKnownHistoryFolder":true})); }
+            !known
+        } else { false };
+        let result=host.history_dispatch(query);
+        if supplied { host.inner.0.lock().unwrap().threads.retain(|row|row["testOnlyKnownHistoryFolder"]!=true); }
+        result
+    }
     fn history_exchange(host: &Arc<Host>, query: &HistoryQuery, response: Option<Value>) -> (HistoryDispatch, Value, Value) {
         history_exchange_observed(host, query, response, None, |_| {})
     }
@@ -7359,7 +7491,7 @@ mod conversation_transport_tests {
             let _ = done_tx.send(completed);
         });
         let result = (|| -> Result<(HistoryDispatch, Value, Value), String> {
-            let receipt = host.history_dispatch(query)?;
+            let receipt = history_dispatch_with_known_folder(host,query)?;
             let evidence = host.history_wait(&receipt, Duration::from_millis(15))?;
             after_wait(&evidence);
             let outbound = done_rx.recv_timeout(Duration::from_secs(3)).map_err(|e| format!("history peer did not complete its scripted exchange: {e}"))??;
@@ -7568,7 +7700,7 @@ mod conversation_transport_tests {
         // The admitting reading is written and answered; then the input fails, so the resume's own write fails.
         let host=host();let mut view=history_selected();let query=view.continue_query().unwrap();host.inner.0.lock().unwrap().server_cwd=Some("/invented".into());
         let mut cat=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();*host.stdin.lock().unwrap()=cat.stdin.take();
-        let kept=super::break_input_after_the_reading(&host,Some(json!({"config":{"model_provider":"openai","model_providers":{}},"origins":{}})));let failed=host.history_dispatch(&query).unwrap();
+        let kept=super::break_input_after_the_reading(&host,Some(json!({"config":{"model_provider":"openai","model_providers":{}},"origins":{}})));let failed=history_dispatch_with_known_folder(&host,&query).unwrap();
         *host.before_provider_wait.lock().unwrap()=None;drop(kept);assert!(cat.wait().unwrap().success());let evidence=failed.evidence();assert!(evidence["sentFrame"].is_null());assert_eq!(evidence["writeResult"],"write-failed");assert_eq!(evidence["outcome"],"unknown-no-response");view.receive(&query,"conversation-home",&g(),&history_resume("idle",true)).unwrap();assert!(host.history_admit_resume(&view,&failed).is_err());let other=super::conversation_transport_tests::host();assert!(other.history_dispatch_status(&failed).is_err());
         let query=view.continue_query().unwrap();let(receipt,evidence,_)=history_exchange(&host,&query,Some(json!({"result":history_resume("idle",true)})));view.receive(&query,"conversation-home",&g(),&evidence["response"]["result"]).unwrap();assert!(view.resumed_thread().is_some());let newer=view.read_metadata().unwrap();assert!(host.history_admit_resume(&view,&receipt).is_err());view.receive(&newer,"conversation-home",&g(),&json!({"thread":history_thread("notLoaded")})).unwrap();assert!(host.history_admit_resume(&view,&receipt).is_err());
         let query=view.continue_query().unwrap();let(receipt,evidence,_)=history_exchange(&host,&query,Some(json!({"result":history_resume("idle",true)})));view.receive(&query,"conversation-home",&g(),&evidence["response"]["result"]).unwrap();let count=host.client_requests().len();{let mut i=host.inner.0.lock().unwrap();Host::close_generation(&mut i);i.generation["spawnCounter"]=json!(2);i.state="ready".into();}assert!(host.history_admit_resume(&view,&receipt).is_err());assert!(host.history_dispatch(&query).is_err());assert_eq!(host.client_requests().len(),count);assert_eq!(receipt.evidence()["sourceCurrent"],false);assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);

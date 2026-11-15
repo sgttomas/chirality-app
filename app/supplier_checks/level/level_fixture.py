@@ -591,12 +591,59 @@ def group_has_members(pgid, killpg=os.killpg, members=group_members):
 
 # ---------- one run ----------
 
+class RecordingRefusal:
+    """In place of the closed proxy port: a loopback listener that refuses every request, as the closed port does,
+    and first records where it was going. Only the target is kept, in memory: the host and port of a CONNECT, or
+    the scheme, host and port of an absolute URL; never a path, a header or a body. Each entry is
+    (monotonic time, method, target)."""
+
+    def __init__(self):
+        attempts = self.attempts = []
+        lock = self.lock = threading.Lock()
+
+        class Handler(socketserver.BaseRequestHandler):
+            def handle(self):
+                self.request.settimeout(3)
+                try:
+                    line = self.request.recv(4096).split(b'\r\n', 1)[0].decode('latin-1')
+                except OSError:
+                    line = ''
+                parts = line.split(' ')
+                method, target = (parts[0], parts[1]) if len(parts) >= 2 else ('?', '?')
+                if '://' in target:
+                    scheme, rest = target.split('://', 1)
+                    target = scheme + '://' + rest.split('/', 1)[0]
+                with lock:
+                    attempts.append((time.monotonic(), method, target))
+                try:
+                    self.request.sendall(b'HTTP/1.1 502 Bad Gateway\r\nContent-Length: 0\r\nConnection: close\r\n\r\n')
+                except OSError:
+                    pass
+
+        class Server(socketserver.ThreadingTCPServer):
+            daemon_threads = True
+            allow_reuse_address = True
+
+        self.server = Server(('127.0.0.1', 0), Handler)
+        self.url = 'http://127.0.0.1:%d' % self.server.server_address[1]
+        threading.Thread(target=self.server.serve_forever, daemon=True).start()
+
+    def since(self, mark):
+        with self.lock:
+            return [(method, target) for at, method, target in self.attempts if at >= mark]
+
+    def close(self):
+        self.server.shutdown()
+        self.server.server_close()
+
+
 class Run:
     """A fresh root and one stub. Use as a context manager; the root is removed on exit."""
 
     def __init__(self, scratch, binary, slash_tmp=False, git_marker=False, project_name='project',
-                 working_files=False, var_tmp=False):
+                 working_files=False, var_tmp=False, proxy=None):
         self.binary = binary
+        self.proxy = proxy  # a RecordingRefusal in place of the closed port, or None for the closed port
         if '/' in project_name or project_name in ('', '.', '..'):
             raise Refused('a project folder name, not a path')
         self.project_name = project_name  # only this folder's name may carry characters the scratch base may not
@@ -721,7 +768,7 @@ class Run:
         env = {'PATH': str(package / 'codex-path') + ':' + SYSTEM_PATH, 'HOME': str(self.root / 'userhome'),
                'TZ': 'UTC', 'LANG': 'en_US.UTF-8', 'CODEX_HOME': str(self.home),
                'TMPDIR': str(self.tmpdir) + '/'}
-        env.update({name: PROXY for name in PROXY_NAMES})
+        env.update({name: (self.proxy.url if self.proxy is not None else PROXY) for name in PROXY_NAMES})
         env.update({'NO_PROXY': EXEMPT, 'no_proxy': EXEMPT})
         env.update(extra or {})
         return env

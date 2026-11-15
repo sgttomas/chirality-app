@@ -70,6 +70,8 @@ code_paths:
 - app/src/AccountStatus.tsx
 - app/src/DesktopSetupPanel.tsx
 - app/src/FirstUse.tsx
+# The first view at launch follows the launch readings, and moves nowhere over unsent work.
+- app/src/unsentWork.ts
 # The access and model chooser shared by a new conversation, a clean trial and Continue as.
 - app/src/ConversationRoles.tsx
 - app/src/TrialComposer.tsx
@@ -88,6 +90,9 @@ checks:
 - app/tests/conversation-panel.test.mjs
 - app/tests/access-provider.test.mjs
 - app/tests/model-choice.test.mjs
+- app/tests/first-view.test.mjs
+# What the account, model list and history reads contact at the pin (AccountRead).
+- app/supplier_checks/level/test_level_live.py
 - app/tests/local-model-settings.test.mjs
 - app/tests/trial-continue-model-choice.test.mjs
 # Access and model controls as other panels carry them, and their choices kept across navigation.

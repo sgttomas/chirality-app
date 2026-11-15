@@ -15,7 +15,7 @@ fn ready(host: Host) -> Arc<Host> {
         i.state = "ready".into();
         i.generation = g();
         i.journal.begin_generation(g());
-        i.threads.push(json!({"generation":g(),"threadId":"thread","model":"selected","modelProvider":"selected-provider"}));
+        i.threads.push(json!({"generation":g(),"threadId":"thread","cwd":"/invented","model":"selected","modelProvider":"selected-provider"}));
     }
     host
 }
@@ -23,7 +23,7 @@ fn host() -> Arc<Host> {
     ready(Host::new())
 }
 fn admit_thread(host: &Host, thread: &str) {
-    host.inner.0.lock().unwrap().threads.push(json!({"generation":g(),"threadId":thread,"model":"selected","modelProvider":"selected-provider"}));
+    host.inner.0.lock().unwrap().threads.push(json!({"generation":g(),"threadId":thread,"cwd":"/invented","model":"selected","modelProvider":"selected-provider"}));
 }
 fn text() -> Value {
     json!([{"type":"text","text":"invented","text_elements":[]}])

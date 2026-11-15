@@ -41,7 +41,8 @@ fn recorded_ends(entries: &[Value]) -> std::collections::BTreeSet<&str> {
 /// is shown as a recovery limit, never read in part. 0.5 adds the optional
 /// `session_started.livenessLock` ([`crate::session_liveness::FIELD`]). 0.6
 /// adds the permission level's `level_chosen`, `level_sent` and
-/// `level_reported` ([`crate::codex_level`]); an earlier build refuses a
+/// `level_reported`, plus a separate `level_inherited` association for a created or forked conversation
+/// ([`crate::codex_level`]); an earlier build refuses a
 /// ledger holding them.
 fn validator() -> Result<&'static jsonschema::Validator, String> {
     static VALIDATOR: OnceLock<Result<jsonschema::Validator, String>> = OnceLock::new();
