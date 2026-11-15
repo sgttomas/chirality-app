@@ -275,10 +275,15 @@ impl ActControl {
         actor: &Value,
         context: &Value,
     ) -> Result<(String, Value, FileActKind), String> {
+        let held = self.answer_held();
         let slot = self
             .file_offers
             .get_mut(&reference.id)
             .ok_or("File act offer absent")?;
+        // An arrival offer is not put while an earlier capture's record is not yet written.
+        if held && slot.arrival.is_some() {
+            return Err(crate::checkpoint_recorder::not_answering::EARLIER_CAPTURE_HELD.into());
+        }
         if slot.state != FileActState::Composed || slot.root != self.workspace {
             return Err("File act is not a current unpresented offer".into());
         }
@@ -313,8 +318,15 @@ impl ActControl {
             .as_str()
             .map(|r| format!("\nRecorded request: {r} (a request is not the act)"))
             .unwrap_or_default();
+        // The schema keeps a decline on every A4, A6 and A7 offer; where a decline would not
+        // answer the arrival, the sheet says so before the person chooses, and it is refused.
+        let decline = if slot.arrival.as_ref().is_some_and(|a| !a.decline_answers()) {
+            format!("{} Cancel records nothing.", crate::checkpoint_recorder::not_answering::DECLINE_DOES_NOT_ANSWER)
+        } else {
+            "Decline records only a decline of this kind; Cancel records nothing.".to_owned()
+        };
         let text = format!(
-            "{}\n\nApp file: {}\nContent identity ({}), in full:\n{}\nScope: {}\nPurpose: {}\nActor requirement: {}\nActor: {}\nAnswers: {}\n\n{}\nDecline records only a decline of this kind; Cancel records nothing.",
+            "{}\n\nApp file: {}\nContent identity ({}), in full:\n{}\nScope: {}\nPurpose: {}\nActor requirement: {}\nActor: {}\nAnswers: {}\n\n{}\n{}",
             slot.kind.wording(),
             slot.offer["subject"]["ref"].as_str().unwrap_or(""),
             identity["method"].as_str().unwrap_or(""),
@@ -324,7 +336,8 @@ impl ActControl {
             slot.kind.requirement(),
             super::native_statement::actor_line(actor),
             answers,
-            format!("{statement}{request}")
+            format!("{statement}{request}"),
+            decline
         );
         // Bounded before anything is frozen or the offer is Presented: a
         // refused statement leaves the offer Composed and unfrozen (V14 F3).
@@ -346,6 +359,7 @@ impl ActControl {
         reference: &FileActOfferRef,
         event: native::ConfirmedFileEvent,
     ) -> Result<Value, String> {
+        let held = self.answer_held();
         let slot = self
             .file_offers
             .get_mut(&reference.id)
@@ -360,6 +374,19 @@ impl ActControl {
             || offer_digest(&slot.offer)? != event.digest()["value"].as_str().unwrap_or("")
         {
             return Err("Native event differs from original offer/actor/context".into());
+        }
+        // A decline that would not answer the arrival, as its sheet said: refused before any
+        // capture, and nothing is captured or recorded.
+        if event.choice() == "decline" && slot.arrival.as_ref().is_some_and(|a| !a.decline_answers()) {
+            slot.state = FileActState::Dismissed;
+            return Err(crate::checkpoint_recorder::not_answering::DECLINE_DOES_NOT_ANSWER.into());
+        }
+        // The binding check: this recording's flush writes every held capture ahead of this
+        // one, so an arrival answer is captured only while none is held, and nothing is captured
+        // otherwise.
+        if held && slot.arrival.is_some() {
+            slot.state = FileActState::Dismissed;
+            return Err(crate::checkpoint_recorder::not_answering::EARLIER_CAPTURE_HELD.into());
         }
         match read_subject(&slot.root, &slot.path) {
             Ok(bytes) if bytes == slot.bytes => {}

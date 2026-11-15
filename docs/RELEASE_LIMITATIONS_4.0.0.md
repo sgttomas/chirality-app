@@ -239,6 +239,93 @@ An entry is added in the same pull request that makes the limitation standing.
   of the reach of the account the App runs under.
 - **Basis:** DEL-01-04 and DEL-04-02 (the permission level); PRD V4-AUT-06.
 
+### LIM-020: A reopened run's end notice is not saved if the project stops being attached as the run ends
+
+- **Id:** LIM-020
+- **Exit criteria:** 4, 15
+- **What is unavailable:** saving the end-notice record of a run reopened after
+  a restart when, after the run's end is saved and the notice's basis is read,
+  the project stops being attached to its records before the notice's first
+  writer binding (for example, the records store's record of the project's
+  folder is removed from outside the App). The run's end and its earlier
+  entries are saved; the end-notice record is not. The App says so at once,
+  with the cause: the record was not saved, its contents are held only while
+  the App runs and are lost when it quits, and nothing in the App can save it
+  later. Resolving the cause afterwards (confirming the folder's project)
+  does not save it.
+- **Why:** the end-notice record does not carry the project identity it was
+  prepared for, and saving it later would need that. Publication already
+  requires the notice's basis, the run's start record, to be readable in the
+  destination with the same conversation and run. That stops a write to an
+  unrelated history, but it cannot tell apart two projects holding the same
+  history, so it does not replace the missing identity.
+- **What the person does instead:** nothing in the App can save this original
+  notice record. The run's end itself is saved. The held notice's text is not
+  exposed in the App for copying.
+- **What would remove it:** a record that carries the project identity it was
+  prepared for, so that a later save on the person's explicit act can be
+  checked against it. That is a change to what a record holds and is not
+  decided. The person's way out of this and other fenced states is designed
+  with the abandon and recovery work.
+- **Basis:** DEL-02-02 (end-notice text), DEL-02-03 (run end) and DEL-04-03
+  (records); DEL-04-03 REQ-007 and AC-008.
+
+### LIM-021: The App's working folders are never removed
+
+- **Id:** LIM-021
+- **Exit criteria:** 4, 6
+- **What is unavailable:** removal of the folders the App makes for its own
+  work, and of what is in them. They are in the folder named after Chirality's
+  data folder with " Working Files" added, beside it. For 4.0.0 that is
+  `~/Library/Application Support/com.chirality.app Working Files`. The
+  first-use page's Technical details names it and says how many folders are
+  there. They accumulate with use, by kind:
+  - **Codex's temporary folders**, one for each start of Codex. Each holds
+    whatever the commands Codex ran wrote to their temporary folder, which can
+    be the person's own material. The App does not establish that none of
+    them wrote sign-in material there. Before, these files went to the
+    shared temporary folder, which macOS may clear by itself; now they stay
+    until the person removes them.
+  - **The connector's folders**, one for each use of the connector. Each
+    holds what git writes while reading: its settings, and folders for
+    objects and references. Git reads the project's own repository in place,
+    with every network protocol refused, and the App puts no sign-in there.
+  - **The version check's folders**, one each time Chirality prepares to start
+    Codex; later version checks of that start reuse it. The App never puts a
+    sign-in there: it runs Codex in one only to read its version label.
+
+  A folder made is checked while it is made, and not again. The Working Files
+  folder and the subtree in use are checked again each time a folder is made.
+  The folder that holds the Working Files folder is checked once, when the
+  Working Files folder is established. The check is that each is the person's
+  own, private by mode, and carries no access-list entry that allows access (a
+  list of deny entries only passes), and that the folder holding the Working
+  Files folder belongs to the person's account or to the system, and gives no
+  other account the right to write in it, by mode or by an allowing
+  access-list entry. A start is refused
+  where one of these does not hold. The App does not
+  defend these folders against a process that can write in that place while
+  it makes them: any process with the person's own rights outside a sandbox
+  can, and Codex can where its writable roots include that place.
+  Signing out in Chirality acts on Codex's own home, as before. It does not
+  reach these folders, as it never reached the shared temporary folder.
+- **Why:** removing a folder safely needs the App to show that nothing which
+  can write in the Working Files folder could have put something else in its
+  place. The App can show that only once it decides every folder it gives
+  Codex to write in, which follows in a later version.
+- **What the person does instead:** remove the Working Files folder, or the
+  folders in it, when neither Chirality nor any Codex it started is running.
+  Nothing in it is needed between launches.
+  - If Chirality could not stop its Codex when it quit, a process named
+    `codex` can still be running after Chirality has gone. Activity Monitor
+    shows it by that name. Quit it there, or restart the Mac, before removing
+    the folder.
+  - Removing the folder while Chirality is running harms no conversation's
+    record. But a command of a running conversation that needs its temporary
+    folder fails, a connector read in progress can fail, and no new start of
+    Codex or version check is made until Chirality is started again.
+- **Basis:** DEL-01-01 (CLM-006).
+
 ### LIM-027: A command an agent left running can keep running after Codex ends abruptly
 
 - **Id:** LIM-027
