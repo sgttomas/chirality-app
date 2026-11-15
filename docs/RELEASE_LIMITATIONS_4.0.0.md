@@ -370,10 +370,16 @@ An entry is added in the same pull request that makes the limitation standing.
   access, so it can change that record, and the App's other records and
   settings. The next time the App opens, it would then start conversations at a
   level you did not choose: a level written into the record is shown as your
-  choice, and nothing tells it apart from one you made. If the record is
-  deleted or emptied, the App can tell when its Codex folder shows Codex has
-  run there before: it says that its record of your level is missing and asks
-  you to choose, rather than applying its default. It cannot tell a first run
+  choice, and nothing tells it apart from one you made. Removing or replacing
+  individual ledger entries outside the App is not detected and can make an
+  older choice or the default apply. A whole valid reading establishes only
+  that no choice was found, not that you never chose. If no entry from an
+  earlier session remains while the account home holds earlier Codex state,
+  the App asks you to choose instead of applying its default. A recorded choice
+  that no longer matches the level table also asks, with or without earlier
+  Codex state. The exclusion for outside writes does not exclude ordinary App
+  choice-write failures or corruption the store detects; an unreadable record
+  or an unknown home-state probe follows the exception in DEL-01-04 REQ-011. It cannot tell a first run
   from a removal of its whole data folder, or of the record together with
   what Codex keeps in the App's Codex folder: then the App's default level,
   full access, applies, shown as the App's default. A command runs outside the

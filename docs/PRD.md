@@ -425,6 +425,12 @@ Shared access does not transfer decision rights (OD-05).
   person is asked to choose before a conversation runs only where the App
   cannot show that applying its default would not raise a level the person
   had set; there the default is preselected.
+  This check has the boundary stated in DEL-01-04 REQ-011 and LIM-022:
+  a whole validated record with earlier-session entries and no choice means
+  no choice was found, not that the person never chose. Individual entry
+  removal or replacement outside the App is not detected and can expose an
+  older choice or the default. Ordinary App choice-write failures and
+  corruption detected by the store are not excluded by that limitation.
 - **V4-AUT-07** A **point** is a place in the work where a named party is
   called to respond. The person's vocabulary has five kinds, and each point
   names the actual response or act it asks for: a **checkpoint** shows where

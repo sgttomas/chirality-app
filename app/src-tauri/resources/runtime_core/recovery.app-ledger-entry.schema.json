@@ -39,6 +39,9 @@
     },
     {
       "$ref": "#/$defs/level_reported"
+    },
+    {
+      "$ref": "#/$defs/level_inherited"
     }
   ],
   "$defs": {
@@ -616,6 +619,116 @@
         "sandbox": {},
         "agreement": {"enum": ["agrees", "differs"]}
       }
+    },
+    "level_inherited": {
+      "description": "0.6: the level and origin inherited when Codex names a created or forked conversation. This is an association, never a person's new choice. Session-only levels are not recorded.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "session",
+        "entryId",
+        "at",
+        "scope",
+        "level",
+        "origin",
+        "chosen",
+        "chosenAt"
+      ],
+      "properties": {
+        "kind": {
+          "const": "level_inherited"
+        },
+        "session": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "entryId": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "at": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "scope": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "kind",
+            "home",
+            "threadId"
+          ],
+          "properties": {
+            "kind": {
+              "const": "conversation"
+            },
+            "home": {
+              "$ref": "#/$defs/nonempty"
+            },
+            "threadId": {
+              "$ref": "#/$defs/nonempty"
+            }
+          }
+        },
+        "level": {
+          "$ref": "#/$defs/levelValues"
+        },
+        "origin": {
+          "enum": [
+            "chosen",
+            "app-default"
+          ]
+        },
+        "chosen": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/nonempty"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "chosenAt": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/nonempty"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "origin": {
+                "const": "app-default"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "chosen": {
+                "type": "null"
+              },
+              "chosenAt": {
+                "type": "null"
+              }
+            }
+          },
+          "else": {
+            "properties": {
+              "chosen": {
+                "$ref": "#/$defs/nonempty"
+              },
+              "chosenAt": {
+                "$ref": "#/$defs/nonempty"
+              }
+            }
+          }
+        }
+      ]
     },
     "levelValues": {
       "type": "object",

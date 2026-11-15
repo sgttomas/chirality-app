@@ -313,7 +313,7 @@ class Presets(Probing):
         finally:
             odd.rmdir()
 
-    def test_a_double_quote_in_the_project_path_makes_every_sandboxed_command_fail_to_start(self):
+    def test_a_double_quote_in_the_project_path_prevents_the_workspace_write_command_from_starting(self):
         """With a double quote in the project's path, the sandbox profile Codex writes for macOS does not parse:
         a command under workspace write fails with sandbox-exec's own parse error and does not run. It fails
         closed: nothing is written. Under full access, which uses no sandbox, the same write succeeds."""

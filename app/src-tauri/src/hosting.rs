@@ -3168,8 +3168,10 @@ impl Host {
         let Some((level, target, chosen_for_new)) = Self::resolve_level(i, method, built) else { return Ok(None) };
         let kind = codex_level::Method::of(method).expect("resolved methods carry a level");
         let level = level.ok_or_else(|| format!("refused-not-sent: no level chosen; {method} was not sent"))?;
+        if matches!(kind, codex_level::Method::ThreadResume | codex_level::Method::ThreadFork) && trust.is_none() { return Err(SAVED_IN_APP_DATA_UNKNOWN.into()); }
         let thread = built.get("threadId").and_then(Value::as_str).unwrap_or_default().to_owned();
-        let chosen = Self::level_chosen_for(i, kind, &thread, chosen_for_new);
+        let provenance = Self::level_origin_for(i, kind, &thread, chosen_for_new);
+        let chosen = provenance.as_ref().and_then(|c| c.entry.clone());
         Self::level_send_check(i, method, built, level, &target)?;
         let trust = match kind {
             codex_level::Method::TurnStart => None,
@@ -3184,7 +3186,7 @@ impl Host {
         }
         codex_level::config_post_condition(&params, kind).map_err(|e| format!("refused-not-sent: {e}; {method} was not sent"))?;
         if chosen_for_new { i.new_conversation_level = None; i.level.new_chosen = None; }
-        Ok(Some((params, codex_level::Bound { level, method: kind, fields, trust, revision: i.level_revision, target, chosen })))
+        Ok(Some((params, codex_level::Bound { level, method: kind, fields, trust, revision: i.level_revision, target, chosen, origin:provenance.as_ref().map(|c|c.origin), chosen_at:provenance.map(|c|c.at) })))
     }
     /// A frame is written only under the level revision it was built under.
     fn check_level_current(i: &Inner, bound: &codex_level::Bound) -> Result<(), String> {
@@ -3605,10 +3607,10 @@ impl Host {
     /// its place cannot be established; nothing is resumed. Its folder is read first (the local
     /// route reads it too, and already requires its own folder). Without a known App data folder
     /// or on the local route, nothing is read here.
-    fn saved_thread_outside_app_data(&self, generation: &Value, thread: &Value) -> Result<(), String> {
+    fn saved_thread_outside_app_data(&self, generation: &Value, thread: &Value) -> Result<Option<String>, String> {
         let data = {
             let i = self.inner.0.lock().unwrap();
-            match (&i.local_provider, &i.app_data) { (None, Some(data)) => data.clone(), _ => return Ok(()) }
+            match (&i.local_provider, &i.app_data) { (None, Some(data)) => data.clone(), _ => return Ok(None) }
         };
         let thread = thread.as_str().filter(|t| !t.is_empty()).ok_or(SAVED_IN_APP_DATA_UNKNOWN)?;
         let read = self.request_begin_scoped("thread/read", json!({"threadId":thread,"includeTurns":false}), json!({"kind":"person-directed"}), false, Some(generation))?;
@@ -3617,7 +3619,9 @@ impl Host {
         if e["outcome"] != "response-observed-result" || e["response"]["result"]["thread"]["id"] != thread {
             return Err(SAVED_IN_APP_DATA_UNKNOWN.into());
         }
-        Self::saved_folder_admitted(&data, &e["response"]["result"]["thread"]["cwd"], "continued")
+        let cwd = &e["response"]["result"]["thread"]["cwd"];
+        Self::saved_folder_admitted(&data, cwd, "continued")?;
+        Ok(Some(cwd.as_str().ok_or(SAVED_IN_APP_DATA_UNKNOWN)?.to_owned()))
     }
     /// As [`Self::saved_thread_outside_app_data`] for a fork, on the folder the current
     /// conversation's own row reports; nothing is read or sent.
@@ -3654,7 +3658,10 @@ impl Host {
         if query.generation()["home"]!=query.home() {return Err("history home and full generation differ".into());}
         if !matches!(query.method(),"thread/list"|"thread/read"|"thread/turns/list"|"thread/items/list"|"thread/goal/get"|"thread/resume") {return Err("unsupported history factory method".into());}
         // An account or key-home Continue rests on Codex reporting the built-in provider; nothing for a local home.
-        if query.method()=="thread/resume" {self.saved_thread_outside_app_data(query.generation(),&query.params()["threadId"])?;}
+        let mut params = query.params().clone();
+        if query.method()=="thread/resume" {
+            if let Some(cwd) = self.saved_thread_outside_app_data(query.generation(),&params["threadId"])? { params["cwd"] = json!(cwd); }
+        }
         let cloud=if query.method()=="thread/resume" {self.cloud_continuation_admission(query.generation(),access_provider::BUILT_IN_PROVIDER_UNREPORTED_RESUME)?} else {None};
         // A local saved-thread Continue gets the same effective provider-definition admission as a new start.
         if let Some(proof)=(query.method()=="thread/resume").then(||self.local_resume_admission(query.generation(),&query.params()["threadId"])).transpose()?.flatten() {
@@ -3667,8 +3674,8 @@ impl Host {
         // The reading travels with the request: refused at registration or final write if a newer reading
         // of the folder, or a confirmed provider write, came in between.
         let source=match &cloud {
-            Some(proof)=>{auth_rpc::generic_guard(query.method(),query.params())?;self.request_begin_with_access_offer(query.method(),query.params().clone(),initiator,false,Some(query.generation()),false,None,None,None,None,false,Some(proof))?},
-            None=>self.request_begin_scoped(query.method(),query.params().clone(),initiator,false,Some(query.generation()))?,
+            Some(proof)=>{auth_rpc::generic_guard(query.method(),&params)?;self.request_begin_with_access_offer(query.method(),params.clone(),initiator,false,Some(query.generation()),false,None,None,None,None,false,Some(proof))?},
+            None=>self.request_begin_scoped(query.method(),params,initiator,false,Some(query.generation()))?,
         };
         Ok(HistoryDispatch {query:query.clone(),source,local_config:None})
     }
@@ -7140,6 +7147,32 @@ mod conversation_transport_tests {
         let (result,frames)=local_peer_exchange(&h,cloud_reading(),"/invented",history_resume("idle",true),||h.history_dispatch(&query).map(|_|()));
         assert!(result.is_ok());assert!(!frames.iter().any(|f|f["method"]=="thread/read"));
     }
+    #[test]
+    fn saved_working_folder_is_carried_into_the_frame_trust_entry_and_edits_check() {
+        let f=SavedFolders::new();
+        let server=f.root.join("server-project");std::fs::create_dir(&server).unwrap();
+        for (saved,allowed) in [(&f.project,true),(&f.root,false)] {
+            let h=f.host();h.set_default_level("edits").unwrap();
+            { let mut i=h.inner.0.lock().unwrap();i.threads.clear();i.server_cwd=Some(server.to_string_lossy().into_owned());
+              let places=i.level.places.as_mut().unwrap();places.process_cwd=Some(server.clone());places.app_data=Some(f.data.clone()); }
+            let mut view=history_selected();let query=view.continue_query().unwrap();
+            let (result,frames)=local_peer_exchange(&h,cloud_reading(),saved.to_str().unwrap(),history_resume("idle",true),||h.history_dispatch(&query));
+            let resumes:Vec<_>=frames.iter().filter(|frame|frame["method"]=="thread/resume").collect();
+            if allowed {
+                let receipt=result.unwrap().source;
+                assert_eq!(resumes.len(),1);
+                assert_eq!(resumes[0]["params"]["cwd"],saved.to_str().unwrap());
+                let trust=receipt.level.as_ref().unwrap().trust.as_ref().unwrap();
+                assert_eq!(trust.cwd,*saved);
+                assert_eq!(resumes[0]["params"]["config"]["projects"][&trust.key]["trust_level"],"untrusted");
+                assert_ne!(trust.cwd,server);
+            } else {
+                assert!(result.err().unwrap().contains("edits-level-reaches-app-folders"));
+                assert!(resumes.is_empty(),"the saved containing folder is checked, not the separate server folder");
+            }
+        }
+    }
+
     /// DEL-01-01 (reader's control F2): the folder set aside replaced by a link to the records
     /// folder is never the folder set aside: neither it nor its target is resumed or forked.
     #[test]

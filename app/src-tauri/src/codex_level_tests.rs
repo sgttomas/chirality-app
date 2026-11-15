@@ -189,6 +189,19 @@ fn the_level_ledger_rows_are_valid_under_0_6_only_and_carry_no_decision_actor() 
         (include_str!("../resources/runtime_core/recovery.app-ledger-entry.level-chosen.unknown-scope.invalid.json"), false),
         (include_str!("../resources/runtime_core/recovery.app-ledger-entry.level-chosen.actor.invalid.json"), false),
     ];
+    let mut inherited = json!({"kind":"level_inherited","session":"session:invented","entryId":"level-inherited:invented",
+        "at":"2026-11-15T00:00:00Z","scope":{"kind":"conversation","home":"home:invented","threadId":"thread:invented"},
+        "level":recorded_values(level("full").unwrap()),"origin":"app-default","chosen":null,"chosenAt":null});
+    assert!(current.is_valid(&inherited));
+    assert!(!before.is_valid(&inherited));
+    inherited["origin"]=json!("session-only");
+    assert!(!current.is_valid(&inherited),"session-only associations cannot be persisted");
+    inherited["origin"]=json!("chosen");
+    assert!(!current.is_valid(&inherited),"a chosen origin needs its actual choice reference and time");
+    inherited["chosen"]=json!("level-chosen:invented");inherited["chosenAt"]=json!("2026-11-15T00:00:00Z");
+    assert!(current.is_valid(&inherited));
+    inherited["actor"]=json!("person:invented");
+    assert!(!current.is_valid(&inherited),"an association is not an act");
     for (bytes, valid) in rows {
         let row: Value = serde_json::from_str(bytes).unwrap();
         assert_eq!(current.is_valid(&row), valid, "{}", row["entryId"]);

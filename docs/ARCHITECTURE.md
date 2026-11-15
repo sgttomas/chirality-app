@@ -213,7 +213,10 @@ supplier direction as though it were unanswered.
   is off, the default provider is the built-in OpenAI provider, and approval,
   sandbox and review routing follow the permission level in force in the
   App: the one the person sets, or until then the App's default level (PRD
-  V4-AUT-06). The dedicated local home uses the App-owned
+  V4-AUT-06). Each start, resume and fork also sends the project-root trust
+  entry described in DEL-01-05's account-home term: trusted only when the
+  account home's settings mark that root trusted, otherwise untrusted. The
+  dedicated local home uses the App-owned
   configuration specified by DEL-01-05, with analytics and plugin traffic
   off. Every session setting the App applies is listed for the person with
   its reason.
