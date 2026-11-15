@@ -27,7 +27,7 @@ fn displayable_provider(value: &str) -> bool {
 }
 fn plain(value: &str) -> bool { !value.is_empty() && !value.chars().any(char::is_control) }
 
-/// The provider the app-server resolves for its parameterless reads. Both
+/// The provider the app-server resolves when the App omits the optional provider selector. Both
 /// `config/read` readings must name the same provider; a null or absent
 /// provider is kept as null (never inferred to be a built-in provider) and
 /// matches no conversation provider.

@@ -94,6 +94,8 @@ code_paths:
 - app/supplier_checks/record_at_pin.py
 - app/supplier_checks/recording_provider.py
 - app/supplier_checks/delegation_probe.py
+- app/supplier_checks/compare_schema.py
+- app/supplier_checks/capability_account_0.169.0.json
 # same_basis.py admits a pin whose generated schema is byte-identical to the prior pin's.
 - app/supplier_checks/same_basis.py
 # version_advance/ holds the 0.160.0 to 0.167.0 comparison and its authored dispositions, kept as
@@ -122,6 +124,10 @@ checks:
 - app/supplier_checks/test_intake.py
 - app/supplier_checks/test_record_at_pin.py
 - app/supplier_checks/test_delegation_probe.py
+- app/supplier_checks/test_compare_schema.py
+- app/supplier_checks/test_recordings_0169.py
+- app/supplier_checks/test_capability_account_0169.py
+- app/supplier_checks/test_pin_0169_evidence.py
 - app/supplier_checks/test_same_basis.py
 - app/supplier_checks/test_version_advance_evidence.py
 - app/src-tauri/src/hosting_recorded_replay_tests.rs

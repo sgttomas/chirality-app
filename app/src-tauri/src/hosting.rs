@@ -542,7 +542,7 @@ struct Inner {
     /// provider and working folder (`delegation_availability::key`).
     delegation_readings: Vec<Value>,
     /// The app-server process's own working folder (its `current_dir`), for
-    /// the provider it resolves for the parameterless reads (NPTD §7.1).
+    /// the provider it resolves for the default-provider reads (NPTD §7.1).
     server_cwd: Option<String>,
     /// The App data folder of the current start (`HostConfig::app_data`).
     app_data: Option<PathBuf>,
@@ -4795,8 +4795,8 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
     /// provider and folder. `config/read` is read with the conversation's
     /// working folder (including layers), followed by the managed requirements, and
     /// twice more for the provider the app-server resolves for itself: with
-    /// no folder and with its own working folder. `model/list` and
-    /// `modelProvider/capabilities/read` take no provider and answer for that
+    /// no folder and with its own working folder. `model/list` omits its optional
+    /// provider selector; `modelProvider/capabilities/read` also answers for that
     /// server provider, so `delegation_availability::signals` counts them only
     /// when it is the conversation's provider. Reads only. One reading waits
     /// at most `DELEGATION_READ_BUDGET` in all (each request at most ten
@@ -4873,7 +4873,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             read("config/read", params, "ConfigReadResponse")
         };
         let config = config_at(conversation["cwd"].as_str());
-        // The provider the server resolves for its parameterless reads: its
+        // The provider the server resolves for its default-provider reads: its
         // configuration without a folder and at its own folder must agree.
         let server = match server_cwd.as_deref() {
             None => Err("the app-server's working folder is not known to this App".to_owned()),
@@ -8171,6 +8171,18 @@ mod conversation_transport_tests {
 
     const AUTH_CANARY:&str="SYNTHETIC_UNIT_A_KEY_CANARY_9b71_not_a_real_credential";
     fn assert_auth_retained_safe(host:&Host,source:Option<&SourceRequest>){let mut all=json!({"snapshot":host.snapshot(),"clients":host.client_requests(),"journal":host.journal()});if let Some(source)=source{all["source"]=source.evidence();all["attempted"]=source.attempted_frame().clone();all["observation"]=host.account_rpc_observation(source).unwrap();}let text=serde_json::to_string(&all).unwrap();assert!(!text.contains(AUTH_CANARY),"synthetic canary leaked into retained output");assert!(!format!("{all:?}").contains(AUTH_CANARY));}
+    #[test]
+    fn credential_rpc_unknown_account_result_is_wholly_withheld() {
+        for method in ["account/securitySetup/read", "account/future/read"] {
+            let (projected,redacted)=auth_rpc::project_frame(&json!({"id":7,"result":{
+                "accountId":AUTH_CANARY,"userId":AUTH_CANARY,"notice":{"url":"invented account text","title":"invented account text"}
+            }}),Some(method));
+            assert!(redacted);
+            assert_eq!(projected["result"],json!(auth_rpc::REDACTED));
+            assert_eq!(projected["id"],7);
+        }
+    }
+
     #[test]
     fn credential_rpc_delegation_requirements_are_closed_booleans_or_incomplete() {
         let valid = [json!({}), json!({"multi_agent":false}), json!({"multi_agent":true,"multi_agent_v2":false})];

@@ -350,7 +350,9 @@ pub fn project_frame(frame: &Value, correlated_method: Option<&str>) -> (Value, 
                 }
                 safe
             }
-            _ => projected["result"].clone(),
+            // No account result outside the explicit projections is offered.
+            // New supplier methods do not silently widen the retained account surface.
+            _ => json!(REDACTED),
         };
     }
     (projected, true)

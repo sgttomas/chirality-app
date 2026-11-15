@@ -224,6 +224,10 @@ jobs:
           python3 supplier_checks/test_intake.py
           python3 supplier_checks/test_record_at_pin.py
           python3 supplier_checks/test_delegation_probe.py
+          python3 supplier_checks/test_compare_schema.py
+          python3 supplier_checks/test_recordings_0169.py
+          python3 supplier_checks/test_capability_account_0169.py
+          python3 supplier_checks/test_pin_0169_evidence.py
           python3 supplier_checks/test_same_basis.py
           python3 supplier_checks/test_version_advance_evidence.py
           python3 supplier_checks/swbpipe_projection_test.py
@@ -347,6 +351,10 @@ jobs:
           python3 supplier_checks/test_intake.py
           python3 supplier_checks/test_record_at_pin.py
           python3 supplier_checks/test_delegation_probe.py
+          python3 supplier_checks/test_compare_schema.py
+          python3 supplier_checks/test_recordings_0169.py
+          python3 supplier_checks/test_capability_account_0169.py
+          python3 supplier_checks/test_pin_0169_evidence.py
           python3 supplier_checks/test_same_basis.py
           python3 supplier_checks/test_version_advance_evidence.py
           python3 supplier_checks/swbpipe_projection_test.py
