@@ -611,13 +611,41 @@ class Narrowing(Probing):
             self.assertTrue(late.exists())
 
 
+def started_at(pid):
+    """The start time of process `pid` alone (`ps -p`, one process, no search), or None when it is gone."""
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return None
+    except PermissionError:
+        pass
+    out = subprocess.run(['/bin/ps', '-o', 'lstart=', '-p', str(pid)], capture_output=True, text=True, timeout=20)
+    return out.stdout.strip() or None
+
+
+def still_running(pid, at):
+    """Whether the process numbered `pid` that started at `at` is still running (a reused number does not count)."""
+    return at is not None and started_at(pid) == at
+
+
+def end_known(known):
+    """Ends each process of `known` ({name: (pid, start time)}) that is still the same process."""
+    for pid, at in known.values():
+        if still_running(pid, at):
+            try:
+                os.kill(pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+
+
 class RunningProcess(unittest.TestCase):
     """A process started at full access with a terminal (`tty`) and still running, and what ends it. The held
-    command is `cat > <outside>/w-held`, which writes only what it is given."""
+    command prints its own process number and then becomes `cat > <outside>/w-held`, which writes only what it is
+    given; the test checks that one process by its number and start time, and searches no other process."""
 
     def hold(self, run, client, thread):
         target = run.root / 'outside' / 'w-held'
-        command = 'cat > %s' % target
+        command = 'echo PID $$; exec cat > %s' % target
         run.stub.allowed_commands = set(run.stub.allowed_commands) | {command, 'sleep 20'}
         session = {}
 
@@ -629,10 +657,16 @@ class RunningProcess(unittest.TestCase):
         run.stub.scripts['hold'] = hold_script
         turn, done = client.turn(thread, 'LEVEL[hold] go', **FULL)
         self.assertEqual(done['turn']['status'], 'completed')
-        found = re.search(r'session ID (\d+)', run.stub.outputs.get('call_hold') or '')
-        self.assertTrue(found, run.stub.outputs.get('call_hold'))
+        output = run.stub.outputs.get('call_hold') or ''
+        found = re.search(r'session ID (\d+)', output)
+        self.assertTrue(found, output)
         session['id'] = int(found.group(1))
-        return target, session
+        pid = re.search(r'PID (\d+)', output)
+        self.assertTrue(pid, output)
+        held = {'cat': (int(pid.group(1)), started_at(int(pid.group(1))))}
+        self.assertIsNotNone(held['cat'][1], 'the held command is running')
+        self.addCleanup(end_known, held)
+        return target, session, held
 
     def send(self, run, client, thread, session, key, text, **settings):
         call_id = 'call_' + key
@@ -654,7 +688,7 @@ class RunningProcess(unittest.TestCase):
         with L.Run(SCRATCH, BINARY) as run:
             client = run.start()
             thread = client.start_thread()['thread']['id']
-            target, session = self.hold(run, client, thread)
+            target, session, held = self.hold(run, client, thread)
             run.stub.scripts['slow'] = L.command_script('call_slow', 'sleep 20')
             turn = client.result('turn/start', dict({'threadId': thread, 'input': [{'type': 'text', 'text': 'LEVEL[slow] go'}]},
                                                     **FULL))['turn']['id']
@@ -667,12 +701,11 @@ class RunningProcess(unittest.TestCase):
             self.assertIn('sleep 20', listed)  # the interrupted turn's own command is still running
             self.send(run, client, thread, session, 'after_interrupt', 'after the interrupt', **FULL)
             self.assertEqual(self.written(target), 'after the interrupt\n')
-            holding = lambda: subprocess.run(['/usr/sbin/lsof', '-t', str(target)], capture_output=True, text=True,
-                                             timeout=20).stdout.split()
-            self.assertTrue(holding())  # the held command is running before cleaning
+            pid, at = held['cat']
+            self.assertTrue(still_running(pid, at))  # the held command is running before cleaning
             client.result('thread/backgroundTerminals/clean', {'threadId': thread})
             time.sleep(2)
-            self.assertEqual(holding(), [])  # cleaning ended it: nothing holds its file any more
+            self.assertFalse(still_running(pid, at))  # cleaning ended that very process
             output = self.send(run, client, thread, session, 'after_clean', 'after cleaning', **FULL)
             self.assertIn('Unknown process id', output)
             self.assertEqual(self.written(target), 'after the interrupt\n')
@@ -680,14 +713,18 @@ class RunningProcess(unittest.TestCase):
 
 class QuitEnds(unittest.TestCase):
     """What ends background commands when Codex ends. Two commands are left running at full access: one with a
-    terminal (`sleep 7771 & cat > <outside>/w-held`) and one without (`sleep 7772 & sleep 7773`). Each `sleep` is
-    found by its command line, the `cat` by the file it holds. Any survivor is ended by the test itself."""
+    terminal and one without. Each starts a `sleep` in the background, prints that child's process number and its
+    own, and then becomes its last program, so the numbers printed are the processes that run:
+    `sleep 7771 & echo PIDS $! $$; exec cat > <outside>/w-held` (terminal) and
+    `sleep 7772 & echo PIDS $! $$; exec sleep 7773` (none). The test checks those four processes by number and start
+    time, searches no other process, and ends any survivor itself."""
 
     def start_two(self, run):
         target = run.root / 'outside' / 'w-held'
-        commands = {'t': ('sleep 7771 & cat > %s' % target, True), 'p': ('sleep 7772 & sleep 7773', False)}
-        run.stub.allowed_commands = set(run.stub.allowed_commands) | {c for c, _ in commands.values()}
-        for key, (command, tty) in commands.items():
+        commands = {'t': ('sleep 7771 & echo PIDS $! $$; exec cat > %s' % target, True, ('7771', 'cat')),
+                    'p': ('sleep 7772 & echo PIDS $! $$; exec sleep 7773', False, ('7772', '7773'))}
+        run.stub.allowed_commands = set(run.stub.allowed_commands) | {c for c, _, _ in commands.values()}
+        for key, (command, tty, _) in commands.items():
             def script(body, outputs, stub, key=key, command=command, tty=tty):
                 if 'call_' + key in outputs:
                     return [L.message('Done.', 'msg_' + key)]
@@ -698,34 +735,27 @@ class QuitEnds(unittest.TestCase):
         client = run.start()
         thread = client.start_thread()['thread']['id']
         self.thread = thread
-        # Whatever happens next, every process found by these commands is ended when the test ends.
-        self.addCleanup(lambda: self.end_survivors(self.alive(target)))
-        for key in commands:
+        known = {}
+        # Whatever happens next, every process these commands printed is ended when the test ends.
+        self.addCleanup(end_known, known)
+        for key, (_, _, names) in commands.items():
             client.turn(thread, 'LEVEL[%s] go' % key, **FULL)
-        before = self.alive(target)
+            printed = re.search(r'PIDS (\d+) (\d+)', run.stub.outputs.get('call_' + key) or '')
+            self.assertTrue(printed, run.stub.outputs.get('call_' + key))
+            for name, pid in zip(names, (int(printed.group(1)), int(printed.group(2)))):
+                known[name] = (pid, started_at(pid))
+        before = self.alive(known)
         self.assertTrue(all(before.values()), before)
-        for pids in before.values():
-            for pid in pids:
-                self.assertNotEqual(os.getpgid(pid), client.pgid, 'each runs in a process group of its own')
-        return client, target, before
+        for pid, _ in known.values():
+            self.assertNotEqual(os.getpgid(pid), client.pgid, 'each runs in a process group of its own')
+        return client, known, before
 
-    def alive(self, target):
-        found = {n: [p for p, _ in L.processes_naming('sleep ' + n)] for n in ('7771', '7772', '7773')}
-        held = subprocess.run(['/usr/sbin/lsof', '-t', str(target)], capture_output=True, text=True, timeout=20)
-        found['cat'] = [int(p) for p in held.stdout.split()]
-        return found
-
-    def end_survivors(self, found):
-        for pids in found.values():
-            for pid in pids:
-                try:
-                    os.kill(pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
+    def alive(self, known):
+        return {name: still_running(pid, at) for name, (pid, at) in known.items()}
 
     def test_closing_codexs_input_ends_background_commands_and_what_they_started(self):
         with L.Run(SCRATCH, BINARY) as run:
-            client, target, before = self.start_two(run)
+            client, known, before = self.start_two(run)
             client.proc.stdin.close()  # as the App's stop does first
             deadline = time.monotonic() + 3  # the App waits up to 3 s for the server's group to empty
             client.proc.wait(3)  # reaped, as the App reaps its child, so the server itself is no longer counted
@@ -733,29 +763,24 @@ class QuitEnds(unittest.TestCase):
                 time.sleep(0.05)
             self.assertEqual(L.group_members(client.pgid), 0, "the server's group emptied within 3 s")
             time.sleep(1)
-            after = self.alive(target)
-            self.end_survivors(after)
-            self.assertEqual(after, {'7771': [], '7772': [], '7773': [], 'cat': []})
+            self.assertEqual(self.alive(known), {'7771': False, '7772': False, '7773': False, 'cat': False})
 
     def test_with_codex_answering_cleaning_ends_a_command_without_a_terminal_and_what_it_started(self):
         with L.Run(SCRATCH, BINARY) as run:
-            client, target, before = self.start_two(run)
+            client, known, before = self.start_two(run)
             client.result('thread/backgroundTerminals/clean', {'threadId': self.thread})
             time.sleep(2)
-            after = self.alive(target)
             self.assertIsNone(client.proc.poll())  # Codex is still running
-            self.end_survivors(after)
-            self.assertEqual(after, {'7771': [], '7772': [], '7773': [], 'cat': []})
+            self.assertEqual(self.alive(known), {'7771': False, '7772': False, '7773': False, 'cat': False})
 
     def test_when_codex_is_ended_at_once_a_background_command_without_a_terminal_outlives_it(self):
         with L.Run(SCRATCH, BINARY) as run:
-            client, target, before = self.start_two(run)
+            client, known, before = self.start_two(run)
             client.kill()  # the server's whole process group, at once, as a crash or a forced end
             time.sleep(2)
-            after = self.alive(target)
-            self.end_survivors(after)
-            self.assertEqual((after['7771'], after['cat']), ([], []))  # the terminal's commands ended
-            self.assertEqual((after['7772'], after['7773']), (before['7772'], before['7773']))  # these outlived it
+            after = self.alive(known)
+            self.assertEqual((after['7771'], after['cat']), (False, False))  # the terminal's commands ended
+            self.assertEqual((after['7772'], after['7773']), (True, True))  # these outlived it (ended at cleanup)
 
 
 def spawn_script(child_marker):
