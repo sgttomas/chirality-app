@@ -178,7 +178,14 @@
       ],
       "offerDigest": {
         "method": "aac-offer-digest/0.1",
-        "value": "f0d825711252c9b4c92fd8c5e481ce8360e5541f06b8b48981184b8bcdb674e3"
+        "value": "59218c3a35d8880f440bc6aa14836513c22c2d2545f5fa2defc6201114150320"
+      },
+      "packageStanding": {
+        "form": "none-recorded"
+      },
+      "otherRequestsForPath": {
+        "state": "read-whole",
+        "rows": []
       }
     }
   ]

@@ -123,7 +123,7 @@ pub mod working_files;
 pub mod stop_records;
 pub mod util;
 
-use act_control::{ActControl, InputSource};
+use act_control::ActControl;
 use hosting::{Host, HostConfig};
 use runtime_session::trial_flows::SendRefusal;
 use serde_json::{json, Value};
@@ -2963,11 +2963,11 @@ fn decide(
         ac.dismiss(&offer_id);
         return Err("Attribution or owning host context changed during confirmation; review and confirm again".into());
     }
-    ac.confirm(
+    ac.confirm_shown(
         &offer_id,
         &alternative,
-        InputSource::HostNativeConfirmation,
         actor,
+        &statement.text,
     )
 }
 

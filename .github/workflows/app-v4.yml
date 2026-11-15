@@ -52,6 +52,8 @@ jobs:
           model_turn ordinary_model model_rerouted execution_custody_tests records::durability_tests
           record_relations records_index u_store_2 recovery::store::tests stop_records
           a15_single_entry a15_native::tests native_text::tests
+          act_control::standing_tests native_text::supplied_tests
+          act_control::persistence_tests::a16_records_that_cannot_be_read_are_reported_with_their_cause_and_the_offer_stays_presented
           act_control::a15::tests::native_presentation_failure_
           act_control::a15::tests::native_adapter_three_buttons_only_the_middle_captures
           file_act role_observations host_tick after_end_file_lapse
@@ -191,7 +193,7 @@ jobs:
       - name: File-act arrival presentation
         # Each file runs Rust tests of the library target the cohorts above built, offline (the full route
         # runs both files through npm test).
-        run: node --test tests/file-act-arrival.test.mjs tests/file-act-panel.test.mjs
+        run: node --test tests/file-act-arrival.test.mjs tests/file-act-panel.test.mjs tests/package-standing.test.mjs
       - name: Save compiled third-party Rust dependencies
         if: ${{ !cancelled() }}
         uses: ./.github/actions/app-v4-rust-cache-save
