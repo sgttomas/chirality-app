@@ -988,6 +988,37 @@ class TrustWrite(unittest.TestCase):
                     self.assertEqual(written, '[projects."%s"]\ntrust_level = "trusted"\n' % os.path.realpath(str(main)))
 
 
+class AskEachCommandInsideTheProject(unittest.TestCase):
+    """Whether a level can ask about each command and keep what the person allows inside the project: approval
+    `untrusted` with a workspace-write sandbox (not a level of the App's table). The command writes outside the
+    project, which the workspace-write sandbox refuses when it applies."""
+
+    def outside_write(self, decision):
+        saved = dict(L.DECLINE)
+        L.DECLINE['item/commandExecution/requestApproval'] = {'decision': decision}
+        try:
+            with L.Run(SCRATCH, BINARY) as run:
+                run.stub.scripts['w'] = L.command_script('call_w', run.commands()['out'])
+                client = run.start()
+                workspace = {'network_access': False, 'exclude_slash_tmp': True, 'exclude_tmpdir_env_var': True,
+                             'writable_roots': []}
+                reply = client.start_thread(approvalPolicy='untrusted', approvalsReviewer='user', sandbox='workspace-write',
+                                            config={'sandbox_workspace_write': workspace})
+                self.assertEqual((reply['approvalPolicy'], reply['sandbox']['type']), ('untrusted', 'workspaceWrite'))
+                client.turn(reply['thread']['id'], 'LEVEL[w] go', approvalPolicy='untrusted', approvalsReviewer='user',
+                            sandboxPolicy={'type': 'workspaceWrite', 'writableRoots': [], 'networkAccess': False,
+                                           'excludeTmpdirEnvVar': True, 'excludeSlashTmp': True})
+                asked = [r for r in client.server_requests if r['method'] == 'item/commandExecution/requestApproval']
+                return len(asked), run.paths()['out'].exists()
+        finally:
+            L.DECLINE.clear()
+            L.DECLINE.update(saved)
+
+    def test_an_allowed_command_is_not_kept_inside_the_project(self):
+        self.assertEqual(self.outside_write('decline'), (1, False))  # asked; declined, nothing is written
+        self.assertEqual(self.outside_write('accept'), (1, True))  # asked once; allowed, it writes outside the project
+
+
 class Background(Probing):
     def test_a_background_commands_item_stays_in_progress_after_its_turn_and_completes_when_it_ends(self):
         """A command left running when its turn completes: its item was started with a process id, and is still
