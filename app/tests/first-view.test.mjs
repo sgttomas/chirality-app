@@ -174,13 +174,17 @@ test('a sign-in completed in this process and confirmed by the read after it ope
   });
 });
 
-test('the workspace line carries the sign-in itself when Codex reports no account, the same sign-in Connection and access starts', async () => {
+test('the workspace line carries the sign-in itself when Codex reports no account, except on Settings & tools, where Connection and access carries it: one sign-in button on a view', async () => {
+  const SIGN_IN = 'Sign in with your ChatGPT account (through Codex)…';
   await mountedApp(noAccount(), async ui => {
-    const status = ui.container.querySelectorAll(e => e.getAttribute('aria-label') === 'Workspace connection status')[0];
-    assert.match(status.textContent, /Codex is running\. You're not signed in\./);
-    const signIn = elements(status, 'button').find(b => b.textContent === 'Sign in with your ChatGPT account (through Codex)…');
-    assert.ok(signIn, 'the sign-in is on the line');
-    assert.equal(elements(status, 'a').length, 0, 'no link to a section that holds the button');
+    const status = () => ui.container.querySelectorAll(e => e.getAttribute('aria-label') === 'Workspace connection status')[0];
+    assert.match(status().textContent, /Codex is running\. You're not signed in\./);
+    assert.equal(currentView(ui.container), 'Settings & tools');
+    assert.equal(elements(ui.container, 'button').filter(b => b.textContent === SIGN_IN).length, 1, 'one sign-in button: Connection and access');
+    assert.equal(elements(status(), 'button').filter(b => b.textContent === SIGN_IN).length, 0, 'not repeated on the line here');
+    await ui.navigate('History');
+    assert.ok(elements(status(), 'button').find(b => b.textContent === SIGN_IN), 'on another view the sign-in is on the line');
+    assert.equal(elements(status(), 'a').length, 0, 'no link to a section that holds the button');
   });
 });
 
