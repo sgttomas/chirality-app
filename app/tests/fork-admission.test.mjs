@@ -47,7 +47,7 @@ async function mounted(options,check) {
    if(options.refreshFails)statusFailure=true;return options.fork?options.fork(result):result;
   }
   if(command==='thread_start'){
-   assert.deepEqual(args,{model:choice.model,modelProvider:'openai',entryId:'chatgpt-account',modeHomeClass:'account',generation:g,role:null,preselected:false});if(options.refreshFails)statusFailure=true;
+   assert.deepEqual(args,{model:choice.model,modelProvider:'openai',entryId:'chatgpt-account',entrySource:'app-showed-only-entry',modeHomeClass:'account',generation:g,role:null,preselected:false});if(options.refreshFails)statusFailure=true;
    if(options.start)return options.start(args);const row=thread('new-choice',g,args.role);homes.account.threads.push(row);
    return {id:91,startGeneration:g,result:{thread:{id:row.threadId},model:'fixture-model',modelProvider:'fixture-provider'},roleSupplyRecord:{state:'not-confirmed'}};
   }
@@ -56,7 +56,8 @@ async function mounted(options,check) {
  });
  const selected=()=>chosenIn(choiceLists(conversation(c))[0]);
  const change=async(e,value)=>React.act(()=>e.localName==='fieldset'?chooseIn(e,value):props(e).onChange({target:{value}}));
- const routeChosen=()=>{const b=button(c,ROUTE);return !!b&&props(b)['aria-pressed']===true;};
+ // In the account home the only connection is shown in use without a press (DEL-01-05 REQ-004); elsewhere the toggle is pressed.
+ const routeChosen=()=>{if(c.querySelectorAll(e=>e.getAttribute('aria-label')==='Connection in use').length)return true;const b=button(c,ROUTE);return !!b&&props(b)['aria-pressed']===true;};
  const edit=async values=>{if(values.route&&!routeChosen())await press(ROUTE);if(values.model!==undefined)await change(labelled(c,'input','Model '),values.model);};
  const values=()=>({model:labelled(c,'input','Model ')?props(labelled(c,'input','Model ')).value:null,route:routeChosen()});
  const press=async label=>React.act(async()=>{const b=button(c,label);assert.ok(b,label);assert.equal(props(b).disabled,false,label);if(label==='Start thread')explicitStarts++;if(label==='Use account home')explicitHomes++;props(b).onClick();});
