@@ -6,6 +6,11 @@
 //!
 //! The contract for every function: what comes back is either matched to its closed form, or
 //! the caller's chosen unfit form. Nothing raw reaches a sheet.
+//!
+//! What it checks and what it trusts: it checks every value that comes from outside the App's
+//! source (a supplier, a file, a record); it trusts as written the caller's own static words, the
+//! sentence given to `Unfit::Withhold` and any table given to `vocabulary`, which are text in the
+//! App's source. A reviewer of a new caller must read those words.
 use serde_json::Value;
 
 /// The usual withheld form of a value Codex reported that is not in its closed form.
@@ -79,7 +84,7 @@ fn string_fitting(value: &Value, fits: impl Fn(&str) -> bool) -> Option<Closed> 
 }
 
 /// A plain identifier, as written: 1 to 128 ASCII letters, digits, `-`, `_`, `.`, `:` or `/`,
-/// or a whole non-negative number.
+/// or a whole non-negative number that fits in 64 bits (a JSON integer; `1.0` is withheld).
 pub(crate) fn identifier(value: &Value, otherwise: Unfit) -> Placed {
     let fits = |s: &str| (1..=128).contains(&s.len()) && s.bytes().all(|b| b.is_ascii_alphanumeric() || b"-_.:/".contains(&b));
     match value {
@@ -100,7 +105,8 @@ pub(crate) fn time(value: &Value, otherwise: Unfit) -> Placed {
     let fits = |s: &str| (1..=40).contains(&s.len()) && s.as_bytes()[0].is_ascii_digit() && s.bytes().all(|b| b.is_ascii_digit() || b"-:T.Z+".contains(&b));
     string_fitting(value, fits).map_or_else(|| unfit(value, otherwise), Placed::Inline)
 }
-/// A whole non-negative number, in decimal.
+/// A whole non-negative number that fits in 64 bits, in decimal (a JSON integer; `1.0` is
+/// withheld).
 pub(crate) fn number(value: &Value, otherwise: Unfit) -> Placed {
     match value {
         Value::Number(n) if n.is_u64() => Placed::Inline(Closed(n.to_string())),
@@ -145,10 +151,13 @@ pub(crate) mod supplier {
 }
 /// The App's own values, each its own word.
 pub(crate) mod app {
-    /// The Host's process states.
+    /// The Host's process states: exactly the lifecycle schema's (`hosting.lifecycle-event`,
+    /// `$defs.state`).
     pub(crate) const HOST_STATES: &[(&str, &str)] = &[
-        ("absent", "absent"), ("verifying", "verifying"), ("handshaking", "handshaking"), ("ready", "ready"),
-        ("stopping", "stopping"), ("stopped", "stopped"), ("refused", "refused"), ("failed", "failed"),
+        ("absent", "absent"), ("verifying", "verifying"), ("refused", "refused"), ("spawning", "spawning"),
+        ("handshaking", "handshaking"), ("ready", "ready"), ("exited-unexpectedly", "exited-unexpectedly"),
+        ("restart-waiting", "restart-waiting"), ("halted-after-repeated-failure", "halted-after-repeated-failure"),
+        ("stopping", "stopping"), ("stopped", "stopped"),
     ];
     /// The home classes (`home_resources::HomeClass::as_str`).
     pub(crate) const HOME_CLASSES: &[(&str, &str)] = &[("account", "account"), ("api-key", "api-key"), ("local-provider", "local-provider"), ("probe", "probe")];

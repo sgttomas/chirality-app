@@ -101,6 +101,10 @@ fn the_supplier_tables_are_the_pinned_schemas_own_and_the_home_classes_the_apps(
         .map(|m| m.as_str().unwrap().to_owned())
         .collect();
     assert_eq!(methods, values(supplier::SERVER_REQUEST_METHODS));
+    // The Host's states are exactly its lifecycle schema's, so the table cannot drift from what
+    // the Host can be in.
+    let lifecycle: Value = serde_json::from_slice(&std::fs::read(std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("schemas/hosting.lifecycle-event.schema.json")).unwrap()).unwrap();
+    assert_eq!(names(&lifecycle["$defs"]["state"]["enum"]), values(app::HOST_STATES));
     use crate::home_resources::HomeClass;
     let classes: std::collections::BTreeSet<String> = [HomeClass::Account, HomeClass::ApiKey, HomeClass::LocalProvider, HomeClass::Probe].iter().map(|c| c.as_str().to_owned()).collect();
     assert_eq!(classes, values(app::HOME_CLASSES));
