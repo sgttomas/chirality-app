@@ -63,7 +63,20 @@ criteria 1 and 2. Its conditions:
 - no build carrying the flag is ever the candidate for the operator
   rehearsal, the owner's sign-in or the owner's sitting.
 
-State: built attempts 0 of 2.
+State: shown on built attempt 1 of 2, 14 November 2026, run 43565559167.
+With the pass shown, later hosted runs of this scenario are regression runs,
+not attempts: the same rule as for step two, here stated by App Agent 0 after
+the result, which evades no bound because the pass came on the first attempt.
+
+The first regression run, on PR 355's head, 43661854241 on 15 November 2026,
+did not pass: L1 and L2 passed, and L3's inventory found the
+App's Working Files folder beside its data folder (PR 340), which the allowed
+places did not yet know. That was a true fail of the inventory, for a cause
+in the App's layout, and it leaves the scenario's earlier passes as they
+were. The inventory is taken at every launch; the folder appears only at L3
+because the App makes it when it prepares to start Codex, which only the
+relaunch does. The allowed places now admit it by the App's own rule, and
+only what the App makes there.
 
 ## How it is kept out of the shipped App
 
@@ -236,7 +249,13 @@ differences:
   - that every name under the home was listed: a folder that could not be
     read stops a pass;
   - no name under the throwaway home outside the allowed places: the App data
-    folder, the project, the driver's own folder (`scripted-driver`), the
+    folder; the App's Working Files folder beside it, named by the App's own
+    rule (the App data folder's name and " Working Files"), and in it only its
+    three subtrees (`probe-homes`, `codex-tmp`, `connector`), the folders the
+    App makes in each by its pattern (`probe-<uuid>`, `tmp-<uuid>`,
+    `connector-<uuid>`) and their `.made-` records, whatever their users put
+    inside those folders not inventoried (LIM-021: the App never removes
+    them); the project, the driver's own folder (`scripted-driver`), the
     system's WebKit, Caches and HTTP storage folders named for this bundle's
     identifier or executable, its preferences file and its saved window
     state, and the folders above them. Anything inside an allowed place is

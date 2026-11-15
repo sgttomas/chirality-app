@@ -6,6 +6,7 @@ import {fileURLToPath} from 'node:url';
 import React from 'react';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
+import {agentBlocks, agentBlockText} from './support/agent-text.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 import './support/rust-prebuild.mjs';
 
@@ -93,6 +94,34 @@ test('history notice: empty log-integrity reading retains notice outside reader 
 const nodes = (container,tag) => container.querySelectorAll(node => node.localName === tag);
 const labelled = (container,label) => container.querySelectorAll(node => node.getAttribute('aria-label') === label)[0];
 const props = node => node[Object.keys(node).find(key => key.startsWith('__reactProps$'))];
+test('initial WR admission refusal is visible beside every record and cannot offer a futile retry', async t => {
+  const notice = 'not saved; original bytes are held in this App process only and lost on quit; cannot be saved from within the App';
+  const run = {reference:'run:fixture',conversation:'thread',lifecycle:{state:'prepared'},
+    publication:{state:'not saved; nothing was sent; start again to record it',admissionRefusal:notice},
+    status:{state:'not saved; nothing was sent; start again to record it'},pendingRecords:true,
+    endNotice:{state:'not saved; end notice not sent',admissionRefusal:notice,retryAvailable:false},noticeRecordFailure:notice,
+    checks:[{reference:'check:fixture',state:'verified',publicationState:'not saved; cannot be saved from within the App',publicationLimit:notice,r3:{state:'not recorded; original check not saved'}}]};
+  const container = await historyRender(t,WorkflowRootPanel,{view:'make',data:{runs:[run],endedAfterRelaunch:[{run:'run:reopened',endNotice:run.endNotice,noticeRecordFailure:notice}]},host:{state:'ready'},act:async()=>{}});
+  const visible = nodes(labelled(container,'Workflow records not saved'),'p');
+  assert.ok(visible.length >= 3,'pre-send and both end notices explain the loss outside diagnostic JSON');
+  for (const paragraph of visible) {
+    for(let node=paragraph.parentNode;node&&node!==container;node=node.parentNode) {
+      assert.notEqual(node.localName,'pre','plain message, not raw evidence');
+      assert.notEqual(node.localName,'details','notice stays outside collapsed details');
+    }
+  }
+  assert.match(container.textContent,/check record not saved; cannot be saved from within the App/);
+  for(const button of nodes(container,'button').filter(node => /Retry.*(?:record|saving)/i.test(node.textContent))) {
+    assert.equal(props(button).disabled,true,`futile retry disabled: ${button.textContent}`);
+  }
+  assert.equal(nodes(container,'button').filter(node => node.textContent==='Send without the end notice (recorded as not supplied)').length,2,'both original owners retain the existing explicit skip action');
+  assert.equal(nodes(container,'p').some(node => node.textContent.includes('The next message')&&node.textContent.includes('carries this end notice')),false,'the unsavable notice does not promise automatic delivery');
+});
+test('initial WR admission retry answer uses plain refusal words',()=>{
+  const limit='Supply-check record not saved. Its bytes are lost on quit; cannot be saved from within the App.';
+  assert.equal(loadSrc('App').workflowActionMessage('workflow_retry_records',{recordAdmissionRefusals:[limit]}),limit);
+  assert.equal(loadSrc('App').workflowActionMessage('workflow_reopened_notice',{retryAvailable:false,limit}),limit);
+});
 function freeze(value) {
   if (value && typeof value === 'object') {Object.values(value).forEach(freeze);Object.freeze(value);}
   return value;
@@ -128,14 +157,15 @@ function actualPacket() {
 const panelIn = container => container.querySelectorAll(node => node.getAttribute('aria-label') === 'Workflow studio controls')[0];
 const createButton = container => nodes(panelIn(container),'button').find(node => node.textContent === 'Create draft from inspected content');
 // ActionFeedback retains the complete response as `<command>: <raw text>`;
-// a technical response keeps it in its details. The raw text must be unchanged.
+// a technical response keeps it in its details, a plain one in its inline box. The raw text must be unchanged.
 const resultText = container => {
   const region = labelled(panelIn(container),'Workflow command result');if (!region) return '';
-  const retained = (nodes(region,'pre')[0] ?? region).textContent,prefix = /^workflow_[a-z_]+: /.exec(retained);
+  const inline = region.querySelectorAll(node => node.getAttribute?.('class') === 'agent-text-value')[0];
+  const retained = (agentBlocks(region)[0] ? agentBlockText(agentBlocks(region)[0]) : inline ? inline.textContent : region.textContent),prefix = /^workflow_[a-z_]+: /.exec(retained);
   assert.ok(prefix,'the retained response names its original command');return retained.slice(prefix[0].length);
 };
 const limits = container => panelIn(container).querySelectorAll(node => node.getAttribute('aria-label') === 'Workflow observation limit').map(node => node.textContent);
-const relation = container => JSON.parse(nodes(nodes(labelled(panelIn(container),'Workflow action response'),'details').find(node => nodes(node,'summary')[0]?.textContent === 'Original workflow request'),'pre')[0].textContent);
+const relation = container => JSON.parse(agentBlockText(agentBlocks(nodes(labelled(panelIn(container),'Workflow action response'),'details').find(node => nodes(node,'summary')[0]?.textContent === 'Original workflow request'))[0]));
 
 async function mountedApp(t,{failFirstRefresh = false,metadataError,nativeRefusal = false,viewGate} = {}) {
   const source = actualPacket(),before = JSON.stringify(source),calls = [],unexpected = [];

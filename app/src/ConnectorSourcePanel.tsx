@@ -1,8 +1,16 @@
+import { AgentText, RecordedData, idWords, plainId, wordOf } from "./AgentText";
 import { ReconstructionFields, ReconstructionView, emptyReconstruction, reconstructionPayload } from "./ConnectorReconstruction";
 import { EXACT_TEXT } from "./exactText";
 import { useEffect, useRef, useState } from "react";
 import type { RouteAvailability } from "./ConnectorRoutePanel";
 type Json = any;
+// The host's words for its own vocabularies (connector_source.rs, connector_git.rs, connector_materialization.rs).
+// A heading holds the App's word for a value in these tables; any other value is shown beside it, boxed.
+const GAP_KIND={Revision:"Revision","Selection/read":"Selection/read",Excerpt:"Excerpt"};
+const GIT_RESULT_STATUS={complete:"complete",partial:"partial","gaps-only":"gaps-only"};
+const GIT_SIDE_STATUS={"Git-object-verified":"Git-object-verified",gap:"gap"};
+const DRAFT_STATUS={prepared:"prepared",cancelled:"cancelled",superseded:"superseded",publishing:"publishing",published:"published",uncertain:"uncertain",refused:"refused"};
+const UNRECOGNISED="A value the App does not recognise, as the host recorded it; the App does not vouch for its words";
 export type SourceUiState = {view: Json; busy: boolean; error: string | null; draftChanged: boolean};
 export const emptySourceUi: SourceUiState = {view:null,busy:false,error:null,draftChanged:true};
 export function sourceUiTransition(state:SourceUiState,event:{type:"edit"|"start"|"prepare"}|{type:"success";view:Json}|{type:"failure";error:string}):SourceUiState {
@@ -26,7 +34,7 @@ export function SourceObservationView({state}:{state:SourceUiState}) {
       <p>Trigger: {view.trigger?.kind} — {view.trigger?.standing}</p>
       <p>Latest selection/read operation: {view.operation}</p>
       <h3>Gaps and responsibility</h3>
-      {view.gaps?.map((gap:Json,i:number)=><div key={i}>{gap.kind && <h4>{gap.kind} gap</h4>}<p>{gap.reason}</p><p>Effect: {gap.effect}</p><p>Responsible route: {gap.responsible ?? "Unassigned"} (caller assignment, not performed responsibility)</p></div>)}
+      {view.gaps?.map((gap:Json,i:number)=><div key={i}>{gap.kind && <><h4>{wordOf(GAP_KIND,gap.kind) ?? "Unrecognised"} gap</h4>{wordOf(GAP_KIND,gap.kind)===null&&<p>Recorded gap kind: <AgentText value={gap.kind} source="record" name={UNRECOGNISED}/></p>}</>}<p>{gap.reason}</p><p>Effect: {gap.effect}</p><p>Responsible route: {gap.responsible ?? "Unassigned"} (caller assignment, not performed responsibility)</p></div>)}
       <p>{view.dutiesStanding}</p>
       {view.limits?.map((limit:string)=><p key={limit}>{limit}</p>)}
     </>}
@@ -38,14 +46,14 @@ export function SourceObservationView({state}:{state:SourceUiState}) {
       <p>Bytes: {observation.read.byteLength}; selectable lines: {observation.read.lineCount}; SHA-256: {observation.read.sha256}</p>
       <p>Observed at: {observation.read.observedAt} ({observation.read.timeProvenance})</p>
       <p>{observation.read.mechanism}</p><p>{observation.read.mutationLimit}</p>
-      <details><summary>Lossless path and opened file identity</summary><pre>{JSON.stringify({path:observation.read.selectedPath,file:observation.read.openedFileIdentity},null,2)}</pre></details>
-      <h4>Local text snapshot</h4><pre style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere"}}>{observation.read.text}</pre>
-      <details><summary>Escaped snapshot text (makes line endings visible)</summary><pre>{JSON.stringify(observation.read.text)}</pre></details>
+      <details><summary>Lossless path and opened file identity</summary><RecordedData value={{path:observation.read.selectedPath,file:observation.read.openedFileIdentity}} /></details>
+      <h4>Local text snapshot</h4><AgentText block value={observation.read.text} source="record" />
+      <details><summary>Escaped snapshot text (makes line endings visible)</summary><AgentText block value={JSON.stringify(observation.read.text)} source="record" /></details>
       <h4>Revision standing</h4><p>{observation.revision.kind}</p><p>{observation.revision.label ?? observation.revision.callerInterpretation}</p><p>{observation.revision.limit}</p>
       {observation.revision.anchor && <p>Located revision excerpt: {observation.revision.anchor.anchor}; interpretation is caller-supplied and unverified.</p>}
       <p>This local snapshot is not a Git binding. A typed commit, source statement, or working-tree coincidence does not establish a Git revision. No source entry or saved route account is produced.</p>
       <h4>Checked excerpts</h4>
-      {observation.anchors?.map((anchor:Json)=><div key={anchor.reference}><p>{anchor.anchor}: [{anchor.byteStart}, {anchor.byteEnd}) — {anchor.interval}</p><pre>{anchor.text}</pre><pre>{JSON.stringify(anchor.text)}</pre><p>Excerpt SHA-256: {anchor.sha256}</p><p>{anchor.standing}</p></div>)}
+      {observation.anchors?.map((anchor:Json)=><div key={anchor.reference}><p>{anchor.anchor}: [{anchor.byteStart}, {anchor.byteEnd}) — {anchor.interval}</p><AgentText block value={anchor.text} source="record" /><AgentText block value={JSON.stringify(anchor.text)} source="record" /><p>Excerpt SHA-256: {anchor.sha256}</p><p>{anchor.standing}</p></div>)}
     </article>}
     <p>Git gap responsibility: {view?.gaps?.[0]?.responsible ?? "Unassigned"}; caller assignment only, no performed responsibility.</p>
     <GitObservationView git={view?.git} historical={state.busy || !!state.error || state.draftChanged}/>
@@ -59,25 +67,25 @@ export function GitObservationView({git,historical=false}:{git:Json;historical?:
     {git.error && <p role="alert">Git request gap: {git.error}. No new result from this failed or cancelled request.</p>}
     {!result && <p>No Git object result is retained.</p>}
     {result && <>
-      <h4>{result.historical || historical ? "Prior/historical Git result" : "Frozen Git result"}: {observation.status}</h4>
+      <h4>{result.historical || historical ? "Prior/historical Git result" : "Frozen Git result"}: {wordOf(GIT_RESULT_STATUS,observation.status) ?? "status shown below"}</h4>{wordOf(GIT_RESULT_STATUS,observation.status)===null&&<p>Recorded status: <AgentText value={observation.status} source="record" name={UNRECOGNISED}/></p>}
       <p>Requested at: {observation.request?.at}; since: {observation.request?.since ?? "not requested"}.</p>
       <p>Local preview stays separate. This result concerns exact requested commits and stored object bytes.</p>
       {(["at","since"] as const).map(side=>observation[side] && <article key={side}>
-        <h4>{side === "at" ? "At requested commit" : "Since requested commit"}: {observation[side].status}</h4>
+        <h4>{side === "at" ? "At requested commit" : "Since requested commit"}: {wordOf(GIT_SIDE_STATUS,observation[side].status) ?? "status shown below"}</h4>{wordOf(GIT_SIDE_STATUS,observation[side].status)===null&&<p>Recorded status: <AgentText value={observation[side].status} source="record" name={UNRECOGNISED}/></p>}
         {observation[side].status === "gap" ? <p>{observation[side].kind}: {observation[side].reason}. This side has no verified text.</p> : <>
           <p>Commit: {observation[side].object.readCommit}</p><p>Blob: {observation[side].object.blob}</p>
           <p>Content SHA-256: {observation[side].object.sha256}; bytes: {observation[side].object.byteLength}</p>
           <p>Observed: {observation[side].object.observedAt} ({observation[side].object.timeProvenance})</p>
           <p>{observation[side].object.standing}</p>
-          <pre style={{whiteSpace:"pre-wrap",overflowWrap:"anywhere"}}>{observation[side].object.text}</pre>
-          <details><summary>Object path, raw commit and tree evidence</summary><pre>{JSON.stringify(observation[side].object,null,2)}</pre></details>
+          <AgentText block value={observation[side].object.text} source="record" />
+          <details><summary>Object path, raw commit and tree evidence</summary><RecordedData value={observation[side].object} /></details>
         </>}
       </article>)}
       {observation.comparison && <p>{observation.comparison}</p>}
       {observation.limits?.map((limit:string)=><p key={limit}>{limit}</p>)}
-      <details><summary>Repository association and restricted Git mechanism</summary><pre>{JSON.stringify({association:observation.association,engine:observation.engine},null,2)}</pre></details>
+      <details><summary>Repository association and restricted Git mechanism</summary><RecordedData value={{association:observation.association,engine:observation.engine}} /></details>
       <h4>Checked Git excerpts</h4>
-      {result.anchors?.map((a:Json)=><div key={a.reference}><p>{a.side}: {a.anchor}, [{a.byteStart}, {a.byteEnd})</p><p>Commit: {a.commit}; blob: {a.blob}</p><pre>{a.text}</pre><p>{a.standing}</p></div>)}
+      {result.anchors?.map((a:Json)=><div key={a.reference}><p>{a.side}: {a.anchor}, [{a.byteStart}, {a.byteEnd})</p><p>Commit: {a.commit}; blob: {a.blob}</p><AgentText block value={a.text} source="record" /><p>{a.standing}</p></div>)}
     </>}
   </section>;
 }
@@ -148,7 +156,7 @@ export function ConnectorSourcePanel({availability,command}:{availability?:Route
       <p>One-based LF lines; terminal LF belongs to its preceding line. CR and Unicode bytes are retained. Empty files have no selectable lines.</p>
       <label>Revision treatment<select value={kind} onChange={e=>setKind(e.target.value)}><option value="unavailable">Unavailable</option><option value="caller_assertion">Caller assertion (unverified)</option><option value="source_text_located">Source text located (inclusion only)</option></select></label>
       <label>Caller revision label / interpretation<input value={label} onChange={e=>setLabel(e.target.value)}/></label>
-      {kind==="source_text_located" && <label>Checked excerpt<select value={anchor} onChange={e=>setAnchor(e.target.value)}><option value="">Choose an excerpt</option>{observation.anchors.map((a:Json)=><option key={a.reference} value={a.reference}>{a.anchor}</option>)}</select></label>}
+      {kind==="source_text_located" && <label>Checked excerpt<select value={anchor} onChange={e=>setAnchor(e.target.value)}><option value="">Choose an excerpt</option>{observation.anchors.map((a:Json)=><option key={a.reference} value={a.reference}>{idWords(a.anchor)}</option>)}</select></label>}
       <button onClick={()=>act("revise_connector_source",{...bindings(),observationReference:observation.reference,kind,label,anchorReference:anchor||null})}>Record preview interpretation</button>
     </fieldset>}
     <ConnectorDraftPanel source={state} availability={availability} command={command}/>
@@ -190,10 +198,10 @@ export function ConnectorDraftPanel({source,availability,command}:{source:Source
  <p>Editing these inputs cancels an unsubmitted frozen draft. Publication already started may finish; its actual outcome remains below.</p>
  <fieldset disabled={!eligible||busy||!!registry?.inflight}><legend>Explicit caller inputs</legend><label>Account format<select value={format} onChange={e=>{invalidate();setFormat(e.target.value);}}><option value="0.3">Source-evidence draft (0.3)</option><option value="0.4">Bounded record comparison (0.4, two pins)</option></select></label>
  <label>Constructed connector label<select value={connector} onChange={e=>{invalidate();setConnector(e.target.value);}}><option value="">Choose…</option><option value="pec">PEC</option><option value="domains">Domains</option></select></label>
- {(["at","since"] as const).map(side=>{const item=result?.observation?.[side];if(item?.status!=="Git-object-verified")return null;const ref=item.object.reference,c=choices[ref]??{selected:false,role:"",anchors:[]};return <fieldset key={ref}><legend>{side}: {item.object.readCommit}</legend>
+ {(["at","since"] as const).map(side=>{const item=result?.observation?.[side];if(item?.status!=="Git-object-verified")return null;const ref=item.object.reference,c=choices[ref]??{selected:false,role:"",anchors:[]};return <fieldset key={ref}><legend>{side}: {idWords(item.object.readCommit)}</legend>
  <label><input type="checkbox" checked={c.selected} onChange={e=>choose(ref,{selected:e.target.checked})}/>Include this successfully observed side</label>
  <label>Intended source role (caller assertion)<input {...EXACT_TEXT} value={c.role} onChange={e=>choose(ref,{role:e.target.value})}/></label>
- {result.anchors?.filter((a:Json)=>a.sideObservationReference===ref).map((a:Json)=><label key={a.reference}><input type="checkbox" checked={c.anchors.includes(a.reference)} onChange={e=>choose(ref,{anchors:e.target.checked?[...c.anchors,a.reference]:c.anchors.filter(x=>x!==a.reference)})}/>Include checked excerpt {a.anchor}: {a.text}</label>)}
+ {result.anchors?.filter((a:Json)=>a.sideObservationReference===ref).map((a:Json)=><div key={a.reference}><label><input type="checkbox" checked={c.anchors.includes(a.reference)} onChange={e=>choose(ref,{anchors:e.target.checked?[...c.anchors,a.reference]:c.anchors.filter(x=>x!==a.reference)})}/>Include checked excerpt {idWords(a.anchor)}</label><AgentText value={a.text} source="record"/></div>)}
  </fieldset>;})}
  {format==="0.3"&&<><label>Optional caller interpretation<textarea value={statement} onChange={e=>{invalidate();setStatement(e.target.value);}}/></label>
  <label>Asserted by (unverified caller identity)<input {...EXACT_TEXT} value={assertedBy} onChange={e=>{invalidate();setAssertedBy(e.target.value);}}/></label>
@@ -208,21 +216,21 @@ export function ConnectorDraftPanel({source,availability,command}:{source:Source
  {error&&<p role="alert">Draft operation: {error}. Actual retained outcomes remain below.</p>}{busy&&<p>Operation pending. Cancellation after publication starts cannot guarantee rollback.</p>}
  <button onClick={()=>action("inspect_connector_drafts",{})}>Refresh retained draft outcomes</button>
  {registry&&<p>{registry.used} of {registry.capacity} App-instance identities retained. {registry.limit}</p>}
- {registry?.entries?.map((entry:Json)=><article key={entry.token}><h3>{entry.accountId}: {entry.status}</h3>
+ {registry?.entries?.map((entry:Json)=><article key={entry.token}><h3>{`Account ${idWords(entry.accountId)}: ${wordOf(DRAFT_STATUS,entry.status) ?? "status shown below"}`}</h3>{plainId(entry.accountId)===null&&<p>Account ID: <AgentText value={entry.accountId} source="record" name="The account ID, as the host recorded it; the App does not vouch for its words"/></p>}{wordOf(DRAFT_STATUS,entry.status)===null&&<p>Recorded status: <AgentText value={entry.status} source="record" name={UNRECOGNISED}/></p>}
  {entry.draft&&<><h4>Frozen question</h4><p>{entry.draft.account.question.text}</p><p>At: {entry.draft.account.question.at_revision}; since: {entry.draft.account.question.since_revision??"not requested"}</p><p>Exact serialized draft: {entry.draft.byteLength} bytes; SHA-256 {entry.draft.sha256}</p>
- <h4>Selected source evidence</h4>{entry.draft.account.sources.map((s:Json)=><div key={s.source_id}><p>{s.path} — {s.revision}; {s.role} (caller assertion)</p><p>Blob: {s.provenance.blob}; content hash: {s.sha256}</p>{s.excerpts.map((e:Json)=><div key={e.excerpt_id}><p>{e.anchor}: [{e.byte_start}, {e.byte_end})</p><pre>{e.text}</pre></div>)}</div>)}
+ <h4>Selected source evidence</h4>{entry.draft.account.sources.map((s:Json)=><div key={s.source_id}><p>{s.path} — {s.revision}; {s.role} (caller assertion)</p><p>Blob: {s.provenance.blob}; content hash: {s.sha256}</p>{s.excerpts.map((e:Json)=><div key={e.excerpt_id}><p>{e.anchor}: [{e.byte_start}, {e.byte_end})</p><AgentText block value={e.text} source="record" /></div>)}</div>)}
  <h4>Unreviewed caller interpretations</h4>{entry.draft.account.interpretations?.map((i:Json)=><p key={i.interpretation_id}>{i.statement} — {i.asserted_by} (caller asserted identity)</p>)}
  {entry.draft.account.formatVersion==="0.4"&&<ReconstructionView account={entry.draft.account}/>}
  <h4>Gaps and responsibility</h4>{entry.draft.account.gaps.map((g:Json,i:number)=><p key={i}>{g.origin}: {g.gap}. {g.effect}. Responsible: {g.responsible.identity??"Unassigned"}</p>)}
  <h4>Reported duties</h4>{entry.draft.account.duties.map((d:Json)=><p key={d.duty}>{d.duty}: {d.standing}; {d.reason} (unverified)</p>)}
- <details><summary>Complete frozen draft and compact receipt limits</summary><pre>{JSON.stringify(entry.draft.account,null,2)}</pre></details>
+ <details><summary>Complete frozen draft and compact receipt limits</summary><RecordedData value={entry.draft.account} /></details>
  <button disabled={busy||dirty||!eligible} onClick={()=>action("publish_connector_draft",{token:entry.token,generation:entry.generation})}>Publish this frozen draft once</button></>}
  {(entry.status==="prepared"||entry.status==="publishing")&&<button onClick={()=>action("cancel_connector_draft",{token:entry.token,generation:entry.generation})}>Cancel draft (started publication may finish)</button>}
  {entry.status==="uncertain"&&<button onClick={()=>action("reconcile_connector_draft",{token:entry.token,generation:entry.generation})}>Inspect exact uncertain attempt</button>}
- <h4>Original publication outcome</h4><pre>{entry.outcomeText}</pre><pre>{entry.reconciliationText}</pre>
+ <h4>Original publication outcome</h4><AgentText block value={entry.outcomeText} source="record" /><AgentText block value={entry.reconciliationText} source="record" />
  {entry.recheckAvailable&&<button disabled={!availability?.enabled||inspecting} onClick={()=>recheck(entry)}>Recheck this published file</button>}
  {inspection?.context===projectCut&&inspection?.token===entry.token&&inspection?.generation===entry.generation&&<div aria-label="Current exact-file inspection"><h4>Current exact-file inspection</h4>
- {inspection.error?<p role="alert">Inspection not completed: {inspection.error}</p>:<><p>{inspection.reply.inspection.status}</p><pre>{JSON.stringify(inspection.reply.inspection.observed??null,null,2)}</pre><p>{inspection.reply.inspection.detail}</p><p>{inspection.reply.inspection.limit}</p></>}
+ {inspection.error?<p role="alert">Inspection not completed: {inspection.error}</p>:<><p>{inspection.reply.inspection.status}</p><RecordedData value={inspection.reply.inspection.observed??null} /><p>{inspection.reply.inspection.detail}</p><p>{inspection.reply.inspection.limit}</p></>}
  <p>The original publication outcome is unchanged. This checks only its retained exact file; namespace uniqueness, source truth and performed duties are not established.</p></div>}
  </article>)}
  <p>Actual outcomes outlive source preparation for this App instance. Process loss loses hot tokens; cold records neither prove prior publication nor restore custody. No automatic retry, rollback or unlink.</p>

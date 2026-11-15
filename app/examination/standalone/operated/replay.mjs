@@ -47,7 +47,10 @@ const running = () => ({ pid: process.pid, running: true, at_ms: Date.now(), exe
 const verdict = await run({ sky: standIn, scenario, app: recorded.app, home: recorded.home, bundle: recorded.bundle, pid: process.pid, readWatch: running, sleep: async () => {}, project: recorded.project,
   // Offline, the recorded views carry the candidate key they were recorded for; without one, no record is usable.
   readIdentification: () => (typeof recorded.candidate_key === 'string' ? { candidate_key: recorded.candidate_key } : null),
-  onLog: log => { if (logPath) writeFileSync(logPath, JSON.stringify({ ...log, replayed: { views: viewsPath, wrong_state: wrongPath ?? null, calls_received: made.length, scenario_refused: validated.refusal ?? null } }, null, 2) + '\n'); } });
+  // Where a log is kept, the walk writes it to that file itself (attemptLog), and onLog then adds what the replay
+  // received; if onLog fails, the walk's own file stands. Without --log no log is kept, and no onLog is given.
+  ...(logPath ? { attemptLog: logPath,
+    onLog: log => { writeFileSync(logPath, JSON.stringify({ ...log, replayed: { views: viewsPath, wrong_state: wrongPath ?? null, calls_received: made.length, scenario_refused: validated.refusal ?? null } }, null, 2) + '\n'); } } : {}) });
 // The verdict alone on standard output; the exit status follows it alone.
 console.log(JSON.stringify(verdict));
 console.error(summary(verdict));

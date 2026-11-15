@@ -277,6 +277,59 @@ PAGE = [
 
 
 @unittest.skipIf(NODE is None and not os.environ.get('CI'), 'node is not installed')
+class TheInventoryKnowsTheAppsWorkingFiles(unittest.TestCase):
+    """The inventory admits the App's Working Files folder by the App's own rule (working_files.rs folder_for: the App
+    data folder's name and " Working Files", beside it), and only what the App makes there: the three subtrees, the
+    made folders of each subtree's pattern and their .made- records (LIM-021; the Execution lane, 15 November 2026). It
+    still flags any other name (run 43661854241 found the folder at the third launch, before the driver knew it)."""
+
+    U = '1c0b7d61-5c1e-4c55-9a59-55d0f3f4a1e2'
+
+    def listed(self, names):
+        proof = load_proof()
+        home = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, home, True)
+        app_data = home / 'Library/Application Support' / proof.IDENTIFIER
+        project = home / 'Projects/p'
+        for folder in (app_data, project):
+            folder.mkdir(parents=True)
+        for name in names:
+            path = home / name
+            if name.endswith('/'):
+                path.mkdir(parents=True, exist_ok=True)
+            else:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text('')
+        return proof, proof.inventory(home, app_data, project)['outside']
+
+    def test_the_folder_is_named_by_the_apps_rule(self):
+        proof = load_proof()
+        self.assertEqual(proof.working_files_for('/h/Library/Application Support/x.y'), Path('/h/Library/Application Support/x.y Working Files'))
+
+    def test_what_the_app_makes_there_is_admitted(self):
+        proof = load_proof()
+        w = f'Library/Application Support/{proof.IDENTIFIER} Working Files'
+        names = [f'{w}/codex-tmp/', f'{w}/connector/', f'{w}/probe-homes/.made-probe-{self.U}.json', f'{w}/probe-homes/probe-{self.U}/',
+                 f'{w}/codex-tmp/tmp-{self.U}/', f'{w}/codex-tmp/.made-tmp-{self.U}.json', f'{w}/codex-tmp/tmp-{self.U}/a-file-of-codex',
+                 f'{w}/connector/connector-{self.U}/', f'{w}/connector/.made-connector-{self.U}.json',
+                 f'{w}/probe-homes/probe-{self.U}/tmp/arg0-macos/codex-arg0abc/apply_patch']
+        _, outside = self.listed(names)
+        self.assertEqual(outside, [])
+
+    def test_any_other_name_there_is_still_outside(self):
+        proof = load_proof()
+        w = f'Library/Application Support/{proof.IDENTIFIER} Working Files'
+        cases = {'an unknown subtree': f'{w}/invented/', 'a file at the top': f'{w}/invented.txt',
+                 'a folder of another pattern': f'{w}/probe-homes/tmp-{self.U}/', 'a name that is not a uuid': f'{w}/codex-tmp/tmp-123/',
+                 'a record of another pattern': f'{w}/connector/.made-probe-{self.U}.json',
+                 'a record inside a subtree folder': f'{w}/codex-tmp/.made-tmp-{self.U}.json.bak',
+                 'another identifier\'s working files': 'Library/Application Support/dev.chirality.app-v4 Working Files/'}
+        for name, path in cases.items():
+            with self.subTest(name):
+                _, outside = self.listed([path])
+                self.assertTrue(any(o == path.rstrip('/') for o in outside), outside)
+
+
 class TheJudgeDecidesEachKindBothWays(unittest.TestCase):
     """Each of the eight expectation kinds the scenario uses, shown passing on the right state and failing on a wrong one."""
 
@@ -344,7 +397,7 @@ class TheJudgeDecidesEachKindBothWays(unittest.TestCase):
     def test_text_starts_one_of(self):
         one = {'text_starts_one_of': ['Launch: setup-required.', 'Launch: ready.']}
         self.assertEqual(self.check(one), {'expectation': one, 'pass': True, 'found': 'Launch: setup-required. Reason'})
-        self.assertFalse(self.check({'text_starts_one_of': ['Launch: ready.', 'Codex is connected']})['pass'])
+        self.assertFalse(self.check({'text_starts_one_of': ['Launch: ready.', 'Codex is running']})['pass'])
         two = PAGE + [element('text', 'Launch: ready. Other')]
         self.assertEqual(self.check(one, two)['found'], 'present 2 times')  # exactly one, or not
 

@@ -7,6 +7,7 @@ import React from 'react';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
 import './support/rust-prebuild.mjs';
+import {choiceList, chooseIn} from './support/choices.mjs';
 
 const document = installMiniDom();
 const {createRoot} = await import('react-dom/client');
@@ -152,8 +153,8 @@ test('duplicate names and bare threads in other sources do not replace B, anothe
   host.threads.push({threadId:otherChat.threadId,generation:host.generation});
   const view = await mount(sample);
   try {
-    const selector = nodes(view.container,'select').find(node => node.textContent.includes('No chat'));
-    await React.act(() => props(selector).onChange({target:{value:otherChat.threadId}}));
+    const selector = choiceList(view.container,'Workflow chat');
+    await React.act(() => chooseIn(selector,otherChat.threadId));
     const article = articleFor(view.container,sample.currentRun),disclosure = labelled(article,'Selected workflow for the next run');assert.ok(disclosure);
     assert.ok(disclosure.textContent.includes(selected.identity.source_root));assert.ok(disclosure.textContent.includes(selected.identity.revision));
     for (const value of [foreign.selection.identity.source_root,otherChat.selection.identity.source_root,foreign.selection.compatibility.statement]) assert.ok(!disclosure.textContent.includes(value));
@@ -164,7 +165,7 @@ test('duplicate names and bare threads in other sources do not replace B, anothe
     const end = nodes(articleFor(view.container,sample.currentRun),'button').find(node => node.textContent === 'End run');
     await React.act(async () => {await props(end).onClick();});
     assert.deepEqual(view.calls[1],['workflow_end_run',{runRef:sample.currentRun,finishedReport:null}]);
-    await React.act(() => props(nodes(view.container,'select').find(node => node.textContent.includes('No chat'))).onChange({target:{value:''}}));
+    await React.act(() => chooseIn(choiceList(view.container,'Workflow chat'),''));
     const noOwnedChoice = structuredClone(host);
     noOwnedChoice.workflowRoot.selections = noOwnedChoice.workflowRoot.selections.filter(row => !(row.sourceRef === data.context.sourceRef && row.threadId === sample.threadId));
     await view.render(noOwnedChoice);

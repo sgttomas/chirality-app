@@ -1144,11 +1144,19 @@ check with one boundary:
   the walk's clock, goes through one adapter. It awaits whatever comes back,
   and treats a throw, a rejection, a throwing getter on what came back and a
   value of the wrong kind the same way: it marks the walk broken, after which
-  every supplier call is refused, and the walk ends inconclusive. Failure
-  handling depends on neither the clock nor the logger that failed: the log's
-  time is words when the clock is broken, and a logger that failed is not
-  given the log again. The attempt log is always written to its file, and
-  written again saying so when the logger refused it. An asynchronous log is
+  every supplier call is refused, and the walk ends inconclusive, unless it
+  had already failed: a fail found before the option failed stands, since a
+  failure is never weakened to inconclusive. Failure handling depends on
+  neither the clock nor the logger that failed: the log's time is words when
+  the clock is broken, and a logger that failed is not given the log again.
+  When `attemptLog` names a file, the attempt log is written there before the
+  logger is called, and written again saying so when the logger refused it;
+  the log lists every option failure in order, the first being the one that
+  broke the walk.
+  The file is the log's only destination independent of the logger: without
+  `attemptLog`, a log the logger fails to take is lost, and the verdict is
+  inconclusive. A caller that needs the log gives `attemptLog`; `replay.mjs`
+  does whenever it keeps a log. An asynchronous log is
   settled before the verdict is returned or printed. A thrown value of any
   shape is described by the guarded reader, which says a part cannot be read
   rather than throwing. Anything else the walk does not handle ends the run

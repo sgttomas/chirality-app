@@ -8,6 +8,7 @@ import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
+import {agentBlocks, agentBlockText} from './support/agent-text.mjs';
 import './support/rust-prebuild.mjs';
 
 const document = installMiniDom();
@@ -22,7 +23,10 @@ const reviews = container => container.querySelectorAll(node => node.getAttribut
 const props = node => node[Object.keys(node).find(key => key.startsWith('__reactProps$'))];
 // Exclude expandable diagnostic copies: the ordinary reading surface must
 // carry the text and metadata, rather than relying on escaped raw JSON.
-const readingText = node => node.localName === 'details' ? '' : node.nodeType === 3 ? node.textContent : node.childNodes.map(readingText).join('');
+// Text as a person reads it: an AgentText block's own text (without its label and line numbers), and no box labels.
+const cls = node => (node.getAttribute?.('class') ?? '').split(' ');
+const readingText = node => node.localName === 'details' ? '' : node.nodeType === 3 ? node.textContent
+  : cls(node).includes('agent-text-block') ? agentBlockText(node) : cls(node).includes('agent-text-label') ? '' : node.childNodes.map(readingText).join('');
 function freeze(value) {
   if (value && typeof value === 'object') {Object.values(value).forEach(freeze);Object.freeze(value);}
   return value;
@@ -65,11 +69,11 @@ function assertActualReading(view,presentation) {
   const entries = labelled(view,'Reviewed workflow order');
   assert.equal(entries.childNodes.length,presentation.entries.length);
   assert.deepEqual(entries.childNodes.map(li => nodes(li,'h4')[0].textContent),presentation.entries.map(entry => entry.identity.name));
-  assert.deepEqual(view.querySelectorAll(node => node.getAttribute('aria-label') === 'Frozen WORKFLOW.md text').map(node => node.textContent),presentation.entries.map(entry => entry.workflow_text));
+  assert.deepEqual(view.querySelectorAll(node => (node.getAttribute('aria-label') ?? '').startsWith('Frozen WORKFLOW.md text, ')).map(agentBlockText),presentation.entries.map(entry => entry.workflow_text));
   for (const value of strings(presentation)) assert.ok(readingText(view).includes(value),`ordinary reading surface retains ${value}`);
   assert.equal(nodes(view,'button').length,0,'the presentation component supplies no act control');
   const raw = nodes(view,'details').find(node => nodes(node,'summary')[0]?.textContent === 'Complete reported review (diagnostic JSON)');
-  assert.equal(nodes(raw,'pre')[0].textContent,JSON.stringify(presentation,null,2),'diagnostic report keeps the exact complete DTO, including unknown fields');
+  assert.equal(agentBlockText(agentBlocks(raw).at(-1)),JSON.stringify(presentation,null,2),'diagnostic report keeps the exact complete DTO, including unknown fields');
 }
 
 test('real Rust frozen presentation is literal, ordered, complete and leaves canonical input unchanged',async () => {
@@ -116,7 +120,7 @@ test('both actual App placements consume the same frozen Rust presentation and n
     const register = nodes(view.container,'button').find(node => node.textContent === 'Register this review through native A15 confirmation…');
     assert.ok(register);assert.equal(props(register).disabled,false);
     const current = view.container.querySelectorAll(node => node.localName === 'article' && nodes(node,'h3').some(h => h.textContent === `Current review · ${source.reviewed.activeReview}`))[0];
-    const orderedText = current.textContent;
+    const orderedText = readingText(current);
     assert.ok(orderedText.indexOf(digest) < orderedText.indexOf('Read the complete review below before choosing Register'));
     assert.ok(orderedText.indexOf('Read the complete review below before choosing Register') < orderedText.indexOf(register.textContent));
     assert.ok(orderedText.indexOf(register.textContent) < orderedText.indexOf(presentation.entries[0].workflow_text));
@@ -154,7 +158,7 @@ test('native rendering requires the exact A15 kind and compatible entries; other
     view = await mount(App,{});
     const open = labelled(view.container,'Content named by an open native confirmation');
     assert.ok(open);assert.equal(reviews(open).length,0);
-    assert.deepEqual(nodes(open,'pre').map(node => node.textContent),rows.map(row => JSON.stringify(readablePaths(row.content),null,2)));
+    assert.deepEqual(agentBlocks(open).map(agentBlockText),rows.map(row => JSON.stringify(readablePaths(row.content),null,2)));
     idle.assertClean(view.container);
   } finally {
     const renderedText = view?.container.textContent ?? "";
@@ -210,7 +214,7 @@ test('source-grounded hand-built DS-2 and DS-8 variants retain full tuples, find
       entry.workflow_text,'Synthetic stored base bytes unavailable','FB-4 synthetic element finding','FB-2 synthetic declaration finding','FB-5 another synthetic finding',
       'HY-4 synthetic reported finding','Synthetic source limit','Unknown manifest detail','Synthetic unknown future source','Synthetic unknown future limit',
       entry.ledger_observation.standing,entry.registration_notice,reconfirm.registration_notice,reconfirm.reconfirmation.statement,
-      presentation.same_name_elsewhere.standing,presentation.compatibility,'Reported null','Not reported','Reported empty list','Reported empty object','Reported empty string','false']) assert.ok(text.includes(value),value);
+      presentation.same_name_elsewhere.standing,presentation.compatibility,'Reported null','Not reported','Reported empty list','Reported empty object','Reported empty string','false']) assert.ok(text.includes(value.replace(/\t/g, '→')),value);  // a tab is shown as a mark
     assert.ok(text.includes('future_entry_field'));assert.ok(text.includes('future_report_field'));
     for (const [key,value] of Object.entries(presentation.future_special_keys)) {assert.ok(text.includes(key));assert.ok(text.includes(value));}
     assert.ok(rendered.textContent.includes('Unknown path detail'),'native path identity retains all original fields in its diagnostic copy');
@@ -221,7 +225,7 @@ test('source-grounded hand-built DS-2 and DS-8 variants retain full tuples, find
     assert.ok(html.includes('&lt;script&gt;'));assert.ok(!html.includes('<script>'));
     assert.equal(globalThis.unwanted,undefined);
     const raw = nodes(rendered,'details').find(node => nodes(node,'summary')[0]?.textContent === 'Complete reported review (diagnostic JSON)');
-    assert.equal(nodes(raw,'pre')[0].textContent,JSON.stringify(presentation,null,2));
+    assert.equal(agentBlockText(agentBlocks(raw).at(-1)),JSON.stringify(presentation,null,2));
     assert.equal(canonicalJson(presentation),before);assert.equal(await reviewDigest(presentation),digest);
   } finally {await view.close();}
 });

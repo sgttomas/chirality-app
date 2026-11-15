@@ -3,11 +3,17 @@
 // the same `read_available_models` checked by the Rust fixture test
 // `model_catalog_lists_the_server_providers_models_at_a_press_and_keeps_no_configuration`.
 // No supplier, model, sign-in, network or person act.
-import test from 'node:test';
+import test, {beforeEach, afterEach} from 'node:test';
 import assert from 'node:assert/strict';
 import {loadSrc} from './support/load-src.mjs';
+// The kept local route's views are gated off in this version (DEL-01-05 "For 4.0.0"); the test of the kept
+// local flow turns the gate on, as a later update would. The host refuses every local command regardless.
+const localRoute = loadSrc('localRoute');
+beforeEach(t => { localRoute.LOCAL_ROUTE_OFFERED = /^in the dedicated local home/.test(t.name); });
+afterEach(() => { localRoute.LOCAL_ROUTE_OFFERED = false; });
 import {installMiniDom} from './support/mini-dom.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
+import {choiceLists, chooseIn} from './support/choices.mjs';
 const document = installMiniDom();
 const React = (await import('react')).default;
 const {createRoot} = await import('react-dom/client');
@@ -67,7 +73,7 @@ test('a clean trial chooses the built-in route and a reported model, and Send st
     assert.match(region(ui.c, 'Available models').textContent, /Model A model-a · Codex's default/);
     assert.equal(!!props(button(ui.c, 'Send')).disabled, true, 'the reported default is not preselected');
     await ui.change(labelled(ui.c, 'textarea', 'Inputs for this trial'), 'my edited inputs');
-    await ui.press('Use Model B');
+    await ui.press('Use model model-b');
     assert.match(region(ui.c, 'Available models').textContent, /Model B model-b · chosen/);
     assert.deepEqual(acts, [], 'choosing a model sends nothing');
     await ui.press('Send'); await ui.settle();
@@ -83,14 +89,14 @@ test('a home or generation change keeps the clean trial inputs, makes the choice
     async command => { if (command === 'read_available_models') return reply; throw Error(`unexpected ${command}`); }, async ui => {
     await ui.press('Use my ChatGPT account (built-in OpenAI)');
     await ui.press('Read available models'); await ui.settle();
-    await ui.press('Use Model A');
+    await ui.press('Use model model-a');
     await ui.change(labelled(ui.c, 'textarea', 'Inputs for this trial'), 'kept inputs');
     const earlierSend = props(button(ui.c, 'Send')).onClick;
     await ui.render({generation:g2});
     const panel = region(ui.c, 'New trial conversation');
     assert.match(panel.textContent, /Codex, the home or its generation changed since you chose\. Your text is kept/);
     assert.match(region(ui.c, 'Available models').textContent, /This model list is out of date/);
-    assert.deepEqual(buttons(ui.c, 'Use Model'), [], 'a stale list offers nothing');
+    assert.deepEqual(buttons(ui.c, 'Use model'), [], 'a stale list offers nothing');
     assert.equal(!!props(button(ui.c, 'Send')).disabled, true, 'a stale choice cannot be sent');
     assert.equal(labelled(ui.c, 'textarea', 'Inputs for this trial').value ?? props(labelled(ui.c, 'textarea', 'Inputs for this trial')).value, 'kept inputs');
     await React.act(async () => { earlierSend(); });
@@ -103,7 +109,7 @@ test('a home or generation change keeps the clean trial inputs, makes the choice
     assert.deepEqual(ui.issued().at(-1).args, {generation:g2, modeHomeClass:'account'}, 'the read is for the current generation');
     await ui.render({modeHomeClass:'api-key', generation:{...g2, home:'api-key'}});
     release(packet({generation:g2})); await ui.settle();
-    assert.deepEqual(buttons(ui.c, 'Use Model'), [], 'a late reply for the earlier source chooses and offers nothing');
+    assert.deepEqual(buttons(ui.c, 'Use model'), [], 'a late reply for the earlier source chooses and offers nothing');
     assert.doesNotMatch(region(ui.c, 'Available models').textContent, /Models Codex reports|out of date/, 'the late reply is not shown at all');
     assert.equal(button(ui.c, 'Use this home\'s API key (built-in OpenAI)'), undefined, 'the omitted OpenAI-key mode offers no route');
     assert.deepEqual(acts, []);
@@ -117,7 +123,7 @@ test('a clean trial refuses lists for another provider or generation, marks an u
     await ui.press('Use my ChatGPT account (built-in OpenAI)');
     await ui.press('Read available models'); await ui.settle();
     assert.match(region(ui.c, 'Available models').textContent, /This list isn't for this conversation's provider \(openai; the list is for local-lab\)/);
-    assert.deepEqual(buttons(ui.c, 'Use Model'), []);
+    assert.deepEqual(buttons(ui.c, 'Use model'), []);
     reply = packet({generation:g2});
     await ui.press('Read available models'); await ui.settle();
     assert.match(region(ui.c, 'Available models').textContent, /Model list unavailable: the reply was not a model list for this Codex source/);
@@ -126,7 +132,7 @@ test('a clean trial refuses lists for another provider or generation, marks an u
     assert.match(region(ui.c, 'Available models').textContent, /Model list unavailable: .*invented: model\/list answered with an error.*Advanced: enter a model ID yourself/);
     reply = packet({serverProvider:null, serverProviderState:'unnamed', providerLimit:'the app-server\'s configuration names no provider'});
     await ui.press('Read available models'); await ui.settle();
-    await ui.press('Use Model A (provider not confirmed)');
+    await ui.press('Use model model-a (provider not confirmed)');
     assert.equal(!!props(button(ui.c, 'Send')).disabled, false);
     const advanced = nodes(ui.c, 'details').find(node => node.textContent.startsWith('Advanced: enter a model ID yourself'));
     assert.ok(advanced, 'a typed model ID is under Advanced');
@@ -147,7 +153,7 @@ test('in the dedicated local home a clean trial offers the prepared oMLX route a
     assert.equal(!!props(button(ui.c, 'Send')).disabled, true, 'nothing preselected');
     assert.equal(button(ui.c, 'Read available models'), undefined, 'no Codex list is offered before a route is chosen in the local home');
     assert.match(region(ui.c, 'How this conversation connects').textContent, /No key is saved for this server yet/);
-    await ui.press('Use oMLX model invented-local-model');
+    await ui.press('Use the oMLX model shown');
     assert.match(region(ui.c, 'Available models').textContent, /This connection uses one model: invented-local-model — chosen/);
     assert.equal(nodes(region(ui.c, 'Available models'), 'input').length, 0, 'the fixed route takes no typed model');
     await ui.press('Send');
@@ -177,7 +183,7 @@ test('Codex\'s list is never offered for a local entry; the model step asks for 
     const step = region(ui.c, 'Available models');
     assert.match(step.textContent, /The App has no list of this server's models/);
     assert.doesNotMatch(step.textContent, /Model A|Model B|Models Codex reports/);
-    assert.equal(buttons(ui.c, 'Use Model').length, 0, 'a provider named like the list\'s provider is still not offered the list');
+    assert.equal(buttons(ui.c, 'Use model').length, 0, 'a provider named like the list\'s provider is still not offered the list');
     assert.equal(button(ui.c, 'Read available models'), undefined);
     await ui.change(labelled(step, 'input', 'Model name on the local server '), 'Exact/Server-Model:8bit');
     assert.equal(typed, 'Exact/Server-Model:8bit', 'the name is passed on as typed');
@@ -207,7 +213,7 @@ test('Continue as chooses a route and reported model, keeps the edited handoff a
     await ui.press('Use my ChatGPT account (built-in OpenAI)');
     await ui.press('Read available models'); await ui.settle();
     assert.deepEqual(ui.issued(), [{command:'read_available_models', args:{generation:g, modeHomeClass:'account'}}]);
-    await ui.press('Use Model B');
+    await ui.press('Use model model-b');
     const earlierStart = props(button(ui.c, start)).onClick;
     await ui.render({generation:g2});
     assert.equal(!!props(button(ui.c, start)).disabled, true, 'a stale choice cannot start');
@@ -219,7 +225,7 @@ test('Continue as chooses a route and reported model, keeps the edited handoff a
     await ui.press('Use my ChatGPT account (built-in OpenAI)');
     await ui.press('Read available models'); await ui.settle();
     assert.deepEqual(ui.issued().at(-1).args, {generation:g2, modeHomeClass:'account'});
-    await ui.press('Use Model A');
+    await ui.press('Use model model-a');
     await ui.press(start);
     assert.deepEqual(starts, [{model:'model-a', modelProvider:'openai', entryId:'chatgpt-account', generation:g2, modeHomeClass:'account'}], 'the start carries the generation the choice was made for');
     assert.deepEqual(sends, [], 'starting sends no handoff message');
@@ -243,6 +249,8 @@ test('in the App, a generation or home change keeps the clean trial composer and
     if (command === 'decision_view') return {rows:[]};
     if (command === 'native_confirmation_content') return [];
     if (command === 'read_available_models') return packet({generation:args.generation, serverProvider:null, serverProviderState:'unnamed', providerLimit:'the app-server\'s configuration names no provider'});
+    // "Waiting on you"'s timed read of the return queue: a read that writes nothing, not an act.
+    if (command === 'read_fleet_records') throw Error('invented: no fleet records in this harness');
     acts.push(command); throw Error(`unexpected ${command}`);
   });
   const intervals = new Map(), previous = {setInterval:globalThis.setInterval, clearInterval:globalThis.clearInterval, getElementById:document.getElementById}; let timer = 0;
@@ -256,7 +264,7 @@ test('in the App, a generation or home change keeps the clean trial composer and
     await React.act(async () => root.render(React.createElement(App)));
     await press('Use my ChatGPT account (built-in OpenAI)');
     await press('Read available models'); await React.act(async () => { for (let i = 0; i < 5; i++) await Promise.resolve(); });
-    await press('Use Model A (provider not confirmed)');
+    await press('Use model model-a (provider not confirmed)');
     await React.act(async () => { props(inputs()).onChange({target:{value:'EDITED before generation change'}}); });
     const before = panel();
     snapshot = status(g2); await refresh();
@@ -305,7 +313,7 @@ test('in the App, a rejected Continue as start is reported in its panel and hold
     await React.act(async () => { props(labelled(panel(), 'textarea', 'Handoff message')).onChange({target:{value:'Edited handoff'}}); });
     await press('Use my ChatGPT account (built-in OpenAI)');
     await press('Read available models');
-    await press('Use Model B');
+    await press('Use model model-b');
     const beforeOutcomeStart = props(button(panel(), start)).onClick;
     await press(start);
     assert.equal(starts.length, 1);
@@ -321,7 +329,7 @@ test('in the App, a rejected Continue as start is reported in its panel and hold
     await React.act(async () => { beforeOutcomeStart(); }); await settle();
     assert.equal(starts.length, 1, 'a Start control from before the press cannot start again after an unconfirmed outcome');
     const earlierStart = props(button(panel(), start)).onClick;
-    await press('Use Model A');
+    await press('Use model model-a');
     assert.equal(!!props(button(panel(), start)).disabled, true, 'choosing another model does not lift the hold');
     assert.match(region(panel(), 'Start outcome').textContent, /It may still have started/);
     await React.act(async () => { earlierStart(); }); await settle();
@@ -345,8 +353,8 @@ test('retained callbacks from an earlier render stay refused after reselecting o
     async (command, args) => { if (command === 'read_available_models') return packet({generation:args.generation}); throw Error(`unexpected ${command}`); }, async ui => {
     await ui.press('Use my ChatGPT account (built-in OpenAI)');
     await ui.press('Read available models'); await ui.settle();
-    const earlierUse = props(button(ui.c, 'Use Model A')).onClick;
-    await ui.press('Use Model B');
+    const earlierUse = props(button(ui.c, 'Use model model-a')).onClick;
+    await ui.press('Use model model-b');
     const earlierSend = props(button(ui.c, 'Send')).onClick;
     const earlierRead = props(button(ui.c, 'Read available models')).onClick;
     const earlierRoute = props(button(ui.c, 'Use my ChatGPT account (built-in OpenAI)') ?? nodes(ui.c, 'button').find(node => node.textContent.startsWith('Use my ChatGPT'))).onClick;
@@ -358,7 +366,7 @@ test('retained callbacks from an earlier render stay refused after reselecting o
     assert.equal(props(button(ui.c, 'Use my ChatGPT account (built-in OpenAI)'))['aria-pressed'], false, 'nor in the home after it');
     await ui.press('Use my ChatGPT account (built-in OpenAI)');
     await ui.press('Read available models'); await ui.settle();
-    await ui.press('Use Model B');
+    await ui.press('Use model model-b');
     const reads = ui.issued().length;
     await React.act(async () => { earlierUse(); earlierRead(); }); await ui.settle();
     assert.equal(ui.issued().length, reads, 'an earlier Read control reads nothing');
@@ -374,12 +382,12 @@ test('retained callbacks from an earlier render stay refused after reselecting o
     const start = 'Start new conversation as WORKING_ITEMS';
     await ui.press('Use my ChatGPT account (built-in OpenAI)');
     await ui.press('Read available models'); await ui.settle();
-    await ui.press('Use Model A');
+    await ui.press('Use model model-a');
     const earlierStart = props(button(ui.c, start)).onClick;
     await ui.render({generation:g2});
     await ui.press('Use my ChatGPT account (built-in OpenAI)');
     await ui.press('Read available models'); await ui.settle();
-    await ui.press('Use Model A');
+    await ui.press('Use model model-a');
     await React.act(async () => { earlierStart(); });
     assert.deepEqual(starts, [], 'an earlier Start is refused after the same choice is made on the new generation');
     await ui.press(start);
@@ -393,17 +401,17 @@ test('retained callbacks stay refused after a second model-list read in the same
     async command => { if (command === 'read_available_models') return reply; throw Error(`unexpected ${command}`); }, async ui => {
     await ui.press('Use my ChatGPT account (built-in OpenAI)');
     await ui.press('Read available models'); await ui.settle();
-    await ui.press('Use Model A');
-    const firstListUseB = props(button(ui.c, 'Use Model B')).onClick;
+    await ui.press('Use model model-a');
+    const firstListUseB = props(button(ui.c, 'Use model model-b')).onClick;
     const sendForA = props(button(ui.c, 'Send')).onClick;
     reply = packet({models:[models[0]]});
     await ui.press('Read available models'); await ui.settle();
     await React.act(async () => { firstListUseB(); }); await ui.settle();
     assert.match(region(ui.c, 'Available models').textContent, /Model A model-a · Codex's default · chosen/, 'a Use control from the earlier list changes nothing');
-    assert.equal(buttons(ui.c, 'Use Model B').length, 0);
+    assert.equal(buttons(ui.c, 'Use model model-b').length, 0);
     reply = packet();
     await ui.press('Read available models'); await ui.settle();
-    await ui.press('Use Model B');
+    await ui.press('Use model model-b');
     await React.act(async () => { sendForA(); }); await ui.settle();
     assert.deepEqual(acts, [], 'a Send from before the newer choice is refused');
     await ui.press('Send'); await ui.settle();
@@ -470,7 +478,7 @@ test('in the App, an unconfirmed bring-back send is named in its conversation an
   const byId = id => c.querySelectorAll(node => node.getAttribute('id') === id)[0];
   try {
     await React.act(async () => root.render(React.createElement(App)));
-    await React.act(async () => { props(nodes(byId('conversation'), 'select')[0]).onChange({target:{value:JSON.stringify([g, 'T1'])}}); });
+    await React.act(async () => { chooseIn(choiceLists(byId('conversation'))[0], JSON.stringify([g, 'T1'])); });
     const composer = region(c, 'Bring back composer');
     assert.ok(composer, 'the prepared results composer is in its conversation');
     await React.act(async () => { props(button(composer, 'Send')).onClick(); }); await settle();
@@ -478,10 +486,10 @@ test('in the App, an unconfirmed bring-back send is named in its conversation an
     assert.equal(region(c, 'Bring back composer'), undefined, 'the host withdrew the pre-fill');
     const notice = region(c, 'Bring-back send not confirmed');
     assert.ok(notice, 'the conversation names the unconfirmed send');
-    assert.match(notice.textContent, /Trial 2's results may have been sent to this conversation\..*nothing is resent.*held until you've checked.*Your message: Here is how trial 2 went.*Reported: .*not established/);
+    assert.match(notice.textContent, /Trial 2's results may have been sent to this conversation\..*nothing is resent.*The App won't bring it back there again until you've said you checked\..*Your message: Here is how trial 2 went.*Reported: .*not established/);
     const guide = region(c, 'Make a workflow from your work');
-    await React.act(async () => { props(nodes(guide, 'select')[0]).onChange({target:{value:JSON.stringify([g, 'T1'])}}); });
-    await React.act(async () => { props(nodes(guide, 'input')[0]).onChange({target:{value:'spacing-check'}}); });
+    await React.act(async () => { chooseIn(choiceLists(guide)[0], JSON.stringify([g, 'T1'])); });
+    await React.act(async () => { props(nodes(guide, 'input').find(node => node.parentNode.textContent.startsWith('Workflow name'))).onChange({target:{value:'spacing-check'}}); });
     assert.ok(region(c, 'Trial 2 results may have been sent'), 'the guide names it too');
     const bring = nodes(guide, 'button').find(node => node.textContent.startsWith('Bring trial 2 back'));
     assert.equal(!!props(bring).disabled, true, 'no blind second bring-back');
@@ -512,7 +520,7 @@ async function mountBringBacks(initialRoot, handler, check) {
   document.getElementById = id => c.querySelectorAll(node => node.getAttribute('id') === id)[0] ?? null;
   const settle = () => React.act(async () => { for (let i = 0; i < 12; i++) await Promise.resolve(); });
   const byId = id => c.querySelectorAll(node => node.getAttribute('id') === id)[0];
-  const ui = {c, calls, state, settle, select:async id => React.act(async () => { props(nodes(byId('conversation'), 'select')[0]).onChange({target:{value:JSON.stringify([g, id])}}); })};
+  const ui = {c, calls, state, settle, select:async id => React.act(async () => { chooseIn(choiceLists(byId('conversation'))[0], JSON.stringify([g, id])); })};
   try { await React.act(async () => root.render(React.createElement(App))); await check(ui); }
   finally {
     const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text);
@@ -562,8 +570,8 @@ test('in the App, a retained guide Bring after its preparation was published iss
     throw Error(`unexpected ${command}`);
   }, async ui => {
     const guide = region(ui.c, 'Make a workflow from your work');
-    await React.act(async () => { props(nodes(guide, 'select')[0]).onChange({target:{value:JSON.stringify([g, 'T1'])}}); });
-    await React.act(async () => { props(nodes(guide, 'input')[0]).onChange({target:{value:'spacing-check'}}); });
+    await React.act(async () => { chooseIn(choiceLists(guide)[0], JSON.stringify([g, 'T1'])); });
+    await React.act(async () => { props(nodes(guide, 'input').find(node => node.parentNode.textContent.startsWith('Workflow name'))).onChange({target:{value:'spacing-check'}}); });
     const retained = props(nodes(guide, 'button').find(node => node.textContent.startsWith('Bring trial 2 back'))).onClick;
     await React.act(async () => { retained(); }); await ui.settle();
     assert.equal(ui.calls.filter(call => call.command === 'workflow_trial_bring_back').length, 1);
@@ -584,7 +592,7 @@ test('in the App, an unconfirmed run bring-back is acknowledged from its own not
     await ui.select('T1');
     await React.act(async () => { props(button(region(ui.c, 'Bring back composer'), 'Send')).onClick(); }); await ui.settle();
     const notice = () => region(ui.c, 'Bring-back send not confirmed');
-    assert.match(notice().textContent, /The run's results may have been sent to this conversation\..*held until you've checked/);
+    assert.match(notice().textContent, /The run's results may have been sent to this conversation\..*The App won't bring it back there again until you've said you checked\./);
     const view = () => RunBringBackView({run, conversations:[{threadId:'T1', generation:g, model:'m'}], target:JSON.stringify([g, 'T1']), setTarget:() => {}, includeNative:false, setIncludeNative:() => {}, busy:false, act:() => assert.fail('held')});
     const find = (node, out = []) => { if (Array.isArray(node)) { node.forEach(n => find(n, out)); return out; } if (!node || typeof node !== 'object') return out; if (node.type === 'button') out.push(node); find(node.props?.children, out); return out; };
     assert.equal(find(view())[0].props.disabled, true, 'the run bring-back is held');
@@ -616,7 +624,7 @@ test('in the App, a null send result that leaves the pre-fill visible is not sho
     assert.doesNotMatch(notice().textContent, /was withdrawn/);
     assert.match(notice().textContent, /Reported: The host did not report the send's outcome\./);
     assert.equal(!!props(button(composer(), 'Send')).disabled, true, 'Send is visibly held');
-    assert.match(composer().textContent, /Send is held: this copy's earlier send wasn't confirmed and may have arrived, so it is not sent again/);
+    assert.match(composer().textContent, /The App won't send this yet: this copy's earlier send wasn't confirmed and may have arrived, so it is not sent again/);
     await React.act(async () => { props(button(composer(), 'Send')).onClick(); }); await ui.settle();
     await React.act(async () => { send(); }); await ui.settle();
     assert.equal(ui.calls.filter(call => call.command === 'workflow_bring_back_send').length, 1, 'neither Send nor a retained callback issues another send while held');
@@ -660,7 +668,7 @@ test('in the App, a Continue as start refused at its reading keeps that sentence
     await React.act(async () => { props(labelled(panel(), 'textarea', 'Handoff message')).onChange({target:{value:'Edited handoff'}}); });
     await press('Use my ChatGPT account (built-in OpenAI)');
     await press('Read available models');
-    await press('Use Model B');
+    await press('Use model model-b');
     await press('Start new conversation as WORKING_ITEMS');
     const outcome = region(panel(), 'Start outcome');
     assert.ok(outcome && outcome.textContent.includes(READING_GATE), 'the panel reports the host message, the sentence');
@@ -702,7 +710,7 @@ for (const kind of ['first reading', 'child-role reread']) test(`in the App, a C
     await React.act(async () => { props(labelled(panel(), 'textarea', 'Handoff message')).onChange({target:{value:'Edited handoff'}}); });
     await press('Use my ChatGPT account (built-in OpenAI)');
     await press('Read available models');
-    await press('Use Model B');
+    await press('Use model model-b');
     await press(start);
     const outcome = region(panel(), 'Start outcome');
     assert.ok(outcome, 'the outcome is shown in the Continue as panel');

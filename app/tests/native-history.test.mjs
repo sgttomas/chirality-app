@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {installMiniDom} from './support/mini-dom.mjs';
+import {choiceList, chooseIn, chosenIn, keysIn, labelOf, rowOf} from './support/choices.mjs';
 import {loadSrc} from './support/load-src.mjs';
 import {continuationFixture} from './support/continuation-fixture.mjs';
 
@@ -396,7 +397,7 @@ async function mountedHistoryBrowser(check) {
   window.__TAURI_INTERNALS__={invoke:async(command,args)=>{calls.push({command,args:clone(args)});return handler(command,args);}};
   const show=()=>React.act(()=>root.render(React.createElement(HistoryPanel,{host,refresh:async()=>host,threadKey:'untouched-active',setThreadKey:()=>assert.fail('inspection must not change operational conversation'),captureContinueNavigation:()=>assert.fail('search must not resume')})));
   const field=()=>c.querySelectorAll(n=>n.localName==='input'&&props(n).type==='search')[0];
-  const chooser=()=>c.querySelectorAll(n=>n.localName==='select'&&n.parentNode.textContent.startsWith('Stored conversation '))[0];
+  const chooser=()=>choiceList(c,'Stored conversation');
   const search=async value=>React.act(()=>props(field()).onChange({target:{value}}));
   try {await show();await check({c,calls,field,chooser,search,show,get host(){return host;},setHost:value=>{host=value;},handle:value=>{handler=value;}});}
   finally {await React.act(()=>root.unmount());document.body.removeChild(c);window.__TAURI_INTERNALS__=previous;}
@@ -406,22 +407,21 @@ test('history search filters received IDs/previews locally and preserves selecte
  await mountedHistoryBrowser(async ui=>{
   const original=clone(ui.host);await ui.search('BUDGET');
   assert.match(ui.c.textContent,/1 matching of 2 received/);
-  const options=ui.chooser().querySelectorAll(n=>n.localName==='option');
-  assert.deepEqual(options.map(n=>n.getAttribute('value')),['','other-É','stored']);
-  assert.match(options.at(-1).textContent,/selected.*outside this search/);
-  assert.equal(props(ui.chooser()).value,'stored');assert.deepEqual(ui.host,original);assert.deepEqual(ui.calls,[]);
+  assert.deepEqual(keysIn(ui.chooser()),['other-É','stored']);
+  assert.match(rowOf(ui.chooser(),'stored').textContent,/chosen — outside this search/);
+  assert.equal(chosenIn(ui.chooser()),'stored');assert.deepEqual(ui.host,original);assert.deepEqual(ui.calls,[]);
   await ui.search('é');assert.match(ui.c.textContent,/1 matching of 2/);
   await ui.search('no matches');assert.match(ui.c.textContent,/No received conversation matches/);
   let focus=0;ui.field().focus=()=>focus++;await click(button(ui.c,'Clear search'));
   assert.equal(props(ui.field()).value,'');assert.equal(focus,1);assert.deepEqual(ui.calls,[]);
-  assert.equal(props(ui.chooser()).value,'stored');
+  assert.equal(chosenIn(ui.chooser()),'stored');
  });
 });
 
 test('history filter survives polling and inspection choice but resets on home or generation change',async()=>{
  await mountedHistoryBrowser(async ui=>{
   await ui.search('budget');await ui.show();assert.equal(props(ui.field()).value,'budget');
-  await React.act(()=>props(ui.chooser()).onChange({target:{value:'other-É'}}));
+  await React.act(()=>chooseIn(ui.chooser(),'other-É'));
   assert.deepEqual(ui.calls,[{command:'history_select',args:{generation,selectionEpoch:3,threadId:'other-É'}}]);
   assert.equal(props(ui.field()).value,'budget');
   const changed=clone(ui.host);changed.nativeHistory.generation={...generation,spawnCounter:3};changed.generation=clone(changed.nativeHistory.generation);
@@ -455,16 +455,19 @@ test('history discovery uses native names before previews and retains exact IDs 
     ui.host.nativeHistory.threads[0].native.name = 'Office move';
     ui.host.nativeHistory.threads[1].native.name = 'Notes to actions';
     await ui.show();
-    const option = id => ui.chooser().querySelectorAll(n => n.localName === 'option' && n.getAttribute('value') === id)[0];
-    assert.match(option('stored').textContent, /^Office move · notLoaded$/);
-    assert.match(option('other-É').textContent, /^Notes to actions · idle$/);
-    assert.doesNotMatch(option('other-É').textContent, /other-É/);
+    const option = id => rowOf(ui.chooser(), id);
+    // The radio button is named by the App's words, then who supplied the title, then the title; the model, provider,
+    // status and an identity that is not plain stand beside.
+    assert.equal(labelOf(ui.chooser(), 'stored'), 'Conversation stored, title supplied by Codex: Office move');
+    assert.match(option('stored').textContent, /Conversation stored, title supplied by Codex: Office move model not reported provider not reported Status: not loaded$/, 'a stored row without a model or provider says so');
+    assert.equal(labelOf(ui.chooser(), 'other-É'), 'Conversation 2 (identity shown beside), title supplied by Codex: Notes to actions', 'its place in the list');
+    assert.match(option('other-É').textContent, /Notes to actions Identity: other-É model not reported provider not reported Status: idle$/);
     await ui.search('NOTES TO ACTIONS');
     assert.match(ui.c.textContent, /1 matching of 2 received/);
-    assert.equal(props(ui.chooser()).value, 'stored', 'search never replaces the selected work');
-    assert.match(option('stored').textContent, /Office move.*selected.*outside this search/);
+    assert.equal(chosenIn(ui.chooser()), 'stored', 'search never replaces the selected work');
+    assert.match(option('stored').textContent, /Office move.*chosen — outside this search/);
     assert.deepEqual(ui.calls, [], 'display and search issue no native command');
-    await React.act(() => props(ui.chooser()).onChange({target:{value:'other-É'}}));
+    await React.act(() => chooseIn(ui.chooser(), 'other-É'));
     assert.deepEqual(ui.calls, [{command:'history_select',args:{generation,selectionEpoch:3,threadId:'other-É'}}]);
     assert.match(ui.c.textContent, /Conversation ID: stored/);
   });

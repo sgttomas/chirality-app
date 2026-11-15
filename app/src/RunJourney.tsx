@@ -1,4 +1,5 @@
-import { conversationLabel, nativePathText } from "./presentation";
+import { AgentText, ConversationChoices, idWords, safeName, wordOf } from "./AgentText";
+import { nativePathText, threadChoices } from "./presentation";
 import { hostRequests, requestThread } from "./RequestCards";
 import { errorWords } from "./NativeActivity";
 import { chatWorkflow, workflowAssurance, workflowContext } from "./workflowSelection";
@@ -90,7 +91,7 @@ export function GuideResult({ label, outcome, only, stepsShown = true }: { label
   const result = outcome && (!only || only.includes(outcome.command)) ? guideResultWords(outcome, stepsShown) : null;
   if (!result) return null;
   return <div role={result.failed ? "alert" : "status"} aria-label={label} className={`run-journey-state${result.failed ? " run-journey-failed" : ""}`}><p>{result.words}</p>
-    {result.detail && <details><summary>What the App reported</summary><pre style={{ whiteSpace: "pre-wrap" }}>{result.detail}</pre></details>}</div>;
+    {result.detail && <details><summary>What the App reported</summary><AgentText block value={result.detail} source="record" /></details>}</div>;
 }
 
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -247,8 +248,8 @@ const INPUT_KIND: Record<string, string> = { host_read: "read by Codex from the 
 function RunResult({ run, host, loaded, showConversation }: { run: Json; host: Json; loaded: boolean; showConversation?: (threadId: string, target?: string) => void }) {
   const reading = runReading(run, host);
   const outputs = declaredRows(list(run?.compatibility).find((c: Json) => c?.preparation?.declaration)?.preparation?.declaration, "returned_outputs");
-  return <li aria-label={`Run ${text(run.reference)}`}>
-    <strong>{text(run.workflow?.name) || "Workflow run"}</strong>{run.workflow?.revision ? <> (<code title={text(run.workflow.revision)}>{text(run.workflow.revision).slice(0, 12)}…</code>)</> : null} · {reading.title}.
+  return <li aria-label={`Run ${idWords(run.reference)}`}>
+    <strong>{text(run.workflow?.name) || "Workflow run"}</strong>{run.workflow?.revision ? <> (<code title={idWords(run.workflow.revision)}>{text(run.workflow.revision).slice(0, 12)}…</code>)</> : null} · {reading.title}.
     {outputs.length > 0 && <> It declares: {outputs.map((output: Json, index: number) => <span key={index}>{index ? "; " : ""}<strong>{text(output.name)}</strong>{output.path ? <> (<code>{text(output.path)}</code>)</> : null}</span>)}.</>}
     <br/><small>The agent reports its results in the conversation; the App hasn't checked them.</small>{" "}
     {!loaded ? <small>Its conversation isn't loaded in this Codex session; find it in History.</small>
@@ -259,17 +260,21 @@ function RunResult({ run, host, loaded, showConversation }: { run: Json; host: J
 
 /** Said in a guide while no status read started after the last command that may change the host has been applied. */
 export const VIEW_NOT_REFRESHED = "What this view showed may be from before the App's last operation finished. The App is not showing its steps until it has read its state again after that; it reads again by itself.";
+/** Each guide's words: its title (and accessible name), its result's label and its section's id. */
+const GUIDE_TITLE = { run: "Run a workflow", make: "Make a workflow from your work" } as const;
+const GUIDE_RESULT_LABEL = { run: "Run a workflow — last result", make: "Make a workflow — last result" } as const;
+const GUIDE_ID = { run: "run-workflow", make: "make-workflow" } as const;
 /**
  * A guide while what it holds may be from before the last press: its heading,
  * that statement and the press's own result, and none of its steps. Nothing
  * cached is shown as current and no control is offered.
  */
-export function GuideWithheld({ id, label, title, outcome, resultLabel, only, readFailure, children }: { id: string; label: string; title: string; outcome?: GuideOutcome | null; resultLabel: string; only: string[]; readFailure?: string | null; children?: ReactNode }) {
-  return <section id={id} className="workflow-stage run-journey" aria-label={label}>
-    <h2>{title}</h2>
+export function GuideWithheld({ guide, outcome, only, readFailure, children }: { guide: keyof typeof GUIDE_TITLE; outcome?: GuideOutcome | null; only: string[]; readFailure?: string | null; children?: ReactNode }) {
+  return <section id={GUIDE_ID[guide]} className="workflow-stage run-journey" aria-label={wordOf(GUIDE_TITLE, guide) ?? ""}>
+    <h2>{wordOf(GUIDE_TITLE, guide)}</h2>
     <p className="run-journey-next" role="status" aria-live="polite"><strong>Next:</strong> {VIEW_NOT_REFRESHED}</p>
     {readFailure && <p role="alert">The last read failed: {readFailure}</p>}
-    <GuideResult label={resultLabel} outcome={outcome} only={only} stepsShown={false}/>
+    <GuideResult label={wordOf(GUIDE_RESULT_LABEL, guide) ?? ""} outcome={outcome} only={only} stepsShown={false}/>
     {children}
   </section>;
 }
@@ -383,7 +388,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
     : orderUnknown && inProgress ? "A run in this conversation is still open, and the App can't tell which run is latest; follow or end it from Results or the workflow studio before preparing another."
     : !latest || starts(latest.lifecycle?.state, "ended") || starts(latest.lifecycle?.state, "start not confirmed") ? "Describe what the workflow should work on, then prepare the run."
     : prepared ? prepared.status?.sent === false && prepared.status?.limit ? "The run didn't start. Progress says why and what to do." : "Check your inputs, then start the run." : orderUnknown ? "This conversation has several runs whose order the App can't tell; see each under Results." : reading?.title ?? "";
-  if (viewStale && !busy) return <GuideWithheld id="run-workflow" label="Run a workflow" title="Run a workflow" outcome={outcome} resultLabel="Run a workflow — last result" only={RUN_COMMANDS} readFailure={readFailure}>
+  if (viewStale && !busy) return <GuideWithheld guide="run" outcome={outcome} only={RUN_COMMANDS} readFailure={readFailure}>
     {thread && <p>{showConversation ? <button onClick={() => showConversation(thread)}>Show the conversation</button> : <a href="#conversation">Go to the conversation</a>}</p>}
   </GuideWithheld>;
   return <section id="run-workflow" className="workflow-stage run-journey" aria-label="Run a workflow" aria-busy={busy}>
@@ -401,15 +406,13 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
           : <p><a href="#desktop-setup">Choose a project in Desktop setup</a> — the choice applies when you next open the App. Or open any workflow library from the workflow studio below.</p>}
       </li>
       <li aria-labelledby="run-conversation-heading"><h3 id="run-conversation-heading">Conversation</h3>
-        {conversations.length ? <label>Conversation to run it in <select value={thread} disabled={!canAct} onChange={event => chooseThread(event.target.value)}>
-          <option value="">Choose a conversation</option>
-          {conversations.map((row: Json) => <option key={row.threadId} value={row.threadId}>{conversationLabel(host, row)}</option>)}
-        </select></label> : <p>No conversation in this session yet. <a href="#workspace-start">Start a new conversation</a>, then choose it here.</p>}
+        {conversations.length ? <ConversationChoices legend="Conversation to run it in" group="run-conversation" chosen={thread} disabled={!canAct} onChoose={chooseThread} none="No conversation chosen"
+          value={threadChoices(conversations, (row: Json) => row.threadId)} /> : <p>No conversation in this session yet. <a href="#workspace-start">Start a new conversation</a>, then choose it here.</p>}
         {thread && <details className="conversation-identity"><summary>Exact conversation ID</summary><code>{thread}</code></details>}
         <p><small>The workflow runs inside this conversation; you answer its questions there.</small></p>
       </li>
       <li aria-labelledby="run-workflow-heading"><h3 id="run-workflow-heading">Workflow</h3>
-        {chosen && <p aria-label="Workflow chosen for this run"><strong>{text(chosen.identity?.name)}</strong> — {chosenSource}, {chosenSequence !== undefined ? `revision ${text(chosenSequence)} ` : "revision "}<code title={text(chosen.identity?.revision)}>{text(chosen.identity?.revision).slice(0, 12)}…</code>. {chosenReady ? "Ready to run." : `Can't run: ${text(chosenLimit)}`}</p>}
+        {chosen && <p aria-label="Workflow chosen for this run"><strong>{text(chosen.identity?.name)}</strong> — {chosenSource}, {chosenSequence !== undefined ? `revision ${text(chosenSequence)} ` : "revision "}<code title={idWords(chosen.identity?.revision)}>{text(chosen.identity?.revision).slice(0, 12)}…</code>. {chosenReady ? "Ready to run." : `Can't run: ${text(chosenLimit)}`}</p>}
         {chosen && <WorkflowTextControl slot={chosenSlot} identity={chosen.identity} source={chosenSource} texts={workflowTexts} disabled={!canAct}
           target={{ kind: "selection", revision: chosen.identity?.revision }} context={() => workflowContext(data, host, thread)}/>}
         {chosen && <RoleBesideWorkflow entry={includedEntryOf(data?.productionCatalog, chosen)} conversation={conversations.find((row: Json) => row.threadId === thread)}/>}
@@ -418,12 +421,12 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
         {chosen && <LibraryPathsBesideWorkflow entry={includedEntryOf(data?.productionCatalog, chosen)} source={data?.productionCatalog?.source}/>}
         {chosen && newer && !(newer.limit && chosen.identity?.origin === "bundled") && (newer.limit ? <p role="note">Newer revisions of {text(chosen.identity?.name)} can't be checked: {text(newer.limit)}</p>
           : <p role="note" aria-label="Newer revision for this conversation">A newer revision of <strong>{text(chosen.identity?.name)}</strong> is registered ({text(newer.notice)}). This conversation keeps using the one shown above until you choose the newer one.{" "}
-            {newer.selectable === true ? <button disabled={!canAct} onClick={() => perform("workflow_follow_newer_revision", { selectionRef: chosen.reference, revision: newer.revision })}>{text(newer.offered)}</button> : <small>{text(newer.offered)}.</small>}</p>)}
+            {newer.selectable === true ? <button disabled={!canAct} onClick={() => perform("workflow_follow_newer_revision", { selectionRef: chosen.reference, revision: newer.revision })}>{`Select revision ${idWords(newer.sequence)}`}</button> : <small>{text(newer.offered)}.</small>}</p>)}
         {active && registered.length > 0 && <ul aria-label="Workflows ready to use">{registered.map((row: Json) => <li key={`${row.name}@${row.revision}`}>
           <strong>{text(row.name)}</strong> · revision {text(row.sequence)}{chosen && chosen.identity?.name === row.name && chosen.identity?.revision === row.revision ? <> — chosen</> : row.selectable === true
-            ? <> <button disabled={!canAct || !thread} onClick={() => perform("workflow_select_listed", { libraryRef: active.reference, name: row.name, revision: row.revision })}>Use {text(row.name)}{sameName(row.name) ? ` revision ${text(row.sequence)}` : ""}</button></>
+            ? <> <button disabled={!canAct || !thread} onClick={() => perform("workflow_select_listed", { libraryRef: active.reference, name: row.name, revision: row.revision })}>Use {safeName(row.name)}{sameName(row.name) ? ` revision ${idWords(row.sequence)}` : ""}</button></>
             : <> — {text(row.label)}.{" "}
-              <a href={`#${registeredRevisionAnchor(active.reference, row.name, row.revision)}`}>{row.reconfirm === true ? `Re-confirm ${text(row.name)} in the workflow studio` : "See this revision in the workflow studio"}</a>
+              <a href={`#${registeredRevisionAnchor(active.reference, row.name, row.revision)}`}>{row.reconfirm === true ? `Re-confirm ${safeName(row.name)} in the workflow studio` : "See this revision in the workflow studio"}</a>
               {row.reconfirm === true && <small> Refine it into a draft, then review that draft and confirm in the App's dialog. Nothing is chosen or run until you do.</small>}</>}
           {row.selectable === true && <small> · {text(row.label)}</small>}
         </li>)}</ul>}
@@ -432,7 +435,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
         {active && unregistered.length > 0 && <div aria-label="Workflows that need a first review">
           <p>These workflows are in the folder but haven't been approved for use here. Read one once and confirm it in the App's confirmation dialog; after that it is listed above. Nothing runs during the review.</p>
           <ul>{unregistered.map((entry: Json) => <li key={entry.reference}><strong>{text(entry.name)}</strong>{" "}
-            <button disabled={!canAct} onClick={() => perform("workflow_review_library_entries", { libraryRef: active.reference, listingRef: listing.reference, entryRefs: [entry.reference] })}>Review {text(entry.name)} for first use…</button></li>)}</ul>
+            <button disabled={!canAct} onClick={() => perform("workflow_review_library_entries", { libraryRef: active.reference, listingRef: listing.reference, entryRefs: [entry.reference] })}>Review {safeName(entry.name)} for first use…</button></li>)}</ul>
         </div>}
         {active && listing?.libraryRef === active.reference && listing?.state === "unavailable" && <p role="note">The App couldn't look in this library's folder for other workflows{list(listing.limits).length ? `: ${list(listing.limits).map(text).join("; ")}` : "."}</p>}
         {pendingReview && <p role="note">A review is open. <a href="#workflow-reviews">Read it and confirm</a> to approve the workflow for use.</p>}
@@ -453,7 +456,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
           <button className="setup-primary" disabled={!canAct || !ready || !thread || !chosenReady || inProgress || (unresolvedStart && checkedRun !== holdKey)}
           onClick={() => { if (!unresolvedStart || checkedRun === holdKey) performThen("workflow_prepare_run", { generation: host.generation, threadId: thread, personText }, "start"); }}>Prepare this run</button></>
           : <><p>Prepared {text(prepared.workflow?.name)} with your text. Nothing has been sent yet.</p>
-            <button ref={startButton} className="setup-primary" disabled={!canAct || !ready} onClick={() => performThen("workflow_send_run", { runRef: prepared.reference }, "progress")}>Start the run</button>
+            <button ref={startButton} className="setup-primary" disabled={!canAct || !ready || !!prepared.publication?.admissionRefusal} onClick={() => performThen("workflow_send_run", { runRef: prepared.reference }, "progress")}>Start the run</button>
             {prepared.status?.sent === false && prepared.status?.limit && <>{" "}<button disabled={!canAct || !ready || !thread || !chosenReady} onClick={() => performThen("workflow_prepare_run", { generation: host.generation, threadId: thread, personText }, "start")}>Prepare this run again</button></>}</>}
         <p><small>Preparing composes the starting message from the chosen revision; nothing is sent. Starting records the run and sends that message once — if recording fails, nothing is sent.</small></p>
       </li>
@@ -487,7 +490,7 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
         </div>}
         {recordedRuns.length > 0 && <div aria-label="Recorded runs of this workflow">
           <p>Recorded runs of {text(chosen?.identity?.name)} from the project's records (read only; not live in this session):</p>
-          <ul>{recordedRuns.map((run: Json) => <li key={text(run.run)}>{text(run.run)}{run.workflow?.revision ? <> · revision <code title={text(run.workflow.revision)}>{text(run.workflow.revision).slice(0, 12)}…</code></> : null} · {text(run.state)} · recorded conversation <code>{text(run.conversation) || "not recorded"}</code> · {workflowAssurance(run.assurance)}</li>)}</ul>
+          <ul>{recordedRuns.map((run: Json) => <li key={text(run.run)}>{text(run.run)}{run.workflow?.revision ? <> · revision <code title={idWords(run.workflow.revision)}>{text(run.workflow.revision).slice(0, 12)}…</code></> : null} · {text(run.state)} · recorded conversation <code>{text(run.conversation) || "not recorded"}</code> · {workflowAssurance(run.assurance)}</li>)}</ul>
         </div>}
         {outputs.length > 0 ? <ul aria-label="Where the results go">{outputs.map((output: Json, index: number) => <li key={index}>
           <strong>{text(output.name)}</strong>{output.path ? <> — declared path <code>{text(output.path)}</code></> : ""}{output.meaning ? `: ${text(output.meaning)}` : ""}</li>)}</ul>

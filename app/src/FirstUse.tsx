@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "./hostReads";
 import type { DesktopSetupView } from "./DesktopSetupPanel";
+import { AgentText, wordOf } from "./AgentText";
 
 type NativePath = { encoding: "unix_bytes"; bytes: number[] };
 type Location = { displayPath: string; nativePath: NativePath };
@@ -27,6 +28,8 @@ const typedProblem = (text: string) =>
   : new TextDecoder("utf-8", { ignoreBOM: true }).decode(new TextEncoder().encode(text)) !== text ? "This path contains an incomplete character. Enter or paste it again, or choose Browse…."
   : !text.startsWith("/") ? "Use the folder's full path, starting with /. Paths such as ~/Projects or Projects/app aren't expanded or looked up."
   : null;
+/** The headings the host gives what applies by default (desktop_startup.rs, first_use_defaults). */
+const DEFAULTS_HEADING = { "What applies by default": "What applies by default", "What applies": "What applies" } as const;
 const SHARED = [
   { label: "Your config.toml", kind: "config" },
   { label: "Your AGENTS.md", kind: "agents" },
@@ -148,7 +151,7 @@ export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
     {shown.custodyProblem && <p role="alert">Setup can't continue: {shown.custodyProblem}</p>}
     {shown.pending ? <div className="first-use-saved" role="status" aria-label="Setup saved">
       <h2>You're set up</h2>
-      <p><strong>Next: quit Chirality (⌘Q) and open it again.</strong> Reopening loads your saved project and Codex settings. Then open Connection &amp; access to sign in with your ChatGPT account or prepare the oMLX connection. After connecting, choose a model and start a conversation.</p>
+      <p><strong>Next: quit Chirality (⌘Q) and open it again.</strong> Reopening loads your saved project and Codex settings. Then open Connection and access to sign in with your ChatGPT account. After signing in, choose a model and start a conversation.</p>
       <p>Project: {shown.pending.project ? <code className="first-use-path">{shown.pending.project}</code> : "none"}</p>
     </div> : <>
     <ol className="first-use-steps">
@@ -189,7 +192,8 @@ export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
           <ul>{preview.effects.map(effect => <li key={effect}><Effect text={effect}/></li>)}</ul>
           {preview.locations && preview.locations.length > 0 && <details><summary>Exact locations</summary>
             <dl>{preview.locations.map(location => <div key={location.name}><dt>{location.name}</dt><dd><code className="first-use-path">{location.path}</code></dd></div>)}</dl></details>}
-          {preview.defaults && <div aria-label={preview.defaults.heading}><h4>{preview.defaults.heading}</h4>
+          {preview.defaults && <div aria-label={wordOf(DEFAULTS_HEADING, preview.defaults.heading) ?? "What applies"}><h4>{wordOf(DEFAULTS_HEADING, preview.defaults.heading) ?? "What applies"}</h4>
+            {wordOf(DEFAULTS_HEADING, preview.defaults.heading) === null && <p>Heading as the host sent it: <AgentText value={preview.defaults.heading} source="record" name="A heading the App does not recognise, as the host sent it; the App does not vouch for its words" /></p>}
             {preview.defaults.sentences.map(sentence => <p key={sentence}>{sentence}</p>)}</div>}
           <p>{preview.standing}</p>
           <p><button className="setup-primary" disabled={busy} onClick={() => { void confirm(); }}>{preview.affirmative}…</button>{" "}
@@ -203,6 +207,7 @@ export function FirstUseSetup({ view }: { view: DesktopSetupView }) {
       <p>Launch: {shown.launch.state}. {shown.launch.reason ?? shown.launch.standing}</p>
       <p>App data: {shown.appData ?? shown.appDataProblem ?? "unavailable"}</p>
       <p>Conversations without a project work in: {shown.noProjectFolder ?? "unavailable"}</p>
+      <p>Working files (the version check's folders, the connector's folder and Codex's temporary folders): {shown.workingFiles ?? "unavailable"}{typeof shown.workingFilesKept === "number" ? `. ${shown.workingFilesKept} folders are there now, with what is in them: Chirality removes none of them. They can be removed once Chirality, and any Codex it started, has stopped.` : ""}</p>
       <p>Codex: the copy included with this App ({shown.supplier.path ?? "location unavailable"}). {shown.supplier.standing}</p>
       {!keepAvailable && shown.retainProject?.reason && <p>Keeping an existing sign-in isn't available: {shown.retainProject.reason}</p>}
       {shown.activeResourceProblem && <p>Shared settings could not be checked: {shown.activeResourceProblem}</p>}

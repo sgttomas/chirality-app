@@ -71,3 +71,8 @@ test("run summary follows the latest supply check", () => {
   run.checks.push({ state: "verified", supplyReading: "supplied", readAt: "T3", published: false, publicationLimit: "disk full" });
   assert.equal(suppliedSummary(run), "verified (supplied) at T3 (latest of 3 checks); check record pending — disk full");
 });
+test('initial WR admission refusal summary never calls the check pending',()=>{
+  const shown=suppliedSummary({checks:[{state:'verified',supplyReading:'supplied',readAt:'T',published:false,publicationState:'not saved; cannot be saved from within the App',publicationLimit:'original refusal; bytes lost on quit'}]});
+  assert.match(shown,/check record not saved; cannot be saved from within the App/);
+  assert.doesNotMatch(shown,/pending/);
+});

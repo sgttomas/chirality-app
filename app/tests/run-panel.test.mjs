@@ -7,6 +7,7 @@ import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 import {localRequire} from './support/load-src.mjs';
 import './support/rust-prebuild.mjs';
+import {choiceList, choiceLists, chooseIn, chosenIn, chosenInMarkup} from './support/choices.mjs';
 const load=name=>{const url=new URL(`../src/${name}`,import.meta.url);const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}});const exports={};new Function('require','exports',compiled.outputText)(localRequire(createRequire(url)),exports);return exports;};
 const {ArrivalRecord,CheckpointGuidance,RunBringBackView,RunPanel,runBringBackDefault,DeclaredPart,SelectedWorkflow,CompatibilityAdvisory,outputStanding,StandingFacets,arrivalLabel,actLabel,RecordWriteNotice}=load('RunPanel.tsx');
 const h=(c,p)=>renderToStaticMarkup(React.createElement(c,p));
@@ -50,7 +51,7 @@ test('a checkpoint is guidance: never a hold or block, governed changes nothing,
   assert.ok(html.includes('this checkpoint is missing in record (no checkpoint_listed entry for it)'),'PD-7: what the record lacks is shown');
   assert.ok(html.includes('not listed: the run record lists only the checkpoints the App recognizes (CE-1)'),'an invalid checkpoint is not listed');
   assert.ok(!html.includes('No arrival recorded in this run'),'no arrival reading without a listing');
-  assert.ok(html.includes('the act is recorded only when you perform it'));
+  assert.ok(html.includes('the App records the act only from your own confirmation at its act control, or continues recording one you confirmed earlier'));
   assert.ok(html.includes('present, currently unavailable: host reported unavailable'),'a runtime unavailability is a requirement outcome, not a hold');
   assert.ok(!FORBIDDEN.test(html),html.match(FORBIDDEN)?.[0]);
   assert.equal(arrivalLabel('waiting'),'reached; act not yet recorded');
@@ -110,13 +111,13 @@ test('counted and not-counted acts, requests, declines and declaration findings 
     entry('act_counted',{arrival:at,act:act('rec:app:rely','A7','2026-09-21T15:00:00.000Z'),relation:'after arrival',referents:['output summary: file out/summary.md']}),
     disposition('CP-rely',1,'performed')];
   const html=h(ArrivalRecord,{arrival:a,all});
-  assert.ok(html.includes('Arrival 1: performed.'),html);
+  assert.ok(html.includes('Arrival 1: recorded as performed.'),html);
   assert.ok(html.includes('Request for the act observed: supplier person-input request from agent; act kind not named by the request. A request is not the act.'));
   assert.ok(!html.includes('no request from the agent observed'));
   assert.ok(html.includes('Act not counted: A7 rec:app:old, captured 2026-09-21T13:00:00.000Z: content no longer current (prior act not counted).'));
-  assert.ok(html.includes('Act counted: A7 rec:app:rely, captured 2026-09-21T15:00:00.000Z in the App act control, after the arrival.'));
+  assert.ok(html.includes('Recorded act counted: A7 rec:app:rely, capture time 2026-09-21T15:00:00.000Z, after the arrival.'));
   const declined=h(ArrivalRecord,{arrival:a,all:[a,entry('arrival_declined',{arrival:at,declinedEventRef:'rec:app:no'}),disposition('CP-rely',1,'resolved negatively')]});
-  assert.ok(declined.includes('Arrival 1: resolved negatively.')&&declined.includes('Declined by the person (rec:app:no).'));
+  assert.ok(declined.includes('Arrival 1: resolved negatively.')&&declined.includes('Recorded decline (rec:app:no).'));
   const element={value:{...raw.checkpoints[0],name:'CP-bad',required_act:'A3'},reading:'invalid',findings:['FB-03: recognized act not permitted as checkpoint']};
   const finding=entry('declaration_finding',{checkpoint:'CP-bad',finding:'invalid',code:'FB-03'});
   const guidance=h(CheckpointGuidance,{element,run:run({lifecycle:{state:'open',records:[entry('run_opened',{}),finding]}})});
@@ -136,7 +137,7 @@ test('recorded lapses are shown against the arrival, and nothing is held because
   assert.ok(html.includes('Lapse observed for A7 rec:app:rely at 2026-09-21T16:00:00.000Z (before resume): the file&#x27;s content changed. Lapsed at 2026-09-21T16:00:00.000Z; the arrival is recorded as waiting again. Nothing is asked or stopped because of it.'),html);
   const after=h(ArrivalRecord,{arrival:a,all:[...before.slice(0,3),lapse('lapsed','after resume','2026-09-21T17:00:00.000Z'),disposition('CP-rely',1,'performed'),
     lapse('unknown (unavailable)','after resume','2026-09-21T17:30:00.000Z',{c1:{notObtainable:true,reason:'not a regular file'}})]});
-  assert.ok(after.includes('Arrival 1: performed.')&&after.includes('Act lapsed at 2026-09-21T17:00:00.000Z; the arrival stays performed.'),after);
+  assert.ok(after.includes('Arrival 1: recorded as performed.')&&after.includes('Act lapsed at 2026-09-21T17:00:00.000Z; the arrival stays recorded as performed.'),after);
   assert.ok(after.includes('(after resume): lapse unknown: the file could not be read. Nothing is asked'),after);
   assert.ok(!FORBIDDEN.test(html+after),(html+after).match(FORBIDDEN)?.[0]);
 });
@@ -172,7 +173,7 @@ test('an output gated by a checkpoint shows that checkpoint’s act standing fro
   const base=[a,disposition('CP-rely',1,'waiting'),counted('rec:app:rely','T1'),performed(['rec:app:rely'])];
   // Counted, no lapse recorded: never "not lapsed" (not yet evaluated is never shown as not lapsed).
   const f=facet(base);
-  assert.equal(f.humanActs,'checkpoint CP-rely, arrival 1: performed (performance 1); A7 rec:app:rely, captured T1; lapse: not yet evaluated (no lapse observation recorded; not shown as not lapsed). Actor, recorder and recording mode are in the act record, not in the run record.');
+  assert.equal(f.humanActs,'checkpoint CP-rely, arrival 1: recorded as performed (performance 1); A7 rec:app:rely, captured T1; lapse: not yet evaluated (no lapse observation recorded; not shown as not lapsed). Actor, recorder and recording mode are in the act record, not in the run record.');
   assert.equal(f.hostChecks,'none reported','the other facets keep their rules');assert.equal(f.temporal,'unknown: no result for this output is recorded');
   // By earlier act.
   assert.ok(facet([a,disposition('CP-rely',1,'waiting'),counted('rec:app:rely','T0','earlier act'),performed(['rec:app:rely'])]).humanActs.includes('A7 rec:app:rely, captured T0 — by earlier act rec:app:rely at T0;'));
@@ -182,7 +183,7 @@ test('an output gated by a checkpoint shows that checkpoint’s act standing fro
   assert.equal(waitingOnly,'checkpoint CP-rely, arrival 1: reached; no act recorded for it. Not counted: A7 rec:app:old, captured T0: prior act not counted — content no longer current; A7 rec:app:other, captured T2: act not counted — act on other content.');
   // Lapsed (after resume: still performed), with c₀; subject absent; matches c₀ again; unknown states.
   const lapsed=facet([...base,lapse('lapsed','T3'),performed(['rec:app:rely'],1,[{label:'act lapsed at',time:'T3'}])]).humanActs;
-  assert.ok(lapsed.includes('performed (performance 1)')&&lapsed.includes('lapse: lapsed (observed T3; c₀ chirality.app.exact-bytes.sha256/v1 000000000000)'),lapsed);
+  assert.ok(lapsed.includes('recorded as performed (performance 1)')&&lapsed.includes('lapse: lapsed (observed T3; c₀ chirality.app.exact-bytes.sha256/v1 000000000000)'),lapsed);
   assert.ok(facet([...base,lapse('lapsed (subject absent)','T3',{c1:'subject absent',when:'before resume'}),disposition('CP-rely',1,'waiting')]).humanActs
     .includes('reached again; the act on its current content is not yet recorded (performance 1); A7 rec:app:rely, captured T1; lapse: lapsed (subject absent) (observed T3'));
   assert.ok(facet([...base,lapse('lapsed','T3'),lapse('matches c0 again after observed lapse','T4',{c1:c0})]).humanActs.includes('lapse: matches c₀ again after observed lapse (observed T4'));
@@ -192,9 +193,9 @@ test('an output gated by a checkpoint shows that checkpoint’s act standing fro
   }
   // A new performance after a lapse: its own act, ordinal 2.
   const again=facet([...base,lapse('lapsed','T3',{when:'before resume'}),disposition('CP-rely',1,'waiting'),counted('rec:app:next','T6'),performed(['rec:app:next'],2)]).humanActs;
-  assert.ok(again.includes('performed (performance 2); A7 rec:app:next, captured T6; lapse: not yet evaluated'),again);
+  assert.ok(again.includes('recorded as performed (performance 2); A7 rec:app:next, captured T6; lapse: not yet evaluated'),again);
   // Declined; joint answer; no arrival; an unknown disposition.
-  assert.ok(facet([a,entry('arrival_declined',{arrival:at,declinedEventRef:'rec:app:no'}),disposition('CP-rely',1,'resolved negatively')]).humanActs.includes('resolved negatively — declined (rec:app:no)'));
+  assert.ok(facet([a,entry('arrival_declined',{arrival:at,declinedEventRef:'rec:app:no'}),disposition('CP-rely',1,'resolved negatively')]).humanActs.includes('resolved negatively — recorded decline (rec:app:no)'));
   assert.ok(facet([...base.slice(0,3),counted('rec:app:two','T2'),performed(['rec:app:rely','rec:app:two'])]).humanActs.includes('answered by 2 acts: '));
   assert.equal(facet([]).humanActs,'none recorded in this run: checkpoint CP-rely, which gates this output, has no recorded arrival');
   assert.ok(facet([a,disposition('CP-rely',1,'unknown')]).humanActs.startsWith('unknown'));
@@ -303,32 +304,32 @@ test('the selected workflow shows its declared part instead of a JSON dump',asyn
   const container=document.createElement('div');document.body.appendChild(container);const root=createRoot(container);
   const props=node=>node[Object.keys(node).find(key=>key.startsWith('__reactProps$'))];
   const labelled=name=>container.querySelectorAll(node=>node.getAttribute('aria-label')===name)[0];
-  const selectIn=(parent,label)=>parent.querySelectorAll(node=>node.localName==='label'&&node.textContent.startsWith(label))[0].querySelectorAll(node=>node.localName==='select')[0];
+  const selectIn=(parent,label)=>choiceList(parent,label);
   const render=async(fileActBusy=false)=>React.act(()=>root.render(React.createElement(WorkflowRootPanel,{data,host,act,fileActBusy})));
   try{
     await render();
     assert.match(labelled('Inspected workflow content').textContent,/inspected-workflow.*Inspected checkpoint purpose/s);
     assert.equal(labelled('Selected workflow'),undefined,'inspection does not silently select for a conversation');
     const chat=selectIn(container,'Workflow chat ');
-    await React.act(()=>props(chat).onChange({target:{value:'chat-a'}}));
+    await React.act(()=>chooseIn(chat,'chat-a'));
     assert.match(labelled('Selected workflow').textContent,/selected-workflow-a.*Selected A checkpoint purpose/s);
     assert.doesNotMatch(labelled('Selected workflow').textContent,/Selected B checkpoint purpose|Inspected checkpoint purpose/);
     const originalPanel=labelled('Run panel');
-    assert.equal(props(selectIn(originalPanel,'Bring back to ')).value,JSON.stringify([g,'chat-a']),'the full original authoring tuple reaches the run through actual workspace wiring');
+    assert.equal(chosenIn(selectIn(originalPanel,'Bring back to ')),JSON.stringify([g,'chat-a']),'the full original authoring tuple reaches the run through actual workspace wiring');
     assert.match(originalPanel.textContent,/original-running-workflow.*conversation chat-b.*Original run checkpoint purpose/s);
     assert.doesNotMatch(originalPanel.textContent,/Selected A checkpoint purpose/,'the run keeps its own declaration');
-    await React.act(()=>props(chat).onChange({target:{value:'chat-b'}}));
+    await React.act(()=>chooseIn(chat,'chat-b'));
     assert.match(labelled('Selected workflow').textContent,/selected-workflow-b.*Selected B checkpoint purpose/s);
     assert.doesNotMatch(labelled('Selected workflow').textContent,/Selected A checkpoint purpose/);
     assert.match(originalPanel.textContent,/Original run checkpoint purpose/,'changing the selected chat does not rebind a started run');
-    await React.act(()=>props(chat).onChange({target:{value:'chat-a'}}));
+    await React.act(()=>chooseIn(chat,'chat-a'));
     const target=selectIn(originalPanel,'Bring back to ');
-    await React.act(()=>props(target).onChange({target:{value:JSON.stringify([g,'chat-b'])}}));
+    await React.act(()=>chooseIn(target,JSON.stringify([g,'chat-b'])));
     const bringBack=()=>originalPanel.querySelectorAll(node=>node.localName==='button'&&node.textContent==='Bring a real run back to authoring')[0];
     assert.deepEqual(calls,[],'rendering declarations and changing interface choices calls no host action');
     await render(true);
     assert.equal(props(bringBack()).disabled,true,'the shared file-act operation disables run actions through the actual wiring');
-    assert.equal(props(target).value,JSON.stringify([g,'chat-b']),'busy presentation preserves the person’s explicit feedback target');
+    assert.equal(chosenIn(target),JSON.stringify([g,'chat-b']),'busy presentation preserves the person’s explicit feedback target');
     assert.deepEqual(calls,[]);
     await render(false);
     assert.equal(props(bringBack()).disabled,false);
@@ -473,9 +474,9 @@ test('Bring a real run back defaults to the host’s default conversation for th
   assert.equal(runBringBackDefault(root,'run-9'),null);
   assert.equal(runBringBackDefault({},'run-1'),null);
   assert.equal(runBringBackDefault(undefined,'run-1'),null);
-  const selected=html=>html.match(/<option value="([^"]*)" selected="">/)?.[1]??null;
+  const selected=html=>chosenInMarkup(html)?.key??null;
   const panel=defaultThread=>h(RunPanel,{run:run(),conversations,bringBackDefault:defaultThread,act:async()=>{}});
-  assert.equal(selected(panel(runBringBackDefault(root,'run-1'))),JSON.stringify([g,'other']).replace(/"/g,'&quot;'),'defaults to the host-named conversation');
+  assert.equal(selected(panel(runBringBackDefault(root,'run-1'))),JSON.stringify([g,'other']),'defaults to the host-named conversation');
   assert.equal(selected(panel(null)),'','no default: none chosen');
   assert.equal(selected(panel('gone')),'','a default that is not a started conversation here is not chosen');
   // Mounted: the default is used, sends nothing by itself, and the person can change it.
@@ -492,11 +493,11 @@ test('Bring a real run back defaults to the host’s default conversation for th
   const press=async()=>{const b=container.querySelectorAll(n=>n.localName==='button'&&n.textContent==='Bring a real run back to authoring')[0];await React.act(()=>props(b).onClick());};
   await press();
   assert.deepEqual(calls.at(-1),['workflow_run_bring_back',{runRef:'run-1',generation:g,threadId:'other',includeNative:false}]);
-  const select=container.querySelectorAll(n=>n.localName==='select')[0];
-  await React.act(()=>props(select).onChange({target:{value:JSON.stringify([g,'auth'])}}));
+  const select=choiceLists(container)[0];
+  await React.act(()=>chooseIn(select,JSON.stringify([g,'auth'])));
   await press();
   assert.deepEqual(calls.at(-1),['workflow_run_bring_back',{runRef:'run-1',generation:g,threadId:'auth',includeNative:false}],'the person’s choice replaces the default');
-  await React.act(()=>props(select).onChange({target:{value:''}}));
+  await React.act(()=>chooseIn(select,''));
   assert.equal(props(container.querySelectorAll(n=>n.localName==='button'&&n.textContent==='Bring a real run back to authoring')[0]).disabled,true,'the person may clear it');
   await React.act(()=>rootEl.unmount());
 });
@@ -538,7 +539,7 @@ test('post-end A4/A6/A7 observations stay against the ended arrival and never al
   const observations=['A4','A6','A7'].map((actKind,i)=>entry('act_after_run_end',{arrival:{checkpoint:'CP-rely',arrivalOrdinal:1},act:{recordId:`later-${i}`,actKind,capturedAt:'2026-10-13T14:00:00Z',capturingSurface:'app_act_control'}}));
   const records=[a,final,entry('run_ended',{cause:'ended by the person',waitingArrivals:[{checkpoint:'CP-rely',arrivalOrdinal:1}]}),...observations];
   const html=h(ArrivalRecord,{arrival:a,all:records});
-  assert.ok(html.includes('reached; act not yet recorded'));for(const kind of ['A4','A6','A7'])assert.ok(html.includes(`After run end: ${kind}`));
+  assert.ok(html.includes('reached; act not yet recorded'));for(const kind of ['A4','A6','A7'])assert.ok(html.includes(`After run end, recorded act: ${kind}`));
   assert.ok(html.includes('The ended arrival disposition is unchanged.'));
   const out={name:'summary',form:'file',gating_checkpoint:'CP-rely',promised_standing:['relied on by the person']};
   const before=outputStanding(out,run({lifecycle:{records:records.slice(0,3)}}));
@@ -546,7 +547,7 @@ test('post-end A4/A6/A7 observations stay against the ended arrival and never al
   const pending={...observations[0],written:false,limit:'source unavailable; original observation held'};
   assert.ok(h(ArrivalRecord,{arrival:a,all:[a,final,pending]}).includes('Not yet written to the run record'));
   const other={...observations[0],body:{...observations[0].body,arrival:{checkpoint:'CP-rely',arrivalOrdinal:2}}};
-  assert.ok(!h(ArrivalRecord,{arrival:a,all:[a,final,other]}).includes('After run end:'));
+  assert.ok(!h(ArrivalRecord,{arrival:a,all:[a,final,other]}).includes('After run end, recorded act:'));
 });
 
 test('actual host tick DTO presents a post-end observation against its final waiting arrival',()=>{
@@ -557,7 +558,7 @@ test('actual host tick DTO presents a post-end observation against its final wai
   const line=proc.stdout.split('\n').find(line=>line.includes('AFTER_END_DTO:'));assert.ok(line);
   const dto=JSON.parse(line.slice(line.indexOf('AFTER_END_DTO:')+'AFTER_END_DTO:'.length));
   const records=dto.afterRunEnd.runs[0].records;const a=records.find(r=>r.kind==='checkpoint_arrival');
-  const html=h(ArrivalRecord,{arrival:a,all:records});assert.match(html,/After run end: A7/);assert.match(html,/reached; act not yet recorded/);assert.match(html,/ended arrival disposition is unchanged/);
+  const html=h(ArrivalRecord,{arrival:a,all:records});assert.match(html,/After run end, recorded act: A7/);assert.match(html,/reached; act not yet recorded/);assert.match(html,/ended arrival disposition is unchanged/);
   assert.equal(records.filter(r=>r.kind==='act_after_run_end').length,1);assert.equal(records.filter(r=>r.kind==='act_counted').length,0);
 });
 
@@ -566,9 +567,9 @@ test('actual reopened corrected-arrival DTO preserves CE16 history without assig
   const proc=spawnSync('cargo',['+1.97.1','test','--offline','--locked','--lib','runtime_session::workflow_root_tests::after_run_end_persisted_observation_is_not_rebound_to_corrected_subject','--','--exact','--nocapture','--test-threads=1'],{cwd:fileURLToPath(new URL('../src-tauri',import.meta.url)),encoding:'utf8',env:{...process.env,CHIRALITY_SKIP_CODEX:'1'}});assert.equal(proc.status,0,proc.stderr+proc.stdout);
   const line=proc.stdout.split('\n').find(line=>line.includes('AFTER_END_CORRECTED_DTO:'));assert.ok(line);const dto=JSON.parse(line.slice(line.indexOf('AFTER_END_CORRECTED_DTO:')+'AFTER_END_CORRECTED_DTO:'.length));
   const records=dto.afterRunEnd.runs[0].records;const corrected=records.find(r=>r.kind==='checkpoint_arrival'&&r.corrects);
-  const html=h(ArrivalRecord,{arrival:corrected,all:records});assert.match(html,/out\/new.md/);assert.doesNotMatch(html,/After run end: A7/);assert.match(html,/Post-end subject association not established/);
+  const html=h(ArrivalRecord,{arrival:corrected,all:records});assert.match(html,/out\/new.md/);assert.doesNotMatch(html,/After run end, recorded act: A7/);assert.match(html,/Post-end subject association not established/);
   const {WorkflowRootPanel}=load('App.tsx');const full=h(WorkflowRootPanel,{data:dto,host:{state:'ready',generation:{},threads:[]},act:async()=>{}});
-  assert.doesNotMatch(full,/After run end: A7/);assert.match(full,/Recorded post-end source history/);assert.ok(full.includes('act_after_run_end'),'raw CE16 remains inspectable');assert.match(full,/Post-end subject association not established/);
+  assert.doesNotMatch(full,/After run end, recorded act: A7/);assert.match(full,/Recorded post-end source history/);assert.ok(full.includes('act_after_run_end'),'raw CE16 remains inspectable');assert.match(full,/Post-end subject association not established/);
 });
 
 test('actual ended performed-file DTO displays a lapse without reopening or asking for an act',()=>{
