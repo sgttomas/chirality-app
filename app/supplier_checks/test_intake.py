@@ -437,7 +437,7 @@ class GeneratorRun(unittest.TestCase):
         intake.socket_rows, tempfile.tempdir = self.originals
         self.root.cleanup()
 
-    def generate(self, mode):
+    def generate(self, mode, **kwargs):
         vendor = self.base / "vendor"
         (vendor / "bin").mkdir(parents=True)
         (vendor / "codex-path").mkdir()
@@ -448,7 +448,44 @@ class GeneratorRun(unittest.TestCase):
         record = intake.distribution_record(str(vendor), PIN, {"url": URL, "size": 1, "sha256": "0" * 64,
                                                                "source_commit": COMMIT})
         (self.base / "out").mkdir()
-        return intake.generate(str(vendor), record, str(self.base / "out"))
+        return intake.generate(str(vendor), record, str(self.base / "out"), **kwargs)
+
+    def test_named_scratch_is_used_for_the_complete_environment_and_removed(self):
+        scratch = self.base / "named-generator"
+        original = intake.run_generator
+        calls = []
+        def observed(argv, environment, cwd):
+            calls.append((dict(environment), cwd))
+            return original(argv, environment, cwd)
+        intake.run_generator = observed
+        try:
+            self.generate("complete", scratch=str(scratch))
+        finally:
+            intake.run_generator = original
+        self.assertEqual(len(calls), 2)
+        for env, cwd in calls:
+            self.assertEqual(cwd, str(scratch))
+            self.assertEqual(env["HOME"], str(scratch / "user-home"))
+            self.assertEqual(env["CODEX_HOME"], str(scratch / "home"))
+            self.assertEqual(env["TMPDIR"], str(scratch / "tmp"))
+        self.assertFalse(scratch.exists())
+
+    def test_existing_named_scratch_is_not_reused_or_removed(self):
+        scratch = self.base / "existing"
+        scratch.mkdir()
+        (scratch / "keep").write_bytes(b"invented existing content")
+        with self.assertRaises(FileExistsError):
+            self.generate("complete", scratch=str(scratch))
+        self.assertEqual((scratch / "keep").read_bytes(), b"invented existing content")
+        self.assertEqual(list((self.base / "out").iterdir()), [])
+
+    def test_linked_named_scratch_parent_refuses_without_touching_target(self):
+        target = self.base / "target"
+        target.mkdir()
+        (self.base / "alias").symlink_to(target, target_is_directory=True)
+        with self.assertRaisesRegex(intake.Refused, "plain absolute path"):
+            self.generate("complete", scratch=str(self.base / "alias/new"))
+        self.assertEqual(list(target.iterdir()), [])
 
     def test_a_complete_generation_records_its_samples_environment_and_the_checks_made(self):
         generation = self.generate("complete")

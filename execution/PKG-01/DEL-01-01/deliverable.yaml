@@ -2,7 +2,7 @@ id: DEL-01-01
 name: Stock Codex hosting and supplier contract
 needs:
 - from: external:DEP-005
-  condition: Codex 0.167.0 is published as a stock macOS arm64 distribution whose release archive
+  condition: Codex 0.169.0 is published as a stock macOS arm64 distribution whose release archive
     digest the supplier publishes, with its App Server protocol and the generators that emit that
     protocol's types.
 - from: external:DEP-005
@@ -35,6 +35,7 @@ needs:
   gating: false
 code_paths:
 - app/src-tauri/resources/supplier/0.167.0
+- app/src-tauri/resources/supplier/0.169.0
 - app/src-tauri/resources/hosting
 - app/src-tauri/resources/distribution-reference
 - app/src-tauri/resources/distribution-development-reference
@@ -89,6 +90,12 @@ code_paths:
 # intake.py checks and inventories a supplier release archive of a pin of its table and runs
 # the supplier's generators.
 - app/supplier_checks/intake.py
+# Bounded scripted recordings at an explicitly approved supplier pin; no contact observation.
+- app/supplier_checks/record_at_pin.py
+- app/supplier_checks/recording_provider.py
+- app/supplier_checks/delegation_probe.py
+- app/supplier_checks/compare_schema.py
+- app/supplier_checks/capability_account_0.169.0.json
 # same_basis.py admits a pin whose generated schema is byte-identical to the prior pin's.
 - app/supplier_checks/same_basis.py
 # version_advance/ holds the 0.160.0 to 0.167.0 comparison and its authored dispositions, kept as
@@ -115,6 +122,12 @@ checks:
 - app/supplier_checks/test_recorded_replay.py
 - app/supplier_checks/test_recordings.py
 - app/supplier_checks/test_intake.py
+- app/supplier_checks/test_record_at_pin.py
+- app/supplier_checks/test_delegation_probe.py
+- app/supplier_checks/test_compare_schema.py
+- app/supplier_checks/test_recordings_0169.py
+- app/supplier_checks/test_capability_account_0169.py
+- app/supplier_checks/test_pin_0169_evidence.py
 - app/supplier_checks/test_same_basis.py
 - app/supplier_checks/test_version_advance_evidence.py
 - app/src-tauri/src/hosting_recorded_replay_tests.rs
