@@ -594,7 +594,7 @@ class Account(Builds):
     def test_app_content_names_exact_mappings_only(self):
         dist = 'app/src-tauri/resources/distribution-reference/build-selection.s2.json'
         for mapping, message in (({'source': 'app/src-tauri/resources/distribution-reference/', 'destination': 'distribution-reference/'}, 'exactly'),
-                                 ({'source': 'docs/INVENTED.md', 'destination': 'distribution-reference/build-selection.s2.json'}, 'does not exist'),
+                                 ({'source': 'INVENTED-folder/INVENTED.md', 'destination': 'distribution-reference/build-selection.s2.json'}, 'does not exist'),
                                  ({'source': dist, 'destination': 'distribution-reference/other.json'}, 'does not exist')):
             with self.subTest(mapping=mapping):
                 self.setUp(); self.edit(texts.INPUTS, lambda v, m=mapping: v['app_resources'][0]['mappings'].append(m))
@@ -604,7 +604,7 @@ class Account(Builds):
 
     # Round 4 finding 1: copy routes beyond resources and the icon refuse rather than escape the account.
     def test_unsupported_copy_routes_and_platform_configuration_refuse(self):
-        limitations = '../../docs/RELEASE_LIMITATIONS_4.0.0.md'
+        limitations = '../../INVENTED-release/LIMITATIONS.md'
         conf = 'app/src-tauri/tauri.conf.json'
         for name, change, message in (
                 ('macOS files', lambda v: v['bundle'].update(macOS={'files': {'release/LIMITATIONS.md': limitations}}), 'bundle.macOS.files'),
@@ -623,8 +623,8 @@ class Account(Builds):
     # Every bundle resource is named in the account; an unnamed mapping is open, a stale claim refuses.
     def test_a_mapped_resource_the_account_does_not_name_is_open(self):
         conf = 'app/src-tauri/tauri.conf.json'
-        # The mapping the shipped limitations list adds.
-        self.edit(conf, lambda v: v['bundle']['resources'].update({'../../docs/RELEASE_LIMITATIONS_4.0.0.md': 'release/LIMITATIONS.md'}))
+        # A mapping like the one the shipped limitations list adds (an invented source path).
+        self.edit(conf, lambda v: v['bundle']['resources'].update({'../../INVENTED-release/LIMITATIONS.md': 'release/LIMITATIONS.md'}))
         value = self.build()
         row = self.row(value, 'Unnamed bundle resource release/LIMITATIONS.md')
         self.assertEqual(row['standing'], coverage.UNCOVERED)
@@ -632,7 +632,7 @@ class Account(Builds):
         # Named as the App's own content by its exact mapping, it is covered with the App's licence as its notice.
         self.edit(texts.INPUTS, lambda v: v['app_resources'].append(
             {'name': 'Release limitations list', 'note': 'invented for the test',
-             'mappings': [{'source': 'docs/RELEASE_LIMITATIONS_4.0.0.md', 'destination': 'release/LIMITATIONS.md'}]}))
+             'mappings': [{'source': 'INVENTED-release/LIMITATIONS.md', 'destination': 'release/LIMITATIONS.md'}]}))
         value = self.build()
         self.assertEqual(self.row(value, 'Release limitations list')['standing'], coverage.COVERED)
         self.assertNotIn('Unnamed bundle resource release/LIMITATIONS.md', {c['name'] for c in value['components']})
@@ -640,7 +640,7 @@ class Account(Builds):
     def test_a_claim_on_a_mapping_that_does_not_exist_refuses(self):
         self.edit(texts.INPUTS, lambda v: v['app_resources'].append(
             {'name': 'Release limitations list', 'note': 'invented',
-             'mappings': [{'source': 'docs/RELEASE_LIMITATIONS_4.0.0.md', 'destination': 'release/LIMITATIONS.md'}]}))
+             'mappings': [{'source': 'INVENTED-release/LIMITATIONS.md', 'destination': 'release/LIMITATIONS.md'}]}))
         with self.assertRaisesRegex(ValueError, 'claims a mapping that does not exist'): self.build()
 
     def test_the_vendor_tree_must_be_named(self):

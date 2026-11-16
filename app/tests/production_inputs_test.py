@@ -461,7 +461,7 @@ class ProductionInputs(unittest.TestCase):
     def test_unsupported_copy_routes_refuse_before_output(self):
         # Round 4 finding 1: a route the account does not cover refuses rather than reaching the bundler unaccounted.
         conf=self.source/'app/src-tauri/tauri.conf.json'; original=conf.read_text()
-        limitations='../../docs/RELEASE_LIMITATIONS_4.0.0.md'
+        limitations='../../INVENTED-release/LIMITATIONS.md'
         for name,change,message in (('macOS files',{'macOS':{'files':{'release/LIMITATIONS.md':limitations}}},'bundle.macOS.files'),
                                     ('frameworks',{'macOS':{'frameworks':[limitations]}},'bundle.macOS.frameworks'),
                                     ('external binary',{'externalBin':['binaries/invented']},'bundle.externalBin')):
