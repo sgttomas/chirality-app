@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:chirality:app-v4:del-01-02:app-ledger-entry:0.4",
+  "$id": "urn:chirality:app-v4:del-01-02:app-ledger-entry:0.5",
   "title": "DEL-01-02 App ledger entry — what the App keeps across relaunch (PROPOSED)",
   "description": "EXECUTION_AND_RECOVERY.md §7. Append-only, one entry per line (as RS S-A); location and technology unselected (TBD-002). Pointers and App-observed facts only: no message, item, plan, command text, tool output or request payload is kept; those are read back from Codex (ARCHITECTURE §3; R17-4).",
   "oneOf": [
@@ -67,6 +67,10 @@
         },
         "candidate": {
           "$ref": "#/$defs/nonempty"
+        },
+        "livenessLock": {
+          "description": "0.5: present (true) when this session held its App session liveness lock beside the ledger before this entry was written. A held lock refuses a later session start. Every other lock-file outcome says nothing about whether the session ended; an unrecorded end is established only by the App data custody and same-process rule. Absent: a session that declared no lock.",
+          "const": true
         }
       }
     },
@@ -375,6 +379,7 @@
           "pattern": "^RQ-[0-9][0-9]$"
         },
         "endedAs": {
+          "description": "ended-unanswered(process-exit): written by the session that held the request, when its Codex generation closed. open-at-app-session-end (0.5): written at a later session's start for a request an earlier App session left recorded open. That session's end ended the connection it could be answered on. No reply is recorded; whether one was written after the last record, and whether Codex's process had ended, were not observed.",
           "enum": [
             "answered",
             "declined",
@@ -382,7 +387,8 @@
             "resolved-by-supplier",
             "settle-write-failed",
             "reply-outcome-unknown",
-            "ended-unanswered(process-exit)"
+            "ended-unanswered(process-exit)",
+            "open-at-app-session-end"
           ]
         },
         "origin": {

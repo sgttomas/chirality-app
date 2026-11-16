@@ -244,6 +244,9 @@ mod platform {
     };
 
     #[cfg(test)] thread_local!{static INSPECTION_AUDIT:std::cell::RefCell<Option<Vec<String>>>=const{std::cell::RefCell::new(None)};}
+    #[cfg(test)] thread_local!{static CHAIN_WALKS:std::cell::Cell<usize>=const{std::cell::Cell::new(0)};}
+    /// How many walks from the anchor `f` made (test only).
+    #[cfg(test)] pub(super) fn chain_walks<T>(f:impl FnOnce()->T)->(T,usize){CHAIN_WALKS.with(|w|w.set(0));let value=f();(value,CHAIN_WALKS.with(|w|w.get()))}
     #[cfg(test)] pub(super) fn audit_inspection<T>(f:impl FnOnce()->T)->(T,Vec<String>){INSPECTION_AUDIT.with(|a|*a.borrow_mut()=Some(Vec::new()));let value=f();let audit=INSPECTION_AUDIT.with(|a|a.borrow_mut().take().unwrap());(value,audit)}
     fn ioerr(context: &str, e: std::io::Error) -> StoreError {
         let kind = match e.raw_os_error() {
@@ -262,6 +265,8 @@ mod platform {
         })
     }
     fn open_at(parent: &File, name: &OsStr, flags: i32) -> Result<File> {
+        #[cfg(test)]
+        if flags & (libc::O_WRONLY | libc::O_RDWR | libc::O_CREAT | libc::O_TRUNC | libc::O_APPEND) != 0 { crate::records_effect_guard::mutation_for_test("connector_route_store::platform::open_at"); }
         #[cfg(test)] INSPECTION_AUDIT.with(|a|{if let Some(v)=a.borrow_mut().as_mut(){v.push(format!("open:{}",name.to_string_lossy()));}});
         let name = CString::new(name.as_bytes())
             .map_err(|_| StoreError::new(ErrorKind::InvalidInput, "NUL in component"))?;
@@ -292,9 +297,13 @@ mod platform {
             .map_err(|e| ioerr("open resolved project", e))
     }
     fn sync(file: &File, context: &str) -> Result<()> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("connector_route_store::platform::sync");
         file.sync_all().map_err(|e| ioerr(context, e))
     }
     fn child(parent: &File, name: &str, create: bool) -> Result<File> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("connector_route_store::platform::child");
         if create {
             let n = CString::new(name).unwrap();
             let rc = unsafe { libc::mkdirat(parent.as_raw_fd(), n.as_ptr(), 0o700) };
@@ -315,6 +324,8 @@ mod platform {
         Ok(dir)
     }
     fn publish(dir: &File, temporary: &str, target: &str) -> std::io::Result<()> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("connector_route_store::platform::publish");
         let from = CString::new(temporary).unwrap();
         let to = CString::new(target).unwrap();
         // Atomic destination exclusion, but source is still a mutable name.
@@ -532,6 +543,11 @@ mod platform {
         /// go only there.
         store_dir: Option<PathBuf>,
         location: String,
+        /// The kept reader's binding to the store, project folder and
+        /// accounts' records folder it was opened for, proved before each
+        /// operation (`records_store::ReaderBinding`).
+        reader: crate::records_store::ReaderBinding,
+        writer: Option<crate::records_store::WriterBinding>,
     }
     #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     pub(super) enum Stage {
@@ -601,7 +617,17 @@ mod platform {
                 let id = identity(&directory)?;
                 (directory, id)
             };
+            let reader = crate::records_store::bind_reader(&root, crate::records_store::ReaderDecision::Accounts)
+                .map_err(|e| StoreError::new(ErrorKind::LocationMismatch, e))?;
+            if reader.records_folder().map(|(dir, _)| dir) != place.store_dir.as_deref() {
+                return Err(StoreError::new(ErrorKind::LocationMismatch, "the project's accounts place changed while it was opened; reopen"));
+            }
             let store = Self {
+                writer: if place.store_dir.is_some() {
+                    crate::records_store::bind_writer_if_attached(&root)
+                        .map_err(|e| StoreError::new(ErrorKind::RecordingRefused, e))?
+                } else { None },
+                reader,
                 root,
                 project_identity,
                 anchor: place.anchor,
@@ -670,19 +696,39 @@ mod platform {
             let Some(dir) = &self.store_dir else {
                 return Err(refused(format!("the accounts are read in place from the project ({}); nothing is written there", self.location)));
             };
-            let current = crate::records_store::write_dir(&self.root).map_err(refused)?;
-            if &current != dir {
-                return Err(StoreError::new(ErrorKind::LocationMismatch, "the project's records store folder changed since its accounts were opened; reopen"));
-            }
+            let binding = self.writer.as_ref().ok_or_else(|| refused("the writer's original binding is unavailable; reopen".into()))?;
+            binding.check_attachment().map_err(refused)?;
+            let _admission = crate::records_retention::write_path(dir).map_err(refused)?;
+            binding.prove_for_write().map_err(refused)?;
             // Shared: account writers do not wait on each other (distinct
             // storage keys), only on an import, which holds the lock
             // exclusively; the permission is checked again once it is held.
-            crate::records_store::writer_lock(dir, true).map_err(refused)
+            let writer = crate::records_store::writer_lock(dir, true).map_err(refused)?;
+            binding.prove_for_write().map_err(refused)?;
+            Ok(writer)
         }
         pub fn resolved_project(&self) -> &Path {
             &self.root
         }
+        /// Accounts kept in the records store are read and written only while
+        /// the project is still attached, cleanly, to the store folder they
+        /// were opened in (RS §13.8). The binding is kept, never reassociated:
+        /// once the person resolves the link, the same store works again.
+        fn check_association(&self) -> Result<()> {
+            // The binding made when these accounts were opened, proved again:
+            // the same store, the same project folder, the same place (in the
+            // store or in the project) by the decision made again, and the same
+            // records folder. A kept reader opened in place refuses once the
+            // accounts have moved into the store.
+            self.reader
+                .prove()
+                .map_err(|e| {
+                    let kind = if e.unsafe_member().is_some() { ErrorKind::UnsafeEntry } else { ErrorKind::LocationMismatch };
+                    StoreError::new(kind, e.to_string())
+                })
+        }
         fn check_root(&self) -> Result<()> {
+            self.check_association()?;
             if self.anchor != self.root {
                 let project = open_path(&self.root).map_err(|e| {
                     StoreError::new(
@@ -706,6 +752,18 @@ mod platform {
             Ok(())
         }
         fn chain(&self, parts: &[&str], create: bool) -> Result<Chain> {
+            // In the store the anchor is the whole store: a walk is confined to
+            // this project's own folder there (`projects/<key>`), so that no
+            // reference, whoever supplied it, reaches another project's
+            // records. In the project the anchor is the project folder itself.
+            if self.store_dir.is_some() {
+                let own = self.parts.get(..2).ok_or_else(|| StoreError::new(ErrorKind::LocationMismatch, "the accounts' place in the store names no project folder; nothing read"))?;
+                if parts.len() < 2 || parts[0] != own[0] || parts[1] != own[1] {
+                    return Err(StoreError::new(ErrorKind::LocationMismatch, format!("this reference names a folder outside this project's records in the store ({}); nothing read", parts.join("/"))));
+                }
+            }
+            #[cfg(test)]
+            CHAIN_WALKS.with(|w| w.set(w.get() + 1));
             let mut handles = vec![self
                 .directory
                 .try_clone()
@@ -719,6 +777,12 @@ mod platform {
             Ok(Chain { handles, ids })
         }
         fn compare(&self, parts: &[&str], expected: &[FileIdentity]) -> Result<()> {
+            self.compared(parts, expected).map(|_| ())
+        }
+        /// The association proved, the chain walked once and compared with
+        /// `expected`, and that same chain returned: a read goes through the
+        /// folders just compared, never through a second walk of the path.
+        fn compared(&self, parts: &[&str], expected: &[FileIdentity]) -> Result<Chain> {
             self.check_root()?;
             let actual = self.chain(parts, false).map_err(|e| {
                 StoreError::new(
@@ -732,7 +796,7 @@ mod platform {
                     "canonical directory identities changed; caller reconciliation required",
                 ));
             }
-            Ok(())
+            Ok(actual)
         }
         fn inspection_chain(&self, expected: &[FileIdentity]) -> Result<Chain> {
             let mut handles = vec![self
@@ -792,6 +856,7 @@ mod platform {
                 }
                 let check_project = || -> Result<()> {
                     // Keep original errors, unlike the legacy compare wrapper.
+                    self.check_association()?;
                     let current = open_path(&self.anchor)?;
                     if identity(&current)? != self.root_identity {
                         return Err(StoreError::new(
@@ -982,6 +1047,8 @@ mod platform {
             mut hook: impl FnMut(Stage) -> Result<()>,
             publisher: impl FnOnce(&File, &str, &str) -> std::io::Result<()>,
         ) -> Result<BoundReference> {
+            #[cfg(test)]
+            crate::records_effect_guard::mutation_for_test("connector_route_store::platform::ProjectRouteStore::write_using");
             validate_account(account)?;
             let name = format!("{key}.json");
             if !canonical_name(&name) {
@@ -993,7 +1060,22 @@ mod platform {
             let bytes = serde_json::to_vec(account)
                 .map_err(|e| StoreError::new(ErrorKind::InvalidAccount, e.to_string()))?;
             let _writer = self.writable()?;
-            self.check_root()?;
+            self.check_root().map_err(|mut error| {
+                if error.kind == ErrorKind::UnsafeEntry {
+                    // The proof still refuses first. Classify an occupied
+                    // requested publication name as the existing collision,
+                    // using only the held anchor and no-follow directory walk.
+                    if let Ok(chain) = self.chain(&self.parts(), false) {
+                        if let Ok(name) = CString::new(name.as_bytes()) {
+                            let mut metadata = std::mem::MaybeUninit::<libc::stat>::uninit();
+                            if unsafe { libc::fstatat(chain.last().as_raw_fd(), name.as_ptr(), metadata.as_mut_ptr(), libc::AT_SYMLINK_NOFOLLOW) } == 0 {
+                                error.kind = ErrorKind::Collision;
+                            }
+                        }
+                    }
+                }
+                error
+            })?;
             let parts = self.parts();
             let chain = self.chain(&parts, true)?;
             let temporary = format!(
@@ -1049,6 +1131,8 @@ mod platform {
                         "temporary identity/hash changed before publication; no publication attempted"));
                 }
                 hook(Stage::TempChecked)?;
+                self.writer.as_ref().ok_or_else(|| StoreError::new(ErrorKind::RecordingRefused, "original writer binding unavailable"))?
+                    .prove_for_write().map_err(|e| StoreError::new(ErrorKind::RecordingRefused, e))?;
                 if let Err(e) = publisher(chain.last(), &temporary, &name) {
                     let code = e.raw_os_error();
                     let unsupported = matches!(
@@ -1272,7 +1356,8 @@ mod platform {
                         .map_err(|e| StoreError::new(ErrorKind::InvalidAccount, e))?;
                     let parts = relative_parts(&a.reference.relative_path)?;
                     let (name, ancestors) = parts.split_last().unwrap();
-                    let chain = self.chain(ancestors, false)?;
+                    // Read through the chain just compared with the binding.
+                    let chain = self.compared(ancestors, &a.reference.directories)?;
                     let again = read_account_mode(
                         chain.last(),
                         name,
@@ -1401,8 +1486,8 @@ mod platform {
                     "incomplete reference directory identity binding",
                 ));
             }
-            self.compare(ancestors, &reference.directories)?;
-            let chain = self.chain(ancestors, false)?;
+            // Read through the chain just compared with the binding.
+            let chain = self.compared(ancestors, &reference.directories)?;
             let observed = read_account(
                 chain.last(),
                 name,

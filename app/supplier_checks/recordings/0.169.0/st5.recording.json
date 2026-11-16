@@ -1,0 +1,1063 @@
+{
+ "format": "chirality.app-v4.supplier-capture.v2",
+ "pin": "0.169.0",
+ "scenario": "st5",
+ "date": "2026-11-15",
+ "app_candidate": null,
+ "version_identity": {
+  "version_output": "codex-cli 0.169.0",
+  "binary_sha256": "739cda86e15d30a6e2b40cf8dcbbfb988aaf48b305b27065573bb8e9fd41d002",
+  "distribution": {
+   "archive_sha256": "8a232260df7a12c5e83e0b4b7659e1c8d9259b41942517bc0068d8ab55c36461",
+   "inventory_manifest_sha256": "c2d91de0619e9be8e9fb294af5a0323b352cadc75aabc8162469fc9a3f504012"
+  }
+ },
+ "frames": [
+  {
+   "generation": 1,
+   "direction": "app->codex",
+   "position": 1,
+   "t_ms": 712,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+     "clientInfo": {
+      "name": "chirality-st5-harness",
+      "title": "Chirality ST-5 capture harness",
+      "version": "0.0.0-st5"
+     },
+     "capabilities": {
+      "experimentalApi": true,
+      "requestAttestation": false
+     }
+    }
+   },
+   "redacted": false
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 1,
+   "t_ms": 963,
+   "frame": {
+    "id": 1,
+    "result": {
+     "userAgent": "<REDACTED-IDENTITY>",
+     "codexHome": "<HOME>",
+     "platformFamily": "unix",
+     "platformOs": "macos"
+    }
+   },
+   "redacted": true
+  },
+  {
+   "generation": 1,
+   "direction": "app->codex",
+   "position": 2,
+   "t_ms": 963,
+   "frame": {
+    "jsonrpc": "2.0",
+    "method": "initialized",
+    "params": {}
+   },
+   "redacted": false
+  },
+  {
+   "generation": 1,
+   "direction": "app->codex",
+   "position": 3,
+   "t_ms": 963,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "thread/start",
+    "params": {
+     "cwd": "<WORKSPACE>",
+     "approvalPolicy": "on-request",
+     "sandbox": "read-only"
+    }
+   },
+   "redacted": true
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 2,
+   "t_ms": 967,
+   "frame": {
+    "method": "remoteControl/status/changed",
+    "params": {
+     "status": "disabled",
+     "serverName": "<REDACTED-IDENTITY>",
+     "installationId": "<REDACTED-IDENTITY>",
+     "environmentId": null
+    },
+    "emittedAtMs": 1794716748304
+   },
+   "redacted": true
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 3,
+   "t_ms": 1030,
+   "frame": {
+    "id": 2,
+    "result": {
+     "thread": {
+      "id": "01a1dd74-4a2d-7583-9436-41d5cfece304",
+      "environments": [
+       {
+        "environmentId": "local",
+        "cwd": "<WORKSPACE>",
+        "runtimeWorkspaceRoots": [
+         "<WORKSPACE>"
+        ]
+       }
+      ],
+      "extra": null,
+      "sessionId": "01a1dd74-4a2d-7583-9436-41d5cfece304",
+      "forkedFromId": null,
+      "attachedToThreadId": null,
+      "parentThreadId": null,
+      "preview": "",
+      "ephemeral": false,
+      "section": null,
+      "sectionEnteredAt": null,
+      "projectId": null,
+      "historyMode": "paginated",
+      "modelProvider": "st5_stub",
+      "model": "st5-stub-model",
+      "reasoningEffort": null,
+      "createdAt": 1794716748,
+      "updatedAt": 1794716748,
+      "recencyAt": 1794716748,
+      "status": {
+       "type": "idle"
+      },
+      "path": "<HOME>/sessions/2026/11/15/rollout-2026-11-15T04-25-48-01a1dd74-4a2d-7583-9436-41d5cfece304.jsonl",
+      "cwd": "<WORKSPACE>",
+      "cliVersion": "0.169.0",
+      "originator": "chirality-st5-harness",
+      "source": "vscode",
+      "canAcceptDirectInput": true,
+      "threadSource": null,
+      "agentNickname": null,
+      "agentRole": null,
+      "gitInfo": null,
+      "name": null,
+      "daybreakEnabled": null,
+      "turns": []
+     },
+     "model": "st5-stub-model",
+     "modelProvider": "st5_stub",
+     "serviceTier": null,
+     "disabledPluginIds": [],
+     "cwd": "<WORKSPACE>",
+     "runtimeWorkspaceRoots": [
+      "<WORKSPACE>"
+     ],
+     "instructionSources": [],
+     "approvalPolicy": "on-request",
+     "approvalsReviewer": "user",
+     "sandbox": {
+      "type": "readOnly",
+      "networkAccess": false
+     },
+     "activePermissionProfile": null,
+     "reasoningEffort": null,
+     "multiAgentMode": "explicitRequestOnly"
+    }
+   },
+   "redacted": true
+  },
+  {
+   "generation": 1,
+   "direction": "app->codex",
+   "position": 4,
+   "t_ms": 1030,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "turn/start",
+    "params": {
+     "threadId": "01a1dd74-4a2d-7583-9436-41d5cfece304",
+     "input": [
+      {
+       "type": "text",
+       "text": "Create the marker folder for the invented pump-skid example."
+      }
+     ]
+    }
+   },
+   "redacted": false
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 4,
+   "t_ms": 1030,
+   "frame": {
+    "method": "thread/started",
+    "params": {
+     "thread": {
+      "id": "01a1dd74-4a2d-7583-9436-41d5cfece304",
+      "environments": [
+       {
+        "environmentId": "local",
+        "cwd": "<WORKSPACE>",
+        "runtimeWorkspaceRoots": [
+         "<WORKSPACE>"
+        ]
+       }
+      ],
+      "extra": null,
+      "sessionId": "01a1dd74-4a2d-7583-9436-41d5cfece304",
+      "forkedFromId": null,
+      "attachedToThreadId": null,
+      "parentThreadId": null,
+      "preview": "",
+      "ephemeral": false,
+      "section": null,
+      "sectionEnteredAt": null,
+      "projectId": null,
+      "historyMode": "paginated",
+      "modelProvider": "st5_stub",
+      "model": "st5-stub-model",
+      "reasoningEffort": null,
+      "createdAt": 1794716748,
+      "updatedAt": 1794716748,
+      "recencyAt": 1794716748,
+      "status": {
+       "type": "idle"
+      },
+      "path": "<HOME>/sessions/2026/11/15/rollout-2026-11-15T04-25-48-01a1dd74-4a2d-7583-9436-41d5cfece304.jsonl",
+      "cwd": "<WORKSPACE>",
+      "cliVersion": "0.169.0",
+      "originator": "chirality-st5-harness",
+      "source": "vscode",
+      "canAcceptDirectInput": true,
+      "threadSource": null,
+      "agentNickname": null,
+      "agentRole": null,
+      "gitInfo": null,
+      "name": null,
+      "daybreakEnabled": null,
+      "turns": []
+     }
+    },
+    "emittedAtMs": 1794716748371
+   },
+   "redacted": true
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 5,
+   "t_ms": 1033,
+   "frame": {
+    "method": "warning",
+    "params": {
+     "threadId": "01a1dd74-4a2d-7583-9436-41d5cfece304",
+     "message": "Model metadata for `st5-stub-model` not found. Defaulting to fallback metadata; this can degrade performance and cause issues."
+    },
+    "emittedAtMs": 1794716748374
+   },
+   "redacted": false
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 6,
+   "t_ms": 1034,
+   "frame": {
+    "id": 3,
+    "result": {
+     "turn": {
+      "id": "01a1dd74-4a54-7971-855c-6e3506cc99a8",
+      "rootTurnId": "01a1dd74-4a54-7971-855c-6e3506cc99a8",
+      "items": [],
+      "itemsView": "notLoaded",
+      "status": "inProgress",
+      "error": null,
+      "startedAt": null,
+      "completedAt": null,
+      "durationMs": null
+     }
+    }
+   },
+   "redacted": false
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 7,
+   "t_ms": 1050,
+   "frame": {
+    "method": "thread/status/changed",
+    "params": {
+     "threadId": "01a1dd74-4a2d-7583-9436-41d5cfece304",
+     "status": {
+      "type": "active",
+      "activeFlags": []
+     }
+    },
+    "emittedAtMs": 1794716748391
+   },
+   "redacted": false
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 8,
+   "t_ms": 1050,
+   "frame": {
+    "method": "turn/started",
+    "params": {
+     "threadId": "01a1dd74-4a2d-7583-9436-41d5cfece304",
+     "turn": {
+      "id": "01a1dd74-4a54-7971-855c-6e3506cc99a8",
+      "rootTurnId": "01a1dd74-4a54-7971-855c-6e3506cc99a8",
+      "items": [],
+      "itemsView": "notLoaded",
+      "status": "inProgress",
+      "error": null,
+      "startedAt": 1794716748,
+      "completedAt": null,
+      "durationMs": null
+     }
+    },
+    "emittedAtMs": 1794716748391
+   },
+   "redacted": false
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 9,
+   "t_ms": 1067,
+   "frame": {
+    "method": "item/started",
+    "params": {
+     "item": {
+      "type": "userMessage",
+      "id": "01a1dd74-4a78-77f3-84d4-154907665453",
+      "clientId": null,
+      "content": [
+       {
+        "type": "text",
+        "text": "Create the marker folder for the invented pump-skid example.",
+        "text_elements": []
+       }
+      ],
+      "startedAtMs": 1794716748408,
+      "completedAtMs": null
+     },
+     "threadId": "01a1dd74-4a2d-7583-9436-41d5cfece304",
+     "turnId": "01a1dd74-4a54-7971-855c-6e3506cc99a8",
+     "startedAtMs": 1794716748408
+    },
+    "emittedAtMs": 1794716748409
+   },
+   "redacted": false
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 10,
+   "t_ms": 1068,
+   "frame": {
+    "method": "item/completed",
+    "params": {
+     "item": {
+      "type": "userMessage",
+      "id": "01a1dd74-4a78-77f3-84d4-154907665453",
+      "clientId": null,
+      "content": [
+       {
+        "type": "text",
+        "text": "Create the marker folder for the invented pump-skid example.",
+        "text_elements": []
+       }
+      ],
+      "startedAtMs": 1794716748408,
+      "completedAtMs": 1794716748408
+     },
+     "threadId": "01a1dd74-4a2d-7583-9436-41d5cfece304",
+     "turnId": "01a1dd74-4a54-7971-855c-6e3506cc99a8",
+     "contentTokenCount": null,
+     "completedAtMs": 1794716748408
+    },
+    "emittedAtMs": 1794716748410
+   },
+   "redacted": false
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 11,
+   "t_ms": 1092,
+   "frame": {
+    "method": "thread/status/changed",
+    "params": {
+     "threadId": "01a1dd74-4a2d-7583-9436-41d5cfece304",
+     "status": {
+      "type": "active",
+      "activeFlags": [
+       "waitingOnApproval"
+      ]
+     }
+    },
+    "emittedAtMs": 1794716748432
+   },
+   "redacted": false
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 12,
+   "t_ms": 1092,
+   "frame": {
+    "method": "item/started",
+    "params": {
+     "item": {
+      "type": "commandExecution",
+      "id": "call_st5_1",
+      "pluginId": null,
+      "scriptPath": null,
+      "command": "/bin/zsh -c 'mkdir st5-marker-pump-skid'",
+      "cwd": "<WORKSPACE>",
+      "processId": null,
+      "source": "agent",
+      "status": "inProgress",
+      "commandActions": [
+       {
+        "type": "unknown",
+        "command": "mkdir st5-marker-pump-skid"
+       }
+      ],
+      "aggregatedOutput": null,
+      "exitCode": null,
+      "durationMs": null,
+      "startedAtMs": 1794716748432,
+      "completedAtMs": null
+     },
+     "threadId": "01a1dd74-4a2d-7583-9436-41d5cfece304",
+     "turnId": "01a1dd74-4a54-7971-855c-6e3506cc99a8",
+     "startedAtMs": 1794716748432
+    },
+    "emittedAtMs": 1794716748433
+   },
+   "redacted": true
+  },
+  {
+   "generation": 1,
+   "direction": "codex->app",
+   "position": 13,
+   "t_ms": 1092,
+   "frame": {
+    "method": "item/commandExecution/requestApproval",
+    "id": 0,
+    "params": {
+     "kind": "command",
+     "threadId": "01a1dd74-4a2d-7583-9436-41d5cfece304",
+     "turnId": "01a1dd74-4a54-7971-855c-6e3506cc99a8",
+     "itemId": "call_st5_1",
+     "startedAtMs": 1794716748432,
+     "environmentId": "local",
+     "reason": "Create the invented marker folder.",
+     "command": "/bin/zsh -c 'mkdir st5-marker-pump-skid'",
+     "cwd": "<WORKSPACE>",
+     "commandActions": [
+      {
+       "type": "unknown",
+       "command": "mkdir st5-marker-pump-skid"
+      }
+     ],
+     "proposedExecpolicyAmendment": [
+      "mkdir",
+      "st5-marker-pump-skid"
+     ],
+     "availableDecisions": [
+      "accept",
+      {
+       "acceptWithExecpolicyAmendment": {
+        "execpolicy_amendment": [
+         "mkdir",
+         "st5-marker-pump-skid"
+        ]
+       }
+      },
+      "cancel"
+     ]
+    }
+   },
+   "redacted": true
+  },
+  {
+   "generation": 1,
+   "direction": "app->codex",
+   "position": 5,
+   "t_ms": 1092,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 0,
+    "result": {
+     "decision": "accept"
+    }
+   },
+   "redacted": false
+  },
+  {
+   "generation": 1,
+   "direction": "app->codex",
+   "position": 6,
+   "t_ms": 1092,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 4,
+    "method": "thread/turns/list",
+    "params": {
+     "threadId": "01a1dd74-4a2d-7583-9436-41d5cfece304",
+     "limit": 1
+    }
+   },
+   "redacted": false
+  },
+  {
+   "generation": 2,
+   "direction": "app->codex",
+   "position": 1,
+   "t_ms": 1448,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+     "clientInfo": {
+      "name": "chirality-st5-harness",
+      "title": "Chirality ST-5 capture harness",
+      "version": "0.0.0-st5"
+     },
+     "capabilities": {
+      "experimentalApi": true,
+      "requestAttestation": false
+     }
+    }
+   },
+   "redacted": false
+  },
+  {
+   "generation": 2,
+   "direction": "codex->app",
+   "position": 1,
+   "t_ms": 1503,
+   "frame": {
+    "id": 1,
+    "result": {
+     "userAgent": "<REDACTED-IDENTITY>",
+     "codexHome": "<HOME>",
+     "platformFamily": "unix",
+     "platformOs": "macos"
+    }
+   },
+   "redacted": true
+  },
+  {
+   "generation": 2,
+   "direction": "app->codex",
+   "position": 2,
+   "t_ms": 1503,
+   "frame": {
+    "jsonrpc": "2.0",
+    "method": "initialized",
+    "params": {}
+   },
+   "redacted": false
+  },
+  {
+   "generation": 2,
+   "direction": "app->codex",
+   "position": 3,
+   "t_ms": 1503,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "thread/read",
+    "params": {
+     "threadId": "01a1dd74-4a2d-7583-9436-41d5cfece304",
+     "includeTurns": true
+    }
+   },
+   "redacted": false
+  },
+  {
+   "generation": 2,
+   "direction": "codex->app",
+   "position": 2,
+   "t_ms": 1504,
+   "frame": {
+    "method": "remoteControl/status/changed",
+    "params": {
+     "status": "disabled",
+     "serverName": "<REDACTED-IDENTITY>",
+     "installationId": "<REDACTED-IDENTITY>",
+     "environmentId": null
+    },
+    "emittedAtMs": 1794716748845
+   },
+   "redacted": true
+  },
+  {
+   "generation": 2,
+   "direction": "codex->app",
+   "position": 3,
+   "t_ms": 1509,
+   "frame": {
+    "method": "deprecationNotice",
+    "params": {
+     "summary": "Full-history hydration is deprecated for paginated threads; omit `includeTurns` or set it to `false`, then page with `thread/turns/list` and `thread/items/list`.",
+     "details": null
+    },
+    "emittedAtMs": 1794716748850
+   },
+   "redacted": false
+  },
+  {
+   "generation": 2,
+   "direction": "codex->app",
+   "position": 4,
+   "t_ms": 1509,
+   "frame": {
+    "id": 2,
+    "result": {
+     "thread": {
+      "id": "01a1dd74-4a2d-7583-9436-41d5cfece304",
+      "environments": null,
+      "extra": null,
+      "sessionId": "01a1dd74-4a2d-7583-9436-41d5cfece304",
+      "forkedFromId": null,
+      "attachedToThreadId": null,
+      "parentThreadId": null,
+      "preview": "Create the marker folder for the invented pump-skid example.",
+      "ephemeral": false,
+      "section": null,
+      "sectionEnteredAt": null,
+      "projectId": null,
+      "historyMode": "paginated",
+      "modelProvider": "st5_stub",
+      "model": "st5-stub-model",
+      "reasoningEffort": null,
+      "createdAt": 1794716748,
+      "updatedAt": 1794716748,
+      "recencyAt": 1794716748,
+      "status": {
+       "type": "notLoaded"
+      },
+      "path": "<HOME>/sessions/2026/11/15/rollout-2026-11-15T04-25-48-01a1dd74-4a2d-7583-9436-41d5cfece304.jsonl",
+      "cwd": "<WORKSPACE>",
+      "cliVersion": "0.169.0",
+      "originator": "chirality-st5-harness",
+      "source": "vscode",
+      "canAcceptDirectInput": null,
+      "threadSource": null,
+      "agentNickname": null,
+      "agentRole": null,
+      "gitInfo": null,
+      "name": null,
+      "daybreakEnabled": null,
+      "turns": [
+       {
+        "id": "01a1dd74-4a54-7971-855c-6e3506cc99a8",
+        "rootTurnId": "01a1dd74-4a54-7971-855c-6e3506cc99a8",
+        "items": [
+         {
+          "type": "userMessage",
+          "id": "01a1dd74-4a78-77f3-84d4-154907665453",
+          "clientId": null,
+          "content": [
+           {
+            "type": "text",
+            "text": "Create the marker folder for the invented pump-skid example.",
+            "text_elements": []
+           }
+          ],
+          "startedAtMs": 1794716748408,
+          "completedAtMs": 1794716748408
+         }
+        ],
+        "itemsView": "full",
+        "status": "interrupted",
+        "error": null,
+        "startedAt": 1794716748,
+        "completedAt": null,
+        "durationMs": null
+       }
+      ]
+     },
+     "readState": {
+      "firstUnread": null,
+      "revision": "initial:01a1dd74-4a2d-7583-9436-41d5cfece304"
+     }
+    }
+   },
+   "redacted": true
+  },
+  {
+   "generation": 2,
+   "direction": "app->codex",
+   "position": 4,
+   "t_ms": 1509,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "thread/turns/list",
+    "params": {
+     "threadId": "01a1dd74-4a2d-7583-9436-41d5cfece304",
+     "itemsView": "full"
+    }
+   },
+   "redacted": false
+  },
+  {
+   "generation": 2,
+   "direction": "codex->app",
+   "position": 5,
+   "t_ms": 1510,
+   "frame": {
+    "id": 3,
+    "result": {
+     "data": [
+      {
+       "id": "01a1dd74-4a54-7971-855c-6e3506cc99a8",
+       "rootTurnId": "01a1dd74-4a54-7971-855c-6e3506cc99a8",
+       "items": [
+        {
+         "type": "userMessage",
+         "id": "01a1dd74-4a78-77f3-84d4-154907665453",
+         "clientId": null,
+         "content": [
+          {
+           "type": "text",
+           "text": "Create the marker folder for the invented pump-skid example.",
+           "text_elements": []
+          }
+         ],
+         "startedAtMs": 1794716748408,
+         "completedAtMs": 1794716748408
+        }
+       ],
+       "itemsView": "full",
+       "status": "interrupted",
+       "error": null,
+       "startedAt": 1794716748,
+       "completedAt": null,
+       "durationMs": null
+      }
+     ],
+     "nextCursor": null,
+     "backwardsCursor": "{\"requestedThreadId\":\"01a1dd74-4a2d-7583-9436-41d5cfece304\",\"rolloutOrdinal\":1,\"includeAnchor\":true,\"scope\":{\"kind\":\"turns\"}}"
+    }
+   },
+   "redacted": false
+  },
+  {
+   "generation": 2,
+   "direction": "app->codex",
+   "position": 5,
+   "t_ms": 1510,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 4,
+    "method": "thread/loaded/list",
+    "params": {}
+   },
+   "redacted": false
+  },
+  {
+   "generation": 2,
+   "direction": "codex->app",
+   "position": 6,
+   "t_ms": 1510,
+   "frame": {
+    "id": 4,
+    "result": {
+     "data": [],
+     "nextCursor": null
+    }
+   },
+   "redacted": false
+  },
+  {
+   "generation": 2,
+   "direction": "app->codex",
+   "position": 6,
+   "t_ms": 1510,
+   "frame": {
+    "jsonrpc": "2.0",
+    "id": 5,
+    "method": "thread/resume",
+    "params": {
+     "threadId": "01a1dd74-4a2d-7583-9436-41d5cfece304"
+    }
+   },
+   "redacted": false
+  },
+  {
+   "generation": 2,
+   "direction": "codex->app",
+   "position": 7,
+   "t_ms": 1512,
+   "frame": {
+    "method": "deprecationNotice",
+    "params": {
+     "summary": "Full-history hydration is deprecated for paginated threads; use `excludeTurns: true`, then page with `thread/turns/list` and `thread/items/list`.",
+     "details": null
+    },
+    "emittedAtMs": 1794716748854
+   },
+   "redacted": false
+  },
+  {
+   "generation": 2,
+   "direction": "codex->app",
+   "position": 8,
+   "t_ms": 1604,
+   "frame": {
+    "method": "thread/status/changed",
+    "params": {
+     "threadId": "01a1dd74-4a2d-7583-9436-41d5cfece304",
+     "status": {
+      "type": "idle"
+     }
+    },
+    "emittedAtMs": 1794716748944
+   },
+   "redacted": false
+  },
+  {
+   "generation": 2,
+   "direction": "codex->app",
+   "position": 9,
+   "t_ms": 1612,
+   "frame": {
+    "id": 5,
+    "result": {
+     "thread": {
+      "id": "01a1dd74-4a2d-7583-9436-41d5cfece304",
+      "environments": [
+       {
+        "environmentId": "local",
+        "cwd": "<WORKSPACE>",
+        "runtimeWorkspaceRoots": [
+         "<WORKSPACE>"
+        ]
+       }
+      ],
+      "extra": null,
+      "sessionId": "01a1dd74-4a2d-7583-9436-41d5cfece304",
+      "forkedFromId": null,
+      "attachedToThreadId": null,
+      "parentThreadId": null,
+      "preview": "Create the marker folder for the invented pump-skid example.",
+      "ephemeral": false,
+      "section": null,
+      "sectionEnteredAt": null,
+      "projectId": null,
+      "historyMode": "paginated",
+      "modelProvider": "st5_stub",
+      "model": "st5-stub-model",
+      "reasoningEffort": null,
+      "createdAt": 1794716748,
+      "updatedAt": 1794716748,
+      "recencyAt": 1794716748,
+      "status": {
+       "type": "idle"
+      },
+      "path": "<HOME>/sessions/2026/11/15/rollout-2026-11-15T04-25-48-01a1dd74-4a2d-7583-9436-41d5cfece304.jsonl",
+      "cwd": "<WORKSPACE>",
+      "cliVersion": "0.169.0",
+      "originator": "chirality-st5-harness",
+      "source": "vscode",
+      "canAcceptDirectInput": true,
+      "threadSource": null,
+      "agentNickname": null,
+      "agentRole": null,
+      "gitInfo": null,
+      "name": null,
+      "daybreakEnabled": null,
+      "turns": [
+       {
+        "id": "01a1dd74-4a54-7971-855c-6e3506cc99a8",
+        "rootTurnId": "01a1dd74-4a54-7971-855c-6e3506cc99a8",
+        "items": [
+         {
+          "type": "userMessage",
+          "id": "01a1dd74-4a78-77f3-84d4-154907665453",
+          "clientId": null,
+          "content": [
+           {
+            "type": "text",
+            "text": "Create the marker folder for the invented pump-skid example.",
+            "text_elements": []
+           }
+          ],
+          "startedAtMs": 1794716748408,
+          "completedAtMs": 1794716748408
+         }
+        ],
+        "itemsView": "full",
+        "status": "interrupted",
+        "error": null,
+        "startedAt": 1794716748,
+        "completedAt": null,
+        "durationMs": null
+       }
+      ]
+     },
+     "model": "st5-stub-model",
+     "modelProvider": "st5_stub",
+     "serviceTier": null,
+     "disabledPluginIds": [],
+     "cwd": "<WORKSPACE>",
+     "runtimeWorkspaceRoots": [
+      "<WORKSPACE>"
+     ],
+     "instructionSources": [],
+     "approvalPolicy": "on-request",
+     "approvalsReviewer": "user",
+     "sandbox": {
+      "type": "readOnly",
+      "networkAccess": false
+     },
+     "activePermissionProfile": null,
+     "reasoningEffort": null,
+     "collaborationMode": {
+      "mode": "default",
+      "settings": {
+       "model": "st5-stub-model",
+       "reasoning_effort": null,
+       "developer_instructions": null
+      }
+     },
+     "multiAgentMode": "explicitRequestOnly",
+     "initialTurnsPage": null,
+     "turnsBackwardsCursor": "{\"requestedThreadId\":\"01a1dd74-4a2d-7583-9436-41d5cfece304\",\"rolloutOrdinal\":1,\"includeAnchor\":true,\"scope\":{\"kind\":\"turns\"}}",
+     "itemsBackwardsCursor": "{\"requestedThreadId\":\"01a1dd74-4a2d-7583-9436-41d5cfece304\",\"rolloutOrdinal\":8,\"includeAnchor\":true,\"scope\":{\"kind\":\"itemsByCreatedAtOrdinal\"}}"
+    }
+   },
+   "redacted": true
+  },
+  {
+   "generation": 2,
+   "direction": "codex->app",
+   "position": 10,
+   "t_ms": 1613,
+   "frame": {
+    "method": "thread/goal/cleared",
+    "params": {
+     "threadId": "01a1dd74-4a2d-7583-9436-41d5cfece304"
+    },
+    "emittedAtMs": 1794716748955
+   },
+   "redacted": false
+  }
+ ],
+ "events": [
+  {
+   "event": "begin",
+   "t_ms": 0,
+   "pin": "0.169.0",
+   "scenario": "st5"
+  },
+  {
+   "event": "server-request-received",
+   "t_ms": 1092,
+   "generation": 1,
+   "method": "item/commandExecution/requestApproval"
+  },
+  {
+   "event": "process-group-frozen",
+   "t_ms": 1092,
+   "generation": 1,
+   "signal": "SIGSTOP"
+  },
+  {
+   "event": "answer-written",
+   "t_ms": 1092,
+   "generation": 1,
+   "decision": "accept",
+   "origin": "scripted capture; not a person's act"
+  },
+  {
+   "event": "process-group-killed-while-frozen",
+   "t_ms": 1097,
+   "generation": 1,
+   "signal": "SIGKILL"
+  }
+ ],
+ "provider": {
+  "requests": [
+   {
+    "index": 1,
+    "path": "/v1/responses",
+    "body": null,
+    "header_names": [
+     "accept",
+     "content-length",
+     "content-type",
+     "host",
+     "originator",
+     "session-id",
+     "thread-id",
+     "user-agent",
+     "x-client-request-id",
+     "x-codex-beta-features",
+     "x-codex-turn-metadata",
+     "x-codex-window-id"
+    ],
+    "answered": "shell call"
+   }
+  ]
+ },
+ "settings_supplied": {
+  "environment": [
+   "ALL_PROXY",
+   "CODEX_HOME",
+   "HOME",
+   "HTTPS_PROXY",
+   "HTTP_PROXY",
+   "LANG",
+   "NO_PROXY",
+   "PATH",
+   "TMPDIR",
+   "TZ",
+   "all_proxy",
+   "http_proxy",
+   "https_proxy",
+   "no_proxy"
+  ],
+  "features.shell_snapshot": false,
+  "allow_login_shell": false,
+  "features.plugins": false,
+  "analytics.enabled": false,
+  "outside_configuration": {
+   "working_directory_ancestors": "6 checked, none holds .git or .codex",
+   "system_configuration_folder": "absent",
+   "managed_preferences": "absent",
+   "note": "presence checks before execution; controls on what the supplier is given, not a sandbox"
+  }
+ },
+ "socket_watch": {
+  "observed": false,
+  "reason": "this route reads no process sockets; proxy controls are not isolation"
+ },
+ "limits": [
+  "Scripted capture, not App behavior or qualification.",
+  "Settings supplied are not settings read back.",
+  "No contact observation or sign-in; no absence beyond the recorded interval is inferred.",
+  "Redacted frames do not claim original byte identity; independent content reading remains required."
+ ]
+}

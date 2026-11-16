@@ -27,7 +27,13 @@ conceptual discussion or decomposition.
 
 - **Verification** asks whether an identified build does what the PRD states.
   It uses the scenarios below, run against a named candidate, with outcomes
-  recorded as passed, failed, blocked, not run or inconclusive.
+  recorded as passed, failed, blocked, not run or inconclusive. For App 4.0.0
+  the App scenarios are carried out by agent-operated journey examination, as
+  the [release target](RELEASE_TARGET_4.0.0.md) defines it: where a scenario
+  names the person, an examining agent operates the App's shipped controls on
+  examination material, except the acts that stay the owner's (sign-in, key
+  entry, and criterion 8's keychain protection act and confirmation of a
+  lowered policy). A synthetic capture made there establishes no person's act.
 - **Validation** asks whether v4 is fit for the work it is meant for. It
   needs practitioners doing realistic work, and at v4.0 the principal
   practitioner is the owner. Agent-operated scenarios support verification;
@@ -95,16 +101,27 @@ rendered state, primary-turn completion from active descendants, and request
 settlement from received acknowledgment. An unavailable outcome stays
 unknown rather than being reconstructed as success.
 
-**V4-EXM-12 Account and oMLX/local model access.** With ChatGPT account and
-oMLX/local access configured together, the person runs one conversation with
-each and switches between them, preserving the other configuration. Examine
-the local credential requirement and Codex custody in the adopted dedicated
-local home separately from account sign-in. Standalone OpenAI API-key access
-and its qualification commitment are omitted from this increment; historical
-API-key fixtures retain their subjects and supply no current pass.
-*Verifies* V4-APP-02. The adopted authentication design and anonymous-provider
-fixtures do not establish keyed oMLX implementation or actual compatibility;
-candidate-bound use remains owed.
+**V4-EXM-12 ChatGPT account access.** The person signs in with their ChatGPT
+account and the App shows the account Codex reports; a new conversation shows
+no model selected until the person chooses; a conversation runs with the
+account; and no credential appears in any record or log the App wrote. For
+4.0.0 the conversation served by the ChatGPT account is observed in the
+conversations of V4-EXM-10 and V4-EXM-11 (run A) on the same candidate, whose
+results name the account as the access used; this scenario adds no separate
+conversation step.
+Standalone OpenAI API-key access and its qualification commitment are omitted
+from this increment; historical API-key fixtures retain their subjects and
+supply no current pass.
+*Verifies* V4-APP-02. The steps with a local model server (ChatGPT account and
+oMLX/local access configured together, one conversation with each and a switch
+between them preserving the other configuration, and the local credential's
+custody by Codex in the dedicated local home, examined separately from account
+sign-in) are out of 4.0.0 by the owner's decision of 14 November 2026, which
+the [release target](RELEASE_TARGET_4.0.0.md) quotes, and stay defined for the
+later update that brings local model providers back. For those steps the
+adopted authentication design and anonymous-provider fixtures do not establish
+keyed oMLX implementation or actual compatibility; candidate-bound use remains
+owed.
 
 **V4-EXM-13 Coordinating an agent fleet.** The person delegates two bounded
 pieces of work with briefs, follows them on the undertaking's work graph,

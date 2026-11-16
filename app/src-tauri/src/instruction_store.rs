@@ -8,6 +8,8 @@ pub(crate) fn seed(
     after_directories: impl FnOnce(),
     validate: impl FnOnce() -> Result<(), String>,
 ) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("instruction_store::seed");
     use std::{
         ffi::{CString, OsString},
         fs::{File, OpenOptions},
@@ -48,6 +50,8 @@ pub(crate) fn seed(
         Ok((meta.dev(), meta.ino()))
     }
     fn child(parent: &File, value: &std::ffi::OsStr) -> Result<(File, bool), String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("instruction_store::seed::child");
         let c = name(value)?;
         let created = unsafe { libc::mkdirat(parent.as_raw_fd(), c.as_ptr(), 0o777) } == 0;
         if !created {

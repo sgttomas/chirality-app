@@ -10,11 +10,15 @@ struct Fixture {
     home: Arc<HomeSession>,
     router: Mutex<HomeRouter>,
     generation: Value,
+    /// The root held as the App holds its App data before it opens a ledger,
+    /// so that a later session on it models a relaunch.
+    _custody: crate::AppDataCustody,
 }
 impl Fixture {
     fn new(index: bool) -> Self {
         let root = std::env::temp_dir().canonicalize().unwrap().join(opaque_id("recovery-root-").unwrap());
         std::fs::create_dir(&root).unwrap();
+        let _custody = crate::hold_app_data_for_test(&root).unwrap();
         let host = Arc::new(Host::new());
         host.configure_recovery(root.join("ledger.jsonl")).unwrap();
         let generation = {
@@ -56,6 +60,7 @@ impl Fixture {
             home,
             router,
             generation,
+            _custody,
         }
     }
     fn item(&self, turn: &str) {
@@ -80,6 +85,7 @@ fn cold_request_summary_case(context: Option<&str>) {
     use crate::native_requests::RequestRegister;
     let root = std::env::temp_dir().canonicalize().unwrap().join(opaque_id("cold-request-summary-").unwrap());
     std::fs::create_dir(&root).unwrap();
+    let _custody = crate::hold_app_data_for_test(&root).unwrap();
     let path = root.join("ledger.jsonl");
     let mut ledger = RecoveryLedger::open(path.clone()).unwrap();
     ledger.start_session("old-request-session", "synthetic-candidate").unwrap();
@@ -182,6 +188,8 @@ fn recovery_root_actual_source_queue_durable_reopen_remains_pointer_only() {
     assert_eq!(associations[0]["generation"], f.generation);
     Host::close_generation(&mut f.host.inner.0.lock().unwrap());
     f.host.flush_recovery_observations();
+    // The earlier App's process has ended (one App at a time on this data).
+    f.host.end_process_for_test();
     let next = Arc::new(Host::new());
     next.configure_recovery(f.root.join("ledger.jsonl"))
         .unwrap();
@@ -300,6 +308,8 @@ fn recovery_root_reopen_preserves_legacy_unknown_and_distinct_metadata_source() 
     row["lastObservedExecution"]["liveTurn"] = json!("not-a-legacy-association");
     ledger.append(row.clone()).unwrap();
     let prefix = crate::recovery::stored_entries(&f.root.join("ledger.jsonl"));
+    // The earlier App's process has ended (one App at a time on this data).
+    f.host.end_process_for_test();
     let next = Arc::new(Host::new());
     next.configure_recovery(f.root.join("ledger.jsonl"))
         .unwrap();

@@ -10,7 +10,7 @@ fn generation(counter: u64) -> Value {
 }
 
 fn native_thread(id: &str) -> Value {
-    json!({"id":id,"cliVersion":"0.167.0","createdAt":1,"updatedAt":2,
+    json!({"id":id,"cliVersion":"0.169.0","createdAt":1,"updatedAt":2,
         "cwd":"/invented","ephemeral":false,"modelProvider":"fixture-provider","preview":"observer fixture",
         "projectId":null,"sessionId":"fixture-session","source":"appServer","status":{"type":"notLoaded"},"turns":[]})
 }
@@ -70,7 +70,7 @@ impl Fixture {
         }
     }
     fn ledger(&self) -> Vec<Value> {
-        crate::recovery::stored_entries(&self.root.join("recovery.ledger.jsonl"))
+        self.host.stored_entries_held(&self.root.join("recovery.ledger.jsonl"))
     }
 }
 

@@ -73,7 +73,15 @@ impl DevelopmentCatalog {
         if package.file_name().and_then(|n| n.to_str()) != Some(NAME) {
             return Err("holding copy name differs from the admitted package".into());
         }
-        let held = Snapshot::capture(package)?;
+        // A holding copy is the one package a person picks by its own path, so the reader's refusal
+        // of a link above it is said here in words they can act on.
+        let held = Snapshot::capture(package).map_err(|e| {
+            if e.contains(super::LINK_IN_PACKAGE_PATH) {
+                format!("{e}. Choose the holding copy by the real location of its folder, not through a linked folder (on a Mac, /tmp and /var are links to /private/tmp and /private/var)")
+            } else {
+                e
+            }
+        })?;
         if held.files() != self.selection.snapshot().files()
             || held.revision() != self.identity().revision
         {

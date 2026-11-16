@@ -237,6 +237,8 @@ fn role_r3_ctime_only_change_keeps_receipt_but_same_bytes_inode_replacement_refu
 fn role_r3_actual_fork_uses_distinct_observation_and_exact_parent_source() {
     let _store = RoleR3Store::new();
     let peer = Peer::new();
+    // An App-started account home reports the built-in provider at its own folder; a fork is admitted only there.
+    peer.set_mode("config-provider-server", "openai");
     let composition = role_r3_composition(Some(crate::role_supply::Role::WORKING_ITEMS), false);
     let parent = role_r3_start(&peer, &composition);
     let result = crate::conversation_roles::fork_conversation(

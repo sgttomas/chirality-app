@@ -46,6 +46,9 @@ code_paths:
 # selection and need-state rules are DEL-06-01's.
 - app/src-tauri/src/fleet_views.rs
 - app/src-tauri/src/decision_view.rs
+# The A16 consumer maps this view to digest-bound request/path standing.
+- app/src-tauri/src/act_control_standing.rs
+- app/src/PackageStanding.tsx
 # app/src-tauri/resources/connector_route/connector.standing.schema.json is DEL-07-02's published standing form.
 # fleet_views.rs reads it to judge a connector need and this deliverable does not list it.
 # app/src-tauri/schemas/checkpoint-record-entries.schema.json is DEL-02-03's. Its decisionPackageFile
@@ -57,6 +60,8 @@ code_paths:
 - app/src-tauri/src/lib.rs
 - app/src/App.tsx
 checks:
+# History notices on the person-facing RS readings, including empty results.
+- app/tests/workflow-action-result.test.mjs
 # fleet_views_tests.rs is shared with DEL-06-01. Here: the queue, waiting and decision-wait cases.
 - app/src-tauri/src/fleet_views_tests.rs
 - app/tests/fleet-records.test.mjs
@@ -64,3 +69,5 @@ checks:
 - app/src-tauri/tests/decision_standing.rs
 - app/src-tauri/tests/reader_integration.rs
 - app/src-tauri/src/records_portable_reconstruction_tests.rs
+# The actual decision-package and act-control panels keep supplied fields marked.
+- app/tests/package-standing.test.mjs

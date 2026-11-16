@@ -57,7 +57,7 @@
     "app/packaging/terms/terms-position.v1.schema.json": "7a47f1e75453e8df3778e7c59628932f96791906dbe378b8aa2d8db72eecbb08",
     "app/src-tauri/Cargo.lock": "c21ce295ae7a31ff136501df5c6ba93b95c6b881b9e2d090c7bb36016ac85ca2",
     "app/src-tauri/Cargo.toml": "32aeb2faacc2f8ec31a1d11aa617ff75fc83cced085fe1299a15cde64e4a3638",
-    "app/src-tauri/build.rs": "5c89aac6205db9e6e0df74165489ea62f6e12cfd8cd3f82e80f8b6a412a92b24",
+    "app/src-tauri/build.rs": "962fdf6dbb4dfaf34517faaea8a5700c8558a722f0b82707cae375b75cb2b292",
     "app/src-tauri/build_support/developer-id-application.s1.requirement-template.txt": "00a16b523232eab6750957666e2d48a9c9f0ea4bf75d45bc40b18713611a9272",
     "app/src-tauri/build_support/publisher_selection.rs": "b9921087b53d28d30aab7e2f5a24c37fa5dfaf37829cc47188807ec2fa6e4c36",
     "app/src-tauri/resources/distribution-successor/adoption-attestation.s1.schema.json": "503d549bc69ed802f930711457d1494bbccad8aa431e14170ed2901c9c1ba8fb",

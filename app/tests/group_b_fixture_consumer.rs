@@ -5,8 +5,9 @@ use std::path::PathBuf;
 
 const NAME: &str = "invented-pipe-inventory";
 fn fixture(variant: &str) -> Snapshot {
-    Snapshot::capture(&PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../examination/standalone/fixtures").join(variant).join(NAME)).unwrap()
+    // The fixtures' real location: the package reader takes no path with a `..` component.
+    let fixtures = std::fs::canonicalize(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../examination/standalone/fixtures")).unwrap();
+    Snapshot::capture(&fixtures.join(variant).join(NAME)).unwrap()
 }
 fn review(snapshot: &Snapshot, live: &Snapshot, name: &str) -> Result<Review, String> {
     Review::open(snapshot.clone(), live, snapshot.revision(),

@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
+import {choiceLists, chooseIn} from './support/choices.mjs';
 
 // J2 guided path: the App composes a draft request for the person to send;
 // finding, trial, review and registration stay on existing host commands.
@@ -23,6 +24,7 @@ const data = (over = {}) => ({context:{sourceRef:'src', generation:g}, projectLi
 
 const props = node => node[Object.keys(node).find(k => k.startsWith('__reactProps$'))];
 const all = (c, tag) => c.querySelectorAll(node => node.localName === tag);
+const nameField = c => all(c, 'input').find(node => node.parentNode.textContent.startsWith('Workflow name'));
 const button = (c, label) => all(c, 'button').find(node => node.textContent === label);
 const region = (c, label) => c.querySelectorAll(node => node.getAttribute('aria-label') === label)[0];
 const next = c => region(c, 'Make a workflow from your work').textContent.match(/Next: ([^]*?)(?=Where you did the work)/)?.[1] ?? '';
@@ -37,8 +39,8 @@ async function mount(view) {
   return {c, calls, offers, opened, rerender:async next => { Object.assign(view, next); await React.act(async () => render()); },
     update:next => { Object.assign(view, next); render(); },
     close:async () => React.act(async () => root.unmount()),
-    choose:async value => React.act(async () => props(all(c, 'select')[0]).onChange({target:{value}})),
-    name:async value => React.act(async () => props(all(c, 'input')[0]).onChange({target:{value}})),
+    choose:async value => React.act(async () => chooseIn(choiceLists(c)[0], value)),
+    name:async value => React.act(async () => props(nameField(c)).onChange({target:{value}})),
     press:async label => { const node = button(c, label); assert.ok(node, label); assert.equal(!!props(node).disabled, false, `${label} enabled`); await React.act(async () => props(node).onClick()); }};
 }
 
@@ -98,7 +100,7 @@ test('unfinished drafts are listed for return after reopening and Continue only 
   assert.match(list, /half-done/); assert.match(list, /needs-fix/); assert.doesNotMatch(list, /finished-one|gone/);
   assert.match(list, /still here after you quit and reopen the App.*Reading one there only shows it; to keep working in it, press Continue there, which is a separate step/);
   await ui.press('Continue needs-fix');
-  assert.equal(props(all(ui.c, 'input')[0]).value, 'needs-fix');
+  assert.equal(props(nameField(ui.c)).value, 'needs-fix');
   assert.match(region(ui.c, 'Draft status').textContent, /HY-1: no WORKFLOW\.md/);
   assert.deepEqual(ui.calls, []); assert.deepEqual(ui.offers, []);
 });
@@ -115,7 +117,7 @@ test('no library, stale source and busy states issue nothing', async () => {
   for (const label of ['Put the request in the conversation', 'Look for drafts in this library']) {
     const node = button(ui.c, label); assert.equal(props(node).disabled, true, label); await React.act(async () => props(node).onClick());
   }
-  assert.equal(props(all(ui.c, 'select')[0]).disabled, true);
+  assert.equal(props(choiceLists(ui.c)[0]).disabled, true);
   assert.deepEqual(ui.calls, []); assert.deepEqual(ui.offers, []);
 });
 
@@ -318,7 +320,7 @@ test('an unconfirmed bring-back send holds that trial and conversation ID in the
       threads:[{threadId:'T1', generation, model:'invented-model'}, {threadId:'T2', generation, model:'invented-model'}]}), data:data({context:{sourceRef:'src', generation}, drafts:{drafts:[draft]}})});
     await ui.choose(JSON.stringify([generation, 'T1']));
     assert.ok(alert(), 'a source change does not erase the record');
-    assert.match(alert().textContent, /sent to a conversation that isn't loaded now.*Codex or the home has changed since that send\. The conversation chosen now has the same ID \(T1\), so bringing trial 2 back to it is held until you've checked\. That doesn't make the earlier destination this one\./);
+    assert.match(alert().textContent, /sent to a conversation that isn't loaded now.*Codex or the home has changed since that send\. The conversation chosen now has the same ID \(T1\), so the App won't bring trial 2 back to it until you've said you checked\. That doesn't make the earlier destination this one\./);
     assert.equal(props(bring(2)).disabled, true, `held for the same conversation ID after ${generation.home === 'api-key' ? 'a home change' : 'a restart'}`);
     await ui.choose(JSON.stringify([generation, 'T2']));
     assert.equal(props(bring(2)).disabled, false, 'a different, explicitly chosen conversation is not held');
@@ -404,13 +406,13 @@ test('a prepared copy whose send is held is offered for reading or removing, nev
   assert.match(shown(), /Trial 2's results are ready to send in/);
   await React.act(async () => doubtsModule.noteBringBackDoubt(doubt({preparedId:'bb-1'})));
   assert.doesNotMatch(shown(), /ready to send/, 'a held copy is not "ready to send"');
-  assert.match(shown(), /Trial 2's results are prepared in .+, but sending them is held: this copy's earlier send wasn't confirmed and may have arrived, so it is not sent again\./);
+  assert.match(shown(), /Trial 2's results are prepared in .+, but the App won't send them yet: this copy's earlier send wasn't confirmed and may have arrived, so it is not sent again\./);
   assert.ok(button(ui.c, 'Open trial 2\'s prepared results to read or remove'));
   await React.act(async () => { doubtsModule.acknowledgeBringBackDoubt(doubtsModule.bringBackDoubtsFor('trial', 'trial:lib-a:2')[0]); });
-  assert.match(shown(), /prepared in .+, but sending them is held/, 'that attempted copy stays held after the acknowledgement');
-  assert.match(next(ui.c), /Trial 2's prepared results are held and not sent again; after reading the conversation, remove that copy/);
+  assert.match(shown(), /prepared in .+, but the App won't send them yet/, 'the App still won\'t send that attempted copy after the acknowledgement');
+  assert.match(next(ui.c), /The App won't send trial 2's prepared results again; after reading the conversation, remove that copy/);
   assert.equal(all(ui.c, 'button').filter(node => node.textContent === 'Open trial 2\'s prepared results to read or remove').length, 1, 'one control for one held copy');
-  assert.match(region(ui.c, 'Trial 2 of spacing-check').textContent, /Its results are prepared for this conversation but held, so they aren't sent again; see below\./);
+  assert.match(region(ui.c, 'Trial 2 of spacing-check').textContent, /Its results are prepared for this conversation; the App won't send them again yet, and the results line below says why\./);
   assert.doesNotMatch(region(ui.c, 'Trial 2 of spacing-check').textContent, /already prepared for this conversation\./);
   const calls = ui.calls.length;
   await ui.press('Open trial 2\'s prepared results to read or remove');
@@ -467,7 +469,7 @@ for (const replacement of ['draft choice', 'library']) test(`a queued Continue r
     assert.ok(reveals.every(r => r.label === 'Draft state' && r.text.startsWith('spacing-check:')));
     reveals.length = 0;
     const continueA = props(button(ui.c, 'Continue spacing-check')).onClick;
-    const chooseName = props(all(ui.c, 'input')[0]).onChange;
+    const chooseName = props(nameField(ui.c)).onChange;
     await React.act(async () => {
       continueA();
       // The reveal effect is deferred until this update commits. A later
@@ -496,4 +498,29 @@ for (const replacement of ['draft choice', 'library']) test(`a queued Continue r
       if (value === undefined) delete proto[name]; else proto[name] = value;
     }
   }
+});
+
+// Review rounds 2 and 3 of pull request 241: a reply that resolves with a
+// limit was summarised as plain success, and with a not-refreshed marker set
+// the guide still said "Trial … is ready to send".
+test('a drafts folder the App could not read is said in the guide, and a view that may be from before the last press shows no draft, trial or readiness', async () => {
+  const draft = {name:'spacing-summary', state:'draft', content:{value:'8490609ce68a61af'}, findings:[], trials:[{reference:'trial:1', kind:'clean', sequence:1, trialConversation:null, broughtBack:[]}]};
+  const prepared = {pendingTrials:[{reference:'trial:1', kind:'clean', sequence:1, draftName:'spacing-summary'}]};
+  const c = document.createElement('div'); const root = createRoot(c); const calls = [];
+  const render = (view, viewStale, busy = false) => React.act(async () => root.render(React.createElement(MakeWorkflowGuide, {data:view, host:host(), busy, viewStale,
+    outcome:{command:'workflow_trial_prepare', message:'', failed:false, settled:true}, act:async (command, args) => { calls.push({command, args}); }, offerComposer:() => {}})));
+  await render(data({drafts:{drafts:[], limit:'drafts folder refused (invented cause); nothing outside the library is listed'}}), false);
+  assert.match(region(c, 'Make a workflow from your work').textContent, /The App couldn't read this library's drafts: drafts folder refused \(invented cause\); nothing outside the library is listed/);
+  await render(data({drafts:{drafts:[draft]}, ...prepared}), false);
+  assert.match(region(c, 'Make a workflow from your work').textContent, /spacing-summary/);
+  await render(data({drafts:{drafts:[draft]}, ...prepared}), true);
+  const section = region(c, 'Make a workflow from your work');
+  assert.match(next(c) || section.textContent, /What this view showed may be from before the App's last operation finished\. The App is not showing its steps until it has read its state again after that/);
+  assert.equal(all(section, 'button').length, 0, 'nothing is offered');
+  assert.doesNotMatch(section.textContent, /spacing-summary|ready to send|not registered|Trials so far|Unfinished drafts/, 'no draft state, trial or readiness is shown as current');
+  assert.ok(region(c, 'Make a workflow — last result'), 'the press\'s own result stays');
+  await render(data({drafts:{drafts:[draft]}, ...prepared}), true, true);
+  assert.equal(region(c, 'Make a workflow — last result'), undefined, 'no result is claimed while the press is in progress');
+  assert.deepEqual(calls, []);
+  await React.act(async () => root.unmount());
 });

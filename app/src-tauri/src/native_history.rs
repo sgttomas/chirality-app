@@ -307,7 +307,7 @@ fn validators() -> Result<&'static HashMap<String, jsonschema::Validator>, Strin
     VALIDATORS
         .get_or_init(|| {
             let root: Value = serde_json::from_str(include_str!(
-                "../resources/supplier/0.167.0/codex_app_server_protocol.schemas.json"
+                "../resources/supplier/0.169.0/codex_app_server_protocol.schemas.json"
             ))
             .map_err(|e| e.to_string())?;
             TARGETS
@@ -375,7 +375,21 @@ fn validate(target: &str, value: &Value) -> Result<(), String> {
         // A validator's Display can quote the rejected conversation payload.
         // Trial fidelity and recovery readers may retain this diagnostic; keep
         // the contract name and refusal without copying native content there.
-        .map_err(|_| format!("native history schema refused {target}: invalid response shape"))
+        .map_err(|_| format!("native history schema refused {target}: invalid response shape"))?;
+    if target == "ThreadItemsListResponse" {
+        require_complete_item_outputs(value)?;
+    }
+    Ok(())
+}
+/// The App does not request or fetch deferred output. Such a row cannot stand
+/// for complete history, even when its native item otherwise has a valid shape.
+pub(crate) fn require_complete_item_outputs(page: &Value) -> Result<(), String> {
+    if page["data"].as_array().into_iter().flatten()
+        .any(|entry| entry.get("outputDeferred").is_some_and(|value| value != &Value::Bool(false)))
+    {
+        return Err("native item history incomplete: deferred output is not fetched by this App".into());
+    }
+    Ok(())
 }
 fn cursor_view(page: Option<&Value>) -> Value {
     match page.and_then(|p| p.get("nextCursor")) {
@@ -436,6 +450,10 @@ impl NativeHistory {
     }
     pub fn selected_thread(&self) -> Option<&str> {
         self.selection.as_ref().map(|s| s.thread.as_str())
+    }
+    /// The latest list page this view accepted, if any.
+    pub(crate) fn list_page(&self) -> Option<&Value> {
+        self.list_page.as_ref()
     }
     pub fn new(home: &str, generation: Value) -> Result<Self, String> {
         if home.is_empty() || !generation_valid(&generation) || generation["home"] != home {

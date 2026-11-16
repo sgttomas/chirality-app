@@ -705,8 +705,10 @@ fn clean_trial_restart_original_tag_occurrence_and_native_home_are_required() {
             "test",
         )
         .unwrap();
-    let foreign_host = Arc::new(crate::hosting::Host::new());
-    foreign_host.configure_recovery(ledger).unwrap();
+    // Another native home sharing REC, as the App shares it: the running App
+    // session's own custody (one App session at a time on this ledger).
+    let _ = &ledger;
+    let foreign_host = Arc::new(crate::hosting::Host::new_with_app_custody(peer.home.host.app_runtime_custody().unwrap()).unwrap());
     let foreign_config = foreign.home.host_config.as_ref().unwrap().clone();
     foreign_host
         .start(&foreign_config, "invented other native home sharing REC")

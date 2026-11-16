@@ -25,6 +25,11 @@ needs:
 - from: DEL-04-03
   condition: The guidance supplied to a conversation and each observation that a stated limit
     was not kept are carried in the run record by reference and can be validated.
+    Where a project's records are read from is decided by the records store, which gives no
+    location, in the store or in the project folder, while the project's link to the store is
+    unresolved.
+    Pending role-supply observations retain their admitted project identity and physical
+    project and records folders, and prove that binding again inside write admission before publication.
   gating: false
 - from: DEL-01-06
   condition: The default guidance, the role documents and the role set are packaged as supplied.
@@ -50,7 +55,7 @@ code_paths:
 - app/src-tauri/src/instruction_store.rs
 - app/src-tauri/src/instruction_seed_history.rs
 # conversation_roles.rs and ConversationRoles.tsx are shared with DEL-01-04. Here: the role
-# list, the default and the guidance-changed reading. Placement, "Continue as", Fork and the
+# list, the default, the limit accounts and the guidance-changed reading. Placement, "Continue as", Fork and the
 # handoff summary are DEL-01-04's.
 - app/src-tauri/src/conversation_roles.rs
 - app/src/ConversationRoles.tsx

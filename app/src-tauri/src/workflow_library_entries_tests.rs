@@ -326,6 +326,7 @@ fn library_entries_commands_refuse_stale_home_generation_history_and_library() {
                 &root,
                 &stale,
                 || home.clone(),
+                crate::workflow_selection::Wait::for_press(),
                 |root, home| {
                     if operation == "refresh" {
                         root.observe_library_entries(library["reference"].as_str().unwrap())
@@ -372,6 +373,7 @@ fn library_entries_queued_command_rechecks_home_after_waiting_for_root() {
                 }
                 home
             },
+            crate::workflow_selection::Wait::for_press(),
             |_, _| Err::<Value, _>("stale command reached its mutation".into()),
         )
     });
@@ -672,4 +674,29 @@ fn library_entries_registered_changed_copy_and_incomplete_claims_are_not_ds7() {
         .clone();
     assert_eq!(row["state"], "registration record incomplete or unreadable");
     assert_eq!(row["reviewable"], false);
+}
+
+// A library root spelled with a `..` component. Whether the native folder dialog can hand back such a
+// path is not established; this records what a person would meet if a root of that spelling reached the
+// host: the library opens, and its entry is listed as not established, with the reader's reason, and
+// cannot be reviewed. Refusing such a root when it is opened is not built.
+#[test]
+fn library_entries_root_spelled_with_dot_dot_opens_and_its_entries_are_not_established() {
+    let fixture = Fixture::new();
+    entry_package(&fixture, "sample");
+    std::fs::create_dir(fixture.root.join("inner")).unwrap();
+    let control = || Arc::new(Mutex::new(Some(crate::act_control::ActControl::new(&fixture.root))));
+    let mut root = WorkflowRootSession::default();
+    root.open_library(fixture.root.join("inner").join(".."), "project", Some(&fixture.root), control()).expect("the root is absolute, a folder, and has no link above it, so it opens");
+    let entries = entry_library(&root)["entryListing"]["entries"].as_array().unwrap().clone();
+    assert_eq!(entries.len(), 1, "{entries:?}");
+    assert_eq!(entries[0]["name"], "sample");
+    assert_eq!(entries[0]["state"], "not established");
+    assert_eq!(entries[0]["reviewable"], false);
+    assert_eq!(entries[0]["content"], Value::Null, "nothing of the package is read");
+    assert_eq!(entries[0]["limit"], "non-regular package root: the path has a `.` or `..` component");
+    // The same library by its plain spelling lists the entry as reviewable.
+    let mut plain = WorkflowRootSession::default();
+    plain.open_library(fixture.root.clone(), "project", Some(&fixture.root), control()).unwrap();
+    assert!(entry_library(&plain)["entryListing"]["entries"].as_array().unwrap().iter().any(|entry| entry["name"] == "sample" && entry["reviewable"] == true));
 }

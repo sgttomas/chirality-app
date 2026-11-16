@@ -1,12 +1,15 @@
 use super::*;
 
-struct Scratch(PathBuf);
+/// A fixture root under this process's App data custody, as the App holds its
+/// App data before it opens a ledger: a session started here models a relaunch.
+struct Scratch(PathBuf, #[allow(dead_code)] crate::AppDataCustody);
 impl Scratch {
     fn new() -> Self {
         let path = std::env::temp_dir().canonicalize().unwrap()
             .join(crate::util::opaque_id("request-restart-").unwrap());
         std::fs::create_dir(&path).unwrap();
-        Self(path)
+        let custody = crate::hold_app_data_for_test(&path).unwrap();
+        Self(path, custody)
     }
     fn ledger(&self) -> RecoveryLedger {
         RecoveryLedger::open(self.0.join("ledger.jsonl")).unwrap()
@@ -34,7 +37,9 @@ fn unrecorded_session_requests_close_at_startup_without_a_reply() {
     let closed = endings(&ledger);
     assert_eq!(closed.len(), 1, "RQ-06 must close the prior listed request");
     assert_eq!(closed[0]["state"], "closed");
-    assert_eq!(closed[0]["endedAs"], "ended-unanswered(process-exit)");
+    // The record supports no more than this: recorded open by a session that
+    // ended. Neither "unanswered" nor a process exit is asserted.
+    assert_eq!(closed[0]["endedAs"], "open-at-app-session-end");
     assert_eq!(closed[0]["context"], "app-ended-without-record");
     assert_eq!(closed[0]["session"], "new");
     assert_eq!(closed[0]["replyWrite"], "not-attempted");
@@ -162,8 +167,29 @@ fn persisted_request_events_keep_source_time_identity_and_reply_observations() {
     assert_eq!(view["requestEndEvents"].as_array().unwrap().len(), 1);
     let event = &view["requestEndEvents"][0];
     assert_eq!(event["appSession"], "new"); assert_eq!(event["at"], closed["at"]);
+    // Its own kind and standing: not "ended unanswered", and not App-observed.
+    assert_eq!((event["kind"].as_str(), event["standing"].as_str(), event["context"].as_str()),
+        (Some("request_open_at_app_session_end"), Some("App-recorded"), Some("app-ended-without-record")), "{event}");
+    assert!(!serde_json::to_string(&view["requestEndEvents"]).unwrap().contains("unanswered"), "{}", view["requestEndEvents"]);
     let schema: Value = serde_json::from_str(include_str!("../resources/runtime_core/recovery.custody-event.schema.json")).unwrap();
     jsonschema::options().offline().build(&schema).unwrap().validate(event).unwrap();
+    // The retained 0.2 format does not know the kind; it is refused whole, not read in part.
+    let earlier: Value = serde_json::from_str(include_str!("../resources/runtime_core/recovery.custody-event.v0.2.schema.json")).unwrap();
+    assert_eq!(earlier["$id"], "urn:chirality:app-v4:del-01-02:custody-event:0.2");
+    assert_eq!(schema["$id"], "urn:chirality:app-v4:del-01-02:custody-event:0.3");
+    assert!(jsonschema::options().offline().build(&earlier).unwrap().validate(event).is_err());
+    // A startup ending an earlier build wrote stays as it was written and keeps
+    // the kind it was given then; both formats read it.
+    let mut old_row = closed.clone();
+    old_row["endedAs"] = json!("ended-unanswered(process-exit)");
+    old_row["requestIdentity"] = json!("\"written-by-an-earlier-build\"");
+    let mut rows = ledger.current_entries().to_vec(); rows.push(old_row);
+    let mixed = RecoveryCustodyView::from_owner("new", Some(&rows), json!({}), 0, None).snapshot();
+    let kinds: Vec<_> = mixed["requestEndEvents"].as_array().unwrap().iter().map(|e| (e["kind"].as_str().unwrap().to_owned(), e["standing"].as_str().unwrap().to_owned())).collect();
+    assert_eq!(kinds, vec![("request_open_at_app_session_end".to_owned(), "App-recorded".to_owned()), ("request_ended_unanswered".to_owned(), "App-observed".to_owned())]);
+    for (event, schemas) in mixed["requestEndEvents"].as_array().unwrap().iter().zip([vec![&schema], vec![&schema, &earlier]]) {
+        for s in schemas { jsonschema::options().offline().build(s).unwrap().validate(event).unwrap(); }
+    }
     drop(ledger); let mut reopened = f.ledger(); reopened.start_session("later", "candidate").unwrap();
     let later = RecoveryCustodyView::from_owner("later", Some(reopened.current_entries()), json!({}), 0, None).snapshot();
     assert_eq!(later["requestEndEvents"], view["requestEndEvents"]);

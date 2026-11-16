@@ -48,6 +48,8 @@ fn name(s: &str) -> Result<CString, String> {
     CString::new(s).map_err(|_| "NUL in owning path".into())
 }
 fn open_at(dir: &File, leaf: &str, flags: i32) -> Result<File, std::io::Error> {
+    #[cfg(test)]
+    if flags & (libc::O_WRONLY | libc::O_RDWR | libc::O_CREAT | libc::O_TRUNC | libc::O_APPEND) != 0 { crate::records_effect_guard::mutation_for_test("workflow_record_store::open_at"); }
     let n = CString::new(leaf)
         .map_err(|_| std::io::Error::new(std::io::ErrorKind::InvalidInput, "NUL"))?;
     let fd = unsafe {
@@ -65,6 +67,8 @@ fn open_at(dir: &File, leaf: &str, flags: i32) -> Result<File, std::io::Error> {
     }
 }
 fn child(dir: &File, leaf: &str, create: bool) -> Result<File, String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("workflow_record_store::child");
     if create {
         let n = name(leaf)?;
         if unsafe { libc::mkdirat(dir.as_raw_fd(), n.as_ptr(), 0o700) } < 0 {
@@ -125,7 +129,7 @@ fn dir_names(dir: &File) -> Result<Vec<String>, String> {
     unsafe { libc::closedir(stream) };
     Ok(names)
 }
-fn validate(envelope: &Value) -> Result<(), String> {
+pub(crate) fn validate(envelope: &Value) -> Result<(), String> {
     let wr: Value = serde_json::from_str(include_str!(
         "../resources/workflow_role/workspace-registration.schema.json"
     ))
@@ -147,6 +151,19 @@ fn validate(envelope: &Value) -> Result<(), String> {
         .map_err(|e| e.to_string())?
         .validate(envelope)
         .map_err(|e| e.to_string())
+}
+/// The place a read's admission proved, handed to every read of that
+/// operation.
+enum Admitted {
+    /// The project's records folder in the store, through the descriptor the
+    /// binding holds.
+    Store { home: RecordsHome, folder: File },
+    /// In place, below the pinned project folder, where the decision read
+    /// them.
+    InPlace(crate::records_store::InPlace),
+    /// Records nowhere at admission: read as absent. Where the decision would
+    /// read in place, for a source binding.
+    Nowhere(Option<crate::records_store::InPlace>),
 }
 #[derive(Debug, Clone)]
 struct RecordsHome {
@@ -189,6 +206,15 @@ pub struct ProjectRecords {
     /// The project's records store folder once this handle has resolved it:
     /// later reads and writes keep to it even if the path is replaced.
     store: std::sync::Mutex<Option<RecordsHome>>,
+    /// The kept reader's binding to that store, project folder and records
+    /// folder, proved before each read (`records_store::ReaderBinding`).
+    reader: std::sync::Mutex<Option<crate::records_store::ReaderBinding>>,
+    writer: std::sync::Mutex<Option<std::sync::Arc<crate::records_store::WriterBinding>>>,
+}
+#[cfg(test)]
+thread_local! {
+    pub(crate) static BEFORE_INITIAL_WRITER_BINDING: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const { std::cell::RefCell::new(None) };
+    pub(crate) static AFTER_INITIAL_WRITER_BINDING: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const { std::cell::RefCell::new(None) };
 }
 impl ProjectRecords {
     pub fn open(explicit_root: &Path) -> Result<Self, String> {
@@ -216,19 +242,118 @@ impl ProjectRecords {
             directory,
             identity: (m.dev(), m.ino()),
             store: std::sync::Mutex::new(None),
+            reader: std::sync::Mutex::new(None),
+            writer: std::sync::Mutex::new(None),
         })
     }
-    fn read_admission(&self)->Result<Option<crate::storage::Ownership>,String>{
-        // A previously resolved reader belongs to that original store identity,
-        // even if another folder now stands at the project path. Consult its
-        // retention state without reassociating through the replacement path.
-        if let Some(dir)=self.store.lock().unwrap_or_else(|p|p.into_inner()).clone(){return crate::records_retention::read_path(&dir.path);}
+    fn read_admission(&self)->Result<(Option<crate::storage::Ownership>,Admitted),String>{
+        // A previously resolved reader belongs to that original store identity
+        // and is never reassociated. It reads only while its binding holds:
+        // the same store, the same project folder, the project still attached
+        // cleanly to the same records folder, and that same folder (RS §13.8:
+        // a changed, missing or moved link attaches nothing until the person
+        // resolves it); the binding is kept, so it reads again once they do.
+        let mut reader=self.reader.lock().unwrap_or_else(|p|p.into_inner());
+        // Where the decision reads in place, from a binding not kept because
+        // records are nowhere yet: still the decision's folder, not one this
+        // reader spells.
+        let mut not_kept=None;
+        if reader.is_none(){
+            // Bound at the first read that finds a place holding records,
+            // before anything is read: the store folder, or records in place.
+            // The records folder is held from then, and the handle's cache is
+            // that folder. A project with records nowhere yet (no store folder
+            // holding them, and none in place) has no place to bind: its
+            // first records are written into the store by whichever writer
+            // comes first, and this reader binds there at its next read. With
+            // records in place, writes are refused until an import, so the
+            // place changes only by an import, which a bound reader refuses.
+            let binding=crate::records_store::bind_reader(&self.root,crate::records_store::ReaderDecision::Records)?;
+            if binding.project_folder()!=self.identity{
+                return Err(format!("the project folder at {} is not the folder this reader was opened for; nothing read",self.root.display()));
+            }
+            if binding.records_folder().is_some() || !crate::records_store::legacy_census(&self.root)?.is_empty(){
+                self.keep_bound_home(&binding)?;
+                *reader=Some(binding);
+            } else {
+                not_kept=binding.in_place().cloned();
+            }
+        }
+        // The place proved here is the place every read of this operation
+        // goes through: the held store folder, or in place below the pinned
+        // project folder. Nothing decides the place again after this proof.
+        let place=match reader.as_ref(){
+            Some(binding)=>{
+                binding.prove()?;
+                match (binding.records_folder(),binding.records_folder_handle()){
+                    (Some((dir,node)),Some(folder))=>{
+                        let folder=folder?;
+                        return Ok((crate::records_retention::read_path(dir)?,Admitted::Store{home:RecordsHome{path:dir.to_path_buf(),identity:node},folder}));
+                    }
+                    _=>Admitted::InPlace(binding.in_place().cloned().ok_or("not known: where this project's records are read in place; nothing read")?),
+                }
+            }
+            None=>Admitted::Nowhere(not_kept),
+        };
+        // Read in place, or records nowhere: the admission of the project's
+        // store folder, when it has one, is held as before.
         let attachment=crate::records_store::attach(&self.root,false)?;
-        match attachment.dir {Some(dir)=>crate::records_retention::read_path(&dir),None if attachment.refusal.is_some()=>Err(attachment.refusal.unwrap()),None=>Ok(None)}
+        let admission=match attachment.dir {Some(dir)=>crate::records_retention::read_path(&dir)?,None if attachment.refusal.is_some()=>return Err(attachment.refusal.unwrap()),None=>None};
+        Ok((admission,place))
+    }
+    /// The WR records folder for a read, through the place its admission
+    /// proved: beneath the held store folder, or in place below the pinned
+    /// project folder (§13.7), one name at a time without following a link.
+    /// Records nowhere at admission reads as absent. `None` when absent.
+    fn workflow_dir_read(&self,place:&Admitted)->Result<Option<File>,String>{
+        match place{
+            Admitted::Store{folder,..}=>plain_dir_at(folder,"workflow"),
+            Admitted::InPlace(in_place)=>{
+                let mut at:Option<File>=None;
+                for part in in_place.relative.components().map(|c|c.as_os_str().to_str().ok_or("non-UTF8 records component")).chain([Ok("workflow")]){
+                    let Some(next)=plain_dir_at(at.as_ref().unwrap_or(&self.directory),part?)? else { return Ok(None) };
+                    at=Some(next);
+                }
+                Ok(at)
+            }
+            Admitted::Nowhere(_)=>Ok(None),
+        }
+    }
+    /// The handle's cached records home made, or found to be, the bound
+    /// records folder: a home this handle resolved before must be that
+    /// folder.
+    fn keep_bound_home(&self,binding:&crate::records_store::ReaderBinding)->Result<(),String>{
+        let mut cache=self.store.lock().unwrap_or_else(|p|p.into_inner());
+        match (cache.as_ref(),binding.records_folder()){
+            (Some(held),Some((path,node))) if held.path==path && held.identity==node=>Ok(()),
+            (Some(_),_)=>Err("the project's records are no longer read from the folder this reader was opened for; reopen; nothing read".into()),
+            (None,Some((path,node)))=>{*cache=Some(RecordsHome{path:path.to_path_buf(),identity:node});Ok(())}
+            (None,None)=>Ok(()),
+        }
     }
     /// The explicit opened-project path this handle was opened from.
     pub fn root(&self) -> &Path {
         &self.root
+    }
+    fn writer_binding(&self) -> Result<std::sync::Arc<crate::records_store::WriterBinding>, String> {
+        let mut writer = self.writer.lock().unwrap_or_else(|p| p.into_inner());
+        if writer.is_none() {
+            let now = std::fs::symlink_metadata(&self.root).map_err(|e| format!("not known: the project folder could not be examined ({e}); nothing written"))?;
+            if !now.is_dir() || (now.dev(), now.ino()) != self.identity {
+                return Err("the project folder is not the folder this writer was opened for; nothing written".into());
+            }
+            #[cfg(test)]
+            if let Some(hook) = BEFORE_INITIAL_WRITER_BINDING.with(|slot| slot.borrow_mut().take()) { hook(); }
+            let binding = crate::records_store::bind_writer(&self.root);
+            #[cfg(test)]
+            if let Some(hook) = AFTER_INITIAL_WRITER_BINDING.with(|slot| slot.borrow_mut().take()) { hook(); }
+            let binding = binding?;
+            if binding.project_folder() != self.identity {
+                return Err("the project folder is not the folder this writer was opened for; nothing written".into());
+            }
+            *writer = Some(std::sync::Arc::new(binding));
+        }
+        Ok(writer.as_ref().unwrap().clone())
     }
     /// Original project descriptor versus the currently named physical project
     /// and read home. This never mints a store or writes a record. A previously
@@ -238,14 +363,21 @@ impl ProjectRecords {
         if current.identity != self.identity {
             return Err("opened project source was replaced".into());
         }
-        let admission = self.read_admission()?;
-        let home = crate::records_store::home(&self.root)?;
-        if let Some(reason) = home.attachment.refusal { return Err(reason); }
-        let path = match (home.store_mode, home.attachment.dir) {
-            (true, Some(dir)) => dir,
-            _ => self.root.join(crate::storage::LEGACY_RECORDS),
+        let (admission, place) = self.read_admission()?;
+        // The records home is the one the admission proved, through its held
+        // folder; in place (or records nowhere), the §13.7 folder below the
+        // pinned project folder. The place is not decided again.
+        let (path, directory) = match place {
+            Admitted::Store { home, folder } => (home.path, folder),
+            Admitted::InPlace(in_place) | Admitted::Nowhere(Some(in_place)) => {
+                let mut directory = self.directory.try_clone().map_err(|e| e.to_string())?;
+                for part in in_place.relative.components() {
+                    directory = child(&directory, part.as_os_str().to_str().ok_or("non-UTF8 records component")?, false)?;
+                }
+                (in_place.records, directory)
+            }
+            Admitted::Nowhere(None) => return Err("not known: where this project's records are read; nothing read".into()),
         };
-        let directory = opened_directory(&path)?;
         let metadata = directory.metadata().map_err(|e| e.to_string())?;
         let records = RecordsHome { path, identity: (metadata.dev(), metadata.ino()) };
         if let Some(original) = self.store.lock().unwrap_or_else(|p| p.into_inner()).as_ref() {
@@ -272,8 +404,8 @@ impl ProjectRecords {
     /// dangling) or otherwise non-plain folder on the way is reported as an
     /// error, never as "no records".
     pub fn list_references(&self) -> Result<Vec<String>, String> {
-        let _admission=self.read_admission()?;
-        let Some(dir) = self.workflow_dir(false)? else {
+        let (_admission, place)=self.read_admission()?;
+        let Some(dir) = self.workflow_dir_read(&place)? else {
             return Ok(vec![]);
         };
         let mut references = Vec::new();
@@ -291,12 +423,17 @@ impl ProjectRecords {
     fn records(&self, create: bool) -> Result<File, String> {
         self.workflow_dir(create)?.ok_or_else(|| "WR record folder absent".into())
     }
+    // `workflow_dir(false)` is no longer a read path: reads go through
+    // `workflow_dir_read` with the place their admission proved.
     /// The WR records folder (RS §13.8 `workflow/`): in the project's records
     /// store subtree; before an import, for reading only, the §13.7 folder in
     /// place. A write is refused visibly (store unavailable, no identity,
     /// import needed), never redirected. `None` when the folder is absent.
     fn workflow_dir(&self, create: bool) -> Result<Option<File>, String> {
         let cached = self.store.lock().unwrap_or_else(|p| p.into_inner()).clone();
+        // Where the workflow records are read in the project folder, when the
+        // one decision says they are read in place.
+        let mut in_project = None;
         let store = match cached {
             Some(dir) if !create => Some(dir.path),
             _ => {
@@ -309,11 +446,9 @@ impl ProjectRecords {
                 let resolved = if create {
                     Some(crate::records_store::write_dir(&self.root)?)
                 } else {
-                    let home = crate::records_store::home(&self.root)?;
-                    match (home.store_mode, home.attachment.dir) {
-                        (true, Some(dir)) => Some(dir),
-                        _ => None,
-                    }
+                    let home = crate::records_store::readable_home(&self.root)?;
+                    in_project = home.in_place_parts("workflow");
+                    home.in_store().map(Path::to_path_buf)
                 };
                 if let Some(dir) = &resolved {
                     let opened = opened_directory(dir)?;
@@ -331,9 +466,14 @@ impl ProjectRecords {
         };
 
         let Some(store) = store else {
-            let Some(a) = plain_dir_at(&self.directory, ".chirality")? else { return Ok(None) };
-            let Some(b) = plain_dir_at(&a, "records")? else { return Ok(None) };
-            return plain_dir_at(&b, "workflow");
+            // Opened one name at a time below the pinned project folder.
+            let Some(parts) = in_project else { return Ok(None) };
+            let mut at: Option<File> = None;
+            for part in parts {
+                let Some(next) = plain_dir_at(at.as_ref().unwrap_or(&self.directory), part)? else { return Ok(None) };
+                at = Some(next);
+            }
+            return Ok(at);
         };
         let path = store.join("workflow");
         if create {
@@ -354,9 +494,9 @@ impl ProjectRecords {
     }
 
     fn read_raw(&self, reference: &str) -> Result<ResolvedRecord, ResolutionError> {
-        let _admission=self.read_admission().map_err(ResolutionError::Unreadable)?;
+        let (_admission, place)=self.read_admission().map_err(ResolutionError::Unreadable)?;
         let k = key(reference)?;
-        let dir = self.records(false).map_err(ResolutionError::Unreadable)?;
+        let dir = self.workflow_dir_read(&place).map_err(ResolutionError::Unreadable)?.ok_or_else(|| ResolutionError::Unreadable("WR record folder absent".into()))?;
         let mut f = open_at(&dir, &format!("{k}.json"), libc::O_RDONLY).map_err(ioerr)?;
         if !f.metadata().map_err(ioerr)?.is_file() {
             return Err(ResolutionError::Invalid("not regular file".into()));
@@ -435,8 +575,20 @@ impl ProjectRecords {
         Ok(r)
     }
     pub fn publish(&self, pending: &PendingRecord) -> Result<ResolvedRecord, String> {
-        let owning=crate::records_store::write_dir(&self.root)?;
-        let _admission=crate::records_retention::write_path(&owning)?;
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("workflow_record_store::ProjectRecords::publish");
+        let binding = pending.binding.as_ref().map_err(Clone::clone)?;
+        // Preserve the attachment's own refusal before generic queued-write admission.
+        binding.check_attachment()?;
+        let _admission=crate::records_retention::write_path(binding.records_dir())?;
+        binding.prove_for_write()?;
+        // A handle that read in place must refuse an import before publishing,
+        // rather than first discovering it in a closing read after publication.
+        // Prove only a reader already kept by a read. A failed publication
+        // must not bind a new reader to an empty or obstructed records home.
+        if let Some(reader) = self.reader.lock().unwrap_or_else(|p| p.into_inner()).as_ref() {
+            binding.prove_reader(reader)?;
+        }
         if pending.project != self.identity {
             return Err("pending WR record belongs to another project".into());
         }
@@ -446,6 +598,11 @@ impl ProjectRecords {
         let reference = pending.reference();
         let k = key(reference).map_err(|e| format!("{e:?}"))?;
         let dir = self.records(true)?;
+        #[cfg(test)]
+        if let Some(hook) = WRITER_BEFORE_PUBLICATION.with(|h| h.borrow_mut().take()) { hook(); }
+        binding.prove_for_write()?;
+        let published = || ResolvedRecord { root: self.root.clone(), project: self.identity,
+            envelope: pending.envelope.clone(), bytes: pending.bytes.clone() };
         let final_name = format!("{k}.json");
         // A prior uncertain successful link is retried with the original bytes.
         if let Ok(mut f) = open_at(&dir, &final_name, libc::O_RDONLY) {
@@ -456,7 +613,7 @@ impl ProjectRecords {
             }
             f.sync_all().map_err(|e| e.to_string())?;
             dir.sync_all().map_err(|e| e.to_string())?;
-            return self.resolve(reference).map_err(|e| format!("{e:?}"));
+            return Ok(published());
         }
         let staging = crate::util::opaque_id(".pending-")?;
         let mut file = open_at(
@@ -487,11 +644,13 @@ impl ProjectRecords {
             }
             publication_boundary()?;
             dir.sync_all().map_err(|e| e.to_string())?;
-            self.resolve(reference).map_err(|e| format!("{e:?}"))
+            Ok(published())
         })();
         if let Ok(n) = name(&staging) {
             unsafe { libc::unlinkat(dir.as_raw_fd(), n.as_ptr(), 0) };
         }
+        // Remove the temporary alias before returning the completed publication,
+        // so a later reader admission never sees this operation's two-link window.
         result
     }
 }
@@ -850,6 +1009,9 @@ fn map_observation(
 #[derive(Debug)]
 pub struct PendingRecord {
     project: (u64, u64),
+    // A refused admission stays with these pending bytes too. It cannot
+    // discard the pending record or silently obtain another binding on retry.
+    binding: Result<std::sync::Arc<crate::records_store::WriterBinding>, String>,
     envelope: Value,
     bytes: Vec<u8>,
 }
@@ -867,12 +1029,27 @@ impl PendingRecord {
         let bytes = serde_json::to_vec(&envelope).map_err(|e| e.to_string())?;
         Ok(Self {
             project: project.identity,
+            binding: project.writer_binding(),
             envelope,
             bytes,
         })
     }
     pub fn reference(&self) -> &str {
         self.envelope["record_id"].as_str().unwrap()
+    }
+    /// An initial refusal belongs to these immutable bytes. Their envelope
+    /// does not name the owning project identity/folder, so it cannot support
+    /// a fresh binding. A later failure of an admitted writer is different.
+    fn admission_refusal(&self) -> Option<String> {
+        let reason = self.binding.as_ref().err()?;
+        let action = match (self.envelope["body"]["record_kind"].as_str(), self.envelope["body"]["purpose"].as_str()) {
+            (Some("selection_record"), _) | (Some("run_text"), Some("run start")) =>
+                "Workflow start record not saved; nothing was sent; start again to record it. Resolve the refusal, then use Prepare exact selected workflow text to prepare a new start.",
+            (Some("run_text"), Some("run end notice")) =>
+                "End-notice record not saved. The run has already ended; this notice was not sent. After resolving the refusal, you can choose Send without the end notice (recorded as not supplied) to continue without it.",
+            _ => "Supply-check record not saved. The native send, refusal or history check already happened and is not repeated. You can read this check result here, but Retry cannot save this original check.",
+        };
+        Some(format!("{action} Its original bytes are held in this App process only and are lost on quit. This record does not name the project identity and folder it was prepared for, so it cannot be saved from within the App. Original admission refusal: {reason}"))
     }
     /// The owning native producer supplies its actual check; persistence adds no
     /// native authority. Schema-valid JSON is never sufficient for live send/check.
@@ -918,6 +1095,9 @@ pub struct PublishedSupplyCheck {
     check: ResolvedRecord,
 }
 impl PendingSupplyCheck {
+    pub(crate) fn admission_refusal(&self) -> Option<String> {
+        self.record.admission_refusal()
+    }
     pub(crate) fn new(
         project: &ProjectRecords,
         completed: CompletedSupplyCheck,
@@ -980,6 +1160,9 @@ pub struct PublishedRunText {
     text: ResolvedRecord,
 }
 impl PreparedRunPublication {
+    pub(crate) fn admission_refusal(&self) -> Option<String> {
+        self.selection.admission_refusal().or_else(|| self.text.admission_refusal())
+    }
     pub fn new(
         project: &ProjectRecords,
         selection: &Selection,
@@ -1101,6 +1284,8 @@ mod tests;
 
 #[cfg(test)]
 thread_local! { pub(crate) static FAIL_AFTER_LINK: std::cell::Cell<bool> = const { std::cell::Cell::new(false) }; }
+#[cfg(test)]
+thread_local! { static WRITER_BEFORE_PUBLICATION: std::cell::RefCell<Option<Box<dyn FnOnce()>>> = const { std::cell::RefCell::new(None) }; }
 fn publication_boundary() -> Result<(), String> {
     #[cfg(test)]
     if FAIL_AFTER_LINK.with(|v| v.replace(false)) {
@@ -1126,6 +1311,9 @@ pub struct PublishedEndNotice {
     record: ResolvedRecord,
 }
 impl PreparedEndPublication {
+    pub(crate) fn admission_refusal(&self) -> Option<String> {
+        self.record.admission_refusal()
+    }
     pub fn new(
         project: &ProjectRecords,
         prepared: &PreparedRunText,

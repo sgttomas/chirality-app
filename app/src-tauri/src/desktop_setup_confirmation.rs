@@ -1,5 +1,8 @@
 //! Desktop setup's invoking-window confirmation and confirmation-to-save join.
 //! No window lookup, unparented fallback, persistence policy or live Root change.
+// In a test build carrying the scripted driver, lib.rs answers this confirmation through the driver's stand-in, so the
+// native presentation below is not used there.
+#![cfg_attr(chirality_scripted_driver, allow(dead_code))]
 use crate::{act_control::native_statement as ns, desktop_startup::DesktopSetup};
 use raw_window_handle::{
     DisplayHandle, HandleError, HasDisplayHandle, HasWindowHandle, WindowHandle,
@@ -8,8 +11,8 @@ use serde_json::{json, Value};
 use std::sync::{mpsc, Mutex};
 use tauri_plugin_dialog::{DialogExt, FilePath, MessageDialogKind, MessageDialogResult};
 
-const TITLE: &str = "Desktop setup — next launch only";
-const LEAVE: &str = "Leave setup unchanged";
+pub(crate) const TITLE: &str = "Desktop setup — next launch only";
+pub(crate) const LEAVE: &str = "Leave setup unchanged";
 #[cfg(test)]
 const PREPARE: &str = "Prepare home and save for next launch";
 

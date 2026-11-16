@@ -12,8 +12,19 @@ use std::{
     path::{Path, PathBuf},
     sync::{Arc, LazyLock, Mutex, OnceLock},
 };
+#[path = "native_delegation_records.rs"]
+mod delegation;
 const LOG: &str = "coordination.fleet.jsonl";
+/// Kinds that record how a recording went, never a native fact of their own.
+const MECHANICAL: [&str; 2] = ["recording_limit", "recording_recovered"];
+fn is_fact(record: &Value) -> bool {
+    !MECHANICAL.contains(&record["kind"].as_str().unwrap_or(""))
+}
 const ID: &str = "urn:chirality:app-v4:del-06-01:fleet-native-links:0.2";
+/// An observation has one end. Checked against the governing store under its
+/// writer lock, so an end taken from an earlier read is not written beside an
+/// end another writer recorded after that read.
+const ALREADY_ENDED: &str = "an end of this observation is already recorded in the governing store; no second end is written";
 pub(crate) fn validate_record(record: &Value) -> Result<(), String> {
     static SCHEMA: OnceLock<Result<jsonschema::Validator, String>> = OnceLock::new();
     SCHEMA
@@ -44,8 +55,16 @@ pub(crate) fn validate_record(record: &Value) -> Result<(), String> {
         {
             return Err("native relationship endpoints/method/home disagree".into());
         }
-    } else if b["originalObservationId"] == record["observationId"] {
-        return Err("mechanical observation cannot reference itself".into());
+    } else if !is_fact(record) {
+        if b["originalObservationId"] == record["observationId"] {
+            return Err("mechanical observation cannot reference itself".into());
+        }
+    } else if b["child"]["generation"]["home"] != b["nativeHome"]["homeId"]
+        || (record["kind"] == "dispatch_observed"
+            && (b["parent"]["threadId"] == b["child"]["threadId"]
+                || b["parent"]["generation"] != b["child"]["generation"]))
+    {
+        return Err("native delegation endpoints/home disagree".into());
     }
     Ok(())
 }
@@ -62,7 +81,7 @@ fn valid_result(request: &SourceRequest, response: &Value) -> Result<(), String>
     let validators = VALIDATORS
         .get_or_init(|| {
             let schema: Value = serde_json::from_str(include_str!(
-                "../resources/supplier/0.167.0/codex_app_server_protocol.schemas.json"
+                "../resources/supplier/0.169.0/codex_app_server_protocol.schemas.json"
             ))
             .map_err(|e| e.to_string())?;
             ["ThreadStartResponse", "ThreadForkResponse"]
@@ -125,6 +144,13 @@ impl Physical {
         }
         Ok(())
     }
+}
+/// For a test elsewhere to establish that a project's recording context can
+/// be captured as it stands, and under which project identity (nothing is
+/// bypassed: this is `Scope::capture`).
+#[cfg(test)]
+pub(crate) fn captured_context_identity_for_test(root: &Path) -> Result<String, String> {
+    Scope::capture(root).map(|scope| scope.project_id)
 }
 #[derive(Clone)]
 struct Scope {
@@ -254,7 +280,11 @@ pub(crate) struct SourceContext {
     custody_limit: Option<String>,
 }
 pub(crate) fn freeze_source(project: Option<&Path>, home: &HomeSession) -> SourceContext {
-    let generation = home.host.snapshot()["generation"].clone();
+    freeze_at(project, home, home.host.snapshot()["generation"].clone())
+}
+/// The recording context of one generation of this home, which may already
+/// have closed: an observation is recorded for the generation it was received in.
+fn freeze_at(project: Option<&Path>, home: &HomeSession, generation: Value) -> SourceContext {
     let native_home = (|| {
         crate::recovery::generation_ref(&generation)?;
         let config = home.host_config.as_ref().map_err(Clone::clone)?;
@@ -343,8 +373,64 @@ pub(crate) struct Session {
     )>,
     recovery_limit: Option<String>,
     limits: Vec<String>,
+    delegation: delegation::State,
+}
+/// How the host's lifecycle events say a generation's Codex ended, if they do.
+fn generation_end(home: &HomeSession, generation: &Value) -> Option<&'static str> {
+    let events = home.host.lifecycle_events();
+    let ended = |state: &str| events.iter().any(|event| event["generation"] == *generation && event["toState"] == state);
+    if ended("exited-unexpectedly") {
+        Some("Codex process exited unexpectedly")
+    } else if ended("stopped") {
+        Some("Codex process stopped")
+    } else {
+        None
+    }
+}
+/// What the first half of the session's start read, for the second half.
+pub(crate) struct EarlierDelegation(delegation::EarlierRead);
+/// The first half of the session's start for the selected project, with no
+/// lock held: the store's log read for each observation an earlier session of
+/// this App left open, where the App ledger established that session ended.
+/// `host` is any App-owned home's Host: they share the one App ledger.
+pub(crate) fn read_earlier_delegation(project: Option<&Path>, host: &crate::hosting::Host) -> EarlierDelegation {
+    EarlierDelegation(delegation::read_earlier(project, &|| host.established_ended_sessions()))
 }
 impl Session {
+    /// The App is exiting: this session's own observation of each child it
+    /// recorded ends, with the cause the host's lifecycle gives for that
+    /// generation or, where Codex was not seen to end, "App quit".
+    pub(crate) fn end_delegation_at_exit(&mut self, homes: &[Arc<HomeSession>]) {
+        self.end_own_delegation(&|generation| {
+            let home = homes.iter().find(|home| home.host.snapshot()["generation"]["home"] == generation["home"])?;
+            Some(generation_end(home, generation).unwrap_or("App quit"))
+        });
+    }
+    /// Whether the session's start for the project (the end of each
+    /// observation an earlier session of this App left open) has yet to run.
+    pub(crate) fn earlier_delegation_pending(&self) -> bool {
+        self.earlier_pending()
+    }
+    /// Its second half, under the conversation links mutex: the ends the read
+    /// found, taken for recording through the writer every delegation fact uses.
+    pub(crate) fn apply_earlier_delegation(&mut self, read: EarlierDelegation) {
+        self.apply_earlier(read.0);
+    }
+    /// What that reconciliation has done in this session. Memory only.
+    pub(crate) fn delegation_reconciliation(&self) -> Value {
+        self.reconciliation_status()
+    }
+    /// The record tick hands over each home's native views as received. What
+    /// they show of native delegation is recorded once; nothing is sent.
+    pub(crate) fn observe_delegation(&mut self, project: Option<&Path>, home: &HomeSession, views: &[Value]) {
+        self.observe_delegation_views(
+            project,
+            views,
+            &mut |generation| freeze_at(project, home, generation.clone()),
+            &|generation| generation_end(home, generation)
+                .or_else(|| (home.host.snapshot()["generation"] != *generation).then_some("cause not observed")),
+        );
+    }
     pub(crate) fn has_pending(&self) -> bool {
         if self
             .attempts
@@ -607,7 +693,9 @@ impl Session {
                 self.recovery_limit = Some(reason);
             }
         }
-        for fact in self.facts.values_mut().filter(|p| p.permanent.is_none()) {
+        // Delegation facts are published in the order observed, apart.
+        self.settle_delegation();
+        for fact in self.facts.values_mut().filter(|p| p.permanent.is_none() && !delegation::is_delegation(&p.record)) {
             if project.is_some_and(|root| {
                 fact.context
                     .scope
@@ -740,7 +828,7 @@ impl Session {
                     .cloned()
                     .flatten()
             };
-            let failures = if record["kind"] == "related_conversation" {
+            let failures = if is_fact(&record) {
                 [phase_failure(0), phase_failure(1)]
             } else {
                 [None, None]
@@ -787,7 +875,7 @@ impl Session {
         Ok(())
     }
     pub(crate) fn snapshot(&self) -> Value {
-        json!({"nativeAttempts":self.attempts.values().map(|a|json!({"generation":a.request.generation(),"requestId":a.request.request_id(),"requestRef":a.request.request_ref(),"method":a.request.attempted_frame()["method"],"factObserved":a.fact,"limit":a.limit})).collect::<Vec<_>>(),"observations":self.facts.values().map(|p|json!({"observation":if p.context.native_home.is_ok(){Some(&p.record)}else{None},"unrecordedSourceLimitedFact":if p.context.native_home.is_err(){Some(json!({"observationId":p.record["observationId"],"observedAt":p.record["observedAt"],"nativeResult":p.record["body"],"limit":p.context.native_home.as_ref().err()}))}else{None},"storeRecorded":p.store_done,"projectCopied":p.project_done,"permanentRecordingLimit":p.permanent,"firstFailures":p.first_failure,"recordingEvents":p.events.iter().map(|e|json!({"record":e.record,"storeRecorded":e.store_done,"projectCopied":e.project_done,"limit":e.failure})).collect::<Vec<_>>()})).collect::<Vec<_>>(),"quotedCopyRecovery":{"standing":"Existing stored exact lines only; no cold native observation or authority minted","limit":self.recovery_limit,"completedCopies":self.completed_copies,"copies":self.copies.values().map(|p|json!({"observationId":p.record["observationId"],"storeRecorded":p.store_done,"projectCopied":p.project_done,"firstFailures":p.first_failure,"recordingEvents":p.events.iter().map(|e|json!({"record":e.record,"storeRecorded":e.store_done,"projectCopied":e.project_done,"limit":e.failure})).collect::<Vec<_>>()})).collect::<Vec<_>>()},"pending":self.has_pending(),"limits":self.limits,"standing":"Observed native conversation relationships; recording status is separate from native operation success. No role, workflow, dispatch or work state is restored or derived."})
+        json!({"nativeAttempts":self.attempts.values().map(|a|json!({"generation":a.request.generation(),"requestId":a.request.request_id(),"requestRef":a.request.request_ref(),"method":a.request.attempted_frame()["method"],"factObserved":a.fact,"limit":a.limit})).collect::<Vec<_>>(),"observations":self.facts.values().map(|p|json!({"observation":if p.context.native_home.is_ok(){Some(&p.record)}else{None},"unrecordedSourceLimitedFact":if p.context.native_home.is_err(){Some(json!({"observationId":p.record["observationId"],"observedAt":p.record["observedAt"],"nativeResult":p.record["body"],"limit":p.context.native_home.as_ref().err()}))}else{None},"storeRecorded":p.store_done,"projectCopied":p.project_done,"permanentRecordingLimit":p.permanent,"firstFailures":p.first_failure,"recordingEvents":p.events.iter().map(|e|json!({"record":e.record,"storeRecorded":e.store_done,"projectCopied":e.project_done,"limit":e.failure})).collect::<Vec<_>>()})).collect::<Vec<_>>(),"quotedCopyRecovery":{"standing":"Existing stored exact lines only; no cold native observation or authority minted","limit":self.recovery_limit,"completedCopies":self.completed_copies,"copies":self.copies.values().map(|p|json!({"observationId":p.record["observationId"],"storeRecorded":p.store_done,"projectCopied":p.project_done,"firstFailures":p.first_failure,"recordingEvents":p.events.iter().map(|e|json!({"record":e.record,"storeRecorded":e.store_done,"projectCopied":e.project_done,"limit":e.failure})).collect::<Vec<_>>()})).collect::<Vec<_>>()},"pending":self.has_pending(),"limits":self.limits,"standing":"Observed native conversation relationships and native delegation; recording status is separate from native operation success. A recorded dispatch establishes a child and its parent only. No role, workflow or work state is restored or derived."})
     }
 }
 fn line(v: &Value) -> Result<Vec<u8>, String> {
@@ -831,14 +919,20 @@ fn settle(p: &mut Pending) {
                 } else {
                     p.project_done = true
                 };
-                if p.first_failure[phase].is_some() && p.record["kind"] == "related_conversation" {
+                if p.first_failure[phase].is_some() && is_fact(&p.record) {
                     match mechanical(p,phase,"recording_recovered","The exact original line is now proved present and synced; the earlier failed/unconfirmed callback is not changed to success.".into()){Ok(e)=>p.events.push(e),Err(reason)=>p.first_failure[phase]=Some(reason)}
                 }
+            }
+            Err(reason) if phase == 0 && reason == ALREADY_ENDED => {
+                // Nothing to write: the observation's end is already recorded.
+                p.permanent = Some(reason);
+                p.context.activity.take();
+                return;
             }
             Err(reason) => {
                 if p.first_failure[phase].is_none() {
                     p.first_failure[phase] = Some(reason.clone());
-                    if p.record["kind"] == "related_conversation" {
+                    if is_fact(&p.record) {
                         if let Ok(event)=mechanical(p,phase,"recording_limit",format!("Original recording callback failed or was unconfirmed: {reason}. Native operation outcome remains as originally observed.")){p.events.push(event);}
                     }
                 }
@@ -924,6 +1018,8 @@ fn accept_prefix(scope: &Scope, bytes: &[u8], phase: usize) -> Result<(), String
     Ok(())
 }
 fn opened_at(parent: &std::fs::File, name: &str, flags: i32) -> Result<std::fs::File, String> {
+    #[cfg(test)]
+    if flags & (libc::O_WRONLY | libc::O_RDWR | libc::O_CREAT | libc::O_TRUNC | libc::O_APPEND) != 0 { crate::records_effect_guard::mutation_for_test("native_conversation_links::opened_at"); }
     use std::os::fd::{AsRawFd, FromRawFd};
     let name = std::ffi::CString::new(name).map_err(|e| e.to_string())?;
     let fd = unsafe {
@@ -940,6 +1036,8 @@ fn opened_at(parent: &std::fs::File, name: &str, flags: i32) -> Result<std::fs::
     Ok(unsafe { std::fs::File::from_raw_fd(fd) })
 }
 fn child(parent: &std::fs::File, name: &str) -> Result<std::fs::File, String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("native_conversation_links::child");
     use std::os::fd::AsRawFd;
     let name_c = std::ffi::CString::new(name).map_err(|e| e.to_string())?;
     if unsafe { libc::mkdirat(parent.as_raw_fd(), name_c.as_ptr(), 0o700) } != 0
@@ -991,11 +1089,13 @@ fn administrative_lines(path: &Path, format: &str) -> Result<Vec<Value>, String>
     if !bytes.is_empty() && !bytes.ends_with(b"\n") {
         return Err("original association/import source has an unclosed final line; no new Fleet publication".into());
     }
-    bytes
-        .split_inclusive(|b| *b == b'\n')
-        .map(|line| {
-            let row: Value = serde_json::from_slice(line)
-                .map_err(|_| "original association/import source is not JSON")?;
+    // The store's one reading of its line files: a naming line and the closed
+    // fragment it names are not rows; anything else not read is refused.
+    crate::records_store::lines::read(&bytes, path)
+        .require_settled(&bytes, path)
+        .map_err(|_| "original association/import source is not JSON".to_string())?
+        .into_iter()
+        .map(|row| {
             if row["format"] != format || row["formatVersion"] != "0.1" {
                 return Err("original association/import format is unknown".into());
             }
@@ -1004,7 +1104,20 @@ fn administrative_lines(path: &Path, format: &str) -> Result<Vec<Value>, String>
         .collect()
 }
 fn check_import_source(dir: &Path) -> Result<(), String> {
-    for row in administrative_lines(&dir.join("imports.jsonl"), "chirality.records-store.import")? {
+    let path = dir.join("imports.jsonl");
+    let exists = match std::fs::symlink_metadata(&path) {
+        Ok(_) => true,
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => false,
+        Err(e) => return Err(format!("original project import state is unknown ({e}); Fleet publication withheld")),
+    };
+    let rows = administrative_lines(&path, "chirality.records-store.import")?;
+    // An import account that exists and yields no import line (empty, or only
+    // closed fragments and the lines that name them) is unknown, as it is to
+    // the store's own reader: decided on the rows read, not on the bytes.
+    if exists && rows.is_empty() {
+        return Err("original project import state is unknown (its import account exists and is empty or holds no import line); Fleet publication withheld".into());
+    }
+    for row in rows {
         if row["importId"].as_str().is_none_or(str::is_empty)
             || !matches!(row["event"].as_str(), Some("started" | "completed"))
             || (row["event"] == "completed"
@@ -1087,6 +1200,8 @@ fn publish_bound(
     phase: usize,
     origin: Option<(&Value, &[u8])>,
 ) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("native_conversation_links::publish_bound");
     use std::io::Write;
     scope.check()?;
     validate_record(record)?;
@@ -1169,6 +1284,20 @@ fn publish_bound(
     let duplicate = prior.iter().find(|(row, _)| row["observationId"] == *id);
     if duplicate.is_some_and(|(_, line)| line.as_slice() != bytes) {
         return Err("original observation identity conflicts with stored bytes".into());
+    }
+    // A retry finds its own exact line and completes from it; only an end
+    // that is not this one, with this one absent, is a second end.
+    if phase == 0
+        && record["kind"] == "observation_ended"
+        && !prior.iter().any(|(_, line)| line.as_slice() == bytes)
+        && prior.iter().any(|(row, line)| {
+            row["formatVersion"] == "0.2"
+                && row["kind"] == "observation_ended"
+                && row["body"]["child"] == record["body"]["child"]
+                && line.as_slice() != bytes
+        })
+    {
+        return Err(ALREADY_ENDED.into());
     }
     if record["kind"] == "related_conversation"
         && prior.iter().any(|(row, line)| {

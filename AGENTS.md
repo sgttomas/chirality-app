@@ -111,7 +111,7 @@ There are two ways in, and neither proves you have found everything:
 
 ```sh
 <query> neighborhood DEL-nn-nn    # its declared inputs, and the deliverables that consume it
-<query> touches HEAD              # deliverables whose locality or code paths match that one commit
+<query> touches HEAD              # deliverables whose locality, code paths or declared checks match that one commit
 <query> touches main...HEAD       # the same for a whole branch
 ```
 
@@ -352,7 +352,12 @@ The repository checks are the
 commands of the `repository-checks` job in
 `.github/workflows/governance-harness.yml`; run locally the ones a change
 affects, for example `python3 -m pytest -q tools/ci tools/validation`. The
-hosted `harness` result on the exact PR head is the merge check. Broad suites
+hosted `harness` result on the exact PR head is the merge check. GitHub
+reports it against that head, but its repository checks test the event's
+pinned merge commit (that head merged with `main` as GitHub fixed it for the
+event, which a queued run or a rerun keeps), and its product checks the head
+itself; where this text speaks of the checked tree or the tree checks passed
+on, it means both. Broad suites
 run for an identified need or release preparation; the nightly full suite
 covers main.
 
@@ -378,11 +383,26 @@ Agent 0 takes that duty. Agent 0 may arm GitHub
 auto-merge instead of merging by hand. It arms only after the review and any
 INTERLOCUTOR consultation are done and the last push is made, against the
 reviewed head, and it triages `nightly` issues when arming. It disarms before
-any further push to the branch. `main` does not require an up-to-date branch:
-before merging or arming, Agent 0 updates the branch and waits for a fresh run
-when a PR merged since the branch's base touched the same files or the same
-deliverable. Open PRs that overlap this way merge in turn: the later one stays
-unarmed until the earlier has landed and the later has been updated. Agents working under that Agent 0's assignment report a PR ready to
+any further push to the branch. `main` does not require an up-to-date branch.
+Before merging or arming, Agent 0 updates the branch and waits for a fresh run
+when a PR merged since its base touched the same files or the same deliverable.
+If the PRs share no file and their deliverable overlap arises only through
+files declared under several deliverables, Agent 0 may instead keep the checked
+head without updating from main or rerunning checks. Before deciding, it
+compares the merged tree with the checked tree and reads where the changes
+meet; it records its decision and reason in the PR so the owner can reverse it.
+Open PRs with that file or deliverable overlap merge in turn unless Agent 0 has
+decided under this exception to keep the checked head. When merging in turn,
+the later stays unarmed until the earlier has landed and the later has been
+updated. A later
+PR whose head already contains the exact reviewed head of each earlier one may
+instead be merged first by hand and so land them, when its required checks are
+green on its exact head, a comparison made at merge time shows that the merge
+leaves `main` holding exactly the tree those checks passed on, and each earlier
+PR has had its own review and consultation. An earlier PR that gained a commit
+after its review is not landed this way until that commit is reviewed. Each PR
+merged or landed this way says so and states the result or current status of
+its own checks. Agents working under that Agent 0's assignment report a PR ready to
 merge and wait for that Agent 0 to merge it. A Type 1 the owner started directly reports its PR ready to this project's Agent 0; where the owner works with it alone and no Agent 0 holds the project, it holds that perspective and merges under this grant. Explicit holds and reserved decisions
 apply. This grant excludes protection bypasses, history rewrites, force pushes,
 permission changes and releases. Use [Git conventions](#git-conventions) below.
@@ -421,7 +441,10 @@ no memories; durable knowledge lives in Chirality. Scratch holds evidence,
 outputs and logs, never instructions. Once work is integrated or abandoned,
 each contributor deletes its scratch, worktrees, branches and build output
 unless an open review, named consumer or recovery need still uses them, or the
-owner asks to keep them. Before removal, check for wanted uncommitted work;
+owner asks to keep them. The agent that delegated a child or reviewer is
+responsible for removing that agent's worktree and scratch under this rule,
+once it has confirmed they are no longer in use: a returned agent has no one
+else to do it. Before removal, check for wanted uncommitted work;
 remove worktrees with `git worktree remove` so Git's records stay consistent.
 
 ## Local boundaries
@@ -449,7 +472,28 @@ session and the local model server without asking each time. They never sign
 in, never see or handle a credential, and stop and tell Agent 0 if the session
 asks for one. The custom native driver chain is closed: new native control
 tooling needs an approved proposal, and native Computer Use is development
-tooling only. Build offline by default;
+tooling only. The owner approved one such proposal on 13 November 2026, a
+scripted driver compiled only into a test build, in these words: "First a
+hosted run showing a test build can run a trivial script in its window on
+the runner the App already uses. Then the one first-use setup scenario end
+to end. Dropped and reported if the hosted run is not shown within two runs,
+or the scenario does not pass within two built attempts. Nothing in the
+shipped build. Development evidence only: it satisfies nothing in criteria 1
+and 2 and does not replace your own use. No later scenario, chooser, typing
+or confirmation is covered." Both its results are shown
+(`app/examination/scripted_driver/README.md`). A further approval was decided
+by the Inter-Project Agent 0 under the owner's instruction of 13 November 2026
+at 21:46 UTC, and taken up by App Agent 0; it is recorded as that agent's
+decision, not the owner's own word: a second scripted-driver scenario on a
+hosted runner, in a test build with a throwaway home and no credential, that
+types a project path, confirms setup through a test-build stand-in for
+desktop setup's native confirmation and no other, and reads the state the next
+launch reaches; two built attempts to reach its pass; development evidence
+only, satisfying nothing in criteria 1 and 2; under the conditions listed with
+it in `app/examination/scripted_driver/README.md`, including that no build
+carrying the driver's flag is ever the candidate for the operator rehearsal,
+the owner's sign-in or the owner's sitting. Nothing beyond those words is
+approved. Build offline by default;
 downloads, including binaries and archives, require explicit permission
 identifying the file, source and size. Routine read-only inspection of public
 source code and documentation text is authorized.

@@ -363,6 +363,35 @@ fn workflow_supply_dispatch_unsafe_or_extra_copy_is_refused_without_repair() {
     }
 }
 
+// The folder above the registered revision's store becomes a link after the run was prepared (the store
+// moved aside whole, so the bytes behind the link are the revision's own). The reader refuses the path
+// itself, before anything behind the link is read: nothing is sent, and no new run is prepared from it.
+#[cfg(target_os = "macos")]
+#[test]
+fn workflow_supply_dispatch_store_reached_through_a_link_is_refused_by_the_reader_at_send_and_at_prepare() {
+    use std::os::unix::fs::symlink;
+    let f = SupplyFixture::new();
+    let store = f.run().lock().unwrap().prepared().scope().revision_store.clone();
+    let above = store.parent().unwrap().to_path_buf();
+    let aside = above.with_extension("kept");
+    std::fs::rename(&above, &aside).unwrap();
+    symlink(&aside, &above).unwrap();
+    assert_eq!(std::fs::read(store.join("WORKFLOW.md")).unwrap(), f.expected.files()["WORKFLOW.md"], "an ordinary read follows the link to the revision's own bytes");
+    let starts = f.peer.turn_starts();
+    let error = start_workflow_run(&f.root, &f.reference).unwrap_err();
+    assert!(error.contains(crate::workflow_workspace::LINK_IN_PACKAGE_PATH), "the reader's own refusal, not a later check: {error}");
+    assert!(!f.run().lock().unwrap().attempted);
+    assert_eq!(f.peer.turn_starts(), starts, "nothing is sent");
+    let prepared = f.root.lock().unwrap().prepare_run(f.peer.home.clone(), &f.peer.generation, "thread", "person".into(), Some(&f.project));
+    let error = prepared.expect_err("no run is prepared from a store reached through a link");
+    assert!(error.contains(crate::workflow_workspace::LINK_IN_PACKAGE_PATH), "{error}");
+    // Put back as it was, the same run is sent.
+    std::fs::remove_file(&above).unwrap();
+    std::fs::rename(&aside, &above).unwrap();
+    start_workflow_run(&f.root, &f.reference).unwrap();
+    assert_eq!(f.peer.turn_starts(), starts + 1);
+}
+
 #[test]
 fn workflow_supply_dispatch_keeps_original_store_guard_and_no_resend() {
     let f = SupplyFixture::new();

@@ -142,23 +142,108 @@ impl Receipt {
     }
 }
 
+/// One reading of the records capability's physical project identity, taken
+/// with no Host state held: the reading canonicalizes the project and reads its
+/// metadata, and a stalled filesystem must not hold the Host's state. It is
+/// used for one decision, compared under the Host state with [`Self::current`].
+/// The Host state never excluded a change on disk (nothing that replaces a
+/// project folder takes it); what it gives is consistency with the Host's own
+/// state, which `current` keeps: a reading counts only through the capability
+/// still configured, and an error never counts as an identity.
+pub(super) struct IdentityReading {
+    capability: std::sync::Arc<crate::records_access::RecordsCapability>,
+    identity: Result<Value, String>,
+}
+impl IdentityReading {
+    /// A reading through `capability`, taken now; the caller holds no Host state.
+    pub(super) fn through(capability: std::sync::Arc<crate::records_access::RecordsCapability>) -> Self {
+        let identity = capability.project_identity();
+        Self { capability, identity }
+    }
+    /// Under the Host state: the identity read, while the capability it was
+    /// read through is still the one configured. Cleared or replaced since,
+    /// or a read that failed (project replaced, moved, gone or not a folder),
+    /// is an error, never an identity.
+    pub(super) fn current<'a>(&'a self, inner: &super::Inner) -> Result<&'a Value, String> {
+        let configured = inner.records_capability.as_ref().ok_or("records capability unavailable")?;
+        if !std::sync::Arc::ptr_eq(configured, &self.capability) {
+            return Err("records capability configured again since its project was read".into());
+        }
+        self.identity.as_ref().map_err(Clone::clone)
+    }
+}
+
+/// Whether two looks captured the same capability to read through, or both
+/// none: a reading is used only for the look it was taken for.
+pub(super) fn same_capability(
+    a: &Option<std::sync::Arc<crate::records_access::RecordsCapability>>,
+    b: &Option<std::sync::Arc<crate::records_access::RecordsCapability>>,
+) -> bool {
+    match (a, b) {
+        (Some(a), Some(b)) => std::sync::Arc::ptr_eq(a, b),
+        (None, None) => true,
+        _ => false,
+    }
+}
+
 impl super::Host {
-    pub(super) fn records_offer_is_current(
+    /// The check an offer makes before its project is read: the conversation
+    /// was offered the capability in `generation`, and the capability to read
+    /// through. It is the first condition of [`Self::records_offer_is_current`],
+    /// so the look that decides a reading and the check after it are one code.
+    pub(super) fn offer_look(
         inner: &super::Inner,
         generation: &Value,
         thread: &Value,
-    ) -> bool {
+    ) -> Option<std::sync::Arc<crate::records_access::RecordsCapability>> {
         inner
             .records_offers
             .iter()
             .any(|(g, t)| g == generation && t == thread)
-            && inner
-                .records_capability
-                .as_ref()
-                .and_then(|capability| capability.project_identity().ok())
+            .then(|| inner.records_capability.clone())
+            .flatten()
+    }
+    /// The checks a receipt's persistence makes before its offer's project is
+    /// read: the conversation's scope, then the offer's look.
+    fn receipt_look(
+        inner: &super::Inner,
+        generation: &Value,
+        thread: &str,
+        home: Option<&str>,
+    ) -> Result<Option<std::sync::Arc<crate::records_access::RecordsCapability>>, String> {
+        Self::context_scope(inner, generation, thread, home)?;
+        Ok(Self::offer_look(inner, generation, &serde_json::json!(thread)))
+    }
+    /// A reading through `capability`, taken now with no Host state held.
+    pub(super) fn records_reading(
+        &self,
+        capability: std::sync::Arc<crate::records_access::RecordsCapability>,
+    ) -> IdentityReading {
+        let reading = IdentityReading::through(capability);
+        #[cfg(test)]
+        self.records_identity_reads.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+        #[cfg(test)]
+        if let Some(hook) = self.within_records_identity_read.lock().unwrap().take() {
+            hook();
+        }
+        reading
+    }
+    pub(super) fn records_offer_is_current(
+        inner: &super::Inner,
+        generation: &Value,
+        thread: &Value,
+        reading: Option<&IdentityReading>,
+    ) -> bool {
+        // The reading counts only for the look it was taken for: the same
+        // capability, still configured (`current`).
+        same_capability(
+            &Self::offer_look(inner, generation, thread),
+            &reading.map(|reading| reading.capability.clone()),
+        ) && reading
+                .and_then(|reading| reading.current(inner).ok())
                 .is_some_and(|project| {
                     inner.records_offer_projects.iter().any(|(g, t, expected)| {
-                        g == generation && t == thread && *expected == project
+                        g == generation && t == thread && expected == project
                     })
                 })
             && inner
@@ -202,11 +287,21 @@ impl super::Host {
                 .map(|(_, _, receipt)| receipt.clone())
         };
         let Some(mut receipt) = receipt else {
+            let look = Self::offer_look(&self.inner.0.lock().unwrap(), generation, &serde_json::json!(thread));
+            let reading = look.map(|capability| self.records_reading(capability));
             let current = {
                 let inner = self.inner.0.lock().unwrap();
-                Self::records_offer_is_current(&inner, generation, &serde_json::json!(thread))
+                Self::records_offer_is_current(&inner, generation, &serde_json::json!(thread), reading.as_ref())
             };
-            self.records_binding_view(generation,thread,serde_json::json!({"state":if current{"bound in current generation"}else{"unknown/unsupported"},"persistence":"memory-only","limit":"original exact offered start or explicit project receipt unavailable; cold binding unknown, no older offering backfilled"}));
+            // With no receipt, what a binding rests on: this conversation was
+            // offered the capability at its own start in this generation, or
+            // admitted it as a fork of one that was.
+            let basis = {
+                let inner = self.inner.0.lock().unwrap();
+                let forked = inner.threads.iter().rev().any(|row| row["generation"] == *generation && row["threadId"] == thread && !row["forkedFrom"].is_null());
+                if forked { "fork of an offered conversation" } else { "offer" }
+            };
+            self.records_binding_view(generation,thread,serde_json::json!({"state":if current{"bound in current generation"}else{"unknown/unsupported"},"basis":basis,"persistence":"memory-only","limit":"original exact offered start or explicit project receipt unavailable; cold binding unknown, no older offering backfilled"}));
             return;
         };
         receipt.home_class = home.unwrap_or_default().into();
@@ -218,8 +313,13 @@ impl super::Host {
             Ok(value) => self.tag_conversation(generation, thread, home, OWNER, &value),
             Err(limit) => serde_json::json!({"persistence":"memory-only","limit":limit}),
         };
+        // The same checks before the reading and after it (receipt_look).
+        let Ok(look) = Self::receipt_look(&self.inner.0.lock().unwrap(), generation, thread, home) else {
+            return;
+        };
+        let reading = look.map(|capability| self.records_reading(capability));
         let mut inner = self.inner.0.lock().unwrap();
-        if Self::context_scope(&inner, generation, thread, home).is_err() {
+        if Self::receipt_look(&inner, generation, thread, home).is_err() {
             return;
         }
         if let Some((_, _, held)) = inner
@@ -229,10 +329,14 @@ impl super::Host {
         {
             *held = receipt;
         }
-        let current =
-            Self::records_offer_is_current(&inner, generation, &serde_json::json!(thread));
+        let current = Self::records_offer_is_current(
+            &inner,
+            generation,
+            &serde_json::json!(thread),
+            reading.as_ref(),
+        );
         drop(inner);
-        self.records_binding_view(generation,thread,serde_json::json!({"state":if current{"bound in current generation"}else{"unknown/unsupported"},"persistence":persistence["persistence"],"limit":if current{persistence.get("limit").cloned().unwrap_or(Value::Null)}else{serde_json::json!("current capability project differs from the original offering")},"standing":"unverified App operational metadata; cold use requires a healthy durable receipt observation"}));
+        self.records_binding_view(generation,thread,serde_json::json!({"state":if current{"bound in current generation"}else{"unknown/unsupported"},"basis":"receipt","persistence":persistence["persistence"],"limit":if current{persistence.get("limit").cloned().unwrap_or(Value::Null)}else{serde_json::json!("current capability project differs from the original offering")},"standing":"unverified App operational metadata; cold use requires a healthy durable receipt observation"}));
     }
     fn validate_receipt(
         value: &str,
@@ -264,6 +368,42 @@ impl super::Host {
         basis.sort();
         basis.dedup();
         basis
+    }
+    /// The checks a receipt's binding makes before its project is read, in
+    /// order: the conversation's scope (outside it, nothing is shown); the REC
+    /// source unchanged since the lookup and complete; a capability configured,
+    /// which is the one to read through. It reads the state only. Its REC
+    /// observation is current only once refreshed under the REC writer, which
+    /// the reading is not taken under.
+    #[allow(clippy::result_unit_err)]
+    fn binding_look(
+        inner: &super::Inner,
+        generation: &Value,
+        thread: &str,
+        basis: &[String],
+    ) -> Result<Result<std::sync::Arc<crate::records_access::RecordsCapability>, String>, ()> {
+        Self::context_scope(inner, generation, thread, None).map_err(|_| ())?;
+        Ok((|| {
+            let observation = inner
+                .recovery_snapshot
+                .as_ref()
+                .ok_or("records receipt REC source unavailable during binding")?;
+            if inner.recovery_initialization_error.is_some()
+                || inner.recovery_error.is_some()
+                || observation.summary["historyLimits"]
+                    .as_array()
+                    .is_some_and(|limits| !limits.is_empty())
+                || Self::records_tag_basis(&observation.rows, thread) != basis
+            {
+                return Err(
+                    "records receipt REC source changed or became incomplete during lookup".into(),
+                );
+            }
+            inner
+                .records_capability
+                .clone()
+                .ok_or_else(|| "records capability unavailable during binding".to_string())
+        })())
     }
     pub(super) fn restore_records_receipt(&self, generation: &Value, thread: &str) {
         let restored = (|| -> Result<(Receipt, Vec<String>), String> {
@@ -347,6 +487,18 @@ impl super::Host {
         if let Some(hook) = self.before_records_receipt_bind.lock().unwrap().take() {
             hook();
         }
+        // The binding's checks under the state (binding_look), first to decide
+        // whether the project is read, with no state held and before the REC
+        // writer, then again under the writer, where the old code made them.
+        // The binding compares a reading of its own, taken after the lookup's.
+        let captured = match &restored {
+            Ok((_, basis)) => match Self::binding_look(&self.inner.0.lock().unwrap(), generation, thread, basis) {
+                Ok(Ok(capability)) => Some(capability),
+                _ => None,
+            },
+            Err(_) => None,
+        };
+        let binding_reading = captured.clone().map(|capability| self.records_reading(capability));
         // Reacquire the shared REC writer after staging/hook and compare only
         // this receiver's source basis. Read-only observation changes do not
         // invalidate it; a newly conflicting tag does. Hold through binding.
@@ -354,34 +506,29 @@ impl super::Host {
         self.drain_recovery_owned();
         self.refresh_recovery_observation();
         let mut inner = self.inner.0.lock().unwrap();
-        if Self::context_scope(&inner, generation, thread, None).is_err() {
-            return;
-        }
-        let restored = restored.and_then(|(receipt, basis)| {
-            let observation = inner
-                .recovery_snapshot
-                .as_ref()
-                .ok_or("records receipt REC source unavailable during binding")?;
-            if inner.recovery_initialization_error.is_some()
-                || inner.recovery_error.is_some()
-                || observation.summary["historyLimits"]
-                    .as_array()
-                    .is_some_and(|limits| !limits.is_empty())
-                || Self::records_tag_basis(&observation.rows, thread) != basis
-            {
-                return Err(
-                    "records receipt REC source changed or became incomplete during lookup".into(),
-                );
+        let restored = match restored {
+            Err(limit) => {
+                if Self::context_scope(&inner, generation, thread, None).is_err() {
+                    return;
+                }
+                Err(limit)
             }
-            let capability = inner
-                .records_capability
-                .as_ref()
-                .ok_or("records capability unavailable during binding")?;
-            if receipt.directory != capability.project_identity()? {
-                return Err(
-                    "records receipt physical capability project changed during lookup".into(),
-                );
-            }
+            Ok((receipt, basis)) => match Self::binding_look(&inner, generation, thread, &basis) {
+                Err(()) => return,
+                Ok(Err(limit)) => Err(limit),
+                Ok(Ok(capability)) => (|| {
+                    // The reading is bound to what the first look captured.
+                    if !same_capability(&Some(capability), &captured) {
+                        return Err("records receipt binding's project reading no longer matches the binding it was taken for".to_string());
+                    }
+                    let reading = binding_reading
+                        .as_ref()
+                        .ok_or("records capability unavailable during binding")?;
+                    if receipt.directory != *reading.current(&inner)? {
+                        return Err(
+                            "records receipt physical capability project changed during lookup".into(),
+                        );
+                    }
             if inner
                 .records_project_context
                 .as_ref()
@@ -391,7 +538,9 @@ impl super::Host {
                 return Err("explicit capability App project changed during receipt lookup".into());
             }
             Ok(receipt)
-        });
+                })(),
+            },
+        };
         let view = match restored {
             Ok(receipt) => {
                 if !inner
@@ -411,7 +560,7 @@ impl super::Host {
                 inner
                     .records_receipts
                     .push((generation.clone(), thread.into(), receipt));
-                serde_json::json!({"state":"bound in current generation","persistence":"durable App metadata","source":"one matching records receipt after genuine explicit resume","standing":"unverified operational metadata; no role, act or run authority restored"})
+                serde_json::json!({"state":"bound in current generation","basis":"receipt","persistence":"durable App metadata","source":"one matching records receipt after genuine explicit resume","standing":"unverified operational metadata; no role, act or run authority restored"})
             }
             Err(limit) => {
                 serde_json::json!({"state":"unknown/unsupported","limit":limit,"standing":"no original offering backfilled; other tools remain unsupported"})

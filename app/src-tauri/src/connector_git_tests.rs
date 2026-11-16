@@ -350,7 +350,8 @@ fn connector_git_hostile_configuration_promised_miss_and_transport_sentinels() {
         .unwrap()
         .contains("remote"));
     drop(e);
-    assert!(!helper.exists());
+    // DEL-01-01, LIM-021: the folder made for the engine is kept with what is in it.
+    assert!(helper.join("config").exists());
     assert_eq!(snapshot(&r.root), before);
 }
 #[test]
@@ -547,15 +548,35 @@ fn connector_git_supervised_framing_hash_stderr_and_child_reap() {
         ),
     )
     .unwrap();
+    // The deadline is fixed before the child starts, so it must leave the fake time to record
+    // its pid even on a loaded machine: 50 ms did not. One child is started and the process
+    // whose pid it recorded is examined; its descendants are not. A missing or empty pid file
+    // means the child could not be examined, never that nothing survived, and does not show
+    // whether the fake started. It fails the test by name instead of being retried: a retry
+    // would leave the first child unexamined behind a later one that passes.
+    const DEADLINE_MS: u64 = 5000;
     let mut c = Repo::control();
-    c.deadline = std::time::Instant::now() + std::time::Duration::from_millis(50);
+    c.deadline = std::time::Instant::now() + std::time::Duration::from_millis(DEADLINE_MS);
     assert_eq!(
         e.run(&a.objects, &[], &vec![b'x'; 1048576], 20, &c)
             .unwrap_err()
             .kind,
         "deadline"
     );
-    let pid = fs::read_to_string(pidfile).unwrap().parse::<i32>().unwrap();
+    let pid = match fs::read_to_string(&pidfile) {
+        Ok(text) if !text.is_empty() => text
+            .parse::<i32>()
+            .unwrap_or_else(|_| panic!("the fake's pid file holds {text:?}, not a pid")),
+        Ok(_) => panic!(
+            "child not examined: the fake git's pid file is empty after a {DEADLINE_MS} ms \
+             deadline (the file was made and no pid was written to it)"
+        ),
+        Err(err) if err.kind() == std::io::ErrorKind::NotFound => panic!(
+            "child not examined: no pid file after a {DEADLINE_MS} ms deadline (whether the \
+             fake git started is not known)"
+        ),
+        Err(err) => panic!("cannot read the fake's pid file: {err}"),
+    };
     assert_eq!(unsafe { libc::kill(pid, 0) }, -1);
     assert_eq!(
         std::io::Error::last_os_error().raw_os_error(),
@@ -578,4 +599,51 @@ fn connector_git_actual_inherited_environment_is_not_authority() {
         .env("GIT_EXEC_PATH","/unavailable-injected-helpers").env("GIT_CONFIG_GLOBAL","/unavailable-injected-config")
         .output().unwrap();
     assert!(output.status.success(),"sanitized child failed: {}",String::from_utf8_lossy(&output.stderr));
+}
+
+/// DEL-01-01, LIM-021: the connector's working folder is kept with what is in it when its
+/// engine ends normally and when the engine is dropped by a panic. Nothing removes it.
+#[test]
+fn the_connectors_working_folder_is_kept_with_its_contents_however_the_engine_ends() {
+    let r = Repo::new("sha1");
+    let a = Association::open(&r.root, Path::new("literal [*].txt"), &Repo::control()).unwrap();
+    let e = Engine::create(&a.objects, "sha1", &Repo::control()).unwrap();
+    let ended = e.helper.clone();
+    drop(e);
+    assert!(ended.join("config").exists() && ended.join("HEAD").exists());
+    let helper = std::sync::Mutex::new(None);
+    let panicked = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let e = Engine::create(&a.objects, "sha1", &Repo::control()).unwrap();
+        *helper.lock().unwrap() = Some(e.helper.clone());
+        panic!("invented failure while the engine is in use");
+    }));
+    assert!(panicked.is_err());
+    let helper = helper.into_inner().unwrap().unwrap();
+    assert!(helper.join("config").exists() && helper.join("HEAD").exists());
+}
+
+/// DEL-01-01: the engine's initial files are created exclusively, with no link followed, and
+/// written through that handle: nothing already at the name is followed or truncated. At the
+/// helper: a link cannot be put in a folder the engine just made without a race through
+/// `Engine::create`.
+#[test]
+fn the_engines_initial_files_never_follow_or_truncate_what_is_already_there() {
+    let root = std::env::temp_dir().canonicalize().unwrap().join(crate::util::opaque_id("connector-write-new-").unwrap());
+    fs::create_dir(&root).unwrap();
+    let other = root.join("someone-elses");
+    fs::write(&other, b"invented bytes to keep").unwrap();
+    for name in ["HEAD", "config"] {
+        let at = root.join(name);
+        std::os::unix::fs::symlink(&other, &at).unwrap();
+        assert!(crate::connector_git_process::write_new(&at, b"ref: refs/heads/unused\n").is_err(), "{name}: a link refuses");
+        fs::remove_file(&at).unwrap();
+        fs::write(&at, b"already here").unwrap();
+        assert!(crate::connector_git_process::write_new(&at, b"replacement").is_err(), "{name}: a file refuses");
+        assert_eq!(fs::read(&at).unwrap(), b"already here");
+        fs::remove_file(&at).unwrap();
+        crate::connector_git_process::write_new(&at, b"made new").unwrap();
+        assert_eq!(fs::read(&at).unwrap(), b"made new");
+    }
+    assert_eq!(fs::read(&other).unwrap(), b"invented bytes to keep");
+    fs::remove_dir_all(&root).unwrap();
 }
