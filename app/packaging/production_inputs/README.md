@@ -69,8 +69,10 @@ Outputs, in a new private directory:
   IBM Plex font notices (`third-party-notices/fonts/`, refused if their index is
   stale) + complete vendor P1.
 - `input-inventory.json`: exact selected resources/files/vendor hashes and modes,
-  declared source revision, every loaded tool-module hash (five, or six with an
-  upstream supplement) and jsonschema version, the notice coverage account's
+  declared source revision, the hash of each tool module the preparation loads
+  directly (six, or seven with an upstream supplement; the modules those load in
+  turn, such as the notice tools `package_texts.py`, `transitive.py` and `check.py`,
+  are not hashed separately) and jsonschema version, the notice coverage account's
   digest, counts and open components, the plan's release standing, and limits. The source
   revision is a caller claim; actual export provenance is separately checked.
 - `build-recipe.json`: argv array and allowlisted build inputs, explicit offline/
@@ -252,7 +254,11 @@ flags; do not create another cohort or convert a consistency result into release
 - Notices: `../notices/coverage.json` names every open component with what would
   close it. A production plan (`--publisher-input`) refuses while any is open,
   unless `--not-for-public-release` names the plan as not for public release, which
-  `input-inventory.json` then states as its `release_standing`.
+  `input-inventory.json` then states as its `release_standing`. Every mapping of the
+  plan must be named in the account by its exact source and destination. The plan
+  starts from the base configuration's resources, and the base merged with the plan
+  may carry no copy route beyond resources, the icon and the validated profile; a
+  platform or alternate Tauri configuration refuses (`bundle_resources.py`).
 
 Current source-fixture checks: `python3 -m pytest -q
 app/tests/production_inputs_test.py` (16 tests, including actual case/firmlink

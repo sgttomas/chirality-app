@@ -2,15 +2,15 @@
  "format": "notice-coverage-review/1",
  "statement": "A statement of what the reviewer of the change examined, bound to exact content: the curated inputs (the supplier component table; the coverage inputs: owner readings, permitted texts, Library content, icon provenance, stated removals), the indexes that generators make from caches CI does not hold, and the declared pin's distribution record, whose digests the account copies. The reviewer reruns the cache-reading checks for a changed index. It is not a proof: the checks are operator-run on stable inputs, and the record's truth rests on the review of the pull request that changes it, not on the tool. A supplier pin move changes which distribution record is bound, so it updates this record in the same change.",
  "updated_by": "The independent reviewer of the pull request that changes any file listed here, after reviewing that change.",
- "reviewed_in": "pull request 243: review round 3 confirmed the 33 supplier rows (27 covered, ICU pending, 5 uncovered); round 4 to confirm the distribution-record binding, the corrected V8 below-root text, the Library content source records, and the bundle resource accounting (app_resources, the Codex row naming codex/)",
+ "reviewed_in": "pull request 243: review round 3 confirmed the 33 supplier rows (27 covered, ICU pending, 5 uncovered) and round 4 confirmed the seven bound digests and those standings. Proposed for review round 5, not yet reviewed: the declared pin 0.169.0's distribution record in place of 0.167.0's (components.json stays reviewed for 0.167.0, so at 0.169.0 no row of it counts as covered); ICU covered for 0.167.0 on the owner's licence reading of 2026-11-15, its text unchanged; the digests of the two Library source records that list their folders' members; and the twelve exact distribution-reference mappings that replace the distribution-reference/ prefix.",
  "files_sha256": {
-  "app/packaging/supplier_notices/components.json": "17897046bef35847c110a69b00c81fa3ea86d37dd7afb5de4508318731dcd251",
-  "app/packaging/notices/coverage-inputs.json": "4c60159b41d4dd52dcd1afc9cc1ebbe274d1422ba4c84c81fb73cfea7372beee",
+  "app/packaging/supplier_notices/components.json": "c2baff6d6fcc75077151e334f0223084c553822c3b628a89d28d78c0766750f8",
+  "app/packaging/notices/coverage-inputs.json": "85f135fc2b7660f24a820d3ebed026515398bb3601c637303905f9afc4068fec",
   "app/packaging/notices/index.json": "fbf873b839b167d5347b233a7d019df4d053809e8dc9e31968e04b4e6cf46ac4",
   "app/packaging/notices/transitive-index.json": "557c17f96f1a82982d0933a5c0ea570f000db17dad4278d67b16fd63379ed517",
   "app/packaging/font_notice/index.json": "ad2b50d268aa1df4c856a9cb446cd0fb6821deed4a65e4214c6d5f0df69ac03f",
   "app/packaging/sqlite_notice/index.json": "cfbe3f95ea753d14f7d50a4f55d0263693726a30f4847e5430ccadf4d943fc3b",
-  "app/src-tauri/resources/supplier/0.167.0/CANONICAL_DISTRIBUTION.json": "e6b0cd48c3d77728c44f2b79a2eb319686615b4521abb8585e9267694d380f61"
+  "app/src-tauri/resources/supplier/0.169.0/CANONICAL_DISTRIBUTION.json": "166adbcb5b2663ebed90a18808867e7ceb75c87e8c7707bc8bb3d1bb6d4b2dd4"
  },
  "supplier_components": [
   {
@@ -172,7 +172,7 @@
   },
   {
    "id": "icu",
-   "standing": "pending",
+   "standing": "covered",
    "version": "d578f2e8",
    "revision": "d578f2e8b7bd5938e21cfb6bf15c079e0aa5b738",
    "texts": [

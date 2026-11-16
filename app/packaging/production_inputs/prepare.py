@@ -249,9 +249,11 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
     # Bundle-visible copies of the frontend IBM Plex notices; refuse a stale index for this source.
     font_notice = load_module('production_font_notice', 'app/packaging/font_notice/check.py')
     fonts = font_notice.check(source_root)
-    # The source-selected mappings (overlays, SQLite and font notices), shared with the notice coverage account.
+    # The source-selected mappings (base configuration resources, overlays, SQLite and font notices), shared with the
+    # notice coverage account; a platform or alternate configuration or any other copy route refuses there.
     bundle = load_module('production_bundle_resources', 'app/packaging/production_inputs/bundle_resources.py')
     resources = bundle.selected(app, [l['path'] for l in fonts['licenses']], load=lambda path: parse(read(path)))
+    plan_pairs = bundle.pairs(resources)
     supplement_sources = set()
     supplement = None
     if upstream_notices is not None:
@@ -263,6 +265,7 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
             require('*' not in src and src not in resources, 'supplement source conflict')
             resources[src] = bundle.SUPPLEMENT_DESTINATION + name
             supplement_sources.add(src)
+            plan_pairs.append((bundle.SUPPLEMENT_SOURCE + name, bundle.SUPPLEMENT_DESTINATION + name))
     resource_inputs = {}
     for src, dst in resources.items():
         require('*' not in src and '*' not in dst, 'glob resource mapping refused')
@@ -315,6 +318,7 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
     require(sorted(observed_entries, key=lambda e: e['path']) == sorted(expected['inventory']['entries'], key=lambda e: e['path']),
             'vendor full tree differs from mapped supplier reference')
     resources[str(vendor) + '/'] = bundle.VENDOR_DESTINATION
+    plan_pairs.append((bundle.VENDOR_SOURCE, bundle.VENDOR_DESTINATION))
     # Read relevant recipe inputs without selecting a new supplier pin or changing source.
     for relative in ('app/package-lock.json', 'app/src-tauri/Cargo.lock', 'app/src-tauri/Cargo.toml', 'app/src-tauri/tauri.conf.json'):
         read(source_root / relative)
@@ -329,9 +333,10 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
     describes_vendor = (notice_coverage['supplier_pin'] == pin
                         and notice_coverage['supplier_distribution']['manifest_sha256'] == expected_manifest)
     gaps = [f"{o['name']} {o['version']}" for o in notice_coverage['open']]
-    # Every resource this plan maps, including the vendor tree and any supplement, must be named in the account.
-    unnamed = coverage.unaccounted(notice_coverage['accounts_for'], resources.values())
-    gaps += ['bundle resource not named in the notice coverage account: ' + target for target in unnamed]
+    # Every mapping this plan gives the bundler, including the vendor tree and any supplement, must be named in the
+    # account by its exact source and destination.
+    unnamed = coverage.unaccounted(notice_coverage['mappings'], plan_pairs)
+    gaps += [f'bundle mapping not named in the notice coverage account: {src} -> {dst}' for src, dst in unnamed]
     if not describes_vendor:
         gaps.insert(0, f"the account describes supplier {notice_coverage['supplier_pin']}, not the selected vendor")
     if gaps:
@@ -351,7 +356,12 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
                          'macOS': {'minimumSystemVersion': '15.0', 'signingIdentity': None}}}
     if profile_ref:
         # Tauri copies macOS.files relative to Contents/; placement is verified only by a later build inventory.
-        config['bundle']['macOS']['files'] = {'embedded.provisionprofile': profile_ref['path']}
+        config['bundle']['macOS']['files'] = {bundle.PROFILE_FILE: profile_ref['path']}
+    # The configuration the bundler will use is the base merged with this plan: its copy routes must be exactly the
+    # plan's resources, the base icon and, in a production plan, the validated profile.
+    effective = bundle.merge_patch({'bundle': bundle.base_bundle(app, load=lambda path: parse(read(path)))}, config)['bundle']
+    bundle.check_routes(effective, profile=profile_ref['path'] if profile_ref else None)
+    require(effective['resources'] == resources, 'effective bundle resources differ from the plan')
     env = {'CARGO_NET_OFFLINE': 'true', 'NPM_CONFIG_OFFLINE': 'true', 'CARGO_BUILD_JOBS': '2', 'MACOSX_DEPLOYMENT_TARGET': '15.0',
            'NPM_CONFIG_UPDATE_NOTIFIER': 'false'}
     if publisher_ref:

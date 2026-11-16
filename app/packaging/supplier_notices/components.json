@@ -748,9 +748,17 @@
     "app/packaging/supplier_notices/icu-d578f2e8/LICENSE"
    ],
    "supplier_tree_texts": [],
-   "standing": "pending",
+   "standing": "covered",
    "below_root": "Root LICENSE, which carries ICU's third-party terms in its own sections, including notices for five named files (see reason). The retained listing at d578f2e8 is the root only (license.html, 622 bytes, is not held); subdirectories were not listed.",
-   "reason": "Pending the owner's licence reading. ICU's root LICENSE names five files with their own terms: vendor/json/upstream/single_include/nlohmann/json.hpp, aclocal.m4, config.guess and install-sh (each 'only for ICU4C') and sorttable.js ('only for ICU4J'). aclocal.m4 (GPL-2.0-or-later) and config.guess (GPL-3.0-or-later) carry GNU GPL notices, each with the Autoconf exception; both are Autoconf build-system files. The supplier's ICU build file (third_party/v8/icu.BUILD.bazel of openai/codex at 086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a, blob 833c2f027a06d89fa322f5433358383d286682f5, read from a retained copy whose blob equals its tree entry) compiles source/common/**/*.h and *.cpp, source/i18n/**/*.h and *.cpp and source/stubdata/stubdata.cpp, and carries common/icudtl.dat as data; it names none of the five files. The GPL texts those notices refer to are not held. Whether the notices concern anything in the shipped library is a question of licence applicability, not decided here."
+   "reading_context": "ICU's root LICENSE names five files with their own terms: vendor/json/upstream/single_include/nlohmann/json.hpp, aclocal.m4, config.guess and install-sh (each 'only for ICU4C') and sorttable.js ('only for ICU4J'). aclocal.m4 (GPL-2.0-or-later) and config.guess (GPL-3.0-or-later) carry GNU GPL notices, each with the Autoconf exception; both are Autoconf build-system files. The supplier's ICU build file (third_party/v8/icu.BUILD.bazel of openai/codex at 086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a, blob 833c2f027a06d89fa322f5433358383d286682f5, read from a retained copy whose blob equals its tree entry) compiles source/common/**/*.h and *.cpp, source/i18n/**/*.h and *.cpp and source/stubdata/stubdata.cpp, and carries common/icudtl.dat as data; it names none of the five files. The GPL texts those notices refer to are not held. Whether the notices concern anything in the shipped library was put to the owner as a licence reading (owner_licence_reading); the build-system status of the two files is as the answer's description states it, not established here.",
+   "owner_licence_reading": {
+    "decided_by": "owner",
+    "date": "2026-11-15",
+    "relayed_by": "Inter-Project Agent 0 put the question; App Agent 0 relayed the answer",
+    "question": "One licence reading for the App's notices, held since 12 November and never put to you as a question (my omission). ICU's licence text, which the App ships as its notice, mentions GPL terms for two build-system files that are not part of the built library. Is the notice complete as published, or should the two GPL texts ship as well?",
+    "answer": "ICU's licence text as published is complete",
+    "answer_description": "Nothing is added. The two files are build-system files, very likely not compiled into or shipped with anything."
+   }
   },
   {
    "id": "libcxx",

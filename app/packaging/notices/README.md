@@ -95,6 +95,15 @@ Rules `coverage.py` applies, whatever the tables say:
   set in `coverage.py` and that answer's exact words); otherwise it is pending, and
   never covered by another route. The owner's reading of 2026-11-12 is recorded in
   `coverage-inputs.json` and on each row. A reading for any other crate refuses.
+- **ICU** is covered only by the owner's licence reading of 2026-11-15, recorded on
+  its row in `../supplier_notices/components.json` in the closed form
+  `coverage.SUPPLIER_READINGS` fixes: the question as put, the answer the owner
+  selected ("ICU's licence text as published is complete") and that answer's
+  description, exactly, with the decider, date and relay. Without it, or with any
+  other words, ICU is pending. Nothing is added to the ICU notice. The row's
+  `reading_context` keeps the facts examined; the two files' build-system status is as
+  the answer's description states it, not established here. A reading for any other
+  supplier row refuses.
 - **Repository root texts** at the revision a crate names count as covered with that
   basis (the project's Agent 0 accepted them as mechanical matches), distinct from
   licence files inside the crate's archive.
@@ -107,6 +116,13 @@ Rules `coverage.py` applies, whatever the tables say:
   change whatever the table says. The change that extracts their texts adds the rule
   for covering them: the supplier lockfile bound to the supplier's source commit, and
   every locked package with its own extracted text or a stated basis.
+- **Table reviewed for another pin.** When the declared pin differs from the table's
+  `reviewed_for_pin`, no association is carried forward: every table row stands
+  uncovered (the deferred rows with their own reason), and a "Supplier component
+  table" row names the vendor tree. Re-associating the table for the declared pin is a
+  reviewed change to `components.json` that sets `reviewed_for_pin`, updates
+  `coverage-review.json` and states the open table row's removal in
+  `removed_components`.
 - **Supplier texts are bound to their component.** Each committed text records its
   repository and revision; a voice text is a member of the supplier tree with the
   record's digest. A component is covered only when each committed text's repository
@@ -132,29 +148,47 @@ Rules `coverage.py` applies, whatever the tables say:
   whatever the table or the review record says, and must stay in the table. The
   change that establishes one removes its id from that list.
 - **Identities.** Every committed supplier text needs a non-empty repository and
-  revision; an exception needs a non-empty reason. The Library content rows must
+  revision; an exception needs a non-empty reason. Each supplier component's own
+  identity is checked before its texts or exceptions: a component with committed
+  texts needs its repository and revision, and one with supplier-tree texts needs the
+  source URL the supplier's `sources.json` states (no revision is recorded for those,
+  and none is invented); otherwise it stands uncovered. The Library content rows must
   match the source each bundle names in its own record (`MANIFEST.json`,
-  `ROLE_SET_SOURCE_BINDING.json`).
+  `ROLE_SET_SOURCE_BINDING.json`), whose digest `coverage-inputs.json` records.
 - **Removals.** `generate` refuses to drop a component the committed account has
   unless `removed_components` in `coverage-inputs.json` states it with a reason;
   `check --base-account FILE` applies the same rule against an earlier account.
-- **Every bundle resource is named.** The mappings are read, not listed: the
-  resources of `app/src-tauri/tauri.conf.json`, the mappings a production
-  preparation selects (`../production_inputs/bundle_resources.py`, which `prepare.py`
-  uses: both overlays, the SQLite and font notices), and the vendor tree at `codex/`.
-  Each mapping must be named by a row's `accounts_for` (a target, or a folder target
-  ending in `/`) or be the `package_path` of a text a row ships. A mapping no row
-  names becomes an uncovered "Unnamed bundle resource" row, which `--strict` names and
-  a public preparation refuses. A row that claims a mapping that does not exist
-  refuses. The App's own resource content is named in `app_resources` with the App's
-  licence as its notice. The notices name themselves: each licence text by its
-  component's row, and the index and account files by the "Third-party notices and
-  their indexes" row. `prepare.py` also requires every mapping of the final plan,
-  including the vendor tree and an explicitly selected supplement under
-  `third-party-notices/upstream/`, to be named. A change that maps a new resource adds
-  its row in the same change (pull request 236's `release/LIMITATIONS.md` needs an
-  `app_resources` entry and a review-record update). The provisioning profile is
-  placed through `bundle.macOS.files`, not as a resource, and is not named here.
+- **Every bundle mapping is named, exactly.** The mappings are read, not listed:
+  what a production preparation selects (`../production_inputs/bundle_resources.py`,
+  which `prepare.py` uses: the resources of `app/src-tauri/tauri.conf.json`, both
+  overlays, the SQLite and font notices), plus the two it adds from its inputs, the
+  vendor tree at `codex/` and an explicitly selected supplement under
+  `third-party-notices/upstream/`. Each mapping must be named by its exact source and
+  destination: in a row's `mappings`, or as the repository path and package path of a
+  text a row ships. A destination folder names nothing below it. A folder mapping is
+  named only with a membership record: each Library bundle's folder must hold exactly
+  the files its reviewed source record lists, with their digests (an added, changed or
+  missing file leaves the row uncovered), and the vendor tree's members are the
+  distribution record's. The App's own content is named in `app_resources` by exact
+  file mappings, with the App's licence as its notice; the account binds those paths,
+  not their bytes. A mapping no row names becomes an uncovered "Unnamed bundle
+  resource" row, which `--strict` names and a public preparation refuses; a claim on a
+  mapping that does not exist refuses. `prepare.py` requires every mapping of its
+  final plan to be named the same way. A change that maps a new resource adds its row
+  in the same change (the shipped limitations list needs an `app_resources` entry
+  naming `docs/RELEASE_LIMITATIONS_4.0.0.md` to `release/LIMITATIONS.md`, and a
+  review-record update).
+- **Copy routes.** Only `bundle.resources` (as an object) and `bundle.icon` are
+  supported in the base configuration. A platform or alternate Tauri configuration
+  beside `tauri.conf.json` (`tauri.macos.conf.json`, `Tauri.toml`,
+  `tauri.conf.json5` and the like, which the bundler would merge or read instead), or
+  any other `bundle` or `bundle.macOS` key (such as `macOS.files`, `macOS.frameworks`
+  or `externalBin`), refuses rather than being accounted for. `prepare.py` merges its
+  plan into the base as the bundler does and requires the same, allowing
+  `bundle.macOS.files` only for the validated provisioning profile of a production
+  plan, which is the publisher's Apple-issued file and is not a notice component.
+  Frontend assets the build embeds in the executable are not a copy route; the fonts
+  among them have their own rows.
 - **Bundled icons** declared in `tauri.conf.json` need a provenance entry
   (`app_assets`); one without stands uncovered.
 

@@ -36,6 +36,20 @@ READING_ANSWERS = {
                              'records that this was your reading.',
 }
 READING_FIELDS = {'ecosystem', 'package', 'version', 'text', 'decided_by', 'date', 'answer', 'statement'}
+# Supplier components covered only by an owner licence reading, each in this closed form: the question as put, the
+# answer the owner selected and that answer's description, exactly. Without a valid reading the row is pending.
+SUPPLIER_READINGS = {
+    'icu': {
+        'question': 'One licence reading for the App\'s notices, held since 12 November and never put to you as a question '
+                    '(my omission). ICU\'s licence text, which the App ships as its notice, mentions GPL terms for two '
+                    'build-system files that are not part of the built library. Is the notice complete as published, or '
+                    'should the two GPL texts ship as well?',
+        'answer': 'ICU\'s licence text as published is complete',
+        'answer_description': 'Nothing is added. The two files are build-system files, very likely not compiled into or '
+                              'shipped with anything.',
+    },
+}
+SUPPLIER_READING_FIELDS = {'decided_by', 'date', 'relayed_by', 'question', 'answer', 'answer_description'}
 # Crates whose held text comes from these repositories, or was received as an upstream text, are covered only by a
 # valid owner reading; without one they are pending, never covered through another route.
 READING_REQUIRED_REPOSITORIES = {'https://github.com/madsmtm/objc2'}
@@ -55,6 +69,9 @@ LIMITS = [
     'whether it satisfies the licence is not decided here, except where an owner licence reading is recorded.',
     'Supplier components inside an executable are as the supplier\'s build files and package records state; '
     'they are not read from the binaries. Below a repository\'s root, only the texts a row lists are included.',
+    'Each bundle mapping is named by its exact source and destination; the App\'s own content files are bound by path, not '
+    'by bytes. Copy routes other than bundle resources, the icon and a production plan\'s validated provisioning profile '
+    'refuse; frontend assets embedded in the executable are not a copy route.',
 ]
 
 
@@ -92,6 +109,9 @@ def build(repo=REPO, vendor=None):
     repo = Path(repo)
     # First: the curated inputs and cache-made indexes must be the content the review record names.
     check_review_record(repo, texts.load(repo, texts.SUPPLIER))
+    # Then: no copy route the account cannot name (a platform or alternate configuration, or a bundle key beyond
+    # resources and the icon) before anything reads the configuration.
+    bundle.base_bundle(repo / 'app')
     direct = direct_check.check(repo / 'app/packaging/notices', repo)
     index = transitive.check(repo / 'app/packaging/notices/transitive-index.json', repo)
     texts.check(repo)
@@ -148,9 +168,13 @@ def build(repo=REPO, vendor=None):
     for content in inputs['library_content']:
         require(sha(app_license) == content['license_sha256'], 'Library content licence differs from the App\'s LICENSE.md')
         require((repo / content['resource']).is_dir(), 'bundled Library content missing: ' + content['resource'])
-        # The source each bundle names in its own record must be the one this entry states.
-        source = texts.load(repo, content['source_record']['path'])
-        require(content['source_record']['path'].startswith(content['resource']), 'source record outside its bundle: ' + content['name'])
+        # The source each bundle names in its own record must be the one this entry states, and the record must be the
+        # reviewed one (its digest is in this entry), since it is what lists the folder's members.
+        record_path = content['source_record']['path']
+        require(record_path.startswith(content['resource']), 'source record outside its bundle: ' + content['name'])
+        require(sha((repo / record_path).read_bytes()) == content['source_record'].get('sha256'),
+                'bundle source record differs from the reviewed one named in coverage-inputs.json: ' + content['name'])
+        source = texts.load(repo, record_path)
         if content['source_record']['kind'] == 'workflow-manifest':
             require((source['source']['repository'], source['source']['commit'], source['source']['license']['sha256'])
                     == (content['repository'], content['revision'], content['license_sha256']),
@@ -158,9 +182,19 @@ def build(repo=REPO, vendor=None):
         else:
             require(content['source_record']['kind'] == 'role-set-binding' and source['basisCommit'] == content['revision'],
                     'instruction bundle names another source revision: ' + content['name'])
-        add({'class': 'library-content', 'name': content['name'], 'version': content['revision'][:12], 'accounts_for': [content['destination']],
-             'source': {'repository': content['repository'], 'revision': content['revision'], 'bundled_at': content['destination']},
-             'texts': app_text}, COVERED, basis='LICENSE.md at the source revision equals the App\'s LICENSE.md, which ships')
+        listed, unlisted = folder_membership(repo, content, source)
+        row = {'class': 'library-content', 'name': content['name'], 'version': content['revision'][:12],
+               'mappings': [{'source': content['resource'], 'destination': content['destination'],
+                             'members': {'files': listed, 'listed_by': record_path}}],
+               'source': {'repository': content['repository'], 'revision': content['revision'], 'bundled_at': content['destination']},
+               'texts': app_text}
+        if unlisted:
+            row['texts'] = []
+            add(row, UNCOVERED, reason='the bundled folder differs from the members its source record lists: ' + ', '.join(unlisted),
+                would_close='restore the folder to its source record, or rebundle it with its generator and review the new record')
+        else:
+            add(row, COVERED, basis='LICENSE.md at the source revision equals the App\'s LICENSE.md, which ships; the folder holds '
+                                    'exactly the members its source record lists')
 
     # Cargo and npm runtime dependencies (direct ones are a subset of the transitive closure).
     plan = texts.planned(repo)
@@ -258,7 +292,8 @@ def build(repo=REPO, vendor=None):
     claimed = {}
     ids = [item['id'] for item in table['components']]
     require(len(ids) == len(set(ids)), 'duplicate supplier component id')
-    require(not reviewed or set(DEFERRED) <= set(ids), 'a deferred supplier row is missing: ' + str(sorted(set(DEFERRED) - set(ids))))
+    require(set(DEFERRED) <= set(ids), 'a deferred supplier row is missing: ' + str(sorted(set(DEFERRED) - set(ids))))
+    require(set(SUPPLIER_READINGS) <= set(ids), 'a supplier row awaiting a reading is missing: ' + str(sorted(set(SUPPLIER_READINGS) - set(ids))))
     compiled_members = set()
     for item in table['components']:
         missing = [m for m in item['members'] + item['supplier_tree_texts'] if m not in tree]
@@ -282,10 +317,19 @@ def build(repo=REPO, vendor=None):
                            for p in item['texts']]
                           + [{'supplier_member': m, 'source': 'inside the supplier tree', 'package_path': VENDOR_DESTINATION + m,
                               'size_bytes': tree[m]['size'], 'sha256': tree[m]['sha256']} for m in item['supplier_tree_texts'] if m in tree]}
-        for key in ('declared_license', 'below_root', 'kind', 'accounts_for'):
+        for key in ('declared_license', 'below_root', 'kind', 'reading_context'):
             if key in item:
                 entry[key] = item[key]
+        # The supplier tree is one mapping, the selected vendor tree, whose members are the distribution record's files.
+        # Only a reviewed table names it; an unreviewed one leaves it to the open component-table row below.
+        require(set(item.get('accounts_for', [])) <= {VENDOR_DESTINATION}, 'a supplier row may name only the vendor tree: ' + item['id'])
+        if reviewed and item.get('accounts_for'):
+            entry['mappings'] = [vendor_mapping(record_path, tree)]
         require(item['standing'] in ('covered', 'uncovered', 'pending'), 'unknown supplier standing: ' + item['id'])
+        reading = item.get('owner_licence_reading')
+        require(reading is None or item['id'] in SUPPLIER_READINGS, 'owner reading names a supplier row that needs none: ' + item['id'])
+        if reading is not None:
+            entry['owner_licence_reading'] = reading
         # Every committed text must come from the component's own repository and revision, or be a named exception.
         foreign = [p for p in item['texts'] if (by_path[p]['repository'], by_path[p]['revision']) != (item['repository'], item['revision'])
                    and p not in exceptions]
@@ -296,14 +340,30 @@ def build(repo=REPO, vendor=None):
             # lockfile bound to the supplier's source commit, and each locked package with its own text or a stated basis).
             add(entry, UNCOVERED, reason=item.get('reason') or 'deferred: this row has no route to covered in this change',
                 would_close=item.get('would_close') or 'the change that establishes this row removes it from coverage.DEFERRED')
+        elif not reviewed:
+            # An association made for another pin is not carried forward, whatever standing it had there.
+            add(entry, UNCOVERED, reason=f'the component table associates this row for {table["reviewed_for_pin"]}, not for the declared '
+                                         f'pin {pin}; that association is not carried forward',
+                would_close='review components.json against the declared pin\'s tree and set reviewed_for_pin')
+        elif identity_gaps(item):
+            # Checked before any text or exception: a component without its own identity has nothing to match texts to.
+            add(entry, UNCOVERED, reason='the component\'s own identity is incomplete: ' + '; '.join(identity_gaps(item)),
+                would_close='record the component\'s repository (or, for a supplier-tree text, its source URL) and revision')
         elif item['standing'] == 'covered' and foreign:
             add(entry, UNCOVERED, reason='a shipped text records another repository or revision than the component: ' + ', '.join(foreign),
                 would_close='ship the component\'s own texts, or name each other text as an exception with its reason')
         elif item['standing'] == 'covered' and not item['texts'] and not item['supplier_tree_texts']:
             raise ValueError('covered supplier component ships no text: ' + item['id'])
+        elif item['id'] in SUPPLIER_READINGS and not (item['standing'] == 'covered' and supplier_reading_valid(reading, item['id'])):
+            add(entry, HELD, reason=item.get('reason') or 'the held text ships; its adequacy awaits the owner\'s licence reading'
+                + ('' if reading is None else ' (the recorded reading is not in the closed form)'))
+        elif item['id'] in SUPPLIER_READINGS:
+            add(entry, COVERED, basis=f'owner licence reading ({reading["date"]}): {reading["answer"]}; the text recorded at the '
+                                      'component\'s own repository and revision ships unchanged')
         elif item['standing'] == 'covered':
             add(entry, COVERED, basis='texts recorded at the component\'s own repository and revision' if item['texts']
-                else 'licence texts the supplier ships in its tree, identified by the distribution record\'s digests')
+                else 'licence texts the supplier ships in its tree, identified by the distribution record\'s digests; the '
+                     'component is identified by its source URL')
         elif item['standing'] == 'pending':
             add(entry, HELD, reason=item['reason'])
         else:
@@ -313,8 +373,10 @@ def build(repo=REPO, vendor=None):
         require(not unclaimed, 'supplier members claimed by no component: ' + str(unclaimed))
     else:
         add({'class': 'supplier', 'id': 'component-table', 'name': 'Supplier component table', 'version': pin,
-             'source': {'table': texts.SUPPLIER}, 'members': unclaimed, 'texts': []}, UNCOVERED,
-            reason=f'the supplier component table was reviewed for {table["reviewed_for_pin"]}, not for the declared pin {pin}',
+             'mappings': [vendor_mapping(record_path, tree)],
+             'source': {'table': texts.SUPPLIER}, 'members': sorted(tree), 'texts': []}, UNCOVERED,
+            reason=f'the supplier component table was reviewed for {table["reviewed_for_pin"]}, not for the declared pin {pin}; '
+                   'no row of it counts as covered for this tree',
             would_close='review components.json against the declared pin\'s tree and set reviewed_for_pin')
     # Expectations that do not come from the table. The executable rule fits this distribution record; the record's own
     # Mach-O count must equal executables plus .dylib members, and every one of them must belong to a component.
@@ -336,39 +398,46 @@ def build(repo=REPO, vendor=None):
     if vendor is not None:
         check_vendor(vendor, table, tree)
 
-    # Every resource the bundle maps is named in the account: by a row's accounts_for, or as the package path of a
-    # text a row ships. The mappings are read from tauri.conf.json and from what a production preparation selects
-    # (bundle_resources.selected), plus the vendor tree it adds. A row's claim must name a mapping that exists.
-    conf = texts.load(repo, 'app/src-tauri/tauri.conf.json')['bundle'].get('resources', {})
+    # Every mapping the bundle is given is named in the account by its exact source and destination: in a row's
+    # mappings, or as the repository path and package path of a text a row ships. A folder mapping is named only with
+    # a membership record (the Library bundles' own records, the vendor tree's distribution record). The mappings are
+    # what a production preparation selects (bundle_resources.selected: the base configuration's resources, the
+    # overlays and the SQLite and font notices; any other copy route refuses there), plus the two caller-selected
+    # mappings it adds: the vendor tree and an explicitly selected upstream supplement. A claim must name a mapping
+    # that exists; a destination prefix names nothing.
     selected = bundle.selected(repo / 'app', [l['path'] for l in fonts['licenses']])
-    mapped = sorted(set(conf.values()) | set(selected.values()) | {bundle.VENDOR_DESTINATION})
+    mapped = set(bundle.pairs(selected)) | {(bundle.VENDOR_SOURCE, VENDOR_DESTINATION)} | set(SUPPLEMENT_PAIRS)
     for item in inputs['app_resources']:
-        add({'class': 'app-content', 'name': item['name'], 'version': app['version'], 'accounts_for': item['accounts_for'],
+        require(set(item) == {'name', 'mappings', 'note'} and item['mappings'], 'unknown app_resources entry shape: ' + str(item.get('name')))
+        for pair in item['mappings']:
+            require(set(pair) == {'source', 'destination'} and not pair['source'].endswith('/') and not pair['destination'].endswith('/'),
+                    'App content names each file mapping exactly (a folder needs a membership record): ' + item['name'])
+        add({'class': 'app-content', 'name': item['name'], 'version': app['version'], 'mappings': item['mappings'],
              'source': {'repository': app['source']['repository']}, 'texts': app_text}, COVERED,
             basis='the App\'s own content under the App\'s licence; the App\'s LICENSE.md ships as its notice')
-    index_files = [t for t in mapped if t in NOTICE_INDEX_FILES]
-    sources = {dst: src for src, dst in selected.items()}
+    index_pairs = [(src, dst) for dst, src in NOTICE_INDEX_SOURCES.items() if (src, dst) in mapped]
     add({'class': 'notices', 'name': 'Third-party notices and their indexes', 'version': app['version'],
-         'accounts_for': [*index_files, bundle.SUPPLEMENT_DESTINATION],
-         'source': {'note': 'each licence text is named by the package_path of the component row that ships it'},
-         'texts': [text_entry(repo, 'app/' + sources[t].removeprefix('../'), t) for t in index_files if t != NOTICE_ACCOUNT]},
+         'mappings': [{'source': src, 'destination': dst} for src, dst in [*index_pairs, *SUPPLEMENT_PAIRS]],
+         'source': {'note': 'each licence text is named by the repository and package paths of the component row that ships it'},
+         'texts': [text_entry(repo, src, dst) for src, dst in index_pairs if dst != NOTICE_ACCOUNT]},
         COVERED, basis='these are the notices: the licence texts are named by their components\' rows, and the index and '
-                       'account files are named here; an explicitly selected upstream supplement is placed under '
-                       + bundle.SUPPLEMENT_DESTINATION)
-    claims = [entry for c in components for entry in c.get('accounts_for', [])]
-    shipped_paths = [t['package_path'] for c in components for t in c['texts'] if 'package_path' in t]
-    named = claims + shipped_paths
-    dynamic = {bundle.SUPPLEMENT_DESTINATION}
+                       'account files are named here; an explicitly selected upstream supplement (receipts.py check_stage: '
+                       'exactly ' + ' and '.join(bundle.SUPPLEMENT_FILES) + ') is placed under ' + bundle.SUPPLEMENT_DESTINATION)
+    claims = [(m['source'], m['destination']) for c in components for m in c.get('mappings', [])]
+    claims += [(t['repository_path'], t['package_path']) for c in components for t in c['texts'] if 'repository_path' in t]
     for claim in claims:
-        require(claim in dynamic or any(covers(claim, target) for target in mapped),
-                'an account row claims a mapping that does not exist: ' + claim)
-    for path in shipped_paths:
-        require(any(covers(target, path) for target in mapped), 'a shipped text is not in any bundle mapping: ' + path)
-    for target in unaccounted(named, mapped):
-        add({'class': 'resource', 'name': 'Unnamed bundle resource ' + target, 'version': app['version'], 'accounts_for': [target],
-             'source': {'mapped_from': sorted(src for src, dst in [*conf.items(), *selected.items()] if dst == target)},
-             'texts': []}, UNCOVERED, reason='the bundle maps this resource and no account row names it',
-            would_close='a row naming it in accounts_for, with its notice or the basis on which it is the App\'s own content')
+        require(claim in mapped, 'an account row claims a mapping that does not exist: ' + ' -> '.join(claim))
+    for component in components:
+        for text in component['texts']:
+            # A supplier-tree text is a member of the vendor tree mapping, identified by the distribution record.
+            require('repository_path' in text or (text.get('supplier_member') in tree
+                                                  and text['package_path'] == VENDOR_DESTINATION + text['supplier_member']),
+                    'a shipped text is not in any bundle mapping: ' + str(text.get('package_path')))
+    for src, dst in sorted(mapped - set(claims)):
+        add({'class': 'resource', 'name': 'Unnamed bundle resource ' + dst, 'version': app['version'],
+             'mappings': [{'source': src, 'destination': dst}], 'texts': []}, UNCOVERED,
+            reason='the bundle maps this source to this destination and no account row names that mapping',
+            would_close='a row naming this exact mapping, with its notice or the basis on which it is the App\'s own content')
     for path in ('app/packaging/notices/index.json', 'app/packaging/notices/transitive-index.json', texts.INPUTS, texts.SUPPLIER,
                  'app/packaging/font_notice/index.json', 'app/packaging/sqlite_notice/index.json', texts.OVERLAY, REVIEW):
         digest(path)
@@ -427,19 +496,83 @@ def check_review_record(repo, table):
 
 
 NOTICE_ACCOUNT = 'third-party-notices/coverage.json'
-NOTICE_INDEX_FILES = ('third-party-notices/index.json', 'third-party-notices/transitive-index.json', NOTICE_ACCOUNT,
-                      'third-party-notices/fonts/index.json', 'third-party-notices/sqlite-preparation/index.json',
-                      'third-party-notices/sqlite-preparation/README.md', 'third-party-notices/sqlite-preparation/libsqlite3-sys.LICENSE')
+# The notice index and account files, each from exactly this repository source.
+NOTICE_INDEX_SOURCES = {
+    'third-party-notices/index.json': 'app/packaging/notices/index.json',
+    'third-party-notices/transitive-index.json': 'app/packaging/notices/transitive-index.json',
+    NOTICE_ACCOUNT: ACCOUNT,
+    'third-party-notices/fonts/index.json': 'app/packaging/font_notice/index.json',
+    'third-party-notices/sqlite-preparation/index.json': 'app/packaging/sqlite_notice/index.json',
+    'third-party-notices/sqlite-preparation/README.md': 'app/packaging/sqlite_notice/README.md',
+    'third-party-notices/sqlite-preparation/libsqlite3-sys.LICENSE': 'app/packaging/sqlite_notice/libsqlite3-sys.LICENSE',
+}
+SUPPLEMENT_PAIRS = [(bundle.SUPPLEMENT_SOURCE + name, bundle.SUPPLEMENT_DESTINATION + name) for name in bundle.SUPPLEMENT_FILES]
 
 
-def covers(entry, target):
-    """An entry names a target exactly, or names a folder mapping (ending in /) that holds it."""
-    return target == entry or (entry.endswith('/') and target.startswith(entry))
+def unaccounted(named, mappings):
+    """Mappings (source, destination) that no account entry names exactly."""
+    named = {tuple(entry) for entry in named}
+    return sorted(tuple(m) for m in set(map(tuple, mappings)) if tuple(m) not in named)
 
 
-def unaccounted(named, targets):
-    """Mapped bundle targets that no account entry names."""
-    return sorted(t for t in set(targets) if not any(covers(entry, t) for entry in named))
+def vendor_mapping(record_path, tree):
+    return {'source': bundle.VENDOR_SOURCE, 'destination': VENDOR_DESTINATION,
+            'members': {'files': len(tree), 'listed_by': record_path}}
+
+
+def folder_membership(repo, content, record):
+    """(number of listed files, differences) for a bundled Library folder against the members its source record lists."""
+    root = Path(repo) / content['resource']
+    record_name = content['source_record']['path'].removeprefix(content['resource'])
+    listed = {record_name: None}
+    if content['source_record']['kind'] == 'workflow-manifest':
+        for package in record['packages']:
+            for item in package['files']:
+                listed[package['name'] + '/' + item['path']] = (item['bytes'], item['sha256'])
+    else:
+        listed[record['roleSet']['path']] = (None, record['roleSet']['sha256'])
+        for item in record['guidance']:
+            listed[item['path']] = (item['byteLength'], item['sha256'])
+    held, odd = {}, []
+    for path in sorted(root.rglob('*')):
+        relative = path.relative_to(root).as_posix()
+        if path.is_symlink() or not (path.is_file() or path.is_dir()):
+            odd.append(relative)
+        elif path.is_file():
+            held[relative] = path
+    differences = [p + ' (link or special file)' for p in odd]
+    differences += [p + ' (not listed)' for p in sorted(set(held) - set(listed))]
+    differences += [p + ' (listed, not held)' for p in sorted(set(listed) - set(held))]
+    for relative, expected in sorted(listed.items()):
+        if expected is not None and relative in held:
+            raw = held[relative].read_bytes()
+            if sha(raw) != expected[1] or (expected[0] is not None and len(raw) != expected[0]):
+                differences.append(relative + ' (differs from its listed digest)')
+    return len(listed), differences
+
+
+def identity_gaps(item):
+    """What the component's own identity lacks, independently of its texts and exceptions."""
+    def present(value):
+        return isinstance(value, str) and value.strip() != ''
+    gaps = []
+    if item['texts'] and not (present(item.get('repository')) and present(item.get('revision'))):
+        gaps.append('committed texts need the component\'s own repository and revision')
+    if item['supplier_tree_texts'] and not (present(item.get('repository')) and item['repository'].startswith('https://')):
+        gaps.append('a supplier-tree text needs the component\'s source URL (as the supplier\'s sources.json states it)')
+    if item.get('revision') is not None and not present(item['revision']):
+        gaps.append('a revision, when recorded, must be non-empty')
+    return gaps
+
+
+def supplier_reading_valid(reading, component):
+    """An owner reading for a supplier row in its closed form: the question, answer and description exactly."""
+    import re
+    expected = SUPPLIER_READINGS[component]
+    return (isinstance(reading, dict) and set(reading) == SUPPLIER_READING_FIELDS and reading['decided_by'] == 'owner'
+            and isinstance(reading['date'], str) and re.fullmatch(r'\d{4}-\d{2}-\d{2}', reading['date']) is not None
+            and isinstance(reading['relayed_by'], str) and reading['relayed_by'].strip() != ''
+            and all(reading[key] == value for key, value in expected.items()))
 
 
 def component_key(component):
@@ -490,8 +623,11 @@ def check(repo=REPO, vendor=None, base_account=None):
         require(not dropped, 'components dropped from the base account without a reviewed statement: ' + ', '.join(dropped))
     return {'sha256': sha(committed), 'counts': value['counts'], 'open': value['open'], 'supplier_pin': value['supplier_pin'],
             'supplier_distribution': value['supplier_distribution'],
-            'accounts_for': sorted({e for c in value['components'] for e in c.get('accounts_for', [])}
-                                   | {t['package_path'] for c in value['components'] for t in c['texts'] if 'package_path' in t})}
+            # Mappings the account's rows name (an "Unnamed bundle resource" row names none; it is in the open list).
+            'mappings': sorted({(m['source'], m['destination']) for c in value['components'] if c['class'] != 'resource'
+                                for m in c.get('mappings', [])}
+                               | {(t['repository_path'], t['package_path']) for c in value['components'] for t in c['texts']
+                                  if 'repository_path' in t})}
 
 
 def generate(repo=REPO, vendor=None):

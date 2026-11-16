@@ -1,10 +1,10 @@
 {
  "format": "chirality.app.notice-coverage/1",
  "package": "Chirality.app, macOS arm64",
- "supplier_pin": "0.167.0",
+ "supplier_pin": "0.169.0",
  "supplier_distribution": {
-  "record": "app/src-tauri/resources/supplier/0.167.0/CANONICAL_DISTRIBUTION.json",
-  "manifest_sha256": "158dd67072236253a694ca06d9bf7bfdebbe20d4a197bbf675433cbdddea7e7b"
+  "record": "app/src-tauri/resources/supplier/0.169.0/CANONICAL_DISTRIBUTION.json",
+  "manifest_sha256": "c2d91de0619e9be8e9fb294af5a0323b352cadc75aabc8162469fc9a3f504012"
  },
  "compiled_program_rule": "for this distribution record, every regular file with an execute bit that is neither a .dylib library nor .json data is a compiled program (checked against the record's Mach-O count); each has a compiled-dependencies component, which stands uncovered in this change",
  "review_record": "app/packaging/notices/coverage-review.json",
@@ -18,28 +18,77 @@
  ],
  "inputs_sha256": {
   "app/packaging/font_notice/index.json": "ad2b50d268aa1df4c856a9cb446cd0fb6821deed4a65e4214c6d5f0df69ac03f",
-  "app/packaging/notices/coverage-inputs.json": "4c60159b41d4dd52dcd1afc9cc1ebbe274d1422ba4c84c81fb73cfea7372beee",
-  "app/packaging/notices/coverage-review.json": "5add5d2be107e1053c3eddff6ca9a85263b801c33c523f86ff77b8fb1731810c",
+  "app/packaging/notices/coverage-inputs.json": "85f135fc2b7660f24a820d3ebed026515398bb3601c637303905f9afc4068fec",
+  "app/packaging/notices/coverage-review.json": "c48190acfd5aacaf63df914e7649d7bd6fbd2d12a90bc8fcad95fcc687643e1d",
   "app/packaging/notices/index.json": "fbf873b839b167d5347b233a7d019df4d053809e8dc9e31968e04b4e6cf46ac4",
   "app/packaging/notices/transitive-index.json": "557c17f96f1a82982d0933a5c0ea570f000db17dad4278d67b16fd63379ed517",
   "app/packaging/sqlite_notice/index.json": "cfbe3f95ea753d14f7d50a4f55d0263693726a30f4847e5430ccadf4d943fc3b",
-  "app/packaging/supplier_notices/components.json": "17897046bef35847c110a69b00c81fa3ea86d37dd7afb5de4508318731dcd251",
+  "app/packaging/supplier_notices/components.json": "c2baff6d6fcc75077151e334f0223084c553822c3b628a89d28d78c0766750f8",
   "app/packaging/unsigned/tauri.notices.conf.json": "740a195677a7ac3bc190ad8ffe76c5999d89a726f5d02db72cf83d576e245347",
-  "app/src-tauri/resources/supplier/0.167.0/CANONICAL_DISTRIBUTION.json": "e6b0cd48c3d77728c44f2b79a2eb319686615b4521abb8585e9267694d380f61"
+  "app/src-tauri/resources/supplier/0.169.0/CANONICAL_DISTRIBUTION.json": "166adbcb5b2663ebed90a18808867e7ceb75c87e8c7707bc8bb3d1bb6d4b2dd4"
  },
  "counts": {
-  "covered": 233,
-  "held-pending-owner-licence-reading": 1,
-  "uncovered": 5,
-  "total": 239
+  "covered": 206,
+  "held-pending-owner-licence-reading": 0,
+  "uncovered": 34,
+  "total": 240
  },
  "open": [
+  {
+   "name": "Codex",
+   "version": "0.167.0",
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
+  },
+  {
+   "name": "Codex skill-creator sample",
+   "version": "0.167.0",
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
+  },
+  {
+   "name": "Codex skill-installer sample",
+   "version": "0.167.0",
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
+  },
   {
    "name": "Crates compiled into the Codex executables (codex-rs/Cargo.lock, including its 12 Git-sourced packages)",
    "version": "0.167.0",
    "standing": "uncovered",
    "reason": "The supplier publishes no aggregate third-party notice for its executables, and the licence texts of the hundreds of locked crates are not held.",
    "would_close": "Fetch the archives of the crates codex-rs/Cargo.lock locks at this commit (the owner approved the fetch on 2026-11-12), extract their texts with notices/package_texts.py crates, obtain the 12 Git-sourced packages' texts from their pinned revisions, and ship them per crate."
+  },
+  {
+   "name": "ripgrep",
+   "version": "15.2.0",
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
+  },
+  {
+   "name": "pcre2-sys",
+   "version": "0.2.10",
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
+  },
+  {
+   "name": "PCRE2 (in rg)",
+   "version": "10.46",
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
+  },
+  {
+   "name": "sljit (in rg, vendored by PCRE2 10.46)",
+   "version": "e51eabbf",
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   },
   {
    "name": "Crates compiled into rg (ripgrep 15.2.0 Cargo.lock)",
@@ -49,10 +98,46 @@
    "would_close": "Fetch the archives of the crates ripgrep 15.2.0's Cargo.lock locks (the owner approved fetching the texts of the supplier's compiled-in dependencies on 2026-11-12), extract their texts with notices/package_texts.py crates and ship them per crate."
   },
   {
+   "name": "V8",
+   "version": "15.2.124.1",
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
+  },
+  {
+   "name": "rusty_v8 (v8 crate fork)",
+   "version": "152.2.0",
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
+  },
+  {
    "name": "ICU (V8 dependency)",
    "version": "d578f2e8",
-   "standing": "held-pending-owner-licence-reading",
-   "reason": "Pending the owner's licence reading. ICU's root LICENSE names five files with their own terms: vendor/json/upstream/single_include/nlohmann/json.hpp, aclocal.m4, config.guess and install-sh (each 'only for ICU4C') and sorttable.js ('only for ICU4J'). aclocal.m4 (GPL-2.0-or-later) and config.guess (GPL-3.0-or-later) carry GNU GPL notices, each with the Autoconf exception; both are Autoconf build-system files. The supplier's ICU build file (third_party/v8/icu.BUILD.bazel of openai/codex at 086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a, blob 833c2f027a06d89fa322f5433358383d286682f5, read from a retained copy whose blob equals its tree entry) compiles source/common/**/*.h and *.cpp, source/i18n/**/*.h and *.cpp and source/stubdata/stubdata.cpp, and carries common/icudtl.dat as data; it names none of the five files. The GPL texts those notices refer to are not held. Whether the notices concern anything in the shipped library is a question of licence applicability, not decided here."
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
+  },
+  {
+   "name": "libc++ (V8 dependency)",
+   "version": "b16984ce",
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
+  },
+  {
+   "name": "libc++abi (V8 dependency)",
+   "version": "8f11bb1d",
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
+  },
+  {
+   "name": "llvm-libc (V8 dependency)",
+   "version": "75ae50cd",
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   },
   {
    "name": "libc++ CREDITS.TXT and subdirectory licences",
@@ -74,6 +159,118 @@
    "standing": "uncovered",
    "reason": "llvm-libc's LICENSE.TXT points to subdirectory LICENSE files for third-party code; the subdirectories were not listed.",
    "would_close": "A recursive tree listing at 75ae50cd to name the LICENSE files below the root, then fetch those."
+  },
+  {
+   "name": "Highway (V8 dependency)",
+   "version": "2607d3b5",
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
+  },
+  {
+   "name": "fast_float (V8 dependency)",
+   "version": "8.2.10",
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
+  },
+  {
+   "name": "simdutf (V8 dependency)",
+   "version": "7.7.0",
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
+  },
+  {
+   "name": "Dragonbox (V8 dependency)",
+   "version": "beeeef91",
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
+  },
+  {
+   "name": "FP16 (V8 dependency)",
+   "version": "782eea12",
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
+  },
+  {
+   "name": "Abseil C++ (V8 dependency)",
+   "version": "20250814.1",
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
+  },
+  {
+   "name": "GStreamer",
+   "version": "1.28.6",
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
+  },
+  {
+   "name": "GStreamer Base Plugins",
+   "version": "1.28.6",
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
+  },
+  {
+   "name": "GStreamer Good Plugins",
+   "version": "1.28.6",
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
+  },
+  {
+   "name": "GLib (with GVDB)",
+   "version": "2.88.3",
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
+  },
+  {
+   "name": "proxy-libintl",
+   "version": "0.5",
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
+  },
+  {
+   "name": "libffi",
+   "version": "3.8.0",
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
+  },
+  {
+   "name": "PCRE2 (voice)",
+   "version": "10.47",
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
+  },
+  {
+   "name": "Opus",
+   "version": "1.6.1",
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
+  },
+  {
+   "name": "zlib",
+   "version": "1.3.2",
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
+  },
+  {
+   "name": "Supplier component table",
+   "version": "0.169.0",
+   "standing": "uncovered",
+   "reason": "the supplier component table was reviewed for 0.167.0, not for the declared pin 0.169.0; no row of it counts as covered for this tree",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   }
  ],
  "standings": {
@@ -126,8 +323,15 @@
    "class": "library-content",
    "name": "Chirality instructions and role set",
    "version": "89acac6a3983",
-   "accounts_for": [
-    "instructions/"
+   "mappings": [
+    {
+     "source": "app/src-tauri/resources/instructions/",
+     "destination": "instructions/",
+     "members": {
+      "files": 7,
+      "listed_by": "app/src-tauri/resources/instructions/ROLE_SET_SOURCE_BINDING.json"
+     }
+    }
    ],
    "source": {
     "repository": "https://github.com/sgttomas/chirality",
@@ -143,14 +347,21 @@
     }
    ],
    "standing": "covered",
-   "basis": "LICENSE.md at the source revision equals the App's LICENSE.md, which ships"
+   "basis": "LICENSE.md at the source revision equals the App's LICENSE.md, which ships; the folder holds exactly the members its source record lists"
   },
   {
    "class": "library-content",
    "name": "Chirality Library 3.4.0 workflows",
    "version": "1bba3d170e7a",
-   "accounts_for": [
-    "workflows/"
+   "mappings": [
+    {
+     "source": "app/src-tauri/resources/production_workflows/",
+     "destination": "workflows/",
+     "members": {
+      "files": 311,
+      "listed_by": "app/src-tauri/resources/production_workflows/MANIFEST.json"
+     }
+    }
    ],
    "source": {
     "repository": "https://github.com/sgttomas/chirality-library",
@@ -166,7 +377,7 @@
     }
    ],
    "standing": "covered",
-   "basis": "LICENSE.md at the source revision equals the App's LICENSE.md, which ships"
+   "basis": "LICENSE.md at the source revision equals the App's LICENSE.md, which ships; the folder holds exactly the members its source record lists"
   },
   {
    "class": "cargo",
@@ -5566,11 +5777,9 @@
    ],
    "declared_license": "Apache-2.0",
    "below_root": "Root LICENSE and NOTICE. The skill samples embedded in bin/codex and the crates compiled into the executables are their own rows.",
-   "accounts_for": [
-    "codex/"
-   ],
-   "standing": "covered",
-   "basis": "texts recorded at the component's own repository and revision"
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   },
   {
    "class": "supplier",
@@ -5598,8 +5807,9 @@
     }
    ],
    "below_root": "The sample's own licence file at its path in the source tree.",
-   "standing": "covered",
-   "basis": "texts recorded at the component's own repository and revision"
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   },
   {
    "class": "supplier",
@@ -5627,8 +5837,9 @@
     }
    ],
    "below_root": "The sample's own licence file at its path in the source tree.",
-   "standing": "covered",
-   "basis": "texts recorded at the component's own repository and revision"
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   },
   {
    "class": "supplier",
@@ -5696,8 +5907,9 @@
     }
    ],
    "below_root": "Root COPYING, LICENSE-MIT and UNLICENSE. The retained root listing at e89fff89 has no other licence file; the workspace crates under crates/ are compiled-in crates (row ripgrep-crate-dependencies). The root texts point to no further file.",
-   "standing": "covered",
-   "basis": "texts recorded at the component's own repository and revision"
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   },
   {
    "class": "supplier",
@@ -5746,8 +5958,9 @@
     }
    ],
    "below_root": "COPYING and UNLICENSE (equal to ripgrep's) and pcre2-sys/LICENSE-MIT; the complete listing of the crate directory has no other licence file.",
-   "standing": "covered",
-   "basis": "texts recorded at the component's own repository and revision"
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   },
   {
    "class": "supplier",
@@ -5774,8 +5987,9 @@
     }
    ],
    "below_root": "LICENCE.md. The complete recursive listing at b2bd4254 (502 entries) also has AUTHORS.md (3,855 bytes), COPYING (97 bytes) and cmake/COPYING-CMAKE-SCRIPTS (1,326 bytes, build scripts); LICENCE.md points to none of them, and sljit is its own row.",
-   "standing": "covered",
-   "basis": "texts recorded at the component's own repository and revision"
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   },
   {
    "class": "supplier",
@@ -5802,8 +6016,9 @@
     }
    ],
    "below_root": "Root LICENSE; the complete recursive listing at e51eabbf (73 entries) has no other licence file.",
-   "standing": "covered",
-   "basis": "texts recorded at the component's own repository and revision"
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   },
   {
    "class": "supplier",
@@ -6054,8 +6269,9 @@
     }
    ],
    "below_root": "Root LICENSE, LICENSE.v8, LICENSE.fdlibm and LICENSE.strongtalk, and the 16 LICENSE files under third_party/ at d848a2b3 (the lane's tree read). The supplier's build file (third_party/v8/engine.BUILD.bazel at 086ccc83) names inspector_protocol, v8 and vtune under third_party; the others ship because V8's root licence points to its subdirectory licences, and whether each is compiled in was not established. Four licence files under test/ (SixSpeed/LICENSE.sixspeed, object-keys/LICENSE, regexp-pcre/LICENSE and wasm-js/third_party/LICENSE.testharness, as the retained tree listing names them) are test material and are not shipped.",
-   "standing": "covered",
-   "basis": "texts recorded at the component's own repository and revision"
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   },
   {
    "class": "supplier",
@@ -6082,8 +6298,9 @@
     }
    ],
    "below_root": "Root LICENSE. The retained root listing of the fork at 350c5a85 has no other licence file; subdirectories were not listed. V8, which the crate builds, is its own row. The root licence points to no further file.",
-   "standing": "covered",
-   "basis": "texts recorded at the component's own repository and revision"
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   },
   {
    "class": "supplier",
@@ -6110,8 +6327,18 @@
     }
    ],
    "below_root": "Root LICENSE, which carries ICU's third-party terms in its own sections, including notices for five named files (see reason). The retained listing at d578f2e8 is the root only (license.html, 622 bytes, is not held); subdirectories were not listed.",
-   "standing": "held-pending-owner-licence-reading",
-   "reason": "Pending the owner's licence reading. ICU's root LICENSE names five files with their own terms: vendor/json/upstream/single_include/nlohmann/json.hpp, aclocal.m4, config.guess and install-sh (each 'only for ICU4C') and sorttable.js ('only for ICU4J'). aclocal.m4 (GPL-2.0-or-later) and config.guess (GPL-3.0-or-later) carry GNU GPL notices, each with the Autoconf exception; both are Autoconf build-system files. The supplier's ICU build file (third_party/v8/icu.BUILD.bazel of openai/codex at 086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a, blob 833c2f027a06d89fa322f5433358383d286682f5, read from a retained copy whose blob equals its tree entry) compiles source/common/**/*.h and *.cpp, source/i18n/**/*.h and *.cpp and source/stubdata/stubdata.cpp, and carries common/icudtl.dat as data; it names none of the five files. The GPL texts those notices refer to are not held. Whether the notices concern anything in the shipped library is a question of licence applicability, not decided here."
+   "reading_context": "ICU's root LICENSE names five files with their own terms: vendor/json/upstream/single_include/nlohmann/json.hpp, aclocal.m4, config.guess and install-sh (each 'only for ICU4C') and sorttable.js ('only for ICU4J'). aclocal.m4 (GPL-2.0-or-later) and config.guess (GPL-3.0-or-later) carry GNU GPL notices, each with the Autoconf exception; both are Autoconf build-system files. The supplier's ICU build file (third_party/v8/icu.BUILD.bazel of openai/codex at 086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a, blob 833c2f027a06d89fa322f5433358383d286682f5, read from a retained copy whose blob equals its tree entry) compiles source/common/**/*.h and *.cpp, source/i18n/**/*.h and *.cpp and source/stubdata/stubdata.cpp, and carries common/icudtl.dat as data; it names none of the five files. The GPL texts those notices refer to are not held. Whether the notices concern anything in the shipped library was put to the owner as a licence reading (owner_licence_reading); the build-system status of the two files is as the answer's description states it, not established here.",
+   "owner_licence_reading": {
+    "decided_by": "owner",
+    "date": "2026-11-15",
+    "relayed_by": "Inter-Project Agent 0 put the question; App Agent 0 relayed the answer",
+    "question": "One licence reading for the App's notices, held since 12 November and never put to you as a question (my omission). ICU's licence text, which the App ships as its notice, mentions GPL terms for two build-system files that are not part of the built library. Is the notice complete as published, or should the two GPL texts ship as well?",
+    "answer": "ICU's licence text as published is complete",
+    "answer_description": "Nothing is added. The two files are build-system files, very likely not compiled into or shipped with anything."
+   },
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   },
   {
    "class": "supplier",
@@ -6138,8 +6365,9 @@
     }
    ],
    "below_root": "Root LICENSE.TXT. It names the contributors listed in CREDITS.TXT and says third-party code sits in subdirectory trees with their own LICENSE files; the retained listing is the root only, so neither is held (row libcxx-credits-and-subdirectories).",
-   "standing": "covered",
-   "basis": "texts recorded at the component's own repository and revision"
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   },
   {
    "class": "supplier",
@@ -6166,8 +6394,9 @@
     }
    ],
    "below_root": "Root LICENSE.TXT. It names the contributors listed in CREDITS.TXT and says third-party code sits in subdirectory trees with their own LICENSE files; the retained listing is the root only, so neither is held (row libcxxabi-credits-and-subdirectories).",
-   "standing": "covered",
-   "basis": "texts recorded at the component's own repository and revision"
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   },
   {
    "class": "supplier",
@@ -6194,8 +6423,9 @@
     }
    ],
    "below_root": "Root LICENSE.TXT. It says third-party code sits in subdirectory trees with their own LICENSE files; the retained listing is the root only, so those are not enumerated (row llvm-libc-subdirectories).",
-   "standing": "covered",
-   "basis": "texts recorded at the component's own repository and revision"
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   },
   {
    "class": "supplier",
@@ -6274,8 +6504,9 @@
     }
    ],
    "below_root": "Root texts only. No listing below the root is held, so subdirectories were not examined; the root texts point to no further file.",
-   "standing": "covered",
-   "basis": "texts recorded at the component's own repository and revision"
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   },
   {
    "class": "supplier",
@@ -6336,8 +6567,9 @@
     }
    ],
    "below_root": "Root texts only. No listing below the root is held, so subdirectories were not examined; the root texts point to no further file.",
-   "standing": "covered",
-   "basis": "texts recorded at the component's own repository and revision"
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   },
   {
    "class": "supplier",
@@ -6387,8 +6619,9 @@
     }
    ],
    "below_root": "Root texts only. No listing below the root is held, so subdirectories were not examined; the root texts point to no further file.",
-   "standing": "covered",
-   "basis": "texts recorded at the component's own repository and revision"
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   },
   {
    "class": "supplier",
@@ -6427,8 +6660,9 @@
     }
    ],
    "below_root": "Root texts only. No listing below the root is held, so subdirectories were not examined; the root texts point to no further file.",
-   "standing": "covered",
-   "basis": "texts recorded at the component's own repository and revision"
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   },
   {
    "class": "supplier",
@@ -6456,8 +6690,9 @@
     }
    ],
    "below_root": "Root texts only. No listing below the root is held, so subdirectories were not examined; the root texts point to no further file.",
-   "standing": "covered",
-   "basis": "texts recorded at the component's own repository and revision"
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   },
   {
    "class": "supplier",
@@ -6496,8 +6731,9 @@
     }
    ],
    "below_root": "Root texts only. No listing below the root is held, so subdirectories were not examined; the root texts point to no further file.",
-   "standing": "covered",
-   "basis": "texts recorded at the component's own repository and revision"
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   },
   {
    "class": "supplier",
@@ -6524,8 +6760,9 @@
     }
    ],
    "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
-   "standing": "covered",
-   "basis": "licence texts the supplier ships in its tree, identified by the distribution record's digests"
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   },
   {
    "class": "supplier",
@@ -6558,8 +6795,9 @@
     }
    ],
    "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
-   "standing": "covered",
-   "basis": "licence texts the supplier ships in its tree, identified by the distribution record's digests"
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   },
   {
    "class": "supplier",
@@ -6584,8 +6822,9 @@
     }
    ],
    "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
-   "standing": "covered",
-   "basis": "licence texts the supplier ships in its tree, identified by the distribution record's digests"
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   },
   {
    "class": "supplier",
@@ -6612,8 +6851,9 @@
     }
    ],
    "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
-   "standing": "covered",
-   "basis": "licence texts the supplier ships in its tree, identified by the distribution record's digests"
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   },
   {
    "class": "supplier",
@@ -6637,8 +6877,9 @@
     }
    ],
    "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
-   "standing": "covered",
-   "basis": "licence texts the supplier ships in its tree, identified by the distribution record's digests"
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   },
   {
    "class": "supplier",
@@ -6662,8 +6903,9 @@
     }
    ],
    "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
-   "standing": "covered",
-   "basis": "licence texts the supplier ships in its tree, identified by the distribution record's digests"
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   },
   {
    "class": "supplier",
@@ -6694,8 +6936,9 @@
     }
    ],
    "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
-   "standing": "covered",
-   "basis": "licence texts the supplier ships in its tree, identified by the distribution record's digests"
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   },
   {
    "class": "supplier",
@@ -6719,8 +6962,9 @@
     }
    ],
    "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
-   "standing": "covered",
-   "basis": "licence texts the supplier ships in its tree, identified by the distribution record's digests"
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   },
   {
    "class": "supplier",
@@ -6744,15 +6988,130 @@
     }
    ],
    "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
-   "standing": "covered",
-   "basis": "licence texts the supplier ships in its tree, identified by the distribution record's digests"
+   "standing": "uncovered",
+   "reason": "the component table associates this row for 0.167.0, not for the declared pin 0.169.0; that association is not carried forward",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
+  },
+  {
+   "class": "supplier",
+   "id": "component-table",
+   "name": "Supplier component table",
+   "version": "0.169.0",
+   "mappings": [
+    {
+     "source": "selected:vendor-tree/",
+     "destination": "codex/",
+     "members": {
+      "files": 42,
+      "listed_by": "app/src-tauri/resources/supplier/0.169.0/CANONICAL_DISTRIBUTION.json"
+     }
+    }
+   ],
+   "source": {
+    "table": "app/packaging/supplier_notices/components.json"
+   },
+   "members": [
+    "bin/codex",
+    "bin/codex-code-mode-host",
+    "bin/codex-exec-server",
+    "codex-package.json",
+    "codex-path/rg",
+    "codex-resources/voice/NOTICE.md",
+    "codex-resources/voice/bin/codex-voice-host",
+    "codex-resources/voice/lib/libffi.8.dylib",
+    "codex-resources/voice/lib/libgio-2.0.0.dylib",
+    "codex-resources/voice/lib/libglib-2.0.0.dylib",
+    "codex-resources/voice/lib/libgmodule-2.0.0.dylib",
+    "codex-resources/voice/lib/libgobject-2.0.0.dylib",
+    "codex-resources/voice/lib/libgstapp-1.0.0.dylib",
+    "codex-resources/voice/lib/libgstaudio-1.0.0.dylib",
+    "codex-resources/voice/lib/libgstbase-1.0.0.dylib",
+    "codex-resources/voice/lib/libgstnet-1.0.0.dylib",
+    "codex-resources/voice/lib/libgstpbutils-1.0.0.dylib",
+    "codex-resources/voice/lib/libgstreamer-1.0.0.dylib",
+    "codex-resources/voice/lib/libgstrtp-1.0.0.dylib",
+    "codex-resources/voice/lib/libgsttag-1.0.0.dylib",
+    "codex-resources/voice/lib/libgstvideo-1.0.0.dylib",
+    "codex-resources/voice/lib/libintl.8.dylib",
+    "codex-resources/voice/lib/libopus.0.dylib",
+    "codex-resources/voice/lib/libpcre2-8.0.dylib",
+    "codex-resources/voice/lib/libz.1.dylib",
+    "codex-resources/voice/licenses/LGPL-2.1.txt",
+    "codex-resources/voice/licenses/Opus.txt",
+    "codex-resources/voice/licenses/PCRE2.md",
+    "codex-resources/voice/licenses/libffi.txt",
+    "codex-resources/voice/licenses/proxy-libintl.txt",
+    "codex-resources/voice/licenses/sljit.txt",
+    "codex-resources/voice/licenses/zlib.txt",
+    "codex-resources/voice/manifest.json",
+    "codex-resources/voice/plugins/libgstapp.dylib",
+    "codex-resources/voice/plugins/libgstaudioconvert.dylib",
+    "codex-resources/voice/plugins/libgstaudioresample.dylib",
+    "codex-resources/voice/plugins/libgstcoreelements.dylib",
+    "codex-resources/voice/plugins/libgstopus.dylib",
+    "codex-resources/voice/plugins/libgstrtp.dylib",
+    "codex-resources/voice/plugins/libgstrtpmanager.dylib",
+    "codex-resources/voice/runtime.json",
+    "codex-resources/voice/sources.json"
+   ],
+   "texts": [],
+   "standing": "uncovered",
+   "reason": "the supplier component table was reviewed for 0.167.0, not for the declared pin 0.169.0; no row of it counts as covered for this tree",
+   "would_close": "review components.json against the declared pin's tree and set reviewed_for_pin"
   },
   {
    "class": "app-content",
    "name": "App distribution reference records",
    "version": "0.0.0",
-   "accounts_for": [
-    "distribution-reference/"
+   "mappings": [
+    {
+     "source": "app/src-tauri/resources/distribution-reference/VERSION_ADVANCE_0.160.0.md",
+     "destination": "distribution-reference/VERSION_ADVANCE_0.160.0.md"
+    },
+    {
+     "source": "app/src-tauri/resources/distribution-reference/build-selection.s2.json",
+     "destination": "distribution-reference/build-selection.s2.json"
+    },
+    {
+     "source": "app/src-tauri/resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/acquisition.json",
+     "destination": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/acquisition.json"
+    },
+    {
+     "source": "app/src-tauri/resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/adoption.json",
+     "destination": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/adoption.json"
+    },
+    {
+     "source": "app/src-tauri/resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/attestation.json",
+     "destination": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/attestation.json"
+    },
+    {
+     "source": "app/src-tauri/resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/custody.json",
+     "destination": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/custody.json"
+    },
+    {
+     "source": "app/src-tauri/resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/expected.json",
+     "destination": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/expected.json"
+    },
+    {
+     "source": "app/src-tauri/resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/extraction.json",
+     "destination": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/extraction.json"
+    },
+    {
+     "source": "app/src-tauri/resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/generation-correspondence.json",
+     "destination": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/generation-correspondence.json"
+    },
+    {
+     "source": "app/src-tauri/resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/label-probe.json",
+     "destination": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/label-probe.json"
+    },
+    {
+     "source": "app/src-tauri/resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/review.md",
+     "destination": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/review.md"
+    },
+    {
+     "source": "app/src-tauri/resources/distribution-reference/generated/0.160.0/GENERATION.json",
+     "destination": "distribution-reference/generated/0.160.0/GENERATION.json"
+    }
    ],
    "source": {
     "repository": "https://github.com/sgttomas/chirality-app"
@@ -6772,26 +7131,48 @@
    "class": "notices",
    "name": "Third-party notices and their indexes",
    "version": "0.0.0",
-   "accounts_for": [
-    "third-party-notices/coverage.json",
-    "third-party-notices/fonts/index.json",
-    "third-party-notices/index.json",
-    "third-party-notices/sqlite-preparation/README.md",
-    "third-party-notices/sqlite-preparation/index.json",
-    "third-party-notices/sqlite-preparation/libsqlite3-sys.LICENSE",
-    "third-party-notices/transitive-index.json",
-    "third-party-notices/upstream/"
+   "mappings": [
+    {
+     "source": "app/packaging/notices/index.json",
+     "destination": "third-party-notices/index.json"
+    },
+    {
+     "source": "app/packaging/notices/transitive-index.json",
+     "destination": "third-party-notices/transitive-index.json"
+    },
+    {
+     "source": "app/packaging/notices/coverage.json",
+     "destination": "third-party-notices/coverage.json"
+    },
+    {
+     "source": "app/packaging/font_notice/index.json",
+     "destination": "third-party-notices/fonts/index.json"
+    },
+    {
+     "source": "app/packaging/sqlite_notice/index.json",
+     "destination": "third-party-notices/sqlite-preparation/index.json"
+    },
+    {
+     "source": "app/packaging/sqlite_notice/README.md",
+     "destination": "third-party-notices/sqlite-preparation/README.md"
+    },
+    {
+     "source": "app/packaging/sqlite_notice/libsqlite3-sys.LICENSE",
+     "destination": "third-party-notices/sqlite-preparation/libsqlite3-sys.LICENSE"
+    },
+    {
+     "source": "selected:upstream-notice-supplement/manifest.json",
+     "destination": "third-party-notices/upstream/manifest.json"
+    },
+    {
+     "source": "selected:upstream-notice-supplement/LICENSE.md",
+     "destination": "third-party-notices/upstream/LICENSE.md"
+    }
    ],
    "source": {
-    "note": "each licence text is named by the package_path of the component row that ships it"
+    "note": "each licence text is named by the repository and package paths of the component row that ships it"
    },
    "texts": [
-    {
-     "repository_path": "app/packaging/font_notice/index.json",
-     "package_path": "third-party-notices/fonts/index.json",
-     "size_bytes": 12817,
-     "sha256": "ad2b50d268aa1df4c856a9cb446cd0fb6821deed4a65e4214c6d5f0df69ac03f"
-    },
     {
      "repository_path": "app/packaging/notices/index.json",
      "package_path": "third-party-notices/index.json",
@@ -6799,10 +7180,16 @@
      "sha256": "fbf873b839b167d5347b233a7d019df4d053809e8dc9e31968e04b4e6cf46ac4"
     },
     {
-     "repository_path": "app/packaging/sqlite_notice/README.md",
-     "package_path": "third-party-notices/sqlite-preparation/README.md",
-     "size_bytes": 1544,
-     "sha256": "a7fd1c7a99ccd43903fe409cd1366aff1bf5bd5f6e8d310342e9d0d8fc0d20e2"
+     "repository_path": "app/packaging/notices/transitive-index.json",
+     "package_path": "third-party-notices/transitive-index.json",
+     "size_bytes": 126545,
+     "sha256": "557c17f96f1a82982d0933a5c0ea570f000db17dad4278d67b16fd63379ed517"
+    },
+    {
+     "repository_path": "app/packaging/font_notice/index.json",
+     "package_path": "third-party-notices/fonts/index.json",
+     "size_bytes": 12817,
+     "sha256": "ad2b50d268aa1df4c856a9cb446cd0fb6821deed4a65e4214c6d5f0df69ac03f"
     },
     {
      "repository_path": "app/packaging/sqlite_notice/index.json",
@@ -6811,27 +7198,27 @@
      "sha256": "cfbe3f95ea753d14f7d50a4f55d0263693726a30f4847e5430ccadf4d943fc3b"
     },
     {
+     "repository_path": "app/packaging/sqlite_notice/README.md",
+     "package_path": "third-party-notices/sqlite-preparation/README.md",
+     "size_bytes": 1544,
+     "sha256": "a7fd1c7a99ccd43903fe409cd1366aff1bf5bd5f6e8d310342e9d0d8fc0d20e2"
+    },
+    {
      "repository_path": "app/packaging/sqlite_notice/libsqlite3-sys.LICENSE",
      "package_path": "third-party-notices/sqlite-preparation/libsqlite3-sys.LICENSE",
      "size_bytes": 1072,
      "sha256": "f59ba65550f2a5adff98ec6478d783402c8e0a3eb515025c0b3438f3d30dc39e"
-    },
-    {
-     "repository_path": "app/packaging/notices/transitive-index.json",
-     "package_path": "third-party-notices/transitive-index.json",
-     "size_bytes": 126545,
-     "sha256": "557c17f96f1a82982d0933a5c0ea570f000db17dad4278d67b16fd63379ed517"
     }
    ],
    "standing": "covered",
-   "basis": "these are the notices: the licence texts are named by their components' rows, and the index and account files are named here; an explicitly selected upstream supplement is placed under third-party-notices/upstream/"
+   "basis": "these are the notices: the licence texts are named by their components' rows, and the index and account files are named here; an explicitly selected upstream supplement (receipts.py check_stage: exactly manifest.json and LICENSE.md) is placed under third-party-notices/upstream/"
   }
  ],
  "supplier_members": [
   {
    "path": "bin/codex",
-   "size": 270815376,
-   "sha256": "030316ecfbb41f4e7946e584b0063ef333b7a36cd312ba349f2f6869e39b62cc",
+   "size": 280704736,
+   "sha256": "739cda86e15d30a6e2b40cf8dcbbfb988aaf48b305b27065573bb8e9fd41d002",
    "package_path": "codex/bin/codex",
    "components": [
     "codex",
@@ -6842,8 +7229,8 @@
   },
   {
    "path": "bin/codex-code-mode-host",
-   "size": 70259040,
-   "sha256": "5cc29d144fc05e3563f5f90c36adc95bdc287e2297b48ecf0bf4abdf1892d3ab",
+   "size": 70426256,
+   "sha256": "10feae2abe764bcf2273e241ace67aecc360eb8c28a82a2988bf1d8498a9bacf",
    "package_path": "codex/bin/codex-code-mode-host",
    "components": [
     "codex",
@@ -6867,8 +7254,8 @@
   },
   {
    "path": "bin/codex-exec-server",
-   "size": 61038432,
-   "sha256": "385736a6d82e125d4946a672074eb3a9f13e45a4aaecee4b72d592c0e1bb566a",
+   "size": 63152608,
+   "sha256": "0532760c03ec71af4ce4d7a8f745399dabdae2b9ee0283ec849c4997facdb918",
    "package_path": "codex/bin/codex-exec-server",
    "components": [
     "codex",
@@ -6878,7 +7265,7 @@
   {
    "path": "codex-package.json",
    "size": 241,
-   "sha256": "31cf2ee7e2c5f1a03983d5cc4ef8e2ec8f3ec8a09e8796ede275926bb67fd211",
+   "sha256": "3fc1ae4675acbd90d86eacf6a41ddde2a96e0c588e200049cae5b69ffe4e56b5",
    "package_path": "codex/codex-package.json",
    "components": [
     "codex"
@@ -6887,7 +7274,7 @@
   {
    "path": "codex-path/rg",
    "size": 4030432,
-   "sha256": "13424ef22134a65a211e490475bc17a4671e4fad3c82ad4c613fe5978f022a6d",
+   "sha256": "2caf75aae63d8fd944456686d5241f4864f5e2a930e0a93434e121873f7ff6bf",
    "package_path": "codex/codex-path/rg",
    "components": [
     "ripgrep",
@@ -6908,8 +7295,8 @@
   },
   {
    "path": "codex-resources/voice/bin/codex-voice-host",
-   "size": 9572432,
-   "sha256": "5c6c72bd15b4d7f2dd964093acf8573cfb267e54293bd852682f1eef7e85fb11",
+   "size": 9717888,
+   "sha256": "64ddf43fdbb4a9c48cb0c8371034e9a1cb412c9471b3ad2728e72dcabc548b8d",
    "package_path": "codex/codex-resources/voice/bin/codex-voice-host",
    "components": [
     "codex",
@@ -6919,7 +7306,7 @@
   {
    "path": "codex-resources/voice/lib/libffi.8.dylib",
    "size": 136768,
-   "sha256": "58a0c97a2b0c4cc45807e35d0bf7aefa0702df12536a66441972f08c59e41b02",
+   "sha256": "2ab52271c2826e256754936fe2479511cd56c052e7ad151b78d744f8089a794e",
    "package_path": "codex/codex-resources/voice/lib/libffi.8.dylib",
    "components": [
     "libffi"
@@ -6927,8 +7314,8 @@
   },
   {
    "path": "codex-resources/voice/lib/libgio-2.0.0.dylib",
-   "size": 1902992,
-   "sha256": "545d0025856738d8448de0d6ba5da564ffdb7debecf9c11b044999f1fca8ec02",
+   "size": 1903344,
+   "sha256": "4f976ee37b12a75db9a5f0aa12d608fa4100533cf85b71b619651cbafb90472c",
    "package_path": "codex/codex-resources/voice/lib/libgio-2.0.0.dylib",
    "components": [
     "glib"
@@ -6936,8 +7323,8 @@
   },
   {
    "path": "codex-resources/voice/lib/libglib-2.0.0.dylib",
-   "size": 1353984,
-   "sha256": "eb7d66dfc53f2b58625681a0a65bbf85b158aecdad3732be235b8506481b3ccf",
+   "size": 1354064,
+   "sha256": "3552e5dddc6afc2bbbb5000b15eccdd3b9518f6371b481543d7aa0e1017f5a42",
    "package_path": "codex/codex-resources/voice/lib/libglib-2.0.0.dylib",
    "components": [
     "glib"
@@ -6946,7 +7333,7 @@
   {
    "path": "codex-resources/voice/lib/libgmodule-2.0.0.dylib",
    "size": 68720,
-   "sha256": "01ebc0d86c078d619cc51e21c60663821b573186f53109a26ae8ba62a6a49131",
+   "sha256": "fe3616bda97af2cc4f37aacc073daefaed0935e9bec22caa194510b2f4ed2863",
    "package_path": "codex/codex-resources/voice/lib/libgmodule-2.0.0.dylib",
    "components": [
     "glib"
@@ -6954,8 +7341,8 @@
   },
   {
    "path": "codex-resources/voice/lib/libgobject-2.0.0.dylib",
-   "size": 416896,
-   "sha256": "a7f7c6e3b078f13f98fc659a00e60e4b9fb76700f0ae7557028e8d547f0330f9",
+   "size": 417008,
+   "sha256": "696b25cad9b6d899aa550be9ab0b2d3f0711e9cf13aff9d6c5ca7a6092bdb727",
    "package_path": "codex/codex-resources/voice/lib/libgobject-2.0.0.dylib",
    "components": [
     "glib"
@@ -6964,7 +7351,7 @@
   {
    "path": "codex-resources/voice/lib/libgstapp-1.0.0.dylib",
    "size": 151984,
-   "sha256": "ebbc5947f800f16a5187b8ecd51bad1f19df1d7848072a653c85febd9ba22504",
+   "sha256": "4a950388fca25b938cd69357d3fc86f60e9923cbb89c5b90ecd816fa03d88310",
    "package_path": "codex/codex-resources/voice/lib/libgstapp-1.0.0.dylib",
    "components": [
     "gst-plugins-base"
@@ -6972,8 +7359,8 @@
   },
   {
    "path": "codex-resources/voice/lib/libgstaudio-1.0.0.dylib",
-   "size": 560336,
-   "sha256": "551af2986c556a0712df0b60cf83b05d94469270008f42a7a68656d628cb2813",
+   "size": 560384,
+   "sha256": "8f8a27c208c7361c62368530d1906c200c70fbafaa127f7d1444fbac6489d9dc",
    "package_path": "codex/codex-resources/voice/lib/libgstaudio-1.0.0.dylib",
    "components": [
     "gst-plugins-base"
@@ -6981,8 +7368,8 @@
   },
   {
    "path": "codex-resources/voice/lib/libgstbase-1.0.0.dylib",
-   "size": 520240,
-   "sha256": "0f6c8f2bc34c2aa183a52f1cb6bb8c1c280096419018c38a38af80adbdb8cf75",
+   "size": 520256,
+   "sha256": "6c33491f03b6d1dfa9848847a3434ef08f35f7a7fe296f4b36b8f214541a5d4e",
    "package_path": "codex/codex-resources/voice/lib/libgstbase-1.0.0.dylib",
    "components": [
     "gstreamer"
@@ -6991,7 +7378,7 @@
   {
    "path": "codex-resources/voice/lib/libgstnet-1.0.0.dylib",
    "size": 115920,
-   "sha256": "051d60c6271c5461aa494d8128cd1a5dc82442ed94edf521b95b6dc555d33c07",
+   "sha256": "08b3faee5e02158f0a64937713c1711687635bb11beb695e02c9af5d1b10376c",
    "package_path": "codex/codex-resources/voice/lib/libgstnet-1.0.0.dylib",
    "components": [
     "gstreamer"
@@ -6999,8 +7386,8 @@
   },
   {
    "path": "codex-resources/voice/lib/libgstpbutils-1.0.0.dylib",
-   "size": 323552,
-   "sha256": "39296732e7e14b36677e269e3f33a435232a1229cfbae5f3a1946b6d8872a933",
+   "size": 323568,
+   "sha256": "4f0e07a5cd48b75f03115191afc0dd304a411c762d26b06ec2dbd9ec9a9c3be1",
    "package_path": "codex/codex-resources/voice/lib/libgstpbutils-1.0.0.dylib",
    "components": [
     "gst-plugins-base"
@@ -7008,8 +7395,8 @@
   },
   {
    "path": "codex-resources/voice/lib/libgstreamer-1.0.0.dylib",
-   "size": 1341328,
-   "sha256": "a5087e48d8d54829db64ec568093395e0e05669755b3c8bf08d64edca11a038e",
+   "size": 1357856,
+   "sha256": "a536ba764b3bc4efa788092e833b4d2a0fe3d266087eac94d18fe9c564e83b8d",
    "package_path": "codex/codex-resources/voice/lib/libgstreamer-1.0.0.dylib",
    "components": [
     "gstreamer"
@@ -7017,8 +7404,8 @@
   },
   {
    "path": "codex-resources/voice/lib/libgstrtp-1.0.0.dylib",
-   "size": 222176,
-   "sha256": "467817d1611da16eea5f8512e8316e5e1ad3cf16ee5631aefcce1508d5c23614",
+   "size": 222192,
+   "sha256": "d6e7d328bcefeab0247e93dbc99ffacb61ee675e0263a58de34d0c6926724f40",
    "package_path": "codex/codex-resources/voice/lib/libgstrtp-1.0.0.dylib",
    "components": [
     "gst-plugins-base"
@@ -7027,7 +7414,7 @@
   {
    "path": "codex-resources/voice/lib/libgsttag-1.0.0.dylib",
    "size": 283280,
-   "sha256": "f47f68694f9e93175cb2fdca4071fa185f3c7504a8e95cd6a97f22d3de4afd26",
+   "sha256": "dfef74604fa0b2aceb3123264dbe7fbe08174ff6444d06b507ce95eb4f2f5ad8",
    "package_path": "codex/codex-resources/voice/lib/libgsttag-1.0.0.dylib",
    "components": [
     "gst-plugins-base"
@@ -7035,8 +7422,8 @@
   },
   {
    "path": "codex-resources/voice/lib/libgstvideo-1.0.0.dylib",
-   "size": 932496,
-   "sha256": "0e316dca1517216c85bcf44f6f227273cb0e8a438cad045d89daaeeb9649b184",
+   "size": 948944,
+   "sha256": "b36c553f4e0b617ce3bbe899ea364e8933a5989d6e8e8023cbb0084f58b36468",
    "package_path": "codex/codex-resources/voice/lib/libgstvideo-1.0.0.dylib",
    "components": [
     "gst-plugins-base"
@@ -7045,7 +7432,7 @@
   {
    "path": "codex-resources/voice/lib/libintl.8.dylib",
    "size": 50080,
-   "sha256": "9008f0fa6d0c52791504729cd789661e8e482e356b51a8865209df79c36b48c4",
+   "sha256": "3968aa5cf61ca4faffc06c2f1c87b7e865081f30187642f8e357b261b3683c1e",
    "package_path": "codex/codex-resources/voice/lib/libintl.8.dylib",
    "components": [
     "proxy-libintl"
@@ -7053,8 +7440,8 @@
   },
   {
    "path": "codex-resources/voice/lib/libopus.0.dylib",
-   "size": 504080,
-   "sha256": "3fec5fec5163abcf63e9e60088542a9209bda1665e76d03704c3994303ba6ecc",
+   "size": 520480,
+   "sha256": "0e180129087bf3c4aa525826f5de674819b12089799b80a720b1d4e429568386",
    "package_path": "codex/codex-resources/voice/lib/libopus.0.dylib",
    "components": [
     "opus"
@@ -7062,8 +7449,8 @@
   },
   {
    "path": "codex-resources/voice/lib/libpcre2-8.0.dylib",
-   "size": 456816,
-   "sha256": "29fe5de8b01caa04ab8c63ec3ba1b63ffb17939e9a570c98b0dd135b0f92a263",
+   "size": 456832,
+   "sha256": "276883a87bae2b24066a0a8506d5a8eb1e5b24637b4518179a2e1a18efeb2dfd",
    "package_path": "codex/codex-resources/voice/lib/libpcre2-8.0.dylib",
    "components": [
     "pcre2-voice"
@@ -7071,8 +7458,8 @@
   },
   {
    "path": "codex-resources/voice/lib/libz.1.dylib",
-   "size": 123312,
-   "sha256": "fac082ac68b9306ccbd1f25f5c6bc4a3e7347e2a63dc55a8c3ef9c6f1b9280aa",
+   "size": 139712,
+   "sha256": "855c3792a7745d354edffabe4262282f440a9a0b763f96720e1cad9124b2d131",
    "package_path": "codex/codex-resources/voice/lib/libz.1.dylib",
    "components": [
     "zlib"
@@ -7130,7 +7517,7 @@
   {
    "path": "codex-resources/voice/manifest.json",
    "size": 4637,
-   "sha256": "e1be4816aff4a8cf22e4f09616e70be08e914290134243c27209454d5b7ff46a",
+   "sha256": "de47c1e0b9145db978ef68e4daa1c65dd84a9e99dc3c9428408bda019ffa8cff",
    "package_path": "codex/codex-resources/voice/manifest.json",
    "components": [
     "codex"
@@ -7139,7 +7526,7 @@
   {
    "path": "codex-resources/voice/plugins/libgstapp.dylib",
    "size": 49872,
-   "sha256": "da2d581e12b8721f414ad3ef969f1253ef6810b7fb1b961158737d3aeb0c1cff",
+   "sha256": "17a675734988c9e9ef2ab302d224e88377ebaacecfd030f5e6a6bd66888c95f7",
    "package_path": "codex/codex-resources/voice/plugins/libgstapp.dylib",
    "components": [
     "gst-plugins-base"
@@ -7148,7 +7535,7 @@
   {
    "path": "codex-resources/voice/plugins/libgstaudioconvert.dylib",
    "size": 93344,
-   "sha256": "0d19c6b29c4f04e978d3f6dc8a2bf50706dbe4ed9c37f9591813d6fc3331ddf2",
+   "sha256": "eda25a99dcad6e55e658ff80fbd1549da88599da52aa044d53455686f69d92bd",
    "package_path": "codex/codex-resources/voice/plugins/libgstaudioconvert.dylib",
    "components": [
     "gst-plugins-base"
@@ -7157,7 +7544,7 @@
   {
    "path": "codex-resources/voice/plugins/libgstaudioresample.dylib",
    "size": 91696,
-   "sha256": "27c8017e0354ad99d266d59970df87b4725a1b2733071bb91c9cfb88693098eb",
+   "sha256": "22255b2f1d3d3454eb0b6a6e6d164a36718541ade4d754360349653dcac18897",
    "package_path": "codex/codex-resources/voice/plugins/libgstaudioresample.dylib",
    "components": [
     "gst-plugins-base"
@@ -7165,8 +7552,8 @@
   },
   {
    "path": "codex-resources/voice/plugins/libgstcoreelements.dylib",
-   "size": 458768,
-   "sha256": "69955f195b7a6e961a556fc77db80c8c5414e988f0ff26aa380f01c9ecc73799",
+   "size": 458832,
+   "sha256": "b3f4fa41813cead8efdb868d6041d93a6dd836093a021d49946fb542a6f59e7e",
    "package_path": "codex/codex-resources/voice/plugins/libgstcoreelements.dylib",
    "components": [
     "gstreamer"
@@ -7175,7 +7562,7 @@
   {
    "path": "codex-resources/voice/plugins/libgstopus.dylib",
    "size": 131120,
-   "sha256": "c191afd6298e4f6e4c53d0e3273a8f17b96e55068e70ad49d0b30b2f83ee3cf1",
+   "sha256": "811090a156458a6f785e9ed8af177474f8c2ff0eef94ebd314bf868936e622f3",
    "package_path": "codex/codex-resources/voice/plugins/libgstopus.dylib",
    "components": [
     "gst-plugins-base"
@@ -7183,8 +7570,8 @@
   },
   {
    "path": "codex-resources/voice/plugins/libgstrtp.dylib",
-   "size": 674896,
-   "sha256": "d2b059dcbc59b4ecb78e639a394a2948428b9ea34a9c2d1ac5949869e13e872a",
+   "size": 674960,
+   "sha256": "59cb4fbee05d95ff65a5bfa1c987dcf527302af9614a78140fd6fcbf3f514bcc",
    "package_path": "codex/codex-resources/voice/plugins/libgstrtp.dylib",
    "components": [
     "gst-plugins-good"
@@ -7192,8 +7579,8 @@
   },
   {
    "path": "codex-resources/voice/plugins/libgstrtpmanager.dylib",
-   "size": 538368,
-   "sha256": "f993b825f72ccff44888838281598e4dbc80b0f1086e07333aa6027232fc1ee3",
+   "size": 538400,
+   "sha256": "6c37e475550f75f738a17fe658313240575036ef851ef7a49ca15d3665cfa743",
    "package_path": "codex/codex-resources/voice/plugins/libgstrtpmanager.dylib",
    "components": [
     "gst-plugins-good"
@@ -7202,7 +7589,7 @@
   {
    "path": "codex-resources/voice/runtime.json",
    "size": 14915,
-   "sha256": "9a49eed00d312919f1a471b18259240e32a7fab2c91674c49a5a1b6b77476c6e",
+   "sha256": "dde0d887565dd84755db7346966cc0ce67bcabc6b1d1105b0e4e8928697f551a",
    "package_path": "codex/codex-resources/voice/runtime.json",
    "components": [
     "codex"
@@ -7211,7 +7598,7 @@
   {
    "path": "codex-resources/voice/sources.json",
    "size": 4911,
-   "sha256": "e2f6b124f6277e7c3c4f5c7cc8830c66190f671ad65e972bb2cc9507dbfcb937",
+   "sha256": "5613f37012effc3e28cdad52a7c88b9098aaaf7aae43f3cb7199f55ffbb15908",
    "package_path": "codex/codex-resources/voice/sources.json",
    "components": [
     "codex"
@@ -7222,6 +7609,7 @@
   "An account of what the package is built to carry, from committed inputs; it is not read from a built package.",
   "A notice text is the publisher's licence or notice text for the component at the named version or revision; whether it satisfies the licence is not decided here, except where an owner licence reading is recorded.",
   "Supplier components inside an executable are as the supplier's build files and package records state; they are not read from the binaries. Below a repository's root, only the texts a row lists are included.",
+  "Each bundle mapping is named by its exact source and destination; the App's own content files are bound by path, not by bytes. Copy routes other than bundle resources, the icon and a production plan's validated provisioning profile refuse; frontend assets embedded in the executable are not a copy route.",
   "Each text is recorded with the repository and revision it comes from, or as a member of the supplier tree. Below a repository's root, only what a row lists is included (V8's third_party licences); each row's below_root says what was examined.",
   "Which component is inside which member follows the supplier's build files and package records (Codex third_party/v8 build files, the rg selector, the voice manifest and sources.json); it is the supplier's statement in its source, not read from the binaries.",
   "The executable rule (an execute bit, not .dylib or .json) fits this distribution record, checked against its Mach-O count; it is not a general proof that a file is a compiled program."

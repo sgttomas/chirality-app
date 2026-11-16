@@ -161,7 +161,8 @@
    "basis": "ROLE_SET_SOURCE_BINDING.json basisCommit; LICENSE.md at that revision is byte-equal to the App's LICENSE.md (read from a local clone of the source repository when this entry was made)",
    "source_record": {
     "path": "app/src-tauri/resources/instructions/ROLE_SET_SOURCE_BINDING.json",
-    "kind": "role-set-binding"
+    "kind": "role-set-binding",
+    "sha256": "26254a7f0463665e791d46771a87a97e543f9f4762dade1293ddd244f876278d"
    }
   },
   {
@@ -174,7 +175,8 @@
    "basis": "MANIFEST.json names the Library release (tag library-v3.4.0, this commit) and records the digest of its LICENSE.md, which equals the App's LICENSE.md",
    "source_record": {
     "path": "app/src-tauri/resources/production_workflows/MANIFEST.json",
-    "kind": "workflow-manifest"
+    "kind": "workflow-manifest",
+    "sha256": "20a015b810abececdbf1fe3767ef443476a5aec1c768343c3db8f68daf062f63"
    }
   }
  ],
@@ -198,8 +200,55 @@
  "app_resources": [
   {
    "name": "App distribution reference records",
-   "accounts_for": [
-    "distribution-reference/"
+   "mappings": [
+    {
+     "source": "app/src-tauri/resources/distribution-reference/VERSION_ADVANCE_0.160.0.md",
+     "destination": "distribution-reference/VERSION_ADVANCE_0.160.0.md"
+    },
+    {
+     "source": "app/src-tauri/resources/distribution-reference/build-selection.s2.json",
+     "destination": "distribution-reference/build-selection.s2.json"
+    },
+    {
+     "source": "app/src-tauri/resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/acquisition.json",
+     "destination": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/acquisition.json"
+    },
+    {
+     "source": "app/src-tauri/resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/adoption.json",
+     "destination": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/adoption.json"
+    },
+    {
+     "source": "app/src-tauri/resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/attestation.json",
+     "destination": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/attestation.json"
+    },
+    {
+     "source": "app/src-tauri/resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/custody.json",
+     "destination": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/custody.json"
+    },
+    {
+     "source": "app/src-tauri/resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/expected.json",
+     "destination": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/expected.json"
+    },
+    {
+     "source": "app/src-tauri/resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/extraction.json",
+     "destination": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/extraction.json"
+    },
+    {
+     "source": "app/src-tauri/resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/generation-correspondence.json",
+     "destination": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/generation-correspondence.json"
+    },
+    {
+     "source": "app/src-tauri/resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/label-probe.json",
+     "destination": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/label-probe.json"
+    },
+    {
+     "source": "app/src-tauri/resources/distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/review.md",
+     "destination": "distribution-reference/distribution-s1/references/codex-0.160.0-macos-arm64/review.md"
+    },
+    {
+     "source": "app/src-tauri/resources/distribution-reference/generated/0.160.0/GENERATION.json",
+     "destination": "distribution-reference/generated/0.160.0/GENERATION.json"
+    }
    ],
    "note": "The supplier distribution reference the App reads at run time (build selection, expected inventory, attestation and their evidence), written in this repository; the App's own content under the App's licence."
   }

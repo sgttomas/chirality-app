@@ -25,6 +25,7 @@ texts = load('coverage_test_package_texts', NOTICES / 'package_texts.py')
 coverage = load('coverage_test_coverage', NOTICES / 'coverage.py')
 COPIED_TREES = ('app/packaging/notices', 'app/packaging/unsigned', 'app/packaging/font_notice', 'app/packaging/sqlite_notice',
                 'app/packaging/supplier_notices', 'app/src/fonts', 'app/src-tauri/icons')
+REVIEWED_PIN = json.loads((ROOT / 'app/packaging/supplier_notices/components.json').read_text())['reviewed_for_pin']
 TABLE = 'app/packaging/supplier_notices/components.json'
 COPIED_FILES = ('LICENSE.md', 'app/package.json', 'app/package-lock.json', 'app/src-tauri/Cargo.toml', 'app/src-tauri/Cargo.lock',
                 'app/src-tauri/tauri.conf.json', 'app/src/workspace.css', 'app/index.html', 'app/src-tauri/src/hosting.rs')
@@ -43,6 +44,10 @@ def crate(name, version, members):
 
 
 class Copy(unittest.TestCase):
+    # The pin the copy declares: None keeps the repository's declared pin. A subclass naming the table's reviewed pin
+    # exercises the supplier rules where they apply, with the review record bound to that pin's distribution record.
+    PIN = None
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory(); self.addCleanup(self.tmp.cleanup)
         self.repo = Path(self.tmp.name).resolve() / 'repo'
@@ -51,12 +56,17 @@ class Copy(unittest.TestCase):
         for relative in COPIED_FILES:
             (self.repo / relative).parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / relative, self.repo / relative)
-        pin = texts.declared_pin(ROOT)
+        declared = texts.declared_pin(ROOT)
+        pin = self.PIN or declared
         record = f'app/src-tauri/resources/supplier/{pin}/CANONICAL_DISTRIBUTION.json'
         (self.repo / record).parent.mkdir(parents=True); shutil.copyfile(ROOT / record, self.repo / record)
         for content in json.loads((NOTICES / 'coverage-inputs.json').read_text())['library_content']:
-            (self.repo / content['resource']).mkdir(parents=True)
-            shutil.copyfile(ROOT / content['source_record']['path'], self.repo / content['source_record']['path'])
+            shutil.copytree(ROOT / content['resource'], self.repo / content['resource'])
+        if pin != declared:
+            hosting = self.repo / texts.HOSTING
+            hosting.write_text(hosting.read_text().replace(f'DECLARED_PIN: &str = "{declared}"', f'DECLARED_PIN: &str = "{pin}"'))
+            self.assertEqual(texts.declared_pin(self.repo), pin)
+            self.rebind()
 
     def edit(self, relative, change, rebind=True):
         """Edit a JSON input. A curated input's review record is rebound too, as its reviewer would, unless rebind=False,
@@ -68,7 +78,8 @@ class Copy(unittest.TestCase):
 
     def rebind(self):
         record = json.loads((self.repo / coverage.REVIEW).read_text())
-        record['files_sha256'] = {f: hashlib.sha256((self.repo / f).read_bytes()).hexdigest() for f in record['files_sha256']}
+        files = [*coverage.REVIEWED_FILES, texts.supplier_record(self.repo)[1]]
+        record['files_sha256'] = {f: hashlib.sha256((self.repo / f).read_bytes()).hexdigest() for f in files}
         record['supplier_components'] = coverage.review_entries(json.loads((self.repo / TABLE).read_text()))
         (self.repo / coverage.REVIEW).write_text(json.dumps(record, indent=1) + '\n')
 
@@ -160,7 +171,7 @@ class ShippedTexts(Copy):
                              'third-party-notices/transitive/' + relative)
 
 
-class Account(Copy):
+class Builds(Copy):
     def build(self):
         (self.repo / texts.OVERLAY).write_text(json.dumps(texts.overlay(self.repo), indent=2) + '\n')
         return coverage.build(self.repo)
@@ -168,9 +179,64 @@ class Account(Copy):
     def row(self, value, name, version=None):
         return next(c for c in value['components'] if c['name'] == name and (version is None or c['version'] == version))
 
+
+class DeclaredPin(Builds):
+    """The repository as it stands: the declared pin, whatever the table was reviewed for."""
+
+    def test_copied_inputs_regenerate_the_same_account(self):
+        self.assertEqual(coverage.encode(coverage.build(self.repo)), (ROOT / coverage.ACCOUNT).read_bytes())
+
+    def test_stale_account_refuses(self):
+        self.edit(coverage.ACCOUNT, lambda v: v['counts'].update(covered=0))
+        with self.assertRaisesRegex(ValueError, 'stale'): coverage.check(self.repo)
+
+    # A table reviewed for another pin carries none of its associations forward: no supplier row counts as covered.
+    def test_a_table_reviewed_for_another_pin_covers_no_supplier_row(self):
+        value = self.build()
+        if value['supplier_pin'] == REVIEWED_PIN:
+            self.skipTest('the table is reviewed for the declared pin')
+        supplier = [c for c in value['components'] if c['class'] == 'supplier']
+        self.assertEqual([c['id'] for c in supplier if c['standing'] != coverage.UNCOVERED], [])
+        table = self.row(value, 'Supplier component table')
+        self.assertEqual(table['mappings'], [coverage.vendor_mapping(texts.supplier_record(self.repo)[1],
+                                                                     {m: 1 for m in table['members']})])
+        for row in supplier:
+            if row['id'] in coverage.DEFERRED:
+                self.assertNotIn('not carried forward', row['reason'])
+            elif row['id'] != 'component-table':
+                self.assertIn(f'associates this row for {REVIEWED_PIN}, not for the declared pin', row['reason'])
+                self.assertNotIn('mappings', row)
+        self.assertEqual(value, json.loads((ROOT / coverage.ACCOUNT).read_text()))
+        # The deferred rows stay required, reviewed or not.
+        self.edit(TABLE, lambda v: v.update(components=[c for c in v['components'] if c['id'] != 'llvm-libc-subdirectories']))
+        with self.assertRaisesRegex(ValueError, 'deferred supplier row is missing'): self.build()
+
+    def test_another_declared_pin_is_named_as_an_open_review_not_assumed(self):
+        pin = texts.declared_pin(ROOT)
+        hosting = self.repo / texts.HOSTING
+        hosting.write_text(hosting.read_text().replace(f'DECLARED_PIN: &str = "{pin}"', 'DECLARED_PIN: &str = "9.9.9"'))
+        record = json.loads((ROOT / f'app/src-tauri/resources/supplier/{pin}/CANONICAL_DISTRIBUTION.json').read_text())
+        record['pin'] = '9.9.9'
+        target = self.repo / 'app/src-tauri/resources/supplier/9.9.9/CANONICAL_DISTRIBUTION.json'
+        target.parent.mkdir(parents=True); target.write_text(json.dumps(record))
+        # A pin move changes which distribution record is bound, so the review record must change with it.
+        with self.assertRaisesRegex(ValueError, 'declared pin\'s distribution record'): coverage.build(self.repo)
+        review = json.loads((self.repo / coverage.REVIEW).read_text())
+        review['files_sha256'].pop(f'app/src-tauri/resources/supplier/{pin}/CANONICAL_DISTRIBUTION.json')
+        review['files_sha256']['app/src-tauri/resources/supplier/9.9.9/CANONICAL_DISTRIBUTION.json'] = hashlib.sha256(target.read_bytes()).hexdigest()
+        (self.repo / coverage.REVIEW).write_text(json.dumps(review))
+        value = coverage.build(self.repo)
+        self.assertEqual(value['supplier_pin'], '9.9.9')
+        self.assertIn('Supplier component table', {o['name'] for o in value['open']})
+
+
+class Account(Builds):
+    """The supplier rules where they apply: the copy declares the pin the table was reviewed for."""
+    PIN = REVIEWED_PIN
+
     # Review finding 1: V8's subdirectory licences ship, and each root-text supplier row says what was looked at below the root.
     def test_v8_ships_its_third_party_licences_and_root_text_rows_state_their_extent(self):
-        account = json.loads((ROOT / coverage.ACCOUNT).read_text())
+        account = self.build()
         v8 = self.row(account, 'V8')
         third = sorted(t['source_path'] for t in v8['texts'] if t['source_path'].startswith('third_party/'))
         self.assertEqual(len(third), 16)
@@ -208,7 +274,9 @@ class Account(Copy):
             self.assertEqual(next(c for c in value['components'] if c.get('id') == item_id)['standing'], coverage.UNCOVERED)
 
     def test_a_dropped_component_needs_a_reviewed_statement(self):
-        base = self.repo.parent / 'base.json'; shutil.copyfile(ROOT / coverage.ACCOUNT, base)
+        # The account as the reviewed copy generates it is the base and the committed account the generator compares with.
+        base = self.repo.parent / 'base.json'; base.write_bytes(coverage.encode(self.build()))
+        shutil.copyfile(base, self.repo / coverage.ACCOUNT)
         self.edit(TABLE, lambda v: v.update(components=[c for c in v['components'] if c['id'] != 'fp16']))
         value = self.build()
         self.assertEqual(coverage.removed(json.loads(base.read_text()), value, json.loads((self.repo / texts.INPUTS).read_text())),
@@ -266,7 +334,7 @@ class Account(Copy):
         self.assertEqual(len(result['open']), account['counts']['total'] - account['counts']['covered'])
         for component in account['components']:
             self.assertIn(component['standing'], account['standings'])
-        objc2 = [c for c in account['components'] if 'owner_licence_reading' in c]
+        objc2 = [c for c in account['components'] if 'owner_licence_reading' in c and c['class'] == 'cargo']
         self.assertEqual(len(objc2), 9)
         self.assertTrue(all(c['basis'].startswith('owner licence reading') for c in objc2))
         members = {m['path'] for m in account['supplier_members']}
@@ -284,13 +352,6 @@ class Account(Copy):
         for item in open_items:
             self.assertIn(item['name'], strict.stderr)
 
-    def test_stale_account_refuses(self):
-        self.edit(coverage.ACCOUNT, lambda v: v['counts'].update(covered=0))
-        with self.assertRaisesRegex(ValueError, 'stale'): coverage.check(self.repo)
-
-    def test_copied_inputs_regenerate_the_same_account(self):
-        self.assertEqual(coverage.encode(coverage.build(self.repo)), (ROOT / coverage.ACCOUNT).read_bytes())
-
     def test_removed_text_turns_a_crate_uncovered_rather_than_hiding_it(self):
         self.edit(texts.INPUTS, lambda v: v.update(received_texts=[t for t in v['received_texts'] if 'nugine' not in t['path']]))
         shutil.rmtree(self.repo / texts.TEXTS / 'cargo/vsimd'); shutil.rmtree(self.repo / texts.TEXTS / 'cargo/uuid-simd')
@@ -304,7 +365,7 @@ class Account(Copy):
         self.edit(table, lambda v: v['components'].pop(next(i for i, c in enumerate(v['components']) if c['id'] == 'zlib')))
         with self.assertRaisesRegex(ValueError, 'claimed by no component'): coverage.build(self.repo)
         self.setUp()
-        self.edit(table, lambda v: next(c for c in v['components'] if c['id'] == 'icu').pop('reason'))
+        self.edit(table, lambda v: next(c for c in v['components'] if c['id'] == 'fp16').update(standing='uncovered'))
         with self.assertRaises((ValueError, KeyError)): coverage.build(self.repo)
         self.setUp()
         self.edit(table, lambda v: next(c for c in v['components'] if c['id'] == 'opus').update(members=['codex-resources/voice/lib/invented.dylib']))
@@ -336,7 +397,7 @@ class Account(Copy):
             'codex': 'covered', 'codex-skill-creator-sample': 'covered', 'codex-skill-installer-sample': 'covered',
             'codex-crate-dependencies': 'uncovered', 'ripgrep': 'covered', 'pcre2-sys': 'covered', 'pcre2-in-rg': 'covered',
             'sljit-in-rg': 'covered', 'ripgrep-crate-dependencies': 'uncovered', 'v8': 'covered', 'rusty_v8': 'covered',
-            'icu': 'pending', 'libcxx': 'covered', 'libcxxabi': 'covered', 'llvm-libc': 'covered',
+            'icu': 'covered', 'libcxx': 'covered', 'libcxxabi': 'covered', 'llvm-libc': 'covered',
             'libcxx-credits-and-subdirectories': 'uncovered', 'libcxxabi-credits-and-subdirectories': 'uncovered',
             'llvm-libc-subdirectories': 'uncovered', 'highway': 'covered', 'fast_float': 'covered', 'simdutf': 'covered',
             'dragonbox': 'covered', 'fp16': 'covered', 'abseil-cpp': 'covered', 'gstreamer': 'covered',
@@ -344,7 +405,7 @@ class Account(Copy):
             'libffi': 'covered', 'pcre2-voice': 'covered', 'opus': 'covered', 'zlib': 'covered'}
         table = json.loads((ROOT / TABLE).read_text())
         self.assertEqual({c['id']: c['standing'] for c in table['components']}, expected)
-        account = json.loads((ROOT / coverage.ACCOUNT).read_text())
+        account = self.build()
         standing = {'covered': coverage.COVERED, 'pending': coverage.HELD, 'uncovered': coverage.UNCOVERED}
         self.assertEqual({c['id']: c['standing'] for c in account['components'] if c['class'] == 'supplier'},
                          {k: standing[v] for k, v in expected.items()})
@@ -376,15 +437,40 @@ class Account(Copy):
         self.assertEqual(len(fonts), 3)
         self.assertTrue(all(c['standing'] == coverage.UNCOVERED and not c['texts'] for c in fonts))
 
-    # Round 2 finding 5: ICU is pending the owner's reading, and the strict check names it.
-    def test_icu_is_pending_with_the_named_files_stated(self):
-        account = json.loads((ROOT / coverage.ACCOUNT).read_text())
-        icu = next(c for c in account['components'] if c.get('id') == 'icu')
-        self.assertEqual(icu['standing'], coverage.HELD)
+    # Round 2 finding 5, answered: ICU is covered only by the owner's reading of 2026-11-15 in its closed form.
+    def test_icu_is_covered_only_by_the_owners_closed_form_reading(self):
+        table = json.loads((ROOT / TABLE).read_text())
+        icu_item = next(c for c in table['components'] if c['id'] == 'icu')
+        reading = icu_item['owner_licence_reading']
+        self.assertEqual((reading['decided_by'], reading['date']), ('owner', '2026-11-15'))
+        self.assertEqual(reading['answer'], "ICU's licence text as published is complete")
+        self.assertEqual(reading['answer_description'], 'Nothing is added. The two files are build-system files, very likely '
+                                                        'not compiled into or shipped with anything.')
         for name in ('aclocal.m4', 'config.guess', 'icu.BUILD.bazel', 'not held'):
-            self.assertIn(name, icu['reason'])
-        self.assertEqual([o['name'] for o in account['open'] if o['standing'] == coverage.HELD], ['ICU (V8 dependency)'])
-        self.assertEqual(account['counts'][coverage.UNCOVERED], 5)
+            self.assertIn(name, icu_item['reading_context'])
+        # Nothing is added to the ICU notice: it is still the one committed text, with its recorded bytes.
+        self.assertEqual(icu_item['texts'], ['app/packaging/supplier_notices/icu-d578f2e8/LICENSE'])
+        text = next(t for t in table['texts'] if t['path'] == icu_item['texts'][0])
+        self.assertEqual(hashlib.sha256((ROOT / text['path']).read_bytes()).hexdigest(), text['sha256'])
+        icu = next(c for c in self.build()['components'] if c.get('id') == 'icu')
+        self.assertEqual(icu['standing'], coverage.COVERED)
+        self.assertIn("owner licence reading (2026-11-15): ICU's licence text as published is complete", icu['basis'])
+        self.assertEqual(icu['owner_licence_reading'], reading)
+
+        def change(**fields):
+            return lambda v: next(c for c in v['components'] if c['id'] == 'icu')['owner_licence_reading'].update(fields)
+        for edit in (change(answer='Ship the two GPL texts as well'), change(answer_description='INVENTED stronger claim'),
+                     change(question='INVENTED'), change(decided_by='agent'), change(date='15 November'),
+                     lambda v: next(c for c in v['components'] if c['id'] == 'icu').pop('owner_licence_reading'),
+                     lambda v: next(c for c in v['components'] if c['id'] == 'icu').update(standing='pending')):
+            with self.subTest(edit=edit):
+                self.setUp(); self.edit(TABLE, edit)
+                self.assertEqual(next(c for c in self.build()['components'] if c.get('id') == 'icu')['standing'], coverage.HELD)
+        # The reading covers ICU only.
+        self.setUp(); self.edit(TABLE, lambda v: next(c for c in v['components'] if c['id'] == 'v8').update(owner_licence_reading=reading))
+        with self.assertRaisesRegex(ValueError, 'needs none'): self.build()
+        self.setUp(); self.edit(TABLE, lambda v: v.update(components=[c for c in v['components'] if c['id'] != 'icu']))
+        with self.assertRaisesRegex(ValueError, 'awaiting a reading is missing'): self.build()
 
     # Round 2 finding 6: the executable rule must fit the record's Mach-O count.
     def test_executable_rule_must_fit_the_record_macho_count(self):
@@ -440,69 +526,143 @@ class Account(Copy):
         self.setUp(); self.edit(TABLE, lambda v: next(c for c in v['components'] if c['id'] == 'v8').update(repository=None, revision=None))
         self.assertEqual(self.row(self.build(), 'V8')['standing'], coverage.UNCOVERED)
 
+    # Round 4 finding 3: identity is checked before any text or exception, and a supplier-tree row needs its source URL.
+    def test_a_component_whose_every_text_is_an_exception_still_needs_its_own_identity(self):
+        def all_exceptions(v, identity):
+            item = next(c for c in v['components'] if c['id'] == 'pcre2-sys')
+            item.update(identity)
+            item['text_exceptions'] = [{'path': p, 'reason': 'INVENTED: every text named as an exception'} for p in item['texts']]
+        self.edit(TABLE, lambda v: all_exceptions(v, {}))
+        self.assertEqual(self.row(self.build(), 'pcre2-sys')['standing'], coverage.COVERED)
+        for identity in ({'repository': None, 'revision': None}, {'repository': None}, {'revision': None}, {'revision': ''}):
+            with self.subTest(identity=identity):
+                self.setUp(); self.edit(TABLE, lambda v, i=identity: all_exceptions(v, i))
+                row = self.row(self.build(), 'pcre2-sys')
+                self.assertEqual(row['standing'], coverage.UNCOVERED)
+                self.assertIn('own identity is incomplete', row['reason'])
+
+    def test_a_supplier_tree_row_needs_its_source_url_but_no_invented_revision(self):
+        table = json.loads((ROOT / TABLE).read_text())
+        voice = [c for c in table['components'] if c['supplier_tree_texts']]
+        self.assertEqual(len(voice), 9)
+        self.assertTrue(all(c['revision'] is None and c['repository'].startswith('https://') for c in voice))
+        self.assertEqual(self.row(self.build(), 'Opus')['standing'], coverage.COVERED)
+        for repository in (None, '', 'opus-1.6.1.tar.gz'):
+            with self.subTest(repository=repository):
+                self.setUp(); self.edit(TABLE, lambda v, r=repository: next(c for c in v['components'] if c['id'] == 'opus').update(repository=r))
+                row = self.row(self.build(), 'Opus')
+                self.assertEqual(row['standing'], coverage.UNCOVERED)
+                self.assertIn('source URL', row['reason'])
+
     def test_library_content_must_match_its_bundle_source_record(self):
         self.edit(texts.INPUTS, lambda v: v['library_content'][1].update(revision='d' * 40))
         with self.assertRaisesRegex(ValueError, 'another source'): self.build()
 
+    # Round 4 finding 2: a folder is covered only with exactly the members its reviewed source record lists.
+    def test_an_added_or_changed_file_in_a_bundled_library_folder_is_open(self):
+        for name, change in (('added', lambda root: (root / 'agents/AGENT_INVENTED.md').write_text('INVENTED added file\n')),
+                             ('changed', lambda root: (root / 'AGENTS.md').write_text('INVENTED changed text\n')),
+                             ('removed', lambda root: (root / 'roles.json').unlink())):
+            with self.subTest(name=name):
+                self.setUp()
+                change(self.repo / 'app/src-tauri/resources/instructions')
+                row = self.row(self.build(), 'Chirality instructions and role set')
+                self.assertEqual(row['standing'], coverage.UNCOVERED)
+                self.assertIn('differs from the members its source record lists', row['reason'])
+        # Listing the added file in the bundle's own record is a change to a reviewed record, which refuses until reviewed.
+        self.setUp()
+        record = self.repo / 'app/src-tauri/resources/instructions/ROLE_SET_SOURCE_BINDING.json'
+        value = json.loads(record.read_text()); value['guidance'].append({'path': 'agents/AGENT_INVENTED.md', 'sha256': '0' * 64, 'byteLength': 1})
+        record.write_text(json.dumps(value))
+        with self.assertRaisesRegex(ValueError, 'differs from the reviewed one'): self.build()
+
+    def test_a_foreign_selection_under_a_named_destination_folder_is_open(self):
+        # The reviewer's probe: a supplier-directory text selected as distribution-reference/extra.txt.
+        overlay = 'app/packaging/unsigned/tauri.attested-reference.conf.json'
+        foreign = '../packaging/supplier_notices/INVENTED-foreign/LICENSE'
+        self.edit(overlay, lambda v: v['bundle']['resources'].update({foreign: 'distribution-reference/extra.txt'}))
+        value = self.build()
+        row = self.row(value, 'Unnamed bundle resource distribution-reference/extra.txt')
+        self.assertEqual((row['standing'], row['mappings']), (coverage.UNCOVERED, [
+            {'source': 'app/packaging/supplier_notices/INVENTED-foreign/LICENSE', 'destination': 'distribution-reference/extra.txt'}]))
+        self.assertEqual(len(self.row(value, 'App distribution reference records')['mappings']), 12)
+        # The same for a file selected into a bundled Library folder's destination.
+        self.setUp()
+        self.edit(overlay, lambda v: v['bundle']['resources'].update({foreign: 'instructions/extra.txt'}))
+        self.assertEqual(self.row(self.build(), 'Unnamed bundle resource instructions/extra.txt')['standing'], coverage.UNCOVERED)
+
+    def test_app_content_names_exact_mappings_only(self):
+        dist = 'app/src-tauri/resources/distribution-reference/build-selection.s2.json'
+        for mapping, message in (({'source': 'app/src-tauri/resources/distribution-reference/', 'destination': 'distribution-reference/'}, 'exactly'),
+                                 ({'source': 'docs/INVENTED.md', 'destination': 'distribution-reference/build-selection.s2.json'}, 'does not exist'),
+                                 ({'source': dist, 'destination': 'distribution-reference/other.json'}, 'does not exist')):
+            with self.subTest(mapping=mapping):
+                self.setUp(); self.edit(texts.INPUTS, lambda v, m=mapping: v['app_resources'][0]['mappings'].append(m))
+                with self.assertRaisesRegex(ValueError, message): self.build()
+        self.setUp(); self.edit(texts.INPUTS, lambda v: v['app_resources'][0].update(accounts_for=['distribution-reference/']))
+        with self.assertRaisesRegex(ValueError, 'unknown app_resources entry shape'): self.build()
+
+    # Round 4 finding 1: copy routes beyond resources and the icon refuse rather than escape the account.
+    def test_unsupported_copy_routes_and_platform_configuration_refuse(self):
+        limitations = '../../docs/RELEASE_LIMITATIONS_4.0.0.md'
+        conf = 'app/src-tauri/tauri.conf.json'
+        for name, change, message in (
+                ('macOS files', lambda v: v['bundle'].update(macOS={'files': {'release/LIMITATIONS.md': limitations}}), 'bundle.macOS.files'),
+                ('frameworks', lambda v: v['bundle'].update(macOS={'frameworks': [limitations]}), 'bundle.macOS.frameworks'),
+                ('external binary', lambda v: v['bundle'].update(externalBin=['binaries/invented']), 'bundle.externalBin'),
+                ('resource list', lambda v: v['bundle'].update(resources=[limitations]), 'must be an object')):
+            with self.subTest(route=name):
+                self.setUp(); self.edit(conf, change)
+                with self.assertRaisesRegex(ValueError, message): self.build()
+        for name in ('tauri.macos.conf.json', 'Tauri.macos.toml', 'tauri.conf.json5', 'Tauri.toml', 'TAURI.MACOS.CONF.JSON'):
+            with self.subTest(config=name):
+                self.setUp()
+                (self.repo / 'app/src-tauri' / name).write_text(json.dumps({'bundle': {'resources': {limitations: 'release/LIMITATIONS.md'}}}))
+                with self.assertRaisesRegex(ValueError, 'platform or alternate Tauri configuration'): self.build()
+
     # Every bundle resource is named in the account; an unnamed mapping is open, a stale claim refuses.
     def test_a_mapped_resource_the_account_does_not_name_is_open(self):
         conf = 'app/src-tauri/tauri.conf.json'
-        # The mapping pull request 236 adds for the shipped limitations list.
+        # The mapping the shipped limitations list adds.
         self.edit(conf, lambda v: v['bundle']['resources'].update({'../../docs/RELEASE_LIMITATIONS_4.0.0.md': 'release/LIMITATIONS.md'}))
         value = self.build()
         row = self.row(value, 'Unnamed bundle resource release/LIMITATIONS.md')
         self.assertEqual(row['standing'], coverage.UNCOVERED)
         self.assertIn('Unnamed bundle resource release/LIMITATIONS.md', {o['name'] for o in value['open']})
-        # Named as the App's own content, it is covered with the App's licence as its notice.
+        # Named as the App's own content by its exact mapping, it is covered with the App's licence as its notice.
         self.edit(texts.INPUTS, lambda v: v['app_resources'].append(
-            {'name': 'Release limitations list', 'accounts_for': ['release/LIMITATIONS.md'], 'note': 'invented for the test'}))
+            {'name': 'Release limitations list', 'note': 'invented for the test',
+             'mappings': [{'source': 'docs/RELEASE_LIMITATIONS_4.0.0.md', 'destination': 'release/LIMITATIONS.md'}]}))
         value = self.build()
         self.assertEqual(self.row(value, 'Release limitations list')['standing'], coverage.COVERED)
         self.assertNotIn('Unnamed bundle resource release/LIMITATIONS.md', {c['name'] for c in value['components']})
 
     def test_a_claim_on_a_mapping_that_does_not_exist_refuses(self):
         self.edit(texts.INPUTS, lambda v: v['app_resources'].append(
-            {'name': 'Release limitations list', 'accounts_for': ['release/LIMITATIONS.md'], 'note': 'invented'}))
+            {'name': 'Release limitations list', 'note': 'invented',
+             'mappings': [{'source': 'docs/RELEASE_LIMITATIONS_4.0.0.md', 'destination': 'release/LIMITATIONS.md'}]}))
         with self.assertRaisesRegex(ValueError, 'claims a mapping that does not exist'): self.build()
 
     def test_the_vendor_tree_must_be_named(self):
         self.edit(TABLE, lambda v: next(c for c in v['components'] if c['id'] == 'codex').pop('accounts_for'))
         self.assertIn('Unnamed bundle resource codex/', {o['name'] for o in self.build()['open']})
+        self.setUp(); self.edit(TABLE, lambda v: next(c for c in v['components'] if c['id'] == 'v8').update(accounts_for=['instructions/']))
+        with self.assertRaisesRegex(ValueError, 'may name only the vendor tree'): self.build()
 
     def test_every_current_mapping_is_named(self):
-        account = json.loads((ROOT / coverage.ACCOUNT).read_text())
-        self.assertFalse([c for c in account['components'] if c['class'] == 'resource'])
-        self.assertEqual(sorted((c['class'], c['name'], tuple(c.get('accounts_for', []))) for c in account['components']
-                                if c['class'] in ('app', 'app-asset', 'library-content', 'app-content', 'notices')),
-                         sorted([('app', 'chirality-app', ()), ('app-asset', 'App icon icons/icon.png', ()),
-                                 ('library-content', 'Chirality instructions and role set', ('instructions/',)),
-                                 ('library-content', 'Chirality Library 3.4.0 workflows', ('workflows/',)),
-                                 ('app-content', 'App distribution reference records', ('distribution-reference/',)),
-                                 ('notices', 'Third-party notices and their indexes', tuple(
-                                     next(c for c in account['components'] if c['class'] == 'notices')['accounts_for']))]))
-        conf = json.loads((ROOT / 'app/src-tauri/tauri.conf.json').read_text())['bundle']['resources']
+        for account in (json.loads((ROOT / coverage.ACCOUNT).read_text()), self.build()):
+            self.assertFalse([c for c in account['components'] if c['class'] == 'resource'])
+            self.assertEqual({(c['class'], c['name'], frozenset(m['destination'] for m in c.get('mappings', []))) for c in account['components']
+                              if c['class'] in ('app', 'app-asset', 'library-content', 'notices')},
+                             {('app', 'chirality-app', frozenset()), ('app-asset', 'App icon icons/icon.png', frozenset()),
+                              ('library-content', 'Chirality instructions and role set', frozenset({'instructions/'})),
+                              ('library-content', 'Chirality Library 3.4.0 workflows', frozenset({'workflows/'})),
+                              ('notices', 'Third-party notices and their indexes', frozenset(
+                                  [*coverage.NOTICE_INDEX_SOURCES, *(d for _, d in coverage.SUPPLEMENT_PAIRS)]))})
         fonts = json.loads((ROOT / 'app/packaging/font_notice/index.json').read_text())
-        mapped = set(conf.values()) | set(coverage.bundle.selected(ROOT / 'app', [l['path'] for l in fonts['licenses']]).values())
-        self.assertEqual(coverage.unaccounted(coverage.check(ROOT)['accounts_for'], mapped | {'codex/'}), [])
-
-    def test_another_declared_pin_is_named_as_an_open_review_not_assumed(self):
-        pin = texts.declared_pin(ROOT)
-        hosting = self.repo / texts.HOSTING
-        hosting.write_text(hosting.read_text().replace(f'DECLARED_PIN: &str = "{pin}"', 'DECLARED_PIN: &str = "9.9.9"'))
-        record = json.loads((ROOT / f'app/src-tauri/resources/supplier/{pin}/CANONICAL_DISTRIBUTION.json').read_text())
-        record['pin'] = '9.9.9'
-        target = self.repo / 'app/src-tauri/resources/supplier/9.9.9/CANONICAL_DISTRIBUTION.json'
-        target.parent.mkdir(parents=True); target.write_text(json.dumps(record))
-        # A pin move changes which distribution record is bound, so the review record must change with it.
-        with self.assertRaisesRegex(ValueError, 'declared pin\'s distribution record'): coverage.build(self.repo)
-        review = json.loads((self.repo / coverage.REVIEW).read_text())
-        review['files_sha256'].pop(f'app/src-tauri/resources/supplier/{pin}/CANONICAL_DISTRIBUTION.json')
-        review['files_sha256']['app/src-tauri/resources/supplier/9.9.9/CANONICAL_DISTRIBUTION.json'] = hashlib.sha256(target.read_bytes()).hexdigest()
-        (self.repo / coverage.REVIEW).write_text(json.dumps(review))
-        value = coverage.build(self.repo)
-        self.assertEqual(value['supplier_pin'], '9.9.9')
-        self.assertIn('Supplier component table', {o['name'] for o in value['open']})
-
+        mapped = coverage.bundle.pairs(coverage.bundle.selected(ROOT / 'app', [l['path'] for l in fonts['licenses']]))
+        mapped += [(coverage.bundle.VENDOR_SOURCE, 'codex/'), *coverage.SUPPLEMENT_PAIRS]
+        self.assertEqual(coverage.unaccounted(coverage.check(ROOT)['mappings'], mapped), [])
 
 if __name__ == '__main__':
     unittest.main()

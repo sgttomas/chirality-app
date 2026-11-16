@@ -14,7 +14,7 @@ module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
 def named_in_account():
     spec = importlib.util.spec_from_file_location('production_test_coverage', ROOT / 'app/packaging/notices/coverage.py')
     coverage = importlib.util.module_from_spec(spec); spec.loader.exec_module(coverage)
-    return coverage.check(ROOT)['accounts_for']
+    return coverage.check(ROOT)['mappings']
 
 
 NAMED = named_in_account()
@@ -94,7 +94,7 @@ class ProductionInputs(unittest.TestCase):
             __file__ = str(ROOT / 'app/packaging/notices/coverage.py')
             @staticmethod
             def check(root): return {'sha256': '0' * 64, 'counts': {}, 'open': [], 'supplier_pin': 'invented',
-                                     'accounts_for': NAMED}
+                                     'mappings': NAMED}
         def load(name, path):
             return Coverage if name == 'production_notice_coverage' else real_load(name, path)
         with patch.object(module, 'load_module', load):
@@ -430,7 +430,7 @@ class ProductionInputs(unittest.TestCase):
             __file__ = str(ROOT / 'app/packaging/notices/coverage.py')
             @staticmethod
             def check(root): return {'sha256': '0' * 64, 'counts': {'covered': 1}, 'open': [], 'supplier_pin': account['supplier_pin'],
-                                     'supplier_distribution': account['supplier_distribution'], 'accounts_for': NAMED}
+                                     'supplier_distribution': account['supplier_distribution'], 'mappings': NAMED}
         def load(name, path):
             return Complete if name == 'production_notice_coverage' else real_load(name, path)
         kw=self.production(); kw.pop('not_for_public_release')
@@ -451,12 +451,49 @@ class ProductionInputs(unittest.TestCase):
             @staticmethod
             def check(root): return {'sha256': '0' * 64, 'counts': {'covered': 1}, 'open': [], 'supplier_pin': '9.9.9',
                                      'supplier_distribution': {'manifest_sha256': manifest},
-                                     'accounts_for': [n for n in NAMED if n != 'codex/']}
+                                     'mappings': [n for n in NAMED if n != ('selected:vendor-tree/', 'codex/')]}
         def load(name, path):
             return Unnamed if name == 'production_notice_coverage' else real_load(name, path)
         kw=self.production(); kw.pop('not_for_public_release')
         with patch.object(module, 'load_module', load):
-            with self.assertRaisesRegex(ValueError, 'bundle resource not named in the notice coverage account: codex/'): self.run_plan(**kw)
+            with self.assertRaisesRegex(ValueError, 'bundle mapping not named in the notice coverage account: selected:vendor-tree/ -> codex/'): self.run_plan(**kw)
+        self.assertFalse(self.output.exists())
+    def test_unsupported_copy_routes_refuse_before_output(self):
+        # Round 4 finding 1: a route the account does not cover refuses rather than reaching the bundler unaccounted.
+        conf=self.source/'app/src-tauri/tauri.conf.json'; original=conf.read_text()
+        limitations='../../docs/RELEASE_LIMITATIONS_4.0.0.md'
+        for name,change,message in (('macOS files',{'macOS':{'files':{'release/LIMITATIONS.md':limitations}}},'bundle.macOS.files'),
+                                    ('frameworks',{'macOS':{'frameworks':[limitations]}},'bundle.macOS.frameworks'),
+                                    ('external binary',{'externalBin':['binaries/invented']},'bundle.externalBin')):
+            with self.subTest(route=name):
+                value=json.loads(original); value['bundle'].update(change); conf.write_text(json.dumps(value))
+                with self.assertRaisesRegex(ValueError,message):self.run_plan(**self.production())
+                self.assertFalse(self.output.exists())
+        conf.write_text(original)
+        platform=self.source/'app/src-tauri/tauri.macos.conf.json'
+        platform.write_text(json.dumps({'bundle':{'resources':{limitations:'release/LIMITATIONS.md'}}}))
+        with self.assertRaisesRegex(ValueError,'platform or alternate Tauri configuration'):self.run_plan(**self.production())
+        self.assertFalse(self.output.exists())
+    def test_effective_routes_allow_only_the_validated_profile(self):
+        bundle=module.load_module('production_test_bundle','app/packaging/production_inputs/bundle_resources.py')
+        base={'active':False,'icon':['icons/icon.png'],'resources':{'resources/instructions/':'instructions/'}}
+        plan={'bundle':{'active':True,'resources':{'resources/instructions/':'instructions/','x':'y'},
+                        'macOS':{'minimumSystemVersion':'15.0','signingIdentity':None,'files':{'embedded.provisionprofile':'/p'}}}}
+        effective=bundle.merge_patch({'bundle':base},plan)['bundle']
+        self.assertEqual(effective['resources'],plan['bundle']['resources']); self.assertEqual(effective['icon'],base['icon'])
+        bundle.check_routes(effective,profile='/p')
+        with self.assertRaisesRegex(ValueError,'validated provisioning profile'):bundle.check_routes(effective)
+        effective['macOS']['files']['LIMITATIONS.md']='/other'
+        with self.assertRaisesRegex(ValueError,'validated provisioning profile'):bundle.check_routes(effective,profile='/p')
+    def test_a_foreign_selection_under_a_named_folder_cannot_make_a_public_plan(self):
+        # Round 4 finding 2, through the preparation: the account regenerated from this source differs, so it refuses.
+        foreign=self.source/'app/packaging/supplier_notices/INVENTED-foreign/LICENSE'
+        foreign.parent.mkdir(); foreign.write_text('INVENTED foreign licence text\n')
+        path=self.source/'app/packaging/unsigned/tauri.attested-reference.conf.json'
+        value=json.loads(path.read_text())
+        value['bundle']['resources']['../packaging/supplier_notices/INVENTED-foreign/LICENSE']='distribution-reference/extra.txt'
+        path.write_text(json.dumps(value))
+        with self.assertRaisesRegex(ValueError,'coverage.json is stale'):self.run_plan(**self.production())
         self.assertFalse(self.output.exists())
     def test_stale_coverage_account_refuses_before_output(self):
         path=self.source/'app/packaging/notices/coverage.json'
