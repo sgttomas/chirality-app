@@ -124,7 +124,7 @@ pub mod working_files;
 pub mod stop_records;
 pub mod util;
 
-use act_control::{ActControl, InputSource};
+use act_control::ActControl;
 use hosting::{Host, HostConfig};
 use runtime_session::trial_flows::SendRefusal;
 use serde_json::{json, Value};
@@ -1447,7 +1447,7 @@ fn local_home_preflight(state: &AppState, bootstrap: &runtime_session::HomeBoots
 #[tauri::command(async)]
 fn prepare_local_provider(window: tauri::Window, state: State<'_, AppState>) -> Result<Value, String> {
     local_route_refused()?;
-    if hosting::DECLARED_PIN!="0.167.0" { return Err(native_local_provider::LIMIT.into()); }
+    if hosting::DECLARED_PIN!="0.169.0" { return Err(native_local_provider::LIMIT.into()); }
     let _operation=state.key_setup.try_lock().map_err(|_| native_local_provider::LIMIT)?;
     if state.app_quit.busy() || state.app_quit.proceeding().is_some() { return Err(native_local_provider::LIMIT.into()); }
     provider_endpoint_confirmation::recheck_original(&window)?;
@@ -1511,7 +1511,7 @@ fn local_model_settings_read(state: State<'_, AppState>) -> Value {
 #[tauri::command(async)]
 fn local_model_settings_save(window: tauri::Window, state: State<'_, AppState>, endpoint: String, model: String) -> Result<Value, String> {
     local_route_refused()?;
-    if hosting::DECLARED_PIN!="0.167.0" { return Err(native_local_provider::LIMIT.into()); }
+    if hosting::DECLARED_PIN!="0.169.0" { return Err(native_local_provider::LIMIT.into()); }
     let proposed=native_local_provider::LocalSettings::new(&endpoint,&model)?;
     let _operation=state.key_setup.try_lock().map_err(|_| native_local_provider::LIMIT)?;
     if state.app_quit.busy() || state.app_quit.proceeding().is_some() { return Err(native_local_provider::LIMIT.into()); }
@@ -2971,11 +2971,11 @@ fn decide(
         ac.dismiss(&offer_id);
         return Err("Attribution or owning host context changed during confirmation; review and confirm again".into());
     }
-    ac.confirm(
+    ac.confirm_shown(
         &offer_id,
         &alternative,
-        InputSource::HostNativeConfirmation,
         actor,
+        &statement.text,
     )
 }
 

@@ -1,6 +1,7 @@
 import { AgentText, ConversationChoices, RecordedData, idWords, numberWords, safeName, wordOf } from "./AgentText";
 import { ActionFeedback } from "./ActionFeedback";
 import { LOCAL_ROUTE_OFFERED } from "./localRoute";
+import { PackageStanding } from "./PackageStanding";
 import { LOCAL_ENTRY, LOCAL_FORK_AVAILABLE, LOCAL_FORK_UNAVAILABLE, LOCAL_MODE, LocalProviderAccess, generationKey, localRoute, localViewFrom, readAttemptedLocalEntries, recordAttemptedLocalEntry, forgetAttemptedLocalEntry, type LocalView } from "./LocalProviderAccess";
 import { NativeWaitingBridge } from "./NativeWaitingBridge";
 import { ConnectorSourcePanel } from "./ConnectorSourcePanel";
@@ -875,6 +876,8 @@ function NativeConfirmationContent() {
       <p>sha-256 digest, as named in the native confirmation: <code style={{ userSelect: "all", overflowWrap: "anywhere" }}>{row.digest}</code>. {checks[row.digest] ?? ""} {DIGEST_LIMIT}</p>
       {row.kind === "A15 complete review" && Array.isArray(row.content?.entries) && row.content.entries.every((entry: Json) => entry !== null && typeof entry === "object" && !Array.isArray(entry))
         ? <WorkflowRegistrationReview presentation={row.content} />
+        : row.kind === "A16 chosen alternative" && typeof row.content?.markedStatement === "string"
+        ? <AgentText block alreadyMarkedByHost value={row.content.markedStatement} source="record" label="Complete marked statement:" name="The complete marked statement named by the native confirmation" />
         : <RecordedData value={readablePaths(row.content)} />}
     </article>)}
   </section>;
@@ -1514,18 +1517,43 @@ export function TraceReceivingPanel({ data, currentContext, select }: { data: Js
   </section>;
 }
 
+/** The same act-control presentation mounted by App and exercised by the rendering regression. */
+export function ActControlPanel({ offer, choice, setChoice, decide, close }: {
+  offer: Json; choice: string; setChoice: (choice: string) => void; decide: () => void; close: () => void;
+}) {
+  return <section style={{ border: "1px solid #888", padding: 8 }}>
+    <h2>Act control</h2>
+    <p>Act: <AgentText value={offer.wording} source="file" label="The package states the act:" name="The act's wording as the decision package states it, not the App's words" /> · kind: <AgentText value={offer.actKind} source="file" name="The act's kind as the decision package states it, not the App's words" /></p>
+    <p>
+      <AgentText value={offer.subject.ref} source="file" label="Subject:" /> · <AgentText value={offer.subject.contentIdentity.value} source="record" label="Content identity:" />
+      <br />
+      Purpose: <AgentText value={offer.purpose} source="file" /> · Scope: <AgentText value={offer.scope} source="file" /> · <AgentText value={offer.answers.standing} source="record" />
+    </p>
+    <PackageStanding standing={offer.packageStanding} other={offer.otherRequestsForPath} />
+    {offer.alternatives.map((a: Json) => (<label key={a.id} style={{ display: "block" }}>
+        <input type="radio" name="alt" value={a.id} checked={choice === a.id} onChange={() => setChoice(a.id)}/>{" "}
+        <b>Alternative {idWords(a.id)}</b>
+      </label>))}
+    {/* What each alternative says and does is the package file's text: beside the controls, never in their labels. */}
+    {offer.alternatives.map((a: Json) => <div key={`text:${a.id}`}><AgentText block value={`${String(a.id ?? "")}: ${String(a.statement ?? "")} — ${(Array.isArray(a.consequences) ? a.consequences : []).map(String).join("; ")}`} source="file" label={`Alternative ${idWords(a.id)}, as the package states it:`} name="An alternative as the decision package states it, not the App's words" /></div>)}
+    <p>The host shows its own confirmation with this text; only that confirmation records the decision.</p>
+    <button onClick={decide} disabled={!choice}>Decide…</button> <button onClick={close}>Close</button>
+  </section>;
+}
+
 export function DecisionPackagesPanel({ view, name, setName, recordName, refresh, continueRecording, openControl }: {
   view: Json; name: string; setName: (name: string) => void; recordName: () => void;
   refresh: () => Promise<void>; continueRecording: () => Promise<void>; openControl: (request: string) => Promise<void>;
 }) {
   const writer = view?.writerStatus;
   const claim = (decision: Json) => <>
-    <p>Recorded decision claim: <b>{decision.alternativeChosen}</b> {decision.statement} · decided by {decision.decidedBy} · recorded by {decision.recordedBy} ({decision.recordingMode}) · act record {decision.act ?? "no single record ID selected"}.</p>
-    {(decision.equivalentCaptureRecords ?? []).length > 1 && <p>Equivalent records of the same agreeing capture: {decision.equivalentCaptureRecords.join(", ")}. Each original record's source and time remains available below.</p>}
-    <p>Capture time: {decision.capturedAt ?? "not reported"} · observed at: {decision.observedAt ?? ((decision.equivalentCaptureRecords ?? []).length > 1 ? "multiple records; see individual observations" : "not reported")} · record written at: {decision.recordedAt ?? ((decision.equivalentCaptureRecords ?? []).length > 1 ? "multiple records; see individual written times" : "not reported")}. Recorded observation order does not establish human performance chronology.</p>
-    <p>{decision.lapse} · {decision.captureProvenance}</p>
-    {decision.currentContentComparison && <p>Current file comparison: {JSON.stringify(decision.currentContentComparison)}. This describes current bytes separately from past lapse history.</p>}
-    {decision.historyResolution && <p>Recorded lapse history resolution: {JSON.stringify(decision.historyResolution)}.</p>}
+    <p>Recorded decision claim: <AgentText value={decision.alternativeChosen} source="record" label="Alternative:" /> <AgentText value={decision.statement} source="record" label="Statement:" /> · decided by <AgentText value={decision.decidedBy} source="record" /> · recorded by <AgentText value={decision.recordedBy} source="record" /> (<AgentText value={decision.recordingMode} source="record" />) · act record {decision.act == null ? "no single record ID selected" : <AgentText value={decision.act} source="record" />}.</p>
+    {(decision.equivalentCaptureRecords ?? []).length > 1 && <p>Equivalent records of the same agreeing capture: <AgentText value={decision.equivalentCaptureRecords.join(", ")} source="record" />. Each original record's source and time remains available below.</p>}
+    <p>Capture time: {decision.capturedAt == null ? "not reported" : <AgentText value={decision.capturedAt} source="record" />} · observed at: {decision.observedAt == null ? ((decision.equivalentCaptureRecords ?? []).length > 1 ? "multiple records; see individual observations" : "not reported") : <AgentText value={decision.observedAt} source="record" />} · record written at: {decision.recordedAt == null ? ((decision.equivalentCaptureRecords ?? []).length > 1 ? "multiple records; see individual written times" : "not reported") : <AgentText value={decision.recordedAt} source="record" />}. Recorded observation order does not establish human performance chronology.</p>
+    <p><AgentText value={decision.lapse} source="record" /> · <AgentText value={decision.captureProvenance} source="record" /></p>
+    <p>{decision.shownStatementBinding?.statement == null ? "Whether what was shown is bound in this capture is not known." : <AgentText value={decision.shownStatementBinding.statement} source="record" />}</p>
+    {decision.currentContentComparison && <div><RecordedData value={decision.currentContentComparison} label="Current file comparison (recorded data):" /><p>This describes current bytes separately from past lapse history.</p></div>}
+    {decision.historyResolution && <RecordedData value={decision.historyResolution} label="Recorded lapse history resolution:" />}
     {decision.historyIncomplete && <p>Recorded history is incomplete; unresolved observations remain in the source details below.</p>}
     <details><summary>Scoped record sources, correction/lapse history and provenance</summary><RecordedData value={decision} /></details>
   </>;
@@ -1544,12 +1572,12 @@ export function DecisionPackagesPanel({ view, name, setName, recordName, refresh
       <p>Act requested: <AgentText value={row.actRequested} source="file" name="The act the decision package requests, as the package states it, not the App's words" /> · state: <AgentText value={row.state} source="record" name="The package's state, as the host recorded it; the App does not vouch for its words" /></p>
       <p>Request resolution: {row.requestResolution ?? "not reported"}. Recorded request sources: {JSON.stringify(row.requestSources ?? [])}.</p>
       {row.state === "unresolvable request identity" && <p>The recorded request identity conflicts. No current request or act is selected by this view; existing package and record admission checks remain in force.</p>}
-      <p>Subject: {(row.subject ?? []).join("; ")} · Purpose: {row.purpose} · Scope: {row.scope ?? "—"} · File: {row.packageFile}</p>
-      <ul>{(row.alternatives ?? []).map((a: Json) => <li key={a.id}><b>{a.id}</b> {a.statement} — {(a.consequences ?? []).join("; ")}</li>)}</ul>
+      <p>Subject: <AgentText value={(row.subject ?? []).join("; ")} source="file" /> · Purpose: <AgentText value={row.purpose} source="file" /> · Scope: {row.scope == null ? "—" : <AgentText value={row.scope} source="file" />} · File: <AgentText value={row.packageFile} source="file" /></p>
+      <ul>{(row.alternatives ?? []).map((a: Json) => <li key={a.id}><AgentText value={a.id} source="file" label="Alternative:" /> <AgentText value={a.statement} source="file" label="Statement:" /> — <AgentText value={(a.consequences ?? []).join("; ")} source="file" label="Consequences:" /></li>)}</ul>
       {row.state === "ambiguous current standing" && <p>Current recorded standing is ambiguous. No current act is selected from these claims; this row does not establish a pending human act. The act control retains its current package and offer checks.</p>}
       {row.decision && claim(row.decision)}
       {(row.contenders ?? []).length > 0 && <div><h4>Recorded contenders</h4>{row.contenders.map((contender: Json) => <article key={contender.act}><h5>Recorded contender</h5><p>Act: <AgentText value={contender.act} source="record" name="A contending act, as recorded; the App does not vouch for its words" /></p>{claim(contender)}</article>)}</div>}
-      {row.currentCandidates && <p>Current recorded candidates: {row.currentCandidates.join(", ") || "none established"}.</p>}
+      {row.currentCandidates && <p>Current recorded candidates: {row.currentCandidates.length ? <AgentText value={row.currentCandidates.join(", ")} source="record" /> : "none established"}.</p>}
       {(row.limits ?? []).length > 0 && <p>Limits: {row.limits.join(" | ")}</p>}
       <button onClick={() => openControl(row.package)}>Open act control (decide)</button>
     </article>)}
@@ -2805,23 +2833,7 @@ export function App() {
       }}/>
         <NativeConfirmationContent />
         {firstRead === "read" && <div hidden={setupRequired}>
-        {offer && (<section style={{ border: "1px solid #888", padding: 8 }}>
-            <h2>Act control</h2>
-            <p>Act: <AgentText value={offer.wording} source="file" label="The package states the act:" name="The act's wording as the decision package states it, not the App's words" /> · kind: <AgentText value={offer.actKind} source="file" name="The act's kind as the decision package states it, not the App's words" /></p>
-            <p>
-              {offer.subject.ref} · {offer.subject.contentIdentity.value}
-              <br />
-              Purpose: {offer.purpose} · Scope: {offer.scope} · {offer.answers.standing}
-            </p>
-            {offer.alternatives.map((a: Json) => (<label key={a.id} style={{ display: "block" }}>
-                <input type="radio" name="alt" value={a.id} checked={choice === a.id} onChange={() => setChoice(a.id)}/>{" "}
-                <b>Alternative {idWords(a.id)}</b>
-              </label>))}
-            {/* What each alternative says and does is the package file's text: beside the controls, never in their labels. */}
-            {offer.alternatives.map((a: Json) => <div key={`text:${a.id}`}><AgentText block value={`${String(a.id ?? "")}: ${String(a.statement ?? "")} — ${(Array.isArray(a.consequences) ? a.consequences : []).map(String).join("; ")}`} source="file" label={`Alternative ${idWords(a.id)}, as the package states it:`} name="An alternative as the decision package states it, not the App's words" /></div>)}
-            <p>The host shows its own confirmation with this text; only that confirmation records the decision.</p>
-            <button onClick={decide} disabled={!choice}>Decide…</button> <button onClick={() => setOffer(null)}>Close</button>
-          </section>)}
+        {offer && <ActControlPanel offer={offer} choice={choice} setChoice={setChoice} decide={decide} close={() => setOffer(null)} />}
         <div className="workspace-notices"><div id="other-requests">
             {outsideRequests.length > 0 && <h3>Requests outside the selected conversation</h3>}
             {outsideRequests.length > 0 && <p>Requests of the selected conversation are shown beside it. Select another conversation to answer its requests there.</p>}

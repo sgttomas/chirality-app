@@ -37,7 +37,8 @@ EXAMINATION_ROOTS = ("app/examination/standalone/", "app/tests/group_b_")
 EXAMINATION_SUFFIXES = (".py", ".mjs", ".cjs", ".js", ".json", ".md")
 # Inside those roots, read by a macOS product job: the Rust lib compiles the
 # consumer and its tests read standalone/fixtures; sources-packaging reads the
-# two fixture trees. The bundle and its native reader also consume the limitations document. These stay product inputs.
+# two fixture trees. The bundle, its native reader and the release build also
+# read the limitations document. These stay product inputs.
 MACOS_INPUTS_IN_CLASS_ROOTS = (
     "docs/RELEASE_LIMITATIONS_4.0.0.md",
     "app/examination/standalone/fixtures/", "app/tests/group_b_fixture_consumer.rs",

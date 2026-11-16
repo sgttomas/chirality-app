@@ -530,6 +530,7 @@ pub fn derive(root: &Path, record_paths: &[&str]) -> Value {
         let mut row = json!({
             "package": pid,
             "packageFile": file_ref,
+            "requestContent": {"method":b["evidence"]["method"],"value":b["evidence"]["claimedIdentity"]},
             "actRequested": b["actKind"],
             "subject": b["subject"],
             "purpose": b["purpose"],
@@ -689,6 +690,7 @@ pub fn derive(root: &Path, record_paths: &[&str]) -> Value {
                 "recordingMode": ab["recordingMode"],
                 "captureProvenance": "recorded claim; native capture origin not verified by this unsealed reader",
                 "captureEvidence": ab["captureEvidence"].as_array().map(|c| c.iter().map(|x| x["ref"].clone()).collect::<Vec<_>>()),
+                "shownStatementBinding": crate::act_control::shown_statement_binding(root, ab),
                 "capturedAt": ab["captureTime"],
                 "lapse": lapse,
                 "standingComparison": {"bound": ab["boundContent"][0], "current": now.identity.as_ref().map(|c| json!({"method":c.method,"value":c.value})), "recordedSubjectScopeMatchesRequest": same_subject_scope},

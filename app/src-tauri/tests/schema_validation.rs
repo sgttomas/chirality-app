@@ -112,9 +112,25 @@ fn package_offer_capture_apis_validate_full_maintained_objects() {
     for capture in capture_fixtures()["instances"].as_array().unwrap() {
         schema_validation::validate_capture(capture).unwrap();
     }
+    let other: Value = serde_json::from_str(include_str!("../schemas/fixtures/aac.offer.other-requests.example.valid.json")).unwrap();
+    schema_validation::validate_offer(&other).unwrap();
     // Package scope remains optional in EXEC; presentation mapping belongs to AAC.
     let mut absent_scope = package_fixture(); absent_scope.as_object_mut().unwrap().remove("scope");
     schema_validation::validate_package(&absent_scope).unwrap();
+}
+
+#[test]
+fn a16_standing_and_shown_statement_invalid_fixture_controls_are_rejected() {
+    for text in [
+        include_str!("../schemas/fixtures/aac.offer.standing-form.invalid.json"),
+        include_str!("../schemas/fixtures/aac.offer.decided-missing-alternative.invalid.json"),
+        include_str!("../schemas/fixtures/aac.offer.other-requests.invalid.json"),
+    ] {
+        let offer = serde_json::from_str(text).unwrap();
+        assert!(schema_validation::validate_offer(&offer).is_err());
+    }
+    let capture = serde_json::from_str(include_str!("../schemas/fixtures/aac.capture-evidence.shown-statement.invalid.json")).unwrap();
+    assert!(schema_validation::validate_capture(&capture).is_err());
 }
 
 #[test]

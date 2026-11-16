@@ -6482,7 +6482,7 @@ mod tests {
     /// app-server is started. No real Codex is run.
     fn stand_in(root: &Path) -> PathBuf {
         let path = root.join("stand-in.py");
-        std::fs::write(&path, "#!/usr/bin/python3\nimport sys,json,os\nif '--version' in sys.argv:\n print('codex-cli 0.167.0');sys.exit(0)\nopen(os.path.join(os.path.dirname(os.path.abspath(__file__)),'server-starts'),'a').write(os.environ.get('CODEX_HOME','')+'\\n')\nfor line in sys.stdin:\n f=json.loads(line)\n if f.get('method')=='initialize': print(json.dumps({'id':f['id'],'result':{'userAgent':'stand-in'}}),flush=True)\n").unwrap();
+        std::fs::write(&path, "#!/usr/bin/python3\nimport sys,json,os\nif '--version' in sys.argv:\n print('codex-cli 0.169.0');sys.exit(0)\nopen(os.path.join(os.path.dirname(os.path.abspath(__file__)),'server-starts'),'a').write(os.environ.get('CODEX_HOME','')+'\\n')\nfor line in sys.stdin:\n f=json.loads(line)\n if f.get('method')=='initialize': print(json.dumps({'id':f['id'],'result':{'userAgent':'stand-in'}}),flush=True)\n").unwrap();
         std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
         path
     }
@@ -6736,7 +6736,7 @@ mod tests {
     /// in `root/stand-in-pid`. No real Codex is run.
     fn surviving_stand_in(root: &Path) -> PathBuf {
         let path = root.join("surviving-stand-in.py");
-        std::fs::write(&path, "#!/usr/bin/python3\nimport sys,json,os,time\nif '--version' in sys.argv:\n print('codex-cli 0.167.0');sys.exit(0)\nroot=os.path.dirname(os.path.abspath(__file__))\nopen(os.path.join(root,'server-starts'),'a').write(os.environ.get('CODEX_HOME','')+'\\n')\nopen(os.path.join(root,'stand-in-pid'),'w').write(str(os.getpid()))\nfor line in sys.stdin:\n f=json.loads(line)\n if f.get('method')=='initialize':\n  print(json.dumps({'id':f['id'],'result':{'userAgent':'stand-in'}}),flush=True)\n  print(json.dumps({'id':'approval-1','method':'item/fileChange/requestApproval','params':{'threadId':'thread','itemId':'item'}}),flush=True)\nwhile not os.path.exists(os.path.join(root,'release')): time.sleep(0.02)\n").unwrap();
+        std::fs::write(&path, "#!/usr/bin/python3\nimport sys,json,os,time\nif '--version' in sys.argv:\n print('codex-cli 0.169.0');sys.exit(0)\nroot=os.path.dirname(os.path.abspath(__file__))\nopen(os.path.join(root,'server-starts'),'a').write(os.environ.get('CODEX_HOME','')+'\\n')\nopen(os.path.join(root,'stand-in-pid'),'w').write(str(os.getpid()))\nfor line in sys.stdin:\n f=json.loads(line)\n if f.get('method')=='initialize':\n  print(json.dumps({'id':f['id'],'result':{'userAgent':'stand-in'}}),flush=True)\n  print(json.dumps({'id':'approval-1','method':'item/fileChange/requestApproval','params':{'threadId':'thread','itemId':'item'}}),flush=True)\nwhile not os.path.exists(os.path.join(root,'release')): time.sleep(0.02)\n").unwrap();
         std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
         path
     }
@@ -6830,7 +6830,7 @@ mod tests {
     /// its own process number in `root/stand-in-pid` and the sleeper's in `root/holder-pid`.
     fn stand_in_leaving_a_holder(root: &Path) -> PathBuf {
         let path = root.join("stand-in-leaving-a-holder.py");
-        std::fs::write(&path, "#!/usr/bin/python3\nimport sys,json,os,subprocess\nif '--version' in sys.argv:\n print('codex-cli 0.167.0');sys.exit(0)\nroot=os.path.dirname(os.path.abspath(__file__))\nopen(os.path.join(root,'server-starts'),'a').write(os.environ.get('CODEX_HOME','')+'\\n')\nlock=os.stat(os.path.join(os.environ['CODEX_HOME'],'chirality-codex-process.lock')).st_ino\nfd=[int(n) for n in os.listdir('/dev/fd') if int(n)>2 and os.path.exists('/dev/fd/'+n) and os.fstat(int(n)).st_ino==lock][0]\np=subprocess.Popen(['/bin/sleep','60'],close_fds=True,pass_fds=(fd,),start_new_session=True,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)\nopen(os.path.join(root,'holder-pid'),'w').write(str(p.pid))\nopen(os.path.join(root,'stand-in-pid'),'w').write(str(os.getpid()))\nfor line in sys.stdin:\n f=json.loads(line)\n if f.get('method')=='initialize': print(json.dumps({'id':f['id'],'result':{'userAgent':'stand-in'}}),flush=True)\n").unwrap();
+        std::fs::write(&path, "#!/usr/bin/python3\nimport sys,json,os,subprocess\nif '--version' in sys.argv:\n print('codex-cli 0.169.0');sys.exit(0)\nroot=os.path.dirname(os.path.abspath(__file__))\nopen(os.path.join(root,'server-starts'),'a').write(os.environ.get('CODEX_HOME','')+'\\n')\nlock=os.stat(os.path.join(os.environ['CODEX_HOME'],'chirality-codex-process.lock')).st_ino\nfd=[int(n) for n in os.listdir('/dev/fd') if int(n)>2 and os.path.exists('/dev/fd/'+n) and os.fstat(int(n)).st_ino==lock][0]\np=subprocess.Popen(['/bin/sleep','60'],close_fds=True,pass_fds=(fd,),start_new_session=True,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)\nopen(os.path.join(root,'holder-pid'),'w').write(str(p.pid))\nopen(os.path.join(root,'stand-in-pid'),'w').write(str(os.getpid()))\nfor line in sys.stdin:\n f=json.loads(line)\n if f.get('method')=='initialize': print(json.dumps({'id':f['id'],'result':{'userAgent':'stand-in'}}),flush=True)\n").unwrap();
         std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o700)).unwrap();
         path
     }

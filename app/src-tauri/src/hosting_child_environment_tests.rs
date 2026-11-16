@@ -103,7 +103,7 @@ const KEPT: [(&str, &str, Option<&str>); 27] = [
     ("GH_ENTERPRISE_TOKEN", "the person's own tooling credential, not a sign-in route for Codex", None),
     ("GITHUB_ENTERPRISE_TOKEN", "the person's own tooling credential, not a sign-in route for Codex", None),
     ("GH_HOST", "the person's own tooling setting, not a sign-in route for Codex", None),
-    ("OPENAI_BASE_URL", "does not override the model service's address at this pin", Some("0.167.0")),
+    ("OPENAI_BASE_URL", "does not override the model service's address at this pin", Some("0.169.0")),
     ("CODEX_CLOUD_TASKS_BASE_URL", "read only by the cloud command line, not by the app-server the App runs", None),
 ];
 fn kept_names() -> impl Iterator<Item = &'static str> {
@@ -175,12 +175,12 @@ import os,sys,json
 def dump(kind):
  with open(os.path.join(os.environ['CHIRALITY_CHILD_ENV_DUMP'],kind+'.json'),'w') as f: json.dump(dict(os.environ),f)
 if '--version' in sys.argv:
- dump('probe'); print('codex-cli 0.167.0'); sys.exit(0)
+ dump('probe'); print('codex-cli 0.169.0'); sys.exit(0)
 dump('server')
 for line in sys.stdin:
  f=json.loads(line)
  if 'id' in f:
-  print(json.dumps({'id':f['id'],'result':{'userAgent':'codex/0.167.0'}}),flush=True)
+  print(json.dumps({'id':f['id'],'result':{'userAgent':'codex/0.169.0'}}),flush=True)
 "#).unwrap();
         std::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o700)).unwrap();
         let mut cfg = HostConfig::new(bin.clone(), root.join("account"), root.join("probe"), root.clone());
