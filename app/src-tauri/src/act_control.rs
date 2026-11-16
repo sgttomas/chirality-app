@@ -59,17 +59,17 @@ fn capture_time() -> String {
 
 const STANDING: &str = "no arrival: a standing act (RC-6)";
 
-/// Err((words, stale)). A standing that changed, or an offer without one, makes the offer
-/// stale. A records home that refuses here (the store unavailable, or its attachment refused) is reported
-/// with its own cause and leaves the offer presented, so the same decision can be made once
-/// it can be read. A home that admits but whose logs then read incompletely still reads as a
-/// different standing, and so as changed.
-fn check_standing(root: &Path, offer: &Value) -> Result<(), (String, bool)> {
-    if offer.get("packageStanding").is_none() || offer.get("otherRequestsForPath").is_none() {
-        return Err(("The A16 offer has no complete request standing; review it again; nothing captured.".into(), true));
-    }
+/// Err((words, stale)). Check the records home first, then the bound request,
+/// then its standing: a specific binding refusal must not be hidden by a changed-standing
+/// summary. An unavailable home leaves the offer retryable; a changed binding or standing
+/// makes it stale. None of these reads writes or repairs the evidence.
+fn check_standing(root: &Path, original_request: &Value, offer: &Value) -> Result<(), (String, bool)> {
     if let Err(cause) = crate::records_store::readable_home(root) {
         return Err((format!("The records cannot be read now, so this request's standing cannot be checked again: {cause}; nothing captured."), false));
+    }
+    check_request_binding(root, original_request, &offer["requestRef"]).map_err(|error| (error, true))?;
+    if offer.get("packageStanding").is_none() || offer.get("otherRequestsForPath").is_none() {
+        return Err(("The A16 offer has no complete request standing; review it again; nothing captured.".into(), true));
     }
     let (standing, others) = package_standing::read(root,
         offer["requestRef"].as_str().unwrap_or(""), offer["subject"]["ref"].as_str().unwrap_or(""));
@@ -1297,12 +1297,13 @@ impl ActControl {
         // The decision view, not record presence or this writer read, determines standing.
         let requests: Vec<_> = entries
             .iter()
-            .filter(|e| e["recordId"] == json!(request_ref) && e["kind"] == "act_request").collect();
+            .filter(|e| e["recordId"] == json!(request_ref)).collect();
         let req = match requests.as_slice() {
-            [request] => *request,
+            [request] if request["kind"] == "act_request" => *request,
             [] if !limits.is_empty() => return Err("not offered: the request could not be resolved in the incomplete record set".into()),
-            [] => return Err(format!("not offered: no act_request {request_ref} in the record")),
-            _ => return Err("not offered: request identity is not unique".into()),
+            [] | [_] => return Err(format!("not offered: no act_request {request_ref} in the record")),
+            _ => return Err(format!("not offered: incomplete record set: {:?}",
+                vec![format!("duplicate record identity: {request_ref}")])),
         };
         let b = &req["body"];
         if b["form"] != "decision package file" || b["actKind"] != "A16" {
@@ -1421,14 +1422,10 @@ impl ActControl {
     ) -> Result<native_statement::NativeStatement, String> {
         let workspace = self.workspace.clone();
         let s = self.offers.get_mut(offer_id).ok_or("no such offer")?;
-        if let Err((error, stale)) = check_standing(&workspace, &s.offer) {
+        if let Err((error, stale)) = check_standing(&workspace, &s.request_record, &s.offer) {
             if stale {
                 s.state = OfferState::Stale;
             }
-            return Err(error);
-        }
-        if let Err(error) = check_request_binding(&workspace, &s.request_record, &s.offer["requestRef"]) {
-            s.state = OfferState::Stale;
             return Err(error);
         }
         if s.selected
@@ -1495,7 +1492,7 @@ impl ActControl {
             }
         }
         let o = slot.offer.clone();
-        if let Err((error, stale)) = check_standing(&ws, &o) {
+        if let Err((error, stale)) = check_standing(&ws, &slot.request_record, &o) {
             if stale {
                 slot.state = OfferState::Stale;
             }

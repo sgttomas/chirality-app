@@ -1029,3 +1029,97 @@ fn complete_a16_counterpart_fixture_uses_the_producers_exact_string() {
         println!("A16_COUNTERPART_CASE:{}", json!({"case":case,"kind":"A16 chosen alternative","content":whole.content,"digest":whole.digest,"handed":statement.text}));
     }
 }
+
+/// Paths, bytes, permissions and modification times across both evidence homes.
+fn refusal_tree(root: &Path) -> Vec<(PathBuf, Vec<u8>, std::fs::Permissions, std::time::SystemTime)> {
+    fn walk(root: &Path, path: &Path, rows: &mut Vec<(PathBuf, Vec<u8>, std::fs::Permissions, std::time::SystemTime)>) {
+        let metadata = std::fs::symlink_metadata(path).unwrap();
+        rows.push((path.strip_prefix(root).unwrap().to_path_buf(), if metadata.is_file() { std::fs::read(path).unwrap() } else { vec![] }, metadata.permissions(), metadata.modified().unwrap()));
+        if metadata.is_dir() {
+            let mut children = std::fs::read_dir(path).unwrap().map(|e| e.unwrap().path()).collect::<Vec<_>>();
+            children.sort();
+            for child in children { walk(root, &child, rows); }
+        }
+    }
+    let mut rows = vec![];
+    walk(root, root, &mut rows);
+    rows
+}
+
+#[test]
+fn native_refusal_order_is_home_then_bound_request_then_standing_without_mutation() {
+    struct StoreReset(PathBuf);
+    impl Drop for StoreReset {
+        fn drop(&mut self) {
+            crate::records_store::use_store_for_test(None);
+            std::fs::remove_dir_all(&self.0).unwrap();
+        }
+    }
+    let store_root = std::env::temp_dir().join(crate::util::opaque_id("a16-refusal-order-").unwrap());
+    std::fs::create_dir_all(&store_root).unwrap();
+    let _store = StoreReset(store_root.clone());
+    crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store {
+        root: store_root.clone(), placement: crate::records_store::Placement::Override, limits: vec![],
+    })));
+    for confirming in [false, true] {
+        for cause in ["binding", "standing", "home"] {
+            let f = Fixture::new();
+            let (mut control, id) = f.compose();
+            let actor = person(Some("Invented order fixture"), Some("invented"));
+            let offer = control.offers[&id].offer.clone();
+            assert_eq!(offer["packageStanding"], json!({"form":"none-recorded"}));
+            assert_eq!(offer["otherRequestsForPath"], json!({"state":"read-whole","rows":[]}));
+            if confirming {
+                control.confirmation_text(&id, "ALT-1", &actor).unwrap();
+                control.present(&id).unwrap();
+            }
+            let initial_state = control.offers[&id].state.clone();
+            if cause == "standing" {
+                f.claim(&f.request, "ALT-2", 1);
+                check_request_binding(&f.root, &f.request, &offer["requestRef"]).unwrap();
+            } else {
+                let mut conflict = f.request.clone();
+                conflict["seq"] = json!(1);
+                conflict["body"]["purpose"] = json!("invented different facts under the bound request identity");
+                crate::schema_validation::bundled().unwrap().validate(&conflict).unwrap();
+                let log = storage::project_log(&f.root, None, "refusal-order-conflict").unwrap();
+                std::fs::create_dir_all(log.parent().unwrap()).unwrap();
+                std::fs::write(&log, serde_json::to_string(&conflict).unwrap() + "\n").unwrap();
+                assert!(records::read_log(&log).1.is_empty());
+                assert_eq!(check_request_binding(&f.root, &f.request, &offer["requestRef"]).unwrap_err(),
+                    "request binding unavailable: duplicate bound request identity; nothing captured");
+            }
+            let (standing, others) = package_standing::read(&f.root, offer["requestRef"].as_str().unwrap(), offer["subject"]["ref"].as_str().unwrap());
+            assert!(standing != offer["packageStanding"] || others != offer["otherRequestsForPath"], "the injected condition really changes standing");
+            let registry = store_root.join("roots.jsonl");
+            let saved_registry = std::fs::read(&registry).unwrap();
+            let home_cause = if cause == "home" {
+                std::fs::write(&registry, b"").unwrap();
+                Some(crate::records_store::readable_home(&f.root).unwrap_err())
+            } else { None };
+            let before = (refusal_tree(&f.root), refusal_tree(&store_root));
+            let error = if confirming {
+                control.confirm(&id, "ALT-1", InputSource::HostNativeConfirmation, actor).unwrap_err()
+            } else { control.confirmation_text(&id, "ALT-1", &actor).unwrap_err() };
+            assert_eq!((refusal_tree(&f.root), refusal_tree(&store_root)), before, "{cause}, confirming={confirming}");
+            assert!(control.native_captures.is_empty());
+            match cause {
+                "binding" => assert_eq!(error, "request binding unavailable: duplicate bound request identity; nothing captured"),
+                "standing" => assert_eq!(error, package_standing::CHANGED),
+                "home" => {
+                    assert!(error.starts_with("The records cannot be read now,"), "{error}");
+                    assert!(error.contains(home_cause.as_ref().unwrap()), "{error}");
+                    assert!(!error.contains("request binding") && !error.contains(package_standing::CHANGED), "{error}");
+                    assert_eq!(control.offers[&id].state, initial_state, "home failure remains retryable");
+                    std::fs::write(&registry, saved_registry).unwrap();
+                    let retry_before = (refusal_tree(&f.root), refusal_tree(&store_root));
+                    assert_eq!(control.confirmation_text(&id, "ALT-1", &person(Some("Invented order fixture"), Some("invented"))).unwrap_err(),
+                        "request binding unavailable: duplicate bound request identity; nothing captured", "restoring the home exposes the next specific refusal");
+                    assert_eq!((refusal_tree(&f.root), refusal_tree(&store_root)), retry_before);
+                },
+                _ => unreachable!(),
+            }
+            assert_eq!(control.offers[&id].state, OfferState::Stale);
+        }
+    }
+}

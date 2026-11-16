@@ -43,6 +43,10 @@ fn credential_key(key: &str) -> bool {
 fn presentation_key(key: &str) -> bool {
     matches!(key, "authUrl" | "verificationUrl" | "userCode")
 }
+// Account identifiers and login presentation controls are private even when they carry no token.
+fn sensitive_account_key(key: &str) -> bool {
+    credential_key(key) || presentation_key(key) || matches!(key, "loginId" | "userId" | "accountId")
+}
 fn has_credentials(value: &Value) -> bool {
     match value {
         Value::Object(fields) => fields
@@ -88,9 +92,7 @@ fn fields(value: &Value, auth: bool) -> Value {
             object
                 .iter()
                 .map(|(key, value)| {
-                    let projected = if credential_key(key)
-                        || presentation_key(key)
-                        || key == "loginId"
+                    let projected = if sensitive_account_key(key)
                     {
                         json!(REDACTED)
                     } else if auth && matches!(key.as_str(), "success" | "requiresOpenaiAuth") {
@@ -196,7 +198,7 @@ fn oauth_projection(frame:&Value,method:&str,safe_id:Option<&Value>)->Value {
 /// retain framing/scope, withhold payload; this does not invent a correlated method.
 pub(super) fn uncorrelated_account_projection(frame:&Value,possible_original_account:bool)->Option<Value>{
     fn sensitive(v:&Value)->bool{match v{
-        Value::Object(o)=>o.iter().any(|(k,v)|credential_key(k)||presentation_key(k)||k=="loginId"||sensitive(v)),
+        Value::Object(o)=>o.iter().any(|(k,v)|sensitive_account_key(k)||sensitive(v)),
         Value::Array(a)=>a.iter().any(sensitive),_=>false,
     }}
     if frame.get("method").is_some()||(!possible_original_account&&!sensitive(frame)){return None;}
@@ -302,6 +304,17 @@ pub fn project_frame(frame: &Value, correlated_method: Option<&str>) -> (Value, 
                         Value::Null
                     } else if req.is_object() {
                         let mut r = json!({});
+                        // Closed boolean projection approved for the 0.169.0
+                        // delegation reading. Inspect the whole field before
+                        // dropping anything: absence after filtering must never
+                        // masquerade as absence of managed constraints.
+                        if let Some(features) = req.get("featureRequirements") {
+                            r["featureRequirements"] = match features.as_object() {
+                                Some(table) if table.iter().all(|(name, value)|
+                                    matches!(name.as_str(), "multi_agent" | "multi_agent_v2") && value.is_boolean()) => features.clone(),
+                                _ => json!(REDACTED),
+                            };
+                        }
                         if let Some(allowed) = req.get("allowedLoginMethods") {
                             r["allowedLoginMethods"] = if allowed.is_null() {
                                 Value::Null
@@ -337,7 +350,9 @@ pub fn project_frame(frame: &Value, correlated_method: Option<&str>) -> (Value, 
                 }
                 safe
             }
-            _ => projected["result"].clone(),
+            // No account result outside the explicit projections is offered.
+            // New supplier methods do not silently widen the retained account surface.
+            _ => json!(REDACTED),
         };
     }
     (projected, true)

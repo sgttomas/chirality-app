@@ -1,0 +1,368 @@
+{
+ "format": "chirality.supplier-canonical-assessment/1",
+ "pin": "0.169.0",
+ "source_commit": "d32063f96c2dff1dc96af839b3952abb6acfeda4",
+ "archive": {
+  "url": "https://github.com/openai/codex/releases/download/rust-v0.169.0/codex-package-aarch64-apple-darwin.tar.gz",
+  "size": 172466618,
+  "sha256": "8a232260df7a12c5e83e0b4b7659e1c8d9259b41942517bc0068d8ab55c36461"
+ },
+ "package_metadata": {
+  "layoutVersion": 1,
+  "version": "0.169.0",
+  "target": "aarch64-apple-darwin",
+  "variant": "codex",
+  "entrypoint": "bin/codex",
+  "execServer": "bin/codex-exec-server",
+  "resourcesDir": "codex-resources",
+  "pathDir": "codex-path"
+ },
+ "files": 42,
+ "macho_files": 30,
+ "inventory": {
+  "method": "codex-vendor-tree-v1",
+  "algorithm": "sha-256",
+  "manifest_sha256": "c2d91de0619e9be8e9fb294af5a0323b352cadc75aabc8162469fc9a3f504012",
+  "entries": [
+   {
+    "path": "bin",
+    "kind": "dir",
+    "mode": 493
+   },
+   {
+    "path": "bin/codex",
+    "kind": "file",
+    "mode": 493,
+    "size": 280704736,
+    "sha256": "739cda86e15d30a6e2b40cf8dcbbfb988aaf48b305b27065573bb8e9fd41d002"
+   },
+   {
+    "path": "bin/codex-code-mode-host",
+    "kind": "file",
+    "mode": 493,
+    "size": 70426256,
+    "sha256": "10feae2abe764bcf2273e241ace67aecc360eb8c28a82a2988bf1d8498a9bacf"
+   },
+   {
+    "path": "bin/codex-exec-server",
+    "kind": "file",
+    "mode": 493,
+    "size": 63152608,
+    "sha256": "0532760c03ec71af4ce4d7a8f745399dabdae2b9ee0283ec849c4997facdb918"
+   },
+   {
+    "path": "codex-package.json",
+    "kind": "file",
+    "mode": 420,
+    "size": 241,
+    "sha256": "3fc1ae4675acbd90d86eacf6a41ddde2a96e0c588e200049cae5b69ffe4e56b5"
+   },
+   {
+    "path": "codex-path",
+    "kind": "dir",
+    "mode": 493
+   },
+   {
+    "path": "codex-path/rg",
+    "kind": "file",
+    "mode": 493,
+    "size": 4030432,
+    "sha256": "2caf75aae63d8fd944456686d5241f4864f5e2a930e0a93434e121873f7ff6bf"
+   },
+   {
+    "path": "codex-resources",
+    "kind": "dir",
+    "mode": 493
+   },
+   {
+    "path": "codex-resources/voice",
+    "kind": "dir",
+    "mode": 493
+   },
+   {
+    "path": "codex-resources/voice/NOTICE.md",
+    "kind": "file",
+    "mode": 420,
+    "size": 2403,
+    "sha256": "40097a1799441051aa0b6645cdc819cceb19be73cdd265eb602aa2b15e0b1f48"
+   },
+   {
+    "path": "codex-resources/voice/bin",
+    "kind": "dir",
+    "mode": 493
+   },
+   {
+    "path": "codex-resources/voice/bin/codex-voice-host",
+    "kind": "file",
+    "mode": 493,
+    "size": 9717888,
+    "sha256": "64ddf43fdbb4a9c48cb0c8371034e9a1cb412c9471b3ad2728e72dcabc548b8d"
+   },
+   {
+    "path": "codex-resources/voice/lib",
+    "kind": "dir",
+    "mode": 493
+   },
+   {
+    "path": "codex-resources/voice/lib/libffi.8.dylib",
+    "kind": "file",
+    "mode": 493,
+    "size": 136768,
+    "sha256": "2ab52271c2826e256754936fe2479511cd56c052e7ad151b78d744f8089a794e"
+   },
+   {
+    "path": "codex-resources/voice/lib/libgio-2.0.0.dylib",
+    "kind": "file",
+    "mode": 493,
+    "size": 1903344,
+    "sha256": "4f976ee37b12a75db9a5f0aa12d608fa4100533cf85b71b619651cbafb90472c"
+   },
+   {
+    "path": "codex-resources/voice/lib/libglib-2.0.0.dylib",
+    "kind": "file",
+    "mode": 493,
+    "size": 1354064,
+    "sha256": "3552e5dddc6afc2bbbb5000b15eccdd3b9518f6371b481543d7aa0e1017f5a42"
+   },
+   {
+    "path": "codex-resources/voice/lib/libgmodule-2.0.0.dylib",
+    "kind": "file",
+    "mode": 493,
+    "size": 68720,
+    "sha256": "fe3616bda97af2cc4f37aacc073daefaed0935e9bec22caa194510b2f4ed2863"
+   },
+   {
+    "path": "codex-resources/voice/lib/libgobject-2.0.0.dylib",
+    "kind": "file",
+    "mode": 493,
+    "size": 417008,
+    "sha256": "696b25cad9b6d899aa550be9ab0b2d3f0711e9cf13aff9d6c5ca7a6092bdb727"
+   },
+   {
+    "path": "codex-resources/voice/lib/libgstapp-1.0.0.dylib",
+    "kind": "file",
+    "mode": 493,
+    "size": 151984,
+    "sha256": "4a950388fca25b938cd69357d3fc86f60e9923cbb89c5b90ecd816fa03d88310"
+   },
+   {
+    "path": "codex-resources/voice/lib/libgstaudio-1.0.0.dylib",
+    "kind": "file",
+    "mode": 493,
+    "size": 560384,
+    "sha256": "8f8a27c208c7361c62368530d1906c200c70fbafaa127f7d1444fbac6489d9dc"
+   },
+   {
+    "path": "codex-resources/voice/lib/libgstbase-1.0.0.dylib",
+    "kind": "file",
+    "mode": 493,
+    "size": 520256,
+    "sha256": "6c33491f03b6d1dfa9848847a3434ef08f35f7a7fe296f4b36b8f214541a5d4e"
+   },
+   {
+    "path": "codex-resources/voice/lib/libgstnet-1.0.0.dylib",
+    "kind": "file",
+    "mode": 493,
+    "size": 115920,
+    "sha256": "08b3faee5e02158f0a64937713c1711687635bb11beb695e02c9af5d1b10376c"
+   },
+   {
+    "path": "codex-resources/voice/lib/libgstpbutils-1.0.0.dylib",
+    "kind": "file",
+    "mode": 493,
+    "size": 323568,
+    "sha256": "4f0e07a5cd48b75f03115191afc0dd304a411c762d26b06ec2dbd9ec9a9c3be1"
+   },
+   {
+    "path": "codex-resources/voice/lib/libgstreamer-1.0.0.dylib",
+    "kind": "file",
+    "mode": 493,
+    "size": 1357856,
+    "sha256": "a536ba764b3bc4efa788092e833b4d2a0fe3d266087eac94d18fe9c564e83b8d"
+   },
+   {
+    "path": "codex-resources/voice/lib/libgstrtp-1.0.0.dylib",
+    "kind": "file",
+    "mode": 493,
+    "size": 222192,
+    "sha256": "d6e7d328bcefeab0247e93dbc99ffacb61ee675e0263a58de34d0c6926724f40"
+   },
+   {
+    "path": "codex-resources/voice/lib/libgsttag-1.0.0.dylib",
+    "kind": "file",
+    "mode": 493,
+    "size": 283280,
+    "sha256": "dfef74604fa0b2aceb3123264dbe7fbe08174ff6444d06b507ce95eb4f2f5ad8"
+   },
+   {
+    "path": "codex-resources/voice/lib/libgstvideo-1.0.0.dylib",
+    "kind": "file",
+    "mode": 493,
+    "size": 948944,
+    "sha256": "b36c553f4e0b617ce3bbe899ea364e8933a5989d6e8e8023cbb0084f58b36468"
+   },
+   {
+    "path": "codex-resources/voice/lib/libintl.8.dylib",
+    "kind": "file",
+    "mode": 493,
+    "size": 50080,
+    "sha256": "3968aa5cf61ca4faffc06c2f1c87b7e865081f30187642f8e357b261b3683c1e"
+   },
+   {
+    "path": "codex-resources/voice/lib/libopus.0.dylib",
+    "kind": "file",
+    "mode": 493,
+    "size": 520480,
+    "sha256": "0e180129087bf3c4aa525826f5de674819b12089799b80a720b1d4e429568386"
+   },
+   {
+    "path": "codex-resources/voice/lib/libpcre2-8.0.dylib",
+    "kind": "file",
+    "mode": 493,
+    "size": 456832,
+    "sha256": "276883a87bae2b24066a0a8506d5a8eb1e5b24637b4518179a2e1a18efeb2dfd"
+   },
+   {
+    "path": "codex-resources/voice/lib/libz.1.dylib",
+    "kind": "file",
+    "mode": 493,
+    "size": 139712,
+    "sha256": "855c3792a7745d354edffabe4262282f440a9a0b763f96720e1cad9124b2d131"
+   },
+   {
+    "path": "codex-resources/voice/licenses",
+    "kind": "dir",
+    "mode": 493
+   },
+   {
+    "path": "codex-resources/voice/licenses/LGPL-2.1.txt",
+    "kind": "file",
+    "mode": 420,
+    "size": 26431,
+    "sha256": "ad2eec519ebd4b5df86ea84dff24ae3bfa2edea846a703b58902dd221ae375db"
+   },
+   {
+    "path": "codex-resources/voice/licenses/Opus.txt",
+    "kind": "file",
+    "mode": 420,
+    "size": 1945,
+    "sha256": "01e1167d54a096d123cf6dfbbeb19587278845c6481d2d66d545669846079551"
+   },
+   {
+    "path": "codex-resources/voice/licenses/PCRE2.md",
+    "kind": "file",
+    "mode": 420,
+    "size": 4011,
+    "sha256": "197d8a73ffee0d6b09adba2f9c677b5f5aede24edf89258a68e48248d010d811"
+   },
+   {
+    "path": "codex-resources/voice/licenses/libffi.txt",
+    "kind": "file",
+    "mode": 420,
+    "size": 1132,
+    "sha256": "17b64dc60f3b6897a60f971e288b973f655c2edcdf08b25f3c3dd5549857881c"
+   },
+   {
+    "path": "codex-resources/voice/licenses/proxy-libintl.txt",
+    "kind": "file",
+    "mode": 420,
+    "size": 25292,
+    "sha256": "d245807f90032872d1438d741ed21e2490e1175dc8aa3afa5ddb6c8e529b58e5"
+   },
+   {
+    "path": "codex-resources/voice/licenses/sljit.txt",
+    "kind": "file",
+    "mode": 420,
+    "size": 1444,
+    "sha256": "5f216505c0f6ea3273caec89e766eef93cdeb7bbb0c429f9360116d7c938feeb"
+   },
+   {
+    "path": "codex-resources/voice/licenses/zlib.txt",
+    "kind": "file",
+    "mode": 420,
+    "size": 1002,
+    "sha256": "e32ff4e00d9d94930537635291da39e7e612703334bf6fde8c7f1686fe8a45a2"
+   },
+   {
+    "path": "codex-resources/voice/manifest.json",
+    "kind": "file",
+    "mode": 420,
+    "size": 4637,
+    "sha256": "de47c1e0b9145db978ef68e4daa1c65dd84a9e99dc3c9428408bda019ffa8cff"
+   },
+   {
+    "path": "codex-resources/voice/plugins",
+    "kind": "dir",
+    "mode": 493
+   },
+   {
+    "path": "codex-resources/voice/plugins/libgstapp.dylib",
+    "kind": "file",
+    "mode": 493,
+    "size": 49872,
+    "sha256": "17a675734988c9e9ef2ab302d224e88377ebaacecfd030f5e6a6bd66888c95f7"
+   },
+   {
+    "path": "codex-resources/voice/plugins/libgstaudioconvert.dylib",
+    "kind": "file",
+    "mode": 493,
+    "size": 93344,
+    "sha256": "eda25a99dcad6e55e658ff80fbd1549da88599da52aa044d53455686f69d92bd"
+   },
+   {
+    "path": "codex-resources/voice/plugins/libgstaudioresample.dylib",
+    "kind": "file",
+    "mode": 493,
+    "size": 91696,
+    "sha256": "22255b2f1d3d3454eb0b6a6e6d164a36718541ade4d754360349653dcac18897"
+   },
+   {
+    "path": "codex-resources/voice/plugins/libgstcoreelements.dylib",
+    "kind": "file",
+    "mode": 493,
+    "size": 458832,
+    "sha256": "b3f4fa41813cead8efdb868d6041d93a6dd836093a021d49946fb542a6f59e7e"
+   },
+   {
+    "path": "codex-resources/voice/plugins/libgstopus.dylib",
+    "kind": "file",
+    "mode": 493,
+    "size": 131120,
+    "sha256": "811090a156458a6f785e9ed8af177474f8c2ff0eef94ebd314bf868936e622f3"
+   },
+   {
+    "path": "codex-resources/voice/plugins/libgstrtp.dylib",
+    "kind": "file",
+    "mode": 493,
+    "size": 674960,
+    "sha256": "59cb4fbee05d95ff65a5bfa1c987dcf527302af9614a78140fd6fcbf3f514bcc"
+   },
+   {
+    "path": "codex-resources/voice/plugins/libgstrtpmanager.dylib",
+    "kind": "file",
+    "mode": 493,
+    "size": 538400,
+    "sha256": "6c37e475550f75f738a17fe658313240575036ef851ef7a49ca15d3665cfa743"
+   },
+   {
+    "path": "codex-resources/voice/runtime.json",
+    "kind": "file",
+    "mode": 493,
+    "size": 14915,
+    "sha256": "dde0d887565dd84755db7346966cc0ce67bcabc6b1d1105b0e4e8928697f551a"
+   },
+   {
+    "path": "codex-resources/voice/sources.json",
+    "kind": "file",
+    "mode": 420,
+    "size": 4911,
+    "sha256": "5613f37012effc3e28cdad52a7c88b9098aaaf7aae43f3cb7199f55ffbb15908"
+   }
+  ]
+ },
+ "root_mode": "The container directory is not an archive member and its mode is not compared. All 50 declared file and directory member modes are compared.",
+ "limits": [
+  "Static intake of a size- and digest-checked archive only.",
+  "No supplier execution, signature or trust reading, installed custody, product qualification or notice coverage is established."
+ ]
+}

@@ -16,7 +16,7 @@ env:
   RUST_TEST_THREADS: '1'
   CARGO_INCREMENTAL: '0'
   CARGO_BUILD_JOBS: '2'
-  CHIRALITY_CODEX_EXPECTED_SHA256: 030316ecfbb41f4e7946e584b0063ef333b7a36cd312ba349f2f6869e39b62cc
+  CHIRALITY_CODEX_EXPECTED_SHA256: 739cda86e15d30a6e2b40cf8dcbbfb988aaf48b305b27065573bb8e9fd41d002
 
 defaults:
   run:
@@ -225,6 +225,12 @@ jobs:
           python3 supplier_checks/test_recorded_replay.py
           python3 supplier_checks/test_recordings.py
           python3 supplier_checks/test_intake.py
+          python3 supplier_checks/test_record_at_pin.py
+          python3 supplier_checks/test_delegation_probe.py
+          python3 supplier_checks/test_compare_schema.py
+          python3 supplier_checks/test_recordings_0169.py
+          python3 supplier_checks/test_capability_account_0169.py
+          python3 supplier_checks/test_pin_0169_evidence.py
           python3 supplier_checks/test_same_basis.py
           python3 supplier_checks/test_version_advance_evidence.py
           python3 supplier_checks/swbpipe_projection_test.py
@@ -239,7 +245,7 @@ jobs:
       - name: Packaging and examination behavior against selected App inputs
         # Group B examination suites run in always-on repository checks.
         run: >-
-          python -m pytest -q           tests/terms_position_test.py tests/package_successor_test.py tests/production_inputs_test.py tests/notice_receipts_test.py tests/notice_resources_test.py tests/font_notice_test.py tests/notice_transitive_test.py tests/supplier_notice_observations_test.py tests/supplier_notice_selectors_test.py
+          python -m pytest -q           tests/terms_position_test.py tests/package_successor_test.py tests/production_inputs_test.py tests/notice_receipts_test.py tests/notice_resources_test.py tests/font_notice_test.py tests/notice_transitive_test.py tests/supplier_notice_observations_test.py tests/supplier_notice_selectors_test.py tests/release_build_test.py
           tests/examination_repin_test.py
           && python3 -B tests/candidate_identity_test.py
       - name: Staged distribution successor
@@ -298,18 +304,18 @@ jobs:
           /usr/bin/git --no-lazy-fetch --version
           mkdir -p "$SUPPLIER_ROOT" "$CHIRALITY_CODEX_HOME"
           curl --fail --location --retry 2 \
-            https://github.com/openai/codex/releases/download/rust-v0.167.0/codex-package-aarch64-apple-darwin.tar.gz \
+            https://github.com/openai/codex/releases/download/rust-v0.169.0/codex-package-aarch64-apple-darwin.tar.gz \
             --output "$SUPPLIER_ROOT/supplier.tgz"
           python - <<'PY'
           import hashlib, os, tarfile
           from pathlib import Path, PurePosixPath
           root = Path(os.environ['SUPPLIER_ROOT'])
           archive = root / 'supplier.tgz'
-          if archive.stat().st_size != 166340155:
+          if archive.stat().st_size != 172466618:
               raise SystemExit('supplier archive size mismatch')
           with archive.open('rb') as stream:
               digest = hashlib.file_digest(stream, 'sha256').hexdigest()
-          if digest != 'af45ed45d940d7998809622c1c0296d3098ed7d7fad695284422c228bd454517':
+          if digest != '8a232260df7a12c5e83e0b4b7659e1c8d9259b41942517bc0068d8ab55c36461':
               raise SystemExit('supplier archive integrity mismatch')
           with tarfile.open(archive, 'r:gz') as package:
               members = package.getmembers()
@@ -346,6 +352,12 @@ jobs:
           python3 supplier_checks/test_recorded_replay.py
           python3 supplier_checks/test_recordings.py
           python3 supplier_checks/test_intake.py
+          python3 supplier_checks/test_record_at_pin.py
+          python3 supplier_checks/test_delegation_probe.py
+          python3 supplier_checks/test_compare_schema.py
+          python3 supplier_checks/test_recordings_0169.py
+          python3 supplier_checks/test_capability_account_0169.py
+          python3 supplier_checks/test_pin_0169_evidence.py
           python3 supplier_checks/test_same_basis.py
           python3 supplier_checks/test_version_advance_evidence.py
           python3 supplier_checks/swbpipe_projection_test.py

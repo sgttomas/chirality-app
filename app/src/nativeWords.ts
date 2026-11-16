@@ -1,5 +1,5 @@
 // The App's words for the values Codex sends in fields with a fixed vocabulary (the pinned app-server protocol,
-// resources/supplier/0.167.0/codex_app_server_protocol.v2.schemas.json). A value in a table is shown in the App's
+// resources/supplier/0.169.0/codex_app_server_protocol.v2.schemas.json). A value in a table is shown in the App's
 // word for it; any other value, including one a later Codex adds, is shown boxed as Codex's text (Word and wordOf,
 // AgentText.tsx). A generated type is no guarantee at run time: the host keeps native values as it receives them.
 // Every export here is a table of literal words; the presentation guard's test checks that.

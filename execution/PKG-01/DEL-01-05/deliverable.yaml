@@ -103,6 +103,7 @@ checks:
 - app/tests/prepared-message-navigation.test.mjs
 - app/tests/waiting-requests.test.mjs
 - app/src-tauri/src/access_provider_tests.rs
+- app/tests/fixtures/local-provider/canonical-169-file-identities.json
 # Each host command of the local route refuses in 4.0.0 (For 4.0.0).
 - app/src-tauri/src/local_route_refusal_tests.rs
 - app/src-tauri/src/access_settings.rs

@@ -1,6 +1,6 @@
 //! Observations of the pinned supplier itself, started through the host's own start.
 //!
-//! These tests need CHIRALITY_CODEX_BIN (the stock 0.167.0 binary), as `tests/handshake.rs`
+//! These tests need CHIRALITY_CODEX_BIN (the stock 0.169.0 binary), as `tests/handshake.rs`
 //! does, and keep its rule: without it they fail, unless CHIRALITY_SKIP_CODEX=1 is set
 //! explicitly. A skipped run is not an observation. Every folder is invented and made below
 //! `std::env::temp_dir()`: a fresh Codex home nobody has signed in to, never a real one. No
@@ -83,7 +83,7 @@ fn project_layers_for(result: &Value, dot_codex: &Path) -> Vec<Value> {
 fn ready(host: &Arc<Host>, cfg: &HostConfig) -> Value {
     let ready = host.start(cfg, "pinned supplier observation").expect("start reaches ready");
     assert_eq!(ready["state"], "ready");
-    assert_eq!(ready["versionIdentity"]["observedVersionLabel"], "codex-cli 0.167.0", "the supplier started is the pinned one");
+    assert_eq!(ready["versionIdentity"]["observedVersionLabel"], "codex-cli 0.169.0", "the supplier started is the pinned one");
     assert_eq!(ready["versionIdentity"]["handshakeConsistency"], "consistent");
     ready
 }

@@ -84,6 +84,12 @@ RESOURCES = HERE.parent / "src-tauri/resources/supplier"
 # platform. A pin is admitted only as a key of this table, so no path is built from a caller's text.
 # Adding a pin is a change to this table, reviewed with the records it brings.
 PINS = {
+    "0.169.0": {
+        "url": "https://github.com/openai/codex/releases/download/rust-v0.169.0/"
+               "codex-package-aarch64-apple-darwin.tar.gz",
+        "size": 172466618,
+        "sha256": "8a232260df7a12c5e83e0b4b7659e1c8d9259b41942517bc0068d8ab55c36461",
+        "source_commit": "d32063f96c2dff1dc96af839b3952abb6acfeda4"},
     "0.167.0": {
         "url": "https://github.com/openai/codex/releases/download/rust-v0.167.0/"
                "codex-package-aarch64-apple-darwin.tar.gz",
@@ -479,11 +485,22 @@ def run_generator(argv, environment, cwd):
     return samples
 
 
-def generate(vendor, record, out):
-    """Step 2. Writes the generated basis of the tree the record describes into the existing `out`."""
+def generate(vendor, record, out, *, scratch=None):
+    """Step 2. Writes the generated basis into existing `out`.
+
+    An optional absolute, new scratch path lets a launch review name the exact homes before
+    execution. It must have no symlink ancestry and must not exist; an existing path is never
+    reused or removed. Without it, allocate a fresh temporary directory as before.
+    """
     pin = record["pin"]
     _, codex_path = verified_vendor(vendor, record)
-    scratch = os.path.realpath(tempfile.mkdtemp(prefix="supplier-generate-"))
+    if scratch is None:
+        scratch = os.path.realpath(tempfile.mkdtemp(prefix="supplier-generate-"))
+    else:
+        scratch = os.fspath(scratch)
+        if not os.path.isabs(scratch) or os.path.realpath(scratch) != scratch:
+            raise Refused("the generator scratch must be a plain absolute path")
+        os.mkdir(scratch, 0o700)  # exclusive creation, outside cleanup's try: never remove an existing input
     try:
         outside = outside_configuration(scratch)  # the generator's working directory
         homes = [os.path.join(scratch, name) for name in ("user-home", "home", "tmp")]

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""What the pinned Codex 0.167.0 does with sandbox and approval settings, asserted fact by fact.
+"""What the pinned Codex 0.169.0 does with sandbox and approval settings, asserted fact by fact.
 
 Live: each test starts the pinned app server against the loopback stub in `level_fixture.py`, with a
 fresh root that is removed afterwards. Skipped unless CHIRALITY_CODEX_BIN names the pinned binary

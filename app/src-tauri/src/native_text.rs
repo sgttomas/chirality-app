@@ -175,7 +175,7 @@ fn marked_character(c: char) -> bool {
         '\u{1D173}'..='\u{1D17A}' | '\u{E0000}'..='\u{E0FFF}')
 }
 
-/// The pinned supplier's own values (0.167.0 schema), each its own App word.
+/// The pinned supplier's own values (0.169.0 schema), each its own App word.
 pub(crate) mod supplier {
     /// `TurnStatus`.
     pub(crate) const TURN_STATUSES: &[(&str, &str)] = &[("completed", "completed"), ("interrupted", "interrupted"), ("failed", "failed"), ("inProgress", "inProgress")];

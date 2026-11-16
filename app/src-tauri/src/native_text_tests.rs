@@ -87,7 +87,7 @@ fn every_word_this_module_can_give_is_closed() {
 #[test]
 fn the_supplier_tables_are_the_pinned_schemas_own_and_the_home_classes_the_apps() {
     let read = |file: &str| -> Value {
-        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("resources/supplier/0.167.0").join(file);
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("resources/supplier/0.169.0").join(file);
         serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap()
     };
     let values = |table: &[(&str, &str)]| -> std::collections::BTreeSet<String> { table.iter().map(|(v, _)| v.to_string()).collect() };

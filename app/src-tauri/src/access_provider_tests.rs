@@ -2996,10 +2996,10 @@ fn native_child_guidance_private_receipt_queue_survives_journal_burst_and_close(
 fn canonical_167_peer(peer: &Peer) {
     let mut i = peer.host.inner.0.lock().unwrap();
     i.version_identity = Some(
-        json!({"declaredPin":"0.167.0","distributionContentIdentity":[{"path":"bin/codex","identity":{"algorithm":"sha-256","value":"030316ecfbb41f4e7946e584b0063ef333b7a36cd312ba349f2f6869e39b62cc"}}]}),
+        json!({"declaredPin":"0.169.0","distributionContentIdentity":[{"path":"bin/codex","identity":{"algorithm":"sha-256","value":"739cda86e15d30a6e2b40cf8dcbbfb988aaf48b305b27065573bb8e9fd41d002"}}]}),
     );
     i.successor_status = Some(
-        json!({"verificationGeneration":peer.g,"inventory":{"manifest_sha256":"158dd67072236253a694ca06d9bf7bfdebbe20d4a197bbf675433cbdddea7e7b"}}),
+        json!({"verificationGeneration":peer.g,"inventory":{"manifest_sha256":"c2d91de0619e9be8e9fb294af5a0323b352cadc75aabc8162469fc9a3f504012"}}),
     );
 }
 pub(crate) fn local_167_config() -> Value {
@@ -3558,13 +3558,25 @@ fn native_local_provider_central_guard_rechecks_original_thread_after_writer_wai
 #[test]
 fn native_local_provider_canonical_legacy_receiving_requires_all42_original_native_rows() {
     let rows: Value = serde_json::from_str(include_str!(
-        "../../tests/fixtures/local-provider/canonical-167-file-identities.json"
+        "../../tests/fixtures/local-provider/canonical-169-file-identities.json"
     ))
     .unwrap();
     assert_eq!(
         sha256_hex(&serde_json::to_vec(&rows).unwrap()),
-        "a4a5a0ab4e6f0572db715dd356e4afee9db1e8a3cef8e7e8a4a4da6a74009df9"
+        "69b3329f282e7c5af1591bcefb92ef00aaa92fca09a1dced33a6d29768e75cdb"
     );
+    // Derive the receiving vector from the canonical inventory, preserving its order.
+    // The retained 0.167.0 fixture remains historical evidence, not this pin's input.
+    let canonical: Value = serde_json::from_str(include_str!(
+        "../resources/supplier/0.169.0/CANONICAL_DISTRIBUTION.json"
+    )).unwrap();
+    let derived: Vec<Value> = canonical["inventory"]["entries"].as_array().unwrap()
+        .iter().filter(|row| row["kind"] == "file")
+        .map(|row| json!({"path": row["path"], "identity": {
+            "algorithm": "sha-256", "value": row["sha256"]
+        }})).collect();
+    assert_eq!(rows, json!(derived));
+    assert_eq!(derived.len(), 42);
     for case in [
         "positive",
         "npm41",
