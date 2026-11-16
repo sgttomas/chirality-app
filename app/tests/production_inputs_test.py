@@ -413,12 +413,17 @@ class ProductionInputs(unittest.TestCase):
         open_items=json.loads((ROOT/'app/packaging/notices/coverage.json').read_text())['open']
         self.assertTrue(open_items)
         kw=self.production(); kw.pop('not_for_public_release')
-        with self.assertRaisesRegex(ValueError,'notice coverage is incomplete') as caught: self.run_plan(**kw)
+        with self.assertRaisesRegex(module.NoticeCoverageIncomplete,'notice coverage is incomplete') as caught: self.run_plan(**kw)
         for item in open_items: self.assertIn(item['name'],str(caught.exception))
+        self.assertEqual(caught.exception.open_components,[o['name'] for o in open_items])
+        self.assertEqual(caught.exception.other_gaps,1)  # the account describes the declared pin, not the invented vendor
+        with self.assertRaisesRegex(ValueError,'true or false'): self.run_plan(**(kw|{'not_for_public_release':'yes'}))
         self.assertFalse(self.output.exists())
         result=self.run_plan(**self.production())
         account=json.loads((self.output/'input-inventory.json').read_text())
         self.assertEqual(account['release_standing'],'not for public release (named by the caller); notice coverage is incomplete')
+        self.assertIs(account['not_for_public_release'],True)
+        self.assertEqual((account['notice_coverage']['complete'],account['notice_coverage']['gaps']),(False,len(open_items)+1))
         self.assertEqual(result['release_standing'],account['release_standing'])
         self.assertEqual(len(account['notice_coverage']['open']),len(open_items))
     def test_complete_account_for_another_supplier_cannot_make_a_public_plan(self):

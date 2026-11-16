@@ -25,6 +25,18 @@ files = load_module('production_input_files', 'app/packaging/static_distribution
 sha, parse, require = files.sha, files.parse, files.require
 
 
+class NoticeCoverageIncomplete(ValueError):
+    """The notice gate's refusal of a production plan not named as not for public release.
+
+    `open_components` are the names of the account's open components (repository content); `other_gaps` counts
+    the gaps that are not account rows (another supplier described, or a plan mapping the account does not name).
+    """
+
+    def __init__(self, open_components, other_gaps, message):
+        super().__init__(message)
+        self.open_components, self.other_gaps = list(open_components), other_gaps
+
+
 def identity(path):
     value = os.stat(path, follow_symlinks=False)
     return value.st_dev, value.st_ino
@@ -339,9 +351,10 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
     gaps += [f'bundle mapping not named in the notice coverage account: {src} -> {dst}' for src, dst in unnamed]
     if not describes_vendor:
         gaps.insert(0, f"the account describes supplier {notice_coverage['supplier_pin']}, not the selected vendor")
-    if gaps:
-        require(publisher_ref is None or not_for_public_release,
-                'notice coverage is incomplete; a production plan needs --not-for-public-release: ' + ', '.join(gaps))
+    require(not_for_public_release is True or not_for_public_release is False, 'not_for_public_release must be given as true or false')
+    if gaps and publisher_ref is not None and not not_for_public_release:
+        raise NoticeCoverageIncomplete([o['name'] for o in notice_coverage['open']], len(gaps) - len(notice_coverage['open']),
+                                       'notice coverage is incomplete; a production plan needs --not-for-public-release: ' + ', '.join(gaps))
     release_standing = ('not for public release: notice coverage is incomplete' if gaps
                         else 'not for public release: package input test' if publisher_ref is None
                         else 'notice coverage complete')
@@ -408,8 +421,9 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
                    'publisher_input': publisher_ref, 'limits': ['input preparation only; no App build or resource mapper executed',
                    'stock cache selection does not qualify supplier pin', 'no signed package, S4 installed observation, OS qualification or release',
                    'notice coverage is as notice_coverage states; open components are named there'],
-                   'release_standing': release_standing,
+                   'release_standing': release_standing, 'not_for_public_release': not_for_public_release,
                    'notice_coverage': {'account': 'app/packaging/notices/coverage.json', 'sha256': notice_coverage['sha256'],
+                                       'complete': not gaps, 'gaps': len(gaps),
                                        'counts': notice_coverage['counts'],
                                        'supplier_pin': notice_coverage['supplier_pin'], 'describes_selected_vendor': describes_vendor,
                                        'open': [f"{o['name']} {o['version']} ({o['standing']})" for o in notice_coverage['open']]}}
@@ -434,7 +448,8 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
         raise
     # Do not print production identifier/team or private input bytes.
     return {'mode': mode, 'output': str(output), 'files': check_plan(output)['files'],
-            'build_executed': False, 'signing_executed': False, 'package_complete': False, 'release_standing': release_standing}
+            'build_executed': False, 'signing_executed': False, 'package_complete': False, 'release_standing': release_standing,
+            'not_for_public_release': not_for_public_release}
 
 
 if __name__ == '__main__':
