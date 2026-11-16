@@ -29,7 +29,7 @@ fn canonical_member_comparison_rejects_npm_missing_changed_helper_metadata_and_m
     );
     assert_eq!(
         expected.manifest_sha256,
-        "158dd67072236253a694ca06d9bf7bfdebbe20d4a197bbf675433cbdddea7e7b"
+        "c2d91de0619e9be8e9fb294af5a0323b352cadc75aabc8162469fc9a3f504012"
     );
     assert!(assessment_members_match(
         &expected,
@@ -109,7 +109,7 @@ fn selected_0167_mismatch_refuses_before_any_version_probe() {
     std::fs::write(
         &main,
         format!(
-            "#!/bin/sh\ntouch '{}'\necho 'codex-cli 0.167.0'\n",
+            "#!/bin/sh\ntouch '{}'\necho 'codex-cli 0.169.0'\n",
             marker.display()
         ),
     )
@@ -120,7 +120,7 @@ fn selected_0167_mismatch_refuses_before_any_version_probe() {
     cfg.allow_unverified_dev = true;
     let (result, label, distribution) = Host::new().verify(0, &super::AdmittedHome::current(&cfg.codex_home), &cfg);
     assert_eq!(result["result"], "mismatch");
-    assert_eq!(result["element"], "canonical .167 distribution preflight");
+    assert_eq!(result["element"], "canonical .169 distribution preflight");
     assert!(label.is_none());
     assert!(distribution.is_empty());
     assert!(!marker.exists());
@@ -224,7 +224,7 @@ fn retained_canonical_0167_mutations_refuse_before_probe() {
         let (result, label, distribution) = Host::new().verify(0, &super::AdmittedHome::current(&cfg.codex_home), &cfg);
         assert_eq!(result["result"], "mismatch", "{case}");
         assert_eq!(
-            result["element"], "canonical .167 distribution preflight",
+            result["element"], "canonical .169 distribution preflight",
             "{case}"
         );
         assert!(label.is_none());
@@ -239,7 +239,7 @@ fn retained_canonical_0167_mutations_refuse_before_probe() {
 #[test]
 fn generated_0167_removed_provider_signal_and_new_human_checkpoint_are_explicit() {
     let schema: Value = serde_json::from_str(include_str!(
-        "../resources/supplier/0.167.0/codex_app_server_protocol.schemas.json"
+        "../resources/supplier/0.169.0/codex_app_server_protocol.schemas.json"
     ))
     .unwrap();
     let caps = &schema["definitions"]["v2"]["ModelProviderCapabilitiesReadResponse"];

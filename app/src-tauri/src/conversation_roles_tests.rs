@@ -17,12 +17,12 @@ use std::time::{Duration, Instant};
 const PEER: &str = r#"#!/usr/bin/python3
 import sys,json,os,threading,time
 if '--version' in sys.argv:
- print('codex-cli 0.167.0');sys.exit(0)
+ print('codex-cli 0.169.0');sys.exit(0)
 lock=threading.Lock()
 def emit(v):
  with lock: print(json.dumps(v),flush=True)
 def thread(i,extra=None):
- t={'id':i,'cliVersion':'0.167.0','createdAt':1,'updatedAt':2,'cwd':os.path.join(os.getcwd(),'project'),'ephemeral':False,'modelProvider':'fixture-provider','preview':'roles fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[]}
+ t={'id':i,'cliVersion':'0.169.0','createdAt':1,'updatedAt':2,'cwd':os.path.join(os.getcwd(),'project'),'ephemeral':False,'modelProvider':'fixture-provider','preview':'roles fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[]}
  if extra: t.update(extra)
  return t
 def settled(t):
@@ -178,8 +178,8 @@ fn fork_is_a_same_role_copy_and_leaves_the_source_unchanged() {
     let project = f.home.host.snapshot()["threads"].as_array().unwrap().iter().find(|t| t["threadId"] == source.as_str()).unwrap()["cwd"].as_str().unwrap().to_owned();
     assert_eq!(sent["params"], crate::codex_level::with_test_level_at(&packet, "thread/fork", std::path::Path::new(&project)),
         "the thread id, no instructions, model or other settings, and exactly the level; no automatic goal continuation turn");
-    // The exact params are valid 0.167.0 ThreadForkParams.
-    let mut schema: Value = serde_json::from_str(include_str!("../resources/supplier/0.167.0/codex_app_server_protocol.schemas.json")).unwrap();
+    // The exact params are valid 0.169.0 ThreadForkParams.
+    let mut schema: Value = serde_json::from_str(include_str!("../resources/supplier/0.169.0/codex_app_server_protocol.schemas.json")).unwrap();
     schema["$ref"] = json!("#/definitions/v2/ThreadForkParams");
     jsonschema::options().with_draft(jsonschema::Draft::Draft7).offline().build(&schema).unwrap().validate(&sent["params"]).unwrap();
     // The role check is made on the packet as built: the level's fields are the person's setting, never a role input.

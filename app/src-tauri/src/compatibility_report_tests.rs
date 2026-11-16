@@ -15,7 +15,7 @@ fn basis() -> Basis {
         home: "h".into(),
         generation: json!({"home":"h","appSession":"s","spawnCounter":1}),
         conversation: "t".into(),
-        acting_pin: "App Codex 0.167.0".into(),
+        acting_pin: "App Codex 0.169.0".into(),
         surface: "X".into(),
         environment_observation: None,
         catalog_edition: None,
@@ -126,7 +126,7 @@ fn unknown_role_does_not_erase_known_missing() {
 #[test]
 fn current_pin_does_not_borrow_old_presence_account() {
     let env = Environment {
-        harness_pin: Some("App Codex 0.167.0".into()),
+        harness_pin: Some("App Codex 0.169.0".into()),
         harness_signals: Some(
             json!({"thread_start":{"approvalPolicy":"never","sandbox":"read-only"}}),
         ),
@@ -651,7 +651,7 @@ fn j2_current_pin_does_not_borrow_0158_account_in_published_report() {
         run("App Codex 0.158.0").prepared.result(),
         &Check::Unsupported
     );
-    let current = run("App Codex 0.167.0");
+    let current = run("App Codex 0.169.0");
     assert_eq!(current.prepared.result(), &Check::NotEstablished);
     let body = published(&current).body();
     assert_design_valid(body);
@@ -663,7 +663,7 @@ fn j2_current_pin_does_not_borrow_0158_account_in_published_report() {
     assert_eq!(body["check_result"], "not_established");
     assert!(body["limitations"]
         .to_string()
-        .contains("App Codex 0.167.0"));
+        .contains("App Codex 0.169.0"));
 }
 
 #[test]
@@ -1207,7 +1207,7 @@ fn app_inventory(signals: Option<Value>) -> Inventory {
 }
 /// Delegation signals as `delegation_availability::signals` builds them.
 fn delegation_signals(version: &str, multi_agent: Option<bool>) -> Value {
-    let conversation = json!({"generation":{"home":"h"},"threadId":"t","model":"m","modelProvider":"p","cwd":"/w"});
+    let conversation = json!({"generation":{"home":"h"},"threadId":"t","threadSource":"appServer","model":"m","modelProvider":"p","cwd":"/w"});
     let mut config = json!({"config":{"model_provider":"p"}});
     if let Some(v) = multi_agent {
         config["config"]["features"] = json!({"multi_agent":v});
@@ -1215,7 +1215,8 @@ fn delegation_signals(version: &str, multi_agent: Option<bool>) -> Value {
     crate::delegation_availability::signals(
         &conversation,
         Ok(json!({"id":"m","model":"m","multiAgentVersion":version})),
-        Ok(config),
+        Ok(json!({"config":config["config"],"layers":[{"config":config["config"]}]})),
+        Ok(json!({"requirements":null})),
         Ok(json!("p")),
         Ok(json!({"imageGeneration":false,"webSearch":false})),
     )
@@ -1261,20 +1262,20 @@ fn declared_delegation_reads_available_missing_and_not_established_at_the_curren
     assert_eq!(view["preparation"]["check"]["result"], "unsupported");
     assert!(view["statement"].as_str().unwrap().contains("the person may still start"));
     let (outcome, reason, _) = row(Some(delegation_signals("v1", Some(false))));
-    assert_eq!(outcome, "missing");
-    assert!(reason.contains("features.multi_agent = false"), "{reason}");
+    assert_eq!(outcome, "not_established");
+    assert!(reason.contains("features.multi_agent is set"), "{reason}");
     let (outcome, reason, view) = row(None);
     assert_eq!(outcome, "not_established", "{view:#}");
     assert!(reason.contains("delegation signals not read"), "{reason}");
     assert_eq!(view["preparation"]["check"]["result"], "not_established");
     let mut unread = delegation_signals("v2", None);
-    unread["effective_config"] = Value::Null;
+    unread["config_read"] = json!(false);
     unread["limits"] = json!(["effective configuration not read: no response"]);
     let (outcome, reason, _) = row(Some(unread));
     assert_eq!(outcome, "not_established");
     assert!(reason.contains("effective configuration not read"), "{reason}");
     // The 0.158.0 account still governs only its own pin, and no other pin
-    // borrows the 0.167.0 delegation rule.
+    // borrows the 0.169.0 delegation rule.
     let env = |pin: &str| Environment {
         harness_pin: Some(pin.into()),
         harness_signals: Some(delegation_signals("v2", None)),
@@ -1287,7 +1288,7 @@ fn declared_delegation_reads_available_missing_and_not_established_at_the_curren
     signals["provider_capabilities"] = json!({"webSearch":true,"imageGeneration":true});
     signals["web_search_mode"] = json!("live");
     for name in ["shell-command", "file-change", "web-search", "image-generation", "mcp-tool-call", "dynamic-tool-call", "person-input-request", "image-view", "plan-update"] {
-        let e = Environment { harness_signals: Some(signals.clone()), ..env("App Codex 0.167.0") };
+        let e = Environment { harness_signals: Some(signals.clone()), ..env("App Codex 0.169.0") };
         let (outcome, reason) = super::super::harness_presence(name, &e);
         assert_eq!(outcome, Outcome::NotEstablished, "{name}");
         assert!(reason.contains("no adopted supplier availability account"), "{name}: {reason}");

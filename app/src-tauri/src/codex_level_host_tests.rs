@@ -311,8 +311,8 @@ fn the_local_checks_still_refuse_keys_that_are_neither_children_nor_level() {
         let mut i = host.inner.0.lock().unwrap();
         i.state = "ready".into();
         i.generation = generation.clone();
-        i.version_identity = Some(json!({"declaredPin":"0.167.0","distributionContentIdentity":[{"path":"bin/codex","identity":{"algorithm":"sha-256","value":"030316ecfbb41f4e7946e584b0063ef333b7a36cd312ba349f2f6869e39b62cc"}}]}));
-        i.successor_status = Some(json!({"verificationGeneration":generation,"inventory":{"manifest_sha256":"158dd67072236253a694ca06d9bf7bfdebbe20d4a197bbf675433cbdddea7e7b"}}));
+        i.version_identity = Some(json!({"declaredPin":"0.169.0","distributionContentIdentity":[{"path":"bin/codex","identity":{"algorithm":"sha-256","value":"739cda86e15d30a6e2b40cf8dcbbfb988aaf48b305b27065573bb8e9fd41d002"}}]}));
+        i.successor_status = Some(json!({"verificationGeneration":generation,"inventory":{"manifest_sha256":"c2d91de0619e9be8e9fb294af5a0323b352cadc75aabc8162469fc9a3f504012"}}));
         i.threads.push(json!({"generation":generation,"threadId":"thread","model":model,"modelProvider":PROVIDER}));
         i.local_provider = Some(access_provider::LocalProviderBinding::for_test("local-level-home", "/invented/work"));
     }

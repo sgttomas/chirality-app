@@ -23,7 +23,7 @@ use std::time::Instant;
 const PEER: &str = r#"#!/usr/bin/python3
 import sys,json,threading,time,os,select
 if '--version' in sys.argv:
- print('codex-cli 0.167.0');sys.exit(0)
+ print('codex-cli 0.169.0');sys.exit(0)
 lock=threading.Lock()
 def emit(v):
  with lock: print(json.dumps(v),flush=True)
@@ -43,7 +43,7 @@ def handle(f):
  if m=='initialize': result={'userAgent':'unqualified-stop-fixture'}
  elif m=='thread/start':
   starts[0]+=1
-  t={'id':'thread' if starts[0]==1 else 'thread-%d'%starts[0],'cliVersion':'0.167.0','createdAt':1,'updatedAt':2,'cwd':os.path.join(os.getcwd(),'project'),'ephemeral':False,'modelProvider':'fixture-provider','preview':'stop fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[]}
+  t={'id':'thread' if starts[0]==1 else 'thread-%d'%starts[0],'cliVersion':'0.169.0','createdAt':1,'updatedAt':2,'cwd':os.path.join(os.getcwd(),'project'),'ephemeral':False,'modelProvider':'fixture-provider','preview':'stop fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[]}
   result={'thread':t,'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.path.join(os.getcwd(),'project'),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'workspaceWrite','writableRoots':[],'networkAccess':False,'excludeTmpdirEnvVar':True,'excludeSlashTmp':True},'instructionSources':[]}
  elif m=='turn/steer': result={'turnId':f['params']['expectedTurnId']}
  elif m=='account/logout': result={}

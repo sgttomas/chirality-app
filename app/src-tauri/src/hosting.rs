@@ -138,16 +138,16 @@ static ATTACHMENT_RECHECK_DELAY: std::sync::Mutex<Option<Duration>> = std::sync:
 static ATTACHMENT_RECHECK_RETURNED: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
 
 /// The pin the App candidate declares (HOSTING §7.1, D4).
-pub const DECLARED_PIN: &str = "0.167.0";
-/// Exact installed npm main used for offline schema generation; development assertion only.
-pub(crate) const ASSESSMENT_SUPPLIER_SHA256: &str = "030316ecfbb41f4e7946e584b0063ef333b7a36cd312ba349f2f6869e39b62cc";
+pub const DECLARED_PIN: &str = "0.169.0";
+/// Exact main executable from the admitted stock release archive; not candidate qualification.
+pub(crate) const ASSESSMENT_SUPPLIER_SHA256: &str = "739cda86e15d30a6e2b40cf8dcbbfb988aaf48b305b27065573bb8e9fd41d002";
 /// Generated-output identity: the pin and generator the protocol types came from
-/// (HOSTING §7.0; maintained JSON schemas record their exact installed npm generator separately).
+/// (HOSTING §7.0; maintained JSON schemas record their exact stock archive generator separately).
 pub const GENERATED_OUTPUT_IDENTITY: &str =
-    "codex 0.167.0 installed npm main 030316ec; stable+experimental JSON-schema generation (manifest sha256 353ab01c4d92b18c8939c985ea1a8529e70a8d8ee58c8f9818545a13ed5dcc51; experimental root sha256 486c7c8daa5dc7f3ab2a1fb56de5316804caf7a4210fda1dc28d3f0f4e90cfe1; v2 sha256 b1e5d17224b9d9732b5976012438ba78e2cf7e418b67f8f8a5f5cffe301b875d); unqualified distribution";
+    "codex 0.169.0 stock release archive main 739cda86; stable+experimental JSON-schema generation (manifest sha256 3578b193c639c028639547a019124707926a77b3139436b7b70eb7afd2c2ba66; experimental root sha256 d2d0612646b0739dd264067ef944442a5485e44529c793bebf3985e9a9df6cfc; v2 sha256 2e34d83c42ed8b8672d44255501c9198ff4000f48a59d23457620c5d05b53fcd); unqualified distribution";
 
-/// Static .167 intake, separate from the archived .160 qualification reference.
-const ASSESSMENT_DISTRIBUTION: &[u8] = include_bytes!("../resources/supplier/0.167.0/CANONICAL_DISTRIBUTION.json");
+/// Static .169 intake, separate from the archived .160 qualification reference.
+const ASSESSMENT_DISTRIBUTION: &[u8] = include_bytes!("../resources/supplier/0.169.0/CANONICAL_DISTRIBUTION.json");
 
 fn assessment_members_match(expected: &crate::distribution_preflight::Inventory, actual: &crate::distribution_preflight::Inventory) -> bool {
     // tar.gz has no root member. Its 50 declared members (42 files) retain exact
@@ -158,27 +158,27 @@ fn assessment_members_match(expected: &crate::distribution_preflight::Inventory,
 }
 
 fn assessment_preflight(cfg: &HostConfig) -> Result<Option<crate::distribution_preflight::Inventory>, String> {
-    if DECLARED_PIN != "0.167.0" || !cfg.expected_sha256.as_deref()
+    if DECLARED_PIN != "0.169.0" || !cfg.expected_sha256.as_deref()
         .is_some_and(|hash| hash.eq_ignore_ascii_case(ASSESSMENT_SUPPLIER_SHA256)) {
         return Ok(None);
     }
-    if sha256_hex(ASSESSMENT_DISTRIBUTION) != "e6b0cd48c3d77728c44f2b79a2eb319686615b4521abb8585e9267694d380f61" {
-        return Err("canonical .167 assessment identity changed".into());
+    if sha256_hex(ASSESSMENT_DISTRIBUTION) != "166adbcb5b2663ebed90a18808867e7ceb75c87e8c7707bc8bb3d1bb6d4b2dd4" {
+        return Err("canonical .169 assessment identity changed".into());
     }
     let basis: Value = serde_json::from_slice(ASSESSMENT_DISTRIBUTION).map_err(|e|e.to_string())?;
     let expected: crate::distribution_preflight::Inventory = serde_json::from_value(basis["inventory"].clone()).map_err(|e|e.to_string())?;
-    let bin = cfg.codex_bin.parent().ok_or("canonical .167 bin directory absent")?;
+    let bin = cfg.codex_bin.parent().ok_or("canonical .169 bin directory absent")?;
     if cfg.codex_bin.file_name().is_none_or(|name|name != "codex") || bin.file_name().is_none_or(|name|name != "bin") {
-        return Err("canonical .167 requires vendor-root/bin/codex".into());
+        return Err("canonical .169 requires vendor-root/bin/codex".into());
     }
-    let root = bin.parent().ok_or("canonical .167 vendor root absent")?;
+    let root = bin.parent().ok_or("canonical .169 vendor root absent")?;
     let actual = crate::distribution_preflight::scan(root)?;
     if !assessment_members_match(&expected, &actual) {
-        return Err("canonical .167 full distribution mismatch (including metadata/execServer); installed npm tree is a different input".into());
+        return Err("canonical .169 full distribution mismatch (including metadata/execServer); installed npm tree is a different input".into());
     }
     let metadata: Value = serde_json::from_slice(&std::fs::read(root.join("codex-package.json")).map_err(|e|e.to_string())?).map_err(|e|e.to_string())?;
     if metadata != basis["package_metadata"] {
-        return Err("canonical .167 package metadata/execServer mismatch".into());
+        return Err("canonical .169 package metadata/execServer mismatch".into());
     }
     for path in ["bin/codex", "bin/codex-exec-server"] {
         use std::os::unix::fs::OpenOptionsExt;
@@ -186,7 +186,7 @@ fn assessment_preflight(cfg: &HostConfig) -> Result<Option<crate::distribution_p
         let mut magic = [0;4];
         file.read_exact(&mut magic).map_err(|e|e.to_string())?;
         if !matches!(magic, [0xcf,0xfa,0xed,0xfe] | [0xfe,0xed,0xfa,0xcf] | [0xce,0xfa,0xed,0xfe] | [0xfe,0xed,0xfa,0xce] | [0xca,0xfe,0xba,0xbe] | [0xbe,0xba,0xfe,0xca] | [0xca,0xfe,0xba,0xbf] | [0xbf,0xba,0xfe,0xca]) {
-            return Err(format!("canonical .167 executable is not Mach-O: {path}"));
+            return Err(format!("canonical .169 executable is not Mach-O: {path}"));
         }
     }
     // No signature/trust or S3/S4 admission follows; paths may change after this
@@ -564,7 +564,7 @@ struct Inner {
     /// provider and working folder (`delegation_availability::key`).
     delegation_readings: Vec<Value>,
     /// The app-server process's own working folder (its `current_dir`), for
-    /// the provider it resolves for the parameterless reads (NPTD §7.1).
+    /// the provider it resolves for the default-provider reads (NPTD §7.1).
     server_cwd: Option<String>,
     /// The App data folder of the current start (`HostConfig::app_data`).
     app_data: Option<PathBuf>,
@@ -2141,7 +2141,7 @@ impl Host {
     fn verify(&self, attempt: u64, home: &AdmittedHome, cfg: &HostConfig) -> (Value, Option<String>, Vec<Value>) {
         let assessment = match assessment_preflight(cfg) {
             Ok(value) => value,
-            Err(reason) => return (json!({"result":"mismatch","element":"canonical .167 distribution preflight","reason":reason}),None,vec![]),
+            Err(reason) => return (json!({"result":"mismatch","element":"canonical .169 distribution preflight","reason":reason}),None,vec![]),
         };
         let mut probe = Command::new(&cfg.codex_bin);
         probe.arg("--version").env("CODEX_HOME", &cfg.probe_home)
@@ -2175,7 +2175,7 @@ impl Host {
         }
         match &cfg.expected_sha256 {
             Some(exp) if exp.eq_ignore_ascii_case(&content) => (
-                json!({"result": "unverifiable", "reason": if assessment.is_some() {"canonical .167 42-file assessment matches manifest 158dd67072236253a694ca06d9bf7bfdebbe20d4a197bbf675433cbdddea7e7b; signatures, S3/S4 and qualification absent"} else {"main binary matches development assertion; qualified full distribution identity absent"}}), Some(label), dist),
+                json!({"result": "unverifiable", "reason": if assessment.is_some() {"canonical .169 42-file assessment matches manifest c2d91de0619e9be8e9fb294af5a0323b352cadc75aabc8162469fc9a3f504012; signatures, S3/S4 and qualification absent"} else {"main binary matches development assertion; qualified full distribution identity absent"}}), Some(label), dist),
             Some(_) => (json!({"result": "mismatch", "element": "distribution content identity"}), Some(label), dist),
             None => (
                 json!({"result": "unverifiable", "reason": "no expected distribution content identity recorded (pin not qualified)"}),
@@ -2576,7 +2576,7 @@ impl Host {
                 "handshakeReportedIdentity": {},
                 "handshakeConsistency": "no-version-found",
                 "generatedOutputIdentity": GENERATED_OUTPUT_IDENTITY,
-                "supplementIdentity": "empty at 0.167.0",
+                "supplementIdentity": "empty at 0.169.0",
             }));
         }
         // Step 3: spawn.
@@ -3687,6 +3687,7 @@ impl Host {
         if response.get("id")!=Some(request.request_id())||response.get("method").is_some()||response.get("error").is_some()||e.response_position.is_none_or(|p|p==0){return Err("native page typed correlated result/receipt unavailable".into());}
         let result=response.get("result").ok_or("native page native result absent")?;
         Self::validate_native_result("ThreadItemsListResponse",result)?;
+        crate::native_history::require_complete_item_outputs(result)?;
         if result["data"].as_array().unwrap().iter().any(|entry|entry["turnId"]!=q.params()["turnId"]){return Err("native page original result turn differs".into());}
         Ok(e)
     }
@@ -3781,7 +3782,7 @@ impl Host {
         if i.threads.iter().any(|t|t["generation"]==*generation&&t["threadId"]==native["id"]) {return Err("thread already operationally admitted in generation".into());}
         Self::check_local_reported(&i,&response["result"])?;
         self.check_local_reading_current(&i,dispatch.local_config.as_ref())?;
-        let result=&response["result"];let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":native["id"],"name":native.get("name").and_then(Value::as_str),"preview":native.get("preview").and_then(Value::as_str),"status":native["status"],"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"approvalPolicy":result.get("approvalPolicy"),"sandbox":result.get("sandbox"),"activePermissionProfile":result.get("activePermissionProfile"),"supplierStanding":i.supplier_standing,"resumeRequestRef":dispatch.source.request_ref,"nativeResumeObserved":true,"appRole":{"standing":"unknown"},"networkDisclosure":network_disclosure()}),response);i.threads.push(row.clone());
+        let result=&response["result"];let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":native["id"],"threadSource":native.get("source"),"name":native.get("name").and_then(Value::as_str),"preview":native.get("preview").and_then(Value::as_str),"status":native["status"],"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"approvalPolicy":result.get("approvalPolicy"),"sandbox":result.get("sandbox"),"activePermissionProfile":result.get("activePermissionProfile"),"supplierStanding":i.supplier_standing,"resumeRequestRef":dispatch.source.request_ref,"nativeResumeObserved":true,"appRole":{"standing":"unknown"},"networkDisclosure":network_disclosure()}),response);i.threads.push(row.clone());
         // Admission is already established. Context preparation/read failure must
         // never revoke it, change role/CCE state or make Continue wait on history.
         let thread=native["id"].as_str().unwrap();
@@ -3810,9 +3811,9 @@ impl Host {
     /// ROLE §3.3 F-1 / NIR CA-4: a same-role copy. `thread/fork` carries the
     /// thread id and no instructions, model or settings (ROLE §5.2; B-16), so
     /// the fork keeps the source's guidance and the source is unchanged. It also
-    /// sets `deferGoalContinuation` (0.167.0 ThreadForkParams): a source with an
+    /// sets `deferGoalContinuation` (0.169.0 ThreadForkParams): a source with an
     /// active goal would otherwise start an automatic continuation turn in the
-    /// fork that the person did not start, per the 0.167.0 generated schema
+    /// fork that the person did not start, per the 0.169.0 generated schema
     /// description; not observed. This suppresses that turn only; it is not
     /// guidance.
     pub fn thread_fork_dispatch(&self, generation: &Value, source_thread: &str) -> Result<SourceRequest,String> {
@@ -3896,7 +3897,7 @@ impl Host {
         if unread {return Err("thread/fork records project reading no longer matches the admission it was taken for; native response retained".into());}
         let records_reading=if again.is_some() {records_reading} else {None};
         let standing=i.supplier_standing.clone();let result=&response["result"];
-        let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":t.get("id"),"name":t.get("name").and_then(Value::as_str),"preview":t.get("preview").and_then(Value::as_str),"status":t.get("status"),"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"approvalPolicy":result.get("approvalPolicy"),"sandbox":result.get("sandbox"),"activePermissionProfile":result.get("activePermissionProfile"),"supplierStanding":standing,"forkedFrom":{"threadId":source,"forkRequestRef":request.request_ref,"reportedForkedFromId":t.get("forkedFromId")},"requestedDestination":{"source":"inherited from the forked conversation; none chosen at fork"},"reportedDestination":{"scope":"thread","model":result.get("model"),"modelProvider":result.get("modelProvider")},"networkDisclosure":network_disclosure()}),&response);
+        let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":t.get("id"),"threadSource":t.get("source"),"name":t.get("name").and_then(Value::as_str),"preview":t.get("preview").and_then(Value::as_str),"status":t.get("status"),"model":result.get("model"),"modelProvider":result.get("modelProvider"),"reasoningEffort":result.get("reasoningEffort"),"cwd":result.get("cwd"),"approvalPolicy":result.get("approvalPolicy"),"sandbox":result.get("sandbox"),"activePermissionProfile":result.get("activePermissionProfile"),"supplierStanding":standing,"forkedFrom":{"threadId":source,"forkRequestRef":request.request_ref,"reportedForkedFromId":t.get("forkedFromId")},"requestedDestination":{"source":"inherited from the forked conversation; none chosen at fork"},"reportedDestination":{"scope":"thread","model":result.get("model"),"modelProvider":result.get("modelProvider")},"networkDisclosure":network_disclosure()}),&response);
         // Stock Codex retains the dynamic tool in a fork. Admit its calls only
         // after the correlated fork of a source offered it in this generation.
         // The capability still checks the fork's observed cwd on every read.
@@ -4043,7 +4044,7 @@ impl Host {
             match held.get(target) {
                 Some(validator) => Arc::clone(validator),
                 None => {
-                    let mut schema:Value=serde_json::from_str(include_str!("../resources/supplier/0.167.0/codex_app_server_protocol.schemas.json")).map_err(|e|e.to_string())?;schema["$ref"]=json!(format!("#/definitions/v2/{target}"));
+                    let mut schema:Value=serde_json::from_str(include_str!("../resources/supplier/0.169.0/codex_app_server_protocol.schemas.json")).map_err(|e|e.to_string())?;schema["$ref"]=json!(format!("#/definitions/v2/{target}"));
                     let built = Arc::new(jsonschema::options().offline().build(&schema).map_err(|e|e.to_string())?);
                     held.insert(target.to_owned(), Arc::clone(&built));
                     built
@@ -4406,7 +4407,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         // requestedDestination.source "person-selected": the model this thread/start carried and the act of starting the
         // conversation are the person's (turn_requested_context and the model-turn recorder key on it). It does not
         // say who chose the access entry: `entrySource` does, where recorded (note_requested_entry_source).
-        let standing=i.supplier_standing.clone();let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":t.get("id"),"name":t.get("name").and_then(Value::as_str),"preview":t.get("preview").and_then(Value::as_str),"status":t.get("status"),"model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider"),"reasoningEffort":response["result"].get("reasoningEffort"),"cwd":response["result"].get("cwd"),"approvalPolicy":response["result"].get("approvalPolicy"),"sandbox":response["result"].get("sandbox"),"activePermissionProfile":response["result"].get("activePermissionProfile"),"supplierStanding":standing,"requestedDestination":{"source":"person-selected","model":params["model"],"modelProvider":params["modelProvider"]},"reportedDestination":{"scope":"thread","model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider")},"networkDisclosure":network_disclosure()}),response);i.threads.push(row);Ok(())
+        let standing=i.supplier_standing.clone();let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":t.get("id"),"threadSource":t.get("source"),"name":t.get("name").and_then(Value::as_str),"preview":t.get("preview").and_then(Value::as_str),"status":t.get("status"),"model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider"),"reasoningEffort":response["result"].get("reasoningEffort"),"cwd":response["result"].get("cwd"),"approvalPolicy":response["result"].get("approvalPolicy"),"sandbox":response["result"].get("sandbox"),"activePermissionProfile":response["result"].get("activePermissionProfile"),"supplierStanding":standing,"requestedDestination":{"source":"person-selected","model":params["model"],"modelProvider":params["modelProvider"]},"reportedDestination":{"scope":"thread","model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider")},"networkDisclosure":network_disclosure()}),response);i.threads.push(row);Ok(())
     }
 
     /// Plain text only, with complete native text input; all thread settings
@@ -4971,10 +4972,10 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
     /// NPTD §7.1 (R19-5): reads the delegation signals for one loaded
     /// conversation of `generation` and keeps the reading for its model,
     /// provider and folder. `config/read` is read with the conversation's
-    /// working folder (`features.multi_agent` as the conversation sees it) and
+    /// working folder (including layers), followed by the managed requirements, and
     /// twice more for the provider the app-server resolves for itself: with
-    /// no folder and with its own working folder. `model/list` and
-    /// `modelProvider/capabilities/read` take no provider and answer for that
+    /// no folder and with its own working folder. `model/list` omits its optional
+    /// provider selector; `modelProvider/capabilities/read` also answers for that
     /// server provider, so `delegation_availability::signals` counts them only
     /// when it is the conversation's provider. Reads only. One reading waits
     /// at most `DELEGATION_READ_BUDGET` in all (each request at most ten
@@ -4992,7 +4993,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         };
         let Some(conversation) = conversation else {
             let cause = || Err::<Value, String>("the conversation is not loaded in this Codex generation".into());
-            let mut signals = crate::delegation_availability::signals(&json!({"threadId":thread_id}), cause(), cause(), cause(), cause());
+            let mut signals = crate::delegation_availability::signals(&json!({"threadId":thread_id}), cause(), cause(), cause(), cause(), cause());
             signals["readAt"] = json!(crate::util::now_rfc3339());
             signals["readAtMs"] = json!(delegation_now_ms());
             return signals;
@@ -5046,12 +5047,12 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             })(),
         };
         let config_at = |cwd: Option<&str>| {
-            let mut params = json!({"includeLayers":false});
+            let mut params = json!({"includeLayers":true});
             if let Some(cwd) = cwd { params["cwd"] = json!(cwd); }
             read("config/read", params, "ConfigReadResponse")
         };
         let config = config_at(conversation["cwd"].as_str());
-        // The provider the server resolves for its parameterless reads: its
+        // The provider the server resolves for its default-provider reads: its
         // configuration without a folder and at its own folder must agree.
         let server = match server_cwd.as_deref() {
             None => Err("the app-server's working folder is not known to this App".to_owned()),
@@ -5065,8 +5066,9 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 (Err(cause), _) | (_, Err(cause)) => Err(cause),
             },
         };
+        let requirements = read("configRequirements/read", json!({}), "ConfigRequirementsReadResponse");
         let capabilities = read("modelProvider/capabilities/read", json!({}), "ModelProviderCapabilitiesReadResponse");
-        let mut signals = crate::delegation_availability::signals(&conversation, model, config, server, capabilities);
+        let mut signals = crate::delegation_availability::signals(&conversation, model, config, requirements, server, capabilities);
         signals["readAt"] = json!(crate::util::now_rfc3339());
         signals["readAtMs"] = json!(delegation_now_ms());
         let key = crate::delegation_availability::key(&conversation);
@@ -6181,14 +6183,14 @@ fn network_disclosure() -> Value {
     })
 }
 
-/// SHA-256 of the maintained 0.167.0 JSON-only generated-output MANIFEST compiled into this App.
-pub(crate) const GENERATED_MANIFEST_SHA256: &str = "353ab01c4d92b18c8939c985ea1a8529e70a8d8ee58c8f9818545a13ed5dcc51";
+/// SHA-256 of the maintained 0.169.0 JSON-only generated-output MANIFEST compiled into this App.
+pub(crate) const GENERATED_MANIFEST_SHA256: &str = "3578b193c639c028639547a019124707926a77b3139436b7b70eb7afd2c2ba66";
 fn generated_outputs_match() -> bool {
     [
-        (include_bytes!("../resources/supplier/0.167.0/GENERATION.json").as_slice(), "09c339f148d90034f1dba511c7a5b8e18545291e96a1fc96be744d2f17f24026"),
-        (include_bytes!("../resources/supplier/0.167.0/MANIFEST.sha256").as_slice(), GENERATED_MANIFEST_SHA256),
-        (include_bytes!("../resources/supplier/0.167.0/codex_app_server_protocol.schemas.json").as_slice(), "486c7c8daa5dc7f3ab2a1fb56de5316804caf7a4210fda1dc28d3f0f4e90cfe1"),
-        (include_bytes!("../resources/supplier/0.167.0/codex_app_server_protocol.v2.schemas.json").as_slice(), "b1e5d17224b9d9732b5976012438ba78e2cf7e418b67f8f8a5f5cffe301b875d"),
+        (include_bytes!("../resources/supplier/0.169.0/GENERATION.json").as_slice(), "67e26ec9480ae05dd6f85671db511db5e0f2a19524d465375718ea3a17e59bc3"),
+        (include_bytes!("../resources/supplier/0.169.0/MANIFEST.sha256").as_slice(), GENERATED_MANIFEST_SHA256),
+        (include_bytes!("../resources/supplier/0.169.0/codex_app_server_protocol.schemas.json").as_slice(), "d2d0612646b0739dd264067ef944442a5485e44529c793bebf3985e9a9df6cfc"),
+        (include_bytes!("../resources/supplier/0.169.0/codex_app_server_protocol.v2.schemas.json").as_slice(), "2e34d83c42ed8b8672d44255501c9198ff4000f48a59d23457620c5d05b53fcd"),
     ].iter().all(|(bytes, expected)| sha256_hex(bytes) == *expected)
 }
 
@@ -6346,7 +6348,7 @@ mod additive_guidance_transport_tests {
         let text="Common guidance\n\nTASK role: é / 家\n";
         let params=Host::thread_start_params("/invented/work","explicit-model","explicit-provider",Some(text)).unwrap();
         assert_eq!(params,json!({"cwd":"/invented/work","model":"explicit-model","modelProvider":"explicit-provider","developerInstructions":text}));
-        let mut schema:Value=serde_json::from_str(include_str!("../resources/supplier/0.167.0/codex_app_server_protocol.schemas.json")).unwrap();schema["$ref"]=json!("#/definitions/v2/ThreadStartParams");jsonschema::options().offline().build(&schema).unwrap().validate(&params).unwrap();
+        let mut schema:Value=serde_json::from_str(include_str!("../resources/supplier/0.169.0/codex_app_server_protocol.schemas.json")).unwrap();schema["$ref"]=json!("#/definitions/v2/ThreadStartParams");jsonschema::options().offline().build(&schema).unwrap().validate(&params).unwrap();
         assert_eq!(Host::thread_start_params("/invented/work","m","p",None).unwrap(),json!({"cwd":"/invented/work","model":"m","modelProvider":"p"}));
         assert!(Host::thread_start_params("/invented/work"," ","p",Some(text)).is_err());assert!(Host::thread_start_params("/invented/work","m","",Some(text)).is_err());
     }
@@ -6658,7 +6660,7 @@ mod conversation_transport_tests {
     #[test]
     fn required_native_text_and_interrupt_params_match_generated_schema_without_overrides() {
         let text="Exact\n\né / 家\n{\"approvalPolicy\":\"never\"}";let params=Host::text_turn_params("thread",text).unwrap();assert_eq!(params,json!({"threadId":"thread","input":[{"type":"text","text":text,"text_elements":[]}]}));
-        let source:Value=serde_json::from_str(include_str!("../resources/supplier/0.167.0/codex_app_server_protocol.schemas.json")).unwrap();for (target,params) in [("TurnStartParams",params),("TurnInterruptParams",json!({"threadId":"thread","turnId":"turn"}))] {let mut schema=source.clone();schema["$ref"]=json!(format!("#/definitions/v2/{target}"));jsonschema::options().offline().build(&schema).unwrap().validate(&params).unwrap();}
+        let source:Value=serde_json::from_str(include_str!("../resources/supplier/0.169.0/codex_app_server_protocol.schemas.json")).unwrap();for (target,params) in [("TurnStartParams",params),("TurnInterruptParams",json!({"threadId":"thread","turnId":"turn"}))] {let mut schema=source.clone();schema["$ref"]=json!(format!("#/definitions/v2/{target}"));jsonschema::options().offline().build(&schema).unwrap().validate(&params).unwrap();}
         assert!(Host::text_turn_params("",text).is_err());assert!(Host::text_turn_params("thread","").is_err());
     }
     #[test]
@@ -6991,7 +6993,7 @@ mod conversation_transport_tests {
     fn steering_exact_native_body_schema_and_ack_keep_live_target_without_overrides() {
         let host=host();event(&host,"inProgress");let text="Exact steering\n\né / 家\n{\"model\":\"not an override\"}";
         let params=Host::steer_text_params("thread","turn",text).unwrap();assert_eq!(params,json!({"threadId":"thread","expectedTurnId":"turn","input":[{"type":"text","text":text,"text_elements":[]}]}));
-        let source:Value=serde_json::from_str(include_str!("../resources/supplier/0.167.0/codex_app_server_protocol.schemas.json")).unwrap();for(target,value)in [("TurnSteerParams",params.clone()),("TurnSteerResponse",json!({"turnId":"turn"}))] {let mut schema=source.clone();schema["$ref"]=json!(format!("#/definitions/v2/{target}"));jsonschema::options().offline().build(&schema).unwrap().validate(&value).unwrap();}
+        let source:Value=serde_json::from_str(include_str!("../resources/supplier/0.169.0/codex_app_server_protocol.schemas.json")).unwrap();for(target,value)in [("TurnSteerParams",params.clone()),("TurnSteerResponse",json!({"turnId":"turn"}))] {let mut schema=source.clone();schema["$ref"]=json!(format!("#/definitions/v2/{target}"));jsonschema::options().offline().build(&schema).unwrap().validate(&value).unwrap();}
         let before=host.snapshot()["conversationTurns"].clone();let(result,outbound)=exchange(&host,Some(json!({"result":{"turnId":"turn","nativeExtra":"kept"}})),vec![],||host.turn_steer_text(&g(),"thread","turn",text));assert_eq!(outbound["method"],"turn/steer");assert_eq!(outbound["params"],params);assert_eq!(result.unwrap()["result"]["nativeExtra"],"kept");assert_eq!(host.snapshot()["conversationTurns"],before);assert_eq!(host.client_requests()[0]["outcome"],"response-observed-result");assert_eq!(host.snapshot()["threads"][0]["model"],"selected");
         assert!(Host::steer_text_params("thread","",text).is_err());assert!(Host::steer_text_params("thread","turn","").is_err());
     }
@@ -7025,13 +7027,13 @@ mod conversation_transport_tests {
         event(&host,"completed");let mut fresh=turn("inProgress");fresh["id"]=json!("fresh");let(result,_)=exchange(&host,Some(json!({"result":{"turn":fresh}})),vec![],||host.turn_start_text(&g(),"thread","new"));assert!(result.is_ok());let(result,_)=exchange(&host,Some(json!({"result":{"turnId":"fresh"}})),vec![],||host.turn_steer_text(&g(),"thread","fresh","text"));assert!(result.is_ok());
     }
 
-    fn history_thread(status:&str)->Value {json!({"id":"stored","cliVersion":"0.167.0","createdAt":1,"updatedAt":2,"cwd":"/invented","ephemeral":false,"modelProvider":"configured","preview":"invented","projectId":null,"sessionId":"native-session","source":"appServer","status":{"type":status},"turns":[],"agentRole":"TASK","nativeExtra":{"kept":true}})}
+    fn history_thread(status:&str)->Value {json!({"id":"stored","cliVersion":"0.169.0","createdAt":1,"updatedAt":2,"cwd":"/invented","ephemeral":false,"modelProvider":"configured","preview":"invented","projectId":null,"sessionId":"native-session","source":"appServer","status":{"type":status},"turns":[],"agentRole":"TASK","nativeExtra":{"kept":true}})}
     fn history_resume(status:&str,direct:bool)->Value {let mut native=history_thread(status);native["canAcceptDirectInput"]=json!(direct);json!({"thread":native,"model":"reported","modelProvider":"configured","cwd":"/invented","approvalPolicy":"on-request","approvalsReviewer":"user","sandbox":{"type":"workspaceWrite","writableRoots":[],"networkAccess":false,"excludeTmpdirEnvVar":true,"excludeSlashTmp":true},"instructionSources":["/native/instructions"],"nativeExtra":true})}
     fn bind_local_history(host:&Host) {
         let mut i=host.inner.0.lock().unwrap();
         i.local_provider=Some(access_provider::LocalProviderBinding::for_test("conversation-home","/invented"));
-        i.version_identity=Some(json!({"declaredPin":"0.167.0","distributionContentIdentity":[{"path":"bin/codex","identity":{"algorithm":"sha-256","value":"030316ecfbb41f4e7946e584b0063ef333b7a36cd312ba349f2f6869e39b62cc"}}]}));
-        i.successor_status=Some(json!({"verificationGeneration":g(),"inventory":{"manifest_sha256":"158dd67072236253a694ca06d9bf7bfdebbe20d4a197bbf675433cbdddea7e7b"}}));
+        i.version_identity=Some(json!({"declaredPin":"0.169.0","distributionContentIdentity":[{"path":"bin/codex","identity":{"algorithm":"sha-256","value":"739cda86e15d30a6e2b40cf8dcbbfb988aaf48b305b27065573bb8e9fd41d002"}}]}));
+        i.successor_status=Some(json!({"verificationGeneration":g(),"inventory":{"manifest_sha256":"c2d91de0619e9be8e9fb294af5a0323b352cadc75aabc8162469fc9a3f504012"}}));
     }
     /// A local fork whose configuration reading waits at the gate behind an earlier reading that is
     /// never answered: the fork command returns that sentence alone, nothing else with it.
@@ -8448,6 +8450,86 @@ mod conversation_transport_tests {
     const AUTH_CANARY:&str="SYNTHETIC_UNIT_A_KEY_CANARY_9b71_not_a_real_credential";
     fn assert_auth_retained_safe(host:&Host,source:Option<&SourceRequest>){let mut all=json!({"snapshot":host.snapshot(),"clients":host.client_requests(),"journal":host.journal()});if let Some(source)=source{all["source"]=source.evidence();all["attempted"]=source.attempted_frame().clone();all["observation"]=host.account_rpc_observation(source).unwrap();}let text=serde_json::to_string(&all).unwrap();assert!(!text.contains(AUTH_CANARY),"synthetic canary leaked into retained output");assert!(!format!("{all:?}").contains(AUTH_CANARY));}
     #[test]
+    fn credential_rpc_unknown_account_result_is_wholly_withheld() {
+        for method in ["account/securitySetup/read", "account/future/read"] {
+            let (projected,redacted)=auth_rpc::project_frame(&json!({"id":7,"result":{
+                "accountId":AUTH_CANARY,"userId":AUTH_CANARY,"notice":{"url":"invented account text","title":"invented account text"}
+            }}),Some(method));
+            assert!(redacted);
+            assert_eq!(projected["result"],json!(auth_rpc::REDACTED));
+            assert_eq!(projected["id"],7);
+        }
+    }
+
+    #[test]
+    fn credential_rpc_delegation_requirements_are_closed_booleans_or_incomplete() {
+        let valid = [json!({}), json!({"multi_agent":false}), json!({"multi_agent":true,"multi_agent_v2":false})];
+        let invalid = [Value::Null,json!(false),json!("invented-private-requirement"),json!([]),
+            json!({"multi_agent":1}),json!({"multi_agent_v2":"invented-private-requirement"}),
+            json!({"multi_agent":false,"unapproved":true}),json!({"accountId":"invented-private-requirement"})];
+        for (features, accepted) in valid.into_iter().map(|v|(v,true)).chain(invalid.into_iter().map(|v|(v,false))) {
+            let raw=json!({"id":1,"result":{"requirements":{"featureRequirements":features,
+                "allowedLoginMethods":["chatgpt"],"privateOther":"invented-private-requirement"},
+                "userId":"invented-private-requirement","accountId":"invented-private-requirement","other":"invented-private-requirement"}});
+            let (projected,redacted)=auth_rpc::project_frame(&raw,Some("configRequirements/read"));
+            assert!(redacted);
+            assert_eq!(projected["result"],json!({"requirements":{"allowedLoginMethods":["chatgpt"],
+                "featureRequirements":if accepted{features}else{json!(auth_rpc::REDACTED)}}}));
+            assert!(!projected.to_string().contains("invented-private-requirement"));
+            assert_eq!(Host::validate_native_result("ConfigRequirementsReadResponse",&projected["result"]).is_ok(),accepted,
+                "withheld shape must refuse a complete requirements reading");
+        }
+    }
+
+    #[test]
+    fn credential_rpc_user_id_only_uncorrelated_reply_is_withheld_without_correlation() {
+        for key in ["userId", "accountId"] {
+            let host = host();
+            host.inner.0.lock().unwrap().account_channels.push(g());
+            let mut result = json!({});
+            result[key] = json!(AUTH_CANARY);
+            let native = json!({"id":"unrelated-response","result":result});
+            host.on_line(&serde_json::to_vec(&native).unwrap(), &g());
+            let journal = host.journal();
+            let observed = journal.last().unwrap();
+            assert_eq!(observed["frame"]["result"], auth_rpc::REDACTED, "{key}");
+            assert!(observed["frame"].get("method").is_none());
+            assert!(observed["frame"]["id"].is_null());
+            assert!(host.client_requests().is_empty(), "privacy handling must not invent an RPC association");
+            assert_auth_retained_safe(&host, None);
+        }
+    }
+    #[test]
+    fn credential_rpc_user_id_and_account_id_in_generic_account_frames_are_withheld() {
+        let native = json!({"method":"account/updated","params":{
+            "userId":AUTH_CANARY,"accountId":AUTH_CANARY,
+            "nested":{"userId":AUTH_CANARY,"accountId":AUTH_CANARY}
+        }});
+        let (frame, projected) = auth_rpc::project_frame(&native, None);
+        assert!(projected);
+        assert_eq!(frame["params"]["userId"], auth_rpc::REDACTED);
+        assert_eq!(frame["params"]["accountId"], auth_rpc::REDACTED);
+        assert!(!frame.to_string().contains(AUTH_CANARY));
+    }
+    #[test]
+    fn credential_rpc_user_id_correlated_account_never_reaches_public_evidence() {
+        let host = host();
+        let mut source = None;
+        let (result, _) = exchange(&host, Some(json!({"result":{
+            "requiresOpenaiAuth":true,"account":{"type":"chatgpt"},"userId":AUTH_CANARY,"accountId":AUTH_CANARY
+        }})), vec![], || {
+            let request = host.account_read_no_refresh_scoped(&g())?;
+            let evidence = host.source_request_wait(&request, Duration::from_millis(20))?;
+            source = Some(request);
+            Ok(evidence)
+        });
+        assert!(result.is_ok());
+        let source = source.unwrap();
+        assert!(source.evidence()["response"]["result"].get("userId").is_none());
+        assert!(source.evidence()["response"]["result"].get("accountId").is_none());
+        assert_auth_retained_safe(&host, Some(&source));
+    }
+    #[test]
     fn credential_rpc_private_wire_once_and_redacted_receipt_typed_presence(){let host=host();let mut source=None;let(result,outbound)=exchange(&host,Some(json!({"result":{"type":"apiKey","apiKey":AUTH_CANARY,"extraEcho":AUTH_CANARY}})),vec![],||{let r=host.account_login_api_key(&g(),auth_rpc::TransientApiKey::synthetic(AUTH_CANARY),None)?;let e=host.source_request_wait(&r,Duration::from_millis(20))?;source=Some(r);Ok(e)});let e=result.unwrap();let source=source.unwrap();assert_eq!(outbound["params"],json!({"type":"apiKey","apiKey":AUTH_CANARY}));assert_eq!(serde_json::to_string(&outbound).unwrap().matches(AUTH_CANARY).count(),1);assert_eq!(e["writeResult"],"written");assert_eq!(e["outcome"],"response-observed-result");assert_eq!(e["sensitiveFieldsRedacted"],true);assert!(e["frameEvidence"].as_str().unwrap().contains("not original"));assert_eq!(e["response"]["result"],json!({"type":"apiKey"}));assert_eq!(host.account_rpc_observation(&source).unwrap()["accountObservation"]["credentialValidity"],"unknown");assert_auth_retained_safe(&host,Some(&source));let count=host.client_requests().len();host.source_request_status(&source).unwrap();assert_eq!(host.client_requests().len(),count);}
     #[test]
     fn credential_rpc_delayed_released_key_error_closed_channel_and_unrelated_notification(){let host=host();let mut source=None;let(result,outbound)=exchange(&host,None,vec![],||{let r=host.account_login_api_key(&g(),auth_rpc::TransientApiKey::synthetic(AUTH_CANARY),None)?;let e=host.source_request_wait(&r,Duration::from_millis(10))?;source=Some(r);Ok(e)});assert_eq!(result.unwrap()["waitingEnded"],true);let source=source.unwrap();assert_auth_retained_safe(&host,Some(&source));let error=json!({"id":outbound["id"],"error":{"code":-32000,"message":format!("native auth echoed {AUTH_CANARY}"),"data":{"secret":AUTH_CANARY}}});host.on_line(&serde_json::to_vec(&error).unwrap(),&g());assert_eq!(source.evidence()["outcome"],"response-observed-error");assert_eq!(source.evidence()["response"]["error"]["code"],-32000);assert_auth_retained_safe(&host,Some(&source));let ordinary=json!({"method":"unrelated/native-notification","params":{"text":"ordinary source bytes","extra":7}});host.on_line(&serde_json::to_vec(&ordinary).unwrap(),&g());assert_eq!(host.journal().last().unwrap()["frame"],ordinary);
@@ -8815,7 +8897,7 @@ mod conversation_transport_tests {
     impl Drop for NativePagePipe {fn drop(&mut self){*self.host.stdin.lock().unwrap()=None;assert!(self.child.wait().unwrap().success());}}
     fn native_page_selected()->NativeHistory {
         use crate::native_history::Direction;let mut h=NativeHistory::new("conversation-home",g()).unwrap();let q=h.list_threads(None,Direction::Desc).unwrap();
-        let t=|id:&str|json!({"id":id,"cliVersion":"0.167.0","createdAt":1,"updatedAt":2,"cwd":"/invented","ephemeral":false,"modelProvider":"configured","preview":"synthetic","projectId":null,"sessionId":"session","source":"appServer","status":{"type":"notLoaded"},"turns":[]});
+        let t=|id:&str|json!({"id":id,"cliVersion":"0.169.0","createdAt":1,"updatedAt":2,"cwd":"/invented","ephemeral":false,"modelProvider":"configured","preview":"synthetic","projectId":null,"sessionId":"session","source":"appServer","status":{"type":"notLoaded"},"turns":[]});
         h.receive(&q,"conversation-home",&g(),&json!({"data":[t("thread"),t("other")],"nextCursor":null})).unwrap();h.select("thread").unwrap();
         let q=h.turns_page(None,Direction::Desc).unwrap();h.receive(&q,"conversation-home",&g(),&json!({"data":[{"id":"turn","status":"completed","items":[],"itemsView":"summary","error":null}],"nextCursor":null})).unwrap();h
     }
@@ -9032,7 +9114,7 @@ mod local_process_lock_tests {
             std::fs::write(root.join("vendor/codex-package.json"), b"{}\n").unwrap();
             let bin = root.join("vendor/bin/codex");
             let left = if leave_behind { "import subprocess\nlock=os.stat(os.environ['CODEX_HOME']+'/chirality-codex-process.lock').st_ino\nfd=[int(n) for n in os.listdir('/dev/fd') if int(n)>2 and os.path.exists('/dev/fd/'+n) and os.fstat(int(n)).st_ino==lock][0]\np=subprocess.Popen(['/bin/sleep','30'],close_fds=True,pass_fds=(fd,),start_new_session=True,stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)\nopen(os.environ['CODEX_HOME']+'/left-behind','w').write(str(p.pid))\n" } else { "" };
-            std::fs::write(&bin, format!("#!/usr/bin/env python3\nimport os,sys,json\nif '--version' in sys.argv:\n print('codex-cli 0.167.0'); sys.exit(0)\nopen(os.environ['CODEX_HOME']+'/started','a').write('x')\n{left}for line in sys.stdin:\n f=json.loads(line)\n if 'id' in f:\n  print(json.dumps({{'id':f['id'],'result':{{'userAgent':'codex/0.167.0'}}}}),flush=True)\n")).unwrap();
+            std::fs::write(&bin, format!("#!/usr/bin/env python3\nimport os,sys,json\nif '--version' in sys.argv:\n print('codex-cli 0.169.0'); sys.exit(0)\nopen(os.environ['CODEX_HOME']+'/started','a').write('x')\n{left}for line in sys.stdin:\n f=json.loads(line)\n if 'id' in f:\n  print(json.dumps({{'id':f['id'],'result':{{'userAgent':'codex/0.169.0'}}}}),flush=True)\n")).unwrap();
             std::fs::set_permissions(&bin, std::fs::Permissions::from_mode(0o700)).unwrap();
             let mut cfg = HostConfig::new(bin.clone(), root.join("home"), root.join("probe"), root.clone());
             cfg.distribution = Some(successor::Distribution::development_from_binary(&bin).unwrap());
@@ -9071,7 +9153,7 @@ mod local_process_lock_tests {
             std::fs::set_permissions(&data, std::fs::Permissions::from_mode(0o700)).unwrap();
             let leaf = crate::desktop_startup::no_project_folder(&data);
             let swap_line = if swap { format!(" import shutil; os.rename('{leaf}', '{leaf}-moved'); os.symlink('{data}', '{leaf}')\n", leaf = leaf.display(), data = data.display()) } else { String::new() };
-            std::fs::write(&f.cfg.codex_bin, format!("#!/usr/bin/env python3\nimport os,sys,json\nif '--version' in sys.argv:\n{swap_line} print('codex-cli 0.167.0'); sys.exit(0)\nopen(os.environ['CODEX_HOME']+'/cwd','w').write(os.getcwd())\nfor line in sys.stdin:\n f=json.loads(line)\n if 'id' in f:\n  print(json.dumps({{'id':f['id'],'result':{{'userAgent':'codex/0.167.0'}}}}),flush=True)\n")).unwrap();
+            std::fs::write(&f.cfg.codex_bin, format!("#!/usr/bin/env python3\nimport os,sys,json\nif '--version' in sys.argv:\n{swap_line} print('codex-cli 0.169.0'); sys.exit(0)\nopen(os.environ['CODEX_HOME']+'/cwd','w').write(os.getcwd())\nfor line in sys.stdin:\n f=json.loads(line)\n if 'id' in f:\n  print(json.dumps({{'id':f['id'],'result':{{'userAgent':'codex/0.169.0'}}}}),flush=True)\n")).unwrap();
             let mut cfg = f.cfg.clone();
             cfg.distribution = Some(successor::Distribution::development_from_binary(&cfg.codex_bin).unwrap());
             cfg.cwd = leaf.clone();
@@ -9102,8 +9184,8 @@ mod local_process_lock_tests {
             let data = f.root.join("app-data");
             std::fs::create_dir(&data).unwrap();
             std::fs::set_permissions(&data, std::fs::Permissions::from_mode(0o700)).unwrap();
-            let rest = if serve { "for line in sys.stdin:\n f=json.loads(line)\n if 'id' in f:\n  print(json.dumps({'id':f['id'],'result':{'userAgent':'codex/0.167.0'}}),flush=True)\n" } else { "sys.exit(3)\n" };
-            std::fs::write(&f.cfg.codex_bin, format!("#!/usr/bin/env python3\nimport os,sys,json\nif '--version' in sys.argv:\n print('codex-cli 0.167.0'); sys.exit(0)\nopen(os.environ['TMPDIR']+'/invented-temporary','w').write('x')\nopen(os.environ['CODEX_HOME']+'/tmpdir','w').write(os.environ['TMPDIR'])\n{rest}")).unwrap();
+            let rest = if serve { "for line in sys.stdin:\n f=json.loads(line)\n if 'id' in f:\n  print(json.dumps({'id':f['id'],'result':{'userAgent':'codex/0.169.0'}}),flush=True)\n" } else { "sys.exit(3)\n" };
+            std::fs::write(&f.cfg.codex_bin, format!("#!/usr/bin/env python3\nimport os,sys,json\nif '--version' in sys.argv:\n print('codex-cli 0.169.0'); sys.exit(0)\nopen(os.environ['TMPDIR']+'/invented-temporary','w').write('x')\nopen(os.environ['CODEX_HOME']+'/tmpdir','w').write(os.environ['TMPDIR'])\n{rest}")).unwrap();
             let mut cfg = f.cfg.clone();
             cfg.distribution = Some(successor::Distribution::development_from_binary(&cfg.codex_bin).unwrap());
             cfg.cwd = crate::desktop_startup::no_project_folder(&data);
@@ -9424,7 +9506,7 @@ mod local_process_lock_tests {
         use process_group_custody::Census;
         use std::os::unix::fs::MetadataExt;
         let f = Fixture::new(false, false);
-        std::fs::write(&f.cfg.codex_bin, "#!/usr/bin/env python3\nimport os,sys,time\nif '--version' in sys.argv:\n print('codex-cli 0.167.0'); sys.exit(0)\nopen(os.environ['CODEX_HOME']+'/started','a').write('x')\ntime.sleep(60)\n").unwrap();
+        std::fs::write(&f.cfg.codex_bin, "#!/usr/bin/env python3\nimport os,sys,time\nif '--version' in sys.argv:\n print('codex-cli 0.169.0'); sys.exit(0)\nopen(os.environ['CODEX_HOME']+'/started','a').write('x')\ntime.sleep(60)\n").unwrap();
         let host = Arc::new(Host::new());
         // The settlement of the process's group is unavailable from the moment it is installed,
         // before the handshake fails and the start ends it: set there, not after, so that no
@@ -9552,7 +9634,7 @@ mod local_process_lock_tests {
     fn a_serving_process_that_outlives_stop_holds_the_home_whatever_the_census_says() {
         use crate::home_hold::PROCESS_HELD;
         let f = Fixture::new(false, false);
-        std::fs::write(&f.cfg.codex_bin, "#!/usr/bin/env python3\nimport os,sys,json,time\nif '--version' in sys.argv:\n print('codex-cli 0.167.0'); sys.exit(0)\nhome=os.environ['CODEX_HOME']\nif os.fork():\n while not os.path.exists(home+'/input-closed'): time.sleep(0.02)\n os._exit(0)\nos.setsid()\nopen(home+'/started','a').write('x')\nopen(home+'/serving','w').write(str(os.getpid()))\nfor line in sys.stdin:\n f=json.loads(line)\n if 'id' in f:\n  print(json.dumps({'id':f['id'],'result':{'userAgent':'codex/0.167.0'}}),flush=True)\nnull=os.open(os.devnull,os.O_RDWR)\nos.dup2(null,1); os.dup2(null,2)\nopen(home+'/input-closed','w').write('x')\nwhile not os.path.exists(home+'/release'): time.sleep(0.02)\n").unwrap();
+        std::fs::write(&f.cfg.codex_bin, "#!/usr/bin/env python3\nimport os,sys,json,time\nif '--version' in sys.argv:\n print('codex-cli 0.169.0'); sys.exit(0)\nhome=os.environ['CODEX_HOME']\nif os.fork():\n while not os.path.exists(home+'/input-closed'): time.sleep(0.02)\n os._exit(0)\nos.setsid()\nopen(home+'/started','a').write('x')\nopen(home+'/serving','w').write(str(os.getpid()))\nfor line in sys.stdin:\n f=json.loads(line)\n if 'id' in f:\n  print(json.dumps({'id':f['id'],'result':{'userAgent':'codex/0.169.0'}}),flush=True)\nnull=os.open(os.devnull,os.O_RDWR)\nos.dup2(null,1); os.dup2(null,2)\nopen(home+'/input-closed','w').write('x')\nwhile not os.path.exists(home+'/release'): time.sleep(0.02)\n").unwrap();
         let host = Arc::new(Host::new());
         assert_eq!(host.start(&f.cfg, "fixture").unwrap()["state"], "ready");
         let serving: i32 = std::fs::read_to_string(f.root.join("home/serving")).unwrap().parse().unwrap();

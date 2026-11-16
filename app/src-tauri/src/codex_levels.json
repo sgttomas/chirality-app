@@ -1,6 +1,6 @@
 {
   "format": "chirality.app-v4.codex-levels.v1",
-  "pin": "0.167.0",
+  "pin": "0.169.0",
   "note": "The permission levels the App offers (PRD V4-AUT-06). Each row holds the exact values the App sends to its Codex. supplier_checks/level sends each row to the pinned Codex and asserts the effects stated here; a level is offered only once that has passed. Reading is not limited at any level.",
   "levels": [
     {

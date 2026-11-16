@@ -22,7 +22,7 @@ if '--version' in sys.argv:
  if os.path.exists(r+'/probe-pause'):
   open(r+'/probe-entered','w').close()
   while not os.path.exists(r+'/probe-continue'): time.sleep(0.002)
- print('codex-cli 0.167.0');sys.exit(0)
+ print('codex-cli 0.169.0');sys.exit(0)
 if os.path.exists('spawn-descendant'):
  import subprocess
  d=subprocess.Popen(['/bin/sleep','60'],stdin=subprocess.DEVNULL,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
@@ -43,7 +43,7 @@ threading.Thread(target=events,daemon=True).start()
 def read(name,default):
  return open(name).read().strip() if os.path.exists(name) else default
 def thread(tid):
- return {'id':tid,'cliVersion':'0.167.0','createdAt':1,'updatedAt':2,'cwd':os.path.join(os.getcwd(),'project'),'ephemeral':False,'modelProvider':'fixture-provider','preview':'recovery fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'notLoaded'},'turns':[]}
+ return {'id':tid,'cliVersion':'0.169.0','createdAt':1,'updatedAt':2,'cwd':os.path.join(os.getcwd(),'project'),'ephemeral':False,'modelProvider':'fixture-provider','preview':'recovery fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'notLoaded'},'turns':[]}
 for line in sys.stdin:
  f=json.loads(line)
  with open('wire.jsonl','a') as log: log.write(json.dumps(f)+'\n')
@@ -1151,7 +1151,7 @@ fn a_host_on_a_home_another_process_holds_is_refused_until_that_process_is_kille
 /// (`probe-pause` → `probe-entered`, until `probe-continue`) and can answer a
 /// wrong label (`wrong-version`); each app-server start appends its pid and
 /// `CODEX_HOME` to `server-home`.
-const PAUSING_PEER: &str = "#!/usr/bin/python3\nimport sys,json,os,time\nr=os.getcwd()\nif '--version' in sys.argv:\n r=os.path.dirname(r)\n if os.path.exists(r+'/probe-pause'):\n  open(r+'/probe-entered','w').close()\n  while not os.path.exists(r+'/probe-continue'):time.sleep(0.002)\n print('wrong' if os.path.exists(r+'/wrong-version') else 'codex-cli 0.167.0');sys.exit(0)\nopen('server-home','a').write(str(os.getpid())+' '+os.environ.get('CODEX_HOME','')+'\\n')\nfor line in sys.stdin:\n f=json.loads(line)\n if f.get('method')=='initialize': print(json.dumps({'id':f['id'],'result':{'userAgent':'review-stand-in'}}),flush=True)\n";
+const PAUSING_PEER: &str = "#!/usr/bin/python3\nimport sys,json,os,time\nr=os.getcwd()\nif '--version' in sys.argv:\n r=os.path.dirname(r)\n if os.path.exists(r+'/probe-pause'):\n  open(r+'/probe-entered','w').close()\n  while not os.path.exists(r+'/probe-continue'):time.sleep(0.002)\n print('wrong' if os.path.exists(r+'/wrong-version') else 'codex-cli 0.169.0');sys.exit(0)\nopen('server-home','a').write(str(os.getpid())+' '+os.environ.get('CODEX_HOME','')+'\\n')\nfor line in sys.stdin:\n f=json.loads(line)\n if f.get('method')=='initialize': print(json.dumps({'id':f['id'],'result':{'userAgent':'review-stand-in'}}),flush=True)\n";
 fn pausing_root() -> PathBuf {
     use std::os::unix::fs::PermissionsExt;
     let root = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(opaque_id("start-attempt-").unwrap());

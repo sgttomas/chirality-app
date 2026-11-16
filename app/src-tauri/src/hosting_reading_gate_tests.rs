@@ -652,7 +652,7 @@ fn the_generic_route_waits_for_a_readings_reply_only_for_what_remains_of_its_dea
 fn continue_query(rig: &Rig) -> HistoryQuery {
     let mut view = NativeHistory::new("reading-gate-home", rig.g.clone()).unwrap();
     let q = view.list_threads(None, crate::native_history::Direction::Desc).unwrap();
-    let stored = json!({"id":"stored","cliVersion":"0.167.0","createdAt":1,"updatedAt":2,"cwd":"/invented","ephemeral":false,"modelProvider":"openai","preview":"invented","projectId":null,"sessionId":"native-session","source":"appServer","status":{"type":"notLoaded"},"turns":[]});
+    let stored = json!({"id":"stored","cliVersion":"0.169.0","createdAt":1,"updatedAt":2,"cwd":"/invented","ephemeral":false,"modelProvider":"openai","preview":"invented","projectId":null,"sessionId":"native-session","source":"appServer","status":{"type":"notLoaded"},"turns":[]});
     view.receive(&q, "reading-gate-home", &rig.g, &json!({"data":[stored],"nextCursor":null})).unwrap();
     view.select("stored").unwrap();
     // This unit isolates the configuration gate after saved-folder admission.
