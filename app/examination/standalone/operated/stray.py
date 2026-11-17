@@ -2,6 +2,7 @@
 """Look for remaining candidate processes after a run. It ends nothing and opens nothing. macOS only.
 
     python3 -B stray.py <the bundle, the path of the .app folder>
+    python3 -B stray.py <the bundle> --recheck <number> '<started, as the search printed it>'
 
 A view of an application that is not running starts it through the system's launch service, outside the launcher.
 If the build ends by itself during a walk, the next view can do that. The lane runs this from its own shell after
@@ -33,6 +34,15 @@ did not make, look the same here), or the environment or home it was started wit
 does not look for; anything in the real Library (what changed there in places named for the build while the
 launcher ran is in the launcher's record); a process that started and ended before it listed; a process of another
 user. On any system but macOS it looks for nothing and exits 2.
+
+The recheck, made immediately before the lane ends a process the search listed (README.md, step 11): it asks the
+system again, for that one number only, for the process's start time (`ps -o lstart= -p <number>`) and its
+executable's path, and says whether the number still belongs to the process the search listed: the same start
+time, before and after the path is asked, and an executable that is the same file as the bundle's (device and
+inode, with the bundle's executable again of one name and unchanged across the recheck). Exit status 0 when it is
+the same process; 1 when the number is gone or is not that process now (it is then not signalled); 2 when it could
+not look. It ends nothing. What it does not close: the moment between its answer and the signal the lane then sends,
+in which the process could end and its number be given to another; it narrows that to the time of one shell command.
 """
 import ctypes
 import errno
@@ -104,13 +114,58 @@ def processes(executable, lines=None, path_of=None):
     return found, no_path
 
 
+def started_of(pid):
+    """The process's start time as `ps` prints it (five words); None when no process has that number."""
+    done = subprocess.run(['/bin/ps', '-o', 'lstart=', '-p', str(pid)],
+                          capture_output=True, text=True, env={'PATH': '/bin:/usr/bin'})
+    words = done.stdout.split()
+    if not words:
+        return None
+    if len(words) != 5:
+        raise OSError(f'the start time of process {pid} could not be read')
+    return ' '.join(words)
+
+
+def recheck(executable, pid, started, start_of=None, path_of=None):
+    """Whether the process with this number is, now, the one the search listed: 'same', 'gone' or 'not the same',
+    with the reason. It ends nothing. Raises OSError when it could not look."""
+    start_of, path_of, target = start_of or started_of, path_of or executable_of, os.stat(executable)
+    if target.st_nlink != 1:
+        raise OSError(f"the bundle's executable has {target.st_nlink} names, not one")
+    first = start_of(pid)
+    if first is None:
+        return 'gone', 'no process has that number now'
+    if first != started:
+        return 'not the same', f'its start time is now {first}, not {started}'
+    path = path_of(pid)
+    if path is None:
+        return 'gone', 'no process has that number now'
+    if path is NO_PATH:
+        return 'not the same', 'the system gives no path for its executable'
+    try:
+        info = os.stat(path)
+    except FileNotFoundError:
+        raise OSError(f'process {pid} gave an executable path that was gone when it was examined')
+    if (info.st_dev, info.st_ino) != (target.st_dev, target.st_ino):
+        return 'not the same', "its executable is not the bundle's"
+    again = start_of(pid)
+    if again != started:
+        return ('gone', 'no process has that number now') if again is None else \
+            ('not the same', f'its start time is now {again}, not {started}')
+    if fingerprint(os.stat(executable)) != fingerprint(target):
+        raise OSError("the bundle's executable changed during the recheck")
+    return 'same', None
+
+
 def on_macos():
     return sys.platform == 'darwin'
 
 
 def main(argv):
-    if len(argv) != 2 or not argv[1].startswith('/') or not argv[1].endswith('.app'):
-        print('usage: stray.py <bundle .app path>', file=sys.stderr)
+    asked = len(argv) == 5 and argv[2] == '--recheck' and argv[3].isdigit() and int(argv[3]) > 0
+    if len(argv) not in (2, 5) or (len(argv) == 5 and not asked) or not argv[1].startswith('/') \
+            or not argv[1].endswith('.app'):
+        print("usage: stray.py <bundle .app path> [--recheck <number> '<started>']", file=sys.stderr)
         return 2
     bundle = argv[1]
     if not on_macos():
@@ -121,6 +176,11 @@ def main(argv):
             executable = plistlib.load(stream)['CFBundleExecutable']
         if not isinstance(executable, str) or not executable or '/' in executable:
             raise KeyError('CFBundleExecutable is not a plain name')
+        if asked:
+            pid, started = int(argv[3]), ' '.join(argv[4].split())
+            answer, reason = recheck(os.path.join(bundle, 'Contents', 'MacOS', executable), pid, started)
+            print(json.dumps({'pid': pid, 'started': started, 'answer': answer, 'reason': reason}, indent=1))
+            return 0 if answer == 'same' else 1
         running, no_path = processes(os.path.join(bundle, 'Contents', 'MacOS', executable))
     except (OSError, KeyError, plistlib.InvalidFileException) as error:
         print(json.dumps({'error': f'{type(error).__name__}: {error}'}), file=sys.stderr)

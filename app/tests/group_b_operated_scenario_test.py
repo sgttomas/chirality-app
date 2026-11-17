@@ -762,6 +762,53 @@ class StrayStart(unittest.TestCase):
             with self.subTest(arguments=arguments):
                 self.assertEqual(subprocess.run(tool + arguments, capture_output=True, text=True).returncode, 2)
 
+    def test_the_recheck_before_a_signal_says_same_only_for_the_listed_process_running_the_bundles_executable(self):
+        executable = str(self.bundle / 'Contents/MacOS/chirality-app-v4')
+        when, later = 'Thu Nov 12 22:07:34 2026', 'Thu Nov 12 23:15:02 2026'
+        elsewhere = str(self.tmp / 'elsewhere' / 'chirality-app-v4')
+        def asked(starts, path):
+            starts = iter(starts)
+            return dict(start_of=lambda pid: next(starts), path_of=lambda pid: path)
+        cases = {
+            'the same process': ([when, when], executable, 'same'),
+            'gone before the recheck': ([None], executable, 'gone'),
+            'its number now another process': ([later], executable, 'not the same'),
+            'another file of the same name': ([when, when], elsewhere, 'not the same'),
+            'its executable removed': ([when, when], self.stray.NO_PATH, 'not the same'),
+            'gone while asked': ([when, when], None, 'gone'),
+            'ended and its number reused while asked': ([when, later], executable, 'not the same'),
+            'ended while asked': ([when, None], executable, 'gone'),
+        }
+        for name, (starts, path, answer) in cases.items():
+            with self.subTest(name):
+                self.assertEqual(self.stray.recheck(executable, 601, when, **asked(starts, path))[0], answer)
+        with self.assertRaisesRegex(OSError, 'gone when it was examined'):
+            self.stray.recheck(executable, 601, when, **asked([when, when], str(self.tmp / 'gone-since')))
+        os.link(executable, self.tmp / 'second-name')
+        with self.assertRaisesRegex(OSError, '2 names, not one'):
+            self.stray.recheck(executable, 601, when, **asked([when, when], executable))
+        os.unlink(self.tmp / 'second-name')
+
+    def test_the_recheck_exits_0_only_for_the_same_process_and_signals_nothing(self):
+        argv = ['stray.py', str(self.bundle), '--recheck', '601', 'Thu Nov 12  22:07:34 2026']
+        executable = str(self.bundle / 'Contents/MacOS/chirality-app-v4')
+        for start, status in (('Thu Nov 12 22:07:34 2026', 0), ('Thu Nov 12 23:15:02 2026', 1), (None, 1)):
+            with self.subTest(start=start), mock.patch.object(self.stray, 'on_macos', return_value=True), \
+                    mock.patch.object(self.stray, 'started_of', return_value=start), \
+                    mock.patch.object(self.stray, 'executable_of', return_value=executable), \
+                    mock.patch.object(self.stray, 'listing', side_effect=AssertionError('the recheck lists nothing')), \
+                    mock.patch.object(self.stray.os, 'kill', side_effect=AssertionError('the recheck signals nothing')), \
+                    contextlib.redirect_stdout(io.StringIO()) as out:
+                self.assertEqual(self.stray.main(argv), status)
+                self.assertEqual(json.loads(out.getvalue())['pid'], 601)
+        with mock.patch.object(self.stray, 'on_macos', return_value=True), contextlib.redirect_stderr(io.StringIO()), \
+                mock.patch.object(self.stray, 'started_of', side_effect=OSError('invented')):
+            self.assertEqual(self.stray.main(argv), 2)  # could not look: not "the same"
+        tool = [sys.executable, '-B', str(OPERATED / 'stray.py'), str(self.bundle)]
+        for arguments in (['--recheck', '601'], ['--recheck', 'x', 'when'], ['--recheck', '0', 'when'], ['--other', '601', 'when']):
+            with self.subTest(arguments=arguments):
+                self.assertEqual(subprocess.run(tool + arguments, capture_output=True, text=True).returncode, 2)
+
 
 class ScreenLock(unittest.TestCase):
     def setUp(self):
@@ -871,6 +918,9 @@ class SessionEnvironment(unittest.TestCase):
         self.tmp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.tmp, True)
 
+    def domain(self, *entries):
+        return 'gui/501 = {\n\ttype = gui\n\tenvironment = {\n' + ''.join(f'\t\t{e}\n' for e in entries) + '\t}\n\tservices = {\n\t}\n}\n'
+
     def bundle(self, plist):
         bundle = self.tmp / 'Invented.app'
         (bundle / 'Contents').mkdir(parents=True, exist_ok=True)
@@ -902,67 +952,37 @@ class SessionEnvironment(unittest.TestCase):
         self.assertEqual(set(self.env.NAMES), names)
         self.assertEqual(len(self.env.NAMES), 11)
 
-    def answers(self, table):
-        """An injected launch domain: name -> (exit status, printed anything). Records every name asked."""
-        self.asked = []
+    def test_a_variable_present_and_empty_is_present_and_refuses(self):
+        names, reason = self.env.session_names(self.domain('SSH_AUTH_SOCK => /invented', 'CHIRALITY_WORKSPACE => '))
+        self.assertEqual((names, reason), ({'SSH_AUTH_SOCK', 'CHIRALITY_WORKSPACE'}, None))
+        result = self.env.states(names, None, set(), None)
+        self.assertEqual(result['CHIRALITY_WORKSPACE'], 'present')
+        self.assertEqual({v for k, v in result.items() if k != 'CHIRALITY_WORKSPACE'}, {'absent'})
+        self.assertEqual(self.env.status(result), 1)
 
-        def run(name):
-            self.asked.append(name)
-            return table.get(name, (0, False))
-        return run
-
-    def main(self, table, plist=None):
-        out = io.StringIO()
-        with mock.patch.object(self.env, 'on_macos', return_value=True), contextlib.redirect_stdout(out), \
-                mock.patch.object(self.env.subprocess, 'run', side_effect=AssertionError('the real domain was asked')):
-            code = self.env.main(['session_env.py', self.bundle(plist or {})], run=self.answers(table))
-        return code, json.loads(out.getvalue())
-
-    def test_each_fixed_name_is_asked_once_by_itself_and_nothing_else(self):
-        self.main({})
-        self.assertEqual(self.asked, list(self.env.NAMES))
-
-    def test_a_name_launchd_prints_a_value_for_is_present_and_refuses(self):
-        code, result = self.main({'CHIRALITY_WORKSPACE': (0, True)})
-        self.assertEqual((code, result['CHIRALITY_WORKSPACE']), (1, 'present'))
-
-    def test_nothing_printed_or_a_failed_query_is_never_absent(self):
-        # The documentation states neither what an unset variable prints nor what the exit status means, and a
-        # variable set to empty prints nothing too: none of these establishes that a name is not set.
-        code, result = self.main({'CHIRALITY_CODEX_HOME': (1, False), 'CHIRALITY_KEY_HOME': (0, False)})
-        self.assertEqual(code, 2)
-        self.assertNotIn('absent', result.values())
-        self.assertEqual(result['CHIRALITY_CODEX_HOME'], 'could not be established: launchctl getenv exited 1')
-        self.assertTrue(result['CHIRALITY_KEY_HOME'].startswith('could not be established: launchctl getenv printed nothing'))
-        self.assertEqual(self.env.query('CHIRALITY_CODEX_BIN', run=lambda name: (_ for _ in ()).throw(OSError('x'))),
-                         'could not be established: launchctl getenv could not be asked (OSError)')
-        # Absent is said only where both sources establish it, which this query never does for the launch domain.
-        self.assertEqual(self.env.status(self.env.states({n: 'absent' for n in self.env.NAMES}, set(), None)), 0)
+    def test_none_present_is_absent_for_all_and_no_value_is_kept(self):
+        names, _ = self.env.session_names(self.domain('SSH_AUTH_SOCK => /invented/secret-value'))
+        result = self.env.states(names, None, set(), None)
+        self.assertEqual((set(result.values()), self.env.status(result)), ({'absent'}, 0))
+        self.assertNotIn('secret-value', json.dumps(result))
 
     def test_the_bundles_own_environment_counts(self):
-        code, result = self.main({}, {'LSEnvironment': {'CHIRALITY_CODEX_HOME': ''}})
-        self.assertEqual((code, result['CHIRALITY_CODEX_HOME']), (1, 'present'))
+        result = self.env.states(set(), None, self.env.bundle_names(self.bundle({'LSEnvironment': {'CHIRALITY_CODEX_HOME': ''}})), None)
+        self.assertEqual((result['CHIRALITY_CODEX_HOME'], self.env.status(result)), ('present', 1))
 
-    def test_the_real_query_asks_one_fixed_name_by_getenv_and_keeps_no_value(self):
-        # The command it would run, with a stand-in for the system: one name, getenv, never a print of the domain,
-        # and the value it printed appears in nothing the tool returns or prints.
-        seen = []
-
-        def fake(command, **options):
-            seen.append((command, options.get('stdout'), options.get('stderr')))
-            return SimpleNamespace(returncode=0, stdout=b'/invented/secret-value\n')
-        out = io.StringIO()
-        with mock.patch.object(self.env.subprocess, 'run', side_effect=fake), \
-                mock.patch.object(self.env, 'on_macos', return_value=True), contextlib.redirect_stdout(out):
-            code = self.env.main(['session_env.py', self.bundle({})])
-        self.assertEqual(code, 1)
-        self.assertEqual([command for command, _, _ in seen], [['/bin/launchctl', 'getenv', name] for name in self.env.NAMES])
-        self.assertTrue(all(stdout == subprocess.PIPE and stderr == subprocess.DEVNULL for _, stdout, stderr in seen))
-        self.assertNotIn('secret-value', out.getvalue())
-        self.assertEqual(set(json.loads(out.getvalue()).values()), {'present'})
-        with self.assertRaises(ValueError):
-            self.env._run('SSH_AUTH_SOCK')  # only the fixed names
-        self.assertNotIn("'print'", (OPERATED / 'session_env.py').read_text())
+    def test_what_cannot_be_read_is_could_not_be_established_never_absent(self):
+        for name, text in (('no environment block', 'gui/501 = {\n\ttype = gui\n}\n'),
+                           ('two blocks', self.domain('A => 1') + self.domain('B => 2')),
+                           ('a line it cannot read', self.domain('SSH_AUTH_SOCK => /x', 'something else')),
+                           ('a block that does not end', 'gui/501 = {\n\tenvironment = {\n\t\tA => 1\n')):
+            with self.subTest(name):
+                names, reason = self.env.session_names(text)
+                self.assertIsNone(names)
+                result = self.env.states(names, reason, set(), None)
+                self.assertTrue(all(v.startswith('could not be established: ') for v in result.values()), result)
+                self.assertEqual(self.env.status(result), 2)
+        # One present is said as present even when the rest could not be established.
+        self.assertEqual(self.env.status(self.env.states({'CHIRALITY_WORKSPACE'}, None, None, 'unreadable')), 1)
 
     def test_elsewhere_than_macos_it_establishes_nothing_and_says_so(self):
         out = io.StringIO()

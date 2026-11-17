@@ -29,18 +29,26 @@ method names, the lane and the operator alike:
   it started them (their `*.started.json` files); the App, the launcher's own
   child (its parent the launcher's number); and a member of the process group
   the launcher created for the App (`pgrep -g <the App's number>`) whose start
-  is no earlier than the launch's start (the launcher's started file). At
-  the moment of the signal the process is read again by its number (`ps -o
-  lstart=,ppid=,comm= -p <number>`), and it is signalled only when that
+  is no earlier than the launch's start (the launcher's started file); and,
+  in the lane's recovery only, a remaining candidate process `stray.py` finds
+  running the candidate bundle's own executable (step 11). That executable is
+  at the candidate's unique scratch path and is the same file as the
+  bundle's, so it identifies our build whoever caused the start, and a start
+  of it left running against the real home is harmful (App Agent 0, 16
+  November 2026). At the moment of the signal the process is read again by
+  its number (`ps -o lstart=,ppid=,comm= -p <number>`, or for a remaining
+  candidate process `stray.py --recheck`), and it is signalled only when that
   number is listed now with the start time, parent and executable recorded
   for it; a number remembered from earlier is never signalled on its own,
-  since it may since belong to another process. A process's
-  executable, its parent's executable, its start inside a window of time and
-  one operator at a time do not show that it is ours, and nothing is
-  signalled on them. The ChatGPT application's helper app-server and the
-  computer-use window service are processes of the owner's applications: no
-  agent ever signals them. A process of ours that cannot be confirmed so is not
-  signalled: the walk stops, and it is reported as not recovered. A command a
+  since it may since belong to another process. Apart from the candidate
+  bundle's own executable, a process's executable, its parent's executable,
+  its start inside a window of time and one operator at a time do not show
+  that it is ours, and nothing is signalled on them. The ChatGPT
+  application's helper app-server and the computer-use window service are
+  processes of the owner's applications, and so is anything inferred only by
+  parent, time or operator: no agent ever signals them. A process that cannot
+  be confirmed so is not signalled: the walk stops, and it is reported as not
+  recovered. A command a
   process of ours started that left its process group may still be running
   and is not found by these means; no record says that everything a walk
   started has ended.
@@ -62,19 +70,22 @@ What the tools this method runs actually read:
 - **`stray.py`** lists this user's processes by number, parent and start time
   (`ps -U <user> -o pid=,ppid=,lstart=`), asks the system for each one's
   executable path (`proc_pidpath`), and reports those whose executable is the
-  same file as the candidate bundle's executable (device and inode). It reads
-  the bundle's `Info.plist` for the executable's name, no process's arguments,
-  environment or open files, and signals nothing.
+  same file as the candidate bundle's executable (device and inode). With
+  `--recheck <number> '<started>'` it asks again, for that one number only,
+  its start time and executable, just before the lane ends it (step 11.3). It
+  reads the bundle's `Info.plist` for the executable's name, no process's
+  arguments, environment or open files, and signals nothing.
 - **`watch.py`** lists every process once a second by number, parent, state
   and executable (`ps -axo pid=,ppid=,stat=,comm=`), keeps only the App's own
   row and the rows whose parent is the App, and writes those to its one file.
   It reads no arguments, environment or open files, and signals nothing.
-- **`session_env.py`** asks the launch domain for each of the App's eleven
-  configuration variables by its fixed name, one at a time
-  (`launchctl getenv <name>`), and reads the bundle's `Info.plist`. Whatever a
-  query prints is read only to tell whether it printed anything, then dropped;
-  no value is printed, logged or kept, and the domain is never printed whole.
-  Its semantics are under step 1.
+- **`session_env.py`** reads the login session's launch domain once
+  (`launchctl print gui/<this user>`) and the bundle's `Info.plist`. Of the
+  domain's environment block it keeps only the names, dropping every value as
+  it reads, and it prints only the App's eleven names, each with its state;
+  never a value. The launch domain is not a process's environment, and the
+  process bounds above do not govern it (App Agent 0, 16 November 2026). Its
+  states are under step 1.
 - **`screen_lock.py`** asks the login session's dictionary for two keys and
   reads nothing else.
 - **`detached.py`** starts exactly the command it is given and records its
@@ -494,21 +505,13 @@ Its last line is the verdict, or "no walk", and the evidence folder.
    the build while it is not running can make the system's launch service
    start it, with the launch domain's environment and the real home ("A view
    of an application that is not running"). This check guards that start.
-   It asks the launch domain for each of the eleven fixed names, one at a
-   time (`launchctl getenv <name>`), and reads the bundle's own Info.plist.
-   Whatever a query prints is read only to tell whether it printed anything,
-   and then dropped; the tool prints each name with "present" or "could not
-   be established" and why, and never a value, and nothing dumps the domain.
-   The documentation of `launchctl getenv` says only that it prints the
-   value launchd would set: not what its exit status means, not what it
-   prints for a name that is not set, and not how a name set to empty
-   differs. So printed output is "present"; nothing printed, or a non-zero
-   exit status, is "could not be established", never "absent". The tool
-   exits 0 only when all eleven are absent, and the launch domain never
-   establishes absence by this query. **As this file stands, the check
-   therefore refuses every walk**, until what "not set" looks like for this
-   query is established (App Agent 0's to decide). Any result but 0 means no
-   walk is made: stop, record what it printed, and the lane tells App Agent 0.
+   It asks the login session's launch domain and the bundle's own Info.plist,
+   and prints each name with "absent", "present" (empty included) or "could
+   not be established" and why; never a value. Output it cannot read is
+   "could not be established", never "absent". It exits 0 only when all eleven
+   are absent. Any other result, "could not be established" included, means
+   no walk is made: stop, record what it printed, and the lane tells App
+   Agent 0.
    Then, from the root of a clean checkout of main, with the walk's evidence
    folder, start the launcher on
    the identified candidate so that it outlives the shell call that starts it
@@ -712,16 +715,27 @@ Its last line is the verdict, or "no walk", and the evidence folder.
        check could not be completed. Processes for which the system gives no
        path at all are listed by number and not counted; why, and when that
        holds, is in `stray.py`.
-    3. Each remaining candidate process is recorded with its number, parent
-       and start time. It is ended (`kill <number>`, after the recheck of step
-       10) only when it is ours: the launcher's own child (its parent the
-       launcher's recorded number), or a member of the App's process group
-       whose start is no earlier than the launch's. Running the candidate's
-       executable does not make a process ours. Any other is a start the
-       launcher did not make: it is not signalled, and the lane tells App Agent
-       0 at once, so that the owner is told; the run has not been recovered.
-       The search cannot tell the home or environment a process was started
-       with.
+    3. Each remaining candidate process is ended (`kill <number>`), confirmed
+       gone, and recorded with its number and start time. Immediately before
+       the signal its identity is asked again, its number, start time and
+       executable, and it is signalled only when they are still those the
+       search listed (exit status 0; on 1 it is not signalled, and on 2 the
+       check could not be completed; both are reported):
+
+       ```sh
+       <python> -B app/examination/standalone/operated/stray.py "<the bundle>" --recheck <number> '<started, as the search printed it>' \
+         && kill <number>
+       ```
+
+       The recheck narrows the moment between the look and the signal to one
+       shell command; it does not close it. Where it came from
+       is not known from the search: the launcher's App not yet ended and a
+       start the launcher did not make look the same to it, and it does not
+       tell the home or environment either was started with. Only step 10's
+       records, where they exist, can say more. A remaining candidate process
+       that was not the launcher's own child is a start the launcher did not
+       make: the lane tells App Agent 0 at once, so that the owner is told,
+       within the hour of item 6 at the latest.
     4. The route's processes are not looked for or ended (step 10); the report
        says so.
     5. The launch record's Library comparison (`real_library` in
@@ -773,9 +787,11 @@ service act outside it on every call (see "What the route starts").
   made: the operator stops and reports. The watch narrows the race; it does
   not eliminate it.
 - **If a start outside the launcher happens nevertheless.** The operator does
-  nothing further in that window: no view, click or other call. It never
-  signals the process so started, which is not the launcher's child (step 10).
-  It stops and reports to App Agent 0 at once, so that the owner is told.
+  nothing further in that window: no view, click or other call. The operator
+  never signals the process so started, which is not the launcher's child.
+  It stops and reports to App Agent 0 at once, so that the owner is told; the
+  lane ends it in step 11, by the candidate's executable and after the
+  recheck there.
   What the start wrote under the real Library, in places named for the build,
   is what the launcher's comparison establishes (step 11); nothing else is
   looked at there.
@@ -796,10 +812,8 @@ service act outside it on every call (see "What the route starts").
     so a candidate is not a development run and does not read it (read in
     the source, not observed); `session_env.py` asks for it regardless.
     On this host all ten were absent on 13
-    November (`session_env.py` as it then was, reading the whole domain,
-    against the candidate built from cfc22efd; history, not repeated). Step 1
-    asks again before every walk, now by name, and stops on anything but
-    absent, which by that query it cannot yet establish (step 1).
+    November (`session_env.py`, against the candidate built from cfc22efd);
+    step 1 asks again before every walk and stops on anything but absent.
   - It opens at first-use setup: no setup has been saved for a build with a
     new identifier (read in the App's source: with no configuration from the
     environment and no saved request the launch is "setup-required").
@@ -828,21 +842,18 @@ service act outside it on every call (see "What the route starts").
     would. It makes no sign-in, no model request and no conversation: none
     exists before setup (read). Whether the system's web view or the
     operating system sends anything on its behalf was not examined.
-- **How it is found.** Step 11. It is not ended by any agent: it is not the
-  launcher's child.
+- **How it is found and ended.** Step 11.
 - **The condition of the exception.** Before every walk, the eleven names are
   absent in the login session and in the bundle's own launch environment
   (step 1, `session_env.py`), or the walk is refused. After every run, by
   whatever path it ended, the lane ends what the started files show,
   searches for remaining candidate processes by the executable's file, ends
-  only those that are ours, reports any other at once to App Agent 0 so that
-  the owner is told (it is not signalled, and the run has not been
-  recovered), reads the launch record's Library comparison (or records that
-  the launcher wrote none), and reports the same hour (step 11). The route's
-  own processes are not ended (step 10). The words the owner accepted said a
-  stray start would be "ended and reported within the hour"; since 16 November
-  2026 it is reported at once and not ended, because a process the launcher
-  did not start is not signalled (App Agent 0). A run
+  what it finds after asking its identity again just before the signal,
+  reports a start the launcher did not make to App Agent 0 at once, reads the
+  launch record's Library comparison (or records that the launcher wrote
+  none), and reports the same hour (step 11). The route's own processes are
+  not ended (step 10); a walk with an unresolved process has not been
+  recovered. A run
   after which any of that was not done is a breach, reported to App Agent 0
   as one; it is not an inconclusive run. Throughout, the lane keeps the
   identified bundle unchanged: no rebuild, replacement, renaming or added
