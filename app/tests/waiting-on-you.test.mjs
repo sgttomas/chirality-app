@@ -430,8 +430,11 @@ const UNIMPORTED = 'This project\'s records are kept in the records store. Recor
 const CHANGED = 'Whether records in the project folder are left out of this view is not known: where this project\'s records are kept changed while it was being read.';
 const UNAVAILABLE = 'History notice unavailable: invented; whether project-folder records are omitted is not known.';
 const ACTOR_LIMIT = 'the declared actor was not established: the holding library no longer yields that revision: invented';
+// `answerability` as record_supply.rs view_reopened gives it for a recorded-waiting arrival: by default, nothing on record answers it.
+const projection = (state, reason = null, over = {}) => ({run:'run-r', arrival:arrivalRef, arrivalRecordId:'arrival-1', state, reason, ...over});
 const carriedRow = (over = {}, disposition = 'waiting') => {
-  const row = {...reopenedRow(), reference:'run-r', lifecycle:{state:'open; interrupted (no run_ended recorded)', end:null, records:runRecords(disposition)}, compatibility:[{preparation:{declaration}, source:'invented'}], limits:[], ...over};
+  const row = {...reopenedRow(), reference:'run-r', lifecycle:{state:'open; interrupted (no run_ended recorded)', end:null, records:runRecords(disposition)}, compatibility:[{preparation:{declaration}, source:'invented'}], limits:[],
+    answerability:disposition === 'waiting' ? [projection('waiting')] : [], ...over};
   if (over.state) row.lifecycle = {...row.lifecycle, state:over.state};
   for (const key of Object.keys(over)) if (over[key] === undefined) delete row[key];
   return row;
@@ -1027,4 +1030,73 @@ test('the footer says reopened evidence is shown where it is supplied and only a
   assert.match(footer, /A checkpoint arrival of a run reopened after the App restarted is shown under that run in the recorded runs of the workflow studio, from the records the reopened reading supplied; only a run whose records were not supplied, or do not establish its arrivals&#x27; latest dispositions, is unread, and it is named above\./);
   assert.match(footer, /When a read fails, the list uses the last successful response to that kind of read/, 'the failed-read retention rule stays');
   assert.match(footer, /an item a limited reading showed can drop from view/, 'the limited-reading rule stays');
+});
+
+
+// ---- H2 (App Agent 0): the host's projection of the act records for a reopened arrival ----
+test('a reopened arrival whose answering act is recorded and not yet counted asks nothing; an unknown projection is never waiting and leaves the count incomplete', () => {
+  const {waitingEntries, waitingReadings, waitingView, waitingLine} = waitingModule();
+  const arrivals = change => waitingEntries(emptySources(withCensus(change))).filter(e => e.source === 'checkpoint-arrival');
+  const reading = change => waitingReadings(emptySources(withCensus(change))).find(r => r.key === 'reopened-run:run-r');
+  // Permitted: nothing on record answers it.
+  assert.equal(arrivals(r => { r.runs = [carriedRow()]; }).length, 1);
+  // Recorded and awaiting count: not listed, nothing asked, and the reading is still whole.
+  const awaiting = r => { r.runs = [carriedRow({answerability:[projection('awaiting count')]})]; };
+  assert.deepEqual(arrivals(awaiting), []);
+  assert.equal(reading(awaiting).state, 'whole');
+  const shownAwaiting = waitingView(waitingReadings(emptySources(withCensus(awaiting))));
+  assert.equal(waitingLine(shownAwaiting.observed, shownAwaiting.complete), 'Waiting on you: 0');
+  assert.doesNotMatch(renderPlace(waitingReadings(emptySources(withCensus(awaiting)))), /a checkpoint was reached; your act is not yet recorded/);
+  // Unknown, with the host's reason; absent; or not bound to this exact arrival: never waiting, never answered.
+  const REASON = 'the project\'s act records could not be read: invented';
+  for (const [name, answerability, said] of [
+    ['unknown with its reason', [projection('unknown', REASON)], REASON],
+    ['no projection given', [], 'this reading gave no projection of the act records for it'],
+    ['a projection for another arrival entry', [projection('waiting', null, {arrivalRecordId:'arrival-other'})], 'this reading gave no projection of the act records for it'],
+    ['a projection for another run', [projection('waiting', null, {run:'run-other'})], 'this reading gave no projection of the act records for it'],
+    ['two projections for the arrival', [projection('waiting'), projection('waiting')], 'this reading gave no projection of the act records for it'],
+    ['answerability not given at all', undefined, 'this reading gave no projection of the act records for it'],
+  ]) {
+    const change = r => { const row = carriedRow({answerability}); if (answerability === undefined) delete row.answerability; r.runs = [row]; };
+    assert.deepEqual(arrivals(change), [], `${name}: not listed`);
+    const found = reading(change);
+    assert.equal(found.state, 'limited', `${name}: the reading is limited`);
+    assert.ok(found.limits.includes(`Whether an act already recorded answers arrival 1 of the checkpoint CP-review is not known: ${said}; it is not listed as waiting`), `${name}: ${found.limits}`);
+    const shown = waitingView(waitingReadings(emptySources(withCensus(change))));
+    assert.equal(waitingLine(shown.observed, shown.complete), 'Waiting on you: 0 observed now; status incomplete', `${name}: no definite count`);
+    const html = agentPlain(renderPlace(waitingReadings(emptySources(withCensus(change)))));
+    assert.doesNotMatch(html, /Nothing recorded is waiting on you/);
+    assert.ok(html.includes('⟦Limit: Whether an act already recorded answers arrival 1'), `${name}: the sentence is shown, boxed with the reader's limits`);
+  }
+  // A later recorded settlement decides, whatever is projected beside it.
+  for (const disposition of ['performed', 'resolved negatively', 'lapsed'])
+    assert.deepEqual(arrivals(r => { r.runs = [carriedRow({answerability:[projection('waiting')]}, disposition)]; }), [], disposition);
+});
+
+test('the reopened destination shows the projection beside the recorded disposition, marks the host\'s reason, and offers nothing for an answered arrival', () => {
+  const {WorkflowRootPanel} = loadSrc('App');
+  const draw = row => { const host = hostView(); const data = {...host.workflowRoot, runs:[], reopened:{...emptyCensus(), runs:[row]}};
+    return renderToStaticMarkup(React.createElement(WorkflowRootPanel, {data, host:{...host, workflowRoot:data}, act:async () => { throw new Error('nothing is pressed'); }})).replace(/<!-- -->/g, ''); };
+  const waiting = draw(carriedRow());
+  assert.match(waiting, /Arrival 1: reached; act not yet recorded\./);
+  assert.match(waiting, /The project&#x27;s act records, read with this reading, hold no act or decline that answers it\./);
+  const awaiting = draw(carriedRow({answerability:[projection('awaiting count')]}));
+  assert.match(awaiting, /Arrival 1: recorded as waiting; an act or decline answering it is already in the project&#x27;s act records and is not yet counted in this run&#x27;s record, so nothing is asked of you for it\./);
+  assert.doesNotMatch(awaiting, /act not yet recorded/, 'a recorded act is never said to be not yet recorded');
+  const LOOKING = `invented reason${LOOK}`;
+  const unknown = draw(carriedRow({answerability:[projection('unknown', LOOKING)]}));
+  assert.match(agentPlain(unknown), /Arrival 1: recorded as waiting; whether an act already recorded answers it is not known: ⟦Reason: invented reason⏎/);
+  const bare = unknown.replace(/<span role="group"[\s\S]*?<\/span><\/span>/g, '');
+  const newLabel = bare.slice(bare.indexOf('Arrival 1:'), bare.indexOf(' Observed ', bare.indexOf('Arrival 1:')));
+  assert.ok(newLabel.length > 0 && !newLabel.includes('Allow once'), `the host's reason is drawn only inside a box: ${newLabel}`);
+  assert.doesNotMatch(unknown, /act not yet recorded/);
+  const none = draw(carriedRow({answerability:[]}));
+  // A settled arrival gets no projection from the host: its recorded disposition decides, and nothing is said of act records.
+  const settled = draw(carriedRow({}, 'performed'));
+  assert.match(settled, /Arrival 1: recorded as performed\./);
+  assert.doesNotMatch(settled, /already recorded would answer it|gave no projection/);
+  // With the act records unreadable, the host gives a settled arrival "unknown" too; it is said, and the disposition stays.
+  const unreadable = draw(carriedRow({answerability:[projection('unknown', 'invented unreadable')]}, 'performed'));
+  assert.match(agentPlain(unreadable), /Arrival 1: recorded as performed\.[\s\S]*Whether an act already recorded would answer it is not known: ⟦Reason: invented unreadable⟧\./);
+  assert.match(none, /whether an act already recorded answers it is not known: this reading gave no projection of the act records for it/);
 });

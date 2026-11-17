@@ -6244,7 +6244,7 @@ impl WorkflowRootSession {
     /// completed notice after releasing this workflow owner.
     pub fn reopen(&mut self, project: &std::path::Path, restart_events: &[Value]) -> Result<Value, String> {
         let records = crate::workflow_workspace::publication::ProjectRecords::open(project)?;
-        let mut view = crate::records::supply::read_project_runs(&records, restart_events).view();
+        let mut view = crate::records::supply::read_project_runs(&records, restart_events).view_reopened(records.root());
         // EXEC §2.7 / RECOVERY §4.1: what the host's startup writer did with this session's restart facts.
         view["restartLimits"] = self.restart_limits.clone();
         view["endedAfterRelaunch"] = self.reopened_ends_view();

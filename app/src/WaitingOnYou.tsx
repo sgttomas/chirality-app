@@ -201,12 +201,26 @@ function arrivalResponder(declared: Json[], checkpoint: string): string {
   return wordOf(ACTOR, named[0]?.value?.actor) ?? ACTOR_NOT_RECORDED;
 }
 
+/** The host's projection for one arrival of a reopened run (record_supply.rs `view_reopened`, App Agent 0's H2): what an
+ * act already in the project's act records does to it, by the arrival act control's rule, bound to the run and the exact
+ * arrival (checkpoint, arrival number and the arrival entry's record identity). Exactly one must match; otherwise none
+ * is given. A projection is never a recorded disposition. */
+export function arrivalProjection(run: Json, reference: string, arrival: Json): Json | null {
+  const b = arrival?.body;
+  const found = list(run?.answerability).filter((p: Json) => text(p?.run) === reference && sameArrival(p?.arrival, text(b?.checkpoint), b?.arrivalOrdinal)
+    && typeof arrival?.recordId === "string" && p?.arrivalRecordId === arrival.recordId);
+  return found.length === 1 ? found[0] : null;
+}
+/** For a reopened arrival whose answerability is unknown: the App's sentence, with the host's reason. */
+const unknownAnswerability = (b: Json, projection: Json | null) =>
+  `Whether an act already recorded answers arrival ${idWords(b?.arrivalOrdinal)} of the checkpoint ${idWords(b?.checkpoint)} is not known: ${projection?.state === "unknown" && typeof projection?.reason === "string" ? projection.reason : "this reading gave no projection of the act records for it"}; it is not listed as waiting`;
+
 /** A run's checkpoint arrivals from its lifecycle records whose latest recorded disposition is "waiting"
  * in a run that has not ended (after a run ends an act no longer changes an arrival). Used for a hot run,
  * whose records are every entry it holds in this process, and for a reopened run only where
  * reopenedDispositionsUnestablished finds its reading establishes each arrival's latest disposition. A missing
  * actor declaration does not hide an arrival: its responder is said as not recorded. */
-function arrivalsOf(run: Json, reference: string): WaitingEntry[] {
+function arrivalsOf(run: Json, reference: string, unknown?: string[]): WaitingEntry[] {
   const entries: WaitingEntry[] = [];
   const records = list(run?.lifecycle?.records);
   const ended = !!run?.lifecycle?.end || records.some((r: Json) => r?.kind === "run_ended");
@@ -220,6 +234,13 @@ function arrivalsOf(run: Json, reference: string): WaitingEntry[] {
     const changes = records.filter((r: Json) => r?.kind === "disposition_change" && sameArrival(r?.body?.arrival, b.checkpoint, b.arrivalOrdinal));
     const latest = changes[changes.length - 1];
     if (latest?.body?.disposition !== "waiting") continue;
+    // A reopened run (`unknown` given): listed only where the host's projection says no act or decline on record
+    // answers it. One on record and not yet counted asks nothing of the person; an unknown projection is never waiting.
+    if (unknown) {
+      const projection = arrivalProjection(run, reference, arrival);
+      if (projection?.state === "awaiting count") continue;
+      if (projection?.state !== "waiting") { unknown.push(unknownAnswerability(b, projection)); continue; }
+    }
     const request = records.filter((r: Json) => r?.kind === "act_request" && sameArrival(r?.body?.arrival, b.checkpoint, b.arrivalOrdinal)).pop();
     entries.push({
       key: JSON.stringify(["checkpoint-arrival", reference, arrival.recordId ?? [b.checkpoint, b.arrivalOrdinal], latest.recordId ?? changes.length]),
@@ -503,7 +524,9 @@ function hostReadings(host: Json, call: ReadEvidence["call"], at: number | null,
       // The reopened run as RunsReading::view gives it: reference, lifecycle {state, end, records} and limits, with
       // each arrival's latest disposition established. Read whole when `limits` is present and empty; otherwise
       // read with limits, its established arrivals shown and its count incomplete.
-      found = { evidence: { read: true, affirmedWhole: Array.isArray(row?.limits), limits: list(row?.limits).map(text) }, entries: arrivalsOf(row, reference) };
+      const unknown: string[] = [];
+      const entries = arrivalsOf(row, reference, unknown);
+      found = { evidence: { read: true, affirmedWhole: Array.isArray(row?.limits), limits: [...list(row?.limits).map(text), ...unknown] }, entries };
     } else {
       // Records not supplied, a lifecycle the records do not establish ("unknown") or a state the App does not know:
       // no arrival's latest disposition is established, so none is listed, not even an older waiting entry, and the
@@ -819,7 +842,7 @@ export function WaitingOnYou({ readings, view, busy = false, openGroup, go, onOp
         {lastStatus && <LastStatusBlock last={lastStatus} go={go} />}
         {lastReads.filter(reading => reading.call !== "status").map(reading => <LastReadBlock key={reading.key} reading={reading} go={go} />)}
         <RequestsOverview reading={readings.find(r => r.key === "requests" || r.key.startsWith("requests:"))} view={view} busy={busy} open={openGroup} />
-        <p><small>Each source shows what its latest reading observed, and the next reading replaces it: nothing is kept from one reading to the next, so an item a limited reading showed can drop from view when the next reading does not hold it, and after a change of home the requests of the home left are shown only as that home's overview reads them. When a read fails, the list uses the last successful response to that kind of read (the status read, the returns read or the decisions read): what it showed waiting is shown apart, as last read at its time, not counted, its current state unknown, with the sources it had not read whole said as not read or read with limits; a response that showed nothing waiting is said so in the coverage lines. These are the places each kind of item is shown in the App: a request from Codex on its request card, beside its conversation or under the requests outside the selected conversation (in another home, once that home is opened); a checkpoint arrival of a run in this session in that run's panel in the workflow studio; a return in the fleet records panel; a decision package in the decision packages view. They are fed by the same readings, so an item a limited reading omits is omitted there as well until a reading supplies it again. A checkpoint arrival of a run reopened after the App restarted is shown under that run in the recorded runs of the workflow studio, from the records the reopened reading supplied; only a run whose records were not supplied, or do not establish its arrivals' latest dispositions, is unread, and it is named above. Returns and decisions are read again every 15 seconds, and returns each time you open this list. Nothing here answers, dismisses or settles anything; Go to it opens the existing control or record. A question or tool permission already answered is refused there. A decision package and a checkpoint act are checked there against the current content of what they concern, but an earlier decision or act does not stop another being recorded, and neither yet refuses an item that is no longer waiting. Returns have no review control in the App yet: Go to it shows the return's record. A return whose examiner is an agent is not a demand on you, but the records do not yet say whether the examiner is a person or an agent, so every return waiting for review is listed.</small></p>
+        <p><small>Each source shows what its latest reading observed, and the next reading replaces it: nothing is kept from one reading to the next, so an item a limited reading showed can drop from view when the next reading does not hold it, and after a change of home the requests of the home left are shown only as that home's overview reads them. When a read fails, the list uses the last successful response to that kind of read (the status read, the returns read or the decisions read): what it showed waiting is shown apart, as last read at its time, not counted, its current state unknown, with the sources it had not read whole said as not read or read with limits; a response that showed nothing waiting is said so in the coverage lines. These are the places each kind of item is shown in the App: a request from Codex on its request card, beside its conversation or under the requests outside the selected conversation (in another home, once that home is opened); a checkpoint arrival of a run in this session in that run's panel in the workflow studio; a return in the fleet records panel; a decision package in the decision packages view. They are fed by the same readings, so an item a limited reading omits is omitted there as well until a reading supplies it again. A checkpoint arrival of a run reopened after the App restarted is shown under that run in the recorded runs of the workflow studio, from the records the reopened reading supplied; only a run whose records were not supplied, or do not establish its arrivals' latest dispositions, is unread, and it is named above. An arrival of such a run whose answering act or decline is already in the act records, and not yet counted in its run's record, is not listed and asks nothing of you; where the App cannot tell, it says so above. Returns and decisions are read again every 15 seconds, and returns each time you open this list. Nothing here answers, dismisses or settles anything; Go to it opens the existing control or record. A question or tool permission already answered is refused there. A decision package and a checkpoint act are checked there against the current content of what they concern, but an earlier decision or act does not stop another being recorded, and neither yet refuses an item that is no longer waiting. Returns have no review control in the App yet: Go to it shows the return's record. A return whose examiner is an agent is not a demand on you, but the records do not yet say whether the examiner is a person or an agent, so every return waiting for review is listed.</small></p>
       </div>
     </details>
   </section>;

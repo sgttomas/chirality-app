@@ -3,6 +3,7 @@ import { workflowAssurance } from "./workflowSelection";
 import { useState } from "react";
 import { beginBringBack, bringBackHeld, endBringBack } from "./bringBackDoubts";
 import { conversationChoices, conversationKey, conversationReference, findConversation } from "./TrialComposer";
+import { arrivalProjection } from "./WaitingOnYou";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 // The run panel's readable parts (DEL-01-04 NIR §9 PD-1…PD-7, placing
@@ -108,11 +109,18 @@ const line = (key: string, body: Json) => <span key={key}><br /><small>{body}</s
 /** PRD V4-WF-05: what the App says of a pause at a declared checkpoint, wherever a checkpoint or its arrivals are shown. */
 export const CHECKPOINT_COOPERATION = "Any pause at a declared checkpoint is the agent's cooperation with the workflow, not a hold by the App: the App does not stop, pause or interrupt the run there.";
 export type OpenArrivalFileAct = (runRef: string, arrivalRecordId: string) => Promise<void>;
+/** A reopened run's projection for one arrival (the host's `answerability`, App Agent 0's H2), matched to the run and
+ * the exact arrival as "Waiting on you" matches it; undefined for a run that carries none (a run of this process). */
+const answerabilityOf = (run: Json, arrival: Json): Json | null | undefined =>
+  Array.isArray(run?.answerability) ? arrivalProjection(run, text(run?.reference ?? run?.run), arrival) : undefined;
 
 /** EXEC CE-3 / SD-2: one recorded arrival with its latest disposition, read from
  * the run record. Information only: nothing waits on it and nothing is sent. */
-export function ArrivalRecord({ arrival, all, runRef, fileActEntry, openFileAct, busy = false }: {
+export function ArrivalRecord({ arrival, all, runRef, fileActEntry, openFileAct, busy = false, answerability }: {
   arrival: Json; all: Json[]; runRef?: string; fileActEntry?: Json; openFileAct?: OpenArrivalFileAct; busy?: boolean;
+  /** For a run reopened after the App restarted: the host's projection for this arrival, or null where none matches it;
+   * undefined for a run of this process. */
+  answerability?: Json | null;
 }) {
   const b = arrival?.body ?? {};
   const name = text(b.checkpoint);
@@ -131,8 +139,16 @@ export function ArrivalRecord({ arrival, all, runRef, fileActEntry, openFileAct,
   const note = writtenNote(arrival, all);
   const candidate = fileActEntry?.state === "candidate" && !!runRef && typeof arrival?.recordId === "string" && !!arrival.recordId;
   const fileActReason = text(fileActEntry?.reason) || (runRef ? "No current file-act entry was supplied by the host for this arrival." : "Historical or reopened arrival: no current owned file-act entry is available.");
+  // H2: for a reopened run, what an act already in the act records does to it, beside the recorded disposition.
+  // A reopened arrival with no projection bound to it is unknown, never waiting.
+  const projected = answerability === undefined ? undefined : answerability?.state === "waiting" || answerability?.state === "awaiting count" ? answerability.state : "unknown";
+  const reason = answerability?.state === "unknown" && typeof answerability?.reason === "string"
+    ? <AgentText value={answerability.reason} source="record" label="Reason:" name="The host's reason, as it gave it, not the App's words" /> : <>this reading gave no projection of the act records for it</>;
+  const label = latest !== "waiting" || projected === undefined || projected === "waiting" ? <>{latest === undefined ? "disposition not recorded" : arrivalLabel(latest)}</>
+    : projected === "awaiting count" ? <>recorded as waiting; an act or decline answering it is already in the project's act records and is not yet counted in this run's record, so nothing is asked of you for it</>
+    : <>recorded as waiting; whether an act already recorded answers it is not known: {reason}; it is not listed as waiting</>;
   return <li>
-    Arrival {text(b.arrivalOrdinal)}: {latest === undefined ? "disposition not recorded" : arrivalLabel(latest)}. Observed {text(b.event?.ref)}{time ? ` at ${text(time.value)} (${TIME_SOURCE[text(time.source)] ?? text(time.source)})` : ""}.
+    Arrival {text(b.arrivalOrdinal)}: {label}. Observed {text(b.event?.ref)}{time ? ` at ${text(time.value)} (${TIME_SOURCE[text(time.source)] ?? text(time.source)})` : ""}.
     {list(b.referents).map((r: Json, i: number) => line(`r${i}`, `Subject: ${text(r?.subject)}; content ${r?.content?.notObtainable ? `not obtainable: ${text(r.content.reason)}` : `${text(r?.content?.method)} ${text(r?.content?.value).slice(0, 12)}`}.`))}
     {requests.length
       ? requests.map((r: Json, i: number) => line(`q${i}`, `Request for the act observed: ${text(r.body?.form)} from ${text(r.body?.requester?.kind)}; act kind ${text(r.body?.actKind)}. A request is not the act.`))
@@ -146,6 +162,9 @@ export function ArrivalRecord({ arrival, all, runRef, fileActEntry, openFileAct,
     {related("run_resumed").map((c: Json, i: number) => line(`s${i}`, `After the recorded act the run went on with ${text(c.body?.firstActionRef)}.`))}
     {related("act_lapsed").filter((c: Json) => postEndBound || c.body?.when !== "after run end").map((c: Json, i: number) => line(`x${i}`, `${lapseLine(c.body, c.written === false)} ${writtenNote(c, all)}`))}
     {list(b.limits).map((l: Json, i: number) => line(`l${i}`, `Limit: ${text(l)}`))}
+    {latest === "waiting" && projected === "waiting" && line("p", "The project's act records, read with this reading, hold no act or decline that answers it.")}
+    {latest !== "waiting" && answerability?.state === "awaiting count" && line("p", "An act answering it again is already in the project's act records and is not yet counted in this run's record.")}
+    {latest !== "waiting" && answerability?.state === "unknown" && line("p", <>Whether an act already recorded would answer it is not known: {reason}.</>)}
     {note && line("w", note)}
     {candidate ? <p>
       <button disabled={busy || !openFileAct} onClick={() => openFileAct?.(runRef!, arrival.recordId)}>Review file for this arrival…</button>{" "}
@@ -182,7 +201,7 @@ export function CheckpointGuidance({ element, run, openFileAct, busy = false }: 
       : evaluability?.status === "not evaluable" ? `listed. The App does not record arrivals for it: ${text(evaluability?.reason)}`
       : `listed. The App records an arrival only from what it observes in the conversation: ${text(evaluability?.reason)}`}${listing && writtenNote(listing, all) ? ` ${writtenNote(listing, all)}` : ""}`)}
     {run && listing && (arrivals.length
-      ? <ul aria-label={`Recorded arrivals of ${idWords(name)}`}>{arrivals.map((a: Json, i: number) => <ArrivalRecord key={i} arrival={a} all={all} runRef={run?.reference} fileActEntry={run?.fileActEntries?.[a.recordId]} openFileAct={openFileAct} busy={busy} />)}</ul>
+      ? <ul aria-label={`Recorded arrivals of ${idWords(name)}`}>{arrivals.map((a: Json, i: number) => <ArrivalRecord key={i} arrival={a} all={all} runRef={run?.reference} fileActEntry={run?.fileActEntries?.[a.recordId]} openFileAct={openFileAct} busy={busy} answerability={answerabilityOf(run, a)} />)}</ul>
       : line("none", `No arrival recorded in this run.${unread ? ` ${unread} arrival entr${unread === 1 ? "y" : "ies"} could not be read, so this may be incomplete.` : ""}`))}
   </li>;
 }
@@ -522,7 +541,7 @@ function UndeclaredArrivals({ run, openFileAct, busy }: { run: Json; openFileAct
   return <div aria-label="Recorded checkpoint arrivals">
     <p>Recorded checkpoint arrivals, from the run record alone: without the declaration, who must act is not recorded here.</p>
     <ul>{arrivals.map((a: Json, i: number) => <li key={i}>Checkpoint <SuppliedId value={a.body.checkpoint} source="record" label="Checkpoint:" name="Checkpoint name as recorded, not the App's words" />
-      <ul><ArrivalRecord arrival={a} all={all} runRef={run?.reference} fileActEntry={run?.fileActEntries?.[a.recordId]} openFileAct={openFileAct} busy={busy} /></ul></li>)}</ul>
+      <ul><ArrivalRecord arrival={a} all={all} runRef={run?.reference} fileActEntry={run?.fileActEntries?.[a.recordId]} openFileAct={openFileAct} busy={busy} answerability={answerabilityOf(run, a)} /></ul></li>)}</ul>
     <p><small>{CHECKPOINT_COOPERATION}</small></p>
   </div>;
 }

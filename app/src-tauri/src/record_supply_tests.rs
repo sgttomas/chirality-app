@@ -445,3 +445,76 @@ fn a_run_that_alone_exceeds_the_bound_is_left_out_and_runs_not_ended_come_first(
     assert!(r.get("compatibility").is_none());
     assert!(r["limits"].as_array().unwrap().iter().any(|l| l == "the declared actor was not established: invented"), "{r}");
 }
+
+// ---- H2 (App Agent 0, criterion 4): the reopened view's answerability projection ----
+
+/// An invented run with arrivals of CP-a: each `(ordinal, latest disposition)`, in order.
+fn run_with_arrivals(run: &str, lifecycle: RecordedLifecycle, arrivals: &[(u64, &str)]) -> RecordedRun {
+    let mut r = invented_run(run, false, 0);
+    r.lifecycle = lifecycle;
+    for (ordinal, disposition) in arrivals {
+        r.records.push(json!({"kind":"checkpoint_arrival","runId":run,"recordId":format!("{run}-arrival-{ordinal}"),"observedAt":"2026-01-01T00:00:00Z","body":{"checkpoint":"CP-a","arrivalOrdinal":ordinal,"referents":[{"subject":"output summary: out/summary.md"}]}}));
+        r.records.push(json!({"kind":"disposition_change","runId":run,"recordId":format!("{run}-waiting-{ordinal}"),"observedAt":"2026-01-01T00:00:00Z","body":{"arrival":{"checkpoint":"CP-a","arrivalOrdinal":ordinal},"disposition":"waiting","annotations":[]}}));
+        if *disposition != "waiting" {
+            r.records.push(json!({"kind":"disposition_change","runId":run,"recordId":format!("{run}-later-{ordinal}"),"observedAt":"2026-01-01T00:00:01Z","body":{"arrival":{"checkpoint":"CP-a","arrivalOrdinal":ordinal},"disposition":disposition,"annotations":[]}}));
+        }
+    }
+    r
+}
+fn projections(view: &Value) -> Vec<(String, Value, String, Option<String>)> {
+    view["runs"].as_array().unwrap().iter().flat_map(|r| r["answerability"].as_array().cloned().unwrap_or_default())
+        .map(|p| (p["run"].as_str().unwrap().to_owned(), p["arrival"].clone(), p["state"].as_str().unwrap().to_owned(), p["reason"].as_str().map(str::to_owned)))
+        .collect()
+}
+
+#[test]
+fn act_records_that_cannot_be_read_at_all_make_every_projected_arrival_unknown_never_waiting_with_one_read() {
+    let root = std::env::temp_dir();
+    let reading = RunsReading { runs: vec![
+        run_with_arrivals("run:a", RecordedLifecycle::OpenInterrupted, &[(1, "waiting"), (2, "performed"), (3, "resolved negatively")]),
+        run_with_arrivals("run:b", RecordedLifecycle::OpenInterrupted, &[(1, "lapsed"), (2, "waiting")]),
+    ], limits: vec![] };
+    let mut reads = 0;
+    let view = reading.view_reopened_with(REOPENED_RECORDS_BOUND, &root, &mut || { reads += 1; Err("invented: the act log is unreadable".into()) });
+    assert_eq!(reads, 1, "one read of the project's act records for the whole reading");
+    let shown = projections(&view);
+    assert_eq!(shown.len(), 5, "every arrival of every projected run, settled ones included: {shown:?}");
+    for (_, _, state, reason) in &shown {
+        assert_eq!(state, "unknown");
+        assert_eq!(reason.as_deref(), Some("the project's act records could not be read: invented: the act log is unreadable"));
+    }
+    // The recorded entries are carried unchanged beside the projection.
+    let carried: Vec<Value> = view["runs"][0]["lifecycle"]["records"].as_array().unwrap().iter().map(|e| e["body"].clone()).collect();
+    assert_eq!(carried, reading.runs[0].records.iter().map(|e| e["body"].clone()).collect::<Vec<_>>());
+    assert_eq!(view["answerabilityStanding"], ANSWERABILITY_STANDING);
+}
+
+#[test]
+fn an_incomplete_or_ambiguous_run_is_unknown_an_ended_run_is_not_projected_and_nothing_to_project_reads_nothing() {
+    let root = std::env::temp_dir();
+    let mut duplicate = run_with_arrivals("run:dup", RecordedLifecycle::OpenInterrupted, &[(1, "waiting")]);
+    let mut again = duplicate.records[0].clone();
+    again["recordId"] = json!("run:dup-again");
+    duplicate.records.push(again);
+    let mut untyped = run_with_arrivals("run:typed", RecordedLifecycle::OpenInterrupted, &[(1, "waiting")]);
+    untyped.records[0]["body"]["arrivalOrdinal"] = json!("1");
+    let reading = RunsReading { runs: vec![
+        run_with_arrivals("run:unknown", RecordedLifecycle::Unknown("invented incomplete set".into()), &[(1, "waiting"), (2, "performed")]),
+        run_with_arrivals("run:ended", RecordedLifecycle::Ended { stopped_by: "the person".into(), cause: "ended by the person".into() }, &[(1, "waiting")]),
+        duplicate, untyped,
+    ], limits: vec![] };
+    let mut reads = 0;
+    let view = reading.view_reopened_with(REOPENED_RECORDS_BOUND, &root, &mut || { reads += 1; Err("not reached".into()) });
+    assert_eq!(reads, 1);
+    let by_run = |run: &str| projections(&view).into_iter().filter(|p| p.0 == run).map(|p| (p.2, p.3.unwrap_or_default())).collect::<Vec<_>>();
+    assert_eq!(by_run("run:unknown"), vec![("unknown".into(), answerability_unknown::RUN_NOT_COMPLETE.into()); 2], "incomplete history: every arrival unknown");
+    assert_eq!(by_run("run:ended"), vec![], "an ended run is not projected");
+    assert!(view["runs"].as_array().unwrap().iter().find(|r| r["run"] == "run:ended").unwrap()["answerability"].as_array().unwrap().is_empty());
+    assert_eq!(by_run("run:dup"), vec![("unknown".into(), answerability_unknown::COORDINATE.into()); 2], "two arrivals with one coordinate: neither is resolved");
+    assert_eq!(by_run("run:typed"), vec![("unknown".into(), answerability_unknown::COORDINATE.into())], "an arrival number that is not a number");
+    // No run with an arrival to project: the act records are not read.
+    let mut reads = 0;
+    let quiet = RunsReading { runs: vec![invented_run("run:none", false, 0), run_with_arrivals("run:ended", RecordedLifecycle::Ended { stopped_by: "p".into(), cause: "c".into() }, &[(1, "waiting")])], limits: vec![] };
+    let _ = quiet.view_reopened_with(REOPENED_RECORDS_BOUND, &root, &mut || { reads += 1; Err("not reached".into()) });
+    assert_eq!(reads, 0);
+}
