@@ -1987,13 +1987,16 @@ record vouches for it.
 **One run in the root.** The comparison of the workflow supplied (W1) covers
 a root with one run (`app/examination/session_comparison/README.md`, "The
 workflow comparison (W1) covers a root with one run"). The App's records
-store in this kept folder must hold exactly one run record in total, of any
-conversation, and it must be the run start of J1's one conversation. It
-counts every `run_text` (a run start, and an end notice, which the App
+store in this kept folder must hold records of exactly one run identity,
+with exactly one run start, of J1's conversation. It counts every
+`run_text` (a run start, and an end notice, which the App
 publishes when a message is sent in the conversation after the person has
 ended the run) and every `supply_check` (which the App publishes when the
 person presses "Check original native supplied text pages"); a selection
-record is not counted. So this kept folder serves this J1 alone: no
+record is not counted. An end notice or supply check must name the same run
+in its own `run` field; W1 counts it and checks that identity, without
+comparing its content. A second run start, another run identity, or an
+unknown kind or unreadable identity blocks. This kept folder serves this J1 alone: no
 rehearsal, second run or other conversation's run is made in it, and the
 rehearsal of setup has its own root (above). Anything else blocks W1; it is
 never passed on an inference.
@@ -2060,9 +2063,14 @@ it.
    the examiner changes that file between selection and sending, and the App
    is expected to hold the send; the file is then restored and selected again
    (`j1-content-digest/README.md`). The operator starts the run deliberately
-   in one new conversation. Whether a send the App holds publishes a run
-   record of its own has not been read in the App's source; if it does, the
-   store holds two and W1 is blocked, and that is recorded as found.
+   in one new conversation. The changed-file hold belongs to the separate
+   ordered-attachment send (`submit_attachments` in `lib.rs`, then
+   `submit_attachments_with_pending_notice` and `submit_selected_inner` in
+   `runtime_session.rs`); that path does not start a workflow run. Its
+   changed-file refusal writes no native frame and leaves any end notice
+   pending, as `tc2_attachment_turn_refused_before_write_leaves_the_notice_pending`
+   checks. It does not create another workflow run-start record. This is a
+   source reading; the phase still records the hold the App actually shows.
 4. **Requests and results (J1-5, J1-6).** The run proceeds with real
    execution: the model reads the deliverable's files and writes the one
    seven-section `DEL-001-01.md` at the output path, reporting the absent
@@ -2073,16 +2081,15 @@ it.
    App. When the agent reports the workflow finished, the operator ends the
    run through the App's own control, which J1-5's completed state needs
    (the App's words for it, read in the source: "Ended as completed"), and
-   then sends no further message in that conversation: one would carry an end
-   notice, a second run record. "Check original native supplied text pages"
-   is not pressed: its supply check is a second run record too. Neither is an
-   act J1 requires (criterion 1; `../step-operations.json`, J1-5 and J1-6):
+   records the completed state and the result. A later message after ending
+   would carry an end notice; "Check original native supplied text pages"
+   writes a supply check. Those same-run records do not block W1, which
+   compares only the run-start text. Neither additional act is required by
+   J1 (criterion 1; `../step-operations.json`, J1-5 and J1-6):
    J1-3's requirement check is the App's statement before the run of which
    declared tools are available (`RequirementCheck.tsx`), not a supply check,
    and what the agent received is established by the independent observation
-   outside the controls. If the run cannot be completed without a further
-   message after it has been ended, the operator stops, and that is a
-   finding; nothing is sent to see.
+   outside the controls. No required act is omitted to fit the comparison.
 
 ### What each phase's record holds
 
