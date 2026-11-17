@@ -868,15 +868,52 @@ class WatchedByExactName(Fixture):
                      'com.apple.WebKit.Networking+other_app-1', 'com.apple.spaces.plist']:
             self.assertFalse(launch.watched_name(name, IDENTIFIER, EXECUTABLE), name)
 
-    def test_changed_preference_files_are_disclosed_whatever_their_names(self):
+    def test_changed_preference_files_not_named_for_the_build_are_counted_and_never_named(self):
+        # The preference folder is shared with every other application: a change to another application's entry is
+        # counted, and its name appears nowhere in the record, not even one that begins like the build's.
+        prefs = self.real / 'Library/Preferences'
+        others = ('com.apple.spaces.plist', f'{IDENTIFIER}2.plist', f'{EXECUTABLE}.old')
+        code, record, out, _ = self.run_helper(self.candidate(
+            ''.join(f'echo x > "{prefs}/{name}"\n' for name in others) + f'echo y >> "{prefs}/com.apple.dock.plist"\n'))
+        self.assertEqual((code, record['outcome']), (0, 'clean'), out)
+        self.assertEqual(record['disclosed']['preferences'],
+                         {'observation': 'made', 'changes': [], 'changes_not_named_for_the_build': 4})
+        text = json.dumps(record)
+        for name in (*others, 'com.apple.dock.plist', 'com.apple.spaces', 'com.apple.dock'):
+            self.assertNotIn(name, text)
+        # Nothing changed: nothing counted.
+        code, record, out, _ = self.run_helper(self.candidate(where='quiet'))
+        self.assertEqual(record['disclosed']['preferences'],
+                         {'observation': 'made', 'changes': [], 'changes_not_named_for_the_build': 0}, out)
+
+    def test_a_change_named_for_the_build_stays_visible_by_name(self):
         prefs = self.real / 'Library/Preferences'
         code, record, out, _ = self.run_helper(self.candidate(
-            f'echo x > "{prefs}/com.apple.spaces.plist"\necho y >> "{prefs}/com.apple.dock.plist"\n'))
-        self.assertEqual((code, record['outcome']), (0, 'clean'), out)
-        self.assertEqual({(c['path'], c['change']) for c in record['disclosed']['preferences']['changes']},
-                         {('com.apple.spaces.plist', 'created'), ('com.apple.dock.plist', 'modified')})
-        code, record, out, _ = self.run_helper(self.candidate(f'echo x > "{prefs}/{IDENTIFIER}.plist"\n', where='named'))
+            f'echo x > "{prefs}/{IDENTIFIER}.plist"\necho x > "{prefs}/com.apple.spaces.plist"\n', where='named'))
+        # In the Library comparison, by name, which fails the run; the disclosure leaves it there and counts the other.
         self.assertEqual((code, record['real_library']['result']), (1, 'changed'), out)
+        self.assertIn({'path': f'Preferences/{IDENTIFIER}.plist', 'change': 'created'}, record['real_library']['changes'])
+        self.assertEqual(record['disclosed']['preferences'],
+                         {'observation': 'made', 'changes': [], 'changes_not_named_for_the_build': 1})
+        self.assertNotIn('com.apple.spaces', json.dumps(record))
+
+    def test_the_disclosure_keeps_by_name_only_build_named_changes_the_comparison_does_not_hold(self):
+        # Where the comparison holds no name for a build-named change (an after-listing that could not be made), the
+        # disclosure names it; another application's change is still only counted.
+        entry = {'kind': 'file', 'mtime_ns': 1, 'size': 1}
+        before = ({'com.apple.dock.plist': entry}, None)
+        after = ({'com.apple.dock.plist': {**entry, 'size': 2}, f'{IDENTIFIER}.plist': entry, 'b.plist': entry,
+                  f'{EXECUTABLE}': entry}, None)
+        made = launch.preferences_disclosure(before, after, set(), IDENTIFIER, EXECUTABLE)
+        self.assertEqual(made, {'observation': 'made', 'changes_not_named_for_the_build': 2,
+                                'changes': [{'path': EXECUTABLE, 'change': 'created'},
+                                            {'path': f'{IDENTIFIER}.plist', 'change': 'created'}]})
+        held = launch.preferences_disclosure(before, after, {f'{IDENTIFIER}.plist'}, IDENTIFIER, EXECUTABLE)
+        self.assertEqual(held['changes'], [{'path': EXECUTABLE, 'change': 'created'}])
+        self.assertEqual(held['changes_not_named_for_the_build'], 2)
+        # An observation not made says why, and carries neither names nor a count.
+        self.assertEqual(launch.preferences_disclosure((None, 'not observed: x'), after, set(), IDENTIFIER, EXECUTABLE),
+                         {'observation': 'not observed: x'})
 
 
 class ObservationNotGate(Fixture):
