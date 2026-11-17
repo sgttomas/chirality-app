@@ -1861,8 +1861,10 @@ rule"). Wherever it
 needs knowledge the window did not give, from this file, its assignment or
 anyone, it says so in that phase's record. No time or step limit applies.
 
-**The owner's acts.** Sign-in is the owner's alone. The owner opens the
-ChatGPT application and signs in themselves; no agent signs in, sees or types
+**The owner's acts.** Sign-in is the owner's alone. The owner completes the
+candidate's own ChatGPT-account sign-in through Codex, in its fresh account
+folder. Reopening the ChatGPT application supplies the operator's computer-use
+means; it does not sign the candidate in. No agent signs in, sees or types
 a credential, or answers a macOS prompt, and no kept sign-in home from earlier
 work is used. While the owner signs in, the operator's view and any recording
 are suspended; they resume only when the owner hands back.

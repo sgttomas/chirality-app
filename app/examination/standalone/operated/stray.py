@@ -118,6 +118,8 @@ def started_of(pid):
     """The process's start time as `ps` prints it (five words); None when no process has that number."""
     done = subprocess.run(['/bin/ps', '-o', 'lstart=', '-p', str(pid)],
                           capture_output=True, text=True, env={'PATH': '/bin:/usr/bin'})
+    if done.returncode != 0:
+        raise OSError(f'the start time of process {pid} could not be queried (ps exited {done.returncode})')
     words = done.stdout.split()
     if not words:
         return None

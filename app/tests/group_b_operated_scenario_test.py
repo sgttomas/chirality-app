@@ -789,6 +789,18 @@ class StrayStart(unittest.TestCase):
             self.stray.recheck(executable, 601, when, **asked([when, when], executable))
         os.unlink(self.tmp / 'second-name')
 
+    def test_a_failed_start_time_query_is_unresolved_not_a_gone_process(self):
+        argv = ['stray.py', str(self.bundle), '--recheck', '601', 'Thu Nov 12 22:07:34 2026']
+        for code in (1, 2):
+            with self.subTest(code=code), mock.patch.object(self.stray, 'on_macos', return_value=True), \
+                    mock.patch.object(self.stray.subprocess, 'run', return_value=SimpleNamespace(returncode=code, stdout='')), \
+                    mock.patch.object(self.stray, 'executable_of', side_effect=AssertionError('failed query must stop')), \
+                    contextlib.redirect_stdout(io.StringIO()) as out, contextlib.redirect_stderr(io.StringIO()) as err:
+                self.assertEqual(self.stray.main(argv), 2)
+                self.assertEqual(out.getvalue(), '')
+                self.assertIn('could not be queried', err.getvalue())
+                self.assertNotIn('no process has that number', err.getvalue())
+
     def test_the_recheck_exits_0_only_for_the_same_process_and_signals_nothing(self):
         argv = ['stray.py', str(self.bundle), '--recheck', '601', 'Thu Nov 12  22:07:34 2026']
         executable = str(self.bundle / 'Contents/MacOS/chirality-app-v4')
