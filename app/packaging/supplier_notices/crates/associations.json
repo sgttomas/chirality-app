@@ -401,5 +401,115 @@
    "basis": "the licence files at the repository and revision the lockfile names",
    "note": "the sqlx-sqlite/ and root copies are the same blobs as the sqlx-core/ files"
   }
+ ],
+ "app_texts": [
+  {
+   "packages": [
+    "block2 0.6.2"
+   ],
+   "checksum": "cdeb9d870516001442e364c5220d3574d2da8dc765554b4a617230d33fa58ef5",
+   "repository": "https://github.com/madsmtm/objc2",
+   "revision": "b4167b582b2f75f9a1be75495c41b765344fd03c",
+   "reading_required": true,
+   "basis": "the objc2 repository's LICENSE.md (https://github.com/madsmtm/objc2 at b4167b58, the revision the crate archive names), which the App holds for the same crate, version and archive checksum; a licensing overview that awaits an owner licence reading, as the App's own copy did",
+   "texts": [
+    {
+     "app_path": "app/packaging/notices/transitive/cargo/block2/0.6.2/LICENSE.md",
+     "size_bytes": 1339,
+     "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+     "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e"
+    }
+   ]
+  },
+  {
+   "packages": [
+    "objc2-app-kit 0.3.2"
+   ],
+   "checksum": "d49e936b501e5c5bf01fda3a9452ff86dc3ea98ad5f283e1455153142d97518c",
+   "repository": "https://github.com/madsmtm/objc2",
+   "revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+   "reading_required": true,
+   "basis": "the objc2 repository's LICENSE.md (https://github.com/madsmtm/objc2 at 7b1abfd7, the revision the crate archive names), which the App holds for the same crate, version and archive checksum; a licensing overview that awaits an owner licence reading, as the App's own copy did",
+   "texts": [
+    {
+     "app_path": "app/packaging/notices/transitive/cargo/objc2-app-kit/0.3.2/LICENSE.md",
+     "size_bytes": 1339,
+     "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+     "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e"
+    }
+   ]
+  },
+  {
+   "packages": [
+    "objc2-core-foundation 0.3.2"
+   ],
+   "checksum": "2a180dd8642fa45cdb7dd721cd4c11b1cadd4929ce112ebd8b9f5803cc79d536",
+   "repository": "https://github.com/madsmtm/objc2",
+   "revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+   "reading_required": true,
+   "basis": "the objc2 repository's LICENSE.md (https://github.com/madsmtm/objc2 at 7b1abfd7, the revision the crate archive names), which the App holds for the same crate, version and archive checksum; a licensing overview that awaits an owner licence reading, as the App's own copy did",
+   "texts": [
+    {
+     "app_path": "app/packaging/notices/transitive/cargo/objc2-core-foundation/0.3.2/LICENSE.md",
+     "size_bytes": 1339,
+     "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+     "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e"
+    }
+   ]
+  },
+  {
+   "packages": [
+    "objc2-encode 4.1.0"
+   ],
+   "checksum": "ef25abbcd74fb2609453eb695bd2f860d389e457f67dc17cafc8b8cbc89d0c33",
+   "repository": "https://github.com/madsmtm/objc2",
+   "revision": "8d214f5477365ffcbcbb7de058c86ed9a518efb7",
+   "reading_required": true,
+   "basis": "the objc2 repository's LICENSE.md (https://github.com/madsmtm/objc2 at 8d214f54, the revision the crate archive names), which the App holds for the same crate, version and archive checksum; a licensing overview that awaits an owner licence reading, as the App's own copy did",
+   "texts": [
+    {
+     "app_path": "app/packaging/notices/transitive/cargo/objc2-encode/4.1.0/LICENSE.md",
+     "size_bytes": 1339,
+     "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+     "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e"
+    }
+   ]
+  },
+  {
+   "packages": [
+    "objc2-foundation 0.3.2"
+   ],
+   "checksum": "e3e0adef53c21f888deb4fa59fc59f7eb17404926ee8a6f59f5df0fd7f9f3272",
+   "repository": "https://github.com/madsmtm/objc2",
+   "revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+   "reading_required": true,
+   "basis": "the objc2 repository's LICENSE.md (https://github.com/madsmtm/objc2 at 7b1abfd7, the revision the crate archive names), which the App holds for the same crate, version and archive checksum; a licensing overview that awaits an owner licence reading, as the App's own copy did",
+   "texts": [
+    {
+     "app_path": "app/packaging/notices/transitive/cargo/objc2-foundation/0.3.2/LICENSE.md",
+     "size_bytes": 1339,
+     "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+     "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e"
+    }
+   ]
+  },
+  {
+   "packages": [
+    "vsimd 0.8.0"
+   ],
+   "checksum": "5c3082ca00d5a5ef149bb8b555a72ae84c9c59f7250f013ac822ac2e49b19c64",
+   "repository": "https://github.com/Nugine/simd",
+   "revision": "d74c030d9dc4f3cae02146d1f497ff62726ef09a",
+   "reading_required": false,
+   "basis": "the repository root text of https://github.com/Nugine/simd at d74c030d, the revision the crate archive names, which the App holds for the same crate, version and archive checksum (received with the owner's permission); a root text, not a member of the archive",
+   "texts": [
+    {
+     "app_path": "app/packaging/notices/transitive/cargo/vsimd/0.8.0/LICENSE",
+     "size_bytes": 1062,
+     "sha256": "71674605ec4c087fe9eb534e3e4f9e26eb2e4aabcd76a29fd156c6a844d44b3d",
+     "git_blob_sha1": "2c7eabb59093ea117d73b20effdd0414f87b2af2"
+    }
+   ]
+  }
  ]
 }

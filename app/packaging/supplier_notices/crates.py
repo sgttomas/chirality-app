@@ -5,8 +5,8 @@ The set is a superset: a lockfile locks packages for every platform and feature,
 compiled into the macOS executables. Which are is not established here, and no resolver, Cargo or Bazel is run.
 
 Inputs, all committed under `crates/`: the two lockfiles as the supplier's source holds them, `associations.json` (the
-reviewed bindings of each lockfile to its source revision, the Git-sourced packages' licence files and the workspace
-texts) and `index.json`, which `index` makes from the held archives. `texts/` holds each shipped crate text once,
+reviewed bindings of each lockfile to its source revision, the Git-sourced packages' licence files, the workspace
+texts, and the texts the App already holds for the same crate archive) and `index.json`, which `index` makes from the held archives. `texts/` holds each shipped crate text once,
 named by its SHA-256.
 
 - `index --archives MAP.json` reads each locked archive through `crate_notices` (checksum before opening, header
@@ -38,8 +38,6 @@ BASE = 'app/packaging/supplier_notices/crates'
 INDEX = BASE + '/index.json'
 ASSOCIATIONS = BASE + '/associations.json'
 TEXTS = BASE + '/texts'
-APP_INDEX = 'app/packaging/notices/transitive-index.json'
-APP_TEXTS = 'app/packaging/notices/transitive'
 FORMAT = 'supplier-crate-notices/1'
 GIT_SOURCE = re.compile(r'^git\+(https://[^?#]+?)(?:\.git)?\?rev=([0-9a-f]{40})#([0-9a-f]{40})$')
 HEX64 = re.compile('[0-9a-f]{64}')
@@ -134,17 +132,18 @@ def write_index(repo, archives):
     return {'registry_packages': len(value['registry']), 'notices': sum(len(r['notices']) for r in value['registry'])}
 
 
-def app_rows(repo):
-    """The App's own transitive index rows, by (name, version, checksum), for crates whose archive names no notice."""
-    return {(r['package'], r['version'], r['archive_sha256']): r for r in load(repo, APP_INDEX)['cargo'] if r['source'] == 'registry'}
+def app_texts(associations):
+    """Reviewed reuse of texts the App holds, by (name, version, checksum), for crates whose archive names no notice.
 
-
-def app_text_files(repo, row):
-    """The App's committed text files for one of its own crate rows (shipped under its transitive texts)."""
-    prefix = Path(repo) / APP_TEXTS / 'cargo' / row['package'] / row['version']
-    if not prefix.is_dir():
-        return []
-    return sorted(str(p.relative_to(repo)) for p in prefix.iterdir())
+    Each text is copied into the crate store by `extract` and checked there by digest; `check` reads no App file, so a
+    change to the App's own notices cannot change this group."""
+    found = {}
+    for entry in associations.get('app_texts', []):
+        for package in entry['packages']:
+            name, version = package.split(' ')
+            require((name, version, entry['checksum']) not in found, 'two App-text associations for ' + package)
+            found[(name, version, entry['checksum'])] = entry
+    return found
 
 
 def wanted_texts(repo):
@@ -159,13 +158,11 @@ def wanted_texts(repo):
     for row in index['registry']:
         for notice in row['notices']:
             want(notice['sha256'], notice['size_bytes'], ('archive', row['package'], row['version']))
-    apps = app_rows(repo)
+    reused = app_texts(associations)
     for row in index['registry']:
-        if not row['notices']:
-            app = apps.get((row['package'], row['version'], row['checksum']))
-            for path in app_text_files(repo, app) if app else []:
-                raw = regular(repo, path)
-                want(sha256(raw), len(raw), ('file', path))
+        if not row['notices'] and (entry := reused.get((row['package'], row['version'], row['checksum']))) is not None:
+            for text in entry['texts']:
+                want(text['sha256'], text['size_bytes'], ('file', text['app_path']))
     for source in associations['git_sources']:
         for text in source['texts']:
             want(text['sha256'], text['size_bytes'], ('received', source['repository'], source['revision'], text['source_path']))
@@ -184,7 +181,8 @@ def entries(repo):
             + str(sorted(set(expected) - set(by_key))[:5]) + ', extra ' + str(sorted(set(by_key) - set(expected))[:5]))
     for key, locks in expected.items():
         require(by_key[key]['locks'] == sorted(locks), 'crate index names other lockfiles for ' + ' '.join(key[:2]))
-    apps = app_rows(repo)
+    reused = app_texts(associations)
+    used_app = set()
     git = {}
     for source in associations['git_sources']:
         for package in source['packages']:
@@ -202,14 +200,13 @@ def entries(repo):
                 if entry['notices']:
                     row.update(standing='text', basis='licence files of the locked crate archive, selected by name',
                                texts=[{'member': n['path'], 'sha256': n['sha256'], 'size_bytes': n['size_bytes']} for n in entry['notices']])
-                elif (app := apps.get((name, version, package['checksum']))) is not None and app_text_files(repo, app):
-                    texts = [{'file': p, 'sha256': sha256(regular(repo, p)), 'size_bytes': len(regular(repo, p))}
-                             for p in app_text_files(repo, app)]
-                    reading = app['text']['kind'] == 'received-upstream-text' or app['text'].get('repository') in READING_REPOSITORIES
-                    row.update(texts=texts, standing='held' if reading else 'text',
-                               basis='the text the App holds for the same crate, version and archive checksum '
-                                     f'({app["text"]["kind"]} from {app["text"].get("repository")})')
-                    if reading:
+                elif (app := reused.get((name, version, package['checksum']))) is not None:
+                    used_app.add((name, version, package['checksum']))
+                    require(app['reading_required'] == (app['repository'] in READING_REPOSITORIES),
+                            'an App-text association states another reading requirement than the rule: ' + name)
+                    row.update(texts=[{'app_text': t['app_path'], 'sha256': t['sha256'], 'size_bytes': t['size_bytes']} for t in app['texts']],
+                               standing='held' if app['reading_required'] else 'text', basis=app['basis'])
+                    if app['reading_required']:
                         row['reason'] = ('the same text awaits an owner licence reading for this crate as the App\'s own copy does; '
                                          'the App\'s reading of 2026-11-12 is not extended to the supplier\'s copy here')
                 else:
@@ -234,6 +231,8 @@ def entries(repo):
                            texts=[{'file': t['path'], 'sha256': t['sha256'], 'size_bytes': t['size_bytes']} for t in workspace['texts']],
                            standing='text', basis=workspace['basis'])
             rows.append(row)
+    require(used_app == set(reused), 'an App-text association names no locked package without archive notices: '
+            + str(sorted(set(reused) - used_app)))
     require(used_git == set(git), 'Git association names a package no lockfile locks: ' + str(sorted(set(git) - used_git)))
     return rows
 
@@ -288,7 +287,7 @@ def packages(repo=REPO):
     rows = []
     for row in entries(repo):
         item = {k: v for k, v in row.items() if k != 'texts'}
-        item['texts'] = [{**{k: t[k] for k in t if k in ('member', 'received')}, 'sha256': t['sha256'], 'size_bytes': t['size_bytes'],
+        item['texts'] = [{**{k: t[k] for k in t if k in ('member', 'received', 'app_text')}, 'sha256': t['sha256'], 'size_bytes': t['size_bytes'],
                           'package_path': package_path(repo, t, store)} for t in row['texts']]
         rows.append(item)
     return {'format': 'supplier-crate-packages/1', 'pin': associations['pin'], 'superset': associations['superset'],
@@ -357,7 +356,9 @@ def extract(repo, archives, received):
                 put(data)
     for digest, (size, source) in wanted_texts(repo).items():
         if source[0] == 'file':
-            put(regular(repo, source[1]))
+            raw = regular(repo, source[1])
+            require(sha256(raw) == digest and len(raw) == size, 'an App-held text differs from its association: ' + source[1])
+            put(raw)
     for source in associations['git_sources']:
         for text in source['texts']:
             # A received text comes from DIR; one whose bytes the repository already holds is read from its committed file.

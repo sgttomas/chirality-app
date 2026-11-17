@@ -5,7 +5,7 @@
  "reviewed_in": "pull request 243: review round 3 confirmed the 33 supplier rows for 0.167.0 and round 4 the bound digests; PR 238 (merged) carried the declared pin 0.169.0's distribution record. Proposed in the 0.169.0 supplier-notices change, pending an independent reading and not yet reviewed: components.json re-associated to 0.169.0 from the supplier's source at d32063f9 and the distribution record (36 rows; the voice rows open because sources.json changed; three new open rows: the imagegen and openai-docs skill samples and the vendored bubblewrap), the two LLVM CREDITS texts, the also_at identities, and the crate group (supplier_notices/crates/associations.json and index.json, with the two lockfiles bound through associations.json) covering every package of both lockfiles, with 138 gaps and 5 packages awaiting an owner reading open.",
  "files_sha256": {
   "app/packaging/supplier_notices/components.json": "df68be19bd3c2830179f5467bf3441cb855aebfc0a0d2c1f1324ba5664c3f9d5",
-  "app/packaging/supplier_notices/crates/associations.json": "521b0725ddbba691258610509b0382bbaaa7a4fb6e221e7b28820d21cba4857d",
+  "app/packaging/supplier_notices/crates/associations.json": "9ee6d61db58c96be1e3d07ff8a3f2827f85b9497e81e974701e2d6f6752010c4",
   "app/packaging/supplier_notices/crates/index.json": "2dda66b0658a1c74ae440fc117f3d803aec393e1ae5173046e6d27d5d91f00ff",
   "app/packaging/notices/coverage-inputs.json": "c69574536b96438ef7660ac65ae5998369023b5354813a6bdf8d354a0b682871",
   "app/packaging/notices/index.json": "fbf873b839b167d5347b233a7d019df4d053809e8dc9e31968e04b4e6cf46ac4",

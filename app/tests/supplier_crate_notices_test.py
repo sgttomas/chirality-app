@@ -250,3 +250,13 @@ def test_stale_package_account_refuses(repo):
     edit(repo, crates.PACKAGES, lambda v: v['packages'].pop())
     with pytest.raises(ValueError, match='stale'):
         crates.check(repo)
+
+
+def test_app_held_texts_are_a_reviewed_association_not_a_read_of_the_app_tree(repo):
+    import shutil
+    # The App's own notice texts can change without changing this group: check reads the crate store, not the App tree.
+    shutil.rmtree(repo / 'app/packaging/notices/transitive')
+    assert crates.check(repo)['locks']['codex']['held'] == 5
+    edit(repo, crates.ASSOCIATIONS, lambda v: next(e for e in v['app_texts'] if e['reading_required']).update(reading_required=False))
+    with pytest.raises(ValueError, match='reading requirement'):
+        crates.check(repo)
