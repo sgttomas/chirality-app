@@ -38,6 +38,8 @@ needs:
     machine that signs, and the owner states whether the supplier's position applies to the offering.
 code_paths:
 - app/packaging/**
+# Font licence texts shipped beside the fonts; their index and check are under app/packaging/font_notice.
+- app/src/fonts/LICENSE-*.txt
 - app/src-tauri/tauri.conf.json
 # The limitations list ships byte for byte as release/LIMITATIONS.md; the host reads it there.
 - docs/RELEASE_LIMITATIONS_4.0.0.md
@@ -61,6 +63,9 @@ checks:
 - app/tests/font_notice_test.py
 - app/packaging/notices/transitive.py
 - app/tests/notice_transitive_test.py
+- app/packaging/notices/package_texts.py
+- app/packaging/notices/coverage.py
+- app/tests/notice_coverage_test.py
 - app/tests/group_b_packaging_test.py
 - app/tests/compiled_selection_packaging_test.py
 - app/packaging/seal_c/test_prepare.py

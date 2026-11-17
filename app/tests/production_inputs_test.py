@@ -11,14 +11,29 @@ ROOT = Path(__file__).resolve().parents[2]
 spec = importlib.util.spec_from_file_location('production_input_prepare', ROOT / 'app/packaging/production_inputs/prepare.py')
 module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
 
+def named_in_account():
+    spec = importlib.util.spec_from_file_location('production_test_coverage', ROOT / 'app/packaging/notices/coverage.py')
+    coverage = importlib.util.module_from_spec(spec); spec.loader.exec_module(coverage)
+    return coverage.check(ROOT)['mappings']
+
+
+NAMED = named_in_account()
+_spec = importlib.util.spec_from_file_location('production_test_coverage_rule', ROOT / 'app/packaging/notices/coverage.py')
+_rule = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(_rule)
+UNACCOUNTED = _rule.unaccounted
+
+
 class ProductionInputs(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name).resolve()
         self.source = self.root / 'source'
-        for relative in ('app/src-tauri/resources', 'app/packaging/unsigned', 'app/packaging/notices', 'app/packaging/sqlite_notice', 'app/packaging/font_notice', 'app/src/fonts', 'app/src-tauri/schemas'):
+        for relative in ('app/src-tauri/resources', 'app/packaging/unsigned', 'app/packaging/notices', 'app/packaging/sqlite_notice', 'app/packaging/font_notice',
+                         'app/packaging/supplier_notices', 'app/src/fonts', 'app/src-tauri/schemas', 'app/src-tauri/icons'):
             shutil.copytree(ROOT / relative, self.source / relative)
-        for relative in ('app/package-lock.json', 'app/src-tauri/Cargo.lock', 'app/src-tauri/Cargo.toml', 'app/src-tauri/tauri.conf.json', 'app/src/workspace.css', 'app/index.html', 'docs/RELEASE_LIMITATIONS_4.0.0.md'):
+        for relative in ('app/package.json', 'app/package-lock.json', 'app/src-tauri/Cargo.lock', 'app/src-tauri/Cargo.toml', 'app/src-tauri/tauri.conf.json',
+                         'app/src/workspace.css', 'app/index.html', 'app/src-tauri/src/hosting.rs', 'LICENSE.md',
+                         'docs/RELEASE_LIMITATIONS_4.0.0.md'):
             (self.source / relative).parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / relative, self.source / relative)
         self.vendor = self.root / 'vendor'; self.vendor.mkdir()
@@ -72,7 +87,19 @@ class ProductionInputs(unittest.TestCase):
             plan_sha256=r.files.sha(r.encode(r.plan(self.source))), components=['objc2'], basis='invented selection')))
         supplement = self.root / 'supplement'
         r.stage(intake, selection, supplement, self.source)
-        self.run_plan(upstream_notices=supplement)
+        # The receipt fixture invents objc2 metadata, which the coverage account rightly refuses;
+        # this test is about the supplement mapping, so the coverage step is stubbed here only.
+        real_load = module.load_module
+        class Coverage:
+            unaccounted = staticmethod(UNACCOUNTED)
+            __file__ = str(ROOT / 'app/packaging/notices/coverage.py')
+            @staticmethod
+            def check(root): return {'sha256': '0' * 64, 'counts': {}, 'open': [], 'supplier_pin': 'invented',
+                                     'mappings': NAMED}
+        def load(name, path):
+            return Coverage if name == 'production_notice_coverage' else real_load(name, path)
+        with patch.object(module, 'load_module', load):
+            self.run_plan(upstream_notices=supplement)
         config = json.loads((self.output / 'tauri.package-inputs.conf.json').read_bytes())
         resources = config['bundle']['resources']
         self.assertEqual(resources[str(supplement / 'LICENSE.md')], 'third-party-notices/upstream/LICENSE.md')
@@ -97,15 +124,21 @@ class ProductionInputs(unittest.TestCase):
         self.assertNotIn('CHIRALITY_PUBLISHER_SELECTION',recipe['environment'])
         self.assertIn('CHIRALITY_PUBLISHER_SELECTION',recipe['unset_environment'])
         self.assertIn('release/LIMITATIONS.md',dest)
-        self.assertEqual(len(config['bundle']['resources']),53)
-        self.assertEqual(len(dest),53)
+        self.assertEqual(len(dest),len(config['bundle']['resources']))
+        account=json.loads((self.output/'input-inventory.json').read_text())
+        coverage=json.loads((ROOT/'app/packaging/notices/coverage.json').read_text())
+        for component in coverage['components']:  # every notice the account names ships at the path it names
+            for text in component['texts']:
+                self.assertTrue(text['package_path'] in dest or text['package_path'].startswith('codex/'), text['package_path'])
+        self.assertEqual(account['notice_coverage']['sha256'],module.sha((ROOT/'app/packaging/notices/coverage.json').read_bytes()))
+        self.assertTrue(account['release_standing'].startswith('not for public release'))
         self.assertFalse(recipe['inherit_environment'])
         self.assertIn('CARGO_TARGET_DIR',recipe['required_environment'])
         self.assertNotIn('RUSTFLAGS',recipe['environment_allowlist'])
         self.assertNotIn('cargo_build_input', recipe)
         self.assertEqual(module.check_plan(self.output)['files'],result['files'])
         account=json.loads((self.output/'input-inventory.json').read_text())
-        self.assertEqual(len(account['tool_sha256']),4)
+        self.assertEqual(len(account['tool_sha256']),6)
         self.assertTrue(account['jsonschema_version'])
         self.assertFalse(result['build_executed']);self.assertFalse(result['signing_executed']);self.assertFalse(result['package_complete'])
     def test_explicit_cargo_input_preserves_config_bytes_and_host_target_scope(self):
@@ -172,7 +205,7 @@ class ProductionInputs(unittest.TestCase):
     def test_explicit_invented_publisher_input_binds_identifier_and_recipe(self):
         data={'format':'publisher-build-selection.s1','production_bundle_identifier':'invalid.example.chirality-v4','developer_id_team_identifier':'EXAMPLE001'}
         path=self.publisher_file()
-        result=self.run_plan(test_identifier=None,publisher_input=path,publisher_sha256=module.sha(path.read_bytes()))
+        result=self.run_plan(test_identifier=None,publisher_input=path,publisher_sha256=module.sha(path.read_bytes()),not_for_public_release=True)
         config=json.loads((self.output/'tauri.package-inputs.conf.json').read_text())
         recipe=json.loads((self.output/'build-recipe.json').read_text())
         self.assertEqual(config['identifier'],data['production_bundle_identifier'])
@@ -224,7 +257,7 @@ class ProductionInputs(unittest.TestCase):
                 self.run_plan(**self.production(self.profile_file(**changes)))
     def production(self, profile=None, profile_sha=None):
         path=self.publisher_file()
-        kw=dict(test_identifier=None,publisher_input=path,publisher_sha256=module.sha(path.read_bytes()))
+        kw=dict(test_identifier=None,publisher_input=path,publisher_sha256=module.sha(path.read_bytes()),not_for_public_release=True)
         if profile is not None: kw.update(provisioning_profile=profile,provisioning_profile_sha256=profile_sha or module.sha(profile.read_bytes()))
         return kw
     def test_selected_profile_is_embedded_at_contents_with_consistency_record(self):
@@ -378,6 +411,111 @@ class ProductionInputs(unittest.TestCase):
         with self.assertRaises(ValueError):self.run_plan(output=self.vendor/'output')
         alias=self.root/'alias';alias.symlink_to(self.output,target_is_directory=True)
         with self.assertRaises(ValueError):self.run_plan(output=alias/'child')
+    def test_production_plan_refuses_open_notice_coverage_unless_named_not_for_public_release(self):
+        open_items=json.loads((ROOT/'app/packaging/notices/coverage.json').read_text())['open']
+        self.assertTrue(open_items)
+        kw=self.production(); kw.pop('not_for_public_release')
+        with self.assertRaisesRegex(module.NoticeCoverageIncomplete,'notice coverage is incomplete') as caught: self.run_plan(**kw)
+        for item in open_items: self.assertIn(item['name'],str(caught.exception))
+        self.assertEqual(caught.exception.open_components,[o['name'] for o in open_items])
+        self.assertEqual(caught.exception.other_gaps,1)  # the account describes the declared pin, not the invented vendor
+        with self.assertRaisesRegex(ValueError,'true or false'): self.run_plan(**(kw|{'not_for_public_release':'yes'}))
+        self.assertFalse(self.output.exists())
+        result=self.run_plan(**self.production())
+        account=json.loads((self.output/'input-inventory.json').read_text())
+        self.assertEqual(account['release_standing'],'not for public release (named by the caller); notice coverage is incomplete')
+        self.assertIs(account['not_for_public_release'],True)
+        self.assertEqual((account['notice_coverage']['complete'],account['notice_coverage']['gaps']),(False,len(open_items)+1))
+        self.assertEqual(result['release_standing'],account['release_standing'])
+        self.assertEqual(len(account['notice_coverage']['open']),len(open_items))
+    def test_complete_account_for_another_supplier_cannot_make_a_public_plan(self):
+        # Review finding 4: an account made complete but describing 0.167.0 does not cover the invented 9.9.9 vendor.
+        real_load = module.load_module
+        account = json.loads((ROOT/'app/packaging/notices/coverage.json').read_text())
+        class Complete:
+            unaccounted = staticmethod(UNACCOUNTED)
+            __file__ = str(ROOT / 'app/packaging/notices/coverage.py')
+            @staticmethod
+            def check(root): return {'sha256': '0' * 64, 'counts': {'covered': 1}, 'open': [], 'supplier_pin': account['supplier_pin'],
+                                     'supplier_distribution': account['supplier_distribution'], 'mappings': NAMED}
+        def load(name, path):
+            return Complete if name == 'production_notice_coverage' else real_load(name, path)
+        kw=self.production(); kw.pop('not_for_public_release')
+        with patch.object(module, 'load_module', load):
+            with self.assertRaisesRegex(ValueError, 'describes supplier'): self.run_plan(**kw)
+            self.assertFalse(self.output.exists())
+            self.run_plan(**self.production())
+        inventory=json.loads((self.output/'input-inventory.json').read_text())
+        self.assertFalse(inventory['notice_coverage']['describes_selected_vendor'])
+        self.assertIn('notice coverage is incomplete', inventory['release_standing'])
+    def test_a_mapped_resource_the_account_does_not_name_cannot_make_a_public_plan(self):
+        # Even a complete account for the selected vendor refuses when it does not name a resource the plan maps.
+        real_load = module.load_module
+        manifest = self.kw['expected_manifest']
+        class Unnamed:
+            __file__ = str(ROOT / 'app/packaging/notices/coverage.py')
+            unaccounted = staticmethod(UNACCOUNTED)
+            @staticmethod
+            def check(root): return {'sha256': '0' * 64, 'counts': {'covered': 1}, 'open': [], 'supplier_pin': '9.9.9',
+                                     'supplier_distribution': {'manifest_sha256': manifest},
+                                     'mappings': [n for n in NAMED if n != ('selected:vendor-tree/', 'codex/')]}
+        def load(name, path):
+            return Unnamed if name == 'production_notice_coverage' else real_load(name, path)
+        kw=self.production(); kw.pop('not_for_public_release')
+        with patch.object(module, 'load_module', load):
+            with self.assertRaisesRegex(ValueError, 'bundle mapping not named in the notice coverage account: selected:vendor-tree/ -> codex/'): self.run_plan(**kw)
+        self.assertFalse(self.output.exists())
+    def test_unsupported_copy_routes_refuse_before_output(self):
+        # Round 4 finding 1: a route the account does not cover refuses rather than reaching the bundler unaccounted.
+        conf=self.source/'app/src-tauri/tauri.conf.json'; original=conf.read_text()
+        limitations='../../INVENTED-release/LIMITATIONS.md'
+        for name,change,message in (('macOS files',{'macOS':{'files':{'release/LIMITATIONS.md':limitations}}},'bundle.macOS.files'),
+                                    ('frameworks',{'macOS':{'frameworks':[limitations]}},'bundle.macOS.frameworks'),
+                                    ('external binary',{'externalBin':['binaries/invented']},'bundle.externalBin')):
+            with self.subTest(route=name):
+                value=json.loads(original); value['bundle'].update(change); conf.write_text(json.dumps(value))
+                with self.assertRaisesRegex(ValueError,message):self.run_plan(**self.production())
+                self.assertFalse(self.output.exists())
+        conf.write_text(original)
+        platform=self.source/'app/src-tauri/tauri.macos.conf.json'
+        platform.write_text(json.dumps({'bundle':{'resources':{limitations:'release/LIMITATIONS.md'}}}))
+        with self.assertRaisesRegex(ValueError,'platform or alternate Tauri configuration'):self.run_plan(**self.production())
+        self.assertFalse(self.output.exists())
+    def test_effective_routes_allow_only_the_validated_profile(self):
+        bundle=module.load_module('production_test_bundle','app/packaging/production_inputs/bundle_resources.py')
+        base={'active':False,'icon':['icons/icon.png'],'resources':{'resources/instructions/':'instructions/'}}
+        plan={'bundle':{'active':True,'resources':{'resources/instructions/':'instructions/','x':'y'},
+                        'macOS':{'minimumSystemVersion':'15.0','signingIdentity':None,'files':{'embedded.provisionprofile':'/p'}}}}
+        effective=bundle.merge_patch({'bundle':base},plan)['bundle']
+        self.assertEqual(effective['resources'],plan['bundle']['resources']); self.assertEqual(effective['icon'],base['icon'])
+        bundle.check_routes(effective,profile='/p')
+        with self.assertRaisesRegex(ValueError,'validated provisioning profile'):bundle.check_routes(effective)
+        effective['macOS']['files']['LIMITATIONS.md']='/other'
+        with self.assertRaisesRegex(ValueError,'validated provisioning profile'):bundle.check_routes(effective,profile='/p')
+    def test_a_foreign_selection_under_a_named_folder_cannot_make_a_public_plan(self):
+        # Round 4 finding 2, through the preparation: the account regenerated from this source differs, so it refuses.
+        foreign=self.source/'app/packaging/supplier_notices/INVENTED-foreign/LICENSE'
+        foreign.parent.mkdir(); foreign.write_text('INVENTED foreign licence text\n')
+        path=self.source/'app/packaging/unsigned/tauri.attested-reference.conf.json'
+        value=json.loads(path.read_text())
+        value['bundle']['resources']['../packaging/supplier_notices/INVENTED-foreign/LICENSE']='distribution-reference/extra.txt'
+        path.write_text(json.dumps(value))
+        with self.assertRaisesRegex(ValueError,'coverage.json is stale'):self.run_plan(**self.production())
+        self.assertFalse(self.output.exists())
+    def test_an_app_file_replaced_by_a_directory_refuses_before_plan_output(self):
+        target=self.source/'app/src-tauri/resources/distribution-reference/VERSION_ADVANCE_0.160.0.md'
+        target.unlink(); target.mkdir()
+        (target/'INVENTED-foreign.txt').write_text('INVENTED third-party content; not App-authored\n')
+        for flag in (False,True):
+            with self.subTest(not_for_public_release=flag):
+                with self.assertRaisesRegex(ValueError,'App content source must be a regular non-link file'):
+                    self.run_plan(**{**self.production(),'not_for_public_release':flag})
+                self.assertFalse(self.output.exists())
+    def test_stale_coverage_account_refuses_before_output(self):
+        path=self.source/'app/packaging/notices/coverage.json'
+        value=json.loads(path.read_text()); value['counts']['covered']+=1; path.write_text(json.dumps(value))
+        with self.assertRaisesRegex(ValueError,'coverage.json is stale'):self.run_plan()
+        self.assertFalse(self.output.exists())
     def test_missing_mapped_notice_refuses_before_output(self):
         (self.source/'app/packaging/notices/index.json').unlink()
         with self.assertRaises(FileNotFoundError):self.run_plan()
