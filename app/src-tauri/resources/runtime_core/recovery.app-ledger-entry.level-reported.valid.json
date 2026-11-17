@@ -1,0 +1,21 @@
+{
+  "kind": "level_reported",
+  "session": "app-session:invented",
+  "entryId": "level-reported:1",
+  "at": "2026-11-14T12:00:02Z",
+  "chosen": "level-chosen:1",
+  "sent": "level-sent:1",
+  "home": "home:invented",
+  "threadId": "thread-invented",
+  "from": "thread/start",
+  "approvalPolicy": "on-request",
+  "approvalsReviewer": "user",
+  "sandbox": {
+    "type": "workspaceWrite",
+    "writableRoots": [],
+    "networkAccess": false,
+    "excludeTmpdirEnvVar": true,
+    "excludeSlashTmp": true
+  },
+  "agreement": "agrees"
+}

@@ -155,14 +155,14 @@ class ReleaseBuild(unittest.TestCase):
         return self.private
 
     def test_overlay_identity_is_the_release_identity(self):
-        self.run_build()
+        self.run_build(not_for_public_release=True)
         config = json.loads((self.candidate / 'plan/tauri.package-inputs.conf.json').read_text())
         self.assertEqual((config['productName'], config['identifier'], config['version']), ('Chirality', 'com.chirality.app', '4.0.0'))
         self.assertEqual(config['bundle']['macOS'], {'minimumSystemVersion': '15.0', 'signingIdentity': None})
         self.assertEqual(config['bundle']['targets'], ['app'])
 
     def test_build_writes_a_candidate_that_verifies(self):
-        result = self.run_build()
+        result = self.run_build(not_for_public_release=True)
         self.assertFalse(result['signing_executed'])
         description, app, binding, requirement = common.load_candidate(self.candidate)
         self.assertEqual(app.name, 'Chirality.app')
@@ -179,7 +179,7 @@ class ReleaseBuild(unittest.TestCase):
         self.assertEqual(validated, {'chirality-app-v4', 'codex'})
 
     def test_recipe_runs_from_exactly_the_allowlisted_environment(self):
-        self.run_build()
+        self.run_build(not_for_public_release=True)
         recipe = json.loads((self.candidate / 'plan/build-recipe.json').read_text())
         call = next(c for c in self.fake.calls if c['argv'][0] == 'node')
         self.assertEqual(call['argv'], recipe['argv'])
@@ -194,7 +194,7 @@ class ReleaseBuild(unittest.TestCase):
         self.assertEqual(Path(install['cwd']), self.candidate / 'source/app')
 
     def test_publisher_input_is_generated_from_the_source_keychain_selection(self):
-        self.run_build()
+        self.run_build(not_for_public_release=True)
         generated = self.candidate / 'publisher-input/publisher-build-selection.json'
         self.assertEqual(json.loads(generated.read_text()), {'format': 'publisher-build-selection.s1',
                          'production_bundle_identifier': 'com.chirality.app', 'developer_id_team_identifier': self.team})
@@ -208,7 +208,7 @@ class ReleaseBuild(unittest.TestCase):
         path = supplied / 'selection.json'
         path.write_text(json.dumps({'format': 'publisher-build-selection.s1', 'production_bundle_identifier': 'com.chirality.app',
                                     'developer_id_team_identifier': self.team}))
-        self.run_build(publisher_input=path, publisher_sha256=fx.sha(path.read_bytes()))
+        self.run_build(not_for_public_release=True, publisher_input=path, publisher_sha256=fx.sha(path.read_bytes()))
         self.assertFalse((self.candidate / 'publisher-input').exists())
         self.assertEqual(json.loads((self.candidate / 'CANDIDATE.json').read_text())['build']['publisher_input_origin'], 'supplied publisher input file')
 
@@ -246,7 +246,7 @@ class ReleaseBuild(unittest.TestCase):
                 for key, value in changes.items():
                     setattr(self.fake, key, value)
                 with self.assertRaises(common.Failure) as raised:
-                    self.run_build()
+                    self.run_build(not_for_public_release=True)
                 self.assertEqual(raised.exception.code, 'BUILD_CHECKS')
                 refused = json.loads((self.candidate / 'BUILD_REFUSED.json').read_text())
                 self.assertIn(check_name, [c['check'] for c in refused['checks']])
@@ -264,7 +264,7 @@ class ReleaseBuild(unittest.TestCase):
             ('caller home', self.caller_home), ('cargo cache', self.cargo_cache), ('npm cache', self.npm_cache),
             ('source export', self.source), ('vendor', self.vendor))}
         with patch.dict(os.environ, {'HOME': str(self.caller_home)}):
-            self.run_build()
+            self.run_build(not_for_public_release=True)
         for name, before in watched.items():
             with self.subTest(name):
                 self.assertTrue(common.inventory.compare(common.inventory.scan(before['root']), before)['equal'])
@@ -310,7 +310,7 @@ class ReleaseBuild(unittest.TestCase):
                 else:
                     self.fake.dyld = {'chirality-app-v4': Result(1)}
                 with self.assertRaises(common.Failure):
-                    self.run_build()
+                    self.run_build(not_for_public_release=True)
                 self.assertFalse((self.candidate / 'CANDIDATE.json').exists())
                 self.assertTrue((self.candidate / 'INCOMPLETE.txt').exists())
                 self.assertEqual(json.loads((self.candidate / 'BUILD_FAILED.json').read_text())['result'], 'failed')
@@ -333,7 +333,7 @@ class ReleaseBuild(unittest.TestCase):
         }
         for name, changes in cases.items():
             with self.subTest(name), self.assertRaises(common.Failure):
-                self.run_build(**changes)
+                self.run_build(not_for_public_release=True, **changes)
         self.assertFalse(any(c['argv'][0] == 'node' for c in self.fake.calls))
 
     def test_links_that_leave_a_copied_input_are_refused(self):
@@ -377,7 +377,7 @@ class ReleaseBuild(unittest.TestCase):
                 self.setUp()
                 outside = make(self)
                 with self.assertRaises(common.Failure) as raised:
-                    self.run_build()
+                    self.run_build(not_for_public_release=True)
                 self.assertEqual(raised.exception.code, 'BUILD_LINK')
                 self.assertEqual(sorted(p.name for p in outside.iterdir()), [] if 'hard' not in name else ['original'])
                 self.assertFalse(self.candidate.exists())
@@ -386,7 +386,7 @@ class ReleaseBuild(unittest.TestCase):
         hidden = self.root / common.PRIVATE_FOLDER
         for key in ('source_root', 'vendor', 'cargo_cache', 'npm_cache', 'out'):
             with self.subTest(key), self.assertRaises(common.Failure) as raised:
-                self.run_build(**{key: hidden / 'input'})
+                self.run_build(not_for_public_release=True, **{key: hidden / 'input'})
             self.assertEqual(raised.exception.code, 'BUILD_PRIVATE_INPUT')
         self.assertFalse(hidden.exists())
 
@@ -417,10 +417,10 @@ class ReleaseBuild(unittest.TestCase):
                 for name in build.TOOLS:
                     with self.subTest(tool=name, spelling=spelling), patch.object(os, 'open', intercepted), patch.object(build.prepare.files, 'transfer', transfer):
                         with self.assertRaises(common.Failure) as raised:
-                            self.run_build(tools=self.tools | {name: str(alias / ('invented-' + name))})
+                            self.run_build(not_for_public_release=True, tools=self.tools | {name: str(alias / ('invented-' + name))})
                         self.assertEqual(raised.exception.code, 'BUILD_PRIVATE_INPUT')
                 with self.subTest(path=spelling), patch.object(os, 'open', intercepted), self.assertRaises(common.Failure) as raised:
-                    self.run_build(environment=self.environment | {'PATH': str(alias) + ':' + self.environment['PATH']})
+                    self.run_build(not_for_public_release=True, environment=self.environment | {'PATH': str(alias) + ':' + self.environment['PATH']})
                 self.assertEqual(raised.exception.code, 'BUILD_PRIVATE_INPUT')
             self.assertEqual(attempts, [])
             self.assertEqual(self.fake.calls, [])
@@ -449,7 +449,7 @@ class ReleaseBuild(unittest.TestCase):
                     try:
                         with self.subTest(root=root.name, nested=nested, spelling=spelling), patch.object(os, 'open', intercepted):
                             with self.assertRaises(common.Failure) as raised:
-                                self.run_build()
+                                self.run_build(not_for_public_release=True)
                             self.assertEqual(raised.exception.code, 'BUILD_PRIVATE_INPUT')
                             self.assertEqual(attempts, [])
                             self.assertFalse(self.candidate.exists())
@@ -486,7 +486,7 @@ class ReleaseBuild(unittest.TestCase):
             with self.subTest(parent=parent.name), patch.object(build.shutil, 'copytree', side_effect=AssertionError('copy reached')) as copied:
                 out = parent / 'candidate'
                 with self.assertRaises(common.Failure) as raised:
-                    self.run_build(out=out, publisher_input=publisher, publisher_sha256=fx.sha(publisher.read_bytes()))
+                    self.run_build(not_for_public_release=True, out=out, publisher_input=publisher, publisher_sha256=fx.sha(publisher.read_bytes()))
                 self.assertEqual(raised.exception.code, 'BUILD_OVERLAP')
                 copied.assert_not_called()
                 self.assertFalse(os.path.lexists(out))
@@ -507,7 +507,7 @@ class ReleaseBuild(unittest.TestCase):
                 return original(**kw)
             with self.subTest(field=field), patch.object(fx, 'binding_bytes', wrong_binding):
                 with self.assertRaises(common.Failure) as raised:
-                    self.run_build(publisher_input=path, publisher_sha256=fx.sha(path.read_bytes()))
+                    self.run_build(not_for_public_release=True, publisher_input=path, publisher_sha256=fx.sha(path.read_bytes()))
                 self.assertEqual(raised.exception.code, 'BUILD_PUBLISHER_MATCH')
                 self.assertFalse(self.candidate.exists())
                 self.assertEqual(self.fake.calls, [])
@@ -520,7 +520,7 @@ class ReleaseBuild(unittest.TestCase):
             return original(**kw)
         with patch.object(fx, 'binding_bytes', wrong_binding), patch.object(fx, 'REQUIREMENT', requirement):
             with self.assertRaises(common.Failure) as raised:
-                self.run_build()
+                self.run_build(not_for_public_release=True)
         self.assertEqual(raised.exception.code, 'BUILD_CHECKS')
         self.assertFalse((self.candidate / common.CANDIDATE_FILE).exists())
         refused = json.loads((self.candidate / 'BUILD_REFUSED.json').read_bytes())
@@ -532,7 +532,7 @@ class ReleaseBuild(unittest.TestCase):
                 self.setUp()
                 self.fake.dyld = {'chirality-app-v4': Result(0, stdout, stderr)}
                 with self.assertRaises(common.Failure) as raised:
-                    self.run_build()
+                    self.run_build(not_for_public_release=True)
                 self.assertEqual(raised.exception.code, 'BUILD_CHECKS')
 
     def test_scope_whitespace_rule_keeps_one_line_and_ascii_only_stderr(self):
@@ -548,7 +548,7 @@ class ReleaseBuild(unittest.TestCase):
         secrets = ['invented-owner@example.invalid', 'invented-secret', 'QQQQ11111Q']
         self.fake.install = Result(1, b'invented-owner@example.invalid\n', b'password=invented-secret QQQQ11111Q\n')
         out, err = io.StringIO(), io.StringIO()
-        self.assertEqual(build.main(self.cli_args(), stdout=out, stderr=err, runner=self.fake, host=('Darwin', 'arm64'),
+        self.assertEqual(build.main(self.cli_args('--not-for-public-release'), stdout=out, stderr=err, runner=self.fake, host=('Darwin', 'arm64'),
                                     private=self.private_writer), 2)
         self.assertEqual(err.getvalue(), 'FAILED: ' + common.REASONS['BUILD_INSTALL'] + '\n')
         self.assertFalse((self.candidate / 'install-stdout.log').exists())
@@ -565,7 +565,7 @@ class ReleaseBuild(unittest.TestCase):
                 raise ValueError('password=invented-secret invented-owner@example.invalid')
             return original(argv, **kw)
         out, err = io.StringIO(), io.StringIO()
-        self.assertEqual(build.main(self.cli_args(), stdout=out, stderr=err, runner=explode, host=('Darwin', 'arm64'),
+        self.assertEqual(build.main(self.cli_args('--not-for-public-release'), stdout=out, stderr=err, runner=explode, host=('Darwin', 'arm64'),
                                     private=self.private_writer), 2)
         self.assertEqual(err.getvalue(), 'FAILED: ' + common.REASONS['BUILD_UNEXPECTED_INSTALL'] + '\n')
         text = (self.candidate / 'BUILD_FAILED.json').read_text()
@@ -577,7 +577,7 @@ class ReleaseBuild(unittest.TestCase):
     def test_the_candidate_is_published_only_after_the_final_check(self):
         with patch.object(common, 'load_candidate', side_effect=OSError('invented transient read failure')):
             with self.assertRaises(common.Failure) as raised:
-                self.run_build()
+                self.run_build(not_for_public_release=True)
         self.assertEqual(raised.exception.code, 'BUILD_FINAL')
         self.assertFalse((self.candidate / common.CANDIDATE_FILE).exists())
         self.assertTrue((self.candidate / 'INCOMPLETE.txt').exists())
@@ -585,13 +585,125 @@ class ReleaseBuild(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'did not finish'):
             common.load_candidate(self.candidate, name=common.CANDIDATE_PENDING)
         self.setUp()
-        self.run_build()
+        self.run_build(not_for_public_release=True)
         self.walk_returnable(self.candidate / common.CANDIDATE_FILE)
         self.assertFalse((self.candidate / common.CANDIDATE_PENDING).exists())
         self.assertNotIn(str(self.root), (self.candidate / common.CANDIDATE_FILE).read_text())
 
-    def cli_args(self):
-        args = ['--source-root', str(self.source), '--revision', 'a' * 40, '--vendor', str(self.vendor), '--expected-manifest',
+    # Release standing (App Agent 0's decision for pull request 243): without --not-for-public-release no candidate is
+    # built while any notice is open; with it, the candidate carries its standing; the option changes no bundle byte.
+    def test_an_app_file_replaced_by_a_directory_refuses_before_build(self):
+        target = self.source / 'app/src-tauri/resources/distribution-reference/VERSION_ADVANCE_0.160.0.md'
+        target.unlink()
+        target.mkdir()
+        (target / 'INVENTED-foreign.txt').write_text('INVENTED third-party content; not App-authored\n')
+        for flag in (False, True):
+            with self.subTest(not_for_public_release=flag):
+                self.candidate = self.root / ('directory-refusal-' + str(flag).lower())
+                self.fake.calls.clear()
+                with self.assertRaises(common.Failure) as raised:
+                    self.run_build(not_for_public_release=flag)
+                self.assertEqual(raised.exception.code, 'BUILD_PLAN')
+                self.assertFalse((self.candidate / common.CANDIDATE_FILE).exists())
+                self.assertFalse((self.candidate / 'plan').exists())
+                self.assertFalse(any(c['argv'][0] in ('node', 'npm') for c in self.fake.calls))
+
+    def test_without_the_option_an_open_notice_refuses_with_the_gates_reason(self):
+        account = json.loads((ROOT / 'app/packaging/notices/coverage.json').read_text())
+        self.assertTrue(account['open'])
+        with self.assertRaises(common.Failure) as raised:
+            self.run_build()
+        self.assertEqual(raised.exception.code, 'BUILD_NOTICE_COVERAGE')
+        failed = json.loads((self.candidate / 'BUILD_FAILED.json').read_text())
+        self.assertEqual((failed['stage'], failed['reason_code']), ('PLAN', 'BUILD_NOTICE_COVERAGE'))
+        self.assertEqual(failed['open_components'], [o['name'] for o in account['open']])
+        self.assertEqual(failed['other_notice_gaps'], 1)  # the account describes the declared pin, not the invented 9.9.9 vendor
+        self.walk_returnable(self.candidate / 'BUILD_FAILED.json')
+        self.assertFalse((self.candidate / common.CANDIDATE_FILE).exists())
+        self.assertFalse(any(c['argv'][0] in ('node', 'npm') for c in self.fake.calls))
+        # Through the command line: the option is off unless typed, and the fixed reason is all that is printed.
+        self.setUp()
+        out, err = io.StringIO(), io.StringIO()
+        self.assertEqual(build.main(self.cli_args(), stdout=out, stderr=err, runner=self.fake, host=('Darwin', 'arm64'),
+                                    private=self.private_writer), 2)
+        self.assertEqual(err.getvalue(), 'FAILED: ' + common.REASONS['BUILD_NOTICE_COVERAGE'] + '\n')
+        self.assertNotIn(str(self.root), err.getvalue() + out.getvalue() + (self.candidate / 'BUILD_FAILED.json').read_text())
+        # Only an explicit true or false is accepted.
+        self.setUp()
+        with self.assertRaises(common.Failure) as raised:
+            self.run_build(not_for_public_release='yes')
+        self.assertEqual(raised.exception.code, 'BUILD_ENVIRONMENT')
+
+    def test_with_the_option_the_candidate_carries_its_standing_and_the_plan_binds_it(self):
+        self.run_build(not_for_public_release=True)
+        description, _, _, _ = common.load_candidate(self.candidate)
+        account = json.loads((ROOT / 'app/packaging/notices/coverage.json').read_text())
+        self.assertEqual(description['release_standing'], {
+            'not_for_public_release': True, 'standing': 'not for public release (named by the caller); notice coverage is incomplete',
+            'notice_coverage_complete': False, 'notice_coverage_sha256': fx.sha((ROOT / 'app/packaging/notices/coverage.json').read_bytes()),
+            'notice_gaps': len(account['open']) + 1})
+        plan = json.loads((self.candidate / 'plan/input-inventory.json').read_text())
+        self.assertEqual((plan['release_standing'], plan['not_for_public_release']), (description['release_standing']['standing'], True))
+        # A described standing that differs from the plan, or is not a known standing, refuses.
+        original = (self.candidate / common.CANDIDATE_FILE).read_text()
+        for change in ({'standing': 'notice coverage complete', 'not_for_public_release': False},
+                       {'standing': 'notice coverage complete', 'not_for_public_release': False, 'notice_coverage_complete': True, 'notice_gaps': 0},
+                       {'standing': 'publication candidate'}, {'notice_gaps': 0}):
+            with self.subTest(change=change):
+                value = json.loads(original); value['release_standing'].update(change)
+                os.chmod(self.candidate / common.CANDIDATE_FILE, 0o644)
+                (self.candidate / common.CANDIDATE_FILE).write_text(json.dumps(value))
+                with self.assertRaisesRegex(ValueError, 'release standing'):
+                    common.load_candidate(self.candidate)
+        value = json.loads(original); value.pop('release_standing')
+        (self.candidate / common.CANDIDATE_FILE).write_text(json.dumps(value))
+        with self.assertRaisesRegex(ValueError, 'release standing missing'):
+            common.load_candidate(self.candidate)
+
+    def complete_coverage(self):
+        """A coverage account that is complete for the invented vendor and names every mapping the plan gives."""
+        real_load, manifest = prepare.load_module, self.kw['expected_manifest']
+        class Complete:
+            __file__ = str(ROOT / 'app/packaging/notices/coverage.py')
+            unaccounted = staticmethod(inputs.UNACCOUNTED)
+            @staticmethod
+            def check(root):
+                return {'sha256': '1' * 64, 'counts': {'covered': 1}, 'open': [], 'supplier_pin': '9.9.9',
+                        'supplier_distribution': {'manifest_sha256': manifest}, 'mappings': inputs.NAMED}
+        return patch.object(prepare, 'load_module', lambda name, path: Complete if name == 'production_notice_coverage' else real_load(name, path))
+
+    def test_the_option_changes_no_bundle_input_or_byte(self):
+        built = {}
+        with self.complete_coverage():
+            for flag in (False, True):
+                self.candidate = self.root / ('candidate-' + str(flag).lower())
+                self.fake.calls.clear()
+                self.run_build(not_for_public_release=flag)
+                description, app, _, _ = common.load_candidate(self.candidate)
+                node = next(c for c in self.fake.calls if c['argv'][0] == 'node')
+                files = {e['path']: (self.candidate / description['bundle']['path'] / e['path']).read_bytes()
+                         for e in description['bundle']['inventory']['entries'] if e['kind'] == 'file'}
+                built[flag] = {'config': (self.candidate / 'plan/tauri.package-inputs.conf.json').read_bytes(),
+                               # Paths inside each run's own folder differ by folder only; they are compared as <out>.
+                               'environment': {k: v.replace(str(self.candidate), '<out>') for k, v in node['env'].items()},
+                               'description': description, 'files': files,
+                               'argv': [a.replace(str(self.candidate), '<out>') for a in node['argv']],
+                               'recipe': (self.candidate / 'plan/build-recipe.json').read_text().replace(str(self.candidate), '<out>')}
+        off, on = built[False], built[True]
+        self.assertEqual(off['config'], on['config'])
+        self.assertEqual(off['argv'], on['argv'])
+        self.assertEqual(off['environment'], on['environment'])
+        self.assertEqual(off['recipe'], on['recipe'])
+        self.assertEqual(off['files'], on['files'])
+        self.assertTrue(off['files'])
+        for key in ('bundle', 'vendor', 'resources', 'publisher', 'limitations'):
+            self.assertEqual(off['description'][key], on['description'][key], key)
+        self.assertEqual((off['description']['release_standing']['standing'], on['description']['release_standing']['standing']),
+                         ('notice coverage complete', 'not for public release (named by the caller)'))
+        self.assertEqual((off['description']['release_standing']['notice_gaps'], on['description']['release_standing']['notice_gaps']), (0, 0))
+
+    def cli_args(self, *extra):
+        args = [*extra, '--source-root', str(self.source), '--revision', 'a' * 40, '--vendor', str(self.vendor), '--expected-manifest',
                 self.kw['expected_manifest'], '--pin', '9.9.9', '--out', str(self.candidate), '--cargo-cache', str(self.cargo_cache),
                 '--npm-cache', str(self.npm_cache)]
         for k, v in self.environment.items():

@@ -37,7 +37,7 @@ class Observations(unittest.TestCase):
  def test_cached_root_notices_match_selected_public_tree_blob_identities(self):
   evidence=json.loads((ROOT/'app/packaging/notices/codex-public-metadata.json').read_text())
   for item in evidence['matched_local_root_notices']:
-   raw=(ROOT/'app/packaging/supplier_notices/codex-0.160.0'/item['path']).read_bytes()
+   raw=(ROOT/'app/packaging/supplier_notices/codex'/item['path']).read_bytes()
    self.assertEqual(len(raw),item['size_bytes'])
    self.assertEqual(hashlib.sha256(raw).hexdigest(),item['sha256'])
    self.assertEqual(hashlib.sha1(b'blob '+str(len(raw)).encode()+b'\0'+raw).hexdigest(),item['git_blob_sha1'])

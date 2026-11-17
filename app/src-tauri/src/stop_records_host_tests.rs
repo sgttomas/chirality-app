@@ -45,7 +45,7 @@ fn transitions(path: &Path) -> Vec<String> {
 /// Runs `operation` against a `/bin/cat` pipe. When the request frame is
 /// read, `at_send` runs first (it sees the world as of the write), then the
 /// `response` is delivered.
-fn exchange<T>(host: &Arc<Host>, g: &Value, response: Option<Value>, at_send: impl FnOnce() + Send + 'static, operation: impl FnOnce() -> T) -> (T, Value) {
+fn exchange<T>(host: &Arc<Host>, g: &Value, response: Option<Value>, at_send: impl FnOnce() + Send + 'static, operation: impl FnOnce() -> Result<T,String>) -> (Result<T,String>, Value) {
     let mut child = Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();
     *host.stdin.lock().unwrap() = child.stdin.take();
     let stdout = child.stdout.take().unwrap();
@@ -64,7 +64,8 @@ fn exchange<T>(host: &Arc<Host>, g: &Value, response: Option<Value>, at_send: im
         }
     });
     let result = operation();
-    let outbound = rx.recv().unwrap();
+    if result.is_err() { *host.stdin.lock().unwrap()=None; }
+    let outbound = rx.recv().expect("stop peer received no frame");
     worker.join().unwrap();
     *host.stdin.lock().unwrap() = None;
     assert!(child.wait().unwrap().success());

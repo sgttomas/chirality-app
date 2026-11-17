@@ -10,7 +10,7 @@ use std::os::unix::fs::PermissionsExt;
 /// from the host's table: each name with the class code the record gives it.
 /// Every expectation below comes from these lists; the host's table is compared
 /// with them once, in `the_hosts_table_is_the_decided_list`.
-pub(super) const DECIDED: [(&str, &str); 33] = [
+pub(super) const DECIDED: [(&str, &str); 34] = [
     ("OPENAI_API_KEY", "credential-custody/credential-variable"),
     ("CODEX_API_KEY", "credential-custody/credential-variable"),
     ("CODEX_ACCESS_TOKEN", "credential-custody/credential-variable"),
@@ -44,6 +44,7 @@ pub(super) const DECIDED: [(&str, &str); 33] = [
     ("CODEX_ROLLOUT_TRACE_ROOT", "home-separation"),
     ("CODEX_PLUGIN_METRICS_OUTPUT", "home-separation"),
     ("CODEX_TUI_SESSION_LOG_PATH", "home-separation"),
+    ("CODEX_EXEC_SERVER_URL", "level/execution-location"),
 ];
 /// The names whose values a configuration record treats as secret: the ten
 /// credential variables (the class is well-known provider credential names,
@@ -73,13 +74,13 @@ pub(super) const WRAPPER: [&str; 2] = ["CODEX_MANAGED_PACKAGE_ROOT", "CODEX_MANA
 /// Decided as kept: names the pinned Codex reads that the App leaves to the
 /// person, each with its reason. None may be on the host's list, and each
 /// reaches the child. The rule: the App removes what decides who Codex signs
-/// in as or supplies a credential for the model service; it leaves the
+/// in as, supplies a credential for the model service, or names where Codex
+/// runs commands (the permission level); it leaves the
 /// person's network route and the person's own tooling alone. A reason that
 /// holds only at one supplier pin names that pin, and a test fails when the
 /// pin changes, so that the name is decided again.
-const KEPT: [(&str, &str, Option<&str>); 27] = [
+const KEPT: [(&str, &str, Option<&str>); 26] = [
     ("CODEX_CA_CERTIFICATE", "TLS trust the person sets; deliberately kept", None),
-    ("CODEX_EXEC_SERVER_URL", "an execution backend the person sets; decided as kept", None),
     ("HTTP_PROXY", "the person's own network route", None),
     ("http_proxy", "the person's own network route", None),
     ("HTTPS_PROXY", "the person's own network route", None),
@@ -174,6 +175,7 @@ impl Stand {
 import os,sys,json
 def dump(kind):
  with open(os.path.join(os.environ['CHIRALITY_CHILD_ENV_DUMP'],kind+'.json'),'w') as f: json.dump(dict(os.environ),f)
+ with open(os.path.join(os.environ['CHIRALITY_CHILD_ENV_DUMP'],kind+'.argv.json'),'w') as f: json.dump(sys.argv[1:],f)
 if '--version' in sys.argv:
  dump('probe'); print('codex-cli 0.169.0'); sys.exit(0)
 dump('server')
@@ -196,6 +198,13 @@ for line in sys.stdin:
         let env = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
         std::fs::remove_file(path).unwrap();
         env
+    }
+    /// The child's command-line arguments after its program.
+    fn argv(&self, kind: &str) -> Vec<String> {
+        let path = PathBuf::from(std::env::var_os(DUMP).unwrap()).join(format!("{kind}.argv.json"));
+        let argv = serde_json::from_slice(&std::fs::read(&path).unwrap()).unwrap();
+        std::fs::remove_file(path).unwrap();
+        argv
     }
 }
 impl Drop for Stand {
@@ -223,6 +232,27 @@ fn child_environment_inner_observed_on_every_start_path() {
         let path = if successor { "successor" } else { "ordinary" };
         let expected: Vec<(&str, &str)> = DECIDED.iter().copied().chain(WRAPPER.iter().filter(|_| successor).map(|name| (*name, "launcher-wrapper"))).collect();
         let dumps: BTreeMap<_, _> = ["probe", "server"].into_iter().map(|kind| (kind, stand.dump(kind))).collect();
+        // The exact set of names each child receives: the parent's, minus every removed name (and the wrapper
+        // settings on the successor route), plus what the App sets by design, each named: CODEX_HOME on both
+        // routes, and PATH on the successor route (the launch plan's). A name the App adds beyond these fails.
+        // macOS itself drops every DYLD_ name when it starts a protected program (this stand runs through
+        // /usr/bin/env), so those are left out of the comparison: the App neither sets nor removes them.
+        let parent: std::collections::BTreeSet<String> = std::env::vars_os().map(|(name, _)| name.to_string_lossy().into_owned())
+            .filter(|name| !name.starts_with("DYLD_")).collect();
+        let mut by_design = vec!["CODEX_HOME"];
+        if successor { by_design.push("PATH"); }
+        let want: std::collections::BTreeSet<String> = parent.iter().filter(|n| !expected.iter().any(|(r, _)| r == n)).cloned()
+            .chain(by_design.iter().map(|n| n.to_string())).collect();
+        for (kind, env) in &dumps {
+            let got: std::collections::BTreeSet<String> = env.keys().filter(|name| !name.starts_with("DYLD_")).cloned().collect();
+            assert_eq!(got, want, "{path} {kind}: the child's names are exactly the parent's less the removals plus {by_design:?}");
+        }
+        // No remote control: the app-server is started with no --remote-control flag.
+        for kind in ["probe", "server"] {
+            let argv = stand.argv(kind);
+            assert!(!argv.iter().any(|a| a.contains("remote-control") || a.contains("remote_control")), "{path} {kind}: {argv:?}");
+            if kind == "server" { assert_eq!(argv.last().map(String::as_str), Some("app-server"), "{path}: {argv:?}"); }
+        }
         for (kind, env) in &dumps {
             for (name, _) in &expected {
                 assert!(!env.contains_key(*name), "{path} {kind}: {name} reached the child");

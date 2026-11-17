@@ -419,7 +419,7 @@ for line in sys.stdin:
  elif method=='thread/start':
   cwd=f['params'].get('cwd') or os.getcwd()
   threads['thread']=cwd
-  emit({'id':f['id'],'result':{'thread':thread(cwd),'model':f['params'].get('model'),'modelProvider':f['params'].get('modelProvider'),'cwd':cwd,'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}})
+  emit({'id':f['id'],'result':{'thread':thread(cwd),'model':f['params'].get('model'),'modelProvider':f['params'].get('modelProvider'),'cwd':cwd,'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'workspaceWrite','writableRoots':[],'networkAccess':False,'excludeTmpdirEnvVar':True,'excludeSlashTmp':True},'instructionSources':[]}})
  elif method=='config/read':
   # An App-started account home reports the built-in provider; a fork is admitted only there.
   emit({'id':f['id'],'result':{'config':{'model_provider':'openai','model_providers':{}},'origins':{}}})
@@ -427,7 +427,7 @@ for line in sys.stdin:
   src=f['params']['threadId'];cwd=threads[src]
   if os.path.exists('fork-cwd'):cwd=open('fork-cwd').read()
   t=thread(cwd,'fork');t['forkedFromId']=src;threads['fork']=cwd
-  emit({'id':f['id'],'result':{'thread':t,'model':'fixture-model','modelProvider':'fixture-provider','cwd':cwd,'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}})
+  emit({'id':f['id'],'result':{'thread':t,'model':'fixture-model','modelProvider':'fixture-provider','cwd':cwd,'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'workspaceWrite','writableRoots':[],'networkAccess':False,'excludeTmpdirEnvVar':True,'excludeSlashTmp':True},'instructionSources':[]}})
  elif method=='turn/start':
   tid=f['params']['threadId']
   emit({'id':f['id'],'result':{'turn':{'id':'turn','status':'inProgress','items':[],'error':None,'itemsView':'summary'}}})
@@ -538,7 +538,7 @@ fn records_access_fork_inherits_only_known_offer_and_keeps_project_scope() {
         assert_eq!(fork["threadId"], "fork");
         let wire = || -> Vec<Value> { std::fs::read_to_string(project.join("wire.jsonl")).unwrap_or_default().lines().map(|l| serde_json::from_str(l).unwrap()).collect() };
         let outbound = wire().into_iter().find(|w| w["method"] == "thread/fork").unwrap();
-        assert_eq!(outbound["params"], json!({"threadId":"thread","deferGoalContinuation":true}));
+        assert_eq!(outbound["params"], crate::codex_level::with_test_level_at(&json!({"threadId":"thread","deferGoalContinuation":true}), "thread/fork", source));
         host.turn_start_text(&generation, "fork", "Read the records in this project.").unwrap();
         let deadline = Instant::now() + Duration::from_secs(10);
         let reply = |id: &str| wire().into_iter().find(|w| w["id"] == id && w.get("method").is_none());

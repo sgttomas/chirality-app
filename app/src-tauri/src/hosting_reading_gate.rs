@@ -196,13 +196,17 @@ impl Host {
     /// Reserved to Registered, under the host's state lock at registration: this request becomes
     /// the newest reading of the generation, and every earlier proof of it, of any folder, is no
     /// longer current.
-    pub(super) fn reading_register_locked(i: &mut Inner, hold: &ReadingHold, request: &SourceRequest, method: &str) -> Result<(), String> {
+    /// `proof` false: a reading that is no proof of the configuration for any other request (the project trust
+    /// reading, `level_state::TRUST_READING_INITIATOR`): it holds the reservation like any other, and leaves the
+    /// newest proof as it was.
+    pub(super) fn reading_register_locked(i: &mut Inner, hold: &ReadingHold, request: &SourceRequest, method: &str, proof: bool) -> Result<(), String> {
         let slot = i.reading_slot.as_mut().filter(|s| s.token == hold.token && s.stage == ReadingStage::Reserved)
             .ok_or_else(|| format!("refused-not-sent: {method} reservation ended before registration"))?;
         slot.request_id = Some(request.request_id().to_string());
         slot.request_ref = Some(request.request_ref.clone());
         slot.stage = ReadingStage::Registered;
         let cwd = (method == "config/read").then(|| request.frame["params"]["cwd"].as_str().filter(|c| !c.is_empty()).map(str::to_owned)).flatten();
+        if !proof { return Ok(()); }
         i.reading_current = Some(ReadingCurrent { generation: request.generation.clone(), request_ref: request.request_ref.clone(), method: method.into(), cwd });
         Ok(())
     }

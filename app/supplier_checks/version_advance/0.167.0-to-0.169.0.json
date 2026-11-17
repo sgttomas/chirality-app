@@ -1,11 +1,11 @@
 {
  "consumer_binding": {
   "files": {
-   "app/src-tauri/src/access_provider.rs": "d6ce49add7313f3050d0cf2d8ad5fde1184c1b20d28e8b3011b58efb30d24661",
+   "app/src-tauri/src/access_provider.rs": "172f91fd42a808a10a5209282ef823c76a0858e918bdf5c170378530880548de",
    "app/src-tauri/src/auth_rpc.rs": "3e7a74781493e7beb51f6217677c2a9762ab1fc936e42e1f8791c56c595ec996",
    "app/src-tauri/src/delegation_availability.rs": "7a8667f391bcf676d1739441eb69c98cebb45c883e2ed6f1a336a333124822ce",
    "app/src-tauri/src/execution_compatibility.rs": "02ae3bae6aa47b5b6a2ae6290fee05ba565eea7a444953a122a124925175efb6",
-   "app/src-tauri/src/hosting.rs": "80b14a2c43ecfe2ce317a4e9be882da0ac26a1ce37a70fbca41fcdcc85d3c99a",
+   "app/src-tauri/src/hosting.rs": "9df269b0fbee172223cff15165b6829f982fb40848a6b66e579007422c18c3ec",
    "app/src-tauri/src/model_catalog.rs": "65a718ec015417675a84a5026fde90c36d576bc9ce93e82dffc40eab6f16fce4",
    "app/src-tauri/src/native_history.rs": "9841224bbed6ddb63f766f2855f557434d5f1bf5fa1e764652d417cd4e7d7790",
    "app/src-tauri/src/native_items.rs": "5bd43e41b1523c99e3230825e25d18c8deb43ac6b44a8a5d101014ac07ded577",
