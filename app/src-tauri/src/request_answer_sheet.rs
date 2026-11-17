@@ -130,6 +130,7 @@ pub(crate) fn prepare(
     let files = matches!(method, p::FILE | p::LEGACY_FILE);
     let question = method == p::QUESTION;
     let input = command && parameters["kind"] == "writeStdin";
+    let network = command && parameters["networkApprovalContext"].is_object();
     let decision = &answer["decision"];
     let decision_key = key(decision);
     let mut head = vec![OPENING.to_owned()];
@@ -224,7 +225,18 @@ pub(crate) fn prepare(
         }
     } else {
         let refusal = matches!(decision_key, "decline" | "cancel" | "denied" | "abort");
-        if refusal {
+        if network {
+            head.push(if refusal {
+                "This network access is not allowed."
+            } else if decision_key == "acceptForSession" {
+                "This allows network access to the same endpoint for this session in the same environment. It does not change the command's sandbox."
+            } else if decision_key == "applyNetworkPolicyAmendment" {
+                "This answer applies a network rule; it does not change the command's sandbox."
+            } else {
+                "This allows the pending network access once; it does not change the command's sandbox."
+            }.into());
+            details.push(p::detail("Network request", "codex", parameters["networkApprovalContext"].clone(), vec![]));
+        } else if refusal {
             head.push(if input {"This input is not allowed. The command is already running and keeps running; refusing withholds this input only."}
                 else if files {"These file changes are not allowed; Codex does not write them."} else {"This command is not allowed; it does not run."}.into());
             head.push(
@@ -240,15 +252,16 @@ pub(crate) fn prepare(
             );
         } else if command {
             if input {
-                head.push("This request sends input to a command that is already running.".into());
+                head.push("If you allow this input, it is sent to the command that is already running. Its sandbox and launch permissions stay unchanged.".into());
+            } else {
+                head.push(if built_in {"If you allow this command, it runs once outside Codex's sandbox, with your account's access to all your files and to the network, in the working folder shown."}
+                    else {"If you allow this command, it runs once with more access than Codex's sandbox gives, which may be all of your account's access to your files and the network, in the working folder shown."}.into());
             }
-            head.push(if built_in {"If you allow this command, it runs once outside Codex's sandbox, with your account's access to all your files and to the network, in the working folder shown."}
-                else {"If you allow this command, it runs once with more access than Codex's sandbox gives, which may be all of your account's access to your files and the network, in the working folder shown."}.into());
         } else if files {
             head.push(if file_count.is_some() {format!("If you allow this, Codex writes these files where they are shown, including any outside {}.",if context["project"]["kind"]=="none"{"this conversation's working folder"}else{"your project folder"})}
                 else {"The App has not received the list of files, so it cannot show where these changes go. If you allow this, Codex writes changes you have not seen.".into()});
         }
-        if matches!(decision_key, "acceptForSession" | "approved_for_session") {
+        if !network && matches!(decision_key, "acceptForSession" | "approved_for_session") {
             head.push(if files {"This answer also covers later changes to only these same files, until Codex stops. Nothing is saved."}else{"This answer also covers this same command, in this folder, until Codex stops. Nothing is saved."}.into());
         }
         if matches!(
@@ -371,6 +384,11 @@ pub(crate) fn prepare(
             } else {
                 for (path, change) in parameters["fileChanges"].as_object().into_iter().flatten() {
                     details.push(location(&json!(path), cwd, &context));
+                    if change["type"] == "update" && nonempty(&change["move_path"]).is_some() {
+                        let mut dest = location(&change["move_path"], cwd, &context);
+                        dest["notes"].as_array_mut().unwrap().insert(0, json!("moved to"));
+                        details.push(dest);
+                    }
                     details.push(p::detail(
                         "The proposed change",
                         "codex",
@@ -381,7 +399,9 @@ pub(crate) fn prepare(
             }
         } else {
             head.push(
-                if input {
+                if network {
+                    "Codex asks for network access."
+                } else if input {
                     "Codex asks to send input to a command that is already running."
                 } else {
                     "Codex asks to run a command."
@@ -504,6 +524,7 @@ fn supplied_detail(row: &Value) -> Result<Vec<String>, String> {
         Some("Path") => "Path",
         Some("The rule's words") => "The rule's words",
         Some("The host") => "The host",
+        Some("Network request") => "Network request",
         Some("Your reason, as it will be sent") => "Your reason, as it will be sent",
         Some("The requested write folder") => "The requested write folder",
         Some("The change (diff)") => "The change (diff)",
@@ -651,6 +672,24 @@ mod tests {
                 .contains("already running and keeps running; refusing withholds this input only"));
             assert!(!prepared.statement.text.contains("Nothing runs"));
             assert!(!prepared.statement.text.contains("If you allow"));
+        }
+    }
+
+    #[test]
+    fn legacy_move_destinations_are_resolved_and_marked_in_the_frozen_details() {
+        let (g, id, mut s, _) = fixture(p::LEGACY_FILE, json!({
+            "conversationId":"thread", "cwd":"/invented/project",
+            "fileChanges":{"source.txt":{"type":"update","move_path":"../outside.txt","unified_diff":"+invented"}}
+        }));
+        for known in [true, false] {
+            s["answerProject"] = if known { json!({"kind":"folder","folder":"/invented/project"}) } else { json!({"kind":"unknown"}) };
+            let prepared = prepare(&s, &g, &id, &preview(json!({"decision":"approved"})), None).unwrap();
+            let frozen = prepared.content.to_string();
+            assert!(frozen.contains("/invented/project/source.txt"));
+            assert!(frozen.contains("/invented/outside.txt"));
+            assert!(frozen.contains("moved to"));
+            assert_eq!(frozen.contains("OUTSIDE your project folder"), known);
+            if !known { assert!(frozen.contains("could not compare")); }
         }
     }
 
@@ -1033,7 +1072,7 @@ mod shared_cases {
                 None,
             )
             .unwrap();
-            for expected in case["expected"].as_array().unwrap() {
+            for expected in case["expected"].as_array().unwrap().iter().chain(case["sheetExpected"].as_array().into_iter().flatten()) {
                 assert!(
                     prepared
                         .statement
@@ -1043,6 +1082,10 @@ mod shared_cases {
                     "{} missing {expected}",
                     case["name"]
                 );
+            }
+            for excluded in case["excluded"].as_array().into_iter().flatten() {
+                assert!(!prepared.statement.text.replace('’', "'").contains(excluded.as_str().unwrap()),
+                    "{} contradicts its consequence: {excluded}", case["name"]);
             }
         }
     }

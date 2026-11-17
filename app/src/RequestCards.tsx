@@ -121,7 +121,8 @@ export const requestReplyGuarded = (reply: RequestReplyObservation | null | unde
 /** §4.1 card titles. */
 export function requestTitle(request: Json): string {
   switch (request?.method) {
-    case COMMAND: return "Tool permission: run a command";
+    case COMMAND: return request?.nativeParameters?.networkApprovalContext ? "Tool permission: network access"
+      : request?.nativeParameters?.kind === "writeStdin" ? "Tool permission: send input to a running command" : "Tool permission: run a command";
     case FILE_CHANGE: return "Tool permission: change files";
     case PERMISSIONS: return "Tool permission: extra permissions";
     case LEGACY_EXEC: return "Tool permission: run a command (legacy request)";
@@ -230,6 +231,7 @@ const ruleWords = (request: Json, decision: Json): string | null => {
 /** The App's words beside one answer: what that answer lets Codex do. */
 function DecisionNote({ request, decision, place }: { request: Json; decision: Json; place?: RequestPlace }) {
   const key = keyOf(decision);
+  if (key === "acceptForSession" && request?.method === COMMAND && request?.nativeParameters?.networkApprovalContext) return <small> This allows network access to the same endpoint for this session in the same environment. It does not change the command's sandbox.</small>;
   if (key === "acceptForSession" && request?.method === FILE_CHANGE) return <small> This answer also covers later changes to only these same files, until Codex stops. Nothing is saved.</small>;
   if (key === "acceptForSession" && request?.method === COMMAND) return <small> This answer also covers this same command, in this folder, until Codex stops. Nothing is saved.</small>;
   if (key === "acceptWithExecpolicyAmendment" && request?.method === COMMAND) {
@@ -258,7 +260,11 @@ function AnswerConsequences({ request, forms, place, changesArrived }: { request
   const keys = forms.map(f => keyOf(f.decision));
   const noDecline = keys.includes("cancel") && !keys.some(k => k === "decline" || k === "denied" || k === "abort");
   return <>
-    {request?.method === COMMAND && <p>{builtInProfile(place)
+    {request?.method === COMMAND && <p>{request?.nativeParameters?.networkApprovalContext
+      ? "This request concerns network access. Answering it does not change the command's sandbox."
+      : request?.nativeParameters?.kind === "writeStdin"
+      ? "If you allow this input, it is sent to the command that is already running. Its sandbox and launch permissions stay unchanged."
+      : builtInProfile(place)
       ? "If you allow this command, it runs once outside Codex’s sandbox, with your account’s access to all your files and to the network, in the working folder shown."
       : "If you allow this command, it runs once with more access than Codex’s sandbox gives, which may be all of your account’s access to your files and the network, in the working folder shown."}</p>}
     {request?.method === FILE_CHANGE && changesArrived && <p>If you allow this, Codex writes these files where they are shown, including any outside {folderWords(place)}.</p>}
@@ -414,6 +420,7 @@ function Subject({ request, item, place }: { request: Json; item: Json; place?: 
   switch (request?.method) {
     case COMMAND:
       return <div>
+        <Field label="Network request" value={p.networkApprovalContext} />
         {p.command === undefined || p.command === null || p.command === "" ? <div>Codex did not give a command.</div> : <Field label="Command" value={p.command} />}
         <Field label="Working folder" value={p.cwd} />
         <CommandFolder cwd={p.cwd} place={place} />
@@ -448,9 +455,15 @@ function Subject({ request, item, place }: { request: Json; item: Json; place?: 
     case LEGACY_EXEC:
       return <div>{p.command === undefined || p.command === null || p.command === "" || (Array.isArray(p.command) && p.command.length === 0) ? <div>Codex did not give a command.</div> : <Field label="Command" value={Array.isArray(p.command) ? p.command.join(" ") : p.command} />}
         <Field label="Working folder" value={p.cwd} /><CommandFolder cwd={p.cwd} place={place} /><Field label="Reason given" value={p.reason} /></div>;
-    case LEGACY_PATCH:
+    case LEGACY_PATCH: {
+      const cwd = typeof p.cwd === "string" && p.cwd ? p.cwd : place?.conversationFolder ?? null;
       return <div><Field label="Reason given" value={p.reason} />{p.grantRoot && <div>Also asks to write under the folder shown for the session: <AgentText value={text(p.grantRoot)} label="Folder:" /></div>}
-        {Object.keys(p.fileChanges && typeof p.fileChanges === "object" ? p.fileChanges : {}).map(path => <div key={path}>File: <AgentText value={path} label="Path:" /></div>)}</div>;
+        {Object.entries(p.fileChanges && typeof p.fileChanges === "object" ? p.fileChanges : {}).map(([path, value]) => {
+          const change = value as Json;
+          return <div key={path}>File: <ChangeLocation path={path} place={place} cwd={cwd} />
+            {change?.type === "update" && typeof change.move_path === "string" && change.move_path && <>; moved to <ChangeLocation path={change.move_path} place={place} cwd={cwd} /></>}</div>;
+        })}</div>;
+    }
     case QUESTION:
       return p.isBlocking === false ? <div>Not blocking the turn: the agent continues while this waits.</div> : null;
     case ELICITATION:

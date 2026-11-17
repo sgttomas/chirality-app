@@ -150,6 +150,17 @@ test('each maintained consequence case reads on the card as the fixture states i
     const place={project:c.project,conversationFolder:'/invented/project',permissionProfile:c.profile};
     const shown=plain(words(render(r,place,view)));
     for(const sentence of c.expected) assert.ok(shown.includes(plain(sentence)),`${c.name}: missing «${sentence}»\n${shown}`);
+    for(const sentence of c.excluded??[]) assert.ok(!shown.includes(plain(sentence)),`${c.name}: contradictory «${sentence}»\n${shown}`);
     assert.ok(decisionForms(r).some(f=>JSON.stringify(f.decision)===JSON.stringify(c.decision)||keyOf(f.decision)===c.decision),`${c.name}: the card offers the case's answer`);
   }
+});
+
+test('legacy file moves resolve the destination and mark outside or unknown on the card',()=>{
+  const r=request('applyPatchApproval',{conversationId:'T',callId:'move',fileChanges:{'source.txt':{type:'update',move_path:'../outside.txt',unified_diff:'+invented'}}});
+  const shown=render(r,project);
+  assert.match(shown,/Path: \/invented\/pump-skid\/source\.txt/);
+  assert.match(shown,/moved to .*Path: \/invented\/outside\.txt.*OUTSIDE your project folder/);
+  const unknown=render(r,{...project,project:{kind:'unknown'}});
+  assert.match(unknown,/moved to .*Path: \/invented\/outside\.txt.*could not compare/);
+  assert.doesNotMatch(words(unknown),/OUTSIDE|in your project folder/);
 });

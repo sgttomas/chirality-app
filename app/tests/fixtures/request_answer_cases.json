@@ -130,7 +130,11 @@
           "action": "deny",
           "host": "invented.invalid"
         }
-      ]
+      ],
+      "networkApprovalContext": {
+        "host": "invented.invalid",
+        "protocol": "https"
+      }
     },
     "decision": {
       "applyNetworkPolicyAmendment": {
@@ -147,6 +151,132 @@
     "expected": [
       "Apply the proposed network rule for this host",
       "This also applies the network rule Codex proposed for the host shown: it denies network access to that host, and the rule is kept by Codex after this answer."
+    ],
+    "excluded": [
+      "If you allow this command",
+      "This answer also covers this same command",
+      "Codex asks to run a command"
+    ]
+  },
+  {
+    "name": "network endpoint session",
+    "method": "item/commandExecution/requestApproval",
+    "params": {
+      "command": "invented-command",
+      "cwd": "/invented/project",
+      "networkApprovalContext": {
+        "host": "invented.invalid",
+        "protocol": "https"
+      }
+    },
+    "decision": "acceptForSession",
+    "profile": ":workspace",
+    "project": {
+      "kind": "folder",
+      "folder": "/invented/project"
+    },
+    "expected": [
+      "This allows network access to the same endpoint for this session in the same environment. It does not change the command's sandbox."
+    ],
+    "excluded": [
+      "If you allow this command",
+      "This answer also covers this same command",
+      "Codex asks to run a command"
+    ]
+  },
+  {
+    "name": "allow input to running command",
+    "method": "item/commandExecution/requestApproval",
+    "params": {
+      "command": "invented-command",
+      "cwd": "/invented/project",
+      "kind": "writeStdin"
+    },
+    "decision": "accept",
+    "profile": ":workspace",
+    "project": {
+      "kind": "folder",
+      "folder": "/invented/project"
+    },
+    "expected": [
+      "If you allow this input, it is sent to the command that is already running. Its sandbox and launch permissions stay unchanged."
+    ],
+    "excluded": [
+      "If you allow this command",
+      "runs once outside",
+      "runs once with more access"
+    ]
+  },
+  {
+    "name": "network endpoint once",
+    "method": "item/commandExecution/requestApproval",
+    "params": {
+      "command": "invented-command",
+      "cwd": "/invented/project",
+      "proposedNetworkPolicyAmendments": [
+        {
+          "action": "allow",
+          "host": "invented.invalid"
+        }
+      ],
+      "networkApprovalContext": {
+        "host": "invented.invalid",
+        "protocol": "https"
+      }
+    },
+    "decision": "accept",
+    "profile": ":workspace",
+    "project": {
+      "kind": "none"
+    },
+    "expected": [
+      "Allow once"
+    ],
+    "excluded": [
+      "If you allow this command",
+      "This answer also covers this same command",
+      "Codex asks to run a command"
+    ],
+    "sheetExpected": [
+      "This allows the pending network access once; it does not change the command's sandbox."
+    ]
+  },
+  {
+    "name": "network allow rule",
+    "method": "item/commandExecution/requestApproval",
+    "params": {
+      "command": "invented-command",
+      "cwd": "/invented/project",
+      "proposedNetworkPolicyAmendments": [
+        {
+          "action": "allow",
+          "host": "invented.invalid"
+        }
+      ],
+      "networkApprovalContext": {
+        "host": "invented.invalid",
+        "protocol": "https"
+      }
+    },
+    "decision": {
+      "applyNetworkPolicyAmendment": {
+        "network_policy_amendment": {
+          "action": "allow",
+          "host": "invented.invalid"
+        }
+      }
+    },
+    "profile": ":workspace",
+    "project": {
+      "kind": "none"
+    },
+    "expected": [
+      "This also applies the network rule Codex proposed for the host shown: it allows network access to that host, and the rule is kept by Codex after this answer."
+    ],
+    "excluded": [
+      "If you allow this command",
+      "This answer also covers this same command",
+      "Codex asks to run a command"
     ]
   }
 ]
