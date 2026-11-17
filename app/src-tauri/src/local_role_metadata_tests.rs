@@ -47,7 +47,7 @@ fn local_provider_continue_preserves_role_through_history_reconcile_after_genera
         Ok(())
     });
     received.unwrap();
-    assert_eq!(frames.iter().find(|f|f["method"]=="thread/resume").unwrap()["params"], json!({"threadId":"stored","excludeTurns":true,"cwd":"/invented"}));
+    assert_eq!(frames.iter().find(|f|f["method"]=="thread/resume").unwrap()["params"], crate::codex_level::with_test_level(&json!({"threadId":"stored","excludeTurns":true,"cwd":"/invented"}), "thread/resume"));
     assert!(host.snapshot()["threads"].as_array().unwrap().iter().any(|t|t["threadId"]=="stored" && t["generation"]==generation), "known-role Continue must be operationally admitted");
     assert_eq!(receiver.role("conversation-home", "stored")["standing"], "app-observed");
     assert_eq!(receiver.binding("conversation-home", "stored").unwrap().evidence(), original_evidence, "Continue preserves original role bytes and provenance");
@@ -79,7 +79,7 @@ fn local_provider_fork_inherits_role_through_history_reconcile_with_classified_c
     });
     let result = received.unwrap();
     assert_eq!(result["role"]["role"]["standing"], "app-observed", "{result}");
-    assert_eq!(frames.iter().find(|f|f["method"]=="thread/fork").unwrap()["params"], json!({"threadId":"started","deferGoalContinuation":true,"cwd":"/invented"}));
+    assert_eq!(frames.iter().find(|f|f["method"]=="thread/fork").unwrap()["params"], crate::codex_level::with_test_level(&json!({"threadId":"started","deferGoalContinuation":true,"cwd":"/invented"}), "thread/fork"));
     assert_eq!(receiver.role("conversation-home", "forked")["role"], "TASK");
     assert_eq!(receiver.binding("conversation-home", "forked").unwrap().supply_ref(), "sup:fork");
     assert_eq!(receiver.binding("conversation-home", "started").unwrap().evidence(), original_evidence, "fork leaves source guidance unchanged");

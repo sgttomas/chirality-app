@@ -31,6 +31,7 @@ impl Fixture {
         );
         fs::write(log, format!("{entry}\n")).unwrap();
         let custody = crate::hold_app_data_for_test(&root.join("app")).unwrap();
+        crate::working_folder::establish(&root.join("app")).unwrap();
         Self(root, custody)
     }
     fn context(&self) -> ExplicitAppProjectContext {
@@ -82,6 +83,7 @@ impl Fixture {
             // still retains its configured spelling (which may be an alias).
             self.0.join("project").canonicalize().unwrap(),
         );
+        config.app_data = Some(self.0.join("app"));
         config.allow_unverified_dev = true;
         config.wait_limit = Duration::from_secs(2);
         host.start(&config, "invented continuity peer").unwrap();
@@ -227,7 +229,7 @@ fn records_continuity_original_start_to_fresh_host_explicit_cold_resume_and_logg
         .into_iter()
         .find(|frame| frame["method"] == "thread/resume")
         .unwrap();
-    assert_eq!(resumed["params"], json!({"threadId":"thread","excludeTurns":true}));
+    assert_eq!(resumed["params"], crate::codex_level::with_test_level_at(&json!({"threadId":"thread","excludeTurns":true,"cwd":f.0.join("project")}), "thread/resume", &f.0.join("project")));
     let fork = cold.thread_fork_dispatch(&generation, "thread").unwrap();
     cold.source_request_wait(&fork, Duration::from_secs(2))
         .unwrap();
@@ -246,7 +248,7 @@ fn records_continuity_original_start_to_fresh_host_explicit_cold_resume_and_logg
     assert_eq!(child_receipt.admitted.request, fork.request_ref());
     assert_eq!(
         fork.attempted_frame()["params"],
-        json!({"threadId":"thread","deferGoalContinuation":true})
+        crate::codex_level::with_test_level_at(&json!({"threadId":"thread","deferGoalContinuation":true}), "thread/fork", &f.0.join("project"))
     );
     stop(&cold);
     drop(cold);
@@ -642,7 +644,7 @@ def thread(tid,status='idle',source=None):
  t={'id':tid,'cliVersion':'0.169.0','createdAt':1,'updatedAt':2,'cwd':os.getcwd(),'ephemeral':False,'modelProvider':'fixture-provider','preview':'invented','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':status},'turns':[]}
  if source:t['forkedFromId']=source
  return t
-def result(tid,source=None):return {'thread':thread(tid,source=source),'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}
+def result(tid,source=None):return {'thread':thread(tid,source=source),'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'workspaceWrite','writableRoots':[],'networkAccess':False,'excludeTmpdirEnvVar':True,'excludeSlashTmp':True},'instructionSources':[]}
 for line in sys.stdin:
  f=json.loads(line)
  with open('wire.jsonl','a') as log:log.write(json.dumps(f)+'\n')
@@ -657,6 +659,7 @@ for line in sys.stdin:
    r=result('thread');r['thread']['status']={'type':'notLoaded'};emit({'id':f['id'],'result':r})
   elif f['params'].get('model')!='unknown':emit({'id':f['id'],'result':result('thread')})
  elif method=='thread/list':emit({'id':f['id'],'result':{'data':[thread('thread','notLoaded'),thread('forked','notLoaded','thread')],'nextCursor':None}})
+ elif method=='thread/read':emit({'id':f['id'],'result':{'thread':thread(f['params']['threadId'],'notLoaded')}})
  elif method=='thread/resume':emit({'id':f['id'],'result':result(f['params']['threadId'])})
  elif method=='thread/fork':emit({'id':f['id'],'result':result('forked',f['params']['threadId'])})
  elif method=='turn/start':

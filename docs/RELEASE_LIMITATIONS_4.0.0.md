@@ -239,6 +239,38 @@ An entry is added in the same pull request that makes the limitation standing.
   of the reach of the account the App runs under.
 - **Basis:** DEL-01-04 and DEL-04-02 (the permission level); PRD V4-AUT-06.
 
+### LIM-018: An earlier version of the App cannot open the history a later version wrote
+
+- **Id:** LIM-018
+- **Exit criteria:** 4
+- **What is unavailable:** after a version of the App has recorded something
+  new in its history (for example, the permission level a person chose),
+  opening the same App data with an earlier version of the App refuses the
+  whole history: that version shows that the history is unavailable, and shows
+  none of it.
+- **Why:** the App reads its history only whole. An entry it does not know
+  could change what the rest means, so it reads none rather than part. Nothing
+  is rewritten or lost.
+- **What the person does instead:** open the App data with the same or a later
+  version of the App; the history is all there.
+- **Basis:** DEL-01-02 (the App's recovery history).
+
+### LIM-019: The App cannot be used on an account whose home folder's name holds certain characters
+
+- **Id:** LIM-019
+- **Exit criteria:** 6
+- **What is unavailable:** on a Mac account whose home folder's name contains a
+  dollar sign ($), a backquote (`), a double quote (") or a backslash (\), the
+  App does not start Codex, so no conversation can be had. The App keeps its
+  data, and the folder it starts Codex in, under the account's home folder,
+  and it offers no setting to place them elsewhere, so on such an account the
+  App cannot be used at all.
+- **Why:** the App accepts, for the folder it starts Codex in, only a path
+  holding none of these characters.
+- **What the person does instead:** use the App from a Mac account whose home
+  folder's name contains none of these characters.
+- **Basis:** DEL-01-05 (homes) and DEL-01-01.
+
 ### LIM-020: A reopened run's end notice is not saved if the project stops being attached as the run ends
 
 - **Id:** LIM-020
@@ -325,6 +357,79 @@ An entry is added in the same pull request that makes the limitation standing.
     folder fails, a connector read in progress can fail, and no new start of
     Codex or version check is made until Chirality is started again.
 - **Basis:** DEL-01-01 (CLM-006).
+
+### LIM-022: A command that has run outside Codex's sandbox can change the App's records, the recorded level included
+
+- **Id:** LIM-022
+- **Exit criteria:** 6
+- **What is unavailable:** a permission level the App can keep in force
+  against a command that has run outside Codex's sandbox. The App keeps the
+  level you chose in its own data folder, and starts every conversation at
+  that level or, until you choose one, at the App's default level, full
+  access. A command that has run outside the sandbox has your account's
+  access, so it can change that record, and the App's other records and
+  settings. The next time the App opens, it would then start conversations at a
+  level you did not choose: a level written into the record is shown as your
+  choice, and nothing tells it apart from one you made. Removing or replacing
+  individual ledger entries outside the App is not detected and can make an
+  older choice or the default apply. A whole valid reading establishes only
+  that no choice was found, not that you never chose. If no entry from an
+  earlier session remains while the account home holds earlier Codex state,
+  the App asks you to choose instead of applying its default. A recorded choice
+  that no longer matches the level table also asks, with or without earlier
+  Codex state. The exclusion for outside writes does not exclude ordinary App
+  choice-write failures or corruption the store detects; an unreadable record
+  or an unknown home-state probe follows the exception in DEL-01-04 REQ-011. It cannot tell a first run
+  from a removal of its whole data folder, or of the record together with
+  what Codex keeps in the App's Codex folder: then the App's default level,
+  full access, applies, shown as the App's default. A command runs outside the
+  sandbox:
+  - at full access, always;
+  - at any level, when you allow a command that Codex asked to run outside
+    the sandbox;
+  - at Supervised, when a command you allowed is run again outside the
+    sandbox after the sandbox stopped it. Any command you allow at Supervised
+    may run outside the sandbox, on the first attempt or on a retry, and the
+    request card cannot tell you which;
+  - at every level, for a command that a lasting rule allows (LIM-023).
+  Choosing a narrower level later does not undo what was done, and does not
+  stop a command left running from then (LIM-027). A program that holds
+  Accessibility access on this Mac can also operate the App, choosing a level
+  in your place. Where the supplier's computer-use service is installed, it
+  holds that access.
+- **Why:** the App's records are files in your own Library, and any program
+  running with your access can write them. The App does not seal its record of
+  the level. A seal would show that the App wrote a record, but not that the
+  record is still your latest choice, and that part is not designed.
+- **What the person does instead:** full access is the App's default; choose
+  a narrower level for any project you would not trust with your whole
+  account. After any command may have run outside the sandbox, check the level
+  the App shows when it opens before you start a conversation, and choose it
+  again if it is not yours.
+- **Basis:** DEL-01-04 and DEL-04-02 (the permission level), DEL-01-02 (the
+  App's records), DEL-01-01.
+
+### LIM-023: A lasting rule is removed by hand
+
+- **Id:** LIM-023
+- **Exit criteria:** 6
+- **What is unavailable:** a way to remove a lasting rule from inside the App.
+  A lasting rule lets any command beginning with its words run outside Codex's
+  sandbox, with no request to you, at every level, until it is removed. The
+  App shows each lasting rule in its Codex folder beside the level, but does
+  not remove one.
+- **Why:** Codex keeps its own copy of the rules for each conversation it has
+  open, so a rule removed from the file keeps applying there until Codex is
+  started again. The App does not yet stop Codex, remove the rule and start
+  Codex again for you.
+- **What the person does instead:** stop Codex, delete the rule's line from
+  the rules file shown beside the level, and start Codex again. Until Codex is
+  started again, the rule keeps applying in conversations already open and in
+  agents they started. What the App shows is the file as it was read at the
+  time shown: right after you delete a line, a conversation opened before that
+  may still hold the rule.
+- **Basis:** DEL-01-01 (the Host's reading of the rules), DEL-01-04 (request
+  cards and the level).
 
 ### LIM-027: A command an agent left running can keep running after Codex ends abruptly
 

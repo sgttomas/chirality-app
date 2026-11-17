@@ -350,6 +350,8 @@ fn run_one_greeting(route: Route) -> ProbeResult<()> {
         root,
         host: Arc::new(Host::new()),
     };
+    // V4-AUT-06: a Host starts with no level; this probe's conversation is sent under "edits".
+    probe.host.set_default_level("edits").map_err(|_| "level setup failed")?;
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;

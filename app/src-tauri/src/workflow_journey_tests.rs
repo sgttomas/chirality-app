@@ -67,7 +67,7 @@ for line in sys.stdin:
  if method=='initialize':result={'userAgent':'unqualified-workflow-root-fixture'}
  elif method=='thread/start':
   starts[0]+=1
-  result={'thread':thread('thread' if starts[0]==1 else 'thread-%d'%starts[0]),'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}
+  result={'thread':thread('thread' if starts[0]==1 else 'thread-%d'%starts[0]),'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'workspaceWrite','writableRoots':[],'networkAccess':False,'excludeTmpdirEnvVar':True,'excludeSlashTmp':True},'instructionSources':[]}
  elif method=='turn/start':
   # Publish-before-send witness: the WR records the peer can see when the turn arrives.
   with open('turn-start-wr.jsonl','a') as log:log.write(json.dumps(wr())+'\n')
@@ -519,7 +519,7 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
     let run_text = records.resolve(&text_ref).unwrap();
     let client_id = {
         let run = run_a.lock().unwrap();
-        assert_eq!(starts[0]["params"], run.prepared().turn_params(person, &run.client_id).unwrap(), "exact wire frame");
+        assert_eq!(starts[0]["params"], crate::codex_level::with_test_level(&run.prepared().turn_params(person, &run.client_id).unwrap(), "turn/start"), "exact wire frame: the prepared turn plus exactly the level (V4-AUT-06)");
         assert_eq!(run.lifecycle, RunLifecycle::Open, "a failed native turn does not end the run");
         assert_eq!(run.turn_id.as_deref(), Some("turn"));
         let occasions: Vec<Value> = run.view(&a)["compatibility"].as_array().unwrap().iter().map(|c| c["occasionLabel"].clone()).collect();
@@ -800,7 +800,7 @@ fn journey_select_register_run_check_end_and_reopen_after_process_loss() {
         let run = root.lock().unwrap().runs[&b].clone();
         let run = run.lock().unwrap();
         assert_eq!(run.lifecycle, RunLifecycle::Open);
-        assert_eq!(starts[3]["params"], run.prepared().turn_params("second run", &run.client_id).unwrap());
+        assert_eq!(starts[3]["params"], crate::codex_level::with_test_level(&run.prepared().turn_params("second run", &run.client_id).unwrap(), "turn/start"));
         let view = run.view(&b);
         (view["publication"]["selection"].as_str().unwrap().to_owned(), view["publication"]["runText"].as_str().unwrap().to_owned())
     };
