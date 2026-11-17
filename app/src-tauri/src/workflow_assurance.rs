@@ -82,6 +82,8 @@ impl Store for SettingsFile {
         }
     }
     fn write(&self, level: AssuranceLevel) -> Result<(), String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("workflow_assurance::SettingsFile::write");
         let path = Self::path()?;
         if let Some(parent) = path.parent() { crate::storage::ensure_directory(parent)?; }
         let temp = path.with_extension(format!("{}.tmp", crate::util::opaque_id("")?));
@@ -215,8 +217,8 @@ impl Settings {
             let level = *self.policy.lock().unwrap();
             let (state, available, detail) = match &s.protection {
                 Protection::NotOnThisBuild => ("unavailable on this build", false, crate::capture_seal_keychain::enrollment_unavailable_reason().unwrap_or("This build has no keychain provider.").to_owned()),
-                Protection::NotSetUp => ("not set up", false, "Keychain protection is not set up. Approvals cannot be verified across sessions.".to_owned()),
-                Protection::SetUp => ("set up", true, "Approvals sealed with your keychain are verified across sessions.".to_owned()),
+                Protection::NotSetUp => ("not set up", false, "Keychain protection is not set up. Registration capture seals cannot be verified using your keychain across sessions.".to_owned()),
+                Protection::SetUp => ("set up", true, "Registration capture seals can be verified using your keychain across sessions; this does not establish who wrote the capture, that a person was present, or that they judged.".to_owned()),
                 Protection::Recovery(cause) => ("recovery required", false, format!("{cause}. Verified approval is required until recovered; nothing is relaxed automatically.")),
             };
             let storage = if matches!(s.protection, Protection::SetUp | Protection::Recovery(_)) {

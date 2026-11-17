@@ -5,6 +5,10 @@ inputs:
   rust-cache-job:
     description: The calling job's id, one part of the compiled-dependency cache key.
     required: true
+  npm-cache:
+    description: "'false' turns off the npm download cache, which setup-node otherwise restores and saves."
+    required: false
+    default: 'true'
 
 outputs:
   rust-cache-key:
@@ -22,7 +26,7 @@ runs:
         node-version: '24'
         # Fork PRs restore no cache: an archive written by an earlier revision of the
         # PR could replace files in the checkout that later steps run.
-        cache: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'npm' || '' }}
+        cache: ${{ inputs.npm-cache != 'false' && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'npm' || '' }}
         cache-dependency-path: app/package-lock.json
     - uses: dtolnay/rust-toolchain@stable
       with:

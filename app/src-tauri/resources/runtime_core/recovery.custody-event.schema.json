@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:chirality:app-v4:del-01-02:custody-event:0.2",
+  "$id": "urn:chirality:app-v4:del-01-02:custody-event:0.3",
   "title": "DEL-01-02 custody event — observation and recovery facts offered to receivers (PROPOSED)",
   "description": "EXECUTION_AND_RECOVERY.md §4 and §9. DEL-01-02's own format, offered to DEL-01-04, DEL-01-03, DEL-04-03 (DEP-01-02-020), DEL-02-03 and DEL-03-03. DEL-01-02 writes no entry in DEL-04-03's record format (R17-10); the receiving writer maps these facts (§9 table). No kind here is a human act, an approval or a run end.",
   "oneOf": [
@@ -15,6 +15,9 @@
     },
     {
       "$ref": "#/$defs/request_ended_unanswered"
+    },
+    {
+      "$ref": "#/$defs/request_open_at_app_session_end"
     },
     {
       "$ref": "#/$defs/acknowledgment_not_observed"
@@ -423,6 +426,45 @@
         }
       }
     },
+    "request_open_at_app_session_end": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "eventId",
+        "appSession",
+        "at",
+        "standing",
+        "entry",
+        "context"
+      ],
+      "properties": {
+        "kind": {
+          "const": "request_open_at_app_session_end"
+        },
+        "eventId": {
+          "type": "string",
+          "pattern": "^cev:.+"
+        },
+        "appSession": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "at": {
+          "$ref": "#/$defs/nonempty"
+        },
+        "standing": {
+          "description": "0.3: the App's own ledger record, read at a later session's start: a request recorded open by a session that ended. Not an observation of the request's end, and never authority for what Codex holds.",
+          "const": "App-recorded"
+        },
+        "entry": {
+          "$ref": "#/$defs/entryRef"
+        },
+        "context": {
+          "$ref": "#/$defs/lossContext"
+        }
+      },
+      "description": "0.3: written at a later session's start for a request an earlier App session left recorded open (RQ-06). That session's end ended the connection it could be answered on. No reply is recorded; whether one was written after the last record, and whether Codex's process had ended, were not observed."
+    },
     "acknowledgment_not_observed": {
       "type": "object",
       "additionalProperties": false,
@@ -479,7 +521,8 @@
         "home",
         "priorSession",
         "priorSessionEnd",
-        "liveTurnsAtEnd"
+        "liveTurnsLastRecorded",
+        "liveAtSessionEnd"
       ],
       "properties": {
         "kind": {
@@ -496,8 +539,8 @@
           "$ref": "#/$defs/nonempty"
         },
         "standing": {
-          "description": "R17-4: the App's own observation, never authority for what Codex holds.",
-          "const": "App-observed"
+          "description": "The App's own record as an earlier session left it, read at a later start. Not an observation of that session's end, and never authority for what Codex holds.",
+          "const": "App-recorded"
         },
         "threadId": {
           "$ref": "#/$defs/nonempty"
@@ -515,12 +558,20 @@
             "system-terminated"
           ]
         },
-        "liveTurnsAtEnd": {
+        "liveTurnsLastRecorded": {
           "type": "array",
           "minItems": 1,
           "items": {
             "$ref": "#/$defs/turnRef"
-          }
+          },
+          "description": "The turns that were live when the earlier session last recorded this conversation. Not the turns live when that session ended."
+        },
+        "liveAtSessionEnd": {
+          "description": "Whether those turns were live when the earlier session ended: not known, unless the App itself recorded at its own quit that it lost sight of them.",
+          "enum": [
+            "not-known",
+            "recorded-at-quit"
+          ]
         }
       }
     },

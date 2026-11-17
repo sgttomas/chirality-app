@@ -84,6 +84,7 @@ def system_runner(argv, *, env, cwd=None, timeout=None):
 REASONS = {
     'BUILD_HOST': 'build: this host is not Apple Silicon macOS',
     'BUILD_OUT': 'build: --out exists, or the folder that would hold it does not, or it is inside /Applications or ~/Library',
+    'BUILD_OVERLAP': 'build: the output is inside an input tree or the directory holding a read-only input file',
     'BUILD_ENVIRONMENT': 'build: the caller environment is not exactly PATH and LANG with single-line values and absolute PATH entries',
     'BUILD_TOOLS': 'build: the resolved rustc, cargo, clang and ld are not all given, or rustc or cargo on PATH is not the given one or is a rustup proxy',
     'BUILD_PUBLISHER_PAIR': 'build: the publisher input file and its digest were not given together',
@@ -93,6 +94,7 @@ REASONS = {
     'BUILD_PRIVATE_INPUT': 'build: an input path lies inside a folder named as the private output folder',
     'BUILD_LIMITATIONS': 'build: the source export lacks docs/RELEASE_LIMITATIONS_4.0.0.md',
     'BUILD_PUBLISHER_SOURCE': 'build: the compiled keychain selection in the source is not exactly one release identifier and team',
+    'BUILD_PUBLISHER_MATCH': 'build: the supplied publisher identifier or team differs from the source keychain selection',
     'BUILD_PLAN': 'build: prepare.py refused the plan or check_plan did not pass',
     'BUILD_OVERLAY': 'build: the plan overlay is not the 4.0.0 release identity',
     'BUILD_RECIPE': 'build: the recipe is not an unsigned build from an empty environment of exactly the allowlist',
@@ -223,14 +225,19 @@ def validate_returnable(value, public_teams, where='', argv_allowed=None, in_arg
             or (app_id is not None and app_id.group(1) in public_teams), 'unshaped value in returnable file at ' + where)
 
 
+def is_private_component(name):
+    """Recognize the one named private folder, including case aliases, as a whole component."""
+    return os.fsdecode(name).casefold() == PRIVATE_FOLDER.casefold()
+
+
 def is_private_path(path):
-    """True when any component of the path, as given or resolved, is the private folder's name."""
+    """True for a private whole component (including case aliases), as given or resolved."""
     try:
         text = os.fsdecode(os.fspath(path))
     except TypeError:
         return True
     parts = set(Path(text).parts) | set(Path(os.path.realpath(text)).parts)
-    return PRIVATE_FOLDER in parts
+    return any(is_private_component(part) for part in parts)
 
 
 def refuse_private(path, what):

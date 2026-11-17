@@ -437,7 +437,8 @@ impl TempDir {
     fn new() -> Self {
         let mut bytes = [0u8; 16];
         getrandom::fill(&mut bytes).unwrap();
-        let p = std::env::temp_dir().join(format!(
+        // The real location: the reader follows no link above a package.
+        let p = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(format!(
             "chirality-workflow-role-{}",
             util::sha256_hex(&bytes)
         ));

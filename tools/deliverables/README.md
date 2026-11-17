@@ -85,8 +85,8 @@ Queries never mark completion, treat a merge as acceptance, run referenced
 checks, lift technical holds, or infer readiness from lifecycle. Assess the
 actual condition for its intended use with evidence and appropriate checks.
 
-`touches` matches Git diff paths against code paths and deliverable localities;
-several deliverables may match. A single revision selects that commit's change
+`touches` matches Git diff paths against code paths, declared checks and
+deliverable localities; several deliverables may match. A single revision selects that commit's change
 against its first parent (the empty tree for a root commit), regardless of
 working-tree edits; explicit ranges are used as supplied. `PR:number` or a
 GitHub PR URL requires authenticated `gh` and resolves base/head commits, then

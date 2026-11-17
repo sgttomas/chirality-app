@@ -58,10 +58,11 @@ fn identity_separates_instances_homes_and_spawns_and_frames_stay_native() {
     let second = Arc::new(Host::new());
     assert!(first.snapshot()["generation"].is_null());
     let g1 = first.start(&cfg, "test").unwrap()["generation"].clone();
-    let g2 = second.start(&cfg, "test").unwrap()["generation"].clone();
-    assert_ne!(g1["appSession"], g2["appSession"]);
-    assert_eq!(g1["home"], g2["home"]);
-    assert_eq!(g1["spawnCounter"], g2["spawnCounter"]);
+    // One Host at a time on a Codex home (DEL-01-02 REQ-010): a second instance is refused the
+    // home while the first has Codex on it, and starts nothing.
+    let refused = second.start(&cfg, "test").unwrap_err();
+    assert!(refused.contains("already using it"), "{refused}");
+    assert!(second.snapshot()["generation"].is_null() && second.child_pid().is_none());
     assert!(first.thread_start(".").is_err());
     assert!(first.thread_start_selected(".", "", "configured-provider").is_err());
     first.thread_start_selected(".", "configured-model", "configured-provider").unwrap();
@@ -78,6 +79,12 @@ fn identity_separates_instances_homes_and_spawns_and_frames_stay_native() {
     assert_eq!(early["frame"], json!({"method":"test/early","params":{"native":true},"emittedAtMs":1}));
     assert!(first.client_requests().iter().all(|r| r["generation"] == g1));
     first.stop("test", "done").unwrap();
+    // The first instance idle and its Codex ended, the second instance takes the same home: its
+    // own session, the same home identity, its own counter from the start.
+    let g2 = start_when_free(&second, &cfg);
+    assert_ne!(g1["appSession"], g2["appSession"]);
+    assert_eq!(g1["home"], g2["home"]);
+    assert_eq!(g1["spawnCounter"], g2["spawnCounter"]);
     second.stop("test", "done").unwrap();
     let mut other_home = cfg.clone();
     other_home.codex_home = root.join("other-home");
@@ -89,6 +96,23 @@ fn identity_separates_instances_homes_and_spawns_and_frames_stay_native() {
     assert_ne!(g1, g3);
     assert_ne!(g2, g3);
     first.stop("test", "done").unwrap();
+}
+
+/// Starts on a home an earlier Host has just stopped using. A start is refused while that Host
+/// may still have Codex on the home or while its Codex's end is not yet established; nothing
+/// else is waited for, and any other refusal fails the test.
+fn start_when_free(host: &Arc<Host>, cfg: &chirality_app_v4_lib::hosting::HostConfig) -> serde_json::Value {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+    loop {
+        match host.start(cfg, "test") {
+            Ok(ready) => return ready["generation"].clone(),
+            Err(reason) => {
+                assert!(reason.starts_with("Codex was not started on this home: this App") || reason.starts_with("The App's lock for this Codex home is held"), "{reason}");
+                assert!(std::time::Instant::now() < deadline, "the home never became free: {reason}");
+                std::thread::sleep(std::time::Duration::from_millis(20));
+            }
+        }
+    }
 }
 
 // Exercise real scoped admission and exported frame attribution using the owned
@@ -153,7 +177,7 @@ fn generation_is_unique_per_session_home_and_advances_through_real_app_custody()
     // Recreate both Host sources using the actual App capability, not JSON.
     let recreated = Arc::new(Host::new_with_app_custody(Arc::clone(&custody)).unwrap());
     let independent_home = Arc::new(Host::new_with_app_custody(Arc::clone(&custody)).unwrap());
-    let g5 = recreated.start(&cfg, "test").unwrap()["generation"].clone();
+    let g5 = start_when_free(&recreated, &cfg);
     let g6 = independent_home.start(&other_home, "test").unwrap()["generation"].clone();
     assert_eq!(g5["appSession"], g4["appSession"]);
     assert_eq!(g5["home"], g4["home"]);
@@ -165,24 +189,34 @@ fn generation_is_unique_per_session_home_and_advances_through_real_app_custody()
     assert_current_generation_rejects_stale_scope(&independent_home, &g6, &g5);
     assert_current_generation_rejects_stale_scope(&recreated, &g5, &g6);
 
-    // Same stable home in an independent App session cannot alias prior G.
-    let fresh = Arc::new(Host::new());
-    let g7 = fresh.start(&cfg, "test").unwrap()["generation"].clone();
-    assert_ne!(g7["appSession"], g5["appSession"]);
-    assert_eq!(g7["home"], g5["home"]);
-    assert_eq!(g7["spawnCounter"], g1["spawnCounter"]);
-    assert_current_generation_rejects_stale_scope(&fresh, &g7, &g1);
-    assert_current_generation_rejects_stale_scope(&recreated, &g5, &g7);
-
-    // Equal native RPC labels stay bound to their actual source/full G.
-    let mut receipts = Vec::new();
-    for (host, generation) in [(&recreated, &g5), (&independent_home, &g6), (&fresh, &g7)] {
+    // Equal native RPC labels stay bound to their actual source/full G. One Host at a time has
+    // Codex on a home (DEL-01-02 REQ-010), so the independent session on the first home takes
+    // its turn after `recreated`: each receipt is taken while its own source is ready.
+    let receipt_of = |host: &Arc<Host>, generation: &serde_json::Value| {
         let response = host.request("test/source", json!({}), json!({"kind":"person-directed"})).unwrap();
         let receipt = host.source_request(generation, &response["id"]).unwrap();
         assert_eq!(receipt.generation(), generation);
         assert_eq!(host.source_request_status(&receipt).unwrap()["response"], response);
-        receipts.push(receipt);
-    }
+        receipt
+    };
+    let mut receipts = vec![receipt_of(&recreated, &g5), receipt_of(&independent_home, &g6)];
+    assert!(recreated.observe(&g5, 0)["frames"].as_array().unwrap().iter().all(|entry| entry["generation"] == g5));
+
+    // Same stable home in an independent App session cannot alias prior G. It is refused the
+    // home while `recreated` has Codex there, and takes it once that Codex has ended.
+    let fresh = Arc::new(Host::new());
+    assert!(fresh.start(&cfg, "test").unwrap_err().contains("already using it"));
+    recreated.stop_scoped(&g5, "test", "codex-stop").unwrap();
+    let g7 = start_when_free(&fresh, &cfg);
+    assert_ne!(g7["appSession"], g5["appSession"]);
+    assert_eq!(g7["home"], g5["home"]);
+    assert_eq!(g7["spawnCounter"], g1["spawnCounter"]);
+    assert_current_generation_rejects_stale_scope(&fresh, &g7, &g1);
+    // The stopped source accepts nothing scoped to the other session's generation.
+    assert!(recreated.stop_scoped(&g7, "test", "codex-stop").is_err());
+    assert!(recreated.thread_start_with_guidance_dispatch(&g7, ".", "configured-model", "configured-provider", "test guidance").is_err());
+    receipts.push(receipt_of(&fresh, &g7));
+
     assert_eq!(receipts[0].request_id(), receipts[1].request_id());
     assert_eq!(receipts[0].request_id(), receipts[2].request_id());
     for (index, (host, generation)) in [(&recreated, &g5), (&independent_home, &g6), (&fresh, &g7)].iter().enumerate() {
@@ -192,7 +226,9 @@ fn generation_is_unique_per_session_home_and_advances_through_real_app_custody()
                 assert!(host.source_request(receipt.generation(), receipt.request_id()).is_err());
             }
         }
-        assert!(host.observe(generation, 0)["frames"].as_array().unwrap().iter().all(|entry| entry["generation"] == **generation));
+        if index != 0 {
+            assert!(host.observe(generation, 0)["frames"].as_array().unwrap().iter().all(|entry| entry["generation"] == **generation));
+        }
     }
     let generations = [&g1, &g2, &g3, &g4, &g5, &g6, &g7];
     for (index, generation) in generations.iter().enumerate() {
@@ -202,7 +238,6 @@ fn generation_is_unique_per_session_home_and_advances_through_real_app_custody()
         assert!(generation["spawnCounter"].as_u64().unwrap() > 0);
         assert!(generations[index + 1..].iter().all(|other| generation != other));
     }
-    recreated.stop_scoped(&g5, "test", "codex-stop").unwrap();
     independent_home.stop_scoped(&g6, "test", "codex-stop").unwrap();
     fresh.stop_scoped(&g7, "test", "codex-stop").unwrap();
 }

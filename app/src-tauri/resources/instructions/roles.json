@@ -11,7 +11,7 @@
         "WORKING_ITEMS",
         "TASK"
       ],
-      "default_for_new_chat": false
+      "default_for_new_chat": true
     },
     {
       "name": "HELPS_HUMANS",

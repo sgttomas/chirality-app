@@ -7,8 +7,8 @@ G={'appSession':'invented-session','home':'invented-home','spawnCounter':3}
 def question(state='ready'):
  text=f'Stop Codex for this home? Home: account · App session invented-session · Codex process start 3 · state {state} '
  if state!='ready':text+=f'Codex is {state}, not ready: live work cannot be observed and nothing is sent to it; only the process is stopped. '
- return text+('Observed: no live turns, waiting requests, delegated agents or workflow runs in force. Stop Codex stops this Codex process. '
- 'None observed is not none: coverage is not complete. This is your operational choice, not a recorded act. If you confirm, the App writes the stop and each interrupt to its recovery ledger before sending; what the ledger accepts can be read after a relaunch. '
+ return text+('Observed: no live turns, turn starts not yet associated with a turn, waiting requests, delegated agents or workflow runs in force. Stop Codex stops this Codex process. '
+ 'None observed is not none: coverage is not complete. This is your operational choice, not a recorded act. If you confirm, the App writes the stop and each interrupt to its recovery ledger before sending. '
  'Observed at 2026-10-31T12:00:00.000Z. Stop Codex proceeds; Keep Codex running (the default) and Cancel change nothing.')
 class ModalTests(unittest.TestCase):
  def setUp(self):

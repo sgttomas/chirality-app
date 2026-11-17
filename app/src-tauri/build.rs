@@ -131,7 +131,31 @@ pub(crate) fn publisher_build() -> Result<(), String> {
     println!("cargo:rustc-cfg=chirality_publisher_selected");
     Ok(())
 }
+/// The scripted driver's test build (app/examination/scripted_driver/README.md): this crate alone is compiled with
+/// cfg `chirality_scripted_driver` when CHIRALITY_SCRIPTED_DRIVER_BUILD is exactly "1". It is refused with the
+/// release feature and with any publisher selection, so no release build can carry it, whatever its environment.
+fn scripted_driver_build() -> Result<(), String> {
+    println!("cargo:rustc-check-cfg=cfg(chirality_scripted_driver)");
+    println!("cargo:rerun-if-env-changed=CHIRALITY_SCRIPTED_DRIVER_BUILD");
+    match env::var_os("CHIRALITY_SCRIPTED_DRIVER_BUILD") {
+        None => Ok(()),
+        Some(value) if value == "1" => {
+            if env::var_os("CARGO_FEATURE_DISTRIBUTION_SUCCESSOR").is_some()
+                || env::var_os("CHIRALITY_PUBLISHER_SELECTION").is_some()
+            {
+                return Err("the scripted driver is a test build only and is refused with the release feature distribution-successor or a publisher selection".into());
+            }
+            println!("cargo:rustc-cfg=chirality_scripted_driver");
+            Ok(())
+        }
+        Some(_) => Err("CHIRALITY_SCRIPTED_DRIVER_BUILD is either absent or exactly 1".into()),
+    }
+}
 fn main() {
+    if let Err(reason) = scripted_driver_build() {
+        eprintln!("scripted driver build refused: {reason}");
+        std::process::exit(1);
+    }
     if let Err(reason) = publisher_build() {
         // Messages contain categories only; never emit selected values or input bytes.
         eprintln!("publisher build selection refused: {reason}");

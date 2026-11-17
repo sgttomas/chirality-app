@@ -2,10 +2,11 @@ id: DEL-01-03
 name: Native plans, tools and delegation views
 needs:
 - from: DEL-01-01
-  condition: Native plan, tool and delegation items reach the views unchanged with their generation
-    and receipt position; each ready announcement carries the version identity record, its verification
-    result and the declared capabilities; and the model list, configuration and thread reads the
-    views need can be made through the boundary.
+  condition: Native plan, tool and delegation items, and the supplier's error notifications
+    for a turn, reach the views unchanged with their generation and receipt position; each ready
+    announcement carries the version identity record, its verification result and the declared
+    capabilities; and the model list, configuration (including layers), managed requirements and thread reads the views need can be made
+    through the boundary.
   gating: true
 - from: DEL-01-02
   condition: A window that re-attaches resumes from its position or receives a snapshot and a
@@ -29,6 +30,9 @@ code_paths:
 - app/src-tauri/src/delegation_availability.rs
 - app/src-tauri/resources/runtime_core/npt.plan-revision.schema.json
 - app/src/NativeActivity.tsx
+# Every value the App did not write, drawn as the agent's (cards and the activity stream).
+- app/src/AgentText.tsx
+- app/src/nativeWords.ts
 - app/src/PlanMode.tsx
 # NativeHistory.tsx is shared with DEL-01-04. Here: reading pages of native items from Codex
 # history. Finding a conversation and continuing it are DEL-01-04's.
@@ -47,6 +51,10 @@ checks:
 - app/src-tauri/src/hosting.rs
 - app/src-tauri/src/hosting_manual_history_tests.rs
 - app/tests/native-activity.test.mjs
+- app/tests/agent-text.test.mjs
+- app/tests/presentation-guard.test.mjs
+- app/tests/support/presentation-guard.mjs
+- app/tests/support/presentation-guard-exceptions.json
 - app/tests/native-history.test.mjs
 - app/tests/conversation-panel.test.mjs
 - app/tests/plan-mode.test.mjs

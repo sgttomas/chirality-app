@@ -1,0 +1,78 @@
+{
+  "record_kind": "exam_result",
+  "format": "EXP-v0.2",
+  "record_id": "INVENTED-SQ-J1-4",
+  "support_revision": {
+    "exp_version": "EXP-v0.2",
+    "schema_id": "urn:chirality:app-v4:del-09-01:exam-result-record:0.2",
+    "prototype_digest": "sha256:f55ad634a418ceefce4c6fa170d61400f0bee59d9d3521ce410b09b79f8e34ce"
+  },
+  "case": {
+    "owner_deliverable": "DEL-09-02",
+    "case_id": "J1-4"
+  },
+  "criterion": {
+    "source": "INVENTED criterion for J1-4",
+    "identity": "sha256:58eb55abe5d97dfbb8b08f2847f45b05318b64694a77db8220d37b733210a9c9"
+  },
+  "activity": "verification",
+  "run_basis": "candidate",
+  "subject": {
+    "kind": "candidate",
+    "app_candidate": {
+      "revision": "INVENTED-SQ-REVISION",
+      "build_identity": "INVENTED-SQ-DEVELOPMENT-BUILD",
+      "packaged": false
+    },
+    "invented_material": "INVENTED fixture, no native run or actual review"
+  },
+  "configuration": {
+    "codex_pin": "0.160.0",
+    "route": {
+      "kind": "native_development",
+      "platform": {
+        "os": "INVENTED macOS",
+        "arch": "INVENTED arm64"
+      },
+      "native_route": {
+        "method": "ui_automation",
+        "tool": "INVENTED harness computer use",
+        "tool_definition_check": "INVENTED-DC-N2",
+        "form_ref": "INVENTED-FORM-J1-4"
+      },
+      "webview": {
+        "name": "WKWebView",
+        "webkit_version": "INVENTED",
+        "os_version": "INVENTED"
+      }
+    },
+    "model": "not_observed",
+    "model_server": "not_observed"
+  },
+  "date": {
+    "value": "2026-10-08",
+    "source": "record_timestamp"
+  },
+  "outcome": "blocked",
+  "evidence": [],
+  "currency": {
+    "state": "current"
+  },
+  "blocked_by": "INVENTED unmet prerequisite",
+  "parts": [
+    {
+      "part": "supplied-as-selected",
+      "expectation": "What the App shows as supplied; a file selected as an input is sent as selected",
+      "outcome": "blocked",
+      "needs_native": true,
+      "blocked_by": "INVENTED unmet prerequisite"
+    },
+    {
+      "part": "changed-file-held",
+      "expectation": "A file selected as an input and changed between selection and sending is held and not sent",
+      "outcome": "blocked",
+      "needs_native": true,
+      "blocked_by": "INVENTED unmet prerequisite"
+    }
+  ]
+}

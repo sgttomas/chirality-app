@@ -5,14 +5,17 @@ import {spawnSync} from 'node:child_process';
 import {createHash} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 import React from 'react';
+import {choiceLists, chooseIn} from './support/choices.mjs';
 import {installMiniDom} from './support/mini-dom.mjs';
 import {loadSrc} from './support/load-src.mjs';
+import {agentBlocks, agentBlockText} from './support/agent-text.mjs';
 import {installIdleNativeWaiting} from './support/idle-native-waiting.mjs';
 import './support/rust-prebuild.mjs';
 
 const document = installMiniDom();
 const {createRoot} = await import('react-dom/client');
 const {App,ConversationPanel} = loadSrc('App');
+const {REFRESH_FAILED}=loadSrc('statusRefresh');
 const nodes = (container,tag) => container.querySelectorAll(node => node.localName === tag);
 const props = node => node[Object.keys(node).find(key => key.startsWith('__reactProps$'))];
 const labelled = (container,label) => container.querySelectorAll(node => node.getAttribute('aria-label') === label)[0];
@@ -59,8 +62,8 @@ function selectionView(container) {
   const panel = nodes(container,'h2').find(node => node.textContent === 'Selected text attachments').parentNode;
   const articles = nodes(panel,'article');
   return {
-    refs:articles.filter(node => /^\d+\. /.test(nodes(node,'h3')[0]?.textContent ?? '')).map(node => JSON.parse(nodes(node,'pre')[0].textContent).selectionRef),
-    submissions:articles.filter(node => (nodes(node,'h3')[0]?.textContent ?? '').startsWith('Submission ')).map(node => JSON.parse(nodes(node,'pre')[0].textContent)),
+    refs:articles.filter(node => /^Selected attachment \d+$/.test(nodes(node,'h3')[0]?.textContent ?? '')).map(node => JSON.parse(agentBlockText(agentBlocks(node)[0])).selectionRef),
+    submissions:articles.filter(node => (nodes(node,'h3')[0]?.textContent ?? '').startsWith('Submission ')).map(node => JSON.parse(agentBlockText(agentBlocks(node)[0]))),
   };
 }
 async function mountApp(sample,{refreshFails = false,deferView = false,observerSnapshot = sample.afterHostStatus} = {}) {
@@ -95,7 +98,7 @@ async function mountApp(sample,{refreshFails = false,deferView = false,observerS
     async start() {
       const row = sample.beforeHostStatus.threads.find(row => row.threadId === sample.args.threadId && JSON.stringify(row.generation) === JSON.stringify(sample.args.generation));
       assert.ok(row);
-      await React.act(() => props(nodes(conversation(container),'select')[0]).onChange({target:{value:JSON.stringify([row.generation,row.threadId])}}));
+      await React.act(() => chooseIn(choiceLists(conversation(container))[0],JSON.stringify([row.generation,row.threadId])));
       await React.act(() => props(composer(container)).onChange({target:{value:sample.args.text}}));
       assert.deepEqual(selectionView(container).refs,sample.args.selectionRefs);
       assert.equal(calls.filter(([command]) => command === sample.command).length,0,'mount/select/type has no attachment effect');
@@ -104,7 +107,7 @@ async function mountApp(sample,{refreshFails = false,deferView = false,observerS
       this.actionStart = calls.length;
       await React.act(() => {pending = props(target).onClick();});
       assert.equal(props(composer(container)).value,sample.args.text);
-      for (const control of [composer(container),nodes(conversation(container),'select')[0],button(container,sendLabel),button(container,steerLabel)]) assert.equal(!!props(control).disabled,true);
+      for (const control of [composer(container),choiceLists(conversation(container))[0],button(container,sendLabel),button(container,steerLabel)]) assert.equal(!!props(control).disabled,true);
     },
     async releaseNative() {await React.act(async () => {nativeGate.settled = true;nativeGate.resolve();if (!deferView) this.returned = await pending;});},
     async releaseView() {await React.act(async () => {viewGate.resolve();this.returned = await pending;});},
@@ -146,7 +149,7 @@ test('actual acknowledged Send and Steer retain native completion independently 
       assert.deepEqual(selectionView(view.container),{refs:expected.attachmentSelections.selections.map(row => row.selection.selectionRef),submissions:expected.attachmentSelections.submissions});
       assert.equal(!!props(button(view.container,steerLabel)).disabled,!(expected.steeringTargets ?? []).some(row => row.target));
       if (refreshFails) {
-        assert.equal(alerts(view.container).length,1);assert.ok(alerts(view.container)[0].includes(view.observerError));
+        assert.equal(alerts(view.container).length,1);assert.ok(alerts(view.container)[0].includes(REFRESH_FAILED),'a failed read is shown only as the fixed line (App Agent 0)');assert.ok(!view.container.textContent.includes(view.observerError),'never its raw diagnostic');
         assert.ok(alerts(view.container)[0].includes('command outcome above is unchanged'));
       } else assert.deepEqual(alerts(view.container),[]);
       assert.deepEqual(view.calls.slice(view.actionStart).map(([command]) => command),[sample.command,'host_status']);
@@ -164,7 +167,7 @@ test('actual native refusal, error, malformed reply and pending error survive a 
       assert.equal(view.returned,undefined);
       assert.equal(props(composer(view.container)).value,sample.args.text);
       assert.deepEqual(alerts(view.container).slice(0,1),[`${sample.nativeError} No automatic retry.`]);
-      assert.equal(alerts(view.container).length,2);assert.ok(alerts(view.container)[1].includes(view.observerError));
+      assert.equal(alerts(view.container).length,2);assert.ok(alerts(view.container)[1].includes(REFRESH_FAILED),'a failed read is shown only as the fixed line (App Agent 0)');assert.ok(!view.container.textContent.includes(view.observerError),'never its raw diagnostic');
       assert.ok(!outcome(view.container).textContent.includes(ack));view.assertOriginalIdentity();
       assert.equal(!!props(button(view.container,sendLabel)).disabled,false);
       assert.equal(!!props(composer(view.container)).disabled,false);

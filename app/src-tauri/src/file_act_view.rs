@@ -225,6 +225,9 @@ pub(crate) struct CaptureRead {
     pub result: Result<Value, String>,
     pub watch: Option<CaptureWatch>,
     pub reusable: bool,
+    /// The capture was read whole, is valid and is the one cited, and carries no seal: a settled
+    /// verdict, since a capture is never sealed afterwards, never a limit of this read.
+    pub no_seal: bool,
 }
 /// The one capture object a file act or decline record cites, read from the
 /// capture store and schema-checked (SP-3, RS R-8). Shared with the checkpoint recorder.
@@ -234,6 +237,7 @@ pub(crate) fn capture(root: &Path, body: &Value) -> Result<Value, String> {
 pub(crate) fn observe_capture(root: &Path, body: &Value) -> CaptureRead {
     let mut watch = None;
     let mut reusable = false;
+    let mut no_seal = false;
     let result = (|| {
         let refs = body["captureEvidence"]
             .as_array()
@@ -289,8 +293,10 @@ pub(crate) fn observe_capture(root: &Path, body: &Value) -> CaptureRead {
         if capture["captureId"] != id {
             return Err("Capture identity mismatch".into());
         }
-        // AAC §6.3 SEAL-C: only a capture sealed under a key this installation
-        // holds is the App act control's capture (AAC §6.3 / EXEC §2.4–2.5, R-1).
+        no_seal = capture.get("seal").is_none();
+        // AAC §6.3 SEAL-C: only a capture whose seal verifies under a key this
+        // installation holds is read here (AAC §6.3 / EXEC §2.4–2.5, R-1). The seal
+        // shows possession of that key over the covered facts, not who wrote them.
         crate::capture_seal::verify(root, &capture)?;
         Ok(capture)
     })();
@@ -298,6 +304,7 @@ pub(crate) fn observe_capture(root: &Path, body: &Value) -> CaptureRead {
         result,
         watch,
         reusable,
+        no_seal,
     }
 }
 #[cfg(test)]
@@ -399,6 +406,7 @@ fn read_log(
     (entries, limits, partial, Some(source))
 }
 pub(crate) struct SourceClaims {
+    pub home: Result<crate::records_store::ReadHome, String>,
     pub claims: Vec<Value>,
     pub complete: HashSet<String>,
     pub limits: Vec<String>,
@@ -411,13 +419,14 @@ pub(crate) struct SourceClaims {
 /// One nonblocking source read, retaining the physical log identity of the
 /// bytes read. Readable duplicate copies remain distinct source claims.
 pub(crate) fn source_claims(root: &Path) -> SourceClaims {
+    let home = crate::records_store::readable_home(root);
     let mut claims = Vec::new();
     let mut complete = HashSet::new();
     let mut limits = Vec::new();
     let mut files = HashMap::new();
     let mut incomplete = false;
     let mut partial_logs = HashSet::new();
-    let paths = crate::storage::discover(root).unwrap_or_else(|e| {
+    let paths = home.as_ref().map_err(Clone::clone).and_then(|home| crate::storage::discover_from_home(root, home)).unwrap_or_else(|e| {
         incomplete = true;
         limits.push(e);
         Vec::new()
@@ -452,6 +461,7 @@ pub(crate) fn source_claims(root: &Path) -> SourceClaims {
         );
     }
     SourceClaims {
+        home,
         claims,
         complete,
         limits,
@@ -462,6 +472,8 @@ pub(crate) fn source_claims(root: &Path) -> SourceClaims {
 }
 pub(crate) fn read(root: &Path) -> Value {
     let source = source_claims(root);
+    // See records_store::HistoryRead for the shared-reader check and slice 2.
+    let history_notices = crate::records_store::history_notice(source.home.as_ref().map_err(String::as_str)).view();
     let SourceClaims {
         claims,
         complete,
@@ -485,7 +497,7 @@ pub(crate) fn read(root: &Path) -> Value {
         {
             continue;
         }
-        let mut row_limits=vec!["identity not verified".to_owned(),"Readable record/capture claims do not verify native origin; a verified capture seal shows only that a holder of this App installation's key wrote the capture (AAC §6.3 SEAL-C); no professional certification".into()];
+        let mut row_limits=vec!["identity not verified".to_owned(),"Readable record/capture claims do not verify native origin. A valid capture seal shows consistency with possession of the key over the covered facts (AAC §6.3 SEAL-C). Any process running as the same user can read a file key. Keychain verification shows consistency with possession of a key held in the person's keychain under the keychain's protection. The capture does not record which provider held its key. No seal establishes who wrote the capture, that a person was present, or that they judged; no professional certification.".into()];
         let found = capture(root, b);
         let captured = found.as_ref().ok();
         if let Err(e) = &found {
@@ -564,9 +576,9 @@ pub(crate) fn read(root: &Path) -> Value {
                 "Professional standing is the person's own recorded statement; not verified".into(),
             );
         }
-        rows.push(json!({"recordId":record["recordId"],"kind":kind,"event":if decline{"declined this act"}else{"recorded human-act claim"},"actor":actor,"recordedBy":record["recorder"],"subject":subject,"boundContent":bound,"scope":if decline{captured.map(|c|c["scope"].clone()).unwrap_or(Value::Null)}else{b["scope"].clone()},"purpose":if decline{captured.map(|c|c["purpose"].clone()).unwrap_or(Value::Null)}else{b["purpose"].clone()},"recordingMode":b["recordingMode"],"lapseHistoryClaims":history.claims,"lapseHistoryLimitedClaims":history.limited,"lapseHistoryLimits":history.limits,"captureCorrespondence":correspondence,"captureEvidence":b["captureEvidence"],"captureTime":if decline{b["time"].clone()}else{b["captureTime"].clone()},"comparison":comparison_label,"currentContent":current.map(|c|json!({"method":c.method,"value":c.value})),"source":claim["source"],"correctedBy":claim["correctedBy"],"identityResolution":claim["identityResolution"],"relationLimit":claim["relationLimit"],"limits":row_limits}));
+        rows.push(json!({"recordId":record["recordId"],"kind":kind,"event":if decline{"recorded decline"}else{"recorded act"},"actor":actor,"recordedBy":record["recorder"],"subject":subject,"boundContent":bound,"scope":if decline{captured.map(|c|c["scope"].clone()).unwrap_or(Value::Null)}else{b["scope"].clone()},"purpose":if decline{captured.map(|c|c["purpose"].clone()).unwrap_or(Value::Null)}else{b["purpose"].clone()},"recordingMode":b["recordingMode"],"lapseHistoryClaims":history.claims,"lapseHistoryLimitedClaims":history.limited,"lapseHistoryLimits":history.limits,"captureCorrespondence":correspondence,"captureEvidence":b["captureEvidence"],"captureTime":if decline{b["time"].clone()}else{b["captureTime"].clone()},"comparison":comparison_label,"currentContent":current.map(|c|json!({"method":c.method,"value":c.value})),"source":claim["source"],"correctedBy":claim["correctedBy"],"identityResolution":claim["identityResolution"],"relationLimit":claim["relationLimit"],"limits":row_limits}));
     }
-    json!({"view":"App file acts and declines; read-only source claims","rows":rows,"correctionGroups":relations["correctionGroups"],"diagnostics":relations["diagnostics"],"limits":limits,"standing":"Checking, engineering approval and professional reliance remain distinct; no acceptance, execution, request settlement or native provenance is inferred"})
+    json!({"view":"App file acts and declines; read-only source claims","historyNotices":history_notices,"rows":rows,"correctionGroups":relations["correctionGroups"],"diagnostics":relations["diagnostics"],"limits":limits,"standing":"Checking, engineering approval and professional reliance remain distinct; no acceptance, execution, request settlement or native provenance is inferred"})
 }
 #[cfg(test)]
 mod tests {

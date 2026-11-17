@@ -82,7 +82,7 @@ implementation and explicit receiving agreement.
  └───────────────┬─────────────────────────────────────────────────────────┘
                  │ Codex App Server protocol (JSON-RPC over stdio), pinned
                  ▼
-          Codex (stock) ── ChatGPT account · oMLX/local provider
+          Codex (stock) ── ChatGPT account · oMLX/local provider (later update)
                  │
                  │ MCP (host tools, for an external controller)
                  ▼
@@ -117,7 +117,7 @@ prerequisite. PEC delivery is retired; no coordination-provider replacement is n
 | V4-ARC-01 | **Harness: Codex through the stock Codex App Server**, run from the App's own process, version-pinned, over its published protocol (JSON-RPC over stdio) | Recorded D-17/D-19 choice, retained by B-HTML 02; historical successful repairs support useful properties without proving topology-only causation |
 | V4-ARC-02 | **Shell: Tauri 2 + React + Vite**, the same stack as SWBPIPE | D-20; one packaging pipeline and one main-process language across Chirality applications (analysis §11.2–11.3) |
 | V4-ARC-03 | **No separate v3 Runtime service in the App target.** Its Node service and socket API are not carried forward as the App hosting topology | D-20 explicitly selected direct App-owned hosting. This is the chosen direction, not a claim that the retained service caused every historical failure or that a service is always wrong |
-| V4-ARC-04 | **Account and oMLX/local access through Codex**: ChatGPT sign-in and local model providers remain configured together and chosen per conversation, without a default. Credentials remain in Codex custody. The adopted keyed oMLX route has a dedicated local home and its own fixed nonsecret configuration, separate from the account home; its native implementation and actual oMLX compatibility remain pending. Standalone OpenAI API-key product access and its qualification commitment are omitted for this increment, while native plumbing and saved homes are retained. | D-06, D-17; current owner scope correction |
+| V4-ARC-04 | **Account and oMLX/local access through Codex**: ChatGPT sign-in and local model providers remain configured together and chosen per conversation, without a default. Credentials remain in Codex custody. The App's local model access entry uses a dedicated local home with its own nonsecret configuration, set by the person in the App and separate from the account home; its native implementation and actual oMLX compatibility remain pending. Standalone OpenAI API-key product access and its qualification commitment are omitted for this increment, while native plumbing and saved homes are retained. For 4.0.0 the local route is not presented, by the owner's decision of 14 November 2026 that the [release target](RELEASE_TARGET_4.0.0.md) quotes; this design stands for the later update that brings it back. | D-06, D-17; current owner scope correction; owner decision 2026-11-14 |
 | V4-ARC-05 | **Native presentation.** Codex's items — plans, tool activity, delegation, requests — are presented in their native form; protocol types are generated from the pinned Codex version, with a small hand-kept supplement for experimental fields | M-2; D-GOV-43 finding 4 (L-05) |
 
 **Properties the App must hold** (X-03–X-05; B-HTML 02/05). Source paths and
@@ -180,7 +180,7 @@ supplier direction as though it were unanswered.
 | ID | Decision | Reason |
 |---|---|---|
 | V4-ARC-10 | **Agent: a minimal Chirality agent loop** in the host, over the **OpenAI-compatible Chat Completions** interface with tool calls | Recorded D-20 choice. Compatibility and maintenance effort must be established for the selected server and implementation; the original size/stability expectations are not qualification |
-| V4-ARC-11 | **Host model: local or cloud, as the person chooses, with no default** — a local model server the user controls, or a cloud model reached by OAuth sign-in or an API key. This host choice does not add standalone OpenAI API-key access to the current App increment; App access is account plus oMLX/local under V4-ARC-04. | D-18; DEC-4; current App scope correction |
+| V4-ARC-11 | **Host model: local or cloud, as the person chooses, with no default** — a local model server the user controls, or a cloud model reached by OAuth sign-in or an API key. This host choice does not add standalone OpenAI API-key access to the current App increment; App access in 4.0.0 is the ChatGPT account under V4-ARC-04, with oMLX/local providers following in a later update. | D-18; DEC-4; current App scope correction |
 | V4-ARC-12 | **Network through the host.** The loop's requests pass through the host's own native layer, which allows only the selected model service and the destinations the person has allowed, records every destination contacted, and holds any key or sign-in credential outside the interface's script | D-18; DEC-4; DEC-5; T10 risk 3 |
 | V4-ARC-13 | **Tools from the host's capability catalog**, with arguments validated against the catalog's schemas before the host's own validation runs | V4-PAR-01…05; [host integration](HOST_INTEGRATION.md) |
 | V4-ARC-14 | **A Chirality-defined boundary around the loop** — messages, tools, events, checkpoints — so the loop can be replaced by Pi's libraries or another library if hosts outgrow it | D-20; M-5 |
@@ -208,8 +208,14 @@ supplier direction as though it were unanswered.
   unless it is sandboxed, the host can only decide whether to start it and
   record what it declares. Allow lists locked by an organization and
   enforced sandboxing of outside processes belong to a later governance
-  phase. This property governs a host's embedded agent; the App's own Codex
-  keeps the person's Codex configuration, approval and sandbox choices.
+  phase. This property governs a host's embedded agent. In the account home, the
+  App's Codex keeps the person's Codex configuration, except that analytics
+  is off, the default provider is the built-in OpenAI provider, and approval,
+  sandbox and review routing follow the permission level the person sets in
+  the App (PRD V4-AUT-06). The dedicated local home uses the App-owned
+  configuration specified by DEL-01-05, with analytics and plugin traffic
+  off. Every session setting the App applies is listed for the person with
+  its reason.
 - It does not block the host's interface: long parsing and model streaming
   run off the interface's main thread where the host needs it (T10 risk 4).
 - It treats truncated or malformed tool calls as failures to report, never

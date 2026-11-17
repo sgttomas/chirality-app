@@ -5,9 +5,14 @@
 //! capture (HOSTING §12 O-1 "Rust envelope core"; AAC §6.2 under R17-5). The
 //! webview only reads snapshots and asks the host to act.
 
+#[cfg(test)]
+mod records_effect_guard;
 pub mod access;
+// A test build only (build.rs sets this cfg and refuses it with the release feature).
+#[cfg(chirality_scripted_driver)] mod scripted_driver;
 pub mod act_control;
 pub mod act_policy;
+pub(crate) mod native_text;
 pub mod attachments;
 pub mod canonical;
 pub mod capture_seal;
@@ -51,8 +56,11 @@ mod publisher_selection;
 mod publisher_recipe;
 pub mod home_resources;
 mod native_local_provider;
+mod dev_model_address;
 mod native_secure_entry;
 mod desktop_startup;
+mod home_hold;
+mod session_liveness;
 mod desktop_setup_confirmation;
 mod main_window;
 mod provider_endpoint_confirmation;
@@ -67,6 +75,7 @@ pub mod receiving;
 pub mod recorder;
 pub mod records;
 pub mod records_access;
+pub mod release_limitations;
 mod fleet_records;
 mod native_conversation_links;
 mod after_run_end;
@@ -74,6 +83,7 @@ mod records_index;
 pub mod record_lines;
 pub mod records_store;
 pub mod records_export;
+pub(crate) mod records_inspect;
 use records_store::custody as records_package;
 pub mod records_retention;
 pub mod recovery;
@@ -88,10 +98,16 @@ pub mod runtime_session;
 mod waiting_requests;
 mod native_waiting;
 #[cfg(test)] mod waiting_requests_tests;
+#[cfg(test)]
+#[path = "placement_homes_tests.rs"]
+mod placement_homes_tests;
+#[cfg(test)] mod pinned_codex_observations;
 pub(crate) mod workflow_declaration;
 pub(crate) mod workflow_assurance;
 pub(crate) mod workflow_workspace;
 mod workflow_selection;
+/// A workflow's own text, read for the person; a read and nothing else.
+mod workflow_text_read;
 pub(crate) mod workflow_trial_transcript;
 mod historical_run_learning;
 mod workflow_learning_pointers;
@@ -103,10 +119,12 @@ pub(crate) mod a15_native;
 pub mod schema_validation;
 pub mod standing;
 pub mod storage;
+pub mod working_folder;
+pub mod working_files;
 pub mod stop_records;
 pub mod util;
 
-use act_control::{ActControl, InputSource};
+use act_control::ActControl;
 use hosting::{Host, HostConfig};
 use runtime_session::trial_flows::SendRefusal;
 use serde_json::{json, Value};
@@ -136,6 +154,10 @@ pub struct AppState {
     attachment_selection: Mutex<Result<runtime_session::AttachmentSelectionSession, String>>,
     role_log: Result<Arc<role_observations::RoleLog>, String>,
     native_links: Mutex<native_conversation_links::Session>,
+    /// DEL-06-01: what the session's reconciliation of earlier sessions'
+    /// delegation observations has done, as the record tick last left it. A
+    /// read reports it and triggers nothing; memory only.
+    delegation_reconciliation: Mutex<Value>,
     project_context: recovery::ExplicitAppProjectContext,
     project_context_limit: Option<String>,
     homes: Mutex<runtime_session::HomeRouter>,
@@ -278,27 +300,47 @@ fn complete_config_resource_continuation(
     )
 }
 
-/// A fresh probe home for the label probe (HOSTING §7.2 H-probe), in the temp directory.
-fn probe_home() -> Result<PathBuf,String> {
-    runtime_session::allocate_fresh_probe(&std::env::temp_dir())
+/// A fresh probe home for the label probe (HOSTING §7.2 H-probe), made in the
+/// App's Working Files beside the App data folder (DEL-01-01), never in a
+/// temporary folder. The App data folder is already held.
+fn probe_home(app_data: &std::path::Path) -> Result<PathBuf,String> {
+    working_files::for_launch(app_data)?.allocate(working_files::Kind::ProbeHome).map(|made| made.path)
+}
+
+/// Whether this build admits development startup inputs. The release
+/// configuration (built with distribution-successor, and not a development
+/// run) admits none.
+pub(crate) fn development_inputs_admitted(is_dev: bool) -> bool {
+    is_dev || !cfg!(feature = "distribution-successor")
 }
 
 /// Complete explicit environment route; no private supplier/home path is built in.
 /// Desktop requests are a separate exclusive source, resolved before Root binding.
-pub fn host_config_from_env(workspace: Option<&PathBuf>) -> Result<HostConfig, String> {
-    host_config_from_inputs(workspace, |key|std::env::var_os(key), probe_home)
+/// The App data folder and its folder set aside must already be established
+/// (`working_folder::establish`); the project is admitted against them here.
+pub fn host_config_from_env(workspace: Option<&PathBuf>, app_data: &std::path::Path) -> Result<HostConfig, String> {
+    let established = working_folder::established(app_data).map_err(|blocked| blocked.sentence())?;
+    let project = workspace.map(|project| established.admit_project(project)).transpose()?;
+    host_config_from_inputs(project.as_ref(), Ok(&established), |key|std::env::var_os(key), || probe_home(app_data))
 }
 
-fn host_config_from_inputs(workspace: Option<&PathBuf>, input: impl Fn(&str)->Option<std::ffi::OsString>, probe: impl FnOnce()->Result<PathBuf,String>) -> Result<HostConfig,String> {
+/// `project` has passed admission; with none, the working folder is the
+/// established folder set aside (DEL-01-01).
+fn host_config_from_inputs(project: Option<&working_folder::AdmittedProject>, established: Result<&working_folder::Established, String>, input: impl Fn(&str)->Option<std::ffi::OsString>, probe: impl FnOnce()->Result<PathBuf,String>) -> Result<HostConfig,String> {
     let bin = input("CHIRALITY_CODEX_BIN").ok_or(()).map_err(|_| {
         "CHIRALITY_CODEX_BIN is not set: no supplier distribution resolved".to_string()
     })?;
     let home = input("CHIRALITY_CODEX_HOME").ok_or(()).map_err(|_| {
         "CHIRALITY_CODEX_HOME is not set: no App-owned Codex home given".to_string()
     })?;
-    let cwd = workspace.cloned().unwrap_or_else(std::env::temp_dir);
+    let established = established?;
+    let cwd = match project {
+        Some(project) => project.to_path_buf(),
+        None => established.leaf().to_path_buf(),
+    };
     let mut cfg = HostConfig::new(bin.into(), home.into(), probe()?, cwd);
-    cfg.records_project=workspace.is_some();
+    cfg.records_project=project.is_some();
+    cfg.app_data=Some(established.data().to_path_buf());
     cfg.expected_sha256 = input("CHIRALITY_CODEX_EXPECTED_SHA256").and_then(|v|v.into_string().ok());
     cfg.allow_unverified_dev = input("CHIRALITY_ALLOW_UNVERIFIED").is_some_and(|v|v == "1");
     Ok(cfg)
@@ -367,6 +409,26 @@ fn endpoint_offer_result(
     )?;
     Ok(view)
 }
+/// In this version the App does not offer a local model server or a local
+/// provider (DEL-01-05 "For 4.0.0"; LIM-015). The route's code is kept for a
+/// later update and nothing it made is deleted; every host command that would
+/// prepare, read, create, edit, select or start it refuses here, at the command
+/// boundary, in words a person can act on. The discard commands stay: they only
+/// drop an offer, which no refused command can now make.
+const LOCAL_ROUTE_OFFERED: bool = false;
+/// Whether `class` offers exactly one access entry, as a fact of this build's configuration (never of a read): the
+/// account home's ChatGPT account, where the local route is not offered.
+pub(crate) fn only_access_entry(class: home_resources::HomeClass) -> bool {
+    class == home_resources::HomeClass::Account && !LOCAL_ROUTE_OFFERED
+}
+pub(crate) const LOCAL_ROUTE_NOT_OFFERED: &str = "This version of the App does not offer a local model server or a local provider. Use your ChatGPT account: sign in under Connection and access.";
+fn local_route_refused() -> Result<(), String> {
+    if LOCAL_ROUTE_OFFERED { Ok(()) } else { Err(LOCAL_ROUTE_NOT_OFFERED.into()) }
+}
+/// The reading a read of the local route returns in this version: not a fault.
+fn local_route_not_offered_reading() -> Value {
+    json!({"state":"not-in-this-version","offered":false,"reason":LOCAL_ROUTE_NOT_OFFERED})
+}
 #[tauri::command(async)]
 fn provider_endpoint_offer(
     state: State<'_, AppState>,
@@ -375,8 +437,12 @@ fn provider_endpoint_offer(
     endpoint: String,
     epoch: String,
 ) -> Result<Value, String> {
-    endpoint_offer_result(&state, &generation, &provider_id, &endpoint, &epoch)
-        .map_err(|_| "Endpoint edit unavailable; private values and diagnostics withheld".into())
+    local_route_refused()?;
+    endpoint_offer_result(&state, &generation, &provider_id, &endpoint, &epoch).map_err(endpoint_offer_refusal)
+}
+/// What the endpoint offer command returns for a failure: either reading sentence as it is, else its fixed sentence.
+pub(crate) fn endpoint_offer_refusal(error: String) -> String {
+    hosting::reading_gate::reading_or(error, || "Endpoint edit unavailable; private values and diagnostics withheld".into())
 }
 fn endpoint_save_result(
     state: &AppState,
@@ -506,8 +572,17 @@ fn provider_create_offer(
     endpoint: String,
     epoch: String,
 ) -> Result<Value, String> {
-    create_offer_result(&state, &generation, &provider_id, &name, &endpoint, &epoch)
-        .map_err(|_| "Provider Add unavailable; private values and diagnostics withheld".into())
+    local_route_refused()?;
+    create_offer_result(&state, &generation, &provider_id, &name, &endpoint, &epoch).map_err(create_offer_refusal)
+}
+/// What the Add save command returns for a failure: either reading sentence as it is (the reading
+/// before the write was not sent and nothing was written), else its fixed sentence.
+pub(crate) fn create_save_refusal(error: String) -> String {
+    hosting::reading_gate::reading_or(error, || "Provider Add unavailable; no automatic retry; private diagnostics withheld".into())
+}
+/// What the Add offer command returns for a failure: either reading sentence as it is, else its fixed sentence.
+pub(crate) fn create_offer_refusal(error: String) -> String {
+    hosting::reading_gate::reading_or(error, || "Provider Add unavailable; private values and diagnostics withheld".into())
 }
 #[tauri::command(async)]
 fn provider_create_save(
@@ -515,6 +590,7 @@ fn provider_create_save(
     state: State<'_, AppState>,
     token: String,
 ) -> Result<Value, String> {
+    local_route_refused()?;
     let (epoch, remaining) = {
         let c = state
             .endpoint_edits
@@ -553,9 +629,7 @@ fn provider_create_save(
             .then(|| candidate.accept_checked_current_object()))
         },
     )
-    .map_err(|_| {
-        "Provider Add unavailable; no automatic retry; private diagnostics withheld".into()
-    })
+    .map_err(create_save_refusal)
 }
 fn endpoint_question_current(state: &AppState, epoch: &str, scope: &Value) -> Result<(), String> {
     if state
@@ -601,6 +675,7 @@ fn provider_endpoint_save(
     state: State<'_, AppState>,
     token: String,
 ) -> Result<Value, String> {
+    local_route_refused()?;
     let epoch = state
         .endpoint_edits
         .lock()
@@ -675,6 +750,17 @@ fn desktop_setup_project_preview(state: State<'_, AppState>, project_path: Optio
 #[tauri::command(async)]
 fn desktop_setup_prepare(window: tauri::Window, state: State<'_, AppState>, preview_token: String) -> Result<Value, String> {
     let controller = desktop_controller(&state)?;
+    // A test build carrying the scripted driver answers this one confirmation through its stand-in, never by the
+    // native sheet (scripted_driver.rs); no other confirmation has one.
+    #[cfg(chirality_scripted_driver)]
+    {
+        let _ = &window;
+        return desktop_setup_confirmation::prepare(&controller, &preview_token, |statement, action| {
+            scripted_driver::setup_confirmation_stand_in(desktop_setup_confirmation::TITLE, &statement.text,
+                desktop_setup_confirmation::LEAVE, action, act_control::native_statement::CANCEL)
+        });
+    }
+    #[cfg(not(chirality_scripted_driver))]
     desktop_setup_confirmation::prepare(&controller, &preview_token,
         |statement, action| desktop_setup_confirmation::confirm(&window, statement, action))
 }
@@ -717,6 +803,14 @@ fn recovery_retry(state: State<'_, AppState>, mode_home_class: String, generatio
     recovery_root_view::read(&home, &mode_home_class, &home.host.snapshot()["generation"])
 }
 
+/// Adds `effortInForce` to each conversation row the readings name, by generation and thread.
+fn annotate_efforts_in_force(threads: &mut Value, readings: &[(Value, String, Value)]) {
+    for thread in threads.as_array_mut().into_iter().flatten() {
+        if let Some((_, _, reading)) = readings.iter().find(|(generation, id, _)| thread["generation"] == *generation && thread["threadId"] == id.as_str()) {
+            thread["effortInForce"] = reading.clone();
+        }
+    }
+}
 #[tauri::command]
 fn host_status(state: State<'_, AppState>) -> Value {
     let home = state.homes.lock().unwrap().active();
@@ -737,6 +831,9 @@ fn host_status(state: State<'_, AppState>) -> Value {
     if let Err(e) = &home.host_config {
         s["configurationProblem"] = json!(e);
     }
+    // The home this status is for, as `lastStartRefusal.home` names one: a
+    // refusal is shown only for the home being shown.
+    s["codexHome"] = home.host_config.as_ref().map_or(Value::Null, |cfg| json!(hosting::home_identity(&cfg.codex_home)));
     s["roleSupply"] = home.role_supply_status.lock().unwrap().clone();
     s["roleSet"] = role_set_metadata();
     s["compiledDevelopmentSelection"] = state.compiled_development_selection.clone();
@@ -751,6 +848,8 @@ fn host_status(state: State<'_, AppState>) -> Value {
     // last read it (the reads run on the host tick and when Try with the
     // authoring agent is pressed; host_status reads nothing from Codex).
     delegation_availability::annotate_threads(&mut s["threads"], &home.host.delegation_readings());
+    // The effort in force for each current conversation (Host::efforts_in_force), shown by its effort control.
+    annotate_efforts_in_force(&mut s["threads"], &home.host.efforts_in_force());
     // ROLE §6.2 LA-4: the limits shown where a role is chosen, as handed.
     s["roleLimits"] = conversation_roles::limit_account(root.as_deref().ok());
     let generation = s["generation"].clone();
@@ -795,16 +894,23 @@ fn host_status(state: State<'_, AppState>) -> Value {
     s["codexStops"] = json!({"outcomes":state.codex_stops.lock().unwrap().clone(),"stopWaitLimitSeconds":codex_stop::STOP_WAIT_LIMIT.as_secs(),"records":codex_stop::RECORDS_LIMIT});
     s["connectorRouteAvailability"] = connector_route_view::availability(state.workspace.as_deref(), &state.project_context, state.project_context_limit.as_deref());
     s["recordsStore"] = records_store::status(state.workspace.as_deref());
+    s["recordsStore"]["placementChoice"] = records_store::choice_view(state.app_user_data_root.lock().unwrap().as_deref().map_err(Clone::clone), tauri::is_dev());
     s["nativeConversationLinks"] = state.native_links.lock().map(|links| links.snapshot()).unwrap_or_else(|_|json!({"state":"unavailable","limit":"native relationship recording session unavailable; native operation outcomes remain as observed"}));
     s["recordChain"] = records_index::chain_status(state.workspace.as_deref());
     s["currentAppProjectContext"] = state.project_context.view();
     s["configuredProviderReadRevision"] = if home.class() == home_resources::HomeClass::Account {
+        home.host_config.as_ref().ok().and_then(|cfg|cfg.cwd.to_str())
+            .map(|cwd|home.host.configured_provider_observation_revision(&s["generation"],cwd)).unwrap_or(Value::Null)
+    } else { Value::Null };
+    // The endpoint and Add reviews follow every configuration read of the folder, as their native checks do.
+    s["providerOfferReadRevision"] = if home.class() == home_resources::HomeClass::Account {
         home.host_config.as_ref().ok().and_then(|cfg|cfg.cwd.to_str())
             .map(|cwd|home.host.configured_provider_revision(&s["generation"],cwd)).unwrap_or(Value::Null)
     } else { Value::Null };
     s["accessSettingsReadRevision"] = home.host_config.as_ref().ok().and_then(|cfg|cfg.cwd.to_str())
         .map(|cwd|home.host.configured_provider_revision(&s["generation"],cwd)).unwrap_or(Value::Null);
 
+    s["codexSessionSettings"] = home.host_config.as_ref().ok().map(|cfg|hosting::applied_session_settings(&cfg.session_flags)).unwrap_or(Value::Null);
     s["currentAppProjectContextLimit"] = json!(state.project_context_limit);
     if let Err(e) = &*state.instructions_root.lock().unwrap() {
         s["instructionsProblem"] = json!(e);
@@ -830,7 +936,15 @@ fn records_chain_heads(state: State<'_, AppState>) -> Result<Value, String> {
 /// webview supplies no path, graph selection, record or association.
 #[tauri::command(async)]
 fn read_fleet_records(state: State<'_, AppState>) -> Result<Value, String> {
-    read_fleet_records_for_workspace(state.workspace.as_deref())
+    let mut packet = read_fleet_records_for_workspace(state.workspace.as_deref())?;
+    // What this session's reconciliation of earlier sessions' observations has
+    // done, as the record tick last left it: reported, never triggered here.
+    let reconciliation = state.delegation_reconciliation.lock().unwrap().clone();
+    if let (Some(limit), Some(limits)) = (reconciliation["limit"].as_str(), packet["limits"].as_array_mut()) {
+        limits.push(json!({"source":{"home":"This App"},"reason":limit}));
+    }
+    packet["delegationReconciliation"] = reconciliation;
+    Ok(packet)
 }
 fn read_fleet_records_for_workspace(workspace: Option<&std::path::Path>) -> Result<Value,String> {
     fleet_records::read_for_workspace(workspace)
@@ -840,6 +954,7 @@ fn read_fleet_records_for_workspace(workspace: Option<&std::path::Path>) -> Resu
 fn records_store_export(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<Value, String> {
     let project = state.workspace.as_ref().ok_or("no project is open; nothing exported")?;
     let Some(parent) = workflow_native_folder(&app, "Choose a folder for the records export")? else { return Ok(json!({"state":"export cancelled"})); };
+    chosen_folder_outside_app_data(&state, &parent, "Nothing was exported")?;
     let destination = parent.join(util::opaque_id("records-export-")?);
     records_export::export(project, &destination)
 }
@@ -944,6 +1059,22 @@ fn records_store_retention(app:tauri::AppHandle,state:State<'_,AppState>,action:
 #[tauri::command(async)]
 fn records_store_identity(state: State<'_, AppState>, action: String) -> Result<Value, String> {
     let project = state.workspace.as_ref().ok_or("no project is open; nothing changed")?;
+    // Giving the folder another identity while this session still has records
+    // waiting for the one it had would write them into the wrong history:
+    // refused, saying what waits. Restoring the link is what lets them be
+    // written, so it is never refused for this.
+    let (_links, _workflows, _acts);
+    if matches!(action.as_str(), "adopt" | "new-identity") {
+        let waiting = |what: &str| format!("{what} for the project this folder was recorded for is still waiting to be written. Restore the project file so it can be recorded, then try again; nothing changed");
+        let links = state.native_links.try_lock().map_err(|_| "a record of a related conversation is being written; try again in a moment. Nothing changed")?;
+        if links.has_pending() { return Err(waiting("A record of a related conversation")); }
+        let workflows = state.workflows.try_lock().map_err(|_| "a workflow operation is in progress; try again when it has finished. Nothing changed")?;
+        workflows.retention_ready().map_err(|e| format!("{e}. End the run, or restore the project file so its records can be written, then try again; nothing changed"))?;
+        let acts = state.act.try_lock().map_err(|_| "an act is being recorded; try again in a moment. Nothing changed")?;
+        if acts.as_ref().is_some_and(|a| !a.writer_ready()) { return Err(waiting("A captured act")); }
+        // Held until the association has changed.
+        (_links, _workflows, _acts) = (Some(links), Some(workflows), Some(acts));
+    }
     match action.as_str() {
         "adopt" => records_store::adopt(project),
         "new-identity" => records_store::new_identity(project),
@@ -951,25 +1082,93 @@ fn records_store_identity(state: State<'_, AppState>, action: String) -> Result<
         _ => Err("unknown records store identity action; nothing changed".into()),
     }
 }
-/// RS §13.8 "Placement": the person chooses where the records store is kept
-/// (another volume, for example), from the next start.
+/// RS §13.8 "Placement": the person picks and confirms the next-start
+/// location in native dialogs. The web view supplies only choose/default.
 #[tauri::command(async)]
-fn records_store_choose(state: State<'_, AppState>, location: String) -> Result<Value, String> {
+fn records_store_choose(app: tauri::AppHandle, state: State<'_, AppState>, action: String) -> Result<Value, String> {
+    use act_control::native_statement as ns;
+    if tauri::is_dev() {
+        return Err(format!("this run was started for development and keeps its records only where {} names; a chosen location is read by a built App", records_store::OVERRIDE_ENV));
+    }
+    if action != "choose" && action != "default" {
+        return Err("unknown records store location action".into());
+    }
     let data = state.app_user_data_root.lock().unwrap().clone()?;
     let homes = state.homes.lock().unwrap();
     let configs: Vec<hosting::HostConfig> = [home_resources::HomeClass::Account, home_resources::HomeClass::ApiKey, home_resources::HomeClass::LocalProvider].into_iter()
         .filter_map(|class| homes.entry(class).ok()).filter_map(|home| home.host_config.as_ref().ok().cloned()).collect();
     drop(homes);
-    records_store::choose_location(&data, std::path::Path::new(&location), state.workspace.as_deref(), &codex_homes(configs.iter()))
+    let location = if action == "choose" {
+        let Some(picked) = workflow_native_folder(&app, "Choose a folder for the App's records")? else {
+            return Ok(json!({"state":"choice cancelled"}));
+        };
+        Some(records_store::location_for_choice(&picked)?)
+    } else { None };
+    records_store::confirm_placement_beside(&data, location.as_deref(), state.workspace.as_deref(), &codex_homes(configs.iter(), Some(&data)), &working_folders(configs.iter()), |text, dont, perform| {
+        let mut refused = None;
+        let statement = ns::bounded("records store location", text).map(|text| ns::NativeStatement { text, in_app: None });
+        let yes = confirm_choice(&app, "Records store location", statement, dont, perform, &mut refused);
+        refused.map_or(Ok(yes), Err)
+    })
+}
+/// DEL-01-01: the working folders the App gives its Codex. A records store
+/// location that overlaps one is refused when it is admitted, whatever folder
+/// that is.
+fn working_folders<'a>(configs: impl Iterator<Item = &'a hosting::HostConfig>) -> Vec<PathBuf> {
+    configs.map(|cfg| cfg.cwd.clone()).collect()
 }
 /// The App-owned and configured Codex homes (account, key and probe homes,
 /// and the explicit home variables) the records store must stay out of.
-fn codex_homes<'a>(configs: impl Iterator<Item = &'a hosting::HostConfig>) -> Vec<PathBuf> {
-    let mut homes: Vec<PathBuf> = configs.flat_map(|cfg| [cfg.codex_home.clone(), cfg.probe_home.clone()]).collect();
-    homes.extend(["CHIRALITY_CODEX_HOME", "CHIRALITY_KEY_HOME", "CODEX_HOME"].iter().filter_map(|key| std::env::var_os(key).filter(|v| !v.is_empty()).map(PathBuf::from)));
+/// The Codex homes the records store must stay out of, on two separate
+/// paths so that the second can never discard the first's protection.
+/// - STRICT: every home the App uses or plans, made absolute where its child
+///   resolves it: each configured supplier home under `cfg.cwd`, each probe
+///   home in its own folder (an empty configured home is kept empty, and
+///   placement refuses it by name as an invalid input), and the local
+///   provider's home (`runtime_session::local_provider_home`), before any
+///   host configuration exists for it. (The folder where the App allocates
+///   its account homes is reserved by placement itself, from the App data
+///   folder: `desktop_startup::desktop_account_homes`.)
+/// - RAW, a compatibility rule: for raw environment inputs, the legacy
+///   comparison's result is retained. A result left relative could not
+///   overlap the absolute store accepted by either entrypoint, so it is not
+///   given to placement (whose own rule would otherwise make it absolute
+///   against the App's folder and refuse a location no Codex home occupies).
+///   This is not an inference that such a home is absent, and it is no rule
+///   for homes the App uses or plans. No child resolves a raw value under
+///   its own working folder: CHIRALITY_CODEX_HOME is the configured home
+///   itself; every Codex child is given CODEX_HOME explicitly; a relative
+///   CHIRALITY_KEY_HOME is refused at admission (`environment_path_refusal`). (An
+///   earlier version said raw values were compared "exactly as before"
+///   while making them absolute; the second reading showed that wrong.)
+fn codex_homes<'a>(configs: impl Iterator<Item = &'a hosting::HostConfig>, app_data: Option<&std::path::Path>) -> Vec<PathBuf> {
+    codex_homes_from(configs, app_data, |key| std::env::var_os(key))
+}
+fn codex_homes_from<'a>(configs: impl Iterator<Item = &'a hosting::HostConfig>, app_data: Option<&std::path::Path>, input: impl Fn(&str) -> Option<std::ffi::OsString>) -> Vec<PathBuf> {
+    let mut homes = strict_codex_homes(configs, app_data);
+    homes.extend(raw_codex_home_inputs(input));
     homes.sort();
     homes.dedup();
     homes
+}
+/// Every Codex home the App uses or plans, made absolute where its child
+/// resolves it; one that cannot be made absolute is left relative, and
+/// placement refuses it.
+fn strict_codex_homes<'a>(configs: impl Iterator<Item = &'a hosting::HostConfig>, app_data: Option<&std::path::Path>) -> Vec<PathBuf> {
+    let absolute = |path: PathBuf| std::path::absolute(&path).unwrap_or(path);
+    let used = |cwd: &std::path::Path, home: &std::path::Path| if home.as_os_str().is_empty() { PathBuf::new() } else { absolute(cwd.join(home)) };
+    let mut homes: Vec<PathBuf> = configs.flat_map(|cfg| [used(&cfg.cwd, &cfg.codex_home), used(&cfg.probe_home, &cfg.probe_home)]).collect();
+    homes.extend(app_data.map(|data| absolute(runtime_session::local_provider_home(data))));
+    homes
+}
+/// The raw environment inputs, by the compatibility rule above: the legacy
+/// comparison's result, kept where it is absolute.
+fn raw_codex_home_inputs(input: impl Fn(&str) -> Option<std::ffi::OsString>) -> Vec<PathBuf> {
+    ["CHIRALITY_CODEX_HOME", "CHIRALITY_KEY_HOME", "CODEX_HOME"].iter()
+        .filter_map(|key| input(key).filter(|v| !v.is_empty()).map(PathBuf::from))
+        .map(|raw| records_store::resolve_lexically(&raw))
+        .filter(|resolved| resolved.is_absolute())
+        .collect()
 }
 
 #[tauri::command(async)]
@@ -1069,6 +1268,7 @@ fn home_class(mode: &str) -> Result<home_resources::HomeClass,String> {
 #[tauri::command]
 fn select_home(state: State<'_,AppState>, mode_home_class:String)->Result<Value,String>{
     let class=home_class(&mode_home_class)?;
+    if class==home_resources::HomeClass::LocalProvider { local_route_refused()?; }
     let mut homes=state.homes.lock().unwrap();
     homes.activate(class)?;
     let view=homes.snapshot();drop(homes);invalidate_endpoint_edits(&state)?;
@@ -1104,6 +1304,7 @@ fn read_effective_access_settings(state:State<'_,AppState>,generation:Value,mode
 
 #[tauri::command(async)]
 fn read_configured_providers(state:State<'_,AppState>,generation:Value,mode_home_class:String)->Result<Value,String>{
+    if !LOCAL_ROUTE_OFFERED { return Ok(local_route_not_offered_reading()); }
     invalidate_endpoint_edits(&state)?;
     // Only the currently selected actual account source; no caller cwd/home,
     // alternate-home fallback, configuration write, model or capability read.
@@ -1117,7 +1318,7 @@ fn read_configured_providers(state:State<'_,AppState>,generation:Value,mode_home
     state.validate_home_source(&home).map_err(|_|refused())?;
     let active=state.homes.lock().unwrap().active();
     if !Arc::ptr_eq(&active,&home) || home.host.snapshot()["generation"]!=generation || state.project_context.view()!=project
-        || home.host.configured_provider_revision(&generation,&cwd)!=view["scope"]["readRevision"] {return Err(refused());}
+        || home.host.configured_provider_observation_revision(&generation,&cwd)!=view["scope"]["readRevision"] {return Err(refused());}
     Ok(view)
 }
 
@@ -1162,6 +1363,8 @@ fn oauth_cancel(app:tauri::AppHandle,state:State<'_,AppState>,generation:Value)-
 fn add_api_key(app:tauri::AppHandle,state:State<'_,AppState>)->Result<Value,String>{
     let _operation=state.key_setup.try_lock().map_err(|_|"Another explicit key operation is pending; no duplicate/retry")?;
     if state.app_quit.busy() || state.app_quit.proceeding().is_some() { return Err("The App is quitting; no key home was created or started".into()); }
+    // DEL-01-05: the key home's start configuration is cloned from the account home's.
+    dev_model_address::check_key_home(&state.homes.lock().unwrap().entry(home_resources::HomeClass::Account)?.host_config)?;
     let bootstrap=state.home_bootstrap.lock().unwrap().clone()?;
     bootstrap.key_plan()?;
     if !app.dialog().message("Add or replace an API key through the separate App key home? Its explicit resource links may be prepared and its Codex child started. Existing account conversations are not transferred.").title("Separate API-key home").buttons(MessageDialogButtons::OkCancel).blocking_show(){return Ok(json!({"state":"cancelled; no key setup/login"}));}
@@ -1217,29 +1420,47 @@ fn add_api_key(app:tauri::AppHandle,state:State<'_,AppState>)->Result<Value,Stri
     bootstrap.validate_binding(home.class(),&config)?;Ok(config)})?;
     let _=config;
     let generation=home.host.snapshot()["generation"].clone();
-    runtime_session::submit_native_home_key(&home,&bootstrap,&generation,||runtime_session::native_api_key_entry(&app))
+    runtime_session::submit_native_home_key(&home,&bootstrap,&generation,||runtime_session::native_api_key_entry(&app)).map_err(key_entry_refusal)
+}
+/// Known when the key entry's configuration reading is refused: the separate key home is set up,
+/// and the reading comes before the secure key field opens, so no key was sent or saved.
+pub(crate) const KEY_HOME_READY: &str = "The separate key home is set up; the key field was not opened, so no key was sent or saved. ";
+/// What `add_api_key` returns for a failure: either reading sentence after what is already known,
+/// otherwise the failure as before.
+pub(crate) fn key_entry_refusal(error: String) -> String {
+    if hosting::reading_gate::reading_sentence(&error) { format!("{KEY_HOME_READY}{error}") } else { error }
 }
 
-/// Explicit local-provider setup; no endpoint/model/key argument and no account resource links.
+/// The local home's namespace preflight, before its directory is created or prepared.
+fn local_home_preflight(state: &AppState, bootstrap: &runtime_session::HomeBootstrapSet) -> Result<(Arc<runtime_session::HomeSession>, Arc<hosting::attachment_custody::AttachmentCustody>), String> {
+    let account=state.homes.lock().unwrap().entry(home_resources::HomeClass::Account)?;
+    state.validate_home_source(&account)?;
+    // The prospective local directory is already in the actual Root namespace set.
+    let namespaces=bootstrap.native_namespaces(state.homes.lock().unwrap().entry(home_resources::HomeClass::ApiKey).is_ok())?;
+    account.host.app_runtime_custody()?.preflight_native_namespaces(&namespaces)?;
+    let attachment=account.attachment_custody.lock().unwrap().as_ref().map_err(Clone::clone)?.clone();
+    attachment.preflight_binding(&namespaces)?;
+    Ok((account,attachment))
+}
+/// Explicit local-provider setup with the local model settings the person saved; no
+/// endpoint/model/key argument and no account resource links. Never writes defaults.
 #[tauri::command(async)]
 fn prepare_local_provider(window: tauri::Window, state: State<'_, AppState>) -> Result<Value, String> {
-    if hosting::DECLARED_PIN!="0.167.0" { return Err(native_local_provider::LIMIT.into()); }
+    local_route_refused()?;
+    if hosting::DECLARED_PIN!="0.169.0" { return Err(native_local_provider::LIMIT.into()); }
     let _operation=state.key_setup.try_lock().map_err(|_| native_local_provider::LIMIT)?;
     if state.app_quit.busy() || state.app_quit.proceeding().is_some() { return Err(native_local_provider::LIMIT.into()); }
     provider_endpoint_confirmation::recheck_original(&window)?;
     let bootstrap=state.home_bootstrap.lock().unwrap().clone()?;
     let plan=bootstrap.local_plan()?;
-    let account=state.homes.lock().unwrap().entry(home_resources::HomeClass::Account)?;
-    state.validate_home_source(&account)?;
-    // The prospective local directory is already in the actual Root namespace set.
+    if native_local_provider::stored(plan)?.is_none() { return Err(native_local_provider::UNSET.into()); }
     let data=state.app_user_data_root.lock().unwrap().clone()?;
-    let namespaces=bootstrap.native_namespaces(state.homes.lock().unwrap().entry(home_resources::HomeClass::ApiKey).is_ok())?;
-    account.host.app_runtime_custody()?.preflight_native_namespaces(&namespaces)?;
-    let attachment=account.attachment_custody.lock().unwrap().as_ref().map_err(Clone::clone)?.clone();
-    attachment.preflight_binding(&namespaces)?;
-    native_local_provider::prepare(plan)?;
+    let (account,attachment)=local_home_preflight(&state,&bootstrap)?;
+    let settings=native_local_provider::prepare(plan)?;
     bootstrap.revalidate()?;
     let home=match state.homes.lock().unwrap().entry(home_resources::HomeClass::LocalProvider) { Ok(home)=>Some(home),Err(_)=>None };
+    // Settings saved after this session bound the home take effect only after the App is reopened.
+    if home.as_ref().is_some_and(|home| home.host.local_superseded() || home.host.local_settings().ok().as_ref()!=Some(&settings)) { return Err(native_local_provider::RELAUNCH.into()); }
     let home=if let Some(home)=home { home } else {
         let config=native_local_provider::config(account.host_config.as_ref().map_err(Clone::clone)?,plan)?;
         let host=Arc::new(Host::new_with_app_custody(account.host.app_runtime_custody()?)?);
@@ -1262,6 +1483,7 @@ fn prepare_local_provider(window: tauri::Window, state: State<'_, AppState>) -> 
 }
 #[tauri::command(async)]
 fn submit_local_provider_key(app: tauri::AppHandle, window: tauri::Window, state: State<'_, AppState>, generation: Value) -> Result<Value, String> {
+    local_route_refused()?;
     let _operation=state.key_setup.try_lock().map_err(|_| native_local_provider::LIMIT)?;
     if state.app_quit.busy() || state.app_quit.proceeding().is_some() { return Err(native_local_provider::LIMIT.into()); }
     let home=state.homes.lock().unwrap().for_generation(&generation)?;
@@ -1270,21 +1492,73 @@ fn submit_local_provider_key(app: tauri::AppHandle, window: tauri::Window, state
     let field_home=home.clone(); let field_generation=generation.clone(); let field_window=window.clone();
     native_local_provider::submit(&home,bootstrap.local_plan()?,&generation,&state.local_credentials,
         || provider_endpoint_confirmation::recheck_original(&window),
-        || native_secure_entry::local(&app,field_window,move || field_home.host.snapshot()["generation"]==field_generation && field_home.host.snapshot()["state"]=="ready"))
+        |address| native_secure_entry::local(&app,field_window,address,move || !field_home.host.local_superseded() && field_home.host.snapshot()["generation"]==field_generation && field_home.host.snapshot()["state"]=="ready"))
+}
+
+/// The local model settings: the App-owned file and the settings in force for this session.
+/// Reads only the dedicated local home's config.toml; starts nothing; never a key.
+#[tauri::command(async)]
+fn local_model_settings_read(state: State<'_, AppState>) -> Value {
+    if !LOCAL_ROUTE_OFFERED { return local_route_not_offered_reading(); }
+    let home=state.homes.lock().unwrap().entry(home_resources::HomeClass::LocalProvider).ok();
+    let in_force=home.as_ref().and_then(|home| home.host.local_settings().ok());
+    let superseded=home.as_ref().is_some_and(|home| home.host.local_superseded());
+    let reading=state.home_bootstrap.lock().unwrap().clone().and_then(|bootstrap| native_local_provider::read(bootstrap.local_plan()?));
+    native_local_provider::settings_view(reading,in_force.as_ref(),superseded)
+}
+/// Saves the server address and model name after one native confirmation in the invoking
+/// window. Never takes a key. An address change first has Codex sign out of the saved key.
+#[tauri::command(async)]
+fn local_model_settings_save(window: tauri::Window, state: State<'_, AppState>, endpoint: String, model: String) -> Result<Value, String> {
+    local_route_refused()?;
+    if hosting::DECLARED_PIN!="0.169.0" { return Err(native_local_provider::LIMIT.into()); }
+    let proposed=native_local_provider::LocalSettings::new(&endpoint,&model)?;
+    let _operation=state.key_setup.try_lock().map_err(|_| native_local_provider::LIMIT)?;
+    if state.app_quit.busy() || state.app_quit.proceeding().is_some() { return Err(native_local_provider::LIMIT.into()); }
+    provider_endpoint_confirmation::recheck_original(&window)?;
+    let bootstrap=state.home_bootstrap.lock().unwrap().clone()?;
+    let plan=bootstrap.local_plan()?;
+    let home=state.homes.lock().unwrap().entry(home_resources::HomeClass::LocalProvider).ok();
+    if let Some(home)=&home {
+        state.validate_home_source(home)?;
+        native_local_provider::check_no_key_entry_before_address_change(plan,&proposed,&home.host.snapshot()["generation"],&state.local_credentials)?;
+    }
+    // A first save creates the home directory: the same namespace preflight as preparation.
+    if native_local_provider::stored(plan)?.is_none() { local_home_preflight(&state,&bootstrap)?; }
+    let saved=native_local_provider::save(plan,proposed,home.as_deref(),
+        || { if state.app_quit.busy() || state.app_quit.proceeding().is_some() { return Err(native_local_provider::LIMIT.to_owned()); } provider_endpoint_confirmation::recheck_original(&window) },
+        |statement,action| native_local_provider::confirm_native(&window,statement,action))?;
+    if saved["outcome"]=="saved" { bootstrap.revalidate()?; }
+    Ok(saved)
 }
 
 #[tauri::command(async)]
 fn host_start(state: State<'_, AppState>, mode_home_class:String) -> Result<Value, String> {
+    if home_class(&mode_home_class)?==home_resources::HomeClass::LocalProvider { local_route_refused()?; }
     let home = state.homes.lock().unwrap().entry(home_class(&mode_home_class)?)?;
-    start_home(&state, &home, "the person")
+    let started = start_home(&state, &home, "the person");
+    read_account_after_start(&home, &started);
+    started
+}
+/// After a start that reached ready in the account home, the App's own reads at ready: the account, then the
+/// stored history list (runtime_session::read_at_ready), off the command's thread so the start answers at once.
+fn read_account_after_start(home: &Arc<runtime_session::HomeSession>, started: &Result<Value, String>) {
+    if !runtime_session::reads_account_at_ready(home, started) { return; }
+    let (home, started) = (Arc::clone(home), started.clone());
+    if let Err(error) = std::thread::Builder::new().name("chirality-account-read".into())
+        .spawn(move || runtime_session::read_at_ready(&home, &started)) {
+        eprintln!("chirality: the account and history list were not read after Codex started: {error}");
+    }
 }
 /// Start Codex for one home (Start Codex, and Restart Codex after its stop).
 fn start_home(state: &AppState, home: &runtime_session::HomeSession, actor: &str) -> Result<Value, String> {
+    // Whatever refuses this request, an earlier refusal is no longer the latest.
+    home.host.begin_start_request();
     if state.app_quit.busy() || state.app_quit.proceeding().is_some() { return Err("The App quit is under way; Codex was not started".into()); }
     invalidate_endpoint_edits(state)?;
     let cfg = home.host_config.clone()?;
     state.validate_home_source(home)?;
-    if home.class()==home_resources::HomeClass::LocalProvider { native_local_provider::check(state.home_bootstrap.lock().unwrap().as_ref().map_err(Clone::clone)?.local_plan()?)?; native_local_provider::require_no_admin_layers()?; }
+    if home.class()==home_resources::HomeClass::LocalProvider { if home.host.local_superseded() { return Err(native_local_provider::RELAUNCH.into()); } home.host.check_local_home()?; native_local_provider::require_no_admin_layers()?; }
     let root = state.app_user_data_root.lock().unwrap().clone();
     runtime_session::start_with_recovery(
         &home.host,
@@ -1314,7 +1588,7 @@ fn codex_stop(window: tauri::Window, state: State<'_, AppState>, generation: Val
             Ok(chosen) => chosen,
             Err(cause) => { refused = Some(cause); false }
         },
-        || start_home(&state, &home, "the person: Restart Codex"));
+        || { let started = start_home(&state, &home, "the person: Restart Codex"); read_account_after_start(&home, &started); started });
     codex_stop::finish(&state.codex_stops, title, refused, result)
 }
 
@@ -1460,6 +1734,12 @@ fn request_quit(app: tauri::AppHandle) {
         }
     });
 }
+/// Setup's end offers Quit beside its sentence (the reopen loads the saved setup): the same
+/// question and settlement as the menu's Quit, asked by the host; the web view only asks for it.
+#[tauri::command]
+fn quit_app(app: tauri::AppHandle) {
+    request_quit(app);
+}
 /// C-24 (DEL-01-04 §4.8): the count of supplier requests waiting for the
 /// person, on the App's Dock icon, whether or not the window is shown.
 fn show_waiting_indicator(app: &tauri::AppHandle, last: &mut Option<i64>, menu: &mut native_waiting::MenuObserver) {
@@ -1486,7 +1766,7 @@ fn role_set_metadata() -> Value {
         // the set; only those that may start a conversation are offered as one.
         Ok(set) => json!({"available":true,"roles":set.roles,"defaultRole":set.default_role(),
             "conversationRoles":role_supply::Role::ALL.into_iter().filter(|r|r.primary_entry()).collect::<Vec<_>>(),
-            "identity":identity,"standing":"candidate; U-R6/U-R11 open"}),
+            "identity":identity,"standing":"candidate; U-R6 open"}),
         Err(reason) => json!({"available":false,"reason":reason,"identity":identity}),
     }
 }
@@ -1498,6 +1778,7 @@ fn role_set_metadata() -> Value {
 /// overlays.
 const RESOURCE_INSTRUCTIONS: &str = "instructions";
 const RESOURCE_WORKFLOWS: &str = "workflows";
+use release_limitations::RESOURCE_RELEASE_LIMITATIONS;
 /// Native build mode chooses the source, never file existence or a failed package check.
 fn prepare_role_entry(
     root: &std::path::Path,
@@ -1532,13 +1813,14 @@ fn thread_start(
     model: String,
     model_provider: String,
     entry_id: String,
+    entry_source: String,
     mode_home_class: String,
     role: Option<role_supply::Role>,
     preselected: Option<bool>,
     continue_as: Option<String>,
     generation: Value,
 ) -> Result<Value, String> {
-    start_conversation(&app, &state, &generation, model, model_provider, entry_id, &mode_home_class, role, continue_as, preselected)
+    start_conversation(&app, &state, &generation, model, model_provider, entry_id, &entry_source, access::StartKind::Ordinary, &mode_home_class, role, continue_as, preselected)
 }
 /// A new conversation as `thread_start` starts it (ROLE T-2): also the start of
 /// a clean trial's conversation (WR FT-4), which passes no `continue_as`.
@@ -1546,6 +1828,13 @@ fn thread_start(
 /// (New conversation, Continue as, clean trial). It binds the start to that
 /// home and generation before any effect; nothing is recaptured.
 #[allow(clippy::too_many_arguments)]
+/// What a start records as "the preselection was left as it was". The caller's
+/// claim stands only for the role set's own default: no caller can record
+/// another role, or no role, as preselected. An absent claim stays absent
+/// (not established).
+fn established_preselection(claimed: Option<bool>, role: Option<role_supply::Role>, default: Option<role_supply::Role>) -> Option<bool> {
+    claimed.map(|claimed| claimed && role.is_some() && role == default)
+}
 fn start_conversation(
     app: &tauri::AppHandle,
     state: &AppState,
@@ -1553,12 +1842,15 @@ fn start_conversation(
     model: String,
     model_provider: String,
     entry_id: String,
+    entry_source: &str,
+    native_start_kind: access::StartKind,
     mode_home_class: &str,
     role: Option<role_supply::Role>,
     continue_as: Option<String>,
     preselected: Option<bool>,
 ) -> Result<Value, String> {
     let supply_ref=util::opaque_id("sup:")?;
+    let preselected=established_preselection(preselected,role,role_supply::bundled_role_set().ok().and_then(|set|set.default_role()));
     // An unknown class or absent home keeps its existing refusal observation.
     // A different, replaced, closed or incomplete source is refused before any
     // effect or record: no endpoint, role, provider or start state changes, and
@@ -1571,7 +1863,7 @@ fn start_conversation(
     let mut dispatch_invoked=false;
     let mut resolved_continued_from=None;
     let result=match &home {
-        Ok(bound)=>start_conversation_inner(app,state,bound.clone(),&generation,model,model_provider,entry_id,role,continue_as,preselected,&supply_ref,&mut dispatch_invoked,&mut resolved_continued_from),
+        Ok(bound)=>start_conversation_inner(app,state,bound.clone(),&generation,model,model_provider,entry_id,entry_source,native_start_kind,role,continue_as,preselected,&supply_ref,&mut dispatch_invoked,&mut resolved_continued_from),
         Err(error)=>Err(error.clone()),
     };
     if let Err(reason)=&result {
@@ -1579,25 +1871,37 @@ fn start_conversation(
             let mut history=runtime_session::HistorySession::default();history.configure_role_log_source(state.role_log.clone());
             let publication=history.role_refused_continuing(&supply_ref,&generation,role,preselected,reason,true,resolved_continued_from);
             if let Ok(home)=home{home.role_supply_status.lock().unwrap()["roleSupplyRecord"]=publication.clone();}
-            return Err(format!("{reason}; role supply observation: {publication}"));
+            return Err(role_supply_refusal(reason, &publication));
         }
     }
     result
 }
+/// What a start or fork refused before dispatch returns. Either reading sentence is returned alone:
+/// the refusal is still recorded in role supply, and nothing else is shown with the sentence.
+/// Any other reason keeps its role supply observation.
+pub(crate) fn role_supply_refusal(reason: &str, publication: &impl std::fmt::Display) -> String {
+    if hosting::reading_gate::carries_reading_sentence(reason) { reason.to_owned() } else { format!("{reason}; role supply observation: {publication}") }
+}
 #[allow(clippy::too_many_arguments)]
-fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runtime_session::HomeSession>,generation:&Value,model:String,model_provider:String,entry_id:String,role:Option<role_supply::Role>,continue_as:Option<String>,preselected:Option<bool>,supply_ref:&str,dispatch_invoked:&mut bool,resolved_continued_from:&mut Option<Value>)->Result<Value,String>{
+fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runtime_session::HomeSession>,generation:&Value,model:String,model_provider:String,entry_id:String,entry_source:&str,native_start_kind:access::StartKind,role:Option<role_supply::Role>,continue_as:Option<String>,preselected:Option<bool>,supply_ref:&str,dispatch_invoked:&mut bool,resolved_continued_from:&mut Option<Value>)->Result<Value,String>{
     invalidate_endpoint_edits(state)?;
     home.history.lock().unwrap().configure_role_log_source(state.role_log.clone());
     // NIR CA-1/CA-3, ROLE CA-3: a "Continue as" start is an ordinary new start
     // with its own role composition; it only records its relation to the source.
     let (continued_from, continued_source) = conversation_roles::continuation_for_start_observed(&state.continue_as, &home, continue_as.as_deref(), role)?;
     *resolved_continued_from=continued_from.clone();
+    // Only the successfully validated continuation relation makes a thread_start a Continue-as.
+    // Clean trials are identified by their separate native entrypoint, never by the caller's origin string.
+    let start_kind = if native_start_kind == access::StartKind::Ordinary && continued_from.is_some() {
+        access::StartKind::ContinueAs
+    } else { native_start_kind };
     let cwd = home.host_config
         .as_ref()
         .map_err(Clone::clone)?
         .cwd.to_str().ok_or("Native working directory is not Unicode; thread/start cannot carry a lossless JSON cwd, no request sent")?.to_owned();
-    let allowed = match home.class() { home_resources::HomeClass::Account=>matches!(entry_id.as_str(),"chatgpt-account"|"local-provider"),home_resources::HomeClass::ApiKey=>entry_id=="api-key",home_resources::HomeClass::LocalProvider=>native_local_provider::fixed_selection(&entry_id,&model_provider,&model).is_ok(),home_resources::HomeClass::Probe=>false };
-    if home.class()==home_resources::HomeClass::LocalProvider { native_local_provider::check(state.home_bootstrap.lock().unwrap().as_ref().map_err(Clone::clone)?.local_plan()?)?; }
+    if entry_id==native_local_provider::ENTRY || entry_id=="local-provider" || home.class()==home_resources::HomeClass::LocalProvider { local_route_refused()?; }
+    let allowed = match home.class() { home_resources::HomeClass::Account=>matches!(entry_id.as_str(),"chatgpt-account"|"local-provider"),home_resources::HomeClass::ApiKey=>entry_id=="api-key",home_resources::HomeClass::LocalProvider=>home.host.local_settings().is_ok_and(|settings|native_local_provider::fixed_selection(&settings,&entry_id,&model_provider,&model).is_ok()),home_resources::HomeClass::Probe=>false };
+    if home.class()==home_resources::HomeClass::LocalProvider { home.host.check_local_home()?; }
     if !allowed { return Err("Access entry differs from the selected actual home class; no native transfer/fallback".into()); }
     if let Ok(set) = &*state.home_bootstrap.lock().unwrap() { set.validate_binding(home.class(),home.host_config.as_ref().map_err(Clone::clone)?)?; }
     else if home.class()==home_resources::HomeClass::ApiKey {return Err("Explicit key source binding is unavailable".into());}
@@ -1634,7 +1938,9 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runti
     let attempt_id = util::opaque_id("conversation:")?;
     let frozen_project = state.project_context.clone();
     let mut selection = access::ConversationSelection::new_explicit(&attempt_id, frozen_project.reference())?;
-    selection.choose(&entry_id, &model_provider, &model, false)?;
+    // The caller records what its control did. A sole configured entry alone does not establish that the
+    // person was never asked: Continue-as and clean trials still have an explicit route press.
+    selection.choose_start_entry(&entry_id, &model_provider, &model, entry_source, only_access_entry(home.class()), start_kind)?;
     selection.start_params(&generation, home.class().as_str(), false)?;
     let recovery_home = selection.recovery_home();
     // A source change during preparation is refused before the claim publishes
@@ -1701,6 +2007,7 @@ fn start_conversation_inner(app:&tauri::AppHandle,state:&AppState,home:Arc<runti
         if let Some(thread) = response["result"]["thread"]["id"].as_str() {
             if let Some(home_kind) = recovery_home { home.thread_home_kinds.lock().unwrap().insert(serde_json::to_string(&json!([generation,thread])).unwrap(),home_kind); }
             let _ = home.host.observe_conversation_project(&generation,thread,recovery_home,&frozen_project);
+            home.host.note_requested_entry_source(&generation, thread, entry_source);
         }
     }
     result
@@ -1763,11 +2070,14 @@ fn ordinary_send_text(home: &runtime_session::HomeSession, workflows: &std::sync
     ordinary_send_text_effort(home, workflows, generation, thread, text, mode, model, None)
 }
 fn ordinary_send_text_effort(home: &runtime_session::HomeSession, workflows: &std::sync::Mutex<runtime_session::WorkflowRootSession>, generation: &Value, thread: &str, text: &str, mode: Option<&str>, model: Option<&str>, effort: Option<&str>) -> Result<Value, String> {
-    if home.class()==home_resources::HomeClass::LocalProvider {
-        if model.is_some_and(|m| m != native_local_provider::MODEL) { return Err(native_local_provider::LIMIT.into()); }
+    let local_model=if home.class()==home_resources::HomeClass::LocalProvider {
+        let settings=home.host.local_settings()?;
+        // A model other than the one in force names a conversation started under earlier settings.
+        if model.is_some_and(|m| m != settings.model()) { return Err(native_local_provider::EARLIER.into()); }
         home.host.require_canonical_167(generation)?;
-    }
-    let model=if home.class()==home_resources::HomeClass::LocalProvider { Some(native_local_provider::MODEL) } else { model };
+        Some(settings.model().to_owned())
+    } else { None };
+    let model=if local_model.is_some() { local_model.as_deref() } else { model };
     // TC-2: one original ordered notice/person frame, with the same mode/model.
     if let Some(sent) = runtime_session::send_with_pending_notice_effort_observed(workflows, generation, thread, text, mode, model, effort, &mut |_| {}) {
         return sent.result;
@@ -1776,18 +2086,20 @@ fn ordinary_send_text_effort(home: &runtime_session::HomeSession, workflows: &st
         |generation, thread, text| home.host.turn_start_ordinary_text_effort(generation, thread, text, mode, model, effort))
 }
 
-/// DEL-01-05 model discovery for a new conversation, at the person's press:
+/// DEL-01-05 model discovery for a new conversation, read by the App when New conversation opens with its only
+/// connection in use, and at the person's press (Read the list again); for an existing conversation, its effort
+/// choices, read once for it while its effort control is open:
 /// only the currently selected source of the named mode, re-checked after the
 /// reads; a changed source refuses rather than answering for another.
 #[tauri::command(async)]
-fn read_available_models(state: State<'_, AppState>, generation: Value, mode_home_class: String, thread_id: Option<String>) -> Result<Value, String> {
+fn read_available_models(state: State<'_, AppState>, generation: Value, mode_home_class: String, thread_id: Option<String>, at_person_press: Option<bool>) -> Result<Value, String> {
     let refused = || "Model list unavailable: the selected Codex source changed; nothing was chosen".to_owned();
     let home = state.homes.lock().unwrap().active();
     if home.class()==home_resources::HomeClass::LocalProvider { return Err("The local home uses only the explicitly selected oMLX model; no remote catalogue discovery is offered".into()); }
     let class = match mode_home_class.as_str() { "account" => home_resources::HomeClass::Account, "api-key" => home_resources::HomeClass::ApiKey, _ => return Err(refused()) };
     if home.class() != class || home.host.snapshot()["generation"] != generation { return Err(refused()); }
     state.validate_home_source(&home).map_err(|_| refused())?;
-    let mut view = home.host.model_catalog_read_for_conversation(&generation, thread_id.as_deref());
+    let mut view = home.host.model_catalog_read_for_conversation(&generation, thread_id.as_deref(), at_person_press.unwrap_or(false));
     state.validate_home_source(&home).map_err(|_| refused())?;
     if !Arc::ptr_eq(&state.homes.lock().unwrap().active(), &home) || home.host.snapshot()["generation"] != generation { return Err(refused()); }
     view["modeHomeClass"] = json!(mode_home_class);
@@ -2055,20 +2367,36 @@ fn workflow_review_digest(state:State<'_,AppState>,review_ref:String)->Result<Va
     let presentation=review.status.get("presentation").ok_or("Review presentation not available in this state")?;
     Ok(match act_control::review_digest(presentation){Ok(d)=>json!({"reviewRef":review_ref,"digest":d}),Err(cause)=>json!({"reviewRef":review_ref,"unavailable":cause})})
 }
+/// DEL-01-01: a folder the person chooses for the App to write into (a records export's parent,
+/// a workflow library root) is outside the App data folder, the folder kept for conversations
+/// without a project included: decided by identity against the established folder, before
+/// anything is written. A folder that contains the App data folder is outside it.
+fn chosen_folder_outside_app_data(state:&AppState,folder:&std::path::Path,refused:&str)->Result<(),String>{
+    let data=state.app_user_data_root.lock().unwrap().clone().map_err(|e|format!("{refused}: Chirality's data folder is unavailable ({e})"))?;
+    folder_outside_app_data(&data,folder,refused)
+}
+pub(crate) fn folder_outside_app_data(data:&std::path::Path,folder:&std::path::Path,refused:&str)->Result<(),String>{
+    let set=working_folder::established(data).map_err(|blocked|format!("{refused}. {}",blocked.sentence()))?;
+    match set.place(folder) {
+        working_folder::WorkingFolder::Outside=>Ok(()),
+        _=>Err(format!("{refused}: the folder {} is in Chirality's own data folder ({}), or its place cannot be established. Choose a folder outside it.",folder.display(),set.data().display())),
+    }
+}
 fn workflow_native_folder(app:&tauri::AppHandle,title:&str)->Result<Option<PathBuf>,String>{
     app.dialog().file().set_title(title).blocking_pick_folder().map(|path|path.into_path().map_err(|_|"Native folder has no local filesystem path".to_string())).transpose()
 }
 #[tauri::command(async)]
 fn workflow_select_development(app:tauri::AppHandle,state:State<'_,AppState>,context:workflow_selection::Context)->Result<Value,String>{
-    workflow_context_home(&state,&context)?;
+    let wait=workflow_selection::Wait::for_press(); // one press, one wait for the history context
+    workflow_context_home(&state,&context,wait)?;
     let Some(path)=workflow_native_folder(&app,"Select exact coordinated-knowledge-work development holding copy")? else{return Ok(json!({"state":"native selection dismissed"}));};
     noted_selection(&state,&context,|root,chat|root.select_development_copy(chat,path))
 }
 /// The displayed App source is an opaque HomeSession reference, usable even
 /// before Codex starts. A changed active source refuses rather than redirecting.
-fn workflow_context_home(state: &AppState, context: &workflow_selection::Context) -> Result<Arc<runtime_session::HomeSession>, String> {
+fn workflow_context_home(state: &AppState, context: &workflow_selection::Context, wait: workflow_selection::Wait) -> Result<Arc<runtime_session::HomeSession>, String> {
     let home = state.homes.lock().unwrap().active();
-    context.verify_home(&home)?;
+    context.verify_home_within(&home, wait)?;
     Ok(home)
 }
 /// Recheck at mutation after any native picker/queued operation. The expected
@@ -2080,22 +2408,46 @@ fn noted_selection(state: &AppState, context: &workflow_selection::Context,
 fn active_native_view(state:&AppState)->Value {
     let home=state.homes.lock().unwrap().active(); current_native_view(&home)
 }
+/// The release's limitations list as shipped in the bundle, with the SHA-256 of the bytes read
+/// (DEL-01-06 AC-008). No view presents it yet; how a person reaches it is decided separately.
+#[tauri::command(async)]
+fn release_limitations(app:tauri::AppHandle)->Result<Value,String>{
+    release_limitations::reply(&app.path().resource_dir().map_err(|e|format!("App resources unavailable: {e}"))?, RESOURCE_RELEASE_LIMITATIONS)
+}
 #[tauri::command(async)]
 fn workflow_select_production_bundle(app:tauri::AppHandle,state:State<'_,AppState>,name:String,context:workflow_selection::Context)->Result<Value,String>{
     let root=app.path().resource_dir().map_err(|e|format!("App resources unavailable: {e}"))?.join(RESOURCE_WORKFLOWS);
     noted_selection(&state,&context,|workflows,chat|workflows.select_production_bundle(chat,root,&name))
 }
-#[tauri::command]
+/// A workflow's own `WORKFLOW.md` text, for the person to read before choosing
+/// it or before a run starts (`workflow_text_read`). An included entry is read
+/// as selecting it would resolve it; the conversation's current selection, of
+/// any origin, as preparing a run verifies it. Nothing is selected, written,
+/// recorded or sent.
+#[tauri::command(async)]
+fn workflow_read_text(state:State<'_,AppState>,target:workflow_text_read::Target,context:workflow_selection::Context)->Result<Value,String>{
+    workflow_text_read::kind_known(&target)?;
+    let wait=workflow_selection::Wait::for_press(); // one press, one wait for the history context
+    if target.kind==workflow_text_read::INCLUDED {
+        workflow_context_home(&state,&context,wait)?;
+        return Ok(state.workflows.lock().unwrap().read_included_text(&target));
+    }
+    workflow_selection::with_choice(&state.workflows,&context,||state.homes.lock().unwrap().active(),wait,|root,_,chat|Ok(root.read_chosen_text(chat,&target)))
+}
+#[tauri::command(async)]
 fn workflow_select_production_copy(state:State<'_,AppState>,name:String,context:workflow_selection::Context)->Result<Value,String>{
     noted_selection(&state,&context,|root,chat|{root.verify_library_context(&context)?;root.select_production_copy(chat,&name)})
 }
 #[tauri::command(async)]
 fn workflow_open_library(app:tauri::AppHandle,state:State<'_,AppState>,origin:String,context:workflow_selection::Context)->Result<Value,String>{
+    let wait=workflow_selection::Wait::for_press(); // one press, one wait for the history context
     if !matches!(origin.as_str(),"project"|"user"){return Err("Choose project or user library; no default".into());}
-    workflow_context_home(&state,&context)?;
+    workflow_context_home(&state,&context,wait)?;
     let Some(path)=workflow_native_folder(&app,"Open existing physical workflow library root")? else{return Ok(json!({"state":"native library selection dismissed"}));};
-    let home=workflow_context_home(&state,&context)?;let view=host_tick::receive_view(&home);
-    let mut root=state.workflows.lock().unwrap();workflow_context_home(&state,&context)?;root.verify_library_context(&context)?;
+    chosen_folder_outside_app_data(&state,&path,"The library was not opened")?;
+    let wait=workflow_selection::Wait::for_press(); // the picker took the person's time, not the press's
+    let home=workflow_context_home(&state,&context,wait)?;let view=host_tick::receive_view(&home);
+    let (mut root,_,_)=workflow_selection::lock_root(&state.workflows,&context,||state.homes.lock().unwrap().active(),wait)?;root.verify_library_context(&context)?;
     root.open_library(path,&origin,state.workspace.as_deref(),state.act.clone())?;
     // WR SQ-D D-2: the opened library's drafts are listed at once.
     Ok(root.observe_drafts(&view["items"]).unwrap_or_else(|_|root.snapshot()))
@@ -2158,8 +2510,9 @@ fn workflow_follow_newer_revision(state:State<'_,AppState>,selection_ref:String,
 /// WR §3: the explicit App project's own library, without a folder picker.
 #[tauri::command(async)]
 fn workflow_open_project_library(state:State<'_,AppState>,context:workflow_selection::Context)->Result<Value,String>{
-    let home=workflow_context_home(&state,&context)?;let view=host_tick::receive_view(&home);
-    let mut root=state.workflows.lock().unwrap();workflow_context_home(&state,&context)?;root.verify_library_context(&context)?;
+    let wait=workflow_selection::Wait::for_press(); // one press, one wait for the history context
+    let home=workflow_context_home(&state,&context,wait)?;let view=host_tick::receive_view(&home);
+    let (mut root,_,_)=workflow_selection::lock_root(&state.workflows,&context,||state.homes.lock().unwrap().active(),wait)?;root.verify_library_context(&context)?;
     root.open_project_library(state.workspace.as_deref(),state.act.clone())?;
     // The library is open either way; a listing that cannot run now says so in the list.
     Ok(root.observe_drafts(&view["items"]).unwrap_or_else(|_|root.snapshot()))
@@ -2167,23 +2520,26 @@ fn workflow_open_project_library(state:State<'_,AppState>,context:workflow_selec
 /// WR SQ-D D-2…D-4 in the host (OI-008 ruling): observe the active library's drafts now.
 #[tauri::command(async)]
 fn workflow_observe_drafts(state:State<'_,AppState>,context:workflow_selection::Context)->Result<Value,String>{
-    let home=workflow_context_home(&state,&context)?;let view=host_tick::receive_view(&home);
-    let mut root=state.workflows.lock().unwrap();workflow_context_home(&state,&context)?;root.verify_library_context(&context)?;
+    let wait=workflow_selection::Wait::for_press(); // one press, one wait for the history context
+    let home=workflow_context_home(&state,&context,wait)?;let view=host_tick::receive_view(&home);
+    let (mut root,_,_)=workflow_selection::lock_root(&state.workflows,&context,||state.homes.lock().unwrap().active(),wait)?;root.verify_library_context(&context)?;
     root.observe_drafts(&view["items"])
 }
 /// WR ME-1: explicitly refresh the opened library's file entries. No native
 /// contact, review, selection, registration or record write is performed.
-#[tauri::command]
+#[tauri::command(async)]
 fn workflow_library_entries_refresh(state:State<'_,AppState>,library_ref:String,context:workflow_selection::Context)->Result<Value,String>{
-    runtime_session::WorkflowRootSession::with_library_context(&state.workflows,&context,||state.homes.lock().unwrap().active(),|root,_|root.observe_library_entries(&library_ref))
+    let wait=workflow_selection::Wait::for_press(); // one press, one wait for the history context
+    runtime_session::WorkflowRootSession::with_library_context(&state.workflows,&context,||state.homes.lock().unwrap().active(),wait,|root,_|root.observe_library_entries(&library_ref))
 }
 /// WR ME-1/2: choose an ordered subset of one held observation. Names and
 /// content are resolved by its original owner, never supplied by the renderer.
-#[tauri::command]
+#[tauri::command(async)]
 fn workflow_review_library_entries(state:State<'_,AppState>,library_ref:String,listing_ref:String,entry_refs:Vec<String>,context:workflow_selection::Context)->Result<Value,String>{
-    let home=workflow_context_home(&state,&context)?;state.validate_home_source(&home)?;
+    let wait=workflow_selection::Wait::for_press(); // one press, one wait for the history context
+    let home=workflow_context_home(&state,&context,wait)?;state.validate_home_source(&home)?;
     let (_,observed)=current_actor_context_for(&state,&home);
-    runtime_session::WorkflowRootSession::with_library_context(&state.workflows,&context,||state.homes.lock().unwrap().active(),|root,home|root.review_library_entries(home,observed,&library_ref,&listing_ref,&entry_refs))
+    runtime_session::WorkflowRootSession::with_library_context(&state.workflows,&context,||state.homes.lock().unwrap().active(),wait,|root,home|root.review_library_entries(home,observed,&library_ref,&listing_ref,&entry_refs))
 }
 /// WR TT-3, TT-3a, TT-3b (SQ-DT DT-1…DT-3, SQ-FT FT-1…FT-3): Try pressed on a
 /// listed draft. The host takes the trial snapshot, composes the trial text and
@@ -2219,11 +2575,12 @@ fn workflow_trial_send(state:State<'_,AppState>,reference:String,generation:Valu
 /// then its first turn carries the trial text first and the person's text.
 #[tauri::command(async)]
 #[allow(clippy::too_many_arguments)]
-fn workflow_trial_start_clean(app:tauri::AppHandle,state:State<'_,AppState>,reference:String,model:String,model_provider:String,entry_id:String,mode_home_class:String,role:Option<role_supply::Role>,person_text:String,generation:Value)->Result<Value,SendRefusal>{
+fn workflow_trial_start_clean(app:tauri::AppHandle,state:State<'_,AppState>,reference:String,model:String,model_provider:String,entry_id:String,entry_source:String,mode_home_class:String,role:Option<role_supply::Role>,preselected:Option<bool>,person_text:String,generation:Value)->Result<Value,SendRefusal>{
     let class=home_class(&mode_home_class).map_err(SendRefusal::kept)?;
     // The source is bound before the trial's begin step: a mismatch keeps the pre-fill.
     runtime_session::trial_flows::start_bound_clean_trial(&state.workflows,&state.homes,class,&generation,&reference,
-        |_|start_conversation(&app,&state,&generation,model,model_provider,entry_id,&mode_home_class,role,None,None),
+        // As an ordinary start: the record says whether the role was the preselection or the person's choice.
+        |_|start_conversation(&app,&state,&generation,model,model_provider,entry_id,&entry_source,access::StartKind::CleanTrial,&mode_home_class,role,None,preselected),
         |home,started,thread|runtime_session::trial_flows::send_trial(&state.workflows,home,&reference,started,thread,&person_text))
 }
 fn trial_home(state:&AppState,reference:&str)->Result<Arc<runtime_session::HomeSession>,String>{
@@ -2284,11 +2641,12 @@ fn workflow_review_draft(state:State<'_,AppState>,name:String)->Result<Value,Str
     // The review is open either way; the list shows it at its next observation.
     Ok(root.observe_drafts(&view["items"]).unwrap_or_else(|_|root.snapshot()))
 }
-#[tauri::command]
+#[tauri::command(async)]
 fn workflow_create_draft(state:State<'_,AppState>,name:String,context:workflow_selection::Context)->Result<Value,String>{
-    let home=workflow_context_home(&state,&context)?;
-    let mut root=state.workflows.lock().unwrap();
-    let chat=context.verify_home(&home)?;workflow_context_home(&state,&context)?;
+    let wait=workflow_selection::Wait::for_press(); // one press, one wait for the history context
+    let home=workflow_context_home(&state,&context,wait)?;
+    let (mut root,current,chat)=workflow_selection::lock_root(&state.workflows,&context,||state.homes.lock().unwrap().active(),wait)?;
+    if !Arc::ptr_eq(&home,&current) {return Err("Workflow App home source changed; refresh the displayed choice".into());}
     root.verify_choice_context(&context,chat.as_ref())?;root.verify_library_context(&context)?;
     root.create_selected_draft(chat.as_ref(),&name)
 }
@@ -2341,12 +2699,13 @@ fn workflow_continue_registration(state:State<'_,AppState>,review_ref:String)->R
     let result=library.control.lock().unwrap().as_mut().ok_or("Original library act owner unavailable")?.continue_a15(original.offer.as_ref().ok_or("Original opaque offer not retained")?)?;
     original.accept_result(result)?;Ok(original.status.clone())
 }
-#[tauri::command]
+#[tauri::command(async)]
 fn workflow_prepare_run(state:State<'_,AppState>,generation:Value,thread_id:String,person_text:String,context:workflow_selection::Context)->Result<Value,String>{
-    let home=workflow_context_home(&state,&context)?;state.validate_home_source(&home)?;
+    let wait=workflow_selection::Wait::for_press(); // one press, one wait for the history context
+    let home=workflow_context_home(&state,&context,wait)?;state.validate_home_source(&home)?;
     if context.generation!=generation || context.thread_id.as_deref()!=Some(&thread_id) {return Err("The run target differs from the displayed workflow chat; nothing prepared".into());}
     // The exact displayed choice is rechecked under Root before composing.
-    let reference=workflow_selection::prepare(&state.workflows,&context,||state.homes.lock().unwrap().active(),person_text,state.workspace.as_deref())?;
+    let reference=workflow_selection::prepare(&state.workflows,&context,||state.homes.lock().unwrap().active(),wait,person_text,state.workspace.as_deref())?;
     Ok(json!({"reference":reference,"state":"original registered selection prepared; WR records pending; not sent"}))
 }
 #[tauri::command(async)]
@@ -2398,10 +2757,13 @@ fn workflow_start_proposed(state:State<'_,AppState>,generation:Value,message:Val
 /// CH-1 "End ‹A› and start ‹B›" as one confirmed step: A ends, B is prepared and started.
 #[tauri::command(async)]
 fn workflow_end_and_start(state:State<'_,AppState>,run_ref:String,generation:Value,thread_id:String,person_text:String,context:workflow_selection::Context)->Result<Value,String>{
-    let home=workflow_context_home(&state,&context)?;state.validate_home_source(&home)?;
+    let wait=workflow_selection::Wait::for_press(); // one press, one wait for the history context
+    let home=workflow_context_home(&state,&context,wait)?;state.validate_home_source(&home)?;
     let view=crate::host_tick::receive_view(&home); // as workflow_end_run
     if context.generation!=generation || context.thread_id.as_deref()!=Some(&thread_id) {return Err("The successor target differs from the displayed workflow chat; nothing ended".into());}
-    let mut root=state.workflows.lock().unwrap();let chat=context.verify_home(&home)?.ok_or("Choose a workflow chat")?;workflow_context_home(&state,&context)?;root.verify_choice_context(&context,Some(&chat))?;
+    let (mut root,current,chat)=workflow_selection::lock_root(&state.workflows,&context,||state.homes.lock().unwrap().active(),wait)?;
+    if !Arc::ptr_eq(&home,&current) {return Err("Workflow App home source changed; refresh the displayed choice".into());}
+    let chat=chat.ok_or("Choose a workflow chat")?;root.verify_choice_context(&context,Some(&chat))?;
     let next=root.end_and_start_viewed(&view,&run_ref,home,&generation,&thread_id,person_text,state.workspace.as_deref())?;
     drop(root);
     let started=runtime_session::start_workflow_run(&state.workflows,&next);
@@ -2422,14 +2784,66 @@ fn workflow_check_notice(state:State<'_,AppState>,run_ref:String)->Result<Value,
 /// Reopen: the explicit project's WR/RS records plus the REC restart facts this process holds.
 #[tauri::command(async)]
 fn workflow_reopen(state:State<'_,AppState>)->Result<Value,String>{
-    let root=state.workspace.as_ref().ok_or("No explicit App project (CHIRALITY_WORKSPACE); nothing to reopen and no fallback")?;
+    reopen_recorded_runs(&state)
+}
+/// The launch's one reading of the recorded runs, so that what waits on the person is read without
+/// a press, on every launch: begun once the ledger's configuration step has run, or at once where
+/// no start is made, and never twice. It waits for this session's restart limits. Reading only;
+/// where it cannot read, the reopened view says so and why; the person's Reopen reads again.
+pub(crate) struct LaunchRead {
+    once: std::sync::Once,
+    read: Mutex<Option<Box<dyn FnOnce() + Send>>>,
+    restart_limits: Mutex<Option<std::thread::JoinHandle<()>>>,
+    reading: Mutex<Option<std::thread::JoinHandle<()>>>,
+}
+impl LaunchRead {
+    pub(crate) fn new(read: impl FnOnce() + Send + 'static, restart_limits: Option<std::thread::JoinHandle<()>>) -> std::sync::Arc<Self> {
+        std::sync::Arc::new(LaunchRead { once: std::sync::Once::new(), read: Mutex::new(Some(Box::new(read))), restart_limits: Mutex::new(restart_limits), reading: Mutex::new(None) })
+    }
+    pub(crate) fn begin(self: &std::sync::Arc<Self>) {
+        let read = std::sync::Arc::clone(self);
+        self.once.call_once(move || {
+            let this = std::sync::Arc::clone(&read);
+            match std::thread::Builder::new().name("chirality-launch-read".into()).spawn(move || {
+                if let Some(limits) = this.restart_limits.lock().unwrap().take() {
+                    let _ = limits.join();
+                }
+                if let Some(read) = this.read.lock().unwrap().take() {
+                    read();
+                }
+            }) {
+                Ok(reading) => *read.reading.lock().unwrap() = Some(reading),
+                Err(e) => eprintln!("chirality: the recorded runs were not read at launch: the reading could not be started ({e})"),
+            }
+        });
+    }
+    /// Test support: waits until the reading has been made.
+    #[cfg(test)]
+    pub(crate) fn wait(&self) {
+        if let Some(reading) = self.reading.lock().unwrap().take() {
+            let _ = reading.join();
+        }
+    }
+}
+/// The launch's automatic start of Codex, when its configuration admits one, and its one reading
+/// of the recorded runs in every case: begun once the ledger's configuration step has run, before
+/// the start itself, or at once where no start is made.
+pub(crate) fn launch_start_and_read(host: &Arc<Host>, recovery: &Mutex<runtime_session::RecoveryStartup>, data: Result<&std::path::Path, &str>, host_config: Result<&HostConfig, &str>, desktop: &Mutex<desktop_startup::DesktopSetup>, read: &std::sync::Arc<LaunchRead>) -> Option<Result<Value, String>> {
+    let started = host_config.ok().map(|cfg| automatic_start_then(host, recovery, data, cfg, desktop, || read.begin()));
+    read.begin();
+    started
+}
+/// Reading only: the project's recorded runs, with this session's restart facts, read into the
+/// reopened view under its generation. The person's Reopen and the launch's one read are this.
+fn reopen_recorded_runs(state:&AppState)->Result<Value,String>{
+    let root=state.workspace.as_deref().ok_or("No explicit App project (CHIRALITY_WORKSPACE); nothing to reopen and no fallback");
     let home=state.homes.lock().unwrap().active();
     let recovery=home.recovery_startup.lock().unwrap().snapshot();
     let mut events=restart_events(&recovery);
     // The REC custody projection is where the Host derives app_restart_interruption.
     for event in restart_events(&home.host.recovery_custody().snapshot()){if !events.contains(&event){events.push(event);}}
     let homes=state.homes.lock().unwrap().entries();
-    state.workflows.lock().unwrap().reopen_for_learning(root,&events,&homes)
+    runtime_session::reopen_recorded(&state.workflows,root,&events,&homes)
 }
 /// The person's explicit end of a run the record shows open and interrupted after relaunch.
 #[tauri::command]
@@ -2442,6 +2856,10 @@ fn workflow_end_recorded(state:State<'_,AppState>,run_id:String,thread_id:Option
     // keyed to the conversation's own home; with no established home, none is sent.
     let mut out=state.workflows.lock().unwrap().end_recorded_run(root,&run_id,&thread,false,home.as_ref().ok().cloned())?;
     if let Err(reason)=home{out["endNotice"]=json!({"state":format!("not composed: {reason}; no end notice is sent for this end (WR TX-5 / SQ-END)")});}
+    // Refresh the cached reopened reading, with both routing observations and
+    // the notice census outside the workflow owner, as on explicit reopen.
+    let homes = state.homes.lock().unwrap().entries();
+    runtime_session::read_reopened_history(&state.workflows, root, &[], &homes).ok();
     Ok(out)
 }
 /// WR TX-5 / SQ-END: the Codex home of a conversation named by the record, from the
@@ -2553,11 +2971,11 @@ fn decide(
         ac.dismiss(&offer_id);
         return Err("Attribution or owning host context changed during confirmation; review and confirm again".into());
     }
-    ac.confirm(
+    ac.confirm_shown(
         &offer_id,
         &alternative,
-        InputSource::HostNativeConfirmation,
         actor,
+        &statement.text,
     )
 }
 
@@ -2668,15 +3086,144 @@ fn file_act_observe_lapses(state:State<'_,AppState>)->Result<Value,String>{file_
 #[tauri::command(async)]
 fn file_act_retry_lapses(state:State<'_,AppState>)->Result<Value,String>{file_act_lapse_result(&state,true)}
 
+/// The environment route's App data directory, named explicitly, for
+/// development runs only. Without it the route uses the App's own data
+/// directory for its identifier, which every development run that keeps the
+/// committed identifier shares; one App at a time holds an App data
+/// directory, so parallel development runs each name their own.
+///
+/// Read only when `tauri::is_dev()` is true, as the records-store override
+/// is. A built App does not read it: it neither selects the environment
+/// route nor moves the App's data, so nothing inherited from the environment
+/// can point an installed App at other data.
+pub(crate) const APP_DATA_ENV: &str = "CHIRALITY_APP_DATA";
+/// Any of these selects the environment route; its inputs are then exclusive.
+const ENVIRONMENT_KEYS: &[&str] = &["CHIRALITY_CODEX_BIN", "CHIRALITY_CODEX_HOME", "CHIRALITY_WORKSPACE", "CHIRALITY_KEY_HOME", "CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS", "CHIRALITY_CODEX_EXPECTED_SHA256", "CHIRALITY_ALLOW_UNVERIFIED", "CHIRALITY_DISTRIBUTION_SUCCESSOR", APP_DATA_ENV];
+fn environment_selected(input: impl Fn(&str)->Option<std::ffi::OsString>) -> bool {
+    ENVIRONMENT_KEYS.iter().any(|key|input(key).is_some())
+}
+/// The startup inputs as this build reads them: a build that is not a
+/// development run does not see [`APP_DATA_ENV`] at all.
+fn build_input<'a>(input: &'a impl Fn(&str)->Option<std::ffi::OsString>, is_dev: bool) -> impl Fn(&str)->Option<std::ffi::OsString> + 'a {
+    move |key| if key == APP_DATA_ENV && !is_dev { None } else { input(key) }
+}
+/// The startup admission `run` performs before any operational consumer:
+/// the App data directory (named by [`APP_DATA_ENV`] or the platform's), the
+/// launch route, and one App at a time on that data on either route. On the
+/// environment route App data must resolve and be held before any of its
+/// launch inputs is built (its probe home included); otherwise nothing
+/// operational starts and the actual reason is shown.
+pub(crate) fn admitted_startup(
+    input: impl Fn(&str)->Option<std::ffi::OsString>, platform_data: Result<PathBuf,String>, resources: Result<PathBuf,String>, is_dev: bool,
+    probe: impl Fn(&std::path::Path)->Result<PathBuf,String>,
+) -> (desktop_startup::DesktopSetup, desktop_startup::RootInputs) {
+    let input = build_input(&input, is_dev);
+    let data = environment_app_data(&input).unwrap_or(platform_data);
+    // The probe home is made against the App data folder this start holds.
+    let probe = || data.as_ref().map_err(Clone::clone).and_then(|data| probe(data));
+    let mut desktop = desktop_startup::DesktopSetup::new(data.clone(), resources.clone());
+    if environment_selected(&input) {
+        if let Err(reason) = data.as_ref().map_err(Clone::clone).and_then(|data| desktop.hold_environment_data(data)) {
+            let inputs = desktop.refuse_environment(&reason);
+            return (desktop, inputs);
+        }
+        // DEL-01-01: App data is held; the folder set aside is established before this route's
+        // inputs are placed against it, unless the inputs are already refused without the file
+        // system (that refusal stays first, and makes nothing).
+        if environment_path_refusal(&input).is_none() {
+            if let Err(blocked) = data.as_ref().map_err(|e| working_folder::Blocked::CannotExamine(e.clone())).and_then(|data| working_folder::establish(data)) {
+                let inputs = desktop.refuse_environment(&blocked.sentence());
+                return (desktop, inputs);
+            }
+        }
+    }
+    let environment = explicit_environment_launch(&input, &data, &resources, is_dev, &probe);
+    let launch = desktop.resolve(environment, is_dev, &probe);
+    let inputs = desktop.admit_root(launch, data);
+    (desktop, inputs)
+}
+/// This process's exclusive hold on an App data directory, taken through the
+/// App's own lease and its registration (as both launch routes take it).
+#[doc(hidden)]
+pub struct AppDataCustody(#[allow(dead_code)] desktop_startup::DesktopSetup);
+/// Test fixtures that model an App relaunch on a ledger take App data custody
+/// of their fixture root as the App does, so that a session is started only
+/// under it. The root is created if missing and named by its canonical path
+/// (the lease refuses a path through a link). Not a bypass: the same lease and
+/// registration the App takes at launch.
+#[doc(hidden)]
+pub fn hold_app_data_for_test(data: &std::path::Path) -> Result<AppDataCustody, String> {
+    std::fs::create_dir_all(data).map_err(|e| e.to_string())?;
+    let data = data.canonicalize().map_err(|e| e.to_string())?;
+    let mut setup = desktop_startup::DesktopSetup::new(Ok(data.clone()), Err("no resources for an App data hold".into()));
+    setup.hold_environment_data(&data)?;
+    Ok(AppDataCustody(setup))
+}
+/// [`APP_DATA_ENV`] when it is set: an absolute path without `.`/`..`
+/// components, by the same check as the environment route's other paths
+/// ([`environment_path_problem`]). Set and empty is refused by name, never
+/// read as unset: an empty value selects the environment route, and read as
+/// unset it would hold the platform App data folder unannounced.
+fn environment_app_data(input: impl Fn(&str)->Option<std::ffi::OsString>) -> Option<Result<PathBuf,String>> {
+    let value = input(APP_DATA_ENV)?;
+    Some(match environment_path_problem(APP_DATA_ENV, &value) {
+        Some(problem) => Err(problem),
+        None => Ok(PathBuf::from(value)),
+    })
+}
+
+/// The paths the environment route takes from the environment: each one
+/// supplied, empty included, must be an absolute path with no `.` or `..`
+/// component, CHIRALITY_APP_DATA's own rule. An absent name is not supplied,
+/// as before. The inherited CODEX_HOME is not a launch input and is not read.
+const ENVIRONMENT_PATHS: [&str; 5] = ["CHIRALITY_CODEX_HOME", "CHIRALITY_KEY_HOME", "CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS"];
+/// Why an environment-supplied path is refused, by name; the value is never
+/// echoed. Components are read from the value as given: `Path::components`
+/// drops a `.` inside a path, which would let `/a/./b` through.
+fn environment_path_problem(name: &str, value: &std::ffi::OsStr) -> Option<String> {
+    if value.is_empty() {
+        return Some(format!("{name} is empty: it must be an absolute path without . or .. components"));
+    }
+    let dotted = value.as_encoded_bytes().split(|byte| *byte == b'/').any(|part| part == b"." || part == b"..");
+    (!std::path::Path::new(value).is_absolute() || dotted).then(|| format!("{name} must be an absolute path without . or .. components"))
+}
+/// Every refused environment path, in [`ENVIRONMENT_PATHS`] order, as one reason.
+fn environment_path_refusal(input: &impl Fn(&str)->Option<std::ffi::OsString>) -> Option<String> {
+    let problems: Vec<String> = ENVIRONMENT_PATHS.iter().filter_map(|name| input(name).and_then(|value| environment_path_problem(name, &value))).collect();
+    (!problems.is_empty()).then(|| problems.join("; "))
+}
+
 fn explicit_environment_launch(
     input: impl Fn(&str)->Option<std::ffi::OsString>, data: &Result<PathBuf,String>, resources: &Result<PathBuf,String>, is_dev: bool,
     probe: impl FnOnce()->Result<PathBuf,String>,
 ) -> Option<desktop_startup::Launch> {
-    const KEYS: &[&str] = &["CHIRALITY_CODEX_BIN", "CHIRALITY_CODEX_HOME", "CHIRALITY_WORKSPACE", "CHIRALITY_KEY_HOME", "CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS", "CHIRALITY_CODEX_EXPECTED_SHA256", "CHIRALITY_ALLOW_UNVERIFIED", "CHIRALITY_DISTRIBUTION_SUCCESSOR"];
-    if !KEYS.iter().any(|key|input(key).is_some()) { return None; }
-    let workspace = input("CHIRALITY_WORKSPACE").map(PathBuf::from);
+    if !environment_selected(&input) { return None; }
+    // The raw project input is read once and never carried: the only project this route carries
+    // is one admitted below against the established App data folder (DEL-01-01). Every return
+    // before that carries none.
+    let raw_workspace = input("CHIRALITY_WORKSPACE").map(PathBuf::from);
+    // The key and shared values are carried as received, never read as not supplied; nothing
+    // reads them while the configuration is refused.
+    let key = input("CHIRALITY_KEY_HOME").map(PathBuf::from);
+    let shared = ["CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS"].map(|key|input(key).map(PathBuf::from));
+    // Refused at admission, on both branches, before any configuration is
+    // built or the probe home allocated. Needs no file system.
+    if let Some(reason) = environment_path_refusal(&input) {
+        return Some(desktop_startup::Launch::environment(None, Err(reason), key, shared));
+    }
+    // The App data folder was held and the folder set aside established before this route is
+    // read (`admitted_startup`); here they are only read. Not established, nothing is placed.
+    let established = match data.as_ref().map_err(Clone::clone).and_then(|data| working_folder::established(data).map_err(|blocked| blocked.sentence())) {
+        Ok(established) => established,
+        Err(reason) => return Some(desktop_startup::Launch::environment(None, Err(reason), key, shared)),
+    };
+    // A project in the App data folder (the folder set aside included) is refused and not carried.
+    let workspace = match raw_workspace.as_deref().map(|project| established.admit_project(project)).transpose() {
+        Ok(workspace) => workspace,
+        Err(reason) => return Some(desktop_startup::Launch::environment(None, Err(format!("CHIRALITY_WORKSPACE is refused: {reason}")), key, shared)),
+    };
     let host_config = if is_dev || !cfg!(feature = "distribution-successor") {
-        host_config_from_inputs(workspace.as_ref(), &input, probe).and_then(|mut cfg| {
+        host_config_from_inputs(workspace.as_ref(), Ok(&established), &input, probe).and_then(|mut cfg| {
             if is_dev && input("CHIRALITY_DISTRIBUTION_SUCCESSOR").is_some_and(|v|v == "1") {
                 cfg.distribution = Some(hosting::successor::Distribution::development_from_binary(&cfg.codex_bin)?);
             }
@@ -2685,19 +3232,43 @@ fn explicit_environment_launch(
     } else {
         (|| {
             let resources = resources.as_ref().map_err(Clone::clone)?.clone();
-            let data = data.as_ref().map_err(Clone::clone)?.clone();
             let home = input("CHIRALITY_CODEX_HOME").map(PathBuf::from).ok_or("No explicit App-owned account home")?;
-            Ok(hosting::successor::production_config(resources, home, probe()?, workspace.clone().unwrap_or(data)))
+            let cwd = workspace.as_deref().map(std::path::Path::to_path_buf).unwrap_or_else(|| established.leaf().to_path_buf());
+            let mut cfg = hosting::successor::production_config(resources, home, probe()?, cwd);
+            // As on the other routes: only a project is a records project.
+            cfg.records_project = workspace.is_some();
+            cfg.app_data = Some(established.data().to_path_buf());
+            Ok(cfg)
         })()
     };
     let host_config = host_config.map(|mut cfg| { cfg.require_distribution_artifacts = cfg.distribution.is_some(); cfg });
-    let key = input("CHIRALITY_KEY_HOME").map(PathBuf::from);
-    let shared = ["CHIRALITY_SHARED_CONFIG", "CHIRALITY_SHARED_AGENTS", "CHIRALITY_SHARED_SKILLS"].map(|key|input(key).map(PathBuf::from));
     Some(desktop_startup::Launch::environment(workspace, host_config, key, shared))
 }
 
+/// The launch's automatic start of Codex (HOSTING §4.6, actor `app-startup`),
+/// as `run` performs it on either route: the App ledger is configured, then
+/// this App's custody is rechecked, then the Host starts.
+pub(crate) fn automatic_start(host: &Arc<Host>, recovery: &Mutex<runtime_session::RecoveryStartup>, data: Result<&std::path::Path, &str>, cfg: &HostConfig, desktop: &Mutex<desktop_startup::DesktopSetup>) -> Result<Value, String> {
+    automatic_start_then(host, recovery, data, cfg, desktop, || {})
+}
+/// As [`automatic_start`], with `ledger_configured` called once the App ledger's configuration
+/// step has run (configured or refused), before anything of the start itself, whether the start
+/// then proceeds or is refused.
+pub(crate) fn automatic_start_then(host: &Arc<Host>, recovery: &Mutex<runtime_session::RecoveryStartup>, data: Result<&std::path::Path, &str>, cfg: &HostConfig, desktop: &Mutex<desktop_startup::DesktopSetup>, ledger_configured: impl FnOnce()) -> Result<Value, String> {
+    runtime_session::start_with_recovery(host, recovery, data, Some(&cfg.codex_home), || {
+        ledger_configured();
+        // A refusal before Host::start is kept as the host status's last
+        // start refusal too (Host::start keeps its own home refusals).
+        host.begin_start_request();
+        let admitted = desktop.lock().map_err(|_|"Desktop custody unavailable".to_string()).and_then(|desktop|desktop.recheck_active());
+        if let Err(reason) = admitted { host.note_start_refusal("app-startup", &cfg.codex_home, &reason); return Err(reason); }
+        host.start(cfg, "app-startup")
+    })
+}
 fn freeze_startup_state(launch: desktop_startup::Launch, desktop: Arc<Mutex<desktop_startup::DesktopSetup>>, compiled_selection: Value) -> (AppState, Arc<runtime_session::HomeSession>) {
     let desktop_startup::Launch { workspace, host_config, key_path, shared_paths, bootstrap, namespaces, source } = launch;
+    // The admitted project, and only that, is the workspace from here on (DEL-01-01).
+    let workspace: Option<PathBuf> = workspace.map(working_folder::AdmittedProject::into_path);
     let source = if source == "explicit environment (exclusive)" { "explicit Root native environment path inputs" } else { source };
     let project = runtime_session::freeze_configured_project(workspace.as_deref());
     let project_context_limit = project.as_ref().err().cloned();
@@ -2721,8 +3292,9 @@ fn freeze_startup_state(launch: desktop_startup::Launch, desktop: Arc<Mutex<desk
         external_observation: Mutex::new(runtime_session::ExternalObservationSession::default()),
         trace_selection: Mutex::new(runtime_session::TraceSelectionSession::default()),
         attachment_selection: Mutex::new(runtime_session::AttachmentSelectionSession::new(workspace.clone())),
-        role_log: workspace.as_deref().ok_or_else(||"explicit App project unavailable for role observations".to_string()).and_then(role_observations::RoleLog::open).map(Arc::new),
+        role_log: workspace.as_deref().ok_or_else(||"explicit App project unavailable for role observations".to_string()).and_then(role_observations::RoleLog::open_before_store).map(Arc::new),
         native_links: Mutex::new(native_conversation_links::Session::default()),
+        delegation_reconciliation: Mutex::new(native_conversation_links::Session::default().delegation_reconciliation()),
         project_context, project_context_limit,
         homes: Mutex::new(runtime_session::HomeRouter::new(home.clone()).expect("explicit primary account class")),
         home_bootstrap: Mutex::new(bootstrap.ok_or_else(||"Explicit Root home descriptors not initialized".into())),
@@ -2750,11 +3322,26 @@ fn initialize_startup_consumers(state: &AppState, home: &Arc<runtime_session::Ho
     // recording visibly, with no fallback. Opening the project gives it
     // its identity once (`.chirality/project.json`).
     {
-        let codex_homes = codex_homes(home.host_config.as_ref().ok().into_iter());
+        let codex_homes = codex_homes(home.host_config.as_ref().ok().into_iter(), data.as_deref().ok());
 
-        records_store::configure(if allow_operational { records_store::for_app(records_override, data.as_deref().map_err(Clone::clone), is_dev, workspace.as_deref(), &codex_homes) } else { Err(data.as_ref().err().cloned().unwrap_or_else(||"Desktop Root consumers not admitted".into())) });
+        records_store::configure(if allow_operational { records_store::for_app_beside(records_override, data.as_deref().map_err(Clone::clone), is_dev, workspace.as_deref(), &codex_homes, &working_folders(home.host_config.as_ref().ok().into_iter())) } else { Err(data.as_ref().err().cloned().unwrap_or_else(||"Desktop Root consumers not admitted".into())) });
+        // The store is created here, once, when the App starts: no reader
+        // creates it (a read writes nothing). A failure is shown by the
+        // store's status and refuses recording; there is no fallback.
+        if allow_operational && records_store::current().is_ok() {
+            if let Err(e) = records_store::create_at_startup() { eprintln!("chirality: the records store was not opened at startup: {e}"); }
+        }
         if let Some(ws) = workspace.as_ref() {
             if let Err(e) = records_store::attach(ws, true) { eprintln!("chirality: the project was not given its records identity at startup: {e}"); }
+        }
+        // Once, under the store lock: fragments in the store's own line files
+        // are closed and named (an append never changes earlier bytes' meaning).
+        match records_store::recover_at_startup() {
+            Ok(left) => for note in left { eprintln!("chirality: records store line file left as it is: {note}"); },
+            Err(e) => eprintln!("chirality: records store line files not examined at startup: {e}"),
+        }
+        if let Ok(log) = &state.role_log {
+            if let Err(e) = log.bind_writer_source() { eprintln!("chirality: role observation writer not bound at startup: {e}"); }
         }
     }
     // AAC §6.3 SEAL-C: install the App-owned location; the gated signed
@@ -2838,8 +3425,14 @@ fn initialize_startup_consumers(state: &AppState, home: &Arc<runtime_session::Ho
 }
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
+/// The scripted driver's page-load hook in a test build; in every other build, the builder unchanged.
+#[cfg(chirality_scripted_driver)]
+fn with_scripted_driver<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> { scripted_driver::install(builder) }
+#[cfg(not(chirality_scripted_driver))]
+fn with_scripted_driver<R: tauri::Runtime>(builder: tauri::Builder<R>) -> tauri::Builder<R> { builder }
+
 pub fn run() {
-    tauri::Builder::default()
+    with_scripted_driver(tauri::Builder::default())
         .plugin(tauri_plugin_dialog::init())
         .menu(app_menu)
         .on_menu_event(|app, event| {
@@ -2859,12 +3452,11 @@ pub fn run() {
             let _ = window.minimize();
         })
         .setup(move |app| {
-    let data = app.path().app_data_dir().map_err(|e| e.to_string());
     let resources = app.path().resource_dir().map_err(|e|e.to_string());
-    let environment = explicit_environment_launch(|key|std::env::var_os(key), &data, &resources, tauri::is_dev(), probe_home);
-    let mut desktop = desktop_startup::DesktopSetup::new(data.clone(), resources.clone());
-    let launch = desktop.resolve(environment, tauri::is_dev(), probe_home);
-    let desktop_startup::RootInputs { launch, data, allow_operational } = desktop.admit_root(launch, data);
+    let (desktop, desktop_startup::RootInputs { mut launch, data, allow_operational }) = admitted_startup(|key|std::env::var_os(key), app.path().app_data_dir().map_err(|e| e.to_string()), resources.clone(), tauri::is_dev(), probe_home);
+    // DEL-01-05: a development build can be held to a same-machine model address.
+    // Not consulted in the release configuration.
+    launch.host_config = dev_model_address::apply(launch.host_config, development_inputs_admitted(tauri::is_dev()), |key|std::env::var_os(key));
     let host_config = launch.host_config.clone();
     let key_path = launch.key_path.clone();
     let shared_paths = launch.shared_paths.clone();
@@ -2885,9 +3477,27 @@ pub fn run() {
                 std::thread::Builder::new().name("chirality-host-tick".into()).spawn(move || loop {
                     std::thread::sleep(host_tick::INTERVAL);
                     let state = handle.state::<AppState>();
-                    host_tick::guarded("record", || host_tick::tick_project(&state.homes, &state.workflows, state.workspace.as_deref()));
+                    let mut received = Vec::new();
+                    host_tick::guarded("record", || received = host_tick::tick_project(&state.homes, &state.workflows, state.workspace.as_deref()));
+                    // DEL-06-01: what those views show of native delegation is recorded once.
+                    host_tick::guarded("native-delegation", || {
+                        // The session's start for the project comes first: the ends
+                        // of earlier sessions' observations, until it has run. Its
+                        // read is made with no lock held; only its publication is
+                        // made under the links mutex, as for every delegation fact.
+                        let home = state.homes.lock().unwrap().entries().into_iter().next();
+                        let pending = state.native_links.lock().unwrap().earlier_delegation_pending();
+                        let read = home.filter(|_| pending).map(|home| native_conversation_links::read_earlier_delegation(state.workspace.as_deref(), &home.host));
+                        let mut links = state.native_links.lock().unwrap();
+                        if let Some(read) = read { links.apply_earlier_delegation(read); }
+                        for (home, views) in &received { links.observe_delegation(state.workspace.as_deref(), home, views); }
+                    });
                     // Native relationship publication runs independently of web reads.
-                    host_tick::guarded("native-links", || {state.native_links.lock().unwrap().retry(state.workspace.as_deref());});
+                    host_tick::guarded("native-links", || {
+                        let mut links = state.native_links.lock().unwrap();
+                        links.retry(state.workspace.as_deref());
+                        *state.delegation_reconciliation.lock().unwrap() = links.delegation_reconciliation();
+                    });
                 }).map_err(|e| format!("host tick thread not started: {e}"))?;
                 // TT-9 reads wait on Codex; their own thread never delays the record tick.
                 let handle = app.handle().clone();
@@ -2910,7 +3520,7 @@ pub fn run() {
             // EXEC §2.7 / RECOVERY §4.1, OI-008: the host writes RS "App-restart interruption" limits
             // from this session's REC restart facts, at startup, never on a web-view
             // request. Its outcome is shown by workflow_reopen.
-            {
+            let restart_limits = {
                 let handle = app.handle().clone();
                 std::thread::Builder::new().name("chirality-restart-limits".into()).spawn(move || {
                     let state = handle.state::<AppState>();
@@ -2921,20 +3531,30 @@ pub fn run() {
                     let mut workflows = state.workflows.lock().unwrap();
                     let outcome = run_restart::startup(&homes, state.workspace.as_deref());
                     workflows.set_restart_limits(outcome);
-                }).map_err(|e| format!("restart-limit thread not started: {e}"))?;
-            }
-            // App start-up starts the supplier (HOSTING §4.6 start, actor `app-startup`).
-            if let Ok(cfg) = host_config {
+                }).map_err(|e| format!("restart-limit thread not started: {e}"))?
+            };
+            let launch_read = {
+                let handle = app.handle().clone();
+                LaunchRead::new(move || {
+                    if let Err(reason) = reopen_recorded_runs(&handle.state::<AppState>()) {
+                        eprintln!("chirality: the recorded runs were not read at launch: {reason}");
+                    }
+                }, Some(restart_limits))
+            };
+            // App start-up starts the supplier (HOSTING §4.6 start, actor `app-startup`) when its
+            // configuration admits one, and reads the recorded runs in every case: the reading
+            // begins once the ledger's configuration step has run, not after the start, since it
+            // needs this session's restart facts and nothing from Codex.
+            {
                 let h = Arc::clone(&host);
                 let recovery = Arc::clone(&home.recovery_startup);
+                let read = launch_read.clone();
+                let account = Arc::clone(&home);
                 std::thread::spawn(move || {
-                    let _ = runtime_session::start_with_recovery(
-                        &h,
-                        &recovery,
-                        data.as_deref().map_err(String::as_str),
-                        Some(&cfg.codex_home),
-                        || { desktop.lock().map_err(|_|"Desktop custody unavailable")?.recheck_active()?; h.start(&cfg, "app-startup") },
-                    );
+                    let started = launch_start_and_read(&h, &recovery, data.as_deref().map_err(String::as_str), host_config.as_ref().map_err(String::as_str), &desktop, &read);
+                    // Codex ready at launch: the App reads whether someone is signed in, and the stored history
+                    // list, as after a restart.
+                    if let Some(started) = started { runtime_session::read_at_ready(&account, &started); }
                 });
             }
             Ok(())
@@ -2942,7 +3562,7 @@ pub fn run() {
         // DEF-1: closing or reloading a window is not a stop (HOSTING §4.5); no window
         // event touches the child.
         .invoke_handler(tauri::generate_handler![
-            desktop_setup_pick, desktop_setup_preview, desktop_setup_new_settings_preview, desktop_setup_project_preview, desktop_setup_prepare,
+            desktop_setup_pick, desktop_setup_preview, desktop_setup_new_settings_preview, desktop_setup_project_preview, desktop_setup_prepare, quit_app,
             file_act_select, file_act_open_arrival, file_act_confirm, file_act_continue, file_act_dismiss, file_act_read, file_act_observe_lapses, file_act_retry_lapses,
             read_recovery_custody,
             read_recovery_request_history,
@@ -2954,6 +3574,7 @@ pub fn run() {
             read_connector_git, cancel_connector_git, anchor_connector_git,
             recheck_published_connector_draft, prepare_connector_reconstruction, prepare_connector_draft, publish_connector_draft, cancel_connector_draft, reconcile_connector_draft, inspect_connector_drafts,
             host_status,
+            release_limitations,
             select_home,
             open_waiting_requests,
             claim_native_waiting_intent,
@@ -2963,6 +3584,8 @@ pub fn run() {
             add_api_key,
             prepare_local_provider,
             submit_local_provider_key,
+            local_model_settings_read,
+            local_model_settings_save,
             oauth_start,oauth_present,oauth_cancel,
             logout_home,
             host_observe,
@@ -2991,7 +3614,7 @@ pub fn run() {
             continue_as_send_read,
             conversation_fork,
             set_person_name,
-            workflow_assurance_robust,workflow_assurance_relaxed,workflow_assurance_recheck,workflow_protect_with_keychain,workflow_select_development,workflow_select_production_bundle,workflow_select_production_copy,workflow_open_library,workflow_open_project_library,workflow_observe_drafts,workflow_library_entries_refresh,workflow_review_library_entries,workflow_trial_prepare,workflow_trial_again,workflow_trial_cancel,workflow_trial_send,workflow_trial_start_clean,workflow_trial_link,workflow_trial_unlink,workflow_trial_read,workflow_trial_bring_back,workflow_run_bring_back,workflow_bring_back_cancel,workflow_bring_back_send,workflow_trial_compare,workflow_review_draft,workflow_select_registered,workflow_select_listed,workflow_follow_newer_revision,workflow_create_draft,workflow_refine_registered,workflow_review,workflow_register_native,workflow_continue_registration,workflow_prepare_run,workflow_send_run,workflow_check_supply,workflow_retry_records,workflow_read_records,workflow_end_run,workflow_start_proposed,workflow_end_and_start,workflow_check_notice,workflow_skip_notice,workflow_reopen,workflow_end_recorded,workflow_reopened_notice,workflow_review_digest,native_confirmation_content,
+            workflow_assurance_robust,workflow_assurance_relaxed,workflow_assurance_recheck,workflow_protect_with_keychain,workflow_select_development,workflow_select_production_bundle,workflow_read_text,workflow_select_production_copy,workflow_open_library,workflow_open_project_library,workflow_observe_drafts,workflow_library_entries_refresh,workflow_review_library_entries,workflow_trial_prepare,workflow_trial_again,workflow_trial_cancel,workflow_trial_send,workflow_trial_start_clean,workflow_trial_link,workflow_trial_unlink,workflow_trial_read,workflow_trial_bring_back,workflow_run_bring_back,workflow_bring_back_cancel,workflow_bring_back_send,workflow_trial_compare,workflow_review_draft,workflow_select_registered,workflow_select_listed,workflow_follow_newer_revision,workflow_create_draft,workflow_refine_registered,workflow_review,workflow_register_native,workflow_continue_registration,workflow_prepare_run,workflow_send_run,workflow_check_supply,workflow_retry_records,workflow_read_records,workflow_end_run,workflow_start_proposed,workflow_end_and_start,workflow_check_notice,workflow_skip_notice,workflow_reopen,workflow_end_recorded,workflow_reopened_notice,workflow_review_digest,native_confirmation_content,
             decision_view,
             continue_decision_recording,
             compose_offer,
@@ -3028,6 +3651,10 @@ pub fn run() {
                         eprintln!("chirality: system termination observation unavailable: {error}");
                     }
                 }
+                // DEL-06-01: this session's observation of each child it recorded ends with it.
+                if let Ok(mut links) = st.native_links.lock() {
+                    links.end_delegation_at_exit(&homes);
+                }
                 records_index::close_all();
             }
             _ => {}
@@ -3043,7 +3670,7 @@ mod workflow_root_context_tests {
         let control=Arc::new(Mutex::new(Some(ActControl::new(&root))));
         let mut workflows=runtime_session::WorkflowRootSession::default();workflows.open_library(root.clone(),"project",Some(&root),control.clone()).unwrap();
         let library=workflows.active_library().unwrap();
-        let state=AppState{desktop_setup:None,endpoint_edits:Arc::new(Mutex::new(Default::default())),compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),file_act_lapses:Mutex::new(file_act_lapse::Observer::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),role_log:role_observations::RoleLog::open(&root).map(Arc::new),native_links:Mutex::new(native_conversation_links::Session::default()),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),local_credentials:Default::default(),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new()),continue_as:Mutex::new(Default::default()),app_quit:Default::default()};
+        let state=AppState{desktop_setup:None,endpoint_edits:Arc::new(Mutex::new(Default::default())),compiled_development_selection:json!({"standing":"test-fixture-not-observed"}),connector_drafts:Mutex::new(connector_materialization::Registry::default()),connector_sources:Mutex::new(connector_source::Session::default()),workspace:Some(root.clone()),act:control,file_acts:Mutex::new(file_act_root::FileActRoot::default()),file_act_lapses:Mutex::new(file_act_lapse::Observer::default()),workflows:Mutex::new(workflows),decision_writer_status:Mutex::new(Value::Null),person_name:Mutex::new(None),instructions_root:Mutex::new(Err("unavailable".into())),app_user_data_root:Mutex::new(Err("unavailable".into())),external_observation:Mutex::new(Default::default()),trace_selection:Mutex::new(Default::default()),attachment_selection:Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.clone()))),role_log:role_observations::RoleLog::open(&root).map(Arc::new),native_links:Mutex::new(native_conversation_links::Session::default()),delegation_reconciliation:Mutex::new(Value::Null),project_context:recovery::ExplicitAppProjectContext::unknown(),project_context_limit:Some("unknown".into()),homes:Mutex::new(runtime_session::HomeRouter::new(home.clone()).unwrap()),home_bootstrap:Mutex::new(Err("descriptor unavailable; no inferred home".into())),native_namespaces:Mutex::new(Err("unavailable".into())),key_namespace_admission:Mutex::new(Value::Null),key_setup:Mutex::new(()),local_credentials:Default::default(),root_home_inputs:Value::Null,codex_stop_gate:Mutex::new(()),codex_stops:Mutex::new(Vec::new()),continue_as:Mutex::new(Default::default()),app_quit:Default::default()};
         let (_,context)=current_actor_context_for(&state,&home);
         let package=root.join(workflow_workspace::development_catalog::NAME);std::fs::create_dir(&package).unwrap();
         let catalog=workflow_workspace::development_catalog::DevelopmentCatalog::load().unwrap();for(name,bytes)in catalog.select_embedded().snapshot().files(){std::fs::write(package.join(name),bytes).unwrap();}
@@ -3083,6 +3710,9 @@ mod workflow_root_context_tests {
 
 #[cfg(all(test,unix))]
 mod file_act_consumer_tests;
+#[cfg(all(test,unix))]
+#[path = "local_route_refusal_tests.rs"]
+mod local_route_refusal_tests;
 #[cfg(test)]
 mod file_act_lapse_tests;
 
@@ -3109,7 +3739,11 @@ mod bundle_resources_tests {
             assert_eq!(declared.get(source).and_then(Value::as_str), Some(format!("{read}/").as_str()), "{source} must be bundled as {read}/");
             assert!(manifest().join(source).join(required).is_file(), "{source}{required} is the source tree");
         }
-        assert_eq!(declared.len(), 2, "the default bundle carries only what the default host reads: {declared:?}");
+        // The release's limitations list ships byte for byte from its maintained document (DEL-01-06 AC-008).
+        assert_eq!(declared.get("../../docs/RELEASE_LIMITATIONS_4.0.0.md").and_then(Value::as_str), Some(RESOURCE_RELEASE_LIMITATIONS),
+            "the limitations list must be bundled as {RESOURCE_RELEASE_LIMITATIONS}");
+        assert!(manifest().join("../../docs/RELEASE_LIMITATIONS_4.0.0.md").is_file(), "the limitations document is the source");
+        assert_eq!(declared.len(), 3, "the default bundle carries only what the default host reads: {declared:?}");
         // The packaged instructions are what the host verifies against.
         runtime_session::verify_production_instructions_root(&manifest().join("resources/instructions")).unwrap();
         // Every `resource_dir()` read in the host names one of those, or is a
@@ -3124,14 +3758,14 @@ mod bundle_resources_tests {
                 if code.starts_with("mod bundle_resources_tests") { break; }
                 if code.starts_with("//") || !code.contains(".resource_dir()") { continue; }
                 reads += 1;
-                assert!(code.contains("RESOURCE_INSTRUCTIONS") || code.contains("RESOURCE_WORKFLOWS") || gated.iter().any(|g| code.contains(g)),
+                assert!(code.contains("RESOURCE_INSTRUCTIONS") || code.contains("RESOURCE_WORKFLOWS") || code.contains("RESOURCE_RELEASE_LIMITATIONS") || gated.iter().any(|g| code.contains(g)),
                     "{}: resource read not declared in bundle.resources: {code}", path.display());
             }
         }
-        // Instruction root, workflow root and the shared startup resource root.
+        // Instruction root, workflow root, limitations list and the shared startup resource root.
         // Startup now passes that same resolved root to compiled selection,
         // instead of resolving it a second time in the observer callback.
-        assert!(reads >= 3, "the known resource reads were scanned: {reads}");
+        assert!(reads >= 4, "the known resource reads were scanned: {reads}");
     }
 }
 

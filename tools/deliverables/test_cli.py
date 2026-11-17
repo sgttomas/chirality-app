@@ -136,6 +136,26 @@ def test_touches_shared_relevance_and_unmapped_paths(repo, capsys):
     assert result['unmapped_paths'] == ['.keep']
 
 
+def test_touches_counts_a_declared_check_as_relevant(repo, capsys):
+    """A file a deliverable declares only under `checks` bears on it: it is not reported unmapped."""
+    put(repo, 'DEL-01-01', code_paths=['src/**'], checks=['tests/shared.py'])
+    put(repo, 'DEL-01-02', checks=['tests/shared.py', 'tests/own/**'])
+    git(repo, 'add', '.')
+    git(repo, 'commit', '-qm', 'declarations')
+    for name in ['tests/shared.py', 'tests/own/case.py', 'tests/other.py']:
+        path = repo / 'project' / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text('new')
+    git(repo, 'add', '.')
+    git(repo, 'commit', '-qm', 'checks change')
+    code, result = query(capsys, 'touches', 'HEAD')
+    assert code == 0
+    assert result['relevant'] == {'DEL-01-01': ['project/tests/shared.py'],
+                                  'DEL-01-02': ['project/tests/own/case.py', 'project/tests/shared.py']}
+    assert result['unmapped_paths'] == ['project/tests/other.py']
+    assert result['unknown_deliverables'] == ['DEL-01-02']
+
+
 def stub_gh(bin_dir, monkeypatch, response):
     """Put a fake `gh` first on PATH that records its arguments and prints `response`."""
     (bin_dir / 'response.json').write_text(json.dumps(response))

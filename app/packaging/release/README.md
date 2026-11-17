@@ -100,7 +100,13 @@ python3 app/packaging/release/build.py \
   caches: a symbolic link, and a hard link (a regular file whose link count is
   above one).
 - It refuses any input path inside a folder named as the private folder, by
-  name, before opening anything.
+  whole component including case aliases, before opening anything. This includes
+  the supplied tool paths and PATH directories. A directory-name pass rejects a private entry before
+  descending into it, before the input trees are inventoried or copied.
+- Before creating `--out`, it compares physical ancestry with the source,
+  vendor and cache roots and with the directory holding each read-only input
+  file (tools and any supplied publisher selection). An output inside any of
+  these is refused. That refusal creates no output or failure receipt.
 - These all point inside `--out`: `HOME`, `TMPDIR`, `CARGO_HOME`,
   `CARGO_TARGET_DIR`, `CODEX_HOME`, `RUSTUP_HOME`, and npm's cache, logs,
   prefix and configuration.
@@ -111,11 +117,17 @@ python3 app/packaging/release/build.py \
   and the build does not control it.
 
 `PATH` must name the toolchain's own `bin` directory, not rustup proxies.
+The tools do not pass the caller's whole environment to their children. The
+install and build receive exactly the recipe allowlist, assembled from the
+recipe, the caller's `PATH` and `LANG`, and the run's private writable paths.
 
 **Publisher input.** It writes the publisher input (identifier and Developer
 ID team) from the compiled keychain selection in
 `app/src-tauri/src/capture_seal_keychain.rs` of the export, unless
-`--publisher-input` and `--publisher-sha256` supply one.
+`--publisher-input` and `--publisher-sha256` supply one. A supplied identifier
+and team must equal that source selection before the output is created. The
+produced binding must also agree with both, as well as the selected input
+digest and embedded requirement bytes.
 
 **Then it runs** `prepare.py`, `check_plan` and `verify_cargo_build_input`,
 installs the npm dependencies offline, runs the recipe, and checks the
@@ -123,19 +135,27 @@ result:
 
 - Apple's `dyld_info -validate_only` returns zero and prints nothing at all,
   on either stream, for every Mach-O file (its manual: "Display nothing if
-  binary is valid"). No output line of it is declared, so any line is a
-  failure.
+  binary is valid"). Both streams must be byte-empty; whitespace also fails.
 - The Info.plist states the release identity.
 - The vendor tree matches the input in bytes, modes and types.
 - Every mapped resource matches its source in bytes.
 - The executable holds the compiled publisher binding and requirement.
 - The App's own code carries only the linker's ad hoc signature.
 
+The three scope observations (`uname`, `sw_vers`, `xcrun`) have a different
+declared form: zero exit, exactly one UTF-8-decoded stdout line of the expected
+shape after Python `str.strip()` removes surrounding Unicode whitespace, and
+no stderr beyond the ASCII whitespace removed by `bytes.strip()`. Additional
+stdout lines, a missing value or other stderr fail. These are parser rules;
+the invented tests are not observations of the Apple tools.
+
 **Publishing the candidate.** `CANDIDATE.json` appears only as the last act:
-the description is verified once more, then renamed into place. Any failure
-before that leaves `INCOMPLETE.txt` and `BUILD_FAILED.json`, and the signing
-step refuses such a folder. The provisioning profile is not a build input:
-`owner_sign.py` places it.
+the description is verified once more, then renamed into place. After output
+creation, the failure handler attempts to leave an incomplete marker
+(`INCOMPLETE.txt`) and fixed failure description (`BUILD_FAILED.json`); I/O
+failures can prevent either. No candidate is published before final
+verification, and the signing step refuses a folder without one. The
+provisioning profile is not a build input: `owner_sign.py` places it.
 
 ## Signing, notarizing and stapling (the owner)
 

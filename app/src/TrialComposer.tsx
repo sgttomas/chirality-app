@@ -1,3 +1,5 @@
+import { AgentText, ConversationChoices, idWords, numberWords, safeName } from "./AgentText";
+import { threadChoices } from "./presentation";
 import { useState } from "react";
 import { ConnectionAndModel, RoleChoice, type SendState, type StartChoice } from "./ConversationRoles";
 import { useBoundModelChoice, type BoundModelChoice, type ModelRoute } from "./ModelChoice";
@@ -36,13 +38,8 @@ export function findConversation(conversations: Json[], ref: Json): Json | null 
 }
 export const conversationName = (ref: Json): string => text(typeof ref === "string" ? ref : ref?.threadId) || "not reported";
 
-/** A select over this App's started conversations. */
-export function ConversationSelect({ label, conversations, value, setValue, disabled, none = "No conversation chosen" }: { label: string; conversations: Json[]; value: string; setValue: (key: string) => void; disabled?: boolean; none?: string }) {
-  return <label>{label} <select value={value} disabled={disabled} onChange={e => setValue(e.target.value)}>
-    <option value="">{none}</option>
-    {list(conversations).map((c: Json) => <option key={conversationKey(c)} value={conversationKey(c)}>{text(c.threadId)} · {text(c.model) || "model not reported"} via {text(c.modelProvider) || "provider not reported"}</option>)}
-  </select></label>;
-}
+/** This App's started conversations as choices (ConversationChoices), keyed as the panel keys them. */
+export const conversationChoices = (conversations: Json[]) => threadChoices(list(conversations), conversationKey);
 
 /** The host's error message as given: Tauri rejects with the host's string,
  * or with a send refusal `{message, prefillKept}`. */
@@ -96,7 +93,7 @@ export function TrialSendOutcome({ outcome }: { outcome: SendState }) {
 export function TrialCard({ pending, busy, act }: { pending: Json; busy: boolean; act: TrialAct }) {
   return <div aria-label="Trial text" style={{ border: "1px dashed #888", padding: 6, margin: "6px 0" }}>
     <p><b>{text(pending?.card)}</b></p>
-    <details><summary>Open the trial text ({text(pending?.bytes)} bytes; identity {text(pending?.textIdentity?.value ?? pending?.textIdentity).slice(0, 12)})</summary><pre style={{ whiteSpace: "pre-wrap" }}>{text(pending?.text)}</pre></details>
+    <details><summary>Open the trial text ({idWords(pending?.bytes)} bytes; identity {idWords(text(pending?.textIdentity?.value ?? pending?.textIdentity).slice(0, 12))})</summary><AgentText block value={text(pending?.text)} source="record" /></details>
     <p><small>Not editable here: to change it, change the draft and Try again. Removing it cancels the trial; nothing is recorded.</small>{" "}
       <button disabled={busy} onClick={() => { void Promise.resolve(act("workflow_trial_cancel", { reference: pending?.reference })).catch(() => undefined); }}>Remove</button></p>
   </div>;
@@ -121,12 +118,12 @@ export function DelegatedTrialComposerView({ pending, conversations, message, se
   const chosen = list(conversations).find((c: Json) => conversationKey(c) === target) ?? null;
   const sent = outcome.state === "sending" || outcome.state === "sent";
   return <section aria-label="Trial composer" style={{ border: "1px solid #888", padding: 8, margin: "8px 0" }}>
-    <h3>Trial {text(pending?.sequence)} of draft {text(pending?.draftName)} — pre-filled, not sent</h3>
+    <h3>Trial {numberWords(pending?.sequence) ?? ""} of draft {safeName(pending?.draftName)} — pre-filled, not sent</h3>
     <label>Your message (editable; not sent) <textarea value={message} disabled={busy || sent} onChange={e => setMessage(e.target.value)} rows={6} style={{ display: "block", width: "100%" }} /></label>
     <TrialCard pending={pending} busy={busy || sent} act={act} />
     <PendingNotes pending={pending} />
-    <p><ConversationSelect label="Send to" conversations={conversations} value={target} setValue={setTarget} disabled={busy || sent} />{" "}
-      <button disabled={busy || !ready || !chosen || sent} onClick={() => pressSend(act, "workflow_trial_send", { reference: pending?.reference, generation: chosen?.generation, threadId: chosen?.threadId, personText: message }, setOutcome, () => delegatedSentWords(chosen?.threadId))}>Send</button></p>
+    <div><ConversationChoices legend="Send to" group={`trial-send-${text(pending?.reference)}`} value={conversationChoices(conversations)} chosen={target} onChoose={setTarget} disabled={busy || sent} none="No conversation chosen" />
+      <button disabled={busy || !ready || !chosen || sent} onClick={() => pressSend(act, "workflow_trial_send", { reference: pending?.reference, generation: chosen?.generation, threadId: chosen?.threadId, personText: message }, setOutcome, () => delegatedSentWords(chosen?.threadId))}>Send</button></div>
     <p><small>Send to is this message's destination; changing it does not move the original composer.</small></p>
     <TrialSendOutcome outcome={outcome} />
   </section>;
@@ -147,8 +144,8 @@ export const cleanTrialAnchor = (reference: Json): string => `new-trial-${Array.
 /** TT-3b, SQ-FT FT-3/FT-4: a new trial conversation, like Continue as but
  * without a handoff turn. Its role and model are the person's; it starts and
  * the trial message is sent only when the person presses Send. */
-export function CleanTrialPanelView({ pending, roleSet, limits, entries, modeHomeClass, choice, setChoice, chooser, message, setMessage, outcome, setOutcome, busy, ready, act }: {
-  pending: Json; roleSet: Json; limits: Json; entries: { value: string; label: string }[]; modeHomeClass: Json;
+export function CleanTrialPanelView({ pending, roleSet, limits, entries, modeHomeClass, choice, setChoice, chooser, message, setMessage, outcome, setOutcome, busy, ready, act, local = null }: {
+  pending: Json; roleSet: Json; limits: Json; entries: { value: string; label: string }[]; modeHomeClass: Json; local?: { entryId: string; providerId: string; endpoint: string; model: string; credentialState?: string } | null;
   choice: CleanChoice; setChoice: (c: CleanChoice) => void; chooser?: BoundModelChoice; message: string; setMessage: (m: string) => void;
   outcome: SendState; setOutcome: (o: SendState) => void; busy: boolean; ready: boolean; act: TrialAct;
 }) {
@@ -164,10 +161,10 @@ export function CleanTrialPanelView({ pending, roleSet, limits, entries, modeHom
     }
     // `generation` is the one the choice was made for. The current native
     // receiver ignores it; a native follow-up will require it at admission.
-    pressSend(act, "workflow_trial_start_clean", { reference: pending?.reference, model: route.model, modelProvider: route.modelProvider, entryId: route.entryId, modeHomeClass: binding.modeHomeClass ?? modeHomeClass, generation: binding.generation, role: choice.role === "" ? null : choice.role, personText: message }, setOutcome, result => cleanSentWords(result?.thread?.threadId ?? result?.conversation?.threadId ?? "not named by the host"));
+    pressSend(act, "workflow_trial_start_clean", { reference: pending?.reference, model: route.model, modelProvider: route.modelProvider, entryId: route.entryId, entrySource: "person", modeHomeClass: binding.modeHomeClass ?? modeHomeClass, generation: binding.generation, role: choice.role === "" ? null : choice.role, preselected: !choice.roleTouched && !!choice.role && choice.role === roleSet?.defaultRole, personText: message }, setOutcome, result => cleanSentWords(result?.thread?.threadId ?? result?.conversation?.threadId ?? "not named by the host"));
   };
   return <section id={cleanTrialAnchor(pending?.reference)} aria-label="New trial conversation" style={{ border: "1px solid #888", padding: 8, margin: "8px 0" }}>
-    <h3>New trial conversation: trial {text(pending?.sequence)} of draft {text(pending?.draftName)}</h3>
+    <h3>New trial conversation: trial {numberWords(pending?.sequence) ?? ""} of draft {safeName(pending?.draftName)}</h3>
     <p><small>Optional: a clean trial is shown, not required. It is a new conversation with the role and model you choose and nothing but the trial text and your inputs.</small></p>
     <TrialCard pending={pending} busy={busy || sent} act={act} />
     <label>Inputs for this trial (editable; not sent) <textarea value={message} disabled={busy || sent} onChange={e => setMessage(e.target.value)} rows={4} style={{ display: "block", width: "100%" }} /></label>
@@ -179,7 +176,7 @@ export function CleanTrialPanelView({ pending, roleSet, limits, entries, modeHom
       <RoleChoice group={`clean-trial-role:${text(pending?.reference)}`} roleSet={roleSet} limits={limits} role={choice.role} preselected={!choice.roleTouched && !!choice.role && choice.role === roleSet?.defaultRole}
         setRole={role => setChoice({ ...choice, role, roleTouched: true })} />
       <p>The new conversation starts with no model selected; choose how it connects and its model.</p>
-      <ConnectionAndModel homeClass={typeof modeHomeClass === "string" ? modeHomeClass : null} chooser={models} entries={entries} disabled={busy || !ready || sent} />
+      <ConnectionAndModel homeClass={typeof modeHomeClass === "string" ? modeHomeClass : null} chooser={models} entries={entries} disabled={busy || !ready || sent} local={local} />
       <p><button disabled={busy || !ready || noModel || !choice.entryId || sent} onClick={startClean}>Send</button>
         <small> Starts the new conversation, then sends the trial text and your inputs once.</small></p>
       {noModel && <p><small>Not started — no model selected.</small></p>}
@@ -194,23 +191,24 @@ export function fixedModelChoice(route: ModelRoute, revise: (patch: Partial<Mode
   return { route: value, stale: false, revise, packet: null, current: false, reading: false, message: "", read: () => {}, choose: () => {}, bound: () => ({ route: value, generation: null, modeHomeClass: null }) };
 }
 
-export function CleanTrialPanel({ pending, roleSet, limits, entries, modeHomeClass, generation, busy, ready, act }: { pending: Json; roleSet: Json; limits: Json; entries: { value: string; label: string }[]; modeHomeClass: Json; generation?: Json; busy: boolean; ready: boolean; act: TrialAct }) {
+export function CleanTrialPanel({ pending, roleSet, limits, entries, modeHomeClass, generation, busy, ready, act, local = null }: { pending: Json; roleSet: Json; limits: Json; entries: { value: string; label: string }[]; modeHomeClass: Json; generation?: Json; busy: boolean; ready: boolean; act: TrialAct; local?: { entryId: string; providerId: string; endpoint: string; model: string; credentialState?: string } | null }) {
   const chooser = useBoundModelChoice({ owner: `clean-trial:${text(pending?.reference)}`, homeClass: typeof modeHomeClass === "string" ? modeHomeClass : null, generation: generation ?? null, ready });
   const [role, setRole] = useState({ role: roleSet?.available ? text(roleSet.defaultRole) : "", roleTouched: false });
   const choice: CleanChoice = { ...chooser.route, ...role };
   const setChoice = (next: CleanChoice) => setRole({ role: next.role, roleTouched: next.roleTouched });
   const [message, setMessage] = useState<string>(text(pending?.message));
   const [outcome, setOutcome] = useState<SendState>({ state: "unsent" });
-  return <CleanTrialPanelView pending={pending} roleSet={roleSet} limits={limits} entries={entries} modeHomeClass={modeHomeClass} choice={choice} setChoice={setChoice} chooser={chooser}
+  return <CleanTrialPanelView pending={pending} roleSet={roleSet} limits={limits} entries={entries} modeHomeClass={modeHomeClass} choice={choice} setChoice={setChoice} chooser={chooser} local={local}
     message={message} setMessage={setMessage} outcome={outcome} setOutcome={setOutcome} busy={busy} ready={ready} act={act} />;
 }
 
 /** The bring-back composer's title: a trial by its sequence and draft, as
  * elsewhere (never its internal reference); a run by its reference. */
 export function bringBackTitle(pending: Json): string {
-  if (!pending?.trial) return `Bring run ${text(pending?.run)} back`;
-  const n = pending.sequence === null || pending.sequence === undefined ? "" : ` ${text(pending.sequence)}`;
-  const draft = text(pending.draftName) ? ` of draft ${text(pending.draftName)}` : "";
+  // The App's words only: a run or a sequence as a plain identity or number, a draft in the App's name form.
+  if (!pending?.trial) return `Bring run ${idWords(pending?.run)} back`;
+  const n = pending.sequence === null || pending.sequence === undefined ? "" : ` ${numberWords(pending.sequence) ?? idWords(pending.sequence)}`;
+  const draft = text(pending.draftName) ? ` of draft ${safeName(pending.draftName)}` : "";
   return `Bring trial${n}${draft} back`;
 }
 
@@ -218,7 +216,7 @@ export function bringBackTitle(pending: Json): string {
 export function BringBackComposerView({ pending, conversations, prompt, setPrompt, target, setTarget, outcome, setOutcome, busy, ready, act, sendBlock = null }: {
   pending: Json; conversations: Json[]; prompt: string; setPrompt: (p: string) => void; target: string; setTarget: (key: string) => void;
   outcome: SendState; setOutcome: (o: SendState) => void; busy: boolean; ready: boolean; act: TrialAct;
-  /** Why Send is held now (bringBackSendBlock); the dispatch guard is the boundary. */
+  /** Why the App will not send now (bringBackSendBlock); the dispatch guard is the boundary. */
   sendBlock?: string | null;
 }) {
   const chosen = list(conversations).find((c: Json) => conversationKey(c) === target) ?? null;
@@ -229,16 +227,17 @@ export function BringBackComposerView({ pending, conversations, prompt, setPromp
     <label>Your message (editable; not sent) <textarea value={prompt} disabled={busy || sent} onChange={e => setPrompt(e.target.value)} rows={4} style={{ display: "block", width: "100%" }} /></label>
     <div aria-label="Transcript" style={{ border: "1px dashed #888", padding: 6, margin: "6px 0" }}>
       <p><b>{text(pending?.card)}</b></p>
-      <details><summary>Open the transcript ({text(pending?.bytes)} bytes{pending?.includeNative ? "; native items included" : ""})</summary><pre style={{ whiteSpace: "pre-wrap" }}>{text(pending?.transcript)}</pre></details>
+      <details><summary>Open the transcript ({idWords(pending?.bytes)} bytes{pending?.includeNative ? "; native items included" : ""})</summary><AgentText block value={text(pending?.transcript)} source="record" /></details>
       {pending?.source?.standing && <p><small>{text(pending.source.standing)}</small></p>}
+      {list(pending?.source?.historyNotices).map((notice,i)=><p role="note" key={`history-${i}`}>{text(notice)}</p>)}
       {list(pending?.source?.limits).length > 0 && <ul aria-label="History source limits">{list(pending.source.limits).map((limit, i) => <li key={i}><small>{text(limit)}</small></li>)}</ul>}
       {shortenings.length > 0 && <ul aria-label="Shortenings">{shortenings.map((s: Json, i: number) => <li key={i}><small>{text(s)}</small></li>)}</ul>}
       <p><small>Read from Codex history; a record of that conversation, it instructs nothing. Not editable here.</small>{" "}
         <button disabled={busy || sent} onClick={() => { void Promise.resolve(act("workflow_bring_back_cancel", { id: pending?.id })).catch(() => undefined); }}>Remove</button></p>
     </div>
-    <p><ConversationSelect label="Send to" conversations={conversations} value={target} setValue={setTarget} disabled={busy || sent} />{" "}
-      <button disabled={busy || !ready || !chosen || sent || !!sendBlock} onClick={() => pressSend(act, "workflow_bring_back_send", { id: pending?.id, generation: chosen?.generation, threadId: chosen?.threadId, personText: prompt }, setOutcome, () => bringBackSentWords(chosen?.threadId))}>Send</button></p>
-    {sendBlock && <p role="note">Send is held: {sendBlock}</p>}
+    <div><ConversationChoices legend="Send to" group={`bring-back-send-${text(pending?.id)}`} value={conversationChoices(conversations)} chosen={target} onChoose={setTarget} disabled={busy || sent} none="No conversation chosen" />
+      <button disabled={busy || !ready || !chosen || sent || !!sendBlock} onClick={() => pressSend(act, "workflow_bring_back_send", { id: pending?.id, generation: chosen?.generation, threadId: chosen?.threadId, personText: prompt }, setOutcome, () => bringBackSentWords(chosen?.threadId))}>Send</button></div>
+    {sendBlock && <p role="note">The App won't send this yet: {sendBlock}</p>}
     <p><small>Send to is this message's destination; changing it does not move the original composer.</small></p>
     <TrialSendOutcome outcome={outcome} />
   </section>;

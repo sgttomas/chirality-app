@@ -37,7 +37,7 @@ impl Evidence {
     pub(crate) fn display(self) -> &'static str {
         match self {
             Self::InProcess => "Approved in this App session (native A15)",
-            Self::Keychain => "Approval verified by keychain seal",
+            Self::Keychain => "Registration capture seal verified using your keychain; who wrote the capture, a person's presence and judgment are not established",
             Self::Disk => "Disk consistency checked; approval authenticity unverified",
         }
     }
@@ -587,6 +587,8 @@ impl LibraryOwner {
     /// forbids the App to overwrite. Only exactly the copied bytes are removed;
     /// anything else in the folder keeps the whole draft.
     pub(crate) fn discard_unbased_copy(&self, name: &str, copied: &Snapshot) -> Result<(), String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("workflow_library::LibraryOwner::discard_unbased_copy");
         if !super::valid_name(name) {
             return Err("invalid draft name".into());
         }
@@ -1618,7 +1620,7 @@ impl HotRegistrationAttempt {
             }
             rc9_guard(root, &rows, &line)?;
             self.session.listed_sources_current()?;
-            append_line(root, &line)?;
+            self.append_entry_line(index, &line)?;
             return self.finish_line(index, line);
         }
         if self.end_if_a15_has_line(index, &rows)? {
@@ -1690,7 +1692,7 @@ impl HotRegistrationAttempt {
         lose_at(LOSE_BEFORE_COMMIT)?;
         self.progress[index] = Progress::Intended(line.clone());
         self.session.listed_sources_current()?;
-        append_line(root, &line)?;
+        self.append_entry_line(index, &line)?;
         self.finish_commit(index, line)
     }
     /// G1 (under the ledger lock): the frozen App-kept base is still the one
@@ -1818,7 +1820,7 @@ impl HotRegistrationAttempt {
         #[cfg(test)]
         lose_at(LOSE_BEFORE_COMMIT)?;
         self.progress[index] = Progress::Intended(line.clone());
-        append_line(&root, &line)?;
+        self.append_entry_line(index, &line)?;
         self.finish_reconfirm(index, line)
     }
     /// G-6R once G-4R is durable: the App holds the result, so ‹k› is selectable
@@ -1874,9 +1876,25 @@ impl HotRegistrationAttempt {
         // otherwise nothing is appended and the attempt stays pending (WR G-1R / RC-9).
         rc9_guard(&self.session.root, rows, &line)?;
         self.progress[index] = Progress::Intended(line.clone());
-        append_line(&self.session.root, &line)?;
+        self.append_entry_line(index, &line)?;
         self.progress[index] = Progress::Failed(reason);
         Ok(())
+    }
+    /// A refusal before the shared opener writes is a known non-write, not
+    /// uncertain durability. Keep SQ-X liveness: without a ledger line, X-2
+    /// can still complete an uncited stored registration. `Failed` would
+    /// release that protection and falsely promise a terminal outcome.
+    fn append_entry_line(&mut self, index: usize, line: &Value) -> Result<(), String> {
+        match append_line(&self.session.root, line) {
+            Err(error) if error.is_refusal() => {
+                // "the workflow registry file <path> has another name; nothing was written to it" becomes
+                // "... has another name. Nothing was written to it, and the registration was not made. ..."
+                let reason = registry_refusal_reason(&error);
+                self.progress[index] = Progress::Pending(reason.clone());
+                Err(reason)
+            }
+            result => result.map_err(|e| e.to_string()),
+        }
     }
     fn finish_line(&mut self, index: usize, line: Value) -> Result<(), String> {
         if line["outcome"] == "not completed" {
@@ -1934,6 +1952,8 @@ impl HotRegistrationAttempt {
 /// G-5: publish the copy at `workflows/<name>/` from the registered bytes,
 /// moving unrecorded content aside first (LS-3); never overwrites it.
 fn publish_copy_of(root: &Path, name: &str, snapshot: &Snapshot) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("workflow_library::publish_copy_of");
     let copy = root.join(".chirality/workflows").join(name);
     storage::check_path(&copy)?;
     if copy.exists() && Snapshot::capture(&copy)?.files() == snapshot.files() {
@@ -2245,7 +2265,7 @@ fn close_uncited(root: &Path, rows: &[Value], u: &Uncited) -> Result<String, Str
     };
     super::wr_validate("library_entry", &line)?;
     rc9_guard(root, rows, &line)?;
-    append_line(root, &line)?;
+    append_line(root, &line).map_err(|e| e.to_string())?;
     // G-5 after a completed draft registration; a failure is repaired later.
     if let (Some(path), false) = (store, in_place) {
         if let Err(error) = Snapshot::capture(&path).and_then(|s| publish_copy_of(root, name, &s)) {
@@ -2320,19 +2340,24 @@ fn reconcile_attempts(root: &Path, origin: &str, source: &str) -> Vec<String> {
     }
     outcomes
 }
-fn append_line(root: &Path, line: &Value) -> Result<(), String> {
+/// The registry's sentence for the shared opener's refusal. Only the terminal
+/// suffix changes; the path, whatever its folder names, is kept verbatim.
+fn registry_refusal_reason(error: &storage::AppendOpenError) -> String {
+    let refusal = error.to_string();
+    let cause = refusal.strip_suffix("; nothing was written to it").unwrap_or(&refusal);
+    format!("{cause}. Nothing was written to it, and the registration was not made. The App is not retrying; waiting will not resolve this.")
+}
+fn append_line(root: &Path, line: &Value) -> Result<(), storage::AppendOpenError> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("workflow_library::append_line");
     let path = root.join(".chirality/workflow-registry.jsonl");
-    storage::check_path(&path)?;
     storage::ensure_directory(path.parent().unwrap())?;
     #[cfg(test)]
     if FAIL_LEDGER_APPEND.with(|fail| fail.replace(false)) {
         return Err("injected ledger append failure before any write".into());
     }
-    let mut file = OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(&path)
-        .map_err(|e| e.to_string())?;
+    let mut file = storage::open_append(&path, "workflow registry", true, false)?;
+    storage::check_path(&path)?;
     let mut bytes = serde_json::to_vec(line).map_err(|e| e.to_string())?;
     bytes.push(b'\n');
     #[cfg(test)]
@@ -2346,9 +2371,11 @@ fn append_line(root: &Path, line: &Value) -> Result<(), String> {
         return Err("injected ledger sync uncertainty after write".into());
     }
     file.sync_all().map_err(|e| e.to_string())?;
-    storage::sync_dir(path.parent().unwrap())
+    storage::sync_dir(path.parent().unwrap()).map_err(Into::into)
 }
 fn sync_package(path: &Path) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("workflow_library::sync_package");
     for entry in fs::read_dir(path).map_err(|e| e.to_string())? {
         let p = entry.map_err(|e| e.to_string())?.path();
         storage::check_path(&p)?;
@@ -2512,6 +2539,8 @@ impl BaseCustody {
     /// observes the draft folder absent. The App does not watch the folder
     /// between its own observations (D3).
     fn drop_if_removed(&self, name: &str, draft: &Path) -> Result<(), String> {
+        #[cfg(test)]
+        crate::records_effect_guard::mutation_for_test("workflow_library::BaseCustody::drop_if_removed");
         match fs::symlink_metadata(draft) {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => {}
             _ => return Ok(()),
@@ -2566,6 +2595,8 @@ pub(crate) mod drafts;
 // Only remove files/directories this attempt actually created, never an existing
 // directory when exclusive reservation fails. Unknown external contents remain.
 fn publish_reserved_store(snapshot: &Snapshot, store: &Path) -> Result<(), String> {
+    #[cfg(test)]
+    crate::records_effect_guard::mutation_for_test("workflow_library::publish_reserved_store");
     fs::create_dir(store).map_err(|e| format!("exclusive store reservation: {e}"))?;
     let mut created = Vec::new();
     let result = (|| {
