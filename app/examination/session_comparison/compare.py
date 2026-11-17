@@ -4,17 +4,19 @@ interrupts and, where the thread holds one workflow run, the workflow supplied,
 compared with Codex's own session file.
 
 It always compares turns (C2), outcomes (C3) and interrupts (C4). The workflow
-comparison (W1) is bounded by uniqueness, not by associating a run with a
-message: it can pass only when Codex's record of the thread holds exactly one
-message mentioning the workflow markers, the App's records hold exactly one
-run-start text for the thread, and the one text element of that message
-mentioning them equals that run text byte for byte, with the bytes between its
-markers equal to the candidate's own WORKFLOW.md bytes of the selected bundled
-revision, as the examiner's copy in record/selected-workflow/ gives them, tied
-to the candidate's identification. Any other count, or anything unreadable or
-untied, is blocked, never passed and never inferred. Several runs in one
-thread, and children, are not compared. Where a session has no workflow run,
-and W1 was not asked for by name, there is no W1 row.
+comparison (W1) covers an examination root with one run, not the association
+of a run with a message: it can pass only when the candidate's records store
+in the root holds exactly one run record in total, a run start of this thread;
+Codex's record of the thread holds exactly one line mentioning the workflow
+markers, a message; and the one text element of that message mentioning them
+equals that run text byte for byte, with the files line of the candidate's
+package and the candidate's own WORKFLOW.md bytes of the selected bundled
+revision between its markers, as the examiner's copy in
+record/selected-workflow/ gives them, tied to the candidate's identification.
+Anything else, or anything unreadable or untied, is blocked, never passed and
+never inferred. Several runs in a root, and children, are not compared. Where a
+session has no workflow run, and W1 was not asked for by name, there is no W1
+row.
 
 Codex's record is the session file Codex writes under its home
 (`sessions/YYYY/MM/DD/rollout-<UTC time>-<threadId>.jsonl`). It is read only
@@ -24,7 +26,7 @@ copied.
 
 The claim: a row says passed only when both sides were read, were identified as
 the same subject by an identifier and not by position (for W1, by being the
-only one of its kind on each side), and agree; every other
+root's only run and the thread's only message mentioning the markers), and agree; every other
 case is failed, inconclusive, blocked or not run; every planned comparison
 yields at least one row; and no row carries message or output text.
 
@@ -48,7 +50,7 @@ How it holds:
 
 Comparisons: C2 turns (both ways, every turn the view shows), C3 each turn's
 outcome, C4 each interrupt the App recorded, W1 the workflow supplied in a
-thread with one run. Standard library only, except that W1 runs the candidate
+root with one run. Standard library only, except that W1 runs the candidate
 identification's own record validation (identify.py, which uses jsonschema);
 nothing is sent anywhere.
 """
@@ -74,11 +76,12 @@ TOOL = 'app/examination/session_comparison/compare.py'
 # workflow run to compare, and has no row otherwise.
 PLANNED = ('C2', 'C3', 'C4')
 NAMED = PLANNED + ('W1',)
-COMPARES = {'C2': 'turns', 'C3': 'outcomes', 'C4': 'interrupts', 'W1': 'the workflow supplied, in a thread with one run'}
-WORKFLOW_SCOPE = ('W1 is compared only for a bundled workflow, where Codex holds exactly one message mentioning the workflow markers '
-                  'in this thread, the App exactly one run-start text for it, and record/selected-workflow/ holds the candidate\'s own '
-                  'bytes of that workflow, tied to its identification; any other count, or anything unreadable or untied, is blocked. '
-                  'Several runs in one thread, and children, are not compared')
+COMPARES = {'C2': 'turns', 'C3': 'outcomes', 'C4': 'interrupts', 'W1': 'the workflow supplied, in a root with one run'}
+WORKFLOW_SCOPE = ('W1 is compared only in an examination root whose records store holds exactly one run record in total (a run text '
+                  'or a supply check, of any conversation), a run start of this thread of a bundled workflow; where Codex holds exactly '
+                  'one line in this thread mentioning the workflow markers, a message; and where record/selected-workflow/ holds the '
+                  "candidate's own bytes of that workflow, tied to its identification; anything else, or anything unreadable or untied, "
+                  'is blocked. Several runs in a root, end notices, supply checks and children are not compared')
 # What every workflow marker begins with, and the word in it that a line is
 # searched for, case-folded: in the line's bytes and in every string and key
 # once the line is read as JSON. Nothing else is decoded.
@@ -522,16 +525,18 @@ class Differs(Exception):
 RUN_START_KEYS = {'record_kind', 'purpose', 'framing', 'run', 'conversation', 'workflow', 'holding_library', 'workflow_file',
                   'chain', 'origin_of_start', 'selection', 'lines', 'text_identity', 'text_bytes'}
 RUN_START_OPTIONAL = {'other_files', 'assurance'}
-END_NOTICE_KEYS = {'record_kind', 'purpose', 'framing', 'run', 'conversation', 'lines', 'text_identity', 'text_bytes'}
 ENVELOPE_KEYS = {'version', 'record_id', 'writer', 'observed_at', 'body', 'basis_records', 'source_references'}
 IDENTITY_KEYS = {'kind', 'origin', 'source_root', 'name', 'revision', 'revision_method'}
 LINE_KEYS = {'start_line', 'proposal_line', 'files_line', 'begin_marker', 'end_marker', 'chain_line'}
 ORIGINS_OF_START = ('selected by the person', 'agent proposal confirmed by the person')
 WORKFLOW_NAME = re.compile(r'^(?=[a-z0-9-]{1,64}$)[a-z0-9]+(?:-[a-z0-9]+)*$')
-END_LINE = re.compile(r'^\[Chirality\] Workflow run ended: (\S+) revision (\S+) \(run (\S+), (ended by the person|completed)\)\. '
-                      r'No workflow is in force\.$')
-FILES_LINE = re.compile(r'^\[Chirality\] Other files of this revision, in the folder "[^"\n]+": (.+)$')
+FILES_LINE = re.compile(r'^\[Chirality\] Other files of this revision, in the folder "([^"\n]+)": (.+)$')
 STAGING = '.pending-'
+# The record kinds that are records of a run: a run text (run start or end
+# notice) and a supply check. A selection record is not; it must still read.
+RUN_KINDS = ('run_text', 'supply_check')
+SELECTION_KEYS = {'record_kind', 'selection_id', 'identity', 'holding_library', 'standing', 'selected_by', 'how', 'conversation', 'selected_at'}
+IDENTIFIER = re.compile(r'^[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$')
 # The App's snapshot method for a workflow package (DEL-02-02), restated here.
 PACKAGE_METHOD = 'chirality.app.workflow-package.sha256/v1'
 SELECTED = 'selected-workflow'  # in record/: the examiner's copy of the candidate's selected workflow
@@ -589,63 +594,122 @@ def open_dir(path, what, dir_fd=None):
         raise Unreadable(f'{what} could not be opened as a folder')
 
 
-def workflow_record_files(root):
-    """(record files, obstructions) of every WR record folder in the root: a
-    folder named `workflow` with a `records` folder above it. The root is walked
-    without following a link, and only names are listed outside record folders.
-    A link, or a folder that cannot be opened or listed, on or under a `records`
-    folder is an obstruction, since what it hides may hold a record. In a record
-    folder every entry must be a plain `<id>.json` file, read there; anything
-    else (a staging file, a folder, a link) is an obstruction. Returns
-    ([(name, bytes or None, path parts)], obstructions)."""
-    found, obstructed = [], 0
-
-    def walk(fd, parts):
-        nonlocal obstructed
-        try:
-            names = sorted(os.listdir(fd))
-        except OSError:
-            obstructed += 1
-            return
-        under = 'records' in parts
-        is_store = under and parts[-1] == 'workflow'
-        for name in names:
-            here = parts + (name,)
-            watched = under or name in ('records', 'workflow')
-            try:
-                info = os.stat(name, dir_fd=fd, follow_symlinks=False)
-            except OSError:
-                obstructed += watched
-                continue
-            if stat.S_ISLNK(info.st_mode):
-                obstructed += watched
-                continue
-            if is_store:
-                if stat.S_ISREG(info.st_mode) and name.endswith('.json') and not name.startswith(STAGING):
-                    try:
-                        found.append((name, read_plain(fd, name, 'a workflow record'), here))
-                    except Unreadable:
-                        found.append((name, None, here))
-                else:
-                    obstructed += 1
-                continue
-            if stat.S_ISDIR(info.st_mode):
-                try:
-                    child = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=fd)
-                except OSError:
-                    obstructed += watched
-                    continue
-                try:
-                    walk(child, here)
-                finally:
-                    os.close(child)
-
-    top = open_dir(str(root), 'the examination root')
+def open_child(fd, name, what):
+    """A folder named in an open folder, opened without following a link.
+    None where it does not exist; Unreadable where it is a link, not a folder,
+    or cannot be opened."""
     try:
-        walk(top, ())
+        info = os.stat(name, dir_fd=fd, follow_symlinks=False)
+    except FileNotFoundError:
+        return None
+    except OSError:
+        raise Unreadable(f'{what} could not be examined')
+    if not stat.S_ISDIR(info.st_mode):
+        raise Unreadable(f'{what} is a link or not a folder')
+    try:
+        child = os.open(name, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW | os.O_CLOEXEC, dir_fd=fd)
+    except OSError:
+        raise Unreadable(f'{what} could not be opened as a folder')
+    opened = os.fstat(child)
+    if (opened.st_dev, opened.st_ino) != (info.st_dev, info.st_ino):
+        os.close(child)
+        raise Unreadable(f'{what} changed while it was opened')
+    return child
+
+
+def exists_unfollowed(fd, name, what):
+    try:
+        os.stat(name, dir_fd=fd, follow_symlinks=False)
+        return True
+    except FileNotFoundError:
+        return False
+    except OSError:
+        raise Unreadable(f'{what} could not be examined')
+
+
+def launch_identifier(root):
+    """The candidate's bundle identifier, as every launch record of the root
+    (and kept.json) names it: the launcher's fact from which the App's data
+    folder in the root follows. Unreadable unless they all name one."""
+    record = root / 'record'
+    names = sorted(p.name for p in record.glob('launch-record*.json')) + (['kept.json'] if (record / 'kept.json').exists() else [])
+    fd = open_dir(str(record), 'record/')
+    try:
+        found = set()
+        for name in names:
+            try:
+                value = strict_json(read_plain(fd, name, 'a launch record'))
+            except Unreadable:
+                raise
+            except Exception:
+                raise Unreadable('a launch record is not JSON, or names a key twice')
+            found.add(value.get('identifier') if isinstance(value, dict) else None)
     finally:
-        os.close(top)
-    return found, obstructed
+        os.close(fd)
+    if len(found) != 1 or not isinstance(next(iter(found)), str) or not IDENTIFIER.match(next(iter(found))):
+        raise Unreadable('the launch records of the root do not name one bundle identifier')
+    return next(iter(found))
+
+
+def store_records(root, identifier):
+    """Every WR record file of the candidate's records store in the root, and
+    nothing else. The store is where the App places it for this route: the
+    launcher gives the App the root's home/ as its home and no store override,
+    and a build with the custom protocol is not a development build, so the
+    store is <home>/Library/Application Support/<identifier>/records unless the
+    person chose another (records-store.json in the App's data), which blocks.
+    Records kept in place in the launcher's project (.chirality/records) are
+    outside this case and block. Each folder on the way is opened without
+    following a link; a link, a non-folder or a folder that cannot be opened
+    blocks before any record is opened. A folder that does not exist means no
+    record there. Returns [(project key, name, bytes or None)]."""
+    found, opened = [], []
+
+    def child(fd, name, what):
+        c = open_child(fd, name, what)
+        if c is not None:
+            opened.append(c)
+        return c
+
+    try:
+        top = open_dir(str(root), 'the examination root')
+        opened.append(top)
+        project = child(top, 'project', "the launcher's project folder")
+        chirality = child(project, '.chirality', "the project's .chirality folder") if project is not None else None
+        if chirality is not None and exists_unfollowed(chirality, 'records', "the project's .chirality/records"):
+            raise Unreadable('records kept in place in the project are outside this comparison')
+        at = top
+        for name in ('home', 'Library', 'Application Support', identifier):
+            at = child(at, name, "a folder on the way to the App's data")
+            if at is None:
+                return found
+        if exists_unfollowed(at, 'records-store.json', "the App's records store choice"):
+            raise Unreadable("the App's records store is not in its data folder, so where it is is not established here")
+        store = child(at, 'records', "the App's records store")
+        projects = child(store, 'projects', "the store's projects folder") if store is not None else None
+        if projects is None:
+            return found
+        for key in sorted(os.listdir(projects)):
+            folder = child(projects, key, 'a project folder of the store')
+            if folder is None:
+                continue
+            workflow = child(folder, 'workflow', "a project's workflow record folder")
+            if workflow is None:
+                continue
+            for name in sorted(os.listdir(workflow)):
+                info = os.stat(name, dir_fd=workflow, follow_symlinks=False)
+                if not (stat.S_ISREG(info.st_mode) and name.endswith('.json') and not name.startswith(STAGING)):
+                    raise Unreadable('a workflow record folder holds something other than published records')
+                try:
+                    found.append((key, name, read_plain(workflow, name, 'a workflow record')))
+                except Unreadable:
+                    found.append((key, name, None))
+        return found
+    except OSError:
+        raise Unreadable("a folder of the App's records store could not be listed")
+    finally:
+        for fd in reversed(opened):
+            os.close(fd)
 
 
 def envelope_body(data, stem):
@@ -664,28 +728,20 @@ def envelope_body(data, stem):
             and isinstance(value['body'], dict)):
         raise Unreadable('a workflow record is not an envelope the App publishes')
     body = value['body']
-    kind = body.get('record_kind')
-    if kind not in ('selection_record', 'run_text', 'supply_check') or not text(body.get('conversation')):
+    if body.get('record_kind') not in ('selection_record', 'run_text', 'supply_check') or not text(body.get('conversation')):
         raise Unreadable('a workflow record names no kind or conversation this comparison reads')
+    if body['record_kind'] == 'selection_record' and not SELECTION_KEYS <= set(body):
+        raise Unreadable('a selection record lacks a field the App writes')
     return match.group(1), body
 
 
-def end_notice_ok(body):
-    lines = body.get('lines')
-    if not (set(body) == END_NOTICE_KEYS and body['framing'] == 'WR-FRAME-1' and text(body['run'])
-            and isinstance(lines, dict) and set(lines) == {'end_line'} and text(lines['end_line'])
-            and exact_identity(body['text_identity']) and count(body['text_bytes'], 1)):
-        return False
-    m = END_LINE.match(lines['end_line'])
-    data = lines['end_line'].encode('utf-8')
-    return bool(m) and m.group(3) == body['run'] and sha256(data) == body['text_identity']['value'] and len(data) == body['text_bytes']
-
-
 def run_start_ok(body):
-    """A run-start body has every field the App's composer writes, of its type."""
+    """The sole run start has every field the App's composer writes, of its
+    type (see README: the fields validated)."""
     workflow, wf, lines = body.get('workflow'), body.get('workflow_file'), body.get('lines')
     keys = set(body)
     return (RUN_START_KEYS <= keys <= RUN_START_KEYS | RUN_START_OPTIONAL and body['framing'] == 'WR-FRAME-1'
+            and body['purpose'] == 'run start' and text(body['conversation'])
             and text(body['run']) and text(body['holding_library']) and text(body['selection'])
             and body['origin_of_start'] in ORIGINS_OF_START and (body['chain'] is None or isinstance(body['chain'], dict))
             and isinstance(workflow, dict) and set(workflow) == IDENTITY_KEYS and workflow['kind'] == 'workflow'
@@ -703,14 +759,14 @@ def run_start_ok(body):
             and ('assurance' not in body or isinstance(body['assurance'], dict)))
 
 
-def run_text_records(root, thread):
-    """The App's run text records naming `thread`, each read strictly from
-    every WR record folder of the root. Returns (run starts, end notices,
-    unreadable): a record that is not one, and every obstruction to reading
-    them all, counts as unreadable, since it may name the thread."""
-    starts, notices = [], []
-    files, unreadable = workflow_record_files(root)
-    for name, data, parts in files:
+def run_records(root, identifier):
+    """The run records of the candidate's records store, all of them, whatever
+    conversation they name: every run text (run start or end notice) and every
+    supply check. Returns (run records, unreadable). A record that cannot be
+    read as an envelope with a known kind may be a run record and counts as
+    unreadable; a selection record is not a run record."""
+    runs, unreadable = [], 0
+    for key, name, data in store_records(root, identifier):
         try:
             if data is None:
                 raise Unreadable('a workflow record could not be read')
@@ -718,36 +774,33 @@ def run_text_records(root, thread):
         except Unreadable:
             unreadable += 1
             continue
-        if body['record_kind'] != 'run_text':
-            continue
-        purpose = body.get('purpose')
-        try:
-            start, notice = purpose == 'run start' and run_start_ok(body), purpose == 'run end notice' and end_notice_ok(body)
-        except Exception:
-            start = notice = False
-        if start:
-            if body['conversation'] == thread:
-                starts.append((record, body, parts))
-        elif notice:
-            if body['conversation'] == thread:
-                notices.append((record, body))
-        else:
-            unreadable += 1
-    return starts, notices, unreadable
+        if body['record_kind'] in RUN_KINDS:
+            runs.append((record, body))
+    return runs, unreadable
 
 
 def marker_line(name, revision, which):
     return f'<<<chirality-workflow {name}@{revision[:12]} {which}>>>'
 
 
-def composed_frame(body):
-    """(prefix, suffix) of a run-start text as the App's composer makes it
-    (WR-FRAME-1): every line of the record must be the one the composer makes
-    from the record's own workflow identity and run. Unreadable otherwise."""
+def valid_folder_label(label):
+    """The App's rule for the folder a files line names (WR TX-7): relative to
+    the project or to the home folder (`~/`), one line, with no `"`, backslash
+    or control character, and no empty, `.` or `..` component."""
+    rest = label[2:] if label.startswith('~/') else label
+    return (rest != '' and not rest.startswith('~') and not rest.startswith('/')
+            and not any(ord(c) < 32 or ord(c) == 127 or c in '"\\' for c in label)
+            and all(part not in ('', '.', '..') for part in rest.split('/')))
+
+
+def own_frame(body):
+    """The record's own start, proposal and marker lines must be the ones the
+    composer makes from its own workflow identity and run; Unreadable
+    otherwise. Returns its frame: (lines before the begin marker, begin, end)."""
     workflow, lines, run = body['workflow'], body['lines'], body['run']
     name, origin, revision = workflow['name'], workflow['origin'], workflow['revision']
     if body['chain'] is not None or 'chain_line' in lines:
-        raise Unreadable("the App's run text follows an earlier run in this thread, which this comparison does not compare")
+        raise Unreadable("the App's run text follows an earlier run, which this comparison does not compare")
     start = (f'[Chirality] Workflow run start: {name} from the {origin} library "{workflow["source_root"].replace(chr(34), chr(39))}", '
              f'revision {revision[:12]}, run {run}. Follow the workflow between the two markers below for this run, until the person ends the run.')
     proposal = (f'[Chirality] When you judge this workflow finished, end the message with a line of its own "Workflow finished: {origin}:{name}". '
@@ -755,18 +808,26 @@ def composed_frame(body):
                 'where <origin> is project, user, bundled or host; when you write both, the finished line comes just before it. '
                 'The person decides; nothing ends or starts until they confirm.')
     begin, end = marker_line(name, revision, 'begin'), marker_line(name, revision, 'end')
-    frame = [start, proposal]
-    if 'other_files' in body:
-        m = FILES_LINE.match(lines.get('files_line', ''))
-        listed = '; '.join(f"{f['path']} (sha256 {f['sha256'][:12]})" for f in body['other_files'])
-        if not m or m.group(1) != listed:
-            raise Unreadable("the App's run text record's files line is not the one its other files make")
-        frame.append(lines['files_line'])
-    elif 'files_line' in lines:
-        raise Unreadable("the App's run text record has a files line and no other files")
     if (lines['start_line'], lines['proposal_line'], lines['begin_marker'], lines['end_marker']) != (start, proposal, begin, end):
         raise Unreadable("the App's run text record's lines are not the ones its workflow and run make")
-    return '\n'.join(frame + [begin]) + '\n', '\n' + end
+    if 'files_line' in lines:
+        m = FILES_LINE.match(lines['files_line'])
+        if not m or not valid_folder_label(m.group(1)):
+            raise Unreadable("the App's run text record's files line is not one the composer writes")
+    return [start, proposal] + ([lines['files_line']] if 'files_line' in lines else []), begin, end
+
+
+def files_agree(body, files):
+    """The record's other files and files line are the ones the candidate's
+    package makes: every file but WORKFLOW.md, in path byte order, by path and
+    digest, and none where there is none."""
+    others = [{'path': p, 'sha256': sha256(files[p])} for p in sorted(files, key=lambda p: p.encode('utf-8')) if p != 'WORKFLOW.md']
+    if body.get('other_files', []) != others:
+        return False
+    if not others:
+        return 'files_line' not in body['lines']
+    m = FILES_LINE.match(body['lines'].get('files_line', ''))
+    return bool(m) and m.group(2) == '; '.join(f"{f['path']} (sha256 {f['sha256'][:12]})" for f in others)
 
 
 def codex_candidate(model):
@@ -906,6 +967,8 @@ def selected_workflow(root):
             raise
         except Exception:
             raise Unreadable("the reference's copy of the candidate's identification and inventory does not validate")
+        if 'custom-protocol' not in identification['build']['features']:
+            raise Unreadable('the identified candidate is a development build, whose records are not kept in its App data')
         launch_bindings(root, identification)
         entries = {e['path']: e for e in inventory['entries']}
         prefix = reference['bundle_path'] + '/'
@@ -959,60 +1022,71 @@ def selected_workflow(root):
 
 
 def workflow_rows(root, model, requested=False):
-    """W1, where the session has a workflow run to compare (a line of Codex's
-    record mentions the workflow markers, a run text record names the thread,
-    or a workflow record could not be read), or where W1 was asked for by name;
-    no row otherwise. Bounded by uniqueness, and tied to the candidate's own
-    bytes of the selected workflow:
-      blocked unless Codex holds exactly one message mentioning the markers and
-      the App exactly one run-start text for the thread, both read, and the
-      examiner's reference copy of the selected bundled workflow ties to the
-      candidate's identification and launch records;
-      then failed where the text, the bytes between the markers, or the
-      workflow's identity differ, and passed only where none does."""
+    """W1 for a single-run root. Made where the session has a workflow run to
+    compare (a line of Codex's record mentions the workflow markers, a run
+    record of the store names this thread, or the store cannot be read whole),
+    or where W1 was asked for by name; no row otherwise.
+      Blocked unless: the candidate's records store in the root holds exactly
+      one run record in total, whatever conversation any names, and it is a
+      readable run start of this thread; Codex holds exactly one line in this
+      thread mentioning the markers, a message; the run is of a bundled
+      workflow; and the examiner's copy of that workflow ties to the candidate.
+      Then failed where the markers, the text, the workflow's identity, the
+      files line or the bytes between the markers differ from the candidate's
+      own; passed only where none does."""
     thread = model['thread']
-    try:
-        starts, notices, unreadable = run_text_records(root, thread)
-    except Unreadable:
-        starts, notices, unreadable = [], [], 1
     lines = model.get('workflow_lines', [])
-    if not (lines or starts or notices or unreadable or requested):
-        return []
     subject = {'thread': thread}
-    app = {'runStartTexts': number(len(starts)), 'endNotices': number(len(notices)), 'unreadableWorkflowRecords': number(unreadable)}
     codex, element, refusal = codex_candidate(model)
-    selected = {}
+    app, selected = {}, {}
     result = lambda outcome, reason: [row('W1', subject, codex, app, outcome, reason, selected=selected)]
     try:
+        identifier = launch_identifier(root)
+        runs, unreadable = run_records(root, identifier)
+    except Unreadable as e:
+        return result('blocked', str(e))
+    app.update({'runRecords': number(len(runs)), 'unreadableWorkflowRecords': number(unreadable)})
+    if not (lines or unreadable or requested or any(b.get('conversation') == thread for _, b in runs)):
+        return []
+    try:
         if unreadable:
-            raise Unreadable('a workflow record could not be read, or its folder could not be read whole, and any of them may name this thread')
-        if len(starts) != 1:
-            raise Unreadable("the App's records do not hold exactly one run-start text for this thread")
-        record, body, parts = starts[0]
+            raise Unreadable("a record of the App's records store could not be read, and it may be a record of a run")
+        if len(runs) != 1:
+            raise Unreadable('the examination root holds more than the one run this comparison covers, or none')
+        record, body = runs[0]
+        app['record'] = ident(record)
+        try:
+            readable = body['record_kind'] == 'run_text' and body.get('purpose') == 'run start' and run_start_ok(body)
+        except Exception:
+            readable = False
+        if not readable:
+            raise Unreadable("the root's one run record is not a run start this comparison reads")
+        if body['conversation'] != thread:
+            raise Unreadable("the root's one run is of another conversation")
         subject['run'] = ident(body['run'])
-        app.update({'record': ident(record), 'origin': one_of(body['workflow']['origin'], WORKFLOW_ORIGINS),
+        app.update({'origin': one_of(body['workflow']['origin'], WORKFLOW_ORIGINS),
                     'workflow': ident(body['workflow']['name']), 'revision': digest(body['workflow']['revision']),
                     'text_sha256': body['text_identity']['value'], 'text_bytes': body['text_bytes'],
                     'workflow_sha256': body['workflow_file']['content']['value'], 'workflow_bytes': body['workflow_file']['bytes']})
-        if any(n['run'] != body['run'] for _, n in notices):
-            raise Unreadable('an end notice in this thread is of another run than its one run start')
-        prefix, suffix = composed_frame(body)
+        frame, begin, end = own_frame(body)
         if refusal:
             raise Unreadable(refusal)
         if body['workflow']['origin'] != 'bundled':
             raise Unreadable('only a bundled workflow is compared: its own bytes are tied to the candidate')
-        identity, files, manifest_sha, key, identifier = selected_workflow(root)
+        identity, files, manifest_sha, key, bundle_identifier = selected_workflow(root)
         selected.update({'candidate': ident(key), 'workflow': ident(identity['name']), 'revision': digest(identity['revision']),
                          'manifest_sha256': manifest_sha, 'workflow_sha256': sha256(files['WORKFLOW.md']),
                          'workflow_bytes': len(files['WORKFLOW.md'])})
-        if parts[:4] != ('home', 'Library', 'Application Support', identifier):
-            raise Unreadable("the App's run text is not in the identified candidate's own App data")
+        if bundle_identifier != identifier:
+            raise Unreadable("the selected workflow's identification names another candidate than the launch records")
         if body['workflow']['name'] != identity['name']:
             raise Unreadable("the App's run is of another workflow than the reference names")
         data = element.encode('utf-8')
         codex.update({'text_sha256': sha256(data), 'text_bytes': len(data)})
-        if element.split('\n').count(prefix.split('\n')[-2]) != 1 or element.split('\n').count(suffix[1:]) != 1:
+        split = element.split('\n')
+        if split.count(begin) != 1 or split.count(end) != 1:
             raise Differs("the markers Codex holds name another workflow or revision than the App's run text")
+        prefix, suffix = '\n'.join(frame + [begin]) + '\n', '\n' + end
         if element.startswith(prefix) and element.endswith(suffix) and len(element) >= len(prefix) + len(suffix):
             inner = element[len(prefix):len(element) - len(suffix)].encode('utf-8')
             codex.update({'workflow_sha256': sha256(inner), 'workflow_bytes': len(inner)})
@@ -1023,6 +1097,8 @@ def workflow_rows(root, model, requested=False):
             raise Differs('the text Codex holds is not the run text the App composed, byte for byte')
         if body['workflow'] != identity:
             raise Differs("the App's run names another source or revision of this workflow than the candidate's bundled manifest")
+        if not files_agree(body, files):
+            raise Differs("the run's other files and files line are not the ones the candidate's package makes")
         if inner != files['WORKFLOW.md']:
             raise Differs("the bytes between the markers are not the candidate's own WORKFLOW.md bytes")
         if (app['workflow_sha256'], app['workflow_bytes']) != (sha256(inner), len(inner)):
@@ -1031,8 +1107,8 @@ def workflow_rows(root, model, requested=False):
         return result('blocked', str(e))
     except Differs as e:
         return result('failed', str(e))
-    return result('passed', "the one message carrying the markers holds the one run text byte for byte, "
-                            "and the candidate's own WORKFLOW.md bytes of the selected revision between them")
+    return result('passed', "the root's one run text reached Codex byte for byte as the one message carrying the markers, "
+                            "with the candidate's own WORKFLOW.md bytes of the selected revision between them")
 
 
 # --- The candidate's screen list ------------------------------------------------
@@ -1178,6 +1254,17 @@ def run_compare(root, thread, views, requested=False):
     return rows + records_rows(root, model) + workflow_rows(root, model, requested), None
 
 
+def screen_plan(root, screen):
+    """Whether the screen list was made with W1 asked for by name. The list's
+    plan can only add W1's row: W1 is always derived from the records, never
+    from the list or the answers."""
+    try:
+        head = json.loads(inside(root, screen).read_text().splitlines()[0])
+        return isinstance(head, dict) and isinstance(head.get('planned'), list) and 'W1' in head['planned']
+    except Exception:
+        return False
+
+
 def run_answers(root, screen, requested=False):
     try:
         lines = [json.loads(l) for l in inside(root, screen).read_text().splitlines() if l.strip()]
@@ -1231,13 +1318,17 @@ def main(argv=None):
             rows, pending = run_compare(root, args.thread, args.view, requested)
             if pending is not None:
                 model, session_sha = pending
-                print(write(root, 'screen-list', header(root, thread=args.thread, session_sha256=session_sha, saved_views_not_named=unnamed),
+                print(write(root, 'screen-list', header(root, thread=args.thread, session_sha256=session_sha, saved_views_not_named=unnamed,
+                                                        planned=list(planned)),
                             [{**i, 'answer': None, 'note': None} for i in screen_items(model)], with_summary=False))
                 return 0
             print(write(root, 'session-comparison', header(root, saved_views_not_named=unnamed), rows, planned=planned))
             return 0
         if unnamed:
             raise Refused("a saved view exists in record/, so the operator's answers are not taken; compare it with --view")
+        # W1 asked for when the list was made stays asked for in its answers.
+        if screen_plan(root, args.screen):
+            requested, planned = True, PLANNED + ('W1',)
         rows = run_answers(root, args.screen, requested)
         print(write(root, 'session-comparison', header(root, answers_of=ident(Path(args.screen).name), saved_views_not_named=unnamed), rows,
                     planned=planned))

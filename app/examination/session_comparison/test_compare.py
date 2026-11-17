@@ -54,11 +54,23 @@ def frame_lines(run=RUN, revision=REVISION, name=NAME, origin='bundled', source_
             'end_marker': f'<<<chirality-workflow {name}@{revision[:12]} end>>>'}
 
 
-def run_text(body=WORKFLOW, run=RUN, revision=REVISION, name=NAME):
-    """The run text as the App composes it (WR-FRAME-1): the frame lines, the
-    WORKFLOW.md bytes exactly, and the end marker."""
+FOLDER_LABEL = '.chirality/workflow-supply/invented'
+
+
+def files_line(package):
+    others = [(p, hashlib.sha256(b).hexdigest()) for p, b in sorted(package.items(), key=lambda i: i[0].encode()) if p != 'WORKFLOW.md']
+    if not others:
+        return None
+    return f'[Chirality] Other files of this revision, in the folder "{FOLDER_LABEL}": ' + '; '.join(f'{p} (sha256 {d[:12]})' for p, d in others)
+
+
+def run_text(body=WORKFLOW, run=RUN, revision=REVISION, name=NAME, files=None):
+    """The run text as the App composes it (WR-FRAME-1): the frame lines (with
+    the files line where `files` gives one), the WORKFLOW.md bytes exactly, and
+    the end marker."""
     lines = frame_lines(run, revision, name)
-    return f"{lines['start_line']}\n{lines['proposal_line']}\n{lines['begin_marker']}\n{body}\n{lines['end_marker']}"
+    frame = [lines['start_line'], lines['proposal_line']] + ([files] if files else []) + [lines['begin_marker']]
+    return '\n'.join(frame) + f"\n{body}\n{lines['end_marker']}"
 
 
 def envelope(i, body):
@@ -131,11 +143,11 @@ class Root:
     """An invented examination root with the App's account, Codex's record, the
     launcher's record and the examiner's copy of the selected workflow."""
 
-    def __init__(self, base):
+    def __init__(self, base, package=PACKAGE):
         self.root = Path(base) / 'launch-20261114T000000Z-0000'
         (self.root / 'record').mkdir(parents=True)
         (self.root / 'project').mkdir()
-        self.candidate = candidate()
+        self.candidate = candidate(package=package)
         self.identifier = self.candidate['record']['bundle']['identifier']
         self.data = self.root / 'home' / 'Library' / 'Application Support' / self.identifier
         (self.data / 'runtime').mkdir(parents=True)
@@ -214,6 +226,12 @@ class Root:
         for i, record in enumerate(self.records):
             key, value = envelope(i, record)
             (workflow / f'{key}.json').write_text(json.dumps(value))
+        if any(r.get('purpose') == 'run start' for r in self.records):
+            # The person's selection, which the App records beside the run; not a record of a run.
+            key, value = envelope(99, {'record_kind': 'selection_record', 'selection_id': 'selection:1', 'identity': self.records[0].get('workflow'),
+                                       'holding_library': 'invented', 'standing': 'bundled', 'selected_by': 'the person (App interface)',
+                                       'how': 'explicit', 'conversation': THREAD, 'selected_at': '2026-11-14T00:00:00Z'})
+            (workflow / f'{key}.json').write_text(json.dumps(value))
         if self.selected:
             self.write_selected()
 
@@ -256,6 +274,13 @@ class Root:
             return None
         lines = [json.loads(l) for l in out[-1].read_text().splitlines()]
         return lines
+
+
+def start_file(r):
+    """The run-start record file of an invented store."""
+    (path,) = [p for p in (r.data / 'records' / 'projects' / 'k' / 'workflow').glob('*.json')
+               if json.loads(p.read_text())['body'].get('purpose') == 'run start']
+    return path
 
 
 def rows(lines, comparison=None):
@@ -828,7 +853,7 @@ class TheWorkflowComparisonByUniqueness(unittest.TestCase):
 
     def stated(self, line):
         self.assertEqual(line['compares'], {'C2': 'turns', 'C3': 'outcomes', 'C4': 'interrupts',
-                                            'W1': 'the workflow supplied, in a thread with one run'})
+                                            'W1': 'the workflow supplied, in a root with one run'})
         self.assertEqual(line['workflow_scope'], compare.WORKFLOW_SCOPE)
         self.assertNotIn('workflow_comparison', line, 'the old "not available" sentence is not carried')
 
@@ -852,8 +877,8 @@ class TheWorkflowComparisonByUniqueness(unittest.TestCase):
         w1, lines = self.w1()
         self.assertEqual(w1['outcome'], 'passed', w1)
         self.assertEqual(w1['subject'], {'thread': THREAD, 'run': RUN})
-        self.assertEqual({k: w1['app'][k] for k in ('origin', 'workflow', 'revision', 'runStartTexts')},
-                         {'origin': 'bundled', 'workflow': NAME, 'revision': REVISION, 'runStartTexts': 1})
+        self.assertEqual({k: w1['app'][k] for k in ('origin', 'workflow', 'revision', 'runRecords', 'unreadableWorkflowRecords')},
+                         {'origin': 'bundled', 'workflow': NAME, 'revision': REVISION, 'runRecords': 1, 'unreadableWorkflowRecords': 0})
         self.assertEqual(w1['selected'], {'candidate': self.r.candidate['record']['candidate_key'], 'workflow': NAME, 'revision': REVISION,
                                           'manifest_sha256': hashlib.sha256(self.r.candidate['manifest']).hexdigest(),
                                           'workflow_sha256': hashlib.sha256(WORKFLOW.encode()).hexdigest(), 'workflow_bytes': len(WORKFLOW.encode())})
@@ -925,20 +950,20 @@ class TheWorkflowComparisonByUniqueness(unittest.TestCase):
     def test_no_run_text_for_the_thread_is_blocked(self):
         self.run_start()
         w1, _ = self.w1()
-        self.assertEqual((w1['outcome'], w1['app']['runStartTexts']), ('blocked', 0))
+        self.assertEqual((w1['outcome'], w1['app']['runRecords']), ('blocked', 0))
 
     def test_two_run_texts_for_the_thread_are_blocked(self):
         self.run_start()
         self.r.run_text_record()
         self.r.run_text_record(run='run-2')
         w1, _ = self.w1()
-        self.assertEqual((w1['outcome'], w1['app']['runStartTexts']), ('blocked', 2))
+        self.assertEqual((w1['outcome'], w1['app']['runRecords']), ('blocked', 2))
 
     def test_a_run_text_of_another_thread_does_not_count(self):
         self.run_start()
         self.r.run_text_record(conversation='019a0000-0000-7000-8000-00000000000b')
         w1, _ = self.w1()
-        self.assertEqual((w1['outcome'], w1['app']['runStartTexts']), ('blocked', 0))
+        self.assertEqual((w1['outcome'], w1['reason'], w1['app']['runRecords']), ('blocked', "the root's one run is of another conversation", 1))
 
     def test_a_run_text_alone_gives_one_blocked_row(self):
         self.r.turn('turn-1', 'completed')
@@ -951,17 +976,29 @@ class TheWorkflowComparisonByUniqueness(unittest.TestCase):
         record['chain'] = {'prior_run': 'run-0', 'prior_workflow': record['workflow'], 'ended': 'completed'}
         self.assertEqual(self.w1()[0]['outcome'], 'blocked')
 
-    def test_an_end_notice_of_the_same_run_leaves_it_unique_and_of_another_run_blocks(self):
-        self.run_start()
-        self.r.run_text_record()
-        self.r.end_notice()
-        w1, _ = self.w1()
-        self.assertEqual((w1['outcome'], w1['app']['endNotices']), ('passed', 1))
-        r = Root(tempfile.mkdtemp(dir=self.tmp.name))
-        r.turn('turn-1', 'completed', text=run_text(), brief=BRIEF)
-        r.run_text_record()
-        r.end_notice(run='run-0')
-        self.assertEqual(self.w1(r)[0]['outcome'], 'blocked')
+    def test_any_other_run_record_in_the_root_blocks_even_an_end_notice_of_the_same_run(self):
+        """The root may hold one run record in total: an end notice of the same
+        run, a supply check, or a run of another conversation each block."""
+        def supply_check(r):
+            r.records.append({'record_kind': 'supply_check', 'check': 'workflow-check:1', 'run': RUN, 'conversation': THREAD,
+                              'purpose': 'run start', 'expected_text': r.records[0]['text_identity'], 'state': 'found', 'read_at': 't',
+                              'evidence_limits': []})
+        cases = {'end notice of the same run': lambda r: r.end_notice(),
+                 'supply check of the same run': supply_check,
+                 'run start of another conversation': lambda r: r.run_text_record(run='run-2', conversation='019a0000-0000-7000-8000-00000000000b'),
+                 'another conversation, its frame not its own': lambda r: r.run_text_record(run='second-run', conversation='other-conversation',
+                                                                                          lines=frame_lines(run=RUN)),
+                 'another conversation, a chain without its fields': lambda r: r.run_text_record(run='run-2', conversation='other-conversation',
+                                                                                               chain={})}
+        for name, add in cases.items():
+            with self.subTest(name):
+                r = Root(tempfile.mkdtemp(dir=self.tmp.name))
+                r.turn('turn-1', 'completed', text=run_text(), brief=BRIEF)
+                r.run_text_record()
+                add(r)
+                w1, _ = self.w1(r)
+                self.assertEqual((w1['outcome'], w1['reason'], w1['app']['runRecords']),
+                                 ('blocked', 'the examination root holds more than the one run this comparison covers, or none', 2))
 
     # Anything unreadable: blocked.
     def test_an_unreadable_workflow_record_blocks(self):
@@ -974,7 +1011,7 @@ class TheWorkflowComparisonByUniqueness(unittest.TestCase):
                 r.write()
                 (r.data / 'records' / 'projects' / 'k' / 'workflow' / '00000000-0000-4000-8000-000000000007.json').write_text(bad)
                 w1, _ = self.w1(r)
-                self.assertEqual((w1['outcome'], w1['app']['unreadableWorkflowRecords']), ('blocked', 1))
+                self.assertEqual(w1['outcome'], 'blocked')
 
     def test_a_record_not_identified_by_exact_bytes_blocks(self):
         self.run_start()
@@ -993,7 +1030,7 @@ class TheWorkflowComparisonByUniqueness(unittest.TestCase):
         record = self.r.run_text_record()
         record['workflow']['origin'] = 'elsewhere'
         w1, _ = self.w1()
-        self.assertEqual((w1['outcome'], w1['app']['unreadableWorkflowRecords']), ('blocked', 1))
+        self.assertEqual((w1['outcome'], w1['reason']), ('blocked', "the root's one run record is not a run start this comparison reads"))
 
     # Delimiters and encodings: fail closed.
     def test_a_body_holding_its_own_end_marker_is_blocked_even_when_bytes_agree(self):
@@ -1228,7 +1265,7 @@ class SecondW1Reading(unittest.TestCase):
     # C: strict reading.
     def test_a_key_named_twice_blocks(self):
         def app(r):
-            (path,) = (r.data / 'records' / 'projects' / 'k' / 'workflow').glob('*.json')
+            path = start_file(r)
             path.write_text(path.read_text().replace('"run": "run-1"', '"run": "competing", "run": "run-1"', 1))
         self.assertEqual(self.outcome(before=app)[0], 'blocked')
         def supplier(r):
@@ -1244,7 +1281,7 @@ class SecondW1Reading(unittest.TestCase):
     def test_an_envelope_or_body_not_as_published_blocks(self):
         def envelope_change(change):
             def apply(r):
-                (path,) = (r.data / 'records' / 'projects' / 'k' / 'workflow').glob('*.json')
+                path = start_file(r)
                 value = json.loads(path.read_text())
                 change(value)
                 path.write_text(json.dumps(value))
@@ -1305,8 +1342,7 @@ class SecondW1Reading(unittest.TestCase):
             os.symlink(r.data / 'records', r.root / 'project' / '.chirality' / 'records')
         for name, change in (('workflow folder', linked_folder), ('records folder', linked_records)):
             with self.subTest(name):
-                self.assertEqual(self.outcome(self.fresh(), change), ('blocked', 'a workflow record could not be read, or its folder could '
-                                                                                 'not be read whole, and any of them may name this thread'))
+                self.assertEqual(self.outcome(self.fresh(), change)[0], 'blocked')
 
     def test_an_alias_in_a_record_folder_is_refused_before_it_is_opened(self):
         opened = []
@@ -1351,7 +1387,7 @@ class SecondW1Reading(unittest.TestCase):
         (out,) = (r.root / 'record').glob('session-comparison-2*.jsonl')
         lines = [json.loads(l) for l in out.read_text().splitlines()]
         (w1,) = rows(lines, 'W1')
-        self.assertEqual((w1['outcome'], w1['codex']['messagesWithWorkflowMarkers'], w1['app']['runStartTexts']), ('blocked', 0, 0))
+        self.assertEqual((w1['outcome'], w1['codex']['messagesWithWorkflowMarkers'], w1['app']['runRecords']), ('blocked', 0, 0))
         self.assertEqual(lines[-1]['summary']['W1'], {'blocked': 1})
 
     # The representation rule.
@@ -1367,6 +1403,171 @@ class SecondW1Reading(unittest.TestCase):
         r.turn('turn-1', 'completed', text=run_text(body), brief=BRIEF)
         r.run_text_record(body=body)
         self.assertEqual(self.outcome(r), ('blocked', ONE_PAIR))
+
+
+MULTI = {'WORKFLOW.md': WORKFLOW.encode(), 'helpers/notes.md': b'invented helper\n', 'a.txt': b'invented a\n'}
+
+
+class ThirdW1Reading(unittest.TestCase):
+    """The second reading's findings, under Agent 0's narrowing: one run record
+    in the whole root, the files frame from the candidate's own package, the
+    records store only where the App places it, and W1's plan kept across the
+    screen list."""
+
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+
+    def tearDown(self):
+        self.tmp.cleanup()
+
+    def root(self, package=PACKAGE, record_files=True, text_files=True, label=FOLDER_LABEL, others=None):
+        r = Root(tempfile.mkdtemp(dir=self.tmp.name), package=package)
+        revision = package_revision(package)
+        line = files_line(package)
+        if line and label != FOLDER_LABEL:
+            line = line.replace(f'"{FOLDER_LABEL}"', f'"{label}"')
+        lines = frame_lines(revision=revision)
+        text = run_text(package['WORKFLOW.md'].decode(), revision=revision, files=line if text_files else None)
+        r.turn('turn-1', 'completed', text=text, brief=BRIEF)
+        changes = {'workflow': {'kind': 'workflow', 'origin': 'bundled', 'source_root': RELEASE_SUBJECT, 'name': NAME, 'revision': revision,
+                                'revision_method': PACKAGE_METHOD}}
+        listed = [{'path': p_, 'sha256': hashlib.sha256(b).hexdigest()} for p_, b in sorted(package.items(), key=lambda i: i[0].encode())
+                  if p_ != 'WORKFLOW.md'] if others is None else others
+        if record_files and line:
+            lines['files_line'] = line
+        if record_files and listed:
+            changes['other_files'] = listed
+        r.run_text_record(body=package['WORKFLOW.md'].decode(), text=text, lines=lines, **changes)
+        return r
+
+    def outcome(self, r, before=None, *extra):
+        r.write()
+        if before:
+            before(r)
+        argv = ['compare', '--root', str(r.root), '--thread', THREAD, '--view', r.view({'turn-1': 'completed'}), *extra]
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            compare.main(argv)
+        out = max((r.root / 'record').glob('session-comparison-2*.jsonl'))
+        lines = [json.loads(l) for l in out.read_text().splitlines()]
+        for secret in ('Say hello', BRIEF, 'invented helper', 'INVENTED SENTINEL'):
+            self.assertNotIn(secret, out.read_text())
+        found = rows(lines, 'W1')
+        return (found[0]['outcome'], found[0]['reason']) if found else ('no row', None)
+
+    # 1. One run record in the whole root.
+    def test_another_record_that_may_be_of_a_run_blocks(self):
+        for body in ({'record_kind': 'unknown', 'conversation': THREAD}, {'record_kind': 'supply_check'},
+                     {'record_kind': 'selection_record', 'conversation': THREAD}):
+            with self.subTest(body=body):
+                r = self.root()
+                r.records.append(body)
+                self.assertEqual(self.outcome(r)[0], 'blocked')
+
+    # 2. The files frame from the candidate's package.
+    def test_a_package_with_other_files_passes_with_its_files_line(self):
+        self.assertEqual(self.outcome(self.root(MULTI))[0], 'passed')
+
+    def test_a_files_frame_not_the_packages_fails(self):
+        wrong = [{'path': 'a.txt', 'sha256': 'f' * 64}, {'path': 'helpers/notes.md', 'sha256': hashlib.sha256(b'invented helper\n').hexdigest()}]
+        for name, kwargs in (('omitted from record and text', {'record_files': False, 'text_files': False}),
+                             ('a digest not the package\'s', {'others': wrong})):
+            with self.subTest(name):
+                self.assertEqual(self.outcome(self.root(MULTI, **kwargs)),
+                                 ('failed', "the run's other files and files line are not the ones the candidate's package makes"))
+
+    def test_other_files_where_the_package_has_none_fail(self):
+        r = self.root(PACKAGE, others=[{'path': 'extra.md', 'sha256': 'a' * 64}])
+        self.assertEqual(self.outcome(r)[0], 'failed')
+
+    def test_a_folder_label_the_composer_never_writes_is_blocked(self):
+        for label in ('/absolute/folder', '../outside', 'a/./b', '~'):
+            with self.subTest(label=label):
+                self.assertEqual(self.outcome(self.root(MULTI, label=label))[0], 'blocked')
+
+    # 3. The records store only where the App places it for this route.
+    def test_records_outside_the_store_are_not_read(self):
+        opened = []
+        original = compare.os.open
+        def tracking(path, *args, **kwargs):
+            opened.append(os.fsdecode(path))
+            return original(path, *args, **kwargs)
+        def elsewhere(r):
+            store = r.data / 'records' / 'projects' / 'k' / 'workflow'
+            moved = r.data / 'examples' / 'records' / 'workflow'
+            moved.parent.mkdir(parents=True)
+            store.rename(moved)
+            notes = r.root / 'project' / 'examples' / 'records' / 'workflow'
+            notes.mkdir(parents=True)
+            (notes / '00000000-0000-4000-8000-000000000077.json').write_text('INVENTED SENTINEL, plain project notes')
+        compare.os.open = tracking
+        try:
+            self.assertEqual(self.outcome(self.root(), elsewhere), ('blocked', 'the examination root holds more than the one run this comparison covers, or none'))
+        finally:
+            compare.os.open = original
+        self.assertFalse([o for o in opened if o.endswith('.json') and 'launch-record' not in o and 'kept' not in o
+                          and o not in ('reference.json', 'candidate-identification.json', 'bundle-inventory.json', 'MANIFEST.json')], opened)
+
+    def test_a_placement_not_established_blocks(self):
+        def chosen(r):
+            (r.data / 'records-store.json').write_text(json.dumps({'location': '/invented/elsewhere'}))
+        def in_place(r):
+            (r.root / 'project' / '.chirality' / 'records').mkdir(parents=True)
+        def linked_ancestor(r):
+            library = r.root / 'home' / 'Library'
+            library.rename(r.root / 'library-moved')
+            os.symlink(r.root / 'library-moved', library)
+        def linked_project(r):
+            os.symlink(r.root / 'project' / 'notes.txt', r.root / 'project' / '.chirality')
+            (r.root / 'project' / 'notes.txt').write_text('INVENTED SENTINEL, plain project notes')
+        def development_build(r):
+            path = r.root / 'record' / 'selected-workflow' / 'identification' / 'candidate-identification.json'
+            record = json.loads(path.read_text())
+            record['build']['features'] = []
+            path.write_text(json.dumps(record))
+        def two_identifiers(r):
+            r.launch_record('launch-record-2.json', identifier='dev.chirality.app-v4.candidate.other')
+        for name, change in (('a chosen store', chosen), ('records in place in the project', in_place), ('a link on the way', linked_ancestor),
+                             ('a link in the project', linked_project), ('a development build', development_build),
+                             ('launch records naming two candidates', two_identifiers)):
+            with self.subTest(name):
+                self.assertEqual(self.outcome(self.root(), change)[0], 'blocked', name)
+        self.assertEqual(self.outcome(self.root(), two_identifiers),
+                         ('blocked', 'the launch records of the root do not name one bundle identifier'))
+
+    # 4. W1's plan kept across the screen list.
+    def two_step(self, r, *first):
+        r.write()
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(compare.main(['compare', '--root', str(r.root), '--thread', THREAD, *first]), 0)
+            (screen,) = (r.root / 'record').glob('screen-list-*.jsonl')
+            self.assertEqual(compare.main(['answers', '--root', str(r.root), '--screen', str(screen)]), 0)
+        (out,) = (r.root / 'record').glob('session-comparison-2*.jsonl')
+        lines = [json.loads(l) for l in out.read_text().splitlines()]
+        return json.loads(screen.read_text().splitlines()[0]), lines
+
+    def test_w1_asked_for_on_the_list_keeps_its_row_in_the_answers(self):
+        r = Root(tempfile.mkdtemp(dir=self.tmp.name))
+        r.turn('turn-1', 'completed')
+        head, lines = self.two_step(r, '--comparison', 'W1')
+        self.assertEqual(head['planned'], ['C2', 'C3', 'C4', 'W1'])
+        self.assertEqual([x['outcome'] for x in rows(lines, 'W1')], ['blocked'])
+        self.assertEqual(lines[-1]['summary']['W1'], {'blocked': 1})
+
+    def test_without_asking_and_without_a_run_there_is_still_no_row(self):
+        r = Root(tempfile.mkdtemp(dir=self.tmp.name))
+        r.turn('turn-1', 'completed')
+        head, lines = self.two_step(r)
+        self.assertEqual(head['planned'], ['C2', 'C3', 'C4'])
+        self.assertEqual(rows(lines, 'W1'), [])
+
+    def test_the_plan_never_makes_a_pass_the_records_do(self):
+        r = self.root()
+        head, lines = self.two_step(r, '--comparison', 'W1')
+        self.assertEqual([x['outcome'] for x in rows(lines, 'W1')], ['passed'], 'derived from the records')
+        r = self.root()
+        r.selected = False
+        head, lines = self.two_step(r, '--comparison', 'W1')
+        self.assertEqual([x['outcome'] for x in rows(lines, 'W1')], ['blocked'])
 
 
 class FourthReading(unittest.TestCase):
@@ -1401,7 +1602,7 @@ class FourthReading(unittest.TestCase):
         path.write_text(path.read_text() + line + '\n')
         lines = self.r.compare(self.r.view({'turn-1': 'completed'}))
         (w1,) = rows(lines, 'W1')
-        self.assertEqual((w1['outcome'], w1['codex']['linesWithWorkflowMarkers'], w1['app']['runStartTexts']), ('blocked', 1, 0))
+        self.assertEqual((w1['outcome'], w1['codex']['linesWithWorkflowMarkers'], w1['app']['runRecords']), ('blocked', 1, 0))
 
     def test_a_header_that_cannot_be_read_still_ends_with_blocked_rows(self):
         self.r.turn('turn-1', 'completed')

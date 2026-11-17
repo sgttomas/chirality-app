@@ -2,17 +2,17 @@
 
 This compares the App's account of a Codex session with Codex's own record of the same session, for a run in an examination root. It serves DEL-09-02 AC-005: "the candidate's presentation agrees with the supplier's actual events". Each comparison ends as one of REQ-007's five outcomes: passed, failed, blocked, not run or inconclusive.
 
-It makes three comparisons of one thread every time: its turns (C2), their outcomes (C3), and the interrupts the App recorded (C4). Where the thread holds one workflow run, it also compares the workflow supplied (W1). Children, items, outputs, conversations and order follow in later parts.
+It makes three comparisons of one thread every time: its turns (C2), their outcomes (C3), and the interrupts the App recorded (C4). In an examination root with one workflow run, it also compares the workflow supplied (W1). Children, items, outputs, conversations and order follow in later parts.
 
-**The workflow comparison (W1) is bounded by uniqueness.** How a run is associated with a Codex message in general did not settle in three readings, and is not reopened here. W1 instead passes only where the thread holds exactly one of each, and the selected workflow's own bytes are tied to the candidate:
-- Codex's record of the thread holds exactly one line mentioning the workflow markers: one message, and within it one text element;
-- the App's records hold exactly one run-start text for the thread;
+**The workflow comparison (W1) covers a root with one run.** How a run is associated with a Codex message in general did not settle in three readings, and is not reopened here. Nor are other runs interpreted: Agent 0 narrowed W1 to an examination root that holds one run. W1 passes only where all of these hold:
+- the candidate's records store in the root holds exactly one run record in total, of any conversation: a run start of this thread;
+- Codex's record of the thread holds exactly one line mentioning the workflow markers, a message, and within it one text element;
 - `record/selected-workflow/` in the root holds the examiner's copy of the candidate's own bytes of that bundled workflow, tied to the candidate's identification and to every launch record of the root;
-- the text element equals the run text the App composed, byte for byte, its bytes between the markers equal the candidate's own `WORKFLOW.md` of the selected revision, and the run names that workflow's full source-qualified identity as the candidate's bundled manifest gives it (DEL-02-02 AC-005, DEL-01-04 AC-011).
+- the text element equals the run text the App composed, byte for byte. Its files line is the one the candidate's package makes, and its bytes between the markers are the candidate's own `WORKFLOW.md` of the selected revision. The run names that workflow's full source-qualified identity, as the candidate's bundled manifest gives it (DEL-02-02 AC-005, DEL-01-04 AC-011).
 
-Any other count, or anything unreadable or untied, is blocked, never passed and never inferred. With one of each read and tied, a difference fails. One conversation with one run is what J1 is. See [The workflow comparison](#the-workflow-comparison-w1) for what it reads and what it does not establish.
+Anything else, or anything unreadable or untied, is blocked, never passed and never inferred. With one of each read and tied, a difference fails. One conversation with one run is what J1 is. See [The workflow comparison](#the-workflow-comparison-w1) for what it reads and what it does not establish.
 
-**The claim.** A row says passed only when both sides were read, were identified as the same subject by an identifier and not by position (for W1, by being the only one of its kind on each side), and agree. Every other case is failed, inconclusive, blocked or not run. Every planned comparison yields at least one row, and no row carries message or output text.
+**The claim.** A row says passed only when both sides were read, were identified as the same subject by an identifier and not by position (for W1, by being the only run of the root and the only message mentioning the markers), and agree. Every other case is failed, inconclusive, blocked or not run. Every planned comparison yields at least one row, and no row carries message or output text.
 
 ## Codex's record, and where it may be read
 
@@ -67,7 +67,7 @@ Where a saved view exists, the comparison is exact. It is never replaced by the 
 | C2 turns | each turn with a start or end event | the view's turns | passed if both have it, by identity. Failed if only one does, in either direction. Not run if neither has a turn. |
 | C3 outcome | completed (`task_complete` with no error), failed (with an error object), interrupted (`turn_aborted`), or not reported | the view's status (`inProgress`, `completed`, `failed` or `interrupted`) | passed if equal. Where Codex reported no end: failed if the App shows an end, passed if it shows `inProgress`. Any other difference fails. Inconclusive for a status outside those four, for a turn the view shows with no native status, or for a Codex reading that is not one reading. Blocked where only one side has the turn. |
 | C4 interrupts | the turn's end, with an abort's reason | the latest stop record's `turnOutcome` | Interrupted passes only against an abort for reason `interrupted`; any other reason fails. A completed or failed outcome passes if equal. Pending or unknown passes where Codex recorded no end, and is inconclusive where it recorded one the App did not learn. Failed if the App records an end Codex did not record, or a stop of a turn Codex has no record of. Inconclusive for an outcome outside the schema's five. Not run if no stop was requested. |
-| W1 workflow | the one text element of the one message mentioning the workflow markers | the one run-start text record of the thread, and the candidate's own bytes of the selected workflow | Passed only where both sides are unique and read, the selected workflow's bytes are tied to the candidate, and the element equals the run text byte for byte, with the candidate's own `WORKFLOW.md` between its markers and the candidate's identity of that workflow in the run. Failed, with one of each read and tied, where the text, the markers, the bytes or the identity differ. Blocked for any other count or anything unreadable or untied. No row where the session has no workflow run, unless W1 was asked for by name. |
+| W1 workflow | the one text element of the one message mentioning the workflow markers | the root's one run record, a run start, and the candidate's own bytes of the selected workflow | Passed only where the root holds one run record, both sides are read, the selected workflow's bytes are tied to the candidate, and the element equals the run text byte for byte. Its files line must be the package's, the candidate's own `WORKFLOW.md` must be between its markers, and the run must carry the candidate's identity of that workflow. Failed, with one of each read and tied, where the text, the markers, the files line, the bytes or the identity differ. Blocked for any other run record in the root, any other count, or anything unreadable or untied. No row where the session has no workflow run, unless W1 was asked for by name. |
 
 When one side cannot be read, its comparisons are blocked, with the reason. Once the root is admitted, nothing ends without rows: any refusal or unexpected failure writes blocked rows for every planned comparison. The reason names at most the kind of failure.
 
@@ -75,7 +75,7 @@ A saved view is taken after the session ended. Comparing views at earlier points
 
 ## The workflow comparison (W1)
 
-A session has a workflow run to compare when a line of Codex's record mentions the workflow markers, when a run text record names the thread, or when a workflow record cannot be read. W1 asked for by name (`--comparison W1`) always has its row, blocked where there is nothing to compare. Otherwise, without any of these, there is no W1 row. Where the session cannot be read, the W1 row is blocked like the others.
+A session has a workflow run to compare when a line of Codex's record mentions the workflow markers, when a run record of the store names the thread, or when the store cannot be read whole. W1 asked for by name (`--comparison W1`) always has its row, blocked where there is nothing to compare. A screen list made with `--comparison W1` says so in its header (`planned`), and its `answers` keep the row. That only plans a row: W1 is derived from the records then, never from the list or the answers. Otherwise, without any of these, there is no W1 row. Where the session cannot be read, the W1 row is blocked like the others.
 
 **What is detected.** Every JSON value in this comparison is read strictly: an object that names a key twice, or a NaN or Infinity, is not read. In the session file that blocks every comparison, as any unreadable line does. A line mentions the workflow markers when the word `chirality-workflow`, case-folded, appears in its bytes or in any string or key of it once read as JSON. That is all that is detected. A form in which that word itself is spelled otherwise (its letters escaped, encoded or split) is not detected, and nothing here claims that no such line exists.
 
@@ -84,14 +84,31 @@ A session has a workflow run to compare when a line of Codex's record mentions t
 - The message must be the person's (`role` `user`) and name, in its metadata, a turn that the session's turn events hold. Every element must be a text element (`type` `input_text` and `text`, nothing else), and the markers must be in exactly one of them. Otherwise it is blocked.
 - That element must mention the word exactly twice, in its one begin marker and its one end marker. Any other mention, in whatever form surrounds it, is blocked, even where the bytes would agree.
 
-**The App's side.**
-- The root is walked without following a link. Every folder named `workflow` with a `records` folder above it is a record folder, and is read whole.
-- A link, or a folder that cannot be opened or listed, on or under a `records` folder blocks, since what it hides may hold a record. In a record folder, every entry must be a plain `<id>.json` file with one name. A link, a second hard link, a staging file, a subfolder or any other entry blocks, and a link or alias is refused before it is opened.
-- Each record is read as the envelope the App publishes: exactly its seven fields, `version` 1, a `record_id` naming the file, a writer and a time, and a body naming its kind and conversation. Anything else blocks, since it may name the thread. A run text body is checked in full before it is set aside as another thread's.
-- Of the run text bodies naming the thread there must be exactly one run start. It must carry every field the App's composer writes, of its type: the framing, run, holding library, selection, how it was started, its workflow identity (kind, origin, source root, name, full revision and revision method) and the exact-bytes digests and byte counts of the text and of `WORKFLOW.md`.
-- Its start, proposal and files lines and its markers must be the ones the composer makes from that identity and run. A run that follows an earlier one (a `chain`) blocks.
-- An end notice is checked in full: its line, run and digest. One of the same run is counted apart and changes nothing; one of another run, or one that is not readable, blocks.
-- The record must lie in the identified candidate's own App data in the root: `home/Library/Application Support/<its bundle identifier>/`.
+**The App's side: one run in the root.**
+- **Where the records are read.** Only from the records store the App uses on this route, never by searching the root for names.
+  - The launcher gives the App the root's `home/` as its home, and no `CHIRALITY_RECORDS_STORE` (its environment allowlist).
+  - A build with the custom protocol is not a development build. So the App keeps its store in its data folder: `home/Library/Application Support/<identifier>/records/`. The identifier is the one every launch record of the root names.
+  - The records read are those in `projects/<key>/workflow/` of that store.
+  - A person's chosen store (`records-store.json` in the App's data) blocks, because its place is not established here.
+  - Records kept in place in the launcher's project (`project/.chirality/records`) are outside this case, and block.
+  - So does an identification whose build lacks the custom protocol: a development build keeps no store in its App data.
+- **How they are opened.** Every folder from the root to each record folder is opened without following a link. A link, a non-folder or a folder that cannot be opened blocks, before any record is opened. A folder that does not exist means no record there.
+  - In a record folder, every entry must be a plain `<id>.json` file with one name.
+  - A link, a second hard link, a staging file, a subfolder or any other entry blocks. A link or alias is refused before it is opened.
+- **What is counted.** Each record is read as the envelope the App publishes: exactly its seven fields, `version` 1, a `record_id` naming the file, a writer and a time, and a body naming a known kind (`selection_record`, `run_text` or `supply_check`) and a conversation.
+  - A record that is not such an envelope may be a record of a run, and blocks.
+  - A selection record must carry every field the App writes, and is not counted.
+  - Every `run_text` (a run start or an end notice) and every `supply_check` is a run record, whatever conversation it names. The store must hold exactly one, and it must be a run start of this thread. No other run is interpreted.
+  - So an end notice of the same run blocks. The App publishes one when the next turn after the person ends the run is sent. A supply check also blocks; the App publishes one when the person asks it to check the supplied text.
+- **The fields validated** of that one run start:
+  - `record_kind`, `purpose`, `framing` (`WR-FRAME-1`), `run`, `conversation`, `holding_library`, `selection` and `origin_of_start`, with their types and values;
+  - `chain`, which must be null (a run following another is not compared);
+  - `workflow`: exactly its kind, origin, source root, name, full revision and revision method;
+  - `workflow_file` and `text_identity`, as exact-bytes digests with their byte counts;
+  - `other_files`, the paths and digests;
+  - `lines`: the start, proposal and files lines and the markers.
+
+  The start and proposal lines and the markers must be the ones the App's composer makes from that identity and run. A files line must name a folder by the App's rule: relative to the project or `~/`, with no `"`, backslash or control character, and no empty, `.` or `..` component. `assurance` is only checked to be an object; it is not compared.
 
 **The selected workflow's own bytes.** The examiner prepares `record/selected-workflow/` from the identified candidate before the walk. Preparing it is done outside the controls and is named as such in the step's record. It holds byte copies, never anything from the App's records or an installed App:
 - `identification/candidate-identification.json` and the stored inventory beside it, from the candidate folder that the launcher admits;
@@ -108,12 +125,13 @@ W1 recomputes every tie from these bytes and trusts no digest it is given:
 - the manifest copy is the inventory's `MANIFEST.json`;
 - the manifest names the package once, with its files and with the revision recomputed from the copied bytes by the App's package method.
 
-Any of these missing or not holding is blocked. Only a bundled run is compared; a run of another origin, or of another name than the reference's, is blocked.
+Any of these missing or not holding is blocked. Only a bundled run is compared. A run of another origin, or of another name than the reference's, is blocked.
 
 **The comparison.** With one of each read and tied, W1 fails where any of these differs, and passes only where none does:
 - the element's begin and end lines and the record's markers;
 - the element's digest and byte count and the record's text identity;
 - the run's workflow identity and the candidate's: origin `bundled`, the manifest's `release_subject` as source root, name, full revision and revision method;
+- the run's `other_files` and files line and those the candidate's package makes: every file but `WORKFLOW.md`, in path byte order, by path and digest, and no files line where there is none;
 - the bytes between the record's frame and the candidate's own `WORKFLOW.md`;
 - those bytes and the record's `WORKFLOW.md` digest and byte count.
 
@@ -127,7 +145,8 @@ The row carries:
 It never carries text. The copies stay in the examination root and never enter Git.
 
 **What it does not establish.**
-- Several runs in one thread, a run started from another, and children's inputs are not compared. They are blocked or out of scope.
+- A root with more than one run record is blocked as a whole: several runs, a run started from another, an end notice, a supply check, or a run of another conversation. Children's inputs are not compared.
+- A walk in which the person ends the run and then sends another turn, or asks the App to check the supplied text, holds a second run record, so W1 is blocked for it.
 - The reference ties the copied bytes to the identified candidate. That the launched bundle is that candidate is the launcher's identification check at launch.
 - That the reference was prepared before the walk is the examiner's attestation. The records hold no time for the copy: the launch record's `made_at` and the identification's `identified_at` are compared, but they order the launch after the identification, not the copy before the walk.
 - Project and user workflows are not compared, since their bytes are not tied to the candidate.
