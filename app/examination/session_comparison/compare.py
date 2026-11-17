@@ -54,8 +54,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 MODEL_VERSION = 'session-comparison-model/1'
-# The Codex version whose session file layout this model was written against.
-PINNED_CODEX = '0.167.0'
+# The one Codex version whose session file layout this model was checked
+# against, on a real session file made at that version. A file of any other
+# version is blocked; a new pin needs its own check before this changes.
+PINNED_CODEX = '0.169.0'
 TOOL = 'app/examination/session_comparison/compare.py'
 PLANNED = ('C2', 'C3', 'C4')
 COMPARES = {'C2': 'turns', 'C3': 'outcomes', 'C4': 'interrupts'}
