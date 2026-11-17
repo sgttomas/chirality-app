@@ -400,6 +400,22 @@ but a first real run may still refuse one spelled otherwise. The reason then
 names the entitlements observation of its step (for example
 `S5_ENTITLEMENTS`), and the correction below applies unchanged.
 
+**Separate file-reader limits.** The whole-document check above applies to
+entitlement command output, not to the provisioning profile or `Info.plist`.
+`record.profile_facts`, `prepare.profile_consistency` and
+`common.read_info_plist` read their file values with the standard parser and
+a repeated-key check. A repeated top-level value is not refused; the parser
+can retain the last one. The affected fields are profile UUID, team, App ID,
+allowed and unexpected entitlements and expiry, and the bundle identifier,
+version, bundle version, minimum macOS and executable. File digests bind
+bytes; they do not establish an unambiguous whole-document reading. This is
+a named remaining item, outside the command-output repair.
+
+The line-form command readers also have a separate limit: they decode UTF-8
+with replacement, drop blank lines and strip trailing whitespace before
+matching declared forms. Their result does not establish that the original
+stream was valid UTF-8 or preserve those whitespace bytes.
+
 Those sources do not show every line the real tools print. For example, no
 source shows the line of `codesign -d` that names the executable. So **a
 first real run may stop on a line of output nobody declared**. The reason

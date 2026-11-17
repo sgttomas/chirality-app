@@ -38,6 +38,10 @@ observation that was not made, that failed, or that is incomplete cannot come ou
 that drift and mistakes are caught. They are not a filesystem snapshot and are not built to withstand
 a writer changing the inputs during the run, nor someone with write access forging a record: a
 completion marker or a recorded digest is not authentication.
+The whole-document command-output rule does not cover the profile or Info.plist file readers:
+those use the standard parser, which does not refuse a repeated top-level value. This limits the
+profile UUID/team/App ID/allowed and unexpected entitlements/expiry and the bundle identity fields.
+Line-form output is decoded with UTF-8 replacement, blank lines omitted and trailing whitespace stripped.
 """
 import datetime
 import importlib.util
