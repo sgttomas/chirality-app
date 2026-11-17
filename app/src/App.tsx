@@ -1,4 +1,4 @@
-import { AgentText, ConversationChoices, RecordedData, idWords, numberWords, safeName, wordOf } from "./AgentText";
+import { AgentText, ConversationChoices, RecordedData, SuppliedId, idWords, numberWords, safeName, wordOf } from "./AgentText";
 import { ActionFeedback } from "./ActionFeedback";
 import { LOCAL_ROUTE_OFFERED } from "./localRoute";
 import { PackageStanding } from "./PackageStanding";
@@ -6,7 +6,7 @@ import { LOCAL_ENTRY, LOCAL_FORK_AVAILABLE, LOCAL_FORK_UNAVAILABLE, LOCAL_MODE, 
 import { NativeWaitingBridge } from "./NativeWaitingBridge";
 import { ConnectorSourcePanel } from "./ConnectorSourcePanel";
 import { FleetRecordsPanel, readFleetPacket, type FleetPacket } from "./FleetRecordsPanel";
-import { WaitingOnYou, WAITING_SOURCE_POLL_MS, decisionPackageAnchor, waitingReadings, type WaitingEntry } from "./WaitingOnYou";
+import { WaitingOnYou, WAITING_SOURCE_POLL_MS, decisionPackageAnchor, reopenedDispositionsUnestablished, waitingReadings, type WaitingEntry } from "./WaitingOnYou";
 import { RecordsStorePanel } from "./RecordsStorePanel";
 import { ConnectorRoutePanel, emptyRouteRead, routeReadTransition, type RouteReadState, type RouteView } from "./ConnectorRoutePanel";
 // The interface reads host snapshots and asks the host to act. It holds no pipe
@@ -1264,10 +1264,20 @@ export function WorkflowRootPanel({ viewStale = false, readFailure = null, data,
     <CompareResult result={draftsState.compared}/>
     <button disabled={busy} onClick={()=>action("workflow_reopen",{})}>Reopen recorded workflow runs (read-only)</button>
     {data?.reopened&&<article><h3>Recorded runs (reopened from project records)</h3><p>{data.reopened.standing}</p>
-      <ul>{(data.reopened.runs??[]).map((r:Json)=><li key={r.run}>{r.run} · conversation {r.conversation??"unknown"} · {r.state}{r.detail?` (${typeof r.detail==="string"?r.detail:JSON.stringify(r.detail)})`:""}{r.follows?` · follows ${r.follows}`:""}{(r.restartInterruptions??[]).length?` · App restart facts recorded for this conversation: ${r.restartInterruptions.length}`:""}
-        {r.workflow&&<p>Recorded workflow {r.workflow.origin}:{r.workflow.name}, revision {String(r.workflow.revision??"").slice(0,12)}.</p>}
-        {!(data?.runs??[]).some((h:Json)=>h.reference===r.run)&&<RunBringBack run={r} conversations={conversations} defaultThread={runBringBackDefault(data,r.run)} busy={busy} act={action}/>}
-        {r.state?.startsWith("open")&&!(data?.runs??[]).some((h:Json)=>h.reference===r.run)&&<button disabled={busy} onClick={()=>action("workflow_end_recorded",{runId:r.run,threadId:r.conversation??null})}>End this interrupted run</button>}</li>)}</ul>
+      <ul>{(data.reopened.runs??[]).map((r:Json)=>{
+        // A run also live in this process keeps its one evidence anchor, panel and controls on its live article above.
+        // Otherwise this row is the run's recorded evidence, where "Waiting on you" and Results lead: its record as the
+        // reopened reading supplied it, shown by the same run panel, with no act control, answer or send.
+        const live=(data?.runs??[]).some((h:Json)=>h.reference===r.run);
+        const records=Array.isArray(r.lifecycle?.records);
+        const unestablished=!live&&records&&r.state!=="ended"&&r.state!=="start not confirmed in record"?reopenedDispositionsUnestablished(r,data.reopened):null;
+        return <li key={r.run} id={live?undefined:runEvidenceAnchor(r.reference??r.run)}><SuppliedId value={r.run} source="record" label="Run:" name="Run reference as recorded, not the App's words"/> · conversation {r.conversation==null?"unknown":<SuppliedId value={r.conversation} source="record" label="Conversation:" name="Conversation identity as recorded, not the App's words"/>} · <AgentText value={r.state} source="record" label="State:" name="Run state as recorded, not the App's words"/>{r.detail?<> (<AgentText value={r.detail} source="record" label="Detail:" name="Run state detail as recorded, not the App's words"/>)</>:null}{r.follows?<> · follows <SuppliedId value={r.follows} source="record" label="Follows:" name="Earlier run reference as recorded, not the App's words"/></>:null}{(r.restartInterruptions??[]).length?` · App restart facts recorded for this conversation: ${r.restartInterruptions.length}`:""}
+        {r.workflow&&<p>Recorded workflow <AgentText value={r.workflow.origin} source="record" label="Origin:" name="Workflow origin as recorded, not the App's words"/>:<AgentText value={r.workflow.name} source="record" label="Workflow:" name="Workflow name as recorded, not the App's words"/>, revision <SuppliedId value={String(r.workflow.revision??"").slice(0,12)} source="record" label="Revision:" name="Workflow revision as recorded, not the App's words"/>.</p>}
+        {!live&&(r.limits??[]).length>0&&<p>What the reader said it could not read for this run: {(r.limits as Json[]).map((limit:Json,i:number)=><span key={i}>{i>0?"; ":""}<AgentText value={limit} source="file" label="Limit:" name="What the reader could not read, as it reported it, not the App's words"/></span>)}.</p>}
+        {unestablished&&<p role="note">This reading does not establish the latest disposition of this run's checkpoint arrivals: {unestablished}. A disposition shown here may not be the latest, and no arrival of this run is listed in Waiting on you.</p>}
+        {!live&&records&&<RunPanel run={r} conversations={conversations} busy={busy}/>}
+        {!live&&<RunBringBack run={r} conversations={conversations} defaultThread={runBringBackDefault(data,r.run)} busy={busy} act={action}/>}
+        {r.state?.startsWith("open")&&!live&&<button disabled={busy} onClick={()=>action("workflow_end_recorded",{runId:r.run,threadId:r.conversation??null})}>End this interrupted run</button>}</li>;})}</ul>
       {(data.reopened.historyNotices??[]).map((notice:string,i:number)=><p role="note" key={i}>{notice}</p>)}
       {(data.reopened.limits??[]).length>0&&<p>Record limits: {JSON.stringify(data.reopened.limits)}</p>}
       {data.reopened.restartLimits&&<p>App-restart interruption limits (written by the host at startup): {(data.reopened.restartLimits.outcomes??[]).map((o:Json)=>`${o.threadId}: ${o.outcome}${o.run?` on ${o.run}`:""}${typeof o.detail==="string"?` (${o.detail})`:""}`).join("; ")||data.reopened.restartLimits.reason||"no restart facts"}</p>}</article>}

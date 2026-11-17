@@ -1,4 +1,4 @@
-import { ConversationChoices, RecordedData, idWords, safeName, wordOf } from "./AgentText";
+import { AgentText, ConversationChoices, RecordedData, SuppliedId, idWords, safeName, wordOf } from "./AgentText";
 import { workflowAssurance } from "./workflowSelection";
 import { useState } from "react";
 import { beginBringBack, bringBackHeld, endBringBack } from "./bringBackDoubts";
@@ -105,6 +105,8 @@ const lapseLine = (b: Json, pending = false): string => {
   return `Lapse observed for ${text(b?.act?.actKind)} ${text(b?.act?.recordId)} at ${text(b?.time)} (${text(b?.when)}): ${LAPSE_STATE[text(b?.state)] ?? text(b?.state)}.${label} Nothing is asked or stopped because of it.`;
 };
 const line = (key: string, body: Json) => <span key={key}><br /><small>{body}</small></span>;
+/** PRD V4-WF-05: what the App says of a pause at a declared checkpoint, wherever a checkpoint or its arrivals are shown. */
+export const CHECKPOINT_COOPERATION = "Any pause at a declared checkpoint is the agent's cooperation with the workflow, not a hold by the App: the App does not stop, pause or interrupt the run there.";
 export type OpenArrivalFileAct = (runRef: string, arrivalRecordId: string) => Promise<void>;
 
 /** EXEC CE-3 / SD-2: one recorded arrival with its latest disposition, read from
@@ -175,6 +177,7 @@ export function CheckpointGuidance({ element, run, openFileAct, busy = false }: 
     {(v.on_negative_decision || v.on_mixed_decision || v.on_subject_absent) && <><br /><small>{v.on_negative_decision ? `If declined: ${decisionPath(v.on_negative_decision)}. ` : ""}{v.on_mixed_decision ? `If mixed: ${decisionPath(v.on_mixed_decision)}. ` : ""}{v.on_subject_absent ? `If the subject is absent: ${decisionPath(v.on_subject_absent)}.` : ""}</small></>}
     {v.governed !== undefined && <><br /><small>{v.governed === "yes" ? "Declared governed. In this phase that changes nothing: the checkpoint is plan guidance (OV-7)." : `Governed value not recognized (${text(v.governed)}); preserved and reported (FB-19).`}</small></>}
     <br /><small>The agent asks you for the act when its work reaches this point; the App records the act only from your own confirmation at its act control, or continues recording one you confirmed earlier.</small>
+    <br /><small>{CHECKPOINT_COOPERATION}</small>
     {run && line("record", `Run record: ${!listing ? (findings.length ? `not listed: reported as a declaration finding (${findings.map((f: Json) => `${text(f.body?.finding)}, ${text(f.body?.code)}`).join("; ")}); no arrival is recorded for it (CE-2).` : invalid ? "not listed: the run record lists only the checkpoints the App recognizes (CE-1)." : "this checkpoint is missing in record (no checkpoint_listed entry for it); it is shown here from the declaration.")
       : evaluability?.status === "not evaluable" ? `listed. The App does not record arrivals for it: ${text(evaluability?.reason)}`
       : `listed. The App records an arrival only from what it observes in the conversation: ${text(evaluability?.reason)}`}${listing && writtenNote(listing, all) ? ` ${writtenNote(listing, all)}` : ""}`)}
@@ -510,18 +513,33 @@ export function RunBringBack({ run, conversations, defaultThread = null, busy, a
   </>;
 }
 
+/** A run's recorded checkpoint arrivals where the run carries no declaration to show them under (a reopened run whose
+ * declaration the host could not verify): each from the run record alone, with its latest recorded disposition. */
+function UndeclaredArrivals({ run, openFileAct, busy }: { run: Json; openFileAct?: OpenArrivalFileAct; busy: boolean }) {
+  const all = records(run);
+  const arrivals = all.filter((r: Json) => r?.kind === "checkpoint_arrival" && typeof r?.body?.checkpoint === "string");
+  if (!arrivals.length) return null;
+  return <div aria-label="Recorded checkpoint arrivals">
+    <p>Recorded checkpoint arrivals, from the run record alone: without the declaration, who must act is not recorded here.</p>
+    <ul>{arrivals.map((a: Json, i: number) => <li key={i}>Checkpoint <SuppliedId value={a.body.checkpoint} source="record" label="Checkpoint:" name="Checkpoint name as recorded, not the App's words" />
+      <ul><ArrivalRecord arrival={a} all={all} runRef={run?.reference} fileActEntry={run?.fileActEntries?.[a.recordId]} openFileAct={openFileAct} busy={busy} /></ul></li>)}</ul>
+    <p><small>{CHECKPOINT_COOPERATION}</small></p>
+  </div>;
+}
+
 /** PD-1, PD-3, PD-7 for one run, from the run view the host reports. */
 export function RunPanel({ run, conversations, bringBackDefault = null, busy = false, act, openFileAct }: { run: Json; conversations?: Json[]; bringBackDefault?: Json; busy?: boolean; act?: RunBringBackAct; openFileAct?: OpenArrivalFileAct }) {
   const compatibility = list(run?.compatibility);
   const declaration = compatibility.find((c: Json) => c?.preparation?.declaration)?.preparation?.declaration;
   const workflow = run?.workflow ?? {};
   return <div aria-label="Run panel">
-    <p>Workflow {text(workflow.name)} ({text(workflow.origin)}), revision {text(workflow.revision).slice(0, 12)} · conversation {text(run?.conversation)} · run {text(run?.lifecycle?.state)}{run?.lifecycle?.follows ? ` · follows ${text(run.lifecycle.follows)}` : ""}{run?.lifecycle?.end ? ` · ended: ${text(run.lifecycle.end.cause)}` : ""}.</p>
+    <p>Workflow <AgentText value={text(workflow.name)} source="record" label="Workflow:" name="Workflow name as recorded, not the App's words" /> (<AgentText value={text(workflow.origin)} source="record" label="Origin:" name="Workflow origin as recorded, not the App's words" />), revision <SuppliedId value={text(workflow.revision).slice(0, 12)} source="record" label="Revision:" name="Workflow revision as recorded, not the App's words" /> · conversation <SuppliedId value={run?.conversation ?? null} source="record" label="Conversation:" name="Conversation identity as recorded, not the App's words" /> · run <AgentText value={text(run?.lifecycle?.state)} source="record" label="State:" name="Run state as the host reported it, not the App's words" />{run?.lifecycle?.follows ? <> · follows <SuppliedId value={run.lifecycle.follows} source="record" label="Follows:" name="Earlier run reference as recorded, not the App's words" /></> : null}{run?.lifecycle?.end ? <> · ended: <AgentText value={text(run.lifecycle.end.cause)} source="record" label="Cause:" name="Run end cause as recorded, not the App's words" /></> : null}.</p>
     <p><small>Run record entries: {recordKinds(run).length ? recordKinds(run).join(", ") : "none written yet"}. What the record does not hold is shown as not recorded.</small></p>
     <RecordWriteNotice run={run} />
     <HistoryReferenceNotice pointers={run?.learningPointers} run={run} />
     <h4>Declared part of {text(workflow.name) ? safeName(workflow.name) : "this workflow"}</h4>
     {declaration ? <DeclaredPart declaration={declaration} run={run} openFileAct={openFileAct} busy={busy} /> : <p>The declared part was not evaluated for this run, so it is not shown here.</p>}
+    {!declaration && <UndeclaredArrivals run={run} openFileAct={openFileAct} busy={busy} />}
     <h4>Compatibility (advisory)</h4>
     {compatibility.length ? <ul>{compatibility.map((c: Json, i: number) => <CompatibilityAdvisory key={i} entry={c} />)}</ul> : <p>No compatibility evaluation for this run.</p>}
     {act && <RunBringBack run={run} conversations={conversations ?? []} defaultThread={bringBackDefault} busy={busy} act={act} />}

@@ -9,7 +9,7 @@ import {localRequire} from './support/load-src.mjs';
 import './support/rust-prebuild.mjs';
 import {choiceList, choiceLists, chooseIn, chosenIn, chosenInMarkup} from './support/choices.mjs';
 const load=name=>{const url=new URL(`../src/${name}`,import.meta.url);const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}});const exports={};new Function('require','exports',compiled.outputText)(localRequire(createRequire(url)),exports);return exports;};
-const {ArrivalRecord,CheckpointGuidance,RunBringBackView,RunPanel,runBringBackDefault,DeclaredPart,SelectedWorkflow,CompatibilityAdvisory,outputStanding,StandingFacets,arrivalLabel,actLabel,RecordWriteNotice}=load('RunPanel.tsx');
+const {ArrivalRecord,CheckpointGuidance,RunBringBackView,RunPanel,runBringBackDefault,DeclaredPart,SelectedWorkflow,CompatibilityAdvisory,outputStanding,StandingFacets,arrivalLabel,actLabel,RecordWriteNotice,CHECKPOINT_COOPERATION}=load('RunPanel.tsx');
 const h=(c,p)=>renderToStaticMarkup(React.createElement(c,p));
 
 // The host's reading of the maintained valid example (workflow_declaration::read's shape).
@@ -601,4 +601,31 @@ test('actual held lapse DTO qualifies its pending label and later write on the s
   const dto=marker=>{const line=proc.stdout.split('\n').find(line=>line.includes(marker));assert.ok(line);return JSON.parse(line.slice(line.indexOf(marker)+marker.length));};
   const pending=dto('AFTER_END_LAPSE_PENDING_DTO:');const records=pending.afterRunEnd.runs[0].records;const a=records.find(r=>r.kind==='checkpoint_arrival');const held=records.find(r=>r.kind==='act_lapsed');assert.equal(held.written,false);const html=h(ArrivalRecord,{arrival:a,all:records});assert.match(html,/arrival’s pending label is lapsed/);assert.match(html,/Not yet written to the run record/);assert.doesNotMatch(html,/arrival is recorded as lapsed/);
   const late=dto('AFTER_END_LAPSE_LATE_DTO:');const recovered=late.afterRunEnd.runs[0].records;assert.equal(recovered.filter(r=>r.recordId===held.recordId).length,1);const again=h(ArrivalRecord,{arrival:recovered.find(r=>r.kind==='checkpoint_arrival'),all:recovered});assert.match(again,/Written late; the run record carries/);assert.doesNotMatch(again,/pending label/);assert.equal(recovered.find(r=>r.recordId===held.recordId).observedAt,held.observedAt);
+});
+
+test('every declared checkpoint says a pause there is the agent\'s cooperation, not an App hold; the live and the reopened run say the same, and so do arrivals shown without a declaration',()=>{
+  assert.equal(CHECKPOINT_COOPERATION,"Any pause at a declared checkpoint is the agent's cooperation with the workflow, not a hold by the App: the App does not stop, pause or interrupt the run there.");
+  const said=CHECKPOINT_COOPERATION.replace(/'/g,'&#x27;');
+  const count=html=>html.split(said).length-1;
+  const a=arrival('CP-check',1,'item:thread/turn/m1','objects changed by named outcome (examination-report)');
+  const records=[entry('run_opened',{}),listedAccept,listedCheck,a,disposition('CP-check',1,'waiting')];
+  const declared=raw.checkpoints.length;
+  const live=h(RunPanel,{run:run({lifecycle:{state:"open (live); only the person's explicit end ends it",records}})});
+  // A reopened run as the host's reopened view gives it: the same records and declaration, another lifecycle state, its own limits.
+  const reopened=h(RunPanel,{run:run({run:'run-1',lifecycle:{state:'open; interrupted (no run_ended recorded)',end:null,records},limits:[]})});
+  assert.equal(count(live),declared,'once for each declared checkpoint');
+  assert.equal(count(reopened),declared,'the reopened display says the same');
+  for(const html of [live,reopened]){
+    assert.ok(html.includes('Arrival 1: reached; act not yet recorded.'));
+    assert.ok(!FORBIDDEN.test(html),html.match(FORBIDDEN)?.[0]);
+    assert.doesNotMatch(html,/<button[^>]*>[^<]*(mark checked|Confirm|answer|dismiss)/i,'the guidance opens no act control and answers nothing');
+  }
+  // A reopened run whose declaration the host could not verify: its arrivals from the record alone, with the same sentence once.
+  const undeclared=h(RunPanel,{run:run({compatibility:[],lifecycle:{state:'open; interrupted (no run_ended recorded)',end:null,records}})});
+  assert.ok(undeclared.includes('aria-label="Recorded checkpoint arrivals"'));
+  assert.ok(undeclared.includes('Arrival 1: reached; act not yet recorded.'));
+  assert.ok(undeclared.includes('without the declaration, who must act is not recorded here'));
+  assert.equal(count(undeclared),1);
+  // With no arrival recorded and no declaration, nothing is said of checkpoints.
+  assert.ok(!h(RunPanel,{run:run({compatibility:[]})}).includes('Recorded checkpoint arrivals'));
 });
