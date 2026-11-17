@@ -75,7 +75,7 @@ class Root:
         sessions.mkdir(parents=True)
         target = sessions / f'rollout-2026-11-14T00-00-00-{THREAD}.jsonl' if self.session else os.devnull
         with open(target, 'w') as f:
-            for line in [{'timestamp': 't', 'type': 'session_meta', 'payload': {'id': THREAD, 'cli_version': '0.167.0'}}] + self.lines:
+            for line in [{'timestamp': 't', 'type': 'session_meta', 'payload': {'id': THREAD, 'cli_version': '0.169.0'}}] + self.lines:
                 f.write(json.dumps(line) + '\n')
         db = sqlite3.connect(self.data / 'runtime' / 'recovery.ledger.sqlite')
         db.execute('CREATE TABLE ledger_entry (seq INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, entry TEXT NOT NULL)')
@@ -378,7 +378,7 @@ class SecondReading(unittest.TestCase):
             (out,) = (self.r.root / 'record').glob('session-comparison-*.jsonl')
             lines = [json.loads(l) for l in out.read_text().splitlines()]
             self.assertEqual({r['outcome'] for r in rows(lines)}, {'blocked'})
-            self.assertEqual(lines[0]['pinned_codex'], '0.167.0')
+            self.assertEqual(lines[0]['pinned_codex'], '0.169.0')
 
     def test_free_text_in_any_field_never_reaches_a_row_or_passes(self):
         secret = 'INVENTED MESSAGE TEXT'
@@ -511,39 +511,114 @@ class ThirdReading(unittest.TestCase):
 
 
 class TheRealFormat(unittest.TestCase):
-    """An invented session laid out as the 0.167.0 file is: an ordinal on each
-    line, a developer message and other user-role messages beside the
-    person's, item_completed lines, no `error` key on a clean end or an abort,
-    and an error object on a failed turn."""
+    """An invented session laid out as the real 0.169.0 file was: an ordinal on
+    each line and a top-level `metadata` on response items; session_meta with
+    `session_id` beside `id`; a developer message and other user-role messages
+    beside the person's; world_state, turn_context, thread_settings_applied,
+    item_completed, token_count and token_usage_record lines; `turn_id` and
+    `root_turn_id` on every turn event; no `error` key on a clean end or on an
+    abort; and an error object of `message` and `codex_error_info` on a failed
+    turn. Every value is invented."""
 
-    def test_turns_and_the_workflow_read_from_the_pins_layout(self):
+    def layout(self, version='0.169.0'):
+        msg = lambda role, text, turn, kind: {'type': 'message', 'id': 'msg_x', 'role': role, 'content': [{'type': 'input_text', 'text': text}],
+                                             'internal_chat_message_metadata_passthrough': {'turn_id': turn, 'content_item_kinds': [kind],
+                                                                                           'content_item_metadata': [{}], 'create_time': 1}}
+        started = lambda turn: ('event_msg', {'type': 'task_started', 'turn_id': turn, 'root_turn_id': turn, 'started_at': 1,
+                                              'model_context_window': 1, 'collaboration_mode_kind': 'default', 'turn_attribution': {}})
+        context = lambda turn: ('turn_context', {'turn_id': turn, 'root_turn_id': turn, 'cwd': '/invented', 'approval_policy': 'invented',
+                                                 'sandbox_policy': {}, 'model': 'invented'})
+        usage = lambda turn: ('token_usage_record', {'turn_id': turn, 'root_turn_id': turn, 'thread_id': THREAD, 'session_id': THREAD,
+                                                     'response_id': 'resp_x', 'usage': {}, 'turn_token_usage': {}, 'thread_token_usage': {}})
+        ended = {'root_turn_id': None, 'started_at': 1, 'completed_at': 2, 'duration_ms': 1}
+        lines = [
+            ('session_meta', {'id': THREAD, 'session_id': THREAD, 'cli_version': version, 'source': 'invented', 'base_instructions': {'text': 'invented'}}),
+            started('A'),
+            ('response_item', msg('developer', 'Invented role guidance.', 'A', 'permissions.instructions')),
+            ('response_item', msg('user', '<environment_context>invented</environment_context>', 'A', 'environments.environment_context')),
+            ('world_state', {'full': {}, 'state': {}}),
+            context('A'),
+            ('event_msg', {'type': 'thread_settings_applied', 'thread_id': THREAD, 'thread_settings': {}}),
+            ('response_item', msg('user', 'Invented request.', 'A', 'user.text')),
+            ('event_msg', {'type': 'item_completed', 'turn_id': 'A', 'thread_id': THREAD, 'item': {'type': 'UserMessage', 'id': 'other-id'},
+                           'started_at_ms': 1, 'completed_at_ms': 2}),
+            ('response_item', {'type': 'message', 'id': 'msg_y', 'role': 'assistant', 'content': [{'type': 'output_text', 'text': 'Invented reply.'}],
+                               'internal_chat_message_metadata_passthrough': {'turn_id': 'A', 'content_item_kinds': ['unknown']}}),
+            usage('A'),
+            ('event_msg', {'type': 'token_count', 'info': None, 'rate_limits': None}),
+            ('event_msg', {'type': 'task_complete', 'turn_id': 'A', **ended, 'root_turn_id': 'A', 'last_agent_message': 'Invented reply.',
+                           'time_to_first_token_ms': 1}),
+            started('B'),
+            context('B'),
+            ('response_item', msg('user', 'Invented request.', 'B', 'user.text')),
+            ('response_item', msg('user', '<turn_aborted>invented</turn_aborted>', 'B', 'generic.turn_aborted')),
+            ('event_msg', {'type': 'turn_aborted', 'turn_id': 'B', **ended, 'root_turn_id': 'B', 'reason': 'interrupted'}),
+            started('C'),
+            context('C'),
+            ('response_item', msg('user', 'Invented request.', 'C', 'user.text')),
+            ('event_msg', {'type': 'task_complete', 'turn_id': 'C', **ended, 'root_turn_id': 'C', 'last_agent_message': None,
+                           'time_to_first_token_ms': None, 'error': {'message': 'invented', 'codex_error_info': 'other'}}),
+        ]
+        out = []
+        for n, (k, p) in enumerate(lines):
+            line = {'timestamp': 't', 'ordinal': n, 'type': k, 'payload': p}
+            if k == 'response_item':
+                line['metadata'] = {}
+            out.append(json.dumps(line) + '\n')
+        return ''.join(out).encode()
+
+    def test_turns_read_from_the_pins_layout(self):
+        session = compare.parse_session(self.layout(), THREAD)
+        self.assertEqual([(t, session['turns'][t]['says'], session['turns'][t]['from']) for t in session['order']],
+                         [('A', 'completed', 'task_complete'), ('B', 'interrupted', 'turn_aborted'), ('C', 'failed', 'task_complete')])
+        self.assertEqual(session['turns']['B']['reason'], 'interrupted')
+        self.assertEqual(session['workflow_marked_lines'], 0)
+
+    def test_the_pins_layout_compares_end_to_end(self):
         with tempfile.TemporaryDirectory() as tmp:
-            path = Path(tmp) / f'rollout-2026-11-14T06-11-12-{THREAD}.jsonl'
-            msg = lambda role, text, turn, kind: {'type': 'message', 'id': 'msg_x', 'role': role, 'content': [{'type': 'input_text', 'text': text}],
-                                                 'internal_chat_message_metadata_passthrough': {'turn_id': turn, 'content_item_kinds': [kind],
-                                                                                               'provenance': {'type': 'user' if kind == 'user.text' else 'harness'}}}
-            lines = [
-                ('session_meta', {'id': THREAD, 'cli_version': '0.167.0', 'base_instructions': {'text': 'invented'}}),
-                ('event_msg', {'type': 'task_started', 'turn_id': 'A', 'root_turn_id': 'A', 'started_at': 1}),
-                ('response_item', msg('developer', 'Invented role guidance.', 'A', 'developer.instructions')),
-                ('response_item', msg('user', '<environment_context>invented</environment_context>', 'A', 'environments.environment_context')),
-                ('world_state', {}),
-                ('turn_context', {'turn_id': 'A', 'cwd': '/invented'}),
-                ('response_item', msg('user', run_text(), 'A', 'user.text')),
-                ('event_msg', {'type': 'item_completed', 'turn_id': 'A', 'item': {'type': 'UserMessage', 'id': 'other-id', 'client_id': 'c', 'content': [{'type': 'text', 'text': run_text()}]}}),
-                ('event_msg', {'type': 'task_complete', 'turn_id': 'A', 'root_turn_id': 'A', 'last_agent_message': 'hi'}),
-                ('event_msg', {'type': 'task_started', 'turn_id': 'B'}),
-                ('response_item', msg('user', '<turn_aborted>invented</turn_aborted>', 'B', 'generic.turn_aborted')),
-                ('event_msg', {'type': 'turn_aborted', 'turn_id': 'B', 'reason': 'interrupted'}),
-                ('event_msg', {'type': 'task_started', 'turn_id': 'C'}),
-                ('event_msg', {'type': 'task_complete', 'turn_id': 'C', 'last_agent_message': None, 'error': {'message': 'invented', 'codex_error_info': 'other'}}),
-            ]
-            path.write_text(''.join(json.dumps({'timestamp': 't', 'ordinal': n, 'type': k, 'payload': p}) + '\n' for n, (k, p) in enumerate(lines)))
-            session = compare.parse_session(path.read_bytes(), THREAD)
-            self.assertEqual([(t, session['turns'][t]['says']) for t in session['order']],
-                             [('A', 'completed'), ('B', 'interrupted'), ('C', 'failed')])
-            self.assertEqual(session['turns']['B']['reason'], 'interrupted')
+            r = Root(tmp)
+            r.write()
+            (path,) = r.root.rglob(f'rollout-*-{THREAD}.jsonl')
+            path.write_bytes(self.layout())
+            r.stop('B', 'interrupted')
+            db = sqlite3.connect(r.data / 'runtime' / 'recovery.ledger.sqlite')
+            db.execute('INSERT INTO ledger_entry (kind, entry) VALUES (?, ?)', ('stop_request', json.dumps(r.stops[-1])))
+            db.commit()
+            db.close()
+            lines = r.compare(r.view({'A': 'completed', 'B': 'interrupted', 'C': 'failed'}))
+            self.assertEqual(lines[0]['pinned_codex'], '0.169.0')
+            self.assertEqual(lines[-1]['summary'], {'C2': {'passed': 3}, 'C3': {'passed': 3}, 'C4': {'passed': 1}})
+            self.assertNotIn('Invented reply', json.dumps(lines))
 
+    def test_the_same_layout_from_any_other_version_is_refused(self):
+        for version in ('0.167.0', '0.167.2', '0.168.0', '0.169.1', '0.170.0', '0.169', '0.169.0.0', 'v0.169.0', ' 0.169.0', '0.169.0 ',
+                        '0.169.0-alpha.1', '', None, 169, ['0.169.0']):
+            with self.subTest(version=version):
+                with self.assertRaises(compare.Refused) as refused:
+                    compare.parse_session(self.layout(version), THREAD)
+                self.assertEqual(str(refused.exception), 'the session file was written by a Codex version this model was not written against')
+        data = self.layout().replace(b'"cli_version": "0.169.0", ', b'', 1)
+        self.assertNotIn(b'cli_version', data)
+        with self.assertRaises(compare.Refused):
+            compare.parse_session(data, THREAD)
+
+    def test_a_file_of_the_previous_pin_blocks_every_comparison(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            r = Root(tmp)
+            r.write()
+            (path,) = r.root.rglob(f'rollout-*-{THREAD}.jsonl')
+            path.write_bytes(self.layout('0.167.0'))
+            lines = r.compare(r.view({'A': 'completed', 'B': 'interrupted', 'C': 'failed'}))
+            self.assertEqual({r_['outcome'] for r_ in rows(lines)}, {'blocked'})
+            self.assertEqual({r_['comparison'] for r_ in rows(lines)}, {'C2', 'C3', 'C4', 'W1'})
+            self.assertEqual(lines[0]['pinned_codex'], '0.169.0')
+            self.assertNotIn('passed', json.dumps(lines[-1]['summary']))
+
+    def test_a_turn_event_with_a_null_turn_identity_blocks_the_file(self):
+        data = self.layout().replace(b'"type": "turn_aborted", "turn_id": "B"', b'"type": "turn_aborted", "turn_id": null', 1)
+        self.assertIn(b'"turn_id": null', data)
+        with self.assertRaises(compare.Refused):
+            compare.parse_session(data, THREAD)
 
 
 class WhereRecordsMayBeRead(unittest.TestCase):
