@@ -20,7 +20,8 @@
     "icon": ["icons/icon.png"],
     "resources": {
       "resources/instructions/": "instructions/",
-      "resources/production_workflows/": "workflows/"
+      "resources/production_workflows/": "workflows/",
+      "../../docs/RELEASE_LIMITATIONS_4.0.0.md": "release/LIMITATIONS.md"
     }
   }
 }
