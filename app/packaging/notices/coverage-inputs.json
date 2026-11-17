@@ -251,6 +251,16 @@
     }
    ],
    "note": "The supplier distribution reference the App reads at run time (build selection, expected inventory, attestation and their evidence), written in this repository; the App's own content under the App's licence."
+  },
+  {
+   "name": "Release limitations list",
+   "mappings": [
+    {
+     "source": "docs/RELEASE_LIMITATIONS_4.0.0.md",
+     "destination": "release/LIMITATIONS.md"
+    }
+   ],
+   "note": "The release's limitations list (docs/RELEASE_LIMITATIONS_4.0.0.md), shipped byte for byte as release/LIMITATIONS.md for the host to read; written in this repository, the App's own content under the App's licence."
   }
  ]
 }

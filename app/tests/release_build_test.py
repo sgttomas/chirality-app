@@ -170,8 +170,10 @@ class ReleaseBuild(unittest.TestCase):
         self.assertEqual(binding['developer_id_team_identifier'], self.team)
         self.assertTrue(description['vendor']['equal'])
         self.assertTrue(all(r['equal'] for r in description['resources']))
-        self.assertEqual(description['limitations']['sha256'], fx.sha((ROOT / common.LIMITATIONS_SOURCE).read_bytes()))
-        self.assertEqual(description['limitations']['bundled'], 'not observed')
+        source_sha = fx.sha((ROOT / common.LIMITATIONS_SOURCE).read_bytes())
+        self.assertEqual(description['limitations']['sha256'], source_sha)
+        # The production plan bundles the document as release/LIMITATIONS.md (DEL-01-06 AC-008).
+        self.assertEqual(description['limitations']['bundled'], {'sha256': source_sha, 'equal_to_source': True})
         self.assertFalse((self.candidate / 'INCOMPLETE.txt').exists())
         validated = {Path(c['argv'][-1]).name for c in self.fake.calls if c['argv'][0] == '/usr/bin/dyld_info'}
         self.assertEqual(validated, {'chirality-app-v4', 'codex'})

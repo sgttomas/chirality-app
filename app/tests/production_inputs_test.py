@@ -32,7 +32,8 @@ class ProductionInputs(unittest.TestCase):
                          'app/packaging/supplier_notices', 'app/src/fonts', 'app/src-tauri/schemas', 'app/src-tauri/icons'):
             shutil.copytree(ROOT / relative, self.source / relative)
         for relative in ('app/package.json', 'app/package-lock.json', 'app/src-tauri/Cargo.lock', 'app/src-tauri/Cargo.toml', 'app/src-tauri/tauri.conf.json',
-                         'app/src/workspace.css', 'app/index.html', 'app/src-tauri/src/hosting.rs', 'LICENSE.md'):
+                         'app/src/workspace.css', 'app/index.html', 'app/src-tauri/src/hosting.rs', 'LICENSE.md',
+                         'docs/RELEASE_LIMITATIONS_4.0.0.md'):
             (self.source / relative).parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / relative, self.source / relative)
         self.vendor = self.root / 'vendor'; self.vendor.mkdir()
@@ -122,6 +123,7 @@ class ProductionInputs(unittest.TestCase):
         self.assertNotIn('--debug',recipe['argv']);self.assertIn('--no-sign',recipe['argv'])
         self.assertNotIn('CHIRALITY_PUBLISHER_SELECTION',recipe['environment'])
         self.assertIn('CHIRALITY_PUBLISHER_SELECTION',recipe['unset_environment'])
+        self.assertIn('release/LIMITATIONS.md',dest)
         self.assertEqual(len(dest),len(config['bundle']['resources']))
         account=json.loads((self.output/'input-inventory.json').read_text())
         coverage=json.loads((ROOT/'app/packaging/notices/coverage.json').read_text())

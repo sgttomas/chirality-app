@@ -607,7 +607,7 @@ class Account(Builds):
         limitations = '../../INVENTED-release/LIMITATIONS.md'
         conf = 'app/src-tauri/tauri.conf.json'
         for name, change, message in (
-                ('macOS files', lambda v: v['bundle'].update(macOS={'files': {'release/LIMITATIONS.md': limitations}}), 'bundle.macOS.files'),
+                ('macOS files', lambda v: v['bundle'].update(macOS={'files': {'release/INVENTED.md': limitations}}), 'bundle.macOS.files'),
                 ('frameworks', lambda v: v['bundle'].update(macOS={'frameworks': [limitations]}), 'bundle.macOS.frameworks'),
                 ('external binary', lambda v: v['bundle'].update(externalBin=['binaries/invented']), 'bundle.externalBin'),
                 ('resource list', lambda v: v['bundle'].update(resources=[limitations]), 'must be an object')):
@@ -617,30 +617,46 @@ class Account(Builds):
         for name in ('tauri.macos.conf.json', 'Tauri.macos.toml', 'tauri.conf.json5', 'Tauri.toml', 'TAURI.MACOS.CONF.JSON'):
             with self.subTest(config=name):
                 self.setUp()
-                (self.repo / 'app/src-tauri' / name).write_text(json.dumps({'bundle': {'resources': {limitations: 'release/LIMITATIONS.md'}}}))
+                (self.repo / 'app/src-tauri' / name).write_text(json.dumps({'bundle': {'resources': {limitations: 'release/INVENTED.md'}}}))
                 with self.assertRaisesRegex(ValueError, 'platform or alternate Tauri configuration'): self.build()
+
+    # The shipped limitations list is the App's own content, named by its exact source and destination.
+    def test_the_shipped_limitations_list_is_app_content_by_its_exact_mapping(self):
+        source, destination = coverage.bundle.LIMITATIONS
+        for value in (json.loads((ROOT / coverage.ACCOUNT).read_text()), self.build()):
+            row = self.row(value, 'Release limitations list')
+            self.assertEqual((row['class'], row['standing']), ('app-content', coverage.COVERED))
+            self.assertEqual(row['mappings'], [{'source': coverage.bundle.repository_source(source), 'destination': destination}])
+            self.assertEqual(row['texts'], self.row(value, 'chirality-app')['texts'])  # the App's LICENSE.md ships as its notice
+        # Another source selected for that destination refuses; the entry cannot be carried by the destination alone.
+        self.edit('app/src-tauri/tauri.conf.json', lambda v: v['bundle']['resources'].update(
+            {source.replace('RELEASE_LIMITATIONS', 'INVENTED_OTHER'): destination}) or v['bundle']['resources'].pop(source))
+        with self.assertRaisesRegex(ValueError, 'duplicate resource destination'): self.build()
+        # Without its App-content entry, the mapping stands open.
+        self.setUp(); self.edit(texts.INPUTS, lambda v: v.update(app_resources=[a for a in v['app_resources'] if a['name'] != 'Release limitations list']))
+        self.assertEqual(self.row(self.build(), 'Unnamed bundle resource ' + destination)['standing'], coverage.UNCOVERED)
 
     # Every bundle resource is named in the account; an unnamed mapping is open, a stale claim refuses.
     def test_a_mapped_resource_the_account_does_not_name_is_open(self):
         conf = 'app/src-tauri/tauri.conf.json'
-        # A mapping like the one the shipped limitations list adds (an invented source path).
-        self.edit(conf, lambda v: v['bundle']['resources'].update({'../../INVENTED-release/LIMITATIONS.md': 'release/LIMITATIONS.md'}))
+        # An invented App document mapped into the bundle.
+        self.edit(conf, lambda v: v['bundle']['resources'].update({'../../INVENTED-release/LIMITATIONS.md': 'release/INVENTED.md'}))
         value = self.build()
-        row = self.row(value, 'Unnamed bundle resource release/LIMITATIONS.md')
+        row = self.row(value, 'Unnamed bundle resource release/INVENTED.md')
         self.assertEqual(row['standing'], coverage.UNCOVERED)
-        self.assertIn('Unnamed bundle resource release/LIMITATIONS.md', {o['name'] for o in value['open']})
+        self.assertIn('Unnamed bundle resource release/INVENTED.md', {o['name'] for o in value['open']})
         # Named as the App's own content by its exact mapping, it is covered with the App's licence as its notice.
         self.edit(texts.INPUTS, lambda v: v['app_resources'].append(
-            {'name': 'Release limitations list', 'note': 'invented for the test',
-             'mappings': [{'source': 'INVENTED-release/LIMITATIONS.md', 'destination': 'release/LIMITATIONS.md'}]}))
+            {'name': 'Invented release document', 'note': 'invented for the test',
+             'mappings': [{'source': 'INVENTED-release/LIMITATIONS.md', 'destination': 'release/INVENTED.md'}]}))
         value = self.build()
-        self.assertEqual(self.row(value, 'Release limitations list')['standing'], coverage.COVERED)
-        self.assertNotIn('Unnamed bundle resource release/LIMITATIONS.md', {c['name'] for c in value['components']})
+        self.assertEqual(self.row(value, 'Invented release document')['standing'], coverage.COVERED)
+        self.assertNotIn('Unnamed bundle resource release/INVENTED.md', {c['name'] for c in value['components']})
 
     def test_a_claim_on_a_mapping_that_does_not_exist_refuses(self):
         self.edit(texts.INPUTS, lambda v: v['app_resources'].append(
-            {'name': 'Release limitations list', 'note': 'invented',
-             'mappings': [{'source': 'INVENTED-release/LIMITATIONS.md', 'destination': 'release/LIMITATIONS.md'}]}))
+            {'name': 'Invented release document', 'note': 'invented',
+             'mappings': [{'source': 'INVENTED-release/LIMITATIONS.md', 'destination': 'release/INVENTED.md'}]}))
         with self.assertRaisesRegex(ValueError, 'claims a mapping that does not exist'): self.build()
 
     def test_the_vendor_tree_must_be_named(self):

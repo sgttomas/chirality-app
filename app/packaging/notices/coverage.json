@@ -18,8 +18,8 @@
  ],
  "inputs_sha256": {
   "app/packaging/font_notice/index.json": "ad2b50d268aa1df4c856a9cb446cd0fb6821deed4a65e4214c6d5f0df69ac03f",
-  "app/packaging/notices/coverage-inputs.json": "85f135fc2b7660f24a820d3ebed026515398bb3601c637303905f9afc4068fec",
-  "app/packaging/notices/coverage-review.json": "c48190acfd5aacaf63df914e7649d7bd6fbd2d12a90bc8fcad95fcc687643e1d",
+  "app/packaging/notices/coverage-inputs.json": "1ebcc83d0ee83f225c46bd30638d47190b7891e7b52ba0cda475e0e8e3b34279",
+  "app/packaging/notices/coverage-review.json": "c7ebc752d6b1fa39abe190c07e92b28e89b17b68f7942a31baadf416f0adaef5",
   "app/packaging/notices/index.json": "fbf873b839b167d5347b233a7d019df4d053809e8dc9e31968e04b4e6cf46ac4",
   "app/packaging/notices/transitive-index.json": "557c17f96f1a82982d0933a5c0ea570f000db17dad4278d67b16fd63379ed517",
   "app/packaging/sqlite_notice/index.json": "cfbe3f95ea753d14f7d50a4f55d0263693726a30f4847e5430ccadf4d943fc3b",
@@ -28,10 +28,10 @@
   "app/src-tauri/resources/supplier/0.169.0/CANONICAL_DISTRIBUTION.json": "166adbcb5b2663ebed90a18808867e7ceb75c87e8c7707bc8bb3d1bb6d4b2dd4"
  },
  "counts": {
-  "covered": 206,
+  "covered": 207,
   "held-pending-owner-licence-reading": 0,
   "uncovered": 34,
-  "total": 240
+  "total": 241
  },
  "open": [
   {
@@ -7111,6 +7111,30 @@
     {
      "source": "app/src-tauri/resources/distribution-reference/generated/0.160.0/GENERATION.json",
      "destination": "distribution-reference/generated/0.160.0/GENERATION.json"
+    }
+   ],
+   "source": {
+    "repository": "https://github.com/sgttomas/chirality-app"
+   },
+   "texts": [
+    {
+     "repository_path": "app/packaging/notices/assets/app/LICENSE.md",
+     "package_path": "third-party-notices/assets/app/LICENSE.md",
+     "size_bytes": 1067,
+     "sha256": "495c4cd17baafde07be4c358bd47237f259bb2e01914e94114efc97d7fa721da"
+    }
+   ],
+   "standing": "covered",
+   "basis": "the App's own content under the App's licence; the App's LICENSE.md ships as its notice"
+  },
+  {
+   "class": "app-content",
+   "name": "Release limitations list",
+   "version": "0.0.0",
+   "mappings": [
+    {
+     "source": "docs/RELEASE_LIMITATIONS_4.0.0.md",
+     "destination": "release/LIMITATIONS.md"
     }
    ],
    "source": {

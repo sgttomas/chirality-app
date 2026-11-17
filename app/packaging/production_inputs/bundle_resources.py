@@ -27,6 +27,8 @@ FONT_DESTINATION = 'third-party-notices/fonts/'
 VENDOR_DESTINATION = 'codex/'
 SUPPLEMENT_DESTINATION = 'third-party-notices/upstream/'
 SUPPLEMENT_FILES = ('manifest.json', 'LICENSE.md')
+# The release's limitations list, byte for byte, as the bundle resource the host reads (DEL-01-06 AC-008).
+LIMITATIONS = ('../../docs/RELEASE_LIMITATIONS_4.0.0.md', 'release/LIMITATIONS.md')
 # Sources of the two caller-selected mappings, as the account and the plan both name them.
 VENDOR_SOURCE = 'selected:vendor-tree/'
 SUPPLEMENT_SOURCE = 'selected:upstream-notice-supplement/'
@@ -105,6 +107,7 @@ def selected(app, font_license_paths, load=_json):
             _add(resources, src, dst, 'overlay')
     for name in SQLITE:
         _add(resources, '../packaging/sqlite_notice/' + name, SQLITE_DESTINATION + name, 'SQLite')
+    _add(resources, *LIMITATIONS, 'limitations')
     # Bundle-visible copies of the frontend font notices.
     _add(resources, '../packaging/font_notice/index.json', FONT_DESTINATION + 'index.json', 'font notice')
     for path in font_license_paths:

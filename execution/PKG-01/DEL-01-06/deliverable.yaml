@@ -41,6 +41,9 @@ code_paths:
 # Font licence texts shipped beside the fonts; their index and check are under app/packaging/font_notice.
 - app/src/fonts/LICENSE-*.txt
 - app/src-tauri/tauri.conf.json
+# The limitations list ships byte for byte as release/LIMITATIONS.md; the host reads it there.
+- docs/RELEASE_LIMITATIONS_4.0.0.md
+- app/src-tauri/src/release_limitations.rs
 # build.rs and build_support compile the publisher identity into the App. The check that uses
 # the compiled identity on an installed App is DEL-01-01's.
 - app/src-tauri/build.rs
@@ -70,3 +73,4 @@ checks:
 - app/tests/release_build_test.py
 - app/tests/release_fixtures.py
 - app/tests/group_b_legacy_pkg_rules_test.py
+- app/tests/release_limitations_resource_test.py
