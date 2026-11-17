@@ -509,7 +509,9 @@ fn an_incomplete_or_ambiguous_run_is_unknown_an_ended_run_is_not_projected_and_n
     let by_run = |run: &str| projections(&view).into_iter().filter(|p| p.0 == run).map(|p| (p.2, p.3.unwrap_or_default())).collect::<Vec<_>>();
     assert_eq!(by_run("run:unknown"), vec![("unknown".into(), answerability_unknown::RUN_NOT_COMPLETE.into()); 2], "incomplete history: every arrival unknown");
     assert_eq!(by_run("run:ended"), vec![], "an ended run is not projected");
-    assert!(view["runs"].as_array().unwrap().iter().find(|r| r["run"] == "run:ended").unwrap()["answerability"].as_array().unwrap().is_empty());
+    let row = |v: &Value| v["runs"].as_array().unwrap().iter().find(|r| r["run"] == "run:ended").unwrap().clone();
+    assert!(row(&view).get("answerability").is_none(), "an ended run's row carries no projection field");
+    assert_eq!(row(&view), row(&reading.view_bounded(REOPENED_RECORDS_BOUND)), "an ended run's reopened row is its plain row");
     assert_eq!(by_run("run:dup"), vec![("unknown".into(), answerability_unknown::COORDINATE.into()); 2], "two arrivals with one coordinate: neither is resolved");
     assert_eq!(by_run("run:typed"), vec![("unknown".into(), answerability_unknown::COORDINATE.into())], "an arrival number that is not a number");
     // No run with an arrival to project: the act records are not read.

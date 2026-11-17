@@ -674,9 +674,12 @@ impl RunsReading {
         let mut view = self.view_bounded(bound);
         let projected = self.answerability(root, acts);
         if let Some(rows) = view["runs"].as_array_mut() {
+            // Only a run that is projected carries the field: a run that has ended, or has no arrival,
+            // keeps its row exactly as the plain view gives it.
             for row in rows.iter_mut().filter(|row| row["lifecycle"]["records"].is_array()) {
-                let run = row["run"].as_str().unwrap_or_default().to_owned();
-                row["answerability"] = json!(projected.get(&run).cloned().unwrap_or_default());
+                if let Some(list) = row["run"].as_str().and_then(|run| projected.get(run)) {
+                    row["answerability"] = json!(list);
+                }
             }
         }
         view["answerabilityStanding"] = json!(ANSWERABILITY_STANDING);

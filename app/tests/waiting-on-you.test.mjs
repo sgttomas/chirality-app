@@ -1099,4 +1099,8 @@ test('the reopened destination shows the projection beside the recorded disposit
   const unreadable = draw(carriedRow({answerability:[projection('unknown', 'invented unreadable')]}, 'performed'));
   assert.match(agentPlain(unreadable), /Arrival 1: recorded as performed\.[\s\S]*Whether an act already recorded would answer it is not known: ⟦Reason: invented unreadable⟧\./);
   assert.match(none, /whether an act already recorded answers it is not known: this reading gave no projection of the act records for it/);
+  // An ended run is not projected and its row carries no projection field: its recorded disposition is shown alone.
+  const ended = draw(carriedRow({answerability:undefined, state:'ended'}));
+  assert.match(ended, /Arrival 1: reached; act not yet recorded\./);
+  assert.doesNotMatch(ended, /is not known|gave no projection|act records, read with this reading|not yet counted/);
 });
