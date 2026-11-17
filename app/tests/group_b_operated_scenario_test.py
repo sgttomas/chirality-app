@@ -599,6 +599,7 @@ class Detached(unittest.TestCase):
         os.kill(started['pid'], 0)  # still running after the starter returned
         written = json.loads((folder / 'stand-in.started.json').read_text())
         self.assertEqual(written, started)
+        self.assertTrue(('identity' in written) != ('identity_not_established' in written), written)
         self.assertEqual(written['command'], ['/bin/sh', '-c', 'echo to-out; echo to-err >&2; sleep 30'])
 
     def test_no_shell_reads_the_command_and_nothing_else_is_started(self):
@@ -632,6 +633,141 @@ class Detached(unittest.TestCase):
         self.assertEqual(json.loads((folder / 'y.started.json').read_text())['not_started'], 'FileNotFoundError')
 
 
+class TheStartedProcessesIdentity(unittest.TestCase):
+    """detached.py: the identity of the process it started, read while it is still that process's uncollected
+    parent, and the recheck that must find it again before any later signal. The system is never asked: every look
+    is injected, and the executables are invented files whose device and inode are the files' own."""
+    WHEN, LATER = 'Mon Nov 16 21:40:01 2026', 'Mon Nov 16 21:40:07 2026'
+
+    def setUp(self):
+        spec = importlib.util.spec_from_file_location('detached_identity_under_test', OPERATED / 'detached.py')
+        self.detached = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.detached)
+        self.tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+        self.shim, self.python, self.other = (self.tmp / n for n in ('python3-shim', 'Python', 'another-python'))
+        for path in (self.shim, self.python, self.other):
+            path.write_text('invented')
+        self.me = os.getpid()
+
+    def looks(self, *answers):
+        """A look and a path for each call in turn: (start, parent, group, executable path or None or NO_PATH)."""
+        answers, calls = list(answers), []
+        def path_of(pid):
+            calls.append(pid)
+            return answers[0][3]
+        def look_of(pid):
+            start, parent, group, _ = answers.pop(0) if len(answers) > 1 else answers[0]
+            return start, parent, group
+        return dict(look_of=look_of, path_of=path_of), calls
+
+    def captured(self, *answers):
+        given, _ = self.looks(*answers)
+        return self.detached.capture(701, sleep=lambda _: None, on_mac=True, **given)
+
+    def test_the_identity_is_recorded_once_two_looks_agree_and_follows_a_stand_in_that_replaces_itself(self):
+        identity, reason = self.captured((self.WHEN, self.me, 701, str(self.shim)), (self.WHEN, self.me, 701, str(self.python)),
+                                         (self.WHEN, self.me, 701, str(self.python)))
+        self.assertIsNone(reason)
+        info = os.stat(self.python)
+        self.assertEqual(identity, {'started': self.WHEN, 'parent': self.me, 'group': 701, 'executable': str(self.python),
+                                    'device': info.st_dev, 'inode': info.st_ino})
+
+    def test_an_identity_that_cannot_be_read_as_this_starters_own_child_is_not_established(self):
+        cases = {
+            'never the same twice': [(self.WHEN, self.me, 701, str(p)) for p in [self.shim, self.python] * 20],
+            'another parent': [(self.WHEN, 1, 701, str(self.python))] * 3,
+            'not leading its own group': [(self.WHEN, self.me, 1, str(self.python))] * 3,
+            'already ended': [(self.WHEN, self.me, 701, None)],
+            'no path for its executable': [(self.WHEN, self.me, 701, self.detached.stray.NO_PATH)],
+        }
+        for name, answers in cases.items():
+            with self.subTest(name):
+                identity, reason = self.captured(*answers)
+                self.assertIsNone(identity)
+                self.assertTrue(reason)
+        def failing(pid):
+            raise OSError('invented: ps exited 1')
+        identity, reason = self.detached.capture(701, look_of=failing, path_of=lambda pid: str(self.python),
+                                                 sleep=lambda _: None, on_mac=True)
+        self.assertEqual((identity, reason.startswith('OSError')), (None, True))
+        asked = mock.Mock(side_effect=AssertionError('asked although not on macOS'))
+        self.assertEqual(self.detached.capture(701, look_of=asked, path_of=asked, on_mac=False),
+                         (None, 'this is asked on macOS only'))
+
+    def started(self):
+        info = os.stat(self.python)
+        return {'pid': 701, 'command': ['/invented/python', '-B', 'launch.py'],
+                'identity': {'started': self.WHEN, 'parent': self.me, 'group': 701, 'executable': str(self.python),
+                             'device': info.st_dev, 'inode': info.st_ino}}
+
+    def test_the_recheck_says_same_only_for_the_process_recorded_and_never_for_its_number_given_again(self):
+        cases = {
+            'the same process, now the system\'s child': ([(self.WHEN, 1, 701, str(self.python))], 'same'),
+            # The launcher ended and its number was given to a new run of the same command: the same executable,
+            # parent and group, a later start.
+            'its number given again to the same command': ([(self.LATER, 1, 701, str(self.python))], 'not the same'),
+            'its number given to another process': ([(self.LATER, 1, 702, str(self.other))], 'not the same'),
+            'the same start in another group': ([(self.WHEN, 1, 702, str(self.python))], 'not the same'),
+            'another executable file at its start': ([(self.WHEN, 1, 701, str(self.other))], 'not the same'),
+            'a parent that is not the system': ([(self.WHEN, 4242, 701, str(self.python))], 'not the same'),
+            'changed while it was asked': ([(self.WHEN, 1, 701, str(self.python)), (self.LATER, 1, 701, str(self.python))], 'not the same'),
+            'no such process': ([(self.WHEN, 1, 701, None)], 'gone'),
+        }
+        for name, (answers, expected) in cases.items():
+            with self.subTest(name):
+                given, _ = self.looks(*answers)
+                self.assertEqual(self.detached.recheck(self.started(), **given)[0], expected)
+
+    def test_what_the_recheck_cannot_establish_is_never_gone_and_never_the_same(self):
+        def failing(pid):
+            raise OSError('invented: ps exited 1')
+        with self.assertRaises(OSError):  # a failed listing is not "gone"
+            self.detached.recheck(self.started(), look_of=failing, path_of=lambda pid: str(self.python))
+        given, _ = self.looks((self.WHEN, 1, 701, self.detached.stray.NO_PATH))
+        with self.assertRaises(OSError):
+            self.detached.recheck(self.started(), **given)
+        for record in ({'pid': 701, 'identity_not_established': 'invented reason'}, {'pid': 701}, {'identity': self.started()['identity']}):
+            with self.subTest(record=sorted(record)), self.assertRaises(ValueError):
+                self.detached.recheck(record, **given)
+
+    def test_its_exit_status_lets_a_signal_follow_only_for_the_same_process(self):
+        path = self.tmp / 'launcher.started.json'
+        path.write_text(json.dumps(self.started()))
+        argv = ['detached.py', '--recheck', str(path)]
+        for answers, status in (([(self.WHEN, 1, 701, str(self.python))], 0), ([(self.WHEN, 1, 701, None)], 1),
+                                ([(self.LATER, 1, 701, str(self.python))], 2)):
+            given, _ = self.looks(*answers)
+            with self.subTest(status=status), mock.patch.object(self.detached, 'on_macos', return_value=True), \
+                    mock.patch.object(self.detached.os, 'kill', side_effect=AssertionError('the recheck signals nothing')), \
+                    contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(self.detached.main_recheck(argv, **given), status)
+        unrecorded = self.tmp / 'unrecorded.started.json'
+        unrecorded.write_text(json.dumps({'pid': 701, 'identity_not_established': 'invented'}))
+        with mock.patch.object(self.detached, 'on_macos', return_value=True), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(self.detached.main(['detached.py', '--recheck', str(unrecorded)]), 2)
+        with mock.patch.object(self.detached, 'on_macos', return_value=False), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(self.detached.main(argv), 2)
+
+    def test_the_started_file_holds_the_identity_read_before_the_starter_returns(self):
+        folder = self.tmp / 'evidence'
+        folder.mkdir()
+        identity = self.started()['identity']
+        for name, captured, key in (('read', (identity, None), 'identity'),
+                                    ('not read', (None, 'invented reason'), 'identity_not_established')):
+            with self.subTest(name):
+                process = SimpleNamespace(pid=701)
+                with mock.patch.object(self.detached.subprocess, 'Popen', return_value=process) as popen, \
+                        mock.patch.object(self.detached, 'capture', return_value=captured) as capture, \
+                        contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(self.detached.main(['detached.py', str(folder), name.replace(' ', '-'), '--', '/invented/x']), 0)
+                capture.assert_called_once_with(701)
+                self.assertTrue(popen.call_args.kwargs['start_new_session'])
+                written = json.loads((folder / f"{name.replace(' ', '-')}.started.json").read_text())
+                self.assertEqual(written[key], captured[0] or captured[1])
+                self.assertNotIn('identity' if key != 'identity' else 'identity_not_established', written)
+
+
 class TheReceipt(unittest.TestCase):
     def test_a_started_file_that_cannot_be_written_whole_ends_the_command_and_claims_no_more(self):
         spec = importlib.util.spec_from_file_location('detached_under_test', OPERATED / 'detached.py')
@@ -650,7 +786,8 @@ class TheReceipt(unittest.TestCase):
                         return fault
                     return real_write(handle, data)
                 said = io.StringIO()
-                with mock.patch.object(detached.os, 'write', write), contextlib.redirect_stderr(said), contextlib.redirect_stdout(io.StringIO()):
+                with mock.patch.object(detached.os, 'write', write), contextlib.redirect_stderr(said), contextlib.redirect_stdout(io.StringIO()), \
+                        mock.patch.object(detached, 'capture', return_value=(None, 'invented: not asked in this test')):
                     code = detached.main(['detached.py', str(folder), 'stand-in', '--', '/bin/sleep', '60'])
                 report = json.loads(said.getvalue())
                 self.assertEqual((code, report['command_gone']), (3, True), report)

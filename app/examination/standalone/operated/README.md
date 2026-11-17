@@ -25,11 +25,14 @@ method names, the lane and the operator alike:
   started by `detached.py`; the App the launcher started): its number, parent,
   start time, executable and command may be read.
 - **Which process may be signalled, and no other** (App Agent 0, 16 November
-  2026). The launcher and the watch, by the numbers `detached.py` received when
-  it started them (their `*.started.json` files); the App, the launcher's own
-  child (its parent the launcher's number); and a member of the process group
-  the launcher created for the App (`pgrep -g <the App's number>`) whose start
-  is no earlier than the launch's start (the launcher's started file); and,
+  2026). The launcher and the watch, each only when `detached.py --recheck`
+  on its started file finds now the identity `detached.py` recorded when it
+  started it (start time, process group and executable, read while the
+  starter was still its uncollected parent, so of the process it started and
+  no other); the App, the launcher's own child (its parent the launcher's
+  number); and a member of the process group the launcher created for the App
+  (`pgrep -g <the App's number>`) whose start is no earlier than the
+  launcher's recorded start (`identity.started` in its started file); and,
   in the lane's recovery only, a remaining candidate process `stray.py` finds
   running the candidate bundle's own executable (step 11). That executable is
   at the candidate's unique scratch path and is the same file as the
@@ -342,8 +345,8 @@ exception the owner accepted, and App Agent 0 decided, for its live runs.
   homes root, which must already exist; it never creates it. If it does not
   exist the launcher refuses and says so. The lane makes it, once.
 - **The evidence folder.** Outside every checkout, made new by the lane at App
-  Agent 0's go, because the lane keeps its own look there (step 10, "The
-  look"). The assignment names it. Before anything
+  Agent 0's go, because the lane keeps its own files there (those beginning
+  `lane-`). The assignment names it. Before anything
   else in it, the operator confirms it holds only the lane's files (names
   beginning `lane-`) and leaves them alone; anything else in it means no walk.
   Everything else the method writes there is the operator's.
@@ -524,9 +527,15 @@ Its last line is the verdict, or "no walk", and the evidence folder.
    ```
 
    It prints the launcher's process number and returns, and writes
-   `launcher.started.json` in the evidence folder with that number and the
-   command. It starts exactly the command given, with no shell reading it,
-   and does not watch or end it. Once the launcher has made the launch
+   `launcher.started.json` in the evidence folder with that number, the
+   command and the process's identity: its start time, parent, process group
+   and executable, as the system gave them while `detached.py` was still its
+   uncollected parent (so they are the started process's own, whatever has
+   happened since). Where it could not read them, the file says
+   `identity_not_established` with the reason, and nothing may later be
+   signalled by that file: the operator stops, and the lane reports the
+   launcher as unresolved. It starts exactly the command given, with no shell
+   reading it, and does not watch or end it. Once the launcher has made the launch
    folder, the first line of `<evidence folder>/launcher.err` names it; the
    home is `home/` in it and the project folder is `project/`. A refusal made
    before that names no folder. The launcher stays
@@ -606,15 +615,25 @@ Its last line is the verdict, or "no walk", and the evidence folder.
    verdict nor the attempt log `walk.mjs` writes carries this; the operator's
    record does.
 8. **End.** When the App's own quit is not among the allowed acts, send a
-   termination to the launcher; it passes it to the App. First read the
-   launcher again by its number, and send the signal only when that number
-   is listed now with the command and a start no earlier than the time its
-   started file records (a remembered number alone is never signalled):
+   termination to the launcher; it passes it to the App. Immediately before
+   the signal the launcher's identity is asked again, and the signal is sent
+   only when it is the one its started file records (a remembered number alone
+   is never signalled):
 
    ```sh
-   ps -o lstart=,command= -p <the launcher's process number>
-   kill -TERM <the launcher's process number>
+   <python> -B app/examination/standalone/operated/detached.py --recheck <evidence folder>/launcher.started.json \
+     && kill -TERM <the launcher's process number>
    ```
+
+   The recheck exits 0 only when the process with that number has now the
+   recorded start time, process group and executable file, and the system's
+   process 1 as its parent (where `detached.py` left it on returning). A later
+   start of the same command given the same number differs in its start
+   time. Exit status 1 is the system's "no such process": nothing is left to
+   signal. Exit status 2 (another process now, no identity recorded, or a
+   query that failed) means it is not signalled: the operator records it as
+   unresolved and tells the lane in its return. What the recheck does not
+   close is in `detached.py`.
 
    Wait until `<evidence folder>/launcher.out` holds the outcome (about fifteen
    seconds; wait at most sixty, since the launcher lists the real Library
@@ -635,13 +654,16 @@ Its last line is the verdict, or "no walk", and the evidence folder.
     agents may look at": which process may be signalled). The operator ends the
     launcher as in step 8, which ends the App, and the watch, which ends by
     itself when the App does and is otherwise ended by its process number,
-    read again in the same way first (`ps -o lstart=,command= -p <the watch's
-    process number>`, then `kill <the watch's process number>`). It then
+    after the same recheck on its started file (`detached.py --recheck
+    <evidence folder>/watch.started.json && kill <the watch's process
+    number>`; on 2 it is not signalled and is unresolved). It then
     confirms, for the launcher,
     the watch and the App, that `ps -p <number>` shows no process, and that
     the App's process group is gone (`pgrep -g <the App's process number>`
     prints nothing). A member of that group still listed is ended only if its
-    start is no earlier than the launch's and its start time, parent and
+    start is no earlier than the launcher's recorded start (`identity.started`
+    in `launcher.started.json`; where that file has no identity, no member is
+    signalled and each is unresolved) and its start time, parent and
     executable, read again just before the signal, are those first read:
 
     ```sh
@@ -693,11 +715,12 @@ Its last line is the verdict, or "no walk", and the evidence folder.
     which on some of those paths were never made. In order:
 
     1. For each `*.started.json` in the evidence folder other than the lane's
-       own (`lane-*.started.json`, which end by themselves): if `ps -o
-       lstart=,command= -p <its pid>` still shows the recorded command and a
-       start no earlier than the file's time, end it as step 10 does (the
-       launcher by a termination, the watch by its number) and confirm it is
-       gone; otherwise it is not ours to signal, and it is reported.
+       own (`lane-*.started.json`, which end by themselves): `detached.py
+       --recheck <the file>`. On 0, end it as step 10 does (the launcher by a
+       termination, the watch by its number), in the same shell command as
+       the recheck, and confirm it is gone. On 1 it has already ended. On 2,
+       or for a file with `identity_not_established`, it is not signalled: it
+       is reported as unresolved, and the run has not been recovered.
     2. The search:
 
        ```sh
@@ -1961,6 +1984,20 @@ examiner's attestation in the record of the preparation, and nothing the
 filesystem or the comparison shows. No helper makes this folder and no other
 record vouches for it.
 
+**One run in the root.** The comparison of the workflow supplied (W1) covers
+a root with one run (`app/examination/session_comparison/README.md`, "The
+workflow comparison (W1) covers a root with one run"). The App's records
+store in this kept folder must hold exactly one run record in total, of any
+conversation, and it must be the run start of J1's one conversation. It
+counts every `run_text` (a run start, and an end notice, which the App
+publishes when a message is sent in the conversation after the person has
+ended the run) and every `supply_check` (which the App publishes when the
+person presses "Check original native supplied text pages"); a selection
+record is not counted. So this kept folder serves this J1 alone: no
+rehearsal, second run or other conversation's run is made in it, and the
+rehearsal of setup has its own root (above). Anything else blocks W1; it is
+never passed on an inference.
+
 ### The phases
 
 J1 is examined in four phases, each a bounded session of the one operator in
@@ -2023,7 +2060,9 @@ it.
    the examiner changes that file between selection and sending, and the App
    is expected to hold the send; the file is then restored and selected again
    (`j1-content-digest/README.md`). The operator starts the run deliberately
-   in one new conversation.
+   in one new conversation. Whether a send the App holds publishes a run
+   record of its own has not been read in the App's source; if it does, the
+   store holds two and W1 is blocked, and that is recorded as found.
 4. **Requests and results (J1-5, J1-6).** The run proceeds with real
    execution: the model reads the deliverable's files and writes the one
    seven-section `DEL-001-01.md` at the output path, reporting the absent
@@ -2031,7 +2070,19 @@ it.
    through the App's controls, as "Requests" below allows, with the App's name
    set to an examination name and verified before each capture and after every
    restart (REQ-009), and then finds the result and where it is through the
-   App.
+   App. When the agent reports the workflow finished, the operator ends the
+   run through the App's own control, which J1-5's completed state needs
+   (the App's words for it, read in the source: "Ended as completed"), and
+   then sends no further message in that conversation: one would carry an end
+   notice, a second run record. "Check original native supplied text pages"
+   is not pressed: its supply check is a second run record too. Neither is an
+   act J1 requires (criterion 1; `../step-operations.json`, J1-5 and J1-6):
+   J1-3's requirement check is the App's statement before the run of which
+   declared tools are available (`RequirementCheck.tsx`), not a supply check,
+   and what the agent received is established by the independent observation
+   outside the controls. If the run cannot be completed without a further
+   message after it has been ended, the operator stops, and that is a
+   finding; nothing is sent to see.
 
 ### What each phase's record holds
 
