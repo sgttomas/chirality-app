@@ -7220,6 +7220,50 @@ mod conversation_transport_tests {
         assert!(result.err().unwrap().contains(SAVED_IN_APP_DATA_UNKNOWN));
         assert!(!frames.iter().any(|f|matches!(f["method"].as_str(),Some("thread/read"|"thread/resume"))));
     }
+
+    #[test]
+    fn saved_working_folder_continue_without_own_level_follows_default_until_given_its_own() {
+        let f = SavedFolders::new();
+        let h = Arc::new(Host::new());
+        h.configure_recovery(f.root.join("level-ledger.jsonl")).unwrap();
+        h.inner.0.lock().unwrap().level.places.as_mut().unwrap().home_identity = Some("app-home:invented".into());
+        { let mut i = h.inner.0.lock().unwrap();
+          i.state = "ready".into(); i.generation = g(); i.journal.begin_generation(g());
+          i.server_cwd = Some("/invented".into()); i.app_data = Some(f.data.clone());
+        }
+        h.choose_level(&LevelScope::Default, crate::codex_level::level("edits").unwrap(), &[]).unwrap();
+        let mut history = history_selected();
+        let query = history.continue_query().unwrap();
+        let (result, frames) = local_peer_exchange(&h, cloud_reading(), f.project.to_str().unwrap(), history_resume("idle",true), || h.history_dispatch(&query));
+        let dispatch = result.unwrap();
+        let evidence = h.history_dispatch_status(&dispatch).unwrap();
+        history.receive(&query, "conversation-home", &g(), &evidence["response"]["result"]).unwrap();
+        h.history_admit_resume(&history, &dispatch).unwrap();
+        assert!(frames.iter().any(|frame| frame["method"]=="thread/resume" && frame["params"]["sandbox"]=="workspace-write"));
+        let before = h.snapshot();
+        let row_before = before["threads"].as_array().unwrap().iter().find(|row| row["threadId"]=="stored").unwrap();
+        assert_eq!(row_before["level"]["chosen"]["id"], "edits");
+        assert_eq!(row_before["level"]["chosen"]["scope"], "default");
+        assert!(h.thread_level("stored").is_none());
+        h.choose_level(&LevelScope::Default, crate::codex_level::level("full").unwrap(), &[]).unwrap();
+        let after = h.snapshot();
+        let row_after = after["threads"].as_array().unwrap().iter().find(|row| row["threadId"]=="stored").unwrap();
+        let resolved = h.level_for("turn/start", &json!({"threadId":"stored"})).unwrap().id.clone();
+        assert_eq!(resolved, "full");
+        assert_eq!(row_before["level"]["scopeSentence"], crate::codex_level::FOLLOWS_DEFAULT_SENTENCE);
+        assert_eq!(row_after["level"]["chosen"]["id"], "full", "a saved conversation without its own level follows the default");
+        assert_eq!(row_after["level"]["scopeSentence"], crate::codex_level::FOLLOWS_DEFAULT_SENTENCE);
+        assert_eq!(after["levelDefaultScopeSentence"], "Changing the level here changes the default for new conversations and for saved conversations that have no level of their own. Conversations with their own level keep it.");
+        h.choose_level(&LevelScope::Conversation("stored".into()), crate::codex_level::level("edits").unwrap(), &[]).unwrap();
+        h.choose_level(&LevelScope::Default, crate::codex_level::level("supervised").unwrap(), &[]).unwrap();
+        let own = h.snapshot();
+        let row_own = own["threads"].as_array().unwrap().iter().find(|row| row["threadId"] == "stored").unwrap();
+        assert_eq!(row_own["level"]["chosen"]["id"], "edits");
+        assert_eq!(row_own["level"]["chosen"]["scope"], "conversation");
+        assert!(row_own["level"].get("scopeSentence").is_none());
+        assert_eq!(h.level_for("turn/start", &json!({"threadId":"stored"})).unwrap().id, "edits");
+    }
+
     #[test]
     fn saved_working_folder_is_carried_into_the_frame_trust_entry_and_edits_check() {
         let f=SavedFolders::new();

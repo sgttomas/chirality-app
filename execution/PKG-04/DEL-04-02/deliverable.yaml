@@ -11,7 +11,8 @@ needs:
     ask and unread-records reason, and any inherited-association persistence failure with its
     sentence and separately marked raw detail. The requested level associated with a reply is
     distinguished from the reply's own policy, reviewer and sandbox values. The default scope's
-    consequence is supplied before start. Saving outcomes name their scope and whether the choice
+    consequence is supplied before start; a conversation whose chosen scope is default supplies
+    the closed sentence explaining that it follows later default changes until given its own level. Saving outcomes name their scope and whether the choice
     was applied, separately from the level in force; an unconfirmed save is not a promise of
     non-persistence. Project trust distinguishes the requested entry from a confirmed write.
   gating: false

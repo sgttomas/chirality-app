@@ -703,6 +703,7 @@ impl Host {
                 let takes_effect = if changed && Self::current_live_turn(i, &t).is_some() { "from-next-turn" } else { "now" };
                 let project_trust = sent.as_ref().map(|s| s["projectTrust"].clone()).filter(|v| !v.is_null());
                 let mut level = json!({"chosen": chosen, "sent": sent, "reported": reported, "agreement": agreement, "takesEffect": takes_effect});
+                if level["chosen"]["scope"] == "default" { level["scopeSentence"] = json!(cl::FOLLOWS_DEFAULT_SENTENCE); }
                 if takes_effect == "from-next-turn" { level["takesEffectSentence"] = json!(cl::NEXT_TURN_SENTENCE); }
                 if let Some(entry) = i.level.inherited.get(&t) {
                     let recorded = i.level.inherited_read.contains(entry) || i.recovery_snapshot.as_ref()

@@ -177,6 +177,7 @@ function LevelPanel({ host, threadId }: { host: Json; threadId?: string }) {
     {outcome?.refreshFailed && outcome?.reply?.writeFailure?.text && <ReportedValue value={outcome.reply.writeFailure.text}/>}
     {outcome?.refreshFailed && <p role="alert">{REFRESH_FAILED}</p>}
     {threadId && <>
+      {typeof row?.level?.scopeSentence === "string" && <p>{row.level.scopeSentence}</p>}
       <p>Last level sent: {name(row?.level?.sent?.levelId)}. {row?.level?.sent?.writeResult === "written" ? "Written to Codex." : "Writing it to Codex is not established."}</p>
       {row?.level?.reported ? <div>
         <p>Codex reply for the {name(row.level.reported.requestedLevelId)} request:</p>

@@ -60,6 +60,25 @@ test('global exceptional ask preselects full and one press records the default; 
   });
 });
 
+test('a continued conversation shows that it follows default changes until it has its own level',async()=>{
+  const following=sentence('FOLLOWS_DEFAULT_SENTENCE');
+  assert.equal(following,'This conversation follows the default. Changing the default changes its level until you set a level for this conversation.');
+  const projection=id=>host({levelDefault:chosen(id,'chosen'),threads:[thread('T',{chosen:{...chosen(id,'chosen'),scope:'default'},scopeSentence:following})]});
+  await mounted(projection('edits'),'T',async ui=>{
+    assert.equal(nodes(ui.c,'strong')[0].textContent,'Project edits');assert.ok(ui.c.textContent.includes(following));
+    await ui.show(projection('full'));
+    assert.equal(nodes(ui.c,'strong')[0].textContent,'Full access');assert.ok(ui.c.textContent.includes(following));
+    await ui.pick('edits');await ui.press();
+    assert.deepEqual(ui.calls,[[levelOwner(projection('full')),{conversation:'T'},'edits']]);
+    await ui.show(host({levelDefault:chosen('supervised','chosen'),threads:[thread('T',{chosen:{...chosen('edits','chosen'),scope:'conversation'}})]}));
+    assert.equal(nodes(ui.c,'strong')[0].textContent,'Project edits');assert.ok(!ui.c.textContent.includes(following));
+  });
+  await mounted(projection('full'),undefined,async ui=>{
+    assert.ok(ui.c.textContent.includes('Changing the level here changes the default for new conversations and for saved conversations that have no level of their own. Conversations with their own level keep it.'));
+    assert.ok(!ui.c.textContent.includes(following),'the default control is not an existing conversation');
+  });
+});
+
 test('a conversation ask never borrows the default; choice is bound to that conversation and leaves the other display alone',async()=>{
   const h=host({threads:[thread('T',{chosen:null,ask:{sentence:sentence('RECORD_MISSING_SENTENCE'),preselected:'full'}}),thread('U',{chosen:chosen('edits','chosen')})]});
   await mounted(h,'T',async ui=>{

@@ -49,7 +49,8 @@ pub fn home_has_codex_state(codex_home: &Path) -> Result<bool, String> {
     }
 }
 pub const INHERITANCE_NOT_RECORDED: &str = "The App could not confirm that this conversation's level was saved. If it is not saved before the App closes, reopening follows the default for new conversations then in force, which could allow more than this level, unless you set its level.";
-pub const DEFAULT_SCOPE_SENTENCE: &str = "Changing the level here changes the default for later new conversations too. Existing conversations keep their own level.";
+pub const FOLLOWS_DEFAULT_SENTENCE: &str = "This conversation follows the default. Changing the default changes its level until you set a level for this conversation.";
+pub const DEFAULT_SCOPE_SENTENCE: &str = "Changing the level here changes the default for new conversations and for saved conversations that have no level of their own. Conversations with their own level keep it.";
 pub const SAVE_UNCONFIRMED_APPLIED: &str = "The App could not confirm the level was saved. It is in force for this session.";
 pub const SAVE_UNCONFIRMED_NOT_APPLIED: &str = "The App could not confirm the level was saved. This session's level was not changed; reopening will show the level the records then hold.";
 pub const SESSION_ONLY_SENTENCE: &str = "Chosen for now. The App could not read or save its records, so this level is not kept after the App closes.";

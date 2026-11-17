@@ -54,7 +54,8 @@ needs:
     without inferring a choice or a supplier confirmation. It presents the host's closed reading,
     allowing-command, next-turn and per-case ask sentences, and read or inherited-association
     persistence failures with raw details marked apart from those sentences. The default scope's
-    consequence is shown before start; a saving outcome is shown only for its scope, apart from
+    consequence is shown before start, and a conversation whose chosen scope is default shows
+    the host's following-default sentence; a saving outcome is shown only for its scope, apart from
     the level in force, and unconfirmed saving never implies that no record was written.
   gating: false
 - from: DEL-04-03
