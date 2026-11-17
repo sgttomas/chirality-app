@@ -1,7 +1,7 @@
 {
   "scenario": "first launch, signed out, before setup: one view",
-  "version": 1,
-  "what_it_is": "Agent-operated development evidence on a development build in a throwaway home: what a person sees on the first launch, before any setup, read by one view with nothing clicked, typed or pressed. Its expectations are read from the first-use page as the setup walk's listed state S1 recorded it on 14 November 2026. It is not a person's observation and meets no criterion.",
+  "version": 2,
+  "what_it_is": "Agent-operated development evidence on a development build in a throwaway home: what a person sees on the first launch, before any setup, read by one view with nothing clicked, typed or pressed. Its expectations are written from the first-use page's source at main after PR 365 (FirstUse.tsx), not from a recorded view. It is not a person's observation and meets no criterion.",
   "starting_state": "A fresh home made by the launcher, its network blocks on; no credential; setup not yet made.",
   "acts": "one view, read and acted on nothing",
   "never_clicked": [
@@ -25,6 +25,9 @@
       "expect": [
         {
           "heading": "Welcome to Chirality"
+        },
+        {
+          "text": "Chirality runs Codex on this Mac to do project work with you, and to turn work that goes well into workflows you can run again. First, choose a project folder and how Codex is set up. Your choices take effect when you quit Chirality and open it again."
         },
         {
           "text": "Choose the folder you want to work in, or continue without a project."
