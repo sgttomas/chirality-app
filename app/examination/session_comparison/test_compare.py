@@ -976,29 +976,56 @@ class TheWorkflowComparisonByUniqueness(unittest.TestCase):
         record['chain'] = {'prior_run': 'run-0', 'prior_workflow': record['workflow'], 'ended': 'completed'}
         self.assertEqual(self.w1()[0]['outcome'], 'blocked')
 
-    def test_any_other_run_record_in_the_root_blocks_even_an_end_notice_of_the_same_run(self):
-        """The root may hold one run record in total: an end notice of the same
-        run, a supply check, or a run of another conversation each block."""
-        def supply_check(r):
-            r.records.append({'record_kind': 'supply_check', 'check': 'workflow-check:1', 'run': RUN, 'conversation': THREAD,
-                              'purpose': 'run start', 'expected_text': r.records[0]['text_identity'], 'state': 'found', 'read_at': 't',
-                              'evidence_limits': []})
-        cases = {'end notice of the same run': lambda r: r.end_notice(),
-                 'supply check of the same run': supply_check,
-                 'run start of another conversation': lambda r: r.run_text_record(run='run-2', conversation='019a0000-0000-7000-8000-00000000000b'),
-                 'another conversation, its frame not its own': lambda r: r.run_text_record(run='second-run', conversation='other-conversation',
-                                                                                          lines=frame_lines(run=RUN)),
-                 'another conversation, a chain without its fields': lambda r: r.run_text_record(run='run-2', conversation='other-conversation',
-                                                                                               chain={})}
-        for name, add in cases.items():
+    def supply_check(self, r, run=RUN, **changes):
+        r.records.append({'record_kind': 'supply_check', 'check': 'workflow-check:1', 'run': run, 'conversation': THREAD,
+                          'purpose': 'run start', 'expected_text': r.records[0]['text_identity'], 'state': 'found', 'read_at': 't',
+                          'evidence_limits': [], **changes})
+
+    def with_records(self, add):
+        r = Root(tempfile.mkdtemp(dir=self.tmp.name))
+        r.turn('turn-1', 'completed', text=run_text(), brief=BRIEF)
+        r.run_text_record()
+        add(r)
+        return self.w1(r)[0]
+
+    def test_records_of_the_same_run_are_counted_and_leave_it_one_run(self):
+        """An end notice and supply checks naming the same run are the App's
+        records of that run: counted by kind and run identity, nothing else in
+        them read."""
+        def both(r):
+            r.end_notice()
+            self.supply_check(r)
+            self.supply_check(r, purpose='run end notice', state=None)
+        w1 = self.with_records(both)
+        self.assertEqual((w1['outcome'], w1['app']['runRecords'], w1['app']['runStarts'], w1['app']['endNotices'], w1['app']['supplyChecks']),
+                         ('passed', 4, 1, 1, 2))
+
+    def test_records_of_another_run_or_of_no_known_run_block(self):
+        cases = {
+            'a second run start of the same run': (lambda r: r.run_text_record(), 'the examination root does not hold exactly one run start'),
+            'a run start of another conversation': (lambda r: r.run_text_record(run='run-2', conversation='019a0000-0000-7000-8000-00000000000b'),
+                                                    'the examination root does not hold exactly one run start'),
+            'another conversation, its frame not its own': (lambda r: r.run_text_record(run='second-run', conversation='other-conversation',
+                                                                                        lines=frame_lines(run=RUN)),
+                                                            'the examination root does not hold exactly one run start'),
+            'an end notice of another run': (lambda r: r.end_notice(run='run-0'),
+                                             'the examination root holds records of more than the one run this comparison covers'),
+            'a supply check of another run': (lambda r: self.supply_check(r, run='run-0'),
+                                              'the examination root holds records of more than the one run this comparison covers'),
+            'a supply check naming no run': (lambda r: self.supply_check(r, run=None),
+                                             'a run record of the root names no run identity this comparison reads'),
+            'an end notice naming no run': (lambda r: r.records.append({'record_kind': 'run_text', 'purpose': 'run end notice', 'conversation': THREAD}),
+                                            'a run record of the root names no run identity this comparison reads'),
+            'a run text of a purpose not known': (lambda r: r.records.append({'record_kind': 'run_text', 'purpose': 'run restart', 'conversation': THREAD,
+                                                                              'run': RUN}),
+                                                  'a run record of the root is not a kind the App writes for a run'),
+            'a run text naming no purpose': (lambda r: r.records.append({'record_kind': 'run_text', 'conversation': THREAD, 'run': RUN}),
+                                             'a run record of the root is not a kind the App writes for a run'),
+        }
+        for name, (add, reason) in cases.items():
             with self.subTest(name):
-                r = Root(tempfile.mkdtemp(dir=self.tmp.name))
-                r.turn('turn-1', 'completed', text=run_text(), brief=BRIEF)
-                r.run_text_record()
-                add(r)
-                w1, _ = self.w1(r)
-                self.assertEqual((w1['outcome'], w1['reason'], w1['app']['runRecords']),
-                                 ('blocked', 'the examination root holds more than the one run this comparison covers, or none', 2))
+                w1 = self.with_records(add)
+                self.assertEqual((w1['outcome'], w1['reason']), ('blocked', reason))
 
     # Anything unreadable: blocked.
     def test_an_unreadable_workflow_record_blocks(self):
@@ -1030,7 +1057,7 @@ class TheWorkflowComparisonByUniqueness(unittest.TestCase):
         record = self.r.run_text_record()
         record['workflow']['origin'] = 'elsewhere'
         w1, _ = self.w1()
-        self.assertEqual((w1['outcome'], w1['reason']), ('blocked', "the root's one run record is not a run start this comparison reads"))
+        self.assertEqual((w1['outcome'], w1['reason']), ('blocked', "the root's one run start is not one this comparison reads"))
 
     # Delimiters and encodings: fail closed.
     def test_a_body_holding_its_own_end_marker_is_blocked_even_when_bytes_agree(self):
@@ -1304,7 +1331,7 @@ class SecondW1Reading(unittest.TestCase):
         for extra in ({}, {'record_kind': 'run_text', 'purpose': 'run start', 'run': 'second'},
                       {'record_kind': 'run_text', 'purpose': 'run start', 'conversation': [THREAD], 'run': 'second'},
                       {'record_kind': ['run_text'], 'purpose': 'run start', 'conversation': THREAD, 'run': 'second'},
-                      {'record_kind': 'run_text', 'purpose': 'run end notice', 'conversation': THREAD, 'run': RUN}):
+                      {'record_kind': 'run_text', 'purpose': 'run end notice', 'conversation': THREAD}):
             with self.subTest(extra=extra):
                 r = self.fresh()
                 r.records.append(extra)
@@ -1501,7 +1528,7 @@ class ThirdW1Reading(unittest.TestCase):
             (notes / '00000000-0000-4000-8000-000000000077.json').write_text('INVENTED SENTINEL, plain project notes')
         compare.os.open = tracking
         try:
-            self.assertEqual(self.outcome(self.root(), elsewhere), ('blocked', 'the examination root holds more than the one run this comparison covers, or none'))
+            self.assertEqual(self.outcome(self.root(), elsewhere), ('blocked', 'the examination root does not hold exactly one run start'))
         finally:
             compare.os.open = original
         self.assertFalse([o for o in opened if o.endswith('.json') and 'launch-record' not in o and 'kept' not in o

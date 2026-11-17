@@ -53,8 +53,9 @@ needs:
     a bundled workflow, origin bundled, the bundled manifest's release subject as source root, its name,
     full revision and revision method), its other files by path and digest with the files line, frame
     lines and markers as the composer makes them, and the exact-bytes digests and byte counts of the
-    whole run text and of the WORKFLOW.md bytes it was composed from; no other run record is published
-    for that run unless an end notice is carried by a later turn or the person asks for a supply check;
+    whole run text and of the WORKFLOW.md bytes it was composed from; every other record the App
+    publishes for that run is an end notice (a run text of purpose run end notice) or a supply check, and
+    names that run in its own run field;
     and the bundle's workflows/MANIFEST.json names each bundled package once, with its files and the
     revision the App's package method gives their bytes.
   when: Reading the session comparison's workflow comparison (W1) on a candidate

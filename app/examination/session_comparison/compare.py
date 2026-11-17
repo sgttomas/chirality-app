@@ -6,17 +6,17 @@ compared with Codex's own session file.
 It always compares turns (C2), outcomes (C3) and interrupts (C4). The workflow
 comparison (W1) covers an examination root with one run, not the association
 of a run with a message: it can pass only when the candidate's records store
-in the root holds exactly one run record in total, a run start of this thread;
-Codex's record of the thread holds exactly one line mentioning the workflow
-markers, a message; and the one text element of that message mentioning them
-equals that run text byte for byte, with the files line of the candidate's
-package and the candidate's own WORKFLOW.md bytes of the selected bundled
-revision between its markers, as the examiner's copy in
-record/selected-workflow/ gives them, tied to the candidate's identification.
-Anything else, or anything unreadable or untied, is blocked, never passed and
-never inferred. Several runs in a root, and children, are not compared. Where a
-session has no workflow run, and W1 was not asked for by name, there is no W1
-row.
+in the root holds records of exactly one run (one run start, of this thread,
+and otherwise only end notices and supply checks naming that run); Codex's
+record of the thread holds exactly one line mentioning the workflow markers, a
+message; and the one text element of that message mentioning them equals that
+run text byte for byte, with the files line of the candidate's package and the
+candidate's own WORKFLOW.md bytes of the selected bundled revision between its
+markers, as the examiner's copy in record/selected-workflow/ gives them, tied
+to the candidate's identification. Anything else, or anything unreadable or
+untied, is blocked, never passed and never inferred. Several runs in a root,
+and children, are not compared. Where a session has no workflow run, and W1
+was not asked for by name, there is no W1 row.
 
 Codex's record is the session file Codex writes under its home
 (`sessions/YYYY/MM/DD/rollout-<UTC time>-<threadId>.jsonl`). It is read only
@@ -77,11 +77,11 @@ TOOL = 'app/examination/session_comparison/compare.py'
 PLANNED = ('C2', 'C3', 'C4')
 NAMED = PLANNED + ('W1',)
 COMPARES = {'C2': 'turns', 'C3': 'outcomes', 'C4': 'interrupts', 'W1': 'the workflow supplied, in a root with one run'}
-WORKFLOW_SCOPE = ('W1 is compared only in an examination root whose records store holds exactly one run record in total (a run text '
-                  'or a supply check, of any conversation), a run start of this thread of a bundled workflow; where Codex holds exactly '
-                  'one line in this thread mentioning the workflow markers, a message; and where record/selected-workflow/ holds the '
-                  "candidate's own bytes of that workflow, tied to its identification; anything else, or anything unreadable or untied, "
-                  'is blocked. Several runs in a root, end notices, supply checks and children are not compared')
+WORKFLOW_SCOPE = ('W1 is compared only in an examination root whose records store holds records of exactly one run: one run '
+                  'start, of this thread and of a bundled workflow, and otherwise only end notices and supply checks naming that same run; '
+                  'where Codex holds exactly one line in this thread mentioning the workflow markers, a message; and where '
+                  "record/selected-workflow/ holds the candidate's own bytes of that workflow, tied to its identification; anything else, "
+                  'or anything unreadable or untied, is blocked. Several runs in a root, and children, are not compared')
 # What every workflow marker begins with, and the word in it that a line is
 # searched for, case-folded: in the line's bytes and in every string and key
 # once the line is read as JSON. Nothing else is decoded.
@@ -533,7 +533,10 @@ WORKFLOW_NAME = re.compile(r'^(?=[a-z0-9-]{1,64}$)[a-z0-9]+(?:-[a-z0-9]+)*$')
 FILES_LINE = re.compile(r'^\[Chirality\] Other files of this revision, in the folder "([^"\n]+)": (.+)$')
 STAGING = '.pending-'
 # The record kinds that are records of a run: a run text (run start or end
-# notice) and a supply check. A selection record is not; it must still read.
+# notice) and a supply check, each naming its run in `run`. W1 needs exactly
+# one run start in the root; every other run record must be an end notice or a
+# supply check of that same run. A selection record names no run and is not
+# counted; it must still read.
 RUN_KINDS = ('run_text', 'supply_check')
 SELECTION_KEYS = {'record_kind', 'selection_id', 'identity', 'holding_library', 'standing', 'selected_by', 'how', 'conversation', 'selected_at'}
 IDENTIFIER = re.compile(r'^[A-Za-z0-9-]+(?:\.[A-Za-z0-9-]+)+$')
@@ -1027,8 +1030,9 @@ def workflow_rows(root, model, requested=False):
     record of the store names this thread, or the store cannot be read whole),
     or where W1 was asked for by name; no row otherwise.
       Blocked unless: the candidate's records store in the root holds exactly
-      one run record in total, whatever conversation any names, and it is a
-      readable run start of this thread; Codex holds exactly one line in this
+      one run start, whatever conversation any names, and it is a readable run
+      start of this thread, and every other run record is an end notice or a
+      supply check naming that same run; Codex holds exactly one line in this
       thread mentioning the markers, a message; the run is of a bundled
       workflow; and the examiner's copy of that workflow ties to the candidate.
       Then failed where the markers, the text, the workflow's identity, the
@@ -1045,22 +1049,38 @@ def workflow_rows(root, model, requested=False):
         runs, unreadable = run_records(root, identifier)
     except Unreadable as e:
         return result('blocked', str(e))
-    app.update({'runRecords': number(len(runs)), 'unreadableWorkflowRecords': number(unreadable)})
+    is_start = lambda b: b['record_kind'] == 'run_text' and b.get('purpose') == 'run start'
+    starts = [(r, b) for r, b in runs if is_start(b)]
+    app.update({'runRecords': number(len(runs)), 'runStarts': number(len(starts)),
+                'endNotices': number(sum(1 for _, b in runs if b['record_kind'] == 'run_text' and b.get('purpose') == 'run end notice')),
+                'supplyChecks': number(sum(1 for _, b in runs if b['record_kind'] == 'supply_check')),
+                'unreadableWorkflowRecords': number(unreadable)})
     if not (lines or unreadable or requested or any(b.get('conversation') == thread for _, b in runs)):
         return []
     try:
         if unreadable:
             raise Unreadable("a record of the App's records store could not be read, and it may be a record of a run")
-        if len(runs) != 1:
-            raise Unreadable('the examination root holds more than the one run this comparison covers, or none')
-        record, body = runs[0]
+        if len(starts) != 1:
+            raise Unreadable('the examination root does not hold exactly one run start')
+        record, body = starts[0]
         app['record'] = ident(record)
         try:
-            readable = body['record_kind'] == 'run_text' and body.get('purpose') == 'run start' and run_start_ok(body)
+            readable = run_start_ok(body)
         except Exception:
             readable = False
         if not readable:
-            raise Unreadable("the root's one run record is not a run start this comparison reads")
+            raise Unreadable("the root's one run start is not one this comparison reads")
+        # Every other run record must be of the same run: counted by kind and
+        # run identity only; nothing else in it is read.
+        for _, other in runs:
+            if is_start(other):
+                continue
+            if not ((other['record_kind'] == 'run_text' and other.get('purpose') == 'run end notice') or other['record_kind'] == 'supply_check'):
+                raise Unreadable('a run record of the root is not a kind the App writes for a run')
+            if not text(other.get('run')):
+                raise Unreadable('a run record of the root names no run identity this comparison reads')
+            if other['run'] != body['run']:
+                raise Unreadable('the examination root holds records of more than the one run this comparison covers')
         if body['conversation'] != thread:
             raise Unreadable("the root's one run is of another conversation")
         subject['run'] = ident(body['run'])
