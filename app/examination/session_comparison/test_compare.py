@@ -959,7 +959,7 @@ class TheWorkflowComparisonByUniqueness(unittest.TestCase):
         w1, _ = self.w1()
         self.assertEqual((w1['outcome'], w1['app']['runRecords']), ('blocked', 2))
 
-    def test_a_run_text_of_another_thread_does_not_count(self):
+    def test_a_run_text_of_another_thread_counts_and_blocks(self):
         self.run_start()
         self.r.run_text_record(conversation='019a0000-0000-7000-8000-00000000000b')
         w1, _ = self.w1()
@@ -1436,8 +1436,8 @@ MULTI = {'WORKFLOW.md': WORKFLOW.encode(), 'helpers/notes.md': b'invented helper
 
 
 class ThirdW1Reading(unittest.TestCase):
-    """The second reading's findings, under Agent 0's narrowing: one run record
-    in the whole root, the files frame from the candidate's own package, the
+    """One run identity in the whole root, with one start and permitted same-run
+    auxiliary records, the files frame from the candidate's own package, the
     records store only where the App places it, and W1's plan kept across the
     screen list."""
 
@@ -1481,7 +1481,7 @@ class ThirdW1Reading(unittest.TestCase):
         found = rows(lines, 'W1')
         return (found[0]['outcome'], found[0]['reason']) if found else ('no row', None)
 
-    # 1. One run record in the whole root.
+    # 1. One run identity, one start, with same-run auxiliary records.
     def test_another_record_that_may_be_of_a_run_blocks(self):
         for body in ({'record_kind': 'unknown', 'conversation': THREAD}, {'record_kind': 'supply_check'},
                      {'record_kind': 'selection_record', 'conversation': THREAD}):
@@ -1489,6 +1489,17 @@ class ThirdW1Reading(unittest.TestCase):
                 r = self.root()
                 r.records.append(body)
                 self.assertEqual(self.outcome(r)[0], 'blocked')
+
+    def test_a_selection_with_its_own_run_field_is_not_excluded(self):
+        for run in ('a-different-run', RUN, None):
+            def altered(r):
+                for path in (r.data / 'records/projects/k/workflow').glob('*.json'):
+                    value = json.loads(path.read_text())
+                    if value['body']['record_kind'] == 'selection_record':
+                        value['body']['run'] = run
+                        path.write_text(json.dumps(value))
+            with self.subTest(run=run):
+                self.assertEqual(self.outcome(self.root(), altered)[0], 'blocked')
 
     # 2. The files frame from the candidate's package.
     def test_a_package_with_other_files_passes_with_its_files_line(self):
@@ -1507,7 +1518,8 @@ class ThirdW1Reading(unittest.TestCase):
         self.assertEqual(self.outcome(r)[0], 'failed')
 
     def test_a_folder_label_the_composer_never_writes_is_blocked(self):
-        for label in ('/absolute/folder', '../outside', 'a/./b', '~'):
+        for label in ('/absolute/folder', '../outside', 'a/./b', '~',
+                      'folder\u0080name', 'folder\u0085name', 'folder\u009fname'):
             with self.subTest(label=label):
                 self.assertEqual(self.outcome(self.root(MULTI, label=label))[0], 'blocked')
 
@@ -1586,6 +1598,40 @@ class ThirdW1Reading(unittest.TestCase):
         head, lines = self.two_step(r)
         self.assertEqual(head['planned'], ['C2', 'C3', 'C4'])
         self.assertEqual(rows(lines, 'W1'), [])
+
+    def test_a_malformed_persisted_plan_blocks_instead_of_losing_w1(self):
+        for plan in ('W1', {'W1': True}, None, 1, ['C2', 'C3', 'C4', 'unknown'],
+                     ['C2', 'C3', 'C4', 'W1', 'W1'], ['C2', 'C3', 'C4', {}]):
+            with self.subTest(plan=plan):
+                r = Root(tempfile.mkdtemp(dir=self.tmp.name))
+                r.turn('turn-1', 'completed')
+                r.write()
+                with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                    self.assertEqual(compare.main(['compare', '--root', str(r.root), '--thread', THREAD,
+                                                   '--comparison', 'W1']), 0)
+                    (screen,) = (r.root / 'record').glob('screen-list-*.jsonl')
+                    saved = [json.loads(l) for l in screen.read_text().splitlines()]
+                    saved[0]['planned'] = plan
+                    screen.write_text('\n'.join(json.dumps(l) for l in saved) + '\n')
+                    self.assertEqual(compare.main(['answers', '--root', str(r.root), '--screen', str(screen)]), 1)
+                (out,) = (r.root / 'record').glob('session-comparison-*.jsonl')
+                result = [json.loads(l) for l in out.read_text().splitlines()]
+                self.assertEqual([row['outcome'] for row in rows(result, 'W1')], ['blocked'])
+                self.assertNotIn('passed', {row['outcome'] for row in rows(result)})
+
+    def test_an_absent_legacy_plan_remains_usable(self):
+        r = Root(tempfile.mkdtemp(dir=self.tmp.name))
+        r.turn('turn-1', 'completed')
+        r.write()
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(compare.main(['compare', '--root', str(r.root), '--thread', THREAD]), 0)
+            (screen,) = (r.root / 'record').glob('screen-list-*.jsonl')
+            saved = [json.loads(l) for l in screen.read_text().splitlines()]
+            del saved[0]['planned']
+            screen.write_text('\n'.join(json.dumps(l) for l in saved) + '\n')
+            self.assertEqual(compare.main(['answers', '--root', str(r.root), '--screen', str(screen)]), 0)
+        (out,) = (r.root / 'record').glob('session-comparison-*.jsonl')
+        self.assertEqual(rows([json.loads(l) for l in out.read_text().splitlines()], 'W1'), [])
 
     def test_the_plan_never_makes_a_pass_the_records_do(self):
         r = self.root()

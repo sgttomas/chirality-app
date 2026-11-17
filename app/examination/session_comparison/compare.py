@@ -658,9 +658,10 @@ def store_records(root, identifier):
     """Every WR record file of the candidate's records store in the root, and
     nothing else. The store is where the App places it for this route: the
     launcher gives the App the root's home/ as its home and no store override,
-    and a build with the custom protocol is not a development build, so the
+    and custom-protocol disables Tauri's is_dev() mode, so the
     store is <home>/Library/Application Support/<identifier>/records unless the
     person chose another (records-store.json in the App's data), which blocks.
+    This is still an identified development candidate.
     Records kept in place in the launcher's project (.chirality/records) are
     outside this case and block. Each folder on the way is opened without
     following a link; a link, a non-folder or a folder that cannot be opened
@@ -735,6 +736,8 @@ def envelope_body(data, stem):
         raise Unreadable('a workflow record names no kind or conversation this comparison reads')
     if body['record_kind'] == 'selection_record' and not SELECTION_KEYS <= set(body):
         raise Unreadable('a selection record lacks a field the App writes')
+    if body['record_kind'] == 'selection_record' and 'run' in body:
+        raise Unreadable('a selection record carries a run field the App does not write')
     return match.group(1), body
 
 
@@ -792,7 +795,7 @@ def valid_folder_label(label):
     or control character, and no empty, `.` or `..` component."""
     rest = label[2:] if label.startswith('~/') else label
     return (rest != '' and not rest.startswith('~') and not rest.startswith('/')
-            and not any(ord(c) < 32 or ord(c) == 127 or c in '"\\' for c in label)
+            and not any(ord(c) < 32 or 127 <= ord(c) <= 159 or c in '"\\' for c in label)
             and all(part not in ('', '.', '..') for part in rest.split('/')))
 
 
@@ -971,7 +974,7 @@ def selected_workflow(root):
         except Exception:
             raise Unreadable("the reference's copy of the candidate's identification and inventory does not validate")
         if 'custom-protocol' not in identification['build']['features']:
-            raise Unreadable('the identified candidate is a development build, whose records are not kept in its App data')
+            raise Unreadable("the identified development candidate lacks custom-protocol; Tauri's is_dev() mode does not place its records in App data")
         launch_bindings(root, identification)
         entries = {e['path']: e for e in inventory['entries']}
         prefix = reference['bundle_path'] + '/'
@@ -1279,10 +1282,21 @@ def screen_plan(root, screen):
     plan can only add W1's row: W1 is always derived from the records, never
     from the list or the answers."""
     try:
-        head = json.loads(inside(root, screen).read_text().splitlines()[0])
-        return isinstance(head, dict) and isinstance(head.get('planned'), list) and 'W1' in head['planned']
+        head = strict_json(inside(root, screen).read_text().splitlines()[0])
+    except Refused:
+        raise
     except Exception:
+        raise Refused('the screen list plan could not be read')
+    if not isinstance(head, dict):
+        raise Refused('the screen list header is not an object')
+    if 'planned' not in head:
+        # Older screen lists carried no plan; absence grants no comparison.
         return False
+    plan = head['planned']
+    if (not isinstance(plan, list) or not all(isinstance(c, str) and c in NAMED for c in plan)
+            or len(set(plan)) != len(plan) or not set(PLANNED) <= set(plan)):
+        raise Refused('the screen list carries a malformed comparison plan')
+    return 'W1' in plan
 
 
 def run_answers(root, screen, requested=False):

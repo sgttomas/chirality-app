@@ -87,11 +87,11 @@ A session has a workflow run to compare when a line of Codex's record mentions t
 **The App's side: one run in the root.**
 - **Where the records are read.** Only from the records store the App uses on this route, never by searching the root for names.
   - The launcher gives the App the root's `home/` as its home, and no `CHIRALITY_RECORDS_STORE` (its environment allowlist).
-  - A build with the custom protocol is not a development build. So the App keeps its store in its data folder: `home/Library/Application Support/<identifier>/records/`. The identifier is the one every launch record of the root names.
+  - The custom-protocol feature makes Tauri's `is_dev()` false. This remains an identified development candidate; Tauri's mode controls the store placement here. The App keeps its store in its data folder: `home/Library/Application Support/<identifier>/records/`. The identifier is the one every launch record of the root names.
   - The records read are those in `projects/<key>/workflow/` of that store.
   - A person's chosen store (`records-store.json` in the App's data) blocks, because its place is not established here.
   - Records kept in place in the launcher's project (`project/.chirality/records`) are outside this case, and block.
-  - So does an identification whose build lacks the custom protocol: a development build keeps no store in its App data.
+  - So does an identification whose build lacks the custom protocol: Tauri's `is_dev()` mode keeps no store in its App data.
 - **How they are opened.** Every folder from the root to each record folder is opened without following a link. A link, a non-folder or a folder that cannot be opened blocks, before any record is opened. A folder that does not exist means no record there.
   - In a record folder, every entry must be a plain `<id>.json` file with one name.
   - A link, a second hard link, a staging file, a subfolder or any other entry blocks. A link or alias is refused before it is opened.
