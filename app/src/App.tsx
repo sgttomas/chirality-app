@@ -44,6 +44,7 @@ import { REFRESH_FAILED, commandThenRefresh, observationLine, observationText, r
 import { FirstUseSetup } from "./FirstUse";
 import { AccountStatus, DIDNT_SAY, accountReadError, accountReadRef, accountReading, reportedPlan, signInCompletion, type ReadAccountStatus } from "./AccountStatus";
 import { RunWorkflowGuide, registeredRevisionAnchor, runEvidenceAnchor } from "./RunJourney";
+import { PermissionLevel, PermissionLevelActions, levelOwner } from "./PermissionLevel";
 import { MakeWorkflowGuide } from "./MakeJourney";
 import { acknowledgeBringBackDoubt, beginBringBack, bringBackRefusal, doubtDestination, endBringBack, noteBringBackDoubt, resetBringBackDoubts, sendKey, useBringBackDoubts, type BringBackDoubt } from "./bringBackDoubts";
 import { AccessRouteChoice, AvailableModels, ENTRY_SOURCE_WORDS, MODEL_ID_PAUSE_MS, OfferedEffortChoice, SHOWN_ROUTE, entrySourceReading, modelMatch, onlyAccessEntry, validModelPacket } from "./ModelChoice";
@@ -417,6 +418,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
     <h2 id="conversation-heading">Conversation</h2>
     <ConversationChoices legend="Current-generation conversation" group="current-conversation" disabled={!!ownBusy} chosen={threadKey} none="No conversation chosen"
       value={threadChoices(currentThreads, (thread: Json) => JSON.stringify([thread.generation, thread.threadId]))} onChoose={key => { setThreadKey(key); setTurnId(""); setError(""); }} />
+    {selected && <PermissionLevel host={host} threadId={selected.threadId}/>}
     {selected && <details className="conversation-identity"><summary>Exact conversation ID</summary><code>{selected.threadId}</code></details>}
     {selected && <details className="conversation-options"><summary>Role and continuation options</summary><RoleHeader key={`role-header:${JSON.stringify([selected.generation, selected.threadId])}`} thread={selected} limits={host?.roleLimits} busy={!!busy || forkBusy} ready={host?.state === "ready"} trialConversation={trialConversation} trialsStartedHere={trialsStartedHere}
       readSupplyHistory={() => invoke("role_supply_history", { generation: selected.generation, thread: selected.threadId })}
@@ -2801,7 +2803,17 @@ export function App() {
     setSignedInNotice(true);
   }, [completion, host, signInReading, requestWaiting]); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (signInReading !== "chatgpt-account") setSignedInNotice(false); }, [signInReading]);
-  return (<UnsentWork.Provider value={reportUnsent}><DailyWorkspace>
+  const changePermissionLevel = async (owner: string, scope: "default" | { conversation: string }, levelId: string) => {
+    if (homePendingRef.current || owner !== levelOwner(currentHost.current)) throw Error("The Codex home changed. Choose the level again in the current view; nothing was changed.");
+    let refreshFailed = false;
+    try {
+      const result = await commandThenRefresh(() => invoke<Json>("set_level", { scope, levelId }), refresh, () => { refreshFailed = true; });
+      return { result, refreshFailed };
+    } catch (error) {
+      return { error: error instanceof Error ? error.message : String(error), refreshFailed };
+    }
+  };
+  return (<UnsentWork.Provider value={reportUnsent}><PermissionLevelActions.Provider value={{ host, change: changePermissionLevel, unavailable: homePending, stale: shownBeforePress(hostReads), readFailed: !!hostReads.failure }}><DailyWorkspace>
         {firstRead !== "read" && <FirstReadStatus failed={firstRead === "failed"} slow={firstReadSlow} retry={() => { void refresh().catch(() => undefined); }}/>}
         {setupRequired && <FirstUseSetup view={host.desktopSetup}/>}
         {firstRead === "read" && <div hidden={setupRequired}>
@@ -2880,9 +2892,9 @@ export function App() {
           </details>}
           <p>{onlyAccessEntry(homeClass) ? "Choose a model, then a role." : "Choose how this conversation connects and a model, then a role."} Switching homes never transfers an existing conversation.</p>
           <RoleChoice group="start-thread-role" roleSet={host?.roleSet} limits={host?.roleLimits} role={role} preselected={!roleTouched && !!role && role === host?.roleSet?.defaultRole} setRole={next => { expireEndpointPreview(); roleInitialized.current = true; setRoleTouched(true); setRole(next); }}/></div>
+          <PermissionLevel host={host}/>
           <p aria-label="New conversation choice">{!model.trim() || !modelProvider.trim() ? "not started — no model selected" : entryCompatible ? `New conversation choice: ${model} via ${modelProvider} (${entryId})` : "Choose how this conversation connects (step 1)."}</p>
-          {/* The level in force, its origin and what an allowed command may do: the level view fills this place. */}
-          <div id="new-conversation-level"></div>
+
           <p>
             <button onClick={startConversation} disabled={!!startBlocked} aria-describedby={startBlocked ? "start-conversation-blocked" : undefined}>Start thread</button>
             {startBlocked && <>{" "}<span id="start-conversation-blocked" role="status">{startBlocked}</span></>}
@@ -3029,5 +3041,5 @@ export function App() {
           </WorkspaceDisclosure>
         </section>
         </div>}
-      </DailyWorkspace></UnsentWork.Provider>);
+      </DailyWorkspace></PermissionLevelActions.Provider></UnsentWork.Provider>);
 }

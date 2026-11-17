@@ -8,6 +8,7 @@ impl Fixture {
     fn new() -> Self {
         let root = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("waiting-overview-").unwrap());
         std::fs::create_dir(&root).unwrap();
+        std::fs::create_dir(root.join("project")).unwrap();
         let bin = root.join("peer.py");
         std::fs::write(&bin, r#"#!/usr/bin/python3
 import json,sys
@@ -34,7 +35,7 @@ for line in sys.stdin:
             let mut config = HostConfig::new(bin.clone(), home, probe, root.clone());
             config.allow_unverified_dev = true; config.wait_limit = Duration::from_secs(2);
             host.start(&config, "synthetic waiting-overview fixture").unwrap();
-            host.thread_start_selected(root.to_str().unwrap(), "synthetic", "synthetic").unwrap();
+            host.thread_start_selected(root.join("project").to_str().unwrap(), "synthetic", "synthetic").unwrap();
             sessions.push(Arc::new(HomeSession::new(class, host, Ok(config)).unwrap()));
         }
         let mut router = HomeRouter::new(sessions.remove(0)).unwrap(); router.bind_key(sessions.remove(0)).unwrap();

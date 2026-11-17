@@ -1325,6 +1325,11 @@ impl Host {
 }
 
 impl ProviderAdmission {
+    /// A local-entry proof for checks that read only its entry, folder, provider and model.
+    #[cfg(test)]
+    pub(super) fn local_for_test(source: SourceRequest, cwd: &str, model: &str) -> Self {
+        Self { source, cwd: cwd.into(), provider: crate::native_local_provider::PROVIDER.into(), model: model.into(), entry: crate::native_local_provider::ENTRY.into(), config: Value::Null, children: None, config_link: None }
+    }
     pub(super) fn source(&self) -> &SourceRequest { &self.source }
     pub(super) fn cwd(&self) -> &str { &self.cwd }
 }
@@ -1334,8 +1339,21 @@ impl Host {
     /// still independently checks the current private configuration reading.
     pub(crate) fn role_metadata_request(&self, source: &SourceRequest, request: crate::role_lifecycle::MetadataRequest) -> Result<crate::role_lifecycle::MetadataRequest, String> {
         self.check_source(source)?;
+        // The level the frame carried, as bound when it was built (V4-AUT-06).
+        let request = request.with_sent_level(source.level.as_ref());
         let i = self.inner.0.lock().map_err(|_| unavailable())?;
-        let Some(binding) = &i.local_provider else { return Ok(request); };
+        let Some(binding) = &i.local_provider else {
+            // The actual resume's saved folder was admitted before frame construction;
+            // carry that bound folder into the whole-packet role expectation too.
+            let request = if source.frame["method"] == "thread/resume" {
+                match source.level.as_ref().and_then(|level|level.trust.as_ref()) {
+                    Some(trust) if source.frame["params"]["cwd"].as_str() == trust.cwd.to_str() =>
+                        request.with_classified_cwd(trust.cwd.to_str().ok_or("admitted folder is not Unicode")?),
+                    _ => request,
+                }
+            } else { request };
+            return Ok(request);
+        };
         if i.generation != *source.generation() || i.state != "ready" || i.server_requests.is_closed(source.generation())
             || source.generation()["home"] != binding.home || request.generation() != source.generation()
             || request.request_id() != source.request_id() || request.request_ref() != source.request_ref()

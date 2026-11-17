@@ -97,6 +97,10 @@ use crate::recovery::RecoveryLedger;
 #[path="hosting_child_roles.rs"]
 mod child_role_receiving;
 pub(crate) use child_role_receiving::NativeChildStart;
+use crate::codex_level;
+#[path = "hosting_level.rs"]
+pub(crate) mod level_state;
+pub(crate) use level_state::LevelScope;
 use crate::util::{now_rfc3339, opaque_id, sha256_hex};
 use serde_json::{json, Value};
 use std::collections::{HashMap, VecDeque};
@@ -207,6 +211,8 @@ pub(crate) enum RemovalClass {
     HomeSeparation,
     /// Direct-vendor launcher convention: a wrapper setting (successor plan only).
     LauncherWrapper,
+    /// The permission level (V4-AUT-06): a name for where Codex runs commands.
+    ExecutionLocation,
 }
 impl RemovalClass {
     pub(crate) fn code(self) -> &'static str {
@@ -216,6 +222,7 @@ impl RemovalClass {
             Self::SignInOrTokenRefresh => "credential-custody/sign-in-or-token-refresh",
             Self::HomeSeparation => "home-separation",
             Self::LauncherWrapper => "launcher-wrapper",
+            Self::ExecutionLocation => "level/execution-location",
         }
     }
     fn reason(self) -> &'static str {
@@ -225,6 +232,7 @@ impl RemovalClass {
             Self::SignInOrTokenRefresh => "Removed by name for credential custody: a name for sign-in or token refresh. The name is known to exist; what the variable does is not claimed.",
             Self::HomeSeparation => "Removed by name for the separation of the App's Codex homes: a name for a state location. The name is known to exist; what the variable does is not claimed.",
             Self::LauncherWrapper => "Removed by name by the direct-vendor launcher convention: a wrapper setting.",
+            Self::ExecutionLocation => "Removed by name for the permission level (V4-AUT-06): a name for where Codex runs commands. The name is known to exist; what the variable does is not claimed.",
         }
     }
     /// Names whose values the configuration record treats as secret
@@ -278,6 +286,7 @@ pub(crate) const REMOVED_ENVIRONMENT: &[(&str, RemovalClass)] = {
         ("CODEX_ROLLOUT_TRACE_ROOT", HomeSeparation),
         ("CODEX_PLUGIN_METRICS_OUTPUT", HomeSeparation),
         ("CODEX_TUI_SESSION_LOG_PATH", HomeSeparation),
+        ("CODEX_EXEC_SERVER_URL", ExecutionLocation),
     ]
 };
 /// Inherited by the child, neither set nor removed; only its presence in the
@@ -446,6 +455,19 @@ impl StartRefusalCause {
 }
 #[derive(Default)]
 struct Inner {
+    /// DEL-01-01, PRD V4-AUT-06: the permission level in force for new conversations. None until the person
+    /// has chosen: a production Host starts with none, and every start, resume, fork and turn start is then
+    /// refused before anything is reserved or written.
+    default_level: Option<&'static codex_level::Level>,
+    /// The person's choice per conversation (thread id to level), which beats the default for that
+    /// conversation's turns, resumes and forks. A conversation a start or fork created takes the level its
+    /// frame carried, recorded when its id is learned from the reply.
+    thread_levels: HashMap<String, &'static codex_level::Level>,
+    /// Advanced by every change the person makes to the levels. A frame built under an older revision is
+    /// refused at its final admission and nothing is written.
+    level_revision: u64,
+    /// The level's start checks, send-time refusals, ledger entries, status and lasting rules (`hosting_level.rs`).
+    level: level_state::LevelState,
     /// The last start of Codex refused before its app-server was spawned: its
     /// reason, actor, time, home (`app-home:` identity) and attempt (null when
     /// it was refused before it was admitted as an attempt). Host status
@@ -587,11 +609,21 @@ pub(crate) mod provider_endpoint;
 pub(crate) mod provider_create;
 
 // Non-deserializable capabilities issued only by the actual Host sender.
+/// The params a start's reply is checked against: the frame's own params as sent, or the params as built
+/// before the level (V4-AUT-06), which the check augments with the frame's bound level.
+#[derive(Clone, Copy)]
+enum StartParams<'a> {
+    Sent(&'a Value),
+    Built(&'a Value),
+}
 #[derive(Clone)]
 pub struct SourceRequest {
     source: Weak<(Mutex<Inner>, Condvar)>,
     generation: Value,
     frame: Value,
+    /// The level this frame carries, bound when the frame was built (start, resume, fork and turn start
+    /// only). Immutable with the frame: every later comparison for this request uses it.
+    level: Option<codex_level::Bound>,
     request_ref: String,
     receiver: Arc<Mutex<Receiver<Value>>>,
 }
@@ -630,6 +662,10 @@ impl SourceRequest {
     pub fn request_id(&self) -> &Value { &self.frame["id"] }
     pub fn request_ref(&self) -> &str { &self.request_ref }
     pub fn attempted_frame(&self) -> &Value { &self.frame }
+    /// The level the frame carries, as bound when it was built; None for a method that carries no level.
+    pub fn level_sent(&self) -> Option<&codex_level::Bound> { self.level.as_ref() }
+    /// The id of the level the frame carries and the method it was sent with, for the ledger's `level_sent`.
+    pub fn level_sent_id(&self) -> Option<(&str, codex_level::Method)> { self.level.as_ref().map(|b| (b.level.id.as_str(), b.method)) }
     /// Whether an actual write attempt of this frame was observed, read without
     /// panicking (a poisoned Host lock is read through). `None` when the source
     /// Host or its record is gone. Safe to call while unwinding.
@@ -740,6 +776,8 @@ struct AttachmentLink { custody: Arc<AttachmentCustody>, records: Vec<Value>, or
 /// One-shot transient packet. No deserialization or durable native inputs.
 pub struct PreparedAttachmentDispatch {
     source: SourceRequest,
+    /// The params as built, before the level: what the dispatch's final checks run on.
+    built: Value,
     custody: Arc<AttachmentCustody>,
     list: PreparedAttachmentList,
     selections: Vec<SelectedTextAttachment>,
@@ -1174,6 +1212,9 @@ pub struct Host {
     /// Runs once after any request's final admission, frame writer held, before its write.
     #[cfg(test)]
     pub(crate) before_request_write: Mutex<Option<Box<dyn FnOnce(&Host) + Send>>>,
+    /// Changes a leveled frame's params after the level is merged and before the post-condition is checked.
+    #[cfg(test)]
+    pub(crate) after_level_merge: Mutex<Option<Box<dyn FnOnce(&mut Value) + Send>>>,
     /// A `turn/start`'s write fails with this error after it has begun.
     #[cfg(test)]
     pub(crate) turn_start_simulated_write: Mutex<Option<&'static str>>,
@@ -1251,7 +1292,20 @@ impl Default for Host {
 }
 
 impl Host {
+    /// A Host with no level chosen (V4-AUT-06): the production constructor. Under `cfg(test)` only, the
+    /// default for new conversations is "edits" so the unit tests' conversations can be sent; no production
+    /// build sets a level for the person.
     pub fn new() -> Self {
+        let host = Self::new_without_level();
+        #[cfg(test)]
+        {
+            let mut i = host.inner.0.lock().unwrap();
+            i.default_level = codex_level::level("edits");
+            i.level.places = Some(level_state::Places::for_test());
+        }
+        host
+    }
+    fn new_without_level() -> Self {
         let inner = Inner {
             state: "absent".into(),
             generation: Value::Null,
@@ -1338,6 +1392,7 @@ impl Host {
             #[cfg(test)] reading_after_reserve: Mutex::new(None),
             #[cfg(test)] reading_after_register: Mutex::new(None),
             #[cfg(test)] before_request_write: Mutex::new(None),
+            #[cfg(test)] after_level_merge: Mutex::new(None),
             #[cfg(test)] turn_start_simulated_write: Mutex::new(None),
             #[cfg(test)]
             before_eof_gate: Mutex::new(None),
@@ -1483,6 +1538,7 @@ impl Host {
         Self::observe_reply_writes(i);
         let mut status = Self::snapshot_fields(i);
         status["startRefusalCause"] = json!(i.start_refusal_cause.map(StartRefusalCause::as_str));
+        Self::level_status(i, &mut status);
         status["build"] = json!(if cfg!(debug_assertions) { "development" } else { "release" });
         status
     }
@@ -2144,7 +2200,10 @@ impl Host {
     /// that leave the state as it was keep doing so, and the rest are the
     /// attempt's lifecycle record.
     pub fn start(self: &Arc<Self>, cfg: &HostConfig, actor: &str) -> Result<Value, String> {
-        self.start_sequence(cfg, actor)
+        let started = self.start_sequence(cfg, actor);
+        // The home's lasting rules are read again each time a start reaches ready (V4-AUT-06).
+        if started.as_ref().is_ok_and(|s| s["state"] == "ready") { self.read_lasting_rules(None); }
+        started
     }
     fn start_refusal(actor: &str, home: &std::path::Path, attempt: Option<u64>, reason: &str) -> Value {
         json!({"reason":reason,"actor":actor,"at":now_rfc3339(),"home":home_identity(home),"attempt":attempt})
@@ -2157,7 +2216,7 @@ impl Host {
     /// refused for a reason that is not kept leaves no refusal showing, and
     /// never an older one. Not a lifecycle transition.
     pub(crate) fn begin_start_request(&self) {
-        let mut i = self.inner.0.lock().unwrap(); i.last_start_refusal = None; i.start_refusal_cause = None;
+        let mut i = self.inner.0.lock().unwrap(); i.last_start_refusal = None; i.start_refusal_cause = None; i.level.start_refusal = None;
     }
     pub(crate) fn note_start_refusal(&self, actor: &str, home: &std::path::Path, reason: &str) {
         let mut i = self.inner.0.lock().unwrap(); i.last_start_refusal = Some(Self::start_refusal(actor, home, None, reason)); i.start_refusal_cause = Some(StartRefusalCause::Home);
@@ -2276,6 +2335,12 @@ impl Host {
             if !(i.state == "absent" || i.state == "stopped" || i.state == "refused") {
                 return Err(format!("start not accepted in state {}", i.state));
             }
+        }
+        // V4-AUT-06: after the state's own refusal and before the home is claimed, before every Codex start in an App-owned home, the home's path and `environments.toml`
+        // (by presence alone, never opened). Refused, Codex is not started; the cause is in the status.
+        if let Err(reason) = self.level_start_check(cfg) {
+            self.note_start_refusal(actor, &cfg.codex_home, &reason);
+            return Err(reason);
         }
         // The home is the folder the child will use: it is given `cfg.cwd` as its working folder
         // and resolves a relative CODEX_HOME there, so the hold, the identity checks and the lock
@@ -2686,6 +2751,7 @@ impl Host {
             i.stop_record = None;
             i.server_cwd = Some(cfg.cwd.to_string_lossy().into_owned());
             i.app_data = cfg.app_data.clone();
+            Self::level_places_at_start(&mut i, cfg);
             let (removed_names, removed_classes) = removed_environment_record(prepared.as_ref().map(|p| &p.plan.removed[..]).unwrap_or(&[]));
             let conf = json!({
                 "launcher": executable.display().to_string(),
@@ -2892,7 +2958,10 @@ impl Host {
         self.check_local_reply()?;
         let(frame,bound)={let mut i=self.inner.0.lock().unwrap();let frame=i.server_requests.prepare(generation,id,answer,origin,actor)?;let bound=self.capture_pipe(&i);(frame,bound)};
         let result=bound.and_then(|bound|self.write_reply(bound,&frame));
-        self.flush_recovery_observations();result?;Ok(json!({"replyWriteResult":"written","acknowledgment":"not-observed"}))
+        self.flush_recovery_observations();result?;
+        // An answer that adds a lasting rule: the home's rules are read again (V4-AUT-06).
+        if level_state::adds_lasting_rule(answer) { self.read_lasting_rules(None); }
+        Ok(json!({"replyWriteResult":"written","acknowledgment":"not-observed"}))
     }
     pub fn error_server_request(&self,generation:&Value,id:&Value,error:&Value,origin:&str)->Result<Value,String>{
         self.check_local_reply()?;
@@ -3023,6 +3092,91 @@ impl Host {
         }));
         self.request_begin_with_access_offer_guarded("turn/start", params, json!({"kind":"person-directed"}), false, Some(generation), false, None, None, None, None, false, None, guard.as_ref(), None, None, None)
     }
+    /// The person sets the level for new conversations (V4-AUT-06). It applies to frames admitted after it:
+    /// a frame already built under the previous level is refused at its final admission, nothing written.
+    ///
+    /// `pub` only because the integration tests (`tests/`) build Hosts without `cfg(test)` and must give them a
+    /// level. In production it is called only from the App's level command and, at start, from the ledger's
+    /// record of the person's choice; no other production code calls it.
+    pub fn set_default_level(&self, id: &str) -> Result<(), String> {
+        let level = codex_level::level(id).ok_or_else(|| format!("unknown level: {id}"))?;
+        let mut i = self.inner.0.lock().unwrap();
+        i.default_level = Some(level);
+        i.level.default_chosen = None;
+        i.level_revision += 1;
+        Ok(())
+    }
+    /// The person sets the level of one conversation; it beats the default for its turns, resumes and forks.
+    /// In production called only from the App's level command and, at start, from the ledger.
+    pub(crate) fn set_thread_level(&self, thread: &str, id: &str) -> Result<(), String> {
+        if thread.is_empty() { return Err("a conversation's level needs its thread id".into()); }
+        let level = codex_level::level(id).ok_or_else(|| format!("unknown level: {id}"))?;
+        let mut i = self.inner.0.lock().unwrap();
+        i.thread_levels.insert(thread.to_owned(), level);
+        i.level.thread_chosen.remove(thread);
+        i.level_revision += 1;
+        Ok(())
+    }
+    pub(crate) fn default_level(&self) -> Option<&'static codex_level::Level> { self.inner.0.lock().unwrap().default_level }
+    pub(crate) fn thread_level(&self, thread: &str) -> Option<&'static codex_level::Level> { self.inner.0.lock().unwrap().thread_levels.get(thread).copied() }
+    /// The level a frame of `method` with `params` would carry now; None for a method that carries no level
+    /// or when no level applies.
+    pub(crate) fn level_for(&self, method: &str, params: &Value) -> Option<&'static codex_level::Level> {
+        let i = self.inner.0.lock().unwrap();
+        Self::resolve_level(&i, method, params).and_then(|(level, _)| level)
+    }
+    /// The level in force for a frame and its conversation. None when the method carries no level.
+    fn resolve_level(i: &Inner, method: &str, params: &Value) -> Option<(Option<&'static codex_level::Level>, codex_level::Target)> {
+        let kind = codex_level::Method::of(method)?;
+        let thread = params["threadId"].as_str().unwrap_or_default().to_owned();
+        let own = i.thread_levels.get(&thread).copied();
+        // A conversation whose recorded level could not be used waits for the person's choice; it never falls to the
+        // default scope.
+        let asked = own.is_none() && i.level.thread_asks.contains(&thread);
+        Some(match kind {
+            codex_level::Method::ThreadStart => (i.default_level, codex_level::Target::New),
+            codex_level::Method::ThreadFork => (if asked { None } else { own.or(i.default_level) }, codex_level::Target::ForkOf(thread)),
+            codex_level::Method::ThreadResume | codex_level::Method::TurnStart => (if asked { None } else { own.or(i.default_level) }, codex_level::Target::Conversation(thread)),
+        })
+    }
+    /// DEL-01-01, V4-AUT-06: the one place a level enters a frame. Called by each frame builder after every
+    /// existing check has run on `built` (the params as built) and before anything is reserved, recorded or
+    /// written. The level in force is read once, under the same lock as the frame's registration; none refuses.
+    /// The level is merged, and the frame's params must then be `built` plus exactly the level's fields, or the
+    /// frame is refused. Returns the params to write and the level bound to the request; None for a method
+    /// that carries no level (every method but start, resume, fork and turn start).
+    /// `trust` is the project trust read for a start, resume or fork just before (`Host::trust_reading`); such a
+    /// frame without one is refused.
+    fn level_frame(&self, i: &mut Inner, method: &str, built: &Value, trust: Option<codex_level::TrustReading>) -> Result<Option<(Value, codex_level::Bound)>, String> {
+        let Some((level, target)) = Self::resolve_level(i, method, built) else { return Ok(None) };
+        let kind = codex_level::Method::of(method).expect("resolved methods carry a level");
+        let level = level.ok_or_else(|| format!("refused-not-sent: no level chosen; {method} was not sent"))?;
+        if matches!(kind, codex_level::Method::ThreadResume | codex_level::Method::ThreadFork) && trust.is_none() { return Err(SAVED_IN_APP_DATA_UNKNOWN.into()); }
+        let thread = built.get("threadId").and_then(Value::as_str).unwrap_or_default().to_owned();
+        let provenance = Self::level_origin_for(i, kind, &thread);
+        let chosen = provenance.as_ref().and_then(|c| c.entry.clone());
+        Self::level_send_check(i, method, built, level, &target)?;
+        let trust = match kind {
+            codex_level::Method::TurnStart => None,
+            _ => Some(Self::trust_current(i, trust.ok_or_else(|| format!("refused-not-sent: the conversation's folder is not known, so its project trust cannot be sent; {method} was not sent"))?)),
+        };
+        let fields = codex_level::additions(level, kind, trust.as_ref().map(|t| t.projects()).as_ref());
+        let mut params = built.clone();
+        codex_level::merge_fields(&mut params, &fields).map_err(|e| format!("refused-not-sent: {e}; {method} was not sent"))?;
+        #[cfg(test)] {let hook=self.after_level_merge.lock().unwrap().take();if let Some(h)=hook{h(&mut params);}}
+        if !codex_level::carries_exactly_fields(built, &params, &fields) {
+            return Err(format!("refused-not-sent: {method} would carry other than exactly its level; nothing written"));
+        }
+        codex_level::config_post_condition(&params, kind).map_err(|e| format!("refused-not-sent: {e}; {method} was not sent"))?;
+        Ok(Some((params, codex_level::Bound { level, method: kind, fields, trust, revision: i.level_revision, target, chosen, origin:provenance.as_ref().map(|c|c.origin), chosen_at:provenance.map(|c|c.at) })))
+    }
+    /// A frame is written only under the level revision it was built under.
+    fn check_level_current(i: &Inner, bound: &codex_level::Bound) -> Result<(), String> {
+        if i.level_revision != bound.revision {
+            return Err("refused-not-sent: the level changed after this request was built; nothing written".into());
+        }
+        Ok(())
+    }
     fn request_begin_with_access_offer_guarded(&self,method:&str,params:Value,initiator:Value,handshake:bool,expected_generation:Option<&Value>,private_credential:bool,oauth_cancel:Option<&SourceRequest>,aa_reservation:Option<request_event_join::CaptureReservation>,cce_intent:Option<call_custody::OfferIntent>,records_project:Option<records_continuity::Project>,private_config:bool,provider_admission:Option<&ProviderAdmission>,ordinary_model_guard:Option<&Value>,endpoint_write:Option<&provider_endpoint::PrivateWrite<'_>>,reading_deadline:Option<std::time::Instant>,write_bound:Option<&WriteBound>)->Result<SourceRequest,String>{
         // A configuration reading and a bounded interrupt are exclusive by construction: each has
         // its own withdrawal at the write-start point, and one request never carries both.
@@ -3050,6 +3204,8 @@ impl Host {
         // A configuration reading first takes its generation's reservation, holding no lock while
         // it waits (`reading_gate`). The hold is declared before every lock guard below, so it is
         // dropped after them: an early return or a panic before the write is admitted withdraws.
+        // The project trust a start, resume or fork carries (V4-AUT-06), read before any lock is taken.
+        let trust=if handshake {None} else {self.trust_reading(method,&params,expected_generation)};
         let reading=reading_gate::is_reading(method);
         let hold:Option<ReadingHold>=if reading {Some(self.reading_reserve(method,expected_generation,reading_deadline.unwrap_or_else(||std::time::Instant::now()+reading_gate::READING_DEFAULT_BUDGET))?)} else {None};
         #[cfg(test)] if hold.is_some() {let hook=self.reading_after_reserve.lock().unwrap().take();if let Some(h)=hook{h(self);}}
@@ -3079,14 +3235,19 @@ impl Host {
             let state=Self::oauth_scope(&i,original)?;
             if state.controller.observation().phase!=oauth_control::Phase::Cancelling||state.cancel_request.is_some(){return Err("original cancel already attempted/unavailable".into());}
         }
+        // The level (V4-AUT-06), after every check above has run on the params as built and before an id is
+        // reserved. `built` keeps the params as built for the final admission's checks, which run on them,
+        // never on the level's fields; the frame below is the one recorded and written.
+        let (params,level,built)=match self.level_frame(&mut i,method,&params,trust)? {Some((sent,bound))=>(sent,Some(bound),Some(params)),None=>(params,None,None)};
         i.next_id+=1;let id=i.next_id;
         let raw_frame=json!({"jsonrpc":"2.0","id":id,"method":method,"params":params});
         let(frame,auth_projection)=if endpoint_write.is_some(){(json!({"jsonrpc":"2.0","id":id,"method":method,"params":endpoint_write.unwrap().public_params()}),true)}else{auth_rpc::project_frame(&raw_frame,Some(method))};
         let bytes=Self::frame_bytes(&raw_frame)?;drop(raw_frame);drop(params);
+        let checked=built.as_ref().unwrap_or(&frame["params"]);
         if auth_rpc::account_method(method)&&!i.account_channels.contains(&i.generation){let g=i.generation.clone();i.account_channels.push(g);}
-        let request=SourceRequest {source:Arc::downgrade(&self.inner),generation:i.generation.clone(),frame:frame.clone(),request_ref:format!("{}:client:{id}",opaque_id("host-request")?),receiver:Arc::new(Mutex::new(rx))};
+        let request=SourceRequest {source:Arc::downgrade(&self.inner),generation:i.generation.clone(),frame:frame.clone(),level:level.clone(),request_ref:format!("{}:client:{id}",opaque_id("host-request")?),receiver:Arc::new(Mutex::new(rx))};
         // Reserved to Registered: this reading becomes the newest of its generation.
-        if let Some(hold)=&hold {Self::reading_register_locked(&mut i,hold,&request,method)?;}
+        if let Some(hold)=&hold {Self::reading_register_locked(&mut i,hold,&request,method,initiator["name"]!=level_state::TRUST_READING_INITIATOR)?;}
         if method=="config/read"&&private_config {if let Some(cwd)=frame["params"]["cwd"].as_str().filter(|cwd|!cwd.is_empty()){
             i.provider_observation_revisions.insert(cwd.to_owned(),(request.generation.clone(),request.request_ref.clone()));
         }}
@@ -3112,7 +3273,7 @@ impl Host {
         if let Some(offer)=cce_bound{i.cce_offer=Some(offer);}
         #[cfg(test)] let aa_selected=aa_reservation.is_some();
         if let Some(reservation)=aa_reservation {
-            let core=request_event_join::Core::bind(reservation,&self.inner,i.aa_epoch,&i.generation,request.request_ref(),&request.frame,captured.as_ref().ok().map(|b|(b.epoch,b.identity)));
+            let core=request_event_join::Core::bind(reservation,&self.inner,i.aa_epoch,&i.generation,request.request_ref(),&request.frame,request.level.as_ref(),captured.as_ref().ok().map(|b|(b.epoch,b.identity)));
             i.aa_capture=Some(core);
         }
         drop(i);
@@ -3133,14 +3294,15 @@ impl Host {
             // establish the address in force, or nothing is written.
             if !handshake { self.check_local_files(method)?; }
             {let _gate=self.attachment_gate.lock().unwrap();let mut i=self.inner.0.lock().unwrap();self.check_bound(&i,&bound)?;
-                Self::check_local_request(&i,method,&frame["params"],expected_generation,handshake,private_credential,private_config,provider_admission)?;
+                Self::check_local_request(&i,method,checked,expected_generation,handshake,private_credential,private_config,provider_admission)?;
+                if let Some(bound)=&level {Self::check_level_current(&i,bound)?;}
                 if !i.pending.contains_key(&id.to_string()){return Err("request no longer pending before actual source write".into());}
                 Self::check_send_admitted(&i,method)?;
-                if let Some(proof)=provider_admission{if matches!(method,"thread/resume"|"thread/fork"){self.check_continuation_proof(&i,proof)?;}else{self.check_provider_admission(&i,proof,&frame["params"])?;}}
+                if let Some(proof)=provider_admission{if matches!(method,"thread/resume"|"thread/fork"){self.check_continuation_proof(&i,proof)?;}else{self.check_provider_admission(&i,proof,checked)?;}}
                 // A confirmed provider write's attempt: no reading of this generation is current, for
                 // any folder, and an earlier reading's reply arriving later restores nothing.
-                if let Some(write)=endpoint_write {write.check(self,&i)?;write.mark_attempt()?;i.reading_current=None;i.provider_observation_revisions.remove(write.cwd());}
-                if expected_generation.is_some()&&matches!(method,"turn/start"|"turn/interrupt"|"turn/steer"){Self::check_conversation_request_excluding(&i,method,&frame["params"],Some(&json!(id)))?;}
+                if let Some(write)=endpoint_write {write.check(self,&i)?;write.mark_attempt()?;i.reading_current=None;i.level.config_writes+=1;i.provider_observation_revisions.remove(write.cwd());}
+                if expected_generation.is_some()&&matches!(method,"turn/start"|"turn/interrupt"|"turn/steer"){Self::check_conversation_request_excluding(&i,method,checked,Some(&json!(id)))?;}
                 if let Some(original)=oauth_cancel{
                     let state=Self::oauth_scope(&i,original)?;
                     if state.controller.observation().phase!=oauth_control::Phase::Cancelling||state.cancel_request.as_ref()!=Some(&json!(id)){return Err("original OAuth cancel control ended before final dispatch; no replacement write".into());}
@@ -3177,7 +3339,7 @@ impl Host {
         let e=i.source_requests.get_mut(&key).unwrap();e.write_attempt_in_progress=false;let mut record=e.observation_base.clone();let response=e.response.clone();let response_position=e.response_position;let native_settlement=e.native_settlement;if let Some(position)=e.attempt_position{record["sendPosition"]=json!(position);}
         let reading_error=hold.as_ref().map(|_|write_result.as_ref().err().cloned());
         match write_result {
-            Ok(())=> {i.source_requests.get_mut(&key).unwrap().written=true;record["writeResult"]=json!("written");record["outcome"]=json!(if closed{"unknown-no-response"}else{"pending"});
+            Ok(())=> {i.source_requests.get_mut(&key).unwrap().written=true;Self::level_write_noted(&mut i,&key,true);record["writeResult"]=json!("written");record["outcome"]=json!(if closed{"unknown-no-response"}else{"pending"});
                 match Self::completed_client_response(&mut record,response.as_ref(),response_position,native_settlement){Ok(())=>i.client_requests[idx]=catalog_record(record),Err(error)=>i.source_requests.get_mut(&key).unwrap().source_limit=Some(error)}
                 if !closed&&method=="turn/start"{if let Some(reply)=response.as_ref(){let generation=i.generation.clone();let position=response_position.unwrap_or(i.receipt_position);Self::resolve_start(&mut i,&key,reply,position,&generation);}}
             }
@@ -3185,7 +3347,7 @@ impl Host {
             // start stays unresolved (outcome not known) until a reply resolves
             // it or its generation closes. A start whose write never began never
             // entered the table.
-            Err(error)=> {i.pending.remove(&key);let e=i.source_requests.get_mut(&key).unwrap();
+            Err(error)=> {i.pending.remove(&key);Self::level_write_noted(&mut i,&key,false);let e=i.source_requests.get_mut(&key).unwrap();
                 if e.attempt_position.is_none(){e.source_limit=Some(format!("No actual write attempt: reserved source invalidated/refused before pipe commit: {error}; native reply facts retained if present"));}
                 else{e.write_error=Some(error);if response.is_some(){e.source_limit=Some("Matching native reply and write failure both observed; v0.10 cannot faithfully project that combination; raw source retained".into());}
                     else{record["writeResult"]=json!("write-failed");record["outcome"]=json!("unknown-no-response");i.client_requests[idx]=record;}}
@@ -3430,10 +3592,10 @@ impl Host {
     /// its place cannot be established; nothing is resumed. Its folder is read first (the local
     /// route reads it too, and already requires its own folder). Without a known App data folder
     /// or on the local route, nothing is read here.
-    fn saved_thread_outside_app_data(&self, generation: &Value, thread: &Value) -> Result<(), String> {
+    fn saved_thread_outside_app_data(&self, generation: &Value, thread: &Value) -> Result<Option<String>, String> {
         let data = {
             let i = self.inner.0.lock().unwrap();
-            match (&i.local_provider, &i.app_data) { (None, Some(data)) => data.clone(), _ => return Ok(()) }
+            match (&i.local_provider, &i.app_data) { (None, Some(data)) => data.clone(), _ => return Ok(None) }
         };
         let thread = thread.as_str().filter(|t| !t.is_empty()).ok_or(SAVED_IN_APP_DATA_UNKNOWN)?;
         let read = self.request_begin_scoped("thread/read", json!({"threadId":thread,"includeTurns":false}), json!({"kind":"person-directed"}), false, Some(generation))?;
@@ -3442,7 +3604,9 @@ impl Host {
         if e["outcome"] != "response-observed-result" || e["response"]["result"]["thread"]["id"] != thread {
             return Err(SAVED_IN_APP_DATA_UNKNOWN.into());
         }
-        Self::saved_folder_admitted(&data, &e["response"]["result"]["thread"]["cwd"], "continued")
+        let cwd = &e["response"]["result"]["thread"]["cwd"];
+        Self::saved_folder_admitted(&data, cwd, "continued")?;
+        Ok(Some(cwd.as_str().ok_or(SAVED_IN_APP_DATA_UNKNOWN)?.to_owned()))
     }
     /// As [`Self::saved_thread_outside_app_data`] for a fork, on the folder the current
     /// conversation's own row reports; nothing is read or sent.
@@ -3479,7 +3643,10 @@ impl Host {
         if query.generation()["home"]!=query.home() {return Err("history home and full generation differ".into());}
         if !matches!(query.method(),"thread/list"|"thread/read"|"thread/turns/list"|"thread/items/list"|"thread/goal/get"|"thread/resume") {return Err("unsupported history factory method".into());}
         // An account or key-home Continue rests on Codex reporting the built-in provider; nothing for a local home.
-        if query.method()=="thread/resume" {self.saved_thread_outside_app_data(query.generation(),&query.params()["threadId"])?;}
+        let mut params = query.params().clone();
+        if query.method()=="thread/resume" {
+            if let Some(cwd) = self.saved_thread_outside_app_data(query.generation(),&params["threadId"])? { params["cwd"] = json!(cwd); }
+        }
         let cloud=if query.method()=="thread/resume" {self.cloud_continuation_admission(query.generation(),access_provider::BUILT_IN_PROVIDER_UNREPORTED_RESUME)?} else {None};
         // A local saved-thread Continue gets the same effective provider-definition admission as a new start.
         if let Some(proof)=(query.method()=="thread/resume").then(||self.local_resume_admission(query.generation(),&query.params()["threadId"])).transpose()?.flatten() {
@@ -3492,8 +3659,8 @@ impl Host {
         // The reading travels with the request: refused at registration or final write if a newer reading
         // of the folder, or a confirmed provider write, came in between.
         let source=match &cloud {
-            Some(proof)=>{auth_rpc::generic_guard(query.method(),query.params())?;self.request_begin_with_access_offer(query.method(),query.params().clone(),initiator,false,Some(query.generation()),false,None,None,None,None,false,Some(proof))?},
-            None=>self.request_begin_scoped(query.method(),query.params().clone(),initiator,false,Some(query.generation()))?,
+            Some(proof)=>{auth_rpc::generic_guard(query.method(),&params)?;self.request_begin_with_access_offer(query.method(),params.clone(),initiator,false,Some(query.generation()),false,None,None,None,None,false,Some(proof))?},
+            None=>self.request_begin_scoped(query.method(),params,initiator,false,Some(query.generation()))?,
         };
         Ok(HistoryDispatch {query:query.clone(),source,local_config:None})
     }
@@ -3637,7 +3804,7 @@ impl Host {
             return Err("start response envelope is uncorrelated or failed; raw native evidence retained, no operational admission".into());
         }
         Self::validate_native_result("ThreadStartResponse",&response["result"])?;
-        self.insert_start_response(request.generation(),&request.frame["params"],&response,true)?;
+        self.insert_start_response(request.generation(),StartParams::Sent(&request.frame["params"]),&response,true)?;
         {let mut i=self.inner.0.lock().unwrap();if i.generation==request.generation&&!i.server_requests.is_closed(&request.generation){if let Some(offer)=i.cce_offer.as_mut(){if let Some(thread)=response["result"]["thread"]["id"].as_str(){offer.native_admitted(request,thread);}}}}
         Ok(response)
     }
@@ -3916,8 +4083,10 @@ impl Host {
             let mut i=self.inner.0.lock().unwrap();if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation){return Err("attachment preparation scope is stale/closed/non-ready".into());}
             Self::check_local_request(&i,method,&params,Some(generation),false,false,false,None)?;
             Self::check_send_admitted(&i,method)?;Self::check_conversation_request(&i,method,&params)?;let pipe=self.stdin.lock().unwrap();let identity=Self::pipe_identity(pipe.as_ref().ok_or("actual source pipe unavailable; nothing reserved")?)?;drop(pipe);
-            i.next_id+=1;let id=i.next_id;let frame=json!({"jsonrpc":"2.0","id":id,"method":method,"params":params});
-            let source=SourceRequest{source:Arc::downgrade(&self.inner),generation:generation.clone(),frame,request_ref:opaque_id("host-attachment-request:")?,receiver:Arc::new(Mutex::new(rx))};
+            // The level (V4-AUT-06): after every check above on the params as built, before an id is reserved.
+            let (sent,level)=match self.level_frame(&mut i,method,&params,None)? {Some((sent,bound))=>(sent,Some(bound)),None=>(params.clone(),None)};
+            i.next_id+=1;let id=i.next_id;let frame=json!({"jsonrpc":"2.0","id":id,"method":method,"params":sent});
+            let source=SourceRequest{source:Arc::downgrade(&self.inner),generation:generation.clone(),frame,level,request_ref:opaque_id("host-attachment-request:")?,receiver:Arc::new(Mutex::new(rx))};
             let mut association=json!({"submissionRef":submission,"threadId":thread,"supplyRefs":list.supply_refs()});if let Some(turn)=expected_turn{association["expectedTurnId"]=json!(turn);}
             let client=json!({"recordKind":"client-request","generation":generation,"requestIdentity":id,"method":method,"initiator":{"kind":"person-directed"},"writeResult":"not-attempted","outcome":"prepared-not-sent","submissionAssociation":association});
             i.client_requests.push(client.clone());let index=i.client_requests.len()-1;
@@ -3926,7 +4095,7 @@ impl Host {
         // Never hold Inner across file operations. Failure consumes its reserved
         // RPC; partial/uncertain publication cannot authorize native write.
         if let Err(error)=custody.publish_prepared(&list.supply_records(),&client){self.attachment_limit(&source,error.clone());return Err(format!("attachment metadata unavailable; nothing sent: {error}"));}
-        Ok(PreparedAttachmentDispatch{source,custody,list,selections:selections.to_vec(),client,pipe_identity,pipe_epoch,state:Mutex::new("prepared")})
+        Ok(PreparedAttachmentDispatch{source,built:params,custody,list,selections:selections.to_vec(),client,pipe_identity,pipe_epoch,state:Mutex::new("prepared")})
     }
     fn attachment_limit(&self,source:&SourceRequest,error:String){let mut i=self.inner.0.lock().unwrap();if let Some(e)=i.source_requests.get_mut(&source.request_id().to_string()){if let Some(a)=e.attachment.as_mut(){a.limit=Some(error);}}}
     pub fn dispatch_attachment_turn(&self,prepared:&PreparedAttachmentDispatch)->Result<SourceRequest,String>{
@@ -3957,9 +4126,10 @@ impl Host {
             Self::recheck_attachment_sources(prepared)?;
             let mut state=prepared.state.lock().unwrap();if *state!="validating"{return Err("attachment cancelled before commit; nothing sent".into());}
             let mut i=self.inner.0.lock().unwrap();let generation=prepared.source.generation();if i.generation!=*generation||i.state!="ready"||i.server_requests.is_closed(generation)||i.attachment_pipe_epoch!=prepared.pipe_epoch{return Err("attachment generation/pipe drift before commit; nothing sent".into());}
-            Self::check_local_request(&i,frame["method"].as_str().unwrap(),&frame["params"],Some(generation),false,false,false,None)?;
+            Self::check_local_request(&i,frame["method"].as_str().unwrap(),&prepared.built,Some(generation),false,false,false,None)?;
+            if let Some(bound)=&prepared.source.level {Self::check_level_current(&i,bound)?;}
             Self::check_send_admitted(&i,frame["method"].as_str().unwrap())?;
-            Self::check_conversation_request(&i,frame["method"].as_str().unwrap(),&frame["params"])?;
+            Self::check_conversation_request(&i,frame["method"].as_str().unwrap(),&prepared.built)?;
             let mut bound=self.capture_pipe(&i)?;if bound.identity!=prepared.pipe_identity{return Err("actual source pipe changed; nothing sent".into());}
             let key=prepared.source.request_id().to_string();let index=i.source_requests[&key].index;let sender=i.source_requests.get_mut(&key).unwrap().reserved_sender.take().ok_or("reserved RPC already consumed")?;
             let cut = i.receipt_position;
@@ -3978,12 +4148,12 @@ impl Host {
             // anything else leaves it listed. A write error alone retires nothing. (A reply to a start
             // in the table is already taken in at receipt; this hand-over covers the stored copy.)
             if !closed&&frame["method"]=="turn/start"{if let Some(reply)=response.as_ref(){let generation=i.generation.clone();let position=response_position.unwrap_or(i.receipt_position);Self::resolve_start(&mut i,&key,reply,position,&generation);}}
-            match written {Ok(())=>{i.source_requests.get_mut(&key).unwrap().written=true;i.client_requests[index]["writeResult"]=json!("written");i.client_requests[index]["outcome"]=json!(if closed{"unknown-no-response"}else{"pending"});
+            match written {Ok(())=>{i.source_requests.get_mut(&key).unwrap().written=true;Self::level_write_noted(&mut i,&key,true);i.client_requests[index]["writeResult"]=json!("written");i.client_requests[index]["outcome"]=json!(if closed{"unknown-no-response"}else{"pending"});
                 if response.is_some(){let(record,limit)=attachment_custody::project_observation(&i.client_requests[index],response.as_ref(),response_position)?;i.client_requests[index]=record;if let Some(limit)=limit{if let Some(a)=i.source_requests.get_mut(&key).unwrap().attachment.as_mut(){a.limit=Some(limit);}}}
                 }
                 // A write that began and failed may have reached Codex in part: the failure itself retires
                 // nothing, and the start stays listed unless a stored reply resolves it below.
-                Err(error)=>{i.pending.remove(&key);let e=i.source_requests.get_mut(&key).unwrap();e.write_error=Some(error);if response.is_some(){e.source_limit=Some("Matching native reply and write failure both observed; canonical projection unavailable".into());if let Some(a)=e.attachment.as_mut(){a.limit=Some("Combined failed write and observed reply cannot be projected into v0.10; last prewrite source is historical only".into());}i.client_requests[index]=prepared.client.clone();}else{i.client_requests[index]["writeResult"]=json!("write-failed");i.client_requests[index]["outcome"]=json!("unknown-no-response");}}}
+                Err(error)=>{i.pending.remove(&key);Self::level_write_noted(&mut i,&key,false);let e=i.source_requests.get_mut(&key).unwrap();e.write_error=Some(error);if response.is_some(){e.source_limit=Some("Matching native reply and write failure both observed; canonical projection unavailable".into());if let Some(a)=e.attachment.as_mut(){a.limit=Some("Combined failed write and observed reply cannot be projected into v0.10; last prewrite source is historical only".into());}i.client_requests[index]=prepared.client.clone();}else{i.client_requests[index]["writeResult"]=json!("write-failed");i.client_requests[index]["outcome"]=json!("unknown-no-response");}}}
             drop(i);drop(namespace_lease);
             #[cfg(test)] {let hook=self.after_attachment_namespace_write.lock().unwrap().take();if let Some(hook)=hook{hook();}}
             let _=self.persist_attachment_observation(&prepared.source);Ok(prepared.source.clone())
@@ -4181,7 +4351,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         let r = self.wait_source_response(&source,Duration::from_secs(20))?;
         #[cfg(test)]
         if let Some(hook) = self.before_thread_insert.lock().unwrap().take() { hook(); }
-        self.insert_start_response(&sent_generation,&params,&r,false)?;
+        self.insert_start_response(&sent_generation,StartParams::Built(&params),&r,false)?;
         Ok(r)
     }
     /// DEL-01-05 REQ-004: the started conversation's requested destination records whether the App showed the only
@@ -4194,7 +4364,8 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             row["requestedDestination"]["entrySource"] = json!(entry_source);
         }
     }
-    fn insert_start_response(&self, generation: &Value, params: &Value, response: &Value, no_duplicate: bool) -> Result<(),String> {
+    fn insert_start_response(&self, generation: &Value, start: StartParams<'_>, response: &Value, no_duplicate: bool) -> Result<(),String> {
+        let params = match start { StartParams::Sent(p) | StartParams::Built(p) => p };
         let t=response.get("result").and_then(|x|x.get("thread")).ok_or_else(||format!("thread/start answered with an error: {}",response.get("error").cloned().unwrap_or(Value::Null)))?;
         let mut i=self.inner.0.lock().unwrap();
         if i.generation!=*generation||i.server_requests.is_closed(generation) {return Err("thread/start response belongs to a closed or replaced generation; native response retained in journal".into());}
@@ -4208,7 +4379,13 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             &&matches!(t["status"]["type"].as_str(),Some("idle"|"active"))&&t["canAcceptDirectInput"]!=false {
             let original = i.source_requests.get(&response["id"].to_string()).filter(|source| {
                 source.request.generation == *generation && source.request.frame["method"] == "thread/start"
-                    && source.request.frame["params"] == *params && source.written && !source.write_attempt_in_progress
+                    && match start {
+                        // The params as sent: the very frame, compared as it is.
+                        StartParams::Sent(sent) => source.request.frame["params"] == *sent,
+                        // The params as built: augmented by the level bound to the frame, compared whole.
+                        StartParams::Built(built) => codex_level::expected_with_bound(built, source.request.level.as_ref()).is_ok_and(|expected| source.request.frame["params"] == expected),
+                    }
+                    && source.written && !source.write_attempt_in_progress
                     && source.write_error.is_none() && source.source_limit.is_none()
                     && source.response.as_ref() == Some(response)
                     && i.client_requests[source.index]["outcome"] == "response-observed-result"
@@ -4266,7 +4443,8 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         let i = self.inner.0.lock().unwrap();
         if client.is_empty() || elements.is_empty() || elements.iter().any(|text| text.is_empty())
             || i.generation != *generation || i.state != "ready" || i.server_requests.is_closed(generation)
-            || source.frame["method"] != "turn/start" || source.frame["params"] != expected {
+            || source.frame["method"] != "turn/start"
+            || codex_level::expected_with_level(&expected, source.level.as_ref().map(|b| b.level), codex_level::Method::TurnStart).map_or(true, |sent| source.frame["params"] != sent) {
             return Err("clean trial original current ordered text sender differs".into());
         }
         Self::check_conversation_request(&i, "turn/start", &expected)?;
@@ -4345,6 +4523,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         self.check_source(source)?;
         let mut expected=Self::prepared_run_turn_params_model(source.generation(),prepared,person_text,client_id,mode,model)?;
         Self::apply_ordinary_effort(&mut expected, mode, model, effort)?;
+        let expected=codex_level::expected_with_level(&expected,source.level.as_ref().map(|b|b.level),codex_level::Method::TurnStart)?;
         if source.frame["method"]!="turn/start"||source.frame["params"]!=expected{return Err("original prepared turn sender/ordered text/client identity differs".into());}
         self.wait_source_response(source,wait)?;
         let i=self.inner.0.lock().unwrap();
@@ -5658,6 +5837,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                     self.capture_pipe(&i).ok().map(|bound|(bound.epoch,bound.identity))
                 } else { None };
                 if let Some(e) = i.source_requests.get_mut(&key) { e.response = Some(kept.clone()); e.response_position=Some(pos); e.native_settlement=native_settlement; e.auth_response_shape=auth_shape; e.private_write_reply_pipe=private_write_reply_pipe; }
+                Self::level_reply(&mut i, &key, &frame);
                 Self::stop_request_response(&mut i, &gen, &frame);
                 let _ = tx.send(if private_config&&!waiting_ended{private_config_frame.unwrap()}else{kept});
                 // Responses are also journaled, with their metadata beside the native frame (H6).
@@ -6190,12 +6370,15 @@ mod additive_guidance_transport_tests {
         *host.stdin.lock().unwrap()=child.stdin.take();let stdout=child.stdout.take().unwrap();let me=Arc::clone(&host);let g=generation.clone();let (tx,rx)=channel();
         let worker=std::thread::spawn(move|| {
             let mut line=String::new();BufReader::new(stdout).read_line(&mut line).unwrap();let frame:Value=serde_json::from_str(&line).unwrap();
+            // The test Host's "edits" level, as Codex reports it. Pinned 0.167.0, start reply with an explicit sandbox
+            // mode: activePermissionProfile null.
             let response=json!({"id":frame["id"],"result":{"thread":{"id":"mock-thread","status":"idle"},"model":"reported-model","modelProvider":"reported-provider","cwd":"/reported/work",
-                "approvalPolicy":"on-request","approvalsReviewer":"user","sandbox":{"type":"readOnly","networkAccess":false},"activePermissionProfile":{"id":":read-only"}}});
+                "approvalPolicy":"on-request","approvalsReviewer":"user","sandbox":{"type":"workspaceWrite","writableRoots":[],"networkAccess":false,"excludeTmpdirEnvVar":true,"excludeSlashTmp":true},"activePermissionProfile":null}});
             tx.send((frame,response.clone())).unwrap();me.on_line(&serde_json::to_vec(&response).unwrap(),&g);
         });
         let result=match guidance {Some(text)=>host.thread_start_with_guidance("/invented/work","chosen-model","chosen-provider",text),None=>host.thread_start_selected("/invented/work","chosen-model","chosen-provider")};
-        let (outbound,native_response)=rx.recv().unwrap();worker.join().unwrap();*host.stdin.lock().unwrap()=None;assert!(child.wait().unwrap().success());
+        if result.is_err() { *host.stdin.lock().unwrap()=None; }
+        let (outbound,native_response)=rx.recv().unwrap_or_else(|_|panic!("start peer received no frame; operation returned {result:?}"));worker.join().unwrap();*host.stdin.lock().unwrap()=None;assert!(child.wait().unwrap().success());
         MockRun { result,outbound,native_response,snapshot:host.snapshot(),generation }
     }
     #[test]
@@ -6204,8 +6387,9 @@ mod additive_guidance_transport_tests {
             let run=mock_thread_start(guidance,None);let response=run.result.unwrap();
             // What Codex reported it may do in the conversation is kept on its row, as reported.
             let row=&run.snapshot["threads"][0];
-            assert_eq!((row["approvalPolicy"].as_str(),row["sandbox"]["type"].as_str(),row["activePermissionProfile"]["id"].as_str()),(Some("on-request"),Some("readOnly"),Some(":read-only")));
-            assert_eq!(run.outbound["method"],"thread/start");assert_eq!(run.outbound["params"],Host::thread_start_params("/invented/work","chosen-model","chosen-provider",guidance).unwrap());assert_eq!(response,run.native_response);
+            assert_eq!((row["approvalPolicy"].as_str(),row["sandbox"]["type"].as_str(),row["activePermissionProfile"]["id"].as_str()),(Some("on-request"),Some("workspaceWrite"),None));
+            assert!(row["activePermissionProfile"].is_null(), "kept as reported");
+            assert_eq!(run.outbound["method"],"thread/start");assert_eq!(run.outbound["params"],crate::codex_level::with_test_level(&Host::thread_start_params("/invented/work","chosen-model","chosen-provider",guidance).unwrap(),"thread/start"));assert_eq!(response,run.native_response);
             let thread=&run.snapshot["threads"][0];assert_eq!(thread["generation"],run.generation);assert_eq!(thread["supplierStanding"],"unverified-development");assert_eq!(thread["requestedDestination"]["model"],"chosen-model");assert_eq!(thread["reportedDestination"]["model"],"reported-model");assert_eq!(run.snapshot["clientRequests"][0]["outcome"],"response-observed-result");assert_eq!(run.snapshot["journal"][0]["frame"],run.native_response);
         }
     }
@@ -6245,7 +6429,7 @@ mod additive_guidance_transport_tests {
             for successor in [json!({"appSession":"mock-session","home":"mock-home","spawnCounter":2}),json!({"appSession":"next-session","home":"mock-home","spawnCounter":1}),json!({"appSession":"mock-session","home":"next-home","spawnCounter":1})] {
                 let run=mock_thread_start(guidance,Some(successor.clone()));
                 assert!(run.result.unwrap_err().contains("closed or replaced generation"));assert_eq!(run.snapshot["generation"],successor);assert_eq!(run.snapshot["threads"],json!([]));
-                assert_eq!(run.outbound["params"],Host::thread_start_params("/invented/work","chosen-model","chosen-provider",guidance).unwrap());assert_eq!(run.snapshot["clientRequests"][0]["generation"],run.generation);assert_eq!(run.snapshot["clientRequests"][0]["outcome"],"response-observed-result");assert_eq!(run.snapshot["journal"][0]["generation"],run.generation);assert_eq!(run.snapshot["journal"][0]["frame"],run.native_response);
+                assert_eq!(run.outbound["params"],crate::codex_level::with_test_level(&Host::thread_start_params("/invented/work","chosen-model","chosen-provider",guidance).unwrap(),"thread/start"));assert_eq!(run.snapshot["clientRequests"][0]["generation"],run.generation);assert_eq!(run.snapshot["clientRequests"][0]["outcome"],"response-observed-result");assert_eq!(run.snapshot["journal"][0]["generation"],run.generation);assert_eq!(run.snapshot["journal"][0]["frame"],run.native_response);
             }
         }
     }
@@ -6263,7 +6447,7 @@ mod conversation_transport_tests {
     use super::*;
     fn g()->Value {json!({"appSession":"conversation-session","home":"conversation-home","spawnCounter":1})}
     fn host()->Arc<Host> {
-        let host=Arc::new(Host::new());{let mut i=host.inner.0.lock().unwrap();i.state="ready".into();i.generation=g();i.journal.begin_generation(g());i.threads.push(json!({"generation":g(),"threadId":"thread","model":"selected","modelProvider":"selected-provider"}));}
+        let host=Arc::new(Host::new());{let mut i=host.inner.0.lock().unwrap();i.state="ready".into();i.generation=g();i.journal.begin_generation(g());i.threads.push(json!({"generation":g(),"threadId":"thread","model":"selected","modelProvider":"selected-provider","cwd":"/invented"}));}
         host
     }
     /// The next frame written to the stand-in that is not the configuration reading (answered by the hook).
@@ -6289,7 +6473,11 @@ mod conversation_transport_tests {
             for frame in before {me.on_line(&serde_json::to_vec(&frame).unwrap(),&g());}
             if let Some(mut frame)=response {frame["id"]=outbound["id"].clone();me.on_line(&serde_json::to_vec(&frame).unwrap(),&g());}
         });
-        let result=operation();let outbound=rx.recv().unwrap();worker.join().unwrap();*host.stdin.lock().unwrap()=None;assert!(child.wait().unwrap().success());(result,outbound)
+        let result=operation();
+        // A guard can refuse before any frame exists. Close the owned peer's
+        // input so its reader ends instead of waiting forever for that frame.
+        if result.is_err() { *host.stdin.lock().unwrap()=None; }
+        let outbound=rx.recv().unwrap_or_else(|_|panic!("peer received no frame; operation returned {result:?}"));worker.join().unwrap();*host.stdin.lock().unwrap()=None;assert!(child.wait().unwrap().success());(result,outbound)
     }
     #[test]
     fn model_catalog_error_before_client_record_publication_is_redacted() {
@@ -6511,7 +6699,10 @@ mod conversation_transport_tests {
         host.inner.0.lock().unwrap().threads.push(json!({"generation":g(),"threadId":"no-model"}));
         assert!(host.turn_start_text_mode(&g(),"no-model","x","plan").unwrap_err().contains("no model selected"));
         // The conversation's reported effort is kept, not reset.
-        host.inner.0.lock().unwrap().threads.push(json!({"generation":g(),"threadId":"effort","model":"m","reasoningEffort":"high"}));
+        // This additional admitted conversation has the same known folder as the
+        // original fixture conversation; this case varies only model effort.
+        let cwd=host.snapshot()["threads"][0]["cwd"].clone();
+        host.inner.0.lock().unwrap().threads.push(json!({"generation":g(),"threadId":"effort","model":"m","reasoningEffort":"high","cwd":cwd}));
         let (refused,outbound)=exchange(&host,Some(json!({"error":{"code":-32600,"message":"invented refusal"}})),vec![],||host.turn_start_text_mode(&g(),"effort","x","plan"));
         assert_eq!(outbound["params"]["collaborationMode"]["settings"]["reasoning_effort"],"high");
         assert!(refused.is_err());
@@ -6745,7 +6936,7 @@ mod conversation_transport_tests {
     #[test]
     fn actual_text_pipe_response_and_interrupt_ack_do_not_invent_turn_end_or_model_witness() {
         let host=host();let text="exact text\n\né / 家";
-        let (result,outbound)=exchange(&host,Some(json!({"result":{"turn":turn("inProgress")}})),vec![],||host.turn_start_text(&g(),"thread",text));assert_eq!(result.unwrap()["result"]["turn"],turn("inProgress"));assert_eq!(outbound["method"],"turn/start");assert_eq!(outbound["params"],Host::text_turn_params("thread",text).unwrap());let snapshot=host.snapshot();assert_eq!(snapshot["conversationTurns"][0]["nativeTurn"]["status"],"inProgress");assert_eq!(snapshot["modelTurnExercised"],Value::Null);assert_eq!(snapshot["modelTurnEvidence"]["protocolRequests"][0]["outcome"],"response-observed-result");
+        let (result,outbound)=exchange(&host,Some(json!({"result":{"turn":turn("inProgress")}})),vec![],||host.turn_start_text(&g(),"thread",text));assert_eq!(result.unwrap()["result"]["turn"],turn("inProgress"));assert_eq!(outbound["method"],"turn/start");assert_eq!(outbound["params"],crate::codex_level::with_test_level(&Host::text_turn_params("thread",text).unwrap(),"turn/start"));let snapshot=host.snapshot();assert_eq!(snapshot["conversationTurns"][0]["nativeTurn"]["status"],"inProgress");assert_eq!(snapshot["modelTurnExercised"],Value::Null);assert_eq!(snapshot["modelTurnEvidence"]["protocolRequests"][0]["outcome"],"response-observed-result");
         let (ack,outbound)=exchange(&host,Some(json!({"result":{}})),vec![],||host.turn_interrupt(&g(),"thread","turn","H-acct",&crate::stop_records::person("")));assert_eq!(ack.unwrap()["result"],json!({}));assert_eq!(outbound["params"],json!({"threadId":"thread","turnId":"turn"}));assert_eq!(host.snapshot()["conversationTurns"][0]["nativeTurn"]["status"],"inProgress");
         let count=host.client_requests().len();assert_eq!(host.turn_interrupt(&g(),"thread","turn","H-acct",&crate::stop_records::person("")).unwrap_err(),"stop-already-requested");assert_eq!(host.client_requests().len(),count);event(&host,"interrupted");assert_eq!(host.snapshot()["conversationTurns"][0]["nativeTurn"]["status"],"interrupted");assert_eq!(host.turn_interrupt(&g(),"thread","turn","H-acct",&crate::stop_records::person("")).unwrap_err(),"no-live-turn");
     }
@@ -6837,7 +7028,7 @@ mod conversation_transport_tests {
     }
 
     fn history_thread(status:&str)->Value {json!({"id":"stored","cliVersion":"0.169.0","createdAt":1,"updatedAt":2,"cwd":"/invented","ephemeral":false,"modelProvider":"configured","preview":"invented","projectId":null,"sessionId":"native-session","source":"appServer","status":{"type":status},"turns":[],"agentRole":"TASK","nativeExtra":{"kept":true}})}
-    fn history_resume(status:&str,direct:bool)->Value {let mut native=history_thread(status);native["canAcceptDirectInput"]=json!(direct);json!({"thread":native,"model":"reported","modelProvider":"configured","cwd":"/invented","approvalPolicy":"on-request","approvalsReviewer":"user","sandbox":{"type":"readOnly"},"instructionSources":["/native/instructions"],"nativeExtra":true})}
+    fn history_resume(status:&str,direct:bool)->Value {let mut native=history_thread(status);native["canAcceptDirectInput"]=json!(direct);json!({"thread":native,"model":"reported","modelProvider":"configured","cwd":"/invented","approvalPolicy":"on-request","approvalsReviewer":"user","sandbox":{"type":"workspaceWrite","writableRoots":[],"networkAccess":false,"excludeTmpdirEnvVar":true,"excludeSlashTmp":true},"instructionSources":["/native/instructions"],"nativeExtra":true})}
     fn bind_local_history(host:&Host) {
         let mut i=host.inner.0.lock().unwrap();
         i.local_provider=Some(access_provider::LocalProviderBinding::for_test("conversation-home","/invented"));
@@ -6898,7 +7089,7 @@ mod conversation_transport_tests {
                 "source-cwd-elsewhere" => {assert_eq!((config_reads,forks.len()),(0,0),"no classification of the wrong cwd and no fork");}
                 "superseded-before-write" => {assert_eq!((config_reads,forks.len()),(2,0),"a superseded reading carries no fork write");}
                 "superseded-before-finish" => {assert_eq!((config_reads,forks.len()),(2,1));}
-                _ => {assert_eq!((config_reads,forks.len()),(1,1),"{case}");assert_eq!(forks[0]["params"],json!({"threadId":"started","deferGoalContinuation":true,"cwd":"/invented"}),"fork names the classified cwd");}
+                _ => {assert_eq!((config_reads,forks.len()),(1,1),"{case}");assert_eq!(forks[0]["params"],crate::codex_level::with_test_level(&json!({"threadId":"started","deferGoalContinuation":true,"cwd":"/invented"}),"thread/fork"),"fork names the classified cwd");}
             }
             assert!(!host.snapshot().to_string().contains("INVENTED_PRIVATE_PROVIDER_CANARY_481"));
         }
@@ -6950,7 +7141,7 @@ mod conversation_transport_tests {
                 assert!(dispatch.is_err());assert!(!frames.iter().any(|f|f["method"]=="thread/resume"),"no resume written on credential drift");
                 assert!(!host.snapshot().to_string().contains("INVENTED_PRIVATE_PROVIDER_CANARY_481"));continue;
             }
-            let receipt=dispatch.unwrap();assert_eq!(frames.iter().find(|f|f["method"]=="thread/resume").unwrap()["params"],json!({"threadId":"stored","excludeTurns":true,"cwd":"/invented"}),"resume names the classified cwd");
+            let receipt=dispatch.unwrap();assert_eq!(frames.iter().find(|f|f["method"]=="thread/resume").unwrap()["params"],crate::codex_level::with_test_level(&json!({"threadId":"stored","excludeTurns":true,"cwd":"/invented"}),"thread/resume"),"resume names the classified cwd");
             view.receive(&query,"conversation-home",&g(),&receipt.evidence()["response"]["result"]).unwrap();
             let admitted=host.history_admit_resume(&view,&receipt).is_ok();
             assert_eq!(admitted,case=="positive","{case}");
@@ -7020,14 +7211,98 @@ mod conversation_transport_tests {
             }
         }
         // A row that reports no folder is not taken to be outside the App data.
-        let h=f.host();
+        let h=f.host();h.inner.0.lock().unwrap().threads[0].as_object_mut().unwrap().remove("cwd");
         assert_eq!(h.thread_fork_dispatch(&g(),"thread").err().unwrap(),SAVED_IN_APP_DATA_UNKNOWN);
-        // Without a known App data folder nothing is read first, as before.
-        let h=host();h.inner.0.lock().unwrap().server_cwd=Some("/invented".into());
+        // Without a known App data folder or saved conversation folder, no server-folder fallback admits Continue.
+        let h=host();{let mut i=h.inner.0.lock().unwrap();i.server_cwd=Some("/invented".into());i.threads[0].as_object_mut().unwrap().remove("cwd");}
         let mut view=history_selected();let query=view.continue_query().unwrap();
         let (result,frames)=local_peer_exchange(&h,cloud_reading(),"/invented",history_resume("idle",true),||h.history_dispatch(&query).map(|_|()));
-        assert!(result.is_ok());assert!(!frames.iter().any(|f|f["method"]=="thread/read"));
+        assert!(result.err().unwrap().contains(SAVED_IN_APP_DATA_UNKNOWN));
+        assert!(!frames.iter().any(|f|matches!(f["method"].as_str(),Some("thread/read"|"thread/resume"))));
     }
+
+    #[test]
+    fn saved_working_folder_continue_without_own_level_follows_default_until_given_its_own() {
+        let f = SavedFolders::new();
+        let h = Arc::new(Host::new());
+        h.configure_recovery(f.root.join("level-ledger.jsonl")).unwrap();
+        h.inner.0.lock().unwrap().level.places.as_mut().unwrap().home_identity = Some("app-home:invented".into());
+        { let mut i = h.inner.0.lock().unwrap();
+          i.state = "ready".into(); i.generation = g(); i.journal.begin_generation(g());
+          i.server_cwd = Some("/invented".into()); i.app_data = Some(f.data.clone());
+        }
+        h.choose_level(&LevelScope::Default, crate::codex_level::level("edits").unwrap(), &[]).unwrap();
+        let mut history = history_selected();
+        let query = history.continue_query().unwrap();
+        let (result, frames) = local_peer_exchange(&h, cloud_reading(), f.project.to_str().unwrap(), history_resume("idle",true), || h.history_dispatch(&query));
+        let dispatch = result.unwrap();
+        let evidence = h.history_dispatch_status(&dispatch).unwrap();
+        history.receive(&query, "conversation-home", &g(), &evidence["response"]["result"]).unwrap();
+        h.history_admit_resume(&history, &dispatch).unwrap();
+        assert!(frames.iter().any(|frame| frame["method"]=="thread/resume" && frame["params"]["sandbox"]=="workspace-write"));
+        let before = h.snapshot();
+        let row_before = before["threads"].as_array().unwrap().iter().find(|row| row["threadId"]=="stored").unwrap();
+        assert_eq!(row_before["level"]["chosen"]["id"], "edits");
+        assert_eq!(row_before["level"]["chosen"]["scope"], "default");
+        assert!(h.thread_level("stored").is_none());
+        h.choose_level(&LevelScope::Default, crate::codex_level::level("full").unwrap(), &[]).unwrap();
+        let after = h.snapshot();
+        let row_after = after["threads"].as_array().unwrap().iter().find(|row| row["threadId"]=="stored").unwrap();
+        let resolved = h.level_for("turn/start", &json!({"threadId":"stored"})).unwrap().id.clone();
+        assert_eq!(resolved, "full");
+        assert_eq!(row_before["level"]["scopeSentence"], crate::codex_level::FOLLOWS_DEFAULT_SENTENCE);
+        assert_eq!(row_after["level"]["chosen"]["id"], "full", "a saved conversation without its own level follows the default");
+        assert_eq!(row_after["level"]["scopeSentence"], crate::codex_level::FOLLOWS_DEFAULT_SENTENCE);
+        assert_eq!(after["levelDefaultScopeSentence"], "Changing the level here changes the default for new conversations and for saved conversations that have no level of their own. Conversations with their own level keep it.");
+        h.choose_level(&LevelScope::Conversation("stored".into()), crate::codex_level::level("edits").unwrap(), &[]).unwrap();
+        h.choose_level(&LevelScope::Default, crate::codex_level::level("supervised").unwrap(), &[]).unwrap();
+        let own = h.snapshot();
+        let row_own = own["threads"].as_array().unwrap().iter().find(|row| row["threadId"] == "stored").unwrap();
+        assert_eq!(row_own["level"]["chosen"]["id"], "edits");
+        assert_eq!(row_own["level"]["chosen"]["scope"], "conversation");
+        assert!(row_own["level"].get("scopeSentence").is_none());
+        assert_eq!(h.level_for("turn/start", &json!({"threadId":"stored"})).unwrap().id, "edits");
+    }
+
+    #[test]
+    fn saved_working_folder_is_carried_into_the_frame_trust_entry_and_edits_check() {
+        let f=SavedFolders::new();
+        let server=f.root.join("server-project");std::fs::create_dir(&server).unwrap();
+        for (saved,allowed) in [(&f.project,true),(&f.root,false)] {
+            let h=f.host();h.set_default_level("edits").unwrap();
+            { let mut i=h.inner.0.lock().unwrap();i.threads.clear();i.server_cwd=Some(server.to_string_lossy().into_owned());
+              let places=i.level.places.as_mut().unwrap();places.process_cwd=Some(server.clone());places.app_data=Some(f.data.clone()); }
+            let mut view=history_selected();let query=view.continue_query().unwrap();
+            let (result,frames)=local_peer_exchange(&h,cloud_reading(),saved.to_str().unwrap(),history_resume("idle",true),||h.history_dispatch(&query));
+            let resumes:Vec<_>=frames.iter().filter(|frame|frame["method"]=="thread/resume").collect();
+            if allowed {
+                let receipt=result.unwrap().source;
+                assert_eq!(resumes.len(),1);
+                assert_eq!(resumes[0]["params"]["cwd"],saved.to_str().unwrap());
+                let trust=receipt.level.as_ref().unwrap().trust.as_ref().unwrap();
+                assert_eq!(trust.cwd,*saved);
+                assert_eq!(resumes[0]["params"]["config"]["projects"][&trust.key]["trust_level"],"untrusted");
+                assert_ne!(trust.cwd,server);
+                // A previously observed original role must accept this exact
+                // account Continue packet, including its admitted saved folder.
+                let common=crate::role_supply::Guidance::seeded("AGENTS.md","fixture",b"Invented original guidance".to_vec(),b"default").unwrap();
+                let composition=crate::role_supply::Composition::new(&common,None,false).unwrap();
+                let original=json!({"id":"original","method":"thread/start","params":{"developerInstructions":composition.text,"cwd":saved,"model":"reported","modelProvider":"configured"}});
+                let binding=crate::role_lifecycle::PreparedStart::new("conversation-home",g(),json!("original"),"original-request","sup:original",&composition).unwrap()
+                    .observe(&g(),&original,&json!({"id":"original","result":history_resume("idle",true)})).unwrap();
+                let expected=binding.resume("conversation-home",g(),receipt.request_id().clone(),receipt.request_ref()).unwrap();
+                let expected=h.role_metadata_request(&receipt,expected).unwrap();
+                let actual=receipt.attempted_frame();let response=receipt.evidence()["response"].clone();
+                assert!(expected.clone().observe(&g(),&actual,&response).is_ok(),"known original role accepts the admitted saved cwd");
+                let mut changed=actual.clone();changed["params"]["cwd"]=json!(server);
+                assert!(expected.observe(&g(),&changed,&response).is_err(),"whole-packet folder binding remains exact");
+            } else {
+                assert!(result.err().unwrap().contains("edits-level-reaches-app-folders"));
+                assert!(resumes.is_empty(),"the saved containing folder is checked, not the separate server folder");
+            }
+        }
+    }
+
     /// DEL-01-01 (reader's control F2): the folder set aside replaced by a link to the records
     /// folder is never the folder set aside: neither it nor its target is resumed or forked.
     #[test]
@@ -7076,10 +7351,14 @@ mod conversation_transport_tests {
     fn history_selected()->NativeHistory {let mut view=NativeHistory::new("conversation-home",g()).unwrap();let q=view.list_threads(None,crate::native_history::Direction::Desc).unwrap();view.receive(&q,"conversation-home",&g(),&json!({"data":[history_thread("notLoaded")],"nextCursor":null})).unwrap();view.select("stored").unwrap();view}
     /// An account or key-home host whose Codex answers each configuration reading as `reading` says
     /// at that moment ("openai", another provider, "absent", or "error"); every frame written is kept.
-    struct ReportingHome { home:crate::runtime_session::HomeSession, reading:Arc<Mutex<String>>, child:Child, frames:Arc<Mutex<Vec<Value>>>, reader:Option<std::thread::JoinHandle<()>> }
+    struct ReportingHome { home:crate::runtime_session::HomeSession, reading:Arc<Mutex<String>>, child:Child, frames:Arc<Mutex<Vec<Value>>>, reader:Option<std::thread::JoinHandle<()>>, _folders:SavedFolders }
     impl ReportingHome {
         fn new(class:crate::home_resources::HomeClass)->Self{
-            let host=host();host.inner.0.lock().unwrap().server_cwd=Some("/invented".into());
+            // As desktop startup does, retain App-data placement for the entire
+            // operation. Continue reads the saved folder through its real preflight.
+            let folders=SavedFolders::new();let host=folders.host();
+            host.inner.0.lock().unwrap().threads[0]["cwd"]=json!(folders.project);
+            let mut saved=history_thread("notLoaded");saved["cwd"]=json!(folders.project);
             let reading=Arc::new(Mutex::new("openai".to_owned()));let now=Arc::clone(&reading);
             *host.before_provider_wait.lock().unwrap()=Some(Box::new(move|h,source|{
                 let frame=match now.lock().unwrap().as_str(){
@@ -7099,15 +7378,40 @@ mod conversation_transport_tests {
             let mut child=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null()).spawn().unwrap();
             *host.stdin.lock().unwrap()=child.stdin.take();let stdout=child.stdout.take().unwrap();
             let frames=Arc::new(Mutex::new(Vec::new()));let kept=Arc::clone(&frames);
-            let reader=std::thread::spawn(move||{for line in BufReader::new(stdout).lines(){let Ok(line)=line else{break};kept.lock().unwrap().push(serde_json::from_str::<Value>(&line).unwrap());}});
+            let source=Arc::clone(&host);
+            let reader=std::thread::spawn(move||{for line in BufReader::new(stdout).lines(){
+                let Ok(line)=line else{break};let frame:Value=serde_json::from_str(&line).unwrap();
+                kept.lock().unwrap().push(frame.clone());
+                // Folder admission precedes the provider admission under test.
+                // Retain every frame; written() selects the provider corpus only
+                // after checking that resume carries this actual saved folder.
+                if frame["method"]=="thread/read" {
+                    assert_eq!(frame["params"],json!({"threadId":"stored","includeTurns":false}));
+                    source.on_line(&serde_json::to_vec(&json!({"id":frame["id"],"result":{"thread":saved}})).unwrap(),&g());
+                }
+            }});
             let home=crate::runtime_session::HomeSession::new(class,host,Err("synthetic reporting home".into())).unwrap();
-            Self{home,reading,child,frames,reader:Some(reader)}
+            Self{home,reading,child,frames,reader:Some(reader),_folders:folders}
         }
         fn reports(&self,reading:&str){*self.reading.lock().unwrap()=reading.into();}
-        /// Every frame written to this Codex's input, once the input is closed.
+        /// Provider-admission frames after the real saved-folder preflight.
         fn written(mut self)->Vec<String>{
             *self.home.host.stdin.lock().unwrap()=None;assert!(self.child.wait().unwrap().success());self.reader.take().unwrap().join().unwrap();
-            self.frames.lock().unwrap().iter().map(|f|f["method"].as_str().unwrap_or("").to_owned()).collect()
+            let frames=self.frames.lock().unwrap();
+            for frame in frames.iter().filter(|f|f["method"]=="thread/resume") {
+                assert_eq!(frame["params"]["cwd"],json!(self._folders.project));
+                assert!(frames.iter().any(|f|f["method"]=="thread/read"));
+            }
+            frames.iter().filter(|f|f["method"]!="thread/read").map(|f|f["method"].as_str().unwrap_or("").to_owned()).collect()
+        }
+    }
+    impl Drop for ReportingHome {
+        fn drop(&mut self) {
+            // End the owned peer on an assertion failure too: its reader holds
+            // the Host while answering preflight and must not retain its input.
+            *self.home.host.stdin.lock().unwrap()=None;
+            let _=self.child.wait();
+            if let Some(reader)=self.reader.take(){let _=reader.join();}
         }
     }
     fn resume(home:&ReportingHome)->Result<(),String>{let mut view=history_selected();let query=view.continue_query().unwrap();home.home.host.history_dispatch(&query).map(|_|())}
@@ -7220,6 +7524,21 @@ mod conversation_transport_tests {
         assert!(host.cloud_continuation_admission(&g(),access_provider::BUILT_IN_PROVIDER_UNREPORTED_RESUME).unwrap().is_none());
         assert!(host.client_requests().is_empty(),"no reading, nothing sent");
     }
+    /// These receiving/correlation fixtures begin after folder admission. Supply a known folder for the
+    /// dispatch only, then remove that fixture metadata before testing whether the native reply activates
+    /// a conversation. The separate saved_working_folder tests exercise the actual thread/read preflight.
+    fn history_dispatch_with_known_folder(host: &Host, query: &HistoryQuery) -> Result<HistoryDispatch,String> {
+        let supplied = if query.method()=="thread/resume" {
+            let mut i=host.inner.0.lock().unwrap();
+            let known=i.threads.iter().any(|row|row["generation"]==*query.generation() && row["threadId"]==query.params()["threadId"] && row["cwd"].is_string());
+            if !known { i.threads.push(json!({"generation":query.generation(),"threadId":query.params()["threadId"],
+                "cwd":"/invented","testOnlyKnownHistoryFolder":true})); }
+            !known
+        } else { false };
+        let result=host.history_dispatch(query);
+        if supplied { host.inner.0.lock().unwrap().threads.retain(|row|row["testOnlyKnownHistoryFolder"]!=true); }
+        result
+    }
     fn history_exchange(host: &Arc<Host>, query: &HistoryQuery, response: Option<Value>) -> (HistoryDispatch, Value, Value) {
         history_exchange_observed(host, query, response, None, |_| {})
     }
@@ -7247,7 +7566,7 @@ mod conversation_transport_tests {
             let _ = done_tx.send(completed);
         });
         let result = (|| -> Result<(HistoryDispatch, Value, Value), String> {
-            let receipt = host.history_dispatch(query)?;
+            let receipt = history_dispatch_with_known_folder(host,query)?;
             let evidence = host.history_wait(&receipt, Duration::from_millis(15))?;
             after_wait(&evidence);
             let outbound = done_rx.recv_timeout(Duration::from_secs(3)).map_err(|e| format!("history peer did not complete its scripted exchange: {e}"))??;
@@ -7447,7 +7766,7 @@ mod conversation_transport_tests {
     }
     #[test]
     fn history_bridge_continue_actual_receive_admit_once_and_text_control() {
-        let host=host();let mut view=history_selected();let query=view.continue_query().unwrap();let native=history_resume("idle",true);let(receipt,evidence,outbound)=history_exchange(&host,&query,Some(json!({"result":native})));assert_eq!(outbound["method"],"thread/resume");assert_eq!(outbound["params"],json!({"threadId":"stored","excludeTurns":true}));assert!(view.resumed_thread().is_none());assert!(host.history_admit_resume(&view,&receipt).is_err());assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);
+        let host=host();let mut view=history_selected();let query=view.continue_query().unwrap();let native=history_resume("idle",true);let(receipt,evidence,outbound)=history_exchange(&host,&query,Some(json!({"result":native})));assert_eq!(outbound["method"],"thread/resume");assert_eq!(outbound["params"],crate::codex_level::with_test_level(&json!({"threadId":"stored","excludeTurns":true}),"thread/resume"));assert!(view.resumed_thread().is_none());assert!(host.history_admit_resume(&view,&receipt).is_err());assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);
         view.receive(&query,"conversation-home",&g(),&evidence["response"]["result"]).unwrap();let admitted=host.history_admit_resume(&view,&receipt).unwrap();assert_eq!(admitted["threadId"],"stored");assert_eq!(admitted["generation"],g());assert_eq!(admitted["resumeRequestRef"],receipt.source().request_ref());assert!(host.history_admit_resume(&view,&receipt).is_err());assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),2);
         let(result,outbound)=exchange(&host,Some(json!({"result":{"turn":turn("inProgress")}})),vec![],||host.turn_start_text(&g(),"stored","continued exact text"));assert!(result.is_ok());assert_eq!(outbound["params"]["threadId"],"stored");assert!(outbound["params"].get("developerInstructions").is_none());
     }
@@ -7456,7 +7775,7 @@ mod conversation_transport_tests {
         // The admitting reading is written and answered; then the input fails, so the resume's own write fails.
         let host=host();let mut view=history_selected();let query=view.continue_query().unwrap();host.inner.0.lock().unwrap().server_cwd=Some("/invented".into());
         let mut cat=Command::new("/bin/cat").env_clear().stdin(Stdio::piped()).stdout(Stdio::null()).stderr(Stdio::null()).spawn().unwrap();*host.stdin.lock().unwrap()=cat.stdin.take();
-        let kept=super::break_input_after_the_reading(&host,Some(json!({"config":{"model_provider":"openai","model_providers":{}},"origins":{}})));let failed=host.history_dispatch(&query).unwrap();
+        let kept=super::break_input_after_the_reading(&host,Some(json!({"config":{"model_provider":"openai","model_providers":{}},"origins":{}})));let failed=history_dispatch_with_known_folder(&host,&query).unwrap();
         *host.before_provider_wait.lock().unwrap()=None;drop(kept);assert!(cat.wait().unwrap().success());let evidence=failed.evidence();assert!(evidence["sentFrame"].is_null());assert_eq!(evidence["writeResult"],"write-failed");assert_eq!(evidence["outcome"],"unknown-no-response");view.receive(&query,"conversation-home",&g(),&history_resume("idle",true)).unwrap();assert!(host.history_admit_resume(&view,&failed).is_err());let other=super::conversation_transport_tests::host();assert!(other.history_dispatch_status(&failed).is_err());
         let query=view.continue_query().unwrap();let(receipt,evidence,_)=history_exchange(&host,&query,Some(json!({"result":history_resume("idle",true)})));view.receive(&query,"conversation-home",&g(),&evidence["response"]["result"]).unwrap();assert!(view.resumed_thread().is_some());let newer=view.read_metadata().unwrap();assert!(host.history_admit_resume(&view,&receipt).is_err());view.receive(&newer,"conversation-home",&g(),&json!({"thread":history_thread("notLoaded")})).unwrap();assert!(host.history_admit_resume(&view,&receipt).is_err());
         let query=view.continue_query().unwrap();let(receipt,evidence,_)=history_exchange(&host,&query,Some(json!({"result":history_resume("idle",true)})));view.receive(&query,"conversation-home",&g(),&evidence["response"]["result"]).unwrap();let count=host.client_requests().len();{let mut i=host.inner.0.lock().unwrap();Host::close_generation(&mut i);i.generation["spawnCounter"]=json!(2);i.state="ready".into();}assert!(host.history_admit_resume(&view,&receipt).is_err());assert!(host.history_dispatch(&query).is_err());assert_eq!(host.client_requests().len(),count);assert_eq!(receipt.evidence()["sourceCurrent"],false);assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);
@@ -7600,7 +7919,7 @@ mod conversation_transport_tests {
     }
     #[test]
     fn history_bridge_genuine_start_receipt_exact_guidance_finish_and_lookup() {
-        let host=host();let text="Frozen guidance\n\né / 家";let mut receipt=None;let native=history_resume("idle",true);let(result,outbound)=exchange(&host,Some(json!({"result":native})),vec![],||{let r=host.thread_start_with_guidance_dispatch(&g(),"/invented","selected","configured",text)?;let e=host.source_request_wait(&r,Duration::from_millis(15))?;receipt=Some(r);Ok(e)});let evidence=result.unwrap();let receipt=receipt.unwrap();assert_eq!(outbound["params"],Host::thread_start_params("/invented","selected","configured",Some(text)).unwrap());assert_eq!(evidence["sentFrame"],outbound);assert_eq!(receipt.attempted_frame(),&outbound);assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);assert_eq!(host.source_request(&g(),receipt.request_id()).unwrap().request_ref(),receipt.request_ref());assert_eq!(host.source_request_status(&receipt).unwrap()["response"],evidence["response"]);
+        let host=host();let text="Frozen guidance\n\né / 家";let mut receipt=None;let native=history_resume("idle",true);let(result,outbound)=exchange(&host,Some(json!({"result":native})),vec![],||{let r=host.thread_start_with_guidance_dispatch(&g(),"/invented","selected","configured",text)?;let e=host.source_request_wait(&r,Duration::from_millis(15))?;receipt=Some(r);Ok(e)});let evidence=result.unwrap();let receipt=receipt.unwrap();assert_eq!(outbound["params"],crate::codex_level::with_test_level(&Host::thread_start_params("/invented","selected","configured",Some(text)).unwrap(),"thread/start"));assert_eq!(evidence["sentFrame"],outbound);assert_eq!(receipt.attempted_frame(),&outbound);assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);assert_eq!(host.source_request(&g(),receipt.request_id()).unwrap().request_ref(),receipt.request_ref());assert_eq!(host.source_request_status(&receipt).unwrap()["response"],evidence["response"]);
         assert!(host.thread_start_dispatch_finish(&receipt).is_ok());assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),2);assert!(host.thread_start_dispatch_finish(&receipt).is_err());assert!(host.source_request(&json!({"appSession":"foreign","home":"conversation-home","spawnCounter":1}),receipt.request_id()).is_err());
         let mut bad_receipt=None;let(result,_)=exchange(&host,Some(json!({"result":{"thread":{"id":"malformed"}}})),vec![],||{let r=host.thread_start_with_guidance_dispatch(&g(),"/invented","selected","configured",text)?;let e=host.source_request_wait(&r,Duration::from_millis(15))?;bad_receipt=Some(r);Ok(e)});assert_eq!(result.unwrap()["outcome"],"response-observed-result");assert!(host.thread_start_dispatch_finish(&bad_receipt.unwrap()).is_err());assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),2);
     }
@@ -7611,7 +7930,7 @@ mod conversation_transport_tests {
         use crate::role_supply::{Composition,Guidance,Role};
         let host=host();host.inner.0.lock().unwrap().threads.clear();let mut session=crate::runtime_session::HistorySession::default();session.synchronize(&host.snapshot());
         let query=session.prepare(&host.snapshot(),&g(),0,"list",None,Direction::Desc,None).unwrap();let(receipt,_,_)=history_exchange(&host,&query,Some(json!({"result":{"data":[history_thread("notLoaded")],"nextCursor":null}})));session.dispatched(receipt);session.reconcile(&host);assert!(host.snapshot()["threads"].as_array().unwrap().is_empty());session.select(&host.snapshot(),&g(),0,"stored").unwrap();assert_eq!(session.snapshot(None)["selectionEpoch"],1);
-        let query=session.prepare(&host.snapshot(),&g(),1,"continue",None,Direction::Desc,None).unwrap();let(receipt,_,outbound)=history_exchange(&host,&query,Some(json!({"result":history_resume("idle",true)})));assert_eq!(outbound["params"],json!({"threadId":"stored","excludeTurns":true}));assert!(host.snapshot()["threads"].as_array().unwrap().is_empty());session.dispatched(receipt);session.reconcile(&host);assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);assert_eq!(session.snapshot(None)["selected"]["resumeEligibilityCurrent"],true);assert_eq!(session.role("conversation-home","stored")["standing"],"unknown");
+        let query=session.prepare(&host.snapshot(),&g(),1,"continue",None,Direction::Desc,None).unwrap();let(receipt,_,outbound)=history_exchange(&host,&query,Some(json!({"result":history_resume("idle",true)})));assert_eq!(outbound["params"],crate::codex_level::with_test_level(&json!({"threadId":"stored","excludeTurns":true}),"thread/resume"));assert!(host.snapshot()["threads"].as_array().unwrap().is_empty());session.dispatched(receipt);session.reconcile(&host);assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);assert_eq!(session.snapshot(None)["selected"]["resumeEligibilityCurrent"],true);assert_eq!(session.role("conversation-home","stored")["standing"],"unknown");
         let common=Guidance::seeded("AGENTS.md","test-release",b"Frozen common bytes\r\n".to_vec(),b"default common").unwrap();let role=Guidance::seeded("agents/AGENT_TASK.md","test-release",b"Frozen TASK bytes\r\n".to_vec(),b"default role").unwrap();let composition=Composition::new(&common,Some((Role::TASK,&role)),true).unwrap();let original=composition.text.clone();let mut native=history_resume("idle",true);native["thread"]["id"]=json!("role-thread");let mut start=None;
         let(result,outbound)=exchange(&host,Some(json!({"result":native})),vec![],||{let receipt=host.thread_start_with_guidance_dispatch(&g(),"/invented","selected","configured",&composition.text)?;session.start_dispatched(receipt.clone(),&composition,"sup:fixture")?;let evidence=host.source_request_wait(&receipt,Duration::from_millis(15))?;start=Some(receipt);Ok(evidence)});assert_eq!(result.unwrap()["writeResult"],"written");assert_eq!(outbound["params"]["developerInstructions"],original);assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);session.reconcile(&host);assert!(session.start_admitted(&start.unwrap()));assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),2);let role=session.role("conversation-home","role-thread");assert_eq!(role["standing"],"app-observed");assert_eq!(role["role"],"TASK");assert!(session.snapshot(None)["receivingLimits"].as_array().unwrap().is_empty());
         // Role preparation is local and occurs after a genuine native send.
@@ -7743,7 +8062,9 @@ mod conversation_transport_tests {
             let schema: Value = serde_json::from_str(include_str!("../schemas/RS_RECORD.schema.json")).unwrap();
             jsonschema::options().offline().build(&schema["$defs"]["modelTurn"]).unwrap().validate(recorded).unwrap();
             let context = host.snapshot()["conversationTurns"].as_array().unwrap().iter().find(|turn| turn["turnId"] == "after-attachment").unwrap()["appTurnStart"]["requestedContext"].clone();
-            assert_eq!(host.snapshot()["threads"], reported, "no reported-model mutation");
+            // The conversation's `level` (what the App sent, V4-AUT-06) changes with the turn; nothing Codex reported does.
+            let without_level = |threads: Value| -> Value { Value::Array(threads.as_array().unwrap().iter().map(|t| { let mut t = t.clone(); t.as_object_mut().unwrap().remove("level"); t }).collect()) };
+            assert_eq!(without_level(host.snapshot()["threads"].clone()), without_level(reported.clone()), "no reported-model mutation");
             std::fs::remove_dir_all(root).unwrap();
             let expected = if settled_refusal { "M1" } else { "unknown" };
             assert_eq!(json!({"modeRefused":mode.is_err(),"requested":context["requested"],"recordedRequested":recorded["requested"]}),
@@ -8095,11 +8416,12 @@ mod conversation_transport_tests {
         use crate::recovery::{ExplicitAppProjectContext as Context,AppProjectSource};
         let(host,g,root,owner,selections)=context_fixture();let p=Context::known("P",AppProjectSource::ConfiguredDirectory).unwrap();
         host.observe_conversation_project(&g,"thread",Some("H-acct"),&p).unwrap();
+        let saved_cwd=host.snapshot()["threads"][0]["cwd"].clone();
         host.end_process_for_test();
         // The successor holds its App data before it opens the ledger, as the App does.
         let _custody=crate::hold_app_data_for_test(owner.root()).unwrap();
         let successor=Arc::new(Host::new());successor.configure_recovery(owner.root().join("runtime/recovery.ledger.jsonl")).unwrap();
-        let next={let mut i=successor.inner.0.lock().unwrap();let next=json!({"appSession":i.app_session,"home":"opaque-native-home","spawnCounter":1});i.generation=next.clone();i.state="ready".into();i.threads.push(json!({"generation":next,"threadId":"thread"}));next};
+        let next={let mut i=successor.inner.0.lock().unwrap();let next=json!({"appSession":i.app_session,"home":"opaque-native-home","spawnCounter":1});i.generation=next.clone();i.state="ready".into();i.threads.push(json!({"generation":next,"threadId":"thread","cwd":saved_cwd}));next};
         successor.observe_conversation_project(&next,"thread",Some("H-acct"),&p).unwrap();
         let packet=context_packet(&successor,&owner,&next,&selections);let q=Context::known("Q",AppProjectSource::OpenedDirectory).unwrap();let bound=successor.bind_attachment_context(&packet,&q,Some("H-acct")).unwrap();assert_eq!(bound["persistence"],"durable App metadata");
         let view=successor.recovery_custody().snapshot();let row=&view["historicalConversations"][0]["index"];
@@ -8607,8 +8929,9 @@ mod conversation_transport_tests {
             *host.stdin.lock().unwrap()=child.stdin.take();let reader=BufReader::new(child.stdout.take().unwrap());Self{host,child,reader}
         }
         fn reply(&mut self,dispatch:&HistoryDispatch,result:&Value){
+            assert_eq!(dispatch.source().write_attempt_observed(),Some(true),"history peer cannot read a frame refused before its write: {}",dispatch.evidence());
             let actual=next_operation_frame(&mut self.reader).unwrap();
-            assert_eq!(actual["id"],*dispatch.source().request_id());assert_eq!(actual["method"],dispatch.query().method());assert_eq!(actual["params"],*dispatch.query().params());
+            assert_eq!(actual["id"],*dispatch.source().request_id());assert_eq!(actual["method"],dispatch.query().method());assert_eq!(actual["params"],crate::codex_level::with_test_level(dispatch.query().params(),dispatch.query().method()));
             self.host.on_line(&serde_json::to_vec(&json!({"id":actual["id"],"result":result})).unwrap(),&g());
         }
         fn dispatch(&mut self,query:&HistoryQuery,result:&Value)->HistoryDispatch {
@@ -8724,7 +9047,8 @@ mod conversation_transport_tests {
             {let received=host.turn_start_prepared_finish(&r,&f.prepared,"person exact\r\ntext","client:original",Duration::from_millis(50))?;assert!(std::ptr::eq(received.source(),&r));assert_eq!(received.turn_id(),"turn");assert_eq!(received.reply_status(),"failed");assert_eq!(received.observed_status(),"failed");}
             let e=r.evidence();source=Some(r);Ok(e)
         });
-        assert_eq!(outbound["params"],f.prepared.turn_params("person exact\r\ntext","client:original").unwrap());assert_eq!(outbound["params"]["input"][0]["text"],f.prepared.text());assert_eq!(outbound["params"]["input"][1]["text"],"person exact\r\ntext");assert_eq!(outbound["params"]["clientUserMessageId"],"client:original");assert!(outbound["params"].get("approvalPolicy").is_none());assert_eq!(result.unwrap()["writeResult"],"written");assert!(source.is_some());
+        // V4-AUT-06: the prepared turn plus exactly the level in force (the test Host's "edits").
+        assert_eq!(outbound["params"],codex_level::expected_with_level(&f.prepared.turn_params("person exact\r\ntext","client:original").unwrap(),codex_level::level("edits"),codex_level::Method::TurnStart).unwrap());assert_eq!(outbound["params"]["input"][0]["text"],f.prepared.text());assert_eq!(outbound["params"]["input"][1]["text"],"person exact\r\ntext");assert_eq!(outbound["params"]["clientUserMessageId"],"client:original");assert_eq!(outbound["params"]["approvalPolicy"],"on-request");assert_eq!(result.unwrap()["writeResult"],"written");assert!(source.is_some());
     }
     #[test]
     fn prepared_turn_finish_preserves_prior_terminal_and_refuses_changed_original_input(){
@@ -8768,6 +9092,10 @@ mod conversation_transport_tests {
 #[cfg(test)]
 #[path = "execution_custody_tests.rs"]
 mod execution_custody_tests;
+
+#[cfg(all(test, unix))]
+#[path = "codex_level_host_tests.rs"]
+mod codex_level_host_tests;
 
 #[cfg(all(test, unix))]
 #[path = "hosting_reading_gate_tests.rs"]

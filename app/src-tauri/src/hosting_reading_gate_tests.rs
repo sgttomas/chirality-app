@@ -655,6 +655,10 @@ fn continue_query(rig: &Rig) -> HistoryQuery {
     let stored = json!({"id":"stored","cliVersion":"0.169.0","createdAt":1,"updatedAt":2,"cwd":"/invented","ephemeral":false,"modelProvider":"openai","preview":"invented","projectId":null,"sessionId":"native-session","source":"appServer","status":{"type":"notLoaded"},"turns":[]});
     view.receive(&q, "reading-gate-home", &rig.g, &json!({"data":[stored],"nextCursor":null})).unwrap();
     view.select("stored").unwrap();
+    // This unit isolates the configuration gate after saved-folder admission.
+    // Keep the folder in the native metadata above for the fixture's life;
+    // the saved_working_folder tests exercise the actual thread/read preflight.
+    rig.host.inner.0.lock().unwrap().threads.push(json!({"generation":rig.g,"threadId":"stored","cwd":stored["cwd"]}));
     view.continue_query().unwrap()
 }
 

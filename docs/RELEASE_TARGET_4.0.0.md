@@ -236,7 +236,8 @@ the owner decide on what was actually observed.
    supplies its inputs, runs it to completion and finds the results, with real
    execution doing useful work, every step taken through the App's shipped
    controls and the words it shows, and no control interpreted or operated by
-   any other means. During setup the person chooses the permission level
+   any other means. Setup has no step for the permission level: the level in
+   force is shown, as the App's default until the person chooses one
    (criterion 6). Before the run the App says which of the workflow's
    declared required tools are available and which are missing, and a workflow
    whose requirements are not declared reads as undeclared and is not shown as
@@ -365,10 +366,17 @@ the owner decide on what was actually observed.
    runs with the ChatGPT account. The start-up connections of the App's Codex
    are listed, and those an App setting stops are absent. No credential
    appears in anything the App wrote. In the examination the owner performs
-   the sign-in, and agents examine what follows. Before the first
-   conversation the person chooses a permission level among those offered,
-   and none applies until they have chosen; a level marked as recommended is
-   shown as such beside the others; every level offered was first shown at
+   the sign-in, and agents examine what follows. Until the person chooses a
+   permission level, the App's default level applies: full access, which the
+   owner chose on 14 November 2026, in a popup relayed by the Inter-Project
+   Agent 0, when asked "At first use, the App currently
+   will not start a conversation until the person has chosen a permission
+   level. Should 4.0.0 start with a default level instead, shown as the App's
+   default and changeable at any time?", selecting "Full access" ("As T3 Code
+   does: the agent can act anywhere on the machine with no sandbox, from the
+   first run."); wherever the level in force is shown it is described as the
+   App's default level, not chosen by the person, it can be changed at any
+   time, and it is never recorded as the person's choice; on 15 November 2026 (UTC) the owner wrote to App Agent 0 directly, in their own words: "Regarding the permission level I want there to be a default setting the user can change if they want, not something they have to set."; as the one exception, the person is asked to choose before a conversation runs only where the App cannot show that applying its default would not raise a level the person had set: a recorded choice that no longer matches the App's level table requires the person to choose again, whether or not the account home holds earlier Codex state. With no usable choice, the App also asks when its whole ledger holds no entry from an earlier session while that home holds earlier Codex state, when the records cannot be read and that state is present, or when the home-state probe is unknown. The default is preselected so one press continues, and the App says why. A whole validated record with earlier session entries and no choice means only that no choice was found, and the default applies. Removal or replacement of individual entries by writes outside the App is not detected and can expose an older choice or the default (LIM-022); this excludes neither ordinary App choice-write failures nor corruption the store detects from the exception. Established absence of earlier Codex state permits the default after an unreadable first-run record, with the unread-records disclosure and any later choice's separate saving outcome; an already known narrower level is preserved on a failed fresh read; every level offered was first shown at
    the pin by a fixture; the
    level in force is always shown, with the statement that reading is not
    limited; the App sends it to Codex on each turn and on start, resume and
@@ -378,9 +386,9 @@ the owner decide on what was actually observed.
 
    *Governed by:* DEL-09-02 AC-006; DEL-01-05 AC-001 to AC-005 and AC-011;
    each in the words that its scope states are in force for 4.0.0. The
-   permission level is governed by DEL-01-04 (choosing and capturing it),
-   DEL-04-02 (showing it) and DEL-01-01 (carrying it to Codex), with criteria
-   to come from the pull requests that build them.
+   permission level is governed by DEL-01-04 REQ-011 and AC-012 (the
+   default, choosing it and the one exception), DEL-04-02 REQ-010 and AC-010
+   (showing it) and DEL-01-01 REQ-012 and AC-012 (carrying it to Codex).
    That no local model server is presented is governed by the "For 4.0.0"
    section of DEL-01-05, and is examined on the candidate by inspecting every
    view met in the journeys and examinations of criteria 1 to 6 for an offer

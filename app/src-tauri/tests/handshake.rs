@@ -128,6 +128,8 @@ fn hosts_codex_initialize_then_thread_start() {
     cfg.allow_unverified_dev = true; // current full distribution qualification is absent
 
     let host = Arc::new(Host::new());
+    // V4-AUT-06: a Host starts with no level; this test's conversation is sent under "edits".
+    host.set_default_level("edits").unwrap();
     // CR-03: a request before ready is refused and not sent.
     assert!(host.request("thread/start", json!({}), json!({"kind": "person-directed"})).is_err());
 

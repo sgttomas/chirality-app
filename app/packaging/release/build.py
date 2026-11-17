@@ -6,6 +6,11 @@ offline, runs the plan's recipe argv from an empty environment holding only
 the allowlisted variables, checks the built bundle, and publishes
 CANDIDATE.json, which the signing step verifies before it does anything.
 
+While any notice is open, it builds only with --not-for-public-release, an explicit argument (default off) that names
+the candidate as an examination candidate, never a publication candidate. The plan records that standing, and
+CANDIDATE.json carries it as release_standing (common.STANDINGS), which common.load_candidate checks against the plan.
+The option changes no bundle input: the plan's configuration and build environment are the same with or without it.
+
 The inputs it would write through (the source export, the Cargo home and the
 npm cache) are copied into its output folder; every writable location of the
 install and the build points inside that folder. Raw tool output and traces go
@@ -299,7 +304,8 @@ def build(*, out, private=common.PrivateWriter, **kw):
                     write_private_input(out / 'INCOMPLETE.txt', b'No candidate: the build failed; see BUILD_FAILED.json.\n')
                 if not os.path.lexists(out / 'BUILD_FAILED.json'):
                     common.write_returnable(out / 'BUILD_FAILED.json', {'result': 'failed', 'stage': stage.get('stage'),
-                                                                        'reason_code': failure.code, 'reason': failure.reason}, out, set())
+                                                                        'reason_code': failure.code, 'reason': failure.reason,
+                                                                        **(failure.detail or {})}, out, set())
             except BaseException:
                 pass
         raise failure from None
@@ -307,8 +313,10 @@ def build(*, out, private=common.PrivateWriter, **kw):
 
 def _build(*, source_root, revision, vendor, expected_manifest, pin, out, environment, tools, cargo_cache, npm_cache,
            publisher_input=None, publisher_sha256=None, cargo_build_input=prepare.CARGO_BUILD_PRESET,
-           runner=common.system_runner, host=None, private=common.PrivateWriter, stage=None):
+           not_for_public_release=False, runner=common.system_runner, host=None, private=common.PrivateWriter, stage=None):
     stage = {} if stage is None else stage
+    # Only an explicit argument names a candidate as not for public release; nothing infers it or defaults it to true.
+    check(not_for_public_release is True or not_for_public_release is False, 'BUILD_ENVIRONMENT')
     host = host or (platform.system(), platform.machine())
     check(host == ('Darwin', 'arm64'), 'BUILD_HOST')
     check(set(tools) == set(TOOLS), 'BUILD_TOOLS')
@@ -380,11 +388,26 @@ def _build(*, source_root, revision, vendor, expected_manifest, pin, out, enviro
     stage['stage'] = 'PLAN'
     try:
         prepare.prepare(source_root, vendor, expected_manifest, pin, revision, plan, publisher_input=publisher_input,
-                        publisher_sha256=publisher_sha256, cargo_build_input=cargo_build_input)
+                        publisher_sha256=publisher_sha256, cargo_build_input=cargo_build_input,
+                        not_for_public_release=not_for_public_release)
         completion = prepare.check_plan(plan)
         team = parse_team(publisher_input)
+        account = prepare.parse(read_input(plan / 'input-inventory.json'))
+    except prepare.NoticeCoverageIncomplete as gate:
+        # The notice gate's own refusal. The open components are names from the committed account; a name that is not a
+        # plainly shaped value is recorded as not observed, and gaps that are not account rows only by their count.
+        raise Failure('BUILD_NOTICE_COVERAGE', {'open_components': [n if common.is_shape(n, 'relative_path') else 'not observed'
+                                                                    for n in gate.open_components],
+                                                'other_notice_gaps': gate.other_gaps})
     except (ValueError, OSError, KeyError):
         raise Failure('BUILD_PLAN')
+    # The plan's release standing, carried with the candidate and checked again by common.load_candidate.
+    coverage = account['notice_coverage']
+    release_standing = {'not_for_public_release': not_for_public_release, 'standing': account['release_standing'],
+                        'notice_coverage_complete': coverage['complete'], 'notice_coverage_sha256': coverage['sha256'],
+                        'notice_gaps': coverage['gaps']}
+    check(account['not_for_public_release'] is not_for_public_release
+          and common.STANDINGS.get((not_for_public_release, coverage['complete'])) == account['release_standing'], 'BUILD_PLAN')
     public_teams = {team, common.SUPPLIER_TEAM}
     config = prepare.parse(read_input(plan / 'tauri.package-inputs.conf.json'))
     check(config['productName'] == common.PRODUCT_NAME and config['identifier'] == common.RELEASE['identifier']
@@ -470,6 +493,7 @@ def _build(*, source_root, revision, vendor, expected_manifest, pin, out, enviro
         'vendor': facts['vendor'], 'resources': facts['resources'], 'publisher': files,
         'limitations': {'source': common.LIMITATIONS_SOURCE, 'sha256': sha(limitations_raw), 'copy': 'RELEASE_LIMITATIONS_4.0.0.md',
                         'bundled': bundled_state},
+        'release_standing': release_standing,
     }
     # Publish last: write the pending description, verify it, remove the marker, then rename atomically.
     stage['stage'] = 'PUBLISH'
@@ -511,13 +535,17 @@ def main(argv=None, *, stdout=None, stderr=None, **kw):
     parser.add_argument('--publisher-input', help='optional supplied publisher-build-selection.s1 file; default generated from source')
     parser.add_argument('--publisher-sha256')
     parser.add_argument('--cargo-build-input', default=prepare.CARGO_BUILD_PRESET, choices=[prepare.CARGO_BUILD_PRESET])
+    parser.add_argument('--not-for-public-release', action='store_true',
+                        help='name the candidate as not for public release (an examination candidate); required while any '
+                             'notice is open, and recorded as the candidate\'s release standing')
     args = parser.parse_args(argv)
     try:
         result = build(source_root=args.source_root, revision=args.revision, vendor=args.vendor,
                        expected_manifest=args.expected_manifest, pin=args.pin, out=args.out,
                        environment=pairs(args.env, 'environment entry'), tools=pairs(args.tool, 'tool'),
                        publisher_input=args.publisher_input, publisher_sha256=args.publisher_sha256,
-                       cargo_build_input=args.cargo_build_input, cargo_cache=args.cargo_cache, npm_cache=args.npm_cache, **kw)
+                       cargo_build_input=args.cargo_build_input, not_for_public_release=args.not_for_public_release,
+                       cargo_cache=args.cargo_cache, npm_cache=args.npm_cache, **kw)
     except Failure as failure:
         print('FAILED: ' + failure.reason, file=stderr)
         return 2

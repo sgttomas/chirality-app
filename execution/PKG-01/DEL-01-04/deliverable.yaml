@@ -49,7 +49,14 @@ needs:
     disposition, taken from the run record's checkpoint entries, with waiting never meaning that the
     run is held; and the standing of a result is given as received and no stronger, as current or
     historical, checks passed, limitations and lapse, with missing evidence and unobserved outcomes
-    explicit.
+    explicit. For a standalone conversation, the level panel shows the host's permission level,
+    origin, dimensions, ask, sent and reported settings, timing, project trust and lasting rules
+    without inferring a choice or a supplier confirmation. It presents the host's closed reading,
+    allowing-command, next-turn and per-case ask sentences, and read or inherited-association
+    persistence failures with raw details marked apart from those sentences. The default scope's
+    consequence is shown before start, and a conversation whose chosen scope is default shows
+    the host's following-default sentence; a saving outcome is shown only for its scope, apart from
+    the level in force, and unconfirmed saving never implies that no record was written.
   gating: false
 - from: DEL-04-03
   condition: A human act and a declined act can be written as direct-capture records that bind
@@ -82,6 +89,15 @@ needs:
     then a synthetic examination artifact that establishes no person's decision. The protection act
     and the confirmation of a lowered policy (VER-009) are the person's and never an agent's.
 code_paths:
+# Shared with DEL-04-02: placement before Start/Send and the plain level-setting control.
+- app/src/PermissionLevel.tsx
+# The permission level (REQ-011): the person's choice and its record in the App ledger, the App's
+# default, the launch read and its one exception (the ask), and the status the level panel shows.
+# hosting_level.rs is shared with DEL-01-01, which carries the level to Codex.
+- app/src-tauri/src/hosting_level.rs
+- app/src-tauri/src/hosting_level_tests.rs
+- app/src-tauri/src/level_choice.rs
+- app/src-tauri/src/level_choice_tests.rs
 # act_control.rs is shared. Here: the control, its offers and captures. The registration
 # operation is DEL-02-02's, act wording DEL-04-01's and the record writer DEL-04-03's.
 - app/src-tauri/src/act_control.rs
@@ -171,6 +187,7 @@ code_paths:
 - app/src/DailyWorkspace.tsx
 - app/src/workspace.css
 checks:
+- app/tests/permission-level.test.mjs
 - app/src-tauri/src/capture_seal.rs
 - app/src-tauri/src/seal_c_enrollment_tests.rs
 - app/src-tauri/src/file_act_consumer_tests.rs

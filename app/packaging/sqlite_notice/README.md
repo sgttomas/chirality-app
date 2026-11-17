@@ -12,15 +12,13 @@ but is not substituted for the selected ordinary `rusqlite` bundled route.
 The archive build script selects `sqlite3/sqlite3.c` for the bundled SQLite
 route; current App declares `rusqlite` with `bundled`. These source facts do not
 prove an installed binary's linkage or all feature-unified runtime composition.
-No compilation, source download or legal determination occurred. No resource
-overlay is changed; actual inclusion is still unobserved. This supplements, but
-does not expand the existing direct-runtime index into transitive completeness.
+No compilation, source download or legal determination occurred. Actual inclusion is unobserved until a package is built.
 
 Run `python3 app/packaging/sqlite_notice/check.py` from the repository. With an
 already available exact archive, add `--archive /absolute/libsqlite3-sys-0.30.1.crate`
 to compare every retained byte and whole-member digest against that archive.
 There is no fetch, extraction to disk, native execution or fallback.
 
-The four supplier source/notice associations (Codex main/code-mode-host/rg/zsh)
-remain unestablished by the retained platform tree; this SQLite source input
-does not resolve them. No arbitrary system license or other version is substituted.
+`prepare.py` maps the header excerpt to `third-party-notices/sqlite-preparation/`;
+`../notices/coverage.json` names it as SQLite's notice. No arbitrary system licence
+or other version is substituted.

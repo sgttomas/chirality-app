@@ -13,9 +13,12 @@ package-lock.json, and received/retained upstream-text associations against fixe
 `associate-local` joins retained bytes to the already checked graph without running Cargo;
 legacy /2 indexes keep their historical interpretation. New /3 rows carry explicit scope limits.
 `check --cargo-home` additionally re-resolves the graph and re-reads every archive.
-Never fetches, builds or executes dependency code.
+`associate-npm --npm-cache` re-derives only the npm text rows from the locked tarballs (no Cargo run),
+and `check --npm-cache` re-reads them. Never fetches, builds or executes dependency code and never
+writes to a cache.
 """
 import argparse
+import base64
 import copy
 import importlib.util
 import hashlib
@@ -48,7 +51,8 @@ LOCAL_ASSOCIATIONS = 'app/packaging/notices/retained-root-associations.json'
 LOCAL_ASSOCIATIONS_SHA256 = '9b8b93ef107c0dd80a65cfe248dd0fd9323803cbf4b88747dde698dd4f4af260'
 _spec = importlib.util.spec_from_file_location('transitive_notice_files', HERE / 'retained_files.py')
 files = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(files)
-NPM_TEXT_KINDS = {'missing', 'direct-index-archive', 'installed-tree-only'}
+NPM_TEXT_KINDS = {'missing', 'direct-index-archive', 'installed-tree-only', 'lock-tarball'}
+HEX64 = re.compile('[0-9a-f]{64}')
 
 
 def sha(raw):
@@ -144,6 +148,64 @@ def npm_runtime(repo):
     return sorted(found.values(), key=lambda e: e['package'])
 
 
+def npm_tarball(npm_cache, integrity):
+    """Locate a locked tarball by its lock integrity in an npm cache (content-addressed); read-only."""
+    algorithm, encoded = integrity.split('-', 1)
+    require(algorithm == 'sha512', 'unsupported npm integrity algorithm')
+    digest = base64.b64decode(encoded, validate=True)
+    path = Path(npm_cache) / '_cacache/content-v2/sha512' / digest.hex()[:2] / digest.hex()[2:4] / digest.hex()[4:]
+    raw = path.read_bytes()
+    require(hashlib.sha512(raw).digest() == digest, 'cached npm tarball differs from the lock integrity')
+    return raw
+
+
+def npm_notice_members(raw):
+    """Root-level licence/notice members of one npm tarball: name -> bytes."""
+    import io
+    found = {}
+    with tarfile.open(fileobj=io.BytesIO(raw)) as archive:
+        for member in archive.getmembers():
+            rel = member.name[len('package/'):] if member.name.startswith('package/') else None
+            if rel and '/' not in rel and NOTICE_NAME.match(rel):
+                require(member.isfile() and rel not in found, 'npm notice member is not one regular file: ' + rel)
+                found[rel] = archive.extractfile(member).read()
+    return found
+
+
+def npm_text(row, component, npm_cache=None, node_modules=None):
+    if component and component['version'] == row['version'] and component['source']['integrity'] == row['integrity']:
+        notices = [n['sha256'] for n in component['notices']]
+        if npm_cache:
+            members = npm_notice_members(npm_tarball(npm_cache, row['integrity']))
+            require(sorted(sha(v) for v in members.values()) == sorted(notices), 'direct npm notices differ from tarball')
+        return {'kind': 'direct-index-archive', 'notices': notices}
+    if npm_cache:
+        members = npm_notice_members(npm_tarball(npm_cache, row['integrity']))
+        return {'kind': 'lock-tarball', 'notice_members': [{'member': name, 'size_bytes': len(raw), 'sha256': sha(raw)}
+                                                           for name, raw in sorted(members.items())]}
+    files = []
+    if node_modules:
+        folder = Path(node_modules) / row['package']
+        files = [{'file': f.name, 'sha256': sha(f.read_bytes())} for f in sorted(folder.iterdir())
+                 if f.is_file() and NOTICE_NAME.match(f.name)]
+    return {'kind': 'installed-tree-only' if files else 'missing', 'installed_notice_files': files,
+            'limit': 'unverified: installed copy only; lock tarball not available locally'}
+
+
+def direct_npm(repo=REPO):
+    return {c['package']: c for c in json.loads((Path(repo) / 'app/packaging/notices/index.json').read_bytes())['components']
+            if c['ecosystem'] == 'npm'}
+
+
+def associate_npm(npm_cache, index_path=INDEX, repo=REPO):
+    """Re-derive only the npm text rows from locked tarballs; the checked Cargo graph is kept as is."""
+    index = copy.deepcopy(check(index_path, repo))
+    direct = direct_npm(repo)
+    for row in index['npm']:
+        row['text'] = npm_text(row, direct.get(row['package']), npm_cache)
+    return index
+
+
 def known_objc2_blobs(repo):
     metadata = json.loads((repo / OBJC2_METADATA).read_bytes())
     return {a['vcs_revision']: a['git_blob_sha1'] for a in metadata['crate_associations']}
@@ -236,7 +298,7 @@ def archive_path(cargo_home, name, version):
     return hits[0]
 
 
-def generate(cargo_home, node_modules=None, repo=REPO):
+def generate(cargo_home, node_modules=None, repo=REPO, npm_cache=None):
     lock, known = cargo_lock(repo), known_objc2_blobs(repo)
     associations = local_associations(repo)
     cargo = []
@@ -263,20 +325,10 @@ def generate(cargo_home, node_modules=None, repo=REPO):
             local = local_text(repo, entry, associations, prior=True)
             if local is not None: entry['text'] = local
         cargo.append(entry)
-    direct = {c['package']: c for c in json.loads((HERE / 'index.json').read_bytes())['components'] if c['ecosystem'] == 'npm'}
+    direct = direct_npm(repo)
     npm = []
     for row in npm_runtime(repo):
-        component = direct.get(row['package'])
-        if component and component['version'] == row['version'] and component['source']['integrity'] == row['integrity']:
-            row['text'] = {'kind': 'direct-index-archive', 'notices': [n['sha256'] for n in component['notices']]}
-        else:
-            files = []
-            if node_modules:
-                folder = Path(node_modules) / row['package']
-                files = [{'file': f.name, 'sha256': sha(f.read_bytes())} for f in sorted(folder.iterdir())
-                         if f.is_file() and NOTICE_NAME.match(f.name)]
-            row['text'] = {'kind': 'installed-tree-only' if files else 'missing', 'installed_notice_files': files,
-                           'limit': 'unverified: installed copy only; lock tarball not available locally'}
+        row['text'] = npm_text(row, direct.get(row['package']), npm_cache, node_modules)
         npm.append(row)
     cargo_version = subprocess.run(['cargo', '--version'], capture_output=True, text=True, check=True).stdout.strip()
     return {'format': FORMAT, 'target': TARGET, 'features': FEATURES, 'edges': EDGES, 'source_basis': basis(repo),
@@ -287,7 +339,7 @@ def generate(cargo_home, node_modules=None, repo=REPO):
             'cargo': cargo, 'npm': npm}
 
 
-def check(index_path=INDEX, repo=REPO, cargo_home=None):
+def check(index_path=INDEX, repo=REPO, cargo_home=None, npm_cache=None):
     index = json.loads(Path(index_path).read_bytes())
     require(set(index) == {'format', 'target', 'features', 'edges', 'source_basis', 'generation', 'scope', 'cargo', 'npm'}
             and index['format'] in (FORMAT, LEGACY_FORMAT) and index['target'] == TARGET and index['features'] == FEATURES
@@ -331,6 +383,16 @@ def check(index_path=INDEX, repo=REPO, cargo_home=None):
             require(component and component['version'] == row['version'] and component['source']['integrity'] == row['integrity']
                     and row['text']['notices'] == [n['sha256'] for n in component['notices']],
                     'npm row does not match the direct archive-verified index: ' + row['package'])
+        if row['text']['kind'] == 'lock-tarball':
+            members = row['text'].get('notice_members')
+            require(set(row['text']) == {'kind', 'notice_members'} and isinstance(members, list) and members
+                    and all(set(m) == {'member', 'size_bytes', 'sha256'} and isinstance(m['member'], str)
+                            and '/' not in m['member'] and NOTICE_NAME.match(m['member'])
+                            and type(m['size_bytes']) is int and HEX64.fullmatch(m['sha256']) for m in members)
+                    and len({m['member'] for m in members}) == len(members), 'invalid npm tarball notice members: ' + row['package'])
+        if npm_cache is not None and row['text']['kind'] in ('lock-tarball', 'direct-index-archive'):
+            require(npm_text(row, direct_npm.get(row['package']), npm_cache) == row['text'],
+                    'npm tarball notice members differ: ' + row['package'])
     for component in direct:
         if component['ecosystem'] == 'cargo':
             require((component['package'], component['version']) in seen, 'direct crate missing: ' + component['package'])
@@ -356,7 +418,8 @@ def summary(index):
         kinds[e['text']['kind']] = kinds.get(e['text']['kind'], 0) + 1
     return {'cargo_runtime_crates': len(registry), 'npm_runtime_packages': len(index['npm']), 'text_kinds': kinds,
             'missing_or_unverified': [f"{e['package']} {e['version']} ({e['text']['kind']})" for e in registry + index['npm']
-                                      if e['text']['kind'] in ('missing', 'installed-tree-only', 'retained-root-texts')],
+                                      if e['text']['kind'] in ('missing', 'installed-tree-only', 'retained-root-texts',
+                                                               'received-upstream-text')],
             'retained_root_associations': [{'package': e['package'], 'version': e['version'],
                                             'unresolved': e['text']['unresolved'], 'standing': e['text']['standing']}
                                            for e in registry if e['text']['kind'] == 'retained-root-texts'],
@@ -369,22 +432,29 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     sub = parser.add_subparsers(dest='command')
     g = sub.add_parser('generate'); g.add_argument('--cargo-home', required=True, type=Path)
-    g.add_argument('--node-modules', type=Path); g.add_argument('--out', type=Path, default=INDEX)
-    c = sub.add_parser('check'); c.add_argument('--cargo-home', type=Path)
+    g.add_argument('--node-modules', type=Path); g.add_argument('--npm-cache', type=Path)
+    g.add_argument('--out', type=Path, default=INDEX)
+    c = sub.add_parser('check'); c.add_argument('--cargo-home', type=Path); c.add_argument('--npm-cache', type=Path)
+    n = sub.add_parser('associate-npm'); n.add_argument('--npm-cache', type=Path, required=True)
+    n.add_argument('--input', type=Path, default=INDEX); n.add_argument('--out', type=Path, default=INDEX)
     a = sub.add_parser('associate-local'); a.add_argument('--input', type=Path, default=INDEX)
     a.add_argument('--out', type=Path, required=True)
     args = parser.parse_args()
     try:
         if args.command == 'generate':
-            index = generate(args.cargo_home, args.node_modules)
+            index = generate(args.cargo_home, args.node_modules, npm_cache=args.npm_cache)
             args.out.write_text(json.dumps(index, indent=1) + '\n')
-            check(args.out, cargo_home=args.cargo_home)
+            check(args.out, cargo_home=args.cargo_home, npm_cache=args.npm_cache)
+        elif args.command == 'associate-npm':
+            index = associate_npm(args.npm_cache, args.input)
+            args.out.write_text(json.dumps(index, indent=1) + '\n')
+            check(args.out, npm_cache=args.npm_cache)
         elif args.command == 'associate-local':
             index = associate_local(args.input)
             args.out.write_text(json.dumps(index, indent=1) + '\n')
             check(args.out)
         else:
-            index = check(cargo_home=getattr(args, 'cargo_home', None))
+            index = check(cargo_home=getattr(args, 'cargo_home', None), npm_cache=getattr(args, 'npm_cache', None))
         print(json.dumps(summary(index), indent=1))
         return 0
     except (ValueError, KeyError, OSError, StopIteration, subprocess.CalledProcessError, tarfile.TarError) as error:

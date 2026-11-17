@@ -53,6 +53,13 @@ TEAM_KEY = 'com.apple.developer.team-identifier'
 CANDIDATE_FORMAT = 'chirality-release-candidate/1'
 CANDIDATE_FILE = 'CANDIDATE.json'
 CANDIDATE_PENDING = 'CANDIDATE.pending.json'
+# The candidate's release standing, as production_inputs/prepare.py states it in the plan's input-inventory.json:
+# (not_for_public_release, notice coverage complete) -> the plan's release_standing. Without --not-for-public-release a
+# candidate is built only with complete notice coverage; a candidate built with it is never a publication candidate.
+STANDINGS = {(False, True): 'notice coverage complete',
+             (True, True): 'not for public release (named by the caller)',
+             (True, False): 'not for public release (named by the caller); notice coverage is incomplete'}
+STANDING_KEYS = {'not_for_public_release', 'standing', 'notice_coverage_complete', 'notice_coverage_sha256', 'notice_gaps'}
 # Raw tool output, full traces and raw notarization logs go only here. The folder may hold the
 # owner's account details. Restrictive modes do not keep agents out on the owner's machine (agents
 # run as the owner's user); a rule does: no tool or test of ours opens this folder or anything in
@@ -96,6 +103,8 @@ REASONS = {
     'BUILD_PUBLISHER_SOURCE': 'build: the compiled keychain selection in the source is not exactly one release identifier and team',
     'BUILD_PUBLISHER_MATCH': 'build: the supplied publisher identifier or team differs from the source keychain selection',
     'BUILD_PLAN': 'build: prepare.py refused the plan or check_plan did not pass',
+    'BUILD_NOTICE_COVERAGE': 'build: notice coverage is incomplete and --not-for-public-release was not given; BUILD_FAILED.json and '
+                             'notices/coverage.py check --strict name each open component',
     'BUILD_OVERLAY': 'build: the plan overlay is not the 4.0.0 release identity',
     'BUILD_RECIPE': 'build: the recipe is not an unsigned build from an empty environment of exactly the allowlist',
     'BUILD_CONTAINED': 'build: a writable location of the build environment is not inside the run folder',
@@ -125,10 +134,11 @@ class FixedParser(__import__('argparse').ArgumentParser):
 class Failure(Exception):
     """A failure with a code from REASONS; its text is the fixed reason and nothing else."""
 
-    def __init__(self, code):
+    def __init__(self, code, detail=None):
         require(code in REASONS, 'unlisted failure reason')
         super().__init__(REASONS[code])
-        self.code, self.reason = code, REASONS[code]
+        # `detail` holds only shaped values the caller constructed; it goes to the returnable failure description.
+        self.code, self.reason, self.detail = code, REASONS[code], detail
 
 
 def check(condition, code):
@@ -162,7 +172,7 @@ VOCABULARY = set(REASONS.values()) | STATUS_WORDS | AUTHORITY_KINDS | {
     'node_modules/@tauri-apps/cli/tauri.js', 'custom-protocol,distribution-successor', 'app', '-', 'macos-arm64-rust-1.97.1-no-strip',
     'aarch64-apple-darwin', '--', '<elsewhere>', '<app-submission-id>', '<disk-image-submission-id>',
     'limitations copy in the bundle: absent', 'limitations copy in the disk_image: absent', 'publisher-build-selection.s1 generated from the source keychain selection', 'supplied publisher input file',
-    CANDIDATE_FORMAT,
+    CANDIDATE_FORMAT, *STANDINGS.values(),
 }
 
 
@@ -491,4 +501,24 @@ def load_candidate(candidate, name=CANDIDATE_FILE, finishing=False):
     limitations = value['limitations']
     require(sha((candidate / prepare.files.relative(limitations['copy'])).read_bytes()) == limitations['sha256'],
             'candidate limitations copy differs from the source digest')
+    candidate_standing(candidate, value)
     return value, app, binding, requirement.decode()
+
+
+def candidate_standing(candidate, value):
+    """The described release standing must be one of STANDINGS and equal what the bound plan states."""
+    standing = value.get('release_standing')
+    require(isinstance(standing, dict) and set(standing) == STANDING_KEYS, 'candidate release standing missing or malformed')
+    flag, complete = standing['not_for_public_release'], standing['notice_coverage_complete']
+    require(isinstance(flag, bool) and isinstance(complete, bool) and STANDINGS.get((flag, complete)) == standing['standing'],
+            'candidate release standing is not a known standing')
+    require(isinstance(standing['notice_gaps'], int) and not isinstance(standing['notice_gaps'], bool)
+            and (standing['notice_gaps'] == 0) == complete, 'candidate release standing miscounts its notice gaps')
+    raw = (candidate / 'plan/input-inventory.json').read_bytes()
+    require(sha(raw) == value['plan'].get('input-inventory.json'), 'candidate plan inventory differs from its description')
+    plan = parse(raw)
+    coverage = plan['notice_coverage']
+    require((plan['release_standing'], plan['not_for_public_release'], coverage['complete'], coverage['sha256'], coverage['gaps'])
+            == (standing['standing'], flag, complete, standing['notice_coverage_sha256'], standing['notice_gaps']),
+            'candidate release standing differs from its plan')
+    return standing

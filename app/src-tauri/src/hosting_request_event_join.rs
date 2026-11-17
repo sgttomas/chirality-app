@@ -236,6 +236,7 @@ impl Core {
         g: &Value,
         reference: &str,
         frame: &Value,
+        level: Option<&crate::codex_level::Bound>,
         pipe: Option<(u64, (u64, u64))>,
     ) -> Self {
         let mut c = Self {
@@ -269,8 +270,25 @@ impl Core {
                 return Err(Reason::Shape);
             }
             let p = frame["params"].as_object().ok_or(Reason::Shape)?;
-            if p.len() != 2 || !p.contains_key("threadId") || !p.contains_key("input") {
+            // Exactly the thread and its input, plus exactly the fields of the level bound to this request
+            // (V4-AUT-06): the expectation is augmented by the bound level, never the sent params reduced. A
+            // turn's level fields hold no `config`, so the comparison is field by field, without allocating
+            // (the bind's allocation cap).
+            let fields = level.map(|b| &b.fields);
+            if p.len() != 2 + fields.map_or(0, |f| f.len())
+                || !p.contains_key("threadId")
+                || !p.contains_key("input")
+            {
                 return Err(Reason::Shape);
+            }
+            if let Some(bound) = level {
+                if bound.method != crate::codex_level::Method::TurnStart
+                    || bound.fields.contains_key("threadId")
+                    || bound.fields.contains_key("input")
+                    || bound.fields.iter().any(|(k, v)| p.get(k) != Some(v))
+                {
+                    return Err(Reason::Shape);
+                }
             }
             c.thread = Some(ident(&p["threadId"])?);
             let a = p["input"]

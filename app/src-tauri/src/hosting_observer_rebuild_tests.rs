@@ -127,8 +127,10 @@ fn exchange<T>(
         wire
     });
     let result = operation();
-    let wire = worker.join().unwrap();
+    // The synchronous read round is over. An absent expected frame must end
+    // the peer at EOF, not leave its join waiting forever after a refusal.
     *host.stdin.lock().unwrap() = None;
+    let wire = worker.join().unwrap();
     assert!(child.wait().unwrap().success());
     (result, wire)
 }

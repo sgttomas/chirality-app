@@ -247,6 +247,20 @@ runpy.run_path({peer},run_name='__main__')
                 if e["kind"] == "reply" {
                     frame["id"] = e["actual_rpc_id"].clone();
                 }
+                // The player's one declared reply-side adaptation (recorded_replay.py, "Level"): a start or resume
+                // reply reports the test Host's level ("edits") exactly, as the pinned Codex reports an explicit
+                // level. Built here from the App's own table, not taken from the player; nothing else may differ.
+                if let Some(adaptations) = e.get("adaptations") {
+                    let method = ["thread/start", "thread/resume"].into_iter()
+                        .find(|m| adaptations == &json!([format!("{m}.result:report-exact-App-level-edits;not-recorded-output")]));
+                    assert!(method.is_some(), "an undeclared reply adaptation: {adaptations}");
+                    let edits = crate::codex_level::level("edits").unwrap();
+                    let result = frame["result"].as_object_mut().expect("an adapted reply has a result");
+                    result.insert("approvalPolicy".into(), json!(edits.approval_policy));
+                    result.insert("approvalsReviewer".into(), json!("user"));
+                    result.insert("sandbox".into(), edits.sandbox_policy.clone());
+                    result.insert("activePermissionProfile".into(), Value::Null);
+                }
                 frame
             })
             .collect::<Vec<_>>();
@@ -432,7 +446,13 @@ runpy.run_path({peer},run_name='__main__')
         let resume = self.history_action(&generation, 1, "continue");
         assert_eq!(
             resume.source().attempted_frame()["params"],
-            json!({"threadId":self.thread(),"excludeTurns":true})
+            crate::codex_level::with_test_level_at(
+                &json!({"threadId":self.thread(),"excludeTurns":true}),
+                "thread/resume",
+                // The resumed conversation's folder: the recording's `<WORKSPACE>`, which the Host resolves in the
+                // folder it started Codex in.
+                &self.root.join("<WORKSPACE>"),
+            )
         );
         self.until("recorded idle before resume reply", || {
             self.audit(2)
@@ -591,7 +611,11 @@ fn recorded_continue_admits_only_after_its_original_late_reply_and_keeps_unknown
         .unwrap();
     assert_eq!(
         adapted_resume["adaptations"],
-        json!(["thread/resume.excludeTurns:add-true-request-only;recorded-reply-unchanged"])
+        // The double also declares the App's level it accepts on the resume, exactly (V4-AUT-06).
+        json!([
+            "thread/resume.excludeTurns:add-true-request-only;recorded-reply-unchanged",
+            "thread/resume:add-exact-App-level-edits"
+        ])
     );
     assert_eq!(binding["outside_segment_frame_indices"], json!([]));
 }
