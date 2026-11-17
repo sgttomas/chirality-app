@@ -111,9 +111,19 @@ def capture(pid, look_of=None, path_of=None, sleep=time.sleep, on_mac=None):
 def recheck(started, look_of=None, path_of=None):
     """'same', 'gone' or 'not the same', with the reason, for a started file's record. Raises OSError when it could
     not look, and ValueError when the record holds no identity."""
-    then = started.get('identity')
-    if not isinstance(then, dict) or not isinstance(started.get('pid'), int):
-        raise ValueError(started.get('identity_not_established') or 'the started file records no identity')
+    if not isinstance(started, dict):
+        raise ValueError('the started file is not an identity record')
+    then, pid = started.get('identity'), started.get('pid')
+    required = {'started', 'parent', 'group', 'executable', 'device', 'inode'}
+    if (not isinstance(then, dict) or not required <= set(then)
+            or type(pid) is not int or pid <= 0
+            or not isinstance(then['started'], str) or not then['started'].strip()
+            or not isinstance(then['executable'], str) or not os.path.isabs(then['executable'])
+            or '\0' in then['executable']
+            or any(type(then[k]) is not int or then[k] <= 0 for k in ('parent', 'group', 'inode'))
+            or type(then['device']) is not int or then['device'] < 0
+            or then['group'] != pid):
+        raise ValueError('the started file records no complete, valid process identity')
     now = identity_now(started['pid'], look_of, path_of)
     if now is None:
         return 'gone', 'no process has that number now'
@@ -135,7 +145,7 @@ def main_recheck(argv, look_of=None, path_of=None):
         if not on_macos():
             raise OSError('this is asked on macOS only')
         answer, reason = recheck(started, look_of, path_of)
-    except (OSError, ValueError, json.JSONDecodeError, AttributeError) as error:
+    except (OSError, ValueError, json.JSONDecodeError, AttributeError, KeyError, TypeError) as error:
         print(json.dumps({'answer': 'could not be established', 'reason': f'{type(error).__name__}: {error}'}),
               file=sys.stderr)
         return 2

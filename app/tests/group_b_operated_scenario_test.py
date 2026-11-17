@@ -749,6 +749,34 @@ class TheStartedProcessesIdentity(unittest.TestCase):
         with mock.patch.object(self.detached, 'on_macos', return_value=False), contextlib.redirect_stderr(io.StringIO()):
             self.assertEqual(self.detached.main(argv), 2)
 
+    def test_malformed_recorded_identities_are_unresolved_before_any_process_query(self):
+        cases = [{'pid': 701, 'identity': {}}, [], None]
+        for field in self.started()['identity']:
+            incomplete = self.started()
+            del incomplete['identity'][field]
+            cases.append(incomplete)
+            malformed = self.started()
+            malformed['identity'][field] = None
+            cases.append(malformed)
+        for field, value in (('started', ''), ('executable', 'relative'), ('parent', True),
+                             ('group', 702), ('device', -1), ('inode', '42')):
+            malformed = self.started()
+            malformed['identity'][field] = value
+            cases.append(malformed)
+        for pid in (None, True, 0, -1, '701'):
+            cases.append({**self.started(), 'pid': pid})
+        path = self.tmp / 'malformed.started.json'
+        forbidden = mock.Mock(side_effect=AssertionError('malformed identity must not query a process'))
+        for record in cases:
+            with self.subTest(record=record), mock.patch.object(self.detached, 'on_macos', return_value=True), \
+                    contextlib.redirect_stdout(io.StringIO()) as out, contextlib.redirect_stderr(io.StringIO()) as err:
+                path.write_text(json.dumps(record))
+                self.assertEqual(self.detached.main_recheck(['detached.py', '--recheck', str(path)],
+                                                          look_of=forbidden, path_of=forbidden), 2)
+                self.assertEqual(out.getvalue(), '')
+                self.assertEqual(json.loads(err.getvalue())['answer'], 'could not be established')
+        forbidden.assert_not_called()
+
     def test_the_started_file_holds_the_identity_read_before_the_starter_returns(self):
         folder = self.tmp / 'evidence'
         folder.mkdir()
