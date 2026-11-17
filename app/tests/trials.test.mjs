@@ -15,6 +15,7 @@ const {renderToStaticMarkup} = await import('react-dom/server');
 const {createRoot} = await import('react-dom/client');
 const {DelegatedTrialComposerView,DelegatedTrialComposer,CleanTrialPanelView,CleanTrialPanel,BringBackComposerView,BringBackComposer,TrialCard,TrialSendOutcome,composersFor}=loadSrc('TrialComposer');
 const {LastCleanTrialLine}=loadSrc('WorkflowDrafts');
+const {StartPermissionLevel}=loadSrc('PermissionLevel');
 const {ConversationPanel,WorkflowRootPanel}=loadSrc('App');
 
 const g={appSession:'s',home:'h',spawnCounter:1};
@@ -25,6 +26,9 @@ const h=(c,p)=>renderToStaticMarkup(React.createElement(c,p));
 const find=(node,match,found=[])=>{
   if(Array.isArray(node)){for(const n of node)find(n,match,found);return found;}
   if(!node||typeof node!=='object')return found;
+  // This shallow traversal exercises trial controls, not React context. The level
+  // destination and setting controls are mounted with their provider in permission-level.test.mjs.
+  if(node.type===StartPermissionLevel)return found;
   if(typeof node.type==='function')return find(node.type(node.props),match,found);
   if(match(node))found.push(node);
   find(node.props?.children,match,found);return found;

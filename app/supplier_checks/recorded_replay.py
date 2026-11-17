@@ -24,6 +24,17 @@ The current App resume request adds exactly excludeTurns:true (0.160.0 native
 metadata/live-resume response coverage). This request-only adaptation is audited;
 the tape's full-history reply and deprecation notice are kept unchanged, not
 claimed as observed supplier behavior for that adapted request.
+Level: each thread/start, thread/resume and turn/start request adds exactly the
+App test Host's level ("edits"). The replies to the adapted thread/start and
+thread/resume report that level's exact values: approvalPolicy,
+approvalsReviewer "user", the structured sandbox, and activePermissionProfile
+null. This is what the pinned 0.167.0 reports for an explicit level
+(supplier_checks/level, Carriers rows and Table). It is a declared exact
+reply-side adaptation; the tape is unchanged, and the adapted values are not
+claimed as recorded supplier output. The resume request's label
+"recorded-reply-unchanged" concerns excludeTurns only: the reply's history is
+not narrowed. The reply's level fields are adapted as stated here, each such
+reply audited with its own adaptation entry.
 The audit destination must be fresh: exclusive creation refuses existing files,
 symlinks and hardlinks without overwriting their bytes.
 """
@@ -59,6 +70,10 @@ PROVIDER_READING_STANDING = ("constructed-provider-reading; no such frame was ca
 # Fixed: the least the App's Continue admission reads. Not configurable.
 PROVIDER_READING_RESULT = {"config": {"model_provider": "openai", "model_providers": {}}, "origins": {}}
 
+
+# The level the App's test Host is built with (hosting.rs, cfg(test)); every App request the replay adapts
+# carries exactly its fields.
+LEVEL_UNDER_TEST = "edits"
 
 class ReplayError(Exception):
     """Only fixed, non-payload-bearing codes cross the CLI/audit boundary."""
@@ -326,6 +341,7 @@ class Replay:
             self.indices, self.outside_segment = self.indices[:end], self.indices[end:]
         self.consumed, self.current_index = [], None
         self.id_map, self.actual_ids, self.pending_server = {}, set(), set()
+        self.level_replies = {}  # recorded request id -> method, for replies that report the level sent
         self.catalog_request_id = None
         self.provider_reading_request_id = None
         self.catalog_result = self.continue_catalog_result() if profile == "app-continue" else None
@@ -407,6 +423,67 @@ class Replay:
         write_protocol_frame(writer, {"id": actual["id"], "result": copy.deepcopy(PROVIDER_READING_RESULT)})
         self.audit.emit("constructed-frame", direction="codex->app", kind="reply", **fields)
 
+    @staticmethod
+    def project_root(cwd):
+        """The project root as codex_level::project_root computes it, in the canonical spelling the App sends: the
+        nearest folder holding `.git` (a `.git` folder only with a HEAD in it), else the folder itself."""
+        folder = Path(cwd)
+        if not folder.is_absolute():  # the Host resolves a relative folder in the folder it started this process in
+            folder = Path(os.getcwd()) / folder
+        root = folder
+        for ancestor in [folder, *folder.parents]:
+            marker = ancestor / ".git"
+            if marker.is_dir() and not (marker / "HEAD").exists():
+                continue
+            if marker.exists():
+                root = ancestor
+                break
+        # The canonical spelling when the folder exists (std::fs::canonicalize), else as given.
+        return os.path.realpath(root) if root.exists() else str(root)
+
+    def resume_folder(self):
+        """The folder the App's Host takes for a resumed conversation: the folder Codex reported for that thread
+        in this generation's recorded replies, else the folder the Host started this process in."""
+        for row in self.recording["frames"]:
+            if row["generation"] != self.generation or row["direction"] != "codex->app":
+                continue
+            thread = ((row["frame"].get("result") or {}) if isinstance(row["frame"], dict) else {}).get("thread")
+            if isinstance(thread, dict) and isinstance(thread.get("cwd"), str) and thread["cwd"]:
+                return thread["cwd"]
+        return os.getcwd()
+
+    @staticmethod
+    def level_fields(method, cwd=None):
+        """The exact fields of the level the App's test Host sends ("edits"), built from the App's own level table
+        as codex_level.rs builds them: start, resume and fork carry the mode name and the workspace options in
+        config, and one project trust entry for the conversation's project root, untrusted, since the test Host
+        reads no settings; a turn carries the structured policy. The person answers at every level."""
+        table = json.loads((Path(__file__).resolve().parent.parent / "src-tauri" / "src" / "codex_levels.json").read_text())
+        rows = [row for row in table["levels"] if row["id"] == LEVEL_UNDER_TEST]
+        require(len(rows) == 1, "unknown-level-under-test")
+        level = rows[0]
+        fields = {"approvalPolicy": level["approvalPolicy"], "approvalsReviewer": "user"}
+        if method == "turn/start":
+            fields["sandboxPolicy"] = level["sandboxPolicy"]
+        else:
+            fields["sandbox"] = level["sandbox"]
+            config = {}
+            if level["workspaceWrite"] is not None:
+                config["sandbox_workspace_write"] = level["workspaceWrite"]
+            require(isinstance(cwd, str) and bool(cwd), "missing-conversation-folder-for-trust-entry")
+            config["projects"] = {Replay.project_root(cwd): {"trust_level": "untrusted"}}
+            fields["config"] = config
+        return fields
+
+    @staticmethod
+    def level_reported():
+        """What the pinned Codex reports for the level under test in a start or resume reply."""
+        table = json.loads((Path(__file__).resolve().parent.parent / "src-tauri" / "src" / "codex_levels.json").read_text())
+        rows = [row for row in table["levels"] if row["id"] == LEVEL_UNDER_TEST]
+        require(len(rows) == 1, "unknown-level-under-test")
+        return {"approvalPolicy": rows[0]["approvalPolicy"], "approvalsReviewer": "user",
+                "sandbox": copy.deepcopy(rows[0]["sandboxPolicy"]), "activePermissionProfile": None}
+
     def adapted_params(self, expected, actual):
         """Return only declared, exact App alternatives; never wildcard fields."""
         require(isinstance(expected, dict), "invalid-captured-adaptation-request")
@@ -434,7 +511,10 @@ class Replay:
             require(isinstance(adapted["model"], str) and bool(adapted["model"])
                     and isinstance(adapted["modelProvider"], str) and bool(adapted["modelProvider"]),
                     "missing-captured-model-selection")
-            return adapted, ["thread/start:omit-captured-approvalPolicy-and-sandbox", "thread/start:add-exact-captured-model-and-modelProvider"]
+            self.conversation_folder = params["cwd"]
+            adapted.update(self.level_fields("thread/start", params["cwd"]))
+            return adapted, ["thread/start:omit-captured-approvalPolicy-and-sandbox", "thread/start:add-exact-captured-model-and-modelProvider",
+                             "thread/start:add-exact-App-level-%s" % LEVEL_UNDER_TEST]
         if self.profile == "app" and method == "turn/start":
             require(isinstance(params, dict) and set(params) == {"threadId", "input"}
                     and isinstance(params["threadId"], str) and bool(params["threadId"]),
@@ -446,7 +526,8 @@ class Replay:
                     "unsupported-captured-text-input")
             adapted = copy.deepcopy(params)
             adapted["input"][0]["text_elements"] = []
-            return adapted, ["turn/start.input[0].text_elements:add-empty-array"]
+            adapted.update(self.level_fields("turn/start"))
+            return adapted, ["turn/start.input[0].text_elements:add-empty-array", "turn/start:add-exact-App-level-%s" % LEVEL_UNDER_TEST]
         if self.profile in ("app-recovery", "app-continue") and method == "thread/read":
             require(isinstance(params, dict) and set(params) == {"threadId", "includeTurns"}
                     and isinstance(params["threadId"], str) and bool(params["threadId"])
@@ -465,7 +546,9 @@ class Replay:
             # ThreadResumeParams.excludeTurns at the pinned 0.160.0 changes
             # response coverage only, without instructions/model/settings.
             # Supplier replies remain original recorded payloads in this peer.
-            return {**params, "excludeTurns": True}, ["thread/resume.excludeTurns:add-true-request-only;recorded-reply-unchanged"]
+            return {**params, "excludeTurns": True, **self.level_fields("thread/resume", self.resume_folder())}, [
+                "thread/resume.excludeTurns:add-true-request-only;recorded-reply-unchanged",
+                "thread/resume:add-exact-App-level-%s" % LEVEL_UNDER_TEST]
         return params, changes
 
     def accept(self, expected, actual):
@@ -484,6 +567,9 @@ class Replay:
             require(exact(expected_body, actual_body), "request-method-or-params-mismatch")
             self.id_map[recorded_id] = actual["id"]
             self.actual_ids.add(actual_id)
+            if any(change.endswith(":add-exact-App-level-%s" % LEVEL_UNDER_TEST) for change in changes) \
+                    and expected.get("method") in ("thread/start", "thread/resume"):
+                self.level_replies[recorded_id] = expected["method"]
             correlation = {"recorded_rpc_id": expected["id"], "actual_rpc_id": actual["id"],
                            "recorded_rpc_id_type": recorded_id[0], "actual_rpc_id_type": actual_id[0]}
         else:
@@ -533,6 +619,11 @@ class Replay:
                         outgoing["id"] = self.id_map[key]
                         info = {"recorded_rpc_id": frame["id"], "actual_rpc_id": outgoing["id"],
                                 "recorded_rpc_id_type": key[0], "actual_rpc_id_type": rpc_id(outgoing["id"])[0]}
+                        if key in self.level_replies:
+                            require(isinstance(outgoing.get("result"), dict), "invalid-captured-level-reply")
+                            outgoing["result"].update(self.level_reported())
+                            info["adaptations"] = ["%s.result:report-exact-App-level-%s;not-recorded-output"
+                                                   % (self.level_replies[key], LEVEL_UNDER_TEST)]
                     elif kind == "request":
                         self.pending_server.add(rpc_id(frame["id"]))
                     write_protocol_frame(writer, outgoing)

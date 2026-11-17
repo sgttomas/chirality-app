@@ -205,8 +205,13 @@ impl PublishedRoleSupply {
             || status["sentFrame"]["method"] != "turn/start"
             || status["writeResult"] != "written"
             || status["outcome"] != "response-observed-result"
+            // The prepared turn plus exactly the level bound to the frame (V4-AUT-06), compared whole.
             || status["sentFrame"]["params"]
-                != published.prepared().turn_params(person_text, client)?
+                != crate::codex_level::expected_with_level(
+                    &published.prepared().turn_params(person_text, client)?,
+                    native.level_sent().map(|b| b.level),
+                    crate::codex_level::Method::TurnStart,
+                )?
             || status["response"]["result"]["turn"]["id"] != native_turn
             || opened.kind != "run_opened"
             || opened.body["runId"] != scope.run

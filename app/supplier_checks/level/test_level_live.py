@@ -22,6 +22,7 @@ import os
 import subprocess
 import signal
 import re
+import stat
 import sys
 import tempfile
 import time
@@ -35,6 +36,9 @@ from level_fixture import DECLINED, REJECTED, RUNNING, SANDBOX_REFUSED, SUCCEEDE
 BINARY = os.environ.get('CHIRALITY_CODEX_BIN')
 SCRATCH = os.environ.get('LEVEL_SCRATCH') or tempfile.gettempdir()
 HOLD = float(os.environ.get('LEVEL_HOLD_SECONDS') or 120)
+# Debug only: a folder to write the raw record of the temporary folder rows into (see `raw_record`). It changes
+# no judgment and no assertion; unset, nothing is written.
+RAW = os.environ.get('LEVEL_RAW_DIR')
 
 WW = {'type': 'workspaceWrite'}
 SUPERVISED = {'approvalPolicy': 'untrusted', 'sandboxPolicy': {'type': 'readOnly'}}
@@ -205,7 +209,7 @@ class Presets(Probing):
             self.assertTrue(landed.evidence['item'])
             self.assertEqual(client.items(thread, refused.turn, 'commandExecution'), [])
 
-    def test_supervised_asks_before_every_command_tried_and_a_declined_one_does_not_run(self):
+    def test_supervised_asks_before_every_command_tried_and_a_declined_one_shows_no_effect(self):
         with L.Run(SCRATCH, BINARY, slash_tmp=True, git_marker=True) as run:
             client = run.start()
             thread = client.start_thread()['thread']['id']
@@ -246,6 +250,25 @@ class Presets(Probing):
             self.succeeded(rows['net'], network=True)
             self.rejected(probe(run, client, thread, 'out', escalate=True, **FULL))
             self.channel_live(run, client)
+
+    def test_no_edits_level_writes_in_private_var_tmp(self):
+        """The App's three edits levels, each with both temporary folders excluded as the App sends them: a write
+        in the run's own folder under /private/var/tmp runs and is refused by the sandbox. A write that succeeded
+        there would be a writable folder the App did not name."""
+        with L.Run(SCRATCH, BINARY, var_tmp=True) as run:
+            client = run.start()
+            both = dict(WW, excludeSlashTmp=True, excludeTmpdirEnvVar=True)
+            for name, settings in (('edits', dict(EDITS_NET_OFF, sandboxPolicy=dict(both, networkAccess=False))),
+                                   ('edits-network', dict(EDITS_NET_ON, sandboxPolicy=dict(both, networkAccess=True))),
+                                   ('edits-no-asking', EDITS_NEVER)):
+                thread = client.start_thread()['thread']['id']
+                outcome = probe(run, client, thread, 'vartmp', **settings)
+                if outcome.kind == SUCCEEDED:
+                    self.fail('%s wrote in /private/var/tmp: a writable folder the App did not name' % name)
+                self.refused(outcome)
+                self.succeeded(probe(run, client, thread, 'in', **settings))  # the same thread writes its project
+            control = client.start_thread()['thread']['id']
+            self.succeeded(probe(run, client, control, 'vartmp', **FULL))
 
     def test_the_two_temporary_folder_exclusions(self):
         with L.Run(SCRATCH, BINARY, slash_tmp=True) as run:
@@ -290,7 +313,7 @@ class Presets(Probing):
         finally:
             odd.rmdir()
 
-    def test_a_double_quote_in_the_project_path_makes_every_sandboxed_command_fail_to_start(self):
+    def test_a_double_quote_in_the_project_path_prevents_the_workspace_write_command_from_starting(self):
         """With a double quote in the project's path, the sandbox profile Codex writes for macOS does not parse:
         a command under workspace write fails with sandbox-exec's own parse error and does not run. It fails
         closed: nothing is written. Under full access, which uses no sandbox, the same write succeeds."""
@@ -306,6 +329,42 @@ class Presets(Probing):
             client = run.start()
             thread = client.start_thread()['thread']['id']
             self.succeeded(probe(run, client, thread, 'in', **EDITS_NET_OFF))
+
+
+def raw_record(name, record):
+    """With LEVEL_RAW_DIR set, write one record as a plain JSON file there; otherwise do nothing. A record holds
+    what was observed, as observed; nothing is summarised."""
+    if not RAW:
+        return
+    folder = Path(RAW)
+    folder.mkdir(parents=True, exist_ok=True)
+    (folder / (name + '.json')).write_text(json.dumps(record, indent=2, sort_keys=True) + '\n')
+
+
+def raw_entries(run):
+    """For the raw record only (the assertions use `Run.entries`): each folder on the temporary folder's path, as
+    lstat sees it, or absent; whether it is a link; and the names each of the run's root, the Working Files
+    folder and codex-tmp holds, or why they could not be listed."""
+    out = {}
+    for folder in (run.root, run.data, run.working, run.codex_tmp, run.tmpdir):
+        try:
+            st = os.lstat(folder)
+            out[str(folder)] = {'device': st.st_dev, 'inode': st.st_ino, 'type': oct(stat.S_IFMT(st.st_mode)),
+                                'link': stat.S_ISLNK(st.st_mode)}
+        except OSError as error:
+            out[str(folder)] = {'absent': str(error)}
+    names = {}
+    for folder in (run.root, run.working, run.codex_tmp):
+        try:
+            names[str(folder)] = sorted(os.listdir(folder))
+        except OSError as error:
+            names[str(folder)] = 'not listed: %s' % error
+    return {'identity': out, 'names': names}
+
+
+def raw_ident(reading):
+    ident, names = reading
+    return {'identity (device, inode, type)': ident, 'names': names}
 
 
 class TemporaryFolderEntries(Probing):
@@ -326,7 +385,25 @@ class TemporaryFolderEntries(Probing):
                           item_status=completed and completed.get('status'),
                           item_exit=completed and completed.get('exitCode'))
         outcome.requests = [(r['method'], r['thread']) for r in client.server_requests if r['thread'] == thread]
+        outcome.command, outcome.output = command, run.stub.outputs.get(call_id)
         return outcome
+
+    def raw(self, run, level, key, outcome, before, after):
+        raw_record('%s--%s' % (level, key), {
+            'level': level, 'operation': key, 'command': outcome.command,
+            'output returned by Codex': outcome.output,
+            'outcome judged': {'kind': outcome.kind, 'exit': outcome.exit, 'text': outcome.text,
+                               'evidence': outcome.evidence},
+            'requests seen on the thread': [{'method': m, 'thread': t} for m, t in outcome.requests],
+            'entries before': before, 'entries after': after})
+
+    def raw_start(self, run, level, reply):
+        raw_record('%s--start' % level, {
+            'level': level, 'binary': run.binary, 'binary sha256 as checked': L.sha256_file(L.admitted_binary(run.binary)),
+            'pinned sha256 (supplier manifest)': L.pinned_sha256(),
+            'reply approvalPolicy': reply.get('approvalPolicy'), 'reply sandbox': reply.get('sandbox'),
+            'reply activePermissionProfile': reply.get('activePermissionProfile'),
+            'environment given to Codex': run.environment()})
 
     def test_with_nothing_sent_no_entry_on_the_temporary_folders_path_changes(self):
         with L.Run(SCRATCH, BINARY, working_files=True) as run:
@@ -335,14 +412,23 @@ class TemporaryFolderEntries(Probing):
             thread = reply['thread']['id']
             self.assertEqual((reply['approvalPolicy'], reply['sandbox']),
                              ('on-request', {'type': 'readOnly', 'networkAccess': False}))
+            self.raw_start(run, 'nothing-sent', reply)
             before = run.entries()
             for key in run.entry_operations():
+                one_before = raw_entries(run)
                 outcome = self.entry_probe(run, client, thread, key)
+                self.raw(run, 'nothing-sent', key, outcome, one_before, raw_entries(run))
                 expect(outcome, SANDBOX_REFUSED)
                 self.assertEqual(outcome.requests, [], key)
             self.assertEqual(run.entries(), before)  # every entry the same folder, by device and inode
+            one_before = raw_entries(run)
             inside = probe(run, client, thread, 'tmpdir')  # a write inside the temporary folder itself
+            inside.command, inside.output = run.commands()['tmpdir'], run.stub.outputs.get(inside.call_id)
+            self.raw(run, 'nothing-sent', 'write-inside-tmpdir', inside, one_before, raw_entries(run))
             self.refused(inside)
+            raw_record('nothing-sent--entries-compared', {
+                'Run.entries() before the operations': raw_ident(before),
+                'Run.entries() after the operations and the write inside': raw_ident(run.entries())})
             self.assertEqual(run.entries(), before)
             self.declined(probe(run, client, thread, 'out', escalate=True), thread)  # the same thread asks
 
@@ -352,7 +438,9 @@ class TemporaryFolderEntries(Probing):
         it first. After each, the layout is put back by the fixture, outside Codex."""
         with L.Run(SCRATCH, BINARY, working_files=True) as run:
             client = run.start()
-            thread = client.start_thread()['thread']['id']
+            reply = client.start_thread()
+            thread = reply['thread']['id']
+            self.raw_start(run, 'full-access-on-each-turn', reply)  # full access is sent on each turn; no reply echoes it
             t, p, w = run.tmpdir, run.codex_tmp, run.working
             aside = lambda path, suffix: path.with_name(path.name + suffix)  # noqa: E731
 
@@ -377,7 +465,9 @@ class TemporaryFolderEntries(Probing):
             }
             for key in run.entry_operations():
                 remade_from = [os.lstat(t).st_ino]
+                one_before = raw_entries(run)
                 outcome = self.entry_probe(run, client, thread, key, **FULL)
+                self.raw(run, 'full-access-on-each-turn', key, outcome, one_before, raw_entries(run))
                 if key == 'entry-p-remove':
                     expect(outcome, L.FAILED)
                     self.assertEqual(outcome.text, 'rmdir: %s: Directory not empty' % p)
@@ -386,7 +476,76 @@ class TemporaryFolderEntries(Probing):
                 changed, restore = checks[key]
                 self.assertTrue(changed(), key)
                 restore()
-            self.succeeded(probe(run, client, thread, 'tmpdir', **FULL))
+            one_before = raw_entries(run)
+            inside = probe(run, client, thread, 'tmpdir', **FULL)
+            inside.command, inside.output = run.commands()['tmpdir'], run.stub.outputs.get(inside.call_id)
+            self.raw(run, 'full-access-on-each-turn', 'write-inside-tmpdir', inside, one_before, raw_entries(run))
+            self.succeeded(inside)
+
+
+LEVELS_TABLE = L.APP / 'src-tauri' / 'src' / 'codex_levels.json'
+
+
+def level_settings(row):
+    """What the App sends for one row of its table: on thread/start, the mode name and the workspace options
+    through `config`; on each turn, the structured policy. Built from the table alone."""
+    common = {'approvalPolicy': row['approvalPolicy'], 'approvalsReviewer': 'user'}
+    start = dict(common, sandbox=row['sandbox'])
+    if row['workspaceWrite'] is not None:
+        start['config'] = {'sandbox_workspace_write': row['workspaceWrite']}
+    return start, dict(common, sandboxPolicy=row['sandboxPolicy'])
+
+
+class Table(Probing):
+    """The App's own table (`codex_levels.json`), row by row: each row's values are sent as the App sends them,
+    Codex's reply reports them, and the effects each row's dimensions state are observed."""
+
+    def test_each_row_of_the_apps_table_does_what_its_dimensions_say(self):
+        table = json.loads(LEVELS_TABLE.read_text())
+        self.assertEqual(table['pin'], L.PIN)
+        self.assertEqual([r['id'] for r in table['levels']],
+                         ['supervised', 'edits', 'edits-network', 'edits-no-asking', 'full'])
+        for row in table['levels']:
+            with self.subTest(level=row['id']), L.Run(SCRATCH, BINARY, slash_tmp=True, git_marker=True) as run:
+                start, turn = level_settings(row)
+                client = run.start()
+                reply = client.start_thread(**start)
+                thread = reply['thread']['id']
+                self.assertEqual(reply['approvalPolicy'], row['approvalPolicy'])
+                self.assertEqual(reply['approvalsReviewer'], 'user')
+                for key, value in row['sandboxPolicy'].items():
+                    self.assertEqual(reply['sandbox'].get(key), value, key)
+                dims = row['dimensions']
+                if dims['asks'] == 'before-a-command-not-known-safe':
+                    # Every command tried is put to the person first; the client declines, so the writes'
+                    # own effects are not observed here (the read-only sandbox's are, in the "nothing sent" row).
+                    for key in ('in', 'read'):
+                        self.declined(probe(run, client, thread, key, **turn), thread)
+                    self.assertEqual((dims['writes'], dims['network'], reply['sandbox']['type']),
+                                     ('nowhere', 'off', 'readOnly'))
+                    continue
+                if dims['writes'] == 'project':
+                    self.succeeded(probe(run, client, thread, 'in', **turn))
+                    for key in ('out', 'git', 'tmpdir', 'slashtmp'):
+                        self.refused(probe(run, client, thread, key, **turn))
+                elif dims['writes'] == 'everywhere':
+                    for key in ('in', 'out', 'git', 'tmpdir', 'slashtmp'):
+                        self.succeeded(probe(run, client, thread, key, **turn))
+                else:
+                    self.fail('a writes value this test does not know: %r' % dims['writes'])
+                net = probe(run, client, thread, 'net', **turn)
+                if dims['network'] == 'on':
+                    self.succeeded(net, network=True)
+                else:
+                    self.refused(net)
+                escalation = probe(run, client, thread, 'out', escalate=True, **turn)
+                if dims['asks'] == 'when-beyond-the-sandbox':
+                    self.declined(escalation, thread)
+                elif dims['asks'] == 'never':
+                    self.rejected(escalation)
+                    self.channel_live(run, client)
+                else:
+                    self.fail('an asks value this test does not know: %r' % dims['asks'])
 
 
 class Carriers(Probing):
@@ -624,7 +783,7 @@ end_known = L.end_known
 
 
 class RunningProcess(unittest.TestCase):
-    """A process started at full access with a terminal (`tty`) and still running, and what ends it. The held
+    """A process started at full access with a terminal (`tty`) and still running, used on a later, narrower turn, and what ends it. The held
     command prints its own process number and then becomes `cat > <outside>/w-held`, which writes only what it is
     given; the test checks that one process by its number and start time, and searches no other process."""
 
@@ -668,6 +827,44 @@ class RunningProcess(unittest.TestCase):
 
     def written(self, target):
         return target.read_text() if target.exists() else None
+
+    def use_at(self, row, decision):
+        """Hold a process at full access, then try to use it on a turn at `row`, answering any request with
+        `decision`. Returns (requests raised, the call's output, what reached the process)."""
+        saved = dict(L.DECLINE)
+        L.DECLINE['item/commandExecution/requestApproval'] = {'decision': decision}
+        try:
+            with L.Run(SCRATCH, BINARY) as run:
+                client = run.start()
+                thread = client.start_thread()['thread']['id']
+                target, session, _ = self.hold(run, client, thread)
+                output = self.send(run, client, thread, session, 'use', 'used on a narrower turn',
+                                   **level_settings(row)[1])
+                asked = [r for r in client.server_requests if r['method'] == 'item/commandExecution/requestApproval']
+                return asked, output, self.written(target)
+        finally:
+            L.DECLINE.clear()
+            L.DECLINE.update(saved)
+
+    def test_each_narrower_level_of_the_apps_table_asks_or_refuses_before_it_uses_a_process_started_at_full_access(self):
+        table = json.loads(LEVELS_TABLE.read_text())
+        for row in table['levels']:
+            if row['id'] == 'full':
+                continue
+            with self.subTest(level=row['id']):
+                asked, output, written = self.use_at(row, 'decline')
+                self.assertEqual(written, '', row['id'])  # nothing reached the process
+                if row['approvalPolicy'] == 'never':
+                    self.assertEqual(asked, [])  # refused without a request to the person
+                    self.assertIn('AskForApproval is set to Never', output)
+                else:
+                    self.assertEqual(len(asked), 1)  # put to the person first; declined here
+                    self.assertIn('runs without a filesystem sandbox', asked[0]['params'].get('reason') or '')
+        supervised = next(r for r in table['levels'] if r['id'] == 'supervised')
+        asked, output, written = self.use_at(supervised, 'accept')  # the control: accepted, the line is written
+        self.assertEqual(len(asked), 1)
+        self.assertIn('runs without a filesystem sandbox', asked[0]['params'].get('reason') or '')
+        self.assertEqual(written, 'used on a narrower turn\n')
 
     def test_an_interrupt_leaves_running_processes_and_cleaning_ends_them(self):
         with L.Run(SCRATCH, BINARY) as run:
@@ -766,6 +963,110 @@ class QuitEnds(unittest.TestCase):
             after = self.alive(known)
             self.assertEqual((after['7771'], after['cat']), (False, False))  # the terminal's commands ended
             self.assertEqual((after['7772'], after['7773']), (True, True))  # these outlived it (ended at cleanup)
+
+
+class TrustWrite(unittest.TestCase):
+    """At full access, with the home's own new, empty settings (the App's layout): what `thread/start` writes into
+    the settings with and without one explicit project trust entry, as the App sends it, for the project's root."""
+
+    FULL_START = {'approvalPolicy': 'never', 'approvalsReviewer': 'user', 'sandbox': 'danger-full-access'}
+
+    def settings_after(self, run, entry_root):
+        cfg = run.home / 'config.toml'
+        self.assertEqual(cfg.read_bytes(), b'')
+        client = run.start()
+        params = dict(self.FULL_START)
+        if entry_root is not None:
+            params['config'] = {'projects': {os.path.realpath(str(entry_root)): {'trust_level': 'untrusted'}}}
+        self.assertEqual(client.start_thread(**params)['sandbox']['type'], 'dangerFullAccess')
+        time.sleep(2)
+        return cfg.read_text()
+
+    def test_a_git_project_is_marked_trusted_in_the_settings_unless_an_entry_is_sent(self):
+        for entry in (False, True):
+            with self.subTest(entry=entry), L.Run(SCRATCH, BINARY, working_files=True, git_marker=True) as run:
+                (run.project / '.git' / 'HEAD').write_text('ref: refs/heads/main\n')
+                written = self.settings_after(run, run.project if entry else None)
+                if entry:
+                    self.assertEqual(written, '')
+                else:
+                    self.assertEqual(written, '[projects."%s"]\ntrust_level = "trusted"\n' % os.path.realpath(str(run.project)))
+
+    def test_a_worktree_marks_its_main_repository_unless_an_entry_for_the_worktree_is_sent(self):
+        for entry in (False, True):
+            with self.subTest(entry=entry), L.Run(SCRATCH, BINARY, working_files=True, project_name='wt') as run:
+                main = run.root / 'outside' / 'main'
+                linked = main / '.git' / 'worktrees' / 'wt'
+                linked.mkdir(parents=True)
+                (main / '.git' / 'HEAD').write_text('ref: refs/heads/main\n')
+                (linked / 'HEAD').write_text('ref: refs/heads/wt\n')
+                (linked / 'commondir').write_text('../..\n')
+                (linked / 'gitdir').write_text(str(run.project / '.git') + '\n')
+                (run.project / '.git').write_text('gitdir: %s\n' % linked)
+                written = self.settings_after(run, run.project if entry else None)
+                if entry:
+                    self.assertEqual(written, '')  # the entry for the worktree's own root is enough
+                else:
+                    self.assertEqual(written, '[projects."%s"]\ntrust_level = "trusted"\n' % os.path.realpath(str(main)))
+
+
+class AskEachCommandInsideTheProject(unittest.TestCase):
+    """Whether a level can ask about each command and keep what the person allows inside the project: approval
+    `untrusted` with a workspace-write sandbox (not a level of the App's table). The command writes outside the
+    project, which the workspace-write sandbox refuses when it applies."""
+
+    def outside_write(self, decision):
+        saved = dict(L.DECLINE)
+        L.DECLINE['item/commandExecution/requestApproval'] = {'decision': decision}
+        try:
+            with L.Run(SCRATCH, BINARY) as run:
+                run.stub.scripts['w'] = L.command_script('call_w', run.commands()['out'])
+                client = run.start()
+                workspace = {'network_access': False, 'exclude_slash_tmp': True, 'exclude_tmpdir_env_var': True,
+                             'writable_roots': []}
+                reply = client.start_thread(approvalPolicy='untrusted', approvalsReviewer='user', sandbox='workspace-write',
+                                            config={'sandbox_workspace_write': workspace})
+                self.assertEqual((reply['approvalPolicy'], reply['sandbox']['type']), ('untrusted', 'workspaceWrite'))
+                client.turn(reply['thread']['id'], 'LEVEL[w] go', approvalPolicy='untrusted', approvalsReviewer='user',
+                            sandboxPolicy={'type': 'workspaceWrite', 'writableRoots': [], 'networkAccess': False,
+                                           'excludeTmpdirEnvVar': True, 'excludeSlashTmp': True})
+                asked = [r for r in client.server_requests if r['method'] == 'item/commandExecution/requestApproval']
+                return len(asked), run.paths()['out'].exists()
+        finally:
+            L.DECLINE.clear()
+            L.DECLINE.update(saved)
+
+    def test_an_allowed_command_is_not_kept_inside_the_project(self):
+        self.assertEqual(self.outside_write('decline'), (1, False))  # asked; declined, nothing is written
+        self.assertEqual(self.outside_write('accept'), (1, True))  # asked once; allowed, it writes outside the project
+
+
+class Background(Probing):
+    def test_a_background_commands_item_stays_in_progress_after_its_turn_and_completes_when_it_ends(self):
+        """A command left running when its turn completes: its item was started with a process id, and is still
+        in progress (no completed item) once the turn has completed; when the process ends, the item completes."""
+        with L.Run(SCRATCH, BINARY) as run:
+            client = run.start()
+            thread = client.start_thread()['thread']['id']
+            late = run.paths()['late']
+            run.stub.scripts['late'] = L.command_script('call_late', run.commands()['late'], background=True)
+            turn, done = client.turn(thread, 'LEVEL[late] go', **FULL)
+            self.assertEqual(done['turn']['status'], 'completed')
+            self.assertFalse(late.exists())  # still sleeping
+            started = [n['params']['item'] for n in client.notes_for('item/started', thread)
+                       if n['params']['item'].get('id') == 'call_late']
+            self.assertEqual(len(started), 1)
+            self.assertEqual(started[0].get('status'), 'inProgress')
+            self.assertTrue(started[0].get('processId'))
+
+            def completed():
+                return [n['params']['item'] for n in client.notes_for('item/completed', thread)
+                        if n['params']['item'].get('id') == 'call_late']
+            self.assertEqual(completed(), [])  # the turn completed; the command's item did not
+            final = client.wait(completed, 20)
+            self.assertTrue(late.exists())
+            self.assertTrue(final, 'the item did not complete within 20 s of its turn')
+            self.assertEqual((final[0].get('status'), final[0].get('exitCode')), ('completed', 0))
 
 
 def invented_jwt(claims):

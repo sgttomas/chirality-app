@@ -1,3 +1,4 @@
+import { StartPermissionLevel } from "./PermissionLevel";
 import { AgentText, ConversationChoices, idWords, numberWords, safeName } from "./AgentText";
 import { threadChoices } from "./presentation";
 import { useState } from "react";
@@ -123,6 +124,7 @@ export function DelegatedTrialComposerView({ pending, conversations, message, se
     <TrialCard pending={pending} busy={busy || sent} act={act} />
     <PendingNotes pending={pending} />
     <div><ConversationChoices legend="Send to" group={`trial-send-${text(pending?.reference)}`} value={conversationChoices(conversations)} chosen={target} onChoose={setTarget} disabled={busy || sent} none="No conversation chosen" />
+      {chosen && <StartPermissionLevel threadId={chosen.threadId} generation={chosen.generation}/>}
       <button disabled={busy || !ready || !chosen || sent} onClick={() => pressSend(act, "workflow_trial_send", { reference: pending?.reference, generation: chosen?.generation, threadId: chosen?.threadId, personText: message }, setOutcome, () => delegatedSentWords(chosen?.threadId))}>Send</button></div>
     <p><small>Send to is this message's destination; changing it does not move the original composer.</small></p>
     <TrialSendOutcome outcome={outcome} />
@@ -170,6 +172,7 @@ export function CleanTrialPanelView({ pending, roleSet, limits, entries, modeHom
     <label>Inputs for this trial (editable; not sent) <textarea value={message} disabled={busy || sent} onChange={e => setMessage(e.target.value)} rows={4} style={{ display: "block", width: "100%" }} /></label>
     <PendingNotes pending={pending} />
     {started ? <div>
+      <StartPermissionLevel threadId={started.threadId} generation={started.generation}/>
       <p>Trial conversation {conversationName(started)} started; the trial message was not sent. Send sends it to that conversation.</p>
       <button disabled={busy || !ready || sent} onClick={() => pressSend(act, "workflow_trial_send", { reference: pending?.reference, generation: started.generation, threadId: started.threadId, personText: message }, setOutcome, () => cleanSentWords(started.threadId))}>Send</button>
     </div> : <div>
@@ -236,6 +239,7 @@ export function BringBackComposerView({ pending, conversations, prompt, setPromp
         <button disabled={busy || sent} onClick={() => { void Promise.resolve(act("workflow_bring_back_cancel", { id: pending?.id })).catch(() => undefined); }}>Remove</button></p>
     </div>
     <div><ConversationChoices legend="Send to" group={`bring-back-send-${text(pending?.id)}`} value={conversationChoices(conversations)} chosen={target} onChoose={setTarget} disabled={busy || sent} none="No conversation chosen" />
+      {chosen && <StartPermissionLevel threadId={chosen.threadId} generation={chosen.generation}/>}
       <button disabled={busy || !ready || !chosen || sent || !!sendBlock} onClick={() => pressSend(act, "workflow_bring_back_send", { id: pending?.id, generation: chosen?.generation, threadId: chosen?.threadId, personText: prompt }, setOutcome, () => bringBackSentWords(chosen?.threadId))}>Send</button></div>
     {sendBlock && <p role="note">The App won't send this yet: {sendBlock}</p>}
     <p><small>Send to is this message's destination; changing it does not move the original composer.</small></p>

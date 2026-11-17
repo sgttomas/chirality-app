@@ -73,7 +73,7 @@ impl ManualHistory {
         dispatch
     }
     fn begin_manual(&self, query: &HistoryQuery) -> HistoryDispatch {
-        let dispatch = self.home.host.history_dispatch(query).unwrap();
+        let dispatch = history_dispatch_with_known_folder(&self.home.host,query).unwrap();
         self.home
             .history
             .lock()

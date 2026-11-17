@@ -19,7 +19,8 @@ behaving so.
 
 Every command the stub scripts is one of `commands()` below: fixed, harmless, and writing only
 under the run's root, or under the run's own /private/tmp/chirality-level-<run>/ folder, which
-the run refuses to start if it exists, creates itself, and removes afterwards.
+the run refuses to start if it exists, creates itself, and removes afterwards; and likewise, where a
+test asks for it, under its own /private/var/tmp/chirality-level-<run>/ folder.
 """
 import hashlib
 import json
@@ -58,6 +59,7 @@ DECLINE = {'item/commandExecution/requestApproval': {'decision': 'decline'},
            'execCommandApproval': {'decision': 'denied'},
            'applyPatchApproval': {'decision': 'denied'}}
 SLASH_TMP = Path('/private/tmp')
+VAR_TMP = Path('/private/var/tmp')
 # The network probe: connects to the stub's own loopback port and asks for the probe path. Unlike curl, it prints
 # the system's own reason when the connection is refused, so a sandbox refusal is in evidence, not inferred.
 NET_PROBE = ('$SIG{ALRM} = sub { print "timed out\\n"; exit 4 }; alarm 3; '
@@ -513,19 +515,6 @@ def checked_scratch(scratch):
     return base
 
 
-def processes_naming(text, run=subprocess.run):
-    """(pid, command) of every process whose command line contains `text`, other than this check itself."""
-    result = run(['/bin/ps', '-axww', '-o', 'pid=,command='], capture_output=True, text=True, timeout=20)
-    if result.returncode != 0:
-        raise Refused('the process list could not be read')
-    found = []
-    for line in result.stdout.splitlines():
-        pid, _, command = line.strip().partition(' ')
-        if text in command and int(pid) != os.getpid():
-            found.append((int(pid), command.strip()))
-    return found
-
-
 class Unobserved(Exception):
     """A process could not be observed: neither present nor established gone."""
 
@@ -587,6 +576,19 @@ def group_members(pgid, run=subprocess.run):
     return result.stdout.split().count(str(pgid))
 
 
+def group_has_members(pgid, killpg=os.killpg, members=group_members):
+    """Whether the process group `pgid` still has a member: a signal 0 to the group. macOS answers a group whose
+    members have all exited and await reaping with a permission error, so the group's members are then counted by
+    group number (`group_members`)."""
+    try:
+        killpg(pgid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return members(pgid) > 0
+    return True
+
+
 # ---------- one run ----------
 
 class RecordingRefusal:
@@ -639,7 +641,7 @@ class Run:
     """A fresh root and one stub. Use as a context manager; the root is removed on exit."""
 
     def __init__(self, scratch, binary, slash_tmp=False, git_marker=False, project_name='project',
-                 working_files=False, proxy=None):
+                 working_files=False, var_tmp=False, proxy=None):
         self.binary = binary
         self.proxy = proxy  # a RecordingRefusal in place of the closed port, or None for the closed port
         if '/' in project_name or project_name in ('', '.', '..'):
@@ -650,6 +652,8 @@ class Run:
         self.slash_tmp = SLASH_TMP / ('chirality-level-' + self.name) if slash_tmp else None
         self.git_marker = git_marker
         self.made_slash_tmp = False
+        self.var_tmp = VAR_TMP / ('chirality-level-' + self.name) if var_tmp else None
+        self.made_var_tmp = False
         # With `working_files`, the App's layout (invented names): the Codex home inside an invented data folder,
         # and TMPDIR a folder made inside "codex-tmp" in the "<data folder> Working Files" folder beside it.
         self.working_files = working_files
@@ -676,8 +680,9 @@ class Run:
             if folder.parent == folder:
                 break
             folder = folder.parent
-        if self.slash_tmp is not None and os.path.lexists(self.slash_tmp):
-            raise Refused('%s already exists' % self.slash_tmp)
+        for shared in (self.slash_tmp, self.var_tmp):
+            if shared is not None and os.path.lexists(shared):
+                raise Refused('%s already exists' % shared)
         os.mkdir(self.root, 0o700)
         try:
             for child in ('userhome', self.project_name, 'outside'):
@@ -691,6 +696,9 @@ class Run:
             if self.slash_tmp is not None:
                 os.mkdir(self.slash_tmp, 0o700)  # fails if it appeared since the check
                 self.made_slash_tmp = True
+            if self.var_tmp is not None:
+                os.mkdir(self.var_tmp, 0o700)  # fails if it appeared since the check
+                self.made_var_tmp = True
             self.stub = ScriptedStub()
             self.stub.allowed_commands = set(self.commands().values())  # enforced before any call reaches Codex
         except BaseException:
@@ -708,6 +716,8 @@ class Run:
             steps.append(self.stub.close)
         if self.made_slash_tmp:  # only the folder this run made, never one it found
             steps.append(lambda: shutil.rmtree(self.slash_tmp))
+        if self.made_var_tmp:  # likewise
+            steps.append(lambda: shutil.rmtree(self.var_tmp))
         steps.append(lambda: os.path.lexists(self.root) and shutil.rmtree(self.root))
         errors = []
         for step in steps:
@@ -720,17 +730,33 @@ class Run:
         return False
 
     def nothing_remains(self, wait=10.0):
-        """After the servers are stopped: wait until no process remains whose command line names this run's root,
-        or fail naming each one that does. It cannot see a process of the run whose command line names no path of
-        the run (the network probe, whose argument is only the port, is one; it ends within its 3 s timeout)."""
+        """After the servers are stopped: wait until none of the Codex servers this run started is still running
+        and no member of any of their process groups remains, or fail naming each that does. A server is known by
+        its number (the run is its parent) and the start time recorded when it started, so a number used again by
+        another process does not count; a group is checked by a signal 0 to it. No process's command line or open
+        files are read. A command that Codex ran in a process group of its own is not seen here: the rows that start
+        such commands know their numbers and end them themselves (`end_known`). The network probe is not one of the
+        run's servers; it ends within its 3 s alarm."""
         deadline = time.monotonic() + wait
         while True:
-            left = processes_naming(str(self.root))
+            left = []
+            for client in self.clients:
+                pid = client.proc.pid
+                try:
+                    running = client.proc.poll() is None or (
+                        client.started_at is not None and still_running(pid, client.started_at))
+                except Unobserved as error:
+                    running, why = True, str(error)
+                else:
+                    why = 'still running'
+                if running:
+                    left.append('server %d: %s' % (pid, why))
+                if group_has_members(client.pgid):
+                    left.append('process group %d has a member' % client.pgid)
             if not left:
                 return
             if time.monotonic() >= deadline:
-                raise Refused('processes of the run remain after %.0f s: %s' % (
-                    wait, '; '.join('pid %d: %s' % (pid, command[:200]) for pid, command in left)))
+                raise Refused('processes of the run remain after %.0f s: %s' % (wait, '; '.join(left)))
             time.sleep(0.25)
 
     @property
@@ -762,6 +788,8 @@ class Run:
                'git': self.project / '.git' / 'w-git', 'extra': self.root / 'outside' / 'w-extra'}
         if self.slash_tmp is not None:
             out['slashtmp'] = self.slash_tmp / 'w-slashtmp'
+        if self.var_tmp is not None:
+            out['vartmp'] = self.var_tmp / 'w-vartmp'
         return out
 
     def commands(self):
@@ -833,6 +861,10 @@ class Client:
             cwd=str(run.project), env=run.environment(), stdin=subprocess.PIPE, stdout=subprocess.PIPE,
             stderr=self.stderr, start_new_session=True)
         self.pgid = self.proc.pid  # its own session, so its own process group
+        try:  # when it started, so that its number is not mistaken for another process's later
+            self.started_at = observe_process(self.proc.pid)[1]
+        except Unobserved:
+            self.started_at = None
         self.lock = threading.Lock()
         self.changed = threading.Condition(self.lock)
         self.next_id = 0

@@ -948,7 +948,9 @@ KNOWN_REFERRERS = {
     "app/examination/sq_receiving/sq.step-map.json": "out_of_release names the release target as where it is stated; nothing reads that path from it",
     "app/supplier_checks/version_advance/0.167.0-to-0.169.0.json": "retains the supplier WebSearchProvider enum value standalone, not a path; no narrowed-class path is read through this comparison",
     # Readers of in-root paths that stay product inputs.
-    'app/packaging/production_inputs/prepare.py': 'maps and inventories the limitations resource; sources-packaging',
+    'app/packaging/production_inputs/bundle_resources.py': 'selects the limitations resource mapping that prepare.py inventories; sources-packaging',
+    'app/packaging/notices/coverage-inputs.json': 'names the limitations resource mapping exactly as App content in the notice coverage account; sources-packaging',
+    'app/packaging/notices/coverage.json': 'the generated notice coverage account, bundled; names that mapping; sources-packaging',
     'app/src-tauri/tauri.conf.json': 'bundles the limitations document as release/LIMITATIONS.md; product input',
     'app/src-tauri/src/release_limitations.rs': 'reads the bundled limitations; its source-document test runs in lib shard B',
     'app/tests/production_inputs_test.py': 'copies the limitations document into its source fixture; sources-packaging',

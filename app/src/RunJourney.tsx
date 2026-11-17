@@ -1,3 +1,4 @@
+import { PermissionLevel } from "./PermissionLevel";
 import { AgentText, ConversationChoices, idWords, safeName, wordOf } from "./AgentText";
 import { nativePathText, threadChoices } from "./presentation";
 import { hostRequests, requestThread } from "./RequestCards";
@@ -443,7 +444,9 @@ export function RunWorkflowGuide({ data, host, thread, chooseThread, act, busy, 
         <IncludedWorkflows catalog={data?.productionCatalog} chosen={chosen} disabled={!canAct} needsConversation={!thread} choose={name => perform("workflow_select_production_bundle", { name })}
           readText={includedText} holdsText={entry => workflowTexts.of(includedSlot(entry), entry?.identity) !== undefined}/>
       </li>
-      <li aria-labelledby="run-inputs-heading"><h3 id="run-inputs-heading">Inputs</h3>
+      <li aria-labelledby="run-inputs-heading">
+        <h3 id="run-inputs-heading">Inputs</h3>
+        {thread && <PermissionLevel host={host} threadId={thread}/>}
         {inputs.length > 0 ? <ul aria-label="What this workflow needs">{inputs.map((input: Json, index: number) => <li key={index}>
           <strong>{text(input.name)}</strong> ({input.necessity === "optional" ? "optional" : "required"}; {INPUT_KIND[text(input.kind)] ?? text(input.kind)}): {text(input.meaning)}{input.absence_effect ? ` If you leave it out: ${text(input.absence_effect)}` : ""}</li>)}</ul>
           : chosen ? <p>This workflow doesn't list required inputs. Describe what it should work on.</p> : <p>Choose a workflow to see what it needs.</p>}

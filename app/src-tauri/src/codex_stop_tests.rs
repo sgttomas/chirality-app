@@ -416,7 +416,7 @@ for line in sys.stdin:
  elif m=='thread/start':
   starts[0]+=1
   t={'id':'thread' if starts[0]==1 else 'thread-%d'%starts[0],'cliVersion':'0.169.0','createdAt':1,'updatedAt':2,'cwd':os.getcwd(),'ephemeral':False,'modelProvider':'fixture-provider','preview':'stop fixture','projectId':None,'sessionId':'fixture-session','source':'appServer','status':{'type':'idle'},'turns':[]}
-  result={'thread':t,'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'readOnly'},'instructionSources':[]}
+  result={'thread':t,'model':'fixture-model','modelProvider':'fixture-provider','cwd':os.getcwd(),'approvalPolicy':'on-request','approvalsReviewer':'user','sandbox':{'type':'workspaceWrite','writableRoots':[],'networkAccess':False,'excludeTmpdirEnvVar':True,'excludeSlashTmp':True},'instructionSources':[]}
  elif m=='turn/steer': result={'turnId':f['params']['expectedTurnId']}
  elif m=='turn/interrupt':
   interrupts[0]+=1
@@ -456,7 +456,7 @@ for line in sys.stdin:
             }
             host.start(&cfg, "stop fixture").unwrap();
             let generation = host.snapshot()["generation"].clone();
-            host.thread_start_selected(&root.to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
+            host.thread_start_selected(&root.join("project").to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
             let home = Arc::new(HomeSession::new(crate::home_resources::HomeClass::Account, host, Ok(cfg.clone())).unwrap());
             Self { root, cfg, home, generation, _custody }
         }
@@ -474,7 +474,7 @@ for line in sys.stdin:
         fn prepare() -> (PathBuf, HostConfig, crate::AppDataCustody) {
             use std::os::unix::fs::PermissionsExt;
             let root = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("codex-stop-").unwrap());
-            for name in ["account", "probe"] {
+            for name in ["account", "probe", "project"] {
                 std::fs::create_dir_all(root.join(name)).unwrap();
             }
             let peer = root.join("peer.py");
@@ -650,7 +650,7 @@ for line in sys.stdin:
         let f = Fixture::new();
         std::fs::write(f.root.join("interrupt-mode"), "silent-first").unwrap();
         // A second conversation, so each has its own live turn (one per thread).
-        f.home.host.thread_start_selected(&f.root.to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
+        f.home.host.thread_start_selected(&f.root.join("project").to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
         f.live_turn_in("thread", "turn-1");
         f.live_turn_in("thread-2", "turn-2");
         let workflows = std::sync::Mutex::new(WorkflowRootSession::default());
@@ -1020,7 +1020,7 @@ for line in sys.stdin:
     #[test]
     fn real_host_quit_never_reopens_a_process_stop_codex_closed() {
         let f = Fixture::with_ledger();
-        f.home.host.thread_start_selected(&f.root.to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
+        f.home.host.thread_start_selected(&f.root.join("project").to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
         f.live_turn_in("thread", "turn-1");
         assert_eq!(f.home.host.close_to_new_turns(&f.generation), Ok(true), "Stop Codex confirmed and waiting");
         let workflows = std::sync::Mutex::new(WorkflowRootSession::default());
@@ -1044,7 +1044,7 @@ for line in sys.stdin:
     #[test]
     fn real_host_stop_codex_never_reopens_a_process_the_quit_closed() {
         let f = Fixture::new();
-        f.home.host.thread_start_selected(&f.root.to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
+        f.home.host.thread_start_selected(&f.root.join("project").to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
         f.live_turn_in("thread", "turn-1");
         assert_eq!(f.home.host.close_to_new_turns(&f.generation), Ok(true), "a quit closed it");
         let workflows = std::sync::Mutex::new(WorkflowRootSession::default());
@@ -1063,7 +1063,7 @@ for line in sys.stdin:
     #[test]
     fn real_host_quit_reopens_what_it_closed_when_the_person_keeps_running() {
         let f = Fixture::with_ledger();
-        f.home.host.thread_start_selected(&f.root.to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
+        f.home.host.thread_start_selected(&f.root.join("project").to_string_lossy(), "fixture-model", "fixture-provider").unwrap();
         f.live_turn_in("thread", "turn-1");
         let workflows = std::sync::Mutex::new(WorkflowRootSession::default());
         let mut asked = 0;

@@ -24,6 +24,9 @@ mod installation;
 pub mod catalog;
 mod checkpoint_recorder;
 mod model_turn_recorder;
+pub mod codex_level;
+pub(crate) mod lasting_rules;
+pub(crate) mod level_choice;
 pub mod codex_stop;
 mod app_quit;
 pub mod conversation_roles;
@@ -882,6 +885,13 @@ fn host_status(state: State<'_, AppState>) -> Value {
         let homes = state.homes.lock().unwrap();
         s["homeRouting"] = homes.snapshot();
         s["waitingRequests"] = waiting_requests::overview(&homes);
+        // V4-AUT-06: each App-owned Codex home's lasting rules, as last read; the paths, words and lines in it
+        // are the files' own text, kept in their own fields.
+        s["codexHomeRules"] = json!({"appSentence": lasting_rules::APP_SENTENCE, "homes": homes.entries().iter().map(|home| {
+            let mut row = home.host.lasting_rules().unwrap_or_else(|| json!({"home": null, "lastingRules": {"state": "not-known", "readAt": null, "files": [], "skippedEntries": 0, "reason": "Not read yet."}}));
+            row["modeHomeClass"] = json!(home.class().as_str());
+            row
+        }).collect::<Vec<_>>()});
     }
     s["homeAccess"] = home.account_view();
     // OI-008: host_status presents; it records nothing. The checkpoint recorder
@@ -1406,6 +1416,7 @@ fn add_api_key(app:tauri::AppHandle,state:State<'_,AppState>)->Result<Value,Stri
                 home.history.lock().unwrap().configure_role_log_source(state.role_log.clone());
                 *home.attachment_custody.lock().unwrap()=Ok(attachment.clone());
                 home.recovery_startup.lock().unwrap().adopt_shared_source(&home.host);
+                home.level_launch_reads(&account);
                 bootstrap.validate_binding(home.class(),&config)?;
                 state.homes.lock().unwrap().bind_key(home.clone())?;
                 home
@@ -1473,6 +1484,7 @@ fn prepare_local_provider(window: tauri::Window, state: State<'_, AppState>) -> 
         *home.attachment_custody.lock().unwrap()=Ok(attachment);
         home.history.lock().unwrap().configure_role_log_source(state.role_log.clone());
         home.recovery_startup.lock().unwrap().adopt_shared_source(&home.host);
+        home.level_launch_reads(&account);
         state.homes.lock().unwrap().bind_local(home.clone())?; home
     };
     provider_endpoint_confirmation::recheck_original(&window)?;
@@ -2365,6 +2377,18 @@ fn answer_native_request(
             Some(actor),
         ),
     )
+}
+
+/// PRD V4-AUT-06: the person sets the permission level, `{scope: "default" | {conversation: threadId}, levelId}`, from the level control. A plain setting: the `level_chosen` ledger entry is
+/// written, then the level in force changes. A conversation scope names a conversation of the active home; the
+/// default reaches every home.
+#[tauri::command(async)]
+fn set_level(state: State<'_, AppState>, scope: Value, level_id: String) -> Result<Value, String> {
+    let (target, hosts) = {
+        let homes = state.homes.lock().unwrap();
+        (homes.active().host.clone(), homes.entries().iter().map(|home| home.host.clone()).collect::<Vec<_>>())
+    };
+    level_choice::set_level(&target, &hosts, &scope, &level_id)
 }
 
 /// J6: a native confirmation shows a bounded, readable statement, with any
@@ -3448,6 +3472,8 @@ fn initialize_startup_consumers(state: &AppState, home: &Arc<runtime_session::Ho
             .map(|cfg| cfg.codex_home.as_path()),
         namespaces,
     );
+    // V4-AUT-06: the level recorded in the ledger just opened, and the home's lasting rules.
+    home.level_launch_reads(&home);
     let root = data.clone().and_then(|data| {
         let root = data.join("instructions");
         runtime_session::seed_instructions(&root)?;
@@ -3630,6 +3656,7 @@ pub fn run() {
             reconfirm_attachment,
             answer_native_request,
             request_answer_companions,
+            set_level,
             host_start,
             codex_stop,
             thread_start,
