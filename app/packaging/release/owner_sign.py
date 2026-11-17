@@ -25,6 +25,18 @@ What is written, and where:
 The App is notarized and its ticket stapled to it; then the disk image built
 from the stapled App is notarized and its ticket stapled to the disk image.
 
+Release standing: the candidate carries one (common.STANDINGS), which
+common.load_candidate checks against the candidate's plan before anything runs.
+A candidate built with --not-for-public-release is an examination candidate:
+this run signs and notarizes it like any other, and its package is never a
+publication candidate. The dry-run plan, RESULT.json and the package identity
+record state the standing; this tool never changes or infers it.
+
+Environment of the commands it runs: not the caller's environment. Each
+command receives exactly PATH=/usr/bin:/bin:/usr/sbin:/sbin, the caller's
+HOME, LANG=en_US.UTF-8 and TMPDIR inside --out. The caller's environment is
+only inspected, to refuse credential-shaped variable names.
+
 What these tools withstand: they are operator-run tools on stable inputs. They are built so that an
 observation that was not made, that failed, or that is incomplete cannot come out as success, and so
 that drift and mistakes are caught. They are not a filesystem snapshot and are not built to withstand
@@ -284,7 +296,8 @@ def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None
     vendor_paths = common.macho_paths(candidate['vendor']['inventory'])
     commands = plan(args.identity, args.notary_profile, paths, candidate_app, vendor_paths, requirement)
     if args.dry_run:
-        value = {'dry_run': True, 'plan': [{'step': str(s), 'argv': shown(a, out, candidate_dir)} for s, a in commands]}
+        value = {'dry_run': True, 'release_standing': candidate['release_standing']['standing'],
+                 'plan': [{'step': str(s), 'argv': shown(a, out, candidate_dir)} for s, a in commands]}
         common.validate_returnable(value, public_teams, argv_allowed=argv_allowed)
         return value, None
 
@@ -497,8 +510,8 @@ def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None
     detach(13, 'S13_DETACH')
     digest = common.write_returnable(out / 'PACKAGE_IDENTITY.json', identity_record, out, public_teams)
     shutil.rmtree(out / 'tmp', ignore_errors=True)
-    summary = {'result': 'complete', 'package': dmg.name, 'package_sha256': sha(dmg.read_bytes()), 'record': 'PACKAGE_IDENTITY.json',
-               'record_sha256': digest, 'installed': False,
+    summary = {'result': 'complete', 'release_standing': identity_record['release_standing']['standing'], 'package': dmg.name,
+               'package_sha256': sha(dmg.read_bytes()), 'record': 'PACKAGE_IDENTITY.json', 'record_sha256': digest, 'installed': False,
                'notarization': {k: {'summary': v['summary'], 'submitted_sha256': v['submitted_sha256']} for k, v in notarizations.items()}}
     common.write_returnable(out / 'RESULT.json', summary, out, public_teams)
     return summary, public_teams

@@ -10,9 +10,19 @@ supplier executable must equal what was read from the supplier's tree before
 signing. When any observation fails, it raises RecordFailed with the failed
 observations named by fixed words; owner_sign.py then stops and writes no record.
 
+The record copies the candidate's release standing (`release_standing`, as
+build.py carries it in CANDIDATE.json and common.load_candidate checked it
+against the candidate's plan): whether the candidate was named not for public
+release, and its notice coverage. A candidate named not for public release is
+an examination candidate; its package is never a publication candidate, and
+the record says so in that field.
+
 `check` validates a record's required structure, re-reads a package and the
 returnable notarization summaries, and prints fixed messages and counts by
-category. It names a differing location only when it is a field of the record's
+category. It shows the release standing the record states (one of
+common.STANDINGS) and whether it was checked against the candidate: only with
+`--candidate`, which checks the candidate's standing against its plan and
+compares it with the record's. It names a differing location only when it is a field of the record's
 own stated shape or a path of the committed distribution record's inventory;
 anything else is counted, not named. It never compares the original
 notarization logs: the record holds their digests, and the owner compares a
@@ -65,11 +75,13 @@ NOT_OBSERVED = [
 ]
 NOT_CHECKED_LOGS = ('not checked by this tool: the original notarization logs; the record holds each log\'s digest '
                     '(original_log_sha256), which the owner compares by hand with shasum -a 256')
-NOT_CHECKED_CANDIDATE = 'not checked: candidate provenance (give --candidate with the build output folder)'
+NOT_CHECKED_CANDIDATE = ('not checked: candidate provenance and release standing against the candidate (give --candidate with the '
+                         'build output folder); the release standing shown is only as the record states it')
 FAILURES = ['bundle identity', 'signature', 'entitlements', 'unexpected entitlement', 'other team', 'ticket validation',
             'stapled ticket absent', 'gatekeeper', 'provisioning profile', 'notarization summary', 'notarization status',
             'notarization issues', 'notarization digest', 'submitted file', 'app as signed', 'workflow manifest',
-            'hardened runtime', 'ad hoc signature', 'signer', 'identifier', 'debugging entitlement', 'supplier signature changed']
+            'hardened runtime', 'ad hoc signature', 'signer', 'identifier', 'debugging entitlement', 'supplier signature changed',
+            'release standing', 'candidate release standing']
 # Every field name the record's stated shape uses: the only keys `check` prints by name.
 FIELD_NAMES = {
     'format', 'package', 'file_name', 'sha256', 'size', 'public_teams', 'publisher_team', 'candidate', 'source_revision', 'pin',
@@ -82,6 +94,7 @@ FIELD_NAMES = {
     'provisioning_profile', 'decoded', 'uuid', 'app_id', 'allowed_entitlements', 'expiration', 'stapled_tickets', 'app',
     'validated', 'ticket_sha256', 'gatekeeper', 'accepted', 'source', 'notarization', 'summary', 'summary_sha256', 'submission_id',
     'status', 'issue_count', 'submitted_sha256', 'original_log_sha256', 'submitted', 'not_observed', 'mode', 'kind', 'target_sha256',
+    'release_standing', *common.STANDING_KEYS, 'stated_by_record', 'checked_against_candidate',
 }
 common.VOCABULARY.update(NOT_OBSERVED, FAILURES, {NOT_CHECKED_LOGS, NOT_CHECKED_CANDIDATE})
 
@@ -90,6 +103,18 @@ class RecordFailed(ValueError):
     def __init__(self, failures):
         super().__init__('observations failed')
         self.failures = failures
+
+
+def standing_valid(standing):
+    """A release standing of the stated shape: exactly common.STANDING_KEYS, a known (flag, completeness) pair named by
+    its own words, a coverage digest, and a gap count that is zero exactly when coverage is complete. This is the shape
+    common.candidate_standing requires before it compares the standing with the candidate's plan."""
+    if not isinstance(standing, dict) or set(standing) != common.STANDING_KEYS:
+        return False
+    flag, complete, gaps = standing['not_for_public_release'], standing['notice_coverage_complete'], standing['notice_gaps']
+    return (isinstance(flag, bool) and isinstance(complete, bool) and common.STANDINGS.get((flag, complete)) == standing['standing']
+            and common.is_shape(standing['notice_coverage_sha256'], 'sha256')
+            and isinstance(gaps, int) and not isinstance(gaps, bool) and gaps >= 0 and (gaps == 0) == complete)
 
 
 def failure(name, subject='.'):
@@ -331,6 +356,11 @@ def notarization_facts(record_dir, entry):
 
 def build_record(*, dmg, app, run, candidate, notarizations, signed_tree, record_dir, public_teams, publisher_team, supplier_expected):
     """The record, in memory. Raises RecordFailed when any observation it would state failed."""
+    # The candidate's release standing, copied as load_candidate checked it against the plan; never inferred or defaulted.
+    # It is checked before any command runs.
+    standing = candidate.get('release_standing')
+    if not standing_valid(standing):
+        raise RecordFailed([failure('release standing')])
     facts, failures = observe_package(dmg, app, run, public_teams, publisher_team, candidate['limitations']['sha256'], supplier_expected)
     if facts['app_as_signed'] != bundle_state(inv(signed_tree)):
         failures.append(failure('app as signed'))
@@ -340,7 +370,8 @@ def build_record(*, dmg, app, run, candidate, notarizations, signed_tree, record
         failures += more
     if failures:
         raise RecordFailed(failures)
-    return {'format': FORMAT, 'package': facts.pop('package'), 'public_teams': sorted(public_teams), 'publisher_team': publisher_team,
+    return {'format': FORMAT, 'package': facts.pop('package'), 'release_standing': dict(standing),
+            'public_teams': sorted(public_teams), 'publisher_team': publisher_team,
             'candidate': {'source_revision': candidate['source_revision'], 'pin': candidate['pin'],
                           'expected_manifest': candidate['expected_manifest'], 'build_environment_sha256': candidate['build']['environment_sha256'],
                           'unsigned_executable_sha256': candidate['bundle']['executable_sha256'],
@@ -350,7 +381,8 @@ def build_record(*, dmg, app, run, candidate, notarizations, signed_tree, record
 
 
 REQUIRED = {
-    'format': None, 'package': ('file_name', 'sha256', 'size'), 'public_teams': None, 'publisher_team': None,
+    'format': None, 'package': ('file_name', 'sha256', 'size'), 'release_standing': tuple(sorted(common.STANDING_KEYS)),
+    'public_teams': None, 'publisher_team': None,
     'candidate': ('source_revision', 'pin', 'expected_manifest', 'build_environment_sha256', 'unsigned_executable_sha256',
                   'limitations_source', 'limitations_sha256'),
     'observed': ('bundle', 'app_as_signed', 'app_as_stapled', 'vendor', 'resources', 'workflows', 'roles_sha256', 'limitations',
@@ -378,6 +410,8 @@ def structure_errors(record):
         for field in fields:
             if not isinstance(entry, dict) or field not in entry:
                 missing.append(f'notarization.{key}.{field}')
+    if 'release_standing' in record and not standing_valid(record['release_standing']):
+        missing.append('release_standing')  # present but not a known standing of the stated shape: refused like a missing one
     return missing
 
 
@@ -430,7 +464,8 @@ def check(record, *, dmg, app, run, record_dir, candidate_dir=None):
     """A summary of differences and failed observations by fixed category, and what was not checked."""
     missing = structure_errors(record)
     if missing:
-        return {'equal': False, 'record_structure_missing': sorted(missing), 'differences': {}, 'failed_observations': {},
+        return {'equal': False, 'record_structure_missing': sorted(set(missing)), 'differences': {}, 'failed_observations': {},
+                'release_standing': {'stated_by_record': 'not observed', 'checked_against_candidate': False},
                 'not_checked': ['everything else: the record lacks required fields', NOT_CHECKED_LOGS]}
     public_teams = set(record['public_teams'])
     vendor_paths = committed_vendor_paths(record['candidate'].get('pin'))
@@ -442,9 +477,19 @@ def check(record, *, dmg, app, run, record_dir, candidate_dir=None):
         failures += [failure(f['observation'], key) for f in more]
         found += differences(record['notarization'][key], observed, ('notarization', key))
     not_checked = [NOT_CHECKED_LOGS]
+    standing_checked = False
     if candidate_dir is not None:
         common.refuse_private(candidate_dir, 'the candidate')
         description = json.loads((Path(candidate_dir) / common.CANDIDATE_FILE).read_bytes(), object_pairs_hook=obs.unique_pairs)
+        # The candidate's own standing must be a known one and equal what its bound plan states; then the record's
+        # must equal it. A missing or mismatched value is a failure or a difference, never equal.
+        try:
+            candidate_standing = common.candidate_standing(Path(candidate_dir), description)
+        except (ValueError, OSError, KeyError, TypeError, AttributeError):
+            failures.append(failure('candidate release standing'))
+        else:
+            found += differences(record['release_standing'], candidate_standing, ('release_standing',))
+            standing_checked = True
         provenance = {'source_revision': description['source_revision'], 'pin': description['pin'],
                       'expected_manifest': description['expected_manifest'], 'build_environment_sha256': description['build']['environment_sha256'],
                       'unsigned_executable_sha256': description['bundle']['executable_sha256'],
@@ -460,7 +505,10 @@ def check(record, *, dmg, app, run, record_dir, candidate_dir=None):
     for item in failures:
         observations[item['observation']] = observations.get(item['observation'], 0) + 1
     return {'equal': not found and not failures, 'differences': dict(sorted(summary.items())),
-            'failed_observations': dict(sorted(observations.items())), 'not_checked': not_checked}
+            'failed_observations': dict(sorted(observations.items())),
+            'release_standing': {'stated_by_record': record['release_standing']['standing'],
+                                 'checked_against_candidate': standing_checked},
+            'not_checked': not_checked}
 
 
 def plain_datetime(value):

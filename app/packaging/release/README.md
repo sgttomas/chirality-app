@@ -25,6 +25,30 @@ filesystem snapshot. They are not built to withstand a writer changing the
 inputs during the run, or someone with write access forging a record: a
 completion marker or a recorded digest is not authentication.
 
+## What each tool passes to the commands it runs
+
+None of the three passes your whole environment to a command it runs. Each
+gives its commands a complete environment of its own:
+
+| Tool | Environment of every command it runs |
+|---|---|
+| `build.py` | exactly the recipe allowlist: the recipe's fixed values, your `PATH` and `LANG` (the only two variables it accepts from you; anything else refuses), and the run's own writable paths inside `--out`. The same environment serves the three scope observations, the install, the build and `dyld_info`. |
+| `owner_sign.py` | exactly `PATH=/usr/bin:/bin:/usr/sbin:/sbin`, your `HOME`, `LANG=en_US.UTF-8` and `TMPDIR` set to `tmp/` inside `--out`. Your environment is otherwise only inspected, to refuse credential-shaped variable names. |
+| `record.py check` | exactly `PATH=/usr/bin:/bin:/usr/sbin:/sbin`, your `HOME` and `LANG=en_US.UTF-8`. |
+
+`HOME` is the one value the signing and checking tools take from you. They run
+Apple's tools by absolute path (`/usr/bin/codesign`, `/usr/bin/xcrun`,
+`/usr/bin/hdiutil`, `/usr/sbin/spctl`, `/usr/bin/ditto`), and `xcrun` finds
+`notarytool` and `stapler` in the developer directory selected on the machine,
+because `DEVELOPER_DIR` is not passed. The tools give Apple's tools only the
+names of your signing identity and notary profile; the keychain lookups are
+Apple's tools', made for your user.
+
+What their verification relies on: that those are the system's own tools and
+report truthfully, that the inputs stay unchanged during the run (above), and
+the digests and inventories the tools compute themselves. It does not rely on
+any other value of your environment.
+
 ## What the tools write, and the private folder
 
 Each run writes two kinds of file into its own output folder.
@@ -130,9 +154,8 @@ so the same inputs give the same bundle bytes.
   and the build does not control it.
 
 `PATH` must name the toolchain's own `bin` directory, not rustup proxies.
-The tools do not pass the caller's whole environment to their children. The
-install and build receive exactly the recipe allowlist, assembled from the
-recipe, the caller's `PATH` and `LANG`, and the run's private writable paths.
+Every command the build runs receives exactly the recipe allowlist, as in
+"What each tool passes to the commands it runs" above.
 
 **Publisher input.** It writes the publisher input (identifier and Developer
 ID team) from the compiled keychain selection in
@@ -171,6 +194,36 @@ verification, and the signing step refuses a folder without one. The
 provisioning profile is not a build input: `owner_sign.py` places it.
 
 ## Signing, notarizing and stapling (the owner)
+
+### First: what this candidate is for
+
+Every candidate states its **release standing** in `CANDIDATE.json`
+(`release_standing`), and the dry run below prints it first. There are three:
+
+- `notice coverage complete`: built without `--not-for-public-release`, with
+  every shipped component's notice covered.
+- `not for public release (named by the caller)`, or the same followed by
+  `; notice coverage is incomplete`: an **examination candidate**. An agent
+  built it with `--not-for-public-release` typed in the build command. Nothing
+  else sets it: no variable, configuration or default. While any notice is
+  open, the build makes no other kind of candidate. Such a build is called
+  like this:
+
+  ```sh
+  python3 app/packaging/release/build.py \
+    ... the arguments shown under "Building the candidate" ... \
+    --out /abs/new-candidate --not-for-public-release
+  ```
+
+You may sign, notarize and staple an examination candidate. That is how the
+installed, signed package is examined (criterion 8 of the release target).
+Its package is an examination package, never a publication candidate, and it
+is not offered for public release while any component's notice is uncovered
+(criterion 9). The run never changes or infers the standing: it refuses a
+candidate whose standing is missing or differs from the candidate's plan
+(`REFUSED_CANDIDATE`), and `RESULT.json` and the package identity record state
+the standing as the candidate does. Signing and notarizing publish nothing;
+publishing remains your separate decision.
 
 ### Have ready
 
@@ -217,7 +270,8 @@ The run:
    it;
 4. has Gatekeeper assess the disk image and the App on a read-only mount;
 5. writes the package identity record, and only after the last observation
-   succeeded and the disk image detached.
+   succeeded and the disk image detached. The record states the candidate's
+   release standing (`release_standing`), copied unchanged.
 
 It signs exactly twice, once for the App and once for the disk image. It never
 signs with `--deep` or `--force`, and never inside the supplier's Codex.
@@ -310,8 +364,9 @@ only when every line of it is of a form declared for that command, and no key
 appears twice in a property list or JSON it parses. Nothing is picked out of
 other text, and nothing is concluded from the absence of an error message.
 Each declared form names its source: Apple's published technical notes and
-notarization documentation, and real outputs kept in this repository. No form
-was taken from running the tools, and none was invented.
+notarization documentation, and real outputs kept in this repository, or,
+after a stop, your own report of a line's form (below). No form was taken
+from running the tools, and none was invented.
 
 Some commands are actions, not observations: the two signings, the archive
 made with `ditto`, and `hdiutil create`, `attach` and `detach`. Their output
@@ -333,12 +388,18 @@ folder, as for every command.
 The one correction:
 
 1. You tell us the step and its fixed reason, from the `STOP:` line or
-   `STOPPED.json`. Nothing from the private folder is needed or wanted.
-2. An agent finds the form of that line in the tool's documentation, never
-   in your private output, and adds it to `observations.py` with its source.
-   If no published documentation shows the line, the agent says so, adds
-   nothing, and the project decides what follows.
-3. You run again from the beginning, with the corrected tools, the same
+   `STOPPED.json`. Nothing from the private folder is needed for this.
+2. An agent looks for the form of that line in the tool's published
+   documentation, never in your private output, and adds it to
+   `observations.py` with its source.
+3. If no published documentation shows the line, the agent says so. You may
+   then read your own private output and tell us only the line's form, with
+   every value in it removed or replaced (for example `Executable=<path>`,
+   never the path itself). An agent may declare that form, with its source
+   named as your report (`OWNER` in `observations.py`), never as
+   documentation. Only a form you have reported is added this way; none is
+   guessed or invented, and no agent reads your raw output to learn it.
+4. You run again from the beginning, with the corrected tools, the same
    candidate and a new `--out`, as under "Starting again" above. A correction
    to the declared forms changes the signing tools, not the candidate, so a
    new candidate is needed only if the run refuses the old one.
@@ -405,8 +466,16 @@ key in the record, is counted and not named. No value read from a file or a
 tool is printed.
 
 Under `not_checked` it always lists the original notarization logs (compare
-them by hand, as above), and candidate provenance unless you give
-`--candidate`.
+them by hand, as above), and candidate provenance and release standing unless
+you give `--candidate`.
+
+Under `release_standing` it shows the standing the record states, and whether
+that was checked against the candidate (`checked_against_candidate`). Without
+`--candidate` it is only the record's own statement. With `--candidate`, the
+candidate's standing must be a known one equal to what its plan states, and
+the record's must equal it; otherwise the result is not equal. A record whose
+standing is missing or not a known standing is refused as lacking a required
+field.
 
 It exits 0 when there is no difference, 1 when there are differences, and 2
 with a fixed message when it cannot read its inputs. It runs `codesign -d`,

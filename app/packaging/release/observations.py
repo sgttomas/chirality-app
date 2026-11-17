@@ -12,8 +12,10 @@ The rule. A command's output is an observation only when:
      and the object binding of the earlier rounds are part of the declared forms).
 Anything else is no observation, and the caller stops with a fixed reason naming its step.
 
-Sources. Every form names where it was taken from. Only the tools' published documentation and real
-outputs retained in this repository are used; no tool was run to produce or display a form.
+Sources. Every form names where it was taken from: the tools' published documentation, real outputs
+retained in this repository, or, only for a line no published source shows, the owner's report of that
+line's form with every value removed (OWNER, below). No tool was run by us to produce or display a form,
+and no form is taken from the private raw output.
   TN3126  Apple, "TN3126: Inside Code Signing: Hashes" (codesign --display -vvv listings)
   TN3127  Apple, "TN3127: Inside Code Signing: Requirements" (codesign --verify -v -R listings)
   TN3161  Apple, "TN3161: Inside Code Signing: Certificates" (Authority chain, Timestamp, Signed Time)
@@ -27,6 +29,8 @@ outputs retained in this repository are used; no tool was run to produce or disp
           "The staple and validate action worked!", "The validate action worked!", "valid on disk; satisfies its
           Designated Requirement", "accepted, source=Notarized Developer ID", Sealed Resources version/rules/files,
           and the notarization log fields statusCode and sha256.
+  OWNER   the owner's own report, after a run stopped, of the form of a line no published source shows,
+          with every value removed; named as "OWNER report <date>: <step>". No form has this source yet.
 A line the real tools print that no source shows (for example a line naming the executable, or a
 progress line) is not declared, so a first real run may stop on it. The owner's page says what
 happens then.

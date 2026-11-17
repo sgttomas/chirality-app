@@ -55,8 +55,21 @@ def app_bundle(app, vendor, binding, requirement=REQUIREMENT, limitations=LIMITA
     return app
 
 
-def candidate(root, *, team=TEAM, limitations=LIMITATIONS):
-    """A candidate output as build.py writes it, made from invented material."""
+INVENTED_COVERAGE = b'{"invented": "notice coverage account"}\n'
+
+
+def standing(not_for_public_release=True, complete=False, gaps=None):
+    """A release standing as build.py carries it in CANDIDATE.json, for an invented coverage account.
+
+    The default is the standing the builder gives while notices are open: an examination candidate."""
+    gaps = (0 if complete else 3) if gaps is None else gaps
+    return {'not_for_public_release': not_for_public_release, 'standing': common.STANDINGS[(not_for_public_release, complete)],
+            'notice_coverage_complete': complete, 'notice_coverage_sha256': sha(INVENTED_COVERAGE), 'notice_gaps': gaps}
+
+
+def candidate(root, *, team=TEAM, limitations=LIMITATIONS, release_standing=None):
+    """A candidate output as build.py writes it, made from invented material, with its plan inventory's standing."""
+    release_standing = standing() if release_standing is None else release_standing
     vendor = vendor_tree(root / 'vendor-input')
     out = root / 'candidate'
     out.mkdir()
@@ -69,9 +82,19 @@ def candidate(root, *, team=TEAM, limitations=LIMITATIONS):
         (out / 'publisher' / name).write_bytes(raw)
         files[key] = {'path': 'publisher/' + name, 'sha256': sha(raw)}
     (out / 'RELEASE_LIMITATIONS_4.0.0.md').write_bytes(limitations)
+    # The plan's input inventory states the standing as production_inputs/prepare.py does; only the fields
+    # common.candidate_standing reads are invented here.
+    (out / 'plan').mkdir()
+    inventory_raw = json.dumps({'release_standing': release_standing['standing'],
+                                'not_for_public_release': release_standing['not_for_public_release'],
+                                'notice_coverage': {'complete': release_standing['notice_coverage_complete'],
+                                                    'sha256': release_standing['notice_coverage_sha256'],
+                                                    'gaps': release_standing['notice_gaps']}}, sort_keys=True).encode()
+    (out / 'plan/input-inventory.json').write_bytes(inventory_raw)
     info_raw = (app / 'Contents/Info.plist').read_bytes()
     description = {
         'format': common.CANDIDATE_FORMAT, 'source_revision': 'a' * 40, 'pin': '9.9.9', 'expected_manifest': 'b' * 64,
+        'plan': {'input-inventory.json': sha(inventory_raw)},
         'build': {'environment_sha256': 'c' * 64},
         'bundle': {'path': str(app.relative_to(out)), 'info_plist_sha256': sha(info_raw),
                    'executable_sha256': sha((app / 'Contents/MacOS/chirality-app-v4').read_bytes()),
@@ -79,6 +102,7 @@ def candidate(root, *, team=TEAM, limitations=LIMITATIONS):
         'vendor': {'inventory': common.tree_entries(common.inventory.scan(app / common.VENDOR_DESTINATION))},
         'publisher': files,
         'limitations': {'source': common.LIMITATIONS_SOURCE, 'sha256': sha(limitations), 'copy': 'RELEASE_LIMITATIONS_4.0.0.md'},
+        'release_standing': release_standing,
     }
     common.write_returnable(out / common.CANDIDATE_FILE, description, out, {team, common.SUPPLIER_TEAM})
     return out

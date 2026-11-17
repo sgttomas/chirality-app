@@ -226,7 +226,8 @@ class Binding(Base):
                 obs.observe_log_file(raw.encode(), None, None)
 
     def test_every_declared_form_names_its_source(self):
-        sources = {'TN3126', 'TN3127', 'TN3161', 'TN3125', 'NOTARY', 'WITNESS', 'ADVANCE', 'RUN1103'}
+        # OWNER: the owner's report of a line's form with its values removed, only where no published source shows it.
+        sources = {'TN3126', 'TN3127', 'TN3161', 'TN3125', 'NOTARY', 'WITNESS', 'ADVANCE', 'RUN1103', 'OWNER report'}
         for name, spec in obs.FORMS.items():
             forms = [f for key in ('either', 'stdout', 'stderr') if isinstance(spec.get(key), list) for f in spec[key]]
             for form in forms:
@@ -304,6 +305,44 @@ class OwnerSign(Base):
         self.assertFalse(self.out.exists())
         self.assert_shape([step['argv'] for step in json.loads(stdout)['plan']])
 
+    def test_the_candidate_standing_is_carried_never_inferred(self):
+        """An examination candidate signs like any other; its standing reaches the plan, RESULT.json and the record unchanged.
+        A candidate whose standing is missing or differs from its plan is refused before any command."""
+        examination = fx.standing()['standing']
+        self.assertEqual(self.sign(dry_run=True)['release_standing'], examination)
+        self.assertEqual(self.sign()['release_standing'], examination)
+        self.assertEqual(json.loads((self.out / 'PACKAGE_IDENTITY.json').read_text())['release_standing'], fx.standing())
+        for public in (fx.standing(not_for_public_release=False, complete=True), fx.standing(complete=True)):
+            with self.subTest(standing=public['standing']):
+                root = self.root / ('public' if not public['not_for_public_release'] else 'complete'); root.mkdir()
+                result = self.sign(candidate=str(fx.candidate(root, release_standing=public)), out=str(root / 'signed'))
+                self.assertEqual(result['release_standing'], public['standing'])
+                self.assertEqual(json.loads((root / 'signed/PACKAGE_IDENTITY.json').read_text())['release_standing'], public)
+        calls = len(self.fake.calls)
+        description_path = self.candidate / common.CANDIDATE_FILE
+        original = description_path.read_bytes()
+        for name, change in (('missing', None), ('reads as public', {'not_for_public_release': False}),
+                             ('other gap count', {'notice_gaps': 4}), ('other coverage digest', {'notice_coverage_sha256': '0' * 64})):
+            with self.subTest(name), self.assertRaises(common.Failure) as raised:
+                value = json.loads(original)
+                if change is None:
+                    value.pop('release_standing')
+                else:
+                    value['release_standing'].update(change)
+                description_path.write_text(json.dumps(value))
+                self.sign(out=str(self.root / ('signed-' + name.replace(' ', '-'))))
+            self.assertEqual(raised.exception.code, 'REFUSED_CANDIDATE')
+        description_path.write_bytes(original)
+        self.assertEqual(len(self.fake.calls), calls)
+        for malformed in (None, fx.standing() | {'notice_gaps': 0}, fx.standing() | {'standing': 'notice coverage complete'}):
+            with self.subTest(record_standing=malformed), self.assertRaises(record.RecordFailed) as raised:
+                candidate = json.loads(original)
+                candidate['release_standing'] = malformed
+                record.build_record(dmg=self.out / 'Chirality-4.0.0.dmg', app=self.out / 'staging' / common.APP_NAME, run=self.fake,
+                                    candidate=candidate, notarizations={}, signed_tree=None, record_dir=self.out,
+                                    public_teams={fx.TEAM, common.SUPPLIER_TEAM}, publisher_team=fx.TEAM, supplier_expected=None)
+            self.assertIn('release standing', [f['observation'] for f in raised.exception.failures])
+
     def test_full_run_follows_the_plan_and_writes_a_record_that_checks(self):
         plan = [step['argv'] for step in self.sign(dry_run=True)['plan']]
         result = self.sign()
@@ -373,6 +412,9 @@ class OwnerSign(Base):
         for name in ('candidate', 'profile', 'limitations', 'out'):  # round 4 finding 3: refused by name, before anything is opened
             cases[f'{name} inside the private folder'] = ({name: str(private / 'x')}, 'REFUSED_PRIVATE_INPUT')
             cases[f'{name} inside the private folder, by bytes'] = ({name: os.fsencode(private / 'x')}, 'REFUSED_PRIVATE_INPUT')
+            # common.is_private_path compares whole components with case folded (from main): an alias is refused too
+            cases[f'{name} inside a case alias of the private folder'] = ({name: str(self.root / common.PRIVATE_FOLDER.upper() / 'x')},
+                                                                          'REFUSED_PRIVATE_INPUT')
         for name, (changes, code) in cases.items():
             with self.subTest(name), self.assertRaises(common.Failure) as raised:
                 self.sign(**changes)
@@ -635,7 +677,9 @@ class NoPrivateReader(unittest.TestCase):
             uses = [line for line in text.splitlines() if 'PRIVATE_FOLDER' in line and not line.lstrip().startswith('#')]
             if path.name == 'common.py':
                 self.assertEqual(len([u for u in uses if 'self.folder' in u]), 1)
-                self.assertEqual(len([u for u in uses if 'in parts' in u]), 1)  # is_private_path: by name only
+                # is_private_component: by whole name, case aliases included; is_private_path applies it to every part
+                self.assertEqual(len([u for u in uses if 'PRIVATE_FOLDER.casefold()' in u]), 1)
+                self.assertEqual(len(uses), 3, uses)
             else:
                 self.assertTrue(all("'private_folder': common.PRIVATE_FOLDER" in u for u in uses), (path.name, uses))
         writer = common.PrivateWriter
@@ -836,6 +880,54 @@ class RecordCheck(unittest.TestCase):
         self.assertTrue(self.result()['equal'])  # without --candidate, provenance is listed as not checked
         self.assert_found('candidate.source_revision', candidate_dir=self.case.candidate)
 
+    def test_the_release_standing_is_stated_and_checked_only_against_the_candidate(self):
+        """App Agent 0's standing decision: the record copies the candidate's standing; check states it, compares it with
+        the candidate only when given one, and a missing or mismatched value is never equal."""
+        examination = fx.standing()
+        self.assertEqual(self.identity['release_standing'], examination)
+        self.assertTrue(self.identity['release_standing']['not_for_public_release'])
+        unchecked = self.result()
+        self.assertTrue(unchecked['equal'])
+        self.assertEqual(unchecked['release_standing'], {'stated_by_record': examination['standing'], 'checked_against_candidate': False})
+        self.assertIn(record.NOT_CHECKED_CANDIDATE, unchecked['not_checked'])
+        checked = self.result(candidate_dir=self.case.candidate)
+        self.assertTrue(checked['equal'], checked)
+        self.assertEqual(checked['release_standing'], {'stated_by_record': examination['standing'], 'checked_against_candidate': True})
+        # A record whose standing reads as public while its candidate was named not for public release differs.
+        public = fx.standing(not_for_public_release=False, complete=True)
+        self.identity['release_standing'] = public
+        self.assertTrue(self.result()['equal'])  # without --candidate only the record's own words, listed as not checked
+        self.assert_found('release_standing.not_for_public_release', 'release_standing.standing', 'release_standing.notice_gaps',
+                          candidate_dir=self.case.candidate)
+        # Missing or malformed in the record: refused as structure, never equal, whether or not a candidate is given.
+        for change in ({}, {'standing': 'notice coverage complete'}, {'notice_gaps': 0}, {'notice_gaps': True},
+                       {'not_for_public_release': 'yes'}, {'notice_coverage_sha256': 'x'}, {'extra': 1}):
+            for candidate_dir in (None, self.case.candidate):
+                with self.subTest(change=change, candidate=candidate_dir is not None):
+                    broken = json.loads(json.dumps(self.identity)) | {'release_standing': examination | change}
+                    if not change:
+                        del broken['release_standing']
+                    result = record.check(broken, dmg=self.dmg, app=self.app, run=self.case.fake, record_dir=self.out,
+                                          candidate_dir=candidate_dir)
+                    self.assertFalse(result['equal'])
+                    self.assertTrue(any(m.startswith('release_standing') for m in result['record_structure_missing']), result)
+                    self.assertEqual(result['release_standing'], {'stated_by_record': 'not observed', 'checked_against_candidate': False})
+        self.identity['release_standing'] = examination
+        # The candidate's own standing must agree with its bound plan, or the check fails instead of comparing.
+        description_path = self.case.candidate / common.CANDIDATE_FILE
+        original = description_path.read_bytes()
+        for change in ({'notice_gaps': 4}, None):
+            with self.subTest(candidate_change=change):
+                value = json.loads(original)
+                if change is None:
+                    value.pop('release_standing')
+                else:
+                    value['release_standing'].update(change)
+                description_path.write_text(json.dumps(value))
+                result = self.assert_found(failed=('candidate release standing',), candidate_dir=self.case.candidate)
+                self.assertFalse(result['release_standing']['checked_against_candidate'])
+        description_path.write_bytes(original)
+
     def run_cli(self, record_path):
         out, err = io.StringIO(), io.StringIO()
         code = record.main(['check', str(record_path), '--dmg', str(self.dmg), '--app', str(self.app)], run=self.case.fake, stdout=out, stderr=err)
@@ -883,7 +975,9 @@ class RecordCheck(unittest.TestCase):
             for argv in (['check', str(private / 'PACKAGE_IDENTITY.json'), '--dmg', str(self.dmg), '--app', str(self.app)],
                          ['check', str(self.out / 'PACKAGE_IDENTITY.json'), '--dmg', str(private / 'x.dmg'), '--app', str(self.app)],
                          ['check', str(self.out / 'PACKAGE_IDENTITY.json'), '--dmg', str(self.dmg), '--app', str(self.app),
-                          '--candidate', str(private)]):
+                          '--candidate', str(private)],
+                         ['check', str(self.case.root / common.PRIVATE_FOLDER.lower() / 'PACKAGE_IDENTITY.json'), '--dmg', str(self.dmg),
+                          '--app', str(self.app)]):
                 with self.subTest(argv=argv[1:3]):
                     out, err = io.StringIO(), io.StringIO()
                     self.assertEqual(record.main(argv, run=self.case.fake, stdout=out, stderr=err), 2)
@@ -894,7 +988,7 @@ class RecordCheck(unittest.TestCase):
                     self.assertEqual([f['observation'] for f in failures], ['notarization summary'])
             _, failures = record.notarization_facts(self.out, entry | {'submitted': common.PRIVATE_FOLDER + '/Chirality-4.0.0-app.zip'})
             self.assertEqual([f['observation'] for f in failures], ['submitted file'])
-        self.assertFalse([path for path in read if common.PRIVATE_FOLDER in path], read)
+        self.assertFalse([path for path in read if common.PRIVATE_FOLDER.casefold() in path.casefold()], read)
 
     def test_the_original_log_options_are_gone(self):
         err = io.StringIO()
