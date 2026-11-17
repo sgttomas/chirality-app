@@ -197,9 +197,12 @@ class DeclaredPin(Builds):
 
     # A table reviewed for another pin carries none of its associations forward: no supplier row counts as covered.
     def test_a_table_reviewed_for_another_pin_covers_no_supplier_row(self):
+        other = REVIEWED_PIN
+        if texts.declared_pin(self.repo) == REVIEWED_PIN:
+            # The table is reviewed for the declared pin; mark it reviewed for another to exercise the rule.
+            other = '0.167.0'
+            self.edit(TABLE, lambda v: v.update(reviewed_for_pin=other))
         value = self.build()
-        if value['supplier_pin'] == REVIEWED_PIN:
-            self.skipTest('the table is reviewed for the declared pin')
         supplier = [c for c in value['components'] if c['class'] == 'supplier']
         self.assertEqual([c['id'] for c in supplier if c['standing'] != coverage.UNCOVERED], [])
         table = self.row(value, 'Supplier component table')
@@ -209,12 +212,10 @@ class DeclaredPin(Builds):
             if row['id'] in coverage.DEFERRED:
                 self.assertNotIn('not carried forward', row['reason'])
             elif row['id'] != 'component-table':
-                self.assertIn(f'associates this row for {REVIEWED_PIN}, not for the declared pin', row['reason'])
+                self.assertIn(f'associates this row for {other}, not for the declared pin', row['reason'])
                 self.assertNotIn('mappings', row)
-        self.assertEqual(value, json.loads((ROOT / coverage.ACCOUNT).read_text()))
-        # The deferred rows stay required, reviewed or not.
-        self.edit(TABLE, lambda v: v.update(components=[c for c in v['components'] if c['id'] != 'llvm-libc-subdirectories']))
-        with self.assertRaisesRegex(ValueError, 'deferred supplier row is missing'): self.build()
+        if other == REVIEWED_PIN:
+            self.assertEqual(value, json.loads((ROOT / coverage.ACCOUNT).read_text()))
 
     def test_another_declared_pin_is_named_as_an_open_review_not_assumed(self):
         pin = texts.declared_pin(ROOT)
@@ -250,33 +251,70 @@ class Account(Builds):
         for component in account['components']:
             if component['class'] == 'supplier' and component['standing'] == 'covered':
                 self.assertTrue(component.get('below_root'), component['id'])
-        gaps = {c['id'] for c in account['components'] if c['standing'] == 'uncovered'}
-        self.assertTrue({'libcxx-credits-and-subdirectories', 'libcxxabi-credits-and-subdirectories', 'llvm-libc-subdirectories'} <= gaps)
+        # The LLVM rows below the root are covered by CREDITS.TXT and complete listings, and say what stays unexamined.
+        for row_id in ('libcxx-credits-and-subdirectories', 'libcxxabi-credits-and-subdirectories', 'llvm-libc-subdirectories'):
+            row = next(c for c in account['components'] if c.get('id') == row_id)
+            self.assertEqual(row['standing'], coverage.COVERED)
+            self.assertIn('Per-file terms', row['below_root'])
+            self.assertIn('not excluded', row['below_root'])
 
     # Review finding 2: deleting the uncovered supplier groups cannot make the strict check pass.
     def test_deleting_compiled_dependency_rows_leaves_every_executable_uncovered(self):
-        self.edit(TABLE, lambda v: v.update(components=[c for c in v['components'] if c.get('kind') != coverage.COMPILED]))
-        with self.assertRaisesRegex(ValueError, 'deferred supplier row is missing'): self.build()
-        # With the rows kept but no longer marked as compiled dependencies, every executable still gets an uncovered row.
-        self.setUp()
-        self.edit(TABLE, lambda v: [c.pop('kind') for c in v['components'] if c.get('kind') == coverage.COMPILED])
-        value = self.build()
         executables = texts.executables(texts.supplier_record(self.repo)[2])
         self.assertEqual(len(executables), 5)
-        open_names = {o['name'] for o in value['open']}
-        for path in executables:
-            self.assertIn('Dependencies compiled into ' + path, open_names)
+        for change in (lambda v: v.update(components=[c for c in v['components'] if c.get('kind') != coverage.COMPILED]),
+                       lambda v: [c.pop('kind') and c.update(standing='uncovered', reason='INVENTED', would_close='INVENTED')
+                                  for c in v['components'] if c.get('kind') == coverage.COMPILED]):
+            with self.subTest(change=change):
+                # Deleted, or kept but no longer marked as compiled dependencies: every executable still gets an uncovered row.
+                self.setUp(); self.edit(TABLE, change)
+                open_names = {o['name'] for o in self.build()['open']}
+                for path in executables:
+                    self.assertIn('Dependencies compiled into ' + path, open_names)
 
-    # Round 2 finding 2: no table entry can make compiled-in dependencies covered in this change.
-    def test_compiled_dependency_rows_stay_uncovered_whatever_the_table_says(self):
-        lock = 'app/src-tauri/Cargo.lock'
-        for item_id in ('codex-crate-dependencies', 'ripgrep-crate-dependencies'):
-            self.edit(TABLE, lambda v, i=item_id: next(c for c in v['components'] if c['id'] == i).update(
-                standing='covered', texts=['app/packaging/supplier_notices/codex/LICENSE'],
-                lockfile={'path': lock, 'sha256': hashlib.sha256((self.repo / lock).read_bytes()).hexdigest()}))
+    # Round 2 finding 2, with the rule the 0.169.0 crate group adds: a compiled-dependencies row is covered only when every
+    # package its associated lockfile locks has its text; no table entry makes it covered.
+    def test_compiled_dependency_rows_are_covered_only_by_their_crate_group(self):
+        crates_dir = 'app/packaging/supplier_notices/crates'
         value = self.build()
-        for item_id in ('codex-crate-dependencies', 'ripgrep-crate-dependencies'):
-            self.assertEqual(next(c for c in value['components'] if c.get('id') == item_id)['standing'], coverage.UNCOVERED)
+        rows = {c['id']: c for c in value['components'] if c['class'] == 'supplier'}
+        codex, rg = rows['codex-crate-dependencies'], rows['ripgrep-crate-dependencies']
+        self.assertEqual((rg['standing'], rg['packages']['total'], rg['packages']['gap']), (coverage.COVERED, 59, 0))
+        self.assertEqual(codex['standing'], coverage.UNCOVERED)
+        self.assertEqual((codex['packages']['total'], codex['packages']['gap'], codex['packages']['held']), (1483, 138, 5))
+        self.assertEqual(len(codex['open_packages']), 143)
+        self.assertIn('some may not be compiled', codex['packages']['superset'])
+        self.assertIn('objc2-foundation 0.3.2', codex['reason'])
+        # The table cannot claim covered for an open group.
+        self.setUp(); self.edit(TABLE, lambda v: next(c for c in v['components'] if c['id'] == 'codex-crate-dependencies').update(standing='covered'))
+        with self.assertRaisesRegex(ValueError, 'the table says covered'): self.build()
+        # A package losing its archive notices opens the ripgrep group (and the table must say so).
+        found = {}
+        def drop(v):
+            row = next(r for r in v['registry'] if r['locks'] == ['ripgrep'] and r['notices'])
+            row['notices'] = []
+            found['package'] = row['package'] + ' ' + row['version']
+        self.setUp(); self.edit(crates_dir + '/index.json', drop)
+        crates = texts.supplier_crates
+        wanted = set(crates.wanted_texts(self.repo))
+        for text in (self.repo / crates.TEXTS).iterdir():
+            if text.name not in wanted:
+                text.unlink()
+        (self.repo / crates.PACKAGES).write_bytes(crates.encode(crates.packages(self.repo)))
+        self.edit(TABLE, lambda v: next(c for c in v['components'] if c['id'] == 'ripgrep-crate-dependencies').update(
+            standing='uncovered', reason='INVENTED', would_close='INVENTED'))
+        row = next(c for c in self.build()['components'] if c.get('id') == 'ripgrep-crate-dependencies')
+        self.assertEqual(row['standing'], coverage.UNCOVERED)
+        self.assertIn(found['package'], row['reason'])
+        # Dropping a lockfile's association, or naming another revision for it, refuses.
+        self.setUp(); self.edit(crates_dir + '/associations.json', lambda v: v.update(locks=[l for l in v['locks'] if l['id'] != 'ripgrep']))
+        with self.assertRaisesRegex(ValueError, 'crate index differs from the lockfiles'): self.build()
+        self.setUp(); self.edit(crates_dir + '/associations.json', lambda v: next(l for l in v['locks'] if l['id'] == 'ripgrep').update(revision='e' * 40))
+        (self.repo / crates.PACKAGES).write_bytes(crates.encode(crates.packages(self.repo)))
+        with self.assertRaisesRegex(ValueError, 'another repository or revision'): self.build()
+        # A lockfile whose bytes drift refuses.
+        self.setUp(); lock = self.repo / crates_dir / 'locks/ripgrep.Cargo.lock'; lock.write_bytes(lock.read_bytes() + b'\n')
+        with self.assertRaisesRegex(ValueError, 'lockfile differs'): self.build()
 
     def test_a_dropped_component_needs_a_reviewed_statement(self):
         # The account as the reviewed copy generates it is the base and the committed account the generator compares with.
@@ -398,16 +436,19 @@ class Account(Builds):
         with self.assertRaisesRegex(ValueError, 'differ from the review record'): self.build()
 
     def test_expected_supplier_components(self):
+        # At 0.169.0: the voice rows are open because sources.json changed; three rows are new and open.
         expected = {
             'codex': 'covered', 'codex-skill-creator-sample': 'covered', 'codex-skill-installer-sample': 'covered',
+            'codex-skill-imagegen-sample': 'uncovered', 'codex-skill-openai-docs-sample': 'uncovered',
+            'codex-vendored-bubblewrap': 'uncovered',
             'codex-crate-dependencies': 'uncovered', 'ripgrep': 'covered', 'pcre2-sys': 'covered', 'pcre2-in-rg': 'covered',
-            'sljit-in-rg': 'covered', 'ripgrep-crate-dependencies': 'uncovered', 'v8': 'covered', 'rusty_v8': 'covered',
+            'sljit-in-rg': 'covered', 'ripgrep-crate-dependencies': 'covered', 'v8': 'covered', 'rusty_v8': 'covered',
             'icu': 'covered', 'libcxx': 'covered', 'libcxxabi': 'covered', 'llvm-libc': 'covered',
-            'libcxx-credits-and-subdirectories': 'uncovered', 'libcxxabi-credits-and-subdirectories': 'uncovered',
-            'llvm-libc-subdirectories': 'uncovered', 'highway': 'covered', 'fast_float': 'covered', 'simdutf': 'covered',
-            'dragonbox': 'covered', 'fp16': 'covered', 'abseil-cpp': 'covered', 'gstreamer': 'covered',
-            'gst-plugins-base': 'covered', 'gst-plugins-good': 'covered', 'glib': 'covered', 'proxy-libintl': 'covered',
-            'libffi': 'covered', 'pcre2-voice': 'covered', 'opus': 'covered', 'zlib': 'covered'}
+            'libcxx-credits-and-subdirectories': 'covered', 'libcxxabi-credits-and-subdirectories': 'covered',
+            'llvm-libc-subdirectories': 'covered', 'highway': 'covered', 'fast_float': 'covered', 'simdutf': 'covered',
+            'dragonbox': 'covered', 'fp16': 'covered', 'abseil-cpp': 'covered', 'gstreamer': 'uncovered',
+            'gst-plugins-base': 'uncovered', 'gst-plugins-good': 'uncovered', 'glib': 'uncovered', 'proxy-libintl': 'uncovered',
+            'libffi': 'uncovered', 'pcre2-voice': 'uncovered', 'opus': 'uncovered', 'zlib': 'uncovered'}
         table = json.loads((ROOT / TABLE).read_text())
         self.assertEqual({c['id']: c['standing'] for c in table['components']}, expected)
         account = self.build()
@@ -424,6 +465,20 @@ class Account(Builds):
         self.assertEqual(self.row(self.build(), 'V8')['standing'], coverage.UNCOVERED)
         self.setUp(); self.edit(TABLE, lambda v: next(c for c in v['components'] if c['id'] == 'pcre2-sys').pop('text_exceptions'))
         self.assertEqual(self.row(self.build(), 'pcre2-sys')['standing'], coverage.UNCOVERED)
+
+    # 0.169.0: a text committed at one revision serves another only through an also_at identity for the same blob.
+    def test_also_at_identities_bind_a_text_to_another_revision_only_for_its_blob(self):
+        self.assertEqual(self.row(self.build(), 'Codex', '0.169.0')['standing'], coverage.COVERED)
+        def strip(v):
+            next(t for t in v['texts'] if t['path'] == 'app/packaging/supplier_notices/codex/LICENSE').pop('also_at')
+        self.setUp(); self.edit(TABLE, strip)
+        row = self.row(self.build(), 'Codex', '0.169.0')
+        self.assertEqual(row['standing'], coverage.UNCOVERED)
+        self.assertIn('another repository or revision', row['reason'])
+        def other_blob(v):
+            next(t for t in v['texts'] if t['path'] == 'app/packaging/supplier_notices/codex/LICENSE')['also_at'][0]['git_blob_sha1'] = 'a' * 40
+        self.setUp(); self.edit(TABLE, other_blob)
+        with self.assertRaisesRegex(ValueError, 'also_at names another blob'): self.build()
 
     def test_removing_a_v8_text_needs_the_review_record(self):
         self.edit(TABLE, lambda v: next(c for c in v['components'] if c['id'] == 'v8')['texts'].remove(
@@ -492,22 +547,16 @@ class Account(Builds):
         self.edit(path, zero_opus, rebind=False)
         with self.assertRaisesRegex(ValueError, 'differs from the review record'): self.build()
 
-    # Round 3 finding 2: the five deferred rows have no route to covered, whatever the table and review record say.
+    # Round 3 finding 2: a deferred row has no route to covered, whatever the table and review record say. The five 0.167.0
+    # ids were each established for 0.169.0 and removed; the guard itself stays.
     def test_deferred_rows_stay_uncovered_whatever_the_table_says(self):
-        parent = {'libcxx-credits-and-subdirectories': 'libcxx', 'libcxxabi-credits-and-subdirectories': 'libcxxabi',
-                  'llvm-libc-subdirectories': 'llvm-libc', 'codex-crate-dependencies': 'codex', 'ripgrep-crate-dependencies': 'ripgrep'}
-        self.assertEqual(set(parent), set(coverage.DEFERRED))
-        for row_id, parent_id in parent.items():
-            with self.subTest(row=row_id):
-                self.setUp()
-                def claim(v, r=row_id, q=parent_id):
-                    source = next(c for c in v['components'] if c['id'] == q)
-                    row = next(c for c in v['components'] if c['id'] == r)
-                    row.update(standing='covered', texts=list(source['texts']), repository=source['repository'], revision=source['revision'])
-                    row.pop('kind', None)
-                self.edit(TABLE, claim)
-                value = self.build()
-                self.assertEqual(next(c for c in value['components'] if c.get('id') == row_id)['standing'], coverage.UNCOVERED)
+        self.assertEqual(coverage.DEFERRED, ())
+        original = coverage.DEFERRED
+        self.addCleanup(setattr, coverage, 'DEFERRED', original)
+        coverage.DEFERRED = ('llvm-libc-subdirectories', 'ripgrep-crate-dependencies')
+        value = self.build()
+        for row_id in coverage.DEFERRED:
+            self.assertEqual(next(c for c in value['components'] if c.get('id') == row_id)['standing'], coverage.UNCOVERED)
         self.setUp(); self.edit(TABLE, lambda v: v.update(components=[c for c in v['components'] if c['id'] != 'llvm-libc-subdirectories']))
         with self.assertRaisesRegex(ValueError, 'deferred supplier row is missing'): self.build()
 
@@ -551,10 +600,20 @@ class Account(Builds):
         voice = [c for c in table['components'] if c['supplier_tree_texts']]
         self.assertEqual(len(voice), 9)
         self.assertTrue(all(c['revision'] is None and c['repository'].startswith('https://') for c in voice))
+        # At 0.169.0 the voice rows stay open: sources.json changed and its content is not held.
+        opus = self.row(self.build(), 'Opus')
+        self.assertEqual(opus['standing'], coverage.UNCOVERED)
+        self.assertIn('sources.json', opus['reason'])
+
+        def reviewed(v, repository):
+            row = next(c for c in v['components'] if c['id'] == 'opus')
+            row.update(standing='covered', repository=repository)
+            row.pop('reason'); row.pop('would_close')
+        self.setUp(); self.edit(TABLE, lambda v: reviewed(v, next(c for c in v['components'] if c['id'] == 'opus')['repository']))
         self.assertEqual(self.row(self.build(), 'Opus')['standing'], coverage.COVERED)
         for repository in (None, '', 'opus-1.6.1.tar.gz'):
             with self.subTest(repository=repository):
-                self.setUp(); self.edit(TABLE, lambda v, r=repository: next(c for c in v['components'] if c['id'] == 'opus').update(repository=r))
+                self.setUp(); self.edit(TABLE, lambda v, r=repository: reviewed(v, r))
                 row = self.row(self.build(), 'Opus')
                 self.assertEqual(row['standing'], coverage.UNCOVERED)
                 self.assertIn('source URL', row['reason'])

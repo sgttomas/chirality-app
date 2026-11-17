@@ -58,12 +58,17 @@ ROOT_TEXT_BASIS = ('repository root text at the crate\'s named revision (the pro
                    'mechanical match: the text of the crate\'s declared licence from the repository and revision it names)')
 # Every executable of the declared pin's tree (a regular file with an execute bit that is neither a .dylib library nor
 # .json data; package_texts.executables) is a compiled program. Each must be a member of a component of kind
-# compiled-dependencies, covered only with a committed lockfile and texts, or it stands uncovered.
+# compiled-dependencies. Such a component is covered only by the supplier crate group (supplier_notices/crates.py): its
+# lockfile is associated with the component's own repository and revision (the Codex one with the distribution record's
+# source commit), and every package that lockfile locks has its text (none is held for a reading or a gap); otherwise
+# it stands held or uncovered and the account names each open package.
 COMPILED = 'compiled-dependencies'
 # Rows with no route to covered in this change, whatever the table or the review record says. The change that
-# establishes one of them (for example by extracting its texts) removes its id here.
-DEFERRED = ('codex-crate-dependencies', 'ripgrep-crate-dependencies', 'libcxx-credits-and-subdirectories',
-            'libcxxabi-credits-and-subdirectories', 'llvm-libc-subdirectories')
+# establishes one of them removes its id here. The five ids this list held for 0.167.0 were removed for 0.169.0: the two
+# crate groups by the lockfile, index and text correspondence that crates.py checks (they are evaluated by the rule
+# above), the two LLVM CREDITS rows by their texts at the listed blobs, and those two and llvm-libc's subdirectory row by
+# complete listings that name no licence file below the root.
+DEFERRED = ()
 LIMITS = [
     'An account of what the package is built to carry, from committed inputs; it is not read from a built package.',
     'A notice text is the publisher\'s licence or notice text for the component at the named version or revision; '
@@ -116,6 +121,8 @@ def build(repo=REPO, vendor=None):
     direct = direct_check.check(repo / 'app/packaging/notices', repo)
     index = transitive.check(repo / 'app/packaging/notices/transitive-index.json', repo)
     texts.check(repo)
+    # The supplier crate group: lockfiles, associations, index, texts and the derived package account agree exactly.
+    texts.supplier_crates.check(repo)
     fonts = font_check.check(repo)
     inputs = texts.load(repo, texts.INPUTS)
     mapping = texts.overlay(repo)['bundle']['resources']
@@ -331,16 +338,21 @@ def build(repo=REPO, vendor=None):
         require(reading is None or item['id'] in SUPPLIER_READINGS, 'owner reading names a supplier row that needs none: ' + item['id'])
         if reading is not None:
             entry['owner_licence_reading'] = reading
-        # Every committed text must come from the component's own repository and revision, or be a named exception.
-        foreign = [p for p in item['texts'] if (by_path[p]['repository'], by_path[p]['revision']) != (item['repository'], item['revision'])
+        # Every committed text must come from the component's own repository and revision (its recorded source or an
+        # also_at identity for the same blob), or be a named exception.
+        foreign = [p for p in item['texts'] if (item['repository'], item['revision']) not in text_identities(by_path[p])
                    and p not in exceptions]
         if item.get('kind') == COMPILED:
             compiled_members.update(item['members'])
-        if item.get('kind') == COMPILED or item['id'] in DEFERRED:
-            # No route to covered in this change: the change that extracts these texts adds the rule (the supplier
-            # lockfile bound to the supplier's source commit, and each locked package with its own text or a stated basis).
+        if item['id'] in DEFERRED:
             add(entry, UNCOVERED, reason=item.get('reason') or 'deferred: this row has no route to covered in this change',
                 would_close=item.get('would_close') or 'the change that establishes this row removes it from coverage.DEFERRED')
+        elif item.get('kind') == COMPILED and reviewed:
+            compiled_group(repo, item, entry, record, mapping, add)
+        elif item.get('kind') == COMPILED:
+            add(entry, UNCOVERED, reason=f'the component table associates this row for {table["reviewed_for_pin"]}, not for the declared '
+                                         f'pin {pin}; that association is not carried forward',
+                would_close='review components.json against the declared pin\'s tree and set reviewed_for_pin')
         elif not reviewed:
             # An association made for another pin is not carried forward, whatever standing it had there.
             add(entry, UNCOVERED, reason=f'the component table associates this row for {table["reviewed_for_pin"]}, not for the declared '
@@ -452,7 +464,8 @@ def build(repo=REPO, vendor=None):
             'supplier_distribution': {'record': record_path, 'manifest_sha256': record['inventory']['manifest_sha256']},
             'compiled_program_rule': 'for this distribution record, every regular file with an execute bit that is neither a .dylib '
                                      'library nor .json data is a compiled program (checked against the record\'s Mach-O count); '
-                                     'each has a compiled-dependencies component, which stands uncovered in this change',
+                                     'each has a compiled-dependencies component, covered only when every package its associated '
+                                     'lockfile locks has its text (supplier_notices/crates.py)',
             'review_record': REVIEW,
             'supplier_table_reviewed_for_pin': table['reviewed_for_pin'], 'supplier_executables': executables,
             'inputs_sha256': dict(sorted(inputs_read.items())), 'counts': {**counts, 'total': len(components)},
@@ -469,7 +482,8 @@ REVIEW = 'app/packaging/notices/coverage-review.json'
 # only by the cache-reading checks: transitive.py check --cargo-home/--npm-cache, check.py --archives,
 # font_notice/check.py --npm-cache, sqlite_notice/check.py --archive). Binding them makes a change to what they
 # claim a visible, reviewed change.
-REVIEWED_FILES = ('app/packaging/supplier_notices/components.json', 'app/packaging/notices/coverage-inputs.json',
+REVIEWED_FILES = ('app/packaging/supplier_notices/components.json', 'app/packaging/supplier_notices/crates/associations.json',
+                  'app/packaging/supplier_notices/crates/index.json', 'app/packaging/notices/coverage-inputs.json',
                   'app/packaging/notices/index.json', 'app/packaging/notices/transitive-index.json',
                   'app/packaging/font_notice/index.json', 'app/packaging/sqlite_notice/index.json')
 
@@ -509,6 +523,7 @@ NOTICE_INDEX_SOURCES = {
     'third-party-notices/sqlite-preparation/index.json': 'app/packaging/sqlite_notice/index.json',
     'third-party-notices/sqlite-preparation/README.md': 'app/packaging/sqlite_notice/README.md',
     'third-party-notices/sqlite-preparation/libsqlite3-sys.LICENSE': 'app/packaging/sqlite_notice/libsqlite3-sys.LICENSE',
+    'third-party-notices/supplier/crates/packages.json': 'app/packaging/supplier_notices/crates/packages.json',
 }
 SUPPLEMENT_PAIRS = [(bundle.SUPPLEMENT_SOURCE + name, bundle.SUPPLEMENT_DESTINATION + name) for name in bundle.SUPPLEMENT_FILES]
 
@@ -553,6 +568,64 @@ def folder_membership(repo, content, record):
             if sha(raw) != expected[1] or (expected[0] is not None and len(raw) != expected[0]):
                 differences.append(relative + ' (differs from its listed digest)')
     return len(listed), differences
+
+
+def text_identities(text):
+    """(repository, revision) pairs a committed supplier text is recorded at: its source and each also_at identity."""
+    return {(text['repository'], text['revision'])} | {(o['repository'], o['revision']) for o in text.get('also_at', [])}
+
+
+CODEX_REPOSITORY = 'https://github.com/openai/codex'
+
+
+def compiled_group(repo, item, entry, record, mapping, add):
+    """Standing of a compiled-dependencies component from the supplier crate group (supplier_notices/crates.py)."""
+    group = texts.supplier_crates.group(repo, item['id'])
+    if group is None:
+        add(entry, UNCOVERED, reason='no lockfile in supplier_notices/crates is associated with this component',
+            would_close='associate the lockfile that builds this executable, with every locked package\'s text')
+        return
+    lock = group['lock']
+    require((lock['repository'], lock['revision']) == (item['repository'], item['revision']),
+            'the crate group\'s lockfile is for another repository or revision than the component: ' + item['id'])
+    require(item['repository'] != CODEX_REPOSITORY or item['revision'] == record['source_commit'],
+            'a Codex compiled-dependencies component must be at the distribution record\'s source commit: ' + item['id'])
+    rows = group['packages']
+    seen = {}
+    for row in rows:
+        for text in row['texts']:
+            seen.setdefault(text['package_path'], text)
+    by_destination = {dst: src for src, dst in mapping.items()}
+    shipped = []
+    for destination, text in sorted(seen.items()):
+        source = by_destination.get(destination)
+        require(source is not None, 'a crate text is not mapped into the package: ' + destination)
+        found = text_entry(repo, 'app/' + source.removeprefix('../'), destination)
+        require(found['sha256'] == text['sha256'], 'a crate text differs from its package account: ' + destination)
+        shipped.append(found)
+    entry['texts'] = shipped
+    counts = {k: sum(r['standing'] == k for r in rows) for k in ('text', 'held', 'gap')}
+    kinds = {k: sum(r['source_kind'] == k for r in rows) for k in ('registry', 'git', 'path')}
+    entry['lockfile'] = {k: lock[k] for k in ('path', 'sha256', 'repository', 'revision', 'source_path', 'binding')}
+    entry['packages'] = {'total': len(rows), **kinds, **counts, 'account': 'third-party-notices/supplier/crates/packages.json',
+                         'superset': 'every package the lockfile locks, on every platform and feature; some may not be compiled '
+                                     'into the macOS executables'}
+    open_rows = [r for r in rows if r['standing'] != 'text']
+    entry['open_packages'] = [{'name': r['name'], 'version': r['version'], 'standing': r['standing'], 'reason': r['reason']}
+                              for r in open_rows]
+    computed = 'covered' if not open_rows else 'uncovered'
+    require(item['standing'] == computed, f'the table says {item["standing"]} for {item["id"]}, and its crate group is {computed}')
+    if counts['gap']:
+        add(entry, UNCOVERED, reason=f'{counts["gap"]} of the {len(rows)} locked packages have no text and {counts["held"]} await an '
+                                     'owner licence reading: ' + ', '.join(f'{r["name"]} {r["version"]}' for r in open_rows),
+            would_close='each open package\'s licence text (an owner-permitted acquisition) or, for a held one, the owner\'s reading')
+    elif counts['held']:
+        add(entry, HELD, reason=f'{counts["held"]} locked packages await an owner licence reading: '
+                                + ', '.join(f'{r["name"]} {r["version"]}' for r in open_rows))
+    else:
+        add(entry, COVERED, basis=f'every one of the {len(rows)} packages the associated lockfile locks has its text in the package '
+                                  '(archive notice members selected by name, Git-source licence files at the locked revision, or the '
+                                  'workspace\'s texts); the set is a superset of what is compiled, and adequacy is not decided here')
 
 
 def identity_gaps(item):

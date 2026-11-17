@@ -185,6 +185,10 @@
   {
    "key": "library-content:Chirality production workflows@f3c0a1df5eaa",
    "reason": "Pull request 230 rebundled the workflows from Chirality Library 3.4.0; the row is replaced by \"Chirality Library 3.4.0 workflows\", bound to its MANIFEST.json."
+  },
+  {
+   "key": "supplier:component-table",
+   "reason": "The open \"Supplier component table\" row stood for a table reviewed for 0.167.0 at the declared pin 0.169.0. components.json is re-associated to 0.169.0 (reviewed_for_pin), so each of its rows is evaluated for this tree and the vendor tree mapping is named by the codex row; open rows remain open in their own names."
   }
  ],
  "app_assets": [

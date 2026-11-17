@@ -11,7 +11,8 @@ caches as files only: it never runs Cargo or npm and never writes to a cache.
 
 `check` needs no cache: the committed tree must equal exactly the set the indexes name, byte for byte.
 `overlay` writes ../unsigned/tauri.notices.conf.json: the development configuration plus every notice
-resource (direct, transitive, supplier, coverage account), each mapped under third-party-notices/.
+resource (direct, transitive, supplier, the supplier crate texts and their package account, coverage account), each mapped
+under third-party-notices/.
 """
 import argparse
 import copy
@@ -45,6 +46,7 @@ def _load(name, path):
 
 
 transitive = _load('package_texts_transitive', HERE / 'transitive.py')
+supplier_crates = _load('package_texts_supplier_crates', HERE.parent / 'supplier_notices/crates.py')
 require, sha, git_blob = transitive.require, transitive.sha, transitive.git_blob
 
 
@@ -277,7 +279,13 @@ def supplier_texts(repo=REPO):
         # Every committed text names its own source; an absent identity never "matches" a component's.
         require(all(isinstance(text.get(k), str) and text[k].strip() for k in ('repository', 'revision')),
                 'supplier text needs a non-empty repository and revision: ' + text['path'])
-        file_digest(repo, text['path'], text)
+        found = file_digest(repo, text['path'], text)
+        # The same bytes at another repository and revision, each established by a listing that names this blob.
+        for other in text.get('also_at', []):
+            require(set(other) == {'repository', 'revision', 'source_path', 'git_blob_sha1', 'listing'}
+                    and all(isinstance(other[k], str) and other[k].strip() for k in other),
+                    'an also_at identity needs repository, revision, source path, blob and listing: ' + text['path'])
+            require(other['git_blob_sha1'] == found['git_blob_sha1'], 'also_at names another blob than the text: ' + text['path'])
     return table['texts']
 
 
@@ -290,6 +298,10 @@ def resources(repo=REPO):
     for text in supplier_texts(repo):
         relative = text['path'].removeprefix('app/packaging/supplier_notices/')
         mapped['../packaging/supplier_notices/' + relative] = NAMESPACE + 'supplier/' + relative
+    # The supplier's locked crates: the derived per-package account and each crate text once, named by its digest.
+    mapped['../packaging/supplier_notices/crates/packages.json'] = NAMESPACE + 'supplier/crates/packages.json'
+    for digest in sorted(supplier_crates.wanted_texts(repo)):
+        mapped['../packaging/supplier_notices/crates/texts/' + digest] = NAMESPACE + 'supplier/crates/texts/' + digest
     require(len(set(mapped.values())) == len(mapped), 'duplicate notice destination')
     return mapped
 

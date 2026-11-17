@@ -13,8 +13,9 @@ named by its SHA-256.
   inventory, selected notice members only) and writes `index.json`. It writes no text.
 - `extract --archives MAP.json --received DIR` repeats the read, requires every archive to equal its index row, copies
   the Git-sourced licence files from DIR after checking each against its recorded blob, and writes `texts/`.
-- `check` needs no archive: the lockfiles, associations, index and texts must agree exactly (every locked package has
-  one index row, every text exists once with its digest, nothing else is held).
+- `generate` writes `packages.json`, the shipped per-package account derived from the committed inputs.
+- `check` needs no archive: the lockfiles, associations, index, texts and `packages.json` must agree exactly (every
+  locked package has one row, every text exists once with its digest, nothing else is held).
 
 MAP.json maps `<name>-<version>.crate` to the absolute path of a held archive. Nothing here writes to a cache,
 executes supplier code or opens a network connection. A text selected by its file name is a file named as a notice;
@@ -129,7 +130,7 @@ def build_index(repo, archives):
 
 def write_index(repo, archives):
     value = build_index(repo, archives)
-    (Path(repo) / INDEX).write_text(json.dumps(value, indent=1) + '\n')
+    (Path(repo) / INDEX).write_bytes(encode(value, 'registry'))
     return {'registry_packages': len(value['registry']), 'notices': sum(len(r['notices']) for r in value['registry'])}
 
 
@@ -268,9 +269,49 @@ def check_texts(repo):
     return {'texts': len(held), 'bytes': sum(len(v) for v in held.values())}
 
 
+PACKAGES = BASE + '/packages.json'
+NAMESPACE = 'third-party-notices/supplier/'
+
+
+def package_path(repo, text, store):
+    """Where a package's text ships: the crate store by digest, or a workspace text where the supplier table maps it."""
+    if 'file' in text and text['file'].startswith('app/packaging/supplier_notices/') and not text['file'].startswith(TEXTS):
+        return NAMESPACE + text['file'].removeprefix('app/packaging/supplier_notices/')
+    require(text['sha256'] in store, 'a package text is not in the crate store: ' + text['sha256'])
+    return NAMESPACE + 'crates/texts/' + text['sha256']
+
+
+def packages(repo=REPO):
+    """The shipped per-package account: every locked package with its standing and where each text ships (derived)."""
+    associations = load(repo, ASSOCIATIONS)
+    store = set(wanted_texts(repo))
+    rows = []
+    for row in entries(repo):
+        item = {k: v for k, v in row.items() if k != 'texts'}
+        item['texts'] = [{**{k: t[k] for k in t if k in ('member', 'received')}, 'sha256': t['sha256'], 'size_bytes': t['size_bytes'],
+                          'package_path': package_path(repo, t, store)} for t in row['texts']]
+        rows.append(item)
+    return {'format': 'supplier-crate-packages/1', 'pin': associations['pin'], 'superset': associations['superset'],
+            'selection': load(repo, INDEX)['selection'],
+            'standings': {'text': 'its texts ship (the basis says on what footing; adequacy is not decided here)',
+                          'held': 'a text ships; it awaits an owner licence reading',
+                          'gap': 'no text ships; the reason and what would close it are given'},
+            'locks': [{k: lock[k] for k in ('id', 'component', 'repository', 'revision', 'source_path', 'sha256', 'binding')}
+                      for lock in associations['locks']],
+            'packages': rows}
+
+
+def encode(value, rows='packages'):
+    """JSON with one line per row of `rows`, so a reviewer's diff shows one package per line."""
+    head = json.dumps({k: v for k, v in value.items() if k != rows}, indent=1, ensure_ascii=False)
+    body = ',\n'.join('  ' + json.dumps(r, ensure_ascii=False, separators=(',', ':')) for r in value[rows])
+    return (head[:-2] + ',\n "' + rows + '": [\n' + body + '\n ]\n}\n').encode()
+
+
 def check(repo=REPO):
     rows = entries(repo)
     texts = check_texts(repo)
+    require(regular(repo, PACKAGES) == encode(packages(repo)), 'crates/packages.json is stale; regenerate with crates.py generate')
     by_lock = {}
     for row in rows:
         counts = by_lock.setdefault(row['lock'], {'packages': 0, 'registry': 0, 'git': 0, 'path': 0, 'text': 0, 'held': 0, 'gap': 0})
@@ -278,6 +319,18 @@ def check(repo=REPO):
         counts[row['source_kind']] += 1
         counts[row['standing']] += 1
     return {'locks': by_lock, **texts}
+
+
+def group(repo, component):
+    """For one compiled-dependencies component: its lockfile association, its packages and the store texts it ships."""
+    associations = load(repo, ASSOCIATIONS)
+    locks = [lock for lock in associations['locks'] if lock['component'] == component]
+    if not locks:
+        return None
+    require(len(locks) == 1, 'two lockfiles name one component: ' + component)
+    value = packages(repo)
+    rows = [r for r in value['packages'] if r['lock'] == locks[0]['id']]
+    return {'lock': locks[0], 'packages': rows}
 
 
 def extract(repo, archives, received):
@@ -312,7 +365,7 @@ def extract(repo, archives, received):
             require((len(raw), sha256(raw), git_blob(raw)) == (text['size_bytes'], text['sha256'], text['git_blob_sha1']),
                     'received text differs from its association: ' + text['source_path'])
             put(raw)
-    return check(repo)
+    return check_texts(repo)
 
 
 def main():
@@ -322,12 +375,16 @@ def main():
     e = sub.add_parser('extract'); e.add_argument('--archives', type=Path, required=True)
     e.add_argument('--received', type=Path, required=True, help='folder holding the received Git-source licence texts')
     sub.add_parser('check')
+    sub.add_parser('generate', help='write crates/packages.json from the committed inputs')
     args = parser.parse_args()
     try:
         if args.command == 'index':
             result = write_index(REPO, args.archives)
         elif args.command == 'extract':
             result = extract(REPO, args.archives, args.received)
+        elif args.command == 'generate':
+            (REPO / PACKAGES).write_bytes(encode(packages(REPO)))
+            result = check(REPO)
         else:
             result = check(REPO)
     except (ValueError, KeyError, OSError) as error:

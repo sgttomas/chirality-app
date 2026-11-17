@@ -150,3 +150,103 @@ def test_truncated_or_corrupt_headers_refuse():
     corrupt = gzip.compress(bytes(raw), mtime=0)
     with pytest.raises(cn.Refused, match='checksum differs|malformed'):
         cn.index_entry(corrupt, PACKAGE, hashlib.sha256(corrupt).hexdigest())
+
+
+# The committed 0.169.0 crate group (supplier_notices/crates.py): check needs no archive and refuses any drift.
+crates_spec = importlib.util.spec_from_file_location('supplier_crates', ROOT / 'app/packaging/supplier_notices/crates.py')
+crates = importlib.util.module_from_spec(crates_spec)
+crates_spec.loader.exec_module(crates)
+
+
+@pytest.fixture
+def repo(tmp_path):
+    import shutil
+    for relative in ('app/packaging/supplier_notices', 'app/packaging/notices'):
+        shutil.copytree(ROOT / relative, tmp_path / relative)
+    return tmp_path
+
+
+def edit(repo, relative, change):
+    import json
+    path = repo / relative
+    value = json.loads(path.read_bytes())
+    change(value)
+    path.write_text(json.dumps(value))
+
+
+def test_committed_group_checks_and_covers_every_locked_package():
+    result = crates.check(ROOT)
+    assert result['locks']['codex'] == {'packages': 1483, 'registry': 1296, 'git': 14, 'path': 173, 'text': 1340, 'held': 5, 'gap': 138}
+    assert result['locks']['ripgrep'] == {'packages': 59, 'registry': 49, 'git': 0, 'path': 10, 'text': 59, 'held': 0, 'gap': 0}
+    value = crates.packages(ROOT)
+    assert 'Some may not be compiled into the macOS executables' in value['superset']
+    for row in value['packages']:
+        assert (row['standing'] == 'gap') == (not row['texts'])
+        assert row['standing'] != 'gap' or (row['reason'] and row['would_close'])
+
+
+def test_lockfile_drift_refuses(repo):
+    lock = repo / crates.BASE / 'locks/codex-rs.Cargo.lock'
+    lock.write_bytes(lock.read_bytes().replace(b'name = "zstd"', b'name = "zstdx"', 1))
+    with pytest.raises(ValueError, match='lockfile differs'):
+        crates.check(repo)
+
+
+def test_a_missing_or_extra_index_row_refuses(repo):
+    edit(repo, crates.INDEX, lambda v: v['registry'].pop(0))
+    with pytest.raises(ValueError, match='differs from the lockfiles'):
+        crates.check(repo)
+
+
+def test_a_missing_changed_extra_or_linked_text_refuses(repo):
+    store = repo / crates.TEXTS
+    target = sorted(store.iterdir())[0]
+    original = target.read_bytes()
+    target.write_bytes(original + b'x')
+    with pytest.raises(ValueError, match='bytes differ'):
+        crates.check(repo)
+    target.unlink()
+    with pytest.raises(ValueError, match='missing'):
+        crates.check(repo)
+    target.write_bytes(original)
+    (store / ('0' * 64)).write_bytes(b'INVENTED')
+    with pytest.raises(ValueError, match='extra'):
+        crates.check(repo)
+    (store / ('0' * 64)).unlink()
+    target.unlink()
+    target.symlink_to(repo / 'app/packaging/supplier_notices/codex/LICENSE')
+    with pytest.raises(ValueError, match='regular non-link'):
+        crates.check(repo)
+
+
+def test_an_index_digest_drift_refuses(repo):
+    def change(v):
+        row = next(r for r in v['registry'] if r['notices'])
+        row['notices'][0]['sha256'] = 'f' * 64
+    edit(repo, crates.INDEX, change)
+    with pytest.raises(ValueError):
+        crates.check(repo)
+
+
+def test_git_association_must_match_the_lock_and_its_listing(repo):
+    edit(repo, crates.ASSOCIATIONS, lambda v: v['git_sources'][0].update(revision='a' * 40))
+    with pytest.raises(ValueError, match='another repository or revision'):
+        crates.check(repo)
+
+
+def test_git_text_must_be_its_listing_blob(repo):
+    edit(repo, crates.ASSOCIATIONS, lambda v: v['git_sources'][0]['texts'][0].update(listing_blob='a' * 40))
+    with pytest.raises(ValueError, match='listing names'):
+        crates.check(repo)
+
+
+def test_a_locked_git_package_without_association_refuses(repo):
+    edit(repo, crates.ASSOCIATIONS, lambda v: v['git_sources'].pop())
+    with pytest.raises(ValueError, match='no Git association'):
+        crates.check(repo)
+
+
+def test_stale_package_account_refuses(repo):
+    edit(repo, crates.PACKAGES, lambda v: v['packages'].pop())
+    with pytest.raises(ValueError, match='stale'):
+        crates.check(repo)
