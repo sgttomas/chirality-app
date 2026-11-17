@@ -375,6 +375,31 @@ observed: the signature verified and displayed, the archive and the disk
 image present and assessed, the mounted contents compared with the stapled
 App, and the mount point empty and no longer mounted after a detach.
 
+**The entitlements are read as one whole property list.** `codesign -d
+--entitlements - --xml` prints a property list. It counts only when the value
+read from it is the whole document. The value is written out again as
+Python's `plistlib` writes property lists. The original document is then read
+a second way, by its own bytes and without `plistlib`, and must equal that
+written copy. Only two things are set aside on both sides, and nothing else:
+
+- **the document header**, compared by its XML declaration (version,
+  encoding) and document type rather than by its bytes;
+- **whitespace between elements**: space, tab, carriage return and line feed
+  directly inside `plist`, `dict` or `array`, and after the document.
+
+Everything else must be byte for byte the same: every element, attribute,
+repeated entry and piece of text, in order, and the whitespace inside a value.
+So two values side by side, stray text, a comment, a processing instruction,
+an unknown element, an attribute or a key given twice all refuse. So does a
+valid property list spelled differently from how `plistlib` writes it, for
+example `<data>` wrapped differently, a date or number in another spelling,
+a character reference, `<true></true>` for `<true/>`, a CDATA section, or no
+document type. Entity declarations and undefined entity references refuse,
+and nothing is fetched. The sources show entitlements in the written form,
+but a first real run may still refuse one spelled otherwise. The reason then
+names the entitlements observation of its step (for example
+`S5_ENTITLEMENTS`), and the correction below applies unchanged.
+
 Those sources do not show every line the real tools print. For example, no
 source shows the line of `codesign -d` that names the executable. So **a
 first real run may stop on a line of output nobody declared**. The reason

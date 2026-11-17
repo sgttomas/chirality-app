@@ -106,9 +106,11 @@ class RecordFailed(ValueError):
 
 
 def standing_valid(standing):
-    """A release standing of the stated shape: exactly common.STANDING_KEYS, a known (flag, completeness) pair named by
-    its own words, a coverage digest, and a gap count that is zero exactly when coverage is complete. This is the shape
-    common.candidate_standing requires before it compares the standing with the candidate's plan."""
+    """A release standing of the record's stated shape: exactly common.STANDING_KEYS, a known (flag, completeness) pair
+    named by its own words, a lowercase hexadecimal SHA-256 coverage digest, and a nonnegative gap count that is zero
+    exactly when coverage is complete. This is stricter than common.candidate_standing, which does not check the
+    digest's form or that the gap count is nonnegative: a candidate whose description and plan agree on such values
+    passes that reader and is refused here."""
     if not isinstance(standing, dict) or set(standing) != common.STANDING_KEYS:
         return False
     flag, complete, gaps = standing['not_for_public_release'], standing['notice_coverage_complete'], standing['notice_gaps']

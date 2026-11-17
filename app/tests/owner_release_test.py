@@ -269,6 +269,105 @@ class Binding(Base):
                 self.assertFalse((self.out / 'PACKAGE_IDENTITY.json').exists())
 
 
+def whole_document_probes():
+    """The fifth reading's three probes, built from the expected entitlements at run time: values plistlib would have
+    read as the expected dictionary, while the document also holds something else."""
+    right = ENTITLEMENTS_XML
+    wrong = plistlib.dumps({'com.apple.application-identifier': 'OTHER00001.com.example.other', 'com.apple.security.get-task-allow': True})
+    wrong_dict = wrong[wrong.index(b'<dict>'):wrong.index(b'</dict>') + len(b'</dict>')]
+    return {
+        'two conflicting dictionaries': right.replace(b'<dict>', wrong_dict + b'\n<dict>', 1),
+        'undeclared text before the dictionary': right.replace(b'<dict>', b'failed to read entitlements\n<dict>', 1),
+        'a sibling string before the dictionary': right.replace(b'<dict>', b'<string>failed to read entitlements</string>\n<dict>', 1),
+    }
+
+
+class WholeEntitlementDocument(Base):
+    """Round 5 finding: the entitlement reader returned a value that was not the whole document. A value is now
+    returned only when the original document, read by its own bytes without plistlib, equals plistlib's writing of
+    that value, apart from the document header and whitespace between elements."""
+
+    CONTROLS = {
+        'the expected entitlements': ENTITLEMENTS_XML,
+        'keys in their own order, a boolean and a list': plistlib.dumps(
+            {'keychain-access-groups': ['8A7JL35U4S.com.chirality.app'], 'com.apple.security.cs.allow-jit': True,
+             'com.apple.application-identifier': '8A7JL35U4S.com.chirality.app'}, sort_keys=False),
+        'CRLF line ends and spaces between elements': ENTITLEMENTS_XML.replace(b'\n', b'\r\n').replace(b'\t', b'    '),
+        'no entitlements': plistlib.dumps({}),
+        'whitespace inside a value kept': plistlib.dumps({'com.apple.application-identifier': ' 8A7JL35U4S.x '}),
+    }
+
+    def test_ordinary_entitlements_are_read_and_the_fifth_probes_refuse(self):
+        for name, raw in self.CONTROLS.items():
+            with self.subTest(control=name):
+                self.assertEqual(obs.observe('entitlements', Result(0, raw), subject='/invented/asked'),
+                                 plistlib.loads(raw))
+        for name, raw in whole_document_probes().items():
+            with self.subTest(probe=name):
+                self.assertIsInstance(plistlib.loads(raw), dict)  # what plistlib alone accepted
+                with self.assertRaises(obs.ObservationFailed):
+                    obs.observe('entitlements', Result(0, raw), subject='/invented/asked')
+
+    def test_the_original_is_read_without_discarding_what_plistlib_dropped(self):
+        """The comparison's basis: the original's own reading keeps what plistlib's value lost, so the two differ."""
+        for name, raw in whole_document_probes().items():
+            with self.subTest(probe=name):
+                header, body = obs.xml_structure(raw)
+                _, emitted = obs.xml_structure(plistlib.dumps(plistlib.loads(raw), sort_keys=False))
+                self.assertEqual(header, obs.xml_structure(ENTITLEMENTS_XML)[0])
+                kept = {'two conflicting dictionaries': b'OTHER00001.com.example.other'}.get(name, b'failed to read entitlements')
+                self.assertIn(kept, body)
+                self.assertNotIn(kept, emitted)
+        # The two normalizations, and no others: the header by its declaration and type, whitespace between elements.
+        header, body = obs.xml_structure(ENTITLEMENTS_XML)
+        self.assertEqual([kind for kind, _ in header], ['xml declaration', 'document type'])
+        self.assertEqual(body, b''.join(line.strip(b'\t') for line in ENTITLEMENTS_XML.split(b'\n')[2:]))
+        spelled = {'a comment': (b'<dict>', b'<!-- x --><dict>'), 'a processing instruction': (b'<dict>', b'<?x y?><dict>'),
+                   'an attribute': (b'<dict>', b'<dict id="x">'), 'an unknown element': (b'<dict>', b'<dict><x/>'),
+                   'a character reference': (b'>8A7JL35U4S<', b'>&#56;A7JL35U4S<'),
+                   'no document type': (ENTITLEMENTS_XML.split(b'\n')[1] + b'\n', b''),
+                   'a comment in the header': (b'<plist', b'<!-- x -->\n<plist')}
+        for name, (old, new) in spelled.items():
+            with self.subTest(spelled=name), self.assertRaises(ValueError):
+                obs.load_xml_plist(ENTITLEMENTS_XML.replace(old, new, 1))
+        for name, raw in {'an entity declared': ENTITLEMENTS_XML.replace(b'.dtd">', b'.dtd" [<!ENTITY e "z">]>'),
+                          'an undefined entity': ENTITLEMENTS_XML.replace(b'8A7JL35U4S</string>', b'8A7JL35U4S&e;</string>', 1)}.items():
+            with self.subTest(entity=name), self.assertRaises(ValueError):
+                obs.load_xml_plist(raw)
+
+    def assert_stops(self, override, reason, *, supplier=False):
+        self.fake = fx.FakeApple()
+        if supplier:
+            self.fake.override[('--entitlements',)] = lambda argv: Result(0, override) if '/Contents/Resources/codex/' in argv[-1] else None
+        else:
+            self.fake.app_entitlements_override = override
+        code, stdout, stderr = self.main()
+        self.assertEqual(code, 3, stderr)
+        self.assertEqual(json.loads((self.out / 'STOPPED.json').read_text())['reason_code'], reason)
+        self.assertFalse((self.out / 'PACKAGE_IDENTITY.json').exists())
+        self.assertFalse((self.out / 'RESULT.json').exists())
+        last = self.fake.calls[-1]
+        self.assertEqual((last[0], last[1:4]), (owner.CODESIGN, ['-d', '--entitlements', '-']))
+        self.assertFalse([a for a in self.fake.calls if '--sign' in a and a[-1].endswith('.dmg')])
+
+    def test_a_full_run_stops_on_each_probe_and_writes_no_record(self):
+        """The fifth reading's full run: the App's entitlements as two conflicting dictionaries completed a record that
+        then checked equal. Each probe now stops at the App's verification (S5) or, for a supplier executable, at the
+        reading before signing (S0); and a truthful run beside them completes."""
+        runs = 0
+        for name, raw in whole_document_probes().items():
+            for supplier, reason in ((False, 'S5_ENTITLEMENTS'), (True, 'S0_ENTITLEMENTS')):
+                with self.subTest(probe=name, supplier=supplier):
+                    runs += 1
+                    self.out = self.root / f'signed-{runs}'
+                    self.assert_stops(raw, reason, supplier=supplier)
+        self.out = self.root / 'signed-control'
+        self.fake = fx.FakeApple()
+        code, stdout, stderr = self.main()
+        self.assertEqual(code, 0, stderr)
+        self.assertTrue((self.out / 'PACKAGE_IDENTITY.json').is_file())
+
+
 class OwnerSign(Base):
     @staticmethod
     def signing_calls(argvs):
@@ -879,6 +978,27 @@ class RecordCheck(unittest.TestCase):
         self.identity['candidate']['source_revision'] = '0' * 40
         self.assertTrue(self.result()['equal'])  # without --candidate, provenance is listed as not checked
         self.assert_found('candidate.source_revision', candidate_dir=self.case.candidate)
+
+    def test_an_entitlement_document_that_is_not_whole_is_never_equal(self):
+        """The fifth reading's check result: equal=true with the candidate given. With every other fact truthful, the App's
+        or one supplier executable's entitlements read as a probe are a failed observation, and nothing else is."""
+        truthful = self.result(candidate_dir=self.case.candidate)
+        self.assertEqual((truthful['equal'], truthful['failed_observations']), (True, {}))
+        vendor = str(self.app / 'Contents/Resources/codex/codex-path/rg')
+        for name, raw in whole_document_probes().items():
+            for where in ('app', 'supplier'):
+                with self.subTest(probe=name, where=where):
+                    fake = self.case.fake
+                    fake.app_entitlements_override = raw if where == 'app' else None
+                    fake.override = {('--entitlements', vendor): Result(0, raw)} if where == 'supplier' else {}
+                    result = self.result(candidate_dir=self.case.candidate)
+                    self.assertFalse(result['equal'])
+                    self.assertEqual(result['failed_observations'], {'entitlements': 1})
+                    # An invented vendor path is not in the committed inventory, so its location is counted, not named.
+                    prefix = 'observed.signatures..' if where == 'app' else 'observed.signatures'
+                    self.assertTrue(result['differences'] and all(k.startswith(prefix) for k in result['differences']), result['differences'])
+        self.case.fake.app_entitlements_override, self.case.fake.override = None, {}
+        self.assertTrue(self.result(candidate_dir=self.case.candidate)['equal'])
 
     def test_the_release_standing_is_stated_and_checked_only_against_the_candidate(self):
         """App Agent 0's standing decision: the record copies the candidate's standing; check states it, compares it with
