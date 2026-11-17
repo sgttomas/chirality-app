@@ -11,6 +11,7 @@ import sys
 import tempfile
 import time
 import unittest
+import urllib.parse
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -21,10 +22,29 @@ WORKFLOW = '# Invented workflow\nSay hello.\n'
 REVISION = 'abcdef0123456789' * 4
 
 
-def run_text(body=WORKFLOW):
-    return ('[Chirality] Workflow run start: invented.\n[Chirality] When you judge this workflow finished, end the message.\n'
-            f'<<<chirality-workflow invented-workflow@{REVISION[:12]} begin>>>\n{body}\n'
-            f'<<<chirality-workflow invented-workflow@{REVISION[:12]} end>>>')
+RUN = 'run-1'
+BRIEF = 'INVENTED PERSON BRIEF'
+
+
+def frame_lines(run=RUN, revision=REVISION, name='invented-workflow'):
+    return {'start_line': f'[Chirality] Workflow run start: {name} from the project library "invented", revision {revision[:12]}, run {run}. '
+                          'Follow the workflow between the two markers below for this run, until the person ends the run.',
+            'proposal_line': f'[Chirality] When you judge this workflow finished, end the message with a line of its own "Workflow finished: project:{name}".',
+            'begin_marker': f'<<<chirality-workflow {name}@{revision[:12]} begin>>>',
+            'end_marker': f'<<<chirality-workflow {name}@{revision[:12]} end>>>'}
+
+
+def run_text(body=WORKFLOW, run=RUN, revision=REVISION, name='invented-workflow'):
+    """The run text as the App composes it (WR-FRAME-1): the frame lines, the
+    WORKFLOW.md bytes exactly, and the end marker."""
+    lines = frame_lines(run, revision, name)
+    return f"{lines['start_line']}\n{lines['proposal_line']}\n{lines['begin_marker']}\n{body}\n{lines['end_marker']}"
+
+
+def envelope(i, body):
+    key = f'00000000-0000-4000-8000-{i:012d}'
+    return key, {'version': 1, 'record_id': f'wr-record:v1:{key}', 'writer': 'invented', 'observed_at': 't', 'body': body,
+                 'basis_records': [], 'source_references': []}
 
 
 class Root:
@@ -42,14 +62,15 @@ class Root:
     def codex(self, kind, payload):
         self.lines.append({'timestamp': '2026-11-14T00:00:00Z', 'type': kind, 'payload': payload})
 
-    def message(self, turn, text, kind='user.text'):
-        self.codex('response_item', {'type': 'message', 'role': 'user', 'content': [{'type': 'input_text', 'text': text}],
+    def message(self, turn, text, kind='user.text', brief=None, role='user'):
+        content = [{'type': 'input_text', 'text': text}] + ([{'type': 'input_text', 'text': brief}] if brief is not None else [])
+        self.codex('response_item', {'type': 'message', 'role': role, 'content': content,
                                      'internal_chat_message_metadata_passthrough': {'turn_id': turn, 'content_item_kinds': [kind],
                                                                                     'provenance': {'type': 'user' if kind == 'user.text' else 'harness'}}})
 
-    def turn(self, turn, end=None, text='hello', **fields):
+    def turn(self, turn, end=None, text='hello', brief=None, **fields):
         self.codex('event_msg', {'type': 'task_started', 'turn_id': turn})
-        self.message(turn, text)
+        self.message(turn, text, brief=brief)
         if end == 'completed':
             self.codex('event_msg', {'type': 'task_complete', 'turn_id': turn, **fields})
         elif end == 'interrupted':
@@ -86,15 +107,32 @@ class Root:
         workflow = self.data / 'records' / 'projects' / 'k' / 'workflow'
         workflow.mkdir(parents=True)
         for i, record in enumerate(self.records):
-            (workflow / f'{i}.json').write_text(json.dumps(record))
+            key, value = envelope(i, record)
+            (workflow / f'{key}.json').write_text(json.dumps(value))
 
-    def run_text_record(self, body=WORKFLOW, text=None, run='run-1'):
-        text = run_text(body) if text is None else text
-        self.records.append({'record_kind': 'run_text', 'run': run, 'conversation': THREAD,
-                             'text_identity': {'method': 'chirality.app.exact-bytes.sha256/v1', 'value': hashlib.sha256(text.encode()).hexdigest()},
-                             'workflow': {'name': 'invented-workflow', 'revision': REVISION},
-                             'workflow_file': {'path': 'WORKFLOW.md', 'content': {
-                                 'method': 'chirality.app.exact-bytes.sha256/v1', 'value': hashlib.sha256(body.encode()).hexdigest()}}})
+    def run_text_record(self, body=WORKFLOW, text=None, run=RUN, conversation=THREAD, **changes):
+        """The run-start record the App publishes, in its WR shape: the record
+        holds the lines and the identities of the text and of WORKFLOW.md, never
+        the bytes themselves."""
+        text = run_text(body, run) if text is None else text
+        method = 'chirality.app.exact-bytes.sha256/v1'
+        record = {'record_kind': 'run_text', 'purpose': 'run start', 'framing': 'WR-FRAME-1', 'run': run, 'conversation': conversation,
+                  'workflow': {'kind': 'workflow', 'origin': 'project', 'source_root': 'invented library', 'name': 'invented-workflow',
+                               'revision': REVISION, 'revision_method': 'invented'},
+                  'holding_library': 'invented', 'chain': None, 'origin_of_start': 'selected by the person', 'selection': 'selection:1',
+                  'workflow_file': {'path': 'WORKFLOW.md', 'content': {'method': method, 'value': hashlib.sha256(body.encode()).hexdigest()},
+                                    'bytes': len(body.encode())},
+                  'lines': frame_lines(run), 'text_identity': {'method': method, 'value': hashlib.sha256(text.encode()).hexdigest()},
+                  'text_bytes': len(text.encode())}
+        record.update(changes)
+        self.records.append(record)
+        return record
+
+    def end_notice(self, run=RUN):
+        text = f'[Chirality] Workflow run ended: invented-workflow revision {REVISION[:12]} (run {run}, completed). No workflow is in force.'
+        self.records.append({'record_kind': 'run_text', 'purpose': 'run end notice', 'framing': 'WR-FRAME-1', 'run': run, 'conversation': THREAD,
+                             'lines': {'end_line': text}, 'text_identity': {'method': 'chirality.app.exact-bytes.sha256/v1',
+                                                                            'value': hashlib.sha256(text.encode()).hexdigest()}, 'text_bytes': len(text)})
 
     def compare(self, *views, candidate=False):
         """Rows from a saved view (an empty one where the test is about C4 or
@@ -126,22 +164,21 @@ class SessionComparison(unittest.TestCase):
         self.tmp.cleanup()
 
     def test_an_agreeing_session_passes_every_comparison(self):
-        self.r.turn('turn-1', 'completed', text=run_text())
+        self.r.turn('turn-1', 'completed', text=run_text(), brief=BRIEF)
         self.r.turn('turn-2', 'interrupted')
         self.r.stop('turn-2', 'interrupted')
         self.r.run_text_record()
         lines = self.r.compare(self.r.view({'turn-1': 'completed', 'turn-2': 'interrupted'}))
         self.assertEqual({k: lines[0][k] for k in ('header', 'candidate_key', 'examination_root', 'tool')},
                          {'header': True, 'candidate_key': 'invented-key', 'examination_root': str(self.r.root.resolve()), 'tool': compare.TOOL})
-        self.assertEqual({r['outcome'] for r in rows(lines) if r['comparison'] != 'W1'}, {'passed'}, rows(lines))
+        self.assertEqual({r['outcome'] for r in rows(lines)}, {'passed'}, rows(lines))
         self.assertEqual([r['comparison'] for r in rows(lines)], ['C2', 'C3', 'C2', 'C3', 'C4', 'W1'])
-        (w1,) = rows(lines, 'W1')
-        self.assertEqual((w1['outcome'], w1['reason']), ('blocked', compare.NOT_AVAILABLE))
-        self.assertNotIn('byte', json.dumps(lines).lower(), 'nothing says the workflow reached Codex byte for byte')
         self.assertEqual(len(lines[0]['tool_sha256']), 64)
-        self.assertEqual(lines[-1], {'summary': {'C2': {'passed': 2}, 'C3': {'passed': 2}, 'C4': {'passed': 1}, 'W1': {'blocked': 1}},
-                                     'unrecognised': 0, 'compares': compare.COMPARES, 'workflow_comparison': compare.NOT_AVAILABLE})
+        self.assertEqual(lines[0]['model_version'], 'session-comparison-model/2')
+        self.assertEqual(lines[-1], {'summary': {'C2': {'passed': 2}, 'C3': {'passed': 2}, 'C4': {'passed': 1}, 'W1': {'passed': 1}},
+                                     'unrecognised': 0, 'compares': compare.COMPARES, 'workflow_scope': compare.WORKFLOW_SCOPE})
         self.assertNotIn('Say hello', json.dumps(lines), 'no session content leaves the record')
+        self.assertNotIn(BRIEF, json.dumps(lines))
 
     def test_the_app_showing_completed_where_codex_recorded_an_abort_fails(self):
         self.r.turn('turn-1', 'interrupted')
@@ -590,6 +627,24 @@ class TheRealFormat(unittest.TestCase):
             self.assertEqual(lines[-1]['summary'], {'C2': {'passed': 3}, 'C3': {'passed': 3}, 'C4': {'passed': 1}})
             self.assertNotIn('Invented reply', json.dumps(lines))
 
+    def test_a_run_start_in_the_pins_layout_compares_w1_end_to_end(self):
+        """The run text and the person's brief as two text elements of turn A's
+        user message, laid out as the 0.169.0 file lays out a user message."""
+        data = self.layout().replace(
+            json.dumps([{'type': 'input_text', 'text': 'Invented request.'}]).encode()[1:-1],
+            json.dumps([{'type': 'input_text', 'text': run_text()}, {'type': 'input_text', 'text': BRIEF}]).encode()[1:-1], 1)
+        self.assertEqual(compare.parse_session(data, THREAD)['workflow_marked_lines'], 1)
+        with tempfile.TemporaryDirectory() as tmp:
+            r = Root(tmp)
+            r.run_text_record()
+            r.write()
+            (path,) = r.root.rglob(f'rollout-*-{THREAD}.jsonl')
+            path.write_bytes(data)
+            lines = r.compare(r.view({'A': 'completed', 'B': 'interrupted', 'C': 'failed'}))
+            (w1,) = rows(lines, 'W1')
+            self.assertEqual((w1['outcome'], w1['codex']['turn'], w1['codex']['element']), ('passed', 'A', 0), w1)
+            self.assertNotIn(BRIEF, json.dumps(lines))
+
     def test_the_same_layout_from_any_other_version_is_refused(self):
         for version in ('0.167.0', '0.167.2', '0.168.0', '0.169.1', '0.170.0', '0.169', '0.169.0.0', 'v0.169.0', ' 0.169.0', '0.169.0 ',
                         '0.169.0-alpha.1', '', None, 169, ['0.169.0']):
@@ -646,10 +701,12 @@ class WhereRecordsMayBeRead(unittest.TestCase):
 
 
 
-class TheWorkflowComparisonIsNotAvailable(unittest.TestCase):
-    """W1 is not in this version. Where it would be made the tool says it was
-    not: a blocked row, never passed and never left out, and every statement
-    of what is compared names exactly three comparisons."""
+class TheWorkflowComparisonByUniqueness(unittest.TestCase):
+    """W1, bounded by uniqueness: it passes only where Codex holds exactly one
+    message carrying the workflow markers in the thread, the App exactly one
+    run-start text for it, and the two agree byte for byte with the stored
+    WORKFLOW.md bytes between the markers. Any other count, or anything
+    unreadable, is blocked; a difference with one of each fails."""
 
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -659,32 +716,216 @@ class TheWorkflowComparisonIsNotAvailable(unittest.TestCase):
         self.tmp.cleanup()
 
     def stated(self, line):
-        self.assertEqual(line['compares'], {'C2': 'turns', 'C3': 'outcomes', 'C4': 'interrupts'})
-        self.assertEqual(line['workflow_comparison'], compare.NOT_AVAILABLE)
+        self.assertEqual(line['compares'], {'C2': 'turns', 'C3': 'outcomes', 'C4': 'interrupts',
+                                            'W1': 'the workflow supplied, in a thread with one run'})
+        self.assertEqual(line['workflow_scope'], compare.WORKFLOW_SCOPE)
+        self.assertNotIn('workflow_comparison', line, 'the old "not available" sentence is not carried')
 
-    def test_workflow_markers_in_a_message_give_one_blocked_row(self):
-        self.r.turn('turn-1', 'completed', text=run_text())
-        lines = self.r.compare(self.r.view({'turn-1': 'completed'}))
-        (w1,) = rows(lines, 'W1')
-        self.assertEqual((w1['outcome'], w1['reason']), ('blocked', compare.NOT_AVAILABLE))
-        self.assertEqual(w1['codex'], {'linesWithWorkflowMarkers': 1})
+    def w1(self, r=None):
+        r = r or self.r
+        lines = r.compare(r.view({'turn-1': 'completed'}))
+        found = rows(lines, 'W1')
+        self.assertEqual(len(found), 1, found)
+        text = json.dumps(lines)
+        for secret in ('Say hello', BRIEF, 'Invented workflow', 'Workflow run start'):
+            self.assertNotIn(secret, text, 'no row carries message text')
+        return found[0], lines
+
+    def run_start(self, text=None, brief=BRIEF):
+        self.r.turn('turn-1', 'completed', text=run_text() if text is None else text, brief=brief)
+
+    # The one positive case.
+    def test_one_message_and_one_run_text_equal_byte_for_byte_pass(self):
+        self.run_start()
+        self.r.run_text_record()
+        w1, lines = self.w1()
+        self.assertEqual(w1['outcome'], 'passed', w1)
+        self.assertEqual(w1['subject'], {'thread': THREAD, 'run': RUN})
+        self.assertEqual({k: w1['app'][k] for k in ('origin', 'workflow', 'revision', 'runStartTexts')},
+                         {'origin': 'project', 'workflow': 'invented-workflow', 'revision': REVISION, 'runStartTexts': 1})
+        self.assertEqual(w1['codex']['text_sha256'], w1['app']['text_sha256'])
+        self.assertEqual(w1['codex']['workflow_sha256'], hashlib.sha256(WORKFLOW.encode()).hexdigest())
+        self.assertEqual((w1['codex']['messagesWithWorkflowMarkers'], w1['codex']['element'], w1['codex']['elements']), (1, 0, 2))
+        self.assertEqual(lines[-1]['summary']['W1'], {'passed': 1})
         self.stated(lines[0])
         self.stated(lines[-1])
-        self.assertEqual(lines[-1]['summary']['W1'], {'blocked': 1})
 
-    def test_a_run_text_record_alone_gives_one_blocked_row(self):
+    # Content that differs, with one of each: failed.
+    def test_a_text_codex_holds_other_than_the_run_text_fails(self):
+        self.run_start(text=run_text('# Invented workflow\nSay goodbye.\n'))
+        self.r.run_text_record()
+        w1, _ = self.w1()
+        self.assertEqual((w1['outcome'], w1['reason']), ('failed', 'the text Codex holds is not the run text the App composed, byte for byte'))
+
+    def test_a_text_differing_by_one_trailing_byte_fails(self):
+        self.run_start(text=run_text() + '\n')
+        self.r.run_text_record()
+        self.assertEqual(self.w1()[0]['outcome'], 'failed')
+
+    def test_workflow_bytes_other_than_the_stored_ones_fail_even_where_the_text_matches(self):
+        self.run_start()
+        record = self.r.run_text_record()
+        record['workflow_file']['content']['value'] = hashlib.sha256(b'other stored bytes').hexdigest()
+        w1, _ = self.w1()
+        self.assertEqual((w1['outcome'], w1['reason']),
+                         ('failed', 'the bytes between the markers are not the stored WORKFLOW.md bytes the App recorded'))
+
+    def test_markers_of_another_revision_fail(self):
+        self.run_start(text=run_text(revision='f' * 64))
+        self.r.run_text_record()
+        w1, _ = self.w1()
+        self.assertEqual((w1['outcome'], w1['reason']), ('failed', "the markers Codex holds name another workflow or revision than the App's run text"))
+
+    # Counts other than one on either side: blocked.
+    def test_no_message_carrying_the_markers_is_blocked(self):
         self.r.turn('turn-1', 'completed')
         self.r.run_text_record()
-        (w1,) = rows(self.r.compare(self.r.view({'turn-1': 'completed'})), 'W1')
-        self.assertEqual((w1['outcome'], w1['app']['runTextRecords']), ('blocked', 1))
+        w1, _ = self.w1()
+        self.assertEqual((w1['outcome'], w1['codex']['messagesWithWorkflowMarkers']), ('blocked', 0))
 
-    def test_an_unreadable_workflow_record_gives_one_blocked_row(self):
+    def test_two_messages_carrying_the_markers_are_blocked_even_when_both_are_exact(self):
+        self.run_start()
+        self.r.message('turn-1', run_text())
+        self.r.run_text_record()
+        w1, _ = self.w1()
+        self.assertEqual((w1['outcome'], w1['codex']['messagesWithWorkflowMarkers']), ('blocked', 2))
+
+    def test_a_reply_quoting_the_markers_is_a_second_message_and_blocks(self):
+        self.run_start()
+        self.r.message('turn-1', 'I read <<<chirality-workflow invented-workflow@x begin>>>', role='assistant')
+        self.r.run_text_record()
+        self.assertEqual(self.w1()[0]['outcome'], 'blocked')
+
+    def test_markers_in_the_persons_brief_as_well_are_blocked(self):
+        self.run_start(brief='see <<<chirality-workflow invented-workflow@x end>>>')
+        self.r.run_text_record()
+        w1, _ = self.w1()
+        self.assertEqual((w1['outcome'], w1['reason']), ('blocked', 'more than one text element of the message carries the workflow markers'))
+
+    def test_markers_only_in_a_developer_message_are_blocked(self):
         self.r.turn('turn-1', 'completed')
-        self.r.write()
-        (self.r.data / 'records' / 'projects' / 'k' / 'workflow' / 'bad.json').write_text('{')
-        (w1,) = rows(self.r.compare(self.r.view({'turn-1': 'completed'})), 'W1')
-        self.assertEqual((w1['outcome'], w1['app']['unreadableWorkflowRecords']), ('blocked', 1))
+        self.r.message('turn-1', run_text(), role='developer')
+        self.r.run_text_record()
+        w1, _ = self.w1()
+        self.assertEqual((w1['outcome'], w1['reason']), ('blocked', "the message carrying the workflow markers is not the person's input"))
 
+    def test_no_run_text_for_the_thread_is_blocked(self):
+        self.run_start()
+        w1, _ = self.w1()
+        self.assertEqual((w1['outcome'], w1['app']['runStartTexts']), ('blocked', 0))
+
+    def test_two_run_texts_for_the_thread_are_blocked(self):
+        self.run_start()
+        self.r.run_text_record()
+        self.r.run_text_record(run='run-2')
+        w1, _ = self.w1()
+        self.assertEqual((w1['outcome'], w1['app']['runStartTexts']), ('blocked', 2))
+
+    def test_a_run_text_of_another_thread_does_not_count(self):
+        self.run_start()
+        self.r.run_text_record(conversation='019a0000-0000-7000-8000-00000000000b')
+        w1, _ = self.w1()
+        self.assertEqual((w1['outcome'], w1['app']['runStartTexts']), ('blocked', 0))
+
+    def test_a_run_text_alone_gives_one_blocked_row(self):
+        self.r.turn('turn-1', 'completed')
+        self.r.run_text_record()
+        self.assertEqual(self.w1()[0]['outcome'], 'blocked')
+
+    def test_a_successor_run_is_not_compared(self):
+        self.run_start()
+        record = self.r.run_text_record()
+        record['chain'] = {'prior_run': 'run-0', 'prior_workflow': record['workflow'], 'ended': 'completed'}
+        self.assertEqual(self.w1()[0]['outcome'], 'blocked')
+
+    def test_an_end_notice_of_the_same_run_leaves_it_unique_and_of_another_run_blocks(self):
+        self.run_start()
+        self.r.run_text_record()
+        self.r.end_notice()
+        w1, _ = self.w1()
+        self.assertEqual((w1['outcome'], w1['app']['endNotices']), ('passed', 1))
+        r = Root(tempfile.mkdtemp(dir=self.tmp.name))
+        r.turn('turn-1', 'completed', text=run_text(), brief=BRIEF)
+        r.run_text_record()
+        r.end_notice(run='run-0')
+        self.assertEqual(self.w1(r)[0]['outcome'], 'blocked')
+
+    # Anything unreadable: blocked.
+    def test_an_unreadable_workflow_record_blocks(self):
+        for bad in ('{', '[]', json.dumps({'version': 1, 'record_id': 'wr-record:v1:00000000-0000-4000-8000-999999999999', 'body': {}}),
+                    json.dumps(envelope(7, {'record_kind': 'run_text', 'purpose': 'other', 'conversation': THREAD})[1])):
+            with self.subTest(bad=bad[:40]):
+                r = Root(tempfile.mkdtemp(dir=self.tmp.name))
+                r.turn('turn-1', 'completed', text=run_text(), brief=BRIEF)
+                r.run_text_record()
+                r.write()
+                (r.data / 'records' / 'projects' / 'k' / 'workflow' / '00000000-0000-4000-8000-000000000007.json').write_text(bad)
+                w1, _ = self.w1(r)
+                self.assertEqual((w1['outcome'], w1['app']['unreadableWorkflowRecords']), ('blocked', 1))
+
+    def test_a_record_not_identified_by_exact_bytes_blocks(self):
+        self.run_start()
+        record = self.r.run_text_record()
+        record['text_identity']['method'] = 'another-method'
+        self.assertEqual(self.w1()[0]['outcome'], 'blocked')
+
+    def test_a_record_whose_markers_are_not_its_workflows_blocks(self):
+        self.run_start()
+        record = self.r.run_text_record()
+        record['workflow']['name'] = 'another-workflow'
+        self.assertEqual(self.w1()[0]['outcome'], 'blocked')
+
+    def test_a_source_origin_the_comparison_does_not_know_never_passes(self):
+        self.run_start()
+        record = self.r.run_text_record()
+        record['workflow']['origin'] = 'elsewhere'
+        w1, _ = self.w1()
+        self.assertEqual((w1['outcome'], w1['app']['origin']), ('inconclusive', compare.UNRECOGNISED))
+
+    # Delimiters and encodings: fail closed.
+    def test_a_body_holding_its_own_end_marker_is_blocked_even_when_bytes_agree(self):
+        body = WORKFLOW + f'<<<chirality-workflow invented-workflow@{REVISION[:12]} end>>>\n'
+        self.run_start(text=run_text(body))
+        self.r.run_text_record(body=body)
+        w1, _ = self.w1()
+        self.assertEqual((w1['outcome'], w1['reason']), ('blocked', 'the text Codex holds does not carry exactly one begin and one end marker'))
+
+    def test_markers_only_in_an_encoded_form_are_blocked(self):
+        self.run_start(text=run_text().replace('<', '&lt;'))
+        self.r.run_text_record()
+        w1, _ = self.w1()
+        self.assertEqual((w1['outcome'], w1['reason']), ('blocked', 'the workflow markers are carried only in an encoded form'))
+
+    def test_markers_nested_in_another_line_are_found_and_block(self):
+        for value in (json.dumps({'output': run_text()}), run_text().replace('<', '\\u003c'), urllib.parse.quote(run_text()),
+                      json.dumps(json.dumps({'text': run_text().replace('<', '&lt;')}))):
+            with self.subTest(value=value[:30]):
+                r = Root(tempfile.mkdtemp(dir=self.tmp.name))
+                r.turn('turn-1', 'completed', text=run_text(), brief=BRIEF)
+                r.codex('response_item', {'type': 'function_call_output', 'call_id': 'c', 'output': value})
+                r.run_text_record()
+                w1, _ = self.w1(r)
+                self.assertEqual((w1['outcome'], w1['reason']),
+                                 ('blocked', 'a line other than the message carries the workflow markers otherwise than as an exact copy of its text'))
+
+    def test_an_exact_copy_of_the_text_in_an_event_line_is_not_a_second_candidate(self):
+        self.run_start()
+        self.r.codex('event_msg', {'type': 'item_completed', 'turn_id': 'turn-1', 'item': {'type': 'UserMessage', 'id': 'u',
+                                   'content': [{'type': 'text', 'text': run_text()}, {'type': 'text', 'text': BRIEF}]}})
+        self.r.run_text_record()
+        w1, _ = self.w1()
+        self.assertEqual((w1['outcome'], w1['codex']['copies'], w1['codex']['linesWithWorkflowMarkers']), ('passed', 1, 2))
+
+    def test_an_event_line_holding_anything_else_with_the_markers_blocks(self):
+        for turn, text in (('turn-1', run_text() + '\n' + BRIEF), ('turn-9', run_text())):
+            with self.subTest(turn=turn):
+                r = Root(tempfile.mkdtemp(dir=self.tmp.name))
+                r.turn('turn-1', 'completed', text=run_text(), brief=BRIEF)
+                r.codex('event_msg', {'type': 'user_message', 'turn_id': turn, 'message': text})
+                r.run_text_record()
+                self.assertEqual(self.w1(r)[0]['outcome'], 'blocked')
+
+    # What stays as it was.
     def test_with_no_workflow_run_there_is_no_row_and_the_statement_stands(self):
         self.r.turn('turn-1', 'completed')
         lines = self.r.compare(self.r.view({'turn-1': 'completed'}))
@@ -692,42 +933,46 @@ class TheWorkflowComparisonIsNotAvailable(unittest.TestCase):
         self.stated(lines[0])
         self.stated(lines[-1])
 
-    def test_asking_for_it_by_name_is_refused_with_the_sentence_and_writes_nothing(self):
-        self.r.turn('turn-1', 'completed', text=run_text())
+    def test_asking_for_it_by_name_is_taken_and_an_unknown_name_refused(self):
+        self.run_start()
+        self.r.run_text_record()
         self.r.write()
-        for name in ('W1', 'w1', 'workflow', 'Workflow'):
+        view = self.r.view({'turn-1': 'completed'})
+        self.assertEqual(compare.main(['compare', '--root', str(self.r.root), '--thread', THREAD, '--view', view, '--comparison', 'W1']), 0)
+        for name in ('workflow', 'w1', 'C9'):
             err = io.StringIO()
             with contextlib.redirect_stderr(err):
-                code = compare.main(['compare', '--root', str(self.r.root), '--thread', THREAD, '--comparison', name])
-            self.assertEqual(code, 2)
-            self.assertIn(compare.NOT_AVAILABLE, err.getvalue())
-        self.assertEqual(list((self.r.root / 'record').glob('s*-2*.jsonl')), [])
-        self.assertEqual(compare.main(['compare', '--root', str(self.r.root), '--thread', THREAD, '--comparison', 'C9']), 2)
+                self.assertEqual(compare.main(['compare', '--root', str(self.r.root), '--thread', THREAD, '--comparison', name]), 2)
+            self.assertIn('no comparison of that name', err.getvalue())
 
-    def test_the_screen_list_and_the_answers_say_it(self):
-        self.r.turn('turn-1', 'completed', text=run_text())
+    def test_the_screen_list_and_the_answers_carry_it(self):
+        self.run_start()
+        self.r.run_text_record()
         self.r.compare(candidate=True)
         (screen,) = (self.r.root / 'record').glob('screen-list-*.jsonl')
         head = json.loads(screen.read_text().splitlines()[0])
         self.stated(head)
-        self.assertFalse(any('W1' in json.dumps(json.loads(l)) for l in screen.read_text().splitlines()[1:]))
+        self.assertFalse(any('W1' in json.dumps(json.loads(l)) for l in screen.read_text().splitlines()[1:]),
+                         'W1 is read from the records, not asked of the operator')
         self.assertEqual(compare.main(['answers', '--root', str(self.r.root), '--screen', str(screen)]), 0)
         (out,) = (self.r.root / 'record').glob('session-comparison-2*.jsonl')
         lines = [json.loads(l) for l in out.read_text().splitlines()]
-        self.assertEqual([r['outcome'] for r in rows(lines, 'W1')], ['blocked'])
+        self.assertEqual([r['outcome'] for r in rows(lines, 'W1')], ['passed'])
         self.stated(lines[0])
         self.stated(lines[-1])
 
-    def test_a_blocked_session_carries_the_row_and_the_statement(self):
+    def test_a_blocked_session_carries_the_row_blocked(self):
         self.r.session = False
-        self.r.turn('turn-1', 'completed', text=run_text())
+        self.run_start()
+        self.r.run_text_record()
         lines = self.r.compare(self.r.view({'turn-1': 'completed'}))
         self.assertEqual({(r['comparison'], r['outcome']) for r in rows(lines)},
                          {('C2', 'blocked'), ('C3', 'blocked'), ('C4', 'blocked'), ('W1', 'blocked')})
         self.stated(lines[-1])
 
-    def test_the_fallback_carries_the_statement(self):
-        self.r.turn('turn-1', 'completed')
+    def test_the_fallback_carries_the_statement_and_w1_blocked(self):
+        self.run_start()
+        self.r.run_text_record()
         self.r.write()
         original = compare.compare_views
         compare.compare_views = lambda *a: (_ for _ in ()).throw(RuntimeError('invented'))
@@ -741,10 +986,19 @@ class TheWorkflowComparisonIsNotAvailable(unittest.TestCase):
         self.stated(lines[-1])
         self.assertEqual(lines[-1]['summary']['W1'], {'blocked': 1})
 
-    def test_no_output_says_passed_for_w1(self):
-        with self.assertRaises(AssertionError):
-            compare.row('W1', {'thread': THREAD}, {}, {}, 'passed', 'x')
-
+    def test_a_table_counts_a_w1_pass_of_this_version(self):
+        self.run_start()
+        self.r.run_text_record()
+        self.w1()
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'standalone'))
+        try:
+            import table
+        finally:
+            sys.path.pop(0)
+        text = '\n'.join(table.comparisons([self.r.root / 'record']))
+        (line,) = [l for l in text.splitlines() if '| W1 |' in l]
+        self.assertEqual(int(line.split('| W1 |')[1].split('|')[0]), 1, text)
+        self.assertNotIn('not available', text)
 
 
 class FourthReading(unittest.TestCase):
@@ -779,7 +1033,7 @@ class FourthReading(unittest.TestCase):
         path.write_text(path.read_text() + line + '\n')
         lines = self.r.compare(self.r.view({'turn-1': 'completed'}))
         (w1,) = rows(lines, 'W1')
-        self.assertEqual((w1['outcome'], w1['codex']), ('blocked', {'linesWithWorkflowMarkers': 1}))
+        self.assertEqual((w1['outcome'], w1['codex']['linesWithWorkflowMarkers'], w1['app']['runStartTexts']), ('blocked', 1, 0))
 
     def test_a_header_that_cannot_be_read_still_ends_with_blocked_rows(self):
         self.r.turn('turn-1', 'completed')
@@ -793,7 +1047,7 @@ class FourthReading(unittest.TestCase):
         (out,) = (self.r.root / 'record').glob('session-comparison-2*.jsonl')
         lines = [json.loads(l) for l in out.read_text().splitlines()]
         self.assertIsNone(lines[0]['tool_sha256'])
-        self.assertEqual(lines[0]['workflow_comparison'], compare.NOT_AVAILABLE)
+        self.assertEqual(lines[0]['workflow_scope'], compare.WORKFLOW_SCOPE)
         self.assertEqual({r['outcome'] for r in rows(lines)}, {'blocked'})
 
 

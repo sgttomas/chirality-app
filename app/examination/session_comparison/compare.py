@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
-"""Session comparison, first part: one thread's turns, their outcomes and the
-App's recorded interrupts, compared with Codex's own session file.
+"""Session comparison: one thread's turns, their outcomes, the App's recorded
+interrupts and, where the thread holds one workflow run, the workflow supplied,
+compared with Codex's own session file.
 
-It compares exactly three things: turns (C2), outcomes (C3) and interrupts
-(C4). The workflow comparison (W1) is not available in this version: its
-association of a run with a message needed a new rule in each of three
-readings, and it comes in its own change with its own reading. Where a session
-has a workflow run to compare, a W1 row says so with the outcome blocked; W1 is
-never passed and never left out, and asking for it by name is refused.
+It always compares turns (C2), outcomes (C3) and interrupts (C4). The workflow
+comparison (W1) is bounded by uniqueness, not by associating a run with a
+message: it can pass only when Codex's record of the thread holds exactly one
+message carrying the workflow markers, the App's records hold exactly one
+run-start text for the thread, and the one text element of that message
+carrying the markers equals that run text byte for byte, with the bytes between
+its markers equal to the stored WORKFLOW.md bytes the App recorded. Any other
+count, or anything unreadable, is blocked, never passed and never inferred.
+Several runs in one thread, and children, are not compared. Where a session has
+no workflow run, there is no W1 row.
 
 Codex's record is the session file Codex writes under its home
 (`sessions/YYYY/MM/DD/rollout-<UTC time>-<threadId>.jsonl`). It is read only
@@ -16,7 +21,8 @@ inside an examination root (a folder the examination launcher made: `home/`,
 copied.
 
 The claim: a row says passed only when both sides were read, were identified as
-the same subject by an identifier and not by position, and agree; every other
+the same subject by an identifier and not by position (for W1, by being the
+only one of its kind on each side), and agree; every other
 case is failed, inconclusive, blocked or not run; every planned comparison
 yields at least one row; and no row carries message or output text.
 
@@ -39,31 +45,43 @@ How it holds:
     the kind of failure.
 
 Comparisons: C2 turns (both ways, every turn the view shows), C3 each turn's
-outcome, C4 each interrupt the App recorded. Standard library only; nothing is
-sent anywhere.
+outcome, C4 each interrupt the App recorded, W1 the workflow supplied in a
+thread with one run. Standard library only; nothing is sent anywhere.
 """
 import argparse
 import hashlib
+import html
 import json
 import os
 import re
 import secrets
 import sqlite3
 import sys
+import urllib.parse
 from datetime import datetime, timezone
 from pathlib import Path
 
-MODEL_VERSION = 'session-comparison-model/1'
+MODEL_VERSION = 'session-comparison-model/2'
 # The one Codex version whose session file layout this model was checked
 # against, on a real session file made at that version. A file of any other
 # version is blocked; a new pin needs its own check before this changes.
 PINNED_CODEX = '0.169.0'
 TOOL = 'app/examination/session_comparison/compare.py'
+# Always made, each with at least one row. W1 is made where the session has a
+# workflow run to compare, and has no row otherwise.
 PLANNED = ('C2', 'C3', 'C4')
-COMPARES = {'C2': 'turns', 'C3': 'outcomes', 'C4': 'interrupts'}
-NOT_AVAILABLE = 'the workflow comparison is not available in this version'
-WORKFLOW_NAMES = ('w1', 'workflow')
-WORKFLOW_MARKER = b'<<<chirality-workflow '
+NAMED = PLANNED + ('W1',)
+COMPARES = {'C2': 'turns', 'C3': 'outcomes', 'C4': 'interrupts', 'W1': 'the workflow supplied, in a thread with one run'}
+WORKFLOW_SCOPE = ('W1 is compared only where Codex holds exactly one message carrying the workflow markers in this thread '
+                  'and the App exactly one run-start text for it; any other count, or anything unreadable, is blocked. '
+                  'Several runs in one thread, and children, are not compared')
+# What every workflow marker begins with, compared case-folded, in a value as
+# it is and once decoded (HTML entities, escapes, percent-encoding, JSON held
+# in a string).
+MARKER = '<<<chirality-workflow'
+CONTENT_METHOD = 'chirality.app.exact-bytes.sha256/v1'
+WORKFLOW_ORIGINS = ('project', 'user', 'bundled', 'host')
+RECORD_ID = re.compile(r'^wr-record:v1:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$')
 OUTCOMES = ('passed', 'failed', 'blocked', 'not run', 'inconclusive')
 TERMINAL = ('completed', 'failed', 'interrupted')
 VIEW_STATUSES = ('inProgress', 'completed', 'failed', 'interrupted')
@@ -121,7 +139,7 @@ def has_unrecognised(value):
 def row(comparison, subject, codex, app, outcome, reason):
     """One row. `subject`, `codex` and `app` hold only allowlisted values; a row
     naming anything unrecognised can never pass."""
-    assert outcome in OUTCOMES and (comparison in PLANNED or (comparison == 'W1' and outcome == 'blocked'))
+    assert outcome in OUTCOMES and comparison in NAMED
     if outcome == 'passed' and (has_unrecognised(subject) or has_unrecognised(codex) or has_unrecognised(app)):
         outcome, reason = 'inconclusive', 'a value on one side is not one this comparison recognises'
     return {'comparison': comparison, 'subject': subject, 'codex': codex, 'app': app, 'outcome': outcome, 'reason': reason}
@@ -130,8 +148,7 @@ def row(comparison, subject, codex, app, outcome, reason):
 def blocked_all(thread, reason):
     """Every planned comparison blocked; and, since whether the session has a
     workflow run is then not known, the workflow comparison's row as well."""
-    return [row(c, {'thread': ident(thread)}, {'says': 'not read'}, {'says': 'not compared'}, 'blocked', reason) for c in PLANNED] + \
-        [row('W1', {'thread': ident(thread)}, {'says': 'not read'}, {'says': 'not compared'}, 'blocked', NOT_AVAILABLE)]
+    return [row(c, {'thread': ident(thread)}, {'says': 'not read'}, {'says': 'not compared'}, 'blocked', reason) for c in NAMED]
 
 
 # --- Where records may be read ---------------------------------------------
@@ -190,6 +207,61 @@ def session_file(root, thread):
     return inside(root, found[0])
 
 
+# --- The workflow markers, wherever they are ----------------------------------
+
+UNESCAPE = re.compile(r'\\u([0-9a-fA-F]{4})|\\x([0-9a-fA-F]{2})')
+
+
+def decodings(text, depth=0):
+    """The string as it is and as each decoding this tool knows makes it, applied
+    again up to three times: HTML entities, \\u and \\x escapes, percent-encoding,
+    and JSON held in the string."""
+    seen, frontier = {text}, [text]
+    for _ in range(3):
+        nxt = []
+        for value in frontier:
+            for decoded in (html.unescape(value), UNESCAPE.sub(lambda m: chr(int(m.group(1) or m.group(2), 16)), value),
+                            urllib.parse.unquote(value)):
+                if decoded not in seen:
+                    seen.add(decoded)
+                    nxt.append(decoded)
+            if depth < 3 and value.strip()[:1] in ('{', '[', '"'):
+                try:
+                    inner = json.loads(value)
+                except Exception:
+                    inner = None
+                for _, s in strings(inner):
+                    for decoded in decodings(s, depth + 1):
+                        if decoded not in seen:
+                            seen.add(decoded)
+                            nxt.append(decoded)
+        frontier = nxt
+    return seen
+
+
+def carries_marker(text):
+    return any(MARKER in d.casefold() for d in decodings(text))
+
+
+def strings(value, path=()):
+    """Every string of a JSON value, keys included, with its path."""
+    if isinstance(value, str):
+        yield path, value
+    elif isinstance(value, dict):
+        for k, v in value.items():
+            yield path + ('key',), k
+            yield from strings(v, path + (k,))
+    elif isinstance(value, list):
+        for i, v in enumerate(value):
+            yield from strings(v, path + (i,))
+
+
+def marked_values(line):
+    """(path, string) of every string of a line that carries a marker, as it is
+    or once decoded."""
+    return [(path, s) for path, s in strings(line) if carries_marker(s)]
+
+
 # --- The strict model of Codex's record ----------------------------------------
 
 def read_session(root, thread):
@@ -206,15 +278,16 @@ def parse_session(data, thread):
     lines = data.splitlines()
     if not lines:
         raise Refused('the session file is empty')
-    events, order, marked = {}, [], 0
+    events, order, marked = {}, [], []
     for number_, raw in enumerate(lines, 1):
         try:
             line = json.loads(raw)
         except Exception:
             raise Refused('a line of the session file is not JSON')
-        # The markers, in the bytes or in any decoded value (JSON may escape them).
-        if WORKFLOW_MARKER in raw or WORKFLOW_MARKER.decode() in json.dumps(line, ensure_ascii=False):
-            marked += 1
+        # The markers, in the bytes or in any value as it is or once decoded.
+        found = marked_values(line)
+        if found or carries_marker(raw.decode('utf-8', 'replace')):
+            marked.append({'line': number_, 'value': line, 'marked': found})
         if not isinstance(line, dict) or not isinstance(line.get('type'), str) or not isinstance(line.get('payload'), dict):
             raise Refused('a line of the session file is not a session line')
         kind, payload = line['type'], line['payload']
@@ -235,7 +308,7 @@ def parse_session(data, thread):
                     order.append(turn)
                 events[turn].append((number_, event, payload))
     turns = {turn: reading(events[turn]) for turn in order}
-    return {'thread': thread, 'order': order, 'turns': turns, 'workflow_marked_lines': marked}
+    return {'thread': thread, 'order': order, 'turns': turns, 'workflow_marked_lines': len(marked), 'workflow_lines': marked}
 
 
 def reading(events):
@@ -435,40 +508,178 @@ def records_rows(root, model):
 
 
 def run_text_records(root, thread):
-    """How many of the App's run text records name `thread`, and how many
-    workflow record files could not be read (any of which may)."""
-    found = unreadable = 0
+    """The App's run text records naming `thread`, read from every WR record
+    file under the root (`records/.../workflow/<id>.json`, the envelope the App
+    publishes), and how many such files could not be read, any of which may
+    name it. Returns (run starts, end notices, unreadable)."""
+    starts, notices, unreadable = [], [], 0
     for path in sorted(root.rglob('*.json')):
         parts = path.relative_to(root).parts
         if 'records' not in parts or 'workflow' not in parts:
             continue
         try:
             value = json.loads(inside(root, path).read_text())
+            match = RECORD_ID.match(value.get('record_id', '')) if isinstance(value, dict) else None
+            assert value['version'] == 1 and match and match.group(1) == path.stem and isinstance(value['body'], dict)
         except Exception:
             unreadable += 1
             continue
-        records = value if isinstance(value, list) else [value.get('record', value)] if isinstance(value, dict) else None
-        if records is None or not all(isinstance(r, dict) for r in records):
-            unreadable += 1
+        body = value['body']
+        if body.get('record_kind') != 'run_text' or body.get('conversation') != thread:
             continue
-        found += sum(1 for r in records if r.get('record_kind') == 'run_text' and r.get('conversation') == thread)
-    return found, unreadable
+        if body.get('purpose') == 'run start':
+            starts.append((match.group(1), body))
+        elif body.get('purpose') == 'run end notice':
+            notices.append((match.group(1), body))
+        else:
+            unreadable += 1
+    return starts, notices, unreadable
+
+
+def marker_line(name, revision, which):
+    return f'<<<chirality-workflow {name}@{revision[:12]} {which}>>>'
+
+
+def start_frame(body):
+    """(prefix, suffix, identity) of a run-start run text as its record gives
+    it, or Refused where the record does not give one readable frame. The text
+    is prefix + the WORKFLOW.md bytes + suffix (WR-FRAME-1)."""
+    workflow, wf, lines, text = body.get('workflow'), body.get('workflow_file'), body.get('lines'), body.get('text_identity')
+    if not (isinstance(workflow, dict) and isinstance(wf, dict) and isinstance(lines, dict) and isinstance(text, dict)):
+        raise Refused("the App's run text record does not give its workflow, its WORKFLOW.md, its lines and its text identity")
+    name, revision = workflow.get('name'), workflow.get('revision')
+    content = wf.get('content') if isinstance(wf.get('content'), dict) else {}
+    if not (isinstance(name, str) and isinstance(revision, str) and HEX64.match(revision) and wf.get('path') == 'WORKFLOW.md'
+            and content.get('method') == CONTENT_METHOD and digest(content.get('value')) != UNRECOGNISED
+            and text.get('method') == CONTENT_METHOD and digest(text.get('value')) != UNRECOGNISED
+            and number(wf.get('bytes')) != UNRECOGNISED and number(body.get('text_bytes')) != UNRECOGNISED):
+        raise Refused("the App's run text record does not identify its workflow and texts by exact bytes")
+    if body.get('chain') not in (None,) or 'chain_line' in lines:
+        raise Refused("the App's run text follows an earlier run in this thread, which this comparison does not compare")
+    begin, end = marker_line(name, revision, 'begin'), marker_line(name, revision, 'end')
+    if lines.get('begin_marker') != begin or lines.get('end_marker') != end:
+        raise Refused("the App's run text record names markers other than its workflow's")
+    frame = [lines.get('start_line'), lines.get('proposal_line')] + ([lines['files_line']] if 'files_line' in lines else [])
+    if not all(isinstance(l, str) and l and '\n' not in l and '\r' not in l for l in frame) or \
+            set(lines) - {'start_line', 'proposal_line', 'files_line', 'begin_marker', 'end_marker'}:
+        raise Refused("the App's run text record does not give one readable frame")
+    return '\n'.join(frame + [begin]) + '\n', '\n' + end, {
+        'origin': one_of(workflow.get('origin'), WORKFLOW_ORIGINS), 'workflow': ident(name), 'revision': digest(revision),
+        'text_sha256': text['value'], 'text_bytes': body['text_bytes'], 'workflow_sha256': content['value'], 'workflow_bytes': wf['bytes']}
+
+
+def codex_candidate(model):
+    """The one text element of the one message carrying the workflow markers:
+    (side, element) where side holds only counts and identifiers, or Refused
+    with its side where there is not exactly one, or a line other than it
+    carries the markers otherwise than as an exact copy of it."""
+    lines = model.get('workflow_lines', [])
+    messages = [l for l in lines if l['value'].get('type') == 'response_item' and isinstance(l['value'].get('payload'), dict)
+                and l['value']['payload'].get('type') == 'message']
+    side = {'linesWithWorkflowMarkers': number(len(lines)), 'messagesWithWorkflowMarkers': number(len(messages))}
+    if len(messages) != 1:
+        return side, None, 'Codex does not hold exactly one message carrying the workflow markers in this thread'
+    (message,) = messages
+    payload = message['value']['payload']
+    side['line'] = message['line']
+    turn = (payload.get('internal_chat_message_metadata_passthrough') or {}).get('turn_id') if isinstance(
+        payload.get('internal_chat_message_metadata_passthrough'), dict) else None
+    if turn is not None:
+        side['turn'] = ident(turn)
+    if payload.get('role') != 'user':
+        return side, None, "the message carrying the workflow markers is not the person's input"
+    content = payload.get('content')
+    places = {path for path, _ in message['marked']}
+    if not isinstance(content, list) or not places or not all(
+            len(path) == 4 and path[:2] == ('payload', 'content') and isinstance(path[2], int) and path[3] == 'text' for path in places):
+        return side, None, 'the workflow markers are carried elsewhere in the message than in its text elements'
+    if len({path[2] for path in places}) != 1:
+        return side, None, 'more than one text element of the message carries the workflow markers'
+    index = next(iter(places))[2]
+    item = content[index]
+    element = item.get('text') if isinstance(item, dict) else None
+    side['element'] = index
+    side['elements'] = number(len(content))
+    if not (isinstance(item, dict) and item.get('type') == 'input_text' and isinstance(element, str)):
+        return side, None, 'the text element carrying the workflow markers is not one this comparison reads'
+    if MARKER not in element.casefold():
+        return side, None, 'the workflow markers are carried only in an encoded form'
+    echoes = 0
+    for other in lines:
+        if other is message:
+            continue
+        payload_ = other['value'].get('payload')
+        same_turn = not isinstance(payload_, dict) or payload_.get('turn_id') in (None, turn)
+        if other['value'].get('type') == 'event_msg' and same_turn and other['marked'] and all(s == element for _, s in other['marked']):
+            echoes += 1
+            continue
+        return side, None, 'a line other than the message carries the workflow markers otherwise than as an exact copy of its text'
+    side['copies'] = echoes
+    try:
+        element.encode('utf-8')
+    except UnicodeEncodeError:
+        return side, None, 'the text element carrying the workflow markers is not UTF-8 text'
+    return side, element, None
 
 
 def workflow_rows(root, model):
-    """One blocked W1 row where the session has a workflow run to compare (a
-    line of Codex's record carries the workflow markers, or a run text record
-    names the thread, or a workflow record could not be read), and none
-    otherwise. W1 is never compared, so it never passes."""
+    """W1, where the session has a workflow run to compare (a line of Codex's
+    record carries the workflow markers, a run text record names the thread,
+    or a workflow record could not be read); no row otherwise. Bounded by
+    uniqueness: blocked unless Codex holds exactly one message carrying the
+    markers and the App exactly one run-start text for the thread, both read.
+    Then passed only where the marked text element equals the run text byte
+    for byte and its bytes between the markers equal the stored WORKFLOW.md
+    bytes the App recorded; any difference fails."""
+    thread = model['thread']
     try:
-        found, unreadable = run_text_records(root, model['thread'])
+        starts, notices, unreadable = run_text_records(root, thread)
     except Exception:
-        found, unreadable = 0, 1
-    marked = model.get('workflow_marked_lines', 0)
-    if not (marked or found or unreadable):
+        starts, notices, unreadable = [], [], 1
+    lines = model.get('workflow_lines', [])
+    if not (lines or starts or notices or unreadable):
         return []
-    return [row('W1', {'thread': model['thread']}, {'linesWithWorkflowMarkers': number(marked)},
-                {'runTextRecords': number(found), 'unreadableWorkflowRecords': number(unreadable)}, 'blocked', NOT_AVAILABLE)]
+    subject = {'thread': thread}
+    app = {'runStartTexts': number(len(starts)), 'endNotices': number(len(notices)), 'unreadableWorkflowRecords': number(unreadable)}
+    codex, element, refusal = codex_candidate(model)
+    blocked = lambda reason: [row('W1', subject, codex, app, 'blocked', reason)]
+    if unreadable:
+        return blocked('a workflow record could not be read, and any of them may name this thread')
+    if len(starts) != 1:
+        return blocked("the App's records do not hold exactly one run-start text for this thread")
+    record, body = starts[0]
+    subject['run'] = ident(body.get('run'))
+    app['record'] = ident(record)
+    if any(n.get('run') != body.get('run') for _, n in notices):
+        return blocked('an end notice in this thread is of another run than its one run start')
+    try:
+        prefix, suffix, identity = start_frame(body)
+    except Refused as e:
+        return blocked(str(e))
+    app.update(identity)
+    if refusal:
+        return blocked(refusal)
+    data = element.encode('utf-8')
+    codex.update({'text_sha256': sha256(data), 'text_bytes': len(data)})
+    if element.casefold().count(MARKER) != 2:
+        return blocked('the text Codex holds does not carry exactly one begin and one end marker')
+    lines_of = element.split('\n')
+    begin, end = prefix.split('\n')[-2], suffix[1:]
+    if lines_of.count(begin) != 1 or lines_of.count(end) != 1:
+        return [row('W1', subject, codex, app, 'failed', "the markers Codex holds name another workflow or revision than the App's run text")]
+    if element.startswith(prefix) and element.endswith(suffix) and len(element) >= len(prefix) + len(suffix):
+        inner = element[len(prefix):len(element) - len(suffix)].encode('utf-8')
+        codex.update({'workflow_sha256': sha256(inner), 'workflow_bytes': len(inner)})
+    else:
+        codex['workflow_sha256'] = None
+    text_equal = codex['text_sha256'] == identity['text_sha256'] and codex['text_bytes'] == identity['text_bytes']
+    body_equal = codex.get('workflow_sha256') == identity['workflow_sha256'] and codex.get('workflow_bytes') == identity['workflow_bytes']
+    if not text_equal:
+        return [row('W1', subject, codex, app, 'failed', 'the text Codex holds is not the run text the App composed, byte for byte')]
+    if not body_equal:
+        return [row('W1', subject, codex, app, 'failed', 'the bytes between the markers are not the stored WORKFLOW.md bytes the App recorded')]
+    return [row('W1', subject, codex, app, 'passed',
+                'the one message carrying the markers holds the one run text byte for byte, and the stored WORKFLOW.md bytes between them')]
 
 
 # --- The candidate's screen list ------------------------------------------------
@@ -539,13 +750,13 @@ def fallback_header(root, **extra):
             return None
     return {'header': True, 'candidate_key': tried(lambda: candidate_key(root)),
             'examination_root': str(root), 'tool': TOOL, 'tool_sha256': tried(tool_digest), 'model_version': MODEL_VERSION,
-            'pinned_codex': PINNED_CODEX, 'compares': COMPARES, 'workflow_comparison': NOT_AVAILABLE, 'fallback': True, **extra}
+            'pinned_codex': PINNED_CODEX, 'compares': COMPARES, 'workflow_scope': WORKFLOW_SCOPE, 'fallback': True, **extra}
 
 
 def header(root, **extra):
     return {'header': True, 'candidate_key': candidate_key(root), 'examination_root': str(root), 'tool': TOOL,
             'tool_sha256': tool_digest(), 'model_version': MODEL_VERSION, 'pinned_codex': PINNED_CODEX,
-            'compares': COMPARES, 'workflow_comparison': NOT_AVAILABLE, **extra}
+            'compares': COMPARES, 'workflow_scope': WORKFLOW_SCOPE, **extra}
 
 
 def summary(rows):
@@ -554,7 +765,7 @@ def summary(rows):
         counts.setdefault(r['comparison'], {}).setdefault(r['outcome'], 0)
         counts[r['comparison']][r['outcome']] += 1
     return {'summary': counts, 'unrecognised': sum(1 for r in rows if has_unrecognised(r)),
-            'compares': COMPARES, 'workflow_comparison': NOT_AVAILABLE}
+            'compares': COMPARES, 'workflow_scope': WORKFLOW_SCOPE}
 
 
 def write(root, stem, head, body, with_summary=True, fallback=False):
@@ -570,7 +781,7 @@ def write(root, stem, head, body, with_summary=True, fallback=False):
         counts = {}
         for r in body:
             counts.setdefault(r['comparison'], {'blocked': 0})['blocked'] += 1
-        lines.append({'summary': counts, 'unrecognised': 0, 'compares': COMPARES, 'workflow_comparison': NOT_AVAILABLE})
+        lines.append({'summary': counts, 'unrecognised': 0, 'compares': COMPARES, 'workflow_scope': WORKFLOW_SCOPE})
     elif with_summary:
         total = summary(body)
         if sum(sum(v.values()) for v in total['summary'].values()) != len(body) or not {r['comparison'] for r in body} >= set(PLANNED):
@@ -641,14 +852,11 @@ def main(argv=None):
     a.add_argument('--screen', required=True)
     for parser in (c, a):
         parser.add_argument('--comparison', action='append', default=[],
-                            help='a comparison asked for by name (C2, C3 or C4; all three are always made). '
-                                 'The workflow comparison is not available in this version.')
+                            help='a comparison asked for by name (C2, C3, C4 or W1). C2, C3 and C4 are always made; '
+                                 'W1 is made where the session has a workflow run to compare.')
     args = p.parse_args(argv)
     for name in args.comparison:
-        if name.strip().lower() in WORKFLOW_NAMES:
-            print(f'refused: {NOT_AVAILABLE}', file=sys.stderr)
-            return 2
-        if name not in PLANNED:
+        if name not in NAMED:
             print('refused: this tool has no comparison of that name', file=sys.stderr)
             return 2
     try:

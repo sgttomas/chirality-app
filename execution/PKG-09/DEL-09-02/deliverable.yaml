@@ -46,6 +46,13 @@ needs:
     person's workflow approval policy with the same source and revision, its selection and run records
     stating the policy requested and the approval evidence applied.
   gating: true
+- from: DEL-02-02
+  condition: Each run start is published as one run text record in the App's workflow record envelope
+    (version 1, its record identifier naming its file) in a workflow folder of its records, naming the
+    conversation and the run, the selected workflow's origin, name and revision, the frame lines and
+    markers, and the exact-bytes digests and byte counts of the whole run text and of the WORKFLOW.md
+    bytes it was composed from.
+  when: Reading the session comparison's workflow comparison (W1) on a candidate
 - from: DEL-02-03
   condition: A human checkpoint in a workflow run is recorded only when the person performs it, and
     each act keeps its own meaning.
