@@ -12,7 +12,7 @@ import sys
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[2]
-FORMAT = 'font-notice/1'
+FORMAT = 'font-notice/2'
 FONT_DIR = 'app/src/fonts'
 CSS = 'app/src/workspace.css'
 HTML = 'app/index.html'
@@ -55,32 +55,143 @@ def exact_file(root, entry):
     return raw
 
 
+FAMILIES = ('mono', 'sans', 'serif')
+# The @fontsource packages the fonts were taken from; integrities are npm's registry values for these
+# exact tarballs (no App lockfile pins them: they are not npm dependencies of the App).
+UPSTREAM = {
+    'mono': ('@fontsource/ibm-plex-mono', '5.3.0',
+             'sha512-eTgnZjZEGk1QtD3ZstF+Vclo2HLAni8YMy34/DxllwZvyz1lR/1RF/xTiAquOBO7MvqBx8D2Ig2WCPMVfdZu7Q=='),
+    'sans': ('@fontsource/ibm-plex-sans', '5.3.0',
+             'sha512-CbE4CbbEEZJX860XyUiRpsksXIQR8Rp2XDva2VO53NJox9tVNtusrysd2x5YkUEY3ErQ66W1IiiQL8/wihhw5w=='),
+    'serif': ('@fontsource/ibm-plex-serif', '5.3.0',
+              'sha512-zwPfHB7EJbS5B8qnitPigJYzNdnt6PUeaoOA1gAAt//1pjpTVZN5sOU14NIAZ+C1xypL6GWsUG2VMYJW9bhJqQ=='),
+}
+# The Sans text keeps its name: the frontend entry links it.
+LICENSE_NAMES = {'mono': 'LICENSE-IBM-Plex-Mono-OFL.txt', 'sans': 'LICENSE-IBM-Plex-OFL.txt', 'serif': 'LICENSE-IBM-Plex-Serif-OFL.txt'}
+SCOPE = ('IBM Plex WOFF2 files bundled by the App frontend from app/src/fonts and the OFL text of each family; exact bytes, '
+         'their @fontsource tarball members and the fonts\' own name-table declarations, not a legal conclusion')
+LIMITS = [
+    "Each family's licence text is the LICENSE its @fontsource 5.3.0 tarball carries; its header names that family's IBM copyright",
+    'No Reserved Font Name appears in the shipped name tables or licence texts; this records strings, not a licensing determination',
+    'The frontend build also embeds these fonts and the Sans licence in the App executable; this index is the bundle-visible notice copy',
+    'Not release approval or legal advice',
+]
+FILE_FIELDS = {'path', 'size_bytes', 'sha256', 'git_blob_sha1'}
+
+
+def family(path):
+    name = PurePosixPath(path).name
+    found = [f for f in FAMILIES if name.startswith('ibm-plex-' + f + '-')]
+    require(len(found) == 1, 'font file names no known family: ' + name)
+    return found[0]
+
+
 def check(root=ROOT):
     root = Path(root)
     index = load(root / 'app/packaging/font_notice/index.json')
-    require(set(index) == {'format', 'scope', 'source', 'license', 'fonts', 'copyright_notices', 'limits'}
+    require(set(index) == {'format', 'scope', 'source', 'upstream_packages', 'licenses', 'fonts', 'copyright_notices', 'limits'}
             and index['format'] == FORMAT, 'unknown font notice index shape')
     source = index['source']
-    require(set(source) == {'repository', 'revision', 'path', 'added_by_commit', 'declared_upstream', 'declared_upstream_verified'}
+    require(set(source) == {'repository', 'revision', 'path', 'added_by_commit', 'declared_upstream', 'declared_upstream_verified',
+                            'upstream_evidence'}
             and re.fullmatch('[0-9a-f]{40}', source['revision']) and re.fullmatch('[0-9a-f]{40}', source['added_by_commit'])
-            and source['declared_upstream_verified'] is False, 'font source provenance differs')
-    license = index['license']
-    require(set(license) == {'path', 'size_bytes', 'sha256', 'git_blob_sha1', 'title', 'header_copyright'}, 'unknown license fields')
-    text = exact_file(root, license).decode('utf-8')
-    require(text.splitlines()[0] == license['header_copyright'] and text.count(license['title']) == 1, 'license header/title differs')
+            and type(source['declared_upstream_verified']) is bool, 'font source provenance differs')
+    verified = source['declared_upstream_verified']
+    packages = index['upstream_packages']
+    require(packages == ([{'family': f, 'package': p, 'version': v, 'integrity': i} for f, (p, v, i) in sorted(UPSTREAM.items())]
+                         if verified else []), 'upstream package list differs from the pinned @fontsource tarballs')
+    by_family = {p['family']: p for p in packages}
+    def upstream(entry, member):
+        if not verified:
+            require('upstream' not in entry, 'upstream evidence without a verified claim')
+            return
+        require(entry.get('upstream') == {'package': by_family[entry['family']]['package'], 'member': member},
+                'upstream evidence differs: ' + entry['path'])
+    licenses = index['licenses']
+    require(isinstance(licenses, list) and [l.get('family') for l in licenses] == sorted({family(f['path']) for f in index['fonts']}),
+            'one licence text per bundled font family required')
+    for license in licenses:
+        require(set(license) - {'upstream'} == FILE_FIELDS | {'family', 'title', 'header_copyright'}
+                and license['path'] == FONT_DIR + '/' + LICENSE_NAMES[license['family']], 'unknown license fields')
+        text = exact_file(root, license).decode('utf-8')
+        require(text.splitlines()[0] == license['header_copyright'] and text.count(license['title']) == 1, 'license header/title differs')
+        upstream(license, 'package/LICENSE')
     fonts = index['fonts']
     require(isinstance(fonts, list) and fonts, 'no indexed fonts')
     for font in fonts:
-        require(set(font) == {'path', 'size_bytes', 'sha256', 'git_blob_sha1', 'name_table'}
+        require(set(font) - {'upstream'} == FILE_FIELDS | {'family', 'name_table'} and font['family'] == family(font['path'])
                 and set(font['name_table']) == set(NAME_FIELDS) and font['path'].endswith('.woff2'), 'unknown font fields')
         exact_file(root, font)
+        upstream(font, 'package/files/' + PurePosixPath(font['path']).name)
     names = [PurePosixPath(f['path']).name for f in fonts]
     require(len(set(names)) == len(names) and names == sorted(names), 'duplicate or unordered font entries')
     present = {p.name for p in (root / FONT_DIR).iterdir()}
-    require(present == set(names) | {PurePosixPath(license['path']).name}, 'unindexed or missing file in ' + FONT_DIR)
+    require(present == set(names) | {PurePosixPath(l['path']).name for l in licenses}, 'unindexed or missing file in ' + FONT_DIR)
     require(index['copyright_notices'] == sorted({f['name_table']['copyright'] for f in fonts}), 'copyright notice list differs')
     check_frontend_sources(root, names)
     return index
+
+
+def tarball(npm_cache, integrity):
+    """Read one cached tarball by integrity (npm's content-addressed cache); read-only, no fallback."""
+    import base64
+    digest = base64.b64decode(integrity.split('-', 1)[1], validate=True)
+    require(integrity.startswith('sha512-'), 'unsupported integrity')
+    raw = (Path(npm_cache) / '_cacache/content-v2/sha512' / digest.hex()[:2] / digest.hex()[2:4] / digest.hex()[4:]).read_bytes()
+    require(hashlib.sha512(raw).digest() == digest, 'cached tarball differs from its integrity')
+    return raw
+
+
+def members(raw):
+    import io, tarfile
+    with tarfile.open(fileobj=io.BytesIO(raw)) as archive:
+        return {m.name: archive.extractfile(m).read() for m in archive.getmembers() if m.isfile()}
+
+
+def check_upstream(index, npm_cache, root=ROOT):
+    """Compare every font and licence byte for byte with its member of the pinned tarball."""
+    require(index['source']['declared_upstream_verified'], 'no upstream claim to verify')
+    trees = {p['package']: members(tarball(npm_cache, p['integrity'])) for p in index['upstream_packages']}
+    count = 0
+    for entry in index['licenses'] + index['fonts']:
+        require(trees[entry['upstream']['package']].get(entry['upstream']['member']) == (Path(root) / entry['path']).read_bytes(),
+                'shipped bytes differ from the tarball member: ' + entry['path'])
+        count += 1
+    return count
+
+
+def generate(npm_cache, root=ROOT):
+    """Write the per-family licence texts from the tarballs and return the index with its upstream evidence."""
+    root = Path(root)
+    index = load(root / 'app/packaging/font_notice/index.json')
+    trees = {f: members(tarball(npm_cache, i)) for f, (_, _, i) in UPSTREAM.items()}
+    def file_entry(path, raw):
+        return {'path': path, 'size_bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest(), 'git_blob_sha1': blob(raw)}
+    fonts = []
+    for font in index['fonts']:
+        name, fam = PurePosixPath(font['path']).name, family(font['path'])
+        raw = (root / font['path']).read_bytes()
+        require(trees[fam].get('package/files/' + name) == raw, 'font differs from its tarball member: ' + name)
+        fonts.append({**file_entry(font['path'], raw), 'family': fam, 'name_table': font['name_table'],
+                      'upstream': {'package': UPSTREAM[fam][0], 'member': 'package/files/' + name}})
+    licenses = []
+    for fam in sorted({f['family'] for f in fonts}):
+        raw = trees[fam]['package/LICENSE']
+        path = FONT_DIR + '/' + LICENSE_NAMES[fam]
+        target = root / path
+        if not target.exists() or target.read_bytes() != raw:
+            target.write_bytes(raw)
+        text = raw.decode('utf-8')
+        licenses.append({**file_entry(path, raw), 'family': fam, 'title': 'SIL OPEN FONT LICENSE Version 1.1 - 26 February 2007',
+                         'header_copyright': text.splitlines()[0], 'upstream': {'package': UPSTREAM[fam][0], 'member': 'package/LICENSE'}})
+    source = {k: index['source'][k] for k in ('repository', 'revision', 'path', 'added_by_commit', 'declared_upstream')}
+    source.update(declared_upstream_verified=True, upstream_evidence=(
+        'Each font file and each licence text equals, byte for byte, the named member of the named @fontsource 5.3.0 '
+        'tarball; each tarball was read from a local npm cache and its SHA-512 equals the pinned integrity. '
+        'Recheck with --npm-cache.'))
+    return {'format': FORMAT, 'scope': SCOPE, 'source': source,
+            'upstream_packages': [{'family': f, 'package': p, 'version': v, 'integrity': i} for f, (p, v, i) in sorted(UPSTREAM.items())],
+            'licenses': licenses, 'fonts': fonts, 'copyright_notices': index['copyright_notices'], 'limits': LIMITS}
 
 
 FONT_REFERENCE = re.compile(r'@font-face|\bFontFace\s*\(|\.(?:woff2?|ttf|otf|eot)\b', re.IGNORECASE)
@@ -177,12 +288,21 @@ def check_name_tables(index, root=ROOT):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--name-tables', action='store_true', help='Also decode each WOFF2 name table (needs node)')
+    parser.add_argument('--npm-cache', type=Path, help='Also compare every file with its member of the pinned tarball')
+    parser.add_argument('--generate', action='store_true', help='With --npm-cache: rewrite index.json and the licence texts')
     args = parser.parse_args()
     try:
+        if args.generate:
+            require(args.npm_cache is not None, '--generate needs --npm-cache')
+            (ROOT / 'app/packaging/font_notice/index.json').write_text(json.dumps(generate(args.npm_cache), indent=2) + '\n')
         index = check()
         decoded = check_name_tables(index) if args.name_tables else 0
-        print(json.dumps({'font_notice_match': True, 'fonts': len(index['fonts']), 'name_tables_checked': decoded,
-                          'copyright_notices': index['copyright_notices'], 'declared_upstream_verified': False,
+        upstream = check_upstream(index, args.npm_cache) if args.npm_cache else 0
+        print(json.dumps({'font_notice_match': True, 'fonts': len(index['fonts']), 'licenses': len(index['licenses']),
+                          'name_tables_checked': decoded, 'upstream_members_checked': upstream,
+                          'copyright_notices': index['copyright_notices'],
+                          'index_records_upstream_verified': index['source']['declared_upstream_verified'],
+                          'upstream_rechecked_now': bool(upstream),
                           'standing': 'notice preparation only; no built candidate, legal determination or release approval'}))
         return 0
     except (ValueError, KeyError, TypeError, OSError, UnicodeDecodeError, struct.error, IndexError,

@@ -30,7 +30,8 @@ class NoticeResources(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.base = Path(self.temp.name).resolve()
         self.root = self.base / 'notices'
-        shutil.copytree(ROOT, self.root)
+        # The direct check reads only index.json and assets/; the shipped transitive texts are checked elsewhere.
+        shutil.copytree(ROOT, self.root, ignore=shutil.ignore_patterns('transitive'))
         self.overlay = self.base / 'overlay.json'
         shutil.copyfile(OVERLAY, self.overlay)
         self.index = check.load(self.root / 'index.json')
@@ -149,7 +150,8 @@ class NoticeResources(unittest.TestCase):
 
     def test_explicit_mapping_stages_exact_saved_namespace_without_claiming_sdk_execution(self):
         overlay = check.load(OVERLAY)
-        paths = {s: d for s, d in overlay['bundle']['resources'].items() if d.startswith('third-party-notices/')}
+        direct = {'index.json'} | {n['asset'] for c in check.load(ROOT / 'index.json')['components'] for n in c['notices']}
+        paths = {s: d for s, d in overlay['bundle']['resources'].items() if d.removeprefix('third-party-notices/') in direct}
         self.assertEqual(len(paths), 31)
         self.assertEqual(len(set(paths.values())), 31)
         staging = self.base / 'staging'

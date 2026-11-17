@@ -63,13 +63,17 @@ Test namespaces are refused in production mode.
 Outputs, in a new private directory:
 
 - `tauri.package-inputs.conf.json`: 4.0.0, minimum15.0, App-only target, signing
-  identity null, existing P2/P3 + twelve attested-reference mappings + bounded
-  direct notices + separate SQLite source-input resources + the IBM Plex font
-  notice (`third-party-notices/fonts/`, refused if its index is stale) + complete vendor P1.
+  identity null, existing P2/P3 + twelve attested-reference mappings + every notice
+  resource of `../unsigned/tauri.notices.conf.json` (direct, transitive and supplier
+  texts and the coverage account) + separate SQLite source-input resources + the
+  IBM Plex font notices (`third-party-notices/fonts/`, refused if their index is
+  stale) + complete vendor P1.
 - `input-inventory.json`: exact selected resources/files/vendor hashes and modes,
-  declared source revision, every loaded tool-module hash (four, or five with an
-  upstream supplement) and jsonschema
-  version, with limits. The source
+  declared source revision, the hash of each tool module the preparation loads
+  directly (six, or seven with an upstream supplement; the modules those load in
+  turn, such as the notice tools `package_texts.py`, `transitive.py` and `check.py`,
+  are not hashed separately) and jsonschema version, the notice coverage account's
+  digest, counts and open components, the plan's release standing, and limits. The source
   revision is a caller claim; actual export provenance is separately checked.
 - `build-recipe.json`: argv array and allowlisted build inputs, explicit offline/
   jobs2/no-sign controls and current owner-selected host/cache/scratch admission. This is
@@ -178,6 +182,18 @@ notarization and stapling run, which writes the package identity record, and
 [`record.py`](../release/record.py) builds that record's content and checks a
 package against it. The owner's page is
 [`release/README.md`](../release/README.md).
+
+## Notices and release standing
+
+`../notices/coverage.json` names every open component with what would close
+it. A production plan (`--publisher-input`) refuses while any is open, unless
+`--not-for-public-release` names the plan as not for public release, which
+`input-inventory.json` then states as its `release_standing`. Every mapping of
+the plan must be named in the account by its exact source and destination. The
+plan starts from the base configuration's resources, and the base merged with
+the plan may carry no copy route beyond resources, the icon and the validated
+profile; a platform or alternate Tauri configuration refuses
+(`bundle_resources.py`).
 
 ## Optional upstream notice supplement
 

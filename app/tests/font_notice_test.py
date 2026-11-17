@@ -36,7 +36,8 @@ class FontNotice(unittest.TestCase):
         self.assertEqual(f.check_name_tables(index), 10)
         self.assertEqual({x['name_table']['license_url'] for x in index['fonts']}, {'http://scripts.sil.org/OFL'})
         self.assertEqual(len(index['copyright_notices']), 3)
-        self.assertFalse(index['source']['declared_upstream_verified'])
+        self.assertTrue(index['source']['declared_upstream_verified'])
+        self.assertEqual([l['family'] for l in index['licenses']], ['mono', 'sans', 'serif'])
 
     def test_changed_extra_or_missing_font_bytes_refuse(self):
         font = self.root / 'app/src/fonts/ibm-plex-mono-latin-400-normal.woff2'
@@ -103,13 +104,32 @@ class FontNotice(unittest.TestCase):
 
     def test_index_shape_provenance_and_notice_list_refuse(self):
         for change, message in ((lambda v: v.update(extra=True), 'shape'),
-                                (lambda v: v['source'].update(declared_upstream_verified=True), 'provenance'),
+                                (lambda v: v['source'].update(declared_upstream_verified='yes'), 'provenance'),
+                                (lambda v: v['source'].update(declared_upstream_verified=False), 'upstream package list'),
+                                (lambda v: v['fonts'][0]['upstream'].update(member='package/files/other.woff2'), 'upstream evidence'),
+                                (lambda v: v['licenses'][2]['upstream'].update(package='@fontsource/ibm-plex-sans'), 'upstream evidence'),
+                                (lambda v: v['upstream_packages'][0].update(integrity='sha512-INVENTED'), 'upstream package list'),
+                                (lambda v: v['licenses'].pop(), 'one licence text per'),
                                 (lambda v: v['copyright_notices'].pop(), 'notice list'),
                                 (lambda v: v['fonts'].reverse(), 'unordered'),
-                                (lambda v: v['license'].update(header_copyright='INVENTED'), 'header')):
+                                (lambda v: v['licenses'][0].update(header_copyright='INVENTED'), 'header')):
             with self.subTest(message=message):
                 self.setUp(); self.index(change)
                 with self.assertRaisesRegex(ValueError, message): f.check(self.root)
+
+    def test_missing_family_licence_text_refuses(self):
+        (self.root / 'app/src/fonts/LICENSE-IBM-Plex-Serif-OFL.txt').unlink()
+        with self.assertRaisesRegex(ValueError, 'missing or linked'): f.check(self.root)
+
+    def test_upstream_recheck_refuses_a_tarball_that_is_not_the_pinned_one(self):
+        import base64
+        index = f.check(ROOT)
+        cache = self.root / 'npm'
+        for package in index['upstream_packages']:
+            digest = base64.b64decode(package['integrity'].split('-', 1)[1]).hex()
+            target = cache / '_cacache/content-v2/sha512' / digest[:2] / digest[2:4] / digest[4:]
+            target.parent.mkdir(parents=True, exist_ok=True); target.write_bytes(b'INVENTED tarball')
+        with self.assertRaisesRegex(ValueError, 'differs from its integrity'): f.check_upstream(index, cache)
 
     def test_name_table_declaration_change_refuses(self):
         self.index(lambda v: v['fonts'][0]['name_table'].update(copyright='INVENTED notice'))

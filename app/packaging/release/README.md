@@ -91,8 +91,21 @@ python3 app/packaging/release/build.py \
   --cargo-cache /abs/prepared-cargo-home --npm-cache /abs/prepared-npm-cache \
   --env PATH=<toolchain bin>:<node bin>:/usr/bin:/bin --env LANG=en_US.UTF-8 \
   --tool rustc=... --tool cargo=... --tool clang=... --tool ld=... \
-  --out /abs/new-candidate
+  --out /abs/new-candidate [--not-for-public-release]
 ```
+
+**Release standing.** While any notice is open (`../notices/coverage.json`), the
+build refuses with `BUILD_NOTICE_COVERAGE`; `BUILD_FAILED.json` lists the open
+components by name, and any other notice gap by count. `--not-for-public-release`
+is an explicit argument, off unless typed; nothing else sets it. With it, the
+candidate is an examination candidate, never a publication candidate: the plan
+records the standing (`release_standing`, `not_for_public_release` and the notice
+coverage's digest, completeness and gap count in `input-inventory.json`, bound by
+`PLAN_COMPLETE.json`), `CANDIDATE.json` carries it as `release_standing`, and
+`common.load_candidate` refuses a described standing that is not one of
+`common.STANDINGS` or differs from the plan. The option changes no bundle input:
+the plan's configuration and build environment are the same with or without it,
+so the same inputs give the same bundle bytes.
 
 **Where the build writes.**
 - The source export and both caches are copied into `--out`.
