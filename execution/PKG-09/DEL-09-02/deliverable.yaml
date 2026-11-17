@@ -46,6 +46,33 @@ needs:
     person's workflow approval policy with the same source and revision, its selection and run records
     stating the policy requested and the approval evidence applied.
   gating: true
+- from: DEL-02-02
+  condition: Each run start is published as one run text record in the App's workflow record envelope
+    (version 1, its record identifier naming its file) in the workflow folder of its project in the
+    App's records store, naming the conversation and the run, the selected workflow's full identity (for
+    a bundled workflow, origin bundled, the bundled manifest's release subject as source root, its name,
+    full revision and revision method), its other files by path and digest with the files line, frame
+    lines and markers as the composer makes them, and the exact-bytes digests and byte counts of the
+    whole run text and of the WORKFLOW.md bytes it was composed from; every other record the App
+    publishes for that run is an end notice (a run text of purpose run end notice) or a supply check, and
+    names that run in its own run field;
+    and the bundle's workflows/MANIFEST.json names each bundled package once, with its files and the
+    revision the App's package method gives their bytes.
+  when: Reading the session comparison's workflow comparison (W1) on a candidate
+- from: DEL-04-03
+  condition: A build with the custom protocol, started without a records store override and with no
+    store location chosen by the person, keeps its records store in its App data folder
+    (<home>/Library/Application Support/<bundle identifier>/records), with each project's workflow
+    records in projects/<key>/workflow/, and keeps no new records in place in the project.
+  when: Reading W1 on a candidate launched by the examination launcher, whose environment carries no
+    store override
+- from: DEL-09-01
+  condition: The candidate's identification record and its stored bundle inventory pass identification's
+    own validation, the inventory yielding the record's build identity and naming each bundle file by
+    size and digest, the bundled workflow manifest and every file of each bundled package among them,
+    and the record naming the build's features.
+  when: Reading W1 against the examiner's copy of the selected workflow in record/selected-workflow/,
+    which the examiner prepares from the identified candidate before the walk
 - from: DEL-02-03
   condition: A human checkpoint in a workflow run is recorded only when the person performs it, and
     each act keeps its own meaning.
