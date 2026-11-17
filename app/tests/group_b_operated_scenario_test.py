@@ -224,8 +224,8 @@ class Replay(unittest.TestCase):
         views = setup_views()
         # The page after the press, given a long text: the attempt log outgrows a pipe, and the view no longer equals
         # the recorded state S5, so the verdict is fail. The verdict arrives on its own; the long log goes apart.
-        views['views'][5]['text'] = in_order(views['views'][5]['text'].replace(f'\t\t\t\t\t\t12 text Project: {PROJECT}',
-                                                                      f'\t\t\t\t\t\t12 text Project: {PROJECT}\n\t\t\t\t\t\t13 text ' + 'invented words ' * 5000))
+        line = next(line for line in views['views'][5]['text'].split('\n') if line.endswith(f' text Project: {PROJECT}'))
+        views['views'][5]['text'] = in_order(views['views'][5]['text'].replace(line, f'{line}\n\t\t\t\t\t\t0 text ' + 'invented words ' * 5000))
         with tempfile.TemporaryDirectory() as folder:
             log = Path(folder) / 'attempt-log.json'
             done = subprocess.run([NODE, str(REPLAY), str(rebound(SETUP, folder)), str(self.views_file(views)), '--log', str(log)],
@@ -599,6 +599,7 @@ class Detached(unittest.TestCase):
         os.kill(started['pid'], 0)  # still running after the starter returned
         written = json.loads((folder / 'stand-in.started.json').read_text())
         self.assertEqual(written, started)
+        self.assertTrue(('identity' in written) != ('identity_not_established' in written), written)
         self.assertEqual(written['command'], ['/bin/sh', '-c', 'echo to-out; echo to-err >&2; sleep 30'])
 
     def test_no_shell_reads_the_command_and_nothing_else_is_started(self):
@@ -632,6 +633,169 @@ class Detached(unittest.TestCase):
         self.assertEqual(json.loads((folder / 'y.started.json').read_text())['not_started'], 'FileNotFoundError')
 
 
+class TheStartedProcessesIdentity(unittest.TestCase):
+    """detached.py: the identity of the process it started, read while it is still that process's uncollected
+    parent, and the recheck that must find it again before any later signal. The system is never asked: every look
+    is injected, and the executables are invented files whose device and inode are the files' own."""
+    WHEN, LATER = 'Mon Nov 16 21:40:01 2026', 'Mon Nov 16 21:40:07 2026'
+
+    def setUp(self):
+        spec = importlib.util.spec_from_file_location('detached_identity_under_test', OPERATED / 'detached.py')
+        self.detached = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.detached)
+        self.tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.tmp, True)
+        self.shim, self.python, self.other = (self.tmp / n for n in ('python3-shim', 'Python', 'another-python'))
+        for path in (self.shim, self.python, self.other):
+            path.write_text('invented')
+        self.me = os.getpid()
+
+    def looks(self, *answers):
+        """A look and a path for each call in turn: (start, parent, group, executable path or None or NO_PATH)."""
+        answers, calls = list(answers), []
+        def path_of(pid):
+            calls.append(pid)
+            return answers[0][3]
+        def look_of(pid):
+            start, parent, group, _ = answers.pop(0) if len(answers) > 1 else answers[0]
+            return start, parent, group
+        return dict(look_of=look_of, path_of=path_of), calls
+
+    def captured(self, *answers):
+        given, _ = self.looks(*answers)
+        return self.detached.capture(701, sleep=lambda _: None, on_mac=True, **given)
+
+    def test_the_identity_is_recorded_once_two_looks_agree_and_follows_a_stand_in_that_replaces_itself(self):
+        identity, reason = self.captured((self.WHEN, self.me, 701, str(self.shim)), (self.WHEN, self.me, 701, str(self.python)),
+                                         (self.WHEN, self.me, 701, str(self.python)))
+        self.assertIsNone(reason)
+        info = os.stat(self.python)
+        self.assertEqual(identity, {'started': self.WHEN, 'parent': self.me, 'group': 701, 'executable': str(self.python),
+                                    'device': info.st_dev, 'inode': info.st_ino})
+
+    def test_an_identity_that_cannot_be_read_as_this_starters_own_child_is_not_established(self):
+        cases = {
+            'never the same twice': [(self.WHEN, self.me, 701, str(p)) for p in [self.shim, self.python] * 20],
+            'another parent': [(self.WHEN, 1, 701, str(self.python))] * 3,
+            'not leading its own group': [(self.WHEN, self.me, 1, str(self.python))] * 3,
+            'already ended': [(self.WHEN, self.me, 701, None)],
+            'no path for its executable': [(self.WHEN, self.me, 701, self.detached.stray.NO_PATH)],
+        }
+        for name, answers in cases.items():
+            with self.subTest(name):
+                identity, reason = self.captured(*answers)
+                self.assertIsNone(identity)
+                self.assertTrue(reason)
+        def failing(pid):
+            raise OSError('invented: ps exited 1')
+        identity, reason = self.detached.capture(701, look_of=failing, path_of=lambda pid: str(self.python),
+                                                 sleep=lambda _: None, on_mac=True)
+        self.assertEqual((identity, reason.startswith('OSError')), (None, True))
+        asked = mock.Mock(side_effect=AssertionError('asked although not on macOS'))
+        self.assertEqual(self.detached.capture(701, look_of=asked, path_of=asked, on_mac=False),
+                         (None, 'this is asked on macOS only'))
+
+    def started(self):
+        info = os.stat(self.python)
+        return {'pid': 701, 'command': ['/invented/python', '-B', 'launch.py'],
+                'identity': {'started': self.WHEN, 'parent': self.me, 'group': 701, 'executable': str(self.python),
+                             'device': info.st_dev, 'inode': info.st_ino}}
+
+    def test_the_recheck_says_same_only_for_the_process_recorded_and_never_for_its_number_given_again(self):
+        cases = {
+            'the same process, now the system\'s child': ([(self.WHEN, 1, 701, str(self.python))], 'same'),
+            # The launcher ended and its number was given to a new run of the same command: the same executable,
+            # parent and group, a later start.
+            'its number given again to the same command': ([(self.LATER, 1, 701, str(self.python))], 'not the same'),
+            'its number given to another process': ([(self.LATER, 1, 702, str(self.other))], 'not the same'),
+            'the same start in another group': ([(self.WHEN, 1, 702, str(self.python))], 'not the same'),
+            'another executable file at its start': ([(self.WHEN, 1, 701, str(self.other))], 'not the same'),
+            'a parent that is not the system': ([(self.WHEN, 4242, 701, str(self.python))], 'not the same'),
+            'changed while it was asked': ([(self.WHEN, 1, 701, str(self.python)), (self.LATER, 1, 701, str(self.python))], 'not the same'),
+            'no such process': ([(self.WHEN, 1, 701, None)], 'gone'),
+        }
+        for name, (answers, expected) in cases.items():
+            with self.subTest(name):
+                given, _ = self.looks(*answers)
+                self.assertEqual(self.detached.recheck(self.started(), **given)[0], expected)
+
+    def test_what_the_recheck_cannot_establish_is_never_gone_and_never_the_same(self):
+        def failing(pid):
+            raise OSError('invented: ps exited 1')
+        with self.assertRaises(OSError):  # a failed listing is not "gone"
+            self.detached.recheck(self.started(), look_of=failing, path_of=lambda pid: str(self.python))
+        given, _ = self.looks((self.WHEN, 1, 701, self.detached.stray.NO_PATH))
+        with self.assertRaises(OSError):
+            self.detached.recheck(self.started(), **given)
+        for record in ({'pid': 701, 'identity_not_established': 'invented reason'}, {'pid': 701}, {'identity': self.started()['identity']}):
+            with self.subTest(record=sorted(record)), self.assertRaises(ValueError):
+                self.detached.recheck(record, **given)
+
+    def test_its_exit_status_lets_a_signal_follow_only_for_the_same_process(self):
+        path = self.tmp / 'launcher.started.json'
+        path.write_text(json.dumps(self.started()))
+        argv = ['detached.py', '--recheck', str(path)]
+        for answers, status in (([(self.WHEN, 1, 701, str(self.python))], 0), ([(self.WHEN, 1, 701, None)], 1),
+                                ([(self.LATER, 1, 701, str(self.python))], 2)):
+            given, _ = self.looks(*answers)
+            with self.subTest(status=status), mock.patch.object(self.detached, 'on_macos', return_value=True), \
+                    mock.patch.object(self.detached.os, 'kill', side_effect=AssertionError('the recheck signals nothing')), \
+                    contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+                self.assertEqual(self.detached.main_recheck(argv, **given), status)
+        unrecorded = self.tmp / 'unrecorded.started.json'
+        unrecorded.write_text(json.dumps({'pid': 701, 'identity_not_established': 'invented'}))
+        with mock.patch.object(self.detached, 'on_macos', return_value=True), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(self.detached.main(['detached.py', '--recheck', str(unrecorded)]), 2)
+        with mock.patch.object(self.detached, 'on_macos', return_value=False), contextlib.redirect_stderr(io.StringIO()):
+            self.assertEqual(self.detached.main(argv), 2)
+
+    def test_malformed_recorded_identities_are_unresolved_before_any_process_query(self):
+        cases = [{'pid': 701, 'identity': {}}, [], None]
+        for field in self.started()['identity']:
+            incomplete = self.started()
+            del incomplete['identity'][field]
+            cases.append(incomplete)
+            malformed = self.started()
+            malformed['identity'][field] = None
+            cases.append(malformed)
+        for field, value in (('started', ''), ('executable', 'relative'), ('parent', True),
+                             ('group', 702), ('device', -1), ('inode', '42')):
+            malformed = self.started()
+            malformed['identity'][field] = value
+            cases.append(malformed)
+        for pid in (None, True, 0, -1, '701'):
+            cases.append({**self.started(), 'pid': pid})
+        path = self.tmp / 'malformed.started.json'
+        forbidden = mock.Mock(side_effect=AssertionError('malformed identity must not query a process'))
+        for record in cases:
+            with self.subTest(record=record), mock.patch.object(self.detached, 'on_macos', return_value=True), \
+                    contextlib.redirect_stdout(io.StringIO()) as out, contextlib.redirect_stderr(io.StringIO()) as err:
+                path.write_text(json.dumps(record))
+                self.assertEqual(self.detached.main_recheck(['detached.py', '--recheck', str(path)],
+                                                          look_of=forbidden, path_of=forbidden), 2)
+                self.assertEqual(out.getvalue(), '')
+                self.assertEqual(json.loads(err.getvalue())['answer'], 'could not be established')
+        forbidden.assert_not_called()
+
+    def test_the_started_file_holds_the_identity_read_before_the_starter_returns(self):
+        folder = self.tmp / 'evidence'
+        folder.mkdir()
+        identity = self.started()['identity']
+        for name, captured, key in (('read', (identity, None), 'identity'),
+                                    ('not read', (None, 'invented reason'), 'identity_not_established')):
+            with self.subTest(name):
+                process = SimpleNamespace(pid=701)
+                with mock.patch.object(self.detached.subprocess, 'Popen', return_value=process) as popen, \
+                        mock.patch.object(self.detached, 'capture', return_value=captured) as capture, \
+                        contextlib.redirect_stdout(io.StringIO()):
+                    self.assertEqual(self.detached.main(['detached.py', str(folder), name.replace(' ', '-'), '--', '/invented/x']), 0)
+                capture.assert_called_once_with(701)
+                self.assertTrue(popen.call_args.kwargs['start_new_session'])
+                written = json.loads((folder / f"{name.replace(' ', '-')}.started.json").read_text())
+                self.assertEqual(written[key], captured[0] or captured[1])
+                self.assertNotIn('identity' if key != 'identity' else 'identity_not_established', written)
+
+
 class TheReceipt(unittest.TestCase):
     def test_a_started_file_that_cannot_be_written_whole_ends_the_command_and_claims_no_more(self):
         spec = importlib.util.spec_from_file_location('detached_under_test', OPERATED / 'detached.py')
@@ -650,7 +814,8 @@ class TheReceipt(unittest.TestCase):
                         return fault
                     return real_write(handle, data)
                 said = io.StringIO()
-                with mock.patch.object(detached.os, 'write', write), contextlib.redirect_stderr(said), contextlib.redirect_stdout(io.StringIO()):
+                with mock.patch.object(detached.os, 'write', write), contextlib.redirect_stderr(said), contextlib.redirect_stdout(io.StringIO()), \
+                        mock.patch.object(detached, 'capture', return_value=(None, 'invented: not asked in this test')):
                     code = detached.main(['detached.py', str(folder), 'stand-in', '--', '/bin/sleep', '60'])
                 report = json.loads(said.getvalue())
                 self.assertEqual((code, report['command_gone']), (3, True), report)
@@ -759,6 +924,65 @@ class StrayStart(unittest.TestCase):
         self.assertIn('macOS only; nothing was looked for', said.getvalue())
         tool = [sys.executable, '-B', str(OPERATED / 'stray.py')]
         for arguments in ([], ['relative.app'], ['/invented/folder'], ['/invented/x.app', 'more']):
+            with self.subTest(arguments=arguments):
+                self.assertEqual(subprocess.run(tool + arguments, capture_output=True, text=True).returncode, 2)
+
+    def test_the_recheck_before_a_signal_says_same_only_for_the_listed_process_running_the_bundles_executable(self):
+        executable = str(self.bundle / 'Contents/MacOS/chirality-app-v4')
+        when, later = 'Thu Nov 12 22:07:34 2026', 'Thu Nov 12 23:15:02 2026'
+        elsewhere = str(self.tmp / 'elsewhere' / 'chirality-app-v4')
+        def asked(starts, path):
+            starts = iter(starts)
+            return dict(start_of=lambda pid: next(starts), path_of=lambda pid: path)
+        cases = {
+            'the same process': ([when, when], executable, 'same'),
+            'gone before the recheck': ([None], executable, 'gone'),
+            'its number now another process': ([later], executable, 'not the same'),
+            'another file of the same name': ([when, when], elsewhere, 'not the same'),
+            'its executable removed': ([when, when], self.stray.NO_PATH, 'not the same'),
+            'gone while asked': ([when, when], None, 'gone'),
+            'ended and its number reused while asked': ([when, later], executable, 'not the same'),
+            'ended while asked': ([when, None], executable, 'gone'),
+        }
+        for name, (starts, path, answer) in cases.items():
+            with self.subTest(name):
+                self.assertEqual(self.stray.recheck(executable, 601, when, **asked(starts, path))[0], answer)
+        with self.assertRaisesRegex(OSError, 'gone when it was examined'):
+            self.stray.recheck(executable, 601, when, **asked([when, when], str(self.tmp / 'gone-since')))
+        os.link(executable, self.tmp / 'second-name')
+        with self.assertRaisesRegex(OSError, '2 names, not one'):
+            self.stray.recheck(executable, 601, when, **asked([when, when], executable))
+        os.unlink(self.tmp / 'second-name')
+
+    def test_a_failed_start_time_query_is_unresolved_not_a_gone_process(self):
+        argv = ['stray.py', str(self.bundle), '--recheck', '601', 'Thu Nov 12 22:07:34 2026']
+        for code in (1, 2):
+            with self.subTest(code=code), mock.patch.object(self.stray, 'on_macos', return_value=True), \
+                    mock.patch.object(self.stray.subprocess, 'run', return_value=SimpleNamespace(returncode=code, stdout='')), \
+                    mock.patch.object(self.stray, 'executable_of', side_effect=AssertionError('failed query must stop')), \
+                    contextlib.redirect_stdout(io.StringIO()) as out, contextlib.redirect_stderr(io.StringIO()) as err:
+                self.assertEqual(self.stray.main(argv), 2)
+                self.assertEqual(out.getvalue(), '')
+                self.assertIn('could not be queried', err.getvalue())
+                self.assertNotIn('no process has that number', err.getvalue())
+
+    def test_the_recheck_exits_0_only_for_the_same_process_and_signals_nothing(self):
+        argv = ['stray.py', str(self.bundle), '--recheck', '601', 'Thu Nov 12  22:07:34 2026']
+        executable = str(self.bundle / 'Contents/MacOS/chirality-app-v4')
+        for start, status in (('Thu Nov 12 22:07:34 2026', 0), ('Thu Nov 12 23:15:02 2026', 1), (None, 1)):
+            with self.subTest(start=start), mock.patch.object(self.stray, 'on_macos', return_value=True), \
+                    mock.patch.object(self.stray, 'started_of', return_value=start), \
+                    mock.patch.object(self.stray, 'executable_of', return_value=executable), \
+                    mock.patch.object(self.stray, 'listing', side_effect=AssertionError('the recheck lists nothing')), \
+                    mock.patch.object(self.stray.os, 'kill', side_effect=AssertionError('the recheck signals nothing')), \
+                    contextlib.redirect_stdout(io.StringIO()) as out:
+                self.assertEqual(self.stray.main(argv), status)
+                self.assertEqual(json.loads(out.getvalue())['pid'], 601)
+        with mock.patch.object(self.stray, 'on_macos', return_value=True), contextlib.redirect_stderr(io.StringIO()), \
+                mock.patch.object(self.stray, 'started_of', side_effect=OSError('invented')):
+            self.assertEqual(self.stray.main(argv), 2)  # could not look: not "the same"
+        tool = [sys.executable, '-B', str(OPERATED / 'stray.py'), str(self.bundle)]
+        for arguments in (['--recheck', '601'], ['--recheck', 'x', 'when'], ['--recheck', '0', 'when'], ['--other', '601', 'when']):
             with self.subTest(arguments=arguments):
                 self.assertEqual(subprocess.run(tool + arguments, capture_output=True, text=True).returncode, 2)
 
@@ -985,9 +1209,31 @@ SETUP_HARNESS = HARNESS.replace("if (name === 'click') return async () => {};",
     "sleep: async () => {} };", "sleep: async () => {}, project: recorded.project };")
 
 
-def setup_state(name):
-    """A listed state of the setup scenario, filled with the invented values."""
+# PR 365 (merged as 153b921b8) changed the first-use page's words after the setup states were recorded (on candidate
+# 1023908b) and after the page after the press was captured (on candidate 9d997626): the welcome's lead, the line under
+# the confirmation, and the saved block, which gained a Quit Chirality button. The committed states and the frozen
+# capture stay as they were recorded. For the walk's mechanics, the tests turn them into the words the App's source now
+# gives (FirstUse.tsx). What that makes is an INVENTED view derived from source, for these tests only: never a recorded
+# state, never an observation, and the shape of the real saved block (where the button sits) is known only once it is
+# recorded from a real view.
+SAVED_NOW = 'Next: quit Chirality and open it again. Reopening loads your saved project and Codex settings, and takes you to sign in.'
+SOURCE_WORDS = ((' Your choices take effect when you next open the App.', ' Your choices take effect when you quit Chirality and open it again.'),
+                ('Your current window keeps working until you reopen the App.', 'Your current window keeps working until you quit Chirality and open it again.'))
+SAVED_BEFORE = re.compile(r'^(\t*)(\d+) text Next: quit Chirality \(⌘Q\) and open it again\..*$', re.M)
+
+
+def now_worded(text):
+    """A view or state as recorded, in the words the App's source now gives (an invented, source-derived view)."""
+    for old, new in SOURCE_WORDS:
+        text = text.replace(old, new)
+    saved = SAVED_BEFORE.sub(lambda m: f'{m[1]}{m[2]} text {SAVED_NOW}\n{m[1]}{m[2]} button Quit Chirality', text)
+    return in_order(saved) if saved != text else text
+
+
+def setup_state(name, committed=False):
+    """A listed state of the setup scenario, filled with the invented values: as committed, or now worded (above)."""
     text = '\n'.join(json.loads(SETUP.read_text())['states'][name])
+    text = text if committed else now_worded(text)
     for placeholder, value in {'{app_name}': 'Chirality App v4 (development invented)', '{project}': PROJECT,
                                '{settings}': SETTINGS, '{account}': ACCOUNT, '{request}': REQUEST, '{~number}': '0'}.items():
         text = text.replace(placeholder, value)
@@ -1001,6 +1247,8 @@ INVENTED_APP = 'Chirality App v4 (development invented)'  # the launched build's
 # The page after the setup confirmation, as the supplier returned it whole on candidate 9d997626 (14 November 2026,
 # 12:23 UTC), with the project path and the build's name made invented.
 AFTER_THE_PRESS = (APP / 'tests/group_b_operated_fixtures/signed-out-setup/after-the-press.txt').read_text()
+# The same page in the words the App's source now gives: invented, for the walk's and the recorder's mechanics.
+AFTER_THE_PRESS_NOW = now_worded(AFTER_THE_PRESS)
 
 
 def setup_views(sheet=None, after=None):
@@ -1009,18 +1257,22 @@ def setup_views(sheet=None, after=None):
     with_sheet = SHEET_ON_ITS_OWN if sheet is None else sheet
     return {**INVENTED, 'project': PROJECT, 'candidate_key': 'invented-key',
             'views': [{'text': text} for text in (setup_state('S1'), setup_state('S2'), setup_state('S3'), setup_state('S4'),
-                                                  with_sheet, after or AFTER_THE_PRESS)]}
+                                                  with_sheet, after or AFTER_THE_PRESS_NOW)]}
 
 
 SHEET_ON_ITS_OWN = (APP / 'tests/group_b_operated_fixtures/signed-out-setup/sheet-on-its-own.txt').read_text()
 
 
 def rebound(scenario_path, folder):
-    """A copy of a committed scenario whose recorded states are bound to the invented build of the fixture views, so
-    that its walk's mechanics can be tested on them. The committed file stays bound to the build it was recorded on."""
+    """A copy of a committed scenario whose recorded states are bound to the invented build of the fixture views, and
+    put in the words the App's source now gives, so that its walk's mechanics can be tested on them. The committed
+    file stays bound to the build it was recorded on, in the words it recorded."""
     scenario = json.loads(Path(scenario_path).read_text())
     for record in [*(scenario.get('state_records') or {}).values(), *(scenario.get('sheet_records') or {}).values()]:
         record['recorded_on'] = {**record['recorded_on'], 'candidate_key': 'invented-key', 'identifier': INVENTED['app'], 'app_name': INVENTED_APP}
+    # Its states, too, in the words the App's source now gives (now_worded): the committed ones predate PR 365.
+    for name, lines in (scenario.get('states') or {}).items():
+        scenario['states'][name] = now_worded('\n'.join(lines)).split('\n')
     path = Path(folder) / ('rebound-' + Path(scenario_path).name)
     path.write_text(json.dumps(scenario))
     return path
@@ -1624,9 +1876,10 @@ class TheRecorder(unittest.TestCase):
         return recorder_command(scenario or json.loads(SETUP.read_text()), step, result, options)
 
     def test_a_view_meeting_its_expectations_is_recorded_with_its_build_and_its_judgment(self):
-        made = self.record('S5', AFTER_THE_PRESS)
+        made = self.record('S5', AFTER_THE_PRESS_NOW)
         self.assertNotIn('refusal', made)
-        self.assertEqual(made['state'], json.loads(SETUP.read_text())['states']['S5'])
+        with tempfile.TemporaryDirectory() as folder:
+            self.assertEqual(made['state'], json.loads(rebound(SETUP, folder).read_text())['states']['S5'])
         self.assertEqual(made['record']['recorded_on'], {'candidate_key': 'invented-key', 'candidate_key_from': 'the identification record of the candidate folder holding the bundle',
                                                          'identifier': INVENTED['app'], 'app_name': INVENTED_APP})
         self.assertEqual(made['record']['judged']['result'], 'every expectation held')
@@ -1635,13 +1888,13 @@ class TheRecorder(unittest.TestCase):
     def test_the_candidate_key_comes_only_from_the_identification_record(self):
         # No fallback (the fourth reading of PR 351): without the record nothing is recorded, and a key given as well
         # must equal the record's.
-        self.assertIn('no identification record holds the bundle', self.record('S5', AFTER_THE_PRESS, bundle=INVENTED['bundle'], key='invented-key')['refusal'])
-        self.assertIn('is not the identified candidate', self.record('S5', AFTER_THE_PRESS, key='another-key')['refusal'])
-        self.assertNotIn('refusal', self.record('S5', AFTER_THE_PRESS, key='invented-key'))
+        self.assertIn('no identification record holds the bundle', self.record('S5', AFTER_THE_PRESS_NOW, bundle=INVENTED['bundle'], key='invented-key')['refusal'])
+        self.assertIn('is not the identified candidate', self.record('S5', AFTER_THE_PRESS_NOW, key='another-key')['refusal'])
+        self.assertNotIn('refusal', self.record('S5', AFTER_THE_PRESS_NOW, key='invented-key'))
 
     def test_a_view_that_surprised_the_walk_is_not_recordable(self):
         # The heading the step expects is gone: the capture is faithful, but it is a finding, not a state.
-        made = self.record('S5', AFTER_THE_PRESS.replace("heading You're set up", 'heading Something else').replace("text You're set up", 'text Something else'))
+        made = self.record('S5', AFTER_THE_PRESS_NOW.replace("heading You're set up", 'heading Something else').replace("text You're set up", 'text Something else'))
         self.assertIn("a view that fails its step's stated expectations is a finding, not a state", made['refusal'])
         self.assertNotIn('state', made)
 
@@ -1649,7 +1902,7 @@ class TheRecorder(unittest.TestCase):
         scenario = json.loads(SETUP.read_text())
         next(s for s in scenario['steps'] if s['id'] == 'S5')['expect'] = []
         # A step that expects nothing is not of the closed form: the scenario is refused whole, and nothing is recorded.
-        made = self.record('S5', AFTER_THE_PRESS, scenario)
+        made = self.record('S5', AFTER_THE_PRESS_NOW, scenario)
         self.assertEqual(made['scenario_refused'], 'step 5 expects nothing')
         self.assertIn('not of the closed form', made['refusal'])
         self.assertNotIn('state', made)
@@ -1658,13 +1911,23 @@ class TheRecorder(unittest.TestCase):
         folder = tempfile.mkdtemp()
         self.addCleanup(shutil.rmtree, folder)
         other = identified_candidate(folder).replace('(development invented)', '(development another)')
-        self.assertIn('is not a whole view of the launched build', self.record('S5', AFTER_THE_PRESS, bundle=other)['refusal'])
+        self.assertIn('is not a whole view of the launched build', self.record('S5', AFTER_THE_PRESS_NOW, bundle=other)['refusal'])
+
+    def test_the_views_as_recorded_before_pr_365_are_findings_now_not_states(self):
+        # The committed states and the frozen capture hold the words PR 365 replaced: under the expectations written
+        # from the source now, none of them can be recorded again as a state. Only a real view of a later candidate can.
+        for step, text in (('S1', setup_state('S1', committed=True)), ('S3', setup_state('S3', committed=True)),
+                           ('S5', AFTER_THE_PRESS)):
+            with self.subTest(step):
+                made = self.record(step, text)
+                self.assertIn("a view that fails its step's stated expectations is a finding, not a state", made['refusal'])
+                self.assertNotIn('state', made)
 
     def test_its_command_line_writes_nothing_when_it_refuses(self):
         with tempfile.TemporaryDirectory() as folder:
             result = Path(folder) / 'result.json'
             result.write_text(json.dumps({'app': INVENTED['app'], 'home': INVENTED['home'],
-                                          'steps': [{'id': 'S5', 'returned': AFTER_THE_PRESS.replace("You're set up", 'Not set up')}]}))
+                                          'steps': [{'id': 'S5', 'returned': AFTER_THE_PRESS_NOW.replace("You're set up", 'Not set up')}]}))
             done = subprocess.run([NODE, str(self.RECORDER), str(SETUP), 'S5', str(result), '--bundle', identified_candidate(folder),
                                    '--project', PROJECT], capture_output=True, text=True)
         self.assertEqual((done.returncode, done.stdout), (2, ''))
@@ -1898,6 +2161,32 @@ class TheSignedOutScenarioFiles(unittest.TestCase):
         expected = re.sub(r'\{\}', lambda _: next(named), statement.replace('{SUPPLIER}', supplier)).split('\\n')
         self.assertEqual(json.loads(SETUP.read_text())['sheets'][0]['statement'], expected)
 
+    def test_the_words_the_setup_steps_expect_are_the_apps_source_after_pr_365(self):
+        # Expected words come from the App's source (FirstUse.tsx), not from a walk: PR 365 replaced "when you next open
+        # the App" and "until you reopen the App" with "when you quit Chirality and open it again", and gave the saved
+        # block its Quit Chirality button.
+        source = (APP / 'src/FirstUse.tsx').read_text()
+        lead = re.search(r'run again\.\{shown\.pending \? "" : " ([^"]+)"\}', source)
+        start = re.search(r'<p className="first-use-lead">([^{]+)\{', source).group(1)
+        expected_lead = f'{start} {lead.group(1)}'
+        hint = re.search(r'<p><small>(The App asks you to confirm[^<]+)</small></p>', source).group(1)
+        self.assertIn('<strong>Next: quit Chirality and open it again.</strong>', source)
+        self.assertIn('>Quit Chirality</button>', source)
+        for old in ('when you next open the App', 'until you reopen the App', '(⌘Q) and open it again'):
+            self.assertNotIn(old, source)
+        for path in (SETUP, OPERATED / 'signed-out-setup-sheet-capture.scenario.json', OPERATED / 'first-launch-view.scenario.json'):
+            with self.subTest(path.name):
+                steps = {step['id']: step['expect'] for step in json.loads(path.read_text())['steps']}
+                first = steps.get('S1') or steps['L1']
+                self.assertIn({'text': expected_lead}, first)
+                if 'S3' in steps:
+                    self.assertIn({'text': hint}, steps['S3'])
+                    self.assertIn({'text_starts': 'Next: quit Chirality and open it again.'}, steps['S5'])
+                    self.assertIn({'button': 'Quit Chirality', 'is': 'available'}, steps['S5'])
+        self.assertEqual(SAVED_NOW, 'Next: quit Chirality and open it again. Reopening loads your saved project and Codex '
+                                    'settings, and takes you to sign in.')
+        self.assertIn(' Reopening loads your saved project and Codex settings, and takes you to sign in.', source)
+
     def test_the_sheets_title_and_buttons_are_the_apps(self):
         sheet = json.loads(SETUP.read_text())['sheets'][0]
         confirmation = (APP / 'src-tauri/src/desktop_setup_confirmation.rs').read_text()
@@ -1928,7 +2217,7 @@ class TheSignedOutScenarioFiles(unittest.TestCase):
         setup = json.loads(SETUP.read_text())
         for name in ('S1', 'S2', 'S3', 'S4'):
             with self.subTest(name):
-                text = setup_state(name)
+                text = setup_state(name, committed=True)
                 self.assertNotIn('{', text.replace('{~', ''))  # every placeholder filled
                 self.assertIsNone(harness(f'return walk.recognise({json.dumps(text)}, {json.dumps(INVENTED_APP)}).refusal;')['out'])
         self.assertIn('0 standard window Chirality', setup_state('S1'))
@@ -2125,7 +2414,7 @@ class TheScenarioContract(unittest.TestCase):
                 self.assertEqual((code, report['verdict'], report['calls']), (2, 'inconclusive', []), said)
                 self.assertIn('the scenario is not of the closed form', said)
                 attempt = Path(folder) / 'attempt-log.json'
-                attempt.write_text(json.dumps({'app': INVENTED['app'], 'home': INVENTED['home'], 'steps': [{'id': 'S5', 'returned': AFTER_THE_PRESS}]}))
+                attempt.write_text(json.dumps({'app': INVENTED['app'], 'home': INVENTED['home'], 'steps': [{'id': 'S5', 'returned': AFTER_THE_PRESS_NOW}]}))
                 bundle = identified_candidate(folder)
                 done = subprocess.run([NODE, str(OPERATED / 'record_state.mjs'), str(path), 'S5', str(attempt), '--bundle', bundle, '--project', PROJECT],
                                       capture_output=True, text=True)
@@ -2296,7 +2585,7 @@ console.log(JSON.stringify(await walk.run(given)));
             code, report, said = replay(path, self.views)
             self.assertEqual((code, report['verdict'], report['calls']), (2, 'inconclusive', []), said)
             attempt = Path(folder) / 'attempt-log.json'
-            attempt.write_text(json.dumps({'app': INVENTED['app'], 'home': INVENTED['home'], 'steps': [{'id': 'S5', 'returned': AFTER_THE_PRESS}]}))
+            attempt.write_text(json.dumps({'app': INVENTED['app'], 'home': INVENTED['home'], 'steps': [{'id': 'S5', 'returned': AFTER_THE_PRESS_NOW}]}))
             done = subprocess.run([NODE, str(OPERATED / 'record_state.mjs'), str(path), 'S5', str(attempt), '--bundle',
                                    identified_candidate(folder), '--project', PROJECT], capture_output=True, text=True)
             self.assertEqual((done.returncode, done.stdout), (2, ''))

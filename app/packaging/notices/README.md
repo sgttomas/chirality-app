@@ -1,114 +1,206 @@
-# macOS arm64 direct-runtime notice inputs (v2)
+# Notices the macOS arm64 package ships
 
-Current basis is main source `4e942918f1fc4e99140665b2cbb36024c937255e`, not a
-built package. It reconciles only the manifest digest after that commit added the
-dev-only `tauri` `test` feature (and its comment) to `Cargo.toml`. Runtime
-declarations, `Cargo.lock`, npm manifests, App `LICENSE.md`, components and texts
-are unchanged from the original PR69 implementation basis
-`7fdb470b9bedf3bea9f4369672dd24524a6c799d`. Any later `Cargo.toml` edit,
-including a dev-only one, still requires deliberate reconciliation here and in
-the dependent receipt plan. The index selects
-common direct runtime declarations plus applicable target-specific declarations
-for `aarch64-apple-darwin`, retaining each component's declaration targets.
-Top-level build/dev-only dependencies remain excluded. Known other-platform
-conditions are excluded; unsupported runtime cfg expressions refuse explicitly
-rather than silently drop a dependency. This is a bounded explicit target
-selector, not a complete Cargo feature/cfg/transitive evaluator.
+Every component shipped in the package has an entry in `coverage.json`, with its
+version, its source, where its notice text ships and one standing: `covered`,
+`held-pending-owner-licence-reading` or `uncovered` (with the reason and what
+would close it). `coverage.py check --strict` exits non-zero while any component is
+not covered, naming each. `production_inputs/prepare.py` records the account's
+digest and counts in every plan and refuses a production plan while the strict
+check fails, unless `--not-for-public-release` names the plan as not for public
+release, which the plan then states.
 
-PR69 promotes objc2 0.6.4, objc2-app-kit 0.3.2, objc2-foundation 0.3.2,
-block2 0.6.2 and dispatch2 0.3.1 to direct macOS runtime dependencies. Their five
-cached crate archives match exact Cargo.lock checksums. None contains a root
-LICENSE/NOTICE file: the README links to ../../LICENSE.md in the upstream
-repository. The v2 index retains each declared license, locked archive/manifest,
-exact .cargo_vcs_info revision/path and README digests, with `notice_gap` marking
-missing upstream text. No generic MIT or other-package license is substituted.
-The verifier prints these five missing components and `notice_text_coverage:
-incomplete` even when index/asset correspondence passes.
-
-There are now 22 indexed components (App +18 Cargo +3 npm), but still only the
-existing 30 exact notice texts (133,902 bytes). The explicit notice overlay
-continues to map its 31 existing index/text files; no new missing text is invented.
-Actual new-candidate bundle inclusion and legal/transitive completeness remain
-unestablished. Retained 12d26 and fdcf candidates keep their original inventories.
-
-The historical v1 representation remains readable only for a matching basis with
-no target-specific runtime declarations. It cannot silently describe the new
-scope. v2 adds the selected target, per-component declaration targets and explicit
-missing-text provenance; no old source snapshot or identity is rewritten.
-
-From the repository root, using Python 3.11+ and no additional packages:
+From the repository root (Python 3.11+, no additional packages):
 
 ```sh
-PYTHONDONTWRITEBYTECODE=1 python3 app/packaging/notices/check.py
-PYTHONDONTWRITEBYTECODE=1 python3 app/tests/notice_resources_test.py
+PYTHONDONTWRITEBYTECODE=1 python3 app/packaging/notices/coverage.py check            # reporting
+PYTHONDONTWRITEBYTECODE=1 python3 app/packaging/notices/coverage.py check --strict   # refuses open components
+PYTHONDONTWRITEBYTECODE=1 python3 app/packaging/notices/coverage.py generate         # after any input changes
 ```
 
-The default check uses saved assets and this repository's current
-manifests/locks; no sibling checkout, source cache, supplier, network or build.
-It checks complete indexed assets, bytes, direct-runtime scope and the explicit
-overlay. Source/archive provenance can also be checked with **already prepared**
-local caches and the selected Git revision available:
+`check` regenerates the account and requires the committed file to be identical; it
+runs the direct, transitive, shipped-text and font checks on the way. No cache,
+supplier tree or network is read.
+
+## What these checks withstand
+
+They are operator-run checks on stable inputs. They are built so that a component
+that was not accounted for, a text that was not verified, or a reading that was not
+given cannot come out as covered, and so that drift and mistakes are caught. They are
+not built to withstand someone with write access deliberately forging a consistent
+account, table and review record together. The review record is a statement of what
+was reviewed, bound to exact content; its truth rests on the review of the pull
+request that changes it, not on the tool.
+The candidate checker binds the release standing to a faithfully generated plan;
+it does not independently defend the notice gap count or the coverage digest
+against a consistent forgery of the candidate and plan. The recorded date and
+relay of an owner reading are bound by the curated review record.
+
+## What ships and where
+
+| Inputs | Generator | Package path under `Contents/Resources/` |
+| --- | --- | --- |
+| Direct runtime dependencies and the App (`index.json`, `assets/`) | hand-kept, `check.py` | `third-party-notices/index.json`, `assets/` |
+| Transitive runtime closure (`transitive-index.json`) | `transitive.py` | `third-party-notices/transitive-index.json` |
+| Transitive texts (`transitive/<cargo or npm>/<package>/<version>/`) | `package_texts.py extract` | `third-party-notices/transitive/` |
+| Supplier component texts (`../supplier_notices/`, listed in `components.json`, with what was examined below each root) | hand-kept table | `third-party-notices/supplier/` |
+| Coverage account (`coverage.json`) | `coverage.py generate` | `third-party-notices/coverage.json` |
+| Font licences and SQLite notice | `../font_notice/`, `../sqlite_notice/` | `third-party-notices/fonts/`, `sqlite-preparation/` (mapped by `prepare.py`) |
+| Voice library licences | the supplier ships them in its tree | `codex/codex-resources/voice/licenses/` |
+
+`../unsigned/tauri.notices.conf.json` is written by `package_texts.py overlay`: the
+development configuration plus every resource above except fonts, SQLite and the
+vendor tree. `check.py` refuses an overlay that differs. Ordinary routes do not map
+notices.
+
+## Transitive texts
+
+`transitive.py` records the target- and feature-selected runtime graph (Cargo
+`aarch64-apple-darwin`, release features, normal edges, no proc-macros) and the
+npm runtime closure of `package-lock.json`. Its npm rows are derived from the
+locked tarballs:
 
 ```sh
-PYTHONDONTWRITEBYTECODE=1 python3 app/packaging/notices/check.py --archives \
-  --cargo-home /absolute/private-cargo-home --npm-cache /absolute/npm-cache
+PYTHONDONTWRITEBYTECODE=1 python3 app/packaging/notices/transitive.py associate-npm --npm-cache /absolute/npm-cache-root
 ```
 
-Missing/changed archives or unavailable selected Git source refuse; no fetch,
-download, extraction or fallback occurs. This mode compares archive checksums
-against locks, manifest/license metadata, the complete provided root notice set,
-exact tar-member bytes and App Git source. This is correspondence, not supplier
-origin authentication or a determination of licensing rights.
-
-`../unsigned/tauri.notices.conf.json` explicitly selects unsigned development:
-the ordinary development configuration plus exactly 31 per-file mappings for
-the index and 30 texts at `resource_dir/third-party-notices/`. Default,
-development and attested-reference routes do not automatically select it.
-After a separately coordinated future build window, use the ordinary unsigned
-command with `--config packaging/unsigned/tauri.notices.conf.json` and the
-separately identified supplier overlay. No build was performed here; a later
-build needs its own exact source/candidate inventory. Never add these files
-to the retained PR15 candidate or rewrite its evidence.
-
-The focused test stages explicit source/destination pairs and checks the saved
-namespace. It does **not** execute Tauri's Rust `ResourcePaths` mapper. Its
-existing SDK test has no prebuilt private-target runner and needs compilation;
-the CLI exposes no standalone mapper API. Actual SDK mapping, bundle inclusion
-and native readability remain unrun under the no-build/no-GUI boundary.
-No user-facing redesign is included.
-
-The upstream toml `LICENSE-APACHE` ends with a blank line at line 202. Its exact
-bytes and indexed archive digest are preserved. The full contribution's
-whitespace check reports that one source-text EOF exception; excluding only
-that exact asset leaves the code/docs/index diff clean. No broad attributes or
-CI exception is supplied.
-
-## Transitive runtime inventory
-
-`transitive.py` records the macOS arm64 dependency input graph beyond the
-direct index. `generate` runs an offline `cargo tree` with the release features
-(normal edges, no proc-macros, `aarch64-apple-darwin`) against a prepared Cargo
-home and reads every exact locked archive. That graph is what Cargo selects for
-the target and features; it is not an observation of final linked contents.
-The index records licence/notice members, the received objc2 upstream text
-where its revision and README link match, and every missing text with its
-upstream locator. npm runtime packages are recomputed from `package-lock.json`;
-the three direct packages reuse the direct index's archive-verified texts, and
-`scheduler` is recorded from the installed tree only, explicitly unverified.
+`package_texts.py extract` reads each locked `.crate` file from a Cargo cache folder
+(the one holding `<name>-<version>.crate`), requires its SHA-256 to equal
+`Cargo.lock`, takes exactly the notice members the index names and requires each
+to match the index; npm members come from the locked tarball, checked against its
+lock integrity. Held texts are copied from their committed files after their
+digests are checked: `retained/` (unchanged evidence), the direct assets the root
+associations name, and `received/`, which holds texts fetched with the owner's
+permission and listed in `coverage-inputs.json` with repository, revision, URL,
+size and digests. Each received text must be at the revision its crates name, or
+be the root blob the retained root metadata names at that revision. Extraction
+only reads the caches; it never runs Cargo or npm.
 
 ```sh
-PYTHONDONTWRITEBYTECODE=1 python3 app/packaging/notices/transitive.py check
-PYTHONDONTWRITEBYTECODE=1 python3 app/packaging/notices/transitive.py check --cargo-home /absolute/prepared-cargo-home
-PYTHONDONTWRITEBYTECODE=1 python3 app/packaging/notices/transitive.py generate --cargo-home /absolute/prepared-cargo-home --node-modules /absolute/prepared/node_modules
+PYTHONDONTWRITEBYTECODE=1 python3 app/packaging/notices/package_texts.py extract \
+  --cargo-cache "$CARGO_HOME/registry/cache/index.crates.io-1949cf8c6b5b557f" --npm-cache /absolute/npm-cache-root
+PYTHONDONTWRITEBYTECODE=1 python3 app/packaging/notices/package_texts.py overlay
 ```
 
-The default check needs no Cargo, so it cannot re-resolve the graph. It fails
-closed when the manifests or locks change, when rows no longer match the
-generation receipt's member-set digests, when a crate row contradicts
-`Cargo.lock` (version, checksum or registry/path source kind) or is unreachable
-from the workspace root through lock edges, when the npm rows differ from the
-recomputed lock closure, or when a received-text row names anything other than
-the one allowed retained file and a known revision-to-blob association. A
-rebound receipt that drops a selected crate passes the Cargo-free check; only
-`check --cargo-home` re-resolves the exact member set. This is a preparation
-inventory, not bundled coverage or a licensing determination.
+For any other lockfile, `package_texts.py crates --lock L --cargo-cache DIR --out NEW_DIR
+--rows ROWS.json` extracts the root notice members of every registry package the lock
+names (archives verified against the lock) and writes one row per package:
+`archive-member`, `missing` (with the repository and revision the archive names) or
+`not-in-registry` for Git- and path-sourced packages.
+
+## Standings
+
+Rules `coverage.py` applies, whatever the tables say:
+
+- **Joins** are by ecosystem, name and version; one version never receives another's text.
+- **Owner readings.** The nine objc2-family crates ship the objc2 repository's root
+  `LICENSE.md`, a licensing overview. A crate whose held text comes from that
+  repository, or was received as an upstream text, is covered only by an owner
+  reading in the closed form (`decided_by` owner, a date, an answer from the fixed
+  set in `coverage.py` and that answer's exact words); otherwise it is pending, and
+  never covered by another route. The owner's reading of 2026-11-12 is recorded in
+  `coverage-inputs.json` and on each row. A reading for any other crate refuses.
+- **ICU** is covered only by the owner's licence reading of 2026-11-15, recorded on
+  its row in `../supplier_notices/components.json` in the closed form
+  `coverage.SUPPLIER_READINGS` fixes: the question as put, the answer the owner
+  selected ("ICU's licence text as published is complete") and that answer's
+  description, exactly, with the decider, date and relay. Without it, or with any
+  other words, ICU is pending. Nothing is added to the ICU notice. The row's
+  `reading_context` keeps the facts examined; the two files' build-system status is as
+  the answer's description states it, not established here. A reading for any other
+  supplier row refuses.
+- **Repository root texts** at the revision a crate names count as covered with that
+  basis (the project's Agent 0 accepted them as mechanical matches), distinct from
+  licence files inside the crate's archive.
+- **Compiled programs.** For this distribution record, a regular file with an
+  execute bit that is neither a `.dylib` library nor `.json` data is taken as a
+  compiled program. The rule fits this record: executables plus `.dylib` members must
+  equal the record's Mach-O count, and every one of them must belong to a component.
+  It is not a general proof that a file is a compiled program. Each executable must
+  belong to a `compiled-dependencies` component, and those stand uncovered in this
+  change whatever the table says. The change that extracts their texts adds the rule
+  for covering them: the supplier lockfile bound to the supplier's source commit, and
+  every locked package with its own extracted text or a stated basis.
+- **Table reviewed for another pin.** When the declared pin differs from the table's
+  `reviewed_for_pin`, no association is carried forward: every table row stands
+  uncovered (the deferred rows with their own reason), and a "Supplier component
+  table" row names the vendor tree. Re-associating the table for the declared pin is a
+  reviewed change to `components.json` that sets `reviewed_for_pin`, updates
+  `coverage-review.json` and states the open table row's removal in
+  `removed_components`.
+- **Supplier texts are bound to their component.** Each committed text records its
+  repository and revision; a voice text is a member of the supplier tree with the
+  record's digest. A component is covered only when each committed text's repository
+  and revision equal the component's own, or the text is a named exception with its
+  reason (pcre2-sys ships two texts blob-equal to its own, kept once under ripgrep).
+- **Fonts** are covered only with recorded upstream evidence (package, integrity and
+  a tarball member for every file and the licence); otherwise uncovered.
+- **Reviewed inputs.** `../supplier_notices/components.json` and
+  `coverage-inputs.json` are curated judgments, not facts a check can prove. The
+  direct, transitive, font and SQLite indexes are made by generators from caches CI
+  does not hold, so CI can check texts only against them. The declared pin's
+  `CANONICAL_DISTRIBUTION.json` is bound too, because the account copies the voice
+  licence digests from it. `coverage-review.json` binds those seven files' SHA-256
+  and lists every supplier component with its standing, version, revision and exact
+  texts, and `coverage.py` checks it first. The record states what a reviewer
+  examined; it is not a proof. The reviewer of the pull request that changes any of
+  those files updates it, after rerunning the cache-reading checks for a changed
+  index. **A supplier pin move changes which distribution record is bound, so it
+  must update `coverage-review.json` in the same change.**
+- **Deferred rows.** `coverage.DEFERRED` lists the five supplier rows with no route
+  to covered in this change (the Codex and rg compiled-in crates, and the libc++,
+  libc++abi and llvm-libc texts their licences point to). They stand uncovered
+  whatever the table or the review record says, and must stay in the table. The
+  change that establishes one removes its id from that list.
+- **Identities.** Every committed supplier text needs a non-empty repository and
+  revision; an exception needs a non-empty reason. Each supplier component's own
+  identity is checked before its texts or exceptions: a component with committed
+  texts needs its repository and revision, and one with supplier-tree texts needs the
+  source URL the supplier's `sources.json` states (no revision is recorded for those,
+  and none is invented); otherwise it stands uncovered. The Library content rows must
+  match the source each bundle names in its own record (`MANIFEST.json`,
+  `ROLE_SET_SOURCE_BINDING.json`), whose digest `coverage-inputs.json` records.
+- **Removals.** `generate` refuses to drop a component the committed account has
+  unless `removed_components` in `coverage-inputs.json` states it with a reason;
+  `check --base-account FILE` applies the same rule against an earlier account.
+- **Every bundle mapping is named, exactly.** The mappings are read, not listed:
+  what a production preparation selects (`../production_inputs/bundle_resources.py`,
+  which `prepare.py` uses: the resources of `app/src-tauri/tauri.conf.json`, both
+  overlays, the SQLite and font notices), plus the two it adds from its inputs, the
+  vendor tree at `codex/` and an explicitly selected supplement under
+  `third-party-notices/upstream/`. Each mapping must be named by its exact source and
+  destination: in a row's `mappings`, or as the repository path and package path of a
+  text a row ships. A destination folder names nothing below it. A folder mapping is
+  named only with a membership record: each Library bundle's folder must hold exactly
+  the files its reviewed source record lists, with their digests (an added, changed or
+  missing file leaves the row uncovered), and the vendor tree's members are the
+  distribution record's. The App's own content is named in `app_resources` by exact
+  file mappings, with the App's licence as its notice; the account binds those paths,
+  not their bytes. A mapping no row names becomes an uncovered "Unnamed bundle
+  resource" row, which `--strict` names and a public preparation refuses; a claim on a
+  mapping that does not exist refuses. `prepare.py` requires every mapping of its
+  final plan to be named the same way. A change that maps a new resource adds its row
+  in the same change (the shipped limitations list needs an `app_resources` entry
+  naming `docs/RELEASE_LIMITATIONS_4.0.0.md` to `release/LIMITATIONS.md`, and a
+  review-record update).
+- **Copy routes.** Only `bundle.resources` (as an object) and `bundle.icon` are
+  supported in the base configuration. A platform or alternate Tauri configuration
+  beside `tauri.conf.json` (`tauri.macos.conf.json`, `Tauri.toml`,
+  `tauri.conf.json5` and the like, which the bundler would merge or read instead), or
+  any other `bundle` or `bundle.macOS` key (such as `macOS.files`, `macOS.frameworks`
+  or `externalBin`), refuses rather than being accounted for. `prepare.py` merges its
+  plan into the base as the bundler does and requires the same, allowing
+  `bundle.macOS.files` only for the validated provisioning profile of a production
+  plan, which is the publisher's Apple-issued file and is not a notice component.
+  Frontend assets the build embeds in the executable are not a copy route; the fonts
+  among them have their own rows.
+- **Bundled icons** declared in `tauri.conf.json` need a provenance entry
+  (`app_assets`); one without stands uncovered.
+
+## Limits
+
+The account describes what the package is built to carry, from committed inputs;
+it is not read from a built package, and Tauri's resource mapper has not been run
+against the overlay here. A notice text is the publisher's text at the version or
+revision named; the account decides no licence question except where an owner
+reading is recorded. The upstream toml `LICENSE-APACHE` ends with a blank line;
+its bytes are kept as published.
