@@ -525,7 +525,8 @@ def parser():
     p.add_argument('--profile', required=True, help='the Developer ID provisioning profile file; only read, it may be wherever you keep it')
     p.add_argument('--profile-sha256', required=True)
     p.add_argument('--limitations', required=True,
-                   help='docs/RELEASE_LIMITATIONS_4.0.0.md of the candidate source; only read, it may be wherever you keep it')
+                   help='RELEASE_LIMITATIONS_4.0.0.md in the candidate folder, the copy of the source document; only read, it may be '
+                        'wherever you keep it')
     p.add_argument('--out', required=True, help='a new folder, not in /Applications or ~/Library, for everything this run writes')
     p.add_argument('--dry-run', action='store_true', help='print the exact plan and run nothing')
     return p
