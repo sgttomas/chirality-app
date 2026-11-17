@@ -232,6 +232,7 @@ async function withReplyObserver(check, {outcome='written',failRefresh=true,perm
     if(command==='host_status'){const delayed=commandSeen&&afterCommandRead?await afterCommandRead(snapshot()):null;if(refreshUnavailable)throw Error('reconnect snapshot unavailable');return delayed??snapshot();}
     if(command==='decision_view')return {rows:[]};
     if(command==='native_confirmation_content')return [];
+    if(command==='request_answer_companions')return [];
     if(command==='read_home_access')return {};
     assert.equal(command,'answer_native_request');commandSeen=true;
     if(beforeReply)await beforeReply();
@@ -270,7 +271,8 @@ test('a written native answer remains written when its observer refresh fails, w
     assert.doesNotMatch(ui.container.textContent,/Last answer not taken:/,'an observer read failure cannot turn a completed native write into a rejected answer');
     assert.match(ui.container.textContent,/request state unavailable/i);
     assert.ok(!ui.send()||ui.props(ui.send()).disabled,'stale outstanding custody cannot invite another answer');
-    assert.deepEqual(ui.calls.filter(call=>call.command==='answer_native_request'),[{command:'answer_native_request',args:{generation:g,requestId:'original-question',answer:{answers:{q:{answers:['One']}}}}}]);
+    // The question's button choice travels beside the unchanged answer.
+    assert.deepEqual(ui.calls.filter(call=>call.command==='answer_native_request'),[{command:'answer_native_request',args:{generation:g,requestId:'original-question',answer:{answers:{q:{answers:['One']}}},presentationChoice:'question-answers'}}]);
     await ui.reconnect();
     assert.match(ui.container.textContent,/Your answer was written to Codex; Codex has not confirmed it/);
     assert.equal(ui.send(),undefined);assert.equal(ui.calls.filter(call=>call.command==='answer_native_request').length,1,'reopening does not resend');

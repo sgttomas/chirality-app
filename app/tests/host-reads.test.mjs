@@ -154,6 +154,7 @@ test('the commands that mark nothing are a closed table of self-issued commands,
     finish_native_waiting_intent:'the waiting-navigation registry only, which neither guide shows',
     host_observe:'queues an observer reconstruction kept apart from live activity; reconciliation only',
     native_confirmation_content:'none',
+    request_answer_companions:'none; reads only already-masked frozen request-answer snapshots in memory',
     workflow_review_digest:'none',
   });
   for (const pressed of ['collaboration_modes_read', 'read_available_models', 'read_configured_providers', 'read_connector_routes', 'read_effective_access_settings', 'read_fleet_records',
@@ -196,7 +197,7 @@ test('mounted App: a command issued outside the workflow panel withholds the Run
     if (command === 'host_status') { if (failStatus) throw new Error('invented status failure'); const snapshot = structuredClone(view(runs)); if (hold) await hold; return snapshot; }
     if (command === 'decision_view') return {rows:[]};
     if (command === 'read_fleet_records') throw new Error('invented: no selected project workspace; no fleet source read');
-    if (command === 'native_confirmation_content') return [];
+    if (command === 'native_confirmation_content' || command === 'request_answer_companions') return [];
     if (command === 'workflow_end_run') { runs = [run('ended by the person')]; return {state:'ended'}; }
     if (command === 'workflow_open_project_library') return {state:'opened'};
     assert.fail(`Unexpected IPC: ${command}`);

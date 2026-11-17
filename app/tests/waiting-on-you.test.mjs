@@ -312,7 +312,8 @@ test('the decision packages and the returns are read on a timer, the returns als
     const entriesText = place(c).textContent;
     assert.match(entriesText, /a return is waiting for review.*as of \d\d:\d\d:\d\d/);
     assert.match(entriesText, /a decision is waiting.*as of \d\d:\d\d:\d\d/);
-    assert.ok(calls.every(call => ['host_status', 'decision_view', 'read_fleet_records', 'native_confirmation_content', 'host_observe'].includes(call.command)), 'reads only');
+    // request_answer_companions reads the frozen request-answer snapshots a request card shows; it writes nothing.
+    assert.ok(calls.every(call => ['host_status', 'decision_view', 'read_fleet_records', 'native_confirmation_content', 'host_observe', 'request_answer_companions'].includes(call.command)), 'reads only');
   });
 });
 
@@ -322,7 +323,7 @@ test('"Go to it" on a request opens its conversation through the existing naviga
     const link = nodes(place(c), 'a').find(a => a.getAttribute('href') === `#${requestAnchorId(g, 'q1')}`);
     const before = calls.length;
     await React.act(async () => { props(link).onClick({preventDefault:() => {}, stopPropagation:() => {}}); for (let i = 0; i < 8; i++) await Promise.resolve(); });
-    assert.deepEqual(calls.slice(before).map(call => call.command).filter(cmd => !['host_status', 'decision_view'].includes(cmd)), ['open_waiting_requests'], 'the existing navigation, which revalidates the source; nothing answers');
+    assert.deepEqual(calls.slice(before).map(call => call.command).filter(cmd => !['host_status', 'decision_view', 'request_answer_companions'].includes(cmd)), ['open_waiting_requests'], 'the existing navigation, which revalidates the source; nothing answers');
     assert.deepEqual(calls.slice(before).find(call => call.command === 'open_waiting_requests').args, {modeHomeClass:'account', generation:g, threadId:'T1'});
     assert.ok(revealed.includes(requestAnchorId(g, 'q1')), 'it lands on that request\'s card');
     const card = c.querySelectorAll(n => n.getAttribute('id') === requestAnchorId(g, 'q1'))[0];

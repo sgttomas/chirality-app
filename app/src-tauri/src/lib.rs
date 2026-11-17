@@ -13,6 +13,8 @@ pub mod access;
 pub mod act_control;
 pub mod act_policy;
 pub(crate) mod native_text;
+mod request_answer_presentation;
+mod request_answer_sheet;
 pub mod attachments;
 pub mod canonical;
 pub mod capture_seal;
@@ -2321,6 +2323,34 @@ fn current_actor_context_for(state: &AppState, home: &runtime_session::HomeSessi
     (observation["snapshot"].clone(), context)
 }
 
+/// Request explanations consume the received native item and the original
+/// requesting thread. The caller supplies neither project nor profile.
+fn current_answer_context_for(state: &AppState, home: &runtime_session::HomeSession) -> (Value, Value) {
+    let name = state.person_name.lock().unwrap().clone();
+    let os = util::os_account();
+    let mut runtime = home.runtime.lock().unwrap();
+    let (observation, received) = runtime.receive_native(&home.host);
+    let actor = runtime.actor_context(&observation, name.as_deref(), os.as_deref());
+    let mut snapshot = observation["snapshot"].clone();
+    snapshot["nativeView"] = received["nativeView"].clone();
+    let project = state.project_context.view();
+    snapshot["answerProject"] = if state.project_context_limit.is_some() {
+        json!({"kind":"unknown"})
+    } else if project["reference"].is_null() {
+        json!({"kind":"none"})
+    } else if let Some(folder) = state.workspace.as_deref().and_then(std::path::Path::to_str) {
+        if project["reference"].as_str() == Some(folder) { json!({"kind":"folder","folder":folder}) }
+        else { json!({"kind":"unknown"}) }
+    } else { json!({"kind":"unknown"}) };
+    (snapshot, actor)
+}
+
+/// Read already-masked frozen companions; never answer or record a reading.
+#[tauri::command]
+fn request_answer_companions(generation: Value, request_id: Value) -> Value {
+    request_answer_presentation::companions(&generation, &request_id)
+}
+
 /// No actor, origin, rule name or error path is exposed to the webview.
 #[tauri::command(async)]
 fn answer_native_request(
@@ -2329,13 +2359,15 @@ fn answer_native_request(
     generation: Value,
     request_id: Value,
     answer: Value,
+    presentation_choice: Option<String>,
 ) -> Result<Value, String> {
     let home = state.homes.lock().unwrap().for_generation(&generation)?;
-    native_request_answer::answer(
+    native_request_answer::answer_with_choice(
         &generation,
         &request_id,
         &answer,
-        || current_actor_context_for(&state, &home),
+        presentation_choice.as_deref(),
+        || current_answer_context_for(&state, &home),
         |statement| native_request_answer::confirm(&window, statement),
         |actor| home.host.answer_server_request(
             &generation,
@@ -3623,6 +3655,7 @@ pub fn run() {
             reorder_attachments,
             reconfirm_attachment,
             answer_native_request,
+            request_answer_companions,
             set_level,
             host_start,
             codex_stop,

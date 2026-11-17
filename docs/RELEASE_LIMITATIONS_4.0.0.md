@@ -545,3 +545,33 @@ An entry is added in the same pull request that makes the limitation standing.
   lines 258-293 (`get_account`) and 295-430 (`read_account`, which calls
   `get_accounts_check` on the ChatGPT base address and, if it is refused as
   unauthorized, tries to renew the sign-in).
+
+### LIM-033: Forms and permission requests keep the current answer sheet
+
+- **Id:** LIM-033
+- **Exit criteria:** 4
+- **What is unavailable:** the new answer-confirmation sheet for forms and
+  extra-permission requests. They keep the current sheet in 4.0.0; the new
+  sheet covers command requests, file-change requests and questions.
+- **Why:** this release's answer-sheet work covers the requests needed to walk
+  criterion 4. The form and extra-permission sheets have not been rebuilt.
+- **What the person does instead:** read the request card before opening its
+  confirmation. The sheet's Don't send and Cancel buttons send nothing.
+- **Basis:** DEL-01-04 REQ-001 / AC-001; the request-answer host retains the
+  existing sheet for these two request kinds.
+
+### LIM-034: Refusing can interrupt the turn
+
+- **Id:** LIM-034
+- **Exit criteria:** 4, 6
+- **What is unavailable:** a way to refuse a command and let the agent continue
+  when Codex offers no such answer. At a level that asks, Codex offers allow,
+  allow with a lasting rule, and cancel. Refusing interrupts the turn; the
+  conversation continues with the person's next message.
+- **Why:** the App offers the answers Codex supplies for that request. It does
+  not add a refusal-and-continue answer where Codex did not offer one.
+- **What the person does instead:** refuse, then send the next message to tell
+  the agent what to do instead. Cancelling the App's confirmation sheet sends
+  no answer to Codex and is a different operation.
+- **Basis:** DEL-01-02 AC-001 and DEL-01-04 REQ-001 / AC-001; the pinned
+  supplier's level fixtures and the request card's no-decline warning.
