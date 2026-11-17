@@ -1179,7 +1179,9 @@ fn a_conversations_unusable_record_is_asked_about_and_never_falls_to_the_default
     let row = |id: &str| status["threads"].as_array().unwrap().iter().find(|t| t["threadId"] == id).unwrap()["level"].clone();
     assert_eq!(row("thread")["ask"], json!({"sentence": cl::RECORD_MISSING_SENTENCE, "preselected": "full"}));
     assert!(row("thread")["chosen"].is_null(), "nothing is in force for that conversation");
+    assert!(row("thread").get("scopeSentence").is_none(), "an unusable choice never says it follows the default");
     assert!(row("other").get("ask").is_none());
+    assert_eq!(row("other")["scopeSentence"], cl::FOLLOWS_DEFAULT_SENTENCE);
     assert_eq!(status["levelAskPreselected"], "full");
     let wire = Wire::attach(&host);
     assert!(send(&host, "turn/start", turn_params("thread")).err().unwrap().contains("no level chosen"));
