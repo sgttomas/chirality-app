@@ -502,6 +502,15 @@ class ProductionInputs(unittest.TestCase):
         path.write_text(json.dumps(value))
         with self.assertRaisesRegex(ValueError,'coverage.json is stale'):self.run_plan(**self.production())
         self.assertFalse(self.output.exists())
+    def test_an_app_file_replaced_by_a_directory_refuses_before_plan_output(self):
+        target=self.source/'app/src-tauri/resources/distribution-reference/VERSION_ADVANCE_0.160.0.md'
+        target.unlink(); target.mkdir()
+        (target/'INVENTED-foreign.txt').write_text('INVENTED third-party content; not App-authored\n')
+        for flag in (False,True):
+            with self.subTest(not_for_public_release=flag):
+                with self.assertRaisesRegex(ValueError,'App content source must be a regular non-link file'):
+                    self.run_plan(**{**self.production(),'not_for_public_release':flag})
+                self.assertFalse(self.output.exists())
     def test_stale_coverage_account_refuses_before_output(self):
         path=self.source/'app/packaging/notices/coverage.json'
         value=json.loads(path.read_text()); value['counts']['covered']+=1; path.write_text(json.dumps(value))

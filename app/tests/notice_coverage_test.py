@@ -56,6 +56,11 @@ class Copy(unittest.TestCase):
         for relative in COPIED_FILES:
             (self.repo / relative).parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / relative, self.repo / relative)
+        for item in json.loads((NOTICES / 'coverage-inputs.json').read_text())['app_resources']:
+            for pair in item['mappings']:
+                target = self.repo / pair['source']
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(ROOT / pair['source'], target)
         declared = texts.declared_pin(ROOT)
         pin = self.PIN or declared
         record = f'app/src-tauri/resources/supplier/{pin}/CANONICAL_DISTRIBUTION.json'
@@ -598,6 +603,10 @@ class Account(Builds):
                                  ({'source': dist, 'destination': 'distribution-reference/other.json'}, 'does not exist')):
             with self.subTest(mapping=mapping):
                 self.setUp(); self.edit(texts.INPUTS, lambda v, m=mapping: v['app_resources'][0]['mappings'].append(m))
+                if mapping['source'].startswith('INVENTED-'):
+                    source = self.repo / mapping['source']
+                    source.parent.mkdir(parents=True)
+                    source.write_text('INVENTED unmapped App content\n')
                 with self.assertRaisesRegex(ValueError, message): self.build()
         self.setUp(); self.edit(texts.INPUTS, lambda v: v['app_resources'][0].update(accounts_for=['distribution-reference/']))
         with self.assertRaisesRegex(ValueError, 'unknown app_resources entry shape'): self.build()
@@ -620,6 +629,21 @@ class Account(Builds):
                 (self.repo / 'app/src-tauri' / name).write_text(json.dumps({'bundle': {'resources': {limitations: 'release/INVENTED.md'}}}))
                 with self.assertRaisesRegex(ValueError, 'platform or alternate Tauri configuration'): self.build()
 
+    # A file claim must not expand to directory contents, or follow a replacement link.
+    def test_an_app_file_claim_refuses_a_directory_or_link(self):
+        target = self.repo / 'app/src-tauri/resources/distribution-reference/VERSION_ADVANCE_0.160.0.md'
+        target.unlink()
+        target.mkdir()
+        (target / 'INVENTED-foreign.txt').write_text('INVENTED third-party content; not App-authored\n')
+        with self.assertRaisesRegex(ValueError, 'App content source must be a regular non-link file'):
+            self.build()
+        shutil.rmtree(target)
+        outside = self.repo / 'invented.txt'
+        outside.write_text('INVENTED linked content\n')
+        target.symlink_to(outside)
+        with self.assertRaisesRegex(ValueError, 'App content source must be a regular non-link file'):
+            self.build()
+
     # The shipped limitations list is the App's own content, named by its exact source and destination.
     def test_the_shipped_limitations_list_is_app_content_by_its_exact_mapping(self):
         source, destination = coverage.bundle.LIMITATIONS
@@ -639,6 +663,8 @@ class Account(Builds):
     # Every bundle resource is named in the account; an unnamed mapping is open, a stale claim refuses.
     def test_a_mapped_resource_the_account_does_not_name_is_open(self):
         conf = 'app/src-tauri/tauri.conf.json'
+        source = self.repo / 'INVENTED-release/LIMITATIONS.md'
+        source.parent.mkdir(); source.write_text('INVENTED App document\n')
         # An invented App document mapped into the bundle.
         self.edit(conf, lambda v: v['bundle']['resources'].update({'../../INVENTED-release/LIMITATIONS.md': 'release/INVENTED.md'}))
         value = self.build()
@@ -654,6 +680,8 @@ class Account(Builds):
         self.assertNotIn('Unnamed bundle resource release/INVENTED.md', {c['name'] for c in value['components']})
 
     def test_a_claim_on_a_mapping_that_does_not_exist_refuses(self):
+        source = self.repo / 'INVENTED-release/LIMITATIONS.md'
+        source.parent.mkdir(); source.write_text('INVENTED unmapped App document\n')
         self.edit(texts.INPUTS, lambda v: v['app_resources'].append(
             {'name': 'Invented release document', 'note': 'invented',
              'mappings': [{'source': 'INVENTED-release/LIMITATIONS.md', 'destination': 'release/INVENTED.md'}]}))

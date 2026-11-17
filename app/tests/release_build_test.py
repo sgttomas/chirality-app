@@ -592,6 +592,22 @@ class ReleaseBuild(unittest.TestCase):
 
     # Release standing (App Agent 0's decision for pull request 243): without --not-for-public-release no candidate is
     # built while any notice is open; with it, the candidate carries its standing; the option changes no bundle byte.
+    def test_an_app_file_replaced_by_a_directory_refuses_before_build(self):
+        target = self.source / 'app/src-tauri/resources/distribution-reference/VERSION_ADVANCE_0.160.0.md'
+        target.unlink()
+        target.mkdir()
+        (target / 'INVENTED-foreign.txt').write_text('INVENTED third-party content; not App-authored\n')
+        for flag in (False, True):
+            with self.subTest(not_for_public_release=flag):
+                self.candidate = self.root / ('directory-refusal-' + str(flag).lower())
+                self.fake.calls.clear()
+                with self.assertRaises(common.Failure) as raised:
+                    self.run_build(not_for_public_release=flag)
+                self.assertEqual(raised.exception.code, 'BUILD_PLAN')
+                self.assertFalse((self.candidate / common.CANDIDATE_FILE).exists())
+                self.assertFalse((self.candidate / 'plan').exists())
+                self.assertFalse(any(c['argv'][0] in ('node', 'npm') for c in self.fake.calls))
+
     def test_without_the_option_an_open_notice_refuses_with_the_gates_reason(self):
         account = json.loads((ROOT / 'app/packaging/notices/coverage.json').read_text())
         self.assertTrue(account['open'])

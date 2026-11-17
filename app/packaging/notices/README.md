@@ -30,6 +30,10 @@ not built to withstand someone with write access deliberately forging a consiste
 account, table and review record together. The review record is a statement of what
 was reviewed, bound to exact content; its truth rests on the review of the pull
 request that changes it, not on the tool.
+The candidate checker binds the release standing to a faithfully generated plan;
+it does not independently defend the notice gap count or the coverage digest
+against a consistent forgery of the candidate and plan. The recorded date and
+relay of an owner reading are bound by the curated review record.
 
 ## What ships and where
 

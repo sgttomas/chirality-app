@@ -18,6 +18,7 @@ import argparse
 import hashlib
 import importlib.util
 import json
+import stat
 from pathlib import Path, PurePosixPath
 import sys
 
@@ -412,6 +413,9 @@ def build(repo=REPO, vendor=None):
         for pair in item['mappings']:
             require(set(pair) == {'source', 'destination'} and not pair['source'].endswith('/') and not pair['destination'].endswith('/'),
                     'App content names each file mapping exactly (a folder needs a membership record): ' + item['name'])
+            source = repo / texts.safe(pair['source'])
+            require(stat.S_ISREG(source.lstat().st_mode),
+                    'App content source must be a regular non-link file: ' + pair['source'])
         add({'class': 'app-content', 'name': item['name'], 'version': app['version'], 'mappings': item['mappings'],
              'source': {'repository': app['source']['repository']}, 'texts': app_text}, COVERED,
             basis='the App\'s own content under the App\'s licence; the App\'s LICENSE.md ships as its notice')
