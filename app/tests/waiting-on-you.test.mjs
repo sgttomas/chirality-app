@@ -426,6 +426,9 @@ const reopenedRow = (over = {}) => ({run:'run-r', conversation:'T1', follows:nul
   state:'open; interrupted (no run_ended recorded)', detail:null, restartInterruptions:[], ...over});
 // A reopened run as RunsReading::view_bounded gives it when its records are carried: the row's fields, with `reference`,
 // `lifecycle` {state, end, records}, `limits`, and `compatibility` only where its declaration was verified.
+const UNIMPORTED = 'This project\'s records are kept in the records store. Records in the project folder have not been imported and may not be shown in this view.';
+const CHANGED = 'Whether records in the project folder are left out of this view is not known: where this project\'s records are kept changed while it was being read.';
+const UNAVAILABLE = 'History notice unavailable: invented; whether project-folder records are omitted is not known.';
 const ACTOR_LIMIT = 'the declared actor was not established: the holding library no longer yields that revision: invented';
 const carriedRow = (over = {}, disposition = 'waiting') => {
   const row = {...reopenedRow(), reference:'run-r', lifecycle:{state:'open; interrupted (no run_ended recorded)', end:null, records:runRecords(disposition)}, compatibility:[{preparation:{declaration}, source:'invented'}], limits:[], ...over};
@@ -476,8 +479,10 @@ const STATES = [
   // An older waiting entry whose later history is incomplete: the host's "unknown" state (a log not read whole) or a census
   // that may have left records out. Its records are carried, but its latest disposition is not established.
   ['reopened-run:run-r', 'records carried, the record set incomplete ("unknown")', withCensus(r => { r.runs = [carriedRow({state:'unknown', detail:'run_opened recorded; the record set is incomplete, so a run_ended may be unreadable'})]; }), 'not-read'],
-  ['reopened-run:run-r', 'records carried, a census notice that records may be left out', withCensus(r => { r.runs = [carriedRow()]; r.historyNotices = ['This project\'s records are kept in the records store. Records in the project folder have not been imported and may not be shown in this view.']; }), 'not-read'],
-  ['reopened-run:run-r', 'records carried, census notices not given', withCensus(r => { r.runs = [carriedRow()]; delete r.historyNotices; }), 'not-read'],
+  // A census history notice is display information about where records are kept, not the run's RS completeness: the
+  // run's own complete evidence still establishes its arrival; the census reading stays limited, so the count is incomplete.
+  ['reopened-run:run-r', 'records carried, a census history notice', withCensus(r => { r.runs = [carriedRow()]; r.historyNotices = [UNIMPORTED]; }), 'whole', 1],
+  ['reopened-run:run-r', 'records carried, census notices not given', withCensus(r => { r.runs = [carriedRow()]; delete r.historyNotices; }), 'whole', 1],
   ['returns', 'not read yet', {fleet:null, fleetReadAt:null}, 'not-read'],
   ['returns', 'the read was rejected', {fleetFailure:'invented', fleetFailedAt:READ_AT + 5000}, 'failed'],
   ['returns', 'incomplete discovery: unreadable log, limits, no undertakings', withFleet(p => { p.limits = [{source:{path:'fleet/coordination.fleet.jsonl'}, reason:'source unreadable: invented'}]; p.coordination.project = {status:'unreadable', complete:false}; }), 'limited'],
@@ -548,7 +553,7 @@ test('the reopened census: an established empty census is whole; null, an unknow
   const notes = change => waitingView(waitingReadings(emptySources(change))).notes;
   assert.deepEqual(notes({}), []);
   assert.deepEqual(notes(withHost(h => { h.workflowRoot.reopened = null; })), ['Runs recorded before the App restarted have not been read, so whether one of their checkpoints waits for your act is not known. Reopen recorded workflow runs reads them.']);
-  assert.deepEqual(notes(withCensus(r => { r.limits = ['WR records unreadable: invented']; })), ['Runs recorded before the App restarted were read with limits: some may not be shown, and whether one of their checkpoints waits for your act is not known.']);
+  assert.deepEqual(notes(withCensus(r => { r.limits = ['WR records unreadable: invented']; })), ['Runs recorded before the App restarted were read with limits: some runs or records may not be shown, so more of their checkpoints may be waiting for your act than are listed.']);
   assert.deepEqual(notes(withCensus(r => { r.runs = [reopenedRow(), reopenedRow({run:'run-u', state:'unknown'}), reopenedRow({run:'run-e', state:'ended'})]; })),
     ['2 runs reopened after the App restarted are not read for their checkpoints: the reading does not establish the latest disposition of their arrivals, so whether one waits for your act is not known.'], 'the open run without its records and the unknown run are counted; the ended one is not');
   // A reopened run that is also a hot run is covered by the hot run's own reading.
@@ -571,10 +576,14 @@ test('a reopened arrival is listed only where its latest disposition is establis
   // An ended run lists none of its arrivals, though its last disposition entry is waiting; a later run lists none of an earlier run's.
   const ended = carriedRow({state:'ended', detail:{stoppedBy:'person', cause:'ended by the person'}}); ended.lifecycle.end = {run:'run-r', stoppedBy:'person', cause:'ended by the person'}; ended.lifecycle.records = [...runRecords('waiting'), entry('run_ended', {stoppedBy:'person'}, 'e1')];
   assert.deepEqual(listed(r => { r.runs = [ended, {...reopenedRow({run:'run-s', follows:'run-r'}), reference:'run-s', lifecycle:{state:'open; interrupted (no run_ended recorded)', end:null, records:[entry('run_opened', {}, 's0')]}, limits:[]}]; }), [], 'the ended run and the later run list nothing');
-  // The same waiting entry with its later history not established is not listed as waiting, and the reason is said.
+  // With its later history not established, no entry is listed as waiting, whatever the entries read say last
+  // (waiting, or a later answer, negative resolution or lapse), and the reason is said.
+  const incomplete = disposition => carriedRow({state:'unknown', detail:'run_opened recorded; the record set is incomplete, so a run_ended may be unreadable'}, disposition);
   for (const [name, change] of [
-    ['a log not read whole (the host gives "unknown")', r => { r.runs = [carriedRow({state:'unknown', detail:'invented'})]; }],
-    ['a census that may have left records out', r => { r.runs = [carriedRow()]; r.historyNotices = ['Whether records in the project folder are left out of this view is not known: where this project\'s records are kept changed while it was being read.']; }],
+    ['a log not read whole (the host gives "unknown"), waiting last read', r => { r.runs = [incomplete('waiting')]; }],
+    ['a log not read whole, performed last read', r => { r.runs = [incomplete('performed')]; }],
+    ['a log not read whole, resolved negatively last read', r => { r.runs = [incomplete('resolved negatively')]; }],
+    ['a log not read whole, lapsed last read', r => { r.runs = [incomplete('lapsed')]; }],
     ['records not supplied (left out by the view\'s bound)', r => { const row = carriedRow({limits:["this run's 5 records are not in this view: it carries at most 2000 records in all, and only whole runs; its checkpoint dispositions are not known here"]}); delete row.lifecycle.records; r.runs = [row]; }],
   ]) {
     const sources = emptySources(withCensus(change));
@@ -587,6 +596,32 @@ test('a reopened arrival is listed only where its latest disposition is establis
     const html = renderPlace(waitingReadings(sources));
     assert.doesNotMatch(html, /Nothing recorded is waiting on you|Nothing is waiting/, `${name}: never "nothing is waiting"`);
   }
+});
+
+test('a census history notice withholds no arrival the run\'s own complete records establish: it is shown, the notice stays, and the total is incomplete', () => {
+  const {waitingEntries, waitingReadings, waitingView, waitingLine} = waitingModule();
+  for (const notice of [UNIMPORTED, CHANGED, UNAVAILABLE]) {
+    const sources = emptySources(withCensus(r => { r.runs = [carriedRow()]; r.historyNotices = [notice]; }));
+    assert.deepEqual(waitingEntries(sources).filter(e => e.source === 'checkpoint-arrival').map(e => e.concerns.run), ['run-r'], `${notice}: the established waiting arrival is listed`);
+    const readings = waitingReadings(sources);
+    assert.equal(readings.find(r => r.key === 'reopened').state, 'limited', `${notice}: the census reading is limited`);
+    const shown = waitingView(readings);
+    assert.equal(waitingLine(shown.observed, shown.complete), 'Waiting on you: 1 observed now; status incomplete', `${notice}: no definite total`);
+    const html = agentPlain(renderPlace(readings));
+    assert.match(html, /a checkpoint was reached; your act is not yet recorded/);
+    assert.match(html, /Runs recorded before the App restarted were read with limits: some runs or records may not be shown, so more of their checkpoints may be waiting for your act than are listed\./, `${notice}: the census note stays`);
+    assert.ok(html.includes(notice.replace(/'/g, '&#x27;')), `${notice}: the notice itself is shown beside it`);
+    assert.doesNotMatch(html, /Nothing recorded is waiting on you|not read for (its|their) checkpoints/, `${notice}: the run is not named as unread`);
+    // A later answer, negative resolution or lapse still leaves nothing waiting under the same notice.
+    for (const disposition of ['performed', 'resolved negatively', 'lapsed'])
+      assert.deepEqual(waitingEntries(emptySources(withCensus(r => { r.runs = [carriedRow({}, disposition)]; r.historyNotices = [notice]; }))).filter(e => e.source === 'checkpoint-arrival'), [], `${notice} / ${disposition}`);
+  }
+  // In the workflow studio, the evidence is shown without a caveat that the run's dispositions are not established.
+  const {WorkflowRootPanel} = loadSrc('App');
+  const host = hostView(); const data = {...host.workflowRoot, runs:[], reopened:{...emptyCensus(), runs:[carriedRow()], historyNotices:[CHANGED]}};
+  const drawn = renderToStaticMarkup(React.createElement(WorkflowRootPanel, {data, host:{...host, workflowRoot:data}, act:async () => {}}));
+  assert.match(drawn, /Arrival 1: reached; act not yet recorded\./);
+  assert.doesNotMatch(drawn, /This reading does not establish the latest disposition/);
 });
 
 test('a missing actor declaration is said as not recorded and does not hide an established waiting arrival; a limited reading gives no definite total', () => {

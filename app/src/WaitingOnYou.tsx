@@ -405,24 +405,23 @@ const REOPENED_REASON = {
 } as const;
 const REOPENED_REASON_UNKNOWN = "its state is one the App does not recognise";
 const REOPENED_NOT_SUPPLIED = "its records show it opened and record no end, but this reading did not supply its records";
-const REOPENED_MAY_OMIT = "its records show it opened and record no end, but where the project's records are kept may have left some of them out of this reading";
 const REOPENED_RUN = "reopened-run:";
 const RUN_STATE_ENDED = "ended";
 const RUN_STATE_NOT_STARTED = "start not confirmed in record";
 
 /** Whether the reopened reading establishes the latest recorded disposition of each arrival of a run not recorded
  * as ended: null where it does, else the App's reason. Carrying every entry that happened to be read is not enough.
- * It is established only where the host carried the run's records (`lifecycle.records`: whole runs or none,
- * RunsReading::view_bounded), gave the state "open; interrupted (no run_ended recorded)" (given only when every
- * log of the project's record set was read with no limit, so no later entry of the run is unread; each run's
- * entries are written to its own log in order), and the census says nothing of records it may have left out
- * (`historyNotices` present and empty). Other limits a run carries, such as an actor not established, bear on no
- * disposition and do not withhold it. */
-export function reopenedDispositionsUnestablished(row: Json, census: Json): string | null {
+ * It is established only by the run's own RS evidence: the host carried the run's records (`lifecycle.records`:
+ * whole runs or none, RunsReading::view_bounded) and gave the state "open; interrupted (no run_ended recorded)",
+ * which it gives only when every log of the project's record set was read with no limit (storage::read_all), so no
+ * later entry of the run is unread; each run's entries are written to its own log, in order. The census's own
+ * limits and history notices (records_store.rs: display information about where records are kept, not RS record-set
+ * completeness) and a run's other limits, such as an actor not established, bear on no disposition: they keep the
+ * reading limited and the count incomplete, and withhold no established arrival. */
+export function reopenedDispositionsUnestablished(row: Json): string | null {
   const state = row?.state ?? row?.lifecycle?.state;
   if (state !== RUN_STATE_OPEN) return wordOf(REOPENED_REASON, state) ?? REOPENED_REASON_UNKNOWN;
   if (!Array.isArray(row?.lifecycle?.records)) return REOPENED_NOT_SUPPLIED;
-  if (!Array.isArray(census?.historyNotices) || census.historyNotices.length > 0) return REOPENED_MAY_OMIT;
   return null;
 }
 const statusFailed = (name: string) => `${name} could not be read at the last attempt: the App's last read of its own status failed.`;
@@ -485,7 +484,7 @@ function hostReadings(host: Json, call: ReadEvidence["call"], at: number | null,
   const census = !!reopened && typeof reopened === "object" && Array.isArray(reopened.runs);
   const censusWhole = census && Array.isArray(reopened.limits) && Array.isArray(reopened.historyNotices);
   push("reopened", "Runs recorded before the App restarted", { evidence: { read: census, affirmedWhole: censusWhole, limits: census ? [...list(reopened.limits), ...list(reopened.historyNotices)].map(text) : [] }, entries: [] },
-    "Runs recorded before the App restarted were read with limits: some may not be shown, and whether one of their checkpoints waits for your act is not known.",
+    "Runs recorded before the App restarted were read with limits: some runs or records may not be shown, so more of their checkpoints may be waiting for your act than are listed.",
     "Runs recorded before the App restarted have not been read, so whether one of their checkpoints waits for your act is not known. Reopen recorded workflow runs reads them.");
   // When the records were last read for these runs: only the reopened view's own `readAt` says so (stamped where
   // read_reopened_history stores the view). The status response carrying the view is not that time.
@@ -495,7 +494,7 @@ function hostReadings(host: Json, call: ReadEvidence["call"], at: number | null,
     if ((runs ?? []).some((live: Json) => live?.reference === reference)) continue;   // a hot run's own reading covers it
     let found: Found;
     let detail: string | null = null;
-    const unestablished = reopenedDispositionsUnestablished(row, reopened);
+    const unestablished = reopenedDispositionsUnestablished(row);
     if (row?.state === RUN_STATE_ENDED || row?.state === RUN_STATE_NOT_STARTED) {
       // An end recorded in the run's records, or a complete record set with no run_opened
       // (RecordedLifecycle::StartNotConfirmed is given only for a complete set): nothing of it can wait.
@@ -506,9 +505,9 @@ function hostReadings(host: Json, call: ReadEvidence["call"], at: number | null,
       // read with limits, its established arrivals shown and its count incomplete.
       found = { evidence: { read: true, affirmedWhole: Array.isArray(row?.limits), limits: list(row?.limits).map(text) }, entries: arrivalsOf(row, reference) };
     } else {
-      // Records not supplied, a lifecycle the records do not establish ("unknown"), a state the App does not know,
-      // or records the census may have left out: no arrival's latest disposition is established, so none is listed,
-      // not even an older waiting entry, and the run is named as not read with its reason.
+      // Records not supplied, a lifecycle the records do not establish ("unknown") or a state the App does not know:
+      // no arrival's latest disposition is established, so none is listed, not even an older waiting entry, and the
+      // run is named as not read with its reason.
       found = nothing();
       detail = unestablished;
     }
@@ -612,8 +611,7 @@ export function waitingView(readings: SourceReading[]): WaitingView {
     coverage.push({ reading, note: reading.note });
   }
   // A run reopened after the App restarted whose reading does not establish its arrivals' latest dispositions (its
-  // records not supplied, its lifecycle not established, or records the census may have left out): only that
-  // history is unread. The count is read first; each run is named under it, with its reason.
+  // records not supplied, or its lifecycle not established): only that history is unread. The count is read first; each run is named under it, with its reason.
   const n = reopenedUnread.length;
   if (n > 0) coverage.push({ reading: null, runs: reopenedUnread, note: `${n} run${n === 1 ? "" : "s"} reopened after the App restarted ${n === 1 ? "is" : "are"} not read for ${n === 1 ? "its" : "their"} checkpoints: the reading does not establish the latest disposition of ${n === 1 ? "its" : "their"} arrivals, so whether one waits for your act is not known.` });
   const complete = readings.every(r => r.state === "whole");
