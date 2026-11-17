@@ -1,6 +1,6 @@
 {
   "scenario": "signed-out setup with a project, confirmed on the App's own sheet — sheet captured, not pressed",
-  "version": 1,
+  "version": 2,
   "what_it_is": "The signed-out setup walk with its sheet step marked \"press\": false, for recording the sheet from a new build: it opens the sheet from S4, captures it whole and ends there, whatever the sheet says. It differs from signed-out-setup.scenario.json only in this, its name and this sentence.",
   "starting_state": "An identified candidate built from main, without the driver's markers; a kept home made by the launcher with its network blocks on; the invented project folder beside the home, empty; no App data; the App running and confirmed from the shell; no child process.",
   "acts": "views, clicks, one set-value of the project path into the field Project folder (typed because the alternative is the system's folder panel, which no agent operates), and one press on the App's own setup confirmation sheet; no file or folder is chosen and no other sheet, dialog or prompt is answered",
@@ -63,7 +63,7 @@
       ]
     }
   ],
-  "states_recorded": "14 November 2026 09:01 UTC, by the supplier's view of this candidate, signed out, in a kept home with an invented empty project: each view a step acts from, with the project path, the three paths the App made, the App's name and the scroll bar's position made placeholders. The walk acts only when the view is one of these states, line for line",
+  "states_recorded": "14 November 2026 09:01 UTC, by the supplier's view of this candidate, signed out, in a kept home with an invented empty project: each view a step acts from, with the project path, the three paths the App made, the App's name and the scroll bar's position made placeholders. The walk acts only when the view is one of these states, line for line These states and the sheet template are of candidate 1023908b64-012ad5568eb2 and are kept as recorded, never edited to new words. That build predates PR 341 and PR 365, which changed the page's words: S1 to S4 hold the welcome's lead (\"Your choices take effect when you next open the App.\") and, in S3 and S4, the line under the confirmation (\"... keeps working until you reopen the App.\"), and S5 holds the saved block before both changes, without its Quit Chirality button. Each step's expectations are written from the source at main after PR 365 (FirstUse.tsx), so none of S1, S3, S4 and S5 as recorded meets them: on any later candidate each state is recorded again from a real view of that candidate (README, \"Recording the states again for a new candidate\") before anything is acted on or judged from it.",
   "states": {
     "S1": [
       "Window: \"Chirality\", App: {app_name}.",
@@ -541,6 +541,9 @@
         {
           "radio": "Start with new settings (recommended) The App creates its own empty Codex settings, instructions file and skills folder inside its data folder. Your existing Codex settings aren't read or changed, and the App doesn't use them.",
           "is": "chosen"
+        },
+        {
+          "text": "Chirality runs Codex on this Mac to do project work with you, and to turn work that goes well into workflows you can run again. First, choose a project folder and how Codex is set up. Your choices take effect when you quit Chirality and open it again."
         }
       ]
     },
@@ -607,6 +610,9 @@
         {
           "summary": "Exact locations",
           "is": "off"
+        },
+        {
+          "text": "The App asks you to confirm in its own dialog. Your current window keeps working until you quit Chirality and open it again."
         }
       ]
     },
@@ -665,6 +671,13 @@
         },
         {
           "no_text": "Not saved — you cancelled in the dialog. Your choices are still here."
+        },
+        {
+          "text_starts": "Next: quit Chirality and open it again."
+        },
+        {
+          "button": "Quit Chirality",
+          "is": "available"
         }
       ],
       "press": false

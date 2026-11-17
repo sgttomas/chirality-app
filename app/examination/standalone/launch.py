@@ -142,9 +142,18 @@ What it also does, each with its limit:
   bundle was identified; what is compared is the record found beside the bundle
   in the build's layout.
 - The record lists what leaves a run: the comparison's names, change labels and
-  counts; the per-user cache folder and preference-folder observations (names
-  and change labels; they never refuse a launch or fail a run); how the App
-  ended; the output file's path.
+  counts; the per-user cache folder and preference-folder observations (they
+  never refuse a launch or fail a run): of the cache folder, names named for
+  the build and change labels; of the preference folder, which every other
+  application shares, names and change labels only of entries named for the
+  build, and of every other changed entry a count alone, with no name; how the
+  App ended; the output file's path.
+- What the comparison reads of the real Library: it lists the names in the
+  Library's first level and in the nine watched folders, keeps only the names
+  the build's rule matches (its identifier or executable name), walks only
+  beneath those, and reads no file's content. A refusal of a before-listing
+  names the place as a watched folder, an entry named for the build or an entry
+  beneath one; links met are named the same way.
 - The address override replaces the built-in provider's address for model
   requests only, once the App reads that input (it arrives with the Access
   lane's change, not yet on main; of a candidate built before it, nothing is
@@ -688,9 +697,10 @@ def observe(base, folders, identifier, executable, what):
 
 
 def preferences_observation():
-    """Files directly under the real Library/Preferences, by name, kind, size and time. A link there is listed as an
-    entry of kind link (not followed); only the folder itself being a link, or anything that cannot be examined,
-    makes the observation not made."""
+    """Files directly under the real Library/Preferences, by name, kind, size and time, held in memory to be compared
+    (preferences_disclosure decides what of it the record keeps). A link there is listed as an entry of kind link
+    (not followed); only the folder itself being a link, or anything that cannot be examined, makes the observation
+    not made."""
     folder = real_home() / 'Library/Preferences'
     try:
         found = kind_of(folder)
@@ -710,6 +720,19 @@ def disclosure(before, after, exclude=()):
     if before[1] or after[1]:
         return {'observation': before[1] or after[1]}
     return {'observation': 'made', 'changes': [c for c in differences(before[0], after[0]) if c['path'] not in exclude]}
+
+
+def preferences_disclosure(before, after, exclude, identifier, executable):
+    """The preference folder's changes, as the record keeps them. The folder is shared with every other application,
+    so a name is kept only when it is named for the build (watched_name); every other changed entry is counted, and
+    its name, kind, size and time are kept nowhere in the record. Names already in the Library comparison are left
+    to it, as before."""
+    made = disclosure(before, after)
+    if 'changes' not in made:
+        return made
+    named = [c for c in made['changes'] if watched_name(c['path'], identifier, executable)]
+    return {'observation': 'made', 'changes': [c for c in named if c['path'] not in exclude],
+            'changes_not_named_for_the_build': len(made['changes']) - len(named)}
 
 
 # ---- STATEMENT 1: the environment ---------------------------------------------------------------------
@@ -906,7 +929,7 @@ def _run(args, app, record_data, executable_path, executable, model_address, fol
         cache_after = observe(cache, ('',), identifier, executable, 'per-user cache folder')
         facts['comparison'] = compare(before, after, again)
         named = {p.split('/', 1)[1] for p in before[0].keys() | (after or ({}, []))[0].keys() if p.startswith('Preferences/')}
-        record['disclosed'] = {'preferences': disclosure(prefs_before, prefs_after, named),
+        record['disclosed'] = {'preferences': preferences_disclosure(prefs_before, prefs_after, named, identifier, executable),
                                'user_cache': {'folder': str(cache) if cache else None,
                                               **disclosure(cache_before, cache_after)}}
         return _finish(record_fd, record, facts, code=None)
