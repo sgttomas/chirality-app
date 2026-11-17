@@ -19,12 +19,14 @@ This is the first part. It makes exactly three comparisons of one thread: its tu
   - the messages of the conversation: `response_item` messages, the person's input among them.
 
   It does not hold everything the model was given. Codex sends each request with a developer message made from its base instructions, with some sections cut, and with its tool definitions; the file holds neither. It never holds approvals, requests to the person, warnings or errors other than a turn's own. None of these is compared here.
-- **Checked against the real format.** The parser was checked against one real session file made at the pin, 0.167.0. That file was made with a scripted loopback provider, no model and no sign-in, in a scratch examination home.
-  - Its three turns (completed, interrupted, failed on an error) and their lines read as the file records them.
-  - The file was removed after the check, and only notes on its format were kept.
+- **Checked against the real format.** The parser was checked against one real session file made at the pin, 0.169.0. That file was made by the pinned app server alone over stdio, its binary first checked against the pin's `GENERATION.json`, with the scripted loopback provider of `app/supplier_checks/recording_provider.py`, no model and no sign-in, in a fresh examination home with the supplier's default sandbox settings.
+  - Its three turns (completed, interrupted, failed on a scripted provider error) and their lines read as the file records them: each turn's `task_started` and its end, `task_complete` with no `error` key, `turn_aborted` with reason `interrupted`, and `task_complete` with an `error` object of `message` and `codex_error_info`. Every turn event carried `turn_id`.
+  - Lines the model does not read were there and change no reading: a top-level `metadata` on response items, `session_id` beside `id` in `session_meta`, and `thread_settings_applied` and `token_usage_record` lines.
+  - Not seen in that file, and so read as the model already did: an `error` of null, the `turn_started` and `turn_complete` names, and abort reasons other than `interrupted`.
+  - The file was removed after the check, and only notes on its format were kept. This check replaces the earlier one at 0.167.0, and a file of 0.167.0 is now blocked like any other version. `TheRealFormat` in the tests is an invented session laid out as the 0.169.0 file was.
 - **A strict model.** The session file's bytes are read once, and both its digest and the model are made from those same bytes.
   - Every line must be a session line.
-  - The first line must be `session_meta` naming the thread and the pinned Codex version, `cli_version` `0.167.0`. A file written by another version is blocked, not read on a guess.
+  - The first line must be `session_meta` naming the thread and the pinned Codex version, `cli_version` exactly `0.169.0`. A file written by any other version is blocked, not read on a guess. A new pin needs its own check against a real file before this changes.
   - Every turn event must carry a turn identity.
 
   Otherwise every comparison is blocked. A turn whose events are not one start followed by at most one end is not one reading, and its outcome is never compared as agreeing: C3 is inconclusive. C2 still says only that both sides have a turn of that identity. That covers a turn started twice, restarted after its end, ended without a start, or ended with an error that is neither absent, nor null, nor an object with a message.
