@@ -202,10 +202,11 @@ fn exact_affirmative_revalidates_original_request_and_preserves_native_reply_out
             (basis[0].clone(), basis[1].clone())
         },
         |statement| {
-            assert!(statement.text.contains("item/fileChange/requestApproval"));
+            assert!(statement.text.contains("Codex asks to change files"));
+            assert!(!statement.text.contains("item/fileChange/requestApproval"));
             assert!(statement
                 .text
-                .contains("Don't send (the default) and Cancel send nothing"));
+                .contains("Don't send (the default) and this sheet's Cancel button send nothing"));
             Ok(affirmative())
         },
         |actor| {

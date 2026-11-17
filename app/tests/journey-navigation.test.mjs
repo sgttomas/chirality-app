@@ -1,5 +1,8 @@
 // Mounted App: the Run a workflow guide's conversation actions select the
 // run's own conversation and reveal it (its requests when Codex is waiting).
+// Companion reads return only an already-masked memory snapshot; they perform
+// no workflow action and issue no history request. They are allowed separately
+// from the actions these navigation assertions forbid.
 // Controlled invented host view; no supplier, model or person act.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -24,7 +27,7 @@ const host = {state:'ready', generation:g, threads:[thread('T1'), thread('T2')],
     state:'outstanding', replyWriteResult:'not-attempted', acknowledgmentObservation:{status:'not-observed'}}],
   workflowRoot:{context:{sourceRef:'src', generation:g}, projectLibraryAvailable:true, activeLibrary:null, libraries:[], selections:[], runs:[open], drafts:{drafts:[]}}};
 
-test('Answer in the conversation selects the run conversation and reveals its requests, issuing no command', async () => {
+test('Answer in the conversation selects the run conversation and reveals its requests, issuing no action', async () => {
   const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c); const calls = [];
   const revealed = []; const previous = {getElementById:document.getElementById, setInterval:globalThis.setInterval, clearInterval:globalThis.clearInterval};
   document.getElementById = id => { revealed.push(id); return c.querySelectorAll(n => n.getAttribute('id') === id)[0] ?? null; };
@@ -33,7 +36,7 @@ test('Answer in the conversation selects the run conversation and reveals its re
     calls.push(command);
     if (command === 'host_status') return structuredClone(host);
     if (command === 'decision_view') return {rows:[]};
-    if (command === 'native_confirmation_content') return [];
+    if (command === 'native_confirmation_content' || command === 'request_answer_companions') return [];
     assert.fail(`Unexpected IPC: ${command}`);
   });
   try {
@@ -47,7 +50,7 @@ test('Answer in the conversation selects the run conversation and reveals its re
     assert.equal(chosenIn(conversationSelect()), key('T2'), 'the run conversation is now the shown conversation');
     assert.ok(revealed.includes('conversation-requests'), 'its requests are revealed');
     assert.match(c.querySelectorAll(n => n.getAttribute('id') === 'conversation-requests')[0].textContent, /Which folder\?/);
-    assert.deepEqual(calls.slice(before).filter(cmd => cmd !== 'host_status'), [], 'no answer, send or resume');
+    assert.deepEqual(calls.slice(before).filter(cmd => !['host_status', 'request_answer_companions'].includes(cmd)), [], 'no answer, send or resume');
     idle.assertClean(c);
   } finally { const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text); Object.assign(globalThis, {setInterval:previous.setInterval, clearInterval:previous.clearInterval}); document.getElementById = previous.getElementById; }
 });
@@ -66,7 +69,7 @@ test('the ready trial link lands inside the clean trial composer, which says in 
     calls.push(command);
     if (command === 'host_status') return structuredClone(withTrial);
     if (command === 'decision_view') return {rows:[]};
-    if (command === 'native_confirmation_content') return [];
+    if (command === 'native_confirmation_content' || command === 'request_answer_companions') return [];
     assert.fail(`Unexpected IPC: ${command}`);
   });
   try {
@@ -88,7 +91,7 @@ test('the ready trial link lands inside the clean trial composer, which says in 
     assert.deepEqual(active, ['Conversation'], 'the Conversation view is shown');
     assert.equal(panel.getAttribute('tabindex'), '-1', 'focus lands on the composer itself, not the conversation select above it');
     main.removeChild(link);
-    assert.deepEqual(calls.filter(cmd => !['host_status', 'decision_view', 'native_confirmation_content'].includes(cmd)), [], 'following the link issues no action');
+    assert.deepEqual(calls.filter(cmd => !['host_status', 'decision_view', 'native_confirmation_content', 'request_answer_companions'].includes(cmd)), [], 'following the link issues no action');
   } finally { const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text); Object.assign(globalThis, {setInterval:previous.setInterval, clearInterval:previous.clearInterval}); document.getElementById = previous.getElementById; }
 });
 
@@ -101,7 +104,7 @@ test('a run\'s "recorded evidence" link lands on that run in the workflow studio
   const idle = installIdleNativeWaiting(async command => {
     if (command === 'host_status') return structuredClone(host);
     if (command === 'decision_view') return {rows:[]};
-    if (command === 'native_confirmation_content') return [];
+    if (command === 'native_confirmation_content' || command === 'request_answer_companions') return [];
     assert.fail(`Unexpected IPC: ${command}`);
   });
   try {
@@ -123,7 +126,7 @@ test('a run\'s "recorded evidence" link lands on that run in the workflow studio
   } finally { const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text); Object.assign(globalThis, {setInterval:previous.setInterval, clearInterval:previous.clearInterval}); document.getElementById = previous.getElementById; }
 });
 
-test('a saved trial conversation opens History with only its ID in the search: nothing is read, chosen or continued', async () => {
+test('a saved trial conversation opens History with only its ID in the search: no history is read, chosen or continued', async () => {
   const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c);
   const previous = {getElementById:document.getElementById, setInterval:globalThis.setInterval, clearInterval:globalThis.clearInterval};
   document.getElementById = id => c.querySelectorAll(n => n.getAttribute('id') === id)[0] ?? null;
@@ -137,7 +140,7 @@ test('a saved trial conversation opens History with only its ID in the search: n
     calls.push(command);
     if (command === 'host_status') return structuredClone(withDraft);
     if (command === 'decision_view') return {rows:[]};
-    if (command === 'native_confirmation_content') return [];
+    if (command === 'native_confirmation_content' || command === 'request_answer_companions') return [];
     assert.fail(`Unexpected IPC: ${command}`);
   });
   try {
@@ -152,11 +155,11 @@ test('a saved trial conversation opens History with only its ID in the search: n
     const search = c.querySelectorAll(n => n.localName === 'input' && n.getAttribute('aria-describedby') === 'history-search-count')[0];
     assert.equal(props(search).value, 'thread-old-trial', 'its search holds the saved ID');
     assert.match(c.querySelectorAll(n => n.getAttribute('aria-label') === 'Searching for a saved conversation')[0].textContent, /It is only a search: nothing is read, chosen or continued\. If it isn't among the received conversations, it may be in another home/);
-    assert.deepEqual(calls.filter(cmd => !['host_status', 'decision_view', 'native_confirmation_content'].includes(cmd)), [], 'no history read, selection, home change or Continue');
+    assert.deepEqual(calls.filter(cmd => !['host_status', 'decision_view', 'native_confirmation_content', 'request_answer_companions'].includes(cmd)), [], 'no history read, selection, home change or Continue');
   } finally { const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text); Object.assign(globalThis, {setInterval:previous.setInterval, clearInterval:previous.clearInterval}); document.getElementById = previous.getElementById; }
 });
 
-test('a registered revision to re-confirm links from Run to its own row in the workflow studio, issuing no command', async () => {
+test('a registered revision to re-confirm links from Run to its own row in the workflow studio, issuing no action', async () => {
   const c = document.createElement('div'); document.body.appendChild(c); const root = createRoot(c);
   const previous = {getElementById:document.getElementById, setInterval:globalThis.setInterval, clearInterval:globalThis.clearInterval};
   document.getElementById = id => c.querySelectorAll(n => n.getAttribute('id') === id)[0] ?? null;
@@ -170,7 +173,7 @@ test('a registered revision to re-confirm links from Run to its own row in the w
     calls.push(command);
     if (command === 'host_status') return structuredClone(withLibrary);
     if (command === 'decision_view') return {rows:[]};
-    if (command === 'native_confirmation_content') return [];
+    if (command === 'native_confirmation_content' || command === 'request_answer_companions') return [];
     assert.fail(`Unexpected IPC: ${command}`);
   });
   try {
@@ -192,6 +195,6 @@ test('a registered revision to re-confirm links from Run to its own row in the w
     let owner = null;
     for (let node = row; node; node = node.parentNode) { const v = node.getAttribute?.('data-workspace-view'); if (v) { owner = node; break; } }
     assert.ok(owner && !owner.hidden, 'its view is shown');
-    assert.deepEqual(calls.filter(cmd => !['host_status', 'decision_view', 'native_confirmation_content'].includes(cmd)), [], 'following the link refines, reviews and selects nothing');
+    assert.deepEqual(calls.filter(cmd => !['host_status', 'decision_view', 'native_confirmation_content', 'request_answer_companions'].includes(cmd)), [], 'following the link refines, reviews and selects nothing');
   } finally { const text = c.textContent; await React.act(() => root.unmount()); document.body.removeChild(c); idle.restore(text); Object.assign(globalThis, {setInterval:previous.setInterval, clearInterval:previous.clearInterval}); document.getElementById = previous.getElementById; }
 });

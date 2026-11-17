@@ -41,7 +41,7 @@ test('actual two-home Host requests remain visible in the App overview after sel
   const dto=producer();const container=document.createElement('div');document.body.appendChild(container);const root=createRoot(container);
   let active='api-key';const calls=[];
   const idle=installIdleNativeWaiting(async(command,args)=>{
-    calls.push({command,args});if(command==='host_status')return dto[active];if(command==='decision_view')return {rows:[]};if(command==='native_confirmation_content')return [];
+    calls.push({command,args});if(command==='host_status')return dto[active];if(command==='decision_view')return {rows:[]};if(command==='native_confirmation_content'||command==='request_answer_companions')return [];
     if(command==='host_observe')return {sourceUnavailable:true,error:'Synthetic fixture does not replay observer journal frames',frames:[]};
     if(command==='select_home'){active=args.modeHomeClass;return {state:'selected'};}
     throw Error(`Unexpected command ${command}`);
@@ -57,7 +57,7 @@ test('actual two-home Host requests remain visible in the App overview after sel
     assert.match(indicator().textContent,/account.*shared-thread.*2/);
     assert.match(indicator().textContent,/api-key.*shared-thread.*1/);
     assert.match(indicator().textContent,/no conversation named.*1/);
-    assert.deepEqual(calls.filter(call=>!['host_status','decision_view','native_confirmation_content','host_observe','select_home'].includes(call.command)),[],'overview and home choice never answer, resume or send');
+    assert.deepEqual(calls.filter(call=>!['host_status','decision_view','native_confirmation_content','request_answer_companions','host_observe','select_home'].includes(call.command)),[],'overview and home choice never answer, resume or send');
   }finally{const renderedText=container.textContent;await React.act(()=>root.unmount());document.body.removeChild(container);idle.restore(renderedText);}
 });
 
@@ -70,7 +70,7 @@ async function mounted(check,{initial='api-key',navigationWait,decisionWait,wron
     calls.push({command,args});
     if(command==='host_status'){if(failAfterOpen&&opened)throw 'INVENTED_PRIVATE_REFRESH_DIAGNOSTIC_92';return dto[wrongRefresh&&opened?'api-key':active];}
     if(command==='decision_view'){if(opened&&decisionWait)await decisionWait.promise;return {rows:[]};}
-    if(command==='native_confirmation_content')return [];
+    if(command==='native_confirmation_content'||command==='request_answer_companions')return [];
     if(command==='host_observe')return {sourceUnavailable:true,error:'Synthetic fixture does not replay observer journal frames',frames:[]};
     assert.equal(command,'open_waiting_requests','navigation is the only command this view may issue');
     const result=dto.navigation[args.threadId===null?'unnamed':args.modeHomeClass];

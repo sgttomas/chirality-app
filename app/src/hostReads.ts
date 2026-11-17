@@ -44,6 +44,7 @@ export const SELF_ISSUED_QUIET: Readonly<Record<string, string>> = {
   finish_native_waiting_intent: "the waiting-navigation registry only, which neither guide shows",
   host_observe: "queues an observer reconstruction kept apart from live activity; reconciliation only",
   native_confirmation_content: "none",
+  request_answer_companions: "none; reads only already-masked frozen request-answer snapshots in memory",
   workflow_review_digest: "none",
 };
 
