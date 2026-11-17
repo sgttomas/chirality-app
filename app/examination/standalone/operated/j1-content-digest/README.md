@@ -8,13 +8,15 @@ organisation, and no file in it is a copy of anything else. It is not a frozen
 preparation fixture of `../../fixtures/` and is not listed by
 `../../sources.terms-v1.json`.
 
-`brief-note.txt` is a short UTF-8 brief, the file the operator selects as the
+`brief-note.md` is a short UTF-8 brief, the file the operator selects as the
 run's file input (J1-4). `execution/PKG-001/DEL-001-01_Packing-List/` holds `_CONTEXT.md`, the four
 legacy documents (`Datasheet.md`, `Specification.md`, `Guidance.md`,
 `Procedure.md`), `_REFERENCES.md` and the deliverable's `deliverable.yaml`,
-kept here as `deliverable.yaml.in` and renamed when it is staged: this
-repository's own deliverables tool reads every file named `deliverable.yaml`
-in the checkout as one of the project's deliverables. Two things in it are
+kept here as `deliverable.yaml.md` (its bytes are the YAML, with no
+Markdown in them) and renamed when it is staged: this repository's own
+deliverables tool reads every file named `deliverable.yaml` in the checkout as
+one of the project's deliverables, and its check selection reads a file of
+another suffix here as a product input. Two things in it are
 absent on purpose, and a useful digest reports each as absent rather than
 inventing it:
 
@@ -35,11 +37,11 @@ every staged file:
 
 ```sh
 cp -R app/examination/standalone/operated/j1-content-digest/execution <kept folder>/project/
-cp app/examination/standalone/operated/j1-content-digest/brief-note.txt <kept folder>/project/
-mv <kept folder>/project/execution/PKG-001/DEL-001-01_Packing-List/deliverable.yaml.in \
+cp app/examination/standalone/operated/j1-content-digest/brief-note.md <kept folder>/project/
+mv <kept folder>/project/execution/PKG-001/DEL-001-01_Packing-List/deliverable.yaml.md \
    <kept folder>/project/execution/PKG-001/DEL-001-01_Packing-List/deliverable.yaml
 mkdir -p <kept folder>/project/execution/_Evaluation/content-digests/PKG-001
-( cd <kept folder>/project && find execution brief-note.txt -type f -print0 | sort -z | xargs -0 shasum -a 256 ) \
+( cd <kept folder>/project && find execution brief-note.md -type f -print0 | sort -z | xargs -0 shasum -a 256 ) \
   > <evidence folder>/j1-staged.sha256
 ```
 
@@ -52,7 +54,7 @@ and `OUTPUT_PATH` =
 they are supplied through the App's controls, not by this staging.
 
 For J1-4's second part the examiner, after the operator has selected
-`brief-note.txt` and before it sends, appends one line to it (preparation
+`brief-note.md` and before it sends, appends one line to it (preparation
 outside the controls, recorded with the time and the file's digest after the
 change); the App is expected to hold that send and send nothing. The examiner
 then copies the file back from this folder, checks its digest against

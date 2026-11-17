@@ -1925,7 +1925,7 @@ it.
 3. **Inputs and start (J1-4, the start of J1-5).** The examiner stages the
    packing list (preparation outside the controls). The operator supplies the
    brief and the inputs through the App's controls, selecting
-   `brief-note.txt` as the file input. For J1-4's second part the examiner
+   `brief-note.md` as the file input. For J1-4's second part the examiner
    changes that file between selection and sending, and the App is expected
    to hold the send; the file is then restored and selected again
    (`j1-content-digest/README.md`). The operator starts the run deliberately
