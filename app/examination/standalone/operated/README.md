@@ -1967,9 +1967,11 @@ before the go for the phase it reaches.
 - **Acting in a conversation.** This method says no agent acts where a
   conversation exists, or where a view holds a model's output or Codex's
   reports ("Where the walk acts, and why it is sound there"; "No structured
-  view"). Phases 2 to 4 act in views that hold Codex's reports, and phase 4
-  in a conversation; until App Agent 0 decides how the operator acts there,
-  those phases are blocked under this method.
+  view"). Phase 1 after the relaunch (the account and the level) and phases
+  2 to 4 act in views that hold Codex's reports, and phase 4 in a
+  conversation; until App Agent 0 decides how the operator acts there, those
+  parts are blocked under this method. Phase 1 up to the relaunch acts only
+  in the first-use page and the App's own sheet.
 - **The system's file panel.** The App takes a run's input file only through
   the system's own file panel (`select_attachment`, "The native selector is
   the only attachment path/body authority"), and this method has no agent
