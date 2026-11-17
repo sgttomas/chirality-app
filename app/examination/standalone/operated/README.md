@@ -1894,6 +1894,65 @@ a launch after that starts again in a new folder from phase 1.
 invented packing list in `j1-content-digest/`, staged into the project as its
 README says. Nothing is authored or registered.
 
+### Before the walk: the selected workflow, copied from the candidate
+
+So that the session comparison (`app/examination/session_comparison/`) can
+check the workflow the run was given against the candidate, the examiner
+copies it from the identified candidate into the examination root before the
+walk. This is preparation outside the App's controls, and phase 2's record
+names it as such (J1-2's preparation).
+
+- **Who.** The examiner (the lane's agent), from its own shell; never the
+  operator, and never through the App.
+- **When.** After `launch.py keep-make` has made the kept folder and before
+  its first `keep-launch`, so before the session begins.
+- **From what.** The identified candidate folder of this J1, after
+  identification's check has passed for its bundle and the record's
+  `candidate_key` is the one the assignment names ("The candidate folder",
+  under "What the operator is given"). The bundle is the one entry of the
+  candidate's `target/debug/bundle/macos/`. Never from the App's records or
+  its data under `home/`, never from an installed App, never from this
+  repository's `resources/production_workflows/`, and never from another
+  candidate.
+- **Where.** `<kept folder>/record/selected-workflow/`, made new: inside the
+  examination root, outside every checkout. It is never committed to Git, no
+  copy of it is kept anywhere else, and it is removed with the folder by
+  `keep-remove`.
+- **What it holds, and nothing else.** Byte copies of
+  `identification/candidate-identification.json` and
+  `identification/bundle-inventory.json` from the candidate folder; the whole
+  selected package, the bundle's `Contents/Resources/workflows/<name>/`, as
+  `package/`; the candidate's own `Contents/Resources/workflows/MANIFEST.json`
+  as it is, which the reader binds to its entry in the inventory; and
+  `reference.json`, holding only the name and the package's place in the
+  bundle.
+
+```sh
+S="<kept folder>/record/selected-workflow"
+mkdir "$S"
+cp <candidate folder>/identification/candidate-identification.json "$S/"
+cp <candidate folder>/identification/bundle-inventory.json "$S/"
+cp -RP "<the bundle>/Contents/Resources/workflows/content-digest" "$S/package"
+cp "<the bundle>/Contents/Resources/workflows/MANIFEST.json" "$S/"
+printf '%s\n' '{"name": "content-digest", "bundle_path": "Contents/Resources/workflows/content-digest"}' > "$S/reference.json"
+```
+
+`mkdir` without `-p` refuses a folder that already exists; a refusal there,
+or a failed copy, means no walk, and the examiner starts again in a new kept
+folder. The record of the preparation gives the time it was made in UTC, the
+candidate folder and its key, and these commands as run.
+
+`reference.json` claims no digest and no revision. The candidate key, the
+build identity and the inventory, and that the package is complete and is
+the revision the source names, are checked by the session comparison itself
+from these copies, independently of anything the examiner states. That the
+folder was made before the session began is checked by the comparison only
+where its own evidence allows: it refuses the folder when an existing launch
+record shows it was made after the session began. Where no launch record
+allows that comparison, the order is the examiner's attestation in the
+record of the preparation, not something the filesystem shows. No helper
+makes this folder and no other record vouches for it.
+
 ### The phases
 
 J1 is examined in four phases, each a bounded session of the one operator in
@@ -1946,8 +2005,9 @@ The journey step record the preparation states (`../prepare.py`,
 - the candidate (revision, build identity, supplier pin) and the kept folder;
 - who operated it (an agent: its provider, model and session) and by what
   means (the App's controls by computer use);
-- the preparation done outside the controls (the folder, the staging with its
-  digests, the owner's sign-in as the owner's act) and the independent
+- the preparation done outside the controls (the folder, the copy of the
+  selected workflow from the candidate, the staging with its digests, the
+  owner's sign-in as the owner's act) and the independent
   observations (after the run: the staged files unchanged against their
   digests, the one file written at the output path and its seven sections,
   the supplier's history of the run-start turn against the composed run text
