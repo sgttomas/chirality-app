@@ -41,12 +41,15 @@ completion marker or a recorded digest is not authentication.
 The profile and Info.plist files are read by the one whole-document file reader
 (production_inputs/whole_plist.py): a value is returned only when the file is one XML property list
 in the admitted form whose structure, read from its own bytes, accounts for every byte and agrees
-with plistlib's value. The profile's envelope (prepare.profile_envelope) is walked as definite-length
-DER through every element, with each SignedData field's declared outer shape; it is not interpreted
-beyond that and not authenticated. A refusal names the part, the kind, the field, the shape expected,
-what was found and the byte, in fixed text and integers. A form the standard allows that the reader
-does not read is "not established" (never a mismatch, never agreement); a form it does not allow, or a
-field not of its declared shape, is malformed.
+with plistlib's value. The profile's envelope (prepare.profile_envelope) is read for exactly the enforced list stated
+there (one definite-length element; the declared structure from the outside down to the content; every
+length inside its parent; the property list the whole of the one content string); it is not validated
+as ASN.1 beyond that and not authenticated. A refusal names the part, the kind, the field, the shape
+expected, what was found and the byte, in fixed text and integers. "Not established" means the reader
+met a named form outside the subset it reads, at a named field, and did not read the file; it asserts
+nothing about whether the file is valid (never a mismatch, never agreement). Malformed is asserted only
+where the reader is certain within its subset; a mismatch means the file was read whole and a value the
+tools read is not of its type or not what the release requires.
 In `check`, a file in a form not read is the failed observation '... not established': its fields are
 listed under not_established, are not reported as differences, and the result is not equal.
 Line-form output is decoded with UTF-8 replacement, blank lines omitted and trailing whitespace stripped.
@@ -284,11 +287,10 @@ def observe_package(dmg, app, run, public_teams, publisher_team, limitations_sou
         failures.append(refused_failure(refused, 'bundle identity'))
     identity_fields = common.bundle_identity(info or {})
     bundle = {'name': common.APP_NAME if app.name == common.APP_NAME else 'other', 'info_plist_sha256': sha(info_raw)}
-    for key, shape in (('identifier', 'identifier'), ('version', 'version'), ('bundle_version', 'version'),
-                       ('minimum_system_version', 'version'), ('executable', 'identifier')):
+    for key, shape in common.INFO_SHAPES.items():
         bundle[key] = common.selected(identity_fields[key], shape)
-        if bundle[key] is None and info is not None:
-            failures.append(failure('bundle identity'))
+        if bundle[key] is None and info is not None:  # a string (read_info_plist), not of the shape the record states
+            failures.append(failure('bundle identity', detail=common.info_refusal(key, common.SHAPE_TEXT[shape], 'another shape').detail()))
     bundle['executable_sha256'] = sha((app / 'Contents/MacOS' / common.MAIN_EXECUTABLE).read_bytes())
     resources = app / 'Contents/Resources'
     vendor_tree = inventory.scan(resources / 'codex')

@@ -436,14 +436,43 @@ READER_REFUSED = {
     'another document type': (plist_document(READER_DICT, header=b'<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE invented>\n'),
                               ('a document type other than the property-list one', 'unsupported', 'document header')),
     'another encoding': (plist_document(READER_DICT, header=PLIST_HEADER.replace(b'UTF-8', b'ISO-8859-1')),
-                         ('an XML declaration other than version 1.0 in UTF-8 without standalone', 'unsupported', 'document header')),
-    'no XML declaration': (b'<plist version="1.0">' + READER_DICT + b'</plist>', ('no XML declaration as the first bytes (a byte order mark, another encoding, or none)', 'unsupported', 'document header')),
-    'a byte order mark': (b'\xef\xbb\xbf' + READER_CONTROL, ('no XML declaration as the first bytes (a byte order mark, another encoding, or none)', 'unsupported', 'document header')),
-    'an integer spelled with an underscore': (plist_document(b'<integer>1_0</integer>'), ('a spelling this reader does not read', 'unsupported', 'integer')),
-    'a real spelled as nan': (plist_document(b'<real>nan</real>'), ('a spelling this reader does not read', 'unsupported', 'real')),
-    'a partial date': (plist_document(b'<date>2026Z</date>'), ('a spelling this reader does not read', 'unsupported', 'date')),
-    'a date with trailing text': (plist_document(b'<date>2026-01-01T00:00:00Zjunk</date>'), ('a spelling this reader does not read', 'unsupported', 'date')),
-    'data with a character outside base64': (plist_document(b'<data>AAAA!!!!</data>'), ('a spelling this reader does not read', 'unsupported', 'data')),
+                         ('a declared encoding other than UTF-8', 'unsupported', 'document header')),
+    'review: Shift_JIS declared (the parser raised ValueError)': (plist_document(READER_DICT, header=PLIST_HEADER.replace(b'UTF-8', b'Shift_JIS')),
+                                                                 ('a declared encoding other than UTF-8', 'unsupported', 'document header')),
+    'review: an unknown encoding declared (the parser raised LookupError)': (
+        plist_document(READER_DICT, header=PLIST_HEADER.replace(b'UTF-8', b'x-invented-encoding')),
+        ('a declared encoding other than UTF-8', 'unsupported', 'document header')),
+    'UTF-16 declared in single quotes': (plist_document(READER_DICT, header=b"<?xml version='1.0' encoding='UTF-16'?>\n"),
+                                         ('a declared encoding other than UTF-8', 'unsupported', 'document header')),
+    'a standalone declaration': (plist_document(READER_DICT, header=b'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n'),
+                                 ('an XML declaration other than version 1.0, or with a standalone declaration', 'unsupported', 'document header')),
+    'review: a character reference in the root version attribute': (READER_CONTROL.replace(b'version="1.0">', b'version="&#49;.0">'),
+                                                                     ('a reference in the root version attribute', 'unsupported', 'plist')),
+    'an empty document': (b'', ('an empty document', 'malformed', 'document')),
+    'whitespace only': (b' \n', ('content that does not begin with an XML declaration', 'unsupported', 'document header')),
+    'no XML declaration': (b'<plist version="1.0">' + READER_DICT + b'</plist>', ('content that does not begin with an XML declaration', 'unsupported', 'document header')),
+    'a byte order mark': (b'\xef\xbb\xbf' + READER_CONTROL, ('content that does not begin with an XML declaration', 'unsupported', 'document header')),
+    # Each leaf value outside its admitted form names its type and the rule it fails (not established).
+    'an integer spelled with an underscore': (plist_document(b'<integer>1_0</integer>'), ('an integer outside the admitted grammar', 'unsupported', 'integer')),
+    'review: an integer of 65 digits': (plist_document(b'<integer>' + b'1' * 65 + b'</integer>'),
+                                        ('an integer longer than 64 characters', 'unsupported', 'integer')),
+    'a negative integer of 65 characters': (plist_document(b'<integer>-' + b'1' * 64 + b'</integer>'),
+                                            ('an integer longer than 64 characters', 'unsupported', 'integer')),
+    'a real spelled as nan': (plist_document(b'<real>nan</real>'), ('a real outside the admitted grammar', 'unsupported', 'real')),
+    'a real that overflows': (plist_document(b'<real>1.7976931348623159e308</real>'), ('a real that converts to an infinity', 'unsupported', 'real')),
+    'a real that underflows': (plist_document(b'<real>2.4703282292062327e-324</real>'),
+                               ('a real that converts to zero from non-zero digits', 'unsupported', 'real')),
+    'a partial date': (plist_document(b'<date>2026Z</date>'), ('a date outside the admitted grammar', 'unsupported', 'date')),
+    'a date with trailing text': (plist_document(b'<date>2026-01-01T00:00:00Zjunk</date>'), ('a date outside the admitted grammar', 'unsupported', 'date')),
+    'review: an impossible date': (plist_document(b'<date>2099-02-29T00:00:00Z</date>'), ('a date naming no real date or time', 'unsupported', 'date')),
+    'data with a character outside base64': (plist_document(b'<data>AAAA!!!!</data>'), ('a character outside base64 and whitespace', 'unsupported', 'data')),
+    'review: data with @': (plist_document(b'<data>Z@==</data>'), ('a character outside base64 and whitespace', 'unsupported', 'data')),
+    'data missing its padding': (plist_document(b'<data>Zg</data>'), ('base64 padding outside the admitted form', 'unsupported', 'data')),
+    'data with three pads': (plist_document(b'<data>Zg===</data>'), ('base64 padding outside the admitted form', 'unsupported', 'data')),
+    'data padded in the middle': (plist_document(b'<data>Zg==Zg==</data>'), ('base64 padding outside the admitted form', 'unsupported', 'data')),
+    'data with unused bits set': (plist_document(b'<data>Zh==</data>'), ('base64 with unused bits not zero', 'unsupported', 'data')),
+    'a reference inside an integer': (plist_document(b'<integer>&#49;</integer>'),
+                                      ('a reference or CDATA section in a leaf that is not text', 'unsupported', 'integer')),
     'text inside true': (plist_document(b'<true>no</true>'), ('content inside true or false', 'malformed', 'true')),
     'not well-formed': (READER_CONTROL.replace(b'</dict>', b'</array>'), ('not well-formed XML', 'malformed', 'document')),
 }
@@ -461,7 +490,7 @@ class WholeFileRefusals(unittest.TestCase):
                 detail = raised.exception.detail()
                 self.assertEqual((detail['found'], detail['kind'], detail['field']), (found, kind, field))
                 self.assertIsInstance(raised.exception, ValueError)  # every caller already stops on ValueError
-                self.assertLess(detail.get('offset', 0), len(raw))
+                self.assertLessEqual(detail.get('offset', 0), max(len(raw) - 1, 0))
                 self.assertEqual(WHOLE.load(READER_CONTROL), READER_EXPECTED)
 
     def test_the_standard_parser_alone_reads_part_of_the_conflicting_pair(self):
@@ -624,6 +653,7 @@ def signed_data(*fields):
 
 VERSION, CERTIFICATES, SIGNERS = T(0x02, b'\x01'), T(0xa0, fx.CERTIFICATE), T(0x31, fx.SIGNER_INFO)
 ENCAP = T(0x30, DATA_OID_TLV + T(0xa0, T(0x04, ENVELOPE_CONTENT)))
+SIGNED_FIELDS = VERSION + fx.DIGEST_ALGORITHMS + ENCAP + CERTIFICATES + SIGNERS  # the control's SignedData fields
 CONTROL_ENVELOPE = fx.envelope(ENVELOPE_CONTENT)
 
 
@@ -643,22 +673,24 @@ def deep(levels):
 
 
 U, MF = 'unsupported', 'malformed'
-# name: (envelope, (kind, field, found, item or None)). Each breaks one rule and leaves every other field as the control.
-# The headers of a field's elements are read before the first element's shape is checked, so a rival property list
-# inside a SET is refused at the first of its bytes that cannot be an element within the SET (here its twelfth).
+# name: (envelope, (kind, field, found, item or None)). Each breaks exactly one rule and leaves every other field as the
+# control, except where its name says it breaks two (a SignedData cut short omits every field after the first missing
+# one, which is the one named). The top-level fields are read in order, each checked as it is read; within a SET the
+# headers of all its elements are read before the first element's shape is checked, so a rival property list inside a
+# SET is refused at the first of its bytes that cannot be an element within the SET (here its twelfth).
 ENVELOPE_CASES = {
     # ContentInfo
     'ContentInfo is not a SEQUENCE': (b'\x31' + CONTROL_ENVELOPE[1:], (MF, 'ContentInfo', 'another tag', None)),
     'a byte after ContentInfo': (CONTROL_ENVELOPE + b'\x00', (MF, 'ContentInfo', 'bytes left over after the last element', None)),
     'a third element in ContentInfo': (T(0x30, SIGNED_OID + T(0xa0, T(0x30, VERSION + fx.DIGEST_ALGORITHMS + ENCAP + CERTIFICATES + SIGNERS))
                                          + T(0x05, b'')), (MF, 'ContentInfo', 'more elements than declared', None)),
-    'contentType is not an OBJECT IDENTIFIER': (T(0x30, T(0x04, PREPARE.SIGNED_DATA_OID) + T(0xa0, T(0x30, VERSION))),
+    'contentType is not an OBJECT IDENTIFIER': (T(0x30, T(0x04, PREPARE.SIGNED_DATA_OID) + T(0xa0, T(0x30, SIGNED_FIELDS))),
                                                 (MF, 'ContentInfo.contentType', 'another tag', None)),
-    'contentType is id-data': (T(0x30, DATA_OID_TLV + T(0xa0, T(0x30, VERSION))), (MF, 'ContentInfo.contentType', 'another object identifier', None)),
-    'content is [1]': (T(0x30, SIGNED_OID + T(0xa1, T(0x30, VERSION))), (MF, 'ContentInfo.content', 'another tag', None)),
-    'content holds two elements': (T(0x30, SIGNED_OID + T(0xa0, T(0x30, VERSION) + T(0x05, b''))),
+    'contentType is id-data': (T(0x30, DATA_OID_TLV + T(0xa0, T(0x30, SIGNED_FIELDS))), (MF, 'ContentInfo.contentType', 'another object identifier', None)),
+    'content is [1]': (T(0x30, SIGNED_OID + T(0xa1, T(0x30, SIGNED_FIELDS))), (MF, 'ContentInfo.content', 'another tag', None)),
+    'content holds two elements': (T(0x30, SIGNED_OID + T(0xa0, T(0x30, SIGNED_FIELDS) + T(0x05, b''))),
                                    (MF, 'ContentInfo.content', 'more elements than declared', None)),
-    'SignedData is a SET': (T(0x30, SIGNED_OID + T(0xa0, T(0x31, VERSION))), (MF, 'SignedData', 'another tag', None)),
+    'SignedData is a SET': (T(0x30, SIGNED_OID + T(0xa0, T(0x31, SIGNED_FIELDS))), (MF, 'SignedData', 'another tag', None)),
     # version
     'version is an OCTET STRING': (fx.envelope(ENVELOPE_CONTENT, version=T(0x04, b'\x01')), (MF, 'SignedData.version', 'another tag', None)),
     'version is an empty INTEGER': (fx.envelope(ENVELOPE_CONTENT, version=T(0x02, b'')),
@@ -675,7 +707,8 @@ ENVELOPE_CASES = {
     'version of two octets': (fx.envelope(ENVELOPE_CONTENT, version=T(0x02, b'\x01\x00')), (MF, 'SignedData.version', 'another version', None)),
     'a negative version': (fx.envelope(ENVELOPE_CONTENT, version=T(0x02, b'\xff')), (MF, 'SignedData.version', 'another version', None)),
     # digestAlgorithms
-    'only a version in SignedData': (signed_data(VERSION), (MF, 'SignedData.digestAlgorithms', 'a missing element', None)),
+    'SignedData cut short after its version (breaks two: the first missing field is named)': (
+        signed_data(VERSION), (MF, 'SignedData.digestAlgorithms', 'a missing element', None)),
     'digestAlgorithms is a SEQUENCE': (fx.envelope(ENVELOPE_CONTENT, digests=T(0x30, T(0x30, fx.SHA256))),
                                        (MF, 'SignedData.digestAlgorithms', 'another tag', None)),
     'a digest algorithm that is not a SEQUENCE': (fx.envelope(ENVELOPE_CONTENT, digests=T(0x31, T(0x04, b'x'))),
@@ -697,7 +730,8 @@ ENVELOPE_CASES = {
     'a NULL with content in a digest algorithm': (fx.envelope(ENVELOPE_CONTENT, digests=T(0x31, T(0x30, fx.SHA256 + T(0x05, b'x')))),
                                                   (MF, 'SignedData.digestAlgorithms', 'a NULL with content', 1)),
     # encapContentInfo
-    'encapContentInfo is a SET': (fx.envelope(ENVELOPE_CONTENT, encap=T(0x31, DATA_OID_TLV)), (MF, 'SignedData.encapContentInfo', 'another tag', None)),
+    'encapContentInfo is a SET': (fx.envelope(ENVELOPE_CONTENT, encap=T(0x31, DATA_OID_TLV + T(0xa0, T(0x04, ENVELOPE_CONTENT)))),
+                                  (MF, 'SignedData.encapContentInfo', 'another tag', None)),
     'no eContent': (fx.envelope(ENVELOPE_CONTENT, encap=T(0x30, DATA_OID_TLV)), (MF, 'SignedData.encapContentInfo', 'a missing element', None)),
     'eContentType is an OCTET STRING': (fx.envelope(ENVELOPE_CONTENT, encap=T(0x30, T(0x04, PREPARE.DATA_OID) + T(0xa0, T(0x04, ENVELOPE_CONTENT)))),
                                         (MF, 'EncapsulatedContentInfo.eContentType', 'another tag', None)),
@@ -755,6 +789,12 @@ ENVELOPE_CASES = {
                                                         (MF, 'SignedData.signerInfos', 'another version', 1)),
     'a signer of version 6': (fx.envelope(ENVELOPE_CONTENT, after=CERTIFICATES + T(0x31, T(0x30, T(0x02, b'\x06')))),
                               (MF, 'SignedData.signerInfos', 'another version', 1)),
+    'a signer version of two octets': (fx.envelope(ENVELOPE_CONTENT, after=CERTIFICATES + T(0x31, T(0x30, T(0x02, b'\x01\x00')))),
+                                       (MF, 'SignedData.signerInfos', 'another version', 1)),
+    'a negative signer version': (fx.envelope(ENVELOPE_CONTENT, after=CERTIFICATES + T(0x31, T(0x30, T(0x02, b'\xff')))),
+                                  (MF, 'SignedData.signerInfos', 'another version', 1)),
+    'review: the second signer of version 6': (fx.envelope(ENVELOPE_CONTENT, after=CERTIFICATES + T(0x31, fx.SIGNER_INFO + T(0x30, T(0x02, b'\x06')))),
+                                               (MF, 'SignedData.signerInfos', 'another version', 2)),
     'review: a rival property list inside signerInfos': (fx.envelope(ENVELOPE_CONTENT, after=CERTIFICATES + T(0x31, RIVAL_CONTENT)),
                                                          (MF, 'SignedData.signerInfos', 'an element that runs past its parent', 12)),
     'signerInfos twice': (fx.envelope(ENVELOPE_CONTENT, after=CERTIFICATES + SIGNERS + SIGNERS),
@@ -766,7 +806,32 @@ ENVELOPE_CASES = {
                                                     (U, 'ContentInfo', 'a length in more octets than needed', None)),
     'the outer element with an indefinite length': (b'\x30\x80' + CONTROL_ENVELOPE[4:] + b'\x00\x00', (U, 'ContentInfo', 'an indefinite length', None)),
     'a file cut off inside its length': (b'\x30\x85\x01', (MF, 'ContentInfo', 'an element cut off at the end of its parent', None)),
+    'review: an outer length past the end of the file': (b'\x30\xfe' + b'\xff' * 126, (MF, 'ContentInfo', 'an element that runs past its parent', None)),
+    # the property list: the whole of the one content string, read by the whole-document reader
+    'review: an empty eContent': (fx.envelope(b''), (MF, 'document', 'an empty document', None)),
+    'review: a second envelope as the content': (fx.envelope(CONTROL_ENVELOPE),
+                                                 (U, 'document header', 'content that does not begin with an XML declaration', None)),
+    # the file: one element of 1 byte to 256 KiB
+    'review: an empty profile file': (b'', (MF, 'the file', 'an empty file', None)),
+    'a profile larger than 256 KiB': (fx.envelope(ENVELOPE_CONTENT, digests=T(0x31, T(0x30, fx.SHA256 + T(0x04, b'x' * (256 * 1024))))),
+                                      (U, 'the file', 'a file larger than the size limit', None)),
 }
+# The cases whose refusal names another part than the envelope: the content string's property list, and the file.
+CASE_PART = {'review: an empty eContent': 'profile property list', 'review: a second envelope as the content': 'profile property list',
+             'review: an empty profile file': 'profile file', 'a profile larger than 256 KiB': 'profile file'}
+
+
+def case_part(name):
+    return CASE_PART.get(name, 'profile envelope')
+
+
+def case_expected(name, kind, field, found):
+    if case_part(name) == 'profile property list':
+        return WHOLE.PLIST_REASONS[found][1]
+    if case_part(name) == 'profile file':
+        return PREPARE.PROFILE_SIZE
+    return (PREPARE.DEFINITE_DER if kind == 'unsupported' else PREPARE.WITHIN_PARENT if found in PREPARE.ENVELOPE_MALFORMED
+            else PREPARE.TYPE_RULE if found in PREPARE.ENVELOPE_TYPE_RULES else PREPARE.ENVELOPE_SHAPES[field])
 ENVELOPE_CONTROLS = {
     'the control': CONTROL_ENVELOPE,
     'no certificates': fx.envelope(ENVELOPE_CONTENT, after=SIGNERS),
@@ -795,10 +860,8 @@ class EnvelopeShapes(unittest.TestCase):
             with self.subTest(name):
                 detail = self.detail(raw)
                 self.assertEqual((detail['part'], detail['kind'], detail['field'], detail['found'], detail.get('item')),
-                                 ('profile envelope', kind, field, found, item))
-                expected = {'unsupported': PREPARE.DEFINITE_DER}.get(kind, PREPARE.WELL_FORMED if found in PREPARE.ENVELOPE_MALFORMED
-                                                                    else PREPARE.ENVELOPE_SHAPES[field])
-                self.assertEqual(detail['expected'], expected)
+                                 (case_part(name), kind, field, found, item))
+                self.assertEqual(detail['expected'], case_expected(name, kind, field, found))
                 self.assertLessEqual(detail.get('offset', 0), len(raw))
                 common.validate_returnable(detail, set())  # fixed text and integers only
 
@@ -810,6 +873,54 @@ class EnvelopeShapes(unittest.TestCase):
                 content, offset = PREPARE.profile_envelope(raw)
                 self.assertEqual((content, raw[offset:offset + len(content)]), (ENVELOPE_CONTENT, ENVELOPE_CONTENT))
 
+    def test_each_item_of_the_enforced_list_has_its_cases(self):
+        """The claim is exactly the enforced list in prepare.py; each item names the cases above that test it."""
+        enforced = {
+            '1. one definite-length element of 1 byte to 256 KiB, no byte after it': (
+                'a byte after ContentInfo', 'the outer element with an indefinite length', 'the outer length in more octets than needed',
+                'a file cut off inside its length', 'review: an empty profile file', 'a profile larger than 256 KiB'),
+            '2. the declared structure from the outside down to the content, in order': (
+                'ContentInfo is not a SEQUENCE', 'contentType is id-data', 'content is [1]', 'SignedData is a SET', 'version 6',
+                'digestAlgorithms is a SEQUENCE', 'encapContentInfo is a SET', 'eContentType is id-signedData',
+                'eContent holds two OCTET STRINGs', 'eContent is a constructed OCTET STRING', 'certificates as a primitive [0]',
+                'no signerInfos', 'signerInfos twice', 'certificates after signerInfos'),
+            '3. every length inside its parent at every level walked': (
+                'review: an outer length past the end of the file', 'an element cut off in a digest algorithm',
+                'review: a rival property list inside digestAlgorithms', 'review: a rival property list inside signerInfos',
+                'a reserved length octet in a certificate'),
+            '4. the property list is the whole of the one content string': (
+                'review: an empty eContent', 'review: a second envelope as the content'),
+        }
+        for item, names in enforced.items():
+            with self.subTest(item):
+                self.assertEqual([n for n in names if n not in ENVELOPE_CASES], [])
+        # and item 4 inside the content string: the conflicting pair (test_the_property_list_refusal_names_its_byte_in_the_file)
+
+    def test_the_top_level_fields_are_checked_in_order(self):
+        """Review round 2: an out-of-range version was reported after a later field's encoding. With both broken, the
+        version, read first, is the one reported; the first problem in reading order is reported and others may exist."""
+        raw = fx.envelope(ENVELOPE_CONTENT, version=T(0x02, b'\x06'), after=CERTIFICATES + b'\x31\x80\x00\x00')
+        detail = self.detail(raw)
+        self.assertEqual((detail['kind'], detail['field'], detail['found']), ('malformed', 'SignedData.version', 'another version'))
+        raw = fx.envelope(ENVELOPE_CONTENT, after=CERTIFICATES + b'\x31\x80\x00\x00')  # the later field alone
+        detail = self.detail(raw)
+        self.assertEqual((detail['kind'], detail['field'], detail['found']),
+                         ('unsupported', 'SignedData (after encapContentInfo)', 'an indefinite length'))
+
+    def test_stated_limit_the_inside_of_other_fields_is_length_walked_not_validated(self):
+        """Review round 2, finding 1, decided as outside the claim: reserved or wrongly constructed universal tags inside a
+        digest algorithm's parameters, a certificate, a revocation list or a signer information are not refused. They
+        are length-walked only; nothing authenticates the envelope, so validating them adds no assurance about the content.
+        This test keeps the behaviour deliberate and visible (README: the envelope's enforced list)."""
+        inside = {'reserved universal tag 15': b'\x0f\x00', 'primitive EXTERNAL': b'\x08\x00', 'primitive EMBEDDED PDV': b'\x0b\x00'}
+        for name, element in inside.items():
+            for where, raw in (('digest algorithm parameters', fx.envelope(ENVELOPE_CONTENT, digests=T(0x31, T(0x30, fx.SHA256 + element)))),
+                               ('a certificate', with_certificate(certificate(tbs=T(0x30, element)))),
+                               ('a signer information', fx.envelope(ENVELOPE_CONTENT, after=CERTIFICATES + T(0x31, T(0x30, VERSION + element))))):
+                with self.subTest(name=name, where=where):
+                    self.assertEqual(PREPARE.profile_consistency(raw, fx.sha(raw), CONSISTENT, now=NOW)['application_identifier'],
+                                     fx.TEAM + '.com.chirality.app')
+
     def test_the_property_list_refusal_names_its_byte_in_the_file(self):
         raw = fx.envelope(fx.two_values(RIVAL_CONTENT, ENVELOPE_CONTENT))
         detail = self.detail(raw)
@@ -820,7 +931,7 @@ class EnvelopeShapes(unittest.TestCase):
         self.assertGreater(detail['offset'], offset)
 
 
-# A property list in a form the reader does not read (a comment directly inside plist: valid XML, refused), for the
+# A property list in a form outside the subset the reader reads (a comment directly inside plist), for the
 # not-established kind.
 def with_comment(raw):
     return raw.replace(b'<dict>', b'<!-- invented comment --><dict>', 1)
@@ -903,7 +1014,7 @@ class WholeFileDocuments(Base):
                 lines, stopped = self.run_stopping(S2_CODES[kind])
                 [detail] = stopped['refusals']
                 self.assertEqual((detail['part'], detail['kind'], detail['field'], detail['found'], detail.get('item')),
-                                 ('profile envelope', kind, field, found, item))
+                                 (case_part(name), kind, field, found, item))
                 self.assertEqual(lines, ['  ' + common.describe(detail)])
                 self.assertFalse([a for a in self.fake.calls if '--sign' in a])
         self.profile.write_bytes(fx.profile_bytes())
@@ -974,6 +1085,204 @@ class WholeFileDocuments(Base):
                 self.assertEqual(len(named), 1)
                 self.assertEqual(lines, ['  ' + common.describe(named[0]['detail'])])
         self.assert_truthful_run_completes('signed-control')
+
+
+def profile_with(**fields):
+    """An invented profile whose property list has `fields` replaced (a value of None removes the key)."""
+    value = fx.profile_value()
+    for key, item in fields.items():
+        holder, name = (value['Entitlements'], key.split(' ', 1)[1]) if key.startswith('Entitlements ') else (value, key)
+        if item is None:
+            holder.pop(name, None)
+        else:
+            holder[name] = item
+    return fx.envelope(plistlib.dumps(value))
+
+
+def info_with(**fields):
+    """An invented Info.plist with `fields` replaced (a value of None removes the key)."""
+    value = plistlib.loads(fx.info_plist())
+    for key, item in fields.items():
+        if item is None:
+            value.pop(key)
+        else:
+            value[key] = item
+    return plistlib.dumps(value)
+
+
+# Review round 2, finding 5: one typed check of exactly the fields the tools read, after the whole read, for every consumer.
+WRONG_PROFILE_TYPES = {
+    'review: TeamIdentifier 42': ('TeamIdentifier', 42), 'review: TeamIdentifier a nested array': ('TeamIdentifier', [[fx.TEAM]]),
+    'review: TeamIdentifier a dictionary keyed by the team': ('TeamIdentifier', {fx.TEAM: 'invented'}),
+    'UUID an integer': ('UUID', 42), 'ApplicationIdentifierPrefix a string': ('ApplicationIdentifierPrefix', fx.TEAM),
+    'Platform a string': ('Platform', 'OSX'), 'ProvisionedDevices an array of integers': ('ProvisionedDevices', [1]),
+    'ProvisionsAllDevices the integer 1': ('ProvisionsAllDevices', 1), 'CreationDate a string': ('CreationDate', '2026-01-01T00:00:00Z'),
+    'ExpirationDate a string': ('ExpirationDate', '2099-01-01T00:00:00Z'), 'Entitlements an array': ('Entitlements', []),
+    'the App ID entitlement an array': ('Entitlements com.apple.application-identifier', [fx.TEAM + '.com.chirality.app']),
+    'the team entitlement an array': ('Entitlements com.apple.developer.team-identifier', [fx.TEAM]),
+    'get-task-allow a string': ('Entitlements get-task-allow', 'false'),
+    'the hardened get-task-allow the integer 0': ('Entitlements com.apple.security.get-task-allow', 0),
+}
+WRONG_INFO_TYPES = {f'{key} {why}': (key, item, found) for key in ('CFBundleIdentifier', 'CFBundleShortVersionString', 'CFBundleVersion',
+                                                                   'LSMinimumSystemVersion', 'CFBundleExecutable')
+                    for why, item, found in (('an integer', 4, 'a value of another type'), ('missing', None, 'a missing key'))}
+
+
+def hostile_documents():
+    """Hostile property-list documents, all invented: name -> bytes. Deterministic."""
+    import random
+    rng = random.Random(387)
+    base = READER_CONTROL
+    found = {
+        'empty': b'', 'whitespace': b'\n\t ', 'NUL bytes': b'\x00' * 32, 'random bytes': bytes(rng.randrange(256) for _ in range(200)),
+        'a lone declaration': PLIST_HEADER, 'binary': plistlib.dumps(READER_EXPECTED, fmt=plistlib.FMT_BINARY),
+        'binary cut short': plistlib.dumps(READER_EXPECTED, fmt=plistlib.FMT_BINARY)[:20], 'bplist then XML': b'bplist00' + base,
+        'UTF-16 bytes': base.decode().encode('utf-16'), 'UTF-32 bytes': base.decode().encode('utf-32'),
+        'UTF-16 declared, UTF-16 bytes': base.replace(b'UTF-8', b'UTF-16').decode().encode('utf-16'),
+        'XML 1.1': base.replace(b'version="1.0" encoding', b'version="1.1" encoding'),
+        'invalid UTF-8': base.replace(b'ZZINVENT01</string>', b'\xff\xfe\xc0</string>'),
+        'a NUL character reference': base.replace(b'ZZINVENT01</string>', b'&#0;</string>'),
+        'a surrogate character reference': base.replace(b'ZZINVENT01</string>', b'&#xD800;</string>'),
+        'a parameter entity': plist_document(READER_DICT, header=b'<?xml version="1.0"?>\n<!DOCTYPE plist [<!ENTITY % p "x"> %p;]>\n'),
+        'nested entities': plist_document(READER_DICT.replace(b'ZZINVENT01</string>', b'&b;</string>'),
+                                          header=b'<?xml version="1.0"?>\n<!DOCTYPE plist [<!ENTITY a "aaaa"><!ENTITY b "&a;&a;&a;">]>\n'),
+        'an external DTD': plist_document(READER_DICT, header=b'<?xml version="1.0"?>\n<!DOCTYPE plist SYSTEM "file:///invented/x.dtd">\n'),
+        'deep arrays': plist_document(b'<array>' * 5000 + b'</array>' * 5000),
+        'deep dictionaries': plist_document(b'<dict><key>k</key>' * 3000 + b'<true/>' + b'</dict>' * 3000),
+        'a huge integer': plist_document(b'<integer>' + b'9' * 100000 + b'</integer>'),
+        'an unclosed root': base[:-12],
+        'a namespace prefix': base.replace(b'<dict>', b'<x:dict xmlns:x="urn:invented">', 1),
+    }
+    for encoding in (b'Shift_JIS', b'EUC-JP', b'ISO-2022-JP', b'UTF-16', b'UTF-16LE', b'UTF-32', b'x-invented', b'', b'utf8',
+                     b'US-ASCII', b'windows-1252', b'UTF-8"'):
+        found[f'declared encoding {encoding!r}'] = base.replace(b'UTF-8', encoding, 1)
+    for n in range(0, len(base), 4):
+        found[f'cut at {n}'] = base[:n]
+    for n in range(0, len(base), 6):
+        found[f'byte {n} flipped'] = base[:n] + bytes([base[n] ^ 0xff]) + base[n + 1:]
+    for n in range(40):
+        raw = bytearray(base)
+        for _ in range(rng.randrange(1, 6)):
+            raw[rng.randrange(len(raw))] = rng.randrange(256)
+        found[f'random mutation {n}'] = bytes(raw)
+    return found
+
+
+def hostile_profiles():
+    """Hostile provisioning profiles, all invented: name -> bytes. Deterministic."""
+    found = {'content ' + name: fx.envelope(raw) for name, raw in hostile_documents().items()
+             if not name.startswith(('cut at', 'byte', 'random mutation'))}
+    base = CONTROL_ENVELOPE
+    for n in range(0, len(base), 5):
+        found[f'cut at {n}'] = base[:n]
+        found[f'byte {n} flipped'] = base[:n] + bytes([base[n] ^ 0xff]) + base[n + 1:]
+    found.update({name: profile_with(**{field: item}) for name, (field, item) in WRONG_PROFILE_TYPES.items()})
+    return found
+
+
+class TypedAndHostile(Base):
+    """Review round 2, findings 3 and 5. The only outcomes of reading a file are a value or a refusal named from the closed
+    lists; a field the tools read is of its type or a named mismatch. No other exception class, no generic stop code
+    (S2_UNEXPECTED, REFUSED_CANDIDATE, a code without a refusal), and no exit 2 from record.py check."""
+
+    def typed(self, call):
+        """call(), or its refusal's detail checked against the closed lists; any other exception fails the test."""
+        try:
+            return call()
+        except common.Refused as refused:
+            detail = refused.detail()
+            common.validate_returnable(detail, set())
+            self.assertIn(detail['kind'], WHOLE.KINDS)
+            return detail
+
+    def test_hostile_documents_give_a_value_or_a_typed_refusal(self):
+        app = self.root / 'hostile' / common.APP_NAME
+        (app / 'Contents').mkdir(parents=True)
+        for name, raw in hostile_documents().items():
+            with self.subTest(name):
+                self.typed(lambda: WHOLE.load(raw))
+                (app / 'Contents/Info.plist').write_bytes(raw)
+                self.typed(lambda: common.read_info_plist(app))
+        for name, raw in hostile_profiles().items():
+            with self.subTest(name):
+                self.typed(lambda: PREPARE.profile_consistency(raw, fx.sha(raw), CONSISTENT, now=NOW))
+                (app / 'Contents/embedded.provisionprofile').write_bytes(raw)
+                failures = []
+                record.profile_facts(app, {fx.TEAM}, failures)
+                for failed in failures:
+                    common.validate_returnable(failed, {fx.TEAM})
+                    self.assertIn('detail', failed, name)
+
+    def test_each_profile_field_the_tools_read_is_of_its_type_or_a_named_mismatch(self):
+        for name, (field, item) in WRONG_PROFILE_TYPES.items():
+            with self.subTest(name):
+                raw = profile_with(**{field: item})
+                detail = self.typed(lambda: PREPARE.profile_consistency(raw, fx.sha(raw), CONSISTENT, now=NOW))
+                expected = (PREPARE.ENTITLEMENT_TYPES[field.split(' ', 1)[1]] if field.startswith('Entitlements ')
+                            else PREPARE.PROFILE_TYPES[field])[0]
+                self.assertEqual((detail['part'], detail['kind'], detail['field'], detail['expected'], detail['found']),
+                                 ('profile property list', 'mismatch', field, expected, PREPARE.OTHER_TYPE))
+        raw = profile_with(TeamIdentifier=[fx.TEAM])  # the control
+        self.assertEqual(PREPARE.profile_consistency(raw, fx.sha(raw), CONSISTENT, now=NOW)['application_identifier'], fx.TEAM + '.com.chirality.app')
+
+    def test_each_info_plist_identity_field_is_present_and_a_string_or_a_named_mismatch(self):
+        app = self.root / 'typed' / common.APP_NAME
+        (app / 'Contents').mkdir(parents=True)
+        for name, (key, item, found) in WRONG_INFO_TYPES.items():
+            with self.subTest(name):
+                (app / 'Contents/Info.plist').write_bytes(info_with(**{key: item}))
+                detail = self.typed(lambda: common.read_info_plist(app))
+                self.assertEqual((detail['part'], detail['kind'], detail['field'], detail['expected'], detail['found']),
+                                 ('Info.plist', 'mismatch', key, 'a string', found))
+        (app / 'Contents/Info.plist').write_bytes(fx.info_plist())
+        self.assertEqual(common.read_info_plist(app)[1]['CFBundleVersion'], '4.0.0')
+
+    def test_hostile_and_mistyped_profiles_stop_step_2_with_a_named_reason(self):
+        cases = {name: hostile_profiles()[name] for name in (
+            'content declared encoding b\'Shift_JIS\'', 'content declared encoding b\'x-invented\'', 'content UTF-16 bytes',
+            'content invalid UTF-8', 'content random bytes', 'content empty', 'cut at 40', 'byte 0 flipped')}
+        cases.update({'review: an empty profile file': b'', 'review: an envelope as the content': fx.envelope(CONTROL_ENVELOPE)})
+        cases.update({name: profile_with(**{field: item}) for name, (field, item) in WRONG_PROFILE_TYPES.items() if name.startswith('review')})
+        for n, (name, raw) in enumerate(cases.items()):
+            with self.subTest(name):
+                self.out, self.fake = self.root / f'hostile-profile-{n}', fx.FakeApple()
+                self.profile.write_bytes(raw)
+                status, stdout, stderr = self.main()
+                stopped = json.loads((self.out / 'STOPPED.json').read_text())
+                self.assertIn(stopped['reason_code'], set(S2_CODES.values()))
+                [detail] = stopped['refusals']
+                self.assertEqual(S2_CODES[detail['kind']], stopped['reason_code'])
+                self.assertEqual((status, stderr.splitlines()[1:]), (3, ['  ' + common.describe(detail)]))
+                self.assertFalse([a for a in self.fake.calls if '--sign' in a])
+        self.profile.write_bytes(fx.profile_bytes())
+        self.out, self.fake = self.root / 'hostile-control', fx.FakeApple()
+        self.assertEqual(self.main()[0], 0)
+
+    def test_hostile_and_mistyped_candidate_info_plists_are_refused_by_name_before_anything_runs(self):
+        codes = {'unsupported': 'REFUSED_INFO_PLIST_NOT_ESTABLISHED', 'malformed': 'REFUSED_INFO_PLIST_MALFORMED',
+                 'mismatch': 'REFUSED_INFO_PLIST_MISMATCH'}
+        cases = {'review: Shift_JIS declared': (fx.info_plist().replace(b'UTF-8', b'Shift_JIS'), 'unsupported'),
+                 'review: an unknown encoding declared': (fx.info_plist().replace(b'UTF-8', b'x-invented-encoding'), 'unsupported'),
+                 'an empty Info.plist': (b'', 'malformed'),
+                 'review: a whole Info.plist of version 9.9.9': (fx.info_plist(CFBundleShortVersionString='9.9.9'), 'mismatch'),
+                 'review: an integer bundle version': (fx.info_plist(CFBundleVersion=4), 'mismatch'),
+                 'no executable key': (info_with(CFBundleExecutable=None), 'mismatch')}
+        for n, (name, (raw, kind)) in enumerate(cases.items()):
+            with self.subTest(name):
+                folder = self.root / f'hostile-candidate-{n}'
+                folder.mkdir()
+                with patch.object(fx, 'info_plist', lambda **_: raw):
+                    self.candidate = fx.candidate(folder) / ''
+                self.out, self.fake = self.root / f'hostile-candidate-out-{n}', fx.FakeApple()
+                status, stdout, stderr = self.main()
+                lines = stderr.splitlines()
+                self.assertEqual((status, lines[0]), (3, 'STOP: ' + common.REASONS[codes[kind]]))
+                self.assertEqual(len(lines), 2)
+                self.assertIn(': ' + WHOLE.KINDS[kind] + '. Field ', lines[1])
+                self.assertEqual(self.fake.calls, [])
+        self.candidate = self.root / 'candidate'
+        self.out, self.fake = self.root / 'hostile-candidate-control', fx.FakeApple()
+        self.assertEqual(self.main()[0], 0)
 
 
 class OwnerSign(Base):
@@ -1610,10 +1919,33 @@ class RecordCheck(unittest.TestCase):
                 [refusal] = result['refusals']
                 detail = refusal['detail']
                 self.assertEqual((detail['part'], detail['kind'], detail['field'], detail['found'], detail.get('item')),
-                                 ('profile envelope', kind, field, found, item))
+                                 (case_part(name), kind, field, found, item))
                 self.assertEqual(result['not_established'], ['observed.provisioning_profile'] if kind == 'unsupported' else [])
         (self.app / 'Contents/embedded.provisionprofile').write_bytes(fx.profile_bytes())
         self.assertTrue(self.result()['equal'])
+
+    def test_typed_and_hostile_files_are_named_failures_never_exit_2(self):
+        """Review round 2, finding 5: a profile whose TeamIdentifier was 42 or a nested array made record.py check exit 2,
+        one keyed by the team passed unobserved, and an integer bundle version gave 'bundle identity' with no detail."""
+        profiles = {name: profile_with(**{field: item}) for name, (field, item) in WRONG_PROFILE_TYPES.items()}
+        profiles.update({'review: Shift_JIS content': fx.envelope(ENVELOPE_CONTENT.replace(b'UTF-8', b'Shift_JIS')),
+                         'review: an empty profile file': b''})
+        infos = {name: info_with(**{key: item}) for name, (key, item, _) in WRONG_INFO_TYPES.items()}
+        infos.update({'review: Shift_JIS declared': fx.info_plist().replace(b'UTF-8', b'Shift_JIS'), 'an empty Info.plist': b''})
+        for relative, cases, observation in (('Contents/embedded.provisionprofile', profiles, 'provisioning profile'),
+                                             ('Contents/Info.plist', infos, 'bundle identity')):
+            control = (self.app / relative).read_bytes()
+            for name, raw in cases.items():
+                with self.subTest(name):
+                    (self.app / relative).write_bytes(raw)
+                    code, result = self.check_main()
+                    self.assertEqual((code, result['equal'], result.get('error')), (1, False, None))
+                    named = [r for r in result['refusals'] if r['observation'].startswith(observation)]
+                    self.assertEqual(len(named), 1, result['refusals'])
+                    kind = named[0]['detail']['kind']
+                    self.assertEqual(named[0]['observation'], observation + (' not established' if kind == 'unsupported' else ''))
+            (self.app / relative).write_bytes(control)
+        self.assertEqual(self.check_main()[0], 0)
 
     def test_incomplete_display_and_negative_assessment_are_failures(self):
         fake = self.case.fake

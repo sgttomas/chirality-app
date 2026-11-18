@@ -46,12 +46,15 @@ completion marker or a recorded digest is not authentication.
 The profile and Info.plist files are read by the one whole-document file reader
 (production_inputs/whole_plist.py): a value is returned only when the file is one XML property list
 in the admitted form whose structure, read from its own bytes, accounts for every byte and agrees
-with plistlib's value. The profile's envelope (prepare.profile_envelope) is walked as definite-length
-DER through every element, with each SignedData field's declared outer shape; it is not interpreted
-beyond that and not authenticated. A refusal names the part, the kind, the field, the shape expected,
-what was found and the byte, in fixed text and integers. A form the standard allows that the reader
-does not read is "not established" (never a mismatch, never agreement); a form it does not allow, or a
-field not of its declared shape, is malformed.
+with plistlib's value. The profile's envelope (prepare.profile_envelope) is read for exactly the enforced list stated
+there (one definite-length element; the declared structure from the outside down to the content; every
+length inside its parent; the property list the whole of the one content string); it is not validated
+as ASN.1 beyond that and not authenticated. A refusal names the part, the kind, the field, the shape
+expected, what was found and the byte, in fixed text and integers. "Not established" means the reader
+met a named form outside the subset it reads, at a named field, and did not read the file; it asserts
+nothing about whether the file is valid (never a mismatch, never agreement). Malformed is asserted only
+where the reader is certain within its subset; a mismatch means the file was read whole and a value the
+tools read is not of its type or not what the release requires.
 Line-form output is decoded with UTF-8 replacement, blank lines omitted and trailing whitespace stripped.
 """
 import argparse
@@ -290,7 +293,8 @@ def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None
     try:
         candidate, candidate_app, binding, requirement = common.load_candidate(args.candidate)
     except common.Refused as refused:  # the candidate's Info.plist, read by the one whole-document reader
-        code = 'REFUSED_INFO_PLIST_NOT_ESTABLISHED' if refused.kind == 'unsupported' else 'REFUSED_INFO_PLIST_MALFORMED'
+        code = {'unsupported': 'REFUSED_INFO_PLIST_NOT_ESTABLISHED', 'malformed': 'REFUSED_INFO_PLIST_MALFORMED',
+                'mismatch': 'REFUSED_INFO_PLIST_MISMATCH'}[refused.kind]
         raise Failure(code, refusals=[refused.detail()])
     except (ValueError, OSError, KeyError):
         raise Failure('REFUSED_CANDIDATE')

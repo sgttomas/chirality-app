@@ -32,8 +32,10 @@ needs:
   gating: false
 - from: external:chirality-app-v4:DEP-005
   condition: The Tauri 2 bundler builds the macOS bundle, and writes the bundle's Contents/Info.plist
-    as an XML property list in the form the release tools read whole; a binary property list, or one
-    outside that form, stops the build at its info_plist_not_read or info_plist_whole check.
+    as an XML property list of at most 64 KiB in the form the release tools read whole, with its five
+    identity fields present as strings; a binary property list, or one outside that form, stops the
+    build at its info_plist_not_read or info_plist_whole check, and a missing or mistyped identity
+    field at that field's named check.
 - from: external:Apple Developer ID signing and notary service
   condition: The App's own code and the disk image that carries the App are signed with the
     owner's Developer ID, and the App and the disk image are each notarised and a ticket issued
@@ -46,10 +48,11 @@ needs:
   condition: The owner's Developer ID certificate and notary profile are in the keychain of the
     machine that signs, and the owner states whether the supplier's position applies to the offering.
 - from: external:owner
-  condition: The Developer ID provisioning profile the owner supplies is the Apple-issued file, its
-    CMS envelope encoded in definite-length DER (the only subset of BER the release tools read) with
-    its property list as the one primitive OCTET STRING under id-data, in the XML form the tools read
-    whole; a profile in another BER form stops the signing run at step 2 as not established.
+  condition: The Developer ID provisioning profile the owner supplies is the Apple-issued file, of at
+    most 256 KiB, its CMS envelope encoded in definite-length DER (the only subset of BER the release
+    tools read) with its property list as the one primitive OCTET STRING under id-data, in the XML form
+    the tools read whole, each field the tools read of its type; a profile in a form outside that subset
+    stops the signing run at step 2 as not established.
   when: Signing a package that embeds a provisioning profile
 code_paths:
 - app/packaging/**

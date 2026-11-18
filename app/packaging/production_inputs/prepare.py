@@ -124,25 +124,33 @@ DATA_OID = bytes.fromhex('2a864886f70d010701')
 
 # --- The provisioning profile's envelope: RFC 5652 ContentInfo / SignedData, read as definite-length DER -------------
 #
-# Every element of the file is walked, recursively through every constructed element: each tag and length must be
-# well formed, each element must end within its parent, and no byte may be left over at any level. The fields of the
-# one SignedData must have their declared outer shape, to the depth of their type tags and no deeper. The value is
-# taken from the one place the envelope defines as its content: the one primitive OCTET STRING of eContent under
-# id-data. The rest of the envelope is walked for well-formedness and declared outer shape, not interpreted (the one
-# value read beyond a type tag is each CMSVersion, which must be one octet from 0 to 5): a
-# certificate can legitimately carry arbitrary bytes inside its own fields, so "no other property list anywhere in the
-# file" is not claimed. Nothing is authenticated. The order of the elements of a SET OF (which DER sorts) and the
-# unused bits of a BIT STRING are not checked; universal primitive contents other than INTEGER, OBJECT IDENTIFIER,
-# BOOLEAN, NULL and BIT STRING are not interpreted.
+# What the envelope reading is for: the identity facts come only from the property list in the envelope's content, and
+# nothing authenticates the envelope. So the reading claims exactly this enforced list, and no more:
+#   1. The file is one definite-length element, of 1 byte to PROFILE_LIMIT, with no byte after it.
+#   2. From the outside down to the content, the structure is the declared one: ContentInfo (a SEQUENCE of id-signedData
+#      and [0]), SignedData with its version (an INTEGER of one octet, 0 to 5), digestAlgorithms, encapContentInfo (id-data
+#      and [0] holding one primitive OCTET STRING), then optional certificates [0] and revocation lists [1], then
+#      signerInfos, and nothing after. These fields are read in this order, each checked as it is read.
+#   3. Every element's length lies inside its parent at every level walked, with no byte unaccounted for at any level.
+#   4. The property list is the whole of that one content string, read by the whole-document reader (whole_plist.load).
+# Further refusals, not validation: the outer shapes of the other fields (each digest algorithm a SEQUENCE beginning with
+# an OBJECT IDENTIFIER; each certificate and revocation list a SEQUENCE of a SEQUENCE, a SEQUENCE and a BIT STRING; each
+# signer information a SEQUENCE beginning with its version), and some rules of the universal types met on the walk. The
+# contents of digest algorithm parameters, certificates, revocation lists and signer information are length-walked
+# but not validated as ASN.1: reserved or wrongly constructed universal tags inside them are not refused. Validating
+# them would add no assurance about who wrote the content, since nothing authenticates the envelope. A certificate can
+# legitimately carry arbitrary bytes inside its own fields, so "no other property list anywhere in the file" is not
+# claimed. Nothing is authenticated.
 #
-# Two kinds of refusal (whole_plist.Refused), by one rule: a form BER allows that this reader does not read (an
-# indefinite length on a constructed element, a length in more octets than needed, a constructed string, a tag number
-# in the high-tag-number form, a BOOLEAN other than 00 or FF, nesting deeper than ENVELOPE_DEPTH) is 'unsupported': the
-# identity comparison is not established. A form BER does not allow (an element past its parent or cut off, bytes
-# left over, an indefinite length on a primitive element, a reserved length octet, a malformed INTEGER or OBJECT
-# IDENTIFIER, ...) or a field not of its declared shape is 'malformed'. The first problem in reading order is reported:
-# fields are read in their order, and within a field its declared shape is checked before its contents are walked.
+# The kinds (whole_plist): a form outside the subset this reader reads (an indefinite length, a length in more octets
+# than needed, a constructed string, a tag number in the high-tag-number form, a BOOLEAN other than 00 or FF, nesting
+# deeper than ENVELOPE_DEPTH, a file larger than PROFILE_LIMIT) is 'unsupported', shown as not established: the reader
+# names the form and the field and did not read the file; it asserts nothing about whether the file is otherwise valid.
+# 'malformed' is asserted only where the reader is certain within its subset (an element past its parent or cut off,
+# bytes left over, a reserved length octet, an indefinite length on a primitive element, an empty file, a field not of
+# its declared shape, a version out of range, ...). The first problem in reading order is reported; others may exist.
 
+PROFILE_LIMIT = 256 * 1024  # a profile is a short property list and a few certificates; this bounds the reader's memory
 ENVELOPE_DEPTH = 64  # real profiles nest about a dozen levels (certificate extensions); BER allows any depth
 ENVELOPE_SHAPES = {
     'ContentInfo': 'a SEQUENCE of contentType and content spanning the whole file',
@@ -160,20 +168,23 @@ ENVELOPE_SHAPES = {
     'SignedData (after encapContentInfo)': 'optional certificates [0], optional crls [1], then signerInfos, then nothing',
 }
 DEFINITE_DER = 'definite-length DER'
-WELL_FORMED = 'well-formed BER: every element within its parent, no byte left over'
+WITHIN_PARENT = 'every element within its parent, no byte left over'
+TYPE_RULE = "the encoding rule of the element's universal type"
+PROFILE_SIZE = 'a profile of 1 byte to 256 KiB'
 ENVELOPE_UNSUPPORTED = ('an indefinite length', 'a length in more octets than needed', 'a constructed string',
                         'a tag number in the high-tag-number form', 'a BOOLEAN other than 00 or FF',
                         f'nesting deeper than {ENVELOPE_DEPTH} elements')
 ENVELOPE_MALFORMED = ('an element cut off at the end of its parent', 'an element that runs past its parent',
                       'bytes left over after the last element', 'an indefinite length on a primitive element',
-                      'a reserved length octet', 'an end-of-contents marker outside an indefinite length',
-                      'a primitive SEQUENCE or SET', 'a constructed element of a type that is always primitive',
-                      'an INTEGER that is empty or has a redundant leading octet', 'an OBJECT IDENTIFIER that is not well formed',
-                      'a BOOLEAN that is not one octet', 'a NULL with content', 'a BIT STRING that is not well formed')
+                      'a reserved length octet')
+ENVELOPE_TYPE_RULES = ('an end-of-contents marker outside an indefinite length',
+                       'a primitive SEQUENCE or SET', 'a constructed element of a type that is always primitive',
+                       'an INTEGER that is empty or has a redundant leading octet', 'an OBJECT IDENTIFIER that is not well formed',
+                       'a BOOLEAN that is not one octet', 'a NULL with content', 'a BIT STRING that is not well formed')
 ENVELOPE_SHAPE_FOUND = ('another tag', 'another object identifier', 'a missing element', 'more elements than declared',
                         'another version')
-whole_plist.declare(fields=ENVELOPE_SHAPES, expected={*ENVELOPE_SHAPES.values(), DEFINITE_DER, WELL_FORMED},
-                    found={*ENVELOPE_UNSUPPORTED, *ENVELOPE_MALFORMED, *ENVELOPE_SHAPE_FOUND})
+whole_plist.declare(fields=ENVELOPE_SHAPES, expected={*ENVELOPE_SHAPES.values(), DEFINITE_DER, WITHIN_PARENT, TYPE_RULE, PROFILE_SIZE},
+                    found={*ENVELOPE_UNSUPPORTED, *ENVELOPE_MALFORMED, *ENVELOPE_TYPE_RULES, *ENVELOPE_SHAPE_FOUND})
 _STRINGS = {3, 4, 12, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30}  # types BER allows constructed, DER does not
 _ALWAYS_PRIMITIVE = {1, 2, 5, 6, 9, 10, 13}
 
@@ -198,7 +209,9 @@ def _refused(found, field, at, item=None, tag=None):
     if found in ENVELOPE_UNSUPPORTED:
         kind, expected = 'unsupported', DEFINITE_DER
     elif found in ENVELOPE_MALFORMED:
-        kind, expected = 'malformed', WELL_FORMED
+        kind, expected = 'malformed', WITHIN_PARENT
+    elif found in ENVELOPE_TYPE_RULES:
+        kind, expected = 'malformed', TYPE_RULE
     else:
         kind, expected = 'malformed', ENVELOPE_SHAPES[field]
     return whole_plist.Refused(f'profile envelope {kind}: {field}: {found}', part='profile envelope', kind=kind, field=field,
@@ -236,19 +249,25 @@ def _element(raw, at, end, field, item=None):
     return _Element(at, byte, start, start + length)
 
 
-def _children(raw, node, name):
-    """The elements that exactly fill a constructed element; `name(index)` gives (field, item) for each."""
-    found, at = [], node.content
+def _each(raw, node, name):
+    """The elements that exactly fill a constructed element, each read when it is asked for; `name(index)` gives
+    (field, item) for each."""
+    at, index = node.content, 0
     while at < node.end:
-        field, item = name(len(found))
+        field, item = name(index)
         child = _element(raw, at, node.end, field, item)
-        found.append(child)
-        at = child.end
-    return found
+        yield child
+        at, index = child.end, index + 1
+
+
+def _children(raw, node, name):
+    """The elements that exactly fill a constructed element, all headers read first."""
+    return list(_each(raw, node, name))
 
 
 def _walk(raw, node, field, item=None, depth=0):
-    """Every element under `node`: well formed, within its parent, the universal types' own rules; nothing more."""
+    """Every element under `node` length-walked: within its parent, nothing left over, and the universal types' rules
+    in ENVELOPE_TYPE_RULES where met; reserved or other universal tags are not refused."""
     if depth > ENVELOPE_DEPTH:
         raise _refused(f'nesting deeper than {ENVELOPE_DEPTH} elements', field, node.at, item, node.tag())
     if node.cls == 'universal':
@@ -313,34 +332,48 @@ def _signed_outer(raw, node, field, item):
         _shape(part.is_(number, constructed), 'another tag', field, part, item)
 
 
+def _reader(raw, parent, names, rest):
+    """The next element of `parent` when asked for, and the refusal for a missing one; names[i] names the i-th field."""
+    elements = _each(raw, parent, lambda i: (names[i] if i < len(names) else rest, None))
+
+    def take(field):
+        node = next(elements, None)
+        if node is None:
+            raise _refused('a missing element', field, parent.end)
+        return node
+    return take, lambda: next(elements, None)
+
+
 def profile_envelope(raw):
     """(content, offset): the bytes of the one property list the envelope defines as its content, and where they start.
 
-    Raises whole_plist.Refused (a ValueError) naming the field, the shape or encoding expected, and what was found."""
+    Enforces the list in the comment above, field by field in order. Raises whole_plist.Refused (a ValueError) naming the
+    field, the shape or encoding expected, and what was found."""
+    whole_plist.within_limit(raw, 'profile file', PROFILE_LIMIT, PROFILE_SIZE)
     top = _element(raw, 0, len(raw), 'ContentInfo')
     if top.end != len(raw):
         raise _refused('bytes left over after the last element', 'ContentInfo', top.end)
     _shape(top.is_(16, True), 'another tag', 'ContentInfo', top)
-    info = _children(raw, top, lambda i: (('ContentInfo.contentType', 'ContentInfo.content')[i] if i < 2 else 'ContentInfo', None))
-    _count(info, 2, 'ContentInfo', top)
-    kind, wrapper = info
+    take, extra = _reader(raw, top, ('ContentInfo.contentType', 'ContentInfo.content'), 'ContentInfo')
+    kind = take('ContentInfo.contentType')
     _shape(kind.is_(6, False), 'another tag', 'ContentInfo.contentType', kind)
     _walk(raw, kind, 'ContentInfo.contentType')
     _shape(raw[kind.content:kind.end] == SIGNED_DATA_OID, 'another object identifier', 'ContentInfo.contentType', kind)
+    wrapper = take('ContentInfo.content')
     _shape(wrapper.is_(0, True, 'context-specific'), 'another tag', 'ContentInfo.content', wrapper)
+    more = extra()
+    _shape(more is None, 'more elements than declared', 'ContentInfo', more)
     inner = _children(raw, wrapper, lambda _: ('ContentInfo.content', None))
     _count(inner, 1, 'ContentInfo.content', wrapper)
     signed = inner[0]
     _shape(signed.is_(16, True), 'another tag', 'SignedData', signed)
     names = ('SignedData.version', 'SignedData.digestAlgorithms', 'SignedData.encapContentInfo')
-    fields = _children(raw, signed, lambda i: (names[i] if i < 3 else 'SignedData (after encapContentInfo)', None))
-    if len(fields) < 4:  # version, digestAlgorithms, encapContentInfo and signerInfos are required
-        missing = names[len(fields)] if len(fields) < 3 else 'SignedData.signerInfos'
-        raise _refused('a missing element', missing, signed.end)
-    version, digests, encap, rest = fields[0], fields[1], fields[2], fields[3:]
+    take, extra = _reader(raw, signed, names, 'SignedData (after encapContentInfo)')
+    version = take('SignedData.version')
     _shape(version.is_(2, False), 'another tag', 'SignedData.version', version)
     _cms_version(raw, version, 'SignedData.version')
     field = 'SignedData.digestAlgorithms'
+    digests = take(field)
     _shape(digests.is_(17, True), 'another tag', field, digests)
     for number, algorithm in enumerate(_children(raw, digests, lambda i: (field, i + 1)), 1):
         _shape(algorithm.is_(16, True), 'another tag', field, algorithm, number)
@@ -349,6 +382,7 @@ def profile_envelope(raw):
         _shape(first[0].is_(6, False), 'another tag', field, first[0], number)
         _walk(raw, algorithm, field, number)
     field = 'SignedData.encapContentInfo'
+    encap = take(field)
     _shape(encap.is_(16, True), 'another tag', field, encap)
     parts = _children(raw, encap, lambda i: (('EncapsulatedContentInfo.eContentType', 'EncapsulatedContentInfo.eContent')[i]
                                              if i < 2 else field, None))
@@ -366,26 +400,28 @@ def profile_envelope(raw):
     if content.constructed:
         raise _refused('a constructed string', field, content.at, tag=content.tag())
     # After encapContentInfo: optional certificates [0], optional crls [1], then signerInfos, then nothing.
+    node = extra()
     for tag_number, field in ((0, 'SignedData.certificates'), (1, 'SignedData.crls')):
-        if rest and rest[0].cls == 'context-specific' and rest[0].number == tag_number:
-            _shape(rest[0].constructed, 'another tag', field, rest[0])
-            for number, item in enumerate(_children(raw, rest[0], lambda i, field=field: (field, i + 1)), 1):
+        if node is not None and node.cls == 'context-specific' and node.number == tag_number:
+            _shape(node.constructed, 'another tag', field, node)
+            for number, item in enumerate(_children(raw, node, lambda i, field=field: (field, i + 1)), 1):
                 _signed_outer(raw, item, field, number)
                 _walk(raw, item, field, number)
-            rest = rest[1:]
+            node = extra()
     field = 'SignedData.signerInfos'
-    if not rest:
+    if node is None:
         raise _refused('a missing element', field, signed.end)
-    _shape(rest[0].is_(17, True), 'another tag', field, rest[0])
-    for number, signer in enumerate(_children(raw, rest[0], lambda i: (field, i + 1)), 1):
+    _shape(node.is_(17, True), 'another tag', field, node)
+    for number, signer in enumerate(_children(raw, node, lambda i: (field, i + 1)), 1):
         _shape(signer.is_(16, True), 'another tag', field, signer, number)
         first = _children(raw, signer, lambda _: (field, number))
         _shape(bool(first), 'a missing element', field, signer, number)
         _shape(first[0].is_(2, False), 'another tag', field, first[0], number)
         _cms_version(raw, first[0], field, number)
         _walk(raw, signer, field, number)
-    if len(rest) > 1:
-        raise _refused('more elements than declared', 'SignedData (after encapContentInfo)', rest[1].at, tag=rest[1].tag())
+    more = extra()
+    if more is not None:
+        raise _refused('more elements than declared', 'SignedData (after encapContentInfo)', more.at, tag=more.tag())
     return raw[content.content:content.end], content.content
 
 
@@ -397,13 +433,53 @@ def profile_content(raw):
 # --- The profile's property list and grants ---------------------------------------------------------------------------
 
 NOT_A_DICTIONARY = 'another value under plist'
-whole_plist.declare(expected={'a dictionary under plist'}, found={NOT_A_DICTIONARY, 'another value', 'other bytes', 'another size'})
+whole_plist.declare(expected={'a dictionary under plist'}, found={NOT_A_DICTIONARY, 'another value', 'other bytes'})
+
+# The one typed check of exactly the fields the release tools read from a profile, applied once after the whole read
+# (profile_plist), so that every consumer reads a value of its type or a named mismatch. Each may be absent: a missing
+# field is refused by the rule that needs it. Entitlement values other than these four are classified by the record's
+# entitlement selection (release/observations.select_entitlements), which counts a value of another type as an
+# unexpected entitlement and never records it.
+STRINGS, DATE = 'an array of strings, or absent', 'a date, or absent'
+PROFILE_TYPES = {
+    'UUID': ('a string, or absent', lambda v: isinstance(v, str)),
+    'TeamIdentifier': (STRINGS, lambda v: isinstance(v, list) and all(isinstance(i, str) for i in v)),
+    'ApplicationIdentifierPrefix': (STRINGS, lambda v: isinstance(v, list) and all(isinstance(i, str) for i in v)),
+    'Platform': (STRINGS, lambda v: isinstance(v, list) and all(isinstance(i, str) for i in v)),
+    'ProvisionedDevices': (STRINGS, lambda v: isinstance(v, list) and all(isinstance(i, str) for i in v)),
+    'ProvisionsAllDevices': ('a boolean, or absent', lambda v: isinstance(v, bool)),
+    'CreationDate': (DATE, lambda v: isinstance(v, datetime.datetime)),
+    'ExpirationDate': (DATE, lambda v: isinstance(v, datetime.datetime)),
+    'Entitlements': ('a dictionary, or absent', lambda v: isinstance(v, dict)),
+}
+ENTITLEMENT_TYPES = {
+    'com.apple.application-identifier': ('a string, or absent', lambda v: isinstance(v, str)),
+    'com.apple.developer.team-identifier': ('a string, or absent', lambda v: isinstance(v, str)),
+    'get-task-allow': ('a boolean, or absent', lambda v: isinstance(v, bool)),
+    'com.apple.security.get-task-allow': ('a boolean, or absent', lambda v: isinstance(v, bool)),
+}
+OTHER_TYPE = 'a value of another type'
+whole_plist.declare(fields={*PROFILE_TYPES, *('Entitlements ' + k for k in ENTITLEMENT_TYPES)},
+                    expected={e for e, _ in (*PROFILE_TYPES.values(), *ENTITLEMENT_TYPES.values())}, found={OTHER_TYPE})
+
+
+def profile_types(profile):
+    """Refuse (a mismatch: the property list was read whole) the first field the tools read that is not of its type."""
+    fields = [(key, profile, key, PROFILE_TYPES[key]) for key in PROFILE_TYPES]
+    entitlements = profile.get('Entitlements')
+    if isinstance(entitlements, dict):
+        fields += [('Entitlements ' + key, entitlements, key, ENTITLEMENT_TYPES[key]) for key in ENTITLEMENT_TYPES]
+    for name, holder, key, (expected, typed) in fields:
+        if key in holder and not typed(holder[key]):
+            raise whole_plist.Refused(f'profile field {name} is not of its type', part='profile property list', kind='mismatch',
+                                      field=name, expected=expected, found=OTHER_TYPE)
 
 
 def profile_plist(raw):
-    """The profile's encapsulated property list, a dictionary whose value is the whole document (whole_plist.load).
+    """The profile's encapsulated property list, a dictionary whose value is the whole document (whole_plist.load), with
+    each field the tools read of its type (profile_types).
 
-    Raises whole_plist.Refused (a ValueError) naming the part (envelope or property list), the field, the shape and
+    Raises whole_plist.Refused (a ValueError) naming the part (file, envelope or property list), the field, the shape and
     what was found. Not CMS authentication."""
     content, offset = profile_envelope(raw)
     try:
@@ -413,13 +489,13 @@ def profile_plist(raw):
     if not isinstance(profile, dict):
         raise whole_plist.Refused('profile property list must be a dictionary', part='profile property list', kind='malformed',
                                   field='plist', expected='a dictionary under plist', found=NOT_A_DICTIONARY, offset=offset)
+    profile_types(profile)
     return profile
 
 
 # The consistency rules: (part, field, expected, found, message). The message keeps the words earlier callers matched.
 GRANTS = {
     'digest': ('profile file', 'the file', 'the bytes of the selected digest', 'other bytes', 'provisioning profile bytes differ from selected digest'),
-    'size': ('profile file', 'the file', 'a size from 1 byte to 1 MiB', 'another size', 'provisioning profile size out of bounds'),
     'prefix': ('profile grants', 'ApplicationIdentifierPrefix', 'one string', 'another value', 'one profile AppIdentifierPrefix required'),
     'entitlements': ('profile grants', 'Entitlements', 'a dictionary', 'another value', 'profile entitlement grants absent'),
     'platform': ('profile grants', 'Platform, ProvisionsAllDevices and ProvisionedDevices',
@@ -452,8 +528,7 @@ def profile_consistency(raw, expected_sha256, selected, now=None):
     document, so no fact below comes from part of it. Every refusal is a whole_plist.Refused naming its rule."""
     grant(isinstance(expected_sha256, str) and re.fullmatch('[0-9a-f]{64}', expected_sha256) is not None
           and sha(raw) == expected_sha256, 'digest')
-    grant(0 < len(raw) <= 1024 * 1024, 'size')
-    profile = profile_plist(raw)
+    profile = profile_plist(raw)  # its size, envelope, property list and field types, each refused by name
     team, identifier = selected['developer_id_team_identifier'], selected['production_bundle_identifier']
     prefixes = profile.get('ApplicationIdentifierPrefix')
     grant(isinstance(prefixes, list) and len(prefixes) == 1 and isinstance(prefixes[0], str), 'prefix')
@@ -739,5 +814,7 @@ if __name__ == '__main__':
         print(json.dumps(prepare(**args), indent=2))
     except Exception as error:
         # Source/identity values belong to private output evidence, not diagnostics.
-        print(json.dumps({'preparation_complete': False, 'error_type': type(error).__name__}))
+        # A file reader's refusal carries only fixed text and integers (whole_plist.Refused.detail), so it is printed.
+        refusal = {'refusal': error.detail(), 'reason': whole_plist.describe(error.detail())} if isinstance(error, whole_plist.Refused) else {}
+        print(json.dumps({'preparation_complete': False, 'error_type': type(error).__name__, **refusal}))
         raise SystemExit(2)

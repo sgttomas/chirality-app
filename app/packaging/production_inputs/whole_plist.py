@@ -4,26 +4,29 @@ refusal every file reader of the release tools raises.
 Refusals. A `Refused` carries only fixed text from closed lists this code defines, and integers: the part of the file
 (`PARTS`), the kind of refusal (`KINDS`), the field, the shape expected, what was found, and where (a byte offset into
 the file, an item number in a set, a tag's class and number). It never carries a byte or a value read from the file.
-There are three kinds, kept apart:
-- 'unsupported': a form the governing standard allows that this reader does not read (for a property list, XML 1.0
-  and the property-list DTD; for the profile's envelope, BER). Nothing was read, so the identity comparison is not
-  established: this is neither a mismatch nor a malformed file, and it never counts as agreement.
-- 'malformed': a form the governing standard does not allow, or a field not of its declared shape.
-- 'mismatch': the file was read whole, and a value is not what the release requires.
-The rule where one input could be read either way: a form the standard allows (including one DER forbids but BER
-allows, or one another property-list reader might accept) is 'unsupported'; a form the standard does not allow is
-'malformed'. The first problem met in reading order is the one reported.
+There are three kinds, kept apart, and each says only what the reader knows:
+- 'unsupported' (shown as "not established"): the reader met a named form outside the subset it reads, at a named
+  field, and did not read the file. It asserts nothing about whether the file is otherwise valid. The identity
+  comparison is not established: this is never a mismatch, never malformed, and never agreement.
+- 'malformed': asserted only where the reader is certain within its subset: not well-formed XML in the admitted
+  header, a second value, stray text, a key twice, an empty file, an envelope element past its parent or bytes left
+  over, a field of the envelope not of its declared shape, and the like.
+- 'mismatch': the file was read whole, and a value the tools read is not of its type or not what the release
+  requires.
+Where several rules fail at once, one is reported: the first met in reading order. Others may exist.
 
 `load` reads an XML property list twice, by two readers that do not share their reading of the structure, and returns
 the value only when the two agree and the first has accounted for every byte of the document:
 
 1. A structural reading of the document's own bytes from the XML parser's events (`events`), independent of plistlib.
    The admitted form, and nothing else:
+   - the document is not empty (an empty file is malformed);
    - the first bytes are the XML declaration, version 1.0, encoding UTF-8 (in any case) or not given, no standalone
      declaration; optionally the property-list document type (name `plist`, public identifier
      `-//Apple//DTD PLIST 1.0//EN`, system identifier `http://www.apple.com/DTDs/PropertyList-1.0.dtd`, no internal
      subset). They are compared by what they declare, not by how they are spelled;
-   - one `plist` root, whose only attribute may be `version="1.0"`, holding exactly one value;
+   - one `plist` root, whose only attribute may be `version="1.0"` (written with no reference), holding exactly one
+     value;
    - only the property-list elements (`dict`, `array`, `key`, `string`, `integer`, `real`, `true`, `false`, `date`,
      `data`) inside it, with no attribute, nested at most MAX_DEPTH arrays and dictionaries deep;
    - inside `plist`, `dict` and `array`, and before and after the root, nothing but whitespace bytes (space, tab,
@@ -32,27 +35,35 @@ the value only when the two agree and the first has accounted for every byte of 
    - no comment and no processing instruction anywhere; no entity declaration, no undefined or external entity,
      nothing fetched; no byte after the root element other than whitespace;
    - the leaf values: `string` and `key` hold text (character and entity references and CDATA sections in them are
-     the characters XML says they denote); `integer` is `0|-?[1-9][0-9]*` (no `+`, no `-0`, no leading zero,
-     no hexadecimal); `real` is a decimal number with an optional exponent that converts to a finite double, and to zero
+     the characters XML says they denote); `integer` is `0|-?[1-9][0-9]*` of at most 64 characters (no `+`, no
+     `-0`, no leading zero, no hexadecimal); `real` is a decimal number with an optional exponent that converts to a finite double, and to zero
      only when its digits are all zero; `date` is `YYYY-MM-DDTHH:MM:SSZ` naming a real date and time; `data` is padded
      base64 whose unused bits are zero, with whitespace anywhere in it (any wrapping); `true` and `false` are empty
-     (`<true/>` or `<true></true>`).
-   Valid XML or a valid property list that is refused as 'unsupported': a byte-order mark, UTF-16 or another
-   encoding, no XML declaration, a standalone declaration, another document type or an internal subset, a comment, a
-   processing instruction, an entity declaration, whitespace inside an `integer`, `real` or `date`, a character or
-   entity reference or a CDATA section inside an `integer`, `real`, `date` or `data`, an integer with `+`, `-0`, leading zeros, hexadecimal or more than 64 characters, a real
-   that overflows or underflows a double, a date with a fraction or an offset, base64 with non-zero unused bits,
-   nesting deeper than MAX_DEPTH, and a binary property list.
+     (`<true/>` or `<true></true>`). `integer`, `real`, `date` and `data` hold their characters as written, with no
+     character or entity reference and no CDATA section.
+   Forms outside this subset, refused as not established (whether or not another reader would accept them): a
+   byte-order mark or anything else before the XML declaration, a declared encoding other than UTF-8, another XML
+   version, a standalone declaration, another document type or an internal subset, a comment, a processing
+   instruction, an entity declaration, a reference in the root's attribute, a leaf value outside its admitted form
+   (each named with its type and that form), nesting deeper than MAX_DEPTH, a binary property list, a document the
+   XML parser or the standard parser does not read, and a disagreement between the two readers.
 2. plistlib's reading of the same bytes, with a dictionary that refuses a key given twice.
 3. The two values must be equal, with the same types (a boolean is not an integer) and the same dictionary key order.
 
-The normalizations, exhaustively: the document header compared by its declaration and document type; the root's
-`version` attribute absent or `1.0`; whitespace bytes between elements; line ends in text as the XML parser reports them to both readers (CR LF and a lone CR become LF: XML
-1.0 section 2.11); character and entity references and CDATA sections in a `string` or `key` read as the characters
-they denote, and an empty element read the same as its start and end tags (XML 1.0); whitespace removed from inside `data` before decoding; and
-one conversion: a decimal `real` is read as the nearest double, so two spellings can give the same value. Each other
-admitted leaf spelling has exactly one value and each value exactly one spelling. Whitespace inside a `string` or
-`key` is part of the value and is kept.
+The normalizations, exhaustively:
+- the document header compared by what its declaration and document type declare, not by how they are spelled (either
+  quote, whitespace inside them, the encoding name in any case);
+- the root's `version` attribute absent or `1.0`, in either quote, with whitespace around `=`;
+- whitespace inside a tag (before `>` or `/>`, and in an end tag before `>`), and an empty element read the same as
+  its start and end tags (XML 1.0);
+- whitespace bytes between elements and after the root element;
+- line ends in text as the XML parser reports them to both readers (CR LF and a lone CR become LF: XML 1.0 section
+  2.11);
+- character and entity references and CDATA sections in a `string` or `key` read as the characters they denote;
+- space, tab, CR and LF removed from inside `data` before decoding (any wrapping);
+- one conversion: a decimal `real` is read as the nearest double, so two spellings can give the same value.
+Each other admitted leaf spelling has exactly one value and each value exactly one spelling. Whitespace inside a
+`string` or `key` is part of the value and is kept.
 
 What this establishes is that the value returned is the whole document; it does not authenticate the document or say
 who wrote it.
@@ -72,9 +83,10 @@ from xml.parsers.expat import ExpatError
 
 PARTS = ('property list', 'Info.plist', 'profile envelope', 'profile property list', 'profile grants', 'profile file')
 KINDS = {
-    'unsupported': 'an encoding or form this reader does not read; the identity comparison is not established',
-    'malformed': 'malformed: not well formed, or a field not of its declared shape',
-    'mismatch': 'read whole, and not what the release requires',
+    'unsupported': ('not established: a form outside the subset this reader reads; the file was not read, nothing is asserted '
+                    'about whether it is valid, and the identity comparison is not established'),
+    'malformed': 'malformed: certain within the subset this reader reads (not well formed, or a field not of its declared shape)',
+    'mismatch': 'read whole, and a value the tools read is not of its type or not what the release requires',
 }
 TAG_CLASSES = ('universal', 'application', 'context-specific', 'private')
 # Every field, expected shape and finding a refusal may name; each module declares its own with `declare`.
@@ -147,15 +159,20 @@ MAX_DEPTH = 32
 INTEGER = re.compile(r'0|-?[1-9][0-9]*')
 REAL = re.compile(r'([+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+))(?:[eE][+-]?[0-9]+)?')
 DATE = re.compile(r'([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})Z')
+# The XML declaration's encoding, read before the parser decodes the document (XML 1.0 section 2.8 and 4.3.3).
+DECLARED_ENCODING = re.compile(rb'<\?xml[ \t\r\n]+version[ \t\r\n]*=[ \t\r\n]*(["\'])[^"\']*\1'
+                               rb'(?:[ \t\r\n]+encoding[ \t\r\n]*=[ \t\r\n]*(["\'])([^"\']*)\2)?')
 BASE64 = re.compile(r'(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?')
 
 U, M = 'unsupported', 'malformed'
-SPELLING = 'a spelling this reader does not read'
 # What was found -> (kind, shape expected). The kind follows the rule in the module docstring.
 PLIST_REASONS = {
     'a binary property list': (U, 'an XML property list'),
-    'no XML declaration as the first bytes (a byte order mark, another encoding, or none)': (U, 'an XML declaration as the first bytes'),
-    'an XML declaration other than version 1.0 in UTF-8 without standalone': (U, 'version 1.0, encoding UTF-8 or none, no standalone'),
+    'an empty document': (M, 'one XML property list'),
+    'content that does not begin with an XML declaration': (U, 'an XML declaration as the first bytes'),
+    'a declared encoding other than UTF-8': (U, 'encoding UTF-8, or no encoding declared'),
+    'an XML declaration other than version 1.0, or with a standalone declaration': (U, 'version 1.0, no standalone declaration'),
+    'a reference in the root version attribute': (U, 'the root version attribute written as 1.0, with no reference'),
     'a document type other than the property-list one': (U, 'the property-list document type, or none'),
     'a document type with an internal subset': (U, 'the property-list document type, or none'),
     'an entity declaration': (U, 'no entity declaration'),
@@ -178,20 +195,47 @@ PLIST_REASONS = {
     'a key twice in one dictionary': (M, 'each key once in a dictionary'),
     'text outside a value': (M, 'only whitespace bytes between elements'),
     f'nesting deeper than {MAX_DEPTH} arrays and dictionaries': (U, f'at most {MAX_DEPTH} nested arrays and dictionaries'),
-    'a reference or CDATA section in a leaf that is not text': (U, 'the characters as written in integer, real, date and data'),
+    'the XML parser does not read the document': (U, 'a document the XML parser reads'),
     'the standard parser does not read the document': (U, 'a document the standard parser reads'),
     'the standard parser reads another value': (U, 'the same value from both readers'),
 }
-# For SPELLING, the shape expected is the leaf's admitted form.
+# A leaf value outside its admitted form: not established, with the leaf's admitted form in full as the shape expected,
+# and what was found named by the rule it fails.
+AS_WRITTEN = 'as plain characters, with no character or entity reference and no CDATA section'
 LEAF_FORMS = {
-    'integer': 'a decimal integer 0|-?[1-9][0-9]*: no +, no -0, no leading zero, no hexadecimal',
-    'real': 'a decimal number with an optional exponent, converting to a finite double, and to zero only from zero digits',
-    'date': 'YYYY-MM-DDTHH:MM:SSZ naming a real date and time',
-    'data': 'padded base64 with unused bits zero, whitespace allowed anywhere',
+    'integer': ('an integer: 0, or an optional minus sign, a digit 1 to 9 and further digits; at most 64 characters; '
+                'no +, no -0, no leading zero, no hexadecimal; ' + AS_WRITTEN),
+    'real': ('a real: an optional sign, digits with an optional decimal point and digits (or a decimal point and digits), '
+             'an optional exponent (e or E, an optional sign, digits); converting to a finite double, and to zero only '
+             'from all-zero digits; ' + AS_WRITTEN),
+    'date': 'a date: YYYY-MM-DDTHH:MM:SSZ naming a real date and time; ' + AS_WRITTEN,
+    'data': ('data: base64 from A-Z, a-z, 0-9, + and /, in groups of four, the last padded with = to four, unused bits '
+             'zero; space, tab, CR and LF allowed anywhere; ' + AS_WRITTEN),
 }
+LEAF_FOUND = {
+    'integer': ('an integer outside the admitted grammar', 'an integer longer than 64 characters'),
+    'real': ('a real outside the admitted grammar', 'a real that converts to an infinity',
+             'a real that converts to zero from non-zero digits'),
+    'date': ('a date outside the admitted grammar', 'a date naming no real date or time'),
+    'data': ('a character outside base64 and whitespace', 'base64 padding outside the admitted form',
+             'base64 with unused bits not zero'),
+}
+REFERENCE_IN_LEAF = 'a reference or CDATA section in a leaf that is not text'
 PLACES = ('document header', 'document', 'after the root element', 'plist', 'dict', 'array', *sorted(LEAVES))
 declare(fields=PLACES, expected={e for _, e in PLIST_REASONS.values()} | set(LEAF_FORMS.values()),
-        found=set(PLIST_REASONS) | {SPELLING})
+        found=set(PLIST_REASONS) | {f for found in LEAF_FOUND.values() for f in found} | {REFERENCE_IN_LEAF})
+
+# --- The size of a file, refused by name before it is parsed ----------------------------------------------------------
+
+FILE_FOUND = {'an empty file': M, 'a file larger than the size limit': U}
+declare(fields={'the file'}, found=set(FILE_FOUND))
+
+
+def within_limit(raw, part, limit, expected):
+    """Refuse an empty file (malformed) or one larger than `limit` bytes (not established) by name, before parsing."""
+    found = 'an empty file' if not raw else 'a file larger than the size limit' if len(raw) > limit else None
+    if found:
+        raise Refused(f'{part}: {found}', part=part, kind=FILE_FOUND[found], field='the file', expected=expected, found=found)
 
 
 class NotWhole(Refused):
@@ -200,7 +244,7 @@ class NotWhole(Refused):
     it was found in), and `offset` the byte where it begins, when known."""
 
     def __init__(self, why, field='document', offset=None):
-        kind, expected = PLIST_REASONS[why] if why != SPELLING else (U, LEAF_FORMS[field])
+        kind, expected = PLIST_REASONS[why] if why in PLIST_REASONS else (U, LEAF_FORMS[field])
         super().__init__('the property list is not the whole document: ' + why, part='property list', kind=kind, field=field,
                          expected=expected, found=why, offset=offset)
         self.why = why
@@ -295,13 +339,15 @@ def _blank(text):
 
 def _header(raw, found, root):
     if not found or found[0][1] != 'xml declaration':
-        raise NotWhole('no XML declaration as the first bytes (a byte order mark, another encoding, or none)', 'document header', 0)
+        raise NotWhole('content that does not begin with an XML declaration', 'document header', 0)
     for n in range(root):
         offset, kind, values, _ = found[n]
         if kind == 'xml declaration':
             version, encoding, standalone = values
-            if n != 0 or version != '1.0' or (encoding is not None and encoding.lower() != 'utf-8') or standalone != -1:
-                raise NotWhole('an XML declaration other than version 1.0 in UTF-8 without standalone', 'document header', offset)
+            if encoding is not None and encoding.lower() != 'utf-8':
+                raise NotWhole('a declared encoding other than UTF-8', 'document header', offset)
+            if n != 0 or version != '1.0' or standalone != -1:
+                raise NotWhole('an XML declaration other than version 1.0, or with a standalone declaration', 'document header', offset)
         elif kind == 'document type':
             name, system, public, internal = values
             if (name, system, public) != ('plist', SYSTEM_ID, PUBLIC_ID):
@@ -318,8 +364,8 @@ def _header(raw, found, root):
 
 def _leaf(name, text, offset):
     """The value of a leaf element from its text (entity and character references already resolved by the parser)."""
-    def spelling():
-        return NotWhole(SPELLING, name, offset)
+    def outside(found):
+        return NotWhole(found, name, offset)
     if name in ('string', 'key'):
         return text
     if name in ('true', 'false'):
@@ -327,43 +373,54 @@ def _leaf(name, text, offset):
             raise NotWhole('content inside true or false', name, offset)
         return name == 'true'
     if name == 'integer':
-        if not INTEGER.fullmatch(text) or len(text) > 64:
-            raise spelling()
+        if not INTEGER.fullmatch(text):
+            raise outside('an integer outside the admitted grammar')
+        if len(text) > 64:
+            raise outside('an integer longer than 64 characters')
         return int(text)
     if name == 'real':
         match = REAL.fullmatch(text)
         if not match:
-            raise spelling()
+            raise outside('a real outside the admitted grammar')
         value = float(text)
-        if math.isinf(value) or (value == 0 and re.search('[1-9]', match.group(1))):
-            raise spelling()  # overflows or underflows a double: the value would not be what is written
+        if math.isinf(value):
+            raise outside('a real that converts to an infinity')
+        if value == 0 and re.search('[1-9]', match.group(1)):
+            raise outside('a real that converts to zero from non-zero digits')
         return value
     if name == 'date':
         match = DATE.fullmatch(text)
         if not match:
-            raise spelling()
+            raise outside('a date outside the admitted grammar')
         try:
             return datetime.datetime(*map(int, match.groups()))
         except ValueError:
-            raise spelling() from None
+            raise outside('a date naming no real date or time') from None
     # data: base64, padded, with whitespace allowed anywhere (wrapping at any width), and unused bits zero, so that the
     # text is the one base64 spelling of its bytes.
     compact = re.sub(r'[ \t\r\n]', '', text)
+    if not re.fullmatch(r'[A-Za-z0-9+/=]*', compact):
+        raise outside('a character outside base64 and whitespace')
     if not BASE64.fullmatch(compact):
-        raise spelling()
+        raise outside('base64 padding outside the admitted form')
     value = base64.b64decode(compact, validate=True)
     if base64.b64encode(value).decode() != compact:
-        raise spelling()
+        raise outside('base64 with unused bits not zero')
     return value
 
 
 def structure_value(raw):
     """The value of an XML property list built from its own events, without plistlib; raises NotWhole on anything the
     admitted form does not account for."""
+    if not raw:
+        raise NotWhole('an empty document', 'document', 0)
     if raw.startswith(b'bplist'):
         raise NotWhole('a binary property list', 'document', 0)
     if not raw.startswith(b'<?xml'):
-        raise NotWhole('no XML declaration as the first bytes (a byte order mark, another encoding, or none)', 'document header', 0)
+        raise NotWhole('content that does not begin with an XML declaration', 'document header', 0)
+    declared = DECLARED_ENCODING.match(raw)
+    if declared and declared.group(3) and declared.group(3).lower() != b'utf-8':
+        raise NotWhole('a declared encoding other than UTF-8', 'document header', 0)  # before the parser decodes anything
     try:
         found = events(raw, everything=True)
     except ExpatError as error:
@@ -388,6 +445,8 @@ def structure_value(raw):
                     raise NotWhole('a root element other than plist', 'document', offset)
                 if set(attributes) - {'version'} or attributes.get('version', '1.0') != '1.0':
                     raise NotWhole('an attribute other than the root version', 'plist', offset)
+                if b'&' in span(raw, found, n):  # the start tag as written: a reference can only be in an attribute value
+                    raise NotWhole('a reference in the root version attribute', 'plist', offset)
             else:
                 if top[0] in ('true', 'false'):
                     raise NotWhole('content inside true or false', top[0], offset)
@@ -443,14 +502,14 @@ def structure_value(raw):
                 # integer, real, date, data: the characters as written (line ends as XML reads them), no reference
                 written = span(raw, found, n).replace(b'\r\n', b'\n').replace(b'\r', b'\n')
                 if written != values[0].encode():
-                    raise NotWhole('a reference or CDATA section in a leaf that is not text', top[0], offset)
+                    raise NotWhole(REFERENCE_IN_LEAF, top[0], offset)
             top[1].append(values[0])
         elif kind in ('cdata start', 'cdata end') and top is not None and top[0] in ('string', 'key'):
             pass  # a CDATA section's text is reported as text; it is a spelling of the string's text
         elif kind in ('cdata start', 'cdata end') and top is not None and top[0] in ('true', 'false'):
             raise NotWhole('content inside true or false', top[0], offset)
         elif kind in ('cdata start', 'cdata end') and top is not None and top[0] in LEAVES:
-            raise NotWhole('a reference or CDATA section in a leaf that is not text', top[0], offset)
+            raise NotWhole(REFERENCE_IN_LEAF, top[0], offset)
         elif kind == 'other' and top is None and closed and _blank(values[0]):
             pass  # whitespace after the root element
         elif kind == 'text' and in_container and _blank(values[0]) and not span(raw, found, n).strip(XML_WHITESPACE):
@@ -485,11 +544,19 @@ def _same(a, b):
 
 
 def load(raw):
-    """The value of one XML property list file, returned only when that value is the whole document; else NotWhole."""
-    value = structure_value(raw)
+    """The value of one XML property list file, returned only when that value is the whole document; else NotWhole.
+
+    No exception from either parser leaves this function untyped: anything either raises that is not already a named
+    refusal is the named refusal that the parser does not read the document (not established)."""
+    try:
+        value = structure_value(raw)
+    except Refused:
+        raise
+    except Exception:  # an exception of the XML parser no rule above names (an encoding it cannot decode, and the like)
+        raise NotWhole('the XML parser does not read the document', 'document') from None
     try:
         standard = plistlib.loads(raw, fmt=plistlib.FMT_XML, dict_type=_UniqueDict)
-    except (ValueError, ExpatError, AttributeError, TypeError, IndexError, OverflowError, RecursionError):
+    except Exception:
         raise NotWhole('the standard parser does not read the document', 'document') from None
     if not _same(value, standard):
         raise NotWhole('the standard parser reads another value', 'document')

@@ -368,10 +368,13 @@ OWNER_REASONS = {
     'REFUSED_OUT_EXISTS': 'refused: --out already exists; give a new folder',
     'REFUSED_OUT_PARENT': 'refused: the folder that would hold --out does not exist',
     'REFUSED_CANDIDATE': 'refused: the candidate does not verify against CANDIDATE.json, or its build did not finish',
-    'REFUSED_INFO_PLIST_MALFORMED': ('refused: the candidate\'s Info.plist is not one whole property list; the next line names '
-                                     'the field, the shape expected and what was found; nothing ran'),
-    'REFUSED_INFO_PLIST_NOT_ESTABLISHED': ('refused: the candidate\'s Info.plist uses a form this reader does not read, named on '
-                                           'the next line; the identity comparison is not established; nothing ran'),
+    'REFUSED_INFO_PLIST_MALFORMED': ('refused: the candidate\'s Info.plist is malformed: it is not one whole property list; the '
+                                     'next line names the field, the shape expected and what was found; nothing ran'),
+    'REFUSED_INFO_PLIST_NOT_ESTABLISHED': ('refused: the candidate\'s Info.plist uses a form outside the subset this reader reads, '
+                                           'named on the next line; the file was not read and the identity comparison is not '
+                                           'established; nothing ran'),
+    'REFUSED_INFO_PLIST_MISMATCH': ('refused: the candidate\'s Info.plist was read whole and an identity field is missing, not a '
+                                    'string, or not the release value; the next line names the field; nothing ran'),
     'REFUSED_TEAM': 'refused: the identity names a team other than the candidate\'s compiled publisher team',
     'REFUSED_LIMITATIONS': 'refused: --limitations is not the candidate source\'s release limitations file',
     'REFUSED_PROFILE_BYTES': 'refused: the provisioning profile\'s bytes differ from --profile-sha256',
@@ -383,12 +386,13 @@ OWNER_REASONS = {
     'S0_ENTITLEMENTS': ('step 0: a supplier executable\'s entitlements are not an observation (' + NOT_AN_OBSERVATION + ') or include '
                         'get-task-allow; re-signing is not part of the arrangement (DEL-01-06 CLM-002)'),
     'S1_COPY': 'step 1: the working copy of the App differs from the candidate in bytes, modes or types',
-    'S2_PROFILE': ('step 2: the provisioning profile was read whole and is not a current Developer ID profile granting the '
-                   'publisher App ID and team; the line below names the rule'),
-    'S2_PROFILE_MALFORMED': ('step 2: the provisioning profile is malformed: its envelope or property list is not well formed, '
-                             'or a field is not of its declared shape; the next line names the field, the shape and what was found'),
-    'S2_PROFILE_NOT_ESTABLISHED': ('step 2: the provisioning profile uses an encoding or form this reader does not read, named '
-                                   'on the next line; the identity comparison is not established'),
+    'S2_PROFILE': ('step 2: the provisioning profile was read whole and a field the tools read is not of its type, or it is not '
+                   'a current Developer ID profile granting the publisher App ID and team; the line below names the field and rule'),
+    'S2_PROFILE_MALFORMED': ('step 2: the provisioning profile is malformed: the reader is certain, within the subset it reads, '
+                             'that its envelope or property list is not well formed or a field is not of its declared shape; '
+                             'the next line names the field, the shape and what was found'),
+    'S2_PROFILE_NOT_ESTABLISHED': ('step 2: the provisioning profile uses a form outside the subset this reader reads, named '
+                                   'on the next line; the file was not read and the identity comparison is not established'),
     'S2_PLACED': 'step 2: the placed profile is not mode 0644 with the selected digest',
     'S3_APP_ID': 'step 3: the profile grants another application identifier than the publisher binding derives',
     'S4_SIGN': 'step 4: codesign did not return zero when signing the App',

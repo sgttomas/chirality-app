@@ -233,14 +233,36 @@ class ReleaseBuild(unittest.TestCase):
             (app / 'Contents/_CodeSignature').mkdir()
         def not_whole(app):
             (app / 'Contents/Info.plist').write_bytes(fx.conflicting_info_plist())
-        def not_read(app):  # a comment: valid XML, a form the reader does not read
+        def not_read(app):  # a comment: a form outside the subset the reader reads
             (app / 'Contents/Info.plist').write_bytes(fx.info_plist().replace(b'<dict>', b'<!-- invented --><dict>', 1))
+        def info(raw):
+            return lambda app: (app / 'Contents/Info.plist').write_bytes(raw)
+        no_executable = plistlib.loads(fx.info_plist())
+        del no_executable['CFBundleExecutable']
+        # check -> the reason its detail must carry (kind, field, found); every Info.plist check carries one
+        details = {
+            'version': ('mismatch', 'CFBundleShortVersionString', 'another value'),
+            'Info.plist not whole': ('malformed', 'plist', 'a second value under plist'),
+            'Info.plist in a form not read': ('unsupported', 'plist', 'a comment'),
+            'review: Shift_JIS declared': ('unsupported', 'document header', 'a declared encoding other than UTF-8'),
+            'review: an unknown encoding declared': ('unsupported', 'document header', 'a declared encoding other than UTF-8'),
+            'an empty Info.plist': ('malformed', 'the file', 'an empty file'),
+            'an Info.plist larger than 64 KiB': ('unsupported', 'the file', 'a file larger than the size limit'),
+            'review: an integer bundle version': ('mismatch', 'CFBundleVersion', 'a value of another type'),
+            'no executable key': ('mismatch', 'CFBundleExecutable', 'a missing key'),
+        }
         cases = {
             'dyld_info': (dict(dyld={'chirality-app-v4': Result(1)}), 'dyld_validate'),
             'dyld_info negative with zero': (dict(dyld={'chirality-app-v4': Result(0, b'', b'malformed LINKEDIT')}), 'dyld_validate'),
             'version': (dict(mutate=wrong_version), 'info_plist_version'),
             'Info.plist not whole': (dict(mutate=not_whole), 'info_plist_whole'),
             'Info.plist in a form not read': (dict(mutate=not_read), 'info_plist_not_read'),
+            'review: Shift_JIS declared': (dict(mutate=info(fx.info_plist().replace(b'UTF-8', b'Shift_JIS'))), 'info_plist_not_read'),
+            'review: an unknown encoding declared': (dict(mutate=info(fx.info_plist().replace(b'UTF-8', b'x-invented-encoding'))), 'info_plist_not_read'),
+            'an empty Info.plist': (dict(mutate=info(b'')), 'info_plist_whole'),
+            'an Info.plist larger than 64 KiB': (dict(mutate=info(fx.info_plist(CFBundleName='x' * 64 * 1024))), 'info_plist_not_read'),
+            'review: an integer bundle version': (dict(mutate=info(fx.info_plist(CFBundleVersion=4))), 'info_plist_bundle_version'),
+            'no executable key': (dict(mutate=info(plistlib.dumps(no_executable))), 'info_plist_executable'),
             'vendor modes': (dict(mutate=vendor_mode), 'vendor_tree'),
             'resource': (dict(mutate=resource_bytes), 'resource'),
             'developer signature': (dict(executable=fx.macho(common.CS_RUNTIME, cms=True)), 'executable_signature'),
@@ -257,8 +279,8 @@ class ReleaseBuild(unittest.TestCase):
                 refused = json.loads((self.candidate / 'BUILD_REFUSED.json').read_text())
                 self.assertIn(check_name, [c['check'] for c in refused['checks']])
                 # The Info.plist checks carry why, in fixed text and integers; no identity field is read from part of it.
-                expected = {'info_plist_whole': ('malformed', 'plist', 'a second value under plist'),
-                            'info_plist_not_read': ('unsupported', 'plist', 'a comment')}.get(check_name)
+                expected = details.get(name)
+                self.assertEqual(expected is not None, check_name.startswith('info_plist_'))
                 if expected:
                     [entry] = [c for c in refused['checks'] if c['check'] == check_name]
                     detail = entry['detail']

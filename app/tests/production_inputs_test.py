@@ -256,6 +256,27 @@ class ProductionInputs(unittest.TestCase):
                 path=self.profile_file(raw)
                 with self.assertRaises(ValueError):self.run_plan(**self.production(path))
         self.assertFalse(self.output.exists())
+    def test_the_command_line_prints_the_readers_reason(self):
+        """Review round 2: the command line printed only 'error_type: Refused'. It now carries the refusal, fixed text and
+        integers only, and its one-line reading; another error still prints only its type."""
+        import plistlib, subprocess, sys
+        good=plistlib.dumps(self.profile_value())
+        cases={'two sibling values':(good.replace(b'</plist>',b'<string>INVENTED</string></plist>'),'a second value under plist'),
+               'an unknown encoding':(good.replace(b'UTF-8',b'x-invented-encoding'),'a declared encoding other than UTF-8')}
+        for name,(content,found) in cases.items():
+            with self.subTest(name):
+                path=self.profile_file(self.envelope(content))
+                argv=[sys.executable,str(ROOT/'app/packaging/production_inputs/prepare.py')]
+                for key,value in (self.kw|self.production(path)).items():
+                    if value is None or value is False: continue
+                    argv+=['--'+key.replace('_','-')]+([] if value is True else [str(value)])
+                done=subprocess.run(argv,capture_output=True,text=True,check=False)
+                self.assertEqual(done.returncode,2,done.stderr)
+                output=json.loads(done.stdout)
+                self.assertEqual((output['preparation_complete'],output['error_type'],output['refusal']['found']),(False,'Refused',found))
+                self.assertEqual(output['reason'],module.whole_plist.describe(output['refusal']))
+                self.assertNotIn('INVENTED',done.stdout)
+        self.assertFalse(self.output.exists())
     def test_profile_outside_validity_refuses(self):
         import datetime
         for changes in ({'ExpirationDate':datetime.datetime(2021,1,1)},{'CreationDate':datetime.datetime(2098,1,1)}):

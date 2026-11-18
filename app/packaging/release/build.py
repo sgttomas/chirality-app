@@ -210,13 +210,16 @@ def bundle_errors(app, plan, vendor, source_root, runner, env, private):
         info_raw, info = common.read_info_plist(app)  # the one whole-document reader
     except common.Refused as refused:
         # Not one XML property list whose value is the whole document, in the admitted form: no identity field is read
-        # from part of it. A form the reader does not read is named apart from a malformed file; the detail names the
+        # from part of it. A form outside the reader's subset (not established) is named apart from a malformed file; the detail names the
         # field, the shape expected, what was found and the byte where (fixed text and integers only).
+        # A whole Info.plist whose identity field is missing or not a string is a mismatch, named by that field's check.
         info_raw, info = read_input(app / 'Contents/Info.plist'), {}
-        error('info_plist_not_read' if refused.kind == 'unsupported' else 'info_plist_whole', detail=refused.detail())
+        checks = dict(common.INFO_FIELDS.values())  # Info.plist key -> the build's named check
+        error({'unsupported': 'info_plist_not_read', 'malformed': 'info_plist_whole'}.get(refused.kind) or checks[refused.field],
+              detail=refused.detail())
     else:
-        for name in common.release_identity_errors(info):
-            error(name)
+        for refused in common.release_identity_refusals(info):
+            error(dict(common.INFO_FIELDS.values())[refused.field], detail=refused.detail())
     facts['info_plist_sha256'] = sha(info_raw)
     identity = common.bundle_identity(info)
     facts['identity'] = {k: common.selected(v, 'version' if 'version' in k else 'identifier') for k, v in identity.items()}
