@@ -35,6 +35,28 @@ needs:
   condition: A run ends only by the person's explicit run end, and each arrival at a declared
     checkpoint is recorded with its bound subject, purpose and scope, with the request for the act
     where one can be identified and the act only when the person performs it.
+    Each change of an arrival's disposition is recorded in the run's records as it happens,
+    waiting from the arrival and performed in the same observation when an earlier act on
+    still-current content counts. For "Waiting on you", readings of both a run in this process
+    and a run reopened after the App restarted supply the run and arrival identities and the
+    checkpoint history needed to establish each arrival's latest recorded disposition, or state
+    why that history is omitted, unavailable or incomplete. An older waiting entry without the
+    history needed to establish its latest disposition does not establish current waiting.
+    Limits on that disposition history are distinguished from unrelated limits, including an
+    absent verified actor declaration; missing actor attribution supplies no actor and does not
+    invalidate an otherwise established latest disposition.
+    For a run reopened after the App restarted, the same reading reads the project's act records once
+    and gives, for each arrival of a run not recorded as ended, bound to that run and that exact
+    arrival, its act-record projection by the rule the arrival act control uses, as one of three
+    results (no act or decline on record answers it; one answers it and is not yet counted in the
+    run's record; or unknown, with the reason, as for every such arrival when the act records
+    cannot be read). The projection creates and changes no act, run or capture record and none
+    of the run's recorded entries, and is never a recorded disposition; reading the act records
+    may create or refresh the App's derived query cache of them in its records store, as the
+    arrival act control's reading does.
+    The derived cache is created in the index folder of the store the App has bound. The path is
+    checked before creation and the binding is checked again after opening; replacement of the
+    store folder between those steps is not defended against, as on the live path.
   gating: false
 - from: DEL-02-04
   condition: The conversation roles are listed with the default for a new conversation, and an
@@ -85,7 +107,7 @@ needs:
 - from: external:person or examining agent operating the act control
   condition: A person confirms each act in the native confirmation while an examiner observes. In
     an agent-operated journey examination as the release target defines it, the examining agent
-    confirms instead the acts of VER-005 and VER-008, on examination material only; its capture is
+    confirms instead the acts of VER-005, VER-008 and VER-013, on examination material only; its capture is
     then a synthetic examination artifact that establishes no person's decision. The protection act
     and the confirmation of a lowered policy (VER-009) are the person's and never an agent's.
 code_paths:
@@ -115,6 +137,9 @@ code_paths:
 - app/tests/fixtures/plain_id_examples.json
 - app/src-tauri/src/file_act_root.rs
 - app/src-tauri/src/file_act_arrival.rs
+# record_supply.rs is DEL-02-03's. Here: the act-record projection of a reopened run's
+# arrivals (still waiting, act recorded and awaiting counting, or not known with its reason).
+- app/src-tauri/src/record_supply.rs
 # file_act_view.rs and file_act_lapse.rs are shared with DEL-04-03. Here: the offers and captures
 # that use them. The read-only view of a file's recorded acts and the evaluation and recording
 # of lapse are DEL-04-03's.
