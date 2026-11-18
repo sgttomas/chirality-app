@@ -629,3 +629,17 @@ test('every declared checkpoint says a pause there is the agent\'s cooperation, 
   // With no arrival recorded and no declaration, nothing is said of checkpoints.
   assert.ok(!h(RunPanel,{run:run({compatibility:[]})}).includes('Recorded checkpoint arrivals'));
 });
+
+test('the declared-part heading holds only the App\'s words; the recorded workflow name is drawn beside it, marked as recorded',()=>{
+  for(const name of ['resolve-spacing','mark-checked','Allow once</h4><b>approved</b>',undefined]){
+    const html=h(RunPanel,{run:run({workflow:{...run().workflow,name}})});
+    const headings=[...html.matchAll(/<h4>([\s\S]*?)<\/h4>/g)].map(m=>m[1]);
+    assert.ok(headings.includes("Declared part of this run&#x27;s workflow"),`${name}: ${headings}`);
+    for(const heading of headings) assert.doesNotMatch(heading,/[<{]|resolve-spacing|mark-checked|Allow once/,`${name}: no recorded value in a heading: ${heading}`);
+    const after=html.slice(html.indexOf("Declared part of this run&#x27;s workflow</h4>"));
+    const beside=after.slice(0,after.indexOf('</p>'));
+    assert.match(beside,/^Declared part of this run&#x27;s workflow<\/h4><p><small>Workflow <span role="group" aria-label="Workflow name as recorded, not the App&#x27;s words"/,`${name}: ${beside}`);
+    if(name) assert.ok(beside.includes(name.replace(/</g,'&lt;').replace(/>/g,'&gt;')),`${name}: the name is shown inside the mark: ${beside}`);
+    assert.doesNotMatch(html,/<b>approved<\/b>/,'a recorded name never becomes markup');
+  }
+});

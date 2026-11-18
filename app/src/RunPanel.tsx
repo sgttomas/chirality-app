@@ -1,4 +1,4 @@
-import { AgentText, ConversationChoices, RecordedData, SuppliedId, idWords, safeName, wordOf } from "./AgentText";
+import { AgentText, ConversationChoices, RecordedData, SuppliedId, idWords, wordOf } from "./AgentText";
 import { workflowAssurance } from "./workflowSelection";
 import { useState } from "react";
 import { beginBringBack, bringBackHeld, endBringBack } from "./bringBackDoubts";
@@ -556,7 +556,8 @@ export function RunPanel({ run, conversations, bringBackDefault = null, busy = f
     <p><small>Run record entries: {recordKinds(run).length ? recordKinds(run).join(", ") : "none written yet"}. What the record does not hold is shown as not recorded.</small></p>
     <RecordWriteNotice run={run} />
     <HistoryReferenceNotice pointers={run?.learningPointers} run={run} />
-    <h4>Declared part of {text(workflow.name) ? safeName(workflow.name) : "this workflow"}</h4>
+    <h4>Declared part of this run's workflow</h4>
+    <p><small>Workflow <AgentText value={text(workflow.name) || null} source="record" label="Workflow:" name="Workflow name as recorded, not the App's words" /></small></p>
     {declaration ? <DeclaredPart declaration={declaration} run={run} openFileAct={openFileAct} busy={busy} /> : <p>The declared part was not evaluated for this run, so it is not shown here.</p>}
     {!declaration && <UndeclaredArrivals run={run} openFileAct={openFileAct} busy={busy} />}
     <h4>Compatibility (advisory)</h4>
