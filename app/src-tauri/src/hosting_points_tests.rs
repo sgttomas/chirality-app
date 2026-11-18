@@ -921,9 +921,9 @@ fn a_new_identity_at_the_same_folder_is_never_read_or_written_as_the_conversatio
 
 /// Finding 7: publication against the generation's closure. A generation
 /// closed before the append writes nothing; one closed after the record was
-/// written leaves the record with its pointer and the unsent receipt stated.
+/// written leaves the record with its pointer owed, which a resume completes.
 #[test]
-fn a_generation_closing_while_the_recorder_works_leaves_nothing_or_the_record_its_pointer_and_a_stated_outcome() {
+fn a_generation_closing_while_the_recorder_works_leaves_nothing_or_the_record_with_its_pointer_owed() {
     let f = Fixture::new();
     let mut pipe = reply_pipe(&f.host);
     let host = Arc::clone(&f.host);
@@ -945,14 +945,29 @@ fn a_generation_closing_while_the_recorder_works_leaves_nothing_or_the_record_it
     }));
     f.host.on_line(&f.frame("1", "thread", "call-1", &full_terms()), &f.g);
     f.drain();
-    assert_eq!(text(f.receipts().last().unwrap())["state"], "recorded");
+    let receipt = text(f.receipts().last().unwrap());
+    assert_eq!(receipt["state"], "recorded", "{receipt}");
+    assert!(receipt["persistence"].as_str().unwrap().contains("could not be saved (tag scope not current"), "{receipt}");
     assert_eq!(f.records().len(), 1);
-    assert_eq!(f.placed("thread").len(), 1, "the pointer is saved though the generation closed");
-    assert!(written(&mut pipe).is_empty());
+    assert!(f.placed("thread").is_empty(), "the pointer is owed: the closed generation's tag is refused as not current");
+    assert!(written(&mut pipe).is_empty(), "no reply on a closed generation");
     assert!(f.host.snapshot()["journal"].as_array().unwrap().iter().any(|j| j["class"] == "point-call-not-answered"));
-    let unsent = f.hooks().points.unsent.clone();
-    assert_eq!(unsent.len(), 1);
-    assert_eq!(unsent[0].1, f.records()[0]["body"]["point"].as_str().unwrap());
+    let view = Fixture::view(&f.host, "thread");
+    assert_eq!(view["reading"]["whole"], false, "{view}");
+    assert!(Fixture::reasons(&view).contains("its pointer in this conversation could not be saved"), "{view}");
+    // A constructed resume in the next generation completes the pointer once.
+    let g2 = generation(&f.host, 2);
+    admitted(&f.host, &f.project, &f.root.join("app/reads.jsonl"), &g2, &["thread"], &[]);
+    f.host.restore_point_offer(&g2, "thread");
+    f.drain();
+    assert_eq!(f.placed("thread").len(), 1, "completed on resume");
+    let view = Fixture::view(&f.host, "thread");
+    assert_eq!(view["reading"]["whole"], true, "{view}");
+    assert_eq!(view["points"][0]["point"], f.records()[0]["body"]["point"]);
+    assert_eq!(view["points"][0]["terms"]["arguments"], full_terms());
+    f.host.restore_point_offer(&g2, "thread");
+    f.drain();
+    assert_eq!(f.placed("thread").len(), 1, "completed once");
 }
 
 /// Finding 11: a project closed after the call was admitted refuses the

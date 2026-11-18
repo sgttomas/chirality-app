@@ -550,29 +550,13 @@ impl super::Host {
         let physical = capability.project_identity().map_err(|e| format!("this project's folder is not the folder the App admitted ({e})"))?;
         Ok((capability.project_folder().to_path_buf(), physical))
     }
-    /// A tag on the conversation's ledger index for a record already written
-    /// (or for the conversation's binding to its records): written as
-    /// `tag_conversation` writes, but not refused because the generation that
-    /// placed the record has since closed. The conversation's index row must
-    /// exist under that home class.
-    fn save_tag(&self, generation: &Value, thread: &str, home: &str, value: &str) -> Result<(), String> {
-        let _writer = self.recovery_writer.lock().unwrap();
-        self.drain_recovery_owned();
-        self.refresh_recovery_observation();
-        let (ledger, rows) = { let i = self.inner.0.lock().unwrap(); (i.recovery.clone(), Self::context_rows(i.recovery_snapshot.as_ref())) };
-        let index = rows.iter().rev().find(|e| e["home"] == home && e["threadId"] == thread).cloned()
-            .ok_or("no REC conversation index row for this home class and thread")?;
-        if index["tags"].as_array().into_iter().flatten().any(|t| t["owner"] == points::TAG_OWNER && t["value"] == value) { return Ok(()); }
-        let ledger = ledger.ok_or("App ledger unavailable")?;
-        let seq = rows.iter().flat_map(|e| e["tags"].as_array().into_iter().flatten()).filter_map(|t| t["seq"].as_u64()).max().unwrap_or(0).checked_add(1).ok_or("tag sequence exhausted")?;
-        let mut entry = index;
-        entry["session"] = generation["appSession"].clone();
-        entry["at"] = json!(crate::util::now_rfc3339());
-        entry["tags"].as_array_mut().ok_or("REC index tags absent")?.push(json!({"owner":points::TAG_OWNER,"value":value,"seq":seq}));
-        let (appended, snapshot) = { let mut ledger = ledger.lock().unwrap(); let appended = ledger.append(entry); (appended, ledger.observation()) };
-        let mut i = self.inner.0.lock().unwrap();
-        i.recovery_snapshot = Some(snapshot);
-        appended.map_err(|error| { i.recovery_error = Some(error.clone()); format!("tag append unavailable: {error}") })
+    /// A tag of this owner on the conversation, through the Host's own
+    /// `tag_conversation`: kept only where the ledger kept it durably, and
+    /// refused, with its limit, where the conversation's generation is no
+    /// longer current or the ledger did not keep it.
+    fn keep_tag(&self, generation: &Value, thread: &str, home: &str, value: &str) -> Result<(), String> {
+        let tagged = self.tag_conversation(generation, thread, Some(home), points::TAG_OWNER, value);
+        if tagged["persistence"] == "durable App metadata" { Ok(()) } else { Err(tagged["limit"].as_str().unwrap_or("the tag was not kept").to_owned()) }
     }
     /// One placement, under the one placement guard for the whole of it and
     /// the store's write admission from the proof of its binding to the
@@ -644,7 +628,7 @@ impl super::Host {
                 // The conversation's binding to these records, kept before its first record in them.
                 if bound_store.is_none() {
                     let bound = points::bound_offer_pointer(native, &generation, &call.thread, &project, &store_project);
-                    if let Err(reason) = self.save_tag(&call.generation, &call.thread, &home, &bound) {
+                    if let Err(reason) = self.keep_tag(&call.generation, &call.thread, &home, &bound) {
                         return self.refuse(call, kept_refusal(&format!("the conversation's binding to its records could not be saved ({reason})")));
                     }
                 }
@@ -658,9 +642,10 @@ impl super::Host {
                 { let hook = self.inner.0.lock().unwrap().points.hooks.before_append.take(); if let Some(hook) = hook { hook(); } }
                 // Publication admission against the generation's closure: a
                 // closed generation is refused here with nothing written. A
-                // closure after this check finds the record written; its
-                // pointer is still saved and the receipt that could not be
-                // sent is stated in the conversation.
+                // closure after this check finds the record written and its
+                // pointer owed (the tag is refused as not current): it is
+                // completed before a later placement or when the conversation
+                // is resumed.
                 if !open(self) { return self.refuse(call, ENDED.into()); }
                 if let Err(e) = binding.prove_for_write() { return self.refuse(call, store_refused(&e)); }
                 #[cfg(test)]
@@ -697,7 +682,7 @@ impl super::Host {
     /// remembered so that the conversation's reading is not whole until it is.
     fn save_pointer(&self, generation: &Value, thread: &str, home: &str, entry: &Value) -> String {
         let point = entry["body"]["point"].as_str().unwrap_or_default().to_owned();
-        let saved = points::pointer(entry).and_then(|value| self.save_tag(generation, thread, home, &value));
+        let saved = points::pointer(entry).and_then(|value| self.keep_tag(generation, thread, home, &value));
         let mut i = self.inner.0.lock().unwrap();
         i.points.pending.retain(|(h, t, p, _)| !(h == home && t == thread && *p == point));
         match saved {

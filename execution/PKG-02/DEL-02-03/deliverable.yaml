@@ -41,8 +41,7 @@ needs:
     is kept across a relaunch and can be looked up.
     A tag is kept only for a conversation indexed under a known App project; its write says
     whether it was kept durably, with the limit where it was not, and the ledger's tags for a
-    conversation are read with the ledger's health. The ledger keeps a tag added to an indexed
-    conversation's row after the generation that placed the tagged record has closed.
+    conversation are read with the ledger's health.
   gating: true
 - from: DEL-01-04
   condition: The act control captures an act the person performs with its capture evidence and
