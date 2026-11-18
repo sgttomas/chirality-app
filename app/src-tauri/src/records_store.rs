@@ -664,6 +664,11 @@ fn open(create: bool) -> Result<(PathBuf, String), String> {
     }
 
     let root = std::fs::canonicalize(&store.root).map_err(|e| format!("records store unavailable: {}: {e}", store.root.display()))?;
+    // Until this open returns, on this thread, a folder made at this physical
+    // root or its `indexes` child (by the bootstrap lock or the identity's
+    // publication) is recognised as the store's, whatever the configured
+    // path resolves to meanwhile.
+    let _opening = Opening::enter(&root);
     match crate::records_inspect::presence(&root) {
         Ok(Some(meta)) if meta.is_dir() => {}
         Ok(Some(_)) | Ok(None) => return Err(format!("records store unavailable: {} is not a folder", root.display())),
@@ -798,8 +803,10 @@ pub(crate) fn configured_project_dir(path: &Path) -> Option<PathBuf> {
 /// (opening here would recurse at bootstrap), and it never takes a test
 /// build's default store (taking it creates it). The store this process bound
 /// is compared in memory, with no system call. Where no store is bound for
-/// the configured one, the configured store's physical path is compared as
-/// [`open`] resolves it, and a store bound earlier still counts.
+/// the configured one, the physical root an [`open`] on this thread has
+/// selected and not yet returned from is compared, then the configured
+/// store's physical path as [`open`] resolves it; a store bound earlier
+/// still counts.
 pub(crate) fn is_store_folder_or_its_indexes(dir: &Path) -> bool {
     let is = |root: &Path| dir == root || (dir.parent() == Some(root) && dir.file_name().is_some_and(|n| n == "indexes"));
     let configured = configured_root();
@@ -814,7 +821,26 @@ pub(crate) fn is_store_folder_or_its_indexes(dir: &Path) -> bool {
             }
         }
     }
+    if OPENING.with(|o| o.borrow().as_deref().is_some_and(is)) {
+        return true;
+    }
     configured.is_some_and(|c| is(&resolve_lexically(&c)))
+}
+// The physical root the open in progress on this thread selected, for
+// `is_store_folder_or_its_indexes`. Set by [`Opening::enter`] and restored to
+// what it was when that guard drops: on every return, error or unwind of the
+// open, and never seen by another thread.
+thread_local! { static OPENING: std::cell::RefCell<Option<PathBuf>> = const { std::cell::RefCell::new(None) }; }
+struct Opening(Option<PathBuf>);
+impl Opening {
+    fn enter(root: &Path) -> Self {
+        Opening(OPENING.with(|o| o.replace(Some(root.to_path_buf()))))
+    }
+}
+impl Drop for Opening {
+    fn drop(&mut self) {
+        OPENING.with(|o| *o.borrow_mut() = self.0.take());
+    }
 }
 /// The configured store's path as configured, without taking a default.
 fn configured_root() -> Option<PathBuf> {

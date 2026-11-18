@@ -2021,6 +2021,147 @@ fn a_store_folder_removed_before_the_identity_bootstrap_locks_is_made_again_with
     let _ = std::fs::remove_dir_all(base);
 }
 
+/// A store configured through an alias to a physical folder that exists and
+/// holds no identity yet, opened by this thread.
+fn aliased_store(prefix: &str) -> (PathBuf, PathBuf, PathBuf) {
+    let base = folder(prefix);
+    let (physical, alias) = (base.join("physical"), base.join("alias"));
+    std::fs::create_dir(&physical).unwrap();
+    std::os::unix::fs::symlink(&physical, &alias).unwrap();
+    new_process();
+    use_store_not_started_for_test(Some(Ok(Store { root: alias.clone(), placement: Placement::Override, limits: vec![] })));
+    (base, physical, alias)
+}
+/// Points the alias at a folder that does not exist: it no longer resolves.
+fn dangle(alias: &Path) {
+    std::fs::remove_file(alias).unwrap();
+    std::os::unix::fs::symlink(alias.with_file_name("nowhere"), alias).unwrap();
+}
+
+#[test]
+fn an_aliased_store_made_again_by_the_bootstrap_lock_after_its_alias_dangles_is_0700() {
+    use std::{cell::Cell, os::fd::AsRawFd, rc::Rc};
+    let (base, physical, alias) = aliased_store("alias-bootstrap-");
+    // Another opener holds the bootstrap lock in the physical folder.
+    let held = std::fs::File::create(physical.join(".store-bootstrap.lock")).unwrap();
+    // SAFETY: flock on a descriptor this test owns.
+    assert_eq!(unsafe { libc::flock(held.as_raw_fd(), libc::LOCK_EX) }, 0);
+    let during = Rc::new(Cell::new(None));
+    let result = {
+        let _mask = Umask::set(0);
+        let (seen, physical, alias, base) = (during.clone(), physical.clone(), alias.clone(), base.clone());
+        // The bootstrap finds its lock held. Meanwhile, during this open:
+        // folders that are not the store's are made, another thread asks
+        // about the physical root, then the physical folder is removed, the
+        // alias stops resolving and the lock is released.
+        bootstrap_blocked_for_test(Some(Box::new(move || {
+            storage::ensure_directory(&base.join("unrelated/deeper")).unwrap();
+            storage::ensure_directory(&base.join("indexes")).unwrap();
+            let elsewhere = { let p = physical.clone(); std::thread::spawn(move || is_store_folder_or_its_indexes(&p)).join().unwrap() };
+            seen.set(Some((mode_of(&base.join("unrelated")), mode_of(&base.join("unrelated/deeper")), mode_of(&base.join("indexes")), elsewhere)));
+            std::fs::remove_dir_all(&physical).unwrap();
+            dangle(&alias);
+            drop(held);
+        })));
+        let result = created();
+        bootstrap_blocked_for_test(None);
+        result
+    };
+    // The same refusal as before: the folder bound is not the one there now.
+    let refused = result.expect_err("a store folder replaced while it was opened is refused");
+    assert!(refused.contains("changed while it was opened"), "{refused}");
+    assert_eq!(during.get(), Some((0o777, 0o777, 0o777, false)), "during the open, folders that are not the store's are ordinary, and no other thread sees its root");
+    assert!(physical.is_dir() && std::fs::canonicalize(&alias).is_err());
+    assert_eq!(mode_of(&physical), 0o700, "the physical folder the bootstrap lock made again is requested 0700");
+    // Once the open has returned, the root it carried no longer counts.
+    assert!(!is_store_folder_or_its_indexes(&physical));
+    std::fs::remove_dir_all(&physical).unwrap();
+    {
+        let _mask = Umask::set(0);
+        storage::ensure_directory(&physical).unwrap();
+    }
+    assert_eq!(mode_of(&physical), 0o777, "after the open, the same path made again is ordinary");
+    use_store_for_test(None);
+    new_process();
+    let _ = std::fs::remove_dir_all(base);
+}
+
+#[test]
+fn an_aliased_store_made_again_by_the_identity_publication_after_its_alias_dangles_is_0700() {
+    use std::{cell::Cell, rc::Rc};
+    let (base, physical, alias) = aliased_store("alias-publication-");
+    let attempts = Rc::new(Cell::new(0));
+    let requested = Rc::new(Cell::new(None));
+    let result = {
+        let _mask = Umask::set(0);
+        let (n, asked, target, alias) = (attempts.clone(), requested.clone(), physical.clone(), alias.clone());
+        // The first creation attempt at the physical folder is the bootstrap
+        // lock's, which finds it there: then the alias stops resolving. The
+        // second is the identity publication's: the folder is removed just
+        // before it, so the publication makes it again.
+        storage::mkdir_for_test(Some(Box::new(move |dir, mode, real| {
+            if dir == target {
+                n.set(n.get() + 1);
+                match n.get() {
+                    1 => dangle(&alias),
+                    2 => { asked.set(Some(mode)); std::fs::remove_dir_all(dir).unwrap(); }
+                    _ => {}
+                }
+            }
+            real()
+        })));
+        let result = created();
+        storage::mkdir_for_test(None);
+        result
+    };
+    assert_eq!(attempts.get(), 2, "the lock's attempt and the publication's");
+    let refused = result.expect_err("a store folder replaced while it was opened is refused");
+    assert!(refused.contains("changed while it was opened"), "{refused}");
+    assert!(physical.join("store.json").is_file(), "the publication wrote into the folder it made");
+    assert_eq!(requested.get(), Some(0o700), "the publication requested 0700 for the physical folder");
+    assert_eq!(mode_of(&physical), 0o700);
+    assert!(!is_store_folder_or_its_indexes(&physical), "once the open has returned, its root no longer counts");
+    use_store_for_test(None);
+    new_process();
+    let _ = std::fs::remove_dir_all(base);
+}
+
+#[test]
+fn the_root_an_open_carried_no_longer_counts_once_it_returns_or_unwinds() {
+    use std::os::fd::AsRawFd;
+    // An open that succeeds: once the binding is gone, the root is not the store's.
+    let (base, physical, alias) = aliased_store("carried-success-");
+    let _ = created().unwrap();
+    new_process();
+    dangle(&alias);
+    assert!(!is_store_folder_or_its_indexes(&physical));
+    assert!(!is_store_folder_or_its_indexes(&physical.join("indexes")));
+    use_store_for_test(None);
+    let _ = std::fs::remove_dir_all(base);
+    // An open that unwinds from inside: during it, its root counts although
+    // the alias no longer resolves; after the unwind it does not.
+    let (base, physical, alias) = aliased_store("carried-unwind-");
+    let held = std::fs::File::create(physical.join(".store-bootstrap.lock")).unwrap();
+    // SAFETY: flock on a descriptor this test owns.
+    assert_eq!(unsafe { libc::flock(held.as_raw_fd(), libc::LOCK_EX) }, 0);
+    let (p, a) = (physical.clone(), alias.clone());
+    bootstrap_blocked_for_test(Some(Box::new(move || {
+        dangle(&a);
+        let during = (is_store_folder_or_its_indexes(&p), is_store_folder_or_its_indexes(&p.join("indexes")), is_store_folder_or_its_indexes(&p.join("other")));
+        drop(held);
+        panic!("unwinding from inside the open, having seen {during:?}");
+    })));
+    let unwound = std::panic::catch_unwind(std::panic::AssertUnwindSafe(created));
+    bootstrap_blocked_for_test(None);
+    let message = unwound.expect_err("the open unwound").downcast::<String>().unwrap();
+    assert!(message.ends_with("(true, true, false)"), "during the open, its root and indexes count and nothing else: {message}");
+    assert!(!is_store_folder_or_its_indexes(&physical), "after the unwind the root no longer counts");
+    assert!(!is_store_folder_or_its_indexes(&physical.join("indexes")));
+    use_store_for_test(None);
+    new_process();
+    let _ = std::fs::remove_dir_all(base);
+}
+
 #[test]
 fn the_store_folder_made_by_any_storage_route_is_0700_and_the_folders_around_it_are_not() {
     let base = folder("store-routes-base-");
