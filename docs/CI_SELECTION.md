@@ -340,24 +340,47 @@ that no new such spelling appeared in its scope.
 
 ## Rust dependency cache
 
-Every macOS product job, including the full route, restores compiled third-party
-dependencies in its setup and saves them as its last step. Only
-`target/debug/.fingerprint`, `build` and `deps` are cached, under a key made of
-the runner OS and architecture, the exact `rustc` build, `Cargo.lock` and the job
-id. If that exact key is absent, the newest cache for the same OS, toolchain and
-lockfile from another job is restored instead; the full route on main is what
-seeds new PRs, because a PR can read only its own caches and main's. Registry
-downloads and test results are not cached.
+The four macOS product jobs attempt to restore the compiled Rust dependency
+cache during setup and schedule the save action last when the job is
+uncancelled. The cache contains `target/debug/.fingerprint`, `build` and `deps`.
+The key includes the runner OS, image family, architecture, exact `rustc`
+build, `Cargo.lock` and job id. If an exact key is unavailable, a restore can
+use a cache with the same key prefix, including a cache written by another
+job. The full route on main can seed new PRs from its cache. Registry downloads,
+test results, final binaries and examples, and incremental data are outside
+these paths.
 
-`tools/ci/rust_dep_cache.py` keeps the repository's crates out: it removes their
-units before every save and again after every restore, using the package and
-target names reported by `cargo metadata`. Cargo reuses a unit only when its
-`.fingerprint` directory records it as fresh, so a repository crate without one
-is compiled from the checked-out source regardless of file times.
-`tools/ci/test_rust_dep_cache.py` demonstrates this with real cargo builds,
-including a control run showing that an unpruned target would run stale code.
-A cache miss, a failed restore, or restored output that cannot be cleaned becomes
-a full build. A failed save never affects the job.
+`tools/ci/rust_dep_cache.py` uses current Cargo workspace package and target
+names to remove matching intermediate output after a cache hit and before an
+upload. Cargo rebuilds a unit when its freshness fingerprint is missing.
+The tool handles the legacy intermediate layout and the one introduced in
+Cargo 1.100, which groups artifacts, fingerprints and build-script run data
+under `build/<package>/<unit>/`. The App's legacy library build can leave
+unhashed files in `deps`.
+The App's registry dependencies use hashed compiler artifact names there.
+The tool also removes entries in `deps` without a recognized filename hash,
+including old App library output and compiler scratch. Interrupted legacy
+links can leave compiler scratch in a build-script directory as well.
+The tool removes the recognized temporary directories before upload.
+
+The tool checks the structure of the cache paths, down to what each unit
+folder and build-script folder directly holds, and refuses entries that fail
+those checks. An acceptable structure by itself gives no guarantee about the
+ownership of its contents. The tool also refuses when the workspace's lockfile
+gives a repository package's name to another package, also one differing only
+in case. Setup discards any extracted target output after a cache miss, a
+failed restore or a pruning refusal and proceeds to a full build. Setup fails
+if that discard fails. A dependency-only cache can restore with zero removals.
+
+The save action skips pruning and upload when the key is empty or the restore
+reported an exact hit. Save pruning requires a match to a current workspace
+package or target. Removing other entries, such as compiler scratch, is
+insufficient. A job can reach this refusal if it fails before compiling the
+App. A pruning refusal emits an error annotation and skips upload. Save errors
+leave the job result unchanged.
+
+`tools/ci/test_rust_dep_cache.py` exercises pruning with real Cargo builds and
+shows that an unpruned target can reuse stale repository code.
 
 Pull requests from forks use neither this cache nor the npm cache, and always
 build from the checkout. A cache archive is trusted as it was written, so an
