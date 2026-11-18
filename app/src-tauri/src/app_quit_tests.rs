@@ -200,6 +200,18 @@ fn a_question_that_cannot_be_shown_records_no_answer_and_keeps_running() {
 }
 
 #[test]
+fn a_fault_in_the_native_question_is_not_asked_and_never_keep_running_or_quit() {
+    // The refusal `confirm` returns when its posted work faults.
+    let fault = crate::native_lifecycle_confirmation::FAULTED;
+    let mut d = Double::new(vec![material(&["turn-1"], 0, 0)], vec![Err(fault.into())]);
+    let decision = d.run();
+    let Decision::NotAsked(view) = &decision else { panic!("{decision:?}") };
+    assert!(view["reading"].as_str().unwrap().contains(fault));
+    assert!(!d.log.iter().any(|l| l.starts_with("quit_answered") || l == "close" || l.starts_with("interrupt")), "no answer recorded, nothing closed or interrupted: {:?}", d.log);
+    assert!(!AppQuit::default().allow(&decision, |_| Ok(Value::Null)).unwrap(), "no exit");
+}
+
+#[test]
 fn confirm_records_the_answer_before_each_quit_interrupt_and_names_the_stop_requests() {
     let m = material(&["turn-1", "turn-2"], 1, 0);
     let mut d = Double::new(vec![m.clone(), m], vec![Ok(true)]);

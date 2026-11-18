@@ -281,6 +281,23 @@ fn restart_starts_once_after_the_stop_and_continues_no_conversation() {
 }
 
 #[test]
+fn a_fault_in_the_native_question_is_a_refusal_for_stop_and_restart() {
+    // The command's glue (lib.rs `codex_stop`) reads the native answer
+    // through `refusal_kept`; `FAULTED` is what a contained fault returns.
+    let fault = crate::native_lifecycle_confirmation::FAULTED;
+    for (restart, title) in [(false, "Stop Codex"), (true, "Restart Codex")] {
+        let mut refused = None;
+        let chosen = crate::native_lifecycle_confirmation::refusal_kept(&mut refused, Err(fault.into()));
+        let mut ops = Ops::new(vec![view_material(json!([live("t1")]), json!([]), json!([]))], vec![chosen]);
+        let result = ops.run(restart);
+        assert_eq!(ops.log, ["assess", "ask"], "not closed, nothing interrupted, stopped or started");
+        let kept = Mutex::new(Vec::new());
+        assert_eq!(finish(&kept, title, refused, result).unwrap_err(), fault, "a refusal, never a cancel");
+        assert!(kept.lock().unwrap().is_empty());
+    }
+}
+
+#[test]
 fn a_refused_stop_is_a_refusal_with_no_turn_label_and_reopens_to_new_turns() {
     let mut ops = Ops::new(vec![view_material(json!([live("t1")]), json!([]), json!([]))], vec![true]);
     ops.stop_ok = false;
