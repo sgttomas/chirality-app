@@ -168,9 +168,9 @@ fn a_fault_in_posted_work_is_contained_and_sent_as_the_refusal() {
     .unwrap();
     assert_eq!(receive.recv().unwrap(), Ok(false), "work that does not fault is unchanged");
 }
-/// The posted task and the answer callback are handed their fault sender
-/// ready-made and make none of their own: with the fault sender on a channel
-/// of its own, the contained refusal arrives there and nowhere else.
+/// With separate channels for the fault and ordinary result, each injected
+/// fault is reported on the supplied fault channel, and no ordinary result is
+/// delivered.
 #[test]
 fn the_fault_sender_is_prepared_by_the_caller_for_posted_work_and_the_answer_callback() {
     let (_app, window) = mock_window();
@@ -178,7 +178,7 @@ fn the_fault_sender_is_prepared_by_the_caller_for_posted_work_and_the_answer_cal
     let (reply, replies) = mpsc::channel::<Result<bool, String>>();
     post(&window, fault, reply, |_reply| panic!("injected fault in posted work")).unwrap();
     assert_eq!(faults.recv().unwrap().unwrap_err(), FAULTED);
-    assert!(replies.try_recv().is_err(), "nothing on the reply channel: the task made no sender of its own");
+    assert!(replies.try_recv().is_err(), "no ordinary result is delivered from faulted posted work");
     let (fault, faults) = mpsc::channel::<Result<MessageDialogResult, String>>();
     let (reply, replies) = mpsc::channel::<Result<MessageDialogResult, String>>();
     let callback = on_answer(fault, move |_result| {

@@ -639,15 +639,18 @@ An entry is added in the same pull request that makes the limitation standing.
 
 - **Id:** LIM-036
 - **Exit criteria:** 4
-- **What is unavailable:** the quit question when the App is ended from
-  outside its own Quit. Quit in the App's Dock menu, Command-Tab then Q, and
-  logging out, restarting or shutting down the Mac end the App without asking
-  about live work. The App sends no interrupt and records no stop request for
-  a live turn. As it ends it attempts to record that the system ended the
-  session and to stop the Codex processes it started. After the next launch a
-  turn that was live then is not shown as interrupted by quit.
-- **Why:** macOS delivers those requests on a route separate from the App's
-  own Quit, and in this release the App does not answer on that route.
+- **What is unavailable:** the quit question for Quit in the App's Dock menu,
+  Command-Tab then Q in the app switcher, and logging out, restarting or
+  shutting down the Mac. These routes can end the App without asking about
+  live work. When macOS ends the App this way without an already decided Quit,
+  the App attempts to record a system termination and stop the Codex processes
+  it started. This path sends no turn interrupt and creates no new turn stop
+  request. On relaunch, the system end itself supplies no turn outcome. The
+  App shows what it can recover from Codex, with unknown outcomes stated.
+- **Why:** these macOS commands use the system termination path. The App's
+  quit question is on its own Quit path.
 - **What the person does instead:** use Quit in the App menu, or Command-Q
-  with the App in front. That Quit asks first when work is live.
+  with the App in front. When work is live, the App asks before proceeding
+  with that Quit. If the App has already ended, reopen it and check the
+  conversation's recovered history before continuing.
 - **Basis:** DEL-01-02 REQ-005 and AC-006.

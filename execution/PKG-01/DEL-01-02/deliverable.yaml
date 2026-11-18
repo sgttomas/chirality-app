@@ -13,9 +13,9 @@ needs:
     a stable identity that survives a relaunch.
   gating: true
 - from: DEL-01-04
-  condition: The interrupt control, the question before a quit, and Stop Codex and Restart Codex
-    are offered to the person, and with live work only the person's confirmation in a native question
-    lets the quit or stop proceed.
+  condition: The interrupt control, Stop Codex, Restart Codex and the question for the App's own
+    Quit are offered to the person. With live work, only the person's confirmation in a native
+    question lets the App's own Quit, Stop Codex or Restart Codex proceed.
   gating: true
 - from: DEL-02-03
   condition: An interrupt, a Codex stop, a quit and a relaunch each leave a workflow run open
