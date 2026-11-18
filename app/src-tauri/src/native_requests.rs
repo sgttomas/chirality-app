@@ -399,13 +399,22 @@ impl RequestRegister {
                 Ok(_) => ("known-answerable","app-rule:managed-service-unavailable",None),
                 Err(reason) => ("known-app-unsupported","app-rule:managed-service-unavailable",Some(reason.message())),
             },
-            // DEL-02-03 REQ-008: the point tool, called where this App session
-            // did not offer it (another conversation or generation, a fork, a
-            // child, or a resume whose earlier offer was not restored).
+            // DEL-02-03 REQ-008: a call naming the point tool that the host did
+            // not admit as one: named in a namespace (the App offers it with
+            // none), not framed as a tool call request, or from a conversation
+            // this App session did not offer it to (another conversation or
+            // generation, a fork, a child, or a resume whose earlier offer was
+            // not restored).
             "item/tool/call" if frame["params"]["tool"] == crate::points::TOOL => (
                 "known-app-unsupported",
                 "app-rule:no-dynamic-tools",
-                Some("This App session did not offer chirality_point_v1 to this conversation; no point was recorded"),
+                Some(if frame["params"].get("namespace").is_some_and(|n| !n.is_null()) {
+                    "The App offers chirality_point_v1 with no namespace; this call names a namespace, so it is not the App's point tool and no point was recorded"
+                } else if !crate::points::frame_ok(frame) {
+                    "This call to chirality_point_v1 is not framed as a tool call request; no point was recorded"
+                } else {
+                    "This App session did not offer chirality_point_v1 to this conversation; no point was recorded"
+                }),
             ),
             "item/tool/call" => (
                 "known-app-unsupported",

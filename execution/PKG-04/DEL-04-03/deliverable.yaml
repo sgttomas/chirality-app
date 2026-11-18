@@ -46,7 +46,8 @@ needs:
     of the checkpoint record in the run's log, and each requirement check names the workflow, host,
     catalog edition and surface it was made on.
     Each admitted point is handed to the writer as one `point_placed` body, valid against its
-    schema, for the act log of the App's points writer in its conversation's project.
+    schema and carrying the store project identity the writer was bound to, for the act log of
+    the App's points writer in its conversation's project.
   gating: false
 - from: DEL-02-04
   condition: The role guidance supplied at a conversation's start, and for a fork the start supply

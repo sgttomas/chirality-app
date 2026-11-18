@@ -1348,7 +1348,17 @@ fn the_apps_own_point_and_records_tools_never_make_dynamic_tool_calls_present() 
         ..Default::default()
     };
     let presence = |tools: Value| super::super::harness_presence("dynamic-tool-call", &env(tools)).0;
+    // A start that omitted the array (as every start did before the point
+    // tool) is the reading a point-only start keeps.
+    let omitted = super::super::harness_presence("dynamic-tool-call", &Environment {
+        harness_pin: Some("App Codex 0.158.0".into()),
+        harness_signals: Some(json!({"thread_start":{}})),
+        ..Default::default()
+    }).0;
+    assert_eq!(omitted, Outcome::NotEstablished);
+    assert_eq!(presence(json!([crate::points::definition()])), omitted);
+    // The records capability with or without the point tool reads as the records capability alone did.
+    assert_eq!(presence(json!([crate::records_access::definition()])), Outcome::Missing);
     assert_eq!(presence(json!([crate::records_access::definition(), crate::points::definition()])), Outcome::Missing);
-    assert_eq!(presence(json!([crate::points::definition()])), Outcome::Missing);
     assert_eq!(presence(json!([crate::points::definition(), {"type":"function","name":"workflow_supplied_tool","description":"invented","inputSchema":{}}])), Outcome::Present);
 }

@@ -1794,6 +1794,9 @@ impl Host {
         drop(i);
         Self::with_records_capability(&mut batch.observation["snapshot"], capability);
         batch.observation["snapshot"]["distributionEvidence"] = self.distribution_evidence(&generation);
+        // DEL-02-03 REQ-008: each current conversation's points, on the status
+        // path the conversation panel reads (host_status), with no lock held.
+        batch.observation["snapshot"]["points"] = self.points_view();
         Ok(batch)
     }
     pub(crate) fn ack_native_projection(&self, owner: &NativeProjectionOwner, batch: NativeProjectionBatch) -> Result<(), String> {

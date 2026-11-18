@@ -1,5 +1,5 @@
 {
-  "description": "Record a point in this conversation when the person asks you to place one: a checkpoint, review point, decision point, input point or sign-off point. Give only the terms the person stated. Leave out every field the person did not state, and do not fill one in from another or from your own judgement. Set placedOnRequestOf to \"the person\" only when the person asked for this point. The App records the point, shows it to the person in this conversation and returns a receipt at once. Recording it does not pause you, tell anyone, wait for an answer or perform any act. A pause the point asks for is a request for your cooperation; the App holds nothing. A sign-off or any other reserved act (such as engineering approval or professional reliance) is never performed through this tool; it is made only at a declared checkpoint through the App's act control. If the receipt says the point was not recorded, or this tool is not available, tell the person plainly that no point was recorded and why. Version 1 has one operation: place.",
+  "description": "Record a point in this conversation when the person asks you to place one: a checkpoint, review point, decision point, input point or sign-off point. Give only the terms the person stated. Leave out every field the person did not state, and do not fill one in from another or from your own judgement. Set placedOnRequestOf to \"the person\" only when the person asked for this point. The App records the point, shows it to the person in this conversation and returns a receipt at once. Recording it does not pause you, tell anyone, wait for an answer or perform any act. A pause the point asks for is a request for your cooperation; the App holds nothing. A sign-off point names its act in reservedAct, engineering approval or professional reliance; without one of them it is not recorded. A sign-off or any other reserved act is never performed through this tool; it is made only at a declared checkpoint through the App's act control. If the receipt says the point was not recorded, or this tool is not available, tell the person plainly that no point was recorded and why. If the receipt says the App could not establish whether the point was recorded, tell the person that, with its reason. Version 1 has one operation: place.",
   "inputSchema": {
     "additionalProperties": false,
     "properties": {
@@ -105,7 +105,34 @@
       "version",
       "operation"
     ],
-    "type": "object"
+    "type": "object",
+    "allOf": [
+      {
+        "if": {
+          "required": [
+            "kind"
+          ],
+          "properties": {
+            "kind": {
+              "const": "sign-off"
+            }
+          }
+        },
+        "then": {
+          "required": [
+            "reservedAct"
+          ],
+          "properties": {
+            "reservedAct": {
+              "enum": [
+                "engineering approval",
+                "professional reliance"
+              ]
+            }
+          }
+        }
+      }
+    ]
   },
   "name": "chirality_point_v1",
   "type": "function"
