@@ -83,6 +83,23 @@ def units_of(profile, package):
             + list((profile / "build").glob(f"{package}/*")))
 
 
+def pruned_for_save(project):
+    """Prune as the save step does; a refusal fails the test with the same account of the build."""
+    try:
+        return subject.prune_after_build(project / "Cargo.toml", project / "target")
+    except ValueError as refusal:
+        pytest.fail(f"{refusal}; {built_as(project)}")
+
+
+def third_party_kept(profile):
+    """The dependency's fingerprint and its compiled library, where the layout in use puts them."""
+    if (profile / ".fingerprint").is_dir():
+        return (list((profile / ".fingerprint").glob("third-party-*"))
+                and list((profile / "deps").glob("libthird_party-*")))
+    return [unit for unit in (profile / "build/third-party").glob("*")
+            if (unit / "fingerprint").is_dir() and list((unit / "out").glob("libthird_party*"))]
+
+
 def test_pruning_forces_a_rebuild_of_repository_crates_only(cargo_project):
     cargo(cargo_project, "build")
     cargo(cargo_project, "test", "--no-run")
@@ -90,16 +107,44 @@ def test_pruning_forces_a_rebuild_of_repository_crates_only(cargo_project):
     profile = target / "debug"
     assert units_of(profile, "own-app") and units_of(profile, "third-party"), built_as(cargo_project)
     # As the save step calls it: a build that leaves nothing to remove is an error.
-    removed = subject.prune_after_build(cargo_project / "Cargo.toml", target)
+    removed = pruned_for_save(cargo_project)
     assert removed, built_as(cargo_project)
     assert not units_of(profile, "own-app"), built_as(cargo_project)
-    assert not list((profile / "deps").glob("own_app-*"))
-    assert not list((profile / "deps").glob("own_integration-*"))
-    assert units_of(profile, "third-party"), built_as(cargo_project)
+    assert not list((profile / "deps").glob("own_app-*")), built_as(cargo_project)
+    assert not list((profile / "deps").glob("own_integration-*")), built_as(cargo_project)
+    assert third_party_kept(profile), built_as(cargo_project)
     backdate_new_source(cargo_project)
     build = cargo(cargo_project, "build")
     assert "Compiling own-app" in build.stderr
     assert "Compiling third-party" not in build.stderr
+    assert binary(cargo_project).startswith("own=new")
+
+
+def test_a_local_library_build_script_example_and_test_leave_nothing_behind(cargo_project):
+    # A library also built as a dynamic and a static library, as the App's is: before
+    # Cargo 1.100 its files in deps carry no hash.
+    manifest = cargo_project / "Cargo.toml"
+    manifest.write_text(manifest.read_text().replace(
+        "[dependencies]", 'build = "build.rs"\n[lib]\nname = "own_app_lib"\n'
+        'crate-type = ["rlib", "staticlib", "cdylib"]\n[dependencies]'))
+    (cargo_project / "build.rs").write_text("fn main() {}\n")
+    (cargo_project / "src/lib.rs").write_text('pub fn value() -> &\'static str { third_party::VALUE }\n')
+    (cargo_project / "src/main.rs").write_text('fn main() { println!("own=old {}", own_app_lib::value()); }\n')
+    (cargo_project / "examples").mkdir()
+    (cargo_project / "examples/show.rs").write_text('fn main() { println!("{}", own_app_lib::value()); }\n')
+    cargo(cargo_project, "build", "--lib", "--bins", "--examples")
+    cargo(cargo_project, "test", "--no-run")
+    profile = cargo_project / "target/debug"
+    assert pruned_for_save(cargo_project), built_as(cargo_project)
+    assert not units_of(profile, "own-app"), built_as(cargo_project)
+    named_for_own_crates = [entry.name for entry in profile.glob("deps/*")
+                            if entry.name.removeprefix("lib").startswith(("own_app", "own_integration", "build_script_build"))]
+    assert not named_for_own_crates, built_as(cargo_project)
+    assert third_party_kept(profile), built_as(cargo_project)
+    assert not subject.unrecognised_output(profile), built_as(cargo_project)
+    backdate_new_source(cargo_project)
+    build = cargo(cargo_project, "build")
+    assert "Compiling own-app" in build.stderr and "Compiling third-party" not in build.stderr
     assert binary(cargo_project).startswith("own=new")
 
 
@@ -122,11 +167,20 @@ def test_ownership_matches_exact_crate_names_only(tmp_path):
            profile / "deps/own_app-0123456789abcdef",
            profile / "deps/own_app-0123456789abcdef.d",
            profile / "deps/libown_app-0123456789abcdef.rlib",
-           profile / "deps/own_app-0123456789abcdef.abc-cgu.0.rcgu.o"]
+           profile / "deps/own_app-0123456789abcdef.abc-cgu.0.rcgu.o",
+           # A local library built as a dynamic or static library has no hash in its
+           # file names, so anything named for a repository crate is the repository's.
+           profile / "deps/libown_app.dylib",
+           profile / "deps/libown_app.a",
+           profile / "deps/libown_app.rlib",
+           profile / "deps/own_app.d",
+           profile / "deps/own_app.own_app.0123456789abcdef-cgu.0.rcgu.o",
+           profile / "deps/own_app.txt"]
     kept = [profile / ".fingerprint/own-app-helper-0123456789abcdef",
             profile / "deps/own_app_helper-0123456789abcdef",
             profile / "deps/libown_app_helper-0123456789abcdef.rlib",
-            profile / "deps/own_app.txt"]
+            profile / "deps/libown_app_helper.dylib",
+            profile / "deps/own_app_helper.d"]
     for path in own + kept:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("")
@@ -134,31 +188,49 @@ def test_ownership_matches_exact_crate_names_only(tmp_path):
     assert set(found) == set(own)
 
 
-def layout_of_cargo_1_100(profile):
+def layout_of_cargo_1_100(profile, packages=("own-app", "own-app-helper", "third-party")):
     """Units as Cargo 1.100 lays them out: build/<package>/<hash>/ holding fingerprint and out."""
-    own = profile / "build/own-app"
-    kept = [profile / "build/own-app-helper", profile / "build/third-party"]
-    for package in [own, *kept]:
+    made = [profile / "build" / package for package in packages]
+    for package in made:
         for unit in ("0123456789abcdef", "fedcba9876543210"):
             (package / unit / "fingerprint").mkdir(parents=True)
             (package / unit / "fingerprint/invoked.timestamp").write_text("")
             (package / unit / "out").mkdir()
             (package / unit / "out/artifact.rlib").write_text("")
-    return own, kept
+    return made[0], made[1:]
+
+
+def older_layout(profile, package, crate, first="0123456789abcdef", second="fedcba9876543210"):
+    """One unit as Cargo before 1.100 lays it out, with a build script's two folders."""
+    made = [profile / f".fingerprint/{package}-{first}",
+            profile / f"build/{package}-{first}",
+            profile / f"build/{package}-{second}/out"]
+    for folder in made:
+        folder.mkdir(parents=True)
+    (made[0] / f"lib-{crate}").write_text("")
+    (made[1] / "build-script-build").write_text("")
+    (profile / "deps").mkdir(exist_ok=True)
+    library = profile / f"deps/lib{crate}-{first}.rlib"
+    library.write_text("")
+    return [made[0], made[1], made[2].parent, library]
+
+
+def own_app_only(monkeypatch):
+    monkeypatch.setattr(subject, "own_units", lambda manifest: ({"own-app"}, {"own_app"}))
 
 
 def test_ownership_in_the_layout_of_cargo_1_100_is_the_package_folder(tmp_path):
     profile = tmp_path / "debug"
     own, kept = layout_of_cargo_1_100(profile)
     assert subject.own_artifacts(profile, {"own-app"}, {"own_app"}) == [own]
-    assert len(subject.unit_fingerprints(profile)) == 6
+    assert len(subject.compiled_units(profile)) == 6
     assert not subject.unrecognised_output(profile)
 
 
 def test_pruning_the_layout_of_cargo_1_100_removes_every_unit_of_the_package(tmp_path, monkeypatch):
     target = tmp_path / "target"
     own, kept = layout_of_cargo_1_100(target / "debug")
-    monkeypatch.setattr(subject, "own_units", lambda manifest: ({"own-app"}, {"own_app"}))
+    own_app_only(monkeypatch)
     assert subject.prune_after_build(tmp_path / "Cargo.toml", target) == 1
     assert not own.exists()
     assert all((package / "0123456789abcdef/out/artifact.rlib").is_file() for package in kept)
@@ -166,17 +238,82 @@ def test_pruning_the_layout_of_cargo_1_100_removes_every_unit_of_the_package(tmp
     assert "removed 0" in subject.restored(tmp_path / "Cargo.toml", target, "some-key")
 
 
-def test_output_in_a_layout_the_tool_does_not_know_is_refused_and_discarded(tmp_path, monkeypatch):
+def test_a_dependency_whose_name_ends_like_a_hash_is_kept_in_the_layout_of_cargo_1_100(tmp_path, monkeypatch):
+    # `build/own-app-cafe` and `build/own-app-0123456789abcdef` are packages of their own
+    # here; read as the older layout they would be units of `own-app`.
     target = tmp_path / "target"
-    unknown = target / "debug/build/units/0123456789abcdef"
-    unknown.mkdir(parents=True)
-    (unknown / "own_app.rlib").write_text("stale")
-    monkeypatch.setattr(subject, "own_units", lambda manifest: ({"own-app"}, {"own_app"}))
-    assert subject.unrecognised_output(target / "debug")
+    profile = target / "debug"
+    own, kept = layout_of_cargo_1_100(profile, ("own-app", "own-app-cafe", "own-app-0123456789abcdef"))
+    # The same path cannot be both, so the older layout's units take other hashes here.
+    older = older_layout(profile, "own-app", "own_app", "1111111111111111", "2222222222222222")
+    other = older_layout(profile, "third-party", "third_party")
+    own_app_only(monkeypatch)
+    assert set(subject.own_artifacts(profile, {"own-app"}, {"own_app"})) == {own, *older}
+    assert not subject.unrecognised_output(profile)
+    assert subject.prune_after_build(tmp_path / "Cargo.toml", target) == 5
+    assert not own.exists() and not any(path.exists() for path in older)
+    assert all((package / "fedcba9876543210/fingerprint/invoked.timestamp").is_file() for package in kept)
+    assert all(path.exists() for path in other)
+
+
+def unsupported_cases(profile):
+    """Output that fits neither layout, each to be refused with valid units of both layouts beside it."""
+    return {
+        "a package with output and no fingerprint in any unit": profile / "build/units/0123456789abcdef/out/own_app.rlib",
+        "a folder of another shape under build": profile / "build/v3/own-app/fingerprint/bin-own-app",
+        "a file where the older layout keeps a folder": profile / ".fingerprint/own-app.json",
+        "a folder among the older layout's files": profile / "deps/units/own_app.rlib",
+    }
+
+
+@pytest.mark.parametrize("case", sorted(unsupported_cases(Path("."))))
+def test_output_in_a_layout_the_tool_does_not_know_is_refused_beside_valid_units(tmp_path, monkeypatch, capsys, case):
+    target = tmp_path / "target"
+    profile = target / "debug"
+    layout_of_cargo_1_100(profile)
+    older_layout(profile, "own-app", "own_app")
+    older_layout(profile, "third-party", "third_party")
+    own_app_only(monkeypatch)
+    assert not subject.unrecognised_output(profile)
+    unsupported = unsupported_cases(profile)[case]
+    unsupported.parent.mkdir(parents=True, exist_ok=True)
+    unsupported.write_text("stale")
+    assert subject.unrecognised_output(profile)
     for prune in (subject.prune, subject.prune_after_build):
         with pytest.raises(ValueError, match="not in a layout this tool knows"):
             prune(tmp_path / "Cargo.toml", target)
-    assert (unknown / "own_app.rlib").is_file()
+    # Refused before anything is removed, and the save command exits non-zero.
+    assert unsupported.is_file() and (profile / "build/own-app").is_dir()
+    monkeypatch.setattr(subject.sys, "argv", ["rust_dep_cache.py", "prune", "--manifest-path",
+                                              str(tmp_path / "Cargo.toml"), "--target-dir", str(target)])
+    assert subject.main() == 2 and "::error::" in capsys.readouterr().out
+    report = subject.restored(tmp_path / "Cargo.toml", target, "some-key")
+    assert not target.exists() and "building everything" in report
+
+
+def test_the_older_layouts_output_with_no_fingerprint_beside_it_is_refused(tmp_path, monkeypatch):
+    target = tmp_path / "target"
+    (target / "debug/deps").mkdir(parents=True)
+    (target / "debug/deps/libthird_party-0123456789abcdef.rlib").write_text("")
+    own_app_only(monkeypatch)
+    with pytest.raises(ValueError, match="not in a layout this tool knows"):
+        subject.prune(tmp_path / "Cargo.toml", target)
+
+
+def test_a_repository_package_name_shared_with_another_package_is_refused(tmp_path, monkeypatch):
+    # Both layouts file units under the package's name alone.
+    target = tmp_path / "target"
+    own, kept = layout_of_cargo_1_100(target / "debug")
+    own_app_only(monkeypatch)
+    lock = tmp_path / "Cargo.lock"
+    one = '[[package]]\nname = "own-app"\nversion = "0.1.0"\n\n[[package]]\nname = "own-app-helper"\nversion = "1.0.0"\n'
+    lock.write_text(one)
+    assert subject.shared_names(tmp_path / "Cargo.toml", {"own-app"}) == []
+    lock.write_text(one + '\n[[package]]\nname = "own-app"\nversion = "9.0.0"\nsource = "registry+https://example.invalid/index"\n')
+    assert subject.shared_names(tmp_path / "Cargo.toml", {"own-app"}) == ["own-app"]
+    with pytest.raises(ValueError, match="cannot be told apart"):
+        subject.prune_after_build(tmp_path / "Cargo.toml", target)
+    assert own.is_dir()
     report = subject.restored(tmp_path / "Cargo.toml", target, "some-key")
     assert not target.exists() and "building everything" in report
 
