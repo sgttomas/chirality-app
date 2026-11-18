@@ -138,14 +138,14 @@ export function stopRequestsFor(requests: Json, threadId: string | null | undefi
   return list(requests?.records).filter((r: Json) => r?.threadId === threadId && (!home || r?.home === home));
 }
 
-/** The stop requests of the App's most recent quit of an earlier session
- *  whose end is established: those of the earlier App session with the newest
- *  quit request. With `home`, only that App-owned home's rows. */
+/** The quit stop requests of the App session this one followed
+ *  (`previousSession`, from this session's start record), whose end is
+ *  established: the quit that ended it. None when the host names no previous
+ *  session. With `home`, only that App-owned home's rows. */
 export function lastQuitRecords(requests: Json, home?: string): Json[] {
-  const quit = list(requests?.records).filter((r: Json) => r?.cause === "quit" && r?.earlierSession === true);
-  if (!quit.length) return [];
-  const newest = quit.reduce((a: Json, b: Json) => (text(b.requestedAt) > text(a.requestedAt) ? b : a));
-  return quit.filter((r: Json) => r.appSession === newest.appSession && (!home || r.home === home));
+  const previous = requests?.previousSession;
+  if (typeof previous !== "string" || !previous) return [];
+  return list(requests?.records).filter((r: Json) => r?.cause === "quit" && r?.earlierSession === true && r?.appSession === previous && (!home || r?.home === home));
 }
 
 const count = (n: number, one: string, many: string) => (n === 1 ? `1 ${one}` : `${n} ${many}`);

@@ -462,6 +462,9 @@ pub(crate) struct LedgerIndex {
     /// The App sessions with a start record among the held entries: the ones
     /// whose end a later session start established or found recorded.
     started: std::collections::BTreeSet<String>,
+    /// Each App session's start record's `previousSession`: the session it
+    /// followed on this ledger.
+    previous: std::collections::BTreeMap<String, String>,
 }
 impl LedgerIndex {
     /// `held`: the ledger's held entries ([`crate::recovery::LedgerObservation`]).
@@ -488,6 +491,8 @@ impl LedgerIndex {
         self.seen = rows.len();
         self.last = rows.last().map(|e| (*e).clone());
         self.started = started;
+        self.previous = held.iter().filter(|e| e["kind"] == "session_started")
+            .filter_map(|e| Some((e["session"].as_str()?.to_owned(), e["previousSession"].as_str()?.to_owned()))).collect();
     }
     /// Every recorded stop request for one turn of one generation, each by its
     /// latest record and its last ledger entry, in request order (SR-09 after
@@ -549,7 +554,9 @@ pub(crate) fn outcomes_indexed(index: &LedgerIndex, live: &[(Value, String)], cu
             "response":record["response"],"waitingEnded":record["waitingEnded"],"label":label,"labelDerived":derived,"reading":reading,"codexReported":reported,
             "persistence":persistence})
     }).collect();
-    json!({"records":rows,"limits":limits,
+    // The session this one followed, from this session's own start record:
+    // the view says which quit ended the session just before this one.
+    json!({"records":rows,"limits":limits,"previousSession":index.previous.get(current),
         "standing":"App-observed stop requests (REC SR). A label comes from the turn's observed end or from the App's own record, never from an interrupt acknowledgment. Items and delegated agents at the outcome are not recorded by this App. Codex's own status for a turn is read from its history separately."})
 }
 

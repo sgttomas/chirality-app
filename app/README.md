@@ -484,8 +484,9 @@ implemented behavior and qualification limits.
     state. A relaunch reads *quit-with-live-work* and "interrupted by quit",
     and says so without a read: a notice in every view (until hidden) and at
     the top of History names the conversations of the active home whose
-    turns the most recent quit interrupted, from that earlier session's
-    stop-request records. The conversation selected in History lists its
+    turns were interrupted by the quit that ended the App session this one
+    followed, from that session's stop-request records (the host's
+    `previousSession`, read from this session's start record). The conversation selected in History lists its
     stopped turns, each with its record's label or reading, and offers
     **Continue this conversation**, the same matched resume as **Continue
     selected conversation**; nothing is sent. The stored turn page shows a

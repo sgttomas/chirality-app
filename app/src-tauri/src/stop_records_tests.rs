@@ -391,3 +391,31 @@ fn a_requested_stop_in_this_session_reads_its_send_as_not_yet_confirmed() {
     assert!(row["label"].is_null(), "{row}");
     assert!(!row["reading"].as_str().unwrap().contains("not yet sent"), "{row}");
 }
+
+// The view names the App session this one followed, from this session's own
+// start record, so the quit that ended it can be told apart from older ones.
+// No start record for this session, or none naming a predecessor: no value.
+#[test]
+fn the_view_names_the_session_this_one_followed() {
+    let mut quit = requested(Cause::Quit);
+    quit.sent("cr", &json!(1)).unwrap();
+    let ledger = json!([
+        {"kind":"session_started","session":"session-a","at":"t","previousSessionEnd":"none","candidate":"c"},
+        ledger_entry("session-a", quit.record()),
+        {"kind":"session_started","session":"session-b","at":"t","previousSessionEnd":"quit-with-live-work","previousSession":"session-a","candidate":"c"},
+        {"kind":"session_started","session":"session-c","at":"t","previousSessionEnd":"clean","previousSession":"session-b","candidate":"c"},
+    ]);
+    let held = ledger.as_array().unwrap();
+    assert_eq!(outcomes(held, &[], "session-b")["previousSession"], "session-a");
+    assert_eq!(outcomes(held, &[], "session-c")["previousSession"], "session-b", "a later session followed another, not the quit");
+    assert!(outcomes(held, &[], "session-a")["previousSession"].is_null(), "the first session followed none");
+    assert!(outcomes(held, &[], "session-z")["previousSession"].is_null(), "no start record for this session: nothing is said");
+    let view = outcomes(held, &[], "session-b");
+    assert_eq!((view["records"][0]["label"].as_str(), view["records"][0]["labelDerived"].as_bool()), (Some("interrupted by quit (final status not observed)"), Some(true)));
+    // The index, updated as entries are appended, says the same.
+    let mut index = LedgerIndex::default();
+    index.update(&held[..2]);
+    assert!(outcomes_indexed(&index, &[], "session-b")["previousSession"].is_null());
+    index.update(held);
+    assert_eq!(outcomes_indexed(&index, &[], "session-b")["previousSession"], "session-a");
+}

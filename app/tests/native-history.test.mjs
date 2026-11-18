@@ -504,7 +504,7 @@ test('a stored turn the quit interrupted is marked by its stop record, with Code
   // A derived label stays derived, with its reading; where Codex's history says otherwise, both are shown.
   const derived = agentPlain(turn('quit-derived'));
   assert.ok(derived.includes('native status completed') && derived.includes('App label: <b>interrupted by quit (final status not observed)</b> (derived; not written). ⟦Reading: The App session ended before a final status was recorded for this turn; this label is derived from that and is not written in any record.⟧'), derived);
-  assert.ok(derived.includes('Codex&#x27;s history reports this turn as completed; the App&#x27;s stop record labels it <b>interrupted by quit (final status not observed)</b>. Each is shown as its source records it.'));
+  assert.ok(derived.includes('Codex&#x27;s history reports this turn as completed; the App&#x27;s stop record above gives it a different label. Each is shown as its source records it.'));
   // A request whose write outcome is unknown is not shown as an interrupt that reached Codex.
   assert.ok(turn('quit-unsent').includes('(cause not established by this page)') && agentPlain(turn('quit-unsent')).includes('Stop request: ⟦Reading: Stop requested; the interrupt&#x27;s write began'));
   assert.ok(!turn('quit-unsent').includes('App label') && !turn('quit-unsent').includes('Continue this conversation'));

@@ -172,10 +172,13 @@ test('a conversation says which of its turns the quit interrupted, from the reco
 });
 
 test('the last quit is said without a press, by conversation, in the active home only',()=>{
-  const requests={records:quitRows(),limits:[]};
-  assert.deepEqual(lastQuitRecords(requests).map(r=>r.stopRequestId),['stop:q1','stop:q2','stop:q3','stop:q4','stop:q5'],'the newest earlier session only; a session whose end is not established is not counted');
+  const requests={records:quitRows(),limits:[],previousSession:'old'};
+  assert.deepEqual(lastQuitRecords(requests).map(r=>r.stopRequestId),['stop:q1','stop:q2','stop:q3','stop:q4','stop:q5'],'the session this one followed only; a session whose end is not established is not counted');
   assert.deepEqual(lastQuitRecords(requests,'H-acct').map(r=>r.stopRequestId),['stop:q1','stop:q2','stop:q3','stop:q4']);
-  assert.deepEqual(lastQuitRecords({records:[sr()]}),[],'no quit, no notice');
+  assert.deepEqual(lastQuitRecords({...requests,previousSession:'older'}).map(r=>r.stopRequestId),['stop:q0']);
+  assert.deepEqual(lastQuitRecords({...requests,previousSession:'between'}),[],'a later session ended otherwise: an older quit is not said again');
+  assert.deepEqual(lastQuitRecords({...requests,previousSession:undefined}),[],'no previous session named, nothing said');
+  assert.deepEqual(lastQuitRecords({records:[sr()],previousSession:'s'}),[],'no quit, no notice');
   const name=id=>React.createElement('code',null,id);
   let selected=[];
   const html=renderToStaticMarkup(React.createElement(LastQuitNotice,{requests,home:'H-acct',name,select:id=>selected.push(id),selected:'second',canSelect:true,received:id=>id!=='second'}));

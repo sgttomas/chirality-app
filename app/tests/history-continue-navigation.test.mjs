@@ -274,7 +274,7 @@ for(const selectError of [null,'invented stored-conversation selection refusal']
 test('a conversation the quit interrupted is said without a read and continued by the same matched resume',async()=>{
  const records=[{stopRequestId:'stop:q',appSession:'earlier',earlierSession:true,sourceSessionEnd:'established',home:'H-acct',generation:'gen',threadId:'stored',turnId:'turn-q',cause:'quit',
   requestedAt:'2026-10-11T09:00:00Z',state:'settled',label:'interrupted by quit',labelDerived:false,reading:'Final status observed when the turn ended.',codexReported:'interrupted',persistence:'recorded in the App ledger'}];
- await mounted({view:value=>{value.stopRequests={records:structuredClone(records),limits:[]};}},async ui=>{
+ await mounted({view:value=>{value.stopRequests={records:structuredClone(records),limits:[],previousSession:'earlier'};}},async ui=>{
   const notices=ui.c.querySelectorAll(e=>e.getAttribute('aria-label')==='Work interrupted when the App was last quit');
   assert.equal(notices.length,2,'said in the workspace and in History');
   for(const notice of notices)assert.match(notice.textContent,/the App asked Codex to interrupt 1 turn in 1 conversation of this Codex home\..*fixture.*stored · interrupted by quit/);
