@@ -266,10 +266,10 @@ the owner decide on what was actually observed.
    the point, and the later run meets it again. No time or step limit applies.
 
    *Governed by:* DEL-02-02 AC-011 and AC-005; DEL-01-04 AC-011; DEL-09-02
-   AC-010. The point placed, its card and its reuse are governed by
-   DEL-02-03 (the point and its record in the run), DEL-01-04 (the card) and
-   DEL-02-02 (the point kept through registration), with criteria to come
-   from the pull requests that build them.
+   AC-010. The point placed and its record are governed by DEL-02-03
+   AC-008; its card and its reuse by DEL-01-04 (the card) and DEL-02-02 (the
+   point kept through registration), with criteria to come from the pull
+   requests that build them.
 3. **The core loop at least at v3.0.1's level.** A conversation starts in a
    role: HELP_HUMAN is preselected and can be cleared, HELPS_HUMANS,
    WORKING_ITEMS and no role are offered, TASK is not, and the chosen role's

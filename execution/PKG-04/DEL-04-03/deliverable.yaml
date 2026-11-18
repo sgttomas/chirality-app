@@ -45,6 +45,8 @@ needs:
     identified, each act counted toward an arrival, a lapse and the run's end are written as entries
     of the checkpoint record in the run's log, and each requirement check names the workflow, host,
     catalog edition and surface it was made on.
+    Each admitted point is handed to the writer as one `point_placed` body, valid against its
+    schema, for the act log of the App's points writer in its conversation's project.
   gating: false
 - from: DEL-02-04
   condition: The role guidance supplied at a conversation's start, and for a fork the start supply
@@ -185,6 +187,11 @@ checks:
 - app/src-tauri/src/records_package_controls_tests.rs
 - app/src-tauri/src/records_package_capture_tests.rs
 - app/src-tauri/src/records_portable_reconstruction_tests.rs
+# points_tests.rs and hosting_points_tests.rs are DEL-02-03's. Here: a point_placed body valid
+# against RS_RECORD, and a point's record exported, verified without the App, imported in a
+# package, held and disposed of, and indexed, as any other record.
+- app/src-tauri/src/points_tests.rs
+- app/src-tauri/src/hosting_points_tests.rs
 - app/tests/verify-records-bag.test.mjs
 - app/tests/verify_records_bag_test.py
 - app/src-tauri/src/file_act_lapse_tests.rs

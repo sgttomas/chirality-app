@@ -25,6 +25,9 @@ needs:
   condition: The supplier's native items reach receivers unchanged with their thread, turn and
     item identities, and the harness-capability account states what the selected supplier version
     supports.
+    A dynamic tool the App offers at a conversation's start is carried to the agent, and the agent's
+    call to it reaches the App as one server request with its conversation, turn, call identity and
+    arguments, answered once.
   gating: true
 - from: DEL-01-03
   condition: For a conversation, the delegation availability reading at the pin (present, missing,
@@ -36,6 +39,9 @@ needs:
   condition: Custody facts (an observation lost and recovered, a Codex stop, a relaunch) are handed
     over as observed events with stated unknowns, and an opaque tag attached to a conversation
     is kept across a relaunch and can be looked up.
+    A tag is kept only for a conversation indexed under a known App project; its write says
+    whether it was kept durably, with the limit where it was not, and the ledger's tags for a
+    conversation are read with the ledger's health.
   gating: true
 - from: DEL-01-04
   condition: The act control captures an act the person performs with its capture evidence and
@@ -53,6 +59,12 @@ needs:
     Where a project's records are read from is decided by the records store, which gives no
     location, in the store or in the project folder, while the project's link to the store is
     unresolved.
+    A `point_placed` record is validated and written through the same writer, appended, synced
+    and chained, to an act log outside any run in the store's part for the conversation's
+    project, and the writer refuses where the store is unavailable or the project is closed; the
+    store's reader gives each line of that log with its number and states a broken chain, an
+    unreadable line or a limit at the line where it occurs. Export, import, verification
+    without the App, legal hold and disposal treat it as any other record.
   gating: false
 - from: DEL-03-02
   condition: Each change item has a content identity and its own disposition, an item leaving
@@ -99,11 +111,22 @@ code_paths:
 - app/src-tauri/src/record_supply.rs
 - app/src-tauri/resources/workflow_role/compatibility-report.schema.json
 - app/src-tauri/schemas/checkpoint-record-entries.schema.json
+# The point tool, its record, pointer and receipt, and the conversation's reading of its points.
+# RS_RECORD.schema.json is DEL-04-03's: here, the point_placed kind. native_requests.rs is shared
+# with DEL-01-02 and DEL-01-04: here, the refusal of a point call this App session did not offer.
+- app/src-tauri/src/points.rs
+# The point tool's definition, version 1, which points.rs embeds and DEL-01-01's recorded-replay
+# double (supplier_checks/recorded_replay.py) declares as the App's alternative on a start.
+- app/src-tauri/src/point_tool_v1.json
+- app/src-tauri/src/hosting_points.rs
+- app/src-tauri/schemas/RS_RECORD.schema.json
+- app/src-tauri/src/native_requests.rs
+- app/src/ConversationPoints.tsx
 # The requirement check as the person's guide shows it; RunJourney.tsx (DEL-02-02's) mounts it.
 - app/src/RequirementCheck.tsx
 # runtime_session.rs, lib.rs and host_tick.rs are shared. Here: opening and ending a run, its
-# run reference and tag, the occasions of the requirement check, and feeding observed items
-# to the checkpoint recorder. Run preparation, run text and the supply check are DEL-02-02's;
+# run reference and tag, the occasions of the requirement check, feeding observed items
+# to the checkpoint recorder, and marking a conversation's run for a point's run reading. Run preparation, run text and the supply check are DEL-02-02's;
 # custody is DEL-01-02's; the record writer is DEL-04-03's.
 - app/src-tauri/src/runtime_session.rs
 - app/src-tauri/src/lib.rs
@@ -111,6 +134,11 @@ code_paths:
 # RunPanel.tsx is shared with DEL-01-04, DEL-02-02 and DEL-04-02. Here: what is shown of a
 # run's state, its requirement report and its checkpoints.
 - app/src/RunPanel.tsx
+# hosting.rs and App.tsx are shared. Here: offering the point tool at a conversation's start,
+# admitting its calls and restoring its offer on resume; placing the points view in the
+# conversation.
+- app/src-tauri/src/hosting.rs
+- app/src/App.tsx
 checks:
 - app/src-tauri/src/compatibility_report_tests.rs
 - app/src-tauri/src/checkpoint_recorder_tests.rs
@@ -129,3 +157,6 @@ checks:
 - app/tests/run-panel.test.mjs
 - app/tests/requirement-check.test.mjs
 - app/tests/validate-records.test.mjs
+- app/src-tauri/src/points_tests.rs
+- app/src-tauri/src/hosting_points_tests.rs
+- app/tests/conversation-points.test.mjs
