@@ -368,6 +368,97 @@ class WholeEntitlementDocument(Base):
         self.assertTrue((self.out / 'PACKAGE_IDENTITY.json').is_file())
 
 
+class WholeFileDocuments(Base):
+    """The file readers (the provisioning profile's property list and the App's Info.plist) return a value only when it
+    is the whole document (production_inputs/whole_plist.py). The conflicting pair is another team's values with
+    get-task-allow, then the expected ones, as two sibling values; plistlib alone reads the expected ones."""
+
+    def assert_stopped_without_record(self, code):
+        self.assertFalse((self.out / 'PACKAGE_IDENTITY.json').exists())
+        self.assertFalse((self.out / 'RESULT.json').exists())
+        self.assertEqual(json.loads((self.out / 'STOPPED.json').read_text())['reason_code'], code)
+
+    def assert_truthful_run_completes(self, name):
+        self.out = self.root / name
+        self.fake = fx.FakeApple()
+        code, _, stderr = self.main()
+        self.assertEqual(code, 0, stderr)
+        self.assertTrue((self.out / 'PACKAGE_IDENTITY.json').is_file())
+        self.assertTrue((self.out / 'RESULT.json').is_file())
+
+    def test_the_readers_refuse_the_conflicting_pair_and_read_the_control(self):
+        selected = {'developer_id_team_identifier': fx.TEAM, 'production_bundle_identifier': 'com.chirality.app'}
+        conflicting = fx.conflicting_profile_bytes()
+        self.assertEqual(plistlib.loads(common.prepare.profile_content(conflicting))['TeamIdentifier'], [fx.TEAM])  # plistlib alone
+        with self.assertRaisesRegex(ValueError, 'a second value under plist'):
+            common.prepare.profile_consistency(conflicting, fx.sha(conflicting), selected, now=NOW)
+        control = fx.profile_bytes()
+        self.assertEqual(common.prepare.profile_consistency(control, fx.sha(control), selected, now=NOW)['application_identifier'],
+                         fx.TEAM + '.com.chirality.app')
+        app = self.root / 'reader' / common.APP_NAME
+        (app / 'Contents').mkdir(parents=True)
+        (app / 'Contents/embedded.provisionprofile').write_bytes(conflicting)
+        (app / 'Contents/Info.plist').write_bytes(fx.conflicting_info_plist())
+        self.assertEqual(plistlib.loads(fx.conflicting_info_plist())['CFBundleIdentifier'], 'com.chirality.app')  # plistlib alone
+        failures = []
+        self.assertEqual(record.profile_facts(app, {fx.TEAM}, failures)['decoded'], False)
+        self.assertEqual([f['observation'] for f in failures], ['provisioning profile'])
+        with self.assertRaisesRegex(ValueError, 'a second value under plist'):
+            common.read_info_plist(app)
+        (app / 'Contents/embedded.provisionprofile').write_bytes(control)
+        (app / 'Contents/Info.plist').write_bytes(fx.info_plist())
+        failures = []
+        facts = record.profile_facts(app, {fx.TEAM}, failures)
+        self.assertEqual((failures, facts['decoded'], facts['team'], facts['app_id']), ([], True, [fx.TEAM], fx.TEAM + '.com.chirality.app'))
+        self.assertEqual(common.read_info_plist(app)[1]['CFBundleIdentifier'], 'com.chirality.app')
+
+    def test_a_conflicting_profile_stops_at_step_2_and_a_truthful_run_completes(self):
+        self.profile.write_bytes(fx.conflicting_profile_bytes())
+        code, _, stderr = self.main()
+        self.assertEqual((code, stderr), (3, 'STOP: ' + common.REASONS['S2_PROFILE'] + '\n'))
+        self.assert_stopped_without_record('S2_PROFILE')
+        self.assertFalse([a for a in self.fake.calls if '--sign' in a])
+        self.profile.write_bytes(fx.profile_bytes())
+        self.assert_truthful_run_completes('signed-control')
+
+    def test_a_candidate_whose_info_plist_is_not_whole_is_refused_before_anything_runs(self):
+        folder = self.root / 'conflicting'
+        folder.mkdir()
+        with patch.object(fx, 'info_plist', fx.conflicting_info_plist):
+            self.candidate = fx.candidate(folder)
+        code, stdout, stderr = self.main()
+        self.assertEqual((code, stdout, stderr), (3, '', 'STOP: ' + common.REASONS['REFUSED_CANDIDATE'] + '\n'))
+        self.assertEqual(self.fake.calls, [])
+        self.assertFalse((self.out / 'PACKAGE_IDENTITY.json').exists())
+        self.assertFalse((self.out / 'RESULT.json').exists())
+        self.candidate = self.root / 'candidate'
+        self.assert_truthful_run_completes('signed-control')
+
+    def test_a_package_not_whole_at_the_record_reading_stops_with_no_record(self):
+        """Step 13 reads the Info.plist and the profile again from the mounted disk image."""
+        def at_record(relative, raw):
+            def attach(argv):
+                if sum(c[1] == 'attach' for c in self.fake.calls) != 2:
+                    return None
+                answer = self.fake.answer(argv)
+                (Path(argv[argv.index('-mountpoint') + 1]) / common.APP_NAME / relative).write_bytes(raw)
+                return answer
+            return attach
+        for relative, raw, observation in (('Contents/Info.plist', fx.conflicting_info_plist(), 'bundle identity'),
+                                           ('Contents/embedded.provisionprofile', fx.conflicting_profile_bytes(), 'provisioning profile')):
+            with self.subTest(relative):
+                self.out = self.root / ('signed-' + Path(relative).suffix.strip('.'))
+                self.fake = fx.FakeApple()
+                self.fake.override[('attach',)] = at_record(relative, raw)
+                code, _, stderr = self.main()
+                self.assertEqual(code, 3, stderr)
+                self.assert_stopped_without_record('S13_OBSERVATION')
+                stopped = json.loads((self.out / 'STOPPED.json').read_text())
+                # the changed file also makes the App differ from the App as signed; the reader's own failure is named
+                self.assertIn(observation, [f['observation'] for f in stopped['failed_observations']])
+        self.assert_truthful_run_completes('signed-control')
+
+
 class OwnerSign(Base):
     @staticmethod
     def signing_calls(argvs):
@@ -943,6 +1034,21 @@ class RecordCheck(unittest.TestCase):
         failures = []
         facts = record.profile_facts(self.app, {fx.TEAM}, failures)
         self.assertEqual((facts['decoded'], [f['observation'] for f in failures]), (False, ['provisioning profile']))
+
+    def test_a_package_whose_info_plist_or_profile_is_not_whole_is_not_equal(self):
+        for relative, raw, control, observation in (
+                ('Contents/Info.plist', fx.conflicting_info_plist(), fx.info_plist(), 'bundle identity'),
+                ('Contents/embedded.provisionprofile', fx.conflicting_profile_bytes(), fx.profile_bytes(), 'provisioning profile')):
+            with self.subTest(relative):
+                (self.app / relative).write_bytes(raw)
+                result = self.assert_found(failed=(observation,))
+                self.assertEqual(result['failed_observations'], {observation: 1})
+                out, err = io.StringIO(), io.StringIO()
+                self.assertEqual(record.main(['check', str(self.out / 'PACKAGE_IDENTITY.json'), '--dmg', str(self.dmg), '--app', str(self.app),
+                                              '--candidate', str(self.case.candidate)], run=self.case.fake, stdout=out, stderr=err), 1)
+                self.assertFalse(json.loads(out.getvalue())['equal'])
+                (self.app / relative).write_bytes(control)
+                self.assertTrue(self.result()['equal'])
 
     def test_incomplete_display_and_negative_assessment_are_failures(self):
         fake = self.case.fake

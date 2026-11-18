@@ -16,7 +16,7 @@ _spec = importlib.util.spec_from_file_location('release_fixtures', Path(__file__
 if 'release_fixtures' not in sys.modules:
     _module = importlib.util.module_from_spec(_spec); sys.modules['release_fixtures'] = _module; _spec.loader.exec_module(_module)
 from release_fixtures import (common, sha, Result, TEAM, IDENTITY, NOTARY, REQUIREMENT, LIMITATIONS, macho, binding_bytes,  # noqa: E402
-                              info_plist, release, MemoryWriter)
+                              info_plist, release, MemoryWriter, two_values, conflicting_info_plist)
 
 
 def vendor_tree(root, pin='9.9.9'):
@@ -114,13 +114,25 @@ def tlv(tag, body):
     return bytes([tag]) + length + body
 
 
+def profile_value(team=TEAM, prefix=TEAM, identifier='com.chirality.app'):
+    return {'UUID': '0A1B2C3D-0000-4000-8000-00000000ABCD', 'Platform': ['OSX'], 'ProvisionsAllDevices': True, 'TeamIdentifier': [team],
+            'ApplicationIdentifierPrefix': [prefix], 'CreationDate': datetime.datetime(2020, 1, 1),
+            'ExpirationDate': datetime.datetime(2099, 1, 1),
+            'Entitlements': {'com.apple.application-identifier': prefix + '.' + identifier, 'com.apple.developer.team-identifier': team,
+                             'keychain-access-groups': [prefix + '.*']}}
+
+
+def conflicting_profile_bytes():
+    """An invented profile whose property list holds another team's profile granting get-task-allow and then the
+    expected one, as two sibling values; plistlib alone reads the expected one."""
+    other = profile_value(team='QQOTHER001', prefix='QQOTHER001', identifier='com.example.other')
+    other['Entitlements']['com.apple.security.get-task-allow'] = True
+    return profile_bytes(content=lambda xml: two_values(plistlib.dumps(other), xml))
+
+
 def profile_bytes(team=TEAM, prefix=TEAM, identifier='com.chirality.app', content=None):
     """An invented CMS-shaped Developer ID profile; never Apple-signed."""
-    value = {'UUID': '0A1B2C3D-0000-4000-8000-00000000ABCD', 'Platform': ['OSX'], 'ProvisionsAllDevices': True, 'TeamIdentifier': [team],
-             'ApplicationIdentifierPrefix': [prefix], 'CreationDate': datetime.datetime(2020, 1, 1),
-             'ExpirationDate': datetime.datetime(2099, 1, 1),
-             'Entitlements': {'com.apple.application-identifier': prefix + '.' + identifier, 'com.apple.developer.team-identifier': team,
-                              'keychain-access-groups': [prefix + '.*']}}
+    value = profile_value(team, prefix, identifier)
     prep = common.prepare
     encap = tlv(0x30, tlv(0x06, prep.DATA_OID) + tlv(0xa0, tlv(0x04, content(plistlib.dumps(value)) if content else plistlib.dumps(value))))
     signed = tlv(0x30, tlv(0x02, b'\x01') + tlv(0x31, b'') + encap + tlv(0x31, b'INVENTED signer info'))

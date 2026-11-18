@@ -138,7 +138,8 @@ class ProductionInputs(unittest.TestCase):
         self.assertNotIn('cargo_build_input', recipe)
         self.assertEqual(module.check_plan(self.output)['files'],result['files'])
         account=json.loads((self.output/'input-inventory.json').read_text())
-        self.assertEqual(len(account['tool_sha256']),6)
+        # prepare, inventory, the file checks, the whole-document property-list reader, the font notice, the bundle mapping and the coverage account
+        self.assertEqual(len(account['tool_sha256']),7)
         self.assertTrue(account['jsonschema_version'])
         self.assertFalse(result['build_executed']);self.assertFalse(result['signing_executed']);self.assertFalse(result['package_complete'])
     def test_explicit_cargo_input_preserves_config_bytes_and_host_target_scope(self):

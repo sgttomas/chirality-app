@@ -231,10 +231,13 @@ class ReleaseBuild(unittest.TestCase):
             (app / 'Contents/Resources/instructions/roles.json').write_text('{}')
         def presigned(app):
             (app / 'Contents/_CodeSignature').mkdir()
+        def not_whole(app):
+            (app / 'Contents/Info.plist').write_bytes(fx.conflicting_info_plist())
         cases = {
             'dyld_info': (dict(dyld={'chirality-app-v4': Result(1)}), 'dyld_validate'),
             'dyld_info negative with zero': (dict(dyld={'chirality-app-v4': Result(0, b'', b'malformed LINKEDIT')}), 'dyld_validate'),
             'version': (dict(mutate=wrong_version), 'info_plist_version'),
+            'Info.plist not whole': (dict(mutate=not_whole), 'info_plist_whole'),
             'vendor modes': (dict(mutate=vendor_mode), 'vendor_tree'),
             'resource': (dict(mutate=resource_bytes), 'resource'),
             'developer signature': (dict(executable=fx.macho(common.CS_RUNTIME, cms=True)), 'executable_signature'),
@@ -727,6 +730,20 @@ class InfoPlistKeys(unittest.TestCase):
                 common.read_info_plist(app)
             (app / 'Contents/Info.plist').write_bytes(fx.info_plist())
             self.assertEqual(common.read_info_plist(app)[1]['CFBundleIdentifier'], 'com.chirality.app')
+
+    def test_two_sibling_values_are_refused_not_read_as_the_last(self):
+        """The conflicting pair: another identity's values, then the release identity's, as two dictionaries under the
+        root. plistlib alone reads the release identity; the whole-document reader refuses, and reads the control."""
+        with tempfile.TemporaryDirectory() as temp:
+            app = Path(temp) / common.APP_NAME
+            (app / 'Contents').mkdir(parents=True)
+            (app / 'Contents/Info.plist').write_bytes(fx.conflicting_info_plist())
+            with self.assertRaisesRegex(ValueError, 'a second value under plist'):
+                common.read_info_plist(app)
+            (app / 'Contents/Info.plist').write_bytes(fx.info_plist())
+            self.assertEqual(common.bundle_identity(common.read_info_plist(app)[1]),
+                             {'identifier': 'com.chirality.app', 'version': '4.0.0', 'bundle_version': '4.0.0',
+                              'minimum_system_version': '15.0', 'executable': 'chirality-app-v4'})
 
 
 class PrivateFolderGuard(unittest.TestCase):
