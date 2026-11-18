@@ -583,13 +583,13 @@ An entry is added in the same pull request that makes the limitation standing.
 - **What is unavailable:** protection of the App's records index against
   another account on this Mac that can change which file or folder the App
   reaches through the records store's folder, its `indexes` folder or a folder
-  above them. When the App first needs a project's records during a launch,
-  it tries to build a fresh index in the `indexes` folder inside the records
-  store. The index holds record identities and where to read the records.
-  When it cannot use an index, the App reads the source files it can open and
-  reports any limits. The App checks the path before it makes the index file
-  and checks the store again after opening it, but some later steps open or
-  remove the index by its name.
+  above them. The App builds a fresh index on demand for readings that use
+  it, when the store can host it in its `indexes` folder. The index holds
+  record identities and where to read the records. When it cannot use an
+  index, the App reads the source files it can open and reports any limits.
+  The App checks the path before it makes the index file and checks the store
+  again after opening it, but some later steps open or remove the index by
+  its name.
   Another account that can change names on that path at the right moment can:
   - make the App overlook a record, or get a check of the records wrong.
     After you restart the App and reopen a run, a checkpoint could show as
@@ -632,8 +632,5 @@ An entry is added in the same pull request that makes the limitation standing.
   the App's code (`records_query.rs`, `records_index.rs`, `records_store.rs`,
   `records.rs`), not shown by a test: no substitution was carried out. Tests
   check the Unix permission bits on newly created and existing folders
-  (`records_store_tests.rs`). The effective permissions of the default
-  location (Unix permission bits and access control lists on the store's
-  folder, its `indexes` folder and the folders above that control their
-  replacement) are to be inspected when criterion 15's default placement is
-  observed on the installed package; until then they are not checked.
+  (`records_store_tests.rs`). The App does not check effective permissions
+  at the default location.

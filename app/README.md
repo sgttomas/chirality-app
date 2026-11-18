@@ -1888,10 +1888,10 @@ mask; a folder already at the store's path is used as found, its mode
 unchanged. A read creates no store, lock file or control and makes no
 repairs. It may create the derived index and its folder inside an existing
 store, as described below. A reader can take a shared lock on an existing
-control to keep a disposal out while it reads. With no store, or a folder at
-the store's path that
-holds no identity, every reader says the store is not created yet and nothing
-is written there, elsewhere or in a temporary folder. Once opened, a process
+control to keep a disposal out while it reads. Before the process has bound
+a store, opening a missing store folder or a folder without `store.json`
+reports that the store has not been created yet. A read does not create a
+replacement. Once opened, a process
 stays bound to the store's physical folder and identity file (their device and
 inode): a redirected alias is not followed, and a folder put at the store's
 path in its place, even holding a copy of `store.json`, is refused by readers
@@ -2187,9 +2187,9 @@ The derived records index keeps identities, positions and membership counts in
 process-owned SQLite files under the store's `indexes/`; record bodies stay in
 their logs. Cold use rebuilds from authoritative sources, and returned entries
 are reread and revalidated, including their exact line hash. Changed or unusable
-caches rebuild or use source scans. The cache is the one stated exception to a
-read writing nothing: a read may write it under `indexes/` of a store that
-already exists and that the process has bound. The App uses no
+caches rebuild or use source scans. An index-backed read may write its
+derived cache under `indexes/` of a store that already exists and that the
+process has bound. The App uses no
 temporary-folder fallback. SQLite's own temporary structures stay in memory.
 The path is checked before
 the cache file is made and the store's binding is checked again after it is
