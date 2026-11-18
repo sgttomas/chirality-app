@@ -45,7 +45,7 @@ with plistlib's value. The profile's envelope (prepare.profile_envelope) is read
 there (one definite-length element; the declared structure from the outside down to the content; every
 length inside its parent; the property list the whole of the one content string); it is not validated
 as ASN.1 beyond that and not authenticated. A refusal names the part, the kind, the field, the shape
-expected, what was found and the byte, in fixed text and integers. "Not established" means the reader
+expected, what was found and, where the form has a position in the file, its byte offset, in fixed text and integers. "Not established" means the reader
 met a named form outside the subset it reads, at a named field, and did not read the file; it asserts
 nothing about whether the file is valid (never a mismatch, never agreement). Malformed is asserted only
 where the reader is certain within its subset; a mismatch means the file was read whole and a value the

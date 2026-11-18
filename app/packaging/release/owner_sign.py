@@ -7,8 +7,8 @@ an argument or an environment variable.
 Each step is verified before the next. Every observation goes through the one
 rule in observations.observe, whose output forms are declared as data. Any failure prints `STOP: <fixed reason>` (a reason
 from common.REASONS, naming the step and the observation), then one line for each file reader's refusal (fixed text and
-integers: the part, the kind, the field, the shape expected, what was found and the byte), writes STOPPED.json,
-runs no later command and writes no success result. Nothing is installed.
+integers: the part, the kind, the field, the shape expected, what was found and, where the form has a position in
+the file, its byte offset), writes STOPPED.json if it has made its output folder, runs no later command and writes no success result. Nothing is installed.
 
 What is written, and where:
 - Returnable files (sent back): log.jsonl, the notarization summaries in
@@ -50,7 +50,7 @@ with plistlib's value. The profile's envelope (prepare.profile_envelope) is read
 there (one definite-length element; the declared structure from the outside down to the content; every
 length inside its parent; the property list the whole of the one content string); it is not validated
 as ASN.1 beyond that and not authenticated. A refusal names the part, the kind, the field, the shape
-expected, what was found and the byte, in fixed text and integers. "Not established" means the reader
+expected, what was found and, where the form has a position in the file, its byte offset, in fixed text and integers. "Not established" means the reader
 met a named form outside the subset it reads, at a named field, and did not read the file; it asserts
 nothing about whether the file is valid (never a mismatch, never agreement). Malformed is asserted only
 where the reader is certain within its subset; a mismatch means the file was read whole and a value the

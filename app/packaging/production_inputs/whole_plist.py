@@ -2,8 +2,9 @@
 refusal every file reader of the release tools raises.
 
 Refusals. A `Refused` carries only fixed text from closed lists this code defines, and integers: the part of the file
-(`PARTS`), the kind of refusal (`KINDS`), the field, the shape expected, what was found, and where (a byte offset into
-the file, an item number in a set, a tag's class and number). It never carries a byte or a value read from the file.
+(`PARTS`), the kind of refusal (`KINDS`), the field, the shape expected, what was found, and, where they apply, a
+byte offset into the file (where the refused form has a position in it), an item number in a set and a tag's class and
+number. It never carries a byte or a value read from the file.
 There are three kinds of a file's content, kept apart, and each says only what the reader knows (a fourth, 'digest',
 is a profile whose bytes are not the selected digest's: the file was not read):
 - 'unsupported' (shown as "not established"): the reader met a named form outside the subset it reads, at a named
@@ -23,9 +24,10 @@ the value only when the two agree and the first has accounted for every byte of 
 
 1. A structural reading of the document's own bytes from the XML parser's events (`events`), independent of plistlib.
    The admitted form, and nothing else:
-   - the file is not empty (malformed) and not larger than its limit (not established), refused by its size before the
-     file is given to this reader, so that it never receives a file above the limit (`check_size`, `read_within_limit`,
-     `within_limit`); the tools' inventory, digest and binding steps read a file's bytes regardless of its size;
+   - the document is not empty (malformed) and not larger than its limit (not established): `load`'s first act refuses
+     bytes above the limit it is given (`DOCUMENT_LIMIT` by default), before parsing anything; callers also check a
+     file's size before reading it for the reader (`check_size`, `read_within_limit`); the tools' inventory, digest and
+     binding steps read a file's bytes whatever its size;
    - the first bytes are the XML declaration, version 1.0, encoding UTF-8 (in any case) or not given, no standalone
      declaration; optionally the property-list document type (name `plist`, public identifier
      `-//Apple//DTD PLIST 1.0//EN`, system identifier `http://www.apple.com/DTDs/PropertyList-1.0.dtd`, no internal
@@ -56,7 +58,7 @@ the value only when the two agree and the first has accounted for every byte of 
 2. plistlib's reading of the same bytes, with a dictionary that refuses a key given twice.
 3. The two values must be equal, with the same types (a boolean is not an integer) and the same dictionary key order.
 
-The normalizations, exhaustively, each with the function that makes or admits it:
+The normalizations, read from the code, each with the function that makes or admits it:
 - `_header`: the XML declaration and the document type compared by what they declare, not by how they are spelled
   (either quote, whitespace inside them, the encoding name in any case), and the document type's public identifier
   with its whitespace normalized by the XML parser (XML 1.0 section 4.2.2);
@@ -71,8 +73,7 @@ The normalizations, exhaustively, each with the function that makes or admits it
   characters they denote;
 - `_leaf`: space, tab, CR and LF removed from inside `data` before decoding (any wrapping);
 - `_leaf`: one conversion: a decimal `real` is read as the nearest double, so two spellings can give the same value.
-Each other admitted leaf spelling has exactly one value and each value exactly one spelling. Whitespace inside a
-`string` or `key` is part of the value and is kept.
+Whitespace inside a `string` or `key` is part of the value and is kept.
 
 What this establishes is that the value returned is the whole document; it does not authenticate the document or say
 who wrote it.
@@ -258,12 +259,9 @@ def within_limit(raw, part, limit, expected):
 
 
 def read_within_limit(path, part, limit, expected):
-    """The bytes of the file at `path`, for a reader: its size is refused by name from the file system before this reads
-    it, and the bytes read are checked again, so that a file which grew in between is refused too."""
+    """The bytes of the file at `path`, its size refused by name from the file system before this reads it."""
     check_size(os.stat(path).st_size, part, limit, expected)
-    raw = Path(path).read_bytes()
-    within_limit(raw, part, limit, expected)
-    return raw
+    return Path(path).read_bytes()
 
 
 class NotWhole(Refused):
@@ -577,11 +575,22 @@ def _same(a, b):
     return a == b
 
 
-def load(raw):
+# The bytes `load` is given, refused by name above its limit before either parser runs. A caller passes the limit of the
+# file it reads (Info.plist); the default bounds a profile's content, which lies inside the profile file.
+DOCUMENT_LIMIT, DOCUMENT_SIZE = 256 * 1024, 'a property list of at most 256 KiB'
+DOCUMENT_TOO_LARGE = 'a document larger than the size limit'
+declare(expected={DOCUMENT_SIZE}, found={DOCUMENT_TOO_LARGE})
+
+
+def load(raw, limit=DOCUMENT_LIMIT, expected=DOCUMENT_SIZE):
     """The value of one XML property list file, returned only when that value is the whole document; else NotWhole.
 
-    No exception from either parser leaves this function untyped: anything either raises that is not already a named
+    Its first act: more than `limit` bytes are refused by name (not established; `expected` names the limit), before
+    either parser is given them. No exception from either parser leaves this function untyped: anything either raises that is not already a named
     refusal is the named refusal that the parser does not read the document (not established)."""
+    if len(raw) > limit:
+        raise Refused(f'property list: {DOCUMENT_TOO_LARGE}', part='property list', kind=U, field='document',
+                      expected=expected, found=DOCUMENT_TOO_LARGE)
     try:
         value = structure_value(raw)
     except Refused:

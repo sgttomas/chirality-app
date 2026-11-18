@@ -358,10 +358,11 @@ def read_info_plist(app):
     binary one is refused), whose structure read from its own bytes accounts for every byte and agrees with plistlib's
     value. Anything else raises common.Refused (a ValueError) naming the part 'Info.plist', the kind (malformed, not
     established, or a mismatch for an identity field missing or not a string), the field, the shape expected, what was
-    found and the byte where. The size is checked first, by name."""
+    found and, where it has a position, the byte. Its size is checked from the file system before it is read, by name;
+    load refuses more than INFO_PLIST_LIMIT bytes before parsing anything."""
     raw = prepare.whole_plist.read_within_limit(Path(app) / 'Contents/Info.plist', 'Info.plist', INFO_PLIST_LIMIT, INFO_PLIST_SIZE)
     try:
-        value = prepare.whole_plist.load(raw)
+        value = prepare.whole_plist.load(raw, INFO_PLIST_LIMIT, INFO_PLIST_SIZE)
     except Refused as refused:
         raise refused.moved('Info.plist') from None
     if not isinstance(value, dict):

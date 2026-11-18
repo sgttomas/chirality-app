@@ -158,7 +158,7 @@ DATA_OID = bytes.fromhex('2a864886f70d010701')
 PROFILE_LIMIT = 256 * 1024  # a profile is a short property list and a few certificates; this bounds the reader's memory
 # Counted from the element each walk starts from (each digest algorithm, certificate, revocation list and signer
 # information, the version and the two object identifiers), not from ContentInfo: an element 64 levels below it reads,
-# 65 is refused. Real profiles nest about a dozen levels (certificate extensions); BER allows any depth.
+# 65 is refused. BER allows any depth; this bounds the walk.
 ENVELOPE_DEPTH = 64
 ENVELOPE_SHAPES = {
     'ContentInfo': 'a SEQUENCE of contentType and content spanning the whole file',
@@ -355,8 +355,8 @@ def _reader(raw, parent, names, rest):
 def profile_envelope(raw):
     """(content, offset): the bytes of the one property list the envelope defines as its content, and where they start.
 
-    The content extractor of the enforced list in the comment above; it checks the size of `raw` before it reads any
-    element. Raises whole_plist.Refused (a ValueError) naming a real field, the shape or encoding expected, and what was
+    The content extractor of the enforced list in the comment above. Its first act: `raw` above PROFILE_LIMIT (or empty)
+    is refused by name, before any element is read. Raises whole_plist.Refused (a ValueError) naming a real field, the shape or encoding expected, and what was
     found there; which of several defects is reported follows the rule stated there, not an order."""
     whole_plist.within_limit(raw, 'profile file', PROFILE_LIMIT, PROFILE_SIZE)
     top = _element(raw, 0, len(raw), 'ContentInfo')
@@ -444,11 +444,10 @@ def profile_content(raw):
 NOT_A_DICTIONARY = 'another value under plist'
 whole_plist.declare(expected={'a dictionary under plist'}, found={NOT_A_DICTIONARY, 'another value', 'other bytes'})
 
-# The one typed check of exactly the fields the release tools read from a profile, applied once after the whole read
-# (profile_plist), so that every consumer reads a value of its type or a named mismatch. Each may be absent: a missing
-# field is refused by the rule that needs it. Entitlement values other than these four are classified by the record's
-# entitlement selection (release/observations.select_entitlements), which counts a value of another type as an
-# unexpected entitlement and never records it.
+# The typed check of the profile fields below, applied after the whole read by profile_plist, through which the
+# profile's readers (profile_consistency, record.profile_facts) read. Each may be absent. Entitlement values other than
+# these four are classified by the record's entitlement selection (release/observations.select_entitlements), which
+# counts a value of another type as an unexpected entitlement.
 STRINGS, DATE = 'an array of strings, or absent', 'a date, or absent'
 PROFILE_TYPES = {
     'UUID': ('a string, or absent', lambda v: isinstance(v, str)),
@@ -473,7 +472,7 @@ whole_plist.declare(fields={*PROFILE_TYPES, *('Entitlements ' + k for k in ENTIT
 
 
 def profile_types(profile):
-    """Refuse (a mismatch: the property list was read whole) the first field the tools read that is not of its type."""
+    """Refuse (a mismatch: the property list was read whole) a field the tools read that is not of its type, naming it."""
     fields = [(key, profile, key, PROFILE_TYPES[key]) for key in PROFILE_TYPES]
     entitlements = profile.get('Entitlements')
     if isinstance(entitlements, dict):
@@ -525,7 +524,7 @@ whole_plist.declare(fields={g[1] for g in GRANTS.values()}, expected={g[2] for g
 
 def grant(condition, rule):
     """Refuse with the named consistency rule: a mismatch (the profile was read whole), except the digest, which is
-    checked before the profile is read and so says only that its bytes are not the selected digest's."""
+    checked before the reader is given the profile and so says only that its bytes are not the selected digest's."""
     if not condition:
         part, field, expected, found, message = GRANTS[rule]
         raise whole_plist.Refused(message, part=part, kind='digest' if rule == 'digest' else 'mismatch', field=field,
@@ -534,7 +533,8 @@ def grant(condition, rule):
 
 def profile_size(path):
     """Refuse the profile at `path` by its size, from the file system, before the caller reads it for the reader (and, in
-    prepare, before the transfer's own larger bound); profile_envelope checks the size of the bytes it is given again."""
+    prepare, before the transfer's own larger bound). profile_envelope also refuses, as its first act, bytes above the
+    limit."""
     whole_plist.check_size(os.stat(path).st_size, 'profile file', PROFILE_LIMIT, PROFILE_SIZE)
 
 
@@ -542,7 +542,7 @@ def profile_consistency(raw, expected_sha256, selected, now=None):
     """Consistency only: exact bytes and encapsulated grants match the publisher input. Not CMS authentication.
 
     The grants are read by profile_plist: the encapsulated property list is read only when its value is the whole
-    document, so no fact below comes from part of it. Every refusal is a whole_plist.Refused naming its rule."""
+    document, so no fact below comes from part of it. A refusal is a whole_plist.Refused naming its rule or field."""
     grant(isinstance(expected_sha256, str) and re.fullmatch('[0-9a-f]{64}', expected_sha256) is not None
           and sha(raw) == expected_sha256, 'digest')
     profile = profile_plist(raw)  # its size, envelope, property list and field types, each refused by name

@@ -291,6 +291,21 @@ class ReleaseBuild(unittest.TestCase):
                 self.assertFalse((self.candidate / 'CANDIDATE.json').exists())
                 self.assertTrue((self.candidate / 'INCOMPLETE.txt').exists())
 
+    def test_a_mistyped_identity_field_is_reported_alone_and_each_wrong_value_apart(self):
+        """Review round 4, point 3: a field missing or of another type is reported alone; with all five strings, each
+        value that is not the release's is reported under its own check."""
+        cases = ((fx.info_plist(CFBundleIdentifier=1, CFBundleVersion=2), ['info_plist_identifier']),
+                 (fx.info_plist(CFBundleIdentifier='invalid.example.other', CFBundleVersion='9.8.7'),
+                  ['info_plist_identifier', 'info_plist_bundle_version']))
+        for raw, expected in cases:
+            with self.subTest(expected=expected):
+                self.setUp()
+                self.fake.mutate = lambda app, raw=raw: (app / 'Contents/Info.plist').write_bytes(raw)
+                with self.assertRaises(common.Failure):
+                    self.run_build(not_for_public_release=True)
+                checks = json.loads((self.candidate / 'BUILD_REFUSED.json').read_text())['checks']
+                self.assertEqual([c['check'] for c in checks if c['check'].startswith('info_plist_')], expected)
+
     def credentials_cache(self):
         cache = self.root / 'cargo-cache-with-credentials'
         cache.mkdir(exist_ok=True)

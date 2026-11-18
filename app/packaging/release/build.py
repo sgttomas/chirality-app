@@ -211,7 +211,7 @@ def bundle_errors(app, plan, vendor, source_root, runner, env, private):
     except common.Refused as refused:
         # Not one XML property list whose value is the whole document, in the admitted form: no identity field is read
         # from part of it. A form outside the reader's subset (not established) is named apart from a malformed file; the detail names the
-        # field, the shape expected, what was found and the byte where (fixed text and integers only).
+        # field, the shape expected, what was found and, where it has a position, the byte (fixed text and integers only).
         # A whole Info.plist whose identity field is missing or not a string is a mismatch, named by that field's check.
         info_raw, info = read_input(app / 'Contents/Info.plist'), {}
         checks = dict(common.INFO_FIELDS.values())  # Info.plist key -> the build's named check

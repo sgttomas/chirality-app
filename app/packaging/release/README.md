@@ -179,10 +179,10 @@ result:
   established). An identity field that is missing, not a string, or not the
   release value is the check named for that field: `info_plist_identifier`,
   `info_plist_version`, `info_plist_bundle_version`,
-  `info_plist_minimum_system_version` or `info_plist_executable`. Each entry
-  in `BUILD_REFUSED.json` carries a `detail` naming the field, the shape
-  expected, what was found and, where known, the byte (see "Reading a
-  refusal" below).
+  `info_plist_minimum_system_version` or `info_plist_executable`. Each of
+  these entries in `BUILD_REFUSED.json` carries a `detail` naming the field,
+  the shape expected, what was found and, where the refused form has a
+  position in the file, its byte offset (see "Reading a refusal" below).
 - The vendor tree matches the input in bytes, modes and types.
 - Every mapped resource matches its source in bytes.
 - The executable holds the compiled publisher binding and requirement.
@@ -335,7 +335,8 @@ elsewhere.
   so the identity comparison is not established. It says nothing either way
   about your profile; it means the reader would need to learn that form. The
   forms named this way: a file larger than the size limit (256 KiB for a
-  profile, 64 KiB for an `Info.plist`); in the profile's envelope, an
+  profile, 64 KiB for an `Info.plist`), or a document given to the reader
+  above its limit; in the profile's envelope, an
   indefinite length, a length in more octets than needed, a constructed
   string, a tag number in the high-tag-number form, a BOOLEAN other than 00 or
   FF, or an element more than 64 levels below the element its walk starts
@@ -362,18 +363,19 @@ elsewhere.
   another App ID, a debugging grant, an expired profile, another version).
 
 The profile and the candidate's `Info.plist` are read before anything is
-signed or sent to Apple. A candidate whose `Info.plist` is not the file the
-candidate's own `CANDIDATE.json` binds (its inventory entry or digest) is
-refused as `REFUSED_CANDIDATE` before the reader runs: that is the
-candidate's binding check, not a reader's refusal, and it names no field.
-At the record's reading (step 13) either file stops
+signed or sent to Apple. A candidate whose `Info.plist` is not the file its
+`CANDIDATE.json` binds (its inventory entry or digest) is refused: with
+`REFUSED_CANDIDATE`, which names no field, or with the reader's own refusal
+if the reader refuses the file first. Which of the two is reported is not
+promised. At the record's reading (step 13) a refused file stops
 the run with `S13_OBSERVATION`, naming `provisioning profile` or `bundle
 identity` (with ` not established` added for a form not read) in
 `STOPPED.json`, and no record is written.
 
 **Reading a refusal.** Under the `STOP:` line, each refusal has one line of
-its own, and `STOPPED.json` holds the same as `refusals` (or as the `detail`
-of a failed observation). For example:
+its own, and, when the run has made its output folder, `STOPPED.json` holds
+the same as `refusals` (or as the `detail` of a failed observation). For
+example:
 
 ```text
 STOP: step 2: the provisioning profile uses a form outside the subset this reader reads, named on the next line; the file was not read and the identity comparison is not established
@@ -384,10 +386,19 @@ It reads: which part of the file (`profile envelope`, `profile property list`,
 `profile grants`, `profile file` or `Info.plist`); which kind; the field, by
 its name in RFC 5652 for the envelope (`SignedData.certificates`), the
 property-list element for a property list (`dict`, `plist`, `integer`), or the
-key for a field of the wrong type (`TeamIdentifier`, `CFBundleVersion`); which
-item of a set, counting from 1; the shape expected; what was found; the tag
-found, as its class and number; and the byte offset in the file. Every word
-comes from a fixed list in the tools, and the numbers are positions and tag
+key for a field of the wrong type (`TeamIdentifier`, `CFBundleVersion`); the
+shape expected; what was found; and, where they apply, which item of a set
+(counting from 1), the tag found (its class and number) and the byte offset in
+the file. A reason gives a byte offset where the refused form has a position
+in the file. These carry none: an empty file, a file larger than the size
+limit and a document larger than the size limit; the digest refusal; every
+mismatch (a field of another type or missing, a value the release does not
+accept, a consistency rule, a fact the record requires); in a property list,
+no root element, the XML parser or the standard parser not reading the
+document, the standard parser reading another value, and not well-formed XML
+when the reader, not the XML parser, finds the root element unclosed; and an
+`Info.plist` whose value is not a dictionary. Every word comes from a fixed
+list in the tools, and the numbers are byte offsets, item numbers and tag
 numbers: no byte or value of your file is printed, so the line can be sent to
 the agent as it is. The kind tells a wrong check from a wrong profile: a
 mismatch names a value or type the release does not accept; a malformed field
@@ -398,11 +409,11 @@ valid. The file itself stays with you.
 **Exit statuses.** `owner_sign.py` exits 0 when it finishes and 3 for every
 stop, a reader's named refusal included. `build.py` exits 0 with a candidate
 and 2 for each failure it reports on a `FAILED:` line, a named check in
-`BUILD_REFUSED.json` included. `prepare.py` exits 0 with a plan and 2 for every refusal or
-failure; a reader's refusal is then printed as `"error_type": "Refused"` with
-the refusal and its reason. `record.py check` exits 0 when equal, 1 when not
-equal, a named refusal included, and 2 with a fixed message when it cannot
-read its inputs. An argument error exits 2 in each.
+`BUILD_REFUSED.json` included. `prepare.py` exits 0 with a plan and 2 for
+each refusal or failure it reports; a reader's refusal is then printed as
+`"error_type": "Refused"` with the refusal and its reason. `record.py check`
+exits 0 when equal, 1 when not equal, a named refusal included, and 2 with a
+fixed message when it cannot read its inputs.
 
 **Starting again.** There is no resuming part-way. Every run starts from the
 beginning, from the candidate folder, into a new `--out` folder, and submits
@@ -511,7 +522,8 @@ structure, and returns a value only when they agree:
 
 1. The document's own bytes, read from the XML parser's events (the same event
    reading `xml_structure` uses), against this admitted form and nothing else:
-   a file that is not empty; the XML declaration first (version 1.0 and
+   a document that is not empty and not above the limit `load` is given; the
+   XML declaration first (version 1.0 and
    encoding UTF-8 or not given, both read from the declaration's own bytes
    before the parser runs; no standalone declaration), optionally the
    property-list document type with no internal subset; one `plist` root,
@@ -539,9 +551,8 @@ structure, and returns a value only when they agree:
 The two values must be equal, with the same types and key order. No exception
 from either parser leaves the reader untyped: one that no rule above names is
 the named refusal that the XML parser, or the standard parser, does not read
-the document. The normalizations, exhaustively, each with the function in
-`whole_plist.py` that makes or admits it (checked against the code line by
-line):
+the document. The normalizations the reader makes, read from the code, each
+with the function in `whole_plist.py` that makes or admits it:
 
 - `_header`: the XML declaration and the document type compared by what they
   declare, not by how they are spelled (either quote, whitespace inside them,
@@ -564,10 +575,10 @@ line):
 - `_leaf`: one conversion: a decimal `real` is read as the nearest double, so
   two spellings can give the same value.
 
-Every other admitted leaf spelling has exactly one value, and every value
-exactly one spelling. Whitespace inside a string is kept.
+Whitespace inside a string is kept.
 
-A refusal names what was found and where (see "Reading a refusal" above), by
+A refusal names what was found and, where it has a position, where (see
+"Reading a refusal" above), by
 the meanings on the owner's page: **not established** for a form outside this
 subset (listed there; a leaf value outside its form is named with its type and
 that form in full), asserting nothing about whether the file is valid; and
@@ -580,49 +591,50 @@ not established either: nothing shows which reading is right.
 
 **Sizes.** Each file is refused by name when it is empty (malformed) or
 larger than its limit (not established): 256 KiB for a profile, 64 KiB for an
-`Info.plist`. The size limit is checked before the file is given to the
-reader, so neither parser ever receives a file above the limit: from the file
-system before the file is read for the reader, and again on the bytes read
-(`whole_plist.read_within_limit`; `prepare.profile_size`, then
-`prepare.profile_envelope`). That holds at each consumer: `prepare.py` (before
-its generic 32 MiB transfer bound), the signing run's step 2 (before the
-profile's digest is checked, so nothing runs and no output folder is made),
-`common.load_candidate`, the build's checks, the record's reading and
-`record.py check`; `OversizedFilesReachNoParser` in
-`app/tests/owner_release_test.py` asserts it at each. The tools' inventory,
-digest and binding steps read a file's bytes regardless of its size: the
-record's inventory hashes the embedded profile and `Info.plist`,
-`common.load_candidate` verifies the candidate's inventory before its
-`Info.plist` reaches the reader, and the build and the record read a refused
-`Info.plist` again for its digest. A profile is a short property list and a few
+`Info.plist`. Each parser entry point refuses, by name and before parsing
+anything, bytes above its limit: `prepare.profile_envelope` the profile's,
+and `whole_plist.load` the limit its caller gives (an `Info.plist`'s; by
+default 256 KiB, which bounds a profile's content)
+(`OversizedFiles.test_each_parser_entry_point_refuses_bytes_above_its_limit_before_parsing_anything`).
+Callers also check the file's size from the file system before reading it for
+the reader (`prepare.profile_size`, `whole_plist.read_within_limit`): in
+`prepare.py` (before its generic 32 MiB transfer bound), the signing run's
+step 2 (before the profile's digest is checked, so a file it refuses runs no
+command and makes no output folder), `common.load_candidate`, the build's checks, and the
+record's reading and `record.py check` (both through
+`record.observe_package`). An oversized file gives the named size
+refusal at each
+(`OversizedFiles.test_an_oversized_file_gives_the_named_size_refusal_at_each_consumer`).
+The inventory, digest and binding steps read a file's bytes whatever its size.
+A profile is a short property list and a few
 certificates of a kilobyte or two each, and an `Info.plist` a few dozen keys;
 the limits are far above that and bound the reader's memory (in review, a
 768 KiB envelope took up to about 150 MB to read). A larger real file would stop
 with the limit named, which is the tools' own number to change.
 
 **The fields the tools read, by type.** After the whole read, one typed check
-covers exactly the fields the tools read, and no others, and every consumer
-reads through it. In a profile: `UUID` a string; `TeamIdentifier`,
+covers these fields (`prepare.profile_types`, `common.read_info_plist`), and
+each reader listed below applies it. In a profile: `UUID` a string; `TeamIdentifier`,
 `ApplicationIdentifierPrefix`, `Platform` and `ProvisionedDevices` arrays of
 strings; `ProvisionsAllDevices` a boolean; `CreationDate` and `ExpirationDate`
 dates; `Entitlements` a dictionary, and in it
 `com.apple.application-identifier` and `com.apple.developer.team-identifier`
 strings and `get-task-allow` and `com.apple.security.get-task-allow` booleans.
-Each may be absent there; a missing one is refused by the rule that needs it.
-Other entitlement values are classified by the record's entitlement selection,
-which counts a value of another type as an unexpected entitlement and never
-records it. In an `Info.plist`: `CFBundleIdentifier`,
+Each may be absent there. Other entitlement values are classified by the
+record's entitlement selection, which counts a value of another type as an
+unexpected entitlement. In an `Info.plist`: `CFBundleIdentifier`,
 `CFBundleShortVersionString`, `CFBundleVersion`, `LSMinimumSystemVersion` and
 `CFBundleExecutable`, each present and a string. A field of another type, or
 missing from `Info.plist`, is a **mismatch** naming the field and the type
-expected. The profile's type check and consistency rules report the first
-field that fails them in their own order. The build checks the five identity
-fields for type first: a field missing or of another type is reported alone,
-the first the type check meets; when every field is a string, every field
-whose value is not the release's is reported, each under its own check.
+expected. A refusal from the profile's type check or its consistency rules
+names one field. In the build, an identity field missing or of another type
+is reported alone; when all five are strings, each one whose value is not the
+release's is reported under its own check
+(`test_a_mistyped_identity_field_is_reported_alone_and_each_wrong_value_apart`
+in `app/tests/release_build_test.py`).
 
 A profile whose bytes are not those of the selected digest is refused before
-it is read, with its own kind: "not read: the file's bytes are not those of
+the reader is given it, with its own kind: "not read: the file's bytes are not those of
 the selected digest". Only a mismatch, reached after the whole read, says
 "read whole".
 
@@ -669,7 +681,7 @@ run, and in `record.py check`):
    cut off inside its length`, `review: an empty profile file`, `a profile
    larger than 256 KiB`; control `a profile of exactly 256 KiB (the size
    cap)`; above the transfer bound,
-   `test_finding_1_a_profile_over_the_cap_is_refused_by_name_before_any_read_on_every_path`.
+   `test_finding_1_a_profile_over_the_cap_is_refused_by_name_before_it_is_read_for_the_reader`.
 2. From the outside down to the content, the structure is the declared one
    (RFC 5652 section 5): ContentInfo, a SEQUENCE of id-signedData and `[0]`
    holding one SignedData; SignedData with its `version` (an INTEGER of
@@ -697,8 +709,8 @@ an OBJECT IDENTIFIER, BOOLEAN, NULL or BIT STRING of its encoding; no
 end-of-contents marker outside an indefinite length), and an element more than
 64 levels below the element its walk starts from (each digest algorithm,
 certificate, revocation list and signer information, the version and the two
-object identifiers; the count does not start at ContentInfo). Each has its
-case in `ENVELOPE_CASES`.
+object identifiers; the count does not start at ContentInfo). Their cases
+are in `ENVELOPE_CASES` (`EnvelopeShapes.test_each_field_and_rule`).
 
 The kinds, by the meanings on the owner's page: an indefinite length, a length
 in more octets than needed, a constructed string, a tag number in the
