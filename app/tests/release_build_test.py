@@ -233,11 +233,14 @@ class ReleaseBuild(unittest.TestCase):
             (app / 'Contents/_CodeSignature').mkdir()
         def not_whole(app):
             (app / 'Contents/Info.plist').write_bytes(fx.conflicting_info_plist())
+        def not_read(app):  # a comment: valid XML, a form the reader does not read
+            (app / 'Contents/Info.plist').write_bytes(fx.info_plist().replace(b'<dict>', b'<!-- invented --><dict>', 1))
         cases = {
             'dyld_info': (dict(dyld={'chirality-app-v4': Result(1)}), 'dyld_validate'),
             'dyld_info negative with zero': (dict(dyld={'chirality-app-v4': Result(0, b'', b'malformed LINKEDIT')}), 'dyld_validate'),
             'version': (dict(mutate=wrong_version), 'info_plist_version'),
             'Info.plist not whole': (dict(mutate=not_whole), 'info_plist_whole'),
+            'Info.plist in a form not read': (dict(mutate=not_read), 'info_plist_not_read'),
             'vendor modes': (dict(mutate=vendor_mode), 'vendor_tree'),
             'resource': (dict(mutate=resource_bytes), 'resource'),
             'developer signature': (dict(executable=fx.macho(common.CS_RUNTIME, cms=True)), 'executable_signature'),
@@ -253,6 +256,14 @@ class ReleaseBuild(unittest.TestCase):
                 self.assertEqual(raised.exception.code, 'BUILD_CHECKS')
                 refused = json.loads((self.candidate / 'BUILD_REFUSED.json').read_text())
                 self.assertIn(check_name, [c['check'] for c in refused['checks']])
+                # The Info.plist checks carry why, in fixed text and integers; no identity field is read from part of it.
+                expected = {'info_plist_whole': ('malformed', 'plist', 'a second value under plist'),
+                            'info_plist_not_read': ('unsupported', 'plist', 'a comment')}.get(check_name)
+                if expected:
+                    [entry] = [c for c in refused['checks'] if c['check'] == check_name]
+                    detail = entry['detail']
+                    self.assertEqual((detail['part'], detail['kind'], detail['field'], detail['found']), ('Info.plist', *expected))
+                    self.assertFalse([c for c in refused['checks'] if c['check'].startswith('info_plist_') and c['check'] != check_name])
                 self.assertFalse((self.candidate / 'CANDIDATE.json').exists())
                 self.assertTrue((self.candidate / 'INCOMPLETE.txt').exists())
 

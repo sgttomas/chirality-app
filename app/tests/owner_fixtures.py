@@ -130,13 +130,31 @@ def conflicting_profile_bytes():
     return profile_bytes(content=lambda xml: two_values(plistlib.dumps(other), xml))
 
 
+# Invented envelope parts in the declared outer shapes of RFC 5652 and RFC 5280; their contents name nothing real.
+SHA256 = tlv(0x06, bytes.fromhex('608648016503040201'))  # the object identifier of SHA-256
+SIGNATURE_ALGORITHM = tlv(0x30, tlv(0x06, bytes.fromhex('2a864886f70d01010b')) + tlv(0x05, b''))
+INVENTED_NAME = tlv(0x30, tlv(0x31, tlv(0x30, tlv(0x06, bytes.fromhex('550403')) + tlv(0x0c, b'INVENTED NAME'))))
+DIGEST_ALGORITHMS = tlv(0x31, tlv(0x30, SHA256 + tlv(0x05, b'')))
+CERTIFICATE = tlv(0x30, tlv(0x30, tlv(0xa0, tlv(0x02, b'\x02')) + tlv(0x02, b'\x01') + SIGNATURE_ALGORITHM + INVENTED_NAME)
+                  + SIGNATURE_ALGORITHM + tlv(0x03, b'\x00INVENTED signature bits'))
+SIGNER_INFO = tlv(0x30, tlv(0x02, b'\x01') + tlv(0x30, INVENTED_NAME + tlv(0x02, b'\x01')) + tlv(0x30, SHA256 + tlv(0x05, b''))
+                  + SIGNATURE_ALGORITHM + tlv(0x04, b'INVENTED signature value'))
+
+
+def envelope(content, *, version=tlv(0x02, b'\x01'), digests=DIGEST_ALGORITHMS, encap=None, after=None):
+    """An invented CMS SignedData envelope around `content`, in the declared shapes; never Apple-signed. The keyword
+    arguments replace one field's bytes, so that a test can break exactly one rule."""
+    prep = common.prepare
+    encap = tlv(0x30, tlv(0x06, prep.DATA_OID) + tlv(0xa0, tlv(0x04, content))) if encap is None else encap
+    after = tlv(0xa0, CERTIFICATE) + tlv(0x31, SIGNER_INFO) if after is None else after
+    signed = tlv(0x30, version + digests + encap + after)
+    return tlv(0x30, tlv(0x06, prep.SIGNED_DATA_OID) + tlv(0xa0, signed))
+
+
 def profile_bytes(team=TEAM, prefix=TEAM, identifier='com.chirality.app', content=None):
     """An invented CMS-shaped Developer ID profile; never Apple-signed."""
     value = profile_value(team, prefix, identifier)
-    prep = common.prepare
-    encap = tlv(0x30, tlv(0x06, prep.DATA_OID) + tlv(0xa0, tlv(0x04, content(plistlib.dumps(value)) if content else plistlib.dumps(value))))
-    signed = tlv(0x30, tlv(0x02, b'\x01') + tlv(0x31, b'') + encap + tlv(0x31, b'INVENTED signer info'))
-    return tlv(0x30, tlv(0x06, prep.SIGNED_DATA_OID) + tlv(0xa0, signed))
+    return envelope(content(plistlib.dumps(value)) if content else plistlib.dumps(value))
 
 
 DELETE = object()

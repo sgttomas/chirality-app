@@ -225,7 +225,12 @@ class ProductionInputs(unittest.TestCase):
     def envelope(self, content, trailing=b''):
         t=self.tlv
         encap=t(0x30,t(0x06,module.DATA_OID)+t(0xa0,t(0x04,content)))
-        signed=t(0x30,t(0x02,b'\x01')+t(0x31,b'')+encap+t(0x31,b'INVENTED signer info; never Apple-signed'))
+        # invented fields in their declared outer shapes (RFC 5652, RFC 5280); never Apple-signed
+        algorithm=t(0x30,t(0x06,bytes.fromhex('608648016503040201'))+t(0x05,b''))
+        name=t(0x30,t(0x31,t(0x30,t(0x06,bytes.fromhex('550403'))+t(0x0c,b'INVENTED NAME'))))
+        certificate=t(0x30,t(0x30,t(0x02,b'\x01')+algorithm+name)+algorithm+t(0x03,b'\x00INVENTED signature bits'))
+        signer=t(0x30,t(0x02,b'\x01')+t(0x30,name+t(0x02,b'\x01'))+algorithm+algorithm+t(0x04,b'INVENTED signature value'))
+        signed=t(0x30,t(0x02,b'\x01')+t(0x31,algorithm)+encap+t(0xa0,certificate)+t(0x31,signer))
         return t(0x30,t(0x06,module.SIGNED_DATA_OID)+t(0xa0,signed))+trailing
     def profile_value(self, **changes):
         import datetime
