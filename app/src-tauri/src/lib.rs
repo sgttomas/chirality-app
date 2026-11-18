@@ -2227,12 +2227,24 @@ fn submit_attachments(state:State<'_,AppState>,owner_ref:String,list_revision:u6
 
 /// The native selector is the only attachment path/body authority. JS carries
 /// known owner/revision references only, never selected source bodies or paths.
+/// The panel starts in the folder of the project the attachments are for when
+/// the host knows it as an existing directory; otherwise it opens as before.
 #[tauri::command(async)]
 fn select_attachment(app: tauri::AppHandle, state: State<'_, AppState>, owner_ref: String, list_revision: u64) -> Result<Value,String> {
-    runtime_session::select_attachment_source(&state.attachment_selection,&owner_ref,list_revision,|| {
-        app.dialog().file().set_title("Select a UTF-8 text attachment")
+    runtime_session::select_attachment_source_starting_in(&state.attachment_selection,&owner_ref,list_revision,|starting_folder| {
+        panel_starting_in(app.dialog().file().set_title("Select a UTF-8 text attachment"),starting_folder)
             .blocking_pick_file().map(|file|file.into_path().map_err(|error|format!("Native attachment selection is not a filesystem path: {error}"))).transpose()
     })
+}
+/// A native file panel that can be told which folder to open in.
+trait PanelStartingFolder { fn starting_in(self, folder: &std::path::Path) -> Self; }
+impl<R: tauri::Runtime> PanelStartingFolder for tauri_plugin_dialog::FileDialogBuilder<R> {
+    fn starting_in(self, folder: &std::path::Path) -> Self { self.set_directory(folder) }
+}
+/// Gives the panel its starting folder only when one is known; with none the
+/// panel is left exactly as built, so it opens at the system's own default.
+fn panel_starting_in<P: PanelStartingFolder>(panel: P, starting_folder: Option<&std::path::Path>) -> P {
+    match starting_folder { Some(folder) => panel.starting_in(folder), None => panel }
 }
 #[tauri::command]
 fn remove_attachment(state:State<'_,AppState>,owner_ref:String,list_revision:u64,selection_ref:String)->Result<Value,String>{
@@ -3775,6 +3787,63 @@ mod file_act_consumer_tests;
 mod local_route_refusal_tests;
 #[cfg(test)]
 mod file_act_lapse_tests;
+
+// DEL-01-04: select_attachment's panel is given the project folder through
+// `panel_starting_in`, the same helper the native FileDialogBuilder goes
+// through; no panel is opened here.
+#[cfg(test)]
+mod attachment_panel_starting_folder_tests {
+    use super::*;
+    use std::path::{Path, PathBuf};
+    #[derive(Default)]
+    struct RecordingPanel { asked: Vec<PathBuf> }
+    impl PanelStartingFolder for RecordingPanel {
+        fn starting_in(mut self, folder: &Path) -> Self { self.asked.push(folder.to_path_buf()); self }
+    }
+    /// The native builder takes the same route (checked at compile time).
+    #[allow(dead_code)]
+    fn native_builder_uses_the_shared_helper<R: tauri::Runtime>(panel: tauri_plugin_dialog::FileDialogBuilder<R>, folder: Option<&Path>) -> tauri_plugin_dialog::FileDialogBuilder<R> { panel_starting_in(panel, folder) }
+    fn select_through_helper(session: &Mutex<Result<runtime_session::AttachmentSelectionSession,String>>, chosen: PathBuf) -> (Vec<PathBuf>, Value) {
+        let view = session.lock().unwrap().as_ref().unwrap().snapshot();
+        let mut asked = Vec::new();
+        let selected = runtime_session::select_attachment_source_starting_in(session, view["ownerRef"].as_str().unwrap(), view["listRevision"].as_u64().unwrap(), |start| {
+            asked = panel_starting_in(RecordingPanel::default(), start).asked;
+            Ok(Some(chosen))
+        }).unwrap();
+        (asked, selected)
+    }
+    #[test]
+    fn panel_is_given_a_starting_folder_only_when_one_is_known() {
+        let folder = Path::new("/invented/project");
+        assert_eq!(panel_starting_in(RecordingPanel::default(), Some(folder)).asked, vec![folder.to_path_buf()]);
+        assert!(panel_starting_in(RecordingPanel::default(), None).asked.is_empty());
+    }
+    #[test]
+    fn select_attachment_panel_starts_in_the_existing_project_folder_else_as_before() {
+        let root = std::env::temp_dir().join(crate::util::opaque_id("attachment-panel-start-").unwrap().replace(':', "-"));
+        let project = root.join("invented project P");
+        std::fs::create_dir_all(&project).unwrap();
+        let chosen = root.join("chosen.txt");
+        std::fs::write(&chosen, b"invented").unwrap();
+        let known = Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(project.clone())));
+        let (asked, selected) = select_through_helper(&known, chosen.clone());
+        assert_eq!(asked, vec![project.clone()]);
+        assert_eq!(selected["operation"]["state"], "selected-not-sent");
+        let unknown = Mutex::new(runtime_session::AttachmentSelectionSession::new(None));
+        let (asked, selected) = select_through_helper(&unknown, chosen.clone());
+        assert!(asked.is_empty());
+        assert_eq!(selected["operation"]["state"], "selected-not-sent");
+        let gone = Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(root.join("invented project removed"))));
+        let (asked, selected) = select_through_helper(&gone, chosen.clone());
+        assert!(asked.is_empty());
+        assert_eq!(selected["operation"]["state"], "selected-not-sent");
+        let not_folder = Mutex::new(runtime_session::AttachmentSelectionSession::new(Some(chosen.clone())));
+        let (asked, selected) = select_through_helper(&not_folder, chosen);
+        assert!(asked.is_empty());
+        assert_eq!(selected["operation"]["state"], "selected-not-sent");
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
 
 #[cfg(test)]
 #[path = "../../tests/group_b_fixture_consumer.rs"]
