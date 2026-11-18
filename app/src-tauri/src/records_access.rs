@@ -604,6 +604,11 @@ impl RecordsCapability {
         if !metadata.is_dir() { return Err("records capability physical project is not a directory".into()); }
         Ok(json!({"canonical":crate::attachments::native_path_identity(&canonical),"device":metadata.dev(),"inode":metadata.ino()}))
     }
+    /// The project folder this capability reads (canonical), for the point
+    /// record written in the same project's store subtree (DEL-02-03 REQ-008).
+    pub(crate) fn project_folder(&self) -> &Path {
+        &self.project
+    }
     pub(crate) fn project_identity(&self) -> Result<Value, String> {
         let current = Self::directory_identity(&self.project)?;
         if self.project_identity.as_ref() != Some(&current) { return Err("records capability physical project changed; configure it again explicitly".into()); }

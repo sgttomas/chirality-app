@@ -67,6 +67,8 @@ APP_LEVEL_REPORTED = {"approvalPolicy": "on-request", "approvalsReviewer": "user
                                   "excludeTmpdirEnvVar": True, "excludeSlashTmp": True},
                       "activePermissionProfile": None}
 LEVEL_REPLY_METHOD = {"app": "thread/start", "app-continue": "thread/resume"}
+# The App's point tool as the App offers it on every start (DEL-02-03 REQ-008), read here from the file the App embeds.
+APP_POINT_TOOL = json.loads((Path(__file__).resolve().parent.parent / "src-tauri" / "src" / "point_tool_v1.json").read_text(encoding="utf-8"))
 
 
 def as_sent(recording, row, profile):
@@ -102,7 +104,7 @@ def inputs(recording, generation, profile="strict", remap=False):
                                "capabilities": {**peer.CAPABILITIES, "explicitGatewayOauth": True}}
         if profile == "app" and frame.get("method") == "thread/start":
             frame["params"] = {"cwd": "<WORKSPACE>", "model": "st5-stub-model", "modelProvider": "st5_stub",
-                               **app_level("thread/start")}
+                               **app_level("thread/start"), "dynamicTools": [copy.deepcopy(APP_POINT_TOOL)]}
         if profile == "app" and frame.get("method") == "turn/start":
             frame["params"]["input"][0]["text_elements"] = []
             frame["params"].update(app_level("turn/start"))
@@ -306,6 +308,7 @@ class AppProfiles(unittest.TestCase):
             self.assertIn("turn/start.input[0].text_elements:add-empty-array", adaptations)
             self.assertIn("thread/start:add-exact-App-level-edits", adaptations)
             self.assertIn("turn/start:add-exact-App-level-edits", adaptations)
+            self.assertIn("thread/start.dynamicTools:add-exact-App-point-tool-v1;recorded-reply-unchanged", adaptations)
         for index, key, value in ((2, "model", "different"), (2, "modelProvider", "different"),
                                   (2, "approvalPolicy", "never"), (2, "cwd", "/changed")):
             supplied = inputs(recording, 1, "app")
@@ -329,6 +332,9 @@ class AppProfiles(unittest.TestCase):
             ("start-missing-workspace-options", lambda f: f[2]["params"].pop("config")),
             ("start-other-network", lambda f: f[2]["params"]["config"]["sandbox_workspace_write"].update(network_access=True)),
             ("start-no-level", lambda f: [f[2]["params"].pop(k) for k in APP_LEVEL["thread"]]),
+            ("start-missing-point-tool", lambda f: f[2]["params"].pop("dynamicTools")),
+            ("start-other-point-tool", lambda f: f[2]["params"]["dynamicTools"][0].update(description="another description")),
+            ("start-another-tool-beside", lambda f: f[2]["params"]["dynamicTools"].append({"type": "function", "name": "other"})),
             ("turn-other-policy", lambda f: f[3]["params"].update(approvalPolicy="never")),
             ("turn-missing-sandbox-policy", lambda f: f[3]["params"].pop("sandboxPolicy")),
             ("turn-other-sandbox-policy", lambda f: f[3]["params"].update(sandboxPolicy={"type": "dangerFullAccess"})),

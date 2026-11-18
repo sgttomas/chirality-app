@@ -8,6 +8,7 @@ import { ConnectorSourcePanel } from "./ConnectorSourcePanel";
 import { FleetRecordsPanel, readFleetPacket, type FleetPacket } from "./FleetRecordsPanel";
 import { WaitingOnYou, WAITING_SOURCE_POLL_MS, decisionPackageAnchor, reopenedDispositionsUnestablished, waitingReadings, type WaitingEntry } from "./WaitingOnYou";
 import { RecordsStorePanel } from "./RecordsStorePanel";
+import { ConversationPoints } from "./ConversationPoints";
 import { ConnectorRoutePanel, emptyRouteRead, routeReadTransition, type RouteReadState, type RouteView } from "./ConnectorRoutePanel";
 // The interface reads host snapshots and asks the host to act. It holds no pipe
 // (HOSTING H2), writes no record and cannot capture an act: the native
@@ -464,6 +465,7 @@ export function ConversationPanel({ localRoute = null, focusComposer, startAct, 
       trialTurns={workflowRoot?.trialTurns} trialChildren={workflowRoot?.trialChildren} delegation={selected?.delegation}
       stopLabelFor={(thread, turn) => stopLabel(host?.codexStops, thread, turn, host?.stopRequests, appHome(host?.homeRouting?.activeModeHomeClass))}
       offerControls={{ generation: host?.generation, ready: host?.state === "ready", busy: offerBusy, act: offerAct }} />
+    {selected && <ConversationPoints points={host?.points} generation={selected.generation} threadId={selected.threadId} />}
     {selected && <div id="conversation-requests" aria-label="Requests from Codex in this conversation">
       <h3>Requests from Codex in this conversation ({numberWords(requests.filter(answerable).length)} waiting)</h3>
       {ordered.length === 0 && <p>No requests from Codex in this conversation.</p>}

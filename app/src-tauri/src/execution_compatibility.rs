@@ -288,9 +288,10 @@ fn harness_presence(name: &str, e: &Environment) -> (Outcome, String) {
                 None
             }
         }
-        // The App's own records capability (RS §13.9) is not a tool a workflow
-        // can supply or name, so it does not make this capability present.
-        "dynamic-tool-call" => start["dynamicTools"].as_array().map(|a| a.iter().any(|t| t["name"] != crate::records_access::TOOL)),
+        // The App's own records capability (RS §13.9) and point tool (DEL-02-03
+        // REQ-008) are not tools a workflow can supply or name, so neither
+        // makes this capability present.
+        "dynamic-tool-call" => start["dynamicTools"].as_array().map(|a| a.iter().any(|t| t["name"] != crate::records_access::TOOL && t["name"] != crate::points::TOOL)),
         "image-generation" => caps["imageGeneration"].as_bool(),
         "mcp-tool-call" => s["mcp_server_status"].as_array().and_then(|a| {
             if a.iter().any(|x| {

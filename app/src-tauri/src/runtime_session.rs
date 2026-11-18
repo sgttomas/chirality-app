@@ -7573,6 +7573,7 @@ impl WorkflowRun {
             panic!("fixture: the start's send path panicked before its write was attempted");
         }
         self.attempted = true;
+        { let scope = self.prepared().scope(); self.home.host.note_conversation_run(&scope.generation, &scope.conversation, &scope.run, "start sent"); }
         #[cfg(test)]
         if PANIC_IN_SEND.with(|p| p.get()) == Some(true) {
             PANIC_IN_SEND.with(|p| p.set(None));
@@ -7588,6 +7589,7 @@ impl WorkflowRun {
             Ok(source) => source,
             Err(error) => {
                 self.lifecycle = RunLifecycle::StartNotConfirmed;
+                { let scope = self.prepared().scope(); self.home.host.note_conversation_run(&scope.generation, &scope.conversation, &scope.run, "not opened"); }
                 self.status = json!({"state":"native workflow-text send not started; original records retained","records":records,"limit":error,"sent":"not observed","automaticRetry":false,"run":"not opened (EXEC A-3)","supplyCheck":"not recorded: no Host receipt of a turn/start refusal; outcome not established (EXEC §2.7 / WR §16.4 RN-4)","r3":"unavailable: no source-bound native turn","adoption":"unknown"});
                 return Err(error);
             }
@@ -7607,6 +7609,7 @@ impl WorkflowRun {
             }
             Err(error) => {
                 self.lifecycle = RunLifecycle::StartNotConfirmed;
+                { let scope = self.prepared().scope(); self.home.host.note_conversation_run(&scope.generation, &scope.conversation, &scope.run, "not opened"); }
                 // V9 F-1: only Codex's definite refusal of this exact turn/start
                 // grounds a supply_check *not found* (WR §16.4, RN-4). An unknown
                 // outcome mints nothing that claims not found (EXEC §2.7 / WR §16.4 RN-4).
@@ -7703,6 +7706,7 @@ impl WorkflowRun {
             }
         }
         self.lifecycle = RunLifecycle::Open;
+        self.home.host.note_conversation_run(&scope.generation, &scope.conversation, &scope.run, "open");
         let opened_at = crate::util::now_rfc3339();
         match crate::records::supply::PendingRunEntry::new("run_opened", body, opened_at.clone()) {
             Ok(entry) => self.entries.push(entry),
@@ -7869,6 +7873,7 @@ impl WorkflowRun {
             reason,
         });
         self.lifecycle = RunLifecycle::Ended;
+        self.home.host.note_conversation_run(&scope.generation, &scope.conversation, &scope.run, "ended");
         self.finished_report = report.cloned();
         self.notice = if successor.is_some() {
             NoticeState::ByChain

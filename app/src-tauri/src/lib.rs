@@ -80,6 +80,7 @@ pub mod receiving;
 pub mod recorder;
 pub mod records;
 pub mod records_access;
+pub mod points;
 pub mod release_limitations;
 mod fleet_records;
 mod native_conversation_links;

@@ -24,6 +24,9 @@ The current App resume request adds exactly excludeTurns:true (0.160.0 native
 metadata/live-resume response coverage). This request-only adaptation is audited;
 the tape's full-history reply and deprecation notice are kept unchanged, not
 claimed as observed supplier behavior for that adapted request.
+Point tool: the App's thread/start adds exactly dynamicTools holding the App's
+point tool, version 1, as src-tauri/src/point_tool_v1.json states it (DEL-02-03
+REQ-008); the recorded reply is unchanged. This request-only adaptation is audited.
 Level: each thread/start, thread/resume and turn/start request adds exactly the
 App test Host's level ("edits"). The replies to the adapted thread/start and
 thread/resume report that level's exact values: approvalPolicy,
@@ -484,6 +487,11 @@ class Replay:
         return {"approvalPolicy": rows[0]["approvalPolicy"], "approvalsReviewer": "user",
                 "sandbox": copy.deepcopy(rows[0]["sandboxPolicy"]), "activePermissionProfile": None}
 
+    @staticmethod
+    def app_point_tool():
+        """The App's point tool as it offers it on every start: the exact file the App embeds."""
+        return json.loads((Path(__file__).resolve().parent.parent / "src-tauri" / "src" / "point_tool_v1.json").read_text(encoding="utf-8"))
+
     def adapted_params(self, expected, actual):
         """Return only declared, exact App alternatives; never wildcard fields."""
         require(isinstance(expected, dict), "invalid-captured-adaptation-request")
@@ -513,8 +521,10 @@ class Replay:
                     "missing-captured-model-selection")
             self.conversation_folder = params["cwd"]
             adapted.update(self.level_fields("thread/start", params["cwd"]))
+            adapted["dynamicTools"] = [self.app_point_tool()]
             return adapted, ["thread/start:omit-captured-approvalPolicy-and-sandbox", "thread/start:add-exact-captured-model-and-modelProvider",
-                             "thread/start:add-exact-App-level-%s" % LEVEL_UNDER_TEST]
+                             "thread/start:add-exact-App-level-%s" % LEVEL_UNDER_TEST,
+                             "thread/start.dynamicTools:add-exact-App-point-tool-v1;recorded-reply-unchanged"]
         if self.profile == "app" and method == "turn/start":
             require(isinstance(params, dict) and set(params) == {"threadId", "input"}
                     and isinstance(params["threadId"], str) and bool(params["threadId"]),

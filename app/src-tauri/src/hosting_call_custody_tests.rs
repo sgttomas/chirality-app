@@ -60,13 +60,14 @@ fn drain_from(reader: &mut std::fs::File) -> Value {
         assert!(
             unsafe { libc::poll(&mut poll, 1, remaining.as_millis().min(1000) as i32) } > 0
         );
-        let mut buf = [0; 4096];
-        let n = reader.read(&mut buf[..4096 - bytes.len()]).unwrap();
+        let mut buf = [0; 8192];
+        let n = reader.read(&mut buf[..8192 - bytes.len()]).unwrap();
         assert!(n > 0);
         bytes.extend_from_slice(&buf[..n]);
-        assert!(bytes.len() <= 4096);
+        assert!(bytes.len() <= 8192);
     }
-    assert!(bytes.len() <= 2048, "small actual fixture frame");
+    // An ordinary start carries the App's point tool (DEL-02-03 REQ-008).
+    assert!(bytes.len() <= 4096, "small actual fixture frame");
     serde_json::from_slice(&bytes).unwrap()
 }
 struct Fixture {
@@ -140,9 +141,12 @@ impl Fixture {
         .unwrap();
         let actual = self.drain();
         assert_eq!(actual, receipt.frame);
-        assert_eq!(actual["params"].get("dynamicTools").is_some(), offered);
+        // The offered start carries the call custody tool alone; an ordinary
+        // start carries the App's point tool alone (DEL-02-03 REQ-008).
         if offered {
             assert_eq!(actual["params"]["dynamicTools"], json!([definition()]));
+        } else {
+            assert_eq!(actual["params"]["dynamicTools"], json!([crate::points::definition()]));
         }
         self.history
             .start_dispatched(receipt.clone(), &self.composition, "sup:synthetic")

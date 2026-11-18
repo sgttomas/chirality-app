@@ -457,7 +457,7 @@ fn fake_peer_journey_the_agent_reads_this_projects_records_through_the_host() {
     host.thread_start_with_guidance(project.to_str().unwrap(), "fixture-model", "fixture-provider", "guidance").unwrap();
     let wire = || -> Vec<Value> { std::fs::read_to_string(project.join("wire.jsonl")).unwrap_or_default().lines().map(|l| serde_json::from_str(l).unwrap()).collect() };
     let start = wire().into_iter().find(|w| w["method"] == "thread/start").unwrap();
-    assert_eq!(start["params"]["dynamicTools"], json!([definition()]), "offered on the conversation started in the project");
+    assert_eq!(start["params"]["dynamicTools"], json!([definition(), crate::points::definition()]), "offered on the conversation started in the project, beside the point tool");
     host.turn_start_text(&generation, "thread", "Rebuild context from the records.").unwrap();
     let deadline = Instant::now() + Duration::from_secs(10);
     let reply = |id: &str| wire().into_iter().find(|w| w["id"] == id && w.get("method").is_none());

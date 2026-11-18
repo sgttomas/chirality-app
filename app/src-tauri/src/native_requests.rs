@@ -399,6 +399,14 @@ impl RequestRegister {
                 Ok(_) => ("known-answerable","app-rule:managed-service-unavailable",None),
                 Err(reason) => ("known-app-unsupported","app-rule:managed-service-unavailable",Some(reason.message())),
             },
+            // DEL-02-03 REQ-008: the point tool, called where this App session
+            // did not offer it (another conversation or generation, a fork, a
+            // child, or a resume whose earlier offer was not restored).
+            "item/tool/call" if frame["params"]["tool"] == crate::points::TOOL => (
+                "known-app-unsupported",
+                "app-rule:no-dynamic-tools",
+                Some("This App session did not offer chirality_point_v1 to this conversation; no point was recorded"),
+            ),
             "item/tool/call" => (
                 "known-app-unsupported",
                 "app-rule:no-dynamic-tools",

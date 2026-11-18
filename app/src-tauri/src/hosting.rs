@@ -25,6 +25,8 @@
 
 #[path = "records_continuity.rs"]
 mod records_continuity;
+#[path = "hosting_points.rs"]
+mod points_host;
 #[path = "execution_custody.rs"]
 mod execution_custody;
 #[path = "hosting_observation_facts.rs"]
@@ -485,6 +487,8 @@ struct Inner {
     records_project_context: Option<crate::recovery::ExplicitAppProjectContext>,
     /// Why the records capability is not offered, when it could not be set up.
     records_capability_limit: Option<String>,
+    /// DEL-02-03 REQ-008: the point tool's offers, run marks and reading state.
+    points: points_host::State,
     aa_capture: Option<request_event_join::Core>,
     aa_epoch: u64,
     state: String,
@@ -1476,7 +1480,8 @@ impl Host {
     }
     pub fn snapshot(&self) -> Value {
         let (mut snapshot,capability)={let mut i=self.inner.0.lock().unwrap();(Self::snapshot_inner(&mut i),i.records_capability.clone())};
-        Self::with_records_capability(&mut snapshot,capability);snapshot
+        Self::with_records_capability(&mut snapshot,capability);
+        snapshot["points"]=self.points_view();snapshot
     }
     /// RS §13.9: the capability's account, read with no Host lock held (it
     /// waits while a read is being recorded and synced).
@@ -1891,6 +1896,7 @@ impl Host {
     pub fn observe_conversation_project(&self,generation:&Value,thread:&str,home:Option<&str>,context:&crate::recovery::ExplicitAppProjectContext)->Result<Value,String>{
         let observation = self.observe_conversation_project_inner(generation,thread,home,context)?;
         self.persist_records_receipt(generation,thread,home);
+        self.persist_point_offer(generation,thread,home);
         Ok(observation)
     }
     fn observe_conversation_project_inner(&self,generation:&Value,thread:&str,home:Option<&str>,context:&crate::recovery::ExplicitAppProjectContext)->Result<Value,String>{
@@ -3789,6 +3795,7 @@ impl Host {
         if let Ok(context)=continuation_context::Context::admitted(dispatch.clone(),history.selection_epoch(),thread){i.continuation_contexts.insert(thread.into(),context);}
         drop(i);
         self.restore_records_receipt(generation,native["id"].as_str().unwrap_or_default());
+        self.restore_point_offer(generation,native["id"].as_str().unwrap_or_default());
         let i=self.inner.0.lock().unwrap();Ok(i.threads.iter().rev().find(|t|t["generation"]==*generation&&t["threadId"]==native["id"]).cloned().unwrap_or(row))
     }
 
@@ -4287,6 +4294,9 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
     /// capability (RS §13.9) when it is configured and `cwd` is its project.
     fn offered_start_params(&self, cwd: &str, model: &str, model_provider: &str, developer_instructions: Option<&str>) -> Result<(Value,Option<records_continuity::Project>), String> {
         let mut params = Self::thread_start_params(cwd, model, model_provider, developer_instructions)?;
+        // DEL-02-03 REQ-008: the point tool is offered on every conversation
+        // this host starts; after the records capability where both are.
+        params["dynamicTools"] = json!([crate::points::definition()]);
         // The cwd's canonical path and the project's identity are read with no
         // Host state held (they touch the filesystem), through one capability,
         // for this one offer; under the state that capability must still be the
@@ -4298,7 +4308,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         if let Some(reading) = &reading {
             match reading.current(&inner) {
                 Ok(directory) => {
-                    params["dynamicTools"] = json!([crate::records_access::definition()]);
+                    params["dynamicTools"] = json!([crate::records_access::definition(), crate::points::definition()]);
                     project = Some(records_continuity::Project { reference: inner.records_project_context.as_ref().and_then(|context|context.reference()).map(str::to_owned), directory: directory.clone() });
                 }
                 Err(limit) => if inner.records_capability.is_some() { inner.records_capability_limit = Some(limit) },
@@ -4407,6 +4417,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         // requestedDestination.source "person-selected": the model this thread/start carried and the act of starting the
         // conversation are the person's (turn_requested_context and the model-turn recorder key on it). It does not
         // say who chose the access entry: `entrySource` does, where recorded (note_requested_entry_source).
+        Self::note_point_offer(&mut i,generation,&t["id"],params);
         let standing=i.supplier_standing.clone();let row=Self::with_observed_status(&i,json!({"generation":generation,"threadId":t.get("id"),"threadSource":t.get("source"),"name":t.get("name").and_then(Value::as_str),"preview":t.get("preview").and_then(Value::as_str),"status":t.get("status"),"model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider"),"reasoningEffort":response["result"].get("reasoningEffort"),"cwd":response["result"].get("cwd"),"approvalPolicy":response["result"].get("approvalPolicy"),"sandbox":response["result"].get("sandbox"),"activePermissionProfile":response["result"].get("activePermissionProfile"),"supplierStanding":standing,"requestedDestination":{"source":"person-selected","model":params["model"],"modelProvider":params["modelProvider"]},"reportedDestination":{"scope":"thread","model":response["result"].get("model"),"modelProvider":response["result"].get("modelProvider")},"networkDisclosure":network_disclosure()}),response);i.threads.push(row);Ok(())
     }
 
@@ -5709,6 +5720,7 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         let mut automatic_reply=None;
         let mut cce_call=None;
         let mut records_call=None;
+        let mut point_call=None;
         let private_auth_reply=if let Some((id,token_refresh))=private_auth_id{Some((self.capture_pipe(&i),id,token_refresh))}else{None};
         if class == "server-request" && private_auth_reply.is_none() {
             let capabilities = i.declared_capabilities.clone().unwrap_or(Value::Null);
@@ -5721,7 +5733,14 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                     Err(reason) => i.journal.push(json!({"generation":gen,"class":"request-custody-refused","reason":reason,"receiptPosition":pos})),
                 }
             }
-            let received=if records {Ok(None)} else {match offered.as_ref(){Some(Ok(a))=>i.server_requests.receive_offered(&gen,pos,&frame,&capabilities,Ok(a)),Some(Err(e))=>i.server_requests.receive_offered(&gen,pos,&frame,&capabilities,Err(*e)),None=>i.server_requests.receive(&gen,pos,&frame,&capabilities)}};
+            let point=!records&&Self::point_call_look(&i,&gen,&frame,private_auth_reply.is_some());
+            if point {
+                match i.server_requests.receive_named_tool(&gen,pos,&frame,crate::points::RULE) {
+                    Ok(()) => point_call=Some(Self::point_call(&i,&gen,&frame)),
+                    Err(reason) => i.journal.push(json!({"generation":gen,"class":"request-custody-refused","reason":reason,"receiptPosition":pos})),
+                }
+            }
+            let received=if records||point {Ok(None)} else {match offered.as_ref(){Some(Ok(a))=>i.server_requests.receive_offered(&gen,pos,&frame,&capabilities,Ok(a)),Some(Err(e))=>i.server_requests.receive_offered(&gen,pos,&frame,&capabilities,Err(*e)),None=>i.server_requests.receive(&gen,pos,&frame,&capabilities)}};
             let accepted=received.is_ok();
             if accepted {if let Some(Ok(a))=offered {if let Some(index)=i.server_requests.original_offered_index(&gen,&frame["id"],pos){if let Some(offer)=i.cce_offer.as_mut(){offer.received(&gen,pos,index,&frame,a);cce_call=offer.take();}}}}
             match received {
@@ -5878,6 +5897,20 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 .spawn(move||{if let Some(call)=taken.lock().unwrap().take(){host.answer_records_call(call);}}).ok()});
             if spawned.is_none() {
                 if let Some(call)=slot.lock().unwrap().take(){self.answer_records_call(call);}
+            }
+        }
+        // DEL-02-03 REQ-008: the placement writes a record and a pointer, so it
+        // runs on a worker as the records read does; a test answers on its
+        // own thread, whose records store it set.
+        if let Some(call)=point_call {
+            if cfg!(test) { self.answer_point_call(call); } else {
+                let host=self.this.lock().unwrap().upgrade();
+                let slot=Arc::new(Mutex::new(Some(call)));
+                let spawned=host.and_then(|host|{let taken=Arc::clone(&slot);std::thread::Builder::new().name("point-record".into())
+                    .spawn(move||{if let Some(call)=taken.lock().unwrap().take(){host.answer_point_call(call);}}).ok()});
+                if spawned.is_none() {
+                    if let Some(call)=slot.lock().unwrap().take(){self.answer_point_call(call);}
+                }
             }
         }
         if let Some((bound,id,token_refresh))=private_auth_reply{
@@ -6389,7 +6422,10 @@ mod additive_guidance_transport_tests {
             let row=&run.snapshot["threads"][0];
             assert_eq!((row["approvalPolicy"].as_str(),row["sandbox"]["type"].as_str(),row["activePermissionProfile"]["id"].as_str()),(Some("on-request"),Some("workspaceWrite"),None));
             assert!(row["activePermissionProfile"].is_null(), "kept as reported");
-            assert_eq!(run.outbound["method"],"thread/start");assert_eq!(run.outbound["params"],crate::codex_level::with_test_level(&Host::thread_start_params("/invented/work","chosen-model","chosen-provider",guidance).unwrap(),"thread/start"));assert_eq!(response,run.native_response);
+            assert_eq!(run.outbound["method"],"thread/start");
+            // Every start this host makes offers the App's point tool (DEL-02-03 REQ-008).
+            let mut expected=Host::thread_start_params("/invented/work","chosen-model","chosen-provider",guidance).unwrap();expected["dynamicTools"]=json!([crate::points::definition()]);
+            assert_eq!(run.outbound["params"],crate::codex_level::with_test_level(&expected,"thread/start"));assert_eq!(response,run.native_response);
             let thread=&run.snapshot["threads"][0];assert_eq!(thread["generation"],run.generation);assert_eq!(thread["supplierStanding"],"unverified-development");assert_eq!(thread["requestedDestination"]["model"],"chosen-model");assert_eq!(thread["reportedDestination"]["model"],"reported-model");assert_eq!(run.snapshot["clientRequests"][0]["outcome"],"response-observed-result");assert_eq!(run.snapshot["journal"][0]["frame"],run.native_response);
         }
     }
@@ -6429,7 +6465,7 @@ mod additive_guidance_transport_tests {
             for successor in [json!({"appSession":"mock-session","home":"mock-home","spawnCounter":2}),json!({"appSession":"next-session","home":"mock-home","spawnCounter":1}),json!({"appSession":"mock-session","home":"next-home","spawnCounter":1})] {
                 let run=mock_thread_start(guidance,Some(successor.clone()));
                 assert!(run.result.unwrap_err().contains("closed or replaced generation"));assert_eq!(run.snapshot["generation"],successor);assert_eq!(run.snapshot["threads"],json!([]));
-                assert_eq!(run.outbound["params"],crate::codex_level::with_test_level(&Host::thread_start_params("/invented/work","chosen-model","chosen-provider",guidance).unwrap(),"thread/start"));assert_eq!(run.snapshot["clientRequests"][0]["generation"],run.generation);assert_eq!(run.snapshot["clientRequests"][0]["outcome"],"response-observed-result");assert_eq!(run.snapshot["journal"][0]["generation"],run.generation);assert_eq!(run.snapshot["journal"][0]["frame"],run.native_response);
+                assert_eq!(run.outbound["params"],crate::codex_level::with_test_level(&{let mut p=Host::thread_start_params("/invented/work","chosen-model","chosen-provider",guidance).unwrap();p["dynamicTools"]=json!([crate::points::definition()]);p},"thread/start"));assert_eq!(run.snapshot["clientRequests"][0]["generation"],run.generation);assert_eq!(run.snapshot["clientRequests"][0]["outcome"],"response-observed-result");assert_eq!(run.snapshot["journal"][0]["generation"],run.generation);assert_eq!(run.snapshot["journal"][0]["frame"],run.native_response);
             }
         }
     }
@@ -7919,7 +7955,7 @@ mod conversation_transport_tests {
     }
     #[test]
     fn history_bridge_genuine_start_receipt_exact_guidance_finish_and_lookup() {
-        let host=host();let text="Frozen guidance\n\né / 家";let mut receipt=None;let native=history_resume("idle",true);let(result,outbound)=exchange(&host,Some(json!({"result":native})),vec![],||{let r=host.thread_start_with_guidance_dispatch(&g(),"/invented","selected","configured",text)?;let e=host.source_request_wait(&r,Duration::from_millis(15))?;receipt=Some(r);Ok(e)});let evidence=result.unwrap();let receipt=receipt.unwrap();assert_eq!(outbound["params"],crate::codex_level::with_test_level(&Host::thread_start_params("/invented","selected","configured",Some(text)).unwrap(),"thread/start"));assert_eq!(evidence["sentFrame"],outbound);assert_eq!(receipt.attempted_frame(),&outbound);assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);assert_eq!(host.source_request(&g(),receipt.request_id()).unwrap().request_ref(),receipt.request_ref());assert_eq!(host.source_request_status(&receipt).unwrap()["response"],evidence["response"]);
+        let host=host();let text="Frozen guidance\n\né / 家";let mut receipt=None;let native=history_resume("idle",true);let(result,outbound)=exchange(&host,Some(json!({"result":native})),vec![],||{let r=host.thread_start_with_guidance_dispatch(&g(),"/invented","selected","configured",text)?;let e=host.source_request_wait(&r,Duration::from_millis(15))?;receipt=Some(r);Ok(e)});let evidence=result.unwrap();let receipt=receipt.unwrap();assert_eq!(outbound["params"],crate::codex_level::with_test_level(&{let mut p=Host::thread_start_params("/invented","selected","configured",Some(text)).unwrap();p["dynamicTools"]=json!([crate::points::definition()]);p},"thread/start"));assert_eq!(evidence["sentFrame"],outbound);assert_eq!(receipt.attempted_frame(),&outbound);assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),1);assert_eq!(host.source_request(&g(),receipt.request_id()).unwrap().request_ref(),receipt.request_ref());assert_eq!(host.source_request_status(&receipt).unwrap()["response"],evidence["response"]);
         assert!(host.thread_start_dispatch_finish(&receipt).is_ok());assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),2);assert!(host.thread_start_dispatch_finish(&receipt).is_err());assert!(host.source_request(&json!({"appSession":"foreign","home":"conversation-home","spawnCounter":1}),receipt.request_id()).is_err());
         let mut bad_receipt=None;let(result,_)=exchange(&host,Some(json!({"result":{"thread":{"id":"malformed"}}})),vec![],||{let r=host.thread_start_with_guidance_dispatch(&g(),"/invented","selected","configured",text)?;let e=host.source_request_wait(&r,Duration::from_millis(15))?;bad_receipt=Some(r);Ok(e)});assert_eq!(result.unwrap()["outcome"],"response-observed-result");assert!(host.thread_start_dispatch_finish(&bad_receipt.unwrap()).is_err());assert_eq!(host.snapshot()["threads"].as_array().unwrap().len(),2);
     }
