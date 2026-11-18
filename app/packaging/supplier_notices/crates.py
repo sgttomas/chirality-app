@@ -152,19 +152,17 @@ def github_identity(url):
 
 
 def repository_key(url):
-    """The one identity every repository comparison in crates.py and notices/coverage.py uses: a GitHub repository's
-    owner/repository, lower-cased (GitHub ignores their case, and the `.git` suffix), and any other URL exactly."""
+    """A GitHub repository's owner/repository, lower-cased (GitHub ignores their case, and the `.git` suffix), and any
+    other URL exactly. Used only where it makes a check stricter: the objc2 guard and the reading rule (more rows held),
+    the Codex membership of a compiled row (more rows bound to the distribution commit), and the repository an archive's
+    own manifest records, which main did not check and which a manifest may spell another way. Two curated values (a
+    component's, an association's, a lock's) are compared exactly, as written."""
     identity = github_identity(url)
     return ('github', identity) if identity is not None else ('url', url)
 
 
 def same_repository(a, b):
     return repository_key(a) == repository_key(b)
-
-
-def same_source(a, b):
-    """Whether two (repository, revision) pairs name the same repository and revision."""
-    return same_repository(a[0], b[0]) and a[1] == b[1]
 
 
 # One strict, typed shape for every curated collection of associations.json, applied once when the file is loaded
@@ -604,7 +602,7 @@ def absence(entry, lock, packages, reverse, parents):
                     'the manifest is not the locked archive\'s Cargo.toml: ' + dependent['name'])
         else:
             require(kind(parent) == 'path' and source['kind'] == 'workspace-file'
-                    and same_source((source['repository'], source['revision']), (lock['repository'], lock['revision'])),
+                    and (source['repository'], source['revision']) == (lock['repository'], lock['revision']),
                     'the workspace manifest is not at the lockfile\'s repository and revision: ' + dependent['name'])
         require(manifest.get('package', {}).get('name') == dependent['name'], 'the manifest is another package\'s: ' + dependent['name'])
         explicit, inherited = classify(manifest)
@@ -653,7 +651,7 @@ def parent_notices(item, rows_by_key, workspaces):
                 and len(notice['texts']) == len(row['texts']),
                 'a parent manifest\'s crate does not stand text with the recorded licence texts: ' + item['id'])
     else:
-        texts = [t['path'] for w in workspaces if same_source((w['repository'], w['revision']), (source['repository'], source['revision']))
+        texts = [t['path'] for w in workspaces if (w['repository'], w['revision']) == (source['repository'], source['revision'])
                  for t in w['texts']]
         require('workspace_texts' in notice and texts and notice['workspace_texts'] == texts,
                 'a workspace manifest is not covered by its workspace\'s shipped texts: ' + item['id'])
@@ -745,10 +743,14 @@ def entries(repo):
         for package in source['packages']:
             require(package not in git, 'two Git associations for ' + package)
             git[package] = source
-    lock_ids = {lock['id'] for lock in associations['locks']}
+    locks_by_id = {lock['id']: lock for lock in associations['locks']}
     workspaces = {}
     for workspace in associations['workspaces']:
-        require(workspace['lock'] in lock_ids, 'a workspace entry names no lockfile: ' + workspace['lock'])
+        require(workspace['lock'] in locks_by_id, 'a workspace entry names no lockfile: ' + workspace['lock'])
+        lock = locks_by_id[workspace['lock']]
+        # The path packages are the lockfile's own workspace: its texts are at the lockfile's repository and revision.
+        require((workspace['repository'], workspace['revision']) == (lock['repository'], lock['revision']),
+                'a workspace association names another repository or revision than its lockfile: ' + workspace['lock'])
         workspaces[workspace['lock']] = workspace
     rows = []
     used_git = set()
@@ -804,7 +806,9 @@ def entries(repo):
                     row['standing'] = 'text'
                 reading = hold_for_reading(row, key, repository)
                 if routes == ['app']:
-                    require(reused[key]['reading_required'] == (reading is not None),
+                    # Main's rule, comparing the repository as written, and the guard's: both must agree with the flag.
+                    require(reused[key]['reading_required'] == (reused[key]['repository'] in READING_REPOSITORIES)
+                            == (reading is not None),
                             'an App-text association states another reading requirement than the rule: ' + name)
                 if reading is not None:
                     listed_seen.add(key)
@@ -816,7 +820,7 @@ def entries(repo):
                 match = GIT_SOURCE.fullmatch(package['source'])
                 source = git.get(f'{name} {version}')
                 require(source is not None, 'no Git association for locked package ' + f'{name} {version}')
-                require(same_source((source['repository'], source['revision']), (match.group(1), match.group(3))),
+                require((source['repository'], source['revision']) == (match.group(1), match.group(3)),
                         'Git association names another repository or revision than the lock: ' + name)
                 used_git.add(f'{name} {version}')
                 row.update(repository=source['repository'], revision=source['revision'],

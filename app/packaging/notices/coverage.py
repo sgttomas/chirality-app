@@ -96,9 +96,9 @@ direct_check = _load('coverage_direct_check', HERE / 'check.py')
 font_check = _load('coverage_font_check', HERE.parent / 'font_notice/check.py')
 bundle = _load('coverage_bundle_resources', HERE.parent / 'production_inputs/bundle_resources.py')
 voice_records = _load('coverage_voice_records', HERE.parent / 'supplier_notices/voice.py')
-# The one repository identity both checkers compare with (supplier_notices/crates.py): GitHub owner and repository
-# without regard to case or a .git suffix, any other URL exactly.
-same_repository, same_source = texts.supplier_crates.same_repository, texts.supplier_crates.same_source
+# The repository identity (supplier_notices/crates.py), used only where it makes a check stricter than comparing as
+# written: the reading rule and the Codex membership of a compiled row. Curated values are otherwise compared exactly.
+same_repository = texts.supplier_crates.same_repository
 require, sha = transitive.require, transitive.sha
 
 
@@ -190,9 +190,8 @@ def build(repo=REPO, vendor=None):
                 'bundle source record differs from the reviewed one named in coverage-inputs.json: ' + content['name'])
         source = texts.load(repo, record_path)
         if content['source_record']['kind'] == 'workflow-manifest':
-            require(same_repository(source['source']['repository'], content['repository'])
-                    and (source['source']['commit'], source['source']['license']['sha256'])
-                    == (content['revision'], content['license_sha256']),
+            require((source['source']['repository'], source['source']['commit'], source['source']['license']['sha256'])
+                    == (content['repository'], content['revision'], content['license_sha256']),
                     'workflow bundle names another source or licence: ' + content['name'])
         else:
             require(content['source_record']['kind'] == 'role-set-binding' and source['basisCommit'] == content['revision'],
@@ -326,6 +325,8 @@ def build(repo=REPO, vendor=None):
         require(not is_voice or (item.get('kind') != COMPILED and item['id'] not in SUPPLIER_READINGS
                                  and item['id'] not in DEFERRED and 'owner_licence_reading' not in item),
                 'a voice component takes only the voice route (not compiled, reading or deferred): ' + item['id'])
+        # No revision is recorded for a voice row: its source is the release URL the supplier states, and none is invented.
+        require(not is_voice or item.get('revision') is None, 'a voice component records no revision (absent or null): ' + item['id'])
         require(not item['supplier_tree_texts'] or is_voice, 'only a voice component may name supplier-tree texts: ' + item['id'])
         require(all(t.startswith(voice_records.LICENCE_FOLDER) for t in item['supplier_tree_texts']),
                 'a supplier-tree text must be a member under ' + voice_records.LICENCE_FOLDER + ': ' + item['id'])
@@ -388,8 +389,8 @@ def build(repo=REPO, vendor=None):
             entry['owner_licence_reading'] = reading
         # Every committed text must come from the component's own repository and revision (its recorded source or an
         # also_at identity for the same blob), or be a named exception.
-        foreign = [p for p in item['texts'] if not any(same_source((item['repository'], item['revision']), i)
-                                                         for i in text_identities(by_path[p])) and p not in exceptions]
+        foreign = [p for p in item['texts'] if (item['repository'], item['revision']) not in text_identities(by_path[p])
+                   and p not in exceptions]
         if item.get('kind') == COMPILED:
             twice = sorted(set(item['members']) & compiled_members & set(executables))
             require(not twice, 'an executable belongs to two compiled-dependencies components: ' + ', '.join(twice))
@@ -431,6 +432,9 @@ def build(repo=REPO, vendor=None):
             add(entry, HELD, reason=item['reason'])
         else:
             add(entry, UNCOVERED, reason=item['reason'], would_close=item['would_close'])
+    # After the rows, so that each comparison above refuses first with its own message; then the form of every GitHub
+    # repository field, an additional refusal.
+    check_repository_forms(table)
     unclaimed = sorted(set(tree) - set(claimed))
     if reviewed:
         require(not unclaimed, 'supplier members claimed by no component: ' + str(unclaimed))
@@ -636,7 +640,8 @@ def compiled_group(repo, item, entry, record, mapping, add):
             would_close='associate the lockfile that builds this executable, with every locked package\'s text')
         return
     lock = group['lock']
-    require(same_source((lock['repository'], lock['revision']), (item['repository'], item['revision'])),
+    # Compared as written, as on main: any difference in spelling, suffix or letter case refuses.
+    require((lock['repository'], lock['revision']) == (item['repository'], item['revision']),
             'the crate group\'s lockfile is for another repository or revision than the component: ' + item['id'])
     require(not same_repository(item['repository'], CODEX_REPOSITORY) or item['revision'] == record['source_commit'],
             'a Codex compiled-dependencies component must be at the distribution record\'s source commit: ' + item['id'])
@@ -713,6 +718,22 @@ def voice_route(item, entry, voice, pin, add):
         add(entry, HELD, reason=item['reason'])
     else:
         add(entry, UNCOVERED, reason=item['reason'], would_close=item['would_close'])
+
+
+def check_repository_forms(table):
+    """Every GitHub repository field of the component table in the associations' canonical form, exactly
+    https://github.com/<owner>/<repository> (no `.git` suffix in any letter case, no path). Other hosts keep the name
+    their host gives (a googlesource repository's name ends in `.git`), and a voice row's repository is the source URL
+    the supplier's sources.json states (a release download), so neither is rewritten here; every comparison of these
+    values with a text, a lockfile or the voice records is exact."""
+    canonical = texts.supplier_crates.canonical_form
+    fields = [(item['id'], item.get('repository'), voice_records.is_voice(item)) for item in table['components']]
+    fields += [(text['path'], text.get('repository'), False) for text in table['texts']]
+    fields += [(text['path'], other.get('repository'), False) for text in table['texts'] for other in text.get('also_at', [])]
+    for where, repository, voice in fields:
+        host = repository.split('://', 1)[-1].split('/', 1)[0].lower() if isinstance(repository, str) else None
+        require(voice or host != 'github.com' or canonical(repository),
+                'a GitHub repository field is not exactly https://github.com/<owner>/<repository>: ' + where)
 
 
 def identity_gaps(item):
