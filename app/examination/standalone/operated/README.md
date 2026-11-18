@@ -2201,7 +2201,9 @@ recorded state serves only the candidate it was recorded on.
   `keep-launch` through `detached.py`: the first-use launch, and the relaunch
   after setup. The relaunch starts the candidate's bundled Codex, signed out,
   as the relaunch scenario's launch does. No sign-in is made, no credential
-  exists in the folder, no conversation is started and no model is reached.
+  exists in the folder, no conversation is started and no model turn is made.
+  What the launcher's network overrides do and do not establish is stated
+  under the relaunch's acts.
 - **Each launch has its own evidence.** `detached.py` refuses to write its
   started files twice in one folder, so each launch has an evidence folder of
   its own, made by the lane, holding that launch's `launcher.started.json`,
@@ -2220,14 +2222,26 @@ recorded state serves only the candidate it was recorded on.
   in the latest view, by that control's element index there. It records the
   view before and after every act, except after the quit (below). It stops,
   with no further act, where a control's identity or its effect is not clear
-  from the App's words; where a view holds anything but the App's one window
-  and its menu bar; and where a sheet, dialog or alert appears other than the
-  one confirmation below. Each launch's first view waits as "The first view:
-  limits seen on 14 November 2026" states. This is the one rehearsal in which
-  the operator acts by reading, and the one in which it may act in a view
-  that holds Codex's reports: after the relaunch, the App's own views of the
-  connection, its settings and the permission level. It uses neither
-  `walk.mjs` nor a recorded state.
+  from the App's words; where a view holds, at its top, anything but the
+  App's one window and its menu bar, the one exception being the
+  confirmation's own view (below); and where a sheet, dialog or alert appears
+  other than that confirmation. Each launch's first view waits as "The first
+  view: limits seen on 14 November 2026" states. This is the one rehearsal in
+  which the operator acts by reading, and the one in which it may act in a
+  view that holds Codex's reports: after the relaunch, the App's own views
+  named below. It uses neither `walk.mjs` nor a recorded state.
+- **After an effect: pending, completed, refused or timed out.** A call that
+  returned has not shown that the App acted ("What a call's success is").
+  After each effect the operator waits three seconds and views; if the view
+  does not yet show the effect's result, it views again every five seconds,
+  each time under the watch, for at most sixty seconds from the effect. It
+  tells four things apart by the App's own words in the view: the result is
+  there (completed); the App says it is still working, or nothing has changed
+  (pending, and it waits on); the App says it did not do it, with its reason
+  (refused); or sixty seconds have passed (timed out). It never repeats an
+  effect. In the first launch a refusal or a timeout is recorded whole and is
+  a stop. In the relaunch a reading still pending at sixty seconds is recorded
+  as not shown within the wait, never as a setting the App lacks.
 - **The acts in the first launch, and no other.** Views, and, in this order:
   - one set-value of the kept folder's own `project` path into the field
     "Project folder", made only when the view is the first-use page and holds
@@ -2237,54 +2251,81 @@ recorded state serves only the candidate it was recorded on.
   - a click on "Create settings and save for next launch…" and one press on
     the App's own confirmation sheet (next point);
   - when the page then shows "You're set up" with the kept folder's project,
-    a click on the App's own "Quit Chirality" button. If that page does not
-    appear after the press, the operator stops: step 8 ends the launch and
-    there is no relaunch.
-- **The confirmation.** The sheet is pressed only when all of these hold in
-  the view: it is the only sheet, and it followed the operator's own click
-  on the control that opens it; its title is "Desktop setup — next launch
-  only"; its statement is, line for line and with nothing more or less, the
-  `statement` that `signed-out-setup.scenario.json` holds for the sheet
-  `desktop-setup`, which a test holds equal to the build's source, filled
-  with the three locations the page showed under "Exact locations" and with
-  the kept folder's `project`; each of those locations is under the App's
-  data folder in the kept folder's `home/`; and its buttons are "Leave setup
-  unchanged", "Cancel" and "Create settings and save for next launch", and no
-  other. The operator then reads the watch again and presses "Create
-  settings and save for next launch" once. A difference in any of these, or a
-  sheet still there after the press, is a stop, with nothing further pressed.
+    a click on the App's own "Quit Chirality" button. If that page has not
+    appeared within the wait above, the operator stops: step 8 ends the
+    launch and there is no relaunch.
+- **The confirmation.** The supplier's view gives the App's confirmation in
+  place of the window: the sheet at the top, beside the menu bar, with its
+  title and the first line of its statement in one text ("The App's own setup
+  confirmation, and the typed path"). That form is admitted for this one
+  view, after the operator's own click on the control that opens it, and for
+  no other. The sheet is pressed only when all of these hold in that view:
+  the view is whole and of the candidate; it holds one sheet and the menu bar
+  and nothing else at its top; the sheet's title is "Desktop setup — next
+  launch only"; its statement is, line for line and with nothing more or
+  less, the `statement` that `signed-out-setup.scenario.json` holds for the
+  sheet `desktop-setup`, which a test holds equal to the build's source,
+  filled so: `{settings}` with the location the page showed as "Settings
+  folder", `{account}` with "Sign-in folder", `{request}` with "Saved
+  choices", and `{project}` with the kept folder's `project`; each of those
+  three locations is under the App's data folder in the kept folder's
+  `home/`; and the sheet's buttons are "Leave setup unchanged", "Cancel" and
+  "Create settings and save for next launch", each inside the sheet and found
+  once, and no other. The operator then reads the watch again and presses
+  "Create settings and save for next launch" once, by its index in that
+  view. A difference in any of these, or a sheet still there after the
+  press, is a stop, with nothing further pressed.
   The owner's words of 14 November 2026 are about an agent pressing the
-  App's own setup confirmation ("The App's own setup confirmation, and the
-  typed path"); the bounds on that press are App Agent 0's. For this
-  rehearsal App Agent 0 sets the checks above in place of the walk's
+  App's own setup confirmation; the bounds on that press are App Agent 0's.
+  For this rehearsal App Agent 0 sets the checks above in place of the walk's
   line-for-line comparison with a recorded view of the sheet, which is not
   made here, and the rehearsal's record says so.
 - **The quit.** After the click on "Quit Chirality" the operator makes no
-  state query: a view of an application that has gone can start it outside
-  the launcher. It reads the watch file and `launcher.out` only. The quit has
-  succeeded when the watch shows the App gone and `launcher.out` holds the
-  outcome; steps 9 to 11 follow, and the relaunch may then be made. If the
-  watch still shows the App running thirty seconds after the click, the
-  operator makes one view, under the rule above. A question the App asks
-  there is recorded whole and not answered. A question, or an App still
-  running sixty seconds after the click, ends the launch by step 8 and ends
-  the rehearsal: steps 9 to 11 follow, and no relaunch is made without App
-  Agent 0's word.
+  state query at all, in that launch, whatever the watch shows: an
+  application that is exiting can be listed as running, and a view of one
+  that has gone can start it outside the launcher. It notes the time of the
+  click and reads two files only, about every five seconds, for at most
+  sixty seconds: the watch file and `launcher.out`. The watch is read for the
+  record and decides nothing; a watch that is stale or cannot be read is
+  recorded as that. The quit has succeeded only when `launcher.out` holds the
+  outcome "clean". Then steps 9 and 10 follow, the operator returns, and the
+  lane makes step 11. An outcome of "failed", or no outcome sixty seconds
+  after the click, is ended by step 8, although the App's own quit was among
+  the allowed acts, and ends the rehearsal: steps 9 to 11 follow, and no
+  relaunch is made without App Agent 0's word.
+- **Between the launches.** The relaunch is made only after the first launch's
+  record says "clean" and the lane's step 11 for it has found nothing
+  remaining and nothing unresolved. It is a second assignment to the same
+  operator, in the second evidence folder.
 - **The acts in the relaunch, and no other.** Views, and clicks only on
-  controls the App labels that open, disclose or read one of its own views
-  of the connection, its settings and the permission level, as far as
-  reading these needs: the four settings phase 1 names (the working folder
-  Codex is given, the sandbox and approval settings, the writable roots, and
-  the credential store setting with where it writes), the permission level
+  these: the App's own view switches "Settings & tools", "Run a workflow"
+  and "Conversation", and no other view switch; and, inside those views,
+  controls the App labels that disclose or read part of the view, as far as
+  reading these needs: the four settings phase 1 names, the permission level
   shown in force, and the words of the sign-in control, which is read and
-  never pressed. Reading the credential store asks the running Codex for its
-  settings, and opening the view of a new conversation asks it for its model
-  list, which with the network blocks on reaches nothing; the operator
-  records what the App then shows. Where the App shows one of the four only
-  for a conversation, or not at all, or shows no level in force, the operator
-  records that and starts no conversation to see it. No permission level is
-  chosen or changed. The relaunch is ended by step 8, and steps 9 to 11
-  follow.
+  never pressed. What each reading is:
+  - in "Run a workflow", the App's "Project folder", recorded as the App's
+    project folder. The working folder Codex is given exists only for a
+    conversation and is recorded as not shown;
+  - in "Settings & tools", the credential store setting with where the
+    sign-in is kept, which the App shows after its control that reads the
+    effective settings is pressed. That press asks the running Codex for its
+    configuration;
+  - the sandbox and approval settings and the writable roots, wherever the
+    App shows them without a conversation, and otherwise recorded as not
+    shown;
+  - in "Conversation", under its disclosure "New conversation", the level
+    shown for a new conversation. Opening that disclosure can make the App
+    ask the running Codex for its configuration and then for its model list.
+
+  The launcher gives the App's Codex the address override, which points at
+  loopback where nothing listens, and the eight proxy overrides. It does not
+  establish what Codex reached, and those overrides do not cover the web
+  view's own networking (`launch.py`). The rehearsal starts no conversation
+  and makes no model turn. Where the App shows no level in force, the
+  operator records that. No permission level is chosen or changed, and no
+  conversation is started to see a setting. The relaunch is ended by step 8,
+  and steps 9 to 11 follow.
 - **Never operated, in either launch.** A sign-in control; a control that
   chooses or changes a permission level; a control that starts, resumes,
   forks or stops a conversation or Codex; "Browse for project folder" or any
