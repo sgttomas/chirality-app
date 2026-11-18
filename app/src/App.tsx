@@ -13,7 +13,7 @@ import { ConnectorRoutePanel, emptyRouteRead, routeReadTransition, type RouteRea
 // (HOSTING H2), writes no record and cannot capture an act: the native
 // confirmation is the host's (AAC §6.2 P-2). Views per DECISION_VIEW.md §4.
 import { Fragment, useCallback, useEffect, useRef, useState, type Ref } from "react";
-import { appHome, CodexProcessControls, ConversationStops, homeOfGeneration, PreviousQuitNotice, previousQuitRecords, stopLabel, stopRequestsFor } from "./CodexControls";
+import { appHome, CodexProcessControls, ConversationStops, historyHome, PreviousQuitNotice, previousQuitRecords, stopLabel, stopRequestsFor } from "./CodexControls";
 import { ContinueAsPanel, ModelIdField, RoleChoice, RoleHeader, RoleHistoryReader, SupplyStatus, type ContinueStartOutcome, type HandoffSendOutcome } from "./ConversationRoles";
 import { EXACT_TEXT } from "./exactText";
 import { ArrivalRecord, CompatibilityAdvisory, HistoryReferenceNotice, RunBringBack, RunPanel, SelectedWorkflow, hasUnsavedHistoryReference, isRecordedRun, runBringBackDefault, type OpenArrivalFileAct } from "./RunPanel";
@@ -559,10 +559,10 @@ type ContinueNavigationTicket = {
   operation: number; navigation: ContinueNavigation;
 };
 
-/** A stored conversation, by its supplied title (Codex's words, boxed) and its identity. */
+/** A stored conversation, by the chooser's supplied title (Codex's words, boxed) and its identity. */
 export function StoredConversationName({ id, native }: { id: string; native: Json }) {
-  const title = conversationTitle(native, "");
-  return <>{title ? <AgentText value={title} source="codex" name="The conversation's title or first message as Codex reported it, not the App's words" /> : <i>title not received</i>}{" "}
+  const title = suppliedTitle(native);
+  return <>{title ? <AgentText value={title} source="codex" name="The conversation's title or first message as Codex reported it, not the App's words" /> : <i>No title or preview available</i>}{" "}
     <SuppliedId value={id} label="Conversation:" name="Conversation identity as Codex reported it, not the App's words" /></>;
 }
 
@@ -609,8 +609,8 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureCo
     : "Read turns to inspect prior work. Use Continue only when you want to open this conversation for new messages.";
   const turnPage = historyPageBinding(host, "turns");
   const itemPage = historyPageBinding(host, "items");
-  // The App-owned home of this history's own generation; unknown associates nothing.
-  const stopHome = homeOfGeneration(host, generation);
+  // The App-owned home of this history source, only where its home and generation agree; unknown associates nothing.
+  const stopHome = historyHome(host, history);
   const storedName = (threadId: string) => <StoredConversationName id={threadId} native={received.find(row => row.native?.id === threadId)?.native} />;
   const same = (a: Json, b: Json) => JSON.stringify(a) === JSON.stringify(b);
   // Only identity/revision metadata is retained across an observer failure.
@@ -760,8 +760,7 @@ export function HistoryPanel({ host, refresh, threadKey, setThreadKey, captureCo
     <h2>Find a past conversation</h2>
     <p id="history-guidance" role="status" aria-live="polite">{guidance}</p>
     {!available && <p><a href="#workspace-connection">Open connection controls</a></p>}
-    <PreviousQuitNotice requests={host?.stopRequests} home={stopHome} name={storedName} select={threadId => { void select(threadId); }} selected={selected?.threadId ?? null}
-      canSelect={available && !busy} received={threadId => received.some(row => row.native?.id === threadId)} />
+    <PreviousQuitNotice requests={host?.stopRequests} home={stopHome} name={storedName} inHistory received={threadId => received.some(row => row.native?.id === threadId)} />
     <div className="history-browser">
     <p>These disposable pages come from the selected native home. Reading history does not make a conversation operational. Original App role evidence remains unknown after a cold App restart.</p>
     <label>Page direction <select value={direction} disabled={busy} onChange={e => setDirection(e.target.value)}><option value="desc">Newest first</option><option value="asc">Oldest first</option></select></label>{" "}
@@ -2887,9 +2886,10 @@ export function App() {
         {firstRead === "read" && <div hidden={setupRequired}>
         {offer && <ActControlPanel offer={offer} choice={choice} setChoice={setChoice} decide={decide} close={() => setOffer(null)} />}
         <div className="workspace-notices">
-          {quitNoticeShown && !quitNoticeHidden && <PreviousQuitNotice requests={host?.stopRequests} home={homeOfGeneration(host, host?.nativeHistory?.generation)}
+          {quitNoticeShown && !quitNoticeHidden && <PreviousQuitNotice requests={host?.stopRequests} home={historyHome(host, host?.nativeHistory)}
             name={threadId => <StoredConversationName id={threadId} native={(host?.nativeHistory?.threads ?? []).find((row: Json) => row?.native?.id === threadId)?.native} />}
-            open={<a href="#workspace-history">Open History</a>} hide={() => setQuitNoticeHidden(true)} />}
+            received={threadId => (host?.nativeHistory?.threads ?? []).some((row: Json) => row?.native?.id === threadId)}
+            open={<a href="#workspace-history">Open History.</a>} hide={() => setQuitNoticeHidden(true)} />}
           <div id="other-requests">
             {outsideRequests.length > 0 && <h3>Requests outside the selected conversation</h3>}
             {outsideRequests.length > 0 && <p>Requests of the selected conversation are shown beside it. Select another conversation to answer its requests there.</p>}

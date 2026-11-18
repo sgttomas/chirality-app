@@ -66,11 +66,8 @@ code_paths:
 - app/src-tauri/resources/runtime_core/recovery.*.json
 - app/src/ObserverAttachment.tsx
 - app/src/RecoveryCustodyPanel.tsx
-# CodexControls.tsx and NativeHistory.tsx are views shared with DEL-01-03 and DEL-01-04, which
-# declare them too. They are listed here because they show this deliverable's stop-request
-# records after a relaunch: on the selected conversation, its stored turns and the previous
-# session's quit notice, with the offer to continue (REQ-005, AC-006). App.tsx carries the
-# History and workspace placement.
+# CodexControls.tsx is shared with DEL-01-04. NativeHistory.tsx is shared with DEL-01-03 and
+# DEL-01-04. Both are listed here for their presentation of this deliverable's stop-request records.
 - app/src/CodexControls.tsx
 - app/src/NativeHistory.tsx
 checks:

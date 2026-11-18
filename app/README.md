@@ -482,34 +482,39 @@ implemented behavior and qualification limits.
     up to the stop wait limit for those turns to end, exits, stops each home's
     Codex and writes `session_ended` *quit* with each quit stop request's
     state. A relaunch reads *quit-with-live-work* and "interrupted by quit".
-    After a relaunch, the stop-request records of the session this one
-    followed (the host's `previousSession`, from this session's start
-    record, with that session's recorded end and the requests its quit
-    names) are shown without a read, in a notice in the workspace notices
-    (hidden for this launch on request) and at the start of the History
-    browser. The notice speaks of a quit only where the previous session's
-    recorded end is a quit, and only for the requests that quit names, as
-    "the App quit"; otherwise it says the previous session recorded quit
-    stop requests and how that session's end is recorded. Rows from another
-    quit attempt are counted apart. It counts interrupt requests written to
-    Codex, lists by conversation only this home's labelled rows of a session
-    whose end is established, and counts other homes' rows. The conversation
-    selected in History lists every stop request recorded for it in its home,
-    each with what its record establishes: "Codex reported the turn
-    interrupted" only where the record says Codex reported it, otherwise
-    that the final outcome is unknown to the App, the App's label as the
-    App's label with its reading, and the reading alone for a request
-    without one. The stored turn page shows a turn's stop record beside
-    Codex's status, matched in the home that holds the page's generation on
-    both the ledger and this process's Stop Codex outcomes, and nothing where
-    that home is not known. It gives the cause of a native interruption only
-    for an interrupt label whose record reports Codex said interrupted; where
-    the App's outcome is unknown it says what Codex's history reports, and
-    where two final statuses differ it shows both. A labelled row of an
-    earlier session adds **Continue this conversation**, the existing
-    Continue (a resume admitted on a matching response; nothing is sent). An
-    interrupt request answers no Codex request, and an absent record
-    establishes nothing.
+    On relaunch, the App reads its own start record for the previous
+    recorded session on this App ledger. If that session has quit
+    stop-request rows, a notice appears in the workspace and at the start of
+    the History browser without a separate read requested by the person. A
+    recorded quit identifies the stop requests its end names. Other retained
+    requests are identified as outside that list. When the previous session
+    recorded quit stop requests and ended another way, the notice gives the
+    recorded end or says that the end was not recorded. It counts writes to
+    Codex and lists eligible labelled rows under conversations in a bound
+    History home. Other homes are counted in aggregate. The notice can
+    identify a conversation from the App record before Codex has supplied it
+    in the received list. Hide dismisses the workspace notice until the
+    renderer reloads. History retains its own notice.
+
+    History shows the selected conversation's App stop requests where its
+    home is established. A labelled row gives the status Codex reported when
+    available, including interrupted, completed or failed. If a labelled row
+    has no reported final status, the App says the outcome is unknown to it.
+    Each row gives the stop-record reading, with any App label attributed
+    and a derived label marked. An interrupt request does not answer a Codex
+    request.
+
+    An accepted stored turn page shows the native status and the newest
+    matching App stop request, or an applicable in-memory Stop Codex outcome
+    when there is no matching ledger row. Both matches require the turn's
+    home. The record identifies the reason for the request and the outcome
+    Codex reported, if any. The two final reports are identified by source
+    when they differ. A qualifying labelled stop-request row from an earlier
+    session whose end is established offers **Continue this conversation**.
+    It sends the existing Codex resume request and opens the conversation
+    after matching admission in the current view. Continue sends no
+    conversation message.
+
     An exit nobody decided is held and asked as Quit. **Closing the window is
     not quit** (DEF-1, SQ-W): it hides the window (macOS; the Dock icon shows
     it again) or minimizes it; work and requests continue, and the view
