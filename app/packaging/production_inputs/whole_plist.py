@@ -1,4 +1,5 @@
-"""The one reader of a property-list FILE whose value is the whole document, the event reading it shares, and the
+"""The one reader of a property-list document whose value is the whole document (the whole Info.plist, or the property
+list a profile's envelope holds as its content), the event reading it shares, and the
 refusal every file reader of the release tools raises.
 
 Refusals. A `Refused` carries only fixed text from closed lists this code defines, and integers: the part of the file
@@ -241,7 +242,7 @@ PLACES = ('document header', 'document', 'after the root element', 'plist', 'dic
 declare(fields=PLACES, expected={e for _, e in PLIST_REASONS.values()} | set(LEAF_FORMS.values()),
         found=set(PLIST_REASONS) | {f for found in LEAF_FOUND.values() for f in found} | {REFERENCE_IN_LEAF})
 
-# --- The size of a file, refused by name before the file is given to a reader ------------------------------------------
+# --- The file-system size check: a file's size, refused by name before the file is read for a reader -------------------
 
 FILE_FOUND = {'an empty file': M, 'a file larger than the size limit': U}
 declare(fields={'the file'}, found=set(FILE_FOUND))
@@ -583,10 +584,12 @@ declare(expected={DOCUMENT_SIZE}, found={DOCUMENT_TOO_LARGE})
 
 
 def load(raw, limit=DOCUMENT_LIMIT, expected=DOCUMENT_SIZE):
-    """The value of one XML property list file, returned only when that value is the whole document; else NotWhole.
+    """The value of one XML property list document, returned only when that value is the whole document; else raises
+    Refused.
 
-    Its first act: more than `limit` bytes are refused by name (not established; `expected` names the limit), before
-    either parser is given them. No exception from either parser leaves this function untyped: anything either raises that is not already a named
+    Its first act: more than `limit` bytes are refused by name (not established), before either parser is given them.
+    The two supported pairs of `limit` and `expected` are the default and Info.plist's (INFO_PLIST_LIMIT,
+    INFO_PLIST_SIZE), as the callers in this repository pass them. No exception from either parser leaves this function untyped: anything either raises that is not already a named
     refusal is the named refusal that the parser does not read the document (not established)."""
     if len(raw) > limit:
         raise Refused(f'property list: {DOCUMENT_TOO_LARGE}', part='property list', kind=U, field='document',

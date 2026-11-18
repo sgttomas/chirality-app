@@ -299,7 +299,8 @@ expectation, not a promise.
 **If the run is interrupted** (Control-C, a dropped network, a timeout):
 
 - It stops with the reason "interrupted" (Control-C) or "unexpected" (any
-  other error no check covers, such as a timeout), and writes `STOPPED.json`.
+  other error no check covers, such as a timeout), and attempts to write
+  `STOPPED.json` when its output folder exists.
 - It starts no further step. The one command it may still run is
   `hdiutil detach` of its own mount point, if the disk image was mounted at
   that moment. Whether the detach worked is in the command log; if it did not,
@@ -370,11 +371,10 @@ if the reader refuses the file first. Which of the two is reported is not
 promised. At the record's reading (step 13) a refused file stops
 the run with `S13_OBSERVATION`, naming `provisioning profile` or `bundle
 identity` (with ` not established` added for a form not read) in
-`STOPPED.json`, and no record is written.
+`STOPPED.json` when written, and no record is written.
 
 **Reading a refusal.** Under the `STOP:` line, each refusal has one line of
-its own, and, when the run has made its output folder, `STOPPED.json` holds
-the same as `refusals` (or as the `detail` of a failed observation). For
+its own, and `STOPPED.json`, when written, holds the same as `refusals` (or as the `detail` of a failed observation). For
 example:
 
 ```text
@@ -412,8 +412,9 @@ and 2 for each failure it reports on a `FAILED:` line, a named check in
 `BUILD_REFUSED.json` included. `prepare.py` exits 0 with a plan and 2 for
 each refusal or failure it reports; a reader's refusal is then printed as
 `"error_type": "Refused"` with the refusal and its reason. `record.py check`
-exits 0 when equal, 1 when not equal, a named refusal included, and 2 with a
-fixed message when it cannot read its inputs.
+exits 0 when equal, 1 when not equal (a named refusal or another failed
+observation reported in the result included), and 2 with a fixed message when
+an input error prevents producing the comparison result.
 
 **Starting again.** There is no resuming part-way. Every run starts from the
 beginning, from the candidate folder, into a new `--out` folder, and submits
@@ -450,7 +451,8 @@ unchanged code-directory hashes.
 
 ### If it stops
 
-It prints `STOP: <reason>`, writes `STOPPED.json`, starts no further step
+It prints `STOP: <reason>`, attempts to write `STOPPED.json` when its output
+folder exists, starts no further step
 (apart from detaching its own mount, as above) and writes no `RESULT.json`.
 Each reason is one of a fixed list (`REASONS` in `common.py`, with the
 owner's steps added from `observations.py`). It begins with the step it
@@ -463,7 +465,7 @@ comes from:
 A step 0 reason means a supplier file is not signed as expected. The
 supplier's files are never re-signed (DEL-01-06 CLM-002), so whether this pin
 can ship is your decision. A step 13 reason means an observation the record
-would state failed. `STOPPED.json` then names which observations failed, and
+would state failed. `STOPPED.json`, when written, names which observations failed, and
 no record is written.
 
 If a STOP comes while the disk image is mounted, the run tries to detach it.
@@ -512,12 +514,13 @@ but a first real run may still refuse one spelled otherwise. The reason then
 names the entitlements observation of its step (for example
 `S5_ENTITLEMENTS`), and the correction below applies unchanged.
 
-**The profile and `Info.plist` are read as whole files.** The two files the
-record states facts from are read by one reader,
-`app/packaging/production_inputs/whole_plist.py` (`load`). It does not use the
+**The profile and `Info.plist` are read as whole files.** The XML reader,
+`app/packaging/production_inputs/whole_plist.py` (`load`), is given two inputs:
+the whole `Info.plist`, and the property list a profile's envelope holds as its
+content. It does not use the
 written-copy comparison above, which would refuse a valid file that `plistlib`
 would spell differently, such as a real profile's wrapped `<data>`. Instead it
-reads each file twice, by two readers that do not share their reading of the
+reads each input twice, by two readers that do not share their reading of the
 structure, and returns a value only when they agree:
 
 1. The document's own bytes, read from the XML parser's events (the same event
@@ -589,9 +592,9 @@ unknown element, an attribute, a key twice or without a value, content in
 disagree, or `plistlib` cannot read what the structure read, the comparison is
 not established either: nothing shows which reading is right.
 
-**Sizes.** Each file is refused by name when it is empty (malformed) or
-larger than its limit (not established): 256 KiB for a profile, 64 KiB for an
-`Info.plist`. Each parser entry point refuses, by name and before parsing
+**Sizes.** The limits are 256 KiB for a profile and 64 KiB for an
+`Info.plist`. The file-system size check, when reached, refuses by name a file
+that is empty (malformed) or larger than its limit (not established). Each parser entry point refuses, by name and before parsing
 anything, bytes above its limit: `prepare.profile_envelope` the profile's,
 and `whole_plist.load` the limit its caller gives (an `Info.plist`'s; by
 default 256 KiB, which bounds a profile's content)
@@ -599,12 +602,12 @@ default 256 KiB, which bounds a profile's content)
 Callers also check the file's size from the file system before reading it for
 the reader (`prepare.profile_size`, `whole_plist.read_within_limit`): in
 `prepare.py` (before its generic 32 MiB transfer bound), the signing run's
-step 2 (before the profile's digest is checked, so a file it refuses runs no
-command and makes no output folder), `common.load_candidate`, the build's checks, and the
+preflight, which runs before step 0 although its stop text names step 2
+(before the profile's digest is checked, so a file it refuses runs no command
+and makes no output folder), `common.load_candidate`, the build's checks, and the
 record's reading and `record.py check` (both through
-`record.observe_package`). An oversized file gives the named size
-refusal at each
-(`OversizedFiles.test_an_oversized_file_gives_the_named_size_refusal_at_each_consumer`).
+`record.observe_package`). The size check gives a named size refusal when
+reached (`OversizedFiles.test_an_oversized_file_gives_the_named_size_refusal_at_each_consumer`).
 The inventory, digest and binding steps read a file's bytes whatever its size.
 A profile is a short property list and a few
 certificates of a kilobyte or two each, and an `Info.plist` a few dozen keys;
@@ -626,26 +629,28 @@ unexpected entitlement. In an `Info.plist`: `CFBundleIdentifier`,
 `CFBundleShortVersionString`, `CFBundleVersion`, `LSMinimumSystemVersion` and
 `CFBundleExecutable`, each present and a string. A field of another type, or
 missing from `Info.plist`, is a **mismatch** naming the field and the type
-expected. A refusal from the profile's type check or its consistency rules
-names one field. In the build, an identity field missing or of another type
-is reported alone; when all five are strings, each one whose value is not the
+expected. A type refusal names one field; a consistency refusal names the
+fields of one rule. In the build, an identity field missing or of another type
+is reported as the only `Info.plist` check; when all five are strings, each one whose value is not the
 release's is reported under its own check
 (`test_a_mistyped_identity_field_is_reported_alone_and_each_wrong_value_apart`
 in `app/tests/release_build_test.py`).
 
-A profile whose bytes are not those of the selected digest is refused before
-the reader is given it, with its own kind: "not read: the file's bytes are not those of
-the selected digest". Only a mismatch, reached after the whole read, says
-"read whole".
+When `profile_consistency` reaches the digest check, a profile whose bytes are
+not those of the selected digest is refused before the reader is given it,
+with its own kind: "not read: the file's bytes are not those of
+the selected digest". An oversized profile is refused by its size first, in
+preparation and in signing. Only a mismatch, reached after the whole read,
+says "read whole".
 
 In `record.py check`, a file refused for any reason is not compared: the
 fields it would have shown (the profile's facts, or the five identity fields)
-appear once, under the refusal (and under `not_established` when that is its
-kind), never as differences. Byte and inventory differences, such as the
+are omitted from differences. The refusal describes what failed, and for not
+established the affected paths are listed under `not_established`. Byte and inventory differences, such as the
 App's digests and inventory and the `Info.plist` digest, are still reported.
 
-A **binary property list is refused** for both files (not established): only
-an XML property list is read as a whole document. **The bundler writes XML**,
+A **binary property list is refused** (not established) when it is one of the
+XML reader's two inputs. **The bundler writes XML**,
 as its public source shows for the version the App pins. `app/package-lock.json`
 pins `@tauri-apps/cli` 2.11.1. At the tag `@tauri-apps/cli-v2.11.1` of
 `tauri-apps/tauri`, the CLI depends on the workspace's `tauri-bundler` 2.9.1
@@ -672,8 +677,9 @@ definite lengths and in the declared structure. What it is for decides what it
 claims: the identity facts come only from the property list in the envelope's
 content, and nothing authenticates the envelope. The claim is exactly this
 enforced list, each item with its tests in `app/tests/owner_release_test.py`
-(each case is run in `profile_consistency`, through the full injected signing
-run, and in `record.py check`):
+(each case of the shared `ENVELOPE_CASES` matrix is run in
+`profile_consistency`, through the full injected signing run, and in
+`record.py check`):
 
 1. The file is one definite-length element, of 1 byte to 256 KiB, with no
    byte after it. Cases `a byte after ContentInfo`, `the outer element with an
@@ -891,7 +897,8 @@ the record's must equal it; otherwise the result is not equal. A record whose
 standing is missing or not a known standing is refused as lacking a required
 field.
 
-It exits 0 when there is no difference, 1 when there are differences, and 2
-with a fixed message when it cannot read its inputs. It runs `codesign -d`,
+It exits 0 when there is no difference, 1 when there are differences or a
+failed observation reported in the result, and 2 with a fixed message when an
+input error prevents producing the comparison result. It runs `codesign -d`,
 `stapler validate` and `spctl --assess`, which only the owner or an examiner
 the owner authorises runs on the real package.

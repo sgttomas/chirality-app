@@ -292,7 +292,7 @@ class ReleaseBuild(unittest.TestCase):
                 self.assertTrue((self.candidate / 'INCOMPLETE.txt').exists())
 
     def test_a_mistyped_identity_field_is_reported_alone_and_each_wrong_value_apart(self):
-        """Review round 4, point 3: a field missing or of another type is reported alone; with all five strings, each
+        """Review round 4, point 3: a field missing or of another type is reported as the only Info.plist check; with all five strings, each
         value that is not the release's is reported under its own check."""
         cases = ((fx.info_plist(CFBundleIdentifier=1, CFBundleVersion=2), ['info_plist_identifier']),
                  (fx.info_plist(CFBundleIdentifier='invalid.example.other', CFBundleVersion='9.8.7'),

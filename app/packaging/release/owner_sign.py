@@ -5,10 +5,11 @@ profile are names of items already in the owner's keychain; no credential is
 an argument or an environment variable.
 
 Each step is verified before the next. Every observation goes through the one
-rule in observations.observe, whose output forms are declared as data. Any failure prints `STOP: <fixed reason>` (a reason
-from common.REASONS, naming the step and the observation), then one line for each file reader's refusal (fixed text and
-integers: the part, the kind, the field, the shape expected, what was found and, where the form has a position in
-the file, its byte offset), writes STOPPED.json if it has made its output folder, runs no later command and writes no success result. Nothing is installed.
+rule in observations.observe, whose output forms are declared as data. On a failure, independent observations of the
+same step and cleanup (a detach) may still run; then it prints `STOP: <fixed reason>` (a reason from common.REASONS,
+naming the step and the observation), then one line for each file reader's refusal (fixed text and integers: the part,
+the kind, the field, the shape expected, what was found and, where the form has a position in the file, its byte
+offset), attempts to write STOPPED.json when the output folder exists, and writes no success result. Nothing is installed.
 
 What is written, and where:
 - Returnable files (sent back): log.jsonl, the notarization summaries in
@@ -43,8 +44,8 @@ observation that was not made, that failed, or that is incomplete cannot come ou
 that drift and mistakes are caught. They are not a filesystem snapshot and are not built to withstand
 a writer changing the inputs during the run, nor someone with write access forging a record: a
 completion marker or a recorded digest is not authentication.
-The profile and Info.plist files are read by the one whole-document file reader
-(production_inputs/whole_plist.py): a value is returned only when the file is one XML property list
+The whole Info.plist, and the property list a profile's envelope holds as its content, are read by the one
+whole-document reader (production_inputs/whole_plist.py): a value is returned only when that input is one XML property list
 in the admitted form whose structure, read from its own bytes, accounts for every byte and agrees
 with plistlib's value. The profile's envelope (prepare.profile_envelope) is read for exactly the enforced list stated
 there (one definite-length element; the declared structure from the outside down to the content; every

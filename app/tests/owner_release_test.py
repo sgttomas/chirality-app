@@ -2133,7 +2133,7 @@ class RecordCheck(unittest.TestCase):
         self.assert_found('observed.signatures..', failed=('entitlements', 'debugging entitlement'))
         self.case.fake.app_entitlements_override = None
         (self.app / 'Contents/embedded.provisionprofile').write_bytes(fx.profile_bytes(team='OTHER00001', prefix='OTHER00001'))
-        # Review round 3, finding 6: a refused profile's fields are named once, under the refusal, and not compared.
+        # Review round 3, finding 6: a refused profile's fields are omitted from differences.
         result = self.assert_found('observed.app_as_signed.inventory', failed=('provisioning profile',))
         self.assertFalse([k for k in result['differences'] if k.startswith('observed.provisioning_profile')])
         [refusal] = result['refusals']
@@ -2253,8 +2253,8 @@ class RecordCheck(unittest.TestCase):
 
     def test_review_3_finding_6_a_refused_identity_is_not_compared(self):
         """Only CFBundleExecutable mistyped: the other identity fields were reported as differing, because the refusal
-        replaced the whole identity with empty values. A refused file's fields are now named once, under the refusal;
-        byte and inventory differences stay."""
+        replaced the whole identity with empty values. A refused file's identity fields are now omitted from
+        differences; byte and inventory differences stay."""
         identity = ['observed.bundle.' + key for key in ('identifier', 'version', 'bundle_version', 'minimum_system_version', 'executable')]
         (self.app / 'Contents/Info.plist').write_bytes(info_with(CFBundleExecutable=5))
         code, result = self.check_main()

@@ -20,7 +20,7 @@ def load_module(name, path):
 
 inventory = load_module('production_input_inventory', 'app/packaging/inventory.py')
 files = load_module('production_input_files', 'app/packaging/static_distribution/check.py')
-# The one reader of a property-list file whose value is the whole document (the profile here; Info.plist in release/).
+# The one reader of a property-list document whose value is the whole document (here the profile's envelope content).
 whole_plist = load_module('production_input_whole_plist', 'app/packaging/production_inputs/whole_plist.py')
 sha, parse, require = files.sha, files.parse, files.require
 
@@ -353,7 +353,7 @@ def _reader(raw, parent, names, rest):
 
 
 def profile_envelope(raw):
-    """(content, offset): the bytes of the one property list the envelope defines as its content, and where they start.
+    """(content, offset): the bytes of the encapsulated OCTET STRING, and where they start.
 
     The content extractor of the enforced list in the comment above. Its first act: `raw` above PROFILE_LIMIT (or empty)
     is refused by name, before any element is read. Raises whole_plist.Refused (a ValueError) naming a real field, the shape or encoding expected, and what was
@@ -435,7 +435,7 @@ def profile_envelope(raw):
 
 
 def profile_content(raw):
-    """The bytes of the profile's one encapsulated property list (profile_envelope); no signature/authentication check."""
+    """The bytes of the profile's encapsulated OCTET STRING (profile_envelope); no signature/authentication check."""
     return profile_envelope(raw)[0]
 
 

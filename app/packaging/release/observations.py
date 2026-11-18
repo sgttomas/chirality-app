@@ -412,7 +412,7 @@ OWNER_REASONS = {
     'S12_EXEC': 'step 12: the mounted App\'s Gatekeeper assessment is not an observation of acceptance from Notarized Developer ID (' + NOT_AN_OBSERVATION + ')',
     'S12_DETACH': 'step 12: the disk image did not detach; detach it with hdiutil detach',
     'S13_ATTACH': 'step 13: the disk image did not mount read-only for the record',
-    'S13_OBSERVATION': ('step 13: an observation the record states failed or could not be made; each is named in STOPPED.json, '
+    'S13_OBSERVATION': ('step 13: an observation the record states failed or could not be made; each is named in STOPPED.json when written, '
                         'and a file reader\'s refusal also on the lines below; no record was written'),
     'S13_DETACH': 'step 13: the disk image did not detach; no record was written; detach it with hdiutil detach',
     'GUARD_SIGNING': 'guard: a signing call other than the one on the App and the one on the disk image was refused',

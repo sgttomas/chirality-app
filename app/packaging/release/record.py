@@ -38,8 +38,8 @@ observation that was not made, that failed, or that is incomplete cannot come ou
 that drift and mistakes are caught. They are not a filesystem snapshot and are not built to withstand
 a writer changing the inputs during the run, nor someone with write access forging a record: a
 completion marker or a recorded digest is not authentication.
-The profile and Info.plist files are read by the one whole-document file reader
-(production_inputs/whole_plist.py): a value is returned only when the file is one XML property list
+The whole Info.plist, and the property list a profile's envelope holds as its content, are read by the one
+whole-document reader (production_inputs/whole_plist.py): a value is returned only when that input is one XML property list
 in the admitted form whose structure, read from its own bytes, accounts for every byte and agrees
 with plistlib's value. The profile's envelope (prepare.profile_envelope) is read for exactly the enforced list stated
 there (one definite-length element; the declared structure from the outside down to the content; every
@@ -526,8 +526,8 @@ def check(record, *, dmg, app, run, record_dir, candidate_dir=None):
     # An observation not made (a file in a form the reader does not read) is not compared: it is neither a difference
     # nor agreement, and it is named as not established.
     unmade = [path for f in failures for path in NOT_ESTABLISHED.get(f['observation'], [])]
-    # A file refused for any reason (named with its detail) is not compared either: its fields appear once, under the
-    # refusal, never as differences. Byte and inventory differences (the App's digests and inventory, the Info.plist's
+    # A file refused for any reason (named with its detail) is not compared either: its fields are omitted from
+    # differences; the refusal describes what failed. Byte and inventory differences (the App's digests and inventory, the Info.plist's
     # digest) are still compared.
     uncompared = unmade + [path for f in failures if 'detail' in f for path in NOT_COMPARED.get(f['observation'], [])]
     found += [d for d in differences(record['observed'], facts, ('observed',))
