@@ -6,7 +6,8 @@ an argument or an environment variable.
 
 Each step is verified before the next. Every observation goes through the one
 rule in observations.observe, whose output forms are declared as data. Any failure prints `STOP: <fixed reason>` (a reason
-from common.REASONS, naming the step and the observation), writes STOPPED.json,
+from common.REASONS, naming the step and the observation), then one line for each file reader's refusal (fixed text and
+integers: the part, the kind, the field, the shape expected, what was found and the byte), writes STOPPED.json,
 runs no later command and writes no success result. Nothing is installed.
 
 What is written, and where:
@@ -44,8 +45,13 @@ a writer changing the inputs during the run, nor someone with write access forgi
 completion marker or a recorded digest is not authentication.
 The profile and Info.plist files are read by the one whole-document file reader
 (production_inputs/whole_plist.py): a value is returned only when the file is one XML property list
-whose structure, read from its own bytes, accounts for every byte and agrees with plistlib's value;
-a binary property list is refused. The profile's envelope is not authenticated.
+in the admitted form whose structure, read from its own bytes, accounts for every byte and agrees
+with plistlib's value. The profile's envelope (prepare.profile_envelope) is walked as definite-length
+DER through every element, with each SignedData field's declared outer shape; it is not interpreted
+beyond that and not authenticated. A refusal names the part, the kind, the field, the shape expected,
+what was found and the byte, in fixed text and integers. A form the standard allows that the reader
+does not read is "not established" (never a mismatch, never agreement); a form it does not allow, or a
+field not of its declared shape, is malformed.
 Line-form output is decoded with UTF-8 replacement, blank lines omitted and trailing whitespace stripped.
 """
 import argparse
@@ -283,6 +289,9 @@ def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None
     team = refusals(args, environ, host)
     try:
         candidate, candidate_app, binding, requirement = common.load_candidate(args.candidate)
+    except common.Refused as refused:  # the candidate's Info.plist, read by the one whole-document reader
+        code = 'REFUSED_INFO_PLIST_NOT_ESTABLISHED' if refused.kind == 'unsupported' else 'REFUSED_INFO_PLIST_MALFORMED'
+        raise Failure(code, refusals=[refused.detail()])
     except (ValueError, OSError, KeyError):
         raise Failure('REFUSED_CANDIDATE')
     check(binding['developer_id_team_identifier'] == team, 'REFUSED_TEAM')
@@ -353,6 +362,10 @@ def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None
     selected = {'developer_id_team_identifier': team, 'production_bundle_identifier': binding['production_bundle_identifier']}
     try:
         profile = prepare.profile_consistency(profile_raw, args.profile_sha256, selected, now=now)
+    except common.Refused as refused:
+        # A form the reader does not read is not established (never a mismatch); malformed and mismatch are named apart.
+        code = {'unsupported': 'S2_PROFILE_NOT_ESTABLISHED', 'malformed': 'S2_PROFILE_MALFORMED', 'mismatch': 'S2_PROFILE'}[refused.kind]
+        raise Failure(code, refusals=[refused.detail()])
     except ValueError:
         raise Failure('S2_PROFILE')
     destination = app / 'Contents/embedded.provisionprofile'
@@ -557,12 +570,16 @@ def main(argv=None, *, stdout=None, stderr=None, **kw):
         else:
             stop = Failure('REFUSED_UNREADABLE' if step is None else f'S{step}_UNEXPECTED')
         print('STOP: ' + stop.reason, file=stderr)
+        # Each refusal of a file reader, and each failed observation that carries one: fixed text and integers only.
+        refusals = list(stop.refusals) + [f['detail'] for f in getattr(stop, 'failures', []) if 'detail' in f]
+        for detail in refusals:
+            print('  ' + common.describe(detail), file=stderr)
         if not existed and out.is_dir():
             try:
                 if not isinstance(error, Failure):
                     private(out).write('trace', ''.join(traceback.format_exception(error)))
                 value = {'result': 'stopped', 'step': step, 'reason_code': stop.code, 'reason': stop.reason,
-                         'failed_observations': getattr(stop, 'failures', []),
+                         'failed_observations': getattr(stop, 'failures', []), 'refusals': list(stop.refusals),
                          'private_folder': common.PRIVATE_FOLDER}  # named only; never opened or examined
                 common.write_returnable(out / 'STOPPED.json', value, out, set())
             except BaseException:

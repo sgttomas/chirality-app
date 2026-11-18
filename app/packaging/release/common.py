@@ -133,11 +133,12 @@ class FixedParser(__import__('argparse').ArgumentParser):
 class Failure(Exception):
     """A failure with a code from REASONS; its text is the fixed reason and nothing else."""
 
-    def __init__(self, code, detail=None):
+    def __init__(self, code, detail=None, refusals=()):
         require(code in REASONS, 'unlisted failure reason')
         super().__init__(REASONS[code])
         # `detail` holds only shaped values the caller constructed; it goes to the returnable failure description.
-        self.code, self.reason, self.detail = code, REASONS[code], detail
+        # `refusals` are file readers' refusal details (fixed text and integers): what was refused, where and why.
+        self.code, self.reason, self.detail, self.refusals = code, REASONS[code], detail, list(refusals)
 
 
 def check(condition, code):
@@ -173,6 +174,9 @@ VOCABULARY = set(REASONS.values()) | STATUS_WORDS | AUTHORITY_KINDS | {
     'limitations copy in the bundle: absent', 'limitations copy in the disk_image: absent', 'publisher-build-selection.s1 generated from the source keychain selection', 'supplied publisher input file',
     CANDIDATE_FORMAT, *STANDINGS.values(),
 }
+# The file readers' refusals: fixed text from their closed lists (production_inputs/whole_plist.py and prepare.py).
+Refused, describe = prepare.whole_plist.Refused, prepare.whole_plist.describe
+VOCABULARY.update(prepare.whole_plist.vocabulary())
 
 
 MAX_LENGTH = 1024  # every string field, paths and identifiers included, is bounded
@@ -325,10 +329,16 @@ def read_info_plist(app):
 
     The one whole-document file reader (production_inputs/whole_plist.load) reads it: an XML property list only (a
     binary one is refused), whose structure read from its own bytes accounts for every byte and agrees with plistlib's
-    value. Anything else raises ValueError (whole_plist.NotWhole names what was left over)."""
+    value. Anything else raises common.Refused (a ValueError) naming the part 'Info.plist', the kind (malformed, or a
+    form this reader does not read), the field, the shape expected, what was found and the byte where."""
     raw = (Path(app) / 'Contents/Info.plist').read_bytes()
-    value = prepare.whole_plist.load(raw)
-    require(isinstance(value, dict), 'Info.plist is not a dictionary')
+    try:
+        value = prepare.whole_plist.load(raw)
+    except Refused as refused:
+        raise refused.moved('Info.plist') from None
+    if not isinstance(value, dict):
+        raise Refused('Info.plist is not a dictionary', part='Info.plist', kind='malformed', field='plist',
+                      expected='a dictionary under plist', found=prepare.NOT_A_DICTIONARY)
     return raw, value
 
 

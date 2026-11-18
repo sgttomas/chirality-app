@@ -64,7 +64,7 @@ WRITABLE_ENVIRONMENT = ('HOME', 'TMPDIR', 'CARGO_HOME', 'CARGO_TARGET_DIR', 'COD
                         'NPM_CONFIG_GLOBALCONFIG', 'RUSTUP_HOME', 'NPM_CONFIG_PREFIX', 'NPM_CONFIG_LOGS_DIR')
 INSTALL_ARGV = ['npm', 'ci', '--offline', '--ignore-scripts', '--no-audit', '--no-fund']
 CARGO_CACHE_REFUSED = ('config', 'config.toml', 'credentials', 'credentials.toml', 'env')
-CHECKS = ['info_plist_whole', 'info_plist_identifier', 'info_plist_version', 'info_plist_bundle_version', 'info_plist_minimum_system_version',
+CHECKS = ['info_plist_whole', 'info_plist_not_read', 'info_plist_identifier', 'info_plist_version', 'info_plist_bundle_version', 'info_plist_minimum_system_version',
           'info_plist_executable', 'dyld_validate', 'executable_signature', 'already_signed', 'vendor_tree', 'resource',
           'publisher_binding', 'limitations']
 common.VOCABULARY.update(CHECKS)
@@ -204,14 +204,16 @@ def bundle_errors(app, plan, vendor, source_root, runner, env, private):
     """Every post-build check; returns (facts, errors). Errors are named checks with an optional relative path."""
     errors, facts = [], {}
     preflight_tree(app)
-    def error(name, path=None):
-        errors.append({'check': name, 'path': path})
+    def error(name, path=None, detail=None):
+        errors.append({'check': name, 'path': path, **({'detail': detail} if detail is not None else {})})
     try:
         info_raw, info = common.read_info_plist(app)  # the one whole-document reader
-    except ValueError:
-        # Not one XML property list whose value is the whole document: no identity field is read from part of it.
+    except common.Refused as refused:
+        # Not one XML property list whose value is the whole document, in the admitted form: no identity field is read
+        # from part of it. A form the reader does not read is named apart from a malformed file; the detail names the
+        # field, the shape expected, what was found and the byte where (fixed text and integers only).
         info_raw, info = read_input(app / 'Contents/Info.plist'), {}
-        error('info_plist_whole')
+        error('info_plist_not_read' if refused.kind == 'unsupported' else 'info_plist_whole', detail=refused.detail())
     else:
         for name in common.release_identity_errors(info):
             error(name)
