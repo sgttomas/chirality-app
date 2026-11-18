@@ -19,7 +19,7 @@
  "inputs_sha256": {
   "app/packaging/font_notice/index.json": "ad2b50d268aa1df4c856a9cb446cd0fb6821deed4a65e4214c6d5f0df69ac03f",
   "app/packaging/notices/coverage-inputs.json": "c69574536b96438ef7660ac65ae5998369023b5354813a6bdf8d354a0b682871",
-  "app/packaging/notices/coverage-review.json": "ad134d108fa46ed4c2591ae3ba620c874d11a9c6db8df529d6c7c2d185d43576",
+  "app/packaging/notices/coverage-review.json": "7bb3412d226cc8c07df455f87d2e026c5463951c1ec08ef8a38757c656858327",
   "app/packaging/notices/index.json": "fbf873b839b167d5347b233a7d019df4d053809e8dc9e31968e04b4e6cf46ac4",
   "app/packaging/notices/transitive-index.json": "557c17f96f1a82982d0933a5c0ea570f000db17dad4278d67b16fd63379ed517",
   "app/packaging/sqlite_notice/index.json": "cfbe3f95ea753d14f7d50a4f55d0263693726a30f4847e5430ccadf4d943fc3b",
@@ -9951,7 +9951,11 @@
           "target": "cfg(target_os = \"linux\")",
           "kind": "normal"
          }
-        ]
+        ],
+        "inherited_dependencies": {
+         "rule": "registry manifest",
+         "basis": "a published Cargo.toml has no workspace inheritance; every declaration is explicit"
+        }
        }
       ]
      }
@@ -9972,7 +9976,11 @@
           "target": "cfg(target_os = \"android\")",
           "kind": "normal"
          }
-        ]
+        ],
+        "inherited_dependencies": {
+         "rule": "registry manifest",
+         "basis": "a published Cargo.toml has no workspace inheritance; every declaration is explicit"
+        }
        }
       ]
      }
@@ -9993,7 +10001,12 @@
           "target": "cfg(target_os = \"linux\")",
           "kind": "dev"
          }
-        ]
+        ],
+        "inherited_dependencies": {
+         "rule": "i",
+         "basis": "every inherited dependency sits under a condition false for aarch64-apple-darwin",
+         "inherited_keys": 23
+        }
        }
       ]
      }
@@ -10014,7 +10027,11 @@
           "target": "i686-pc-windows-gnu",
           "kind": "normal"
          }
-        ]
+        ],
+        "inherited_dependencies": {
+         "rule": "registry manifest",
+         "basis": "a published Cargo.toml has no workspace inheritance; every declaration is explicit"
+        }
        }
       ]
      }
@@ -10035,7 +10052,11 @@
           "target": "x86_64-pc-windows-gnu",
           "kind": "normal"
          }
-        ]
+        ],
+        "inherited_dependencies": {
+         "rule": "registry manifest",
+         "basis": "a published Cargo.toml has no workspace inheritance; every declaration is explicit"
+        }
        }
       ]
      }
@@ -10056,7 +10077,14 @@
           "target": "cfg(windows)",
           "kind": "normal"
          }
-        ]
+        ],
+        "inherited_dependencies": {
+         "rule": "ii",
+         "basis": "the inherited keys equal in number the lockfile dependencies the manifest does not name explicitly, so none resolves to winsplit",
+         "lockfile_dependencies": 126,
+         "explicit_names": 8,
+         "inherited_keys": 118
+        }
        }
       ]
      }
@@ -12220,8 +12248,8 @@
     {
      "repository_path": "app/packaging/supplier_notices/crates/packages.json",
      "package_path": "third-party-notices/supplier/crates/packages.json",
-     "size_bytes": 1126806,
-     "sha256": "b2e4acd22df7ac9e90fd43c5aa6c35b79433eced2251e306590b319e1667bf8c"
+     "size_bytes": 1128066,
+     "sha256": "ae0a836237c785ffb068b6f02ddd01a7e4df326425cff19901d46d4e24ce6a2e"
     }
    ],
    "standing": "covered",
