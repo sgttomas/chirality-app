@@ -575,3 +575,45 @@ An entry is added in the same pull request that makes the limitation standing.
   no answer to Codex and is a different operation.
 - **Basis:** DEL-01-02 AC-001 and DEL-01-04 REQ-001 / AC-001; the pinned
   supplier's level fixtures and the request card's no-decline warning.
+
+### LIM-035: The records store must be where only your account can write
+
+- **Id:** LIM-035
+- **Exit criteria:** 4, 15
+- **What is unavailable:** protection of the App's records index against
+  another account on this Mac that can create, rename or remove entries in the
+  records store's folder or in a folder above it. To answer questions about a
+  project's records, the App keeps an index of them: a file it makes afresh
+  each time it runs, in the `indexes` folder inside the records store. The
+  index holds where each record is, not the records. The App checks the
+  folder before it makes the file and checks the store again afterwards, but
+  it finds the file by its name each time. Another account that can change
+  names there at the right moment can:
+  - put contents of its own in place of the index, so that the App overlooks
+    a record. A run you reopened after restarting the App could then show a
+    checkpoint as waiting for your act when your act is already on record;
+  - have the App, with your account's access, write its index into a file put
+    at the index's name, or remove a file put there, including in a folder
+    that the other account cannot itself write.
+
+  The records themselves are not rewritten by this. A program running under
+  your own account gains nothing here that it does not already have
+  (LIM-022).
+- **Why:** the App reaches the index through its path and does not keep the
+  folder held between those steps. Keeping the index in memory would close
+  this, at a cost in memory that has not been measured; it is not in this
+  release.
+- **What the person does instead:** keep the records store where only your
+  account can write. The App's own place for it, in the App's folder in your
+  Library, is such a place on a Mac set up in the ordinary way. If you choose
+  another place, do not choose a shared folder, a folder that another account
+  can write or whose parent folders another account can write, or a disk that
+  does not keep macOS permissions. The App does not check who else can write
+  where you place the store.
+- **Basis:** DEL-04-03 (the records store and its placement) and DEL-01-04
+  (the act-record projection of a reopened run). Read from the App's code
+  (`records_query.rs`, `records_index.rs`, `records_store.rs`), not shown by a
+  test: no substitution was carried out. The App makes the store's folder and
+  its `indexes` folder without setting their permissions, so they take
+  macOS's ordinary setting for a new folder, which lets only the owning
+  account write in them.
