@@ -207,6 +207,7 @@ checks:
 - app/tests/file-act-panel.test.mjs
 - app/src-tauri/src/file_act_lapse_tests.rs
 - app/src-tauri/tests/explicit_context.rs
+- app/src-tauri/tests/attachment_integration.rs
 - app/src-tauri/src/conversation_roles_tests.rs
 - app/src-tauri/src/conversation_handoff_send_tests.rs
 - app/src-tauri/src/hosting_handoff_send_tests.rs

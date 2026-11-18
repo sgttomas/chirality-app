@@ -2060,13 +2060,38 @@ pub fn select_attachment_source(
     revision: u64,
     pick: impl FnOnce() -> Result<Option<std::path::PathBuf>, String>,
 ) -> Result<Value, String> {
-    {
+    select_attachment_source_starting_in(state, owner, revision, |_| pick())
+}
+
+/// The folder the native panel starts in: the project this attachment list's
+/// turns are sent in (the launch's admitted project, from which every
+/// submission's App project context is also frozen), and only while it is an
+/// existing directory. `None` leaves the panel's own default. It never limits
+/// where the person goes or what they select, and is no authority over a path.
+fn attachment_panel_starting_folder(
+    project: Option<std::path::PathBuf>,
+) -> Option<std::path::PathBuf> {
+    project.filter(|folder| std::fs::metadata(folder).is_ok_and(|meta| meta.is_dir()))
+}
+
+/// As [`select_attachment_source`], giving `pick` the folder the panel should
+/// start in when one is known (see [`attachment_panel_starting_folder`]). The
+/// owner/revision admission and every check after the panel are unchanged.
+pub fn select_attachment_source_starting_in(
+    state: &std::sync::Mutex<Result<AttachmentSelectionSession, String>>,
+    owner: &str,
+    revision: u64,
+    pick: impl FnOnce(Option<&std::path::Path>) -> Result<Option<std::path::PathBuf>, String>,
+) -> Result<Value, String> {
+    let project = {
         let mut state = state.lock().unwrap();
         let session = state.as_mut().map_err(|error| error.clone())?;
         session.check(owner, revision)?;
         session.operation = json!({"state":"selecting"});
-    }
-    let path = match pick() {
+        session.launch_workspace.clone()
+    };
+    let starting_folder = attachment_panel_starting_folder(project);
+    let path = match pick(starting_folder.as_deref()) {
         Ok(Some(path)) => path,
         Ok(None) => {
             let mut state = state.lock().unwrap();

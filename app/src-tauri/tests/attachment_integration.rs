@@ -5,7 +5,8 @@ mod common;
 use chirality_app_v4_lib::{
     attachments,
     runtime_session::{
-        reconfirm_attachment_source, select_attachment_source, AttachmentSelectionSession,
+        reconfirm_attachment_source, select_attachment_source,
+        select_attachment_source_starting_in, AttachmentSelectionSession,
     },
 };
 use common::ScratchDirectory;
@@ -282,4 +283,111 @@ fn explicit_project_absence_and_access_choice_never_inherit_cwd_home_or_canonica
         known.canonical_record().unwrap()["project"],
         project.to_str().unwrap()
     );
+}
+
+/// The folder the panel is asked to start in for one selection, and the view
+/// that selection returns. The panel itself is the injected callback.
+fn starting_folder_asked(
+    state: &Mutex<Result<AttachmentSelectionSession, String>>,
+    chosen: PathBuf,
+) -> (Option<PathBuf>, Value) {
+    let current = view(state);
+    let mut asked = None;
+    let mut calls = 0;
+    let selected = select_attachment_source_starting_in(
+        state,
+        current["ownerRef"].as_str().unwrap(),
+        current["listRevision"].as_u64().unwrap(),
+        |start| {
+            calls += 1;
+            asked = start.map(Path::to_path_buf);
+            Ok(Some(chosen))
+        },
+    )
+    .unwrap();
+    assert_eq!(calls, 1, "the panel opens exactly once, whatever the start");
+    (asked, selected)
+}
+
+#[test]
+fn attachment_panel_starts_in_the_known_project_folder_and_otherwise_opens_as_before() {
+    let ws = ScratchDirectory::new("attachment-panel-start");
+    let project = ws.join("invented project P");
+    let elsewhere = ws.join("invented folder outside P");
+    std::fs::create_dir(&project).unwrap();
+    std::fs::create_dir(&elsewhere).unwrap();
+
+    // Known project folder: the panel is asked to start there, and the person
+    // may still select a file anywhere (here outside the project).
+    let session = state(Some(project.clone()));
+    let outside = file(&elsewhere, "outside.txt", b"outside");
+    let (asked, selected) = starting_folder_asked(&session, outside.clone());
+    assert_eq!(asked.as_deref(), Some(project.as_path()));
+    assert_eq!(selected["operation"]["state"], "selected-not-sent");
+    assert_eq!(selected["listRevision"], 1);
+    // The last selected source lies elsewhere; the next panel still starts in
+    // the project the attachments are for, not where the last file came from.
+    let (asked, selected) = starting_folder_asked(&session, file(&project, "inside.txt", b"in"));
+    assert_eq!(asked.as_deref(), Some(project.as_path()));
+    assert_eq!(selected["selections"].as_array().unwrap().len(), 2);
+
+    // Unknown project: no starting folder, the selection proceeds as before.
+    let session = state(None);
+    let (asked, selected) = starting_folder_asked(&session, outside.clone());
+    assert_eq!(asked, None);
+    assert_eq!(selected["operation"]["state"], "selected-not-sent");
+
+    // Project folder no longer exists: no starting folder, no refusal.
+    let vanished = ws.join("invented project removed");
+    std::fs::create_dir(&vanished).unwrap();
+    let session = state(Some(vanished.clone()));
+    std::fs::remove_dir(&vanished).unwrap();
+    let (asked, selected) = starting_folder_asked(&session, outside.clone());
+    assert_eq!(asked, None);
+    assert_eq!(selected["operation"]["state"], "selected-not-sent");
+
+    // Project path is now a file, not a folder: no starting folder, no refusal.
+    let not_folder = file(&ws, "invented project now a file", b"not a folder");
+    let session = state(Some(not_folder));
+    let (asked, selected) = starting_folder_asked(&session, outside);
+    assert_eq!(asked, None);
+    assert_eq!(selected["operation"]["state"], "selected-not-sent");
+}
+
+#[test]
+fn attachment_panel_starting_folder_leaves_owner_revision_admission_and_holds_unchanged() {
+    let ws = ScratchDirectory::new("attachment-panel-start-custody");
+    let project = ws.join("invented project P");
+    std::fs::create_dir(&project).unwrap();
+    let session = state(Some(project.clone()));
+    let original = add(&session, file(&project, "good.txt", b"good"));
+    let owner = original["ownerRef"].as_str().unwrap();
+    // A stale revision or a foreign owner is refused before any panel opens.
+    for (who, revision) in [(owner, 0), ("attachment-owner:foreign", 1)] {
+        assert!(select_attachment_source_starting_in(&session, who, revision, |_| panic!(
+            "refused selection must not open the panel"
+        ))
+        .is_err());
+    }
+    // A selection already in progress refuses a second panel.
+    let cancelled = select_attachment_source_starting_in(&session, owner, 1, |start| {
+        assert_eq!(start, Some(project.as_path()));
+        assert!(select_attachment_source_starting_in(&session, owner, 1, |_| panic!(
+            "reentrant panel must not open"
+        ))
+        .is_err());
+        Ok(None)
+    })
+    .unwrap();
+    assert_eq!(cancelled["operation"]["state"], "cancelled");
+    assert_eq!(cancelled["selections"], original["selections"]);
+    // A file the checks after the panel hold is still held.
+    let held = select_attachment_source_starting_in(&session, owner, 1, |start| {
+        assert_eq!(start, Some(project.as_path()));
+        Ok(Some(file(&project, "nul.txt", b"a\0b")))
+    })
+    .unwrap();
+    assert_eq!(held["operation"]["state"], "held");
+    assert_eq!(held["selections"], original["selections"]);
+    assert_eq!(held["listRevision"], 1);
 }
