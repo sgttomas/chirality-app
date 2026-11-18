@@ -927,8 +927,9 @@ for line in sys.stdin:
         assert!(kinds(&rows).contains(&"stop_request SR-08 quit".to_owned()));
     }
 
-    /// AS-10: an exit with no decided quit (macOS `terminate:`, logout) writes
-    /// `session_ended` *system-terminated* and no quit records.
+    /// AS-10: an exit with no decided quit (an unhandled termination; this
+    /// calls `finish_exit` directly) writes `session_ended` *system-terminated*
+    /// and no quit records.
     #[test]
     fn real_host_exit_without_a_decided_quit_is_system_terminated() {
         let f = Fixture::with_ledger();

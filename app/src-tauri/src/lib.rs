@@ -1610,8 +1610,9 @@ fn codex_stop(window: tauri::Window, state: State<'_, AppState>, generation: Val
 
 /// The App's own Quit menu item (K-4), which runs the quit path directly.
 /// The predefined Quit item would send `terminate:`; on macOS that request
-/// (also from the Dock and the app switcher) reaches the same path only
-/// through the delegate method `quit_routes_macos` installs at startup.
+/// (also from the Dock and the app switcher) is declined by the delegate
+/// method `quit_routes_macos` installs at startup, which starts this same
+/// quit path instead, where the method is installed and AppKit calls it.
 const QUIT_MENU_ID: &str = "chirality-quit";
 /// Tauri's default menu with its predefined Quit replaced by the App's own,
 /// at the same place and with the same shortcut.
@@ -1691,13 +1692,12 @@ fn show_main_window(app: &tauri::AppHandle) {
 /// K-4 / SQ-Q: the person chose Quit. Runs off the main thread (the native
 /// question blocks); one question at a time; the web view takes no part.
 fn request_quit(app: tauri::AppHandle) {
-    request_quit_with(app, None);
+    request_quit_with(app, app_quit::QuitRoute::Person);
 }
-/// The one quit path (`app_quit::run_quit`), on its own thread. `reply` is
-/// owed only to a macOS "later" answer to the system's request to terminate
-/// (`quit_routes_macos`). Spawning is the last thing this does, so nothing
-/// after the spawn can unwind into that answer.
-fn request_quit_with(app: tauri::AppHandle, reply: Option<app_quit::TerminationReply>) {
+/// The one quit path (`app_quit::run_quit`), on its own thread. The route
+/// differs only after a decided quit: a person's Quit asks for the exit
+/// again, the system's request asks for nothing (`QuitEnding::exits`).
+fn request_quit_with(app: tauri::AppHandle, route: app_quit::QuitRoute) {
     // The menu has no IPC invoker. Retain the configured App window now; never
     // select a focused/first/replacement window after the question is prepared.
     let question_window = app.get_webview_window("main").map(|window| window.as_ref().window().clone());
@@ -1711,8 +1711,8 @@ fn request_quit_with(app: tauri::AppHandle, reply: Option<app_quit::TerminationR
         let ops = || {
             // A poisoned homes lock is read, not refused: a quit must stay
             // possible after a panic elsewhere, and it only reads the set.
-            let homes = state.homes.lock().unwrap_or_else(std::sync::PoisonError::into_inner).entries();
-            let active = state.homes.lock().unwrap_or_else(std::sync::PoisonError::into_inner).active();
+            // Read through poison (`app_quit::read_roster` says why).
+            let (homes, active) = app_quit::read_roster(&state.homes);
             let person = stop_person(&state, &active);
             let retained_question_window = question_window.clone();
             app_quit::HostQuit::new(homes, &state.workflows, &person, move |view: &Value| {
@@ -1724,11 +1724,9 @@ fn request_quit_with(app: tauri::AppHandle, reply: Option<app_quit::TerminationR
                 native_lifecycle_confirmation::confirm(window, "Quit Chirality", ns::quit_statement(view), ns::KEEP_RUNNING, ns::QUIT_APP)
             })
         };
-        // A panic in here drops `reply`, which answers no.
-        app_quit::run_quit(gates, reply, app_quit::QUIT_WAIT_LIMIT, ops, tell, || app.exit(0));
+        app_quit::run_quit(gates, route, app_quit::QUIT_WAIT_LIMIT, ops, tell, || app.exit(0));
     });
-    // A quit thread that cannot start leaves the App running; an owed reply
-    // was dropped with the closure and answered no.
+    // A quit thread that cannot start leaves the App running.
     if let Err(error) = spawned {
         app_quit::diagnostic(&format!("the quit could not be started ({error}); the App keeps running"));
     }
@@ -3519,8 +3517,9 @@ pub fn run() {
     let (state, home) = freeze_startup_state(launch, desktop.clone(), compiled_development_selection::observe_startup(|| resources.clone()));
     let host = Arc::clone(&home.host);
             app.manage(state);
-            // K-4: the system's request to quit (Dock, app switcher, logout,
-            // shutdown) asks as Quit does. The delegate exists: setup runs from it.
+            // K-4: on macOS, add the method that declines the system's request
+            // to quit and starts the App's own quit path. The delegate exists:
+            // setup runs from it.
             #[cfg(target_os = "macos")]
             quit_routes_macos::install(app.handle());
             // BUNDLED-RUN-01: the only bundle root an LS-5 selection may come from.
@@ -3698,28 +3697,34 @@ pub fn run() {
             // re-reads the host's snapshot.
             #[cfg(target_os = "macos")]
             tauri::RunEvent::Reopen { .. } => show_main_window(app),
-            // Q-6, Q-7 (AS-08, AS-09) after a decided quit, whether the App
-            // ends by `app.exit(0)` or, on macOS, by the system's terminate
-            // (a yes to a "later", or "now" once a quit is decided). If both
-            // are in flight this still runs once: tao delivers `LoopDestroyed`
-            // (this `Exit`) only from `AppState::exit`, which takes the event
-            // loop's callback after delivering it, so a second
-            // `AppState::exit` (from `applicationWillTerminate:` or after
-            // `[NSApp run]` returns) finds no callback and delivers nothing.
-            // AS-10 when this runs without a decided quit (a `terminate:` the
-            // App did not answer: its delegate method not installed, or the
-            // library's class already answering). An abrupt end (Force Quit,
-            // an unhandled fatal signal, power loss) never reaches here and
-            // writes nothing; the next launch reads ended without a record.
+            // Q-6, Q-7 (AS-08, AS-09) after a decided quit, which ends the App
+            // only by `app.exit(0)`: on macOS the system's request to quit is
+            // always declined (`quit_routes_macos`). `app.exit(0)` sends Wry's
+            // `RequestExit`; `ExitRequested` is allowed for a decided quit;
+            // tao's loop then stops `NSApp` and, when `[NSApp run]` returns,
+            // `AppState::exit` delivers `LoopDestroyed` (this `Exit`), takes
+            // the callback and the process exits. A second allowed exit
+            // request (a person's Quit after the decision, or the last window
+            // going away) sets the same exit flow, and a later serial
+            // `AppState::exit` has no callback to notify, so this runs once.
+            // If this runs without a decided quit, it attempts the limited
+            // `system-terminated` record (AS-10) before best-effort cleanup;
+            // a termination that bypasses the installed hook can reach that
+            // path. Force Quit, an unhandled fatal signal or power loss runs
+            // no such handler and adds no end record.
             tauri::RunEvent::Exit => {
                 let st: State<'_, AppState> = app.state();
-                let homes = st.homes.lock().unwrap().entries();
+                // After a decided quit, the roster that quit settled; otherwise
+                // the router read through poison (as the quit reads it). On
+                // macOS this can run inside tao's `extern "C"`
+                // `applicationWillTerminate:`, where a panic aborts.
+                let homes = st.app_quit.exit_roster(|| app_quit::read_roster(&st.homes).0);
                 // Ordinary Quit already settled processes and recorded its end
                 // before permission to exit. Only an unapproved/system exit
                 // takes the limited AS-10 best-effort path here.
                 if st.app_quit.proceeding().is_none() {
                     if let Err(error) = app_quit::finish_exit(&homes, None) {
-                        eprintln!("chirality: system termination observation unavailable: {error}");
+                        app_quit::diagnostic(&format!("system termination observation unavailable: {error}"));
                     }
                 }
                 // DEL-06-01: this session's observation of each child it recorded ends with it.

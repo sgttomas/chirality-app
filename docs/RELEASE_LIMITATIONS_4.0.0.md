@@ -575,3 +575,31 @@ An entry is added in the same pull request that makes the limitation standing.
   no answer to Codex and is a different operation.
 - **Basis:** DEL-01-02 AC-001 and DEL-01-04 REQ-001 / AC-001; the pinned
   supplier's level fixtures and the request card's no-decline warning.
+
+### LIM-036: A logout, restart or shutdown does not quit the App for you
+
+- **Id:** LIM-036
+- **Exit criteria:** 4
+- **What is unavailable:** having the App quit as part of logging out,
+  restarting or shutting down the Mac. When macOS asks the App to quit, as it
+  does for those and for Quit in the Dock and Command-Tab then Q, the App
+  declines that request and starts its own quit, the same one as Quit in its
+  menu: it asks you first if work is live, stops its Codex processes, attempts
+  to record the end of the session and then quits by itself. It declines every
+  such request, also when nothing is live. While its quit question is open or
+  its quit is under way, a further request from macOS is declined and starts
+  nothing. What macOS shows, and what becomes of a logout, restart or shutdown
+  after the App declines, has not been observed.
+- **Why:** the App ends only after it has asked about live work and stopped
+  what it started, and it does not make macOS wait for that. Making macOS wait
+  for the App's answer was built and could not be made sound in review, nor
+  observed.
+- **What the person does instead:** quit the App before logging out,
+  restarting or shutting down. If you did not, the App quits by itself after
+  you confirm its question, or without one if nothing is live; then log out,
+  restart or shut down again.
+- **Basis:** DEL-01-02 (REQ-005, AC-006). The App's handling of the request is
+  tested without a launched App (`app_quit_tests.rs`, exercising `app_quit.rs`
+  and `quit_routes_macos.rs`). Quit in the Dock and Command-Tab then Q are
+  still to be observed on a development build. Logout, restart and shutdown
+  have not been observed.

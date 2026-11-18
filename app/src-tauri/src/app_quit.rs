@@ -9,21 +9,28 @@
 //! The web view presents, and sends only what the person initiates."). The
 //! web view takes no part in it.
 //!
-//! Sequence: assess live work across every App-owned home (the same
-//! assessment Stop/Restart Codex use); record `quit_requested` with the lists
-//! (AS-03, AS-04). With nothing live nothing is asked and the quit proceeds
-//! (AS-03). Otherwise the person is asked, with no timeout (Q-2). Cancel or
-//! Keep running records `quit_answered` *cancelled* and changes nothing else
-//! (AS-05). On Quit every ready home is closed to new turns and live work is
-//! assessed again; a list that changed is recorded again and asked again
-//! (AS-07). On the final confirmation `quit_answered` *confirmed* is
-//! recorded, then each live turn's stop request (SR-01, cause *quit*) before
-//! its interrupt is sent (AS-06, Q-4); the App waits until each turn is
-//! observed ended or the quit wait limit passes (Q-5, AS-08). Before allowing
-//! native exit every home's actual owned processes are settled (Q-6), then
-//! `session_ended` *quit* is attempted with each quit stop request's state
-//! (Q-7, AS-09). Unknown settlement keeps the App running and supervised.
-//! A quit ends no workflow run and answers no request.
+//! Sequence (`quit_sequence`, `run_quit`): the App assesses every owned home
+//! (the same assessment Stop/Restart Codex use) and attempts to record
+//! `quit_requested` with the lists (AS-03, AS-04). With nothing live it closes
+//! ready homes to new turns and reassesses; if there is still nothing live, it
+//! attempts settlement without showing a question (AS-03). Otherwise it asks
+//! (Q-2); the App sets no limit on the person's time to answer. Keep running
+//! or Cancel attempts to record the cancelled answer and sends no interrupt,
+//! stops no home and answers no supplier request (AS-05). On Quit the App
+//! closes ready homes to new turns and reassesses, and presents a changed
+//! assessment again if work still needs asking about (AS-07). When
+//! confirmation is final, the App attempts to record the answer, prepares the
+//! quit stop requests (SR-01, cause *quit*) before eligible interrupt sends
+//! (AS-06, Q-4) and waits up to the quit wait limit (Q-5, AS-08). It then
+//! settles the owned processes (Q-6) and attempts one `session_ended` record
+//! (Q-7, AS-09) before requesting exit. A recording failure does not prevent a
+//! settled quit.
+//!
+//! If settlement is refused, the App stays running, removes the settlement
+//! fences and reopens the still-current generations closed by this attempt.
+//! Recorded answers and stop requests, interrupts already sent and homes
+//! already stopped stand. No quit session-end record is attempted for that
+//! refusal. A quit ends no workflow run and answers no request.
 
 use crate::codex_stop::{interrupt_and_wait, Interrupts, Unsent, STOP_WAIT_LIMIT};
 use crate::runtime_session::{HomeSession, WorkflowRootSession};
@@ -104,6 +111,11 @@ pub(crate) trait QuitOps: Interrupts {
     /// Q-6, Q-7: settle every home's owned processes and write the session
     /// end, before the App may exit (`AppQuit::allow`).
     fn settle(&mut self, stop_requests: &[String]) -> Result<Value, String>;
+    /// The homes this run assesses and settles.
+    fn roster(&self) -> Vec<Arc<HomeSession>>;
+    /// After a fault: lift every home's settlement fence (as a refused
+    /// settlement does).
+    fn lift_settlement_fences(&mut self);
 }
 
 /// The person's decision and what was done before the App exits.
@@ -310,6 +322,14 @@ impl<C: FnMut(&Value) -> Result<bool, String>> QuitOps for HostQuit<'_, C> {
     fn settle(&mut self, stop_requests: &[String]) -> Result<Value, String> {
         finish_exit(&self.homes, Some(stop_requests.to_vec()))
     }
+    fn roster(&self) -> Vec<Arc<HomeSession>> {
+        self.homes.clone()
+    }
+    fn lift_settlement_fences(&mut self) {
+        for home in &self.homes {
+            home.host.cancel_quit();
+        }
+    }
 }
 
 /// The App's quit state, held in `AppState`.
@@ -323,6 +343,10 @@ pub(crate) struct AppQuit {
     /// Set once the quit may proceed (AS-03 or a confirmed quit): the quit
     /// stop-request identities whose final states `session_ended` carries.
     proceed: Mutex<Option<Vec<String>>>,
+    /// The homes the deciding run settled, held before the decision is
+    /// published, so that exit cleanup uses the settled roster and never has
+    /// to read the home router again.
+    roster: Mutex<Vec<Arc<HomeSession>>>,
 }
 /// Held while the quit question is open or the quit is under way; clears the
 /// flag when dropped (also while unwinding from a panic).
@@ -362,6 +386,20 @@ impl AppQuit {
     /// The quit stop requests, once the quit may proceed; None otherwise.
     pub(crate) fn proceeding(&self) -> Option<Vec<String>> {
         self.proceed.lock().unwrap_or_else(|e| e.into_inner()).clone()
+    }
+    /// Hold the roster a run is about to settle (before `allow` publishes).
+    pub(crate) fn hold_roster(&self, homes: Vec<Arc<HomeSession>>) {
+        *self.roster.lock().unwrap_or_else(|e| e.into_inner()) = homes;
+    }
+    /// The homes exit cleanup works on: after a decided quit, the roster that
+    /// quit settled; otherwise what `read_router` reads now (the limited
+    /// system path). Takes no lock that a panic elsewhere can make it panic on.
+    pub(crate) fn exit_roster(&self, read_router: impl FnOnce() -> Vec<Arc<HomeSession>>) -> Vec<Arc<HomeSession>> {
+        if self.proceeding().is_some() {
+            self.roster.lock().unwrap_or_else(|e| e.into_inner()).clone()
+        } else {
+            read_router()
+        }
     }
 }
 
@@ -417,13 +455,12 @@ pub(crate) fn on_exit_requested(proceeding: bool, code: Option<i32>) -> ExitActi
 }
 
 /// How one run of the quit path ended. Every route into it (the menu's Quit,
-/// Command-Q, Setup's Quit, an unasked exit and, on macOS, the system's
-/// `terminate:` from the Dock or the app switcher) ends in exactly one of these.
+/// Command-Q, Setup's Quit, an exit nobody decided and, on macOS, the system's
+/// `terminate:`) ends in exactly one of these.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum QuitEnding {
-    /// Another run of the quit path had already decided the quit, before or
-    /// while this one waited for admission. That run owns the App's exit;
-    /// this one records, settles and requests nothing.
+    /// A quit was already decided, seen before admission or under it. This
+    /// run records and settles nothing; see [`QuitEnding::exits`].
     AlreadyDecided,
     /// The quit question is already open (or a quit is under way): the open
     /// question is in front of the person; this request is ignored.
@@ -432,29 +469,44 @@ pub(crate) enum QuitEnding {
     AdmissionRefused,
     /// An explicit key operation is under way: nothing was recorded or asked.
     KeyOperationBusy,
-    /// An earlier key operation (key setup or capture sealing) ended by a
-    /// panic while holding the key-setup gate, so whether that setup is
-    /// complete is uncertain. This request is declined and told so; the gate
-    /// is recovered, so the next request takes it normally.
+    /// The key-setup gate was poisoned: an operation ended by a panic while
+    /// holding it. This request is declined and told so; the gate's poison is
+    /// cleared, so the next request takes it subject to the normal checks.
     KeySetupUncertain,
     /// The person kept the App running (AS-05).
     KeptRunning,
     /// The question could not be shown; the App keeps running.
     NotAsked,
     /// Settlement of the owned processes was refused; the App keeps running.
-    /// The answer may already be recorded, interrupts sent and a home's
-    /// Codex stopped before another home's settlement failed.
     SettlementRefused,
-    /// AS-03 or a confirmed quit, settled by this run: it owns the exit.
+    /// A fault (a panic) while assessing, asking, interrupting or settling:
+    /// the App keeps running and says so.
+    Faulted,
+    /// AS-03 or a confirmed quit, settled by this run.
     Decided,
 }
+/// Who asked for this run of the quit path.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum QuitRoute {
+    /// The person's own Quit (the menu, Command-Q, Setup's Quit) or an exit
+    /// nobody decided.
+    Person,
+    /// The system's request to quit (macOS `terminate:`), already declined.
+    System,
+}
 impl QuitEnding {
-    /// True only for the run that decided the quit. It alone ends the App:
-    /// by `app.exit(0)`, or by answering yes to the system's request to
-    /// terminate when it owes that request a reply. Every other ending asks
-    /// for no exit and answers an owed reply no.
-    pub(crate) fn owns_exit(self) -> bool {
-        self == Self::Decided
+    /// Whether this run asks the App to exit (`app.exit(0)`). The run that
+    /// decided does. A person's Quit after a decided quit asks again, as the
+    /// App always has: that is the way to finish a decided quit whose exit
+    /// has not ended the App. A run the system's request started on a stale
+    /// reading, that finds the quit decided, asks for nothing: the deciding
+    /// run's exit is already in flight.
+    pub(crate) fn exits(self, route: QuitRoute) -> bool {
+        match self {
+            Self::Decided => true,
+            Self::AlreadyDecided => route == QuitRoute::Person,
+            _ => false,
+        }
     }
 }
 /// The ending of a quit refused at admission ([`admit_quit`]): a second quit
@@ -475,13 +527,27 @@ pub(crate) fn decision_ending(decision: &Decision, allowed: &Result<bool, String
 
 pub(crate) const QUIT_TITLE: &str = "Quit Chirality";
 pub(crate) const QUIT_KEY_BUSY: &str = "An explicit key operation is under way. The App is still running; choose Quit again when that operation has finished.";
-pub(crate) const QUIT_KEY_UNCERTAIN: &str = "An earlier key setup or sealing operation in this App session ended unexpectedly, so the App cannot be sure that it completed. The App was not quit and is still running; nothing was recorded, interrupted, stopped or sent. Choose Quit again to quit with the App's homes as they now are.";
+/// Follows from the lock state alone: the quit worker itself can be what
+/// poisoned the gate.
+pub(crate) const QUIT_KEY_UNCERTAIN: &str = "An operation ended unexpectedly while holding the App's key setup gate. The App could not establish that setup was complete, so it declined this Quit. This attempt recorded no quit request or answer, sent no interrupt and stopped no process. Choose Quit again to retry.";
+pub(crate) const QUIT_FAULTED: &str = "Quit stopped because of a fault in the App while it was assessing, asking about, interrupting or stopping work. The App is still running. Anything this attempt already recorded, interrupted or stopped stands; the App lifted its settlement fences and reopened the homes this attempt closed to new turns where it could. Choose Quit again to retry. If this repeats, the App cannot settle its Codex processes in this session.";
 
 /// Diagnostics on standard error that cannot panic (a failing stderr would
 /// otherwise unwind the quit path while it holds its gates).
 pub(crate) fn diagnostic(message: &str) {
     use std::io::Write;
     let _ = writeln!(std::io::stderr(), "chirality: {message}");
+}
+
+/// The App's homes as the quit and exit cleanup read them: through poison.
+/// Each entry is bound only after `HomeRouter::bind_*` has validated it, so a
+/// panic under the router lock (for example while publishing the homes to
+/// their Hosts) leaves entries whose Hosts own their processes, which is what
+/// a quit must settle. A Host whose own lock is poisoned faults the quit,
+/// which [`run_quit_admitted`] catches and tells ([`QUIT_FAULTED`]).
+pub(crate) fn read_roster(router: &Mutex<crate::runtime_session::HomeRouter>) -> (Vec<Arc<HomeSession>>, Arc<HomeSession>) {
+    let router = router.lock().unwrap_or_else(std::sync::PoisonError::into_inner);
+    (router.entries(), router.active())
 }
 
 /// The gates one run of the quit path takes, held in `AppState`.
@@ -493,33 +559,41 @@ pub(crate) struct QuitGates<'a> {
     pub(crate) key_setup: &'a Mutex<()>,
 }
 
-/// One run of the quit path, whatever the route: admission, the sequence,
-/// settlement and exactly one ending. `reply` is owed only to a macOS
-/// "later" answer to the system's request to terminate; it is given once on
-/// every ending (also when this function unwinds), yes only for
-/// [`QuitEnding::Decided`], and then the system ends the App instead of
-/// `exit`. `ops` is called only once admission and the key-setup gate are
-/// held; `tell` shows a refusal to the person; `exit` is `app.exit(0)`.
+/// One run of the quit path, whatever the route: a fast check for a decided
+/// quit, then [`run_quit_admitted`]. `ops` is called only once admission and
+/// the key-setup gate are held; `tell` shows a refusal to the person; `exit`
+/// is `app.exit(0)`, called at most once and only as [`QuitEnding::exits`]
+/// says.
 pub(crate) fn run_quit<O: QuitOps>(
     gates: QuitGates<'_>,
-    reply: Option<TerminationReply>,
+    route: QuitRoute,
     wait_limit: Duration,
     ops: impl FnOnce() -> O,
     tell: impl Fn(&str, String),
     exit: impl FnOnce(),
 ) -> QuitEnding {
-    let finish = |ending: QuitEnding| {
-        match reply {
-            Some(reply) => reply.finish(ending),
-            None if ending.owns_exit() => exit(),
-            None => {}
-        }
-        ending
-    };
-    let QuitGates { quit, stop_gate, key_setup } = gates;
-    if quit.proceeding().is_some() {
-        return finish(QuitEnding::AlreadyDecided);
+    if gates.quit.proceeding().is_some() {
+        return end(QuitEnding::AlreadyDecided, route, exit);
     }
+    run_quit_admitted(gates, route, wait_limit, ops, tell, exit)
+}
+fn end(ending: QuitEnding, route: QuitRoute, exit: impl FnOnce()) -> QuitEnding {
+    if ending.exits(route) {
+        exit();
+    }
+    ending
+}
+/// The quit path after its fast check: a run that read "not decided" and
+/// was then delayed while another run decided arrives here.
+pub(crate) fn run_quit_admitted<O: QuitOps>(
+    gates: QuitGates<'_>,
+    route: QuitRoute,
+    wait_limit: Duration,
+    ops: impl FnOnce() -> O,
+    tell: impl Fn(&str, String),
+    exit: impl FnOnce(),
+) -> QuitEnding {
+    let QuitGates { quit, stop_gate, key_setup } = gates;
     // One operation over the Codex processes at a time (Stop/Restart Codex
     // or quit); a second Quit while the question is open (or this quit is
     // under way) is ignored, since that question is in front of the person.
@@ -527,19 +601,18 @@ pub(crate) fn run_quit<O: QuitOps>(
     let _held = match admit_quit(quit, stop_gate) {
         Ok(held) => held,
         Err(reason) => match refusal_ending(&reason) {
-            QuitEnding::AlreadyOpen => return finish(QuitEnding::AlreadyOpen),
+            QuitEnding::AlreadyOpen => return end(QuitEnding::AlreadyOpen, route, exit),
             ending => {
                 tell(QUIT_TITLE, reason);
-                return finish(ending);
+                return end(ending, route, exit);
             }
         },
     };
-    // Checked again under admission: a run that passed the check above
-    // before another run settled its quit and released admission records
-    // and settles nothing (`allow` publishes the decision before that run's
-    // admission is released).
+    // Checked again under admission: `allow` publishes the decision before
+    // the deciding run releases admission, so a run delayed after the fast
+    // check records and settles nothing here.
     if quit.proceeding().is_some() {
-        return finish(QuitEnding::AlreadyDecided);
+        return end(QuitEnding::AlreadyDecided, route, exit);
     }
     // Keep the set of homes stable through settlement. Key setup is the only
     // runtime path adding a home; never let it race the quit snapshot. The
@@ -548,163 +621,108 @@ pub(crate) fn run_quit<O: QuitOps>(
         Ok(held) => held,
         Err(std::sync::TryLockError::WouldBlock) => {
             tell(QUIT_TITLE, QUIT_KEY_BUSY.into());
-            return finish(QuitEnding::KeyOperationBusy);
+            return end(QuitEnding::KeyOperationBusy, route, exit);
         }
         Err(std::sync::TryLockError::Poisoned(poisoned)) => {
-            // The gate guards no data of its own: what the failed operation
-            // left (a home added or not, a capture sealed or not) stands as it
-            // is. This request is declined; clearing the poison lets the next
-            // request take the gate and quit with the homes as they then are.
+            // The gate guards no data of its own; it gives exclusion. Clearing
+            // its poison restores that exclusion and certifies nothing about
+            // what the failed operation left: this request is declined, and
+            // the next one takes the gate subject to the normal checks.
             let held = poisoned.into_inner();
             key_setup.clear_poison();
             drop(held);
             tell(QUIT_TITLE, QUIT_KEY_UNCERTAIN.into());
-            return finish(QuitEnding::KeySetupUncertain);
+            return end(QuitEnding::KeySetupUncertain, route, exit);
         }
     };
     let mut ops = ops();
-    let decision = quit_sequence(&mut ops, wait_limit);
-    if let Decision::NotAsked(outcome) = &decision {
-        diagnostic(outcome["reading"].as_str().unwrap_or("quit question not shown"));
-    }
-    let allowed = quit.allow(&decision, |ids| ops.settle(ids));
-    let ending = decision_ending(&decision, &allowed);
-    if let Err(error) = allowed {
-        ops.reopen_to_new_turns();
-        diagnostic(&error);
-        tell(&format!("{QUIT_TITLE} — still running"), error);
-    }
-    finish(ending)
+    // A fault while assessing, asking, interrupting or settling (for example
+    // a Host lock poisoned by an earlier panic) is caught here, with the key
+    // gate still held, so it neither poisons that gate nor leaves the person
+    // without word: the fences are lifted, closed homes reopened and the
+    // person told. The decision is published only after settlement succeeds.
+    let ran = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let decision = quit_sequence(&mut ops, wait_limit);
+        if let Decision::NotAsked(outcome) = &decision {
+            diagnostic(outcome["reading"].as_str().unwrap_or("quit question not shown"));
+        }
+        quit.hold_roster(ops.roster());
+        let allowed = quit.allow(&decision, |ids| ops.settle(ids));
+        (decision_ending(&decision, &allowed), allowed.err())
+    }));
+    let ending = match ran {
+        Ok((ending, refused)) => {
+            if let Some(error) = refused {
+                ops.reopen_to_new_turns();
+                diagnostic(&error);
+                tell(&format!("{QUIT_TITLE} — still running"), error);
+            }
+            ending
+        }
+        Err(_) if quit.proceeding().is_some() => QuitEnding::Decided,
+        Err(_) => {
+            let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                ops.lift_settlement_fences();
+                ops.reopen_to_new_turns();
+            }));
+            diagnostic("the quit stopped because of a fault; the App keeps running");
+            tell(&format!("{QUIT_TITLE} — still running"), QUIT_FAULTED.into());
+            QuitEnding::Faulted
+        }
+    };
+    end(ending, route, exit)
 }
 
-/// How the App answers the system's request to terminate (macOS
-/// `applicationShouldTerminate:`) when no quit is decided or under way. One
-/// switch, a constant in code, not a setting.
+/// What the App does with the system's request to quit (macOS
+/// `applicationShouldTerminate:`). The request itself is always declined at
+/// once (`NSTerminateCancel`): the App never makes the system wait, and only
+/// its own quit path ends it.
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum TerminationBehaviour {
-    /// Answer "later", run the quit path, and reply yes once it has decided
-    /// and settled the quit, no on every other ending. AppKit runs its main
-    /// run loop in a modal mode until the reply is given.
-    Later,
-    /// Decline the termination at once, then run the quit path, which ends
-    /// the App itself (`app.exit(0)`) if the quit is decided. The fallback if
-    /// the question or its main-thread dispatch cannot run while a "later"
-    /// reply is pending. Selected only by changing the constant below.
-    #[allow(dead_code)]
-    Cancel,
-}
-/// The selected behaviour (see [`TerminationBehaviour`]).
-#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
-pub(crate) const TERMINATION_BEHAVIOUR: TerminationBehaviour = TerminationBehaviour::Later;
-
-/// The answer to the system's request to terminate, and whether the quit
-/// path is started for it.
-#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) enum TerminationAnswer {
-    /// A quit is decided and no reply is owed: terminate now (the exit
-    /// handler takes the decided path). Nothing is started.
-    Now,
-    /// Answer later and start the quit path with a reply owed.
-    LaterAndAsk,
-    /// Decline now and start the quit path with no reply owed.
-    CancelAndAsk,
-    /// Decline and start nothing: a quit is under way (it ends the App itself
-    /// if it is decided), or a reply is owed to an earlier request (that
-    /// request keeps its single reply, which is yes if its quit is decided).
-    Decline,
-    /// Decline and start nothing: a fault (a panic) before the answer was
-    /// given. No reply is owed; the App keeps running.
-    DeclinedOnFault,
+pub(crate) enum SystemQuitRequest {
+    /// No quit under way and none decided: start the person's quit path
+    /// (route [`QuitRoute::System`]), which asks only if work is live.
+    StartQuit,
+    /// A quit is under way (its question open, or settling): it is in front
+    /// of the person. Start nothing.
+    UnderWay,
+    /// A quit is decided: its own exit is in flight. Start nothing and
+    /// authorise no second exit.
+    Decided,
 }
 /// The pure decision over what the App holds when the system asks.
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
-pub(crate) fn on_should_terminate(decided: bool, under_way: bool, reply_owed: bool, behaviour: TerminationBehaviour) -> TerminationAnswer {
-    match (decided, under_way, reply_owed, behaviour) {
-        (_, _, true, _) => TerminationAnswer::Decline,
-        (true, _, false, _) => TerminationAnswer::Now,
-        (false, true, false, _) => TerminationAnswer::Decline,
-        (false, false, false, TerminationBehaviour::Later) => TerminationAnswer::LaterAndAsk,
-        (false, false, false, TerminationBehaviour::Cancel) => TerminationAnswer::CancelAndAsk,
+pub(crate) fn on_system_quit_request(decided: bool, under_way: bool) -> SystemQuitRequest {
+    match (decided, under_way) {
+        (true, _) => SystemQuitRequest::Decided,
+        (false, true) => SystemQuitRequest::UnderWay,
+        (false, false) => SystemQuitRequest::StartQuit,
     }
 }
-/// The delegate method's body without AppKit: decide, start the quit path as
-/// the answer requires, and turn any panic before the answer is returned into
-/// a declined request with no reply owed. `owed` is the one "later reply
-/// owed" flag; `deliver` gives a reply and must act only if it takes `owed`
-/// (swaps it from true to false), so that no stray reply reaches AppKit.
+/// The delegate method's body without AppKit: read what the App holds,
+/// decide, and start the quit path if the decision says so. A panic anywhere
+/// in it is caught and said; the caller declines the request either way.
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
-pub(crate) fn answer_termination(
-    held: impl FnOnce() -> (bool, bool),
-    owed: &AtomicBool,
-    behaviour: TerminationBehaviour,
-    deliver: impl FnOnce(bool) + Send + 'static,
-    start: impl FnOnce(Option<TerminationReply>),
-) -> TerminationAnswer {
-    let answered = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+pub(crate) fn handle_system_quit_request(held: impl FnOnce() -> (bool, bool), start: impl FnOnce()) -> Option<SystemQuitRequest> {
+    let handled = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
         let (decided, under_way) = held();
-        let answer = on_should_terminate(decided, under_way, owed.load(Ordering::SeqCst), behaviour);
-        match answer {
-            TerminationAnswer::LaterAndAsk => {
-                owed.store(true, Ordering::SeqCst);
-                start(Some(TerminationReply::new(deliver)));
-            }
-            TerminationAnswer::CancelAndAsk => start(None),
-            _ => {}
+        let request = on_system_quit_request(decided, under_way);
+        if request == SystemQuitRequest::StartQuit {
+            start();
         }
-        answer
+        request
     }));
-    answered.unwrap_or_else(|_| {
-        // Cleared before the answer is returned: a reply the unwinding
-        // dropped finds nothing owed when it runs and does nothing.
-        owed.store(false, Ordering::SeqCst);
-        diagnostic("the system's request to quit was declined because of a fault in the App; the App keeps running");
-        TerminationAnswer::DeclinedOnFault
-    })
+    handled.map_err(|_| diagnostic("the system's request to quit was declined, and no quit was started, because of a fault in the App; the App keeps running")).ok()
 }
 
-/// The reply owed to a "later" answer: given exactly once on every path.
-/// [`TerminationReply::finish`] replies yes only for the ending that owns the
-/// exit; dropping it unreplied (an early return, a refused spawn, a panic
-/// unwinding through the quit path) replies no.
-#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
-#[must_use]
-pub(crate) struct TerminationReply {
-    reply: Option<Box<dyn FnOnce(bool) + Send>>,
-}
-#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
-impl TerminationReply {
-    pub(crate) fn new(reply: impl FnOnce(bool) + Send + 'static) -> Self {
-        Self { reply: Some(Box::new(reply)) }
-    }
-    pub(crate) fn finish(mut self, ending: QuitEnding) {
-        self.send(ending.owns_exit());
-    }
-    fn send(&mut self, yes: bool) {
-        if let Some(reply) = self.reply.take() {
-            reply(yes);
-        }
-    }
-}
-impl Drop for TerminationReply {
-    fn drop(&mut self) {
-        self.send(false);
-    }
-}
-impl std::fmt::Debug for TerminationReply {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("TerminationReply").field("owed", &self.reply.is_some()).finish()
-    }
-}
-
-/// How the session ends on exit (AS-09 after a decided quit, else AS-10: the
-/// exit handler ran without a decided quit, for example a `terminate:` the App
-/// did not answer because its delegate method was not installed or the
-/// library's class already answers it) and each quit stop request's final
-/// state as the homes now hold it. An abrupt end (Force Quit, an unhandled
-/// fatal signal, power loss) reaches no exit handler and writes nothing; the
-/// next launch reads that session as ended without a record.
+/// How the session ends on exit (AS-09 after a decided quit, else AS-10) and
+/// each quit stop request's final state as the homes now hold it. If the exit
+/// handler runs without a decided quit, it attempts the limited
+/// `system-terminated` record before best-effort cleanup; a termination that
+/// bypasses the installed hook can reach that path. Force Quit, an unhandled
+/// fatal signal or power loss runs no such handler and adds no end record;
+/// after the liveness check, an earlier recorded session with no end record
+/// reads `ended-without-record`.
 pub(crate) fn session_end(proceeding: Option<Vec<String>>, records: &[Value]) -> (&'static str, Vec<Value>) {
     match proceeding {
         None => ("system-terminated", vec![]),
