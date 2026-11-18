@@ -657,8 +657,10 @@ fn open(create: bool) -> Result<(PathBuf, String), String> {
             return Err(format!("records store not created yet: {} does not exist; a read creates nothing", store.root.display()));
         }
         // Each created folder and its link in the existing parent are synced
-        // (ensure_directory), on the folder's physical path.
-        crate::storage::ensure_directory(&resolve_lexically(&store.root)).map_err(|e| format!("records store unavailable: {}: {e}", store.root.display()))?;
+        // (ensure_directory), on the folder's physical path. The store's own
+        // folder, when made here, is made owner-only; one already there is
+        // taken as found.
+        crate::storage::ensure_owner_only_directory(&resolve_lexically(&store.root)).map_err(|e| format!("records store unavailable: {}: {e}", store.root.display()))?;
     }
 
     let root = std::fs::canonicalize(&store.root).map_err(|e| format!("records store unavailable: {}: {e}", store.root.display()))?;

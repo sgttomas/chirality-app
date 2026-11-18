@@ -1876,6 +1876,104 @@ fn deleting_the_index_cache_changes_no_answer_only_its_speed() {
     let _ = std::fs::remove_dir_all(root);
 }
 
+/// The process's file-creation mask set for one test, and the previous mask
+/// restored on every exit, a failed assertion included. Rust tests run
+/// serially in one process, so no other test sees the changed mask.
+struct Umask(libc::mode_t);
+impl Umask {
+    fn set(mask: libc::mode_t) -> Self {
+        // SAFETY: umask only exchanges the process's mask; it cannot fail.
+        Umask(unsafe { libc::umask(mask) })
+    }
+}
+impl Drop for Umask {
+    fn drop(&mut self) {
+        // SAFETY: as above, restoring the mask found by `set`.
+        unsafe { libc::umask(self.0) };
+    }
+}
+fn mode_of(path: &Path) -> u32 {
+    use std::os::unix::fs::PermissionsExt;
+    std::fs::symlink_metadata(path).unwrap().permissions().mode() & 0o7777
+}
+
+#[test]
+fn the_store_folder_the_app_creates_is_owner_only_under_a_permissive_mask() {
+    use std::os::unix::fs::{MetadataExt, PermissionsExt};
+    let base = folder("owner-only-base-");
+    std::fs::set_permissions(&base, std::fs::Permissions::from_mode(0o751)).unwrap();
+    for store in [base.join("store"), base.join("missing-parent").join("store")] {
+        let _mask = Umask::set(0);
+        use_store_not_started_for_test(Some(Ok(Store { root: store.clone(), placement: Placement::Override, limits: vec![] })));
+        create_at_startup().unwrap();
+        assert!(store.join("store.json").is_file());
+        assert_eq!(mode_of(&store), 0o700, "the store folder the App made is owner-only under mask 0: {}", store.display());
+        // SAFETY: getuid cannot fail.
+        assert_eq!(std::fs::metadata(&store).unwrap().uid(), unsafe { libc::getuid() }, "owned by the current user");
+        assert_eq!(mode_of(&base), 0o751, "the folder above that already existed keeps its mode exactly");
+        use_store_for_test(None);
+        new_process();
+    }
+    let _ = std::fs::remove_dir_all(base);
+}
+
+#[test]
+fn a_store_folder_that_already_exists_is_opened_as_found_with_its_mode_unchanged() {
+    use std::os::unix::fs::PermissionsExt;
+    let base = folder("found-store-base-");
+    let store = base.join("store");
+    std::fs::create_dir(&store).unwrap();
+    std::fs::set_permissions(&store, std::fs::Permissions::from_mode(0o777)).unwrap();
+    {
+        let _mask = Umask::set(0);
+        use_store_not_started_for_test(Some(Ok(Store { root: store.clone(), placement: Placement::Override, limits: vec![] })));
+        let (opened_root, _) = created().unwrap();
+        assert_eq!(opened_root, store);
+        assert!(store.join("store.json").is_file());
+        assert_eq!(mode_of(&store), 0o777, "an existing store folder is taken as found: no change of mode");
+        // A second opening, as the next start: still found, still unchanged.
+        new_process();
+        created().unwrap();
+        assert_eq!(mode_of(&store), 0o777);
+    }
+    use_store_for_test(None);
+    new_process();
+    let _ = std::fs::remove_dir_all(base);
+}
+
+#[test]
+fn the_indexes_folder_a_read_creates_is_owner_only_and_an_existing_one_is_used_as_found() {
+    use std::os::unix::fs::PermissionsExt;
+    let own = OwnStore::new();
+    let store = own.0.clone();
+    let root = written_project("owner-only-index-");
+    let indexes = store.join("indexes");
+    let cache = "indexes/query-<project>-*.sqlite".to_owned();
+    // The first index read on a store without an indexes folder.
+    new_process();
+    let _ = std::fs::remove_dir_all(&indexes);
+    {
+        let _mask = Umask::set(0);
+        assert!(crate::records_index::chain_heads(&root)["discoveryLimit"].is_null());
+    }
+    assert_eq!(mode_of(&indexes), 0o700, "the indexes folder a read made is owner-only under mask 0");
+    assert!(names(&store, &root).contains(&cache), "{:?}", names(&store, &root));
+    // An indexes folder already there with a permissive mode keeps it and is used.
+    new_process();
+    std::fs::remove_dir_all(&indexes).unwrap();
+    std::fs::create_dir(&indexes).unwrap();
+    std::fs::set_permissions(&indexes, std::fs::Permissions::from_mode(0o777)).unwrap();
+    {
+        let _mask = Umask::set(0);
+        assert!(crate::records_index::chain_heads(&root)["discoveryLimit"].is_null());
+    }
+    assert_eq!(mode_of(&indexes), 0o777, "an existing indexes folder is taken as found: no change of mode");
+    assert!(names(&store, &root).contains(&cache), "the existing folder holds this process's cache: {:?}", names(&store, &root));
+    drop(own);
+    new_process();
+    let _ = std::fs::remove_dir_all(root);
+}
+
 #[test]
 fn a_reader_creates_no_admission_control_and_records_without_one_are_unavailable() {
     let own = OwnStore::new();

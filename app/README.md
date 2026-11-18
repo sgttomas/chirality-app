@@ -1882,7 +1882,9 @@ criterion 5 is not served by it until that view does.
 
 The store is created (its folder and `store.json`) when the App starts, and
 otherwise only by the acts that write for the person: attaching a project with
-a newly minted identity, the imports and the identity acts. A read creates
+a newly minted identity, the imports and the identity acts. A store folder
+the App creates is created owner-only (mode 0700); a folder already at the
+store's path is used as found, its mode unchanged. A read creates
 no store, no folder, no lock file and no control, and repairs nothing (a
 reader does take a shared lock on a control that already exists, which is
 what keeps a disposal out while it reads): with no store, or a folder at the store's path that
@@ -2190,7 +2192,8 @@ store's place, and never in a temporary folder (SQLite's own temporary
 structures stay in memory). The decision view does not use it. Where the cache
 cannot be written the sources are read directly and the chain report says so.
 The cache is dispensable: deleting `indexes/` at any time changes no answer,
-only how fast it comes.
+only how fast it comes. An `indexes/` folder a read creates is created
+owner-only (mode 0700); one already there is used as found, its mode unchanged.
 Index metadata for ordinary valid entries is per log and directory; diagnostics
 grow with reported limits. Full act projections retain their
 separate result-sized memory cost (RS §13.8, §14.3).

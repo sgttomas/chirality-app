@@ -208,10 +208,12 @@ fn cache_folder() -> Result<(PathBuf, PathBuf), String> {
     }
     let (store, _) = crate::records_store::opened_existing()?;
     let folder = store.join("indexes");
+    use std::os::unix::fs::DirBuilderExt;
     match std::fs::symlink_metadata(&folder) {
         Ok(m) if m.is_dir() => {}
         Ok(_) => return Err(format!("{} is not a folder", folder.display())),
-        Err(e) if e.kind() == std::io::ErrorKind::NotFound => match std::fs::create_dir(&folder) {
+        // Made owner-only when made here; one already there is taken as found.
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => match std::fs::DirBuilder::new().mode(0o700).create(&folder) {
             Ok(()) => {}
             Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {}
             Err(e) => return Err(format!("{}: {e}", folder.display())),

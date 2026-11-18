@@ -346,7 +346,7 @@ fn flock(path: &Path, operation: libc::c_int, read: bool) -> Result<Option<Owner
     mutation_for_test("write-capable lock acquisition");
     let admission=if read {crate::records_retention::read_path(path)?}else{crate::records_retention::write_path(path)?};
     check_path(path)?;
-    ensure_directory_impl(path.parent().ok_or("lock has no parent")?)?;
+    ensure_directory_impl(path.parent().ok_or("lock has no parent")?, None)?;
     let file = OpenOptions::new()
         .read(true)
         .write(true)
@@ -535,9 +535,20 @@ pub fn ensure_directory(path: &Path) -> Result<(), String> {
     #[cfg(test)]
     mutation_for_test("ensure_directory");
     let _admission=crate::records_retention::write_path(path)?;
-    ensure_directory_impl(path)
+    ensure_directory_impl(path, None)
 }
-fn ensure_directory_impl(path:&Path)->Result<(),String>{
+/// As [`ensure_directory`], and `path` itself, when this call creates it, is
+/// created owner-only (0700, under the process's file-creation mask). A
+/// folder already there, also one another creator made meanwhile, is taken
+/// as found: its mode is never changed. Missing folders above it are created
+/// as [`ensure_directory`] creates them.
+pub fn ensure_owner_only_directory(path: &Path) -> Result<(), String> {
+    #[cfg(test)]
+    mutation_for_test("ensure_directory");
+    let _admission=crate::records_retention::write_path(path)?;
+    ensure_directory_impl(path, Some(0o700))
+}
+fn ensure_directory_impl(path:&Path, mode: Option<u32>)->Result<(),String>{
     #[cfg(test)]
     mutation_for_test("directory creation");
     check_path(path)?;
@@ -549,7 +560,20 @@ fn ensure_directory_impl(path:&Path)->Result<(),String>{
             .parent()
             .ok_or("directory has no existing ancestor")?;
     }
-    std::fs::create_dir_all(path).map_err(|e| format!("owning directory: {e}"))?;
+    match (mode, path.parent()) {
+        (Some(mode), Some(parent)) => {
+            use std::os::unix::fs::DirBuilderExt;
+            std::fs::create_dir_all(parent).map_err(|e| format!("owning directory: {e}"))?;
+            // The mode is given at creation, never set afterwards: as
+            // create_dir_all does, an existing folder is accepted as found.
+            match std::fs::DirBuilder::new().mode(mode).create(path) {
+                Ok(()) => {}
+                Err(_) if path.is_dir() => {}
+                Err(e) => return Err(format!("owning directory: {e}")),
+            }
+        }
+        _ => std::fs::create_dir_all(path).map_err(|e| format!("owning directory: {e}"))?,
+    }
     for created in &missing {
         sync_dir(created)?;
     }
