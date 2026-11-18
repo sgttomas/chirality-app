@@ -17,7 +17,6 @@ import importlib.util
 import json
 import os
 from pathlib import Path
-import plistlib
 import re
 import stat
 import struct
@@ -322,8 +321,13 @@ class PrivateWriter:
 # --- Info.plist and locations ---------------------------------------------------
 
 def read_info_plist(app):
+    """(bytes, value) of the App's Contents/Info.plist, read only when its value is the whole document.
+
+    The one whole-document file reader (production_inputs/whole_plist.load) reads it: an XML property list only (a
+    binary one is refused), whose structure read from its own bytes accounts for every byte and agrees with plistlib's
+    value. Anything else raises ValueError (whole_plist.NotWhole names what was left over)."""
     raw = (Path(app) / 'Contents/Info.plist').read_bytes()
-    value = plistlib.loads(raw, dict_type=prepare.UniquePlistDict)  # a key twice is refused, never resolved to the last
+    value = prepare.whole_plist.load(raw)
     require(isinstance(value, dict), 'Info.plist is not a dictionary')
     return raw, value
 

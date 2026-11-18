@@ -38,9 +38,10 @@ observation that was not made, that failed, or that is incomplete cannot come ou
 that drift and mistakes are caught. They are not a filesystem snapshot and are not built to withstand
 a writer changing the inputs during the run, nor someone with write access forging a record: a
 completion marker or a recorded digest is not authentication.
-The whole-document command-output rule does not cover the profile or Info.plist file readers:
-those use the standard parser, which does not refuse a repeated top-level value. This limits the
-profile UUID/team/App ID/allowed and unexpected entitlements/expiry and the bundle identity fields.
+The profile and Info.plist files are read by the one whole-document file reader
+(production_inputs/whole_plist.py): a value is returned only when the file is one XML property list
+whose structure, read from its own bytes, accounts for every byte and agrees with plistlib's value;
+a binary property list is refused. The profile's envelope is not authenticated.
 Line-form output is decoded with UTF-8 replacement, blank lines omitted and trailing whitespace stripped.
 """
 import datetime
@@ -48,7 +49,6 @@ import importlib.util
 import json
 import os
 from pathlib import Path
-import plistlib
 import sys
 
 
@@ -211,9 +211,8 @@ def profile_facts(app, public_teams, failures):
         return 'not observed'
     raw = path.read_bytes()
     try:
-        value = plistlib.loads(prepare.profile_content(raw), fmt=plistlib.FMT_XML, dict_type=prepare.UniquePlistDict)
-        require(isinstance(value, dict), 'profile is not a dictionary')
-    except (ValueError, plistlib.InvalidFileException):
+        value = prepare.profile_plist(raw)  # the one whole-document reader: no fact comes from part of the property list
+    except ValueError:
         failures.append(failure('provisioning profile'))
         return {'sha256': sha(raw), 'decoded': False}
     chosen, unexpected = obs.select_entitlements(value.get('Entitlements'), public_teams)
@@ -244,13 +243,17 @@ def observe_package(dmg, app, run, public_teams, publisher_team, limitations_sou
     dmg, app = Path(dmg), Path(app)
     failures = []
     raw = dmg.read_bytes()
-    info_raw, info = common.read_info_plist(app)
-    identity_fields = common.bundle_identity(info)
+    try:
+        info_raw, info = common.read_info_plist(app)  # the one whole-document reader; refused, no identity field is stated
+    except ValueError:
+        info_raw, info = (app / 'Contents/Info.plist').read_bytes(), None
+        failures.append(failure('bundle identity'))
+    identity_fields = common.bundle_identity(info or {})
     bundle = {'name': common.APP_NAME if app.name == common.APP_NAME else 'other', 'info_plist_sha256': sha(info_raw)}
     for key, shape in (('identifier', 'identifier'), ('version', 'version'), ('bundle_version', 'version'),
                        ('minimum_system_version', 'version'), ('executable', 'identifier')):
         bundle[key] = common.selected(identity_fields[key], shape)
-        if bundle[key] is None:
+        if bundle[key] is None and info is not None:
             failures.append(failure('bundle identity'))
     bundle['executable_sha256'] = sha((app / 'Contents/MacOS' / common.MAIN_EXECUTABLE).read_bytes())
     resources = app / 'Contents/Resources'

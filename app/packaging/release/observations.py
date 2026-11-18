@@ -8,7 +8,8 @@ The rule. A command's output is an observation only when:
   3. no property list or JSON it parses has a key twice, and no form that may appear once appears
      twice; a property list (the entitlements) counts only when the value read is the whole document
      (load_xml_plist: the document read by its own bytes equals plistlib's writing of the value, apart
-     from the document header and whitespace between elements);
+     from the document header and whitespace between elements). The provisioning profile and Info.plist
+     FILES are read by production_inputs/whole_plist.load, which shares this event reading;
   4. every form that carries a required fact is present, with a value of its declared shape;
   5. where a form carries a path, the path is the object asked about (the single assessment source
      and the object binding of the earlier rounds are part of the declared forms).
@@ -44,7 +45,6 @@ from pathlib import Path
 import plistlib
 import re
 import sys
-from xml.parsers import expat
 from xml.parsers.expat import ExpatError
 
 
@@ -191,58 +191,8 @@ class _UniqueDict(dict):
         super().__setitem__(key, value)
 
 
-# Elements whose content is other elements: text directly inside them only separates elements.
-_CONTAINERS = {'plist', 'dict', 'array'}
-_XML_WHITESPACE = b' \t\r\n'
-
-
-def _refuse(*_):
-    raise ValueError('an entity is declared, skipped or external')
-
-
-def xml_structure(raw):
-    """(header, body): what an XML property list document is, read without plistlib and without discarding anything.
-
-    The parser reports every event with the byte offset where it starts, so the events partition the document's
-    bytes. Two normalizations are made, and no others:
-    - Document header. Everything before the root element is reduced to its XML declaration (version, encoding,
-      standalone) and its document type (name, system and public identifier, whether an internal subset is present).
-      Any other event there (a comment, a processing instruction) is kept in `header` as an event.
-    - Whitespace between elements. A run of bytes that is only space, tab, carriage return or line feed, directly
-      inside `plist`, `dict` or `array`, is left out, and so is such whitespace after the root element.
-    `body` is every other byte of the root element exactly as written: every element, attribute, repeated entry,
-    piece of text (in a value or between elements), comment, processing instruction and CDATA section, with each
-    character and entity reference as spelled. Entity declarations, skipped (undefined) entity references and external
-    entities raise; nothing is fetched."""
-    parser = expat.ParserCreate()
-    parser.SetParamEntityParsing(expat.XML_PARAM_ENTITY_PARSING_NEVER)
-    events, stack = [], []
-
-    def record(kind, effect=None):
-        def handler(*values):
-            events.append((parser.CurrentByteIndex, kind, values, bool(stack) and stack[-1] in _CONTAINERS))
-            if effect:
-                effect(*values)
-        return handler
-    parser.XmlDeclHandler = record('xml declaration')
-    parser.StartDoctypeDeclHandler = record('document type')
-    parser.StartElementHandler = record('start', lambda name, _: stack.append(name))
-    parser.EndElementHandler = record('end', lambda _: stack.pop())
-    parser.CharacterDataHandler = record('text')
-    parser.CommentHandler = record('comment')
-    parser.ProcessingInstructionHandler = record('processing instruction')
-    parser.StartCdataSectionHandler, parser.EndCdataSectionHandler = record('cdata start'), record('cdata end')
-    parser.EntityDeclHandler = parser.UnparsedEntityDeclHandler = parser.NotationDeclHandler = _refuse
-    parser.SkippedEntityHandler = parser.ExternalEntityRefHandler = _refuse
-    parser.Parse(raw, True)
-    root = next(n for n, event in enumerate(events) if event[1] == 'start')
-    header = [(kind, values) for _, kind, values, _ in events[:root]]
-    body = []
-    for n, (start, kind, _, in_container) in enumerate(events[root:], root):
-        span = raw[start:events[n + 1][0] if n + 1 < len(events) else len(raw)]
-        if not (kind == 'text' and in_container and not span.strip(_XML_WHITESPACE)):
-            body.append(span)
-    return header, b''.join(body).rstrip(_XML_WHITESPACE)
+# The event reading of an XML document is shared with the file readers (production_inputs/whole_plist.py).
+xml_structure = common.prepare.whole_plist.xml_structure
 
 
 def load_xml_plist(raw):

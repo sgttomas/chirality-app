@@ -6,10 +6,8 @@ import importlib.metadata
 import json
 import os
 from pathlib import Path
-import plistlib
 import re
 import tomllib
-import xml.parsers.expat
 
 from jsonschema import Draft202012Validator
 
@@ -22,6 +20,8 @@ def load_module(name, path):
 
 inventory = load_module('production_input_inventory', 'app/packaging/inventory.py')
 files = load_module('production_input_files', 'app/packaging/static_distribution/check.py')
+# The one reader of a property-list file whose value is the whole document (the profile here; Info.plist in release/).
+whole_plist = load_module('production_input_whole_plist', 'app/packaging/production_inputs/whole_plist.py')
 sha, parse, require = files.sha, files.parse, files.require
 
 
@@ -141,7 +141,13 @@ def der(raw, offset):
 
 
 def profile_content(raw):
-    """Structural CMS SignedData path to its single encapsulated plist; no signature/authentication check."""
+    """Structural CMS SignedData path to its single encapsulated plist; no signature/authentication check.
+
+    The envelope is one DER ContentInfo spanning the whole file; its SignedData holds, in RFC 5652 order and with no
+    byte left over, a version, the digest algorithms, the encapsulated content (id-data, one primitive OCTET STRING
+    spanning its wrapper), optional certificates [0] and revocation lists [1], and the signer information set last.
+    So there is one place a property list can be taken from, and the bytes returned are exactly that OCTET STRING's
+    content. The certificates and signer information are not read, and nothing here authenticates the signature."""
     tag, start, end = der(raw, 0)
     require(tag == 0x30 and end == len(raw), 'profile must be exactly one DER ContentInfo')
     tag, oid_start, oid_end = der(raw, start)
@@ -162,27 +168,33 @@ def profile_content(raw):
     require(tag == 0xa0 and wrapper_end == encap_end, 'encapsulated content wrapper invalid')
     tag, content, content_end = der(raw, wrapper)
     require(tag == 0x04 and content_end == wrapper_end, 'encapsulated content must be one primitive OCTET STRING')
+    cursor, tags = encap_end, []
+    while cursor < signed_end:
+        tag, _, cursor = der(raw, cursor)
+        tags.append(tag)
+    require(cursor == signed_end and tags in ([0x31], [0xa0, 0x31], [0xa1, 0x31], [0xa0, 0xa1, 0x31]),
+            'SignedData after the encapsulated content is not optional certificates and revocation lists, then signer information')
     return raw[content:content_end]
 
 
-class UniquePlistDict(dict):
-    def __setitem__(self, key, value):
-        require(key not in self, 'duplicate profile dictionary key')
-        super().__setitem__(key, value)
+def profile_plist(raw):
+    """The profile's encapsulated property list, a dictionary whose value is the whole document (whole_plist.load).
+
+    Raises ValueError (whole_plist.NotWhole naming what was left over) otherwise. Not CMS authentication."""
+    profile = whole_plist.load(profile_content(raw))
+    require(isinstance(profile, dict), 'profile property list must be a dictionary')
+    return profile
 
 
 def profile_consistency(raw, expected_sha256, selected, now=None):
-    """Consistency only: exact bytes and encapsulated grants match the publisher input. Not CMS authentication."""
+    """Consistency only: exact bytes and encapsulated grants match the publisher input. Not CMS authentication.
+
+    The grants are read by profile_plist: the encapsulated property list is read only when its value is the whole
+    document, so no fact below comes from part of it."""
     require(isinstance(expected_sha256, str) and re.fullmatch('[0-9a-f]{64}', expected_sha256) is not None
             and sha(raw) == expected_sha256, 'provisioning profile bytes differ from selected digest')
     require(0 < len(raw) <= 1024 * 1024, 'provisioning profile size out of bounds')
-    content = profile_content(raw)
-    require(content.lstrip().startswith(b'<?xml'), 'encapsulated content is not an XML property list')
-    try:
-        profile = plistlib.loads(content, fmt=plistlib.FMT_XML, dict_type=UniquePlistDict)
-    except (plistlib.InvalidFileException, xml.parsers.expat.ExpatError) as error:
-        raise ValueError('encapsulated profile content is not exactly one property list') from error
-    require(isinstance(profile, dict), 'profile property list must be a dictionary')
+    profile = profile_plist(raw)
     team, identifier = selected['developer_id_team_identifier'], selected['production_bundle_identifier']
     prefixes = profile.get('ApplicationIdentifierPrefix')
     require(isinstance(prefixes, list) and len(prefixes) == 1 and isinstance(prefixes[0], str), 'one profile AppIdentifierPrefix required')
@@ -360,7 +372,7 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
                         else 'notice coverage complete')
     if not_for_public_release:
         release_standing = 'not for public release (named by the caller)' + ('; notice coverage is incomplete' if gaps else '')
-    tool_paths = [__file__, inventory.__file__, files.__file__, font_notice.__file__, bundle.__file__, coverage.__file__]
+    tool_paths = [__file__, inventory.__file__, files.__file__, whole_plist.__file__, font_notice.__file__, bundle.__file__, coverage.__file__]
     if supplement is not None: tool_paths.append(receipts.__file__)
     tool_hashes = {str(inventory.anchored(p)): sha(read(Path(p))) for p in tool_paths}
     no_overlap(output.parent, [source_root, vendor, *{Path(p).parent for p in inspected}])
