@@ -2222,13 +2222,18 @@ recorded state serves only the candidate it was recorded on.
   in the latest view, by that control's element index there. It records the
   view before and after every act, except after the quit (below). It stops,
   with no further act, where a control's identity or its effect is not clear
-  from the App's words; where a view holds, at its top, anything but the
-  App's one window and its menu bar, the one exception being the
-  confirmation's own view (below); and where a sheet, dialog or alert appears
-  other than that confirmation. An alert inside the page's own content that
-  holds only words, with nothing a person can operate, is the App's own
-  notice or refusal and is read as page text, as "Running a scenario"
-  states; it is not such a stop. Each launch's first view waits as "The first
+  from the App's words; and where a view is not of the allowed page. A view
+  is of the allowed page, as "Running a scenario" states it for a walk, when
+  it says it is of the candidate; at its top it holds the App's one window,
+  titled "Chirality", and the menu bar, and nothing else; directly inside
+  the window it holds only the scroll area, the close, full screen and
+  minimize buttons and the text "Chirality"; and nowhere below the window or
+  inside the menu bar, at any depth, is there a window, sheet, dialog, alert
+  or popover. One kind of alert is allowed, in the supplier's terms: an
+  alert below "HTML content" that holds only words, with nothing a person
+  can operate. The App writes its notices and refusals that way, and it is
+  read as page text. The one view that is not of the allowed page and is not
+  a stop is the confirmation's own view (below). Each launch's first view waits as "The first
   view: limits seen on 14 November 2026" states. This is the one rehearsal in
   which the operator acts by reading, and the one in which it may act in a
   view that holds Codex's reports: after the relaunch, the App's own views
@@ -2268,8 +2273,9 @@ recorded state serves only the candidate it was recorded on.
   path"). That form is admitted for this one view, after the operator's own
   click on the control that opens it, and for no other. The sheet is pressed
   only when the view is whole, is of the candidate, and is this form and
-  nothing else, each element line in its depth and its words (element
-  indices may differ, and `<n>` is a number):
+  nothing else, line for line: each element line with its index, its depth
+  and its words, the indices 0 to 12 in order, and the focus line naming
+  element 0:
 
   ```text
   Window: "Unknown", App: <the App's name>.
@@ -2285,7 +2291,7 @@ recorded state serves only the candidate it was recorded on.
   	9 View
   	10 Window
   	11 Help
-  	12 Waiting requests (<n>)
+  	12 Waiting requests (0)
 
   The focused UI element is 0 sheet Description: alert, Secondary Actions: Raise
   ```
@@ -2307,10 +2313,12 @@ recorded state serves only the candidate it was recorded on.
 
   The operator then reads the watch again and presses "Create settings and
   save for next launch" once, by its index in that view, waits three
-  seconds and views once. A view that is not this form before the press, or
-  a sheet still there in the view after it, is a stop: nothing further is
-  pressed and no further view is made. Where the sheet has gone, the page's
-  result is awaited as the rule above states.
+  seconds and views once. A view that is not this form before the press is
+  a stop. After the press, that one view must be of the allowed page, as
+  stated above: anything else, the sheet still there or any other surface at
+  any depth, is a stop. In either stop nothing further is pressed and no
+  further view is made. Only where that one view is of the allowed page is
+  the page's result awaited as the rule above states.
   The owner's words of 14 November 2026 are about an agent pressing the
   App's own setup confirmation; the bounds on that press are App Agent 0's.
   For this rehearsal App Agent 0 sets the checks above in place of the walk's
