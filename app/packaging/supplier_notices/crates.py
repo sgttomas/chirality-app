@@ -2,7 +2,8 @@
 """Notices for every package the supplier's Codex and ripgrep lockfiles lock at the declared pin, or an explicit gap.
 
 The set is a superset: a lockfile locks packages for every platform and feature, so some of these packages may not be
-compiled into the macOS executables. Which are is not established here, and no resolver, Cargo or Bazel is run.
+compiled into the macOS executables. Which are is not established here beyond the packages recorded absent from the macOS
+target by declared target condition (`not_in_macos_package`, below); no resolver, Cargo or Bazel is run.
 
 Inputs, all committed under `crates/`: the two lockfiles as the supplier's source holds them, `associations.json` (the
 reviewed bindings of each lockfile to its source revision, the Git-sourced packages' licence files, the workspace
@@ -14,6 +15,14 @@ named by its SHA-256.
 - `extract --archives MAP.json --received DIR` repeats the read, requires every archive to equal its index row, copies
   the Git-sourced licence files from DIR after checking each against its recorded blob, and writes `texts/`.
 - `generate` writes `packages.json`, the shipped per-package account derived from the committed inputs.
+
+A registry package with no archive notice may take its text through exactly one reviewed association in
+`associations.json`: `app_texts` (the App's copy of the same archive) or `registry_sources` (the publisher's licence
+files at the revision the archive's VCS record names, each bound to the blob and size a saved listing gives and held in
+the store through another route). The owner-reading requirement is applied after the route is resolved. A package with no
+text route may instead carry `not_in_macos_package` (absence from the macOS target by declared target condition, checked
+here against the lockfile's reverse dependencies), `no_publisher_text` (a licence is stated and no publisher text was
+found; open), or a specific gap reason in `gap_reasons`. An association naming a package it cannot apply to refuses.
 - `check` needs no archive: the lockfiles, associations, index, texts and `packages.json` must agree exactly (every
   locked package has one row, every text exists once with its digest, nothing else is held).
 
@@ -43,6 +52,19 @@ GIT_SOURCE = re.compile(r'^git\+(https://[^?#]+?)(?:\.git)?\?rev=([0-9a-f]{40})#
 HEX64 = re.compile('[0-9a-f]{64}')
 # Owner readings are needed, as for the App's own copies, for texts from these repositories (coverage.py's rule).
 READING_REPOSITORIES = {'https://github.com/madsmtm/objc2'}
+# The macOS package's one target. A package is absent from it only when every lockfile edge to it is declared under a
+# target condition that is false for this target, in one of the closed forms of `target_holds`.
+MACOS_TARGET = 'aarch64-apple-darwin'
+STANDINGS = {'text': 'its texts ship (the basis says on what footing; adequacy is not decided here)',
+             'held': 'a text ships; it awaits an owner licence reading',
+             'gap': 'no text ships; the reason and what would close it are given',
+             'no-publisher-text': 'no text ships: a licence is stated and no publisher text was found at the examined revision; '
+                                  'open until a text exists or the owner decides what may serve as its notice',
+             'not-in-macos-package': 'no text ships: absent from the macOS target by declared target condition (the evidence '
+                                     'is given); not part of what the package carries'}
+# Standings that leave a compiled-dependencies component open: everything but text and recorded absence.
+OPEN = ('held', 'gap', 'no-publisher-text')
+HEX40 = re.compile('[0-9a-f]{40}')
 
 _spec = importlib.util.spec_from_file_location('supplier_crate_notices_route', HERE / 'crate_notices.py')
 route = importlib.util.module_from_spec(_spec)
@@ -146,6 +168,134 @@ def app_texts(associations):
     return found
 
 
+def registry_sources(associations):
+    """Reviewed publisher-text associations for registry packages, by (name, version, checksum); shape checked."""
+    found = {}
+    for entry in associations.get('registry_sources', []):
+        require(set(entry) <= {'packages', 'repository', 'repository_basis', 'revision', 'listing', 'basis', 'texts'}
+                and {'packages', 'repository', 'revision', 'listing', 'basis', 'texts'} <= set(entry),
+                'unknown registry-source association shape')
+        require(entry['repository'].startswith('https://github.com/') and HEX40.fullmatch(entry['revision'] or '')
+                and isinstance(entry['basis'], str) and entry['basis'].strip(), 'a registry-source association needs its '
+                'publisher repository, revision and basis: ' + str(entry.get('repository')))
+        require(entry['packages'], 'a registry-source association names no package: ' + entry['repository'])
+        require(entry['texts'], 'a registry-source association must have at least one text: ' + entry['repository'])
+        for text in entry['texts']:
+            require(set(text) == {'source_path', 'size_bytes', 'sha256', 'git_blob_sha1', 'listing_blob', 'listing_size'},
+                    'unknown registry-source text shape: ' + entry['repository'])
+            require(text['git_blob_sha1'] == text['listing_blob'] and text['size_bytes'] == text['listing_size'],
+                    'a registry-source text is not the blob and size its listing names: ' + entry['repository'] + ' '
+                    + text['source_path'])
+        for package in entry['packages']:
+            key = (package['name'], package['version'], package['checksum'])
+            require(key not in found, 'two registry-source associations for ' + ' '.join(key[:2]))
+            found[key] = entry
+    return found
+
+
+def keyed(associations, collection):
+    """{(name, version, checksum): entry} for a per-package collection; a repeated package refuses."""
+    found = {}
+    for entry in associations.get(collection, []):
+        for package in entry.get('packages', [entry]):
+            key = (package['name'], package['version'], package['checksum'])
+            require(key not in found, f'{collection} names {key[0]} {key[1]} twice')
+            found[key] = entry
+    return found
+
+
+TARGET_TABLE = re.compile(r"^\[target\.(?:'(?P<cfg>[^']*)'|(?P<triple>[A-Za-z0-9_-]+))\."
+                          r"(?P<table>dependencies|dev-dependencies|build-dependencies)(?:\.(?P<dependency>[A-Za-z0-9_-]+))?\]$")
+TABLE_KIND = {'dependencies': 'normal', 'dev-dependencies': 'dev', 'build-dependencies': 'build'}
+
+
+def target_holds(table, target=MACOS_TARGET):
+    """(holds for target, edge kind, dependency named by a dotted table) for a target dependency table header.
+
+    The closed forms: cfg(target_os = "..."), cfg(windows), and a literal target triple. Any other form, or a table
+    that is not target-specific, refuses: absence is never inferred from a name or from an unknown condition."""
+    match = TARGET_TABLE.fullmatch(table)
+    require(match is not None, 'not a target-specific dependency table: ' + table)
+    os_name = {'aarch64-apple-darwin': 'macos'}[target]
+    if match.group('triple') is not None:
+        holds = match.group('triple') == target
+    else:
+        cfg = match.group('cfg')
+        os_match = re.fullmatch(r'cfg\(target_os = "([a-z0-9_]+)"\)', cfg)
+        if os_match is not None:
+            holds = os_match.group(1) == os_name
+        elif cfg == 'cfg(windows)':
+            holds = False
+        else:
+            raise ValueError('a target condition outside the closed forms: ' + cfg)
+    return holds, TABLE_KIND[match.group('table')], match.group('dependency')
+
+
+def reverse_dependencies(packages):
+    """{(name, version): {(name, version) of each package whose lockfile dependencies name it}}."""
+    by_name = {}
+    for key in packages:
+        by_name.setdefault(key[0], []).append(key)
+    found = {}
+    for key, package in packages.items():
+        for dependency in package.get('dependencies', []):
+            name, *rest = dependency.split(' ')
+            candidates = [k for k in by_name.get(name, []) if not rest or k[1] == rest[0]]
+            require(len(candidates) == 1, 'a lockfile dependency does not resolve to one package: ' + dependency)
+            found.setdefault(candidates[0], set()).add(key)
+    return found
+
+
+def absence(entry, lock, packages, reverse):
+    """The recorded evidence that a package is absent from the macOS target, checked against the lockfile.
+
+    The reverse dependencies must be exactly the lockfile's; each must carry the manifest declaring its edge and every
+    edge line naming the package, each under a target table whose condition is false for the macOS target."""
+    require(set(entry) == {'lock', 'name', 'version', 'checksum', 'target', 'reverse_dependencies'} and entry['target'] == MACOS_TARGET,
+            'unknown not-in-macOS-package shape: ' + str(entry.get('name')))
+    key = (entry['name'], entry['version'])
+    require(key in packages and packages[key].get('checksum') == entry['checksum'], 'not-in-macOS-package names no locked '
+            'package with that checksum: ' + ' '.join(key))
+    recorded = [(r['name'], r['version']) for r in entry['reverse_dependencies']]
+    require(len(recorded) == len(set(recorded)) and set(recorded) == reverse.get(key, set()) and recorded,
+            'the recorded reverse dependencies of ' + ' '.join(key) + ' differ from the lockfile\'s: recorded '
+            + str(sorted(recorded)) + ', lockfile ' + str(sorted(reverse.get(key, set()))))
+    for dependent in entry['reverse_dependencies']:
+        source = packages[(dependent['name'], dependent['version'])]
+        if kind(source) == 'registry':
+            require(set(dependent) == {'name', 'version', 'archive_manifest', 'edges'}, 'a registry reverse dependency needs '
+                    'its archive manifest: ' + dependent['name'])
+            manifest = dependent['archive_manifest']
+            require(set(manifest) == {'checksum', 'member', 'size_bytes', 'sha256'} and manifest['checksum'] == source['checksum']
+                    and manifest['member'] == 'Cargo.toml' and HEX64.fullmatch(manifest['sha256']),
+                    'the archive manifest is not the locked archive\'s Cargo.toml: ' + dependent['name'])
+        else:
+            require(kind(source) == 'path' and set(dependent) == {'name', 'version', 'workspace_manifest', 'edges'},
+                    'a workspace reverse dependency needs its pinned manifest: ' + dependent['name'])
+            manifest = dependent['workspace_manifest']
+            require(set(manifest) == {'repository', 'revision', 'path', 'size_bytes', 'git_blob_sha1', 'sha256'}
+                    and (manifest['repository'], manifest['revision']) == (lock['repository'], lock['revision'])
+                    and manifest['path'].endswith('Cargo.toml') and HEX40.fullmatch(manifest['git_blob_sha1']),
+                    'the workspace manifest is not at the lockfile\'s repository and revision: ' + dependent['name'])
+        require(dependent['edges'], 'a reverse dependency records no edge: ' + dependent['name'])
+        for edge in dependent['edges']:
+            require(set(edge) == {'table', 'table_line', 'line', 'text', 'kind'} and edge['line'] >= edge['table_line'] >= 1,
+                    'unknown edge shape: ' + dependent['name'])
+            holds, edge_kind, named = target_holds(edge['table'])
+            require(edge['kind'] == edge_kind, 'the edge kind differs from its table: ' + dependent['name'])
+            name = re.escape(entry['name'])
+            if named is not None:
+                require(named == entry['name'] and edge['line'] == edge['table_line'] and edge['text'] == edge['table'],
+                        'a dotted dependency table names another package: ' + edge['table'])
+            else:
+                require(edge['line'] > edge['table_line'] and (re.match(r'^"?' + name + r'"?\s*=', edge['text'])
+                        or re.search(r'package\s*=\s*"' + name + '"', edge['text'])),
+                        'the edge line does not name the package: ' + edge['text'])
+            require(not holds, f'{entry["name"]} {entry["version"]} is declared for {MACOS_TARGET} by {dependent["name"]}: '
+                    + edge['table'])
+    return {'target': MACOS_TARGET, 'reverse_dependencies': entry['reverse_dependencies']}
+
+
 def wanted_texts(repo):
     """sha256 -> (size, where the bytes come from) for every crate text the group ships."""
     associations, index = load(repo, ASSOCIATIONS), load(repo, INDEX)
@@ -166,6 +316,11 @@ def wanted_texts(repo):
     for source in associations['git_sources']:
         for text in source['texts']:
             want(text['sha256'], text['size_bytes'], ('received', source['repository'], source['revision'], text['source_path']))
+    # Nothing is received for a registry-source text: its bytes are ones the store already holds through another route.
+    for entry in associations.get('registry_sources', []):
+        for text in entry['texts']:
+            require(wanted.get(text['sha256'], (None,))[0] == text['size_bytes'], 'a registry-source text is not held through '
+                    'another route: ' + entry['repository'] + ' ' + text['source_path'])
     return wanted
 
 
@@ -182,7 +337,13 @@ def entries(repo):
     for key, locks in expected.items():
         require(by_key[key]['locks'] == sorted(locks), 'crate index names other lockfiles for ' + ' '.join(key[:2]))
     reused = app_texts(associations)
-    used_app = set()
+    published = registry_sources(associations)
+    unresolved = {name: keyed(associations, name) for name in ('not_in_macos_package', 'no_publisher_text', 'gap_reasons')}
+    for name, collection in unresolved.items():
+        for other, entries_ in unresolved.items():
+            both = set(collection) & set(entries_) if other != name else set()
+            require(not both, f'{name} and {other} both name ' + str(sorted(both)[:3]))
+    used_app, used = set(), set()
     git = {}
     for source in associations['git_sources']:
         for package in source['packages']:
@@ -192,27 +353,63 @@ def entries(repo):
     rows = []
     used_git = set()
     for lock in associations['locks']:
-        for (name, version), package in sorted(locked(repo, lock).items()):
+        packages_ = locked(repo, lock)
+        reverse = reverse_dependencies(packages_)
+        for (name, version), package in sorted(packages_.items()):
             row = {'lock': lock['id'], 'name': name, 'version': version, 'source_kind': kind(package)}
             if row['source_kind'] == 'registry':
-                entry = by_key[(name, version, package['checksum'])]
+                key = (name, version, package['checksum'])
+                entry = by_key[key]
                 row['checksum'] = package['checksum']
-                if entry['notices']:
-                    row.update(standing='text', basis='licence files of the locked crate archive, selected by name',
+                routes = [r for r, found in (('archive', entry['notices']), ('app', key in reused), ('publisher', key in published)) if found]
+                require(len(routes) <= 1, f'{name} {version} has more than one text route: ' + ', '.join(routes))
+                marks = [n for n, collection in unresolved.items() if key in collection]
+                require(not (routes and marks), f'{name} {version} has a text route and is also named in ' + ', '.join(marks))
+                used.update((n, key) for n in marks)
+                repository = None
+                if routes == ['archive']:
+                    row.update(standing=None, basis='licence files of the locked crate archive, selected by name',
                                texts=[{'member': n['path'], 'sha256': n['sha256'], 'size_bytes': n['size_bytes']} for n in entry['notices']])
-                elif (app := reused.get((name, version, package['checksum']))) is not None:
-                    used_app.add((name, version, package['checksum']))
+                elif routes == ['app']:
+                    app = reused[key]
+                    used_app.add(key)
                     require(app['reading_required'] == (app['repository'] in READING_REPOSITORIES),
                             'an App-text association states another reading requirement than the rule: ' + name)
+                    repository = app['repository']
                     row.update(texts=[{'app_text': t['app_path'], 'sha256': t['sha256'], 'size_bytes': t['size_bytes']} for t in app['texts']],
-                               standing='held' if app['reading_required'] else 'text', basis=app['basis'])
-                    if app['reading_required']:
-                        row['reason'] = ('the same text awaits an owner licence reading for this crate as the App\'s own copy does; '
-                                         'the App\'s reading of 2026-11-12 is not extended to the supplier\'s copy here')
+                               standing=None, basis=app['basis'])
+                elif routes == ['publisher']:
+                    source = published[key]
+                    repository = source['repository']
+                    row.update(standing=None, repository=source['repository'], revision=source['revision'],
+                               texts=[{'publisher_text': t['source_path'], 'sha256': t['sha256'], 'size_bytes': t['size_bytes']}
+                                      for t in source['texts']],
+                               basis=source['basis'] + f' ({source["repository"]} at {source["revision"][:8]}; each text is the blob '
+                                     'and size the saved listing of that revision names, and its bytes are held in the store)')
+                elif 'not_in_macos_package' in marks:
+                    row.update(standing='not-in-macos-package', texts=[],
+                               absence=absence(unresolved['not_in_macos_package'][key], lock, packages_, reverse))
+                elif 'no_publisher_text' in marks:
+                    item = unresolved['no_publisher_text'][key]
+                    row.update(standing='no-publisher-text', texts=[], declared_license=item['declared_license'],
+                               repository=item['repository'], revision=item['revision'],
+                               reason='a licence is stated and no publisher text was found: ' + item['examined'],
+                               would_close=item['would_close'])
+                elif 'gap_reasons' in marks:
+                    item = unresolved['gap_reasons'][key]
+                    row.update(standing='gap', texts=[], reason=item['reason'], would_close=item['would_close'])
                 else:
                     row.update(standing='gap', texts=[], reason='the locked archive has no member named as a notice and no '
                                'text is held for this crate version',
                                would_close=f'an owner-permitted acquisition of the licence text {name} {version} names')
+                if routes:
+                    # The reading requirement follows the resolved route's repository, whichever route that is.
+                    reading = repository in READING_REPOSITORIES
+                    row['standing'] = 'held' if reading else 'text'
+                    if reading:
+                        row['reason'] = ('the text from ' + repository + ' awaits an owner licence reading for this supplier '
+                                         'crate; no reading of the supplier\'s copy is recorded, and the App\'s reading of '
+                                         '2026-11-12 is not extended to it')
             elif row['source_kind'] == 'git':
                 match = GIT_SOURCE.fullmatch(package['source'])
                 source = git.get(f'{name} {version}')
@@ -235,6 +432,12 @@ def entries(repo):
             rows.append(row)
     require(used_app == set(reused), 'an App-text association names no locked package without archive notices: '
             + str(sorted(set(reused) - used_app)))
+    for name, collection in unresolved.items():
+        unused = sorted(set(collection) - {key for n, key in used if n == name})
+        require(not unused, f'{name} names a package no lockfile locks with that checksum: ' + str(unused[:3]))
+    seen_publisher = {(r['name'], r['version'], r['checksum']) for r in rows if r.get('texts') and 'publisher_text' in r['texts'][0]}
+    require(seen_publisher == set(published), 'a registry-source association names no locked package without another text '
+            'route: ' + str(sorted(set(published) - seen_publisher)[:3]))
     require(used_git == set(git), 'Git association names a package no lockfile locks: ' + str(sorted(set(git) - used_git)))
     return rows
 
@@ -267,6 +470,10 @@ def check_texts(repo):
     for source in associations['git_sources']:
         for text in source['texts']:
             require(git_blob(held[text['sha256']]) == text['git_blob_sha1'], 'Git-source text differs from its blob: ' + text['source_path'])
+    for entry in associations.get('registry_sources', []):
+        for text in entry['texts']:
+            require(git_blob(held[text['sha256']]) == text['git_blob_sha1'], 'a registry-source text differs from the blob its '
+                    'listing names: ' + entry['repository'] + ' ' + text['source_path'])
     return {'texts': len(held), 'bytes': sum(len(v) for v in held.values())}
 
 
@@ -289,14 +496,15 @@ def packages(repo=REPO):
     rows = []
     for row in entries(repo):
         item = {k: v for k, v in row.items() if k != 'texts'}
-        item['texts'] = [{**{k: t[k] for k in t if k in ('member', 'received', 'app_text')}, 'sha256': t['sha256'], 'size_bytes': t['size_bytes'],
+        item['texts'] = [{**{k: t[k] for k in t if k in ('member', 'received', 'app_text', 'publisher_text')}, 'sha256': t['sha256'], 'size_bytes': t['size_bytes'],
                           'package_path': package_path(repo, t, store)} for t in row['texts']]
         rows.append(item)
     return {'format': 'supplier-crate-packages/1', 'pin': associations['pin'], 'superset': associations['superset'],
             'selection': load(repo, INDEX)['selection'],
-            'standings': {'text': 'its texts ship (the basis says on what footing; adequacy is not decided here)',
-                          'held': 'a text ships; it awaits an owner licence reading',
-                          'gap': 'no text ships; the reason and what would close it are given'},
+            'standings': STANDINGS,
+            'macos_target': 'packages standing not-in-macos-package are absent from ' + MACOS_TARGET + ' by the target condition '
+                            'their reverse dependencies declare, checked against the lockfile; no resolver was run and nothing '
+                            'was read from the binaries',
             'locks': [{k: lock[k] for k in ('id', 'component', 'repository', 'revision', 'source_path', 'sha256', 'binding')}
                       for lock in associations['locks']],
             'packages': rows}
@@ -315,7 +523,7 @@ def check(repo=REPO):
     require(regular(repo, PACKAGES) == encode(packages(repo)), 'crates/packages.json is stale; regenerate with crates.py generate')
     by_lock = {}
     for row in rows:
-        counts = by_lock.setdefault(row['lock'], {'packages': 0, 'registry': 0, 'git': 0, 'path': 0, 'text': 0, 'held': 0, 'gap': 0})
+        counts = by_lock.setdefault(row['lock'], {'packages': 0, 'registry': 0, 'git': 0, 'path': 0, **{k: 0 for k in STANDINGS}})
         counts['packages'] += 1
         counts[row['source_kind']] += 1
         counts[row['standing']] += 1

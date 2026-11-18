@@ -11,8 +11,10 @@ coverage-inputs.json (owner readings, permitted texts, Library content). Each co
 
 `check` regenerates and requires the committed account to be identical (it runs every underlying check).
 `check --strict` also exits non-zero while any component is held or uncovered, naming each.
-Never fetches, builds, executes supplier code or reads a cache. `--vendor DIR` additionally reads an
-extracted supplier tree and checks the voice component versions against its sources.json.
+Never fetches, builds, executes supplier code or reads a cache. The voice rows' versions and source URLs are compared
+on every run with the supplier's own voice records, committed under supplier_notices/voice_records/<pin>/ and bound to
+the distribution record (supplier_notices/voice.py). `--vendor DIR` additionally reads an extracted supplier tree and
+applies the same comparison to its own sources.json and manifest.json.
 """
 import argparse
 import hashlib
@@ -93,6 +95,7 @@ transitive = texts.transitive
 direct_check = _load('coverage_direct_check', HERE / 'check.py')
 font_check = _load('coverage_font_check', HERE.parent / 'font_notice/check.py')
 bundle = _load('coverage_bundle_resources', HERE.parent / 'production_inputs/bundle_resources.py')
+voice_records = _load('coverage_voice_records', HERE.parent / 'supplier_notices/voice.py')
 require, sha = transitive.require, transitive.sha
 
 
@@ -297,6 +300,12 @@ def build(repo=REPO, vendor=None):
     tree = {e['path']: e for e in record['inventory']['entries'] if e['kind'] == 'file'}
     reviewed = table['reviewed_for_pin'] == pin
     by_path = {t['path']: t for t in texts.supplier_texts(repo)}
+    # The voice rows (texts inside the supplier tree) are compared with the supplier's own voice records for this pin;
+    # any disagreement refuses. A row is covered only when the comparison established its version and source URL.
+    require(table['voice_sources']['path'] == voice_records.MEMBERS['sources.json'], 'the table names another voice sources member')
+    voice = voice_records.establish(repo, pin, record, [c for c in table['components'] if c['supplier_tree_texts']]) if reviewed else None
+    for path in (voice or {}).get('records', {}).values():
+        digest(path)
     claimed = {}
     ids = [item['id'] for item in table['components']]
     require(len(ids) == len(set(ids)), 'duplicate supplier component id')
@@ -367,6 +376,10 @@ def build(repo=REPO, vendor=None):
                 would_close='ship the component\'s own texts, or name each other text as an exception with its reason')
         elif item['standing'] == 'covered' and not item['texts'] and not item['supplier_tree_texts']:
             raise ValueError('covered supplier component ships no text: ' + item['id'])
+        elif item['supplier_tree_texts'] and item['standing'] == 'covered' and voice is None:
+            add(entry, UNCOVERED, reason=f'the supplier\'s voice records for {pin} are not held, so this row\'s version and source are '
+                                         'not established by them',
+                would_close=f'commit the pin\'s voice/sources.json and voice/manifest.json under {voice_records.RECORDS}/{pin}/')
         elif item['id'] in SUPPLIER_READINGS and not (item['standing'] == 'covered' and supplier_reading_valid(reading, item['id'])):
             add(entry, HELD, reason=item.get('reason') or 'the held text ships; its adequacy awaits the owner\'s licence reading'
                 + ('' if reading is None else ' (the recorded reading is not in the closed form)'))
@@ -374,6 +387,8 @@ def build(repo=REPO, vendor=None):
             add(entry, COVERED, basis=f'owner licence reading ({reading["date"]}): {reading["answer"]}; the text recorded at the '
                                       'component\'s own repository and revision ships unchanged')
         elif item['standing'] == 'covered':
+            if item['supplier_tree_texts']:
+                entry['source_statement'] = {**voice['rows'][item['id']], 'records': sorted(voice['records'].values())}
             add(entry, COVERED, basis='texts recorded at the component\'s own repository and revision' if item['texts']
                 else 'licence texts the supplier ships in its tree, identified by the distribution record\'s digests; the '
                      'component is identified by its source URL')
@@ -409,7 +424,7 @@ def build(repo=REPO, vendor=None):
     members = [{'path': p, 'size': tree[p]['size'], 'sha256': tree[p]['sha256'], 'package_path': VENDOR_DESTINATION + p,
                 'components': claimed.get(p, [])} for p in sorted(tree)]
     if vendor is not None:
-        check_vendor(vendor, table, tree)
+        check_vendor(vendor, table, tree, pin, record)
 
     # Every mapping the bundle is given is named in the account by its exact source and destination: in a row's
     # mappings, or as the repository path and package path of a text a row ships. A folder mapping is named only with
@@ -604,28 +619,43 @@ def compiled_group(repo, item, entry, record, mapping, add):
         require(found['sha256'] == text['sha256'], 'a crate text differs from its package account: ' + destination)
         shipped.append(found)
     entry['texts'] = shipped
-    counts = {k: sum(r['standing'] == k for r in rows) for k in ('text', 'held', 'gap')}
+    standings = texts.supplier_crates.STANDINGS
+    require({r['standing'] for r in rows} <= set(standings), 'a crate package has an unknown standing: ' + item['id'])
+    counts = {k: sum(r['standing'] == k for r in rows) for k in standings}
     kinds = {k: sum(r['source_kind'] == k for r in rows) for k in ('registry', 'git', 'path')}
     entry['lockfile'] = {k: lock[k] for k in ('path', 'sha256', 'repository', 'revision', 'source_path', 'binding')}
     entry['packages'] = {'total': len(rows), **kinds, **counts, 'account': 'third-party-notices/supplier/crates/packages.json',
                          'superset': 'every package the lockfile locks, on every platform and feature; some may not be compiled '
-                                     'into the macOS executables'}
-    open_rows = [r for r in rows if r['standing'] != 'text']
+                                     'into the macOS executables. Only packages standing not-in-macos-package are recorded as '
+                                     'absent, by declared target condition'}
+    # Recorded absence from the macOS target is the only standing besides text that does not hold the group open, and the
+    # account names every such package with its evidence. A package with no publisher text stays open, like a gap.
+    excluded = [r for r in rows if r['standing'] == 'not-in-macos-package']
+    entry['excluded_packages'] = [{'name': r['name'], 'version': r['version'], 'checksum': r['checksum'], 'absence': r['absence']}
+                                  for r in excluded]
+    open_rows = [r for r in rows if r['standing'] in texts.supplier_crates.OPEN]
+    require(len(open_rows) + len(excluded) + counts['text'] == len(rows), 'a crate package standing is neither open, text nor absent')
     entry['open_packages'] = [{'name': r['name'], 'version': r['version'], 'standing': r['standing'], 'reason': r['reason']}
                               for r in open_rows]
     computed = 'covered' if not open_rows else 'uncovered'
     require(item['standing'] == computed, f'the table says {item["standing"]} for {item["id"]}, and its crate group is {computed}')
-    if counts['gap']:
-        add(entry, UNCOVERED, reason=f'{counts["gap"]} of the {len(rows)} locked packages have no text and {counts["held"]} await an '
-                                     'owner licence reading: ' + ', '.join(f'{r["name"]} {r["version"]}' for r in open_rows),
-            would_close='each open package\'s licence text (an owner-permitted acquisition) or, for a held one, the owner\'s reading')
+    unshipped = counts['gap'] + counts['no-publisher-text']
+    if unshipped:
+        add(entry, UNCOVERED, reason=f'of the {len(rows)} locked packages, {counts["gap"]} have no text, {counts["no-publisher-text"]} '
+                                     f'state a licence with no publisher text found, and {counts["held"]} await an owner licence '
+                                     f'reading ({len(excluded)} are recorded absent from the macOS package and named under '
+                                     'excluded_packages): ' + ', '.join(f'{r["name"]} {r["version"]}' for r in open_rows),
+            would_close='each open package\'s licence text (an owner-permitted acquisition), for one with no publisher text the '
+                        'owner\'s decision on what may serve as its notice, and for a held one the owner\'s reading')
     elif counts['held']:
         add(entry, HELD, reason=f'{counts["held"]} locked packages await an owner licence reading: '
                                 + ', '.join(f'{r["name"]} {r["version"]}' for r in open_rows))
     else:
-        add(entry, COVERED, basis=f'every one of the {len(rows)} packages the associated lockfile locks has its text in the package '
-                                  '(archive notice members selected by name, Git-source licence files at the locked revision, or the '
-                                  'workspace\'s texts); the set is a superset of what is compiled, and adequacy is not decided here')
+        add(entry, COVERED, basis=f'every one of the {len(rows) - len(excluded)} packages the associated lockfile locks for the macOS '
+                                  'package has its text in the package (archive notice members selected by name, Git-source licence '
+                                  'files at the locked revision, publisher texts at the archive\'s named revision, or the workspace\'s '
+                                  f'texts); {len(excluded)} are recorded absent from the macOS target by declared target condition; '
+                                  'the set is otherwise a superset of what is compiled, and adequacy is not decided here')
 
 
 def identity_gaps(item):
@@ -676,17 +706,15 @@ def reading_valid(reading, row):
             and reading['answer'] in READING_ANSWERS and reading['statement'] == READING_ANSWERS[reading['answer']])
 
 
-def check_vendor(vendor, table, tree):
-    """Optional: compare the voice components with the extracted tree's own sources.json."""
+def check_vendor(vendor, table, tree, pin, record):
+    """Optional: the extracted tree's data files equal the record, and its own voice records give the same comparison."""
     vendor = Path(vendor)
     for path, entry in tree.items():
         if path.endswith(('.json', '.md', '.txt')):
             require(sha((vendor / path).read_bytes()) == entry['sha256'], 'vendor file differs from the record: ' + path)
-    sources = json.loads((vendor / table['voice_sources']['path']).read_bytes())
-    stated = {s['url']: s['version'] for s in sources['sources'] if s['role'] == 'native-library'}
-    for item in table['components']:
-        if item['supplier_tree_texts']:
-            require(stated.get(item['repository']) == item['version'], 'voice component differs from sources.json: ' + item['id'])
+    voice_records.compare((vendor / voice_records.MEMBERS['sources.json']).read_bytes(),
+                          (vendor / voice_records.MEMBERS['manifest.json']).read_bytes(), pin, record,
+                          [c for c in table['components'] if c['supplier_tree_texts']])
 
 
 def check(repo=REPO, vendor=None, base_account=None):
