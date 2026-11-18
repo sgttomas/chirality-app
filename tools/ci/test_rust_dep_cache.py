@@ -1,4 +1,4 @@
-"""Prove that the CI Rust cache cannot make cargo reuse a stale repository crate."""
+"""Exercise CI Rust cache pruning and reproduce stale workspace reuse when pruning is skipped."""
 from __future__ import annotations
 
 import os
@@ -93,7 +93,7 @@ def units_of(profile, package):
 
 
 def pruned_for_save(project):
-    """Prune as the save step does; a refusal fails the test with the same account of the build."""
+    """Prune as the save step does. Report the Cargo version and output paths if pruning raises a layout or ownership error."""
     try:
         return subject.prune_after_build(project / "Cargo.toml", project / "target")
     except ValueError as refusal:
@@ -130,8 +130,8 @@ def test_pruning_forces_a_rebuild_of_repository_crates_only(cargo_project):
 
 
 def test_a_local_library_build_script_example_and_test_leave_nothing_behind(cargo_project):
-    # A library also built as a dynamic and a static library, as the App's is: before
-    # Cargo 1.100 its files in deps carry no hash.
+    # The library has rlib, staticlib and cdylib crate types, as the App does. With the
+    # legacy layout, a normal build of this local library can leave unhashed files in `deps`.
     manifest = cargo_project / "Cargo.toml"
     manifest.write_text(manifest.read_text().replace(
         "[dependencies]", 'build = "build.rs"\n[lib]\nname = "own_app_lib"\n'
@@ -168,7 +168,7 @@ def test_a_real_build_holding_nothing_recognised_as_the_repositorys_is_not_saved
     assert units_of(target / "debug", "third-party"), built_as(cargo_project)
 
 
-def test_ownership_matches_exact_crate_names_only(tmp_path):
+def test_workspace_target_spellings_match_and_longer_crate_names_are_kept(tmp_path):
     profile = tmp_path / "debug"
     (profile / ".fingerprint").mkdir(parents=True)
     (profile / "deps").mkdir()
@@ -177,8 +177,8 @@ def test_ownership_matches_exact_crate_names_only(tmp_path):
            profile / "deps/own_app-0123456789abcdef.d",
            profile / "deps/libown_app-0123456789abcdef.rlib",
            profile / "deps/own_app-0123456789abcdef.abc-cgu.0.rcgu.o",
-           # A local library built as a dynamic or static library has no hash in its
-           # file names, so anything named for a repository crate is the repository's.
+           # These fixtures exercise unhashed outputs and sidecars selected by the current
+           # target name.
            profile / "deps/libown_app.dylib",
            profile / "deps/libown_app.a",
            profile / "deps/libown_app.rlib",
@@ -209,7 +209,7 @@ def layout_of_cargo_1_100(profile, packages=("own-app", "own-app-helper", "third
 
 
 def older_layout(profile, package, crate, first="0123456789abcdef", second="fedcba9876543210"):
-    """One unit as Cargo before 1.100 lays it out, with a build script's two folders."""
+    """Make synthetic legacy library output and compiled and run folders for a build script."""
     made = [profile / f".fingerprint/{package}-{first}",
             profile / f"build/{package}-{first}",
             profile / f"build/{package}-{second}/out"]
@@ -384,8 +384,13 @@ def test_compiler_scratch_left_in_a_build_scripts_folder_is_removed_not_refused(
     scratch[1].mkdir()
     assert "removed 0" in subject.restored(tmp_path / "Cargo.toml", target, "some-key")
     assert not scratch[1].exists() and all(path.exists() for path in kept)
-    # Only that name, and only as a folder: anything else there is still refused.
+    # Reject a scratch directory whose name has the wrong form.
     (kept[1] / "rustc-other").mkdir()
+    with pytest.raises(ValueError, match="not in a layout this tool knows"):
+        subject.prune(tmp_path / "Cargo.toml", target)
+    # Reject a regular file with the scratch spelling.
+    (kept[1] / "rustc-other").rmdir()
+    (kept[1] / "rustcl56x0c").write_text("")
     with pytest.raises(ValueError, match="not in a layout this tool knows"):
         subject.prune(tmp_path / "Cargo.toml", target)
 
@@ -400,7 +405,7 @@ def test_the_older_layouts_output_with_no_fingerprint_beside_it_is_refused(tmp_p
 
 
 def test_a_repository_package_name_shared_with_another_package_is_refused(tmp_path, monkeypatch):
-    # Both layouts file units under the package's name alone.
+    # Package-name matching can conflate units from different package IDs.
     target = tmp_path / "target"
     own, kept = layout_of_cargo_1_100(target / "debug")
     own_app_only(monkeypatch)
@@ -460,9 +465,28 @@ def test_the_save_command_fails_when_a_build_left_nothing_of_the_repositorys(tmp
     assert subject.main() == 2
     assert "::error::" in capsys.readouterr().out
     assert (target / "debug/deps/libthird_party-0123456789abcdef.rlib").is_file()
-    # With no compiled output at all there was no build, and nothing to refuse.
+    # A save needs a match whatever the tree holds: with no target at all it is refused too.
     shutil.rmtree(target)
-    assert subject.main() == 0
+    assert subject.main() == 2
+    assert "nothing is saved" in capsys.readouterr().out
+
+
+def test_the_save_command_refuses_a_tree_holding_only_compiler_scratch(tmp_path, monkeypatch, capsys):
+    # No fingerprint anywhere: only a temporary directory rustc left in deps.
+    target = tmp_path / "target"
+    (target / "debug/deps/rustcl56x0c").mkdir(parents=True)
+    (target / "debug/deps/rustcl56x0c/symbols.o").write_text("")
+    own_app_only(monkeypatch)
+    arguments = ["rust_dep_cache.py", "prune", "--manifest-path", str(tmp_path / "Cargo.toml"),
+                 "--target-dir", str(target)]
+    monkeypatch.setattr(subject.sys, "argv", arguments)
+    assert subject.main() == 2
+    printed = capsys.readouterr().out
+    assert "::error::" in printed and "Removed" not in printed
+    # A matched restore of the same tree removes the scratch and succeeds with zero matches.
+    (target / "debug/deps/rustcl56x0c").mkdir(exist_ok=True)
+    assert "removed 0" in subject.restored(tmp_path / "Cargo.toml", target, "some-key")
+    assert not (target / "debug/deps/rustcl56x0c").exists()
 
 
 def test_the_save_command_does_not_take_removed_compiler_scratch_for_the_repositorys(tmp_path, monkeypatch, capsys):

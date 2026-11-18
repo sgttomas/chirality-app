@@ -5,10 +5,10 @@ Cargo rebuilds a workspace unit when its freshness fingerprint is missing. This
 tool removes cached paths matching current workspace packages and targets. The
 remaining dependency artifacts can be reused under the cache key.
 
-Cargo's output layout is not a stable interface. Two are known here. Before
-Cargo 1.100: `.fingerprint/<package>-<hash>/`, `build/<package>-<hash>/` and
-flat files in `deps/`, which can contain unhashed files from a local library
-built as a cdylib. In Cargo 1.100's new layout, the tool looks for units under
+Cargo's output layout is subject to change. In the legacy layout the cache
+paths are `.fingerprint/<package>-<hash>/`, `build/<package>-<hash>/` and flat
+entries in `deps/`. The latter can include unhashed files from a local cdylib
+build. In Cargo 1.100's new layout, the tool looks for units under
 `build/<package>/<hash>/` and checks for a fingerprint directory in each
 populated package. It refuses cache entries that fail its structural checks.
 The shape of a path alone cannot establish its ownership.
@@ -82,11 +82,10 @@ def only_files(directory: Path) -> bool:
 
 
 def package_folder(entry: Path) -> bool:
-    """A `build` entry in the layout of Cargo 1.100: only unit folders inside, or nothing.
+    """Identify a new-layout package folder by its hashed unit directories.
 
-    The older layout's `build/<package>-<hash>/` holds a build script or its run
-    output directly, never a folder per unit, so the two cannot be confused even
-    when a package's own name ends in something that looks like a hash.
+    For an empty entry, use its name to distinguish it from a legacy
+    `<package>-<hash>` folder.
     """
     if not real_directory(entry):
         return False
@@ -140,14 +139,13 @@ def own_artifacts(profile: Path, packages: set[str], crates: set[str]) -> list[P
 
 
 def unidentified(profile: Path) -> list[Path]:
-    """List cached paths selected for removal by the legacy unhashed-entry rule.
+    """List legacy `deps` entries without a recognized filename hash and rustc
+    temporary directories directly inside legacy build-script folders.
 
-    The App's legacy library build can leave unhashed files in `deps`, and the
-    App's registry dependencies use hashed compiler artifact names there. So an
-    entry of `deps` without a recognized filename hash is old App library output
-    or compiler scratch. An interrupted legacy link can leave compiler scratch
-    in a build-script directory as well. None of it names a current workspace
-    package or target, so none of it counts as a match.
+    The App's registry dependencies use hashed compiler artifact names in legacy
+    `deps`. The first selection includes old App library output, compiler
+    scratch, and any other entry with no recognized filename hash. Both
+    selections are applied after removing current-name matches.
     """
     found = [entry for entry in entries(profile / "deps") if not HASHED_FILE.fullmatch(entry.name)]
     for entry in entries(profile / "build"):
@@ -171,7 +169,11 @@ def compiled_units(profile: Path) -> list[Path]:
 
 
 def unrecognised_output(profile: Path) -> list[Path]:
-    """Entries of the cached folders that fit neither known layout, known units beside them or not."""
+    """List entries that fail the cache structure checks.
+
+    The separate legacy removal rule handles `deps` entries without a recognized
+    filename hash.
+    """
     unknown = [profile / name for name in CACHED_FOLDERS
                if (profile / name).exists() and not real_directory(profile / name)]
     unknown += [entry for entry in entries(profile / ".fingerprint")
@@ -206,11 +208,11 @@ def unrecognised_output(profile: Path) -> list[Path]:
 
 
 def shared_names(manifest: Path, packages: set[str]) -> list[str]:
-    """Repository package names that Cargo's lockfile also gives to another package.
+    """Return current workspace package names that occur more than once in the
+    workspace lockfile after case folding.
 
-    Both layouts file a package's units under its name alone, and names that
-    differ only in case share a folder on a case-insensitive disk, so the two
-    packages' units could not be told apart.
+    The pruner refuses these names because package-name matching alone cannot
+    distinguish the units.
     """
     lock = lockfile(manifest)
     if lock is None:
@@ -228,10 +230,10 @@ def remove(path: Path) -> None:
 
 
 def prune(manifest: Path, target: Path) -> int:
-    """Remove matching cache entries and check for remaining matches.
+    """Remove current-name matches first and remaining unidentified entries next.
 
-    Returns the number of paths matched to a current workspace package or
-    target. Unidentified entries are removed as well and are not counted.
+    Check both selections again before returning the number of current-name
+    matches.
     """
     packages, crates = own_units(manifest)
     shared = shared_names(manifest, packages)
@@ -257,19 +259,13 @@ def prune(manifest: Path, target: Path) -> int:
 
 
 def prune_after_build(manifest: Path, target: Path) -> int:
-    """Prune before a save. Fingerprints with no match to the repository are an error.
-
-    A job that compiled has the repository's crates in its output, so recognized
-    fingerprint directories with no match to a current workspace package or
-    target could hold them unmatched. Removing unidentified entries, such as
-    compiler scratch, does not count. A job that restored dependencies and
-    failed before compiling is refused as well; it has nothing new to save.
-    """
+    """Require at least one current workspace package or target match before saving."""
     built = bool(compiled_units(target / PROFILE))
     removed = prune(manifest, target)
-    if built and not removed:
+    if not removed:
         raise ValueError("Compiled Rust output is present and none of it was recognised as the "
-                         "repository's; nothing is saved")
+                         "repository's; nothing is saved" if built else
+                         "No Rust output matched a current workspace package or target; nothing is saved")
     return removed
 
 

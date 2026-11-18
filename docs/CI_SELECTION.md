@@ -373,12 +373,11 @@ failed restore or a pruning refusal and proceeds to a full build. Setup fails
 if that discard fails. A dependency-only cache can restore with zero removals.
 
 The save action skips pruning and upload when the key is empty or the restore
-reported an exact hit. When recognized fingerprint directories are present,
-save pruning requires a match to a current workspace package or target.
-Removing other entries, such as compiler scratch, is insufficient. This
-can happen after a prefix hit if the job fails before compiling the App. A
-pruning refusal emits an error annotation and skips upload. Save errors leave
-the job result unchanged.
+reported an exact hit. Save pruning requires a match to a current workspace
+package or target. Removing other entries, such as compiler scratch, is
+insufficient. A job can reach this refusal if it fails before compiling the
+App. A pruning refusal emits an error annotation and skips upload. Save errors
+leave the job result unchanged.
 
 `tools/ci/test_rust_dep_cache.py` exercises pruning with real Cargo builds and
 shows that an unpruned target can reuse stale repository code.
