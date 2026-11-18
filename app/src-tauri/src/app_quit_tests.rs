@@ -104,6 +104,9 @@ impl QuitOps for Double {
     fn restore_after_fault(&mut self) {
         self.log.push("restore".into());
     }
+    fn unrestored(&self) -> usize {
+        0
+    }
 }
 
 #[test]
@@ -362,10 +365,12 @@ mod system_quit_routes {
         d: &'a mut Double,
         before_confirm: Option<Box<dyn FnMut() + Send + 'a>>,
         fault: Option<&'static str>,
+        /// What `unrestored` reports: homes whose restoration faulted.
+        unrestored: usize,
     }
     impl<'a> Borrowed<'a> {
         fn new(d: &'a mut Double) -> Self {
-            Self { d, before_confirm: None, fault: None }
+            Self { d, before_confirm: None, fault: None, unrestored: 0 }
         }
         fn at(&self, step: &str) {
             if self.fault == Some(step) {
@@ -393,21 +398,28 @@ mod system_quit_routes {
         fn settle(&mut self, ids: &[String]) -> Result<Value, String> { self.at("settle"); self.d.settle(ids) }
         fn roster(&self) -> Vec<Arc<HomeSession>> { self.d.roster() }
         fn restore_after_fault(&mut self) { self.d.restore_after_fault() }
+        fn unrestored(&self) -> usize { self.unrestored }
     }
 
-    /// The App's gates.
-    #[derive(Default)]
+    /// The App's gates, and a reservation of the test's own in place of
+    /// `QUIT_RESERVATION`.
     struct Held {
         quit: AppQuit,
         stop_gate: Mutex<()>,
         key_setup: Mutex<()>,
+        reservation: &'static QuitReservation,
+    }
+    impl Default for Held {
+        fn default() -> Self {
+            Self { quit: AppQuit::default(), stop_gate: Mutex::default(), key_setup: Mutex::default(), reservation: QuitReservation::leaked() }
+        }
     }
     impl Held {
         fn gates(&self) -> QuitGates<'_> {
             QuitGates { quit: &self.quit, stop_gate: &self.stop_gate, key_setup: &self.key_setup }
         }
         fn reserve(&self) -> QuitToken {
-            self.quit.reservation().reserve().expect("the reservation is free")
+            self.reservation.reserve(self.reservation.observe()).expect("the reservation is free")
         }
     }
     /// What one attempt did: its ending, what the person was told and how
@@ -432,8 +444,8 @@ mod system_quit_routes {
     fn live() -> Value {
         material(&["turn-1"], 1, 1)
     }
-    /// The three outcomes no fault excuses: live work ended unasked, an exit
-    /// while the decision is pending, an exit after Keep running.
+    /// Check interrupt ordering and the worker's own decision and exit closure
+    /// in these doubles.
     fn never_excused(log: &[String], ran: &Ran, quit: &AppQuit) {
         let interrupted = log.iter().any(|l| l.starts_with("interrupt"));
         let confirmed = log.iter().any(|l| l == "quit_answered confirmed");
@@ -449,15 +461,26 @@ mod system_quit_routes {
 
     #[test]
     fn the_reservation_is_free_reserved_or_decided_and_decided_is_never_released() {
-        let r = Arc::new(QuitReservation::default());
-        let token = r.reserve().unwrap();
-        assert_eq!(r.reserve().unwrap_err(), ReservationHeld::Reserved);
+        let r = QuitReservation::leaked();
+        let before = r.observe();
+        let token = r.reserve(r.observe()).unwrap();
+        assert_eq!(r.reserve(r.observe()).unwrap_err(), ReservationHeld::Reserved);
+        assert_eq!(r.reserve(before).unwrap_err(), ReservationHeld::Overtaken, "the word changed after it was read");
         drop(token);
         assert!(r.is_free(), "an undecided token releases on drop");
-        let mut token = r.reserve().unwrap();
+        assert_eq!(r.reserve(before).unwrap_err(), ReservationHeld::Overtaken, "the release advanced the generation");
+        let mut token = r.reserve(r.observe()).unwrap();
         token.decide();
         drop(token);
-        assert!(r.is_decided() && r.reserve().unwrap_err() == ReservationHeld::Decided, "decided is never released");
+        assert!(r.is_decided() && r.reserve(r.observe()).unwrap_err() == ReservationHeld::Decided, "decided is never released");
+        assert_eq!(r.reserve(before).unwrap_err(), ReservationHeld::Decided);
+        // A handed-over token is adopted whole; dropping the adopted token
+        // releases exactly as the original would have.
+        let r = QuitReservation::leaked();
+        let word = r.reserve(r.observe()).unwrap().hand_over();
+        assert!(!r.is_free(), "handing over does not release");
+        drop(QuitToken::adopt(r, word));
+        assert!(r.is_free());
     }
 
     /// The selector's core with the App's decision and roster locks, a home
@@ -485,11 +508,11 @@ mod system_quit_routes {
         };
         is_locked.recv().unwrap();
         let (done, finished) = mpsc::channel();
-        let reservation = Arc::clone(held.quit.reservation());
+        let reservation = held.reservation;
         let caller = std::thread::spawn(move || {
             let mut handed = None;
-            let first = system_request(&reservation, |token| handed = Some(token));
-            let second = system_request(&reservation, |_| panic!("a second request starts nothing"));
+            let first = system_request(reservation, reservation.observe(), |token| handed = Some(token));
+            let second = system_request(reservation, reservation.observe(), |_| panic!("a second request starts nothing"));
             done.send((first, second, handed.is_some())).unwrap();
             drop(handed);
         });
@@ -498,7 +521,7 @@ mod system_quit_routes {
         holder.join().unwrap();
         caller.join().unwrap();
         assert_eq!(answered.expect("returned while the locks were held"), (QuitRequest::HandedOff, QuitRequest::AlreadyReserved, true));
-        assert!(held.quit.reservation().is_free(), "the dropped token released it");
+        assert!(held.reservation.is_free(), "the dropped token released it");
     }
 
     /// Two system requests, then a menu request, all before any worker runs
@@ -508,12 +531,12 @@ mod system_quit_routes {
     #[test]
     fn requests_before_any_worker_runs_make_one_attempt_and_cannot_quit_after_keep_running() {
         let held = Held::default();
-        let reservation = Arc::clone(held.quit.reservation());
+        let reservation = held.reservation;
         let mut queued = Vec::new();
-        assert_eq!(system_request(&reservation, |t| queued.push((QuitRoute::System, t))), QuitRequest::HandedOff);
-        assert_eq!(system_request(&reservation, |t| queued.push((QuitRoute::System, t))), QuitRequest::AlreadyReserved);
+        assert_eq!(system_request(reservation, reservation.observe(), |t| queued.push((QuitRoute::System, t))), QuitRequest::HandedOff);
+        assert_eq!(system_request(reservation, reservation.observe(), |t| queued.push((QuitRoute::System, t))), QuitRequest::AlreadyReserved);
         let exits = Cell::new(0);
-        assert_eq!(person_request(&reservation, |t| queued.push((QuitRoute::Person, t)), || exits.set(exits.get() + 1)), QuitRequest::AlreadyReserved);
+        assert_eq!(person_request(reservation, reservation.observe(), |t| queued.push((QuitRoute::Person, t)), || exits.set(exits.get() + 1)), QuitRequest::AlreadyReserved);
         assert_eq!((queued.len(), exits.get()), (1, 0), "exactly one attempt is handed off");
         let (route, token) = queued.pop().unwrap();
         let mut d = Double::new(vec![live()], vec![Ok(false)]);
@@ -523,8 +546,8 @@ mod system_quit_routes {
         assert!(reservation.is_free(), "Keep running releases the reservation");
         // A menu request and a system request, held hand-off, the same.
         let mut queued = Vec::new();
-        person_request(&reservation, |t| queued.push(t), || panic!("not decided"));
-        assert_eq!(system_request(&reservation, |t| queued.push(t)), QuitRequest::AlreadyReserved);
+        person_request(reservation, reservation.observe(), |t| queued.push(t), || panic!("not decided"));
+        assert_eq!(system_request(reservation, reservation.observe(), |t| queued.push(t)), QuitRequest::AlreadyReserved);
         assert_eq!(queued.len(), 1);
         drop(queued);
         // A fresh request after the release reassesses from the start.
@@ -544,21 +567,21 @@ mod system_quit_routes {
             if ending == "fault" { ops.fault = Some("settle"); }
             let first = run_with(&held, QuitRoute::System, ops);
             never_excused(&d.log, &first, &held.quit);
-            assert!(held.quit.reservation().is_free(), "{ending}: released");
+            assert!(held.reservation.is_free(), "{ending}: released");
             let mut fresh = Double::new(vec![live(), live()], vec![Ok(true)]);
             let again = run(&held, QuitRoute::Person, &mut fresh);
             assert_eq!(again.ending, QuitEnding::Decided, "{ending}");
             assert_eq!(fresh.log[..2], ["assess".to_owned(), "quit_requested 1".to_owned()], "{ending}: {:?}", fresh.log);
-            assert!(held.quit.reservation().is_decided());
+            assert!(held.reservation.is_decided());
         }
     }
 
     #[test]
-    fn a_failed_hand_off_releases_the_reservation() {
-        let reservation = Arc::new(QuitReservation::default());
-        assert_eq!(system_request(&reservation, drop), QuitRequest::HandedOff);
+    fn dropping_an_unstarted_token_releases_the_reservation() {
+        let reservation = QuitReservation::leaked();
+        assert_eq!(system_request(reservation, reservation.observe(), drop), QuitRequest::HandedOff);
         assert!(reservation.is_free());
-        assert_eq!(person_request(&reservation, drop, || panic!("not decided")), QuitRequest::HandedOff);
+        assert_eq!(person_request(reservation, reservation.observe(), drop, || panic!("not decided")), QuitRequest::HandedOff);
         assert!(reservation.is_free());
     }
 
@@ -570,12 +593,12 @@ mod system_quit_routes {
         let held = Held::default();
         let mut d = Double::new(vec![material(&[], 0, 0)], vec![]);
         assert_eq!(run(&held, QuitRoute::Person, &mut d).exits, 1);
-        assert!(held.quit.reservation().is_decided());
+        assert!(held.reservation.is_decided());
         assert_eq!(on_exit_requested(held.quit.proceeding().is_some(), Some(0)), ExitAction::Allow);
-        let reservation = Arc::clone(held.quit.reservation());
-        assert_eq!(system_request(&reservation, |_| panic!("starts nothing")), QuitRequest::Decided);
+        let reservation = held.reservation;
+        assert_eq!(system_request(reservation, reservation.observe(), |_| panic!("starts nothing")), QuitRequest::Decided);
         let exits = Cell::new(0);
-        assert_eq!(person_request(&reservation, |_| panic!("starts nothing"), || exits.set(exits.get() + 1)), QuitRequest::Decided);
+        assert_eq!(person_request(reservation, reservation.observe(), |_| panic!("starts nothing"), || exits.set(exits.get() + 1)), QuitRequest::Decided);
         assert_eq!(exits.get(), 1, "the menu's Quit asks for the exit again");
         assert!(admit_codex_stop(&held.quit).is_err());
     }
@@ -607,9 +630,9 @@ mod system_quit_routes {
                 run_token(held, token, QuitRoute::Person, || ops)
             });
             open.recv().unwrap();
-            let reservation = Arc::clone(held.quit.reservation());
-            assert_eq!(system_request(&reservation, |_| panic!("starts nothing")), QuitRequest::AlreadyReserved);
-            assert_eq!(person_request(&reservation, |_| panic!("starts nothing"), || panic!("not decided")), QuitRequest::AlreadyReserved);
+            let reservation = held.reservation;
+            assert_eq!(system_request(reservation, reservation.observe(), |_| panic!("starts nothing")), QuitRequest::AlreadyReserved);
+            assert_eq!(person_request(reservation, reservation.observe(), |_| panic!("starts nothing"), || panic!("not decided")), QuitRequest::AlreadyReserved);
             release.send(()).unwrap();
             let ran = owner.join().unwrap();
             assert_eq!((ran.ending, ran.exits), (QuitEnding::Decided, 1));
@@ -617,7 +640,7 @@ mod system_quit_routes {
     }
 
     #[test]
-    fn each_ending_of_the_quit_path() {
+    fn ordinary_worker_endings_for_both_routes() {
         for route in [QuitRoute::Person, QuitRoute::System] {
             let held = Held::default();
             let mut d = Double::new(vec![material(&[], 0, 0)], vec![]);
@@ -628,14 +651,14 @@ mod system_quit_routes {
             let mut d = Double::new(vec![live(), live()], vec![Ok(true)]);
             assert_eq!(run(&held, route, &mut d).exits, 1);
             let (interrupt, settle) = (d.log.iter().position(|l| l == "interrupt turn-1").unwrap(), d.log.iter().position(|l| l == "settle").unwrap());
-            assert!(interrupt < settle && held.quit.proceeding().is_some() && held.quit.reservation().is_decided());
+            assert!(interrupt < settle && held.quit.proceeding().is_some() && held.reservation.is_decided());
             // Kept running.
             let held = Held::default();
             let mut d = Double::new(vec![live()], vec![Ok(false)]);
             let ran = run(&held, route, &mut d);
             assert_eq!(ran.ending, QuitEnding::KeptRunning);
             never_excused(&d.log, &ran, &held.quit);
-            assert!(!d.log.iter().any(|l| l.starts_with("interrupt") || l == "settle") && held.quit.reservation().is_free());
+            assert!(!d.log.iter().any(|l| l.starts_with("interrupt") || l == "settle") && held.reservation.is_free());
             // The question could not be shown.
             let held = Held::default();
             let mut d = Double::new(vec![live()], vec![Err("no window".into())]);
@@ -659,7 +682,7 @@ mod system_quit_routes {
             let ran = run_token(&held, held.reserve(), route, || -> Borrowed<'_> { panic!("no operations are built") });
             drop(restart);
             assert_eq!(ran.ending, QuitEnding::AdmissionRefused);
-            assert!(d.log.is_empty() && ran.told[0].contains("Stop or Restart Codex is under way") && held.quit.reservation().is_free());
+            assert!(d.log.is_empty() && ran.told[0].contains("Stop or Restart Codex is under way") && held.reservation.is_free());
             let _ = &mut d;
             // An explicit key operation under way (the real gate held).
             let held = Held::default();
@@ -677,7 +700,7 @@ mod system_quit_routes {
         let first = run_token(held, held.reserve(), QuitRoute::System, || -> Borrowed<'_> { panic!("no operations are built") });
         assert_eq!((first.ending, first.exits), (QuitEnding::KeySetupUncertain, 0));
         assert_eq!(first.told, [QUIT_KEY_UNCERTAIN]);
-        assert!(!held.key_setup.is_poisoned() && !held.quit.busy() && held.quit.reservation().is_free());
+        assert!(!held.key_setup.is_poisoned() && !held.quit.busy() && held.reservation.is_free());
         let mut d = Double::new(vec![live(), live()], vec![Ok(true)]);
         let retry = run(held, QuitRoute::Person, &mut d);
         assert_eq!((retry.ending, retry.exits), (QuitEnding::Decided, 1));
@@ -692,20 +715,19 @@ mod system_quit_routes {
         declines_once_then_quits(&held);
     }
 
-    /// The one place a quit worker held the key gate outside a catch: the
-    /// reopen after a refused settlement. A fault there is caught, the notice
-    /// is still shown and the gate is not poisoned.
+    /// An injected fault after the double logs reopen still calls the
+    /// settlement-refusal notice and leaves the setup gate unpoisoned.
     #[test]
-    fn a_fault_reopening_after_a_refused_settlement_is_caught_and_poisons_nothing() {
+    fn a_reopen_fault_after_a_refused_settlement_still_calls_the_notice() {
         let held = Held::default();
         let mut d = Double::new(vec![live(), live()], vec![Ok(true)]);
         d.settlement = Err("census unavailable".into());
         let mut ops = Borrowed::new(&mut d);
         ops.fault = Some("reopen");
         let ran = run_with(&held, QuitRoute::Person, ops);
-        assert_eq!((ran.ending, ran.told.clone()), (QuitEnding::SettlementRefused, vec!["census unavailable".to_owned()]));
+        assert_eq!((ran.ending, ran.told.clone()), (QuitEnding::SettlementRefused, vec![format!("census unavailable {QUIT_UNRESTORED}")]), "the caught reopen fault is reported");
         never_excused(&d.log, &ran, &held.quit);
-        assert!(!held.key_setup.is_poisoned() && held.quit.reservation().is_free());
+        assert!(!held.key_setup.is_poisoned() && held.reservation.is_free());
     }
 
     #[test]
@@ -716,10 +738,10 @@ mod system_quit_routes {
             let mut ops = Borrowed::new(&mut d);
             ops.fault = Some(step);
             let ran = run_with(&held, QuitRoute::Person, ops);
-            assert_eq!((ran.ending, ran.told.clone()), (QuitEnding::Faulted, vec![QUIT_FAULTED.to_owned()]), "{step}");
+            assert_eq!((ran.ending, ran.told.clone()), (QuitEnding::Faulted, vec![format!("{QUIT_FAULTED} {QUIT_RESTORE_ATTEMPTED} {QUIT_RETRY}")]), "{step}");
             never_excused(&d.log, &ran, &held.quit);
             assert_eq!(d.log.last().unwrap(), "restore", "{step}: {:?}", d.log);
-            assert!(!held.key_setup.is_poisoned() && !held.quit.busy() && held.quit.reservation().is_free(), "{step}");
+            assert!(!held.key_setup.is_poisoned() && !held.quit.busy() && held.reservation.is_free(), "{step}");
         }
     }
 
@@ -736,8 +758,8 @@ mod system_quit_routes {
         let ran = run_token(&held, held.reserve(), QuitRoute::System, || {
             build_host_quit(&router, &held.quit, &workflows, |_| panic!("injected fault reading the person"), |_: &Value| -> Result<bool, String> { panic!("nothing is asked") })
         });
-        assert_eq!((ran.ending, ran.exits, ran.told), (QuitEnding::Faulted, 0, vec![QUIT_FAULTED.to_owned()]));
-        assert!(held.quit.proceeding().is_none() && held.quit.reservation().is_free() && !held.key_setup.is_poisoned());
+        assert_eq!((ran.ending, ran.exits, ran.told), (QuitEnding::Faulted, 0, vec![format!("{QUIT_FAULTED} {QUIT_RETRY}")]), "no restoration was attempted, so none is claimed");
+        assert!(held.quit.proceeding().is_none() && held.reservation.is_free() && !held.key_setup.is_poisoned());
         assert!(!held.quit.end_mark().load(Ordering::SeqCst), "no session end was attempted");
     }
 
@@ -751,7 +773,7 @@ mod system_quit_routes {
             restored.borrow_mut().push(*home);
         });
         assert_eq!((failed, restored.into_inner()), (1, vec!["healthy"]));
-        assert!(QUIT_FAULTED.contains("tried to restore") && !QUIT_FAULTED.contains("restored the"), "the notice claims an attempt only");
+        assert!(!QUIT_FAULTED.contains("restore") && QUIT_RESTORE_ATTEMPTED == "The App attempted to restore the affected homes.", "the restoration sentence is separate and claims an attempt only");
     }
 
     /// A quit session end whose attempt a fault left unknown is not attempted
@@ -795,6 +817,75 @@ mod system_quit_routes {
         assert_eq!(refusal_ending(&admit_quit(&quit, &gate).unwrap_err()), QuitEnding::AdmissionRefused);
         drop(restart);
     }
+
+    /// A request that read the word, then paused while a whole attempt ran
+    /// (the person kept the App running) and released, starts, asks and
+    /// exits nothing when it resumes. So does one that read the word while an
+    /// attempt was reserved. A fresh request then works.
+    #[test]
+    fn a_request_overtaken_by_a_whole_attempt_or_read_while_reserved_starts_nothing() {
+        let held = Held::default();
+        let reservation = held.reservation;
+        let stale = reservation.observe();
+        let mut first = Double::new(vec![live()], vec![Ok(false)]);
+        let kept = run(&held, QuitRoute::System, &mut first);
+        assert_eq!(kept.ending, QuitEnding::KeptRunning);
+        assert!(reservation.is_free(), "released, with the generation advanced");
+        let exits = Cell::new(0);
+        assert_eq!(system_request(reservation, stale, |_| panic!("the stale system request starts nothing")), QuitRequest::AlreadyReserved);
+        assert_eq!(person_request(reservation, stale, |_| panic!("the stale person request starts nothing"), || exits.set(exits.get() + 1)), QuitRequest::AlreadyReserved);
+        let token = held.reserve();
+        let while_reserved = reservation.observe();
+        drop(token);
+        assert_eq!(system_request(reservation, while_reserved, |_| panic!("read while reserved")), QuitRequest::AlreadyReserved);
+        assert_eq!(person_request(reservation, while_reserved, |_| panic!("read while reserved"), || exits.set(exits.get() + 1)), QuitRequest::AlreadyReserved);
+        assert_eq!(exits.get(), 0);
+        assert_eq!(first.log.iter().filter(|l| *l == "ask").count(), 1, "only the first attempt asked");
+        let mut handed = None;
+        assert_eq!(system_request(reservation, reservation.observe(), |t| handed = Some(t)), QuitRequest::HandedOff);
+        let mut fresh = Double::new(vec![live(), live()], vec![Ok(true)]);
+        let ran = run_token(&held, handed.unwrap(), QuitRoute::System, || Borrowed::new(&mut fresh));
+        assert_eq!((ran.ending, ran.exits), (QuitEnding::Decided, 1));
+        assert_eq!(fresh.log[..2], ["assess".to_owned(), "quit_requested 1".to_owned()]);
+    }
+
+    /// The refusal the native question returns when its posted work faults
+    /// (`native_lifecycle_confirmation::FAULTED`): the worker ends NotAsked
+    /// with a diagnostic, as for any question not shown; nothing is recorded
+    /// as answered, nothing is told, there is no exit and the reservation is
+    /// released.
+    #[test]
+    fn a_fault_refusal_from_the_question_ends_the_worker_not_asked() {
+        for route in [QuitRoute::Person, QuitRoute::System] {
+            let held = Held::default();
+            let mut d = Double::new(vec![live()], vec![Err(crate::native_lifecycle_confirmation::FAULTED.into())]);
+            let ran = run(&held, route, &mut d);
+            assert_eq!((ran.ending, ran.exits, ran.told.len()), (QuitEnding::NotAsked, 0, 0), "{route:?}");
+            never_excused(&d.log, &ran, &held.quit);
+            assert!(!d.log.iter().any(|l| l.starts_with("quit_answered") || l == "settle"), "{:?}", d.log);
+            assert!(held.reservation.is_free() && !held.quit.busy());
+        }
+    }
+
+    /// A home whose reopening or restoration faulted is reported where that is
+    /// established: after Keep running, and in the fault notice.
+    #[test]
+    fn a_home_whose_restoration_faulted_is_reported() {
+        let held = Held::default();
+        let mut d = Double::new(vec![live()], vec![Ok(false)]);
+        let mut ops = Borrowed::new(&mut d);
+        ops.unrestored = 1;
+        let ran = run_with(&held, QuitRoute::Person, ops);
+        assert_eq!((ran.ending, ran.exits, ran.told), (QuitEnding::KeptRunning, 0, vec![QUIT_UNRESTORED.to_owned()]));
+        let held = Held::default();
+        let mut d = Double::new(vec![live(), live()], vec![Ok(true)]);
+        let mut ops = Borrowed::new(&mut d);
+        ops.fault = Some("settle");
+        ops.unrestored = 2;
+        let ran = run_with(&held, QuitRoute::System, ops);
+        assert_eq!(ran.told, [format!("{QUIT_FAULTED} {QUIT_RESTORE_ATTEMPTED} {QUIT_UNRESTORED} {QUIT_RETRY}")]);
+        never_excused(&d.log, &ran, &held.quit);
+    }
 }
 
 /// The macOS delegate method's registration and binding (`quit_routes_macos`),
@@ -803,7 +894,7 @@ mod system_quit_routes {
 #[cfg(target_os = "macos")]
 mod macos_quit_routes {
     use super::*;
-    use crate::quit_routes_macos::{answer_terminate, install_on, selector, should_terminate, type_encoding, Installed, ShouldTerminate};
+    use crate::quit_routes_macos::{answer_terminate, install_on, selector, should_terminate, type_encoding, Consumer, Installed, ShouldTerminate};
     use objc2::runtime::{AnyClass, AnyObject, ClassBuilder, Imp, NSObject, Sel};
     use objc2::{msg_send, ClassType};
     use objc2_app_kit::NSApplicationTerminateReply;
@@ -843,30 +934,84 @@ mod macos_quit_routes {
         assert_eq!(ask(class), NSApplicationTerminateReply::TerminateCancel, "the first implementation stays");
     }
 
-    /// The production method with no binding published (the App handle is
-    /// not set in tests): it declines and starts nothing.
+    /// The production method with no worker started (none is in tests): it
+    /// declines and reserves nothing.
     #[test]
     fn the_production_method_declines() {
         let class = throwaway("Production");
         assert_eq!(unsafe { install_on(class, imp(should_terminate)) }, Ok(Installed::Added));
         assert_eq!(ask(class), NSApplicationTerminateReply::TerminateCancel);
+        assert!(QUIT_RESERVATION.is_free());
     }
 
-    /// The selector's binding with a published reservation: Cancel every
-    /// time; the first request hands off once, a second starts nothing; a
-    /// panicking hand-off is caught, returns Cancel and releases.
+    /// The selector's body (`answer_terminate`, which `should_terminate` calls
+    /// with the App's reservation and worker) with a real worker thread that
+    /// is stalled in an attempt, outside the callback, while standard error is
+    /// held here. The call returns at once; a second call while reserved hands
+    /// over and wakes nothing new; after the stalled attempt releases, a fresh
+    /// call hands off again.
     #[test]
-    fn the_selector_binding_always_cancels_and_hands_off_one_attempt() {
-        let binding = ((), Arc::new(QuitReservation::default()));
-        let mut handed = Vec::new();
-        assert_eq!(answer_terminate(Some(&binding), |_, token| handed.push(token)), NSApplicationTerminateReply::TerminateCancel);
-        assert_eq!(answer_terminate(Some(&binding), |_, _| panic!("starts nothing")), NSApplicationTerminateReply::TerminateCancel);
-        assert_eq!(handed.len(), 1);
-        drop(handed);
-        assert!(binding.1.is_free());
-        assert_eq!(answer_terminate(Some(&binding), |_, _token| panic!("injected fault in the hand-off")), NSApplicationTerminateReply::TerminateCancel);
-        assert!(binding.1.is_free(), "the unwinding released the reservation");
-        assert_eq!(answer_terminate::<()>(None, |_, _| panic!("no binding")), NSApplicationTerminateReply::TerminateCancel);
+    fn the_selector_returns_at_once_with_its_worker_stalled_and_wakes_it_once() {
+        use std::sync::mpsc;
+        let reservation = QuitReservation::leaked();
+        let consumer: &'static Consumer = Box::leak(Box::new(Consumer::new()));
+        let (began, attempt_began) = mpsc::channel();
+        let (release, released) = mpsc::channel::<()>();
+        let released = Mutex::new(released);
+        let worker = std::thread::spawn(move || consumer.serve(reservation, |token| {
+            began.send(()).unwrap();
+            released.lock().unwrap().recv().unwrap();
+            drop(token);
+        }));
+        consumer.started(worker.thread().clone()).unwrap();
+        let stderr = std::io::stderr().lock();
+        let started = Instant::now();
+        assert_eq!(answer_terminate(reservation, consumer), NSApplicationTerminateReply::TerminateCancel);
+        attempt_began.recv_timeout(Duration::from_secs(5)).expect("the worker took the attempt");
+        assert_eq!(answer_terminate(reservation, consumer), NSApplicationTerminateReply::TerminateCancel);
+        let elapsed = started.elapsed();
+        drop(stderr);
+        assert!(elapsed < Duration::from_secs(5), "returned while the worker was stalled ({elapsed:?})");
+        assert!(!consumer.is_pending() && !reservation.is_free(), "the second call handed nothing over");
+        assert!(attempt_began.recv_timeout(Duration::from_millis(200)).is_err(), "and woke nothing new");
+        release.send(()).unwrap();
+        let deadline = Instant::now() + Duration::from_secs(5);
+        while !reservation.is_free() {
+            assert!(Instant::now() < deadline, "the stalled attempt released the reservation");
+            std::thread::yield_now();
+        }
+        assert_eq!(answer_terminate(reservation, consumer), NSApplicationTerminateReply::TerminateCancel);
+        attempt_began.recv_timeout(Duration::from_secs(5)).expect("a fresh request is handed off");
+        release.send(()).unwrap();
+        // With no worker started (as before installation) nothing is reserved.
+        let idle = QuitReservation::leaked();
+        assert_eq!(answer_terminate(idle, &Consumer::new()), NSApplicationTerminateReply::TerminateCancel);
+        assert!(idle.is_free());
+    }
+
+    /// A fault in an attempt on the worker is caught there and released; the
+    /// worker serves the next request.
+    #[test]
+    fn a_fault_on_the_worker_releases_and_the_worker_serves_on() {
+        use std::sync::mpsc;
+        let reservation = QuitReservation::leaked();
+        let consumer: &'static Consumer = Box::leak(Box::new(Consumer::new()));
+        let (ran, runs) = mpsc::channel();
+        let worker = std::thread::spawn(move || consumer.serve(reservation, |token| {
+            ran.send(()).unwrap();
+            let _token = token;
+            panic!("injected fault in the system's attempt");
+        }));
+        consumer.started(worker.thread().clone()).unwrap();
+        for _ in 0..2 {
+            let deadline = Instant::now() + Duration::from_secs(5);
+            while !reservation.is_free() {
+                assert!(Instant::now() < deadline);
+                std::thread::yield_now();
+            }
+            assert_eq!(answer_terminate(reservation, consumer), NSApplicationTerminateReply::TerminateCancel);
+            runs.recv_timeout(Duration::from_secs(5)).unwrap();
+        }
     }
 
     #[test]

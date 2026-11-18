@@ -473,58 +473,66 @@ implemented behavior and qualification limits.
     `applicationShouldTerminate:` to tao's application delegate class. When
     AppKit calls the installed method, the method returns Cancel without
     requesting a deferred answer, including when there is no live work. An
-    eligible request starts the same quit path as menu Quit and Command-Q. A
-    further request while a quit is pending, under way or decided is declined
-    without starting another quit. A person's menu Quit after a decided quit
-    asks for exit again. Unit tests exercise registration on throwaway classes
-    and the Rust route logic. Delivery from Dock Quit and Command-Tab then Q on
-    a running App remains unobserved. LIM-036 describes the limitation for
-    logout, restart and shutdown. The App assesses every owned home and
-    attempts to record `quit_requested`. With nothing live it closes ready
-    homes to new turns and reassesses. If there is still nothing live, it
-    attempts settlement without showing a question. Otherwise it asks. The App
-    sets no limit on the person's time to answer. Keep running or Cancel
-    attempts to record the cancelled answer and sends no interrupt, stops no
-    home and answers no supplier request. On Quit the App closes ready homes to
-    new turns and reassesses. It presents a changed assessment again if work
-    still needs asking about. When confirmation is final, the App attempts to
-    record the answer, prepares the quit stop requests before eligible
-    interrupt sends and waits up to the quit wait limit. It then settles the
-    owned processes and attempts one `session_ended` record before requesting
-    exit. A recording failure does not prevent a settled quit. Relaunch shows
-    the outcomes supported by the supplier and the readable ledger, including
-    `interrupted by quit` for turns established as interrupted by this quit. If
-    settlement is refused, the App stays running, removes the settlement fences
-    and reopens the still-current generations closed by this attempt. Recorded
-    answers and stop requests, interrupts already sent and homes already
-    stopped stand. No quit session-end record is attempted for that refusal. An
-    already-open quit receives no second question or notice. A refusal notice
-    uses the retained App window when available. A question that cannot be
-    shown may be reported only in diagnostics. A fault before settlement is
-    established withholds exit. The App attempts to remove the fences and
-    reopen the generations affected by that quit. Earlier recorded or completed
-    effects stand. The App reports the fault through the retained window where
+    eligible request starts the same quit path as menu Quit and Command-Q. The
+    installed method makes one atomic reservation attempt and returns Cancel. A
+    worker outside the selector performs App handle and window work and reports
+    faults. A further request that reaches the App's quit admission while an
+    attempt is reserved starts nothing. A system event not yet delivered to the
+    App cannot be told apart from a new request. A person's menu Quit after a
+    decided quit asks for exit again. Unit tests exercise registration on
+    throwaway classes and the Rust route logic. Delivery from Dock Quit and
+    Command-Tab then Q on a running App remains unobserved. LIM-036 describes
+    the limitation for logout, restart and shutdown. The App assesses every
+    owned home and attempts to record `quit_requested`. With nothing live it
+    closes ready homes to new turns and reassesses. If there is still nothing
+    live, it attempts settlement without showing a question. Otherwise it asks.
+    If the assessment observes live work or cannot rule it out for a ready
+    home, the App asks about the assessed work. The change leaves the
+    separately tracked case of a home still starting at the last assessment
+    open. The App sets no limit on the person's time to answer. Keep running or
+    Cancel attempts to record the cancelled answer and sends no interrupt,
+    stops no home and answers no supplier request. On Quit the App closes ready
+    homes to new turns and reassesses. It presents a changed assessment again
+    if work still needs asking about. When confirmation is final, the App
+    attempts to record the answer, prepares the quit stop requests before
+    eligible interrupt sends and waits up to the quit wait limit. It then
+    settles the owned processes and attempts one `session_ended` record before
+    requesting exit. A recording failure does not prevent a settled quit. The
+    App attempts the quit session end at most once per App session. If an
+    earlier attempt faulted, a later settled quit does not repeat it. Relaunch
+    shows the outcomes supported by the supplier and the readable ledger,
+    including `interrupted by quit` for turns established as interrupted by
+    this quit. If settlement is refused, the App stays running. No quit
+    session-end record is attempted for that refusal. An already-open quit
+    receives no second question or notice. A refusal notice uses the retained
+    App window when available. A question that cannot be shown may be reported
+    only in diagnostics. A fault before settlement is established withholds
+    exit. After a refusal or a caught worker fault, the App attempts applicable
+    cleanup. Earlier recorded or completed effects stand. Where restoring a
+    home is established to have faulted, the notice says that home may refuse
+    new turns. The App reports the fault through the retained window where
     possible, with diagnostics available when the notice cannot be shown. A
     quit that encounters a poisoned setup gate is refused before assessment.
     The App clears the gate's poison so a fresh attempt can take it subject to
-    the normal checks. A programmatic exit request without a decision is held
-    and starts the quit path. A last-window exit request without a decision is
-    held. **Closing the window is not quit** (DEF-1, SQ-W): it hides the window
-    (macOS; the Dock icon shows it again) or minimizes it; work and requests
-    continue, and the view re-reads the host's snapshot when shown. The Dock
-    icon shows the number of supplier requests waiting for the person (C-24;
-    macOS only). Quit and Stop/Restart Codex refuse each other while one is
-    under way. *Limits:* if the exit handler runs without a decided quit, it
-    attempts the limited `system-terminated` record before best-effort cleanup.
-    A termination that bypasses the installed hook can reach that path. Force
-    Quit, an unhandled fatal signal or power loss runs no such handler and adds
-    no end record. After the liveness check, an earlier recorded session with
-    no end record reads `ended-without-record`. On a running App, delivery of
-    Dock Quit and Command-Tab then Q, the question and its answers, and exit
-    and relaunch remain to be observed. Check idle and live quits, dismissal
-    and retry after refusal, overlapping requests and recovery after a fault. A
-    settled quit attempts one session end. Keep running and refusal produce no
-    quit session end. Logout, restart and shutdown have not been exercised.
+    the normal checks. An undecided programmatic exit is prevented. It asks for
+    the quit path if there is no attempt already reserved. A last-window exit
+    request without a decision is held. **Closing the window is not quit**
+    (DEF-1, SQ-W): it hides the window (macOS; the Dock icon shows it again) or
+    minimizes it; work and requests continue, and the view re-reads the host's
+    snapshot when shown. The Dock icon shows the number of supplier requests
+    waiting for the person (C-24; macOS only). Quit and Stop/Restart Codex
+    refuse each other while one is under way. *Limits:* if the exit handler
+    runs without a decided quit, it attempts the limited `system-terminated`
+    record before best-effort cleanup. A termination that bypasses the
+    installed hook can reach that path. Force Quit, an unhandled fatal signal
+    or power loss runs no such handler and adds no end record. After the
+    liveness check, an earlier recorded session with no end record reads
+    `ended-without-record`. On a running App, delivery of Dock Quit and
+    Command-Tab then Q, the question and its answers, and exit and relaunch
+    remain to be observed. Check idle and live quits, dismissal and retry after
+    refusal, overlapping requests and recovery after a fault. A settled quit
+    attempts one session end. Keep running and refusal produce no quit session
+    end. Logout, restart and shutdown have not been exercised.
     The Dock indicator gives a count only, and clicking it opens the
     App. The macOS App's **Waiting requests** menu additionally names current
     source-qualified conversation groups; a person selection shows the window

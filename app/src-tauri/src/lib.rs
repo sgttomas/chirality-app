@@ -1686,12 +1686,17 @@ fn show_main_window(app: &tauri::AppHandle) {
     }
 }
 /// K-4 / SQ-Q: the person chose Quit (the menu, Command-Q, Setup's Quit, or
-/// an exit nobody decided). Takes the one quit reservation before handing
-/// off; with a quit already reserved it starts nothing; after a decided quit
-/// it asks for the exit again. The web view takes no part.
-fn request_quit(app: tauri::AppHandle) {
-    let reservation = Arc::clone(app.state::<AppState>().app_quit.reservation());
-    app_quit::person_request(&reservation, |token| {
+/// an exit nobody decided). Its first act reads the quit reservation word,
+/// ahead of any App state lookup; it reserves only if that word is unchanged
+/// and then hands off. A further request that reaches the App's quit
+/// admission while an attempt is reserved starts nothing. After a decided
+/// quit it asks for the exit again. The web view takes no part.
+fn request_quit(app: &tauri::AppHandle) {
+    request_quit_observed(app, app_quit::QUIT_RESERVATION.observe());
+}
+/// [`request_quit`] for a route that has already read the word.
+fn request_quit_observed(app: &tauri::AppHandle, observed: app_quit::Observed) {
+    app_quit::person_request(&app_quit::QUIT_RESERVATION, observed, |token| {
         if !hand_off_quit(app.clone(), app_quit::QuitRoute::Person, token) {
             app_quit::diagnostic("the quit could not be started; the App keeps running");
         }
@@ -1699,14 +1704,13 @@ fn request_quit(app: tauri::AppHandle) {
 }
 /// Hand a reserved attempt to its own thread (the native question blocks).
 /// False if the thread could not start: the closure, and with it the token,
-/// is dropped, which releases the reservation. Makes no output, so the macOS
-/// selector can call it.
-pub(crate) fn hand_off_quit(app: tauri::AppHandle, route: app_quit::QuitRoute, token: app_quit::QuitToken) -> bool {
+/// is dropped, which releases the reservation.
+fn hand_off_quit(app: tauri::AppHandle, route: app_quit::QuitRoute, token: app_quit::QuitToken) -> bool {
     std::thread::Builder::new().name("chirality-quit".into()).spawn(move || quit_worker(app, route, token)).is_ok()
 }
 /// One reserved attempt of the quit path (`app_quit::run_quit`). The window
 /// lookup and every report happen here, on the worker.
-fn quit_worker(app: tauri::AppHandle, route: app_quit::QuitRoute, token: app_quit::QuitToken) {
+pub(crate) fn quit_worker(app: tauri::AppHandle, route: app_quit::QuitRoute, token: app_quit::QuitToken) {
     // Retain the configured App window now; never select a
     // focused/first/replacement window after the question is prepared.
     let question_window = app.get_webview_window("main").map(|window| window.as_ref().window().clone());
@@ -1733,7 +1737,7 @@ fn quit_worker(app: tauri::AppHandle, route: app_quit::QuitRoute, token: app_qui
 /// question and settlement as the menu's Quit, asked by the host; the web view only asks for it.
 #[tauri::command]
 fn quit_app(app: tauri::AppHandle) {
-    request_quit(app);
+    request_quit(&app);
 }
 /// C-24 (DEL-01-04 §4.8): the count of supplier requests waiting for the
 /// person, on the App's Dock icon, whether or not the window is shown.
@@ -3487,7 +3491,7 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .menu(app_menu)
         .on_menu_event(|app, event| {
-            if event.id() == QUIT_MENU_ID { request_quit(app.clone()); }
+            if event.id() == QUIT_MENU_ID { request_quit(app); }
             else if event.id() == seal_c_enrollment::MENU_ID { seal_c_enrollment::request(app.clone()); }
             else if event.id().as_ref().starts_with(native_waiting::ITEM_PREFIX) { request_native_waiting(app, event.id().as_ref()); }
         })
@@ -3684,11 +3688,12 @@ pub fn run() {
             // K-4: an exit nobody decided is held; the last window going away
             // is DEF-1, not quit; a decided quit (AS-03 or confirmed) exits.
             tauri::RunEvent::ExitRequested { code, api, .. } => {
+                let observed = app_quit::QUIT_RESERVATION.observe();
                 let st: State<'_, AppState> = app.state();
                 match app_quit::on_exit_requested(st.app_quit.proceeding().is_some(), code) {
                     app_quit::ExitAction::Allow => {}
                     app_quit::ExitAction::Keep => api.prevent_exit(),
-                    app_quit::ExitAction::AskQuit => { api.prevent_exit(); request_quit(app.clone()); }
+                    app_quit::ExitAction::AskQuit => { api.prevent_exit(); request_quit_observed(app, observed); }
                 }
             }
             // SQ-W W-4: the Dock click shows the window again; the web view
@@ -3714,9 +3719,10 @@ pub fn run() {
                 // roster only. On macOS this can run inside tao's `extern "C"`
                 // `applicationWillTerminate:`, where a panic aborts.
                 let homes = st.app_quit.exit_roster(|| app_quit::read_roster(&st.homes).0);
-                // Ordinary Quit already settled processes and recorded its end
-                // before permission to exit. Only an unapproved/system exit
-                // takes the limited AS-10 best-effort path here.
+                // Ordinary Quit already settled processes and handled the quit
+                // session-end attempt before permission to exit. Only an
+                // unapproved/system exit takes the limited AS-10 best-effort
+                // path here.
                 if st.app_quit.proceeding().is_none() {
                     if let Err(error) = app_quit::finish_exit(&homes, None) {
                         app_quit::diagnostic(&format!("system termination observation unavailable: {error}"));

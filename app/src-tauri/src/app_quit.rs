@@ -24,18 +24,19 @@
 //! (AS-06, Q-4) and waits up to the quit wait limit (Q-5, AS-08). It then
 //! settles the owned processes (Q-6) and attempts one `session_ended` record
 //! (Q-7, AS-09) before requesting exit. A recording failure does not prevent a
-//! settled quit.
+//! settled quit. The App attempts the quit session end at most once per App
+//! session. If an earlier attempt faulted, a later settled quit does not
+//! repeat it.
 //!
-//! If settlement is refused, the App stays running, removes the settlement
-//! fences and reopens the still-current generations closed by this attempt.
-//! Recorded answers and stop requests, interrupts already sent and homes
-//! already stopped stand. No quit session-end record is attempted for that
-//! refusal. A quit ends no workflow run and answers no request.
+//! If settlement is refused, the App stays running. After a refusal or a
+//! caught worker fault, the App attempts applicable cleanup. Earlier recorded
+//! or completed effects stand. No quit session-end record is attempted for
+//! that refusal. A quit ends no workflow run and answers no request.
 
 use crate::codex_stop::{interrupt_and_wait, Interrupts, Unsent, STOP_WAIT_LIMIT};
 use crate::runtime_session::{HomeSession, WorkflowRootSession};
 use serde_json::{json, Value};
-use std::sync::atomic::{AtomicBool, AtomicU8, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex, MutexGuard};
 use std::time::{Duration, Instant};
 
@@ -105,6 +106,7 @@ pub(crate) trait QuitOps: Interrupts {
     fn record_answered(&mut self, confirmed: bool) -> Value;
     /// Each ready home closed to new turns (no new turn or steer is sent).
     fn close_to_new_turns(&mut self);
+    /// Reopen what this run closed, each home on its own ([`restore_each`]).
     fn reopen_to_new_turns(&mut self);
     /// The turn's quit stop-request record as the App now holds it.
     fn stop_record(&mut self, turn: &Value) -> Value;
@@ -117,6 +119,8 @@ pub(crate) trait QuitOps: Interrupts {
     /// taken and reopen the generations it closed, each home on its own, so
     /// that one home's fault skips nothing for the others. An attempt only.
     fn restore_after_fault(&mut self);
+    /// How many homes' reopening or restoration faulted in this run.
+    fn unrestored(&self) -> usize;
 }
 
 /// The person's decision and what was done before the App exits.
@@ -136,9 +140,8 @@ pub(crate) fn quit_sequence<O: QuitOps>(ops: &mut O, wait_limit: Duration) -> De
     let mut asked = ops.assess();
     let mut records = vec![ops.record_requested(&asked.material)];
     if !has_live_work(&asked.material) {
-        // AS-03: close every ready home to new turns, so that no turn starts
-        // between this assessment and the exit, and assess again. Still
-        // nothing live: nothing is asked. Work started meanwhile is asked.
+        // AS-03: Close the ready homes to new turns, then reassess. If the
+        // second assessment shows live work, ask about it.
         ops.close_to_new_turns();
         let current = ops.assess();
         if !has_live_work(&current.material) {
@@ -206,13 +209,15 @@ pub(crate) struct HostQuit<'a, C> {
     closed: Vec<(Arc<HomeSession>, Value)>,
     /// Set when settlement began: from then on every home may be fenced.
     settling: bool,
+    /// Homes whose reopening or restoration faulted (see [`restore_each`]).
+    unrestored: usize,
     /// The App's "a quit session end was attempted" mark (`AppQuit`); None in
     /// fixtures that call `HostQuit::new` alone.
     end_attempted: Option<&'a AtomicBool>,
 }
 impl<'a, C> HostQuit<'a, C> {
     pub(crate) fn new(homes: Vec<Arc<HomeSession>>, workflows: &'a Mutex<WorkflowRootSession>, person: &str, confirm: C) -> Self {
-        Self { homes, workflows, confirm, person: crate::stop_records::person(person), closed: Vec::new(), settling: false, end_attempted: None }
+        Self { homes, workflows, confirm, person: crate::stop_records::person(person), closed: Vec::new(), settling: false, unrestored: 0, end_attempted: None }
     }
     /// Attempt a quit session end at most once in this App session.
     pub(crate) fn with_end_mark(mut self, end_attempted: &'a AtomicBool) -> Self {
@@ -318,9 +323,7 @@ impl<C: FnMut(&Value) -> Result<bool, String>> QuitOps for HostQuit<'_, C> {
         }
     }
     fn reopen_to_new_turns(&mut self) {
-        for (home, generation) in self.closed.drain(..) {
-            home.host.reopen_to_new_turns(&generation);
-        }
+        self.unrestored += restore_each(self.closed.drain(..), |(home, generation)| home.host.reopen_to_new_turns(generation));
     }
     fn stop_record(&mut self, turn: &Value) -> Value {
         let Some(home) = self.home_for(&turn["generation"]) else { return Value::Null };
@@ -340,14 +343,19 @@ impl<C: FnMut(&Value) -> Result<bool, String>> QuitOps for HostQuit<'_, C> {
     }
     fn restore_after_fault(&mut self) {
         if self.settling {
-            restore_each(self.homes.iter(), |home| home.host.cancel_quit());
+            self.unrestored += restore_each(self.homes.iter(), |home| home.host.cancel_quit());
         }
-        restore_each(self.closed.drain(..), |(home, generation)| home.host.reopen_to_new_turns(generation));
+        self.reopen_to_new_turns();
+    }
+    fn unrestored(&self) -> usize {
+        self.unrestored
     }
 }
 
-/// Run `restore` for each item on its own: a panic restoring one item is
-/// caught and the next is still attempted. Returns how many panicked.
+/// The per-home routine of ordinary reopening, refused-settlement cleanup and
+/// fault restoration: run `restore` for each item on its own. A panic
+/// restoring one item is caught and the next is still attempted. Returns how
+/// many panicked.
 pub(crate) fn restore_each<T>(items: impl IntoIterator<Item = T>, restore: impl Fn(&T)) -> usize {
     items.into_iter().filter(|item| std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| restore(item))).is_err()).count()
 }
@@ -367,8 +375,6 @@ pub(crate) struct AppQuit {
     /// published, so that exit cleanup uses the settled roster and never has
     /// to read the home router again.
     roster: Mutex<Vec<Arc<HomeSession>>>,
-    /// The one quit reservation every route takes before handing off.
-    reservation: Arc<QuitReservation>,
     /// Set once a quit session end has been attempted in this App session;
     /// an attempt whose result a fault left unknown is not repeated.
     end_attempted: AtomicBool,
@@ -412,10 +418,6 @@ impl AppQuit {
     pub(crate) fn proceeding(&self) -> Option<Vec<String>> {
         self.proceed.lock().unwrap_or_else(|e| e.into_inner()).clone()
     }
-    /// The quit reservation, shared with the macOS selector at installation.
-    pub(crate) fn reservation(&self) -> &Arc<QuitReservation> {
-        &self.reservation
-    }
     pub(crate) fn end_mark(&self) -> &AtomicBool {
         &self.end_attempted
     }
@@ -438,10 +440,9 @@ impl AppQuit {
 /// One operation at a time over the Codex processes: a quit holds its own
 /// question gate and the Stop/Restart Codex gate while its question is open
 /// and its sequence runs (or until the person keeps the App running). The
-/// guards are released when the sequence returns, which for a decided quit is
-/// right after the App is asked to exit and before it has exited; from the
-/// decision until the exit, Stop and Restart Codex are refused because the
-/// quit is proceeding (`admit_codex_stop`), not by these guards. While Stop or
+/// question and Stop/Restart guards are released after the attempt returns,
+/// before it asks for programmatic exit. Once the quit decision is published,
+/// that decision refuses Stop and Restart through exit. While Stop or
 /// Restart Codex is under way the quit is refused with the reason, and nothing
 /// is recorded or asked.
 pub(crate) fn admit_quit<'a>(quit: &'a AppQuit, stop_gate: &'a Mutex<()>) -> Result<(QuestionGuard<'a>, MutexGuard<'a, ()>), String> {
@@ -555,7 +556,13 @@ pub(crate) fn decision_ending(decision: &Decision, allowed: &Result<bool, String
 pub(crate) const QUIT_TITLE: &str = "Quit Chirality";
 pub(crate) const QUIT_KEY_BUSY: &str = "An explicit key operation is under way. The App is still running; choose Quit again when that operation has finished.";
 pub(crate) const QUIT_KEY_UNCERTAIN: &str = "An operation ended unexpectedly while holding the App's setup gate. This Quit stopped before checking for live work. It recorded no quit request or answer, sent no interrupt and stopped no process. Choose Quit again to retry.";
-pub(crate) const QUIT_FAULTED: &str = "A fault prevented the App from completing Quit. The App is still running. Effects already recorded, interrupts already sent and processes already stopped stand. The App tried to restore the affected homes. Choose Quit again to retry.";
+pub(crate) const QUIT_FAULTED: &str = "A fault prevented the App from completing Quit. The App is still running. Effects already recorded, interrupts already sent and processes already stopped stand.";
+/// Added to [`QUIT_FAULTED`] only on the branch that attempts restoration.
+pub(crate) const QUIT_RESTORE_ATTEMPTED: &str = "The App attempted to restore the affected homes.";
+/// Added where restoring or reopening at least one home is established to
+/// have faulted.
+pub(crate) const QUIT_UNRESTORED: &str = "Restoring at least one home faulted, so that home may refuse new turns.";
+pub(crate) const QUIT_RETRY: &str = "Choose Quit again to retry.";
 
 /// Diagnostics on standard error that cannot panic: write errors are
 /// ignored. Never called from the macOS selector.
@@ -564,58 +571,107 @@ pub(crate) fn diagnostic(message: &str) {
     let _ = writeln!(std::io::stderr(), "chirality: {message}");
 }
 
-/// The one quit reservation: free, reserved (an attempt is handed off or
-/// under way, including while a refusal notice is shown) or decided. Held in
-/// atomics so that the macOS selector reads and sets it without a lock.
-#[derive(Debug, Default)]
-pub(crate) struct QuitReservation(AtomicU8);
-const FREE: u8 = 0;
-const RESERVED: u8 = 1;
-const DECIDED: u8 = 2;
-/// Why a reservation was not granted.
+/// The App's one quit reservation. A static, so that every route reads it as
+/// its first act, ahead of any App state lookup or dispatch.
+pub(crate) static QUIT_RESERVATION: QuitReservation = QuitReservation::new();
+
+/// The one quit reservation in one atomic word: its state (free, reserved, or
+/// decided) and an attempt generation. A reserved attempt covers handing off,
+/// running and any refusal notice. Every release advances the generation, so
+/// a request that read the word before a whole attempt cannot reserve after
+/// it. The macOS selector reads and sets it without a lock.
+#[derive(Debug)]
+pub(crate) struct QuitReservation(AtomicU64);
+const STATE: u64 = 0b11;
+const FREE: u64 = 0;
+const RESERVED: u64 = 1;
+const DECIDED: u64 = 2;
+/// One generation, above the state bits.
+const NEXT_GENERATION: u64 = STATE + 1;
+/// The word as a route read it.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct Observed(u64);
+/// Why a request was not granted the reservation.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ReservationHeld {
+    /// The request read the word while an attempt was reserved.
     Reserved,
+    /// The word changed after the request read it.
+    Overtaken,
+    /// The quit is decided.
     Decided,
 }
 impl QuitReservation {
-    /// One compare and exchange from free to reserved.
-    pub(crate) fn reserve(self: &Arc<Self>) -> Result<QuitToken, ReservationHeld> {
-        match self.0.compare_exchange(FREE, RESERVED, Ordering::SeqCst, Ordering::SeqCst) {
-            Ok(_) => Ok(QuitToken { reservation: Arc::clone(self), decided: false }),
-            Err(DECIDED) => Err(ReservationHeld::Decided),
-            Err(_) => Err(ReservationHeld::Reserved),
+    pub(crate) const fn new() -> Self {
+        Self(AtomicU64::new(FREE))
+    }
+    /// A route's first act: one atomic load.
+    pub(crate) fn observe(&self) -> Observed {
+        Observed(self.0.load(Ordering::SeqCst))
+    }
+    /// One compare and exchange from the observed free word to reserved.
+    /// Allocates nothing and cannot panic.
+    pub(crate) fn reserve(&'static self, observed: Observed) -> Result<QuitToken, ReservationHeld> {
+        match observed.0 & STATE {
+            FREE => {}
+            DECIDED => return Err(ReservationHeld::Decided),
+            _ => return Err(ReservationHeld::Reserved),
+        }
+        let reserved = observed.0 | RESERVED;
+        match self.0.compare_exchange(observed.0, reserved, Ordering::SeqCst, Ordering::SeqCst) {
+            Ok(_) => Ok(QuitToken { reservation: self, reserved, decided: false }),
+            Err(now) if now & STATE == DECIDED => Err(ReservationHeld::Decided),
+            Err(_) => Err(ReservationHeld::Overtaken),
         }
     }
     #[cfg(test)]
+    pub(crate) fn leaked() -> &'static Self {
+        Box::leak(Box::new(Self::new()))
+    }
+    #[cfg(test)]
     pub(crate) fn is_free(&self) -> bool {
-        self.0.load(Ordering::SeqCst) == FREE
+        self.0.load(Ordering::SeqCst) & STATE == FREE
     }
     #[cfg(test)]
     pub(crate) fn is_decided(&self) -> bool {
-        self.0.load(Ordering::SeqCst) == DECIDED
+        self.0.load(Ordering::SeqCst) & STATE == DECIDED
     }
 }
 /// The reservation of one attempt, carried into its worker. Dropped
 /// undecided (any undecided ending, an unwind, a hand-off that fails) it
-/// releases the reservation; [`QuitToken::decide`] moves it to decided, which
-/// is never released.
+/// releases the reservation and advances the generation;
+/// [`QuitToken::decide`] moves it to decided, which is never released.
 #[must_use]
 #[derive(Debug)]
 pub(crate) struct QuitToken {
-    reservation: Arc<QuitReservation>,
+    reservation: &'static QuitReservation,
+    reserved: u64,
     decided: bool,
 }
 impl QuitToken {
     fn decide(&mut self) {
-        self.reservation.0.store(DECIDED, Ordering::SeqCst);
+        self.reservation.0.store((self.reserved & !STATE) | DECIDED, Ordering::SeqCst);
         self.decided = true;
+    }
+    /// Pass the reservation across a lock-free hand-off without releasing it:
+    /// the word it holds, never zero, for [`QuitToken::adopt`].
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+    pub(crate) fn hand_over(self) -> u64 {
+        let reserved = self.reserved;
+        std::mem::forget(self);
+        reserved
+    }
+    /// Take up a reservation passed by [`QuitToken::hand_over`].
+    #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+    pub(crate) fn adopt(reservation: &'static QuitReservation, reserved: u64) -> Self {
+        Self { reservation, reserved, decided: false }
     }
 }
 impl Drop for QuitToken {
     fn drop(&mut self) {
         if !self.decided {
-            let _ = self.reservation.0.compare_exchange(RESERVED, FREE, Ordering::SeqCst, Ordering::SeqCst);
+            let released = (self.reserved & !STATE).wrapping_add(NEXT_GENERATION) | FREE;
+            let _ = self.reservation.0.compare_exchange(self.reserved, released, Ordering::SeqCst, Ordering::SeqCst);
         }
     }
 }
@@ -624,30 +680,32 @@ impl Drop for QuitToken {
 pub(crate) enum QuitRequest {
     /// Reserved and handed off to a worker.
     HandedOff,
-    /// Another attempt holds the reservation: nothing started.
+    /// The request read the word while an attempt was reserved, or the word
+    /// changed after it read it: nothing started.
     AlreadyReserved,
     /// The quit is decided: nothing started (a person's Quit asked for the
     /// exit again).
     Decided,
 }
-/// The system's request (macOS `terminate:`): reserve and hand off, or
-/// start nothing. It reads and sets only the reservation; the hand-off takes
-/// the token (dropping it releases the reservation).
-pub(crate) fn system_request(reservation: &Arc<QuitReservation>, hand_off: impl FnOnce(QuitToken)) -> QuitRequest {
-    match reservation.reserve() {
+/// The system's request (macOS `terminate:`): reserve from what the route
+/// observed and hand off, or start nothing. It reads and sets only the
+/// reservation; the hand-off takes the token (dropping it releases the
+/// reservation).
+pub(crate) fn system_request(reservation: &'static QuitReservation, observed: Observed, hand_off: impl FnOnce(QuitToken)) -> QuitRequest {
+    match reservation.reserve(observed) {
         Ok(token) => {
             hand_off(token);
             QuitRequest::HandedOff
         }
-        Err(ReservationHeld::Reserved) => QuitRequest::AlreadyReserved,
+        Err(ReservationHeld::Reserved | ReservationHeld::Overtaken) => QuitRequest::AlreadyReserved,
         Err(ReservationHeld::Decided) => QuitRequest::Decided,
     }
 }
 /// The person's request (the menu, Command-Q, Setup's Quit, an exit nobody
 /// decided): as [`system_request`], except that after a decided quit it asks
 /// for the exit again.
-pub(crate) fn person_request(reservation: &Arc<QuitReservation>, hand_off: impl FnOnce(QuitToken), exit: impl FnOnce()) -> QuitRequest {
-    let request = system_request(reservation, hand_off);
+pub(crate) fn person_request(reservation: &'static QuitReservation, observed: Observed, hand_off: impl FnOnce(QuitToken), exit: impl FnOnce()) -> QuitRequest {
+    let request = system_request(reservation, observed, hand_off);
     if request == QuitRequest::Decided {
         exit();
     }
@@ -675,8 +733,9 @@ pub(crate) fn build_host_quit<'a, C>(router: &Mutex<crate::runtime_session::Home
 pub(crate) struct QuitGates<'a> {
     pub(crate) quit: &'a AppQuit,
     pub(crate) stop_gate: &'a Mutex<()>,
-    /// Key setup (the only runtime path adding a home) and capture sealing:
-    /// held from admission through settlement so the set of homes is stable.
+    /// The setup gate, which key-home and local-home setup and capture
+    /// sealing take: held from admission through settlement so the set of
+    /// homes is stable.
     pub(crate) key_setup: &'a Mutex<()>,
 }
 
@@ -728,9 +787,9 @@ fn attempt<O: QuitOps>(gates: QuitGates<'_>, wait_limit: Duration, ops: impl FnO
     if quit.proceeding().is_some() {
         return QuitEnding::AlreadyDecided;
     }
-    // Keep the set of homes stable through settlement. Key setup is the only
-    // runtime path adding a home; never let it race the quit snapshot. The
-    // same gate also keeps explicit capture sealing out of Quit settlement.
+    // Keep the set of homes stable through settlement. Key-home and
+    // local-home setup share this gate with Quit. It also keeps explicit
+    // capture sealing out of Quit settlement.
     let _key_setup = match key_setup.try_lock() {
         Ok(held) => held,
         Err(std::sync::TryLockError::WouldBlock) => {
@@ -763,31 +822,46 @@ fn attempt<O: QuitOps>(gates: QuitGates<'_>, wait_limit: Duration, ops: impl FnO
         let allowed = quit.allow(&decision, |ids| ops.settle(ids));
         (decision_ending(&decision, &allowed), allowed.err())
     }));
+    // Whether reopening or restoring a home is established to have faulted:
+    // counted per home by the operations, or an unwind out of them. The count
+    // is read through a catch like every other call here.
+    let unrestored = |built: &Option<O>| {
+        built.as_ref().is_some_and(|ops| std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| ops.unrestored())).map_or(true, |n| n > 0))
+    };
+    let caught = |work: &mut dyn FnMut()| std::panic::catch_unwind(std::panic::AssertUnwindSafe(work)).is_err();
+    let still_running = format!("{QUIT_TITLE} — still running");
     match ran {
         Ok((ending, refused)) => {
             if let Some(error) = refused {
                 // Caught too: a fault reopening must not unwind with the key
                 // gate held or skip the notice.
-                if let Some(ops) = built.as_mut() {
-                    let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| ops.reopen_to_new_turns()));
-                }
+                let faulted = built.as_mut().is_some_and(|ops| caught(&mut || ops.reopen_to_new_turns()));
                 diagnostic(&error);
-                tell(&format!("{QUIT_TITLE} — still running"), error);
+                let error = if faulted || unrestored(&built) { format!("{error} {QUIT_UNRESTORED}") } else { error };
+                tell(&still_running, error);
+            } else if ending != QuitEnding::Decided && unrestored(&built) {
+                diagnostic(QUIT_UNRESTORED);
+                tell(&still_running, QUIT_UNRESTORED.into());
             }
             ending
         }
         // The decision was published before the fault: the quit is decided.
         Err(_) if quit.proceeding().is_some() => QuitEnding::Decided,
         Err(_) => {
+            let mut notice = QUIT_FAULTED.to_owned();
             if let Some(ops) = built.as_mut() {
-                let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| ops.restore_after_fault()));
+                let faulted = caught(&mut || ops.restore_after_fault());
+                notice = format!("{notice} {QUIT_RESTORE_ATTEMPTED}");
+                if faulted || unrestored(&built) {
+                    notice = format!("{notice} {QUIT_UNRESTORED}");
+                }
             }
             diagnostic(if quit.end_mark().load(Ordering::SeqCst) {
-                "a fault stopped the quit after a session-end attempt whose result is unknown; it is not attempted again; the App keeps running"
+                "Quit stopped before a decision. A session-end attempt in this App session has already been marked and will not be repeated."
             } else {
                 "a fault stopped the quit before a decision; the App keeps running"
             });
-            tell(&format!("{QUIT_TITLE} — still running"), QUIT_FAULTED.into());
+            tell(&still_running, format!("{notice} {QUIT_RETRY}"));
             QuitEnding::Faulted
         }
     }
@@ -859,7 +933,7 @@ pub(crate) fn finish_exit_marked(homes: &[Arc<HomeSession>], proceeding: Option<
         if homes.iter().any(|home| home.host.has_unestablishable_process()) {
             return Err(QUIT_CANNOT_ESTABLISH.into());
         }
-        return Err(format!("The App is still running: owned supplier settlement is unavailable ({}). No quit session-end record was written. Supervision is retained; inspect Host diagnostics before retrying Quit.", failures.join("; ")));
+        return Err(format!("The App is still running: owned supplier settlement is unavailable ({}). This attempt did not write a quit session-end record. Supervision is retained; inspect Host diagnostics before retrying Quit.", failures.join("; ")));
     }
     let (how, stops) = session_end(proceeding, &records);
     if end_attempted.swap(true, Ordering::SeqCst) {
