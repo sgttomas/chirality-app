@@ -17,7 +17,9 @@ The route, for one archive and the package a held lockfile names:
    notice's path, size, SHA-256 and Git blob. `extract` repeats steps 1 to 4 and requires every result to equal the
    index before it writes anything.
 
-Nothing here parses a manifest, README or source file, runs a build, a resolver or Cargo, or writes to a cache. A
+Nothing here parses a manifest, README or source file, runs a build, a resolver or Cargo, or writes to a cache.
+`read_member` returns one named member's bytes after the same checks; crates.py uses it only to compare a committed
+parent manifest with its archive's Cargo.toml. A
 selection by name finds the files named as notices; it does not show that no other file carries its own terms.
 """
 import gzip
@@ -206,3 +208,16 @@ def extract_checked(raw, entry, opener=gzip.GzipFile):
     found = [{k: n[k] for k in ('path', 'size_bytes', 'sha256', 'git_blob_sha1')} for n in notices]
     require(found == entry['notices'], f'selected notices differ from the index: {package[0]} {package[1]}')
     return {n['path']: n['data'] for n in notices}
+
+
+def read_member(raw, package, checksum, member, opener=gzip.GzipFile):
+    """The bytes of one named regular member of a verified archive (for crates.py verify-manifests), after the same
+    checksum and header checks; no other member's payload is returned."""
+    require(sha256(raw) == checksum, f'archive differs from the lockfile checksum: {package[0]} {package[1]}')
+    found = [m for m in _members(raw, package, opener) if m['path'] == member]
+    require(len(found) == 1 and found[0]['kind'] == REGULAR, f'the archive has no single regular member {member}')
+    with opener(fileobj=io.BytesIO(raw)) as stream:
+        stream.seek(found[0]['offset'], io.SEEK_CUR)
+        data = stream.read(found[0]['size'])
+    require(len(data) == found[0]['size'], 'member is shorter than its header: ' + member)
+    return data

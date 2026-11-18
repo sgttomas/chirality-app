@@ -520,6 +520,8 @@
      "version": "5.4.1",
      "checksum": "bde03770d3df201d4fb868f2c9c59e66a3e4e2bd06692a0fe701e7103c7e84d4",
      "path_in_vcs": "",
+     "archive_vcs_revision": "3b27cf2bfd1adcfa6e0264eb51c1025ddaf0f342",
+     "archive_repository": "https://github.com/DoumanAsh/clipboard-win",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 94,
@@ -558,6 +560,8 @@
      "version": "0.5.2",
      "checksum": "41781ae092f4fd52c9287efb74456aea0d3b90032d2ecad272bd14dbbcb0511b",
      "path_in_vcs": "",
+     "archive_vcs_revision": "5f835025d16d691f168315dda93efc52ae1e4e5e",
+     "archive_repository": "https://github.com/Marwes/schemafy",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 74,
@@ -574,6 +578,8 @@
      "version": "0.5.2",
      "checksum": "e953db32579999ca98c451d80801b6f6a7ecba6127196c5387ec0774c528befa",
      "path_in_vcs": "",
+     "archive_vcs_revision": "5f835025d16d691f168315dda93efc52ae1e4e5e",
+     "archive_repository": "https://github.com/Marwes/schemafy",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 74,
@@ -612,6 +618,8 @@
      "version": "0.8.0",
      "checksum": "339abbe78e73178762e23bea9dfd08e697eb3f3301cd4be981c0f78ba5859195",
      "path_in_vcs": "crates/base64-simd",
+     "archive_vcs_revision": "d74c030d9dc4f3cae02146d1f497ff62726ef09a",
+     "archive_repository": "https://github.com/Nugine/simd",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 112,
@@ -650,6 +658,8 @@
      "version": "0.1.0",
      "checksum": "b8dad83b4f25e74f184f64c43b150b91efe7647395b42289f38e50566d82855b",
      "path_in_vcs": "",
+     "archive_vcs_revision": "0c72934ad329ab4670eb017581640c2d6eceb289",
+     "archive_repository": "https://github.com/ardaku/wasite",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 74,
@@ -704,6 +714,8 @@
      "version": "1.0.2+wasi-0.2.9",
      "checksum": "9517f9239f02c069db75e65f174b3da828fe5f5b945c4dd26bd25d89c03ebcf5",
      "path_in_vcs": "crates/wasip2",
+     "archive_vcs_revision": "06ce201370fcde0d1b0d47cac8ecb1b0b312c9f9",
+     "archive_repository": "https://github.com/bytecodealliance/wasi-rs",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 107,
@@ -720,6 +732,8 @@
      "version": "0.4.0+wasi-0.3.0-rc-2026-01-06",
      "checksum": "5428f8bf88ea5ddc08faddef2ac4a67e390b88186c703ce6dbd955e1c145aca5",
      "path_in_vcs": "crates/wasip3",
+     "archive_vcs_revision": "06ce201370fcde0d1b0d47cac8ecb1b0b312c9f9",
+     "archive_repository": "https://github.com/bytecodealliance/wasi-rs",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 107,
@@ -774,6 +788,8 @@
      "version": "0.244.0",
      "checksum": "990065f2fe63003fe337b932cfb5e3b80e0b4d0f5ff650e6985b1048f62c8319",
      "path_in_vcs": "crates/wasm-encoder",
+     "archive_vcs_revision": "d4e317f22c3bace76cb3205003bcc34b4929037d",
+     "archive_repository": "https://github.com/bytecodealliance/wasm-tools/tree/main/crates/wasm-encoder",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 113,
@@ -790,6 +806,8 @@
      "version": "0.244.0",
      "checksum": "bb0e353e6a2fbdc176932bbaab493762eb1255a7900fe0fea1a2f96c296cc909",
      "path_in_vcs": "crates/wasm-metadata",
+     "archive_vcs_revision": "d4e317f22c3bace76cb3205003bcc34b4929037d",
+     "archive_repository": "https://github.com/bytecodealliance/wasm-tools/tree/main/crates/wasm-metadata",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 114,
@@ -806,6 +824,8 @@
      "version": "0.244.0",
      "checksum": "47b807c72e1bac69382b3a6fb3dbe8ea4c0ed87ff5629b8685ae6b9a611028fe",
      "path_in_vcs": "crates/wasmparser",
+     "archive_vcs_revision": "d4e317f22c3bace76cb3205003bcc34b4929037d",
+     "archive_repository": "https://github.com/bytecodealliance/wasm-tools/tree/main/crates/wasmparser",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 111,
@@ -822,6 +842,8 @@
      "version": "0.244.0",
      "checksum": "9d66ea20e9553b30172b5e831994e35fbde2d165325bec84fc43dbf6f4eb9cb2",
      "path_in_vcs": "crates/wit-component",
+     "archive_vcs_revision": "d4e317f22c3bace76cb3205003bcc34b4929037d",
+     "archive_repository": "https://github.com/bytecodealliance/wasm-tools/tree/main/crates/wit-component",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 114,
@@ -838,6 +860,8 @@
      "version": "0.244.0",
      "checksum": "ecc8ac4bc1dc3381b7f59c34f00b67e18f910c2c0f50015669dde7def656a736",
      "path_in_vcs": "crates/wit-parser",
+     "archive_vcs_revision": "d4e317f22c3bace76cb3205003bcc34b4929037d",
+     "archive_repository": "https://github.com/bytecodealliance/wasm-tools/tree/main/crates/wit-parser",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 111,
@@ -892,6 +916,8 @@
      "version": "0.2.0",
      "checksum": "50280e31256d09f7838aff6715ed4b7640e514dc1092a1e14013c01e552380db",
      "path_in_vcs": "crates/sonora-aec3",
+     "archive_vcs_revision": "a024d6ef8351add55be5e8b1d6cc35f555787660",
+     "archive_repository": "https://github.com/dignifiedquire/sonora",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 112,
@@ -930,6 +956,8 @@
      "version": "0.14.2",
      "checksum": "9062e866918dc4c9701c98ac99f7f4fa9e4b3b4edce306e147393bc75458c4fc",
      "path_in_vcs": "starlark",
+     "archive_vcs_revision": "0c8d107ab963362ba47ee3ab9e0173bc39bd101d",
+     "archive_repository": "https://github.com/facebook/starlark-rust",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 102,
@@ -946,6 +974,8 @@
      "version": "0.14.2",
      "checksum": "797e235eb70936bfa14fabf490bf7453e6f0caaf6b9c56fe4c9aff02aee7e66d",
      "path_in_vcs": "starlark_derive",
+     "archive_vcs_revision": "0c8d107ab963362ba47ee3ab9e0173bc39bd101d",
+     "archive_repository": "https://github.com/facebook/starlark-rust",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 109,
@@ -962,6 +992,8 @@
      "version": "0.14.2",
      "checksum": "234877898fd216af93b2f5798b08cbbdc1a2e8f16a622a258b1db23a61a1c4ba",
      "path_in_vcs": "starlark_map",
+     "archive_vcs_revision": "0c8d107ab963362ba47ee3ab9e0173bc39bd101d",
+     "archive_repository": "https://github.com/facebook/starlark-rust",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 106,
@@ -978,6 +1010,8 @@
      "version": "0.14.2",
      "checksum": "7492c571c531e68099c911cfd909d32659f1cc0910cf3adee9fce66e39d21f14",
      "path_in_vcs": "starlark_syntax",
+     "archive_vcs_revision": "0c8d107ab963362ba47ee3ab9e0173bc39bd101d",
+     "archive_repository": "https://github.com/facebook/starlark-rust",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 109,
@@ -1016,6 +1050,8 @@
      "version": "0.4.1",
      "checksum": "3658968938a4d1eaa1987e69dcd84b01fb067c5b3416dccc8d71373b6ded6821",
      "path_in_vcs": "pagable",
+     "archive_vcs_revision": "8978f3cd91b2908e1e61f6b58f84293097abf8f1",
+     "archive_repository": "https://github.com/facebook/starlark-rust",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 101,
@@ -1032,6 +1068,8 @@
      "version": "0.4.1",
      "checksum": "838d17166587914f4e99353766c29160462b681511f08679545a0d07a0dc9415",
      "path_in_vcs": "pagable_derive",
+     "archive_vcs_revision": "8978f3cd91b2908e1e61f6b58f84293097abf8f1",
+     "archive_repository": null,
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 108,
@@ -1071,6 +1109,8 @@
      "version": "25.12.19",
      "checksum": "35f6839d7b3b98adde531effaf34f0c2badc6f4735d26fe74709d8e513a96ef3",
      "path_in_vcs": "rust/flatbuffers",
+     "archive_vcs_revision": "7e163021e59cca4f8e1e35a7c828b5c6b7915953",
+     "archive_repository": "https://github.com/google/flatbuffers",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 110,
@@ -1109,6 +1149,8 @@
      "version": "0.14.3",
      "checksum": "d6c55a2d6a14174563de34409c9f92ff981d006f56da9c6ecd40d9d4a31500b0",
      "path_in_vcs": "tonic-prost",
+     "archive_vcs_revision": "ed4bafc35af7a284357cf4e77e26b9c3eb0266ca",
+     "archive_repository": "https://github.com/hyperium/tonic",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 105,
@@ -1125,6 +1167,8 @@
      "version": "0.14.3",
      "checksum": "a4556786613791cfef4ed134aa670b61a85cfcacf71543ef33e8d801abae988f",
      "path_in_vcs": "tonic-prost-build",
+     "archive_vcs_revision": "ed4bafc35af7a284357cf4e77e26b9c3eb0266ca",
+     "archive_repository": "https://github.com/hyperium/tonic",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 111,
@@ -1163,6 +1207,8 @@
      "version": "0.4.1",
      "checksum": "38c0b942f458fe50cdac086d2f946512305e5631e720728f2a61aabcd47a6264",
      "path_in_vcs": "jni-sys-macros",
+     "archive_vcs_revision": "64d77b7a5f119d7b55b4e2c169a4668067ff59e6",
+     "archive_repository": "https://github.com/jni-rs/jni-sys",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 108,
@@ -1209,6 +1255,8 @@
      "version": "1.0.0",
      "checksum": "10d60334b3b2e7c9d91ef8150abfb6fa4c1c39ebbcf4a81c2e346aad939fee3e",
      "path_in_vcs": "parser",
+     "archive_vcs_revision": "4a8cdb44891ed57b8ff5a023b6bec7137c48708f",
+     "archive_repository": "https://github.com/knurling-rs/defmt",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 100,
@@ -1255,6 +1303,8 @@
      "version": "0.3.100",
      "checksum": "f0963443817029b2024136fc4dd07a5107eb8f977eaf18fcd1fdeb11306b64ad",
      "path_in_vcs": "defmt-03",
+     "archive_vcs_revision": "f6decae6e09d1216aff052aa0733a6b5e632a100",
+     "archive_repository": "https://github.com/knurling-rs/defmt",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 102,
@@ -1301,6 +1351,8 @@
      "version": "0.3.2",
      "checksum": "6948501a91121d6399b79abaa33a8aa4ea7857fe019f341b8c23ad6e81b79b08",
      "path_in_vcs": "framework-crates/objc2-audio-toolbox",
+     "archive_vcs_revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+     "archive_repository": "https://github.com/madsmtm/objc2",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 130,
@@ -1317,6 +1369,8 @@
      "version": "0.3.2",
      "checksum": "13a380031deed8e99db00065c45937da434ca987c034e13b87e4441f9e4090be",
      "path_in_vcs": "framework-crates/objc2-avf-audio",
+     "archive_vcs_revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+     "archive_repository": "https://github.com/madsmtm/objc2",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 126,
@@ -1333,6 +1387,8 @@
      "version": "0.3.2",
      "checksum": "73ad74d880bb43877038da939b7427bba67e9dd42004a18b809ba7d87cee241c",
      "path_in_vcs": "framework-crates/objc2-cloud-kit",
+     "archive_vcs_revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+     "archive_repository": "https://github.com/madsmtm/objc2",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 126,
@@ -1349,6 +1405,8 @@
      "version": "0.3.2",
      "checksum": "e1eebcea8b0dbff5f7c8504f3107c68fc061a3eb44932051c8cf8a68d969c3b2",
      "path_in_vcs": "framework-crates/objc2-core-audio",
+     "archive_vcs_revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+     "archive_repository": "https://github.com/madsmtm/objc2",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 127,
@@ -1365,6 +1423,8 @@
      "version": "0.3.2",
      "checksum": "5a89f2ec274a0cf4a32642b2991e8b351a404d290da87bb6a9a9d8632490bd1c",
      "path_in_vcs": "framework-crates/objc2-core-audio-types",
+     "archive_vcs_revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+     "archive_repository": "https://github.com/madsmtm/objc2",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 133,
@@ -1381,6 +1441,8 @@
      "version": "0.3.2",
      "checksum": "0b402a653efbb5e82ce4df10683b6b28027616a2715e90009947d50b8dd298fa",
      "path_in_vcs": "framework-crates/objc2-core-data",
+     "archive_vcs_revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+     "archive_repository": "https://github.com/madsmtm/objc2",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 126,
@@ -1397,6 +1459,8 @@
      "version": "0.3.2",
      "checksum": "e022c9d066895efa1345f8e33e584b9f958da2fd4cd116792e15e07e4720a807",
      "path_in_vcs": "framework-crates/objc2-core-graphics",
+     "archive_vcs_revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+     "archive_repository": "https://github.com/madsmtm/objc2",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 130,
@@ -1413,6 +1477,8 @@
      "version": "0.3.2",
      "checksum": "e5d563b38d2b97209f8e861173de434bd0214cf020e3423a52624cd1d989f006",
      "path_in_vcs": "framework-crates/objc2-core-image",
+     "archive_vcs_revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+     "archive_repository": "https://github.com/madsmtm/objc2",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 127,
@@ -1429,6 +1495,8 @@
      "version": "0.3.2",
      "checksum": "ca347214e24bc973fc025fd0d36ebb179ff30536ed1f80252706db19ee452009",
      "path_in_vcs": "framework-crates/objc2-core-location",
+     "archive_vcs_revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+     "archive_repository": "https://github.com/madsmtm/objc2",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 130,
@@ -1445,6 +1513,8 @@
      "version": "0.3.2",
      "checksum": "0cde0dfb48d25d2b4862161a4d5fcc0e3c24367869ad306b0c9ec0073bfed92d",
      "path_in_vcs": "framework-crates/objc2-core-text",
+     "archive_vcs_revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+     "archive_repository": "https://github.com/madsmtm/objc2",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 126,
@@ -1461,6 +1531,8 @@
      "version": "0.3.2",
      "checksum": "180788110936d59bab6bd83b6060ffdfffb3b922ba1396b312ae795e1de9d81d",
      "path_in_vcs": "framework-crates/objc2-io-surface",
+     "archive_vcs_revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+     "archive_repository": "https://github.com/madsmtm/objc2",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 127,
@@ -1477,6 +1549,8 @@
      "version": "0.3.2",
      "checksum": "e48e0b8b339e0d9d2ed4416b7f93f9d4daadff7d4dd797f89867cde11aeac607",
      "path_in_vcs": "framework-crates/objc2-local-authentication",
+     "archive_vcs_revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+     "archive_repository": "https://github.com/madsmtm/objc2",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 137,
@@ -1493,6 +1567,8 @@
      "version": "0.3.2",
      "checksum": "96c1358452b371bf9f104e21ec536d37a650eb10f7ee379fff67d2e08d537f1f",
      "path_in_vcs": "framework-crates/objc2-quartz-core",
+     "archive_vcs_revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+     "archive_repository": "https://github.com/madsmtm/objc2",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 128,
@@ -1509,6 +1585,8 @@
      "version": "0.3.2",
      "checksum": "709fe137109bd1e8b5a99390f77a7d8b2961dafc1a1c5db8f2e60329ad6d895a",
      "path_in_vcs": "framework-crates/objc2-security",
+     "archive_vcs_revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+     "archive_repository": "https://github.com/madsmtm/objc2",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 125,
@@ -1525,6 +1603,8 @@
      "version": "0.3.2",
      "checksum": "d87d638e33c06f577498cbcc50491496a3ed4246998a7fbba7ccb98b1e7eab22",
      "path_in_vcs": "framework-crates/objc2-ui-kit",
+     "archive_vcs_revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+     "archive_repository": "https://github.com/madsmtm/objc2",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 123,
@@ -1541,6 +1621,8 @@
      "version": "0.3.2",
      "checksum": "9df9128cbbfef73cda168416ccf7f837b62737d748333bfe9ab71c245d76613e",
      "path_in_vcs": "framework-crates/objc2-user-notifications",
+     "archive_vcs_revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+     "archive_repository": "https://github.com/madsmtm/objc2",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 135,
@@ -1579,6 +1661,8 @@
      "version": "0.6.3",
      "checksum": "b7c2599ce0ec54857b29ce62166b0ed9b4f6f1a70ccc9a71165b6154caca8c05",
      "path_in_vcs": "crates/objc2",
+     "archive_vcs_revision": "b4167b582b2f75f9a1be75495c41b765344fd03c",
+     "archive_repository": "https://github.com/madsmtm/objc2",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 106,
@@ -1617,6 +1701,8 @@
      "version": "0.3.0",
      "checksum": "89a09f22a6c6069a18470eb92d2298acf25463f14256d24778e1230d789a2aec",
      "path_in_vcs": "crates/dispatch2",
+     "archive_vcs_revision": "e68410e22a2d29d5f37a0b4c1b7e8e194808eade",
+     "archive_repository": "https://github.com/madsmtm/objc2",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 110,
@@ -1655,6 +1741,8 @@
      "version": "0.31.1",
      "checksum": "ef6a1ac5ca3accf562b8c306fa8483c85f4390f768185ab775f242f7fe8fdcc2",
      "path_in_vcs": "opentelemetry-appender-tracing",
+     "archive_vcs_revision": "00f97c948e95beb7b2c966fcdb5f946c2a89baeb",
+     "archive_repository": "https://github.com/open-telemetry/opentelemetry-rust/tree/main/opentelemetry-appender-tracing",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 124,
@@ -1693,6 +1781,8 @@
      "version": "0.31.0",
      "checksum": "b84bcd6ae87133e903af7ef497404dda70c60d0ea14895fc8a5e6722754fc2a0",
      "path_in_vcs": "opentelemetry",
+     "archive_vcs_revision": "285dc925f98403ff426acc70968f104dc820d4f2",
+     "archive_repository": "https://github.com/open-telemetry/opentelemetry-rust/tree/main/opentelemetry",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 107,
@@ -1709,6 +1799,8 @@
      "version": "0.31.0",
      "checksum": "d7a6d09a73194e6b66df7c8f1b680f156d916a1a942abf2de06823dd02b7855d",
      "path_in_vcs": "opentelemetry-http",
+     "archive_vcs_revision": "285dc925f98403ff426acc70968f104dc820d4f2",
+     "archive_repository": "https://github.com/open-telemetry/opentelemetry-rust/tree/main/opentelemetry-http",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 112,
@@ -1725,6 +1817,8 @@
      "version": "0.31.0",
      "checksum": "7a2366db2dca4d2ad033cad11e6ee42844fd727007af5ad04a1730f4cb8163bf",
      "path_in_vcs": "opentelemetry-otlp",
+     "archive_vcs_revision": "285dc925f98403ff426acc70968f104dc820d4f2",
+     "archive_repository": "https://github.com/open-telemetry/opentelemetry-rust/tree/main/opentelemetry-otlp",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 112,
@@ -1741,6 +1835,8 @@
      "version": "0.31.0",
      "checksum": "a7175df06de5eaee9909d4805a3d07e28bb752c34cab57fa9cff549da596b30f",
      "path_in_vcs": "opentelemetry-proto",
+     "archive_vcs_revision": "285dc925f98403ff426acc70968f104dc820d4f2",
+     "archive_repository": "https://github.com/open-telemetry/opentelemetry-rust/tree/main/opentelemetry-proto",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 113,
@@ -1757,6 +1853,8 @@
      "version": "0.31.0",
      "checksum": "e62e29dfe041afb8ed2a6c9737ab57db4907285d999ef8ad3a59092a36bdc846",
      "path_in_vcs": "opentelemetry-semantic-conventions",
+     "archive_vcs_revision": "285dc925f98403ff426acc70968f104dc820d4f2",
+     "archive_repository": "https://github.com/open-telemetry/opentelemetry-rust/tree/main/opentelemetry-semantic-conventions",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 128,
@@ -1773,6 +1871,8 @@
      "version": "0.31.0",
      "checksum": "e14ae4f5991976fd48df6d843de219ca6d31b01daaab2dad5af2badeded372bd",
      "path_in_vcs": "opentelemetry-sdk",
+     "archive_vcs_revision": "285dc925f98403ff426acc70968f104dc820d4f2",
+     "archive_repository": "https://github.com/open-telemetry/opentelemetry-rust/tree/main/opentelemetry-sdk",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 111,
@@ -1811,6 +1911,8 @@
      "version": "0.1.0",
      "checksum": "c0bf912d9e66f057a759d92e386a280ea886b352ab757d6ac4d653c7ed2c43c2",
      "path_in_vcs": "ratatui-termina",
+     "archive_vcs_revision": "e665c36cb14752a61cd777fbd06dbef8474f2add",
+     "archive_repository": "https://github.com/ratatui/ratatui",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 109,
@@ -1849,6 +1951,8 @@
      "version": "0.9.0",
      "checksum": "c3f42e7bbe13d351b6bead8286a43aac9534b82bd3cc43e47037f012ebfd62d4",
      "path_in_vcs": "ndk",
+     "archive_vcs_revision": "49bbbba16c58ff63cb8a0ad0eca5a9fb7ecaec25",
+     "archive_repository": "https://github.com/rust-mobile/ndk",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 97,
@@ -1865,6 +1969,8 @@
      "version": "0.6.0+11769913",
      "checksum": "ee6cda3051665f1fb8d9e08fc35c96d5a244fb1be711a03b71118828afc9a873",
      "path_in_vcs": "ndk-sys",
+     "archive_vcs_revision": "49bbbba16c58ff63cb8a0ad0eca5a9fb7ecaec25",
+     "archive_repository": "https://github.com/rust-mobile/ndk",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 101,
@@ -1911,6 +2017,8 @@
      "version": "0.1.1",
      "checksum": "27b02d87554356db9e9a873add8782d4ea6e3e58ea071a9adb9a2e8ddb884a8b",
      "path_in_vcs": "ndk-context",
+     "archive_vcs_revision": "10f2ba388fca20f7349996ebae26ccda7a6fda5c",
+     "archive_repository": "https://github.com/rust-windowing/android-ndk-rs",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 105,
@@ -1957,6 +2065,8 @@
      "version": "0.2.0",
      "checksum": "7b18050c2cd6fe86c3a76584ef5e0baf286d038cda203eb6223df2cc413565f7",
      "path_in_vcs": "impl",
+     "archive_vcs_revision": "a20e5f7319c896737ad0f2557037817b91ad854f",
+     "archive_repository": "https://github.com/rusticata/asn1-rs.git",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 98,
@@ -2003,6 +2113,8 @@
      "version": "0.20.3",
      "checksum": "7bef39b017b5cf0a3511eab456505556b320e0aa04d4547b015ecba9f844fe43",
      "path_in_vcs": "rtc-datachannel",
+     "archive_vcs_revision": "8f763af160fa8f2fc8da1879696aa0d5228b0d49",
+     "archive_repository": "https://github.com/webrtc-rs/rtc",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 109,
@@ -2019,6 +2131,8 @@
      "version": "0.20.3",
      "checksum": "03a1be8a58a72a257c233ad9a2f92130c15994e02f7a1981379fdebbe0d8761a",
      "path_in_vcs": "rtc-dtls",
+     "archive_vcs_revision": "8f763af160fa8f2fc8da1879696aa0d5228b0d49",
+     "archive_repository": "https://github.com/webrtc-rs/rtc",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 102,
@@ -2035,6 +2149,8 @@
      "version": "0.20.3",
      "checksum": "640c7ecb9a09d21c0d4ba27b3ff22adb07cce90d23a7bce7c82bcbe424844e31",
      "path_in_vcs": "rtc-ice",
+     "archive_vcs_revision": "8f763af160fa8f2fc8da1879696aa0d5228b0d49",
+     "archive_repository": "https://github.com/webrtc-rs/rtc",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 101,
@@ -2051,6 +2167,8 @@
      "version": "0.20.3",
      "checksum": "9436633af4a6beff6fee08c99464012017fcd1e0a4c0559b1f0d733e8812217a",
      "path_in_vcs": "rtc-interceptor",
+     "archive_vcs_revision": "8f763af160fa8f2fc8da1879696aa0d5228b0d49",
+     "archive_repository": "https://github.com/webrtc-rs/rtc",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 109,
@@ -2067,6 +2185,8 @@
      "version": "0.20.3",
      "checksum": "3563dafffb11e99264cbfa87c45d806c349c701a96ea3cf3c4778ae3c5da63b4",
      "path_in_vcs": "rtc-interceptor-derive",
+     "archive_vcs_revision": "8f763af160fa8f2fc8da1879696aa0d5228b0d49",
+     "archive_repository": "https://github.com/webrtc-rs/rtc",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 116,
@@ -2083,6 +2203,8 @@
      "version": "0.20.3",
      "checksum": "e4db343dbcd1445783ac9f832e350775e4e655b2c890bead7d13dca1219e0ac5",
      "path_in_vcs": "rtc-mdns",
+     "archive_vcs_revision": "8f763af160fa8f2fc8da1879696aa0d5228b0d49",
+     "archive_repository": "https://github.com/webrtc-rs/rtc",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 102,
@@ -2099,6 +2221,8 @@
      "version": "0.20.3",
      "checksum": "709a571ed5d88854f3f8c0b92e4a445d77ee54fd33dd45f9297a3d91e3e96d67",
      "path_in_vcs": "rtc-media",
+     "archive_vcs_revision": "8f763af160fa8f2fc8da1879696aa0d5228b0d49",
+     "archive_repository": "https://github.com/webrtc-rs/rtc",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 103,
@@ -2115,6 +2239,8 @@
      "version": "0.20.3",
      "checksum": "8817201df4a87008528804073d2dddfefd08eecb44afe6f6d61f7fb1beed72d0",
      "path_in_vcs": "rtc-rtcp",
+     "archive_vcs_revision": "8f763af160fa8f2fc8da1879696aa0d5228b0d49",
+     "archive_repository": "https://github.com/webrtc-rs/rtc",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 102,
@@ -2131,6 +2257,8 @@
      "version": "0.20.3",
      "checksum": "b2aa84012c4a3d855586878e9f891af5062bd5690278b2c54bfcfb0a0ddd9098",
      "path_in_vcs": "rtc-rtp",
+     "archive_vcs_revision": "8f763af160fa8f2fc8da1879696aa0d5228b0d49",
+     "archive_repository": "https://github.com/webrtc-rs/rtc",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 101,
@@ -2147,6 +2275,8 @@
      "version": "0.20.3",
      "checksum": "78317cf685b6cde3dbd1cd8e7c9f373e74f00dce00000a25c14c6ddb3378da86",
      "path_in_vcs": "rtc-sctp",
+     "archive_vcs_revision": "8f763af160fa8f2fc8da1879696aa0d5228b0d49",
+     "archive_repository": "https://github.com/webrtc-rs/rtc",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 102,
@@ -2163,6 +2293,8 @@
      "version": "0.20.3",
      "checksum": "54ab04410496c8ea47350490298fb135f5432f8fa1aa88edf5dadc81c855a324",
      "path_in_vcs": "rtc-sdp",
+     "archive_vcs_revision": "8f763af160fa8f2fc8da1879696aa0d5228b0d49",
+     "archive_repository": "https://github.com/webrtc-rs/rtc",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 101,
@@ -2179,6 +2311,8 @@
      "version": "0.20.3",
      "checksum": "dae32667b8c9f15223172ce27471e02791e2b401de559b3ea02a6ec93ff280e0",
      "path_in_vcs": "rtc-shared",
+     "archive_vcs_revision": "8f763af160fa8f2fc8da1879696aa0d5228b0d49",
+     "archive_repository": "https://github.com/webrtc-rs/rtc",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 104,
@@ -2195,6 +2329,8 @@
      "version": "0.20.3",
      "checksum": "413d48daef797c98c12ff91988abac36d44c81974f0a4b0658549174230819cd",
      "path_in_vcs": "rtc-srtp",
+     "archive_vcs_revision": "8f763af160fa8f2fc8da1879696aa0d5228b0d49",
+     "archive_repository": "https://github.com/webrtc-rs/rtc",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 102,
@@ -2211,6 +2347,8 @@
      "version": "0.20.3",
      "checksum": "e4b4540b2b8ff7155ef9e95a3b492a7830e974e2fa9ce4b76ec315c4a6b4953d",
      "path_in_vcs": "rtc-stun",
+     "archive_vcs_revision": "8f763af160fa8f2fc8da1879696aa0d5228b0d49",
+     "archive_repository": "https://github.com/webrtc-rs/rtc",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 102,
@@ -2227,6 +2365,8 @@
      "version": "0.20.3",
      "checksum": "449365ff0b87488d5f9532409813e76e1f0f5965ef31ce6fcde9aa786c852c6c",
      "path_in_vcs": "rtc-turn",
+     "archive_vcs_revision": "8f763af160fa8f2fc8da1879696aa0d5228b0d49",
+     "archive_repository": "https://github.com/webrtc-rs/rtc",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 102,
@@ -2273,6 +2413,8 @@
      "version": "7.0.2",
      "checksum": "078ea7b7c29a2b4df841a7f6ac8775ff6074020c6776d48491ce2268e068f972",
      "path_in_vcs": "intl_pluralrules",
+     "archive_vcs_revision": "d0715d5b7cca72e228d6e6c4de154bd30dfdd06a",
+     "archive_repository": "https://github.com/zbraniecki/pluralrules",
      "archive_metadata": {
       ".cargo_vcs_info.json": {
        "size_bytes": 110,
@@ -2327,7 +2469,7 @@
     "response_sha256": "70cfdd0430a2744c2ee17251cb0d46478b200bd68b9bacea9117b2d59e2e274e"
    },
    "examined": "The listing at the locked revision names no licence file. Its manifest declares \"Apache-2.0/MIT\"; README.md lines 38-40 give either licence at the user's option; src/combine.rs (3,292 bytes, blob bf56adf1) lines 11-16 carry a third-party zlib notice (\"Copyright (C) 1995-2006, 2010, 2011, 2012, 2016 Mark Adler / For conditions of distribution and use, see copyright notice in zlib.h\"), whose zlib.h text is not in the repository; no other copyright line was found in src/, build.rs or the tests read. A listing that names no licence file does not show that no publisher text exists elsewhere.",
-   "would_close": "a publisher text for this version, or the owner's decision on what may serve as this package's notice (for example the declared licence's standard text)"
+   "would_close": "a publisher text for this version, or the owner's decision on what may serve as this package's notice (for example the declared licence's standard text). Closing it must also settle the third-party zlib notice in src/combine.rs (Mark Adler's copyright, pointing to zlib.h), which the stated licence does not cover. Licence adequacy stays the owner's."
   },
   {
    "name": "debugserver-types",
@@ -2342,7 +2484,7 @@
     "response_sha256": "5431c747b4e3e8ef746ddea1b5c5afaaebbc9a34366d968608f6ccddb99be25c"
    },
    "examined": "The listing at the locked revision names no licence file. Its manifest declares \"MIT\"; README.md and src/lib.rs state no licence or copyright. The types are generated from src/schema.json (108,673 bytes, blob 53e3a32c), which the README describes as VSCode's debug server protocol; that schema's origin and licence were not examined. A listing that names no licence file does not show that no publisher text exists elsewhere.",
-   "would_close": "a publisher text for this version, or the owner's decision on what may serve as this package's notice (for example the declared licence's standard text)"
+   "would_close": "a publisher text for this version, or the owner's decision on what may serve as this package's notice (for example the declared licence's standard text). Closing it must also settle the origin and terms of src/schema.json, from which its types are generated (VSCode's debug server protocol, per its README). Licence adequacy stays the owner's."
   },
   {
    "name": "deno_core_icudata",
@@ -2357,7 +2499,7 @@
     "response_sha256": "02dd91cd021d938f4f8e0ab8e9c817ef4f660f4a475b258e040e74eabf552ead"
    },
    "examined": "The listing at the locked revision names no licence file. Its manifest declares \"MIT\"; README.md (105 bytes) and src/lib.rs (205 bytes) state no licence. The crate embeds src/icudtl.dat (10,876,560 bytes, blob 9655a2e1) with include_bytes, and the README says it is Rusty V8's third_party/icu/common/icudtl.dat: ICU data, whose own licence the examined files do not state. A listing that names no licence file does not show that no publisher text exists elsewhere.",
-   "would_close": "a publisher text for this version, or the owner's decision on what may serve as this package's notice (for example the declared licence's standard text)"
+   "would_close": "a publisher text for this version, or the owner's decision on what may serve as this package's notice (for example the declared licence's standard text). Closing it must also settle the notice for the embedded ICU data (src/icudtl.dat, Rusty V8's third_party/icu/common/icudtl.dat per its README), whose own terms the crate does not state. Licence adequacy stays the owner's."
   },
   {
    "name": "eventsource-stream",
@@ -2441,12 +2583,7 @@
     {
      "name": "keyring",
      "version": "3.6.3",
-     "archive_manifest": {
-      "checksum": "eebcc3aff044e5944a8fbaf69eb277d11986064cba30c468730e8b9909fb551c",
-      "member": "Cargo.toml",
-      "size_bytes": 4510,
-      "sha256": "ecebaa095f7181b35d774b34f60fdfe387b1ba5eefe667cbdcad1d01d6bede64"
-     },
+     "manifest": "keyring-3.6.3",
      "edges": [
       {
        "table": "[target.'cfg(target_os = \"linux\")'.dependencies.linux-keyutils]",
@@ -2469,12 +2606,7 @@
     {
      "name": "rustls-platform-verifier",
      "version": "0.7.0",
-     "archive_manifest": {
-      "checksum": "26d1e2536ce4f35f4846aa13bff16bd0ff40157cdb14cc056c7b14ba41233ba0",
-      "member": "Cargo.toml",
-      "size_bytes": 3499,
-      "sha256": "3032a2b58429a8786207a229216b5ea0cdf04a33f5f545660b83218f3322d1b0"
-     },
+     "manifest": "rustls-platform-verifier-0.7.0",
      "edges": [
       {
        "table": "[target.'cfg(target_os = \"android\")'.dependencies.rustls-platform-verifier-android]",
@@ -2497,14 +2629,7 @@
     {
      "name": "codex-linux-sandbox",
      "version": "0.0.0",
-     "workspace_manifest": {
-      "repository": "https://github.com/openai/codex",
-      "revision": "d32063f96c2dff1dc96af839b3952abb6acfeda4",
-      "path": "codex-rs/linux-sandbox/Cargo.toml",
-      "size_bytes": 1484,
-      "git_blob_sha1": "b3b20cc7c1378df58336fcae62d2a2a7e6766d1e",
-      "sha256": "cc1f31077f38fb354a6b88eddd8d835d8e4fe245c9ccb39b8998c9e7b44946d9"
-     },
+     "manifest": "codex-rs/linux-sandbox/Cargo.toml",
      "edges": [
       {
        "table": "[target.'cfg(target_os = \"linux\")'.dev-dependencies]",
@@ -2527,12 +2652,7 @@
     {
      "name": "winapi",
      "version": "0.3.9",
-     "archive_manifest": {
-      "checksum": "5c839a674fcd7a98952e593242ea400abe93992746761e38641405d28b00f419",
-      "member": "Cargo.toml",
-      "size_bytes": 7144,
-      "sha256": "d25b7c71c515a1869c75b3ff957bf845386bec03bcb407532e3726919f0b36c7"
-     },
+     "manifest": "winapi-0.3.9",
      "edges": [
       {
        "table": "[target.i686-pc-windows-gnu.dependencies.winapi-i686-pc-windows-gnu]",
@@ -2555,12 +2675,7 @@
     {
      "name": "winapi",
      "version": "0.3.9",
-     "archive_manifest": {
-      "checksum": "5c839a674fcd7a98952e593242ea400abe93992746761e38641405d28b00f419",
-      "member": "Cargo.toml",
-      "size_bytes": 7144,
-      "sha256": "d25b7c71c515a1869c75b3ff957bf845386bec03bcb407532e3726919f0b36c7"
-     },
+     "manifest": "winapi-0.3.9",
      "edges": [
       {
        "table": "[target.x86_64-pc-windows-gnu.dependencies.winapi-x86_64-pc-windows-gnu]",
@@ -2583,14 +2698,7 @@
     {
      "name": "codex-tui",
      "version": "0.0.0",
-     "workspace_manifest": {
-      "repository": "https://github.com/openai/codex",
-      "revision": "d32063f96c2dff1dc96af839b3952abb6acfeda4",
-      "path": "codex-rs/tui/Cargo.toml",
-      "size_bytes": 6998,
-      "git_blob_sha1": "6e5c58f6a07af566f308a7b4e4cbce3bf3719c44",
-      "sha256": "eabdbe5cd7f5b9691d6e3d62b7c2e00a0d919b54d9a881077c6f0f89128c4417"
-     },
+     "manifest": "codex-rs/tui/Cargo.toml",
      "edges": [
       {
        "table": "[target.'cfg(windows)'.dependencies]",
@@ -2919,7 +3027,7 @@
      "checksum": "7012add459f951456ec9d6c7e6fc340b1ce15d6fc9629f8c42853412c029e57e"
     }
    ],
-   "reason": "the archive has no member named as a notice; at https://github.com/wez/wezterm d5ca5509 (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/wez/wezterm/edeae72b5fc55c7fa4aa1d08bbefd08c5493f757/LICENSE.md (1,529 bytes, blob cf22ae0b). The request to acquire these files is with the owner.",
+   "reason": "the archive has no member named as a notice; at https://github.com/wez/wezterm d5ca5509 (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/wez/wezterm/edeae72b5fc55c7fa4aa1d08bbefd08c5493f757/LICENSE.md (1,529 bytes, blob cf22ae0b; the saved listing of d5ca5509 names the same blob at LICENSE.md, so one file serves both revisions). The request to acquire these files is with the owner.",
    "would_close": "the owner's permission to acquire https://raw.githubusercontent.com/wez/wezterm/edeae72b5fc55c7fa4aa1d08bbefd08c5493f757/LICENSE.md, then their association"
   },
   {
@@ -2979,8 +3087,8 @@
      "checksum": "ebf3631712f5b790675292ff827af269f5d9f920c920b77dc41d0485e3719612"
     }
    ],
-   "reason": "the archive has no VCS record, so the locked revision is not established: crates.io records publication on 2026-05-22T14:34:20Z; facebook/buck2 shed/lock_free_hashtable is at 0.1.4 in e65e66a7 and 48ae5c61, which share a committer time, so which one the archive was built from is not established; the repository root also has a NOTICE (341 bytes, blob 1eb292d9) that is not held",
-   "would_close": "a revision bound to the published archive, then its licence texts (the root NOTICE needs an owner-permitted acquisition; LICENSE-APACHE and LICENSE-MIT are bytes already held)"
+   "reason": "the archive has no VCS record, so its revision is not established; App Agent 0 accepts a binding by invariance where the licence texts are the same blobs at every candidate revision bracketing publication, confirmed by a reviewer across the whole range. Window: e65e66a7 and 48ae5c61 (both 2026-05-22T13:35:05Z, at 0.1.4) to publication at 2026-05-22T14:34:20Z. The buck2 root LICENSE-APACHE (blob b09cd785, held), LICENSE-MIT (blob b93be905, held) and NOTICE (341 bytes, blob 1eb292d9) are the same blobs at bb911429, at 48ae5c61 and at tag 2026-06-01 (saved root listings); e65e66a7's root and the commits up to publication are not held, so identity across the whole range is not yet shown. The NOTICE is not held",
+   "would_close": "the owner's permission to acquire https://raw.githubusercontent.com/facebook/buck2/bb9114292d98db0a2919d37d673bb27f930e6aa1/NOTICE (341 bytes, blob 1eb292d9), which is with the owner, and a reviewer's confirmation that the three root blobs are the same at every commit of the window"
   },
   {
    "packages": [
@@ -2990,8 +3098,8 @@
      "checksum": "fab44341fbf4deae6e8d5ab450f24e1b34e0b2439d39ac0e9b5215a4e5493263"
     }
    ],
-   "reason": "the archive has no VCS record, so the locked revision is not established: crates.io records publication on 2026-05-17T18:38:46Z; facebook/buck2 commits bb911429 and the later 0404cfb1 are both at 0.1.2, so only a range is known; the repository root also has a NOTICE (341 bytes, blob 1eb292d9) that is not held",
-   "would_close": "a revision bound to the published archive, then its licence texts (the root NOTICE needs an owner-permitted acquisition; LICENSE-APACHE and LICENSE-MIT are bytes already held)"
+   "reason": "the archive has no VCS record, so its revision is not established; App Agent 0 accepts a binding by invariance where the licence texts are the same blobs at every candidate revision bracketing publication, confirmed by a reviewer across the whole range. Window: bb911429 (2026-05-16, sets shed/static_interner to 0.1.2; the folder's next change is 0404cfb1 on 2026-05-22) to publication at 2026-05-17T18:38:46Z. The buck2 root LICENSE-APACHE (blob b09cd785, held), LICENSE-MIT (blob b93be905, held) and NOTICE (341 bytes, blob 1eb292d9) are the same blobs at bb911429, at 48ae5c61 (2026-05-22) and at tag 2026-06-01 (saved root listings); the commits between are not held, so identity across the whole range is not yet shown. The NOTICE is not held",
+   "would_close": "the owner's permission to acquire https://raw.githubusercontent.com/facebook/buck2/bb9114292d98db0a2919d37d673bb27f930e6aa1/NOTICE (341 bytes, blob 1eb292d9), which is with the owner, and a reviewer's confirmation that the three root blobs are the same at every commit of the window"
   },
   {
    "packages": [
@@ -3017,8 +3125,139 @@
      "checksum": "6184e33543162437515c2e2b48714794e37845ec9851711914eec9d308f6ebe8"
     }
    ],
-   "reason": "the archive has no VCS record: crates.io records publication of 0.4.0 on 2018-07-22T12:47:54Z; commit 6fd59b0c of DimaKudosh/difflib sets 0.4.0 and f035fb8e is the last commit before publication, with Cargo.toml and LICENSE identical at both, so the candidate binding rests on timing, not a VCS record; the LICENSE at f035fb8e (1,086 bytes, blob 5acedf04) is not held",
-   "would_close": "App Agent 0's acceptance of the timing-based binding and the owner's permission to acquire https://raw.githubusercontent.com/DimaKudosh/difflib/f035fb8e656f27119e23eca9d5b996df14f3885e/LICENSE (1,086 bytes, blob 5acedf04), then its association"
+   "reason": "the archive has no VCS record, so its revision is not established; App Agent 0 accepts a binding by invariance where a licence text is the same blob at every candidate revision bracketing publication, confirmed by a reviewer across the whole range. Window: 6fd59b0c (2018-07-03, sets 0.4.0) to f035fb8e (2018-07-22T12:36:05Z, the last commit before publication at 12:47:54Z), through 06afc187 and 31ea2a24 on the merged branch. LICENSE is blob 5acedf04 (1,086 bytes) at 6fd59b0c and at f035fb8e (saved tree listings); the two commits between are not held, so identity across the whole range is not yet shown. The LICENSE is not held",
+   "would_close": "the owner's permission to acquire https://raw.githubusercontent.com/DimaKudosh/difflib/f035fb8e656f27119e23eca9d5b996df14f3885e/LICENSE (1,086 bytes, blob 5acedf04), which is with the owner, and a reviewer's confirmation that the LICENSE blob is the same at every commit of the window"
+  }
+ ],
+ "manifests": [
+  {
+   "id": "keyring-3.6.3",
+   "path": "app/packaging/supplier_notices/crates/manifests/keyring-3.6.3.Cargo.toml",
+   "size_bytes": 4510,
+   "sha256": "ecebaa095f7181b35d774b34f60fdfe387b1ba5eefe667cbdcad1d01d6bede64",
+   "git_blob_sha1": "0e55e4deae53729b5467f4b1be37ab30de6bb2ff",
+   "binding": "the Cargo.toml member of the archive whose SHA-256 equals the lockfile checksum, read on 2026-11-18 through crate_notices header checks with no other member read; crates.py verify-manifests rechecks it against a held archive",
+   "declared_license": "MIT OR Apache-2.0 (as the manifest's package.license gives it)",
+   "source": {
+    "kind": "registry-archive-member",
+    "name": "keyring",
+    "version": "3.6.3",
+    "checksum": "eebcc3aff044e5944a8fbaf69eb277d11986064cba30c468730e8b9909fb551c",
+    "member": "Cargo.toml"
+   },
+   "notice": {
+    "crate_row": "keyring 3.6.3",
+    "texts": [
+     {
+      "member": "LICENSE-APACHE",
+      "sha256": "78ebc2ea2a1cec9cbec2e1a6fc15e73474fe22bdad7575518e7f4628651d49c4"
+     },
+     {
+      "member": "LICENSE-MIT",
+      "sha256": "157cc607717b1b372a69f6b4526f6ad18c1279af9f3267835cca2943f37bc07d"
+     }
+    ]
+   }
+  },
+  {
+   "id": "rustls-platform-verifier-0.7.0",
+   "path": "app/packaging/supplier_notices/crates/manifests/rustls-platform-verifier-0.7.0.Cargo.toml",
+   "size_bytes": 3499,
+   "sha256": "3032a2b58429a8786207a229216b5ea0cdf04a33f5f545660b83218f3322d1b0",
+   "git_blob_sha1": "12b2b6bee42c24f6d31d7d78fdf485f6727451ef",
+   "binding": "the Cargo.toml member of the archive whose SHA-256 equals the lockfile checksum, read on 2026-11-18 through crate_notices header checks with no other member read; crates.py verify-manifests rechecks it against a held archive",
+   "declared_license": "MIT OR Apache-2.0 (as the manifest's package.license gives it)",
+   "source": {
+    "kind": "registry-archive-member",
+    "name": "rustls-platform-verifier",
+    "version": "0.7.0",
+    "checksum": "26d1e2536ce4f35f4846aa13bff16bd0ff40157cdb14cc056c7b14ba41233ba0",
+    "member": "Cargo.toml"
+   },
+   "notice": {
+    "crate_row": "rustls-platform-verifier 0.7.0",
+    "texts": [
+     {
+      "member": "LICENSE-APACHE",
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+     },
+     {
+      "member": "LICENSE-MIT",
+      "sha256": "1c7cf76689c837a68ed8d704994e52a0f2940c087958f860d17f3186afbdcc0c"
+     }
+    ]
+   }
+  },
+  {
+   "id": "winapi-0.3.9",
+   "path": "app/packaging/supplier_notices/crates/manifests/winapi-0.3.9.Cargo.toml",
+   "size_bytes": 7144,
+   "sha256": "d25b7c71c515a1869c75b3ff957bf845386bec03bcb407532e3726919f0b36c7",
+   "git_blob_sha1": "beeaf338567547fefa05df1ecbd61f8c60eb856c",
+   "binding": "the Cargo.toml member of the archive whose SHA-256 equals the lockfile checksum, read on 2026-11-18 through crate_notices header checks with no other member read; crates.py verify-manifests rechecks it against a held archive",
+   "declared_license": "MIT/Apache-2.0 (as the manifest's package.license gives it)",
+   "source": {
+    "kind": "registry-archive-member",
+    "name": "winapi",
+    "version": "0.3.9",
+    "checksum": "5c839a674fcd7a98952e593242ea400abe93992746761e38641405d28b00f419",
+    "member": "Cargo.toml"
+   },
+   "notice": {
+    "crate_row": "winapi 0.3.9",
+    "texts": [
+     {
+      "member": "LICENSE-APACHE",
+      "sha256": "b40930bbcf80744c86c46a12bc9da056641d722716c378f5659b9e555ef833e1"
+     },
+     {
+      "member": "LICENSE-MIT",
+      "sha256": "ce7bc3499fee93d5022ef430d5e4201e79a6d9154f3974e42f41349f0569e09b"
+     }
+    ]
+   }
+  },
+  {
+   "id": "codex-rs/linux-sandbox/Cargo.toml",
+   "path": "app/packaging/supplier_notices/crates/manifests/codex-rs.linux-sandbox.Cargo.toml",
+   "size_bytes": 1484,
+   "sha256": "cc1f31077f38fb354a6b88eddd8d835d8e4fe245c9ccb39b8998c9e7b44946d9",
+   "git_blob_sha1": "b3b20cc7c1378df58336fcae62d2a2a7e6766d1e",
+   "binding": "read on 2026-11-17 as a pinned raw file at the full commit; its blob and size equal the entry in the recursive codex-rs listing at d32063f9 (tree 8b2cf5d2, read from the GitHub API on 2026-11-16, response SHA-256 18adf883c2ee6dedf793fba4b4dfa08c62fde52dede2c6737d8c0b7d5fe1be18), the listing that binds the lockfile",
+   "declared_license": "license.workspace = true (inherited from the codex-rs workspace manifest, which is not held); the repository's root LICENSE is the Apache License, Version 2.0",
+   "source": {
+    "kind": "workspace-file",
+    "repository": "https://github.com/openai/codex",
+    "revision": "d32063f96c2dff1dc96af839b3952abb6acfeda4",
+    "source_path": "codex-rs/linux-sandbox/Cargo.toml"
+   },
+   "notice": {
+    "workspace_texts": [
+     "app/packaging/supplier_notices/codex/LICENSE",
+     "app/packaging/supplier_notices/codex/NOTICE"
+    ]
+   }
+  },
+  {
+   "id": "codex-rs/tui/Cargo.toml",
+   "path": "app/packaging/supplier_notices/crates/manifests/codex-rs.tui.Cargo.toml",
+   "size_bytes": 6998,
+   "sha256": "eabdbe5cd7f5b9691d6e3d62b7c2e00a0d919b54d9a881077c6f0f89128c4417",
+   "git_blob_sha1": "6e5c58f6a07af566f308a7b4e4cbce3bf3719c44",
+   "binding": "read on 2026-11-17 as a pinned raw file at the full commit; its blob and size equal the entry in the recursive codex-rs listing at d32063f9 (tree 8b2cf5d2, read from the GitHub API on 2026-11-16, response SHA-256 18adf883c2ee6dedf793fba4b4dfa08c62fde52dede2c6737d8c0b7d5fe1be18), the listing that binds the lockfile",
+   "declared_license": "license.workspace = true (inherited from the codex-rs workspace manifest, which is not held); the repository's root LICENSE is the Apache License, Version 2.0",
+   "source": {
+    "kind": "workspace-file",
+    "repository": "https://github.com/openai/codex",
+    "revision": "d32063f96c2dff1dc96af839b3952abb6acfeda4",
+    "source_path": "codex-rs/tui/Cargo.toml"
+   },
+   "notice": {
+    "workspace_texts": [
+     "app/packaging/supplier_notices/codex/LICENSE",
+     "app/packaging/supplier_notices/codex/NOTICE"
+    ]
+   }
   }
  ]
 }

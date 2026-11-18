@@ -12,7 +12,11 @@ distribution archive: `codex-resources/voice/sources.json` (each library's versi
   and every digest it lists equals that member's digest in the record;
 - every voice row (a component with texts inside the supplier tree) is established by exactly one native-library entry of
   sources.json with its URL and version, every native-library entry establishes exactly one row, and each row's members
-  and texts are files the manifest lists. A repeated or conflicting entry refuses; nothing is collapsed.
+  and texts are files the manifest lists. A repeated or conflicting entry, or two rows for one entry, refuses; nothing is
+  collapsed.
+
+Neither record states which licence file belongs to which library, so which tree text is a voice row's notice is the
+curated, reviewed association in components.json; it is not checked here.
 
 These are the supplier's statements about its own bundle; the libraries' contents are not inspected, and no source
 archive is read. `coverage.py --vendor DIR` applies the same comparison to an extracted tree's two files.
@@ -66,6 +70,10 @@ def parse_sources(raw):
     for entry in value['bundled_sources']:
         require(isinstance(entry, dict) and set(entry) == {'name', 'included_by', 'revision', 'path', 'provenance'}
                 and all(text(entry[k]) for k in entry), 'sources.json has an unsupported bundled source entry')
+    for field, entries in (('name', value['sources']), ('url', value['sources']), ('name', value['bundled_sources'])):
+        values = [e[field] for e in entries]
+        require(len(values) == len(set(values)), 'sources.json repeats an entry ' + field + ': '
+                + ', '.join(sorted({v for v in values if values.count(v) > 1})))
     return value
 
 
@@ -98,16 +106,18 @@ def compare(sources_raw, manifest_raw, pin, record, rows):
         values = [e[field] for e in native]
         require(len(values) == len(set(values)), 'sources.json names one native library ' + field + ' twice')
     established = {}
-    used = set()
+    used = {}
     for row in rows:
         matches = [e for e in native if e['url'] == row['repository']]
         require(len(matches) == 1, 'no single native-library entry of sources.json states the source of ' + row['id'])
         entry = matches[0]
         require(entry['version'] == row['version'], f'sources.json states {entry["name"]} {entry["version"]}, the table '
                 f'{row["id"]} {row["version"]}')
+        require(entry['name'] not in used, f'one native-library entry of sources.json ({entry["name"]}) would establish two voice '
+                f'rows: {used.get(entry["name"])} and {row["id"]}')
         listed = [m for m in row['members'] + row['supplier_tree_texts'] if m not in manifest['sha256']]
         require(not listed, 'a voice row names files the supplier manifest does not list: ' + ', '.join(listed))
-        used.add(entry['name'])
+        used[entry['name']] = row['id']
         established[row['id']] = {'version': entry['version'], 'url': entry['url'], 'sources_entry': entry['name']}
     unused = sorted(e['name'] for e in native if e['name'] not in used)
     require(not unused, 'sources.json names native libraries no voice row accounts for: ' + ', '.join(unused))
