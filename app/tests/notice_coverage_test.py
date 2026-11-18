@@ -272,6 +272,18 @@ class Account(Builds):
                 for path in executables:
                     self.assertIn('Dependencies compiled into ' + path, open_names)
 
+    def test_empty_workspace_texts_cannot_leave_ripgrep_covered(self):
+        crates = texts.supplier_crates
+        row = next(c for c in self.build()['components'] if c.get('id') == 'ripgrep-crate-dependencies')
+        self.assertEqual(row['standing'], coverage.COVERED)
+        self.edit(crates.ASSOCIATIONS,
+                  lambda v: next(w for w in v['workspaces'] if w['lock'] == 'ripgrep').update(texts=[]))
+        # Even after the curated binding is updated, neither regeneration nor the gate accepts a textless package.
+        for operation in (crates.packages, crates.check, coverage.build):
+            with self.subTest(operation=operation.__name__):
+                with self.assertRaisesRegex(ValueError, 'must have at least one text'):
+                    operation(self.repo)
+
     # Round 2 finding 2, with the rule the 0.169.0 crate group adds: a compiled-dependencies row is covered only when every
     # package its associated lockfile locks has its text; no table entry makes it covered.
     def test_compiled_dependency_rows_are_covered_only_by_their_crate_group(self):

@@ -92,6 +92,23 @@ def test_pax_and_long_names_are_followed():
         assert [n['size_bytes'] for n in entry['notices']] == [13]
 
 
+@pytest.mark.parametrize('size', ['-1', '+1', ' 1', '1.0'])
+def test_invalid_pax_size_refuses_before_non_notice_payload_is_read(size):
+    buffer = io.BytesIO()
+    with tarfile.open(fileobj=buffer, mode='w', format=tarfile.PAX_FORMAT) as tar:
+        info = tarfile.TarInfo('demo-1.0.0/LICENSE')
+        info.pax_headers = {'size': size}
+        tar.addfile(info, io.BytesIO(b''))
+        info = tarfile.TarInfo('demo-1.0.0/src/lib.rs')
+        info.size = len(SENTINEL)
+        tar.addfile(info, io.BytesIO(SENTINEL))
+    raw = gzip.compress(buffer.getvalue(), mtime=0)
+    Recording.handed = []
+    with pytest.raises(cn.Refused, match='pax size must be a nonnegative decimal'):
+        cn.index_entry(raw, PACKAGE, hashlib.sha256(raw).hexdigest(), opener=Recording)
+    assert SENTINEL not in b''.join(Recording.handed)
+
+
 def test_checksum_is_verified_before_the_archive_is_opened(monkeypatch):
     raw = crate(ordinary())
     opened = []
@@ -190,6 +207,17 @@ def test_lockfile_drift_refuses(repo):
     lock.write_bytes(lock.read_bytes().replace(b'name = "zstd"', b'name = "zstdx"', 1))
     with pytest.raises(ValueError, match='lockfile differs'):
         crates.check(repo)
+
+
+@pytest.mark.parametrize('source', ['workspaces', 'app_texts'])
+def test_empty_text_associations_refuse_before_account_generation(repo, source):
+    def empty(v):
+        entry = next(w for w in v[source] if w['lock'] == 'ripgrep') if source == 'workspaces' else v[source][0]
+        entry['texts'] = []
+    edit(repo, crates.ASSOCIATIONS, empty)
+    for operation in (crates.check, crates.packages):
+        with pytest.raises(ValueError, match='must have at least one text'):
+            operation(repo)
 
 
 def test_a_missing_or_extra_index_row_refuses(repo):

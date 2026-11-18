@@ -106,6 +106,7 @@ def _walk(stream):
         require(stored in (unsigned, signed), 'header checksum differs')
         offset += BLOCK
         size = _number(header[124:136])
+        require(size >= 0, 'negative member size')
         padded = (size + BLOCK - 1) // BLOCK * BLOCK
         flag = header[156:157]
         if flag in (b'L', b'x'):
@@ -133,6 +134,8 @@ def _walk(stream):
         if 'path' in pax:
             name = pax['path']
         if 'size' in pax:
+            require(re.fullmatch(r'[0-9]+', pax['size']) is not None,
+                    'pax size must be a nonnegative decimal')
             size = int(pax['size'])
             padded = (size + BLOCK - 1) // BLOCK * BLOCK
         yield name, kind, size, offset

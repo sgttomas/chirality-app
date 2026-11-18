@@ -230,6 +230,8 @@ def entries(repo):
                 row.update(repository=workspace['repository'], revision=workspace['revision'],
                            texts=[{'file': t['path'], 'sha256': t['sha256'], 'size_bytes': t['size_bytes']} for t in workspace['texts']],
                            standing='text', basis=workspace['basis'])
+            require(row['standing'] not in ('text', 'held') or row['texts'],
+                    'a text or held package must have at least one text: ' + name + ' ' + version)
             rows.append(row)
     require(used_app == set(reused), 'an App-text association names no locked package without archive notices: '
             + str(sorted(set(reused) - used_app)))
