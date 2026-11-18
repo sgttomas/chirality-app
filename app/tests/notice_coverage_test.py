@@ -262,15 +262,24 @@ class Account(Builds):
     def test_deleting_compiled_dependency_rows_leaves_every_executable_uncovered(self):
         executables = texts.executables(texts.supplier_record(self.repo)[2])
         self.assertEqual(len(executables), 5)
+        # Deleted, or kept but no longer marked as compiled dependencies, while a lockfile association still names them:
+        # refused (review round 3, finding 3), rather than covered by another route.
         for change in (lambda v: v.update(components=[c for c in v['components'] if c.get('kind') != coverage.COMPILED]),
                        lambda v: [c.pop('kind') and c.update(standing='uncovered', reason='INVENTED', would_close='INVENTED')
                                   for c in v['components'] if c.get('kind') == coverage.COMPILED]):
             with self.subTest(change=change):
-                # Deleted, or kept but no longer marked as compiled dependencies: every executable still gets an uncovered row.
                 self.setUp(); self.edit(TABLE, change)
-                open_names = {o['name'] for o in self.build()['open']}
-                for path in executables:
-                    self.assertIn('Dependencies compiled into ' + path, open_names)
+                with self.assertRaisesRegex(ValueError, 'names a component that is not a compiled-dependencies row'):
+                    self.build()
+        # An executable moved to a row that is not compiled dependencies still gets its own uncovered row.
+        def move(v):
+            row = next(c for c in v['components'] if c['id'] == 'codex-crate-dependencies')
+            row['members'].remove('bin/codex-exec-server')
+            next(c for c in v['components'] if c['id'] == 'codex')['members'].append('bin/codex-exec-server')
+        with self.subTest(change='moved'):
+            self.setUp(); self.edit(TABLE, move)
+            open_names = {o['name'] for o in self.build()['open']}
+            self.assertIn('Dependencies compiled into bin/codex-exec-server', open_names)
 
     def test_empty_workspace_texts_cannot_leave_ripgrep_covered(self):
         crates = texts.supplier_crates
