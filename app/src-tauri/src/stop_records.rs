@@ -462,13 +462,6 @@ pub(crate) struct LedgerIndex {
     /// The App sessions with a start record among the held entries: the ones
     /// whose end a later session start established or found recorded.
     started: std::collections::BTreeSet<String>,
-    /// Each App session's start record: the session it followed on this
-    /// ledger (`previousSession`) and how that session's end was recorded
-    /// (`previousSessionEnd`), each as the start record holds it.
-    starts: std::collections::BTreeMap<String, (Option<String>, Option<String>)>,
-    /// Each App session's last end record: how it ended (`how`) and, for a
-    /// quit, the stop requests that quit names.
-    ends: std::collections::BTreeMap<String, (Option<String>, Vec<String>)>,
 }
 impl LedgerIndex {
     /// `held`: the ledger's held entries ([`crate::recovery::LedgerObservation`]).
@@ -495,12 +488,6 @@ impl LedgerIndex {
         self.seen = rows.len();
         self.last = rows.last().map(|e| (*e).clone());
         self.started = started;
-        let owned = |v: &Value| v.as_str().map(str::to_owned);
-        self.starts = held.iter().filter(|e| e["kind"] == "session_started")
-            .filter_map(|e| Some((owned(&e["session"])?, (owned(&e["previousSession"]), owned(&e["previousSessionEnd"]))))).collect();
-        self.ends = held.iter().filter(|e| e["kind"] == "session_ended")
-            .filter_map(|e| Some((owned(&e["session"])?, (owned(&e["how"]),
-                e["stopRequests"].as_array().into_iter().flatten().filter_map(|r| owned(&r["stopRequestId"])).collect())))).collect();
     }
     /// Every recorded stop request for one turn of one generation, each by its
     /// latest record and its last ledger entry, in request order (SR-09 after
@@ -562,13 +549,7 @@ pub(crate) fn outcomes_indexed(index: &LedgerIndex, live: &[(Value, String)], cu
             "response":record["response"],"waitingEnded":record["waitingEnded"],"label":label,"labelDerived":derived,"reading":reading,"codexReported":reported,
             "persistence":persistence})
     }).collect();
-    // The session this one followed and how its end was recorded, from this
-    // session's own start record; and, where that session's end record is a
-    // quit, the stop requests the quit names. Nothing is inferred where a
-    // record is absent: each value is then null.
-    let (previous, previous_end) = index.starts.get(current).cloned().unwrap_or_default();
-    let quit_stops = previous.as_ref().and_then(|p| index.ends.get(p)).filter(|(how, _)| how.as_deref() == Some("quit")).map(|(_, ids)| ids.clone());
-    json!({"records":rows,"limits":limits,"previousSession":previous,"previousSessionEnd":previous_end,"previousSessionQuitStops":quit_stops,
+    json!({"records":rows,"limits":limits,
         "standing":"App-observed stop requests (REC SR). A label comes from the turn's observed end or from the App's own record, never from an interrupt acknowledgment. Items and delegated agents at the outcome are not recorded by this App. Codex's own status for a turn is read from its history separately."})
 }
 

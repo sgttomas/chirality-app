@@ -482,20 +482,6 @@ implemented behavior and qualification limits.
     up to the stop wait limit for those turns to end, exits, stops each home's
     Codex and writes `session_ended` *quit* with each quit stop request's
     state. A relaunch reads *quit-with-live-work* and "interrupted by quit".
-    On relaunch, the App reads its own start record for the previous
-    recorded session on this App ledger. If that session has quit
-    stop-request rows, a notice appears in the workspace and at the start of
-    the History browser without a separate read requested by the person. A
-    recorded quit identifies the stop requests its end names. Other retained
-    requests are identified as outside that list. When the previous session
-    recorded quit stop requests and ended another way, the notice gives the
-    recorded end or says that the end was not recorded. It counts writes to
-    Codex and lists eligible labelled rows under conversations in a bound
-    History home. Other homes are counted in aggregate. The notice can
-    identify a conversation from the App record before Codex has supplied it
-    in the received list. Hide dismisses the workspace notice until the
-    renderer reloads. History retains its own notice.
-
     History shows the selected conversation's App stop requests where its
     home is established. A labelled row gives the status Codex reported when
     available, including interrupted, completed or failed. If a labelled row

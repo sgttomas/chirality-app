@@ -1,4 +1,3 @@
-import type { ReactNode } from "react";
 import { AgentText, SuppliedId, Word } from "./AgentText";
 import { TURN_STATUS } from "./nativeWords";
 
@@ -208,7 +207,6 @@ function RowOutcome({ row }: { row: Json }) {
     {" "}App label: <b><Word value={row.label} words={STOP_LABELS} label="Recorded:" name={RECORDED.label} /></b>{row.labelDerived ? " (derived; not written)" : ""}.</>;
 }
 
-const count = (n: number, one: string, many: string) => (n === 1 ? `1 ${one}` : `${n} ${many}`);
 const BOUNDS = "An interrupted turn is not a workflow run's end. An interrupt request does not answer a Codex request. Nothing here says what became of agents the conversation delegated work to.";
 const ABSENCE = "The App's reading of stop records has limits. See Recorded stop requests under Codex process. A turn with no record here is not shown to have run to its end.";
 
@@ -231,70 +229,5 @@ export function ConversationStops({ records, limited, onContinue, canContinue }:
     <p><small>Read turns asks Codex for a page of stored turns. {BOUNDS}</small></p>
     {limited && <p><small>{ABSENCE}</small></p>}
     {offer && <p><button disabled={!canContinue} onClick={onContinue}>Continue this conversation</button> <small>Continue asks Codex to reopen this conversation. It opens after a matching resume is confirmed. Continue sends no conversation message.</small></p>}
-  </div>;
-}
-
-/** The quit stop requests of the App session this one followed, from the
- *  host's `previousSession`. None when the host names no previous session. */
-export function previousQuitRecords(requests: Json): Json[] {
-  const previous = requests?.previousSession;
-  if (typeof previous !== "string" || !previous) return [];
-  return list(requests?.records).filter((r: Json) => r?.cause === "quit" && r?.earlierSession === true && r?.appSession === previous);
-}
-
-/** How the previous session's end is recorded, where the notice does not
- *  speak of a quit: `held` is the quit's request list where it is held. */
-function endWords(end: unknown, held: Json[] | null): string {
-  if (end === "quit-with-live-work" || end === "clean") {
-    return held ? "That session's recorded quit names none of these requests." : "The App recorded the session's end as a quit. The held records do not supply its request list.";
-  }
-  if (end === "system-terminated") return "That session's end is recorded as ended by the system.";
-  if (end === "ended-without-record") return "That session's end was not recorded.";
-  return "How that session ended is not recorded here.";
-}
-
-/** The previous App session's quit stop requests, said without a press. A
- *  quit is spoken of only where that session's recorded end is the quit and
- *  only for the requests its end record names. Rows of the bound History home
- *  (`home`) are listed by conversation where they carry a label; rows
- *  elsewhere are counted only. `name` shows a conversation; `received` says
- *  whether the bound received list holds it. Selection is History's own. */
-export function PreviousQuitNotice({ requests, home, name, received, inHistory, open, hide }: {
-  requests: Json; home: string | undefined; name: (threadId: string) => ReactNode; received: (threadId: string) => boolean;
-  inHistory?: boolean; open?: ReactNode; hide?: () => void;
-}) {
-  const all = previousQuitRecords(requests);
-  if (!all.length) return null;
-  const held = Array.isArray(requests?.previousSessionQuitStops) ? list(requests.previousSessionQuitStops) : null;
-  const quitEnd = ["quit-with-live-work", "clean"].includes(requests?.previousSessionEnd);
-  const named = quitEnd && held ? all.filter((r: Json) => held.includes(r.stopRequestId)) : [];
-  const quit = named.length > 0;
-  const shown = quit ? named : all;
-  const inHome = (r: Json) => !!home && r.home === home;
-  const here = shown.filter(inHome);
-  const elsewhere = home ? shown.length - here.length : 0;
-  const listed = here.filter(continueEligible);
-  const unconfirmed = here.filter((r: Json) => !listed.includes(r) && r.send !== "sent").length;
-  const written = here.filter((r: Json) => r.send === "sent").length;
-  const absent = quit ? all.filter((r: Json) => !named.includes(r) && inHome(r)).length : 0;
-  const threads: string[] = [];
-  for (const r of listed) if (!threads.includes(text(r.threadId))) threads.push(text(r.threadId));
-  return <div role="note" aria-label={quit ? "Stop requests of the App's last quit" : "Stop requests from the previous App session"} style={{ border: "1px solid #bbb", padding: 8, margin: "8px 0" }}>
-    <p><b>{quit ? "The App quit. Its end record names stop requests for turns the App had observed live." : "The previous App session recorded quit stop requests."}</b>
-      {quit ? "" : ` ${endWords(requests?.previousSessionEnd, held)}`}
-      {home ? ` ${quit ? "For that quit, " : "In this Codex home, "}${written === 0 ? "no interrupt request is recorded as written to Codex" : `${count(written, "interrupt request was", "interrupt requests were")} written to Codex`}${quit ? " in this Codex home" : ""}.` : ""}</p>
-    {threads.length > 0 && <ul>{threads.map(thread => <li key={thread}>{name(thread)}
-      <ul>{listed.filter((r: Json) => text(r.threadId) === thread).map((r: Json) => <li key={text(r.stopRequestId)}>Turn <SuppliedId value={r.turnId} label="Turn:" name={TURN_ID} />: <RowOutcome row={r} /></li>)}</ul>
-      {!received(thread) && <small>This conversation is missing from the received list.</small>}
-    </li>)}</ul>}
-    {unconfirmed > 0 && <p>For {count(unconfirmed, "other stop request", "other stop requests")} in this Codex home, the App has no confirmed write to Codex.</p>}
-    {absent > 0 && <p>{count(absent, "quit stop request", "quit stop requests")} in this Codex home {absent === 1 ? "is" : "are"} absent from the recorded quit's list.</p>}
-    {!home && <p>Which Codex home is in view is not established, so no conversation is listed.</p>}
-    {elsewhere > 0 && <p>{count(elsewhere, "stop request", "stop requests")} {elsewhere === 1 ? "is" : "are"} recorded outside this Codex home.</p>}
-    {inHistory && threads.some(received) && <p>Select an available conversation to inspect its stop requests. Continue is a separate choice.</p>}
-    <p>This notice resumes no conversation and sends no conversation message.</p>
-    {open && <p>{open}</p>}
-    {list(requests?.limits).length > 0 && <p><small>{ABSENCE}</small></p>}
-    {hide && <p><button onClick={hide}>Hide this notice</button> <small>Hidden in this window until it reloads. The History notice is still available.</small></p>}
   </div>;
 }

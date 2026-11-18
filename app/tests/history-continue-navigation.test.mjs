@@ -269,13 +269,12 @@ for(const selectError of [null,'invented stored-conversation selection refusal']
   ui.recover();
  });
 });
-// After a quit with live work and a relaunch (DEL-01-02 REQ-005, AC-006): the previous session's quit is said in the
-// workspace and History, and the stored turn's added offer is the same matched Continue.
+// After a quit with live work and a relaunch (DEL-01-02 REQ-005, AC-006): the selected conversation's stop requests
+// and its stored turn are shown, and the stored turn's added offer is the same matched Continue.
 const quitRow=over=>({stopRequestId:'stop:q',appSession:'earlier',earlierSession:true,sourceSessionEnd:'established',home:'H-acct',generation:'gen',threadId:'stored',turnId:'turn-q',cause:'quit',send:'sent',
  requestedAt:'2026-10-11T09:00:00Z',state:'settled',label:'interrupted by quit',labelDerived:false,reading:'Final status observed when the turn ended.',codexReported:'interrupted',persistence:'recorded in the App ledger',...over});
-const stopRequests=(records,ids=['stop:q'])=>({records:structuredClone(records),limits:[],previousSession:'earlier',previousSessionEnd:'quit-with-live-work',previousSessionQuitStops:ids});
 const stopView=(records)=>(value,resumed)=>{
- value.stopRequests=stopRequests(records());
+ value.stopRequests={records:structuredClone(records()),limits:[]};
  // The routing entry holds the account home's generation, so stored pages of that generation are this home's.
  for(const entry of value.homeRouting.entries)if(entry.modeHomeClass==='account')entry.generation=structuredClone(g);
  const selected=value.nativeHistory?.selected;
@@ -284,8 +283,6 @@ const stopView=(records)=>(value,resumed)=>{
   selected.streamResolutions={...selected.streamResolutions,'turn-pages':{query:{factory_id:9,query_id:9,home:g.home,generation:structuredClone(g),method:'thread/turns/list',params:{threadId:'stored',sortDirection:'desc'}},revision:1,outcome:'native-result-observed'}};
  }
 };
-const NOTICE='Stop requests of the App\'s last quit';
-const notices=c=>c.querySelectorAll(e=>e.getAttribute('aria-label')===NOTICE);
 const turnPage=c=>c.querySelectorAll(e=>e.getAttribute('aria-label')==='Stored native turn page')[0];
 test('the stored turn\'s added Continue is the same matched resume, pressed once',async()=>{
  await mounted({view:stopView(()=>[quitRow()])},async ui=>{
@@ -301,72 +298,4 @@ test('the stored turn\'s added Continue is the same matched resume, pressed once
   await React.act(async()=>{ui.track(props(offer).onClick());});
   assert.equal(ui.selected(),key('stored'));assert.ok(ui.context());
  });
-});
-
-// A cold launch: no selection and no read by the person. The workspace notice is visible; History's is in its own view.
-test('a cold launch shows the workspace notice with no selection or read; History keeps its own; hiding holds across a status and a home change',async()=>{
- const c=document.createElement('div');document.body.appendChild(c);const root=createRoot(c);
- const timers=new Map(),calls=[];let timer=0,active='account';
- let records=[quitRow(),quitRow({stopRequestId:'stop:gone',threadId:'gone',turnId:'turn-g'})];
- const keyGeneration={...g,home:'other-home'};
- const snapshot=()=>{
-  const account={state:'ready',generation:structuredClone(g),threads:[],roleLimits:{account:{roles:[]}},
-   nativeHistory:{state:'history-receiving',home:g.home,generation:structuredClone(g),selectionEpoch:0,threads:[{native:native()}],dispatches:[]}};
-  const keyHome={state:'ready',generation:structuredClone(keyGeneration),threads:[],
-   nativeHistory:{state:'history-receiving',home:'other-home',generation:structuredClone(keyGeneration),selectionEpoch:0,selected:null,threads:[],dispatches:[]}};
-  return {...(active==='account'?account:keyHome),stopRequests:stopRequests(records,['stop:q','stop:gone']),
-   homeRouting:{activeModeHomeClass:active,entries:[{modeHomeClass:'account',generation:structuredClone(g)},{modeHomeClass:'api-key',generation:structuredClone(keyGeneration)}]}};
- };
- const previous={getElementById:document.getElementById,setInterval:globalThis.setInterval,clearInterval:globalThis.clearInterval};
- document.getElementById=id=>c.querySelectorAll(n=>n.getAttribute('id')===id)[0]??null;
- globalThis.setInterval=(fn,ms)=>{const id=++timer;timers.set(id,{fn,ms});return id;};globalThis.clearInterval=id=>timers.delete(id);
- const idle=installIdleNativeWaiting(async command=>{
-  calls.push(command);
-  if(command==='host_status')return snapshot();
-  if(command==='decision_view')return {rows:[]};
-  if(command==='native_confirmation_content'||command==='request_answer_companions')return [];
-  throw Error(`Unexpected IPC: ${command}`);
- });
- const poll=async()=>React.act(async()=>{const p=[...timers.values()].find(p=>p.fn.toString().includes('host_status'));assert.ok(p);p.fn();});
- const viewOf=node=>{for(let n=node;n;n=n.parentNode){if(n.getAttribute?.('data-workspace-view'))return n;}return null;};
- const shown=node=>{for(let n=node;n;n=n.parentNode){if(n.hidden||n.getAttribute?.('hidden')!=null)return false;}return true;};
- const historyCopy=()=>notices(c).find(n=>viewOf(n)?.getAttribute('data-workspace-view')==='history');
- const workspaceCopy=()=>notices(c).find(n=>!viewOf(n));
- try{
-  await React.act(async()=>root.render(React.createElement(App)));
-  const workspace=workspaceCopy();
-  assert.ok(workspace&&shown(workspace),'the workspace notice is visible at launch');
-  assert.ok(historyCopy()&&!shown(historyCopy()),'History\'s copy is in its own, unshown view');
-  assert.match(workspace.textContent,/The App quit\. Its end record names stop requests for turns the App had observed live\. For that quit, 2 interrupt requests were written to Codex in this Codex home\./);
-  assert.match(workspace.textContent,/fixture.*stored.*Turn turn-q: The App recorded a quit stop request for this turn\. Codex reported it interrupted\./);
-  // The conversation not in the received list is said to be missing, in the workspace copy as in History's.
-  for(const copy of [workspace,historyCopy()])assert.equal(copy.textContent.split('This conversation is missing from the received list.').length-1,1);
-  assert.ok(!workspace.textContent.includes('Select an available conversation'),'the workspace copy gives only its link');
-  assert.ok(calls.every(command=>['host_status','decision_view','native_confirmation_content','request_answer_companions'].includes(command)),'no selection and no read');
-  assert.equal(elements(workspace,'button').filter(b=>b.textContent!=='Hide this notice').length,0,'no Select control');
-  // Its link reveals History, whose own copy then shows, with its direction.
-  const link=elements(workspace,'a').find(a=>a.textContent==='Open History.');
-  const main=c.querySelectorAll(n=>n.localName==='main')[0];
-  await React.act(async()=>props(main).onClick({target:link,currentTarget:main,preventDefault:()=>{}}));
-  assert.ok(shown(historyCopy()),'History\'s copy is shown once History is');
-  assert.match(historyCopy().textContent,/Select an available conversation to inspect its stop requests\. Continue is a separate choice\./);
-  // Hide: the workspace copy goes, History's stays.
-  await React.act(async()=>{props(button(c,'Hide this notice')).onClick();});
-  assert.equal(workspaceCopy(),undefined);assert.ok(historyCopy());
-  // A named row's status changes: still hidden; History shows the change.
-  records=[quitRow({state:'outcome-unknown',label:'interrupted by quit (final status not observed)',codexReported:null}),records[1]];await poll();
-  assert.equal(workspaceCopy(),undefined,'still hidden after a record change');
-  assert.match(historyCopy().textContent,/Turn turn-q: The App recorded a quit stop request for this turn\. The final outcome is unknown to the App\./);
-  // Another home: still hidden; that home's History counts the rows outside it.
-  active='api-key';await poll();
-  assert.equal(workspaceCopy(),undefined,'still hidden in the other home');
-  assert.match(historyCopy().textContent,/2 stop requests are recorded outside this Codex home\./);
-  active='account';await poll();
-  assert.equal(workspaceCopy(),undefined,'still hidden on return');
-  assert.ok(calls.every(command=>['host_status','decision_view','native_confirmation_content','request_answer_companions'].includes(command)),'still no selection and no read');
-  idle.assertClean(c);
- }finally{
-  const text=c.textContent;await React.act(()=>root.unmount());document.body.removeChild(c);idle.restore(text);
-  Object.assign(globalThis,{setInterval:previous.setInterval,clearInterval:previous.clearInterval});document.getElementById=previous.getElementById;
- }
 });

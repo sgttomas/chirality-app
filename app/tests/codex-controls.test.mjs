@@ -8,7 +8,7 @@ import {localRequire} from './support/load-src.mjs';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 const load=name=>{const url=new URL(`../src/${name}`,import.meta.url);const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}});const exports={};new Function('require','exports',compiled.outputText)(localRequire(createRequire(url)),exports);return exports;};
-const {CodexProcessControls,StopOutcome,stopLabel,StopRequests,appHome,ConversationStops,PreviousQuitNotice,previousQuitRecords,stopRequestsFor,storedStopLabel,homeOfGeneration,historyHome,reportedFinal,continueEligible}=load('CodexControls.tsx');
+const {CodexProcessControls,StopOutcome,stopLabel,StopRequests,appHome,ConversationStops,stopRequestsFor,storedStopLabel,homeOfGeneration,historyHome,reportedFinal,continueEligible}=load('CodexControls.tsx');
 const {StopLabel}=load('NativeActivity.tsx');
 const g={appSession:'s',home:'h',spawnCounter:1};
 const outcome={action:'Stop Codex',state:'stopped',confirmedAt:'2026-10-10T00:00:00Z',modeHomeClass:'account',generation:g,
@@ -139,9 +139,6 @@ const quitRows=()=>[
   old({stopRequestId:'stop:qx',appSession:'other',earlierSession:false,sourceSessionEnd:'not-established',turnId:'tqx',requestedAt:'2026-10-12T09:00:00Z',state:'sent',label:null,
     reading:'Recorded by another App session whose end is not established. No final status is recorded for this turn, and no label is derived.',codexReported:null}),
 ];
-const quitEnded={previousSession:'old',previousSessionEnd:'quit-with-live-work',previousSessionQuitStops:['stop:q1','stop:q2','stop:q3','stop:q4','stop:q5']};
-const name=id=>React.createElement('code',null,id);
-const notice=props=>renderToStaticMarkup(React.createElement(PreviousQuitNotice,{name,received:()=>true,...props}));
 
 test('a conversation lists its stop requests by what each record establishes, and offers Continue only on a qualifying row',()=>{
   const requests={records:quitRows(),limits:[]};
@@ -190,75 +187,6 @@ test('an unqualified label with no or another reported status is not called an i
     assert.ok(html.includes(`${words} App label: <b>interrupted by quit</b>.`),html);
     assert.ok(!html.includes('Codex reported it interrupted'));
   }
-});
-
-test('the previous session\'s quit is said only where its recorded end is that quit, for the requests it names',()=>{
-  const requests={records:quitRows(),limits:[],...quitEnded};
-  assert.deepEqual(previousQuitRecords(requests).map(r=>r.stopRequestId),['stop:q1','stop:q2','stop:q3','stop:q4','stop:q5']);
-  assert.deepEqual(previousQuitRecords({...requests,previousSession:undefined}),[],'no previous session named, nothing said');
-  assert.deepEqual(previousQuitRecords({...requests,previousSession:'between'}),[],'an older quit is not said again');
-  const html=notice({requests,home:'H-acct',inHistory:true,received:id=>id==='thread'});
-  const plain=agentPlain(html);
-  assert.ok(html.includes('aria-label="Stop requests of the App&#x27;s last quit"'));
-  assert.ok(html.includes('<b>The App quit. Its end record names stop requests for turns the App had observed live.</b> For that quit, 3 interrupt requests were written to Codex in this Codex home.'),html);
-  assert.ok(!/you quit|with work under way|recorded 2026|Latest request time/.test(html),'no attribution, no state at exit, no timestamp');
-  assert.ok(plain.includes(`Turn <code>tq1</code>: ${QUIT_REPORTED} App label: <b>interrupted by quit</b>.`));
-  assert.ok(plain.includes(`Turn <code>tq2</code>: ${UNKNOWN} App label: <b>interrupted by quit (final status not observed)</b>.`));
-  assert.ok(plain.includes(`Turn <code>tq4</code>: ${UNKNOWN} App label: <b>interrupted by quit (final status not observed)</b> (derived; not written).`));
-  // No Select control: History's own chooser makes the selection.
-  assert.ok(!html.includes('<button'),'no control in the History copy');
-  // A conversation not in the received list is said to be missing, in the History copy.
-  assert.ok(html.indexOf('<code>second</code>')<html.indexOf('This conversation is missing from the received list.'));
-  assert.equal(html.split('This conversation is missing from the received list.').length-1,1,'only the conversation not received');
-  assert.ok(html.includes('For 1 other stop request in this Codex home, the App has no confirmed write to Codex.'));
-  assert.ok(html.includes('1 stop request is recorded outside this Codex home.')&&!html.includes('Connection'),'counted; no direction to another home');
-  assert.ok(!html.includes('ancient')&&!html.includes('tqx'));
-  assert.ok(html.includes('Select an available conversation to inspect its stop requests. Continue is a separate choice.'));
-  assert.ok(html.includes('This notice resumes no conversation and sends no conversation message.')&&!html.includes('until you choose Continue'));
-  // No conversation received: no direction to select one.
-  const none=notice({requests,home:'H-acct',inHistory:true,received:()=>false});
-  assert.equal(none.split('This conversation is missing from the received list.').length-1,2);
-  assert.ok(!none.includes('Select an available conversation'));
-  // The workspace copy: the same received check, a link, Hide.
-  const workspace=notice({requests:{...requests,limits:['x']},home:'H-acct',received:()=>false,open:React.createElement('a',{href:'#workspace-history'},'Open History.'),hide:()=>{}});
-  assert.equal(workspace.split('This conversation is missing from the received list.').length-1,2,'the workspace copy says it too');
-  assert.ok(workspace.includes('<a href="#workspace-history">Open History.</a>')&&!workspace.includes('Select an available conversation'));
-  assert.ok(workspace.includes('Hide this notice</button> <small>Hidden in this window until it reloads. The History notice is still available.</small>'));
-  assert.ok(workspace.includes('The App&#x27;s reading of stop records has limits. See Recorded stop requests under Codex process.'));
-  // Another home only: counted, nothing listed, no direction.
-  const keyed=notice({requests,home:'H-omlx',inHistory:true});
-  assert.ok(keyed.includes('5 stop requests are recorded outside this Codex home.')&&!keyed.includes('Select an available')&&!keyed.includes('<li'),keyed);
-  // The home in view not known: nothing listed, nothing counted.
-  const unknown=notice({requests,home:undefined});
-  assert.ok(unknown.includes('Which Codex home is in view is not established, so no conversation is listed.')&&!unknown.includes('<li')&&!unknown.includes('written to Codex')&&!unknown.includes('outside this Codex home'));
-});
-
-test('a failed quit followed by a system termination or an unrecorded end, and a list that omits rows, are not called that quit',()=>{
-  const records=quitRows();
-  for(const [end,words] of [['system-terminated','That session&#x27;s end is recorded as ended by the system.'],['ended-without-record','That session&#x27;s end was not recorded.']]){
-    const html=notice({requests:{records,limits:[],previousSession:'old',previousSessionEnd:end,previousSessionQuitStops:null},home:'H-acct'});
-    assert.ok(html.includes('aria-label="Stop requests from the previous App session"'));
-    assert.ok(html.includes(`<b>The previous App session recorded quit stop requests.</b> ${words} In this Codex home, 3 interrupt requests were written to Codex.`),html);
-    assert.ok(!/App quit\.|that quit|you quit/.test(html));
-    assert.ok(agentPlain(html).includes(`Turn <code>tq1</code>: ${QUIT_REPORTED}`),'the per-turn facts stay');
-  }
-  // The end record names one request: the others are only absent from its list.
-  const html=notice({requests:{records,limits:[],previousSession:'old',previousSessionEnd:'quit-with-live-work',previousSessionQuitStops:['stop:q4']},home:'H-acct'});
-  assert.ok(html.includes('For that quit, 1 interrupt request was written to Codex in this Codex home.'),html);
-  assert.ok(html.includes('<code>tq4</code>')&&!html.includes('<code>tq1</code>')&&!html.includes('<code>tq2</code>'));
-  assert.ok(html.includes('3 quit stop requests in this Codex home are absent from the recorded quit&#x27;s list.'));
-  assert.ok(!/another quit attempt|not from the quit that ended it/.test(html),'omission is not read as another attempt');
-  // A held quit list that names none of these.
-  const none=notice({requests:{records,limits:[],previousSession:'old',previousSessionEnd:'quit-with-live-work',previousSessionQuitStops:[]},home:'H-acct'});
-  assert.ok(none.includes('The previous App session recorded quit stop requests.</b> That session&#x27;s recorded quit names none of these requests.'),none);
-  // The start says quit, and no list is held.
-  const unheld=notice({requests:{records,limits:[],previousSession:'old',previousSessionEnd:'quit-with-live-work',previousSessionQuitStops:null},home:'H-acct'});
-  assert.ok(unheld.includes('The previous App session recorded quit stop requests.</b> The App recorded the session&#x27;s end as a quit. The held records do not supply its request list.'),unheld);
-  assert.ok(!unheld.includes('names none'));
-  // Only a request never written: no conversation, no interruption words.
-  const unsent=notice({requests:{records:[records[2]],limits:[],previousSession:'old',previousSessionEnd:'ended-without-record',previousSessionQuitStops:null},home:'H-acct',inHistory:true});
-  assert.ok(unsent.includes('no interrupt request is recorded as written to Codex')&&unsent.includes('For 1 other stop request in this Codex home, the App has no confirmed write to Codex.'));
-  assert.ok(!unsent.includes('<li')&&!unsent.includes('Select an available')&&!/interrupted|shows what each record says/.test(unsent),unsent);
 });
 
 test('a stored turn is matched in its own home on both paths; a History source binds a home only where its home and generation agree',()=>{
