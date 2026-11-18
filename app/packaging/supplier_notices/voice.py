@@ -36,6 +36,8 @@ SUPPORTED_TARGET = 'aarch64-apple-darwin'
 # comparison, with its source statement (notices/coverage.py). The voice folder's other files (the voice host, NOTICE.md
 # and the two records) are the supplier's own and belong to its Codex row.
 FOLDERS = ('codex-resources/voice/lib/', 'codex-resources/voice/plugins/', 'codex-resources/voice/licenses/')
+# A voice row's supplier-tree texts are members of the licences folder, and only a voice row names supplier-tree texts.
+LICENCE_FOLDER = 'codex-resources/voice/licenses/'
 
 
 def is_voice(component):
