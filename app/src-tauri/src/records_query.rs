@@ -21,8 +21,10 @@ impl QueryDb {
         let stem = format!("query-{}-{}.sqlite", crate::util::sha256_hex(root.as_os_str().as_encoded_bytes()), crate::util::opaque_id("")?);
         let (store, folder) = cache_folder().map_err(|e| format!("query cache not written ({e}); the record sources are read directly"))?;
         let db = Self::at(&folder.join(&stem)).map_err(|e| format!("query cache not written ({e}); the record sources are read directly"))?;
-        // Created in the store this process bound, and in no folder put in
-        // its place meanwhile: otherwise the file is removed and not used.
+        // Checked again after opening: where the store is no longer the one
+        // this process bound, the file is removed and not used. A folder or
+        // file changed on the path between these separate steps is not
+        // defended against (release limitation LIM-035).
         match crate::records_store::opened_existing() {
             Ok((bound, _)) if bound == store => { let mut db = db; db.store = Some(store); Ok(db) }
             Ok(_) | Err(_) => Err(format!("query cache not written (the records store at {} is no longer the store this App opened); the record sources are read directly", store.display())),

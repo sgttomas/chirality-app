@@ -2187,12 +2187,17 @@ their logs. Cold use rebuilds from authoritative sources, and returned entries
 are reread and revalidated, including their exact line hash. Changed or unusable
 caches rebuild or use source scans. The cache is the one stated exception to a
 read writing nothing: a read may write it under `indexes/` of a store that
-already exists and that the process has bound, never into a folder put in the
-store's place, and never in a temporary folder (SQLite's own temporary
-structures stay in memory). The decision view does not use it. Where the cache
-cannot be written the sources are read directly and the chain report says so.
-The cache is dispensable: deleting `indexes/` at any time changes no answer,
-only how fast it comes. An `indexes/` folder a read creates is created
+already exists and that the process has bound, and never in a temporary folder
+(SQLite's own temporary structures stay in memory). The path is checked before
+the cache file is made and the store's binding is checked again after it is
+opened; later steps reopen or remove the cache by its path, so where another
+account can change the folders or files on that path the remaining risk is
+the one `docs/RELEASE_LIMITATIONS_4.0.0.md` lists as LIM-035. The decision
+view does not use it. Where the cache cannot be written the sources are read
+directly and the chain report says so. The cache is dispensable: a fresh
+index rebuilt from unchanged logs gives the same answers while the cache's
+path stays under the person's control, so deleting `indexes/` changes only
+how fast an answer comes. An `indexes/` folder a read creates is created
 owner-only (mode 0700); one already there is used as found, its mode unchanged.
 Index metadata for ordinary valid entries is per log and directory; diagnostics
 grow with reported limits. Full act projections retain their

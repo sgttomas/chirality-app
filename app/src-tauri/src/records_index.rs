@@ -2,7 +2,7 @@
 //! Identities, positions and cross-run membership sets live on disk; memory
 //! keeps log/directory state and at most two parsed lines while rebuilding.
 //! Each process starts from the logs, using its own disposable database in
-//! the store's `indexes/` directory (or a private temporary cache if the store
+//! the store's `indexes/` directory (or direct source scans if the store
 //! cannot host a cache). No existing database is trusted on cold start.
 //!
 //! Refresh, writer-first-open, 4 KiB growth guard and the full verifier retain
