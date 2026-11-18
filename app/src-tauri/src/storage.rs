@@ -346,7 +346,7 @@ fn flock(path: &Path, operation: libc::c_int, read: bool) -> Result<Option<Owner
     mutation_for_test("write-capable lock acquisition");
     let admission=if read {crate::records_retention::read_path(path)?}else{crate::records_retention::write_path(path)?};
     check_path(path)?;
-    ensure_directory_impl(path.parent().ok_or("lock has no parent")?, None)?;
+    ensure_directory_impl(path.parent().ok_or("lock has no parent")?, false)?;
     let file = OpenOptions::new()
         .read(true)
         .write(true)
@@ -535,20 +535,21 @@ pub fn ensure_directory(path: &Path) -> Result<(), String> {
     #[cfg(test)]
     mutation_for_test("ensure_directory");
     let _admission=crate::records_retention::write_path(path)?;
-    ensure_directory_impl(path, None)
+    ensure_directory_impl(path, false)
 }
 /// As [`ensure_directory`], and `path` itself, when this call creates it, is
-/// created owner-only (0700, under the process's file-creation mask). A
-/// folder already there, also one another creator made meanwhile, is taken
-/// as found: its mode is never changed. Missing folders above it are created
-/// as [`ensure_directory`] creates them.
+/// requested with Unix mode 0700, subject to the file-creation mask (the
+/// records store's folder when the App creates it). A folder already there,
+/// also one another creator made meanwhile, is taken as found: its mode is
+/// never changed. Each missing folder above it is created as
+/// [`ensure_directory`] creates it.
 pub fn ensure_owner_only_directory(path: &Path) -> Result<(), String> {
     #[cfg(test)]
     mutation_for_test("ensure_directory");
     let _admission=crate::records_retention::write_path(path)?;
-    ensure_directory_impl(path, Some(0o700))
+    ensure_directory_impl(path, true)
 }
-fn ensure_directory_impl(path:&Path, mode: Option<u32>)->Result<(),String>{
+fn ensure_directory_impl(path:&Path, owner_only: bool)->Result<(),String>{
     #[cfg(test)]
     mutation_for_test("directory creation");
     check_path(path)?;
@@ -560,20 +561,7 @@ fn ensure_directory_impl(path:&Path, mode: Option<u32>)->Result<(),String>{
             .parent()
             .ok_or("directory has no existing ancestor")?;
     }
-    match (mode, path.parent()) {
-        (Some(mode), Some(parent)) => {
-            use std::os::unix::fs::DirBuilderExt;
-            std::fs::create_dir_all(parent).map_err(|e| format!("owning directory: {e}"))?;
-            // The mode is given at creation, never set afterwards: as
-            // create_dir_all does, an existing folder is accepted as found.
-            match std::fs::DirBuilder::new().mode(mode).create(path) {
-                Ok(()) => {}
-                Err(_) if path.is_dir() => {}
-                Err(e) => return Err(format!("owning directory: {e}")),
-            }
-        }
-        _ => std::fs::create_dir_all(path).map_err(|e| format!("owning directory: {e}"))?,
-    }
+    create_dir_all_with_modes(path, owner_only).map_err(|e| format!("owning directory: {e}"))?;
     for created in &missing {
         sync_dir(created)?;
     }
@@ -581,6 +569,67 @@ fn ensure_directory_impl(path:&Path, mode: Option<u32>)->Result<(),String>{
         sync_dir(ancestor)?;
     }
     Ok(())
+}
+/// The standard library's `create_dir_all` (Rust 1.97.1), step for step: the
+/// path is tried first, the walk goes upward only past `NotFound`, an
+/// `AlreadyExists` is accepted only where a folder is there, any other error
+/// is returned, and the folders not yet made are then made downward under the
+/// same rule. The one difference is the mode each `mkdir` is given: 0700 for
+/// the records store's folder and its `indexes` folder, and for `path` itself
+/// when `owner_only`; otherwise 0777, as the standard library gives. Both are
+/// subject to the file-creation mask; nothing is changed after creation.
+fn create_dir_all_with_modes(path: &Path, owner_only: bool) -> std::io::Result<()> {
+    use std::io::ErrorKind;
+    if path == Path::new("") || path.parent().is_none() {
+        return Ok(());
+    }
+    let mode = |dir: &Path| {
+        if (owner_only && dir == path) || records_store::is_store_folder_or_its_indexes(dir) { 0o700 } else { 0o777 }
+    };
+    let mut uncreated = 0;
+    for ancestor in path.ancestors() {
+        if ancestor == Path::new("") || ancestor.parent().is_none() {
+            break;
+        }
+        match mkdir(ancestor, mode(ancestor)) {
+            Ok(()) => break,
+            Err(e) if e.kind() == ErrorKind::NotFound => uncreated += 1,
+            Err(e) if e.kind() == ErrorKind::AlreadyExists && ancestor.is_dir() => break,
+            Err(e) => return Err(e),
+        }
+    }
+    let uncreated: Vec<&Path> = path.ancestors().take(uncreated).collect();
+    for dir in uncreated.into_iter().rev() {
+        if let Err(e) = mkdir(dir, mode(dir)) {
+            if e.kind() != ErrorKind::AlreadyExists || !dir.is_dir() {
+                return Err(e);
+            }
+        }
+    }
+    Ok(())
+}
+fn mkdir(dir: &Path, mode: u32) -> std::io::Result<()> {
+    use std::os::unix::fs::DirBuilderExt;
+    let real = || std::fs::DirBuilder::new().mode(mode).create(dir);
+    #[cfg(test)]
+    if let Some(mut hook) = MKDIR.with(|h| h.borrow_mut().take()) {
+        let result = hook(dir, mode, &real);
+        // Put back unless the hook replaced itself meanwhile.
+        MKDIR.with(|h| { h.borrow_mut().get_or_insert(hook); });
+        return result;
+    }
+    real()
+}
+/// A test's stand-in for each single-folder creation on this thread: it is
+/// given the folder, the requested mode and the real creation, and its result
+/// is taken as the creation's.
+#[cfg(test)]
+pub(crate) type MkdirHook = Box<dyn FnMut(&Path, u32, &dyn Fn() -> std::io::Result<()>) -> std::io::Result<()>>;
+#[cfg(test)]
+thread_local! { static MKDIR: std::cell::RefCell<Option<MkdirHook>> = const { std::cell::RefCell::new(None) }; }
+#[cfg(test)]
+pub(crate) fn mkdir_for_test(hook: Option<MkdirHook>) {
+    MKDIR.with(|h| *h.borrow_mut() = hook);
 }
 /// Re-establish complete publication durability up through the owning project/library root.
 pub fn sync_publication(path: &Path) -> Result<(), String> {

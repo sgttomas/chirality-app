@@ -1877,8 +1877,8 @@ fn deleting_the_index_cache_changes_no_answer_only_its_speed() {
 }
 
 /// The process's file-creation mask set for one test, and the previous mask
-/// restored on every exit, a failed assertion included. Rust tests run
-/// serially in one process, so no other test sees the changed mask.
+/// restored on every exit, a failed assertion included. Run these tests
+/// serially because the mask is process-wide.
 struct Umask(libc::mode_t);
 impl Umask {
     fn set(mask: libc::mode_t) -> Self {
@@ -1972,6 +1972,205 @@ fn the_indexes_folder_a_read_creates_is_owner_only_and_an_existing_one_is_used_a
     drop(own);
     new_process();
     let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn a_store_folder_removed_before_the_identity_bootstrap_locks_is_made_again_with_mode_0700() {
+    use std::{cell::{Cell, RefCell}, os::fd::AsRawFd, rc::Rc};
+    let base = folder("bootstrap-race-base-");
+    let store = base.join("store");
+    new_process();
+    use_store_not_started_for_test(Some(Ok(Store { root: store.clone(), placement: Placement::Override, limits: vec![] })));
+    let result = {
+        let _mask = Umask::set(0);
+        // Once the App has made the store's folder, its bootstrap lock is held
+        // there, as another opener would hold it.
+        let held = Rc::new(RefCell::new(None::<std::fs::File>));
+        let done = Rc::new(Cell::new(false));
+        let (h, d, target) = (held.clone(), done.clone(), store.clone());
+        storage::mkdir_for_test(Some(Box::new(move |dir, _mode, real| {
+            let made = real();
+            if dir == target && made.is_ok() && !d.replace(true) {
+                let file = std::fs::File::create(dir.join(".store-bootstrap.lock")).unwrap();
+                // SAFETY: flock on a descriptor this closure owns.
+                assert_eq!(unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX) }, 0);
+                *h.borrow_mut() = Some(file);
+            }
+            made
+        })));
+        // The bootstrap finds its lock held: the store's folder is removed,
+        // then the lock released, before the bootstrap takes it.
+        let (h, target) = (held.clone(), store.clone());
+        bootstrap_blocked_for_test(Some(Box::new(move || {
+            std::fs::remove_dir_all(&target).unwrap();
+            h.borrow_mut().take();
+        })));
+        let result = created();
+        storage::mkdir_for_test(None);
+        bootstrap_blocked_for_test(None);
+        assert!(done.get() && held.borrow().is_none(), "the race was staged");
+        result
+    };
+    // The same refusal as before: the folder bound is not the one there now.
+    let refused = result.expect_err("a store folder replaced while it was opened is refused");
+    assert!(refused.contains("changed while it was opened"), "{refused}");
+    assert!(store.is_dir());
+    assert_eq!(mode_of(&store), 0o700, "the folder the bootstrap lock made at the store's path is requested 0700");
+    use_store_for_test(None);
+    new_process();
+    let _ = std::fs::remove_dir_all(base);
+}
+
+#[test]
+fn the_store_folder_made_by_any_storage_route_is_0700_and_the_folders_around_it_are_not() {
+    let base = folder("store-routes-base-");
+    let above = base.join("above");
+    let store = above.join("store");
+    new_process();
+    use_store_for_test(Some(Ok(Store { root: store.clone(), placement: Placement::Override, limits: vec![] })));
+    assert!(OPENED.lock().unwrap().as_ref().is_some_and(|b| b.root == store), "the store is bound");
+    let base_mode = mode_of(&base);
+    {
+        let _mask = Umask::set(0);
+        type Route = Box<dyn Fn() -> Result<(), String>>;
+        let (deeper, indexes, lock, json) = (store.join("deeper/leaf"), store.join("indexes/deeper"), store.join("route.lock"), store.join("route.json"));
+        let routes: Vec<(&str, Route)> = vec![
+            ("an ancestor of a deeper folder", Box::new(move || storage::ensure_directory(&deeper))),
+            ("an ancestor of the indexes folder", Box::new(move || storage::ensure_directory(&indexes))),
+            ("a lock acquisition", Box::new(move || storage::lock(&lock).map(drop))),
+            ("a JSON publication", Box::new(move || storage::create_json(&json, &json!({"route":"json"})))),
+        ];
+        for (route, make) in routes {
+            std::fs::remove_dir_all(&above).unwrap();
+            make().unwrap_or_else(|e| panic!("{route}: {e}"));
+            assert_eq!(mode_of(&store), 0o700, "{route}: the store's folder");
+            assert_eq!(mode_of(&above), 0o777, "{route}: the folder above keeps the ordinary mode");
+            assert_eq!(mode_of(&base), base_mode, "{route}: the folder that was already there keeps its mode");
+        }
+        // The last two routes made only the store's folder; the first two
+        // made folders below it, checked here after making them again.
+        std::fs::remove_dir_all(&above).unwrap();
+        storage::ensure_directory(&store.join("deeper/leaf")).unwrap();
+        storage::ensure_directory(&store.join("indexes/deeper")).unwrap();
+        assert_eq!(mode_of(&store), 0o700);
+        assert_eq!(mode_of(&store.join("deeper")), 0o777, "a folder below keeps the ordinary mode");
+        assert_eq!(mode_of(&store.join("deeper/leaf")), 0o777);
+        assert_eq!(mode_of(&store.join("indexes")), 0o700, "the store's indexes folder");
+        assert_eq!(mode_of(&store.join("indexes/deeper")), 0o777, "a folder below indexes keeps the ordinary mode");
+    }
+    use_store_for_test(None);
+    new_process();
+    let _ = std::fs::remove_dir_all(base);
+}
+
+#[test]
+fn a_lock_outside_the_store_makes_its_missing_folder_with_the_ordinary_mode() {
+    let own = OwnStore::new();
+    let base = folder("outside-lock-");
+    {
+        let _mask = Umask::set(0);
+        drop(storage::lock(&base.join("missing/route.lock")).unwrap());
+        // A folder named `indexes` that is not the store's own is ordinary too.
+        drop(storage::lock(&base.join("indexes/route.lock")).unwrap());
+    }
+    assert_eq!(mode_of(&base.join("missing")), 0o777);
+    assert_eq!(mode_of(&base.join("indexes")), 0o777);
+    drop(own);
+    new_process();
+    let _ = std::fs::remove_dir_all(base);
+}
+
+/// The two creating routes: a folder requested 0700 and an ordinary one.
+type Create = fn(&Path) -> Result<(), String>;
+const CREATION_ROUTES: [(&str, Create); 2] = [
+    ("requested 0700", storage::ensure_owner_only_directory),
+    ("ordinary", storage::ensure_directory),
+];
+
+#[test]
+fn folder_creation_reports_the_errors_the_standard_routine_reports() {
+    use std::io::{Error, ErrorKind};
+    let base = folder("creation-errors-");
+    let attempt = |create: Create, path: &Path, hook: storage::MkdirHook| {
+        storage::mkdir_for_test(Some(hook));
+        let result = create(path);
+        storage::mkdir_for_test(None);
+        result
+    };
+    for (route, create) in CREATION_ROUTES {
+        let at = base.join(route.replace(' ', "-"));
+        std::fs::create_dir(&at).unwrap();
+        // An error other than AlreadyExists is reported, even with a folder there afterwards.
+        let denied = at.join("denied");
+        let target = denied.clone();
+        let error = attempt(create, &denied, Box::new(move |dir, _, real| {
+            if dir != target { return real(); }
+            real()?;
+            Err(Error::from(ErrorKind::PermissionDenied))
+        })).expect_err(&format!("{route}: a permission error on the folder is reported"));
+        assert!(denied.is_dir(), "{route}: a folder is there afterwards");
+        assert!(error.contains("owning directory") && error.contains("permission denied"), "{route}: {error}");
+        // AlreadyExists with a non-folder there is reported, whether it was
+        // there first or appeared during the creation.
+        let file = at.join("a-file");
+        std::fs::write(&file, b"not a folder").unwrap();
+        let error = create(&file).expect_err(&format!("{route}: a file at the path is reported"));
+        assert!(error.contains("owning directory"), "{route}: {error}");
+        let raced = at.join("raced");
+        let target = raced.clone();
+        let error = attempt(create, &raced, Box::new(move |dir, _, real| {
+            if dir != target { return real(); }
+            std::fs::write(dir, b"not a folder")?;
+            Err(Error::from(ErrorKind::AlreadyExists))
+        })).expect_err(&format!("{route}: a file that appeared at the path is reported"));
+        assert!(error.contains("owning directory"), "{route}: {error}");
+        assert_eq!(std::fs::read(&raced).unwrap(), b"not a folder");
+    }
+    let _ = std::fs::remove_dir_all(base);
+}
+
+#[test]
+fn folder_creation_tries_the_folder_first_and_retries_it_once_its_parent_is_made() {
+    use std::{cell::RefCell, rc::Rc};
+    let base = folder("creation-order-");
+    let recording = |seen: &Rc<RefCell<Vec<PathBuf>>>, cleanup: Option<PathBuf>| -> storage::MkdirHook {
+        let (seen, base) = (seen.clone(), base.clone());
+        let mut cleanup = cleanup;
+        Box::new(move |dir, _, real| {
+            if dir.starts_with(&base) { seen.borrow_mut().push(dir.to_path_buf()); }
+            // A concurrent cleanup removes the empty parent once, just
+            // before the first attempt on the folder.
+            if let Some(parent) = cleanup.take_if(|p| dir.parent() == Some(p.as_path())) { std::fs::remove_dir(&parent).unwrap(); }
+            real()
+        })
+    };
+    for (route, create) in CREATION_ROUTES {
+        let at = base.join(route.replace(' ', "-"));
+        std::fs::create_dir(&at).unwrap();
+        // A missing parent: the folder is tried first, the parent made, the folder made.
+        let parent = at.join("parent");
+        let leaf = parent.join("leaf");
+        let seen = Rc::new(RefCell::new(vec![]));
+        storage::mkdir_for_test(Some(recording(&seen, None)));
+        let made = create(&leaf);
+        storage::mkdir_for_test(None);
+        made.unwrap_or_else(|e| panic!("{route}: {e}"));
+        assert_eq!(*seen.borrow(), vec![leaf.clone(), parent.clone(), leaf.clone()], "{route}");
+        assert!(leaf.is_dir());
+        // A parent that was there and is removed before the folder is made:
+        // made again, then the folder.
+        let parent = at.join("cleaned");
+        std::fs::create_dir(&parent).unwrap();
+        let leaf = parent.join("leaf");
+        let seen = Rc::new(RefCell::new(vec![]));
+        storage::mkdir_for_test(Some(recording(&seen, Some(parent.clone()))));
+        let made = create(&leaf);
+        storage::mkdir_for_test(None);
+        made.unwrap_or_else(|e| panic!("{route}: the parent removed meanwhile is made again and the folder retried: {e}"));
+        assert_eq!(*seen.borrow(), vec![leaf.clone(), parent.clone(), leaf.clone()], "{route}");
+        assert!(leaf.is_dir());
+    }
+    let _ = std::fs::remove_dir_all(base);
 }
 
 #[test]

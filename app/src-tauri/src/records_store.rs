@@ -658,8 +658,8 @@ fn open(create: bool) -> Result<(PathBuf, String), String> {
         }
         // Each created folder and its link in the existing parent are synced
         // (ensure_directory), on the folder's physical path. The store's own
-        // folder, when made here, is made owner-only; one already there is
-        // taken as found.
+        // folder, when made here, is requested with Unix mode 0700, subject
+        // to the file-creation mask; one already there is taken as found.
         crate::storage::ensure_owner_only_directory(&resolve_lexically(&store.root)).map_err(|e| format!("records store unavailable: {}: {e}", store.root.display()))?;
     }
 
@@ -730,7 +730,8 @@ fn open(create: bool) -> Result<(PathBuf, String), String> {
 /// The opened store, checked again: the same physical folder (device and
 /// inode) holding the same `store.json` file with the same identity. A folder
 /// put at the store's path in its place, even holding a copy of its identity
-/// file, is refused; nothing is read, written, created or minted there.
+/// file, causes this check to refuse. See LIM-035 for separate cache path
+/// operations.
 fn still_bound(bound: &Bound) -> Result<(PathBuf, String), String> {
     match node(&bound.root) {
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Err("the opened records store folder disappeared; no replacement store or project identity minted".into()),
@@ -789,6 +790,39 @@ pub(crate) fn configured_project_dir(path: &Path) -> Option<PathBuf> {
         if key_text.len()!=64 || !key_text.bytes().all(|b|b.is_ascii_hexdigit()) {return None;}
         Some(projects.join(key))
     })
+}
+
+/// Whether `dir` is the records store's own folder or that store's `indexes`
+/// folder, for the mode storage gives a folder it creates there. Like
+/// [`configured_project_dir`] it never opens, creates or locks the store
+/// (opening here would recurse at bootstrap), and it never takes a test
+/// build's default store (taking it creates it). The store this process bound
+/// is compared in memory, with no system call. Where no store is bound for
+/// the configured one, the configured store's physical path is compared as
+/// [`open`] resolves it, and a store bound earlier still counts.
+pub(crate) fn is_store_folder_or_its_indexes(dir: &Path) -> bool {
+    let is = |root: &Path| dir == root || (dir.parent() == Some(root) && dir.file_name().is_some_and(|n| n == "indexes"));
+    let configured = configured_root();
+    {
+        let bound = OPENED.lock().unwrap_or_else(|p| p.into_inner());
+        if let Some(bound) = bound.as_ref() {
+            if configured.as_deref().is_none_or(|c| c == bound.configured) {
+                return is(&bound.root);
+            }
+            if is(&bound.root) {
+                return true;
+            }
+        }
+    }
+    configured.is_some_and(|c| is(&resolve_lexically(&c)))
+}
+/// The configured store's path as configured, without taking a default.
+fn configured_root() -> Option<PathBuf> {
+    #[cfg(test)]
+    if let Some(store) = TEST_STORE.with(|s| s.borrow().as_ref().map(|s| s.as_ref().ok().map(|s| s.root.clone()))) {
+        return store;
+    }
+    STORE.read().unwrap_or_else(|p| p.into_inner()).as_ref().and_then(|s| s.as_ref().ok()).map(|s| s.root.clone())
 }
 
 /// The store project folder holding `path` (`<store>/projects/<key>`), if any.
