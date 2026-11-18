@@ -2223,17 +2223,25 @@ recorded state serves only the candidate it was recorded on.
   view before and after every act, except after the quit (below). It stops,
   with no further act, where a control's identity or its effect is not clear
   from the App's words; and where a view is not of the allowed page. A view
-  is of the allowed page, as "Running a scenario" states it for a walk, when
-  it says it is of the candidate; at its top it holds the App's one window,
-  titled "Chirality", and the menu bar, and nothing else; directly inside
-  the window it holds only the scroll area, the close, full screen and
-  minimize buttons and the text "Chirality"; and nowhere below the window or
-  inside the menu bar, at any depth, is there a window, sheet, dialog, alert
-  or popover. One kind of alert is allowed, in the supplier's terms: an
-  alert below "HTML content" that holds only words, with nothing a person
-  can operate. The App writes its notices and refusals that way, and it is
-  read as page text. The one view that is not of the allowed page and is not
-  a stop is the confirmation's own view (below). Each launch's first view waits as "The first
+  is of the allowed page when it meets the rule the walk applies
+  (`walk.mjs`, `notThePage` and `modalAt`), which is this. It says it is of
+  the candidate. At its top it holds exactly one element whose words are
+  `standard window Chirality`, alone or followed by a comma and more, and the
+  element `menu bar`, and nothing else. Directly inside that window it holds
+  only these, in these words: `scroll area`; `close button`; `full screen
+  button Help: this button also has an action to zoom the window, Secondary
+  Actions: zoom the window`; `minimize button`; `text Chirality`. Nowhere
+  below the window or inside the menu bar, at any depth, is there an element
+  whose kind is sheet, dialog, alert, system dialog, popover, drawer,
+  standard window, floating window or window. One kind of alert is allowed,
+  in the supplier's terms: an alert below `HTML content` that holds only
+  words: every element inside it is a text that is not a field, a
+  container, a group, a heading, a list marker, a content list, a list or a
+  description list, so that it holds nothing a person can operate. The App
+  writes its notices and refusals that way, and it is read as page text.
+  Anything else unlisted is not the page. The one view that is not of the
+  allowed page and is not a stop is the confirmation's own view (below).
+  Each launch's first view waits as "The first
   view: limits seen on 14 November 2026" states. This is the one rehearsal in
   which the operator acts by reading, and the one in which it may act in a
   view that holds Codex's reports: after the relaunch, the App's own views
