@@ -9,12 +9,11 @@ the cache key.
 
 Cargo's output layout is not a stable interface. Two are known here. Before
 Cargo 1.100: `.fingerprint/<package>-<hash>/`, `build/<package>-<hash>/` and
-flat files in `deps/`, where a local library built as a dynamic or static
-library carries no hash in its file names. From 1.100: every unit of a package
-under `build/<package>/<hash>/`, at least one of them with a `fingerprint`
-folder. Every entry of the cached folders is sorted into one of these by its structure, and an entry
-that fits neither is refused, never passed as clean. A shape check has a limit:
-a future layout that looks like one of these cannot be told apart.
+flat files in `deps/`, which can contain unhashed files from a local library
+built as a cdylib. In Cargo 1.100's new layout, the tool looks for units under
+`build/<package>/<hash>/` and checks for a fingerprint directory in each
+populated package. It refuses cache entries that fail its structural checks.
+The shape of a path alone cannot establish its ownership.
 """
 from __future__ import annotations
 
@@ -25,6 +24,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tomllib
 
 MANIFEST = Path("app/src-tauri/Cargo.toml")
 TARGET = Path("app/src-tauri/target")
@@ -32,12 +32,15 @@ PROFILE = "debug"
 CACHED_FOLDERS = (".fingerprint", "build", "deps")
 
 
+def metadata(manifest: Path) -> dict:
+    return json.loads(subprocess.check_output(
+        ["cargo", "metadata", "--no-deps", "--format-version", "1", "--offline",
+         "--manifest-path", str(manifest)]))
+
+
 def own_units(manifest: Path) -> tuple[set[str], set[str]]:
     """Return the repository's package names and crate names from Cargo itself."""
-    raw = subprocess.check_output(
-        ["cargo", "metadata", "--no-deps", "--format-version", "1", "--offline",
-         "--manifest-path", str(manifest)])
-    packages = json.loads(raw)["packages"]
+    packages = metadata(manifest)["packages"]
     names = {package["name"] for package in packages}
     crates = {target["name"].replace("-", "_")
               for package in packages for target in package["targets"]}
@@ -46,9 +49,23 @@ def own_units(manifest: Path) -> tuple[set[str], set[str]]:
     return names, crates
 
 
+def lockfile(manifest: Path) -> Path | None:
+    """The lockfile Cargo uses for this manifest: the one at its workspace root."""
+    lock = Path(metadata(manifest)["workspace_root"]) / "Cargo.lock"
+    return lock if lock.is_file() else None
+
+
 HASH = "[0-9a-f]{16}"
 LEGACY_UNIT = re.compile(rf"(.+)-{HASH}")
 UNIT = re.compile(HASH)
+HASHED_FILE = re.compile(rf"(?:lib)?[A-Za-z0-9_]+-{HASH}(?:\..*)?")
+# What Cargo 1.100 keeps directly inside a unit folder, and what the older layout
+# keeps directly inside a build script's two folders. A build script's own
+# output under `out` is not looked into.
+UNIT_FOLDERS = ("fingerprint", "out", "run", "artifact")
+UNIT_FILES = (".lock",)
+RUN_FILES = ("output", "root-output", "stderr", "invoked.timestamp")
+BUILD_SCRIPT = ("build-script-", "build_script_")
 
 
 def real_directory(path: Path) -> bool:
@@ -57,6 +74,10 @@ def real_directory(path: Path) -> bool:
 
 def entries(directory: Path) -> list[Path]:
     return sorted(directory.iterdir()) if real_directory(directory) else []
+
+
+def only_files(directory: Path) -> bool:
+    return all(entry.is_file() for entry in entries(directory))
 
 
 def package_folder(entry: Path) -> bool:
@@ -74,9 +95,33 @@ def package_folder(entry: Path) -> bool:
     return all(real_directory(unit) and UNIT.fullmatch(unit.name) for unit in inside)
 
 
+def unit_as_cargo_1_100_makes_it(unit: Path) -> bool:
+    for member in entries(unit):
+        if member.name in UNIT_FOLDERS and real_directory(member):
+            if member.name in ("fingerprint", "run") and not only_files(member):
+                return False
+        elif not (member.name in UNIT_FILES and member.is_file()):
+            return False
+    return True
+
+
+def build_script_folder_as_the_older_layout_makes_it(entry: Path) -> bool:
+    for member in entries(entry):
+        if member.name == "out" and real_directory(member):
+            continue
+        if member.name in RUN_FILES and member.is_file():
+            continue
+        if member.name.startswith(BUILD_SCRIPT) and (member.is_file() or member.name.endswith(".dSYM")):
+            continue
+        return False
+    return True
+
+
 def own_artifacts(profile: Path, packages: set[str], crates: set[str]) -> list[Path]:
     """List output belonging to repository crates; dependencies never match."""
     crate = re.compile("(?:lib)?(?:" + "|".join(map(re.escape, sorted(crates))) + r")(?:-[0-9a-f]+)?(?:\..*)?")
+    # Names that differ only in case share one folder on a case-insensitive disk.
+    folded = {package.casefold() for package in packages}
 
     def legacy_owner(entry: Path) -> bool:
         named = LEGACY_UNIT.fullmatch(entry.name)
@@ -85,10 +130,13 @@ def own_artifacts(profile: Path, packages: set[str], crates: set[str]) -> list[P
     found = [entry for entry in entries(profile / ".fingerprint") if legacy_owner(entry)]
     for entry in entries(profile / "build"):
         # The name is read as the layout the entry is in reads it.
-        if entry.name in packages if package_folder(entry) else legacy_owner(entry):
+        if entry.name.casefold() in folded if package_folder(entry) else legacy_owner(entry):
             found.append(entry)
-    # A local library built as a dynamic or static library has no hash in its file names.
-    found += [entry for entry in entries(profile / "deps") if crate.fullmatch(entry.name)]
+    # In `deps` Cargo gives every dependency's file a hash. A name with none is a
+    # local library built as a dynamic library, under its current name or an
+    # earlier one, or something a tool left behind: none of it is a dependency.
+    found += [entry for entry in entries(profile / "deps")
+              if crate.fullmatch(entry.name) or not HASHED_FILE.fullmatch(entry.name)]
     return found
 
 
@@ -107,21 +155,26 @@ def unrecognised_output(profile: Path) -> list[Path]:
     unknown = [profile / name for name in CACHED_FOLDERS
                if (profile / name).exists() and not real_directory(profile / name)]
     unknown += [entry for entry in entries(profile / ".fingerprint")
-                if not (real_directory(entry) and LEGACY_UNIT.fullmatch(entry.name))]
+                if not (real_directory(entry) and LEGACY_UNIT.fullmatch(entry.name) and only_files(entry))]
     payload = []
     for entry in entries(profile / "build"):
         if package_folder(entry):
-            # Cargo gives a build script's output a unit folder with no fingerprint
-            # of its own, so one unit without one is ordinary. A package with output
-            # and no fingerprint in any unit has no freshness record to remove.
             units = entries(entry)
+            unknown += [unit for unit in units if not unit_as_cargo_1_100_makes_it(unit)]
+            # Cargo makes a build script's output folder before that run's
+            # fingerprint, so one unit without a fingerprint is ordinary. A
+            # package with output and no fingerprint in any unit has no freshness
+            # record to remove.
             if units and not any(real_directory(unit / "fingerprint") for unit in units):
                 unknown.append(entry)
-        elif real_directory(entry) and LEGACY_UNIT.fullmatch(entry.name):
+        elif (real_directory(entry) and LEGACY_UNIT.fullmatch(entry.name)
+              and build_script_folder_as_the_older_layout_makes_it(entry)):
             payload.append(entry)
         else:
             unknown.append(entry)
     for entry in entries(profile / "deps"):
+        if not HASHED_FILE.fullmatch(entry.name):
+            continue  # No hash: removed as not a dependency's, whatever it is.
         if entry.is_file() or (real_directory(entry) and entry.name.endswith(".dSYM")):
             payload.append(entry)
         else:
@@ -133,17 +186,18 @@ def unrecognised_output(profile: Path) -> list[Path]:
 
 
 def shared_names(manifest: Path, packages: set[str]) -> list[str]:
-    """Repository package names that Cargo.lock also gives to another package.
+    """Repository package names that Cargo's lockfile also gives to another package.
 
-    Both layouts file a package's units under its name alone, so the two
+    Both layouts file a package's units under its name alone, and names that
+    differ only in case share a folder on a case-insensitive disk, so the two
     packages' units could not be told apart.
     """
-    for folder in (manifest.resolve().parent, *manifest.resolve().parent.parents):
-        lock = folder / "Cargo.lock"
-        if lock.is_file():
-            names = re.findall(r'^\[\[package\]\]\nname = "([^"]+)"', lock.read_text(), re.MULTILINE)
-            return sorted(name for name in packages if names.count(name) > 1)
-    return []
+    lock = lockfile(manifest)
+    if lock is None:
+        return []
+    names = [str(package.get("name", "")).casefold()
+             for package in tomllib.loads(lock.read_text()).get("package", [])]
+    return sorted(name for name in packages if names.count(name.casefold()) > 1)
 
 
 def remove(path: Path) -> None:

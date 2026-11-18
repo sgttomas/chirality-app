@@ -340,38 +340,41 @@ that no new such spelling appeared in its scope.
 
 ## Rust dependency cache
 
-Every macOS product job, including the full route, restores compiled third-party
-dependencies in its setup and saves them as its last step. Only
-`target/debug/.fingerprint`, `build` and `deps` are cached, under a key made of
-the runner OS and architecture, the exact `rustc` build, `Cargo.lock` and the job
-id. If that exact key is absent, the newest cache for the same OS, toolchain and
-lockfile from another job is restored instead; the full route on main is what
-seeds new PRs, because a PR can read only its own caches and main's. Registry
-downloads and test results are not cached.
+The four macOS product jobs attempt to restore the compiled Rust dependency
+cache during setup and schedule the save action last when the job is
+uncancelled. The cache contains `target/debug/.fingerprint`, `build` and `deps`.
+The key includes the runner OS, image family, architecture, exact `rustc`
+build, `Cargo.lock` and job id. If an exact key is unavailable, a restore can
+use a cache with the same key prefix, including a cache written by another
+job. The full route on main can seed new PRs from its cache. Registry downloads,
+test results, final binaries and examples, and incremental data are outside
+these paths.
 
-`tools/ci/rust_dep_cache.py` removes the repository's build units from the
-cached directories before a save and after a restore, using the package and
-target names reported by `cargo metadata`. Cargo rebuilds a unit when its
-freshness fingerprint is missing, regardless of source file times. The tool
-supports the intermediate layout before Cargo 1.100 and the one introduced in
-Cargo 1.100, where a package's artifacts, fingerprints and build-script run data
-are grouped under `build/<package>/<unit>/`. In the older layout a local
-library built as a dynamic or static library has no hash in its file names, so
-every file in `deps` named for a repository crate is removed. Final binaries and
-examples in the artifact directory and incremental compilation data are outside
-the cache.
+`tools/ci/rust_dep_cache.py` uses current Cargo workspace package and target
+names to remove matching intermediate output after a cache hit and before an
+upload. Cargo rebuilds a unit when its freshness fingerprint is missing.
+The tool handles the legacy intermediate layout and the one introduced in
+Cargo 1.100, which groups artifacts, fingerprints and build-script run data
+under `build/<package>/<unit>/`. The App's legacy library build can leave
+unhashed files in `deps`. Cargo gives every dependency's file there a hash, so
+the tool also removes every entry of `deps` whose name carries none, whatever
+it is named.
 
-The tool sorts every entry of the cached directories by its structure and
-refuses output it cannot classify, also beside units it can. A layout that looks
-like a supported one cannot be told apart. It refuses when `Cargo.lock` gives a
-repository package's name to another package too, since both layouts file units
-under the name alone. It also refuses to save a tree with compiled units when
-pruning finds no repository output, which also happens if a job restores
-dependencies and fails before compiling the App. After a cache miss, a failed
-restore, or a pruning refusal during restore, setup discards any extracted
-output and proceeds to a full build. Setup fails if discarding that output
-fails. A pruning refusal at save emits an error annotation and skips the upload.
-Save errors leave the job result unchanged.
+The tool checks the structure of the cache paths, down to what each unit
+folder and build-script folder directly holds, and refuses entries that fail
+those checks. An acceptable structure by itself gives no guarantee about the
+ownership of its contents. The tool also refuses when the workspace's lockfile
+gives a repository package's name to another package, also one differing only
+in case. Setup discards any extracted target output after a cache miss, a
+failed restore or a pruning refusal and proceeds to a full build. Setup fails
+if that discard fails. A dependency-only cache can restore with zero removals.
+
+The save action skips pruning and upload when the key is empty or the restore
+reported an exact hit. When pruning runs, the tool refuses a tree with
+recognized fingerprint directories if it removes no repository output. This
+can happen after a prefix hit if the job fails before compiling the App. A
+pruning refusal emits an error annotation and skips upload. Save errors leave
+the job result unchanged.
 
 `tools/ci/test_rust_dep_cache.py` exercises pruning with real Cargo builds and
 shows that an unpruned target can reuse stale repository code.

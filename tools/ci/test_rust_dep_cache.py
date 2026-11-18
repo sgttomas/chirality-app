@@ -18,6 +18,15 @@ CARGO_PATHS = ["app/src-tauri/target/debug/.fingerprint",
 JOBS = ("rust-integration", "rust-lib-node", "sources-packaging", "product")
 
 
+@pytest.fixture(scope="module", autouse=True)
+def cargo_in_use(request):
+    """Say which cargo these tests ran with, on a passing run too: the layout depends on it."""
+    reporter = request.config.pluginmanager.get_plugin("terminalreporter")
+    if reporter is not None and shutil.which("cargo"):
+        version = subprocess.run(["cargo", "--version"], capture_output=True, text=True).stdout.strip()
+        reporter.write_line(f"\ntools/ci/test_rust_dep_cache.py ran with {version}")
+
+
 @pytest.fixture
 def cargo_project(tmp_path):
     if shutil.which("cargo") is None:
@@ -179,8 +188,7 @@ def test_ownership_matches_exact_crate_names_only(tmp_path):
     kept = [profile / ".fingerprint/own-app-helper-0123456789abcdef",
             profile / "deps/own_app_helper-0123456789abcdef",
             profile / "deps/libown_app_helper-0123456789abcdef.rlib",
-            profile / "deps/libown_app_helper.dylib",
-            profile / "deps/own_app_helper.d"]
+            profile / "deps/own_app_helper-0123456789abcdef.long-type-123.txt"]
     for path in own + kept:
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text("")
@@ -215,8 +223,11 @@ def older_layout(profile, package, crate, first="0123456789abcdef", second="fedc
     return [made[0], made[1], made[2].parent, library]
 
 
-def own_app_only(monkeypatch):
-    monkeypatch.setattr(subject, "own_units", lambda manifest: ({"own-app"}, {"own_app"}))
+def own_app_only(monkeypatch, packages=("own-app",), crates=("own_app",)):
+    """Ownership and the lockfile as Cargo would report them, for a tree that was not built."""
+    monkeypatch.setattr(subject, "own_units", lambda manifest: (set(packages), set(crates)))
+    monkeypatch.setattr(subject, "lockfile", lambda manifest: next(
+        (lock for lock in [manifest.parent / "Cargo.lock"] if lock.is_file()), None))
 
 
 def test_ownership_in_the_layout_of_cargo_1_100_is_the_package_folder(tmp_path):
@@ -261,8 +272,13 @@ def unsupported_cases(profile):
     return {
         "a package with output and no fingerprint in any unit": profile / "build/units/0123456789abcdef/out/own_app.rlib",
         "a folder of another shape under build": profile / "build/v3/own-app/fingerprint/bin-own-app",
+        "a folder named as the older layout names one, holding something else":
+            profile / "build/v3-0123456789abcdef/own-app/fedcba9876543210/out/own_app.rlib",
+        "a member Cargo does not put in a unit": profile / "build/third-party/fedcba9876543210/unexpected/own_app.rlib",
+        "a folder inside a unit's fingerprint": profile / "build/third-party/fedcba9876543210/fingerprint/nested/own_app",
         "a file where the older layout keeps a folder": profile / ".fingerprint/own-app.json",
-        "a folder among the older layout's files": profile / "deps/units/own_app.rlib",
+        "a folder inside the older layout's fingerprint": profile / ".fingerprint/third-party-0123456789abcdef/nested/own_app",
+        "a hashed folder among the older layout's files": profile / "deps/units-0123456789abcdef/own_app.rlib",
     }
 
 
@@ -271,7 +287,7 @@ def test_output_in_a_layout_the_tool_does_not_know_is_refused_beside_valid_units
     target = tmp_path / "target"
     profile = target / "debug"
     layout_of_cargo_1_100(profile)
-    older_layout(profile, "own-app", "own_app")
+    older_layout(profile, "own-app", "own_app", "1111111111111111", "2222222222222222")
     older_layout(profile, "third-party", "third_party")
     own_app_only(monkeypatch)
     assert not subject.unrecognised_output(profile)
@@ -289,6 +305,61 @@ def test_output_in_a_layout_the_tool_does_not_know_is_refused_beside_valid_units
     assert subject.main() == 2 and "::error::" in capsys.readouterr().out
     report = subject.restored(tmp_path / "Cargo.toml", target, "some-key")
     assert not target.exists() and "building everything" in report
+
+
+def test_what_cargo_leaves_in_ordinary_and_interrupted_builds_is_accepted(tmp_path, monkeypatch):
+    target = tmp_path / "target"
+    profile = target / "debug"
+    layout_of_cargo_1_100(profile)
+    older_layout(profile, "third-party", "third_party")
+    unit = profile / "build/third-party/0123456789abcdef"
+    # A build script's run, its lock, artifact output, and an output folder made before its fingerprint.
+    for folder in (unit / "run", unit / "artifact/bin", profile / "build/third-party/aaaaaaaaaaaaaaaa/out/generated"):
+        folder.mkdir(parents=True)
+    for file in (unit / "run/stdout", unit / "run/invoked.timestamp", unit / ".lock", unit / "out/nested.rs"):
+        file.write_text("")
+    # The older layout's build script folders, a debug-symbol bundle and a diagnostic file.
+    script = profile / "build/third-party-0123456789abcdef"
+    for name in ("build_script_build-0123456789abcdef", "build_script_build-0123456789abcdef.d",
+                 "build-script-test-build"):
+        (script / name).write_text("")
+    (script / "build_script_build-0123456789abcdef.dSYM/Contents").mkdir(parents=True)
+    run = profile / "build/third-party-fedcba9876543210"
+    for name in ("output", "root-output", "stderr", "invoked.timestamp"):
+        (run / name).write_text("")
+    (run / "out/deep/er").mkdir(parents=True)
+    (profile / "deps/libthird_party-0123456789abcdef.dylib.dSYM/Contents").mkdir(parents=True)
+    (profile / "deps/third_party-0123456789abcdef.long-type-123.txt").write_text("")
+    own_app_only(monkeypatch)
+    assert subject.unrecognised_output(profile) == []
+    assert subject.prune_after_build(tmp_path / "Cargo.toml", target) == 1
+    assert (unit / "run/stdout").is_file() and (run / "out/deep/er").is_dir()
+    assert (profile / "deps/libthird_party-0123456789abcdef.dylib.dSYM").is_dir()
+
+
+def test_files_without_a_hash_in_deps_are_removed_whatever_they_are_named(tmp_path, monkeypatch):
+    # A library built under a name it no longer has, saved by the tool as it was before
+    # it removed such files: no fingerprint names it and the current target names do not
+    # match it. A linker's temporary folder left by an interrupted build goes the same way.
+    target = tmp_path / "target"
+    profile = target / "debug"
+    kept = older_layout(profile, "third-party", "third_party")
+    stale = [profile / "deps/libold_name.dylib", profile / "deps/old_name.d",
+             profile / "deps/old_name.old_name.0123456789abcdef-cgu.0.rcgu.o"]
+    for file in stale:
+        file.write_text("stale")
+    (profile / "deps/rustcAbCdEf").mkdir()
+    own_app_only(monkeypatch, packages=("own-app",), crates=("new_name",))
+    assert subject.unrecognised_output(profile) == []
+    assert "removed 4" in subject.restored(tmp_path / "Cargo.toml", target, "some-key")
+    assert not any(file.exists() for file in stale) and not (profile / "deps/rustcAbCdEf").exists()
+    assert all(path.exists() for path in kept)
+    # The same at save, with the repository's own units beside it.
+    for file in stale:
+        file.write_text("stale")
+    older_layout(profile, "own-app", "new_name", "1111111111111111", "2222222222222222")
+    assert subject.prune_after_build(tmp_path / "Cargo.toml", target) == 7
+    assert not any(file.exists() for file in stale) and all(path.exists() for path in kept)
 
 
 def test_the_older_layouts_output_with_no_fingerprint_beside_it_is_refused(tmp_path, monkeypatch):
@@ -309,13 +380,44 @@ def test_a_repository_package_name_shared_with_another_package_is_refused(tmp_pa
     one = '[[package]]\nname = "own-app"\nversion = "0.1.0"\n\n[[package]]\nname = "own-app-helper"\nversion = "1.0.0"\n'
     lock.write_text(one)
     assert subject.shared_names(tmp_path / "Cargo.toml", {"own-app"}) == []
-    lock.write_text(one + '\n[[package]]\nname = "own-app"\nversion = "9.0.0"\nsource = "registry+https://example.invalid/index"\n')
-    assert subject.shared_names(tmp_path / "Cargo.toml", {"own-app"}) == ["own-app"]
-    with pytest.raises(ValueError, match="cannot be told apart"):
-        subject.prune_after_build(tmp_path / "Cargo.toml", target)
-    assert own.is_dir()
+    # Valid TOML that is not spelled as Cargo writes it: a comment, and the name not first.
+    for other in ('\n# another source\n[[package]]\nversion = "9.0.0"\nname = "own-app"\n',
+                  # A name differing only in case shares the folder on a case-insensitive disk.
+                  '\n[[package]]\nname = "Own-App"\nversion = "9.0.0"\n'):
+        lock.write_text(one + other)
+        assert subject.shared_names(tmp_path / "Cargo.toml", {"own-app"}) == ["own-app"]
+        with pytest.raises(ValueError, match="cannot be told apart"):
+            subject.prune_after_build(tmp_path / "Cargo.toml", target)
+        assert own.is_dir()
     report = subject.restored(tmp_path / "Cargo.toml", target, "some-key")
     assert not target.exists() and "building everything" in report
+
+
+def test_a_package_folder_named_in_another_case_is_removed_with_the_repositorys(tmp_path, monkeypatch):
+    target = tmp_path / "target"
+    own, kept = layout_of_cargo_1_100(target / "debug", ("Own-App", "third-party"))
+    own_app_only(monkeypatch)
+    assert subject.prune_after_build(tmp_path / "Cargo.toml", target) == 1
+    assert not own.exists() and kept[0].is_dir()
+
+
+def test_the_lockfile_read_is_the_workspace_roots_not_a_nearer_one(tmp_path):
+    if shutil.which("cargo") is None:
+        if os.environ.get("CI"):
+            pytest.fail("cargo is required to locate the workspace root in CI")
+        pytest.skip("cargo is not installed")
+    member = tmp_path / "member"
+    (member / "src").mkdir(parents=True)
+    (tmp_path / "Cargo.toml").write_text('[workspace]\nmembers = ["member"]\nresolver = "2"\n')
+    (member / "Cargo.toml").write_text('[package]\nname = "own-app"\nversion = "0.1.0"\nedition = "2021"\n')
+    (member / "src/lib.rs").write_text("")
+    package = '[[package]]\nname = "own-app"\nversion = "{}"\n'
+    # A stale lockfile beside the member names the package once; the workspace's names it twice.
+    (member / "Cargo.lock").write_text(package.format("0.1.0"))
+    assert subject.lockfile(member / "Cargo.toml") is None
+    (tmp_path / "Cargo.lock").write_text(package.format("0.1.0") + "\n" + package.format("9.0.0"))
+    assert subject.lockfile(member / "Cargo.toml") == (tmp_path / "Cargo.lock").resolve()
+    assert subject.shared_names(member / "Cargo.toml", {"own-app"}) == ["own-app"]
 
 
 def test_the_save_command_fails_when_a_build_left_nothing_of_the_repositorys(tmp_path, monkeypatch, capsys):
@@ -323,7 +425,7 @@ def test_the_save_command_fails_when_a_build_left_nothing_of_the_repositorys(tmp
     (target / "debug/.fingerprint/third-party-0123456789abcdef").mkdir(parents=True)
     (target / "debug/deps").mkdir()
     (target / "debug/deps/libthird_party-0123456789abcdef.rlib").write_text("")
-    monkeypatch.setattr(subject, "own_units", lambda manifest: ({"own-app"}, {"own_app"}))
+    own_app_only(monkeypatch)
     arguments = ["rust_dep_cache.py", "prune", "--manifest-path", str(tmp_path / "Cargo.toml"),
                  "--target-dir", str(target)]
     monkeypatch.setattr(subject.sys, "argv", arguments)
@@ -363,7 +465,7 @@ def test_output_that_cannot_be_cleaned_is_discarded_not_fatal(stale_target, monk
 
 
 def test_prune_refuses_when_repository_output_remains(stale_target, monkeypatch):
-    monkeypatch.setattr(subject, "own_units", lambda manifest: ({"own-app"}, {"own_app"}))
+    own_app_only(monkeypatch)
     monkeypatch.setattr(subject, "remove", lambda path: None)
     with pytest.raises(ValueError, match="remain"):
         subject.prune(stale_target / "Cargo.toml", stale_target / "target")
