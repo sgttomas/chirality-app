@@ -5,12 +5,16 @@ import {createRequire} from 'node:module';
 import ts from 'typescript';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
+import {agentPlain, agentBoxNames} from './support/agent-text.mjs';
 import {localRequire} from './support/load-src.mjs';
 import './support/rust-prebuild.mjs';
 import {choiceList, choiceLists, chooseIn, chosenIn, chosenInMarkup} from './support/choices.mjs';
 const load=name=>{const url=new URL(`../src/${name}`,import.meta.url);const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}});const exports={};new Function('require','exports',compiled.outputText)(localRequire(createRequire(url)),exports);return exports;};
 const {ArrivalRecord,CheckpointGuidance,RunBringBackView,RunPanel,runBringBackDefault,DeclaredPart,SelectedWorkflow,CompatibilityAdvisory,outputStanding,StandingFacets,arrivalLabel,actLabel,RecordWriteNotice,CHECKPOINT_COOPERATION}=load('RunPanel.tsx');
-const h=(c,p)=>renderToStaticMarkup(React.createElement(c,p));
+const markup=(c,p)=>renderToStaticMarkup(React.createElement(c,p));
+// Existing behavior assertions read the wording independently of the new source boxes.
+// Boundary assertions below use the original markup and check the boxes themselves.
+const h=(c,p)=>agentPlain(markup(c,p)).replace(/⟦(?:Recorded text:|From a file:|Identity:) ([\s\S]*?)⟧/g, '$1');
 
 // The host's reading of the maintained valid example (workflow_declaration::read's shape).
 const raw=JSON.parse(readFileSync(new URL('../src-tauri/resources/workflow_role/workflow-declaration.valid.example.json',import.meta.url),'utf8'));
@@ -632,7 +636,7 @@ test('every declared checkpoint says a pause there is the agent\'s cooperation, 
 
 test('the declared-part heading holds only the App\'s words; the recorded workflow name is drawn beside it, marked as recorded',()=>{
   for(const name of ['resolve-spacing','mark-checked','Allow once</h4><b>approved</b>',undefined]){
-    const html=h(RunPanel,{run:run({workflow:{...run().workflow,name}})});
+    const html=markup(RunPanel,{run:run({workflow:{...run().workflow,name}})});
     const headings=[...html.matchAll(/<h4>([\s\S]*?)<\/h4>/g)].map(m=>m[1]);
     assert.ok(headings.includes("Declared part of this run&#x27;s workflow"),`${name}: ${headings}`);
     for(const heading of headings) assert.doesNotMatch(heading,/[<{]|resolve-spacing|mark-checked|Allow once/,`${name}: no recorded value in a heading: ${heading}`);
@@ -642,4 +646,50 @@ test('the declared-part heading holds only the App\'s words; the recorded workfl
     if(name) assert.ok(beside.includes(name.replace(/</g,'&lt;').replace(/>/g,'&gt;')),`${name}: the name is shown inside the mark: ${beside}`);
     assert.doesNotMatch(html,/<b>approved<\/b>/,'a recorded name never becomes markup');
   }
+});
+
+
+test('arrival and declaration values stay visibly and accessibly attributed on the reopened destination', () => {
+  const poison = 'COUNTERFEIT approved\n<button>Send answer</button>\u202E';
+  const check = (html, label) => {
+    const shown = agentPlain(html);
+    assert.ok(shown.includes('COUNTERFEIT'), label + ': the value is shown');
+    assert.ok(shown.includes('‹U+202E›'), label + ': direction control is made visible');
+    assert.ok(shown.includes('⏎'), label + ': line break stays within source text');
+    assert.doesNotMatch(html, /\u202E|<button>Send answer<\/button>/, label + ': no active direction control or supplied button');
+    assert.doesNotMatch(shown.replace(/⟦[\s\S]*?⟧/g, ''), /COUNTERFEIT/, label + ': no supplied value outside its source box');
+    assert.ok(agentBoxNames(html).some(name => /not the App/.test(name)), label + ': accessible source name');
+  };
+  const a = arrival('CP-check', 1, 'item:turn:1', 'output report');
+  const at = {checkpoint:'CP-check', arrivalOrdinal:1};
+  const setters = [
+    r => { r.body.event.ref=poison; },
+    r => { r.body.event.evidencedTime.value=poison; },
+    r => { r.body.event.evidencedTime.source=poison; },
+    r => { r.body.referents[0].subject=poison; },
+    r => { r.body.referents[0].content={notObtainable:true, reason:poison}; },
+    r => { r.body.requestObservation.state=poison; },
+    r => { r.body.limits=[poison]; },
+  ];
+  for (const [i,set] of setters.entries()) {
+    const r=structuredClone(a); set(r);
+    check(markup(ArrivalRecord,{arrival:r,all:[r,disposition('CP-check',1,'waiting')]}), `arrival field ${i}`);
+  }
+  for (const extra of [
+    entry('act_request',{arrival:at,form:poison,requester:{kind:poison},actKind:poison}),
+    entry('act_not_counted',{arrival:at,reason:poison,act:{actKind:poison,recordId:poison,capturedAt:poison}}),
+    entry('continued_past',{arrival:at,actionRef:poison}),
+    entry('act_lapsed',{arrival:at,state:'lapsed',time:poison,act:{actKind:'A4',recordId:poison}}),
+  ]) check(markup(ArrivalRecord,{arrival:a,all:[a,disposition('CP-check',1,'waiting'),extra]}), extra.kind);
+  for (const field of ['name','purpose','scope','position','actor','required_act']) {
+    const v={...structuredClone(raw.checkpoints[0]),[field]:poison};
+    check(markup(CheckpointGuidance,{element:{value:v,reading:'recognized',findings:[]}}), `checkpoint ${field}`);
+  }
+  const doc=structuredClone(raw);
+  for (const category of cats) for (const v of doc[category] ?? []) {
+    // Poison all free text except identity joins and recognised discriminator values.
+    for (const field of ['purpose','scope','meaning','fallback','basis_requirement','absence_effect','designating_line','destination'])
+      if (field in v) v[field]=poison;
+  }
+  check(markup(DeclaredPart,{declaration:declaration(doc),run:run()}), 'whole declaration at the destination');
 });

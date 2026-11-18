@@ -233,11 +233,17 @@ function arrivalsOf(run: Json, reference: string, unknown?: string[]): WaitingEn
     const b = arrival.body;
     const changes = records.filter((r: Json) => r?.kind === "disposition_change" && sameArrival(r?.body?.arrival, b.checkpoint, b.arrivalOrdinal));
     const latest = changes[changes.length - 1];
+    const projection = unknown ? arrivalProjection(run, reference, arrival) : null;
+    // An explicit failure of the act read limits the reading independently of the
+    // recorded disposition. A settled arrival stays settled, but cannot hide that failure.
+    if (unknown && projection?.state === "unknown") {
+      unknown.push(unknownAnswerability(b, projection));
+      continue;
+    }
     if (latest?.body?.disposition !== "waiting") continue;
     // A reopened run (`unknown` given): listed only where the host's projection says no act or decline on record
     // answers it. One on record and not yet counted asks nothing of the person; an unknown projection is never waiting.
     if (unknown) {
-      const projection = arrivalProjection(run, reference, arrival);
       if (projection?.state === "awaiting count") continue;
       if (projection?.state !== "waiting") { unknown.push(unknownAnswerability(b, projection)); continue; }
     }

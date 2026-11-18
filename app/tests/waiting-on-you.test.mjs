@@ -1071,6 +1071,16 @@ test('a reopened arrival whose answering act is recorded and not yet counted ask
   // A later recorded settlement decides, whatever is projected beside it.
   for (const disposition of ['performed', 'resolved negatively', 'lapsed'])
     assert.deepEqual(arrivals(r => { r.runs = [carriedRow({answerability:[projection('waiting')]}, disposition)]; }), [], disposition);
+  // A settled disposition does not erase an explicit failure of the act read.
+  for (const disposition of ['performed', 'resolved negatively', 'lapsed']) {
+    const change = r => { r.runs = [carriedRow({answerability:[projection('unknown', REASON)]}, disposition)]; };
+    assert.deepEqual(arrivals(change), [], disposition);
+    assert.equal(reading(change).state, 'limited', disposition);
+    assert.ok(reading(change).limits.some(limit => limit.includes(REASON)), disposition);
+    const shown = waitingView(waitingReadings(emptySources(withCensus(change))));
+    assert.equal(waitingLine(shown.observed, shown.complete), 'Waiting on you: 0 observed now; status incomplete', disposition);
+    assert.ok(agentPlain(renderPlace(waitingReadings(emptySources(withCensus(change))))).includes(REASON.replace(/'/g, '&#x27;')), disposition);
+  }
 });
 
 test('the reopened destination shows the projection beside the recorded disposition, marks the host\'s reason, and offers nothing for an answered arrival', () => {

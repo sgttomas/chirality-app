@@ -660,9 +660,10 @@ impl RunsReading {
     /// ([`crate::checkpoint_recorder::answer_once_taken_up`], on its reader
     /// [`crate::checkpoint_recorder::project_act_records`]). The act records are read at most once
     /// for the whole reading. No act, run or capture record is created or changed; as for the arrival
-    /// act control, that reader may create or refresh its derived query cache, only under the
-    /// records store this App bound (`records_index`), and where the cache cannot be written it
-    /// reads the record sources directly with the same result. Bound to its run and its exact arrival
+    /// act control, that reader may create or refresh its derived query cache in the index folder
+    /// of the store this App bound (`records_index`). The path is checked before creation and
+    /// the binding again after opening; replacement between those steps is not defended against,
+    /// as on the live path. Where the cache cannot be written, validated source scans remain available. Bound to its run and its exact arrival
     /// (checkpoint, arrival number and the arrival entry's record identity), each projection is one
     /// of: `waiting` (no act or decline on record answers it), `awaiting count` (one on record
     /// answers it and is not yet counted in the run's record), or `unknown` with its reason. The
