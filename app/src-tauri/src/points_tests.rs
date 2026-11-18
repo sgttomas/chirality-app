@@ -85,7 +85,7 @@ fn the_digest_is_of_the_canonical_arguments_whatever_the_key_order() {
 }
 
 fn source() -> Source {
-    Source { home: "app-home:fixture".into(), home_class: "H-acct".into(), generation: "gen:v1:s:73:h:68:n:1".into(), thread: "thread".into(), turn: "turn".into(), call: "call".into(), request: json!(7) }
+    Source { home: "app-home:fixture".into(), home_class: "H-acct".into(), generation: crate::recovery::generation_ref(&json!({"appSession":"s","home":"app-home:fixture","spawnCounter":1})).unwrap(), thread: "thread".into(), turn: "turn".into(), call: "call".into(), request: json!(7) }
 }
 fn entry(arguments: &Value, point: &str, record: &str, seq: u64, previous: Option<&str>) -> Value {
     let body = record_body(point, &source(), "/project", "records-project:fixture", &run_none(), &observed(None, false), arguments, &digest(arguments).unwrap(), "2026-11-18T00:00:00Z");
@@ -100,7 +100,7 @@ fn the_record_body_is_closed_and_its_pointer_holds_identities_and_the_digest_onl
     let point = crate::util::opaque_id("pt-").unwrap();
     let e = crate::records::envelope(KIND, &crate::records::APP_WRITER,
         record_body(&point, &source(), "/project", "records-project:fixture", &run_in("run:workflow:x"), &observed(Some("req:1"), true), &arguments, &digest(&arguments).unwrap(), "2026-11-18T00:00:00Z"),
-        "rec:app:fixture".into(), 1, None, None);
+        RECORD.into(), 1, None, None);
     let validator = crate::schema_validation::bundled().unwrap();
     validator.validate(&e).unwrap();
     // The schema refuses a body carrying anything else, prose in the run or
@@ -126,7 +126,7 @@ fn the_record_body_is_closed_and_its_pointer_holds_identities_and_the_digest_onl
     let keys: Vec<&str> = decoded.as_object().unwrap().keys().map(String::as_str).collect();
     assert_eq!(keys, ["digest", "kind", "point", "project", "record", "source", "storeProject", "v"]);
     assert_eq!(decoded["point"], json!(point));
-    assert_eq!(decoded["record"], "rec:app:fixture");
+    assert_eq!(decoded["record"], RECORD);
     assert_eq!(decoded["source"], source().value());
     assert_eq!(decoded["storeProject"], "records-project:fixture");
     assert_eq!(decoded["digest"], json!({"method":DIGEST_METHOD,"value":digest(&arguments).unwrap()}));
@@ -135,7 +135,35 @@ fn the_record_body_is_closed_and_its_pointer_holds_identities_and_the_digest_onl
     let mut with_run = decoded.clone();
     with_run["run"] = json!({"state":"no run"});
     assert!(decode(&with_run.to_string()).is_none());
+    // Finding 6: every part of the tag is checked.
+    let changed = |change: &dyn Fn(&mut Value)| { let mut v = decoded.clone(); change(&mut v); decode(&v.to_string()) };
+    assert!(changed(&|v| v["digest"]["extra"] = json!(1)).is_none(), "an extra digest key");
+    assert!(changed(&|v| v["digest"]["value"] = json!(digest(&arguments).unwrap().to_uppercase())).is_none(), "an uppercase digest");
+    assert!(changed(&|v| v["digest"]["value"] = json!("z".repeat(64))).is_none(), "a digest that is not hexadecimal");
+    assert!(changed(&|v| v["point"] = json!("pt-not-a-uuid")).is_none());
+    assert!(changed(&|v| v["record"] = json!("rec:app:fixture")).is_none());
+    assert!(changed(&|v| v["source"]["generation"] = Value::Null).is_none());
+    assert!(changed(&|v| v["source"]["generation"] = json!(crate::recovery::generation_ref(&json!({"appSession":"s","home":"another-home","spawnCounter":1})).unwrap())).is_none(), "a generation of another home");
+    assert!(changed(&|v| v["source"]["homeClass"] = json!("H-other")).is_none());
+    let generation = source().generation;
+    let offer = offer_pointer("app-home:fixture", &generation, "thread");
+    assert!(decode(&offer).is_some());
+    let bound = bound_offer_pointer("app-home:fixture", &generation, "thread", "/project", "records-project:fixture");
+    assert_eq!(decode(&bound).unwrap()["storeProject"], "records-project:fixture");
+    let offer: Value = serde_json::from_str(&offer).unwrap();
+    for (case, change) in [
+        ("generation null", Box::new(|v: &mut Value| v["generation"] = Value::Null) as Box<dyn Fn(&mut Value)>),
+        ("generation of another home", Box::new(|v: &mut Value| v["generation"] = json!(crate::recovery::generation_ref(&json!({"appSession":"s","home":"other","spawnCounter":1})).unwrap()))),
+        ("generation not canonical", Box::new(|v: &mut Value| v["generation"] = json!("gen:v1:s:73:h:68:n:01"))),
+        ("definition not a digest", Box::new(|v: &mut Value| v["definition"] = json!("x"))),
+        ("store project without its project", Box::new(|v: &mut Value| v["storeProject"] = json!("records-project:fixture"))),
+    ] {
+        let mut v = offer.clone();
+        change(&mut v);
+        assert!(decode(&v.to_string()).is_none(), "{case}");
+    }
 }
+const RECORD: &str = "rec:app:00000000-0000-4000-8000-000000000001";
 
 #[test]
 fn a_receipt_is_recorded_not_recorded_or_not_established_and_carries_no_answer() {
@@ -173,6 +201,8 @@ fn only_a_request_framed_as_a_point_call_is_one() {
         ("no arguments", Box::new(|f: &mut Value| { f["params"].as_object_mut().unwrap().remove("arguments"); })),
         ("an object as the id", Box::new(|f: &mut Value| f["id"] = json!({}))),
         ("another tool", Box::new(|f: &mut Value| f["params"]["tool"] = json!("other"))),
+        ("a protocol version of false", Box::new(|f: &mut Value| f["jsonrpc"] = json!(false))),
+        ("a protocol version other than 2.0", Box::new(|f: &mut Value| f["jsonrpc"] = json!("1.0"))),
     ] {
         let mut f = call.clone();
         change(&mut f);
@@ -219,9 +249,14 @@ fn a_fragment_the_writer_set_aside_does_not_block_later_records_but_a_broken_lin
     std::fs::remove_dir_all(root).unwrap();
 }
 
-/// DEL-04-03 REQ-012 and AC-013 for the point reader: an entry of an unknown
-/// format or major version is refused and nothing is inferred from it; one of
-/// a newer minor version is read as far as known and marked so.
+/// DEL-04-03 REQ-012 for the point reader, as far as these entries show it:
+/// with only the version string changed, an entry of an unknown major version
+/// is refused and nothing is inferred from it, and one of a newer minor
+/// version is read as far as known and marked so. A newer entry that also
+/// carries a field today's schema does not know is refused before this rule
+/// is reached, by the store's line reader (shown through the host in
+/// hosting_points_tests); corrections of points are not built, so a
+/// `corrects` relation is not applied.
 #[test]
 fn the_point_reader_applies_the_records_version_rule() {
     let root = std::env::temp_dir().canonicalize().unwrap().join(crate::util::opaque_id("point-versions-").unwrap());

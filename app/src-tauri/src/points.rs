@@ -142,6 +142,12 @@ fn source_key(source: &Value) -> String {
 /// The run reading at the call, in the App's closed form.
 pub(crate) fn run_in(run: &str) -> Value { json!({"state":"in run","run":run}) }
 pub(crate) fn run_none() -> Value { json!({"state":"no run"}) }
+/// Its codes: `start-sent-not-yet-open` (a run's start sent in this
+/// conversation, not yet seen open); `codex-restarted-run-unknown` (this App
+/// session's Codex was restarted while a run of this conversation was open or
+/// starting, and the App has not seen it since); `resumed-earlier-run-unknown`
+/// (the conversation began in an earlier App session, whose runs the App
+/// cannot tell).
 pub(crate) fn run_not_established(code: &'static str) -> Value { json!({"state":"not established","reason":code}) }
 /// What the App observed of the call, in its closed form.
 pub(crate) fn observed(person_press: Option<&str>, app_started: bool) -> Value {
@@ -178,31 +184,71 @@ pub(crate) fn offer_pointer(home: &str, generation: &str, thread: &str) -> Strin
     canonical(&json!({"v":1,"kind":"offered","home":home,"generation":generation,"thread":thread,"definition":definition_digest()}))
         .expect("offer pointer is canonical")
 }
-/// A tag value of this owner, decoded and checked for its exact shape;
-/// anything else is not a pointer (and is reported, never ignored).
+/// The offer pointer that also carries the conversation's records binding:
+/// the App project and the store's stable project identity, written before
+/// the conversation's first record is appended in that store project.
+pub(crate) fn bound_offer_pointer(home: &str, generation: &str, thread: &str, project: &str, store_project: &str) -> String {
+    canonical(&json!({"v":1,"kind":"offered","home":home,"generation":generation,"thread":thread,"definition":definition_digest(),"project":project,"storeProject":store_project}))
+        .expect("offer pointer is canonical")
+}
+/// The App's home classes a conversation is indexed under (DEL-01-02).
+const HOME_CLASSES: [&str; 3] = ["H-acct", "H-key", "H-omlx"];
+/// A full generation reference in its canonical form, of the Codex home `home`.
+fn generation_of(reference: &Value, home: &Value) -> bool {
+    let Some(reference) = reference.as_str() else { return false };
+    crate::recovery::generation_from_ref(reference).ok()
+        .is_some_and(|g| crate::recovery::generation_ref(&g).ok().as_deref() == Some(reference) && g["home"] == *home)
+}
+/// An App identity of the form `<prefix><lowercase hyphenated UUID>`.
+fn app_id(value: &Value, prefix: &str) -> bool {
+    value.as_str().and_then(|v| v.strip_prefix(prefix)).and_then(|u| uuid::Uuid::parse_str(u).ok().map(|id| id.hyphenated().to_string() == u)).unwrap_or(false)
+}
+/// A SHA-256 value object of the App's digest method: exactly its two keys,
+/// the value 64 lowercase hexadecimal digits.
+fn digest_object(v: &Value) -> bool {
+    v.as_object().is_some_and(|o| o.len() == 2) && v["method"] == DIGEST_METHOD
+        && v["value"].as_str().is_some_and(|d| d.len() == 64 && d.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)))
+}
+/// A tag value of this owner, decoded and checked whole: its exact keys, the
+/// canonical generation and its Codex home, the App's identities and the
+/// exact digest object. Anything else is not a pointer (it is reported as a
+/// tag that could not be read, never ignored).
 pub(crate) fn decode(raw: &str) -> Option<Value> {
     let v: Value = serde_json::from_str(raw).ok()?;
-    let keys = |names: &[&str]| v.as_object().is_some_and(|o| o.len() == names.len() && names.iter().all(|n| o.contains_key(*n)));
+    let keys = |of: &Value, names: &[&str]| of.as_object().is_some_and(|o| o.len() == names.len() && names.iter().all(|n| o.contains_key(*n)));
     let text = |x: &Value| x.as_str().is_some_and(|s| !s.is_empty());
     let ok = match (v["v"].as_u64(), v["kind"].as_str()) {
-        (Some(1), Some("placed")) => keys(&["v", "kind", "point", "record", "source", "project", "storeProject", "digest"])
-            && v["point"].as_str().is_some_and(|p| p.starts_with("pt-")) && text(&v["record"]) && text(&v["project"]) && text(&v["storeProject"])
-            && v["source"].as_object().is_some_and(|s| s.len() == 7 && ["home", "homeClass", "generation", "thread", "turn", "call"].iter().all(|k| text(&s[*k])) && (s["request"].is_string() || s["request"].is_i64() || s["request"].is_u64()))
-            && v["digest"]["method"] == DIGEST_METHOD && v["digest"]["value"].as_str().is_some_and(|d| d.len() == 64),
-        (Some(1), Some("offered")) => keys(&["v", "kind", "home", "generation", "thread", "definition"]),
+        (Some(1), Some("placed")) => {
+            let s = &v["source"];
+            keys(&v, &["v", "kind", "point", "record", "source", "project", "storeProject", "digest"])
+                && app_id(&v["point"], "pt-") && app_id(&v["record"], "rec:app:") && text(&v["project"]) && text(&v["storeProject"])
+                && keys(s, &["home", "homeClass", "generation", "thread", "turn", "call", "request"])
+                && text(&s["home"]) && s["homeClass"].as_str().is_some_and(|h| HOME_CLASSES.contains(&h)) && generation_of(&s["generation"], &s["home"])
+                && ["thread", "turn", "call"].iter().all(|k| text(&s[*k])) && (s["request"].is_string() || s["request"].is_i64() || s["request"].is_u64())
+                && digest_object(&v["digest"])
+        }
+        (Some(1), Some("offered")) => {
+            let bound = v.get("storeProject").is_some();
+            (if bound { keys(&v, &["v", "kind", "home", "generation", "thread", "definition", "project", "storeProject"]) && text(&v["project"]) && text(&v["storeProject"]) }
+             else { keys(&v, &["v", "kind", "home", "generation", "thread", "definition"]) })
+                && text(&v["home"]) && text(&v["thread"]) && generation_of(&v["generation"], &v["home"])
+                && v["definition"].as_str().is_some_and(|d| d.len() == 64 && d.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)))
+        }
         _ => false,
     };
     ok.then_some(v)
 }
 
 /// Whether a received frame is framed as a point call: a request (id and
-/// method, no result or error, nothing else), the tool's exact name, the
+/// method, no result or error, nothing else; a protocol version, where
+/// given, of JSON-RPC 2.0), the tool's exact name, the
 /// call's conversation, turn and call identities present and its arguments.
 /// The namespace is checked by the caller.
 pub(crate) fn frame_ok(frame: &Value) -> bool {
     let Some(o) = frame.as_object() else { return false };
     let text = |v: Option<&Value>| v.and_then(Value::as_str).is_some_and(|s| !s.is_empty());
     o.keys().all(|k| matches!(k.as_str(), "jsonrpc" | "id" | "method" | "params"))
+        && o.get("jsonrpc").is_none_or(|v| v == "2.0")
         && frame["method"] == "item/tool/call"
         && (frame["id"].is_string() || frame["id"].is_i64() || frame["id"].is_u64())
         && frame["params"].as_object().is_some_and(|p| p.get("tool") == Some(&json!(TOOL))
@@ -242,6 +288,8 @@ pub(crate) fn receipt(outcome: &Outcome, admitted_run: &Value) -> Value {
 #[derive(Clone, Debug)]
 pub(crate) struct Line {
     pub no: usize,
+    /// The byte offset at which its line begins in the log.
+    pub start: usize,
     pub entry: Value,
     pub newer: Option<String>,
     sound: Result<(), String>,
@@ -290,19 +338,55 @@ fn version_of(entry: &Value) -> Result<Option<String>, String> {
     }
 }
 impl LogReading {
+    #[cfg(test)]
     pub(crate) fn read(path: &std::path::Path) -> Result<Self, String> {
+        Self::read_bytes(path).map(|(read, _)| read)
+    }
+    fn read_bytes(path: &std::path::Path) -> Result<(Self, Vec<u8>), String> {
         use std::io::Read;
         let mut bytes = Vec::new();
         match crate::records_index::open_log(path) {
             Ok(mut file) => { file.read_to_end(&mut bytes).map_err(|e| format!("the App's points log could not be read ({e})"))?; }
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(Self { missing: true, ..Self::default() }),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok((Self { missing: true, ..Self::default() }, bytes)),
             Err(e) => return Err(format!("the App's points log could not be read ({e})")),
         }
-        Ok(Self::of_bytes(path, &bytes))
+        Ok((Self::of_bytes(path, &bytes), bytes))
+    }
+    /// The log as the App reads it for a project: [`Self::read`], then what
+    /// the store says beyond the log itself. `imported` gives the length of
+    /// the log's prefix that a verified package import brought in (its lines
+    /// are another App's observations, never shown in this App's voice), and
+    /// `held` how many entries anywhere in the project's records hold a
+    /// record identity (the store's index): a record whose identity is held
+    /// more than once in the project is not sound.
+    pub(crate) fn read_bound(path: &std::path::Path, imported: impl FnOnce(&[u8]) -> Result<u64, String>, held: impl Fn(&str) -> Result<usize, String>) -> Result<Self, String> {
+        let (mut read, bytes) = Self::read_bytes(path)?;
+        if !read.missing { read.bind_project(imported(&bytes), held); }
+        Ok(read)
+    }
+    fn bind_project(&mut self, imported: Result<u64, String>, held: impl Fn(&str) -> Result<usize, String>) {
+        match imported {
+            Err(e) => {
+                self.limits.insert(0, (1, format!("which lines of the points log came from an imported package could not be established ({e})")));
+                let sound: Vec<Result<(), String>> = (0..self.lines.len()).map(|i| self.check(i)).collect();
+                for (line, result) in self.lines.iter_mut().zip(sound) { line.sound = result; }
+            }
+            Ok(prefix) => for line in self.lines.iter_mut().filter(|l| l.sound.is_ok() && (l.start as u64) < prefix) {
+                line.sound = Err(IMPORTED.into());
+            },
+        }
+        for line in self.lines.iter_mut().filter(|l| l.sound.is_ok()) {
+            match held(line.entry["recordId"].as_str().unwrap_or_default()) {
+                Ok(1) => {}
+                Ok(_) => line.sound = Err("the App's records hold this record identity more than once in this project".into()),
+                Err(e) => line.sound = Err(format!("whether this record's identity is held once in this project's records could not be established ({e})")),
+            }
+        }
     }
     fn of_bytes(path: &std::path::Path, bytes: &[u8]) -> Self {
         let name = path.file_name().map(|n| n.to_string_lossy().into_owned()).unwrap_or_default();
         let parsed = crate::record_lines::parse(bytes, &name, 0, 0, 1, Default::default());
+        let starts: Vec<usize> = std::iter::once(0).chain(bytes.iter().enumerate().filter(|(_, b)| **b == b'\n').map(|(i, _)| i + 1)).collect();
         let mut read = Self::default();
         for line in parsed.lines {
             if let Some(limit) = line.broken.clone().or_else(|| line.limits.first().cloned()) {
@@ -314,7 +398,7 @@ impl LogReading {
             for entry in line.entries {
                 match version_of(&entry) {
                     Err(why) => read.refused.push((line.no, format!("line {} of the points log holds {why}", line.no))),
-                    Ok(newer) if entry["kind"] == KIND => read.lines.push(Line { no: line.no, entry, newer, sound: Ok(()) }),
+                    Ok(newer) if entry["kind"] == KIND => read.lines.push(Line { no: line.no, start: starts.get(line.no.saturating_sub(1)).copied().unwrap_or(usize::MAX), entry, newer, sound: Ok(()) }),
                     Ok(_) => {}
                 }
             }
@@ -364,6 +448,10 @@ impl LogReading {
     pub(crate) fn soundness(&self, i: usize) -> &Result<(), String> {
         &self.lines[i].sound
     }
+    /// The sound records of a conversation: what the App's own limit counts.
+    pub(crate) fn sound_of(&self, conversation: &Conversation) -> usize {
+        self.for_thread(conversation.thread).iter().filter(|i| self.lines[**i].sound.is_ok() && conversation.names(&self.lines[**i].entry["body"])).count()
+    }
     /// The lines bound to one call identity.
     pub(crate) fn for_call(&self, source: &Source) -> Vec<usize> {
         self.by_source.get(&source_key(&source.value())).cloned().unwrap_or_default()
@@ -395,6 +483,10 @@ impl LogReading {
         reasons
     }
 }
+
+/// Why a record that came from an imported package is not shown in this
+/// App's voice (DEL-04-03 REQ-010: imported records are quoted evidence).
+pub(crate) const IMPORTED: &str = "the record came from an imported records package, so this App did not observe its placement and does not show it as its own";
 
 /// What the App knows of the conversation a record or pointer is read for.
 pub(crate) struct Conversation<'a> {

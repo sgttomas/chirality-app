@@ -47,7 +47,9 @@ needs:
     catalog edition and surface it was made on.
     Each admitted point is handed to the writer as one `point_placed` body, valid against its
     schema and carrying the store project identity the writer was bound to, for the act log of
-    the App's points writer in its conversation's project.
+    the App's points writer in its conversation's project, under the store's write admission
+    held from the writer binding's proof through the append, after the writer's tail recovery
+    at its open.
   gating: false
 - from: DEL-02-04
   condition: The role guidance supplied at a conversation's start, and for a fork the start supply

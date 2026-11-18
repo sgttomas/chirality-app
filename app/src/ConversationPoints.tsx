@@ -48,6 +48,7 @@ export const PAUSE_IS_COOPERATION = "Whether the agent pauses is its own coopera
 export const INTEGRATOR_UNKNOWN = "The App does not know whether whoever the agent named as integrating accepted this or did it.";
 export const RESERVED_ACT = "A reserved act is made only at a declared checkpoint, through the App's act control. Recording this point performed no act and offers none.";
 export const RECORDING_ONLY = "A recorded point is the agent's record of where a response is wanted. The App has not told anyone about it and is not waiting on it.";
+export const UNSENT = "The App recorded these points but could not send their receipts to the agent:";
 export const DELEGATION_NOT_ESTABLISHED = "Whether a delegation covers this placement is not established.";
 
 /** The App's own observation of how the turn that placed the point started. */
@@ -59,6 +60,7 @@ const TURN_START = {
 /** Why the App could not establish whether a run was open. */
 const RUN_NOT_ESTABLISHED = {
   "start-sent-not-yet-open": "Whether a run was open when it was placed is not established: the App had sent a run's start in this conversation and had not yet seen that run open.",
+  "codex-restarted-run-unknown": "Whether a run was open when it was placed is not established: Codex was restarted in this App session while a run of this conversation was open or starting, and the App has not seen that run since.",
   "resumed-earlier-run-unknown": "Whether a run was open when it was placed is not established: this conversation was resumed, and the App cannot tell whether a run of an earlier App session was still open in it.",
 } as const;
 
@@ -105,6 +107,7 @@ export function ConversationPoints({ points, generation, threadId }: { points: J
       {typeof p.formatVersion === "string" && <p>This record is of a newer format version, {idWords(p.formatVersion)}; the App read it as far as it knows that format.</p>}
       <Terms terms={p.terms} />
     </article>)}
+    {list(row.unsent).length > 0 && <div><p>{UNSENT}</p><ul>{list(row.unsent).map((u: Json, i: number) => <li key={i}>Point reference {idWords(u?.point)}. <AgentText value={u?.reason} source="record" label="Why:" name="Why the App could not send this point's receipt" /></li>)}</ul></div>}
     {refused.length > 0 && <div><p>Calls the App refused; these are not points:</p><ul>{refused.map((r: Json, i: number) => <li key={i}><AgentText value={r?.reason} source="record" label="Refused:" name="Why the App refused this point call" /></li>)}</ul></div>}
   </section>;
 }

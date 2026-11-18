@@ -3047,6 +3047,7 @@
                 "reason": {
                   "enum": [
                     "start-sent-not-yet-open",
+                    "codex-restarted-run-unknown",
                     "resumed-earlier-run-unknown"
                   ]
                 }

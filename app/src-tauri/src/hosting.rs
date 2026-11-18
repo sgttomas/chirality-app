@@ -5725,7 +5725,10 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
         let mut records_call=None;
         let mut point_call=None;
         let private_auth_reply=if let Some((id,token_refresh))=private_auth_id{Some((self.capture_pipe(&i),id,token_refresh))}else{None};
-        if class == "server-request" && private_auth_reply.is_none() {
+        // DEL-02-03 REQ-008: a request naming the point tool that is not framed
+        // as a server request but carries an identity the App can answer goes
+        // through the register too, which refuses it with a sentence saying so.
+        if (class == "server-request" || Self::point_named_unframed(&frame)) && private_auth_reply.is_none() {
             let capabilities = i.declared_capabilities.clone().unwrap_or(Value::Null);
             let offered=if frame["method"]=="item/tool/call"{i.cce_offer.as_ref().and_then(|o|o.classify(&gen,&frame))}else{None};
             let records=Self::records_call_look(&i,&gen,&frame,private_auth_reply.is_some()).is_some()
@@ -5903,19 +5906,9 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
             }
         }
         // DEL-02-03 REQ-008: the placement writes a record and a pointer, so it
-        // runs on a worker as the records read does; a test answers on its
-        // own thread, whose records store it set.
-        if let Some(call)=point_call {
-            if cfg!(test) { self.answer_point_call(call); } else {
-                let host=self.this.lock().unwrap().upgrade();
-                let slot=Arc::new(Mutex::new(Some(call)));
-                let spawned=host.and_then(|host|{let taken=Arc::clone(&slot);std::thread::Builder::new().name("point-record".into())
-                    .spawn(move||{if let Some(call)=taken.lock().unwrap().take(){host.answer_point_call(call);}}).ok()});
-                if spawned.is_none() {
-                    if let Some(call)=slot.lock().unwrap().take(){self.answer_point_call(call);}
-                }
-            }
-        }
+        // runs on the App's point recorder (a bounded queue); a call it cannot
+        // take is refused with the App's sentence, never placed here.
+        if let Some(call)=point_call { self.dispatch_point_call(call); }
         if let Some((bound,id,token_refresh))=private_auth_reply{
             let result=bound.and_then(|bound|self.write_private_auth_rejection(bound,id,token_refresh));
             let mut i=self.inner.0.lock().unwrap();

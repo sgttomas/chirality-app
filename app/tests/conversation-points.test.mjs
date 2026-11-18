@@ -76,6 +76,7 @@ test('the run reading is the run, its absence, or not established with the App\'
   assert.ok(show(row({points: [point(read)]})).includes('Placed when no run was open in this conversation in this App session.'));
   assert.ok(show(row({points: [point(read, {run: {state: 'not established', reason: 'start-sent-not-yet-open'}})]})).includes('had sent a run\'s start in this conversation and had not yet seen that run open.'));
   assert.ok(show(row({points: [point(read, {run: {state: 'not established', reason: 'resumed-earlier-run-unknown'}})]})).includes('this conversation was resumed, and the App cannot tell whether a run of an earlier App session was still open in it.'));
+  assert.ok(show(row({points: [point(read, {run: {state: 'not established', reason: 'codex-restarted-run-unknown'}})]})).includes('Codex was restarted in this App session while a run of this conversation was open or starting, and the App has not seen that run since.'));
   assert.ok(show(row({points: [point(read, {run: {state: 'not established', reason: 'anything else'}})]})).includes('Whether a run was open when it was placed is not established.'));
 });
 
@@ -125,6 +126,13 @@ test('hostile supplied text stays inside a marked box and never becomes a contro
   assert.ok(!/<h\d[^>]*>[^<]*Approve/.test(html));
   for (const name of agentBoxNames(html)) assert.ok(!name.includes('Approve'), name);
   assert.ok(!/aria-label="[^"]*evil/.test(html));
+});
+
+test('a recorded point whose receipt the App could not send says so, with the reason', () => {
+  const html = agentPlain(show(row({unsent: [{point: 'pt-1', reason: 'captured source generation/pipe closed or changed before write'}]})));
+  assert.ok(html.includes(P.UNSENT));
+  assert.ok(html.includes('Point reference pt-1. ⟦Why: captured source generation/pipe closed or changed before write⟧'));
+  assert.ok(!agentPlain(show(row())).includes(P.UNSENT));
 });
 
 test('refused calls are listed as not points, and another conversation shows nothing here', () => {

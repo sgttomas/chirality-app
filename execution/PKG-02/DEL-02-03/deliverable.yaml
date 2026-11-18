@@ -41,7 +41,8 @@ needs:
     is kept across a relaunch and can be looked up.
     A tag is kept only for a conversation indexed under a known App project; its write says
     whether it was kept durably, with the limit where it was not, and the ledger's tags for a
-    conversation are read with the ledger's health.
+    conversation are read with the ledger's health. The ledger keeps a tag added to an indexed
+    conversation's row after the generation that placed the tagged record has closed.
   gating: true
 - from: DEL-01-04
   condition: The act control captures an act the person performs with its capture evidence and
@@ -62,13 +63,17 @@ needs:
     A `point_placed` record is validated and written through the same writer, appended, synced
     and chained, to an act log outside any run in the store's part for the conversation's
     project, and the writer refuses where the store is unavailable or the project is closed; a
-    writer error does not establish that the line did not land. The store's writer and reader
-    bindings give the project's stable identity and its records folder, checked against the
-    project folder each time, and its read admission registers and attaches nothing. The
-    store's reader gives each line of that log with its number, states a broken chain, an
-    unreadable line or a limit at the line where it occurs, and reports a torn fragment the
-    writer set aside as a note, not a limit; an entry's version is read by REQ-012. Export,
-    import, verification without the App, legal hold and disposal treat it as any other record.
+    writer error does not establish that the line did not land. The writer's tail recovery can
+    be run at its open, before the log is read. The store's writer and reader bindings give the
+    project's stable identity and its records folder, checked against the project folder each
+    time; its write admission can be held from the writer binding's proof through the append,
+    and its read admission, which registers and attaches nothing, through a read. The store's
+    reader gives each line of that log with its number, states a broken chain, an unreadable
+    line or a limit at the line where it occurs, and reports a torn fragment the writer set
+    aside as a note, not a limit; an entry its line reader passes is read by REQ-012. The
+    store's project-wide index says how many entries of the project hold a record identity,
+    and a completed package import says how much of a log it brought in. Export, import,
+    verification without the App, legal hold and disposal treat it as any other record.
   gating: false
 - from: DEL-03-02
   condition: Each change item has a content identity and its own disposition, an item leaving
