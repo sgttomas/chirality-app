@@ -356,9 +356,12 @@ upload. Cargo rebuilds a unit when its freshness fingerprint is missing.
 The tool handles the legacy intermediate layout and the one introduced in
 Cargo 1.100, which groups artifacts, fingerprints and build-script run data
 under `build/<package>/<unit>/`. The App's legacy library build can leave
-unhashed files in `deps`. Cargo gives every dependency's file there a hash, so
-the tool also removes every entry of `deps` whose name carries none, whatever
-it is named.
+unhashed files in `deps`.
+The App's registry dependencies use hashed compiler artifact names there.
+The tool also removes entries in `deps` without a recognized filename hash,
+including old App library output and compiler scratch. Interrupted legacy
+links can leave compiler scratch in a build-script directory as well.
+The tool removes the recognized temporary directories before upload.
 
 The tool checks the structure of the cache paths, down to what each unit
 folder and build-script folder directly holds, and refuses entries that fail
@@ -370,8 +373,9 @@ failed restore or a pruning refusal and proceeds to a full build. Setup fails
 if that discard fails. A dependency-only cache can restore with zero removals.
 
 The save action skips pruning and upload when the key is empty or the restore
-reported an exact hit. When pruning runs, the tool refuses a tree with
-recognized fingerprint directories if it removes no repository output. This
+reported an exact hit. When recognized fingerprint directories are present,
+save pruning requires a match to a current workspace package or target.
+Removing other entries, such as compiler scratch, is insufficient. This
 can happen after a prefix hit if the job fails before compiling the App. A
 pruning refusal emits an error annotation and skips upload. Save errors leave
 the job result unchanged.

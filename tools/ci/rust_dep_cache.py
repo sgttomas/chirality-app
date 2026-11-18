@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """Keep the repository's own crates out of the CI Rust dependency cache.
 
-Cargo treats a unit as fresh only when its fingerprint directory says so. A
-crate with no fingerprint must be compiled from the checked-out source, whatever
-the file times are. Removing the repository's own units therefore leaves cargo
-nothing it could wrongly reuse; third-party units stay, bound to Cargo.lock by
-the cache key.
+Cargo rebuilds a workspace unit when its freshness fingerprint is missing. This
+tool removes cached paths matching current workspace packages and targets. The
+remaining dependency artifacts can be reused under the cache key.
 
 Cargo's output layout is not a stable interface. Two are known here. Before
 Cargo 1.100: `.fingerprint/<package>-<hash>/`, `build/<package>-<hash>/` and
@@ -66,6 +64,9 @@ UNIT_FOLDERS = ("fingerprint", "out", "run", "artifact")
 UNIT_FILES = (".lock",)
 RUN_FILES = ("output", "root-output", "stderr", "invoked.timestamp")
 BUILD_SCRIPT = ("build-script-", "build_script_")
+# The temporary directory rustc links in, beside the output it is making. An
+# interrupted link can leave it behind.
+COMPILER_SCRATCH = re.compile(r"rustc[A-Za-z0-9]{6}")
 
 
 def real_directory(path: Path) -> bool:
@@ -113,12 +114,14 @@ def build_script_folder_as_the_older_layout_makes_it(entry: Path) -> bool:
             continue
         if member.name.startswith(BUILD_SCRIPT) and (member.is_file() or member.name.endswith(".dSYM")):
             continue
+        if COMPILER_SCRATCH.fullmatch(member.name) and real_directory(member):
+            continue
         return False
     return True
 
 
 def own_artifacts(profile: Path, packages: set[str], crates: set[str]) -> list[Path]:
-    """List output belonging to repository crates; dependencies never match."""
+    """List cached paths selected for removal by package name or crate name."""
     crate = re.compile("(?:lib)?(?:" + "|".join(map(re.escape, sorted(crates))) + r")(?:-[0-9a-f]+)?(?:\..*)?")
     # Names that differ only in case share one folder on a case-insensitive disk.
     folded = {package.casefold() for package in packages}
@@ -132,16 +135,33 @@ def own_artifacts(profile: Path, packages: set[str], crates: set[str]) -> list[P
         # The name is read as the layout the entry is in reads it.
         if entry.name.casefold() in folded if package_folder(entry) else legacy_owner(entry):
             found.append(entry)
-    # In `deps` Cargo gives every dependency's file a hash. A name with none is a
-    # local library built as a dynamic library, under its current name or an
-    # earlier one, or something a tool left behind: none of it is a dependency.
-    found += [entry for entry in entries(profile / "deps")
-              if crate.fullmatch(entry.name) or not HASHED_FILE.fullmatch(entry.name)]
+    found += [entry for entry in entries(profile / "deps") if crate.fullmatch(entry.name)]
+    return found
+
+
+def unidentified(profile: Path) -> list[Path]:
+    """List cached paths selected for removal by the legacy unhashed-entry rule.
+
+    The App's legacy library build can leave unhashed files in `deps`, and the
+    App's registry dependencies use hashed compiler artifact names there. So an
+    entry of `deps` without a recognized filename hash is old App library output
+    or compiler scratch. An interrupted legacy link can leave compiler scratch
+    in a build-script directory as well. None of it names a current workspace
+    package or target, so none of it counts as a match.
+    """
+    found = [entry for entry in entries(profile / "deps") if not HASHED_FILE.fullmatch(entry.name)]
+    for entry in entries(profile / "build"):
+        if real_directory(entry) and not package_folder(entry):
+            found += [member for member in entries(entry)
+                      if COMPILER_SCRATCH.fullmatch(member.name) and real_directory(member)]
     return found
 
 
 def compiled_units(profile: Path) -> list[Path]:
-    """Every compiled unit's fingerprint folder, under either known layout."""
+    """Recognized fingerprint directories, under either known layout.
+
+    Cargo can create one during preparation, before compilation succeeds.
+    """
     found = [entry for entry in entries(profile / ".fingerprint")
              if real_directory(entry) and LEGACY_UNIT.fullmatch(entry.name)]
     for entry in entries(profile / "build"):
@@ -174,7 +194,7 @@ def unrecognised_output(profile: Path) -> list[Path]:
             unknown.append(entry)
     for entry in entries(profile / "deps"):
         if not HASHED_FILE.fullmatch(entry.name):
-            continue  # No hash: removed as not a dependency's, whatever it is.
+            continue  # No recognized hash: removed by the unhashed-entry rule.
         if entry.is_file() or (real_directory(entry) and entry.name.endswith(".dSYM")):
             payload.append(entry)
         else:
@@ -208,7 +228,11 @@ def remove(path: Path) -> None:
 
 
 def prune(manifest: Path, target: Path) -> int:
-    """Remove repository crates from target and prove none remain."""
+    """Remove matching cache entries and check for remaining matches.
+
+    Returns the number of paths matched to a current workspace package or
+    target. Unidentified entries are removed as well and are not counted.
+    """
     packages, crates = own_units(manifest)
     shared = shared_names(manifest, packages)
     if shared:
@@ -223,19 +247,23 @@ def prune(manifest: Path, target: Path) -> int:
     found = own_artifacts(profile, packages, crates)
     for path in found:
         remove(path)
-    left = own_artifacts(profile, packages, crates)
+    # Listed after the matches are gone: a match can hold or be one of these.
+    for path in unidentified(profile):
+        remove(path)
+    left = own_artifacts(profile, packages, crates) + unidentified(profile)
     if left:
-        raise ValueError(f"Repository crates remain in the Rust output: {left}")
+        raise ValueError(f"Entries selected for removal remain in the Rust output: {left}")
     return len(found)
 
 
 def prune_after_build(manifest: Path, target: Path) -> int:
-    """Prune before a save. A build that left nothing of the repository's is an error.
+    """Prune before a save. Fingerprints with no match to the repository are an error.
 
-    A job that compiled has the repository's crates in its output, so compiled
-    output with none of them recognised could hold them unrecognised. A job that
-    restored dependencies and failed before compiling is refused as well; it has
-    nothing new to save.
+    A job that compiled has the repository's crates in its output, so recognized
+    fingerprint directories with no match to a current workspace package or
+    target could hold them unmatched. Removing unidentified entries, such as
+    compiler scratch, does not count. A job that restored dependencies and
+    failed before compiling is refused as well; it has nothing new to save.
     """
     built = bool(compiled_units(target / PROFILE))
     removed = prune(manifest, target)

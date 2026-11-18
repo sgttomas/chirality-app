@@ -163,7 +163,7 @@ def test_a_real_build_holding_nothing_recognised_as_the_repositorys_is_not_saved
     monkeypatch.setattr(subject, "own_units", lambda manifest: ({"renamed-app"}, {"renamed_app"}))
     with pytest.raises(ValueError, match="none of it was recognised"):
         subject.prune_after_build(cargo_project / "Cargo.toml", target)
-    # After a restore the cache holds no repository crate, so nothing to remove is the normal case.
+    # Restore allows zero matches. The stub still hides own-app in this fixture.
     assert "removed 0" in subject.restored(cargo_project / "Cargo.toml", target, "some-key")
     assert units_of(target / "debug", "third-party"), built_as(cargo_project)
 
@@ -307,7 +307,7 @@ def test_output_in_a_layout_the_tool_does_not_know_is_refused_beside_valid_units
     assert not target.exists() and "building everything" in report
 
 
-def test_what_cargo_leaves_in_ordinary_and_interrupted_builds_is_accepted(tmp_path, monkeypatch):
+def test_these_shapes_of_ordinary_and_interrupted_output_are_accepted(tmp_path, monkeypatch):
     target = tmp_path / "target"
     profile = target / "debug"
     layout_of_cargo_1_100(profile)
@@ -351,15 +351,43 @@ def test_files_without_a_hash_in_deps_are_removed_whatever_they_are_named(tmp_pa
     (profile / "deps/rustcAbCdEf").mkdir()
     own_app_only(monkeypatch, packages=("own-app",), crates=("new_name",))
     assert subject.unrecognised_output(profile) == []
-    assert "removed 4" in subject.restored(tmp_path / "Cargo.toml", target, "some-key")
+    # None of the four names a current package or target, so none is counted as the repository's.
+    assert "removed 0" in subject.restored(tmp_path / "Cargo.toml", target, "some-key")
     assert not any(file.exists() for file in stale) and not (profile / "deps/rustcAbCdEf").exists()
     assert all(path.exists() for path in kept)
-    # The same at save, with the repository's own units beside it.
+    # The same at save, with the repository's own units beside it. Only those four count.
     for file in stale:
         file.write_text("stale")
     older_layout(profile, "own-app", "new_name", "1111111111111111", "2222222222222222")
-    assert subject.prune_after_build(tmp_path / "Cargo.toml", target) == 7
+    assert subject.prune_after_build(tmp_path / "Cargo.toml", target) == 4
     assert not any(file.exists() for file in stale) and all(path.exists() for path in kept)
+
+
+def test_compiler_scratch_left_in_a_build_scripts_folder_is_removed_not_refused(tmp_path, monkeypatch):
+    # rustc links in a temporary directory beside its output; an interrupted link of a
+    # build script leaves it in the older layout's `build/<package>-<hash>/`.
+    target = tmp_path / "target"
+    profile = target / "debug"
+    own = older_layout(profile, "own-app", "own_app", "1111111111111111", "2222222222222222")
+    kept = older_layout(profile, "third-party", "third_party")
+    scratch = [own[1] / "rustcl56x0c", kept[1] / "rustcoOub7N"]
+    for folder in scratch:
+        (folder / "symbols.o").parent.mkdir()
+        (folder / "symbols.o").write_text("")
+    own_app_only(monkeypatch)
+    assert subject.unrecognised_output(profile) == []
+    # At save: the repository's four paths count, the dependency's scratch goes uncounted.
+    assert subject.prune_after_build(tmp_path / "Cargo.toml", target) == 4
+    assert not any(folder.exists() for folder in scratch)
+    assert all(path.exists() for path in kept) and not any(path.exists() for path in own)
+    # After a matched restore: removed again, and the restored output is kept.
+    scratch[1].mkdir()
+    assert "removed 0" in subject.restored(tmp_path / "Cargo.toml", target, "some-key")
+    assert not scratch[1].exists() and all(path.exists() for path in kept)
+    # Only that name, and only as a folder: anything else there is still refused.
+    (kept[1] / "rustc-other").mkdir()
+    with pytest.raises(ValueError, match="not in a layout this tool knows"):
+        subject.prune(tmp_path / "Cargo.toml", target)
 
 
 def test_the_older_layouts_output_with_no_fingerprint_beside_it_is_refused(tmp_path, monkeypatch):
@@ -435,6 +463,21 @@ def test_the_save_command_fails_when_a_build_left_nothing_of_the_repositorys(tmp
     # With no compiled output at all there was no build, and nothing to refuse.
     shutil.rmtree(target)
     assert subject.main() == 0
+
+
+def test_the_save_command_does_not_take_removed_compiler_scratch_for_the_repositorys(tmp_path, monkeypatch, capsys):
+    # A dependency's fingerprint and library, and a temporary directory rustc left in deps.
+    target = tmp_path / "target"
+    (target / "debug/.fingerprint/serde-0123456789abcdef").mkdir(parents=True)
+    (target / "debug/deps/rustcl56x0c").mkdir(parents=True)
+    (target / "debug/deps/libserde-0123456789abcdef.rlib").write_text("")
+    own_app_only(monkeypatch)
+    monkeypatch.setattr(subject.sys, "argv", ["rust_dep_cache.py", "prune", "--manifest-path",
+                                              str(tmp_path / "Cargo.toml"), "--target-dir", str(target)])
+    assert subject.main() == 2
+    printed = capsys.readouterr().out
+    assert "::error::" in printed and "Removed" not in printed
+    assert (target / "debug/deps/libserde-0123456789abcdef.rlib").is_file()
 
 
 @pytest.fixture
