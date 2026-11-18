@@ -1252,3 +1252,82 @@ def test_repeated_keys_or_invalid_json_refuse(raw, which):
     kwargs = {'sources_value': raw} if which == 'sources' else {'manifest_value': raw}
     with pytest.raises(ValueError, match='repeats a key|is not JSON'):
         compare(**kwargs)
+
+
+# The reviewer's aid (review_publisher_texts.py), on invented archive members and an invented listing: each comparison
+# its docstring and the README state, at that scope. Review round 5, finding 3: a Cargo.toml directory is not a manifest.
+def _aid():
+    spec_ = importlib.util.spec_from_file_location('review_aid', ROOT / 'app/packaging/supplier_notices/review_publisher_texts.py')
+    module = importlib.util.module_from_spec(spec_)
+    spec_.loader.exec_module(module)
+    return module
+
+
+def _aid_case(repo, change):
+    """wasite's recorded entry, with archive members and a listing made to agree with it; `change` then alters one."""
+    associations = json.loads((repo / crates.ASSOCIATIONS).read_bytes())
+    entry = next(e for e in associations['registry_sources'] if any(p['name'] == 'wasite' for p in e['packages']))
+    package = next(p for p in entry['packages'] if p['name'] == 'wasite')
+    case = {'vcs': {'git': {'sha1': package['archive_vcs_revision']}},
+            'manifest': {'package': {'name': 'wasite', **({'repository': package['archive_repository']} if package['archive_repository'] else {})}},
+            'tree': [{'path': t['source_path'], 'type': 'blob', 'sha': t['git_blob_sha1'], 'size': t['size_bytes']} for t in entry['texts']]
+                    + [{'path': 'Cargo.toml', 'type': 'blob', 'sha': '0' * 40, 'size': 1}],
+            'truncated': False, 'entry': entry, 'package': package}
+    change(case)
+    vcs = json.dumps(case['vcs']).encode()
+    manifest = ''.join(f'[package]\nname = "{case["manifest"]["package"]["name"]}"\n'
+                       + (f'repository = "{case["manifest"]["package"]["repository"]}"\n' if 'repository' in case['manifest']['package'] else '')).encode()
+    members = {'.cargo_vcs_info.json': vcs, 'Cargo.toml': manifest}
+    for member, data in members.items():
+        package['archive_metadata'][member] = {'size_bytes': len(data), 'sha256': hashlib.sha256(data).hexdigest()}
+    case.get('metadata', lambda p: None)(package)
+    entry['listing']['entries'] = case.get('entries', len(case['tree']))
+    listing = {'truncated': case['truncated'], 'tree': case['tree']}
+    return _aid().compare(repo, entry, package, members, listing)
+
+
+def _set(key, value):
+    return lambda case: case.__setitem__(key, value)
+
+
+@pytest.mark.parametrize('change, message', [
+    (lambda c: None, None),
+    (lambda c: c['vcs'].update(path_in_vcs=None), "path_in_vcs None is stated in the VCS record, recorded null"),
+    (lambda c: c['vcs'].update(path_in_vcs=''), "path_in_vcs '' is stated in the VCS record, recorded null"),
+    (lambda c: c['vcs']['git'].update(sha1='1' * 40), 'VCS revision 1111111111111111111111111111111111111111'),
+    (_set('metadata', lambda p: p['archive_metadata']['Cargo.toml'].update(size_bytes=1)), 'Cargo.toml is'),
+    (lambda c: c['manifest']['package'].update(repository='https://github.com/invented/other'), 'manifest repository'),
+    (lambda c: c['tree'][-1].update(type='tree'), 'the listing has no folder holding a Cargo.toml file'),
+    (lambda c: c['tree'].pop(), 'the listing has no folder holding a Cargo.toml file'),
+    (lambda c: c['tree'].append({'path': 'sub/Cargo.toml', 'type': 'blob', 'sha': '0' * 40, 'size': 1})
+     or c['tree'].append({'path': 'sub/LICENSE', 'type': 'blob', 'sha': '1' * 40, 'size': 1}), 'path omitted; the folders with a Cargo.toml select'),
+    (lambda c: c['tree'].append({'path': 'COPYING', 'type': 'blob', 'sha': '1' * 40, 'size': 1}), 'path omitted; the folders with a Cargo.toml select'),
+    (lambda c: c['tree'][0].update(sha='1' * 40), 'in the listing'),
+    (lambda c: c['tree'][0].update(size=1), 'in the listing'),
+    (_set('truncated', True), 'listing truncated True'),
+    (_set('entries', 99), 'listing truncated False with'),
+])
+def test_the_reviewer_s_aid_compares_what_it_states(repo, change, message):
+    problems = _aid_case(repo, change)
+    if message is None:
+        assert problems == []
+    else:
+        assert any(message in p for p in problems), problems
+
+
+def test_the_reviewer_s_aid_compares_the_stored_bytes(repo):
+    associations = json.loads((repo / crates.ASSOCIATIONS).read_bytes())
+    text = next(e for e in associations['registry_sources'] if any(p['name'] == 'wasite' for p in e['packages']))['texts'][0]
+    stored = repo / crates.TEXTS / text['sha256']
+    stored.write_bytes(stored.read_bytes() + b'\n')
+    assert any('the stored bytes are not the recorded size, digest and blob' in p for p in _aid_case(repo, lambda c: None))
+
+
+def test_the_reviewer_s_aid_does_not_read_the_path_basis(repo):
+    assert _aid_case(repo, lambda c: c['package'].update(path_basis='The only Cargo.toml is in bogus-subdirectory.')) == []
+
+
+def test_the_reviewer_s_aid_counts_only_manifest_files():
+    aid = _aid()
+    tree = [{'path': 'Cargo.toml', 'type': 'tree'}, {'path': 'a/Cargo.toml', 'type': 'blob'}, {'path': 'b/Cargo.toml.orig', 'type': 'blob'}]
+    assert aid.manifest_folders(tree) == ['a']
