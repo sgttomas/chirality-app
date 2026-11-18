@@ -67,24 +67,51 @@ def test_without_pruning_cargo_trusts_an_old_file_time_and_runs_stale_code(cargo
     assert binary(cargo_project).startswith("own=old")
 
 
+def built_as(project):
+    """Which cargo built, and where it put things: read in the log when a layout assertion fails."""
+    version = subprocess.run(["cargo", "--version"], capture_output=True, text=True).stdout.strip()
+    profile = project / "target/debug"
+    shown = sorted(str(path.relative_to(profile)) for depth in ("*", "*/*", "build/*/*", "build/*/*/*")
+                   for path in profile.glob(depth) if not str(path.relative_to(profile)).startswith("incremental"))
+    return f"{version}: {shown}"
+
+
+def units_of(profile, package):
+    """A package's unit folders, wherever either known layout puts them."""
+    return (list((profile / ".fingerprint").glob(f"{package}-*"))
+            + list((profile / "build").glob(f"{package}-*"))
+            + list((profile / "build").glob(f"{package}/*")))
+
+
 def test_pruning_forces_a_rebuild_of_repository_crates_only(cargo_project):
     cargo(cargo_project, "build")
     cargo(cargo_project, "test", "--no-run")
     target = cargo_project / "target"
-    removed = subject.prune(cargo_project / "Cargo.toml", target)
-    assert removed
     profile = target / "debug"
-    assert not list((profile / ".fingerprint").glob("own-app-*"))
-    assert not list((profile / "build").glob("own-app-*"))
+    assert units_of(profile, "own-app") and units_of(profile, "third-party"), built_as(cargo_project)
+    # As the save step calls it: a build that leaves nothing to remove is an error.
+    removed = subject.prune_after_build(cargo_project / "Cargo.toml", target)
+    assert removed, built_as(cargo_project)
+    assert not units_of(profile, "own-app"), built_as(cargo_project)
     assert not list((profile / "deps").glob("own_app-*"))
     assert not list((profile / "deps").glob("own_integration-*"))
-    assert list((profile / ".fingerprint").glob("third-party-*"))
-    assert list((profile / "deps").glob("libthird_party-*"))
+    assert units_of(profile, "third-party"), built_as(cargo_project)
     backdate_new_source(cargo_project)
     build = cargo(cargo_project, "build")
     assert "Compiling own-app" in build.stderr
     assert "Compiling third-party" not in build.stderr
     assert binary(cargo_project).startswith("own=new")
+
+
+def test_a_real_build_holding_nothing_recognised_as_the_repositorys_is_not_saved(cargo_project, monkeypatch):
+    cargo(cargo_project, "build")
+    target = cargo_project / "target"
+    monkeypatch.setattr(subject, "own_units", lambda manifest: ({"renamed-app"}, {"renamed_app"}))
+    with pytest.raises(ValueError, match="none of it was recognised"):
+        subject.prune_after_build(cargo_project / "Cargo.toml", target)
+    # After a restore the cache holds no repository crate, so nothing to remove is the normal case.
+    assert "removed 0" in subject.restored(cargo_project / "Cargo.toml", target, "some-key")
+    assert units_of(target / "debug", "third-party"), built_as(cargo_project)
 
 
 def test_ownership_matches_exact_crate_names_only(tmp_path):
@@ -105,6 +132,70 @@ def test_ownership_matches_exact_crate_names_only(tmp_path):
         path.write_text("")
     found = subject.own_artifacts(profile, {"own-app"}, {"own_app"})
     assert set(found) == set(own)
+
+
+def layout_of_cargo_1_100(profile):
+    """Units as Cargo 1.100 lays them out: build/<package>/<hash>/ holding fingerprint and out."""
+    own = profile / "build/own-app"
+    kept = [profile / "build/own-app-helper", profile / "build/third-party"]
+    for package in [own, *kept]:
+        for unit in ("0123456789abcdef", "fedcba9876543210"):
+            (package / unit / "fingerprint").mkdir(parents=True)
+            (package / unit / "fingerprint/invoked.timestamp").write_text("")
+            (package / unit / "out").mkdir()
+            (package / unit / "out/artifact.rlib").write_text("")
+    return own, kept
+
+
+def test_ownership_in_the_layout_of_cargo_1_100_is_the_package_folder(tmp_path):
+    profile = tmp_path / "debug"
+    own, kept = layout_of_cargo_1_100(profile)
+    assert subject.own_artifacts(profile, {"own-app"}, {"own_app"}) == [own]
+    assert len(subject.unit_fingerprints(profile)) == 6
+    assert not subject.unrecognised_output(profile)
+
+
+def test_pruning_the_layout_of_cargo_1_100_removes_every_unit_of_the_package(tmp_path, monkeypatch):
+    target = tmp_path / "target"
+    own, kept = layout_of_cargo_1_100(target / "debug")
+    monkeypatch.setattr(subject, "own_units", lambda manifest: ({"own-app"}, {"own_app"}))
+    assert subject.prune_after_build(tmp_path / "Cargo.toml", target) == 1
+    assert not own.exists()
+    assert all((package / "0123456789abcdef/out/artifact.rlib").is_file() for package in kept)
+    # Pruned output is what a later restore sees: nothing left to remove, and not an error.
+    assert "removed 0" in subject.restored(tmp_path / "Cargo.toml", target, "some-key")
+
+
+def test_output_in_a_layout_the_tool_does_not_know_is_refused_and_discarded(tmp_path, monkeypatch):
+    target = tmp_path / "target"
+    unknown = target / "debug/build/units/0123456789abcdef"
+    unknown.mkdir(parents=True)
+    (unknown / "own_app.rlib").write_text("stale")
+    monkeypatch.setattr(subject, "own_units", lambda manifest: ({"own-app"}, {"own_app"}))
+    assert subject.unrecognised_output(target / "debug")
+    for prune in (subject.prune, subject.prune_after_build):
+        with pytest.raises(ValueError, match="not in a layout this tool knows"):
+            prune(tmp_path / "Cargo.toml", target)
+    assert (unknown / "own_app.rlib").is_file()
+    report = subject.restored(tmp_path / "Cargo.toml", target, "some-key")
+    assert not target.exists() and "building everything" in report
+
+
+def test_the_save_command_fails_when_a_build_left_nothing_of_the_repositorys(tmp_path, monkeypatch, capsys):
+    target = tmp_path / "target"
+    (target / "debug/.fingerprint/third-party-0123456789abcdef").mkdir(parents=True)
+    (target / "debug/deps").mkdir()
+    (target / "debug/deps/libthird_party-0123456789abcdef.rlib").write_text("")
+    monkeypatch.setattr(subject, "own_units", lambda manifest: ({"own-app"}, {"own_app"}))
+    arguments = ["rust_dep_cache.py", "prune", "--manifest-path", str(tmp_path / "Cargo.toml"),
+                 "--target-dir", str(target)]
+    monkeypatch.setattr(subject.sys, "argv", arguments)
+    assert subject.main() == 2
+    assert "::error::" in capsys.readouterr().out
+    assert (target / "debug/deps/libthird_party-0123456789abcdef.rlib").is_file()
+    # With no compiled output at all there was no build, and nothing to refuse.
+    shutil.rmtree(target)
+    assert subject.main() == 0
 
 
 @pytest.fixture

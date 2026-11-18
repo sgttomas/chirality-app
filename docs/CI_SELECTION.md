@@ -352,12 +352,18 @@ downloads and test results are not cached.
 `tools/ci/rust_dep_cache.py` keeps the repository's crates out: it removes their
 units before every save and again after every restore, using the package and
 target names reported by `cargo metadata`. Cargo reuses a unit only when its
-`.fingerprint` directory records it as fresh, so a repository crate without one
-is compiled from the checked-out source regardless of file times.
+fingerprint directory records it as fresh, so a repository crate without one
+is compiled from the checked-out source regardless of file times. Where Cargo
+puts its output is not a stable interface. The tool knows two layouts: the one
+before Cargo 1.100, and the one from 1.100, which keeps every unit of a package
+under `build/<package>/`. Output in any other layout is refused, never passed as
+clean. Before a save, compiled output with none of the repository's crates in it
+is refused too, since every job that saves has compiled them.
 `tools/ci/test_rust_dep_cache.py` demonstrates this with real cargo builds,
 including a control run showing that an unpruned target would run stale code.
 A cache miss, a failed restore, or restored output that cannot be cleaned becomes
-a full build. A failed save never affects the job.
+a full build. A refused or failed save saves nothing, shows its step as failed
+and never affects the job.
 
 Pull requests from forks use neither this cache nor the npm cache, and always
 build from the checkout. A cache archive is trusted as it was written, so an
