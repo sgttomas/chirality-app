@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """A reviewer's aid, not a CI check: the review-duty comparison for every publisher-text association.
 
-    python3 -I app/packaging/supplier_notices/review_publisher_texts.py --archives MAP.json --listings DIR
+    python3 -I -B app/packaging/supplier_notices/review_publisher_texts.py --archives MAP.json --listings DIR
 
-For each package of `crates/associations.json` `registry_sources` it prints one line, `OK` or `MISMATCH` with what
-differs. It compares these recorded values with the held evidence the checker does not read, and nothing else:
+After its inputs load and its member reads verify, it reports one comparison per package of `crates/associations.json`
+`registry_sources`, `OK` or `MISMATCH` with what differs; an input error ends the run before any package line. It
+compares these recorded values with the held evidence the checker does not read, and nothing else:
 
 - the archive's stated values. MAP.json maps `<name>-<version>.crate` to the archive; its SHA-256 must equal the
   lockfile checksum before it is opened (`crate_notices.read_member`, which also applies the route's header checks), and

@@ -4,7 +4,8 @@
 `voice_records/<pin>/` holds byte-faithful copies of two members of the supplier tree, read once from the held
 distribution archive: `codex-resources/voice/sources.json` (each library's version and source archive URL) and
 `codex-resources/voice/manifest.json` (the build commit, version and target, and the digest of each bundled file).
-`notices/coverage.py` calls `establish` on every generate and check:
+`notices/coverage.py` calls `establish` when the table is reviewed for the declared pin; `establish` returns without
+comparing when the pin's folder is absent. Otherwise:
 
 - each copy is a regular non-link file whose size and SHA-256 equal its member in the distribution record;
 - a repeated JSON key or any shape other than the one below refuses;
@@ -19,7 +20,8 @@ Neither record states which licence file belongs to which library, so which tree
 curated, reviewed association in components.json; it is not checked here.
 
 These are the supplier's statements about its own bundle; the libraries' contents are not inspected, and no source
-archive is read. `coverage.py --vendor DIR` applies the same comparison to an extracted tree's two files.
+archive is read. `coverage.py check --vendor DIR` and `coverage.py generate --vendor DIR` apply the same comparison to
+an extracted tree's two files.
 """
 import hashlib
 import json

@@ -238,8 +238,7 @@ This section lists, site by site, how a standing can move toward covered: each p
 - **E**: the checker enforces it, and the named test changes that input and sees the refusal
   or the open standing;
 - **C**: the code checks it, and no test in these suites changes that input alone;
-- **R**: a review duty. The reviewer of the pull request that changes the curated input checks it
-  from the evidence named.
+- **R**: a review duty of the reviewer of the pull request that changes the curated input.
 
 These apply to every site:
 
@@ -264,7 +263,7 @@ These apply to every site:
 | Library content | the bundle's record names the entry's revision | E | `test_library_content_must_match_its_bundle_source_record` |
 | Library content | the bundle's record has its reviewed digest | E | `test_an_added_or_changed_file_in_a_bundled_library_folder_is_open` |
 | Library content | the folder holds exactly the record's members, or the row stands uncovered | E | `test_an_added_or_changed_file_in_a_bundled_library_folder_is_open` |
-| Library content | the licence digest equals the App's `LICENSE.md`; the record lies inside the bundle; its repository and licence equal the entry's as written | C | `build` |
+| Library content | the licence digest equals the App's `LICENSE.md`; the record lies inside the bundle; for workflow manifests, its repository and licence equal the entry's as written; a role-set binding contributes its basis commit | C | `build` |
 | Library content | the record's source is the Library's at that revision | R | pre-existing; the review of the change that bundled it |
 | Cargo row needing a reading | a row with a received upstream text, or whose text's repository is the objc2 repository, is covered only by a reading in the closed form, and otherwise stands held | E | `test_a_pending_or_missing_reading_is_pending_and_strict_refuses` |
 | Cargo row needing a reading | the objc2 repository is matched in any letter case | C | `READING_REQUIRED_REPOSITORIES` with `same_repository` |
@@ -273,11 +272,11 @@ These apply to every site:
 | Cargo archive-member row | the transitive index's kind agrees with the row's members | E | `notice_transitive_test.py` `test_text_kind_must_match_members_and_received_text` |
 | Cargo archive-member row | the shipped texts equal the planned tree | E | `test_changed_missing_extra_or_linked_text_refuses` |
 | Cargo archive-member row | the index is what the generator makes from the archives | R | rerun `transitive.py check --cargo-home` |
-| Cargo root-text row | a received text is at its crate's repository and revision, with its committed bytes | E | `test_received_text_must_be_at_the_revision_its_crate_names` |
+| Cargo root-text row | a received text is at the revision its crates name, or is the root blob the retained root metadata names at that revision, with its committed bytes | E | `test_received_text_must_be_at_the_revision_its_crate_names` |
 | Cargo root-text row | a root row keeps its revision, unresolved list, kind and licence | E | `notice_transitive_test.py` `test_root_row_cannot_choose_path_revision_scope_or_downgrade` |
 | Cargo root-text row | a crate not on the root list cannot take a root association | E | `notice_transitive_test.py` `test_unlisted_crate_cannot_inherit_root_association` |
 | Cargo root-text row | the root text at the named revision is the crate's notice | R | pre-existing; the project's Agent 0 accepted them as mechanical matches |
-| npm row | a text kind other than `direct-index-archive` or `lock-tarball` refuses in the transitive check | E | `notice_transitive_test.py` `test_cargo_text_kinds_cannot_hide_unverified_npm_packages` |
+| npm row | unknown npm text kinds refuse; only `direct-index-archive` and `lock-tarball` can yield covered | E | `notice_transitive_test.py` `test_cargo_text_kinds_cannot_hide_unverified_npm_packages` |
 | npm row | the index is what the generator makes from the tarballs | R | rerun `transitive.py check --npm-cache` |
 | Font row | with the upstream evidence removed, each family stands uncovered | E | `test_unverified_fonts_are_uncovered` |
 | Font row | altered upstream evidence in the font index refuses | E | `font_notice_test.py` `test_index_shape_provenance_and_notice_list_refuse` |
@@ -286,14 +285,14 @@ These apply to every site:
 | SQLite | the header is the public-domain dedication | R | pre-existing; rerun `sqlite_notice/check.py --archive` |
 | Every supplier row | a table reviewed for another pin covers no row, and an open table row is added | E | `test_a_table_reviewed_for_another_pin_covers_no_supplier_row`, `test_another_declared_pin_is_named_as_an_open_review_not_assumed` |
 | Every supplier row | a row in `DEFERRED` stays uncovered | E | `test_deferred_rows_stay_uncovered_whatever_the_table_says` |
-| Every supplier row | each member is a file of the distribution record | E | `test_supplier_table_must_claim_every_member_and_justify_gaps` |
-| Every supplier row | each supplier-tree text is a file of the distribution record | C | `build` |
-| Every supplier row | each file of the distribution record is claimed by a row | E | `test_supplier_table_must_claim_every_member_and_justify_gaps` |
+| Every supplier row | when the table is reviewed for the declared pin, each member is a file of the distribution record | E | `test_supplier_table_must_claim_every_member_and_justify_gaps` |
+| Every supplier row | when the table is reviewed for the declared pin, each supplier-tree text is a file of the distribution record | C | `build` |
+| Every supplier row | when the table is reviewed for the declared pin, each file of the distribution record is claimed by a row | E | `test_supplier_table_must_claim_every_member_and_justify_gaps` |
 | Every supplier row | the distribution record repeats no file | E | `test_a_distribution_record_that_repeats_a_file_refuses` |
 | Every supplier row | the distribution record has its bound digest | E | `test_distribution_record_drift_refuses` |
 | Every supplier row | component ids and text paths do not repeat | E | `test_a_repeated_supplier_identifier_refuses` |
 | Every supplier row | a committed text is a repository file whose bytes equal the size and digests the table records; the table is bound by the review record | C | `package_texts.supplier_texts` (`committed text differs`) |
-| Every supplier row | every non-voice repository field of the component table (components, texts, also_at) is either exactly the canonical GitHub form `https://github.com/<owner>/<repository>` or begins with exactly `https://chromium.googlesource.com/`; anything else refuses, naming the field. The googlesource values are compared exactly wherever they are compared and are otherwise not constrained in form. A null or missing field is not a form and is left to main's checks: a text's or also_at identity's refuses, a component's null repository goes to its identity and lock checks (a row with committed texts stays uncovered), and a component's missing key stops the build with a KeyError | E | `test_a_repository_field_has_one_of_the_two_accepted_forms` |
+| Every supplier row | every non-voice repository field of the component table (components, texts, also_at) is either `https://github.com/<owner>/<repository>`, each of owner and repository one or more letters, digits, `_`, `.` or `-`, neither of them `.` or `..`, with no `.git` suffix in any letter case, or begins with exactly `https://chromium.googlesource.com/`; anything else refuses, naming the field (for example `texts[<path>].also_at[0].repository`). This is a check of form, not that such a repository exists. The googlesource values are compared exactly wherever they are compared and are otherwise not constrained in form. A null or missing field is not a form and is left to main's checks: a text's or also_at identity's refuses, a component's null repository goes to its identity and lock checks (a row with committed texts stays uncovered), and a component's missing key stops the build with a KeyError | E | `test_a_repository_field_has_one_of_the_two_accepted_forms` |
 | Every supplier row | a voice row's `revision` key is present and null; an absent key refuses before the review record's entries are read, and any value refuses after the voice-route checks | E | `test_a_supplier_tree_row_needs_its_source_url_but_no_invented_revision` |
 | Every supplier row | a row with a member or a supplier-tree text under `codex-resources/voice/lib/`, `plugins/` or `licenses/` (a voice row) cannot be compiled-dependencies or a reading row | E | `test_a_voice_member_takes_only_the_voice_route` |
 | Every supplier row | nor deferred, nor carry an owner reading | C | `build` |
@@ -310,8 +309,8 @@ These apply to every site:
 | `compiled_group` | an executable in no compiled-dependencies row gets an uncovered `compiled-in:` row | E | `test_deleting_compiled_dependency_rows_leaves_every_executable_uncovered` |
 | `compiled_group` | the executable rule fits the record's Mach-O count | E | `test_executable_rule_must_fit_the_record_macho_count` |
 | `compiled_group` | which executable is built from which lockfile | R | pre-existing curated judgment in `components.json`. Evidence: the `codex-rs` workspace members at d32063f9 that declare `codex`, `codex-exec-server`, `codex-code-mode-host` and `codex-voice-host`, and for `codex-path/rg` the supplier package script's rg selector naming the ripgrep 15.2.0 release (the 0.160.0 selector is kept under `../supplier_notices/codex-0.160.0/scripts/codex_package/`; the d32063f9 copies are not held here) |
-| `voice_route` | without the pin's voice records, the row stands uncovered | E | `test_a_voice_component_is_covered_only_through_the_voice_records`, `test_a_supplier_tree_row_needs_its_source_url_but_no_invented_revision` |
-| `voice_route` | without its source URL, the row stands uncovered | E | `test_a_supplier_tree_row_needs_its_source_url_but_no_invented_revision` |
+| `voice_route` | without the pin's voice records, the row is not covered | E | `test_a_voice_component_is_covered_only_through_the_voice_records`, `test_a_supplier_tree_row_needs_its_source_url_but_no_invented_revision` |
+| `voice_route` | a missing or mismatched source URL refuses with the records held, and leaves a row tagged covered open without them | E | `test_a_supplier_tree_row_needs_its_source_url_but_no_invented_revision` |
 | `voice_route` | a row naming a committed text stands uncovered (by its identity check, which runs first) | E | `test_a_voice_component_is_covered_only_through_the_voice_records` |
 | `voice_route` | a row with no supplier-tree text stands uncovered | E | `test_a_voice_component_is_covered_only_through_the_voice_records` |
 | `voice_route` | exactly one native-library entry of `sources.json` states the row's version and URL, and one entry establishes one row | E | `test_each_row_is_established_by_exactly_one_native_library_entry`, `test_one_native_library_entry_cannot_establish_two_rows`, `test_a_supplier_tree_row_needs_its_source_url_but_no_invented_revision` |
@@ -345,38 +344,38 @@ These apply to every site:
 | All routes | a package with two text routes, a text route and an open or absent mark, or an association naming no locked package refuses | E | `test_changed_checksum_unused_and_conflicting_associations_refuse`, `test_unused_open_or_absent_associations_refuse`, `test_an_excluded_package_named_twice_or_also_open_refuses` |
 | Archive route (`text`) | the index has exactly the locked registry packages, with its bound digests | E | `test_a_missing_or_extra_index_row_refuses`, `test_an_index_digest_drift_refuses` |
 | Archive route (`text`) | each text is in `texts/` with its digest | E | `test_a_missing_changed_extra_or_linked_text_refuses` |
-| Archive route (`text`) | an archive row carries no repository, so only the text digest guards it for the objc2 hold | C | `hold_for_reading` |
+| Archive route (`text`) | an archive row carries no repository, so for a package not on the named list only the text digest guards it for the objc2 hold | C | `hold_for_reading` |
 | Archive route (`text`) | the index is what `crates.py index` makes from the archives | R | rerun it with the archives |
 | App route (`text`) | `reading_required` equals main's rule (the repository, as written, is the objc2 repository) and the guard's | E | `test_app_held_texts_are_a_reviewed_association_not_a_read_of_the_app_tree`, `test_an_app_text_repository_in_another_case_refuses_as_on_main` |
-| App route (`text`) | a listed package moved to the App route stays held | E | `test_moving_a_listed_package_to_the_app_route_cannot_release_it` |
+| App route (`text`) | a listed package moved to the App route stays held, unless the input refuses | E | `test_moving_a_listed_package_to_the_app_route_cannot_release_it` |
 | App route (`text`) | each App text is the same archive's text in the App's account | R | `transitive-index.json`, that crate and checksum |
 | Publisher route (`text`) | the archive's recorded VCS revision equals the association's | E | `test_a_publisher_association_needs_its_provenance` |
 | Publisher route (`text`) | the archive's recorded repository is the association's GitHub repository (owner and name compared without regard to case, a `.git` suffix or a path), or null with `repository_basis`; another repository, or null without a basis, refuses | E | `test_a_publisher_association_needs_its_provenance` |
 | Publisher route (`text`) | `path_in_vcs` is null exactly when `path_basis` is present | E | `test_an_omitted_path_needs_its_basis`, `test_a_stated_path_carries_no_basis`, `test_a_publisher_association_needs_its_provenance` |
-| Publisher route (`text`) | each text is notice-named, at an accepted path, with its listing blob and size, and its bytes held | E | `test_a_changed_publisher_text_or_source_identity_refuses`, `test_a_publisher_text_association_needs_a_held_text_bound_to_its_listing` |
+| Publisher route (`text`) | each text is notice-named, at an accepted path, with its recorded listing blob and size, and its bytes held | E | `test_a_changed_publisher_text_or_source_identity_refuses`, `test_a_publisher_text_association_needs_a_held_text_bound_to_its_listing` |
 | Publisher route (`text`) | a text carrying the objc2 overview is held | E | `test_an_unlisted_package_carrying_the_overview_text_or_from_objc2_is_held` |
 | Publisher route (`text`) | the recorded archive values are the archive's; the listing names each blob; the texts are the folder's whole selection; each identity triple belongs together; a null path's basis | R | `review_publisher_texts.py` compares the first three and the stored bytes; a `path_basis` is prose the reviewer reads against the listing |
 | Git route (`text`) | the association's repository and revision are the lock source's, as written | E | `test_git_association_must_match_the_lock_and_its_listing`, `test_a_git_association_is_compared_with_the_lock_as_written` |
 | Git route (`text`) | a locked Git package without an association refuses | E | `test_a_locked_git_package_without_association_refuses` |
-| Git route (`text`) | each text's blob equals its listing blob | E | `test_git_text_must_be_its_listing_blob` |
+| Git route (`text`) | each text's blob equals its recorded listing blob | E | `test_git_text_must_be_its_listing_blob` |
 | Git route (`text`) | a text carrying the objc2 overview is held | E | `test_the_overview_text_guard_applies_after_the_git_route` |
 | Git route (`text`) | the listing names that blob at that path | R | the Git listing named |
 | Workspace route (`text`) | the workspace's repository and revision are its lockfile's, as written | E | `test_a_workspace_association_is_at_its_lockfile_s_source` |
-| Workspace route (`text`) | each text's bytes equal its identity, and its blob is in the listing's | E | `test_workspace_text_must_equal_its_identity_and_listing` |
+| Workspace route (`text`) | each text's bytes equal its identity, and its blob is in its recorded listing blobs | E | `test_workspace_text_must_equal_its_identity_and_listing` |
 | Workspace route (`text`) | an empty text list refuses | E | `test_empty_text_associations_refuse_before_account_generation` |
 | Workspace route (`text`) | the listing names the blobs | R | the codex-rs or ripgrep listing named |
 | `absence` (`not-in-macos-package`) | the recorded reverse dependencies equal the lockfile's, and the entry names its lockfile and target | E | `test_recorded_exclusion_evidence_must_match_the_manifest` |
-| `absence` (`not-in-macos-package`) | each parent manifest is a committed regular file equal to its identity, cited, and that package's | E | `test_a_committed_manifest_must_equal_its_recorded_identity`, `test_a_committed_manifest_that_is_a_link_refuses`, `test_an_uncited_parent_manifest_refuses`, `test_recorded_exclusion_evidence_must_match_the_manifest` |
-| `absence` (`not-in-macos-package`) | it is the locked archive's `Cargo.toml` by checksum, or the workspace file at the lock's repository and revision as written | E | `test_registry_manifest_identity_and_notice`, `test_workspace_manifest_identity_and_notice` |
+| `absence` (`not-in-macos-package`) | each parent manifest is a regular file at its stated path equal to its recorded identity, cited, and naming that package | E | `test_a_committed_manifest_must_equal_its_recorded_identity`, `test_a_committed_manifest_that_is_a_link_refuses`, `test_an_uncited_parent_manifest_refuses`, `test_recorded_exclusion_evidence_must_match_the_manifest` |
+| `absence` (`not-in-macos-package`) | its source claim's name, version and checksum equal the lock's, or its repository and revision equal the workspace lock's as written | E | `test_registry_manifest_identity_and_notice`, `test_workspace_manifest_identity_and_notice` |
 | `absence` (`not-in-macos-package`) | every explicit declaration is under a closed-form target key false for `aarch64-apple-darwin` | E | `test_unknown_target_keys_refuse`, `test_a_declaration_the_record_leaves_out_is_found_in_the_manifest`, `test_any_further_declaration_in_the_manifest_is_judged`, `test_a_false_excerpt_cannot_exclude_an_unconditional_dependency` (control `test_control_a_truthful_linux_only_parent_excludes`) |
 | `absence` (`not-in-macos-package`) | a registry manifest inherits nothing; a workspace member satisfies rule (i) or (ii) | E | `test_a_registry_manifest_with_workspace_inheritance_refuses`, `test_an_inherited_key_that_could_be_the_excluded_package_refuses`, `test_an_inherited_dependency_that_also_names_a_package_refuses` (control `test_control_an_inherited_key_under_a_condition_false_for_macos_keeps_rule_i`) |
 | `absence` (`not-in-macos-package`) | the recorded declarations and licence equal the parse | E | `test_recorded_exclusion_evidence_must_match_the_manifest`, `test_registry_manifest_identity_and_notice`, `test_workspace_manifest_identity_and_notice` |
 | `absence` (`not-in-macos-package`) | the recorded notice is compared not with the parse but with the shipped texts: a registry manifest's crate stands `text` with exactly the recorded texts, and a workspace manifest's notice is its workspace's texts | E | `test_registry_manifest_identity_and_notice`, `test_workspace_manifest_identity_and_notice` |
 | `absence` (`not-in-macos-package`) | each registry manifest is its archive's `Cargo.toml`; each workspace manifest is the file at its revision; rule (ii)'s premise | R | `crates.py verify-manifests --archives MAP.json`; the codex-rs listing; the review of `locks` |
-| `hold_for_reading` (keeps open; never yields `text`) | a listed identity stays held whatever its text, spelling or route | E | `test_a_listed_package_with_another_text_stays_open`, `test_a_listed_package_with_no_overview_text_stays_open`, `test_a_repository_spelling_cannot_release_a_listed_package`, `test_moving_a_listed_package_to_the_app_route_cannot_release_it` |
+| `hold_for_reading` (keeps open; never yields `text`) | a listed identity stays held whatever its text, spelling or route, unless the input refuses | E | `test_a_listed_package_with_another_text_stays_open`, `test_a_listed_package_with_no_overview_text_stays_open`, `test_a_repository_spelling_cannot_release_a_listed_package`, `test_moving_a_listed_package_to_the_app_route_cannot_release_it` |
 | `hold_for_reading` | an unlisted package whose route gives the objc2 repository, in any letter case, is held | E | `test_the_objc2_repository_guard_ignores_letter_case` |
 | `hold_for_reading` | a listed identity no lockfile locks refuses | E | `test_a_listed_identity_no_lockfile_locks_refuses` |
-| `hold_for_reading` | the named list is exactly the held packages | E | `test_the_named_list_is_exactly_the_held_packages` |
+| `hold_for_reading` | on the committed inputs, the named list equals the held packages | E | `test_the_named_list_is_exactly_the_held_packages` |
 | `hold_for_reading` | an identity leaves the list only with the owner's reading recorded | R | the list is code |
 | Open standings | a `no-publisher-text` package ships nothing and keeps the group open | E | `test_no_publisher_text_packages_ship_nothing_and_stay_open`, `test_no_publisher_text_alone_keeps_the_account_open_and_strict_refuses` |
 

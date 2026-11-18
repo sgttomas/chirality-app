@@ -318,8 +318,9 @@ def build(repo=REPO, vendor=None):
     # and has at least one executable member. Which executable is built from which lockfile is the supplier's statement
     # in its source's build files: a review duty (README).
     locked_components = [lock['component'] for lock in texts.supplier_crates.load_associations(repo)['locks']]
-    # The voice rows (any component with a member or text under the voice folder, however its row is written) are
-    # compared with the supplier's own voice records for this pin; any disagreement refuses. A voice row is covered only
+    # When the table is reviewed for the pin and the records are held, the voice rows (components with a member or
+    # supplier-tree text in the three folders voice.is_voice names) are compared with the supplier's own voice records
+    # for this pin; any disagreement refuses. A voice row is covered only
     # when the comparison established its version and source URL and it ships only its texts from the supplier tree.
     require(table['voice_sources']['path'] == voice_records.MEMBERS['sources.json'], 'the table names another voice sources member')
     # Voice membership is decided before anything else: a component with a member or text in the voice library folders
@@ -731,18 +732,22 @@ OTHER_REPOSITORY_PREFIXES = ('https://chromium.googlesource.com/',)
 
 
 def check_repository_forms(table):
-    """Every non-voice repository field of the component table (components, texts, also_at) is either exactly the
-    canonical GitHub form https://github.com/<owner>/<repository> or begins with exactly
-    https://chromium.googlesource.com/; anything else refuses, naming the field. The googlesource values are compared
+    """Every non-voice repository field of the component table (components, texts, also_at) is either
+    https://github.com/<owner>/<repository> in the form crates.canonical_form checks (each of owner and repository one
+    or more letters, digits, `_`, `.` or `-`, neither of them `.` or `..`, no `.git` suffix in any letter case) or
+    begins with exactly https://chromium.googlesource.com/; anything else refuses, naming the field. A check of form,
+    not that such a repository exists. The googlesource values are compared
     exactly wherever they are compared and are otherwise not constrained in form. A voice row's repository is the source
     URL the supplier's sources.json states and is compared with it exactly. A null or missing field is not a form and
     is left to main's checks: a text's or also_at identity's refuses (package_texts.supplier_texts), a component's null
     repository goes to its identity and lock checks (a row with committed texts stays uncovered), and a component's
     missing key stops the build with a KeyError."""
     canonical = texts.supplier_crates.canonical_form
-    fields = [(item['id'], item.get('repository')) for item in table['components'] if not voice_records.is_voice(item)]
-    fields += [(text['path'], text.get('repository')) for text in table['texts']]
-    fields += [(text['path'], other.get('repository')) for text in table['texts'] for other in text.get('also_at', [])]
+    fields = [(f'components[{item["id"]}].repository', item.get('repository'))
+              for item in table['components'] if not voice_records.is_voice(item)]
+    fields += [(f'texts[{text["path"]}].repository', text.get('repository')) for text in table['texts']]
+    fields += [(f'texts[{text["path"]}].also_at[{index}].repository', other.get('repository'))
+               for text in table['texts'] for index, other in enumerate(text.get('also_at', []))]
     for where, repository in fields:
         require(repository is None or canonical(repository)
                 or (type(repository) is str and repository.startswith(OTHER_REPOSITORY_PREFIXES)),

@@ -57,7 +57,7 @@ GIT_SOURCE = re.compile(r'^git\+(https://[^?#]+?)(?:\.git)?\?rev=([0-9a-f]{40})#
 HEX64 = re.compile('[0-9a-f]{64}')
 # The open question for these 23 supplier packages is whether the objc2 repository's LICENSE.md, a licensing overview, is
 # adequate as the notice for each supplier copy; that reading is the owner's. Each stays held whatever text, repository
-# spelling or route its row gives it, and no association can move it to text. The list is the checker's, not the curated
+# spelling or route its row gives it, unless the input refuses. The list is the checker's, not the curated
 # associations': a listed identity that no lockfile locks refuses, so it cannot go stale unnoticed.
 HELD_FOR_READING = frozenset({
     ('block2', '0.6.2', 'cdeb9d870516001442e364c5220d3574d2da8dc765554b4a617230d33fa58ef5'),
@@ -84,8 +84,8 @@ HELD_FOR_READING = frozenset({
     ('objc2-ui-kit', '0.3.2', 'd87d638e33c06f577498cbcc50491496a3ed4246998a7fbba7ccb98b1e7eab22'),
     ('objc2-user-notifications', '0.3.2', '9df9128cbbfef73cda168416ccf7f837b62737d748333bfe9ab71c245d76613e'),
 })
-# The exact text awaiting that reading (the objc2 repository's LICENSE.md, 1,339 bytes, blob 540ae4c8). The digest only
-# identifies the text on a row; it never decides which packages are held.
+# The exact text awaiting that reading (the objc2 repository's LICENSE.md, 1,339 bytes, blob 540ae4c8). The digest is
+# not used to determine membership in the named list; it separately holds any package carrying this text.
 OVERVIEW_TEXT = {'sha256': '7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54', 'size_bytes': 1339,
                  'git_blob_sha1': '540ae4c81adb5f64a9f61e222b688880da24300e'}
 OBJC2_REPOSITORY = 'https://github.com/madsmtm/objc2'
@@ -93,8 +93,8 @@ OBJC2_REPOSITORY = 'https://github.com/madsmtm/objc2'
 # not on the list whose texts include the overview text, or whose repository is the objc2 repository (compared without
 # regard to case, as GitHub compares owner and repository names), is held too, so a new objc2 package cannot pass as text.
 READING_REPOSITORIES = {OBJC2_REPOSITORY}
-# The form of every repository field of associations.json except archive_repository (the shape's REPOSITORY leaf):
-# no scheme variant, suffix, path or trailing slash.
+# The form of the repository fields of associations.json except archive_repository (the shape's REPOSITORY leaf):
+# https://github.com/<owner>/<repository>, each segment of letters, digits, `_`, `.` and `-`; see canonical_form.
 CANONICAL_REPOSITORY = re.compile(r'^https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$')
 # The macOS package's one target. A package is absent from it only when every declaration of it in every reverse
 # dependency's manifest sits under a target condition that is false for this target (`target_holds`).
@@ -138,9 +138,12 @@ def positive(value):
 
 
 def canonical_form(repository):
-    """Exactly https://github.com/<owner>/<repository>, with no `.git` suffix in any letter case."""
+    """https://github.com/<owner>/<repository>, each of owner and repository one or more letters, digits, `_`, `.` or
+    `-`, neither of them `.` or `..`, with no `.git` suffix in any letter case. A check of form, not that such a
+    repository exists."""
     return (type(repository) is str and CANONICAL_REPOSITORY.fullmatch(repository) is not None
-            and not repository.lower().endswith('.git'))
+            and not repository.lower().endswith('.git')
+            and not any(segment in ('.', '..') for segment in repository.split('/')[3:]))
 
 
 def github_identity(url):

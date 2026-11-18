@@ -893,7 +893,8 @@ class Account(Builds):
                     item['repository'] = spelling
         for spelling in (rg + '.GIT', rg + '/', 'https://github.com:443/BurntSushi/ripgrep', 'https://git@github.com/BurntSushi/ripgrep',
                          'https://GITHUB.COM/BurntSushi/ripgrep', 'https://www.github.com/BurntSushi/ripgrep',
-                         'https://gitlab.com/BurntSushi/ripgrep', 'https://Chromium.googlesource.com/BurntSushi/ripgrep'):
+                         'https://gitlab.com/BurntSushi/ripgrep', 'https://Chromium.googlesource.com/BurntSushi/ripgrep',
+                         'https://github.com/BurntSushi/..', 'https://github.com/./ripgrep'):
             with self.subTest(spelling=spelling):
                 self.setUp(); self.edit(TABLE, lambda v, r=spelling: respell(v, r))
                 with self.assertRaisesRegex(ValueError, 'a repository field is neither exactly https://github.com/<owner>/<repository> '
@@ -904,7 +905,7 @@ class Account(Builds):
             other = next(t for t in v['texts'] if t.get('also_at'))['also_at'][0]
             other['repository'] = other['repository'].replace('https://github.com/', 'https://github.com:443/')
         self.setUp(); self.edit(TABLE, also_at)
-        with self.assertRaisesRegex(ValueError, 'a repository field is neither exactly'):
+        with self.assertRaisesRegex(ValueError, r'a repository field is neither exactly.*: texts\[.*\]\.also_at\[0\]\.repository$'):
             self.build()
         # A null or missing field is not a form; each refuses or stays open as on main.
         def text_field(v, change):

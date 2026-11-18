@@ -4,9 +4,9 @@ The checkers here (`crates.py`, `voice.py`, and `../notices/coverage.py` reading
 not built to resist deliberately forged, mutually consistent inputs: a listing entry, an
 archive record, a manifest and a review record changed together to agree. The review of
 the pull request that changes a curated file covers that boundary. What the checkers
-enforce, site by site and each with its test, is listed under "What is enforced and what
+enforce, site by site, is listed under "What is enforced and what
 review covers" in `../notices/README.md`. The sections below describe the inputs and give
-each one's review duties with their evidence. A coverage decision that rests on a review
+each one's review duties. A coverage decision that rests on a review
 duty nobody has completed stays open.
 
 `components.json` lists, for the supplier tree of the declared pin, the components
@@ -21,9 +21,11 @@ standing and exact texts, and its reviewer updates that record. `reviewed_for_pi
 the pin the table was reviewed against; when the declared pin differs,
 `../notices/coverage.py` lists the table as an open component rather than assume
 the old associations. Every non-voice repository field of the component table
-(components, texts, also_at) is either exactly the canonical GitHub form
-`https://github.com/<owner>/<repository>` or begins with exactly
-`https://chromium.googlesource.com/`; anything else refuses, naming the field. The
+(components, texts, also_at) is either `https://github.com/<owner>/<repository>`, each
+of owner and repository one or more letters, digits, `_`, `.` or `-`, neither of them `.`
+or `..`, with no `.git` suffix in any letter case, or begins with exactly
+`https://chromium.googlesource.com/`; anything else refuses, naming the field. This is a
+check of form, not that such a repository exists. The
 googlesource values are compared exactly wherever they are compared and are otherwise not
 constrained in form (`../notices/coverage.py`, `check_repository_forms`). Every
 committed text here is mapped into the package under `third-party-notices/supplier/`;
@@ -137,7 +139,10 @@ Each locked package has one standing:
 compiled-dependencies component open (`../notices/README.md`).
 
 Repository fields of `associations.json` other than `archive_repository` have the form
-`https://github.com/<owner>/<repository>` exactly. `archive_repository` records what the
+`https://github.com/<owner>/<repository>`, each of owner and repository one or more
+letters, digits, `_`, `.` or `-`, neither of them `.` or `..`, with no `.git` suffix in any
+letter case (`crates.canonical_form`, a check of form, not that such a repository
+exists). `archive_repository` records what the
 archive's own `Cargo.toml` states, or null. Where these values are compared with each
 other or with a lock, the comparison is as written, except where `crates.repository_key`
 is used: the objc2 guard in `crates.py` (which the App-text reading flag also applies),
@@ -169,7 +174,7 @@ sites, with their tests, are in the table.
   `review_publisher_texts.py` is a reviewer's aid, not a CI check:
 
   ```sh
-  python3 -I app/packaging/supplier_notices/review_publisher_texts.py --archives MAP.json --listings DIR
+  python3 -I -B app/packaging/supplier_notices/review_publisher_texts.py --archives MAP.json --listings DIR
   ```
 
   `MAP.json` maps each `<name>-<version>.crate` to its archive, and `DIR` holds the saved
@@ -179,8 +184,10 @@ sites, with their tests, are in the table.
   `path_in_vcs` key), the listing's blob and size at each selected path, the selection
   (for a null path, the listing must hold at least one `Cargo.toml` file, an entry of type
   blob, and each such folder must give the same selection) and the stored bytes. It does
-  not read a `path_basis`, which is prose the reviewer reads against the listing. It
-  prints one line per package, `OK` or `MISMATCH` with what differs. Its comparisons are
+  not read a `path_basis`, which is prose the reviewer reads against the listing. After
+  its inputs load and its member reads verify, it reports one comparison per package,
+  `OK` or `MISMATCH` with what differs; an input error ends the run before any package
+  line. Its comparisons are
   tested on invented inputs (`test_the_reviewer_s_aid_compares_what_it_states` and the
   three tests after it in `app/tests/supplier_crate_notices_test.py`).
 - **`app_texts`**: that each App text is the same archive's text in the App's own
