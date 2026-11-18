@@ -583,31 +583,30 @@ An entry is added in the same pull request that makes the limitation standing.
 - **What is unavailable:** protection of the App's records index against
   another account on this Mac that can change which file or folder the App
   reaches through the records store's folder, its `indexes` folder or a folder
-  above them. When it can write one, the App builds a fresh index of a
-  project's records each time it runs, in the `indexes` folder inside the
-  records store. The index holds each record's identity and where to read it
-  in the files that hold the records, not the records themselves; where the
-  App cannot make an index it reads those files directly. The App checks the
-  path before it makes the index file and checks the store again after
-  opening it, but some later steps open or remove the index by its name.
+  above them. When the App first needs a project's records during a launch,
+  it tries to build a fresh index in the `indexes` folder inside the records
+  store. The index holds record identities and where to read the records.
+  When it cannot use an index, the App reads the source files it can open and
+  reports any limits. The App checks the path before it makes the index file
+  and checks the store again after opening it, but some later steps open or
+  remove the index by its name.
   Another account that can change names on that path at the right moment can:
   - make the App overlook a record, or get a check of the records wrong.
     After you restart the App and reopen a run, a checkpoint could show as
     waiting for your act when an answering act is already on record and not
     yet counted in the run. At a checkpoint in a running workflow the App
     could offer you an act that an act on record already answers. When the
-    App saves or imports a record, it could miss that a record of the same
-    identity is already kept and write a duplicate, or refuse the save as a
-    duplicate when it is not one;
+    App saves a record or imports older records from a project folder, it
+    could save a duplicate or refuse a record or log file because it wrongly
+    thinks the store already holds that identity;
   - have the App use your account's access to write to a database it takes
     for its index, to remove a file it takes for its index, or to create an
     `indexes` folder somewhere else. These can reach folders that the other
     account cannot itself write.
 
-  The index is separate from the files that hold your records, and nothing
-  here writes into those files. What can go wrong is a decision the App makes
-  from the index. A program that already runs with your account's full access
-  to your files is the subject of LIM-022 and gains nothing more here.
+  The index is separate from the files that hold your records. A program
+  that already runs with your account's full access to your files is the
+  subject of LIM-022 and gains nothing more here.
 - **Why:** the App opens and removes the index by its path, and a folder on
   that path can be changed after the App has checked it. Keeping the index in
   memory would close this, at a cost in memory that has not been measured; it
@@ -615,25 +614,26 @@ An entry is added in the same pull request that makes the limitation standing.
 - **What the person does instead:** keep the records store where no other
   account can change the store's folder, its `indexes` folder or any folder
   leading to them. When the App creates the store's folder or the `indexes`
-  folder, it creates each for your account only. That protects what is inside
-  the new folder; an account that can write the folder above it can still
-  replace the folder itself, so the folders above matter as much. By default
-  the store is in the App's folder under Library/Application Support in your
-  home folder, and macOS creates your Library closed to other accounts. A
-  folder that already exists is used as it is found: the App does not change
-  its permissions and does not check who else can write there or in the
-  folders above. If you choose another place in the Records store panel,
-  choose a private one, and in Finder use Get Info to check Sharing &
-  Permissions for the store's folder, an `indexes` folder already in it and
-  the folders above them. Avoid shared folders and disks that do not keep
+  folder, it requests permissions for your account alone. Sharing permissions
+  inherited from a folder above can still give another account access. An
+  account allowed to remove and add entries in the folder above can replace a
+  new folder even if it cannot open that folder. By default the store is in
+  the App's folder under Library/Application Support in your home folder. The
+  App leaves existing permissions as it finds them and does not check who
+  else can change the store's folder, the `indexes` folder or the folders
+  leading to them. In Finder, use Get Info to review Sharing & Permissions
+  for those folders at the default location or at a location you choose in
+  the Records store panel. Use a location where you know other accounts
+  cannot change those folders. Avoid shared folders and disks that do not keep
   macOS permissions. A new place takes effect the next time the App starts,
   and records already kept are not moved.
 - **Basis:** DEL-04-03 (the records store and its placement) and DEL-01-04
   (the act-record projection of a reopened run). The exposure is read from
   the App's code (`records_query.rs`, `records_index.rs`, `records_store.rs`,
-  `records.rs`), not shown by a test: no substitution was carried out. That
-  the App creates the store's folder and the `indexes` folder for the owning
-  account only, and leaves an existing folder's permissions unchanged, is
-  shown by tests (`records_store_tests.rs`). That your Library is closed to
-  other accounts is macOS's ordinary arrangement and was not checked for this
-  release.
+  `records.rs`), not shown by a test: no substitution was carried out. Tests
+  check the Unix permission bits on newly created and existing folders
+  (`records_store_tests.rs`). The effective permissions of the default
+  location (Unix permission bits and access control lists on the store's
+  folder, its `indexes` folder and the folders above that control their
+  replacement) are to be inspected when criterion 15's default placement is
+  observed on the installed package; until then they are not checked.
