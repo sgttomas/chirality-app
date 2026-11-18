@@ -1,4 +1,5 @@
-import { NativeItemCard } from "./NativeActivity";
+import { NativeItemCard, StopLabel } from "./NativeActivity";
+import { appHome, labelOutcome, stopLabel } from "./CodexControls";
 import { AgentText, SuppliedId, Word, Num, isoSeconds } from "./AgentText";
 import { ITEM_KIND, ITEMS_VIEW, TURN_STATUS } from "./nativeWords";
 import { useEffect, useRef, useState } from "react";
@@ -88,7 +89,23 @@ function NativeTime({ value }: { value: Json }) {
   return time !== null ? <>{time}</> : <AgentText value={value} source="codex" label="Codex sent:" name="A value Codex sent where a time was expected, not the App's words" />;
 }
 
-export function StoredTurnPage({ binding, canRead, readItems }: { binding: HistoryPageBinding; canRead: boolean; readItems: (turnId: string) => void }) {
+/** The App's stop record for a turn of a stored conversation (REC SR, read
+ *  back from the App ledger after a relaunch, or this process's Stop Codex
+ *  outcome), matched in the active App-owned home. */
+export const storedStopFor = (host: Json, threadId: Json) => (turnId: string): Json | null =>
+  typeof threadId === "string" ? stopLabel(host?.codexStops, threadId, turnId, host?.stopRequests, appHome(host?.homeRouting?.activeModeHomeClass)) : null;
+
+/** A stop record's label and Codex's history status disagree on how the turn
+ *  ended: both are shown, each as its source says it. A label whose final
+ *  status was not observed disagrees only with a status that is not an interrupt. */
+function stopDiffers(stop: Json, status: Json): boolean {
+  const outcome = labelOutcome(stop?.label);
+  if (!outcome || typeof status !== "string") return false;
+  return outcome === "unknown" ? status !== "interrupted" && status !== "inProgress" : status !== outcome;
+}
+
+export function StoredTurnPage({ binding, canRead, readItems, stopFor, onContinue, canContinue }: { binding: HistoryPageBinding; canRead: boolean; readItems: (turnId: string) => void;
+  stopFor?: (turnId: string) => Json | null; onContinue?: () => void; canContinue?: boolean }) {
   return <div aria-label="Stored native turn page">
     <HistoryPageSource binding={binding} />
     {binding.accepted && binding.page.data.length === 0 && <p>Native returned an empty turn page. This does not establish that the conversation has no other turns.</p>}
@@ -97,8 +114,12 @@ export function StoredTurnPage({ binding, canRead, readItems }: { binding: Histo
       const items = list(turn?.items);
       const user = items.find(item => item?.type === "userMessage");
       const response = [...items].reverse().find(item => item?.type === "agentMessage" || item?.type === "plan");
+      const stop = valid && stopFor ? stopFor(turn.id) : null;
       return <article key={index} style={{ borderTop: "1px solid #ccc", paddingTop: 8 }}>
-        <p><b>Turn <SuppliedId value={turn?.id} label="Turn:" name="Turn identity as Codex reported it, not the App's words" /></b> · native status <Word value={turn?.status} words={TURN_STATUS} name="A turn status Codex sent that the App does not recognise, not the App's words" />{turn?.status === "inProgress" && " (in progress at the read; current outcome unknown)"}{turn?.status === "interrupted" && " (cause not established by this page)"}</p>
+        <p><b>Turn <SuppliedId value={turn?.id} label="Turn:" name="Turn identity as Codex reported it, not the App's words" /></b> · native status <Word value={turn?.status} words={TURN_STATUS} name="A turn status Codex sent that the App does not recognise, not the App's words" />{turn?.status === "inProgress" && " (in progress at the read; current outcome unknown)"}{turn?.status === "interrupted" && (stop?.label ? " (the App's stop record below gives the cause)" : " (cause not established by this page)")}</p>
+        {stop && <StopLabel stop={stop} />}
+        {stop && stopDiffers(stop, turn?.status) && <p role="note">Codex's history reports this turn as <Word value={turn.status} words={TURN_STATUS} name="A turn status Codex sent that the App does not recognise, not the App's words" />; the App's stop record labels it <b>{String(stop.label)}</b>. Each is shown as its source records it.</p>}
+        {stop?.label && onContinue && <p><button disabled={!canContinue} onClick={onContinue}>Continue this conversation</button> <small>Opens this conversation again for new messages once Codex answers; nothing is sent.</small></p>}
         <div><small>Items view: {turn?.itemsView === undefined ? "full (native default)" : turn.itemsView === null ? "null (as supplied)" : <Word value={turn.itemsView} words={ITEMS_VIEW} />} · {Array.isArray(turn?.items) ? `${items.length} embedded items` : "items malformed or not reported"}. {turn?.itemsView === "notLoaded" ? "Items have not been loaded in this summary." : turn?.itemsView === "summary" ? "Summary items can omit substantive activity; read the item page." : "Embedded items are not rendered as the selected item page."}</small></div>
         {turn?.startedAt !== undefined && <div><small>Native start: <NativeTime value={turn.startedAt} /></small></div>}
         {turn?.completedAt !== undefined && <div><small>Native end: <NativeTime value={turn.completedAt} /></small></div>}
@@ -218,7 +239,7 @@ export function ContinuationContext({ host, thread }: { host: Json; thread: Json
       {context.error != null && <p role="alert">Prior-work read: <AgentText value={text(context.error)} source="codex" label="Reported:" name="What the prior-work read reported, not the App's words" /></p>}
       {context.state === "unavailable" && <button disabled={!canRead} onClick={() => { void action("retry"); }}>Retry prior-work read</button>}
       <h4>Prior turn summaries</h4>{paging("turns", turns)}
-      <StoredTurnPage binding={turns} canRead={canRead} readItems={turnId => { void action("items", null, "desc", turnId); }} />
+      <StoredTurnPage binding={turns} canRead={canRead} readItems={turnId => { void action("items", null, "desc", turnId); }} stopFor={storedStopFor(host, context.threadId)} />
       <h4>Prior messages and work</h4>{paging("items", items)}
       <StoredItemPage binding={items} />
     </>}

@@ -1,3 +1,7 @@
+import type { ReactNode } from "react";
+import { SuppliedId } from "./AgentText";
+import { StopLabel } from "./NativeActivity";
+
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 // Start, Stop and Restart Codex (DEL-01-04 §5.2; DEL-01-02 C-12, DEF-5a).
@@ -11,7 +15,7 @@ const text = (v: unknown) => (v === null || v === undefined ? "" : typeof v === 
 const list = (v: unknown): Json[] => (Array.isArray(v) ? v : []);
 
 /** The App-owned home (REC H-acct / H-key) for an ACCESS home class. */
-export const appHome = (cls: unknown): string | undefined => (cls === "account" ? "H-acct" : cls === "api-key" ? "H-key" : undefined);
+export const appHome = (cls: unknown): string | undefined => (cls === "account" ? "H-acct" : cls === "api-key" ? "H-key" : cls === "local-provider" ? "H-omlx" : undefined);
 
 /** The App's stop label for a turn. First the newest stop-request record
  *  (REC SR, read back from the App ledger after a relaunch) for the turn in
@@ -102,5 +106,117 @@ export function CodexProcessControls({ host, busy, act }: { host: Json; busy: bo
     <p>Stopping Codex is your operational choice, not a recorded act. {text(stops?.records)}</p>
     {latest && <StopOutcome outcome={latest} />}
     <StopRequests requests={host?.stopRequests} />
+  </div>;
+}
+
+// Turns a stop interrupted, where the person reads the conversation
+// (DEL-01-02 REQ-005, AC-006). Everything here comes from the stop-request
+// records above (REC SR), read back after a relaunch: a turn is called
+// interrupted only where its record's label says so, a derived label keeps its
+// reading, and a request that was not sent or whose write outcome is unknown
+// is shown by its own reading, never as an interrupt that reached Codex. An
+// absent record is not evidence that nothing was interrupted.
+
+/** The two labels a confirmed quit gives a turn it interrupted (stop_records.rs label). */
+export const QUIT_INTERRUPTED = "interrupted by quit";
+export const QUIT_NOT_OBSERVED = "interrupted by quit (final status not observed)";
+
+/** What a stop label says of the turn's end: interrupted, completed, failed or
+ *  unknown; null for a value that is not one of the App's labels. */
+export function labelOutcome(label: unknown): "interrupted" | "completed" | "failed" | "unknown" | null {
+  if (typeof label !== "string") return null;
+  if (label.endsWith("(final status not observed)") || label.startsWith("outcome unknown")) return "unknown";
+  if (label.startsWith("interrupted by ")) return "interrupted";
+  if (label.startsWith("completed (")) return "completed";
+  if (label.startsWith("failed (")) return "failed";
+  return null;
+}
+
+/** The recorded stop requests for one conversation in one App-owned home, in request order. */
+export function stopRequestsFor(requests: Json, threadId: string | null | undefined, home?: string): Json[] {
+  if (!threadId) return [];
+  return list(requests?.records).filter((r: Json) => r?.threadId === threadId && (!home || r?.home === home));
+}
+
+/** The stop requests of the App's most recent quit of an earlier session
+ *  whose end is established: those of the earlier App session with the newest
+ *  quit request. With `home`, only that App-owned home's rows. */
+export function lastQuitRecords(requests: Json, home?: string): Json[] {
+  const quit = list(requests?.records).filter((r: Json) => r?.cause === "quit" && r?.earlierSession === true);
+  if (!quit.length) return [];
+  const newest = quit.reduce((a: Json, b: Json) => (text(b.requestedAt) > text(a.requestedAt) ? b : a));
+  return quit.filter((r: Json) => r.appSession === newest.appSession && (!home || r.home === home));
+}
+
+const count = (n: number, one: string, many: string) => (n === 1 ? `1 ${one}` : `${n} ${many}`);
+const isQuitInterrupt = (r: Json) => r?.label === QUIT_INTERRUPTED || r?.label === QUIT_NOT_OBSERVED;
+const NOT_SHOWN = "An interrupted turn is not a workflow run's end. Requests Codex was waiting on you for when the App quit or Codex was stopped were not answered, and this App session cannot answer them. Nothing here says what became of agents the conversation delegated work to.";
+const ABSENCE = "Some stop records carry limits (listed under Codex process, Recorded stop requests). A turn with no record here is not shown to have run to its end.";
+
+/** On one conversation: the turns its stop records name, each with its label
+ *  or reading, and an offer to continue it by the existing Continue (thread
+ *  resume, admitted only on a matching resume response). */
+export function ConversationStops({ records, limited, onContinue, canContinue }: { records: Json[]; limited?: boolean; onContinue?: () => void; canContinue?: boolean }) {
+  const rows = list(records);
+  if (!rows.length) return null;
+  const quit = rows.filter((r: Json) => r?.cause === "quit");
+  const observed = quit.filter((r: Json) => r.label === QUIT_INTERRUPTED);
+  const notObserved = quit.filter((r: Json) => r.label === QUIT_NOT_OBSERVED);
+  const others = rows.filter((r: Json) => !isQuitInterrupt(r));
+  const stopping = rows.some((r: Json) => r?.cause === "quit" || r?.cause === "codex-stop");
+  const turn = (r: Json) => <li key={text(r.stopRequestId)}>Turn <SuppliedId value={r.turnId} label="Turn:" name="Turn identity as Codex reported it, not the App's words" />{" "}
+    <small>({CAUSE[text(r.cause)] ?? text(r.cause)}, requested {text(r.requestedAt)})</small>
+    <StopLabel stop={r} /></li>;
+  return <div role="note" aria-label="Stopped turns in this conversation" style={{ border: "1px solid #bbb", padding: 8, margin: "8px 0" }}>
+    {observed.length > 0 && <p><b>{observed.length === 1 ? "A turn of this conversation was" : `${observed.length} turns of this conversation were`} interrupted when you quit the App.</b> Codex reported {observed.length === 1 ? "it" : "them"} interrupted.</p>}
+    {notObserved.length > 0 && <p><b>{notObserved.length === 1 ? "A turn of this conversation was" : `${notObserved.length} turns of this conversation were`} under way when you quit the App.</b> The App asked Codex to interrupt {notObserved.length === 1 ? "it" : "them"}; no final status was recorded for {notObserved.length === 1 ? "it" : "them"}, so the App labels {notObserved.length === 1 ? "it" : "them"} “{QUIT_NOT_OBSERVED}”. Codex's own status, where its history reports one, is shown with the turn.</p>}
+    {(observed.length > 0 || notObserved.length > 0) && <ul>{[...observed, ...notObserved].map(turn)}</ul>}
+    {others.length > 0 && <>
+      <p>{observed.length + notObserved.length > 0 ? "Other stop requests recorded for this conversation" : "Stop requests recorded for this conversation"}; each says what its record establishes:</p>
+      <ul>{others.map(turn)}</ul>
+    </>}
+    {stopping && <p><small>{NOT_SHOWN}</small></p>}
+    {limited && <p><small>{ABSENCE}</small></p>}
+    {onContinue && <p><button disabled={!canContinue} onClick={onContinue}>Continue this conversation</button>{" "}
+      <small>Continue asks Codex to open this conversation again and waits for its answer before you can send in it. The App does not send the interrupted turn's message again; nothing is sent until you write and send a message.</small></p>}
+  </div>;
+}
+
+/** The App's most recent quit of an earlier session, said without a press:
+ *  the conversations of this home whose turns it interrupted. `name` shows a
+ *  conversation (its supplied title and identity); `select`, where given,
+ *  chooses it for inspection (no read, no Continue). */
+export function LastQuitNotice({ requests, home, name, select, selected, canSelect, received, open, dismiss }: {
+  requests: Json; home?: string; name: (threadId: string) => ReactNode;
+  select?: (threadId: string) => void; selected?: string | null; canSelect?: boolean; received?: (threadId: string) => boolean;
+  open?: ReactNode; dismiss?: () => void;
+}) {
+  const all = lastQuitRecords(requests);
+  const rows = lastQuitRecords(requests, home);
+  if (!all.length) return null;
+  const interrupted = rows.filter(isQuitInterrupt);
+  const others = rows.filter((r: Json) => !isQuitInterrupt(r));
+  const elsewhere = home ? all.filter((r: Json) => r.home !== home).length : 0;
+  const threads: string[] = [];
+  for (const r of interrupted) if (!threads.includes(text(r.threadId))) threads.push(text(r.threadId));
+  const at = all.reduce((a: Json, b: Json) => (text(b.requestedAt) > text(a.requestedAt) ? b : a)).requestedAt;
+  return <div role="note" aria-label="Work interrupted when the App was last quit" style={{ border: "1px solid #bbb", padding: 8, margin: "8px 0" }}>
+    <p><b>When you last quit the App with work under way (stop requests recorded {text(at)}), {threads.length
+      ? `the App asked Codex to interrupt ${count(interrupted.length, "turn", "turns")} in ${count(threads.length, "conversation", "conversations")} of this Codex home.`
+      : rows.length ? "the App recorded stop requests for the turns under way in this Codex home." : "the App recorded stop requests in another Codex home."}</b></p>
+    {threads.length > 0 && <ul>{threads.map(thread => {
+      const turns = interrupted.filter((r: Json) => text(r.threadId) === thread);
+      const here = received ? received(thread) : true;
+      return <li key={thread}>{name(thread)} · {turns.map((r: Json, i: number) => <span key={text(r.stopRequestId)}>{i > 0 ? "; " : ""}{text(r.label)}{r.labelDerived ? " (derived; not written)" : ""}</span>)}
+        {select && (selected === thread ? <small> (selected)</small> : here
+          ? <>{" "}<button disabled={!canSelect} onClick={() => select(thread)}>Select this conversation</button></>
+          : <small> Not among the received conversations; read another page of stored conversations to find it.</small>)}
+      </li>;
+    })}</ul>}
+    {others.length > 0 && <p>For {count(others.length, "other turn", "other turns")} under way then, the record does not establish that the interrupt ended {others.length === 1 ? "it" : "them"}; the conversation shows what each record says.</p>}
+    {elsewhere > 0 && <p>{count(elsewhere, "more stop request", "more stop requests")} from that quit {elsewhere === 1 ? "is" : "are"} recorded in another Codex home; choose that home under Connection &amp; access to see {elsewhere === 1 ? "it" : "them"}.</p>}
+    <p>{select ? "Select a conversation to see its interrupted turns and to continue it." : "Open History and select the conversation to see its interrupted turns and to continue it."} Nothing is continued or sent until you choose Continue. {open}</p>
+    {list(requests?.limits).length > 0 && <p><small>{ABSENCE}</small></p>}
+    {dismiss && <p><button onClick={dismiss}>Hide this notice</button> <small>It stays hidden until the App is next started or another stop is recorded; History still shows it.</small></p>}
   </div>;
 }

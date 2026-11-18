@@ -481,7 +481,19 @@ implemented behavior and qualification limits.
     bounded by the same limit as Stop Codex's; the App waits
     up to the stop wait limit for those turns to end, exits, stops each home's
     Codex and writes `session_ended` *quit* with each quit stop request's
-    state. A relaunch reads *quit-with-live-work* and "interrupted by quit".
+    state. A relaunch reads *quit-with-live-work* and "interrupted by quit",
+    and says so without a read: a notice in every view (until hidden) and at
+    the top of History names the conversations of the active home whose
+    turns the most recent quit interrupted, from that earlier session's
+    stop-request records. The conversation selected in History lists its
+    stopped turns, each with its record's label or reading, and offers
+    **Continue this conversation**, the same matched resume as **Continue
+    selected conversation**; nothing is sent. The stored turn page shows a
+    turn's label beside Codex's own status, saying so where they differ. A
+    derived label stays marked derived; a request not sent, or whose write
+    outcome is unknown, keeps its reading and is not shown as interrupted; a
+    turn with no record keeps "cause not established by this page". The same
+    display serves Stop Codex and the person's own interrupt.
     An exit nobody decided is held and asked as Quit. **Closing the window is
     not quit** (DEF-1, SQ-W): it hides the window (macOS; the Dock icon shows
     it again) or minimizes it; work and requests continue, and the view

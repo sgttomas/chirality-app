@@ -269,3 +269,22 @@ for(const selectError of [null,'invented stored-conversation selection refusal']
   ui.recover();
  });
 });
+// After a quit with live work and a relaunch (DEL-01-02 REQ-005, AC-006): the conversation the quit interrupted is
+// named without any read, says so where it is inspected, and its offer is the same matched Continue, pressed once.
+test('a conversation the quit interrupted is said without a read and continued by the same matched resume',async()=>{
+ const records=[{stopRequestId:'stop:q',appSession:'earlier',earlierSession:true,sourceSessionEnd:'established',home:'H-acct',generation:'gen',threadId:'stored',turnId:'turn-q',cause:'quit',
+  requestedAt:'2026-10-11T09:00:00Z',state:'settled',label:'interrupted by quit',labelDerived:false,reading:'Final status observed when the turn ended.',codexReported:'interrupted',persistence:'recorded in the App ledger'}];
+ await mounted({view:value=>{value.stopRequests={records:structuredClone(records),limits:[]};}},async ui=>{
+  const notices=ui.c.querySelectorAll(e=>e.getAttribute('aria-label')==='Work interrupted when the App was last quit');
+  assert.equal(notices.length,2,'said in the workspace and in History');
+  for(const notice of notices)assert.match(notice.textContent,/the App asked Codex to interrupt 1 turn in 1 conversation of this Codex home\..*fixture.*stored · interrupted by quit/);
+  const stops=ui.c.querySelectorAll(e=>e.getAttribute('aria-label')==='Stopped turns in this conversation');
+  assert.equal(stops.length,1);
+  assert.match(stops[0].textContent,/A turn of this conversation was interrupted when you quit the App\. Codex reported it interrupted\./);
+  assert.ok(ui.calls.filter(x=>x.command==='history_action').every(x=>x.args.action==='metadata'),'nothing but the fixture\'s own metadata read; the statement needed none');
+  await React.act(async()=>{props(button(ui.c,'Hide this notice')).onClick();});
+  assert.equal(ui.c.querySelectorAll(e=>e.getAttribute('aria-label')==='Work interrupted when the App was last quit').length,1,'hidden in the workspace, kept in History');
+  await ui.press('Continue this conversation');
+  assert.equal(ui.selected(),key('stored'));assert.ok(ui.context());
+ });
+});

@@ -8,7 +8,7 @@ import {localRequire} from './support/load-src.mjs';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
 const load=name=>{const url=new URL(`../src/${name}`,import.meta.url);const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}});const exports={};new Function('require','exports',compiled.outputText)(localRequire(createRequire(url)),exports);return exports;};
-const {CodexProcessControls,StopOutcome,stopLabel,StopRequests,appHome}=load('CodexControls.tsx');
+const {CodexProcessControls,StopOutcome,stopLabel,StopRequests,appHome,ConversationStops,LastQuitNotice,lastQuitRecords,stopRequestsFor,labelOutcome}=load('CodexControls.tsx');
 const {StopLabel}=load('NativeActivity.tsx');
 const g={appSession:'s',home:'h',spawnCounter:1};
 const outcome={action:'Stop Codex',state:'stopped',confirmedAt:'2026-10-10T00:00:00Z',modeHomeClass:'account',generation:g,
@@ -121,3 +121,89 @@ test('stop-request records label turns first and read back after a relaunch (REC
 });
 // The App's pause of sends during Stop Codex, and the interrupt and selection
 // controls that stay available, are exercised in conversation-panel.test.mjs.
+
+// After a quit with live work and a relaunch (DEL-01-02 REQ-005, AC-006): the
+// turns the quit interrupted are said on the conversation, from the records only.
+const DERIVED='The App session ended before a final status was recorded for this turn; this label is derived from that and is not written in any record.';
+const quitRows=()=>[
+  sr({stopRequestId:'stop:q1',appSession:'old',earlierSession:true,sourceSessionEnd:'established',cause:'quit',turnId:'tq1',requestedAt:'2026-10-11T09:00:00Z',state:'settled',label:'interrupted by quit',codexReported:'interrupted'}),
+  sr({stopRequestId:'stop:q2',appSession:'old',earlierSession:true,sourceSessionEnd:'established',cause:'quit',turnId:'tq2',requestedAt:'2026-10-11T09:00:00Z',state:'accepted',label:'interrupted by quit (final status not observed)',labelDerived:true,reading:DERIVED,codexReported:null}),
+  sr({stopRequestId:'stop:q3',appSession:'old',earlierSession:true,sourceSessionEnd:'established',cause:'quit',turnId:'tq3',requestedAt:'2026-10-11T09:00:00Z',state:'send-unknown',label:null,reading:"Stop requested; the interrupt's write began and its completion was not observed, so whether it reached Codex is not known.",codexReported:null}),
+  sr({stopRequestId:'stop:q4',appSession:'old',earlierSession:true,sourceSessionEnd:'established',cause:'quit',threadId:'second',turnId:'tq4',requestedAt:'2026-10-11T09:00:00Z',state:'outcome-unknown',label:'interrupted by quit (final status not observed)',reading:'No final turn status is recorded for this stop request. That does not establish that Codex\'s process ended.',codexReported:null}),
+  sr({stopRequestId:'stop:q5',appSession:'old',earlierSession:true,sourceSessionEnd:'established',cause:'quit',threadId:'keyed',home:'H-key',turnId:'tq5',requestedAt:'2026-10-11T09:00:00Z',state:'settled',label:'interrupted by quit',codexReported:'interrupted'}),
+  // An older quit, and a request of a session whose end is not established: neither is "the last quit".
+  sr({stopRequestId:'stop:q0',appSession:'older',earlierSession:true,sourceSessionEnd:'established',cause:'quit',threadId:'ancient',turnId:'tq0',requestedAt:'2026-10-01T09:00:00Z',state:'settled',label:'interrupted by quit',codexReported:'interrupted'}),
+  sr({stopRequestId:'stop:qx',appSession:'other',earlierSession:false,sourceSessionEnd:'not-established',cause:'quit',turnId:'tqx',requestedAt:'2026-10-12T09:00:00Z',state:'sent',label:null,
+    reading:'Recorded by another App session whose end is not established. No final status is recorded for this turn, and no label is derived.',codexReported:null}),
+];
+
+test('a conversation says which of its turns the quit interrupted, from the records only, and offers Continue',()=>{
+  const requests={records:quitRows(),limits:[]};
+  const rows=stopRequestsFor(requests,'thread','H-acct');
+  assert.deepEqual(rows.map(r=>r.stopRequestId),['stop:q1','stop:q2','stop:q3','stop:qx']);
+  assert.deepEqual(stopRequestsFor(requests,'thread','H-key'),[],'the ledger is App-wide; another home\'s rows are not this conversation\'s');
+  assert.deepEqual(stopRequestsFor(requests,null,'H-acct'),[]);
+  let continued=0;
+  const html=renderToStaticMarkup(React.createElement(ConversationStops,{records:rows,onContinue:()=>{continued++;},canContinue:true}));
+  const plain=agentPlain(html);
+  assert.ok(html.includes('<b>A turn of this conversation was interrupted when you quit the App.</b> Codex reported it interrupted.'),html);
+  assert.ok(html.includes('<b>A turn of this conversation was under way when you quit the App.</b> The App asked Codex to interrupt it; no final status was recorded for it, so the App labels it “interrupted by quit (final status not observed)”.'));
+  // Each turn keeps its own label and reading; a derived label stays marked derived with what that means.
+  assert.ok(plain.includes('App label: <b>interrupted by quit</b>. ⟦Reading: Final status observed when the turn ended.⟧ Codex reported: interrupted.'));
+  assert.ok(plain.includes(`App label: <b>interrupted by quit (final status not observed)</b> (derived; not written). ⟦Reading: ${DERIVED}⟧`));
+  // A send-unknown request is never an interrupt that reached Codex; another session's request keeps its reading and gets no label.
+  const others=html.slice(html.indexOf('Other stop requests recorded for this conversation'));
+  assert.ok(others.length<html.length,'the unlabelled requests are listed apart');
+  assert.ok(agentPlain(others).includes("Stop request: ⟦Reading: Stop requested; the interrupt&#x27;s write began and its completion was not observed, so whether it reached Codex is not known.⟧"));
+  assert.ok(agentPlain(others).includes('Stop request: ⟦Reading: Recorded by another App session whose end is not established. No final status is recorded for this turn, and no label is derived.⟧'));
+  assert.ok(!others.includes('App label'),'no unlabelled request gets a label');
+  // Nothing suggests a run end, an answered request or recovered delegated work.
+  assert.ok(html.includes('An interrupted turn is not a workflow run&#x27;s end. Requests Codex was waiting on you for when the App quit or Codex was stopped were not answered, and this App session cannot answer them. Nothing here says what became of agents the conversation delegated work to.'));
+  assert.ok(!/held|blocked/i.test(html),'plain words');
+  assert.ok(html.includes('Continue this conversation</button>')&&html.includes('The App does not send the interrupted turn&#x27;s message again; nothing is sent until you write and send a message.'));
+  assert.ok(!html.includes('A turn with no record here'),'no limit, no limit line');
+  const limited=renderToStaticMarkup(React.createElement(ConversationStops,{records:rows,limited:true}));
+  assert.ok(limited.includes('A turn with no record here is not shown to have run to its end.')&&!limited.includes('Continue this conversation'),'no offer without an act');
+  assert.equal(renderToStaticMarkup(React.createElement(ConversationStops,{records:[]})),'','no record, nothing said: absence establishes nothing');
+  assert.equal(continued,0,'rendering continues nothing');
+  // The person's own interrupt is shown by the same display, with no quit sentence.
+  const own=renderToStaticMarkup(React.createElement(ConversationStops,{records:[sr()]}));
+  assert.ok(own.includes('Stop requests recorded for this conversation')&&own.includes('<b>interrupted by the person</b>')&&!own.includes('quit the App')&&!own.includes('were not answered'));
+});
+
+test('the last quit is said without a press, by conversation, in the active home only',()=>{
+  const requests={records:quitRows(),limits:[]};
+  assert.deepEqual(lastQuitRecords(requests).map(r=>r.stopRequestId),['stop:q1','stop:q2','stop:q3','stop:q4','stop:q5'],'the newest earlier session only; a session whose end is not established is not counted');
+  assert.deepEqual(lastQuitRecords(requests,'H-acct').map(r=>r.stopRequestId),['stop:q1','stop:q2','stop:q3','stop:q4']);
+  assert.deepEqual(lastQuitRecords({records:[sr()]}),[],'no quit, no notice');
+  const name=id=>React.createElement('code',null,id);
+  let selected=[];
+  const html=renderToStaticMarkup(React.createElement(LastQuitNotice,{requests,home:'H-acct',name,select:id=>selected.push(id),selected:'second',canSelect:true,received:id=>id!=='second'}));
+  assert.ok(html.includes('<b>When you last quit the App with work under way (stop requests recorded 2026-10-11T09:00:00Z), the App asked Codex to interrupt 3 turns in 2 conversations of this Codex home.</b>'),html);
+  assert.ok(html.includes('<code>thread</code> · <span>interrupted by quit</span><span>; interrupted by quit (final status not observed) (derived; not written)</span> <button>Select this conversation</button>'));
+  assert.ok(html.includes('<code>second</code> · <span>interrupted by quit (final status not observed)</span><small> (selected)</small>'));
+  assert.ok(html.includes('For 1 other turn under way then, the record does not establish that the interrupt ended it'));
+  assert.ok(html.includes('1 more stop request from that quit is recorded in another Codex home'));
+  assert.ok(!html.includes('ancient')&&!html.includes('tqx'));
+  assert.ok(html.includes('Nothing is continued or sent until you choose Continue.'));
+  assert.deepEqual(selected,[]);
+  const unreceived=renderToStaticMarkup(React.createElement(LastQuitNotice,{requests,home:'H-acct',name,select:()=>{},selected:null,canSelect:true,received:()=>false}));
+  assert.ok(unreceived.includes('Not among the received conversations; read another page of stored conversations to find it.')&&!unreceived.includes('Select this conversation'));
+  const workspace=renderToStaticMarkup(React.createElement(LastQuitNotice,{requests:{...requests,limits:['x']},home:'H-acct',name,open:React.createElement('a',{href:'#workspace-history'},'Open History'),dismiss:()=>{}}));
+  assert.ok(workspace.includes('Open History and select the conversation')&&workspace.includes('<a href="#workspace-history">Open History</a>')&&workspace.includes('Hide this notice'));
+  assert.ok(workspace.includes('A turn with no record here is not shown to have run to its end.'),'a limit is said, so absence is not read as nothing interrupted');
+  // Another home's quit only: said, without counting this home's turns as interrupted.
+  const keyed=renderToStaticMarkup(React.createElement(LastQuitNotice,{requests,home:'H-omlx',name}));
+  assert.ok(keyed.includes('the App recorded stop requests in another Codex home.')&&keyed.includes('5 more stop requests from that quit are recorded in another Codex home'));
+  assert.equal(appHome('local-provider'),'H-omlx');
+});
+
+test('a label says how the turn ended in the App\'s own words',()=>{
+  assert.equal(labelOutcome('interrupted by quit'),'interrupted');
+  assert.equal(labelOutcome('interrupted by quit (final status not observed)'),'unknown');
+  assert.equal(labelOutcome('outcome unknown (stop requested)'),'unknown');
+  assert.equal(labelOutcome('completed (quit requested)'),'completed');
+  assert.equal(labelOutcome('failed (Stop Codex requested)'),'failed');
+  assert.equal(labelOutcome('something else'),null);
+  assert.equal(labelOutcome(null),null);
+});

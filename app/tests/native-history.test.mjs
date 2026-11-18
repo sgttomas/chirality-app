@@ -8,7 +8,7 @@ import {choiceList, chooseIn, chosenIn, keysIn, labelOf, rowOf} from './support/
 import {loadSrc} from './support/load-src.mjs';
 import {continuationFixture} from './support/continuation-fixture.mjs';
 
-const {historyPageBinding, StoredItemPage, StoredTurnPage, ContinuationContext, continuationContextBinding, continuationPageBinding} = loadSrc('NativeHistory');
+const {historyPageBinding, StoredItemPage, StoredTurnPage, ContinuationContext, continuationContextBinding, continuationPageBinding, storedStopFor} = loadSrc('NativeHistory');
 const {NativeActivityView, NativeItemCard, historyItemRow} = loadSrc('NativeActivity');
 const generation = {appSession: 'history-session', home: 'history-home', spawnCounter: 2};
 const clone = value => structuredClone(value);
@@ -471,4 +471,47 @@ test('history discovery uses native names before previews and retains exact IDs 
     assert.deepEqual(ui.calls, [{command:'history_select',args:{generation,selectionEpoch:3,threadId:'other-É'}}]);
     assert.match(ui.c.textContent, /Conversation ID: stored/);
   });
+});
+
+// After a quit with live work and a relaunch (DEL-01-02 REQ-005, AC-006): the
+// stored turn page marks a turn by its stop record, beside Codex's own status.
+test('a stored turn the quit interrupted is marked by its stop record, with Codex status beside it and a Continue offer', () => {
+  const host = fixture();
+  host.homeRouting = {activeModeHomeClass: 'account'};
+  const rec = over => ({stopRequestId: `stop:${over.turnId}`, appSession: 'old', earlierSession: true, sourceSessionEnd: 'established', home: 'H-acct', generation: 'g', threadId: 'stored', cause: 'quit',
+    requestedAt: '2026-10-11T09:00:00Z', state: 'settled', label: 'interrupted by quit', labelDerived: false, reading: 'Final status observed when the turn ended.', codexReported: 'interrupted', persistence: 'recorded in the App ledger', ...over});
+  host.stopRequests = {records: [
+    rec({turnId: 'quit-observed'}),
+    rec({turnId: 'quit-derived', state: 'accepted', label: 'interrupted by quit (final status not observed)', labelDerived: true, codexReported: null,
+      reading: 'The App session ended before a final status was recorded for this turn; this label is derived from that and is not written in any record.'}),
+    rec({turnId: 'quit-unsent', state: 'send-unknown', label: null, codexReported: null, reading: "Stop requested; the interrupt's write began and its completion was not observed, so whether it reached Codex is not known."}),
+    rec({turnId: 'other-home', home: 'H-key'}),
+  ], limits: []};
+  host.nativeHistory.selected.turnsPage.data = [
+    {id: 'quit-observed', status: 'interrupted', items: []},
+    {id: 'quit-derived', status: 'completed', items: []},
+    {id: 'quit-unsent', status: 'interrupted', items: []},
+    {id: 'other-home', status: 'interrupted', items: []},
+    {id: 'unrecorded', status: 'interrupted', items: []},
+  ];
+  let continued = 0;
+  const html = renderToStaticMarkup(React.createElement(StoredTurnPage, {binding: historyPageBinding(host, 'turns'), canRead: true, readItems: () => {}, stopFor: storedStopFor(host, 'stored'), onContinue: () => { continued++; }, canContinue: true}));
+  const turn = id => html.slice(html.indexOf(`<code>${id}</code>`), html.indexOf('</article>', html.indexOf(`<code>${id}</code>`)));
+  // The recorded label replaces "cause not established"; Codex's status stays as Codex reported it.
+  assert.ok(turn('quit-observed').includes('native status interrupted (the App&#x27;s stop record below gives the cause)') && turn('quit-observed').includes('App label: <b>interrupted by quit</b>'));
+  assert.ok(!turn('quit-observed').includes('cause not established') && !turn('quit-observed').includes('Each is shown as its source records it'));
+  assert.ok(turn('quit-observed').includes('Continue this conversation</button>'));
+  // A derived label stays derived, with its reading; where Codex's history says otherwise, both are shown.
+  const derived = agentPlain(turn('quit-derived'));
+  assert.ok(derived.includes('native status completed') && derived.includes('App label: <b>interrupted by quit (final status not observed)</b> (derived; not written). ⟦Reading: The App session ended before a final status was recorded for this turn; this label is derived from that and is not written in any record.⟧'), derived);
+  assert.ok(derived.includes('Codex&#x27;s history reports this turn as completed; the App&#x27;s stop record labels it <b>interrupted by quit (final status not observed)</b>. Each is shown as its source records it.'));
+  // A request whose write outcome is unknown is not shown as an interrupt that reached Codex.
+  assert.ok(turn('quit-unsent').includes('(cause not established by this page)') && agentPlain(turn('quit-unsent')).includes('Stop request: ⟦Reading: Stop requested; the interrupt&#x27;s write began'));
+  assert.ok(!turn('quit-unsent').includes('App label') && !turn('quit-unsent').includes('Continue this conversation'));
+  // Another home's record does not mark this home's turn; an unrecorded turn keeps the page's own words.
+  assert.ok(turn('other-home').includes('cause not established by this page') && !turn('other-home').includes('App label'));
+  assert.ok(turn('unrecorded').includes('cause not established by this page') && !turn('unrecorded').includes('Stop request'));
+  assert.equal(continued, 0, 'rendering continues nothing');
+  // Without a stopFor the page is as before.
+  assert.ok(!renderTurns(host).includes('App label'));
 });
