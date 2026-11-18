@@ -1,5 +1,12 @@
 # Notices the macOS arm64 package ships
 
+These checks are not built to resist deliberately forged, mutually consistent inputs
+(an account, a table, an association and a review record changed together to agree).
+The review of the pull request that changes a curated file covers that boundary
+([What these checks withstand](#what-these-checks-withstand); the per-collection lists
+are under [What is enforced and what review covers](#what-is-enforced-and-what-review-covers)
+and in `../supplier_notices/README.md`).
+
 Every component shipped in the package has an entry in `coverage.json`, with its
 version, its source, where its notice text ships and one standing: `covered`,
 `held-pending-owner-licence-reading` or `uncovered` (with the reason and what
@@ -130,24 +137,27 @@ Rules `coverage.py` applies, whatever the tables say:
   left out of what the component needs is one standing `not-in-macos-package`: absence
   from the macOS target (`aarch64-apple-darwin`) by declared target condition. It is
   admitted only when every reverse dependency the lockfile gives has its manifest
-  committed under `../supplier_notices/crates/manifests/`, and every declaration of the
-  package that the checker finds by parsing that manifest sits under a target key, in a
-  closed set of forms, that is false for that target (see
-  `../supplier_notices/README.md`). No resolver was run and nothing was read from the
-  binaries; the account lists every such package with its evidence under
-  `excluded_packages`. Nothing is left out on any other ground. The 23 packages awaiting
-  the owner's objc2 reading are a closed, named list in `crates.py` and stay held whatever
-  route, spelling or text their rows give them. The table's standing for the component
-  must agree.
-- **Voice rows.** A voice row (a component whose texts are members of the supplier
-  tree) is covered only when the supplier's own voice records for the declared pin,
-  committed under `../supplier_notices/voice_records/<pin>/` and bound to their members'
-  digests in the distribution record, establish its version and source URL
-  (`../supplier_notices/voice.py`; any disagreement refuses, and each native-library
-  entry establishes exactly one row). These are the supplier's statements about its
-  bundle; the libraries' contents are not inspected. Which licence file in the tree is a
-  row's notice is not stated by those records; it is curated in `components.json` and
-  reviewed, not checked.
+  committed under `../supplier_notices/crates/manifests/`, every explicit declaration of
+  the package that the checker finds by parsing that manifest sits under a target key, in
+  a closed set of forms, that is false for that target, and no key inherited from the
+  workspace can be the package (rule (i) or (ii) in `../supplier_notices/README.md`). No
+  resolver was run and nothing was read from the binaries; the account lists every such
+  package with its evidence and the rule that admitted it under `excluded_packages`.
+  Nothing is left out on any other ground. The 23 packages awaiting the owner's objc2
+  reading are a closed, named list in `crates.py` and stay held whatever route, spelling
+  or text their rows give them. The table's standing for the component must agree.
+- **Voice rows.** A voice row is any component with a member or text in the voice
+  library folders of the supplier tree (`codex-resources/voice/lib/`, `plugins/`,
+  `licenses/`), however its row is written. It is covered only when the supplier's own
+  voice records for the declared pin, committed under
+  `../supplier_notices/voice_records/<pin>/` and bound to their members' digests in the
+  distribution record, establish its version and source URL
+  (`../supplier_notices/voice.py`; a disagreement refuses, and each native-library entry
+  establishes exactly one row), and only with its texts from the supplier tree, carrying
+  its source statement; no exception or other text covers it. These are the supplier's
+  statements about its bundle; the libraries' contents are not inspected. Which licence
+  file in the tree is a row's notice is not stated by those records; it is curated in
+  `components.json`, a review duty.
 - **Table reviewed for another pin.** When the declared pin differs from the table's
   `reviewed_for_pin`, no association is carried forward: every table row stands
   uncovered (the deferred rows with their own reason), and a "Supplier component
@@ -168,7 +178,7 @@ Rules `coverage.py` applies, whatever the tables say:
   `../supplier_notices/crates/associations.json`; `crates/index.json` is made from
   archives CI does not hold, and the committed registry parent manifests' equality with
   their archives' `Cargo.toml` is checked only by `crates.py verify-manifests` with the
-  archives. The
+  archives (the expected checksum taken from the lockfile). The
   direct, transitive, font and SQLite indexes are made by generators from caches CI
   does not hold, so CI can check texts only against them. The declared pin's
   `CANONICAL_DISTRIBUTION.json` is bound too, because the account copies the voice
@@ -230,6 +240,29 @@ Rules `coverage.py` applies, whatever the tables say:
   among them have their own rows.
 - **Bundled icons** declared in `tauri.conf.json` need a provenance entry
   (`app_assets`); one without stands uncovered.
+
+## What is enforced and what review covers
+
+For the inputs this account counts from, the checker enforces (each with a test):
+- a component is covered only by the rule its kind has above; a compiled-dependencies
+  component is covered only when every package of its lockfiles stands `text` or
+  `not-in-macos-package` in `../supplier_notices/crates/packages.json`, which `check`
+  regenerates and requires unchanged;
+- a component that is not covered keeps `check --strict` non-zero and a public
+  production preparation refused;
+- a voice row is covered only as **Voice rows** says;
+- each curated file `coverage-review.json` names must have the bound SHA-256, so a
+  changed curated input without its reviewer's update refuses;
+- `../supplier_notices/README.md` lists, per curated collection of the supplier crate
+  group and the voice records, what `crates.py` and `voice.py` enforce.
+
+Review boundary: what each curated file asserts about the world (that a listing names a
+blob, that an archive records a revision, that a manifest is the archive's or the
+workspace's file, that a tree text is a library's licence) is checked by the reviewer of
+the pull request that changes it, from held evidence, as listed per collection in
+`../supplier_notices/README.md`. `coverage-review.json` records that review; rebinding it
+is the reviewer's act. An item whose standing rests on such a duty that has not been
+completed is returned to an open standing.
 
 ## Limits
 
