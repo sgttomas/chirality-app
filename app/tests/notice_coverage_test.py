@@ -281,7 +281,7 @@ class Account(Builds):
         # Even after the curated binding is updated, neither regeneration nor the gate accepts a textless package.
         for operation in (crates.packages, crates.check, coverage.build):
             with self.subTest(operation=operation.__name__):
-                with self.assertRaisesRegex(ValueError, 'must have at least one text'):
+                with self.assertRaisesRegex(ValueError, 'texts must be a non-empty list'):
                     operation(self.repo)
 
     # Round 2 finding 2, with the rule the 0.169.0 crate group adds: a compiled-dependencies row is covered only when every
@@ -694,6 +694,38 @@ class Account(Builds):
         row = self.row(self.build(), 'Opus')
         self.assertEqual(row['standing'], coverage.UNCOVERED)
         self.assertIn('voice records for', row['reason'])
+
+    # Review round 2, finding 2: a voice component is one by where its members are, not by how its row is written; it is
+    # covered only through the voice records, with its source statement, and no exception or other text covers it.
+    def test_a_voice_component_is_covered_only_through_the_voice_records(self):
+        def reroute(v):
+            opus = next(c for c in v['components'] if c['id'] == 'opus')
+            codex = next(c for c in v['components'] if c['id'] == 'codex')
+            opus.update(supplier_tree_texts=[], revision=codex['revision'], texts=[codex['texts'][0]],
+                        text_exceptions=[{'path': codex['texts'][0], 'reason': 'INVENTED reviewed exception'}],
+                        members=opus['members'] + ['codex-resources/voice/licenses/Opus.txt'])
+        for records in (True, False):
+            with self.subTest(records=records):
+                self.setUp(); self.edit(TABLE, reroute)
+                if not records:
+                    shutil.rmtree(self.repo / coverage.voice_records.RECORDS)
+                row = self.row(self.build(), 'Opus')
+                self.assertEqual(row['standing'], coverage.UNCOVERED)
+                self.assertNotIn('source_statement', row)
+        # Moving the library into the Codex row makes that row a voice row, which no native-library entry establishes.
+        self.setUp()
+        self.edit(TABLE, lambda v: (next(c for c in v['components'] if c['id'] == 'codex')['members'].append(
+            'codex-resources/voice/lib/libopus.0.dylib'), next(c for c in v['components'] if c['id'] == 'opus')['members'].remove(
+            'codex-resources/voice/lib/libopus.0.dylib')))
+        with self.assertRaisesRegex(ValueError, 'states the source of codex'):
+            self.build()
+        # Control: the committed rows are covered, each with its source statement.
+        self.setUp()
+        report = self.build()
+        for name in ('Opus', 'zlib'):
+            row = self.row(report, name)
+            self.assertEqual(row['standing'], coverage.COVERED)
+            self.assertIn('source_statement', row)
 
     def test_library_content_must_match_its_bundle_source_record(self):
         self.edit(texts.INPUTS, lambda v: v['library_content'][1].update(revision='d' * 40))

@@ -224,7 +224,7 @@ def test_empty_text_associations_refuse_before_account_generation(repo, source):
         entry['texts'] = []
     edit(repo, crates.ASSOCIATIONS, empty)
     for operation in (crates.check, crates.packages):
-        with pytest.raises(ValueError, match='must have at least one text'):
+        with pytest.raises(ValueError, match='texts must be a non-empty list'):
             operation(repo)
 
 
@@ -276,6 +276,15 @@ def test_git_text_must_be_its_listing_blob(repo):
         crates.check(repo)
 
 
+def test_workspace_text_must_equal_its_identity_and_listing(repo):
+    edit(repo, crates.ASSOCIATIONS, lambda v: v['workspaces'][0]['texts'][0].update(listing_blobs=['a' * 40]))
+    with pytest.raises(ValueError, match='not the blob its listing names'):
+        crates.check(repo)
+    edit(repo, crates.ASSOCIATIONS, lambda v: v['workspaces'][0]['texts'][0].update(sha256='a' * 64))
+    with pytest.raises(ValueError, match='workspace text differs from its association'):
+        crates.check(repo)
+
+
 def test_a_locked_git_package_without_association_refuses(repo):
     edit(repo, crates.ASSOCIATIONS, lambda v: v['git_sources'].pop())
     with pytest.raises(ValueError, match='no Git association'):
@@ -323,7 +332,7 @@ def test_publisher_texts_ship_with_their_basis_and_objc2_ones_stay_held():
 
 def test_a_publisher_text_association_needs_a_held_text_bound_to_its_listing(repo):
     edit(repo, crates.ASSOCIATIONS, lambda v: publisher(v, 'rtc-dtls').update(texts=[]))
-    with pytest.raises(ValueError, match='at least one text'):
+    with pytest.raises(ValueError, match='texts must be a non-empty list'):
         crates.check(repo)
 
 
@@ -335,7 +344,14 @@ def test_a_publisher_text_association_needs_a_held_text_bound_to_its_listing(rep
     (lambda t: t.update(git_blob_sha1='0' * 40, listing_blob='0' * 40), 'differs from the blob its listing names'),
     # A README or source file is not a notice, whatever its bytes (review finding 3).
     (lambda t: t.update(source_path='README.md'), 'not named as a notice'),
-    (lambda t: t.update(size_bytes=-1, listing_size=-1), 'unknown registry-source text shape'),
+    (lambda t: t.update(size_bytes=-1, listing_size=-1), 'size_bytes must be a positive integer'),
+    # Review round 2: a path that leaves its folder is refused by the archive route's path rule, whatever its name says.
+    (lambda t: t.update(source_path='LICENSES/../README.md'), 'source_path must be a repository-relative path'),
+    (lambda t: t.update(source_path='/LICENSE'), 'source_path must be a repository-relative path'),
+    (lambda t: t.update(source_path='LICENSES\\MIT.txt'), 'source_path must be a repository-relative path'),
+    (lambda t: t.update(source_path='LICENSES//MIT.txt'), 'source_path must be a repository-relative path'),
+    (lambda t: t.update(sha256=int(t['sha256'], 16)), 'sha256 must be a SHA-256 digest'),
+    (lambda t: t.update(size_bytes=True, listing_size=True), 'size_bytes must be a positive integer'),
 ])
 def test_a_changed_publisher_text_or_source_identity_refuses(repo, change, message):
     edit(repo, crates.ASSOCIATIONS, lambda v: change(publisher(v, 'rtc-dtls')['texts'][0]))
@@ -344,17 +360,23 @@ def test_a_changed_publisher_text_or_source_identity_refuses(repo, change, messa
 
 
 @pytest.mark.parametrize('change, message', [
-    (lambda e: e.update(revision='not-a-revision'), 'publisher revision and basis'),
-    (lambda e: e.update(repository='https://example.invalid/rtc'), 'not in the form'),
-    (lambda e: e.update(basis=''), 'publisher revision and basis'),
-    (lambda e: e.update(invented='x'), 'unknown registry-source association shape'),
+    (lambda e: e.update(revision='not-a-revision'), 'revision must be a Git object id'),
+    (lambda e: e.update(repository='https://example.invalid/rtc'), 'repository must be exactly https://github'),
+    (lambda e: e.update(basis=''), 'basis must be a non-empty string'),
+    (lambda e: e.update(invented='x'), 'registry_sources\\[\\d+\\] has keys'),
     # The provenance fields cannot be dropped or emptied (review finding 3: clipboard-win stood text without them).
-    (lambda e: e.update(listing={}), 'listing identity'),
-    (lambda e: e['listing'].update(entries=0), 'listing identity'),
-    (lambda e: e['listing'].update(response_sha256='not a hash'), 'listing identity'),
-    (lambda e: member(e, 'clipboard-win').pop('archive_metadata'), 'unknown registry-source package shape'),
-    (lambda e: member(e, 'clipboard-win').update(archive_metadata={}), 'archive Cargo.toml and .cargo_vcs_info.json'),
-    (lambda e: member(e, 'clipboard-win')['archive_metadata']['Cargo.toml'].update(size_bytes=-1), 'archive Cargo.toml'),
+    (lambda e: e.update(listing={}), 'listing has keys'),
+    (lambda e: e['listing'].update(entries=0), 'entries must be a positive integer'),
+    (lambda e: e['listing'].update(entries=True), 'entries must be a positive integer'),
+    (lambda e: e['listing'].update(response_sha256='not a hash'), 'response_sha256 must be a SHA-256 digest'),
+    (lambda e: member(e, 'clipboard-win').pop('archive_metadata'), 'packages\\[\\d+\\] has keys'),
+    (lambda e: member(e, 'clipboard-win').update(archive_metadata={}), 'archive_metadata has keys'),
+    (lambda e: member(e, 'clipboard-win')['archive_metadata']['Cargo.toml'].update(size_bytes=-1), 'size_bytes must be a positive integer'),
+    # Review round 2: exact types, not values that merely compare or print alike.
+    (lambda e: member(e, 'clipboard-win').update(path_in_vcs=None), 'path_in_vcs must be a repository-relative path, or empty'),
+    (lambda e: member(e, 'clipboard-win').update(path_in_vcs='../elsewhere'), 'path_in_vcs must be a repository-relative path, or empty'),
+    (lambda e: member(e, 'clipboard-win')['archive_metadata']['Cargo.toml'].update(sha256=10 ** 63), 'sha256 must be a SHA-256 digest'),
+    (lambda e: member(e, 'clipboard-win').update(archive_repository=''), 'archive_repository matches no accepted shape'),
     # The association's revision must be the one the archive's VCS record names, and its repository the archive's.
     (lambda e: e.update(revision='1' * 40), 'another revision than the association'),
     (lambda e: member(e, 'clipboard-win').update(archive_vcs_revision='1' * 40), 'another revision than the association'),
@@ -460,13 +482,15 @@ def test_a_listed_package_with_no_overview_text_stays_open(repo):
 
 def test_a_repository_spelling_cannot_release_a_listed_package(repo):
     edit(repo, crates.ASSOCIATIONS, lambda v: publisher(v, 'objc2').update(repository='https://github.com/madsmtm/objc2.git'))
-    with pytest.raises(ValueError, match='not in the form'):
+    with pytest.raises(ValueError, match='repository must be exactly https://github'):
         crates.check(repo)
 
 
 @pytest.mark.parametrize('repository, reading_required, outcome', [
-    ('https://github.com/madsmtm/objc2.git', False, 'not in the form'),
-    ('https://github.com/madsmtm/objc2/', True, 'not in the form'),
+    ('https://github.com/madsmtm/objc2.git', False, 'repository must be exactly https://github'),
+    ('https://github.com/madsmtm/objc2/', True, 'repository must be exactly https://github'),
+    # Review round 2: another letter case of the same repository is the same repository.
+    ('https://github.com/Madsmtm/ObjC2', False, 'another reading requirement'),
     ('https://github.com/madsmtm/objc2', False, 'another reading requirement'),
     ('https://github.com/invented/elsewhere', False, 'another reading requirement'),
     ('https://github.com/madsmtm/objc2', True, None),
@@ -507,6 +531,33 @@ def test_an_unlisted_package_carrying_the_overview_text_or_from_objc2_is_held(re
                                                    and 'vsimd 0.8.0' in e['packages']).update(reading_required=True))
     row = rows_of(repo)[('vsimd', '0.8.0')]
     assert row['standing'] == 'held' and 'comes from https://github.com/madsmtm/objc2' in row['reason']
+
+
+def test_the_objc2_repository_guard_ignores_letter_case(repo):
+    # Review round 2: an unlisted publisher-text crate whose repository is objc2's in another letter case is held.
+    def mixed(v):
+        entry = publisher(v, 'clipboard-win')
+        entry['repository'] = 'https://github.com/Madsmtm/ObjC2'
+        for package in entry['packages']:
+            package['archive_repository'] = 'https://github.com/madsmtm/objc2'
+    edit(repo, crates.ASSOCIATIONS, mixed)
+    row = rows_of(repo)[('clipboard-win', '5.4.1')]
+    assert row['standing'] == 'held' and 'comes from https://github.com/madsmtm/objc2' in row['reason']
+
+
+def test_the_overview_text_guard_applies_after_the_git_route(repo):
+    # Control: runfiles 0.1.0 stands text through its Git association.
+    assert rows_of(repo)[('runfiles', '0.1.0')]['standing'] == 'text'
+    # Review round 2: given the overview text through the Git route, it is held, not text.
+    def carry(v):
+        source = next(s for s in v['git_sources'] if 'runfiles 0.1.0' in s['packages'])
+        text = publisher(v, 'objc2')['texts'][0]
+        source['texts'].append({**{k: text[k] for k in ('source_path', 'sha256', 'git_blob_sha1', 'size_bytes', 'listing_blob')},
+                                'for': ['runfiles 0.1.0']})
+    edit(repo, crates.ASSOCIATIONS, carry)
+    row = rows_of(repo)[('runfiles', '0.1.0')]
+    assert row['standing'] == 'held' and 'carries the objc2 overview text' in row['reason']
+    assert row['standing'] in crates.OPEN
 
 
 def test_a_listed_identity_no_lockfile_locks_refuses(repo, monkeypatch):
@@ -568,11 +619,14 @@ def test_unknown_target_keys_refuse(spec, message):
 
 def test_declarations_are_found_by_key_rename_kind_and_target():
     manifest = tomllib.loads('[package]\nname = "p"\n[dependencies]\nx = "1"\nalias = { package = "y", version = "1" }\n'
-                             '[dev-dependencies]\ny = "1"\n[target.\'cfg(windows)\'.build-dependencies.y]\nversion = "1"\n')
-    assert sorted(crates.declarations(manifest, 'y'), key=str) == sorted(
+                             '[dev-dependencies]\ny = "1"\nz.workspace = true\n[target.\'cfg(windows)\'.build-dependencies.y]\n'
+                             'version = "1"\n[target.\'cfg(unix)\'.dependencies]\nw = { workspace = true }\n')
+    explicit, inherited = crates.classify(manifest)
+    assert sorted(((spec, k) for spec, k, n in explicit if n == 'y'), key=str) == sorted(
         [(None, 'normal'), (None, 'dev'), ('cfg(windows)', 'build')], key=str)
-    assert crates.declarations(manifest, 'x') == [(None, 'normal')]
-    assert crates.declarations(manifest, 'absent') == []
+    assert [(spec, k) for spec, k, n in explicit if n == 'x'] == [(None, 'normal')]
+    # Inherited keys name no package: only the workspace root would.
+    assert sorted(inherited, key=str) == sorted([(None, 'dev', 'z'), ('cfg(unix)', 'normal', 'w')], key=str)
 
 
 def test_a_committed_manifest_must_equal_its_recorded_identity(repo):
@@ -584,16 +638,32 @@ def test_a_committed_manifest_must_equal_its_recorded_identity(repo):
         crates.check(repo)
 
 
+def test_a_committed_manifest_that_is_a_link_refuses(repo):
+    item = parent(json.loads((repo / crates.ASSOCIATIONS).read_text()), 'winapi-0.3.9')
+    path = repo / item['path']
+    elsewhere = repo / 'elsewhere.Cargo.toml'
+    elsewhere.write_bytes(path.read_bytes())
+    path.unlink()
+    path.symlink_to(elsewhere)
+    with pytest.raises(ValueError, match='not a regular non-link file'):
+        crates.check(repo)
+
+
 @pytest.mark.parametrize('change, message', [
     # Review finding 2: impossible sizes and non-digests refuse.
-    (lambda m: m.update(size_bytes=-1, sha256='not a hash'), 'unknown or repeated parent manifest entry'),
-    (lambda m: m.update(size_bytes=0), 'unknown or repeated parent manifest entry'),
-    (lambda m: m.update(git_blob_sha1='x'), 'unknown or repeated parent manifest entry'),
-    (lambda m: m.update(path='app/packaging/supplier_notices/codex/LICENSE'), 'unknown or repeated parent manifest entry'),
+    (lambda m: m.update(size_bytes=-1, sha256='not a hash'), 'manifests\\[\\d\\]\\.(size_bytes|sha256) must be'),
+    (lambda m: m.update(size_bytes=0), 'size_bytes must be a positive integer'),
+    (lambda m: m.update(git_blob_sha1='x'), 'git_blob_sha1 must be a Git object id'),
+    (lambda m: m.update(path='app/packaging/supplier_notices/codex/LICENSE'), 'outside crates/manifests/'),
     (lambda m: m['source'].update(checksum='0' * 64), 'not the locked archive\'s Cargo.toml'),
-    (lambda m: m['source'].update(member='Cargo.toml.orig'), 'unknown registry manifest source'),
+    (lambda m: m['source'].update(member='Cargo.toml.orig'), 'source matches no accepted shape'),
     # The crate must stand text with the recorded licence texts.
     (lambda m: m['notice']['texts'].pop(), 'does not stand text with the recorded licence texts'),
+    # Review round 2: the notice names the crate the checker joins, and the recorded licence is what the manifest states.
+    (lambda m: m['notice'].update(crate_row='keyring 3.6.3'), 'notice names another crate'),
+    (lambda m: m['notice'].update(crate_row='other'), 'notice matches no accepted shape'),
+    (lambda m: m.update(declared_license=None), 'declared_license must be a non-empty string'),
+    (lambda m: m.update(declared_license='MIT'), 'recorded licence differs from what it states'),
 ])
 def test_registry_manifest_identity_and_notice(repo, change, message):
     edit(repo, crates.ASSOCIATIONS, lambda v: change(parent(v, 'winapi-0.3.9')))
@@ -603,8 +673,10 @@ def test_registry_manifest_identity_and_notice(repo, change, message):
 
 @pytest.mark.parametrize('change, message', [
     (lambda m: m['source'].update(revision='0' * 40), 'not at the lockfile\'s repository and revision'),
-    (lambda m: m['source'].update(repository='https://github.com/openai/codex.git'), 'not in the form'),
+    (lambda m: m['source'].update(repository='https://github.com/openai/codex.git'), 'must be exactly https://github'),
     (lambda m: m['notice'].update(workspace_texts=['app/packaging/supplier_notices/codex/LICENSE']), 'not covered by its workspace'),
+    # Review round 2: an inherited licence is recorded as inherited, not as a value the held files do not state.
+    (lambda m: m.update(declared_license='Apache-2.0'), 'recorded licence differs from what it states'),
 ])
 def test_workspace_manifest_identity_and_notice(repo, change, message):
     edit(repo, crates.ASSOCIATIONS, lambda v: change(parent(v, 'codex-rs/linux-sandbox/Cargo.toml')))
@@ -613,19 +685,24 @@ def test_workspace_manifest_identity_and_notice(repo, change, message):
 
 
 @pytest.mark.parametrize('change, message', [
-    (lambda e: e['reverse_dependencies'].clear(), 'differ from the lockfile'),
+    (lambda e: e['reverse_dependencies'].clear(), 'reverse_dependencies must be a non-empty list'),
     (lambda e: e['reverse_dependencies'].append({**e['reverse_dependencies'][0], 'name': 'invented'}), 'differ from the lockfile'),
     (lambda e: e['reverse_dependencies'].append(json_copy(e['reverse_dependencies'][0])), 'differ from the lockfile'),
     (lambda e: e['reverse_dependencies'][0].update(manifest='invented'), 'names no committed manifest'),
     (lambda e: e['reverse_dependencies'][0].update(manifest='codex-rs/tui/Cargo.toml'), 'another package\'s'),
-    # The recorded edges are a cross-check: a false table, a mislabelled kind, a missing or extra edge all refuse.
-    (lambda e: e['reverse_dependencies'][0]['edges'][0].update(table='[target.cfg.dev-dependencies]'), 'differs from the manifest'),
-    (lambda e: e['reverse_dependencies'][0]['edges'][0].update(kind='normal'), 'edge kind differs'),
-    (lambda e: e['reverse_dependencies'][0]['edges'].clear(), 'recorded edges differ from the declarations'),
-    (lambda e: e['reverse_dependencies'][0]['edges'].append(json_copy(e['reverse_dependencies'][0]['edges'][0])),
-     'recorded edges differ from the declarations'),
-    (lambda e: e['reverse_dependencies'][0]['edges'][0].update(line=9999), 'unknown edge shape'),
-    (lambda e: e.update(target='x86_64-apple-darwin'), 'unknown not-in-macOS-package shape'),
+    # The recorded declarations are a cross-check of the parse: a false target, a mislabelled kind, a missing or extra
+    # declaration all refuse.
+    (lambda e: e['reverse_dependencies'][0]['declarations'][0].update(target='cfg(target_os = "android")'),
+     'recorded declarations differ'),
+    (lambda e: e['reverse_dependencies'][0]['declarations'][0].update(kind='normal'), 'recorded declarations differ'),
+    (lambda e: e['reverse_dependencies'][0]['declarations'].clear(), 'declarations must be a non-empty list'),
+    (lambda e: e['reverse_dependencies'][0]['declarations'].append(json_copy(e['reverse_dependencies'][0]['declarations'][0])),
+     'recorded declarations differ'),
+    # Review round 2: cited lines are not accepted; the parse is the evidence.
+    (lambda e: e['reverse_dependencies'][0]['declarations'][0].update(line=47, text='test-case = "3.3.1"'), 'has keys'),
+    (lambda e: e['reverse_dependencies'][0].update(edges=[]), 'has keys'),
+    (lambda e: e.update(target='x86_64-apple-darwin'), "target must be 'aarch64-apple-darwin'"),
+    (lambda e: e.update(lock='ripgrep'), 'names another lockfile'),
 ])
 def test_recorded_exclusion_evidence_must_match_the_manifest(repo, change, message):
     edit(repo, crates.ASSOCIATIONS, lambda v: change(absent(v, 'socks5-protocol')))
@@ -665,7 +742,7 @@ def false_exclusion(repo, body):
     def change(v):
         row = next(r for r in v['no_publisher_text'] if r['name'] == 'deno_core_icudata')
         v['no_publisher_text'].remove(row)
-        raw = b'[package]\nname = "codex-code-mode-runtime"\nversion = "0.0.0"\n\n' + body
+        raw = b'[package]\nname = "codex-code-mode-runtime"\nversion = "0.0.0"\nlicense.workspace = true\n\n' + body
         path = crates.BASE + '/manifests/codex-rs.code-mode-runtime.Cargo.toml'
         (repo / path).write_bytes(raw)
         v['manifests'].append({**json_copy(parent(v, 'codex-rs/tui/Cargo.toml')), 'id': 'codex-rs/code-mode-runtime/Cargo.toml',
@@ -676,9 +753,7 @@ def false_exclusion(repo, body):
                                           'target': 'aarch64-apple-darwin', 'reverse_dependencies': [{
                                               'name': 'codex-code-mode-runtime', 'version': '0.0.0',
                                               'manifest': 'codex-rs/code-mode-runtime/Cargo.toml',
-                                              'edges': [{'table': '[target.\'cfg(target_os = "linux")\'.dependencies]',
-                                                         'table_line': 5, 'line': 6, 'kind': 'normal',
-                                                         'text': 'deno_core_icudata = "0.78.0"'}]}]})
+                                              'declarations': [{'target': 'cfg(target_os = "linux")', 'kind': 'normal'}]}]})
     edit(repo, crates.ASSOCIATIONS, change)
 
 
@@ -703,33 +778,146 @@ def test_an_excluded_package_named_twice_or_also_open_refuses(repo):
         crates.check(repo)
 
 
-def test_archive_reading_mode_compares_registry_manifests_with_their_archives(repo, tmp_path):
-    # Invented archive for the copy: winapi's committed manifest re-recorded against an invented checksum is refused when the
-    # archive's Cargo.toml differs, and accepted when it is the same bytes.
+def relock_winapi(repo, v, checksum):
+    """In the copy only: lock winapi 0.3.9 at another archive checksum, re-recording the lockfile's identity and the
+    manifest's source checksum, as a reviewer of such a change would."""
+    item = parent(v, 'winapi-0.3.9')
+    lock = next(entry for entry in v['locks'] if entry['id'] == 'codex')
+    path = repo / lock['path']
+    raw = path.read_bytes()
+    old = ('name = "winapi"\nversion = "0.3.9"\nsource = "registry+https://github.com/rust-lang/crates.io-index"\n'
+           'checksum = "%s"' % item['source']['checksum']).encode()
+    assert raw.count(old) == 1
+    raw = raw.replace(old, old.replace(item['source']['checksum'].encode(), checksum.encode()))
+    path.write_bytes(raw)
+    lock.update(size_bytes=len(raw), sha256=hashlib.sha256(raw).hexdigest(),
+                git_blob_sha1=hashlib.sha1(b'blob %d\0' % len(raw) + raw).hexdigest())
+    item['source']['checksum'] = checksum
+
+
+def only_winapi(monkeypatch, repo):
+    """verify-manifests over winapi's manifest alone (the copy holds no archive for the other two)."""
+    original = crates.manifests
+    monkeypatch.setattr(crates, 'manifests', lambda r, a: {k: v for k, v in original(r, a).items() if k == 'winapi-0.3.9'})
+
+
+def test_archive_reading_mode_takes_the_checksum_from_the_lockfile(repo, tmp_path, monkeypatch):
     item = parent(json.loads((repo / crates.ASSOCIATIONS).read_text()), 'winapi-0.3.9')
     raw = (repo / item['path']).read_bytes()
-    for body, ok in ((raw, True), (raw + b'# changed\n', False)):
+    paths = {}
+    for label, body in (('same', raw), ('changed', raw + b'# changed\n')):
         archive = crate([('Cargo.toml', body), ('LICENSE-MIT', b'm')], name='winapi-0.3.9')
-        path = tmp_path / ('winapi-0.3.9.%s.crate' % ok)
-        path.write_bytes(archive)
-        archives = tmp_path / ('map-%s.json' % ok)
-        archives.write_text(json.dumps({'winapi-0.3.9.crate': str(path)}))
-        def rebind(v, digest=hashlib.sha256(archive).hexdigest()):
-            parent(v, 'winapi-0.3.9')['source']['checksum'] = digest
-        saved = (repo / crates.ASSOCIATIONS).read_bytes()
-        edit(repo, crates.ASSOCIATIONS, rebind)
-        only = {k: v for k, v in crates.manifests(repo, crates.load(repo, crates.ASSOCIATIONS)).items() if k == 'winapi-0.3.9'}
-        original = crates.manifests
+        paths[label] = (tmp_path / f'{label}.crate', hashlib.sha256(archive).hexdigest())
+        paths[label][0].write_bytes(archive)
+        (tmp_path / f'map-{label}.json').write_text(json.dumps({'winapi-0.3.9.crate': str(paths[label][0])}))
+    only_winapi(monkeypatch, repo)
+    # Review round 2: an invented archive the lockfile does not lock is not certified, even with the association re-recorded
+    # to its checksum.
+    saved = (repo / crates.ASSOCIATIONS).read_bytes()
+    edit(repo, crates.ASSOCIATIONS, lambda v: parent(v, 'winapi-0.3.9')['source'].update(checksum=paths['same'][1]))
+    with pytest.raises(ValueError, match='records another checksum than the lockfile'):
+        crates.verify_manifests(repo, tmp_path / 'map-same.json')
+    (repo / crates.ASSOCIATIONS).write_bytes(saved)
+    # Unchanged inputs: the held map's archive is checked against the lockfile's checksum, which the invented one fails.
+    with pytest.raises(ValueError, match='differs from the lockfile checksum'):
+        crates.verify_manifests(repo, tmp_path / 'map-same.json')
+    # Control: with the copy's lockfile locking that archive, the same bytes are certified and changed bytes are not.
+    for label, ok in (('same', True), ('changed', False)):
+        (repo / crates.ASSOCIATIONS).write_bytes(saved)
+        lockfile = repo / crates.BASE / 'locks/codex-rs.Cargo.lock'
+        pristine = lockfile.read_bytes()
+        edit(repo, crates.ASSOCIATIONS, lambda v: relock_winapi(repo, v, paths[label][1]))
         try:
-            crates.manifests = lambda r, a: only
             if ok:
-                assert crates.verify_manifests(repo, archives) == {'manifests_equal_to_archive_members': ['winapi-0.3.9']}
+                assert crates.verify_manifests(repo, tmp_path / f'map-{label}.json') == {'manifests_equal_to_archive_members': ['winapi-0.3.9']}
             else:
                 with pytest.raises(ValueError, match='differs from its archive'):
-                    crates.verify_manifests(repo, archives)
+                    crates.verify_manifests(repo, tmp_path / f'map-{label}.json')
         finally:
-            crates.manifests = original
-            (repo / crates.ASSOCIATIONS).write_bytes(saved)
+            lockfile.write_bytes(pristine)
+
+
+# Workspace inheritance (review round 2, finding 1): the root manifest is not held, so an inherited key's package is not
+# known; the exclusion stands only on rule (i) or rule (ii).
+def admitted(row):
+    return [d['inherited_dependencies'] for d in row['absence']['reverse_dependencies']]
+
+
+def test_each_exclusion_records_the_rule_that_admitted_it():
+    rows = rows_of(ROOT)
+    assert admitted(rows[('socks5-protocol', '0.3.5')])[0]['rule'] == 'i'
+    assert admitted(rows[('winsplit', '0.1.0')])[0] == {
+        'rule': 'ii', 'basis': 'the inherited keys equal in number the lockfile dependencies the manifest does not name '
+                               'explicitly, so none resolves to winsplit',
+        'lockfile_dependencies': 126, 'explicit_names': 8, 'inherited_keys': 118}
+    for name in ('linux-keyutils', 'rustls-platform-verifier-android', 'winapi-i686-pc-windows-gnu', 'winapi-x86_64-pc-windows-gnu'):
+        assert {a['rule'] for a in admitted(next(r for k, r in rows.items() if k[0] == name))} == {'registry manifest'}
+
+
+def add_to_manifest(repo, ident, addition):
+    def add(v):
+        item = parent(v, ident)
+        put_manifest(repo, v, ident, (repo / item['path']).read_bytes() + addition)
+    edit(repo, crates.ASSOCIATIONS, add)
+
+
+@pytest.mark.parametrize('ident, addition', [
+    # The reviewer's probes on the rule (i) parent: an alias inherited under a macOS-active table, with or without a root
+    # entry renaming it to socks5-protocol in the same file.
+    ('codex-rs/linux-sandbox/Cargo.toml', b'\n[target.\'cfg(target_os = "macos")\'.dev-dependencies]\nalt.workspace = true\n'),
+    ('codex-rs/linux-sandbox/Cargo.toml', b'\n[target.\'cfg(target_os = "macos")\'.dev-dependencies]\nalt.workspace = true\n'
+                                          b'[workspace.dependencies]\nalt = { package = "socks5-protocol", version = "=0.3.5" }\n'),
+    ('codex-rs/linux-sandbox/Cargo.toml', b'\n[build-dependencies]\nsocks5-protocol.workspace = true\n'),
+    ('codex-rs/linux-sandbox/Cargo.toml', b'\n[target.\'cfg(unix)\'.dependencies]\nalt = { workspace = true }\n'),
+    # On the rule (ii) parent: one inherited key more than the lockfile's unnamed dependencies leaves one free to be winsplit.
+    ('codex-rs/tui/Cargo.toml', b'\n[target.aarch64-apple-darwin.dependencies]\nalt.workspace = true\n'),
+    ('codex-rs/tui/Cargo.toml', b'\n[target.\'cfg(target_os = "ios")\'.build-dependencies]\nalt = { workspace = true }\n'),
+])
+def test_an_inherited_key_that_could_be_the_excluded_package_refuses(repo, ident, addition):
+    add_to_manifest(repo, ident, addition)
+    with pytest.raises(ValueError, match='workspace root manifest that would show what the inherited keys resolve to is not held'):
+        crates.check(repo)
+
+
+def test_control_an_inherited_key_under_a_condition_false_for_macos_keeps_rule_i(repo):
+    add_to_manifest(repo, 'codex-rs/linux-sandbox/Cargo.toml', b'\n[target.\'cfg(windows)\'.dev-dependencies]\nalt.workspace = true\n')
+    row = rows_of(repo)[('socks5-protocol', '0.3.5')]
+    assert row['standing'] == 'not-in-macos-package' and admitted(row)[0]['rule'] == 'i'
+
+
+def test_a_registry_manifest_with_workspace_inheritance_refuses(repo):
+    add_to_manifest(repo, 'winapi-0.3.9', b'\n[lints]\nworkspace = true\n')
+    with pytest.raises(ValueError, match='registry manifest uses workspace inheritance'):
+        crates.check(repo)
+
+
+def test_an_inherited_dependency_that_also_names_a_package_refuses(repo):
+    add_to_manifest(repo, 'codex-rs/linux-sandbox/Cargo.toml',
+                    b'\n[target.\'cfg(windows)\'.dev-dependencies]\nalt = { workspace = true, package = "socks5-protocol" }\n')
+    with pytest.raises(ValueError, match='inherited dependency in an unsupported form'):
+        crates.check(repo)
+
+
+def test_an_uncited_parent_manifest_refuses(repo):
+    def extra(v):
+        item = json_copy(parent(v, 'winapi-0.3.9'))
+        item['id'] = 'winapi-copy'
+        v['manifests'].append(item)
+    edit(repo, crates.ASSOCIATIONS, extra)
+    with pytest.raises(ValueError, match='cited by no reverse dependency'):
+        crates.check(repo)
+
+
+def test_open_rows_state_facts_and_leave_licence_questions_to_the_owner():
+    # Review round 2, finding 7: no row concludes which terms apply or whether they are met.
+    rows = [r for r in crates.packages(ROOT)['packages'] if r['standing'] in ('gap', 'no-publisher-text')]
+    for row in rows:
+        assert 'does not cover' not in row['would_close'] and 'does not cover' not in row['reason']
+    crc = next(r for r in rows if r['name'] == 'crc32c')
+    assert 'zlib.h' in crc['would_close'] and 'is the owner\'s to decide' in crc['would_close']
+    for item in json.loads((ROOT / crates.ASSOCIATIONS).read_text())['manifests']:
+        if item['source']['kind'] == 'workspace-file':
+            assert item['declared_license'] == crates.INHERITED_LICENCE
 
 
 # A stated licence with no publisher text found is its own open standing; it never counts as a text.
@@ -889,6 +1077,8 @@ def test_ordinary_comparison_passes():
     (lambda v: v['sha256'].update({'codex-resources/voice/lib/invented.dylib': 'f' * 64}), 'a digest the distribution record'),
     (lambda v: v['sha256'].pop(TEXT_B), 'files the supplier manifest does not list'),
     (lambda v: v.update(extra='invented'), 'unsupported shape'),
+    (lambda v: v.update(schemaVersion=True), 'unsupported shape'),
+    (lambda v: v.update(schemaVersion=1.0), 'unsupported shape'),
 ])
 def test_manifest_must_agree_with_the_pin_commit_target_and_inventory(manifest_change, message):
     value = edited(manifest, manifest_change)
@@ -927,6 +1117,9 @@ def test_the_record_must_be_for_the_pin_and_supported_target():
     (lambda v: v['sources'][1].update(extra='x'), None, 'unsupported source entry'),
     (lambda v: v['sources'][1].update(role='plugin'), None, 'unsupported source entry'),
     (lambda v: v.update(schema_version=2), None, 'unsupported shape'),
+    # Review round 2: exact types; true is not the schema version 1.
+    (lambda v: v.update(schema_version=True), None, 'unsupported shape'),
+    (lambda v: v['sources'][1].update(sha256=int(v['sources'][1]['sha256'], 16)), None, 'unsupported source entry'),
 ])
 def test_each_row_is_established_by_exactly_one_native_library_entry(sources_change, row_change, message):
     value = edited(sources, sources_change) if sources_change else sources()
