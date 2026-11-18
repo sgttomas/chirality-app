@@ -83,6 +83,5 @@ checks:
 - app/tests/owner_release_test.py
 - app/tests/release_fixtures.py
 - app/tests/owner_fixtures.py
-- app/tests/whole_plist_test.py
 - app/tests/group_b_legacy_pkg_rules_test.py
 - app/tests/release_limitations_resource_test.py

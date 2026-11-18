@@ -8,6 +8,7 @@ writer, and the one test of the real writer takes the modes it reports.
 """
 import argparse
 import ast
+import base64
 import datetime
 import importlib.util
 import io
@@ -366,6 +367,233 @@ class WholeEntitlementDocument(Base):
         code, stdout, stderr = self.main()
         self.assertEqual(code, 0, stderr)
         self.assertTrue((self.out / 'PACKAGE_IDENTITY.json').is_file())
+
+
+# --- The whole-document FILE reader (app/packaging/production_inputs/whole_plist.py), on invented documents. ---
+# Every value here is invented: the team identifiers, App IDs, UUID and dates name nothing real, and the profile
+# envelopes are built from invented bytes and are never Apple-signed. Beside each refusal is a control that reads.
+WHOLE = common.prepare.whole_plist
+PLIST_HEADER = (b'<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" '
+          b'"http://www.apple.com/DTDs/PropertyList-1.0.dtd">\n')
+READER_TEAM, READER_OTHER = 'ZZINVENT01', 'QQOTHER001'
+READER_EXPECTED = {'com.apple.application-identifier': READER_TEAM + '.invalid.example.reader', 'com.apple.developer.team-identifier': READER_TEAM}
+READER_DICT = (b'<dict>\n\t<key>com.apple.application-identifier</key>\n\t<string>ZZINVENT01.invalid.example.reader</string>\n'
+                 b'\t<key>com.apple.developer.team-identifier</key>\n\t<string>ZZINVENT01</string>\n</dict>')
+# Another team's App ID with get-task-allow: the first of the conflicting pair.
+OTHER_READER_DICT = (b'<dict>\n\t<key>com.apple.application-identifier</key>\n\t<string>QQOTHER001.invalid.example.other</string>\n'
+              b'\t<key>com.apple.developer.team-identifier</key>\n\t<string>QQOTHER001</string>\n'
+              b'\t<key>com.apple.security.get-task-allow</key>\n\t<true/>\n</dict>')
+
+
+def plist_document(body, header=PLIST_HEADER, after=b''):
+    return header + b'<plist version="1.0">\n' + body + b'\n</plist>\n' + after
+
+
+def inside_reader_dict(extra, at=b'\t<key>com.apple.developer.team-identifier</key>'):
+    """The expected dictionary with `extra` placed before its second key."""
+    return plist_document(READER_DICT.replace(at, extra + at, 1))
+
+
+READER_CONTROL = plist_document(READER_DICT)
+READER_REFUSED = {
+    # name: (document, the reason it names)
+    'conflicting pair: two sibling dictionaries': (plist_document(OTHER_READER_DICT + b'\n' + READER_DICT), 'a second value under plist'),
+    'text before the expected dictionary': (plist_document(b'stray text' + READER_DICT), 'text outside a value'),
+    'a sibling string': (plist_document(READER_DICT + b'\n<string>' + READER_OTHER.encode() + b'</string>'), 'a second value under plist'),
+    'an unknown element in the dictionary': (inside_reader_dict(b'<note>' + READER_OTHER.encode() + b'</note>\n'),
+                                             'an element that is not a property-list element'),
+    'an unknown element under plist': (plist_document(b'<note/>' + READER_DICT), 'an element that is not a property-list element'),
+    'an attribute': (plist_document(READER_DICT.replace(b'<dict>', b'<dict team="' + READER_OTHER.encode() + b'">', 1)),
+                     'an attribute other than the root version'),
+    'an attribute on the root other than version': (READER_CONTROL.replace(b'<plist version="1.0">', b'<plist version="1.0" team="x">'),
+                                                    'an attribute other than the root version'),
+    'a comment': (inside_reader_dict(b'<!-- ' + READER_OTHER.encode() + b' -->\n'), 'a comment'),
+    'a comment in the header': (plist_document(READER_DICT, header=PLIST_HEADER + b'<!-- invented -->\n'), 'a comment'),
+    'a processing instruction': (inside_reader_dict(b'<?invented ' + READER_OTHER.encode() + b'?>\n'), 'a processing instruction'),
+    'a key twice': (inside_reader_dict(b'<key>com.apple.application-identifier</key><string>QQOTHER001.invalid.example.other</string>\n'),
+                    'a key twice in one dictionary'),
+    'a dictionary with a key and no value': (plist_document(b'<dict><key>com.apple.application-identifier</key></dict>'), 'a key with no value'),
+    'a key followed by a key': (inside_reader_dict(b'<key>invented</key>\n'), 'a key with no value'),
+    'a value with no key': (inside_reader_dict(b'<string>' + READER_OTHER.encode() + b'</string>\n'), 'a value with no key in a dictionary'),
+    'an entity declaration': (plist_document(READER_DICT.replace(b'ZZINVENT01</string>\n</dict>', b'&team;</string>\n</dict>'),
+                                       header=b'<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE plist [<!ENTITY team "QQOTHER001">]>\n'),
+                              'an entity declaration, an undefined entity or an external entity'),
+    'an undefined entity': (plist_document(READER_DICT.replace(b'ZZINVENT01</string>\n</dict>', b'&team;</string>\n</dict>')),
+                            'an entity declaration, an undefined entity or an external entity'),
+    'trailing bytes after the document': (plist_document(READER_DICT, after=b'<plist version="1.0"><dict/></plist>'),
+                                          'bytes after the document element'),
+    'trailing text after the document': (plist_document(READER_DICT, after=b'QQOTHER001'), 'bytes after the document element'),
+    'a comment after the document': (plist_document(READER_DICT, after=b'<!-- invented -->'), 'a comment'),
+    'a character reference between elements': (plist_document(b'&#32;' + READER_DICT), 'text outside a value'),
+    'a CDATA section between elements': (plist_document(b'<![CDATA[ ]]>' + READER_DICT), 'text outside a value'),
+    'no value under plist': (plist_document(b''), 'no value under plist'),
+    'a key outside a dictionary': (plist_document(b'<array><key>a</key></array>'), 'a key outside a dictionary'),
+    'an element inside a string': (plist_document(b'<string>a<string>b</string></string>'), 'an element inside a leaf value'),
+    'a binary property list': (plistlib.dumps(READER_EXPECTED, fmt=plistlib.FMT_BINARY),
+                               'a binary property list; only an XML property list is read as a whole document'),
+    'another document type': (plist_document(READER_DICT, header=b'<?xml version="1.0" encoding="UTF-8"?>\n<!DOCTYPE invented>\n'),
+                              'a document header other than the XML declaration and the property-list document type'),
+    'another encoding': (plist_document(READER_DICT, header=PLIST_HEADER.replace(b'UTF-8', b'ISO-8859-1')),
+                         'a document header other than the XML declaration and the property-list document type'),
+    'no XML declaration': (b'<plist version="1.0">' + READER_DICT + b'</plist>', 'not an XML document beginning with its XML declaration'),
+    'a byte order mark': (b'\xef\xbb\xbf' + READER_CONTROL, 'not an XML document beginning with its XML declaration'),
+    'an integer spelled with an underscore': (plist_document(b'<integer>1_0</integer>'), 'a leaf value of an undeclared spelling: integer'),
+    'a real spelled as nan': (plist_document(b'<real>nan</real>'), 'a leaf value of an undeclared spelling: real'),
+    'a partial date': (plist_document(b'<date>2026Z</date>'), 'a leaf value of an undeclared spelling: date'),
+    'a date with trailing text': (plist_document(b'<date>2026-01-01T00:00:00Zjunk</date>'), 'a leaf value of an undeclared spelling: date'),
+    'data with a character outside base64': (plist_document(b'<data>AAAA!!!!</data>'), 'a leaf value of an undeclared spelling: data'),
+    'text inside true': (plist_document(b'<true>no</true>'), 'a leaf value of an undeclared spelling: true'),
+    'not well-formed': (READER_CONTROL.replace(b'</dict>', b'</array>'), 'not well-formed XML'),
+}
+
+
+class WholeFileRefusals(unittest.TestCase):
+    def test_the_control_reads_the_expected_values(self):
+        self.assertEqual(WHOLE.load(READER_CONTROL), READER_EXPECTED)
+
+    def test_each_refusal_names_what_was_left_over(self):
+        for name, (raw, why) in READER_REFUSED.items():
+            with self.subTest(name):
+                with self.assertRaises(WHOLE.NotWhole) as raised:
+                    WHOLE.load(raw)
+                self.assertEqual(raised.exception.why, why)
+                self.assertIsInstance(raised.exception, ValueError)  # every caller already stops on ValueError
+                self.assertEqual(WHOLE.load(READER_CONTROL), READER_EXPECTED)
+
+    def test_the_standard_parser_alone_reads_part_of_the_conflicting_pair(self):
+        """What the file readers did before: plistlib keeps the last of two sibling values and ignores the rest."""
+        raw = READER_REFUSED['conflicting pair: two sibling dictionaries'][0]
+        self.assertEqual(plistlib.loads(raw), READER_EXPECTED)
+        for name in ('text before the expected dictionary', 'a comment', 'a processing instruction', 'an attribute',
+                     'an unknown element in the dictionary'):
+            with self.subTest(name):
+                self.assertEqual(plistlib.loads(READER_REFUSED[name][0]), READER_EXPECTED)
+
+    def test_nothing_is_fetched(self):
+        external = plist_document(READER_DICT.replace(b'ZZINVENT01</string>\n</dict>', b'&team;</string>\n</dict>'),
+                            header=b'<?xml version="1.0"?>\n<!DOCTYPE plist [<!ENTITY team SYSTEM "http://invalid.example/x">]>\n')
+        with patch('urllib.request.urlopen', side_effect=AssertionError('fetched')), self.assertRaises(WHOLE.NotWhole):
+            WHOLE.load(external)
+
+    def test_the_two_readers_must_agree(self):
+        """The structural reading is not plistlib's: when plistlib reads another value, or refuses, the document refuses."""
+        with patch.object(WHOLE.plistlib, 'loads', return_value=plistlib.loads(plist_document(OTHER_READER_DICT))):
+            with self.assertRaises(WHOLE.NotWhole) as raised:
+                WHOLE.load(READER_CONTROL)
+            self.assertEqual(raised.exception.why, 'the standard parser reads another value')
+        with patch.object(WHOLE.plistlib, 'loads', side_effect=plistlib.InvalidFileException()):
+            with self.assertRaises(WHOLE.NotWhole) as raised:
+                WHOLE.load(READER_CONTROL)
+            self.assertEqual(raised.exception.why, 'the standard parser refuses the document')
+        # Types count: a boolean is not the integer 1, though Python compares them equal.
+        with patch.object(WHOLE.plistlib, 'loads', return_value={'a': 1}), self.assertRaises(WHOLE.NotWhole):
+            WHOLE.load(plist_document(b'<dict><key>a</key><true/></dict>'))
+        self.assertEqual(WHOLE.load(READER_CONTROL), READER_EXPECTED)
+
+
+class WholeFileControls(unittest.TestCase):
+    """Valid spellings that plistlib would not write, and that a real file may hold, read as their values."""
+
+    def test_data_wrapped_at_several_widths(self):
+        payload = bytes(range(256)) * 3
+        encoded = base64.b64encode(payload).decode()
+        for width in (len(encoded), 76, 68, 60, 52, 4, 1):
+            lines = [encoded[i:i + width] for i in range(0, len(encoded), width)]
+            for joiner in ('\n', '\n\t', '\r\n\t\t', ' '):
+                with self.subTest(width=width, joiner=joiner):
+                    raw = plist_document(b'<dict><key>DeveloperCertificates</key><array><data>\n' + joiner.join(lines).encode()
+                                   + b'\n</data></array></dict>')
+                    self.assertEqual(WHOLE.load(raw), {'DeveloperCertificates': [payload]})
+
+    def test_a_date(self):
+        raw = plist_document(b'<dict><key>ExpirationDate</key><date>2099-01-02T03:04:05Z</date></dict>')
+        self.assertEqual(WHOLE.load(raw), {'ExpirationDate': datetime.datetime(2099, 1, 2, 3, 4, 5)})
+
+    def test_crlf_line_endings(self):
+        self.assertEqual(WHOLE.load(READER_CONTROL.replace(b'\n', b'\r\n')), READER_EXPECTED)
+
+    def test_empty_dictionaries(self):
+        for spelling in (b'<dict/>', b'<dict></dict>', b'<dict>\n\t</dict>'):
+            with self.subTest(spelling=spelling):
+                self.assertEqual(WHOLE.load(plist_document(spelling)), {})
+                self.assertEqual(WHOLE.load(plist_document(b'<dict><key>Entitlements</key>' + spelling + b'</dict>')), {'Entitlements': {}})
+        self.assertEqual(WHOLE.load(plist_document(b'<array/>')), [])
+
+    def test_whitespace_inside_a_string_is_kept(self):
+        raw = plist_document(b'<dict><key> invented key </key><string>  two  spaces\n\tand a tab </string></dict>')
+        self.assertEqual(WHOLE.load(raw), {' invented key ': '  two  spaces\n\tand a tab '})
+
+    def test_other_valid_spellings_of_values(self):
+        raw = plist_document(b'<array><true></true><false/><integer>-7</integer><integer>+7</integer><integer>0x1F</integer>'
+                       b'<real>1.5e3</real><real>.5</real><string>a &amp; b &#x41; <![CDATA[<c>]]></string><string/></array>')
+        self.assertEqual(WHOLE.load(raw), [True, False, -7, 7, 31, 1500.0, 0.5, 'a & b A <c>', ''])
+
+    def test_header_spellings(self):
+        for header in (b"<?xml version='1.0' encoding='utf-8'?>\n", b'<?xml version="1.0"?>',
+                       b"<?xml version='1.0'?>\n<!DOCTYPE plist PUBLIC '-//Apple//DTD PLIST 1.0//EN' "
+                       b"'http://www.apple.com/DTDs/PropertyList-1.0.dtd'>\n"):
+            with self.subTest(header=header):
+                self.assertEqual(WHOLE.load(plist_document(READER_DICT, header=header)), READER_EXPECTED)
+        self.assertEqual(WHOLE.load(READER_CONTROL.replace(b'<plist version="1.0">', b'<plist>')), READER_EXPECTED)
+
+    def test_what_plistlib_writes_reads(self):
+        value = {'CFBundleIdentifier': 'invalid.example.reader', 'Nested': {'List': [1, 2.5, True, b'\x00\xff', 'x']},
+                 'When': datetime.datetime(2026, 1, 1)}
+        for sort_keys in (True, False):
+            self.assertEqual(WHOLE.load(plistlib.dumps(value, sort_keys=sort_keys)), value)
+
+
+def reader_envelope(content, after_content=(fx.tlv(0x31, b'INVENTED signer info; never Apple-signed'),)):
+    """An invented CMS-shaped envelope; never Apple-signed."""
+    encap = fx.tlv(0x30, fx.tlv(0x06, common.prepare.DATA_OID) + fx.tlv(0xa0, fx.tlv(0x04, content)))
+    signed = fx.tlv(0x30, fx.tlv(0x02, b'\x01') + fx.tlv(0x31, b'') + encap + b''.join(after_content))
+    return fx.tlv(0x30, fx.tlv(0x06, common.prepare.SIGNED_DATA_OID) + fx.tlv(0xa0, signed))
+
+
+def reader_profile_xml(*dicts):
+    return plist_document(b'\n'.join(dicts))
+
+
+READER_PROFILE_DICT = (b'<dict>\n\t<key>ApplicationIdentifierPrefix</key><array><string>ZZINVENT01</string></array>\n'
+                b'\t<key>CreationDate</key><date>2020-01-01T00:00:00Z</date>\n'
+                b'\t<key>Entitlements</key>' + READER_DICT + b'\n'
+                b'\t<key>ExpirationDate</key><date>2099-01-01T00:00:00Z</date>\n'
+                b'\t<key>Platform</key><array><string>OSX</string></array>\n'
+                b'\t<key>ProvisionsAllDevices</key><true/>\n'
+                b'\t<key>TeamIdentifier</key><array><string>ZZINVENT01</string></array>\n'
+                b'\t<key>UUID</key><string>0A1B2C3D-0000-4000-8000-00000000BEEF</string>\n</dict>')
+OTHER_READER_PROFILE_DICT = READER_PROFILE_DICT.replace(READER_DICT, OTHER_READER_DICT).replace(b'ZZINVENT01', b'QQOTHER001')
+READER_SELECTED = {'developer_id_team_identifier': READER_TEAM, 'production_bundle_identifier': 'invalid.example.reader'}
+
+
+class ProfileEnvelopeStructure(unittest.TestCase):
+    def consistency(self, raw):
+        return common.prepare.profile_consistency(raw, common.prepare.sha(raw), READER_SELECTED, now=NOW)
+
+    def test_the_conflicting_pair_refuses_and_the_control_reads(self):
+        control = reader_envelope(reader_profile_xml(READER_PROFILE_DICT))
+        self.assertEqual(self.consistency(control)['application_identifier'], READER_TEAM + '.invalid.example.reader')
+        pair = reader_envelope(reader_profile_xml(OTHER_READER_PROFILE_DICT, READER_PROFILE_DICT))
+        with self.assertRaises(WHOLE.NotWhole) as raised:
+            self.consistency(pair)
+        self.assertEqual(raised.exception.why, 'a second value under plist')
+
+    def test_the_bytes_around_the_content_are_declared_elements_with_nothing_left_over(self):
+        signer = fx.tlv(0x31, b'INVENTED signer info')
+        content = reader_profile_xml(READER_PROFILE_DICT)
+        for name, after in (('certificates, then signer information', (fx.tlv(0xa0, b'INVENTED certificates'), signer)),
+                            ('certificates, revocation lists, signer information', (fx.tlv(0xa0, b'c'), fx.tlv(0xa1, b'r'), signer))):
+            with self.subTest(name):
+                self.assertEqual(common.prepare.profile_content(reader_envelope(content, after)), content)
+        for name, after in (('no signer information', ()),
+                            ('a second property list after the content', (fx.tlv(0x04, reader_profile_xml(OTHER_READER_PROFILE_DICT)), signer)),
+                            ('signer information twice', (signer, signer)),
+                            ('certificates after signer information', (signer, fx.tlv(0xa0, b'c')))):
+            with self.subTest(name):
+                with self.assertRaisesRegex(ValueError, 'SignedData after the encapsulated content'):
+                    common.prepare.profile_content(reader_envelope(content, after))
+        with self.assertRaises(ValueError):  # a byte that is no element
+            common.prepare.profile_content(reader_envelope(content, (signer, b'\x00')))
 
 
 class WholeFileDocuments(Base):
