@@ -4,20 +4,23 @@
     python3 -I app/packaging/supplier_notices/review_publisher_texts.py --archives MAP.json --listings DIR
 
 For each package of `crates/associations.json` `registry_sources` it prints one line, `OK` or `MISMATCH` with what
-differs. It compares the recorded values with the held evidence the checker does not read:
+differs. It compares these recorded values with the held evidence the checker does not read, and nothing else:
 
-- the archive the lockfile locks (MAP.json maps `<name>-<version>.crate` to its absolute path). Each archive is read
-  through `crate_notices.read_member`: its SHA-256 must equal the lockfile checksum before it is opened, its tar headers
-  pass the route's checks, and only `.cargo_vcs_info.json` and `Cargo.toml` are read. Their sizes and SHA-256 must equal
-  `archive_metadata`; the VCS record's revision must equal `archive_vcs_revision`; its `path_in_vcs` must equal the
-  recorded one, or be absent where the recorded one is null (which then needs `path_basis`); the manifest's
+- the archive's stated values. MAP.json maps `<name>-<version>.crate` to the archive; its SHA-256 must equal the
+  lockfile checksum before it is opened (`crate_notices.read_member`, which also applies the route's header checks), and
+  only `.cargo_vcs_info.json` and `Cargo.toml` are read. Their sizes and SHA-256 must equal `archive_metadata`; the VCS
+  record's revision must equal `archive_vcs_revision`; its `path_in_vcs` must equal the recorded one, and a recorded
+  null must be a VCS record with no `path_in_vcs` key (an explicit null in the record is a mismatch); the manifest's
   `package.repository` must equal `archive_repository` exactly, or be absent where that is null.
-- the saved listing in DIR whose SHA-256 is the association's `response_sha256`: not truncated, with `entries` entries;
-  each text is the blob and size the listing names at its path; and the texts are exactly the notice-named files of the
-  package folder (its own files and those in a licence folder), or of the root where the folder holds none. Where the
-  path is null, every folder with a Cargo.toml must give that same selection.
+- the listing's blob and size at each selected path. The saved listing in DIR whose SHA-256 is `response_sha256` must
+  not be truncated and must have `entries` entries, and each text must be the blob and size it names at `source_path`.
+- the selection. The texts must be exactly the notice-named files of the package folder (its own files and those in a
+  licence folder directly below), or of the root where the folder holds none. Where the path is null, the listing must
+  have at least one folder holding a `Cargo.toml`, and every such folder must give that same selection.
+- the stored bytes. Each text's bytes, held in `crates/texts/<sha256>`, must have the recorded size, SHA-256 and Git blob.
 
-Nothing is extracted, executed or written; no network is used.
+It does not read a `path_basis`: that is prose a reviewer reads against the listing. Nothing is extracted, executed or
+written; no network is used.
 """
 import argparse
 import hashlib
@@ -97,11 +100,20 @@ def review(repo, archives, folder):
                 vcs = json.loads(members['.cargo_vcs_info.json'])
                 if vcs.get('git', {}).get('sha1') != package['archive_vcs_revision']:
                     problems.append(f'VCS revision {vcs.get("git", {}).get("sha1")}, recorded {package["archive_vcs_revision"]}')
-                if vcs.get('path_in_vcs') != package['path_in_vcs']:
+                if package['path_in_vcs'] is None:
+                    if 'path_in_vcs' in vcs:
+                        problems.append(f'path_in_vcs {vcs["path_in_vcs"]!r} is stated in the VCS record, recorded null')
+                elif vcs.get('path_in_vcs') != package['path_in_vcs']:
                     problems.append(f'path_in_vcs {vcs.get("path_in_vcs", "(absent)")!r}, recorded {package["path_in_vcs"]!r}')
                 stated = tomllib.loads(members['Cargo.toml'].decode()).get('package', {}).get('repository')
                 if stated != package['archive_repository']:
                     problems.append(f'manifest repository {stated!r}, recorded {package["archive_repository"]!r}')
+            for text in entry['texts']:
+                stored = repo / crates.TEXTS / text['sha256']
+                raw = stored.read_bytes() if stored.is_file() and not stored.is_symlink() else None
+                if raw is None or (len(raw), hashlib.sha256(raw).hexdigest(), crates.git_blob(raw)) != (
+                        text['size_bytes'], text['sha256'], text['git_blob_sha1']):
+                    problems.append(f'{text["source_path"]}: the stored bytes are not the recorded size, digest and blob')
             if listing is None:
                 problems.append('no saved listing has the recorded response SHA-256')
             else:
@@ -118,7 +130,9 @@ def review(repo, archives, folder):
                 if package['path_in_vcs'] is None:
                     folders = sorted({e['path'].rpartition('/')[0] for e in tree if e['path'].split('/')[-1] == 'Cargo.toml'})
                     choices = {f or '(root)': sorted(selected(tree, f)) for f in folders}
-                    if any(set(c) != recorded for c in choices.values()):
+                    if not folders:
+                        problems.append('path omitted and the listing has no folder holding a Cargo.toml')
+                    elif any(set(c) != recorded for c in choices.values()):
                         problems.append(f'path omitted; the folders with a Cargo.toml select {choices}')
                 elif selected(tree, package['path_in_vcs']) != recorded:
                     problems.append(f'selection {sorted(selected(tree, package["path_in_vcs"]))}, recorded {sorted(recorded)}')
