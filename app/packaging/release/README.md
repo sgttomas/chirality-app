@@ -172,7 +172,8 @@ result:
 - Apple's `dyld_info -validate_only` returns zero and prints nothing at all,
   on either stream, for every Mach-O file (its manual: "Display nothing if
   binary is valid"). Both streams must be byte-empty; whitespace also fails.
-- The Info.plist states the release identity.
+- The Info.plist is one XML property list whose value is the whole document
+  (`info_plist_whole` otherwise), and it states the release identity.
 - The vendor tree matches the input in bytes, modes and types.
 - Every mapped resource matches its source in bytes.
 - The executable holds the compiled publisher binding and requirement.
@@ -303,6 +304,18 @@ expectation, not a promise.
   temporary files of the tools; a fetched notarization log never stays there,
   because it is moved to the private folder as soon as the command returns.
 
+**A first run may refuse a profile or `Info.plist` that is not whole.** The
+tools read your provisioning profile and the App's `Info.plist` only when the
+whole file is one property list, in the form these files are known to take
+(see "The profile and `Info.plist` are read as whole files" below). A real file
+outside that form would stop the run before anything is signed: a profile at
+step 2, `S2_PROFILE`, and an `Info.plist` before step 1, `REFUSED_CANDIDATE`.
+Those two stops come before anything is signed or sent to Apple. At the
+record's reading (step 13) either file stops the run with `S13_OBSERVATION`,
+naming `provisioning profile` or `bundle identity` in `STOPPED.json`, and no
+record is written. Send the agent the reason code; the file itself stays
+with you.
+
 **Starting again.** There is no resuming part-way. Every run starts from the
 beginning, from the candidate folder, into a new `--out` folder, and submits
 to Apple again. The candidate folder is only read, so the same candidate is
@@ -400,16 +413,73 @@ but a first real run may still refuse one spelled otherwise. The reason then
 names the entitlements observation of its step (for example
 `S5_ENTITLEMENTS`), and the correction below applies unchanged.
 
-**Separate file-reader limits.** The whole-document check above applies to
-entitlement command output, not to the provisioning profile or `Info.plist`.
-`record.profile_facts`, `prepare.profile_consistency` and
-`common.read_info_plist` read their file values with the standard parser and
-a repeated-key check. A repeated top-level value is not refused; the parser
-can retain the last one. The affected fields are profile UUID, team, App ID,
-allowed and unexpected entitlements and expiry, and the bundle identifier,
-version, bundle version, minimum macOS and executable. File digests bind
-bytes; they do not establish an unambiguous whole-document reading. This is
-a named remaining item, outside the command-output repair.
+**The profile and `Info.plist` are read as whole files.** The two files the
+record states facts from are read by one reader,
+`app/packaging/production_inputs/whole_plist.py` (`load`). It does not use the
+written-copy comparison above, which would refuse a valid file that `plistlib`
+would spell differently, such as a real profile's wrapped `<data>`. Instead it
+reads each file twice, by two readers that do not share their reading of the
+structure, and returns a value only when they agree:
+
+1. The document's own bytes, read from the XML parser's events (the same event
+   reading `xml_structure` uses), against the property-list grammar exactly:
+   one `plist` root holding one value; only the property-list elements; no
+   attribute but the root's `version="1.0"`; nothing but whitespace bytes
+   between elements; `key` and value alternating in a `dict`, no key twice and
+   none without its value; no comment or processing instruction anywhere (no
+   genuine property-list file we know of carries one); no entity declaration,
+   undefined or external entity, and nothing fetched; nothing after the root
+   but whitespace. Each leaf value must be a spelling of its form: `data` is
+   padded base64 with whitespace anywhere in it (any wrapping), `date` is
+   `YYYY-MM-DDTHH:MM:SSZ`, `integer` is decimal with an optional sign or `0x`
+   hexadecimal, `real` is a decimal number with an optional exponent, `true`
+   and `false` are empty. This reading builds the value itself.
+2. `plistlib`'s reading of the same bytes, with a key given twice refused.
+
+The two values must be equal, with the same types and key order. The
+normalizations allowed, and no others: the document header, compared by its
+XML declaration (version 1.0; encoding UTF-8 or not given; no standalone
+declaration) and the property-list document type (or none), not by its bytes;
+whitespace bytes between elements; and line ends in text as the XML parser
+reports them to both readers (CR LF and a lone CR become LF). Whitespace inside
+a string is part of the value and is kept. Anything else refuses, with a reason
+that names what was left over: for example a second value under the root, text
+outside a value, a comment, an unknown element, an attribute, or a key twice.
+
+A **binary property list is refused** for both files: only an XML property
+list is read as a whole document. The Tauri bundler's own source is not held
+offline here (its macOS bundler is compiled into the `@tauri-apps/cli`
+package), so its `Info.plist` format was not established from source. What is
+held shows Tauri writing XML: its code generator writes the development
+`Info.plist` it embeds with the `plist` crate's XML writer. If the bundler were
+to write a binary `Info.plist`, the build would stop at its checks with
+`info_plist_whole` in `BUILD_REFUSED.json`, before any candidate exists.
+
+The **profile's envelope** is read by `prepare.profile_content`: one DER
+ContentInfo spanning the whole file, whose SignedData holds, in order and with
+no byte left over, the version, the digest algorithms, the encapsulated content
+(one primitive OCTET STRING, the property list), optional certificates and
+revocation lists, and the signer information. So there is one place a property
+list is taken from, and nothing around it is dropped unread as a structure. The
+certificates and signer information are not read, and **the envelope's
+signature is not authenticated**: the profile is checked for consistency, not
+shown to be Apple's.
+
+The readers that rely on this, and the facts that rest on them:
+
+- `prepare.profile_consistency` (the owner's step 2, through
+  `prepare.profile_plist`): the team, App ID prefix, App ID, platform, all
+  devices, debugging grant and validity dates it checks, and the UUID and
+  expiry it returns;
+- `record.profile_facts` (the record's step 13 and `record.py check`): the
+  profile's UUID, team, App ID, allowed and unexpected entitlements and expiry;
+- `common.read_info_plist` (the build's checks, `common.load_candidate` before
+  the owner's run and in the build's final check, and the record's reading):
+  the bundle identifier, version, bundle version, minimum macOS and
+  executable.
+
+What this shows is that each value comes from the whole file. A file digest
+still binds only bytes; neither establishes who wrote the file.
 
 The line-form command readers also have a separate limit: they decode UTF-8
 with replacement, drop blank lines and strip trailing whitespace before
