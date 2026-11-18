@@ -2116,7 +2116,9 @@ The journey step record the preparation states (`../prepare.py`,
 ### How the operator acts in the counted J1 (App Agent 0, 16 November 2026)
 
 - **Where it may act.** In the counted J1 only, and in no walk, scenario or
-  rehearsal, the operator may act in views that hold Codex's reports or a
+  rehearsal apart from the one signed-out rehearsal of phase 1 ("The
+  signed-out rehearsal of phase 1", below), which holds no conversation, the
+  operator may act in views that hold Codex's reports or a
   conversation. It acts only on a control the App labels, or on the App's own
   request-answer controls, each read from the current view. It records the
   view before and after every act. Where a control's identity or its effect
@@ -2158,6 +2160,104 @@ The journey step record the preparation states (`../prepare.py`,
   cannot be made or judged under this method, the step is blocked, or
   captured and not judged, as the route gives it; it is never written as
   passed, and no source-derived view stands in for an observed one.
+
+### The signed-out rehearsal of phase 1 (App Agent 0, 18 November 2026)
+
+One rehearsal of phase 1 may be made before the counted sitting, with the
+operator acting by reading as it will there. App Agent 0 decided it on
+18 November 2026. The counted sitting uses neither `walk.mjs` nor recorded
+states, so a scenario walk rehearses a path the sitting does not take, and a
+recorded state serves only the candidate it was recorded on.
+
+- **What it is.** Development evidence on the identified candidate. It counts
+  for no criterion and satisfies nothing in criteria 1, 2 and 6. Nothing it
+  yields is a counted record or is joined to one: no result record is written
+  from it, and the counted phase 1 is carried out whole in its own root
+  whatever the rehearsal showed.
+- **The folder.** A kept folder of its own with the network blocks on
+  (`launch.py keep-make`, without `--network open`): never the counted root,
+  and never a folder that held a sign-in. There are two launches in it, each a
+  `keep-launch` through `detached.py`: the first-use launch, and the relaunch
+  after setup. The relaunch starts the candidate's bundled Codex, signed out,
+  as the relaunch scenario's launch does. No sign-in is made, no credential
+  exists in the folder, no conversation is started and no model is reached.
+- **How the operator acts.** As "How the operator acts in the counted J1"
+  states, and under "The operator's rule" before every state query. It reads
+  each view whole, acts only on a control the App labels, by that control's
+  element index in the latest view, records the view before and after every
+  act, and stops and reports where a control's identity or its effect is not
+  clear from the App's words. This is the one rehearsal in which the operator
+  acts by reading, and the one in which it may act in a view that holds
+  Codex's reports: after the relaunch, the App's own views of the connection
+  and its settings. It uses neither `walk.mjs` nor a recorded state.
+- **The acts, and no other.** Views, and:
+  - in the first launch, one set-value of the kept folder's own `project`
+    path into the field "Project folder", with "Start with new settings" left
+    as chosen; clicks on "Review setup", on "Exact locations" and on "Create
+    settings and save for next launch…"; one press on the App's own
+    confirmation sheet (next point); and the App's own "Quit Chirality"
+    button;
+  - in the relaunch, clicks only on controls the App labels that open,
+    disclose or read one of its own views of the connection, its settings and
+    the permission level, as far as reading these needs: the four settings
+    phase 1 names (the working folder Codex is given, the sandbox and
+    approval settings, the writable roots, and the credential store setting
+    with where it writes), the permission level shown in force, and the words
+    of the sign-in control, which is read and never pressed. Where the App
+    shows one of the four only for a conversation, or not at all, the
+    operator records that and starts no conversation to see it.
+
+  A change of permission level is made only where App Agent 0's go names it,
+  through the App's own permission-level control as its words then name it.
+  Never operated: a sign-in control; a control that starts, resumes, forks or
+  stops a conversation or Codex; "Browse for project folder" or any control
+  that opens the system's file or folder panel; "Use my existing Codex
+  settings"; "Keep my current sign-in and settings"; the window's own
+  buttons; the menu bar; any macOS prompt. The
+  rehearsal has no scenario file. Where "When it may be used" speaks of the
+  acts a scenario names, this list stands in that place, and App Agent 0's go
+  allows these acts for the two launches it names.
+- **The confirmation.** Before the press the operator checks, in the view
+  asked of the candidate by its bundle identifier: that the sheet is the one
+  the control it clicked opens, by its title; its complete statement, every
+  line; that the three locations in the statement are exactly those the page
+  showed under "Exact locations", each under the App's data folder in the
+  kept folder's `home/`; and that the project is the kept folder's
+  `project/`. It reads the watch again and presses "Create settings and save
+  for next launch" once. A difference in any of these, a sheet it did not
+  open, or a sheet still there after the press is a stop, with nothing further
+  pressed. The owner's words of 14 November 2026 are about an agent pressing
+  the App's own setup confirmation ("The App's own setup confirmation, and
+  the typed path"); the bounds on that press are App Agent 0's. For this
+  rehearsal App Agent 0 sets the checks above in place of the walk's
+  line-for-line comparison with a recorded template, which is not made here,
+  and the rehearsal's record says so.
+- **Its go.** App Agent 0's, for the two launches by their exact commands,
+  the relaunch's start of the candidate's bundled Codex named in it. The go
+  states what it rests on for a rehearsal that confirms setup and whose
+  relaunch starts the App's Codex. The condition of the exception holds for
+  each launch ("A view of an application that is not running"): step 1's
+  check before it and step 11 after it. Each launch's first view waits as
+  "The first view: limits seen on 14 November 2026" states.
+- **Ending.** The first launch ends by the App's own quit, after which the
+  launcher publishes its record. A question the App asks on quitting is not
+  answered: the operator records it whole and stops. Where the App is still
+  running sixty seconds after the quit was pressed, and for the relaunch,
+  step 8 ends the launch. Steps 9 to 11 follow each launch unchanged.
+- **What its record holds.** Its first line says it is rehearsal evidence and
+  counts for nothing. Then: the candidate and the kept folder; who operated it
+  and by what means; every view before and after each act, whole; for each
+  of the four settings the App's words, word for word, or that the App did
+  not show it; the App's words for the level in force and for the sign-in
+  control, from which App Agent 0 makes the request to the owner; and
+  every place where completing a step needed knowledge the window did not
+  give.
+- **The end of the folder.** `keep-remove`, the same working day, after the
+  lane's review.
+
+Everything else in the confinement stands. No other walk, scenario or
+rehearsal is operated by reading, and no agent acts in a conversation outside
+the counted J1.
 
 ## What the calls take
 
