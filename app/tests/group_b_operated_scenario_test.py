@@ -2599,3 +2599,172 @@ console.log(JSON.stringify(await walk.run(given)));
         self.assertIn('the sheet is not a sheet of a scenario validateScenario made', parts['states_as_sheet'])
         self.assertTrue(parts['own_expectation_accepted'])
         self.assertTrue(parts['own_sheet_accepted'])
+
+
+# The page rule as an operator who acts without the walk runs it (README, "The signed-out rehearsal of phase 1"): the
+# file imported, the setup scenario parsed by its only constructor, and walk.pageRefusal called on a captured view's
+# text. Whatever the import or the calls reach is kept: a timer, a fetch, a window service, a file.
+PAGE_RULE = '''
+import fs from 'node:fs';
+import { syncBuiltinESMExports } from 'node:module';
+const [walkUrl, scenarioPath, textsPath] = process.argv.slice(1);
+const texts = JSON.parse(fs.readFileSync(textsPath, 'utf8'));
+const scenarioText = fs.readFileSync(scenarioPath, 'utf8');
+const reached = [];
+for (const name of ['setTimeout', 'setInterval', 'setImmediate', 'fetch']) {
+  const real = globalThis[name];
+  globalThis[name] = (...given) => { reached.push(name); return real(...given); };
+}
+const service = name => new Proxy({}, { get(_, property) { reached.push(name + '.' + String(property)); return undefined; } });
+globalThis.sky = service('sky');
+globalThis.nodeRepl = service('nodeRepl');
+const walk = await import(walkUrl);
+const contract = await import(new URL('./scenario.mjs', walkUrl).href);
+const made = contract.parseScenario(scenarioText);
+for (const name of ['readFileSync', 'writeFileSync', 'appendFileSync', 'openSync', 'readFile', 'writeFile', 'appendFile', 'open']) {
+  const real = fs[name];
+  fs[name] = (...given) => { reached.push('fs.' + name); return real(...given); };
+}
+syncBuiltinESMExports();
+const reasons = texts.map(([text, name]) => walk.pageRefusal(text, name, made.scenario));
+process.stdout.write(JSON.stringify({ refusal: made.refusal ?? null, reasons, reached,
+  plain: reasons.every(reason => reason === null || typeof reason === 'string') }));
+'''
+
+
+def page_rule(texts, scenario=SETUP):
+    """What walk.pageRefusal returns for each [text, launched name], and what importing and calling it reached."""
+    with tempfile.TemporaryDirectory() as folder:
+        path = Path(folder) / 'texts.json'
+        path.write_text(json.dumps(texts))
+        done = subprocess.run([NODE, '--input-type=module', '-e', PAGE_RULE, WALK.as_uri(), str(scenario), str(path)],
+                              capture_output=True, text=True, timeout=60)
+    if done.returncode != 0:
+        raise AssertionError(done.stderr)
+    return json.loads(done.stdout)
+
+
+def page_reason(text, name=INVENTED_APP, scenario=SETUP):
+    return page_rule([[text, name]], scenario)['reasons'][0]
+
+
+class ThePageRuleAnOperatorRuns(unittest.TestCase):
+    """walk.pageRefusal: the walk's own two checks of a view it acts on (recognise, then notThePage), which the walk
+    calls and which the signed-out rehearsal's operator calls on every view's text. Run here as that operator runs it,
+    on the maintained fixtures."""
+
+    PAGE = AFTER_THE_PRESS  # the returned "You're set up" page, as the supplier returned it whole
+    INSIDE_THE_PAGE = '\t\t\t3 container Welcome\n'
+
+    def within(self, lines, page=None):
+        """The page with these element lines added just inside its web content's first container, numbered whole."""
+        page = page or self.PAGE
+        self.assertIn(self.INSIDE_THE_PAGE, page)
+        return in_order(page.replace(self.INSIDE_THE_PAGE, self.INSIDE_THE_PAGE + lines + '\n'))
+
+    def test_the_pages_are_the_page(self):
+        texts = [setup_state(name) for name in ('S1', 'S2', 'S3', 'S4')] + [AFTER_THE_PRESS, AFTER_THE_PRESS_NOW]
+        for scenario in (SETUP, RELAUNCH):
+            with self.subTest(scenario.name):
+                result = page_rule([[text, INVENTED_APP] for text in texts], scenario)
+                self.assertIsNone(result['refusal'])
+                self.assertEqual(result['reasons'], [None] * len(texts))
+
+    def test_the_confirmations_own_view_is_not_the_page(self):
+        # The one view the rehearsal admits although the rule refuses it, by its own exact form.
+        self.assertEqual(page_reason(SHEET_ON_ITS_OWN),
+                         'the view holds something beside the window "Chirality" (sheet Description: alert, Secondary Actions: Raise)')
+
+    def test_an_alert_of_words_only_below_the_web_content_is_the_page(self):
+        refusal = '\t\t\t\t990 alert Could not read settings\n\t\t\t\t\t991 group\n\t\t\t\t\t\t992 text Could not read settings'
+        self.assertIsNone(page_reason(self.within(refusal)))
+        kinds = ('text Words', 'container', 'group', 'heading Words, Value: 2', 'list marker •', 'content list', 'list', 'description list')
+        held = '\t\t\t\t990 alert Why Codex was not started\n' + '\n'.join(f'\t\t\t\t\t{991 + n} {kind}' for n, kind in enumerate(kinds))
+        self.assertIsNone(page_reason(self.within(held)))
+
+    def test_an_alert_that_holds_a_control_or_is_outside_the_web_content_is_refused(self):
+        cases = {
+            'a button': self.within('\t\t\t\t990 alert Allow?\n\t\t\t\t\t991 button Allow'),
+            'a text field': self.within('\t\t\t\t990 alert Allow?\n\t\t\t\t\t991 text field (settable) Project folder'),
+            'a link': self.within('\t\t\t\t990 alert Allow?\n\t\t\t\t\t991 text Words\n\t\t\t\t\t992 link Open'),
+            'outside the web content': in_order(self.PAGE.replace('\n\t15 close button', '\n\t989 scroll area\n\t\t990 alert Allow?\n\t15 close button')),
+        }
+        for name, text in cases.items():
+            with self.subTest(name):
+                self.assertEqual(page_reason(text), 'the window holds something that is not the page (alert Allow?)')
+
+    def test_each_kind_of_window_or_modal_below_the_window_is_refused(self):
+        for kind in ('sheet', 'dialog', 'system dialog', 'popover', 'drawer', 'standard window', 'floating window', 'window'):
+            for words in (kind, kind + ' Confirm', kind + ', Secondary Actions: Raise'):
+                with self.subTest(words):
+                    self.assertEqual(page_reason(self.within('\t\t\t\t990 ' + words)),
+                                     f'the window holds something that is not the page ({words})')
+
+    def test_the_window_and_what_is_directly_inside_it_are_exact(self):
+        window = '0 standard window Chirality, Secondary Actions: Raise'
+        full_screen = '\t16 full screen button Help: this button also has an action to zoom the window, Secondary Actions: zoom the window'
+        self.assertIn(window + '\n', self.PAGE)
+        self.assertIn(full_screen + '\n', self.PAGE)
+        self.assertIsNone(page_reason(self.PAGE.replace(window, '0 standard window Chirality')))
+        cases = {
+            'a comma with no space': (self.PAGE.replace(window, '0 standard window Chirality,Secondary Actions: Raise'), 'the view holds something beside the window "Chirality"'),
+            "another window's words": (self.PAGE.replace(window, '0 standard window Chirality Trial, Secondary Actions: Raise'), 'the view holds something beside the window "Chirality"'),
+            'a window that is not standard': (self.PAGE.replace(window, '0 window Chirality, Secondary Actions: Raise'), 'the view holds something beside the window "Chirality"'),
+            'a bare full screen button': (self.PAGE.replace(full_screen, '\t16 full screen button'), 'the window holds something that is not the page (full screen button)'),
+            'a control directly inside the window': (in_order(self.PAGE.replace('\n\t15 close button', '\n\t990 button Allow\n\t15 close button')), 'the window holds something that is not the page (button Allow)'),
+        }
+        for name, (text, reason) in cases.items():
+            with self.subTest(name):
+                self.assertIn(reason, page_reason(text) or '')
+
+    def test_a_view_that_is_not_whole_or_not_the_launched_builds_is_refused(self):
+        cases = {
+            'differences': ('The following is a diff from the previous accessibility tree\n~\t15 close button', INVENTED_APP, "its first line is not the supplier's window line"),
+            'no change': ('There has been no change in the accessibility tree', INVENTED_APP, "its first line is not the supplier's window line"),
+            'no text': (None, INVENTED_APP, "its first line is not the supplier's window line"),
+            "another build's name": (self.PAGE, 'Chirality App v4 (development other)', "the window line's App is not the launched build"),
+            'no name given': (self.PAGE, None, "the launched build's name is not given"),
+            'a menu bar without File': (self.PAGE.replace('\t21 File\n', ''), INVENTED_APP, 'the element lines are not in index order'),
+            'a menu bar without File, numbered whole': (in_order(self.PAGE.replace('\t21 File\n', '')), INVENTED_APP, "it does not end with the App window's own menu bar"),
+            'something inside the menu bar': (in_order(self.PAGE.replace('\t21 File\n', '\t21 File\n\t\t990 alert Allow?\n')), INVENTED_APP, "it does not end with the App window's own menu bar"),
+            'a second element at the top': (in_order(self.PAGE.replace('\n19 menu bar', '\n990 sheet Description: alert\n19 menu bar')), INVENTED_APP, 'its top level is not exactly its first element and the menu bar'),
+            'an index given twice': (self.PAGE.replace('\t17 minimize button', '\t16 minimize button'), INVENTED_APP, 'the view gives the same element index to more than one element, so it cannot be addressed'),
+        }
+        result = page_rule([[text, name] for text, name, _ in cases.values()])
+        for (name, (_, _, reason)), found in zip(cases.items(), result['reasons']):
+            with self.subTest(name):
+                self.assertIn(reason, found or '')
+
+    def test_importing_and_calling_it_starts_no_walk_and_reaches_nothing(self):
+        # As the operator invokes it: by import, and a call on an already captured view's text. Nothing is reached: no
+        # timer, no fetch, no window service, no file; and what comes back is a reason or nothing, at once, never a
+        # promise of a walk.
+        result = page_rule([[self.PAGE, INVENTED_APP], [SHEET_ON_ITS_OWN, INVENTED_APP]])
+        self.assertEqual(result['reached'], [])
+        self.assertTrue(result['plain'])
+        self.assertEqual([reason is None for reason in result['reasons']], [True, False])
+
+    def test_the_file_imports_no_window_service_and_reads_files_only_inside_a_walk(self):
+        # What the import of walk.mjs brings with it: node's hashing and the scenario's form, which imports nothing. A
+        # file is read or written only inside walk(), which pageRefusal does not reach.
+        def imported(path):
+            # Comments removed, each line kept in its place.
+            source = re.sub(r'/\*.*?\*/', lambda m: '\n' * m[0].count('\n'), path.read_text(), flags=re.S)
+            lines = [re.sub(r'^\s*//.*$', '', line) for line in source.splitlines()]
+            return [(n, m[1]) for n, line in enumerate(lines)
+                    for m in re.finditer(r'''(?:^import\b[^'"]*|\bimport\s*\(\s*)['"]([^'"]+)['"]''', line)]
+        walk = imported(WALK)
+        self.assertEqual({name for _, name in walk}, {'node:crypto', './scenario.mjs', 'node:fs'})
+        self.assertEqual(imported(OPERATED / 'scenario.mjs'), [])
+        source = WALK.read_text().splitlines()
+        begins = source.index('async function walk(options, holder) {')
+        self.assertTrue(all(n > begins for n, name in walk if name == 'node:fs'))
+        rule = source.index('export function pageRefusal(text, launchedName, scenario) {')
+        self.assertLess(rule, begins)
+        self.assertEqual(source[rule + 1:rule + 4], ['  const { elements, refusal } = recognise(text, launchedName);',
+                                                     '  return refusal ?? notThePage(elements, scenario);', '}'])
+
+    def test_the_walk_itself_decides_the_page_by_this_rule_and_no_other(self):
+        source = WALK.read_text()
+        self.assertEqual(source.count('notThePage(elements, scenario)'), 2)  # its definition, and inside the rule
+        self.assertEqual(source.count('const stray = pageRefusal(seen.text, appName, scenario);'), 2)

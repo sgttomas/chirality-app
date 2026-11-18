@@ -2222,30 +2222,54 @@ recorded state serves only the candidate it was recorded on.
   in the latest view, by that control's element index there. It records the
   view before and after every act, except after the quit (below). It stops,
   with no further act, where a control's identity or its effect is not clear
-  from the App's words; and where a view is not of the allowed page. A view
-  is of the allowed page when it meets the rule the walk applies
-  (`walk.mjs`, `notThePage` and `modalAt`), which is this. It says it is of
-  the candidate. At its top it holds exactly one element whose words are
-  `standard window Chirality`, alone or followed by a comma and more, and the
-  element `menu bar`, and nothing else. Directly inside that window it holds
-  only these, in these words: `scroll area`; `close button`; `full screen
-  button Help: this button also has an action to zoom the window, Secondary
-  Actions: zoom the window`; `minimize button`; `text Chirality`. Nowhere
-  below the window or inside the menu bar, at any depth, is there an element
-  whose kind is sheet, dialog, alert, system dialog, popover, drawer,
-  standard window, floating window or window. One kind of alert is allowed,
-  in the supplier's terms: an alert below `HTML content` that holds only
-  words: every element inside it is a text that is not a field, a
-  container, a group, a heading, a list marker, a content list, a list or a
-  description list, so that it holds nothing a person can operate. The App
-  writes its notices and refusals that way, and it is read as page text.
-  Anything else unlisted is not the page. The one view that is not of the
-  allowed page and is not a stop is the confirmation's own view (below).
-  Each launch's first view waits as "The first
-  view: limits seen on 14 November 2026" states. This is the one rehearsal in
+  from the App's words; and where a view is not of the allowed page. The
+  allowed page is the walk's own rule, and the operator does not judge it by
+  eye: it runs the rule. `walk.mjs` exports it as `pageRefusal`, the function
+  by which the walk itself decides the page. Given a view's text whole
+  as the service returned it, the App's name and a scenario's `window` and
+  `window_holds`, it returns `null` where the view is of the page and
+  otherwise the reason. In each launch, in its `js` tool, before the first
+  view, the operator makes the rule ready:
+
+  ```js
+  var fs = await import('node:fs');
+  var walk = await import('file://<repository>/app/examination/standalone/operated/walk.mjs');
+  var contract = await import('file://<repository>/app/examination/standalone/operated/scenario.mjs');
+  var made = contract.parseScenario(fs.readFileSync('<repository>/app/examination/standalone/operated/signed-out-setup.scenario.json', 'utf8'));
+  nodeRepl.write(made.refusal ? 'no rule: ' + made.refusal : 'the rule is ready');
+  ```
+
+  Then on every view, where `state` is what that `get_app_state` returned,
+  before anything else is read from the view or done from it:
+
+  ```js
+  var reason = state.app === '<the bundle, the path of the .app folder>'
+    ? walk.pageRefusal(state.text, '<the App\'s name>', made.scenario)
+    : 'the view does not say it is of the bundle; it names: ' + state.app;
+  nodeRepl.write(reason === null ? 'the page' : 'not the page: ' + reason);
+  ```
+
+  A view that does not name the bundle is refused before the function is
+  asked, as the walk refuses it (`view` in `walk.mjs`). The App's name is
+  the candidate bundle's folder name without `.app`. What
+  the call returned is recorded beside the view. Any reason is a stop,
+  whatever the view seems to show. So is anything short of the function's
+  own answer: an import that fails, a scenario the parser refuses, a call
+  that throws or returns anything but `null` or a reason, or a `js` tool that
+  cannot run it. No act is made from a view the function has not passed, and
+  the operator never puts its own reading in the function's place. Importing
+  the file and calling the function start no walk, import no window service
+  and make no call to the App, which a test holds
+  (`tests/group_b_operated_scenario_test.py`, `ThePageRuleAnOperatorRuns`);
+  `walk.run` is never called in the rehearsal. The one view the function
+  refuses that is not a stop is the confirmation's own view (below), which
+  is admitted by its own form and no other. Each launch's first view waits
+  as "The first view: limits seen on 14 November 2026" states. This is the
+  one rehearsal in
   which the operator acts by reading, and the one in which it may act in a
   view that holds Codex's reports: after the relaunch, the App's own views
-  named below. It uses neither `walk.mjs` nor a recorded state.
+  named below. It runs no walk and uses no recorded state; from `walk.mjs`
+  it uses that one function.
 - **After an effect: pending, completed, refused or timed out.** A call that
   returned has not shown that the App acted ("What a call's success is").
   A stop comes first: where a view shows what this section names as a stop,
@@ -2398,7 +2422,7 @@ recorded state serves only the candidate it was recorded on.
   controls (identification's check, `session_env.py`, the launcher and the
   watch for each launch, the reading of the watch and `launcher.out` at the
   quit, and afterwards the lane's step 11); every view before and after each
-  act, whole; for each of the four settings the App's words, word for word,
+  act, whole, with what the page rule returned for it; for each of the four settings the App's words, word for word,
   or that the App did not show it; the App's words for the level in force
   and for the sign-in control, from which App Agent 0 makes the request to
   the owner; and every place where completing a step needed knowledge the
