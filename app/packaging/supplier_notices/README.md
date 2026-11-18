@@ -89,12 +89,20 @@ Enforced (`coverage.py` with `voice.establish`, on every generate and check):
   from sources.json`), and also applies the comparison above to the tree's
   `sources.json` and `manifest.json`.
 
+A voice row records no revision: an absent or null `revision` only, and any value refuses.
+
 Review boundary (the reviewer of a change to `components.json`'s voice rows or to the
 records):
 - **Which licence file is which library's.** Neither record says. For each voice row,
   compare the name of each `supplier_tree_texts` file with the library its
   native-library entry names, and, where reading the held distribution archive is
   permitted, the file's own text.
+- **Which member file is which library's.** Neither record lists a library's files:
+  `sources.json` gives each entry's name, version, archive and URL, and `manifest.json`
+  gives digests by path. For each voice row, verify that each member belongs to that row's
+  native-library entry. The evidence is the member file names (for example
+  `libopus.0.dylib` for opus and `libz.1.dylib` for zlib), the distribution record, and
+  the 0.167.0 table reviewed in pull request 243.
 - **The distribution record is the supplier's tree.** `CANONICAL_DISTRIBUTION.json` is
   bound by `coverage-review.json`; its truth is the review of the change that brought it.
 
@@ -159,9 +167,18 @@ compiled-dependencies component open (`../notices/README.md`).
 - a repository-relative path that is empty, absolute, or has a backslash or an empty,
   `.` or `..` segment (the archive route's member rule, `crate_notices.safe_relative`).
 
-Every repository comparison in `crates.py` and `../notices/coverage.py` goes through
-one function, `crates.repository_key`: two GitHub repositories are the same when their
-owner and name are equal without regard to case, ignoring a `.git` suffix and any path.
+Two curated repository values (an association's, a lock's, a component's or a text's) are
+compared as written, as main compares them: any difference in spelling, suffix or letter
+case refuses. A workspace association's repository and revision must be its lockfile's,
+and a Git association's must be the lock source's. The repository identity
+`crates.repository_key` (two GitHub repositories are the same when their owner and name are
+equal without regard to case, ignoring a `.git` suffix and any path) is used only where it
+makes a check stricter: the objc2 guard and the reading rule, the Codex membership of a
+compiled row in `../notices/coverage.py`, and the repository an archive's own `Cargo.toml`
+records, which may be spelled another way. In `components.json`, every GitHub repository
+field must be exactly `https://github.com/<owner>/<repository>`. Other hosts keep the names
+they give, such as googlesource's `.git` names, and a voice row keeps the source URL the
+supplier states.
 
 Across collections, a package named twice, named by an association that applies to no
 locked package with that name, version and checksum, given two text routes, or given a
@@ -201,9 +218,17 @@ the listings):
   paths only, not the package each `Cargo.toml` declares, so the texts must be the
   selection of every folder holding a `Cargo.toml`.
 
-`review_publisher_texts.py` is a reviewer's aid, not a CI check. It reproduces these
-comparisons for every `registry_sources` package and prints one line each, `OK` or
-`MISMATCH` with what differs:
+`review_publisher_texts.py` is a reviewer's aid, not a CI check. For every
+`registry_sources` package it compares:
+- the archive's stated values: a recorded null path must be a VCS record with no
+  `path_in_vcs` key;
+- the listing's blob and size at each selected path;
+- the selection. For a null path, the listing must have at least one folder with a
+  `Cargo.toml`, and every such folder must give the same selection;
+- the stored bytes.
+
+It does not read a `path_basis`: that is prose a reviewer reads against the listing. It
+prints one line each, `OK` or `MISMATCH` with what differs:
 
 ```sh
 python3 -I app/packaging/supplier_notices/review_publisher_texts.py --archives MAP.json --listings DIR
@@ -218,8 +243,8 @@ listings.
 ### `app_texts`, `git_sources`, `workspaces` (can make a package `text`)
 
 Enforced: the shape; for `app_texts`, the locked identity, a single route and
-`reading_required` equal to the objc2 rule; for `git_sources`, the lock's repository and
-revision, and each text's blob equal to its listing blob and to the stored bytes; for
+`reading_required` equal both to main's rule (the repository, as written, is the objc2 repository) and to the guard's; for `git_sources`, the lock's repository and
+revision as written, and each text's blob equal to its listing blob and to the stored bytes; for
 `workspaces`, each text's bytes equal to its identity and its blob in the listing's.
 Review boundary: that each App text is the same archive's text in the App's own
 reviewed account, and that each listing names the recorded blob at the recorded path.
@@ -262,8 +287,9 @@ Enforced:
   lockfile dependencies the manifest does not name explicitly, so none can be the
   excluded package (the argument is in `crates.admission`). Otherwise it refuses, saying
   the root manifest would be needed. The account records which rule admitted each
-  parent: socks5-protocol by (i), winsplit by (ii), the four registry parents' packages
-  by having no inheritance;
+  parent: socks5-protocol by (i), winsplit by (ii), and the four packages excluded through
+  the three registry parent manifests (keyring 3.6.3, rustls-platform-verifier 0.7.0 and
+  winapi 0.3.9) by having no inheritance;
 - the recorded declarations equal those the parse finds; cited lines are not accepted;
 - the recorded licence equals what the manifest states (or says it is inherited from
   the workspace when it is); a registry manifest's notice names its own crate, whose row
