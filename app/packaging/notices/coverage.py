@@ -11,10 +11,10 @@ coverage-inputs.json (owner readings, permitted texts, Library content). Each co
 
 `check` regenerates and requires the committed account to be identical (it runs every underlying check).
 `check --strict` also exits non-zero while any component is held or uncovered, naming each.
-Never fetches, builds, executes supplier code or reads a cache. The voice rows' versions and source URLs are compared
-on every run with the supplier's own voice records, committed under supplier_notices/voice_records/<pin>/ and bound to
-the distribution record (supplier_notices/voice.py). `--vendor DIR` additionally reads an extracted supplier tree and
-applies the same comparison to its own sources.json and manifest.json.
+Never fetches, builds, executes supplier code or reads a cache. When the table is reviewed for the pin and the
+supplier's own voice records are held (committed under supplier_notices/voice_records/<pin>/ and bound to the
+distribution record; supplier_notices/voice.py), the voice rows' versions and source URLs are compared with them. `--vendor DIR` additionally reads an extracted
+supplier tree and applies the same comparison to its own sources.json and manifest.json.
 """
 import argparse
 import hashlib
@@ -119,7 +119,12 @@ def text_entry(repo, path, destination):
 
 def build(repo=REPO, vendor=None):
     repo = Path(repo)
-    # First: the curated inputs and cache-made indexes must be the content the review record names.
+    # A voice row's revision key is present and null (its source is the release URL the supplier states; no revision is
+    # invented). Checked before anything, the review record's entries included, indexes it.
+    for item in texts.load(repo, texts.SUPPLIER)['components']:
+        require(not voice_records.is_voice(item) or ('revision' in item and item['revision'] is None),
+                'a voice component\'s revision must be present and null: ' + str(item.get('id')))
+    # Then: the curated inputs and cache-made indexes must be the content the review record names.
     check_review_record(repo, texts.load(repo, texts.SUPPLIER))
     # Then: no copy route the account cannot name (a platform or alternate configuration, or a bundle key beyond
     # resources and the icon) before anything reads the configuration.
@@ -325,8 +330,6 @@ def build(repo=REPO, vendor=None):
         require(not is_voice or (item.get('kind') != COMPILED and item['id'] not in SUPPLIER_READINGS
                                  and item['id'] not in DEFERRED and 'owner_licence_reading' not in item),
                 'a voice component takes only the voice route (not compiled, reading or deferred): ' + item['id'])
-        # No revision is recorded for a voice row: its source is the release URL the supplier states, and none is invented.
-        require(not is_voice or item.get('revision') is None, 'a voice component records no revision (absent or null): ' + item['id'])
         require(not item['supplier_tree_texts'] or is_voice, 'only a voice component may name supplier-tree texts: ' + item['id'])
         require(all(t.startswith(voice_records.LICENCE_FOLDER) for t in item['supplier_tree_texts']),
                 'a supplier-tree text must be a member under ' + voice_records.LICENCE_FOLDER + ': ' + item['id'])
@@ -432,8 +435,8 @@ def build(repo=REPO, vendor=None):
             add(entry, HELD, reason=item['reason'])
         else:
             add(entry, UNCOVERED, reason=item['reason'], would_close=item['would_close'])
-    # After the rows, so that each comparison above refuses first with its own message; then the form of every GitHub
-    # repository field, an additional refusal.
+    # After the rows, so that each comparison above refuses first with its own message; then the form of the non-voice
+    # repository fields (check_repository_forms), an additional refusal.
     check_repository_forms(table)
     unclaimed = sorted(set(tree) - set(claimed))
     if reviewed:
@@ -720,20 +723,28 @@ def voice_route(item, entry, voice, pin, add):
         add(entry, UNCOVERED, reason=item['reason'], would_close=item['would_close'])
 
 
+# The other hosts a non-voice repository field of the component table may name, as exact prefixes.
+OTHER_REPOSITORY_PREFIXES = ('https://chromium.googlesource.com/',)
+
+
 def check_repository_forms(table):
-    """Every GitHub repository field of the component table in the associations' canonical form, exactly
-    https://github.com/<owner>/<repository> (no `.git` suffix in any letter case, no path). Other hosts keep the name
-    their host gives (a googlesource repository's name ends in `.git`), and a voice row's repository is the source URL
-    the supplier's sources.json states (a release download), so neither is rewritten here; every comparison of these
-    values with a text, a lockfile or the voice records is exact."""
+    """Every non-voice repository field of the component table (components, texts, also_at) is either exactly the
+    canonical GitHub form https://github.com/<owner>/<repository> or begins with exactly
+    https://chromium.googlesource.com/; anything else refuses, naming the field. The googlesource values are compared
+    exactly wherever they are compared and are otherwise not constrained in form. A voice row's repository is the source
+    URL the supplier's sources.json states and is compared with it exactly. A null or missing field is not a form and
+    is left to main's checks: a text's or also_at identity's refuses (package_texts.supplier_texts), a component's null
+    repository goes to its identity and lock checks (a row with committed texts stays uncovered), and a component's
+    missing key stops the build with a KeyError."""
     canonical = texts.supplier_crates.canonical_form
-    fields = [(item['id'], item.get('repository'), voice_records.is_voice(item)) for item in table['components']]
-    fields += [(text['path'], text.get('repository'), False) for text in table['texts']]
-    fields += [(text['path'], other.get('repository'), False) for text in table['texts'] for other in text.get('also_at', [])]
-    for where, repository, voice in fields:
-        host = repository.split('://', 1)[-1].split('/', 1)[0].lower() if isinstance(repository, str) else None
-        require(voice or host != 'github.com' or canonical(repository),
-                'a GitHub repository field is not exactly https://github.com/<owner>/<repository>: ' + where)
+    fields = [(item['id'], item.get('repository')) for item in table['components'] if not voice_records.is_voice(item)]
+    fields += [(text['path'], text.get('repository')) for text in table['texts']]
+    fields += [(text['path'], other.get('repository')) for text in table['texts'] for other in text.get('also_at', [])]
+    for where, repository in fields:
+        require(repository is None or canonical(repository)
+                or (type(repository) is str and repository.startswith(OTHER_REPOSITORY_PREFIXES)),
+                'a repository field is neither exactly https://github.com/<owner>/<repository> nor under '
+                + ' or '.join(OTHER_REPOSITORY_PREFIXES) + ': ' + where)
 
 
 def identity_gaps(item):

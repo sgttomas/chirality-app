@@ -707,11 +707,19 @@ class Account(Builds):
                 row = self.row(self.build(), 'Opus')
                 self.assertEqual(row['standing'], coverage.UNCOVERED)
                 self.assertIn('source URL', row['reason'])
-        # Review round 4, finding 2: a voice row records no revision; any value refuses, with or without the records.
-        for revision in ('1' * 40, '', 'v1.6.1'):
+        # Review rounds 4 and 5, finding 2: a voice row's revision key is present and null; any value, or no key, refuses by
+        # name before the review record's entries index it.
+        for revision in ('1' * 40, '', 'v1.6.1', 'absent'):
             with self.subTest(revision=revision):
-                self.setUp(); self.edit(TABLE, lambda v, r=revision: next(c for c in v['components'] if c['id'] == 'opus').update(revision=r))
-                with self.assertRaisesRegex(ValueError, 'a voice component records no revision'):
+                self.setUp()
+                def change(v, r=revision):
+                    opus = next(c for c in v['components'] if c['id'] == 'opus')
+                    if r == 'absent':
+                        del opus['revision']
+                    else:
+                        opus['revision'] = r
+                self.edit(TABLE, change, rebind=False)
+                with self.assertRaisesRegex(ValueError, "a voice component's revision must be present and null: opus"):
                     self.build()
         # Without the records, a voice row with a complete identity is open, not covered.
         self.setUp(); shutil.rmtree(self.repo / coverage.voice_records.RECORDS)
@@ -736,6 +744,23 @@ class Account(Builds):
                 row = self.row(self.build(), 'Opus')
                 self.assertEqual(row['standing'], coverage.UNCOVERED)
                 self.assertNotIn('source_statement', row)
+        # Review round 5: each condition alone. A committed text alone (an exception can only name a shipped text) leaves the
+        # row uncovered, by its identity check first (a voice row has no revision, which committed texts need); no tree text
+        # (the licence file kept as a member) leaves it uncovered by the voice route.
+        def committed_text(v):
+            codex = next(c for c in v['components'] if c['id'] == 'codex')
+            next(c for c in v['components'] if c['id'] == 'opus')['texts'] = [codex['texts'][0]]
+        def no_tree_text(v):
+            opus = next(c for c in v['components'] if c['id'] == 'opus')
+            opus['members'] = opus['members'] + opus['supplier_tree_texts']
+            opus['supplier_tree_texts'] = []
+        for change in (committed_text, no_tree_text):
+            with self.subTest(change=change.__name__):
+                self.setUp(); self.edit(TABLE, change)
+                row = self.row(self.build(), 'Opus')
+                self.assertEqual(row['standing'], coverage.UNCOVERED)
+                self.assertIn({'committed_text': "committed texts need the component's own repository and revision",
+                               'no_tree_text': 'covered only by its licence texts in the supplier tree'}[change.__name__], row['reason'])
         # Moving the library into the Codex row makes that row a voice row: it records a revision, which a voice row may not
         # (review round 4, finding 2), and no native-library entry establishes it.
         def to_codex(v, keep_revision):
@@ -744,7 +769,7 @@ class Account(Builds):
             next(c for c in v['components'] if c['id'] == 'opus')['members'].remove('codex-resources/voice/lib/libopus.0.dylib')
             if not keep_revision:
                 codex['revision'] = None
-        for keep_revision, message in ((True, 'a voice component records no revision \\(absent or null\\): codex'),
+        for keep_revision, message in ((True, "a voice component's revision must be present and null: codex"),
                                        (False, 'states the source of codex')):
             with self.subTest(keep_revision=keep_revision):
                 self.setUp(); self.edit(TABLE, lambda v, k=keep_revision: to_codex(v, k))
@@ -847,7 +872,7 @@ class Account(Builds):
     # lockfile's as written, as on main, and refuses with main's message for a suffix in any case or another letter case.
     def test_a_compiled_component_s_repository_is_compared_as_written(self):
         rg = 'https://github.com/BurntSushi/ripgrep'
-        for repository in (rg + '.GIT', rg + '.git', 'https://github.com/burntsushi/ripgrep', 'https://GitHub.com/BurntSushi/ripgrep'):
+        for repository in (rg + '.GIT', rg + '.git', rg + '/', 'https://github.com/burntsushi/ripgrep', 'https://GitHub.com/BurntSushi/ripgrep'):
             with self.subTest(repository=repository):
                 self.setUp()
                 self.edit(TABLE, lambda v, r=repository: next(c for c in v['components'] if c['id'] == 'ripgrep-crate-dependencies')
@@ -856,17 +881,54 @@ class Account(Builds):
                                                         'component: ripgrep-crate-dependencies'):
                     self.build()
 
-    # Review round 4, finding 1: a text's repository is compared with its component's as written (as on main), and a
-    # GitHub repository field must be in the canonical form.
-    def test_a_supplier_text_s_repository_is_compared_as_written_and_canonical(self):
-        def respell(v, suffix):
-            text = next(t for t in v['texts'] if t['repository'] == 'https://github.com/BurntSushi/ripgrep')
-            text['repository'] += suffix
-        for suffix in ('.GIT', '/'):
-            with self.subTest(suffix=suffix):
-                self.setUp(); self.edit(TABLE, lambda v, s=suffix: respell(v, s))
-                with self.assertRaisesRegex(ValueError, 'a GitHub repository field is not exactly'):
+    # Review rounds 4 and 5, finding 1: every non-voice repository field of the table is either exactly the canonical
+    # GitHub form or begins with exactly https://chromium.googlesource.com/; anything else refuses, naming the field. The
+    # component and its texts are respelled together, so no comparison between them refuses first.
+    def test_a_repository_field_has_one_of_the_two_accepted_forms(self):
+        rg = 'https://github.com/BurntSushi/ripgrep'
+        def respell(v, spelling):
+            for item in [next(c for c in v['components'] if c['id'] == 'ripgrep')] + v['texts']:
+                if item.get('repository') == rg:
+                    item['repository'] = spelling
+        for spelling in (rg + '.GIT', rg + '/', 'https://github.com:443/BurntSushi/ripgrep', 'https://git@github.com/BurntSushi/ripgrep',
+                         'https://GITHUB.COM/BurntSushi/ripgrep', 'https://www.github.com/BurntSushi/ripgrep',
+                         'https://gitlab.com/BurntSushi/ripgrep', 'https://Chromium.googlesource.com/BurntSushi/ripgrep'):
+            with self.subTest(spelling=spelling):
+                self.setUp(); self.edit(TABLE, lambda v, r=spelling: respell(v, r))
+                with self.assertRaisesRegex(ValueError, 'a repository field is neither exactly https://github.com/<owner>/<repository> '
+                                                        'nor under https://chromium.googlesource.com/: '):
                     self.build()
+        # An also_at identity is held to the same rule.
+        def also_at(v):
+            other = next(t for t in v['texts'] if t.get('also_at'))['also_at'][0]
+            other['repository'] = other['repository'].replace('https://github.com/', 'https://github.com:443/')
+        self.setUp(); self.edit(TABLE, also_at)
+        with self.assertRaisesRegex(ValueError, 'a repository field is neither exactly'):
+            self.build()
+        # A null or missing field is not a form; each refuses or stays open as on main.
+        def text_field(v, change):
+            change(next(t for t in v['texts'] if t['repository'] == rg))
+        for change in (lambda t: t.update(repository=None), lambda t: t.pop('repository')):
+            with self.subTest(field='text', change=change):
+                self.setUp(); self.edit(TABLE, lambda v, c=change: text_field(v, c))
+                with self.assertRaisesRegex(ValueError, 'supplier text needs a non-empty repository and revision'):
+                    self.build()
+        for change in (lambda o: o.update(repository=None), lambda o: o.pop('repository')):
+            with self.subTest(field='also_at', change=change):
+                self.setUp(); self.edit(TABLE, lambda v, c=change: c(next(t for t in v['texts'] if t.get('also_at'))['also_at'][0]))
+                with self.assertRaisesRegex(ValueError, 'an also_at identity needs repository'):
+                    self.build()
+        self.setUp(); self.edit(TABLE, lambda v: next(c for c in v['components'] if c['id'] == 'ripgrep').update(repository=None))
+        self.assertEqual(self.row(self.build(), 'ripgrep')['standing'], coverage.UNCOVERED)
+        self.setUp(); self.edit(TABLE, lambda v: next(c for c in v['components'] if c['id'] == 'ripgrep').pop('repository'))
+        with self.assertRaises(KeyError):
+            self.build()
+        # Control: the committed table passes, with both accepted forms present.
+        self.setUp()
+        table = json.loads((self.repo / TABLE).read_text())
+        values = [c['repository'] for c in table['components'] if not coverage.voice_records.is_voice(c)]
+        self.assertTrue(any(v.startswith(coverage.OTHER_REPOSITORY_PREFIXES) for v in values))
+        self.assertEqual(self.row(self.build(), 'ripgrep')['standing'], coverage.COVERED)
 
     # Review round 4, remaining item: a distribution record that repeats a file refuses (an invented record in the copy).
     def test_a_distribution_record_that_repeats_a_file_refuses(self):
