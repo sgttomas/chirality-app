@@ -13,8 +13,9 @@ coverage-inputs.json (owner readings, permitted texts, Library content). Each co
 `check --strict` also exits non-zero while any component is held or uncovered, naming each.
 Never fetches, builds, executes supplier code or reads a cache. When the table is reviewed for the pin and the
 supplier's own voice records are held (committed under supplier_notices/voice_records/<pin>/ and bound to the
-distribution record; supplier_notices/voice.py), the voice rows' versions and source URLs are compared with them. `--vendor DIR` additionally reads an extracted
-supplier tree and applies the same comparison to its own sources.json and manifest.json.
+distribution record; supplier_notices/voice.py), the voice rows' versions and source URLs are compared with them.
+`--vendor DIR` additionally reads an extracted supplier tree and applies the same comparison to its own sources.json
+and manifest.json.
 """
 import argparse
 import hashlib
@@ -119,10 +120,10 @@ def text_entry(repo, path, destination):
 
 def build(repo=REPO, vendor=None):
     repo = Path(repo)
-    # A voice row's revision key is present and null (its source is the release URL the supplier states; no revision is
-    # invented). Checked before anything, the review record's entries included, indexes it.
+    # A voice row's revision key is present (refused by name before anything, the review record's entries included,
+    # indexes it); that its value is null is checked with the voice route below.
     for item in texts.load(repo, texts.SUPPLIER)['components']:
-        require(not voice_records.is_voice(item) or ('revision' in item and item['revision'] is None),
+        require(not voice_records.is_voice(item) or 'revision' in item,
                 'a voice component\'s revision must be present and null: ' + str(item.get('id')))
     # Then: the curated inputs and cache-made indexes must be the content the review record names.
     check_review_record(repo, texts.load(repo, texts.SUPPLIER))
@@ -330,6 +331,8 @@ def build(repo=REPO, vendor=None):
         require(not is_voice or (item.get('kind') != COMPILED and item['id'] not in SUPPLIER_READINGS
                                  and item['id'] not in DEFERRED and 'owner_licence_reading' not in item),
                 'a voice component takes only the voice route (not compiled, reading or deferred): ' + item['id'])
+        # No revision is recorded for a voice row: its source is the release URL the supplier states, and none is invented.
+        require(not is_voice or item['revision'] is None, 'a voice component\'s revision must be present and null: ' + item['id'])
         require(not item['supplier_tree_texts'] or is_voice, 'only a voice component may name supplier-tree texts: ' + item['id'])
         require(all(t.startswith(voice_records.LICENCE_FOLDER) for t in item['supplier_tree_texts']),
                 'a supplier-tree text must be a member under ' + voice_records.LICENCE_FOLDER + ': ' + item['id'])

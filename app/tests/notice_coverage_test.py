@@ -718,7 +718,8 @@ class Account(Builds):
                         del opus['revision']
                     else:
                         opus['revision'] = r
-                self.edit(TABLE, change, rebind=False)
+                # A value is refused after review (rebound); an absent key before the review record is read.
+                self.edit(TABLE, change, rebind=revision != 'absent')
                 with self.assertRaisesRegex(ValueError, "a voice component's revision must be present and null: opus"):
                     self.build()
         # Without the records, a voice row with a complete identity is open, not covered.
