@@ -194,6 +194,14 @@ test('a conversation lists its stop requests by what each record establishes, an
   assert.ok(!stop.includes('Stop Codex stop request'));
   const odd=agentPlain(renderToStaticMarkup(React.createElement(ConversationStops,{records:[old({cause:'future-cause',label:null})]})));
   assert.ok(odd.includes('(Request reason not recognised, requested')&&!odd.includes('future-cause'),odd);
+  // A person-directed interrupt row names no actor in the box; the disclosure keeps its words.
+  const person=agentPlain(renderToStaticMarkup(React.createElement(ConversationStops,{records:[old({cause:'person-interrupt',label:'interrupted by the person',codexReported:'interrupted'})]})));
+  assert.ok(person.includes('(person-directed interrupt, requested')&&!person.includes('your interrupt'),person);
+  // A token that is no own key of a closed table falls to its fallback and offers nothing.
+  const proto=agentPlain(renderToStaticMarkup(React.createElement(ConversationStops,{records:[old({cause:'constructor',label:'constructor'})],onContinue:()=>{continued++;},canContinue:true})));
+  assert.ok(proto.includes('(Request reason not recognised, requested')&&!proto.includes('Continue this conversation'),proto);
+  assert.equal(continueEligible(old({label:'constructor'})),false);
+  assert.equal(continueEligible(old({label:'toString'})),false);
 });
 
 test('an unqualified label with no, a nonterminal or another reported status is not called an interruption Codex reported',()=>{

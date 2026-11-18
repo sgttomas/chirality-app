@@ -109,17 +109,15 @@ export function CodexProcessControls({ host, busy, act }: { host: Json; busy: bo
 }
 
 // Stop requests where the person reads the conversation (DEL-01-02 REQ-005,
-// AC-006). Everything here comes from the stop-request records above (REC SR)
-// and, for the session before this one, from its start and end records as the
-// host carries them. A view says no more than a record establishes:
+// AC-006). The stop-request view supplies each row, including the host's
+// assessment of whether its source App session ended. A view says no more than
+// a record establishes:
 // - a stop request is associated only in the home bound to the History source
 //   it is shown with; where that home is not known, nothing is associated;
 // - a turn's end is said only as Codex reported it in the record; the App's
 //   label is shown as the App's label, with its reading, and is never read as
 //   a cause, an order of events or a Codex status;
 // - a request without a confirmed write keeps its reading;
-// - a quit is spoken of only where the previous session's recorded end is
-//   that quit, and only for the requests its end record names;
 // - an interrupt request answers no Codex request, and an absent record is not
 //   evidence that nothing was interrupted.
 
@@ -194,7 +192,7 @@ export function stopRequestsFor(requests: Json, threadId: string | null | undefi
 /** A row that may carry the added Continue offer: a labelled stop-request
  *  record, with a completed write, of an earlier App session whose end is
  *  established. */
-export const continueEligible = (r: Json) => !!r?.stopRequestId && typeof r?.label === "string" && r.label in STOP_LABELS && r.earlierSession === true && r.send === "sent";
+export const continueEligible = (r: Json) => !!r?.stopRequestId && typeof r?.label === "string" && Object.hasOwn(STOP_LABELS, r.label) &&r.earlierSession === true && r.send === "sent";
 
 /** What one stop-request row establishes of its turn's end, in the App's words. */
 function RowOutcome({ row }: { row: Json }) {
@@ -207,6 +205,11 @@ function RowOutcome({ row }: { row: Json }) {
     : <>Codex reported the turn <Word value={reported} words={TURN_STATUS} label="Recorded:" name="A turn status as recorded; the App does not vouch for its words" />.</>}
     {" "}App label: <b><Word value={row.label} words={STOP_LABELS} label="Recorded:" name={RECORDED.label} /></b>{row.labelDerived ? " (derived; not written)" : ""}.</>;
 }
+
+/** The box's words for a request's recorded cause; the record establishes a
+ *  person-directed interrupt, not whose. */
+const BOX_CAUSE: Record<string, string> = { "person-interrupt": "person-directed interrupt", "codex-stop": "Stop or Restart Codex", quit: "quitting the App" };
+const boxCause = (cause: unknown) => typeof cause === "string" && Object.hasOwn(BOX_CAUSE, cause) ? BOX_CAUSE[cause] : "Request reason not recognised";
 
 const BOUNDS = "An interrupted turn is not a workflow run's end. An interrupt request does not answer a Codex request. Nothing here says what became of agents the conversation delegated work to.";
 const ABSENCE = "The App's reading of stop records has limits. See Recorded stop requests under Codex process. A turn with no record here is not shown to have run to its end.";
@@ -223,7 +226,7 @@ export function ConversationStops({ records, limited, onContinue, canContinue }:
     <p>Stop requests the App recorded for this conversation, each with what its record establishes:</p>
     <ul>{rows.map((r: Json) => <li key={text(r.stopRequestId)}>
       Turn <SuppliedId value={r.turnId} label="Turn:" name={TURN_ID} />{" "}
-      <small>({CAUSE[text(r.cause)] ?? "Request reason not recognised"}, requested <AgentText value={text(r.requestedAt)} source="record" label="Requested:" name={RECORDED.requested} />{r.earlierSession ? ", earlier App session" : ""})</small>: <RowOutcome row={r} />{" "}
+      <small>({boxCause(r.cause)}, requested <AgentText value={text(r.requestedAt)} source="record" label="Requested:" name={RECORDED.requested} />{r.earlierSession ? ", earlier App session" : ""})</small>: <RowOutcome row={r} />{" "}
       <AgentText value={text(r.reading)} source="codex" label="Reading:" name={RECORDED.reading} />{" "}
       <small>Record: <AgentText value={text(r.persistence)} source="codex" label="Record:" name={RECORDED.persistence} />.</small>
     </li>)}</ul>

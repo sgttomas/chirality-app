@@ -397,16 +397,41 @@ pub(crate) const SOURCE_SESSION_UNAVAILABLE: &str = "A stop request was recorded
 /// A stop request recorded in this App session and neither sent, not sent nor
 /// of unknown write outcome yet: its write may be under way.
 pub(crate) const REQUESTED_READING: &str = "Stop requested. The App has not yet confirmed whether the interrupt was sent to Codex.";
+/// A stored row whose request state and write field disagree.
+pub(crate) const CONFLICTING_FIELDS_READING: &str = "The App's stop record has conflicting request state and write fields.";
+/// A stored row carrying a Codex final status in a state that records no
+/// settled turn.
+pub(crate) const UNSETTLED_FINAL_READING: &str = "The App's stop record carries a Codex final status. Its request state does not record a settled turn.";
 
 fn reading(record: &Value, source: Source) -> (Option<String>, String, bool) {
     let cause = record["cause"].as_str().unwrap_or_default();
     let state = record["state"].as_str().unwrap_or_default();
-    // A request with no completed write (SR-01 pending, SR-03 not sent, SR-13
-    // write incomplete) keeps its own reading below even where its row carries
-    // a label: the App forms a label only after a completed write, so such a
-    // row's label establishes no write and no final status.
-    let unwritten = matches!(state, "requested" | "not-sent" | "send-unknown");
-    if let Some(label) = record["outcomeLabel"].as_str().filter(|_| !unwritten) {
+    // Rows the App's writers never produce, though a stored schema admits
+    // them, establish nothing beyond the disagreement. The writers record
+    // SR-01 with its send pending and every later state with the send its
+    // transition writes, and carry a Codex final status only once the turn is
+    // settled (SR-06, SR-07) or recovered (SR-09).
+    let send = record["send"].as_str().unwrap_or_default();
+    let write_agrees = match state {
+        "requested" => send == "pending",
+        "not-sent" => matches!(send, "not-sent(not-ready)" | "not-sent(write-failed)"),
+        "send-unknown" => send == "unknown(write-incomplete)",
+        _ => send == "sent",
+    };
+    if !write_agrees {
+        return (None, CONFLICTING_FIELDS_READING.into(), false);
+    }
+    let final_reported = matches!(record["outcomeSource"].as_str(), Some("observed" | "recovered-from-supplier"))
+        && matches!(record["turnOutcome"].as_str(), Some("interrupted" | "completed" | "failed"));
+    if final_reported && !matches!(state, "settled" | "outcome-recovered") {
+        return (None, UNSETTLED_FINAL_READING.into(), false);
+    }
+    // A written label is read as such only in the states the App writes one
+    // in (SR-06/07 settled, SR-08 outcome unknown, SR-09 recovered). A label
+    // on a row in any other state establishes nothing, and the row keeps that
+    // state's unlabelled reading below.
+    let labelled_state = matches!(state, "settled" | "outcome-unknown" | "outcome-recovered");
+    if let Some(label) = record["outcomeLabel"].as_str().filter(|_| labelled_state) {
         let reading = match record["state"].as_str() {
             // An outcome-unknown record is written when a generation closes or, at a later
             // start, for an earlier App session's request. Neither establishes here that

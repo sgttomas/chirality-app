@@ -489,10 +489,18 @@ implemented behavior and qualification limits.
     has no reported final status, the App says its stop record has no
     reported final status for that turn. Each row gives the stop-record
     reading, with any App label attributed and a derived label marked. An
-    interrupt request does not answer a Codex request. A request with no
-    completed write (pending, not sent, or write incomplete) keeps its
-    unlabelled reading in every view that shows it, even where its row
-    carries a label.
+    interrupt request does not answer a Codex request. A row with a pending,
+    unsent or incomplete interrupt write keeps the reading for that write
+    state even where it carries a label. The App omits that label from its
+    projection. The live activity code and its home mapping are unchanged
+    from the pinned main base. This read-back exception also affects the
+    live stop label. A label on a row in any state other than settled,
+    recovered or outcome unknown is likewise omitted, and a row whose request
+    state and write field disagree, or that carries a Codex final status in a
+    state that records no settled turn, has no label and a reading that says
+    so. The App's own writers produce none of these rows, and the changed
+    reading reaches every view that shows them: the Recorded stop requests
+    disclosure, the live stop label, the box and the stored page.
 
     An accepted stored turn page shows the native status and the newest
     matching App stop request, or an applicable in-memory Stop Codex outcome
@@ -506,8 +514,7 @@ implemented behavior and qualification limits.
     **Continue this conversation**.
     It sends the existing Codex resume request and opens the conversation
     after matching admission in the current view. Continue sends no
-    conversation message. The live activity stop-label path is unchanged
-    from the pinned main base. The read-only Prior work section in
+    conversation message. The read-only Prior work section in
     Conversation shows the same stored-turn stop labels after a matched
     resume and adds no Continue.
 

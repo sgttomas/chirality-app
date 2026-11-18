@@ -125,7 +125,7 @@ function StoredStop({ stop, status }: { stop: Json; status: Json }) {
   const reported = reportedFinal(stop?.codexReported);
   const label = stop?.label ? <>App label: <b><Word value={stop.label} words={STOP_LABEL} label="Recorded:" name={STOP_WORDS.label} /></b>{stop.labelDerived ? " (derived; not written)" : ""}.</> : null;
   if (!stop?.stopRequestId) {
-    return <p role="note">{label}{" "}{reported ? <>The Stop or Restart Codex outcome records that Codex reported the turn <Word value={reported} words={TURN_STATUS} label="Recorded:" name={STOP_WORDS.status} />.</> : "The App observed no turn end during the Stop or Restart Codex wait."}</p>;
+    return <p role="note">{label}{" "}{reported ? <>The Stop or Restart Codex outcome records that Codex reported the turn <Word value={reported} words={TURN_STATUS} label="Recorded:" name={STOP_WORDS.status} />.</> : stop?.codexReported == null ? "The App observed no turn end during the Stop or Restart Codex wait." : "The Stop or Restart Codex outcome carries no reported final status for this turn."}</p>;
   }
   const native = reportedFinal(status);
   return <>

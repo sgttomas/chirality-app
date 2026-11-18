@@ -497,10 +497,11 @@ test('a stored turn shows its own home\'s stop record; only Codex reports are co
   host.codexStops = {outcomes: [
     {state: 'stopped', modeHomeClass: 'api-key', generation: {...generation, home: 'key-home'}, turns: [{threadId: 'stored', turnId: 'foreign-outcome', label: 'interrupted by Stop Codex', codexReported: 'interrupted'}]},
     {state: 'stopped', modeHomeClass: 'account', generation: clone(generation), turns: [{threadId: 'stored', turnId: 'own-outcome', label: 'interrupted by Stop Codex', codexReported: 'interrupted'},
-      {threadId: 'stored', turnId: 'own-no-end', label: 'interrupted by Stop Codex (final status not observed)', codexReported: null}]},
+      {threadId: 'stored', turnId: 'own-no-end', label: 'interrupted by Stop Codex (final status not observed)', codexReported: null},
+      {threadId: 'stored', turnId: 'own-in-progress', label: 'interrupted by Stop Codex (final status not observed)', codexReported: 'inProgress'}]},
   ]};
   const status = {'pair-completed': 'completed', 'label-no-report': 'completed'};
-  const ids = ['observed', 'pair-completed', 'pair-interrupted', 'label-no-report', 'unknown-interrupted', 'unsent', 'other-home', 'incomplete', 'foreign-outcome', 'own-outcome', 'own-no-end', 'unrecorded'];
+  const ids = ['observed', 'pair-completed', 'pair-interrupted', 'label-no-report', 'unknown-interrupted', 'unsent', 'other-home', 'incomplete', 'foreign-outcome', 'own-outcome', 'own-no-end', 'own-in-progress', 'unrecorded'];
   host.nativeHistory.selected.turnsPage.data = ids.map(id => ({id, status: status[id] ?? 'interrupted', items: []}));
   let continued = 0;
   const render = h => renderToStaticMarkup(React.createElement(StoredTurnPage, {binding: historyPageBinding(h, 'turns'), canRead: true, readItems: () => {}, stopFor: storedStopFor(h, 'stored', h.nativeHistory.generation), onContinue: () => { continued++; }, canContinue: true}));
@@ -528,6 +529,9 @@ test('a stored turn shows its own home\'s stop record; only Codex reports are co
   // Nothing says the process was stopped or when the report arrived.
   assert.ok(turn('own-outcome').includes('App label: <b>interrupted by Stop Codex</b>. The Stop or Restart Codex outcome records that Codex reported the turn interrupted.') && !turn('own-outcome').includes('Continue this conversation'), turn('own-outcome'));
   assert.ok(turn('own-no-end').includes('App label: <b>interrupted by Stop Codex (final status not observed)</b>. The App observed no turn end during the Stop or Restart Codex wait.'), turn('own-no-end'));
+  // A report that is present and not a final status is not denied: the outcome carries no final.
+  assert.ok(turn('own-in-progress').includes('App label: <b>interrupted by Stop Codex (final status not observed)</b>. The Stop or Restart Codex outcome carries no reported final status for this turn.')
+    && !turn('own-in-progress').includes('observed no turn end') && !turn('own-in-progress').includes('Continue this conversation'), turn('own-in-progress'));
   assert.ok(!/stopped Codex|at the stop/.test(html));
   assert.ok(turn('incomplete').includes('App label') && !turn('incomplete').includes('Continue this conversation'), turn('incomplete'));
   assert.ok(turn('unrecorded').includes(NOT) && !turn('unrecorded').includes('Stop request'));
