@@ -172,8 +172,12 @@ result:
 - Apple's `dyld_info -validate_only` returns zero and prints nothing at all,
   on either stream, for every Mach-O file (its manual: "Display nothing if
   binary is valid"). Both streams must be byte-empty; whitespace also fails.
-- The Info.plist is one XML property list whose value is the whole document
-  (`info_plist_whole` otherwise), and it states the release identity.
+- The Info.plist is one XML property list whose value is the whole document,
+  in the admitted form, and it states the release identity. Otherwise the
+  check is `info_plist_whole` (malformed) or `info_plist_not_read` (a form the
+  reader does not read), and its entry in `BUILD_REFUSED.json` carries a
+  `detail` naming the field, the shape expected, what was found and the byte
+  (see "Reading a refusal" below).
 - The vendor tree matches the input in bytes, modes and types.
 - Every mapped resource matches its source in bytes.
 - The executable holds the compiled publisher binding and requirement.
@@ -304,17 +308,63 @@ expectation, not a promise.
   temporary files of the tools; a fetched notarization log never stays there,
   because it is moved to the private folder as soon as the command returns.
 
-**A first run may refuse a profile or `Info.plist` that is not whole.** The
-tools read your provisioning profile and the App's `Info.plist` only when the
-whole file is one property list, in the form these files are known to take
-(see "The profile and `Info.plist` are read as whole files" below). A real file
-outside that form would stop the run before anything is signed: a profile at
-step 2, `S2_PROFILE`, and an `Info.plist` before step 1, `REFUSED_CANDIDATE`.
-Those two stops come before anything is signed or sent to Apple. At the
-record's reading (step 13) either file stops the run with `S13_OBSERVATION`,
-naming `provisioning profile` or `bundle identity` in `STOPPED.json`, and no
-record is written. Send the agent the reason code; the file itself stays
-with you.
+**A first run may refuse your profile or the App's `Info.plist`.** The tools
+read the provisioning profile and the App's `Info.plist` only when the whole
+file is read, in the form described under "The profile and `Info.plist` are
+read as whole files" below. A real file outside that form stops the run, and
+the stop says which of three things happened:
+
+- **Not established** (`S2_PROFILE_NOT_ESTABLISHED`, or for the candidate's
+  `Info.plist` `REFUSED_INFO_PLIST_NOT_ESTABLISHED`): the file uses a form the
+  standard allows that these tools do not read. Nothing was compared, so the
+  identity comparison is not established. This is not a finding against your
+  profile; it means the reader needs to learn that form. Valid forms the tools
+  refuse this way: in the profile's envelope, an indefinite length, a length in
+  more octets than needed, a constructed string, a tag number in the
+  high-tag-number form, a BOOLEAN other than 00 or FF, or nesting deeper than
+  64 elements; in a property list, a byte-order mark, UTF-16 or another
+  encoding, no XML declaration, a standalone declaration, another document type
+  or an internal subset, a comment, a processing instruction, an entity
+  declaration, whitespace, a reference or a CDATA section inside an `integer`,
+  `real`, `date` or `data`, an integer with `+`, `-0`, leading zeros or
+  hexadecimal, a real beyond a double's range, a date with a fraction or an
+  offset, base64 with non-zero unused bits, nesting deeper than 32 arrays and
+  dictionaries, and a binary property list.
+- **Malformed** (`S2_PROFILE_MALFORMED`, `REFUSED_INFO_PLIST_MALFORMED`): the
+  file is not well formed in any encoding the standard allows, or a field does
+  not have its declared shape (for example two values under the root, or a
+  certificate that is not a certificate).
+- **Mismatch** (`S2_PROFILE`): the profile was read whole and a value is not
+  what the release requires (another team, another App ID, a debugging grant,
+  an expired profile).
+
+The profile and the candidate's `Info.plist` are read before anything is
+signed or sent to Apple. At the record's reading (step 13) either file stops
+the run with `S13_OBSERVATION`, naming `provisioning profile` or `bundle
+identity` (with ` not established` added for a form not read) in
+`STOPPED.json`, and no record is written.
+
+**Reading a refusal.** Under the `STOP:` line, each refusal has one line of
+its own, and `STOPPED.json` holds the same as `refusals` (or as the `detail`
+of a failed observation). For example:
+
+```text
+STOP: step 2: the provisioning profile uses an encoding or form this reader does not read, named on the next line; the identity comparison is not established
+  profile envelope: an encoding or form this reader does not read; the identity comparison is not established. Field SignedData.certificates (item 1): expected definite-length DER; found an indefinite length (tag universal 16, constructed) at byte 1025.
+```
+
+It reads: which part of the file (`profile envelope`, `profile property list`,
+`profile grants`, `profile file` or `Info.plist`); which kind; the field, by
+its name in RFC 5652 for the envelope (`SignedData.certificates`) or the
+property-list element for a property list (`dict`, `plist`, `integer`); which
+item of a set, counting from 1; the shape expected; what was found; the tag
+found, as its class and number; and the byte offset in the file. Every word
+comes from a fixed list in the tools, and the numbers are positions and tag
+numbers: no byte or value of your file is printed, so the line can be sent to
+the agent as it is. The kind tells a wrong check from a wrong profile: a
+mismatch names a value the release does not accept; a malformed field names a
+shape the file does not have; a form not read names something the tools need
+to learn, and your profile may be fine. The file itself stays with you.
 
 **Starting again.** There is no resuming part-way. Every run starts from the
 beginning, from the candidate folder, into a new `--out` folder, and submits
@@ -422,48 +472,95 @@ reads each file twice, by two readers that do not share their reading of the
 structure, and returns a value only when they agree:
 
 1. The document's own bytes, read from the XML parser's events (the same event
-   reading `xml_structure` uses), against the property-list grammar exactly:
-   one `plist` root holding one value; only the property-list elements; no
-   attribute but the root's `version="1.0"`; nothing but whitespace bytes
+   reading `xml_structure` uses), against this admitted form and nothing else:
+   the XML declaration first (version 1.0, encoding UTF-8 or not given, no
+   standalone declaration), optionally the property-list document type with no
+   internal subset; one `plist` root, whose only attribute may be
+   `version="1.0"`, holding one value; only the property-list elements, nested
+   at most 32 arrays and dictionaries deep; nothing but whitespace bytes
    between elements; `key` and value alternating in a `dict`, no key twice and
-   none without its value; no comment or processing instruction anywhere (no
-   genuine property-list file we know of carries one); no entity declaration,
-   undefined or external entity, and nothing fetched; nothing after the root
-   but whitespace. Each leaf value must be a spelling of its form: `data` is
-   padded base64 with whitespace anywhere in it (any wrapping), `date` is
-   `YYYY-MM-DDTHH:MM:SSZ`, `integer` is decimal with an optional sign or `0x`
-   hexadecimal, `real` is a decimal number with an optional exponent, `true`
-   and `false` are empty. This reading builds the value itself.
+   none without its value; no comment, processing instruction or entity
+   declaration; no undefined or external entity, and nothing fetched; nothing
+   after the root but whitespace. The leaf values: `string` and `key` hold
+   text; `integer` is `0|-?[1-9][0-9]*`; `real` is a decimal number with an
+   optional exponent that converts to a finite double, and to zero only from
+   zero digits; `date` is `YYYY-MM-DDTHH:MM:SSZ` naming a real date and time;
+   `data` is padded base64 with unused bits zero and whitespace anywhere in it
+   (any wrapping); `integer`, `real`, `date` and `data` hold their characters
+   as written, with no reference or CDATA section; `true` and `false` are
+   empty. This reading builds the value itself.
 2. `plistlib`'s reading of the same bytes, with a key given twice refused.
 
 The two values must be equal, with the same types and key order. The
-normalizations allowed, and no others: the document header, compared by its
-XML declaration (version 1.0; encoding UTF-8 or not given; no standalone
-declaration) and the property-list document type (or none), not by its bytes;
-whitespace bytes between elements; and line ends in text as the XML parser
-reports them to both readers (CR LF and a lone CR become LF). Whitespace inside
-a string is part of the value and is kept. Anything else refuses, with a reason
-that names what was left over: for example a second value under the root, text
-outside a value, a comment, an unknown element, an attribute, or a key twice.
+normalizations, exhaustively: the document header, compared by its
+declaration and document type, not by its bytes; the root's `version`
+absent or `1.0`; whitespace bytes between elements; line ends in text as the
+XML parser reports them to both readers (CR LF and a lone CR become LF);
+references and CDATA sections in a `string` or `key` read as the characters
+they denote, and an empty element read as its start and end tags (XML 1.0);
+whitespace removed from inside `data` before decoding; and one conversion: a
+decimal `real` is read as the nearest double, so two spellings can give the
+same value. Every other admitted leaf spelling has exactly one value, and
+every value exactly one spelling. Whitespace inside a string is kept.
 
-A **binary property list is refused** for both files: only an XML property
-list is read as a whole document. The Tauri bundler's own source is not held
-offline here (its macOS bundler is compiled into the `@tauri-apps/cli`
-package), so its `Info.plist` format was not established from source. What is
-held shows Tauri writing XML: its code generator writes the development
-`Info.plist` it embeds with the `plist` crate's XML writer. If the bundler were
-to write a binary `Info.plist`, the build would stop at its checks with
-`info_plist_whole` in `BUILD_REFUSED.json`, before any candidate exists.
+A refusal names what was found and where (see "Reading a refusal" above). It
+is **not established** for a form XML 1.0 and the property-list DTD allow that
+this reader does not read (listed on the owner's page above), and
+**malformed** for a form they do not allow: two values under the root, text
+outside a value, an unknown element, an attribute, a key twice or without a
+value, content in `true`, an undefined entity, bytes after the root. Where the
+two readers disagree, or `plistlib` cannot read what the structure read, the
+comparison is not established either: nothing shows which reading is right.
 
-The **profile's envelope** is read by `prepare.profile_content`: one DER
-ContentInfo spanning the whole file, whose SignedData holds, in order and with
-no byte left over, the version, the digest algorithms, the encapsulated content
-(one primitive OCTET STRING, the property list), optional certificates and
-revocation lists, and the signer information. So there is one place a property
-list is taken from, and nothing around it is dropped unread as a structure. The
-certificates and signer information are not read, and **the envelope's
-signature is not authenticated**: the profile is checked for consistency, not
-shown to be Apple's.
+A **binary property list is refused** for both files (not established): only
+an XML property list is read as a whole document. The Tauri bundler's own
+source is not held offline here (its macOS bundler is compiled into the
+`@tauri-apps/cli` package), so its `Info.plist` format was not established
+from source. What is held shows Tauri writing XML: its code generator writes
+the development `Info.plist` it embeds with the `plist` crate's XML writer. If
+the bundler were to write a binary `Info.plist`, the build would stop at its
+checks with `info_plist_not_read` in `BUILD_REFUSED.json`, before any
+candidate exists.
+
+The **profile's envelope** is read by `prepare.profile_envelope` as
+definite-length DER, the subset of BER that DER is. Every element of the file
+is walked, recursively through every constructed element: each tag and length
+must be well formed, each element must end within its parent, and no byte may
+be left over at any level. The fields of the one SignedData (RFC 5652 section
+5) must have their declared outer shape, to the depth of their type tags and
+no deeper: ContentInfo is a SEQUENCE of id-signedData and `[0]` holding one
+SignedData; SignedData holds `version` (INTEGER), `digestAlgorithms` (a SET of
+SEQUENCEs each beginning with an OBJECT IDENTIFIER), `encapContentInfo`
+(id-data and `[0]` holding one primitive OCTET STRING), optional
+`certificates` `[0]` (each an X.509 Certificate's outer shape, RFC 5280: a
+SEQUENCE of exactly a SEQUENCE, a SEQUENCE and a BIT STRING), optional `crls`
+`[1]` (each a CertificateList's outer shape, the same three), and `signerInfos`
+(a SET of SEQUENCEs each beginning with an INTEGER), in that order, then
+nothing. The universal types' own rules are checked wherever they appear (a
+SEQUENCE or SET constructed; an INTEGER not empty and with no redundant
+leading octet; an OBJECT IDENTIFIER well formed; a BOOLEAN one octet; a NULL
+empty; a BIT STRING well formed).
+
+The rule between the kinds: a form BER allows that this reader does not read
+(an indefinite length, a length in more octets than needed, a constructed
+string, a high tag number, a BOOLEAN other than 00 or FF, nesting deeper than
+64) is **not established**; a form BER does not allow (an element past its
+parent or cut off, bytes left over, an indefinite length on a primitive
+element, a reserved length octet, a malformed INTEGER or OBJECT IDENTIFIER)
+or a field not of its declared shape is **malformed**. The first problem met
+in reading order is the one reported: fields in their order, and within a
+field the headers of its elements, then each element's declared shape, then
+its contents.
+
+What this establishes, and what it does not: the value is taken from the one
+place the envelope defines as its content. The rest of the envelope is walked
+for well-formedness and declared outer shape, not interpreted: the contents of
+a certificate, a signer information or the version INTEGER are not read, and a
+certificate can legitimately carry arbitrary bytes inside its own fields, so
+"no other property list anywhere in the file" is not claimed. The order of the
+elements of a SET (which DER sorts) and the unused bits of a BIT STRING are not
+checked. **Nothing is authenticated**: the profile is checked for consistency,
+not shown to be Apple's.
 
 The readers that rely on this, and the facts that rest on them:
 
@@ -477,6 +574,11 @@ The readers that rely on this, and the facts that rest on them:
   the owner's run and in the build's final check, and the record's reading):
   the bundle identifier, version, bundle version, minimum macOS and
   executable.
+
+In `record.py check`, a file in a form not read is a failed observation named
+`provisioning profile not established` or `bundle identity not established`;
+the fields it would have shown are listed under `not_established` and are not
+reported as differences; the result is not equal (exit 1), never agreement.
 
 What this shows is that each value comes from the whole file. A file digest
 still binds only bytes; neither establishes who wrote the file.
