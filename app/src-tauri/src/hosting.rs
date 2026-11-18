@@ -589,11 +589,10 @@ struct Inner {
     /// The generation for which the person confirmed Stop/Restart Codex:
     /// from then on no new turn or steer is sent in it (only interrupts).
     stop_confirmed: Option<Value>,
-    /// The quit's closure of turn-start, steer, conversation-start, resume and
-    /// fork admission in every generation of this Host, including a process
-    /// that becomes ready while closed. Reassessment runs with the closure
-    /// held. Reopening clears it explicitly. Stop and Restart use
-    /// `stop_confirmed`.
+    /// The quit's closure of turn-start and steer admission in every
+    /// generation of this Host, including a process that becomes ready while
+    /// closed. Reassessment runs with the closure held. Reopening clears it
+    /// explicitly. Stop and Restart use `stop_confirmed`.
     quit_closed: bool,
     stderr_bytes: u64,
     child_pid: Option<i32>,
@@ -1511,11 +1510,10 @@ impl Host {
         let mut i=self.inner.0.lock().unwrap();
         if i.stop_confirmed.as_ref()==Some(generation){i.stop_confirmed=None;}
     }
-    /// Close turn-start, steer, conversation-start, resume and fork admission
-    /// on this Host in any state and generation. A process that becomes ready
-    /// while closed is subject to the same check. Interrupts and replies still
-    /// follow their own admission rules. Returns true only when this call
-    /// closed it.
+    /// Close turn-start and steer admission on this Host in any state and
+    /// generation. A process that becomes ready while closed is subject to the
+    /// same check. Interrupts and replies still follow their own admission
+    /// rules. Returns true only when this call closed it.
     pub(crate) fn close_for_quit(&self) -> bool {
         let mut i=self.inner.0.lock().unwrap();
         !std::mem::replace(&mut i.quit_closed,true)
@@ -1529,7 +1527,7 @@ impl Host {
         if matches!(method,"turn/start"|"turn/steer")&&i.stop_confirmed.as_ref()==Some(&i.generation) {
             return Err(format!("refused-not-sent: Stopping this Codex process was confirmed. No {method} was sent."));
         }
-        if matches!(method,"turn/start"|"turn/steer"|"thread/start"|"thread/resume"|"thread/fork")&&i.quit_closed {
+        if matches!(method,"turn/start"|"turn/steer")&&i.quit_closed {
             return Err(format!("refused-not-sent: A quit was in progress. No {method} was sent."));
         }
         Ok(())

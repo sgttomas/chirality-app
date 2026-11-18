@@ -664,7 +664,7 @@ pub(crate) mod native_statement {
         let mut head = vec![
             "Quit Chirality while work is live?".to_owned(),
             format!(
-                "Observed across {} App-owned Codex process(es): {} live turns, {} turn starts not yet associated with a turn, {} waiting requests, {} delegated agents, {} workflow runs in force.",
+                "Assessment includes {} App-owned Codex home(s): {} live turns, {} turn starts not yet associated with a turn, {} waiting requests, {} delegated agents, {} workflow runs in force.",
                 count(&view["homes"]),
                 count(&view["observedLiveTurns"]),
                 count(&view["observedUnansweredTurnStarts"]),
@@ -683,7 +683,7 @@ pub(crate) mod native_statement {
             .filter_map(|h| h["notReady"].as_str().map(|note| format!("{}: {}.", text_or(&h["modeHomeClass"], "home"), note.trim_end_matches('.'))))
             .collect();
         let not_ready_line = (!not_ready.is_empty()).then(|| format!(
-            "{} of them were not ready to assess. Quit attempts to settle those processes. Each is named in the App.",
+            "{} of them were not ready to assess. Quit attempts to settle any processes the App still owns for them. Each is named in the App.",
             not_ready.len()
         ));
         let mut listed = live_work_lines(view);
@@ -1027,7 +1027,7 @@ pub(crate) mod native_statement {
                     let mut h = json!({"modeHomeClass": class, "generation": g, "state": "ready"});
                     if i >= 3 - not_ready {
                         h["state"] = json!(format!("state-{i}"));
-                        h["notReady"] = json!(format!("Codex is state-{i}. The App could not assess live work in this state. If Quit proceeds, the App will try to settle the process."));
+                        h["notReady"] = json!(format!("Codex is state-{i}. The App could not assess live work in this state. If Quit proceeds, the App will try to settle any processes it still owns for this home."));
                     }
                     h
                 }).collect();
@@ -1083,7 +1083,7 @@ pub(crate) mod native_statement {
                     let mut h = json!({"modeHomeClass": class, "generation": g, "state": "ready"});
                     if i > 0 {
                         h["state"] = json!(LONGEST_STATE);
-                        h["notReady"] = json!(format!("Codex is {LONGEST_STATE}. The App could not assess live work in this state. If Quit proceeds, the App will try to settle the process."));
+                        h["notReady"] = json!(format!("Codex is {LONGEST_STATE}. The App could not assess live work in this state. If Quit proceeds, the App will try to settle any processes it still owns for this home."));
                     }
                     h
                 }).collect();
