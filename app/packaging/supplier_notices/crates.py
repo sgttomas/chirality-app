@@ -93,7 +93,8 @@ OBJC2_REPOSITORY = 'https://github.com/madsmtm/objc2'
 # not on the list whose texts include the overview text, or whose repository is the objc2 repository (compared without
 # regard to case, as GitHub compares owner and repository names), is held too, so a new objc2 package cannot pass as text.
 READING_REPOSITORIES = {OBJC2_REPOSITORY}
-# Every repository field of every association, in one form: no scheme variant, suffix, path or trailing slash.
+# The form of every repository field of associations.json except archive_repository (the shape's REPOSITORY leaf):
+# no scheme variant, suffix, path or trailing slash.
 CANONICAL_REPOSITORY = re.compile(r'^https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$')
 # The macOS package's one target. A package is absent from it only when every declaration of it in every reverse
 # dependency's manifest sits under a target condition that is false for this target (`target_holds`).
@@ -723,7 +724,7 @@ def entries(repo):
             + str(sorted(set(expected) - set(by_key))[:5]) + ', extra ' + str(sorted(set(by_key) - set(expected))[:5]))
     for key, locks in expected.items():
         require(by_key[key]['locks'] == sorted(locks), 'crate index names other lockfiles for ' + ' '.join(key[:2]))
-    # Every repository field of every association is in its one canonical form (also part of the shape check at load).
+    # The repository fields of these collections in the canonical form (the shape check at load also requires it).
     for lock in associations['locks']:
         canonical(lock['repository'], 'lockfile association ' + lock['id'])
     for collection in ('workspaces', 'git_sources', 'app_texts', 'registry_sources', 'no_publisher_text'):

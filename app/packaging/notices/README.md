@@ -3,9 +3,9 @@
 These checks are not built to resist deliberately forged, mutually consistent inputs
 (an account, a table, an association and a review record changed together to agree).
 The review of the pull request that changes a curated file covers that boundary
-([What these checks withstand](#what-these-checks-withstand); the per-collection lists
-are under [What is enforced and what review covers](#what-is-enforced-and-what-review-covers),
-whose by-site table is the authority, and in `../supplier_notices/README.md`).
+([What these checks withstand](#what-these-checks-withstand)). [What is enforced and
+what review covers](#what-is-enforced-and-what-review-covers) lists, site by site, what
+the checkers enforce, with the test for each, and what review covers.
 
 Every component shipped in the package has an entry in `coverage.json`, with its
 version, its source, where its notice text ships and one standing: `covered`,
@@ -124,46 +124,25 @@ Rules `coverage.py` applies, whatever the tables say:
   compiled program. The rule fits this record: executables plus `.dylib` members must
   equal the record's Mach-O count, and every one of them must belong to a component.
   It is not a general proof that a file is a compiled program. Each executable must
-  belong to exactly one `compiled-dependencies` component. A component that a lockfile
-  association names must be such a component and have at least one executable member;
-  which executable is built from which lockfile is a review duty (the table below).
-  Such a component is covered only by
+  belong to a `compiled-dependencies` component. Such a component is covered only by
   the supplier crate group (`../supplier_notices/crates.py`): its lockfile, bound by
   blob to the component's own repository and revision (the Codex lockfile to the
-  distribution record's source commit), and every package that lockfile locks with its
-  text. A package with no text (`gap`), one that states a licence for which no
-  publisher text was found (`no-publisher-text`), or one awaiting an owner reading
-  (`held`) keeps the component open, and the account names each such package; none of
-  them ever counts as covered, so `--strict` and a public preparation refuse while any
-  remains. The lockfiles are a superset: they lock packages for every platform and
-  feature, and some may not be compiled into the macOS executables. The only package
-  left out of what the component needs is one standing `not-in-macos-package`: absence
-  from the macOS target (`aarch64-apple-darwin`) by declared target condition. It is
-  admitted only when every reverse dependency the lockfile gives has its manifest
-  committed under `../supplier_notices/crates/manifests/`, every explicit declaration of
-  the package that the checker finds by parsing that manifest sits under a target key, in
-  a closed set of forms, that is false for that target, and no key inherited from the
-  workspace can be the package (rule (i) or (ii) in `../supplier_notices/README.md`). No
-  resolver was run and nothing was read from the binaries; the account lists every such
-  package with its evidence and the rule that admitted it under `excluded_packages`.
-  Nothing is left out on any other ground. The 23 packages awaiting the owner's objc2
-  reading are a closed, named list in `crates.py` and stay held whatever route, spelling
-  or text their rows give them. The table's standing for the component must agree.
-- **Voice rows.** A voice row is any component with a member or text in the voice
-  library folders of the supplier tree (`codex-resources/voice/lib/`, `plugins/`,
-  `licenses/`), however its row is written. Membership is decided before any other
-  route: a voice row cannot be a compiled-dependencies, reading or deferred row, a voice
-  member belongs to one component, and only a voice row names supplier-tree texts, each
-  under `codex-resources/voice/licenses/`. It is covered only when the supplier's own
-  voice records for the declared pin, committed under
-  `../supplier_notices/voice_records/<pin>/` and bound to their members' digests in the
-  distribution record, establish its version and source URL
-  (`../supplier_notices/voice.py`; a disagreement refuses, and each native-library entry
-  establishes exactly one row), and only with its texts from the supplier tree, carrying
-  its source statement; no exception or other text covers it. These are the supplier's
-  statements about its bundle; the libraries' contents are not inspected. Which licence
-  file in the tree is a row's notice is not stated by those records; it is curated in
-  `components.json`, a review duty.
+  distribution record's source commit), and every package that lockfile locks standing
+  `text` or `not-in-macos-package` (absence from `aarch64-apple-darwin` by declared
+  target condition). A package standing `gap`, `no-publisher-text` or `held` keeps the
+  component open, and the account names each such package. The lockfiles are a
+  superset: they lock packages for every platform and feature, and some may not be
+  compiled into the macOS executables. The table's standing for the component must
+  agree. The conditions, with their tests, and the review duty of which executable is
+  built from which lockfile, are under [What is enforced and what review
+  covers](#what-is-enforced-and-what-review-covers).
+- **Voice rows.** A voice row is a component with a member or a supplier-tree text
+  under the voice library folders of the supplier tree (`codex-resources/voice/lib/`,
+  `plugins/`, `licenses/`; `voice.is_voice`). It is covered only
+  through the supplier's own voice records for the declared pin, committed under
+  `../supplier_notices/voice_records/<pin>/`, with its licence texts from the supplier
+  tree. The conditions, with their tests, and the review duties are under [What is
+  enforced and what review covers](#what-is-enforced-and-what-review-covers).
 - **Table reviewed for another pin.** When the declared pin differs from the table's
   `reviewed_for_pin`, no association is carried forward: every table row stands
   uncovered (the deferred rows with their own reason), and a "Supplier component
@@ -183,8 +162,10 @@ Rules `coverage.py` applies, whatever the tables say:
   `coverage-inputs.json` are curated judgments, not facts a check can prove, as is
   `../supplier_notices/crates/associations.json`; `crates/index.json` is made from
   archives CI does not hold, and the committed registry parent manifests' equality with
-  their archives' `Cargo.toml` is checked only by `crates.py verify-manifests` with the
-  archives (the expected checksum taken from the lockfile). The
+  their archives' `Cargo.toml` is checked by `crates.py verify-manifests` with the
+  archives (the expected checksum taken from the lockfile;
+  `test_archive_reading_mode_takes_the_checksum_from_the_lockfile`), which `check` does
+  not read. The
   direct, transitive, font and SQLite indexes are made by generators from caches CI
   does not hold, so CI can check texts only against them. The declared pin's
   `CANONICAL_DISTRIBUTION.json` is bound too, because the account copies the voice
@@ -249,83 +230,155 @@ Rules `coverage.py` applies, whatever the tables say:
 
 ## What is enforced and what review covers
 
-This table is the authority on how a standing can move toward covered. It has one row
-for every place in `coverage.py` where a component can be added as covered, and every
-place in `../supplier_notices/crates.py` where a locked package can become `text` or
-`not-in-macos-package`. For each, it lists the conditions under which that place
-yields that standing. **E** marks a condition the checker enforces, with the test
-that shows it. **R** marks a review duty: the reviewer of the pull request that changes
-the curated input checks it from the held evidence named. A row that did not change in
-the change that introduced this table still has its row. Where a condition is
-pre-existing curated judgment, the row says so.
+This section lists, site by site, how a standing can move toward covered: each place in
+`coverage.py` where a component can be added as covered, and each place in
+`../supplier_notices/crates.py` where a locked package can become `text` or
+`not-in-macos-package`. Each condition carries one mark:
 
-Every row also rests on three conditions:
+- **E**: the checker enforces it, and the named test changes that input and sees the refusal
+  or the open standing;
+- **C**: the code checks it, and no test in these suites changes that input alone;
+- **R**: a review duty. The reviewer of the pull request that changes the curated input checks it
+  from the evidence named.
 
-- each curated file that `coverage-review.json` names must have its bound SHA-256 (E:
-  `test_curated_input_changes_refuse_without_the_review_record`). Rebinding is the
-  reviewer's act (R);
-- `check` regenerates the account and requires it unchanged (E:
-  `test_stale_account_refuses`, `test_committed_account_is_current_and_counts_add_up`);
-- anything not covered keeps `check --strict` non-zero and a public production
-  preparation refused (E: `test_strict_mode_exits_non_zero_naming_each_open_component`,
-  and the strict tests in `production_inputs_test.py`).
+These apply to every site:
 
-The per-collection lists in `../supplier_notices/README.md` spell out the E and R
-items of the crate and voice rows below.
+| Condition | Mark | Test or duty |
+|---|---|---|
+| Each curated file `coverage-review.json` names has its bound SHA-256 | E | `test_curated_input_changes_refuse_without_the_review_record` |
+| Rebinding the review record after a change | R | the reviewer of the change rebinds it |
+| `check` regenerates the account and requires the committed one unchanged | E | `test_stale_account_refuses` |
+| A component that is not covered makes `check --strict` exit 1, naming it | E | `test_strict_mode_exits_non_zero_naming_each_open_component` |
+| A component that is not covered refuses a public production plan | E | `production_inputs_test.py` `test_production_plan_refuses_open_notice_coverage_unless_named_not_for_public_release` |
 
-### `coverage.py`, `build` and its helpers: where a component is added as covered
+### `coverage.py`: where a component is added as covered
 
-| Site | Conditions for covered |
-|---|---|
-| `build`: the App row | The App component of the direct index, with its `LICENSE.md` notice mapped into the package. E: the direct index check (`notice_resources_test.py` `test_saved_scope_is_app_and_exact_direct_runtime_set`, `test_changed_notice_bytes_refuse`). R (pre-existing curated judgment): that the App's own licence is its notice. |
-| `build`: App icons | A provenance entry in `app_assets` for each declared icon, with equal SHA-256 and size. Without one, the icon stands uncovered. E: `test_bundled_icon_needs_provenance`. R (pre-existing curated judgment): that the entry's provenance statement is true, from the repository history at `added_by_commit`. |
-| `build`: Library content | The licence digest equals the App's `LICENSE.md`. The source record lies inside the bundle and has its reviewed digest. It names the same repository (as written, as on main), commit and licence, or the same `basisCommit`. The folder holds exactly the members that record lists. E: `test_library_content_must_match_its_bundle_source_record`, `test_an_added_or_changed_file_in_a_bundled_library_folder_is_open`, `test_a_foreign_selection_under_a_named_destination_folder_is_open`. R (pre-existing): that the record's source is the Library's at that revision, as reviewed in the change that bundled it. |
-| `build`: a Cargo row that needs a reading | A row needs a reading when its text was received as an upstream text or its repository is the objc2 repository in any letter case (the repository identity, which only holds more rows). It ships its held text, and the owner's reading is recorded in the closed form. A reading for any other crate refuses. E: `test_a_pending_or_missing_reading_is_pending_and_strict_refuses`, `test_a_reading_cannot_be_extended_to_a_crate_that_needs_none`. R: the reading's date and relay, bound by the review record. |
-| `build`: a Cargo archive-member row | The transitive index row has kind `archive-member`, and the index agrees with its shipped texts. E: `notice_transitive_test.py` `test_text_kind_must_match_members_and_received_text`, `test_changed_missing_extra_or_linked_text_refuses`, `test_general_crate_extraction_verifies_the_lock_checksum`. R: that the index is what the generator makes from the archives: rerun `transitive.py check --cargo-home` (CI does not hold the cache). |
-| `build`: a Cargo root-text row | It ships texts, and either its kind is `retained-root-texts` or it is a received subject. E: `test_received_text_must_be_at_the_revision_its_crate_names`, `test_root_row_cannot_choose_path_revision_scope_or_downgrade`, `test_unlisted_crate_cannot_inherit_root_association`, `test_partial_root_texts_remain_unqualified_in_summary`. R (pre-existing curated judgment, which the project's Agent 0 accepted as mechanical matches): that the root text at the named revision is the crate's notice. |
-| `build`: an npm row | The index row's kind is `direct-index-archive` or `lock-tarball`. E: `test_npm_rows_are_recomputed_from_the_lock_even_when_the_receipt_is_rebound`, `test_cargo_text_kinds_cannot_hide_unverified_npm_packages`. R: that the index is what the generator makes from the tarballs: rerun with `--npm-cache`. |
-| `build`: a font row | The upstream is verified, with its package and integrity, and a tarball member for the licence and for every file. E: `test_unverified_fonts_are_uncovered`, `font_notice_test.py` `test_index_shape_provenance_and_notice_list_refuse`, `test_upstream_recheck_refuses_a_tarball_that_is_not_the_pinned_one`. R: rerun `font_notice/check.py --npm-cache`. |
-| `build`: SQLite | The header text's bytes equal its index asset. E: `notice_resources_test.py` `test_sqlite_supplement_matches_lock_and_exact_saved_assets`. R (pre-existing curated judgment): that the header is the public-domain dedication; rerun `sqlite_notice/check.py --archive`. |
-| Every supplier row (before the routes below) | The table is reviewed for the declared pin, or every row stands uncovered and an open table row is added. A row in `DEFERRED` stays uncovered. Every member and text is a file of the distribution record, and every member is claimed. Every GitHub repository field of the table is exactly `https://github.com/<owner>/<repository>` (a voice row's source URL and other hosts' names are kept as written; E: `test_a_supplier_text_s_repository_is_compared_as_written_and_canonical`). Component ids and text paths do not repeat. A repeated file in the distribution record also refuses. E: `test_a_distribution_record_that_repeats_a_file_refuses` (an invented record), `test_a_repeated_supplier_identifier_refuses`, `test_a_table_reviewed_for_another_pin_covers_no_supplier_row`, `test_another_declared_pin_is_named_as_an_open_review_not_assumed`, `test_deferred_rows_stay_uncovered_whatever_the_table_says`, `test_supplier_table_must_claim_every_member_and_justify_gaps`, `test_distribution_record_drift_refuses`. **Voice membership is decided before any route.** A row with a member or text under `codex-resources/voice/lib/`, `plugins/` or `licenses/` takes the voice route only. It cannot be compiled-dependencies, a reading row, deferred or carry a reading. A voice member belongs to one component. Only a voice row names supplier-tree texts, each under `codex-resources/voice/licenses/`. E: `test_a_voice_member_takes_only_the_voice_route` (to compiled, to a reading row, twice), `test_supplier_tree_texts_belong_only_to_voice_components`. |
-| `compiled_group`, from `build` for a compiled-dependencies row | The row is reviewed and not deferred. A lockfile association names it. The lockfile's repository and revision equal the component's as written, as on main, with main's refusal (E: `test_a_compiled_component_s_repository_is_compared_as_written`). A component whose repository is Codex's in any letter case is at the distribution record's source commit. Each crate text is mapped and equals its package account. No package stands `gap`, `no-publisher-text` or `held`; every package is `text` or `not-in-macos-package` (the `crates.py` rows below). The table's standing equals the computed one. A component a lock association names is compiled-dependencies, covered only by its crate group, and has at least one executable member. Every executable belongs to exactly one compiled-dependencies component; one that belongs to none gets an uncovered `compiled-in:` row, and one that belongs to two refuses. The executable rule fits the record's Mach-O count. E: `test_compiled_dependency_rows_are_covered_only_by_their_crate_group`, `test_a_locked_component_is_compiled_and_has_an_executable`, `test_the_codex_commit_check_ignores_repository_case`, `test_deleting_compiled_dependency_rows_leaves_every_executable_uncovered`, `test_no_publisher_text_alone_keeps_the_account_open_and_strict_refuses`, `test_empty_workspace_texts_cannot_leave_ripgrep_covered`, `test_executable_rule_must_fit_the_record_macho_count`. R (pre-existing curated judgment in `components.json`): which executable is built from which lockfile. The evidence is the supplier source's build files at the pinned commit: the `codex-rs` workspace members at d32063f9 that declare `codex`, `codex-exec-server`, `codex-code-mode-host` and `codex-voice-host`, and, for `codex-path/rg`, the supplier package script's rg selector, which names the ripgrep 15.2.0 release. The 0.160.0 selector is kept under `../supplier_notices/codex-0.160.0/scripts/codex_package/`, and `ripgrep_0167.py` recomputes the 0.167.0 association. The d32063f9 copies are not held in this repository. |
-| `voice_route`, from `build` for a voice row | The row is reviewed and not deferred. Its source URL is present (no revision is invented). The table says covered. The pin's voice records are held. The row names no committed text and no exception, and at least one tree text, each under the licences folder. The records establish the row: exactly one native-library entry, with equal version and URL. Its members and texts are files the supplier manifest lists. The account row carries its source statement. E: `test_a_voice_component_is_covered_only_through_the_voice_records`, `test_a_supplier_tree_row_needs_its_source_url_but_no_invented_revision`, and the voice tests in `supplier_crate_notices_test.py` (`test_file_identity_must_equal_the_distribution_record`, `test_manifest_must_agree_with_the_pin_commit_target_and_inventory`, `test_the_record_must_be_for_the_pin_and_supported_target`, `test_each_row_is_established_by_exactly_one_native_library_entry`, `test_one_native_library_entry_cannot_establish_two_rows`, `test_a_row_member_must_be_listed_by_the_supplier_manifest`, `test_repeated_keys_or_invalid_json_refuse`). With `--vendor`, `check_vendor` keeps main's refusal (E: `test_the_vendor_check_keeps_main_s_refusal`). Its revision is absent or null; any value refuses (E: `test_a_supplier_tree_row_needs_its_source_url_but_no_invented_revision`). R: which licence file in the tree is which library's, and which native-library entry each member file belongs to (neither record says; verify from the member file names, the distribution record and the 0.167.0 table reviewed in pull request 243); the distribution record's truth, from the change that brought it. |
-| `build`: a supplier row covered by an owner reading (`SUPPLIER_READINGS`) | Not voice and not compiled. Its identity is complete. No text is foreign. The table says covered, and the reading is in the closed form exactly. E: `test_icu_is_covered_only_by_the_owners_closed_form_reading`. R: the reading's date and relay, bound by the review record. |
-| `build`: a supplier row covered by its committed texts | Reviewed, not deferred, not voice and not compiled. Its repository and revision are present. It ships at least one text. Each text is at the component's own repository and revision as written (as on main), or at an `also_at` identity for the same blob, or is a named exception with a non-empty reason. The table says covered, and the row is not a reading row. E: `test_supplier_texts_must_match_their_component`, `test_also_at_identities_bind_a_text_to_another_revision_only_for_its_blob`, `test_empty_exception_reason_and_absent_identity_refuse`, `test_a_component_whose_every_text_is_an_exception_still_needs_its_own_identity`, `test_expected_supplier_components`, `test_removing_a_v8_text_needs_the_review_record`. R (pre-existing curated judgment): that the component is in that member (the supplier's statement in its source), that each text is its notice, that a listing names each blob and `also_at` identity, and each exception's reason. |
-| `build`: App content | Each `app_resources` entry has the exact shape. Every mapping is a single file whose source is a regular non-link file, and the mapping exists in what the bundle selects. E: `test_app_content_names_exact_mappings_only`, `test_an_app_file_claim_refuses_a_directory_or_link`, `test_the_shipped_limitations_list_is_app_content_by_its_exact_mapping`, `test_a_claim_on_a_mapping_that_does_not_exist_refuses`. R (pre-existing curated judgment): that each named file is the App's own content. |
-| `build`: the notices row | The index and account files the bundle maps, plus the selected supplement's fixed destination. Every claim names an existing mapping; an unnamed mapping is an uncovered row. E: `test_every_current_mapping_is_named`, `test_a_mapped_resource_the_account_does_not_name_is_open`, `test_the_vendor_tree_must_be_named`. R (pre-existing): the supplement's contents are checked when it is staged (`receipts.py check_stage`, `notice_receipts_test.py`). |
+| Site | Condition | Mark | Test or duty |
+|---|---|---|---|
+| App row | its notice bytes equal the direct index's | E | `notice_resources_test.py` `test_changed_notice_bytes_refuse` |
+| App row | its notice is mapped into the package | C | `shipped` in `build` |
+| App row | the App's licence is its notice | R | pre-existing curated judgment |
+| App icons | a declared icon without a provenance entry stands uncovered | E | `test_bundled_icon_needs_provenance` |
+| App icons | the icon's bytes equal the entry's SHA-256 and size | E | `test_bundled_icon_needs_provenance` |
+| App icons | the entry's provenance is true | R | pre-existing; from the repository history at `added_by_commit` |
+| Library content | the bundle's record names the entry's revision | E | `test_library_content_must_match_its_bundle_source_record` |
+| Library content | the bundle's record has its reviewed digest | E | `test_an_added_or_changed_file_in_a_bundled_library_folder_is_open` |
+| Library content | the folder holds exactly the record's members, or the row stands uncovered | E | `test_an_added_or_changed_file_in_a_bundled_library_folder_is_open` |
+| Library content | the licence digest equals the App's `LICENSE.md`; the record lies inside the bundle; its repository and licence equal the entry's as written | C | `build` |
+| Library content | the record's source is the Library's at that revision | R | pre-existing; the review of the change that bundled it |
+| Cargo row needing a reading | a row with a received upstream text, or whose text's repository is the objc2 repository, is covered only by a reading in the closed form, and otherwise stands held | E | `test_a_pending_or_missing_reading_is_pending_and_strict_refuses` |
+| Cargo row needing a reading | the objc2 repository is matched in any letter case | C | `READING_REQUIRED_REPOSITORIES` with `same_repository` |
+| Cargo row needing a reading | a reading for a crate that needs none refuses | E | `test_a_reading_cannot_be_extended_to_a_crate_that_needs_none` |
+| Cargo row needing a reading | the reading's date and relay | R | bound by the review record |
+| Cargo archive-member row | the transitive index's kind agrees with the row's members | E | `notice_transitive_test.py` `test_text_kind_must_match_members_and_received_text` |
+| Cargo archive-member row | the shipped texts equal the planned tree | E | `test_changed_missing_extra_or_linked_text_refuses` |
+| Cargo archive-member row | the index is what the generator makes from the archives | R | rerun `transitive.py check --cargo-home` |
+| Cargo root-text row | a received text is at its crate's repository and revision, with its committed bytes | E | `test_received_text_must_be_at_the_revision_its_crate_names` |
+| Cargo root-text row | a root row keeps its revision, unresolved list, kind and licence | E | `notice_transitive_test.py` `test_root_row_cannot_choose_path_revision_scope_or_downgrade` |
+| Cargo root-text row | a crate not on the root list cannot take a root association | E | `notice_transitive_test.py` `test_unlisted_crate_cannot_inherit_root_association` |
+| Cargo root-text row | the root text at the named revision is the crate's notice | R | pre-existing; the project's Agent 0 accepted them as mechanical matches |
+| npm row | a text kind other than `direct-index-archive` or `lock-tarball` refuses in the transitive check | E | `notice_transitive_test.py` `test_cargo_text_kinds_cannot_hide_unverified_npm_packages` |
+| npm row | the index is what the generator makes from the tarballs | R | rerun `transitive.py check --npm-cache` |
+| Font row | with the upstream evidence removed, each family stands uncovered | E | `test_unverified_fonts_are_uncovered` |
+| Font row | altered upstream evidence in the font index refuses | E | `font_notice_test.py` `test_index_shape_provenance_and_notice_list_refuse` |
+| Font row | the index is what the generator makes from the tarballs | R | rerun `font_notice/check.py --npm-cache` |
+| SQLite | the header text's bytes equal its index asset | C | `build` (`SQLite notice bytes differ`) |
+| SQLite | the header is the public-domain dedication | R | pre-existing; rerun `sqlite_notice/check.py --archive` |
+| Every supplier row | a table reviewed for another pin covers no row, and an open table row is added | E | `test_a_table_reviewed_for_another_pin_covers_no_supplier_row`, `test_another_declared_pin_is_named_as_an_open_review_not_assumed` |
+| Every supplier row | a row in `DEFERRED` stays uncovered | E | `test_deferred_rows_stay_uncovered_whatever_the_table_says` |
+| Every supplier row | each member is a file of the distribution record | E | `test_supplier_table_must_claim_every_member_and_justify_gaps` |
+| Every supplier row | each supplier-tree text is a file of the distribution record | C | `build` |
+| Every supplier row | each file of the distribution record is claimed by a row | E | `test_supplier_table_must_claim_every_member_and_justify_gaps` |
+| Every supplier row | the distribution record repeats no file | E | `test_a_distribution_record_that_repeats_a_file_refuses` |
+| Every supplier row | the distribution record has its bound digest | E | `test_distribution_record_drift_refuses` |
+| Every supplier row | component ids and text paths do not repeat | E | `test_a_repeated_supplier_identifier_refuses` |
+| Every supplier row | a committed text is a repository file whose bytes equal the size and digests the table records; the table is bound by the review record | C | `package_texts.supplier_texts` (`committed text differs`) |
+| Every supplier row | every non-voice repository field of the component table (components, texts, also_at) is either exactly the canonical GitHub form `https://github.com/<owner>/<repository>` or begins with exactly `https://chromium.googlesource.com/`; anything else refuses, naming the field. The googlesource values are compared exactly wherever they are compared and are otherwise not constrained in form. A null or missing field is not a form and is left to main's checks: a text's or also_at identity's refuses, a component's null repository goes to its identity and lock checks (a row with committed texts stays uncovered), and a component's missing key stops the build with a KeyError | E | `test_a_repository_field_has_one_of_the_two_accepted_forms` |
+| Every supplier row | a voice row's `revision` key is present and null; an absent key or any value refuses, before the review record's entries are read | E | `test_a_supplier_tree_row_needs_its_source_url_but_no_invented_revision` |
+| Every supplier row | a row with a member or a supplier-tree text under `codex-resources/voice/lib/`, `plugins/` or `licenses/` (a voice row) cannot be compiled-dependencies or a reading row | E | `test_a_voice_member_takes_only_the_voice_route` |
+| Every supplier row | nor deferred, nor carry an owner reading | C | `build` |
+| Every supplier row | a voice member belongs to one component | E | `test_a_voice_member_takes_only_the_voice_route` |
+| Every supplier row | only a voice row names supplier-tree texts, each under `codex-resources/voice/licenses/` | E | `test_supplier_tree_texts_belong_only_to_voice_components` |
+| `compiled_group` | a compiled-dependencies row with no lockfile association stands uncovered | C | `compiled_group` |
+| `compiled_group` | the lockfile's repository and revision equal the component's as written (`.git`, `.GIT`, another letter case or a trailing `/` refuses with main's message) | E | `test_a_compiled_component_s_repository_is_compared_as_written`, `test_compiled_dependency_rows_are_covered_only_by_their_crate_group` |
+| `compiled_group` | a component whose repository is Codex's, in any letter case, is at the distribution record's source commit | E | `test_the_codex_commit_check_ignores_repository_case` |
+| `compiled_group` | each crate text is mapped and equals its package account | C | `compiled_group` |
+| `compiled_group` | a package standing `gap` or `no-publisher-text` keeps the row uncovered | E | `test_compiled_dependency_rows_are_covered_only_by_their_crate_group`, `test_no_publisher_text_alone_keeps_the_account_open_and_strict_refuses` |
+| `compiled_group` | a package standing `held` keeps the row open | C | `compiled_group` |
+| `compiled_group` | the table's standing equals the computed one | E | `test_compiled_dependency_rows_are_covered_only_by_their_crate_group` |
+| `compiled_group` | a component a lockfile association names is compiled-dependencies with an executable member, and an executable in two compiled-dependencies rows refuses | E | `test_a_locked_component_is_compiled_and_has_an_executable`, `test_deleting_compiled_dependency_rows_leaves_every_executable_uncovered` |
+| `compiled_group` | an executable in no compiled-dependencies row gets an uncovered `compiled-in:` row | E | `test_deleting_compiled_dependency_rows_leaves_every_executable_uncovered` |
+| `compiled_group` | the executable rule fits the record's Mach-O count | E | `test_executable_rule_must_fit_the_record_macho_count` |
+| `compiled_group` | which executable is built from which lockfile | R | pre-existing curated judgment in `components.json`. Evidence: the `codex-rs` workspace members at d32063f9 that declare `codex`, `codex-exec-server`, `codex-code-mode-host` and `codex-voice-host`, and for `codex-path/rg` the supplier package script's rg selector naming the ripgrep 15.2.0 release (the 0.160.0 selector is kept under `../supplier_notices/codex-0.160.0/scripts/codex_package/`; the d32063f9 copies are not held here) |
+| `voice_route` | without the pin's voice records, the row stands uncovered | E | `test_a_voice_component_is_covered_only_through_the_voice_records`, `test_a_supplier_tree_row_needs_its_source_url_but_no_invented_revision` |
+| `voice_route` | without its source URL, the row stands uncovered | E | `test_a_supplier_tree_row_needs_its_source_url_but_no_invented_revision` |
+| `voice_route` | a row naming a committed text stands uncovered (by its identity check, which runs first) | E | `test_a_voice_component_is_covered_only_through_the_voice_records` |
+| `voice_route` | a row with no supplier-tree text stands uncovered | E | `test_a_voice_component_is_covered_only_through_the_voice_records` |
+| `voice_route` | exactly one native-library entry of `sources.json` states the row's version and URL, and one entry establishes one row | E | `test_each_row_is_established_by_exactly_one_native_library_entry`, `test_one_native_library_entry_cannot_establish_two_rows`, `test_a_supplier_tree_row_needs_its_source_url_but_no_invented_revision` |
+| `voice_route` | each member is a file the supplier manifest lists | E | `test_a_row_member_must_be_listed_by_the_supplier_manifest` |
+| `voice_route` | the record copies equal their distribution-record members; the manifest's commit, version and targets are the pin's; repeated keys and invalid JSON refuse | E | `test_file_identity_must_equal_the_distribution_record`, `test_manifest_must_agree_with_the_pin_commit_target_and_inventory`, `test_the_record_must_be_for_the_pin_and_supported_target`, `test_repeated_keys_or_invalid_json_refuse` |
+| `voice_route` | with `check --vendor DIR`, a row with tree texts whose version differs from the tree's `sources.json` refuses (main's refusal) | E | `test_the_vendor_check_keeps_main_s_refusal` |
+| `voice_route` | which licence file, and which member, is which native library's | R | neither record says. Evidence: the file names, the distribution record and the 0.167.0 table reviewed in pull request 243 |
+| Reading row (`SUPPLIER_READINGS`) | covered only with the reading in the closed form exactly; otherwise held | E | `test_icu_is_covered_only_by_the_owners_closed_form_reading` |
+| Reading row (`SUPPLIER_READINGS`) | a reading on any other row refuses | C | `build` |
+| Reading row (`SUPPLIER_READINGS`) | the reading's date and relay | R | bound by the review record |
+| Committed-text row | a text at another repository or revision than the component's (as written), not an `also_at` identity of the same blob and not a named exception, leaves the row uncovered | E | `test_supplier_texts_must_match_their_component`, `test_also_at_identities_bind_a_text_to_another_revision_only_for_its_blob` |
+| Committed-text row | without its repository and revision, the row stands uncovered | E | `test_empty_exception_reason_and_absent_identity_refuse`, `test_a_component_whose_every_text_is_an_exception_still_needs_its_own_identity` |
+| Committed-text row | an exception needs a non-empty reason | E | `test_empty_exception_reason_and_absent_identity_refuse` |
+| Committed-text row | a covered row ships at least one text | C | `build` |
+| Committed-text row | the component is in that member, each text is its notice, a listing names each blob and `also_at` identity, and each exception's reason holds | R | pre-existing curated judgment |
+| App content | each entry names exact single-file mappings | E | `test_app_content_names_exact_mappings_only` |
+| App content | each source is a regular non-link file | E | `test_an_app_file_claim_refuses_a_directory_or_link` |
+| App content | each mapping exists in what the bundle selects | E | `test_a_claim_on_a_mapping_that_does_not_exist_refuses` |
+| App content | each named file is the App's own content | R | pre-existing curated judgment |
+| Notices row | a mapping no row names becomes an uncovered row | E | `test_a_mapped_resource_the_account_does_not_name_is_open`, `test_a_foreign_selection_under_a_named_destination_folder_is_open` |
+| Notices row | only the vendor tree may be named by `accounts_for` | E | `test_the_vendor_tree_must_be_named` |
+| Notices row | the supplement's contents | R | pre-existing; checked when staged (`receipts.py check_stage`) |
 
 ### `../supplier_notices/crates.py`, `entries`: where a package becomes `text` or `not-in-macos-package`
 
-`associations.json` is first loaded through one typed shape check. A repeated lock id,
-lock component, workspace lock, manifest id or manifest path refuses (E:
-`test_a_repeated_identifier_refuses`), and a workspace entry must name a lock (E:
-`test_a_workspace_entry_naming_no_lockfile_refuses`). Two curated repository values (a
-component's, a text's, an association's, a lock's) are compared as written, as main
-compares them: any difference in spelling, suffix or letter case refuses. The repository
-identity `crates.repository_key` (GitHub owner and name without regard to case or a `.git`
-suffix) is used only where it makes a check stricter than that: the objc2 guard and the
-reading rule, the Codex membership of a compiled row, and the repository an archive's own
-manifest records, which main did not check (E:
-`test_the_repository_identity_and_canonical_form`,
-`test_the_codex_commit_check_ignores_repository_case`). After every route, the objc2
-guard (`hold_for_reading`) holds a listed package, a package carrying the overview text,
-and a package whose route gives a repository that is the objc2 repository (rows below).
-
-| Site | Conditions for the standing |
-|---|---|
-| Registry, archive route (`text`) | The index row of that name, version and lockfile checksum has notice members. There is no other route and no open or absent mark. Each text is in `texts/` with its digest. The objc2 guard sees only the text digest, because an archive row carries no repository. E: `test_committed_group_checks_and_covers_every_locked_package`, `test_a_missing_or_extra_index_row_refuses`, `test_an_index_digest_drift_refuses`, `test_a_missing_changed_extra_or_linked_text_refuses`, `test_changed_checksum_unused_and_conflicting_associations_refuse`, `test_an_unlisted_package_carrying_the_overview_text_or_from_objc2_is_held`. R: that `index.json` is what `crates.py index` makes from the archives (checksum first, header checks, notice members only); rerun it with the archives. |
-| Registry, App route (`text`) | An `app_texts` association with the locked identity. There is no other route. `reading_required` equals both main's rule (the repository, as written, is the objc2 repository; E: `test_an_app_text_repository_in_another_case_refuses_as_on_main`) and the guard's, and the guard runs with the association's repository. E: `test_app_held_texts_are_a_reviewed_association_not_a_read_of_the_app_tree`, `test_moving_a_listed_package_to_the_app_route_cannot_release_it`. R: that each App text is the same archive's text in the App's reviewed account (`transitive-index.json`, that crate and checksum). |
-| Registry, publisher route (`text`) | A `registry_sources` association with the locked identity, and no other route. The archive's recorded VCS revision equals the association's. Its recorded repository is the same repository, or is null with `repository_basis`. `path_in_vcs` is a folder or the root `""`, or null with `path_basis` (and only then). Each text is notice-named, has its listing blob and size, and its bytes are held. The guard runs with the association's repository. E: `test_a_publisher_association_needs_its_provenance`, `test_a_changed_publisher_text_or_source_identity_refuses`, `test_a_publisher_text_association_needs_a_held_text_bound_to_its_listing`, `test_an_omitted_archive_path_is_null_with_its_basis`, `test_an_omitted_path_needs_its_basis`, `test_a_stated_path_carries_no_basis`, `test_a_manifest_spelling_of_the_same_repository_is_accepted_and_an_inferred_one_needs_its_basis`, `test_publisher_texts_ship_with_their_basis_and_objc2_ones_stay_held`. R: that the recorded archive values (`.cargo_vcs_info.json`, `Cargo.toml`, their sizes and digests, `path_in_vcs` or its absence, the repository) are the archive's. Also that the listing names each blob at its path, that the texts are the folder's complete selection (every folder with a `Cargo.toml` where the path is null), and that each name, version and checksum belong together. `review_publisher_texts.py` compares the archive's stated values, the listing's blob and size at each selected path, the selection and the stored bytes. It does not read a `path_basis`, which is prose the reviewer reads against the listing. |
-| Git route (`text`) | A Git association for the locked package. Its repository and revision are the lock source's, as written (as on main; E: `test_a_git_association_is_compared_with_the_lock_as_written`). At least one text, whose blob equals its listing blob and the stored bytes. The guard runs after it. E: `test_git_association_must_match_the_lock_and_its_listing`, `test_git_text_must_be_its_listing_blob`, `test_a_locked_git_package_without_association_refuses`, `test_the_overview_text_guard_applies_after_the_git_route`. R: that the listing names that blob at that path. |
-| Workspace route (`text`) | The lock's single workspace entry, whose repository and revision are the lockfile's, as written (E: `test_a_workspace_association_is_at_its_lockfile_s_source`). At least one text, whose bytes equal its identity and whose blob is in the listing's. The guard runs after it. E: `test_workspace_text_must_equal_its_identity_and_listing`, `test_empty_text_associations_refuse_before_account_generation`. R: that the codex-rs or ripgrep listing named states the blobs. |
-| `absence`, from `entries` (`not-in-macos-package`) | A `not_in_macos_package` entry for the locked identity, with no text route and no other mark. Its recorded reverse dependencies equal the lockfile's. Each parent manifest is committed, a regular file equal to its identity, cited, and names that package; it is the locked archive's `Cargo.toml` or the workspace file at the lock's repository and revision. Every explicit declaration (parsed: every table, rename and kind) is under a closed-form target key false for `aarch64-apple-darwin`. A registry manifest inherits nothing. A workspace member satisfies rule (i) or rule (ii). The recorded declarations and licence equal the parse. The recorded notice is not compared with the parse: a registry manifest's notice must be its own crate's `text` row with exactly the recorded texts, and a workspace manifest's notice must be its workspace's shipped texts. E: the tests listed under `not_in_macos_package` in `../supplier_notices/README.md`, among them `test_recorded_exclusion_evidence_must_match_the_manifest`, `test_a_false_excerpt_cannot_exclude_an_unconditional_dependency` with its control `test_control_a_truthful_linux_only_parent_excludes`, and `test_each_exclusion_records_the_rule_that_admitted_it`. R: run `crates.py verify-manifests --archives` for registry manifests; compare the workspace manifests with the codex-rs listing; and check rule (ii)'s premise, that the lockfile is bound to the revision. |
-| `hold_for_reading` after every route (keeps open; never yields `text`) | A listed identity stays held whatever its text, spelling or route. An unlisted package carrying the overview text, or with a route repository equal to objc2's, is held. A listed identity no lockfile locks refuses. E: `test_the_named_list_is_exactly_the_held_packages`, `test_a_listed_package_with_another_text_stays_open`, `test_a_listed_package_with_no_overview_text_stays_open`, `test_a_repository_spelling_cannot_release_a_listed_package`, `test_the_objc2_repository_guard_ignores_letter_case`, `test_a_listed_identity_no_lockfile_locks_refuses`. R: the list is code; an identity leaves it only with the owner's reading recorded. |
-
-`gap`, `no-publisher-text` and `held` are open. They cannot cover, and they keep the
-group, and so the compiled-dependencies row, open (E:
-`test_no_publisher_text_packages_ship_nothing_and_stay_open`,
-`test_unused_open_or_absent_associations_refuse`). An item whose standing rests on a
-review duty that has not been completed is returned to an open standing.
+| Site | Condition | Mark | Test or duty |
+|---|---|---|---|
+| All routes | `associations.json` has its typed shape | E | the shape cases of `test_a_publisher_association_needs_its_provenance`, `test_a_changed_publisher_text_or_source_identity_refuses`, `test_registry_manifest_identity_and_notice`, `test_recorded_exclusion_evidence_must_match_the_manifest`, `test_empty_text_associations_refuse_before_account_generation` |
+| All routes | a repeated lock id, lock component, workspace lock, manifest id or manifest path refuses | E | `test_a_repeated_identifier_refuses` |
+| All routes | a workspace entry naming no lockfile refuses | E | `test_a_workspace_entry_naming_no_lockfile_refuses` |
+| All routes | a package with two text routes, a text route and an open or absent mark, or an association naming no locked package refuses | E | `test_changed_checksum_unused_and_conflicting_associations_refuse`, `test_unused_open_or_absent_associations_refuse`, `test_an_excluded_package_named_twice_or_also_open_refuses` |
+| Archive route (`text`) | the index has exactly the locked registry packages, with its bound digests | E | `test_a_missing_or_extra_index_row_refuses`, `test_an_index_digest_drift_refuses` |
+| Archive route (`text`) | each text is in `texts/` with its digest | E | `test_a_missing_changed_extra_or_linked_text_refuses` |
+| Archive route (`text`) | an archive row carries no repository, so only the text digest guards it for the objc2 hold | C | `hold_for_reading` |
+| Archive route (`text`) | the index is what `crates.py index` makes from the archives | R | rerun it with the archives |
+| App route (`text`) | `reading_required` equals main's rule (the repository, as written, is the objc2 repository) and the guard's | E | `test_app_held_texts_are_a_reviewed_association_not_a_read_of_the_app_tree`, `test_an_app_text_repository_in_another_case_refuses_as_on_main` |
+| App route (`text`) | a listed package moved to the App route stays held | E | `test_moving_a_listed_package_to_the_app_route_cannot_release_it` |
+| App route (`text`) | each App text is the same archive's text in the App's account | R | `transitive-index.json`, that crate and checksum |
+| Publisher route (`text`) | the archive's recorded VCS revision equals the association's | E | `test_a_publisher_association_needs_its_provenance` |
+| Publisher route (`text`) | the archive's recorded repository is the association's GitHub repository (owner and name compared without regard to case, a `.git` suffix or a path), or null with `repository_basis`; another repository, or null without a basis, refuses | E | `test_a_publisher_association_needs_its_provenance` |
+| Publisher route (`text`) | `path_in_vcs` is null exactly when `path_basis` is present | E | `test_an_omitted_path_needs_its_basis`, `test_a_stated_path_carries_no_basis`, `test_a_publisher_association_needs_its_provenance` |
+| Publisher route (`text`) | each text is notice-named, at an accepted path, with its listing blob and size, and its bytes held | E | `test_a_changed_publisher_text_or_source_identity_refuses`, `test_a_publisher_text_association_needs_a_held_text_bound_to_its_listing` |
+| Publisher route (`text`) | a text carrying the objc2 overview is held | E | `test_an_unlisted_package_carrying_the_overview_text_or_from_objc2_is_held` |
+| Publisher route (`text`) | the recorded archive values are the archive's; the listing names each blob; the texts are the folder's whole selection; each identity triple belongs together; a null path's basis | R | `review_publisher_texts.py` compares the first three and the stored bytes; a `path_basis` is prose the reviewer reads against the listing |
+| Git route (`text`) | the association's repository and revision are the lock source's, as written | E | `test_git_association_must_match_the_lock_and_its_listing`, `test_a_git_association_is_compared_with_the_lock_as_written` |
+| Git route (`text`) | a locked Git package without an association refuses | E | `test_a_locked_git_package_without_association_refuses` |
+| Git route (`text`) | each text's blob equals its listing blob | E | `test_git_text_must_be_its_listing_blob` |
+| Git route (`text`) | a text carrying the objc2 overview is held | E | `test_the_overview_text_guard_applies_after_the_git_route` |
+| Git route (`text`) | the listing names that blob at that path | R | the Git listing named |
+| Workspace route (`text`) | the workspace's repository and revision are its lockfile's, as written | E | `test_a_workspace_association_is_at_its_lockfile_s_source` |
+| Workspace route (`text`) | each text's bytes equal its identity, and its blob is in the listing's | E | `test_workspace_text_must_equal_its_identity_and_listing` |
+| Workspace route (`text`) | an empty text list refuses | E | `test_empty_text_associations_refuse_before_account_generation` |
+| Workspace route (`text`) | the listing names the blobs | R | the codex-rs or ripgrep listing named |
+| `absence` (`not-in-macos-package`) | the recorded reverse dependencies equal the lockfile's, and the entry names its lockfile and target | E | `test_recorded_exclusion_evidence_must_match_the_manifest` |
+| `absence` (`not-in-macos-package`) | each parent manifest is a committed regular file equal to its identity, cited, and that package's | E | `test_a_committed_manifest_must_equal_its_recorded_identity`, `test_a_committed_manifest_that_is_a_link_refuses`, `test_an_uncited_parent_manifest_refuses`, `test_recorded_exclusion_evidence_must_match_the_manifest` |
+| `absence` (`not-in-macos-package`) | it is the locked archive's `Cargo.toml` by checksum, or the workspace file at the lock's repository and revision as written | E | `test_registry_manifest_identity_and_notice`, `test_workspace_manifest_identity_and_notice` |
+| `absence` (`not-in-macos-package`) | every explicit declaration is under a closed-form target key false for `aarch64-apple-darwin` | E | `test_unknown_target_keys_refuse`, `test_a_declaration_the_record_leaves_out_is_found_in_the_manifest`, `test_any_further_declaration_in_the_manifest_is_judged`, `test_a_false_excerpt_cannot_exclude_an_unconditional_dependency` (control `test_control_a_truthful_linux_only_parent_excludes`) |
+| `absence` (`not-in-macos-package`) | a registry manifest inherits nothing; a workspace member satisfies rule (i) or (ii) | E | `test_a_registry_manifest_with_workspace_inheritance_refuses`, `test_an_inherited_key_that_could_be_the_excluded_package_refuses`, `test_an_inherited_dependency_that_also_names_a_package_refuses` (control `test_control_an_inherited_key_under_a_condition_false_for_macos_keeps_rule_i`) |
+| `absence` (`not-in-macos-package`) | the recorded declarations and licence equal the parse | E | `test_recorded_exclusion_evidence_must_match_the_manifest`, `test_registry_manifest_identity_and_notice`, `test_workspace_manifest_identity_and_notice` |
+| `absence` (`not-in-macos-package`) | the recorded notice is compared not with the parse but with the shipped texts: a registry manifest's crate stands `text` with exactly the recorded texts, and a workspace manifest's notice is its workspace's texts | E | `test_registry_manifest_identity_and_notice`, `test_workspace_manifest_identity_and_notice` |
+| `absence` (`not-in-macos-package`) | each registry manifest is its archive's `Cargo.toml`; each workspace manifest is the file at its revision; rule (ii)'s premise | R | `crates.py verify-manifests --archives MAP.json`; the codex-rs listing; the review of `locks` |
+| `hold_for_reading` (keeps open; never yields `text`) | a listed identity stays held whatever its text, spelling or route | E | `test_a_listed_package_with_another_text_stays_open`, `test_a_listed_package_with_no_overview_text_stays_open`, `test_a_repository_spelling_cannot_release_a_listed_package`, `test_moving_a_listed_package_to_the_app_route_cannot_release_it` |
+| `hold_for_reading` | an unlisted package whose route gives the objc2 repository, in any letter case, is held | E | `test_the_objc2_repository_guard_ignores_letter_case` |
+| `hold_for_reading` | a listed identity no lockfile locks refuses | E | `test_a_listed_identity_no_lockfile_locks_refuses` |
+| `hold_for_reading` | the named list is exactly the held packages | E | `test_the_named_list_is_exactly_the_held_packages` |
+| `hold_for_reading` | an identity leaves the list only with the owner's reading recorded | R | the list is code |
+| Open standings | a `no-publisher-text` package ships nothing and keeps the group open | E | `test_no_publisher_text_packages_ship_nothing_and_stay_open`, `test_no_publisher_text_alone_keeps_the_account_open_and_strict_refuses` |
 
 ## Limits
 

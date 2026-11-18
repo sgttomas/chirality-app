@@ -3,12 +3,11 @@
 The checkers here (`crates.py`, `voice.py`, and `../notices/coverage.py` reading them) are
 not built to resist deliberately forged, mutually consistent inputs: a listing entry, an
 archive record, a manifest and a review record changed together to agree. The review of
-the pull request that changes a curated file covers that boundary. Each curated
-collection below lists what the checker enforces, with a test for each, and what its
-reviewer must check from held evidence; a coverage decision that rests on a review duty
-nobody has completed stays open. The by-site table in `../notices/README.md` (What is
-enforced and what review covers) is the authority; these lists spell out its crate and
-voice rows.
+the pull request that changes a curated file covers that boundary. What the checkers
+enforce, site by site and each with its test, is listed under "What is enforced and what
+review covers" in `../notices/README.md`. The sections below describe the inputs and give
+each one's review duties with their evidence. A coverage decision that rests on a review
+duty nobody has completed stays open.
 
 `components.json` lists, for the supplier tree of the declared pin, the components
 known inside each member, the committed text that is each component's notice
@@ -21,9 +20,14 @@ input: `../notices/coverage-review.json` binds its digest and lists each compone
 standing and exact texts, and its reviewer updates that record. `reviewed_for_pin` names
 the pin the table was reviewed against; when the declared pin differs,
 `../notices/coverage.py` lists the table as an open component rather than assume
-the old associations. Every committed text here is mapped into the package under
-`third-party-notices/supplier/`; the voice libraries' licences ship inside the
-supplier tree itself.
+the old associations. Every non-voice repository field of the component table
+(components, texts, also_at) is either exactly the canonical GitHub form
+`https://github.com/<owner>/<repository>` or begins with exactly
+`https://chromium.googlesource.com/`; anything else refuses, naming the field. The
+googlesource values are compared exactly wherever they are compared and are otherwise not
+constrained in form (`../notices/coverage.py`, `check_repository_forms`). Every
+committed text here is mapped into the package under `third-party-notices/supplier/`;
+the voice libraries' licences ship inside the supplier tree itself.
 
 The folders are the components' root texts at the revisions `components.json`
 names: `codex/` (the supplier's root LICENSE and NOTICE, equal at 0.160.0 and
@@ -35,11 +39,12 @@ files at the same revision, `rusty_v8-350c5a85/`, ICU, libc++, libc++abi,
 llvm-libc, and highway, fast_float, simdutf, dragonbox, FP16 and abseil-cpp as
 Codex's `third_party/v8` build files pin them). Each row's `below_root` says what
 was examined below the root. The libc++ and libc++abi root texts point to
-`CREDITS.TXT` and to licences in subdirectories: the two `CREDITS.TXT` are held at the
-blobs the complete LLVM listings name and ship with those rows, and the complete
-listings show no licence file below the root in the libc++, libc++abi or llvm-libc
-subdirectories, so those rows are covered (per-file terms are not excluded). Which component is in which binary is the supplier's
-statement in its source, not read from the binary.
+`CREDITS.TXT` and to licences in subdirectories. The two `CREDITS.TXT` are held at the
+blobs the complete LLVM listings name and ship with their rows; the libc++, libc++abi
+and llvm-libc subdirectory rows are covered because, as their `below_root` records, the
+complete listings show no other licence-named file below the root (per-file terms are
+not excluded). Which component is in which binary is the supplier's statement in its
+source, not read from the binary.
 
 The table is reviewed for 0.169.0 (proposed, pending an independent reading) from the
 supplier's source at d32063f9 and the distribution record; of the distributed archive
@@ -58,51 +63,29 @@ two single members of the held 0.169.0 distribution archive after its size and d
 were checked. They are maintained checker inputs, not run evidence; the originals ship
 inside the supplier tree, so the copies are not mapped into the package. These are the
 supplier's own statements about its bundle: the libraries are not inspected and no
-source archive was read. `coverage.py --vendor DIR` applies the same comparison to an
-extracted tree's two files.
+source archive was read. `coverage.py check --vendor DIR` and `coverage.py generate
+--vendor DIR` apply the same comparison to an extracted tree's two files.
 
-A **voice row** is any `components.json` row with a member or text in the voice
-library folders (`codex-resources/voice/lib/`, `plugins/` or `licenses/`), however the
-row is written. The voice folder's other files (the voice host, `NOTICE.md` and the two
-records) are the supplier's own and belong to its Codex row. Voice membership is decided
-before any other route: a voice row cannot be a compiled-dependencies row, a reading row
-or a deferred row, and a voice member belongs to one component. Only a voice row may
-name `supplier_tree_texts`, and each must be under `codex-resources/voice/licenses/`.
+A voice row is a `components.json` row with a member or a supplier-tree text under
+`codex-resources/voice/lib/`, `plugins/` or `licenses/` (`voice.is_voice`). The voice
+folder's other files (the voice host, `NOTICE.md` and the two records) belong to the
+Codex row. A voice row's `revision` is present and null: its source is the release URL
+the supplier states. The conditions under which a voice row is covered, with their
+tests, are the `voice_route` and "Every supplier row" rows of the table in
+`../notices/README.md`.
 
-Enforced (`coverage.py` with `voice.establish`, on every generate and check):
-- each copy is a regular non-link file whose size and SHA-256 equal its member in the
-  declared pin's `CANONICAL_DISTRIBUTION.json`;
-- both records have exact JSON types and closed shapes (`true` is not the schema
-  version 1), with no repeated key;
-- the manifest's `buildCommit`, `appVersion` and targets equal the record's source
-  commit, the pin and `aarch64-apple-darwin`, and every digest it lists equals the
-  record's;
-- each voice row is established by exactly one native-library entry of `sources.json`
-  (its version and source URL), and every native-library entry establishes exactly one
-  row; each row's members and texts are files the manifest lists. A repeated or
-  conflicting entry, or two rows for one entry, refuses;
-- a voice row is covered only then, only with texts from the supplier tree, and with
-  its source statement on the account row. A voice row that names another text, a text
-  exception or no tree text, or whose records are not held, stands uncovered;
-- with `--vendor DIR`, `check_vendor` refuses any row with tree texts whose version is
-  not the one the tree's `sources.json` states for its URL (`voice component differs
-  from sources.json`), and also applies the comparison above to the tree's
-  `sources.json` and `manifest.json`.
-
-A voice row records no revision: an absent or null `revision` only, and any value refuses.
-
-Review boundary (the reviewer of a change to `components.json`'s voice rows or to the
+Review duties (the reviewer of a change to `components.json`'s voice rows or to the
 records):
 - **Which licence file is which library's.** Neither record says. For each voice row,
   compare the name of each `supplier_tree_texts` file with the library its
   native-library entry names, and, where reading the held distribution archive is
   permitted, the file's own text.
 - **Which member file is which library's.** Neither record lists a library's files:
-  `sources.json` gives each entry's name, version, archive and URL, and `manifest.json`
-  gives digests by path. For each voice row, verify that each member belongs to that row's
-  native-library entry. The evidence is the member file names (for example
-  `libopus.0.dylib` for opus and `libz.1.dylib` for zlib), the distribution record, and
-  the 0.167.0 table reviewed in pull request 243.
+  `sources.json` gives each entry's name, version, role, archive, root, URL, digest and
+  provenance, and `manifest.json` gives digests by path. For each voice row, verify that
+  each member belongs to that row's native-library entry, from the member file names
+  (for example `libopus.0.dylib` for opus and `libz.1.dylib` for zlib), the
+  distribution record and the 0.167.0 table reviewed in pull request 243.
 - **The distribution record is the supplier's tree.** `CANONICAL_DISTRIBUTION.json` is
   bound by `coverage-review.json`; its truth is the review of the change that brought it.
 
@@ -129,201 +112,110 @@ is run.
 - `texts/<sha256>` holds each crate text once (`crates.py extract`, which requires every
   archive to equal its index row); `packages.json`, generated by `crates.py generate`, is
   the shipped per-package account.
-- `crates.py check` needs no archive and refuses the disagreements listed below.
+- `crates.py check` needs no archive and refuses the disagreements listed in the
+  `crates.py` part of the table in `../notices/README.md`.
 
-Each locked package has one standing.
+Each locked package has one standing:
 
-- **`text`**: its texts ship, from exactly one route: the archive's notice members; the
-  App's copy of the same archive (`app_texts`); the publisher's licence files at the
-  revision the archive's VCS record names (`registry_sources`); a Git-sourced package's
-  files (`git_sources`); or a path package's workspace texts (`workspaces`).
+- **`text`**: its texts ship, from one route: the archive's notice members; the App's
+  copy of the same archive (`app_texts`); the publisher's licence files at the revision
+  the archive's VCS record names (`registry_sources`); a Git-sourced package's files
+  (`git_sources`); or a path package's workspace texts (`workspaces`).
 - **`held`**: open for an owner licence reading. The 23 packages awaiting the owner's
-  reading of the objc2 repository's `LICENSE.md` (a licensing overview) are a closed,
-  named list in `crates.py` (`HELD_FOR_READING`), by name, version and lockfile checksum.
-  The overview text's digest only identifies the text awaiting the reading
-  (`awaiting_reading` on the row). No supplier reading is recorded and none can be
-  accepted here.
-- **`gap`**: no text ships, with a specific reason from `gap_reasons`.
+  reading of the objc2 repository's `LICENSE.md` (a licensing overview) are a named list
+  in `crates.py` (`HELD_FOR_READING`), by name, version and lockfile checksum. The
+  overview text's digest identifies the text awaiting the reading (`awaiting_reading`
+  on the row). No supplier reading is recorded here.
+- **`gap`**: no text ships, with its reason from `gap_reasons` or the default reason.
 - **`no-publisher-text`**: a licence is stated and no publisher text was found at the
   examined revision. It ships nothing and stays open until a text exists or the owner
   decides what may serve as its notice.
 - **`not-in-macos-package`**: absent from `aarch64-apple-darwin` by declared target
   condition.
 
-`text` and `not-in-macos-package` are the only standings that do not hold the
+`text` and `not-in-macos-package` are the standings that do not hold the
 compiled-dependencies component open (`../notices/README.md`).
 
-### What `crates.py check` enforces for every collection
+Repository fields of `associations.json` other than `archive_repository` have the form
+`https://github.com/<owner>/<repository>` exactly. `archive_repository` records what the
+archive's own `Cargo.toml` states, or null. Where these values are compared with each
+other or with a lock, the comparison is as written, except where `crates.repository_key`
+is used: the objc2 guard in `crates.py` (which the App-text reading flag also applies),
+the App's Cargo reading rule and the Codex membership of a compiled row in
+`../notices/coverage.py`, and `archive_repository` against its association. Those
+sites, with their tests, are in the table.
 
-`associations.json` is loaded once through one typed shape check
-(`crates.ASSOCIATIONS_SHAPE`), before any other use, and refuses:
-- a value of another Python type: a string must be a `str`, a size or count a positive
-  `int` and never a `bool`, a digest a `str` of its hexadecimal pattern;
-- a missing or unknown key, an empty list or string where one is required;
-- a repository field not exactly `https://github.com/<owner>/<repository>` (no `.git` in
-  any letter case, no path and no trailing slash);
-- a repeated lock id, lock component, workspace lock, manifest id or manifest path, and a
-  workspace entry that names no lock (no keyed collection lets a later entry win);
-- a repository-relative path that is empty, absolute, or has a backslash or an empty,
-  `.` or `..` segment (the archive route's member rule, `crate_notices.safe_relative`).
+### Review duties by collection
 
-Two curated repository values (an association's, a lock's, a component's or a text's) are
-compared as written, as main compares them: any difference in spelling, suffix or letter
-case refuses. A workspace association's repository and revision must be its lockfile's,
-and a Git association's must be the lock source's. The repository identity
-`crates.repository_key` (two GitHub repositories are the same when their owner and name are
-equal without regard to case, ignoring a `.git` suffix and any path) is used only where it
-makes a check stricter: the objc2 guard and the reading rule, the Codex membership of a
-compiled row in `../notices/coverage.py`, and the repository an archive's own `Cargo.toml`
-records, which may be spelled another way. In `components.json`, every GitHub repository
-field must be exactly `https://github.com/<owner>/<repository>`. Other hosts keep the names
-they give, such as googlesource's `.git` names, and a voice row keeps the source URL the
-supplier states.
+- **`registry_sources`** (publisher texts), from held evidence (the checker reads neither
+  the archives' metadata nor the listings):
+  - *The archive's own record.* Read the archive the lockfile locks (through the archive
+    map, checksum-verified) and confirm that its `.cargo_vcs_info.json` names the
+    recorded revision and `path_in_vcs` (or has no `path_in_vcs` key where null is
+    recorded), its `Cargo.toml` names the recorded repository, and both members' sizes
+    and SHA-256 equal those recorded.
+  - *The listing.* Open the saved listing of that repository and revision; confirm its
+    SHA-256 is `response_sha256` and its entry count `entries`; confirm each text is the
+    blob and size the listing names at `source_path`; and confirm the texts are the
+    whole selection (the notice-named files of the package folder and of a licence
+    folder directly below it, or of the root where the folder holds none).
+  - *The identity.* Confirm each association's name, version and checksum belong
+    together.
+  - *A null `path_in_vcs`* (schemafy_core 0.5.2, schemafy_lib 0.5.2 and wasite 0.1.0):
+    read the `path_basis` against the listing. The listing gives paths only, not the
+    package each `Cargo.toml` declares, so the texts must be the selection of every
+    folder holding a `Cargo.toml` file.
 
-Across collections, a package named twice, named by an association that applies to no
-locked package with that name, version and checksum, given two text routes, or given a
-text route and an open or absent standing, refuses.
+  `review_publisher_texts.py` is a reviewer's aid, not a CI check:
 
-### `registry_sources`: publisher texts (can make a package `text`)
+  ```sh
+  python3 -I app/packaging/supplier_notices/review_publisher_texts.py --archives MAP.json --listings DIR
+  ```
 
-Enforced:
-- the package's recorded archive VCS revision equals the association's revision;
-- the archive's recorded repository is the same GitHub repository (compared without
-  regard to case), or the archive names none and the association states its
-  `repository_basis`;
-- `path_in_vcs` is a folder or `""` for the root, or `null` where the archive's VCS
-  record states none, and then only with `path_basis` (what the listing shows and which
-  folder's selection the texts are);
-- each text's path is a notice name by the archive route's rule (a README refuses);
-- each text's blob and size equal the recorded listing entry, and its bytes are already
-  in `texts/` through another route with that blob;
-- the objc2 holds below.
-
-Review boundary (from held evidence; the tool reads neither the archives' metadata nor
-the listings):
-- **The archive's own record.** Read the archive the lockfile locks (through the archive
-  map, checksum-verified) and confirm that its `.cargo_vcs_info.json` names the recorded
-  revision and `path_in_vcs` (or states none where `null` is recorded), its `Cargo.toml`
-  names the recorded repository, and both members' sizes and SHA-256 equal those
-  recorded.
-- **The listing.** Open the saved listing of that repository and revision; confirm its
-  SHA-256 is `response_sha256` and its entry count `entries`; confirm each text is the
-  blob and size the listing names at `source_path`; and confirm the texts are every file
-  the selection takes (the notice-named files of the package folder, or of the root
-  where the folder holds none), so none is left out.
-- **The identity.** Confirm each association's name, version and checksum belong
-  together (an identity moved between associations stays well-formed).
-- **Where `path_in_vcs` is `null`** (schemafy_core 0.5.2, schemafy_lib 0.5.2 and wasite
-  0.1.0 at present), confirm the `path_basis`. The listing gives folder names and file
-  paths only, not the package each `Cargo.toml` declares, so the texts must be the
-  selection of every folder holding a `Cargo.toml`.
-
-`review_publisher_texts.py` is a reviewer's aid, not a CI check. For every
-`registry_sources` package it compares:
-- the archive's stated values: a recorded null path must be a VCS record with no
-  `path_in_vcs` key;
-- the listing's blob and size at each selected path;
-- the selection. For a null path, the listing must have at least one folder with a
-  `Cargo.toml`, and every such folder must give the same selection;
-- the stored bytes.
-
-It does not read a `path_basis`: that is prose a reviewer reads against the listing. It
-prints one line each, `OK` or `MISMATCH` with what differs:
-
-```sh
-python3 -I app/packaging/supplier_notices/review_publisher_texts.py --archives MAP.json --listings DIR
-```
-
-`MAP.json` maps each `<name>-<version>.crate` to its archive, and `DIR` holds the saved
-listings. Each archive is read through `crate_notices.read_member` only after its SHA-256
-equals the lockfile checksum, and only `.cargo_vcs_info.json` and `Cargo.toml` are read.
-Nothing is extracted, executed or fetched. CI holds neither the archives nor the
-listings.
-
-### `app_texts`, `git_sources`, `workspaces` (can make a package `text`)
-
-Enforced: the shape; for `app_texts`, the locked identity, a single route and
-`reading_required` equal both to main's rule (the repository, as written, is the objc2 repository) and to the guard's; for `git_sources`, the lock's repository and
-revision as written, and each text's blob equal to its listing blob and to the stored bytes; for
-`workspaces`, each text's bytes equal to its identity and its blob in the listing's.
-Review boundary: that each App text is the same archive's text in the App's own
-reviewed account, and that each listing names the recorded blob at the recorded path.
-
-### The objc2 holds (`HELD_FOR_READING`, can only keep a package open)
-
-Enforced: a listed package stays held whatever text, repository spelling or route its
-row gives it, and is never covered by substitution (with another text, or none, it stays
-held and the reason says what it carries); a listed identity no lockfile locks refuses;
-after every route (archive, App text, publisher text, Git and workspace), an unlisted
-package whose texts include the overview text is held, and so is one whose route gives a
-repository that is the objc2 repository in any letter case. An archive row carries no
-repository, so on the archive route only the text digest guards it. Review boundary: the list is code; an identity
-leaves it only with the owner's reading recorded.
-
-### `not_in_macos_package` and `manifests/` (can exclude a package)
-
-The parent manifests that declare each excluded package are committed byte for byte
-under `crates/manifests/`. Each has an entry in `manifests` with its size, SHA-256,
-Git blob, binding, the licence it states, its source (a registry archive's `Cargo.toml`
-by crate, version, archive checksum and member path, or a workspace file by repository,
-revision and source path) and the notice it ships under.
-
-Enforced:
-- the recorded reverse dependencies equal the lockfile's exactly, and the entry's
-  lockfile is the one being read;
-- each manifest is a regular file equal to its recorded identity, is cited by a reverse
-  dependency, names that package, and is the locked archive's `Cargo.toml` (by name,
-  version and lockfile checksum) or the workspace file at the lockfile's repository and
-  revision;
-- the manifest is parsed with `tomllib`. Every explicit declaration of the package, in
-  every dependency table (normal, dev and build; target-specific or not; by key or by
-  `package =`), must sit under a target key false for `aarch64-apple-darwin`: one of
-  `cfg(target_os = "...")`, `cfg(windows)` or a literal triple from `KNOWN_TRIPLES`. Any
-  other form, or no condition, refuses;
-- a registry manifest that uses workspace inheritance (`workspace = true`) refuses. For a
-  workspace member, whose inherited keys name their packages only in the root manifest
-  (not held), the exclusion stands only by rule (i), every inherited key under a
-  condition false for macOS, or rule (ii), the inherited keys equal in number the
-  lockfile dependencies the manifest does not name explicitly, so none can be the
-  excluded package (the argument is in `crates.admission`). Otherwise it refuses, saying
-  the root manifest would be needed. The account records which rule admitted each
-  parent: socks5-protocol by (i), winsplit by (ii), and the four packages excluded through
-  the three registry parent manifests (keyring 3.6.3, rustls-platform-verifier 0.7.0 and
-  winapi 0.3.9) by having no inheritance;
-- the recorded declarations equal those the parse finds; cited lines are not accepted;
-- the recorded licence equals what the manifest states (or says it is inherited from
-  the workspace when it is); a registry manifest's notice names its own crate, whose row
-  stands `text` with exactly the recorded texts; a workspace manifest's notice is its
-  workspace's texts.
-
-Review boundary:
-- **Registry manifests.** That each is the `Cargo.toml` of the archive the lockfile
-  locks: run `crates.py verify-manifests --archives MAP.json`, which takes the expected
-  checksum from the lockfile and reads only that member. CI does not hold the archives.
-- **Workspace manifests.** That each is the file at its path at the lockfile's revision:
-  compare its Git blob and size with the saved recursive listing of `codex-rs` at that
-  revision. The listing is not in the repository.
-- **Rule (ii)** rests on the lockfile recording every dependency the parent's manifest
-  declares, which holds for the supplier's own lockfile at the same revision; the
-  lockfile's binding to that revision is the review of `locks`.
+  `MAP.json` maps each `<name>-<version>.crate` to its archive, and `DIR` holds the saved
+  listings. It reads each archive through `crate_notices.read_member` after its SHA-256
+  equals the lockfile checksum, reading `.cargo_vcs_info.json` and `Cargo.toml` only. It
+  compares the archive's stated values (a recorded null path must be a VCS record with no
+  `path_in_vcs` key), the listing's blob and size at each selected path, the selection
+  (for a null path, the listing must hold at least one `Cargo.toml` file, an entry of type
+  blob, and each such folder must give the same selection) and the stored bytes. It does
+  not read a `path_basis`, which is prose the reviewer reads against the listing. It
+  prints one line per package, `OK` or `MISMATCH` with what differs. Its comparisons are
+  tested on invented inputs (`test_the_reviewer_s_aid_compares_what_it_states` and the
+  three tests after it in `app/tests/supplier_crate_notices_test.py`).
+- **`app_texts`**: that each App text is the same archive's text in the App's own
+  reviewed account (`../notices/transitive-index.json`, that crate and checksum).
+- **`git_sources`** and **`workspaces`**: that each listing named states the recorded
+  blob at the recorded path.
+- **The objc2 holds** (`HELD_FOR_READING`): the list is code; an identity leaves it only
+  with the owner's reading recorded.
+- **`not_in_macos_package` and `manifests/`.** The parent manifests that declare each
+  excluded package are committed byte for byte under `crates/manifests/`, each with an
+  entry in `manifests` (size, SHA-256, Git blob, binding, the licence it states, its
+  source and the notice it ships under). The account records which rule admitted each
+  parent: socks5-protocol by rule (i), winsplit by rule (ii), and the four packages
+  excluded through the three registry parent manifests (keyring 3.6.3,
+  rustls-platform-verifier 0.7.0 and winapi 0.3.9) by having no inheritance
+  (`test_each_exclusion_records_the_rule_that_admitted_it`). Rule (i): every inherited
+  key is under a condition false for macOS. Rule (ii): the inherited keys equal in number
+  the lockfile dependencies the manifest does not name explicitly, so none can be the
+  excluded package (`crates.admission`). Review duties:
+  - *Registry manifests*: that each is the `Cargo.toml` of the archive the lockfile
+    locks: run `crates.py verify-manifests --archives MAP.json`, which takes the expected
+    checksum from the lockfile and reads that member. CI does not hold the archives.
+  - *Workspace manifests*: that each is the file at its path at the lockfile's revision:
+    compare its Git blob and size with the saved recursive listing of `codex-rs` at that
+    revision, which is not in the repository.
+  - *Rule (ii)* rests on the lockfile recording every dependency the parent's manifest
+    declares; the lockfile's binding to its revision is the review of `locks`.
+- **`no_publisher_text` and `gap_reasons`**: that each reason states what the held files
+  show (the saved listing at the examined revision, the files named) and decides no
+  licence question; which terms apply, and whether they are met, is the owner's.
+- **`locks` and `index.json`**: that each lockfile's blob is the source file's at the
+  recorded revision, and that `index.json` is what `crates.py index` makes from the
+  archives (CI does not hold them).
 
 No resolver was run and nothing was read from the binaries.
-
-### `no_publisher_text` and `gap_reasons` (open; cannot cover)
-
-Enforced: the shape, the locked identity, and that no such package also has a text
-route or another standing; both standings are open, so `--strict` and a public
-production preparation refuse while any remains. Review boundary: that each reason
-states what the held files show (the saved listing at the examined revision, the files
-named) and decides no licence question; which terms apply, and whether they are met, is
-the owner's.
-
-### `locks` and `index.json`
-
-Enforced: each lockfile equals its recorded identity, and the index has exactly the
-locked registry packages. Review boundary: that each lockfile's blob is the source
-file's at the recorded revision, and that `index.json` is what `crates.py index` makes
-from the archives (CI does not hold them).
 
 `codex-0.160.0/scripts/codex_package/` keeps the received rg release selector.
 
