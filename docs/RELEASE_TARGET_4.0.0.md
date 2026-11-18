@@ -306,8 +306,10 @@ the owner decide on what was actually observed.
    with the supplier's actual events: a completed turn does not mark an active
    child done, a reply without acknowledgment is not shown as settled, and an
    unavailable outcome is shown as unknown. Where work waits, the App says
-   that the agent was asked to pause, that a question is waiting or that a
-   turn completed, and never that work is held or blocked. When a run reaches
+   what waits — that a question or a tool permission is waiting, that a
+   checkpoint was reached and the act is not yet recorded, and that the
+   agent was asked to pause or a turn completed only where that is recorded
+   — and never that work is held or blocked. When a run reaches
    a checkpoint the workflow declares, its arrival is recorded, and the
    checkpoint's disposition is waiting until evidence of the required human
    act exists. While it is waiting, the arrival is shown as a card in the
@@ -324,8 +326,7 @@ the owner decide on what was actually observed.
    (window loss, interrupt, requests, acknowledgment, restart and quit);
    DEL-02-03 AC-002 and AC-003 (checkpoints and the run they belong to), with
    the views of that behaviour owned by DEL-01-03 and DEL-01-04. The words
-   for waiting and the arrival's card are governed by DEL-01-04, with
-   criteria to come from the pull requests that build them.
+   for waiting and the arrival's card are governed by DEL-01-04 AC-013.
    DEL-02-03 AC-003's positive case with the person as actor is one of the
    human-positive cases named under Testing. A synthetic confirmation supplies
    control-and-record examination evidence only; it does not meet a positive

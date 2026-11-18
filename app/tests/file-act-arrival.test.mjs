@@ -95,7 +95,10 @@ test('App arrival click opens only the host-resolved frozen review, with native 
     assert.equal(actions().length,1,'snapshot changes do not replace or confirm the frozen offer');
     assert.deepEqual(scrolls,['file-acts']);
     assert.equal(button(view.container,'Review file for this arrival…'),undefined);
-    assert.match(view.container.textContent,/Arrival file review unavailable: Original source is no longer current/);
+    assert.match(view.container.textContent,/Arrival file review unavailable: Recorded text: Original source is no longer current/);
+    const reason = view.container.querySelectorAll(node => node.getAttribute?.('class') === 'agent-text')
+      .find(node => node.textContent.includes('Original source is no longer current'));
+    assert.equal(reason?.getAttribute('aria-label'), "Recorded value, not the App's words");
     await press(fileSection,'Review native act / decline / cancel…');
     assert.deepEqual(actions()[1],['file_act_confirm',{reference:preview.reference}]);
     assert.match(fileSection.textContent,/original native capture recorded/);

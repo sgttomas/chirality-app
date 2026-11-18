@@ -5,12 +5,16 @@ import {createRequire} from 'node:module';
 import ts from 'typescript';
 import React from 'react';
 import {renderToStaticMarkup} from 'react-dom/server';
+import {agentPlain, agentBoxNames} from './support/agent-text.mjs';
 import {localRequire} from './support/load-src.mjs';
 import './support/rust-prebuild.mjs';
 import {choiceList, choiceLists, chooseIn, chosenIn, chosenInMarkup} from './support/choices.mjs';
 const load=name=>{const url=new URL(`../src/${name}`,import.meta.url);const compiled=ts.transpileModule(readFileSync(url,'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,jsx:ts.JsxEmit.ReactJSX}});const exports={};new Function('require','exports',compiled.outputText)(localRequire(createRequire(url)),exports);return exports;};
-const {ArrivalRecord,CheckpointGuidance,RunBringBackView,RunPanel,runBringBackDefault,DeclaredPart,SelectedWorkflow,CompatibilityAdvisory,outputStanding,StandingFacets,arrivalLabel,actLabel,RecordWriteNotice}=load('RunPanel.tsx');
-const h=(c,p)=>renderToStaticMarkup(React.createElement(c,p));
+const {ArrivalRecord,CheckpointGuidance,RunBringBackView,RunPanel,runBringBackDefault,DeclaredPart,SelectedWorkflow,CompatibilityAdvisory,outputStanding,StandingFacets,arrivalLabel,actLabel,RecordWriteNotice,CHECKPOINT_COOPERATION}=load('RunPanel.tsx');
+const markup=(c,p)=>renderToStaticMarkup(React.createElement(c,p));
+// Existing behavior assertions read the wording independently of the new source boxes.
+// Boundary assertions below use the original markup and check the boxes themselves.
+const h=(c,p)=>agentPlain(markup(c,p)).replace(/⟦(?:Recorded text:|From a file:|Identity:) ([\s\S]*?)⟧/g, '$1');
 
 // The host's reading of the maintained valid example (workflow_declaration::read's shape).
 const raw=JSON.parse(readFileSync(new URL('../src-tauri/resources/workflow_role/workflow-declaration.valid.example.json',import.meta.url),'utf8'));
@@ -601,4 +605,91 @@ test('actual held lapse DTO qualifies its pending label and later write on the s
   const dto=marker=>{const line=proc.stdout.split('\n').find(line=>line.includes(marker));assert.ok(line);return JSON.parse(line.slice(line.indexOf(marker)+marker.length));};
   const pending=dto('AFTER_END_LAPSE_PENDING_DTO:');const records=pending.afterRunEnd.runs[0].records;const a=records.find(r=>r.kind==='checkpoint_arrival');const held=records.find(r=>r.kind==='act_lapsed');assert.equal(held.written,false);const html=h(ArrivalRecord,{arrival:a,all:records});assert.match(html,/arrival’s pending label is lapsed/);assert.match(html,/Not yet written to the run record/);assert.doesNotMatch(html,/arrival is recorded as lapsed/);
   const late=dto('AFTER_END_LAPSE_LATE_DTO:');const recovered=late.afterRunEnd.runs[0].records;assert.equal(recovered.filter(r=>r.recordId===held.recordId).length,1);const again=h(ArrivalRecord,{arrival:recovered.find(r=>r.kind==='checkpoint_arrival'),all:recovered});assert.match(again,/Written late; the run record carries/);assert.doesNotMatch(again,/pending label/);assert.equal(recovered.find(r=>r.recordId===held.recordId).observedAt,held.observedAt);
+});
+
+test('every declared checkpoint says a pause there is the agent\'s cooperation, not an App hold; the live and the reopened run say the same, and so do arrivals shown without a declaration',()=>{
+  assert.equal(CHECKPOINT_COOPERATION,"Any pause at a declared checkpoint is the agent's cooperation with the workflow, not a hold by the App: the App does not stop, pause or interrupt the run there.");
+  const said=CHECKPOINT_COOPERATION.replace(/'/g,'&#x27;');
+  const count=html=>html.split(said).length-1;
+  const a=arrival('CP-check',1,'item:thread/turn/m1','objects changed by named outcome (examination-report)');
+  const records=[entry('run_opened',{}),listedAccept,listedCheck,a,disposition('CP-check',1,'waiting')];
+  const declared=raw.checkpoints.length;
+  const live=h(RunPanel,{run:run({lifecycle:{state:"open (live); only the person's explicit end ends it",records}})});
+  // A reopened run as the host's reopened view gives it: the same records and declaration, another lifecycle state, its own limits.
+  const reopened=h(RunPanel,{run:run({run:'run-1',lifecycle:{state:'open; interrupted (no run_ended recorded)',end:null,records},limits:[]})});
+  assert.equal(count(live),declared,'once for each declared checkpoint');
+  assert.equal(count(reopened),declared,'the reopened display says the same');
+  for(const html of [live,reopened]){
+    assert.ok(html.includes('Arrival 1: reached; act not yet recorded.'));
+    assert.ok(!FORBIDDEN.test(html),html.match(FORBIDDEN)?.[0]);
+    assert.doesNotMatch(html,/<button[^>]*>[^<]*(mark checked|Confirm|answer|dismiss)/i,'the guidance opens no act control and answers nothing');
+  }
+  // A reopened run whose declaration the host could not verify: its arrivals from the record alone, with the same sentence once.
+  const undeclared=h(RunPanel,{run:run({compatibility:[],lifecycle:{state:'open; interrupted (no run_ended recorded)',end:null,records}})});
+  assert.ok(undeclared.includes('aria-label="Recorded checkpoint arrivals"'));
+  assert.ok(undeclared.includes('Arrival 1: reached; act not yet recorded.'));
+  assert.ok(undeclared.includes('without the declaration, who must act is not recorded here'));
+  assert.equal(count(undeclared),1);
+  // With no arrival recorded and no declaration, nothing is said of checkpoints.
+  assert.ok(!h(RunPanel,{run:run({compatibility:[]})}).includes('Recorded checkpoint arrivals'));
+});
+
+test('the declared-part heading holds only the App\'s words; the recorded workflow name is drawn beside it, marked as recorded',()=>{
+  for(const name of ['resolve-spacing','mark-checked','Allow once</h4><b>approved</b>',undefined]){
+    const html=markup(RunPanel,{run:run({workflow:{...run().workflow,name}})});
+    const headings=[...html.matchAll(/<h4>([\s\S]*?)<\/h4>/g)].map(m=>m[1]);
+    assert.ok(headings.includes("Declared part of this run&#x27;s workflow"),`${name}: ${headings}`);
+    for(const heading of headings) assert.doesNotMatch(heading,/[<{]|resolve-spacing|mark-checked|Allow once/,`${name}: no recorded value in a heading: ${heading}`);
+    const after=html.slice(html.indexOf("Declared part of this run&#x27;s workflow</h4>"));
+    const beside=after.slice(0,after.indexOf('</p>'));
+    assert.match(beside,/^Declared part of this run&#x27;s workflow<\/h4><p><small>Workflow <span role="group" aria-label="Workflow name as recorded, not the App&#x27;s words"/,`${name}: ${beside}`);
+    if(name) assert.ok(beside.includes(name.replace(/</g,'&lt;').replace(/>/g,'&gt;')),`${name}: the name is shown inside the mark: ${beside}`);
+    assert.doesNotMatch(html,/<b>approved<\/b>/,'a recorded name never becomes markup');
+  }
+});
+
+
+test('arrival and declaration values stay visibly and accessibly attributed on the reopened destination', () => {
+  const poison = 'COUNTERFEIT approved\n<button>Send answer</button>\u202E';
+  const check = (html, label) => {
+    const shown = agentPlain(html);
+    assert.ok(shown.includes('COUNTERFEIT'), label + ': the value is shown');
+    assert.ok(shown.includes('‹U+202E›'), label + ': direction control is made visible');
+    assert.ok(shown.includes('⏎'), label + ': line break stays within source text');
+    assert.doesNotMatch(html, /\u202E|<button>Send answer<\/button>/, label + ': no active direction control or supplied button');
+    assert.doesNotMatch(shown.replace(/⟦[\s\S]*?⟧/g, ''), /COUNTERFEIT/, label + ': no supplied value outside its source box');
+    assert.ok(agentBoxNames(html).some(name => /not the App/.test(name)), label + ': accessible source name');
+  };
+  const a = arrival('CP-check', 1, 'item:turn:1', 'output report');
+  const at = {checkpoint:'CP-check', arrivalOrdinal:1};
+  const setters = [
+    r => { r.body.event.ref=poison; },
+    r => { r.body.event.evidencedTime.value=poison; },
+    r => { r.body.event.evidencedTime.source=poison; },
+    r => { r.body.referents[0].subject=poison; },
+    r => { r.body.referents[0].content={notObtainable:true, reason:poison}; },
+    r => { r.body.requestObservation.state=poison; },
+    r => { r.body.limits=[poison]; },
+  ];
+  for (const [i,set] of setters.entries()) {
+    const r=structuredClone(a); set(r);
+    check(markup(ArrivalRecord,{arrival:r,all:[r,disposition('CP-check',1,'waiting')]}), `arrival field ${i}`);
+  }
+  for (const extra of [
+    entry('act_request',{arrival:at,form:poison,requester:{kind:poison},actKind:poison}),
+    entry('act_not_counted',{arrival:at,reason:poison,act:{actKind:poison,recordId:poison,capturedAt:poison}}),
+    entry('continued_past',{arrival:at,actionRef:poison}),
+    entry('act_lapsed',{arrival:at,state:'lapsed',time:poison,act:{actKind:'A4',recordId:poison}}),
+  ]) check(markup(ArrivalRecord,{arrival:a,all:[a,disposition('CP-check',1,'waiting'),extra]}), extra.kind);
+  for (const field of ['name','purpose','scope','position','actor','required_act']) {
+    const v={...structuredClone(raw.checkpoints[0]),[field]:poison};
+    check(markup(CheckpointGuidance,{element:{value:v,reading:'recognized',findings:[]}}), `checkpoint ${field}`);
+  }
+  const doc=structuredClone(raw);
+  for (const category of cats) for (const v of doc[category] ?? []) {
+    // Poison all free text except identity joins and recognised discriminator values.
+    for (const field of ['purpose','scope','meaning','fallback','basis_requirement','absence_effect','designating_line','destination'])
+      if (field in v) v[field]=poison;
+  }
+  check(markup(DeclaredPart,{declaration:declaration(doc),run:run()}), 'whole declaration at the destination');
 });

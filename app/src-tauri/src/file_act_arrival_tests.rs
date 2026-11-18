@@ -1257,3 +1257,323 @@ fn a_seal_that_cannot_be_checked_now_still_withholds_the_offer_with_its_reason()
     }
     assert_eq!(crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap_err(), ANSWER_PENDING);
 }
+
+// ---- H2 (App Agent 0, criterion 4): after a relaunch, the reopened reading projects what an act
+// already in the act records does to each arrival, by this file's own act-offer rule. ----
+
+/// The reopened reading of `run` through the real reader and projection, counting its reads of the
+/// project's act records: the run's row and its projections.
+fn reopened_projection(peer: &Peer, run: &str, reads: &mut usize) -> (Value, Vec<Value>) {
+    let records = crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
+    let root = records.root().to_path_buf();
+    let view = crate::records::supply::read_project_runs(&records, &[])
+        .view_reopened_with(crate::records::supply::REOPENED_RECORDS_BOUND, &root, &mut || { *reads += 1; crate::checkpoint_recorder::project_act_records(&root) });
+    let row = view["runs"].as_array().unwrap().iter().find(|r| r["run"] == run).unwrap().clone();
+    let projection = row["answerability"].as_array().cloned().unwrap_or_default();
+    (row, projection)
+}
+/// The latest disposition the run's own records hold for arrival 1 of CP-rely.
+fn latest_recorded(row: &Value) -> String {
+    row["lifecycle"]["records"].as_array().unwrap().iter()
+        .filter(|e| e["kind"] == "disposition_change" && e["body"]["arrival"] == json!({"checkpoint":"CP-rely","arrivalOrdinal":1}))
+        .last().unwrap()["body"]["disposition"].as_str().unwrap().to_owned()
+}
+fn projected(projection: &[Value], run: &str, arrival: &str) -> Vec<(String, Option<String>)> {
+    projection.iter()
+        .filter(|p| p["run"] == run && p["arrival"] == json!({"checkpoint":"CP-rely","arrivalOrdinal":1}) && p["arrivalRecordId"] == arrival)
+        .map(|p| (p["state"].as_str().unwrap().to_owned(), p["reason"].as_str().map(str::to_owned)))
+        .collect()
+}
+
+// Regression 1: an act captured before the recorder's next observation, then a relaunch.
+#[test]
+fn reopened_an_act_captured_before_the_next_observation_is_awaiting_count_with_one_read_and_no_record_written() {
+    let own = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("reopened-projection-store-").unwrap());
+    crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store { root: own.clone(), placement: crate::records_store::Placement::Test, limits: vec![] })));
+    let (peer, state, run, arrival) = fixture("A7");
+    let mut reads = 0;
+    let (row, before) = reopened_projection(&peer, &run, &mut reads);
+    assert_eq!((reads, projected(&before, &run, &arrival)), (1, vec![("waiting".into(), None)]), "permitted: nothing on record answers it");
+    assert_eq!(latest_recorded(&row), "waiting");
+    let offer = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+    assert_eq!(confirm(&state, offer["reference"].as_str().unwrap(), "act")["state"], "AC-7 recorded");
+    // No observation follows: the App quits here. A later process reads the project's records.
+    let written = everything(&peer);
+    let mut reads = 0;
+    let (row, after) = reopened_projection(&peer, &run, &mut reads);
+    assert_eq!(reads, 1, "one read of the project's act records");
+    assert_eq!(projected(&after, &run, &arrival), vec![("awaiting count".into(), None)], "{after:?}");
+    assert_eq!(latest_recorded(&row), "waiting", "the recorded disposition is carried unchanged beside the projection");
+    assert!(!row["lifecycle"]["records"].as_array().unwrap().iter().any(|e| e["kind"] == "act_counted"), "nothing is made to look recorded");
+    // Through the real reopen the App calls.
+    let reopened = WorkflowRootSession::default().reopen(&peer.fixture.root, &[]).unwrap();
+    let real = reopened["runs"].as_array().unwrap().iter().find(|r| r["run"] == run.as_str()).unwrap();
+    assert_eq!(projected(real["answerability"].as_array().unwrap(), &run, &arrival), vec![("awaiting count".into(), None)]);
+    assert_eq!(reopened["answerabilityStanding"], crate::records::supply::ANSWERABILITY_STANDING);
+    assert_eq!(everything(&peer), written, "reading and projecting wrote no record: the project folder and the store are unchanged outside the store's derived query cache (indexes/)");
+    drop(state);
+    drop(peer);
+    crate::records_store::use_store_for_test(None);
+    let _ = std::fs::remove_dir_all(own);
+}
+
+// Regression 2: the recorder took the act up, but its "performed" entry could not be written
+// before the App quit (CE-19: held in memory only).
+#[test]
+fn reopened_an_act_whose_performed_entry_was_never_written_is_awaiting_count() {
+    use std::os::unix::fs::PermissionsExt;
+    let (peer, state, run, arrival) = fixture("A7");
+    let offer = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+    assert_eq!(confirm(&state, offer["reference"].as_str().unwrap(), "act")["state"], "AC-7 recorded");
+    let log = crate::records::supply::run_log(&peer.fixture.root, &run).unwrap();
+    let mode = std::fs::metadata(&log).unwrap().permissions().mode();
+    std::fs::set_permissions(&log, std::fs::Permissions::from_mode(0o444)).unwrap();
+    observe(&state, &peer, &run);
+    let held = state.workflows.lock().unwrap().runs[&run].lock().unwrap().view(&run);
+    assert!(held["lifecycle"]["records"].as_array().unwrap().iter().any(|e| e["kind"] == "disposition_change" && e["body"]["disposition"] == "performed" && e["written"] == false), "the performed entry is held, not written: {held}");
+    let mut reads = 0;
+    let (row, projection) = reopened_projection(&peer, &run, &mut reads);
+    std::fs::set_permissions(&log, std::fs::Permissions::from_mode(mode)).unwrap();
+    assert_eq!(latest_recorded(&row), "waiting", "the run's record still says waiting");
+    assert_eq!((reads, projected(&projection, &run, &arrival)), (1, vec![("awaiting count".into(), None)]));
+}
+
+// Regression 3: a later recorded settlement decides; nothing is projected for it.
+#[test]
+fn reopened_a_later_recorded_settlement_is_not_projected_and_a_decline_on_record_is_awaiting_count_until_taken_up() {
+    let (peer, state, run, arrival) = fixture("A7");
+    let offer = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+    assert_eq!(confirm(&state, offer["reference"].as_str().unwrap(), "act")["state"], "AC-7 recorded");
+    observe(&state, &peer, &run);
+    let mut reads = 0;
+    let (row, projection) = reopened_projection(&peer, &run, &mut reads);
+    assert_eq!(latest_recorded(&row), "performed");
+    assert_eq!(projected(&projection, &run, &arrival), vec![], "performed: the recorded disposition decides");
+    // A decline answering the arrival: awaiting count before it is taken up, then resolved negatively.
+    let (peer, state, run, arrival) = fixture("A7");
+    let offer = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+    assert_eq!(confirm(&state, offer["reference"].as_str().unwrap(), "decline")["state"], "AC-7 recorded");
+    let (_, pending) = reopened_projection(&peer, &run, &mut reads);
+    assert_eq!(projected(&pending, &run, &arrival), vec![("awaiting count".into(), None)]);
+    observe(&state, &peer, &run);
+    let (row, settled) = reopened_projection(&peer, &run, &mut reads);
+    assert_eq!(latest_recorded(&row), "resolved negatively");
+    assert_eq!(projected(&settled, &run, &arrival), vec![]);
+}
+
+// Regression 4: act evidence on the arrival's file that the reader cannot settle.
+#[test]
+fn reopened_an_unsettled_record_on_the_arrivals_file_makes_it_unknown_never_waiting() {
+    let (peer, state, run, arrival) = fixture("A7");
+    claim_in_another_runs_log(&peer, &state, &run, &invented_capture(&peer));
+    let mut reads = 0;
+    let (row, projection) = reopened_projection(&peer, &run, &mut reads);
+    assert_eq!(latest_recorded(&row), "waiting");
+    assert_eq!((reads, projected(&projection, &run, &arrival)), (1, vec![("unknown".into(), Some(crate::records::supply::answerability_unknown::ACTS_NOT_SETTLED.into()))]));
+}
+
+// Regression 5: act records that cannot be read at all (an unreadable line in the act log, which
+// also leaves the project's record set incomplete): every arrival is unknown, never waiting.
+#[test]
+fn reopened_unreadable_act_records_make_every_arrival_unknown_never_waiting() {
+    let (peer, _state, run, arrival) = fixture("A7");
+    let log = crate::storage::project_file(&peer.fixture.root, crate::recorder::LOG).unwrap();
+    std::fs::create_dir_all(log.parent().unwrap()).unwrap();
+    let bytes = std::fs::read(&log).unwrap_or_default();
+    { let mut f = std::fs::OpenOptions::new().create(true).append(true).open(&log).unwrap(); std::io::Write::write_all(&mut f, b"{\"partial\":\n").unwrap(); }
+    assert!(crate::checkpoint_recorder::project_act_records(&peer.fixture.root).is_err(), "the act records cannot be read");
+    let mut reads = 0;
+    let (row, projection) = reopened_projection(&peer, &run, &mut reads);
+    std::fs::write(&log, bytes).unwrap();
+    assert_eq!(reads, 1);
+    assert_eq!(row["state"], "unknown", "the incomplete record set leaves the run's lifecycle unknown");
+    let arrivals = row["lifecycle"]["records"].as_array().unwrap().iter().filter(|e| e["kind"] == "checkpoint_arrival").count();
+    assert_eq!(projection.len(), arrivals, "every arrival of the run");
+    assert!(projection.iter().all(|p| p["state"] == "unknown" && p["reason"].is_string()), "{projection:?}");
+    assert_eq!(projected(&projection, &run, &arrival).len(), 1);
+}
+
+// ---- The act-record reader's derived query cache (App Agent 0's cache conditions for H2). The
+// reopened projection uses the arrival act control's own reader unchanged: that reader may create or
+// refresh its derived query cache under the bound records store's indexes/ folder, and reads the
+// record sources directly where it cannot. No act, run or capture record is created or changed. ----
+
+/// A test's own records store, created as the App creates its store at start.
+fn own_store(prefix: &str) -> std::path::PathBuf {
+    let own = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id(prefix).unwrap());
+    crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store { root: own.clone(), placement: crate::records_store::Placement::Test, limits: vec![] })));
+    own
+}
+/// The query cache files in a store's indexes/ folder (none when it is not a folder).
+fn cache_files(store: &std::path::Path) -> Vec<String> {
+    std::fs::read_dir(store.join("indexes")).map(|d| d.map(|e| e.unwrap().file_name().to_string_lossy().into_owned()).collect()).unwrap_or_default()
+}
+/// Make the store's query cache unwritable: its indexes/ folder replaced by a plain file.
+fn break_cache(store: &std::path::Path) {
+    let _ = std::fs::remove_dir_all(store.join("indexes"));
+    std::fs::write(store.join("indexes"), b"not a folder").unwrap();
+}
+fn mend_cache(store: &std::path::Path) {
+    std::fs::remove_file(store.join("indexes")).unwrap();
+}
+fn cache_note(root: &std::path::Path) -> bool {
+    crate::records_index::with_index(root, |ix| ix.notes()).iter().any(|n| n.starts_with("query cache not written"))
+}
+
+#[test]
+fn reopened_with_the_query_cache_unwritable_the_record_sources_give_the_same_projection_as_a_healthy_cache() {
+    let store = own_store("reopened-cache-unwritable-");
+    let (peer, state, run, arrival) = fixture("A7");
+    // The index the act-record reader uses is the one for the project's records root.
+    let root = crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap().root().to_path_buf();
+    let mut reads = 0;
+    // Waiting: no act on record answers it.
+    let (healthy_row, healthy) = reopened_projection(&peer, &run, &mut reads);
+    assert!(!cache_note(&root), "the cache is healthy");
+    break_cache(&store);
+    let records = everything(&peer);
+    let (broken_row, broken) = reopened_projection(&peer, &run, &mut reads);
+    assert!(cache_note(&root), "the existing note says the cache was not written");
+    assert_eq!(cache_files(&store), Vec::<String>::new(), "no cache could be written");
+    assert_eq!(projected(&broken, &run, &arrival), vec![("waiting".into(), None)]);
+    assert_eq!((broken, broken_row["lifecycle"].clone()), (healthy, healthy_row["lifecycle"].clone()), "the same result as with a healthy cache");
+    assert_eq!(everything(&peer), records, "no record created or changed");
+    // An answering act on record, not yet counted: the same result either way.
+    mend_cache(&store);
+    let offer = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+    assert_eq!(confirm(&state, offer["reference"].as_str().unwrap(), "act")["state"], "AC-7 recorded");
+    let (healthy_row, healthy) = reopened_projection(&peer, &run, &mut reads);
+    assert!(!cache_note(&root));
+    assert_eq!(projected(&healthy, &run, &arrival), vec![("awaiting count".into(), None)]);
+    break_cache(&store);
+    let records = everything(&peer);
+    let (broken_row, broken) = reopened_projection(&peer, &run, &mut reads);
+    assert!(cache_note(&root));
+    assert_eq!((broken, broken_row["lifecycle"].clone()), (healthy, healthy_row["lifecycle"].clone()));
+    assert_eq!(everything(&peer), records, "no record created or changed");
+    // The reopen the App calls does not fail on it, and the view says nothing new about the cache.
+    let reopened = WorkflowRootSession::default().reopen(&peer.fixture.root, &[]).unwrap();
+    assert!(!reopened.to_string().contains("query cache"), "no new cache status in the reopened view");
+    drop(state);
+    drop(peer);
+    crate::records_store::use_store_for_test(None);
+    let _ = std::fs::remove_file(store.join("indexes"));
+    let _ = std::fs::remove_dir_all(store);
+}
+
+#[test]
+fn reopened_a_cold_query_cache_is_created_only_in_the_bound_stores_indexes_and_no_record_changes() {
+    let store = own_store("reopened-cache-cold-");
+    let (peer, _state, run, arrival) = fixture("A7");
+    let root = peer.fixture.root.clone();
+    // Cold: no cache file exists for this reading to use.
+    std::fs::remove_dir_all(store.join("indexes")).unwrap();
+    let project = inventory(&root);
+    let store_records = inventory(&store);
+    let mut reads = 0;
+    let (_, projection) = reopened_projection(&peer, &run, &mut reads);
+    assert_eq!((reads, projected(&projection, &run, &arrival)), (1, vec![("waiting".into(), None)]));
+    let made = cache_files(&store);
+    assert!(!made.is_empty() && made.iter().all(|n| n.starts_with("query-") && n.ends_with(".sqlite")), "{made:?}");
+    assert_eq!(inventory(&root), project, "nothing created or changed in the project folder");
+    assert!(!walk(&root).iter().any(|p| p.extension().is_some_and(|e| e == "sqlite")), "no cache in the project folder");
+    assert_eq!(inventory(&store), store_records, "outside indexes/, the store is unchanged");
+    drop(peer);
+    crate::records_store::use_store_for_test(None);
+    let _ = std::fs::remove_dir_all(store);
+}
+fn walk(dir: &std::path::Path) -> Vec<std::path::PathBuf> {
+    let mut out = Vec::new();
+    let mut todo = vec![dir.to_path_buf()];
+    while let Some(at) = todo.pop() {
+        for entry in std::fs::read_dir(&at).unwrap() {
+            let path = entry.unwrap().path();
+            if std::fs::symlink_metadata(&path).unwrap().is_dir() { todo.push(path.clone()); }
+            out.push(path);
+        }
+    }
+    out
+}
+
+#[test]
+fn reopened_with_no_admitted_store_no_cache_is_written_anywhere_and_the_arrival_is_unknown_never_waiting() {
+    let store = own_store("reopened-cache-admitted-");
+    let (peer, _state, run, arrival) = fixture("A7");
+    let project = peer.fixture.root.clone();
+    // The reading as the reopen takes it while the store is admitted: the project's records live in it.
+    let records = crate::workflow_workspace::publication::ProjectRecords::open(&project).unwrap();
+    let root = records.root().to_path_buf();
+    let reading = crate::records::supply::read_project_runs(&records, &[]);
+    let project_ = |reads: &mut usize| reading.view_reopened_with(crate::records::supply::REOPENED_RECORDS_BOUND, &root, &mut || { *reads += 1; crate::checkpoint_recorder::project_act_records(&root) });
+    let mut reads = 0;
+    let admitted = project_(&mut reads)["runs"].clone();
+    let row = admitted.as_array().unwrap().iter().find(|r| r["run"] == run.as_str()).unwrap();
+    assert_eq!(projected(row["answerability"].as_array().unwrap(), &run, &arrival), vec![("waiting".into(), None)]);
+    // The configured store is now a folder that is not a records store (it holds no store identity),
+    // and the cache the index held is gone, so the act-record reader must open one again.
+    let plain = std::fs::canonicalize(std::env::temp_dir()).unwrap().join(crate::util::opaque_id("reopened-not-a-store-").unwrap());
+    std::fs::create_dir(&plain).unwrap();
+    crate::records_store::use_store_not_started_for_test(Some(Ok(crate::records_store::Store { root: plain.clone(), placement: crate::records_store::Placement::Test, limits: vec![] })));
+    std::fs::remove_dir_all(store.join("indexes")).unwrap();
+    let in_project = inventory(&project);
+    let in_store = inventory(&store);
+    // Without an admitted store the record sources it keeps cannot be discovered either: the act
+    // records are not read, so the arrival is unknown with that reason, never waiting.
+    let unknown = |runs: &Value| { let row = runs.as_array().unwrap().iter().find(|r| r["run"] == run.as_str()).unwrap();
+        let mine = projected(row["answerability"].as_array().unwrap(), &run, &arrival);
+        assert_eq!(mine.len(), 1, "{mine:?}");
+        assert_eq!(mine[0].0, "unknown", "{mine:?}");
+        assert!(mine[0].1.as_deref().is_some_and(|r| r.starts_with("the project's act records could not be read: ")), "{mine:?}"); };
+    unknown(&project_(&mut reads)["runs"]);
+    assert_eq!(std::fs::read_dir(&plain).unwrap().count(), 0, "nothing is written in a folder that is not an admitted store");
+    assert!(!store.join("indexes").exists(), "nor in the store this process no longer has admitted");
+    assert_eq!(inventory(&store), in_store, "whose records are unchanged");
+    assert_eq!(inventory(&project), in_project, "nor in the project folder");
+    assert!(!walk(&project).iter().any(|p| p.extension().is_some_and(|e| e == "sqlite")));
+    // A configured store that does not exist is not created by the reading.
+    let absent = plain.join("absent-store");
+    crate::records_store::use_store_not_started_for_test(Some(Ok(crate::records_store::Store { root: absent.clone(), placement: crate::records_store::Placement::Test, limits: vec![] })));
+    unknown(&project_(&mut reads)["runs"]);
+    assert!(!absent.exists(), "a read creates no store");
+    assert!(!store.join("indexes").exists());
+    assert_eq!(reads, 3, "one read of the act records for each reading");
+    drop(peer);
+    crate::records_store::use_store_for_test(None);
+    let _ = std::fs::remove_dir_all(plain);
+    let _ = std::fs::remove_dir_all(store);
+}
+
+#[test]
+fn reopened_a_failed_source_scan_with_the_cache_unwritable_is_unknown_never_waiting() {
+    use std::os::unix::fs::PermissionsExt;
+    let store = own_store("reopened-cache-scan-failed-");
+    let (peer, state, run, arrival) = fixture("A7");
+    let offer = crate::file_act_open_arrival_result(&state, &run, &arrival).unwrap();
+    assert_eq!(confirm(&state, offer["reference"].as_str().unwrap(), "act")["state"], "AC-7 recorded");
+    break_cache(&store);
+    // The record source that holds the act, among the sources the act-record reader discovers.
+    let records = crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
+    let root = records.root().to_path_buf();
+    let held: Vec<_> = crate::records_index::with_index(&root, |ix| ix.paths()).into_iter().filter(|p| std::fs::read(p).is_ok_and(|b| b.windows(11).any(|w| w == b"\"human_act\""))).collect();
+    assert_eq!(held.len(), 1, "{held:?}");
+    let log = held[0].clone();
+    let mode = std::fs::metadata(&log).unwrap().permissions().mode();
+    std::fs::set_permissions(&log, std::fs::Permissions::from_mode(0o000)).unwrap();
+    let read = crate::checkpoint_recorder::project_act_records(&root);
+    let mut reads = 0;
+    let (_, projection) = reopened_projection(&peer, &run, &mut reads);
+    assert!(read.as_ref().is_err_and(|e| e.contains("incomplete record")), "the act records' source cannot be scanned: {:?}", read.as_ref().err());
+    std::fs::set_permissions(&log, std::fs::Permissions::from_mode(mode)).unwrap();
+    assert!(cache_note(&root), "the cache could not be written, so the sources were scanned");
+    assert_eq!(reads, 1);
+    let mine = projected(&projection, &run, &arrival);
+    assert_eq!(mine.len(), 1, "{projection:?}");
+    assert_eq!(mine[0].0, "unknown", "never waiting and never answered: {projection:?}");
+    assert!(mine[0].1.as_deref().is_some_and(|r| !r.is_empty()), "with its reason");
+    assert!(projection.iter().all(|p| p["state"] == "unknown"));
+    drop(state);
+    drop(peer);
+    crate::records_store::use_store_for_test(None);
+    let _ = std::fs::remove_file(store.join("indexes"));
+    let _ = std::fs::remove_dir_all(store);
+}

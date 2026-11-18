@@ -189,11 +189,38 @@ function otherHomeEntries(host: Json, home: string): WaitingEntry[] {
 
 const sameArrival = (a: Json, checkpoint: string, ordinal: Json) => text(a?.checkpoint) === checkpoint && a?.arrivalOrdinal === ordinal;
 const ACTOR: Record<string, string> = { the_person: "you", the_accountable_professional: "the accountable professional" };
+/** Who must respond where the actor declaration is absent, not recognised or not verified. */
+export const ACTOR_NOT_RECORDED = "not recorded";
+
+/** Who must respond to an arrival: the actor of the one declared element of that checkpoint, from the declaration
+ * the run carries (a hot run's own preparation, or a reopened run's declaration only where the host verified it
+ * against the recorded package digest). Absent, ambiguous, invalid or unrecognised: "not recorded", never "you". */
+function arrivalResponder(declared: Json[], checkpoint: string): string {
+  const named = declared.filter((e: Json) => text(e?.value?.name) === checkpoint);
+  if (named.length !== 1 || named[0]?.reading === "invalid") return ACTOR_NOT_RECORDED;
+  return wordOf(ACTOR, named[0]?.value?.actor) ?? ACTOR_NOT_RECORDED;
+}
+
+/** The host's projection for one arrival of a reopened run (record_supply.rs `view_reopened`, App Agent 0's H2): what an
+ * act already in the project's act records does to it, by the arrival act control's rule, bound to the run and the exact
+ * arrival (checkpoint, arrival number and the arrival entry's record identity). Exactly one must match; otherwise none
+ * is given. A projection is never a recorded disposition. */
+export function arrivalProjection(run: Json, reference: string, arrival: Json): Json | null {
+  const b = arrival?.body;
+  const found = list(run?.answerability).filter((p: Json) => text(p?.run) === reference && sameArrival(p?.arrival, text(b?.checkpoint), b?.arrivalOrdinal)
+    && typeof arrival?.recordId === "string" && p?.arrivalRecordId === arrival.recordId);
+  return found.length === 1 ? found[0] : null;
+}
+/** For a reopened arrival whose answerability is unknown: the App's sentence, with the host's reason. */
+const unknownAnswerability = (b: Json, projection: Json | null) =>
+  `Whether an act already recorded answers arrival ${idWords(b?.arrivalOrdinal)} of the checkpoint ${idWords(b?.checkpoint)} is not known: ${projection?.state === "unknown" && typeof projection?.reason === "string" ? projection.reason : "this reading gave no projection of the act records for it"}; it is not listed as waiting`;
 
 /** A run's checkpoint arrivals from its lifecycle records whose latest recorded disposition is "waiting"
  * in a run that has not ended (after a run ends an act no longer changes an arrival). Used for a hot run,
- * and for a reopened run once the host gives its lifecycle records. */
-function arrivalsOf(run: Json, reference: string): WaitingEntry[] {
+ * whose records are every entry it holds in this process, and for a reopened run only where
+ * reopenedDispositionsUnestablished finds its reading establishes each arrival's latest disposition. A missing
+ * actor declaration does not hide an arrival: its responder is said as not recorded. */
+function arrivalsOf(run: Json, reference: string, unknown?: string[]): WaitingEntry[] {
   const entries: WaitingEntry[] = [];
   const records = list(run?.lifecycle?.records);
   const ended = !!run?.lifecycle?.end || records.some((r: Json) => r?.kind === "run_ended");
@@ -206,14 +233,26 @@ function arrivalsOf(run: Json, reference: string): WaitingEntry[] {
     const b = arrival.body;
     const changes = records.filter((r: Json) => r?.kind === "disposition_change" && sameArrival(r?.body?.arrival, b.checkpoint, b.arrivalOrdinal));
     const latest = changes[changes.length - 1];
+    const projection = unknown ? arrivalProjection(run, reference, arrival) : null;
+    // An explicit failure of the act read limits the reading independently of the
+    // recorded disposition. A settled arrival stays settled, but cannot hide that failure.
+    if (unknown && projection?.state === "unknown") {
+      unknown.push(unknownAnswerability(b, projection));
+      continue;
+    }
     if (latest?.body?.disposition !== "waiting") continue;
+    // A reopened run (`unknown` given): listed only where the host's projection says no act or decline on record
+    // answers it. One on record and not yet counted asks nothing of the person; an unknown projection is never waiting.
+    if (unknown) {
+      if (projection?.state === "awaiting count") continue;
+      if (projection?.state !== "waiting") { unknown.push(unknownAnswerability(b, projection)); continue; }
+    }
     const request = records.filter((r: Json) => r?.kind === "act_request" && sameArrival(r?.body?.arrival, b.checkpoint, b.arrivalOrdinal)).pop();
-    const actor = declared.find((e: Json) => text(e?.value?.name) === b.checkpoint)?.value?.actor;
     entries.push({
       key: JSON.stringify(["checkpoint-arrival", reference, arrival.recordId ?? [b.checkpoint, b.arrivalOrdinal], latest.recordId ?? changes.length]),
       source: "checkpoint-arrival", kind: "checkpoint-reached", count: 1,
       asker: { kind: "checkpoint", checkpoint: b.checkpoint, requester: request ? text(request.body?.requester?.kind) || null : null },
-      responder: ACTOR[text(actor)] ?? "you",
+      responder: arrivalResponder(declared, b.checkpoint),
       concerns: { kind: "run", run: reference, conversation }, integrator: "not recorded",
       group: { key: JSON.stringify(["conversation", home, conversation]), label: { kind: "conversation", threadId: conversation, home, otherHome: false } },
       asOf: null, target: { kind: "run", anchor: runEvidenceAnchor(reference) },
@@ -386,14 +425,32 @@ function finish(key: string, name: string, scope: Scope, call: ReadEvidence["cal
 
 /** Why a run reopened after the App restarted is not known to have ended, by the state the host gives it
  * (record_supply.rs RecordedLifecycle). Any other state is one the App does not recognise. */
+const RUN_STATE_OPEN = "open; interrupted (no run_ended recorded)";
 const REOPENED_REASON = {
-  "open; interrupted (no run_ended recorded)": "its records show it opened and record no end",
+  [RUN_STATE_OPEN]: "its records show it opened and record no end",
   unknown: "its records do not establish whether it ended",
 } as const;
 const REOPENED_REASON_UNKNOWN = "its state is one the App does not recognise";
+const REOPENED_NOT_SUPPLIED = "its records show it opened and record no end, but this reading did not supply its records";
 const REOPENED_RUN = "reopened-run:";
 const RUN_STATE_ENDED = "ended";
 const RUN_STATE_NOT_STARTED = "start not confirmed in record";
+
+/** Whether the reopened reading establishes the latest recorded disposition of each arrival of a run not recorded
+ * as ended: null where it does, else the App's reason. Carrying every entry that happened to be read is not enough.
+ * It is established only by the run's own RS evidence: the host carried the run's records (`lifecycle.records`:
+ * whole runs or none, RunsReading::view_bounded) and gave the state "open; interrupted (no run_ended recorded)",
+ * which it gives only when every log of the project's record set was read with no limit (storage::read_all), so no
+ * later entry of the run is unread; each run's entries are written to its own log, in order. The census's own
+ * limits and history notices (records_store.rs: display information about where records are kept, not RS record-set
+ * completeness) and a run's other limits, such as an actor not established, bear on no disposition: they keep the
+ * reading limited and the count incomplete, and withhold no established arrival. */
+export function reopenedDispositionsUnestablished(row: Json): string | null {
+  const state = row?.state ?? row?.lifecycle?.state;
+  if (state !== RUN_STATE_OPEN) return wordOf(REOPENED_REASON, state) ?? REOPENED_REASON_UNKNOWN;
+  if (!Array.isArray(row?.lifecycle?.records)) return REOPENED_NOT_SUPPLIED;
+  return null;
+}
 const statusFailed = (name: string) => `${name} could not be read at the last attempt: the App's last read of its own status failed.`;
 
 /** The readings carried by one host status read: requests in the active home, the hot runs and each of
@@ -454,7 +511,7 @@ function hostReadings(host: Json, call: ReadEvidence["call"], at: number | null,
   const census = !!reopened && typeof reopened === "object" && Array.isArray(reopened.runs);
   const censusWhole = census && Array.isArray(reopened.limits) && Array.isArray(reopened.historyNotices);
   push("reopened", "Runs recorded before the App restarted", { evidence: { read: census, affirmedWhole: censusWhole, limits: census ? [...list(reopened.limits), ...list(reopened.historyNotices)].map(text) : [] }, entries: [] },
-    "Runs recorded before the App restarted were read with limits: some may not be shown, and whether one of their checkpoints waits for your act is not known.",
+    "Runs recorded before the App restarted were read with limits: some runs or records may not be shown, so more of their checkpoints may be waiting for your act than are listed.",
     "Runs recorded before the App restarted have not been read, so whether one of their checkpoints waits for your act is not known. Reopen recorded workflow runs reads them.");
   // When the records were last read for these runs: only the reopened view's own `readAt` says so (stamped where
   // read_reopened_history stores the view). The status response carrying the view is not that time.
@@ -464,25 +521,30 @@ function hostReadings(host: Json, call: ReadEvidence["call"], at: number | null,
     if ((runs ?? []).some((live: Json) => live?.reference === reference)) continue;   // a hot run's own reading covers it
     let found: Found;
     let detail: string | null = null;
-    if (Array.isArray(row?.lifecycle?.records)) {
-      // The shape the coming host read gives a reopened run: reference, lifecycle {state, end, records}
-      // and limits. Its records are whole when `limits` is present and empty.
-      found = { evidence: { read: true, affirmedWhole: Array.isArray(row?.limits), limits: list(row?.limits).map(text) }, entries: arrivalsOf(row, reference) };
-    } else if (row?.state === RUN_STATE_ENDED || row?.state === RUN_STATE_NOT_STARTED) {
+    const unestablished = reopenedDispositionsUnestablished(row);
+    if (row?.state === RUN_STATE_ENDED || row?.state === RUN_STATE_NOT_STARTED) {
       // An end recorded in the run's records, or a complete record set with no run_opened
       // (RecordedLifecycle::StartNotConfirmed is given only for a complete set): nothing of it can wait.
       found = { evidence: { read: true, affirmedWhole: true, limits: [] }, entries: [] };
+    } else if (unestablished === null) {
+      // The reopened run as RunsReading::view gives it: reference, lifecycle {state, end, records} and limits, with
+      // each arrival's latest disposition established. Read whole when `limits` is present and empty; otherwise
+      // read with limits, its established arrivals shown and its count incomplete.
+      const unknown: string[] = [];
+      const entries = arrivalsOf(row, reference, unknown);
+      found = { evidence: { read: true, affirmedWhole: Array.isArray(row?.limits), limits: [...list(row?.limits).map(text), ...unknown] }, entries };
     } else {
-      // Still open, or a lifecycle the records do not establish ("unknown"), or a state the App does not
-      // know: its checkpoints are not read.
+      // Records not supplied, a lifecycle the records do not establish ("unknown") or a state the App does not know:
+      // no arrival's latest disposition is established, so none is listed, not even an older waiting entry, and the
+      // run is named as not read with its reason.
       found = nothing();
-      detail = wordOf(REOPENED_REASON, row?.state) ?? REOPENED_REASON_UNKNOWN;
+      detail = unestablished;
     }
     // The reference is a record's: in the App's sentences through idWords, and shown beside through SuppliedId.
     const runName = `The run ${idWords(reference)}, reopened after the App restarted`;
     push(`${REOPENED_RUN}${reference}`, runName, found,
       "A run reopened after the App restarted was read with limits, so more of its checkpoints may be waiting.",
-      `${runName}, is not known to have ended: ${detail ?? REOPENED_REASON_UNKNOWN}; the App does not show its checkpoints.`, hostScope, reference, detail, recordsReadAt);
+      `${runName}, is not read for its checkpoints: ${detail ?? REOPENED_REASON_UNKNOWN}, so whether one of them waits for your act is not known.`, hostScope, reference, detail, recordsReadAt);
   }
   return out;
 }
@@ -577,11 +639,10 @@ export function waitingView(readings: SourceReading[]): WaitingView {
     if (reading.state === "not-read" && reading.key.startsWith(REOPENED_RUN)) { reopenedUnread.push(reading); continue; }
     coverage.push({ reading, note: reading.note });
   }
-  // A run reopened after the App restarted is read from the project records, which the host gives without its
-  // checkpoints: whether one of its arrivals waits for the person's act is not shown anywhere in the App yet. The
-  // count is read first; each run is named under it.
+  // A run reopened after the App restarted whose reading does not establish its arrivals' latest dispositions (its
+  // records not supplied, or its lifecycle not established): only that history is unread. The count is read first; each run is named under it, with its reason.
   const n = reopenedUnread.length;
-  if (n > 0) coverage.push({ reading: null, runs: reopenedUnread, note: `${n} run${n === 1 ? "" : "s"} reopened after the App restarted ${n === 1 ? "is" : "are"} not known to have ended: the App does not show their checkpoints, so whether one waits for your act is not shown here or anywhere else in the App yet.` });
+  if (n > 0) coverage.push({ reading: null, runs: reopenedUnread, note: `${n} run${n === 1 ? "" : "s"} reopened after the App restarted ${n === 1 ? "is" : "are"} not read for ${n === 1 ? "its" : "their"} checkpoints: the reading does not establish the latest disposition of ${n === 1 ? "its" : "their"} arrivals, so whether one waits for your act is not known.` });
   const complete = readings.every(r => r.state === "whole");
   const lastReads = readings.filter(r => r.state === "failed" && r.lastRead && r.lastRead.entries.length > 0);
   const statusFailedReads = readings.filter(r => r.call === "status" && r.state === "failed" && r.lastRead);
@@ -787,7 +848,7 @@ export function WaitingOnYou({ readings, view, busy = false, openGroup, go, onOp
         {lastStatus && <LastStatusBlock last={lastStatus} go={go} />}
         {lastReads.filter(reading => reading.call !== "status").map(reading => <LastReadBlock key={reading.key} reading={reading} go={go} />)}
         <RequestsOverview reading={readings.find(r => r.key === "requests" || r.key.startsWith("requests:"))} view={view} busy={busy} open={openGroup} />
-        <p><small>Each source shows what its latest reading observed, and the next reading replaces it: nothing is kept from one reading to the next, so an item a limited reading showed can drop from view when the next reading does not hold it, and after a change of home the requests of the home left are shown only as that home's overview reads them. When a read fails, the list uses the last successful response to that kind of read (the status read, the returns read or the decisions read): what it showed waiting is shown apart, as last read at its time, not counted, its current state unknown, with the sources it had not read whole said as not read or read with limits; a response that showed nothing waiting is said so in the coverage lines. These are the places each kind of item is shown in the App: a request from Codex on its request card, beside its conversation or under the requests outside the selected conversation (in another home, once that home is opened); a checkpoint arrival of a run in this session in that run's panel in the workflow studio; a return in the fleet records panel; a decision package in the decision packages view. They are fed by the same readings, so an item a limited reading omits is omitted there as well until a reading supplies it again. A run reopened after the App restarted does not show its checkpoints anywhere in the App yet. Returns and decisions are read again every 15 seconds, and returns each time you open this list. Nothing here answers, dismisses or settles anything; Go to it opens the existing control or record. A question or tool permission already answered is refused there. A decision package and a checkpoint act are checked there against the current content of what they concern, but an earlier decision or act does not stop another being recorded, and neither yet refuses an item that is no longer waiting. Returns have no review control in the App yet: Go to it shows the return's record. A return whose examiner is an agent is not a demand on you, but the records do not yet say whether the examiner is a person or an agent, so every return waiting for review is listed.</small></p>
+        <p><small>Each source shows what its latest reading observed, and the next reading replaces it: nothing is kept from one reading to the next, so an item a limited reading showed can drop from view when the next reading does not hold it, and after a change of home the requests of the home left are shown only as that home's overview reads them. When a read fails, the list uses the last successful response to that kind of read (the status read, the returns read or the decisions read): what it showed waiting is shown apart, as last read at its time, not counted, its current state unknown, with the sources it had not read whole said as not read or read with limits; a response that showed nothing waiting is said so in the coverage lines. These are the places each kind of item is shown in the App: a request from Codex on its request card, beside its conversation or under the requests outside the selected conversation (in another home, once that home is opened); a checkpoint arrival of a run in this session in that run's panel in the workflow studio; a return in the fleet records panel; a decision package in the decision packages view. They are fed by the same readings, so an item a limited reading omits is omitted there as well until a reading supplies it again. A checkpoint arrival of a run reopened after the App restarted is shown under that run in the recorded runs of the workflow studio, from the records the reopened reading supplied; only a run whose records were not supplied, or do not establish its arrivals' latest dispositions, is unread, and it is named above. An arrival of such a run whose answering act or decline is already in the act records, and not yet counted in its run's record, is not listed and asks nothing of you; where the App cannot tell, it says so above. Returns and decisions are read again every 15 seconds, and returns each time you open this list. Nothing here answers, dismisses or settles anything; Go to it opens the existing control or record. A question or tool permission already answered is refused there. A decision package and a checkpoint act are checked there against the current content of what they concern, but an earlier decision or act does not stop another being recorded, and neither yet refuses an item that is no longer waiting. Returns have no review control in the App yet: Go to it shows the return's record. A return whose examiner is an agent is not a demand on you, but the records do not yet say whether the examiner is a person or an agent, so every return waiting for review is listed.</small></p>
       </div>
     </details>
   </section>;

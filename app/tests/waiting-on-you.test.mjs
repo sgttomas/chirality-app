@@ -424,6 +424,21 @@ const emptyHost = () => hostView({serverRequests:[], waitingRequests:{groups:[],
 const emptySources = (over = {}) => ({host:emptyHost(), hostReadAt:READ_AT, fleet:emptyFleet(), fleetReadAt:READ_AT, decisions:emptyDecisions(), decisionsReadAt:READ_AT, ...over});
 const reopenedRow = (over = {}) => ({run:'run-r', conversation:'T1', follows:null, workflow:{name:'invented-flow', origin:'project', revision:'r'}, assurance:null,
   state:'open; interrupted (no run_ended recorded)', detail:null, restartInterruptions:[], ...over});
+// A reopened run as RunsReading::view_bounded gives it when its records are carried: the row's fields, with `reference`,
+// `lifecycle` {state, end, records}, `limits`, and `compatibility` only where its declaration was verified.
+const UNIMPORTED = 'This project\'s records are kept in the records store. Records in the project folder have not been imported and may not be shown in this view.';
+const CHANGED = 'Whether records in the project folder are left out of this view is not known: where this project\'s records are kept changed while it was being read.';
+const UNAVAILABLE = 'History notice unavailable: invented; whether project-folder records are omitted is not known.';
+const ACTOR_LIMIT = 'the declared actor was not established: the holding library no longer yields that revision: invented';
+// `answerability` as record_supply.rs view_reopened gives it for a recorded-waiting arrival: by default, nothing on record answers it.
+const projection = (state, reason = null, over = {}) => ({run:'run-r', arrival:arrivalRef, arrivalRecordId:'arrival-1', state, reason, ...over});
+const carriedRow = (over = {}, disposition = 'waiting') => {
+  const row = {...reopenedRow(), reference:'run-r', lifecycle:{state:'open; interrupted (no run_ended recorded)', end:null, records:runRecords(disposition)}, compatibility:[{preparation:{declaration}, source:'invented'}], limits:[],
+    answerability:disposition === 'waiting' ? [projection('waiting')] : [], ...over};
+  if (over.state) row.lifecycle = {...row.lifecycle, state:over.state};
+  for (const key of Object.keys(over)) if (over[key] === undefined) delete row[key];
+  return row;
+};
 const withHost = edit => { const host = emptyHost(); edit(host); return {host}; };
 const withCensus = edit => withHost(host => { edit(host.workflowRoot.reopened); });
 const withFleet = edit => { const packet = emptyFleet(); edit(packet); return {fleet:packet}; };
@@ -460,9 +475,17 @@ const STATES = [
   ['reopened-run:run-r', 'a state the App does not know', withCensus(r => { r.runs = [reopenedRow({state:'invented'})]; }), 'not-read'],
   ['reopened-run:run-r', 'ended in its records', withCensus(r => { r.runs = [reopenedRow({state:'ended', detail:{stoppedBy:'person', cause:'c'}})]; }), 'whole'],
   ['reopened-run:run-r', 'start not confirmed in a complete record', withCensus(r => { r.runs = [reopenedRow({state:'start not confirmed in record'})]; }), 'whole'],
-  ['reopened-run:run-r', 'the coming host read: records, no limits', withCensus(r => { r.runs = [{reference:'run-r', conversation:'T1', lifecycle:{state:'open; interrupted', end:null, records:runRecords('waiting')}, limits:[]}]; }), 'whole', 1],
-  ['reopened-run:run-r', 'the coming host read: records with limits', withCensus(r => { r.runs = [{reference:'run-r', conversation:'T1', lifecycle:{state:'open; interrupted', end:null, records:runRecords('waiting')}, limits:['at most 2,000 records']}]; }), 'limited', 1],
-  ['reopened-run:run-r', 'the coming host read: limits not given', withCensus(r => { r.runs = [{reference:'run-r', conversation:'T1', lifecycle:{state:'open; interrupted', end:null, records:runRecords('waiting')}}]; }), 'limited', 1],
+  ['reopened-run:run-r', 'records carried, the record set complete, no limits', withCensus(r => { r.runs = [carriedRow()]; }), 'whole', 1],
+  ['reopened-run:run-r', 'records carried with an unrelated limit: the declared actor not established', withCensus(r => { r.runs = [carriedRow({compatibility:undefined, limits:[ACTOR_LIMIT]})]; }), 'limited', 1],
+  ['reopened-run:run-r', 'records carried, limits not given', withCensus(r => { r.runs = [carriedRow({limits:undefined})]; }), 'limited', 1],
+  ['reopened-run:run-r', 'records carried, the latest disposition performed', withCensus(r => { r.runs = [carriedRow({}, 'performed')]; }), 'whole', 0],
+  // An older waiting entry whose later history is incomplete: the host's "unknown" state (a log not read whole) or a census
+  // that may have left records out. Its records are carried, but its latest disposition is not established.
+  ['reopened-run:run-r', 'records carried, the record set incomplete ("unknown")', withCensus(r => { r.runs = [carriedRow({state:'unknown', detail:'run_opened recorded; the record set is incomplete, so a run_ended may be unreadable'})]; }), 'not-read'],
+  // A census history notice is display information about where records are kept, not the run's RS completeness: the
+  // run's own complete evidence still establishes its arrival; the census reading stays limited, so the count is incomplete.
+  ['reopened-run:run-r', 'records carried, a census history notice', withCensus(r => { r.runs = [carriedRow()]; r.historyNotices = [UNIMPORTED]; }), 'whole', 1],
+  ['reopened-run:run-r', 'records carried, census notices not given', withCensus(r => { r.runs = [carriedRow()]; delete r.historyNotices; }), 'whole', 1],
   ['returns', 'not read yet', {fleet:null, fleetReadAt:null}, 'not-read'],
   ['returns', 'the read was rejected', {fleetFailure:'invented', fleetFailedAt:READ_AT + 5000}, 'failed'],
   ['returns', 'incomplete discovery: unreadable log, limits, no undertakings', withFleet(p => { p.limits = [{source:{path:'fleet/coordination.fleet.jsonl'}, reason:'source unreadable: invented'}]; p.coordination.project = {status:'unreadable', complete:false}; }), 'limited'],
@@ -533,23 +556,102 @@ test('the reopened census: an established empty census is whole; null, an unknow
   const notes = change => waitingView(waitingReadings(emptySources(change))).notes;
   assert.deepEqual(notes({}), []);
   assert.deepEqual(notes(withHost(h => { h.workflowRoot.reopened = null; })), ['Runs recorded before the App restarted have not been read, so whether one of their checkpoints waits for your act is not known. Reopen recorded workflow runs reads them.']);
-  assert.deepEqual(notes(withCensus(r => { r.limits = ['WR records unreadable: invented']; })), ['Runs recorded before the App restarted were read with limits: some may not be shown, and whether one of their checkpoints waits for your act is not known.']);
+  assert.deepEqual(notes(withCensus(r => { r.limits = ['WR records unreadable: invented']; })), ['Runs recorded before the App restarted were read with limits: some runs or records may not be shown, so more of their checkpoints may be waiting for your act than are listed.']);
   assert.deepEqual(notes(withCensus(r => { r.runs = [reopenedRow(), reopenedRow({run:'run-u', state:'unknown'}), reopenedRow({run:'run-e', state:'ended'})]; })),
-    ['2 runs reopened after the App restarted are not known to have ended: the App does not show their checkpoints, so whether one waits for your act is not shown here or anywhere else in the App yet.'], 'the open and the unknown run are counted; the ended one is not');
+    ['2 runs reopened after the App restarted are not read for their checkpoints: the reading does not establish the latest disposition of their arrivals, so whether one waits for your act is not known.'], 'the open run without its records and the unknown run are counted; the ended one is not');
   // A reopened run that is also a hot run is covered by the hot run's own reading.
   const both = withHost(h => { h.workflowRoot.runs = [run('waiting', {reference:'run-r'})]; h.workflowRoot.reopened.runs = [reopenedRow()]; });
   assert.deepEqual(notes(both), []);
-  // Evidence for the finding against release criterion 4: the reopened run as the host gives it now carries no checkpoint, so no view can show one.
-  // This assertion changes when the host exposes a reopened run's checkpoint entries.
-  assert.deepEqual(Object.keys(reopenedRow()).filter(key => /checkpoint|disposition|records|lifecycle/i.test(key)), []);
-  assert.ok(!waitingModule().waitingEntries(emptySources(withCensus(r => { r.runs = [reopenedRow()]; }))).length, 'no arrival of a reopened run can be listed: the host gives none');
-  // And as the App draws it: the recorded runs list shows the run's state and nothing of its checkpoints.
+  // A reopened run whose records the reading carried, in a complete record set, is read: its waiting arrival is listed, and no note names it.
+  assert.deepEqual(notes(withCensus(r => { r.runs = [carriedRow()]; })), []);
+  assert.deepEqual(waitingModule().waitingEntries(emptySources(withCensus(r => { r.runs = [carriedRow()]; }))).map(e => [e.source, e.kind, e.concerns.run, e.target.anchor]),
+    [['checkpoint-arrival', 'checkpoint-reached', 'run-r', loadSrc('RunJourney').runEvidenceAnchor('run-r')]]);
+});
+
+test('a reopened arrival is listed only where its latest disposition is established: a later disposition, an ended run, a later run and an incomplete history list none of it', () => {
+  const {waitingEntries, waitingReadings, waitingView} = waitingModule();
+  const listed = change => waitingEntries(emptySources(withCensus(change))).filter(e => e.source === 'checkpoint-arrival').map(e => e.concerns.run);
+  assert.deepEqual(listed(r => { r.runs = [carriedRow()]; }), ['run-r'], 'its latest recorded disposition is waiting in a complete record');
+  for (const disposition of ['performed', 'resolved negatively', 'lapsed']) assert.deepEqual(listed(r => { r.runs = [carriedRow({}, disposition)]; }), [], `latest disposition ${disposition}: not listed`);
+  // Performed when it was reached: an earlier act on still-current content counts in the same observation.
+  const earlier = carriedRow(); earlier.lifecycle.records = [...runRecords('waiting').slice(0, 4), entry('act_counted', {arrival:arrivalRef, relation:'earlier act', act:{actKind:'A4', recordId:'act-0', capturedAt:'t'}}, 'c0'), entry('disposition_change', {arrival:arrivalRef, disposition:'performed', annotations:[]}, 'd2')];
+  assert.deepEqual(listed(r => { r.runs = [earlier]; }), [], 'recorded as performed when it was reached: never listed');
+  // An ended run lists none of its arrivals, though its last disposition entry is waiting; a later run lists none of an earlier run's.
+  const ended = carriedRow({state:'ended', detail:{stoppedBy:'person', cause:'ended by the person'}}); ended.lifecycle.end = {run:'run-r', stoppedBy:'person', cause:'ended by the person'}; ended.lifecycle.records = [...runRecords('waiting'), entry('run_ended', {stoppedBy:'person'}, 'e1')];
+  assert.deepEqual(listed(r => { r.runs = [ended, {...reopenedRow({run:'run-s', follows:'run-r'}), reference:'run-s', lifecycle:{state:'open; interrupted (no run_ended recorded)', end:null, records:[entry('run_opened', {}, 's0')]}, limits:[]}]; }), [], 'the ended run and the later run list nothing');
+  // With its later history not established, no entry is listed as waiting, whatever the entries read say last
+  // (waiting, or a later answer, negative resolution or lapse), and the reason is said.
+  const incomplete = disposition => carriedRow({state:'unknown', detail:'run_opened recorded; the record set is incomplete, so a run_ended may be unreadable'}, disposition);
+  for (const [name, change] of [
+    ['a log not read whole (the host gives "unknown"), waiting last read', r => { r.runs = [incomplete('waiting')]; }],
+    ['a log not read whole, performed last read', r => { r.runs = [incomplete('performed')]; }],
+    ['a log not read whole, resolved negatively last read', r => { r.runs = [incomplete('resolved negatively')]; }],
+    ['a log not read whole, lapsed last read', r => { r.runs = [incomplete('lapsed')]; }],
+    ['records not supplied (left out by the view\'s bound)', r => { const row = carriedRow({limits:["this run's 5 records are not in this view: it carries at most 2000 records in all, and only whole runs; its checkpoint dispositions are not known here"]}); delete row.lifecycle.records; r.runs = [row]; }],
+  ]) {
+    const sources = emptySources(withCensus(change));
+    assert.deepEqual(waitingEntries(sources).filter(e => e.source === 'checkpoint-arrival'), [], `${name}: the older waiting entry is not listed`);
+    const shown = waitingView(waitingReadings(sources));
+    assert.equal(shown.complete, false, `${name}: no definite count`);
+    const row = shown.coverage.find(c => c.runs);
+    assert.ok(row && /not read for its checkpoints: the reading does not establish the latest disposition of its arrivals, so whether one waits for your act is not known\./.test(row.note), `${name}: the run is named as not read`);
+    assert.ok(row.runs[0].detail, `${name}: with its reason`);
+    const html = renderPlace(waitingReadings(sources));
+    assert.doesNotMatch(html, /Nothing recorded is waiting on you|Nothing is waiting/, `${name}: never "nothing is waiting"`);
+  }
+});
+
+test('a census history notice withholds no arrival the run\'s own complete records establish: it is shown, the notice stays, and the total is incomplete', () => {
+  const {waitingEntries, waitingReadings, waitingView, waitingLine} = waitingModule();
+  for (const notice of [UNIMPORTED, CHANGED, UNAVAILABLE]) {
+    const sources = emptySources(withCensus(r => { r.runs = [carriedRow()]; r.historyNotices = [notice]; }));
+    assert.deepEqual(waitingEntries(sources).filter(e => e.source === 'checkpoint-arrival').map(e => e.concerns.run), ['run-r'], `${notice}: the established waiting arrival is listed`);
+    const readings = waitingReadings(sources);
+    assert.equal(readings.find(r => r.key === 'reopened').state, 'limited', `${notice}: the census reading is limited`);
+    const shown = waitingView(readings);
+    assert.equal(waitingLine(shown.observed, shown.complete), 'Waiting on you: 1 observed now; status incomplete', `${notice}: no definite total`);
+    const html = agentPlain(renderPlace(readings));
+    assert.match(html, /a checkpoint was reached; your act is not yet recorded/);
+    assert.match(html, /Runs recorded before the App restarted were read with limits: some runs or records may not be shown, so more of their checkpoints may be waiting for your act than are listed\./, `${notice}: the census note stays`);
+    assert.ok(html.includes(notice.replace(/'/g, '&#x27;')), `${notice}: the notice itself is shown beside it`);
+    assert.doesNotMatch(html, /Nothing recorded is waiting on you|not read for (its|their) checkpoints/, `${notice}: the run is not named as unread`);
+    // A later answer, negative resolution or lapse still leaves nothing waiting under the same notice.
+    for (const disposition of ['performed', 'resolved negatively', 'lapsed'])
+      assert.deepEqual(waitingEntries(emptySources(withCensus(r => { r.runs = [carriedRow({}, disposition)]; r.historyNotices = [notice]; }))).filter(e => e.source === 'checkpoint-arrival'), [], `${notice} / ${disposition}`);
+  }
+  // In the workflow studio, the evidence is shown without a caveat that the run's dispositions are not established.
   const {WorkflowRootPanel} = loadSrc('App');
-  const host = hostView(); const data = {...host.workflowRoot, runs:[], reopened:{...emptyCensus(), runs:[reopenedRow()]}};
+  const host = hostView(); const data = {...host.workflowRoot, runs:[], reopened:{...emptyCensus(), runs:[carriedRow()], historyNotices:[CHANGED]}};
   const drawn = renderToStaticMarkup(React.createElement(WorkflowRootPanel, {data, host:{...host, workflowRoot:data}, act:async () => {}}));
-  const item = drawn.match(/<li[^>]*>run-r · conversation T1 · open; interrupted \(no run_ended recorded\)[\s\S]*?<\/li>/);
-  assert.ok(item, 'the reopened run is drawn with its state');
-  assert.doesNotMatch(item[0], /checkpoint|CP-|disposition|waiting for your act/i, 'nothing of its checkpoints is drawn: the host gives none');
+  assert.match(drawn, /Arrival 1: reached; act not yet recorded\./);
+  assert.doesNotMatch(drawn, /This reading does not establish the latest disposition/);
+});
+
+test('a missing actor declaration is said as not recorded and does not hide an established waiting arrival; a limited reading gives no definite total', () => {
+  const {waitingEntries, waitingReadings, waitingView, waitingLine, ACTOR_NOT_RECORDED} = waitingModule();
+  assert.equal(ACTOR_NOT_RECORDED, 'not recorded');
+  const responders = change => waitingEntries(emptySources(change)).filter(e => e.source === 'checkpoint-arrival').map(e => e.responder);
+  const cp = actor => ({reading:'recognized', value:{name:'CP-review', required_act:'A4', actor, subject:{class:'named_output'}, reached_when:{kind:'output_produced', output:'report'}}});
+  const withDecl = (...checkpoints) => [{preparation:{declaration:{...declaration, elements:{checkpoints}}}}];
+  // Reopened, the declaration not verified: the host gives no compatibility and a limit saying so.
+  const unverified = withCensus(r => { r.runs = [carriedRow({compatibility:undefined, limits:[ACTOR_LIMIT]})]; });
+  assert.deepEqual(responders(unverified), ['not recorded'], 'the arrival is listed; who must respond is not recorded');
+  const readings = waitingReadings(emptySources(unverified));
+  assert.equal(readings.find(r => r.key === 'reopened-run:run-r').state, 'limited');
+  const shown = waitingView(readings);
+  assert.equal(waitingLine(shown.observed, shown.complete), 'Waiting on you: 1 observed now; status incomplete', 'counted as observed now; no definite total');
+  const html = renderPlace(readings);
+  assert.match(agentPlain(html), /a checkpoint was reached; your act is not yet recorded[\s\S]*Who must respond: not recorded/);
+  assert.doesNotMatch(html, /Who must respond: you/);
+  assert.doesNotMatch(html, /Nothing recorded is waiting on you/);
+  // Hot runs too: absent, unrecognised, invalid or ambiguous declarations never default to "you".
+  const hot = compatibility => withHost(h => { h.workflowRoot.runs = [run('waiting', {compatibility})]; });
+  assert.deepEqual(responders(hot([])), ['not recorded'], 'no declaration');
+  assert.deepEqual(responders(hot(withDecl(cp('someone_else')))), ['not recorded'], 'an actor the App does not recognise');
+  assert.deepEqual(responders(hot(withDecl({...cp('the_person'), reading:'invalid'}))), ['not recorded'], 'an invalid element');
+  assert.deepEqual(responders(hot(withDecl(cp('the_person'), cp('the_accountable_professional')))), ['not recorded'], 'two elements of the same name');
+  assert.deepEqual(responders(hot(withDecl(cp('the_person')))), ['you']);
+  assert.deepEqual(responders(hot(withDecl(cp('the_accountable_professional')))), ['the accountable professional']);
 });
 
 test('the list keeps no memory: each reading replaces the one before, and what a limited reading leaves out simply is not shown', () => {
@@ -801,12 +903,12 @@ test('the fourth reader\'s second finding: each unread reopened run is named, wi
   const html = renderPlace(readings);
   const time = clock(READ_AT).slice('as of '.length);
   const text = agentPlain(html).replace(/<[^>]+>/g, '');
-  assert.match(text, /3 runs reopened after the App restarted are not known to have ended: the App does not show their checkpoints/, 'the aggregate line is read first');
+  assert.match(text, /3 runs reopened after the App restarted are not read for their checkpoints: the reading does not establish the latest disposition of their arrivals/, 'the aggregate line is read first');
   assert.ok(text.indexOf('3 runs reopened') < text.indexOf('missing-run-alpha'));
   const disclosure = html.match(/<details class="waiting-reopened-runs">[\s\S]*?<\/details>/);
   assert.ok(disclosure, 'the runs are in a disclosure under the line');
   const listed = agentPlain(disclosure[0]).replace(/<[^>]+>/g, '');
-  assert.match(listed, new RegExp(`The run missing-run-alpha: its records show it opened and record no end\\. Carried in the status response requested at ${time}\\. When the records were last read for it is not given\\.`));
+  assert.match(listed, new RegExp(`The run missing-run-alpha: its records show it opened and record no end, but this reading did not supply its records\\. Carried in the status response requested at ${time}\\. When the records were last read for it is not given\\.`));
   assert.match(listed, new RegExp(`The run missing-run-beta: its records do not establish whether it ended\\. Carried in the status response requested at ${time}\\. When the records were last read for it is not given\\.`));
   assert.match(listed, new RegExp(`The run ⟦Run: odd run[\\s\\S]*?⟧: its state is one the App does not recognise\\. Carried in the status response requested at ${time}\\. When the records were last read for it is not given\\.`));
   assert.doesNotMatch(listed, /Read at|checkpoints were read|census at|records were last read for it at/, 'the status response\'s time is never presented as when the records were read');
@@ -826,7 +928,7 @@ test('a reopened run is dated by the records read only where the reopened view s
   const statusTime = clock(READ_AT).slice('as of '.length);
   const recordsTime = clock(recordsMs).slice('as of '.length);
   const valid = listedFor(recordsAt);
-  assert.match(valid, new RegExp(`The run missing-run-alpha: its records show it opened and record no end\\. The records were last read for it at ${recordsTime}\\.`));
+  assert.match(valid, new RegExp(`The run missing-run-alpha: its records show it opened and record no end, but this reading did not supply its records\\. The records were last read for it at ${recordsTime}\\.`));
   assert.ok(!valid.includes(`at ${statusTime}.`) || statusTime === recordsTime, 'the status response time is not given as the records time');
   assert.doesNotMatch(valid, /Carried in the status response/);
   for (const [why, readAt] of [['removed', undefined], ['an offset, not UTC', '2026-11-14T08:15:30+00:00'], ['a date that does not exist', '2026-02-30T08:15:30Z'], ['no seconds', '2026-11-14T08:15Z'], ['a number', recordsMs], ['trailing text', recordsAt + ' ']]) {
@@ -850,4 +952,165 @@ test('the fourth reader\'s third finding: another home\'s group whose generation
   // The positive control: the same group with a generation of the shape is counted, and the count is definite.
   const good = waitingView(waitingReadings(emptySources(withHost(h => { h.waitingRequests.groups = [{modeHomeClass:'api-key', generation:other, threadId:'K1', count:2}]; }))));
   assert.equal(waitingLine(good.observed, good.complete), 'Waiting on you: 2 (2 requests from Codex)');
+});
+
+// ---- A reopened arrival's evidence (criterion 4): Go to it reaches that same run's checkpoint evidence ----
+const reopenedHost = (row = carriedRow(), over = {}) => () => hostView({workflowRoot:{...hostView().workflowRoot, runs:[], reopened:{...emptyCensus(), runs:[row], readAt:'2026-11-14T08:15:30Z'}, ...over}});
+
+test('"Go to it" on a reopened run\'s arrival lands on that run\'s own checkpoint evidence in the workflow studio, and acts on nothing (the mounted App)', async () => {
+  const {runEvidenceAnchor} = loadSrc('RunJourney');
+  const {CHECKPOINT_COOPERATION} = loadSrc('RunPanel');
+  const anchor = runEvidenceAnchor('run-r');
+  await mountApp(async ({c, calls, revealed}) => {
+    const link = nodes(place(c), 'a').find(a => a.getAttribute('href') === `#${anchor}`);
+    assert.ok(link, 'the reopened arrival is listed, and its Go to it names that run\'s evidence');
+    const before = calls.length;
+    await React.act(async () => { props(link).onClick({preventDefault:() => {}, stopPropagation:() => {}}); for (let i = 0; i < 8; i++) await Promise.resolve(); });
+    assert.deepEqual(calls.slice(before).map(call => call.command).filter(cmd => !['host_status', 'decision_view', 'read_fleet_records', 'request_answer_companions', 'host_observe', 'native_confirmation_content'].includes(cmd)), [], 'navigation only: no answer, act, capture or send');
+    assert.ok(revealed.includes(anchor), 'it looks up that run\'s own evidence anchor');
+    const targets = c.querySelectorAll(n => n.getAttribute('id') === anchor);
+    assert.equal(targets.length, 1, 'one evidence anchor for the run');
+    const evidence = targets[0];
+    assert.equal(evidence.localName, 'li', 'the reopened run\'s row under the recorded runs');
+    assert.match(evidence.textContent, /Arrival 1: reached; act not yet recorded\./, 'the same arrival, with its latest recorded disposition');
+    assert.match(evidence.textContent, /Request for the act observed/, 'and whether a request for the act was observed');
+    assert.ok(evidence.textContent.includes(CHECKPOINT_COOPERATION), 'the checkpoint says a pause there is the agent\'s cooperation');
+    assert.ok(!evidence.querySelectorAll(n => n.localName === 'button').some(b => /Review file|mark checked|Confirm|approve|answer/i.test(b.textContent)), 'no act control is opened or offered for the arrival');
+    for (let n = evidence; n && n !== c; n = n.parentNode) if (n.localName === 'details') assert.equal(n.open, true, 'every disclosure around it is opened');
+  }, {host:reopenedHost()});
+});
+
+test('the reopened destination: one anchor per run, the panel only where the run is not live, its original controls kept, and an unverified declaration still shows the arrival', () => {
+  const {WorkflowRootPanel} = loadSrc('App');
+  const {runEvidenceAnchor} = loadSrc('RunJourney');
+  const {CHECKPOINT_COOPERATION} = loadSrc('RunPanel');
+  const draw = (runs, reopened, census = {}) => { const host = hostView(); const data = {...host.workflowRoot, runs, reopened:{...emptyCensus(), runs:reopened, ...census}};
+    return renderToStaticMarkup(React.createElement(WorkflowRootPanel, {data, host:{...host, workflowRoot:data}, act:async () => { throw new Error('nothing is pressed'); }})); };
+  const anchors = html => [...html.matchAll(new RegExp(`id="${runEvidenceAnchor('run-r')}"`, 'g'))].length;
+  const reopenedItem = html => html.match(new RegExp(`<li id="${runEvidenceAnchor('run-r')}">[\\s\\S]*?End this interrupted run</button></li>`))?.[0];
+  // Not live: the row carries the anchor, the run panel and the original bring-back and end controls.
+  const alone = draw([], [carriedRow()]);
+  assert.equal(anchors(alone), 1);
+  const item = reopenedItem(alone);
+  assert.ok(item, 'the row carries the anchor and keeps its end control');
+  assert.match(item, /aria-label="Run panel"/);
+  assert.match(item, /Bring a real run back to authoring/);
+  assert.ok(item.includes(CHECKPOINT_COOPERATION.replace(/'/g, '&#x27;')));
+  assert.doesNotMatch(item, /Review file for this arrival/, 'no file act is offered from the reopened record');
+  // Live as well as reopened: the live article keeps the one anchor and panel; the reopened row carries neither, nor duplicate controls.
+  const both = draw([run('waiting', {reference:'run-r'})], [carriedRow()]);
+  assert.equal(anchors(both), 1, 'no duplicate anchor');
+  const liveAnchor = both.indexOf(`id="${runEvidenceAnchor('run-r')}"`);
+  assert.ok(both.slice(liveAnchor - 40, liveAnchor).includes('<article'), 'the anchor is the live run\'s article');
+  const row = both.match(/<li><code>run-r<\/code>[\s\S]*?<\/li>/)?.[0] ?? '';
+  assert.doesNotMatch(row, /Run panel|End this interrupted run|Bring a real run back/);
+  // An unverified declaration: no declared part, but the recorded arrival and the cooperation sentence are still there.
+  const unverified = reopenedItem(draw([], [carriedRow({compatibility:undefined, limits:[ACTOR_LIMIT]})]));
+  assert.match(unverified, /Recorded checkpoint arrivals, from the run record alone: without the declaration, who must act is not recorded here\./);
+  assert.match(unverified, /Arrival 1: reached; act not yet recorded\./);
+  assert.ok(unverified.includes(CHECKPOINT_COOPERATION.replace(/'/g, '&#x27;')));
+  assert.match(agentPlain(unverified), /What the reader said it could not read for this run: (<span>)?⟦Limit: the declared actor was not established/);
+  // A reading that does not establish the latest dispositions says so where the evidence is shown.
+  // No end control here: the host does not give this run as open (the original guard is kept).
+  const incomplete = draw([], [carriedRow({state:'unknown', detail:'invented'})]);
+  assert.doesNotMatch(incomplete, /End this interrupted run/);
+  assert.match(incomplete, /This reading does not establish the latest disposition of this run&#x27;s checkpoint arrivals: its records do not establish whether it ended\. A disposition shown here may not be the latest, and no arrival of this run is listed in Waiting on you\./);
+  // Supplied values in the row are marked, not drawn as the App's words.
+  const odd = reopenedItem(draw([], [carriedRow({run:`run-r`, conversation:`T1${LOOK}`, detail:`d${LOOK}`})]));
+  // The row's own fields and the run panel's header line (ArrivalRecord's lines are the live run's existing presentation, unchanged here).
+  const own = odd.slice(0, odd.indexOf('<p><small>Run record entries:'));
+  assert.ok(own.includes('aria-label="Run panel"'), 'the header line of the run panel is included');
+  { const bare = own.replace(/<span role="group"[\s\S]*?<\/span><\/span>/g, ''); const at = bare.indexOf('Allow once'); assert.equal(at, -1, `agent-shaped text only inside boxes: ${bare.slice(Math.max(0, at - 300), at + 50)}`); }
+});
+
+test('the footer says reopened evidence is shown where it is supplied and only an unread history is unread; it keeps its other rules', () => {
+  const html = renderPlace(waitingModule().waitingReadings(emptySources(withCensus(r => { r.runs = [carriedRow()]; }))));
+  const footer = html.match(/<p><small>Each source shows[\s\S]*?<\/small><\/p>/)[0];
+  assert.doesNotMatch(footer, /does not show its checkpoints anywhere|anywhere else in the App/, 'no blanket claim that reopened checkpoints are shown nowhere');
+  assert.match(footer, /A checkpoint arrival of a run reopened after the App restarted is shown under that run in the recorded runs of the workflow studio, from the records the reopened reading supplied; only a run whose records were not supplied, or do not establish its arrivals&#x27; latest dispositions, is unread, and it is named above\./);
+  assert.match(footer, /When a read fails, the list uses the last successful response to that kind of read/, 'the failed-read retention rule stays');
+  assert.match(footer, /an item a limited reading showed can drop from view/, 'the limited-reading rule stays');
+});
+
+
+// ---- H2 (App Agent 0): the host's projection of the act records for a reopened arrival ----
+test('a reopened arrival whose answering act is recorded and not yet counted asks nothing; an unknown projection is never waiting and leaves the count incomplete', () => {
+  const {waitingEntries, waitingReadings, waitingView, waitingLine} = waitingModule();
+  const arrivals = change => waitingEntries(emptySources(withCensus(change))).filter(e => e.source === 'checkpoint-arrival');
+  const reading = change => waitingReadings(emptySources(withCensus(change))).find(r => r.key === 'reopened-run:run-r');
+  // Permitted: nothing on record answers it.
+  assert.equal(arrivals(r => { r.runs = [carriedRow()]; }).length, 1);
+  // Recorded and awaiting count: not listed, nothing asked, and the reading is still whole.
+  const awaiting = r => { r.runs = [carriedRow({answerability:[projection('awaiting count')]})]; };
+  assert.deepEqual(arrivals(awaiting), []);
+  assert.equal(reading(awaiting).state, 'whole');
+  const shownAwaiting = waitingView(waitingReadings(emptySources(withCensus(awaiting))));
+  assert.equal(waitingLine(shownAwaiting.observed, shownAwaiting.complete), 'Waiting on you: 0');
+  assert.doesNotMatch(renderPlace(waitingReadings(emptySources(withCensus(awaiting)))), /a checkpoint was reached; your act is not yet recorded/);
+  // Unknown, with the host's reason; absent; or not bound to this exact arrival: never waiting, never answered.
+  const REASON = 'the project\'s act records could not be read: invented';
+  for (const [name, answerability, said] of [
+    ['unknown with its reason', [projection('unknown', REASON)], REASON],
+    ['no projection given', [], 'this reading gave no projection of the act records for it'],
+    ['a projection for another arrival entry', [projection('waiting', null, {arrivalRecordId:'arrival-other'})], 'this reading gave no projection of the act records for it'],
+    ['a projection for another run', [projection('waiting', null, {run:'run-other'})], 'this reading gave no projection of the act records for it'],
+    ['two projections for the arrival', [projection('waiting'), projection('waiting')], 'this reading gave no projection of the act records for it'],
+    ['answerability not given at all', undefined, 'this reading gave no projection of the act records for it'],
+  ]) {
+    const change = r => { const row = carriedRow({answerability}); if (answerability === undefined) delete row.answerability; r.runs = [row]; };
+    assert.deepEqual(arrivals(change), [], `${name}: not listed`);
+    const found = reading(change);
+    assert.equal(found.state, 'limited', `${name}: the reading is limited`);
+    assert.ok(found.limits.includes(`Whether an act already recorded answers arrival 1 of the checkpoint CP-review is not known: ${said}; it is not listed as waiting`), `${name}: ${found.limits}`);
+    const shown = waitingView(waitingReadings(emptySources(withCensus(change))));
+    assert.equal(waitingLine(shown.observed, shown.complete), 'Waiting on you: 0 observed now; status incomplete', `${name}: no definite count`);
+    const html = agentPlain(renderPlace(waitingReadings(emptySources(withCensus(change)))));
+    assert.doesNotMatch(html, /Nothing recorded is waiting on you/);
+    assert.ok(html.includes('⟦Limit: Whether an act already recorded answers arrival 1'), `${name}: the sentence is shown, boxed with the reader's limits`);
+  }
+  // A later recorded settlement decides, whatever is projected beside it.
+  for (const disposition of ['performed', 'resolved negatively', 'lapsed'])
+    assert.deepEqual(arrivals(r => { r.runs = [carriedRow({answerability:[projection('waiting')]}, disposition)]; }), [], disposition);
+  // A settled disposition does not erase an explicit failure of the act read.
+  for (const disposition of ['performed', 'resolved negatively', 'lapsed']) {
+    const change = r => { r.runs = [carriedRow({answerability:[projection('unknown', REASON)]}, disposition)]; };
+    assert.deepEqual(arrivals(change), [], disposition);
+    assert.equal(reading(change).state, 'limited', disposition);
+    assert.ok(reading(change).limits.some(limit => limit.includes(REASON)), disposition);
+    const shown = waitingView(waitingReadings(emptySources(withCensus(change))));
+    assert.equal(waitingLine(shown.observed, shown.complete), 'Waiting on you: 0 observed now; status incomplete', disposition);
+    assert.ok(agentPlain(renderPlace(waitingReadings(emptySources(withCensus(change))))).includes(REASON.replace(/'/g, '&#x27;')), disposition);
+  }
+});
+
+test('the reopened destination shows the projection beside the recorded disposition, marks the host\'s reason, and offers nothing for an answered arrival', () => {
+  const {WorkflowRootPanel} = loadSrc('App');
+  const draw = row => { const host = hostView(); const data = {...host.workflowRoot, runs:[], reopened:{...emptyCensus(), runs:[row]}};
+    return renderToStaticMarkup(React.createElement(WorkflowRootPanel, {data, host:{...host, workflowRoot:data}, act:async () => { throw new Error('nothing is pressed'); }})).replace(/<!-- -->/g, ''); };
+  const waiting = draw(carriedRow());
+  assert.match(waiting, /Arrival 1: reached; act not yet recorded\./);
+  assert.match(waiting, /The project&#x27;s act records, read with this reading, hold no act or decline that answers it\./);
+  const awaiting = draw(carriedRow({answerability:[projection('awaiting count')]}));
+  assert.match(awaiting, /Arrival 1: recorded as waiting; an act or decline answering it is already in the project&#x27;s act records and is not yet counted in this run&#x27;s record, so nothing is asked of you for it\./);
+  assert.doesNotMatch(awaiting, /act not yet recorded/, 'a recorded act is never said to be not yet recorded');
+  const LOOKING = `invented reason${LOOK}`;
+  const unknown = draw(carriedRow({answerability:[projection('unknown', LOOKING)]}));
+  assert.match(agentPlain(unknown), /Arrival 1: recorded as waiting; whether an act already recorded answers it is not known: ⟦Reason: invented reason⏎/);
+  const bare = unknown.replace(/<span role="group"[\s\S]*?<\/span><\/span>/g, '');
+  const newLabel = bare.slice(bare.indexOf('Arrival 1:'), bare.indexOf(' Observed ', bare.indexOf('Arrival 1:')));
+  assert.ok(newLabel.length > 0 && !newLabel.includes('Allow once'), `the host's reason is drawn only inside a box: ${newLabel}`);
+  assert.doesNotMatch(unknown, /act not yet recorded/);
+  const none = draw(carriedRow({answerability:[]}));
+  // A settled arrival gets no projection from the host: its recorded disposition decides, and nothing is said of act records.
+  const settled = draw(carriedRow({}, 'performed'));
+  assert.match(settled, /Arrival 1: recorded as performed\./);
+  assert.doesNotMatch(settled, /already recorded would answer it|gave no projection/);
+  // With the act records unreadable, the host gives a settled arrival "unknown" too; it is said, and the disposition stays.
+  const unreadable = draw(carriedRow({answerability:[projection('unknown', 'invented unreadable')]}, 'performed'));
+  assert.match(agentPlain(unreadable), /Arrival 1: recorded as performed\.[\s\S]*Whether an act already recorded would answer it is not known: ⟦Reason: invented unreadable⟧\./);
+  assert.match(none, /whether an act already recorded answers it is not known: this reading gave no projection of the act records for it/);
+  // An ended run is not projected and its row carries no projection field: its recorded disposition is shown alone.
+  const ended = draw(carriedRow({answerability:undefined, state:'ended'}));
+  assert.match(ended, /Arrival 1: reached; act not yet recorded\./);
+  assert.doesNotMatch(ended, /is not known|gave no projection|act records, read with this reading|not yet counted/);
 });

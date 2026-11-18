@@ -645,6 +645,97 @@ impl RunsReading {
         "standing":"reopened from project records only; completion is never inferred from a native turn, and no live process run is claimed"})
     }
 }
+/// Said beside the reopened view's `answerability` (App Agent 0, criterion 4, H2).
+pub const ANSWERABILITY_STANDING: &str = "projected for each arrival from one read of the project's act records, by the rule the arrival act control uses; a projection, never a recorded disposition and never written";
+/// Why a reopened arrival's answerability is unknown, in the host's words. Unknown is never waiting and never answered.
+pub mod answerability_unknown {
+    pub const RUN_NOT_COMPLETE: &str = "this run's records are not established as complete, so whether an act already recorded answers this arrival is not established";
+    pub const COORDINATE: &str = "this arrival's recorded checkpoint and arrival number do not identify one arrival of its run, so whether an act already recorded answers it is not established";
+    pub const ACTS_NOT_SETTLED: &str = "a record in the project's act records that could bear on this arrival's file could not be settled (its capture or its relations are not resolved)";
+    pub fn acts_not_read(why: &str) -> String { format!("the project's act records could not be read: {why}") }
+}
+impl RunsReading {
+    /// The reopened view (`view`), with each arrival of a run not recorded as ended given what an act
+    /// already in the project's act records does to it, by the arrival act control's own rule
+    /// ([`crate::checkpoint_recorder::answer_once_taken_up`], on its reader
+    /// [`crate::checkpoint_recorder::project_act_records`]). The act records are read at most once
+    /// for the whole reading. No act, run or capture record is created or changed; as for the arrival
+    /// act control, that reader may create or refresh its derived query cache in the index folder
+    /// of the store this App bound (`records_index`). The path is checked before creation and
+    /// the binding again after opening; replacement between those steps is not defended against,
+    /// as on the live path. Where the cache cannot be written, validated source scans remain available. Bound to its run and its exact arrival
+    /// (checkpoint, arrival number and the arrival entry's record identity), each projection is one
+    /// of: `waiting` (no act or decline on record answers it), `awaiting count` (one on record
+    /// answers it and is not yet counted in the run's record), or `unknown` with its reason. The
+    /// run's recorded entries are carried unchanged beside it. An arrival whose recorded disposition
+    /// the rule already refuses (performed, resolved negatively, lapsed, or performed and answered
+    /// again only by an act) gets no projection: its recorded disposition decides. Where the act
+    /// records cannot be read at all, every arrival of every run projected here is `unknown`.
+    pub fn view_reopened(&self, root: &std::path::Path) -> Value {
+        self.view_reopened_with(REOPENED_RECORDS_BOUND, root, &mut || crate::checkpoint_recorder::project_act_records(root))
+    }
+    pub(crate) fn view_reopened_with(&self, bound: usize, root: &std::path::Path, acts: &mut dyn FnMut() -> Result<crate::checkpoint_recorder::ActRead, String>) -> Value {
+        let mut view = self.view_bounded(bound);
+        let projected = self.answerability(root, acts);
+        if let Some(rows) = view["runs"].as_array_mut() {
+            // Only a run that is projected carries the field: a run that has ended, or has no arrival,
+            // keeps its row exactly as the plain view gives it.
+            for row in rows.iter_mut().filter(|row| row["lifecycle"]["records"].is_array()) {
+                if let Some(list) = row["run"].as_str().and_then(|run| projected.get(run)) {
+                    row["answerability"] = json!(list);
+                }
+            }
+        }
+        view["answerabilityStanding"] = json!(ANSWERABILITY_STANDING);
+        view
+    }
+    fn answerability(&self, root: &std::path::Path, acts: &mut dyn FnMut() -> Result<crate::checkpoint_recorder::ActRead, String>) -> std::collections::BTreeMap<String, Vec<Value>> {
+        use crate::checkpoint_recorder::{answer_once_taken_up, not_answering};
+        fn arrivals(r: &RecordedRun) -> Vec<&Value> { r.records.iter().filter(|e| e["kind"] == "checkpoint_arrival").collect() }
+        // After a run ends an act no longer changes its arrivals (after_run_end): nothing is projected for it.
+        let projected: Vec<&RecordedRun> = self.runs.iter()
+            .filter(|r| !matches!(r.lifecycle, RecordedLifecycle::Ended { .. }) && !arrivals(r).is_empty())
+            .collect();
+        let mut out = std::collections::BTreeMap::new();
+        if projected.is_empty() {
+            return out; // nothing to project, so no read
+        }
+        let read = acts(); // the one read of the project's act records for this reading
+        for run in projected {
+            // The run's own entries, in their log's order, as the recorder holds them: each in the record.
+            let entries: Vec<Value> = run.records.iter().map(|e| json!({"kind":e["kind"],"body":e["body"],"written":true})).collect();
+            let mut list = Vec::new();
+            for arrival in arrivals(run) {
+                let b = &arrival["body"];
+                let coordinate = json!({"checkpoint":b["checkpoint"],"arrivalOrdinal":b["arrivalOrdinal"]});
+                let same = run.records.iter().filter(|e| e["kind"] == "checkpoint_arrival" && e["body"]["checkpoint"] == b["checkpoint"] && e["body"]["arrivalOrdinal"] == b["arrivalOrdinal"]).count();
+                let unknown = |why: String| (Some("unknown"), Some(why));
+                let (state, reason) = if !b["checkpoint"].is_string() || !b["arrivalOrdinal"].is_u64() || same != 1 || !arrival["recordId"].is_string() {
+                    unknown(answerability_unknown::COORDINATE.into())
+                } else if run.lifecycle != RecordedLifecycle::OpenInterrupted {
+                    unknown(answerability_unknown::RUN_NOT_COMPLETE.into())
+                } else {
+                    match &read {
+                        Err(why) => unknown(answerability_unknown::acts_not_read(why)),
+                        Ok(read) => match answer_once_taken_up(&entries, read, root, &coordinate) {
+                            Ok(true) => (Some("waiting"), None),
+                            Err(e) if e == not_answering::ANSWER_PENDING => (Some("awaiting count"), None),
+                            Err(e) if e == not_answering::ACTS_NOT_READ => unknown(answerability_unknown::ACTS_NOT_SETTLED.into()),
+                            // The recorded disposition decides (performed, resolved negatively, lapsed,
+                            // unfamiliar, not established, or answered again only by an act).
+                            Ok(false) | Err(_) => (None, None),
+                        },
+                    }
+                };
+                if let Some(state) = state {
+                    list.push(json!({"run":run.run,"arrival":coordinate,"arrivalRecordId":arrival["recordId"],"state":state,"reason":reason}));
+                }
+            }
+            out.insert(run.run.clone(), list);
+        }
+        out
+    }
+}
 /// Whether the workflow a `run_opened` record names is the one its run-start record names: the
 /// same kind, origin, source root, name and revision.
 fn same_workflow(opened: &Value, started: Option<&Value>) -> bool {

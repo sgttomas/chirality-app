@@ -1,8 +1,9 @@
-import { ConversationChoices, RecordedData, idWords, safeName, wordOf } from "./AgentText";
+import { AgentText, ConversationChoices, RecordedData, SuppliedId, idWords, plainId, wordOf } from "./AgentText";
 import { workflowAssurance } from "./workflowSelection";
 import { useState } from "react";
 import { beginBringBack, bringBackHeld, endBringBack } from "./bringBackDoubts";
 import { conversationChoices, conversationKey, conversationReference, findConversation } from "./TrialComposer";
+import { arrivalProjection } from "./WaitingOnYou";
 type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-any
 
 // The run panel's readable parts (DEL-01-04 NIR §9 PD-1…PD-7, placing
@@ -17,8 +18,12 @@ const list = (value: Json): Json[] => (Array.isArray(value) ? value : []);
 const CATEGORY_TITLES = { expected_inputs: "Inputs", required_tools: "Tools", checkpoints: "Checkpoints (plan guidance)", returned_outputs: "Outputs", returned_evidence: "Evidence returned" } as const;
 const text = (value: Json): string => value === null || value === undefined ? "" : typeof value === "string" ? value : JSON.stringify(value);
 const names = (value: Json): string => list(value).map(text).join(", ");
-// Declared text is shown as written; only a closing full stop is added where it has none.
-const sentence = (value: string): string => /[.!?]$/.test(value.trim()) ? value.trim() : `${value.trim()}.`;
+const recorded = (value: Json) => <AgentText value={value} source="record" name="Recorded value, not the App's words" />;
+const declared = (value: Json) => <AgentText value={value} source="file" name="Workflow declaration value, not the App's words" />;
+const recordId = (value: Json) => plainId(typeof value === "number" && Number.isSafeInteger(value) ? String(value) : value) ?? recorded(value);
+const declaredId = (value: Json) => plainId(value) ?? declared(value);
+const recordWord = (words: Record<string, string>, value: Json) => wordOf(words, value) ?? recorded(value);
+const declarationWord = (words: Record<string, string>, value: Json) => wordOf(words, value) ?? declared(value);
 
 // DS-1 / AP-1: one label per act kind.
 export const ACT_LABEL: Record<string, string> = { A4: "mark checked", A5: "accept", A6: "approve", A7: "rely", A10: "reject", A12: "set grant", A15: "register workflow revision" };
@@ -67,7 +72,7 @@ function decisionPath(p: Json): string {
 const readingNote = (element: Json) => {
   const words = READING[text(element?.reading)] ?? text(element?.reading);
   const findings = list(element?.findings).map(text);
-  return words || findings.length ? <small> · {words || "finding"}{findings.length ? `: ${findings.join("; ")}` : ""}</small> : null;
+  return words || findings.length ? <small> · {wordOf(READING, element?.reading) ?? declared(element?.reading)}{findings.length ? <>: {declared(findings.join("; "))}</> : null}</small> : null;
 };
 
 // SD-2: an arrival's disposition as a record label, never a run state.
@@ -105,12 +110,21 @@ const lapseLine = (b: Json, pending = false): string => {
   return `Lapse observed for ${text(b?.act?.actKind)} ${text(b?.act?.recordId)} at ${text(b?.time)} (${text(b?.when)}): ${LAPSE_STATE[text(b?.state)] ?? text(b?.state)}.${label} Nothing is asked or stopped because of it.`;
 };
 const line = (key: string, body: Json) => <span key={key}><br /><small>{body}</small></span>;
+/** PRD V4-WF-05: what the App says of a pause at a declared checkpoint, wherever a checkpoint or its arrivals are shown. */
+export const CHECKPOINT_COOPERATION = "Any pause at a declared checkpoint is the agent's cooperation with the workflow, not a hold by the App: the App does not stop, pause or interrupt the run there.";
 export type OpenArrivalFileAct = (runRef: string, arrivalRecordId: string) => Promise<void>;
+/** A reopened run's projection for one arrival (the host's `answerability`, App Agent 0's H2), matched to the run and
+ * the exact arrival as "Waiting on you" matches it; undefined for a run that carries none (a run of this process). */
+const answerabilityOf = (run: Json, arrival: Json): Json | null | undefined =>
+  Array.isArray(run?.answerability) ? arrivalProjection(run, text(run?.reference ?? run?.run), arrival) : undefined;
 
 /** EXEC CE-3 / SD-2: one recorded arrival with its latest disposition, read from
  * the run record. Information only: nothing waits on it and nothing is sent. */
-export function ArrivalRecord({ arrival, all, runRef, fileActEntry, openFileAct, busy = false }: {
+export function ArrivalRecord({ arrival, all, runRef, fileActEntry, openFileAct, busy = false, answerability }: {
   arrival: Json; all: Json[]; runRef?: string; fileActEntry?: Json; openFileAct?: OpenArrivalFileAct; busy?: boolean;
+  /** For a run reopened after the App restarted: the host's projection for this arrival, or null where none matches it;
+   * undefined for a run of this process. */
+  answerability?: Json | null;
 }) {
   const b = arrival?.body ?? {};
   const name = text(b.checkpoint);
@@ -129,27 +143,38 @@ export function ArrivalRecord({ arrival, all, runRef, fileActEntry, openFileAct,
   const note = writtenNote(arrival, all);
   const candidate = fileActEntry?.state === "candidate" && !!runRef && typeof arrival?.recordId === "string" && !!arrival.recordId;
   const fileActReason = text(fileActEntry?.reason) || (runRef ? "No current file-act entry was supplied by the host for this arrival." : "Historical or reopened arrival: no current owned file-act entry is available.");
+  // H2: for a reopened run, what an act already in the act records does to it, beside the recorded disposition.
+  // A reopened arrival with no projection bound to it is unknown, never waiting.
+  const projected = answerability === undefined ? undefined : answerability?.state === "waiting" || answerability?.state === "awaiting count" ? answerability.state : "unknown";
+  const reason = answerability?.state === "unknown" && typeof answerability?.reason === "string"
+    ? <AgentText value={answerability.reason} source="record" label="Reason:" name="The host's reason, as it gave it, not the App's words" /> : <>this reading gave no projection of the act records for it</>;
+  const label = latest !== "waiting" || projected === undefined || projected === "waiting" ? <>{latest === undefined ? "disposition not recorded" : (wordOf(DISPOSITION, latest) ?? <>not a recorded disposition ({recorded(latest)})</>)}</>
+    : projected === "awaiting count" ? <>recorded as waiting; an act or decline answering it is already in the project's act records and is not yet counted in this run's record, so nothing is asked of you for it</>
+    : <>recorded as waiting; whether an act already recorded answers it is not known: {reason}; it is not listed as waiting</>;
   return <li>
-    Arrival {text(b.arrivalOrdinal)}: {latest === undefined ? "disposition not recorded" : arrivalLabel(latest)}. Observed {text(b.event?.ref)}{time ? ` at ${text(time.value)} (${TIME_SOURCE[text(time.source)] ?? text(time.source)})` : ""}.
-    {list(b.referents).map((r: Json, i: number) => line(`r${i}`, `Subject: ${text(r?.subject)}; content ${r?.content?.notObtainable ? `not obtainable: ${text(r.content.reason)}` : `${text(r?.content?.method)} ${text(r?.content?.value).slice(0, 12)}`}.`))}
+    Arrival {recordId(b.arrivalOrdinal)}: {label}. Observed {recordId(b.event?.ref)}{time ? <> at {recordId(time.value)} ({recordWord(TIME_SOURCE, time.source)})</> : null}.
+    {list(b.referents).map((r: Json, i: number) => line(`r${i}`, <>Subject: {recorded(r?.subject)}; content {r?.content?.notObtainable ? <>not obtainable: {recorded(r.content.reason)}</> : <>{recordId(r?.content?.method)} {recordId(text(r?.content?.value).slice(0, 12))}</>}.</>))}
     {requests.length
-      ? requests.map((r: Json, i: number) => line(`q${i}`, `Request for the act observed: ${text(r.body?.form)} from ${text(r.body?.requester?.kind)}; act kind ${text(r.body?.actKind)}. A request is not the act.`))
-      : line("q", `Request for the act: ${b.requestObservation?.state === "not yet observed" ? "no request from the agent observed" : text(b.requestObservation?.state)}.`)}
-    {related("act_counted").map((c: Json, i: number) => line(`a${i}`, `Recorded act counted: ${text(c.body?.act?.actKind)} ${text(c.body?.act?.recordId)}, capture time ${text(c.body?.act?.capturedAt)}, ${ACT_RELATION[text(c.body?.relation)] ?? text(c.body?.relation)}.`))}
-    {!postEndBound && (postEnd.length>0 || related("act_lapsed").some((e: Json) => e.body?.when === "after run end")) && line("end-limit", `Post-end subject association not established for this arrival: ${text(arrival?.afterRunEndRelationLimit) || "corrected or ambiguous arrival coordinate"}. The observation remains in the recorded history.`)}
-    {(postEndBound ? postEnd : []).map((c: Json, i: number) => line(`end${i}`, `After run end, recorded act: ${text(c.body?.act?.actKind)} ${text(c.body?.act?.recordId)}, capture time ${text(c.body?.act?.capturedAt)}. The ended arrival disposition is unchanged. ${writtenNote(c, all)}`))}
-    {related("act_not_counted").map((c: Json, i: number) => line(`n${i}`, `Act not counted: ${text(c.body?.act?.actKind)} ${text(c.body?.act?.recordId)}, captured ${text(c.body?.act?.capturedAt)}: ${text(c.body?.reason)}${c.body?.capturedBeforeArrival === true ? " (prior act not counted)" : ""}.`))}
-    {related("arrival_declined").map((c: Json, i: number) => line(`d${i}`, `Recorded decline (${text(c.body?.declinedEventRef)}).`))}
-    {related("continued_past").map((c: Json, i: number) => line(`c${i}`, `The agent went on with ${text(c.body?.actionRef)} with no act recorded against this arrival. This is a record, not a finding against the agent.`))}
-    {related("run_resumed").map((c: Json, i: number) => line(`s${i}`, `After the recorded act the run went on with ${text(c.body?.firstActionRef)}.`))}
-    {related("act_lapsed").filter((c: Json) => postEndBound || c.body?.when !== "after run end").map((c: Json, i: number) => line(`x${i}`, `${lapseLine(c.body, c.written === false)} ${writtenNote(c, all)}`))}
-    {list(b.limits).map((l: Json, i: number) => line(`l${i}`, `Limit: ${text(l)}`))}
-    {note && line("w", note)}
+      ? requests.map((r: Json, i: number) => line(`q${i}`, <>Request for the act observed: {recorded(r.body?.form)} from {recorded(r.body?.requester?.kind)}; act kind {recordId(r.body?.actKind)}. A request is not the act.</>))
+      : line("q", <>Request for the act: {b.requestObservation?.state === "not yet observed" ? "no request from the agent observed" : recorded(b.requestObservation?.state)}.</>)}
+    {related("act_counted").map((c: Json, i: number) => line(`a${i}`, <>Recorded act counted: {recordId(c.body?.act?.actKind)} {recordId(c.body?.act?.recordId)}, capture time {recordId(c.body?.act?.capturedAt)}, {recordWord(ACT_RELATION, c.body?.relation)}.</>))}
+    {!postEndBound && (postEnd.length>0 || related("act_lapsed").some((e: Json) => e.body?.when === "after run end")) && line("end-limit", <>Post-end subject association not established for this arrival: {arrival?.afterRunEndRelationLimit ? recorded(arrival.afterRunEndRelationLimit) : "corrected or ambiguous arrival coordinate"}. The observation remains in the recorded history.</>)}
+    {(postEndBound ? postEnd : []).map((c: Json, i: number) => line(`end${i}`, <>After run end, recorded act: {recordId(c.body?.act?.actKind)} {recordId(c.body?.act?.recordId)}, capture time {recordId(c.body?.act?.capturedAt)}. The ended arrival disposition is unchanged. {recorded(writtenNote(c, all))}</>))}
+    {related("act_not_counted").map((c: Json, i: number) => line(`n${i}`, <>Act not counted: {recordId(c.body?.act?.actKind)} {recordId(c.body?.act?.recordId)}, captured {recordId(c.body?.act?.capturedAt)}: {recorded(c.body?.reason)}{c.body?.capturedBeforeArrival === true ? " (prior act not counted)" : ""}.</>))}
+    {related("arrival_declined").map((c: Json, i: number) => line(`d${i}`, <>Recorded decline ({recordId(c.body?.declinedEventRef)}).</>))}
+    {related("continued_past").map((c: Json, i: number) => line(`c${i}`, <>The agent went on with {recordId(c.body?.actionRef)} with no act recorded against this arrival. This is a record, not a finding against the agent.</>))}
+    {related("run_resumed").map((c: Json, i: number) => line(`s${i}`, <>After the recorded act the run went on with {recordId(c.body?.firstActionRef)}.</>))}
+    {related("act_lapsed").filter((c: Json) => postEndBound || c.body?.when !== "after run end").map((c: Json, i: number) => line(`x${i}`, recorded(`${lapseLine(c.body, c.written === false)} ${writtenNote(c, all)}`)))}
+    {list(b.limits).map((l: Json, i: number) => line(`l${i}`, <>Limit: {recorded(l)}</>))}
+    {latest === "waiting" && projected === "waiting" && line("p", "The project's act records, read with this reading, hold no act or decline that answers it.")}
+    {latest !== "waiting" && answerability?.state === "awaiting count" && line("p", "An act answering it again is already in the project's act records and is not yet counted in this run's record.")}
+    {latest !== "waiting" && answerability?.state === "unknown" && line("p", <>Whether an act already recorded would answer it is not known: {reason}.</>)}
+    {note && line("w", recorded(note))}
     {candidate ? <p>
       <button disabled={busy || !openFileAct} onClick={() => openFileAct?.(runRef!, arrival.recordId)}>Review file for this arrival…</button>{" "}
-      {fileActReason} The host rechecks the original source and current file when you click. Review opens a frozen offer; a separate native confirmation is required for an act.
+      {recorded(fileActReason)} The host rechecks the original source and current file when you click. Review opens a frozen offer; a separate native confirmation is required for an act.
       {!openFileAct && " File review is unavailable in this view."}
-    </p> : <p role="note">Arrival file review unavailable: {fileActReason}</p>}
+    </p> : <p role="note">Arrival file review unavailable: {recorded(fileActReason)}</p>}
   </li>;
 }
 
@@ -166,20 +191,21 @@ export function CheckpointGuidance({ element, run, openFileAct, busy = false }: 
   const evaluability = listing?.body?.evaluability;
   const findings = all.filter((r: Json) => r?.kind === "declaration_finding" && text(r?.body?.checkpoint) === name);
   return <li>
-    <b>{text(v.name) || "(unnamed checkpoint)"}</b>: {actLabel(v.required_act)} by {ACTOR[text(v.actor)] ?? text(v.actor)} on {SUBJECT[text(v.subject?.class)] ?? text(v.subject?.class)}{v.subject?.output ? ` (${text(v.subject.output)})` : ""}, {reachedWhen(v.reached_when)}.
-    {invalid && <> <b>Declaration finding: invalid</b> ({list(element.findings).map(text).join("; ")}). It is listed as written and treated as nothing more.</>}
+    <b>{v.name ? declaredId(v.name) : "(unnamed checkpoint)"}</b>: {wordOf(ACT_LABEL, v.required_act) ?? <>act {declared(v.required_act)} (not a checkpoint act)</>} by {declarationWord(ACTOR, v.actor)} on {declarationWord(SUBJECT, v.subject?.class)}{v.subject?.output ? <> ({declaredId(v.subject.output)})</> : null}, {declared(reachedWhen(v.reached_when))}.
+    {invalid && <> <b>Declaration finding: invalid</b> ({declared(list(element.findings).map(text).join("; "))}). It is listed as written and treated as nothing more.</>}
     {!invalid && readingNote(element)}
-    <br /><small>Purpose: {sentence(text(v.purpose) || "not stated")} Scope: {sentence(text(v.scope) || "not stated")}{v.position ? ` In the method: ${sentence(text(v.position))}` : ""}</small>
-    <br /><small>Where the act is performed: {SURFACE[text(v.expected_act_evidence?.capturing_surface)] ?? "not stated"}{v.expected_act_evidence?.description ? ` (${text(v.expected_act_evidence.description)})` : ""}.</small>
-    {v.held_actions && <><br /><small>Declared held actions ({v.held_actions.form === "host_operations_only" ? `host operations ${names(v.held_actions.tools)}` : list(v.held_actions.steps).map((s: Json) => `${text(s.step)}${s.app_side ? " (App side)" : ""}`).join("; ")}): plan guidance in this phase; nothing is stopped.</small></>}
-    {(v.on_negative_decision || v.on_mixed_decision || v.on_subject_absent) && <><br /><small>{v.on_negative_decision ? `If declined: ${decisionPath(v.on_negative_decision)}. ` : ""}{v.on_mixed_decision ? `If mixed: ${decisionPath(v.on_mixed_decision)}. ` : ""}{v.on_subject_absent ? `If the subject is absent: ${decisionPath(v.on_subject_absent)}.` : ""}</small></>}
-    {v.governed !== undefined && <><br /><small>{v.governed === "yes" ? "Declared governed. In this phase that changes nothing: the checkpoint is plan guidance (OV-7)." : `Governed value not recognized (${text(v.governed)}); preserved and reported (FB-19).`}</small></>}
+    <br /><small>Purpose: {v.purpose ? declared(v.purpose) : "not stated"}. Scope: {v.scope ? declared(v.scope) : "not stated"}.{v.position ? <> In the method: {declared(v.position)}.</> : null}</small>
+    <br /><small>Where the act is performed: {wordOf(SURFACE, v.expected_act_evidence?.capturing_surface) ?? "not stated"}{v.expected_act_evidence?.description ? <> ({declared(v.expected_act_evidence.description)})</> : null}.</small>
+    {v.held_actions && <><br /><small>Declared held actions ({declared(v.held_actions.form === "host_operations_only" ? `host operations ${names(v.held_actions.tools)}` : list(v.held_actions.steps).map((s: Json) => `${text(s.step)}${s.app_side ? " (App side)" : ""}`).join("; "))}): plan guidance in this phase; nothing is stopped.</small></>}
+    {(v.on_negative_decision || v.on_mixed_decision || v.on_subject_absent) && <><br /><small>{v.on_negative_decision ? <>If declined: {declared(decisionPath(v.on_negative_decision))}. </> : null}{v.on_mixed_decision ? <>If mixed: {declared(decisionPath(v.on_mixed_decision))}. </> : null}{v.on_subject_absent ? <>If the subject is absent: {declared(decisionPath(v.on_subject_absent))}. </> : null}</small></>}
+    {v.governed !== undefined && <><br /><small>{v.governed === "yes" ? "Declared governed. In this phase that changes nothing: the checkpoint is plan guidance (OV-7)." : <>Governed value not recognized ({declared(v.governed)}); preserved and reported (FB-19).</>}</small></>}
     <br /><small>The agent asks you for the act when its work reaches this point; the App records the act only from your own confirmation at its act control, or continues recording one you confirmed earlier.</small>
-    {run && line("record", `Run record: ${!listing ? (findings.length ? `not listed: reported as a declaration finding (${findings.map((f: Json) => `${text(f.body?.finding)}, ${text(f.body?.code)}`).join("; ")}); no arrival is recorded for it (CE-2).` : invalid ? "not listed: the run record lists only the checkpoints the App recognizes (CE-1)." : "this checkpoint is missing in record (no checkpoint_listed entry for it); it is shown here from the declaration.")
+    <br /><small>{CHECKPOINT_COOPERATION}</small>
+    {run && line("record", recorded(`Run record: ${!listing ? (findings.length ? `not listed: reported as a declaration finding (${findings.map((f: Json) => `${text(f.body?.finding)}, ${text(f.body?.code)}`).join("; ")}); no arrival is recorded for it (CE-2).` : invalid ? "not listed: the run record lists only the checkpoints the App recognizes (CE-1)." : "this checkpoint is missing in record (no checkpoint_listed entry for it); it is shown here from the declaration.")
       : evaluability?.status === "not evaluable" ? `listed. The App does not record arrivals for it: ${text(evaluability?.reason)}`
-      : `listed. The App records an arrival only from what it observes in the conversation: ${text(evaluability?.reason)}`}${listing && writtenNote(listing, all) ? ` ${writtenNote(listing, all)}` : ""}`)}
+      : `listed. The App records an arrival only from what it observes in the conversation: ${text(evaluability?.reason)}`}${listing && writtenNote(listing, all) ? ` ${writtenNote(listing, all)}` : ""}`))}
     {run && listing && (arrivals.length
-      ? <ul aria-label={`Recorded arrivals of ${idWords(name)}`}>{arrivals.map((a: Json, i: number) => <ArrivalRecord key={i} arrival={a} all={all} runRef={run?.reference} fileActEntry={run?.fileActEntries?.[a.recordId]} openFileAct={openFileAct} busy={busy} />)}</ul>
+      ? <ul aria-label={`Recorded arrivals of ${idWords(name)}`}>{arrivals.map((a: Json, i: number) => <ArrivalRecord key={i} arrival={a} all={all} runRef={run?.reference} fileActEntry={run?.fileActEntries?.[a.recordId]} openFileAct={openFileAct} busy={busy} answerability={answerabilityOf(run, a)} />)}</ul>
       : line("none", `No arrival recorded in this run.${unread ? ` ${unread} arrival entr${unread === 1 ? "y" : "ies"} could not be read, so this may be incomplete.` : ""}`))}
   </li>;
 }
@@ -350,42 +376,42 @@ export function outputStanding(output: Json, run: Json): Facets {
 }
 export function StandingFacets({ facets }: { facets: Facets }) {
   return <ul aria-label="Standing facets">
-    <li>Current or historical: {facets.temporal}</li>
-    <li>Host checks: {facets.hostChecks}</li>
-    <li>Known limitations: {facets.limitations}</li>
-    <li>Human acts: {facets.humanActs}</li>
-    <li>Agent examination: {facets.examination}</li>
-    <li>Evidence: {facets.evidence}</li>
-    <li>Route and outcome: {facets.route}</li>
+    <li>Current or historical: {recorded(facets.temporal)}</li>
+    <li>Host checks: {recorded(facets.hostChecks)}</li>
+    <li>Known limitations: {recorded(facets.limitations)}</li>
+    <li>Human acts: {recorded(facets.humanActs)}</li>
+    <li>Agent examination: {recorded(facets.examination)}</li>
+    <li>Evidence: {recorded(facets.evidence)}</li>
+    <li>Route and outcome: {recorded(facets.route)}</li>
   </ul>;
 }
 
 /** The declared part, readable (WD §4; OV-1). `run` adds the record's view. */
 export function DeclaredPart({ declaration, run, openFileAct, busy = false }: { declaration: Json; run?: Json; openFileAct?: OpenArrivalFileAct; busy?: boolean }) {
   if (!declaration) return <p>Declared part: not supplied by the host.</p>;
-  if (declaration.unavailable) return <p role="note">Declared part could not be read: {text(declaration.unavailable)}</p>;
+  if (declaration.unavailable) return <p role="note">Declared part could not be read: {declared(declaration.unavailable)}</p>;
   const elements = (category: string): Json[] => list(declaration.elements?.[category]);
   const category = (key: keyof typeof CATEGORY_TITLES, render: (element: Json, index: number) => Json) => {
     const reading = text(declaration.categories?.[key]);
     const rows = elements(key);
     return <div key={key}>
       <h4>{wordOf(CATEGORY_TITLES, key)}</h4>
-      {rows.length === 0 ? <p>{reading === "declared_empty" ? "Declared empty." : reading === "undeclared" || !reading ? "Not declared." : `Not established (${READING[reading] ?? reading}).`}</p> : <ul>{rows.map(render)}</ul>}
+      {rows.length === 0 ? <p>{reading === "declared_empty" ? "Declared empty." : reading === "undeclared" || !reading ? "Not declared." : <>Not established ({declarationWord(READING, reading)}).</>}</p> : <ul>{rows.map(render)}</ul>}
     </div>;
   };
   const raw = declaration.raw ?? {};
   return <div aria-label="Declared part">
     {declaration.reading === "undeclared" && <p>This workflow declares no requirements part; its text is the whole method.</p>}
-    {declaration.reading === "not_established" && <p role="note">The declared part is not established: {list(declaration.findings).map(text).join("; ")}. It is shown as far as it was read.</p>}
-    {declaration.reading === "recognized" && list(declaration.findings).length > 0 && <p><small>Findings: {list(declaration.findings).map(text).join("; ")}</small></p>}
-    {category("expected_inputs", (e, i) => <li key={i}><b>{text(e.value?.name)}</b> ({e.value?.necessity === "optional" ? "optional" : "required"}; {INPUT_KIND[text(e.value?.kind)] ?? text(e.value?.kind)}{e.value?.read_through ? ` through ${text(e.value.read_through)}` : ""}): {text(e.value?.meaning)}{e.value?.basis_requirement ? ` Basis: ${text(e.value.basis_requirement)}` : ""}{e.value?.absence_effect ? ` If absent: ${text(e.value.absence_effect)}` : ""}{readingNote(e)}</li>)}
-    {category("required_tools", (e, i) => <li key={i}><b>{text(e.value?.name)}</b> ({e.value?.necessity === "optional" ? "optional" : "required"} {TOOL_CLASS[text(e.value?.class)] ?? text(e.value?.class)}{e.value?.operation ? ` ${text(e.value.operation)}` : ""}{e.value?.capability ? ` ${text(e.value.capability)}` : ""}{list(e.value?.versions).length ? `, versions ${names(e.value.versions)}` : ""}): {text(e.value?.purpose)}{e.value?.fallback ? ` Fallback: ${text(e.value.fallback)}` : ""}{readingNote(e)}</li>)}
+    {declaration.reading === "not_established" && <p role="note">The declared part is not established: {declared(list(declaration.findings).map(text).join("; "))}. It is shown as far as it was read.</p>}
+    {declaration.reading === "recognized" && list(declaration.findings).length > 0 && <p><small>Findings: {declared(list(declaration.findings).map(text).join("; "))}</small></p>}
+    {category("expected_inputs", (e, i) => <li key={i}><b>{declaredId(e.value?.name)}</b> ({e.value?.necessity === "optional" ? "optional" : "required"}; {declarationWord(INPUT_KIND, e.value?.kind)}{e.value?.read_through ? <> through {declaredId(e.value.read_through)}</> : null}): {declared(e.value?.meaning)}{e.value?.basis_requirement ? <> Basis: {declared(e.value.basis_requirement)}</> : null}{e.value?.absence_effect ? <> If absent: {declared(e.value.absence_effect)}</> : null}{readingNote(e)}</li>)}
+    {category("required_tools", (e, i) => <li key={i}><b>{declaredId(e.value?.name)}</b> ({e.value?.necessity === "optional" ? "optional" : "required"} {declarationWord(TOOL_CLASS, e.value?.class)}{e.value?.operation ? <> {declaredId(e.value.operation)}</> : null}{e.value?.capability ? <> {declaredId(e.value.capability)}</> : null}{list(e.value?.versions).length ? <>, versions {declared(names(e.value.versions))}</> : null}): {declared(e.value?.purpose)}{e.value?.fallback ? <> Fallback: {declared(e.value.fallback)}</> : null}{readingNote(e)}</li>)}
     {category("checkpoints", (e, i) => <CheckpointGuidance key={i} element={e} run={run} openFileAct={openFileAct} busy={busy} />)}
-    {category("returned_outputs", (e, i) => <li key={i}><b>{text(e.value?.name)}</b> ({OUTPUT_FORM[text(e.value?.form)] ?? text(e.value?.form)}{e.value?.path ? ` at ${text(e.value.path)}` : ""}{e.value?.designating_line ? `, first line “${text(e.value.designating_line)}”` : ""}; to {text(e.value?.destination)}): {text(e.value?.meaning)}{readingNote(e)}
-      <br /><small>Declared promise, not a standing: {names(e.value?.promised_standing) || "none"}.{e.value?.gating_checkpoint ? ` Declared with checkpoint ${text(e.value.gating_checkpoint)}.` : ""}</small>
+    {category("returned_outputs", (e, i) => <li key={i}><b>{declaredId(e.value?.name)}</b> ({declarationWord(OUTPUT_FORM, e.value?.form)}{e.value?.path ? <> at {declared(e.value.path)}</> : null}{e.value?.designating_line ? <>, first line {declared(e.value.designating_line)}</> : null}; to {declared(e.value?.destination)}): {declared(e.value?.meaning)}{readingNote(e)}
+      <br /><small>Declared promise, not a standing: {list(e.value?.promised_standing).length ? declared(names(e.value.promised_standing)) : "none"}.{e.value?.gating_checkpoint ? <> Declared with checkpoint {declaredId(e.value.gating_checkpoint)}.</> : null}</small>
       {run && <StandingFacets facets={outputStanding(e.value, run)} />}</li>)}
-    {category("returned_evidence", (e, i) => <li key={i}><b>{text(e.value?.name)}</b> ({EVIDENCE_KIND[text(e.value?.kind)] ?? text(e.value?.kind)}, for {names(e.value?.supports)}): {text(e.value?.meaning)}{readingNote(e)}</li>)}
-    <p>Written for roles: {raw.compatible_roles === undefined ? "not stated (any role)" : names(raw.compatible_roles) || "none established"}. Tool ceiling: {raw.tool_restriction === undefined ? "none declared" : names(raw.tool_restriction?.capabilities) || "no capabilities"}.</p>
+    {category("returned_evidence", (e, i) => <li key={i}><b>{declaredId(e.value?.name)}</b> ({declarationWord(EVIDENCE_KIND, e.value?.kind)}, for {declared(names(e.value?.supports))}): {declared(e.value?.meaning)}{readingNote(e)}</li>)}
+    <p>Written for roles: {raw.compatible_roles === undefined ? "not stated (any role)" : declared(names(raw.compatible_roles) || "none established")}. Tool ceiling: {raw.tool_restriction === undefined ? "none declared" : declared(names(raw.tool_restriction?.capabilities) || "no capabilities")}.</p>
     <details><summary>Declared part as the host read it (JSON)</summary><RecordedData value={declaration} /></details>
   </div>;
 }
@@ -510,18 +536,34 @@ export function RunBringBack({ run, conversations, defaultThread = null, busy, a
   </>;
 }
 
+/** A run's recorded checkpoint arrivals where the run carries no declaration to show them under (a reopened run whose
+ * declaration the host could not verify): each from the run record alone, with its latest recorded disposition. */
+function UndeclaredArrivals({ run, openFileAct, busy }: { run: Json; openFileAct?: OpenArrivalFileAct; busy: boolean }) {
+  const all = records(run);
+  const arrivals = all.filter((r: Json) => r?.kind === "checkpoint_arrival" && typeof r?.body?.checkpoint === "string");
+  if (!arrivals.length) return null;
+  return <div aria-label="Recorded checkpoint arrivals">
+    <p>Recorded checkpoint arrivals, from the run record alone: without the declaration, who must act is not recorded here.</p>
+    <ul>{arrivals.map((a: Json, i: number) => <li key={i}>Checkpoint <SuppliedId value={a.body.checkpoint} source="record" label="Checkpoint:" name="Checkpoint name as recorded, not the App's words" />
+      <ul><ArrivalRecord arrival={a} all={all} runRef={run?.reference} fileActEntry={run?.fileActEntries?.[a.recordId]} openFileAct={openFileAct} busy={busy} answerability={answerabilityOf(run, a)} /></ul></li>)}</ul>
+    <p><small>{CHECKPOINT_COOPERATION}</small></p>
+  </div>;
+}
+
 /** PD-1, PD-3, PD-7 for one run, from the run view the host reports. */
 export function RunPanel({ run, conversations, bringBackDefault = null, busy = false, act, openFileAct }: { run: Json; conversations?: Json[]; bringBackDefault?: Json; busy?: boolean; act?: RunBringBackAct; openFileAct?: OpenArrivalFileAct }) {
   const compatibility = list(run?.compatibility);
   const declaration = compatibility.find((c: Json) => c?.preparation?.declaration)?.preparation?.declaration;
   const workflow = run?.workflow ?? {};
   return <div aria-label="Run panel">
-    <p>Workflow {text(workflow.name)} ({text(workflow.origin)}), revision {text(workflow.revision).slice(0, 12)} · conversation {text(run?.conversation)} · run {text(run?.lifecycle?.state)}{run?.lifecycle?.follows ? ` · follows ${text(run.lifecycle.follows)}` : ""}{run?.lifecycle?.end ? ` · ended: ${text(run.lifecycle.end.cause)}` : ""}.</p>
-    <p><small>Run record entries: {recordKinds(run).length ? recordKinds(run).join(", ") : "none written yet"}. What the record does not hold is shown as not recorded.</small></p>
+    <p>Workflow <AgentText value={text(workflow.name)} source="record" label="Workflow:" name="Workflow name as recorded, not the App's words" /> (<AgentText value={text(workflow.origin)} source="record" label="Origin:" name="Workflow origin as recorded, not the App's words" />), revision <SuppliedId value={text(workflow.revision).slice(0, 12)} source="record" label="Revision:" name="Workflow revision as recorded, not the App's words" /> · conversation <SuppliedId value={run?.conversation ?? null} source="record" label="Conversation:" name="Conversation identity as recorded, not the App's words" /> · run <AgentText value={text(run?.lifecycle?.state)} source="record" label="State:" name="Run state as the host reported it, not the App's words" />{run?.lifecycle?.follows ? <> · follows <SuppliedId value={run.lifecycle.follows} source="record" label="Follows:" name="Earlier run reference as recorded, not the App's words" /></> : null}{run?.lifecycle?.end ? <> · ended: <AgentText value={text(run.lifecycle.end.cause)} source="record" label="Cause:" name="Run end cause as recorded, not the App's words" /></> : null}.</p>
+    <p><small>Run record entries: {recordKinds(run).length ? recorded(recordKinds(run).join(", ")) : "none written yet"}. What the record does not hold is shown as not recorded.</small></p>
     <RecordWriteNotice run={run} />
     <HistoryReferenceNotice pointers={run?.learningPointers} run={run} />
-    <h4>Declared part of {text(workflow.name) ? safeName(workflow.name) : "this workflow"}</h4>
+    <h4>Declared part of this run's workflow</h4>
+    <p><small>Workflow <AgentText value={text(workflow.name) || null} source="record" label="Workflow:" name="Workflow name as recorded, not the App's words" /></small></p>
     {declaration ? <DeclaredPart declaration={declaration} run={run} openFileAct={openFileAct} busy={busy} /> : <p>The declared part was not evaluated for this run, so it is not shown here.</p>}
+    {!declaration && <UndeclaredArrivals run={run} openFileAct={openFileAct} busy={busy} />}
     <h4>Compatibility (advisory)</h4>
     {compatibility.length ? <ul>{compatibility.map((c: Json, i: number) => <CompatibilityAdvisory key={i} entry={c} />)}</ul> : <p>No compatibility evaluation for this run.</p>}
     {act && <RunBringBack run={run} conversations={conversations ?? []} defaultThread={bringBackDefault} busy={busy} act={act} />}
