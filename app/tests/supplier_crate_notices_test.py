@@ -285,6 +285,35 @@ def test_workspace_text_must_equal_its_identity_and_listing(repo):
         crates.check(repo)
 
 
+# Review round 3, finding 6: a collection keyed by an identifier refuses a repeat instead of keeping the last entry.
+@pytest.mark.parametrize('change, message', [
+    (lambda v: v['workspaces'].insert(0, {**json_copy(next(w for w in v['workspaces'] if w['lock'] == 'ripgrep')),
+                                          'repository': 'https://github.com/madsmtm/objc2'}), 'repeats a workspace entry for one lockfile'),
+    (lambda v: v['locks'].append({**json_copy(v['locks'][0]), 'component': 'invented'}), 'repeats a lockfile id'),
+    (lambda v: v['locks'].append({**json_copy(v['locks'][0]), 'id': 'invented'}), 'repeats a lockfile component'),
+    (lambda v: v['manifests'].append({**json_copy(v['manifests'][0]), 'id': 'invented'}), 'repeats a parent manifest path'),
+    (lambda v: v['manifests'].append(json_copy(v['manifests'][0])), 'repeats a parent manifest id'),
+])
+def test_a_repeated_identifier_refuses(repo, change, message):
+    assert crates.check(repo)
+    edit(repo, crates.ASSOCIATIONS, change)
+    with pytest.raises(ValueError, match=message):
+        crates.check(repo)
+
+
+def test_one_repository_identity_for_every_comparison():
+    # Review round 3, finding 5: GitHub owner and repository compare without regard to case; a .git suffix refuses in any case.
+    assert crates.same_repository('https://github.com/OpenAI/Codex', 'https://github.com/openai/codex')
+    assert crates.same_source(('https://GitHub.com/OpenAI/Codex', 'a' * 40), ('https://github.com/openai/codex', 'a' * 40))
+    assert not crates.same_source(('https://github.com/openai/codex', 'a' * 40), ('https://github.com/openai/codex', 'b' * 40))
+    assert not crates.same_repository('https://github.com/openai/codex', 'https://github.com/openai/codex-other')
+    assert crates.same_repository('https://example.invalid/x.tar.gz', 'https://example.invalid/x.tar.gz')
+    assert not crates.same_repository('https://example.invalid/X.tar.gz', 'https://example.invalid/x.tar.gz')
+    for spelling in ('https://github.com/a/b.git', 'https://github.com/a/b.GIT', 'https://github.com/a/b.Git'):
+        assert not crates.canonical_form(spelling)
+    assert crates.canonical_form('https://github.com/OpenAI/Codex')
+
+
 def test_a_locked_git_package_without_association_refuses(repo):
     edit(repo, crates.ASSOCIATIONS, lambda v: v['git_sources'].pop())
     with pytest.raises(ValueError, match='no Git association'):
@@ -373,8 +402,9 @@ def test_a_changed_publisher_text_or_source_identity_refuses(repo, change, messa
     (lambda e: member(e, 'clipboard-win').update(archive_metadata={}), 'archive_metadata has keys'),
     (lambda e: member(e, 'clipboard-win')['archive_metadata']['Cargo.toml'].update(size_bytes=-1), 'size_bytes must be a positive integer'),
     # Review round 2: exact types, not values that merely compare or print alike.
-    (lambda e: member(e, 'clipboard-win').update(path_in_vcs=None), 'path_in_vcs must be a repository-relative path, or empty'),
-    (lambda e: member(e, 'clipboard-win').update(path_in_vcs='../elsewhere'), 'path_in_vcs must be a repository-relative path, or empty'),
+    (lambda e: member(e, 'clipboard-win').update(path_in_vcs=None), 'records null with its path_basis, and only then'),
+    (lambda e: member(e, 'clipboard-win').update(path_in_vcs='../elsewhere'), 'path_in_vcs matches no accepted shape'),
+    (lambda e: e.update(repository='https://github.com/DoumanAsh/clipboard-win.GIT'), 'repository must be exactly https://github'),
     (lambda e: member(e, 'clipboard-win')['archive_metadata']['Cargo.toml'].update(sha256=10 ** 63), 'sha256 must be a SHA-256 digest'),
     (lambda e: member(e, 'clipboard-win').update(archive_repository=''), 'archive_repository matches no accepted shape'),
     # The association's revision must be the one the archive's VCS record names, and its repository the archive's.
@@ -386,6 +416,34 @@ def test_a_changed_publisher_text_or_source_identity_refuses(repo, change, messa
 def test_a_publisher_association_needs_its_provenance(repo, change, message):
     edit(repo, crates.ASSOCIATIONS, lambda v: change(publisher(v, 'clipboard-win')))
     with pytest.raises(ValueError, match=message):
+        crates.check(repo)
+
+
+# Review round 3, finding 4: an archive that states no path_in_vcs is recorded as null with its basis, never as the root.
+def test_an_omitted_archive_path_is_null_with_its_basis():
+    value = json.loads((ROOT / crates.ASSOCIATIONS).read_text())
+    omitted = sorted(p['name'] for e in value['registry_sources'] for p in e['packages'] if p['path_in_vcs'] is None)
+    assert omitted == ['schemafy_core', 'schemafy_lib', 'wasite']
+    for e in value['registry_sources']:
+        for p in e['packages']:
+            # An empty string is a root the archive's VCS record states (review_publisher_texts.py compares it).
+            assert (p['path_in_vcs'] is None) == ('path_basis' in p)
+
+
+@pytest.mark.parametrize('change, message', [
+    (lambda p: p.update(path_in_vcs=''), 'records null with its path_basis, and only then'),
+    (lambda p: p.pop('path_basis'), 'records null with its path_basis, and only then'),
+    (lambda p: p.update(path_basis=''), 'path_basis must be a non-empty string'),
+])
+def test_an_omitted_path_needs_its_basis(repo, change, message):
+    edit(repo, crates.ASSOCIATIONS, lambda v: change(member(publisher(v, 'wasite'), 'wasite')))
+    with pytest.raises(ValueError, match=message):
+        crates.check(repo)
+
+
+def test_a_stated_path_carries_no_basis(repo):
+    edit(repo, crates.ASSOCIATIONS, lambda v: member(publisher(v, 'clipboard-win'), 'clipboard-win').update(path_basis='INVENTED'))
+    with pytest.raises(ValueError, match='records null with its path_basis, and only then'):
         crates.check(repo)
 
 
@@ -901,7 +959,9 @@ def test_an_inherited_dependency_that_also_names_a_package_refuses(repo):
 def test_an_uncited_parent_manifest_refuses(repo):
     def extra(v):
         item = json_copy(parent(v, 'winapi-0.3.9'))
-        item['id'] = 'winapi-copy'
+        copy_path = crates.BASE + '/manifests/winapi-copy.Cargo.toml'
+        (repo / copy_path).write_bytes((repo / item['path']).read_bytes())
+        item.update(id='winapi-copy', path=copy_path)
         v['manifests'].append(item)
     edit(repo, crates.ASSOCIATIONS, extra)
     with pytest.raises(ValueError, match='cited by no reverse dependency'):

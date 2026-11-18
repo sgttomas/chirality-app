@@ -137,7 +137,9 @@ def positive(value):
 
 
 def canonical_form(repository):
-    return type(repository) is str and CANONICAL_REPOSITORY.fullmatch(repository) is not None and not repository.endswith('.git')
+    """Exactly https://github.com/<owner>/<repository>, with no `.git` suffix in any letter case."""
+    return (type(repository) is str and CANONICAL_REPOSITORY.fullmatch(repository) is not None
+            and not repository.lower().endswith('.git'))
 
 
 def github_identity(url):
@@ -147,6 +149,22 @@ def github_identity(url):
         return None
     match = re.fullmatch(r'https?://github\.com/([^/]+)/([^/#?]+?)(?:\.git)?(?:/.*)?', url, re.I)
     return (match.group(1) + '/' + match.group(2)).lower() if match else None
+
+
+def repository_key(url):
+    """The one identity every repository comparison in crates.py and notices/coverage.py uses: a GitHub repository's
+    owner/repository, lower-cased (GitHub ignores their case, and the `.git` suffix), and any other URL exactly."""
+    identity = github_identity(url)
+    return ('github', identity) if identity is not None else ('url', url)
+
+
+def same_repository(a, b):
+    return repository_key(a) == repository_key(b)
+
+
+def same_source(a, b):
+    """Whether two (repository, revision) pairs name the same repository and revision."""
+    return same_repository(a[0], b[0]) and a[1] == b[1]
 
 
 # One strict, typed shape for every curated collection of associations.json, applied once when the file is loaded
@@ -207,9 +225,11 @@ ASSOCIATIONS_SHAPE = _map({
     'app_texts': _list(_map({'packages': _list(PACKAGE), 'checksum': SHA, 'repository': REPOSITORY, 'revision': OID,
                              'reading_required': FLAG, 'basis': TEXT, 'texts': _list(_map({'app_path': PATH, **FILE}))})),
     'registry_sources': _list(_map({
-        'packages': _list(_map({**CRATE, 'path_in_vcs': FOLDER, 'archive_vcs_revision': OID,
+        # path_in_vcs is null where the archive's VCS record states none; then path_basis says how the folder is inferred.
+        'packages': _list(_map({**CRATE, 'path_in_vcs': _any(FOLDER, NULL), 'path_basis': TEXT, 'archive_vcs_revision': OID,
                                 'archive_repository': _any(GITHUB_URL, NULL),
-                                'archive_metadata': _map({'Cargo.toml': _map(IDENTITY), '.cargo_vcs_info.json': _map(IDENTITY)})})),
+                                'archive_metadata': _map({'Cargo.toml': _map(IDENTITY), '.cargo_vcs_info.json': _map(IDENTITY)})},
+                               optional=('path_basis',))),
         'repository': REPOSITORY, 'repository_basis': TEXT, 'revision': OID, 'listing': LISTING, 'basis': TEXT,
         'texts': _list(_map({'source_path': PATH, **FILE, 'listing_blob': OID, 'listing_size': SIZE}))},
         optional=('repository_basis',))),
@@ -259,10 +279,21 @@ def validate(value, shape, where):
         raise ValueError(f'{where} matches no accepted shape: ' + ' | '.join(failures))
 
 
+def unique(values, what):
+    """Refuse a repeated identifier: a collection keyed by it would otherwise keep only its last entry."""
+    repeated = sorted({v for v in values if values.count(v) > 1})
+    require(not repeated, f'associations.json repeats {what}: ' + ', '.join(map(str, repeated)))
+
+
 def load_associations(repo):
-    """associations.json, after the typed shape check of every collection."""
+    """associations.json, after the typed shape check of every collection and with no identifier repeated."""
     value = load(repo, ASSOCIATIONS)
     validate(value, ASSOCIATIONS_SHAPE, 'associations.json')
+    unique([lock['id'] for lock in value['locks']], 'a lockfile id')
+    unique([lock['component'] for lock in value['locks']], 'a lockfile component')
+    unique([w['lock'] for w in value['workspaces']], 'a workspace entry for one lockfile')
+    unique([m['id'] for m in value['manifests']], 'a parent manifest id')
+    unique([m['path'] for m in value['manifests']], 'a parent manifest path')
     return value
 
 
@@ -366,7 +397,8 @@ def registry_sources(associations):
     checks below; the shape is already checked at load.
 
     Enforced: each package's recorded archive VCS revision equals the association's revision; the archive's recorded
-    repository is the same GitHub repository (or, where it names none, the association states its basis); each text is
+    repository is the same GitHub repository (or, where it names none, the association states its basis); a path_in_vcs the
+    archive does not state is null with its path_basis, and only then; each text is
     named as a notice by the archive route's rule, at a path that rule accepts; each text's blob and size equal the
     recorded listing entry. The listing, the archive metadata and the publisher's tree are not read here: whether the
     recorded values are true of them is the review of associations.json (see the README's review boundary)."""
@@ -380,12 +412,15 @@ def registry_sources(associations):
             require(route.is_notice(text['source_path']), 'a registry-source text is not named as a notice: ' + text['source_path'])
         inferred = False
         for package in entry['packages']:
+            require(('path_basis' in package) == (package['path_in_vcs'] is None),
+                    'a package whose archive states no path_in_vcs records null with its path_basis, and only then: '
+                    + package['name'])
             require(package['archive_vcs_revision'] == entry['revision'], 'the archive\'s VCS record names another revision than '
                     'the association: ' + package['name'])
             if package['archive_repository'] is None:
                 inferred = True
             else:
-                require(github_identity(package['archive_repository']) == github_identity(entry['repository']),
+                require(same_repository(package['archive_repository'], entry['repository']),
                         'the archive names another repository than the association: ' + package['name'])
             key = (package['name'], package['version'], package['checksum'])
             require(key not in found, 'two registry-source associations for ' + ' '.join(key[:2]))
@@ -569,7 +604,7 @@ def absence(entry, lock, packages, reverse, parents):
                     'the manifest is not the locked archive\'s Cargo.toml: ' + dependent['name'])
         else:
             require(kind(parent) == 'path' and source['kind'] == 'workspace-file'
-                    and (source['repository'], source['revision']) == (lock['repository'], lock['revision']),
+                    and same_source((source['repository'], source['revision']), (lock['repository'], lock['revision'])),
                     'the workspace manifest is not at the lockfile\'s repository and revision: ' + dependent['name'])
         require(manifest.get('package', {}).get('name') == dependent['name'], 'the manifest is another package\'s: ' + dependent['name'])
         explicit, inherited = classify(manifest)
@@ -618,7 +653,7 @@ def parent_notices(item, rows_by_key, workspaces):
                 and len(notice['texts']) == len(row['texts']),
                 'a parent manifest\'s crate does not stand text with the recorded licence texts: ' + item['id'])
     else:
-        texts = [t['path'] for w in workspaces if (w['repository'], w['revision']) == (source['repository'], source['revision'])
+        texts = [t['path'] for w in workspaces if same_source((w['repository'], w['revision']), (source['repository'], source['revision']))
                  for t in w['texts']]
         require('workspace_texts' in notice and texts and notice['workspace_texts'] == texts,
                 'a workspace manifest is not covered by its workspace\'s shipped texts: ' + item['id'])
@@ -710,7 +745,11 @@ def entries(repo):
         for package in source['packages']:
             require(package not in git, 'two Git associations for ' + package)
             git[package] = source
-    workspaces = {w['lock']: w for w in associations['workspaces']}
+    lock_ids = {lock['id'] for lock in associations['locks']}
+    workspaces = {}
+    for workspace in associations['workspaces']:
+        require(workspace['lock'] in lock_ids, 'a workspace entry names no lockfile: ' + workspace['lock'])
+        workspaces[workspace['lock']] = workspace
     rows = []
     used_git = set()
     for lock in associations['locks']:
@@ -777,7 +816,7 @@ def entries(repo):
                 match = GIT_SOURCE.fullmatch(package['source'])
                 source = git.get(f'{name} {version}')
                 require(source is not None, 'no Git association for locked package ' + f'{name} {version}')
-                require((source['repository'], source['revision']) == (match.group(1), match.group(3)),
+                require(same_source((source['repository'], source['revision']), (match.group(1), match.group(3))),
                         'Git association names another repository or revision than the lock: ' + name)
                 used_git.add(f'{name} {version}')
                 row.update(repository=source['repository'], revision=source['revision'],
@@ -842,7 +881,7 @@ def hold_for_reading(row, key, repository):
         found = ('another text (sha256 ' + ', '.join(d[:12] for d in digests) + ')') if digests else 'no text'
         return {'reason': 'listed for the owner\'s reading of the objc2 overview text, but this row carries ' + found + ' instead '
                 'of that text; no accepted evidence establishes another notice for this package, so it stays open'}
-    if carries or github_identity(repository) in {github_identity(r) for r in READING_REPOSITORIES}:
+    if carries or (repository is not None and any(same_repository(repository, r) for r in READING_REPOSITORIES)):
         return {'awaiting': awaiting if carries else None,
                 'reason': 'not on the named list for the owner\'s objc2 reading, but its row ' + ('carries the objc2 overview text'
                           if carries else 'comes from ' + OBJC2_REPOSITORY) + '; held until the list and the reading cover it'}

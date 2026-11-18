@@ -559,7 +559,8 @@
      "name": "schemafy_core",
      "version": "0.5.2",
      "checksum": "41781ae092f4fd52c9287efb74456aea0d3b90032d2ecad272bd14dbbcb0511b",
-     "path_in_vcs": "",
+     "path_in_vcs": null,
+     "path_basis": "the archive's VCS record names the revision and no path_in_vcs. The saved listing of Marwes/schemafy at 5f835025 (complete, 45 entries) has a Cargo.toml at the root, in schemafy_core/ and in schemafy_lib/; a listing gives paths and blobs, not file contents, so it shows only folder names, not which package each Cargo.toml declares, and the package's folder is inferred from its name (schemafy_core/). The selection does not depend on that inference: neither member folder holds a notice-named file, and for each of the three folders the rule takes the root's LICENSE (blob 32781d97, 1,085 bytes); the only other notice-named file in the listing, tests/vega/LICENSE, is outside all three selections",
      "archive_vcs_revision": "5f835025d16d691f168315dda93efc52ae1e4e5e",
      "archive_repository": "https://github.com/Marwes/schemafy",
      "archive_metadata": {
@@ -577,7 +578,8 @@
      "name": "schemafy_lib",
      "version": "0.5.2",
      "checksum": "e953db32579999ca98c451d80801b6f6a7ecba6127196c5387ec0774c528befa",
-     "path_in_vcs": "",
+     "path_in_vcs": null,
+     "path_basis": "the archive's VCS record names the revision and no path_in_vcs. The saved listing of Marwes/schemafy at 5f835025 (complete, 45 entries) has a Cargo.toml at the root, in schemafy_core/ and in schemafy_lib/; a listing gives paths and blobs, not file contents, so it shows only folder names, not which package each Cargo.toml declares, and the package's folder is inferred from its name (schemafy_lib/). The selection does not depend on that inference: neither member folder holds a notice-named file, and for each of the three folders the rule takes the root's LICENSE (blob 32781d97, 1,085 bytes); the only other notice-named file in the listing, tests/vega/LICENSE, is outside all three selections",
      "archive_vcs_revision": "5f835025d16d691f168315dda93efc52ae1e4e5e",
      "archive_repository": "https://github.com/Marwes/schemafy",
      "archive_metadata": {
@@ -657,7 +659,8 @@
      "name": "wasite",
      "version": "0.1.0",
      "checksum": "b8dad83b4f25e74f184f64c43b150b91efe7647395b42289f38e50566d82855b",
-     "path_in_vcs": "",
+     "path_in_vcs": null,
+     "path_basis": "the archive's VCS record names the revision and no path_in_vcs. The saved listing of ardaku/wasite at 0c72934a (complete, 18 entries) has a single Cargo.toml, at the root, so the package is the repository root, and the rule takes the root's three licence files",
      "archive_vcs_revision": "0c72934ad329ab4670eb017581640c2d6eceb289",
      "archive_repository": "https://github.com/ardaku/wasite",
      "archive_metadata": {
