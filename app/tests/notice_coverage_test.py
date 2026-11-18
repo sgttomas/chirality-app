@@ -293,10 +293,18 @@ class Account(Builds):
         codex, rg = rows['codex-crate-dependencies'], rows['ripgrep-crate-dependencies']
         self.assertEqual((rg['standing'], rg['packages']['total'], rg['packages']['gap']), (coverage.COVERED, 59, 0))
         self.assertEqual(codex['standing'], coverage.UNCOVERED)
-        self.assertEqual((codex['packages']['total'], codex['packages']['gap'], codex['packages']['held']), (1483, 138, 5))
-        self.assertEqual(len(codex['open_packages']), 143)
+        packages = codex['packages']
+        self.assertEqual((packages['total'], packages['text'], packages['gap'], packages['held'], packages['no-publisher-text'],
+                          packages['not-in-macos-package']), (1483, 1393, 53, 23, 8, 6))
+        # Held, gap and no-publisher-text packages are open; recorded absence is not, and each absent package is named.
+        self.assertEqual(len(codex['open_packages']), 84)
+        self.assertEqual(sorted(p['name'] for p in codex['excluded_packages']),
+                         ['linux-keyutils', 'rustls-platform-verifier-android', 'socks5-protocol', 'winapi-i686-pc-windows-gnu',
+                          'winapi-x86_64-pc-windows-gnu', 'winsplit'])
+        self.assertTrue(all(p['absence']['reverse_dependencies'] for p in codex['excluded_packages']))
         self.assertIn('some may not be compiled', codex['packages']['superset'])
         self.assertIn('objc2-foundation 0.3.2', codex['reason'])
+        self.assertIn('crc32c 0.6.8', codex['reason'])
         # The table cannot claim covered for an open group.
         self.setUp(); self.edit(TABLE, lambda v: next(c for c in v['components'] if c['id'] == 'codex-crate-dependencies').update(standing='covered'))
         with self.assertRaisesRegex(ValueError, 'the table says covered'): self.build()
@@ -327,6 +335,53 @@ class Account(Builds):
         # A lockfile whose bytes drift refuses.
         self.setUp(); lock = self.repo / crates_dir / 'locks/ripgrep.Cargo.lock'; lock.write_bytes(lock.read_bytes() + b'\n')
         with self.assertRaisesRegex(ValueError, 'lockfile differs'): self.build()
+
+    # App Agent 0's condition: packages that state a licence with no publisher text are open, never covered; an account
+    # whose only open packages are of that kind still fails --strict.
+    def test_no_publisher_text_alone_keeps_the_account_open_and_strict_refuses(self):
+        from unittest.mock import patch
+        crates = coverage.texts.supplier_crates  # the module coverage.py itself calls
+        # Invented for this copy: the other open supplier rows ship the skill-creator text, so only the crate group is open.
+        creator = 'app/packaging/supplier_notices/codex-skills-086ccc83/skill-creator/license.txt'
+
+        def close_others(v):
+            for c in v['components']:
+                if c['id'] in ('codex-skill-imagegen-sample', 'codex-skill-openai-docs-sample', 'codex-vendored-bubblewrap'):
+                    c.update(texts=[creator], standing='covered'); c.pop('reason'); c.pop('would_close')
+        self.edit(TABLE, close_others)
+        real = crates.group
+
+        def only_no_publisher_text(repo, component):
+            value = real(repo, component)
+            if value is None or component != 'codex-crate-dependencies':
+                return value
+            donor = next(r for r in value['packages'] if r['standing'] == 'text' and r['texts'])
+            rows = []
+            for row in value['packages']:
+                if row['standing'] in ('held', 'gap'):
+                    row = {k: v for k, v in row.items() if k not in ('reason', 'would_close')}
+                    row.update(standing='text', texts=row['texts'] or donor['texts'], basis='INVENTED')
+                rows.append(row)
+            return {**value, 'packages': rows}
+        with patch.object(crates, 'group', only_no_publisher_text):
+            value = self.build()
+            codex = next(c for c in value['components'] if c.get('id') == 'codex-crate-dependencies')
+            self.assertEqual({p['standing'] for p in codex['open_packages']}, {'no-publisher-text'})
+            self.assertEqual(len(codex['open_packages']), 8)
+            self.assertEqual(codex['standing'], coverage.UNCOVERED)
+            self.assertEqual([o['name'] for o in value['open']], [codex['name']])
+            self.assertIn('8 state a licence with no publisher text found', codex['reason'])
+            # The strict check refuses this account.
+            (self.repo / coverage.ACCOUNT).write_bytes(coverage.encode(value))
+            real_check = coverage.check
+            with patch.object(coverage, 'check', lambda **kw: real_check(self.repo, **kw)), \
+                    patch.object(sys, 'argv', ['coverage.py', 'check', '--strict']), \
+                    patch('sys.stdout', io.StringIO()), patch('sys.stderr', io.StringIO()) as err:
+                self.assertEqual(coverage.main(), 1)
+            self.assertIn('not covered: ' + codex['name'], err.getvalue())
+            # Nothing turns these packages covered: the table cannot say so.
+            self.edit(TABLE, lambda v: next(c for c in v['components'] if c['id'] == 'codex-crate-dependencies').update(standing='covered'))
+            with self.assertRaisesRegex(ValueError, 'the table says covered'): self.build()
 
     def test_a_dropped_component_needs_a_reviewed_statement(self):
         # The account as the reviewed copy generates it is the base and the committed account the generator compares with.
@@ -417,14 +472,18 @@ class Account(Builds):
 
     def test_supplier_table_must_claim_every_member_and_justify_gaps(self):
         table = TABLE
-        self.edit(table, lambda v: v['components'].pop(next(i for i, c in enumerate(v['components']) if c['id'] == 'zlib')))
+        self.edit(table, lambda v: next(c for c in v['components'] if c['id'] == 'zlib').update(members=[]))
         with self.assertRaisesRegex(ValueError, 'claimed by no component'): coverage.build(self.repo)
+        # Dropping a voice row also leaves a library of the supplier's sources.json that no row accounts for.
+        self.setUp()
+        self.edit(table, lambda v: v['components'].pop(next(i for i, c in enumerate(v['components']) if c['id'] == 'zlib')))
+        with self.assertRaisesRegex(ValueError, 'no voice row accounts for: zlib'): coverage.build(self.repo)
         self.setUp()
         self.edit(table, lambda v: next(c for c in v['components'] if c['id'] == 'fp16').update(standing='uncovered'))
         with self.assertRaises((ValueError, KeyError)): coverage.build(self.repo)
         self.setUp()
         self.edit(table, lambda v: next(c for c in v['components'] if c['id'] == 'opus').update(members=['codex-resources/voice/lib/invented.dylib']))
-        with self.assertRaisesRegex(ValueError, 'not in the tree'): coverage.build(self.repo)
+        with self.assertRaisesRegex(ValueError, 'not in the tree|supplier manifest does not list'): coverage.build(self.repo)
 
     # Round 2 finding 1: a curated input cannot change without its review record; removals fail a test in the same change.
     def test_curated_input_changes_refuse_without_the_review_record(self):
@@ -448,7 +507,7 @@ class Account(Builds):
         with self.assertRaisesRegex(ValueError, 'differ from the review record'): self.build()
 
     def test_expected_supplier_components(self):
-        # At 0.169.0: the voice rows are open because sources.json changed; three rows are new and open.
+        # At 0.169.0: the voice rows are established by the supplier's voice records; three rows are new and open.
         expected = {
             'codex': 'covered', 'codex-skill-creator-sample': 'covered', 'codex-skill-installer-sample': 'covered',
             'codex-skill-imagegen-sample': 'uncovered', 'codex-skill-openai-docs-sample': 'uncovered',
@@ -458,9 +517,9 @@ class Account(Builds):
             'icu': 'covered', 'libcxx': 'covered', 'libcxxabi': 'covered', 'llvm-libc': 'covered',
             'libcxx-credits-and-subdirectories': 'covered', 'libcxxabi-credits-and-subdirectories': 'covered',
             'llvm-libc-subdirectories': 'covered', 'highway': 'covered', 'fast_float': 'covered', 'simdutf': 'covered',
-            'dragonbox': 'covered', 'fp16': 'covered', 'abseil-cpp': 'covered', 'gstreamer': 'uncovered',
-            'gst-plugins-base': 'uncovered', 'gst-plugins-good': 'uncovered', 'glib': 'uncovered', 'proxy-libintl': 'uncovered',
-            'libffi': 'uncovered', 'pcre2-voice': 'uncovered', 'opus': 'uncovered', 'zlib': 'uncovered'}
+            'dragonbox': 'covered', 'fp16': 'covered', 'abseil-cpp': 'covered', 'gstreamer': 'covered',
+            'gst-plugins-base': 'covered', 'gst-plugins-good': 'covered', 'glib': 'covered', 'proxy-libintl': 'covered',
+            'libffi': 'covered', 'pcre2-voice': 'covered', 'opus': 'covered', 'zlib': 'covered'}
         table = json.loads((ROOT / TABLE).read_text())
         self.assertEqual({c['id']: c['standing'] for c in table['components']}, expected)
         account = self.build()
@@ -612,23 +671,29 @@ class Account(Builds):
         voice = [c for c in table['components'] if c['supplier_tree_texts']]
         self.assertEqual(len(voice), 9)
         self.assertTrue(all(c['revision'] is None and c['repository'].startswith('https://') for c in voice))
-        # At 0.169.0 the voice rows stay open: sources.json changed and its content is not held.
+        # At 0.169.0 the voice rows are covered, each established by the supplier's sources.json.
         opus = self.row(self.build(), 'Opus')
-        self.assertEqual(opus['standing'], coverage.UNCOVERED)
-        self.assertIn('sources.json', opus['reason'])
+        self.assertEqual(opus['standing'], coverage.COVERED)
+        self.assertEqual(opus['source_statement']['url'], opus['source']['repository'])
 
         def reviewed(v, repository):
-            row = next(c for c in v['components'] if c['id'] == 'opus')
-            row.update(standing='covered', repository=repository)
-            row.pop('reason'); row.pop('would_close')
-        self.setUp(); self.edit(TABLE, lambda v: reviewed(v, next(c for c in v['components'] if c['id'] == 'opus')['repository']))
-        self.assertEqual(self.row(self.build(), 'Opus')['standing'], coverage.COVERED)
+            next(c for c in v['components'] if c['id'] == 'opus').update(repository=repository)
         for repository in (None, '', 'opus-1.6.1.tar.gz'):
             with self.subTest(repository=repository):
+                # With the supplier's voice records held, a row whose source differs from them refuses.
                 self.setUp(); self.edit(TABLE, lambda v, r=repository: reviewed(v, r))
+                with self.assertRaisesRegex(ValueError, 'no single native-library entry of sources.json states the source of opus'):
+                    self.build()
+                # Without them, the row's own identity is still checked first.
+                shutil.rmtree(self.repo / coverage.voice_records.RECORDS)
                 row = self.row(self.build(), 'Opus')
                 self.assertEqual(row['standing'], coverage.UNCOVERED)
                 self.assertIn('source URL', row['reason'])
+        # Without the records, a voice row with a complete identity is open, not covered.
+        self.setUp(); shutil.rmtree(self.repo / coverage.voice_records.RECORDS)
+        row = self.row(self.build(), 'Opus')
+        self.assertEqual(row['standing'], coverage.UNCOVERED)
+        self.assertIn('voice records for', row['reason'])
 
     def test_library_content_must_match_its_bundle_source_record(self):
         self.edit(texts.INPUTS, lambda v: v['library_content'][1].update(revision='d' * 40))
