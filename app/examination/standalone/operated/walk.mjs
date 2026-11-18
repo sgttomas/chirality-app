@@ -263,6 +263,7 @@ function inMenuBar(elements) {
  * starts no walk, reads no file and calls no service.
  */
 export function pageRefusal(text, launchedName, scenario) {
+  if (typeof text !== 'string') return 'the view returned no text';  // as view() refuses it, before anything reads it
   const { elements, refusal } = recognise(text, launchedName);
   return refusal ?? notThePage(elements, scenario);
 }

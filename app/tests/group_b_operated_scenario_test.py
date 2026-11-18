@@ -2603,14 +2603,31 @@ console.log(JSON.stringify(await walk.run(given)));
 
 # The page rule as an operator who acts without the walk runs it (README, "The signed-out rehearsal of phase 1"): the
 # file imported, the setup scenario parsed by its only constructor, and walk.pageRefusal called on a captured view's
-# text. Whatever the import or the calls reach is kept: a timer, a fetch, a window service, a file.
+# text. Whatever the import or the calls reach is kept: the clock, a timer, a fetch, a window service, a file; and
+# every module the files ask node to resolve, by a hook on node's own resolver (so an import whose name is computed,
+# or whose failure is caught, is seen too).
+RESOLVER = '''
+import { appendFileSync } from 'node:fs';
+let log;
+export function initialize(data) { log = data.log; }
+export async function resolve(specifier, context, next) {
+  appendFileSync(log, JSON.stringify([context.parentURL ?? null, specifier]) + '\\n');
+  return next(specifier, context);
+}
+'''
 PAGE_RULE = '''
 import fs from 'node:fs';
-import { syncBuiltinESMExports } from 'node:module';
-const [walkUrl, scenarioPath, textsPath] = process.argv.slice(1);
+import { register, syncBuiltinESMExports } from 'node:module';
+const [walkUrl, scenarioPath, textsPath, importsPath] = process.argv.slice(1);
 const texts = JSON.parse(fs.readFileSync(textsPath, 'utf8'));
 const scenarioText = fs.readFileSync(scenarioPath, 'utf8');
+register('data:text/javascript,' + encodeURIComponent(RESOLVER), { data: { log: importsPath } });
 const reached = [];
+const RealDate = globalThis.Date;
+globalThis.Date = new Proxy(RealDate, {
+  construct(target, given) { reached.push('new Date'); return new target(...given); },
+  get(target, property) { if (property === 'now') reached.push('Date.now'); return Reflect.get(target, property); },
+});
 for (const name of ['setTimeout', 'setInterval', 'setImmediate', 'fetch']) {
   const real = globalThis[name];
   globalThis[name] = (...given) => { reached.push(name); return real(...given); };
@@ -2629,19 +2646,24 @@ syncBuiltinESMExports();
 const reasons = texts.map(([text, name]) => walk.pageRefusal(text, name, made.scenario));
 process.stdout.write(JSON.stringify({ refusal: made.refusal ?? null, reasons, reached,
   plain: reasons.every(reason => reason === null || typeof reason === 'string') }));
-'''
+'''.replace('RESOLVER', json.dumps(RESOLVER))
 
 
-def page_rule(texts, scenario=SETUP):
-    """What walk.pageRefusal returns for each [text, launched name], and what importing and calling it reached."""
+def page_rule(texts, scenario=SETUP, walk=WALK):
+    """What walk.pageRefusal returns for each [text, launched name]; what importing and calling it reached; and
+    `imports`, what the walk's file and the scenario's form asked node to resolve meanwhile."""
     with tempfile.TemporaryDirectory() as folder:
-        path = Path(folder) / 'texts.json'
+        path, imports = Path(folder) / 'texts.json', Path(folder) / 'imports.jsonl'
         path.write_text(json.dumps(texts))
-        done = subprocess.run([NODE, '--input-type=module', '-e', PAGE_RULE, WALK.as_uri(), str(scenario), str(path)],
+        imports.write_text('')
+        done = subprocess.run([NODE, '--input-type=module', '-e', PAGE_RULE, walk.as_uri(), str(scenario), str(path), str(imports)],
                               capture_output=True, text=True, timeout=60)
+        resolved = [json.loads(line) for line in imports.read_text().splitlines()]
     if done.returncode != 0:
         raise AssertionError(done.stderr)
-    return json.loads(done.stdout)
+    own = (walk.resolve().as_uri(), walk.resolve().with_name('scenario.mjs').as_uri(), walk.as_uri(), walk.with_name('scenario.mjs').as_uri())
+    return {**json.loads(done.stdout), 'asked': [name for _, name in resolved],
+            'imports': sorted({name for parent, name in resolved if parent in own})}
 
 
 def page_reason(text, name=INVENTED_APP, scenario=SETUP):
@@ -2721,7 +2743,9 @@ class ThePageRuleAnOperatorRuns(unittest.TestCase):
         cases = {
             'differences': ('The following is a diff from the previous accessibility tree\n~\t15 close button', INVENTED_APP, "its first line is not the supplier's window line"),
             'no change': ('There has been no change in the accessibility tree', INVENTED_APP, "its first line is not the supplier's window line"),
-            'no text': (None, INVENTED_APP, "its first line is not the supplier's window line"),
+            'no text': (None, INVENTED_APP, 'the view returned no text'),
+            'a text that is not a string': ([self.PAGE], INVENTED_APP, 'the view returned no text'),
+            'an object in place of the text': ({'text': self.PAGE}, INVENTED_APP, 'the view returned no text'),
             "another build's name": (self.PAGE, 'Chirality App v4 (development other)', "the window line's App is not the launched build"),
             'no name given': (self.PAGE, None, "the launched build's name is not given"),
             'a menu bar without File': (self.PAGE.replace('\t21 File\n', ''), INVENTED_APP, 'the element lines are not in index order'),
@@ -2743,6 +2767,50 @@ class ThePageRuleAnOperatorRuns(unittest.TestCase):
         self.assertEqual(result['reached'], [])
         self.assertTrue(result['plain'])
         self.assertEqual([reason is None for reason in result['reasons']], [True, False])
+        # What node was asked to resolve for the two files, whatever came of it: hashing and the scenario's form. No
+        # window service, and no file module (the walk asks for that one only once a walk is under way).
+        self.assertIn(WALK.as_uri(), result['asked'])  # the hook saw the operator's own import
+        self.assertNotIn('node:fs', result['imports'])
+        self.assertEqual(result['imports'], ['./scenario.mjs', 'node:crypto'])
+
+    RULE_BEGINS = 'export function pageRefusal(text, launchedName, scenario) {\n'
+
+    def changed_walk(self, at_the_end='', in_the_rule=''):
+        """A copy of the walk's file, with the scenario's form beside it: lines added at its end, or as the rule's first."""
+        folder = Path(tempfile.mkdtemp()).resolve()
+        self.addCleanup(shutil.rmtree, folder, True)
+        shutil.copy(OPERATED / 'scenario.mjs', folder / 'scenario.mjs')
+        source = WALK.read_text()
+        self.assertEqual(source.count(self.RULE_BEGINS), 1)
+        (folder / 'walk.mjs').write_text(source.replace(self.RULE_BEGINS, self.RULE_BEGINS + in_the_rule + '\n') + '\n' + at_the_end + '\n')
+        return folder / 'walk.mjs'
+
+    def test_the_probe_sees_a_walk_entered_or_a_service_asked_for_on_import(self):
+        # The regressions the probe is for, made in a copy and seen: a walk begun when the file is imported, although
+        # it ends before any call; and a window service asked for by a computed name, its failure caught.
+        texts = [[self.PAGE, INVENTED_APP]]
+        entered = page_rule(texts, walk=self.changed_walk('await run({});'))
+        self.assertEqual(entered['reasons'], [None])
+        self.assertTrue(entered['reached'], 'a walk entered on import was not seen')
+        asked = page_rule(texts, walk=self.changed_walk("try { await import('@oai/' + 'sky'); } catch { /* not installed here */ }"))
+        self.assertEqual(asked['reasons'], [None])
+        self.assertEqual(asked['imports'], ['./scenario.mjs', '@oai/sky', 'node:crypto'])
+        # The same from inside the rule: a file module asked for when it is called.
+        inside = page_rule(texts, walk=self.changed_walk(in_the_rule="  import('node:' + 'fs').catch(() => {});"))
+        self.assertEqual(inside['reasons'], [None])
+        self.assertEqual(inside['imports'], ['./scenario.mjs', 'node:crypto', 'node:fs'])
+        # And the copy as it is, unchanged, is clean: what the probe sees above is the change and nothing else.
+        clean = page_rule(texts, walk=self.changed_walk())
+        self.assertEqual((clean['reached'], clean['imports']), ([], ['./scenario.mjs', 'node:crypto']))
+
+    def test_the_walks_entry_points_are_called_nowhere_but_from_outside_and_from_run(self):
+        # run is the file's one entry, called by whoever imports it and nowhere in the file; walk is called by run alone.
+        source = re.sub(r'/\*.*?\*/', '', WALK.read_text(), flags=re.S)
+        lines = [re.sub(r'//.*$', '', line).strip() for line in source.splitlines()]
+        self.assertEqual([line for line in lines if re.search(r'\brun\s*\(', line)], ['export async function run(options) {'])
+        self.assertEqual([line for line in lines if re.search(r'\bwalk\s*\(', line)],
+                         ['return await walk(options, holder);', 'async function walk(options, holder) {'])
+        self.assertFalse([line for line in lines if re.search(r'=\s*(run|walk)\s*[;,)]|\b(run|walk)\s*\.\s*(call|apply|bind)\b', line)])
 
     def test_the_file_imports_no_window_service_and_reads_files_only_inside_a_walk(self):
         # What the import of walk.mjs brings with it: node's hashing and the scenario's form, which imports nothing. A
@@ -2761,8 +2829,12 @@ class ThePageRuleAnOperatorRuns(unittest.TestCase):
         self.assertTrue(all(n > begins for n, name in walk if name == 'node:fs'))
         rule = source.index('export function pageRefusal(text, launchedName, scenario) {')
         self.assertLess(rule, begins)
-        self.assertEqual(source[rule + 1:rule + 4], ['  const { elements, refusal } = recognise(text, launchedName);',
-                                                     '  return refusal ?? notThePage(elements, scenario);', '}'])
+        self.assertEqual(source[rule + 1:rule + 5], [
+            "  if (typeof text !== 'string') return 'the view returned no text';  // as view() refuses it, before anything reads it",
+            '  const { elements, refusal } = recognise(text, launchedName);',
+            '  return refusal ?? notThePage(elements, scenario);', '}'])
+        # The walk's own refusal of a view without text, in the same words.
+        self.assertIn("if (typeof state?.text !== 'string') throw new Error('the view returned no text');", WALK.read_text())
 
     def test_the_walk_itself_decides_the_page_by_this_rule_and_no_other(self):
         source = WALK.read_text()

@@ -2346,11 +2346,13 @@ recorded state serves only the candidate it was recorded on.
   The operator then reads the watch again and presses "Create settings and
   save for next launch" once, by its index in that view, waits three
   seconds and views once. A view that is not this form before the press is
-  a stop. After the press, that one view must be of the allowed page, as
-  stated above: anything else, the sheet still there or any other surface at
-  any depth, is a stop. In either stop nothing further is pressed and no
-  further view is made. Only where that one view is of the allowed page is
-  the page's result awaited as the rule above states.
+  a stop. The view after the press is judged as every other view is, by the
+  function and by nothing else: the exception for the confirmation's form
+  ends with the press. Where the function returns a reason for that view,
+  the sheet still there included, it is a stop. In either stop nothing
+  further is pressed and no further view is made. Where the function returns
+  `null`, and only then, the page's result is awaited as the rule above
+  states.
   The owner's words of 14 November 2026 are about an agent pressing the
   App's own setup confirmation; the bounds on that press are App Agent 0's.
   For this rehearsal App Agent 0 sets the checks above in place of the walk's
