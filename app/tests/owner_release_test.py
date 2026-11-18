@@ -669,6 +669,11 @@ ENVELOPE_CASES = {
                                                   (U, 'SignedData.version', 'a length in more octets than needed', None)),
     'version is a constructed INTEGER': (fx.envelope(ENVELOPE_CONTENT, version=T(0x22, T(0x02, b'\x01'))),
                                          (MF, 'SignedData.version', 'another tag', None)),
+    'review: a rival property list inside version': (fx.envelope(ENVELOPE_CONTENT, version=T(0x02, RIVAL_CONTENT)),
+                                                     (MF, 'SignedData.version', 'another version', None)),
+    'version 6': (fx.envelope(ENVELOPE_CONTENT, version=T(0x02, b'\x06')), (MF, 'SignedData.version', 'another version', None)),
+    'version of two octets': (fx.envelope(ENVELOPE_CONTENT, version=T(0x02, b'\x01\x00')), (MF, 'SignedData.version', 'another version', None)),
+    'a negative version': (fx.envelope(ENVELOPE_CONTENT, version=T(0x02, b'\xff')), (MF, 'SignedData.version', 'another version', None)),
     # digestAlgorithms
     'only a version in SignedData': (signed_data(VERSION), (MF, 'SignedData.digestAlgorithms', 'a missing element', None)),
     'digestAlgorithms is a SEQUENCE': (fx.envelope(ENVELOPE_CONTENT, digests=T(0x30, T(0x30, fx.SHA256))),
@@ -746,6 +751,10 @@ ENVELOPE_CASES = {
     'a signer with nothing in it': (fx.envelope(ENVELOPE_CONTENT, after=CERTIFICATES + T(0x31, T(0x30, b''))), (MF, 'SignedData.signerInfos', 'a missing element', 1)),
     'a signer beginning with an OCTET STRING': (fx.envelope(ENVELOPE_CONTENT, after=CERTIFICATES + T(0x31, T(0x30, T(0x04, b'x')))),
                                                 (MF, 'SignedData.signerInfos', 'another tag', 1)),
+    'a signer whose version is a rival property list': (fx.envelope(ENVELOPE_CONTENT, after=CERTIFICATES + T(0x31, T(0x30, T(0x02, RIVAL_CONTENT)))),
+                                                        (MF, 'SignedData.signerInfos', 'another version', 1)),
+    'a signer of version 6': (fx.envelope(ENVELOPE_CONTENT, after=CERTIFICATES + T(0x31, T(0x30, T(0x02, b'\x06')))),
+                              (MF, 'SignedData.signerInfos', 'another version', 1)),
     'review: a rival property list inside signerInfos': (fx.envelope(ENVELOPE_CONTENT, after=CERTIFICATES + T(0x31, RIVAL_CONTENT)),
                                                          (MF, 'SignedData.signerInfos', 'an element that runs past its parent', 12)),
     'signerInfos twice': (fx.envelope(ENVELOPE_CONTENT, after=CERTIFICATES + SIGNERS + SIGNERS),
@@ -766,6 +775,8 @@ ENVELOPE_CONTROLS = {
     'a certificate holding a property list in an OCTET STRING': with_certificate(certificate(tbs=T(0x30, T(0x04, RIVAL_CONTENT)))),
     'a long-form length where needed': fx.envelope(ENVELOPE_CONTENT, version=T(0x02, b'\x01'), digests=T(0x31, T(0x30, fx.SHA256 + T(0x04, b'x' * 200)))),
     'nesting of 64 in a certificate': with_certificate(certificate(tbs=deep(60))),
+    'versions 0, 3 and 5 (the CMSVersion bounds)': fx.envelope(ENVELOPE_CONTENT, version=T(0x02, b'\x05'), after=CERTIFICATES + T(
+        0x31, fx.SIGNER_INFO.replace(T(0x02, b'\x01'), T(0x02, b'\x00'), 1) + fx.SIGNER_INFO.replace(T(0x02, b'\x01'), T(0x02, b'\x03'), 1))),
 }
 CONSISTENT = {'developer_id_team_identifier': fx.TEAM, 'production_bundle_identifier': 'com.chirality.app'}
 

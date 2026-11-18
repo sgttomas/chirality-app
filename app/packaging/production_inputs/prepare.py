@@ -128,7 +128,8 @@ DATA_OID = bytes.fromhex('2a864886f70d010701')
 # well formed, each element must end within its parent, and no byte may be left over at any level. The fields of the
 # one SignedData must have their declared outer shape, to the depth of their type tags and no deeper. The value is
 # taken from the one place the envelope defines as its content: the one primitive OCTET STRING of eContent under
-# id-data. The rest of the envelope is walked for well-formedness and declared outer shape, not interpreted: a
+# id-data. The rest of the envelope is walked for well-formedness and declared outer shape, not interpreted (the one
+# value read beyond a type tag is each CMSVersion, which must be one octet from 0 to 5): a
 # certificate can legitimately carry arbitrary bytes inside its own fields, so "no other property list anywhere in the
 # file" is not claimed. Nothing is authenticated. The order of the elements of a SET OF (which DER sorts) and the
 # unused bits of a BIT STRING are not checked; universal primitive contents other than INTEGER, OBJECT IDENTIFIER,
@@ -148,14 +149,14 @@ ENVELOPE_SHAPES = {
     'ContentInfo.contentType': 'OBJECT IDENTIFIER id-signedData (1.2.840.113549.1.7.2)',
     'ContentInfo.content': '[0] EXPLICIT holding one SignedData',
     'SignedData': 'a SEQUENCE of version, digestAlgorithms, encapContentInfo, optional certificates [0], optional crls [1], signerInfos',
-    'SignedData.version': 'INTEGER',
+    'SignedData.version': 'an INTEGER of one content octet, a CMSVersion from 0 to 5',
     'SignedData.digestAlgorithms': 'a SET of SEQUENCEs, each beginning with an OBJECT IDENTIFIER',
     'SignedData.encapContentInfo': 'a SEQUENCE of eContentType and eContent',
     'EncapsulatedContentInfo.eContentType': 'OBJECT IDENTIFIER id-data (1.2.840.113549.1.7.1)',
     'EncapsulatedContentInfo.eContent': '[0] EXPLICIT holding one primitive OCTET STRING',
     'SignedData.certificates': '[0] IMPLICIT SET of X.509 Certificates, each a SEQUENCE of exactly a SEQUENCE, a SEQUENCE and a BIT STRING',
     'SignedData.crls': '[1] IMPLICIT SET of X.509 CertificateLists, each a SEQUENCE of exactly a SEQUENCE, a SEQUENCE and a BIT STRING',
-    'SignedData.signerInfos': 'a SET of SignerInfos, each a SEQUENCE beginning with an INTEGER version',
+    'SignedData.signerInfos': 'a SET of SignerInfos, each a SEQUENCE beginning with an INTEGER version of one content octet, 0 to 5',
     'SignedData (after encapContentInfo)': 'optional certificates [0], optional crls [1], then signerInfos, then nothing',
 }
 DEFINITE_DER = 'definite-length DER'
@@ -169,7 +170,8 @@ ENVELOPE_MALFORMED = ('an element cut off at the end of its parent', 'an element
                       'a primitive SEQUENCE or SET', 'a constructed element of a type that is always primitive',
                       'an INTEGER that is empty or has a redundant leading octet', 'an OBJECT IDENTIFIER that is not well formed',
                       'a BOOLEAN that is not one octet', 'a NULL with content', 'a BIT STRING that is not well formed')
-ENVELOPE_SHAPE_FOUND = ('another tag', 'another object identifier', 'a missing element', 'more elements than declared')
+ENVELOPE_SHAPE_FOUND = ('another tag', 'another object identifier', 'a missing element', 'more elements than declared',
+                        'another version')
 whole_plist.declare(fields=ENVELOPE_SHAPES, expected={*ENVELOPE_SHAPES.values(), DEFINITE_DER, WELL_FORMED},
                     found={*ENVELOPE_UNSUPPORTED, *ENVELOPE_MALFORMED, *ENVELOPE_SHAPE_FOUND})
 _STRINGS = {3, 4, 12, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30}  # types BER allows constructed, DER does not
@@ -293,6 +295,13 @@ def _count(nodes, wanted, field, parent):
         raise _refused('more elements than declared', field, nodes[wanted].at, tag=nodes[wanted].tag())
 
 
+def _cms_version(raw, node, field, item=None):
+    """A CMSVersion (RFC 5652): an INTEGER of exactly one content octet, 0 to 5; anything else is a wrong shape. Checked
+    after the INTEGER's own well-formedness."""
+    _walk(raw, node, field, item)
+    _shape(node.end - node.content == 1 and raw[node.content] <= 5, 'another version', field, node, item)
+
+
 def _signed_outer(raw, node, field, item):
     """An X.509 Certificate or CertificateList outer shape (RFC 5280): a SEQUENCE of exactly SEQUENCE, SEQUENCE, BIT STRING."""
     _shape(node.is_(16, True), 'another tag', field, node, item)
@@ -330,7 +339,7 @@ def profile_envelope(raw):
         raise _refused('a missing element', missing, signed.end)
     version, digests, encap, rest = fields[0], fields[1], fields[2], fields[3:]
     _shape(version.is_(2, False), 'another tag', 'SignedData.version', version)
-    _walk(raw, version, 'SignedData.version')
+    _cms_version(raw, version, 'SignedData.version')
     field = 'SignedData.digestAlgorithms'
     _shape(digests.is_(17, True), 'another tag', field, digests)
     for number, algorithm in enumerate(_children(raw, digests, lambda i: (field, i + 1)), 1):
@@ -373,6 +382,7 @@ def profile_envelope(raw):
         first = _children(raw, signer, lambda _: (field, number))
         _shape(bool(first), 'a missing element', field, signer, number)
         _shape(first[0].is_(2, False), 'another tag', field, first[0], number)
+        _cms_version(raw, first[0], field, number)
         _walk(raw, signer, field, number)
     if len(rest) > 1:
         raise _refused('more elements than declared', 'SignedData (after encapContentInfo)', rest[1].at, tag=rest[1].tag())

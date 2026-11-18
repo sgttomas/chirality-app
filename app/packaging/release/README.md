@@ -529,13 +529,15 @@ must be well formed, each element must end within its parent, and no byte may
 be left over at any level. The fields of the one SignedData (RFC 5652 section
 5) must have their declared outer shape, to the depth of their type tags and
 no deeper: ContentInfo is a SEQUENCE of id-signedData and `[0]` holding one
-SignedData; SignedData holds `version` (INTEGER), `digestAlgorithms` (a SET of
+SignedData; SignedData holds `version` (an INTEGER of exactly one content
+octet, a CMSVersion from 0 to 5), `digestAlgorithms` (a SET of
 SEQUENCEs each beginning with an OBJECT IDENTIFIER), `encapContentInfo`
 (id-data and `[0]` holding one primitive OCTET STRING), optional
 `certificates` `[0]` (each an X.509 Certificate's outer shape, RFC 5280: a
 SEQUENCE of exactly a SEQUENCE, a SEQUENCE and a BIT STRING), optional `crls`
 `[1]` (each a CertificateList's outer shape, the same three), and `signerInfos`
-(a SET of SEQUENCEs each beginning with an INTEGER), in that order, then
+(a SET of SEQUENCEs each beginning with an INTEGER version of one content
+octet, 0 to 5), in that order, then
 nothing. The universal types' own rules are checked wherever they appear (a
 SEQUENCE or SET constructed; an INTEGER not empty and with no redundant
 leading octet; an OBJECT IDENTIFIER well formed; a BOOLEAN one octet; a NULL
@@ -554,8 +556,10 @@ its contents.
 
 What this establishes, and what it does not: the value is taken from the one
 place the envelope defines as its content. The rest of the envelope is walked
-for well-formedness and declared outer shape, not interpreted: the contents of
-a certificate, a signer information or the version INTEGER are not read, and a
+for well-formedness and declared outer shape, not interpreted: the one value
+read beyond a type tag is each CMSVersion (any other version is malformed); the
+contents of a certificate or of a signer information past its version are not
+read, and a
 certificate can legitimately carry arbitrary bytes inside its own fields, so
 "no other property list anywhere in the file" is not claimed. The order of the
 elements of a SET (which DER sorts) and the unused bits of a BIT STRING are not
