@@ -2225,23 +2225,32 @@ recorded state serves only the candidate it was recorded on.
   from the App's words; where a view holds, at its top, anything but the
   App's one window and its menu bar, the one exception being the
   confirmation's own view (below); and where a sheet, dialog or alert appears
-  other than that confirmation. Each launch's first view waits as "The first
+  other than that confirmation. An alert inside the page's own content that
+  holds only words, with nothing a person can operate, is the App's own
+  notice or refusal and is read as page text, as "Running a scenario"
+  states; it is not such a stop. Each launch's first view waits as "The first
   view: limits seen on 14 November 2026" states. This is the one rehearsal in
   which the operator acts by reading, and the one in which it may act in a
   view that holds Codex's reports: after the relaunch, the App's own views
   named below. It uses neither `walk.mjs` nor a recorded state.
 - **After an effect: pending, completed, refused or timed out.** A call that
   returned has not shown that the App acted ("What a call's success is").
-  After each effect the operator waits three seconds and views; if the view
-  does not yet show the effect's result, it views again every five seconds,
-  each time under the watch, for at most sixty seconds from the effect. It
-  tells four things apart by the App's own words in the view: the result is
-  there (completed); the App says it is still working, or nothing has changed
-  (pending, and it waits on); the App says it did not do it, with its reason
-  (refused); or sixty seconds have passed (timed out). It never repeats an
-  effect. In the first launch a refusal or a timeout is recorded whole and is
-  a stop. In the relaunch a reading still pending at sixty seconds is recorded
-  as not shown within the wait, never as a setting the App lacks.
+  A stop comes first: where a view shows what this section names as a stop,
+  the operator makes no further view. Otherwise, after each effect the
+  operator waits three seconds and views; if the page does not yet show the
+  effect's result, it views again every five seconds, each time under the
+  watch, for at most sixty seconds from the effect. It tells four things
+  apart by the App's own words in the page: the result is there (completed);
+  the App says it is still working, or the page has not changed (pending, and
+  it waits on); the App says it did not do it, with its reason (refused); or
+  sixty seconds have passed (timed out). It never repeats an effect. In the
+  first launch a refusal or a timeout is recorded whole and is a stop. In the
+  relaunch a refusal is recorded whole as the App's answer to that reading,
+  the control is not pressed again, and the operator goes on to the next
+  reading; a reading still pending at sixty seconds is recorded as not shown
+  within the wait, never as a setting the App lacks. Two effects are not
+  judged this way: the press on the confirmation, which is judged by one view
+  (below), and the quit, which is read from files only (below).
 - **The acts in the first launch, and no other.** Views, and, in this order:
   - one set-value of the kept folder's own `project` path into the field
     "Project folder", made only when the view is the first-use page and holds
@@ -2255,26 +2264,53 @@ recorded state serves only the candidate it was recorded on.
     appeared within the wait above, the operator stops: step 8 ends the
     launch and there is no relaunch.
 - **The confirmation.** The supplier's view gives the App's confirmation in
-  place of the window: the sheet at the top, beside the menu bar, with its
-  title and the first line of its statement in one text ("The App's own setup
-  confirmation, and the typed path"). That form is admitted for this one
-  view, after the operator's own click on the control that opens it, and for
-  no other. The sheet is pressed only when all of these hold in that view:
-  the view is whole and of the candidate; it holds one sheet and the menu bar
-  and nothing else at its top; the sheet's title is "Desktop setup — next
-  launch only"; its statement is, line for line and with nothing more or
-  less, the `statement` that `signed-out-setup.scenario.json` holds for the
-  sheet `desktop-setup`, which a test holds equal to the build's source,
-  filled so: `{settings}` with the location the page showed as "Settings
-  folder", `{account}` with "Sign-in folder", `{request}` with "Saved
-  choices", and `{project}` with the kept folder's `project`; each of those
-  three locations is under the App's data folder in the kept folder's
-  `home/`; and the sheet's buttons are "Leave setup unchanged", "Cancel" and
-  "Create settings and save for next launch", each inside the sheet and found
-  once, and no other. The operator then reads the watch again and presses
-  "Create settings and save for next launch" once, by its index in that
-  view. A difference in any of these, or a sheet still there after the
-  press, is a stop, with nothing further pressed.
+  place of the window ("The App's own setup confirmation, and the typed
+  path"). That form is admitted for this one view, after the operator's own
+  click on the control that opens it, and for no other. The sheet is pressed
+  only when the view is whole, is of the candidate, and is this form and
+  nothing else, each element line in its depth and its words (element
+  indices may differ, and `<n>` is a number):
+
+  ```text
+  Window: "Unknown", App: <the App's name>.
+  0 sheet Description: alert, Secondary Actions: Raise
+  	1 text Desktop setup — next launch only <the statement>
+  	2 button Leave setup unchanged, ID: action-button-1
+  	3 button Cancel, ID: action-button-3
+  	4 button Create settings and save for next launch, ID: action-button-2
+  5 menu bar
+  	6 <the App's name>
+  	7 File
+  	8 Edit
+  	9 View
+  	10 Window
+  	11 Help
+  	12 Waiting requests (<n>)
+
+  The focused UI element is 0 sheet Description: alert, Secondary Actions: Raise
+  ```
+
+  The App's name is the candidate bundle's folder name without `.app`. The
+  sheet holds one text and three buttons, each directly inside it, and
+  nothing more; the text is the title, a space, and the statement, whose
+  further lines follow as the text's own lines. The statement is, line for
+  line and with nothing more or less, the `statement` that
+  `signed-out-setup.scenario.json` holds for the sheet `desktop-setup`, which
+  a test holds equal to the build's source, filled so: `{settings}` with the
+  location the page showed as "Settings folder", `{account}` with "Sign-in
+  folder", `{request}` with "Saved choices", and `{project}` with the kept
+  folder's `project`. Each of those three locations is under the App's data
+  folder in the kept folder's `home/`. This form is the method's own
+  statement of the view, as `tests/group_b_operated_fixtures/signed-out-setup/sheet-on-its-own.txt`
+  documents it; it is not a state recorded on a candidate, and no record of
+  one is needed for it.
+
+  The operator then reads the watch again and presses "Create settings and
+  save for next launch" once, by its index in that view, waits three
+  seconds and views once. A view that is not this form before the press, or
+  a sheet still there in the view after it, is a stop: nothing further is
+  pressed and no further view is made. Where the sheet has gone, the page's
+  result is awaited as the rule above states.
   The owner's words of 14 November 2026 are about an agent pressing the
   App's own setup confirmation; the bounds on that press are App Agent 0's.
   For this rehearsal App Agent 0 sets the checks above in place of the walk's
@@ -2305,8 +2341,13 @@ recorded state serves only the candidate it was recorded on.
   shown in force, and the words of the sign-in control, which is read and
   never pressed. What each reading is:
   - in "Run a workflow", the App's "Project folder", recorded as the App's
-    project folder. The working folder Codex is given exists only for a
-    conversation and is recorded as not shown;
+    project folder and as nothing else. Three things are kept apart, and
+    each is recorded only as a view establishes it: that project folder; the
+    working directory the App starts its Codex in, which the source sets to
+    the saved project (`desktop_startup.rs`, `hosting.rs`) and which is
+    recorded as not shown unless a view shows it; and a working folder shown
+    for a conversation, which needs a conversation and is recorded as not
+    shown;
   - in "Settings & tools", the credential store setting with where the
     sign-in is kept, which the App shows after its control that reads the
     effective settings is pressed. That press asks the running Codex for its
@@ -2318,8 +2359,9 @@ recorded state serves only the candidate it was recorded on.
     shown for a new conversation. Opening that disclosure can make the App
     ask the running Codex for its configuration and then for its model list.
 
-  The launcher gives the App's Codex the address override, which points at
-  loopback where nothing listens, and the eight proxy overrides. It does not
+  The launcher gives the App's Codex the address override, set to
+  `http://127.0.0.1:9/v1`, and the eight proxy overrides; whether anything
+  listens at that address is not checked. It does not
   establish what Codex reached, and those overrides do not cover the web
   view's own networking (`launch.py`). The rehearsal starts no conversation
   and makes no model turn. Where the App shows no level in force, the
