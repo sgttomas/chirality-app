@@ -1608,8 +1608,10 @@ fn codex_stop(window: tauri::Window, state: State<'_, AppState>, generation: Val
     codex_stop::finish(&state.codex_stops, title, refused, result)
 }
 
-/// The App's own Quit menu item (K-4). The predefined Quit item sends
-/// `terminate:`, which ends the App without asking.
+/// The App's own Quit menu item (K-4), which runs the quit path directly.
+/// The predefined Quit item would send `terminate:`; on macOS that request
+/// (also from the Dock and the app switcher) reaches the same path only
+/// through the delegate method `quit_routes_macos` installs at startup.
 const QUIT_MENU_ID: &str = "chirality-quit";
 /// Tauri's default menu with its predefined Quit replaced by the App's own,
 /// at the same place and with the same shortcut.
@@ -1691,83 +1693,44 @@ fn show_main_window(app: &tauri::AppHandle) {
 fn request_quit(app: tauri::AppHandle) {
     request_quit_with(app, None);
 }
-/// The one quit path. `reply` is owed only to a macOS "later" answer to the
-/// system's request to terminate (`quit_routes_macos`): it is given once on
-/// every ending, yes only when the quit is decided and settled, and then the
-/// system ends the App instead of `app.exit(0)`.
+/// The one quit path (`app_quit::run_quit`), on its own thread. `reply` is
+/// owed only to a macOS "later" answer to the system's request to terminate
+/// (`quit_routes_macos`). Spawning is the last thing this does, so nothing
+/// after the spawn can unwind into that answer.
 fn request_quit_with(app: tauri::AppHandle, reply: Option<app_quit::TerminationReply>) {
     // The menu has no IPC invoker. Retain the configured App window now; never
     // select a focused/first/replacement window after the question is prepared.
     let question_window = app.get_webview_window("main").map(|window| window.as_ref().window().clone());
     let spawned = std::thread::Builder::new().name("chirality-quit".into()).spawn(move || {
-        // Exactly one ending: the App ends (by the system's terminate when a
-        // reply is owed, else by `app.exit(0)`), or it keeps running and an
-        // owed reply is no. A panic below drops `reply`, which answers no.
-        let end = |ending: app_quit::QuitEnding| match reply {
-            Some(reply) => reply.finish(ending),
-            None if ending.ends_app() => app.exit(0),
-            None => {}
-        };
         let state = app.state::<AppState>();
-        if state.app_quit.proceeding().is_some() {
-            return end(app_quit::QuitEnding::AlreadyDecided);
-        }
-        // One operation over the Codex processes at a time (Stop/Restart
-        // Codex or quit); a second Quit while the question is open (or this
-        // quit is under way) is ignored, since that question is in front of
-        // the person. Any other refusal is told in a dialog.
-        let _held = match app_quit::admit_quit(&state.app_quit, &state.codex_stop_gate) {
-            Ok(held) => held,
-            Err(reason) => match app_quit::refusal_ending(&reason) {
-                app_quit::QuitEnding::AlreadyOpen => return end(app_quit::QuitEnding::AlreadyOpen),
-                ending => {
-                    show_main_window(&app);
-                    native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality", reason);
-                    return end(ending);
-                }
-            },
-        };
-        // Keep the set of homes stable through settlement. Key setup is the
-        // only runtime path adding a home; never let it race the quit snapshot.
-        // The same gate also keeps explicit capture sealing out of Quit settlement.
-        let _key_setup = match state.key_setup.try_lock() {
-            Ok(held) => held,
-            Err(_) => {
-                show_main_window(&app);
-                native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality", "An explicit key operation is under way. The App is still running; choose Quit again when that operation has finished.".into());
-                return end(app_quit::QuitEnding::KeyOperationBusy);
-            }
-        };
-        let homes = state.homes.lock().unwrap().entries();
-        let active = state.homes.lock().unwrap().active();
-        let person = stop_person(&state, &active);
-        let retained_question_window = question_window.clone();
-        let mut ops = app_quit::HostQuit::new(homes.clone(), &state.workflows, &person, move |view: &Value| {
-            use act_control::native_statement as ns;
-            let window = retained_question_window.as_ref().ok_or("Original App window unavailable; quit confirmation refused")?;
-            let _ = window.unminimize();
-            let _ = window.show();
-            let _ = window.set_focus();
-            native_lifecycle_confirmation::confirm(window, "Quit Chirality", ns::quit_statement(view), ns::KEEP_RUNNING, ns::QUIT_APP)
-        });
-        let decision = app_quit::quit_sequence(&mut ops, app_quit::QUIT_WAIT_LIMIT);
-        if let app_quit::Decision::NotAsked(outcome) = &decision {
-            eprintln!("chirality: {}", outcome["reading"].as_str().unwrap_or("quit question not shown"));
-        }
-        let allowed = state.app_quit.allow(&decision, |ids| app_quit::finish_exit(&homes, Some(ids.to_vec())));
-        let ending = app_quit::decision_ending(&decision, &allowed);
-        if let Err(error) = allowed {
-            app_quit::QuitOps::reopen_to_new_turns(&mut ops);
-            eprintln!("chirality: {error}");
+        let gates = app_quit::QuitGates { quit: &state.app_quit, stop_gate: &state.codex_stop_gate, key_setup: &state.key_setup };
+        let tell = |title: &str, message: String| {
             show_main_window(&app);
-            native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality — still running", error);
-        }
-        end(ending)
+            native_lifecycle_confirmation::notice(question_window.as_ref(), title, message);
+        };
+        let ops = || {
+            // A poisoned homes lock is read, not refused: a quit must stay
+            // possible after a panic elsewhere, and it only reads the set.
+            let homes = state.homes.lock().unwrap_or_else(std::sync::PoisonError::into_inner).entries();
+            let active = state.homes.lock().unwrap_or_else(std::sync::PoisonError::into_inner).active();
+            let person = stop_person(&state, &active);
+            let retained_question_window = question_window.clone();
+            app_quit::HostQuit::new(homes, &state.workflows, &person, move |view: &Value| {
+                use act_control::native_statement as ns;
+                let window = retained_question_window.as_ref().ok_or("Original App window unavailable; quit confirmation refused")?;
+                let _ = window.unminimize();
+                let _ = window.show();
+                let _ = window.set_focus();
+                native_lifecycle_confirmation::confirm(window, "Quit Chirality", ns::quit_statement(view), ns::KEEP_RUNNING, ns::QUIT_APP)
+            })
+        };
+        // A panic in here drops `reply`, which answers no.
+        app_quit::run_quit(gates, reply, app_quit::QUIT_WAIT_LIMIT, ops, tell, || app.exit(0));
     });
     // A quit thread that cannot start leaves the App running; an owed reply
     // was dropped with the closure and answered no.
     if let Err(error) = spawned {
-        eprintln!("chirality: the quit could not be started ({error}); the App keeps running");
+        app_quit::diagnostic(&format!("the quit could not be started ({error}); the App keeps running"));
     }
 }
 /// Setup's end offers Quit beside its sentence (the reopen loads the saved setup): the same
@@ -3737,9 +3700,17 @@ pub fn run() {
             tauri::RunEvent::Reopen { .. } => show_main_window(app),
             // Q-6, Q-7 (AS-08, AS-09) after a decided quit, whether the App
             // ends by `app.exit(0)` or, on macOS, by the system's terminate
-            // once `quit_routes_macos` has replied yes. AS-10 when the system
-            // ends the App without the question (a signal or Force Quit, or a
-            // terminate the delegate method was not installed to answer).
+            // (a yes to a "later", or "now" once a quit is decided). If both
+            // are in flight this still runs once: tao delivers `LoopDestroyed`
+            // (this `Exit`) only from `AppState::exit`, which takes the event
+            // loop's callback after delivering it, so a second
+            // `AppState::exit` (from `applicationWillTerminate:` or after
+            // `[NSApp run]` returns) finds no callback and delivers nothing.
+            // AS-10 when this runs without a decided quit (a `terminate:` the
+            // App did not answer: its delegate method not installed, or the
+            // library's class already answering). An abrupt end (Force Quit,
+            // an unhandled fatal signal, power loss) never reaches here and
+            // writes nothing; the next launch reads ended without a record.
             tauri::RunEvent::Exit => {
                 let st: State<'_, AppState> = app.state();
                 let homes = st.homes.lock().unwrap().entries();

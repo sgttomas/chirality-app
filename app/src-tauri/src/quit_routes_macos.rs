@@ -1,29 +1,30 @@
 //! The system's request to quit, asked as the menu's Quit asks (DEL-01-02
 //! DEF-6, K-4, REQ-005, AC-006).
 //!
-//! The Dock's Quit, Command-Tab then Q, logout and shutdown send `terminate:`
-//! to the application. The event loop library (tao 0.35.2) registers an
-//! application delegate class that implements `applicationWillTerminate:` and
-//! no `applicationShouldTerminate:`, so without this module AppKit goes
-//! straight to the exit handler: no question, no interrupt, and the session
-//! end recorded as system-terminated. At startup this module adds
-//! `applicationShouldTerminate:` to the delegate's class, so that every such
-//! route runs the one quit path (`request_quit_with` in `lib.rs`) and the App
-//! ends only once that path has decided the quit.
+//! The Dock's Quit and Command-Tab then Q send `terminate:` to the
+//! application, as logout and shutdown do. The event loop library (tao
+//! 0.35.2) registers an application delegate class that implements
+//! `applicationWillTerminate:` and no `applicationShouldTerminate:`, so
+//! without this module AppKit goes straight to the exit handler: no question,
+//! no interrupt, and the limited system path. At startup this module adds
+//! `applicationShouldTerminate:` to the delegate's class, so that such a
+//! request runs the one quit path (`app_quit::run_quit`) and the App ends only
+//! once that path has decided the quit.
 //!
-//! The answer is [`app_quit::on_should_terminate`] under
-//! [`app_quit::TERMINATION_BEHAVIOUR`]: with "later" the reply is given on the
-//! main thread exactly once by [`app_quit::TerminationReply`], yes only when
-//! the quit is decided and settled; with "cancel" the termination is declined
-//! at once and the quit path ends the App itself. A termination the system
-//! forces without asking (a signal, Force Quit, power loss) never reaches
-//! this method and keeps the limited system path.
+//! The answer is [`app_quit::answer_termination`] under
+//! [`app_quit::TERMINATION_BEHAVIOUR`]. With "later" the reply is given on the
+//! main thread exactly once by [`app_quit::TerminationReply`], yes only from
+//! the run that decided and settled the quit. A request while a quit is under
+//! way, or while a reply is owed, is declined and starts nothing; a decided
+//! quit answers "now". A fault before the answer declines. With "cancel" the
+//! request is declined at once and the quit path ends the App itself.
 //!
-//! The method is added only if the class does not already respond to the
-//! selector; any failure leaves the App starting as before and is said in
-//! the App's diagnostics (standard error).
+//! An abrupt end (Force Quit, an unhandled fatal signal, power loss) never
+//! reaches this method or the exit handler. The method is added only if the
+//! class does not already respond to the selector; what installation found is
+//! said on standard error, and a failure leaves the App starting as before.
 
-use crate::app_quit::{self, TerminationAnswer, TerminationReply};
+use crate::app_quit::{self, TerminationAnswer};
 use objc2::encode::Encode;
 use objc2::runtime::{AnyClass, AnyObject, Imp, Sel};
 use objc2::{ffi, sel, MainThreadMarker};
@@ -34,9 +35,9 @@ use std::sync::OnceLock;
 
 /// The App this method serves, set once at installation.
 static APP: OnceLock<tauri::AppHandle> = OnceLock::new();
-/// True from a "later" answer until its reply has been given on the main
-/// thread.
-static REPLY_PENDING: AtomicBool = AtomicBool::new(false);
+/// True from a "later" answer until its reply is taken on the main thread
+/// (or a fault declined the request before "later" was returned).
+static REPLY_OWED: AtomicBool = AtomicBool::new(false);
 
 /// What installation found.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -91,11 +92,11 @@ pub(crate) unsafe fn install_on(class: &AnyClass, imp: Imp) -> Result<Installed,
 pub(crate) fn install(app: &tauri::AppHandle) {
     let found = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| install_delegate(app)))
         .unwrap_or_else(|_| Err("installation panicked".into()));
-    match found {
-        Ok(Installed::Added) => eprintln!("chirality: quit routes: the system's request to quit (Dock, app switcher, logout, shutdown) asks as Quit does ({:?} behaviour)", app_quit::TERMINATION_BEHAVIOUR),
-        Ok(Installed::AlreadyResponds) => eprintln!("chirality: quit routes: the application delegate already answers applicationShouldTerminate:; nothing installed, so the system's request to quit is answered by the event loop library, not by the quit question"),
-        Err(error) => eprintln!("chirality: quit routes: not installed ({error}); the system's request to quit ends the App without the quit question, as a system termination"),
-    }
+    app_quit::diagnostic(&match found {
+        Ok(Installed::Added) => format!("quit routes: applicationShouldTerminate: was added to the application delegate's class ({:?} behaviour); whether AppKit calls it is not established here", app_quit::TERMINATION_BEHAVIOUR),
+        Ok(Installed::AlreadyResponds) => "quit routes: the application delegate's class already responds to applicationShouldTerminate:; nothing was installed, and the system's request to quit is answered by that implementation, not by this App".into(),
+        Err(error) => format!("quit routes: applicationShouldTerminate: not installed ({error}); the system's request to quit is not routed through the quit question"),
+    });
 }
 fn install_delegate(app: &tauri::AppHandle) -> Result<Installed, String> {
     let mtm = MainThreadMarker::new().ok_or("not on the main thread")?;
@@ -114,34 +115,33 @@ type ShouldTerminate = extern "C-unwind" fn(&AnyObject, Sel, *mut AnyObject) -> 
 
 /// `applicationShouldTerminate:`. AppKit calls it on the main thread.
 extern "C-unwind" fn should_terminate(_this: &AnyObject, _sel: Sel, _sender: *mut AnyObject) -> NSApplicationTerminateReply {
-    // A fault here keeps the system's request as it was before this module:
-    // terminate now, by the limited system path.
-    std::panic::catch_unwind(answer).unwrap_or(NSApplicationTerminateReply::TerminateNow)
+    let Some(app) = APP.get() else {
+        app_quit::diagnostic("the system's request to quit was declined: the quit path is not available");
+        return NSApplicationTerminateReply::TerminateCancel;
+    };
+    let held = || {
+        let state = tauri::Manager::try_state::<crate::AppState>(app).expect("the App state is managed before installation");
+        (state.app_quit.proceeding().is_some(), state.app_quit.busy())
+    };
+    let answer = app_quit::answer_termination(held, &REPLY_OWED, app_quit::TERMINATION_BEHAVIOUR, reply_on_main, |reply| crate::request_quit_with(app.clone(), reply));
+    native_answer(answer)
 }
-fn answer() -> NSApplicationTerminateReply {
-    let Some(app) = APP.get() else { return NSApplicationTerminateReply::TerminateNow };
-    let decided = tauri::Manager::try_state::<crate::AppState>(app).is_some_and(|state| state.app_quit.proceeding().is_some());
-    match app_quit::on_should_terminate(decided, REPLY_PENDING.load(Ordering::SeqCst), app_quit::TERMINATION_BEHAVIOUR) {
+fn native_answer(answer: TerminationAnswer) -> NSApplicationTerminateReply {
+    match answer {
         TerminationAnswer::Now => NSApplicationTerminateReply::TerminateNow,
-        TerminationAnswer::CancelPending => NSApplicationTerminateReply::TerminateCancel,
-        TerminationAnswer::CancelAndAsk => {
-            crate::request_quit_with(app.clone(), None);
-            NSApplicationTerminateReply::TerminateCancel
-        }
-        TerminationAnswer::LaterAndAsk => {
-            REPLY_PENDING.store(true, Ordering::SeqCst);
-            crate::request_quit_with(app.clone(), Some(TerminationReply::new(reply_on_main)));
-            NSApplicationTerminateReply::TerminateLater
-        }
+        TerminationAnswer::LaterAndAsk => NSApplicationTerminateReply::TerminateLater,
+        TerminationAnswer::CancelAndAsk | TerminationAnswer::Decline | TerminationAnswer::DeclinedOnFault => NSApplicationTerminateReply::TerminateCancel,
     }
 }
-/// `replyToApplicationShouldTerminate:` on the main thread, after this
-/// method has returned "later" (also when the reply is given from it).
+/// `replyToApplicationShouldTerminate:` on the main thread, only if a
+/// "later" is genuinely owed: the flag is taken atomically there, so a reply
+/// whose "later" was never given (a fault before the answer) does nothing.
 fn reply_on_main(yes: bool) {
     dispatch2::DispatchQueue::main().exec_async(move || {
-        REPLY_PENDING.store(false, Ordering::SeqCst);
-        if let Some(mtm) = MainThreadMarker::new() {
-            NSApplication::sharedApplication(mtm).replyToApplicationShouldTerminate(yes);
+        if REPLY_OWED.swap(false, Ordering::SeqCst) {
+            if let Some(mtm) = MainThreadMarker::new() {
+                NSApplication::sharedApplication(mtm).replyToApplicationShouldTerminate(yes);
+            }
         }
     });
 }

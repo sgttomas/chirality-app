@@ -469,39 +469,60 @@ implemented behavior and qualification limits.
     no final status (AS-02, R-2), and RQ-06 for the requests such a session left
     listed (*app-ended-without-record*; no reply is sent).
 22a. **Quit asks first** (DEL-01-02 DEF-6, K-4, SQ-Q; DEL-01-04 §5.2). Quit is
-    the App's own menu item (Cmd/Ctrl+Q); on macOS the system's request to quit
-    (`terminate:` from the Dock's Quit, Command-Tab then Q, logout and
-    shutdown) runs the same path: the App adds `applicationShouldTerminate:`
-    to the event loop's application delegate at startup
-    (`quit_routes_macos.rs`), answers "later", and replies yes only once the
-    quit is decided and settled, no on every other ending (kept running, not
-    asked, refused). The host assesses live work across
-    every App-owned home and records `quit_requested` with the lists. With
-    nothing live it quits without asking. Otherwise a native question lists
-    the live turns, waiting requests, delegated agents and workflow runs in
-    force, with no time limit; **Keep running** is the default, and it and
-    Cancel record `quit_answered` *cancelled* and change nothing. On **Quit**
-    every ready home is closed to new turns and assessed again (a changed list
-    is recorded and asked again); then `quit_answered` *confirmed*, each live
-    turn's stop request (SR-01, cause *quit*) and its interrupt, whose write is
-    bounded by the same limit as Stop Codex's; the App waits
-    up to the stop wait limit for those turns to end, exits, stops each home's
-    Codex and writes `session_ended` *quit* with each quit stop request's
-    state. A relaunch reads *quit-with-live-work* and "interrupted by quit".
-    An exit nobody decided is held and asked as Quit. **Closing the window is
+    the App's own menu item (Cmd/Ctrl+Q). On macOS the system's request to
+    quit (`terminate:` from the Dock's Quit or Command-Tab then Q) is routed to
+    the same quit path: at startup the App adds `applicationShouldTerminate:`
+    to the event loop's application delegate class (`quit_routes_macos.rs`;
+    standard error says whether it was added), answers "later", and replies
+    yes only from the run that decided and settled the quit, no on every other
+    ending. A request while a quit is under way, or while a reply is owed, is
+    declined and starts nothing; once a quit is decided the request is
+    answered "now". One run owns the exit: a run that finds the quit already
+    decided records, settles and requests nothing. The quit path assesses
+    live work across every App-owned home and records `quit_requested` with
+    the lists. With nothing live it closes every ready home to new turns,
+    assesses again and, still nothing live, quits without asking. Otherwise a
+    native question lists the live turns, waiting requests, delegated agents
+    and workflow runs in force; the App sets no time limit on it. **Keep
+    running** is the default, and it and Cancel record `quit_answered`
+    *cancelled* and change nothing. On **Quit** every ready home is closed to
+    new turns and assessed again (a changed list is recorded and asked
+    again); then `quit_answered` *confirmed*, each live turn's stop request
+    (SR-01, cause *quit*) and its interrupt, whose write is bounded by the
+    same limit as Stop Codex's; the App waits up to the stop wait limit for
+    those turns to end, stops each home's Codex, writes `session_ended` *quit*
+    with each quit stop request's state, and only then exits. A failed
+    session-end write is a recording limit: the settled quit still proceeds.
+    If stopping a home's Codex cannot be settled, the App keeps running and
+    says so, writes no session end and reopens the homes it closed; the
+    recorded answer, the interrupts already sent and any home already stopped
+    stand. A relaunch after a quit reads *quit-with-live-work* and
+    "interrupted by quit". An exit nobody decided is held and asked as Quit.
+    A key-setup or sealing operation that ended by a panic declines the next
+    quit with that reason (the setup state is uncertain) and lets the
+    following one proceed. **Closing the window is
     not quit** (DEF-1, SQ-W): it hides the window (macOS; the Dock icon shows
     it again) or minimizes it; work and requests continue, and the view
     re-reads the host's snapshot when shown. The Dock icon shows the number of
     supplier requests waiting for the person (C-24; macOS only). Quit and
-    Stop/Restart Codex refuse each other while one is under way. *Limits:* a
-    termination the system forces without asking (a signal, Force Quit, power
-    loss), or a `terminate:` when the delegate method could not be installed
-    (said on standard error at startup), is recorded as `session_ended`
-    *system-terminated* with no question. The system routes through
-    `applicationShouldTerminate:` are tested against doubles and a throwaway
-    Objective-C class only; their native behaviour on a launched App,
-    including the quit question while AppKit waits for the reply, has not been
-    observed. The Dock indicator gives a count only, and clicking it opens the
+    Stop/Restart Codex refuse each other while one is under way. *Limits:* an
+    abrupt end (Force Quit, an unhandled fatal signal, power loss) reaches no
+    exit handler and writes nothing; the next launch reads that session as
+    ended without a record. A `terminate:` that reaches the exit handler
+    without the question (the delegate method not installed, or the event
+    loop library's class already answering it) takes the limited system path,
+    which attempts a `session_ended` *system-terminated* record. The system
+    routes are tested against doubles and a throwaway Objective-C class only;
+    on a launched App it remains to be observed, for the Dock's Quit and for
+    Command-Tab then Q, each with and without live work: confirming and
+    keeping running, a refusal dismissed and the quit retried, a Dock quit
+    overlapping a menu quit, and exactly one session end each time. Logout and
+    shutdown send the same `terminate:` and the code treats them as the same
+    request, but that is unverified: they are not observed and are not
+    planned to be observed on the development machine. Their own procedure
+    times out if the App has not replied (Apple documents two minutes); the
+    App gets no notice of that timeout, and what its open question and a late
+    reply then do is not known. The Dock indicator gives a count only, and clicking it opens the
     App. The macOS App's **Waiting requests** menu additionally names current
     source-qualified conversation groups; a person selection shows the window
     and uses guarded navigation to that original source. A process-owned,
@@ -1012,7 +1033,7 @@ implemented behavior and qualification limits.
 | `src-tauri/src/native_waiting.rs`, `src/NativeWaitingBridge.tsx` | macOS native waiting-menu metadata, immutable original-source targets and single-use navigation handoff; no supplier response or restored request authority |
 | `src-tauri/src/codex_stop.rs`, `src/CodexControls.tsx` | Stop/Restart Codex (DEL-01-02 §4.1 C-12 with the DEL-01-04 §5.2 question): live-work assessment with runs in force, ask-first sequence, the ledger `codex_stop` record, interrupts before the stop within the stop wait limit, TO-4 labels and the in-process outcome panel |
 | `src-tauri/src/app_quit.rs` | App quit asked first (DEL-01-02 DEF-6, K-4, SQ-Q; DEL-01-04 §5.2): assessment across homes, `quit_requested`/`quit_answered`, quit interrupts (cause *quit*), the exit's process stops and `session_ended` (AS-09, AS-10); the DEF-1 exit rule; the C-24 waiting count |
-| `src-tauri/src/quit_routes_macos.rs` | macOS: the system's request to quit (`terminate:` from the Dock, the app switcher, logout, shutdown) answered through `applicationShouldTerminate:` by the same quit path (DEL-01-02 K-4, REQ-005); the reply decision and its once-only reply guard are in `app_quit.rs` |
+| `src-tauri/src/quit_routes_macos.rs` | macOS: the system's request to quit (`terminate:` from the Dock or the app switcher; logout and shutdown send the same request, unobserved) answered through `applicationShouldTerminate:` by the same quit path (DEL-01-02 K-4, REQ-005); the decision, the once-only reply guard and the quit path every route runs (`run_quit`) are in `app_quit.rs` |
 | `src-tauri/src/stop_records.rs`, `resources/runtime_core/recovery.stop-request.schema.json` | REC stop-request records (DEL-01-02 §3.4 SR-01…SR-12): validated transitions and outcome labels, the `codex_stop` ledger entry, and the read-back after a relaunch; the Host writes them through its recovery writer before each interrupt send |
 | `src-tauri/src/hosting_recovery_reads.rs`, `execution_custody.rs` | Recovery after a restart (DEL-01-02 §3.2 CV-11…CV-15, CV-19, CV-22; SR-09): the reads on the home's ready process, `observation_lost`/`observation_recovered`/`turn_outcome`, and the conversations' recovery states in the ledger; run on the host's trial tick or on the person's retry |
 | `src-tauri/src/checkpoint_recorder.rs` | EXEC §2.4 first slice: CE-1 listing, CE-3 arrivals from observed AW-6/AW-7 native items, CE-11/CE-12, CE-17 waiting arrivals; written through the run's RS writer with CE-19 late-write limits; never reacts (RC-4) |

@@ -41,10 +41,11 @@ struct Double {
     log: Vec<String>,
     shown: Vec<Value>,
     ended: bool,
+    settlement: Result<Value, String>,
 }
 impl Double {
     fn new(materials: Vec<Value>, answers: Vec<Result<bool, String>>) -> Self {
-        Self { materials, answers, log: vec![], shown: vec![], ended: true }
+        Self { materials, answers, log: vec![], shown: vec![], ended: true, settlement: Ok(Value::Null) }
     }
     fn run(&mut self) -> Decision {
         quit_sequence(self, Duration::from_millis(200))
@@ -92,6 +93,10 @@ impl QuitOps for Double {
     }
     fn stop_record(&mut self, turn: &Value) -> Value {
         json!({"stopRequestId":format!("stop:{}",turn["turnId"].as_str().unwrap()),"state":"settled","cause":"quit"})
+    }
+    fn settle(&mut self, _stop_requests: &[String]) -> Result<Value, String> {
+        self.log.push("settle".into());
+        self.settlement.clone()
     }
 }
 
@@ -323,14 +328,17 @@ fn the_question_lists_every_item_or_names_the_assessment() {
     assert!(long.in_app.is_some(), "a long list is shown in full in the App and named by digest");
 }
 
-/// The system's request to terminate (macOS `terminate:` from the Dock, the
-/// app switcher, logout or shutdown) runs the same quit path as the menu's
-/// Quit; these drive that path's parts with an injected replier in place of
-/// AppKit's `replyToApplicationShouldTerminate:`.
+/// The quit path every route runs (`run_quit`), and the answer to the
+/// system's request to terminate (`answer_termination`), driven with doubles
+/// and an injected replier in place of AppKit's
+/// `replyToApplicationShouldTerminate:`.
 mod system_quit_routes {
     use super::*;
+    use std::cell::RefCell;
+    use std::sync::atomic::AtomicUsize;
     use std::sync::mpsc;
 
+    /// A reply guard whose replies are collected.
     fn replier() -> (TerminationReply, mpsc::Receiver<bool>) {
         let (send, receive) = mpsc::channel();
         (TerminationReply::new(move |yes| send.send(yes).unwrap()), receive)
@@ -339,28 +347,148 @@ mod system_quit_routes {
         receive.try_iter().collect()
     }
 
-    #[test]
-    fn a_decided_quit_terminates_now_and_an_undecided_one_follows_the_switch() {
-        use TerminationAnswer::*;
-        use TerminationBehaviour::{Cancel, Later};
-        assert_eq!(on_should_terminate(true, false, Later), Now);
-        assert_eq!(on_should_terminate(true, false, Cancel), Now);
-        assert_eq!(on_should_terminate(true, true, Later), Now, "a decided quit is never held, even with a reply owed");
-        assert_eq!(on_should_terminate(false, false, Later), LaterAndAsk);
-        assert_eq!(on_should_terminate(false, false, Cancel), CancelAndAsk);
-        assert_eq!(on_should_terminate(false, true, Later), CancelPending, "a second request while a reply is owed starts nothing");
-        assert_eq!(on_should_terminate(false, true, Cancel), CancelPending);
-        assert_eq!(TERMINATION_BEHAVIOUR, Later, "\"later\" is the shipped selection");
+    /// The Double borrowed, so that its log can be read after `run_quit`;
+    /// `before_confirm` lets a test hold the question open.
+    struct Borrowed<'a> {
+        d: &'a mut Double,
+        before_confirm: Option<Box<dyn FnMut() + Send + 'a>>,
+    }
+    impl Interrupts for Borrowed<'_> {
+        type Pending = String;
+        fn interrupt(&mut self, turn: &Value, deadline: Instant) -> Result<String, crate::codex_stop::Unsent> { self.d.interrupt(turn, deadline) }
+        fn acknowledgment(&mut self, pending: &String, wait: Duration) -> Result<Value, String> { self.d.acknowledgment(pending, wait) }
+        fn turn_reading(&mut self, turn: &Value) -> Option<Value> { self.d.turn_reading(turn) }
+    }
+    impl QuitOps for Borrowed<'_> {
+        fn assess(&mut self) -> Assessment { self.d.assess() }
+        fn record_requested(&mut self, material: &Value) -> Value { self.d.record_requested(material) }
+        fn confirm(&mut self, view: &Value) -> Result<bool, String> {
+            if let Some(hold) = self.before_confirm.as_mut() { hold() }
+            self.d.confirm(view)
+        }
+        fn record_answered(&mut self, confirmed: bool) -> Value { self.d.record_answered(confirmed) }
+        fn close_to_new_turns(&mut self) { self.d.close_to_new_turns() }
+        fn reopen_to_new_turns(&mut self) { self.d.reopen_to_new_turns() }
+        fn stop_record(&mut self, turn: &Value) -> Value { self.d.stop_record(turn) }
+        fn settle(&mut self, ids: &[String]) -> Result<Value, String> { self.d.settle(ids) }
+    }
+
+    /// The App's three gates.
+    #[derive(Default)]
+    struct Held {
+        quit: AppQuit,
+        stop_gate: Mutex<()>,
+        key_setup: Mutex<()>,
+    }
+    impl Held {
+        fn gates(&self) -> QuitGates<'_> {
+            QuitGates { quit: &self.quit, stop_gate: &self.stop_gate, key_setup: &self.key_setup }
+        }
+    }
+    /// What one run did: its ending, what the person was told and how many
+    /// exits it asked for.
+    struct Ran {
+        ending: QuitEnding,
+        told: Vec<String>,
+        exits: usize,
+    }
+    fn run(held: &Held, d: &mut Double, reply: Option<TerminationReply>) -> Ran {
+        let told = RefCell::new(Vec::new());
+        let exits = AtomicUsize::new(0);
+        let ending = run_quit(held.gates(), reply, Duration::from_millis(50), || Borrowed { d, before_confirm: None },
+            |_, message| told.borrow_mut().push(message), || { exits.fetch_add(1, Ordering::SeqCst); });
+        Ran { ending, told: told.into_inner(), exits: exits.into_inner() }
+    }
+    fn live() -> Value {
+        material(&["turn-1"], 1, 1)
     }
 
     #[test]
-    fn the_reply_is_yes_only_when_told_and_given_once() {
+    fn the_decision_for_every_combination() {
+        use TerminationAnswer::*;
+        use TerminationBehaviour::{Cancel, Later};
+        // (decided, under way, reply owed) -> (with Later, with Cancel)
+        let table = [
+            ((false, false, false), (LaterAndAsk, CancelAndAsk)),
+            ((false, false, true), (Decline, Decline)),
+            ((false, true, false), (Decline, Decline)),
+            ((false, true, true), (Decline, Decline)),
+            ((true, false, false), (Now, Now)),
+            ((true, false, true), (Decline, Decline)),
+            ((true, true, false), (Now, Now)),
+            ((true, true, true), (Decline, Decline)),
+        ];
+        for ((decided, under_way, owed), (later, cancel)) in table {
+            assert_eq!(on_should_terminate(decided, under_way, owed, Later), later, "later: decided {decided}, under way {under_way}, owed {owed}");
+            assert_eq!(on_should_terminate(decided, under_way, owed, Cancel), cancel, "cancel: decided {decided}, under way {under_way}, owed {owed}");
+        }
+    }
+
+    /// `deliver` as the main dispatch queue runs it: after the answer is
+    /// returned, acting only if it takes the owed flag.
+    fn answer(held: (bool, bool), owed: &'static AtomicBool, behaviour: TerminationBehaviour, start: impl FnOnce(Option<TerminationReply>)) -> (TerminationAnswer, Vec<bool>) {
+        let queued = std::sync::Arc::new(Mutex::new(Vec::new()));
+        let queue = std::sync::Arc::clone(&queued);
+        let answer = answer_termination(|| held, owed, behaviour, move |yes| queue.lock().unwrap().push(yes), start);
+        let delivered = queued.lock().unwrap().drain(..).filter(|_| owed.swap(false, Ordering::SeqCst)).collect();
+        (answer, delivered)
+    }
+    fn owed_flag() -> &'static AtomicBool {
+        Box::leak(Box::new(AtomicBool::new(false)))
+    }
+
+    #[test]
+    fn the_answer_starts_the_quit_path_only_when_it_asks() {
+        let owed = owed_flag();
+        let mut handed = None;
+        let (later, delivered) = answer((false, false), owed, TerminationBehaviour::Later, |reply| handed = reply);
+        assert_eq!((later, delivered, owed.load(Ordering::SeqCst)), (TerminationAnswer::LaterAndAsk, vec![], true), "a reply is owed");
+        let owed_reply = handed.expect("the owed reply is handed to the quit path");
+        let mut started = false;
+        assert_eq!(answer((false, false), owed, TerminationBehaviour::Later, |_| started = true).0, TerminationAnswer::Decline, "a second request while the reply is owed");
+        assert!(!started, "starts nothing");
+        assert!(owed.load(Ordering::SeqCst), "the earlier request keeps its reply");
+        drop(owed_reply);
+        owed.store(false, Ordering::SeqCst);
+        let mut started = false;
+        assert_eq!(answer((false, true), owed, TerminationBehaviour::Later, |_| started = true).0, TerminationAnswer::Decline, "a quit under way");
+        assert!(!started);
+        assert_eq!(answer((true, true), owed, TerminationBehaviour::Later, |_| panic!("nothing starts")).0, TerminationAnswer::Now, "a decided quit");
+        let mut started = None;
+        assert_eq!(answer((false, false), owed, TerminationBehaviour::Cancel, |reply| started = Some(reply.is_some())).0, TerminationAnswer::CancelAndAsk);
+        assert_eq!(started, Some(false), "cancel owes no reply");
+        assert!(!owed.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn a_fault_before_the_answer_declines_and_leaves_no_stray_reply() {
+        // The quit path's start panics after the reply guard was handed over:
+        // the unwinding drops it (queueing no), and the request is declined.
+        let owed = owed_flag();
+        let (declined, delivered) = answer((false, false), owed, TerminationBehaviour::Later, |reply| {
+            let _owned = reply;
+            panic!("injected fault");
+        });
+        assert_eq!(declined, TerminationAnswer::DeclinedOnFault);
+        assert!(!owed.load(Ordering::SeqCst), "nothing is owed");
+        assert!(delivered.is_empty(), "the queued no finds no later owed and does nothing: {delivered:?}");
+        // A fault reading what the App holds: declined, nothing started.
+        let answered = answer_termination(|| panic!("injected fault"), owed, TerminationBehaviour::Later, |_| {}, |_| panic!("nothing starts"));
+        assert_eq!(answered, TerminationAnswer::DeclinedOnFault);
+        // The next request is answered normally.
+        assert_eq!(answer((false, false), owed, TerminationBehaviour::Later, |reply| drop(reply)), (TerminationAnswer::LaterAndAsk, vec![false]));
+    }
+
+    #[test]
+    fn the_reply_is_yes_only_for_the_decided_quit_and_given_once() {
         let (reply, receive) = replier();
         reply.finish(QuitEnding::Decided);
         assert_eq!(replies(&receive), [true], "yes once, and its drop adds nothing");
-        let (reply, receive) = replier();
-        reply.finish(QuitEnding::KeptRunning);
-        assert_eq!(replies(&receive), [false]);
+        for ending in [QuitEnding::AlreadyDecided, QuitEnding::AlreadyOpen, QuitEnding::AdmissionRefused, QuitEnding::KeyOperationBusy, QuitEnding::KeySetupUncertain, QuitEnding::KeptRunning, QuitEnding::NotAsked, QuitEnding::SettlementRefused] {
+            let (reply, receive) = replier();
+            reply.finish(ending);
+            assert_eq!(replies(&receive), [false], "{ending:?}");
+        }
         let (reply, receive) = replier();
         drop(reply);
         assert_eq!(replies(&receive), [false], "dropped unreplied: no");
@@ -368,92 +496,136 @@ mod system_quit_routes {
 
     #[test]
     fn a_panic_unwinding_through_the_quit_path_replies_no_once() {
+        let held = Held::default();
         let (reply, receive) = replier();
-        let unwound = std::thread::spawn(move || {
-            let _owed = reply;
-            panic!("the quit thread failed");
-        }).join();
+        let unwound = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            run_quit(held.gates(), Some(reply), Duration::from_millis(50), || -> Borrowed<'static> { panic!("the quit path failed") }, |_, _| {}, || {})
+        }));
         assert!(unwound.is_err());
         assert_eq!(replies(&receive), [false]);
+        assert!(!held.quit.busy(), "admission is released by the unwinding");
     }
 
     #[test]
-    fn only_a_decided_quit_ends_the_app() {
-        for ending in [QuitEnding::AlreadyOpen, QuitEnding::AdmissionRefused, QuitEnding::KeyOperationBusy, QuitEnding::KeptRunning, QuitEnding::NotAsked, QuitEnding::SettlementRefused] {
-            assert!(!ending.ends_app(), "{ending:?}");
-        }
-        assert!(QuitEnding::Decided.ends_app());
-        assert!(QuitEnding::AlreadyDecided.ends_app());
-    }
-
-    /// The quit path as `request_quit_with` runs it: admission, the
-    /// sequence, settlement, and the one reply.
-    fn quit_path(quit: &AppQuit, stop_gate: &Mutex<()>, double: &mut Double, settle: Result<Value, String>, reply: TerminationReply) {
-        if quit.proceeding().is_some() {
-            return reply.finish(QuitEnding::AlreadyDecided);
-        }
-        let _held = match admit_quit(quit, stop_gate) {
-            Ok(held) => held,
-            Err(reason) => return reply.finish(refusal_ending(&reason)),
-        };
-        let decision = quit_sequence(double, Duration::from_millis(50));
-        let allowed = quit.allow(&decision, |_| settle);
-        reply.finish(decision_ending(&decision, &allowed));
-    }
-
-    #[test]
-    fn each_ending_of_the_quit_path_gives_its_reply() {
-        let live = || material(&["turn-1"], 1, 1);
-        let gate = Mutex::new(());
-        // Nothing live: nothing asked, the App ends.
-        let (quit, mut d, (reply, r)) = (AppQuit::default(), Double::new(vec![material(&[], 0, 0)], vec![]), replier());
-        quit_path(&quit, &gate, &mut d, Ok(Value::Null), reply);
-        assert_eq!((replies(&r), d.log.contains(&"ask".to_owned())), (vec![true], false));
-        // Confirmed and settled: yes, after the interrupts.
-        let (quit, mut d, (reply, r)) = (AppQuit::default(), Double::new(vec![live(), live()], vec![Ok(true)]), replier());
-        quit_path(&quit, &gate, &mut d, Ok(Value::Null), reply);
-        assert_eq!(replies(&r), [true]);
-        assert!(d.log.contains(&"interrupt turn-1".to_owned()) && quit.proceeding().is_some());
-        // Kept running: no, nothing interrupted.
-        let (quit, mut d, (reply, r)) = (AppQuit::default(), Double::new(vec![live()], vec![Ok(false)]), replier());
-        quit_path(&quit, &gate, &mut d, Ok(Value::Null), reply);
-        assert_eq!(replies(&r), [false]);
-        assert!(!d.log.iter().any(|l| l.starts_with("interrupt")) && quit.proceeding().is_none());
-        // The question could not be shown: no.
-        let (quit, mut d, (reply, r)) = (AppQuit::default(), Double::new(vec![live()], vec![Err("no window".into())]), replier());
-        quit_path(&quit, &gate, &mut d, Ok(Value::Null), reply);
-        assert_eq!(replies(&r), [false]);
-        // Settlement refused: no, and the App is not proceeding.
-        let (quit, mut d, (reply, r)) = (AppQuit::default(), Double::new(vec![live(), live()], vec![Ok(true)]), replier());
-        quit_path(&quit, &gate, &mut d, Err("census unavailable".into()), reply);
-        assert_eq!(replies(&r), [false]);
-        assert!(quit.proceeding().is_none());
-        // Stop or Restart Codex under way: no, nothing recorded or asked.
-        let (quit, mut d, (reply, r)) = (AppQuit::default(), Double::new(vec![live()], vec![]), replier());
-        let restart = gate.lock().unwrap();
-        quit_path(&quit, &gate, &mut d, Ok(Value::Null), reply);
-        drop(restart);
-        assert_eq!(replies(&r), [false]);
-        assert!(d.log.is_empty(), "{:?}", d.log);
-        // A second quit while the question is open: no for the second, and
-        // the open question is untouched.
-        let (quit, mut d, (reply, r)) = (AppQuit::default(), Double::new(vec![live()], vec![]), replier());
-        let open = quit.gate().unwrap();
-        quit_path(&quit, &gate, &mut d, Ok(Value::Null), reply);
-        assert_eq!(replies(&r), [false]);
-        assert!(quit.busy() && d.log.is_empty());
-        drop(open);
-        // A quit already decided: yes, nothing asked again.
-        let (quit, mut d, (reply, r)) = (AppQuit::default(), Double::new(vec![live()], vec![]), replier());
-        assert!(quit.allow(&Decision::Quit(json!({"stopRequests":[]})), |_| Ok(Value::Null)).unwrap());
-        quit_path(&quit, &gate, &mut d, Ok(Value::Null), reply);
-        assert_eq!(replies(&r), [true]);
-        assert!(d.log.is_empty());
-        // An explicit key operation under way (the key-setup gate in
-        // `request_quit_with`) keeps the App running.
+    fn each_ending_of_the_quit_path_through_run_quit() {
+        // Nothing live: nothing asked, settled, the App ends (yes / one exit).
+        let held = Held::default();
+        let mut d = Double::new(vec![material(&[], 0, 0)], vec![]);
         let (reply, r) = replier();
-        reply.finish(QuitEnding::KeyOperationBusy);
+        let ran = run(&held, &mut d, Some(reply));
+        assert_eq!((ran.ending, replies(&r), ran.exits), (QuitEnding::Decided, vec![true], 0), "with a reply owed the system ends the App, not app.exit");
+        assert!(!d.log.contains(&"ask".to_owned()) && d.log.contains(&"settle".to_owned()));
+        // The same with no reply owed: one app.exit.
+        let held = Held::default();
+        let mut d = Double::new(vec![material(&[], 0, 0)], vec![]);
+        assert_eq!(run(&held, &mut d, None).exits, 1);
+        // Confirmed and settled: interrupts, then settlement, then yes.
+        let held = Held::default();
+        let mut d = Double::new(vec![live(), live()], vec![Ok(true)]);
+        let (reply, r) = replier();
+        assert_eq!(run(&held, &mut d, Some(reply)).ending, QuitEnding::Decided);
+        assert_eq!(replies(&r), [true]);
+        let (interrupt, settle) = (d.log.iter().position(|l| l == "interrupt turn-1").unwrap(), d.log.iter().position(|l| l == "settle").unwrap());
+        assert!(interrupt < settle && held.quit.proceeding().is_some());
+        // Kept running: no; nothing interrupted, nothing settled, no exit.
+        let held = Held::default();
+        let mut d = Double::new(vec![live()], vec![Ok(false)]);
+        let (reply, r) = replier();
+        let ran = run(&held, &mut d, Some(reply));
+        assert_eq!((ran.ending, replies(&r), ran.exits), (QuitEnding::KeptRunning, vec![false], 0));
+        assert!(!d.log.iter().any(|l| l.starts_with("interrupt") || l == "settle"));
+        // The question could not be shown: no.
+        let held = Held::default();
+        let mut d = Double::new(vec![live()], vec![Err("no window".into())]);
+        let (reply, r) = replier();
+        assert_eq!(run(&held, &mut d, Some(reply)).ending, QuitEnding::NotAsked);
         assert_eq!(replies(&r), [false]);
+        // Settlement refused after the answer was recorded and interrupts
+        // sent: no, told, turns reopened, and the App is not proceeding.
+        let held = Held::default();
+        let mut d = Double::new(vec![live(), live()], vec![Ok(true)]);
+        d.settlement = Err("census unavailable".into());
+        let (reply, r) = replier();
+        let ran = run(&held, &mut d, Some(reply));
+        assert_eq!((ran.ending, replies(&r), ran.exits), (QuitEnding::SettlementRefused, vec![false], 0));
+        assert!(d.log.contains(&"quit_answered confirmed".to_owned()) && d.log.contains(&"interrupt turn-1".to_owned()), "the answer and interrupts stand: {:?}", d.log);
+        assert_eq!(d.log.last().unwrap(), "reopen");
+        assert_eq!(ran.told, ["census unavailable"]);
+        assert!(held.quit.proceeding().is_none());
+        // Stop or Restart Codex under way: no, told, nothing recorded.
+        let held = Held::default();
+        let restart = held.stop_gate.lock().unwrap();
+        let mut d = Double::new(vec![live()], vec![]);
+        let (reply, r) = replier();
+        let ran = run(&held, &mut d, Some(reply));
+        drop(restart);
+        assert_eq!((ran.ending, replies(&r)), (QuitEnding::AdmissionRefused, vec![false]));
+        assert!(d.log.is_empty() && ran.told[0].contains("Stop or Restart Codex is under way"));
+        // An explicit key operation under way: no, told, nothing recorded.
+        let held = Held::default();
+        let key = held.key_setup.lock().unwrap();
+        let mut d = Double::new(vec![live()], vec![]);
+        let (reply, r) = replier();
+        let ran = run(&held, &mut d, Some(reply));
+        drop(key);
+        assert_eq!((ran.ending, replies(&r), ran.told), (QuitEnding::KeyOperationBusy, vec![false], vec![QUIT_KEY_BUSY.to_owned()]));
+        assert!(d.log.is_empty());
+    }
+
+    #[test]
+    fn a_poisoned_key_setup_gate_declines_once_in_true_words_and_the_retry_quits() {
+        let held = Held::default();
+        let poisoned = std::thread::scope(|s| s.spawn(|| { let _key = held.key_setup.lock().unwrap(); panic!("an earlier key setup failed") }).join());
+        assert!(poisoned.is_err() && held.key_setup.is_poisoned());
+        let mut d = Double::new(vec![live(), live()], vec![Ok(true)]);
+        let (reply, r) = replier();
+        let first = run(&held, &mut d, Some(reply));
+        assert_eq!((first.ending, replies(&r), first.exits), (QuitEnding::KeySetupUncertain, vec![false], 0), "the first request gets its reply: no");
+        assert_eq!(first.told, [QUIT_KEY_UNCERTAIN]);
+        assert!(!first.told[0].contains("is under way"), "not told that a key operation is under way");
+        assert!(d.log.is_empty(), "nothing recorded or asked: {:?}", d.log);
+        assert!(!held.key_setup.is_poisoned() && !held.quit.busy(), "the gate is recovered and admission released");
+        let (reply, r) = replier();
+        let retry = run(&held, &mut d, Some(reply));
+        assert_eq!((retry.ending, replies(&r)), (QuitEnding::Decided, vec![true]), "the retry reaches the normal quit decision");
+        assert!(d.log.contains(&"ask".to_owned()) && d.log.contains(&"settle".to_owned()));
+    }
+
+    #[test]
+    fn a_second_quit_records_settles_and_exits_nothing_while_one_is_open_or_after_it_decided() {
+        let held = Held::default();
+        let (opened, open) = mpsc::channel();
+        let (release, released) = mpsc::channel::<()>();
+        let exits = AtomicUsize::new(0);
+        let mut first = Double::new(vec![live(), live()], vec![Ok(true)]);
+        let mut second = Double::new(vec![live(), live()], vec![Ok(true)]);
+        let mut third = Double::new(vec![live(), live()], vec![Ok(true)]);
+        std::thread::scope(|s| {
+            let exits = &exits;
+            let held = &held;
+            let owner = s.spawn(move || {
+                let hold: Box<dyn FnMut() + Send> = Box::new(move || { opened.send(()).unwrap(); released.recv().unwrap() });
+                run_quit(held.gates(), None, Duration::from_millis(50), || Borrowed { d: &mut first, before_confirm: Some(hold) }, |_, _| {}, || { exits.fetch_add(1, Ordering::SeqCst); })
+            });
+            open.recv().unwrap();
+            // The question is open: a second request (a native one owing a
+            // reply) is ignored and answered no.
+            let (reply, r) = replier();
+            let while_open = run(held, &mut second, Some(reply));
+            assert_eq!((while_open.ending, replies(&r), while_open.exits), (QuitEnding::AlreadyOpen, vec![false], 0));
+            release.send(()).unwrap();
+            assert_eq!(owner.join().unwrap(), QuitEnding::Decided);
+        });
+        assert_eq!(exits.load(Ordering::SeqCst), 1, "one exit, from the run that decided");
+        assert!(second.log.is_empty());
+        // After the decision, admission is free again; the run that takes it
+        // finds the quit decided under admission and does nothing more, with
+        // or without a reply owed.
+        let (reply, r) = replier();
+        let after = run(&held, &mut third, Some(reply));
+        assert_eq!((after.ending, replies(&r), after.exits), (QuitEnding::AlreadyDecided, vec![false], 0));
+        assert_eq!(run(&held, &mut third, None).exits, 0);
+        assert!(third.log.is_empty(), "nothing assessed, recorded or settled: {:?}", third.log);
     }
 
     #[test]
