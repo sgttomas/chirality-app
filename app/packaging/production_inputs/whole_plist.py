@@ -4,7 +4,8 @@ refusal every file reader of the release tools raises.
 Refusals. A `Refused` carries only fixed text from closed lists this code defines, and integers: the part of the file
 (`PARTS`), the kind of refusal (`KINDS`), the field, the shape expected, what was found, and where (a byte offset into
 the file, an item number in a set, a tag's class and number). It never carries a byte or a value read from the file.
-There are three kinds, kept apart, and each says only what the reader knows:
+There are three kinds of a file's content, kept apart, and each says only what the reader knows (a fourth, 'digest',
+is a profile whose bytes are not the selected digest's: the file was not read):
 - 'unsupported' (shown as "not established"): the reader met a named form outside the subset it reads, at a named
   field, and did not read the file. It asserts nothing about whether the file is otherwise valid. The identity
   comparison is not established: this is never a mismatch, never malformed, and never agreement.
@@ -13,20 +14,23 @@ There are three kinds, kept apart, and each says only what the reader knows:
   over, a field of the envelope not of its declared shape, and the like.
 - 'mismatch': the file was read whole, and a value the tools read is not of its type or not what the release
   requires.
-Where several rules fail at once, one is reported: the first met in reading order. Others may exist.
+A refusal's reason is true of the file: the named form or shape was met at the named field. Where a file has more than
+one defect, the one reported need not be the first, and a "not established" report says nothing about defects
+elsewhere.
 
 `load` reads an XML property list twice, by two readers that do not share their reading of the structure, and returns
 the value only when the two agree and the first has accounted for every byte of the document:
 
 1. A structural reading of the document's own bytes from the XML parser's events (`events`), independent of plistlib.
    The admitted form, and nothing else:
-   - the document is not empty (an empty file is malformed);
+   - the file is not empty (malformed) and not larger than its limit (not established), refused by its size before it
+     is read (`check_size`, `read_within_limit`);
    - the first bytes are the XML declaration, version 1.0, encoding UTF-8 (in any case) or not given, no standalone
      declaration; optionally the property-list document type (name `plist`, public identifier
      `-//Apple//DTD PLIST 1.0//EN`, system identifier `http://www.apple.com/DTDs/PropertyList-1.0.dtd`, no internal
      subset). They are compared by what they declare, not by how they are spelled;
-   - one `plist` root, whose only attribute may be `version="1.0"` (written with no reference), holding exactly one
-     value;
+   - one `plist` root, whose only attribute may be `version="1.0"` (written with no reference; another value of it is
+     a property-list version this reader does not read), holding exactly one value;
    - only the property-list elements (`dict`, `array`, `key`, `string`, `integer`, `real`, `true`, `false`, `date`,
      `data`) inside it, with no attribute, nested at most MAX_DEPTH arrays and dictionaries deep;
    - inside `plist`, `dict` and `array`, and before and after the root, nothing but whitespace bytes (space, tab,
@@ -42,26 +46,30 @@ the value only when the two agree and the first has accounted for every byte of 
      (`<true/>` or `<true></true>`). `integer`, `real`, `date` and `data` hold their characters as written, with no
      character or entity reference and no CDATA section.
    Forms outside this subset, refused as not established (whether or not another reader would accept them): a
-   byte-order mark or anything else before the XML declaration, a declared encoding other than UTF-8, another XML
-   version, a standalone declaration, another document type or an internal subset, a comment, a processing
+   byte-order mark or anything else before the XML declaration, a declared encoding other than UTF-8 or a declared XML
+   version other than 1.0 (both read from the declaration's own bytes before the parser runs), a standalone declaration,
+   a root version attribute other than 1.0, another document type or an internal subset, a comment, a processing
    instruction, an entity declaration, a reference in the root's attribute, a leaf value outside its admitted form
    (each named with its type and that form), nesting deeper than MAX_DEPTH, a binary property list, a document the
    XML parser or the standard parser does not read, and a disagreement between the two readers.
 2. plistlib's reading of the same bytes, with a dictionary that refuses a key given twice.
 3. The two values must be equal, with the same types (a boolean is not an integer) and the same dictionary key order.
 
-The normalizations, exhaustively:
-- the document header compared by what its declaration and document type declare, not by how they are spelled (either
-  quote, whitespace inside them, the encoding name in any case);
-- the root's `version` attribute absent or `1.0`, in either quote, with whitespace around `=`;
-- whitespace inside a tag (before `>` or `/>`, and in an end tag before `>`), and an empty element read the same as
-  its start and end tags (XML 1.0);
-- whitespace bytes between elements and after the root element;
-- line ends in text as the XML parser reports them to both readers (CR LF and a lone CR become LF: XML 1.0 section
-  2.11);
-- character and entity references and CDATA sections in a `string` or `key` read as the characters they denote;
-- space, tab, CR and LF removed from inside `data` before decoding (any wrapping);
-- one conversion: a decimal `real` is read as the nearest double, so two spellings can give the same value.
+The normalizations, exhaustively, each with the function that makes or admits it:
+- `_header`: the XML declaration and the document type compared by what they declare, not by how they are spelled
+  (either quote, whitespace inside them, the encoding name in any case), and the document type's public identifier
+  with its whitespace normalized by the XML parser (XML 1.0 section 4.2.2);
+- `_header`: whitespace bytes in the prolog, between the XML declaration, the document type and the root element;
+- `structure_value` (start tags, from the XML parser): the root's `version` attribute absent or `1.0`, in either quote,
+  with whitespace around `=`; whitespace inside a tag (before `>` or `/>`, and in an end tag before `>`); an empty
+  element read the same as its start and end tags (XML 1.0);
+- `structure_value`: whitespace bytes between elements and after the root element;
+- `structure_value`: line ends in text as the XML parser reports them to both readers (CR LF and a lone CR become LF:
+  XML 1.0 section 2.11), in a `string` or `key` and in the written characters of the other leaves;
+- `structure_value`: character and entity references and CDATA sections in a `string` or `key` read as the
+  characters they denote;
+- `_leaf`: space, tab, CR and LF removed from inside `data` before decoding (any wrapping);
+- `_leaf`: one conversion: a decimal `real` is read as the nearest double, so two spellings can give the same value.
 Each other admitted leaf spelling has exactly one value and each value exactly one spelling. Whitespace inside a
 `string` or `key` is part of the value and is kept.
 
@@ -74,6 +82,8 @@ it is built on the same `events`, and its behaviour, exceptions and messages inc
 import base64
 import datetime
 import math
+import os
+from pathlib import Path
 import plistlib
 import re
 from xml.parsers import expat
@@ -87,6 +97,7 @@ KINDS = {
                     'about whether it is valid, and the identity comparison is not established'),
     'malformed': 'malformed: certain within the subset this reader reads (not well formed, or a field not of its declared shape)',
     'mismatch': 'read whole, and a value the tools read is not of its type or not what the release requires',
+    'digest': "not read: the file's bytes are not those of the selected digest",
 }
 TAG_CLASSES = ('universal', 'application', 'context-specific', 'private')
 # Every field, expected shape and finding a refusal may name; each module declares its own with `declare`.
@@ -159,9 +170,10 @@ MAX_DEPTH = 32
 INTEGER = re.compile(r'0|-?[1-9][0-9]*')
 REAL = re.compile(r'([+-]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+))(?:[eE][+-]?[0-9]+)?')
 DATE = re.compile(r'([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})Z')
-# The XML declaration's encoding, read before the parser decodes the document (XML 1.0 section 2.8 and 4.3.3).
-DECLARED_ENCODING = re.compile(rb'<\?xml[ \t\r\n]+version[ \t\r\n]*=[ \t\r\n]*(["\'])[^"\']*\1'
-                               rb'(?:[ \t\r\n]+encoding[ \t\r\n]*=[ \t\r\n]*(["\'])([^"\']*)\2)?')
+# The XML declaration's version and encoding, read from its own bytes before the parser runs (XML 1.0 sections 2.8 and
+# 4.3.3), so that a parser for another version or encoding never decides what the document is.
+DECLARED_ENCODING = re.compile(rb'<\?xml[ \t\r\n]+version[ \t\r\n]*=[ \t\r\n]*(["\'])([^"\']*)\1'
+                               rb'(?:[ \t\r\n]+encoding[ \t\r\n]*=[ \t\r\n]*(["\'])([^"\']*)\3)?')
 BASE64 = re.compile(r'(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?')
 
 U, M = 'unsupported', 'malformed'
@@ -171,8 +183,10 @@ PLIST_REASONS = {
     'an empty document': (M, 'one XML property list'),
     'content that does not begin with an XML declaration': (U, 'an XML declaration as the first bytes'),
     'a declared encoding other than UTF-8': (U, 'encoding UTF-8, or no encoding declared'),
+    'a declared XML version other than 1.0': (U, 'XML version 1.0'),
     'an XML declaration other than version 1.0, or with a standalone declaration': (U, 'version 1.0, no standalone declaration'),
     'a reference in the root version attribute': (U, 'the root version attribute written as 1.0, with no reference'),
+    'a root version attribute other than 1.0': (U, 'the root version attribute 1.0, or none'),
     'a document type other than the property-list one': (U, 'the property-list document type, or none'),
     'a document type with an internal subset': (U, 'the property-list document type, or none'),
     'an entity declaration': (U, 'no entity declaration'),
@@ -225,17 +239,27 @@ PLACES = ('document header', 'document', 'after the root element', 'plist', 'dic
 declare(fields=PLACES, expected={e for _, e in PLIST_REASONS.values()} | set(LEAF_FORMS.values()),
         found=set(PLIST_REASONS) | {f for found in LEAF_FOUND.values() for f in found} | {REFERENCE_IN_LEAF})
 
-# --- The size of a file, refused by name before it is parsed ----------------------------------------------------------
+# --- The size of a file, refused by name (before any byte is read, where the reader has the path) ----------------------
 
 FILE_FOUND = {'an empty file': M, 'a file larger than the size limit': U}
 declare(fields={'the file'}, found=set(FILE_FOUND))
 
 
-def within_limit(raw, part, limit, expected):
-    """Refuse an empty file (malformed) or one larger than `limit` bytes (not established) by name, before parsing."""
-    found = 'an empty file' if not raw else 'a file larger than the size limit' if len(raw) > limit else None
+def check_size(size, part, limit, expected):
+    """Refuse an empty file (malformed) or one larger than `limit` bytes (not established) by name."""
+    found = 'an empty file' if not size else 'a file larger than the size limit' if size > limit else None
     if found:
         raise Refused(f'{part}: {found}', part=part, kind=FILE_FOUND[found], field='the file', expected=expected, found=found)
+
+
+def within_limit(raw, part, limit, expected):
+    check_size(len(raw), part, limit, expected)
+
+
+def read_within_limit(path, part, limit, expected):
+    """The bytes of the file at `path`, its size refused by name from the file system before any byte is read."""
+    check_size(os.stat(path).st_size, part, limit, expected)
+    return Path(path).read_bytes()
 
 
 class NotWhole(Refused):
@@ -419,7 +443,9 @@ def structure_value(raw):
     if not raw.startswith(b'<?xml'):
         raise NotWhole('content that does not begin with an XML declaration', 'document header', 0)
     declared = DECLARED_ENCODING.match(raw)
-    if declared and declared.group(3) and declared.group(3).lower() != b'utf-8':
+    if declared and declared.group(2) != b'1.0':
+        raise NotWhole('a declared XML version other than 1.0', 'document header', 0)  # before the parser reads anything
+    if declared and declared.group(4) and declared.group(4).lower() != b'utf-8':
         raise NotWhole('a declared encoding other than UTF-8', 'document header', 0)  # before the parser decodes anything
     try:
         found = events(raw, everything=True)
@@ -443,10 +469,14 @@ def structure_value(raw):
             if top is None:
                 if name != 'plist':
                     raise NotWhole('a root element other than plist', 'document', offset)
-                if set(attributes) - {'version'} or attributes.get('version', '1.0') != '1.0':
+                if set(attributes) - {'version'}:
                     raise NotWhole('an attribute other than the root version', 'plist', offset)
                 if b'&' in span(raw, found, n):  # the start tag as written: a reference can only be in an attribute value
                     raise NotWhole('a reference in the root version attribute', 'plist', offset)
+                if attributes.get('version', '1.0') != '1.0':
+                    # The property-list DTD declares version as CDATA defaulting to 1.0: another value is a version of
+                    # the format this reader does not read, not certainly a malformed file.
+                    raise NotWhole('a root version attribute other than 1.0', 'plist', offset)
             else:
                 if top[0] in ('true', 'false'):
                     raise NotWhole('content inside true or false', top[0], offset)

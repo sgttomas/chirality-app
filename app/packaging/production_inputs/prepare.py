@@ -130,28 +130,36 @@ DATA_OID = bytes.fromhex('2a864886f70d010701')
 #   2. From the outside down to the content, the structure is the declared one: ContentInfo (a SEQUENCE of id-signedData
 #      and [0]), SignedData with its version (an INTEGER of one octet, 0 to 5), digestAlgorithms, encapContentInfo (id-data
 #      and [0] holding one primitive OCTET STRING), then optional certificates [0] and revocation lists [1], then
-#      signerInfos, and nothing after. These fields are read in this order, each checked as it is read.
+#      signerInfos, and nothing after.
 #   3. Every element's length lies inside its parent at every level walked, with no byte unaccounted for at any level.
 #   4. The property list is the whole of that one content string, read by the whole-document reader (whole_plist.load).
 # Further refusals, not validation: the outer shapes of the other fields (each digest algorithm a SEQUENCE beginning with
 # an OBJECT IDENTIFIER; each certificate and revocation list a SEQUENCE of a SEQUENCE, a SEQUENCE and a BIT STRING; each
-# signer information a SEQUENCE beginning with its version), and some rules of the universal types met on the walk. The
-# contents of digest algorithm parameters, certificates, revocation lists and signer information are length-walked
-# but not validated as ASN.1: reserved or wrongly constructed universal tags inside them are not refused. Validating
-# them would add no assurance about who wrote the content, since nothing authenticates the envelope. A certificate can
+# signer information a SEQUENCE beginning with its version), and the universal-type rules in ENVELOPE_TYPE_RULES where
+# the walk meets them. The contents of digest algorithm parameters, certificates, revocation lists and signer
+# information are length-walked but not validated as ASN.1: some universal-type rules met there are refused (those in
+# ENVELOPE_TYPE_RULES, such as a constructed OBJECT IDENTIFIER) and others are not (a reserved universal tag, a primitive
+# EXTERNAL or EMBEDDED PDV, the contents of strings and times, among others). Validating them would add no assurance
+# about who wrote the content, since nothing authenticates the envelope. A certificate can
 # legitimately carry arbitrary bytes inside its own fields, so "no other property list anywhere in the file" is not
 # claimed. Nothing is authenticated.
 #
 # The kinds (whole_plist): a form outside the subset this reader reads (an indefinite length, a length in more octets
-# than needed, a constructed string, a tag number in the high-tag-number form, a BOOLEAN other than 00 or FF, nesting
-# deeper than ENVELOPE_DEPTH, a file larger than PROFILE_LIMIT) is 'unsupported', shown as not established: the reader
+# than needed, a constructed string, a tag number in the high-tag-number form, a BOOLEAN other than 00 or FF, an element
+# more than ENVELOPE_DEPTH levels below the element its walk starts from, a file larger than PROFILE_LIMIT) is
+# 'unsupported', shown as not established: the reader
 # names the form and the field and did not read the file; it asserts nothing about whether the file is otherwise valid.
 # 'malformed' is asserted only where the reader is certain within its subset (an element past its parent or cut off,
 # bytes left over, a reserved length octet, an indefinite length on a primitive element, an empty file, a field not of
-# its declared shape, a version out of range, ...). The first problem in reading order is reported; others may exist.
+# its declared shape, a version out of range, ...). A refusal's reason is true of the file: the named form or shape was
+# met at the named field. Where a file has more than one defect, the one reported need not be the first, and a "not
+# established" report says nothing about defects elsewhere.
 
 PROFILE_LIMIT = 256 * 1024  # a profile is a short property list and a few certificates; this bounds the reader's memory
-ENVELOPE_DEPTH = 64  # real profiles nest about a dozen levels (certificate extensions); BER allows any depth
+# Counted from the element each walk starts from (each digest algorithm, certificate, revocation list and signer
+# information, the version and the two object identifiers), not from ContentInfo: an element 64 levels below it reads,
+# 65 is refused. Real profiles nest about a dozen levels (certificate extensions); BER allows any depth.
+ENVELOPE_DEPTH = 64
 ENVELOPE_SHAPES = {
     'ContentInfo': 'a SEQUENCE of contentType and content spanning the whole file',
     'ContentInfo.contentType': 'OBJECT IDENTIFIER id-signedData (1.2.840.113549.1.7.2)',
@@ -515,10 +523,17 @@ whole_plist.declare(fields={g[1] for g in GRANTS.values()}, expected={g[2] for g
 
 
 def grant(condition, rule):
-    """Refuse with the named consistency rule (a mismatch: the profile was read whole)."""
+    """Refuse with the named consistency rule: a mismatch (the profile was read whole), except the digest, which is
+    checked before the profile is read and so says only that its bytes are not the selected digest's."""
     if not condition:
         part, field, expected, found, message = GRANTS[rule]
-        raise whole_plist.Refused(message, part=part, kind='mismatch', field=field, expected=expected, found=found)
+        raise whole_plist.Refused(message, part=part, kind='digest' if rule == 'digest' else 'mismatch', field=field,
+                                  expected=expected, found=found)
+
+
+def profile_size(path):
+    """Refuse the profile at `path` by its size, from the file system, before any byte of it is read or transferred."""
+    whole_plist.check_size(os.stat(path).st_size, 'profile file', PROFILE_LIMIT, PROFILE_SIZE)
 
 
 def profile_consistency(raw, expected_sha256, selected, now=None):
@@ -597,6 +612,7 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
         profile_path = inventory.anchored(provisioning_profile)
         require(not ancestors(profile_path.parent).intersection({identity(source_root), identity(vendor)}),
                 'private provisioning profile must be outside source and vendor')
+        profile_size(profile_path)  # by name, before the transfer reads it (and before its own, larger, bound)
         profile_raw = read(profile_path)
         profile_ref = profile_consistency(profile_raw, provisioning_profile_sha256, selected)
         profile_ref['path'] = str(profile_path)

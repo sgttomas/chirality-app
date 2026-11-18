@@ -102,6 +102,8 @@ FAILURES = ['bundle identity', 'signature', 'entitlements', 'unexpected entitlem
 NOT_ESTABLISHED = {'provisioning profile not established': [('observed', 'provisioning_profile')],
                    'bundle identity not established': [('observed', 'bundle', key) for key in
                                                        ('identifier', 'version', 'bundle_version', 'minimum_system_version', 'executable')]}
+NOT_COMPARED = {'provisioning profile': NOT_ESTABLISHED['provisioning profile not established'],
+                'bundle identity': NOT_ESTABLISHED['bundle identity not established']}
 # The profile facts the record requires once the profile was read whole: (field, expected), a mismatch when not met.
 PROFILE_FACTS = {'uuid': ('UUID', 'an uppercase UUID'),
                  'app_id': ('Entitlements com.apple.application-identifier', 'an App ID of a public team'),
@@ -238,6 +240,11 @@ def profile_facts(app, public_teams, failures):
     if not path.is_file():
         failures.append(failure('provisioning profile'))
         return 'not observed'
+    try:
+        prepare.profile_size(path)  # by name, before any byte is read
+    except common.Refused as refused:
+        failures.append(refused_failure(refused, 'provisioning profile'))
+        return {'decoded': False}
     raw = path.read_bytes()
     try:
         value = prepare.profile_plist(raw)  # the one whole-document reader: no fact comes from part of the property list
@@ -519,8 +526,12 @@ def check(record, *, dmg, app, run, record_dir, candidate_dir=None):
     # An observation not made (a file in a form the reader does not read) is not compared: it is neither a difference
     # nor agreement, and it is named as not established.
     unmade = [path for f in failures for path in NOT_ESTABLISHED.get(f['observation'], [])]
+    # A file refused for any reason (named with its detail) is not compared either: its fields appear once, under the
+    # refusal, never as differences. Byte and inventory differences (the App's digests and inventory, the Info.plist's
+    # digest) are still compared.
+    uncompared = unmade + [path for f in failures if 'detail' in f for path in NOT_COMPARED.get(f['observation'], [])]
     found += [d for d in differences(record['observed'], facts, ('observed',))
-              if not any(d[0][:len(path)] == path for path in unmade)]
+              if not any(d[0][:len(path)] == path for path in uncompared)]
     for key in NOTARIZED:
         observed, more = notarization_facts(record_dir, record['notarization'][key])
         failures += [failure(f['observation'], key) for f in more]

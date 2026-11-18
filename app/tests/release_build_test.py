@@ -246,6 +246,7 @@ class ReleaseBuild(unittest.TestCase):
             'Info.plist in a form not read': ('unsupported', 'plist', 'a comment'),
             'review: Shift_JIS declared': ('unsupported', 'document header', 'a declared encoding other than UTF-8'),
             'review: an unknown encoding declared': ('unsupported', 'document header', 'a declared encoding other than UTF-8'),
+            'review 3: XML 1.1 declared': ('unsupported', 'document header', 'a declared XML version other than 1.0'),
             'an empty Info.plist': ('malformed', 'the file', 'an empty file'),
             'an Info.plist larger than 64 KiB': ('unsupported', 'the file', 'a file larger than the size limit'),
             'review: an integer bundle version': ('mismatch', 'CFBundleVersion', 'a value of another type'),
@@ -260,6 +261,7 @@ class ReleaseBuild(unittest.TestCase):
             'review: Shift_JIS declared': (dict(mutate=info(fx.info_plist().replace(b'UTF-8', b'Shift_JIS'))), 'info_plist_not_read'),
             'review: an unknown encoding declared': (dict(mutate=info(fx.info_plist().replace(b'UTF-8', b'x-invented-encoding'))), 'info_plist_not_read'),
             'an empty Info.plist': (dict(mutate=info(b'')), 'info_plist_whole'),
+            'review 3: XML 1.1 declared': (dict(mutate=info(fx.info_plist().replace(b'<?xml version="1.0"', b'<?xml version="1.1"'))), 'info_plist_not_read'),
             'an Info.plist larger than 64 KiB': (dict(mutate=info(fx.info_plist(CFBundleName='x' * 64 * 1024))), 'info_plist_not_read'),
             'review: an integer bundle version': (dict(mutate=info(fx.info_plist(CFBundleVersion=4))), 'info_plist_bundle_version'),
             'no executable key': (dict(mutate=info(plistlib.dumps(no_executable))), 'info_plist_executable'),
@@ -763,6 +765,22 @@ class InfoPlistKeys(unittest.TestCase):
                 common.read_info_plist(app)
             (app / 'Contents/Info.plist').write_bytes(fx.info_plist())
             self.assertEqual(common.read_info_plist(app)[1]['CFBundleIdentifier'], 'com.chirality.app')
+
+    def test_the_size_cap_exactly_reads_and_one_byte_more_is_refused_before_it_is_read(self):
+        """Review round 3: a control exactly at the 64 KiB cap; above it, refused by name from the file system."""
+        with tempfile.TemporaryDirectory() as temp:
+            app = Path(temp) / common.APP_NAME
+            (app / 'Contents').mkdir(parents=True)
+            raw = fx.info_plist()
+            at_cap = raw.replace(b'</dict>', b'</dict>' + b' ' * (common.INFO_PLIST_LIMIT - len(raw)))
+            self.assertEqual(len(at_cap), common.INFO_PLIST_LIMIT)
+            (app / 'Contents/Info.plist').write_bytes(at_cap)
+            self.assertEqual(common.read_info_plist(app)[1]['CFBundleVersion'], '4.0.0')
+            (app / 'Contents/Info.plist').write_bytes(at_cap + b' ')
+            with patch.object(Path, 'read_bytes', side_effect=AssertionError('read before its size was refused')), \
+                    self.assertRaises(common.Refused) as raised:
+                common.read_info_plist(app)
+            self.assertEqual((raised.exception.kind, raised.exception.found), ('unsupported', 'a file larger than the size limit'))
 
     def test_two_sibling_values_are_refused_not_read_as_the_last(self):
         """The conflicting pair: another identity's values, then the release identity's, as two dictionaries under the

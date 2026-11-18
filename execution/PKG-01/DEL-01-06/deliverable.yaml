@@ -49,10 +49,10 @@ needs:
     machine that signs, and the owner states whether the supplier's position applies to the offering.
 - from: external:owner
   condition: The Developer ID provisioning profile the owner supplies is the Apple-issued file, of at
-    most 256 KiB, its CMS envelope encoded in definite-length DER (the only subset of BER the release
-    tools read) with its property list as the one primitive OCTET STRING under id-data, in the XML form
-    the tools read whole, each field the tools read of its type; a profile in a form outside that subset
-    stops the signing run at step 2 as not established.
+    most 256 KiB, its CMS envelope read only with definite lengths and in the declared structure, as
+    the release README's enforced list states, with its property list as the one primitive OCTET
+    STRING under id-data, in the XML form the tools read whole, each field the tools read of its type;
+    a profile in a form outside that subset stops the signing run at step 2 as not established.
   when: Signing a package that embeds a provisioning profile
 code_paths:
 - app/packaging/**

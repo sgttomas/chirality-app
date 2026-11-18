@@ -359,8 +359,7 @@ def read_info_plist(app):
     value. Anything else raises common.Refused (a ValueError) naming the part 'Info.plist', the kind (malformed, not
     established, or a mismatch for an identity field missing or not a string), the field, the shape expected, what was
     found and the byte where. The size is checked first, by name."""
-    raw = (Path(app) / 'Contents/Info.plist').read_bytes()
-    prepare.whole_plist.within_limit(raw, 'Info.plist', INFO_PLIST_LIMIT, INFO_PLIST_SIZE)
+    raw = prepare.whole_plist.read_within_limit(Path(app) / 'Contents/Info.plist', 'Info.plist', INFO_PLIST_LIMIT, INFO_PLIST_SIZE)
     try:
         value = prepare.whole_plist.load(raw)
     except Refused as refused:

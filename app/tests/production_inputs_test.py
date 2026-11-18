@@ -261,13 +261,20 @@ class ProductionInputs(unittest.TestCase):
         integers only, and its one-line reading; another error still prints only its type."""
         import plistlib, subprocess, sys
         good=plistlib.dumps(self.profile_value())
-        cases={'two sibling values':(good.replace(b'</plist>',b'<string>INVENTED</string></plist>'),'a second value under plist'),
-               'an unknown encoding':(good.replace(b'UTF-8',b'x-invented-encoding'),'a declared encoding other than UTF-8')}
-        for name,(content,found) in cases.items():
+        def sparse(size):  # review round 3, finding 1: a size above the cap, and above the transfer's 32 MiB bound
+            path=self.profile_file(b'');path.write_bytes(b'')
+            with path.open('r+b') as handle: handle.truncate(size)
+            return path
+        cases={'two sibling values':(lambda:self.profile_file(self.envelope(good.replace(b'</plist>',b'<string>INVENTED</string></plist>'))),None,'a second value under plist'),
+               'an unknown encoding':(lambda:self.profile_file(self.envelope(good.replace(b'UTF-8',b'x-invented-encoding'))),None,'a declared encoding other than UTF-8'),
+               'review: one byte over the 256 KiB cap':(lambda:sparse(256*1024+1),None,'a file larger than the size limit'),
+               'review: one byte over the 32 MiB transfer bound':(lambda:sparse(32*1024*1024+1),None,'a file larger than the size limit'),
+               'review: another digest selected':(lambda:self.profile_file(self.envelope(good)),'7'*64,'other bytes')}
+        for name,(make,digest,found) in cases.items():
             with self.subTest(name):
-                path=self.profile_file(self.envelope(content))
+                path=make()
                 argv=[sys.executable,str(ROOT/'app/packaging/production_inputs/prepare.py')]
-                for key,value in (self.kw|self.production(path)).items():
+                for key,value in (self.kw|self.production(path,digest)).items():
                     if value is None or value is False: continue
                     argv+=['--'+key.replace('_','-')]+([] if value is True else [str(value)])
                 done=subprocess.run(argv,capture_output=True,text=True,check=False)
@@ -276,6 +283,7 @@ class ProductionInputs(unittest.TestCase):
                 self.assertEqual((output['preparation_complete'],output['error_type'],output['refusal']['found']),(False,'Refused',found))
                 self.assertEqual(output['reason'],module.whole_plist.describe(output['refusal']))
                 self.assertNotIn('INVENTED',done.stdout)
+                if digest: self.assertEqual(output['refusal']['kind'],'digest'); self.assertNotIn('read whole',output['reason'])
         self.assertFalse(self.output.exists())
     def test_profile_outside_validity_refuses(self):
         import datetime

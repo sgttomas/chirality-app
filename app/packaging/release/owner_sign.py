@@ -280,6 +280,11 @@ def plan(identity, profile, paths, candidate_app, vendor_paths, requirement):
     return steps
 
 
+# The step-2 stop for each kind of profile refusal. The digest is checked before step 2 (REFUSED_PROFILE_BYTES).
+PROFILE_CODES = {'unsupported': 'S2_PROFILE_NOT_ESTABLISHED', 'malformed': 'S2_PROFILE_MALFORMED', 'mismatch': 'S2_PROFILE',
+                 'digest': 'REFUSED_PROFILE_BYTES'}
+
+
 def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None, private=common.PrivateWriter, progress=None):
     """The signing run. Raises Failure (a fixed reason) on any failed step; returns the result written.
 
@@ -301,6 +306,10 @@ def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None
     check(binding['developer_id_team_identifier'] == team, 'REFUSED_TEAM')
     limitations = Path(args.limitations).read_bytes()
     check(sha(limitations) == candidate['limitations']['sha256'], 'REFUSED_LIMITATIONS')
+    try:
+        prepare.profile_size(args.profile)  # by name, before any byte of the profile is read
+    except common.Refused as refused:
+        raise Failure(PROFILE_CODES[refused.kind], refusals=[refused.detail()])
     profile_raw = Path(args.profile).read_bytes()
     check(sha(profile_raw) == args.profile_sha256, 'REFUSED_PROFILE_BYTES')
     out = Path(os.path.abspath(args.out))
@@ -368,8 +377,7 @@ def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None
         profile = prepare.profile_consistency(profile_raw, args.profile_sha256, selected, now=now)
     except common.Refused as refused:
         # A form the reader does not read is not established (never a mismatch); malformed and mismatch are named apart.
-        code = {'unsupported': 'S2_PROFILE_NOT_ESTABLISHED', 'malformed': 'S2_PROFILE_MALFORMED', 'mismatch': 'S2_PROFILE'}[refused.kind]
-        raise Failure(code, refusals=[refused.detail()])
+        raise Failure(PROFILE_CODES[refused.kind], refusals=[refused.detail()])
     except ValueError:
         raise Failure('S2_PROFILE')
     destination = app / 'Contents/embedded.provisionprofile'

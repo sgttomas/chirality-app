@@ -325,8 +325,10 @@ asserts nothing about whether the file is valid. "Malformed" means the reader
 is certain, within the subset it reads, that the file is not well formed or a
 field does not have its declared shape. "Mismatch" means the file was read
 whole and a value the tools read is not of its type or not what the release
-requires. Where several things are wrong at once, the stop names one: the
-first the reader met in its reading order. Others may exist.
+requires. A refusal's reason is true of the file: it names a real field and a
+form met there. Where a file has several defects, the one reported need not
+be the first, and a "not established" report says nothing about defects
+elsewhere.
 
 - **Not established** (`S2_PROFILE_NOT_ESTABLISHED`, or for the candidate's
   `Info.plist` `REFUSED_INFO_PLIST_NOT_ESTABLISHED`). Nothing was compared,
@@ -336,12 +338,13 @@ first the reader met in its reading order. Others may exist.
   profile, 64 KiB for an `Info.plist`); in the profile's envelope, an
   indefinite length, a length in more octets than needed, a constructed
   string, a tag number in the high-tag-number form, a BOOLEAN other than 00 or
-  FF, or nesting deeper than 64 elements; in a property list, content that
-  does not begin with an XML declaration (a byte-order mark, UTF-16 bytes, or
-  nothing), a declared encoding other than UTF-8, an XML version other than
-  1.0 or a standalone declaration, another document type or an internal
-  subset, a comment, a processing instruction, an entity declaration, a
-  reference in the root's `version` attribute, a leaf value outside its
+  FF, or an element more than 64 levels below the element its walk starts
+  from; in a property list, content that does not begin with an XML
+  declaration (a byte-order mark, UTF-16 bytes, or nothing), a declared
+  encoding other than UTF-8, a declared XML version other than 1.0, a
+  standalone declaration, another document type or an internal subset, a
+  comment, a processing instruction, an entity declaration, a reference in the
+  root's `version` attribute or a root `version` other than 1.0, a leaf value outside its
   admitted form (each named with its type and that form in full: for example
   an integer longer than 64 characters, a real that converts to an infinity,
   a date naming no real date, base64 padding outside the admitted form, or a
@@ -495,11 +498,15 @@ structure, and returns a value only when they agree:
 
 1. The document's own bytes, read from the XML parser's events (the same event
    reading `xml_structure` uses), against this admitted form and nothing else:
-   a file that is not empty; the XML declaration first (version 1.0, encoding
-   UTF-8 or not given, no standalone declaration), optionally the
+   a file that is not empty; the XML declaration first (version 1.0 and
+   encoding UTF-8 or not given, both read from the declaration's own bytes
+   before the parser runs; no standalone declaration), optionally the
    property-list document type with no internal subset; one `plist` root,
-   whose only attribute may be `version="1.0"` written with no reference,
-   holding one value; only the property-list elements, nested at most 32
+   whose only attribute may be `version="1.0"` written with no reference (a
+   reference there, or another value, is a form outside the subset: the
+   property-list DTD declares `version` as CDATA defaulting to 1.0, so another
+   value is a version of the format this reader does not read, not certainly
+   malformed), holding one value; only the property-list elements, nested at most 32
    arrays and dictionaries deep; nothing but whitespace bytes between
    elements; `key` and value alternating in a `dict`, no key twice and none
    without its value; no comment, processing instruction or entity
@@ -519,24 +526,30 @@ structure, and returns a value only when they agree:
 The two values must be equal, with the same types and key order. No exception
 from either parser leaves the reader untyped: one that no rule above names is
 the named refusal that the XML parser, or the standard parser, does not read
-the document. The normalizations, exhaustively (each checked against the
-code):
+the document. The normalizations, exhaustively, each with the function in
+`whole_plist.py` that makes or admits it (checked against the code line by
+line):
 
-- the document header, compared by what its declaration and document type
+- `_header`: the XML declaration and the document type compared by what they
   declare, not by how they are spelled (either quote, whitespace inside them,
-  the encoding name in any case);
-- the root's `version` attribute absent or `1.0`, in either quote, with
-  whitespace around `=`;
-- whitespace inside a tag (before `>` or `/>`, and in an end tag before `>`),
-  and an empty element read as its start and end tags (XML 1.0);
-- whitespace bytes between elements and after the root element;
-- line ends in text as the XML parser reports them to both readers (CR LF and
-  a lone CR become LF);
-- references and CDATA sections in a `string` or `key` read as the characters
-  they denote;
-- space, tab, CR and LF removed from inside `data` before decoding;
-- one conversion: a decimal `real` is read as the nearest double, so two
-  spellings can give the same value.
+  the encoding name in any case), and the document type's public identifier
+  with its whitespace normalized by the XML parser (XML 1.0 section 4.2.2);
+- `_header`: whitespace bytes in the prolog, between the XML declaration, the
+  document type and the root element;
+- `structure_value`, from the XML parser's start tags: the root's `version`
+  attribute absent or `1.0`, in either quote, with whitespace around `=`;
+  whitespace inside a tag (before `>` or `/>`, and in an end tag before `>`);
+  an empty element read as its start and end tags (XML 1.0);
+- `structure_value`: whitespace bytes between elements and after the root
+  element;
+- `structure_value`: line ends in text as the XML parser reports them to both
+  readers (CR LF and a lone CR become LF), in a `string` or `key` and in the
+  written characters of the other leaves;
+- `structure_value`: references and CDATA sections in a `string` or `key`
+  read as the characters they denote;
+- `_leaf`: space, tab, CR and LF removed from inside `data` before decoding;
+- `_leaf`: one conversion: a decimal `real` is read as the nearest double, so
+  two spellings can give the same value.
 
 Every other admitted leaf spelling has exactly one value, and every value
 exactly one spelling. Whitespace inside a string is kept.
@@ -552,9 +565,12 @@ unknown element, an attribute, a key twice or without a value, content in
 disagree, or `plistlib` cannot read what the structure read, the comparison is
 not established either: nothing shows which reading is right.
 
-**Sizes.** Each file is refused by name before it is parsed when it is empty
-(malformed) or larger than its limit (not established): 256 KiB for a profile,
-64 KiB for an `Info.plist`. A profile is a short property list and a few
+**Sizes.** Each file is refused by name, from its size in the file system
+before any byte of it is read or transferred, when it is empty (malformed) or
+larger than its limit (not established): 256 KiB for a profile, 64 KiB for an
+`Info.plist`. This holds on every path: `prepare.py` (before its generic
+32 MiB transfer bound), the signing run (before the profile's digest is
+checked, so nothing runs and no output folder is made) and the record. A profile is a short property list and a few
 certificates of a kilobyte or two each, and an `Info.plist` a few dozen keys;
 the limits are far above that and bound the reader's memory (in review, a
 768 KiB envelope took up to about 150 MB to read). A larger real file would stop
@@ -575,79 +591,139 @@ records it. In an `Info.plist`: `CFBundleIdentifier`,
 `CFBundleShortVersionString`, `CFBundleVersion`, `LSMinimumSystemVersion` and
 `CFBundleExecutable`, each present and a string. A field of another type, or
 missing from `Info.plist`, is a **mismatch** naming the field and the type
-expected.
+expected. The profile's type check and consistency rules report the first
+field that fails them in their own order; the build reports every identity
+field that is not the release value, each under its own check.
+
+A profile whose bytes are not those of the selected digest is refused before
+it is read, with its own kind: "not read: the file's bytes are not those of
+the selected digest". Only a mismatch, reached after the whole read, says
+"read whole".
+
+In `record.py check`, a file refused for any reason is not compared: the
+fields it would have shown (the profile's facts, or the five identity fields)
+appear once, under the refusal (and under `not_established` when that is its
+kind), never as differences. Byte and inventory differences, such as the
+App's digests and inventory and the `Info.plist` digest, are still reported.
 
 A **binary property list is refused** for both files (not established): only
-an XML property list is read as a whole document. The Tauri bundler's own
-source is not held offline here (its macOS bundler is compiled into the
-`@tauri-apps/cli` package), so its `Info.plist` format was not established
-from source. What is held shows Tauri writing XML: its code generator writes
-the development `Info.plist` it embeds with the `plist` crate's XML writer. If
-the bundler were to write a binary `Info.plist`, the build would stop at its
-checks with `info_plist_not_read` in `BUILD_REFUSED.json`, before any
-candidate exists.
+an XML property list is read as a whole document. **The bundler writes XML**,
+as its public source shows for the version the App pins. `app/package-lock.json`
+pins `@tauri-apps/cli` 2.11.1. At the tag `@tauri-apps/cli-v2.11.1` of
+`tauri-apps/tauri`, the CLI depends on the workspace's `tauri-bundler` 2.9.1
+(`crates/tauri-cli/Cargo.toml`), whose `create_info_plist` in
+`crates/tauri-bundler/src/bundle/macos/app.rs` writes the bundle's
+`Info.plist` with `plist::Value::Dictionary(plist).to_file_xml(bundle_dir.join("Info.plist"))`
+and with no binary writer. The lock file at that tag pins the `plist` crate
+1.7.0, whose `Value::to_file_xml` uses `XmlWriteOptions::default()`
+(`src/value.rs`, `src/stream/mod.rs`: tab indentation, root element on), and
+whose XML writer (`src/stream/xml_writer.rs`) emits the prolog
+`<?xml version="1.0" encoding="UTF-8"?>`, the Apple property-list document
+type and `<plist version="1.0">`, with LF line ends and base64 `data`
+wrapped at 68 characters with indentation: all inside the admitted form.
+References:
+https://github.com/tauri-apps/tauri/blob/%40tauri-apps/cli-v2.11.1/crates/tauri-bundler/src/bundle/macos/app.rs
+and https://github.com/ebarnard/rust-plist/blob/v1.7.0/src/stream/xml_writer.rs.
+These were read as public source text; nothing was downloaded or run. If a
+bundle ever held a binary `Info.plist`, the build would stop at its checks
+with `info_plist_not_read` in `BUILD_REFUSED.json`, before any candidate
+exists.
 
-The **profile's envelope** is read by `prepare.profile_envelope` as
-definite-length DER. What it is for decides what it claims: the identity facts
-come only from the property list in the envelope's content, and nothing
-authenticates the envelope. The claim is exactly this enforced list, each item
-with its tests (`EnvelopeShapes` in `app/tests/owner_release_test.py`):
+The **profile's envelope** is read by `prepare.profile_envelope` only with
+definite lengths and in the declared structure. What it is for decides what it
+claims: the identity facts come only from the property list in the envelope's
+content, and nothing authenticates the envelope. The claim is exactly this
+enforced list, each item with its tests in `app/tests/owner_release_test.py`
+(each case is run in `profile_consistency`, through the full injected signing
+run, and in `record.py check`):
 
 1. The file is one definite-length element, of 1 byte to 256 KiB, with no
-   byte after it.
+   byte after it. Cases `a byte after ContentInfo`, `the outer element with an
+   indefinite length`, `the outer length in more octets than needed`, `a file
+   cut off inside its length`, `review: an empty profile file`, `a profile
+   larger than 256 KiB`; control `a profile of exactly 256 KiB (the size
+   cap)`; above the transfer bound,
+   `test_finding_1_a_profile_over_the_cap_is_refused_by_name_before_any_read_on_every_path`.
 2. From the outside down to the content, the structure is the declared one
    (RFC 5652 section 5): ContentInfo, a SEQUENCE of id-signedData and `[0]`
    holding one SignedData; SignedData with its `version` (an INTEGER of
    exactly one content octet, 0 to 5), `digestAlgorithms`, `encapContentInfo`
    with id-data and `[0]` holding one primitive OCTET STRING, then optional
    `certificates` `[0]` and revocation lists `crls` `[1]`, then `signerInfos`,
-   and nothing after. These fields are read in this order, each checked as it
-   is read.
+   and nothing after. Cases named in
+   `test_each_item_of_the_enforced_list_has_its_cases` (item 2).
 3. Every element's length lies inside its parent at every level walked, with
-   no byte unaccounted for at any level walked.
+   no byte unaccounted for at any level walked. Cases named there (item 3).
 4. The property list is the whole of that one content string, read by the
-   whole-document reader above.
+   whole-document reader above. Cases `review: an empty eContent`, `review: a
+   second envelope as the content`, and
+   `test_the_property_list_refusal_names_its_byte_in_the_file`.
 
 Further refusals, described as such and not as validation: the outer shapes of
 the other fields (each digest algorithm a SEQUENCE beginning with an OBJECT
 IDENTIFIER; each certificate and revocation list a SEQUENCE of exactly a
 SEQUENCE, a SEQUENCE and a BIT STRING, RFC 5280; each signer information a
-SEQUENCE beginning with its version, 0 to 5), and some rules of the universal
-types met on the walk (a SEQUENCE or SET constructed; an INTEGER not empty and
-with no redundant leading octet; an OBJECT IDENTIFIER, BOOLEAN, NULL or BIT
-STRING of its encoding). **The contents of digest algorithm parameters,
-certificates, revocation lists and signer information are length-walked but
-not validated as ASN.1: reserved or wrongly constructed universal tags inside
-them are not refused.** That is outside the claim because nothing
-authenticates the envelope, so validating those fields would add no assurance
-about who wrote the content. A test reads such a profile to keep this
-deliberate and visible
-(`test_stated_limit_the_inside_of_other_fields_is_length_walked_not_validated`).
+SEQUENCE beginning with its version, 0 to 5), the universal-type rules listed
+in `prepare.ENVELOPE_TYPE_RULES` where the walk meets them (a SEQUENCE or SET
+constructed; a type that is always primitive not constructed, such as an
+OBJECT IDENTIFIER; an INTEGER not empty and with no redundant leading octet;
+an OBJECT IDENTIFIER, BOOLEAN, NULL or BIT STRING of its encoding; no
+end-of-contents marker outside an indefinite length), and an element more than
+64 levels below the element its walk starts from (each digest algorithm,
+certificate, revocation list and signer information, the version and the two
+object identifiers; the count does not start at ContentInfo). Each has its
+case in `ENVELOPE_CASES`.
 
 The kinds, by the meanings on the owner's page: an indefinite length, a length
 in more octets than needed, a constructed string, a tag number in the
-high-tag-number form, a BOOLEAN other than 00 or FF, nesting deeper than 64
-and a file larger than 256 KiB are **not established** (the reader names the
-form and the field and did not read the file); an element past its parent or
-cut off, bytes left over, a reserved length octet, an indefinite length on a
-primitive element, an empty file, a universal type's encoding rule broken, a
-field not of its declared shape and a version out of range are **malformed**.
-The first problem met in reading order is the one reported; others may exist.
-The order: the file's size, then its outer element, then the fields of item 2
-in their order, each checked as it is read; within a field that is a SET, the
-headers of all its elements, then each element's declared shape, then its
-contents.
+high-tag-number form, a BOOLEAN other than 00 or FF, an element deeper than the
+walk's limit and a file larger than 256 KiB are **not established** (the reader
+names the form and the field and did not read the file); an element past its
+parent or cut off, bytes left over, a reserved length octet, an indefinite
+length on a primitive element, an empty file, a rule of
+`ENVELOPE_TYPE_RULES` broken, a field not of its declared shape and a version
+out of range are **malformed**. A refusal's reason is true of the file: the
+named form or shape was met at the named field. Where a file has more than one
+defect, the one reported need not be the first, and a "not established" report
+says nothing about defects elsewhere
+(`test_finding_3_and_2_a_reason_is_true_of_the_file_and_need_not_be_the_first`).
 
-**Stated limits** (not refused, and not claimed): within a SET, a malformed
-later element can be reported before an earlier element's wrong shape (the
-headers are read first); a constructed form of a string type reads as not
-established, whatever its fragments hold; the order of the elements of a SET
-(which DER sorts) and the unused bits of a BIT STRING are not checked; the
-inside of the other fields is not validated (above); a certificate can
-legitimately carry arbitrary bytes inside its own fields, so "no other
-property list anywhere in the file" is not claimed. **Nothing is
-authenticated**: the profile is checked for consistency, not shown to be
-Apple's.
+**Stated limits** (not refused, and not claimed), each with the probe input of
+the reviews it covers:
+
+- The contents of digest algorithm parameters, certificates, revocation lists
+  and signer information are length-walked but not validated as ASN.1: some
+  universal-type rules met there are refused (those in `ENVELOPE_TYPE_RULES`,
+  such as a constructed OBJECT IDENTIFIER: probe `wrongly constructed OID in
+  parameters`, refused) and others are not (a reserved universal tag, a
+  primitive EXTERNAL or EMBEDDED PDV, the contents of strings and times, among
+  others: probes `reserved UNIVERSAL tag 15`, `primitive UNIVERSAL EXTERNAL`,
+  `primitive UNIVERSAL EMBEDDED PDV`, `permitted unknown primitive EXTERNAL`,
+  and the `Digest`, `Certificate`, `CRL` and `Signer` marker cases, read). That
+  is outside the claim because nothing authenticates the envelope, so
+  validating those fields would add no assurance about who wrote the content
+  (`test_stated_limit_the_inside_of_other_fields_is_length_walked_not_validated`).
+- The order of the elements of a SET (which DER sorts) and the unused bits of
+  a BIT STRING are not checked (probes `out of order digest SET encodings`,
+  `unused BIT STRING bits nonzero`, `two signers`, read).
+- A constructed form of a string type reads as not established, whatever its
+  fragments hold (probes `constructed OCTET STRING truncated fragment`,
+  `constructed OCTET STRING with NULL fragment`, `constructed malformed
+  fragments`, `constructed BIT STRING with unusable contents`).
+- The walk's depth limit counts from the element each walk starts from, so a
+  path from ContentInfo can be longer than 64 (probe `certificate 0-based walk
+  depth 64` reads; control `review: an element exactly 64 levels below a
+  certificate (the walk boundary)`, case `review: an element 65 levels below a
+  certificate`).
+- No order between defects is promised (probes `encap eContentType wrong OID
+  preceding out-of-subset eContent`, `SignedData wrong tag preceding
+  out-of-subset third outer field`, `unsupported first comment and later XML
+  error`, `unsupported header before malformed end`: each reports a reason
+  true of the file).
+- A certificate can legitimately carry arbitrary bytes inside its own fields,
+  so "no other property list anywhere in the file" is not claimed.
+- **Nothing is authenticated**: the profile is checked for consistency, not
+  shown to be Apple's.
 
 The readers that rely on this, and the facts that rest on them:
 
