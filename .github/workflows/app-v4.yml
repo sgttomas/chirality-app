@@ -141,7 +141,7 @@ jobs:
           native_history_error_content_is_not_durable workflow_reselection
           trial_authoring_source_tests records_access record_lines records_store
           records_export records_retention records_inspect placement_homes_tests installation::tests connector_route_store
-          recovery::tests records_continuity fleet_ reply_close native_requests::tests
+          recovery::tests records_continuity points::tests points_host::tests fleet_ reply_close native_requests::tests
           native_request_answer:: request_answer_presentation:: request_answer_sheet::
           call_custody after_run_end chat_workflow native_links startup_refusal
           native_conversation_links::delegation::tests
