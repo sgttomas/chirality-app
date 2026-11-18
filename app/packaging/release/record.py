@@ -241,7 +241,7 @@ def profile_facts(app, public_teams, failures):
         failures.append(failure('provisioning profile'))
         return 'not observed'
     try:
-        prepare.profile_size(path)  # by name, before any byte is read
+        prepare.profile_size(path)  # by name, before the profile is read for the reader (the inventory has read it already)
     except common.Refused as refused:
         failures.append(refused_failure(refused, 'provisioning profile'))
         return {'decoded': False}

@@ -355,8 +355,9 @@ def _reader(raw, parent, names, rest):
 def profile_envelope(raw):
     """(content, offset): the bytes of the one property list the envelope defines as its content, and where they start.
 
-    Enforces the list in the comment above, field by field in order. Raises whole_plist.Refused (a ValueError) naming the
-    field, the shape or encoding expected, and what was found."""
+    The content extractor of the enforced list in the comment above; it checks the size of `raw` before it reads any
+    element. Raises whole_plist.Refused (a ValueError) naming a real field, the shape or encoding expected, and what was
+    found there; which of several defects is reported follows the rule stated there, not an order."""
     whole_plist.within_limit(raw, 'profile file', PROFILE_LIMIT, PROFILE_SIZE)
     top = _element(raw, 0, len(raw), 'ContentInfo')
     if top.end != len(raw):
@@ -532,7 +533,8 @@ def grant(condition, rule):
 
 
 def profile_size(path):
-    """Refuse the profile at `path` by its size, from the file system, before any byte of it is read or transferred."""
+    """Refuse the profile at `path` by its size, from the file system, before the caller reads it for the reader (and, in
+    prepare, before the transfer's own larger bound); profile_envelope checks the size of the bytes it is given again."""
     whole_plist.check_size(os.stat(path).st_size, 'profile file', PROFILE_LIMIT, PROFILE_SIZE)
 
 
@@ -612,7 +614,7 @@ def prepare(source_root, vendor, expected_manifest, pin, revision, output, *,
         profile_path = inventory.anchored(provisioning_profile)
         require(not ancestors(profile_path.parent).intersection({identity(source_root), identity(vendor)}),
                 'private provisioning profile must be outside source and vendor')
-        profile_size(profile_path)  # by name, before the transfer reads it (and before its own, larger, bound)
+        profile_size(profile_path)  # by name, before the transfer reads it for the reader (and before its own, larger, bound)
         profile_raw = read(profile_path)
         profile_ref = profile_consistency(profile_raw, provisioning_profile_sha256, selected)
         profile_ref['path'] = str(profile_path)

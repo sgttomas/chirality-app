@@ -307,7 +307,7 @@ def sign(args, *, runner=common.system_runner, environ=None, host=None, now=None
     limitations = Path(args.limitations).read_bytes()
     check(sha(limitations) == candidate['limitations']['sha256'], 'REFUSED_LIMITATIONS')
     try:
-        prepare.profile_size(args.profile)  # by name, before any byte of the profile is read
+        prepare.profile_size(args.profile)  # by name, before the profile is read for its digest and the reader
     except common.Refused as refused:
         raise Failure(PROFILE_CODES[refused.kind], refusals=[refused.detail()])
     profile_raw = Path(args.profile).read_bytes()

@@ -23,8 +23,9 @@ the value only when the two agree and the first has accounted for every byte of 
 
 1. A structural reading of the document's own bytes from the XML parser's events (`events`), independent of plistlib.
    The admitted form, and nothing else:
-   - the file is not empty (malformed) and not larger than its limit (not established), refused by its size before it
-     is read (`check_size`, `read_within_limit`);
+   - the file is not empty (malformed) and not larger than its limit (not established), refused by its size before the
+     file is given to this reader, so that it never receives a file above the limit (`check_size`, `read_within_limit`,
+     `within_limit`); the tools' inventory, digest and binding steps read a file's bytes regardless of its size;
    - the first bytes are the XML declaration, version 1.0, encoding UTF-8 (in any case) or not given, no standalone
      declaration; optionally the property-list document type (name `plist`, public identifier
      `-//Apple//DTD PLIST 1.0//EN`, system identifier `http://www.apple.com/DTDs/PropertyList-1.0.dtd`, no internal
@@ -239,7 +240,7 @@ PLACES = ('document header', 'document', 'after the root element', 'plist', 'dic
 declare(fields=PLACES, expected={e for _, e in PLIST_REASONS.values()} | set(LEAF_FORMS.values()),
         found=set(PLIST_REASONS) | {f for found in LEAF_FOUND.values() for f in found} | {REFERENCE_IN_LEAF})
 
-# --- The size of a file, refused by name (before any byte is read, where the reader has the path) ----------------------
+# --- The size of a file, refused by name before the file is given to a reader ------------------------------------------
 
 FILE_FOUND = {'an empty file': M, 'a file larger than the size limit': U}
 declare(fields={'the file'}, found=set(FILE_FOUND))
@@ -257,9 +258,12 @@ def within_limit(raw, part, limit, expected):
 
 
 def read_within_limit(path, part, limit, expected):
-    """The bytes of the file at `path`, its size refused by name from the file system before any byte is read."""
+    """The bytes of the file at `path`, for a reader: its size is refused by name from the file system before this reads
+    it, and the bytes read are checked again, so that a file which grew in between is refused too."""
     check_size(os.stat(path).st_size, part, limit, expected)
-    return Path(path).read_bytes()
+    raw = Path(path).read_bytes()
+    within_limit(raw, part, limit, expected)
+    return raw
 
 
 class NotWhole(Refused):

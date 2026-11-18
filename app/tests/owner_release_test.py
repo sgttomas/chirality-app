@@ -9,6 +9,7 @@ writer, and the one test of the real writer takes the modes it reports.
 import argparse
 import ast
 import base64
+import contextlib
 import datetime
 import importlib.util
 import io
@@ -20,6 +21,7 @@ import shutil
 import stat
 import sys
 import tempfile
+import types
 import unittest
 from unittest.mock import patch
 
@@ -1036,7 +1038,7 @@ class WholeFileDocuments(Base):
                 self.profile.write_bytes(raw)
                 lines, stopped = self.run_stopping(S2_CODES[kind])
                 if case_part(name) == 'profile file':
-                    # refused by its size before any byte is read: nothing ran and no output folder exists
+                    # refused by its size before the profile is read: nothing ran and no output folder exists
                     self.assertIsNone(stopped)
                     self.assertEqual(self.fake.calls, [])
                     detail = common.Refused('x', part='profile file', kind=kind, field=field, expected=PREPARE.PROFILE_SIZE,
@@ -1285,7 +1287,7 @@ class TypedAndHostile(Base):
                     [detail] = json.loads((self.out / 'STOPPED.json').read_text())['refusals']
                     self.assertEqual(S2_CODES[detail['kind']], code)
                     self.assertEqual((status, lines[1:]), (3, ['  ' + common.describe(detail)]))
-                else:  # refused by its size before any byte was read
+                else:  # refused by its size before the profile was read
                     self.assertEqual((status, len(lines), self.fake.calls), (3, 2, []))
                 self.assertFalse([a for a in self.fake.calls if '--sign' in a])
         self.profile.write_bytes(fx.profile_bytes())
@@ -1328,7 +1330,7 @@ class ThirdReview(Base):
         with path.open('r+b') as handle:
             handle.truncate(size)
 
-    def test_finding_1_a_profile_over_the_cap_is_refused_by_name_before_any_read_on_every_path(self):
+    def test_finding_1_a_profile_over_the_cap_is_refused_by_name_before_it_is_read_for_the_reader(self):
         cap = CONTROLS_AT_CAP = ENVELOPE_CONTROLS['a profile of exactly 256 KiB (the size cap)']
         self.assertEqual(len(CONTROLS_AT_CAP), PREPARE.PROFILE_LIMIT)
         self.assertEqual(PREPARE.profile_consistency(cap, fx.sha(cap), CONSISTENT, now=NOW)['size'], PREPARE.PROFILE_LIMIT)
@@ -1426,6 +1428,145 @@ class ThirdReview(Base):
         self.assertEqual(PREPARE.profile_consistency(raw, fx.sha(raw), CONSISTENT, now=NOW)['size'], len(raw))
         # every other reason that says "read whole" is a mismatch, reached only after the whole read
         self.assertEqual([k for k, text in WHOLE.KINDS.items() if 'read whole' in text], ['mismatch'])
+
+
+class OversizedFilesReachNoParser(Base):
+    """Review round 4, point 1: the size limit is checked before a file is given to the reader, so neither parser ever
+    receives a file above the limit. At each consumer, every loaded copy of the two parsers' entry points
+    (whole_plist.load and prepare.profile_envelope) fails when given more bytes than the limit, and an oversized file
+    gives the named size refusal. The inventory, digest and binding steps still read the bytes; that is not asserted
+    against."""
+
+    PARSERS = {'app/packaging/production_inputs/whole_plist.py': 'load',
+               'app/packaging/production_inputs/prepare.py': 'profile_envelope'}
+
+    def guarded(self, limit, *roots):
+        """Patch the entry points in every module copy reachable from `roots`; return the sizes they were refused."""
+        given, seen, todo = [], {}, list(roots)
+        while todo:
+            module = todo.pop()
+            if id(module) in seen:
+                continue
+            seen[id(module)] = module
+            todo += [v for v in vars(module).values() if isinstance(v, types.ModuleType)
+                     and str(getattr(v, '__file__', '') or '').startswith(str(HERE.parent))]
+        stack, patched = contextlib.ExitStack(), 0
+        for module in seen.values():
+            name = self.PARSERS.get(Path(module.__file__).resolve().relative_to(HERE.parents[1]).as_posix())
+            if name:
+                patched += 1
+                def guard(raw, *args, _real=getattr(module, name), **kw):
+                    if len(raw) > limit:
+                        given.append(len(raw))
+                        raise AssertionError('a parser received a file above the limit')
+                    return _real(raw, *args, **kw)
+                stack.enter_context(patch.object(module, name, guard))
+        self.assertGreaterEqual(patched, 2)  # at least one copy of each module
+        return stack, given
+
+    def size_refusal(self, detail, part):
+        self.assertEqual((detail['part'], detail['kind'], detail['field'], detail['found']),
+                         (part, 'unsupported', 'the file', 'a file larger than the size limit'))
+
+    def test_no_parser_receives_an_oversized_file_at_any_consumer(self):
+        info_limit, profile_limit = common.INFO_PLIST_LIMIT, PREPARE.PROFILE_LIMIT
+        valid_info, valid_profile = fx.info_plist(), fx.profile_bytes()
+        # Whitespace padding keeps each file one a parser would otherwise read: only the size check stops it.
+        big_info = valid_info + b' ' * (info_limit + 1 - len(valid_info))
+        big_profile = valid_profile + b' ' * (profile_limit + 1 - len(valid_profile))
+        rb = sys.modules.get('release_build_test_helpers')
+        if rb is None:
+            spec = importlib.util.spec_from_file_location('release_build_test_helpers', HERE / 'release_build_test.py')
+            rb = importlib.util.module_from_spec(spec); sys.modules[spec.name] = rb; spec.loader.exec_module(rb)
+        roots = (owner, record, common, PREPARE, WHOLE, rb, rb.build, rb.inputs, rb.inputs.module)
+
+        with self.subTest('prepare.py: prepare(), as its command line runs it'):
+            case = rb.inputs.ProductionInputs('test_profile_outside_validity_refuses')
+            case.setUp(); self.addCleanup(case.doCleanups)
+            path = case.profile_file(big_profile)
+            stack, given = self.guarded(profile_limit, *roots)
+            with stack, self.assertRaises(ValueError) as raised:
+                rb.inputs.module.prepare(**(case.kw | case.production(path)))
+            self.size_refusal(raised.exception.detail(), 'profile file')
+            self.assertEqual(given, [])
+
+        with self.subTest('owner_sign.py step 2: the supplied profile'):
+            self.profile.write_bytes(big_profile)
+            self.addCleanup(self.profile.write_bytes, valid_profile)
+            stack, given = self.guarded(profile_limit, *roots)
+            with stack:
+                status, stdout, stderr = self.main()
+            lines = stderr.splitlines()
+            self.assertEqual((status, lines[0], self.fake.calls, given),
+                             (3, 'STOP: ' + common.REASONS['S2_PROFILE_NOT_ESTABLISHED'], [], []))
+            self.assertIn('found a file larger than the size limit', lines[1])
+        self.profile.write_bytes(valid_profile)
+
+        description_path = self.candidate / common.CANDIDATE_FILE
+        original = description_path.read_text()
+        app = self.candidate / json.loads(original)['bundle']['path']
+        for refreshed in (True, False):
+            description_path.write_text(original)
+            with self.subTest('common.load_candidate, before the owner\'s run', bindings_refreshed=refreshed):
+                (app / 'Contents/Info.plist').write_bytes(big_info)
+                if refreshed:  # the candidate binds the oversized file: the size refusal comes from the reader's caller
+                    description = json.loads(original)
+                    description['bundle']['inventory'] = common.tree_entries(common.inventory.scan(app))
+                    description['bundle']['info_plist_sha256'] = fx.sha(big_info)
+                    description_path.write_text(json.dumps(description))
+                self.out, self.fake = self.root / f'oversized-candidate-{refreshed}', fx.FakeApple()
+                stack, given = self.guarded(info_limit, *roots)
+                with stack:
+                    status, stdout, stderr = self.main()
+                # unrefreshed, the file is not the one the candidate binds: the binding check refuses it, naming no field
+                code = 'REFUSED_INFO_PLIST_NOT_ESTABLISHED' if refreshed else 'REFUSED_CANDIDATE'
+                self.assertEqual((status, stderr.splitlines()[0], self.fake.calls, given), (3, 'STOP: ' + common.REASONS[code], [], []))
+                if refreshed:
+                    self.assertIn('found a file larger than the size limit', stderr.splitlines()[1])
+        description_path.write_text(original)
+        (app / 'Contents/Info.plist').write_bytes(valid_info)
+
+        with self.subTest('common.read_info_plist: a file that grew after its size was read'):
+            stack, given = self.guarded(info_limit, *roots)
+            with stack, patch.object(WHOLE.Path, 'read_bytes', lambda self: big_info), self.assertRaises(common.Refused) as raised:
+                common.read_info_plist(app)
+            self.size_refusal(raised.exception.detail(), 'Info.plist')
+            self.assertEqual(given, [])
+
+        with self.subTest('build.py: the build\'s checks (bundle_errors)'):
+            case = rb.ReleaseBuild('test_overlay_identity_is_the_release_identity')
+            case.setUp(); self.addCleanup(case.doCleanups)
+            place = case.fake.place
+            def oversized(*args):
+                place(*args)
+                next((case.candidate / 'target').glob('**/Chirality.app/Contents/Info.plist')).write_bytes(big_info)
+            case.fake.place = oversized
+            stack, given = self.guarded(info_limit, *roots)
+            with stack, case.complete_coverage():
+                status = rb.build.main(case.cli_args('--not-for-public-release'), stdout=io.StringIO(), stderr=io.StringIO(),
+                                       runner=case.fake, host=HOST, private=case.private_writer)
+            [check] = json.loads((case.candidate / 'BUILD_REFUSED.json').read_text())['checks']
+            self.assertEqual((status, check['check'], given), (2, 'info_plist_not_read', []))
+            self.size_refusal(check['detail'], 'Info.plist')
+            self.assertFalse((case.candidate / common.CANDIDATE_FILE).exists())
+
+        for relative, big, limit, part, observation in (
+                ('Contents/Info.plist', big_info, info_limit, 'Info.plist', 'bundle identity not established'),
+                ('Contents/embedded.provisionprofile', big_profile, profile_limit, 'profile file', 'provisioning profile not established')):
+            with self.subTest('record.py check (observe_package, profile_facts), as at the record\'s reading', file=relative):
+                case = RecordCheck('test_package_bytes')
+                case.setUp(); self.addCleanup(case.doCleanups)
+                (case.app / relative).write_bytes(big)
+                out = io.StringIO()
+                stack, given = self.guarded(limit, *roots)
+                with stack:
+                    status = record.main(['check', str(case.out / 'PACKAGE_IDENTITY.json'), '--dmg', str(case.dmg), '--app', str(case.app)],
+                                         run=case.case.fake, stdout=out, stderr=io.StringIO())
+                result = json.loads(out.getvalue())
+                self.assertEqual((status, given), (1, []))
+                self.assertIn(observation, result['failed_observations'])
+                [refusal] = result['refusals']
+                self.size_refusal(refusal['detail'], part)
 
 
 class OwnerSign(Base):

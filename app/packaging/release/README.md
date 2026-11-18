@@ -362,7 +362,11 @@ elsewhere.
   another App ID, a debugging grant, an expired profile, another version).
 
 The profile and the candidate's `Info.plist` are read before anything is
-signed or sent to Apple. At the record's reading (step 13) either file stops
+signed or sent to Apple. A candidate whose `Info.plist` is not the file the
+candidate's own `CANDIDATE.json` binds (its inventory entry or digest) is
+refused as `REFUSED_CANDIDATE` before the reader runs: that is the
+candidate's binding check, not a reader's refusal, and it names no field.
+At the record's reading (step 13) either file stops
 the run with `S13_OBSERVATION`, naming `provisioning profile` or `bundle
 identity` (with ` not established` added for a form not read) in
 `STOPPED.json`, and no record is written.
@@ -390,6 +394,15 @@ mismatch names a value or type the release does not accept; a malformed field
 names a shape the file does not have; a form not established names something
 the tools would need to learn, and says nothing about whether your file is
 valid. The file itself stays with you.
+
+**Exit statuses.** `owner_sign.py` exits 0 when it finishes and 3 for every
+stop, a reader's named refusal included. `build.py` exits 0 with a candidate
+and 2 for each failure it reports on a `FAILED:` line, a named check in
+`BUILD_REFUSED.json` included. `prepare.py` exits 0 with a plan and 2 for every refusal or
+failure; a reader's refusal is then printed as `"error_type": "Refused"` with
+the refusal and its reason. `record.py check` exits 0 when equal, 1 when not
+equal, a named refusal included, and 2 with a fixed message when it cannot
+read its inputs. An argument error exits 2 in each.
 
 **Starting again.** There is no resuming part-way. Every run starts from the
 beginning, from the candidate folder, into a new `--out` folder, and submits
@@ -565,12 +578,23 @@ unknown element, an attribute, a key twice or without a value, content in
 disagree, or `plistlib` cannot read what the structure read, the comparison is
 not established either: nothing shows which reading is right.
 
-**Sizes.** Each file is refused by name, from its size in the file system
-before any byte of it is read or transferred, when it is empty (malformed) or
+**Sizes.** Each file is refused by name when it is empty (malformed) or
 larger than its limit (not established): 256 KiB for a profile, 64 KiB for an
-`Info.plist`. This holds on every path: `prepare.py` (before its generic
-32 MiB transfer bound), the signing run (before the profile's digest is
-checked, so nothing runs and no output folder is made) and the record. A profile is a short property list and a few
+`Info.plist`. The size limit is checked before the file is given to the
+reader, so neither parser ever receives a file above the limit: from the file
+system before the file is read for the reader, and again on the bytes read
+(`whole_plist.read_within_limit`; `prepare.profile_size`, then
+`prepare.profile_envelope`). That holds at each consumer: `prepare.py` (before
+its generic 32 MiB transfer bound), the signing run's step 2 (before the
+profile's digest is checked, so nothing runs and no output folder is made),
+`common.load_candidate`, the build's checks, the record's reading and
+`record.py check`; `OversizedFilesReachNoParser` in
+`app/tests/owner_release_test.py` asserts it at each. The tools' inventory,
+digest and binding steps read a file's bytes regardless of its size: the
+record's inventory hashes the embedded profile and `Info.plist`,
+`common.load_candidate` verifies the candidate's inventory before its
+`Info.plist` reaches the reader, and the build and the record read a refused
+`Info.plist` again for its digest. A profile is a short property list and a few
 certificates of a kilobyte or two each, and an `Info.plist` a few dozen keys;
 the limits are far above that and bound the reader's memory (in review, a
 768 KiB envelope took up to about 150 MB to read). A larger real file would stop
@@ -592,8 +616,10 @@ records it. In an `Info.plist`: `CFBundleIdentifier`,
 `CFBundleExecutable`, each present and a string. A field of another type, or
 missing from `Info.plist`, is a **mismatch** naming the field and the type
 expected. The profile's type check and consistency rules report the first
-field that fails them in their own order; the build reports every identity
-field that is not the release value, each under its own check.
+field that fails them in their own order. The build checks the five identity
+fields for type first: a field missing or of another type is reported alone,
+the first the type check meets; when every field is a string, every field
+whose value is not the release's is reported, each under its own check.
 
 A profile whose bytes are not those of the selected digest is refused before
 it is read, with its own kind: "not read: the file's bytes are not those of
