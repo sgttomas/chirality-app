@@ -301,11 +301,52 @@ def test_a_repeated_identifier_refuses(repo, change, message):
         crates.check(repo)
 
 
-def test_one_repository_identity_for_every_comparison():
-    # Review round 3, finding 5: GitHub owner and repository compare without regard to case; a .git suffix refuses in any case.
+# Review round 4, remaining item: a workspace entry must name a lockfile.
+def test_a_workspace_entry_naming_no_lockfile_refuses(repo):
+    edit(repo, crates.ASSOCIATIONS, lambda v: next(w for w in v['workspaces'] if w['lock'] == 'ripgrep').update(lock='invented'))
+    with pytest.raises(ValueError, match='a workspace entry names no lockfile: invented'):
+        crates.check(repo)
+
+
+# Review round 4, finding 4: a workspace association is at its lockfile's repository and revision, compared as written.
+@pytest.mark.parametrize('change', [
+    {'repository': 'https://github.com/example/example', 'revision': '1' * 40},
+    {'revision': '1' * 40},
+    {'repository': 'https://github.com/burntsushi/ripgrep'},
+])
+def test_a_workspace_association_is_at_its_lockfile_s_source(repo, change):
+    assert crates.check(repo)
+    edit(repo, crates.ASSOCIATIONS, lambda v: next(w for w in v['workspaces'] if w['lock'] == 'ripgrep').update(change))
+    with pytest.raises(ValueError, match='a workspace association names another repository or revision than its lockfile: ripgrep'):
+        crates.check(repo)
+
+
+# Review round 4 and App Agent 0's condition: an App-text association's reading flag follows main's rule, which compares
+# its repository as written, as well as the guard's; another letter case of the objc2 repository refuses, as on main.
+def test_an_app_text_repository_in_another_case_refuses_as_on_main(repo):
+    def respell(v):
+        item = next(a for a in v['app_texts'] if a['repository'] == crates.OBJC2_REPOSITORY)
+        item['repository'] = 'https://github.com/MADSMTM/objc2'
+    edit(repo, crates.ASSOCIATIONS, respell)
+    with pytest.raises(ValueError, match='an App-text association states another reading requirement than the rule'):
+        crates.check(repo)
+
+
+# Review round 4 and App Agent 0's condition: a Git association is compared with its lock source as written, as on main.
+def test_a_git_association_is_compared_with_the_lock_as_written(repo):
+    def respell(v):
+        source = v['git_sources'][0]
+        owner, name = source['repository'].removeprefix('https://github.com/').split('/')
+        source['repository'] = f'https://github.com/{owner.swapcase()}/{name}'
+    edit(repo, crates.ASSOCIATIONS, respell)
+    with pytest.raises(ValueError, match='Git association names another repository or revision than the lock'):
+        crates.check(repo)
+
+
+def test_the_repository_identity_and_canonical_form():
+    # Review round 3, finding 5, as narrowed in round 4: the identity ignores case and a .git suffix and is used only where
+    # it makes a check stricter; a .git suffix in a curated field refuses in any case.
     assert crates.same_repository('https://github.com/OpenAI/Codex', 'https://github.com/openai/codex')
-    assert crates.same_source(('https://GitHub.com/OpenAI/Codex', 'a' * 40), ('https://github.com/openai/codex', 'a' * 40))
-    assert not crates.same_source(('https://github.com/openai/codex', 'a' * 40), ('https://github.com/openai/codex', 'b' * 40))
     assert not crates.same_repository('https://github.com/openai/codex', 'https://github.com/openai/codex-other')
     assert crates.same_repository('https://example.invalid/x.tar.gz', 'https://example.invalid/x.tar.gz')
     assert not crates.same_repository('https://example.invalid/X.tar.gz', 'https://example.invalid/x.tar.gz')

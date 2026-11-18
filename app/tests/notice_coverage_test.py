@@ -338,9 +338,18 @@ class Account(Builds):
         # Dropping a lockfile's association, or naming another revision for it, refuses.
         self.setUp(); self.edit(crates_dir + '/associations.json', lambda v: v.update(locks=[l for l in v['locks'] if l['id'] != 'ripgrep']))
         with self.assertRaisesRegex(ValueError, 'crate index differs from the lockfiles'): self.build()
+        # The lock alone moved: its own workspace entry no longer matches it (review round 4, finding 4).
         self.setUp(); self.edit(crates_dir + '/associations.json', lambda v: next(l for l in v['locks'] if l['id'] == 'ripgrep').update(revision='e' * 40))
+        with self.assertRaisesRegex(ValueError, 'a workspace association names another repository or revision than its lockfile: ripgrep'):
+            crates.packages(self.repo)
+        # The lock and its workspace moved together: the component compares them as written, with main's refusal.
+        def move(v):
+            for item in (next(l for l in v['locks'] if l['id'] == 'ripgrep'), next(w for w in v['workspaces'] if w['lock'] == 'ripgrep')):
+                item.update(revision='e' * 40)
+        self.setUp(); self.edit(crates_dir + '/associations.json', move)
         (self.repo / crates.PACKAGES).write_bytes(crates.encode(crates.packages(self.repo)))
-        with self.assertRaisesRegex(ValueError, 'another repository or revision'): self.build()
+        with self.assertRaisesRegex(ValueError, "the crate group's lockfile is for another repository or revision than the component"):
+            self.build()
         # A lockfile whose bytes drift refuses.
         self.setUp(); lock = self.repo / crates_dir / 'locks/ripgrep.Cargo.lock'; lock.write_bytes(lock.read_bytes() + b'\n')
         with self.assertRaisesRegex(ValueError, 'lockfile differs'): self.build()
@@ -698,6 +707,12 @@ class Account(Builds):
                 row = self.row(self.build(), 'Opus')
                 self.assertEqual(row['standing'], coverage.UNCOVERED)
                 self.assertIn('source URL', row['reason'])
+        # Review round 4, finding 2: a voice row records no revision; any value refuses, with or without the records.
+        for revision in ('1' * 40, '', 'v1.6.1'):
+            with self.subTest(revision=revision):
+                self.setUp(); self.edit(TABLE, lambda v, r=revision: next(c for c in v['components'] if c['id'] == 'opus').update(revision=r))
+                with self.assertRaisesRegex(ValueError, 'a voice component records no revision'):
+                    self.build()
         # Without the records, a voice row with a complete identity is open, not covered.
         self.setUp(); shutil.rmtree(self.repo / coverage.voice_records.RECORDS)
         row = self.row(self.build(), 'Opus')
@@ -710,7 +725,7 @@ class Account(Builds):
         def reroute(v):
             opus = next(c for c in v['components'] if c['id'] == 'opus')
             codex = next(c for c in v['components'] if c['id'] == 'codex')
-            opus.update(supplier_tree_texts=[], revision=codex['revision'], texts=[codex['texts'][0]],
+            opus.update(supplier_tree_texts=[], texts=[codex['texts'][0]],
                         text_exceptions=[{'path': codex['texts'][0], 'reason': 'INVENTED reviewed exception'}],
                         members=opus['members'] + ['codex-resources/voice/licenses/Opus.txt'])
         for records in (True, False):
@@ -721,13 +736,20 @@ class Account(Builds):
                 row = self.row(self.build(), 'Opus')
                 self.assertEqual(row['standing'], coverage.UNCOVERED)
                 self.assertNotIn('source_statement', row)
-        # Moving the library into the Codex row makes that row a voice row, which no native-library entry establishes.
-        self.setUp()
-        self.edit(TABLE, lambda v: (next(c for c in v['components'] if c['id'] == 'codex')['members'].append(
-            'codex-resources/voice/lib/libopus.0.dylib'), next(c for c in v['components'] if c['id'] == 'opus')['members'].remove(
-            'codex-resources/voice/lib/libopus.0.dylib')))
-        with self.assertRaisesRegex(ValueError, 'states the source of codex'):
-            self.build()
+        # Moving the library into the Codex row makes that row a voice row: it records a revision, which a voice row may not
+        # (review round 4, finding 2), and no native-library entry establishes it.
+        def to_codex(v, keep_revision):
+            codex = next(c for c in v['components'] if c['id'] == 'codex')
+            codex['members'].append('codex-resources/voice/lib/libopus.0.dylib')
+            next(c for c in v['components'] if c['id'] == 'opus')['members'].remove('codex-resources/voice/lib/libopus.0.dylib')
+            if not keep_revision:
+                codex['revision'] = None
+        for keep_revision, message in ((True, 'a voice component records no revision \\(absent or null\\): codex'),
+                                       (False, 'states the source of codex')):
+            with self.subTest(keep_revision=keep_revision):
+                self.setUp(); self.edit(TABLE, lambda v, k=keep_revision: to_codex(v, k))
+                with self.assertRaisesRegex(ValueError, message):
+                    self.build()
         # Control: the committed rows are covered, each with its source statement.
         self.setUp()
         report = self.build()
@@ -820,6 +842,40 @@ class Account(Builds):
                 self.setUp(); self.edit(TABLE, change)
                 with self.assertRaisesRegex(ValueError, message):
                     self.build()
+
+    # Review round 4, finding 1 and App Agent 0's condition: a compiled component's repository is compared with its
+    # lockfile's as written, as on main, and refuses with main's message for a suffix in any case or another letter case.
+    def test_a_compiled_component_s_repository_is_compared_as_written(self):
+        rg = 'https://github.com/BurntSushi/ripgrep'
+        for repository in (rg + '.GIT', rg + '.git', 'https://github.com/burntsushi/ripgrep', 'https://GitHub.com/BurntSushi/ripgrep'):
+            with self.subTest(repository=repository):
+                self.setUp()
+                self.edit(TABLE, lambda v, r=repository: next(c for c in v['components'] if c['id'] == 'ripgrep-crate-dependencies')
+                          .update(repository=r))
+                with self.assertRaisesRegex(ValueError, "the crate group's lockfile is for another repository or revision than the "
+                                                        'component: ripgrep-crate-dependencies'):
+                    self.build()
+
+    # Review round 4, finding 1: a text's repository is compared with its component's as written (as on main), and a
+    # GitHub repository field must be in the canonical form.
+    def test_a_supplier_text_s_repository_is_compared_as_written_and_canonical(self):
+        def respell(v, suffix):
+            text = next(t for t in v['texts'] if t['repository'] == 'https://github.com/BurntSushi/ripgrep')
+            text['repository'] += suffix
+        for suffix in ('.GIT', '/'):
+            with self.subTest(suffix=suffix):
+                self.setUp(); self.edit(TABLE, lambda v, s=suffix: respell(v, s))
+                with self.assertRaisesRegex(ValueError, 'a GitHub repository field is not exactly'):
+                    self.build()
+
+    # Review round 4, remaining item: a distribution record that repeats a file refuses (an invented record in the copy).
+    def test_a_distribution_record_that_repeats_a_file_refuses(self):
+        record = texts.supplier_record(self.repo)[1]
+        def repeat(v):
+            v['inventory']['entries'].append(dict(next(e for e in v['inventory']['entries'] if e['kind'] == 'file')))
+        self.edit(record, repeat, rebind=False); self.rebind()
+        with self.assertRaisesRegex(ValueError, 'the distribution record repeats a file'):
+            self.build()
 
     # Review round 3, finding 5: one repository identity; another letter case is the same repository.
     def test_the_codex_commit_check_ignores_repository_case(self):
