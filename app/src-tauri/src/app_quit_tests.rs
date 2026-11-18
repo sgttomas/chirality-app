@@ -322,3 +322,148 @@ fn the_question_lists_every_item_or_names_the_assessment() {
     let long = quit_statement(&Assessment::new(many).view).unwrap();
     assert!(long.in_app.is_some(), "a long list is shown in full in the App and named by digest");
 }
+
+/// The system's request to terminate (macOS `terminate:` from the Dock, the
+/// app switcher, logout or shutdown) runs the same quit path as the menu's
+/// Quit; these drive that path's parts with an injected replier in place of
+/// AppKit's `replyToApplicationShouldTerminate:`.
+mod system_quit_routes {
+    use super::*;
+    use std::sync::mpsc;
+
+    fn replier() -> (TerminationReply, mpsc::Receiver<bool>) {
+        let (send, receive) = mpsc::channel();
+        (TerminationReply::new(move |yes| send.send(yes).unwrap()), receive)
+    }
+    fn replies(receive: &mpsc::Receiver<bool>) -> Vec<bool> {
+        receive.try_iter().collect()
+    }
+
+    #[test]
+    fn a_decided_quit_terminates_now_and_an_undecided_one_follows_the_switch() {
+        use TerminationAnswer::*;
+        use TerminationBehaviour::{Cancel, Later};
+        assert_eq!(on_should_terminate(true, false, Later), Now);
+        assert_eq!(on_should_terminate(true, false, Cancel), Now);
+        assert_eq!(on_should_terminate(true, true, Later), Now, "a decided quit is never held, even with a reply owed");
+        assert_eq!(on_should_terminate(false, false, Later), LaterAndAsk);
+        assert_eq!(on_should_terminate(false, false, Cancel), CancelAndAsk);
+        assert_eq!(on_should_terminate(false, true, Later), CancelPending, "a second request while a reply is owed starts nothing");
+        assert_eq!(on_should_terminate(false, true, Cancel), CancelPending);
+        assert_eq!(TERMINATION_BEHAVIOUR, Later, "\"later\" is the shipped selection");
+    }
+
+    #[test]
+    fn the_reply_is_yes_only_when_told_and_given_once() {
+        let (reply, receive) = replier();
+        reply.finish(QuitEnding::Decided);
+        assert_eq!(replies(&receive), [true], "yes once, and its drop adds nothing");
+        let (reply, receive) = replier();
+        reply.finish(QuitEnding::KeptRunning);
+        assert_eq!(replies(&receive), [false]);
+        let (reply, receive) = replier();
+        drop(reply);
+        assert_eq!(replies(&receive), [false], "dropped unreplied: no");
+    }
+
+    #[test]
+    fn a_panic_unwinding_through_the_quit_path_replies_no_once() {
+        let (reply, receive) = replier();
+        let unwound = std::thread::spawn(move || {
+            let _owed = reply;
+            panic!("the quit thread failed");
+        }).join();
+        assert!(unwound.is_err());
+        assert_eq!(replies(&receive), [false]);
+    }
+
+    #[test]
+    fn only_a_decided_quit_ends_the_app() {
+        for ending in [QuitEnding::AlreadyOpen, QuitEnding::AdmissionRefused, QuitEnding::KeyOperationBusy, QuitEnding::KeptRunning, QuitEnding::NotAsked, QuitEnding::SettlementRefused] {
+            assert!(!ending.ends_app(), "{ending:?}");
+        }
+        assert!(QuitEnding::Decided.ends_app());
+        assert!(QuitEnding::AlreadyDecided.ends_app());
+    }
+
+    /// The quit path as `request_quit_with` runs it: admission, the
+    /// sequence, settlement, and the one reply.
+    fn quit_path(quit: &AppQuit, stop_gate: &Mutex<()>, double: &mut Double, settle: Result<Value, String>, reply: TerminationReply) {
+        if quit.proceeding().is_some() {
+            return reply.finish(QuitEnding::AlreadyDecided);
+        }
+        let _held = match admit_quit(quit, stop_gate) {
+            Ok(held) => held,
+            Err(reason) => return reply.finish(refusal_ending(&reason)),
+        };
+        let decision = quit_sequence(double, Duration::from_millis(50));
+        let allowed = quit.allow(&decision, |_| settle);
+        reply.finish(decision_ending(&decision, &allowed));
+    }
+
+    #[test]
+    fn each_ending_of_the_quit_path_gives_its_reply() {
+        let live = || material(&["turn-1"], 1, 1);
+        let gate = Mutex::new(());
+        // Nothing live: nothing asked, the App ends.
+        let (quit, mut d, (reply, r)) = (AppQuit::default(), Double::new(vec![material(&[], 0, 0)], vec![]), replier());
+        quit_path(&quit, &gate, &mut d, Ok(Value::Null), reply);
+        assert_eq!((replies(&r), d.log.contains(&"ask".to_owned())), (vec![true], false));
+        // Confirmed and settled: yes, after the interrupts.
+        let (quit, mut d, (reply, r)) = (AppQuit::default(), Double::new(vec![live(), live()], vec![Ok(true)]), replier());
+        quit_path(&quit, &gate, &mut d, Ok(Value::Null), reply);
+        assert_eq!(replies(&r), [true]);
+        assert!(d.log.contains(&"interrupt turn-1".to_owned()) && quit.proceeding().is_some());
+        // Kept running: no, nothing interrupted.
+        let (quit, mut d, (reply, r)) = (AppQuit::default(), Double::new(vec![live()], vec![Ok(false)]), replier());
+        quit_path(&quit, &gate, &mut d, Ok(Value::Null), reply);
+        assert_eq!(replies(&r), [false]);
+        assert!(!d.log.iter().any(|l| l.starts_with("interrupt")) && quit.proceeding().is_none());
+        // The question could not be shown: no.
+        let (quit, mut d, (reply, r)) = (AppQuit::default(), Double::new(vec![live()], vec![Err("no window".into())]), replier());
+        quit_path(&quit, &gate, &mut d, Ok(Value::Null), reply);
+        assert_eq!(replies(&r), [false]);
+        // Settlement refused: no, and the App is not proceeding.
+        let (quit, mut d, (reply, r)) = (AppQuit::default(), Double::new(vec![live(), live()], vec![Ok(true)]), replier());
+        quit_path(&quit, &gate, &mut d, Err("census unavailable".into()), reply);
+        assert_eq!(replies(&r), [false]);
+        assert!(quit.proceeding().is_none());
+        // Stop or Restart Codex under way: no, nothing recorded or asked.
+        let (quit, mut d, (reply, r)) = (AppQuit::default(), Double::new(vec![live()], vec![]), replier());
+        let restart = gate.lock().unwrap();
+        quit_path(&quit, &gate, &mut d, Ok(Value::Null), reply);
+        drop(restart);
+        assert_eq!(replies(&r), [false]);
+        assert!(d.log.is_empty(), "{:?}", d.log);
+        // A second quit while the question is open: no for the second, and
+        // the open question is untouched.
+        let (quit, mut d, (reply, r)) = (AppQuit::default(), Double::new(vec![live()], vec![]), replier());
+        let open = quit.gate().unwrap();
+        quit_path(&quit, &gate, &mut d, Ok(Value::Null), reply);
+        assert_eq!(replies(&r), [false]);
+        assert!(quit.busy() && d.log.is_empty());
+        drop(open);
+        // A quit already decided: yes, nothing asked again.
+        let (quit, mut d, (reply, r)) = (AppQuit::default(), Double::new(vec![live()], vec![]), replier());
+        assert!(quit.allow(&Decision::Quit(json!({"stopRequests":[]})), |_| Ok(Value::Null)).unwrap());
+        quit_path(&quit, &gate, &mut d, Ok(Value::Null), reply);
+        assert_eq!(replies(&r), [true]);
+        assert!(d.log.is_empty());
+        // An explicit key operation under way (the key-setup gate in
+        // `request_quit_with`) keeps the App running.
+        let (reply, r) = replier();
+        reply.finish(QuitEnding::KeyOperationBusy);
+        assert_eq!(replies(&r), [false]);
+    }
+
+    #[test]
+    fn admission_refusals_map_to_their_endings() {
+        let (quit, gate) = (AppQuit::default(), Mutex::new(()));
+        let held = admit_quit(&quit, &gate).unwrap();
+        assert_eq!(refusal_ending(&admit_quit(&quit, &gate).unwrap_err()), QuitEnding::AlreadyOpen);
+        drop(held);
+        let restart = gate.lock().unwrap();
+        assert_eq!(refusal_ending(&admit_quit(&quit, &gate).unwrap_err()), QuitEnding::AdmissionRefused);
+        drop(restart);
+    }
+}

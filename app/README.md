@@ -469,7 +469,13 @@ implemented behavior and qualification limits.
     no final status (AS-02, R-2), and RQ-06 for the requests such a session left
     listed (*app-ended-without-record*; no reply is sent).
 22a. **Quit asks first** (DEL-01-02 DEF-6, K-4, SQ-Q; DEL-01-04 §5.2). Quit is
-    the App's own menu item (Cmd/Ctrl+Q). The host assesses live work across
+    the App's own menu item (Cmd/Ctrl+Q); on macOS the system's request to quit
+    (`terminate:` from the Dock's Quit, Command-Tab then Q, logout and
+    shutdown) runs the same path: the App adds `applicationShouldTerminate:`
+    to the event loop's application delegate at startup
+    (`quit_routes_macos.rs`), answers "later", and replies yes only once the
+    quit is decided and settled, no on every other ending (kept running, not
+    asked, refused). The host assesses live work across
     every App-owned home and records `quit_requested` with the lists. With
     nothing live it quits without asking. Otherwise a native question lists
     the live turns, waiting requests, delegated agents and workflow runs in
@@ -487,10 +493,15 @@ implemented behavior and qualification limits.
     it again) or minimizes it; work and requests continue, and the view
     re-reads the host's snapshot when shown. The Dock icon shows the number of
     supplier requests waiting for the person (C-24; macOS only). Quit and
-    Stop/Restart Codex refuse each other while one is under way. *Limits:* on macOS the
-    Dock's Quit, logout and shutdown reach the App as `terminate:` and cannot
-    be held; they are recorded as `session_ended` *system-terminated* with no
-    question. The Dock indicator gives a count only, and clicking it opens the
+    Stop/Restart Codex refuse each other while one is under way. *Limits:* a
+    termination the system forces without asking (a signal, Force Quit, power
+    loss), or a `terminate:` when the delegate method could not be installed
+    (said on standard error at startup), is recorded as `session_ended`
+    *system-terminated* with no question. The system routes through
+    `applicationShouldTerminate:` are tested against doubles and a throwaway
+    Objective-C class only; their native behaviour on a launched App,
+    including the quit question while AppKit waits for the reply, has not been
+    observed. The Dock indicator gives a count only, and clicking it opens the
     App. The macOS App's **Waiting requests** menu additionally names current
     source-qualified conversation groups; a person selection shows the window
     and uses guarded navigation to that original source. A process-owned,
@@ -1001,6 +1012,7 @@ implemented behavior and qualification limits.
 | `src-tauri/src/native_waiting.rs`, `src/NativeWaitingBridge.tsx` | macOS native waiting-menu metadata, immutable original-source targets and single-use navigation handoff; no supplier response or restored request authority |
 | `src-tauri/src/codex_stop.rs`, `src/CodexControls.tsx` | Stop/Restart Codex (DEL-01-02 §4.1 C-12 with the DEL-01-04 §5.2 question): live-work assessment with runs in force, ask-first sequence, the ledger `codex_stop` record, interrupts before the stop within the stop wait limit, TO-4 labels and the in-process outcome panel |
 | `src-tauri/src/app_quit.rs` | App quit asked first (DEL-01-02 DEF-6, K-4, SQ-Q; DEL-01-04 §5.2): assessment across homes, `quit_requested`/`quit_answered`, quit interrupts (cause *quit*), the exit's process stops and `session_ended` (AS-09, AS-10); the DEF-1 exit rule; the C-24 waiting count |
+| `src-tauri/src/quit_routes_macos.rs` | macOS: the system's request to quit (`terminate:` from the Dock, the app switcher, logout, shutdown) answered through `applicationShouldTerminate:` by the same quit path (DEL-01-02 K-4, REQ-005); the reply decision and its once-only reply guard are in `app_quit.rs` |
 | `src-tauri/src/stop_records.rs`, `resources/runtime_core/recovery.stop-request.schema.json` | REC stop-request records (DEL-01-02 §3.4 SR-01…SR-12): validated transitions and outcome labels, the `codex_stop` ledger entry, and the read-back after a relaunch; the Host writes them through its recovery writer before each interrupt send |
 | `src-tauri/src/hosting_recovery_reads.rs`, `execution_custody.rs` | Recovery after a restart (DEL-01-02 §3.2 CV-11…CV-15, CV-19, CV-22; SR-09): the reads on the home's ready process, `observation_lost`/`observation_recovered`/`turn_outcome`, and the conversations' recovery states in the ledger; run on the host's trial tick or on the person's retry |
 | `src-tauri/src/checkpoint_recorder.rs` | EXEC §2.4 first slice: CE-1 listing, CE-3 arrivals from observed AW-6/AW-7 native items, CE-11/CE-12, CE-17 waiting arrivals; written through the run's RS writer with CE-19 late-write limits; never reacts (RC-4) |

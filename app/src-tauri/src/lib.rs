@@ -29,6 +29,8 @@ pub(crate) mod lasting_rules;
 pub(crate) mod level_choice;
 pub mod codex_stop;
 mod app_quit;
+#[cfg(target_os = "macos")]
+mod quit_routes_macos;
 pub mod conversation_roles;
 pub mod connector_standing;
 pub mod connector_route_store;
@@ -1687,14 +1689,28 @@ fn show_main_window(app: &tauri::AppHandle) {
 /// K-4 / SQ-Q: the person chose Quit. Runs off the main thread (the native
 /// question blocks); one question at a time; the web view takes no part.
 fn request_quit(app: tauri::AppHandle) {
+    request_quit_with(app, None);
+}
+/// The one quit path. `reply` is owed only to a macOS "later" answer to the
+/// system's request to terminate (`quit_routes_macos`): it is given once on
+/// every ending, yes only when the quit is decided and settled, and then the
+/// system ends the App instead of `app.exit(0)`.
+fn request_quit_with(app: tauri::AppHandle, reply: Option<app_quit::TerminationReply>) {
     // The menu has no IPC invoker. Retain the configured App window now; never
     // select a focused/first/replacement window after the question is prepared.
     let question_window = app.get_webview_window("main").map(|window| window.as_ref().window().clone());
-    std::thread::spawn(move || {
+    let spawned = std::thread::Builder::new().name("chirality-quit".into()).spawn(move || {
+        // Exactly one ending: the App ends (by the system's terminate when a
+        // reply is owed, else by `app.exit(0)`), or it keeps running and an
+        // owed reply is no. A panic below drops `reply`, which answers no.
+        let end = |ending: app_quit::QuitEnding| match reply {
+            Some(reply) => reply.finish(ending),
+            None if ending.ends_app() => app.exit(0),
+            None => {}
+        };
         let state = app.state::<AppState>();
         if state.app_quit.proceeding().is_some() {
-            app.exit(0);
-            return;
+            return end(app_quit::QuitEnding::AlreadyDecided);
         }
         // One operation over the Codex processes at a time (Stop/Restart
         // Codex or quit); a second Quit while the question is open (or this
@@ -1702,12 +1718,14 @@ fn request_quit(app: tauri::AppHandle) {
         // the person. Any other refusal is told in a dialog.
         let _held = match app_quit::admit_quit(&state.app_quit, &state.codex_stop_gate) {
             Ok(held) => held,
-            Err(reason) if reason.starts_with("The quit question") => return,
-            Err(reason) => {
-                show_main_window(&app);
-                native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality", reason);
-                return;
-            }
+            Err(reason) => match app_quit::refusal_ending(&reason) {
+                app_quit::QuitEnding::AlreadyOpen => return end(app_quit::QuitEnding::AlreadyOpen),
+                ending => {
+                    show_main_window(&app);
+                    native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality", reason);
+                    return end(ending);
+                }
+            },
         };
         // Keep the set of homes stable through settlement. Key setup is the
         // only runtime path adding a home; never let it race the quit snapshot.
@@ -1717,7 +1735,7 @@ fn request_quit(app: tauri::AppHandle) {
             Err(_) => {
                 show_main_window(&app);
                 native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality", "An explicit key operation is under way. The App is still running; choose Quit again when that operation has finished.".into());
-                return;
+                return end(app_quit::QuitEnding::KeyOperationBusy);
             }
         };
         let homes = state.homes.lock().unwrap().entries();
@@ -1736,17 +1754,21 @@ fn request_quit(app: tauri::AppHandle) {
         if let app_quit::Decision::NotAsked(outcome) = &decision {
             eprintln!("chirality: {}", outcome["reading"].as_str().unwrap_or("quit question not shown"));
         }
-        match state.app_quit.allow(&decision, |ids| app_quit::finish_exit(&homes, Some(ids.to_vec()))) {
-            Ok(true) => app.exit(0),
-            Ok(false) => {},
-            Err(error) => {
-                app_quit::QuitOps::reopen_to_new_turns(&mut ops);
-                eprintln!("chirality: {error}");
-                show_main_window(&app);
-                native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality — still running", error);
-            }
+        let allowed = state.app_quit.allow(&decision, |ids| app_quit::finish_exit(&homes, Some(ids.to_vec())));
+        let ending = app_quit::decision_ending(&decision, &allowed);
+        if let Err(error) = allowed {
+            app_quit::QuitOps::reopen_to_new_turns(&mut ops);
+            eprintln!("chirality: {error}");
+            show_main_window(&app);
+            native_lifecycle_confirmation::notice(question_window.as_ref(), "Quit Chirality — still running", error);
         }
+        end(ending)
     });
+    // A quit thread that cannot start leaves the App running; an owed reply
+    // was dropped with the closure and answered no.
+    if let Err(error) = spawned {
+        eprintln!("chirality: the quit could not be started ({error}); the App keeps running");
+    }
 }
 /// Setup's end offers Quit beside its sentence (the reopen loads the saved setup): the same
 /// question and settlement as the menu's Quit, asked by the host; the web view only asks for it.
@@ -3534,6 +3556,10 @@ pub fn run() {
     let (state, home) = freeze_startup_state(launch, desktop.clone(), compiled_development_selection::observe_startup(|| resources.clone()));
     let host = Arc::clone(&home.host);
             app.manage(state);
+            // K-4: the system's request to quit (Dock, app switcher, logout,
+            // shutdown) asks as Quit does. The delegate exists: setup runs from it.
+            #[cfg(target_os = "macos")]
+            quit_routes_macos::install(app.handle());
             // BUNDLED-RUN-01: the only bundle root an LS-5 selection may come from.
             if let Ok(resources) = &resources {
                 let _ = app.state::<AppState>().workflows.lock().unwrap().configure_installed_bundle(resources.join(RESOURCE_WORKFLOWS));
@@ -3709,9 +3735,11 @@ pub fn run() {
             // re-reads the host's snapshot.
             #[cfg(target_os = "macos")]
             tauri::RunEvent::Reopen { .. } => show_main_window(app),
-            // Q-6, Q-7 (AS-08, AS-09) after a decided quit; AS-10 when the
-            // system ends the App without the question (macOS `terminate:`
-            // from the Dock's Quit, logout or shutdown).
+            // Q-6, Q-7 (AS-08, AS-09) after a decided quit, whether the App
+            // ends by `app.exit(0)` or, on macOS, by the system's terminate
+            // once `quit_routes_macos` has replied yes. AS-10 when the system
+            // ends the App without the question (a signal or Force Quit, or a
+            // terminate the delegate method was not installed to answer).
             tauri::RunEvent::Exit => {
                 let st: State<'_, AppState> = app.state();
                 let homes = st.homes.lock().unwrap().entries();

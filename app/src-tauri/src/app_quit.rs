@@ -408,10 +408,140 @@ pub(crate) fn on_exit_requested(proceeding: bool, code: Option<i32>) -> ExitActi
     }
 }
 
+/// How one run of the quit path ended. Every route into it (the menu's Quit,
+/// Command-Q, Setup's Quit, an unasked exit and, on macOS, the system's
+/// `terminate:` from the Dock, the app switcher, logout or shutdown) ends in
+/// exactly one of these.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum QuitEnding {
+    /// A quit was already decided before this run: the App ends.
+    AlreadyDecided,
+    /// The quit question is already open (or a quit is under way): the open
+    /// question is in front of the person; this request is ignored.
+    AlreadyOpen,
+    /// Stop or Restart Codex is under way: nothing was recorded or asked.
+    AdmissionRefused,
+    /// An explicit key operation is under way: nothing was recorded or asked.
+    KeyOperationBusy,
+    /// The person kept the App running (AS-05).
+    KeptRunning,
+    /// The question could not be shown; the App keeps running.
+    NotAsked,
+    /// Settlement of the owned processes was refused; the App keeps running.
+    SettlementRefused,
+    /// AS-03 or a confirmed quit, settled: the App ends.
+    Decided,
+}
+impl QuitEnding {
+    /// True only where the App ends: the answer to the system's request to
+    /// terminate is yes for these and no for every other ending.
+    pub(crate) fn ends_app(self) -> bool {
+        matches!(self, Self::AlreadyDecided | Self::Decided)
+    }
+}
+/// The ending of a quit refused at admission ([`admit_quit`]): a second quit
+/// while the question is open is ignored; any other refusal is told.
+pub(crate) fn refusal_ending(reason: &str) -> QuitEnding {
+    if reason.starts_with("The quit question") { QuitEnding::AlreadyOpen } else { QuitEnding::AdmissionRefused }
+}
+/// The ending of a quit sequence that ran: its decision and what settlement
+/// (`AppQuit::allow`) made of it.
+pub(crate) fn decision_ending(decision: &Decision, allowed: &Result<bool, String>) -> QuitEnding {
+    match (decision, allowed) {
+        (_, Err(_)) => QuitEnding::SettlementRefused,
+        (Decision::Quit(_), Ok(true)) => QuitEnding::Decided,
+        (Decision::NotAsked(_), _) => QuitEnding::NotAsked,
+        (Decision::Cancelled(_) | Decision::Quit(_), Ok(_)) => QuitEnding::KeptRunning,
+    }
+}
+
+/// How the App answers the system's request to terminate (macOS
+/// `applicationShouldTerminate:`) when no quit is decided yet. One switch, a
+/// constant in code, not a setting.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum TerminationBehaviour {
+    /// Answer "later", run the quit path, and reply yes once it has decided
+    /// and settled the quit, no on every other ending. AppKit runs its main
+    /// run loop in a modal mode until the reply is given.
+    Later,
+    /// Decline the termination at once, then run the quit path, which ends
+    /// the App itself (`app.exit(0)`) if the quit is decided. The fallback if
+    /// the question or its main-thread dispatch cannot run while a "later"
+    /// reply is pending. Selected only by changing the constant below.
+    #[allow(dead_code)]
+    Cancel,
+}
+/// The selected behaviour (see [`TerminationBehaviour`]).
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+pub(crate) const TERMINATION_BEHAVIOUR: TerminationBehaviour = TerminationBehaviour::Later;
+
+/// The answer to the system's request to terminate, and whether the quit
+/// path is started for it.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) enum TerminationAnswer {
+    /// A quit is already decided: terminate now (the exit handler takes the
+    /// decided path). Nothing is started.
+    Now,
+    /// Answer later and start the quit path with a reply owed.
+    LaterAndAsk,
+    /// Decline now and start the quit path with no reply owed.
+    CancelAndAsk,
+    /// A reply is already owed for an earlier request, whose quit path is
+    /// running: decline this one and start nothing; the earlier one keeps its
+    /// single reply.
+    CancelPending,
+}
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+pub(crate) fn on_should_terminate(decided: bool, reply_pending: bool, behaviour: TerminationBehaviour) -> TerminationAnswer {
+    match (decided, reply_pending, behaviour) {
+        (true, _, _) => TerminationAnswer::Now,
+        (false, true, _) => TerminationAnswer::CancelPending,
+        (false, false, TerminationBehaviour::Later) => TerminationAnswer::LaterAndAsk,
+        (false, false, TerminationBehaviour::Cancel) => TerminationAnswer::CancelAndAsk,
+    }
+}
+
+/// The reply owed to a "later" answer: given exactly once on every path.
+/// [`TerminationReply::finish`] replies yes only for an ending that ends the
+/// App; dropping it unreplied (an early return, a refused spawn, a panic
+/// unwinding through the quit path) replies no.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+#[must_use]
+pub(crate) struct TerminationReply {
+    reply: Option<Box<dyn FnOnce(bool) + Send>>,
+}
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+impl TerminationReply {
+    pub(crate) fn new(reply: impl FnOnce(bool) + Send + 'static) -> Self {
+        Self { reply: Some(Box::new(reply)) }
+    }
+    pub(crate) fn finish(mut self, ending: QuitEnding) {
+        self.send(ending.ends_app());
+    }
+    fn send(&mut self, yes: bool) {
+        if let Some(reply) = self.reply.take() {
+            reply(yes);
+        }
+    }
+}
+impl Drop for TerminationReply {
+    fn drop(&mut self) {
+        self.send(false);
+    }
+}
+impl std::fmt::Debug for TerminationReply {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("TerminationReply").field("owed", &self.reply.is_some()).finish()
+    }
+}
+
 /// How the session ends on exit (AS-09 after a decided quit, else AS-10: the
-/// system ended the App without the question, for example macOS `terminate:`
-/// from the Dock's Quit, logout or shutdown) and each quit stop request's
-/// final state as the homes now hold it.
+/// system ended the App without the question, for example a signal, Force
+/// Quit, or on a platform where the system's request to terminate is not
+/// routed through the quit question) and each quit stop request's final state
+/// as the homes now hold it.
 pub(crate) fn session_end(proceeding: Option<Vec<String>>, records: &[Value]) -> (&'static str, Vec<Value>) {
     match proceeding {
         None => ("system-terminated", vec![]),
