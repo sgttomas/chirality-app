@@ -117,7 +117,8 @@ export function CodexProcessControls({ host, busy, act }: { host: Json; busy: bo
 // - a turn's end is said only as Codex reported it in the record; the App's
 //   label is shown as the App's label, with its reading, and is never read as
 //   a cause, an order of events or a Codex status;
-// - a request without a confirmed write keeps its reading;
+// - a request with consistent state and write fields and no reported final
+//   keeps its usual reading when the write is unconfirmed;
 // - an interrupt request answers no Codex request, and an absent record is not
 //   evidence that nothing was interrupted.
 

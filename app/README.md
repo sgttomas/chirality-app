@@ -483,40 +483,40 @@ implemented behavior and qualification limits.
     Codex and writes `session_ended` *quit* with each quit stop request's
     state. A relaunch reads *quit-with-live-work* and "interrupted by quit".
 
-    History shows the selected conversation's App stop requests where its
-    home is established. A labelled row gives the status Codex reported when
+    History shows the selected conversation's App stop requests where its home
+    is established. A labelled row gives the status Codex reported when
     available, including interrupted, completed or failed. If a labelled row
-    has no reported final status, the App says its stop record has no
-    reported final status for that turn. Each row gives the stop-record
-    reading, with any App label attributed and a derived label marked. An
-    interrupt request does not answer a Codex request. A row with a pending,
-    unsent or incomplete interrupt write keeps the reading for that write
-    state even where it carries a label. The App omits that label from its
-    projection. The live activity code and its home mapping are unchanged
-    from the pinned main base. This read-back exception also affects the
-    live stop label. A label on a row in any state other than settled,
-    recovered or outcome unknown is likewise omitted, and a row whose request
-    state and write field disagree, or that carries a Codex final status in a
-    state that records no settled turn, has no label and a reading that says
-    so. The App's own writers produce none of these rows, and the changed
-    reading reaches every view that shows them: the Recorded stop requests
-    disclosure, the live stop label, the box and the stored page.
+    has no reported final status, the App says its stop record has no reported
+    final status for that turn. Each row gives the stop-record reading, with
+    any App label attributed and a derived label marked. An interrupt request
+    does not answer a Codex request. The host gives a request-state/write
+    disagreement its own reading and omits the label. Where those fields
+    agree, the host gives a reported final outside the settled and
+    outcome-recovered states its own reading and omits the label. Any reported
+    final is still projected independently. For other rows, the host reads a
+    written label only in the settled, outcome-unknown and outcome-recovered
+    states. The remaining states use their ordinary reading. A sent, accepted
+    or refused row from an earlier session whose end is established can still
+    receive a derived label. The App's writers produce neither the conflicting
+    rows nor rows with written labels outside those three states. The
+    read-back rules apply to the Recorded stop requests disclosure, the live
+    stop label, the box and the stored page. The live activity code and its
+    home mapping match the pinned main base.
 
     An accepted stored turn page shows the native status and the newest
-    matching App stop request, or an applicable in-memory Stop Codex outcome
-    when there is no matching ledger row. Both matches require the turn's
-    home. The page shows the App's stop-request reading or its Stop or
-    Restart Codex outcome, with any App label attributed and any final
-    report identified by source. On a matched ledger row, the two final
-    reports are identified by source when they differ. A labelled
-    stop-request row whose interrupt write is recorded as sent, from an
-    earlier session whose end is established, offers
-    **Continue this conversation**.
-    It sends the existing Codex resume request and opens the conversation
-    after matching admission in the current view. Continue sends no
-    conversation message. The read-only Prior work section in
-    Conversation shows the same stored-turn stop labels after a matched
-    resume and adds no Continue.
+    matching row in the App's stop-request view. With no matching stop-request
+    row, it can show an applicable in-memory Stop or Restart Codex outcome.
+    Both matches require the turn's home. The page shows the App's
+    stop-request reading or its Stop or Restart Codex outcome, with any App
+    label attributed and any final report identified by source. On a matched
+    stop-request row, the two final reports are identified by source when they
+    differ. A labelled stop-request row whose interrupt write is recorded as
+    sent, from an earlier session whose end is established, offers **Continue
+    this conversation**. It sends the existing Codex resume request and opens
+    the conversation after matching admission in the current view. Continue
+    sends no conversation message. The read-only Prior work section in
+    Conversation shows the same stored-turn stop labels after a matched resume
+    and adds no Continue.
 
     An exit nobody decided is held and asked as Quit. **Closing the window is
     not quit** (DEF-1, SQ-W): it hides the window (macOS; the Dock icon shows
