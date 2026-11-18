@@ -3,15 +3,16 @@
  "reviewed_for_pin": "0.169.0",
  "voice_sources": {
   "path": "codex-resources/voice/sources.json",
-  "note": "Voice component versions and archive URLs are as the supplier's sources.json states; coverage.py --vendor rechecks them against the tree."
+  "note": "Voice component versions and archive URLs are as the supplier's sources.json states. Byte-faithful copies of it and of voice/manifest.json, bound to the distribution record's digests, are under supplier_notices/voice_records/<pin>/; coverage.py compares them with these rows on every run (supplier_notices/voice.py), and coverage.py --vendor applies the same comparison to an extracted tree."
  },
  "limits": [
   "Each text is recorded with the repository and revision it comes from, or as a member of the supplier tree. Below a repository's root, only what a row lists is included (V8's third_party licences); each row's below_root says what was examined.",
   "Which component is inside which member follows the supplier's build files and package records (Codex third_party/v8 build files, the rg selector, the voice manifest and sources.json); it is the supplier's statement in its source, not read from the binaries.",
   "The executable rule (an execute bit, not .dylib or .json) fits this distribution record, checked against its Mach-O count; it is not a general proof that a file is a compiled program.",
-  "Reviewed for 0.169.0 from the supplier's source at d32063f9 and the distribution record; no member of the distributed archive was read. Reading the selected source is not an observation of the distributed binary.",
+  "Reviewed for 0.169.0 from the supplier's source at d32063f9 and the distribution record; of the distributed archive only the two voice records (voice/sources.json and voice/manifest.json) were read. Reading the selected source is not an observation of the distributed binary.",
   "The supplier's release workflow at d32063f9 links a checksum-pinned prebuilt rusty_v8 archive (RUSTY_V8_ARCHIVE); the producer revision of that archive is not established. Both are limits of the association, not evidence of coverage.",
-  "Six optional native files were not acquired (App Agent 0's decision; native-source-reading report of 2026-11-16): V8 AUTHORS, because the held V8 LICENSE and LICENSE.v8 require their own copyright notice, conditions and disclaimer, which they carry, and do not incorporate AUTHORS; and libunwind LICENSE.TXT, buildtools LICENSE, jinja2 LICENSE.rst and markupsafe LICENSE and AUTHORS, which are rusty_v8 fork submodule files used by the producer's Windows source build (.github/workflows/rusty-v8-release.yml lines 277-427, V8_FROM_SOURCE at line 384), while the macOS release sets the checksum-pinned RUSTY_V8_ARCHIVE (.github/actions/setup-rusty-v8/action.yml lines 45-64; rust-release.yml lines 225-229). The decision is reversible; legal adequacy is the owner's."
+  "Six optional native files were not acquired (App Agent 0's decision; native-source-reading report of 2026-11-16): V8 AUTHORS, because the held V8 LICENSE and LICENSE.v8 require their own copyright notice, conditions and disclaimer, which they carry, and do not incorporate AUTHORS; and libunwind LICENSE.TXT, buildtools LICENSE, jinja2 LICENSE.rst and markupsafe LICENSE and AUTHORS, which are rusty_v8 fork submodule files used by the producer's Windows source build (.github/workflows/rusty-v8-release.yml lines 277-427, V8_FROM_SOURCE at line 384), while the macOS release sets the checksum-pinned RUSTY_V8_ARCHIVE (.github/actions/setup-rusty-v8/action.yml lines 45-64; rust-release.yml lines 225-229). The decision is reversible; legal adequacy is the owner's.",
+  "The voice rows' versions and source URLs are the supplier's own statements about its bundle (voice/sources.json and voice/manifest.json of the 0.169.0 distribution, read as two single members of the held archive after its size and digest were checked); the libraries' contents were not inspected and no source archive was read."
  ],
  "texts": [
   {
@@ -1091,10 +1092,8 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/LGPL-2.1.txt"
    ],
-   "standing": "uncovered",
-   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
-   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
-   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
+   "standing": "covered",
+   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined."
   },
   {
    "id": "gst-plugins-base",
@@ -1118,10 +1117,8 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/LGPL-2.1.txt"
    ],
-   "standing": "uncovered",
-   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
-   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
-   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
+   "standing": "covered",
+   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined."
   },
   {
    "id": "gst-plugins-good",
@@ -1137,10 +1134,8 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/LGPL-2.1.txt"
    ],
-   "standing": "uncovered",
-   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
-   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
-   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
+   "standing": "covered",
+   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined."
   },
   {
    "id": "glib",
@@ -1158,10 +1153,8 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/LGPL-2.1.txt"
    ],
-   "standing": "uncovered",
-   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
-   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
-   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
+   "standing": "covered",
+   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined."
   },
   {
    "id": "proxy-libintl",
@@ -1176,10 +1169,8 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/proxy-libintl.txt"
    ],
-   "standing": "uncovered",
-   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
-   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
-   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
+   "standing": "covered",
+   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined."
   },
   {
    "id": "libffi",
@@ -1194,16 +1185,14 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/libffi.txt"
    ],
-   "standing": "uncovered",
-   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
-   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
-   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
+   "standing": "covered",
+   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined."
   },
   {
    "id": "pcre2-voice",
    "name": "PCRE2 (voice)",
-   "version": "10.47",
-   "repository": "https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.47/pcre2-10.47.tar.gz",
+   "version": "10.48",
+   "repository": "https://github.com/PCRE2Project/pcre2/releases/download/pcre2-10.48/pcre2-10.48.tar.gz",
    "revision": null,
    "members": [
     "codex-resources/voice/lib/libpcre2-8.0.dylib"
@@ -1213,10 +1202,8 @@
     "codex-resources/voice/licenses/PCRE2.md",
     "codex-resources/voice/licenses/sljit.txt"
    ],
-   "standing": "uncovered",
-   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
-   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
-   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
+   "standing": "covered",
+   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined."
   },
   {
    "id": "opus",
@@ -1231,10 +1218,8 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/Opus.txt"
    ],
-   "standing": "uncovered",
-   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
-   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
-   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
+   "standing": "covered",
+   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined."
   },
   {
    "id": "zlib",
@@ -1249,10 +1234,8 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/zlib.txt"
    ],
-   "standing": "uncovered",
-   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
-   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
-   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
+   "standing": "covered",
+   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined."
   }
  ]
 }
