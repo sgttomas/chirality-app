@@ -19,7 +19,7 @@
  "inputs_sha256": {
   "app/packaging/font_notice/index.json": "ad2b50d268aa1df4c856a9cb446cd0fb6821deed4a65e4214c6d5f0df69ac03f",
   "app/packaging/notices/coverage-inputs.json": "c69574536b96438ef7660ac65ae5998369023b5354813a6bdf8d354a0b682871",
-  "app/packaging/notices/coverage-review.json": "0f0a65e2cf2df8115349edace3a6c6826285afefed9e5ddbe5ea40ae102afb1e",
+  "app/packaging/notices/coverage-review.json": "ad134d108fa46ed4c2591ae3ba620c874d11a9c6db8df529d6c7c2d185d43576",
   "app/packaging/notices/index.json": "fbf873b839b167d5347b233a7d019df4d053809e8dc9e31968e04b4e6cf46ac4",
   "app/packaging/notices/transitive-index.json": "557c17f96f1a82982d0933a5c0ea570f000db17dad4278d67b16fd63379ed517",
   "app/packaging/sqlite_notice/index.json": "cfbe3f95ea753d14f7d50a4f55d0263693726a30f4847e5430ccadf4d943fc3b",
@@ -9945,18 +9945,10 @@
        {
         "name": "keyring",
         "version": "3.6.3",
-        "archive_manifest": {
-         "checksum": "eebcc3aff044e5944a8fbaf69eb277d11986064cba30c468730e8b9909fb551c",
-         "member": "Cargo.toml",
-         "size_bytes": 4510,
-         "sha256": "ecebaa095f7181b35d774b34f60fdfe387b1ba5eefe667cbdcad1d01d6bede64"
-        },
-        "edges": [
+        "manifest": "app/packaging/supplier_notices/crates/manifests/keyring-3.6.3.Cargo.toml",
+        "declarations": [
          {
-          "table": "[target.'cfg(target_os = \"linux\")'.dependencies.linux-keyutils]",
-          "table_line": 167,
-          "line": 167,
-          "text": "[target.'cfg(target_os = \"linux\")'.dependencies.linux-keyutils]",
+          "target": "cfg(target_os = \"linux\")",
           "kind": "normal"
          }
         ]
@@ -9974,18 +9966,10 @@
        {
         "name": "rustls-platform-verifier",
         "version": "0.7.0",
-        "archive_manifest": {
-         "checksum": "26d1e2536ce4f35f4846aa13bff16bd0ff40157cdb14cc056c7b14ba41233ba0",
-         "member": "Cargo.toml",
-         "size_bytes": 3499,
-         "sha256": "3032a2b58429a8786207a229216b5ea0cdf04a33f5f545660b83218f3322d1b0"
-        },
-        "edges": [
+        "manifest": "app/packaging/supplier_notices/crates/manifests/rustls-platform-verifier-0.7.0.Cargo.toml",
+        "declarations": [
          {
-          "table": "[target.'cfg(target_os = \"android\")'.dependencies.rustls-platform-verifier-android]",
-          "table_line": 133,
-          "line": 133,
-          "text": "[target.'cfg(target_os = \"android\")'.dependencies.rustls-platform-verifier-android]",
+          "target": "cfg(target_os = \"android\")",
           "kind": "normal"
          }
         ]
@@ -10003,20 +9987,10 @@
        {
         "name": "codex-linux-sandbox",
         "version": "0.0.0",
-        "workspace_manifest": {
-         "repository": "https://github.com/openai/codex",
-         "revision": "d32063f96c2dff1dc96af839b3952abb6acfeda4",
-         "path": "codex-rs/linux-sandbox/Cargo.toml",
-         "size_bytes": 1484,
-         "git_blob_sha1": "b3b20cc7c1378df58336fcae62d2a2a7e6766d1e",
-         "sha256": "cc1f31077f38fb354a6b88eddd8d835d8e4fe245c9ccb39b8998c9e7b44946d9"
-        },
-        "edges": [
+        "manifest": "app/packaging/supplier_notices/crates/manifests/codex-rs.linux-sandbox.Cargo.toml",
+        "declarations": [
          {
-          "table": "[target.'cfg(target_os = \"linux\")'.dev-dependencies]",
-          "table_line": 40,
-          "line": 45,
-          "text": "socks5-protocol = { version = \"=0.3.5\", features = [\"sync\"] }",
+          "target": "cfg(target_os = \"linux\")",
           "kind": "dev"
          }
         ]
@@ -10034,18 +10008,10 @@
        {
         "name": "winapi",
         "version": "0.3.9",
-        "archive_manifest": {
-         "checksum": "5c839a674fcd7a98952e593242ea400abe93992746761e38641405d28b00f419",
-         "member": "Cargo.toml",
-         "size_bytes": 7144,
-         "sha256": "d25b7c71c515a1869c75b3ff957bf845386bec03bcb407532e3726919f0b36c7"
-        },
-        "edges": [
+        "manifest": "app/packaging/supplier_notices/crates/manifests/winapi-0.3.9.Cargo.toml",
+        "declarations": [
          {
-          "table": "[target.i686-pc-windows-gnu.dependencies.winapi-i686-pc-windows-gnu]",
-          "table_line": 431,
-          "line": 431,
-          "text": "[target.i686-pc-windows-gnu.dependencies.winapi-i686-pc-windows-gnu]",
+          "target": "i686-pc-windows-gnu",
           "kind": "normal"
          }
         ]
@@ -10063,18 +10029,10 @@
        {
         "name": "winapi",
         "version": "0.3.9",
-        "archive_manifest": {
-         "checksum": "5c839a674fcd7a98952e593242ea400abe93992746761e38641405d28b00f419",
-         "member": "Cargo.toml",
-         "size_bytes": 7144,
-         "sha256": "d25b7c71c515a1869c75b3ff957bf845386bec03bcb407532e3726919f0b36c7"
-        },
-        "edges": [
+        "manifest": "app/packaging/supplier_notices/crates/manifests/winapi-0.3.9.Cargo.toml",
+        "declarations": [
          {
-          "table": "[target.x86_64-pc-windows-gnu.dependencies.winapi-x86_64-pc-windows-gnu]",
-          "table_line": 433,
-          "line": 433,
-          "text": "[target.x86_64-pc-windows-gnu.dependencies.winapi-x86_64-pc-windows-gnu]",
+          "target": "x86_64-pc-windows-gnu",
           "kind": "normal"
          }
         ]
@@ -10092,20 +10050,10 @@
        {
         "name": "codex-tui",
         "version": "0.0.0",
-        "workspace_manifest": {
-         "repository": "https://github.com/openai/codex",
-         "revision": "d32063f96c2dff1dc96af839b3952abb6acfeda4",
-         "path": "codex-rs/tui/Cargo.toml",
-         "size_bytes": 6998,
-         "git_blob_sha1": "6e5c58f6a07af566f308a7b4e4cbce3bf3719c44",
-         "sha256": "eabdbe5cd7f5b9691d6e3d62b7c2e00a0d919b54d9a881077c6f0f89128c4417"
-        },
-        "edges": [
+        "manifest": "app/packaging/supplier_notices/crates/manifests/codex-rs.tui.Cargo.toml",
+        "declarations": [
          {
-          "table": "[target.'cfg(windows)'.dependencies]",
-          "table_line": 155,
-          "line": 171,
-          "text": "winsplit = \"0.1\"",
+          "target": "cfg(windows)",
           "kind": "normal"
          }
         ]
@@ -10149,7 +10097,7 @@
      "name": "block2",
      "version": "0.6.2",
      "standing": "held",
-     "reason": "the text from https://github.com/madsmtm/objc2 awaits an owner licence reading for this supplier crate; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "cookie-factory",
@@ -10185,13 +10133,13 @@
      "name": "difflib",
      "version": "0.4.0",
      "standing": "gap",
-     "reason": "the archive has no VCS record: crates.io records publication of 0.4.0 on 2018-07-22T12:47:54Z; commit 6fd59b0c of DimaKudosh/difflib sets 0.4.0 and f035fb8e is the last commit before publication, with Cargo.toml and LICENSE identical at both, so the candidate binding rests on timing, not a VCS record; the LICENSE at f035fb8e (1,086 bytes, blob 5acedf04) is not held"
+     "reason": "the archive has no VCS record, so its revision is not established; App Agent 0 accepts a binding by invariance where a licence text is the same blob at every candidate revision bracketing publication, confirmed by a reviewer across the whole range. Window: 6fd59b0c (2018-07-03, sets 0.4.0) to f035fb8e (2018-07-22T12:36:05Z, the last commit before publication at 12:47:54Z), through 06afc187 and 31ea2a24 on the merged branch. LICENSE is blob 5acedf04 (1,086 bytes) at 6fd59b0c and at f035fb8e (saved tree listings); the two commits between are not held, so identity across the whole range is not yet shown. The LICENSE is not held"
     },
     {
      "name": "dispatch2",
      "version": "0.3.0",
      "standing": "held",
-     "reason": "the text from https://github.com/madsmtm/objc2 awaits an owner licence reading for this supplier crate; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "display_container",
@@ -10263,133 +10211,133 @@
      "name": "lock_free_hashtable",
      "version": "0.1.4",
      "standing": "gap",
-     "reason": "the archive has no VCS record, so the locked revision is not established: crates.io records publication on 2026-05-22T14:34:20Z; facebook/buck2 shed/lock_free_hashtable is at 0.1.4 in e65e66a7 and 48ae5c61, which share a committer time, so which one the archive was built from is not established; the repository root also has a NOTICE (341 bytes, blob 1eb292d9) that is not held"
+     "reason": "the archive has no VCS record, so its revision is not established; App Agent 0 accepts a binding by invariance where the licence texts are the same blobs at every candidate revision bracketing publication, confirmed by a reviewer across the whole range. Window: e65e66a7 and 48ae5c61 (both 2026-05-22T13:35:05Z, at 0.1.4) to publication at 2026-05-22T14:34:20Z. The buck2 root LICENSE-APACHE (blob b09cd785, held), LICENSE-MIT (blob b93be905, held) and NOTICE (341 bytes, blob 1eb292d9) are the same blobs at bb911429, at 48ae5c61 and at tag 2026-06-01 (saved root listings); e65e66a7's root and the commits up to publication are not held, so identity across the whole range is not yet shown. The NOTICE is not held"
     },
     {
      "name": "objc2",
      "version": "0.6.3",
      "standing": "held",
-     "reason": "the text from https://github.com/madsmtm/objc2 awaits an owner licence reading for this supplier crate; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-app-kit",
      "version": "0.3.2",
      "standing": "held",
-     "reason": "the text from https://github.com/madsmtm/objc2 awaits an owner licence reading for this supplier crate; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-audio-toolbox",
      "version": "0.3.2",
      "standing": "held",
-     "reason": "the text from https://github.com/madsmtm/objc2 awaits an owner licence reading for this supplier crate; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-avf-audio",
      "version": "0.3.2",
      "standing": "held",
-     "reason": "the text from https://github.com/madsmtm/objc2 awaits an owner licence reading for this supplier crate; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-cloud-kit",
      "version": "0.3.2",
      "standing": "held",
-     "reason": "the text from https://github.com/madsmtm/objc2 awaits an owner licence reading for this supplier crate; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-core-audio",
      "version": "0.3.2",
      "standing": "held",
-     "reason": "the text from https://github.com/madsmtm/objc2 awaits an owner licence reading for this supplier crate; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-core-audio-types",
      "version": "0.3.2",
      "standing": "held",
-     "reason": "the text from https://github.com/madsmtm/objc2 awaits an owner licence reading for this supplier crate; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-core-data",
      "version": "0.3.2",
      "standing": "held",
-     "reason": "the text from https://github.com/madsmtm/objc2 awaits an owner licence reading for this supplier crate; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-core-foundation",
      "version": "0.3.2",
      "standing": "held",
-     "reason": "the text from https://github.com/madsmtm/objc2 awaits an owner licence reading for this supplier crate; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-core-graphics",
      "version": "0.3.2",
      "standing": "held",
-     "reason": "the text from https://github.com/madsmtm/objc2 awaits an owner licence reading for this supplier crate; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-core-image",
      "version": "0.3.2",
      "standing": "held",
-     "reason": "the text from https://github.com/madsmtm/objc2 awaits an owner licence reading for this supplier crate; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-core-location",
      "version": "0.3.2",
      "standing": "held",
-     "reason": "the text from https://github.com/madsmtm/objc2 awaits an owner licence reading for this supplier crate; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-core-text",
      "version": "0.3.2",
      "standing": "held",
-     "reason": "the text from https://github.com/madsmtm/objc2 awaits an owner licence reading for this supplier crate; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-encode",
      "version": "4.1.0",
      "standing": "held",
-     "reason": "the text from https://github.com/madsmtm/objc2 awaits an owner licence reading for this supplier crate; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-foundation",
      "version": "0.3.2",
      "standing": "held",
-     "reason": "the text from https://github.com/madsmtm/objc2 awaits an owner licence reading for this supplier crate; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-io-surface",
      "version": "0.3.2",
      "standing": "held",
-     "reason": "the text from https://github.com/madsmtm/objc2 awaits an owner licence reading for this supplier crate; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-local-authentication",
      "version": "0.3.2",
      "standing": "held",
-     "reason": "the text from https://github.com/madsmtm/objc2 awaits an owner licence reading for this supplier crate; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-quartz-core",
      "version": "0.3.2",
      "standing": "held",
-     "reason": "the text from https://github.com/madsmtm/objc2 awaits an owner licence reading for this supplier crate; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-security",
      "version": "0.3.2",
      "standing": "held",
-     "reason": "the text from https://github.com/madsmtm/objc2 awaits an owner licence reading for this supplier crate; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-ui-kit",
      "version": "0.3.2",
      "standing": "held",
-     "reason": "the text from https://github.com/madsmtm/objc2 awaits an owner licence reading for this supplier crate; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "objc2-user-notifications",
      "version": "0.3.2",
      "standing": "held",
-     "reason": "the text from https://github.com/madsmtm/objc2 awaits an owner licence reading for this supplier crate; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
+     "reason": "listed for the owner's reading: the objc2 repository's LICENSE.md (a licensing overview, sha256 7f976f7e9cb2) ships and awaits that reading for this supplier copy; no reading of the supplier's copy is recorded, and the App's reading of 2026-11-12 is not extended to it"
     },
     {
      "name": "protoc-bin-vendored",
@@ -10551,7 +10499,7 @@
      "name": "static_interner",
      "version": "0.1.2",
      "standing": "gap",
-     "reason": "the archive has no VCS record, so the locked revision is not established: crates.io records publication on 2026-05-17T18:38:46Z; facebook/buck2 commits bb911429 and the later 0404cfb1 are both at 0.1.2, so only a range is known; the repository root also has a NOTICE (341 bytes, blob 1eb292d9) that is not held"
+     "reason": "the archive has no VCS record, so its revision is not established; App Agent 0 accepts a binding by invariance where the licence texts are the same blobs at every candidate revision bracketing publication, confirmed by a reviewer across the whole range. Window: bb911429 (2026-05-16, sets shed/static_interner to 0.1.2; the folder's next change is 0404cfb1 on 2026-05-22) to publication at 2026-05-17T18:38:46Z. The buck2 root LICENSE-APACHE (blob b09cd785, held), LICENSE-MIT (blob b93be905, held) and NOTICE (341 bytes, blob 1eb292d9) are the same blobs at bb911429, at 48ae5c61 (2026-05-22) and at tag 2026-06-01 (saved root listings); the commits between are not held, so identity across the whole range is not yet shown. The NOTICE is not held"
     },
     {
      "name": "strong_hash",
@@ -10605,7 +10553,7 @@
      "name": "wezterm-input-types",
      "version": "0.1.0",
      "standing": "gap",
-     "reason": "the archive has no member named as a notice; at https://github.com/wez/wezterm d5ca5509 (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/wez/wezterm/edeae72b5fc55c7fa4aa1d08bbefd08c5493f757/LICENSE.md (1,529 bytes, blob cf22ae0b). The request to acquire these files is with the owner."
+     "reason": "the archive has no member named as a notice; at https://github.com/wez/wezterm d5ca5509 (the revision its VCS record names) its selected licence texts include 1 not held: https://raw.githubusercontent.com/wez/wezterm/edeae72b5fc55c7fa4aa1d08bbefd08c5493f757/LICENSE.md (1,529 bytes, blob cf22ae0b; the saved listing of d5ca5509 names the same blob at LICENSE.md, so one file serves both revisions). The request to acquire these files is with the owner."
     },
     {
      "name": "zune-core",
@@ -12272,8 +12220,8 @@
     {
      "repository_path": "app/packaging/supplier_notices/crates/packages.json",
      "package_path": "third-party-notices/supplier/crates/packages.json",
-     "size_bytes": 1117702,
-     "sha256": "fb3933a00bf7b419d90e0d1db6fee01c7f32050cf05af96d85a2d8e907a1eeee"
+     "size_bytes": 1126806,
+     "sha256": "b2e4acd22df7ac9e90fd43c5aa6c35b79433eced2251e306590b319e1667bf8c"
     }
    ],
    "standing": "covered",
