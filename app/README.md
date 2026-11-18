@@ -475,8 +475,13 @@ implemented behavior and qualification limits.
     the live turns, waiting requests, delegated agents and workflow runs in
     force, with no time limit; **Keep running** is the default, and it and
     Cancel record `quit_answered` *cancelled* and change nothing. On **Quit**
-    every ready home is closed to new turns and assessed again (a changed list
-    is recorded and asked again); then `quit_answered` *confirmed*, each live
+    every home is closed to new turns and assessed again (a changed list
+    is recorded and asked again; with nothing live the same close comes before
+    the second assessment). A home is closed whatever the state of its Codex:
+    one still starting, or started before the quit is settled, becomes ready
+    without taking a new turn or steer. A quit not carried through reopens
+    what it closed and only that, never a process Stop or Restart Codex
+    closed. Then `quit_answered` *confirmed*, each live
     turn's stop request (SR-01, cause *quit*) and its interrupt, whose write is
     bounded by the same limit as Stop Codex's; the App waits
     up to the stop wait limit for those turns to end, exits, stops each home's

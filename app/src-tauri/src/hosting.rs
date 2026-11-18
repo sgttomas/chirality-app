@@ -589,6 +589,12 @@ struct Inner {
     /// The generation for which the person confirmed Stop/Restart Codex:
     /// from then on no new turn or steer is sent in it (only interrupts).
     stop_confirmed: Option<Value>,
+    /// Closed by the App's quit (DEL-01-02 AS-03, AS-07): from the quit's
+    /// last assessment until it is settled or abandoned no new turn or steer
+    /// is sent in any generation of this Host, including one still starting
+    /// or started meanwhile. Separate from `stop_confirmed`, so a quit never
+    /// reopens what Stop/Restart Codex closed.
+    quit_closed: bool,
     stderr_bytes: u64,
     child_pid: Option<i32>,
 }
@@ -1491,8 +1497,8 @@ impl Host {
     /// closed) can still be stopped, and no send begins there anyway, since
     /// every request requires `ready` (HOSTING §4.6 stop; CR-03).
     /// Returns `true` only when this call closed it, `false` when it was
-    /// already closed (by a Stop/Restart or a quit under way): only the party
-    /// that closed a process may reopen it.
+    /// already closed: only the party that closed a process may reopen it.
+    /// The App's quit closes with [`Self::close_for_quit`] instead.
     pub fn close_to_new_turns(&self, generation: &Value) -> Result<bool, String> {
         let mut i=self.inner.0.lock().unwrap();
         if i.generation!=*generation{return Err("The Codex process in this view is no longer the current one; refresh and choose again. Nothing stopped".into());}
@@ -1505,9 +1511,26 @@ impl Host {
         let mut i=self.inner.0.lock().unwrap();
         if i.stop_confirmed.as_ref()==Some(generation){i.stop_confirmed=None;}
     }
+    /// The App's quit closes this Host to new turns whatever its state and
+    /// generation: a Codex still verifying or handshaking, or started after
+    /// this call, publishes `ready` but sends no `turn/start` or `turn/steer`
+    /// until [`Self::reopen_after_quit`]. Interrupts and request answers stay
+    /// possible. Returns `true` only when this call closed it.
+    pub(crate) fn close_for_quit(&self) -> bool {
+        let mut i=self.inner.0.lock().unwrap();
+        !std::mem::replace(&mut i.quit_closed,true)
+    }
+    /// Reopens what [`Self::close_for_quit`] closed; a Stop/Restart Codex
+    /// closure (`stop_confirmed`) is left as it is.
+    pub(crate) fn reopen_after_quit(&self) {
+        self.inner.0.lock().unwrap().quit_closed=false;
+    }
     fn check_send_admitted(i: &Inner, method: &str) -> Result<(), String> {
         if matches!(method,"turn/start"|"turn/steer")&&i.stop_confirmed.as_ref()==Some(&i.generation) {
             return Err(format!("refused-not-sent: Stop Codex or Quit was confirmed for this Codex process; no {method} is sent"));
+        }
+        if matches!(method,"turn/start"|"turn/steer")&&i.quit_closed {
+            return Err(format!("refused-not-sent: Quit was confirmed and the App is quitting; no {method} is sent"));
         }
         Ok(())
     }
