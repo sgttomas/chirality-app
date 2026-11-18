@@ -147,8 +147,8 @@ pub(crate) fn revalidate_original(window: &tauri::Window) -> Result<(), String> 
 /// Explanatory Quit refusals also must not fall back to an unowned alert.
 /// Logging remains available if the original window cannot present the notice.
 pub(crate) fn notice(window: Option<&tauri::Window>, title: &str, message: String) {
-    // Cannot panic: a failed write to standard error must not unwind the
-    // quit path while it holds its gates.
+    // Ignore stderr write errors. The notice still tries to use the retained
+    // window.
     crate::app_quit::diagnostic(&message);
     if let Some(window) = window {
         let _ = confirm(window, title, Err(message), "", "");

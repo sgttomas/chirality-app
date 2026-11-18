@@ -1,35 +1,23 @@
 //! The system's request to quit (DEL-01-02 DEF-6, K-4, REQ-005, AC-006).
 //!
-//! The Dock's Quit and Command-Tab then Q send `terminate:` to the
-//! application, as logout, restart and shutdown do. The event loop library
-//! (tao 0.35.2) registers an application delegate class that implements
-//! `applicationWillTerminate:` and no `applicationShouldTerminate:`, so
-//! without this module AppKit goes straight to the exit handler: no question,
-//! no interrupt, and the limited system path. At startup the App attempts to
-//! add `applicationShouldTerminate:` to that class.
+//! Tao's delegate implements `applicationWillTerminate:`. At startup the App
+//! attempts to add `applicationShouldTerminate:` to its class. When AppKit
+//! calls the installed method, it returns `NSTerminateCancel`. An eligible
+//! request enters the App's own quit path. A decided quit can request
+//! programmatic exit through Wry and tao. The event loop stops with `stop:`
+//! and exits without calling this selector. Runtime registration alone does
+//! not establish delivery for a Dock Quit, the app switcher or a system
+//! session operation.
 //!
-//! When AppKit calls the installed method, it declines the request at once
-//! (`NSTerminateCancel`), always, also when nothing is live: the App never
-//! makes the system wait, and only its own quit path ends it. What the method
-//! starts is [`app_quit::on_system_quit_request`]: with no quit under way and
-//! none decided, the same quit path the menu's Quit starts (it asks only if
-//! work is live, settles, records and then exits the App itself with
-//! `app.exit(0)`); with a quit under way, nothing (that quit is in front of
-//! the person); with a quit decided, nothing (its own exit is in flight). A
-//! fault in the method is caught and said; the request is still declined.
+//! The delegate returns Cancel. Fault reporting and any wait for App state or
+//! the original window happen outside the selector. The selector reads and
+//! sets only the quit reservation (`app_quit::QuitReservation`), published
+//! with the App handle before the method is added, and hands a reserved
+//! attempt to a new thread; it takes no lock and writes no output.
 //!
-//! No exit of the App's own re-enters this method: `app.exit(0)` ends through
-//! Wry's `RequestExit`, tao's `[NSApp stop:]`, `AppState::exit` and
-//! `process::exit` (tao `macos/event_loop.rs` `run`, `app_state.rs`
-//! `cleared`/`exit`; Tauri `AppHandle::exit`, whose fallback is also
-//! `process::exit`), and neither tao nor Tauri sends `terminate:`. So there
-//! is no authorised exit for this method to let through, and it declines
-//! every request.
-//!
-//! Force Quit, an unhandled fatal signal or power loss never reaches this
-//! method or the exit handler. The method is added only if the class does not
-//! already respond to the selector; what installation found is said on
-//! standard error, and a failure leaves the App starting as before.
+//! The method is added only if the class does not already respond to the
+//! selector; what installation found is said on standard error, and a
+//! failure leaves the App starting as before.
 
 use crate::app_quit;
 use objc2::encode::Encode;
@@ -37,10 +25,11 @@ use objc2::runtime::{AnyClass, AnyObject, Imp, Sel};
 use objc2::{ffi, sel, MainThreadMarker};
 use objc2_app_kit::{NSApplication, NSApplicationTerminateReply};
 use std::ffi::CString;
-use std::sync::OnceLock;
+use std::sync::{Arc, OnceLock};
 
-/// The App this method serves, set once at installation.
-static APP: OnceLock<tauri::AppHandle> = OnceLock::new();
+/// The App handle and its quit reservation, published once at installation
+/// before the method is added.
+static BINDING: OnceLock<(tauri::AppHandle, Arc<app_quit::QuitReservation>)> = OnceLock::new();
 
 /// What installation found.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -106,7 +95,8 @@ fn install_delegate(app: &tauri::AppHandle) -> Result<Installed, String> {
     // SAFETY: a delegate is an Objective-C object; reading its class is safe.
     let object: &AnyObject = unsafe { &*(objc2::rc::Retained::as_ptr(&delegate) as *const AnyObject) };
     let class = object.class();
-    if APP.set(app.clone()).is_err() {
+    let reservation = Arc::clone(tauri::Manager::state::<crate::AppState>(app).app_quit.reservation());
+    if BINDING.set((app.clone(), reservation)).is_err() {
         return Err("already installed once".into());
     }
     // SAFETY: `should_terminate` has the signature `install_on` requires.
@@ -115,15 +105,20 @@ fn install_delegate(app: &tauri::AppHandle) -> Result<Installed, String> {
 
 pub(crate) type ShouldTerminate = extern "C-unwind" fn(&AnyObject, Sel, *mut AnyObject) -> NSApplicationTerminateReply;
 
-/// `applicationShouldTerminate:`. AppKit calls it on the main thread. It
-/// always declines; see the module comment.
+/// `applicationShouldTerminate:`. AppKit calls it on the main thread.
 pub(crate) extern "C-unwind" fn should_terminate(_this: &AnyObject, _sel: Sel, _sender: *mut AnyObject) -> NSApplicationTerminateReply {
-    if let Some(app) = APP.get() {
-        let held = || {
-            let state = tauri::Manager::try_state::<crate::AppState>(app).expect("the App state is managed before installation");
-            (state.app_quit.proceeding().is_some(), state.app_quit.busy())
-        };
-        app_quit::handle_system_quit_request(held, || crate::request_quit_with(app.clone(), app_quit::QuitRoute::System));
+    answer_terminate(BINDING.get(), |app, token| {
+        crate::hand_off_quit(app.clone(), app_quit::QuitRoute::System, token);
+    })
+}
+/// The selector's binding: always Cancel. With a binding, one
+/// [`app_quit::system_request`] that reads and sets only the reservation and
+/// hands a reserved attempt off; a hand-off that fails drops the token, which
+/// releases the reservation, and is not reported here. A panic is caught and
+/// its payload dropped.
+pub(crate) fn answer_terminate<H>(binding: Option<&(H, Arc<app_quit::QuitReservation>)>, hand_off: impl FnOnce(&H, app_quit::QuitToken)) -> NSApplicationTerminateReply {
+    if let Some((handle, reservation)) = binding {
+        let _ = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| app_quit::system_request(reservation, |token| hand_off(handle, token))));
     }
     NSApplicationTerminateReply::TerminateCancel
 }

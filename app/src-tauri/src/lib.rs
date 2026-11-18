@@ -1608,11 +1608,10 @@ fn codex_stop(window: tauri::Window, state: State<'_, AppState>, generation: Val
     codex_stop::finish(&state.codex_stops, title, refused, result)
 }
 
-/// The App's own Quit menu item (K-4), which runs the quit path directly.
-/// The predefined Quit item would send `terminate:`; on macOS that request
-/// (also from the Dock and the app switcher) is declined by the delegate
-/// method `quit_routes_macos` installs at startup, which starts this same
-/// quit path instead, where the method is installed and AppKit calls it.
+/// The App's own Quit menu item enters the shared quit path. The predefined
+/// Quit item uses `terminate:`. When AppKit invokes the App's installed
+/// termination method, the method declines the request and can start the
+/// shared path.
 const QUIT_MENU_ID: &str = "chirality-quit";
 /// Tauri's default menu with its predefined Quit replaced by the App's own,
 /// at the same place and with the same shortcut.
@@ -1689,47 +1688,49 @@ fn show_main_window(app: &tauri::AppHandle) {
         let _ = window.set_focus();
     }
 }
-/// K-4 / SQ-Q: the person chose Quit. Runs off the main thread (the native
-/// question blocks); one question at a time; the web view takes no part.
+/// K-4 / SQ-Q: the person chose Quit (the menu, Command-Q, Setup's Quit, or
+/// an exit nobody decided). Takes the one quit reservation before handing
+/// off; with a quit already reserved it starts nothing; after a decided quit
+/// it asks for the exit again. The web view takes no part.
 fn request_quit(app: tauri::AppHandle) {
-    request_quit_with(app, app_quit::QuitRoute::Person);
+    let reservation = Arc::clone(app.state::<AppState>().app_quit.reservation());
+    app_quit::person_request(&reservation, |token| {
+        if !hand_off_quit(app.clone(), app_quit::QuitRoute::Person, token) {
+            app_quit::diagnostic("the quit could not be started; the App keeps running");
+        }
+    }, || app.exit(0));
 }
-/// The one quit path (`app_quit::run_quit`), on its own thread. The route
-/// differs only after a decided quit: a person's Quit asks for the exit
-/// again, the system's request asks for nothing (`QuitEnding::exits`).
-fn request_quit_with(app: tauri::AppHandle, route: app_quit::QuitRoute) {
-    // The menu has no IPC invoker. Retain the configured App window now; never
-    // select a focused/first/replacement window after the question is prepared.
+/// Hand a reserved attempt to its own thread (the native question blocks).
+/// False if the thread could not start: the closure, and with it the token,
+/// is dropped, which releases the reservation. Makes no output, so the macOS
+/// selector can call it.
+pub(crate) fn hand_off_quit(app: tauri::AppHandle, route: app_quit::QuitRoute, token: app_quit::QuitToken) -> bool {
+    std::thread::Builder::new().name("chirality-quit".into()).spawn(move || quit_worker(app, route, token)).is_ok()
+}
+/// One reserved attempt of the quit path (`app_quit::run_quit`). The window
+/// lookup and every report happen here, on the worker.
+fn quit_worker(app: tauri::AppHandle, route: app_quit::QuitRoute, token: app_quit::QuitToken) {
+    // Retain the configured App window now; never select a
+    // focused/first/replacement window after the question is prepared.
     let question_window = app.get_webview_window("main").map(|window| window.as_ref().window().clone());
-    let spawned = std::thread::Builder::new().name("chirality-quit".into()).spawn(move || {
-        let state = app.state::<AppState>();
-        let gates = app_quit::QuitGates { quit: &state.app_quit, stop_gate: &state.codex_stop_gate, key_setup: &state.key_setup };
-        let tell = |title: &str, message: String| {
-            show_main_window(&app);
-            native_lifecycle_confirmation::notice(question_window.as_ref(), title, message);
-        };
-        let ops = || {
-            // A poisoned homes lock is read, not refused: a quit must stay
-            // possible after a panic elsewhere, and it only reads the set.
-            // Read through poison (`app_quit::read_roster` says why).
-            let (homes, active) = app_quit::read_roster(&state.homes);
-            let person = stop_person(&state, &active);
-            let retained_question_window = question_window.clone();
-            app_quit::HostQuit::new(homes, &state.workflows, &person, move |view: &Value| {
-                use act_control::native_statement as ns;
-                let window = retained_question_window.as_ref().ok_or("Original App window unavailable; quit confirmation refused")?;
-                let _ = window.unminimize();
-                let _ = window.show();
-                let _ = window.set_focus();
-                native_lifecycle_confirmation::confirm(window, "Quit Chirality", ns::quit_statement(view), ns::KEEP_RUNNING, ns::QUIT_APP)
-            })
-        };
-        app_quit::run_quit(gates, route, app_quit::QUIT_WAIT_LIMIT, ops, tell, || app.exit(0));
-    });
-    // A quit thread that cannot start leaves the App running.
-    if let Err(error) = spawned {
-        app_quit::diagnostic(&format!("the quit could not be started ({error}); the App keeps running"));
-    }
+    let state = app.state::<AppState>();
+    let gates = app_quit::QuitGates { quit: &state.app_quit, stop_gate: &state.codex_stop_gate, key_setup: &state.key_setup };
+    let tell = |title: &str, message: String| {
+        show_main_window(&app);
+        native_lifecycle_confirmation::notice(question_window.as_ref(), title, message);
+    };
+    let ops = || {
+        let retained_question_window = question_window.clone();
+        app_quit::build_host_quit(&state.homes, &state.app_quit, &state.workflows, |active| stop_person(&state, active), move |view: &Value| {
+            use act_control::native_statement as ns;
+            let window = retained_question_window.as_ref().ok_or("Original App window unavailable; quit confirmation refused")?;
+            let _ = window.unminimize();
+            let _ = window.show();
+            let _ = window.set_focus();
+            native_lifecycle_confirmation::confirm(window, "Quit Chirality", ns::quit_statement(view), ns::KEEP_RUNNING, ns::QUIT_APP)
+        })
+    };
+    app_quit::run_quit(gates, token, route, app_quit::QUIT_WAIT_LIMIT, ops, tell, || app.exit(0));
 }
 /// Setup's end offers Quit beside its sentence (the reopen loads the saved setup): the same
 /// question and settlement as the menu's Quit, asked by the host; the web view only asks for it.
@@ -3697,16 +3698,13 @@ pub fn run() {
             // re-reads the host's snapshot.
             #[cfg(target_os = "macos")]
             tauri::RunEvent::Reopen { .. } => show_main_window(app),
-            // Q-6, Q-7 (AS-08, AS-09) after a decided quit, which ends the App
-            // only by `app.exit(0)`: on macOS the system's request to quit is
-            // always declined (`quit_routes_macos`). `app.exit(0)` sends Wry's
-            // `RequestExit`; `ExitRequested` is allowed for a decided quit;
-            // tao's loop then stops `NSApp` and, when `[NSApp run]` returns,
-            // `AppState::exit` delivers `LoopDestroyed` (this `Exit`), takes
-            // the callback and the process exits. A second allowed exit
-            // request (a person's Quit after the decision, or the last window
-            // going away) sets the same exit flow, and a later serial
-            // `AppState::exit` has no callback to notify, so this runs once.
+            // After a decided quit, `app.exit(0)` sends Wry's `RequestExit`, and
+            // Chirality permits exit. Wry can also allow a last-window exit
+            // after the decision. Both use tao's exit flow. Tao's
+            // `AppState::exit` delivers `LoopDestroyed` and removes the
+            // callback. If the request cannot be queued, Tauri cleans up and
+            // exits the process directly. On macOS the installed AppKit method
+            // returns Cancel when invoked.
             // If this runs without a decided quit, it attempts the limited
             // `system-terminated` record (AS-10) before best-effort cleanup;
             // a termination that bypasses the installed hook can reach that
@@ -3715,8 +3713,8 @@ pub fn run() {
             tauri::RunEvent::Exit => {
                 let st: State<'_, AppState> = app.state();
                 // After a decided quit, the roster that quit settled; otherwise
-                // the router read through poison (as the quit reads it). On
-                // macOS this can run inside tao's `extern "C"`
+                // the router read through poison, which recovers access to the
+                // roster only. On macOS this can run inside tao's `extern "C"`
                 // `applicationWillTerminate:`, where a panic aborts.
                 let homes = st.app_quit.exit_roster(|| app_quit::read_roster(&st.homes).0);
                 // Ordinary Quit already settled processes and recorded its end

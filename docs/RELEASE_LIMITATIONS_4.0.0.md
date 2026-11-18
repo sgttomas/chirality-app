@@ -576,29 +576,16 @@ An entry is added in the same pull request that makes the limitation standing.
 - **Basis:** DEL-01-02 AC-001 and DEL-01-04 REQ-001 / AC-001; the pinned
   supplier's level fixtures and the request card's no-decline warning.
 
-### LIM-036: A logout, restart or shutdown does not quit the App for you
+### LIM-036: Quit the App separately before logging out, restarting or shutting down
 
 - **Id:** LIM-036
 - **Exit criteria:** 4
-- **What is unavailable:** having the App quit as part of logging out,
-  restarting or shutting down the Mac. When macOS asks the App to quit, as it
-  does for those and for Quit in the Dock and Command-Tab then Q, the App
-  declines that request and starts its own quit, the same one as Quit in its
-  menu: it asks you first if work is live, stops its Codex processes, attempts
-  to record the end of the session and then quits by itself. It declines every
-  such request, also when nothing is live. While its quit question is open or
-  its quit is under way, a further request from macOS is declined and starts
-  nothing. What macOS shows, and what becomes of a logout, restart or shutdown
-  after the App declines, has not been observed.
-- **Why:** the App ends only after it has asked about live work and stopped
-  what it started, and it does not make macOS wait for that. Making macOS wait
-  would need the App and macOS to settle one ending between them through a
-  deferred answer, which this release does not do.
-- **What the person does instead:** quit the App before logging out,
-  restarting or shutting down. If you did not, the App quits by itself after
-  you confirm its question, or without one if nothing is live; then log out,
-  restart or shut down again.
-- **Basis:** DEL-01-02 (REQ-005, AC-006). The App's handling of the request is
-  tested without a launched App (`app_quit_tests.rs`, exercising `app_quit.rs`
-  and `quit_routes_macos.rs`). On a running App none of these routes has been
-  observed, including whether macOS calls the App's handling at all.
+- **What is unavailable:** having the App agree to quit as part of logging out,
+  restarting or shutting down the Mac. When a request from macOS reaches the
+  App's installed quit handler, the App declines it even when no work is live.
+- **Why:** the App uses its own Quit so it can ask about live work and settle
+  its Codex processes without asking macOS to wait.
+- **What the person does instead:** use Quit in the App menu before logging
+  out, restarting or shutting down. If a quit question is already open,
+  answer it. Wait for the App to exit before requesting the system operation.
+- **Basis:** DEL-01-02 REQ-005 and AC-006.

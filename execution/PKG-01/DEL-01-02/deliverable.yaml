@@ -36,7 +36,7 @@ code_paths:
 - app/src-tauri/src/hosting_continuation_context.rs
 - app/src-tauri/src/execution_custody.rs
 - app/src-tauri/src/app_quit.rs
-# macOS: the system's request to quit (Dock, app switcher, logout, shutdown) asked as Quit is.
+# macOS delegate registration and dispatch into the shared quit path when AppKit invokes the installed method.
 - app/src-tauri/src/quit_routes_macos.rs
 - app/src-tauri/src/codex_stop.rs
 - app/src-tauri/src/stop_records.rs
