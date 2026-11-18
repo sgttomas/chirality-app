@@ -121,10 +121,26 @@ Rules `coverage.py` applies, whatever the tables say:
   the supplier crate group (`../supplier_notices/crates.py`): its lockfile, bound by
   blob to the component's own repository and revision (the Codex lockfile to the
   distribution record's source commit), and every package that lockfile locks with its
-  text. A package with no text, or one awaiting an owner reading, keeps the component
-  open, and the account names each such package. The lockfiles are a superset: they
-  lock packages for every platform and feature, and some may not be compiled into the
-  macOS executables. The table's standing for the component must agree.
+  text. A package with no text (`gap`), one that states a licence for which no
+  publisher text was found (`no-publisher-text`), or one awaiting an owner reading
+  (`held`) keeps the component open, and the account names each such package; none of
+  them ever counts as covered, so `--strict` and a public preparation refuse while any
+  remains. The lockfiles are a superset: they lock packages for every platform and
+  feature, and some may not be compiled into the macOS executables. The only package
+  left out of what the component needs is one standing `not-in-macos-package`: absence
+  from the macOS target (`aarch64-apple-darwin`) by declared target condition, admitted
+  only with its evidence (every reverse dependency the lockfile gives, and for each the
+  manifest and line that declare the edge under a target table whose condition, in a
+  closed set of forms, is false for that target). No resolver was run and nothing was
+  read from the binaries; the account lists every such package with its evidence under
+  `excluded_packages`. Nothing is left out on any other ground. The table's standing for
+  the component must agree.
+- **Voice rows.** A voice row (a component whose texts are members of the supplier
+  tree) is covered only when the supplier's own voice records for the declared pin,
+  committed under `../supplier_notices/voice_records/<pin>/` and bound to their members'
+  digests in the distribution record, establish its version and source URL
+  (`../supplier_notices/voice.py`; any disagreement refuses). These are the supplier's
+  statements about its bundle; the libraries' contents are not inspected.
 - **Table reviewed for another pin.** When the declared pin differs from the table's
   `reviewed_for_pin`, no association is carried forward: every table row stands
   uncovered (the deferred rows with their own reason), and a "Supplier component
