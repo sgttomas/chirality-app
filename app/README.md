@@ -1926,12 +1926,16 @@ criterion 5 is not served by it until that view does.
 
 The store is created (its folder and `store.json`) when the App starts, and
 otherwise only by the acts that write for the person: attaching a project with
-a newly minted identity, the imports and the identity acts. A read creates
-no store, no folder, no lock file and no control, and repairs nothing (a
-reader does take a shared lock on a control that already exists, which is
-what keeps a disposal out while it reads): with no store, or a folder at the store's path that
-holds no identity, every reader says the store is not created yet and nothing
-is written there, elsewhere or in a temporary folder. Once opened, a process
+a newly minted identity, the imports and the identity acts. A store folder
+the App creates is created with Unix mode 0700 subject to the file-creation
+mask; a folder already at the store's path is used as found, its mode
+unchanged. A read creates no store, lock file or control and makes no
+repairs. It may create the derived index and its folder inside an existing
+store, as described below. A reader can take a shared lock on an existing
+control to keep a disposal out while it reads. Before the process has bound
+a store, opening a missing store folder or a folder without `store.json`
+reports that the store has not been created yet. A read does not create a
+replacement. Once opened, a process
 stays bound to the store's physical folder and identity file (their device and
 inode): a redirected alias is not followed, and a folder put at the store's
 path in its place, even holding a copy of `store.json`, is refused by readers
@@ -2227,14 +2231,22 @@ The derived records index keeps identities, positions and membership counts in
 process-owned SQLite files under the store's `indexes/`; record bodies stay in
 their logs. Cold use rebuilds from authoritative sources, and returned entries
 are reread and revalidated, including their exact line hash. Changed or unusable
-caches rebuild or use source scans. The cache is the one stated exception to a
-read writing nothing: a read may write it under `indexes/` of a store that
-already exists and that the process has bound, never into a folder put in the
-store's place, and never in a temporary folder (SQLite's own temporary
-structures stay in memory). The decision view does not use it. Where the cache
-cannot be written the sources are read directly and the chain report says so.
-The cache is dispensable: deleting `indexes/` at any time changes no answer,
-only how fast it comes.
+caches rebuild or use source scans. An index-backed read may write its
+derived cache under `indexes/` of a store that already exists and that the
+process has bound. The App uses no
+temporary-folder fallback. SQLite's own temporary structures stay in memory.
+The path is checked before
+the cache file is made and the store's binding is checked again after it is
+opened; later steps reopen or remove the cache by its path, so where another
+account can change the folders or files on that path the remaining risk is
+the one `docs/RELEASE_LIMITATIONS_4.0.0.md` lists as LIM-035. The decision
+view does not use it. Where the cache cannot be written the sources are read
+directly and the chain report says so. The cache is dispensable. A fresh
+index rebuilt from unchanged logs gives the same record answers while the
+cache's path stays under the person's control. A rebuild can invalidate a
+check already in progress. An `indexes/` folder a read creates is created
+with Unix mode 0700 subject to the file-creation mask; one already there is
+used as found, its mode unchanged.
 Index metadata for ordinary valid entries is per log and directory; diagnostics
 grow with reported limits. Full act projections retain their
 separate result-sized memory cost (RS §13.8, §14.3).
