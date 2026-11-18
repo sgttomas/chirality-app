@@ -12,20 +12,18 @@
 //!    validated arguments as admitted (supplied text, never authority), their
 //!    digest, the call's identity, the store's project identity, and the run
 //!    reading and what the App observed of the call, both in closed App forms;
-//! 2. then one pointer tag on the conversation in the App ledger (DEL-01-02,
-//!    owner [`TAG_OWNER`]): identities and the digest only (see [`pointer`]).
-//!    No supplied text and no prose goes into the ledger;
-//! 3. then the receipt: recorded, not recorded, or not established (the App
+//! 2. then the receipt: recorded, not recorded, or not established (the App
 //!    could not establish whether the record was written).
 //!
-//! A point is shown only where a pointer tag and its record join, and the
-//! record is sound ([`LogReading::soundness`]): one check used for
-//! reconciliation, for the lookup of a call, and for display. A record can
-//! exist with no pointer: the App quit or the ledger refused between steps 1
-//! and 2. Such a record is never shown as a point; a reader of the store sees
-//! an ordinary `point_placed` entry. The host completes its pointer from the
-//! record's own call identity on two occasions only: before a later placement
-//! in that conversation, and when the conversation is resumed.
+//! A conversation's points are its sound records ([`LogReading::soundness`]:
+//! one check used for the lookup of a call, the count and display), found by
+//! each record's own binding: the Codex home, home class and conversation of
+//! its source, its App project and the store's project identity. The App
+//! ledger (DEL-01-02, owner [`TAG_OWNER`]) holds no point: only the offer
+//! ([`offer_pointer`]), to restore the tool on resume, and, once a
+//! conversation's first record has landed, its binding to the store's project
+//! identity ([`binding_pointer`]). No supplied text and no prose goes into
+//! the ledger.
 //!
 //! Nothing here reads the supplier's history, holds a run, answers any other
 //! supplier request, or performs or offers an act. The App never makes this
@@ -97,11 +95,27 @@ fn canonical(value: &Value) -> Result<String, String> {
 }
 /// The App's sentence for a sign-off point that names neither of its acts.
 pub(crate) const SIGN_OFF_UNNAMED: &str = "A sign-off point names its act, engineering approval or professional reliance (PRD V4-AUT-07); these arguments name neither, so no point was recorded.";
+/// The App's sentence for a call that leaves out a term every point states
+/// (PRD V4-AUT-07): who must respond, and the response requested or, for a
+/// sign-off point, the act it asks for.
+pub(crate) fn unstated(missing: &[&str]) -> String {
+    format!("A point states who must respond and the response it asks for, or for a sign-off point the act it asks for (PRD V4-AUT-07); these arguments do not state {}. Ask the person for it, then place the point; no point was recorded.", missing.join(" or "))
+}
 /// Checks `arguments` against version 1. The error is the App's sentence.
 pub(crate) fn validate(arguments: &Value) -> Result<(), String> {
     let bytes = canonical(arguments).map_err(|e| format!("The arguments are not valid for {TOOL} version 1 ({e}); no point was recorded."))?;
     if bytes.len() > ARGUMENT_LIMIT {
         return Err(format!("The arguments are larger than the App's own limit of {ARGUMENT_LIMIT} bytes for one point; no point was recorded."));
+    }
+    if let Some(given) = arguments.as_object() {
+        let mut missing = Vec::new();
+        if !given.contains_key("whoMustRespond") { missing.push("who must respond (whoMustRespond)"); }
+        if arguments["kind"] == "sign-off" {
+            if !given.contains_key("reservedAct") { missing.push("the act it asks for (reservedAct)"); }
+        } else if !given.contains_key("responseRequested") {
+            missing.push("the response it asks for (responseRequested)");
+        }
+        if !missing.is_empty() { return Err(unstated(&missing)); }
     }
     if arguments["kind"] == "sign-off" && !arguments["reservedAct"].as_str().is_some_and(|act| SIGN_OFF_ACTS.contains(&act)) {
         return Err(SIGN_OFF_UNNAMED.into());
@@ -164,76 +178,39 @@ pub(crate) fn record_body(point: &str, source: &Source, project: &str, store_pro
     json!({"version":VERSION,"point":point,"source":source.value(),"project":project,"storeProject":store_project,"run":run,"observed":observed,
         "arguments":arguments,"argumentsDigest":{"method":DIGEST_METHOD,"value":digest},"recordedAt":at})
 }
-/// The pointer tag value for a written record: identities and the digest
-/// only: the point, the record identity, the call's identities, the App
-/// project reference, the store's project identity and the digest. The run
-/// and what the App observed are read from the verified record, never from
-/// the pointer.
-pub(crate) fn pointer(entry: &Value) -> Result<String, String> {
-    let b = &entry["body"];
-    let value = json!({"v":1,"kind":"placed","point":b["point"],"record":entry["recordId"],"source":b["source"],"project":b["project"],
-        "storeProject":b["storeProject"],"digest":b["argumentsDigest"]});
-    if decode(&value.to_string()).is_none() {
-        return Err("the record's identities do not make a pointer".into());
-    }
-    canonical(&value)
-}
 /// The offer pointer written when a conversation the App started with the
 /// tool is first indexed under a project.
 pub(crate) fn offer_pointer(home: &str, generation: &str, thread: &str) -> String {
     canonical(&json!({"v":1,"kind":"offered","home":home,"generation":generation,"thread":thread,"definition":definition_digest()}))
         .expect("offer pointer is canonical")
 }
-/// The offer pointer that also carries the conversation's records binding:
-/// the App project and the store's stable project identity, written before
-/// the conversation's first record is appended in that store project.
-pub(crate) fn bound_offer_pointer(home: &str, generation: &str, thread: &str, project: &str, store_project: &str) -> String {
-    canonical(&json!({"v":1,"kind":"offered","home":home,"generation":generation,"thread":thread,"definition":definition_digest(),"project":project,"storeProject":store_project}))
-        .expect("offer pointer is canonical")
+/// The conversation's binding to its records: its Codex home and
+/// conversation, the App project and the store's stable project identity,
+/// kept once the conversation's first record has landed.
+pub(crate) fn binding_pointer(home: &str, thread: &str, project: &str, store_project: &str) -> String {
+    canonical(&json!({"v":1,"kind":"bound","home":home,"thread":thread,"project":project,"storeProject":store_project}))
+        .expect("binding pointer is canonical")
 }
-/// The App's home classes a conversation is indexed under (DEL-01-02).
-const HOME_CLASSES: [&str; 3] = ["H-acct", "H-key", "H-omlx"];
 /// A full generation reference in its canonical form, of the Codex home `home`.
 fn generation_of(reference: &Value, home: &Value) -> bool {
     let Some(reference) = reference.as_str() else { return false };
     crate::recovery::generation_from_ref(reference).ok()
         .is_some_and(|g| crate::recovery::generation_ref(&g).ok().as_deref() == Some(reference) && g["home"] == *home)
 }
-/// An App identity of the form `<prefix><lowercase hyphenated UUID>`.
-fn app_id(value: &Value, prefix: &str) -> bool {
-    value.as_str().and_then(|v| v.strip_prefix(prefix)).and_then(|u| uuid::Uuid::parse_str(u).ok().map(|id| id.hyphenated().to_string() == u)).unwrap_or(false)
-}
-/// A SHA-256 value object of the App's digest method: exactly its two keys,
-/// the value 64 lowercase hexadecimal digits.
-fn digest_object(v: &Value) -> bool {
-    v.as_object().is_some_and(|o| o.len() == 2) && v["method"] == DIGEST_METHOD
-        && v["value"].as_str().is_some_and(|d| d.len() == 64 && d.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)))
-}
 /// A tag value of this owner, decoded and checked whole: its exact keys, the
-/// canonical generation and its Codex home, the App's identities and the
-/// exact digest object. Anything else is not a pointer (it is reported as a
-/// tag that could not be read, never ignored).
+/// canonical generation of its Codex home, and the definition digest.
+/// Anything else is not read (it is reported as a tag that could not be
+/// read, never ignored).
 pub(crate) fn decode(raw: &str) -> Option<Value> {
     let v: Value = serde_json::from_str(raw).ok()?;
     let keys = |of: &Value, names: &[&str]| of.as_object().is_some_and(|o| o.len() == names.len() && names.iter().all(|n| o.contains_key(*n)));
     let text = |x: &Value| x.as_str().is_some_and(|s| !s.is_empty());
     let ok = match (v["v"].as_u64(), v["kind"].as_str()) {
-        (Some(1), Some("placed")) => {
-            let s = &v["source"];
-            keys(&v, &["v", "kind", "point", "record", "source", "project", "storeProject", "digest"])
-                && app_id(&v["point"], "pt-") && app_id(&v["record"], "rec:app:") && text(&v["project"]) && text(&v["storeProject"])
-                && keys(s, &["home", "homeClass", "generation", "thread", "turn", "call", "request"])
-                && text(&s["home"]) && s["homeClass"].as_str().is_some_and(|h| HOME_CLASSES.contains(&h)) && generation_of(&s["generation"], &s["home"])
-                && ["thread", "turn", "call"].iter().all(|k| text(&s[*k])) && (s["request"].is_string() || s["request"].is_i64() || s["request"].is_u64())
-                && digest_object(&v["digest"])
-        }
-        (Some(1), Some("offered")) => {
-            let bound = v.get("storeProject").is_some();
-            (if bound { keys(&v, &["v", "kind", "home", "generation", "thread", "definition", "project", "storeProject"]) && text(&v["project"]) && text(&v["storeProject"]) }
-             else { keys(&v, &["v", "kind", "home", "generation", "thread", "definition"]) })
-                && text(&v["home"]) && text(&v["thread"]) && generation_of(&v["generation"], &v["home"])
-                && v["definition"].as_str().is_some_and(|d| d.len() == 64 && d.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b)))
-        }
+        (Some(1), Some("bound")) => keys(&v, &["v", "kind", "home", "thread", "project", "storeProject"])
+            && ["home", "thread", "project", "storeProject"].iter().all(|k| text(&v[*k])),
+        (Some(1), Some("offered")) => keys(&v, &["v", "kind", "home", "generation", "thread", "definition"])
+            && text(&v["home"]) && text(&v["thread"]) && generation_of(&v["generation"], &v["home"])
+            && v["definition"].as_str().is_some_and(|d| d.len() == 64 && d.bytes().all(|b| b.is_ascii_digit() || (b'a'..=b'f').contains(&b))),
         _ => false,
     };
     ok.then_some(v)
@@ -256,10 +233,7 @@ pub(crate) fn frame_ok(frame: &Value) -> bool {
 }
 
 /// The persistence sentences of a receipt (closed, the App's own words).
-pub(crate) const KEPT: &str = "The point and its terms are kept in the App's records for this conversation's project, and the conversation's pointer to them is saved.";
-pub(crate) fn pointer_pending(reason: &str) -> String {
-    format!("The point and its terms are kept in the App's records for this conversation's project, but the conversation's pointer to them could not be saved ({reason}); the App completes it before a later placement in this conversation or when the conversation is resumed.")
-}
+pub(crate) const KEPT: &str = "The point and its terms are kept in the App's records for this conversation's project.";
 pub(crate) fn not_established(reason: &str) -> String {
     format!("The App could not establish whether the point was recorded ({reason}). It does not place it again; it reads this conversation's records again before it shows their points.")
 }
@@ -341,6 +315,10 @@ impl LogReading {
     #[cfg(test)]
     pub(crate) fn read(path: &std::path::Path) -> Result<Self, String> {
         Self::read_bytes(path).map(|(read, _)| read)
+    }
+    /// A log that does not exist: no record.
+    pub(crate) fn missing() -> Self {
+        Self { missing: true, ..Self::default() }
     }
     fn read_bytes(path: &std::path::Path) -> Result<(Self, Vec<u8>), String> {
         use std::io::Read;
@@ -456,9 +434,6 @@ impl LogReading {
     pub(crate) fn for_call(&self, source: &Source) -> Vec<usize> {
         self.by_source.get(&source_key(&source.value())).cloned().unwrap_or_default()
     }
-    pub(crate) fn for_point(&self, point: &str) -> Vec<usize> {
-        self.by_point.get(point).cloned().unwrap_or_default()
-    }
     pub(crate) fn for_thread(&self, thread: &str) -> &[usize] {
         self.by_thread.get(thread).map(Vec::as_slice).unwrap_or_default()
     }
@@ -488,7 +463,7 @@ impl LogReading {
 /// App's voice (DEL-04-03 REQ-010: imported records are quoted evidence).
 pub(crate) const IMPORTED: &str = "the record came from an imported records package, so this App did not observe its placement and does not show it as its own";
 
-/// What the App knows of the conversation a record or pointer is read for.
+/// What the App knows of the conversation a record is read for.
 pub(crate) struct Conversation<'a> {
     pub home: &'a str,
     pub home_class: &'a str,
@@ -497,57 +472,34 @@ pub(crate) struct Conversation<'a> {
     pub store_project: &'a str,
 }
 impl Conversation<'_> {
-    /// Whether a record body or pointer names this conversation and project.
+    /// Whether a record body names this conversation and project: the
+    /// record's own binding.
     pub(crate) fn names(&self, v: &Value) -> bool {
         let src = &v["source"];
         src["home"] == self.home && src["homeClass"] == self.home_class && src["thread"] == self.thread
             && v["project"] == self.project && v["storeProject"] == self.store_project
     }
 }
-fn not_read(reason: impl Into<String>) -> Value {
-    json!({"state":"not read","reason":reason.into()})
-}
-/// One pointer joined to its record. The terms, the run reading and what
-/// the App observed are shown only from a sound record that joins: of this
-/// conversation and project, with the pointer's reference, record identity,
-/// call identity, store project and digest. Otherwise the point stays
-/// recorded with its terms not read, and nothing of the record is shown.
-pub(crate) fn join(pointer: &Value, log: &Result<std::sync::Arc<LogReading>, String>, conversation: &Conversation) -> Value {
-    let mut view = json!({"point":pointer["point"],"recordedAt":null,"run":null,"observed":null,"formatVersion":null});
-    let terms = (|| {
-        let mut same_store = pointer.clone();
-        same_store["storeProject"] = json!(conversation.store_project);
-        if !conversation.names(&same_store) {
-            return not_read("the pointer does not belong to this conversation and project");
-        }
-        let log = match log {
-            Ok(log) => log,
-            Err(e) => return not_read(format!("the App's records for this conversation's project could not be read: {e}")),
-        };
-        if pointer["storeProject"] != conversation.store_project {
-            return not_read("the pointer names other records than the records this project folder belongs to now");
-        }
-        let found = log.for_point(pointer["point"].as_str().unwrap_or_default());
-        let Some(&i) = found.first() else {
-            return not_read(if log.missing { "the points log was not found in this project's records" } else { "no record with this point's reference was found in the App's records" });
-        };
-        if let Err(why) = log.soundness(i) { return not_read(why.clone()); }
-        let line = &log.lines[i];
+/// The points of one conversation, in the log's order: every record that
+/// names it by its own binding. The terms, the run reading and what the App
+/// observed are shown only from a sound record; an unsound one is shown as a
+/// point whose terms were not read, with why.
+pub(crate) fn show(log: &LogReading, conversation: &Conversation) -> Vec<Value> {
+    log.for_thread(conversation.thread).iter().map(|i| &log.lines[*i]).filter(|line| conversation.names(&line.entry["body"])).map(|line| {
         let body = &line.entry["body"];
-        if line.entry["recordId"] != pointer["record"] || body["source"] != pointer["source"] || !conversation.names(body) {
-            return not_read("the record found does not belong to this pointer");
-        }
-        if pointer["digest"] != body["argumentsDigest"] {
-            return not_read("the recorded terms do not match the digest kept with the pointer");
-        }
-        view["recordedAt"] = body["recordedAt"].clone();
-        view["run"] = body["run"].clone();
-        view["observed"] = body["observed"].clone();
-        view["formatVersion"] = line.newer.as_ref().map_or(Value::Null, |v| json!(v));
-        json!({"state":"read","arguments":body["arguments"]})
-    })();
-    view["terms"] = terms;
-    view
+        let mut view = json!({"point":body["point"],"source":body["source"],"recordedAt":null,"run":null,"observed":null,"formatVersion":null});
+        view["terms"] = match &line.sound {
+            Err(why) => json!({"state":"not read","reason":why}),
+            Ok(()) => {
+                view["recordedAt"] = body["recordedAt"].clone();
+                view["run"] = body["run"].clone();
+                view["observed"] = body["observed"].clone();
+                view["formatVersion"] = line.newer.as_ref().map_or(Value::Null, |v| json!(v));
+                json!({"state":"read","arguments":body["arguments"]})
+            }
+        };
+        view
+    }).collect()
 }
 
 #[cfg(test)]

@@ -1,12 +1,12 @@
 //! DEL-02-03 REQ-008: a point placed through constructed supplier frames, its
-//! record in the records store, its pointer in the App ledger, its receipt and
-//! reply, and the conversation's reading. No Codex, no App: an admitted
-//! thread, the App's own ledger, a test records store, the Host's own point
-//! recorder (its worker and bounded queue) and, where the reply is observed, a
-//! test reply pipe. What these tests do not observe: a process ending exactly
-//! between the record and its pointer (a ledger that refuses the pointer
-//! stands for it), and the production Continue path (the resume step is
-//! called directly).
+//! record in the records store, the conversation's binding in the App ledger,
+//! its receipt and reply, and the conversation's reading. No Codex, no App:
+//! an admitted thread, the App's own ledger, a test records store, the Host's
+//! own workers (one per call, one per reread) and, where the reply is
+//! observed, a test reply pipe. What these tests do not observe: a process
+//! ending exactly between the record and its binding (a ledger that refuses
+//! the binding stands for it), and the production Continue path (the resume
+//! step is called directly).
 use super::super::Host;
 use super::*;
 use crate::recovery::{AppProjectSource, ExplicitAppProjectContext};
@@ -38,11 +38,16 @@ fn use_store(root: &Path) {
     crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store { root: root.join("store"), placement: crate::records_store::Placement::Override, limits: vec![] })));
 }
 /// The Host's self-reference, as `start` sets it, and the test store on its
-/// point recorder's thread.
+/// workers' threads.
 fn start(host: &Arc<Host>, root: &Path) {
     *host.this.lock().unwrap() = Arc::downgrade(host);
     let root = root.to_path_buf();
     host.inner.0.lock().unwrap().points.hooks.worker_setup = Some(Arc::new(move || use_store(&root)));
+}
+/// What each later worker sets up on its thread: the test store, then `also`.
+fn on_workers(host: &Host, root: &Path, also: impl Fn() + Send + Sync + 'static) {
+    let root = root.to_path_buf();
+    host.inner.0.lock().unwrap().points.hooks.worker_setup = Some(Arc::new(move || { use_store(&root); also(); }));
 }
 fn generation(host: &Host, spawn: u64) -> Value {
     json!({"appSession":host.inner.0.lock().unwrap().app_session,"home":HOME,"spawnCounter":spawn})
@@ -83,7 +88,7 @@ impl Fixture {
     fn drain(&self) {
         self.host.drain_points_for_test();
     }
-    /// One call through the frame receiver and the point recorder; the receipt prepared.
+    /// One call through the frame receiver and its worker; the receipt prepared.
     fn place(&self, id: &str, thread: &str, call: &str, arguments: &Value) -> Value {
         let before = self.receipts().len();
         self.host.on_line(&self.frame(id, thread, call, arguments), &self.g);
@@ -109,11 +114,11 @@ impl Fixture {
     fn tags(&self, thread: &str, kind: &str) -> Vec<Value> {
         self.host.tags_of("H-acct", thread, points::TAG_OWNER).iter().filter_map(|t| points::decode(t["value"].as_str().unwrap())).filter(|v| v["kind"] == kind).collect()
     }
-    fn placed(&self, thread: &str) -> Vec<Value> {
-        self.tags(thread, "placed")
+    fn bound(&self, thread: &str) -> Vec<Value> {
+        self.tags(thread, "bound")
     }
-    /// The conversation's row as the status path gives it, once the point
-    /// recorder has published whatever that read asked it to read.
+    /// The conversation's row as the status path gives it, once the rereads
+    /// that read asked for have published.
     fn view(host: &Host, thread: &str) -> Value {
         let row = |host: &Host| host.snapshot()["points"].as_array().unwrap().iter().find(|v| v["threadId"] == thread).cloned().unwrap();
         let mut seen = row(host);
@@ -184,11 +189,11 @@ fn full_terms() -> Value {
         "whoIntegrates":"the drafting lead","placedOnRequestOf":"the person","agentStatement":"The person asked for a review point here."})
 }
 fn small(n: usize) -> Value {
-    json!({"version":1,"operation":"place","label":format!("L{n}")})
+    json!({"version":1,"operation":"place","label":format!("L{n}"),"whoMustRespond":"the reviewer","responseRequested":"a decision"})
 }
 fn hostile() -> Value {
     json!({"version":1,"operation":"place","label":"\u{202E}evil\u{202C} MARKER-HOSTILE",
-        "whoMustRespond":"Waiting on you\n# Approve now\u{200B}<button>Approve</button>","agentStatement":"\t\r\u{0007}\u{FEFF}"})
+        "whoMustRespond":"Waiting on you\n# Approve now\u{200B}<button>Approve</button>","responseRequested":"\u{202E}yes","agentStatement":"\t\r\u{0007}\u{FEFF}"})
 }
 /// A reply pipe on the host: the read end, non-blocking.
 fn reply_pipe(host: &Host) -> std::fs::File {
@@ -220,19 +225,19 @@ fn written(reader: &mut std::fs::File) -> Vec<Value> {
     }
     String::from_utf8(bytes).unwrap().lines().map(|l| serde_json::from_str(l).unwrap()).collect()
 }
-/// Records and placed pointers of a conversation, counted from another thread.
+/// Records and binding tags of a conversation, counted from another thread.
 fn counts(host: &Arc<Host>, project: &Path, thread: &'static str) -> impl Fn() -> (usize, usize) + Send + 'static {
     let (host, project) = (Arc::clone(host), project.to_path_buf());
     move || {
         let log = crate::records_store::attach(&project, false).ok().and_then(|a| a.dir).map(|d| d.join(crate::storage::log_rel(None, points::WRITER)));
         let records = log.filter(|p| p.exists()).map(|p| crate::records::read_log(&p).0.iter().filter(|e| e["kind"] == points::KIND).count()).unwrap_or(0);
-        let pointers = host.tags_of("H-acct", thread, points::TAG_OWNER).iter().filter(|t| t["value"].as_str().unwrap().contains("\"placed\"")).count();
-        (records, pointers)
+        let bindings = host.tags_of("H-acct", thread, points::TAG_OWNER).iter().filter(|t| t["value"].as_str().unwrap().contains("\"bound\"")).count();
+        (records, bindings)
     }
 }
 
 #[test]
-fn a_placement_writes_the_record_then_the_pointer_then_answers_recorded() {
+fn a_placement_writes_the_record_then_the_binding_then_answers_recorded() {
     let f = Fixture::new();
     let receipt = f.place("1", "thread", "call-1", &full_terms());
     assert_eq!(receipt["state"], "recorded", "{receipt}");
@@ -250,18 +255,13 @@ fn a_placement_writes_the_record_then_the_pointer_then_answers_recorded() {
     let store = json!(crate::records_store::attach(&f.project, false).unwrap().project.unwrap());
     assert_eq!(body["storeProject"], store);
     assert_eq!(body["observed"], json!({"caller":"agent-through-point-tool","turnStart":"not-observed","delegation":"not-established"}));
-    // The pointer holds identities and the digest only.
-    let placed = f.placed("thread");
-    assert_eq!(placed.len(), 1);
-    assert_eq!(placed[0]["record"], records[0]["recordId"]);
-    assert_eq!(placed[0]["storeProject"], store);
-    assert!(placed[0].get("run").is_none() && placed[0].get("observed").is_none() && placed[0].get("placer").is_none());
-    // The offer pointer of the start, and the one bound to the store project before the first record.
-    let offers = f.tags("thread", "offered");
-    assert_eq!(offers.len(), 2, "{offers:?}");
-    assert!(offers[0].get("storeProject").is_none());
-    assert_eq!(offers[1]["storeProject"], store);
-    assert_eq!(offers[1]["project"], f.project.to_str().unwrap());
+    // The ledger holds the offer of the start and the conversation's one
+    // binding to the store project, and no point.
+    assert_eq!(f.bound("thread"), vec![json!({"v":1,"kind":"bound","home":HOME,"thread":"thread","project":f.project.to_str().unwrap(),"storeProject":store})]);
+    assert_eq!(f.tags("thread", "offered").len(), 1);
+    assert_eq!(f.host.tags_of("H-acct", "thread", points::TAG_OWNER).len(), 2, "nothing else of this owner");
+    assert_eq!(f.place("2", "thread", "call-2", &full_terms())["state"], "recorded");
+    assert_eq!(f.bound("thread").len(), 1, "one binding per conversation");
     let view = Fixture::view(&f.host, "thread");
     assert_eq!(view["offer"]["state"], "offered at start in this App session");
     assert_eq!(view["reading"]["whole"], true, "{view}");
@@ -269,6 +269,7 @@ fn a_placement_writes_the_record_then_the_pointer_then_answers_recorded() {
     assert_eq!(view["points"][0]["terms"], json!({"state":"read","arguments":full_terms()}));
     assert_eq!(view["points"][0]["run"], json!({"state":"no run"}));
     assert_eq!(view["points"][0]["observed"]["turnStart"], "not-observed");
+    assert_eq!(view["points"].as_array().unwrap().len(), 2);
     let entry = f.host.inner.0.lock().unwrap().server_requests.records().into_iter().find(|r| r["requestIdentity"] == "1").unwrap();
     assert_eq!(entry["originClass"], "named-service");
     assert_eq!(entry["settlement"]["origin"]["ruleName"], "point-record");
@@ -291,65 +292,80 @@ fn the_status_payload_the_panel_reads_carries_the_conversations_points() {
 }
 
 /// Finding 1: a status read binds no store, reads no log and waits for no
-/// placement: with the point recorder busy and the placement guard held, it
-/// returns what was published; a changed log reads as not whole until the
-/// recorder has read it again.
+/// placement: with the placement guard held, it returns what was published; a
+/// changed log reads as not whole until a reread has read it again.
 #[test]
-fn a_status_read_takes_the_published_reading_and_never_waits_for_the_recorder() {
+fn a_status_read_takes_the_published_reading_and_never_waits_for_a_placement() {
     let f = Fixture::new();
     f.place("1", "thread", "call-1", &full_terms());
     let (release, held) = std::sync::mpsc::channel::<()>();
     let (busy, started) = std::sync::mpsc::channel::<()>();
-    let sender = f.hooks().points.queue.clone().unwrap();
-    sender.send(Job::Run(Box::new(move || { let _guard = one_at_a_time(); let _ = busy.send(()); let _ = held.recv(); }))).unwrap();
+    let holder = std::thread::spawn(move || { let _guard = one_at_a_time(); let _ = busy.send(()); let _ = held.recv(); });
     started.recv().unwrap();
     let begun = std::time::Instant::now();
     let row = f.host.snapshot()["points"].as_array().unwrap().iter().find(|v| v["threadId"] == "thread").cloned().unwrap();
     assert!(begun.elapsed() < std::time::Duration::from_secs(5));
     assert_eq!(row["reading"]["whole"], true, "{row}");
     assert_eq!(row["points"][0]["terms"]["state"], "read");
-    // The log changes while the recorder is busy: not whole, with the reason, until it reads again.
+    // The log changes while a placement holds the guard: not whole, with the reason, until it is read again.
     let log = f.log();
     let bytes = std::fs::read(&log).unwrap();
     std::fs::write(&log, &bytes).unwrap();
+    let begun = std::time::Instant::now();
     let row = f.host.snapshot()["points"].as_array().unwrap().iter().find(|v| v["threadId"] == "thread").cloned().unwrap();
+    assert!(begun.elapsed() < std::time::Duration::from_secs(5), "the reread runs on its own worker");
     assert_eq!(row["reading"]["whole"], false);
     assert!(Fixture::reasons(&row).contains("it is reading them again"), "{row}");
+    assert_eq!(f.hooks().points.rereading.len(), 1, "one reread in flight for the project");
+    f.host.snapshot();
+    assert_eq!(f.hooks().points.rereading.len(), 1, "a second status read asks for no second reread");
     release.send(()).unwrap();
+    holder.join().unwrap();
     assert_eq!(Fixture::view(&f.host, "thread")["reading"]["whole"], true);
 }
 
-/// Finding 1: the queue is bounded; a call it cannot take is refused with the
-/// App's sentence and answered, never placed on the receiver.
+/// B9: a published reading older than the refresh limit is not whole, with
+/// that reason, until a reread completes; it is never whole past the limit.
 #[test]
-fn a_call_the_recorder_cannot_take_is_refused_and_answered_from_the_receiver() {
+fn a_reading_older_than_the_refresh_limit_is_not_whole_until_it_is_read_again() {
+    let f = Fixture::new();
+    f.place("1", "thread", "call-1", &full_terms());
+    let project = f.project.to_str().unwrap().to_owned();
+    let age = |f: &Fixture| { let mut i = f.hooks(); let p = i.points.published.get_mut(&project).unwrap(); p.at = std::time::Instant::now() - REFRESH - std::time::Duration::from_secs(1); };
+    age(&f);
+    // No worker can start: the expired reading stays not whole.
+    f.hooks().points.hooks.no_workers = true;
+    for _ in 0..2 {
+        let row = f.host.snapshot()["points"].as_array().unwrap().iter().find(|v| v["threadId"] == "thread").cloned().unwrap();
+        assert_eq!(row["reading"]["whole"], false, "{row}");
+        assert!(Fixture::reasons(&row).contains("more than a minute ago; it is reading them again"), "{row}");
+        assert_eq!(row["points"], json!([]), "nothing is shown from an expired reading");
+    }
+    f.hooks().points.hooks.no_workers = false;
+    assert_eq!(Fixture::view(&f.host, "thread")["reading"]["whole"], true);
+}
+
+/// Where no worker can be created the call is placed inline, as the records
+/// capability answers a read it cannot hand to a worker: answered, never lost.
+#[test]
+fn where_no_worker_can_be_created_the_call_is_placed_inline_and_answered() {
     let f = Fixture::new();
     let mut pipe = reply_pipe(&f.host);
-    f.place("0", "thread", "call-0", &full_terms());
-    written(&mut pipe);
-    let (release, held) = std::sync::mpsc::channel::<()>();
-    let (busy, started) = std::sync::mpsc::channel::<()>();
-    let sender = f.hooks().points.queue.clone().unwrap();
-    sender.send(Job::Run(Box::new(move || { let _ = busy.send(()); let _ = held.recv(); }))).unwrap();
-    started.recv().unwrap();
-    for _ in 0..QUEUE { sender.try_send(Job::Run(Box::new(|| {}))).unwrap(); }
+    f.hooks().points.hooks.no_workers = true;
     f.host.on_line(&f.frame("1", "thread", "call-1", &full_terms()), &f.g);
+    assert!(f.hooks().points.hooks.workers.is_empty(), "no worker was started");
     let replies = written(&mut pipe);
-    assert_eq!(replies.len(), 1, "answered from the receiver");
-    let receipt = text(&replies[0]["result"]);
-    assert_eq!(receipt["state"], "not recorded");
-    assert_eq!(receipt["reason"], "The App's point recorder could not take this call now, so no point was recorded.");
-    release.send(()).unwrap();
-    f.drain();
+    assert_eq!(replies.len(), 1, "answered inline");
+    assert_eq!(text(&replies[0]["result"])["state"], "recorded");
     assert_eq!(f.records().len(), 1);
 }
 
 /// Finding 7 and 11: through the real receiver and a test reply pipe, the
-/// record is written before its pointer, and both before the reply; a
+/// record is written before its binding, and both before the reply; a
 /// repeated request identity is refused and not answered again, in the same
 /// generation and after it closed, and writes nothing.
 #[test]
-fn through_the_receiver_the_record_precedes_the_pointer_which_precedes_the_reply_and_a_repeat_is_not_answered_again() {
+fn through_the_receiver_the_record_precedes_the_binding_which_precedes_the_reply_and_a_repeat_is_not_answered_again() {
     let f = Fixture::new();
     let mut pipe = reply_pipe(&f.host);
     let seen = Arc::new(std::sync::Mutex::new(vec![]));
@@ -361,7 +377,7 @@ fn through_the_receiver_the_record_precedes_the_pointer_which_precedes_the_reply
       i.points.hooks.before_reply = Some(Box::new(move || before.lock().unwrap().push(("before the reply", count())))); }
     f.host.on_line(&f.frame("7", "thread", "call-1", &full_terms()), &f.g);
     f.drain();
-    assert_eq!(*seen.lock().unwrap(), vec![("after the record", (1, 0)), ("before the reply", (1, 1))], "record, then pointer, then reply");
+    assert_eq!(*seen.lock().unwrap(), vec![("after the record", (1, 0)), ("before the reply", (1, 1))], "record, then binding, then reply");
     let replies = written(&mut pipe);
     assert_eq!(replies.len(), 1);
     assert_eq!(replies[0]["id"], "7");
@@ -377,7 +393,7 @@ fn through_the_receiver_the_record_precedes_the_pointer_which_precedes_the_reply
     f.drain();
     assert!(written(&mut pipe).is_empty());
     assert_eq!(f.records().len(), 1);
-    assert_eq!(f.placed("thread").len(), 1);
+    assert_eq!(f.bound("thread").len(), 1);
 }
 
 /// A new request identity carrying the same call identifier in the same
@@ -405,15 +421,19 @@ fn nothing_of_the_terms_and_no_prose_reaches_the_ledger() {
 }
 
 /// Every refusal the App can decide without writing comes before any write:
-/// no point record and no pointer for that call.
+/// no point record and no binding for that call; a refused first placement
+/// leaves the conversation unbound.
 #[test]
-fn refusals_decided_before_any_write_leave_no_record_and_no_pointer() {
+fn refusals_decided_before_any_write_leave_no_record_and_no_binding() {
     let f = Fixture::new();
     for (id, arguments, expected) in [
-        ("1", json!({"version":1,"operation":"place","assignee":"x"}), "not valid for chirality_point_v1 version 1"),
-        ("2", json!({"version":1,"operation":"revise"}), "not valid for chirality_point_v1 version 1"),
+        ("1", json!({"version":1,"operation":"place","whoMustRespond":"r","responseRequested":"d","assignee":"x"}), "not valid for chirality_point_v1 version 1"),
+        ("2", json!({"version":1,"operation":"revise","whoMustRespond":"r","responseRequested":"d"}), "not valid for chirality_point_v1 version 1"),
         ("3", json!({"version":1,"operation":"place","agentStatement":"\u{10348}".repeat(1000),"whenItArises":"y".repeat(2000),"responseRequested":"z".repeat(2000),"resolvedWhen":"w".repeat(2000),"whoMustRespond":"\u{10348}".repeat(500),"whoIntegrates":"\u{10348}".repeat(500),"label":"\u{10348}".repeat(200),"concerns":{"content":"\u{10348}".repeat(1000),"revision":"r".repeat(200)}}), "the App's own limit of 16384 bytes"),
-        ("4", json!({"version":1,"operation":"place","kind":"sign-off"}), "A sign-off point names its act"),
+        ("4", json!({"version":1,"operation":"place","whoMustRespond":"r","kind":"sign-off","reservedAct":"accepting"}), "A sign-off point names its act"),
+        // Finding 7: who must respond and what is asked are never left out.
+        ("8", json!({"version":1,"operation":"place","label":"L"}), "do not state who must respond (whoMustRespond) or the response it asks for (responseRequested). Ask the person for it, then place the point"),
+        ("9", json!({"version":1,"operation":"place","whoMustRespond":"r","kind":"sign-off"}), "do not state the act it asks for (reservedAct). Ask the person for it"),
     ] {
         let receipt = f.place(id, "thread", &format!("call-{id}"), &arguments);
         assert_eq!(receipt["state"], "not recorded", "{receipt}");
@@ -423,24 +443,26 @@ fn refusals_decided_before_any_write_leave_no_record_and_no_pointer() {
     let receipt = f.place("5", "unindexed", "call-5", &full_terms());
     assert_eq!(receipt["reason"], "No App project is known for this conversation, so the point could not be kept; no point was placed.");
     assert!(f.records().is_empty());
-    assert!(f.placed("thread").is_empty());
+    assert!(f.bound("thread").is_empty());
     let view = Fixture::view(&f.host, "thread");
     assert_eq!(view["points"], json!([]));
-    assert_eq!(view["refused"].as_array().unwrap().len(), 4);
+    assert_eq!(view["refused"].as_array().unwrap().len(), 6);
     assert_eq!(view["reading"]["whole"], true);
     f.host.configure_records_capability_with_context(Arc::new(crate::records_access::RecordsCapability::at(&f.root.join("other-project"), f.root.join("app/reads.jsonl")).unwrap()), context(&f.root.join("other-project")));
     let receipt = f.place("6", "thread", "call-6", &full_terms());
     assert_eq!(receipt["reason"], "This conversation's App project is not the project the App has open now, so the point could not be kept; no point was placed.");
     f.host.configure_records_capability_with_context(Arc::new(crate::records_access::RecordsCapability::at(&f.project, f.root.join("app/reads.jsonl")).unwrap()), context(&f.project));
     let before = (files(&f.project), files(&f.root.join("store")));
-    f.host.on_points_worker(|| crate::records_store::use_store_for_test(Some(Err("invented store refusal".into()))));
+    on_workers(&f.host, &f.root, || crate::records_store::use_store_for_test(Some(Err("invented store refusal".into()))));
     let receipt = f.place("7", "thread", "call-7", &full_terms());
-    let root = f.root.clone();
-    f.host.on_points_worker(move || use_store(&root));
+    on_workers(&f.host, &f.root, || {});
     assert_eq!((files(&f.project), files(&f.root.join("store"))), before, "nothing written in the project or the store");
     assert!(receipt["reason"].as_str().unwrap().starts_with("The App's records store did not take the point (") && receipt["reason"].as_str().unwrap().contains("invented store refusal"), "{receipt}");
     assert!(f.records().is_empty());
-    assert!(f.placed("thread").is_empty());
+    assert!(f.bound("thread").is_empty(), "a refused first placement leaves no binding");
+    // And the conversation's reading is whole, with no point.
+    let view = Fixture::view(&f.host, "thread");
+    assert_eq!((view["reading"]["whole"].clone(), view["points"].clone()), (json!(true), json!([])), "{view}");
 }
 
 /// Calls naming the point tool that the host does not admit as point calls
@@ -474,7 +496,7 @@ fn calls_not_admitted_as_point_calls_are_answered_with_a_true_sentence_and_write
     assert!(written(&mut pipe).is_empty());
     assert!(f.receipts().is_empty());
     assert!(f.records().is_empty());
-    assert!(f.placed("thread").is_empty() && f.placed("fork").is_empty());
+    assert!(f.bound("thread").is_empty() && f.bound("fork").is_empty());
 }
 
 #[test]
@@ -581,55 +603,117 @@ fn terms_after_a_relaunch_equal_the_decoded_values_sent() {
     let other = Fixture::view(&f.host, "other");
     assert_eq!(other["points"], json!([]));
     assert_eq!(other["reading"]["whole"], true, "{other}");
+    // The receipts of an earlier App session's points are not shown; this session's is.
+    let view = Fixture::view(&f.host, "thread");
+    assert!(view["points"][0]["receipt"].is_null() && view["points"][1]["receipt"].is_null(), "{view}");
+    assert_eq!(view["points"][2]["point"], receipt["point"]);
+    assert_eq!(view["points"][2]["receipt"], "not known", "no reply pipe: the register has not observed a reply written");
 }
 
-/// The INTERLOCUTOR's case: the record is written, and the pointer is not
-/// saved before the App quits (a ledger that refuses it stands for the quit).
-/// After the relaunch, with no further placement, the conversation's
-/// resumption completes the pointer and the panel shows the one point.
+/// The INTERLOCUTOR's case: the App quits after the conversation's first
+/// point record is durable and before its binding tag is saved (a ledger
+/// that refuses the tag stands for the quit). On reopening, the App finds
+/// the right project's log without the tag, from the conversation's project
+/// in the ledger, shows that point exactly once by the record's own binding,
+/// and registers no project by reading; the resume then saves the binding.
+/// Where reopening cannot locate the log without the tag, the conversation
+/// says so and reads as not whole with that reason, never as no point.
 #[test]
-fn a_record_written_without_its_pointer_before_a_quit_is_shown_after_resume_once() {
+fn the_app_quits_after_the_first_record_before_its_binding_and_on_reopening_shows_the_point_once() {
     let mut f = Fixture::new();
-    f.place("0", "thread", "call-0", &small(0));
-    let aside = f.displace_ledger();
+    let aside = Arc::new(std::sync::Mutex::new(None));
+    let (fx_root, fx_ledger, held) = (f.root.clone(), f.ledger.clone(), Arc::clone(&aside));
+    f.hooks().points.hooks.after_append = Some(Box::new(move || {
+        let path = crate::recovery::database_path(&fx_ledger);
+        let to = fx_root.join("app/displaced-ledger");
+        std::fs::rename(&path, &to).unwrap();
+        std::fs::create_dir(&path).unwrap();
+        *held.lock().unwrap() = Some(to);
+    }));
     let receipt = f.place("1", "thread", "call-1", &full_terms());
-    assert_eq!(receipt["state"], "recorded", "{receipt}");
-    assert!(receipt["persistence"].as_str().unwrap().contains("could not be saved ("), "{receipt}");
+    assert_eq!(receipt["state"], "recorded", "the record stands: {receipt}");
+    assert_eq!(receipt["persistence"], points::KEPT);
+    assert!(f.bound("thread").is_empty(), "the binding was not saved");
+    let shown = Fixture::view(&f.host, "thread");
+    assert_eq!(shown["points"][0]["point"], receipt["point"], "the point is shown: {shown}");
+    f.restore_ledger(&aside.lock().unwrap().take().unwrap());
+    assert!(f.bound("thread").is_empty());
+
+    // Reopening in another project: the log cannot be located without the tag.
+    let other = f.root.join("other-project");
+    f.host.end_process_for_test();
+    f._custody = None;
+    f._custody = Some(crate::hold_app_data_for_test(&f.root.join("app")).unwrap());
+    let host = Arc::new(Host::new());
+    start(&host, &f.root);
+    host.configure_recovery(f.ledger.clone()).unwrap();
+    f.g = generation(&host, 1);
+    admitted(&host, &other, &f.root.join("app/reads.jsonl"), &f.g, &["thread"], &[]);
+    host.restore_point_offer(&f.g, "thread");
+    host.drain_points_for_test();
+    f.host = host;
     let view = Fixture::view(&f.host, "thread");
-    assert_eq!(view["points"].as_array().unwrap().len(), 1);
-    assert_eq!(view["reading"]["whole"], false, "never whole while a pointer is owed");
-    assert!(Fixture::reasons(&view).contains("could not be saved"), "{view}");
-    f.restore_ledger(&aside);
+    assert_eq!(view["reading"]["whole"], false, "{view}");
+    assert!(Fixture::reasons(&view).contains("this conversation's App project is not the project the App has open now"), "{view}");
+    assert_eq!(view["points"], json!([]), "never shown as no point: the reading is not whole");
+
+    // Reopening in the right project with the store unreadable: not whole, with why.
+    let before = files(&f.root.join("store"));
+    on_workers(&f.host, &f.root, || crate::records_store::use_store_for_test(Some(Err("invented store refusal".into()))));
+    f.host.configure_records_capability_with_context(Arc::new(crate::records_access::RecordsCapability::at(&f.project, f.root.join("app/reads.jsonl")).unwrap()), context(&f.project));
+    f.host.restore_point_offer(&f.g, "thread");
+    f.drain();
+    let row = f.host.snapshot()["points"].as_array().unwrap().iter().find(|v| v["threadId"] == "thread").cloned().unwrap();
+    assert_eq!(row["reading"]["whole"], false, "{row}");
+    assert!(Fixture::reasons(&row).contains("invented store refusal"), "{row}");
+    assert_eq!(row["points"], json!([]));
+
+    // Reopening in the right project with the store readable.
+    on_workers(&f.host, &f.root, || {});
     f.relaunch();
     let view = Fixture::view(&f.host, "thread");
     assert_eq!(view["reading"]["whole"], true, "{view}");
-    assert_eq!(view["points"].as_array().unwrap().len(), 2);
-    assert_eq!(view["points"][1]["point"], receipt["point"]);
-    assert_eq!(view["points"][1]["terms"]["arguments"], full_terms());
-    assert_eq!(f.records().len(), 2, "exactly the two records");
+    let points = view["points"].as_array().unwrap();
+    assert_eq!(points.len(), 1, "exactly once: {view}");
+    assert_eq!(points[0]["point"], receipt["point"]);
+    assert_eq!(points[0]["terms"]["arguments"], full_terms());
+    assert_eq!(files(&f.root.join("store")), before, "no project registered or written by reading");
+    assert_eq!(f.records().len(), 1);
+    assert_eq!(f.bound("thread").len(), 1, "the resume that read a sound record saved the binding");
     f.relaunch();
-    assert_eq!(f.placed("thread").len(), 2, "completed once");
+    assert_eq!(f.bound("thread").len(), 1, "saved once");
+    assert_eq!(Fixture::view(&f.host, "thread")["points"].as_array().unwrap().len(), 1);
 }
 
-/// The conversation's binding to its records is kept before its first
-/// record: where it cannot be kept, nothing is written.
+/// Where the binding cannot be saved after the first record, the record
+/// stands and the point is shown; the next placement that reads a sound
+/// record of the conversation saves it.
 #[test]
-fn a_first_placement_whose_binding_cannot_be_kept_writes_nothing() {
+fn a_binding_not_saved_after_the_first_record_is_saved_at_the_next_placement() {
     let f = Fixture::new();
     let aside = f.displace_ledger();
-    let receipt = f.place("1", "thread", "call-1", &full_terms());
+    let first = f.place("1", "thread", "call-1", &full_terms());
     f.restore_ledger(&aside);
-    assert_eq!(receipt["state"], "not recorded", "{receipt}");
-    assert!(receipt["reason"].as_str().unwrap().starts_with("The conversation's binding to its records could not be saved ("), "{receipt}");
-    assert!(f.records().is_empty());
+    assert_eq!(first["state"], "recorded", "{first}");
+    assert!(f.bound("thread").is_empty());
+    let view = Fixture::view(&f.host, "thread");
+    assert_eq!(view["points"][0]["point"], first["point"], "the record is the point, whatever the ledger kept: {view}");
+    // A refusal decided before the reading reads nothing and saves nothing.
+    assert_eq!(f.place("2", "thread", "call-2", &json!({"version":1,"operation":"place"}))["state"], "not recorded");
+    assert!(f.bound("thread").is_empty());
+    let second = f.place("3", "thread", "call-3", &full_terms());
+    assert_eq!(f.bound("thread").len(), 1);
+    let view = Fixture::view(&f.host, "thread");
+    assert_eq!(view["reading"]["whole"], true, "{view}");
+    assert_eq!(view["points"][0]["point"], first["point"]);
+    assert_eq!(view["points"][1]["point"], second["point"]);
 }
 
-/// Where the App cannot establish that a record without a pointer is this
-/// conversation's, the panel shows that, never "no point".
+/// An unsound record naming the conversation is shown as a point with terms
+/// not read, with why, and the reading is not whole; it binds nothing.
 #[test]
-fn a_record_that_cannot_be_established_after_a_relaunch_reads_as_uncertain_not_as_none() {
+fn an_unsound_record_naming_the_conversation_is_a_point_whose_terms_were_not_read() {
     let mut f = Fixture::new();
-    f.place("0", "thread", "call-0", &small(0));
     let aside = f.displace_ledger();
     f.place("1", "thread", "call-1", &full_terms());
     f.restore_ledger(&aside);
@@ -638,8 +722,10 @@ fn a_record_that_cannot_be_established_after_a_relaunch_reads_as_uncertain_not_a
     f.relaunch();
     let view = Fixture::view(&f.host, "thread");
     assert_eq!(view["reading"]["whole"], false, "{view}");
-    assert!(Fixture::reasons(&view).contains("a record naming this conversation could not be established"), "{view}");
-    assert_eq!(f.placed("thread").len(), 1, "no pointer for a record that is not sound");
+    assert_eq!(view["points"].as_array().unwrap().len(), 1);
+    assert_eq!(view["points"][0]["terms"]["state"], "not read");
+    assert!(Fixture::reasons(&view).contains("do not match their recorded digest"), "{view}");
+    assert!(f.bound("thread").is_empty(), "no binding from a record that is not sound");
 }
 
 /// Finding 3: on an indexed resume the App always accounts for the records:
@@ -665,44 +751,52 @@ fn an_indexed_resume_accounts_for_the_records_whatever_tags_the_conversation_hol
     let digest = points::digest(&small(2)).unwrap();
     let body = points::record_body("pt-00000000-0000-4000-8000-000000000002", &source, f.project.to_str().unwrap(), &store, &points::run_none(), &points::observed(None, false), &small(2), &digest, "t");
     crate::records::append_reserved(&log, points::KIND, &crate::records::APP_WRITER, body, "rec:app:00000000-0000-4000-8000-000000000002".into(), None, None, crate::records::RecordSet::Complete, crate::schema_validation::bundled()).unwrap();
-    assert!(f.tags("plain", "offered").is_empty() && f.placed("plain").is_empty());
+    assert!(f.tags("plain", "offered").is_empty() && f.bound("plain").is_empty());
     f.relaunch();
     let view = Fixture::view(&f.host, "plain");
     assert_eq!(view["reading"]["whole"], true, "{view}");
     assert_eq!(view["points"][0]["terms"]["arguments"], small(2));
 }
 
+/// A binding tag present, with the log missing or holding no record of the
+/// conversation: not whole with that reason, never "no point".
 #[test]
-fn a_pointer_owed_in_this_session_is_completed_before_a_later_call() {
+fn a_bound_conversation_whose_log_is_missing_or_holds_none_of_it_is_not_whole() {
     let f = Fixture::new();
-    f.place("0", "thread", "call-0", &small(0));
-    let aside = f.displace_ledger();
-    let first = f.place("1", "thread", "call-1", &full_terms());
-    f.restore_ledger(&aside);
-    let second = f.place("2", "thread", "call-2", &full_terms());
-    assert_eq!(second["persistence"], points::KEPT);
+    f.place("1", "thread", "call-1", &full_terms());
+    f.place("2", "other", "call-2", &small(2));
+    assert_eq!(f.bound("thread").len(), 1);
+    std::fs::remove_file(f.log()).unwrap();
     let view = Fixture::view(&f.host, "thread");
-    assert_eq!(view["reading"]["whole"], true, "{view}");
-    let shown: Vec<&Value> = view["points"].as_array().unwrap().iter().map(|p| &p["point"]).collect();
-    assert_eq!(shown.len(), 3);
-    assert_eq!((shown[1], shown[2]), (&first["point"], &second["point"]));
+    assert_eq!(view["reading"]["whole"], false, "{view}");
+    assert!(Fixture::reasons(&view).contains("this conversation is bound to its project's records, but the points log was not found in them"), "{view}");
+    assert_eq!(view["points"], json!([]));
+    // A log of the project holding no record of it (written by the store's writer).
+    let store = crate::records_store::attach(&f.project, false).unwrap().project.unwrap();
+    let source = points::Source { home: HOME.into(), home_class: "H-acct".into(), generation: crate::recovery::generation_ref(&f.g).unwrap(), thread: "plain".into(), turn: "t".into(), call: "c".into(), request: json!("r") };
+    let body = points::record_body("pt-00000000-0000-4000-8000-000000000009", &source, f.project.to_str().unwrap(), &store, &points::run_none(), &points::observed(None, false), &small(9), &points::digest(&small(9)).unwrap(), "t");
+    crate::records::append_reserved(&f.log(), points::KIND, &crate::records::APP_WRITER, body, "rec:app:00000000-0000-4000-8000-000000000009".into(), None, None, crate::records::RecordSet::Complete, crate::schema_validation::bundled()).unwrap();
+    let view = Fixture::view(&f.host, "thread");
+    assert_eq!(view["reading"]["whole"], false, "{view}");
+    assert!(Fixture::reasons(&view).contains("this conversation is bound to its project's records, but they hold no record of it"), "{view}");
+    assert_eq!(view["points"], json!([]));
 }
 
 /// Finding 2 and 11: an append error through the receiver is resolved by
 /// reading the log again: a line that landed is recorded, a log read whole
-/// without it is a refusal, and anything else is not established; the same
-/// call met again is never doubled, and the writer's own tail recovery runs
-/// before a later placement.
+/// without it is a refusal, and anything else is not established; the
+/// writer's own tail recovery runs before a later, distinct call, which finds
+/// the earlier line one record.
 #[test]
-fn an_append_error_through_the_receiver_is_resolved_by_reading_the_log_again_and_never_doubles_a_call() {
+fn an_append_error_through_the_receiver_is_resolved_by_reading_the_log_again() {
     let f = Fixture::new();
     assert_eq!(f.place("1", "thread", "call-1", &full_terms())["state"], "recorded");
     let dir = f.log().parent().unwrap().to_path_buf();
-    f.host.on_points_worker(move || crate::storage::fail_directory_for_test(Some(dir)));
+    on_workers(&f.host, &f.root, move || crate::storage::fail_directory_for_test(Some(dir.clone())));
     let landed = f.place("2", "thread", "call-2", &full_terms());
-    f.host.on_points_worker(|| crate::storage::fail_directory_for_test(None));
+    on_workers(&f.host, &f.root, || {});
     assert_eq!(landed["state"], "recorded", "{landed}");
-    assert_eq!(f.placed("thread").len(), 2);
+    assert_eq!(f.records().len(), 2);
     f.hooks().points.hooks.append = Some(Box::new(|_, _, _| Err("injected: nothing landed".into())));
     let refused = f.place("3", "thread", "call-3", &full_terms());
     assert_eq!(refused["state"], "not recorded", "{refused}");
@@ -727,7 +821,7 @@ fn an_append_error_through_the_receiver_is_resolved_by_reading_the_log_again_and
     assert_eq!(calls.iter().filter(|c| **c == "call-3").count(), 0);
     let view = Fixture::view(&f.host, "thread");
     assert_eq!(view["reading"]["whole"], true, "{view}");
-    assert_eq!(view["points"].as_array().unwrap().len(), 4, "the call-4 record completed before the later placement");
+    assert_eq!(view["points"].as_array().unwrap().len(), 4, "the call-4 record, terminated by the writer, is one point");
 }
 
 /// Finding 2: the App's own limit counts the sound records after the
@@ -784,19 +878,14 @@ fn a_conversation_whose_offer_is_not_restored_still_reads_its_points() {
     let point = f.place("1", "plain", "call-1", &full_terms())["point"].clone();
     f.relaunch();
     let view = Fixture::view(&f.host, "plain");
-    assert_eq!(view["offer"]["state"], "offered when this conversation started; restored when it was resumed", "its bound offer pointer restores it");
+    assert_eq!(view["offer"]["state"], "not offered in this App session", "no offer tag was kept for it");
     assert_eq!(view["reading"]["whole"], true, "{view}");
     assert_eq!(view["points"][0]["point"], point);
-    // Without any offer restored (another definition offered now), the points are still read.
-    for t in f.host.inner.0.lock().unwrap().points.offers.iter_mut() { t.basis = "start"; }
-    f.host.inner.0.lock().unwrap().points.offers.clear();
-    let view = Fixture::view(&f.host, "plain");
-    assert_eq!(view["offer"]["state"], "not offered in this App session");
     assert_eq!(view["points"][0]["terms"]["arguments"], full_terms());
 }
 
-/// Finding 4: one standard of evidence for display, and every failed join in
-/// the conversation's reading.
+/// Finding 4: one standard of evidence for display, and every record that
+/// is not sound in the conversation's reading.
 #[test]
 fn altered_truncated_missing_or_doubled_records_show_the_point_with_terms_not_read() {
     let f = Fixture::new();
@@ -809,15 +898,16 @@ fn altered_truncated_missing_or_doubled_records_show_the_point_with_terms_not_re
     assert!(reason(1).contains("not whole at or before"), "{}", reason(1));
     let view = Fixture::view(&f.host, "thread");
     assert!(view["points"][0]["run"].is_null(), "nothing of an unsound record is shown");
-    assert!(Fixture::reasons(&view).contains("the terms of point"), "every failed join reaches the reading: {view}");
+    assert!(Fixture::reasons(&view).contains("the terms of point"), "every unsound record reaches the reading: {view}");
     let cut = original.trim_end_matches('\n');
     std::fs::write(f.log(), &cut[..cut.len() - 40]).unwrap();
     assert_eq!(reason(0), "read");
-    assert!(reason(1).contains("no record with this point's reference"), "{}", reason(1));
-    assert!(Fixture::reasons(&Fixture::view(&f.host, "thread")).contains("ends with an unfinished line"));
+    let view = Fixture::view(&f.host, "thread");
+    assert_eq!(view["points"].as_array().unwrap().len(), 1, "a torn line is no record: {view}");
+    assert!(Fixture::reasons(&view).contains("ends with an unfinished line"));
     let third = f.place("3", "thread", "call-3", &full_terms());
     assert_eq!(third["state"], "recorded", "{third}");
-    assert_eq!(reason(2), "read", "a fragment set aside does not block later records");
+    assert_eq!(reason(1), "read", "a fragment set aside does not block later records");
     let now = std::fs::read_to_string(f.log()).unwrap();
     let first_id = f.records()[0]["recordId"].as_str().unwrap().to_owned();
     let third_id = f.records().last().unwrap()["recordId"].as_str().unwrap().to_owned();
@@ -832,10 +922,9 @@ fn altered_truncated_missing_or_doubled_records_show_the_point_with_terms_not_re
     assert_eq!(std::fs::read_to_string(f.log()).unwrap(), broken, "nothing written");
     std::fs::write(f.log(), &now).unwrap();
     std::fs::remove_file(f.log()).unwrap();
-    assert!(reason(0).contains("points log was not found") || reason(0).contains("could not read"), "{}", reason(0));
     let view = Fixture::view(&f.host, "thread");
     assert_eq!(view["reading"]["whole"], false);
-    assert_eq!(view["points"].as_array().unwrap().len(), 3, "still recorded, terms not read");
+    assert!(Fixture::reasons(&view).contains("the points log was not found"), "{view}");
 }
 
 /// Finding 5: a record identity held again in another act log of the same
@@ -861,9 +950,9 @@ fn a_record_identity_held_again_elsewhere_in_the_project_is_not_sound() {
 
 /// DEL-04-03 REQ-012 through the host, and what the store's line reader does
 /// first: only the version string changed reads as a newer minor version (or
-/// refuses an unknown major one); a newer entry with a field the store's
-/// schema does not know is refused by the store's line reader, so the point
-/// shows its terms not read and the reading is not whole.
+/// refuses an unknown major one, from which nothing is inferred); a newer
+/// entry with a field the store's schema does not know is refused by the
+/// store's line reader; in both the reading is not whole.
 #[test]
 fn the_host_reading_shows_what_the_version_rules_observe() {
     let f = Fixture::new();
@@ -871,7 +960,8 @@ fn the_host_reading_shows_what_the_version_rules_observe() {
     let original = std::fs::read_to_string(f.log()).unwrap();
     std::fs::write(f.log(), original.replacen("\"formatVersion\":\"0.1\"", "\"formatVersion\":\"9.0\"", 1)).unwrap();
     let view = Fixture::view(&f.host, "thread");
-    assert_eq!(view["points"][0]["terms"]["state"], "not read", "{view}");
+    assert_eq!(view["points"], json!([]), "nothing is inferred from an entry of an unknown major version: {view}");
+    assert_eq!(view["reading"]["whole"], false);
     assert!(Fixture::reasons(&view).contains("format version 9.0"), "{view}");
     std::fs::write(f.log(), original.replacen("\"formatVersion\":\"0.1\"", "\"formatVersion\":\"0.2\"", 1)).unwrap();
     let view = Fixture::view(&f.host, "thread");
@@ -879,15 +969,15 @@ fn the_host_reading_shows_what_the_version_rules_observe() {
     assert_eq!(view["points"][0]["formatVersion"], "0.2");
     std::fs::write(f.log(), original.replacen("\"formatVersion\":\"0.1\"", "\"formatVersion\":\"0.2\",\"later\":true", 1)).unwrap();
     let view = Fixture::view(&f.host, "thread");
-    assert_eq!(view["points"][0]["terms"]["state"], "not read", "{view}");
+    assert!(view["points"].as_array().unwrap().iter().all(|p| p["terms"]["state"] != "read"), "{view}");
     assert_eq!(view["reading"]["whole"], false);
 }
 
-/// Finding 4: the conversation's records binding is the store's project
-/// identity, kept before its first record. With an actual new identity at the
-/// same folder, the conversation's points read as kept elsewhere, a placement
-/// is refused, and a mark of uncertainty about the earlier records is not
-/// cleared by a reading of the new ones.
+/// Finding 4: the conversation's binding is the store's project identity,
+/// kept after its first record. With an actual new identity at the same
+/// folder, the conversation's points read as kept in other records, the
+/// reading is not whole, a placement is refused, and a mark of uncertainty
+/// about the earlier records is not cleared by a reading of the new ones.
 #[test]
 fn a_new_identity_at_the_same_folder_is_never_read_or_written_as_the_conversations_records() {
     let mut f = Fixture::new();
@@ -900,30 +990,33 @@ fn a_new_identity_at_the_same_folder_is_never_read_or_written_as_the_conversatio
     }));
     assert_eq!(f.place("2", "thread", "call-2", &full_terms())["state"], "not established");
     let before = crate::records_store::attach(&f.project, false).unwrap().project.unwrap();
+    assert_eq!(f.bound("thread")[0]["storeProject"], before);
     crate::records_store::new_identity(&f.project).unwrap();
     let after = crate::records_store::attach(&f.project, false).unwrap().project.unwrap();
     assert_ne!(before, after);
+    let view = Fixture::view(&f.host, "thread");
+    assert_eq!(view["reading"]["whole"], false, "{view}");
+    assert_eq!(view["points"], json!([]), "none of the new identity's records are the conversation's: {view}");
+    assert!(Fixture::reasons(&view).contains("this conversation's points are kept in other records than the records this project folder belongs to now"), "{view}");
     let refused = f.place("3", "thread", "call-3", &full_terms());
     assert_eq!(refused["reason"], "This conversation's points are kept in other records than the records this project folder belongs to now, so the point could not be kept; no point was placed.");
     let view = Fixture::view(&f.host, "thread");
     assert_eq!(view["reading"]["whole"], false, "{view}");
-    // The new identity has no records yet: the store reads this folder's
-    // records in place, so none of the conversation's points are read from it.
-    assert_eq!(view["points"][0]["terms"]["state"], "not read", "{view}");
-    assert!(Fixture::reasons(&view).contains("read in place"), "{view}");
+    assert!(Fixture::reasons(&view).contains("this conversation's points are kept in other records than the records this project folder belongs to now"), "{view}");
     assert!(Fixture::reasons(&view).contains("the write reported injected"), "the uncertainty about the earlier records stands: {view}");
     f.relaunch();
     let refused = f.place("4", "thread", "call-4", &full_terms());
     assert_eq!(refused["state"], "not recorded");
     assert!(refused["reason"].as_str().unwrap().contains("other records"), "{refused}");
-    assert_eq!(Fixture::view(&f.host, "thread")["points"][0]["terms"]["state"], "not read");
+    assert!(Fixture::reasons(&Fixture::view(&f.host, "thread")).contains("other records"));
 }
 
 /// Finding 7: publication against the generation's closure. A generation
-/// closed before the append writes nothing; one closed after the record was
-/// written leaves the record with its pointer owed, which a resume completes.
+/// closed before the append writes nothing; a record that lands after Codex
+/// closed is a recorded point, shown with its receipt as the request
+/// register observed it, and bound at the next resume that reads it.
 #[test]
-fn a_generation_closing_while_the_recorder_works_leaves_nothing_or_the_record_with_its_pointer_owed() {
+fn a_generation_closing_while_a_placement_works_leaves_nothing_or_a_recorded_point() {
     let f = Fixture::new();
     let mut pipe = reply_pipe(&f.host);
     let host = Arc::clone(&f.host);
@@ -931,7 +1024,7 @@ fn a_generation_closing_while_the_recorder_works_leaves_nothing_or_the_record_wi
     f.host.on_line(&f.frame("1", "thread", "call-1", &full_terms()), &f.g);
     f.drain();
     assert_eq!(text(f.receipts().last().unwrap())["reason"], "This Codex session ended before the point could be recorded; no point was placed.");
-    assert!(f.records().is_empty() && f.placed("thread").is_empty());
+    assert!(f.records().is_empty() && f.bound("thread").is_empty());
     assert!(written(&mut pipe).is_empty(), "no reply on a closed generation");
 
     let f = Fixture::new();
@@ -947,27 +1040,49 @@ fn a_generation_closing_while_the_recorder_works_leaves_nothing_or_the_record_wi
     f.drain();
     let receipt = text(f.receipts().last().unwrap());
     assert_eq!(receipt["state"], "recorded", "{receipt}");
-    assert!(receipt["persistence"].as_str().unwrap().contains("could not be saved (tag scope not current"), "{receipt}");
+    assert_eq!(receipt["persistence"], points::KEPT);
     assert_eq!(f.records().len(), 1);
-    assert!(f.placed("thread").is_empty(), "the pointer is owed: the closed generation's tag is refused as not current");
+    assert!(f.bound("thread").is_empty(), "the closed generation's tag is refused as not current");
     assert!(written(&mut pipe).is_empty(), "no reply on a closed generation");
     assert!(f.host.snapshot()["journal"].as_array().unwrap().iter().any(|j| j["class"] == "point-call-not-answered"));
-    let view = Fixture::view(&f.host, "thread");
-    assert_eq!(view["reading"]["whole"], false, "{view}");
-    assert!(Fixture::reasons(&view).contains("its pointer in this conversation could not be saved"), "{view}");
-    // A constructed resume in the next generation completes the pointer once.
+    let entry = f.hooks().server_requests.named_replies(points::RULE).into_iter().find(|(_, id, _, _)| *id == "1").unwrap();
+    assert_eq!((entry.2.as_str(), entry.3.as_str()), ("not-attempted", "ended-unanswered"));
+    // A constructed resume in the next generation shows the point with the
+    // register's observation of its receipt, and binds it once.
     let g2 = generation(&f.host, 2);
     admitted(&f.host, &f.project, &f.root.join("app/reads.jsonl"), &g2, &["thread"], &[]);
     f.host.restore_point_offer(&g2, "thread");
     f.drain();
-    assert_eq!(f.placed("thread").len(), 1, "completed on resume");
     let view = Fixture::view(&f.host, "thread");
     assert_eq!(view["reading"]["whole"], true, "{view}");
     assert_eq!(view["points"][0]["point"], f.records()[0]["body"]["point"]);
     assert_eq!(view["points"][0]["terms"]["arguments"], full_terms());
+    assert_eq!(view["points"][0]["receipt"], "not written", "{view}");
+    assert_eq!(f.bound("thread").len(), 1, "bound on resume");
     f.host.restore_point_offer(&g2, "thread");
     f.drain();
-    assert_eq!(f.placed("thread").len(), 1, "completed once");
+    assert_eq!(f.bound("thread").len(), 1, "bound once");
+}
+
+/// A5: the receipt shown is the request register's own observation of that
+/// request: written where the reply was written, not written where its write
+/// failed, and not known where no reply was observed.
+#[test]
+fn the_receipt_shown_is_the_request_registers_observation_of_the_reply() {
+    let f = Fixture::new();
+    let pipe = reply_pipe(&f.host);
+    f.place("1", "thread", "call-1", &full_terms());
+    drop(pipe);
+    // The read end is closed: the write fails.
+    f.place("2", "thread", "call-2", &full_terms());
+    *f.host.stdin.lock().unwrap() = None;
+    f.place("3", "thread", "call-3", &full_terms());
+    let view = Fixture::view(&f.host, "thread");
+    let receipts: Vec<&Value> = view["points"].as_array().unwrap().iter().map(|p| &p["receipt"]).collect();
+    let register: Vec<(String, String)> = f.hooks().server_requests.named_replies(points::RULE).into_iter().map(|(_, _, r, s)| (r, s)).collect();
+    assert_eq!(receipts, vec![&json!("written"), &json!("not written"), &json!("not known")], "{view} {register:?}");
+    assert_eq!(register[0].0, "written");
+    assert_eq!(register[1].0, "write-failed");
 }
 
 /// Finding 11: a project closed after the call was admitted refuses the
@@ -987,7 +1102,7 @@ fn a_project_closed_after_admission_refuses_before_anything_is_written() {
     assert_eq!(receipt["state"], "not recorded", "{receipt}");
     assert!(receipt["reason"].as_str().unwrap().starts_with("The App's records store did not take the point"), "{receipt}");
     assert_eq!(std::fs::read(f.log()).unwrap(), bytes);
-    assert_eq!(f.placed("thread").len(), 1);
+    assert_eq!(f.bound("thread").len(), 1);
 }
 
 #[test]
@@ -1057,8 +1172,8 @@ fn export_standalone_check_package_import_hold_and_disposal_treat_a_point_record
     assert_eq!(act("dispose", Some(&current)).unwrap()["state"], "disposed");
     assert!(!log.exists());
     let view = Fixture::view(&f.host, "thread");
-    assert_eq!(view["points"].as_array().unwrap().len(), 1, "{view}");
-    assert_eq!(view["points"][0]["terms"]["state"], "not read", "{view}");
+    assert_eq!(view["points"], json!([]), "{view}");
+    assert_eq!(view["reading"]["whole"], false, "a disposed log never reads as no point: {view}");
     assert_eq!(f.place("3", "thread", "call-3", &full_terms())["state"], "not recorded");
     assert!(!log.exists());
 
@@ -1067,7 +1182,7 @@ fn export_standalone_check_package_import_hold_and_disposal_treat_a_point_record
     let destination = f.root.join("destination-store");
     let set = move || crate::records_store::use_store_for_test(Some(Ok(crate::records_store::Store { root: destination.clone(), placement: crate::records_store::Placement::Test, limits: vec![] })));
     set();
-    f.host.on_points_worker(set.clone());
+    { let set = set.clone(); f.hooks().points.hooks.worker_setup = Some(Arc::new(set)); }
     let plan = crate::records_store::package::prepare(&f.project, &current, &actor, &observed).unwrap();
     assert_eq!(crate::records_store::package::apply(plan, &actor, &observed).unwrap()["state"], "package imported");
     let imported = crate::records_store::project_dir(&f.root.join("destination-store"), &project).join(&rel);

@@ -7609,12 +7609,16 @@ impl WorkflowRun {
             }
             Err(error) => {
                 self.lifecycle = RunLifecycle::StartNotConfirmed;
-                { let scope = self.prepared().scope(); self.home.host.note_conversation_run(&scope.generation, &scope.conversation, &scope.run, "not opened"); }
                 // V9 F-1: only Codex's definite refusal of this exact turn/start
                 // grounds a supply_check *not found* (WR §16.4, RN-4). An unknown
                 // outcome mints nothing that claims not found (EXEC §2.7 / WR §16.4 RN-4).
                 let refusal = self.home.host.prepared_turn_refusal(&source);
                 let definite = refusal.is_some();
+                // DEL-02-03: only that definite refusal marks the run not
+                // opened; a start sent with an unknown outcome keeps its
+                // "start sent" mark, so a point placed now reads its run as
+                // not established.
+                if definite { let scope = self.prepared().scope(); self.home.host.note_conversation_run(&scope.generation, &scope.conversation, &scope.run, "not opened"); }
                 let check = match refusal {
                     Some(refusal) => self.record_refused_start(refusal),
                     None => Value::Null,
@@ -10613,6 +10617,8 @@ for line in sys.stdin:
         assert!(run.send().is_err());assert_eq!(peer.turn_starts(),1);assert!(run.turn_id.is_none());
         assert_eq!(peer.wr_at_turn_start()[0].len(),2,"records were durable before the refused send");
         assert_eq!(run.status["supplyCheck"],"not found (RN-4): turn/start refused by Codex");assert!(run.status["r3"].as_str().unwrap().starts_with("unavailable"));
+        // DEL-02-03 (finding 6): only Codex's definite refusal of this exact start marks the run not opened.
+        { let scope=run.prepared().scope(); assert_eq!(run.home.host.run_mark_for_test(&scope.generation,&scope.conversation),Some("not opened")); }
         assert_eq!(peer.fixture.wr_files().len(),3,"one supply_check not found");
         let check=run.view(&reference)["checks"][0].clone();assert_eq!(check["state"],"not found");assert_eq!(check["published"],true);assert_eq!(check["r3"]["state"],"unavailable");
         let project=crate::workflow_workspace::publication::ProjectRecords::open(&peer.fixture.root).unwrap();
@@ -10633,6 +10639,8 @@ for line in sys.stdin:
         assert!(run.send().is_err());assert_eq!(peer.turn_starts(),1);assert!(run.turn_id.is_none());
         assert_eq!(run.status["supplyCheck"],"not recorded: turn/start outcome unknown (EXEC §2.7 / WR §16.4 RN-4)");
         assert_eq!(peer.fixture.wr_files().len(),2,"no supply_check claims not found for an unknown outcome");
+        // DEL-02-03 (finding 6): a start sent with an unknown outcome keeps its "start sent" mark, so a point placed now reads its run as not established, never as no run.
+        { let scope=run.prepared().scope(); assert_eq!(run.home.host.run_mark_for_test(&scope.generation,&scope.conversation),Some("start sent")); }
         assert!(run.view(&reference)["checks"].as_array().unwrap().is_empty());
         assert!(run.send().is_err());assert_eq!(peer.turn_starts(),1);
     }

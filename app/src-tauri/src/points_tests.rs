@@ -1,10 +1,12 @@
 //! DEL-02-03 REQ-008: the point tool's definition, argument check, digest,
-//! record body, pointer, receipt, framing and the reader's soundness and
-//! version rules, read against independent expectations.
+//! record body, ledger tags, receipt, framing, the reader's soundness and
+//! version rules and a conversation's points, read against independent
+//! expectations.
 use super::*;
 
+/// The least a version 1 point states: who must respond and the response.
 fn args(extra: Value) -> Value {
-    let mut v = json!({"version":1,"operation":"place"});
+    let mut v = json!({"version":1,"operation":"place","whoMustRespond":"the reviewer","responseRequested":"a decision"});
     for (k, x) in extra.as_object().unwrap() { v[k] = x.clone(); }
     v
 }
@@ -25,7 +27,9 @@ fn the_definition_is_closed_version_one_and_matches_the_record_schema() {
     assert_eq!(recorded, input_schema());
     // The rule the agent gets is in the description itself.
     let text = d["description"].as_str().unwrap();
-    for needed in ["Give only the terms the person stated", "Leave out every field the person did not state", "does not pause you",
+    assert_eq!(d["inputSchema"]["required"], json!(["version", "operation", "whoMustRespond"]));
+    for needed in ["if the person has not said these, ask the person before you place the point, and do not leave them out",
+        "Give only the terms the person stated", "Leave out any other field the person did not state", "does not pause you",
         "tell the person plainly that no point was recorded", "A sign-off point names its act in reservedAct, engineering approval or professional reliance",
         "could not establish whether the point was recorded"] {
         assert!(text.contains(needed), "{needed}");
@@ -65,13 +69,39 @@ fn arguments_outside_version_one_are_refused_with_the_apps_reason() {
 #[test]
 fn a_sign_off_point_that_names_neither_of_its_acts_is_refused() {
     for act in SIGN_OFF_ACTS { assert!(validate(&args(json!({"kind":"sign-off","reservedAct":act}))).is_ok(), "{act}"); }
-    for value in [args(json!({"kind":"sign-off"})), args(json!({"kind":"sign-off","reservedAct":"accepting a proposal"})), args(json!({"kind":"sign-off","reservedAct":"marking work checked"}))] {
+    for value in [args(json!({"kind":"sign-off","reservedAct":"accepting a proposal"})), args(json!({"kind":"sign-off","reservedAct":"marking work checked"}))] {
         assert_eq!(validate(&value).unwrap_err(), SIGN_OFF_UNNAMED, "{value}");
         // The schema alone (the record schema's copy) refuses it as well.
         assert!(validator().unwrap().iter_errors(&value).next().is_some(), "{value}");
     }
     // Another kind may name a reserved act, or none.
     assert!(validate(&args(json!({"kind":"review","reservedAct":"accepting a proposal"}))).is_ok());
+}
+
+/// PRD V4-AUT-07 (finding 7): version 1 requires who must respond, and the
+/// response requested or, for a sign-off point, the reserved act. A call
+/// without them is refused with the App's sentence telling the agent to ask
+/// the person; every other unstated term stays unstated.
+#[test]
+fn a_point_that_leaves_out_who_must_respond_or_what_it_asks_is_refused_with_ask_the_person() {
+    let bare = json!({"version":1,"operation":"place"});
+    let with = |extra: Value| { let mut v = bare.clone(); for (k, x) in extra.as_object().unwrap() { v[k] = x.clone(); } v };
+    for (value, missing) in [
+        (bare.clone(), vec!["who must respond (whoMustRespond)", "the response it asks for (responseRequested)"]),
+        (with(json!({"responseRequested":"a decision"})), vec!["who must respond (whoMustRespond)"]),
+        (with(json!({"whoMustRespond":"the reviewer"})), vec!["the response it asks for (responseRequested)"]),
+        (with(json!({"whoMustRespond":"the reviewer","kind":"sign-off","responseRequested":"a decision"})), vec!["the act it asks for (reservedAct)"]),
+        (with(json!({"kind":"sign-off","reservedAct":"engineering approval"})), vec!["who must respond (whoMustRespond)"]),
+    ] {
+        let reason = validate(&value).unwrap_err();
+        assert_eq!(reason, unstated(&missing), "{value}");
+        assert!(reason.contains("Ask the person for it, then place the point; no point was recorded."), "{reason}");
+        // The schema alone (the record schema's copy) refuses it as well.
+        assert!(validator().unwrap().iter_errors(&value).next().is_some(), "{value}");
+    }
+    // A sign-off point needs no responseRequested beside its act; every other term may stay unstated.
+    assert!(validate(&with(json!({"whoMustRespond":"the reviewer","kind":"sign-off","reservedAct":"professional reliance"}))).is_ok());
+    assert!(validate(&with(json!({"whoMustRespond":"the reviewer","responseRequested":"a decision"}))).is_ok());
 }
 
 #[test]
@@ -95,7 +125,7 @@ fn entry(arguments: &Value, point: &str, record: &str, seq: u64, previous: Optio
 }
 
 #[test]
-fn the_record_body_is_closed_and_its_pointer_holds_identities_and_the_digest_only() {
+fn the_record_body_is_closed_and_the_ledger_holds_only_the_offer_and_the_binding() {
     let arguments = args(json!({"whoMustRespond":"MARKER-TERM the reviewer","kind":"review"}));
     let point = crate::util::opaque_id("pt-").unwrap();
     let e = crate::records::envelope(KIND, &crate::records::APP_WRITER,
@@ -120,47 +150,31 @@ fn the_record_body_is_closed_and_its_pointer_holds_identities_and_the_digest_onl
         change(&mut changed["body"]);
         assert!(validator.validate(&changed).is_err(), "{case}");
     }
-    let raw = pointer(&e).unwrap();
-    assert!(!raw.contains("MARKER-TERM"), "the pointer carries no supplied text");
-    let decoded = decode(&raw).unwrap();
-    let keys: Vec<&str> = decoded.as_object().unwrap().keys().map(String::as_str).collect();
-    assert_eq!(keys, ["digest", "kind", "point", "project", "record", "source", "storeProject", "v"]);
-    assert_eq!(decoded["point"], json!(point));
-    assert_eq!(decoded["record"], RECORD);
-    assert_eq!(decoded["source"], source().value());
-    assert_eq!(decoded["storeProject"], "records-project:fixture");
-    assert_eq!(decoded["digest"], json!({"method":DIGEST_METHOD,"value":digest(&arguments).unwrap()}));
-    // Anything else of this owner is not a pointer: a run or observation carried, an older shape, another version.
-    for raw in ["{\"v\":2,\"kind\":\"placed\"}", "run:abc"] { assert!(decode(raw).is_none(), "{raw}"); }
-    let mut with_run = decoded.clone();
-    with_run["run"] = json!({"state":"no run"});
-    assert!(decode(&with_run.to_string()).is_none());
-    // Finding 6: every part of the tag is checked.
-    let changed = |change: &dyn Fn(&mut Value)| { let mut v = decoded.clone(); change(&mut v); decode(&v.to_string()) };
-    assert!(changed(&|v| v["digest"]["extra"] = json!(1)).is_none(), "an extra digest key");
-    assert!(changed(&|v| v["digest"]["value"] = json!(digest(&arguments).unwrap().to_uppercase())).is_none(), "an uppercase digest");
-    assert!(changed(&|v| v["digest"]["value"] = json!("z".repeat(64))).is_none(), "a digest that is not hexadecimal");
-    assert!(changed(&|v| v["point"] = json!("pt-not-a-uuid")).is_none());
-    assert!(changed(&|v| v["record"] = json!("rec:app:fixture")).is_none());
-    assert!(changed(&|v| v["source"]["generation"] = Value::Null).is_none());
-    assert!(changed(&|v| v["source"]["generation"] = json!(crate::recovery::generation_ref(&json!({"appSession":"s","home":"another-home","spawnCounter":1})).unwrap())).is_none(), "a generation of another home");
-    assert!(changed(&|v| v["source"]["homeClass"] = json!("H-other")).is_none());
+    // The ledger holds no point: only the offer and the conversation's
+    // binding to its records, with no supplied text.
     let generation = source().generation;
+    let bound = binding_pointer("app-home:fixture", "thread", "/project", "records-project:fixture");
+    let decoded = decode(&bound).unwrap();
+    let keys: Vec<&str> = decoded.as_object().unwrap().keys().map(String::as_str).collect();
+    assert_eq!(keys, ["home", "kind", "project", "storeProject", "thread", "v"]);
+    assert_eq!(decoded["storeProject"], "records-project:fixture");
+    for raw in ["{\"v\":2,\"kind\":\"bound\"}", "run:abc"] { assert!(decode(raw).is_none(), "{raw}"); }
+    // A placed pointer of an earlier build is no tag this App reads.
+    assert!(decode(&json!({"v":1,"kind":"placed","point":point,"record":RECORD,"source":source().value(),"project":"/project","storeProject":"records-project:fixture","digest":{"method":DIGEST_METHOD,"value":digest(&arguments).unwrap()}}).to_string()).is_none());
+    let changed = |raw: &str, change: &dyn Fn(&mut Value)| { let mut v: Value = serde_json::from_str(raw).unwrap(); change(&mut v); decode(&v.to_string()) };
+    assert!(changed(&bound, &|v| v["generation"] = json!(generation)).is_none(), "an extra key");
+    assert!(changed(&bound, &|v| v["storeProject"] = json!("")).is_none(), "an empty store project");
+    assert!(changed(&bound, &|v| { v.as_object_mut().unwrap().remove("project"); }).is_none(), "no project");
     let offer = offer_pointer("app-home:fixture", &generation, "thread");
     assert!(decode(&offer).is_some());
-    let bound = bound_offer_pointer("app-home:fixture", &generation, "thread", "/project", "records-project:fixture");
-    assert_eq!(decode(&bound).unwrap()["storeProject"], "records-project:fixture");
-    let offer: Value = serde_json::from_str(&offer).unwrap();
     for (case, change) in [
         ("generation null", Box::new(|v: &mut Value| v["generation"] = Value::Null) as Box<dyn Fn(&mut Value)>),
         ("generation of another home", Box::new(|v: &mut Value| v["generation"] = json!(crate::recovery::generation_ref(&json!({"appSession":"s","home":"other","spawnCounter":1})).unwrap()))),
         ("generation not canonical", Box::new(|v: &mut Value| v["generation"] = json!("gen:v1:s:73:h:68:n:01"))),
         ("definition not a digest", Box::new(|v: &mut Value| v["definition"] = json!("x"))),
-        ("store project without its project", Box::new(|v: &mut Value| v["storeProject"] = json!("records-project:fixture"))),
+        ("an offer carrying a binding", Box::new(|v: &mut Value| { v["project"] = json!("/project"); v["storeProject"] = json!("records-project:fixture"); })),
     ] {
-        let mut v = offer.clone();
-        change(&mut v);
-        assert!(decode(&v.to_string()).is_none(), "{case}");
+        assert!(changed(&offer, &*change).is_none(), "{case}");
     }
 }
 const RECORD: &str = "rec:app:00000000-0000-4000-8000-000000000001";
@@ -183,7 +197,7 @@ fn a_receipt_is_recorded_not_recorded_or_not_established_and_carries_no_answer()
     assert_eq!(text(&unknown)["state"], "not established");
     assert_eq!(text(&unknown)["point"], "pt-2");
     assert!(text(&unknown)["reason"].as_str().unwrap().starts_with("The App could not establish whether the point was recorded (the write reported x)."));
-    assert!(pointer_pending("ledger refused").contains("the conversation's pointer to them could not be saved (ledger refused); the App completes it before a later placement in this conversation or when the conversation is resumed"));
+    assert_eq!(text(&recorded)["persistence"], "The point and its terms are kept in the App's records for this conversation's project.");
 }
 
 #[test]
@@ -324,4 +338,53 @@ fn a_record_is_sound_only_when_unique_by_every_identity_and_its_digest_holds() {
     altered["body"]["arguments"]["label"] = json!("changed");
     let bad_digest = read(vec![altered]);
     assert!(bad_digest.soundness(0).as_ref().unwrap_err().contains("do not match their recorded digest"));
+}
+
+/// A conversation's points are the records that name it by their own
+/// binding (home, home class, conversation, App project, store project), in
+/// the log's order: a sound one with its terms, an unsound one as a point
+/// whose terms were not read, with why; another conversation's are not its.
+#[test]
+fn a_conversations_points_are_its_records_by_their_own_binding() {
+    let a = args(json!({"label":"A"}));
+    let b = args(json!({"label":"B"}));
+    let mut second = source();
+    second.call = "call-2".into();
+    let mut elsewhere = source();
+    elsewhere.call = "call-3".into();
+    elsewhere.home_class = "H-key".into();
+    let record = |point: &str, record: &str, src: &Source, arguments: &Value, store: &str, seq: u64| {
+        let body = record_body(point, src, "/project", store, &run_none(), &observed(None, false), arguments, &digest(arguments).unwrap(), "t");
+        crate::records::envelope(KIND, &crate::records::APP_WRITER, body, record.into(), seq, None, None)
+    };
+    let p = |n: u8| format!("pt-00000000-0000-0000-0000-00000000000{n}");
+    let mut altered = record(&p(2), "rec:app:b", &second, &b, "records-project:fixture", 2);
+    altered["body"]["arguments"]["label"] = json!("changed");
+    let entries = vec![
+        record(&p(1), "rec:app:a", &source(), &a, "records-project:fixture", 1),
+        altered,
+        record(&p(3), "rec:app:c", &elsewhere, &a, "records-project:fixture", 3),
+        record(&p(4), "rec:app:d", &{ let mut s = source(); s.call = "call-4".into(); s }, &a, "records-project:other", 4),
+    ];
+    let mut bytes = Vec::new();
+    let mut previous: Option<String> = None;
+    for mut e in entries {
+        e["prevLine"] = crate::record_lines::link(previous.as_deref());
+        let line = serde_json::to_vec(&e).unwrap();
+        previous = Some(crate::record_lines::line_identity(&line));
+        bytes.extend(line);
+        bytes.push(b'\n');
+    }
+    let log = LogReading::of_bytes(std::path::Path::new("points.jsonl"), &bytes);
+    let conversation = Conversation { home: "app-home:fixture", home_class: "H-acct", thread: "thread", project: "/project", store_project: "records-project:fixture" };
+    let shown = show(&log, &conversation);
+    assert_eq!(shown.len(), 2, "{shown:?}");
+    assert_eq!(shown[0]["point"], json!(p(1)));
+    assert_eq!(shown[0]["terms"], json!({"state":"read","arguments":a}));
+    assert_eq!(shown[0]["run"], run_none());
+    assert_eq!(shown[1]["point"], json!(p(2)));
+    assert_eq!(shown[1]["terms"]["state"], "not read");
+    assert!(shown[1]["terms"]["reason"].as_str().unwrap().contains("do not match their recorded digest"));
+    assert!(shown[1]["run"].is_null() && shown[1]["observed"].is_null(), "nothing of an unsound record is shown but that it is one");
+    assert_eq!(log.sound_of(&conversation), 1, "the limit counts sound records only");
 }

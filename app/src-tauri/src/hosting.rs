@@ -5905,9 +5905,9 @@ view["sourceObservation"]=e.request.frame["method"].clone();view["sourceWriteCon
                 if let Some(call)=slot.lock().unwrap().take(){self.answer_records_call(call);}
             }
         }
-        // DEL-02-03 REQ-008: the placement writes a record and a pointer, so it
-        // runs on the App's point recorder (a bounded queue); a call it cannot
-        // take is refused with the App's sentence, never placed here.
+        // DEL-02-03 REQ-008: the placement writes a record, so it runs on a
+        // worker of its own, as the read above does, serialised with every
+        // other placement by the one placement guard.
         if let Some(call)=point_call { self.dispatch_point_call(call); }
         if let Some((bound,id,token_refresh))=private_auth_reply{
             let result=bound.and_then(|bound|self.write_private_auth_rejection(bound,id,token_refresh));

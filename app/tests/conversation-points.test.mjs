@@ -29,7 +29,7 @@ test('a conversation offered the tool with a whole reading and no point says non
 });
 
 test('an incomplete reading never says no point has been recorded, and says why', () => {
-  const why = 'point pt-9 is in the App\'s records, but its pointer in this conversation could not be saved (ledger refused); the App completes it before a later placement in this conversation or when the conversation is resumed';
+  const why = 'this conversation is bound to its project\'s records, but the points log was not found in them';
   const html = agentPlain(show(row({reading: {whole: false, reasons: [why]}})));
   assert.ok(!html.includes(NONE_RECORDED));
   assert.ok(html.includes(NOT_READ_WHOLE));
@@ -128,11 +128,18 @@ test('hostile supplied text stays inside a marked box and never becomes a contro
   assert.ok(!/aria-label="[^"]*evil/.test(html));
 });
 
-test('a recorded point whose receipt the App could not send says so, with the reason', () => {
-  const html = agentPlain(show(row({unsent: [{point: 'pt-1', reason: 'captured source generation/pipe closed or changed before write'}]})));
-  assert.ok(html.includes(P.UNSENT));
-  assert.ok(html.includes('Point reference pt-1. ⟦Why: captured source generation/pipe closed or changed before write⟧'));
-  assert.ok(!agentPlain(show(row())).includes(P.UNSENT));
+test('the receipt is shown as the request register observed it, and not for a point of an earlier App session', () => {
+  for (const [state, sentence] of Object.entries(P.RECEIPT)) {
+    const html = agentPlain(show(row({points: [point(undefined, {terms: {state: 'read', arguments: terms}, receipt: state})]})));
+    assert.ok(html.includes(sentence), state);
+    for (const other of Object.values(P.RECEIPT)) if (other !== sentence) assert.ok(!html.includes(other), `${state}: ${other}`);
+  }
+  // Where the register says written, the panel never says the receipt was not sent.
+  const written = agentPlain(show(row({points: [point({state: 'read', arguments: terms}, {receipt: 'written'})]})));
+  assert.ok(!/not send|not sent|could not send/i.test(written));
+  const earlier = agentPlain(show(row({points: [point({state: 'read', arguments: terms}, {receipt: null})]})));
+  for (const sentence of Object.values(P.RECEIPT)) assert.ok(!earlier.includes(sentence));
+  assert.ok(!/receipt/i.test(earlier.replace(/⟦[^⟧]*⟧/gs, '')), 'nothing said of an earlier session\'s receipt');
 });
 
 test('refused calls are listed as not points, and another conversation shows nothing here', () => {

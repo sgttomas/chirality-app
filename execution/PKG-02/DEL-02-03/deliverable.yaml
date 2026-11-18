@@ -65,7 +65,8 @@ needs:
     writer error does not establish that the line did not land. The writer's tail recovery can
     be run at its open, before the log is read. The store's writer and reader bindings give the
     project's stable identity and its records folder, checked against the project folder each
-    time; its write admission can be held from the writer binding's proof through the append,
+    time; a writer binding of an already attached project mints and attaches nothing, and a
+    folder given a new identity is bound to a different identity; its write admission can be held from the writer binding's proof through the append,
     and its read admission, which registers and attaches nothing, through a read. The store's
     reader gives each line of that log with its number, states a broken chain, an unreadable
     line or a limit at the line where it occurs, and reports a torn fragment the writer set
@@ -119,9 +120,10 @@ code_paths:
 - app/src-tauri/src/record_supply.rs
 - app/src-tauri/resources/workflow_role/compatibility-report.schema.json
 - app/src-tauri/schemas/checkpoint-record-entries.schema.json
-# The point tool, its record, pointer and receipt, and the conversation's reading of its points.
+# The point tool, its record, binding tag and receipt, and the conversation's reading of its points.
 # RS_RECORD.schema.json is DEL-04-03's: here, the point_placed kind. native_requests.rs is shared
-# with DEL-01-02 and DEL-01-04: here, the refusal of a point call this App session did not offer.
+# with DEL-01-02 and DEL-01-04: here, the refusal of a point call this App session did not offer,
+# and the register's observation of a point's receipt.
 - app/src-tauri/src/points.rs
 # The point tool's definition, version 1, which points.rs embeds and DEL-01-01's recorded-replay
 # double (supplier_checks/recorded_replay.py) declares as the App's alternative on a start.

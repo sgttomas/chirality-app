@@ -269,6 +269,14 @@ impl RequestRegister {
     pub fn entries(&self) -> Vec<Value> {
         self.entries.clone()
     }
+    /// The calls a named App rule answers, each with the register's own
+    /// observation of its reply: (generation, request identity, reply write
+    /// result, state).
+    pub(crate) fn named_replies(&self, rule: &str) -> Vec<(Value, Value, String, String)> {
+        let text = |v: &Value| v.as_str().unwrap_or("unknown").to_owned();
+        self.entries.iter().filter(|e| e["namedTool"] == rule)
+            .map(|e| (e["generation"].clone(), e["requestId"].clone(), text(&e["replyWriteResult"]), text(&e["state"]))).collect()
+    }
     /// Export the adopted HOSTING record interface; reducer-private fields stay private.
     pub fn records(&self) -> Vec<Value> {
         self.entries.iter().map(|e| {

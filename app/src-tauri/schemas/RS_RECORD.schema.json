@@ -2783,7 +2783,7 @@
       }
     },
     "pointArguments": {
-      "description": "Version 1 of the arguments of the App's point tool chirality_point_v1, as the agent supplied them and the App admitted them (DEL-02-03 REQ-008). Every value is supplied text or one of the closed values below; none is inferred from another and an absent field is not recorded. Equal to the tool's own input schema.",
+      "description": "Version 1 of the arguments of the App's point tool chirality_point_v1, as the agent supplied them and the App admitted them (DEL-02-03 REQ-008). Every value is supplied text or one of the closed values below; none is inferred from another and an absent field is not recorded. Who must respond is always stated, and so is the response requested or, for a sign-off point, the reserved act (PRD V4-AUT-07). Equal to the tool's own input schema.",
       "additionalProperties": false,
       "properties": {
         "agentStatement": {
@@ -2886,7 +2886,8 @@
       },
       "required": [
         "version",
-        "operation"
+        "operation",
+        "whoMustRespond"
       ],
       "type": "object",
       "allOf": [
@@ -2914,11 +2915,30 @@
               }
             }
           }
+        },
+        {
+          "if": {
+            "not": {
+              "required": [
+                "kind"
+              ],
+              "properties": {
+                "kind": {
+                  "const": "sign-off"
+                }
+              }
+            }
+          },
+          "then": {
+            "required": [
+              "responseRequested"
+            ]
+          }
         }
       ]
     },
     "pointPlaced": {
-      "description": "DEL-02-03 REQ-008: one point placed in a conversation, from one admitted call of the App's point tool. Bound to the call's identity (source): one record per call. The conversation's pointer to it is a REC tag (owner DEL-02-03/point) holding only identities and the digest: the point, this record's identity, the source, the App project reference, the store's project identity and the digest; a record no pointer names is never shown as a point. run and observed are closed App forms. Version 1.",
+      "description": "DEL-02-03 REQ-008: one point placed in a conversation, from one admitted call of the App's point tool. Bound to the call's identity (source): one record per call. A conversation's points are read from these records by each record's own binding: the source's Codex home, home class and conversation, the App project reference and the store's project identity. run and observed are closed App forms. Version 1.",
       "type": "object",
       "additionalProperties": false,
       "required": [

@@ -1,55 +1,57 @@
 //! DEL-02-03 REQ-008: the host side of a point placed in conversation
 //! ([`crate::points`]): the offer, admission of an actual live call, the
-//! placement (record, then pointer, then receipt) one at a time on the App's
-//! point recorder, completion of a pointer that was not saved, the offer
-//! restored on an explicit resume, the run marks, and the conversation's
-//! reading for the interface.
+//! placement (record, then receipt), the conversation's binding to its
+//! records, the offer restored on an explicit resume, the run marks, and the
+//! conversation's reading for the interface.
 //!
-//! **The point recorder.** Every placement, every check of a conversation's
-//! records on resume and every reread of a points log runs on one worker per
-//! Host, fed by a bounded queue of [`QUEUE`] jobs. The receiver never places a
-//! point itself: a call the queue cannot take is refused with the App's
-//! sentence. The worker binds through the store's own writer binding
+//! **Placement.** Each admitted call is placed on a worker of its own, as the
+//! records capability answers its reads, so that the frame reader keeps
+//! receiving; the placements are serialised by one guard, [`PLACEMENT`], held
+//! for the whole of each, and process-wide (across Codex homes and projects).
+//! A placement binds through the store's own writer binding
 //! ([`crate::records_store::bind_writer`]) under the store's write admission
 //! ([`crate::records_retention::write_path`]), held across the writer's tail
-//! recovery, the reading, the lookup, the count, the append and the reading
-//! again; and it reads through the store's reader binding under its read
-//! admission ([`crate::records_retention::read_path`]), which registers and
-//! attaches nothing. Each binding is checked against the physical project
-//! folder the records capability admitted. Each reading the worker makes is
-//! published, with the stamps of the log and of the project's link to the
-//! store at the time it was read.
+//! recovery, the reading, the lookup of the call, the count, the append and
+//! the reading again. Each reading it makes is published, with the stamps of
+//! the log and of the project's link to the store at the time it was read.
+//!
+//! **Rereading.** A log is read again on a worker of its own, at most one per
+//! project at a time, when the status path finds its stamps changed, its
+//! reading older than [`REFRESH`] or no reading, and when a conversation of
+//! the project is resumed. It binds through the store's reader binding under
+//! its read admission ([`crate::records_retention::read_path`]) and the
+//! writer binding of an already attached project, which mint, register and
+//! attach nothing; each binding is checked against the physical project
+//! folder the records capability admitted.
 //!
 //! **What a status read costs.** The status path the conversation panel reads
 //! binds no store and reads no log. Under the Host lock it copies the small
-//! in-memory state (offers, marks, the published readings' handles); outside
-//! it, it indexes the ledger's conversation rows once per ledger revision
-//! (linear in those rows, then reused), takes two file stamps (the points
-//! log's and the project link's) for each project whose conversations have
-//! something to join, and reuses each conversation's joined points while the
-//! published reading and its pointers are unchanged: the terms are copied
-//! into the payload, never decoded, digested or joined again. Where a stamp
-//! differs from the published one, or nothing is published yet, the
-//! conversation's reading says it is not whole, with that reason, and the
-//! worker is asked to read the log again and publish it.
+//! in-memory state (offers, marks, the published readings' handles, the
+//! request register's replies of the point rule); outside it, it indexes the
+//! ledger's conversation rows once per ledger revision (linear in those rows,
+//! then reused), takes two file stamps (the points log's and the project
+//! link's) for each project of a conversation it shows, and copies each
+//! conversation's records from the published reading, whose soundness was
+//! decided when it was read. Where a stamp differs from the published one,
+//! nothing is published yet, or the reading is older than [`REFRESH`], the
+//! conversation's reading says it is not whole, with that reason, and the log
+//! is read again.
 use crate::points::{self, Conversation, LogReading, Outcome, Source};
 use crate::records_index::Stamp;
 use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::{mpsc, Arc, Mutex};
+use std::sync::{Arc, Mutex};
 
-/// One placement, check or reread at a time in this process, for the whole
-/// of its reconcile, lookup, count, append and pointer.
+/// One placement or reread at a time in this process, for the whole of it.
 static PLACEMENT: Mutex<()> = Mutex::new(());
 fn one_at_a_time() -> std::sync::MutexGuard<'static, ()> {
     PLACEMENT.lock().unwrap_or_else(|poisoned| poisoned.into_inner())
 }
-/// The App's own bound on jobs waiting for the point recorder.
-pub(crate) const QUEUE: usize = 16;
-/// How long a published reading is used before the recorder reads the log
-/// again even with its stamps unchanged.
-const REFRESH: std::time::Duration = std::time::Duration::from_secs(60);
+/// How long a published reading is used before the log is read again even
+/// with its stamps unchanged: past it, the reading is not whole until a new
+/// one is published.
+pub(crate) const REFRESH: std::time::Duration = std::time::Duration::from_secs(60);
 
 /// A conversation offered the point tool in a generation.
 #[derive(Clone, Debug)]
@@ -74,26 +76,17 @@ struct Uncertain {
     store: String,
     reason: String,
 }
-/// A job for the point recorder.
-pub(super) enum Job {
-    Place(Call),
-    /// Read a project's points log again and publish it.
-    Read(String),
-    /// Check a resumed conversation's records: publish the reading and
-    /// complete owed pointers.
-    Resume { generation: Value, thread: String },
-    #[cfg(test)]
-    Run(Box<dyn FnOnce() + Send>),
-}
-/// A reading of a project's points log the worker made, under the store's
-/// read or write admission, with what the status path compares.
+/// A reading of a project's points log, made under the store's read or
+/// write admission, with what the status path compares. `store` is the
+/// store's project identity, or none where the project has no records in
+/// the store (then no points log exists, and `log` is the project link).
 #[derive(Clone)]
 struct Published {
     at: std::time::Instant,
     log: PathBuf,
     link: PathBuf,
     stamps: (Option<Stamp>, Option<Stamp>),
-    store: String,
+    store: Option<String>,
     reading: Arc<LogReading>,
 }
 fn stamp(path: &Path) -> Result<Option<Stamp>, String> {
@@ -103,26 +96,29 @@ fn stamp(path: &Path) -> Result<Option<Stamp>, String> {
         Err(e) => Err(e.to_string()),
     }
 }
-/// One conversation's pointers in the ledger.
+/// One conversation's tags of this owner in the ledger.
 #[derive(Clone, Debug)]
 struct ThreadIndex {
     /// The home class and App project the ledger indexes it under.
     scope: Result<Option<(String, String)>, String>,
-    placed: Vec<Value>,
     offered: Vec<Value>,
+    bound: Vec<Value>,
     unread: usize,
 }
 impl ThreadIndex {
-    /// The store project this conversation's points are bound to, from its
-    /// placed pointers and its bound offer pointers.
-    fn bound_store(&self) -> Result<Option<String>, String> {
-        let mut stores: Vec<&str> = self.placed.iter().chain(&self.offered).filter_map(|v| v["storeProject"].as_str()).collect();
+    fn empty() -> Self {
+        ThreadIndex { scope: Ok(None), offered: vec![], bound: vec![], unread: 0 }
+    }
+    /// The store project this conversation of the Codex home `native` is
+    /// bound to, from its binding tags.
+    fn bound_store(&self, native: &str) -> Result<Option<String>, String> {
+        let mut stores: Vec<&str> = self.bound.iter().filter(|v| v["home"] == native).filter_map(|v| v["storeProject"].as_str()).collect();
         stores.sort();
         stores.dedup();
         match stores.as_slice() {
             [] => Ok(None),
             [one] => Ok(Some((*one).to_owned())),
-            _ => Err("this conversation's points are bound to more than one records project".into()),
+            _ => Err("this conversation is bound to more than one records project".into()),
         }
     }
 }
@@ -149,8 +145,8 @@ fn thread_index(rows: &[&Value]) -> ThreadIndex {
         [home] => Ok(rows.iter().rev().find(|r| r["home"] == *home).and_then(|r| r["project"].as_str()).map(|p| (home.to_string(), p.to_owned()))),
         _ => Err("the App's ledger names this conversation in more than one home".to_owned()),
     };
-    let (mut placed, mut offered, mut unread) = (vec![], vec![], 0);
-    if let Ok(Some((home, _))) = &scope {
+    let mut index = ThreadIndex { scope, ..ThreadIndex::empty() };
+    if let Ok(Some((home, _))) = &index.scope {
         let mut tags: Vec<&Value> = vec![];
         for row in rows.iter().filter(|r| r["home"] == home.as_str()) {
             for tag in row["tags"].as_array().into_iter().flatten() {
@@ -160,23 +156,20 @@ fn thread_index(rows: &[&Value]) -> ThreadIndex {
         tags.sort_by_key(|t| t["seq"].as_u64().unwrap_or(0));
         for tag in tags {
             match tag["value"].as_str().and_then(points::decode) {
-                Some(v) if v["kind"] == "placed" => placed.push(v),
-                Some(v) => offered.push(v),
-                None => unread += 1,
+                Some(v) if v["kind"] == "bound" => index.bound.push(v),
+                Some(v) => index.offered.push(v),
+                None => index.unread += 1,
             }
         }
     }
-    ThreadIndex { scope, placed, offered, unread }
+    index
 }
 
-/// A conversation's joined points: the reading, store project and pointers
-/// they were joined from, and the points as joined.
-type Joined = (Arc<LogReading>, String, Vec<Value>, Arc<Vec<Value>>);
 /// The writer's append, or a test's in its place.
 type Append = Box<dyn FnOnce(&Path, Value, String) -> Result<Value, String> + Send>;
 
 /// The points state this Host keeps in memory. Nothing here is a point: a
-/// point is shown only from its pointer and its record.
+/// point is shown only from its record.
 #[derive(Default)]
 pub(super) struct State {
     offers: Vec<Offer>,
@@ -184,34 +177,23 @@ pub(super) struct State {
     runs: Vec<(Value, String, String, &'static str)>,
     /// Calls refused in this App session: (generation, conversation, {reason, at}).
     refused: Vec<(Value, String, Value)>,
-    /// Records written whose pointer could not be saved: (home class, conversation, point, reason).
-    pending: Vec<(String, String, String, String)>,
     uncertain: Vec<Uncertain>,
     /// Why the App could not check a conversation's records on resume: (generation, conversation, reason).
     unchecked: Vec<(Value, String, String)>,
-    /// Conversations (home class, conversation) whose records this App
-    /// session wrote or checked: their reading always takes the published
-    /// log, so that a record without a pointer, or one that cannot be
-    /// established, is reported and never read as no point.
-    watched: Vec<(String, String)>,
-    /// Points recorded whose receipt the App could not send:
-    /// (conversation, point, reason).
-    unsent: Vec<(String, String, String)>,
-    /// The latest reading of each App project's points log the worker made.
+    /// Conversations resumed whose binding is saved, where it is missing, at
+    /// the next reading of their project that holds a sound record of theirs.
+    resumed: Vec<(Value, String)>,
+    /// The latest reading of each App project's points log.
     published: HashMap<String, Published>,
-    /// Projects whose log the worker has been asked to read again.
+    /// Projects whose log is being read again.
     rereading: Vec<String>,
-    /// Why the worker could not read a project's points log.
+    /// Why the App could not read a project's points log.
     faults: HashMap<String, String>,
-    queue: Option<mpsc::SyncSender<Job>>,
     ledger: Option<(Arc<Vec<Value>>, Arc<LedgerIndex>)>,
-    /// Each conversation's joined points, while the reading, the store
-    /// project and the pointers they were joined from are unchanged.
-    joined: HashMap<String, Joined>,
     #[cfg(test)]
     pub(super) hooks: TestHooks,
 }
-/// Seams at the worker's boundaries (tests only).
+/// Seams at the workers' boundaries (tests only).
 #[cfg(test)]
 #[derive(Default)]
 pub(super) struct TestHooks {
@@ -223,18 +205,21 @@ pub(super) struct TestHooks {
     pub before_append: Option<Box<dyn FnOnce() + Send>>,
     /// In place of the writer's append.
     pub append: Option<Append>,
-    /// Run after the record is written, before its pointer is saved.
+    /// Run after the record is written, before its binding is saved.
     pub after_append: Option<Box<dyn FnOnce() + Send>>,
     /// Run with no Host lock held just before a reply is written.
     pub before_reply: Option<Box<dyn FnOnce() + Send>>,
-    /// Run on the worker thread when it starts.
+    /// Run on each worker thread when it starts.
     pub worker_setup: Option<Arc<dyn Fn() + Send + Sync>>,
+    /// The workers started, for a test to wait on.
+    pub workers: Vec<std::thread::JoinHandle<()>>,
+    /// Refuse to start workers, as when a thread cannot be created.
+    pub no_workers: bool,
 }
 /// The App's refusal sentences.
 const NO_PROJECT: &str = "No App project is known for this conversation, so the point could not be kept; no point was placed.";
 const ENDED: &str = "This Codex session ended before the point could be recorded; no point was placed.";
 const STORE_OTHER: &str = "This conversation's points are kept in other records than the records this project folder belongs to now, so the point could not be kept; no point was placed.";
-const BUSY: &str = "The App's point recorder could not take this call now, so no point was recorded.";
 fn kept_refusal(reason: &str) -> String {
     let mut chars = reason.chars();
     let first = chars.next().map(|c| c.to_uppercase().collect::<String>()).unwrap_or_default();
@@ -246,9 +231,15 @@ fn store_refused(e: &str) -> String {
 fn at_cap() -> String {
     format!("This conversation already holds the App's own limit of {} points; no point was recorded.", points::POINTS_PER_CONVERSATION)
 }
+/// The App's reasons a conversation's reading is not whole.
 const OTHER_OPEN: &str = "this conversation's App project is not the project the App has open now";
 const NOT_YET_READ: &str = "the App has not yet read this conversation's records in this App session; it is reading them";
 const READING_AGAIN: &str = "this conversation's records changed since the App last read them; it is reading them again";
+const EXPIRED: &str = "the App last read this conversation's records more than a minute ago; it is reading them again";
+const BOUND_OTHER: &str = "this conversation's points are kept in other records than the records this project folder belongs to now";
+const BOUND_NONE: &str = "this conversation is bound to records in the App's records store, but this project folder has none there now";
+const BOUND_NO_LOG: &str = "this conversation is bound to its project's records, but the points log was not found in them";
+const BOUND_NO_RECORD: &str = "this conversation is bound to its project's records, but they hold no record of it";
 
 /// One admitted call, with what the App observed at its admission.
 pub(super) struct Call {
@@ -282,7 +273,7 @@ fn read_log(root: &Path, dir: &Path, log: &Path) -> Result<LogReading, String> {
 /// A read of a project's points log, bound through the store's reader binding
 /// and held under its read admission for the whole read.
 struct Read {
-    store: String,
+    store: Option<String>,
     log: PathBuf,
     link: PathBuf,
     stamps: (Option<Stamp>, Option<Stamp>),
@@ -292,20 +283,46 @@ fn read_bound(root: &Path, physical: &Value) -> Result<Read, String> {
     let reader = crate::records_store::bind_reader(root, crate::records_store::ReaderDecision::Records)?;
     reader.prove().map_err(String::from)?;
     same_folder(reader.project_folder(), physical)?;
-    let (dir, _) = reader.records_folder().ok_or("this project's records are read in place, where no points log is kept")?;
+    let link = root.join(crate::records_store::PROJECT_LINK);
     // The store's identity for this project, from its binding of an already
     // attached project (it mints nothing); both bindings name one folder.
-    let attached = crate::records_store::bind_writer_if_attached(root)?.ok_or("this project has no records in the App's records store")?;
+    let attached = crate::records_store::bind_writer_if_attached(root)?;
+    let (dir, attached) = match (reader.records_folder(), attached) {
+        (Some((dir, _)), Some(attached)) => (dir, attached),
+        // The store holds no records of this project (its reader reads the
+        // project's records in place): no points log exists.
+        (None, attached) => {
+            if attached.as_ref().is_some_and(|a| a.project_folder() != reader.project_folder()) {
+                return Err("the project's records association changed while it was read".into());
+            }
+            let log = attached.as_ref().map_or_else(|| link.clone(), |a| a.records_dir().join(crate::storage::log_rel(None, points::WRITER)));
+            let stamps = (stamp(&log)?, stamp(&link)?);
+            reader.prove().map_err(String::from)?;
+            return Ok(Read { store: attached.map(|a| a.project_id().to_owned()), log, link, stamps, reading: LogReading::missing() });
+        }
+        (Some(_), None) => return Err("the project's records association changed while it was read".into()),
+    };
     if attached.project_folder() != reader.project_folder() || attached.records_dir() != dir {
         return Err("the project's records association changed while it was read".into());
     }
     let _admission = crate::records_retention::read_path(dir)?;
-    let (log, link) = (dir.join(crate::storage::log_rel(None, points::WRITER)), root.join(crate::records_store::PROJECT_LINK));
+    let log = dir.join(crate::storage::log_rel(None, points::WRITER));
     let stamps = (stamp(&log)?, stamp(&link)?);
     let reading = read_log(root, dir, &log)?;
     reader.prove().map_err(String::from)?;
     if (stamp(&log)?, stamp(&link)?) != stamps { return Err("this project's points log changed while the App read it".into()); }
-    Ok(Read { store: attached.project_id().to_owned(), log, link, stamps, reading })
+    Ok(Read { store: Some(attached.project_id().to_owned()), log, link, stamps, reading })
+}
+/// The receipt of a recorded point as the request register observed its
+/// reply: written, not written, or not known.
+/// A reply never attempted is not written once its request has ended
+/// without it; while it is still being sent its outcome is not known.
+fn receipt_state(result: &str, state: &str) -> &'static str {
+    match (result, state) {
+        ("written", _) => "written",
+        ("write-failed", _) | ("not-attempted", "ended-unanswered" | "resolved-by-supplier") => "not written",
+        _ => "not known",
+    }
 }
 
 impl super::Host {
@@ -343,6 +360,11 @@ impl super::Host {
         let mut i = self.inner.0.lock().unwrap();
         i.points.runs.retain(|(g, t, r, _)| !(g == generation && t == thread && r == run));
         i.points.runs.push((generation.clone(), thread.into(), run.into(), mark));
+    }
+    /// The latest run mark of a conversation in a generation (tests).
+    #[cfg(test)]
+    pub(crate) fn run_mark_for_test(&self, generation: &Value, thread: &str) -> Option<&'static str> {
+        self.inner.0.lock().unwrap().points.runs.iter().rev().find(|(g, t, _, _)| g == generation && t == thread).map(|(_, _, _, mark)| *mark)
     }
     /// The checks a received line meets to be a point call: the current
     /// generation, a well-formed server request (no result or error, the
@@ -406,86 +428,112 @@ impl super::Host {
         Call { generation: generation.clone(), thread, turn, call: s(&p["callId"]), request: frame["id"].clone(), arguments: p["arguments"].clone(),
             home: offer.and_then(|o| o.home.clone()), run, observed }
     }
-    /// The receiver hands an admitted call to the point recorder; one it
-    /// cannot take is refused with the App's sentence, never placed here.
-    pub(super) fn dispatch_point_call(&self, call: Call) {
-        if let Err(Job::Place(call)) = self.enqueue(Job::Place(call)).map_err(|job| *job) {
-            let outcome = self.refuse(&call, BUSY.into());
-            self.deliver(&call, outcome);
-        }
-    }
-    /// A job for the point recorder: its worker is started on first use, and
-    /// the queue is bounded; a job it cannot take is handed back.
-    fn enqueue(&self, job: Job) -> Result<(), Box<Job>> {
-        let sender = {
-            let mut i = self.inner.0.lock().unwrap();
-            if i.points.queue.is_none() {
-                let host = self.this.lock().unwrap().clone();
-                if host.strong_count() == 0 { return Err(Box::new(job)); }
-                let (sender, receiver) = mpsc::sync_channel::<Job>(QUEUE);
+    /// A worker of its own for `work`, as the records capability answers its
+    /// reads: the work travels in a slot, so that where a worker cannot be
+    /// created the slot hands it back to be done by the caller.
+    fn on_worker<T: Send + 'static>(&self, name: &str, work: T, run: impl FnOnce(&super::Host, T) + Send + 'static) -> Option<T> {
+        let host = self.this.lock().unwrap().upgrade();
+        #[cfg(test)]
+        let (setup, refused) = { let i = self.inner.0.lock().unwrap(); (i.points.hooks.worker_setup.clone(), i.points.hooks.no_workers) };
+        #[cfg(test)]
+        let host = host.filter(|_| !refused);
+        let slot = Arc::new(Mutex::new(Some(work)));
+        let spawned = host.and_then(|host| {
+            let taken = Arc::clone(&slot);
+            std::thread::Builder::new().name(name.into()).spawn(move || {
                 #[cfg(test)]
-                let setup = i.points.hooks.worker_setup.clone();
-                let started = std::thread::Builder::new().name("point-record".into()).spawn(move || {
-                    #[cfg(test)]
-                    if let Some(setup) = setup { setup(); }
-                    while let Ok(job) = receiver.recv() {
-                        let Some(host) = host.upgrade() else { break };
-                        host.run_job(job);
-                    }
-                });
-                if started.is_err() { return Err(Box::new(job)); }
-                i.points.queue = Some(sender);
-            }
-            i.points.queue.clone()
-        };
-        match sender {
-            Some(sender) => sender.try_send(job).map_err(|e| match e { mpsc::TrySendError::Full(job) | mpsc::TrySendError::Disconnected(job) => Box::new(job) }),
-            None => Err(Box::new(job)),
-        }
-    }
-    fn run_job(&self, job: Job) {
-        match job {
-            Job::Place(call) => {
-                #[cfg(test)]
-                { let hook = self.inner.0.lock().unwrap().points.hooks.on_admitted.take(); if let Some(hook) = hook { hook(); } }
-                let outcome = self.place_point(&call);
-                self.deliver(&call, outcome);
-            }
-            Job::Read(project) => {
-                let _one = one_at_a_time();
-                let read = self.open_project(&project).and_then(|(root, physical)| read_bound(&root, &physical));
-                let mut i = self.inner.0.lock().unwrap();
-                i.points.rereading.retain(|p| *p != project);
-                match read {
-                    Ok(read) => { i.points.faults.remove(&project); Self::publish(&mut i, &project, read); }
-                    Err(reason) => { i.points.published.remove(&project); i.points.faults.insert(project, reason); }
-                }
-            }
-            Job::Resume { generation, thread } => self.resume_records(&generation, &thread),
+                if let Some(setup) = setup { setup(); }
+                if let Some(work) = taken.lock().unwrap().take() { run(&host, work); }
+            }).ok()
+        });
+        match spawned {
             #[cfg(test)]
-            Job::Run(f) => f(),
+            Some(handle) => { self.inner.0.lock().unwrap().points.hooks.workers.push(handle); None }
+            #[cfg(not(test))]
+            Some(_) => None,
+            None => slot.lock().unwrap().take(),
         }
     }
-    fn publish(i: &mut super::Inner, project: &str, read: Read) -> Arc<LogReading> {
+    /// The receiver hands an admitted call to a worker of its own. Where no
+    /// worker can be created the call is placed here, inline, as the records
+    /// capability answers a read it cannot hand to a worker: never
+    /// unanswered.
+    pub(super) fn dispatch_point_call(&self, call: Call) {
+        if let Some(call) = self.on_worker("point-record", call, |host, call| host.answer_point_call(call)) {
+            self.answer_point_call(call);
+        }
+    }
+    fn answer_point_call(&self, call: Call) {
+        #[cfg(test)]
+        { let hook = self.inner.0.lock().unwrap().points.hooks.on_admitted.take(); if let Some(hook) = hook { hook(); } }
+        let outcome = self.place_point(&call);
+        self.deliver(&call, outcome);
+    }
+    /// A reread of a project's points log, off the receiver and off the
+    /// status path, at most one in flight per project. Where no worker can be
+    /// created nothing is read now: the reading stays not whole, and the next
+    /// status read asks again.
+    fn reread(&self, project: &str) {
+        {
+            let mut i = self.inner.0.lock().unwrap();
+            if i.points.rereading.iter().any(|p| p == project) { return; }
+            i.points.rereading.push(project.to_owned());
+        }
+        if self.on_worker("point-read", project.to_owned(), |host, project| host.read_again(&project)).is_some() {
+            self.inner.0.lock().unwrap().points.rereading.retain(|p| p != project);
+        }
+    }
+    fn read_again(&self, project: &str) {
+        let read = {
+            let _one = one_at_a_time();
+            self.open_project(project).and_then(|(root, physical)| read_bound(&root, &physical))
+        };
+        let reading = {
+            let mut i = self.inner.0.lock().unwrap();
+            i.points.rereading.retain(|p| p != project);
+            match read {
+                Ok(read) => { i.points.faults.remove(project); Some(Self::publish(&mut i, project, read)) }
+                Err(reason) => { i.points.published.remove(project); i.points.faults.insert(project.to_owned(), reason); None }
+            }
+        };
+        let Some((reading, Some(store))) = reading else { return };
+        // A resumed conversation of this project with a sound record and no
+        // binding is bound now.
+        let resumed: Vec<(Value, String)> = std::mem::take(&mut self.inner.0.lock().unwrap().points.resumed);
+        let mut kept = vec![];
+        for (generation, thread) in resumed {
+            let index = self.thread_of(&thread);
+            match &index.scope {
+                Ok(Some((home, p))) if p == project => {
+                    let native = generation["home"].as_str().unwrap_or_default();
+                    let conversation = Conversation { home: native, home_class: home, thread: &thread, project, store_project: &store };
+                    if matches!(index.bound_store(native), Ok(None)) && reading.sound_of(&conversation) > 0 {
+                        let _ = self.keep_tag(&generation, &thread, home, &points::binding_pointer(native, &thread, project, &store));
+                    }
+                }
+                _ => kept.push((generation, thread)),
+            }
+        }
+        self.inner.0.lock().unwrap().points.resumed.extend(kept);
+    }
+    fn publish(i: &mut super::Inner, project: &str, read: Read) -> (Arc<LogReading>, Option<String>) {
         let reading = Arc::new(read.reading);
+        let store = read.store.clone();
         i.points.published.insert(project.to_owned(), Published { at: std::time::Instant::now(), log: read.log, link: read.link, stamps: read.stamps, store: read.store, reading: Arc::clone(&reading) });
-        reading
+        (reading, store)
     }
     /// The receipt, prepared and written as the register's named replies
-    /// are. A recorded point whose receipt the App could not send is kept,
-    /// and the conversation says so.
+    /// are. Whether it was written is the register's own observation of the
+    /// request, which the conversation's reading shows.
     fn deliver(&self, call: &Call, outcome: Outcome) {
         let receipt = points::receipt(&outcome, &call.run);
-        let recorded = match &outcome { Outcome::Recorded { point, .. } => Some(point.clone()), _ => None };
         let point = match &outcome { Outcome::Recorded { point, .. } => Some(point.clone()), Outcome::NotEstablished { point, .. } => point.clone(), Outcome::NotRecorded { .. } => None };
         #[cfg(test)]
         self.inner.0.lock().unwrap().points.hooks.receipts.push(receipt.clone());
         let text = receipt["contentItems"][0]["text"].as_str().unwrap_or_default().to_owned();
         let reference = json!({"point":point,"bytes":text.len(),"content":{"method":crate::util::FILE_IDENTITY_METHOD,"value":crate::util::sha256_hex(text.as_bytes())},"success":receipt["success"]});
         let unsent = |reason: String| {
-            let mut i = self.inner.0.lock().unwrap();
-            i.journal.push(json!({"generation":call.generation,"class":"point-call-not-answered","reason":reason,"requestIdentity":call.request}));
-            if let Some(point) = &recorded { i.points.unsent.push((call.thread.clone(), point.clone(), reason)); }
+            self.inner.0.lock().unwrap().journal.push(json!({"generation":call.generation,"class":"point-call-not-answered","reason":reason,"requestIdentity":call.request}));
         };
         if let Err(reason) = self.check_local_reply() {
             unsent(reason);
@@ -536,7 +584,7 @@ impl super::Host {
         (rows, index)
     }
     fn thread_of(&self, thread: &str) -> ThreadIndex {
-        self.ledger_index().1.threads.get(thread).cloned().unwrap_or(ThreadIndex { scope: Ok(None), placed: vec![], offered: vec![], unread: 0 })
+        self.ledger_index().1.threads.get(thread).cloned().unwrap_or_else(ThreadIndex::empty)
     }
     /// The open project's folder and its admitted physical identity, when the
     /// conversation's App project is the project the App has open now.
@@ -562,9 +610,8 @@ impl super::Host {
     /// the store's write admission from the proof of its binding to the
     /// reading after the append: every refusal the App can decide without
     /// writing, then the writer's own tail recovery, then the reading, the
-    /// lookup of this call and the count, owed pointers of this conversation,
-    /// the conversation's binding to its records, the record (or the one
-    /// already bound to this call), then its pointer.
+    /// lookup of this call and the count, the record (or the one already
+    /// bound to this call), then the conversation's binding to its records.
     fn place_point(&self, call: &Call) -> Outcome {
         let _one = one_at_a_time();
         if let Err(reason) = points::validate(&call.arguments) { return self.refuse(call, reason); }
@@ -577,7 +624,7 @@ impl super::Host {
             Ok(_) => return self.refuse(call, NO_PROJECT.into()),
             Err(reason) => return self.refuse(call, kept_refusal(reason)),
         };
-        let bound_store = match index.bound_store() { Ok(bound) => bound, Err(reason) => return self.refuse(call, kept_refusal(&reason)) };
+        let bound_store = match index.bound_store(native) { Ok(bound) => bound, Err(reason) => return self.refuse(call, kept_refusal(&reason)) };
         let (root, physical) = match self.open_project(&project) { Ok(found) => found, Err(reason) => return self.refuse(call, kept_refusal(&reason)) };
         // The writer binding, the store's write admission held from here, and
         // the binding proved inside it (records_store::WriterBinding::prove_for_write).
@@ -592,20 +639,24 @@ impl super::Host {
         let dir = binding.records_dir().to_path_buf();
         let log = dir.join(crate::storage::log_rel(None, points::WRITER));
         let link = root.join(crate::records_store::PROJECT_LINK);
-        self.watch(&home, &call.thread);
         let conversation = Conversation { home: native, home_class: &home, thread: &call.thread, project: &project, store_project: &store_project };
         let source = Source { home: native.into(), home_class: home.clone(), generation: generation.clone(), thread: call.thread.clone(), turn: call.turn.clone(), call: call.call.clone(), request: call.request.clone() };
+        // The binding, saved once a sound record of the conversation is read
+        // and the conversation has none: never before its first record.
+        let mut unbound = bound_store.is_none();
+        let mut bind = |host: &Self| if unbound && host.keep_tag(&call.generation, &call.thread, &home, &points::binding_pointer(native, &call.thread, &project, &store_project)).is_ok() { unbound = false; };
         // The writer's own tail recovery (RS W-0 at the writer's open): a
         // whole last line that lost its newline is terminated, a torn one set
         // aside, before anything is read or counted.
         if let Err(e) = crate::records::open_owning_log(&root, &log) { return self.refuse(call, store_refused(&e)); }
-        let reread = |host: &Self| -> Result<LogReading, String> {
+        let reread = |host: &Self| -> Result<Arc<LogReading>, String> {
             let stamps = (stamp(&log)?, stamp(&link)?);
             let reading = read_log(&root, &dir, &log)?;
             let mut i = host.inner.0.lock().unwrap();
-            Ok((*Self::publish(&mut i, &project, Read { store: store_project.clone(), log: log.clone(), link: link.clone(), stamps, reading })).clone())
+            Ok(Self::publish(&mut i, &project, Read { store: Some(store_project.clone()), log: log.clone(), link: link.clone(), stamps, reading }).0)
         };
         let reading = match reread(self) { Ok(reading) => reading, Err(e) => return self.refuse(call, store_refused(&e)) };
+        if reading.sound_of(&conversation) > 0 { bind(self); }
         // The call itself, met again: the lookup by its identity is the guard
         // that an unresolved write is never doubled.
         if reading.tail_is(&source) {
@@ -623,15 +674,6 @@ impl super::Host {
                     return self.refuse(call, format!("The App could not read this project's points log whole ({}), so it cannot establish that this call was not recorded before; no point was placed.", reading.inventory_reasons().join("; ")));
                 }
                 if reading.sound_of(&conversation) >= points::POINTS_PER_CONVERSATION { return self.refuse(call, at_cap()); }
-                // Owed pointers of this conversation, completed first.
-                self.complete_pointers(&call.generation, &conversation, &reading);
-                // The conversation's binding to these records, kept before its first record in them.
-                if bound_store.is_none() {
-                    let bound = points::bound_offer_pointer(native, &generation, &call.thread, &project, &store_project);
-                    if let Err(reason) = self.keep_tag(&call.generation, &call.thread, &home, &bound) {
-                        return self.refuse(call, kept_refusal(&format!("the conversation's binding to its records could not be saved ({reason})")));
-                    }
-                }
                 let (point, record) = match (crate::util::opaque_id("pt-"), crate::util::opaque_id("rec:app:")) {
                     (Ok(point), Ok(record)) => (point, record),
                     (Err(e), _) | (_, Err(e)) => return self.refuse(call, store_refused(&e)),
@@ -642,10 +684,7 @@ impl super::Host {
                 { let hook = self.inner.0.lock().unwrap().points.hooks.before_append.take(); if let Some(hook) = hook { hook(); } }
                 // Publication admission against the generation's closure: a
                 // closed generation is refused here with nothing written. A
-                // closure after this check finds the record written and its
-                // pointer owed (the tag is refused as not current): it is
-                // completed before a later placement or when the conversation
-                // is resumed.
+                // record that lands after this check is a recorded point.
                 if !open(self) { return self.refuse(call, ENDED.into()); }
                 if let Err(e) = binding.prove_for_write() { return self.refuse(call, store_refused(&e)); }
                 #[cfg(test)]
@@ -673,45 +712,19 @@ impl super::Host {
         };
         #[cfg(test)]
         { let hook = self.inner.0.lock().unwrap().points.hooks.after_append.take(); if let Some(hook) = hook { hook(); } }
-        let point = entry["body"]["point"].as_str().unwrap_or_default().to_owned();
-        let persistence = self.save_pointer(&call.generation, &call.thread, &home, &entry);
-        Outcome::Recorded { point, persistence, run: entry["body"]["run"].clone() }
-    }
-    /// The pointer for a written record, through the conversation's tag.
-    /// Returns the receipt's persistence sentence; a pointer not saved is
-    /// remembered so that the conversation's reading is not whole until it is.
-    fn save_pointer(&self, generation: &Value, thread: &str, home: &str, entry: &Value) -> String {
-        let point = entry["body"]["point"].as_str().unwrap_or_default().to_owned();
-        let saved = points::pointer(entry).and_then(|value| self.keep_tag(generation, thread, home, &value));
-        let mut i = self.inner.0.lock().unwrap();
-        i.points.pending.retain(|(h, t, p, _)| !(h == home && t == thread && *p == point));
-        match saved {
-            Ok(()) => points::KEPT.to_owned(),
-            Err(reason) => {
-                i.points.pending.push((home.into(), thread.into(), point, reason.clone()));
-                points::pointer_pending(&reason)
-            }
-        }
-    }
-    /// Completes the pointer of each sound record of this conversation and
-    /// store project that no pointer names, from the record's own identities.
-    /// A record of another home, conversation or project, or one that is not
-    /// sound, is never given a pointer.
-    fn complete_pointers(&self, generation: &Value, conversation: &Conversation, reading: &LogReading) {
-        let index = self.thread_of(conversation.thread);
-        let named: Vec<&Value> = index.placed.iter().map(|p| &p["point"]).collect();
-        for &i in reading.for_thread(conversation.thread) {
-            let body = &reading.lines[i].entry["body"];
-            if !conversation.names(body) || reading.soundness(i).is_err() || named.contains(&&body["point"]) { continue; }
-            self.save_pointer(generation, conversation.thread, conversation.home_class, &reading.lines[i].entry);
-        }
+        // Where the binding cannot be saved now (Codex closed, or the ledger
+        // did not keep it), the record stands and the point is shown; the
+        // binding is saved at the next placement or resume that reads it.
+        bind(self);
+        Outcome::Recorded { point: entry["body"]["point"].as_str().unwrap_or_default().to_owned(), persistence: points::KEPT.to_owned(), run: entry["body"]["run"].clone() }
     }
     /// On an explicit resume (after `restore_records_receipt`): the earlier
-    /// offer is restored from its pointer when it names this Codex home and
+    /// offer is restored from its tag when it names this Codex home and
     /// conversation and the definition offered now, keeping the generation it
     /// was first made in. Then, for any conversation the ledger indexes under
-    /// a project, the point recorder checks its records (whether or not the
-    /// offer was restored, and whatever pointers it holds).
+    /// a project, the project's points log is read again, and the
+    /// conversation is bound to its records where it has a sound record and
+    /// no binding.
     pub(super) fn restore_point_offer(&self, generation: &Value, thread: &str) {
         let native = generation["home"].as_str().unwrap_or_default().to_owned();
         {
@@ -726,8 +739,8 @@ impl super::Host {
             }
         }
         let index = self.thread_of(thread);
-        let home = match &index.scope {
-            Ok(Some((home, _))) => home.clone(),
+        let (home, project) = match &index.scope {
+            Ok(Some(scope)) => scope.clone(),
             Ok(None) => return,
             Err(reason) => return self.point_unchecked(generation, thread, reason),
         };
@@ -739,48 +752,24 @@ impl super::Host {
                 i.points.offers.push(Offer { generation: generation.clone(), thread: thread.into(), home: Some(home.clone()), basis: "restored", origin });
             }
         }
-        self.watch(&home, thread);
-        if self.enqueue(Job::Resume { generation: generation.clone(), thread: thread.into() }).is_err() {
-            self.point_unchecked(generation, thread, "the App's point recorder could not take the check of this conversation's records");
+        {
+            let mut i = self.inner.0.lock().unwrap();
+            if !i.points.resumed.iter().any(|(g, t)| g == generation && t == thread) { i.points.resumed.push((generation.clone(), thread.into())); }
+            // A resume reads the log again whatever was published before.
+            i.points.published.remove(&project);
         }
-    }
-    /// The point recorder's check of a resumed conversation's records: the
-    /// log read under the store's read admission and published, and owed
-    /// pointers completed from sound records.
-    fn resume_records(&self, generation: &Value, thread: &str) {
-        let _one = one_at_a_time();
-        let native = generation["home"].as_str().unwrap_or_default().to_owned();
-        let index = self.thread_of(thread);
-        let Ok(Some((home, project))) = index.scope.clone() else { return };
-        let checked = self.open_project(&project).and_then(|(root, physical)| read_bound(&root, &physical));
-        match checked {
-            Ok(read) => {
-                let store = read.store.clone();
-                let reading = { let mut i = self.inner.0.lock().unwrap(); Self::publish(&mut i, &project, read) };
-                if index.bound_store().ok().flatten().is_none_or(|bound| bound == store) {
-                    let conversation = Conversation { home: &native, home_class: &home, thread, project: &project, store_project: &store };
-                    self.complete_pointers(generation, &conversation, &reading);
-                }
-            }
-            Err(reason) if reason == OTHER_OPEN => {}
-            Err(reason) => self.point_unchecked(generation, thread, &format!("the App could not check its records for this conversation's points: {reason}")),
-        }
-    }
-    fn watch(&self, home: &str, thread: &str) {
-        let mut i = self.inner.0.lock().unwrap();
-        if !i.points.watched.iter().any(|(h, t)| h == home && t == thread) { i.points.watched.push((home.into(), thread.into())); }
+        if self.open_project(&project).is_ok() { self.reread(&project); }
     }
     fn point_unchecked(&self, generation: &Value, thread: &str, reason: &str) {
         self.inner.0.lock().unwrap().points.unchecked.push((generation.clone(), thread.into(), reason.into()));
     }
-    /// Each current conversation's points as the App reads them now: from the
-    /// pointers in the ledger, each joined to its sound record in the
-    /// reading the point recorder last published. The status path binds no
+    /// Each current conversation's points as the App reads them now: every
+    /// record of the project's points log that names the conversation by its
+    /// own binding, in the reading last published. The status path binds no
     /// store and reads no log (see the module's account of its cost).
     pub(super) fn points_view(&self) -> Value {
-        struct Row { thread: String, offer: Option<Offer>, refused: Vec<Value>, watched: Vec<(String, String)>,
-            pending: Vec<(String, String)>, uncertain: Vec<Uncertain>, unchecked: Vec<String>, unsent: Vec<(String, String)> }
-        let (generation, health, threads, published, open, joined, project_faults) = {
+        struct Row { thread: String, offer: Option<Offer>, refused: Vec<Value>, uncertain: Vec<Uncertain>, unchecked: Vec<String> }
+        let (generation, health, threads, published, open, faults, rereading, replies) = {
             let i = self.inner.0.lock().unwrap();
             let generation = i.generation.clone();
             if generation.is_null() { return json!([]); }
@@ -792,21 +781,19 @@ impl super::Host {
             let threads: Vec<Row> = i.threads.iter().filter(|t| t["generation"] == generation).filter_map(|t| t["threadId"].as_str()).map(|thread| Row {
                 thread: thread.into(), offer: i.points.offers.iter().find(|o| o.generation == generation && o.thread == thread).cloned(),
                 refused: i.points.refused.iter().filter(|(g, t, _)| *g == generation && t == thread).map(|(_, _, r)| r.clone()).collect(),
-                watched: i.points.watched.iter().filter(|(_, t)| t == thread).cloned().collect(),
-                pending: i.points.pending.iter().filter(|(_, t, _, _)| t == thread).map(|(_, _, p, why)| (p.clone(), why.clone())).collect(),
                 uncertain: i.points.uncertain.iter().filter(|u| u.thread == thread).cloned().collect(),
                 unchecked: i.points.unchecked.iter().filter(|(g, t, _)| *g == generation && t == thread).map(|(_, _, why)| why.clone()).collect(),
-                unsent: i.points.unsent.iter().filter(|(t, _, _)| t == thread).map(|(_, p, why)| (p.clone(), why.clone())).collect(),
             }).collect();
-            let project_faults = i.points.faults.clone();
-            (generation, health, threads, i.points.published.clone(), i.records_project_context.as_ref().and_then(|c| c.reference()).map(str::to_owned), i.points.joined.clone(), project_faults)
+            (generation, health, threads, i.points.published.clone(), i.records_project_context.as_ref().and_then(|c| c.reference()).map(str::to_owned),
+                i.points.faults.clone(), i.points.rereading.clone(), i.server_requests.named_replies(points::RULE))
         };
         let (_, index) = self.ledger_index();
         let native = generation["home"].as_str().unwrap_or_default().to_owned();
-        // Each project's published reading, taken when its stamps still match.
+        // Each project's published reading, taken while its stamps match and
+        // it is not older than the refresh limit.
         let mut fresh: HashMap<String, Result<Published, String>> = HashMap::new();
         let mut reread: Vec<String> = vec![];
-        let (mut resolved_pending, mut resolved_uncertain, mut checked_threads, mut later_refused, mut joined_now) = (vec![], vec![], vec![], vec![], vec![]);
+        let (mut resolved_uncertain, mut checked_threads, mut later_refused) = (vec![], vec![], vec![]);
         let views: Vec<Value> = threads.into_iter().map(|row| {
             let mut reasons: Vec<String> = health.iter().cloned().collect();
             let offer = match &row.offer {
@@ -816,136 +803,105 @@ impl super::Host {
             };
             let mut shown: Vec<Value> = vec![];
             let mut refused = row.refused.clone();
-            let ti = index.threads.get(&row.thread).cloned().unwrap_or(ThreadIndex { scope: Ok(None), placed: vec![], offered: vec![], unread: 0 });
+            let ti = index.threads.get(&row.thread).cloned().unwrap_or_else(ThreadIndex::empty);
             match &ti.scope {
                 Err(why) => reasons.push(why.clone()),
                 Ok(None) => {}
                 Ok(Some((home, project))) => {
-                    if ti.unread > 0 { reasons.push(format!("{} pointer(s) kept for this conversation could not be read", ti.unread)); }
-                    let watched = row.watched.iter().any(|(h, _)| h == home);
-                    let something = watched || !ti.placed.is_empty() || !row.pending.is_empty() || !row.uncertain.is_empty() || !row.unchecked.is_empty();
-                    if something {
-                        let read = fresh.entry(project.clone()).or_insert_with(|| {
-                            if open.as_deref() != Some(project.as_str()) { return Err(format!("the App could not read this conversation's records: {OTHER_OPEN}")); }
-                            if let Some(reason) = project_faults.get(project) {
-                                reread.push(project.clone());
-                                return Err(format!("the App could not read this conversation's records ({reason}); it is reading them again"));
+                    if ti.unread > 0 { reasons.push(format!("{} tag(s) of the App's point tool kept for this conversation could not be read", ti.unread)); }
+                    let bound = ti.bound_store(&native);
+                    if let Err(why) = &bound { reasons.push(why.clone()); }
+                    let read = fresh.entry(project.clone()).or_insert_with(|| {
+                        if open.as_deref() != Some(project.as_str()) { return Err(format!("the App could not read this conversation's records: {OTHER_OPEN}")); }
+                        if let Some(reason) = faults.get(project) {
+                            reread.push(project.clone());
+                            return Err(format!("the App could not read this conversation's records ({reason}); it is reading them again"));
+                        }
+                        match published.get(project) {
+                            None => { reread.push(project.clone()); Err(NOT_YET_READ.into()) }
+                            Some(p) => match (stamp(&p.log), stamp(&p.link)) {
+                                (Ok(log), Ok(link)) if (log, link) != p.stamps => { reread.push(project.clone()); Err(READING_AGAIN.into()) }
+                                (Ok(_), Ok(_)) if p.at.elapsed() >= REFRESH => { reread.push(project.clone()); Err(EXPIRED.into()) }
+                                (Ok(_), Ok(_)) => Ok(p.clone()),
+                                _ => { reread.push(project.clone()); Err(READING_AGAIN.into()) }
+                            },
+                        }
+                    }).clone();
+                    match read {
+                        Err(reason) => {
+                            reasons.push(reason);
+                            reasons.extend(row.uncertain.iter().map(|m| m.reason.clone()));
+                            reasons.extend(row.unchecked.iter().cloned());
+                        }
+                        Ok(p) => {
+                            let reading = &p.reading;
+                            let store = p.store.clone().unwrap_or_default();
+                            let conversation = Conversation { home: &native, home_class: home, thread: &row.thread, project, store_project: &store };
+                            shown = if p.store.is_some() { points::show(reading, &conversation) } else { vec![] };
+                            for view in &shown {
+                                if view["terms"]["state"] != "read" { reasons.push(format!("the terms of point {} were not read: {}", view["point"].as_str().unwrap_or_default(), view["terms"]["reason"].as_str().unwrap_or_default())); }
                             }
-                            match published.get(project) {
-                                None => { reread.push(project.clone()); Err(NOT_YET_READ.into()) }
-                                Some(p) => match (stamp(&p.log), stamp(&p.link)) {
-                                    (Ok(log), Ok(link)) if (log, link) == p.stamps => {
-                                        // What the stamps cannot show (another log of the project
-                                        // holding a record identity again) is read at least once a
-                                        // minute while the reading is in use.
-                                        if p.at.elapsed() >= REFRESH { reread.push(project.clone()); }
-                                        Ok(p.clone())
+                            match bound.as_ref().ok().cloned().flatten() {
+                                Some(_) if p.store.is_none() => reasons.push(BOUND_NONE.into()),
+                                Some(bound) if p.store.as_deref() != Some(bound.as_str()) => reasons.push(BOUND_OTHER.into()),
+                                Some(_) if reading.missing => reasons.push(BOUND_NO_LOG.into()),
+                                Some(_) if shown.is_empty() => reasons.push(BOUND_NO_RECORD.into()),
+                                _ => {}
+                            }
+                            reasons.extend(reading.inventory_reasons());
+                            for mark in &row.uncertain {
+                                if p.store.as_deref() != Some(mark.store.as_str()) { reasons.push(mark.reason.clone()); continue; }
+                                match reading.for_call(&mark.source).as_slice() {
+                                    [i] if reading.soundness(*i).is_ok() => resolved_uncertain.push(mark.source.clone()),
+                                    [] if reading.whole() => {
+                                        resolved_uncertain.push(mark.source.clone());
+                                        later_refused.push((row.thread.clone(), json!({"reason":"The App has since read this conversation's records whole: the call whose recording it could not establish was not recorded.","at":crate::util::now_rfc3339()})));
+                                        refused.push(later_refused.last().unwrap().1.clone());
                                     }
-                                    _ => { reread.push(project.clone()); Err(READING_AGAIN.into()) }
-                                },
-                            }
-                        }).clone();
-                        match read {
-                            Err(reason) => {
-                                reasons.push(reason.clone());
-                                shown = ti.placed.iter().map(|p| points::join(p, &Err(reason.clone()), &Conversation { home: &native, home_class: home, thread: &row.thread, project, store_project: "" })).collect();
-                                reasons.extend(row.uncertain.iter().map(|m| m.reason.clone()));
-                                reasons.extend(row.unchecked.iter().cloned());
-                            }
-                            Ok(p) => {
-                                let reading = &p.reading;
-                                let conversation = Conversation { home: &native, home_class: home, thread: &row.thread, project, store_project: &p.store };
-                                shown = match joined.get(&row.thread) {
-                                    Some((r, store, placed, shown)) if Arc::ptr_eq(r, reading) && *store == p.store && *placed == ti.placed => shown.as_ref().clone(),
-                                    _ => {
-                                        let shown: Vec<Value> = ti.placed.iter().map(|ptr| points::join(ptr, &Ok(Arc::clone(reading)), &conversation)).collect();
-                                        joined_now.push((row.thread.clone(), (Arc::clone(reading), p.store.clone(), ti.placed.clone(), Arc::new(shown.clone()))));
-                                        shown
-                                    }
-                                };
-                                for view in &shown {
-                                    if view["terms"]["state"] != "read" { reasons.push(format!("the terms of point {} were not read: {}", view["point"].as_str().unwrap_or_default(), view["terms"]["reason"].as_str().unwrap_or_default())); }
+                                    _ => reasons.push(mark.reason.clone()),
                                 }
-                                if let Ok(Some(bound)) = ti.bound_store() { if bound != p.store { reasons.push("this conversation's points are kept in other records than the records this project folder belongs to now".into()); } }
-                                reasons.extend(reading.inventory_reasons());
-                                if reading.missing && !ti.placed.is_empty() { reasons.push("the points log was not found in this project's records".into()); }
-                                let named: Vec<&Value> = ti.placed.iter().map(|p| &p["point"]).collect();
-                                for &i in reading.for_thread(&row.thread) {
-                                    let body = &reading.lines[i].entry["body"];
-                                    if !conversation.names(body) || named.contains(&&body["point"]) { continue; }
-                                    let point = body["point"].as_str().unwrap_or_default();
-                                    match reading.soundness(i) {
-                                        Ok(()) => reasons.push(match row.pending.iter().find(|(p, _)| p == point) {
-                                            Some((_, why)) => format!("point {point} is in the App's records, but its pointer in this conversation could not be saved ({why}); the App completes it before a later placement in this conversation or when the conversation is resumed"),
-                                            None => format!("point {point} is in the App's records without its pointer in this conversation; the App completes it before a later placement in this conversation or when the conversation is resumed"),
-                                        }),
-                                        Err(why) => reasons.push(format!("a record naming this conversation could not be established ({why})")),
-                                    }
-                                }
-                                for (point, _) in &row.pending { if named.iter().any(|n| *n == point.as_str()) { resolved_pending.push((row.thread.clone(), point.clone())); } }
-                                for mark in &row.uncertain {
-                                    if mark.store != p.store { reasons.push(mark.reason.clone()); continue; }
-                                    match reading.for_call(&mark.source).as_slice() {
-                                        [i] if reading.soundness(*i).is_ok() => resolved_uncertain.push(mark.source.clone()),
-                                        [] if reading.whole() => {
-                                            resolved_uncertain.push(mark.source.clone());
-                                            later_refused.push((row.thread.clone(), json!({"reason":"The App has since read this conversation's records whole: the call whose recording it could not establish was not recorded.","at":crate::util::now_rfc3339()})));
-                                            refused.push(later_refused.last().unwrap().1.clone());
-                                        }
-                                        _ => reasons.push(mark.reason.clone()),
-                                    }
-                                }
-                                checked_threads.push(row.thread.clone());
                             }
+                            checked_threads.push(row.thread.clone());
                         }
                     }
                 }
             }
-            let unsent: Vec<Value> = row.unsent.iter().map(|(point, why)| json!({"point":point,"reason":why})).collect();
+            // The receipt of each point placed in this App session, as the
+            // request register observed its reply; none for an earlier one.
+            for view in shown.iter_mut() {
+                let placed = view["source"]["generation"].as_str().and_then(|g| crate::recovery::generation_from_ref(g).ok());
+                view["receipt"] = match placed {
+                    Some(g) if g["appSession"] == generation["appSession"] => {
+                        let found = replies.iter().find(|(rg, id, _, _)| *rg == g && *id == view["source"]["request"]);
+                        json!(found.map_or("not known", |(_, _, result, state)| receipt_state(result, state)))
+                    }
+                    _ => Value::Null,
+                };
+                if let Some(o) = view.as_object_mut() { o.remove("source"); }
+            }
             json!({"generation":generation,"threadId":row.thread,"offer":offer,
-                "reading":{"whole":reasons.is_empty(),"reasons":reasons},"points":shown,"refused":refused,"unsent":unsent})
+                "reading":{"whole":reasons.is_empty(),"reasons":reasons},"points":shown,"refused":refused})
         }).collect();
         reread.sort();
         reread.dedup();
-        let asked: Vec<String> = {
+        {
             let mut i = self.inner.0.lock().unwrap();
-            i.points.pending.retain(|(_, t, p, _)| !resolved_pending.iter().any(|(rt, rp)| rt == t && rp == p));
             i.points.uncertain.retain(|u| !resolved_uncertain.contains(&u.source));
             i.points.unchecked.retain(|(g, t, _)| !(*g == generation && checked_threads.contains(t)));
             for (thread, entry) in later_refused { i.points.refused.push((generation.clone(), thread, entry)); }
-            for (thread, cached) in joined_now { i.points.joined.insert(thread, cached); }
-            let asked: Vec<String> = reread.into_iter().filter(|p| !i.points.rereading.contains(p)).collect();
-            i.points.rereading.extend(asked.iter().cloned());
-            asked
-        };
-        for project in asked {
-            if self.enqueue(Job::Read(project.clone())).is_err() {
-                self.inner.0.lock().unwrap().points.rereading.retain(|p| *p != project);
-            }
         }
+        for project in reread.into_iter().filter(|p| !rereading.contains(p)) { self.reread(&project); }
         json!(views)
     }
-    /// Waits until the point recorder has run every job queued before this
-    /// one (tests).
+    /// Waits until every worker this Host started for points, and any they
+    /// started in turn, has finished (tests).
     #[cfg(test)]
     pub(super) fn drain_points_for_test(&self) {
-        let (done, wait) = mpsc::channel();
-        let sender = self.inner.0.lock().unwrap().points.queue.clone();
-        if let Some(sender) = sender {
-            if sender.send(Job::Run(Box::new(move || { let _ = done.send(()); }))).is_ok() { let _ = wait.recv(); }
+        loop {
+            let workers = std::mem::take(&mut self.inner.0.lock().unwrap().points.hooks.workers);
+            if workers.is_empty() { return; }
+            for worker in workers { let _ = worker.join(); }
         }
-    }
-    /// Runs `f` on the point recorder's thread and waits for it (tests).
-    #[cfg(test)]
-    pub(super) fn on_points_worker(&self, f: impl FnOnce() + Send + 'static) {
-        let (done, wait) = mpsc::channel();
-        let job = Job::Run(Box::new(move || { f(); let _ = done.send(()); }));
-        let sender = self.inner.0.lock().unwrap().points.queue.clone();
-        match sender {
-            Some(sender) => { sender.send(job).unwrap(); }
-            None => { assert!(self.enqueue(job).is_ok(), "the point recorder could not start"); }
-        }
-        wait.recv().unwrap();
     }
 }
 
