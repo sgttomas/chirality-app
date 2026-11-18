@@ -303,14 +303,22 @@ def publisher(v, name):
     return next(e for e in v['registry_sources'] if any(p['name'] == name for p in e['packages']))
 
 
+def member(entry, name):
+    return next(p for p in entry['packages'] if p['name'] == name)
+
+
+def rows_of(repo):
+    return {(r['name'], r['version']): r for r in crates.packages(repo)['packages'] if r['lock'] == 'codex'}
+
+
 def test_publisher_texts_ship_with_their_basis_and_objc2_ones_stay_held():
-    rows = {(r['name'], r['version']): r for r in crates.packages(ROOT)['packages'] if r['lock'] == 'codex'}
+    rows = rows_of(ROOT)
     rtc = rows[('rtc-dtls', '0.20.3')]
     assert rtc['standing'] == 'text' and [t['publisher_text'] for t in rtc['texts']] == ['LICENSE-APACHE', 'LICENSE-MIT']
     assert rtc['repository'] == 'https://github.com/webrtc-rs/rtc' and 'saved listing' in rtc['basis']
-    # The reading requirement follows the resolved route: the objc2 repository's text is held, whichever route ships it.
     for key in (('objc2', '0.6.3'), ('dispatch2', '0.3.0'), ('objc2-core-graphics', '0.3.2'), ('block2', '0.6.2')):
-        assert rows[key]['standing'] == 'held' and rows[key]['texts'] and 'owner licence reading' in rows[key]['reason']
+        assert rows[key]['standing'] == 'held' and rows[key]['texts'] and 'owner\'s reading' in rows[key]['reason']
+        assert rows[key]['awaiting_reading']['sha256'] == crates.OVERVIEW_TEXT['sha256']
 
 
 def test_a_publisher_text_association_needs_a_held_text_bound_to_its_listing(repo):
@@ -325,6 +333,9 @@ def test_a_publisher_text_association_needs_a_held_text_bound_to_its_listing(rep
     (lambda t: t.update(listing_blob='0' * 40), 'not the blob and size its listing names'),
     (lambda t: t.update(listing_size=1), 'not the blob and size its listing names'),
     (lambda t: t.update(git_blob_sha1='0' * 40, listing_blob='0' * 40), 'differs from the blob its listing names'),
+    # A README or source file is not a notice, whatever its bytes (review finding 3).
+    (lambda t: t.update(source_path='README.md'), 'not named as a notice'),
+    (lambda t: t.update(size_bytes=-1, listing_size=-1), 'unknown registry-source text shape'),
 ])
 def test_a_changed_publisher_text_or_source_identity_refuses(repo, change, message):
     edit(repo, crates.ASSOCIATIONS, lambda v: change(publisher(v, 'rtc-dtls')['texts'][0]))
@@ -333,15 +344,34 @@ def test_a_changed_publisher_text_or_source_identity_refuses(repo, change, messa
 
 
 @pytest.mark.parametrize('change, message', [
-    (lambda e: e.update(revision='not-a-revision'), 'publisher repository, revision and basis'),
-    (lambda e: e.update(repository='https://example.invalid/rtc'), 'publisher repository, revision and basis'),
-    (lambda e: e.update(basis=''), 'publisher repository, revision and basis'),
+    (lambda e: e.update(revision='not-a-revision'), 'publisher revision and basis'),
+    (lambda e: e.update(repository='https://example.invalid/rtc'), 'not in the form'),
+    (lambda e: e.update(basis=''), 'publisher revision and basis'),
     (lambda e: e.update(invented='x'), 'unknown registry-source association shape'),
+    # The provenance fields cannot be dropped or emptied (review finding 3: clipboard-win stood text without them).
+    (lambda e: e.update(listing={}), 'listing identity'),
+    (lambda e: e['listing'].update(entries=0), 'listing identity'),
+    (lambda e: e['listing'].update(response_sha256='not a hash'), 'listing identity'),
+    (lambda e: member(e, 'clipboard-win').pop('archive_metadata'), 'unknown registry-source package shape'),
+    (lambda e: member(e, 'clipboard-win').update(archive_metadata={}), 'archive Cargo.toml and .cargo_vcs_info.json'),
+    (lambda e: member(e, 'clipboard-win')['archive_metadata']['Cargo.toml'].update(size_bytes=-1), 'archive Cargo.toml'),
+    # The association's revision must be the one the archive's VCS record names, and its repository the archive's.
+    (lambda e: e.update(revision='1' * 40), 'another revision than the association'),
+    (lambda e: member(e, 'clipboard-win').update(archive_vcs_revision='1' * 40), 'another revision than the association'),
+    (lambda e: member(e, 'clipboard-win').update(archive_repository='https://github.com/invented/other'), 'another repository'),
+    (lambda e: member(e, 'clipboard-win').update(archive_repository=None), 'stated basis'),
 ])
-def test_a_publisher_association_needs_its_source_identity(repo, change, message):
-    edit(repo, crates.ASSOCIATIONS, lambda v: change(publisher(v, 'rtc-dtls')))
+def test_a_publisher_association_needs_its_provenance(repo, change, message):
+    edit(repo, crates.ASSOCIATIONS, lambda v: change(publisher(v, 'clipboard-win')))
     with pytest.raises(ValueError, match=message):
         crates.check(repo)
+
+
+def test_a_manifest_spelling_of_the_same_repository_is_accepted_and_an_inferred_one_needs_its_basis():
+    entry = publisher(json.loads((ROOT / crates.ASSOCIATIONS).read_text()), 'wasm-encoder')
+    assert member(entry, 'wasm-encoder')['archive_repository'].startswith(entry['repository'] + '/tree/')
+    starlark = publisher(json.loads((ROOT / crates.ASSOCIATIONS).read_text()), 'pagable_derive')
+    assert member(starlark, 'pagable_derive')['archive_repository'] is None and starlark['repository_basis']
 
 
 def test_changed_checksum_unused_and_conflicting_associations_refuse(repo):
@@ -353,31 +383,32 @@ def test_changed_checksum_unused_and_conflicting_associations_refuse(repo):
         shutil.rmtree(repo / 'app/packaging/supplier_notices')
         shutil.copytree(pristine, repo / 'app/packaging/supplier_notices')
 
+    def as_package(v, name, version, checksum):
+        package = json_copy(publisher(v, 'rtc-dtls')['packages'][0])
+        package.update(name=name, version=version, checksum=checksum)
+        return package
+
     edit(repo, crates.ASSOCIATIONS, lambda v: publisher(v, 'rtc-dtls')['packages'][0].update(checksum='0' * 64))
     with pytest.raises(ValueError, match='names no locked package without another text route'):
         crates.check(repo)
     reset()
-    invented = {'name': 'invented-crate', 'version': '1.0.0', 'checksum': '1' * 64, 'path_in_vcs': '', 'archive_metadata': {}}
-    edit(repo, crates.ASSOCIATIONS, lambda v: publisher(v, 'rtc-dtls')['packages'].append(invented))
+    edit(repo, crates.ASSOCIATIONS, lambda v: publisher(v, 'rtc-dtls')['packages'].append(
+        as_package(v, 'invented-crate', '1.0.0', '1' * 64)))
     with pytest.raises(ValueError, match='names no locked package without another text route'):
         crates.check(repo)
     reset()
-    # The same package in two publisher associations.
     edit(repo, crates.ASSOCIATIONS, lambda v: v['registry_sources'].append(json_copy(publisher(v, 'rtc-dtls'))))
     with pytest.raises(ValueError, match='two registry-source associations'):
         crates.check(repo)
     reset()
-    # A package whose archive carries its notices cannot take a second route.
     def second_route(v):
         index = json.loads((repo / crates.INDEX).read_text())
         row = next(r for r in index['registry'] if r['notices'] and 'codex' in r['locks'])
-        publisher(v, 'rtc-dtls')['packages'].append({'name': row['package'], 'version': row['version'], 'checksum': row['checksum'],
-                                                     'path_in_vcs': '', 'archive_metadata': {}})
+        publisher(v, 'rtc-dtls')['packages'].append(as_package(v, row['package'], row['version'], row['checksum']))
     edit(repo, crates.ASSOCIATIONS, second_route)
     with pytest.raises(ValueError, match='more than one text route'):
         crates.check(repo)
     reset()
-    # A package with a text route cannot also be recorded open or absent.
     for collection in ('gap_reasons', 'no_publisher_text', 'not_in_macos_package'):
         def mark(v, c=collection):
             target = publisher(v, 'rtc-dtls')['packages'][0]
@@ -398,13 +429,110 @@ def json_copy(value):
     return json.loads(json.dumps(value))
 
 
+# The owner's objc2 reading: a closed, named list in the checker, plus an independent guard (review finding 1).
+def test_the_named_list_is_exactly_the_held_packages():
+    held = {(r['name'], r['version'], r['checksum']) for r in crates.packages(ROOT)['packages'] if r['standing'] == 'held'}
+    assert held == set(crates.HELD_FOR_READING) and len(held) == 23
 
-# Absence from the macOS package (not_in_macos_package): checked against the lockfile and a closed set of target forms.
+
+def test_a_listed_package_with_another_text_stays_open(repo):
+    # Control: objc2 0.6.3 carries the overview text and awaits the reading.
+    assert rows_of(repo)[('objc2', '0.6.3')]['awaiting_reading']['sha256'] == crates.OVERVIEW_TEXT['sha256']
+    # Given another held text instead, it is not covered by the substitution.
+    def substitute(v):
+        publisher(v, 'objc2')['texts'] = json_copy(publisher(v, 'clipboard-win')['texts'])
+    edit(repo, crates.ASSOCIATIONS, substitute)
+    row = rows_of(repo)[('objc2', '0.6.3')]
+    assert row['standing'] == 'held' and 'another text' in row['reason'] and 'awaiting_reading' not in row
+
+
+def test_a_listed_package_with_no_overview_text_stays_open(repo):
+    def drop(v):
+        entry = publisher(v, 'objc2')
+        entry['packages'] = [p for p in entry['packages'] if p['name'] != 'objc2']
+        if not entry['packages']:
+            v['registry_sources'].remove(entry)
+    edit(repo, crates.ASSOCIATIONS, drop)
+    row = rows_of(repo)[('objc2', '0.6.3')]
+    assert row['standing'] == 'held' and not row['texts'] and 'carries no text' in row['reason']
+    assert row['standing'] in crates.OPEN
+
+
+def test_a_repository_spelling_cannot_release_a_listed_package(repo):
+    edit(repo, crates.ASSOCIATIONS, lambda v: publisher(v, 'objc2').update(repository='https://github.com/madsmtm/objc2.git'))
+    with pytest.raises(ValueError, match='not in the form'):
+        crates.check(repo)
+
+
+@pytest.mark.parametrize('repository, reading_required, outcome', [
+    ('https://github.com/madsmtm/objc2.git', False, 'not in the form'),
+    ('https://github.com/madsmtm/objc2/', True, 'not in the form'),
+    ('https://github.com/madsmtm/objc2', False, 'another reading requirement'),
+    ('https://github.com/invented/elsewhere', False, 'another reading requirement'),
+    ('https://github.com/madsmtm/objc2', True, None),
+])
+def test_moving_a_listed_package_to_the_app_route_cannot_release_it(repo, repository, reading_required, outcome):
+    def move(v):
+        entry = publisher(v, 'objc2')
+        package = member(entry, 'objc2')
+        entry['packages'].remove(package)
+        if not entry['packages']:
+            v['registry_sources'].remove(entry)
+        text = entry['texts'][0]
+        v['app_texts'].append({'packages': ['objc2 0.6.3'], 'checksum': package['checksum'], 'repository': repository,
+                               'revision': entry['revision'], 'reading_required': reading_required, 'basis': 'INVENTED',
+                               'texts': [{'app_path': 'app/packaging/notices/transitive/cargo/objc2/0.6.3/LICENSE.md',
+                                          **{k: text[k] for k in ('sha256', 'size_bytes', 'git_blob_sha1')}}]})
+    edit(repo, crates.ASSOCIATIONS, move)
+    if outcome is None:
+        assert rows_of(repo)[('objc2', '0.6.3')]['standing'] == 'held'
+    else:
+        with pytest.raises(ValueError, match=outcome):
+            crates.check(repo)
+
+
+def test_an_unlisted_package_carrying_the_overview_text_or_from_objc2_is_held(repo):
+    saved = (repo / crates.ASSOCIATIONS).read_bytes()
+    assert rows_of(repo)[('clipboard-win', '5.4.1')]['standing'] == 'text'
+    edit(repo, crates.ASSOCIATIONS, lambda v: publisher(v, 'clipboard-win').update(texts=json_copy(publisher(v, 'objc2')['texts'])))
+    row = rows_of(repo)[('clipboard-win', '5.4.1')]
+    assert row['standing'] == 'held' and 'not on the named list' in row['reason']
+    (repo / crates.ASSOCIATIONS).write_bytes(saved)
+    # An unlisted App-text crate whose canonical repository is objc2's is held too, and must say it needs the reading.
+    edit(repo, crates.ASSOCIATIONS, lambda v: next(e for e in v['app_texts'] if not e['reading_required']).update(
+        repository='https://github.com/madsmtm/objc2'))
+    with pytest.raises(ValueError, match='another reading requirement'):
+        crates.check(repo)
+    edit(repo, crates.ASSOCIATIONS, lambda v: next(e for e in v['app_texts'] if e['repository'] == 'https://github.com/madsmtm/objc2'
+                                                   and 'vsimd 0.8.0' in e['packages']).update(reading_required=True))
+    row = rows_of(repo)[('vsimd', '0.8.0')]
+    assert row['standing'] == 'held' and 'comes from https://github.com/madsmtm/objc2' in row['reason']
+
+
+def test_a_listed_identity_no_lockfile_locks_refuses(repo, monkeypatch):
+    monkeypatch.setattr(crates, 'HELD_FOR_READING', crates.HELD_FOR_READING | {('objc2', '9.9.9', '0' * 64)})
+    with pytest.raises(ValueError, match='locked by no lockfile'):
+        crates.check(repo)
+
+
+# Absence from the macOS package (not_in_macos_package), derived from the committed parent manifests (review finding 2).
 def absent(v, name):
     return next(e for e in v['not_in_macos_package'] if e['name'] == name)
 
 
-def test_six_packages_are_absent_by_declared_target_condition_and_named_with_their_evidence():
+def parent(v, ident):
+    return next(m for m in v['manifests'] if m['id'] == ident)
+
+
+def put_manifest(repo, v, ident, raw):
+    """Replace a committed parent manifest's bytes in the copy and record their identity, as a reviewer would."""
+    item = parent(v, ident)
+    (repo / item['path']).write_bytes(raw)
+    item.update(size_bytes=len(raw), sha256=hashlib.sha256(raw).hexdigest(),
+                git_blob_sha1=hashlib.sha1(b'blob %d\0' % len(raw) + raw).hexdigest())
+
+
+def test_six_packages_are_absent_by_the_declarations_their_parents_give():
     rows = [r for r in crates.packages(ROOT)['packages'] if r['standing'] == 'not-in-macos-package']
     assert sorted((r['name'], r['version']) for r in rows) == [
         ('linux-keyutils', '0.2.4'), ('rustls-platform-verifier-android', '0.1.1'), ('socks5-protocol', '0.3.5'),
@@ -412,75 +540,157 @@ def test_six_packages_are_absent_by_declared_target_condition_and_named_with_the
     for row in rows:
         assert not row['texts'] and row['absence']['target'] == 'aarch64-apple-darwin'
         for dependent in row['absence']['reverse_dependencies']:
-            assert dependent['edges'] and ('archive_manifest' in dependent or 'workspace_manifest' in dependent)
+            assert dependent['declarations'] and dependent['manifest'].startswith(crates.BASE + '/manifests/')
     socks = next(r for r in rows if r['name'] == 'socks5-protocol')
-    assert [e['kind'] for d in socks['absence']['reverse_dependencies'] for e in d['edges']] == ['dev']
+    assert socks['absence']['reverse_dependencies'][0]['declarations'] == [{'target': 'cfg(target_os = "linux")', 'kind': 'dev'}]
 
 
-@pytest.mark.parametrize('table, expected', [
-    ('[target.\'cfg(target_os = "linux")\'.dependencies]', (False, 'normal', None)),
-    ('[target.\'cfg(target_os = "macos")\'.dependencies]', (True, 'normal', None)),
-    ('[target.\'cfg(windows)\'.dev-dependencies]', (False, 'dev', None)),
-    ('[target.i686-pc-windows-gnu.dependencies.winapi-i686-pc-windows-gnu]', (False, 'normal', 'winapi-i686-pc-windows-gnu')),
-    ('[target.aarch64-apple-darwin.build-dependencies]', (True, 'build', None)),
+@pytest.mark.parametrize('spec, holds', [
+    ('cfg(target_os = "linux")', False), ('cfg(target_os = "macos")', True), ('cfg(windows)', False),
+    ('i686-pc-windows-gnu', False), ('aarch64-apple-darwin', True), ('x86_64-apple-darwin', False),
 ])
-def test_target_conditions_in_the_closed_forms(table, expected):
-    assert crates.target_holds(table) == expected
+def test_target_keys_in_the_closed_forms(spec, holds):
+    assert crates.target_holds(spec) is holds
 
 
-@pytest.mark.parametrize('table, message', [
-    ('[target.\'cfg(unix)\'.dependencies]', 'outside the closed forms'),
-    ('[target.\'cfg(not(target_os = "macos"))\'.dependencies]', 'outside the closed forms'),
-    ('[target.\'cfg(all(windows, target_env = "gnu"))\'.dependencies]', 'outside the closed forms'),
-    ('[dependencies]', 'not a target-specific dependency table'),
-    ('[target.\'cfg(windows)\'.features]', 'not a target-specific dependency table'),
+@pytest.mark.parametrize('spec, message', [
+    ('cfg(unix)', 'outside the closed forms'),
+    ('cfg(not(target_os = "macos"))', 'outside the closed forms'),
+    ('cfg(all(windows, target_env = "gnu"))', 'outside the closed forms'),
+    # Review finding 2: a bare key that is not a known triple is not read as one.
+    ('cfg', 'neither a closed cfg form nor a known triple'),
+    ('invented-unknown-target', 'neither a closed cfg form nor a known triple'),
 ])
-def test_unknown_target_forms_refuse(table, message):
+def test_unknown_target_keys_refuse(spec, message):
     with pytest.raises(ValueError, match=message):
-        crates.target_holds(table)
+        crates.target_holds(spec)
+
+
+def test_declarations_are_found_by_key_rename_kind_and_target():
+    manifest = tomllib.loads('[package]\nname = "p"\n[dependencies]\nx = "1"\nalias = { package = "y", version = "1" }\n'
+                             '[dev-dependencies]\ny = "1"\n[target.\'cfg(windows)\'.build-dependencies.y]\nversion = "1"\n')
+    assert sorted(crates.declarations(manifest, 'y'), key=str) == sorted(
+        [(None, 'normal'), (None, 'dev'), ('cfg(windows)', 'build')], key=str)
+    assert crates.declarations(manifest, 'x') == [(None, 'normal')]
+    assert crates.declarations(manifest, 'absent') == []
+
+
+def test_a_committed_manifest_must_equal_its_recorded_identity(repo):
+    item = parent(json.loads((repo / crates.ASSOCIATIONS).read_text()), 'winapi-0.3.9')
+    path = repo / item['path']
+    assert crates.check(repo)
+    path.write_bytes(path.read_bytes() + b'\n')
+    with pytest.raises(ValueError, match='differs from its recorded identity'):
+        crates.check(repo)
 
 
 @pytest.mark.parametrize('change, message', [
-    # An incomplete, extra or repeated reverse-dependency set.
+    # Review finding 2: impossible sizes and non-digests refuse.
+    (lambda m: m.update(size_bytes=-1, sha256='not a hash'), 'unknown or repeated parent manifest entry'),
+    (lambda m: m.update(size_bytes=0), 'unknown or repeated parent manifest entry'),
+    (lambda m: m.update(git_blob_sha1='x'), 'unknown or repeated parent manifest entry'),
+    (lambda m: m.update(path='app/packaging/supplier_notices/codex/LICENSE'), 'unknown or repeated parent manifest entry'),
+    (lambda m: m['source'].update(checksum='0' * 64), 'not the locked archive\'s Cargo.toml'),
+    (lambda m: m['source'].update(member='Cargo.toml.orig'), 'unknown registry manifest source'),
+    # The crate must stand text with the recorded licence texts.
+    (lambda m: m['notice']['texts'].pop(), 'does not stand text with the recorded licence texts'),
+])
+def test_registry_manifest_identity_and_notice(repo, change, message):
+    edit(repo, crates.ASSOCIATIONS, lambda v: change(parent(v, 'winapi-0.3.9')))
+    with pytest.raises(ValueError, match=message):
+        crates.check(repo)
+
+
+@pytest.mark.parametrize('change, message', [
+    (lambda m: m['source'].update(revision='0' * 40), 'not at the lockfile\'s repository and revision'),
+    (lambda m: m['source'].update(repository='https://github.com/openai/codex.git'), 'not in the form'),
+    (lambda m: m['notice'].update(workspace_texts=['app/packaging/supplier_notices/codex/LICENSE']), 'not covered by its workspace'),
+])
+def test_workspace_manifest_identity_and_notice(repo, change, message):
+    edit(repo, crates.ASSOCIATIONS, lambda v: change(parent(v, 'codex-rs/linux-sandbox/Cargo.toml')))
+    with pytest.raises(ValueError, match=message):
+        crates.check(repo)
+
+
+@pytest.mark.parametrize('change, message', [
     (lambda e: e['reverse_dependencies'].clear(), 'differ from the lockfile'),
     (lambda e: e['reverse_dependencies'].append({**e['reverse_dependencies'][0], 'name': 'invented'}), 'differ from the lockfile'),
     (lambda e: e['reverse_dependencies'].append(json_copy(e['reverse_dependencies'][0])), 'differ from the lockfile'),
-    # An unknown target form, or a condition that holds for macOS.
-    (lambda e: e['reverse_dependencies'][0]['edges'][0].update(table='[target.\'cfg(unix)\'.dependencies]'), 'outside the closed forms'),
-    (lambda e: e['reverse_dependencies'][0]['edges'][0].update(table='[target.\'cfg(target_os = "macos")\'.dev-dependencies]'),
-     'is declared for aarch64-apple-darwin'),
-    (lambda e: e['reverse_dependencies'][0]['edges'][0].update(table='[dependencies]'), 'not a target-specific'),
-    (lambda e: e['reverse_dependencies'][0]['edges'].append({**e['reverse_dependencies'][0]['edges'][0],
-                                                             'table': '[target.\'cfg(target_os = "macos")\'.dev-dependencies]'}),
-     'is declared for aarch64-apple-darwin'),
-    # The edge must name the package and its kind must be its table's.
-    (lambda e: e['reverse_dependencies'][0]['edges'][0].update(text='invented = "0.1"'), 'does not name the package'),
+    (lambda e: e['reverse_dependencies'][0].update(manifest='invented'), 'names no committed manifest'),
+    (lambda e: e['reverse_dependencies'][0].update(manifest='codex-rs/tui/Cargo.toml'), 'another package\'s'),
+    # The recorded edges are a cross-check: a false table, a mislabelled kind, a missing or extra edge all refuse.
+    (lambda e: e['reverse_dependencies'][0]['edges'][0].update(table='[target.cfg.dev-dependencies]'), 'differs from the manifest'),
     (lambda e: e['reverse_dependencies'][0]['edges'][0].update(kind='normal'), 'edge kind differs'),
-    (lambda e: e['reverse_dependencies'][0]['edges'].clear(), 'records no edge'),
-    # The manifest must be at the lockfile's repository and revision.
-    (lambda e: e['reverse_dependencies'][0]['workspace_manifest'].update(revision='0' * 40), 'not at the lockfile'),
+    (lambda e: e['reverse_dependencies'][0]['edges'].clear(), 'recorded edges differ from the declarations'),
+    (lambda e: e['reverse_dependencies'][0]['edges'].append(json_copy(e['reverse_dependencies'][0]['edges'][0])),
+     'recorded edges differ from the declarations'),
+    (lambda e: e['reverse_dependencies'][0]['edges'][0].update(line=9999), 'unknown edge shape'),
     (lambda e: e.update(target='x86_64-apple-darwin'), 'unknown not-in-macOS-package shape'),
 ])
-def test_workspace_edge_evidence_must_establish_absence(repo, change, message):
+def test_recorded_exclusion_evidence_must_match_the_manifest(repo, change, message):
     edit(repo, crates.ASSOCIATIONS, lambda v: change(absent(v, 'socks5-protocol')))
     with pytest.raises(ValueError, match=message):
         crates.check(repo)
 
 
-@pytest.mark.parametrize('change, message', [
-    (lambda e: e['reverse_dependencies'][0]['archive_manifest'].update(checksum='0' * 64), 'not the locked archive'),
-    (lambda e: e['reverse_dependencies'][0]['edges'][0].update(
-        table='[target.aarch64-apple-darwin.dependencies.winapi-x86_64-pc-windows-gnu]',
-        text='[target.aarch64-apple-darwin.dependencies.winapi-x86_64-pc-windows-gnu]'), 'is declared for aarch64-apple-darwin'),
-    (lambda e: e['reverse_dependencies'][0]['edges'][0].update(
-        table='[target.x86_64-pc-windows-gnu.dependencies.winapi]', text='[target.x86_64-pc-windows-gnu.dependencies.winapi]'),
-     'names another package'),
-    (lambda e: e.update(checksum='0' * 64), 'names a package no lockfile locks with that checksum'),
+def test_a_declaration_the_record_leaves_out_is_found_in_the_manifest(repo):
+    # Review finding 2: a second, macOS-active declaration cannot be hidden by leaving it out of the record.
+    def add_macos_edge(v):
+        item = parent(v, 'codex-rs/linux-sandbox/Cargo.toml')
+        raw = (repo / item['path']).read_bytes()
+        put_manifest(repo, v, item['id'], raw + b'\n[target.\'cfg(target_os = "macos")\'.dev-dependencies]\n'
+                                                b'socks5-protocol = "=0.3.5"\n')
+    edit(repo, crates.ASSOCIATIONS, add_macos_edge)
+    with pytest.raises(ValueError, match='declared for aarch64-apple-darwin by codex-linux-sandbox: target cfg\\(target_os = "macos"\\)'):
+        crates.check(repo)
+
+
+@pytest.mark.parametrize('addition, message', [
+    (b'\n[target.cfg.dev-dependencies]\nsocks5-protocol = "=0.3.5"\n', 'neither a closed cfg form nor a known triple'),
+    (b'\n[dev-dependencies]\nsocks5-protocol = "=0.3.5"\n', 'declared without a target condition'),
+    (b'\n[build-dependencies]\nrenamed = { package = "socks5-protocol", version = "=0.3.5" }\n', 'declared without a target condition'),
 ])
-def test_archive_edge_evidence_must_establish_absence(repo, change, message):
-    edit(repo, crates.ASSOCIATIONS, lambda v: change(absent(v, 'winapi-x86_64-pc-windows-gnu')))
+def test_any_further_declaration_in_the_manifest_is_judged(repo, addition, message):
+    def add(v):
+        item = parent(v, 'codex-rs/linux-sandbox/Cargo.toml')
+        put_manifest(repo, v, item['id'], (repo / item['path']).read_bytes() + addition)
+    edit(repo, crates.ASSOCIATIONS, add)
     with pytest.raises(ValueError, match=message):
         crates.check(repo)
+
+
+def false_exclusion(repo, body):
+    """Review finding 2's probe: deno_core_icudata, whose parent declares it under unconditional [dependencies], recorded as
+    excluded by a false Linux-only excerpt. The parent manifest here is invented, in the copy."""
+    def change(v):
+        row = next(r for r in v['no_publisher_text'] if r['name'] == 'deno_core_icudata')
+        v['no_publisher_text'].remove(row)
+        raw = b'[package]\nname = "codex-code-mode-runtime"\nversion = "0.0.0"\n\n' + body
+        path = crates.BASE + '/manifests/codex-rs.code-mode-runtime.Cargo.toml'
+        (repo / path).write_bytes(raw)
+        v['manifests'].append({**json_copy(parent(v, 'codex-rs/tui/Cargo.toml')), 'id': 'codex-rs/code-mode-runtime/Cargo.toml',
+                               'path': path, 'size_bytes': len(raw), 'sha256': hashlib.sha256(raw).hexdigest(),
+                               'git_blob_sha1': hashlib.sha1(b'blob %d\0' % len(raw) + raw).hexdigest()})
+        v['manifests'][-1]['source'] = {**v['manifests'][-1]['source'], 'source_path': 'codex-rs/code-mode-runtime/Cargo.toml'}
+        v['not_in_macos_package'].append({'lock': 'codex', 'name': row['name'], 'version': row['version'], 'checksum': row['checksum'],
+                                          'target': 'aarch64-apple-darwin', 'reverse_dependencies': [{
+                                              'name': 'codex-code-mode-runtime', 'version': '0.0.0',
+                                              'manifest': 'codex-rs/code-mode-runtime/Cargo.toml',
+                                              'edges': [{'table': '[target.\'cfg(target_os = "linux")\'.dependencies]',
+                                                         'table_line': 5, 'line': 6, 'kind': 'normal',
+                                                         'text': 'deno_core_icudata = "0.78.0"'}]}]})
+    edit(repo, crates.ASSOCIATIONS, change)
+
+
+def test_a_false_excerpt_cannot_exclude_an_unconditional_dependency(repo):
+    false_exclusion(repo, b'[dependencies]\ndeno_core_icudata = "0.78.0"\n')
+    with pytest.raises(ValueError, match='deno_core_icudata is declared without a target condition by codex-code-mode-runtime'):
+        crates.check(repo)
+
+
+def test_control_a_truthful_linux_only_parent_excludes(repo):
+    false_exclusion(repo, b'[target.\'cfg(target_os = "linux")\'.dependencies]\ndeno_core_icudata = "0.78.0"\n')
+    assert rows_of(repo)[('deno_core_icudata', '0.78.0')]['standing'] == 'not-in-macos-package'
 
 
 def test_an_excluded_package_named_twice_or_also_open_refuses(repo):
@@ -491,6 +701,35 @@ def test_an_excluded_package_named_twice_or_also_open_refuses(repo):
     edit(repo, crates.ASSOCIATIONS, both)
     with pytest.raises(ValueError, match='not_in_macos_package and gap_reasons both name'):
         crates.check(repo)
+
+
+def test_archive_reading_mode_compares_registry_manifests_with_their_archives(repo, tmp_path):
+    # Invented archive for the copy: winapi's committed manifest re-recorded against an invented checksum is refused when the
+    # archive's Cargo.toml differs, and accepted when it is the same bytes.
+    item = parent(json.loads((repo / crates.ASSOCIATIONS).read_text()), 'winapi-0.3.9')
+    raw = (repo / item['path']).read_bytes()
+    for body, ok in ((raw, True), (raw + b'# changed\n', False)):
+        archive = crate([('Cargo.toml', body), ('LICENSE-MIT', b'm')], name='winapi-0.3.9')
+        path = tmp_path / ('winapi-0.3.9.%s.crate' % ok)
+        path.write_bytes(archive)
+        archives = tmp_path / ('map-%s.json' % ok)
+        archives.write_text(json.dumps({'winapi-0.3.9.crate': str(path)}))
+        def rebind(v, digest=hashlib.sha256(archive).hexdigest()):
+            parent(v, 'winapi-0.3.9')['source']['checksum'] = digest
+        saved = (repo / crates.ASSOCIATIONS).read_bytes()
+        edit(repo, crates.ASSOCIATIONS, rebind)
+        only = {k: v for k, v in crates.manifests(repo, crates.load(repo, crates.ASSOCIATIONS)).items() if k == 'winapi-0.3.9'}
+        original = crates.manifests
+        try:
+            crates.manifests = lambda r, a: only
+            if ok:
+                assert crates.verify_manifests(repo, archives) == {'manifests_equal_to_archive_members': ['winapi-0.3.9']}
+            else:
+                with pytest.raises(ValueError, match='differs from its archive'):
+                    crates.verify_manifests(repo, archives)
+        finally:
+            crates.manifests = original
+            (repo / crates.ASSOCIATIONS).write_bytes(saved)
 
 
 # A stated licence with no publisher text found is its own open standing; it never counts as a text.
@@ -677,11 +916,11 @@ def test_the_record_must_be_for_the_pin_and_supported_target():
     # An omitted entry, an entry no row accounts for, and duplicate or conflicting entries.
     (lambda v: v['sources'].pop(2), None, 'states the source of libb'),
     (lambda v: v['sources'].append(source('libc', '5.6')), None, 'no voice row accounts for: libc'),
-    (lambda v: v['sources'].append(copy.deepcopy(v['sources'][1])), None, 'names one native library name twice'),
+    (lambda v: v['sources'].append(copy.deepcopy(v['sources'][1])), None, 'repeats an entry name'),
     (lambda v: v['sources'].append({**source('liba', '9.9'), 'url': 'https://example.invalid/liba-1.2.tar.gz'}), None,
-     'names one native library name twice'),
+     'repeats an entry name'),
     (lambda v: v['sources'].append({**source('liba2', '9.9'), 'url': 'https://example.invalid/liba-1.2.tar.gz'}), None,
-     'names one native library url twice'),
+     'repeats an entry url'),
     # A build tool does not establish a row.
     (lambda v: v['sources'][1].update(role='build-tool'), None, 'states the source of liba'),
     # Unsupported shapes.
@@ -694,6 +933,13 @@ def test_each_row_is_established_by_exactly_one_native_library_entry(sources_cha
     row_values = edited(rows, row_change) if row_change else rows()
     with pytest.raises(ValueError, match=message):
         compare(value, row_values=row_values)
+
+
+def test_one_native_library_entry_cannot_establish_two_rows():
+    # Review finding 4: a second table row for one entry (a duplicated Opus row under a new id) refuses.
+    row_values = edited(rows, lambda r: r.append({**copy.deepcopy(r[0]), 'id': 'liba-again'}))
+    with pytest.raises(ValueError, match='would establish two voice rows: liba and liba-again'):
+        compare(row_values=row_values)
 
 
 def test_a_row_member_must_be_listed_by_the_supplier_manifest():
