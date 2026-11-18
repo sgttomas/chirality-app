@@ -2469,7 +2469,7 @@
     "response_sha256": "70cfdd0430a2744c2ee17251cb0d46478b200bd68b9bacea9117b2d59e2e274e"
    },
    "examined": "The listing at the locked revision names no licence file. Its manifest declares \"Apache-2.0/MIT\"; README.md lines 38-40 give either licence at the user's option; src/combine.rs (3,292 bytes, blob bf56adf1) lines 11-16 carry a third-party zlib notice (\"Copyright (C) 1995-2006, 2010, 2011, 2012, 2016 Mark Adler / For conditions of distribution and use, see copyright notice in zlib.h\"), whose zlib.h text is not in the repository; no other copyright line was found in src/, build.rs or the tests read. A listing that names no licence file does not show that no publisher text exists elsewhere.",
-   "would_close": "a publisher text for this version, or the owner's decision on what may serve as this package's notice (for example the declared licence's standard text). Closing it must also settle the third-party zlib notice in src/combine.rs (Mark Adler's copyright, pointing to zlib.h), which the stated licence does not cover. Licence adequacy stays the owner's."
+   "would_close": "a publisher text for this version, or the owner's decision on what may serve as this package's notice (for example the declared licence's standard text). Closing it must also settle the third-party notice in src/combine.rs (lines 11-16: Mark Adler's copyright line and a pointer to the copyright notice in zlib.h, which is not in the repository); which terms apply to that code, and whether they are met, is the owner's to decide. Licence adequacy stays the owner's."
   },
   {
    "name": "debugserver-types",
@@ -2484,7 +2484,7 @@
     "response_sha256": "5431c747b4e3e8ef746ddea1b5c5afaaebbc9a34366d968608f6ccddb99be25c"
    },
    "examined": "The listing at the locked revision names no licence file. Its manifest declares \"MIT\"; README.md and src/lib.rs state no licence or copyright. The types are generated from src/schema.json (108,673 bytes, blob 53e3a32c), which the README describes as VSCode's debug server protocol; that schema's origin and licence were not examined. A listing that names no licence file does not show that no publisher text exists elsewhere.",
-   "would_close": "a publisher text for this version, or the owner's decision on what may serve as this package's notice (for example the declared licence's standard text). Closing it must also settle the origin and terms of src/schema.json, from which its types are generated (VSCode's debug server protocol, per its README). Licence adequacy stays the owner's."
+   "would_close": "a publisher text for this version, or the owner's decision on what may serve as this package's notice (for example the declared licence's standard text). Closing it must also settle the origin and terms of src/schema.json, from which its types are generated (VSCode's debug server protocol, per its README); which terms apply to it, and whether they are met, is the owner's to decide. Licence adequacy stays the owner's."
   },
   {
    "name": "deno_core_icudata",
@@ -2499,7 +2499,7 @@
     "response_sha256": "02dd91cd021d938f4f8e0ab8e9c817ef4f660f4a475b258e040e74eabf552ead"
    },
    "examined": "The listing at the locked revision names no licence file. Its manifest declares \"MIT\"; README.md (105 bytes) and src/lib.rs (205 bytes) state no licence. The crate embeds src/icudtl.dat (10,876,560 bytes, blob 9655a2e1) with include_bytes, and the README says it is Rusty V8's third_party/icu/common/icudtl.dat: ICU data, whose own licence the examined files do not state. A listing that names no licence file does not show that no publisher text exists elsewhere.",
-   "would_close": "a publisher text for this version, or the owner's decision on what may serve as this package's notice (for example the declared licence's standard text). Closing it must also settle the notice for the embedded ICU data (src/icudtl.dat, Rusty V8's third_party/icu/common/icudtl.dat per its README), whose own terms the crate does not state. Licence adequacy stays the owner's."
+   "would_close": "a publisher text for this version, or the owner's decision on what may serve as this package's notice (for example the declared licence's standard text). Closing it must also settle the notice for the embedded ICU data (src/icudtl.dat, Rusty V8's third_party/icu/common/icudtl.dat per its README), whose own terms the examined files do not state; which terms apply to it, and whether they are met, is the owner's to decide. Licence adequacy stays the owner's."
   },
   {
    "name": "eventsource-stream",
@@ -2584,12 +2584,9 @@
      "name": "keyring",
      "version": "3.6.3",
      "manifest": "keyring-3.6.3",
-     "edges": [
+     "declarations": [
       {
-       "table": "[target.'cfg(target_os = \"linux\")'.dependencies.linux-keyutils]",
-       "table_line": 167,
-       "line": 167,
-       "text": "[target.'cfg(target_os = \"linux\")'.dependencies.linux-keyutils]",
+       "target": "cfg(target_os = \"linux\")",
        "kind": "normal"
       }
      ]
@@ -2607,12 +2604,9 @@
      "name": "rustls-platform-verifier",
      "version": "0.7.0",
      "manifest": "rustls-platform-verifier-0.7.0",
-     "edges": [
+     "declarations": [
       {
-       "table": "[target.'cfg(target_os = \"android\")'.dependencies.rustls-platform-verifier-android]",
-       "table_line": 133,
-       "line": 133,
-       "text": "[target.'cfg(target_os = \"android\")'.dependencies.rustls-platform-verifier-android]",
+       "target": "cfg(target_os = \"android\")",
        "kind": "normal"
       }
      ]
@@ -2630,12 +2624,9 @@
      "name": "codex-linux-sandbox",
      "version": "0.0.0",
      "manifest": "codex-rs/linux-sandbox/Cargo.toml",
-     "edges": [
+     "declarations": [
       {
-       "table": "[target.'cfg(target_os = \"linux\")'.dev-dependencies]",
-       "table_line": 40,
-       "line": 45,
-       "text": "socks5-protocol = { version = \"=0.3.5\", features = [\"sync\"] }",
+       "target": "cfg(target_os = \"linux\")",
        "kind": "dev"
       }
      ]
@@ -2653,12 +2644,9 @@
      "name": "winapi",
      "version": "0.3.9",
      "manifest": "winapi-0.3.9",
-     "edges": [
+     "declarations": [
       {
-       "table": "[target.i686-pc-windows-gnu.dependencies.winapi-i686-pc-windows-gnu]",
-       "table_line": 431,
-       "line": 431,
-       "text": "[target.i686-pc-windows-gnu.dependencies.winapi-i686-pc-windows-gnu]",
+       "target": "i686-pc-windows-gnu",
        "kind": "normal"
       }
      ]
@@ -2676,12 +2664,9 @@
      "name": "winapi",
      "version": "0.3.9",
      "manifest": "winapi-0.3.9",
-     "edges": [
+     "declarations": [
       {
-       "table": "[target.x86_64-pc-windows-gnu.dependencies.winapi-x86_64-pc-windows-gnu]",
-       "table_line": 433,
-       "line": 433,
-       "text": "[target.x86_64-pc-windows-gnu.dependencies.winapi-x86_64-pc-windows-gnu]",
+       "target": "x86_64-pc-windows-gnu",
        "kind": "normal"
       }
      ]
@@ -2699,12 +2684,9 @@
      "name": "codex-tui",
      "version": "0.0.0",
      "manifest": "codex-rs/tui/Cargo.toml",
-     "edges": [
+     "declarations": [
       {
-       "table": "[target.'cfg(windows)'.dependencies]",
-       "table_line": 155,
-       "line": 171,
-       "text": "winsplit = \"0.1\"",
+       "target": "cfg(windows)",
        "kind": "normal"
       }
      ]
@@ -3137,7 +3119,7 @@
    "sha256": "ecebaa095f7181b35d774b34f60fdfe387b1ba5eefe667cbdcad1d01d6bede64",
    "git_blob_sha1": "0e55e4deae53729b5467f4b1be37ab30de6bb2ff",
    "binding": "the Cargo.toml member of the archive whose SHA-256 equals the lockfile checksum, read on 2026-11-18 through crate_notices header checks with no other member read; crates.py verify-manifests rechecks it against a held archive",
-   "declared_license": "MIT OR Apache-2.0 (as the manifest's package.license gives it)",
+   "declared_license": "MIT OR Apache-2.0",
    "source": {
     "kind": "registry-archive-member",
     "name": "keyring",
@@ -3166,7 +3148,7 @@
    "sha256": "3032a2b58429a8786207a229216b5ea0cdf04a33f5f545660b83218f3322d1b0",
    "git_blob_sha1": "12b2b6bee42c24f6d31d7d78fdf485f6727451ef",
    "binding": "the Cargo.toml member of the archive whose SHA-256 equals the lockfile checksum, read on 2026-11-18 through crate_notices header checks with no other member read; crates.py verify-manifests rechecks it against a held archive",
-   "declared_license": "MIT OR Apache-2.0 (as the manifest's package.license gives it)",
+   "declared_license": "MIT OR Apache-2.0",
    "source": {
     "kind": "registry-archive-member",
     "name": "rustls-platform-verifier",
@@ -3195,7 +3177,7 @@
    "sha256": "d25b7c71c515a1869c75b3ff957bf845386bec03bcb407532e3726919f0b36c7",
    "git_blob_sha1": "beeaf338567547fefa05df1ecbd61f8c60eb856c",
    "binding": "the Cargo.toml member of the archive whose SHA-256 equals the lockfile checksum, read on 2026-11-18 through crate_notices header checks with no other member read; crates.py verify-manifests rechecks it against a held archive",
-   "declared_license": "MIT/Apache-2.0 (as the manifest's package.license gives it)",
+   "declared_license": "MIT/Apache-2.0",
    "source": {
     "kind": "registry-archive-member",
     "name": "winapi",
@@ -3224,7 +3206,7 @@
    "sha256": "cc1f31077f38fb354a6b88eddd8d835d8e4fe245c9ccb39b8998c9e7b44946d9",
    "git_blob_sha1": "b3b20cc7c1378df58336fcae62d2a2a7e6766d1e",
    "binding": "read on 2026-11-17 as a pinned raw file at the full commit; its blob and size equal the entry in the recursive codex-rs listing at d32063f9 (tree 8b2cf5d2, read from the GitHub API on 2026-11-16, response SHA-256 18adf883c2ee6dedf793fba4b4dfa08c62fde52dede2c6737d8c0b7d5fe1be18), the listing that binds the lockfile",
-   "declared_license": "license.workspace = true (inherited from the codex-rs workspace manifest, which is not held); the repository's root LICENSE is the Apache License, Version 2.0",
+   "declared_license": "inherited from the workspace (license.workspace = true); the workspace root manifest is not held",
    "source": {
     "kind": "workspace-file",
     "repository": "https://github.com/openai/codex",
@@ -3245,7 +3227,7 @@
    "sha256": "eabdbe5cd7f5b9691d6e3d62b7c2e00a0d919b54d9a881077c6f0f89128c4417",
    "git_blob_sha1": "6e5c58f6a07af566f308a7b4e4cbce3bf3719c44",
    "binding": "read on 2026-11-17 as a pinned raw file at the full commit; its blob and size equal the entry in the recursive codex-rs listing at d32063f9 (tree 8b2cf5d2, read from the GitHub API on 2026-11-16, response SHA-256 18adf883c2ee6dedf793fba4b4dfa08c62fde52dede2c6737d8c0b7d5fe1be18), the listing that binds the lockfile",
-   "declared_license": "license.workspace = true (inherited from the codex-rs workspace manifest, which is not held); the repository's root LICENSE is the Apache License, Version 2.0",
+   "declared_license": "inherited from the workspace (license.workspace = true); the workspace root manifest is not held",
    "source": {
     "kind": "workspace-file",
     "repository": "https://github.com/openai/codex",

@@ -18,15 +18,18 @@ named by its SHA-256.
 - `check` needs no archive: the lockfiles, associations, index, texts and `packages.json` must agree exactly (every
   locked package has one row, every text exists once with its digest, nothing else is held).
 
-A registry package with no archive notice may take its text through exactly one reviewed association in
-`associations.json`: `app_texts` (the App's copy of the same archive) or `registry_sources` (the publisher's licence
-files at the revision the archive's VCS record names, each bound to the blob and size a saved listing gives and held in
-the store through another route). The 23 packages awaiting the owner's objc2 reading are a closed list here
-(`HELD_FOR_READING`) and stay held whatever their rows say. A package with no text route may instead carry
-`not_in_macos_package` (absence from the macOS target, derived by parsing the committed parent manifests under
-`manifests/`), `no_publisher_text` (a licence is stated and no publisher text was found; open), or a specific gap reason
-in `gap_reasons`. An association naming a package it cannot apply to refuses. `verify-manifests --archives MAP.json`
-compares the committed registry parent manifests with their archives.
+associations.json is loaded once through one typed shape check (`ASSOCIATIONS_SHAPE`). A registry package with no
+archive notice may take its text through exactly one reviewed association: `app_texts` (the App's copy of the same
+archive) or `registry_sources` (the publisher's licence files at the revision the archive's VCS record names, each bound
+to the blob and size its recorded listing entry gives and held in the store through another route). The 23 packages
+awaiting the owner's objc2 reading are a closed list here (`HELD_FOR_READING`) and stay held whatever their rows say. A
+package with no text route may instead carry `not_in_macos_package` (absence from the macOS target, from the explicit
+declarations in the committed parent manifests under `manifests/` and the inheritance rules in `admission`),
+`no_publisher_text` (a licence is stated and no publisher text was found; open), or a specific gap reason in
+`gap_reasons`. An association naming a package it cannot apply to refuses. `verify-manifests --archives MAP.json`
+compares the committed registry parent manifests with the archives the lockfile locks. What the checker does not read
+(the listings, the archives' metadata, the publisher's tree) is the review boundary in the README; the checker is not
+built to resist forged, mutually consistent inputs.
 
 MAP.json maps `<name>-<version>.crate` to the absolute path of a held archive. Nothing here writes to a cache,
 executes supplier code or opens a network connection. A text selected by its file name is a file named as a notice;
@@ -86,8 +89,9 @@ HELD_FOR_READING = frozenset({
 OVERVIEW_TEXT = {'sha256': '7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54', 'size_bytes': 1339,
                  'git_blob_sha1': '540ae4c81adb5f64a9f61e222b688880da24300e'}
 OBJC2_REPOSITORY = 'https://github.com/madsmtm/objc2'
-# A second, independent guard: a package not on the list whose texts include the overview text, or whose canonical
-# repository is the objc2 repository, is held too, so a new objc2 package at a later pin cannot pass as text.
+# A second, independent guard, applied after every route (archive, App text, publisher text, Git, workspace): a package
+# not on the list whose texts include the overview text, or whose repository is the objc2 repository (compared without
+# regard to case, as GitHub compares owner and repository names), is held too, so a new objc2 package cannot pass as text.
 READING_REPOSITORIES = {OBJC2_REPOSITORY}
 # Every repository field of every association, in one form: no scheme variant, suffix, path or trailing slash.
 CANONICAL_REPOSITORY = re.compile(r'^https://github\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$')
@@ -126,6 +130,140 @@ def require(condition, message):
 
 def load(repo, relative):
     return json.loads((Path(repo) / relative).read_bytes())
+
+
+def positive(value):
+    return type(value) is int and value > 0
+
+
+def canonical_form(repository):
+    return type(repository) is str and CANONICAL_REPOSITORY.fullmatch(repository) is not None and not repository.endswith('.git')
+
+
+def github_identity(url):
+    """owner/repository, lower-cased, of a GitHub URL as a crate manifest may spell it (with .git, a path or a slash).
+    Lower-cased because GitHub treats the host, owner and repository names without regard to case."""
+    if type(url) is not str:
+        return None
+    match = re.fullmatch(r'https?://github\.com/([^/]+)/([^/#?]+?)(?:\.git)?(?:/.*)?', url, re.I)
+    return (match.group(1) + '/' + match.group(2)).lower() if match else None
+
+
+# One strict, typed shape for every curated collection of associations.json, applied once when the file is loaded
+# (`load_associations`), before any other use. Exact Python types (a string is a str; a size or count is a positive int,
+# never a bool; a digest is a str of its pattern), closed key sets, non-empty text where text is required, and
+# repository-relative paths by the archive route's member rule (`crate_notices.safe_relative`).
+def _leaf(what, test):
+    return ('leaf', what, test)
+
+
+def _map(fields, optional=()):
+    return ('map', fields, frozenset(optional))
+
+
+def _list(item, nonempty=True):
+    return ('list', item, nonempty)
+
+
+def _any(*shapes):
+    return ('any', shapes)
+
+
+def _exactly(value):
+    return _leaf(repr(value), lambda v: type(v) is type(value) and v == value)
+
+
+TEXT = _leaf('a non-empty string', lambda v: type(v) is str and v.strip() != '')
+SHA = _leaf('a SHA-256 digest (64 lower-case hex digits)', lambda v: type(v) is str and HEX64.fullmatch(v) is not None)
+OID = _leaf('a Git object id (40 lower-case hex digits)', lambda v: type(v) is str and HEX40.fullmatch(v) is not None)
+SIZE = _leaf('a positive integer', positive)
+FLAG = _leaf('a boolean', lambda v: type(v) is bool)
+NAME = _leaf('a crate name', lambda v: type(v) is str and re.fullmatch(r'[A-Za-z0-9_-]+', v) is not None)
+VERSION = _leaf('a version', lambda v: type(v) is str and re.fullmatch(r'[0-9A-Za-z.+-]+', v) is not None)
+PACKAGE = _leaf('"<name> <version>"', lambda v: type(v) is str and re.fullmatch(r'[A-Za-z0-9_-]+ [0-9A-Za-z.+-]+', v) is not None)
+PATH = _leaf('a repository-relative path', lambda v: route.safe_relative(v))
+FOLDER = _leaf('a repository-relative path, or empty for the root', lambda v: v == '' or route.safe_relative(v))
+REPOSITORY = _leaf('exactly https://github.com/<owner>/<repository>', canonical_form)
+GITHUB_URL = _leaf('a GitHub repository URL', lambda v: github_identity(v) is not None)
+KIND = _leaf('normal, dev or build', lambda v: type(v) is str and v in ('normal', 'dev', 'build'))
+NULL = _exactly(None)
+IDENTITY = {'size_bytes': SIZE, 'sha256': SHA}
+FILE = {**IDENTITY, 'git_blob_sha1': OID}
+CRATE = {'name': NAME, 'version': VERSION, 'checksum': SHA}
+LISTING = _map({'read': TEXT, 'entries': SIZE, 'response_sha256': SHA})
+ASSOCIATIONS_SHAPE = _map({
+    'format': _exactly('supplier-crate-associations/1'), 'pin': TEXT, 'superset': TEXT,
+    'locks': _list(_map({'id': TEXT, 'component': TEXT, 'path': PATH, **FILE, 'repository': REPOSITORY, 'revision': OID,
+                         'source_path': PATH, 'binding': TEXT})),
+    'workspaces': _list(_map({'lock': TEXT, 'repository': REPOSITORY, 'revision': OID, 'basis': TEXT, 'listing': TEXT,
+                              'texts': _list(_map({'path': PATH, **FILE, 'listing_blobs': _list(OID)}))})),
+    'git_sources': _list(_map({
+        'repository': REPOSITORY, 'revision': OID, 'packages': _list(PACKAGE), 'listing': TEXT, 'basis': TEXT, 'note': TEXT,
+        'texts': _list(_map({'source_path': PATH, **FILE, 'listing_blob': OID, 'for': _list(PACKAGE), 'held_at': PATH,
+                             'received_as': TEXT, 'fetched_with_owner_permission': FLAG},
+                            optional=('held_at', 'received_as', 'fetched_with_owner_permission'))),
+        'pointers': _list(_map({'source_path': PATH, 'mode': TEXT, 'target': TEXT, 'link_blob': OID}), nonempty=False)},
+        optional=('note',))),
+    'app_texts': _list(_map({'packages': _list(PACKAGE), 'checksum': SHA, 'repository': REPOSITORY, 'revision': OID,
+                             'reading_required': FLAG, 'basis': TEXT, 'texts': _list(_map({'app_path': PATH, **FILE}))})),
+    'registry_sources': _list(_map({
+        'packages': _list(_map({**CRATE, 'path_in_vcs': FOLDER, 'archive_vcs_revision': OID,
+                                'archive_repository': _any(GITHUB_URL, NULL),
+                                'archive_metadata': _map({'Cargo.toml': _map(IDENTITY), '.cargo_vcs_info.json': _map(IDENTITY)})})),
+        'repository': REPOSITORY, 'repository_basis': TEXT, 'revision': OID, 'listing': LISTING, 'basis': TEXT,
+        'texts': _list(_map({'source_path': PATH, **FILE, 'listing_blob': OID, 'listing_size': SIZE}))},
+        optional=('repository_basis',))),
+    'no_publisher_text': _list(_any(
+        _map({**CRATE, 'declared_license': TEXT, 'repository': REPOSITORY, 'revision': OID, 'listing': LISTING,
+              'examined': TEXT, 'would_close': TEXT}),
+        _map({**CRATE, 'declared_license': TEXT, 'repository': REPOSITORY, 'revision': NULL, 'examined': TEXT,
+              'would_close': TEXT}))),
+    'not_in_macos_package': _list(_map({
+        'lock': TEXT, **CRATE, 'target': _exactly(MACOS_TARGET),
+        'reverse_dependencies': _list(_map({'name': NAME, 'version': VERSION, 'manifest': TEXT,
+                                            'declarations': _list(_map({'target': TEXT, 'kind': KIND}))}))})),
+    'gap_reasons': _list(_map({'packages': _list(_map(CRATE)), 'reason': TEXT, 'would_close': TEXT})),
+    'manifests': _list(_map({
+        'id': TEXT, 'path': PATH, **FILE, 'binding': TEXT, 'declared_license': TEXT,
+        'source': _any(_map({'kind': _exactly('registry-archive-member'), **CRATE, 'member': _exactly('Cargo.toml')}),
+                       _map({'kind': _exactly('workspace-file'), 'repository': REPOSITORY, 'revision': OID, 'source_path': PATH})),
+        'notice': _any(_map({'crate_row': PACKAGE, 'texts': _list(_map({'member': PATH, 'sha256': SHA}))}),
+                       _map({'workspace_texts': _list(PATH)}))}))})
+
+
+def validate(value, shape, where):
+    """Refuse any value outside the shape, naming where."""
+    kind_ = shape[0]
+    if kind_ == 'leaf':
+        require(shape[2](value), f'{where} must be {shape[1]}, not {value!r}'[:400])
+    elif kind_ == 'map':
+        fields, optional = shape[1], shape[2]
+        require(type(value) is dict, f'{where} must be an object')
+        keys = set(value)
+        require(set(fields) - optional <= keys <= set(fields), f'{where} has keys {sorted(keys)}; the shape is '
+                f'{sorted(set(fields) - optional)}' + (f' with optional {sorted(optional)}' if optional else ''))
+        for key, item in value.items():
+            validate(item, fields[key], f'{where}.{key}')
+    elif kind_ == 'list':
+        require(type(value) is list and (value or not shape[2]), f'{where} must be a{" non-empty" if shape[2] else ""} list')
+        for index, item in enumerate(value):
+            validate(item, shape[1], f'{where}[{index}]')
+    else:
+        failures = []
+        for option in shape[1]:
+            try:
+                validate(value, option, where)
+                return
+            except ValueError as error:
+                failures.append(str(error))
+        raise ValueError(f'{where} matches no accepted shape: ' + ' | '.join(failures))
+
+
+def load_associations(repo):
+    """associations.json, after the typed shape check of every collection."""
+    value = load(repo, ASSOCIATIONS)
+    validate(value, ASSOCIATIONS_SHAPE, 'associations.json')
+    return value
 
 
 def regular(repo, relative):
@@ -180,7 +318,7 @@ def archive_map(path):
 
 def build_index(repo, archives):
     """The index rows of every locked registry package, read through the notice-only route."""
-    associations = load(repo, ASSOCIATIONS)
+    associations = load_associations(repo)
     archives = archive_map(archives)
     rows = []
     for (name, version, checksum), locks in sorted(registry_set(repo, associations).items()):
@@ -218,50 +356,23 @@ def app_texts(associations):
 
 def canonical(repository, what):
     """A repository field in its one accepted form; anything else refuses."""
-    require(isinstance(repository, str) and CANONICAL_REPOSITORY.fullmatch(repository) is not None
-            and not repository.endswith('.git'), f'{what} names a repository not in the form https://github.com/<owner>/<repository>: '
+    require(canonical_form(repository), f'{what} names a repository not in the form https://github.com/<owner>/<repository>: '
             + repr(repository))
     return repository
 
 
-def github_identity(url):
-    """owner/repository, lower-cased, of a GitHub URL as a crate manifest may spell it (with .git, a path or a slash)."""
-    match = re.fullmatch(r'https?://github\.com/([^/]+)/([^/#?]+?)(?:\.git)?(?:/.*)?', url or '')
-    return (match.group(1) + '/' + match.group(2)).lower() if match else None
-
-
-def positive(value):
-    return isinstance(value, int) and not isinstance(value, bool) and value > 0
-
-
-def file_identity(value, fields=('size_bytes', 'sha256')):
-    """A recorded file identity: a positive size and well-formed digests."""
-    return (isinstance(value, dict) and positive(value.get('size_bytes')) and HEX64.fullmatch(str(value.get('sha256'))) is not None
-            and ('git_blob_sha1' not in fields or HEX40.fullmatch(str(value.get('git_blob_sha1'))) is not None))
-
-
 def registry_sources(associations):
-    """Reviewed publisher-text associations for registry packages, by (name, version, checksum); provenance checked.
+    """Reviewed publisher-text associations for registry packages, by (name, version, checksum), after the provenance
+    checks below; the shape is already checked at load.
 
-    What the tool cannot see is the review boundary: a well-formed but wrong revision, another held text with consistent
-    digests, or a lock identity moved between associations is caught only by the review of associations.json."""
+    Enforced: each package's recorded archive VCS revision equals the association's revision; the archive's recorded
+    repository is the same GitHub repository (or, where it names none, the association states its basis); each text is
+    named as a notice by the archive route's rule, at a path that rule accepts; each text's blob and size equal the
+    recorded listing entry. The listing, the archive metadata and the publisher's tree are not read here: whether the
+    recorded values are true of them is the review of associations.json (see the README's review boundary)."""
     found = {}
-    for entry in associations.get('registry_sources', []):
-        require(isinstance(entry, dict) and set(entry) <= {'packages', 'repository', 'repository_basis', 'revision', 'listing', 'basis', 'texts'}
-                and {'packages', 'repository', 'revision', 'listing', 'basis', 'texts'} <= set(entry),
-                'unknown registry-source association shape')
-        canonical(entry['repository'], 'a registry-source association')
-        require(HEX40.fullmatch(str(entry['revision'])) is not None and isinstance(entry['basis'], str) and entry['basis'].strip(),
-                'a registry-source association needs its publisher revision and basis: ' + entry['repository'])
-        listing = entry['listing']
-        require(isinstance(listing, dict) and set(listing) == {'read', 'entries', 'response_sha256'} and isinstance(listing['read'], str)
-                and listing['read'].strip() and positive(listing['entries']) and HEX64.fullmatch(str(listing['response_sha256'])),
-                'a registry-source association needs its listing identity (read, entries, response_sha256): ' + entry['repository'])
-        require(entry['packages'], 'a registry-source association names no package: ' + entry['repository'])
-        require(entry['texts'], 'a registry-source association must have at least one text: ' + entry['repository'])
+    for entry in associations['registry_sources']:
         for text in entry['texts']:
-            require(set(text) == {'source_path', 'size_bytes', 'sha256', 'git_blob_sha1', 'listing_blob', 'listing_size'}
-                    and file_identity(text, ('size_bytes', 'sha256', 'git_blob_sha1')), 'unknown registry-source text shape: ' + entry['repository'])
             require(text['git_blob_sha1'] == text['listing_blob'] and text['size_bytes'] == text['listing_size'],
                     'a registry-source text is not the blob and size its listing names: ' + entry['repository'] + ' '
                     + text['source_path'])
@@ -269,13 +380,6 @@ def registry_sources(associations):
             require(route.is_notice(text['source_path']), 'a registry-source text is not named as a notice: ' + text['source_path'])
         inferred = False
         for package in entry['packages']:
-            require(isinstance(package, dict) and set(package) == {'name', 'version', 'checksum', 'path_in_vcs', 'archive_metadata',
-                                                                   'archive_vcs_revision', 'archive_repository'},
-                    'unknown registry-source package shape: ' + str(package.get('name') if isinstance(package, dict) else package))
-            metadata = package['archive_metadata']
-            require(isinstance(metadata, dict) and set(metadata) == {'Cargo.toml', '.cargo_vcs_info.json'}
-                    and all(set(v) == {'size_bytes', 'sha256'} and file_identity(v) for v in metadata.values()),
-                    'a registry-source package needs its archive Cargo.toml and .cargo_vcs_info.json identities: ' + package['name'])
             require(package['archive_vcs_revision'] == entry['revision'], 'the archive\'s VCS record names another revision than '
                     'the association: ' + package['name'])
             if package['archive_repository'] is None:
@@ -286,7 +390,7 @@ def registry_sources(associations):
             key = (package['name'], package['version'], package['checksum'])
             require(key not in found, 'two registry-source associations for ' + ' '.join(key[:2]))
             found[key] = entry
-        require(not inferred or (isinstance(entry.get('repository_basis'), str) and entry['repository_basis'].strip()),
+        require(not inferred or 'repository_basis' in entry,
                 'an archive that names no repository needs the association\'s stated basis: ' + entry['repository'])
     return found
 
@@ -294,7 +398,7 @@ def registry_sources(associations):
 def keyed(associations, collection):
     """{(name, version, checksum): entry} for a per-package collection; a repeated package refuses."""
     found = {}
-    for entry in associations.get(collection, []):
+    for entry in associations[collection]:
         for package in entry.get('packages', [entry]):
             key = (package['name'], package['version'], package['checksum'])
             require(key not in found, f'{collection} names {key[0]} {key[1]} twice')
@@ -304,8 +408,9 @@ def keyed(associations, collection):
 
 TABLE_KIND = {'dependencies': 'normal', 'dev-dependencies': 'dev', 'dev_dependencies': 'dev', 'build-dependencies': 'build',
               'build_dependencies': 'build'}
-TARGET_TABLE = re.compile(r"^\[target\.(?:'(?P<quoted>[^']*)'|\"(?P<dquoted>[^\"]*)\"|(?P<bare>[A-Za-z0-9_.-]+?))\."
-                          r"(?P<table>dependencies|dev-dependencies|build-dependencies)(?:\.(?P<dependency>[A-Za-z0-9_-]+))?\]$")
+# What a workspace manifest's recorded licence must say when it inherits the workspace's: the root is not held, so the
+# value is not stated.
+INHERITED_LICENCE = 'inherited from the workspace (license.workspace = true); the workspace root manifest is not held'
 
 
 def target_holds(spec, target=MACOS_TARGET):
@@ -323,26 +428,26 @@ def target_holds(spec, target=MACOS_TARGET):
     return spec == target
 
 
-def header_target(table):
-    """(target key, edge kind, dependency named by a dotted table) of a recorded target table header."""
-    match = TARGET_TABLE.fullmatch(table)
-    require(match is not None, 'not a target-specific dependency table: ' + table)
-    spec = next(match.group(g) for g in ('quoted', 'dquoted', 'bare') if match.group(g) is not None)
-    return spec, TABLE_KIND[match.group('table')], match.group('dependency')
+def may_hold(spec):
+    """For an inherited key: whether its table's condition may hold for the macOS target. No condition, or a form
+    outside the closed set, may hold."""
+    if spec is None:
+        return True
+    try:
+        return target_holds(spec)
+    except ValueError:
+        return True
 
 
-def declarations(manifest, name):
-    """Every declaration of `name` in a parsed manifest: [(target key or None, kind)], by key or by `package =` rename."""
+def dependency_tables(manifest):
+    """[(target key or None, kind, table)] for every dependency table of a parsed manifest, target-specific or not."""
     found = []
 
     def scan(tables, spec):
         for table_name, kind_ in TABLE_KIND.items():
-            table = tables.get(table_name, {})
-            require(isinstance(table, dict), 'a dependency table is not a table: ' + table_name)
-            for key, value in table.items():
-                renamed = value.get('package') if isinstance(value, dict) else None
-                if (renamed or key) == name:
-                    found.append((spec, kind_))
+            if table_name in tables:
+                require(isinstance(tables[table_name], dict), 'a dependency table is not a table: ' + table_name)
+                found.append((spec, kind_, tables[table_name]))
     scan(manifest, None)
     targets = manifest.get('target', {})
     require(isinstance(targets, dict), 'the manifest\'s target table is not a table')
@@ -352,52 +457,111 @@ def declarations(manifest, name):
     return found
 
 
+def classify(manifest):
+    """(explicit, inherited): every dependency entry of every table, as [(target key, kind, package name)] for entries
+    that name their package (by key, or by `package =`), and [(target key, kind, key)] for entries inherited from the
+    workspace (`workspace = true`, dotted or inline), whose package only the workspace root names."""
+    explicit, inherited = [], []
+    for spec, kind_, table in dependency_tables(manifest):
+        for key, value in table.items():
+            if isinstance(value, dict) and 'workspace' in value:
+                require(value['workspace'] is True and 'package' not in value, 'an inherited dependency in an unsupported form: ' + key)
+                inherited.append((spec, kind_, key))
+            else:
+                name = value.get('package', key) if isinstance(value, dict) else key
+                require(type(name) is str and name != '', 'a dependency names no package: ' + key)
+                explicit.append((spec, kind_, name))
+    return explicit, inherited
+
+
+def inherits(value):
+    """Whether any table of a parsed manifest uses workspace inheritance (`workspace = true`)."""
+    if isinstance(value, dict):
+        return value.get('workspace') is True or any(inherits(v) for v in value.values())
+    if isinstance(value, list):
+        return any(inherits(v) for v in value)
+    return False
+
+
+def declared_licence(manifest):
+    """What a parent manifest's recorded licence must say: its package.license, or INHERITED_LICENCE."""
+    licence = manifest.get('package', {}).get('license')
+    if licence == {'workspace': True}:
+        return INHERITED_LICENCE
+    require(type(licence) is str and licence.strip(), 'a parent manifest states no licence')
+    return licence
+
+
 def manifests(repo, associations):
-    """The committed parent manifests by id, each a regular file equal to its recorded identity."""
+    """The committed parent manifests by id, each a regular file equal to its recorded identity, with its recorded
+    licence equal to what it states."""
     found = {}
-    for item in associations.get('manifests', []):
-        require(isinstance(item, dict) and set(item) == {'id', 'path', 'size_bytes', 'sha256', 'git_blob_sha1', 'binding',
-                                                         'declared_license', 'source', 'notice'}
-                and file_identity(item, ('size_bytes', 'sha256', 'git_blob_sha1')) and item['id'] not in found
-                and item['path'].startswith(BASE + '/manifests/'), 'unknown or repeated parent manifest entry: ' + str(item.get('id')))
+    for item in associations['manifests']:
+        require(item['id'] not in found and item['path'].startswith(BASE + '/manifests/'),
+                'a parent manifest entry is repeated or outside crates/manifests/: ' + item['id'])
         raw = regular(repo, item['path'])
         require((len(raw), sha256(raw), git_blob(raw)) == (item['size_bytes'], item['sha256'], item['git_blob_sha1']),
                 'a committed parent manifest differs from its recorded identity: ' + item['path'])
         source = item['source']
-        if source.get('kind') == 'registry-archive-member':
-            require(set(source) == {'kind', 'name', 'version', 'checksum', 'member'} and source['member'] == 'Cargo.toml'
-                    and HEX64.fullmatch(str(source['checksum'])), 'unknown registry manifest source: ' + item['id'])
-        else:
-            require(source.get('kind') == 'workspace-file' and set(source) == {'kind', 'repository', 'revision', 'source_path'}
-                    and HEX40.fullmatch(str(source['revision'])) and source['source_path'].endswith('Cargo.toml'),
-                    'unknown workspace manifest source: ' + item['id'])
-            canonical(source['repository'], 'a workspace manifest')
-        found[item['id']] = (item, raw)
+        if source['kind'] == 'workspace-file':
+            require(source['source_path'].endswith('Cargo.toml'), 'a workspace manifest is not a Cargo.toml: ' + item['id'])
+        manifest = tomllib.loads(raw.decode())
+        require(item['declared_license'] == declared_licence(manifest), 'a parent manifest\'s recorded licence differs from what '
+                'it states: ' + item['id'] + ' records ' + repr(item['declared_license']) + ', the manifest '
+                + repr(declared_licence(manifest)))
+        found[item['id']] = (item, raw, manifest)
     return found
+
+
+def admission(parent_kind, manifest, explicit, inherited, lock_dependencies, name):
+    """Why no declaration the manifest leaves unnamed can be `name` under a condition that may hold for macOS.
+
+    A published registry manifest has no workspace inheritance, so every declaration is explicit. A workspace member's
+    inherited keys name their packages only in the workspace root manifest, which is not held, so one of two rules must
+    hold, computed from the committed manifest and lockfile alone:
+    (i) every inherited key sits under a condition false for macOS, so whatever it resolves to is absent there; or
+    (ii) counting: let L be the distinct package names the lockfile records as this package's dependencies, E the names
+    the manifest declares explicitly, and I the distinct inherited keys. Every name in L is declared by the manifest, so
+    each name in L outside E comes from at least one inherited key, and each key resolves to one name. If E is within L,
+    `name` is in E, and |I| equals the number of names in L outside E, the keys are used up by those names one each, and
+    none is left to resolve to a name in E, `name` included."""
+    if parent_kind == 'registry':
+        require(not inherits(manifest), 'a registry manifest uses workspace inheritance, which a published Cargo.toml does not')
+        return {'rule': 'registry manifest', 'basis': 'a published Cargo.toml has no workspace inheritance; every declaration '
+                                                       'is explicit'}
+    if all(not may_hold(spec) for spec, _, _ in inherited):
+        return {'rule': 'i', 'basis': 'every inherited dependency sits under a condition false for ' + MACOS_TARGET,
+                'inherited_keys': len({k for _, _, k in inherited})}
+    names = {n for _, _, n in explicit}
+    keys = {k for _, _, k in inherited}
+    if names <= lock_dependencies and name in names and len(keys) == len(lock_dependencies - names):
+        return {'rule': 'ii', 'basis': 'the inherited keys equal in number the lockfile dependencies the manifest does not name '
+                                       'explicitly, so none resolves to ' + name,
+                'lockfile_dependencies': len(lock_dependencies), 'explicit_names': len(names), 'inherited_keys': len(keys)}
+    raise ValueError(f'{name} may be an inherited dependency under a condition that holds for {MACOS_TARGET}; the workspace '
+                     'root manifest that would show what the inherited keys resolve to is not held')
 
 
 def absence(entry, lock, packages, reverse, parents):
     """Absence from the macOS target, derived from the parent manifests themselves.
 
     The recorded reverse dependencies must equal the lockfile's. Each names its committed manifest, which must be the
-    locked archive's Cargo.toml (by checksum) or the workspace file at the lockfile's repository and revision. Every
-    declaration of the package in every dependency table of that manifest is found by parsing it, and each must sit under
-    a target key that is false for the macOS target. The recorded edge lines are a cross-check that must equal the
-    declarations found and the manifest's own lines, not the evidence."""
-    require(set(entry) == {'lock', 'name', 'version', 'checksum', 'target', 'reverse_dependencies'} and entry['target'] == MACOS_TARGET,
-            'unknown not-in-macOS-package shape: ' + str(entry.get('name')))
+    locked archive's Cargo.toml (by name, version and lockfile checksum) or the workspace file at the lockfile's repository
+    and revision. Every explicit declaration of the package in every dependency table is found by parsing the manifest,
+    and each must sit under a target key false for the macOS target; `admission` shows that no inherited key can be it.
+    The recorded declarations must equal those found; they are a cross-check, not the evidence."""
+    require(entry['lock'] == lock['id'], 'not-in-macOS-package names another lockfile: ' + entry['name'])
     key = (entry['name'], entry['version'])
     require(key in packages and packages[key].get('checksum') == entry['checksum'], 'not-in-macOS-package names no locked '
             'package with that checksum: ' + ' '.join(key))
     recorded = [(r['name'], r['version']) for r in entry['reverse_dependencies']]
-    require(len(recorded) == len(set(recorded)) and set(recorded) == reverse.get(key, set()) and recorded,
+    require(len(recorded) == len(set(recorded)) and set(recorded) == reverse.get(key, set()),
             'the recorded reverse dependencies of ' + ' '.join(key) + ' differ from the lockfile\'s: recorded '
             + str(sorted(recorded)) + ', lockfile ' + str(sorted(reverse.get(key, set()))))
     evidence = []
     for dependent in entry['reverse_dependencies']:
-        require(set(dependent) == {'name', 'version', 'manifest', 'edges'}, 'unknown reverse dependency shape: ' + str(dependent.get('name')))
         require(dependent['manifest'] in parents, 'a reverse dependency names no committed manifest: ' + dependent['name'])
-        item, raw = parents[dependent['manifest']]
+        item, raw, manifest = parents[dependent['manifest']]
         source, parent = item['source'], packages[(dependent['name'], dependent['version'])]
         if kind(parent) == 'registry':
             require(source['kind'] == 'registry-archive-member' and (source['name'], source['version'], source['checksum'])
@@ -407,30 +571,21 @@ def absence(entry, lock, packages, reverse, parents):
             require(kind(parent) == 'path' and source['kind'] == 'workspace-file'
                     and (source['repository'], source['revision']) == (lock['repository'], lock['revision']),
                     'the workspace manifest is not at the lockfile\'s repository and revision: ' + dependent['name'])
-        text = raw.decode()
-        manifest = tomllib.loads(text)
         require(manifest.get('package', {}).get('name') == dependent['name'], 'the manifest is another package\'s: ' + dependent['name'])
-        found = declarations(manifest, entry['name'])
+        explicit, inherited = classify(manifest)
+        found = sorted(((spec, k) for spec, k, n in explicit if n == entry['name']), key=lambda d: (d[0] or '', d[1]))
         require(found, 'the manifest declares no dependency on ' + entry['name'] + ': ' + dependent['name'])
         for spec, _ in found:
             require(spec is not None, f'{entry["name"]} is declared without a target condition by {dependent["name"]}')
             require(not target_holds(spec), f'{entry["name"]} {entry["version"]} is declared for {MACOS_TARGET} by '
                     f'{dependent["name"]}: target {spec}')
-        lines = text.splitlines()
-        claimed = []
-        for edge in dependent['edges']:
-            require(set(edge) == {'table', 'table_line', 'line', 'text', 'kind'} and positive(edge['table_line'])
-                    and positive(edge['line']) and edge['line'] >= edge['table_line'] and edge['line'] <= len(lines),
-                    'unknown edge shape: ' + dependent['name'])
-            require(lines[edge['table_line'] - 1].strip() == edge['table'] and lines[edge['line'] - 1].strip() == edge['text'],
-                    'a recorded edge line differs from the manifest: ' + dependent['name'] + ' line ' + str(edge['line']))
-            spec, edge_kind, _ = header_target(edge['table'])
-            require(edge['kind'] == edge_kind, 'the edge kind differs from its table: ' + dependent['name'])
-            claimed.append((spec, edge_kind))
-        require(sorted(claimed) == sorted(found), 'the recorded edges differ from the declarations the manifest gives: '
-                + dependent['name'] + ' recorded ' + str(sorted(claimed)) + ', manifest ' + str(sorted(found)))
+        lock_dependencies = {d.split(' ')[0] for d in parent.get('dependencies', [])}
+        rule = admission(kind(parent), manifest, explicit, inherited, lock_dependencies, entry['name'])
+        claimed = sorted(((d['target'], d['kind']) for d in dependent['declarations']), key=lambda d: (d[0] or '', d[1]))
+        require(claimed == found, 'the recorded declarations differ from those the manifest gives: ' + dependent['name']
+                + ' recorded ' + str(claimed) + ', manifest ' + str(found))
         evidence.append({'name': dependent['name'], 'version': dependent['version'], 'manifest': item['path'],
-                         'declarations': [{'target': spec, 'kind': k} for spec, k in sorted(found)]})
+                         'declarations': [{'target': spec, 'kind': k} for spec, k in found], 'inherited_dependencies': rule})
     return {'target': MACOS_TARGET, 'reverse_dependencies': evidence}
 
 
@@ -450,33 +605,46 @@ def reverse_dependencies(packages):
 
 
 def parent_notices(item, rows_by_key, workspaces):
-    """A parent manifest ships under a notice the account already carries: the crate's own row stands text with exactly
-    the recorded texts, or, for a workspace file, the workspace texts of its lockfile."""
+    """A parent manifest ships under a notice the account already carries: the crate's own row (named by the recorded
+    crate_row, which must be that crate) stands text with exactly the recorded texts, or, for a workspace file, the
+    workspace texts of its lockfile."""
     notice, source = item['notice'], item['source']
     if source['kind'] == 'registry-archive-member':
+        require('crate_row' in notice and notice['crate_row'] == f'{source["name"]} {source["version"]}',
+                'a parent manifest\'s notice names another crate than its source: ' + item['id'])
         row = rows_by_key.get((source['name'], source['version'], source['checksum']))
-        require(row is not None and row['standing'] == 'text' and set(notice) == {'crate_row', 'texts'}
+        require(row is not None and row['standing'] == 'text'
                 and [{k: t[k] for k in ('member', 'sha256')} for t in row['texts'] if 'member' in t] == notice['texts']
                 and len(notice['texts']) == len(row['texts']),
                 'a parent manifest\'s crate does not stand text with the recorded licence texts: ' + item['id'])
     else:
         texts = [t['path'] for w in workspaces if (w['repository'], w['revision']) == (source['repository'], source['revision'])
                  for t in w['texts']]
-        require(set(notice) == {'workspace_texts'} and texts and notice['workspace_texts'] == texts,
+        require('workspace_texts' in notice and texts and notice['workspace_texts'] == texts,
                 'a workspace manifest is not covered by its workspace\'s shipped texts: ' + item['id'])
 
 
 def verify_manifests(repo, archives):
-    """Archive-reading mode: each committed registry manifest equals the Cargo.toml member of its checksum-verified archive."""
-    associations = load(repo, ASSOCIATIONS)
+    """Archive-reading mode: each committed registry manifest equals the Cargo.toml member of the archive whose SHA-256
+    equals the checksum the lockfile locks for that name and version (never the association's own checksum)."""
+    associations = load_associations(repo)
     archives = archive_map(archives)
+    locked_checksums = {}
+    for lock in associations['locks']:
+        for key, package in locked(repo, lock).items():
+            if kind(package) == 'registry':
+                locked_checksums.setdefault(key, set()).add(package['checksum'])
     checked = []
-    for item, raw in manifests(repo, associations).values():
+    for item, raw, _ in manifests(repo, associations).values():
         source = item['source']
         if source['kind'] != 'registry-archive-member':
             continue
+        checksums = locked_checksums.get((source['name'], source['version']), set())
+        require(len(checksums) == 1, 'no lockfile locks one archive for ' + item['id'])
+        [checksum] = checksums
+        require(source['checksum'] == checksum, 'a parent manifest records another checksum than the lockfile: ' + item['id'])
         archive = Path(archives[f'{source["name"]}-{source["version"]}.crate']).read_bytes()
-        member = route.read_member(archive, (source['name'], source['version']), source['checksum'], source['member'])
+        member = route.read_member(archive, (source['name'], source['version']), checksum, source['member'])
         require(member == raw, 'a committed manifest differs from its archive\'s Cargo.toml: ' + item['id'])
         checked.append(item['id'])
     return {'manifests_equal_to_archive_members': checked}
@@ -484,7 +652,7 @@ def verify_manifests(repo, archives):
 
 def wanted_texts(repo):
     """sha256 -> (size, where the bytes come from) for every crate text the group ships."""
-    associations, index = load(repo, ASSOCIATIONS), load(repo, INDEX)
+    associations, index = load_associations(repo), load(repo, INDEX)
     wanted = {}
 
     def want(digest, size, source):
@@ -513,7 +681,7 @@ def wanted_texts(repo):
 def entries(repo):
     """Every locked package of both lockfiles, with its texts (by digest or committed path) or its gap."""
     repo = Path(repo)
-    associations, index = load(repo, ASSOCIATIONS), load(repo, INDEX)
+    associations, index = load_associations(repo), load(repo, INDEX)
     require(index.get('format') == FORMAT and index.get('pin') == associations['pin'], 'crate index is for another pin or format')
     by_key = {(r['package'], r['version'], r['checksum']): r for r in index['registry']}
     require(len(by_key) == len(index['registry']), 'crate index repeats a package')
@@ -522,11 +690,11 @@ def entries(repo):
             + str(sorted(set(expected) - set(by_key))[:5]) + ', extra ' + str(sorted(set(by_key) - set(expected))[:5]))
     for key, locks in expected.items():
         require(by_key[key]['locks'] == sorted(locks), 'crate index names other lockfiles for ' + ' '.join(key[:2]))
-    # Every repository field of every association is in its one canonical form.
+    # Every repository field of every association is in its one canonical form (also part of the shape check at load).
     for lock in associations['locks']:
         canonical(lock['repository'], 'lockfile association ' + lock['id'])
-    for collection in ('workspaces', 'git_sources', 'app_texts', 'no_publisher_text'):
-        for item in associations.get(collection, []):
+    for collection in ('workspaces', 'git_sources', 'app_texts', 'registry_sources', 'no_publisher_text'):
+        for item in associations[collection]:
             canonical(item['repository'], collection + ' entry')
     reused = app_texts(associations)
     published = registry_sources(associations)
@@ -622,6 +790,14 @@ def entries(repo):
                 row.update(repository=workspace['repository'], revision=workspace['revision'],
                            texts=[{'file': t['path'], 'sha256': t['sha256'], 'size_bytes': t['size_bytes']} for t in workspace['texts']],
                            standing='text', basis=workspace['basis'])
+            if row['source_kind'] != 'registry':
+                # The independent guard applies after every route: a Git or workspace row carrying the overview text, or
+                # from the objc2 repository, is held as a registry row would be.
+                reading = hold_for_reading(row, (name, version, None), row['repository'])
+                if reading is not None:
+                    row.update(standing='held', reason=reading['reason'])
+                    if reading.get('awaiting'):
+                        row['awaiting_reading'] = reading['awaiting']
             require(row['standing'] != 'text' or row['texts'], 'a text package must have at least one text: ' + name + ' ' + version)
             require(row['standing'] != 'held' or row['texts'] or (row['name'], row['version'], row.get('checksum')) in HELD_FOR_READING,
                     'a held package must have at least one text: ' + name + ' ' + version)
@@ -638,13 +814,15 @@ def entries(repo):
     stale = sorted(HELD_FOR_READING - listed_seen)
     require(not stale, 'a package listed for the owner\'s objc2 reading is locked by no lockfile: ' + str(stale[:3]))
     rows_by_key = {(r['name'], r['version'], r.get('checksum')): r for r in rows}
-    for item, _ in parents.values():
+    cited = {d['manifest'] for e in associations['not_in_macos_package'] for d in e['reverse_dependencies']}
+    require(cited == set(parents), 'a committed parent manifest is cited by no reverse dependency: ' + str(sorted(set(parents) - cited)))
+    for item, _, _ in parents.values():
         parent_notices(item, rows_by_key, associations['workspaces'])
     return rows
 
 
 def hold_for_reading(row, key, repository):
-    """Whether a registry package is held for the owner's objc2 reading, and why; None when it is not.
+    """Whether a package (by any route) is held for the owner's objc2 reading, and why; None when it is not.
 
     A listed package is held whatever text, spelling or route its row gives it. If its row does not carry the overview text
     it stays open too: no accepted evidence in this change establishes another text for it, and no substitution covers it.
@@ -664,7 +842,7 @@ def hold_for_reading(row, key, repository):
         found = ('another text (sha256 ' + ', '.join(d[:12] for d in digests) + ')') if digests else 'no text'
         return {'reason': 'listed for the owner\'s reading of the objc2 overview text, but this row carries ' + found + ' instead '
                 'of that text; no accepted evidence establishes another notice for this package, so it stays open'}
-    if carries or (repository is not None and repository in READING_REPOSITORIES):
+    if carries or github_identity(repository) in {github_identity(r) for r in READING_REPOSITORIES}:
         return {'awaiting': awaiting if carries else None,
                 'reason': 'not on the named list for the owner\'s objc2 reading, but its row ' + ('carries the objc2 overview text'
                           if carries else 'comes from ' + OBJC2_REPOSITORY) + '; held until the list and the reading cover it'}
@@ -674,7 +852,7 @@ def hold_for_reading(row, key, repository):
 def check_texts(repo):
     """texts/ holds exactly the wanted digests, each once, as regular files with those bytes."""
     repo = Path(repo)
-    associations = load(repo, ASSOCIATIONS)
+    associations = load_associations(repo)
     for workspace in associations['workspaces']:
         for text in workspace['texts']:
             raw = regular(repo, text['path'])
@@ -720,7 +898,7 @@ def package_path(repo, text, store):
 
 def packages(repo=REPO):
     """The shipped per-package account: every locked package with its standing and where each text ships (derived)."""
-    associations = load(repo, ASSOCIATIONS)
+    associations = load_associations(repo)
     store = set(wanted_texts(repo))
     rows = []
     for row in entries(repo):
@@ -761,7 +939,7 @@ def check(repo=REPO):
 
 def group(repo, component):
     """For one compiled-dependencies component: its lockfile association, its packages and the store texts it ships."""
-    associations = load(repo, ASSOCIATIONS)
+    associations = load_associations(repo)
     locks = [lock for lock in associations['locks'] if lock['component'] == component]
     if not locks:
         return None
@@ -774,7 +952,7 @@ def group(repo, component):
 def extract(repo, archives, received):
     """Write texts/ from the archives (checked against the index), the App's held files and the received Git texts."""
     repo = Path(repo)
-    associations, index = load(repo, ASSOCIATIONS), load(repo, INDEX)
+    associations, index = load_associations(repo), load(repo, INDEX)
     archives = archive_map(archives)
     entries(repo)
     root = repo / TEXTS

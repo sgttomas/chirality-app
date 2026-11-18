@@ -300,10 +300,11 @@ def build(repo=REPO, vendor=None):
     tree = {e['path']: e for e in record['inventory']['entries'] if e['kind'] == 'file'}
     reviewed = table['reviewed_for_pin'] == pin
     by_path = {t['path']: t for t in texts.supplier_texts(repo)}
-    # The voice rows (texts inside the supplier tree) are compared with the supplier's own voice records for this pin;
-    # any disagreement refuses. A row is covered only when the comparison established its version and source URL.
+    # The voice rows (any component with a member or text under the voice folder, however its row is written) are
+    # compared with the supplier's own voice records for this pin; any disagreement refuses. A voice row is covered only
+    # when the comparison established its version and source URL and it ships only its texts from the supplier tree.
     require(table['voice_sources']['path'] == voice_records.MEMBERS['sources.json'], 'the table names another voice sources member')
-    voice = voice_records.establish(repo, pin, record, [c for c in table['components'] if c['supplier_tree_texts']]) if reviewed else None
+    voice = voice_records.establish(repo, pin, record, [c for c in table['components'] if voice_records.is_voice(c)]) if reviewed else None
     for path in (voice or {}).get('records', {}).values():
         digest(path)
     claimed = {}
@@ -371,14 +372,23 @@ def build(repo=REPO, vendor=None):
             # Checked before any text or exception: a component without its own identity has nothing to match texts to.
             add(entry, UNCOVERED, reason='the component\'s own identity is incomplete: ' + '; '.join(identity_gaps(item)),
                 would_close='record the component\'s repository (or, for a supplier-tree text, its source URL) and revision')
+        elif voice_records.is_voice(item) and item['standing'] == 'covered' and voice is None:
+            add(entry, UNCOVERED, reason=f'the supplier\'s voice records for {pin} are not held, so this row\'s version and source are '
+                                         'not established by them',
+                would_close=f'commit the pin\'s voice/sources.json and voice/manifest.json under {voice_records.RECORDS}/{pin}/')
+        elif voice_records.is_voice(item) and item['standing'] == 'covered' and (
+                item['texts'] or item.get('text_exceptions') or not item['supplier_tree_texts']):
+            add(entry, UNCOVERED, reason='a voice component is covered only by its licence texts in the supplier tree, with its '
+                                         'source established by the voice records; this row names another text or route',
+                would_close='name the component\'s licence texts under the voice folder (supplier_tree_texts) and no other text')
         elif item['standing'] == 'covered' and foreign:
             add(entry, UNCOVERED, reason='a shipped text records another repository or revision than the component: ' + ', '.join(foreign),
                 would_close='ship the component\'s own texts, or name each other text as an exception with its reason')
         elif item['standing'] == 'covered' and not item['texts'] and not item['supplier_tree_texts']:
             raise ValueError('covered supplier component ships no text: ' + item['id'])
         elif item['supplier_tree_texts'] and item['standing'] == 'covered' and voice is None:
-            add(entry, UNCOVERED, reason=f'the supplier\'s voice records for {pin} are not held, so this row\'s version and source are '
-                                         'not established by them',
+            add(entry, UNCOVERED, reason=f'the supplier\'s voice records for {pin} are not held, so this row\'s source is not '
+                                         'established by them',
                 would_close=f'commit the pin\'s voice/sources.json and voice/manifest.json under {voice_records.RECORDS}/{pin}/')
         elif item['id'] in SUPPLIER_READINGS and not (item['standing'] == 'covered' and supplier_reading_valid(reading, item['id'])):
             add(entry, HELD, reason=item.get('reason') or 'the held text ships; its adequacy awaits the owner\'s licence reading'
@@ -387,7 +397,8 @@ def build(repo=REPO, vendor=None):
             add(entry, COVERED, basis=f'owner licence reading ({reading["date"]}): {reading["answer"]}; the text recorded at the '
                                       'component\'s own repository and revision ships unchanged')
         elif item['standing'] == 'covered':
-            if item['supplier_tree_texts']:
+            if voice_records.is_voice(item):
+                require(item['id'] in voice['rows'], 'a voice row is not established by the voice records: ' + item['id'])
                 entry['source_statement'] = {**voice['rows'][item['id']], 'records': sorted(voice['records'].values())}
             add(entry, COVERED, basis='texts recorded at the component\'s own repository and revision' if item['texts']
                 else 'licence texts the supplier ships in its tree, identified by the distribution record\'s digests; the '
@@ -714,7 +725,7 @@ def check_vendor(vendor, table, tree, pin, record):
             require(sha((vendor / path).read_bytes()) == entry['sha256'], 'vendor file differs from the record: ' + path)
     voice_records.compare((vendor / voice_records.MEMBERS['sources.json']).read_bytes(),
                           (vendor / voice_records.MEMBERS['manifest.json']).read_bytes(), pin, record,
-                          [c for c in table['components'] if c['supplier_tree_texts']])
+                          [c for c in table['components'] if voice_records.is_voice(c)])
 
 
 def check(repo=REPO, vendor=None, base_account=None):

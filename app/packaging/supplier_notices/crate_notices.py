@@ -61,6 +61,12 @@ def git_blob(raw):
 NOTICE_FOLDER = re.compile(r'^licen[cs]es?$', re.I)
 
 
+def safe_relative(path):
+    """The member path rule: a relative path with no backslash and no empty, `.` or `..` segment (so not absolute).
+    crates.py applies the same rule to every repository-relative path in its curated inputs."""
+    return type(path) is str and path != '' and '\\' not in path and all(p not in ('', '.', '..') for p in path.split('/'))
+
+
 def is_notice(path):
     """True for a member path, at any depth, whose file name is a notice name or which sits in a licence folder
     (such as `LICENSES/`), and which is not a source, data or build file."""
@@ -157,9 +163,7 @@ def _members(raw, package, opener=gzip.GzipFile):
             relative = path[len(prefix):]
             if kind == DIRECTORY and relative == '':
                 continue
-            parts = relative.split('/')
-            require(relative and '\\' not in relative and all(p not in ('', '.', '..') for p in parts),
-                    'unsafe member path: ' + name)
+            require(safe_relative(relative), 'unsafe member path: ' + name)
             key = relative.casefold()
             require(key not in folded, 'archive repeats a member, or has two names equal ignoring case: '
                     + relative + ' and ' + folded.get(key, relative))

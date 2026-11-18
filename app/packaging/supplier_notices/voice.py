@@ -10,7 +10,7 @@ distribution archive: `codex-resources/voice/sources.json` (each library's versi
 - a repeated JSON key or any shape other than the one below refuses;
 - the manifest's build commit, version and targets equal the record's source commit, the pin and the supported target,
   and every digest it lists equals that member's digest in the record;
-- every voice row (a component with texts inside the supplier tree) is established by exactly one native-library entry of
+- every voice row (a component with any member or text in the voice library, plugin or licence folders) is established by exactly one native-library entry of
   sources.json with its URL and version, every native-library entry establishes exactly one row, and each row's members
   and texts are files the manifest lists. A repeated or conflicting entry, or two rows for one entry, refuses; nothing is
   collapsed.
@@ -31,6 +31,15 @@ RECORDS = 'app/packaging/supplier_notices/voice_records'
 # The copy in voice_records/<pin>/ -> the member of the supplier tree it is a copy of.
 MEMBERS = {'sources.json': 'codex-resources/voice/sources.json', 'manifest.json': 'codex-resources/voice/manifest.json'}
 SUPPORTED_TARGET = 'aarch64-apple-darwin'
+# Where the bundled voice libraries sit in the supplier tree: their libraries, plugins and licence texts. A component with
+# any member or text in these folders is a voice component, however its row is written: it is covered only through this
+# comparison, with its source statement (notices/coverage.py). The voice folder's other files (the voice host, NOTICE.md
+# and the two records) are the supplier's own and belong to its Codex row.
+FOLDERS = ('codex-resources/voice/lib/', 'codex-resources/voice/plugins/', 'codex-resources/voice/licenses/')
+
+
+def is_voice(component):
+    return any(m.startswith(FOLDERS) for m in component['members'] + component['supplier_tree_texts'])
 SOURCE_FIELDS = {'name', 'version', 'role', 'archive', 'root', 'url', 'sha256', 'provenance'}
 ROLES = {'build-tool', 'native-library'}
 HEX64 = re.compile('[0-9a-f]{64}')
@@ -55,20 +64,25 @@ def strict_json(raw, what):
 
 
 def text(value):
-    return isinstance(value, str) and value.strip() != ''
+    return type(value) is str and value.strip() != ''
+
+
+def digest(value, pattern):
+    return type(value) is str and pattern.fullmatch(value) is not None
 
 
 def parse_sources(raw):
     value = strict_json(raw, 'sources.json')
-    require(isinstance(value, dict) and set(value) == {'schema_version', 'sources', 'bundled_sources'}
-            and value['schema_version'] == 1 and isinstance(value['sources'], list) and isinstance(value['bundled_sources'], list),
+    require(type(value) is dict and set(value) == {'schema_version', 'sources', 'bundled_sources'}
+            and type(value['schema_version']) is int and value['schema_version'] == 1 and type(value['sources']) is list
+            and type(value['bundled_sources']) is list,
             'sources.json has an unsupported shape')
     for entry in value['sources']:
-        require(isinstance(entry, dict) and set(entry) == SOURCE_FIELDS and all(text(entry[k]) for k in SOURCE_FIELDS)
-                and entry['role'] in ROLES and entry['url'].startswith('https://') and HEX64.fullmatch(entry['sha256']),
+        require(type(entry) is dict and set(entry) == SOURCE_FIELDS and all(text(entry[k]) for k in SOURCE_FIELDS)
+                and entry['role'] in ROLES and entry['url'].startswith('https://') and digest(entry['sha256'], HEX64),
                 'sources.json has an unsupported source entry: ' + str(entry.get('name') if isinstance(entry, dict) else entry))
     for entry in value['bundled_sources']:
-        require(isinstance(entry, dict) and set(entry) == {'name', 'included_by', 'revision', 'path', 'provenance'}
+        require(type(entry) is dict and set(entry) == {'name', 'included_by', 'revision', 'path', 'provenance'}
                 and all(text(entry[k]) for k in entry), 'sources.json has an unsupported bundled source entry')
     for field, entries in (('name', value['sources']), ('url', value['sources']), ('name', value['bundled_sources'])):
         values = [e[field] for e in entries]
@@ -79,10 +93,10 @@ def parse_sources(raw):
 
 def parse_manifest(raw):
     value = strict_json(raw, 'manifest.json')
-    require(isinstance(value, dict) and set(value) == {'schemaVersion', 'buildCommit', 'appTarget', 'voiceTarget', 'appVersion', 'sha256'}
-            and value['schemaVersion'] == 1 and isinstance(value['buildCommit'], str) and HEX40.fullmatch(value['buildCommit'])
-            and all(text(value[k]) for k in ('appTarget', 'voiceTarget', 'appVersion')) and isinstance(value['sha256'], dict)
-            and value['sha256'] and all(text(k) and isinstance(v, str) and HEX64.fullmatch(v) for k, v in value['sha256'].items()),
+    require(type(value) is dict and set(value) == {'schemaVersion', 'buildCommit', 'appTarget', 'voiceTarget', 'appVersion', 'sha256'}
+            and type(value['schemaVersion']) is int and value['schemaVersion'] == 1 and digest(value['buildCommit'], HEX40)
+            and all(text(value[k]) for k in ('appTarget', 'voiceTarget', 'appVersion')) and type(value['sha256']) is dict
+            and value['sha256'] and all(text(k) and digest(v, HEX64) for k, v in value['sha256'].items()),
             'manifest.json has an unsupported shape')
     return value
 
