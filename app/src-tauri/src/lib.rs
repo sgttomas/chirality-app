@@ -1731,7 +1731,7 @@ fn request_quit(app: tauri::AppHandle) {
         });
         let decision = app_quit::quit_sequence(&mut ops, app_quit::QUIT_WAIT_LIMIT);
         if let app_quit::Decision::NotAsked(outcome) = &decision {
-            eprintln!("chirality: {}", outcome["reading"].as_str().unwrap_or("quit question not shown"));
+            eprintln!("chirality: {}", outcome["reading"].as_str().unwrap_or("no usable answer to the Quit question"));
         }
         match state.app_quit.allow(&decision, |ids| app_quit::finish_exit(&homes, Some(ids.to_vec()))) {
             Ok(true) => app.exit(0),

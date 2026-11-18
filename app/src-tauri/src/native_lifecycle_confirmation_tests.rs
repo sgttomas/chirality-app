@@ -158,15 +158,36 @@ fn mock_window() -> (tauri::App<tauri::test::MockRuntime>, tauri::Window<tauri::
 fn a_fault_in_posted_work_is_contained_and_sent_as_the_refusal() {
     let (_app, window) = mock_window();
     let (send, receive) = mpsc::channel::<Result<bool, String>>();
-    post(&window, send, |_send| panic!("injected fault on the executing side")).unwrap();
+    post(&window, send.clone(), send, |_send| panic!("injected fault on the executing side")).unwrap();
     assert_eq!(receive.recv().unwrap().unwrap_err(), FAULTED);
     assert!(receive.recv().is_err(), "one result, and no Ok");
     let (send, receive) = mpsc::channel::<Result<bool, String>>();
-    post(&window, send, |send| {
+    post(&window, send.clone(), send, |send| {
         let _ = send.send(Ok(false));
     })
     .unwrap();
     assert_eq!(receive.recv().unwrap(), Ok(false), "work that does not fault is unchanged");
+}
+/// The posted task and the answer callback are handed their fault sender
+/// ready-made and make none of their own: with the fault sender on a channel
+/// of its own, the contained refusal arrives there and nowhere else.
+#[test]
+fn the_fault_sender_is_prepared_by_the_caller_for_posted_work_and_the_answer_callback() {
+    let (_app, window) = mock_window();
+    let (fault, faults) = mpsc::channel::<Result<bool, String>>();
+    let (reply, replies) = mpsc::channel::<Result<bool, String>>();
+    post(&window, fault, reply, |_reply| panic!("injected fault in posted work")).unwrap();
+    assert_eq!(faults.recv().unwrap().unwrap_err(), FAULTED);
+    assert!(replies.try_recv().is_err(), "nothing on the reply channel: the task made no sender of its own");
+    let (fault, faults) = mpsc::channel::<Result<MessageDialogResult, String>>();
+    let (reply, replies) = mpsc::channel::<Result<MessageDialogResult, String>>();
+    let callback = on_answer(fault, move |_result| {
+        let _reply = reply;
+        panic!("injected fault handling the answer")
+    });
+    callback(MessageDialogResult::Custom(ns::QUIT_APP.into()));
+    assert_eq!(faults.recv().unwrap().unwrap_err(), FAULTED);
+    assert!(replies.try_recv().is_err(), "the act is never sent from a faulted answer");
 }
 #[test]
 fn a_fault_presenting_the_question_is_a_refusal_for_stop_restart_and_quit() {
@@ -195,10 +216,11 @@ fn the_answer_is_handled_with_its_fault_contained() {
         answered(&window, result, ns::STOP_CODEX.into(), send);
         assert_eq!(ns::chose(&receive.recv().unwrap().unwrap(), ns::STOP_CODEX), chosen);
     }
-    // The dialog's callback runs `answered` inside `contained`.
+    // The dialog's callback runs `answered` through `on_answer`.
     let (send, receive) = mpsc::channel::<Result<MessageDialogResult, String>>();
-    contained(&send, || panic!("injected fault while handling the answer"));
-    assert_eq!(receive.recv().unwrap().unwrap_err(), FAULTED);
+    let original = window.clone();
+    on_answer(send.clone(), move |result| answered(&original, result, ns::STOP_CODEX.into(), send))(MessageDialogResult::Custom(ns::STOP_CODEX.into()));
+    assert!(ns::chose(&receive.recv().unwrap().unwrap(), ns::STOP_CODEX), "an answer that does not fault is unchanged");
     assert!(revalidate_original(&window).is_ok());
 }
 #[test]

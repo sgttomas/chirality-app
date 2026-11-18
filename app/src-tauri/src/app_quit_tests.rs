@@ -200,13 +200,14 @@ fn a_question_that_cannot_be_shown_records_no_answer_and_keeps_running() {
 }
 
 #[test]
-fn a_fault_in_the_native_question_is_not_asked_and_never_keep_running_or_quit() {
-    // The refusal `confirm` returns when its posted work faults.
+fn a_fault_in_the_native_question_records_no_answer_and_never_keep_running_or_quit() {
+    // The refusal `confirm` returns when its posted work faults, which can be
+    // after the question was shown and answered.
     let fault = crate::native_lifecycle_confirmation::FAULTED;
     let mut d = Double::new(vec![material(&["turn-1"], 0, 0)], vec![Err(fault.into())]);
     let decision = d.run();
     let Decision::NotAsked(view) = &decision else { panic!("{decision:?}") };
-    assert!(view["reading"].as_str().unwrap().contains(fault));
+    assert_eq!(view["reading"], format!("The App could not establish a usable answer to the Quit question ({fault}). The App keeps running. This attempt sent no interrupt, stopped no home and answered no supplier request."));
     assert!(!d.log.iter().any(|l| l.starts_with("quit_answered") || l == "close" || l.starts_with("interrupt")), "no answer recorded, nothing closed or interrupted: {:?}", d.log);
     assert!(!AppQuit::default().allow(&decision, |_| Ok(Value::Null)).unwrap(), "no exit");
 }
