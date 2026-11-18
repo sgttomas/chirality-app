@@ -947,6 +947,8 @@ KNOWN_REFERRERS = {
     "app/examination/session_comparison/test_compare.py": "loads standalone/table.py's comparisons(); runs in repository-checks",
     "app/examination/sq_receiving/sq.step-map.json": "out_of_release names the release target as where it is stated; nothing reads that path from it",
     "app/supplier_checks/version_advance/0.167.0-to-0.169.0.json": "retains the supplier WebSearchProvider enum value standalone, not a path; no narrowed-class path is read through this comparison",
+    "app/packaging/supplier_notices/crates/index.json": "names members of the deltae 0.3.2 crate archive (docs/doc/LICENSE-*.txt, COPYRIGHT.txt), not repository paths; nothing reads a repository docs/ path through it",
+    "app/packaging/supplier_notices/crates/packages.json": "generated from crates/index.json; names the same crate archive members, not repository paths",
     # Readers of in-root paths that stay product inputs.
     'app/packaging/production_inputs/bundle_resources.py': 'selects the limitations resource mapping that prepare.py inventories; sources-packaging',
     'app/packaging/notices/coverage-inputs.json': 'names the limitations resource mapping exactly as App content in the notice coverage account; sources-packaging',

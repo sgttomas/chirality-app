@@ -1,0 +1,515 @@
+{
+ "format": "supplier-crate-associations/1",
+ "pin": "0.169.0",
+ "superset": "Every package the supplier's Codex and ripgrep lockfiles lock, on every platform and feature. Some may not be compiled into the macOS executables; which are is not established, and no resolver, Cargo or Bazel was run to narrow the set.",
+ "locks": [
+  {
+   "id": "codex",
+   "component": "codex-crate-dependencies",
+   "path": "app/packaging/supplier_notices/crates/locks/codex-rs.Cargo.lock",
+   "size_bytes": 413562,
+   "sha256": "56e04c89b25a6efa1fa6f1cf02934e92451933c8ebda57a5153207ba9ea9fb9e",
+   "git_blob_sha1": "d719a520b78e32c58f4ccc5581a527044a368d6f",
+   "repository": "https://github.com/openai/codex",
+   "revision": "d32063f96c2dff1dc96af839b3952abb6acfeda4",
+   "source_path": "codex-rs/Cargo.lock",
+   "binding": "The file's Git blob equals codex-rs/Cargo.lock in the recursive listing of tree 8b2cf5d2 (codex-rs at d32063f9, which the root listing names), read from the GitHub API on 2026-11-16 (response SHA-256 18adf883c2ee6dedf793fba4b4dfa08c62fde52dede2c6737d8c0b7d5fe1be18)."
+  },
+  {
+   "id": "ripgrep",
+   "component": "ripgrep-crate-dependencies",
+   "path": "app/packaging/supplier_notices/crates/locks/ripgrep.Cargo.lock",
+   "size_bytes": 12745,
+   "sha256": "7a7d39cda8a03930e578f1dbb724e055771901842eca239e03b01e19da946a64",
+   "git_blob_sha1": "55893348fd8d6ce440e2451df9ca8edd1ec0d7ce",
+   "repository": "https://github.com/BurntSushi/ripgrep",
+   "revision": "e89fff89ac9af12e8d4ce9d5fd07beb408ca730f",
+   "source_path": "Cargo.lock",
+   "binding": "The file's Git blob equals Cargo.lock in the recursive listing of ripgrep tree e89fff89, read from the GitHub API on 2026-11-16 (response SHA-256 cb07c8ec83b0c5f9bae00067723e3c7721cca3fa2db47c9a19058414ce975970)."
+  }
+ ],
+ "workspaces": [
+  {
+   "lock": "codex",
+   "repository": "https://github.com/openai/codex",
+   "revision": "d32063f96c2dff1dc96af839b3952abb6acfeda4",
+   "texts": [
+    {
+     "path": "app/packaging/supplier_notices/codex/LICENSE",
+     "size_bytes": 10926,
+     "sha256": "d17f227e4df5da1600391338865ce0f3055211760a36688f816941d58232d8dc",
+     "git_blob_sha1": "4606e72e042564097e8780d66c1d4dcb611869bd",
+     "listing_blobs": [
+      "4606e72e042564097e8780d66c1d4dcb611869bd"
+     ]
+    },
+    {
+     "path": "app/packaging/supplier_notices/codex/NOTICE",
+     "size_bytes": 242,
+     "sha256": "9d71575ecfd9a843fc1677b0efb08053c6ba9fd686a0de1a6f5382fd3c220915",
+     "git_blob_sha1": "2805899d56d0332d175cfc613c67d45d6f006db7",
+     "listing_blobs": [
+      "2805899d56d0332d175cfc613c67d45d6f006db7"
+     ]
+    }
+   ],
+   "basis": "a workspace package of openai/codex at d32063f9; the repository's root LICENSE and NOTICE at that revision ship (their blobs equal the root listing's)",
+   "listing": "The codex-rs listing names 174 Cargo.toml files (the workspace manifest and its members; the lock has 173 path packages; manifests were not read to join names to folders). Its notice-named files are skills/src/assets/samples/imagegen/LICENSE.txt, skills/src/assets/samples/openai-docs/LICENSE.txt, skills/src/assets/samples/skill-creator/license.txt, skills/src/assets/samples/skill-installer/LICENSE.txt, tui/src/history_cell/notices.rs, vendor/bubblewrap/COPYING, vendor/bubblewrap/LICENSE. The skill samples and the vendored bubblewrap are rows of the supplier component table; notices.rs is source."
+  },
+  {
+   "lock": "ripgrep",
+   "repository": "https://github.com/BurntSushi/ripgrep",
+   "revision": "e89fff89ac9af12e8d4ce9d5fd07beb408ca730f",
+   "texts": [
+    {
+     "path": "app/packaging/supplier_notices/ripgrep-15.2.0/COPYING",
+     "size_bytes": 126,
+     "sha256": "01c266bced4a434da0051174d6bee16a4c82cf634e2679b6155d40d75012390f",
+     "git_blob_sha1": "bb9c20a094e41b7632d63bcff20c0b4b95e80777",
+     "listing_blobs": [
+      "bb9c20a094e41b7632d63bcff20c0b4b95e80777"
+     ]
+    },
+    {
+     "path": "app/packaging/supplier_notices/ripgrep-15.2.0/LICENSE-MIT",
+     "size_bytes": 1081,
+     "sha256": "0f96a83840e146e43c0ec96a22ec1f392e0680e6c1226e6f3ba87e0740af850f",
+     "git_blob_sha1": "3b0a5dc09c1e16357459ddc9182a50f360f3cdba",
+     "listing_blobs": [
+      "3b0a5dc09c1e16357459ddc9182a50f360f3cdba"
+     ]
+    },
+    {
+     "path": "app/packaging/supplier_notices/ripgrep-15.2.0/UNLICENSE",
+     "size_bytes": 1211,
+     "sha256": "7e12e5df4bae12cb21581ba157ced20e1986a0508dd10d0e8a4ab9a4cf94e85c",
+     "git_blob_sha1": "68a49daad8ff7e35068f2b7a97d643aab440eaec",
+     "listing_blobs": [
+      "68a49daad8ff7e35068f2b7a97d643aab440eaec"
+     ]
+    }
+   ],
+   "basis": "a workspace package of BurntSushi/ripgrep at e89fff89; the repository's root COPYING, LICENSE-MIT and UNLICENSE ship, and every licence file in the member folders under crates/ is blob-equal to one of them",
+   "listing": "The recursive listing of e89fff89 names the root Cargo.toml and ten under crates/ and fuzz/; its notice-named files are the three root texts and their blob-equal copies under crates/."
+  }
+ ],
+ "git_sources": [
+  {
+   "repository": "https://github.com/dzbarsky/rules_rust",
+   "revision": "b56cbaa8465e74127f1ea216f813cd377295ad81",
+   "packages": [
+    "runfiles 0.1.0"
+   ],
+   "texts": [
+    {
+     "source_path": "LICENSE.txt",
+     "size_bytes": 11358,
+     "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+     "git_blob_sha1": "d645695673349e3947e8e5ae42332d0ac3164cd7",
+     "listing_blob": "d645695673349e3947e8e5ae42332d0ac3164cd7",
+     "held_at": "app/packaging/notices/transitive/cargo/embed_plist/1.2.2/LICENSE-APACHE",
+     "for": [
+      "runfiles 0.1.0"
+     ]
+    }
+   ],
+   "pointers": [],
+   "listing": "GitHub tree listing retained from the 2026-11-12 inventory at this revision (blob and size; its mode was not retained, so regular-file status is not established here)",
+   "basis": "the licence file at the repository and revision the lockfile names",
+   "note": "rust/runfiles/Cargo.toml declares runfiles 0.1.0 Apache-2.0 and its folder holds no licence file, so the root LICENSE.txt applies by location; the examples/ copies under a folder whose manifest declares lazy_static are not this package's"
+  },
+  {
+   "repository": "https://github.com/helix-editor/nucleo",
+   "revision": "4253de9faabb4e5c6d81d946a5e35a90f87347ee",
+   "packages": [
+    "nucleo 0.5.0",
+    "nucleo-matcher 0.3.1"
+   ],
+   "texts": [
+    {
+     "source_path": "LICENSE",
+     "size_bytes": 16725,
+     "sha256": "1f256ecad192880510e84ad60474eab7589218784b9a50bc7ceee34c2b91f1d5",
+     "git_blob_sha1": "a612ad9813b006ce81d1ee438dd784da99a54007",
+     "listing_blob": "a612ad9813b006ce81d1ee438dd784da99a54007",
+     "received_as": "licences/helix-editor__nucleo__4253de9f__LICENSE",
+     "fetched_with_owner_permission": true,
+     "for": [
+      "nucleo 0.5.0",
+      "nucleo-matcher 0.3.1"
+     ]
+    }
+   ],
+   "pointers": [
+    {
+     "source_path": "matcher/LICENSE",
+     "mode": "120000",
+     "target": "../LICENSE",
+     "link_blob": "ea5b60640b01f74e295037aa8a6b7d4ea278a739"
+    }
+   ],
+   "listing": "GitHub recursive tree listing at 4253de9f, read 2026-11-16 (truncated false, response SHA-256 105f2d6152598eeb3d6c9576ea0ab64dc63a16015e918ae5b2c7491d1fd35ecd)",
+   "basis": "the licence file at the repository and revision the lockfile names; the package folders' own licence entries are symbolic links to it (matcher/LICENSE -> ../LICENSE)"
+  },
+  {
+   "repository": "https://github.com/hyperium/h3",
+   "revision": "e07e69412876f7e26f026bd75a48b2704d8c8283",
+   "packages": [
+    "h3 0.0.8",
+    "h3-quinn 0.0.10"
+   ],
+   "texts": [
+    {
+     "source_path": "LICENSE",
+     "size_bytes": 1054,
+     "sha256": "a0d039cdafe68f363893abddb5e4d50dbe6f8b56611e2650aaab4237103285f1",
+     "git_blob_sha1": "97d180d899ac03e8db023a2aec14f3d223e7df39",
+     "listing_blob": "97d180d899ac03e8db023a2aec14f3d223e7df39",
+     "received_as": "licences/hyperium__h3__e07e6941__LICENSE",
+     "fetched_with_owner_permission": true,
+     "for": [
+      "h3 0.0.8",
+      "h3-quinn 0.0.10"
+     ]
+    }
+   ],
+   "pointers": [
+    {
+     "source_path": "h3-quinn/LICENSE",
+     "mode": "120000",
+     "target": "../LICENSE",
+     "link_blob": "ea5b60640b01f74e295037aa8a6b7d4ea278a739"
+    },
+    {
+     "source_path": "h3/LICENSE",
+     "mode": "120000",
+     "target": "../LICENSE",
+     "link_blob": "ea5b60640b01f74e295037aa8a6b7d4ea278a739"
+    }
+   ],
+   "listing": "GitHub recursive tree listing at e07e6941, read 2026-11-16 (truncated false, response SHA-256 610d92c10cb7114f057aba360eb3bb363a4d4296cc7baa42df192ff5b4d5f6fb)",
+   "basis": "the licence file at the repository and revision the lockfile names; the package folders' own licence entries are symbolic links to it (h3-quinn/LICENSE -> ../LICENSE, h3/LICENSE -> ../LICENSE)"
+  },
+  {
+   "repository": "https://github.com/microsoft/mxc",
+   "revision": "b21120168d70befe12356411423266bfef168446",
+   "packages": [
+    "mxc-sdk 1.0.0"
+   ],
+   "texts": [
+    {
+     "source_path": "LICENSE.md",
+     "size_bytes": 1140,
+     "sha256": "d9a1b1e30d633d5732ea18e3cba9538d293ebc53e1a9e4e96ab739e0c5c4f1cb",
+     "git_blob_sha1": "79656060de00aa4659ad2c276d5be8830664d544",
+     "listing_blob": "79656060de00aa4659ad2c276d5be8830664d544",
+     "received_as": "licences/microsoft__mxc__b2112016__LICENSE.md",
+     "fetched_with_owner_permission": true,
+     "for": [
+      "mxc-sdk 1.0.0"
+     ]
+    }
+   ],
+   "pointers": [],
+   "listing": "GitHub tree listing retained from the 2026-11-12 inventory at this revision (blob and size; its mode was not retained, so regular-file status is not established here)",
+   "basis": "the licence file at the repository and revision the lockfile names",
+   "note": "sdk/node/LICENSE.md is the same blob as the root LICENSE.md; the mxc-sdk package folder and manifest were not read"
+  },
+  {
+   "repository": "https://github.com/modelcontextprotocol/rust-sdk",
+   "revision": "98a54789b80110ad210495c4ad845c89e1980471",
+   "packages": [
+    "rmcp 3.5.1",
+    "rmcp-macros 3.5.1"
+   ],
+   "texts": [
+    {
+     "source_path": "LICENSE",
+     "size_bytes": 12227,
+     "sha256": "0382b0057770ca05e9c350a50aa3b1c1fea84da0bc81d723bf00b9aa841be58a",
+     "git_blob_sha1": "4a93985763241755401a10678395303de4e720ba",
+     "listing_blob": "4a93985763241755401a10678395303de4e720ba",
+     "received_as": "licences/modelcontextprotocol__rust-sdk__98a54789__LICENSE",
+     "fetched_with_owner_permission": true,
+     "for": [
+      "rmcp 3.5.1",
+      "rmcp-macros 3.5.1"
+     ]
+    }
+   ],
+   "pointers": [
+    {
+     "source_path": "crates/rmcp-macros/LICENSE",
+     "mode": "120000",
+     "target": "../../LICENSE",
+     "link_blob": "30cff7403da04711c46979a06f6bf8eb10ee088a"
+    },
+    {
+     "source_path": "crates/rmcp/LICENSE",
+     "mode": "120000",
+     "target": "../../LICENSE",
+     "link_blob": "30cff7403da04711c46979a06f6bf8eb10ee088a"
+    }
+   ],
+   "listing": "GitHub recursive tree listing at 98a54789, read 2026-11-16 (truncated false, response SHA-256 37ad6cad7bf909b68a1ed7bccfac5bb5cf9a565167f786b0520f0afdd86e5a8b)",
+   "basis": "the licence file at the repository and revision the lockfile names; the package folders' own licence entries are symbolic links to it (crates/rmcp-macros/LICENSE -> ../../LICENSE, crates/rmcp/LICENSE -> ../../LICENSE)"
+  },
+  {
+   "repository": "https://github.com/openai-oss-forks/crossterm",
+   "revision": "ed1cdab335221515706178d68495bba2aed1924f",
+   "packages": [
+    "crossterm 0.29.0"
+   ],
+   "texts": [
+    {
+     "source_path": "LICENSE",
+     "size_bytes": 1062,
+     "sha256": "3fea97e00df9a8e30027f4298d6941b6970c542ffd49de68b4a2bcafedcbfe02",
+     "git_blob_sha1": "8b02a7fcef9fa4f7b7c5782e85ac25de76643235",
+     "listing_blob": "8b02a7fcef9fa4f7b7c5782e85ac25de76643235",
+     "received_as": "licences/openai-oss-forks__crossterm__ed1cdab3__LICENSE",
+     "fetched_with_owner_permission": true,
+     "for": [
+      "crossterm 0.29.0"
+     ]
+    }
+   ],
+   "pointers": [],
+   "listing": "GitHub tree listing retained from the 2026-11-12 inventory at this revision (blob and size; its mode was not retained, so regular-file status is not established here)",
+   "basis": "the licence file at the repository and revision the lockfile names",
+   "note": "a single-package repository per the retained listing; its manifest was not read"
+  },
+  {
+   "repository": "https://github.com/openai-oss-forks/rusty_v8",
+   "revision": "90a65f887a0c0f048f3784afbcb320b373c8a2e0",
+   "packages": [
+    "v8 152.2.0"
+   ],
+   "texts": [
+    {
+     "source_path": "LICENSE",
+     "size_bytes": 1078,
+     "sha256": "1c6356fb751d45f0c53093ebf8a7f5e580e802f51999178e19d60f3ec39e147d",
+     "git_blob_sha1": "5a671244de937cfc449c42d48da7867e4f0a7852",
+     "listing_blob": "5a671244de937cfc449c42d48da7867e4f0a7852",
+     "held_at": "app/packaging/supplier_notices/rusty_v8-350c5a85/LICENSE",
+     "for": [
+      "v8 152.2.0"
+     ]
+    }
+   ],
+   "pointers": [],
+   "listing": "GitHub recursive tree listing at 90a65f88, read 2026-11-16 (truncated false, response SHA-256 4ee13cfc1a1c4dec40d95d466491d3e4518762e10098ffe1243de82ddb997415)",
+   "basis": "the licence file at the repository and revision the lockfile names"
+  },
+  {
+   "repository": "https://github.com/openai-oss-forks/tokio-tungstenite",
+   "revision": "7447c427513cfe685f236e1ac0513c4ea3dd9c0b",
+   "packages": [
+    "tokio-tungstenite 0.28.0"
+   ],
+   "texts": [
+    {
+     "source_path": "LICENSE",
+     "size_bytes": 1093,
+     "sha256": "fdd55e2b2da854b0fbdc1e607df7c2ba1e1ebf91ecb77c515511ebeef972bc8f",
+     "git_blob_sha1": "4bf5242e2dd870f2a6ca6e8e54154cff018e0bee",
+     "listing_blob": "4bf5242e2dd870f2a6ca6e8e54154cff018e0bee",
+     "received_as": "licences/openai-oss-forks__tokio-tungstenite__7447c427__LICENSE",
+     "fetched_with_owner_permission": true,
+     "for": [
+      "tokio-tungstenite 0.28.0"
+     ]
+    }
+   ],
+   "pointers": [],
+   "listing": "GitHub recursive tree listing at 7447c427, read 2026-11-16 (truncated false, response SHA-256 e19c9120575517e2ecb68c6777b664c3d40defb26953bd952ae11090492b011c)",
+   "basis": "the licence file at the repository and revision the lockfile names"
+  },
+  {
+   "repository": "https://github.com/openai-oss-forks/tungstenite-rs",
+   "revision": "bc589d684755a8c02da0fc7e58d0861cbfc306f1",
+   "packages": [
+    "tungstenite 0.27.0"
+   ],
+   "texts": [
+    {
+     "source_path": "LICENSE-APACHE",
+     "size_bytes": 10847,
+     "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
+     "git_blob_sha1": "16fe87b06e802f094b3fbb0894b137bca2b16ef1",
+     "listing_blob": "16fe87b06e802f094b3fbb0894b137bca2b16ef1",
+     "held_at": "app/packaging/notices/assets/cargo/uuid/1.23.1/LICENSE-APACHE",
+     "for": [
+      "tungstenite 0.27.0"
+     ]
+    },
+    {
+     "source_path": "LICENSE-MIT",
+     "size_bytes": 1092,
+     "sha256": "7fea0ee51a4ca5d5cea7464135fd55e8b09caf3a61da3d451ac8a22af95c033f",
+     "git_blob_sha1": "dfb98c657905acdd324a99c06212554bd933c38f",
+     "listing_blob": "dfb98c657905acdd324a99c06212554bd933c38f",
+     "received_as": "licences/openai-oss-forks__tungstenite-rs__bc589d68__LICENSE-MIT",
+     "fetched_with_owner_permission": true,
+     "for": [
+      "tungstenite 0.27.0"
+     ]
+    }
+   ],
+   "pointers": [],
+   "listing": "GitHub recursive tree listing at bc589d68, read 2026-11-16 (truncated false, response SHA-256 fb7e93ab7e6b01779324413547e9881ba0975d10dcbcf0e72a73af98611872aa)",
+   "basis": "the licence files at the repository and revision the lockfile names"
+  },
+  {
+   "repository": "https://github.com/transact-rs/sqlx",
+   "revision": "10462fa4414c6c7f1ed1d39bb31678e3b726878c",
+   "packages": [
+    "sqlx-core 0.9.0",
+    "sqlx-sqlite 0.9.0"
+   ],
+   "texts": [
+    {
+     "source_path": "sqlx-core/LICENSE-APACHE",
+     "size_bytes": 10297,
+     "sha256": "c8f5453612253e8ea8bad241617fe74c4a6d5d592ba64ff881668c211b50ac99",
+     "git_blob_sha1": "e14699fb149e0b5cd2f2aa206d7bc4d5f8828fc3",
+     "listing_blob": "e14699fb149e0b5cd2f2aa206d7bc4d5f8828fc3",
+     "received_as": "licences/transact-rs__sqlx__10462fa4__sqlx-core__LICENSE-APACHE",
+     "fetched_with_owner_permission": true,
+     "for": [
+      "sqlx-core 0.9.0",
+      "sqlx-sqlite 0.9.0"
+     ]
+    },
+    {
+     "source_path": "sqlx-core/LICENSE-MIT",
+     "size_bytes": 1109,
+     "sha256": "5abbdd842310c8f1650fcde3a5a51a3e09412b9e5a6eea87519e0db9e32b339d",
+     "git_blob_sha1": "6fe828e8eab3262db2dd59e567e3b35d8aea0f66",
+     "listing_blob": "6fe828e8eab3262db2dd59e567e3b35d8aea0f66",
+     "received_as": "licences/transact-rs__sqlx__10462fa4__sqlx-core__LICENSE-MIT",
+     "fetched_with_owner_permission": true,
+     "for": [
+      "sqlx-core 0.9.0",
+      "sqlx-sqlite 0.9.0"
+     ]
+    }
+   ],
+   "pointers": [],
+   "listing": "GitHub recursive tree listing at 10462fa4, read 2026-11-16 (truncated false, response SHA-256 6c0f23bc331111327855ca9676e708c222c0c24d96ec0d5106b0617de0baa707)",
+   "basis": "the licence files at the repository and revision the lockfile names",
+   "note": "the sqlx-sqlite/ and root copies are the same blobs as the sqlx-core/ files"
+  }
+ ],
+ "app_texts": [
+  {
+   "packages": [
+    "block2 0.6.2"
+   ],
+   "checksum": "cdeb9d870516001442e364c5220d3574d2da8dc765554b4a617230d33fa58ef5",
+   "repository": "https://github.com/madsmtm/objc2",
+   "revision": "b4167b582b2f75f9a1be75495c41b765344fd03c",
+   "reading_required": true,
+   "basis": "the objc2 repository's LICENSE.md (https://github.com/madsmtm/objc2 at b4167b58, the revision the crate archive names), which the App holds for the same crate, version and archive checksum; a licensing overview that awaits an owner licence reading, as the App's own copy did",
+   "texts": [
+    {
+     "app_path": "app/packaging/notices/transitive/cargo/block2/0.6.2/LICENSE.md",
+     "size_bytes": 1339,
+     "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+     "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e"
+    }
+   ]
+  },
+  {
+   "packages": [
+    "objc2-app-kit 0.3.2"
+   ],
+   "checksum": "d49e936b501e5c5bf01fda3a9452ff86dc3ea98ad5f283e1455153142d97518c",
+   "repository": "https://github.com/madsmtm/objc2",
+   "revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+   "reading_required": true,
+   "basis": "the objc2 repository's LICENSE.md (https://github.com/madsmtm/objc2 at 7b1abfd7, the revision the crate archive names), which the App holds for the same crate, version and archive checksum; a licensing overview that awaits an owner licence reading, as the App's own copy did",
+   "texts": [
+    {
+     "app_path": "app/packaging/notices/transitive/cargo/objc2-app-kit/0.3.2/LICENSE.md",
+     "size_bytes": 1339,
+     "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+     "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e"
+    }
+   ]
+  },
+  {
+   "packages": [
+    "objc2-core-foundation 0.3.2"
+   ],
+   "checksum": "2a180dd8642fa45cdb7dd721cd4c11b1cadd4929ce112ebd8b9f5803cc79d536",
+   "repository": "https://github.com/madsmtm/objc2",
+   "revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+   "reading_required": true,
+   "basis": "the objc2 repository's LICENSE.md (https://github.com/madsmtm/objc2 at 7b1abfd7, the revision the crate archive names), which the App holds for the same crate, version and archive checksum; a licensing overview that awaits an owner licence reading, as the App's own copy did",
+   "texts": [
+    {
+     "app_path": "app/packaging/notices/transitive/cargo/objc2-core-foundation/0.3.2/LICENSE.md",
+     "size_bytes": 1339,
+     "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+     "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e"
+    }
+   ]
+  },
+  {
+   "packages": [
+    "objc2-encode 4.1.0"
+   ],
+   "checksum": "ef25abbcd74fb2609453eb695bd2f860d389e457f67dc17cafc8b8cbc89d0c33",
+   "repository": "https://github.com/madsmtm/objc2",
+   "revision": "8d214f5477365ffcbcbb7de058c86ed9a518efb7",
+   "reading_required": true,
+   "basis": "the objc2 repository's LICENSE.md (https://github.com/madsmtm/objc2 at 8d214f54, the revision the crate archive names), which the App holds for the same crate, version and archive checksum; a licensing overview that awaits an owner licence reading, as the App's own copy did",
+   "texts": [
+    {
+     "app_path": "app/packaging/notices/transitive/cargo/objc2-encode/4.1.0/LICENSE.md",
+     "size_bytes": 1339,
+     "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+     "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e"
+    }
+   ]
+  },
+  {
+   "packages": [
+    "objc2-foundation 0.3.2"
+   ],
+   "checksum": "e3e0adef53c21f888deb4fa59fc59f7eb17404926ee8a6f59f5df0fd7f9f3272",
+   "repository": "https://github.com/madsmtm/objc2",
+   "revision": "7b1abfd750a2cacaea71d6a56ecfb83cb7de560b",
+   "reading_required": true,
+   "basis": "the objc2 repository's LICENSE.md (https://github.com/madsmtm/objc2 at 7b1abfd7, the revision the crate archive names), which the App holds for the same crate, version and archive checksum; a licensing overview that awaits an owner licence reading, as the App's own copy did",
+   "texts": [
+    {
+     "app_path": "app/packaging/notices/transitive/cargo/objc2-foundation/0.3.2/LICENSE.md",
+     "size_bytes": 1339,
+     "sha256": "7f976f7e9cb2d87df7230606feb932c3f21ac0e664045a775b600046ff850c54",
+     "git_blob_sha1": "540ae4c81adb5f64a9f61e222b688880da24300e"
+    }
+   ]
+  },
+  {
+   "packages": [
+    "vsimd 0.8.0"
+   ],
+   "checksum": "5c3082ca00d5a5ef149bb8b555a72ae84c9c59f7250f013ac822ac2e49b19c64",
+   "repository": "https://github.com/Nugine/simd",
+   "revision": "d74c030d9dc4f3cae02146d1f497ff62726ef09a",
+   "reading_required": false,
+   "basis": "the repository root text of https://github.com/Nugine/simd at d74c030d, the revision the crate archive names, which the App holds for the same crate, version and archive checksum (received with the owner's permission); a root text, not a member of the archive",
+   "texts": [
+    {
+     "app_path": "app/packaging/notices/transitive/cargo/vsimd/0.8.0/LICENSE",
+     "size_bytes": 1062,
+     "sha256": "71674605ec4c087fe9eb534e3e4f9e26eb2e4aabcd76a29fd156c6a844d44b3d",
+     "git_blob_sha1": "2c7eabb59093ea117d73b20effdd0414f87b2af2"
+    }
+   ]
+  }
+ ]
+}

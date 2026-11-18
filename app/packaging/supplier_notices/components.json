@@ -1,6 +1,6 @@
 {
  "format": "supplier-notice-components/1",
- "reviewed_for_pin": "0.167.0",
+ "reviewed_for_pin": "0.169.0",
  "voice_sources": {
   "path": "codex-resources/voice/sources.json",
   "note": "Voice component versions and archive URLs are as the supplier's sources.json states; coverage.py --vendor rechecks them against the tree."
@@ -8,7 +8,10 @@
  "limits": [
   "Each text is recorded with the repository and revision it comes from, or as a member of the supplier tree. Below a repository's root, only what a row lists is included (V8's third_party licences); each row's below_root says what was examined.",
   "Which component is inside which member follows the supplier's build files and package records (Codex third_party/v8 build files, the rg selector, the voice manifest and sources.json); it is the supplier's statement in its source, not read from the binaries.",
-  "The executable rule (an execute bit, not .dylib or .json) fits this distribution record, checked against its Mach-O count; it is not a general proof that a file is a compiled program."
+  "The executable rule (an execute bit, not .dylib or .json) fits this distribution record, checked against its Mach-O count; it is not a general proof that a file is a compiled program.",
+  "Reviewed for 0.169.0 from the supplier's source at d32063f9 and the distribution record; no member of the distributed archive was read. Reading the selected source is not an observation of the distributed binary.",
+  "The supplier's release workflow at d32063f9 links a checksum-pinned prebuilt rusty_v8 archive (RUSTY_V8_ARCHIVE); the producer revision of that archive is not established. Both are limits of the association, not evidence of coverage.",
+  "Six optional native files were not acquired (App Agent 0's decision; native-source-reading report of 2026-11-16): V8 AUTHORS, because the held V8 LICENSE and LICENSE.v8 require their own copyright notice, conditions and disclaimer, which they carry, and do not incorporate AUTHORS; and libunwind LICENSE.TXT, buildtools LICENSE, jinja2 LICENSE.rst and markupsafe LICENSE and AUTHORS, which are rusty_v8 fork submodule files used by the producer's Windows source build (.github/workflows/rusty-v8-release.yml lines 277-427, V8_FROM_SOURCE at line 384), while the macOS release sets the checksum-pinned RUSTY_V8_ARCHIVE (.github/actions/setup-rusty-v8/action.yml lines 45-64; rust-release.yml lines 225-229). The decision is reversible; legal adequacy is the owner's."
  ],
  "texts": [
   {
@@ -18,7 +21,16 @@
    "source_path": "LICENSE",
    "size_bytes": 10926,
    "sha256": "d17f227e4df5da1600391338865ce0f3055211760a36688f816941d58232d8dc",
-   "git_blob_sha1": "4606e72e042564097e8780d66c1d4dcb611869bd"
+   "git_blob_sha1": "4606e72e042564097e8780d66c1d4dcb611869bd",
+   "also_at": [
+    {
+     "repository": "https://github.com/openai/codex",
+     "revision": "d32063f96c2dff1dc96af839b3952abb6acfeda4",
+     "source_path": "LICENSE",
+     "git_blob_sha1": "4606e72e042564097e8780d66c1d4dcb611869bd",
+     "listing": "GitHub tree listing of openai/codex d32063f9 (root), read 2026-11-16"
+    }
+   ]
   },
   {
    "path": "app/packaging/supplier_notices/codex/NOTICE",
@@ -27,7 +39,16 @@
    "source_path": "NOTICE",
    "size_bytes": 242,
    "sha256": "9d71575ecfd9a843fc1677b0efb08053c6ba9fd686a0de1a6f5382fd3c220915",
-   "git_blob_sha1": "2805899d56d0332d175cfc613c67d45d6f006db7"
+   "git_blob_sha1": "2805899d56d0332d175cfc613c67d45d6f006db7",
+   "also_at": [
+    {
+     "repository": "https://github.com/openai/codex",
+     "revision": "d32063f96c2dff1dc96af839b3952abb6acfeda4",
+     "source_path": "NOTICE",
+     "git_blob_sha1": "2805899d56d0332d175cfc613c67d45d6f006db7",
+     "listing": "GitHub tree listing of openai/codex d32063f9 (root), read 2026-11-16"
+    }
+   ]
   },
   {
    "path": "app/packaging/supplier_notices/codex-skills-086ccc83/skill-creator/license.txt",
@@ -37,7 +58,16 @@
    "size_bytes": 11358,
    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
    "git_blob_sha1": "d645695673349e3947e8e5ae42332d0ac3164cd7",
-   "fetched_with_owner_permission": true
+   "fetched_with_owner_permission": true,
+   "also_at": [
+    {
+     "repository": "https://github.com/openai/codex",
+     "revision": "d32063f96c2dff1dc96af839b3952abb6acfeda4",
+     "source_path": "codex-rs/skills/src/assets/samples/skill-creator/license.txt",
+     "git_blob_sha1": "d645695673349e3947e8e5ae42332d0ac3164cd7",
+     "listing": "GitHub recursive listing of codex-rs tree 8b2cf5d2 at d32063f9, read 2026-11-16"
+    }
+   ]
   },
   {
    "path": "app/packaging/supplier_notices/codex-skills-086ccc83/skill-installer/LICENSE.txt",
@@ -47,7 +77,16 @@
    "size_bytes": 11358,
    "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
    "git_blob_sha1": "d645695673349e3947e8e5ae42332d0ac3164cd7",
-   "fetched_with_owner_permission": true
+   "fetched_with_owner_permission": true,
+   "also_at": [
+    {
+     "repository": "https://github.com/openai/codex",
+     "revision": "d32063f96c2dff1dc96af839b3952abb6acfeda4",
+     "source_path": "codex-rs/skills/src/assets/samples/skill-installer/LICENSE.txt",
+     "git_blob_sha1": "d645695673349e3947e8e5ae42332d0ac3164cd7",
+     "listing": "GitHub recursive listing of codex-rs tree 8b2cf5d2 at d32063f9, read 2026-11-16"
+    }
+   ]
   },
   {
    "path": "app/packaging/supplier_notices/ripgrep-15.2.0/COPYING",
@@ -331,7 +370,16 @@
    "source_path": "LICENSE",
    "size_bytes": 1078,
    "sha256": "1c6356fb751d45f0c53093ebf8a7f5e580e802f51999178e19d60f3ec39e147d",
-   "git_blob_sha1": "5a671244de937cfc449c42d48da7867e4f0a7852"
+   "git_blob_sha1": "5a671244de937cfc449c42d48da7867e4f0a7852",
+   "also_at": [
+    {
+     "repository": "https://github.com/openai-oss-forks/rusty_v8",
+     "revision": "90a65f887a0c0f048f3784afbcb320b373c8a2e0",
+     "source_path": "LICENSE",
+     "git_blob_sha1": "5a671244de937cfc449c42d48da7867e4f0a7852",
+     "listing": "GitHub recursive tree listing of openai-oss-forks/rusty_v8 at 90a65f88, read 2026-11-16"
+    }
+   ]
   },
   {
    "path": "app/packaging/supplier_notices/icu-d578f2e8/LICENSE",
@@ -507,15 +555,35 @@
    "git_blob_sha1": "74c8302ba92830e170dfae35957468edd2e25271",
    "ref": "v7.7.0",
    "fetched_with_owner_permission": true
+  },
+  {
+   "path": "app/packaging/supplier_notices/libcxx-b16984ce/CREDITS.TXT",
+   "repository": "https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libcxx.git",
+   "revision": "b16984ce99c702355a5b2b4c52574e82cec41fb9",
+   "source_path": "CREDITS.TXT",
+   "size_bytes": 4124,
+   "sha256": "054e099bf5954c8821b880f5751d2fbf221bf43cf7c57ac1c2c5ff6263d6d9c3",
+   "git_blob_sha1": "aa3c8cf1a8c6e3aebf00f4dde627ed429c261640",
+   "fetched_with_owner_permission": true
+  },
+  {
+   "path": "app/packaging/supplier_notices/libcxxabi-8f11bb1d/CREDITS.TXT",
+   "repository": "https://chromium.googlesource.com/external/github.com/llvm/llvm-project/libcxxabi.git",
+   "revision": "8f11bb1d4438d0239d0dfc1bd9456a9f31629dda",
+   "source_path": "CREDITS.TXT",
+   "size_bytes": 1660,
+   "sha256": "a259fff28a51623f14917dd68f97f3af7804984087ddc1bfd8196d08ebb75b83",
+   "git_blob_sha1": "fbb6cbf38baf60a05dcca9025e50f3a25c961b73",
+   "fetched_with_owner_permission": true
   }
  ],
  "components": [
   {
    "id": "codex",
    "name": "Codex",
-   "version": "0.167.0",
+   "version": "0.169.0",
    "repository": "https://github.com/openai/codex",
-   "revision": "086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a",
+   "revision": "d32063f96c2dff1dc96af839b3952abb6acfeda4",
    "members": [
     "bin/codex",
     "bin/codex-exec-server",
@@ -534,7 +602,7 @@
    "supplier_tree_texts": [],
    "standing": "covered",
    "declared_license": "Apache-2.0",
-   "below_root": "Root LICENSE and NOTICE. The skill samples embedded in bin/codex and the crates compiled into the executables are their own rows.",
+   "below_root": "Root LICENSE and NOTICE, blob-equal to the d32063f9 root listing. The skill samples under codex-rs/skills/src/assets/samples (skill-creator, skill-installer, imagegen, openai-docs and review-agent, which holds no licence file), the vendored bubblewrap and the crates the lockfile locks are their own rows.",
    "accounts_for": [
     "codex/"
    ]
@@ -542,9 +610,9 @@
   {
    "id": "codex-skill-creator-sample",
    "name": "Codex skill-creator sample",
-   "version": "0.167.0",
+   "version": "0.169.0",
    "repository": "https://github.com/openai/codex",
-   "revision": "086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a",
+   "revision": "d32063f96c2dff1dc96af839b3952abb6acfeda4",
    "members": [
     "bin/codex"
    ],
@@ -553,14 +621,14 @@
    ],
    "supplier_tree_texts": [],
    "standing": "covered",
-   "below_root": "The sample's own licence file at its path in the source tree."
+   "below_root": "The sample's own licence file at its path in the source tree; the committed text is blob-equal to that path at d32063f9 (also_at). Embedding in bin/codex is the source tree's arrangement, not read from the binary at this pin."
   },
   {
    "id": "codex-skill-installer-sample",
    "name": "Codex skill-installer sample",
-   "version": "0.167.0",
+   "version": "0.169.0",
    "repository": "https://github.com/openai/codex",
-   "revision": "086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a",
+   "revision": "d32063f96c2dff1dc96af839b3952abb6acfeda4",
    "members": [
     "bin/codex"
    ],
@@ -569,14 +637,62 @@
    ],
    "supplier_tree_texts": [],
    "standing": "covered",
+   "below_root": "The sample's own licence file at its path in the source tree; the committed text is blob-equal to that path at d32063f9 (also_at). Embedding in bin/codex is the source tree's arrangement, not read from the binary at this pin."
+  },
+  {
+   "id": "codex-skill-imagegen-sample",
+   "name": "Codex imagegen skill sample",
+   "version": "0.169.0",
+   "repository": "https://github.com/openai/codex",
+   "revision": "d32063f96c2dff1dc96af839b3952abb6acfeda4",
+   "members": [
+    "bin/codex"
+   ],
+   "texts": [],
+   "supplier_tree_texts": [],
+   "standing": "uncovered",
+   "reason": "codex-rs/skills/src/assets/samples/imagegen/LICENSE.txt (blob 13e25df86ce06eb6488e6a6bc5c5847f5dedc352, 10,776 bytes, one blob for both samples) is in the d32063f9 listing and is not held. Embedding in bin/codex is the source tree's arrangement, not read from the binary.",
+   "would_close": "an owner-permitted acquisition of that file at d32063f9",
    "below_root": "The sample's own licence file at its path in the source tree."
   },
   {
-   "id": "codex-crate-dependencies",
-   "name": "Crates compiled into the Codex executables (codex-rs/Cargo.lock, including its 12 Git-sourced packages)",
-   "version": "0.167.0",
+   "id": "codex-skill-openai-docs-sample",
+   "name": "Codex openai-docs skill sample",
+   "version": "0.169.0",
    "repository": "https://github.com/openai/codex",
-   "revision": "086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a",
+   "revision": "d32063f96c2dff1dc96af839b3952abb6acfeda4",
+   "members": [
+    "bin/codex"
+   ],
+   "texts": [],
+   "supplier_tree_texts": [],
+   "standing": "uncovered",
+   "reason": "codex-rs/skills/src/assets/samples/openai-docs/LICENSE.txt (blob 13e25df86ce06eb6488e6a6bc5c5847f5dedc352, 10,776 bytes, one blob for both samples) is in the d32063f9 listing and is not held. Embedding in bin/codex is the source tree's arrangement, not read from the binary.",
+   "would_close": "an owner-permitted acquisition of that file at d32063f9",
+   "below_root": "The sample's own licence file at its path in the source tree."
+  },
+  {
+   "id": "codex-vendored-bubblewrap",
+   "name": "bubblewrap (vendored in codex-rs)",
+   "version": "0.169.0",
+   "repository": "https://github.com/openai/codex",
+   "revision": "d32063f96c2dff1dc96af839b3952abb6acfeda4",
+   "members": [
+    "bin/codex"
+   ],
+   "texts": [],
+   "supplier_tree_texts": [],
+   "standing": "uncovered",
+   "reason": "codex-rs/vendor/bubblewrap/COPYING (blob 5bc8fb2c8f757e34a0d8f4644f589d57609e213f, 25,383 bytes; its LICENSE is a symbolic link) is in the d32063f9 listing and is not held. Whether any macOS executable compiles it is not established; it is listed as part of the superset.",
+   "would_close": "an owner-permitted acquisition of that file at d32063f9",
+   "below_root": "The vendored folder's licence file; nothing else below it was examined."
+  },
+  {
+   "id": "codex-crate-dependencies",
+   "name": "Crates compiled into the Codex executables (codex-rs/Cargo.lock, including its 14 Git-sourced packages)",
+   "version": "0.169.0",
+   "repository": "https://github.com/openai/codex",
+   "revision": "d32063f96c2dff1dc96af839b3952abb6acfeda4",
    "members": [
     "bin/codex",
     "bin/codex-exec-server",
@@ -586,9 +702,10 @@
    "texts": [],
    "supplier_tree_texts": [],
    "standing": "uncovered",
-   "reason": "The supplier publishes no aggregate third-party notice for its executables, and the licence texts of the hundreds of locked crates are not held.",
-   "would_close": "Fetch the archives of the crates codex-rs/Cargo.lock locks at this commit (the owner approved the fetch on 2026-11-12), extract their texts with notices/package_texts.py crates, obtain the 12 Git-sourced packages' texts from their pinned revisions, and ship them per crate.",
-   "kind": "compiled-dependencies"
+   "reason": "The lockfile superset is associated package by package in crates/ (some packages may not be compiled into the macOS executables); packages remain open there, each named in the coverage account.",
+   "would_close": "each open package's text or reading, as the coverage account names it",
+   "kind": "compiled-dependencies",
+   "below_root": "Every package codex-rs/Cargo.lock locks at d32063f9 (the lockfile's blob equals the codex-rs listing's), on every platform and feature: crates/index.json for registry archives, crates/associations.json for Git and workspace packages."
   },
   {
    "id": "ripgrep",
@@ -606,7 +723,7 @@
    ],
    "supplier_tree_texts": [],
    "standing": "covered",
-   "below_root": "Root COPYING, LICENSE-MIT and UNLICENSE. The retained root listing at e89fff89 has no other licence file; the workspace crates under crates/ are compiled-in crates (row ripgrep-crate-dependencies). The root texts point to no further file."
+   "below_root": "Root COPYING, LICENSE-MIT and UNLICENSE. The retained root listing at e89fff89 has no other licence file; the workspace crates under crates/ are compiled-in crates (row ripgrep-crate-dependencies). The root texts point to no further file. Codex's rg release selector at d32063f9 (scripts/codex_package/rg) is byte-identical to the one read for 0.167.0, so the association to ripgrep 15.2.0 is unchanged; codex-path/rg's bytes differ from 0.167.0's, and why is not established here."
   },
   {
    "id": "pcre2-sys",
@@ -679,10 +796,9 @@
    ],
    "texts": [],
    "supplier_tree_texts": [],
-   "standing": "uncovered",
-   "reason": "Only ripgrep's own texts and the pcre2-sys/PCRE2/sljit chain are held; the licence texts of the other crates ripgrep's Cargo.lock locks are not.",
-   "would_close": "Fetch the archives of the crates ripgrep 15.2.0's Cargo.lock locks (the owner approved fetching the texts of the supplier's compiled-in dependencies on 2026-11-12), extract their texts with notices/package_texts.py crates and ship them per crate.",
-   "kind": "compiled-dependencies"
+   "standing": "covered",
+   "kind": "compiled-dependencies",
+   "below_root": "Every package ripgrep 15.2.0's Cargo.lock locks (its blob equals Cargo.lock in the e89fff89 listing), on every platform and feature; some may not be compiled into rg. Texts in crates/."
   },
   {
    "id": "v8",
@@ -717,14 +833,14 @@
    ],
    "supplier_tree_texts": [],
    "standing": "covered",
-   "below_root": "Root LICENSE, LICENSE.v8, LICENSE.fdlibm and LICENSE.strongtalk, and the 16 LICENSE files under third_party/ at d848a2b3 (the lane's tree read). The supplier's build file (third_party/v8/engine.BUILD.bazel at 086ccc83) names inspector_protocol, v8 and vtune under third_party; the others ship because V8's root licence points to its subdirectory licences, and whether each is compiled in was not established. Four licence files under test/ (SixSpeed/LICENSE.sixspeed, object-keys/LICENSE, regexp-pcre/LICENSE and wasm-js/third_party/LICENSE.testharness, as the retained tree listing names them) are test material and are not shipped."
+   "below_root": "Root LICENSE, LICENSE.v8, LICENSE.fdlibm and LICENSE.strongtalk, and the 16 LICENSE files under third_party/ at d848a2b3 (the lane's tree read). The supplier's build file (third_party/v8/engine.BUILD.bazel at 086ccc83) names inspector_protocol, v8 and vtune under third_party; the others ship because V8's root licence points to its subdirectory licences, and whether each is compiled in was not established. Four licence files under test/ (SixSpeed/LICENSE.sixspeed, object-keys/LICENSE, regexp-pcre/LICENSE and wasm-js/third_party/LICENSE.testharness, as the retained tree listing names them) are test material and are not shipped. At 0.169.0, the supplier's build files at d32063f9 (MODULE.bazel, blob 06405ca6, and third_party/v8/dependencies.bzl, abseil_repository.bzl, engine.BUILD.bazel and the libc++, libc++abi and llvm-libc BUILD files, each equal to the blob the third_party/v8 listing names) pin the same source as at 0.167.0."
   },
   {
    "id": "rusty_v8",
    "name": "rusty_v8 (v8 crate fork)",
    "version": "152.2.0",
-   "repository": "https://github.com/seanh-oai/rusty_v8",
-   "revision": "350c5a859a9b3c84ab8701b3ad51e3b7699b30c0",
+   "repository": "https://github.com/openai-oss-forks/rusty_v8",
+   "revision": "90a65f887a0c0f048f3784afbcb320b373c8a2e0",
    "members": [
     "bin/codex-code-mode-host"
    ],
@@ -733,7 +849,7 @@
    ],
    "supplier_tree_texts": [],
    "standing": "covered",
-   "below_root": "Root LICENSE. The retained root listing of the fork at 350c5a85 has no other licence file; subdirectories were not listed. V8, which the crate builds, is its own row. The root licence points to no further file."
+   "below_root": "Root LICENSE, blob-equal to the committed text (also_at) in the complete listing of openai-oss-forks/rusty_v8 at 90a65f88, which codex-rs/Cargo.lock and MODULE.bazel name at d32063f9. The fork's 20 submodule gitlinks were not followed; per the supplier's release workflow they are built only in its Windows source job."
   },
   {
    "id": "icu",
@@ -749,8 +865,8 @@
    ],
    "supplier_tree_texts": [],
    "standing": "covered",
-   "below_root": "Root LICENSE, which carries ICU's third-party terms in its own sections, including notices for five named files (see reason). The retained listing at d578f2e8 is the root only (license.html, 622 bytes, is not held); subdirectories were not listed.",
-   "reading_context": "ICU's root LICENSE names five files with their own terms: vendor/json/upstream/single_include/nlohmann/json.hpp, aclocal.m4, config.guess and install-sh (each 'only for ICU4C') and sorttable.js ('only for ICU4J'). aclocal.m4 (GPL-2.0-or-later) and config.guess (GPL-3.0-or-later) carry GNU GPL notices, each with the Autoconf exception; both are Autoconf build-system files. The supplier's ICU build file (third_party/v8/icu.BUILD.bazel of openai/codex at 086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a, blob 833c2f027a06d89fa322f5433358383d286682f5, read from a retained copy whose blob equals its tree entry) compiles source/common/**/*.h and *.cpp, source/i18n/**/*.h and *.cpp and source/stubdata/stubdata.cpp, and carries common/icudtl.dat as data; it names none of the five files. The GPL texts those notices refer to are not held. Whether the notices concern anything in the shipped library was put to the owner as a licence reading (owner_licence_reading); the build-system status of the two files is as the answer's description states it, not established here.",
+   "below_root": "Root LICENSE, which carries ICU's third-party terms in its own sections, including notices for five named files (see reason). The retained listing at d578f2e8 is the root only (license.html, 622 bytes, is not held); subdirectories were not listed. At 0.169.0, the supplier's build files at d32063f9 (MODULE.bazel, blob 06405ca6, and third_party/v8/dependencies.bzl, abseil_repository.bzl, engine.BUILD.bazel and the libc++, libc++abi and llvm-libc BUILD files, each equal to the blob the third_party/v8 listing names) pin the same source as at 0.167.0.",
+   "reading_context": "ICU's root LICENSE names five files with their own terms: vendor/json/upstream/single_include/nlohmann/json.hpp, aclocal.m4, config.guess and install-sh (each 'only for ICU4C') and sorttable.js ('only for ICU4J'). aclocal.m4 (GPL-2.0-or-later) and config.guess (GPL-3.0-or-later) carry GNU GPL notices, each with the Autoconf exception; both are Autoconf build-system files. The supplier's ICU build file (third_party/v8/icu.BUILD.bazel of openai/codex at 086ccc833bc9cf01024ad2dd6af7dbd421b6bf9a, blob 833c2f027a06d89fa322f5433358383d286682f5, read from a retained copy whose blob equals its tree entry) compiles source/common/**/*.h and *.cpp, source/i18n/**/*.h and *.cpp and source/stubdata/stubdata.cpp, and carries common/icudtl.dat as data; it names none of the five files. The GPL texts those notices refer to are not held. Whether the notices concern anything in the shipped library was put to the owner as a licence reading (owner_licence_reading); the build-system status of the two files is as the answer's description states it, not established here. At 0.169.0 the same file (blob 833c2f027a06d89fa322f5433358383d286682f5) is third_party/v8/icu.BUILD.bazel in the d32063f9 listing.",
    "owner_licence_reading": {
     "decided_by": "owner",
     "date": "2026-11-15",
@@ -774,7 +890,7 @@
    ],
    "supplier_tree_texts": [],
    "standing": "covered",
-   "below_root": "Root LICENSE.TXT. It names the contributors listed in CREDITS.TXT and says third-party code sits in subdirectory trees with their own LICENSE files; the retained listing is the root only, so neither is held (row libcxx-credits-and-subdirectories)."
+   "below_root": "Root LICENSE.TXT. It names the contributors listed in CREDITS.TXT and says third-party code sits in subdirectory trees with their own LICENSE files; the retained listing is the root only, so neither is held (row libcxx-credits-and-subdirectories). At 0.169.0, the supplier's build files at d32063f9 (MODULE.bazel, blob 06405ca6, and third_party/v8/dependencies.bzl, abseil_repository.bzl, engine.BUILD.bazel and the libc++, libc++abi and llvm-libc BUILD files, each equal to the blob the third_party/v8 listing names) pin the same source as at 0.167.0."
   },
   {
    "id": "libcxxabi",
@@ -790,7 +906,7 @@
    ],
    "supplier_tree_texts": [],
    "standing": "covered",
-   "below_root": "Root LICENSE.TXT. It names the contributors listed in CREDITS.TXT and says third-party code sits in subdirectory trees with their own LICENSE files; the retained listing is the root only, so neither is held (row libcxxabi-credits-and-subdirectories)."
+   "below_root": "Root LICENSE.TXT. It names the contributors listed in CREDITS.TXT and says third-party code sits in subdirectory trees with their own LICENSE files; the retained listing is the root only, so neither is held (row libcxxabi-credits-and-subdirectories). At 0.169.0, the supplier's build files at d32063f9 (MODULE.bazel, blob 06405ca6, and third_party/v8/dependencies.bzl, abseil_repository.bzl, engine.BUILD.bazel and the libc++, libc++abi and llvm-libc BUILD files, each equal to the blob the third_party/v8 listing names) pin the same source as at 0.167.0."
   },
   {
    "id": "llvm-libc",
@@ -806,7 +922,7 @@
    ],
    "supplier_tree_texts": [],
    "standing": "covered",
-   "below_root": "Root LICENSE.TXT. It says third-party code sits in subdirectory trees with their own LICENSE files; the retained listing is the root only, so those are not enumerated (row llvm-libc-subdirectories)."
+   "below_root": "Root LICENSE.TXT. It says third-party code sits in subdirectory trees with their own LICENSE files; the retained listing is the root only, so those are not enumerated (row llvm-libc-subdirectories). At 0.169.0, the supplier's build files at d32063f9 (MODULE.bazel, blob 06405ca6, and third_party/v8/dependencies.bzl, abseil_repository.bzl, engine.BUILD.bazel and the libc++, libc++abi and llvm-libc BUILD files, each equal to the blob the third_party/v8 listing names) pin the same source as at 0.167.0."
   },
   {
    "id": "libcxx-credits-and-subdirectories",
@@ -817,11 +933,12 @@
    "members": [
     "bin/codex-code-mode-host"
    ],
-   "texts": [],
+   "texts": [
+    "app/packaging/supplier_notices/libcxx-b16984ce/CREDITS.TXT"
+   ],
    "supplier_tree_texts": [],
-   "standing": "uncovered",
-   "reason": "libc++'s LICENSE.TXT names the contributors listed in CREDITS.TXT and points to subdirectory LICENSE files for third-party code; CREDITS.TXT is not held and the subdirectories (cmake, docs, include, lib, modules, src, test, utils, vendor) were not listed.",
-   "would_close": "Fetch CREDITS.TXT (blob aa3c8cf1a8c6e3aebf00f4dde627ed429c261640, 4,124 bytes) at b16984ce, and a recursive tree listing at that revision to name the LICENSE files below the root, then fetch those."
+   "standing": "covered",
+   "below_root": "CREDITS.TXT at the revision (the blob the complete gitiles recursive listing names). That listing, whose tree id recomputes to the commit's, has no other licence-named file below the root, so no subdirectory LICENSE file exists at this revision. Per-file terms at the top of individual files, the root text's other mechanism, were not examined and are not excluded."
   },
   {
    "id": "libcxxabi-credits-and-subdirectories",
@@ -832,11 +949,12 @@
    "members": [
     "bin/codex-code-mode-host"
    ],
-   "texts": [],
+   "texts": [
+    "app/packaging/supplier_notices/libcxxabi-8f11bb1d/CREDITS.TXT"
+   ],
    "supplier_tree_texts": [],
-   "standing": "uncovered",
-   "reason": "libc++abi's LICENSE.TXT names the contributors listed in CREDITS.TXT and points to subdirectory LICENSE files for third-party code; CREDITS.TXT is not held and the subdirectories were not listed.",
-   "would_close": "Fetch CREDITS.TXT (blob fbb6cbf38baf60a05dcca9025e50f3a25c961b73, 1,660 bytes) at 8f11bb1d, and a recursive tree listing at that revision to name the LICENSE files below the root, then fetch those."
+   "standing": "covered",
+   "below_root": "CREDITS.TXT at the revision (the blob the complete gitiles recursive listing names). That listing, whose tree id recomputes to the commit's, has no other licence-named file below the root, so no subdirectory LICENSE file exists at this revision. Per-file terms at the top of individual files, the root text's other mechanism, were not examined and are not excluded."
   },
   {
    "id": "llvm-libc-subdirectories",
@@ -847,11 +965,12 @@
    "members": [
     "bin/codex-code-mode-host"
    ],
-   "texts": [],
+   "texts": [
+    "app/packaging/supplier_notices/llvm-libc-75ae50cd/LICENSE.TXT"
+   ],
    "supplier_tree_texts": [],
-   "standing": "uncovered",
-   "reason": "llvm-libc's LICENSE.TXT points to subdirectory LICENSE files for third-party code; the subdirectories were not listed.",
-   "would_close": "A recursive tree listing at 75ae50cd to name the LICENSE files below the root, then fetch those."
+   "standing": "covered",
+   "below_root": "The complete gitiles recursive listing at 75ae50cd, whose tree id recomputes to the commit's, has no licence-named file below the root, so no subdirectory LICENSE file exists; the root LICENSE.TXT is the text. Per-file terms at the top of individual files were not examined and are not excluded."
   },
   {
    "id": "highway",
@@ -867,7 +986,7 @@
    ],
    "supplier_tree_texts": [],
    "standing": "covered",
-   "below_root": "Root texts only. No listing below the root is held, so subdirectories were not examined; the root texts point to no further file."
+   "below_root": "Root texts only. No listing below the root is held, so subdirectories were not examined; the root texts point to no further file. At 0.169.0, the supplier's build files at d32063f9 (MODULE.bazel, blob 06405ca6, and third_party/v8/dependencies.bzl, abseil_repository.bzl, engine.BUILD.bazel and the libc++, libc++abi and llvm-libc BUILD files, each equal to the blob the third_party/v8 listing names) pin the same source as at 0.167.0."
   },
   {
    "id": "fast_float",
@@ -886,7 +1005,7 @@
    ],
    "supplier_tree_texts": [],
    "standing": "covered",
-   "below_root": "Root texts only. No listing below the root is held, so subdirectories were not examined; the root texts point to no further file."
+   "below_root": "Root texts only. No listing below the root is held, so subdirectories were not examined; the root texts point to no further file. At 0.169.0, the supplier's build files at d32063f9 (MODULE.bazel, blob 06405ca6, and third_party/v8/dependencies.bzl, abseil_repository.bzl, engine.BUILD.bazel and the libc++, libc++abi and llvm-libc BUILD files, each equal to the blob the third_party/v8 listing names) pin the same source as at 0.167.0."
   },
   {
    "id": "simdutf",
@@ -904,7 +1023,7 @@
    ],
    "supplier_tree_texts": [],
    "standing": "covered",
-   "below_root": "Root texts only. No listing below the root is held, so subdirectories were not examined; the root texts point to no further file."
+   "below_root": "Root texts only. No listing below the root is held, so subdirectories were not examined; the root texts point to no further file. At 0.169.0, the supplier's build files at d32063f9 (MODULE.bazel, blob 06405ca6, and third_party/v8/dependencies.bzl, abseil_repository.bzl, engine.BUILD.bazel and the libc++, libc++abi and llvm-libc BUILD files, each equal to the blob the third_party/v8 listing names) pin the same source as at 0.167.0."
   },
   {
    "id": "dragonbox",
@@ -921,7 +1040,7 @@
    ],
    "supplier_tree_texts": [],
    "standing": "covered",
-   "below_root": "Root texts only. No listing below the root is held, so subdirectories were not examined; the root texts point to no further file."
+   "below_root": "Root texts only. No listing below the root is held, so subdirectories were not examined; the root texts point to no further file. At 0.169.0, the supplier's build files at d32063f9 (MODULE.bazel, blob 06405ca6, and third_party/v8/dependencies.bzl, abseil_repository.bzl, engine.BUILD.bazel and the libc++, libc++abi and llvm-libc BUILD files, each equal to the blob the third_party/v8 listing names) pin the same source as at 0.167.0."
   },
   {
    "id": "fp16",
@@ -937,7 +1056,7 @@
    ],
    "supplier_tree_texts": [],
    "standing": "covered",
-   "below_root": "Root texts only. No listing below the root is held, so subdirectories were not examined; the root texts point to no further file."
+   "below_root": "Root texts only. No listing below the root is held, so subdirectories were not examined; the root texts point to no further file. At 0.169.0, the supplier's build files at d32063f9 (MODULE.bazel, blob 06405ca6, and third_party/v8/dependencies.bzl, abseil_repository.bzl, engine.BUILD.bazel and the libc++, libc++abi and llvm-libc BUILD files, each equal to the blob the third_party/v8 listing names) pin the same source as at 0.167.0."
   },
   {
    "id": "abseil-cpp",
@@ -954,7 +1073,7 @@
    ],
    "supplier_tree_texts": [],
    "standing": "covered",
-   "below_root": "Root texts only. No listing below the root is held, so subdirectories were not examined; the root texts point to no further file."
+   "below_root": "Root texts only. No listing below the root is held, so subdirectories were not examined; the root texts point to no further file. At 0.169.0, the supplier's build files at d32063f9 (MODULE.bazel, blob 06405ca6, and third_party/v8/dependencies.bzl, abseil_repository.bzl, engine.BUILD.bazel and the libc++, libc++abi and llvm-libc BUILD files, each equal to the blob the third_party/v8 listing names) pin the same source as at 0.167.0."
   },
   {
    "id": "gstreamer",
@@ -972,8 +1091,10 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/LGPL-2.1.txt"
    ],
-   "standing": "covered",
-   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined."
+   "standing": "uncovered",
+   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
+   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
+   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
   },
   {
    "id": "gst-plugins-base",
@@ -997,8 +1118,10 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/LGPL-2.1.txt"
    ],
-   "standing": "covered",
-   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined."
+   "standing": "uncovered",
+   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
+   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
+   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
   },
   {
    "id": "gst-plugins-good",
@@ -1014,8 +1137,10 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/LGPL-2.1.txt"
    ],
-   "standing": "covered",
-   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined."
+   "standing": "uncovered",
+   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
+   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
+   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
   },
   {
    "id": "glib",
@@ -1033,8 +1158,10 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/LGPL-2.1.txt"
    ],
-   "standing": "covered",
-   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined."
+   "standing": "uncovered",
+   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
+   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
+   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
   },
   {
    "id": "proxy-libintl",
@@ -1049,8 +1176,10 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/proxy-libintl.txt"
    ],
-   "standing": "covered",
-   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined."
+   "standing": "uncovered",
+   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
+   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
+   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
   },
   {
    "id": "libffi",
@@ -1065,8 +1194,10 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/libffi.txt"
    ],
-   "standing": "covered",
-   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined."
+   "standing": "uncovered",
+   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
+   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
+   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
   },
   {
    "id": "pcre2-voice",
@@ -1082,8 +1213,10 @@
     "codex-resources/voice/licenses/PCRE2.md",
     "codex-resources/voice/licenses/sljit.txt"
    ],
-   "standing": "covered",
-   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined."
+   "standing": "uncovered",
+   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
+   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
+   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
   },
   {
    "id": "opus",
@@ -1098,8 +1231,10 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/Opus.txt"
    ],
-   "standing": "covered",
-   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined."
+   "standing": "uncovered",
+   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
+   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
+   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
   },
   {
    "id": "zlib",
@@ -1114,8 +1249,10 @@
    "supplier_tree_texts": [
     "codex-resources/voice/licenses/zlib.txt"
    ],
-   "standing": "covered",
-   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined."
+   "standing": "uncovered",
+   "below_root": "The licence texts the supplier ships in its tree; nothing upstream was examined.",
+   "reason": "codex-resources/voice/sources.json, which states this component's version and source, differs at 0.169.0 from the 0.167.0 file read for this row (same size, another digest), and its content is not held; the version and source recorded here are 0.167.0's. The licence texts in the tree are byte-identical to 0.167.0's.",
+   "would_close": "read sources.json from the 0.169.0 distribution (a read-only single-member extraction, proposed to the integrator) and check this row against it"
   }
  ]
 }

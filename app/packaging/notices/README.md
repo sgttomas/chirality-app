@@ -43,6 +43,7 @@ relay of an owner reading are bound by the curated review record.
 | Transitive runtime closure (`transitive-index.json`) | `transitive.py` | `third-party-notices/transitive-index.json` |
 | Transitive texts (`transitive/<cargo or npm>/<package>/<version>/`) | `package_texts.py extract` | `third-party-notices/transitive/` |
 | Supplier component texts (`../supplier_notices/`, listed in `components.json`, with what was examined below each root) | hand-kept table | `third-party-notices/supplier/` |
+| Supplier crate texts (`../supplier_notices/crates/texts/<sha256>`) and the per-package account (`crates/packages.json`) | `../supplier_notices/crates.py` | `third-party-notices/supplier/crates/` |
 | Coverage account (`coverage.json`) | `coverage.py generate` | `third-party-notices/coverage.json` |
 | Font licences and SQLite notice | `../font_notice/`, `../sqlite_notice/` | `third-party-notices/fonts/`, `sqlite-preparation/` (mapped by `prepare.py`) |
 | Voice library licences | the supplier ships them in its tree | `codex/codex-resources/voice/licenses/` |
@@ -116,10 +117,14 @@ Rules `coverage.py` applies, whatever the tables say:
   compiled program. The rule fits this record: executables plus `.dylib` members must
   equal the record's Mach-O count, and every one of them must belong to a component.
   It is not a general proof that a file is a compiled program. Each executable must
-  belong to a `compiled-dependencies` component, and those stand uncovered in this
-  change whatever the table says. The change that extracts their texts adds the rule
-  for covering them: the supplier lockfile bound to the supplier's source commit, and
-  every locked package with its own extracted text or a stated basis.
+  belong to a `compiled-dependencies` component. Such a component is covered only by
+  the supplier crate group (`../supplier_notices/crates.py`): its lockfile, bound by
+  blob to the component's own repository and revision (the Codex lockfile to the
+  distribution record's source commit), and every package that lockfile locks with its
+  text. A package with no text, or one awaiting an owner reading, keeps the component
+  open, and the account names each such package. The lockfiles are a superset: they
+  lock packages for every platform and feature, and some may not be compiled into the
+  macOS executables. The table's standing for the component must agree.
 - **Table reviewed for another pin.** When the declared pin differs from the table's
   `reviewed_for_pin`, no association is carried forward: every table row stands
   uncovered (the deferred rows with their own reason), and a "Supplier component
@@ -128,29 +133,34 @@ Rules `coverage.py` applies, whatever the tables say:
   `coverage-review.json` and states the open table row's removal in
   `removed_components`.
 - **Supplier texts are bound to their component.** Each committed text records its
-  repository and revision; a voice text is a member of the supplier tree with the
+  repository and revision, and may record `also_at` identities: the same blob at another
+  repository and revision, each with the listing that names it; a voice text is a member of the supplier tree with the
   record's digest. A component is covered only when each committed text's repository
   and revision equal the component's own, or the text is a named exception with its
   reason (pcre2-sys ships two texts blob-equal to its own, kept once under ripgrep).
 - **Fonts** are covered only with recorded upstream evidence (package, integrity and
   a tarball member for every file and the licence); otherwise uncovered.
 - **Reviewed inputs.** `../supplier_notices/components.json` and
-  `coverage-inputs.json` are curated judgments, not facts a check can prove. The
+  `coverage-inputs.json` are curated judgments, not facts a check can prove, as is
+  `../supplier_notices/crates/associations.json`; `crates/index.json` is made from
+  archives CI does not hold. The
   direct, transitive, font and SQLite indexes are made by generators from caches CI
   does not hold, so CI can check texts only against them. The declared pin's
   `CANONICAL_DISTRIBUTION.json` is bound too, because the account copies the voice
-  licence digests from it. `coverage-review.json` binds those seven files' SHA-256
+  licence digests from it. `coverage-review.json` binds those nine files' SHA-256
   and lists every supplier component with its standing, version, revision and exact
   texts, and `coverage.py` checks it first. The record states what a reviewer
   examined; it is not a proof. The reviewer of the pull request that changes any of
   those files updates it, after rerunning the cache-reading checks for a changed
   index. **A supplier pin move changes which distribution record is bound, so it
   must update `coverage-review.json` in the same change.**
-- **Deferred rows.** `coverage.DEFERRED` lists the five supplier rows with no route
-  to covered in this change (the Codex and rg compiled-in crates, and the libc++,
-  libc++abi and llvm-libc texts their licences point to). They stand uncovered
-  whatever the table or the review record says, and must stay in the table. The
-  change that establishes one removes its id from that list.
+- **Deferred rows.** `coverage.DEFERRED` lists supplier rows with no route to
+  covered, whatever the table or the review record says; each must stay in the table.
+  It is empty at 0.169.0: the five rows it held for 0.167.0 were each established and
+  removed (the two crate groups by the lockfile, index and text correspondence above,
+  the libc++ and libc++abi CREDITS texts at their listed blobs, and those two and
+  llvm-libc's subdirectories by complete listings with no licence file below the root;
+  per-file terms are not excluded). A row with no route is added back here.
 - **Identities.** Every committed supplier text needs a non-empty repository and
   revision; an exception needs a non-empty reason. Each supplier component's own
   identity is checked before its texts or exceptions: a component with committed

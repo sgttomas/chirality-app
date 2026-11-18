@@ -3,9 +3,16 @@ name: macOS packaging and distribution evidence
 needs:
 - from: DEL-01-01
   condition: The pin names one published Codex distribution; the expected inventory of its vendor
-    tree is available to the build; and an installed App checks its own Codex against that inventory
-    and the compiled publisher identity and reports the result.
+    tree, with the supplier source commit that distribution names, is available to the build; and an
+    installed App checks its own Codex against that inventory and the compiled publisher identity
+    and reports the result.
   gating: true
+- from: external:chirality-app-v4:DEP-005
+  condition: The supplier's public source at the commit the distribution names holds the lockfiles
+    and build files that name, at exact versions and revisions, the packages and native sources its
+    executables are built from, and each locked package's archive or licence file at the locked
+    revision is obtainable with the owner's permission.
+  when: Establishing the notices of the components inside the supplier's executables
 - from: DEL-02-02
   condition: The workflows a release ships are registered by the release, each at its shipped
     revision, and a library entry counts as a shipped revision only when it is byte-equal to it.
@@ -66,6 +73,8 @@ checks:
 - app/packaging/notices/package_texts.py
 - app/packaging/notices/coverage.py
 - app/tests/notice_coverage_test.py
+- app/packaging/supplier_notices/crates.py
+- app/tests/supplier_crate_notices_test.py
 - app/tests/group_b_packaging_test.py
 - app/tests/compiled_selection_packaging_test.py
 - app/packaging/seal_c/test_prepare.py
