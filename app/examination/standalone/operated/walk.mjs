@@ -786,8 +786,8 @@ async function walk(options, holder) {
     calls.push({ at: await time(), call: 'get_app_state', ...asked });
     const state = await supply('get_app_state', asked);
     if (state?.app !== bundle) throw new Error(`the view does not say it is of the bundle; it names: ${state?.app}`);
-    if (typeof state?.text !== 'string') throw new Error('the view returned no text');
-    const text = state.text;
+    const text = state?.text;  // read once: the text checked is the text used
+    if (typeof text !== 'string') throw new Error('the view returned no text');
     if (text.startsWith(DIFFERENCE) || text.startsWith(NO_CHANGE)) {
       let rebuilt = null;
       try {

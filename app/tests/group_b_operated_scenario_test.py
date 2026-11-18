@@ -2834,7 +2834,30 @@ class ThePageRuleAnOperatorRuns(unittest.TestCase):
             '  const { elements, refusal } = recognise(text, launchedName);',
             '  return refusal ?? notThePage(elements, scenario);', '}'])
         # The walk's own refusal of a view without text, in the same words.
-        self.assertIn("if (typeof state?.text !== 'string') throw new Error('the view returned no text');", WALK.read_text())
+        self.assertIn("if (typeof text !== 'string') throw new Error('the view returned no text');", WALK.read_text())
+
+    def test_the_walk_reads_a_views_text_once_so_the_text_checked_is_the_text_judged(self):
+        # A stand-in whose text reads as the page's string the first time and as something else after: the walk reads
+        # it once, so its own check of the text and the rule's are of the same value, and the walk goes as it does
+        # on plain views (the limited reading of the rule's string check).
+        plain = setup_walk(RESULT.replace('OPTIONS', 'base'))['out']
+        changing = setup_walk('''
+            const reads = [];
+            const sky = new Proxy({}, { get(_, name) {
+              if (name === 'then') return undefined;
+              if (name === 'get_app_state') return async () => {
+                const text = nextView(); let n = 0; reads.push(() => n);
+                return { app: viewOf.app, get text() { n++; return n === 1 ? text : new String(text); } };
+              };
+              if (name === 'click' || name === 'set_value') return async () => {};
+              throw new Error('a method the walk must never use: ' + String(name));
+            } });
+            const r = await walk.run({ ...base, sky });
+            return [r.verdict, r.stopped, r.calls.map(c => c.call + (c.element_index ?? "") + (c.value ? "=" + c.value : "")), reads.map(read => read())];
+        ''')['out']
+        self.assertEqual(changing[:3], plain)
+        self.assertTrue(changing[3])
+        self.assertEqual(set(changing[3]), {1})
 
     def test_the_walk_itself_decides_the_page_by_this_rule_and_no_other(self):
         source = WALK.read_text()
