@@ -489,7 +489,10 @@ implemented behavior and qualification limits.
     has no reported final status, the App says its stop record has no
     reported final status for that turn. Each row gives the stop-record
     reading, with any App label attributed and a derived label marked. An
-    interrupt request does not answer a Codex request.
+    interrupt request does not answer a Codex request. A request with no
+    completed write (pending, not sent, or write incomplete) keeps its
+    unlabelled reading in every view that shows it, even where its row
+    carries a label.
 
     An accepted stored turn page shows the native status and the newest
     matching App stop request, or an applicable in-memory Stop Codex outcome
@@ -497,8 +500,9 @@ implemented behavior and qualification limits.
     home. The page shows the App's stop-request reading or its Stop or
     Restart Codex outcome, with any App label attributed and any final
     report identified by source. On a matched ledger row, the two final
-    reports are identified by source when they differ. A qualifying labelled
-    stop-request row from an earlier session whose end is established offers
+    reports are identified by source when they differ. A labelled
+    stop-request row whose interrupt write is recorded as sent, from an
+    earlier session whose end is established, offers
     **Continue this conversation**.
     It sends the existing Codex resume request and opens the conversation
     after matching admission in the current view. Continue sends no
