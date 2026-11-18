@@ -255,6 +255,20 @@ function inMenuBar(elements) {
 }
 
 /**
+ * The page rule, whole, for one view's text as the service returned it: why the view is not one to act on as the
+ * scenario's page, or null. It is the two checks the walk makes of every view it acts on, in their order and unchanged:
+ * the view whole and recognised line for line as the launched build's (recognise), then the scenario's page and nothing
+ * else (notThePage). The walk calls it at each such view. An operator who acts without the walk (README.md, "The
+ * signed-out rehearsal of phase 1") calls it on every view's text. It reads its three arguments and nothing else: it
+ * starts no walk, reads no file and calls no service.
+ */
+export function pageRefusal(text, launchedName, scenario) {
+  if (typeof text !== 'string') return 'the view returned no text';  // as view() refuses it, before anything reads it
+  const { elements, refusal } = recognise(text, launchedName);
+  return refusal ?? notThePage(elements, scenario);
+}
+
+/**
  * The App's own confirmation sheet against the scenario's recorded view of it, before anything is pressed. The view
  * must equal the template line for line: each element line in its depth and its words, every other line exactly. The
  * template is filled only with the captured paths (through the statement), the sheet's title, and the App's name, which
@@ -772,8 +786,8 @@ async function walk(options, holder) {
     calls.push({ at: await time(), call: 'get_app_state', ...asked });
     const state = await supply('get_app_state', asked);
     if (state?.app !== bundle) throw new Error(`the view does not say it is of the bundle; it names: ${state?.app}`);
-    if (typeof state?.text !== 'string') throw new Error('the view returned no text');
-    const text = state.text;
+    const text = state?.text;  // read once: the text checked is the text used
+    if (typeof text !== 'string') throw new Error('the view returned no text');
     if (text.startsWith(DIFFERENCE) || text.startsWith(NO_CHANGE)) {
       let rebuilt = null;
       try {
@@ -811,7 +825,7 @@ async function walk(options, holder) {
     report.whole_views_before_any_click.push({ at: await time(), whole: seen.whole, returned: seen.text, ...(seen.whole ? {} : { rebuilt_for_reading: seen.rebuilt }) });
     if (!seen.whole) return finish('inconclusive', asDifferences(`the ${ordinal} view before any click`, ordinal === 'first'));
     if (seen.refusal) return finish('inconclusive', unaddressed(`the ${ordinal} view before any click`, seen.refusal));
-    const stray = notThePage(elements, scenario);
+    const stray = pageRefusal(seen.text, appName, scenario);
     if (stray) return finish('inconclusive', `stopped at the ${ordinal} view before any click: ${stray}; no agent answers a prompt or a dialog`);
     const afterView = await gate(`after the ${ordinal} view before any click`);
     if (afterView) return afterView;
@@ -975,7 +989,7 @@ async function walk(options, holder) {
       return finish('inconclusive', asDifferences(step.id));
     }
     if (seen.refusal) return finish('inconclusive', unaddressed(step.id, seen.refusal));
-    const stray = notThePage(elements, scenario);
+    const stray = pageRefusal(seen.text, appName, scenario);
     if (stray && step.act === 'confirm_sheet') return finish('inconclusive', `stopped at ${step.id}: after the one press, ${stray}; it is not pressed again`);
     if (stray) return finish('inconclusive', `stopped at ${step.id}: ${stray}; no agent answers a prompt or a dialog`);
     // Unmet expectations: in the step's judgment as codes with the condition's own parameters (its index and kind); in
