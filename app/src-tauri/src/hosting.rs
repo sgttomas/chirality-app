@@ -1527,10 +1527,10 @@ impl Host {
     }
     fn check_send_admitted(i: &Inner, method: &str) -> Result<(), String> {
         if matches!(method,"turn/start"|"turn/steer")&&i.stop_confirmed.as_ref()==Some(&i.generation) {
-            return Err(format!("refused-not-sent: Stop Codex or Quit was confirmed for this Codex process; no {method} is sent"));
+            return Err(format!("refused-not-sent: Stop Codex was confirmed for this Codex process; no {method} is sent"));
         }
         if matches!(method,"turn/start"|"turn/steer")&&i.quit_closed {
-            return Err(format!("refused-not-sent: Quit was confirmed and the App is quitting; no {method} is sent"));
+            return Err(format!("refused-not-sent: the App is quitting; no {method} is sent"));
         }
         Ok(())
     }

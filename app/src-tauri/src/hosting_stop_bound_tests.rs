@@ -1481,7 +1481,7 @@ mod quit_closes_starting_homes {
         assert_eq!(asked, 2);
         for method in ["turn/start", "turn/steer"] {
             let refusal = send(&mut f, method).unwrap_or_else(|| panic!("{method} reached Codex"));
-            assert!(refusal.contains("was confirmed") && !refusal.contains(QUITTING), "still Stop Codex's closure: {refusal}");
+            assert!(refusal.contains("Stop Codex was confirmed") && !refusal.contains(QUITTING), "still Stop Codex's closure: {refusal}");
         }
     }
 }
